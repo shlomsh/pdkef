@@ -11,6 +11,7 @@
  * would render off the bottom of the page.
  */
 import { getDocumentationLocale } from '../i18n/documentationLocales';
+import { languageMenuLabel } from '../i18n/languageMenuLabel';
 import LanguageFlag from './LanguageFlag.astro';
 
 interface Variant {
@@ -55,7 +56,7 @@ const current = available.find((variant) => variant.current) ?? available[0];
 
 {available.length > 1 && current && (
   <Fragment><slot name="before" /><details class="lang-menu relative inline-block text-[0.86rem]" data-direction={direction} data-tone={tone} data-lang-menu>
-    <summary class="lang-menu-summary inline-flex cursor-pointer items-center gap-[0.5rem] rounded-[var(--radius-pill)] border border-[var(--color-border)] bg-[var(--color-surface)] px-[0.8rem] py-[0.4rem] font-semibold text-[var(--color-text)]" aria-label={label}>
+    <summary class="lang-menu-summary inline-flex cursor-pointer items-center gap-[0.5rem] rounded-[var(--radius-pill)] border border-[var(--color-border)] bg-[var(--color-surface)] px-[0.8rem] py-[0.4rem] font-semibold text-[var(--color-text)]" aria-label={languageMenuLabel(current.name, label)}>
       <LanguageFlag locale={current.locale} class="lang-menu-flag" />
       <span class="lang-menu-name" lang={current.locale}>{current.name}</span>
       <svg class="lang-menu-chevron text-[var(--color-muted)]" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
