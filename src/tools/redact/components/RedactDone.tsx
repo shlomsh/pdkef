@@ -1,10 +1,10 @@
 import { FileSignature, Shrink } from 'lucide-preact';
 import ExportHandoffs from '../../../shell/ExportHandoffs.tsx';
-import { formatFileSize } from '../../../lib/format.js';
+import { formatFileSize } from '../../../lib/text/format.js';
 import pdfToolStyles from '../../../shell/PdfTool.module.css';
 import styles from './RedactDone.module.css';
 import { englishRedactMessages as t } from '../messages.ts';
-import type { RedactHandoffTarget } from '../../../lib/toolIds.ts';
+import type { RedactHandoffTarget } from '../../../lib/app/toolIds.ts';
 import { finishPagesText, finishStatusText, type FinishFacts } from '../lib/finishState.ts';
 
 /** The saved result: what was saved, then the one line about pictures. Shared by the pinned strip and the bottom row. */

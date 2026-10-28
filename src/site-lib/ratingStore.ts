@@ -1,7 +1,7 @@
 // Pure pieces of the star-rating path (SEO-46): which keys a vote lands in and how the counts are read
 // back. Unlike every other count in errorReportStore.ts, a rating is permanent: one hash per tool,
 // `rating:<tool>`, a count per star value, never given an expiry. Only the day's cap total expires.
-import type { RatingCommentEvent, RatingEvent } from '../lib/ratingSchema.js';
+import type { RatingCommentEvent, RatingEvent } from '../lib/telemetry/ratingSchema.js';
 import type { Command } from './errorReportStore.js';
 
 /** Ratings counted per UTC day, apart from the other caps. A rating costs 1 command (2 on the day's first). */

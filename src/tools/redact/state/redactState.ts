@@ -16,7 +16,7 @@
  *     and the Share bytes (`usePdfShare`), which keep their own hooks.
  */
 import type { PDFDocumentProxy } from 'pdfjs-dist';
-import { formatMessage } from '../../../lib/formatMessage.ts';
+import { formatMessage } from '../../../lib/text/formatMessage.ts';
 import {
   applyHistoryEntries,
   removedPlaces,

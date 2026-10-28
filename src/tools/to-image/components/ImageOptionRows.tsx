@@ -1,5 +1,5 @@
-import { recordAction } from '../../../lib/actionTrail.ts';
-import { reportEdit } from '../../../lib/productAnalytics.ts';
+import { recordAction } from '../../../lib/telemetry/actionTrail.ts';
+import { reportEdit } from '../../../lib/telemetry/productAnalytics.ts';
 import OptionRow, { type Option } from '../../../shell/pageWorkspace/OptionRow.tsx';
 import type { ImageFormat, ImageLayout } from '../lib/toImageOutput.ts';
 import type { ToImageMessages } from '../messages';

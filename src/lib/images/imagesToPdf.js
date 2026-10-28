@@ -1,0 +1,30 @@
+import { getPdfLib } from '../pdf/pdfLib.js';
+import { addImagePage, UnsupportedImageError } from './imagePage.js';
+import { mimeTypeOf } from '../handoff/fileKind.js';
+import { throwIfAborted } from '../output/abort.js';
+
+/** @testSeam */
+export { UnsupportedImageError };
+
+// Combines image files into a single PDF, one image per page. With the default
+// pageSize 'fit', each page is
+// sized to match its image's pixel dimensions exactly (1 image pixel = 1 PDF
+// point), so the image fills the page edge-to-edge with no distortion or
+// letterboxing. Runs entirely in-memory in the browser - no network I/O.
+export async function imagesToPdf(files, onProgress, signal, { pageSize = 'fit', pointsPerPixel = 1 } = {}) {
+  const { PDFDocument } = await getPdfLib();
+  const pdf = await PDFDocument.create();
+
+  for (let i = 0; i < files.length; i += 1) {
+    throwIfAborted(signal);
+    const file = files[i];
+    const bytes = await file.arrayBuffer();
+
+    await addImagePage(pdf, bytes, mimeTypeOf(file), file.name, { pageSize, pointsPerPixel });
+    onProgress?.((i + 1) / files.length);
+  }
+
+  throwIfAborted(signal);
+  const pdfBytes = await pdf.save();
+  return new Blob([pdfBytes], { type: 'application/pdf' });
+}

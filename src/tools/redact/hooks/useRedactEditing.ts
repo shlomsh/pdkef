@@ -1,9 +1,9 @@
 import { useEffect } from 'preact/hooks';
 import { uniqueId } from '../../../editor/model/ids.ts';
-import { recordAction } from '../../../lib/actionTrail.ts';
+import { recordAction } from '../../../lib/telemetry/actionTrail.ts';
 import { useEyedropper } from '../../../editor-ui/whiteout/pageSampling.ts';
 import { autoColorChanges, type PercentBox } from '../../../editor-ui/whiteout/pageColor.ts';
-import { formatMessage } from '../../../lib/formatMessage.ts';
+import { formatMessage } from '../../../lib/text/formatMessage.ts';
 import type { ElementUpdateKind } from '../../../editor/model/updateKind.ts';
 import type { BlurStrength } from '../../../editor/model/blurStrength.ts';
 import { isDeleteElement, type RedactElement } from '../lib/redactElements.ts';

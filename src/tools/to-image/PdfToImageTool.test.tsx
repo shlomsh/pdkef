@@ -6,12 +6,12 @@ import PdfToImageTool from './PdfToImageTool.tsx';
 import { mockNativeFileShare } from '../../test/support/mockFileShare.js';
 import { setInputFiles } from '../../test/support/setInputFiles.js';
 import { until } from '../../test/support/until.js';
-import { recentActions } from '../../lib/actionTrail.ts';
+import { recentActions } from '../../lib/telemetry/actionTrail.ts';
 import { saveHandoff } from '../../lib/drafts/draftStore.ts';
 import { installToolHarness, type ToolHarness } from '../../test/harness/toolHarness.ts';
 // The same object as harness.pdfjs.source: the conversion fake below sits outside any test and reads the page count.
 import { pdfjsEdges } from '../../test/harness/pdfjsEdges.ts';
-import { parsePageSelector } from '../../lib/pageSelector.js';
+import { parsePageSelector } from '../../lib/pages/pageSelector.js';
 import { hebrewToImageMessages } from './messages';
 import { hebrewShellMessages } from '../../shell/shellMessages';
 

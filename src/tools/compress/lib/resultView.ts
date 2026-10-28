@@ -1,5 +1,5 @@
-import { isolateLtr } from '../../../lib/format.js';
-import { formatMessage } from '../../../lib/formatMessage';
+import { isolateLtr } from '../../../lib/text/format.js';
+import { formatMessage } from '../../../lib/text/formatMessage';
 import type { CompressMessages } from '../messages';
 
 // Wording only: below this saving the result says so plainly. The file is still offered (COMP-01).

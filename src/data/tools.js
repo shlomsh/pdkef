@@ -17,7 +17,7 @@
 // from the existing palette, so the grid keeps one accent color:
 //   'primary' - the flagship; mirrors the big dropzone CTA, which opens /sign.
 //   'soft'    - the one we're deliberately pushing.
-import { labelOf } from '../lib/toolIds.ts';
+import { labelOf } from '../lib/app/toolIds.ts';
 import {
   FileSignature,
   Merge,

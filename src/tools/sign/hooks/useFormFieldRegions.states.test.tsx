@@ -140,14 +140,14 @@ describe('useFormFieldRegions detection state', () => {
     const reportError = vi.fn();
     const theError = new TypeError('p.findLast is not a function');
     vi.resetModules();
-    vi.doMock('../../../lib/errorReport.ts', () => ({ reportError }));
+    vi.doMock('../../../lib/telemetry/errorReport.ts', () => ({ reportError }));
     vi.doMock('@cantoo/pdf-lib', () => ({
       PDFDocument: { load: async () => { throw theError; } },
     }));
 
     await detect();
     expect(reportError).toHaveBeenCalledWith('sign_form_detection', theError, 'detect_fields');
-    vi.doUnmock('../../../lib/errorReport.ts');
+    vi.doUnmock('../../../lib/telemetry/errorReport.ts');
   });
 
   // An honest zero: the run finished, and this document has nothing in it the

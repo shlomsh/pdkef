@@ -26,7 +26,7 @@ The idea started from two Redact error reports. The code and the runs change the
 (Read, with the runs in section 2.) A file that needs a password to open never reaches Redact's editor:
 pdf.js rejects it with `PasswordException`, the load fails, and Redact shows "This PDF didn't open. ...
 A locked PDF opens in Unlock first." (`src/tools/redact/PdfRedactTool.tsx:1202-1223`; that error is
-already muted from reports, `src/lib/errorReport.ts:31`). A file that is only protected against changes
+already muted from reports, `src/lib/telemetry/errorReport.ts:31`). A file that is only protected against changes
 (owner password, empty user password) opens in pdf.js with no prompt, so the editor mounts and the person
 starts working. Then two `PDFDocument.load` calls without `ignoreEncryption` throw `EncryptedPDFError`:
 
@@ -47,7 +47,7 @@ files themselves were never seen.
 (the failed count did not move while ready grew from 4 to 7). Every Redact `failed` comes from the one
 export catch, because Redact passes no `analyticsStatus` (`PdfRedactTool.tsx:924`), so a load failure
 never counts. But the `failed` counter carries no reason (the schema is exactly `{name, properties:
-{tool}}`, `src/lib/usageEventSchema.ts`), error reports are deduplicated per page load and capped, and
+{tool}}`, `src/lib/telemetry/usageEventSchema.ts`), error reports are deduplicated per page load and capped, and
 the digest shows each encrypted fingerprint with count 1. One page load that retried Save eleven times
 fits, and so do other export failures that were never reported (a report with no frame in our built
 output is dropped). So 11 = 1 report + 10 unknown. The fix for the question is not a better query; it is
@@ -76,7 +76,7 @@ shipped.
 | Byte scan, last 1 KB | hint only | hint only | under 1 ms | Wrong on large object-stream files (the trailer sat 30 KB from the end) and on `/Encrypt` text in a comment. Do not use |
 | Byte scan, `startxref` hop plus a window | yes, cannot tell A from B | same | under 2 ms | Cannot tell damaged from plain. Optional pre-filter only |
 
-**Recommendation: one pdf.js-based classifier**, `src/lib/pdfEncryption.ts`:
+**Recommendation: one pdf.js-based classifier**, `src/lib/pdf/pdfEncryption.ts`:
 
 - `classifyPdfOpen(outcome)`, pure: `PasswordException` code 1 means `needs-password`; a resolved document
   whose `getPermissions()` is not `null` means `owner-restricted`; `null` means `open`;
@@ -122,7 +122,7 @@ calls `getCreationDate()` outside its try and throws on the garbled string, so s
 - Unlock's done state is Download and Share only (`PdfSecurityTool.tsx:197-210`); it names its output
   `<name>_unlocked.pdf`.
 - `useNavigatingAway` is required for any control disabled by a navigation it starts
-  (`src/lib/useNavigatingAway.ts`, enforced by `npm run test:navigating-away`; e2e guard
+  (`src/lib/hooks/useNavigatingAway.ts`, enforced by `npm run test:navigating-away`; e2e guard
   `e2e/home/back-navigation.spec.js`).
 - A hand-off into Sign or Redact loads with `restored = true`, and a failed load then calls `clearDraft()`
   (`loadPdf.ts:111-120`), which drops the tool's work on whatever entry its pointer names. A protected file
@@ -200,7 +200,7 @@ where a tool never opens it: Edit Pages writes a blank file from it too (page co
 file, run), and Compress hands a small one back untouched. B produces blank files in two tools and a dead
 Save in two more.
 
-**Is there one shared mechanism?** One piece, now: the classifier in `src/lib/pdfEncryption.ts`, which two
+**Is there one shared mechanism?** One piece, now: the classifier in `src/lib/pdf/pdfEncryption.ts`, which two
 consumers (Redact's `loadPdf` and Unlock) use from the first slice. The state and the "Unlock it" action stay
 in the Redact folder until a second tool needs them; then they are promoted to `src/shell` (module-boundaries
 rule 9: two consumers, no allowlist). The follow-ups (ENC-06 to ENC-09) reuse the classifier and add their own
@@ -260,7 +260,7 @@ Five tickets are the whole scope, each one narrow brief for one Sonnet subagent:
 
 | Ticket | What | Depends on |
 | --- | --- | --- |
-| ENC-01 | The classifier and the fixtures: `src/lib/pdfEncryption.ts`, unit tests, tiny checked-in fixtures (needs-password and owner-only in AES-256, each also with an encrypted Info dictionary, plain, truncated; made once with pypdf, script beside them) | none |
+| ENC-01 | The classifier and the fixtures: `src/lib/pdf/pdfEncryption.ts`, unit tests, tiny checked-in fixtures (needs-password and owner-only in AES-256, each also with an encrypted Info dictionary, plain, truncated; made once with pypdf, script beside them) | none |
 | ENC-02 | Redact: the gate as a `loadPdf` outcome, the state in the Redact folder in place of the editor, "Unlock it" hands the file to Unlock, no exception, no failed count | ENC-01 |
 | ENC-03 | Unlock: receive the hand-off, an owner-only file opens with no prompt, wrong password versus damaged file | ENC-01 |
 | ENC-04 | Unlock's done state: **Redact it** and **Sign it** | ENC-03 |

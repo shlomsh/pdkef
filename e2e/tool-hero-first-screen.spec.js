@@ -347,7 +347,7 @@ test.describe('Merge restore', () => {
 
 // A hand-off (the home launcher, Merge to Compress, Redact to Unlock) is read from IndexedDB, which
 // the pre-paint script cannot see. saveHandoff therefore also leaves a sessionStorage key
-// (src/lib/handoffPending.ts) that sets html[data-handoff-pending] before first paint, and the page
+// (src/lib/handoff/handoffPending.ts) that sets html[data-handoff-pending] before first paint, and the page
 // holds the loaded layout from the start. Measured before the marker: a file landed 100-300ms after
 // the empty two-column first screen had painted, CLS 0.32 at 1440x820.
 const SAMPLE_HERO = () => {

@@ -47,7 +47,7 @@ flicker that pulled the eye):
 - the build is silent: the primary control keeps its ready look and says nothing about preparing
   unless the person taps before it is done, and only then shows the ring below.
 
-The shared policy is `src/lib/quietPrepare.ts`.
+The shared policy is `src/lib/output/quietPrepare.ts`.
 
 There is one primary element and it has states, rather than a button that appears:
 
@@ -172,7 +172,7 @@ and on focus; on touch the word is always there or the control is not an icon.
   that keeps the number and the extension, so "טופס 1301.pdf" keeps its "1301.pdf".
 - A name composed into a sentence or a template is isolated (`<bdi>` or FSI/PDI), or "+ 7" attaches
   to the Hebrew run and the line reads "signed_7 + … more.pdf". In code: `isolateName(name, t.dir)`
-  (`src/lib/format.js`) for a name interpolated into a message, so English stays byte-identical.
+  (`src/lib/text/format.js`) for a name interpolated into a message, so English stays byte-identical.
 - A name and its extension are one unit. Give the unit `<bdi>` (direction from the name's first
   strong character) and the ".pdf" `dir="ltr"` inside it; a bare ".pdf" beside an isolated name is
   its own run and laid out as "pdf." on the Hebrew page (the Merge heading read "pdf.merged_x", 2026-10-15).

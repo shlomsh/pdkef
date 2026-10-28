@@ -6,7 +6,7 @@
 //
 // Pixel match: for each corpus fixture with a saved output, renders every
 // page at scale 2 with pdf.js, the same way the app does
-// (src/lib/pdfRender.js / src/editor/adapters/pdf/redact.js), paints every
+// (src/lib/pdf/pdfRender.js / src/editor/adapters/pdf/redact.js), paints every
 // redaction box onto the ORIGINAL page (black for blackout, the box's own
 // colour for whiteout - no fixture in this corpus is whiteout, so this is
 // always black in practice; see "Design decisions" below), and diffs that

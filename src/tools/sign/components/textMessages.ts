@@ -10,7 +10,7 @@
  */
 import { englishSignMessages } from '../messages';
 import type { SignMessages } from '../../../editor/registry/messages';
-import { formatMessage } from '../../../lib/formatMessage';
+import { formatMessage } from '../../../lib/text/formatMessage';
 
 /** Bounded, direction-isolated text excerpts for UI sentences - script-agnostic, so this needs no locale parameter. */
 export function quoteText(text: string) {

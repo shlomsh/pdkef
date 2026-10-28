@@ -4,7 +4,7 @@ import { pathToFileURL } from 'url';
 import * as pdfjs from 'pdfjs-dist/legacy/build/pdf.mjs';
 import { PDFDocument, PDFString, StandardFonts } from '@cantoo/pdf-lib';
 import { readSavedFile } from './readSavedFile.ts';
-import { PDFJS_WASM_URL } from '../../../../lib/pdfjsWasm.js';
+import { PDFJS_WASM_URL } from '../../../../lib/pdf/pdfjsWasm.js';
 
 // A real, valid 1x1 opaque PNG (69 bytes).
 const PNG_1X1_BASE64 =

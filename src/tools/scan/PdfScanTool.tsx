@@ -1,9 +1,9 @@
 import { useReducer, useState } from 'preact/hooks';
-import { PHOTO_ACCEPT as ACCEPT, usePhotoTileList } from '../../lib/usePhotoTileList.ts';
-import type { QuietPolicy } from '../../lib/quietPrepare.ts';
-import { reorderEntries } from '../../lib/pageOrder.js';
-import { recordAction } from '../../lib/actionTrail.ts';
-import { withIslandBoundary } from '../../lib/IslandErrorBoundary.tsx';
+import { PHOTO_ACCEPT as ACCEPT, usePhotoTileList } from '../../lib/hooks/usePhotoTileList.ts';
+import type { QuietPolicy } from '../../lib/output/quietPrepare.ts';
+import { reorderEntries } from '../../lib/pages/pageOrder.js';
+import { recordAction } from '../../lib/telemetry/actionTrail.ts';
+import { withIslandBoundary } from '../../lib/telemetry/IslandErrorBoundary.tsx';
 import BasePdfTool from '../../shell/BasePdfTool.tsx';
 import ToolShellBridge from '../../shell/ToolShellBridge.tsx';
 import { downloadDetail, pagesLabel } from '../../shell/pageWorkspace/pageCounts.ts';

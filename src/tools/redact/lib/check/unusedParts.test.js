@@ -12,7 +12,7 @@ import { locatePlaces, isSamePlace } from './placeLocator.ts';
 import { readSavedFile } from './readSavedFile.ts';
 import { removePlaces } from './removePlaces.ts';
 import { dropUnreachable } from '../reachability.js';
-import { PDFJS_WASM_URL } from '../../../../lib/pdfjsWasm.js';
+import { PDFJS_WASM_URL } from '../../../../lib/pdf/pdfjsWasm.js';
 
 beforeAll(() => {
   const workerUrl = pathToFileURL(path.resolve(process.cwd(), 'node_modules/pdfjs-dist/legacy/build/pdf.worker.mjs')).href;

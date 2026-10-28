@@ -5,9 +5,9 @@
  * constructor directly, matching `pdfRender.js`'s one way to get a 2D
  * context.
  */
-import { getPdfRenderContext } from '../../../../lib/pdfRender.js';
+import { getPdfRenderContext } from '../../../../lib/pdf/pdfRender.js';
 import { boxSolidity } from './boxSolidity.ts';
-import type { PdfPage, PdfRenderParameters } from '../../../../lib/pdfTypes.ts';
+import type { PdfPage, PdfRenderParameters } from '../../../../lib/pdf/pdfTypes.ts';
 import type { BoxSolidity, CheckBox } from './types.ts';
 
 const RENDER_SCALE = 2;

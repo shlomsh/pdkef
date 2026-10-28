@@ -5,9 +5,9 @@ import type { ActionHistoryEntry, HistoryElement } from '../model/actionHistory.
 import type { DetailEdits } from '../registry/draftValidation.ts';
 import type { DocumentStyle } from '../model/documentStyle.ts';
 import { deleteDraft, takeHandoff, type HandoffRecord } from '../../lib/drafts/draftStore.ts';
-import { markHandoffArrival } from '../../lib/useHandoffIntake.ts';
-import { markArrival } from '../../lib/fileArrival.ts';
-import { clearHandoffPending, releaseHandoffPending, releaseHandoffPendingWhenLoaded } from '../../lib/handoffPending.ts';
+import { markHandoffArrival } from '../../lib/handoff/useHandoffIntake.ts';
+import { markArrival } from '../../lib/handoff/fileArrival.ts';
+import { clearHandoffPending, releaseHandoffPending, releaseHandoffPendingWhenLoaded } from '../../lib/handoff/handoffPending.ts';
 
 export interface UseEditorDraftPersistenceOptions<TElement extends HistoryElement> {
   tool: string;

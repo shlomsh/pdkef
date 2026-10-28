@@ -33,7 +33,7 @@ Test seams (ARCH-61): an export that only tests import carries a `/** @testSeam 
 
 Unit tests run under `node` (no jsdom) unless they match `DOM_TESTS` in `vitest.config.js`: any
 `.test.tsx`/`.jsx` file anywhere (every tool under `src/tools/` included), what is left of the flat
-`src/components/` (HeroDemo), `src/lib/use*` hook tests, `src/editor/workspace`, `src/lib/gestures`
+`src/components/` (HeroDemo), `src/lib/{handoff,hooks,output}/use*` hook tests, `src/editor/workspace`, `src/lib/gestures`
 (the gesture controller, moved out of `src/editor/` under DEBT-04 part 2 since `CompareSlider`, shell,
 needed it too), and a short named list of `.test.js` files that decode images or drive pdf.js
 (compress/compressImage/thumbnails/toImage in both their `src/lib/` and `src/tools/<tool>/` locations,

@@ -65,7 +65,7 @@ describe('fileCannotReachDist / reachesDist', () => {
     expect(fileCannotReachDist('.github/workflows/ci.yml')).toBe(true);
   });
 
-  it.each(['src/tools/sign/PdfSignTool.test.tsx', 'src/lib/format.test.js', 'scripts/affected-scope.test.mjs'])(
+  it.each(['src/tools/sign/PdfSignTool.test.tsx', 'src/lib/text/format.test.js', 'scripts/affected-scope.test.mjs'])(
     '%s (a *.test.* file) cannot reach dist',
     (file) => {
       expect(fileCannotReachDist(file)).toBe(true);
@@ -93,7 +93,7 @@ describe('fileCannotReachDist / reachesDist', () => {
     expect(reachesDist(['scripts/precacheClosure.mjs'])).toBe(true);
   });
 
-  it.each(['vercel.json', 'package.json', 'astro.config.mjs', 'middleware.ts', 'src/lib/format.js', 'public/fonts/Kalam-Regular.ttf'])(
+  it.each(['vercel.json', 'package.json', 'astro.config.mjs', 'middleware.ts', 'src/lib/text/format.js', 'public/fonts/Kalam-Regular.ttf'])(
     '%s reaches dist (not on the allowlist - the safe default)',
     (file) => {
       expect(fileCannotReachDist(file)).toBe(false);
@@ -101,7 +101,7 @@ describe('fileCannotReachDist / reachesDist', () => {
   );
 
   it('reachesDist is true when ANY file in the diff reaches dist, even mixed with docs', () => {
-    expect(reachesDist(['backlog/tasks/ARCH-29.md', 'src/lib/format.js'])).toBe(true);
+    expect(reachesDist(['backlog/tasks/ARCH-29.md', 'src/lib/text/format.js'])).toBe(true);
     expect(reachesDist(['backlog/tasks/ARCH-29.md', 'docs/x.md'])).toBe(false);
     expect(reachesDist([])).toBe(false); // empty diff: guards only (QUAL-24)
   });
@@ -123,7 +123,7 @@ describe('planSteps', () => {
 
   it('a diff reaching an .astro file also plans astro check (QUAL-31); one without does not', () => {
     const astro = ['src/layouts/BaseLayout.astro'];
-    const ts = ['src/lib/errorReport.ts'];
+    const ts = ['src/lib/telemetry/errorReport.ts'];
     const plan = (files) => planSteps({ ...wide([], 'x'), docsOnly: false, reachesDist: reachesDist(files), touchesAstro: touchesAstro(files) });
     expect(plan(astro)).toContain('astro-check');
     expect(plan(ts)).not.toContain('astro-check');
@@ -165,7 +165,7 @@ describe('planSteps', () => {
   });
 
   it('a backlog + src/lib mix: docs_only is false (not every file is docs) and the core project widens to everything', () => {
-    const files = ['backlog/tasks/ARCH-29.md', 'src/lib/format.js'];
+    const files = ['backlog/tasks/ARCH-29.md', 'src/lib/text/format.js'];
     expect(classify(files).docs_only).toBe(false);
     const scope = deriveScope({ files, affected: ['lib'], roots: ROOTS });
     expect(scope.everything).toBe(true);
@@ -246,7 +246,7 @@ describe('narrowTestOnlyChange (ARCH-31)', () => {
   });
 
   it('unit tests plus docs select no Playwright at all', () => {
-    const scope = narrowTestOnlyChange(wideScope, ['src/lib/format.test.js', 'backlog/tasks/ARCH-31.md', 'scripts/check-push.test.mjs']);
+    const scope = narrowTestOnlyChange(wideScope, ['src/lib/text/format.test.js', 'backlog/tasks/ARCH-31.md', 'scripts/check-push.test.mjs']);
     expect(scope).toMatchObject({ everything: false, e2e_paths: '', fonts: false, export_guards: false });
   });
 

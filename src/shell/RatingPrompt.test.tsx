@@ -2,10 +2,10 @@ import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-vi.mock('../lib/errorReport.ts', () => ({ sendBeacon: vi.fn(() => true) }));
-import { sendBeacon } from '../lib/errorReport.ts';
+vi.mock('../lib/telemetry/errorReport.ts', () => ({ sendBeacon: vi.fn(() => true) }));
+import { sendBeacon } from '../lib/telemetry/errorReport.ts';
 import RatingPrompt, { resetRatingPromptForTests, useDownloaded } from './RatingPrompt.tsx';
-import { recordAction } from '../lib/actionTrail.ts';
+import { recordAction } from '../lib/telemetry/actionTrail.ts';
 
 describe('RatingPrompt', () => {
   let container: HTMLElement;

@@ -17,7 +17,7 @@ const NEVER = ['node_modules/**', '**/node_modules/**', 'dist/**', 'e2e/**', 'sr
 const DOM_TESTS = [
   'src/components/**/*.{test,spec}.{js,jsx,ts,tsx}',
   'src/**/*.{test,spec}.{jsx,tsx}',
-  'src/lib/use*.{test,spec}.*',
+  'src/lib/{handoff,hooks,output}/use*.{test,spec}.*',
   // DEBT-04 (move A): draftStore.js/draftPolicy.js/useDraftPersistence.js moved here from
   // src/editor/workspace/; draftStore.test.js drives localStorage and fake-indexeddb directly.
   // Named list, not a wildcard, because DEBT-05 added
@@ -31,12 +31,13 @@ const DOM_TESTS = [
   // lib consumer table) and stays in src/lib/. Both the pre-move (src/lib/) and
   // post-move (src/tools/<tool>/) locations are listed so this line does not
   // need editing again the moment a tool moves.
-  'src/lib/{compress,compressImage,thumbnails,toImage}.test.js',
+  'src/lib/{compress,compressImage,toImage}.test.js',
+  'src/lib/pdf/thumbnails.test.js',
   'src/tools/*/{compress,compressImage,toImage}.test.js',
   'src/tools/to-image/lib/toImage.test.js',
   'src/tools/compress/lib/{compress,compressImage}.test.js',
   // ARCH-18: Sign's own use*.test.js/.test.ts moved out of src/lib/ (the
-  // 'src/lib/use*' line above no longer reaches them) into src/tools/sign/,
+  // 'src/lib/{handoff,hooks,output}/use*' line above no longer reaches them) into src/tools/sign/,
   // flat and under components/. Only this one drives real gesture/pointer
   // dispatch through window listeners; useWorkspaceGestures.contract.test.ts,
   // signExportReadiness.test.ts, fontOfflinePacks.test.js and the three

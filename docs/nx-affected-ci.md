@@ -329,7 +329,7 @@ The acceptance bar the ticket actually cares about - does a real, present-day si
 src/tools/compress/PdfCompressTool.tsx  -> ["tool-compress","site-e2e"]                        fonts=false
 src/tools/sign/PdfSignTool.tsx          -> ["tool-sign","cross-tool-tests","fonts","site-e2e"]  fonts=true
 src/tools/redact/PdfRedactTool.tsx      -> ["tool-redact","cross-tool-tests","site-e2e"]        fonts=false
-src/lib/format.js                       -> lib and its 16 dependents                          everything=true (core)
+src/lib/text/format.js                       -> lib and its 16 dependents                          everything=true (core)
 src/editor/model/editorModel.ts         -> editor and its dependents                          everything=true (core)
 src/pages/index.astro                   -> site and its dependents                            everything=true (core)
 playwright.config.js                    -> all 18 (nx.json sharedGlobal)                      everything=true

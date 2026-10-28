@@ -1,6 +1,6 @@
 import { useEffect } from 'preact/hooks';
-import { recordAction } from '../../lib/actionTrail.ts';
-import { reportError } from '../../lib/errorReport.ts';
+import { recordAction } from '../../lib/telemetry/actionTrail.ts';
+import { reportError } from '../../lib/telemetry/errorReport.ts';
 
 /**
  * ARCH-37: the editors' fullscreen toggle, once. Real fullscreen when the browser allows it on the

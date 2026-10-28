@@ -18,8 +18,8 @@ import { getElementDefinition } from '../../../editor/registry/index.ts';
 import { findUnrepresentableCharacters } from './textCoverage.js';
 import { baselineOffsetEmFromMetrics, embeddedFontFile, resolveTypography } from '../../../editor/text/fonts.js';
 import { HELVETICA_BASELINE_OFFSET_EM, DEFAULT_LINE_HEIGHT_EM } from '../../../editor/model/signGeometry.js';
-import { reportError } from '../../../lib/errorReport.ts';
-import { openPdfDoc } from '../../../lib/openPdfDoc.ts';
+import { reportError } from '../../../lib/telemetry/errorReport.ts';
+import { openPdfDoc } from '../../../lib/pdf/openPdfDoc.ts';
 import { flattenDoc } from './flatten.js';
 
 /**

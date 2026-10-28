@@ -8,7 +8,7 @@ import { test, expect } from '@playwright/test';
 // that flag back with it, leaving every recent tile, the picker and the drop
 // target disabled and the picker reading "Opening..." for good (reported
 // 2026-09-22 on iOS). See `.claude/rules/tools-and-shell.md` and
-// `src/lib/useNavigatingAway.ts`.
+// `src/lib/hooks/useNavigatingAway.ts`.
 //
 // Three settings make it reproducible, and it reproduces with none of them
 // missing. Each one on its own turns this spec green against the bug, so keep

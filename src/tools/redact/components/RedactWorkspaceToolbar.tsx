@@ -1,5 +1,5 @@
 import type { ComponentChildren } from 'preact';
-import { recordAction } from '../../../lib/actionTrail.ts';
+import { recordAction } from '../../../lib/telemetry/actionTrail.ts';
 import { canRedo as canRedoOf, restoredNoteVisible, type RedactAction, type RedactState } from '../state/redactState.ts';
 import { finishStatusText } from '../lib/finishState.ts';
 import type { RedactArming } from '../hooks/useRedactArming.ts';

@@ -1,5 +1,5 @@
 import type { Ref } from 'preact';
-import { formatMessage } from '../../../lib/formatMessage';
+import { formatMessage } from '../../../lib/text/formatMessage';
 import { lookOptions } from '../lib/scanOptions.ts';
 import { shownAspect, shownPhoto } from '../lib/scanPages.ts';
 import { resultViewFor, exactResultDetail } from '../lib/resultView.ts';

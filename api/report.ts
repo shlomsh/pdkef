@@ -1,4 +1,4 @@
-// Vercel Function: receives the anonymous error reports of src/lib/errorReport.ts
+// Vercel Function: receives the anonymous error reports of src/lib/telemetry/errorReport.ts
 // and counts them in Upstash Redis (DEBT-17), keeping the latest example of
 // each (DEBT-27), and also counts Sign's maintenance events and the reports a
 // tool chose not to send (drop records, DEBT-44; counts only, no sample),
@@ -19,10 +19,10 @@
 // tool. Stored: counts per day, plus the latest validated example of each,
 // with an engine bucket - no IP (only the country and region Vercel names for
 // a rating), no full user agent, no time finer than the day. Nothing from the request is logged.
-import { MAX_REPORT_BYTES, parseDropRecord, parseErrorReport } from '../src/lib/errorReportSchema.js';
-import { parseMaintenanceEvent } from '../src/lib/maintenanceEventSchema.js';
-import { parseRatingCommentEvent, parseRatingEvent } from '../src/lib/ratingSchema.js';
-import { parseUsageEvent } from '../src/lib/usageEventSchema.js';
+import { MAX_REPORT_BYTES, parseDropRecord, parseErrorReport } from '../src/lib/telemetry/errorReportSchema.js';
+import { parseMaintenanceEvent } from '../src/lib/telemetry/maintenanceEventSchema.js';
+import { parseRatingCommentEvent, parseRatingEvent } from '../src/lib/telemetry/ratingSchema.js';
+import { parseUsageEvent } from '../src/lib/telemetry/usageEventSchema.js';
 import {
   DAILY_CAP,
   REJECT_DAILY_CAP,

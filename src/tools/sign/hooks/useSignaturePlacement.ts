@@ -6,7 +6,7 @@ import { captureAddedElement, type HistoryLogger } from '../../../editor/model/a
 import { uniqueId } from '../../../editor/model/ids.ts';
 import { DEFAULT_START_WIDTH_PCT } from '../../../editor/model/signGeometry.js';
 import type { SignMessages } from '../../../editor/registry/messages';
-import { recordAction } from '../../../lib/actionTrail.ts';
+import { recordAction } from '../../../lib/telemetry/actionTrail.ts';
 import type { SignToolAction } from '../components/SignToolContext.tsx';
 import { buildPlacedSignature } from '../lib/signaturePlacement.ts';
 import type { PendingSignaturePlacement } from './useWorkspaceGestures.ts';

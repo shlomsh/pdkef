@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { movePlanEntry, planForFile, rotateEntry, updateEntry } from '../../../lib/pagePlan.ts';
+import { movePlanEntry, planForFile, rotateEntry, updateEntry } from '../../../lib/pages/pagePlan.ts';
 import { editOptionsFromPlan } from './editPlan.ts';
 
 describe('editOptionsFromPlan', () => {

@@ -272,7 +272,7 @@ createWorker('heb', 1, {
   `simd`/plain variant after `wasm-feature-detect`), so ship all three `-lstm.wasm.js` files (3.9 MB
   raw each) or the one it will choose, and pin the version. `langPath` + `heb.traineddata.gz`
   (default `gzip: true`).
-- Provisioning follows `src/lib/pdfjsWasm.js`: copy the files out of `node_modules` into `public/`
+- Provisioning follows `src/lib/pdf/pdfjsWasm.js`: copy the files out of `node_modules` into `public/`
   with a `postinstall` sync script, never fetch from a CDN, and add a unit test that fails if a
   `createWorker(` call site omits a path.
 - In the browser tesseract.js starts a Blob worker that `importScripts` the worker path. The

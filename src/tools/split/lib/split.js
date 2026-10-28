@@ -1,11 +1,11 @@
-import { applyRotation } from '../../../lib/pageOps.js';
-import { getPdfLib } from '../../../lib/pdfLib.js';
-import { openPdfDoc } from '../../../lib/openPdfDoc.ts';
-import { throwIfAborted } from '../../../lib/abort.js';
-import { toBytes } from '../../../lib/toBytes.js';
-import { outputBase, withAffixes } from '../../../lib/outputName.ts';
+import { applyRotation } from '../../../lib/pages/pageOps.js';
+import { getPdfLib } from '../../../lib/pdf/pdfLib.js';
+import { openPdfDoc } from '../../../lib/pdf/openPdfDoc.ts';
+import { throwIfAborted } from '../../../lib/output/abort.js';
+import { toBytes } from '../../../lib/output/toBytes.js';
+import { outputBase, withAffixes } from '../../../lib/output/outputName.ts';
 
-// DEBT-23: parsePageSelector moved to src/lib/pageSelector.js (shared with
+// DEBT-23: parsePageSelector moved to src/lib/pages/pageSelector.js (shared with
 // PDF to Image). Import it from there.
 
 // The source's base name, ".pdf" stripped, "split" when nothing is left.

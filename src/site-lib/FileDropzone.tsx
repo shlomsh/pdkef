@@ -1,17 +1,17 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
 import { routeFiles, handoffKeyFor, type FileRoute } from './routeFiles.ts';
-import { sendHandoff } from '../lib/sendHandoff.ts';
+import { sendHandoff } from '../lib/handoff/sendHandoff.ts';
 import { setCurrentEntry, readRecentFiles } from '../lib/drafts/draftStore.ts';
-import { noteRecentOpen } from '../lib/fileArrival.ts';
-import { useNavigatingAway } from '../lib/useNavigatingAway.ts';
+import { noteRecentOpen } from '../lib/handoff/fileArrival.ts';
+import { useNavigatingAway } from '../lib/hooks/useNavigatingAway.ts';
 import RecentFiles, { type RecentFileItem } from './RecentFiles.tsx';
 import styles from './FileDropzone.module.css';
 import { SAMPLE_FILE_NAME, SAMPLE_PREVIEW_SRC } from './sampleDocument.ts';
 import { withFillModeParam } from './withFillModeParam.ts';
 import { tools, pageForToolId } from '../data/tools.js';
 import { englishFileDropzoneMessages, type FileDropzoneMessages } from './fileDropzoneMessages';
-import { formatMessage } from '../lib/formatMessage';
-import { withIslandBoundary } from '../lib/IslandErrorBoundary.tsx';
+import { formatMessage } from '../lib/text/formatMessage';
+import { withIslandBoundary } from '../lib/telemetry/IslandErrorBoundary.tsx';
 import type { RecentFilesMessages } from './recentFilesMessages';
 
 /* MEM-03: every entry in the recency index - Sign/Redact source PDFs and a

@@ -14,7 +14,7 @@ import { formatDate, isDateFormatId, nextDateFormatId } from '../../../editor/te
 import type { EditorElement } from '../../../editor/model/editorModel.ts';
 import { englishSignMessages } from '../messages';
 import type { SignMessages } from '../../../editor/registry/messages';
-import { formatMessage } from '../../../lib/formatMessage';
+import { formatMessage } from '../../../lib/text/formatMessage';
 import styles from '../../../editor-ui/EditorControls.module.css';
 
 export default function ElementToolbar({

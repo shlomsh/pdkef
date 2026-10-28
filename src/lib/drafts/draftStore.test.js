@@ -7,7 +7,7 @@ import { webcrypto } from 'node:crypto';
 // import, but it is a global side-effecting install either way.
 import 'fake-indexeddb/auto';
 import { IDBFactory } from 'fake-indexeddb';
-import * as errorReport from '../errorReport.ts';
+import * as errorReport from '../telemetry/errorReport.ts';
 import {
   MAX_AGE_MS, MAX_RECENT_FILES, MERGE_DRAFT_MAX_BYTES,
   attachDraftPreview, cacheRecentFile, deleteDraft, hasDraftHint, isStoragePersisted, loadDraft, loadRecentFile,

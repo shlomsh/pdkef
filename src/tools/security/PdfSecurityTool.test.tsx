@@ -20,12 +20,12 @@ const fixtureFile = (name: string) => new File([fixtureBytes(name)], `${name}.pd
 // build, for checking output bytes. Every other module (security.js, draftStore, analytics, error
 // reports) runs for real.
 const realProbe = async (bytes: ArrayBuffer | Uint8Array) => {
-  const actual: any = await vi.importActual('../../lib/pdfEncryption.ts');
+  const actual: any = await vi.importActual('../../lib/pdf/pdfEncryption.ts');
   return actual.probeEncryption(bytes, () => import('pdfjs-dist/legacy/build/pdf.mjs'));
 };
 
 // The page preview (pdf.js painting) is the harness's too: harness.pdfjs.thumbnails.renderComparePreview.
-import { recentActions, resetActionTrailForTests } from '../../lib/actionTrail.ts';
+import { recentActions, resetActionTrailForTests } from '../../lib/telemetry/actionTrail.ts';
 
 // What each protection answer looks like as a real file, so unlock and protect run for real on it.
 type Protection = 'open' | 'needs-password' | 'owner-restricted' | 'unreadable';

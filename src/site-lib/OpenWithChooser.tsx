@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
-import { sendHandoff } from '../lib/sendHandoff.ts';
-import { withIslandBoundary } from '../lib/IslandErrorBoundary.tsx';
+import { sendHandoff } from '../lib/handoff/sendHandoff.ts';
+import { withIslandBoundary } from '../lib/telemetry/IslandErrorBoundary.tsx';
 import { pdfFromLaunch, type LaunchParams } from './openWithLaunch.ts';
 import styles from './OpenWithChooser.module.css';
 

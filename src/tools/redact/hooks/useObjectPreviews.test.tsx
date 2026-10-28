@@ -4,7 +4,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { PDFDocumentProxy } from 'pdfjs-dist';
 import type { PageGlyph } from '../lib/pageGlyphs.ts';
 import type { DeletablePdfObject } from '../components/DeletableObjectOverlay.tsx';
-import * as errorReport from '../../../lib/errorReport.ts';
+import * as errorReport from '../../../lib/telemetry/errorReport.ts';
 import useObjectPreviews from './useObjectPreviews.ts';
 
 const readGlyphsMock = vi.fn<(pdfjs: unknown, page: { pageNumber: number }) => Promise<PageGlyph[] | null>>();

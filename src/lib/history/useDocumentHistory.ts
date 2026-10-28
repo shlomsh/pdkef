@@ -1,7 +1,7 @@
 import { useCallback } from 'preact/hooks';
-import { recordAction } from '../actionTrail.ts';
-import type { PlanEntry } from '../pagePlan.ts';
-import { reportEdit, type AnalyticsTool } from '../productAnalytics.ts';
+import { recordAction } from '../telemetry/actionTrail.ts';
+import type { PlanEntry } from '../pages/pagePlan.ts';
+import { reportEdit, type AnalyticsTool } from '../telemetry/productAnalytics.ts';
 import { useEditHistory } from './useEditHistory.js';
 import { useHistoryShortcuts } from './useHistoryShortcuts.js';
 

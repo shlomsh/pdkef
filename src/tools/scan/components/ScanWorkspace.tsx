@@ -1,7 +1,7 @@
 import { Eraser, FileSignature, ImagePlus, Shrink, Trash2 } from 'lucide-preact';
 import type { ComponentChildren } from 'preact';
-import { formatMessage } from '../../../lib/formatMessage';
-import type { PreparedOutput } from '../../../lib/usePreparedOutput.ts';
+import { formatMessage } from '../../../lib/text/formatMessage';
+import type { PreparedOutput } from '../../../lib/output/usePreparedOutput.ts';
 import DownloadElement from '../../../shell/DownloadElement.tsx';
 import ErrorMessage from '../../../shell/ErrorMessage.tsx';
 import OutputName from '../../../shell/OutputName.tsx';

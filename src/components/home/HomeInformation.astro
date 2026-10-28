@@ -34,7 +34,7 @@ const { faqKicker, faq, founderStory, draftPersistence, offlineInstall, privacyO
       // DEBT-61: the home page counts its own view, new or returning, like a tool page. After
       // 'load' and through a lazy import, so the first screen carries none of it.
       window.addEventListener('load', () => {
-        import('../../lib/productAnalytics.ts')
+        import('../../lib/telemetry/productAnalytics.ts')
           .then(({ reportHomePageView }) => reportHomePageView())
           .catch(() => {
             // expected: a chunk that did not load (offline, an old tab after a deploy) only skips one count

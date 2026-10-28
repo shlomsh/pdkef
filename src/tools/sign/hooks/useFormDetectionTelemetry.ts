@@ -1,5 +1,5 @@
 import { useEffect } from 'preact/hooks';
-import { beaconMaintenanceTransport, reportMaintenanceEvent } from '../../../lib/maintenanceTelemetry.ts';
+import { beaconMaintenanceTransport, reportMaintenanceEvent } from '../../../lib/telemetry/maintenanceTelemetry.ts';
 import { formDetectionEvent } from '../lib/formDetectionEvent.ts';
 import type { FormFieldRegions } from './useFormFieldRegions.ts';
 

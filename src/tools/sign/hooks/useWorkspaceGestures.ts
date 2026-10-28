@@ -1,6 +1,6 @@
 import usePdfCoordinates from '../../../editor-ui/hooks/usePdfCoordinates.js';
 import { startGesture } from '../../../lib/gestures/controller.ts';
-import { recordAction } from '../../../lib/actionTrail.ts';
+import { recordAction } from '../../../lib/telemetry/actionTrail.ts';
 import type { GestureEvent } from '../../../lib/gestures/controller.ts';
 import { createElementId } from '../../../editor/model/ids.ts';
 import {
@@ -37,7 +37,7 @@ import type { FormFieldRegions } from './useFormFieldRegions.ts';
 import { englishSignMessages } from '../messages';
 import { signElementTypeLabel } from '../../../editor/registry/signLabels';
 import type { SignMessages } from '../../../editor/registry/messages';
-import { formatMessage } from '../../../lib/formatMessage';
+import { formatMessage } from '../../../lib/text/formatMessage';
 import {
   DEFAULT_COLOR_BLUE,
   DEFAULT_STROKE_WIDTH,

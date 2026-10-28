@@ -1,4 +1,4 @@
-import { outputName } from '../../../lib/outputName.ts';
+import { outputName } from '../../../lib/output/outputName.ts';
 
 // The PDF search re-encodes as JPEG-in-PDF and the image search re-encodes
 // as JPEG (compressImageToTarget flattens PNG transparency to white), but a

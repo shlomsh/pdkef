@@ -4,14 +4,14 @@
  *
  * Three edges, each registered as a `vi.mock` by a setup file under `./setup/` that only the island
  * projects in `vitest.config.js` load, so no other test sees them:
- *   - the encryption probe (`lib/pdfEncryption.ts`: pdf.js's worker): `probe`
- *   - the thumbnail source and previews (`lib/thumbnails.js`: pdf.js painting onto a canvas): `thumbnails`, `source`
+ *   - the encryption probe (`lib/pdf/pdfEncryption.ts`: pdf.js's worker): `probe`
+ *   - the thumbnail source and previews (`lib/pdf/thumbnails.js`: pdf.js painting onto a canvas): `thumbnails`, `source`
  *   - the `pdfjs-dist` module itself, for Redact, which reads text and metadata through it: `getDocument`
  * Everything above them runs for real. `resetPdfjsEdges()` puts every default back; `installToolHarness()`
  * calls it, so each test starts from the same fakes.
  */
 import { vi } from 'vitest';
-import type { probeEncryption } from '../../lib/pdfEncryption.ts';
+import type { probeEncryption } from '../../lib/pdf/pdfEncryption.ts';
 type ProbeAnswer = Awaited<ReturnType<typeof probeEncryption>>;
 
 type Bytes = ArrayBuffer | Uint8Array;
@@ -34,7 +34,7 @@ const thumbnails = {
 };
 
 async function countPages(file: File): Promise<number> {
-  const { PDFDocument } = await (await import('../../lib/pdfLib.js')).getPdfLib();
+  const { PDFDocument } = await (await import('../../lib/pdf/pdfLib.js')).getPdfLib();
   return PDFDocument.load(await file.arrayBuffer(), { ignoreEncryption: true }).then((doc: { getPageCount(): number }) => doc.getPageCount(), () => 0);
 }
 
@@ -138,7 +138,7 @@ export function createPdfjsHarness() {
         reject: (error: unknown) => settleFail(error),
       };
     },
-    /** Spies of `lib/thumbnails.js`; `mockImplementation` them, assert on their calls. */
+    /** Spies of `lib/pdf/thumbnails.js`; `mockImplementation` them, assert on their calls. */
     thumbnails,
     /** The fake thumbnail source: set `pageCount` or `failOpen`; `opened` and `destroyed` count its lifetime. */
     source,
