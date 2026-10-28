@@ -2,15 +2,20 @@ import { isIOSDevice, type NavigatorPlatformInfo } from './platform';
 
 /**
  * Oldest browsers pdf.js can run in. pdf.js reads the global `Iterator` at
- * load, which Chromium only gained in 122, Firefox in 131 and Safari/iOS in
- * 18.4. Below that every tool that opens a PDF throws a ReferenceError
- * (Chromium 109, reported 2026-10-02). A floor is judged from the user agent
+ * load, which Chromium only gained natively in 122, Firefox in 131 and
+ * Safari/iOS in 18.4. Before DEBT-42's polyfill, every tool that opened a PDF
+ * threw a ReferenceError below that (Chromium 109, reported 2026-10-02); with
+ * it, Chrome and Edge run from 109 (below). A floor is judged from the user agent
  * so the notice can name the version to update to; a browser we cannot place
  * is never blocked or warned.
  *
  * DEBT-42 polyfills the global `Iterator` and the other built-ins pdf.js calls
- * (pdfjsPolyfills.js), so these floors may now be higher than pdf.js strictly
- * needs. They stay until a browser below them is shown to run every tool.
+ * (pdfjsPolyfills.js). Chrome and Edge sit at 109 since DEBT-69 (2026-10-28):
+ * Chromium 109.0.5414.46 ran every tool's main job end to end, with output
+ * matching current Chromium, so the build's syntax runs there too despite
+ * Vite's nominal Chrome 111 target. 109 is the last Chrome on Windows 7 and 8.
+ * Below 109 nothing was measured, so the notice stays. Firefox and Safari keep
+ * their floors until a browser below them is shown to run every tool.
  *
  * Checked 2026-10-08 against MDN browser-compat-data 8.1.5 for pdfjs-dist 6.3.289:
  * the built-ins pdf.js calls unguarded on the paths this app runs (open, render,
@@ -19,11 +24,9 @@ import { isIOSDevice, type NavigatorPlatformInfo } from './platform';
  * Firefox 121-128, Safari 17.4-18). Read from the code, the unguarded calls left
  * are AbortSignal.any and Set.prototype.intersection, in pdf.js's viewer and editor
  * classes, which the app does not load, and the stream iteration in
- * getTextContent(), which it never calls (pdfTextItems.ts reads the stream). The rest is
- * syntax, which no polyfill reaches: Vite's default target (Chrome/Edge 111,
- * Firefox 114, Safari 16.4) and the module worker (Firefox 114), below every floor.
+ * getTextContent(), which it never calls (pdfTextItems.ts reads the stream).
  */
-const MINIMUMS = { Chrome: 122, Edge: 122, Firefox: 131, Safari: 18.4, iOS: 18.4 } as const;
+const MINIMUMS = { Chrome: 109, Edge: 109, Firefox: 131, Safari: 18.4, iOS: 18.4 } as const;
 
 type SupportedBrowserName = keyof typeof MINIMUMS;
 

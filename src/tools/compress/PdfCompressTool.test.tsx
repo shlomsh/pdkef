@@ -832,6 +832,24 @@ describe('PdfCompressTool UI flow', () => {
     expect(downloadBtn.getAttribute('download')).toBe('photo-compressed.jpg');
   });
 
+  describe('the old browser notice', () => {
+    const OLD_CHROME = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/108.0.0.0 Safari/537.36';
+    afterEach(() => vi.unstubAllGlobals());
+
+    it('stays off a photo, which never loads pdf.js', async () => {
+      vi.stubGlobal('navigator', { ...navigator, userAgent: OLD_CHROME });
+      mount();
+      await pick(makeImageFile('photo.jpg', 5_000_000));
+      expect(container.textContent).not.toContain('or newer to open PDFs');
+    });
+
+    it('still names the version for a PDF', async () => {
+      vi.stubGlobal('navigator', { ...navigator, userAgent: OLD_CHROME });
+      await loadPdf();
+      expect(container.textContent).toContain('needs Chrome 109 or newer');
+    });
+  });
+
   it('names a passthrough PNG download by its own type', async () => {
     compressImageLib.compressImageToTarget.mockImplementation(() =>
       Promise.resolve(makeImageResult({ blob: new Blob(['png-bytes'], { type: 'image/png' }) })),
