@@ -117,6 +117,7 @@
     "svgo": "4.1.0",
     "smol-toml": "1.9.0",
     "shell-quote": "^1.11.0",
+    "zod": "4.6.7",
     "nx": {
       "axios": "1.20.0",
       "brace-expansion": "5.0.12",
