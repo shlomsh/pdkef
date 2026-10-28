@@ -37,7 +37,7 @@ test('two files unlocked one after the other in one tab, the second holding an u
   await page.goto('/unlock/');
   await waitForIsland(page);
 
-  const download = page.getByRole('link', { name: /Download unlocked PDF/i });
+  const download = page.getByRole('link', { name: /^Download/i });
 
   await unlock(page, pdf('clean.pdf', await protectedPdf({ unparseableObject: false })), { replace: false });
   await expect(download).toHaveAttribute('href', /^blob:/, { timeout: 15_000 });

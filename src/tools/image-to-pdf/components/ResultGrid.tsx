@@ -1,6 +1,7 @@
 import type { Ref } from 'preact';
 import OutputName from '#shell/OutputName.tsx';
 import type { ImageToPdfMessages } from '../messages';
+import layoutStyles from '#shell/loadedLayout.module.css';
 import styles from '../PdfImageToPdfTool.module.css';
 import AddImagesTile from './AddImagesTile.tsx';
 import ImageTile from './ImageTile.tsx';
@@ -23,7 +24,7 @@ interface ResultGridProps {
 
 export default function ResultGrid({ t, entries, outputName, listRef, onRename, onTileKeyDown, onRemove }: ResultGridProps) {
   return (
-    <div class={styles.result}>
+    <div class={`${styles.result} ${layoutStyles.stage}`}>
       <p class={styles.heading}>
         <OutputName name={outputName} label={t.fileNameLabel} onRename={onRename} />
         <span class={styles['heading-meta']}>· {entries.length} {entries.length === 1 ? t.pageCountOne : t.pageCountOther}</span>

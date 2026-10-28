@@ -542,15 +542,15 @@ describe('PdfSecurityTool', () => {
       const nativeShare = await unlockFromRedact(vi.fn());
       const text = container.textContent;
       expect(buttonByText('Continue in Redact')).not.toBeUndefined();
-      expect(text.indexOf('Continue in Redact')).toBeLessThan(text.indexOf('Download'));
-      const download = container.querySelector('a[download]');
+      expect(text.indexOf('Continue in Redact')).toBeLessThan(text.indexOf('Download unlocked PDF'));
+      const download = Array.from(container.querySelectorAll('a[data-quiet-download]')).pop(); // the rail's link; the phone bar has its own first
       expect(download.getAttribute('download')).toBe('form_unlocked.pdf');
       expect(download.hasAttribute('data-quiet-download')).toBe(true);
       const share = buttonByText('Share');
       expect(share).not.toBeUndefined();
       expect(download.parentElement.contains(share)).toBe(true);
-      expect(buttonByText('Sign it')).toBeUndefined();
-      expect(buttonByText('Redact it')).toBeUndefined();
+      expect(buttonByText('Sign')).toBeUndefined();
+      expect(buttonByText('Redact')).toBeUndefined();
       nativeShare.restore();
     });
 
@@ -574,10 +574,10 @@ describe('PdfSecurityTool', () => {
       probeAs('owner-restricted');
       await parkFor({ fileName: 'a.pdf', fileBytes: bufferOf(BYTES['owner-restricted']), from: 'nowhere' });
       mount({ navigate: vi.fn() });
-      await waitUntil(() => expect(buttonByText('Redact it')).not.toBeUndefined());
+      await waitUntil(() => expect(buttonByText('Redact')).not.toBeUndefined());
       await settle();
       expect(Array.from(container.querySelectorAll('button')).some((b) => b.textContent.startsWith('Continue in'))).toBe(false);
-      expect(buttonByText('Redact it')).not.toBeUndefined();
+      expect(buttonByText('Redact')).not.toBeUndefined();
     });
 
     it('Continue in Redact hands the unlocked file back and goes there', async () => {
@@ -655,16 +655,14 @@ describe('PdfSecurityTool', () => {
       expect(container.querySelector('a[download]')).not.toBeNull();
     });
 
-    it('Share sits right after Download, outside the row that holds only Redact it and Sign it', async () => {
+    it('Share leads the finish row, then Redact and Sign, all after the Download element', async () => {
       const nativeShare = mockNativeFileShare();
       await unlockDone(vi.fn());
       const share = buttonByText('Share');
-      const download = container.querySelector('a[download]');
-      const row = buttonByText('Redact it').parentElement;
-      expect(row.contains(share)).toBe(false);
-      expect(Array.from(row.querySelectorAll('button')).map((b) => b.textContent.trim())).toEqual(['Redact it', 'Sign it']);
+      const row = buttonByText('Redact').parentElement;
+      expect(Array.from(row.querySelectorAll('button')).map((b) => b.textContent.trim())).toEqual(['Share', 'Redact', 'Sign']);
+      const download = container.querySelector('a[download]:not([data-quiet-download])');
       expect(download.compareDocumentPosition(share) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-      expect(download.nextElementSibling === share || download.nextElementSibling?.contains(share)).toBe(true);
       nativeShare.restore();
     });
 
@@ -684,19 +682,27 @@ describe('PdfSecurityTool', () => {
       await settle();
       expect(container.querySelector('a[download]')).not.toBeNull();
       expect(buttonByText('Share')).not.toBeUndefined();
-      expect(buttonByText('Redact it')).toBeUndefined();
-      expect(buttonByText('Sign it')).toBeUndefined();
+      expect(buttonByText('Redact')).toBeUndefined();
+      expect(buttonByText('Sign')).toBeUndefined();
       nativeShare.restore();
     });
 
-    it('puts Redact it and Sign it after Download, never before', async () => {
+    it('the unlock finish offers Redact and Sign hand-offs in the shared finish row; protect offers none', async () => {
       await unlockDone(vi.fn());
-      const text = container.textContent;
-      expect(text.indexOf('Download Unlocked PDF')).toBeLessThan(text.indexOf('Redact it'));
-      expect(text.indexOf('Redact it')).toBeLessThan(text.indexOf('Sign it'));
+      const row = buttonByText('Redact').parentElement;
+      expect(row.getAttribute('data-count')).not.toBeNull();
+      expect(Array.from(row.querySelectorAll('button')).map((b) => b.textContent.trim())).toContain('Sign');
+      expect(Array.from(container.querySelectorAll('button')).some((b) => b.textContent.startsWith('Continue in'))).toBe(false);
     });
 
-    it.each([['Redact it', 'redact', '/redact/'], ['Sign it', 'sign', '/sign/']])('%s saves the unlocked bytes and navigates', async (label, key, href) => {
+    it('puts Redact and Sign after Download, never before', async () => {
+      await unlockDone(vi.fn());
+      const text = container.textContent;
+      expect(text.indexOf('Download')).toBeLessThan(text.indexOf('Redact'));
+      expect(text.indexOf('Redact')).toBeLessThan(text.indexOf('Sign'));
+    });
+
+    it.each([['Redact', 'redact', '/redact/'], ['Sign', 'sign', '/sign/']])('%s saves the unlocked bytes and navigates', async (label, key, href) => {
       const navigate = vi.fn();
       await unlockDone(navigate);
       await act(async () => { buttonByText(label).click(); });
@@ -718,13 +724,13 @@ describe('PdfSecurityTool', () => {
       await unlockDone(navigate);
       // Storage refuses the write (a locked-down browser has no IndexedDB), so the real save answers false.
       globalThis.indexedDB = undefined;
-      await act(async () => { buttonByText('Sign it').click(); });
+      await act(async () => { buttonByText('Sign').click(); });
       await waitUntil(() => expect(container.textContent).toContain('Could not hand this off. Download it instead and open it there.'));
 
       expect(navigate).not.toHaveBeenCalled();
       expect(container.textContent).toContain('Could not hand this off. Download it instead and open it there.');
-      expect(buttonByText('Sign it').disabled).toBe(false);
-      expect(buttonByText('Redact it').disabled).toBe(false);
+      expect(buttonByText('Sign').disabled).toBe(false);
+      expect(buttonByText('Redact').disabled).toBe(false);
     });
 
     it('does not offer them after protecting', async () => {
@@ -740,8 +746,8 @@ describe('PdfSecurityTool', () => {
         container.querySelector('form').dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
       });
       await settle();
-      expect(buttonByText('Redact it')).toBeUndefined();
-      expect(buttonByText('Sign it')).toBeUndefined();
+      expect(buttonByText('Redact')).toBeUndefined();
+      expect(buttonByText('Sign')).toBeUndefined();
     });
   });
 

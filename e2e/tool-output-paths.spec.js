@@ -50,11 +50,8 @@ const tools = [
     },
     actionName: null,
     downloadName: 'Download',
-    // Not exact (SEO-25 "button anchor", 2026-09-12): DownloadButton's
-    // `detail` prop adds a second, smaller line inside the link ("<size>,
-    // <n>% smaller"), which is part of its accessible name for free - so an
-    // exact match on just the label stops finding it. Every other tool in
-    // this list still passes no `detail` and keeps its exact match.
+    // Not exact: the shared Download element (ARCH-41) carries its detail line
+    // (the compressed size) in the link's accessible name.
     downloadNameMatch: /^Download\b/,
     downloadAttr: 'source-compressed.pdf',
   },
@@ -71,9 +68,10 @@ const tools = [
     name: 'Image to PDF',
     path: '/image-to-pdf',
     file: { name: 'source.png', mimeType: 'image/png', bufferFn: async () => pngBuffer },
-    // Built on pick, like PDF to Image; the name follows the first image.
+    // Built on pick, like PDF to Image; the name follows the first image. The
+    // shared Download element (ARCH-41) says "Download", then size and pages.
     actionName: null,
-    downloadNameMatch: /^Download PDF/,
+    downloadNameMatch: /^Download\b/,
     downloadAttr: 'source.pdf',
   },
   {

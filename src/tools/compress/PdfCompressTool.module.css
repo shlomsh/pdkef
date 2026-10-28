@@ -51,8 +51,7 @@
   margin-top: 0;
 }
 
-/* Below 1024px the image comes first, and its stage runs to the card's edges
-   like the sheet under it, so the image takes the screen's width: the card
+/* Below 1024px the image comes first, and its stage runs to the card's edges, so the image takes the screen's width: the card
    pads 12px below 768px and 1.5rem up to 1023px. Notes about the file sit
    with Download, after the controls, only while there is one. */
 @media (max-width: 1023px) {
@@ -92,15 +91,10 @@
     margin-top: 20px;
   }
 
-  /* The stage is the loaded card to its foot, as every tool's first screen
-     is: the card's floor (PdfTool.module.css, --first-screen less the 5.5rem
-     condensed hero) less the card's own 1rem padding and 1px border on each
-     side. Its height is fixed, so the image (.compare-fit) takes what the rows
-     around it leave and the card never grows past the window. */
+  /* The stage's height and --stage-h come from the shared .stage class
+     (loadedLayout.module.css), the card's one-screen floor. */
   .result {
-    --stage-h: calc(var(--first-screen) - 5.5rem - 2rem - 2px);
     padding: 20px;
-    height: var(--stage-h);
     justify-content: center;
   }
 
@@ -158,31 +152,6 @@
       'result notes'
       'result .';
     grid-template-rows: auto auto auto auto 1fr;
-  }
-}
-
-/* Below 1024px the primary controls are the sticky bottom sheet the other
-   tools use (ux guidelines 8). It stays in flow, so it never covers the
-   result, and `.tool-card` has no overflow clip, which sticky depends on.
-   The sheet bleeds to the card's edge: the card pads 12px below 768px
-   (PdfTool.module.css's `[data-hide-identity]` phone rule) and 1.5rem from
-   768px to 1023px. */
-@media (max-width: 1023px) {
-  .result-sheet {
-    position: sticky;
-    bottom: 0;
-    z-index: 2;
-    margin-inline: -12px;
-    padding: 0.5rem 12px calc(0.5rem + env(safe-area-inset-bottom));
-    background: var(--color-surface);
-    border-top: 1px solid var(--color-border);
-  }
-}
-
-@media (min-width: 768px) and (max-width: 1023px) {
-  .result-sheet {
-    margin-inline: -1.5rem;
-    padding-inline: 1.5rem;
   }
 }
 

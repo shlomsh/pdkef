@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'preact/hooks';
 import { FileText, Lock } from 'lucide-preact';
 import { reportError } from '#lib/telemetry/errorReport.ts';
 import styles from '../PdfSecurityTool.module.css';
+import layoutStyles from '#shell/loadedLayout.module.css';
 import type { planPreview } from '../lib/previewPlan.js';
 
 type Plan = NonNullable<ReturnType<typeof planPreview>>;
@@ -54,7 +55,7 @@ export default function PagePreview({ plan, source, failed = false, pending = fa
   const { image, busy: rendering } = usePageImage(source, () => failedRef.current);
   const busy = rendering || pending;
   return (
-    <section class={styles.result} data-security-preview aria-label={label}>
+    <section class={`${styles.result} ${layoutStyles.stage}`} data-security-preview aria-label={label}>
       <span class={styles.tag} data-preview-tag>
         {plan.protectedDone && <Lock size={12} aria-hidden="true" />}
         {plan.tag}
