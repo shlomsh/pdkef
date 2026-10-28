@@ -445,7 +445,7 @@ jobs:
     # (`e2e-webkit`) instead of being sharded here alongside chromium.
     # $E2E_PATHS is empty (no filter, the full suite) only when affected-scope.mjs
     # saw everything=true; the step is skipped when product_e2e=false.
-    # On the nightly cron every chromium spec runs twice (the chromium
+    # On the nightly (cron or a nightly dispatch) every chromium spec runs twice (the chromium
     # project has no retries), so a flaky spec turns the nightly red instead
     # of a push (QUAL-24).
     - name: Run Playwright e2e tests (product chromium, shard ${{ matrix.shard }}/4)
