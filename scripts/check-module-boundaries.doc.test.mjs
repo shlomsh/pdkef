@@ -39,7 +39,12 @@ function headerRules() {
   return rules;
 }
 
-// Rule numbers cited on lines that mention module-boundaries: `rule 6`, `rules 6 and 7`, `rules 1-3`.
+// Every number in a rule citation: `rule 6`, `rules 6 and 7`, `rules 1-3`, `rules 6, 8 and 9`.
+function ruleNumbersIn(line) {
+  return [...line.matchAll(/\brules? (\d+(?:(?:, and |, | and |-)\d+)*)/gi)].flatMap((m) => m[1].match(/\d+/g).map(Number));
+}
+
+// Rule numbers cited on lines that mention module-boundaries.
 function citedRules() {
   const dir = path.join(ROOT, '.claude/rules');
   const files = ['CLAUDE.md', ...fs.readdirSync(dir).filter((f) => f.endsWith('.md')).map((f) => `.claude/rules/${f}`)];
@@ -47,9 +52,7 @@ function citedRules() {
   for (const file of files) {
     for (const line of fs.readFileSync(path.join(ROOT, file), 'utf8').split('\n')) {
       if (!line.includes('module-boundaries')) continue;
-      for (const m of line.matchAll(/\brules? (\d+)(?:(?:-| and )(\d+))?/gi)) {
-        for (const n of [m[1], m[2]]) if (n) cited.push({ file, n: Number(n), line: line.trim() });
-      }
+      for (const n of ruleNumbersIn(line)) cited.push({ file, n, line: line.trim() });
     }
   }
   return cited;
@@ -72,6 +75,10 @@ describe('docs/module-boundaries.md vs the script rule list', () => {
     for (const { id, name } of RULES) {
       expect(byId.get(id), `header rule ${id} (${name})`).toContain(name);
     }
+  });
+  it('reads every number in a rule citation', () => {
+    expect(ruleNumbersIn('rule 6 of `docs/module-boundaries.md`')).toEqual([6]);
+    expect(ruleNumbersIn('rules 1-3, and rules 6, 8 and 9, and rules 1, 2, and 5')).toEqual([1, 3, 6, 8, 9, 1, 2, 5]);
   });
   it('rule numbers cited in the guidance exist', () => {
     const live = new Set(RULES.filter((r) => r.name !== 'retired (ARCH-48)').map((r) => r.id));

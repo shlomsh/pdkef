@@ -5,10 +5,14 @@
 // walks the real tree, pinning "today's code passes" the way
 // check-editor-dependency-directions.test.mjs pins staleExceptions() against
 // literal edges rather than only trusting the CLI run.
+import fs from 'node:fs';
+import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 import {
   parseModule, checkForbiddenImports, checkForbiddenGlobals, checkModuleLevelState, checkStaleShims, checkAll,
+  DETECTION_MODULES, DETECTION_ENTRY_POINT,
 } from './check-detection-purity.mjs';
+import { REPO_ROOT, importSpecifiers, isLocalSpecifier, relOf, resolveRelativeImport } from './import-graph.mjs';
 
 const FILE = 'src/tools/sign/lib/fields/formGrid.js'; // a real, non-shim entry in DETECTION_MODULES
 const SHIM_FILE = 'src/tools/sign/lib/fields/pageInk.js'; // a real entry in BOUNDARY_SHIMS
@@ -361,5 +365,29 @@ describe('detection purity guard: the pdfObjects.js split (ARCH-55)', () => {
     const stale = checkStaleShims(parseModule(PDFOBJECTS_FILE, source), PDFOBJECTS_FILE);
     expect(stale.some((v) => v.includes("'widgetEntries'"))).toBe(true);
     expect(stale.some((v) => v.includes("'present'"))).toBe(false);
+  });
+});
+
+// ARCH-107 review: DETECTION_MODULES is a hand list, so code moved out of a listed module (formCells.js
+// into formCellGrid.js) silently left the guard. A module in the detection folder that a listed module
+// imports at runtime is detection code too, so it must be on the list.
+const FIELDS = 'src/tools/sign/lib/fields/';
+describe('detection purity guard: the module list is closed under imports', () => {
+  it('lists every detection-folder module a detection module imports at runtime', () => {
+    const listed = new Set([...DETECTION_MODULES, DETECTION_ENTRY_POINT]);
+    const missing = [];
+    for (const rel of listed) {
+      const abs = path.join(REPO_ROOT, rel);
+      if (!fs.existsSync(abs)) continue;
+      const runtime = fs.readFileSync(abs, 'utf8')
+        .replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '').replace(/^import type [^;]*;/gm, '');
+      for (const spec of importSpecifiers(runtime, rel)) {
+        if (!isLocalSpecifier(spec)) continue;
+        const target = resolveRelativeImport(abs, spec);
+        const edge = target && `${rel} -> ${relOf(target)}`;
+        if (edge && relOf(target).startsWith(FIELDS) && !listed.has(relOf(target)) && !missing.includes(edge)) missing.push(edge);
+      }
+    }
+    expect(missing).toEqual([]);
   });
 });
