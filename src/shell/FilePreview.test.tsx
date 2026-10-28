@@ -3,7 +3,7 @@ import { act } from 'preact/test-utils';
 import { describe, expect, it, vi, afterEach, beforeEach } from 'vitest';
 import FilePreview from './FilePreview.tsx';
 // Asserts the icon-loaded state class (the thumbnail swap is the behaviour).
-import * as thumbnailsLib from '../lib/pdf/thumbnails.js';
+import * as thumbnailsLib from '#lib/pdf/thumbnails.js';
 
 function makePdfFile(name = 'contract.pdf') {
   return new File(['%PDF-1.4'], name, { type: 'application/pdf' });
@@ -25,7 +25,7 @@ function deferred() {
   return { promise, resolve, reject };
 }
 
-vi.mock('../lib/pdf/thumbnails.js', () => ({
+vi.mock('#lib/pdf/thumbnails.js', () => ({
   renderThumbnail: vi.fn(),
 }));
 

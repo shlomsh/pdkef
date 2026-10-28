@@ -1,12 +1,12 @@
 import { describe, it, expect } from 'vitest';
-import type { ActionHistoryEntry } from '../../../editor/model/actionHistory.ts';
+import type { ActionHistoryEntry } from '#editor/model/actionHistory.ts';
 import type {
   EditorElement,
   LineElement,
   RectangleElement,
   TextElement,
   WhiteoutElement,
-} from '../../../editor/model/editorModel.ts';
+} from '#editor/model/editorModel.ts';
 import { reducer, type SignToolAction, type SignToolState } from './SignToolContext.tsx';
 
 const textElement = (id: string, overrides: Partial<TextElement> = {}): TextElement => ({

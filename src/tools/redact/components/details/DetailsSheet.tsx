@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'preact/hooks';
-import { useModalDialog } from '../../../../shell/useModalDialog.ts';
+import { useModalDialog } from '#shell/useModalDialog.ts';
 import { expandDetailEdits } from '../../lib/detailEdits.js';
 import type { DetailEdit, DetailEdits } from '../../lib/detailEdits.js';
 import type { DetailRow } from '../../lib/details/describeDetails.ts';

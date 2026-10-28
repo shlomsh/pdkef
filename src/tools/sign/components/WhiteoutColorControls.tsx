@@ -1,10 +1,10 @@
 import { useState } from 'preact/hooks';
-import WhiteoutColorGroup from '../../../editor-ui/whiteout/WhiteoutColorGroup.tsx';
-import { useEyedropper } from '../../../editor-ui/whiteout/pageSampling.ts';
-import { useRecentWhiteoutColors } from '../../../editor-ui/whiteout/useRecentWhiteoutColors.ts';
-import type { ColorMode } from '../../../editor/model/editorModel.ts';
-import { whiteoutColorLabels } from '../../../editor/registry/signLabels';
-import type { SignMessages } from '../../../editor/registry/messages';
+import WhiteoutColorGroup from '#editor-ui/whiteout/WhiteoutColorGroup.tsx';
+import { useEyedropper } from '#editor-ui/whiteout/pageSampling.ts';
+import { useRecentWhiteoutColors } from '#editor-ui/whiteout/useRecentWhiteoutColors.ts';
+import type { ColorMode } from '#editor/model/editorModel.ts';
+import { whiteoutColorLabels } from '#editor/registry/signLabels.ts';
+import type { SignMessages } from '#editor/registry/messages.ts';
 import { SIGN_PAGE_SURFACE } from '../lib/whiteoutPageColor.ts';
 
 /** Paints a colour on a whiteout's DOM only: the picker's live preview. */

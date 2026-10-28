@@ -1,6 +1,6 @@
 import { useState } from 'preact/hooks';
-import { recordAction } from '../../../lib/telemetry/actionTrail.ts';
-import { reportEdit } from '../../../lib/telemetry/productAnalytics.ts';
+import { recordAction } from '#lib/telemetry/actionTrail.ts';
+import { reportEdit } from '#lib/telemetry/productAnalytics.ts';
 import type { ScanFilter } from '../lib/filters.ts';
 import type { SizeLimitId } from '../lib/scanBudget.ts';
 import type { PageSize } from '../lib/scanPipeline.ts';

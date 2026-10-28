@@ -1,6 +1,6 @@
 import type { ComponentChildren } from 'preact';
 import { useState } from 'preact/hooks';
-import Popover from '../shell/Popover.tsx';
+import Popover from '#shell/Popover.tsx';
 import styles from './EditorControls.module.css';
 
 export interface ToolbarMenuItem {

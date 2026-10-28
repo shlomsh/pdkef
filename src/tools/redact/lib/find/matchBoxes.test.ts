@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { createPageGeometry } from '../../../../editor/geometry/coords.ts';
+import { createPageGeometry } from '#editor/geometry/coords.ts';
 import { buildPageText } from './pageText.ts';
 import { matchBoxes } from './matchBoxes.ts';
 import type { PageText, PlacedItem, TextItemLike } from './types.ts';

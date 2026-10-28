@@ -1,7 +1,7 @@
 import { MergeFileError } from './merge.js';
 import type { FileEntry, SortMode } from './mergeModel.ts';
 import type { MergeMessages } from '../messages';
-import type { ShellMessages } from '../../../shell/shellMessages';
+import type { ShellMessages } from '#shell/shellMessages.ts';
 import type { MergeDraftSaveState } from '../hooks/useMergeDraft.ts';
 
 export interface FailedFile {

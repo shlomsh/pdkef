@@ -1,5 +1,5 @@
 import { Expand, Minimize2 } from 'lucide-preact';
-import { workspaceStyles } from '../../../shell/pageWorkspace/PageWorkspace.tsx';
+import { workspaceStyles } from '#shell/pageWorkspace/PageWorkspace.tsx';
 
 interface FullScreenButtonProps {
   full: boolean;

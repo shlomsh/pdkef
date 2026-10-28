@@ -1,11 +1,11 @@
 import { useLayoutEffect, useRef, useState } from 'preact/hooks';
-import usePdfCoordinates from '../../../../editor-ui/hooks/usePdfCoordinates.js';
-import { fieldTextInset, textElementLayout } from '../../../../editor/text/textLayout.js';
-import { combLayout, isComb } from '../../../../editor/text/comb.js';
+import usePdfCoordinates from '#editor-ui/hooks/usePdfCoordinates.ts';
+import { fieldTextInset, textElementLayout } from '#editor/text/textLayout.js';
+import { combLayout, isComb } from '#editor/text/comb.js';
 import CombCells from '../nodes/CombCells.tsx';
 import { useCombCaret } from '../nodes/useCombCaret.ts';
-import elementStyles from '../../../../editor-ui/EditorElement.module.css';
-import type { TextElement } from '../../../../editor/model/editorModel.ts';
+import elementStyles from '#editor-ui/EditorElement.module.css';
+import type { TextElement } from '#editor/model/editorModel.ts';
 import { AUTOCORRECT_OFF, type EnterKeyHint, type FillSlot } from '../../lib/fill/fillTypes.ts';
 import { slotFrame } from '../../lib/fill/slotFrame.ts';
 import styles from './fill.module.css';

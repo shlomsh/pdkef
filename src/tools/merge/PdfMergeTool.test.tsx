@@ -10,8 +10,8 @@ import PdfMergeTool from './PdfMergeTool.tsx';
 import { mergePdfs } from './lib/merge.js';
 import * as mergeLib from './lib/merge.js';
 import { MERGE_DRAFT_SCHEMA_VERSION } from './hooks/useMergeDraft.ts';
-import { saveDraft, saveHandoff } from '../../lib/drafts/draftStore.ts';
-import { getPdfLib } from '../../lib/pdf/pdfLib.js';
+import { saveDraft, saveHandoff } from '#lib/drafts/draftStore.ts';
+import { getPdfLib } from '#lib/pdf/pdfLib.js';
 import railStyles from './components/MergeRail.module.css'; // kept on purpose: the file-name bidi class is the styling under test
 import { mockNativeFileShare } from '../../test/support/mockFileShare.js';
 import { buildPdf, noPagesKey } from '../../test/support/pdfPageTreeFixtures.ts';
@@ -20,8 +20,8 @@ import { setInputFiles } from '../../test/support/setInputFiles.js';
 import { until } from '../../test/support/until.js';
 import { waitUntil } from '../../test/harness/waitUntil.ts';
 import { hebrewMergeMessages } from './messages';
-import { hebrewShellMessages } from '../../shell/shellMessages';
-import { recentActions } from '../../lib/telemetry/actionTrail.ts';
+import { hebrewShellMessages } from '#shell/shellMessages.ts';
+import { recentActions } from '#lib/telemetry/actionTrail.ts';
 
 // The pdf.js edge (the encryption probe, the thumbnail source) is the harness's: harness.pdfjs. Everything else
 // (analytics, error reports, draftStore, the merge itself, the draft hook, the hand-off intake) runs for

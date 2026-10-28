@@ -13,7 +13,7 @@ import { describe, expect, it, vi } from 'vitest';
 import useFormFieldRegions from './useFormFieldRegions.ts';
 import type { FormFieldRegions } from './useFormFieldRegions.ts';
 import { fieldFontSize, placeTextOnField, type TypableField } from '../lib/combPlacement.ts';
-import { DEFAULT_FONT_FAMILY } from '../../../editor/model/signGeometry.js';
+import { DEFAULT_FONT_FAMILY } from '#editor/model/signGeometry.js';
 
 /**
  * SIGN-32: one carried font and size per document, on the real practice

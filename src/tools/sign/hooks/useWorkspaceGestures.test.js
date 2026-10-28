@@ -13,9 +13,9 @@
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import useWorkspaceGestures from './useWorkspaceGestures.js';
-import { DEFAULT_SYMBOL_WIDTH_PCT } from '../../../editor/model/signGeometry.js';
-import { formatDate, toIsoDateString } from '../../../editor/text/dateFormat.ts';
-import { startGesture } from '../../../lib/gestures/controller.ts';
+import { DEFAULT_SYMBOL_WIDTH_PCT } from '#editor/model/signGeometry.js';
+import { formatDate, toIsoDateString } from '#editor/text/dateFormat.ts';
+import { startGesture } from '#lib/gestures/controller.ts';
 import { samplePageColor } from '../lib/whiteoutPageColor.ts';
 
 // The node environment has no document to read the page canvas from.

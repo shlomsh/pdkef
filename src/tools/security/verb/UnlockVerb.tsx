@@ -1,5 +1,5 @@
-import VerbStage from '../../../shell/verb/VerbStage.tsx';
-import paperStyles from '../../../shell/verb/paper.module.css';
+import VerbStage from '#shell/verb/VerbStage.tsx';
+import paperStyles from '#shell/verb/paper.module.css';
 import styles from './UnlockVerb.module.css';
 
 /** Unlock's verb: the shackle lifts, the lock moves off the page, and the hatching over the page clears. */

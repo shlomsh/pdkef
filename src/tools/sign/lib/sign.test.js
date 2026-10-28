@@ -10,13 +10,13 @@ import {
   signPdf,
   UnrepresentableTextError
 } from './sign.js';
-import { mockFontFetch } from '../../../editor/adapters/pdf/fontFetch.test-helper.js';
-import { hasFillableAcroForm } from '../../../editor/adapters/pdf/pdfObjects.js';
-import { getEffectiveTextDirection } from '../../../editor/text/textDirection.js';
-import { hexToRgbFractions } from '../../../editor/text/imageTint.js';
-import { percentToPoints } from '../../../editor/geometry/coords.js';
-import { applyAffineTransform, createPageGeometry, pageGeometryFromPdfJsPage } from '../../../editor/geometry/coords.js';
-import { combCellCount, combCharacters } from '../../../editor/text/comb.js';
+import { mockFontFetch } from '#editor/adapters/pdf/fontFetch.test-helper.js';
+import { hasFillableAcroForm } from '#editor/adapters/pdf/pdfObjects.js';
+import { getEffectiveTextDirection } from '#editor/text/textDirection.js';
+import { hexToRgbFractions } from '#editor/text/imageTint.js';
+import { percentToPoints } from '#editor/geometry/coords.ts';
+import { applyAffineTransform, createPageGeometry, pageGeometryFromPdfJsPage } from '#editor/geometry/coords.ts';
+import { combCellCount, combCharacters } from '#editor/text/comb.js';
 
 function getFixtureFile(name = 'num-1.pdf') {
   const filePath = path.resolve(__dirname, '../../../lib/__fixtures__', name);

@@ -1,8 +1,8 @@
-import styles from '../../../editor-ui/EditorControls.module.css';
-import { FONT_STYLE_TAGS, HANDWRITING_FONTS, TEXT_FONTS } from '../../../editor/text/fonts.js';
+import styles from '#editor-ui/EditorControls.module.css';
+import { FONT_STYLE_TAGS, HANDWRITING_FONTS, TEXT_FONTS } from '#editor/text/fonts.js';
 import { getFontSupport } from '../lib/textFontSupport.js';
-import { formatMessage } from '../../../lib/text/formatMessage';
-import type { SignMessages } from '../../../editor/registry/messages';
+import { formatMessage } from '#lib/text/formatMessage.ts';
+import type { SignMessages } from '#editor/registry/messages.ts';
 
 const collator = new Intl.Collator('en', { sensitivity: 'base' });
 

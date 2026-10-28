@@ -11,7 +11,7 @@ import * as pdfjs from 'pdfjs-dist/legacy/build/pdf.mjs';
 import { applyPageEdits } from './applyPageEdits.js';
 import { listDeletableObjects } from './deleteObjects.js';
 import { withPreviews } from './objectPreviews.test-helper.js';
-import { buildFormXObjectPdf } from '../../../editor/adapters/pdf/formXObjectFixture.test-helper.js';
+import { buildFormXObjectPdf } from '#editor/adapters/pdf/formXObjectFixture.test-helper.js';
 
 vi.mock('pdfjs-dist', async () => {
   return await import('pdfjs-dist/legacy/build/pdf.mjs');

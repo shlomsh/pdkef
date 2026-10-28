@@ -1,9 +1,9 @@
 import { cloneElement, type VNode } from 'preact';
 import { useCallback, useEffect, useRef, useState } from 'preact/hooks';
-import { useModalDialog } from '../../../shell/useModalDialog.ts';
+import { useModalDialog } from '#shell/useModalDialog.ts';
 import sheetStyles from './FontSheet.module.css';
 import { FONT_OPTIONS, computeFontOptions, FontOptionsList } from './FontOptionsList.tsx';
-import type { SignMessages } from '../../../editor/registry/messages';
+import type { SignMessages } from '#editor/registry/messages.ts';
 
 /**
  * SNG-17: `useFillFocus.ts` (fill mode's focus session tracker) keeps the

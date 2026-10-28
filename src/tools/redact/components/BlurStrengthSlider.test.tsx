@@ -3,8 +3,8 @@ import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import BlurStrengthSlider from './BlurStrengthSlider.tsx';
-import { DEFAULT_BLUR_STRENGTH } from '../../../editor/model/blurStrength.ts';
-import { renderRedactionSurface } from '../../../editor/registry/redactionSurface.ts';
+import { DEFAULT_BLUR_STRENGTH } from '#editor/model/blurStrength.ts';
+import { renderRedactionSurface } from '#editor/registry/redactionSurface.ts';
 
 const labels = { title: 'Blur strength', lighter: 'Lighter', stronger: 'Stronger' };
 let host: HTMLElement | null = null;

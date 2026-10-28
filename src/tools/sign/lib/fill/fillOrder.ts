@@ -1,4 +1,4 @@
-import type { TextDirection } from '../../../../editor/model/editorModel.ts';
+import type { TextDirection } from '#editor/model/editorModel.ts';
 import type { PercentBox } from '../combPlacement.ts';
 import { inReadingOrder } from '../fieldOrder.ts';
 import type { EnterKeyHint, FillItem } from './fillTypes.ts';

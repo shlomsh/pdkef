@@ -1,5 +1,5 @@
-import { combCaretFraction } from '../../../../editor/text/comb.js';
-import elementStyles from '../../../../editor-ui/EditorElement.module.css';
+import { combCaretFraction } from '#editor/text/comb.js';
+import elementStyles from '#editor-ui/EditorElement.module.css';
 
 /** One laid-out cell, as `combLayout` (comb.js) returns it. */
 interface CombCell {

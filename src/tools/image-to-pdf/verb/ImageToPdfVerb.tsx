@@ -1,5 +1,5 @@
-import VerbStage from '../../../shell/verb/VerbStage.tsx';
-import paperStyles from '../../../shell/verb/paper.module.css';
+import VerbStage from '#shell/verb/VerbStage.tsx';
+import paperStyles from '#shell/verb/paper.module.css';
 import styles from './ImageToPdfVerb.module.css';
 
 const p = `${paperStyles.photo} ${styles.p}`;

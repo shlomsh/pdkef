@@ -1,4 +1,4 @@
-import { useToolShell } from '../../../shell/ToolShell.tsx';
+import { useToolShell } from '#shell/ToolShell.tsx';
 import styles from '../PdfImageToPdfTool.module.css';
 
 // Its own component so it can reach the shell context (BasePdfTool provides it to its children).

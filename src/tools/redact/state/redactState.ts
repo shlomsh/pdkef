@@ -16,7 +16,7 @@
  *     and the Share bytes (`usePdfShare`), which keep their own hooks.
  */
 import type { PDFDocumentProxy } from 'pdfjs-dist';
-import { formatMessage } from '../../../lib/text/formatMessage.ts';
+import { formatMessage } from '#lib/text/formatMessage.ts';
 import {
   applyHistoryEntries,
   removedPlaces,
@@ -25,11 +25,11 @@ import {
   type HistoryElement,
   type HistoryPlace,
   type PlaceHistoryEntry,
-} from '../../../editor/model/actionHistory.ts';
-import { pushCommand, redoStep, revertCommands, type HistoryStack } from '../../../editor/model/historyStack.ts';
-import type { BlurStrength } from '../../../editor/model/blurStrength.ts';
-import type { DocumentStyle } from '../../../editor/model/documentStyle.ts';
-import type { RedactToolType } from '../../../editor/model/editorModel.ts';
+} from '#editor/model/actionHistory.ts';
+import { pushCommand, redoStep, revertCommands, type HistoryStack } from '#editor/model/historyStack.ts';
+import type { BlurStrength } from '#editor/model/blurStrength.ts';
+import type { DocumentStyle } from '#editor/model/documentStyle.ts';
+import type { RedactToolType } from '#editor/model/editorModel.ts';
 import type { BrushSettings } from '../components/BrushControls.tsx';
 import type { FinishPhase } from '../lib/finishState.ts';
 import type { RedactElement } from '../lib/redactElements.ts';

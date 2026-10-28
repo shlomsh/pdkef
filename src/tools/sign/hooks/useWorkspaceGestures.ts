@@ -1,24 +1,24 @@
-import usePdfCoordinates from '../../../editor-ui/hooks/usePdfCoordinates.js';
-import { startGesture } from '../../../lib/gestures/controller.ts';
-import { recordAction } from '../../../lib/telemetry/actionTrail.ts';
-import type { GestureEvent } from '../../../lib/gestures/controller.ts';
-import { createElementId } from '../../../editor/model/ids.ts';
+import usePdfCoordinates from '#editor-ui/hooks/usePdfCoordinates.ts';
+import { startGesture } from '#lib/gestures/controller.ts';
+import { recordAction } from '#lib/telemetry/actionTrail.ts';
+import type { GestureEvent } from '#lib/gestures/controller.ts';
+import { createElementId } from '#editor/model/ids.ts';
 import {
   captureAddedElement,
   captureElementSnapshots,
   type HistoryLogger,
-} from '../../../editor/model/actionHistory.ts';
+} from '#editor/model/actionHistory.ts';
 import type {
   EditorElement,
   EditorElementPatch,
   SignToolType,
   SymbolMark,
-} from '../../../editor/model/editorModel.ts';
-import type { DocumentStyle } from '../../../editor/model/documentStyle.ts';
+} from '#editor/model/editorModel.ts';
+import type { DocumentStyle } from '#editor/model/documentStyle.ts';
 import { carriedTextStyle } from '../lib/elementDefaults.ts';
-import type { SavedSignature } from '../../../editor/model/savedSignature.ts';
-import type { PageGeometry } from '../../../editor/geometry/coords.ts';
-import { getElementDefinition } from '../../../editor/registry/index.ts';
+import type { SavedSignature } from '#editor/model/savedSignature.ts';
+import type { PageGeometry } from '#editor/geometry/coords.ts';
+import { getElementDefinition } from '#editor/registry/index.ts';
 import { ensureMinimumElementSize } from '../lib/minimumSize.ts';
 import { samplePageColor } from '../lib/whiteoutPageColor.ts';
 import {
@@ -30,14 +30,14 @@ import {
   type FieldRegion,
   type TypableField,
 } from '../lib/combPlacement.ts';
-import { placeSymbolOnRegion } from '../../../editor/registry/symbol.ts';
-import { DESIGN_BOX, markInkExtent } from '../../../editor/registry/symbolMarks.ts';
-import { dateFormatForComb, formatDate, isDateFormatId, toIsoDateString } from '../../../editor/text/dateFormat.ts';
+import { placeSymbolOnRegion } from '#editor/registry/symbol.ts';
+import { DESIGN_BOX, markInkExtent } from '#editor/registry/symbolMarks.ts';
+import { dateFormatForComb, formatDate, isDateFormatId, toIsoDateString } from '#editor/text/dateFormat.ts';
 import type { FormFieldRegions } from './useFormFieldRegions.ts';
 import { englishSignMessages } from '../messages';
-import { signElementTypeLabel } from '../../../editor/registry/signLabels';
-import type { SignMessages } from '../../../editor/registry/messages';
-import { formatMessage } from '../../../lib/text/formatMessage';
+import { signElementTypeLabel } from '#editor/registry/signLabels.ts';
+import type { SignMessages } from '#editor/registry/messages.ts';
+import { formatMessage } from '#lib/text/formatMessage.ts';
 import {
   DEFAULT_COLOR_BLUE,
   DEFAULT_STROKE_WIDTH,
@@ -48,7 +48,7 @@ import {
   TEXT_BOX_LINE_HEIGHT_EM,
   PAGE_HEIGHT_DEFAULT_PTS,
   PAGE_WIDTH_DEFAULT_PTS
-} from '../../../editor/model/signGeometry.js';
+} from '#editor/model/signGeometry.js';
 
 export type WorkspaceCreationTool = SignToolType;
 

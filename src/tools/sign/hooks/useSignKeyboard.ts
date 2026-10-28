@@ -1,10 +1,10 @@
 import { useEffect } from 'preact/hooks';
-import type { EditorElement } from '../../../editor/model/editorModel.ts';
-import { captureElementSnapshots, type HistoryLogger } from '../../../editor/model/actionHistory.ts';
-import { signElementTypeLabel } from '../../../editor/registry/signLabels';
-import type { SignMessages } from '../../../editor/registry/messages';
-import { recordAction } from '../../../lib/telemetry/actionTrail.ts';
-import { formatMessage } from '../../../lib/text/formatMessage';
+import type { EditorElement } from '#editor/model/editorModel.ts';
+import { captureElementSnapshots, type HistoryLogger } from '#editor/model/actionHistory.ts';
+import { signElementTypeLabel } from '#editor/registry/signLabels.ts';
+import type { SignMessages } from '#editor/registry/messages.ts';
+import { recordAction } from '#lib/telemetry/actionTrail.ts';
+import { formatMessage } from '#lib/text/formatMessage.ts';
 import type { SignToolAction } from '../components/SignToolContext.tsx';
 import { classifySignKey } from '../lib/signKeyAction.ts';
 import type { FieldNavigation } from './useFieldNavigation.ts';

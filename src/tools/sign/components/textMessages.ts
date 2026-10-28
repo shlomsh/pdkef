@@ -9,8 +9,8 @@
  * Hebrew text-policy sentences too.
  */
 import { englishSignMessages } from '../messages';
-import type { SignMessages } from '../../../editor/registry/messages';
-import { formatMessage } from '../../../lib/text/formatMessage';
+import type { SignMessages } from '#editor/registry/messages.ts';
+import { formatMessage } from '#lib/text/formatMessage.ts';
 
 /** Bounded, direction-isolated text excerpts for UI sentences - script-agnostic, so this needs no locale parameter. */
 export function quoteText(text: string) {

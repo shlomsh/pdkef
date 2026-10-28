@@ -17,10 +17,10 @@
  * that to treat a plan like any other piece of Preact state.
  */
 
-import { sanitizeOutputName } from '../../../lib/output/sanitizeOutputName.ts';
-import { outputName, withAffixes } from '../../../lib/output/outputName.ts';
-import { clampIndex, planForFile, type PlanEntry } from '../../../lib/pages/pagePlan.ts';
-import { sortEntries } from '../../../lib/pages/pageOrder.js';
+import { sanitizeOutputName } from '#lib/output/sanitizeOutputName.ts';
+import { outputName, withAffixes } from '#lib/output/outputName.ts';
+import { clampIndex, planForFile, type PlanEntry } from '#lib/pages/pagePlan.ts';
+import { sortEntries } from '#lib/pages/pageOrder.js';
 import type { FileEntry, Model, SortMode } from './mergeModel.ts';
 export interface MergeMapEntry {
   fileIndex: number;

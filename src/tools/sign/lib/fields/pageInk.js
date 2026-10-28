@@ -1,6 +1,6 @@
 import { PDFName } from '@cantoo/pdf-lib';
-import { getPageContentBytes } from '../../../../editor/adapters/pdf/pdfObjects.js';
-import { tokenize, multiplyMatrix, applyMatrix } from '../../../../editor/adapters/pdf/contentStream.js';
+import { getPageContentBytes } from '#editor/adapters/pdf/pdfObjects.js';
+import { tokenize, multiplyMatrix, applyMatrix } from '#editor/adapters/pdf/contentStream.js';
 
 /**
  * Axis-aligned vector ink a page draws, in PDF user space.

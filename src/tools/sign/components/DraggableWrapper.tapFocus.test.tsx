@@ -4,7 +4,7 @@ import { describe, expect, it, afterEach, beforeEach, vi } from 'vitest';
 import TextNode from './nodes/TextNode.tsx';
 import DraggableWrapper from './DraggableWrapper.tsx';
 // Fixture parent: production finds the page with closest() on this class, so the test must carry it.
-import type { TextElement } from '../../../editor/model/editorModel.ts';
+import type { TextElement } from '#editor/model/editorModel.ts';
 
 // MOBI-24: iOS opens the keyboard only for a focus() made while the touch is
 // still being handled. So the tap that opens a text box's edit session must

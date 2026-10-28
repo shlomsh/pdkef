@@ -10,7 +10,7 @@
  */
 
 import type { PageGlyph } from '../pageGlyphs.ts';
-import { toPagePercentBox, type PageGeometry } from '../../../../editor/geometry/coords.ts';
+import { toPagePercentBox, type PageGeometry } from '#editor/geometry/coords.ts';
 import { glyphsBox, type PointBox } from './glyphBoxes.ts';
 import { glyphsOf, pageGlyphMap } from './itemGlyphs.ts';
 import type { PageText, PercentBox, PlacedItem, TextRange } from './types.ts';

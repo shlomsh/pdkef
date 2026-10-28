@@ -11,7 +11,7 @@ import { ContentStreamDecodeError, getPageContentBytes } from './pageContent.js'
 import { walkContentStream } from './contentStreamWalk.js';
 import { closedMark } from './pdkefMark.js';
 import { collectCheckboxGlyphs } from './checkboxGlyphs.js';
-import { reportError } from '../../../lib/telemetry/errorReport.ts';
+import { reportError } from '#lib/telemetry/errorReport.ts';
 
 // The public surface of this module stays here; the pieces live in sibling modules (ARCH-55).
 export { ContentStreamDecodeError, getPageContentBytes, collectCheckboxGlyphs };

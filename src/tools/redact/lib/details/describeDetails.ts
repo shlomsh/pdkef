@@ -7,7 +7,7 @@
 import { attachmentDetailId, expandDetailEdits } from '../detailEdits.js';
 import type { DetailEdits } from '../detailEdits.js';
 import type { DocumentTraces } from '../documentTraces.js';
-import { formatMessage } from '../../../../lib/text/formatMessage.ts';
+import { formatMessage } from '#lib/text/formatMessage.ts';
 import { englishRedactMessages } from '../../messages.ts';
 import type { RedactMessages } from '../../messages.ts';
 

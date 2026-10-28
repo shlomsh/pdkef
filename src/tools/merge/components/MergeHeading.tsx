@@ -1,11 +1,11 @@
-import HistoryButtons from '../../../shell/HistoryButtons.tsx';
-import OutputName from '../../../shell/OutputName.tsx';
-import { workspaceStyles } from '../../../shell/pageWorkspace/PageWorkspace.tsx';
-import { pagesLabel, skippedLabel } from '../../../shell/pageWorkspace/pageCounts.ts';
-import { formatMessage } from '../../../lib/text/formatMessage';
+import HistoryButtons from '#shell/HistoryButtons.tsx';
+import OutputName from '#shell/OutputName.tsx';
+import { workspaceStyles } from '#shell/pageWorkspace/PageWorkspace.tsx';
+import { pagesLabel, skippedLabel } from '#shell/pageWorkspace/pageCounts.ts';
+import { formatMessage } from '#lib/text/formatMessage.ts';
 import docStyles from './MergeDocument.module.css';
 import type { MergeMessages } from '../messages';
-import type { ShellMessages } from '../../../shell/shellMessages';
+import type { ShellMessages } from '#shell/shellMessages.ts';
 
 interface MergeHeadingProps {
   title: string;

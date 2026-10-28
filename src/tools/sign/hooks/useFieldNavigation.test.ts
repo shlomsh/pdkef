@@ -13,8 +13,8 @@
 import { describe, it, expect, vi } from 'vitest';
 import useFieldNavigation from './useFieldNavigation.ts';
 import type { CombRegion, FieldRegion } from '../lib/combPlacement.ts';
-import type { EditorElement, TextDirection, TextElement } from '../../../editor/model/editorModel.ts';
-import type { DocumentStyle } from '../../../editor/model/documentStyle.ts';
+import type { EditorElement, TextDirection, TextElement } from '#editor/model/editorModel.ts';
+import type { DocumentStyle } from '#editor/model/documentStyle.ts';
 import type { FormFieldRegions } from './useFormFieldRegions.ts';
 
 const comb = (pageIndex: number, left: number, top: number, width = 15, cells = 9): CombRegion => (

@@ -3,10 +3,10 @@ import { readFileSync } from 'node:fs';
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import PageRangeField from '../../shell/pageWorkspace/PageRangeField.tsx';
-import { type PlanEntry, planForFile, skipAll, withIncludedPages } from '../../lib/pages/pagePlan.ts';
+import PageRangeField from '#shell/pageWorkspace/PageRangeField.tsx';
+import { type PlanEntry, planForFile, skipAll, withIncludedPages } from '#lib/pages/pagePlan.ts';
 import { englishSplitMessages as t } from '../../tools/split/messages';
-import { recentActions, resetActionTrailForTests } from '../../lib/telemetry/actionTrail.ts';
+import { recentActions, resetActionTrailForTests } from '#lib/telemetry/actionTrail.ts';
 
 describe('PageRangeField', () => {
   let host: HTMLElement | null = null;

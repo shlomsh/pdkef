@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { englishMergeMessages, hebrewMergeMessages } from '../../tools/merge/messages';
-import { englishShellMessages as sm } from '../../shell/shellMessages';
-import { downloadDetail, pagesLabel, skippedLabel } from '../../shell/pageWorkspace/pageCounts.ts';
+import { englishShellMessages as sm } from '#shell/shellMessages.ts';
+import { downloadDetail, pagesLabel, skippedLabel } from '#shell/pageWorkspace/pageCounts.ts';
 
 describe('skippedLabel', () => {
   it('reads as a whole phrase in English', () => {

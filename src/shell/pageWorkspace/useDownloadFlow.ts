@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'preact/hooks';
-import type { OutputPart, PreparedOutput } from '../../lib/output/usePreparedOutput.ts';
-import { usePdfShare } from '../../lib/output/usePdfShare.js';
-import { useHoldUpdate } from '../../lib/hooks/useHoldUpdate.ts';
-import { useNavigatingAway } from '../../lib/hooks/useNavigatingAway.ts';
-import { sendHandoff } from '../../lib/handoff/sendHandoff.ts';
-import { recordAction } from '../../lib/telemetry/actionTrail.ts';
-import type { HandoffTargetId } from '../../lib/app/toolIds.ts';
+import type { OutputPart, PreparedOutput } from '#lib/output/usePreparedOutput.ts';
+import { usePdfShare } from '#lib/output/usePdfShare.js';
+import { useHoldUpdate } from '#lib/hooks/useHoldUpdate.ts';
+import { useNavigatingAway } from '#lib/hooks/useNavigatingAway.ts';
+import { sendHandoff } from '#lib/handoff/sendHandoff.ts';
+import { recordAction } from '#lib/telemetry/actionTrail.ts';
+import type { HandoffTargetId } from '#lib/app/toolIds.ts';
 import type { DownloadElementState } from '../DownloadElement.tsx';
 
 /** The tool ids a finished output can be handed to (the ids draftStore keys a hand-off by). */

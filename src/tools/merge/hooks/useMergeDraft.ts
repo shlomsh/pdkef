@@ -1,14 +1,14 @@
 import { useCallback, useEffect, useRef, useState } from 'preact/hooks';
 import {
   deleteDraft, hasDraftHint, loadDraft, saveDraft, subscribeToDraftChanges,
-} from '../../../lib/drafts/draftStore.ts';
-import { clearDraftHintAttribute, RESTORE_TIMEOUT_MS } from '../../../lib/drafts/useDraftPersistence.js';
-import { registerBeforeUpdateReload } from '../../../lib/appUpdate/updateHolds.ts';
-import { useHoldUpdate } from '../../../lib/hooks/useHoldUpdate.ts';
-import { consumeRecentOpen } from '../../../lib/handoff/fileArrival.ts';
-import { reportError } from '../../../lib/telemetry/errorReport.ts';
-import { mimeTypeOf } from '../../../lib/handoff/fileKind.js';
-import { outputPageCount, type PlanEntry } from '../../../lib/pages/pagePlan.ts';
+} from '#lib/drafts/draftStore.ts';
+import { clearDraftHintAttribute, RESTORE_TIMEOUT_MS } from '#lib/drafts/useDraftPersistence.js';
+import { registerBeforeUpdateReload } from '#lib/appUpdate/updateHolds.ts';
+import { useHoldUpdate } from '#lib/hooks/useHoldUpdate.ts';
+import { consumeRecentOpen } from '#lib/handoff/fileArrival.ts';
+import { reportError } from '#lib/telemetry/errorReport.ts';
+import { mimeTypeOf } from '#lib/handoff/fileKind.js';
+import { outputPageCount, type PlanEntry } from '#lib/pages/pagePlan.ts';
 
 // MERGE-13: draft persistence for the Merge tool, on the same shared store
 // Sign and Redact already use (draftStore.ts's 'merge' record shape - see its

@@ -1,15 +1,15 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
 import usePdfCoordinates from './usePdfCoordinates.js';
-import { startGesture } from '../../lib/gestures/controller.ts';
-import { getElementDefinition } from '../../editor/registry/index.ts';
-import { getEffectiveTextDirection } from '../../editor/text/textDirection.js';
+import { startGesture } from '#lib/gestures/controller.ts';
+import { getElementDefinition } from '#editor/registry/index.ts';
+import { getEffectiveTextDirection } from '#editor/text/textDirection.js';
 import {
   DEFAULT_START_WIDTH_PCT,
   DEFAULT_FONT_SIZE_PT,
   ASPECT_RATIO_SYMBOL,
   ASPECT_RATIO_TEXT,
   MIN_COMB_WIDTH_PCT
-} from '../../editor/model/signGeometry.js';
+} from '#editor/model/signGeometry.js';
 
 // MOBI-31. A generic, per-type-agnostic undo for whatever a resize gesture
 // painted directly onto the DOM (elementRef.current.style for a box/centered
@@ -56,7 +56,7 @@ function restoreSubtreeAttributes(snapshot) {
  * @param {object}   params.elementRef     - ref to the element's DOM node (owned by caller)
  * @param {function} params.getPageWrapper - () => closest page-wrapper node | null
  * @param {number}   params.pageWidthPoints - page width in PDF points (0 if the caller has no notion of it - only text/centered resize read it)
- * @param {import('../../editor/geometry/coords.js').PageGeometry} [params.pageGeometry] - rotated/cropped page frame
+ * @param {import('#editor/geometry/coords.ts').PageGeometry} [params.pageGeometry] - rotated/cropped page frame
  * @param {function} params.onChange       - called on pointer up to commit the resized geometry
  */
 export default function useElementResize({

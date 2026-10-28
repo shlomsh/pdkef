@@ -1,4 +1,4 @@
-import VerbStage from '../../../shell/verb/VerbStage.tsx';
+import VerbStage from '#shell/verb/VerbStage.tsx';
 import styles from './CompressVerb.module.css';
 import { mosaicRuns, type Run, type Tone } from './mosaic.ts';
 

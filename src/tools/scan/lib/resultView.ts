@@ -1,8 +1,8 @@
-import { placeImage } from '../../../lib/images/imagePage.js';
-import { formatFileSize } from '../../../lib/text/format.js';
-import { formatMessage } from '../../../lib/text/formatMessage';
-import { pagesLabel } from '../../../shell/pageWorkspace/pageCounts.ts';
-import { englishShellMessages } from '../../../shell/shellMessages';
+import { placeImage } from '#lib/images/imagePage.js';
+import { formatFileSize } from '#lib/text/format.js';
+import { formatMessage } from '#lib/text/formatMessage.ts';
+import { pagesLabel } from '#shell/pageWorkspace/pageCounts.ts';
+import { englishShellMessages } from '#shell/shellMessages.ts';
 import { englishScanMessages as t } from '../messages.ts';
 import type { PageSize, Placement } from './scanPipeline.ts';
 import type { PageResult, ScanPage } from '../state/scanWork.ts';

@@ -1,5 +1,5 @@
 import type { DocumentationLocaleId } from '../../i18n/documentationLocales';
-import type { PageGridMessages, DownloadMessages } from '../../shell/shellMessages';
+import type { PageGridMessages, DownloadMessages } from '#shell/shellMessages.ts';
 
 export interface MergeMessages extends PageGridMessages, DownloadMessages {
   /** Text direction; a size inside a sentence is bidi-isolated when 'rtl'. */

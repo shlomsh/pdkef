@@ -1,12 +1,12 @@
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { describe, expect, it, vi, beforeEach } from 'vitest';
-import { reportEdit } from '../../../lib/telemetry/productAnalytics.ts';
-import { createActionEntry } from '../../../editor/model/actionHistory.ts';
-import type { EditorElement } from '../../../editor/model/editorModel.ts';
+import { reportEdit } from '#lib/telemetry/productAnalytics.ts';
+import { createActionEntry } from '#editor/model/actionHistory.ts';
+import type { EditorElement } from '#editor/model/editorModel.ts';
 import { SignToolProvider, useSignTool } from './SignToolContext.tsx';
 
-vi.mock('../../../lib/telemetry/productAnalytics.ts', () => ({ reportEdit: vi.fn() }));
+vi.mock('#lib/telemetry/productAnalytics.ts', () => ({ reportEdit: vi.fn() }));
 
 const text: EditorElement = { id: 't1', type: 'text', pageIndex: 0, left: 0, top: 0, text: 'hi' } as EditorElement;
 

@@ -5,12 +5,12 @@
  */
 import { vi } from 'vitest';
 
-vi.mock('../../../lib/pdf/pdfEncryption.ts', async (importOriginal) => {
+vi.mock('#lib/pdf/pdfEncryption.ts', async (importOriginal) => {
   const { pdfjsEdges } = await import('../pdfjsEdges.ts');
   return { ...(await importOriginal<object>()), probeEncryption: pdfjsEdges.probe };
 });
 
-vi.mock('../../../lib/pdf/thumbnails.js', async (importOriginal) => {
+vi.mock('#lib/pdf/thumbnails.js', async (importOriginal) => {
   const { pdfjsEdges } = await import('../pdfjsEdges.ts');
   return { ...(await importOriginal<object>()), ...pdfjsEdges.thumbnails };
 });

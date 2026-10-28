@@ -1,4 +1,4 @@
-import VerbStage from '../../../shell/verb/VerbStage.tsx';
+import VerbStage from '#shell/verb/VerbStage.tsx';
 import styles from './SignVerb.module.css';
 
 const SIG =

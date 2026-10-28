@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { PDFDocument, PDFName, PDFString, degrees } from '@cantoo/pdf-lib';
 import { FormFlattenError, appearanceToRectMatrix, flattenDoc } from './flatten.js';
-import { getPageContentBytes } from '../../../editor/adapters/pdf/pdfObjects.js';
+import { getPageContentBytes } from '#editor/adapters/pdf/pdfObjects.js';
 
 /** Loads, flattens and saves; returns the input bytes untouched when there was nothing to flatten. */
 async function flattenPdf(bytes) {

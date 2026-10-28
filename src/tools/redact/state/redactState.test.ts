@@ -15,8 +15,8 @@ import {
   type RedactAction,
   type RedactState,
 } from './redactState.ts';
-import { captureAddedElement, captureElementSnapshots, createActionEntry, type PlaceHistoryEntry } from '../../../editor/model/actionHistory.ts';
-import { createUpdateEntry } from '../../../editor/model/updateKind.ts';
+import { captureAddedElement, captureElementSnapshots, createActionEntry, type PlaceHistoryEntry } from '#editor/model/actionHistory.ts';
+import { createUpdateEntry } from '#editor/model/updateKind.ts';
 import type { RedactElement } from '../lib/redactElements.ts';
 
 const INIT = { activeColor: '#ffffff', activeBlurStrength: 0.3, brush: { mode: 'box', size: 12 } } as const;

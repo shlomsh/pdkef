@@ -1,5 +1,5 @@
-import RatingPrompt, { useDownloaded } from '../../../shell/RatingPrompt.tsx';
-import { englishShellMessages } from '../../../shell/shellMessages';
+import RatingPrompt, { useDownloaded } from '#shell/RatingPrompt.tsx';
+import { englishShellMessages } from '#shell/shellMessages.ts';
 import { useMediaQuery } from './useMediaQuery.ts';
 
 /** One rating ask, in the place that has room for it: two would both try to ask (RatingPrompt). */

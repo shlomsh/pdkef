@@ -1,5 +1,5 @@
-import type { WhiteoutElement, BlackoutElement, BlurElement, BlurStrokeElement, WhiteoutStrokeElement, ColorMode } from '../../../editor/model/editorModel.ts';
-import type { DeleteElement } from '../../../editor/registry/draftValidation.ts';
+import type { WhiteoutElement, BlackoutElement, BlurElement, BlurStrokeElement, WhiteoutStrokeElement, ColorMode } from '#editor/model/editorModel.ts';
+import type { DeleteElement } from '#editor/registry/draftValidation.ts';
 
 /**
  * The Redact element types for the island to adopt (RED-14). Box elements

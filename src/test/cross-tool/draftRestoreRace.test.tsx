@@ -3,7 +3,7 @@ import { act } from 'preact/test-utils';
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
 import PdfSignTool from '../../tools/sign/PdfSignTool.tsx';
 import PdfRedactTool from '../../tools/redact/PdfRedactTool.tsx';
-import { takeHandoff } from '../../lib/drafts/draftStore.ts';
+import { takeHandoff } from '#lib/drafts/draftStore.ts';
 import { setInputFiles } from '../support/setInputFiles.js';
 
 
@@ -47,7 +47,7 @@ function staleDraftRecord(fileName: string, elements: unknown[]) {
 
 let loadDraftDeferred: ReturnType<typeof deferred>;
 
-vi.mock('../../lib/drafts/draftStore.ts', () => ({
+vi.mock('#lib/drafts/draftStore.ts', () => ({
   saveDraft: vi.fn(() => Promise.resolve(true)),
   deleteDraft: vi.fn(() => Promise.resolve(true)),
   loadDraft: vi.fn(() => loadDraftDeferred.promise),

@@ -2,11 +2,11 @@ import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { ComponentProps } from 'preact';
-import DownloadElement from '../../shell/DownloadElement.tsx';
+import DownloadElement from '#shell/DownloadElement.tsx';
 
 type DownloadElementProps = ComponentProps<typeof DownloadElement>;
 // Asserts the check-mark-animated / check-mark-static classes: which one the mark wears is the behaviour.
-import styles from '../../shell/DownloadElement.module.css';
+import styles from '#shell/DownloadElement.module.css';
 import { englishMergeMessages } from '../../tools/merge/messages';
 
 describe('DownloadElement', () => {

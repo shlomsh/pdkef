@@ -1,13 +1,13 @@
 import { useEffect, useRef } from 'preact/hooks';
 import { Download, Eraser, FileEdit, FileSignature, Merge, Shrink } from 'lucide-preact';
-import PdfShareButton from '../../../shell/PdfShareButton.tsx';
-import DownloadButton from '../../../shell/DownloadButton.tsx';
+import PdfShareButton from '#shell/PdfShareButton.tsx';
+import DownloadButton from '#shell/DownloadButton.tsx';
 import styles from '../PdfSecurityTool.module.css';
-import pdfToolStyles from '../../../shell/PdfTool.module.css';
-import { UNLOCK_RETURN_IDS, handoffHrefOf, type UnlockReturnId } from '../../../lib/app/toolIds.ts';
+import pdfToolStyles from '#shell/PdfTool.module.css';
+import { UNLOCK_RETURN_IDS, handoffHrefOf, type UnlockReturnId } from '#lib/app/toolIds.ts';
 import type { SecurityMessages } from '../messages.ts';
-import type { HandoffTool } from '../../../shell/pageWorkspace/useDownloadFlow.ts';
-import { formatMessage } from '../../../lib/text/formatMessage.ts';
+import type { HandoffTool } from '#shell/pageWorkspace/useDownloadFlow.ts';
+import { formatMessage } from '#lib/text/formatMessage.ts';
 
 // The tools that can send a protected file here as a detour, and the way back to each. Unlock's done
 // state leads with "Continue in <name>" for a file that arrived with that `from` (guidelines 13).

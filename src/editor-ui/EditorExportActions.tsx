@@ -1,7 +1,7 @@
 import { Check } from 'lucide-preact';
 import styles from './SignToolbar.module.css';
 import workspaceStyles from './Workspace.module.css';
-import pdfToolStyles from '../shell/PdfTool.module.css';
+import pdfToolStyles from '#shell/PdfTool.module.css';
 
 // The two export surfaces every editor tool has - the sticky toolbar's own
 // Download/Share pair, and the always-present pair below the document - drawn

@@ -8,9 +8,9 @@ import {
   LINE_RESET_SPREAD_PCT,
   MIN_LINE_LENGTH_PCT,
   MIN_SHAPE_THRESHOLD_PCT,
-} from '../../../editor/model/signGeometry.js';
-import type { EditorElement } from '../../../editor/model/editorModel.ts';
-import { widthPercentToHeightPercent } from '../../../editor/geometry/coords.js';
+} from '#editor/model/signGeometry.js';
+import type { EditorElement } from '#editor/model/editorModel.ts';
+import { widthPercentToHeightPercent } from '#editor/geometry/coords.ts';
 
 export interface MinimumSizeContext {
   tool: string;

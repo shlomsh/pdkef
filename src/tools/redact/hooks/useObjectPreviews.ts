@@ -1,12 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
 import type { PDFDocumentProxy } from 'pdfjs-dist';
 import { previewTexts } from '../lib/deletePreviews.ts';
-import { getPdfjs } from '../../../editor/adapters/pdf/pdfjsLoader.js';
+import { getPdfjs } from '#editor/adapters/pdf/pdfjsLoader.js';
 import { readGlyphs } from '../lib/readGlyphs.js';
-import { pageGeometryFromPdfJsPage } from '../../../editor/geometry/coords.ts';
+import { pageGeometryFromPdfJsPage } from '#editor/geometry/coords.ts';
 import type { DeletablePdfObject } from '../components/DeletableObjectOverlay.tsx';
 import { GLYPH_BUDGET } from '../lib/find/itemGlyphs.ts';
-import { reportError } from '../../../lib/telemetry/errorReport.ts';
+import { reportError } from '#lib/telemetry/errorReport.ts';
 
 /**
  * RED-16: gives each text object Delete offers the words it holds, read from

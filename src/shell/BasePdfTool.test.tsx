@@ -4,14 +4,14 @@ import { act } from 'preact/test-utils';
 import { describe, expect, it, vi, afterEach } from 'vitest';
 import BasePdfTool from './BasePdfTool.tsx';
 // Assert state classes on purpose (Dropzone's is-dragover, ToolShell's icon-loaded); the tool card, drop overlay, identity, meta and note have no role, label or text, so they are found by class.
-import { reportToolLifecycleEvent } from '../lib/telemetry/productAnalytics.ts';
-import { markArrival } from '../lib/handoff/fileArrival.ts';
+import { reportToolLifecycleEvent } from '#lib/telemetry/productAnalytics.ts';
+import { markArrival } from '#lib/handoff/fileArrival.ts';
 import { setInputFiles } from '../test/support/setInputFiles.js';
 
-vi.mock('../lib/telemetry/productAnalytics.ts', () => ({ reportToolLifecycleEvent: vi.fn() }));
-vi.mock('../lib/handoff/fileArrival.ts', () => ({ markArrival: vi.fn() }));
+vi.mock('#lib/telemetry/productAnalytics.ts', () => ({ reportToolLifecycleEvent: vi.fn() }));
+vi.mock('#lib/handoff/fileArrival.ts', () => ({ markArrival: vi.fn() }));
 
-vi.mock('../lib/pdf/thumbnails.js', () => ({
+vi.mock('#lib/pdf/thumbnails.js', () => ({
   renderThumbnail: vi.fn(() => new Promise(() => {})), // never settles - not under test here
 }));
 

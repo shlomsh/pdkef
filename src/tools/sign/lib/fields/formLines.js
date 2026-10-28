@@ -1,5 +1,5 @@
 // @ts-check
-import { toPagePercentBox, pagePercentToPdfPoint } from '../../../../editor/geometry/coords.ts';
+import { toPagePercentBox, pagePercentToPdfPoint } from '#editor/geometry/coords.ts';
 import { verticalEdges, horizontalRules } from './inkEdges.js';
 import { HEBREW_SIGNATURE, HEBREW_DATE } from './formCells.js';
 
@@ -117,7 +117,7 @@ function matchKeyword(caption) {
  * keep their own rather than share an import for something this small).
  *
  * @param {PageTextRun} item
- * @param {import('../../../../editor/geometry/coords.ts').PageGeometry} geometry
+ * @param {import('#editor/geometry/coords.ts').PageGeometry} geometry
  * @returns {TextPoints}
  */
 function textItemToPoints(item, geometry) {
@@ -233,7 +233,7 @@ function boundsOverlap(a, b) {
  * Open signature/date line candidates on one page.
  *
  * @param {{verticals: VerticalEdge[], horizontals: HorizontalRule[], rects: Array<object>}} ink
- * @param {import('../../../../editor/geometry/coords.ts').PageGeometry} geometry
+ * @param {import('#editor/geometry/coords.ts').PageGeometry} geometry
  * @param {number} pageIndex
  * @param {PageTextRun[]} textItems page text, page-percent bounds
  * @param {PercentBox[]} [existingRegions] bounds another detector already published on this page

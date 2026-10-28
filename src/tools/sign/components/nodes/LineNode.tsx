@@ -1,9 +1,9 @@
-import ElementResizers from '../../../../editor-ui/ElementResizers.tsx';
+import ElementResizers from '#editor-ui/ElementResizers.tsx';
 import {
   DEFAULT_STROKE_WIDTH,
   LINE_HIT_TARGET_STOKE_WIDTH
-} from '../../../../editor/model/signGeometry.js';
-import type { LineElement } from '../../../../editor/model/editorModel.ts';
+} from '#editor/model/signGeometry.js';
+import type { LineElement } from '#editor/model/editorModel.ts';
 import type { ElementNodeProps, NodeResizeStart } from '../nodeProps.ts';
 import styles from './LineNode.module.css';
 

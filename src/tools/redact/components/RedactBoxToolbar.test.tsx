@@ -1,7 +1,7 @@
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { renderRedactionSurface } from '../../../editor/registry/redactionSurface.ts';
+import { renderRedactionSurface } from '#editor/registry/redactionSurface.ts';
 import RedactBoxToolbar, { shownRecents, type RedactBoxToolbarProps } from './RedactBoxToolbar.tsx';
 
 let host: HTMLDivElement | null = null;

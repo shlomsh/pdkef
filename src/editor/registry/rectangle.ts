@@ -1,6 +1,6 @@
 import type { ElementDefinition } from './types.ts';
 import type { RectangleElement } from '../model/editorModel.ts';
-import { rgb } from '../../lib/pdf/pdfLiterals.ts';
+import { rgb } from '#lib/pdf/pdfLiterals.ts';
 import { hasBoxGeometry, hasNumber, hasString, isRecord } from './schema.ts';
 import { applyBoxResize } from './boxResize.ts';
 import { hexToRgbFractions } from '../text/imageTint.js';

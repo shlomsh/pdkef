@@ -1,6 +1,6 @@
-import pdfToolStyles from '../../../shell/PdfTool.module.css';
-import { isolateName } from '../../../lib/text/format.js';
-import { formatMessage } from '../../../lib/text/formatMessage';
+import pdfToolStyles from '#shell/PdfTool.module.css';
+import { isolateName } from '#lib/text/format.js';
+import { formatMessage } from '#lib/text/formatMessage.ts';
 import type { MergeMessages } from '../messages';
 
 interface MergeHintsProps {

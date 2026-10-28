@@ -1,8 +1,8 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { reportError } from '../../lib/telemetry/errorReport.ts';
-import { reportToolLifecycleEvent } from '../../lib/telemetry/productAnalytics.ts';
-import { cacheRecentFile, saveDraft, saveHandoff } from '../../lib/drafts/draftStore.ts';
+import { reportError } from '#lib/telemetry/errorReport.ts';
+import { reportToolLifecycleEvent } from '#lib/telemetry/productAnalytics.ts';
+import { cacheRecentFile, saveDraft, saveHandoff } from '#lib/drafts/draftStore.ts';
 import { installToolHarness, type ToolHarness } from './toolHarness.ts';
 
 const bytes = (text: string) => new TextEncoder().encode(text).buffer as ArrayBuffer;

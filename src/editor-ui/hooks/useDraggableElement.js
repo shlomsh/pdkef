@@ -1,12 +1,12 @@
 import { useEffect, useRef } from 'preact/hooks';
 import usePdfCoordinates from './usePdfCoordinates.js';
-import { startGesture } from '../../lib/gestures/controller.ts';
-import { textAnchorsRightEdge } from '../../editor/text/textLayout.js';
-import { touchClaimsElement } from '../../editor/gestures/touchClaim.ts';
+import { startGesture } from '#lib/gestures/controller.ts';
+import { textAnchorsRightEdge } from '#editor/text/textLayout.js';
+import { touchClaimsElement } from '#editor/gestures/touchClaim.ts';
 import {
   DEFAULT_FALLBACK_ELEMENT_WIDTH_PCT,
   DEFAULT_FALLBACK_ELEMENT_HEIGHT_PCT
-} from '../../editor/model/signGeometry.js';
+} from '#editor/model/signGeometry.js';
 
 // MOBI-21. How far a finger may travel and still have meant a tap rather than
 // a move. It is deliberately the browser's own touch slop (Chromium and
@@ -46,7 +46,7 @@ const TAP_HOLD_LIMIT_MS = 500;
  * @param {object}   params.element        - the element data object from state
  * @param {object}   params.elementRef     - ref to the element's DOM node (owned by caller)
  * @param {function} params.getPageWrapper - () => closest .sign-page-wrapper node | null
- * @param {import('../../editor/geometry/coords.js').PageGeometry} [params.pageGeometry] - rotated/cropped page frame
+ * @param {import('#editor/geometry/coords.ts').PageGeometry} [params.pageGeometry] - rotated/cropped page frame
  * @param {function} params.onSelect       - called on pointer down to activate the element
  * @param {function} params.onChange       - called on pointer up to commit the new position
  * @param {function|null} [params.onTap]   - MOBI-21: called once on release when a TOUCH gesture

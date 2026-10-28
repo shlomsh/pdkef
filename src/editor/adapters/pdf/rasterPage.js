@@ -1,6 +1,6 @@
 // @ts-check
-import { MAX_CANVAS_AREA, MAX_CANVAS_SIDE, clampScaleToCanvas } from '../../../lib/images/canvasLimits.js';
-import { renderPageToCanvas } from '../../../lib/pdf/renderPage.js';
+import { MAX_CANVAS_AREA, MAX_CANVAS_SIDE, clampScaleToCanvas } from '#lib/images/canvasLimits.js';
+import { renderPageToCanvas } from '#lib/pdf/renderPage.js';
 import { pageGeometryFromPdfJsPage } from '../../geometry/coords.ts';
 
 /**

@@ -1,7 +1,7 @@
 import type { ComponentChildren } from 'preact';
 import { useState } from 'preact/hooks';
 import type { ChangePiece } from '../lib/details/describeDetails.ts';
-import pdfToolStyles from '../../../shell/PdfTool.module.css';
+import pdfToolStyles from '#shell/PdfTool.module.css';
 import styles from './SavedFileCheck.module.css';
 import { englishRedactMessages as t } from '../messages.ts';
 import {

@@ -1,6 +1,6 @@
 import { createContext } from 'preact';
 import { useContext } from 'preact/hooks';
-import type { SavedSignature } from '../../../editor/model/savedSignature.ts';
+import type { SavedSignature } from '#editor/model/savedSignature.ts';
 
 // The saved-signature library: the list, which one is active, and the setters
 // that change either. Read directly by both SignToolbar (the signature picker)

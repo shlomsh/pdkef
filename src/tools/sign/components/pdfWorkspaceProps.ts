@@ -1,8 +1,8 @@
 import type { PDFDocumentProxy } from 'pdfjs-dist';
-import type { HistoryLogger } from '../../../editor/model/actionHistory.ts';
-import type { EditorElement } from '../../../editor/model/editorModel.ts';
-import type { PageGeometry } from '../../../editor/geometry/coords.ts';
-import type { SignMessages } from '../../../editor/registry/messages';
+import type { HistoryLogger } from '#editor/model/actionHistory.ts';
+import type { EditorElement } from '#editor/model/editorModel.ts';
+import type { PageGeometry } from '#editor/geometry/coords.ts';
+import type { SignMessages } from '#editor/registry/messages.ts';
 import type { FormFieldRegions } from '../hooks/useFormFieldRegions.ts';
 import type { FieldNavigation } from '../hooks/useFieldNavigation.ts';
 import type { PendingSignaturePlacement } from '../hooks/useWorkspaceGestures.ts';

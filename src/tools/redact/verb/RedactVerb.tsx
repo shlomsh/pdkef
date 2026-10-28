@@ -1,4 +1,4 @@
-import VerbStage from '../../../shell/verb/VerbStage.tsx';
+import VerbStage from '#shell/verb/VerbStage.tsx';
 import styles from './RedactVerb.module.css';
 
 /** One text line: three word bars. The crisp and the blurred copies share this shape. */
