@@ -33,7 +33,12 @@ describe('findStableNameProblems', () => {
     expect(f[0]).toContain('site/util.AbCdEf12.js');
     expect(f[1]).toContain('shared/x.0123456789.js');
   });
-  it('lets dotted stable names through', () => {
-    expect(findStableNameProblems({ ...good, site: [...good.site, 'Foo.bar.js', 'pdf.worker.js'] })).toEqual([]);
+  it('names any inner dot in dist/site or dist/shared, whatever the hash length', () => {
+    const f = findStableNameProblems({ ...good, site: [...good.site, 'BaseLayout.astro_astro_type_script_index_1_lang.js'], shared: [...good.shared, 'x.Q.js'] });
+    expect(f).toHaveLength(2);
+    expect(f[1]).toContain('shared/x.Q.js');
+  });
+  it('lets underscored and dashed stable names through', () => {
+    expect(findStableNameProblems({ ...good, site: [...good.site, 'BaseLayout_astro_astro_type_script_index_1_lang.js', 'pdf-lib@1.js'] })).toEqual([]);
   });
 });

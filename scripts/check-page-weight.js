@@ -398,8 +398,7 @@ async function main() {
     const buffer = fs.readFileSync(file);
     const html = buffer.toString('utf8');
 
-    const scriptRefs = scriptRefs(html);
-    const entryFiles = scriptRefs.map((ref) => path.join(distDir, ref));
+    const entryFiles = scriptRefs(html).map((ref) => path.join(distDir, ref));
     const jsFiles = discoverEagerFiles(entryFiles);
     for (const f of jsFiles) {
       if (!jsFileSizes.has(f)) jsFileSizes.set(f, fs.statSync(f).size);
