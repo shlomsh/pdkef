@@ -7,7 +7,7 @@ import {
   risesFromFloor,
   spansBand,
   vetoRules,
-} from './formCells.js';
+} from './formCellGrid.js';
 
 /** A horizontal rule at height `y`. */
 const rule = (y, x0 = 0, x1 = 100) => ({ y, x0, x1 });
