@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { computeBuildId } from './buildId.mjs';
-import { sortCspHashes } from './cspHashOrder.mjs';
+import { pruneCspHashes, sortCspHashes } from './cspHashOrder.mjs';
 import { pageHash } from './pageHash.mjs';
 import { minifyServiceWorker } from './minifyServiceWorker.mjs';
 import { shouldPrecache } from '../src/site-lib/precachePolicy.js';
@@ -26,11 +26,12 @@ if (!fs.existsSync(distDir)) {
 
 const allFiles = walk(distDir).sort();
 
-// Astro lists each page's CSP hash sources in an unstable order, which made every page differ
-// per deploy (MEM-20). Sort them before anything below reads or hashes the HTML.
+// Astro lists the whole build's inline hashes in every page's CSP, in an unstable order, which
+// made every page differ per deploy (MEM-20, MEM-21). Keep only the page's own hashes, sorted,
+// before anything below reads or hashes the HTML.
 for (const filePath of allFiles.filter((name) => name.endsWith('.html'))) {
   const html = fs.readFileSync(filePath, 'utf8');
-  const sorted = sortCspHashes(html);
+  const sorted = sortCspHashes(pruneCspHashes(html));
   if (sorted !== html) fs.writeFileSync(filePath, sorted);
 }
 
