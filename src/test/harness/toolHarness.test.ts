@@ -9,7 +9,7 @@ const bytes = (text: string) => new TextEncoder().encode(text).buffer as ArrayBu
 
 describe('installToolHarness', () => {
   let harness: ToolHarness;
-  beforeEach(() => { harness = installToolHarness(); });
+  beforeEach(() => { harness = installToolHarness({ trackIndexedDb: true }); });
   afterEach(() => { harness.restore(); });
 
   it('hands every test a fresh IndexedDB and empty web storage', async () => {
