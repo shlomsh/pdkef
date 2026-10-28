@@ -1,7 +1,7 @@
 ---
 id: "MEM-25"
 title: "A change to one shared module renames its own chunk, not every page and every importer"
-status: "open"
+status: "in_progress"
 priority: "P3"
 epic: "robustness"
 horizon: "next"
@@ -44,6 +44,25 @@ and `src/site-lib/appUpdate.ts`, MEM-24). A returning client's update cost 1,934
   change when the chunk's hash does (for example, a stable-named bootstrap or an import map that the
   worker and the manifest already account for).
 - Content-hashed caching stays immutable, and MEM-22's hash check still covers every file a page loads.
+
+## Design (2026-10-28)
+
+From two measured prototypes (a one-line change to `maintenanceTelemetry.ts`, both builds at one path):
+
+- **Entries at stable URLs.** Every client entry chunk (the BaseLayout scripts and each island) is emitted
+  as `/site/<name>.js`, so no page names a hashed file. Alone: 1,933,331 to 472,333 bytes, 1 page changed
+  (`/about/`, its build stamp).
+- **Hot shared chunks at stable URLs.** `maintenanceTelemetry` and `openPdfDoc` are emitted as
+  `/shared/<name>.js`, so their importers keep their names. Alone: 1,933,520 to 24,293 bytes, 0 renamed
+  chunks.
+- Both folders sit outside `/_astro/`, which the worker treats as immutable; files there are fetched fresh
+  at install and checked against the manifest's hashes (MEM-22), and revalidate on an ordinary visit.
+- The names live in `scripts/stableNames.mjs`, read by `astro.config.mjs` and by the guards. A dist guard
+  (`test:stable-names`) fails if a page names a hashed script or island, or if a listed hot chunk is not
+  emitted under `/shared/`. The closure walker, the precache budget and the page-weight guard follow
+  `/site/` and `/shared/` as they follow `/_astro/`.
+- Rejected: an import map (Rolldown's `experimental.chunkImportMap`) needs an inline map with a CSP hash in
+  every page, so any rename still changes every page.
 
 ## Acceptance
 
