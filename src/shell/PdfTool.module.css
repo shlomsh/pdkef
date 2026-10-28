@@ -49,6 +49,17 @@
     width: 100%;
     padding: 12px;
   }
+
+  /* Sign and Redact (Shlomi, 2026-10-28): the toolbar and every page already
+     carry their own border, so on a phone the card's frame only cost the
+     document 48px of width. The loaded editor card draws nothing and the page
+     spans the page gutter. Guard: e2e/tool-layout.spec.js. */
+  .tool-card[data-tool-loaded]:has([data-workspace]) {
+    background: transparent;
+    border: 0;
+    box-shadow: none;
+    padding: 0;
+  }
 }
 
 /* `flex-shrink: 0` from 768px up: the card keeps its full width beside the desktop
