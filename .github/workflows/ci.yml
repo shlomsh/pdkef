@@ -813,12 +813,16 @@ jobs:
       run: |
         node scripts/lastDeploys.mjs "${{ github.repository }}" >> "$GITHUB_OUTPUT"
 
+    # Both deploys build at one path: Astro hashes each island's absolute source path into its
+    # `uid`, so two paths rewrite every island page (about 880 KB of a 907 KB reading, 2026-10-28).
     - name: Build both deploys
       run: |
+        git worktree add --detach "$RUNNER_TEMP/build" "${{ steps.deploys.outputs.before }}"
         for side in before after; do
           sha=$([ "$side" = before ] && echo "${{ steps.deploys.outputs.before }}" || echo "${{ steps.deploys.outputs.after }}")
-          git worktree add "$RUNNER_TEMP/$side" "$sha"
-          (cd "$RUNNER_TEMP/$side" && npm ci && npm run build && mv dist "$RUNNER_TEMP/dist-$side")
+          git -C "$RUNNER_TEMP/build" checkout --detach --force "$sha"
+          git -C "$RUNNER_TEMP/build" clean -fdxq
+          (cd "$RUNNER_TEMP/build" && npm ci && npm run build && mv dist "$RUNNER_TEMP/dist-$side")
         done
 
     - name: Measure the update cost
