@@ -9,3 +9,8 @@ export const SHARED_DIR = 'shared';
 // Shared chunks imported widely and edited often; measured 2026-10-28, renaming either renamed up to
 // 17 importers. Each name must match a chunk the build emits (test:stable-names checks it).
 export const HOT_SHARED_CHUNKS = ['maintenanceTelemetry', 'openPdfDoc'];
+
+// Output-name callbacks for the client build (astro.config.mjs). `entryFileNames` runs for every entry
+// chunk; `chunkFileNames` for the rest, where only the hot shared chunks leave the hashed pattern.
+export const entryFileName = (chunk) => `${SITE_DIR}/${chunk.name.replace(/[^\w.@-]/g, '_')}.js`;
+export const chunkFileName = (chunk) => (HOT_SHARED_CHUNKS.includes(chunk.name) ? `${SHARED_DIR}/${chunk.name}.js` : '_astro/[name].[hash].js');

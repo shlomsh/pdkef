@@ -153,7 +153,8 @@ export function buildPipelineFiles(packageJsonText, readFile) {
     return new Set();
   }
   const shaping = build.split('&&').filter((step) => !/(^|\s)--check(\s|$)/.test(step)).join('&&');
-  return scriptClosure(shaping, readFile);
+  // MEM-25: astro.config.mjs shapes dist/ too (entry and chunk names), so it and its imports count.
+  return scriptClosure(`${shaping}&&node astro.config.mjs`, readFile);
 }
 
 let realBuildFiles = null;
