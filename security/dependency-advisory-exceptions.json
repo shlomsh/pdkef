@@ -1,13 +1,4 @@
 {
   "version": 1,
-  "exceptions": [
-    {
-      "package": "braces",
-      "advisory": "GHSA-VFJ7-8CJW-P6XM",
-      "expires": "2026-11-11",
-      "owner": "shlomsh",
-      "nextReview": "2026-11-02",
-      "rationale": "Dev-only: braces is reached through patch-package > find-yarn-workspace-root > micromatch, which only globs our own patches/ directory and workspace root at postinstall. No untrusted patterns reach it and nothing ships to the browser or the functions. No fixed braces release exists (3.0.3 is the latest). The audit's suggested patch-package downgrade would drop our patches."
-    }
-  ]
+  "exceptions": []
 }
