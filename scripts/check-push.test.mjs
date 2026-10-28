@@ -1,6 +1,6 @@
 import { EventEmitter } from 'node:events';
 import { describe, expect, it } from 'vitest';
-import { runStageWith, touchesAstro, fileCannotReachDist, reachesDist, planSteps, stageSteps, narrowTestOnlyChange, portOwnerVerdict, ALWAYS_GUARD_STEPS, DIST_GUARD_STEPS, DOCS_ONLY_STEPS } from './check-push.mjs';
+import { runStageWith, touchesAstro, fileCannotReachDist, reachesDist, planSteps, stageSteps, narrowTestOnlyChange, portOwnerVerdict, ALWAYS_GUARD_STEPS, DIST_GUARD_STEPS, DOCS_ONLY_STEPS, distGuardScripts } from './check-push.mjs';
 import { deriveScope, wide } from './affected-scope.mjs';
 import { classify } from './change-scope.mjs';
 
@@ -91,6 +91,38 @@ describe('fileCannotReachDist / reachesDist', () => {
     expect(fileCannotReachDist('scripts/minifyServiceWorker.mjs')).toBe(false);
     expect(fileCannotReachDist('scripts/precacheClosure.mjs')).toBe(false);
     expect(reachesDist(['scripts/precacheClosure.mjs'])).toBe(true);
+  });
+
+  // QUAL-36: a script a dist guard runs is a dist input, derived from package.json.
+  it.each([
+    'scripts/verify-seo.js',
+    'scripts/verify-csp.js',
+    'scripts/check-page-weight.js',
+    'scripts/check-precache-budget.mjs',
+    'scripts/check-trailing-slash-redirects.js',
+    'scripts/check-lazy-modules.js',
+    'scripts/check-class-resolution.js',
+    'scripts/check-color-literals.mjs',
+    'scripts/check-editor-global-css.js',
+    'scripts/check-dead-utilities.js',
+    'scripts/check-css-duplication.js',
+    'scripts/check-built-html-comments.js',
+    'scripts/check-animation-shorthand.js',
+  ])('%s is run by a dist guard, so it reaches dist', (file) => {
+    expect(reachesDist([file])).toBe(true);
+  });
+
+  it('a new dist guard script and its relative import count with no list edited', () => {
+    const pkg = JSON.stringify({ scripts: { 'test:new': 'node scripts/new-guard.mjs --flag', build: 'node scripts/a.mjs' } });
+    const files = { 'scripts/new-guard.mjs': "import { x } from './helper.mjs';", 'scripts/helper.mjs': 'export const x = 1;' };
+    const scripts = distGuardScripts(pkg, (rel) => files[rel] ?? null, ['test:new']);
+    expect(reachesDist(['scripts/new-guard.mjs'], scripts)).toBe(true);
+    expect(reachesDist(['scripts/helper.mjs'], scripts)).toBe(true);
+    expect(reachesDist(['scripts/unrelated.mjs'], scripts)).toBe(false);
+  });
+
+  it('a script no build step and no dist guard runs still cannot reach dist', () => {
+    expect(reachesDist(['scripts/ci-narrowing-report.mjs'])).toBe(false);
   });
 
   it.each(['vercel.json', 'package.json', 'astro.config.mjs', 'middleware.ts', 'src/lib/text/format.js', 'public/fonts/Kalam-Regular.ttf'])(

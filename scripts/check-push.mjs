@@ -33,13 +33,14 @@
 
 import { execFileSync, spawn, spawnSync } from 'node:child_process';
 import { availableParallelism } from 'node:os';
-import { existsSync, realpathSync } from 'node:fs';
+import { existsSync, readFileSync, realpathSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join, resolve as resolvePath } from 'node:path';
 import { resolveBase, changedFiles, classify, isDocsOnly } from './change-scope.mjs';
 import { resolveScope, runE2eProduct, runE2ePerf, runFonts, runExportGuards } from './affected-scope.mjs';
 import { resolveUnitScope, runUnitByImpact } from './unit-scope.mjs';
 import { typecheckSteps, runTypecheck } from './check-fast.mjs';
+import { scriptClosure } from './script-closure.mjs';
 
 const ROOT = resolvePath(dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -81,7 +82,8 @@ const ROOT = resolvePath(dirname(fileURLToPath(import.meta.url)), '..');
 //     BUILD_INVOKED_SCRIPTS. Every other file under scripts/ (check-*.mjs,
 //     generate:* scripts not on that list, spike/, fixtures/) runs only from
 //     package.json's test:*/generate:*/check:* scripts or CI's own steps,
-//     never from `npm run build` itself.
+//     never from `npm run build` itself. QUAL-36: except the scripts a dist guard
+//     runs (distGuardScripts, derived from package.json), which read dist/.
 //
 // Anything else - src/**, public/**, astro.config.mjs, package.json,
 // vercel.json, tsconfig.json, middleware.ts, a brand-new root file this list
@@ -96,22 +98,47 @@ const BUILD_INVOKED_SCRIPTS = new Set([
   'scripts/precacheClosure.mjs',
 ]);
 
-export function fileCannotReachDist(file) {
+// QUAL-36: the scripts the dist guards run (and what they import), derived from package.json's
+// scripts for DIST_GUARD_STEPS, so a new guard needs no list edit. They read dist/, so editing
+// one must build and run the guards. Pure: package.json text and a readFile are injected.
+export function distGuardScripts(packageJsonText, readFile, steps = DIST_GUARD_STEPS) {
+  let scripts;
+  try {
+    scripts = JSON.parse(packageJsonText)?.scripts ?? {};
+  } catch {
+    return new Set();
+  }
+  return scriptClosure(steps.map((step) => scripts[step] ?? '').join(' && '), readFile);
+}
+
+let realDistGuards = null;
+function realDistGuardScripts() {
+  realDistGuards ??= distGuardScripts(readFileSync(join(ROOT, 'package.json'), 'utf8'), (rel) => {
+    try {
+      return readFileSync(join(ROOT, rel), 'utf8');
+    } catch {
+      return null;
+    }
+  });
+  return realDistGuards;
+}
+
+export function fileCannotReachDist(file, guardScripts = realDistGuardScripts()) {
   if (isDocsOnly(file)) return true;
   if (file.startsWith('.github/')) return true;
   if (/\.test\.[^/]+$/.test(file)) return true;
   if (file.startsWith('src/test/')) return true;
   if (file.startsWith('e2e/')) return true;
   if (/^src\/tools\/[^/]+\/e2e\//.test(file)) return true;
-  if (file.startsWith('scripts/')) return !BUILD_INVOKED_SCRIPTS.has(file);
+  if (file.startsWith('scripts/')) return !BUILD_INVOKED_SCRIPTS.has(file) && !guardScripts.has(file);
   return false;
 }
 
 // An empty diff (no changed files, or no resolvable base) touches nothing, so
 // it runs the guards only: no build, no dist guards (QUAL-24).
-export function reachesDist(files) {
+export function reachesDist(files, guardScripts) {
   if (files.length === 0) return false;
-  return files.some((file) => !fileCannotReachDist(file));
+  return files.some((file) => !fileCannotReachDist(file, guardScripts));
 }
 
 // ---------------------------------------------------------------------------
