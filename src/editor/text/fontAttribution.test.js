@@ -43,7 +43,7 @@ describe('font attribution surfaces', () => {
   // Non-vacuity: every assertion below is a set difference, so a parse that
   // silently returned nothing would make all of them pass.
   it('parses both surfaces, so the coverage assertions are not comparing empty lists', () => {
-    expect(astro).toContain("import { FONT_MANIFEST } from '../lib/fonts/fontManifest.ts'");
+    expect(astro).toContain("import { FONT_MANIFEST } from '#lib/fonts/fontManifest.ts'");
     expect(astro).toContain('FONT_MANIFEST.map');
     expect(FONT_MANIFEST).toHaveLength(CATALOGUE.length);
     expect(markdownHandwriting).not.toBeNull();
