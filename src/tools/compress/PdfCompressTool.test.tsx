@@ -162,6 +162,14 @@ describe('PdfCompressTool UI flow', () => {
     Array.from(container.querySelectorAll('button')).find((b) => b.textContent.trim() === label);
   const flattenSwitch = () => container.querySelector('[data-flatten-switch] input[type="checkbox"]');
   const result = () => container.querySelector('[data-result]');
+  // The result card: the preview column and the notes about the downloaded file, which sit beside Download.
+  const resultCard = () => {
+    const parts = [result(), container.querySelector('[data-result-notes]')].filter(Boolean);
+    return {
+      textContent: parts.map((p) => p.textContent).join(' '),
+      querySelector: (selector) => parts.map((p) => p.querySelector(selector)).find(Boolean) ?? null,
+    };
+  };
   const stripName = () => container.querySelector('[data-tool-shell]').textContent;
   const stripNote = () => container.querySelector('[data-compress-note]').textContent;
   const status = () => container.querySelector('[data-compress-status]').getAttribute('data-compress-status');
@@ -794,8 +802,8 @@ describe('PdfCompressTool UI flow', () => {
     expect(compressLib.compressPdf).not.toHaveBeenCalled();
     expect(compressLib.compressPdfToTarget).not.toHaveBeenCalled();
 
-    expect(result().textContent).toContain('1600 × 1200');
-    expect(result().textContent).toContain('800 × 600');
+    expect(resultCard().textContent).toContain('1600 × 1200');
+    expect(resultCard().textContent).toContain('800 × 600');
 
     const downloadBtn = downloadButton();
     expect(downloadBtn).not.toBeNull();
@@ -835,8 +843,12 @@ describe('PdfCompressTool UI flow', () => {
     expect(sides[1]?.size).toBe(10);
 
     // Non-passthrough result: the re-encode notice, not the passthrough one.
-    expect(result().textContent).toContain('once compressed, the output is a JPEG');
-    expect(result().textContent).not.toContain('so the file is untouched');
+    expect(resultCard().textContent).toContain('once compressed, the output is a JPEG');
+    expect(resultCard().textContent).not.toContain('so the file is untouched');
+    // It is about the file that downloads, so it sits with Download in its own grid row, not under the preview.
+    expect(container.querySelector('[data-result-notes]').textContent).toContain('once compressed, the output is a JPEG');
+    expect(result().textContent).not.toContain('once compressed, the output is a JPEG');
+    expect(container.querySelector('[data-compress-status]').className).toContain('has-notes');
 
     // Passthrough: compressImageToTarget's early-return hands back the same
     // File as `blob`, so a second, already-under-target image gets no slider
@@ -849,10 +861,10 @@ describe('PdfCompressTool UI flow', () => {
 
     expect(container.querySelector('[data-compare-panel]')).toBeNull();
     expect(findButton('Full screen')).toBeUndefined();
-    expect(result().textContent).toContain('so the file is untouched: same file, same format, nothing re-encoded');
-    expect(result().textContent).not.toContain('once compressed, the output is a JPEG');
-    expect(result().textContent).toContain('Already under your target');
-    expect(result().textContent).toContain('1600 × 1200');
+    expect(resultCard().textContent).toContain('so the file is untouched: same file, same format, nothing re-encoded');
+    expect(resultCard().textContent).not.toContain('once compressed, the output is a JPEG');
+    expect(resultCard().textContent).toContain('Already under your target');
+    expect(resultCard().textContent).toContain('1600 × 1200');
     expect(downloadButton()).toBeNull();
     expect(shareButton()).toBeNull();
     expect(result().querySelector('[data-honest-note]')).not.toBeNull();
@@ -933,9 +945,9 @@ describe('PdfCompressTool UI flow', () => {
     await settled();
 
     expect(compressLib.compressPdfToTarget).toHaveBeenCalledWith(file, expect.objectContaining({ targetKB: 100 }));
-    expect(result().textContent).toContain('so the file is untouched: same file, same format, nothing re-encoded');
-    expect(result().textContent).not.toContain('Compression rasterizes PDF pages');
-    expect(result().textContent).toContain('Already under your target');
+    expect(resultCard().textContent).toContain('so the file is untouched: same file, same format, nothing re-encoded');
+    expect(resultCard().textContent).not.toContain('Compression rasterizes PDF pages');
+    expect(resultCard().textContent).toContain('Already under your target');
     expect(result().querySelector('[data-honest-note]')).not.toBeNull();
     expect(downloadButton()).toBeNull();
     expect(shareButton()).toBeNull();
@@ -949,7 +961,7 @@ describe('PdfCompressTool UI flow', () => {
 
     await loadPdfAndFlatten('small_form.pdf', 11_000);
 
-    const text = result().textContent;
+    const text = resultCard().textContent;
     expect(text).toContain('Already as small as it gets');
     expect(text).toContain('Turned into images, this PDF came to 29.68 KB, more than the 10.74 KB it is now');
     expect(text).toContain('As images');
@@ -979,7 +991,7 @@ describe('PdfCompressTool UI flow', () => {
     });
     await settled();
 
-    const text = result().textContent;
+    const text = resultCard().textContent;
     expect(text).toContain('29.68 KB');
     expect(text).toContain('100 KB can');
     expect(text).toContain("can't be reached this way");
@@ -1033,10 +1045,11 @@ describe('PdfCompressTool UI flow', () => {
       expect(stripNote()).not.toContain(NOTE);
     });
 
-    it('an image has no note', async () => {
+    it('an image has no note, and reserves no lines for one', async () => {
       mount();
       await pick(makeImageFile('photo.jpg', 100000));
-      expect(stripNote()).toBe('');
+      expect(container.querySelector('[data-compress-note]')).toBeNull();
+      expect(container.querySelector('[data-tool-shell] [data-note]')).toBeNull();
     });
 
     // The switch's own hint is the visible trace of what the analysis saw: it says "Text stops being selectable"
@@ -1090,8 +1103,8 @@ describe('PdfCompressTool UI flow', () => {
       expect(imagesLib.compressPdfImages).toHaveBeenCalledWith(file, expect.objectContaining({ maxLongSidePx: 1600, quality: 0.6 }));
       expect(compressLib.compressPdf).not.toHaveBeenCalled();
       // A big saving has nothing to add: no notice.
-      expect(result().textContent).not.toContain('Only the images were made smaller');
-      expect(result().querySelector('[data-compress-warning]')).toBeNull();
+      expect(resultCard().textContent).not.toContain('Only the images were made smaller');
+      expect(resultCard().querySelector('[data-compress-warning]')).toBeNull();
     });
 
     it('the switch is absent on a fresh result with a good saving, and present after the images could not be recompressed', async () => {
@@ -1111,7 +1124,7 @@ describe('PdfCompressTool UI flow', () => {
 
     describe('result card honesty (COMP-02)', () => {
       const slightBlob = (bytes) => new Blob(['x'.repeat(bytes)], { type: 'application/pdf' });
-      const stats = () => result();
+      const stats = () => resultCard();
       const title = () => stats().querySelector('[data-stats-title]').textContent;
 
       it('a 1% result at Balanced says only a little smaller, already compact, and points at Extreme', async () => {
@@ -1223,7 +1236,7 @@ describe('PdfCompressTool UI flow', () => {
     ])('reason %s shows its notice and says the PDF is unchanged', async (reason, text) => {
       imagesLib.compressPdfImages.mockImplementation((f) => Promise.resolve(imagesResult({ blob: f, afterBytes: f.size, rewritten: 0, reason })));
       await loadPdf('same.pdf', 11_000);
-      const stats = result();
+      const stats = resultCard();
       expect(stats.textContent).toContain(text);
       // A locked file was never tried, so it is not "as small as it gets".
       const title = reason === 'encrypted' ? 'This PDF is locked' : reason === 'unsupported' ? 'Left as it was' : 'Already as small as it gets';
@@ -1246,7 +1259,7 @@ describe('PdfCompressTool UI flow', () => {
       imagesLib.compressPdfImagesToTarget.mockImplementation((f) => Promise.resolve(imagesResult({ blob: f, metTarget: true, rewritten: 0, reason: 'under-target' })));
       await loadPdf('tiny.pdf', 20_000);
       await choose('Exact size');
-      const stats = result();
+      const stats = resultCard();
       expect(stats.textContent).toContain('so the file is untouched');
       expect(stats.textContent).not.toContain('Already as small as it gets');
       expect(stats.textContent).toContain('Already under your target');
@@ -1260,7 +1273,7 @@ describe('PdfCompressTool UI flow', () => {
       expect(downloadButton()).not.toBeNull();
       expect(shareButton()).not.toBeNull();
       expect(result().querySelector('[data-honest-note]')).toBeNull();
-      expect(result().querySelector('[data-compress-warning]')).toBeNull();
+      expect(resultCard().querySelector('[data-compress-warning]')).toBeNull();
       nativeShare.restore();
     });
 
@@ -1278,7 +1291,7 @@ describe('PdfCompressTool UI flow', () => {
       imagesLib.compressPdfImagesToTarget.mockImplementation(() => Promise.resolve(imagesResult({ metTarget: false })));
       await loadPdf('big.pdf', 5_000_000);
       await choose('Exact size');
-      const stats = result();
+      const stats = resultCard();
       expect(stats.textContent).not.toContain('Only the images were made smaller');
       expect(stats.textContent).toContain('Shrinking the images got this PDF to 15 Bytes, above your 100 KB target. Turning the pages into pictures, with the switch above, can go smaller.');
       expect(stats.textContent).not.toContain('Closest achievable');
