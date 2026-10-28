@@ -1,10 +1,9 @@
 ---
 id: "ARCH-123"
 title: "The narrowed share of main runs is reported and acted on"
-status: "in_progress"
+status: "done"
 priority: "P2"
 epic: "unify-and-narrow"
-horizon: "next"
 depends_on: []
 ---
 
@@ -23,8 +22,8 @@ Area: Tests and CI. Criterion: Guardrails and CI health. Structure only: no beha
 
 ## Acceptance
 
-- [ ] The share is reported in the CI summary.
-- [ ] A decision on the shared-code cases is recorded in the ticket.
+- [x] The share is reported in the CI summary.
+- [x] A decision on the shared-code cases is recorded in the ticket.
 
 ## Measured 2026-10-27
 
@@ -34,3 +33,13 @@ skewed by CI-maintenance work (10 of the wide pushes touched `ci.yml`). The fixe
 QUAL-32 to QUAL-42; QUAL-34 is the shared-code and unowned-file case. The CI summary report is still
 to do.
 
+## Done (2026-10-28)
+
+- `scripts/narrowing-share.mjs` replays the scope verdict for each of the last 50 ci.yml push runs on main (each run
+  paired with the push before it) against today's project graph, and the nightly `narrowing-share` job writes the
+  tally to the run's step summary: docs-only, narrowed, everything (grouped by cause), nothing. Reporting only.
+- First reading, 29 pushes: 21% docs-only, 17% narrowed, 59% everything, 3% nothing. Causes of the 17 wide pushes:
+  unowned files 7 (6 of them `package.json`), build pipeline 4, CI oracle changed 4, core projects affected 2.
+- Decision on the shared-code cases: the two "core project(s) affected" verdicts were correct (`src/data/tools.js`
+  and `BaseLayout.astro` reach pages that tool specs visit), so they stay wide. Build-pipeline and oracle changes are
+  wide by design. The unowned-file case was QUAL-34's fix; `package.json` is the largest remaining cause.
