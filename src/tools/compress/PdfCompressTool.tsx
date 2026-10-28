@@ -14,6 +14,8 @@ import pdfToolStyles from '#shell/PdfTool.module.css';
 import LevelPicker, { TargetSizePanel, type Level } from './components/LevelPicker.tsx';
 import ResultSection from './components/ResultSection.tsx';
 import ResultSheet from './components/ResultSheet.tsx';
+import ResultNotes, { hasResultNotes } from './components/ResultNotes.tsx';
+import StripSizes from './components/StripSizes.tsx';
 import { useComparePreviews } from './hooks/useComparePreviews.ts';
 import { useDownloadFlow, type DownloadFlowInput } from '#shell/pageWorkspace/useDownloadFlow.ts';
 import { useLastResult } from './hooks/useLastResult.ts';
@@ -27,7 +29,7 @@ import { useCompressMachine } from './state/useCompressMachine.ts';
 import { createCompressCallbacks, superseded, type CompressCallbacks, type CompressMeta } from './lib/compressCallbacks.ts';
 import { useFileIntake, type PdfAnalysis } from './hooks/useFileIntake.ts';
 import { useRunActions } from './hooks/useRunActions.ts';
-import { deriveResultView, formatBytes } from './lib/resultView.ts';
+import { deriveResultView } from './lib/resultView.ts';
 
 const TARGET_SIZE_PRESETS_KB = [100, 200, 500, 1024];
 // Lower than the PDF presets above: the image half of this tool's demand is
@@ -209,23 +211,11 @@ export default withIslandBoundary(function PdfCompressTool({
   const statusAttr = status === 'done' && !fresh ? 'processing' : status;
 
   const arrow = t.dir === 'rtl' ? '←' : '→';
+  // A photo never has a strip note, so the strip reserves no lines for one.
+  const stripNoteNode = isImageMode ? undefined : <span data-compress-note>{stripNote}</span>;
 
-  // The shell strip's meta line: before to after, and the citron tag. Quiet: until a new build lands it keeps
-  // the last result's numbers (or the original alone, before the first result).
-  const savedLabel = isDone && !passthrough && savingsPercent > 0 ? formatMessage(t.percentSmaller, { percent: savingsPercent }) : null;
   const sizesExtra = file && (
-    <span class={styles.sizes} data-compress-sizes>
-      <bdi class={styles.before}>{formatBytes(file.size)}</bdi>
-      {isDone && !passthrough && compressedSize != null && (
-        <>
-          <span aria-hidden="true">{arrow}</span>
-          <b>
-            <bdi>{formatBytes(compressedSize)}</bdi>
-          </b>
-        </>
-      )}
-      {savedLabel && <span class={styles.saved}>{savedLabel}</span>}
-    </span>
+    <StripSizes t={t} file={file} arrow={arrow} showResult={isDone && !passthrough} compressedSize={compressedSize} savingsPercent={savingsPercent} />
   );
 
   return (
@@ -233,7 +223,7 @@ export default withIslandBoundary(function PdfCompressTool({
       hasFiles={hasFiles}
       onFilesAdded={handleFilesAdded}
       intake={{ multiple: false, accept: 'application/pdf,image/jpeg,image/png' }}
-      identity={{ file, label: file?.name, metaExtra: sizesExtra, note: <span data-compress-note>{stripNote}</span>, hidden: true }}
+      identity={{ file, label: file?.name, metaExtra: sizesExtra, note: stripNoteNode, hidden: true }}
       empty={{ art: <CompressVerb subject={analyticsTool === 'compress-image' ? 'photo' : 'page'} />, message: emptyStateMessage ?? t.dropHint }}
       analytics={{ tool: analyticsTool, status: status === 'error' ? 'error' : flow.tap !== 'idle' ? flow.tap : retryTap }}
       shellMessages={shellMessages}
@@ -262,7 +252,11 @@ export default withIslandBoundary(function PdfCompressTool({
           }}
         />
       ) : hasFiles && file ? (
-        <div class={styles['loaded-layout']} data-compress-status={statusAttr} data-compress-run={runCount}>
+        <div
+          class={`${styles['loaded-layout']}${hasResultNotes({ view, isDone, passthrough }) ? ` ${styles['has-notes']}` : ''}`}
+          data-compress-status={statusAttr}
+          data-compress-run={runCount}
+        >
           {/* The shell's own strip, placed here rather than above the card so a
               desktop shows it in the rail beside the result (UX guidelines §18
               rule 3). Its content still comes from the props above. */}
@@ -318,6 +312,7 @@ export default withIslandBoundary(function PdfCompressTool({
             compareCaption={compareCaption}
             view={view}
           />
+          <ResultNotes view={view} isDone={isDone} passthrough={passthrough} />
           <ResultSheet
             t={t}
             file={file}

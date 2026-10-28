@@ -29,7 +29,7 @@
       "src/shell/pageWorkspace/useDownloadFlow.ts#useDownloadFlow": 211,
       "src/site-lib/FileDropzone.tsx#FileDropzone": 326,
       "src/site-lib/appUpdate.ts#startAppUpdates": 248,
-      "src/tools/compress/PdfCompressTool.tsx#PdfCompressTool": 287,
+      "src/tools/compress/PdfCompressTool.tsx#PdfCompressTool": 280,
       "src/tools/compress/hooks/useComparePreviews.ts#useComparePreviews": 177,
       "src/tools/edit-pages/PdfEditPagesTool.tsx#PdfEditPagesTool": 263,
       "src/tools/image-to-pdf/PdfImageToPdfTool.tsx#PdfImageToPdfTool": 296,
