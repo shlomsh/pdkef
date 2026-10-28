@@ -736,8 +736,9 @@ self.addEventListener('install', (event) => {
       await removeSelf();
       return;
     }
-    // MEM-24: leave a reason for the page to report, then fail exactly as before.
-    await recordBounded(error instanceof InstallFailure ? error.reason : 'storage', '0');
+    // MEM-24: leave a reason for the page to report, then fail exactly as before. An error
+    // with no reason is left unrecorded rather than reported under a wrong one.
+    if (error instanceof InstallFailure) await recordBounded(error.reason, '0');
     throw error;
   });
   event.waitUntil(installed);
