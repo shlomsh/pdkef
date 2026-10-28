@@ -62,6 +62,8 @@
     "measure:update-cost": "node scripts/measure-update-cost.mjs",
     "test:precache-budget": "node scripts/check-precache-budget.mjs",
     "test:stable-names": "node scripts/check-stable-names.mjs",
+    "check:unit-shards": "node scripts/check-unit-shards.mjs",
+    "test:spec-file-reads": "node scripts/check-spec-file-reads.mjs",
     "test:fonts": "node scripts/check-font-glyf-alignment.js",
     "test:licenses": "node scripts/runtime-license-inventory.mjs --check",
     "test:dependency-governance": "node scripts/verify-dependency-governance.mjs",
