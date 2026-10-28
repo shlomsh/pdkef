@@ -1,4 +1,3 @@
-// @ts-check
 import { verticalEdges, horizontalRules, ruledCoverage } from './inkEdges.js';
 
 /**
@@ -6,15 +5,17 @@ import { verticalEdges, horizontalRules, ruledCoverage } from './inkEdges.js';
  * from ink and reports every closed cell, in PDF points (origin bottom-left, y up). Pure geometry, no
  * text: `formCells.js` decides what each cell is.
  *
- * Shapes shared with `formCells.js`:
- * @typedef {{x: number, y0: number, y1: number}} VerticalEdge
- * @typedef {{y: number, x0: number, x1: number}} HorizontalRule
- * @typedef {{left: number, right: number, bottom: number, top: number}} Bounds
- * @typedef {Bounds & {width: number, height: number}} CellBox
- * @typedef {CellBox & {closure: number, narrow: boolean, lone: boolean, square: boolean,
- *   floorTicked: boolean, nextRuleY: number | null, rowLeft?: number, rowRight?: number,
- *   tickDivided?: boolean, stackRise?: number}} ClosedCell
+ * Shapes shared with `formCells.js`.
  */
+export type VerticalEdge = { x: number; y0: number; y1: number };
+export type HorizontalRule = { y: number; x0: number; x1: number };
+export type Bounds = { left: number; right: number; bottom: number; top: number };
+export type CellBox = Bounds & { width: number; height: number };
+export type ClosedCell = CellBox & {
+  closure: number; narrow: boolean; lone: boolean; square: boolean;
+  floorTicked: boolean; nextRuleY: number | null; rowLeft?: number; rowRight?: number;
+  tickDivided?: boolean; stackRise?: number;
+};
 
 
 /** Positions within this many points are the same wall (mirrors formGrid.js's PITCH_TOLERANCE). */
@@ -57,19 +58,15 @@ const MIN_FLOOR_RISE_FRACTION = 0.3;
  * panel: its sides are where the tint stops, not walls, and would split every
  * field they cross. Passed to `inkEdges.js` as `excludeRect`.
  */
-function isBackgroundPanel(/** @type {object} */ panel) {
+function isBackgroundPanel(panel: object) {
   // `inkEdges.js` hands over the ink walk's rect, typed there only as `object`.
-  const rect = /** @type {{filled: boolean, stroked: boolean, width: number, height: number}} */ (panel);
+  const rect = panel as { filled: boolean; stroked: boolean; width: number; height: number };
   return rect.filled && !rect.stroked && rect.width > MAX_ROW_HEIGHT && rect.height > MAX_ROW_HEIGHT;
 }
 
-/**
- * @param {number[]} values
- * @param {number} tolerance
- */
-function distinctPositions(values, tolerance) {
+function distinctPositions(values: number[], tolerance: number) {
   const sorted = [...values].sort((a, b) => a - b);
-  const out = [];
+  const out: number[] = [];
   for (const value of sorted) {
     if (out.length === 0 || value - out[out.length - 1] > tolerance) out.push(value);
   }
@@ -78,18 +75,13 @@ function distinctPositions(values, tolerance) {
 
 /**
  * Share of `[bottom, top]` at position `x` that vertical ink actually covers.
- *
- * @param {VerticalEdge[]} edges
- * @param {number} x
- * @param {number} bottomY
- * @param {number} topY
  */
-function verticalCoverage(edges, x, bottomY, topY) {
+function verticalCoverage(edges: VerticalEdge[], x: number, bottomY: number, topY: number) {
   const span = topY - bottomY;
   if (!(span > 0)) return 0;
   const parts = edges
     .filter((edge) => Math.abs(edge.x - x) <= BAND_TOLERANCE)
-    .map((edge) => /** @type {[number, number]} */ ([Math.max(edge.y0, bottomY), Math.min(edge.y1, topY)]))
+    .map((edge) => [Math.max(edge.y0, bottomY), Math.min(edge.y1, topY)] as [number, number])
     .filter(([from, to]) => to > from)
     .sort((a, b) => a[0] - b[0]);
   let covered = 0;
@@ -107,19 +99,9 @@ function verticalCoverage(edges, x, bottomY, topY) {
  * height's rules are chained outward from the column while they touch, and the
  * two reaches are intersected. A lone square has a span the width of the
  * square; a table's page-wide rules give a page-wide span.
- *
- * @param {HorizontalRule[]} topRules
- * @param {HorizontalRule[]} bottomRules
- * @param {number} left
- * @param {number} right
- * @returns {[number, number]}
  */
-function bandSpan(topRules, bottomRules, left, right) {
-  /**
-   * @param {HorizontalRule[]} rules
-   * @returns {[number, number]}
-   */
-  const reach = (rules) => {
+function bandSpan(topRules: HorizontalRule[], bottomRules: HorizontalRule[], left: number, right: number): [number, number] {
+  const reach = (rules: HorizontalRule[]): [number, number] => {
     let from = left;
     let to = right;
     for (let grew = true; grew;) {
@@ -142,11 +124,7 @@ function bandSpan(topRules, bottomRules, left, right) {
  */
 const MAX_SQUARE_SIDE = 20;
 const SQUARE_ASPECT = 0.75;
-/**
- * @param {number} width
- * @param {number} height
- */
-function isSquare(width, height) {
+function isSquare(width: number, height: number) {
   const side = Math.max(width, height);
   return side <= MAX_SQUARE_SIDE && Math.min(width, height) / side >= SQUARE_ASPECT;
 }
@@ -154,33 +132,28 @@ function isSquare(width, height) {
 /**
  * One row band: a top and a bottom height, the rules at and near them, the rules
  * that veto a column inside it, and the vertical edges that reach it.
- * @typedef {{top: number, bottom: number, height: number,
- *   topRules: HorizontalRule[], bottomRules: HorizontalRule[],
- *   topNear: HorizontalRule[], bottomNear: HorizontalRule[],
- *   inside: HorizontalRule[], outside: HorizontalRule[], edges: VerticalEdge[]}} Band
  */
+type Band = {
+  top: number; bottom: number; height: number;
+  topRules: HorizontalRule[]; bottomRules: HorizontalRule[];
+  topNear: HorizontalRule[]; bottomNear: HorizontalRule[];
+  inside: HorizontalRule[]; outside: HorizontalRule[]; edges: VerticalEdge[];
+};
 
 /**
  * Rules that veto a column of the band between heights `i` and `k`: those in
  * between for any column they reach, those just outside for one they cross
  * (index neighbours, `ys` is sorted). A band with no height between has none.
- * @param {number[]} ys
- * @param {HorizontalRule[][]} rulesAt
- * @param {number} i
- * @param {number} k
- * @returns {{inside: HorizontalRule[], outside: HorizontalRule[]}}
  */
-export function vetoRules(ys, rulesAt, i, k) {
+export function vetoRules(ys: number[], rulesAt: HorizontalRule[][], i: number, k: number): { inside: HorizontalRule[]; outside: HorizontalRule[] } {
   const top = ys[i];
   const bottom = ys[k];
-  /** @type {HorizontalRule[]} */
-  const inside = [];
-  /** @type {HorizontalRule[]} */
-  const outside = [];
+  const inside: HorizontalRule[] = [];
+  const outside: HorizontalRule[] = [];
   if (k - i > 1) {
-    const ownEdge = (/** @type {HorizontalRule} */ rule) => Math.abs(rule.y - top) <= POS_TOLERANCE
+    const ownEdge = (rule: HorizontalRule) => Math.abs(rule.y - top) <= POS_TOLERANCE
       || Math.abs(rule.y - bottom) <= POS_TOLERANCE;
-    const collect = (/** @type {HorizontalRule[]} */ list, /** @type {number} */ m) => { for (const rule of rulesAt[m]) if (!ownEdge(rule)) list.push(rule); };
+    const collect = (list: HorizontalRule[], m: number) => { for (const rule of rulesAt[m]) if (!ownEdge(rule)) list.push(rule); };
     for (let m = i + 1; m < k; m += 1) collect(inside, m);
     for (let m = i - 1; m >= 0 && ys[m] - top <= BAND_TOLERANCE; m -= 1) collect(outside, m);
     for (let m = k + 1; m < ys.length && bottom - ys[m] <= BAND_TOLERANCE; m += 1) collect(outside, m);
@@ -191,15 +164,11 @@ export function vetoRules(ys, rulesAt, i, k) {
 /**
  * Every plausible row band, top-down: each pair of heights that is tall enough,
  * not too tall, and not separated by too many other heights.
- * @param {number[]} ys heights, sorted descending
- * @param {HorizontalRule[][]} nearRules per height: rules close enough to bound a band there
- * @param {HorizontalRule[][]} rulesAt per height: the rules actually at it
- * @param {VerticalEdge[]} edges
- * @returns {Band[]}
+ * `ys` are the heights, sorted descending; `nearRules` per height are the rules close enough to
+ * bound a band there; `rulesAt` per height are the rules actually at it.
  */
-export function findBands(ys, nearRules, rulesAt, edges) {
-  /** @type {Band[]} */
-  const bands = [];
+export function findBands(ys: number[], nearRules: HorizontalRule[][], rulesAt: HorizontalRule[][], edges: VerticalEdge[]): Band[] {
+  const bands: Band[] = [];
   for (let i = 0; i < ys.length - 1; i += 1) {
     const top = ys[i];
     for (let k = i + 1; k < ys.length; k += 1) {
@@ -221,30 +190,23 @@ export function findBands(ys, nearRules, rulesAt, edges) {
 
 /**
  * A column edge spans the whole band.
- * @param {VerticalEdge} edge
- * @param {Band} band
  */
-export function spansBand(edge, band) {
+export function spansBand(edge: VerticalEdge, band: Band) {
   return edge.y1 >= band.top - BAND_TOLERANCE && edge.y0 <= band.bottom + BAND_TOLERANCE;
 }
 
 /**
  * Or it is a floor tick: it stands on the band's floor and rises far enough (MIN_FLOOR_RISE_FRACTION).
- * @param {VerticalEdge} edge
- * @param {Band} band
  */
-export function risesFromFloor(edge, band) {
+export function risesFromFloor(edge: VerticalEdge, band: Band) {
   return edge.y0 <= band.bottom + BAND_TOLERANCE
     && Math.min(edge.y1, band.top) - band.bottom >= MIN_FLOOR_RISE_FRACTION * band.height;
 }
 
 /**
  * The x positions of the band's edges that pass `keep`, merged within POS_TOLERANCE, left to right.
- * @param {Band} band
- * @param {(edge: VerticalEdge) => boolean} keep
- * @returns {number[]}
  */
-function edgeXs(band, keep) {
+function edgeXs(band: Band, keep: (edge: VerticalEdge) => boolean): number[] {
   return distinctPositions(band.edges.filter(keep).map((edge) => edge.x), POS_TOLERANCE)
     .sort((a, b) => a - b);
 }
@@ -253,13 +215,7 @@ function edgeXs(band, keep) {
 // geometry cannot tell them apart, so it is kept, tagged `lone`, and
 // `detectCellCandidates` decides by its own text. "Own" walls are those
 // inside the band's own x-span (`bandSpan`), not elsewhere on the page (FORM-10).
-/**
- * @param {Band} band
- * @param {number[]} walls
- * @param {number} left
- * @param {number} right
- */
-function isLone(band, walls, left, right) {
+function isLone(band: Band, walls: number[], left: number, right: number) {
   const [spanLeft, spanRight] = bandSpan(band.topRules, band.bottomRules, left, right);
   return walls.filter((x) => x >= spanLeft - POS_TOLERANCE && x <= spanRight + POS_TOLERANCE).length === 2;
 }
@@ -267,16 +223,10 @@ function isLone(band, walls, left, right) {
 // The next rule below the floor that crosses the column bounds a
 // floor-ticked column's caption (`captionBelowFloor`); scoped to the
 // column so an unrelated box's rule lower down cannot close the strip.
-/**
- * @param {HorizontalRule[]} rules every rule on the page
- * @param {number} bottom
- * @param {number} left
- * @param {number} right
- * @returns {number | null}
- */
-function nextRuleBelow(rules, bottom, left, right) {
+/** `rules` is every rule on the page. */
+function nextRuleBelow(rules: HorizontalRule[], bottom: number, left: number, right: number): number | null {
   return rules.reduce(
-    (/** @type {number | null} */ best, rule) => (rule.y < bottom - POS_TOLERANCE && rule.x0 < right && rule.x1 > left
+    (best: number | null, rule) => (rule.y < bottom - POS_TOLERANCE && rule.x0 < right && rule.x1 > left
       && (best === null || rule.y > best) ? rule.y : best),
     null,
   );
@@ -284,19 +234,14 @@ function nextRuleBelow(rules, bottom, left, right) {
 
 /**
  * The closed cell between two walls of a band, or null when it fails any gate.
- * @param {number} left
- * @param {number} right
- * @param {Band} band
- * @param {number[]} loneWalls the walls `lone` is judged against
- * @param {HorizontalRule[]} rules every rule on the page
- * @returns {ClosedCell | null}
+ * `loneWalls` are the walls `lone` is judged against; `rules` is every rule on the page.
  */
-export function closedColumn(left, right, band, loneWalls, rules) {
+export function closedColumn(left: number, right: number, band: Band, loneWalls: number[], rules: HorizontalRule[]): ClosedCell | null {
   const { top, bottom, height, edges } = band;
   const width = right - left;
   if (width < MIN_TICK_CELL_WIDTH) return null;
-  const crosses = (/** @type {HorizontalRule} */ rule) => rule.x0 < right && rule.x1 > left;
-  const reaches = (/** @type {HorizontalRule} */ rule) => rule.x0 < right + POS_TOLERANCE && rule.x1 > left - POS_TOLERANCE;
+  const crosses = (rule: HorizontalRule) => rule.x0 < right && rule.x1 > left;
+  const reaches = (rule: HorizontalRule) => rule.x0 < right + POS_TOLERANCE && rule.x1 > left - POS_TOLERANCE;
   if (!band.topRules.some(crosses) || !band.bottomRules.some(crosses)) return null;
   if (band.inside.some(reaches) || band.outside.some(crosses)) return null;
 
@@ -309,7 +254,7 @@ export function closedColumn(left, right, band, loneWalls, rules) {
   // A floor tick is only ever partial-height, so it is exempt from the
   // full-height coverage a wall needs; `closure` still carries its real,
   // lower number.
-  const isFloorTick = (/** @type {number} */ x) => edges.some(
+  const isFloorTick = (x: number) => edges.some(
     (edge) => Math.abs(edge.x - x) <= POS_TOLERANCE && risesFromFloor(edge, band),
   );
   if ((leftCoverage < CLOSED_EDGE_COVERAGE && !isFloorTick(left))
@@ -332,15 +277,10 @@ export function closedColumn(left, right, band, loneWalls, rules) {
  * The closed cells between each neighbouring pair of `walls`, left to right.
  * Collected before any is emitted so a floor-ticked group's span can be
  * measured across only the columns it contains, not the band's full width.
- * @param {number[]} walls
- * @param {Band} band
- * @param {number[]} loneWalls the walls `lone` is judged against
- * @param {HorizontalRule[]} rules every rule on the page
- * @returns {ClosedCell[]}
+ * `loneWalls` are the walls `lone` is judged against; `rules` is every rule on the page.
  */
-export function columnsBetween(walls, band, loneWalls, rules) {
-  /** @type {ClosedCell[]} */
-  const columns = [];
+export function columnsBetween(walls: number[], band: Band, loneWalls: number[], rules: HorizontalRule[]): ClosedCell[] {
+  const columns: ClosedCell[] = [];
   for (let j = 0; j < walls.length - 1; j += 1) {
     const column = closedColumn(walls[j], walls[j + 1], band, loneWalls, rules);
     if (column !== null) columns.push(column);
@@ -358,19 +298,16 @@ export function columnsBetween(walls, band, loneWalls, rules) {
  * dropped, taking the printed cell with them; so the wall column is built too
  * and kept unless a captioned floor-ticked column inside it survives.
  * Sets `rowLeft`/`rowRight` on the floor-ticked cells it is given.
- * @param {ClosedCell[]} bandCells the band's columns, as `columnsBetween` built them
- * @param {Band} band
- * @param {number[]} xs the walls the band's cells were built between
- * @param {HorizontalRule[]} rules every rule on the page
- * @returns {ClosedCell[]} `bandCells` followed by the wall columns that hold a tick
+ * `bandCells` are the band's columns as `columnsBetween` built them, `xs` the walls they were built
+ * between, `rules` every rule on the page. Returns `bandCells` followed by the wall columns that hold a tick.
  */
-export function applyFloorTicks(bandCells, band, xs, rules) {
+export function applyFloorTicks(bandCells: ClosedCell[], band: Band, xs: number[], rules: HorizontalRule[]): ClosedCell[] {
   const ticked = bandCells.filter((c) => c.floorTicked);
   if (ticked.length === 0) return bandCells;
   const rowLeft = Math.min(...ticked.map((c) => c.left));
   const rowRight = Math.max(...ticked.map((c) => c.right));
   for (const c of ticked) { c.rowLeft = rowLeft; c.rowRight = rowRight; }
-  const holdsTicked = (/** @type {ClosedCell} */ column) => ticked.some(
+  const holdsTicked = (column: ClosedCell) => ticked.some(
     (c) => c.left >= column.left - POS_TOLERANCE && c.right <= column.right + POS_TOLERANCE,
   );
   const walls = edgeXs(band, (edge) => spansBand(edge, band));
@@ -382,10 +319,8 @@ export function applyFloorTicks(bandCells, band, xs, rules) {
 
 /**
  * The walls a band's cells are built between: edges that span it or are floor ticks.
- * @param {Band} band
- * @returns {number[]}
  */
-function bandXs(band) {
+function bandXs(band: Band): number[] {
   return edgeXs(band, (edge) => spansBand(edge, band) || risesFromFloor(edge, band));
 }
 
@@ -403,11 +338,8 @@ function bandXs(band) {
  * - A rule at a height just outside the band vetoes a column it crosses, not
  *   one it merely ends against (an ordinary misaligned row).
  * - A rule within POS_TOLERANCE of the band's own top or bottom is that edge.
- *
- * @param {{verticals: VerticalEdge[], horizontals: HorizontalRule[], rects: Array<object>}} ink
- * @returns {ClosedCell[]}
  */
-export function buildClosedCells(ink) {
+export function buildClosedCells(ink: { verticals: VerticalEdge[]; horizontals: HorizontalRule[]; rects: Array<object> }): ClosedCell[] {
   const edges = verticalEdges(ink, { excludeRect: isBackgroundPanel });
   const rules = horizontalRules(ink, { excludeRect: isBackgroundPanel, includeRectSides: true });
   const ys = distinctPositions(rules.map((r) => r.y), POS_TOLERANCE).sort((a, b) => b - a);
