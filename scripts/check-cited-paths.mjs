@@ -11,10 +11,12 @@
 //
 // Where it looks: markdown (CLAUDE.md, .claude/**/*.md, docs/*.md, not docs/archive/) takes the whole
 // text; source files (.ts .tsx .js .mjs .astro) take comments only: // line comments, block comments
-// and <!-- --> in .astro. backlog/ and docs/archive/ are history and are never scanned.
+// and <!-- --> in .astro. backlog/ and docs/archive/ are history and are never scanned, and neither is
+// a file git ignores (repo-files.mjs).
 import { readFileSync, existsSync, globSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { repoFiles } from './repo-files.mjs';
 
 const ROOT_DIRS = ['src', 'scripts', 'docs', 'e2e', 'api', 'public', '.claude', '.github', 'patches', 'backlog'];
 const ROOT_FILES = ['CLAUDE.md', 'README.md', 'TODO.md', 'BACKLOG.md', 'package.json', 'vercel.json', 'middleware.ts', 'astro.config.mjs', 'playwright.config.js', 'vitest.config.js'];
@@ -60,13 +62,14 @@ const SOURCE = /\.(?:ts|tsx|js|mjs|astro)$/;
 
 export function scanRepo(root) {
   const exists = (p) => existsSync(resolve(root, p));
+  const known = repoFiles(root); // gitignored local files are not ours to judge (DEBT-68)
   const files = [
     'CLAUDE.md',
     ...globSync('.claude/**/*.md', { cwd: root }),
     ...globSync('docs/*.md', { cwd: root }),
     ...globSync('{src,scripts,api}/**/*', { cwd: root }).filter((f) => SOURCE.test(f)),
     ...ROOT_FILES.filter((f) => SOURCE.test(f)),
-  ].filter((f) => existsSync(resolve(root, f)));
+  ].filter((f) => known.has(f) && existsSync(resolve(root, f)));
   return files.flatMap((file) => findDeadPaths({ file, text: readFileSync(resolve(root, file), 'utf8'), exists }));
 }
 

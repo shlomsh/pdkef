@@ -25,11 +25,15 @@ import { readFileSync, readdirSync, globSync, statSync } from 'node:fs';
 import { dirname, resolve, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { scanRepo } from './check-cited-paths.mjs';
+import { repoFiles } from './repo-files.mjs';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const CLAUDE_MD_MAX_LINES = 200;
 const RULE_MAX_LINES = 400;
 const CORE_PREFIXES = ['src/shell/', 'src/editor-ui/', 'src/editor/', 'src/tools/', 'src/lib/'];
+// Only files git knows about (DEBT-68): a gitignored local file must not fail a guard CI never runs it on.
+const known = repoFiles(root);
+const globRepo = (pattern) => globSync(pattern, { cwd: root }).filter((f) => known.has(f));
 const failures = [];
 const allGlobs = [];
 
@@ -39,7 +43,7 @@ if (claudeLines > CLAUDE_MD_MAX_LINES) {
 }
 
 const rulesDir = join(root, '.claude', 'rules');
-for (const name of readdirSync(rulesDir).filter((f) => f.endsWith('.md')).sort()) {
+for (const name of readdirSync(rulesDir).filter((f) => f.endsWith('.md') && known.has(`.claude/rules/${f}`)).sort()) {
   const text = readFileSync(join(rulesDir, name), 'utf8');
   const lines = text.split('\n');
   const label = `.claude/rules/${name}`;
@@ -51,18 +55,18 @@ for (const name of readdirSync(rulesDir).filter((f) => f.endsWith('.md')).sort()
   const globs = [...fm[1].matchAll(/^\s*-\s*"?([^"\n]+?)"?\s*$/gm)].map((m) => m[1]);
   if (!/^paths:/m.test(fm[1]) || globs.length === 0) { failures.push(`${label} frontmatter has no paths: list; it would load unconditionally.`); continue; }
   for (const pattern of globs) {
-    if (globSync(pattern, { cwd: root }).length === 0) failures.push(`${label}: paths glob "${pattern}" matches no file, so that trigger never fires.`);
+    if (globRepo(pattern).length === 0) failures.push(`${label}: paths glob "${pattern}" matches no file, so that trigger never fires.`);
   }
   allGlobs.push(...globs);
 }
 
 const coveredFiles = new Set();
 for (const pattern of allGlobs) {
-  for (const match of globSync(pattern, { cwd: root })) coveredFiles.add(match);
+  for (const match of globRepo(pattern)) coveredFiles.add(match);
 }
 
 for (const prefix of CORE_PREFIXES) {
-  for (const entry of globSync(`${prefix}**`, { cwd: root })) {
+  for (const entry of globRepo(`${prefix}**`)) {
     let isFile;
     try { isFile = statSync(join(root, entry)).isFile(); } catch { continue; }
     if (!isFile || coveredFiles.has(entry)) continue;
