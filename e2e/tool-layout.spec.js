@@ -418,13 +418,14 @@ test('redaction guide images load without page overflow on desktop and mobile', 
   }
 });
 
-// On a phone the loaded Sign/Redact card drops its frame (PdfTool.module.css): the
+// On a phone the loaded Redact card drops its frame (PdfTool.module.css): the
 // toolbar and each page carry their own border, and the card's 24px padding on top
 // of the page gutter cost the document about 14% of the screen width (Shlomi,
 // 2026-10-28). The page spans the card edge to edge; the card paints nothing.
-test('gives the Sign and Redact page the full phone width inside the gutter', async ({ page }) => {
+// Sign keeps its frame: its toolbar's row splits are tuned to that width.
+test('gives the Redact page the full phone width inside the gutter', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
-  for (const route of editorRoutes) {
+  for (const route of ['/redact']) {
     await openTool(page, route, {
       file: { name: 'phone-width.pdf', buffer: await makePdfBuffer('Phone width') },
       overlaySelector: '[class*="page-wrapper"]',
