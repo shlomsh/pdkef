@@ -2,7 +2,7 @@
 
 # Backlog
 
-The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 85 live: 13 up next, 12 then, 26 waiting, 34 parked.
+The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 86 live: 14 up next, 12 then, 26 waiting, 34 parked.
 
 ## Redact: finish removal
 
@@ -118,6 +118,7 @@ Every tool on one shell and one set of PDF primitives, and a change reaching onl
 | ARCH-85 | P3 | [ARCH-85](backlog/tasks/ARCH-85.md) · Per-spec flake rates are recorded and read nightly | In progress |
 | QUAL-32 | P2 | [QUAL-32](backlog/tasks/QUAL-32.md) · CI skips Playwright when a push reaches no e2e | In progress |
 | QUAL-33 | P2 | [QUAL-33](backlog/tasks/QUAL-33.md) · A stalled apt install costs at most one retry, not ten minutes | In progress |
+| QUAL-43 | P2 | [QUAL-43](backlog/tasks/QUAL-43.md) · A package.json edit that only changes scripts off the build path runs no product e2e | In progress |
 
 ### Parked
 
