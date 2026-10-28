@@ -1,3 +1,6 @@
+import { Expand } from 'lucide-preact';
+import type { JSX } from 'preact';
+import { useState } from 'preact/hooks';
 import styles from '../PdfCompressTool.module.css';
 import ErrorMessage from '#shell/ErrorMessage.tsx';
 import { formatMessage } from '#lib/text/formatMessage.ts';
@@ -7,7 +10,7 @@ import type { useComparePreviews } from '../hooks/useComparePreviews.ts';
 import type { CompressMeta } from '../lib/compressCallbacks.ts';
 import { formatBytes, type ResultView } from '../lib/resultView.ts';
 import CompareFullscreen from './CompareFullscreen.tsx';
-import CompareSlider from './CompareSlider.tsx';
+import CompareSlider, { aspectHandler } from './CompareSlider.tsx';
 
 type Dimensions = NonNullable<CompressMeta['dimensions']>;
 
@@ -77,28 +80,31 @@ interface ResultSectionProps {
   view: ResultView;
 }
 
-/** The result column: the in-flight placeholder, the failure, the before/after slider and every note under it. */
+/** The result column: the in-flight placeholder, the failure, the before/after slider, and a passthrough's own note.
+ *  Notes about a compressed file sit beside Download instead (ResultNotes). */
 export default function ResultSection(props: ResultSectionProps) {
   const { t, compare, file, lastBlob, status, kind, arrow, isDone, showCompare, passthrough, unchanged, rasterBytes,
     dimensions, compressedSize, compareCaption, view } = props;
-  const { savingsPercent, resultTitle, resultNotice, closestWarning, targetMissedNotice } = view;
+  const { savingsPercent, resultTitle, resultNotice } = view;
+  // The page's width over height, once an image of it has loaded: the column sizes the preview to its real shape.
+  const [aspect, setAspect] = useState<number | null>(null);
 
   // One row above the preview: the compressed side on the left, the original
   // on the right (where the tags sat), each with its size.
   const labelRow = (afterText: string) => (
     <p class={styles['compare-labels']} data-compare-labels>
-      <span><bdi>{afterText}</bdi></span>
+      <span class={styles['compare-label-after']}><bdi>{afterText}</bdi></span>
       <span><bdi>{t.compareBeforeLabel} · {formatBytes(file.size)}</bdi></span>
     </p>
   );
   const originalBox = compare.original && (
     <div key="original" class={styles['compare-original']}>
-      <img src={compare.original} alt={formatMessage(t.comparePageAlt, { label: t.compareBeforeLabel })} draggable={false} />
+      <img src={compare.original} alt={formatMessage(t.comparePageAlt, { label: t.compareBeforeLabel })} draggable={false} onLoad={aspectHandler(setAspect)} />
     </div>
   );
 
   return (
-    <section class={styles.result} data-result>
+    <section class={styles.result} data-result style={aspect ? ({ '--preview-aspect': aspect } as JSX.CSSProperties) : undefined}>
       {status !== 'done' && status !== 'error' && (
         // Keyed apart: reused, the skeleton's own box would move and shrink into the panel's, a
         // layout shift (0.116 at 1440x820, DEBT-56); replaced, the panel is new content.
@@ -120,7 +126,7 @@ export default function ResultSection(props: ResultSectionProps) {
         </ErrorMessage>
       )}
 
-      {isDone && resultTitle && <p class={styles['stats-title']} data-stats-title>{resultTitle}</p>}
+      {isDone && passthrough && resultTitle && <p class={styles['stats-title']} data-stats-title>{resultTitle}</p>}
 
       {showCompare && (
         <div class={styles['compare-panel']} data-compare-panel>
@@ -143,31 +149,35 @@ export default function ResultSection(props: ResultSectionProps) {
                 afterLabel={t.compareAfterLabel}
                 pageAlt={t.comparePageAlt}
                 sliderLabel={t.compareSliderLabel}
+                onAspect={setAspect}
               />
-              <p class={styles['compare-caption']}>{compareCaption}</p>
-              <button type="button" class={styles['compare-toggle-button']} onClick={() => { compare.openFullscreen(file, lastBlob).catch((err) => reportError('pdf_render', err, 'compare_open_fullscreen')); }}>
-                {t.compareFullscreenLabel}
-              </button>
+              {/* One row under the slider: what to do and the image's size at the start, Full screen at the end. */}
+              <div class={styles['compare-footer']}>
+                <div class={styles['compare-footer-text']}>
+                  <p class={styles['compare-caption']}>{compareCaption}</p>
+                  {kind === 'image' && dimensions && (
+                    <p class={styles['dimension-line']}>
+                      <bdi>{dimensions.originalWidth} × {dimensions.originalHeight}</bdi> {arrow} <bdi>{dimensions.width} × {dimensions.height}</bdi>
+                    </p>
+                  )}
+                </div>
+                <button type="button" class={styles['compare-toggle-button']} onClick={() => { compare.openFullscreen(file, lastBlob).catch((err) => reportError('pdf_render', err, 'compare_open_fullscreen')); }}>
+                  <Expand size={18} aria-hidden="true" />
+                  {t.compareFullscreenLabel}
+                </button>
+              </div>
             </>
           )}
         </div>
       )}
       {showCompare && compare.fullscreen.open && <CompareFullscreen t={t} compare={compare} caption={compareCaption} />}
 
-      {showCompare && kind === 'image' && dimensions && (
-        <p class={styles['dimension-line']}>
-          <bdi>{dimensions.originalWidth} × {dimensions.originalHeight}</bdi> {arrow} <bdi>{dimensions.width} × {dimensions.height}</bdi>
-        </p>
-      )}
-
       {isDone && passthrough && (
         <StatsGrid t={t} file={file} kind={kind} unchanged={unchanged} rasterBytes={rasterBytes} dimensions={dimensions} savingsPercent={savingsPercent} />
       )}
 
-      {closestWarning && <p class={styles['compress-warning']} data-compress-warning>{closestWarning}</p>}
-      {isDone && resultNotice && <p class={styles[passthrough ? 'honest-note' : 'compress-warning']} data-honest-note={passthrough || undefined} data-compress-warning={!passthrough || undefined}>{resultNotice}</p>}
+      {isDone && passthrough && resultNotice && <p class={styles['honest-note']} data-honest-note>{resultNotice}</p>}
       {isDone && passthrough && (originalBox || (compare.originalPending && <div key="original-skeleton" class={styles['compare-skeleton']} data-compare-skeleton aria-hidden="true" />))}
-      {targetMissedNotice && <p class={styles['compress-warning']} data-compress-warning>{targetMissedNotice}</p>}
     </section>
   );
 }

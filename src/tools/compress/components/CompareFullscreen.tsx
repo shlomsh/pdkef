@@ -1,3 +1,4 @@
+import { Minimize2 } from 'lucide-preact';
 import styles from '../PdfCompressTool.module.css';
 import type { CompressMessages } from '../messages';
 import type { useComparePreviews } from '../hooks/useComparePreviews.ts';
@@ -21,6 +22,7 @@ export default function CompareFullscreen({ t, compare, caption }: CompareFullsc
       <div class={styles['compare-fullscreen-header']}>
         <p class={styles['compare-caption']}>{caption}</p>
         <button type="button" class={styles['compare-toggle-button']} onClick={compare.closeFullscreen}>
+          <Minimize2 size={18} aria-hidden="true" />
           {t.compareCloseLabel}
         </button>
       </div>
