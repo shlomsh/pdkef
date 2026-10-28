@@ -123,7 +123,10 @@ See DEBT-07's "Investigated (2026-09-17)" note for the measured numbers.
 
 `scripts/affected-scope.mjs` is the oracle, never the executor: it asks
 `nx show projects --affected --files=<changed files>` once, then CI runs
-ONE `playwright test <paths>` per shard, filtered by what it prints. The per-project `test` targets
+ONE `playwright test <paths>` per shard, filtered by what it prints. Since QUAL-42 the `plan` job runs it
+once per run (after its own `npm ci`), builds `dist/`, sizes the e2e matrix from the spec count in scope
+and publishes the verdicts as job outputs; the e2e, webkit, font-guard and export-guard jobs read those
+outputs and download the `dist` artifact instead of each resolving the scope and building for themselves. The per-project `test` targets
 were removed in ARCH-34 (nothing in `ci.yml` or `package.json` called them since ARCH-28).
 
 **ARCH-28 (2026-09-25) superseded the `vitest run <paths>` half of this** - see that section, near the
