@@ -181,10 +181,10 @@ describe('planSteps', () => {
     ]);
   });
 
-  it('a vercel.json change: unowned by any project, everything runs and it reaches dist', () => {
+  it('a vercel.json change: no e2e (QUAL-34), but it reaches dist, so the build and dist guards run', () => {
     const files = ['vercel.json'];
     const scope = deriveScope({ files, affected: [], roots: ROOTS });
-    expect(scope.everything).toBe(true);
+    expect(scope.everything).toBe(false);
     expect(reachesDist(files)).toBe(true);
     const steps = planSteps({ ...scope, docsOnly: false, reachesDist: true });
     expect(steps).toEqual([
@@ -194,6 +194,7 @@ describe('planSteps', () => {
       'build',
       ...DIST_GUARD_STEPS,
     ]);
+    expect(planSteps({ ...scope, docsOnly: false, reachesDist: true }, { mode: 'e2e' })).not.toContain('e2e:product');
   });
 
   it('an e2e-spec-only change: build runs for Playwright, which runs only that spec', () => {

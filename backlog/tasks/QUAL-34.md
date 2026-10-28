@@ -1,10 +1,9 @@
 ---
 id: "QUAL-34"
 title: "Each file outside an Nx project gets its own scope, not \"everything\""
-status: "open"
+status: "done"
 priority: "P2"
 epic: "unify-and-narrow"
-horizon: "next"
 depends_on: []
 ---
 
@@ -37,8 +36,44 @@ depends_on: []
   (no e2e; chromium without fonts or webkit; specific specs), and only the files that really can reach
   everything still widen. Unknown files keep failing open.
 
+## Design (2026-10-28)
+
+A table of verdicts for files no Nx project owns, checked after the existing unowned rule:
+
+| Files | Verdict | Evidence |
+| --- | --- | --- |
+| `middleware.ts`, `vercel.json`, `api/**` | no e2e | `astro preview` runs no middleware, reads no `vercel.json` and serves no `api/`; specs only watch `/api/report` requests; their checks are unit tests and `test:csp`/`test:redirects` |
+| `spikes/**`, `prototypes/**`, `.gitignore`, `security/**`, `.github/dependabot.yml`, `.github/ISSUE_TEMPLATE/**`, `public/llms.txt`, `public/agents.md` | no e2e | no spec or build step reads them |
+| `public/manifest.webmanifest` | `e2e/offline/` | precached and served like every public file; only the `e2e/offline/` update specs exercise that |
+| `public/sw.js`, `public/images/**` | every product spec, no font guards | every page registers the worker; tool specs open `public/images/**`; no font guard reads either |
+| `.github/workflows/ci.yml` | every product spec; font guards only when the diff touches the `font-guards` job or anything outside a job, or that job is missing | |
+
+- Table files are left out of the `nx show projects --affected` query: Nx marks most projects affected by
+  `middleware.ts` and `vercel.json`, which would otherwise widen through the core rule.
+- A file in neither Nx nor the table still widens with fonts on, as today.
+
 ## Acceptance
 
-- [ ] One `scripts/affected-scope.test.mjs` row per entry in the table, plus one proving an unknown
+- [x] One `scripts/affected-scope.test.mjs` row per entry in the table, plus one proving an unknown
       file still widens.
-- [ ] Replaying the same 58 pushes shows fewer wide verdicts, and the ticket records the new numbers.
+- [x] Replaying the same 58 pushes shows fewer wide verdicts, and the ticket records the new numbers.
+
+## Replay (2026-10-28)
+
+The same 58 pushes (57 runs in `pairs.txt` plus the assessment's docs-only count), through
+`resolveScope` at 4b844a62 and then on this branch:
+
+| Verdict | Before | After |
+| --- | --- | --- |
+| Docs-only | 14 | 14 |
+| Everything | 31 | 29 |
+| Everything with the 25 font guards | 25 | 17 |
+| Narrowed | 12 | 12 |
+| No e2e | 1 | 3 |
+
+- 8 wide pushes stop running the font guards: `ci.yml` edits outside the font-guards job, `public/sw.js`
+  and `public/images/**`.
+- 2 pushes that changed `vercel.json` and docs run no e2e; the build and dist guards still check it.
+- What still widens: `package.json` or the lockfile (9), a core project the import walk cannot narrow
+  (7), the build pipeline (3), `ci.yml` (2), the CI oracle (2), `playwright.config.js`, `nx.json` and
+  `vitest.config.js`, `.github/workflows/dependency-advisories.yml`.
