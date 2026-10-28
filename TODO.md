@@ -11,12 +11,16 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 - [DEBT-65](backlog/tasks/DEBT-65.md) P2 · Two layout-shift specs failed once each in the 2026-10-27 nightly (in progress)
 - [ENC-16](backlog/tasks/ENC-16.md) P2 · Locked-file state polish: Merge's calm notice, the panel's sizing, focus ring and file name (in progress)
 - [MEM-21](backlog/tasks/MEM-21.md) P3 · A nightly job measures what an update downloads against the previous deploy, with a target of about 500 KB (in progress)
+- [MEM-24](backlog/tasks/MEM-24.md) P3 · A service worker that cannot install, or never completes its precache, says so (in progress)
 
 ### Unify the tools, narrow the graph
 
 - [ARCH-85](backlog/tasks/ARCH-85.md) P3 · Per-spec flake rates are recorded and read nightly (in progress)
 - [QUAL-32](backlog/tasks/QUAL-32.md) P2 · CI skips Playwright when a push reaches no e2e (in progress)
 - [QUAL-33](backlog/tasks/QUAL-33.md) P2 · A stalled apt install costs at most one retry, not ten minutes (in progress)
+- [QUAL-35](backlog/tasks/QUAL-35.md) P3 · CI narrows a test-only push the way check:push does (in progress)
+- [QUAL-36](backlog/tasks/QUAL-36.md) P3 · Editing a dist guard script runs the build and dist guards locally (in progress)
+- [QUAL-37](backlog/tasks/QUAL-37.md) P3 · test:precache-budget reuses compressed sizes by hashed filename (in progress)
 
 ### Search and languages
 

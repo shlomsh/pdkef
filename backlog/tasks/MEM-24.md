@@ -1,7 +1,7 @@
 ---
 id: "MEM-24"
 title: "A service worker that cannot install, or never completes its precache, says so"
-status: "open"
+status: "in_progress"
 priority: "P3"
 epic: "robustness"
 horizon: "next"

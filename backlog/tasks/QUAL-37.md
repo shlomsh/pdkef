@@ -1,7 +1,7 @@
 ---
 id: "QUAL-37"
 title: "test:precache-budget reuses compressed sizes by hashed filename"
-status: "open"
+status: "in_progress"
 priority: "P3"
 epic: "unify-and-narrow"
 horizon: "next"
