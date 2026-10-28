@@ -1,7 +1,7 @@
 ---
 id: "ARCH-127"
 title: "The advisory exceptions list holds no entry that matches nothing"
-status: "open"
+status: "in_progress"
 priority: "P3"
 epic: "unify-and-narrow"
 horizon: "later"
