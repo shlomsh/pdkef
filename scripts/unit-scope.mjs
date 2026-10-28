@@ -168,6 +168,12 @@ export const WIDEN_RULES = [
     ],
   },
   {
+    id: 'blame-ignore-revs',
+    reason: 'gitLastModified.js reads .git-blame-ignore-revs by path to skip structure-only commits (SEO-49)',
+    match: (f) => f === '.git-blame-ignore-revs',
+    tests: ['src/site-lib/gitLastModified.test.js'],
+  },
+  {
     id: 'hero-demo-css-text-read',
     reason: 'read via fs.readFileSync for a text assertion; nothing imports this CSS Module in production',
     match: (f) => f === 'public/hero-demo-noscript.css' || f === 'src/components/HeroDemo/HeroDemo.module.css',

@@ -1,0 +1,13 @@
+# Commits that only restructure code: moves, renames and import rewrites that
+# change no behaviour and no word on any page. Full hashes, one per line.
+#
+# Two readers: `git blame --ignore-revs-file` (GitHub's blame view reads this
+# file by name), and src/site-lib/gitLastModified.js, which skips these
+# commits when it dates a page for the sitemap's <lastmod> and the content
+# pages' "Last updated" line (SEO-49). A commit lands with its final hash, so
+# list it in a follow-up commit once it is on main.
+
+# ARCH-101: src/lib groups its modules by domain
+0e5a801331fbbd9d9d7f5232a836091dcf907009
+# ARCH-44 (rewrite): cross-layer imports use layer aliases
+4df014c31bc9f3990fe0da1bbc07b373aa1e3ea5

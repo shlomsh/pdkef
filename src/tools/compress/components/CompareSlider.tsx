@@ -18,6 +18,8 @@ interface CompareSliderProps {
   fill?: boolean;
   /** The Original / Compressed tags drawn over the images (default true). */
   tags?: boolean;
+  /** Called with the page's width over height once the base image has loaded. */
+  onAspect?: (aspect: number) => void;
 }
 
 function getClientX(event: GestureEvent): number {
@@ -29,6 +31,14 @@ function getClientX(event: GestureEvent): number {
 }
 
 const ARROW_STEP = 5;
+
+/** An img onLoad that reports the image's width over height, skipping an image with no size yet. */
+export function aspectHandler(onAspect: (aspect: number) => void) {
+  return (event: Event) => {
+    const img = event.currentTarget as HTMLImageElement;
+    if (img.naturalWidth && img.naturalHeight) onAspect(img.naturalWidth / img.naturalHeight);
+  };
+}
 
 // A before/after reveal slider for the Compress tool (SEO-25). Built on the
 // same "imperative-during, commit-on-release" gesture controller Sign and
@@ -47,6 +57,7 @@ export default function CompareSlider({
   sliderLabel = englishCompressMessages.compareSliderLabel,
   fill = false,
   tags = true,
+  onAspect,
 }: CompareSliderProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [position, setPosition] = useState(50);
@@ -122,7 +133,7 @@ export default function CompareSlider({
       onMouseDown={handleStart}
       onTouchStart={handleStart}
     >
-      <img class={styles['compare-image']} src={beforeSrc} alt={formatMessage(pageAlt, { label: beforeLabel })} draggable={false} />
+      <img class={styles['compare-image']} src={beforeSrc} alt={formatMessage(pageAlt, { label: beforeLabel })} draggable={false} onLoad={onAspect && aspectHandler(onAspect)} />
       <div class={styles['compare-after']}>
         <img class={styles['compare-image']} src={afterSrc} alt={formatMessage(pageAlt, { label: afterLabel })} draggable={false} />
       </div>
