@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { aliasTarget } from './import-aliases.mjs';
 import { collectSourceFiles, importSpecifiers } from './check-module-boundaries.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -88,12 +89,15 @@ function parseRoot(argv) {
 // from check-module-boundaries.mjs (imported above).
 const SOURCE_EXTENSIONS = ['.ts', '.tsx', '.js', '.jsx', '.mjs'];
 
-function resolveRelativeImport(fromFile, specifierRaw) {
+function resolveRelativeImport(fromFile, specifierRaw, projectRoot) {
   const specifier = specifierRaw.split('?')[0]; // strip a Vite `?raw`/`?url` query, as .astro imports can carry one
-  if (!specifier.startsWith('.') && !specifier.startsWith('/')) return null;
-  const requested = specifier.startsWith('/')
-    ? path.resolve(specifier)
-    : path.resolve(path.dirname(fromFile), specifier);
+  const aliased = aliasTarget(specifier);
+  if (!aliased && !specifier.startsWith('.') && !specifier.startsWith('/')) return null;
+  const requested = aliased
+    ? path.resolve(projectRoot, aliased)
+    : specifier.startsWith('/')
+      ? path.resolve(specifier)
+      : path.resolve(path.dirname(fromFile), specifier);
   const candidates = [requested];
   const extension = path.extname(requested);
   if (extension) candidates.push(...SOURCE_EXTENSIONS.map((candidateExtension) => `${requested.slice(0, -extension.length)}${candidateExtension}`));
@@ -270,8 +274,8 @@ function checkProject(projectRoot) {
       });
     }
     for (const specifier of importSpecifiers(source, from)) {
-      const resolved = resolveRelativeImport(file, specifier);
-      if ((specifier.startsWith('.') || specifier.startsWith('/')) && !resolved) {
+      const resolved = resolveRelativeImport(file, specifier, projectRoot);
+      if ((specifier.startsWith('.') || specifier.startsWith('/') || aliasTarget(specifier)) && !resolved) {
         violations.push({ from, specifier, reason: 'relative static import does not resolve to a source file' });
         continue;
       }

@@ -83,6 +83,16 @@ describe('analyzeExports (ARCH-61)', () => {
   });
 });
 
+describe('layer aliases (ARCH-44)', () => {
+  it('counts an export used only through an alias as used, like the relative import', () => {
+    const r = analyzeExports({
+      'src/lib/a.ts': 'export const live = 2;\n',
+      'src/shell/b.ts': "import { live } from '#lib/a.ts';\nconsole.log(live);\n",
+    });
+    expect(r.neverUsed).toEqual([]);
+  });
+});
+
 describe('ratchet comparison (ARCH-61)', () => {
   const rec = { neverUsed: 3, ownFileOnly: 10, testOnly: 20 };
   it('fails when a count rises', () => {

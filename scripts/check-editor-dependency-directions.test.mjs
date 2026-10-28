@@ -4,6 +4,8 @@
 // drives classify()/ruleViolation() the same way, against literal fixtures
 // rather than the real tree). staleExceptions() is the guard's own exported
 // pure function, not a reimplementation of it.
+import { spawnSync } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import { staleExceptions } from './check-editor-dependency-directions.mjs';
 
@@ -62,5 +64,27 @@ describe('editor dependency-direction guard: staleExceptions()', () => {
       { from: 'src/editor/registry/renderers.ts', target: null, specifier: 'preact' },
     ];
     expect(staleExceptions(edges, [liveException, deadException])).toEqual([deadException]);
+  });
+});
+
+// ARCH-44: an aliased import (#editor/...) is resolved and judged exactly like the relative one.
+describe('editor dependency-direction guard: layer aliases', () => {
+  const run = (fixture) => {
+    const root = fileURLToPath(new URL(`./fixtures/editor-dependency-directions/${fixture}`, import.meta.url));
+    const result = spawnSync(process.execPath, [fileURLToPath(new URL('./check-editor-dependency-directions.mjs', import.meta.url)), '--root', root], { encoding: 'utf8' });
+    return result.stderr.split('\n').map((line) => line.trim());
+  };
+  const reasonOf = (lines, from) => lines.find((line) => line.startsWith(`${from} -> `))?.split(': ').slice(1).join(': ');
+
+  it('flags a forbidden aliased import with the same reason as the relative spelling', () => {
+    const lines = run('negative-alias');
+    const viaRelative = reasonOf(lines, 'src/editor/model/viaRelative.ts');
+    expect(viaRelative).toContain('model is pure');
+    expect(reasonOf(lines, 'src/editor/model/viaAlias.ts')).toBe(viaRelative);
+  });
+
+  it('reports an alias that names no file like an unresolved relative import', () => {
+    const lines = run('negative-alias-missing');
+    expect(reasonOf(lines, 'src/editor/model/viaAlias.ts')).toContain('does not resolve to a source file');
   });
 });
