@@ -1,7 +1,8 @@
 ---
 id: "MEM-21"
 title: "A nightly job measures what an update downloads against the previous deploy, with a target of about 500 KB"
-status: "done"
+status: "in_progress"
+horizon: "now"
 priority: "P3"
 epic: "robustness"
 depends_on: ["MEM-19", "MEM-20"]
@@ -37,6 +38,7 @@ depends_on: ["MEM-19", "MEM-20"]
       plus the pages that reference it; a page changed only in bytes, not in references, costs that page.
 - [x] The nightly run reports the cost and the top contributors in its summary.
 - [x] The target and the measurement behind it are written in the Done section.
+- [ ] The job builds both deploys at one path, and a nightly reading of an ordinary deploy is under target.
 
 ## Progress
 
@@ -60,3 +62,17 @@ alongside 5 new hashed chunks. Closes once the first nightly run has written its
 - That deploy changed only `src/lib/telemetry/maintenanceEventSchema.ts` and `src/site-lib/appUpdate.ts`
   (MEM-24), so the cost is the shared-chunk cascade this ticket warned about, not new content. It is
   tracked as its own structural ticket, MEM-25.
+
+## Reopened (2026-10-28)
+
+The scheduled nightly that day (run 40665616224, 5522bb04 to 935512c2) read 906,908 bytes with 25 pages
+changed and no chunk renamed. Rebuilt at one path, the same pair costs 23,275 bytes and changes only
+`/about/` (its build stamp). The job built each deploy in its own `git worktree` directory, and Astro
+hashes each island's absolute source path into its `uid` (`shorthash` of `componentUrl` in
+`node_modules/astro/dist/runtime/server/render/component.js`), so every island page differed. About
+880 KB of that reading was the measurement, and no reading could pass the target. The first reading
+(1,934,844 bytes, de9b06dc to 5522bb04) holds: rebuilt at one path it is 1,934,774 bytes and the same 54
+pages, because those pages really changed (MEM-25).
+
+The job now builds both deploys in one worktree, checked out in turn, pinned by
+`scripts/ci-update-cost.test.mjs`. Closes when a nightly reading of an ordinary deploy is under target.
