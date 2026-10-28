@@ -1,10 +1,9 @@
 ---
 id: "MEM-21"
 title: "A nightly job measures what an update downloads against the previous deploy, with a target of about 500 KB"
-status: "in_progress"
+status: "done"
 priority: "P3"
 epic: "robustness"
-horizon: "next"
 depends_on: ["MEM-19", "MEM-20"]
 ---
 
@@ -36,8 +35,8 @@ depends_on: ["MEM-19", "MEM-20"]
 
 - [x] Unit tests: unchanged builds cost only `sw.js` and the manifest; one renamed chunk costs that chunk
       plus the pages that reference it; a page changed only in bytes, not in references, costs that page.
-- [ ] The nightly run reports the cost and the top contributors in its summary.
-- [ ] The target and the measurement behind it are written in the Done section.
+- [x] The nightly run reports the cost and the top contributors in its summary.
+- [x] The target and the measurement behind it are written in the Done section.
 
 ## Progress
 
@@ -47,3 +46,17 @@ that builds the last two production deploys GitHub records for Vercel (main's fi
 deploy). On the 2026-10-27 S8 pair (a8763091 to 7ffc926f with MEM-19 and MEM-20 applied) the CLI reports
 503,058 bytes, above target, led by /sign/, /he/sign/ and the new PdfSignTool chunk, 12 pages changed
 alongside 5 new hashed chunks. Closes once the first nightly run has written its summary.
+
+## Done (2026-10-28)
+
+- **Target:** `UPDATE_COST_TARGET = 500_000` bytes brotli (q5) in `scripts/updateCost.mjs`, from the
+  measurement in Why: about 0.66 MB median once MEM-19 and MEM-20 removed the stamp and CSP-order churn,
+  and 503,058 bytes on the 2026-10-27 S8 pair.
+- **First nightly reading:** run 40662513043 (2026-10-28, a manual dispatch with `nightly: true`, which
+  takes the scheduled path) compared the last two production deploys, de9b06dc and 5522bb04, and wrote
+  the job summary. Result: 1,934,844 bytes, above target, so the job failed as designed. It named the
+  top contributors (`/_astro/sign.*.js` 301,114 new-hashed, `/sign/` 50,488, `/he/sign/` 49,853,
+  `PdfSignTool.*.js` 43,350, `/` 42,643) and the cascade: 54 pages changed alongside 20 new hashed chunks.
+- That deploy changed only `src/lib/telemetry/maintenanceEventSchema.ts` and `src/site-lib/appUpdate.ts`
+  (MEM-24), so the cost is the shared-chunk cascade this ticket warned about, not new content. It is
+  tracked as its own structural ticket, MEM-25.
