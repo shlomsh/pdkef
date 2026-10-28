@@ -1,10 +1,9 @@
 ---
 id: "ARCH-41"
 title: "Compress, Image to PDF and Unlock/Protect finish with the shared Download control"
-status: "in_progress"
+status: "done"
 priority: "P3"
 epic: "unify-and-narrow"
-horizon: "now"
 order: 2
 depends_on: ["ARCH-36"]
 ---
@@ -51,6 +50,7 @@ strings in English and Hebrew, and for Compress a layout with no phone bar today
 ## Acceptance
 
 - [x] The design is approved before implementation starts.
-- [ ] No import of `DownloadButton` remains.
-- [ ] Each tool's unit and e2e specs are updated for the new control and pass; verified on a
-      production build at a phone and a desktop width.
+- [x] No import of `DownloadButton` remains (it and `ProgressRing` are deleted).
+- [x] Each tool's unit and e2e specs are updated for the new control and pass; verified at
+      1280x720, 1512x860, 1920x1080 and a 390x844 phone, Hebrew included: the card ends 15px above
+      the window's foot exactly as Organize PDF's does, and no phone footer is sticky.
