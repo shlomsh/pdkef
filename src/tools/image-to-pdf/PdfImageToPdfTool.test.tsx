@@ -7,15 +7,15 @@ import PdfImageToPdfTool from './PdfImageToPdfTool.tsx';
 import fs from 'node:fs';
 import path from 'node:path';
 import zlib from 'node:zlib';
-import { getPdfLib } from '../../lib/pdf/pdfLib.js';
-import { formatFileSize } from '../../lib/text/format.js';
-import { saveHandoff } from '../../lib/drafts/draftStore.ts';
+import { getPdfLib } from '#lib/pdf/pdfLib.js';
+import { formatFileSize } from '#lib/text/format.js';
+import { saveHandoff } from '#lib/drafts/draftStore.ts';
 import { installToolHarness } from '../../test/harness/toolHarness.ts';
 import { mockNativeFileShare } from '../../test/support/mockFileShare.js';
 import { setInputFiles } from '../../test/support/setInputFiles.js';
-import { recentActions, resetActionTrailForTests } from '../../lib/telemetry/actionTrail.ts';
+import { recentActions, resetActionTrailForTests } from '#lib/telemetry/actionTrail.ts';
 import { hebrewImageToPdfMessages } from './messages';
-import { hebrewShellMessages } from '../../shell/shellMessages';
+import { hebrewShellMessages } from '#shell/shellMessages.ts';
 
 // Real images, so the real imagesToPdf builds real PDFs. Each PNG name gets its own width (a PDF page is
 // as wide as its image), so a built PDF shows which images it holds and in what order.
@@ -71,7 +71,7 @@ function makeImageFile(name, type = 'image/png') {
 // Not a fake: imagesToPdf still builds the real PDF. The gate only lets one test hold a build open, or
 // have one fail, which a real build gives no way to do on cue. Its calls are kept for the abort signal.
 const { buildGate } = vi.hoisted(() => ({ buildGate: { next: null, calls: [] } }));
-vi.mock('../../lib/images/imagesToPdf.js', async (importOriginal) => {
+vi.mock('#lib/images/imagesToPdf.js', async (importOriginal) => {
   const actual = await importOriginal();
   return {
     ...actual,

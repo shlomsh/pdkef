@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { MAX_CANVAS_AREA, MAX_CANVAS_SIDE } from '../../../lib/images/canvasLimits.js';
+import { MAX_CANVAS_AREA, MAX_CANVAS_SIDE } from '#lib/images/canvasLimits.js';
 import { stackedRenderScale } from './toImage.js';
 
 const fits = (w, h, scale) => {

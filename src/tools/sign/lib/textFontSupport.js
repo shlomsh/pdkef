@@ -3,8 +3,8 @@
  * come from fonts.js (the same generated glyph data and transforms as export).
  * No fetching, timers, document mutations, or language-name guesses live here.
  */
-import { covers, missingGlyphs, resolveFontSubstitution, TEXT_FONTS, HANDWRITING_FONTS } from '../../../editor/text/fonts.js';
-import { textForCoverage } from '../../../editor/text/comb.js';
+import { covers, missingGlyphs, resolveFontSubstitution, TEXT_FONTS, HANDWRITING_FONTS } from '#editor/text/fonts.js';
+import { textForCoverage } from '#editor/text/comb.js';
 
 const families = [...TEXT_FONTS, ...HANDWRITING_FONTS];
 const segmenter = new Intl.Segmenter(undefined, { granularity: 'grapheme' });

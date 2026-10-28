@@ -1,9 +1,9 @@
 import { useRef } from 'preact/hooks';
 import {
   BLUR_SLIDER_MAX, BLUR_SLIDER_MIN, DEFAULT_BLUR_STRENGTH, resolveBlurStrength, snapBlurStrength,
-} from '../../../editor/model/blurStrength.ts';
-import { paintBlurStrength } from '../../../editor/registry/redactionSurface.ts';
-import { useNativeChange } from '../../../editor-ui/useNativeChange.ts';
+} from '#editor/model/blurStrength.ts';
+import { paintBlurStrength } from '#editor/registry/redactionSurface.ts';
+import { useNativeChange } from '#editor-ui/useNativeChange.ts';
 import styles from './BlurStrengthSlider.module.css';
 
 /**

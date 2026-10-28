@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { PDFDocument } from '@cantoo/pdf-lib';
 import { buildSplit } from './splitOutput.ts';
-import { planForFile, rotateEntry, withIncludedPages } from '../../../lib/pages/pagePlan.ts';
+import { planForFile, rotateEntry, withIncludedPages } from '#lib/pages/pagePlan.ts';
 
 async function pdf(pages: number, name = 'doc.pdf') {
   const doc = await PDFDocument.create();

@@ -1,13 +1,13 @@
 import { useEffect, useMemo, useRef } from 'preact/hooks';
-import { clearDraftHintAttribute, useDraftPersistence } from '../../lib/drafts/useDraftPersistence.js';
+import { clearDraftHintAttribute, useDraftPersistence } from '#lib/drafts/useDraftPersistence.js';
 import { migrateDraftRecord, validateDraftRecord } from '../registry/draftValidation.ts';
 import type { ActionHistoryEntry, HistoryElement } from '../model/actionHistory.ts';
 import type { DetailEdits } from '../registry/draftValidation.ts';
 import type { DocumentStyle } from '../model/documentStyle.ts';
-import { deleteDraft, takeHandoff, type HandoffRecord } from '../../lib/drafts/draftStore.ts';
-import { markHandoffArrival } from '../../lib/handoff/useHandoffIntake.ts';
-import { markArrival } from '../../lib/handoff/fileArrival.ts';
-import { clearHandoffPending, releaseHandoffPending, releaseHandoffPendingWhenLoaded } from '../../lib/handoff/handoffPending.ts';
+import { deleteDraft, takeHandoff, type HandoffRecord } from '#lib/drafts/draftStore.ts';
+import { markHandoffArrival } from '#lib/handoff/useHandoffIntake.ts';
+import { markArrival } from '#lib/handoff/fileArrival.ts';
+import { clearHandoffPending, releaseHandoffPending, releaseHandoffPendingWhenLoaded } from '#lib/handoff/handoffPending.ts';
 
 export interface UseEditorDraftPersistenceOptions<TElement extends HistoryElement> {
   tool: string;

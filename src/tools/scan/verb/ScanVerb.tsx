@@ -1,5 +1,5 @@
-import VerbStage from '../../../shell/verb/VerbStage.tsx';
-import paperStyles from '../../../shell/verb/paper.module.css';
+import VerbStage from '#shell/verb/VerbStage.tsx';
+import paperStyles from '#shell/verb/paper.module.css';
 import styles from './ScanVerb.module.css';
 
 /** Scan's verb: a tilted photo of a page gets four corner dots, then straightens into a clean page. */

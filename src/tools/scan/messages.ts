@@ -1,4 +1,4 @@
-import type { DownloadMessages } from '../../shell/shellMessages';
+import type { DownloadMessages } from '#shell/shellMessages.ts';
 
 /** Scan's strings. English only at launch; a localized edition follows the languages page. */
 export interface ScanMessages extends DownloadMessages {

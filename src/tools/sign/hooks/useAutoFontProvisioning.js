@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'preact/hooks';
-import { resolveFontSubstitution } from '../../../editor/text/fonts.js';
+import { resolveFontSubstitution } from '#editor/text/fonts.js';
 import { fontPackDescriptor, provisionFontPack } from '../lib/fontOfflinePacks.js';
 
 /**

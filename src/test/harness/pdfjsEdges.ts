@@ -11,7 +11,7 @@
  * calls it, so each test starts from the same fakes.
  */
 import { vi } from 'vitest';
-import type { probeEncryption } from '../../lib/pdf/pdfEncryption.ts';
+import type { probeEncryption } from '#lib/pdf/pdfEncryption.ts';
 type ProbeAnswer = Awaited<ReturnType<typeof probeEncryption>>;
 
 type Bytes = ArrayBuffer | Uint8Array;
@@ -34,7 +34,7 @@ const thumbnails = {
 };
 
 async function countPages(file: File): Promise<number> {
-  const { PDFDocument } = await (await import('../../lib/pdf/pdfLib.js')).getPdfLib();
+  const { PDFDocument } = await (await import('#lib/pdf/pdfLib.js')).getPdfLib();
   return PDFDocument.load(await file.arrayBuffer(), { ignoreEncryption: true }).then((doc: { getPageCount(): number }) => doc.getPageCount(), () => 0);
 }
 

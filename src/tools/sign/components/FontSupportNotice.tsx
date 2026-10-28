@@ -1,7 +1,7 @@
 import { useLayoutEffect } from 'preact/hooks';
 import { useFloating, offset, shift, autoUpdate } from '@floating-ui/react';
 import { englishSignMessages } from '../messages';
-import type { SignMessages } from '../../../editor/registry/messages';
+import type { SignMessages } from '#editor/registry/messages.ts';
 import styles from './FontSupportNotice.module.css';
 
 /**

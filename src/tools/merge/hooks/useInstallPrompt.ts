@@ -1,6 +1,6 @@
 import { useCallback, useEffect } from 'preact/hooks';
 import type { Dispatch } from 'preact/hooks';
-import { isIOSDevice } from '../../../lib/app/platform.ts';
+import { isIOSDevice } from '#lib/app/platform.ts';
 import type { MergeAction, MergeState, BeforeInstallPromptEvent } from '../state/mergeState.ts';
 import type { PreparedStatus } from './usePreparedMerge.ts';
 

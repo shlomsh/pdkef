@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'preact/hooks';
 import type { RefObject } from 'preact';
-import { combCharacters } from '../../../../editor/text/comb.js';
+import { combCharacters } from '#editor/text/comb.js';
 
 /**
  * Tracks the live caret position for a comb field (CombCells.tsx), shared by

@@ -1,4 +1,4 @@
-import type { EditorElement } from '../../../../editor/model/editorModel.ts';
+import type { EditorElement } from '#editor/model/editorModel.ts';
 import type { SignToolAction } from '../../components/SignToolContext.tsx';
 import { useFillFocus } from './useFillFocus.ts';
 import { useFillViewportLock } from './useFillViewportLock.ts';

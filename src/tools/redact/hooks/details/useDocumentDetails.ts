@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'preact/hooks';
 import type { DocumentTraces } from '../../lib/documentTraces.js';
-import { reportError } from '../../../../lib/telemetry/errorReport.ts';
+import { reportError } from '#lib/telemetry/errorReport.ts';
 import { readDetails } from '../../lib/details/readDetails.ts';
 
 /**

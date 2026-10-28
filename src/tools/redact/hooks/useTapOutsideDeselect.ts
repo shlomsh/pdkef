@@ -4,7 +4,7 @@ import {
   isBlankAreaTarget,
   readTapSample,
   type TapGestureSample,
-} from '../../../lib/gestures/tapOutsideDeselect.ts';
+} from '#lib/gestures/tapOutsideDeselect.ts';
 
 /**
  * A tap on blank page area deselects the selected box. Two paths, because

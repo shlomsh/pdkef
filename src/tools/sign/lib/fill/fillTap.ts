@@ -8,7 +8,7 @@
  * order is decided, so every caller - the touch handler and the mouse path alike - sees
  * the same precedence.
  */
-import type { SignToolType } from '../../../../editor/model/editorModel.ts';
+import type { SignToolType } from '#editor/model/editorModel.ts';
 import type { FillTapDecision, FillTool, PagePoint, ReachTarget } from './fillTypes.ts';
 
 /** The armed tool as fill mode sees it (fillTypes.ts, FillTool). No tool is 'none'. */

@@ -1,6 +1,6 @@
 import { Crop } from 'lucide-preact';
-import OptionRow, { type Option } from '../../../shell/pageWorkspace/OptionRow.tsx';
-import { workspaceStyles } from '../../../shell/pageWorkspace/PageWorkspace.tsx';
+import OptionRow, { type Option } from '#shell/pageWorkspace/OptionRow.tsx';
+import { workspaceStyles } from '#shell/pageWorkspace/PageWorkspace.tsx';
 import { englishScanMessages as t } from '../messages.ts';
 import type { ScanFilter } from '../lib/filters.ts';
 import type { ScanPage } from '../state/scanWork.ts';

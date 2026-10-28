@@ -1,25 +1,25 @@
 import { useRef } from 'preact/hooks';
 import RedactBoxBar from './RedactBoxBar.tsx';
-import useCoarsePointer from '../../../editor-ui/hooks/useCoarsePointer.ts';
+import useCoarsePointer from '#editor-ui/hooks/useCoarsePointer.ts';
 import { useFloating, offset, flip, shift, autoUpdate } from '@floating-ui/react';
-import { TOOLBAR_FLOATING_OFFSET } from '../../../editor/model/signGeometry.js';
+import { TOOLBAR_FLOATING_OFFSET } from '#editor/model/signGeometry.js';
 import RedactBoxToolbar from './RedactBoxToolbar.tsx';
 import toolbarStyles from './RedactBoxToolbar.module.css';
-import ElementResizers from '../../../editor-ui/ElementResizers.tsx';
-import { createElementRenderers } from '../../../editor/registry/renderers.ts';
-import type { ElementType } from '../../../editor/model/editorModel.ts';
-import useDraggableElement from '../../../editor-ui/hooks/useDraggableElement.js';
+import ElementResizers from '#editor-ui/ElementResizers.tsx';
+import { createElementRenderers } from '#editor/registry/renderers.ts';
+import type { ElementType } from '#editor/model/editorModel.ts';
+import useDraggableElement from '#editor-ui/hooks/useDraggableElement.js';
 import usePressAndHold from '../hooks/usePressAndHold.ts';
-import useElementResize from '../../../editor-ui/hooks/useElementResize.js';
-import useVisualViewportScale from '../../../editor-ui/hooks/useVisualViewportScale.ts';
-import visualViewportClamp, { toolbarScaleOriginCss, getStickyToolShellRect } from '../../../editor-ui/hooks/visualViewportClamp.ts';
-import elementStyles from '../../../editor-ui/EditorElement.module.css';
+import useElementResize from '#editor-ui/hooks/useElementResize.js';
+import useVisualViewportScale from '#editor-ui/hooks/useVisualViewportScale.ts';
+import visualViewportClamp, { toolbarScaleOriginCss, getStickyToolShellRect } from '#editor-ui/hooks/visualViewportClamp.ts';
+import elementStyles from '#editor-ui/EditorElement.module.css';
 import styles from '../PdfRedactTool.module.css';
 import { boxKeyIntent, boxMovePatch, boxAriaLabel } from '../lib/boxKeys.ts';
 import type { RedactElement, RedactBoxElement, RedactStrokeElement } from '../lib/redactElements.ts';
-import type { EditorPointerEvent } from '../../../editor-ui/nodeResizeTypes.ts';
-import type { ResizeHandle } from '../../../editor/registry/types.ts';
-import type { BlurStrength } from '../../../editor/model/blurStrength.ts';
+import type { EditorPointerEvent } from '#editor-ui/nodeResizeTypes.ts';
+import type { ResizeHandle } from '#editor/registry/types.ts';
+import type { BlurStrength } from '#editor/model/blurStrength.ts';
 
 // MOBI-17: which corner of the bar actually touches the box it belongs to, so
 // the counter-scale below shrinks it away from that corner rather than its

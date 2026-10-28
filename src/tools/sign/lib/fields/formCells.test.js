@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { createPageGeometry } from '../../../../editor/geometry/coords.ts';
+import { createPageGeometry } from '#editor/geometry/coords.ts';
 import { placeTextOnCell } from '../combPlacement.ts';
 import { detectCellCandidates } from './formCells.js';
 

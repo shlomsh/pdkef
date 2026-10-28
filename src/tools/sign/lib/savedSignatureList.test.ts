@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { SavedSignature } from '../../../editor/model/savedSignature.ts';
+import type { SavedSignature } from '#editor/model/savedSignature.ts';
 import {
   MAX_SAVED_SIGNATURES,
   activeAfterSync,

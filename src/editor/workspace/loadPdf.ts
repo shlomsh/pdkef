@@ -1,8 +1,8 @@
 import { getPdfjs } from '../adapters/pdf/pdfjsLoader.js';
-import { PDFJS_WASM_URL } from '../../lib/pdf/pdfjsWasm.js';
+import { PDFJS_WASM_URL } from '#lib/pdf/pdfjsWasm.js';
 import type { PDFDocumentLoadingTask, PDFDocumentProxy } from 'pdfjs-dist';
-import { reportError } from '../../lib/telemetry/errorReport.ts';
-import { classifyPdfOpen } from '../../lib/pdf/pdfEncryption.ts';
+import { reportError } from '#lib/telemetry/errorReport.ts';
+import { classifyPdfOpen } from '#lib/pdf/pdfEncryption.ts';
 
 type LoadStatus = 'loading' | 'editing' | 'error';
 

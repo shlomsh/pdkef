@@ -1,4 +1,4 @@
-import { extractPageObjects } from '../../../../editor/adapters/pdf/pdfObjects.js';
+import { extractPageObjects } from '#editor/adapters/pdf/pdfObjects.js';
 import { collectPageInk } from './pageInk.js';
 
 /**

@@ -1,17 +1,17 @@
 import { useEffect, useRef } from 'preact/hooks';
 import type { PDFDocumentProxy } from 'pdfjs-dist';
-import { loadPdf as loadEditorPdf, type PdfLoadController, type PdfLoadMessages } from '../../editor/workspace/loadPdf.ts';
+import { loadPdf as loadEditorPdf, type PdfLoadController, type PdfLoadMessages } from '#editor/workspace/loadPdf.ts';
 import {
   useEditorDraftPersistence,
   type EditorDraftInitialState,
   type UseEditorDraftPersistenceOptions,
-} from '../../editor/workspace/useEditorDraftPersistence.ts';
-import { seedUniqueId } from '../../editor/model/ids.ts';
-import type { HistoryElement } from '../../editor/model/actionHistory.ts';
-import { cacheRecentFile } from '../../lib/drafts/draftStore.ts';
-import { isPdfFile } from '../../lib/handoff/fileKind.js';
-import { recordAction } from '../../lib/telemetry/actionTrail.ts';
-import type { EditorToolId } from '../../lib/app/toolIds.ts';
+} from '#editor/workspace/useEditorDraftPersistence.ts';
+import { seedUniqueId } from '#editor/model/ids.ts';
+import type { HistoryElement } from '#editor/model/actionHistory.ts';
+import { cacheRecentFile } from '#lib/drafts/draftStore.ts';
+import { isPdfFile } from '#lib/handoff/fileKind.js';
+import { recordAction } from '#lib/telemetry/actionTrail.ts';
+import type { EditorToolId } from '#lib/app/toolIds.ts';
 import { useDocumentRetirement } from './useDocumentRetirement.ts';
 
 /**

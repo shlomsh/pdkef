@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { createPageGeometry } from '../../../../editor/geometry/coords.ts';
+import { createPageGeometry } from '#editor/geometry/coords.ts';
 import { detectLineCandidates } from './formLines.js';
 
 // A 100x100pt page makes the PDF-point <-> page-percent arithmetic trivial, same convention as

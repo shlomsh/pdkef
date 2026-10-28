@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import { elementForSlot, type SlotElementBase } from './slotElement.ts';
 import { detectedSlots, freeSlot, placementForField, placementForFree } from './fillSlots.ts';
-import { getElementDefinition } from '../../../../editor/registry/index.ts';
+import { getElementDefinition } from '#editor/registry/index.ts';
 import { placeTextOnField, type CombRegion, type FieldRegion, type TypableField } from '../combPlacement.ts';
 import { carriedTextStyle } from '../elementDefaults.ts';
-import { DEFAULT_STROKE_WIDTH } from '../../../../editor/model/signGeometry.js';
+import { DEFAULT_STROKE_WIDTH } from '#editor/model/signGeometry.js';
 
 // A4 in PDF points, matching combPlacement.test.ts and fieldOrder.test.ts.
 const PAGE_WIDTH = 595.275;

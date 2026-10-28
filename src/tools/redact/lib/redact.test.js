@@ -5,7 +5,7 @@ import { describe, expect, it, vi, beforeAll, beforeEach, afterAll } from 'vites
 import * as pdfjs from 'pdfjs-dist/legacy/build/pdf.mjs';
 import { PDFDocument } from '@cantoo/pdf-lib';
 import { redactPdf } from './redact.js';
-import { MAX_CANVAS_AREA, RASTER_SCALE } from '../../../editor/adapters/pdf/rasterPage.js';
+import { MAX_CANVAS_AREA, RASTER_SCALE } from '#editor/adapters/pdf/rasterPage.js';
 
 // redact.js reaches pdfjs through sign.js's getPdfjs(), which does a dynamic
 // `import('pdfjs-dist')` - this mock intercepts that specifier for any caller,

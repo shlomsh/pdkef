@@ -5,7 +5,7 @@ import ShapeNode from './nodes/ShapeNode.tsx';
 import LineNode from './nodes/LineNode.tsx';
 import DraggableWrapper from './DraggableWrapper.tsx';
 import WhiteoutNode from './nodes/WhiteoutNode.tsx';
-import type { LineElement, RectangleElement, WhiteoutElement, EllipseElement } from '../../../editor/model/editorModel.ts';
+import type { LineElement, RectangleElement, WhiteoutElement, EllipseElement } from '#editor/model/editorModel.ts';
 // Fixture parent: production finds the page with closest() on this class, so the test must carry it.
 
 const noop = () => {};

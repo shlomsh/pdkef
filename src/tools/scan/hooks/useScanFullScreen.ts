@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect } from 'preact/hooks';
 import type { RefObject } from 'preact';
-import { recordAction } from '../../../lib/telemetry/actionTrail.ts';
+import { recordAction } from '#lib/telemetry/actionTrail.ts';
 import { relativeBox } from '../lib/flattenAnimation.ts';
 import { turnedQuad, type Quad } from '../lib/quad.ts';
 import type { reduceScan } from '../state/scanState.ts';

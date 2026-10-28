@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'preact/hooks';
 import type { Dispatch } from 'preact/hooks';
 import type { ComponentType } from 'preact';
-import { reportError } from '../../../lib/telemetry/errorReport.ts';
-import type { PageGridProps } from '../../../shell/pageGrid/PageGrid.tsx';
+import { reportError } from '#lib/telemetry/errorReport.ts';
+import type { PageGridProps } from '#shell/pageGrid/PageGrid.tsx';
 import type { MergeDraftPersistenceProps } from '../components/MergeDraftPersistence.tsx';
 import type { MergeAction, MergeStatus } from '../state/mergeState.ts';
 
@@ -34,7 +34,7 @@ export function useLazySurfaces(hasFiles: boolean, dispatch: Dispatch<MergeActio
   useEffect(() => {
     if (!hasFiles || PageGrid) return;
     let cancelled = false;
-    import('../../../shell/pageGrid/PageGrid.tsx')
+    import('#shell/pageGrid/PageGrid.tsx')
       .then((module) => { if (!cancelled) setPageGrid(() => module.default); })
       .catch((err) => { reportError('chunk_load', err, 'import_page_strip'); });
     return () => { cancelled = true; };

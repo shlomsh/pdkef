@@ -2,7 +2,7 @@ import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { useRecentWhiteoutColors } from './useRecentWhiteoutColors.ts';
-import { getRecentWhiteoutColors } from '../../editor/workspace/preferenceStore.ts';
+import { getRecentWhiteoutColors } from '#editor/workspace/preferenceStore.ts';
 
 let host: HTMLDivElement;
 let latest: ReturnType<typeof useRecentWhiteoutColors>;

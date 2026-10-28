@@ -2,11 +2,11 @@ import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { useEffect, useRef, useState } from 'preact/hooks';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { loadPdf, type PdfLoadController } from '../../editor/workspace/loadPdf.ts';
+import { loadPdf, type PdfLoadController } from '#editor/workspace/loadPdf.ts';
 import { useDocumentRetirement } from './useDocumentRetirement.ts';
-import { getPdfjs } from '../../editor/adapters/pdf/pdfjsLoader.js';
+import { getPdfjs } from '#editor/adapters/pdf/pdfjsLoader.js';
 
-vi.mock('../../editor/adapters/pdf/pdfjsLoader.js', () => ({ getPdfjs: vi.fn() }));
+vi.mock('#editor/adapters/pdf/pdfjsLoader.js', () => ({ getPdfjs: vi.fn() }));
 
 /** A pdf.js stand-in that throws like a dead transport once destroyed. */
 function fakeDocument(name: string, log: string[]) {

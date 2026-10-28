@@ -6,15 +6,15 @@ import fs from 'node:fs';
 import PdfRedactTool from './PdfRedactTool.tsx';
 import { waitUntil } from '../../test/harness/waitUntil.ts';
 import { CHECKING } from './lib/check/checkCopy.ts';
-import { pxToPercent, pxDeltaToPercent } from '../../editor/geometry/coords.js';
+import { pxToPercent, pxDeltaToPercent } from '#editor/geometry/coords.ts';
 import { setInputFiles } from '../../test/support/setInputFiles.js';
-import { recentActions } from '../../lib/telemetry/actionTrail.ts';
-import * as gestureController from '../../lib/gestures/controller.ts';
-import { saveDraft } from '../../lib/drafts/draftStore.ts';
+import { recentActions } from '#lib/telemetry/actionTrail.ts';
+import * as gestureController from '#lib/gestures/controller.ts';
+import { saveDraft } from '#lib/drafts/draftStore.ts';
 import { installToolHarness, type ToolHarness } from '../../test/harness/toolHarness.ts';
 import { PDFDocument } from '@cantoo/pdf-lib';
-import { DEFAULT_BLUR_STRENGTH } from '../../editor/model/blurStrength.ts';
-import { getAppStyle, rememberAppStyle, getRecentWhiteoutColors, rememberRecentWhiteoutColor } from '../../editor/workspace/preferenceStore.ts';
+import { DEFAULT_BLUR_STRENGTH } from '#editor/model/blurStrength.ts';
+import { getAppStyle, rememberAppStyle, getRecentWhiteoutColors, rememberRecentWhiteoutColor } from '#editor/workspace/preferenceStore.ts';
 
 declare const __dirname: string;
 
@@ -125,8 +125,8 @@ const pageSampler = vi.hoisted(() => ({
   impl: (() => null) as (canvas: HTMLCanvasElement | null | undefined, box: { left: number; top: number; width: number; height: number }) => string | null,
   calls: [] as Array<{ canvas: HTMLCanvasElement | null | undefined; box: { left: number; top: number; width: number; height: number } }>,
 }));
-vi.mock('../../editor-ui/whiteout/pageSampling.ts', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('../../editor-ui/whiteout/pageSampling.ts')>();
+vi.mock('#editor-ui/whiteout/pageSampling.ts', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('#editor-ui/whiteout/pageSampling.ts')>();
   return {
     ...actual,
     sampleRingColor: (canvas: HTMLCanvasElement | null | undefined, box: { left: number; top: number; width: number; height: number }) => {
@@ -1205,7 +1205,7 @@ describe('PdfRedactTool UI flow', () => {
         const originalSize = fs.statSync(fixturePath).size;
         expect(exportedBlob.size).toBeLessThan(originalSize * 3);
 
-        const { extractPageObjects } = await import('../../editor/adapters/pdf/pdfObjects.js');
+        const { extractPageObjects } = await import('#editor/adapters/pdf/pdfObjects.js');
         const { PDFDocument } = await import('@cantoo/pdf-lib');
         const outBytes = new Uint8Array(await exportedBlob.arrayBuffer());
         // RED-16: previews come from the glyph read, not the parser, so read

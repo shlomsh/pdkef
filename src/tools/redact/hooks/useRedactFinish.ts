@@ -1,4 +1,4 @@
-import { useDownloaded } from '../../../shell/RatingPrompt.tsx';
+import { useDownloaded } from '#shell/RatingPrompt.tsx';
 import { finishPhaseOf, type RedactState } from '../state/redactState.ts';
 import { redactedFileName } from '../lib/redactFileName.ts';
 import type { FinishFacts, FinishPhase } from '../lib/finishState.ts';

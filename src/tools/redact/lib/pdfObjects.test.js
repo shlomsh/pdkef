@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { PDFDocument, PDFName, PDFNumber, StandardFonts } from '@cantoo/pdf-lib';
-import { collectCheckboxGlyphs, extractPageObjects } from '../../../editor/adapters/pdf/pdfObjects.js';
+import { collectCheckboxGlyphs, extractPageObjects } from '#editor/adapters/pdf/pdfObjects.js';
 import { withPreviews } from './objectPreviews.test-helper.js';
 
 /** One page whose content stream is `stream`, with `fonts` as its /Font resources. */

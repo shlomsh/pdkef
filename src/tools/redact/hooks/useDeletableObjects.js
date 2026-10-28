@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'preact/hooks';
-import { reportError } from '../../../lib/telemetry/errorReport.ts';
+import { reportError } from '#lib/telemetry/errorReport.ts';
 
 /**
  * Finds the images and text runs the Delete tool can offer to remove, for the

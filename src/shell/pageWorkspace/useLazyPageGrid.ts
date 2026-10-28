@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'preact/hooks';
 import type { ComponentType } from 'preact';
-import { reportError } from '../../lib/telemetry/errorReport.ts';
+import { reportError } from '#lib/telemetry/errorReport.ts';
 import type { PageGridProps } from '../pageGrid/PageGrid.tsx';
 
 /**

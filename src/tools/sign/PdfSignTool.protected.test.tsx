@@ -6,7 +6,7 @@ import fs from 'node:fs';
 import * as pdfjsDist from 'pdfjs-dist';
 import PdfSignTool from './PdfSignTool.tsx';
 import { hebrewSignMessages } from './messages';
-import type { SignMessages } from '../../editor/registry/messages';
+import type { SignMessages } from '#editor/registry/messages.ts';
 import { installToolHarness, type ToolHarness } from '../../test/harness/toolHarness.ts';
 import { setInputFiles } from '../../test/support/setInputFiles.js';
 

@@ -1,4 +1,4 @@
-import type { TextDirection } from '../../../editor/model/editorModel.ts';
+import type { TextDirection } from '#editor/model/editorModel.ts';
 import type { CombRegion, FieldRegion, PercentBox, TypableField } from './combPlacement.ts';
 
 export type { TypableField };

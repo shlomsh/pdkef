@@ -5,7 +5,7 @@ import path from 'path';
 import { describe, expect, it } from 'vitest';
 import { PDFDocument, PDFName, PDFStream } from '@cantoo/pdf-lib';
 import * as pdfjs from 'pdfjs-dist/legacy/build/pdf.mjs';
-import { extractPageObjects } from '../../../editor/adapters/pdf/pdfObjects.js';
+import { extractPageObjects } from '#editor/adapters/pdf/pdfObjects.js';
 import {
   deleteObjectsFromPdf,
   listDeletableObjects,

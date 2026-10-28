@@ -1,12 +1,12 @@
-import PageNumbersRow from '../../../shell/pageWorkspace/PageNumbersRow.tsx';
-import DownloadElement from '../../../shell/DownloadElement.tsx';
-import FinishRow from '../../../shell/pageWorkspace/FinishRow.tsx';
-import pdfToolStyles from '../../../shell/PdfTool.module.css';
+import PageNumbersRow from '#shell/pageWorkspace/PageNumbersRow.tsx';
+import DownloadElement from '#shell/DownloadElement.tsx';
+import FinishRow from '#shell/pageWorkspace/FinishRow.tsx';
+import pdfToolStyles from '#shell/PdfTool.module.css';
 import railStyles from './MergeRail.module.css';
 import type { MergeMessages } from '../messages';
-import type { ShellMessages } from '../../../shell/shellMessages';
+import type { ShellMessages } from '#shell/shellMessages.ts';
 import type { PreparedMerge } from '../hooks/usePreparedMerge.ts';
-import type { useDownloadFlow } from '../../../shell/pageWorkspace/useDownloadFlow.ts';
+import type { useDownloadFlow } from '#shell/pageWorkspace/useDownloadFlow.ts';
 import type { BeforeInstallPromptEvent } from '../state/mergeState.ts';
 
 interface MergeRailPinnedProps {

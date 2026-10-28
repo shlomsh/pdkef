@@ -1,6 +1,6 @@
-import ElementResizers from '../../../../editor-ui/ElementResizers.tsx';
-import { DEFAULT_WHITEOUT_COLOR } from '../../../../editor/model/signGeometry.js';
-import type { WhiteoutElement } from '../../../../editor/model/editorModel.ts';
+import ElementResizers from '#editor-ui/ElementResizers.tsx';
+import { DEFAULT_WHITEOUT_COLOR } from '#editor/model/signGeometry.js';
+import type { WhiteoutElement } from '#editor/model/editorModel.ts';
 import type { ElementNodeProps } from '../nodeProps.ts';
 
 export default function WhiteoutNode({ element, isActive, onResizeStart, messages }: ElementNodeProps<WhiteoutElement>) {

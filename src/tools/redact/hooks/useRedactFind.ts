@@ -1,6 +1,6 @@
-import { uniqueId } from '../../../editor/model/ids.ts';
-import { recordAction } from '../../../lib/telemetry/actionTrail.ts';
-import { formatMessage } from '../../../lib/text/formatMessage.ts';
+import { uniqueId } from '#editor/model/ids.ts';
+import { recordAction } from '#lib/telemetry/actionTrail.ts';
+import { formatMessage } from '#lib/text/formatMessage.ts';
 import type { RedactElement } from '../lib/redactElements.ts';
 import type { FindMatch } from '../lib/find/types.ts';
 import type { RedactState } from '../state/redactState.ts';

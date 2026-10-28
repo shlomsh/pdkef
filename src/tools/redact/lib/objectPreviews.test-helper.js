@@ -1,8 +1,8 @@
 import path from 'path';
 import { pathToFileURL } from 'url';
 import * as pdfjs from 'pdfjs-dist/legacy/build/pdf.mjs';
-import { PDFJS_WASM_URL } from '../../../lib/pdf/pdfjsWasm.js';
-import { pageGeometryFromPdfJsPage } from '../../../editor/geometry/coords.ts';
+import { PDFJS_WASM_URL } from '#lib/pdf/pdfjsWasm.js';
+import { pageGeometryFromPdfJsPage } from '#editor/geometry/coords.ts';
 import { previewTexts } from './deletePreviews.ts';
 import { readGlyphs } from './readGlyphs.js';
 

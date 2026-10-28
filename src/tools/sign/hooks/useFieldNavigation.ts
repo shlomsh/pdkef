@@ -1,10 +1,10 @@
-import { createElementId } from '../../../editor/model/ids.ts';
-import { captureAddedElement, type HistoryLogger } from '../../../editor/model/actionHistory.ts';
-import type { EditorElement, TextDirection, TextElement } from '../../../editor/model/editorModel.ts';
-import type { DocumentStyle } from '../../../editor/model/documentStyle.ts';
+import { createElementId } from '#editor/model/ids.ts';
+import { captureAddedElement, type HistoryLogger } from '#editor/model/actionHistory.ts';
+import type { EditorElement, TextDirection, TextElement } from '#editor/model/editorModel.ts';
+import type { DocumentStyle } from '#editor/model/documentStyle.ts';
 import { carriedTextStyle } from '../lib/elementDefaults.ts';
-import type { PageGeometry } from '../../../editor/geometry/coords.ts';
-import { getElementDefinition } from '../../../editor/registry/index.ts';
+import type { PageGeometry } from '#editor/geometry/coords.ts';
+import { getElementDefinition } from '#editor/registry/index.ts';
 import { placeTextOnField } from '../lib/combPlacement.ts';
 import {
   elementOnField,
@@ -14,17 +14,17 @@ import {
   type TypableField,
 } from '../lib/fieldOrder.ts';
 import type { FormFieldRegions } from './useFormFieldRegions.ts';
-import { visibleViewportOrigin } from '../../../editor-ui/hooks/visualViewportClamp.ts';
+import { visibleViewportOrigin } from '#editor-ui/hooks/visualViewportClamp.ts';
 import { englishSignMessages } from '../messages';
-import type { SignMessages } from '../../../editor/registry/messages';
-import { formatMessage } from '../../../lib/text/formatMessage';
+import type { SignMessages } from '#editor/registry/messages.ts';
+import { formatMessage } from '#lib/text/formatMessage.ts';
 import {
   DEFAULT_COLOR_BLUE,
   DEFAULT_STROKE_WIDTH,
   DEFAULT_FONT_FAMILY,
   PAGE_HEIGHT_DEFAULT_PTS,
   PAGE_WIDTH_DEFAULT_PTS,
-} from '../../../editor/model/signGeometry.js';
+} from '#editor/model/signGeometry.js';
 
 /**
  * Next/Previous across a page's detected form fields (MOBI-06).

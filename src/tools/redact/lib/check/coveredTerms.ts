@@ -5,7 +5,7 @@
  * to decide what a box hides.
  */
 import { wordsUnderBoxes } from '../textLayer.ts';
-import type { PageGeometry } from '../../../../editor/geometry/coords.ts';
+import type { PageGeometry } from '#editor/geometry/coords.ts';
 import type { PageGlyph } from '../pageGlyphs.ts';
 import type { PercentBox } from '../find/types.ts';
 import { termFinder } from '../find/finders.ts';

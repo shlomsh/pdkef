@@ -1,7 +1,7 @@
 import { useCallback, useLayoutEffect, useRef, useState } from 'preact/hooks';
 import type { ComponentChildren } from 'preact';
-import { sanitizeOutputName } from '../lib/output/sanitizeOutputName.ts';
-import { recordAction } from '../lib/telemetry/actionTrail.ts';
+import { sanitizeOutputName } from '#lib/output/sanitizeOutputName.ts';
+import { recordAction } from '#lib/telemetry/actionTrail.ts';
 import { splitOutputName, fullNameOffset } from './outputNameCut.ts';
 import styles from './OutputName.module.css';
 

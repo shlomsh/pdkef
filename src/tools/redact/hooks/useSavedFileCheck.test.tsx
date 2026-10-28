@@ -3,7 +3,7 @@ import { act } from 'preact/test-utils';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const reportError = vi.fn();
-vi.mock('../../../lib/telemetry/errorReport.ts', async (importActual) => ({ ...(await importActual<object>()), reportError: (...args: unknown[]) => reportError(...args) }));
+vi.mock('#lib/telemetry/errorReport.ts', async (importActual) => ({ ...(await importActual<object>()), reportError: (...args: unknown[]) => reportError(...args) }));
 const runSavedFileCheck = vi.fn();
 vi.mock('../lib/check/runCheck.ts', () => ({ runSavedFileCheck: (...args: unknown[]) => runSavedFileCheck(...args) }));
 

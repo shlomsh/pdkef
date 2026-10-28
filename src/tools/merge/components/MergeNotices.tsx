@@ -1,10 +1,10 @@
 import { LockKeyhole } from 'lucide-preact';
-import { formatMessage } from '../../../lib/text/formatMessage';
-import { isolateName } from '../../../lib/text/format.js';
-import ErrorMessage from '../../../shell/ErrorMessage.tsx';
-import NeedsUnlock from '../../../shell/NeedsUnlock.tsx';
-import pdfToolStyles from '../../../shell/PdfTool.module.css';
-import { workspaceStyles } from '../../../shell/pageWorkspace/PageWorkspace.tsx';
+import { formatMessage } from '#lib/text/formatMessage.ts';
+import { isolateName } from '#lib/text/format.js';
+import ErrorMessage from '#shell/ErrorMessage.tsx';
+import NeedsUnlock from '#shell/NeedsUnlock.tsx';
+import pdfToolStyles from '#shell/PdfTool.module.css';
+import { workspaceStyles } from '#shell/pageWorkspace/PageWorkspace.tsx';
 import docStyles from './MergeDocument.module.css';
 import type { FileEntry } from '../lib/mergeModel.ts';
 import type { MergeMessages } from '../messages';

@@ -1,16 +1,16 @@
 import type { RefObject } from 'preact';
 import { LockKeyhole, File as FileIcon, FilePlus, Trash2 } from 'lucide-preact';
-import { formatMessage } from '../../../lib/text/formatMessage';
-import FileName from '../../../shell/FileName.tsx';
-import SortMenu from '../../../shell/SortMenu.tsx';
-import DraftRetentionHint from '../../../shell/DraftRetentionHint';
-import { workspaceStyles } from '../../../shell/pageWorkspace/PageWorkspace.tsx';
+import { formatMessage } from '#lib/text/formatMessage.ts';
+import FileName from '#shell/FileName.tsx';
+import SortMenu from '#shell/SortMenu.tsx';
+import DraftRetentionHint from '#shell/DraftRetentionHint.tsx';
+import { workspaceStyles } from '#shell/pageWorkspace/PageWorkspace.tsx';
 import railStyles from './MergeRail.module.css';
 import { tagStyle } from './tagStyle.ts';
 import type { SortOption } from './MergePhoneControls.tsx';
 import type { FileEntry, SortMode } from '../lib/mergeModel.ts';
 import type { MergeMessages } from '../messages';
-import type { ShellMessages } from '../../../shell/shellMessages';
+import type { ShellMessages } from '#shell/shellMessages.ts';
 
 interface MergeRailContentProps {
   entries: FileEntry[];

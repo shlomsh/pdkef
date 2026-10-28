@@ -1,9 +1,9 @@
 import { ScanLine } from 'lucide-preact';
-import PdfShareButton from '../../../shell/PdfShareButton.tsx';
-import ProgressRing from '../../../shell/ProgressRing.tsx';
-import ErrorMessage from '../../../shell/ErrorMessage.tsx';
-import DownloadButton from '../../../shell/DownloadButton.tsx';
-import pdfToolStyles from '../../../shell/PdfTool.module.css';
+import PdfShareButton from '#shell/PdfShareButton.tsx';
+import ProgressRing from '#shell/ProgressRing.tsx';
+import ErrorMessage from '#shell/ErrorMessage.tsx';
+import DownloadButton from '#shell/DownloadButton.tsx';
+import pdfToolStyles from '#shell/PdfTool.module.css';
 import type { ImageToPdfMessages } from '../messages';
 import styles from '../PdfImageToPdfTool.module.css';
 

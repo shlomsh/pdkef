@@ -7,11 +7,11 @@ import { h, render } from 'preact';
 import { act } from 'preact/test-utils';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import useDeletePreviews, { deleteSpansByPage } from './useDeletePreviews.ts';
-import { getPdfjs } from '../../../editor/adapters/pdf/pdfjsLoader.js';
+import { getPdfjs } from '#editor/adapters/pdf/pdfjsLoader.js';
 import { buildDeletePreviewPage } from '../lib/deleteObjects.js';
 import { PDFDocument } from '@cantoo/pdf-lib';
 
-vi.mock('../../../editor/adapters/pdf/pdfjsLoader.js', () => ({ getPdfjs: vi.fn() }));
+vi.mock('#editor/adapters/pdf/pdfjsLoader.js', () => ({ getPdfjs: vi.fn() }));
 vi.mock('../lib/deleteObjects.js', () => ({ buildDeletePreviewPage: vi.fn() }));
 // Not named in the brief, but the hook loads it directly (not through
 // deleteObjects.js) to build the per-file source document; without a mock,

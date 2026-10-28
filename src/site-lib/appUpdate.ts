@@ -33,7 +33,7 @@ import {
   isUpdateHeld,
   onExportInFlightChange,
   onUpdateHoldChange,
-} from '../lib/appUpdate/updateHolds.ts';
+} from '#lib/appUpdate/updateHolds.ts';
 
 const CHANNEL_NAME = 'pdkef:app-update';
 /** @testSeam */

@@ -36,7 +36,7 @@
  * express free text at all.
  */
 
-import { errorName, topFrame } from '../../../lib/telemetry/errorIdentity.ts';
+import { errorName, topFrame } from '#lib/telemetry/errorIdentity.ts';
 
 /**
  * The errors a JS engine raises about code. `Error` itself is deliberately not

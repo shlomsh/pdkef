@@ -1,9 +1,9 @@
 import { useRef, useState, useCallback } from 'preact/hooks';
-import { toggleWorkspaceFullscreen, useFullscreenChange } from '../../../editor-ui/hooks/workspaceFullscreen.ts';
-import { sampleRingColor } from '../../../editor-ui/whiteout/pageSampling.ts';
-import type { PercentBox } from '../../../editor-ui/whiteout/pageColor.ts';
-import useCurrentPage from '../../../editor-ui/hooks/useCurrentPage.js';
-import type { NeedsUnlockKind } from '../../../shell/NeedsUnlock.tsx';
+import { toggleWorkspaceFullscreen, useFullscreenChange } from '#editor-ui/hooks/workspaceFullscreen.ts';
+import { sampleRingColor } from '#editor-ui/whiteout/pageSampling.ts';
+import type { PercentBox } from '#editor-ui/whiteout/pageColor.ts';
+import useCurrentPage from '#editor-ui/hooks/useCurrentPage.js';
+import type { NeedsUnlockKind } from '#shell/NeedsUnlock.tsx';
 import { isFullscreenActive as isFullscreenActiveOf, type RedactAction, type RedactState } from '../state/redactState.ts';
 import useSelectionDismiss from './useSelectionDismiss.ts';
 

@@ -1,9 +1,9 @@
 import type { MutableRef, Dispatch, StateUpdater } from 'preact/hooks';
-import type { Built } from '../../../lib/output/usePreparedOutput.ts';
-import { throwIfAborted } from '../../../lib/output/abort.js';
-import { deriveFileKind } from '../../../lib/handoff/fileKind.js';
-import { reportError } from '../../../lib/telemetry/errorReport.ts';
-import { recordAction } from '../../../lib/telemetry/actionTrail.ts';
+import type { Built } from '#lib/output/usePreparedOutput.ts';
+import { throwIfAborted } from '#lib/output/abort.js';
+import { deriveFileKind } from '#lib/handoff/fileKind.js';
+import { reportError } from '#lib/telemetry/errorReport.ts';
+import { recordAction } from '#lib/telemetry/actionTrail.ts';
 import { compressPdf, compressPdfToTarget } from './compress.js';
 import { compressImageToTarget } from './compressImage.js';
 import { compressedFileName as deriveDownloadName } from './outputName.ts';

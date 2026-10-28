@@ -7,7 +7,7 @@ import { changesPieces, detailsSummary } from '../lib/details/describeDetails.ts
 import { DetailsFooter } from './details/DetailsFooter.tsx';
 import RedactFinish from './RedactFinish.tsx';
 import SavedFileCheck from './SavedFileCheck.tsx';
-import ErrorMessage from '../../../shell/ErrorMessage.tsx';
+import ErrorMessage from '#shell/ErrorMessage.tsx';
 import { englishRedactMessages as t } from '../messages.ts';
 
 /** Under the pages: the document details footer and the one finish row with the export error and saved-file check. */

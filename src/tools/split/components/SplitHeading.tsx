@@ -1,7 +1,7 @@
-import { pagesLabel, skippedLabel } from '../../../shell/pageWorkspace/pageCounts.ts';
-import { workspaceStyles } from '../../../shell/pageWorkspace/PageWorkspace.tsx';
-import OutputName from '../../../shell/OutputName.tsx';
-import type { ShellMessages } from '../../../shell/shellMessages';
+import { pagesLabel, skippedLabel } from '#shell/pageWorkspace/pageCounts.ts';
+import { workspaceStyles } from '#shell/pageWorkspace/PageWorkspace.tsx';
+import OutputName from '#shell/OutputName.tsx';
+import type { ShellMessages } from '#shell/shellMessages.ts';
 import type { SplitMessages } from '../messages';
 
 interface SplitHeadingProps {

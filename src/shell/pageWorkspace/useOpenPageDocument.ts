@@ -9,11 +9,11 @@
  * `onLoaded`; both run from the latest render, so they may close over fresh state.
  */
 import { useCallback, useRef, useState } from 'preact/hooks';
-import { probeEncryption } from '../../lib/pdf/pdfEncryption.ts';
-import { loadPdfWithPages } from '../../lib/pdf/loadPdfPages.ts';
-import { reportError, type ErrorArea } from '../../lib/telemetry/errorReport.ts';
-import { recordAction } from '../../lib/telemetry/actionTrail.ts';
-import { formatMessage } from '../../lib/text/formatMessage';
+import { probeEncryption } from '#lib/pdf/pdfEncryption.ts';
+import { loadPdfWithPages } from '#lib/pdf/loadPdfPages.ts';
+import { reportError, type ErrorArea } from '#lib/telemetry/errorReport.ts';
+import { recordAction } from '#lib/telemetry/actionTrail.ts';
+import { formatMessage } from '#lib/text/formatMessage.ts';
 import type { NeedsUnlockKind } from '../NeedsUnlock.tsx';
 
 export interface LoadedPageDocument {
@@ -46,7 +46,7 @@ export const repairedPdfLoader: PageDocumentLoader = {
 export const thumbnailPdfLoader: PageDocumentLoader = {
   area: 'pdf_render',
   async run(_bytes, file) {
-    const { openThumbnailSource } = await import('../../lib/pdf/thumbnails.js');
+    const { openThumbnailSource } = await import('#lib/pdf/thumbnails.js');
     const source = await openThumbnailSource(file);
     try {
       return { pageCount: source.pageCount };

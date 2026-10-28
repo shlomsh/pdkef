@@ -1,15 +1,15 @@
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { afterEach, beforeEach, describe, expect, it, vi, type Mock } from 'vitest';
-import { recentActions, resetActionTrailForTests } from '../../lib/telemetry/actionTrail.ts';
+import { recentActions, resetActionTrailForTests } from '#lib/telemetry/actionTrail.ts';
 import { repairedPdfLoader } from './useOpenPageDocument.ts';
 import { usePageToolSession, type PageToolSession } from './usePageToolSession.ts';
 
 const mocks = vi.hoisted(() => ({ probe: vi.fn(), load: vi.fn(), take: vi.fn() }));
-vi.mock('../../lib/pdf/pdfEncryption.ts', () => ({ probeEncryption: mocks.probe }));
-vi.mock('../../lib/pdf/loadPdfPages.ts', () => ({ loadPdfWithPages: mocks.load }));
-vi.mock('../../lib/telemetry/errorReport.ts', () => ({ reportError: vi.fn() }));
-vi.mock('../../lib/drafts/draftStore.ts', () => ({ takeHandoff: mocks.take }));
+vi.mock('#lib/pdf/pdfEncryption.ts', () => ({ probeEncryption: mocks.probe }));
+vi.mock('#lib/pdf/loadPdfPages.ts', () => ({ loadPdfWithPages: mocks.load }));
+vi.mock('#lib/telemetry/errorReport.ts', () => ({ reportError: vi.fn() }));
+vi.mock('#lib/drafts/draftStore.ts', () => ({ takeHandoff: mocks.take }));
 
 const messages = {
   announceNeedsPassword: 'needs password', announceRestricted: 'restricted', loaded: '{name} {count}', loadFailed: 'failed',

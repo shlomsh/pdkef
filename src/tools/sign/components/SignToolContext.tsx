@@ -1,11 +1,11 @@
 import { createContext } from 'preact';
-import { reportEdit } from '../../../lib/telemetry/productAnalytics.ts';
+import { reportEdit } from '#lib/telemetry/productAnalytics.ts';
 import type { ComponentChildren } from 'preact';
 import { useCallback, useReducer, useContext, useMemo } from 'preact/hooks';
-import { applyHistoryEntries, revertHistoryEntries, type ActionHistoryEntry } from '../../../editor/model/actionHistory.ts';
-import { pushCommand, redoStep, undoStep } from '../../../editor/model/historyStack.ts';
-import type { EditorElement, EditorElementPatch, SignToolType } from '../../../editor/model/editorModel.ts';
-import type { DocumentStyle } from '../../../editor/model/documentStyle.ts';
+import { applyHistoryEntries, revertHistoryEntries, type ActionHistoryEntry } from '#editor/model/actionHistory.ts';
+import { pushCommand, redoStep, undoStep } from '#editor/model/historyStack.ts';
+import type { EditorElement, EditorElementPatch, SignToolType } from '#editor/model/editorModel.ts';
+import type { DocumentStyle } from '#editor/model/documentStyle.ts';
 import { resolveDocumentStyle } from '../lib/elementDefaults.ts';
 import { ensureMinimumElementSize } from '../lib/minimumSize.ts';
 
@@ -14,7 +14,7 @@ import { ensureMinimumElementSize } from '../lib/minimumSize.ts';
  * deliberately absent: moving an existing annotation between kinds or pages
  * must be an explicit document operation, never an accidental toolbar patch.
  */
-export type { EditorElementPatch } from '../../../editor/model/editorModel.ts';
+export type { EditorElementPatch } from '#editor/model/editorModel.ts';
 
 export type SignToolAction =
   | { type: 'SET_TOOL'; payload: SignToolType | null | { tool: SignToolType; locked: boolean } }

@@ -4,16 +4,16 @@ import { render } from 'preact';
 import type { ComponentProps } from 'preact';
 import { act } from 'preact/test-utils';
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
-import { FILE_ACTIONS } from '../../../shell/ToolShell.tsx';
+import { FILE_ACTIONS } from '#shell/ToolShell.tsx';
 import ProductionSignToolbar from './SignToolbar.tsx';
 import { SignToolProvider, useSignTool, type SignToolAction, type SignToolState } from './SignToolContext.tsx';
 import { FillContext, FILL_OFF, type FillContextValue } from './fill/FillContext.tsx';
-import type { SignToolType } from '../../../editor/model/editorModel.ts';
+import type { SignToolType } from '#editor/model/editorModel.ts';
 import { SavedSignaturesContext } from './SavedSignaturesContext.tsx';
 import { hebrewSignMessages } from '../messages';
 // Asserts toolbar state and layout classes (locked, hint, help-reserve-nav, label and dropdown structure) and the base button class.
 // Kept for the scoped class structure test (.button, .label, .toolbar, .dropdown) and the base button class check.
-import styles from '../../../editor-ui/SignToolbar.module.css';
+import styles from '#editor-ui/SignToolbar.module.css';
 
 declare const __dirname: string;
 

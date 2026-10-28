@@ -1,12 +1,12 @@
 import { useState, useEffect } from 'preact/hooks';
-import type { SignToolType } from '../../../editor/model/editorModel.ts';
-import type { SavedSignature } from '../../../editor/model/savedSignature.ts';
-import type { SignMessages } from '../../../editor/registry/messages';
+import type { SignToolType } from '#editor/model/editorModel.ts';
+import type { SavedSignature } from '#editor/model/savedSignature.ts';
+import type { SignMessages } from '#editor/registry/messages.ts';
 import {
   getSavedSignatures,
   setSavedSignatures as persistSavedSignatures,
   subscribeToSavedSignatures,
-} from '../../../editor/workspace/preferenceStore.ts';
+} from '#editor/workspace/preferenceStore.ts';
 import {
   activeAfterSync,
   createSavedSignature,

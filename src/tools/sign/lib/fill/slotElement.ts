@@ -12,13 +12,13 @@
  * off the two production already has; `placeTextOnField`'s own docstring
  * makes the same point about its first two callers.
  */
-import { getElementDefinition } from '../../../../editor/registry/index.ts';
+import { getElementDefinition } from '#editor/registry/index.ts';
 import { fieldFontSize, placeTextOnField } from '../combPlacement.ts';
-import { resolveFontFamily } from '../../../../editor/text/fonts.js';
+import { resolveFontFamily } from '#editor/text/fonts.js';
 import { carriedTextStyle } from '../elementDefaults.ts';
-import type { DocumentStyle } from '../../../../editor/model/documentStyle.ts';
-import type { TextDirection, TextElement } from '../../../../editor/model/editorModel.ts';
-import { DEFAULT_FONT_FAMILY, DEFAULT_STROKE_WIDTH } from '../../../../editor/model/signGeometry.js';
+import type { DocumentStyle } from '#editor/model/documentStyle.ts';
+import type { TextDirection, TextElement } from '#editor/model/editorModel.ts';
+import { DEFAULT_FONT_FAMILY, DEFAULT_STROKE_WIDTH } from '#editor/model/signGeometry.js';
 import type { FillSlot } from './fillTypes.ts';
 
 /**

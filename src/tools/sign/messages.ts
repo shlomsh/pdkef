@@ -5,8 +5,8 @@
  * entry to them, in the same shape as every other tool's messages.ts.
  */
 import type { DocumentationLocaleId } from '../../i18n/documentationLocales';
-import type { SignMessages } from '../../editor/registry/messages';
-import { englishSignMessages, hebrewSignMessages } from '../../editor/registry/signMessages';
+import type { SignMessages } from '#editor/registry/messages.ts';
+import { englishSignMessages, hebrewSignMessages } from '#editor/registry/signMessages.ts';
 
 export type { SignMessages };
 export { englishSignMessages, hebrewSignMessages };

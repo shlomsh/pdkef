@@ -1,5 +1,5 @@
 import type { PDFDocumentProxy } from 'pdfjs-dist';
-import type { PageGeometry } from '../../../editor/geometry/coords.ts';
+import type { PageGeometry } from '#editor/geometry/coords.ts';
 import { describe, expect, it } from 'vitest';
 import {
   initialSignLifecycleState,

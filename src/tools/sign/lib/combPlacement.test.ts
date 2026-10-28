@@ -13,9 +13,9 @@ import {
   type CombRegion,
   type FieldRegion,
 } from './combPlacement.ts';
-import { combCellCenterFraction } from '../../../editor/text/comb.js';
-import { figureCentreEm } from '../../../editor/text/fonts.js';
-import { COMB_CAP_HEIGHT_EM, COMB_MIN_CELL_EM, MIN_FONT_SIZE_PT, TEXT_BOX_LINE_HEIGHT_EM } from '../../../editor/model/signGeometry.js';
+import { combCellCenterFraction } from '#editor/text/comb.js';
+import { figureCentreEm } from '#editor/text/fonts.js';
+import { COMB_CAP_HEIGHT_EM, COMB_MIN_CELL_EM, MIN_FONT_SIZE_PT, TEXT_BOX_LINE_HEIGHT_EM } from '#editor/model/signGeometry.js';
 
 // A4 in PDF points, the size both evidence forms are. Never a 0x0 rect: every
 // percentage derived from a zero-sized page is NaN or Infinity, and a geometry

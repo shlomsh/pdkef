@@ -12,7 +12,7 @@
  * covers is decided on these positions instead.
  */
 
-import { composeAffineTransforms, type AffineTransform } from '../../../editor/geometry/coords.ts';
+import { composeAffineTransforms, type AffineTransform } from '#editor/geometry/coords.ts';
 
 /** One shown glyph. Its em box maps through `matrix`: x from 0 to `width`
  * along the baseline, y up from the baseline, 1 = the font size. */

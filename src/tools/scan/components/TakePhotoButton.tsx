@@ -1,8 +1,8 @@
 import { useRef } from 'preact/hooks';
 import { Camera } from 'lucide-preact';
-import { PHOTO_ACCEPT as ACCEPT } from '../../../lib/hooks/usePhotoTileList.ts';
-import { takeInputFiles, useAdoptPrePickedFiles } from '../../../shell/prePickedFiles.ts';
-import dropzoneStyles from '../../../shell/Dropzone.module.css';
+import { PHOTO_ACCEPT as ACCEPT } from '#lib/hooks/usePhotoTileList.ts';
+import { takeInputFiles, useAdoptPrePickedFiles } from '#shell/prePickedFiles.ts';
+import dropzoneStyles from '#shell/Dropzone.module.css';
 import { englishScanMessages as t } from '../messages.ts';
 import styles from '../PdfScanTool.module.css';
 

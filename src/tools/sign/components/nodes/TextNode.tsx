@@ -1,22 +1,22 @@
 import { useState, useLayoutEffect, useRef, useEffect, useMemo, useId } from 'preact/hooks';
-import ElementResizers from '../../../../editor-ui/ElementResizers.tsx';
-import useCoarsePointer from '../../../../editor-ui/hooks/useCoarsePointer.ts';
-import usePdfCoordinates from '../../../../editor-ui/hooks/usePdfCoordinates.js';
-import { strongTextDirection } from '../../../../editor/text/textDirection.js';
-import { fieldTextInset, textElementLayout } from '../../../../editor/text/textLayout.js';
-import { resolveFontSubstitution } from '../../../../editor/text/fonts.js';
+import ElementResizers from '#editor-ui/ElementResizers.tsx';
+import useCoarsePointer from '#editor-ui/hooks/useCoarsePointer.ts';
+import usePdfCoordinates from '#editor-ui/hooks/usePdfCoordinates.ts';
+import { strongTextDirection } from '#editor/text/textDirection.js';
+import { fieldTextInset, textElementLayout } from '#editor/text/textLayout.js';
+import { resolveFontSubstitution } from '#editor/text/fonts.js';
 import { getTextFontSupport } from '../../lib/textFontSupport.js';
 import { describeTextFontSupport } from '../textMessages.ts';
 import FontSupportNotice from '../FontSupportNotice.tsx';
-import { combLayout, isComb } from '../../../../editor/text/comb.js';
+import { combLayout, isComb } from '#editor/text/comb.js';
 import CombCells from './CombCells.tsx';
 import { useCombCaret } from './useCombCaret.ts';
 import { englishSignMessages } from '../../messages';
-import type { SignMessages } from '../../../../editor/registry/messages';
+import type { SignMessages } from '#editor/registry/messages.ts';
 import { useTextFill } from '../fill/FillContext.tsx';
 import { AUTOCORRECT_OFF } from '../../lib/fill/fillTypes.ts';
-import elementStyles from '../../../../editor-ui/EditorElement.module.css';
-import type { TextElement } from '../../../../editor/model/editorModel.ts';
+import elementStyles from '#editor-ui/EditorElement.module.css';
+import type { TextElement } from '#editor/model/editorModel.ts';
 import type { ElementNodeChange, NodeResizeStart } from '../nodeProps.ts';
 
 export default function TextNode({ element, isActive, isEditing, onChange, onSelect, onBeginEdit, onResizeStart, pageWidthPoints, isSpanResizing = false, messages }: {
