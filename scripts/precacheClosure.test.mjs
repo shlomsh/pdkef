@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { fullClosure, htmlRefs, pageClosure, pageEntries, shellClosure, staticClosure } from './precacheClosure.mjs';
+import { fullClosure, htmlRefs, pageClosure, pageEntries, scriptRefs, shellClosure, staticClosure } from './precacheClosure.mjs';
 
 // A small synthetic dist/: one tool page with an island, a lazy engine behind
 // a dynamic import, a worker spelled as a string, wasm under /pdfjs-dist-wasm/.
@@ -165,5 +165,47 @@ describe('Vite preload list (__vite__mapDeps)', () => {
 
   it('throws naming the chunk when it mentions __vite__mapDeps but no list can be read', () => {
     expect(() => mapped('const __vite__mapDeps=(i)=>i.map(i=>listMovedElsewhere[i]);')).toThrow('_astro/entry.js');
+  });
+});
+
+describe('MEM-25: /site/ and /shared/ URLs', () => {
+  const html = '<html><head><script type="module" src="/site/boot.js"></script></head><body><astro-island component-url="/site/PdfSignTool.js" renderer-url="/site/client.js"></astro-island></body></html>';
+  const view25 = {
+    files: new Map([
+      ['sign/index.html', html],
+      ['site/boot.js', 'export const b=1;'],
+      ['site/client.js', 'export const c=1;'],
+      ['site/PdfSignTool.js', 'import{a}from"../_astro/sign.abc.js";import{o}from"../shared/openPdfDoc.js";const l=()=>import("../_astro/lazy.def.js");'],
+      ['_astro/sign.abc.js', 'import{t}from"../shared/maintenanceTelemetry.js";import{s}from"./sib.123.js";export const a=1;'],
+      ['_astro/sib.123.js', 'export const s=1;'],
+      ['_astro/lazy.def.js', 'export const l=1;'],
+      ['shared/openPdfDoc.js', 'import{x}from"../_astro/dep.456.js";export const o=1;'],
+      ['shared/maintenanceTelemetry.js', 'export const t=1;'],
+      ['_astro/dep.456.js', 'export const x=1;'],
+    ]),
+    paths: [],
+  };
+  view25.paths = [...view25.files.keys()];
+
+  it('reads /site/ entries from a page', () => {
+    expect(pageEntries(html)).toEqual(['/site/boot.js', '/site/PdfSignTool.js', '/site/client.js']);
+  });
+
+  it('resolves ../ specifiers across /site/, /_astro/ and /shared/ in the full closure', () => {
+    const closure = pageClosure(view25, 'sign/index.html');
+    for (const url of ['/site/PdfSignTool.js', '/_astro/sign.abc.js', '/shared/openPdfDoc.js', '/shared/maintenanceTelemetry.js', '/_astro/dep.456.js', '/_astro/sib.123.js', '/_astro/lazy.def.js']) {
+      expect(closure).toContain(url);
+    }
+  });
+
+  it('resolves ../ specifiers in the static closure too', () => {
+    const closure = staticClosure(view25, ['/site/PdfSignTool.js']);
+    expect(closure).toContain('_astro/sign.abc.js');
+    expect(closure).toContain('shared/openPdfDoc.js');
+    expect(closure).not.toContain('_astro/lazy.def.js');
+  });
+
+  it('lists the script URLs a page names, whichever folder', () => {
+    expect(scriptRefs('<script src="/site/a.js"></script><astro-island component-url="/_astro/B.x.js"></astro-island><link href="/shared/openPdfDoc.js"><i>/other/c.js</i>')).toEqual(['/site/a.js', '/_astro/B.x.js', '/shared/openPdfDoc.js']);
   });
 });
