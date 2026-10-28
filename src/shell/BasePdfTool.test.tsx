@@ -88,20 +88,20 @@ describe('BasePdfTool', () => {
   }
 
   describe('old browser notice', () => {
-    const OLD_CHROME = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/109.0.0.0 Safari/537.36';
+    const OLD_CHROME = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/108.0.0.0 Safari/537.36';
 
     afterEach(() => vi.unstubAllGlobals());
 
     it('stays off the empty page, so an old browser can still read it', () => {
       vi.stubGlobal('navigator', { ...navigator, userAgent: OLD_CHROME });
       mount({ hasFiles: false, onFilesAdded: vi.fn() });
-      expect(container.textContent).not.toContain('needs Chrome 122');
+      expect(container.textContent).not.toContain('needs Chrome 109');
     });
 
     it('appears once a file is added, naming the version to update to', () => {
       vi.stubGlobal('navigator', { ...navigator, userAgent: OLD_CHROME });
       mount({ hasFiles: true, onFilesAdded: vi.fn() });
-      expect(container.textContent).toContain('needs Chrome 122 or newer');
+      expect(container.textContent).toContain('needs Chrome 109 or newer');
     });
 
     const IOS_17 = 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1';
@@ -119,7 +119,7 @@ describe('BasePdfTool', () => {
     });
 
     it('does not appear in a current browser', () => {
-      vi.stubGlobal('navigator', { ...navigator, userAgent: OLD_CHROME.replace('109', '143') });
+      vi.stubGlobal('navigator', { ...navigator, userAgent: OLD_CHROME.replace('108', '143') });
       mount({ hasFiles: true, onFilesAdded: vi.fn() });
       expect(container.textContent).not.toContain('or newer to open PDFs');
     });

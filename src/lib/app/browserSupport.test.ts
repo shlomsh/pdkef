@@ -12,17 +12,17 @@ const IPHONE = (os: string, wrapper = 'Version/18.0 Mobile/15E148 Safari/604.1')
 
 describe('unsupportedBrowser', () => {
   it('names a Chrome below the floor, with the version to update to', () => {
-    expect(unsupportedBrowser({ userAgent: CHROME(109) })).toEqual({ browser: 'Chrome', minimum: 122 });
+    expect(unsupportedBrowser({ userAgent: CHROME(108) })).toEqual({ browser: 'Chrome', minimum: 109 });
   });
 
-  it('accepts Chrome at the floor and above', () => {
-    expect(unsupportedBrowser({ userAgent: CHROME(122) })).toBeNull();
+  it('accepts Chrome at the floor and above, 109 included (every tool measured on it, DEBT-69)', () => {
+    expect(unsupportedBrowser({ userAgent: CHROME(109) })).toBeNull();
     expect(unsupportedBrowser({ userAgent: CHROME(143) })).toBeNull();
   });
 
   it('reads Edge as Edge, not Chrome', () => {
-    expect(unsupportedBrowser({ userAgent: EDGE(110) })).toEqual({ browser: 'Edge', minimum: 122 });
-    expect(unsupportedBrowser({ userAgent: EDGE(140) })).toBeNull();
+    expect(unsupportedBrowser({ userAgent: EDGE(108) })).toEqual({ browser: 'Edge', minimum: 109 });
+    expect(unsupportedBrowser({ userAgent: EDGE(109) })).toBeNull();
   });
 
   it('judges Firefox on its own number', () => {

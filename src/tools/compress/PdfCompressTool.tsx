@@ -215,7 +215,7 @@ export default withIslandBoundary(function PdfCompressTool({
     <BasePdfTool
       hasFiles={hasFiles}
       onFilesAdded={handleFilesAdded}
-      intake={{ multiple: false, accept: 'application/pdf,image/jpeg,image/png' }}
+      intake={{ multiple: false, accept: 'application/pdf,image/jpeg,image/png', needsPdfjs: !isImageMode }}
       identity={{ file, label: file?.name, metaExtra: sizesExtra, note: stripNoteNode, hidden: true }}
       empty={{ art: <CompressVerb subject={analyticsTool === 'compress-image' ? 'photo' : 'page'} />, message: emptyStateMessage ?? t.dropHint }}
       analytics={{ tool: analyticsTool, status: status === 'error' ? 'error' : flow.tap !== 'idle' ? flow.tap : retryTap }}
