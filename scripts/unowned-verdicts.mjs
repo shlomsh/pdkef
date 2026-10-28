@@ -1,5 +1,6 @@
 // QUAL-34's per-file e2e verdicts for files no Nx project owns (UNOWNED_VERDICTS), plus the reader
-// that tells whether a ci.yml edit touched the font-guards job. Used by affected-scope.mjs; it decides
+// that tells whether a ci.yml edit touched the font-guards job, and the one that tells whether a package.json
+// edit reaches the build or an e2e script. Used by affected-scope.mjs; it decides
 // scope, so it is in that file's ORACLE_FILES.
 import { readFileSync } from 'node:fs';
 import { join, dirname, resolve as resolvePath } from 'node:path';
@@ -25,6 +26,8 @@ export const UNOWNED_VERDICTS = [
   rowOf((f) => /^\.github\/workflows\/[^/]+\.ya?ml$/.test(f), 'none', "another workflow runs its own jobs; ci.yml's specs never execute it (ci.yml itself is matched by the row above)"),
 ];
 
+export const PACKAGE_FILE = 'package.json';
+
 export function unownedRowOf(file) {
   return UNOWNED_VERDICTS.find((row) => row.test(file)) ?? null;
 }
@@ -34,8 +37,9 @@ export function unownedVerdictOf(file) {
 }
 
 // The files Nx is asked about: table files are left out, or middleware.ts would mark most projects affected.
-export function filesForNx(files) {
-  return files.filter((f) => !unownedRowOf(f));
+// QUAL-43: so is a package.json whose edit stays off the e2e path, since Nx marks every project affected by it.
+export function filesForNx(files, { packageJsonOffPath = false } = {}) {
+  return files.filter((f) => !unownedRowOf(f) && !(packageJsonOffPath && f === PACKAGE_FILE));
 }
 
 // QUAL-34: does a ci.yml change reach the `job`? `hunks` are new-side {start, count} ranges from
@@ -70,6 +74,57 @@ export function ciFontJobChangedBetween(base, head) {
     const text = head ? git(['show', `${head}:${CI_FILE}`]) : readFileSync(join(ROOT, CI_FILE), 'utf8');
     const diff = git(['diff', '-U0', base, ...(head ? [head] : []), '--', CI_FILE]);
     return ciChangeTouchesJob(text, parseHunks(diff), 'font-guards');
+  } catch {
+    return true;
+  }
+}
+
+// QUAL-43: does a package.json edit reach a product e2e? False only when both sides parse, every top-level key
+// but `scripts` is deep-equal, and every added, removed or changed script is off the e2e path: build, preview,
+// dev, the install lifecycle `npm ci` runs before every e2e job (install, prepare), their pre/post hooks, every
+// test:e2e* script, and every script whose name appears in the text of one already on the path (however it is
+// run: npm run, run-script, npm test, node --run, ...), read on both sides. Anything that throws answers true
+// (fail-open: everything runs).
+const stable = (v) => (v && typeof v === 'object' ? (Array.isArray(v) ? `[${v.map(stable)}]` : `{${Object.keys(v).sort().map((k) => `${JSON.stringify(k)}:${stable(v[k])}`)}}`) : JSON.stringify(v));
+const withHooks = (name) => [name, `pre${name}`, `post${name}`];
+const SEEDS = ['build', 'preview', 'dev', 'install', 'prepare'];
+const escape = (name) => name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+// `npm test` and `npm start` name their script without saying `run`; `npm t` is the short form of the first.
+const mentions = (text, name) => new RegExp(`(?<![\\w:.-])${escape(name)}(?![\\w:.-])`).test(text) || (name === 'test' && /\bnpm t\b/.test(text));
+
+// The script names on the e2e path, given each name's script texts (one per side).
+function e2ePathOf(texts) {
+  const path = new Set([...SEEDS, ...[...texts.keys()].filter((n) => n.startsWith('test:e2e'))].flatMap(withHooks));
+  const queue = [...path];
+  while (queue.length > 0) {
+    const own = texts.get(queue.pop()) ?? [];
+    const calls = [...texts.keys()].filter((name) => !path.has(name) && own.some((text) => mentions(text, name)));
+    for (const name of calls.flatMap(withHooks)) if (!path.has(name)) { path.add(name); queue.push(name); }
+  }
+  return path;
+}
+
+export function packageJsonReachesE2e(beforeText, afterText) {
+  try {
+    const sides = [JSON.parse(beforeText), JSON.parse(afterText)];
+    if (sides.some((p) => !p || typeof p !== 'object' || Array.isArray(p))) return true;
+    const [before, after] = sides.map(({ scripts, ...rest }) => ({ rest, scripts: scripts ?? {} }));
+    if (stable(before.rest) !== stable(after.rest)) return true;
+    const texts = new Map();
+    for (const { scripts } of [before, after]) for (const [name, text] of Object.entries(scripts)) texts.set(name, [...(texts.get(name) ?? []), String(text)]);
+    const path = e2ePathOf(texts);
+    return [...texts.keys()].some((name) => path.has(name) && stable(before.scripts[name]) !== stable(after.scripts[name]));
+  } catch {
+    return true;
+  }
+}
+
+// QUAL-43: the same question for a diff base..head (the working tree when head is unset); any error answers true.
+export function packageJsonReachesE2eBetween(base, head) {
+  try {
+    const git = (args) => execFileSync('git', args, { encoding: 'utf8', cwd: ROOT, stdio: ['ignore', 'pipe', 'ignore'] });
+    const after = head ? git(['show', `${head}:${PACKAGE_FILE}`]) : readFileSync(join(ROOT, PACKAGE_FILE), 'utf8');
+    return packageJsonReachesE2e(git(['show', `${base}:${PACKAGE_FILE}`]), after);
   } catch {
     return true;
   }

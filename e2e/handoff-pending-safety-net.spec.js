@@ -7,7 +7,7 @@ import { test, expect } from '@playwright/test';
 test.use({ serviceWorkers: 'block' });
 
 test('a pending marker with the island blocked still reveals the page within 7s', async ({ page }) => {
-  await page.route('**/_astro/*.js', (route) => route.abort());
+  await page.route(/\/(?:_astro|site|shared)\/[^/]+\.js$/, (route) => route.abort());
   await page.addInitScript(() => {
     try { sessionStorage.setItem('pdkef:handoff-pending:compress', '1'); } catch { /* private mode */ }
   });

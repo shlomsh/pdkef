@@ -197,6 +197,11 @@ describe('reportError', () => {
 describe('parseErrorReport', () => {
   const ok = { area: 'drafts', name: 'TypeError', stack: ['A.1.js:1:2'], step: 'none', ...CTX };
   it('accepts the exact shape', () => expect(parseErrorReport(ok)).toEqual(ok));
+  it('accepts site/ and shared/ prefixed frames and no other folder', () => {
+    expect(parseErrorReport({ ...ok, stack: ['site/PdfSignTool.js:2:16571', 'shared/openPdfDoc.js:1:2'] })?.stack).toEqual(['site/PdfSignTool.js:2:16571', 'shared/openPdfDoc.js:1:2']);
+    expect(parseErrorReport({ ...ok, stack: ['evil/X.js:1:2'] })).toBeNull();
+    expect(parseErrorReport({ ...ok, stack: ['site/a/X.js:1:2'] })).toBeNull();
+  });
   it('rejects extra keys, unknown areas, spaced names and slashed frames', () => {
     expect(parseErrorReport({ ...ok, message: 'x' })).toBeNull();
     expect(parseErrorReport({ ...ok, area: 'other' })).toBeNull();
