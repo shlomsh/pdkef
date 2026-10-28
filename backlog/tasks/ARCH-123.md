@@ -1,7 +1,7 @@
 ---
 id: "ARCH-123"
 title: "The narrowed share of main runs is reported and acted on"
-status: "open"
+status: "in_progress"
 priority: "P2"
 epic: "unify-and-narrow"
 horizon: "next"

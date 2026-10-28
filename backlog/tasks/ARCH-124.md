@@ -1,7 +1,7 @@
 ---
 id: "ARCH-124"
 title: "check-ratchet-raises is tested for a direct push to main"
-status: "open"
+status: "in_progress"
 priority: "P3"
 epic: "unify-and-narrow"
 horizon: "later"
