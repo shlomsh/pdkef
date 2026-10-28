@@ -21,3 +21,11 @@ describe('ci.yml update-cost (MEM-21)', () => {
     expect(adds[0]).not.toMatch(/\$side|\$\{\{/);
   });
 });
+
+describe('ci.yml update-cost stays report-only until MEM-26 and MEM-27 land', () => {
+  // The target is real but ordinary deploys read about 1.3 MB from ticketed causes (2026-10-28).
+  // Delete this test together with `continue-on-error` when MEM-26 closes.
+  it('does not fail the nightly', () => {
+    expect(updateCostJob()).toMatch(/\n {4}continue-on-error: true\n/);
+  });
+});

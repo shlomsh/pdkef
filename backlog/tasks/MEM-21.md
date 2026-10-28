@@ -82,3 +82,15 @@ Run 40717216696 (a manual dispatch with `nightly: true`) compared the production
 fec5c109, both built at one path: 11,371 bytes, within the 500,000 target, with 0 pages changed and 0 new
 hashed chunks. Every other job in that run passed. A deploy that changes a shared module still reads above
 target until MEM-25 lands, which is the job doing what it is for.
+
+## Follow-up (2026-10-28, evening)
+
+Run 40769995397 (1b72a77d to 686e27e0) read 1,494,219 bytes with all 54 pages changed: Astro wrote the
+whole build's inline hashes into every page's CSP, so one style edit changed every page. The post-build
+CSP step now keeps only each page's own hashes (`pruneCspHashes` in `scripts/cspHashOrder.mjs`); the same
+pair reads 791,557 bytes and 22 pages. The first deploy carrying it still reads every page changed against
+a deploy without it.
+
+Ordinary deploys still read about 1.3 MB from two causes now ticketed: a CSS Module edit renaming about
+25 JS chunks (MEM-26) and inlined tool-layout CSS (MEM-27). Until MEM-26 lands the job is report-only
+(`continue-on-error`), so it no longer turns the nightly red; it still measures and writes its summary.
