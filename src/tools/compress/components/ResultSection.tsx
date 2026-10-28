@@ -94,27 +94,27 @@ export default function ResultSection(props: ResultSectionProps) {
   const aspect = measured?.file === file ? measured.aspect : null;
   const onAspect = (value: number) => setMeasured({ file, aspect: value });
 
-  // The two sides' names and sizes, on the image's top corners: the compressed side on the left, the original
-  // on the right. Presses go through them to the slider.
-  const pill = (name: string, size: string | null, className?: string) => (
+  // One row just above the image, as wide as it: the compressed side on the left, the original on the right,
+  // each with its size. Above, not on it, so it never covers the page.
+  const side = (name: string, size: string | null, className?: string) => (
     <span class={className}>
       <bdi>{name}</bdi>
-      {size && <><span class={styles['compare-label-sep']}> · </span><bdi>{size}</bdi></>}
+      {size && <> · <bdi>{size}</bdi></>}
     </span>
   );
   const labelRow = (afterName: string, afterSize: string | null) => (
     <p class={styles['compare-labels']} data-compare-labels>
-      {pill(afterName, afterSize, styles['compare-label-after'])}
-      {pill(t.compareBeforeLabel, formatBytes(file.size))}
+      {side(afterName, afterSize, styles['compare-label-after'])}
+      {side(t.compareBeforeLabel, formatBytes(file.size))}
     </p>
   );
-  // The image as large as the stage allows, with what names it drawn on it, so nothing else takes a row; the
-  // caption stays right under it.
+  // The image as large as the stage allows, its labels right above it, Full screen on its corner and the
+  // caption right under it.
   const frame = (image: ComponentChildren, labels: ComponentChildren, action?: ComponentChildren, caption?: ComponentChildren) => (
     <div class={styles['compare-fit']} data-measuring={aspect == null || undefined}>
+      {labels}
       <div class={styles['compare-frame']}>
         {image}
-        {labels}
         {action}
       </div>
       {caption}
