@@ -38,6 +38,7 @@ export const GUARD_STEPS = [
   'test:editor-dependency-directions',
   'test:module-boundaries',
   'test:import-aliases',
+  'test:function-imports',
   'test:ratchet-raises',
   'test:size-ratchet',
   'test:hook-ratchet',
