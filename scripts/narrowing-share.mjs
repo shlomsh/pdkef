@@ -18,12 +18,15 @@ export function pushRanges(runs) {
   return heads.slice(0, -1).map((head, i) => ({ base: heads[i + 1], head }));
 }
 
+// An `everything` reason is grouped by its cause, the text before the first colon (the files after it vary).
 export function tallyVerdicts(verdicts) {
   const counts = Object.fromEntries(KINDS.map((k) => [k, 0]));
   const reasons = {};
   for (const { kind, reason } of verdicts) {
     counts[kind] += 1;
-    if (kind === 'everything') reasons[reason ?? 'no reason given'] = (reasons[reason ?? 'no reason given'] ?? 0) + 1;
+    if (kind !== 'everything') continue;
+    const cause = reason ? reason.split(':')[0].trim() : 'no reason given';
+    reasons[cause] = (reasons[cause] ?? 0) + 1;
   }
   return { counts, total: verdicts.length, reasons };
 }
