@@ -1,10 +1,10 @@
 import { useCallback, type Dispatch, type MutableRef, type StateUpdater } from 'preact/hooks';
-import { throwIfAborted } from '../../../lib/abort.js';
-import { reportError } from '../../../lib/errorReport.ts';
-import { recordAction } from '../../../lib/actionTrail.ts';
-import { formatMessage } from '../../../lib/formatMessage';
-import { PHOTO_ACCEPTED_TYPES } from '../../../lib/usePhotoTileList.ts';
-import { useHandoffFilesIntake } from '../../../lib/useHandoffIntake.ts';
+import { throwIfAborted } from '../../../lib/output/abort.js';
+import { reportError } from '../../../lib/telemetry/errorReport.ts';
+import { recordAction } from '../../../lib/telemetry/actionTrail.ts';
+import { formatMessage } from '../../../lib/text/formatMessage';
+import { PHOTO_ACCEPTED_TYPES } from '../../../lib/hooks/usePhotoTileList.ts';
+import { useHandoffFilesIntake } from '../../../lib/handoff/useHandoffIntake.ts';
 import { loadPipeline } from '../lib/loadPipeline.ts';
 import { isCurrentKey, newPage, pageQuad, partitionFiles, resultKey, withInspection } from '../lib/scanPages.ts';
 import type { ProcessedPage } from '../lib/scanPipeline.ts';

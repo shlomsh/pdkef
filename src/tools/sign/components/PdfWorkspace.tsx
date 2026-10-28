@@ -1,7 +1,7 @@
 import { useRef, useCallback, useEffect, useMemo } from 'preact/hooks';
 import { PAGE_WIDTH_DEFAULT_PTS, PAGE_HEIGHT_DEFAULT_PTS, DEFAULT_COLOR_BLUE, DEFAULT_FONT_FAMILY, DEFAULT_FONT_SIZE_PT } from '../../../editor/model/signGeometry.js';
 import PdfPageCanvas from '../../../editor-ui/PdfPageCanvas.tsx';
-import { recordAction } from '../../../lib/actionTrail.ts';
+import { recordAction } from '../../../lib/telemetry/actionTrail.ts';
 import EditorPageHeader from '../../../editor-ui/EditorPageHeader.tsx';
 import DraggableWrapper from './DraggableWrapper.tsx';
 import { createElementRenderers } from '../../../editor/registry/renderers.ts';
@@ -42,7 +42,7 @@ import { uniqueId } from '../../../editor/model/ids.ts';
 import { englishSignMessages } from '../messages';
 import { signElementTypeLabel, signUpdateDescription } from '../../../editor/registry/signLabels';
 import type { SignMessages } from '../../../editor/registry/messages';
-import { formatMessage } from '../../../lib/formatMessage';
+import { formatMessage } from '../../../lib/text/formatMessage';
 import pdfToolStyles from '../../../shell/PdfTool.module.css';
 import workspaceStyles from '../../../editor-ui/Workspace.module.css';
 import formFieldHintStyles from './FormFieldHints.module.css';

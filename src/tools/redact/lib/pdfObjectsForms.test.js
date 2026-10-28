@@ -1,12 +1,12 @@
 import { describe, expect, it, vi } from 'vitest';
 import { PDFDocument, PDFName, PDFRawStream, StandardFonts } from '@cantoo/pdf-lib';
-import { reportError } from '../../../lib/errorReport.ts';
+import { reportError } from '../../../lib/telemetry/errorReport.ts';
 import { extractPageObjects } from '../../../editor/adapters/pdf/pdfObjects.js';
 import { listDeletableObjects } from './deleteObjects.js';
 import { buildFormXObjectPdf } from '../../../editor/adapters/pdf/formXObjectFixture.test-helper.js';
 import { withPreviews } from './objectPreviews.test-helper.js';
 
-vi.mock('../../../lib/errorReport.ts', () => ({ reportError: vi.fn() }));
+vi.mock('../../../lib/telemetry/errorReport.ts', () => ({ reportError: vi.fn() }));
 
 const PAGE_W = 612;
 const PAGE_H = 792;

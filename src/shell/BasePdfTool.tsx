@@ -6,12 +6,12 @@ import dialogStyles from './Dialog.module.css';
 import ConfirmDialog from './ConfirmDialog.tsx';
 import DropzoneEmptyState from './DropzoneEmptyState.tsx';
 import ToolShell, { FileActions, ToolShellContext } from './ToolShell.tsx';
-import { unsupportedBrowser, type UnsupportedBrowser } from '../lib/browserSupport.ts';
-import { withIslandBoundary } from '../lib/IslandErrorBoundary.tsx';
-import { reportError } from '../lib/errorReport.ts';
-import { reportToolLifecycleEvent, type AnalyticsTool } from '../lib/productAnalytics.ts';
-import { markArrival } from '../lib/fileArrival.ts';
-import type { FileSource } from '../lib/usageEventSchema.ts';
+import { unsupportedBrowser, type UnsupportedBrowser } from '../lib/app/browserSupport.ts';
+import { withIslandBoundary } from '../lib/telemetry/IslandErrorBoundary.tsx';
+import { reportError } from '../lib/telemetry/errorReport.ts';
+import { reportToolLifecycleEvent, type AnalyticsTool } from '../lib/telemetry/productAnalytics.ts';
+import { markArrival } from '../lib/handoff/fileArrival.ts';
+import type { FileSource } from '../lib/telemetry/usageEventSchema.ts';
 import { useWindowFileDrop, leftWindow } from './useWindowFileDrop.ts';
 import { acceptsFile } from './acceptsFile.ts';
 import { isFileDrag, nextDragDepth } from './fileDragDepth.ts';
@@ -19,7 +19,7 @@ import { dropHasDirectory, filesFromDataTransfer, filesFromPaste } from './dropF
 import { takeInputFiles, useAdoptPrePickedFiles } from './prePickedFiles.ts';
 import RatingPrompt, { useDownloaded } from './RatingPrompt.tsx';
 import { englishShellMessages, type ShellMessages } from './shellMessages';
-import { formatMessage } from '../lib/formatMessage';
+import { formatMessage } from '../lib/text/formatMessage';
 
 /* Splits a formatted sentence on the \u0000key\u0000 markers left in place of
    the file names and renders those names as marked spans, so a localized

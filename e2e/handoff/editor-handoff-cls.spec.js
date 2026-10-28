@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 import { waitForIsland } from '../support/tool.js';
 
 /* HERO-02 for the editors: a file handed to Sign or Redact (Merge's "Sign", the home launcher)
-   sets html[data-handoff-pending] before first paint (src/lib/handoffPending.ts), so the page-grid
+   sets html[data-handoff-pending] before first paint (src/lib/handoff/handoffPending.ts), so the page-grid
    first screen is never painted empty and then collapsed. The editor restore releases the marker
    once the document shows (useEditorDraftPersistence). */
 

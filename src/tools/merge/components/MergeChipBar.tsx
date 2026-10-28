@@ -1,7 +1,7 @@
 import type { ComponentChildren, RefObject } from 'preact';
 import { Shrink, FileSignature, LockKeyhole, X as XIcon } from 'lucide-preact';
-import { formatMessage } from '../../../lib/formatMessage';
-import { formatFileSize } from '../../../lib/format.js';
+import { formatMessage } from '../../../lib/text/formatMessage';
+import { formatFileSize } from '../../../lib/text/format.js';
 import FileName from '../../../shell/FileName.tsx';
 import PhoneFinish from '../../../shell/pageWorkspace/PhoneFinish.tsx';
 import { workspaceStyles } from '../../../shell/pageWorkspace/PageWorkspace.tsx';

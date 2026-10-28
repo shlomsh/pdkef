@@ -109,7 +109,7 @@ export interface ShellMessages {
   clearConfirm: string;
   clearBody: string;
   clearOf: string;
-  /** describeFile (src/lib/format.js) page-count clause of the file-info bar,
+  /** describeFile (src/lib/text/format.js) page-count clause of the file-info bar,
    * e.g. "3 pages · 1.4 MB" or "Page 2 of 3". */
   pageCountOne: string;
   pageCountOther: string;
@@ -119,7 +119,7 @@ export interface ShellMessages {
   /** MOBI-09: iOS has no Web Share Target, so the Android share-sheet path
    * this suite is built around doesn't exist there. Shown only on the Sign
    * tool's empty state (BasePdfTool's `showIosFilesHint`), only once
-   * `src/lib/platform.ts`'s mount-effect check confirms iOS - never on the
+   * `src/lib/app/platform.ts`'s mount-effect check confirms iOS - never on the
    * server render or the first client render, to keep the hydration match
    * FileDropzone.tsx's `recents` comment already documents. Describes the
    * Files-app route, never Web Share Target by name, and never implies iOS
@@ -129,7 +129,7 @@ export interface ShellMessages {
    * and iCloud. Shown on phones only, after the same mount-effect check as
    * iosFilesHint, on tools that opt in with `showCloudDriveHint`. */
   cloudDriveHint: string;
-  /** Shown only once a file is added, and only when `src/lib/browserSupport.ts`
+  /** Shown only once a file is added, and only when `src/lib/app/browserSupport.ts`
    * places the browser below what pdf.js needs. Never blocks the page. */
   oldBrowserNotice: string;
   /** SEO-46: the quiet rating ask after a download (src/shell/RatingPrompt.tsx). */

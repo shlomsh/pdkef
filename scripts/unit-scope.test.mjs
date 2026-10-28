@@ -87,12 +87,12 @@ describe('selectUnitTests: fail-open cases', () => {
 
   it('widens to the whole suite for an unpaired deletion, even mixed with a real narrow change', () => {
     const scope = selectUnitTests({
-      files: [file('src/lib/format.js', 'D'), file('src/tools/merge/PdfMergeTool.tsx', 'M')],
-      exists: (p) => p !== 'src/lib/format.js',
+      files: [file('src/lib/text/format.js', 'D'), file('src/tools/merge/PdfMergeTool.tsx', 'M')],
+      exists: (p) => p !== 'src/lib/text/format.js',
     });
     expect(scope.all).toBe(true);
     expect(scope.reasons[0]).toMatch(/unpaired deletion/);
-    expect(scope.reasons[0]).toMatch(/src\/lib\/format\.js/);
+    expect(scope.reasons[0]).toMatch(/src\/lib\/text\/format\.js/);
   });
 
   it('does not widen for a rename (destination reported as a plain "A", per changedFilesWithStatus) - only a real "D" widens', () => {
@@ -150,7 +150,7 @@ describe('selectUnitTests: a core-folder change narrows, it does not force the w
     expect(scope.seeds).toContain('scripts/sw.test.mjs');
     // the whole-src render-call-scan rule also fires (draftStore.js is a
     // non-test .js file under src/) - still nowhere near the ~193-file suite.
-    expect(scope.seeds).toContain('src/lib/pdfRender.test.js');
+    expect(scope.seeds).toContain('src/lib/pdf/pdfRender.test.js');
     expect(scope.seeds.length).toBeLessThan(10);
   });
 
@@ -161,7 +161,7 @@ describe('selectUnitTests: a core-folder change narrows, it does not force the w
     // src/**/*.ts file does), but not a wider "editor is core" widen -
     // that Nx-level rule no longer applies to unit selection at all.
     expect(scope.seeds).toEqual(
-      expect.arrayContaining(['src/editor/model/editorModel.ts', 'src/lib/pdfRender.test.js', 'src/lib/pdfjsWasm.test.js']),
+      expect.arrayContaining(['src/editor/model/editorModel.ts', 'src/lib/pdf/pdfRender.test.js', 'src/lib/pdf/pdfjsWasm.test.js']),
     );
   });
 
@@ -227,7 +227,7 @@ describe('selectUnitTests: each blind-spot widen rule fires', () => {
       'public/sw.js',
       'src/tools/sign/hooks/useFormFieldRegions.ts',
       'scripts/check-editor-dependency-directions.mjs',
-      'src/lib/format.js',
+      'src/lib/text/format.js',
       'src/components/HeroDemo/HeroDemo.tsx',
       'backlog/tasks/ARCH-28.md',
       'scripts/errors-read.mjs',
@@ -265,10 +265,10 @@ describe('runUnitByImpact', () => {
 
   it('runs "vitest related <seeds> --run --passWithNoTests" when scope narrows', () => {
     const { spawn, calls } = fakeSpawn([{ status: 0 }]);
-    const status = runUnitByImpact({ all: false, seeds: ['src/lib/format.js', 'src/lib/format.test.js'] }, spawn);
+    const status = runUnitByImpact({ all: false, seeds: ['src/lib/text/format.js', 'src/lib/text/format.test.js'] }, spawn);
     expect(status).toBe(0);
     expect(calls).toHaveLength(1);
-    expect(calls[0].args).toEqual(['vitest', 'related', 'src/lib/format.js', 'src/lib/format.test.js', '--run', '--passWithNoTests']);
+    expect(calls[0].args).toEqual(['vitest', 'related', 'src/lib/text/format.js', 'src/lib/text/format.test.js', '--run', '--passWithNoTests']);
   });
 
   it('runs the unnarrowed "vitest run" when scope.all is true', () => {
@@ -281,14 +281,14 @@ describe('runUnitByImpact', () => {
 
   it('propagates a real test-failure exit code from the narrowed run without a second invocation', () => {
     const { spawn, calls } = fakeSpawn([{ status: 1 }]);
-    const status = runUnitByImpact({ all: false, seeds: ['src/lib/format.js'] }, spawn);
+    const status = runUnitByImpact({ all: false, seeds: ['src/lib/text/format.js'] }, spawn);
     expect(status).toBe(1);
     expect(calls).toHaveLength(1);
   });
 
   it('falls back to the full suite when "vitest related" could not even be spawned (a real error, not a test failure)', () => {
     const { spawn, calls } = fakeSpawn([{ error: new Error('ENOENT') }, { status: 0 }]);
-    const status = runUnitByImpact({ all: false, seeds: ['src/lib/format.js'] }, spawn);
+    const status = runUnitByImpact({ all: false, seeds: ['src/lib/text/format.js'] }, spawn);
     expect(status).toBe(0);
     expect(calls).toHaveLength(2);
     expect(calls[0].args[1]).toBe('related');

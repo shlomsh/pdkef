@@ -1,5 +1,5 @@
 import { useRef, useEffect } from 'preact/hooks';
-import { recordAction } from '../../../lib/actionTrail.ts';
+import { recordAction } from '../../../lib/telemetry/actionTrail.ts';
 import { useHistoryShortcuts } from '../../../lib/history/useHistoryShortcuts.js';
 import type { ActionHistoryEntry } from '../../../editor/model/actionHistory.ts';
 import type { RedactElement } from '../lib/redactElements.ts';

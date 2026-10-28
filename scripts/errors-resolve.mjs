@@ -19,7 +19,7 @@ import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { TraceMap, originalPositionFor } from '@jridgewell/trace-mapping';
 
-// Same shape as FRAME in src/lib/errorReport.ts.
+// Same shape as FRAME in src/lib/telemetry/errorReport.ts.
 const BUILD = /^[0-9a-f]{7,40}$/i;
 const FRAME = /^([A-Za-z0-9_.-]{1,120}\.m?js):(\d{1,7}):(\d{1,7})$/;
 

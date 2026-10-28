@@ -1,7 +1,7 @@
 import type { Ref } from 'preact';
 import { Crop, RotateCw } from 'lucide-preact';
 import { workspaceStyles } from '../../../shell/pageWorkspace/PageWorkspace.tsx';
-import { formatMessage } from '../../../lib/formatMessage';
+import { formatMessage } from '../../../lib/text/formatMessage';
 import { englishScanMessages as t } from '../messages.ts';
 import type { ScanPage } from '../state/scanWork.ts';
 import styles from '../PdfScanTool.module.css';

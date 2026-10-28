@@ -1,9 +1,9 @@
 import type { MutableRef } from 'preact/hooks';
-import { moveEntry } from '../../../lib/pageOrder.js';
-import { reportError } from '../../../lib/errorReport.ts';
-import { reportEdit } from '../../../lib/productAnalytics.ts';
-import { recordAction } from '../../../lib/actionTrail.ts';
-import { formatMessage } from '../../../lib/formatMessage';
+import { moveEntry } from '../../../lib/pages/pageOrder.js';
+import { reportError } from '../../../lib/telemetry/errorReport.ts';
+import { reportEdit } from '../../../lib/telemetry/productAnalytics.ts';
+import { recordAction } from '../../../lib/telemetry/actionTrail.ts';
+import { formatMessage } from '../../../lib/text/formatMessage';
 import type { ScanDispatch, SetPages } from '../hooks/scanHost.ts';
 import { loadPipeline } from '../lib/loadPipeline.ts';
 import type { ScanFilter } from '../lib/filters.ts';

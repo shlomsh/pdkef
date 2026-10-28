@@ -4,7 +4,7 @@ import { linkedChanges, linkMembers, type LinkedElement, type LinkKind } from '.
 import type { RedactCommands } from './useRedactCommands.ts';
 import type { ToolbarMenuItem } from '../../../editor-ui/ToolbarMenu.tsx';
 import { englishRedactMessages as t } from '../messages.ts';
-import { formatMessage } from '../../../lib/formatMessage.ts';
+import { formatMessage } from '../../../lib/text/formatMessage.ts';
 
 /** removeLinked's history type and description for each kind, by member count. */
 const REMOVE_LINKED_LABEL: Record<LinkKind, (count: number) => { type: string; description: string }> = {

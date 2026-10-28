@@ -1,7 +1,7 @@
 import type { JSX } from 'preact';
 import { useEffect, useRef, useState } from 'preact/hooks';
 import { startGesture, type GestureEvent } from '../../../lib/gestures/controller.ts';
-import { formatMessage } from '../../../lib/formatMessage';
+import { formatMessage } from '../../../lib/text/formatMessage';
 import { englishCompressMessages } from '../messages';
 import styles from './CompareSlider.module.css';
 

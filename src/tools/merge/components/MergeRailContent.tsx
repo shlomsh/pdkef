@@ -1,6 +1,6 @@
 import type { RefObject } from 'preact';
 import { LockKeyhole, File as FileIcon, FilePlus, Trash2 } from 'lucide-preact';
-import { formatMessage } from '../../../lib/formatMessage';
+import { formatMessage } from '../../../lib/text/formatMessage';
 import FileName from '../../../shell/FileName.tsx';
 import SortMenu from '../../../shell/SortMenu.tsx';
 import DraftRetentionHint from '../../../shell/DraftRetentionHint';

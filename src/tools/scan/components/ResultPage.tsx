@@ -1,6 +1,6 @@
 import styles from './ResultPage.module.css';
 
-/** placeImage's shape (src/lib/imagePage.js): PDF points, y measured from the page's bottom. */
+/** placeImage's shape (src/lib/images/imagePage.js): PDF points, y measured from the page's bottom. */
 export interface Placement { pageWidth: number; pageHeight: number; x: number; y: number; width: number; height: number }
 
 interface ResultPageProps {

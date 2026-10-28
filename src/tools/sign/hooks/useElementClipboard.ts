@@ -4,7 +4,7 @@ import { captureAddedElement, type HistoryLogger } from '../../../editor/model/a
 import { uniqueId } from '../../../editor/model/ids.ts';
 import { signElementTypeLabel } from '../../../editor/registry/signLabels';
 import type { SignMessages } from '../../../editor/registry/messages';
-import { formatMessage } from '../../../lib/formatMessage';
+import { formatMessage } from '../../../lib/text/formatMessage';
 import type { SignToolAction } from '../components/SignToolContext.tsx';
 import { clipboardText, offsetClone } from '../lib/elementClipboard.ts';
 

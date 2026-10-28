@@ -19,7 +19,7 @@ import type { PDFDocumentProxy } from 'pdfjs-dist';
 import type { PageGeometry } from '../../../editor/geometry/coords.ts';
 import type { NeedsUnlockKind } from '../../../shell/NeedsUnlock.tsx';
 import type { SignedExport } from '../lib/exportHandoff.ts';
-import { unlessUnchanged } from '../../../lib/unchangedState.ts';
+import { unlessUnchanged } from '../../../lib/output/unchangedState.ts';
 
 export type SignStatus = 'idle' | 'loading' | 'editing' | 'signing' | 'done' | 'error';
 

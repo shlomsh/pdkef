@@ -4,8 +4,8 @@
  * only (ARCH-78). This test is not an island test, so it must see the real modules.
  */
 import { describe, expect, it, vi } from 'vitest';
-import { openThumbnailSource, renderThumbnail, renderComparePreview, renderPdfThumbnails } from '../../lib/thumbnails.js';
-import { probeEncryption } from '../../lib/pdfEncryption.ts';
+import { openThumbnailSource, renderThumbnail, renderComparePreview, renderPdfThumbnails } from '../../lib/pdf/thumbnails.js';
+import { probeEncryption } from '../../lib/pdf/pdfEncryption.ts';
 import * as pdfjsDist from 'pdfjs-dist';
 
 describe('the island pdf.js fakes stay inside the island projects', () => {

@@ -1,4 +1,4 @@
-import { getPdfLib } from '../../../lib/pdfLib.js';
+import { getPdfLib } from '../../../lib/pdf/pdfLib.js';
 
 // MERGE-15 spike: writes a flat, one-level PDF outline (/Outlines) - one
 // bookmark per source file, each pointing at that file's first surviving

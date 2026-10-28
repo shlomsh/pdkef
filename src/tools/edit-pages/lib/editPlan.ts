@@ -1,7 +1,7 @@
-import type { PlanEntry } from '../../../lib/pagePlan.ts';
+import type { PlanEntry } from '../../../lib/pages/pagePlan.ts';
 
 /* Edit Pages' half of the shared page plan: what editPages.js reads out of it.
-   The bulk updaters (Include all / Skip all / Invert) live in lib/pagePlan.ts. */
+   The bulk updaters (Include all / Skip all / Invert) live in lib/pages/pagePlan.ts. */
 
 export interface EditOptions {
   /** Final order, as 1-based original page numbers (skipped pages included; removedPageNums drops them). */

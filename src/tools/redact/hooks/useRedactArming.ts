@@ -1,4 +1,4 @@
-import { recordAction } from '../../../lib/actionTrail.ts';
+import { recordAction } from '../../../lib/telemetry/actionTrail.ts';
 import { useRecentWhiteoutColors } from '../../../editor-ui/whiteout/useRecentWhiteoutColors.ts';
 import { rememberAppStyle } from '../../../editor/workspace/preferenceStore.ts';
 import { brushStyleOf, type BrushSettings } from '../components/BrushControls.tsx';

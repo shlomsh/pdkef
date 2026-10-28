@@ -81,11 +81,11 @@ Tree: /Users/sh/work/pdkef-debt17, non-test source under src/.
 | src/layouts/ToolPageLayout.astro:159 | Whole blocking head script | EXPECTED | localStorage access; inline script, cannot call reportError | |
 | src/layouts/BaseLayout.astro:120 | Dev-only unregister service workers | EXPECTED | dev-only cleanup | |
 | src/layouts/BaseLayout.astro:126 | Dev-only clear pdkef caches | EXPECTED | dev-only cleanup | |
-| src/lib/usePdfShare.js:8 | navigator.canShare check | EXPECTED | feature detect | |
-| src/lib/maintenanceTelemetry.ts:192 | Send a telemetry event | EXPECTED | the reporter itself; must never throw or recurse | |
-| src/lib/maintenanceTelemetry.ts:213 | Parse URL for analytics path | EXPECTED | malformed URL falls back to "/" | |
-| src/lib/maintenanceTelemetry.ts:234 | Parse URL for analytics sanitising | EXPECTED | malformed URL falls back to safe default | |
-| src/lib/productAnalytics.ts:40 | Emit Vercel analytics event | EXPECTED | analytics must never alter the workflow | |
+| src/lib/output/usePdfShare.js:8 | navigator.canShare check | EXPECTED | feature detect | |
+| src/lib/telemetry/maintenanceTelemetry.ts:192 | Send a telemetry event | EXPECTED | the reporter itself; must never throw or recurse | |
+| src/lib/telemetry/maintenanceTelemetry.ts:213 | Parse URL for analytics path | EXPECTED | malformed URL falls back to "/" | |
+| src/lib/telemetry/maintenanceTelemetry.ts:234 | Parse URL for analytics sanitising | EXPECTED | malformed URL falls back to safe default | |
+| src/lib/telemetry/productAnalytics.ts:40 | Emit Vercel analytics event | EXPECTED | analytics must never alter the workflow | |
 | src/lib/drafts/useDraftPersistence.js:24 | Detect installed standalone mode | EXPECTED | feature detect | |
 | src/lib/drafts/useDraftPersistence.js:172 | Save editor draft | DEFECT | saveDraft rejected (it normally returns false); our code threw; becomes "not saved" | drafts |
 | src/lib/drafts/useDraftPersistence.js:298 | Render draft preview thumbnail | EXPECTED | comment: decoration; encrypted/malformed PDFs refused by pdf.js | |

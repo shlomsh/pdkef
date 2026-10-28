@@ -3,7 +3,7 @@ import { act } from 'preact/test-utils';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import PagePreviewDialog from './PagePreviewDialog.tsx';
 
-vi.mock('../lib/thumbnails.js', () => ({ renderPdfThumbnails: vi.fn(async () => 0) }));
+vi.mock('../lib/pdf/thumbnails.js', () => ({ renderPdfThumbnails: vi.fn(async () => 0) }));
 
 const messages = { close: 'Close', previous: 'Previous page', next: 'Next page', loading: 'Rendering the page…' };
 const file = new File(['%PDF-1.4'], 'a.pdf', { type: 'application/pdf' });

@@ -3,7 +3,7 @@ import { act } from 'preact/test-utils';
 import { describe, expect, it, afterEach } from 'vitest';
 import { useEditHistory } from './useEditHistory.js';
 
-// Same harness pattern as src/lib/useObjectUrls.test.jsx: no
+// Same harness pattern as src/lib/output/useObjectUrls.test.jsx: no
 // @testing-library/preact-hooks in this repo, so a tiny component exposes
 // the hook's return value onto a ref every render.
 function Harness({ apiRef, initial }) {

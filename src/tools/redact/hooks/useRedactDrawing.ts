@@ -1,10 +1,10 @@
 import { useRef, useEffect } from 'preact/hooks';
 import { uniqueId } from '../../../editor/model/ids.ts';
-import { recordAction } from '../../../lib/actionTrail.ts';
+import { recordAction } from '../../../lib/telemetry/actionTrail.ts';
 import { startGesture } from '../../../lib/gestures/controller.ts';
 import usePdfCoordinates from '../../../editor-ui/hooks/usePdfCoordinates.js';
 import type { PercentBox } from '../../../editor-ui/whiteout/pageColor.ts';
-import { formatMessage } from '../../../lib/formatMessage.ts';
+import { formatMessage } from '../../../lib/text/formatMessage.ts';
 import type { CommittedStroke } from '../components/BrushLayer.tsx';
 import type { RedactElement } from '../lib/redactElements.ts';
 import type { RedactAction, RedactState } from '../state/redactState.ts';

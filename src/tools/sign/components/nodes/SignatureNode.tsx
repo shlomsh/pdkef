@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'preact/hooks';
 import ElementResizers from '../../../../editor-ui/ElementResizers.tsx';
 import { tintImageDataUrl } from '../../../../editor/text/imageTint.js';
-import { reportError } from '../../../../lib/errorReport.ts';
+import { reportError } from '../../../../lib/telemetry/errorReport.ts';
 import { englishSignMessages } from '../../messages';
 import styles from '../../../../editor-ui/EditorElement.module.css';
 import type { SignatureElement } from '../../../../editor/model/editorModel.ts';

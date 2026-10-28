@@ -1,4 +1,4 @@
-import { formatMessage } from '../../../lib/formatMessage';
+import { formatMessage } from '../../../lib/text/formatMessage';
 import type { ImageToPdfMessages } from '../messages';
 import styles from '../PdfImageToPdfTool.module.css';
 

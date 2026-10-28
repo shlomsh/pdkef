@@ -5,8 +5,8 @@ import {
   type ActionHistoryEntry,
   type HistoryLogger,
 } from '../../../editor/model/actionHistory.ts';
-import { recordAction } from '../../../lib/actionTrail.ts';
-import { formatMessage } from '../../../lib/formatMessage';
+import { recordAction } from '../../../lib/telemetry/actionTrail.ts';
+import { formatMessage } from '../../../lib/text/formatMessage';
 import { useHistoryShortcuts } from '../../../lib/history/useHistoryShortcuts.js';
 import type { SignToolAction } from '../components/SignToolContext.tsx';
 

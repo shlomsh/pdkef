@@ -99,7 +99,7 @@ from the page's content stream and text layer and is never document content. See
 
 Sign also retains its existing `sign_export` maintenance event. It is now
 unsampled and uses only the fixed `outcome`, `duration_bucket`, and, on failure,
-`error_code` values defined in `src/lib/maintenanceTelemetry.ts`. It is a narrow
+`error_code` values defined in `src/lib/telemetry/maintenanceTelemetry.ts`. It is a narrow
 Sign performance/compatibility diagnostic, not a second product-event schema.
 
 The `tool` values are a closed list: `merge`, `split`, `edit-pdf`, `compress`,

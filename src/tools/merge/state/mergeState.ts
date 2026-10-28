@@ -21,7 +21,7 @@
  *     linked highlight.
  */
 import type { NeedsUnlockKind } from '../../../shell/NeedsUnlock.tsx';
-import { unlessUnchanged } from '../../../lib/unchangedState.ts';
+import { unlessUnchanged } from '../../../lib/output/unchangedState.ts';
 import type { MergeDraftSaveState } from '../hooks/useMergeDraft.ts';
 
 /** 'checking-draft' until the draft store has said whether a draft exists;

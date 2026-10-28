@@ -22,7 +22,7 @@ import OfflineProof from '../components/OfflineProof.astro';
 import { documentationShellMessages, type DocumentationShellMessages } from '../i18n/documentationMessages';
 import { getLocalizedToolContext, getPublishedEditionPaths } from '../i18n/localizedTools';
 import { toolIdOf } from '../data/tools.js';
-import { EDITOR_LAYOUT_SLUGS, FILE_LIST_RESTORE_SLUGS, layoutOf } from '../lib/toolIds.ts';
+import { EDITOR_LAYOUT_SLUGS, FILE_LIST_RESTORE_SLUGS, layoutOf } from '../lib/app/toolIds.ts';
 import { registerToolPageStyles } from '../components/inlineStyles';
 import { ratingForPage, ratingText } from '../site-lib/ratingAggregate';
 import '../styles/toolPage.css';
@@ -88,7 +88,7 @@ const rating = await ratingForPage(toolIdOf(tool));
 const showExamples = Boolean(tool.examples) && locale === 'en';
 if (showExamples) registerToolPageStyles(Astro.csp, tool);
 const { editorLayout: isEditor, unlimitedNote } = layoutOf(tool.slug);
-// The pre-paint script below, as text, so the page-family slugs come from the registry (src/lib/toolIds.ts)
+// The pre-paint script below, as text, so the page-family slugs come from the registry (src/lib/app/toolIds.ts)
 // and the text is still the same on every tool page: one hash covers it (astro.config.mjs).
 const slugsTest = (slugs: readonly string[]) => slugs.map((s) => `slug === '${s}'`).join(' || ');
 const prePaintScript = `
@@ -172,7 +172,7 @@ const editionPaths = locale === 'en' ? [] : await getPublishedEditionPaths(local
         set — harmless.
 
         The last check reads the hand-off marker `saveHandoff` leaves in
-        sessionStorage (src/lib/handoffPending.ts, HERO-02): a hand-off is in
+        sessionStorage (src/lib/handoff/handoffPending.ts, HERO-02): a hand-off is in
         IndexedDB, which this script cannot read, so the key is how the page
         knows a file is about to arrive. useHandoffIntake clears it.
 

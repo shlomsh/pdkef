@@ -1,4 +1,4 @@
-import { formatMessage } from '../../../lib/formatMessage';
+import { formatMessage } from '../../../lib/text/formatMessage';
 import type { Option } from '../../../shell/pageWorkspace/OptionRow.tsx';
 import { englishScanMessages as t } from '../messages.ts';
 import { SIZE_LIMITS, type SizeLimitId } from './scanBudget.ts';

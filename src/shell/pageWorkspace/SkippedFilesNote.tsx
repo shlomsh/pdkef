@@ -1,5 +1,5 @@
-import { formatMessage } from '../../lib/formatMessage';
-import { isolateName } from '../../lib/format.js';
+import { formatMessage } from '../../lib/text/formatMessage';
+import { isolateName } from '../../lib/text/format.js';
 import pdfToolStyles from '../PdfTool.module.css';
 import type { PageToolMessages } from './pageToolMessages.ts';
 

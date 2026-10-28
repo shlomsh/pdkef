@@ -10,11 +10,11 @@ import { waitForIsland } from '../../../../e2e/support/tool.js';
  * pdf.js `getTextContent()` ends in `for await (const value of readableStream)`,
  * and iOS Safari has no async iterator on ReadableStream (WebKit bug 194379), so
  * on 2026-09-20 Sign found zero fields on every iPhone. The fix drains the stream
- * with a reader instead (readTextItems in src/lib/pdfTextItems.ts, commit
+ * with a reader instead (readTextItems in src/lib/pdf/pdfTextItems.ts, commit
  * 3840457a). Playwright's WebKit build DOES have the feature, so no local test
  * ever reproduced it; this guard deletes it in an init script to match iOS.
  *
- * See backlog/tasks/DEBT-27.md and src/lib/pdfTextItems.ts.
+ * See backlog/tasks/DEBT-27.md and src/lib/pdf/pdfTextItems.ts.
  */
 
 const here = path.dirname(fileURLToPath(import.meta.url));

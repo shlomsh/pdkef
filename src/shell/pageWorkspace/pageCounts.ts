@@ -1,6 +1,6 @@
-import { formatFileSize, isolateLtr } from '../../lib/format.js';
+import { formatFileSize, isolateLtr } from '../../lib/text/format.js';
 import { type PageGridMessages, type ShellMessages } from '../shellMessages';
-import { formatMessage } from '../../lib/formatMessage';
+import { formatMessage } from '../../lib/text/formatMessage';
 
 type CountMessages = Pick<ShellMessages, 'pageCountOne' | 'pageCountOther'>;
 

@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'preact/hooks';
-import type { OutputPart, PreparedOutput } from '../../lib/usePreparedOutput.ts';
-import { usePdfShare } from '../../lib/usePdfShare.js';
-import { useHoldUpdate } from '../../lib/useHoldUpdate.ts';
-import { useNavigatingAway } from '../../lib/useNavigatingAway.ts';
-import { sendHandoff } from '../../lib/sendHandoff.ts';
-import { recordAction } from '../../lib/actionTrail.ts';
-import type { HandoffTargetId } from '../../lib/toolIds.ts';
+import type { OutputPart, PreparedOutput } from '../../lib/output/usePreparedOutput.ts';
+import { usePdfShare } from '../../lib/output/usePdfShare.js';
+import { useHoldUpdate } from '../../lib/hooks/useHoldUpdate.ts';
+import { useNavigatingAway } from '../../lib/hooks/useNavigatingAway.ts';
+import { sendHandoff } from '../../lib/handoff/sendHandoff.ts';
+import { recordAction } from '../../lib/telemetry/actionTrail.ts';
+import type { HandoffTargetId } from '../../lib/app/toolIds.ts';
 import type { DownloadElementState } from '../DownloadElement.tsx';
 
 /** The tool ids a finished output can be handed to (the ids draftStore keys a hand-off by). */
@@ -16,7 +16,7 @@ export type HandoffHrefs = Partial<Record<HandoffTool, string>>;
 export interface DownloadFlowInput {
   prepared: Pick<PreparedOutput, 'status' | 'blob' | 'url' | 'parts' | 'generation' | 'prepareNow'>;
   fileName: string;
-  /** Overrides the registry page of a hand-off target (src/lib/toolIds.ts), e.g. the locale's own edition. */
+  /** Overrides the registry page of a hand-off target (src/lib/app/toolIds.ts), e.g. the locale's own edition. */
   hrefs?: HandoffHrefs;
   /** Why Download cannot run at all: too few files, or a file/build error. */
   blocked: 'one-file' | 'error' | null;

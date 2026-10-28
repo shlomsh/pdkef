@@ -1,7 +1,7 @@
 // Build-time half of SEO-46: read the durable per-tool star counts once, and turn them into the
 // {average, count} a tool page may show. Pure `summarize`, one guarded read in `loadRatings`.
 // A build must never fail or slow down for want of the store, so every failure is "no ratings".
-import { RATING_TOOLS, STARS } from '../lib/ratingSchema.js';
+import { RATING_TOOLS, STARS } from '../lib/telemetry/ratingSchema.js';
 import { readEnv } from './errorReportStore.js';
 import { ratingCountsFromResults, ratingReadCommands } from './ratingStore.js';
 

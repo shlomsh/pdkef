@@ -51,7 +51,7 @@ describe('ownerOf', () => {
   it('picks the most specific (longest) root when roots nest', () => {
     // src/lib is nested under site's root ("src"); a file there belongs to
     // lib, not site, the same way Nx's own directory-based carve-out works.
-    expect(ownerOf('src/lib/format.js', ROOTS)).toBe('lib');
+    expect(ownerOf('src/lib/text/format.js', ROOTS)).toBe('lib');
     expect(ownerOf('src/pages/index.astro', ROOTS)).toBe('site');
     expect(ownerOf('e2e/sign/fixtures/latinNameCorpus.js', ROOTS)).toBe('fonts');
     expect(ownerOf('e2e/home/handoff.spec.js', ROOTS)).toBe('site-e2e');
@@ -78,7 +78,7 @@ describe('ownerOf', () => {
   });
 
   it('returns null against an empty root map', () => {
-    expect(ownerOf('src/lib/format.js', new Map())).toBeNull();
+    expect(ownerOf('src/lib/text/format.js', new Map())).toBeNull();
   });
 
   // Mirrors the real project.json layout (see nx.json's projects), so this
@@ -90,7 +90,7 @@ describe('ownerOf', () => {
     ['src/shell/BasePdfTool.tsx', 'shell'],
     ['src/editor/workspace/useEditorDraftPersistence.ts', 'editor'],
     ['src/editor-ui/ColorPickerMenu.tsx', 'editor-ui'],
-    ['src/lib/format.js', 'lib'],
+    ['src/lib/text/format.js', 'lib'],
     ['src/tools/sign/PdfSignTool.tsx', 'tool-sign'],
     ['src/tools/sign/e2e/sign-editor.spec.js', 'tool-sign'],
     ['src/tools/edit-pages/PdfEditPagesTool.tsx', 'tool-edit-pages'],
@@ -264,14 +264,14 @@ describe('deriveScope', () => {
   });
 
   // ARCH-23: a core-project verdict no longer force-runs the font guards -
-  // src/lib/format.js does not touch a font-registry path, so fonts is now
+  // src/lib/text/format.js does not touch a font-registry path, so fonts is now
   // false here even though everything else still widens. export_guards stays
   // true regardless (its own project treats editor/lib as coarse
   // dependencies on purpose - see e2e/export/project.json).
   it('widens to everything when any core project is affected, but no longer force-runs the font guards for an unrelated file (ARCH-23)', () => {
     for (const core of CORE_PROJECTS) {
       const scope = deriveScope({
-        files: ['src/lib/format.js'],
+        files: ['src/lib/text/format.js'],
         affected: [core, 'tool-merge'],
         roots: ROOTS,
       });
@@ -414,7 +414,7 @@ describe('deriveScope', () => {
 
   it('an unowned file wins over a core-project match (rule order: unowned before core)', () => {
     const scope = deriveScope({
-      files: ['patches/pdfjs-dist+6.3.289.patch', 'src/lib/format.js'],
+      files: ['patches/pdfjs-dist+6.3.289.patch', 'src/lib/text/format.js'],
       affected: ['lib'],
       roots: ROOTS,
     });
@@ -503,7 +503,7 @@ describe('deriveScope', () => {
 
   it.each(['editor', 'lib', 'site'])('still widens to everything on a %s change (unlike editor-ui)', (core) => {
     const scope = deriveScope({
-      files: ['src/lib/format.js'],
+      files: ['src/lib/text/format.js'],
       affected: [core, 'tool-merge'],
       roots: ROOTS,
     });
@@ -633,7 +633,7 @@ describe('matchesFontsGlob', () => {
   });
 
   it.each([
-    'src/lib/format.js',
+    'src/lib/text/format.js',
     'src/editor/model/editorModel.ts',
     'src/editor-ui/ColorPickerMenu.tsx',
     'src/tools/sign/PdfSignTool.tsx',

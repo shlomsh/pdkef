@@ -3,12 +3,12 @@ import type { PDFDocumentProxy } from 'pdfjs-dist';
 import { getPdfjs } from '../../../editor/adapters/pdf/pdfjsLoader.js';
 import { readGlyphs } from '../lib/readGlyphs.js';
 import { pageGeometryFromPdfJsPage } from '../../../editor/geometry/coords.ts';
-import { readTextItems } from '../../../lib/pdfTextItems.ts';
+import { readTextItems } from '../../../lib/pdf/pdfTextItems.ts';
 import { GLYPH_BUDGET } from '../lib/find/itemGlyphs.ts';
 import { buildPageText } from '../lib/find/pageText.ts';
 import type { SearchablePage } from '../lib/find/findMatches.ts';
 import type { TextItemLike } from '../lib/find/types.ts';
-import { reportError } from '../../../lib/errorReport.ts';
+import { reportError } from '../../../lib/telemetry/errorReport.ts';
 
 type PageTextsState =
   | { status: 'idle' | 'reading'; pages: SearchablePage[] }

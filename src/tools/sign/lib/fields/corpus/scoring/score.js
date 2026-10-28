@@ -68,7 +68,7 @@ const pct = (numerator, denominator) => (denominator > 0 ? (numerator / denomina
  * same-origin URL that does not exist here. `wasmUrl` is not optional even for
  * a text pass: pdf.js 6 decodes CCITT fax and JBIG2 through it, and without it
  * a scanned form's images are dropped silently rather than erroring
- * (`src/lib/pdfjsWasm.js` has the whole story, and `pdfjsWasm.test.js` fails
+ * (`src/lib/pdf/pdfjsWasm.js` has the whole story, and `pdfjsWasm.test.js` fails
  * any call site that forgets). A form whose text cannot be read scores on its
  * geometry alone rather than failing the run, because a scan has no text layer
  * and is still a form we want scored.

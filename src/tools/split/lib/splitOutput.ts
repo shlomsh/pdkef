@@ -1,6 +1,6 @@
-import type { PlanEntry } from '../../../lib/pagePlan.ts';
-import { includedPageNumbers, rotationsOf } from '../../../lib/pagePlan.ts';
-import type { Built } from '../../../lib/usePreparedOutput.ts';
+import type { PlanEntry } from '../../../lib/pages/pagePlan.ts';
+import { includedPageNumbers, rotationsOf } from '../../../lib/pages/pagePlan.ts';
+import type { Built } from '../../../lib/output/usePreparedOutput.ts';
 import { splitPdf } from './split.js';
 
 export type SplitMode = 'combined' | 'separate';

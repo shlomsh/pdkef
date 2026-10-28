@@ -1,6 +1,6 @@
-import { reportError } from '../errorReport.ts';
+import { reportError } from '../telemetry/errorReport.ts';
 import { createDraftRetention, isDraftExpired } from './draftPolicy.js';
-import { markHandoffPending } from '../handoffPending.ts';
+import { markHandoffPending } from '../handoff/handoffPending.ts';
 import { RECENT_FILES_META_KEY } from './recentFilesKey.js';
 import { isObject, parseDraftRecord, parseHandoff, parseLegacyRecord, parseStoredEntry } from './draftRecords.ts';
 import type {
@@ -252,7 +252,7 @@ export async function saveHandoff(
  *
  * `tool` is the target tool's own key, e.g. 'sign' when Merge (MERGE-14) hands its output there.
  * `accept`, when given, leaves a valid record it returns false for in place, not consumed
- * (src/lib/handoffKinds.ts: one key, two pages).
+ * (src/lib/handoff/handoffKinds.ts: one key, two pages).
  */
 export async function takeHandoff(tool: string, accept?: (record: HandoffRecord) => boolean): Promise<HandoffRecord | null> {
   if (!hasIndexedDB()) return null;

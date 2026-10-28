@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
 import type { PDFDocumentProxy } from 'pdfjs-dist';
 import { getPdfjs } from '../../../editor/adapters/pdf/pdfjsLoader.js';
-import { PDFJS_WASM_URL } from '../../../lib/pdfjsWasm.js';
-import { reportError } from '../../../lib/errorReport.ts';
+import { PDFJS_WASM_URL } from '../../../lib/pdf/pdfjsWasm.js';
+import { reportError } from '../../../lib/telemetry/errorReport.ts';
 
 const REBUILD_DEBOUNCE_MS = 120;
 

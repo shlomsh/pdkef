@@ -1,5 +1,5 @@
 // DEBT-21: a flag that disables a control for the navigation it starts must come
-// from useNavigatingAway() (src/lib/useNavigatingAway.ts), never a plain
+// from useNavigatingAway() (src/lib/hooks/useNavigatingAway.ts), never a plain
 // useState(false). Pressing Back restores the page the browser froze on the way
 // out, island state and all (bfcache), so a plain flag comes back set and the
 // control it disabled is dead for good. The full story is in
@@ -180,7 +180,7 @@ function main() {
   }
   console.error('Navigating-away guard failed: a flag set for the navigation it starts must be useNavigatingAway(), not useState.');
   for (const { file, line, flag } of violations) console.error(`  ${file}:${line}  ${flag}`);
-  console.error('Why: Back restores the page with the flag still set and the control dead. See .claude/rules/tools-and-shell.md and src/lib/useNavigatingAway.ts (DEBT-21).');
+  console.error('Why: Back restores the page with the flag still set and the control dead. See .claude/rules/tools-and-shell.md and src/lib/hooks/useNavigatingAway.ts (DEBT-21).');
   process.exitCode = 1;
 }
 

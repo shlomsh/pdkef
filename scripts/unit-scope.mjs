@@ -27,7 +27,7 @@
 // itself (`const affected = new Set(related)`) before walking import edges
 // backwards from it, so a seed that is itself a discovered test spec matches
 // directly - confirmed empirically on this tree: `npx vitest related
-// src/lib/pdfRender.test.js --run` runs exactly that one file. That means a
+// src/lib/pdf/pdfRender.test.js --run` runs exactly that one file. That means a
 // widen rule's `tests` entries can be handed to the very same `vitest
 // related` call as the changed source files, no second Vitest invocation
 // needed to add them.
@@ -234,7 +234,7 @@ export const WIDEN_RULES = [
     id: 'whole-src-render-call-scan',
     reason: 'pdfRender.test.js/pdfjsWasm.test.js/the import-scan guard walk every non-test src file at run time looking for call-site patterns',
     match: (f) => !isTestFile(f) && f.startsWith('src/') && /\.(js|jsx|ts|tsx)$/.test(f),
-    tests: ['src/lib/pdfRender.test.js', 'src/lib/pdfjsWasm.test.js', 'scripts/check-module-boundaries.import-scan.test.mjs'],
+    tests: ['src/lib/pdf/pdfRender.test.js', 'src/lib/pdf/pdfjsWasm.test.js', 'scripts/check-module-boundaries.import-scan.test.mjs'],
   },
   {
     id: 'whole-src-import-scan',
