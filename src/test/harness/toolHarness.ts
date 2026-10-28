@@ -70,6 +70,7 @@ export interface ToolHarness {
    * restore, a hand-off take) has finished and its continuation has run. `await` it in `afterEach`, after
    * unmounting and before the file ends: work still in flight then lands after jsdom is torn down and
    * fails the shard with an unhandled `document is not defined`, which names a different test file.
+   * Only exists on `installToolHarness({ trackIndexedDb: true })`; other suites keep a plain IndexedDB.
    */
   settle(): Promise<void>;
   /** Undo what `installToolHarness` replaced; call from `afterEach`. */
@@ -100,10 +101,11 @@ class CountingIDBFactory extends IDBFactory {
  * Call from `beforeEach`. Gives the test a fresh IndexedDB and empty web storage, turns error/usage
  * reporting on and records its beacons instead of sending them, and records object URLs.
  */
-export function installToolHarness(): ToolHarness {
+export function installToolHarness({ trackIndexedDb = false }: { trackIndexedDb?: boolean } = {}): ToolHarness {
   resetPdfjsEdges();
-  const idb = new CountingIDBFactory();
-  globalThis.indexedDB = idb;
+  // Only a suite that calls `settle()` pays for the counting; every other suite keeps a plain factory.
+  const idb = trackIndexedDb ? new CountingIDBFactory() : null;
+  globalThis.indexedDB = idb ?? new IDBFactory();
   localStorage.clear();
   sessionStorage.clear();
 
@@ -158,6 +160,7 @@ export function installToolHarness(): ToolHarness {
     takeHandoff: (tool) => takeHandoff(tool),
     recents: () => readRecentFiles(),
     settle: async () => {
+      if (!idb) throw new Error('settle() needs installToolHarness({ trackIndexedDb: true })');
       // Two idle looks a macrotask apart: the first catches a connection that closed with its
       // continuation (the next transaction's open) still queued behind it.
       for (let idle = 0; idle < 2;) {

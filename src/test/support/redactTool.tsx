@@ -139,7 +139,7 @@ interface SuiteDeps<H extends SuiteHarness> {
   checking: string;
   /** The gesture module's namespace, whose startGesture the suite spies on. */
   gestureController: { startGesture: (options: any) => any };
-  installToolHarness: () => H;
+  installToolHarness: (options?: { trackIndexedDb?: boolean }) => H;
   waitUntil: (condition: () => unknown) => Promise<unknown>;
 }
 
@@ -173,7 +173,7 @@ export function useRedactSuite<H extends SuiteHarness>({ Tool, checking, gesture
   const failedOperations = async () => { await s.harness.flush(); return s.harness.usageEvents('tool_operation_failed'); };
 
   beforeEach(() => {
-    s.harness = installToolHarness();
+    s.harness = installToolHarness({ trackIndexedDb: true });
     s.gestureCommitSpies = [];
     const actualStartGesture = gestureController.startGesture;
     vi.spyOn(gestureController, 'startGesture').mockImplementation((options: any) => {
