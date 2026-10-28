@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { deriveScope, ownerOf, toolNameOf, siteE2eOwnPaths, CORE_PROJECTS, ORACLE_FILES, wide, matchesFontsGlob, narrowByReachability, makeToolOf, runsProductE2e, formatOutputs, buildPipelineFiles } from './affected-scope.mjs';
+import { deriveScope, ownerOf, toolNameOf, siteE2eOwnPaths, CORE_PROJECTS, ORACLE_FILES, wide, matchesFontsGlob, unownedVerdictOf, filesForNx, ciChangeTouchesJob, parseHunks, narrowByReachability, makeToolOf, runsProductE2e, formatOutputs, buildPipelineFiles } from './affected-scope.mjs';
 import { readFileSync } from 'node:fs';
 import { buildReachGraph } from './import-graph.mjs';
 
@@ -878,10 +878,8 @@ describe('deriveScope: site-wide e2e split by directory (ARCH-34)', () => {
     expect(paths(scope)).toEqual([]);
   });
 
-  it('public/sw.js and the other loose files in public/ stay unowned: everything runs', () => {
-    for (const file of ['public/sw.js', 'public/llms.txt', 'public/manifest.webmanifest']) {
-      expect(derive([file], []).everything, file).toBe(true);
-    }
+  it('public/sw.js has a table verdict (QUAL-34): every product spec', () => {
+    expect(derive(['public/sw.js'], []).everything).toBe(true);
   });
 });
 
@@ -1100,5 +1098,117 @@ describe('ci.yml gates product e2e on product_e2e (QUAL-32)', () => {
     const commented = `name: Build\n  # if: ${GATE}\n  run: npm run build\n`;
     expect(ifLine(commented)).toBeUndefined();
     expect(ifLine(`name: Build\n  if: ${GATE}\n  run: x\n`)).toBe(`if: ${GATE}`);
+  });
+});
+
+describe('unowned-file verdicts (QUAL-34)', () => {
+  const NONE = ['middleware.ts', 'vercel.json', 'api/report.ts', 'spikes/a/b.js', 'prototypes/x.html', '.gitignore', 'security/notes.md', '.github/dependabot.yml', '.github/ISSUE_TEMPLATE/bug.md', 'public/llms.txt', 'public/agents.md'];
+  const ALL = ['public/sw.js', 'public/images/scan-guide/a.jpg', '.github/workflows/ci.yml'];
+  const scopeOf = (files, extra = {}) => deriveScope({ files, affected: [], roots: ROOTS, ...extra });
+
+  it.each(NONE)('%s alone: no e2e, no fonts, no export guards', (file) => {
+    const scope = scopeOf([file]);
+    expect(scope.everything).toBe(false);
+    expect(scope.e2e_paths).toBe('');
+    expect(scope.fonts).toBe(false);
+    expect(scope.export_guards).toBe(false);
+    expect(runsProductE2e(scope)).toBe(false);
+  });
+
+  it('public/manifest.webmanifest runs only e2e/offline/', () => {
+    const scope = scopeOf(['public/manifest.webmanifest']);
+    expect(scope.everything).toBe(false);
+    expect(scope.e2e_paths).toContain('e2e/offline/');
+    expect(scope.fonts).toBe(false);
+  });
+
+  it.each(ALL)('%s: every product spec, fonts off', (file) => {
+    const scope = scopeOf([file], { ciFontJobChanged: () => false });
+    expect(scope.everything).toBe(true);
+    expect(scope.fonts).toBe(false);
+    expect(scope.reason).toContain(file);
+  });
+
+  it('ci.yml turns fonts on only when the font-guards job changed', () => {
+    expect(scopeOf(['.github/workflows/ci.yml'], { ciFontJobChanged: () => true }).fonts).toBe(true);
+    expect(scopeOf(['.github/workflows/ci.yml'], { ciFontJobChanged: () => false }).fonts).toBe(false);
+    expect(scopeOf(['.github/workflows/ci.yml']).fonts).toBe(true); // fail-open default
+  });
+
+  it('a sw.js change next to a font file keeps fonts on', () => {
+    expect(scopeOf(['public/sw.js', 'public/fonts/a.woff2']).fonts).toBe(true);
+  });
+
+  it('an unknown unowned file still widens with fonts on', () => {
+    const scope = scopeOf(['foo.config.mjs']);
+    expect(scope.everything).toBe(true);
+    expect(scope.fonts).toBe(true);
+  });
+
+  it('a none file next to a tool file narrows to that tool only', () => {
+    const scope = deriveScope({ files: ['middleware.ts', 'src/tools/compress/PdfCompressTool.tsx'], affected: ['tool-compress'], roots: ROOTS });
+    expect(scope.everything).toBe(false);
+    expect(scope.e2e_paths).toBe('src/tools/compress/e2e/');
+  });
+
+  it('the manifest next to a tool file adds e2e/offline/ once', () => {
+    const scope = deriveScope({ files: ['public/manifest.webmanifest', 'src/tools/compress/PdfCompressTool.tsx'], affected: ['tool-compress'], roots: ROOTS });
+    expect(scope.e2e_paths.split(' ')).toEqual(['src/tools/compress/e2e/', 'e2e/offline/']);
+  });
+
+  it('unownedVerdictOf returns null for files outside the table', () => {
+    expect(unownedVerdictOf('package.json')).toBeNull();
+    expect(unownedVerdictOf('middleware.ts').e2e).toBe('none');
+  });
+
+  it('filesForNx drops table files and keeps the rest', () => {
+    expect(filesForNx(['middleware.ts', 'vercel.json', 'src/lib/a.ts', 'package.json', 'public/sw.js'])).toEqual(['src/lib/a.ts', 'package.json']);
+  });
+});
+
+describe('ciChangeTouchesJob (QUAL-34)', () => {
+  const ci = [
+    'name: CI', // 1
+    'on:', // 2
+    '  push:', // 3
+    'jobs:', // 4
+    '  units:', // 5
+    '    runs-on: x', // 6
+    '    steps:', // 7
+    '      - run: a', // 8
+    '  font-guards:', // 9
+    '    runs-on: x', // 10
+    '    steps:', // 11
+    '      - run: b', // 12
+    '  build:', // 13
+    '    runs-on: x', // 14
+  ].join('\n');
+
+  it('a hunk inside font-guards touches it', () => {
+    expect(ciChangeTouchesJob(ci, [{ start: 12, count: 1 }], 'font-guards')).toBe(true);
+  });
+  it('a hunk inside units does not', () => {
+    expect(ciChangeTouchesJob(ci, [{ start: 8, count: 1 }], 'font-guards')).toBe(false);
+  });
+  it('a hunk on a top-level line touches', () => {
+    expect(ciChangeTouchesJob(ci, [{ start: 2, count: 1 }], 'font-guards')).toBe(true);
+  });
+  it('the jobs: line itself touches', () => {
+    expect(ciChangeTouchesJob(ci, [{ start: 4, count: 1 }], 'font-guards')).toBe(true);
+  });
+  it('a pure deletion inside units does not', () => {
+    expect(ciChangeTouchesJob(ci, [{ start: 7, count: 0 }], 'font-guards')).toBe(false);
+  });
+  it('a pure deletion at the end of units touches the next job header', () => {
+    expect(ciChangeTouchesJob(ci, [{ start: 8, count: 0 }], 'font-guards')).toBe(true);
+  });
+  it('the last job runs to EOF', () => {
+    expect(ciChangeTouchesJob(ci, [{ start: 14, count: 1 }], 'build')).toBe(true);
+    expect(ciChangeTouchesJob(ci, [{ start: 14, count: 1 }], 'font-guards')).toBe(false);
+  });
+
+  it('parseHunks reads new-side ranges, count defaulting to 1', () => {
+    const diff = ['diff --git a/x b/x', '@@ -3,2 +3,4 @@ foo', '+a', '@@ -10 +12 @@', '+b', '@@ -20,2 +22,0 @@', '-c'].join('\n');
+    expect(parseHunks(diff)).toEqual([{ start: 3, count: 4 }, { start: 12, count: 1 }, { start: 22, count: 0 }]);
   });
 });
