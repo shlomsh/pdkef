@@ -45,7 +45,7 @@ export function findColorLiterals(css) {
   return out;
 }
 
-const blankComments = (src) => src.replace(/\/\*[\s\S]*?\*\/|(?<![:'"\w])\/\/[^\n]*/g, blank);
+const blankComments = (src) => src.replace(/\/\*[\s\S]*?\*\/|(?<![:'"\w(])\/\/[^\n]*/g, blank);
 
 /* End index (exclusive) of a JS string/template starting at src[i], or -1. */
 function skipQuoted(src, i) {

@@ -99,7 +99,7 @@ export const WIDEN_RULES = [
   },
   {
     id: 'lib-pdf-fixtures',
-    reason: 'read by fs.readFileSync/path.resolve, not imported (11 tool round-trip tests)',
+    reason: 'read by fs.readFileSync/path.resolve, not imported (the tool round-trip tests)',
     match: (f) => f.startsWith('src/lib/__fixtures__/'),
     tests: [
       'src/tools/redact/lib/redact.test.js',
@@ -108,7 +108,10 @@ export const WIDEN_RULES = [
       'src/tools/edit-pages/lib/editPages.test.js',
       'src/tools/merge/PdfMergeTool.test.tsx',
       'src/tools/merge/lib/merge.test.js',
-      'src/tools/redact/PdfRedactTool.test.tsx',
+      'src/tools/redact/PdfRedactTool.arming.test.tsx',
+      'src/tools/redact/PdfRedactTool.delete.test.tsx',
+      'src/tools/redact/PdfRedactTool.details.test.tsx',
+      'src/tools/redact/PdfRedactTool.export.test.tsx',
       'src/tools/security/lib/security.test.js',
       'src/tools/sign/PdfSignTool.test.tsx',
       'src/tools/split/PdfSplitTool.test.tsx',
@@ -214,8 +217,8 @@ export const WIDEN_RULES = [
   },
   {
     id: 'draft-store-sw-text-read',
-    reason: 'draftStore.ts and public/sw.js are each read as text by the other\'s sync guard, not imported',
-    match: (f) => f === 'src/lib/drafts/draftStore.ts' || f === 'public/sw.js',
+    reason: 'draftStore.ts, draftIdb.ts (its DB constants) and public/sw.js are read as text by the sync guards, not imported',
+    match: (f) => f === 'src/lib/drafts/draftStore.ts' || f === 'src/lib/drafts/draftIdb.ts' || f === 'public/sw.js',
     tests: ['src/lib/drafts/draftStoreServiceWorkerSync.test.js', 'scripts/sw.test.mjs'],
   },
   {

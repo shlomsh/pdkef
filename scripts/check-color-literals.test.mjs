@@ -49,6 +49,10 @@ describe('checkFiles', () => {
 });
 
 describe('findStylePropColorLiterals', () => {
+  it('does not treat a protocol-relative url(//...) as a comment', () => {
+    const src = "<i style={{ backgroundImage: 'url(//x.test/a.png)', color: '#fff' }} />";
+    expect(findStylePropColorLiterals(src)).toEqual([{ line: 1, literal: '#fff' }]);
+  });
   it('flags a literal in a style prop with its line', () => {
     const src = `const a = <div\n  style={{ color: '#ff0000' }} />;`;
     expect(findStylePropColorLiterals(src)).toEqual([{ line: 2, literal: '#ff0000' }]);
