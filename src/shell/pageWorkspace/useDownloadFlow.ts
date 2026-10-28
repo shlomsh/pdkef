@@ -13,6 +13,7 @@ export type HandoffTool = HandoffTargetId;
 /** Where a hand-off goes when it is not the registry's page for the tool (a locale edition's own page). */
 export type HandoffHrefs = Partial<Record<HandoffTool, string>>;
 
+/** @testSeam */
 export interface DownloadFlowInput {
   prepared: Pick<PreparedOutput, 'status' | 'blob' | 'url' | 'parts' | 'generation' | 'prepareNow'>;
   fileName: string;

@@ -51,11 +51,18 @@ export interface SecurityMessages {
   unlockPdf: string;
   protectPdf: string;
   downloadUnlockedPdf: string;
-  downloadLabelUnlocked: string;
-  downloadLabelProtected: string;
+  downloadLabel: string;
+  downloadShort: string;
+  buildFailed: string;
+  allSkipped: string;
+  downloadAgain: string;
+  savedLabel: string;
+  preparingPages: string;
+  renderProgress: string;
+  closeStrip: string;
   share: string;
-  redactIt: string;
-  signIt: string;
+  handoffRedact: string;
+  handoffSign: string;
   handoffFailed: string;
   continueIn: string;
   /* The tools a protected file can come back to. */
@@ -111,11 +118,18 @@ export const englishSecurityMessages: SecurityMessages = {
   unlockPdf: 'Unlock PDF',
   protectPdf: 'Protect PDF',
   downloadUnlockedPdf: 'Download unlocked PDF',
-  downloadLabelUnlocked: 'Download Unlocked PDF',
-  downloadLabelProtected: 'Download Protected PDF',
+  downloadLabel: 'Download',
+  downloadShort: 'Download',
+  buildFailed: 'Could not prepare this PDF',
+  allSkipped: 'Nothing to download',
+  downloadAgain: 'download again',
+  savedLabel: 'Saved',
+  preparingPages: 'Preparing {count} pages…',
+  renderProgress: '{done} of {total} rendered',
+  closeStrip: 'Close',
   share: 'Share',
-  redactIt: 'Redact it',
-  signIt: 'Sign it',
+  handoffRedact: 'Redact',
+  handoffSign: 'Sign',
   handoffFailed: 'Could not hand this off. Download it instead and open it there.',
   continueIn: 'Continue in {name}',
   returnRedact: 'Redact',

@@ -1,7 +1,7 @@
 /* The loaded state: the pages of the PDF are the centre (ux guideline 18),
    the strip, the order menu and the primary controls are a rail beside them.
-   DOM order is strip, controls, result, sheet, which is also the phone's
-   reading order. Same shape as Compress's loaded layout. */
+   DOM order is strip, controls, result, finish block, which is also the
+   phone's reading order. Same shape as Compress's loaded layout. */
 .loaded-layout {
   composes: loaded-layout from '../../shell/loadedLayout.module.css';
 }
@@ -46,16 +46,15 @@
   color: var(--color-muted);
 }
 
-.sheet {
+/* The finish block: Download, Share and the hand-offs, then the quiet scan
+   link. On the phone it ends the loaded state in flow (the sticky bar above
+   holds the quiet Download); from 1024px it is the rail's last row. */
+.finish {
   grid-area: sheet;
   display: flex;
   flex-direction: column;
   gap: 8px;
-}
-
-.sheet > button:first-child,
-.sheet > a:first-child {
-  margin-top: 0;
+  min-width: 0;
 }
 
 @media (min-width: 1024px) {
@@ -67,36 +66,24 @@
     margin-bottom: 4px;
   }
 
-  .sheet {
+  .finish {
     margin-top: 20px;
   }
 
   .result {
     padding: 20px;
-    min-height: 420px;
   }
-}
 
-/* Below 1024px the primary controls are the sticky bottom sheet the other
-   tools use (ux guidelines 8). It stays in flow, so it never covers the
-   pages. The sheet bleeds to the card's edge: the card pads 12px below 768px
-   and 1.5rem from 768px to 1023px. */
-@media (max-width: 1023px) {
-  .sheet {
-    position: sticky;
-    bottom: 0;
-    z-index: 2;
-    margin-inline: -12px;
-    padding: 0.5rem 12px calc(0.5rem + env(safe-area-inset-bottom));
-    background: var(--color-surface);
-    border-top: 1px solid var(--color-border);
-  }
-}
-
-@media (min-width: 768px) and (max-width: 1023px) {
-  .sheet {
-    margin-inline: -1.5rem;
-    padding-inline: 1.5rem;
+  /* The card is one screen tall (data-fills-stage): the heading stays put and
+     the tiles scroll inside the result. The padding keeps the remove discs and
+     focus rings from being clipped by the scroll box. */
+  .grid {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    padding: 6px;
+    margin: -6px;
+    align-content: start;
   }
 }
 
@@ -245,35 +232,24 @@
   border-color: var(--color-primary);
 }
 
-/* A quiet secondary hand-off, the look of the other tools' follow-up buttons. */
-.scan-button {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.3rem;
+/* A quiet text link under the hand-offs: a button with a 44px hit area. */
+.scan-link {
+  align-self: flex-start;
   min-height: 44px;
-  padding: 0.5rem 0.75rem;
+  padding: 0 0.25rem;
   font: inherit;
   font-size: 0.85rem;
   font-weight: 600;
   color: var(--color-primary-text);
-  background: var(--color-surface);
-  border: 1px solid var(--color-border-strong);
-  border-radius: var(--radius-sm);
+  background: none;
+  border: 0;
+  text-decoration: underline;
+  text-underline-offset: 2px;
   cursor: pointer;
-  text-align: center;
+  text-align: start;
 }
 
-.scan-button:hover {
-  background: var(--color-primary-soft);
-}
-
-.scan-button:disabled {
+.scan-link:disabled {
   color: var(--color-muted);
-  border-color: var(--color-border);
   cursor: not-allowed;
-}
-
-.scan-button svg {
-  flex: none;
 }

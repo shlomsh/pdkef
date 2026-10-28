@@ -17,7 +17,11 @@ import ResultSheet from './components/ResultSheet.tsx';
 import ResultNotes, { hasResultNotes } from './components/ResultNotes.tsx';
 import StripSizes from './components/StripSizes.tsx';
 import { useComparePreviews } from './hooks/useComparePreviews.ts';
-import { useDownloadFlow, type DownloadFlowInput } from '#shell/pageWorkspace/useDownloadFlow.ts';
+import { useDownloadFlow } from '#shell/pageWorkspace/useDownloadFlow.ts';
+import PhoneFinish from '#shell/pageWorkspace/PhoneFinish.tsx';
+import { workspaceStyles } from '#shell/pageWorkspace/PageWorkspace.tsx';
+import layoutStyles from '#shell/loadedLayout.module.css';
+import { compressHandoffItems, compressHandoffTools } from './lib/handoffs.ts';
 import { useLastResult } from './hooks/useLastResult.ts';
 import { useHoldUpdate } from '#lib/hooks/useHoldUpdate.ts';
 import { isolateName } from '#lib/text/format.js';
@@ -29,7 +33,7 @@ import { useCompressMachine } from './state/useCompressMachine.ts';
 import { createCompressCallbacks, superseded, type CompressCallbacks, type CompressMeta } from './lib/compressCallbacks.ts';
 import { useFileIntake, type PdfAnalysis } from './hooks/useFileIntake.ts';
 import { useRunActions } from './hooks/useRunActions.ts';
-import { deriveResultView } from './lib/resultView.ts';
+import { deriveResultView, formatBytes } from './lib/resultView.ts';
 
 const TARGET_SIZE_PRESETS_KB = [100, 200, 500, 1024];
 // Lower than the PDF presets above: the image half of this tool's demand is
@@ -54,9 +58,6 @@ interface PdfCompressToolProps {
 
 /** The state a build depends on, with the file's number so a new file never reuses an old result. */
 const buildKey = (fileSeq: number, level: string, targetKB: number, flatten: boolean) => `${fileSeq}|${level}|${targetKB}|${flatten}`;
-
-// Compress offers no hand-offs from its Download.
-const NO_HANDOFFS: DownloadFlowInput['hrefs'] = {};
 
 export function formatShare(share: number, lessThanOnePercent = englishCompressMessages.lessThanOnePercent): string {
   return share < 0.01 ? lessThanOnePercent : `${Math.round(share * 100)}%`;
@@ -90,8 +91,7 @@ export default withIslandBoundary(function PdfCompressTool({
   // The run lifecycle (gate, tokens, run count, the Download/Share and Try again taps) is one machine
   // (state/compressMachine.ts); `machine.state` is what this render sees, `machine.read()` the live value.
   const machine = useCompressMachine();
-  const { runnable, runCount, tapped, retryTap } = machine.state;
-  const sheetRef = useRef<HTMLDivElement | null>(null);
+  const { runnable, runCount, retryTap } = machine.state;
   // Which opened file the builds belong to; it is in the build key, so a new file never lands an old result.
   const [fileSeq, setFileSeq] = useState(0);
   const currentFileRef = useRef<File | null>(null);
@@ -123,9 +123,7 @@ export default withIslandBoundary(function PdfCompressTool({
   const fresh = prepared.status === 'ready';
   const meta = last?.meta ?? null;
   const compressedSize = last ? last.blob.size : null;
-  const downloadUrl = last?.url ?? null;
   const metTarget = meta?.metTarget ?? true;
-  const outputType = meta?.outputType ?? '';
   const dimensions = meta?.dimensions ?? null;
   const rasterBytes = meta?.rasterBytes ?? null;
   // True when either compressor's passthrough rule fired (the file was already under target, so the
@@ -138,7 +136,6 @@ export default withIslandBoundary(function PdfCompressTool({
   const imageReason = meta?.imageReason ?? null;
   const keptBytes = meta?.keptBytes ?? 0;
   const resultImageBytes = meta?.resultImageBytes ?? 0;
-  const progress = prepared.progress;
   const status = prepared.status === 'error' ? 'error' : last ? 'done' : runnable ? 'processing' : 'idle'; // idle | processing | done | error
   useHoldUpdate(status === 'processing');
   useHoldUpdate(file !== null, 'open');
@@ -152,21 +149,15 @@ export default withIslandBoundary(function PdfCompressTool({
     // A passthrough is the input itself: nothing to deliver or share.
     prepared: { status: prepared.status, blob: prepared.meta?.passthrough ? null : prepared.blob, url: prepared.url, parts: null, generation: prepared.generation, prepareNow: prepared.prepareNow },
     fileName: meta?.filename ?? '',
-    hrefs: NO_HANDOFFS,
     blocked: prepared.status === 'error' ? 'error' : null,
     announce: (message) => { if (message) setAnnouncement(message); },
     messages: {
-      ready: '',
+      ready: t.readyAnnouncement,
       shared: kind === 'image' ? t.imageSharedSuccessfully : t.sharedSuccessfully,
       canceled: kind === 'image' ? t.imageSharingCanceled : t.sharingCanceled,
       shareError: t.shareError,
     },
   });
-  // Share stays on screen while a newer result builds, as it did before the shared flow.
-  const shareSeenRef = useRef(false);
-  if (flow.shareReady) shareSeenRef.current = true;
-  else if (!last) shareSeenRef.current = false;
-  const shareVisible = flow.shareReady || shareSeenRef.current;
 
   const { handleFilesAdded } = useFileIntake({
     t, machine, compare, flow, encryptionCheck, file, fileSeq, runnable, preparedStatus: prepared.status,
@@ -176,9 +167,9 @@ export default withIslandBoundary(function PdfCompressTool({
 
   callbacksRef.current = createCompressCallbacks({ t, machine, compare, currentFileRef, optionsRef, setAnnouncement });
 
-  const { warmBuild, handleLevelChange, handleFlattenChange, handleTargetKBChange, retry, onDownloadClick, handleShare } = useRunActions({
-    t, analyticsTool, kind, machine, compare, flow, prepared, fresh, passthrough, retryTap, downloadUrl,
-    level, targetKB, flatten, setLevel, setTargetKB, setFlatten, setAnnouncement,
+  const { warmBuild, handleLevelChange, handleFlattenChange, handleTargetKBChange, retry } = useRunActions({
+    analyticsTool, machine, compare, flow, prepared, fresh, passthrough, retryTap,
+    level, targetKB, flatten, setLevel, setTargetKB, setFlatten,
   });
 
   const hasFiles = !!file;
@@ -189,11 +180,13 @@ export default withIslandBoundary(function PdfCompressTool({
   });
   const { savingsPercent, downloadDetail, showFlatten } = view;
 
-  // Before the first result the build is silent too: Download shows the original size in its ready look.
-  const awaitingFirst = hasFiles && status === 'processing' && !tapped && compressedSize == null;
-  const tappedBusy = hasFiles && tapped && !fresh && status !== 'error';
   const showCompare = isDone && !passthrough;
-  const hasSheet = tappedBusy || awaitingFirst || (hasFiles && status === 'error') || (isDone && !passthrough && !!downloadUrl);
+  // Download is on screen from the first build on (silent, in its ready look), and Try again after a failure;
+  // a passthrough has nothing to deliver.
+  const hasFinish = hasFiles && status !== 'idle' && !passthrough;
+  const handoffs = compressHandoffItems(kind, t);
+  // Before the first result the build is silent: Download shows the original size in its ready look.
+  const finishDetail = downloadDetail ?? (file && compressedSize == null ? formatBytes(file.size) : undefined);
   const compareCaption = kind === 'image' ? t.compareCaptionImage : analysis?.pageCount === 1 ? t.compareCaptionPdfSingle : t.compareCaptionPdf;
 
   // What the strip's note line says about the PDF; the strip reserves its height whatever arrives.
@@ -252,7 +245,22 @@ export default withIslandBoundary(function PdfCompressTool({
           }}
         />
       ) : hasFiles && file ? (
+        <div class={layoutStyles['finish-frame']}>
+          {/* ARCH-41: the phone's sticky bar spans the whole loaded state (the frame), not one grid cell. */}
+          {hasFinish && (
+            <div class={workspaceStyles['chip-bar']}>
+              <PhoneFinish
+                flow={flow}
+                prepared={prepared}
+                fileName={meta?.filename ?? ''}
+                detail={finishDetail ?? ''}
+                handoffs={handoffs}
+                labels={{ download: t.downloadShort, ready: t.readyAnnouncement, closeStrip: t.closeStrip, handoffFailed: t.handoffFailed }}
+              />
+            </div>
+          )}
         <div
+          data-fills-stage
           class={`${styles['loaded-layout']}${hasResultNotes({ view, isDone, passthrough }) ? ` ${styles['has-notes']}` : ''}`}
           data-compress-status={statusAttr}
           data-compress-run={runCount}
@@ -314,24 +322,16 @@ export default withIslandBoundary(function PdfCompressTool({
           <ResultNotes view={view} isDone={isDone} passthrough={passthrough} />
           <ResultSheet
             t={t}
-            file={file}
-            sheetRef={sheetRef}
-            status={status}
-            hasSheet={hasSheet}
-            tappedBusy={tappedBusy}
-            awaitingFirst={awaitingFirst}
-            isDone={isDone}
-            passthrough={passthrough}
-            downloadUrl={downloadUrl}
-            outputType={outputType}
-            downloadDetail={downloadDetail}
-            progress={progress}
-            shareVisible={shareVisible}
+            flow={flow}
+            prepared={prepared}
+            fileName={meta?.filename ?? ''}
+            detail={finishDetail}
+            handoffTools={compressHandoffTools(kind)}
+            shown={hasFinish}
             warmBuild={warmBuild}
             retry={retry}
-            onDownloadClick={onDownloadClick}
-            onShare={handleShare}
           />
+        </div>
         </div>
       ) : null}
 

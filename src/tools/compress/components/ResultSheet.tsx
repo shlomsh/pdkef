@@ -1,80 +1,62 @@
-import type { Ref } from 'preact';
 import styles from '../PdfCompressTool.module.css';
 import pdfToolStyles from '#shell/PdfTool.module.css';
-import PdfShareButton from '#shell/PdfShareButton.tsx';
-import ProgressRing from '#shell/ProgressRing.tsx';
-import DownloadButton from '#shell/DownloadButton.tsx';
+import DownloadElement from '#shell/DownloadElement.tsx';
+import FinishRow from '#shell/pageWorkspace/FinishRow.tsx';
+import type { PreparedOutput } from '#lib/output/usePreparedOutput.ts';
+import type { useDownloadFlow, HandoffTool } from '#shell/pageWorkspace/useDownloadFlow.ts';
 import type { CompressMessages } from '../messages';
-import { compressedFileName as deriveDownloadName } from '../lib/outputName.ts';
-import { formatBytes } from '../lib/resultView.ts';
 
 interface ResultSheetProps {
   t: CompressMessages;
-  file: File;
-  sheetRef: Ref<HTMLDivElement>;
-  status: 'idle' | 'processing' | 'done' | 'error';
-  hasSheet: boolean;
-  tappedBusy: boolean;
-  awaitingFirst: boolean;
-  isDone: boolean;
-  passthrough: boolean;
-  downloadUrl: string | null;
-  outputType: string;
-  downloadDetail: string | undefined;
-  progress: number;
-  shareVisible: boolean;
+  flow: ReturnType<typeof useDownloadFlow>;
+  prepared: Pick<PreparedOutput, 'status' | 'url' | 'progress' | 'prepareNow'>;
+  fileName: string;
+  /** The compressed size, or the closest-achievable text. */
+  detail: string | undefined;
+  /** Which hand-offs follow Share; none for a photo. */
+  handoffTools: HandoffTool[];
+  /** Whether there is a result to deliver (hidden while idle and for a passthrough). */
+  shown: boolean;
   warmBuild: () => void;
   retry: () => void;
-  onDownloadClick: (event: MouseEvent) => void;
-  onShare: () => Promise<void>;
 }
 
-/** The action sheet: Try again, the compressing ring, or Download and Share, whichever the run is at. */
-export default function ResultSheet(props: ResultSheetProps) {
-  const { t, file, sheetRef, status, hasSheet, tappedBusy, awaitingFirst, isDone, passthrough, downloadUrl, outputType,
-    downloadDetail, progress, shareVisible, warmBuild, retry, onDownloadClick, onShare } = props;
+/** The rail's finish block: Download (which is Try again after a failure), Share and the hand-offs, in flow. */
+export default function ResultSheet({ t, flow, prepared, fileName, detail, handoffTools, shown, warmBuild, retry }: ResultSheetProps) {
   return (
-    <div
-      ref={sheetRef}
-      class={`${styles['result-action']}${hasSheet ? ` ${styles['result-sheet']}` : ''}`}
-      data-result-action
-      data-result-sheet={hasSheet || undefined}
-      hidden={!hasSheet}
-      onPointerEnter={warmBuild}
-      onFocusIn={warmBuild}
-      onPointerDown={warmBuild}
-    >
-      {status === 'error' ? (
-        <button type="button" class={pdfToolStyles['tool-primary-action']} onClick={retry}>
-          {t.tryAgain}
-        </button>
-      ) : tappedBusy ? (
-        <button type="button" class={`${pdfToolStyles['tool-primary-action']} ${pdfToolStyles['is-processing']}`} data-processing disabled>
-          <ProgressRing progress={progress} label={t.compressing} />
-        </button>
-      ) : isDone && !passthrough && downloadUrl ? (
+    <div class={styles['result-action']} data-result-action data-result-sheet={shown || undefined} hidden={!shown}>
+      {shown && (
         <>
-          <DownloadButton
-            autoFocus={false}
-            href={downloadUrl}
-            download={deriveDownloadName(file.name, outputType)}
-            label={t.downloadLabel}
-            detail={downloadDetail}
-            onClick={onDownloadClick}
-          />
-          <PdfShareButton visible={shareVisible} onShare={onShare} label={t.shareLabel} />
-        </>
-      ) : awaitingFirst ? (
-        // No result yet: the ready look with the size it already knows. A tap here waits for the build.
-        <DownloadButton
-          autoFocus={false}
-          href="#"
-          download={deriveDownloadName(file.name, file.type)}
-          label={t.downloadLabel}
-          detail={formatBytes(file.size)}
-          onClick={onDownloadClick}
+        <DownloadElement
+          state={flow.downloadState}
+          href={prepared.status === 'ready' ? prepared.url : null}
+          fileName={fileName}
+          detail={detail}
+          renderedCount={Math.round(prepared.progress * 100)}
+          totalCount={100}
+          progress={prepared.progress}
+          errorMessage={t.tryAgain}
+          messages={t}
+          onPreparingTap={flow.onRowPreparingTap}
+          onErrorTap={retry}
+          onWarm={warmBuild}
+          onDownloadClick={flow.onDownloadTap}
         />
-      ) : null}
+        <FinishRow
+          ready={prepared.status === 'ready'}
+          shareReady={flow.shareReady}
+          onShare={flow.handleShare}
+          busy={flow.handoffBusy}
+          onHandoff={handoffTools.length > 0 ? (tool) => { void flow.requestHandoff(tool); /* reason: requestHandoff catches its own failure and shows the hand-off error */ } : undefined}
+          onWarm={warmBuild}
+          labels={{ share: t.shareLabel, sign: t.handoffSign, merge: t.handoffMerge }}
+          tools={handoffTools}
+        />
+        {flow.handoffFailed && (
+          <p class={`${pdfToolStyles['hint-message']} ${pdfToolStyles.danger}`} role="status">{t.handoffFailed}</p>
+        )}
+        </>
+      )}
     </div>
   );
 }

@@ -173,7 +173,9 @@ describe('PdfCompressTool UI flow', () => {
   const stripName = () => container.querySelector('[data-tool-shell]').textContent;
   const stripNote = () => container.querySelector('[data-compress-note]').textContent;
   const status = () => container.querySelector('[data-compress-status]').getAttribute('data-compress-status');
-  const downloadButton = () => container.querySelector('a[download]');
+  // The rail's Download element (the phone bar's quiet one is a second, separate control).
+  const downloadButton = () => container.querySelector('[data-result-action] a[data-state]');
+  const tryAgain = () => container.querySelector('[data-result-action] a[data-state="error"]');
   const shareButton = () => Array.from(container.querySelectorAll('button')).find((b) => b.textContent.includes('Share')) ?? null;
   const noCompressButton = () => {
     const labels = Array.from(container.querySelectorAll('button')).map((b) => b.textContent.trim());
@@ -307,12 +309,12 @@ describe('PdfCompressTool UI flow', () => {
     expect(imagesLib.compressPdfImages).toHaveBeenCalledTimes(1);
 
     await act(async () => {
-      findButton('Try again').click();
+      tryAgain().click();
     });
     await settled();
     expect(imagesLib.compressPdfImages).toHaveBeenCalledTimes(2);
     expect(status()).toBe('done');
-    expect(findButton('Try again')).toBeUndefined();
+    expect(tryAgain()).toBeNull();
   });
 
   it('a file replaced mid-run by a password-needing PDF never compresses, even after another level was clicked', async () => {
@@ -1279,6 +1281,26 @@ describe('PdfCompressTool UI flow', () => {
       nativeShare.restore();
     });
 
+    // ARCH-41: the shared finish. The rail's buttons and the phone strip's chips agree.
+    const handoffLabels = () => Array.from(container.querySelectorAll('[data-result-action] button')).map((b) => b.textContent.trim());
+    it('a PDF finish offers Share, Sign and Merge, and never Compress', async () => {
+      const nativeShare = mockNativeFileShare();
+      await loadPdf();
+      expect(handoffLabels()).toEqual(['Share', 'Sign', 'Merge']);
+      noCompressButton();
+      nativeShare.restore();
+    });
+
+    it('an image finish is Share only, with no hand-off to another tool', async () => {
+      const nativeShare = mockNativeFileShare();
+      mount();
+      await pick(makeImageFile('photo.jpg', 900_000), ran(compressImageLib.compressImageToTarget, 1));
+      await settled();
+      expect(status()).toBe('done');
+      expect(handoffLabels()).toEqual(['Share']);
+      nativeShare.restore();
+    });
+
     it('after a passthrough, picking another level runs again and the result comes back', async () => {
       imagesLib.compressPdfImages.mockImplementationOnce((f) => Promise.resolve(imagesResult({ blob: f, afterBytes: f.size, rewritten: 0, reason: 'no-gain' })));
       await loadPdf('same.pdf', 11_000);
@@ -1424,7 +1446,7 @@ describe('PdfCompressTool UI flow', () => {
       await loadPdf('flaky.pdf');
       expect(await events('tool_operation_failed')).toBe(1);
       expect(await events('tool_operation_started')).toBe(0);
-      await act(async () => { findButton('Try again').click(); });
+      await act(async () => { tryAgain().click(); });
       await settled();
       expect(await events('tool_operation_started')).toBe(1);
       expect(await events('tool_result_ready')).toBe(1);
@@ -1451,7 +1473,7 @@ describe('PdfCompressTool UI flow', () => {
   describe('quiet-time prepare', () => {
     const advance = (ms) => act(async () => { await vi.advanceTimersByTimeAsync(ms); });
     const runNo = () => container.querySelector('[data-compress-run]').getAttribute('data-compress-run');
-    const busyButton = () => container.querySelector('[data-processing]');
+    const busyButton = () => container.querySelector('[data-result-action] [data-state="preparing"]');
     const click = (name) => act(async () => { radio(name).click(); });
     const calls = () => imagesLib.compressPdfImages.mock.calls.length;
 
@@ -1534,7 +1556,7 @@ describe('PdfCompressTool UI flow', () => {
       await click('Smallest');
       await advance(100);
       const clicks = [];
-      const record = (e) => { const a = e.target.closest('a[download]'); if (a) clicks.push(e.defaultPrevented); };
+      const record = (e) => { const a = e.target.closest('[data-result-action] a[data-state]'); if (a) clicks.push(e.defaultPrevented); };
       document.addEventListener('click', record);
       try {
         await act(async () => { downloadButton().click(); });
@@ -1544,7 +1566,8 @@ describe('PdfCompressTool UI flow', () => {
         expect(clicks).toEqual([true]);
         await act(async () => { slow.resolve(imagesResult()); await vi.advanceTimersByTimeAsync(50); });
         expect(busyButton()).toBeNull();
-        expect(clicks).toEqual([true, false]);
+        // The shared flow delivers the file itself, so the anchor sees no second click.
+        expect(clicks).toEqual([true]);
       } finally {
         document.removeEventListener('click', record);
       }

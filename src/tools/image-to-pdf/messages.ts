@@ -36,6 +36,18 @@ export interface ImageToPdfMessages {
   preparing: string;
   downloadLabel: string;
   shareLabel: string;
+  /* The shared Download element and the phone bar's quiet Download. */
+  downloadShort: string;
+  downloadAgain: string;
+  savedLabel: string;
+  preparingPages: string;
+  renderProgress: string;
+  allSkipped: string;
+  readyAnnouncement: string;
+  closeStrip: string;
+  handoffCompress: string;
+  handoffSign: string;
+  handoffFailed: string;
   /* Screen-reader announcements. */
   announceAddedOne: string;
   announceAddedMany: string;
@@ -79,8 +91,19 @@ export const englishImageToPdfMessages: ImageToPdfMessages = {
   buildFailed: 'A file may be damaged - remove it and try again.',
   tryAgain: 'Try again',
   preparing: 'Preparing\u2026',
-  downloadLabel: 'Download PDF',
-  shareLabel: 'Share PDF',
+  downloadLabel: 'Download',
+  shareLabel: 'Share',
+  downloadShort: 'Download',
+  downloadAgain: 'download again',
+  savedLabel: 'Saved',
+  preparingPages: 'Preparing {count} pages\u2026',
+  renderProgress: '{done} of {total} rendered',
+  allSkipped: 'Every image is skipped',
+  readyAnnouncement: 'Your PDF is ready.',
+  closeStrip: 'Close',
+  handoffCompress: 'Compress',
+  handoffSign: 'Sign',
+  handoffFailed: 'Could not hand the file over. Download it instead.',
   announceAddedOne: '{count} image added.',
   announceAddedMany: '{count} images added.',
   announceRemoved: '{name} removed.',
@@ -125,8 +148,19 @@ export const hebrewImageToPdfMessages: ImageToPdfMessages = {
   buildFailed: 'ייתכן שאחד הקבצים פגום. הסירו אותו ונסו שוב.',
   tryAgain: 'ניסיון חוזר',
   preparing: 'מכינים…',
-  downloadLabel: 'הורדת PDF',
-  shareLabel: 'שיתוף PDF',
+  downloadLabel: 'הורדה',
+  shareLabel: 'שיתוף',
+  downloadShort: 'הורדה',
+  downloadAgain: 'הורדה שוב',
+  savedLabel: 'נשמר',
+  preparingPages: 'מכינים {count} עמודים…',
+  renderProgress: '{done} מתוך {total} נוצרו',
+  allSkipped: 'כל התמונות מדולגות',
+  readyAnnouncement: 'ה-PDF שלכם מוכן.',
+  closeStrip: 'סגירה',
+  handoffCompress: 'כיווץ',
+  handoffSign: 'חתימה',
+  handoffFailed: 'לא הצלחנו להעביר את הקובץ. הורידו אותו במקום.',
   announceAddedOne: '{count} תמונה נוספה.',
   announceAddedMany: '{count} תמונות נוספו.',
   announceRemoved: '{name} הוסר.',

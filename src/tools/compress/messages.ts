@@ -85,7 +85,7 @@ export interface CompressMessages {
   imageFailed: string;
   imageSharedSuccessfully: string;
   imageSharingCanceled: string;
-  /* Button anchor (SEO-25, 2026-09-12): DownloadButton's second line and the
+  /* Button anchor (SEO-25, 2026-09-12): the Download element's detail line and the
    * compare toggle's two states. Shared by the PDF and image halves alike -
    * both compute the same shape of detail line and use the same toggle. */
   downloadDetailClosest: string;
@@ -106,6 +106,20 @@ export interface CompressMessages {
   protectedNeedsPasswordBody: string;
   protectedUnlockIt: string;
   protectedHandoffFailed: string;
+  /** ARCH-41: the shared finish (src/shell/DownloadElement.tsx, PhoneFinish, FinishRow). */
+  savedLabel: string;
+  downloadAgain: string;
+  /** The Download element while compressing; the count is unused, the progress is in renderProgress. */
+  preparingPages: string;
+  renderProgress: string;
+  buildFailed: string;
+  allSkipped: string;
+  downloadShort: string;
+  readyAnnouncement: string;
+  closeStrip: string;
+  handoffFailed: string;
+  handoffSign: string;
+  handoffMerge: string;
 }
 
 export const englishCompressMessages: CompressMessages = {
@@ -197,6 +211,18 @@ export const englishCompressMessages: CompressMessages = {
   protectedNeedsPasswordBody: 'Unlock opens it on your device, then you can compress it.',
   protectedUnlockIt: 'Unlock it',
   protectedHandoffFailed: "Couldn't open Unlock with this file. Open Unlock and choose it there.",
+  savedLabel: 'Saved',
+  downloadAgain: 'download again',
+  preparingPages: 'Compressing…',
+  renderProgress: '{done}%',
+  buildFailed: 'Could not compress this file',
+  allSkipped: 'Nothing to download',
+  downloadShort: 'Download',
+  readyAnnouncement: 'Your compressed file is ready.',
+  closeStrip: 'Close',
+  handoffFailed: 'Could not hand the file over. Download it instead.',
+  handoffSign: 'Sign',
+  handoffMerge: 'Merge',
 };
 
 // LOC-03: not yet reviewed by a native speaker in-house (see LOC-03.md's
@@ -295,6 +321,18 @@ export const hebrewCompressMessages: CompressMessages = {
   protectedNeedsPasswordBody: 'הסרת הנעילה פותחת אותו במכשיר שלכם, ואז אפשר לכווץ אותו.',
   protectedUnlockIt: 'הסרת נעילה',
   protectedHandoffFailed: 'לא הצלחנו לפתוח את הקובץ בכלי הסרת הנעילה. פתחו את הכלי ובחרו אותו שם.',
+  savedLabel: 'נשמר',
+  downloadAgain: 'הורדה שוב',
+  preparingPages: 'מכווצים…',
+  renderProgress: '{done}%',
+  buildFailed: 'לא הצלחנו לכווץ את הקובץ',
+  allSkipped: 'אין מה להוריד',
+  downloadShort: 'הורדה',
+  readyAnnouncement: 'הקובץ המכווץ מוכן.',
+  closeStrip: 'סגירה',
+  handoffFailed: 'לא הצלחנו להעביר את הקובץ. הורידו אותו במקום.',
+  handoffSign: 'חתימה',
+  handoffMerge: 'איחוד',
 };
 
 const compressMessages: Partial<Record<DocumentationLocaleId, CompressMessages>> = {

@@ -4,6 +4,8 @@ import { imagesToPdf } from '#lib/images/imagesToPdf.js';
 import { reportError } from '#lib/telemetry/errorReport.ts';
 import { usePreparedOutput } from '#lib/output/usePreparedOutput.ts';
 import { useDownloadFlow } from '#shell/pageWorkspace/useDownloadFlow.ts';
+import { downloadDetail } from '#shell/pageWorkspace/pageCounts.ts';
+import layoutStyles from '#shell/loadedLayout.module.css';
 import { PHOTO_ACCEPT, PHOTO_ACCEPTED_TYPES, usePhotoTileList } from '#lib/hooks/usePhotoTileList.ts';
 import { useRevokeOnUnmount } from '#lib/output/useObjectUrls.js';
 import BasePdfTool from '#shell/BasePdfTool.tsx';
@@ -13,7 +15,7 @@ import SortMenu from '#shell/SortMenu.tsx';
 import pdfToolStyles from '#shell/PdfTool.module.css';
 import styles from './PdfImageToPdfTool.module.css';
 import ImageToPdfVerb from './verb/ImageToPdfVerb.tsx';
-import DownloadSheet from './components/DownloadSheet.tsx';
+import { ImageToPdfFinish, ImageToPdfPhoneBar } from './components/ImageToPdfFinish.tsx';
 import ResultGrid from './components/ResultGrid.tsx';
 import { toHandoffFiles } from './lib/handoffFiles';
 import { useHoldUpdate } from '#lib/hooks/useHoldUpdate.ts';
@@ -24,7 +26,7 @@ import { recordAction } from '#lib/telemetry/actionTrail.ts';
 import type { QuietPolicy } from '#lib/output/quietPrepare.ts';
 import { sendHandoff } from '#lib/handoff/sendHandoff.ts';
 import { englishImageToPdfMessages, type ImageToPdfMessages } from './messages';
-import { type ShellMessages } from '#shell/shellMessages.ts';
+import { englishShellMessages, type ShellMessages } from '#shell/shellMessages.ts';
 import { formatMessage } from '#lib/text/formatMessage.ts';
 
 export interface ImageEntry {
@@ -76,10 +78,7 @@ export default withIslandBoundary(function PdfImageToPdfTool({ quietPolicy, mess
 
   const entriesRef = useRef(entries);
   entriesRef.current = entries;
-  const lastSizeRef = useRef<string | undefined>(undefined);
-  const shareSeenRef = useRef(false);
   const startedRef = useRef(false);
-  const exportPendingRef = useRef(false);
 
   // The PDF for the current page order, built in the background once the person has gone quiet.
   const key = orderKey(entries);
@@ -94,7 +93,6 @@ export default withIslandBoundary(function PdfImageToPdfTool({ quietPolicy, mess
   });
   const fresh = prepared.status === 'ready';
   const failed = prepared.status === 'error';
-  const downloadUrl = prepared.url;
   useHoldUpdate(prepared.status === 'pending');
   useHoldUpdate(entries.length > 0, 'open');
   // The first build after the first pick starts at once; later changes wait for quiet.
@@ -120,20 +118,14 @@ export default withIslandBoundary(function PdfImageToPdfTool({ quietPolicy, mess
     },
     messages: { ready: t.announceReady, shared: t.announceShared, canceled: t.announceShareCanceled, shareError: t.announceShareError },
     // A tap that beat the build is delivered by the flow; the tap on a ready link records its own download.
-    onDelivered: () => {
-      if (!exportPendingRef.current) return;
-      exportPendingRef.current = false;
-      recordAction('download');
-    },
+    onDelivered: () => recordAction('download'),
   });
-  const { shareReady, handleShare: shareOutput, onDownloadTap, onRowPreparingTap, reset: resetDownloadFlow } = downloadFlow;
+  const {
+    handleShare: shareOutput, onDownloadTap, onRowPreparingTap, reset: resetDownloadFlow,
+  } = downloadFlow;
   // Analytics follow the person's Download tap only (Merge's rule, ANALYTICS.md): background builds report nothing.
   const tapped = downloadFlow.tap === 'processing';
   const status = failed && tapped ? 'error' : tapped ? 'converting' : downloadFlow.tap;
-  if (fresh && prepared.blob) lastSizeRef.current = formatFileSize(prepared.blob.size);
-  if (entries.length === 0) lastSizeRef.current = undefined;
-  if (shareReady) shareSeenRef.current = true;
-  if (entries.length === 0) shareSeenRef.current = false;
 
   // Revoke every live thumbnail object URL on unmount.
   useRevokeOnUnmount(entries.map((e) => e.thumbnail));
@@ -178,7 +170,6 @@ export default withIslandBoundary(function PdfImageToPdfTool({ quietPolicy, mess
 
   const resetTap = useCallback(() => {
     resetDownloadFlow();
-    exportPendingRef.current = false;
   }, [resetDownloadFlow]);
 
   const removeEntry = useCallback((id: number) => {
@@ -235,18 +226,16 @@ export default withIslandBoundary(function PdfImageToPdfTool({ quietPolicy, mess
     recordAction('sort');
   };
 
-  // A tap on Download before the build is done: show the preparing look and deliver when it lands.
-  const onDownloadClick = (event: MouseEvent) => {
-    if (fresh && downloadUrl) {
-      // The browser delivers the link itself; the flow records the download.
-      recordAction('export');
-      onDownloadTap();
-      return;
-    }
-    event.preventDefault();
+  // The browser delivers a ready link itself; the flow records the download.
+  const onReadyTap = () => {
+    recordAction('export');
+    onDownloadTap();
+  };
+
+  // A tap before the build is done: the flow shows the preparing look and delivers when it lands.
+  const onEarlyTap = () => {
     if (tapped) return;
     recordAction('export');
-    exportPendingRef.current = true;
     announce(t.announcePreparing);
     onRowPreparingTap();
   };
@@ -277,27 +266,8 @@ export default withIslandBoundary(function PdfImageToPdfTool({ quietPolicy, mess
 
   const hasFiles = entries.length > 0;
   const fileSummary = imageCount(t, entries.length);
-  const tappedBusy = tapped && !fresh && !failed;
-
-  const sheet = (
-    <DownloadSheet
-      t={t}
-      failed={failed}
-      fresh={fresh}
-      downloadUrl={downloadUrl}
-      fileName={fileName}
-      detail={lastSizeRef.current}
-      progress={prepared.progress}
-      busy={tappedBusy}
-      shareVisible={shareReady || (shareSeenRef.current && prepared.status === 'pending')}
-      scanBusy={scanBusy}
-      scanFailed={scanFailed}
-      onPrepare={prepared.prepareNow}
-      onDownloadClick={onDownloadClick}
-      onShare={handleShare}
-      onScan={openAsScan}
-    />
-  );
+  const sm = { ...englishShellMessages, ...shellMessages };
+  const detail = downloadDetail(prepared, entries.length, sm, t.dir);
 
   return (
     <BasePdfTool
@@ -323,30 +293,46 @@ export default withIslandBoundary(function PdfImageToPdfTool({ quietPolicy, mess
       )}
 
       {hasFiles && (
-        <div class={styles['loaded-layout']}>
-          <div class={styles.strip}>
-            <ToolShell flush>
-              <FileActions />
-            </ToolShell>
+        <div class={layoutStyles['finish-frame']}>
+          <ImageToPdfPhoneBar t={t} flow={downloadFlow} prepared={prepared} fileName={fileName} detail={detail} />
+          <div class={styles['loaded-layout']} data-fills-stage>
+            <div class={styles.strip}>
+              <ToolShell flush>
+                <FileActions />
+              </ToolShell>
+            </div>
+
+            <div class={styles.controls}>
+              {entries.length > 1 && (
+                <SortMenu label={t.sortLabel} ariaLabel={t.sortAriaLabel} value={sortMode} options={sortOptions(t)} onChange={applySort} />
+              )}
+            </div>
+
+            <ResultGrid
+              t={t}
+              entries={entries}
+              outputName={outputName}
+              listRef={listRef}
+              onRename={(next) => setCustomName(next.length > 0 && next !== defaultOutputName(entries) ? next : null)}
+              onTileKeyDown={onTileKeyDown}
+              onRemove={removeEntry}
+            />
+
+            <ImageToPdfFinish
+              t={t}
+              flow={downloadFlow}
+              prepared={prepared}
+              fileName={fileName}
+              detail={detail}
+              imageCount={entries.length}
+              onReadyTap={onReadyTap}
+              onEarlyTap={onEarlyTap}
+              onShare={handleShare}
+              scanBusy={scanBusy}
+              scanFailed={scanFailed}
+              onScan={openAsScan}
+            />
           </div>
-
-          <div class={styles.controls}>
-            {entries.length > 1 && (
-              <SortMenu label={t.sortLabel} ariaLabel={t.sortAriaLabel} value={sortMode} options={sortOptions(t)} onChange={applySort} />
-            )}
-          </div>
-
-          <ResultGrid
-            t={t}
-            entries={entries}
-            outputName={outputName}
-            listRef={listRef}
-            onRename={(next) => setCustomName(next.length > 0 && next !== defaultOutputName(entries) ? next : null)}
-            onTileKeyDown={onTileKeyDown}
-            onRemove={removeEntry}
-          />
-
-          {sheet}
         </div>
       )}
 

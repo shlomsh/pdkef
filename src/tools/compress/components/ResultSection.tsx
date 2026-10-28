@@ -1,6 +1,7 @@
 import { Expand } from 'lucide-preact';
 import type { ComponentChildren, JSX } from 'preact';
 import { useState } from 'preact/hooks';
+import layoutStyles from '#shell/loadedLayout.module.css';
 import styles from '../PdfCompressTool.module.css';
 import ErrorMessage from '#shell/ErrorMessage.tsx';
 import { formatMessage } from '#lib/text/formatMessage.ts';
@@ -132,7 +133,7 @@ export default function ResultSection(props: ResultSectionProps) {
   );
 
   return (
-    <section class={styles.result} data-result style={aspect ? ({ '--preview-aspect': aspect } as JSX.CSSProperties) : undefined}>
+    <section class={`${styles.result} ${layoutStyles.stage}`} data-result style={aspect ? ({ '--preview-aspect': aspect } as JSX.CSSProperties) : undefined}>
       {status !== 'done' && status !== 'error' && (
         // Keyed apart: reused, the skeleton's own box would move and shrink into the panel's, a
         // layout shift (0.116 at 1440x820, DEBT-56); replaced, the panel is new content.

@@ -1,16 +1,16 @@
 /* The loaded state: the document's first page is the centre, the strip, the
    form and the done controls are a rail beside it (ux guidelines 18). On the
-   phone the grid areas read strip, controls, actions, result: the primary (the
-   form, then Download once done) always sits above the preview, so the keyboard
-   never hides it and Download is never pushed below a 50vh page. */
+   phone the grid areas read strip, controls, result, actions: the form sits above
+   the preview so the keyboard never hides it, and once done the finish block
+   (Download, Share, hand-offs) closes the layout below the page (ARCH-41). */
 .loaded-layout {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   grid-template-areas:
     'strip'
     'controls'
-    'actions'
-    'result';
+    'result'
+    'actions';
   row-gap: 16px;
   align-items: start;
   text-align: start;
@@ -112,7 +112,8 @@
   .strip { margin-bottom: 16px; }
   .actions { margin-top: 20px; }
   .result { padding: 20px; min-height: 420px; align-items: center; }
-  .frame { height: min(70vh, 640px); }
+  /* The stage is one screen tall (layoutStyles.stage): the page fills what the tag leaves. */
+  .frame { height: auto; flex: 1; min-height: 0; }
 }
 
 .unlock-form {

@@ -9,10 +9,12 @@ import BasePdfTool from '#shell/BasePdfTool.tsx';
 import { withIslandBoundary } from '#lib/telemetry/IslandErrorBoundary.tsx';
 import UnlockVerb from './verb/UnlockVerb.tsx';
 import PagePreview from './components/PagePreview.tsx';
-import SecurityActions, { SubmitButton, returnToolOf } from './components/SecurityActions.tsx';
+import SecurityActions, { SecurityPhoneBar, SubmitButton, returnToolOf } from './components/SecurityActions.tsx';
 import { planPreview } from './lib/previewPlan.js';
 import ToolShell, { FileActions } from '#shell/ToolShell.tsx';
 import styles from './PdfSecurityTool.module.css';
+import layoutStyles from '#shell/loadedLayout.module.css';
+import { formatFileSize } from '#lib/text/format.js';
 import ErrorMessage from '#shell/ErrorMessage.tsx';
 import { useDownloadFlow } from '#shell/pageWorkspace/useDownloadFlow.ts';
 import { useHoldUpdate } from '#lib/hooks/useHoldUpdate.ts';
@@ -59,16 +61,11 @@ export default withIslandBoundary(function PdfSecurityTool({ intent = 'unlock', 
   // The output exists only after a password submit, so it is not a usePreparedOutput build: this is
   // the finished result the shared flow shares, counts, and hands off.
   const unlocked = mode === 'unlock';
+  const prepared = { status: outputBlob && status === 'done' ? 'ready' as const : 'idle' as const, blob: outputBlob, url: downloadUrl, parts: null, generation: outputGenerationRef.current, prepareNow: () => {} };
+  const fileName = file && mode ? outputFileName(file.name, mode) : '';
   const downloadFlow = useDownloadFlow({
-    prepared: {
-      status: outputBlob && status === 'done' ? 'ready' : 'idle',
-      blob: outputBlob,
-      url: downloadUrl,
-      parts: null,
-      generation: outputGenerationRef.current,
-      prepareNow: () => {},
-    },
-    fileName: file && mode ? outputFileName(file.name, mode) : '',
+    prepared,
+    fileName,
     blocked: null,
     announce: setAnnouncement,
     messages: {
@@ -79,7 +76,7 @@ export default withIslandBoundary(function PdfSecurityTool({ intent = 'unlock', 
     },
     navigate,
   });
-  const { shareReady, handoffBusy, handoffFailed, requestHandoff, onDownloadTap, handleShare, reset: resetDownloadFlow } = downloadFlow;
+  const { reset: resetDownloadFlow } = downloadFlow;
   // DEBT-18: both async paths here belong to one file, so they share one run.
   // `begin()` supersedes whatever was in flight (a second pick retires the
   // first file's encryption check), and resetOutput - which every file pick
@@ -214,6 +211,12 @@ export default withIslandBoundary(function PdfSecurityTool({ intent = 'unlock', 
   const preview = planPreview({ mode: mode as 'unlock' | 'protect' | null, status, noPassword }, t);
   const previewSource = preview?.source === 'input' ? file : preview?.source === 'output' ? outputBlob : null;
 
+  // The phone bar waits for an output: while the password form is the primary there is nothing to download.
+  const finished = !!mode && status === 'done' && !!downloadUrl && !!outputBlob;
+  const phoneBar = finished && (
+    <SecurityPhoneBar t={t} mode={mode} flow={downloadFlow} prepared={prepared} fileName={fileName} size={outputBlob.size} returnTool={returnTool} />
+  );
+
   return (
     <BasePdfTool
       hasFiles={hasFiles}
@@ -229,7 +232,9 @@ export default withIslandBoundary(function PdfSecurityTool({ intent = 'unlock', 
       }}
     >
       {hasFiles && (
-        <div class={styles['loaded-layout']}>
+        <div class={layoutStyles['finish-frame']}>
+        {phoneBar}
+        <div class={styles['loaded-layout']} data-fills-stage>
           <div class={styles.strip}>
             <ToolShell flush>
               <FileActions />
@@ -280,21 +285,8 @@ export default withIslandBoundary(function PdfSecurityTool({ intent = 'unlock', 
             <PagePreview plan={readError ? UNREADABLE_PLAN : CHECKING_PLAN} source={null} pending={!readError} label={t.firstPageLabel} />
           )}
 
-          <SecurityActions
-            t={t}
-            mode={mode}
-            status={status}
-            downloadUrl={downloadUrl}
-            outputBlob={outputBlob}
-            fileName={file && mode ? outputFileName(file.name, mode) : ''}
-            returnTool={returnTool}
-            shareReady={shareReady}
-            handoffBusy={handoffBusy}
-            handoffFailed={handoffFailed}
-            requestHandoff={requestHandoff}
-            onDownloadTap={onDownloadTap}
-            onShare={handleShare}
-          />
+          <SecurityActions t={t} mode={mode} finished={finished} prepared={prepared} flow={downloadFlow} detail={finished ? formatFileSize(outputBlob.size) : ''} fileName={fileName} returnTool={returnTool} />
+        </div>
         </div>
       )}
 

@@ -160,7 +160,7 @@ describe('PdfImageToPdfTool UI flow', () => {
   const wait = (ms) => act(async () => { await vi.advanceTimersByTimeAsync(ms); });
   const tileNames = () => Array.from(container.querySelectorAll('[data-page]')).map((el) => el.getAttribute('aria-label').split(',')[0]);
   const removeButtons = () => container.querySelectorAll('ul[aria-describedby="reorder-hint"] li > button[aria-label]');
-  const downloadLink = () => container.querySelector('a[download]');
+  const downloadLink = () => container.querySelector('a[data-state]');
   const buttonByText = (text) => Array.from(container.querySelectorAll('button')).find((b) => b.textContent.trim().includes(text));
   const press = (el, key) => act(async () => {
     el.dispatchEvent(new KeyboardEvent('keydown', { key, bubbles: true, cancelable: true }));
@@ -181,7 +181,7 @@ describe('PdfImageToPdfTool UI flow', () => {
     expect(identity.textContent).toContain('2 images');
     expect(tileNames()).toEqual(['one.png', 'two.png']);
     expect(Array.from(container.querySelectorAll('[data-page] > span[aria-hidden="true"]')).map((b) => b.textContent)).toEqual(['1', '2']);
-    expect(container.querySelector('[data-processing]')).toBeNull();
+    expect(container.querySelector('a[data-state="preparing"]')).toBeNull();
     expect(buttonByText('Try again')).toBeUndefined();
     expect(container.textContent).not.toContain('Convert');
     expect(container.querySelector('ul[aria-describedby="reorder-hint"] > li > button:not([aria-label])').textContent).toContain('Add images');
@@ -231,7 +231,7 @@ describe('PdfImageToPdfTool UI flow', () => {
     const link = downloadLink();
     expect(harness.blobForUrl(link.getAttribute('href'))).toBe(builtPdfs()[0]);
     expect(link.getAttribute('download')).toBe('doc1.pdf');
-    expect(link.textContent).toContain('Download PDF');
+    expect(link.textContent).toContain('Download');
     expect(link.textContent).toContain(formatFileSize(builtPdfs()[0].size));
 
     const shareButton = buttonByText('Share');
@@ -239,6 +239,19 @@ describe('PdfImageToPdfTool UI flow', () => {
     await act(async () => shareButton.click());
     expect(nativeShare.share.mock.calls[0][0].files[0].name).toBe('doc1.pdf');
     nativeShare.restore();
+  });
+
+  it('finishes with the shared hand-offs and a quiet scan link, and no sticky sheet', async () => {
+    mount();
+    await loadFiles(['a.png', 'b.png']);
+    await wait(0);
+    expect(buttonByText('Compress')).not.toBeNull();
+    expect(buttonByText('Sign')).not.toBeNull();
+    const scan = buttonByText('Clean it up as a scan');
+    expect(scan).not.toBeNull();
+    expect(scan.className).toContain('scan-link');
+    expect(container.querySelector('[class*="sheet"]')).toBeNull();
+    expect(container.querySelector('[data-fills-stage]')).not.toBeNull();
   });
 
   it('builds a burst of changes once, after the quiet wait, and keeps the ready look meanwhile', async () => {
@@ -272,12 +285,12 @@ describe('PdfImageToPdfTool UI flow', () => {
 
     await act(async () => { downloadLink().dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true })); });
     await wait(0);
-    expect(container.querySelector('[data-processing]').textContent).toContain('Preparing');
+    expect(container.querySelector('a[data-state="preparing"]').textContent).toContain('Preparing');
     expect(clicks).not.toHaveBeenCalled();
 
     await act(async () => { release(); });
     await wait(0);
-    expect(container.querySelector('[data-processing]')).toBeNull();
+    expect(container.querySelector('a[data-state="preparing"]')).toBeNull();
     expect(harness.blobForUrl(downloadLink().getAttribute('href'))).toBe(builtPdfs().at(-1));
     expect(clicks).toHaveBeenCalledTimes(1);
   });
@@ -406,13 +419,12 @@ describe('PdfImageToPdfTool UI flow', () => {
     vi.spyOn(console, 'error').mockImplementation(() => {});
     await loadFiles(['a.png']);
     await wait(0);
-    expect(container.querySelector('[role="alert"]').textContent).toContain('A file may be damaged - remove it and try again.');
-    const retry = buttonByText('Try again');
-    expect(retry.textContent).toContain('Try again');
-    await act(async () => { retry.click(); });
+    const failure = () => container.querySelector('a[data-state="error"]');
+    expect(failure().textContent).toContain('A file may be damaged - remove it and try again.');
+    await act(async () => { failure().click(); });
     await wait(0);
     expect(builtPdfs()).toHaveLength(1);
-    expect(container.querySelector('[role="alert"]')).toBeNull();
+    expect(failure()).toBeNull();
     expect(downloadLink()).not.toBeNull();
   });
 
@@ -506,19 +518,16 @@ describe('PdfImageToPdfTool UI flow', () => {
     expect(exports()).toBe(2);
   });
 
-  it('keeps the size and Share on screen while a change waits for quiet', async () => {
+  it('keeps the download link on screen, and no stale Share, while a change waits for quiet', async () => {
     const nativeShare = mockNativeFileShare();
     mount();
     await loadFiles(['a.png', 'b.png']);
     await wait(0);
-    const size = formatFileSize(builtPdfs()[0].size);
-    expect(downloadLink().textContent).toContain(size);
+    expect(downloadLink().textContent).toContain(formatFileSize(builtPdfs()[0].size));
     await act(async () => { removeButtons()[0].click(); });
     await wait(20);
-    expect(downloadLink().textContent).toContain(size);
-    const share = buttonByText('Share');
-    expect(share).not.toBeNull();
-    await act(async () => share.click());
+    expect(downloadLink()).not.toBeNull();
+    expect(buttonByText('Share')).toBeUndefined();
     expect(nativeShare.share).not.toHaveBeenCalled();
     nativeShare.restore();
   });
@@ -578,10 +587,10 @@ describe('PdfImageToPdfTool UI flow', () => {
     const before = downloadLink();
     await act(async () => { before.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true })); });
     await wait(0);
-    const busy = container.querySelector('[data-processing]');
+    const busy = container.querySelector('a[data-state="preparing"]');
     expect(busy).toBe(before);
     expect(busy.tagName).toBe('A');
-    expect(busy.getAttribute('aria-disabled')).toBe('true');
+    expect(busy.getAttribute('aria-busy')).toBe('true');
   });
 
   it('moves focus to the next tile after removing one, or the previous if it was last', async () => {
@@ -652,8 +661,8 @@ describe('PdfImageToPdfTool UI flow', () => {
     });
     await act(async () => { vi.advanceTimersByTime(1000); });
     const text = container.textContent;
-    for (const word of ['הוספת תמונות', 'סדר', 'עמודים', 'הורדת PDF']) expect(text).toContain(word);
-    for (const english of ['Add images', 'Order', 'pages', 'Download PDF']) expect(text).not.toContain(english);
+    for (const word of ['הוספת תמונות', 'סדר', 'עמודים', 'הורדה']) expect(text).toContain(word);
+    for (const english of ['Add images', 'Order', 'pages', 'Download', 'Compress']) expect(text).not.toContain(english);
     expect(text).toContain('דילגנו על "c.txt"');
     expect(container.querySelector('[data-page]').getAttribute('aria-label')).toBe('b.png, עמוד 1 מתוך 2. גררו, או לחצו על מקש חץ כדי להזיז.');
     expect(container.querySelector('button[aria-label="הסרת b.png"]')).not.toBeNull();
