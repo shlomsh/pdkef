@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import path from 'node:path';
-import { findAliasViolations } from './check-import-aliases.mjs';
+import { findAliasViolations, specifiersOf } from './check-import-aliases.mjs';
 
 // Fake world: resolveRel maps a relative specifier from `from` to a repo path, exists checks a set.
 const FILES = new Set([
@@ -51,5 +51,24 @@ describe('findAliasViolations', () => {
   it('exempts ? queries, e2e importers and bare packages', () => {
     expect(run('src/tools/sign/a.ts', ['../../lib/text/sort.ts?raw', 'pdf-lib', 'preact/hooks'])).toEqual([]);
     expect(run('src/tools/sign/e2e/a.spec.ts', ['../../../lib/text/sort.ts', '#lib/nope'])).toEqual([]);
+  });
+});
+
+describe('specifiersOf', () => {
+  it('collects every vi mock-family call, generic ones included', () => {
+    const source = [
+      "vi.mock('../a.ts');",
+      "vi.doMock('../b.ts', () => ({}));",
+      "vi.unmock('../c.ts');",
+      "vi.doUnmock('../d.ts');",
+      "await vi.importActual<{ f: typeof f }>('../e.ts');",
+      "await vi.importMock('../f.ts');",
+    ].join('\n');
+    expect(specifiersOf(source, 'src/x.test.ts').sort()).toEqual(['../a.ts', '../b.ts', '../c.ts', '../d.ts', '../e.ts', '../f.ts']);
+  });
+
+  it('leaves out a new URL(..., import.meta.url) argument, which an alias cannot replace', () => {
+    const source = "import a from '../a.ts';\nconst w = new URL('../../lib/pdf/pdfjsWorker.js', import.meta.url);\n";
+    expect(specifiersOf(source, 'src/x.ts')).toEqual(['../a.ts']);
   });
 });

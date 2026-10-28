@@ -39,7 +39,7 @@ describe('PdfEditPagesTool with a protected PDF', () => {
       };
     }
     input = undefined;
-    const realProbe = (await vi.importActual<{ probeEncryption: typeof probeEncryption }>('../../lib/pdf/pdfEncryption.ts')).probeEncryption;
+    const realProbe = (await vi.importActual<{ probeEncryption: typeof probeEncryption }>('#lib/pdf/pdfEncryption.ts')).probeEncryption;
     const legacyPdfjs = () => import('pdfjs-dist/legacy/build/pdf.mjs') as never;
     harness.pdfjs.probe.mockImplementation((bytes) => realProbe(bytes, legacyPdfjs));
   });

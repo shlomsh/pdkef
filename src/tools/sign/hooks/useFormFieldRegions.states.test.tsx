@@ -147,7 +147,7 @@ describe('useFormFieldRegions detection state', () => {
 
     await detect();
     expect(reportError).toHaveBeenCalledWith('sign_form_detection', theError, 'detect_fields');
-    vi.doUnmock('../../../lib/telemetry/errorReport.ts');
+    vi.doUnmock('#lib/telemetry/errorReport.ts');
   });
 
   // An honest zero: the run finished, and this document has nothing in it the
