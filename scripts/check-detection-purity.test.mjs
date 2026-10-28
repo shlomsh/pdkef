@@ -369,7 +369,7 @@ describe('detection purity guard: the pdfObjects.js split (ARCH-55)', () => {
 });
 
 // ARCH-107 review: DETECTION_MODULES is a hand list, so code moved out of a listed module (formCells.js
-// into formCellGrid.js) silently left the guard. A module in the detection folder that a listed module
+// into formCellGrid.ts) silently left the guard. A module in the detection folder that a listed module
 // imports at runtime is detection code too, so it must be on the list.
 const FIELDS = 'src/tools/sign/lib/fields/';
 describe('detection purity guard: the module list is closed under imports', () => {
