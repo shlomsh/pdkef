@@ -1,8 +1,7 @@
 ---
 id: "MEM-21"
 title: "A nightly job measures what an update downloads against the previous deploy, with a target of about 500 KB"
-status: "in_progress"
-horizon: "now"
+status: "done"
 priority: "P3"
 epic: "robustness"
 depends_on: ["MEM-19", "MEM-20"]
@@ -38,7 +37,7 @@ depends_on: ["MEM-19", "MEM-20"]
       plus the pages that reference it; a page changed only in bytes, not in references, costs that page.
 - [x] The nightly run reports the cost and the top contributors in its summary.
 - [x] The target and the measurement behind it are written in the Done section.
-- [ ] The job builds both deploys at one path, and a nightly reading of an ordinary deploy is under target.
+- [x] The job builds both deploys at one path, and a nightly reading of an ordinary deploy is under target.
 
 ## Progress
 
@@ -76,3 +75,10 @@ pages, because those pages really changed (MEM-25).
 
 The job now builds both deploys in one worktree, checked out in turn, pinned by
 `scripts/ci-update-cost.test.mjs`. Closes when a nightly reading of an ordinary deploy is under target.
+
+## Closed (2026-10-28)
+
+Run 40717216696 (a manual dispatch with `nightly: true`) compared the production deploys 935512c2 and
+fec5c109, both built at one path: 11,371 bytes, within the 500,000 target, with 0 pages changed and 0 new
+hashed chunks. Every other job in that run passed. A deploy that changes a shared module still reads above
+target until MEM-25 lands, which is the job doing what it is for.
