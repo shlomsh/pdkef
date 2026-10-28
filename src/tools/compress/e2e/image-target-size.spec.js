@@ -192,7 +192,7 @@ async function readDownload(page) {
   // `detail` second line (e.g. "48.83 KB, 2% smaller"), so an exact match on
   // just the label would never find it. A prefix regex still pins down which
   // link this is.
-  const link = page.getByRole('link', { name: /^Download Compressed Image/ });
+  const link = page.getByRole('link', { name: /^Download\b/ });
   await expect(link).toBeVisible();
 
   const href = await link.getAttribute('href');

@@ -78,8 +78,6 @@ export interface CompressMessages {
   imagesNoGainNotice: string;
   imagesUnsupportedNotice: string;
   imagesEncryptedNotice: string;
-  imageDownloadLabel: string;
-  imageShareLabel: string;
   imageLoaded: string;
   imageStarting: string;
   imageComplete: string;
@@ -137,8 +135,8 @@ export const englishCompressMessages: CompressMessages = {
   savedPercent: 'Saved {percent}%',
   closestAchievable: "Closest achievable size: {size} couldn't be reached without making the document unreadable, so this is the smallest readable result.",
   rasterizeNotice: 'Notice: Compression rasterizes PDF pages into images to reduce file size. Embedded links and text selection/copying will be disabled on the compressed document.',
-  downloadLabel: 'Download Compressed PDF',
-  shareLabel: 'Share Compressed PDF',
+  downloadLabel: 'Download',
+  shareLabel: 'Share',
   loaded: 'File "{name}" loaded.',
   starting: 'Starting PDF compression...',
   complete: 'PDF compression complete. Your file is ready.',
@@ -176,8 +174,6 @@ export const englishCompressMessages: CompressMessages = {
   imagesNoGainNotice: 'The images in this PDF are already compact, so making them smaller saved nothing. Your original is unchanged.',
   imagesUnsupportedNotice: "The images in this PDF are stored in a way I can't recompress, so nothing was changed. Turning the pages into pictures still works, with the switch above.",
   imagesEncryptedNotice: "This PDF is locked, so its images can't be recompressed here. Your original is unchanged. If you have its password, unlock it first, then compress it.",
-  imageDownloadLabel: 'Download Compressed Image',
-  imageShareLabel: 'Share Compressed Image',
   imageLoaded: 'File "{name}" loaded.',
   imageStarting: 'Starting image compression...',
   imageComplete: 'Image compression complete. Your file is ready.',
@@ -236,8 +232,8 @@ export const hebrewCompressMessages: CompressMessages = {
   savedPercent: 'נחסכו {percent}%',
   closestAchievable: 'הגודל הקרוב ביותר שהושג: לא הצלחנו להגיע ל-{size} בלי להפוך את המסמך לבלתי קריא, אז זו התוצאה הקריאה הכי קטנה.',
   rasterizeNotice: 'שימו לב: הכיווץ הופך את עמודי ה-PDF לתמונות כדי להקטין את גודל הקובץ. קישורים מוטבעים וחיפוש/העתקת טקסט יהיו מושבתים במסמך המכווץ.',
-  downloadLabel: 'הורדת PDF מכווץ',
-  shareLabel: 'שיתוף PDF מכווץ',
+  downloadLabel: 'הורדה',
+  shareLabel: 'שיתוף',
   loaded: 'הקובץ "{name}" נטען.',
   starting: 'מתחילים בכיווץ ה-PDF...',
   complete: 'כיווץ ה-PDF הושלם. הקובץ שלכם מוכן.',
@@ -275,8 +271,6 @@ export const hebrewCompressMessages: CompressMessages = {
   imagesNoGainNotice: 'התמונות ב-PDF הזה כבר קומפקטיות, אז הקטנה שלהן לא חסכה כלום. הקובץ המקורי לא השתנה.',
   imagesUnsupportedNotice: 'התמונות ב-PDF הזה שמורות בצורה שאנחנו לא יכולים לדחוס מחדש, אז שום דבר לא השתנה. אפשר עדיין להפוך את העמודים לתמונות, עם המתג למעלה.',
   imagesEncryptedNotice: 'ה-PDF הזה נעול, ולכן אי אפשר לדחוס כאן את התמונות שבו. הקובץ המקורי לא השתנה. אם יש לכם את הסיסמה, בטלו קודם את הנעילה ואז כווצו אותו.',
-  imageDownloadLabel: 'הורדת תמונה מכווצת',
-  imageShareLabel: 'שיתוף תמונה מכווצת',
   imageLoaded: 'הקובץ "{name}" נטען.',
   imageStarting: 'מתחילים בכיווץ התמונה...',
   imageComplete: 'כיווץ התמונה הושלם. הקובץ שלכם מוכן.',

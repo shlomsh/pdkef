@@ -49,13 +49,13 @@ const tools = [
       bufferFn: async () => fs.readFileSync(path.join(__dirname, '../src/tools/compress/__fixtures__/mixed.pdf')),
     },
     actionName: null,
-    downloadName: 'Download Compressed PDF',
+    downloadName: 'Download',
     // Not exact (SEO-25 "button anchor", 2026-09-12): DownloadButton's
     // `detail` prop adds a second, smaller line inside the link ("<size>,
     // <n>% smaller"), which is part of its accessible name for free - so an
     // exact match on just the label stops finding it. Every other tool in
     // this list still passes no `detail` and keeps its exact match.
-    downloadNameMatch: /^Download Compressed PDF/,
+    downloadNameMatch: /^Download\b/,
     downloadAttr: 'source-compressed.pdf',
   },
   {
