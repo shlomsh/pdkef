@@ -50,9 +50,9 @@
 //      hand-written path list. ARCH-22 gave `scripts/` itself a project
 //      (`tooling`), so a `scripts/` file is no longer unowned by this rule -
 //      see rule 3 for why the oracle files inside it still force everything.
-//   3. Any changed file is the CI oracle itself (ORACLE_FILES: this script or
-//      change-scope.mjs) -> everything=true. Do not trust a narrowed run to
-//      validate the code that decided to narrow it - the same reasoning
+//   3. Any changed file is the CI oracle itself (ORACLE_FILES: this script,
+//      change-scope.mjs, import-graph.mjs or unowned-verdicts.mjs) ->
+//      everything=true. Do not trust a narrowed run to validate the code that decided to narrow it - the same reasoning
 //      CORE_PROJECTS gives for editor. This is checked separately from
 //      ownership because `tooling` (rule 2) would otherwise let an oracle
 //      change narrow to just `scripts/`. Their own tests
@@ -106,6 +106,7 @@ import { dirname, resolve as resolvePath } from 'node:path';
 import { resolveBase, changedFiles, isDocsOnly } from './change-scope.mjs';
 import { resolveUnitScope, runUnitByImpact } from './unit-scope.mjs';
 import { buildReachGraph, importSpecifiers } from './import-graph.mjs';
+import { unownedRowOf, filesForNx, CI_FILE, ciFontJobChangedBetween } from './unowned-verdicts.mjs';
 
 const ROOT = resolvePath(dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -129,7 +130,7 @@ export const CORE_PROJECTS = new Set(['site', 'shell', 'editor', 'lib', 'data', 
 // regardless of ownership. Their own tests are deliberately not listed here:
 // scripts/affected-scope.test.mjs and scripts/change-scope.test.mjs may
 // narrow like any other tooling file.
-export const ORACLE_FILES = new Set(['scripts/affected-scope.mjs', 'scripts/change-scope.mjs', 'scripts/import-graph.mjs']);
+export const ORACLE_FILES = new Set(['scripts/affected-scope.mjs', 'scripts/change-scope.mjs', 'scripts/import-graph.mjs', 'scripts/unowned-verdicts.mjs']);
 
 // QUAL-32 follow-up: a file the production build executes shapes dist/ (the precache manifest, the
 // service worker build id, repo-only pruning), which e2e/offline and the rest of the suite exercise,
@@ -274,57 +275,6 @@ export function siteE2eProjectList(info, children) {
 export function publicOwnerOf(file) {
   if (file.startsWith('public/.well-known/')) return 'public-well-known';
   return null;
-}
-
-// QUAL-34: verdicts for files no Nx project owns, each backed by what reads the file (the `why`).
-// `e2e` is 'none' (no spec or build step reads it), a list of spec dirs, or 'all' (every product
-// spec, fonts off unless something else turns them on). Anything not here widens as before.
-const rowOf = (test, e2e, why) => ({ test, verdict: { e2e }, why });
-export const UNOWNED_VERDICTS = [
-  rowOf((f) => f === 'middleware.ts' || f === 'vercel.json' || f.startsWith('api/'), 'none', 'astro preview runs no middleware, reads no vercel.json and serves no api/; test:csp and test:redirects cover them'),
-  rowOf(
-    (f) => /^(?:spikes|prototypes|security)\//.test(f) || f === '.gitignore' || f === '.github/dependabot.yml' || f.startsWith('.github/ISSUE_TEMPLATE/') || f === 'public/llms.txt' || f === 'public/agents.md',
-    'none',
-    'no spec or build step reads it',
-  ),
-  rowOf((f) => f === 'public/manifest.webmanifest', ['e2e/offline/'], 'only e2e/offline/twoBuildServer.js reads it'),
-  rowOf((f) => f === 'public/sw.js' || f.startsWith('public/images/'), 'all', 'every page registers the worker and tool specs open public/images/**; no font guard reads either'),
-  rowOf((f) => f === '.github/workflows/ci.yml', 'all', 'a workflow edit can break any job; font guards only when the font-guards job or a shared part changed'),
-];
-
-function unownedRowOf(file) {
-  return UNOWNED_VERDICTS.find((row) => row.test(file)) ?? null;
-}
-
-export function unownedVerdictOf(file) {
-  return unownedRowOf(file)?.verdict ?? null;
-}
-
-// The files Nx is asked about: table files are left out, or middleware.ts would mark most projects affected.
-export function filesForNx(files) {
-  return files.filter((f) => !unownedRowOf(f));
-}
-
-// QUAL-34: does a ci.yml change reach the `job`? `hunks` are new-side {start, count} ranges from
-// `git diff -U0`. Lines outside every job (on:, env:, jobs:) count as touching every job.
-export function ciChangeTouchesJob(ciText, hunks, job) {
-  const lines = ciText.split('\n');
-  const header = (line) => /^ {2}[\w-]+:/.test(line);
-  const jobsAt = lines.findIndex((l) => l === 'jobs:');
-  const jobStarts = [];
-  lines.forEach((l, i) => { if (jobsAt >= 0 && i > jobsAt && header(l)) jobStarts.push(i + 1); });
-  const first = jobStarts[0] ?? lines.length + 1;
-  const mine = jobStarts.indexOf(lines.findIndex((l) => l.startsWith(`  ${job}:`)) + 1);
-  const from = mine >= 0 ? jobStarts[mine] : -1;
-  const to = mine >= 0 ? (jobStarts[mine + 1] ?? lines.length + 1) - 1 : -1;
-  return hunks.some(({ start, count }) => {
-    const touched = count === 0 ? [start, start + 1] : Array.from({ length: count }, (_, k) => start + k);
-    return touched.some((n) => n < first || n === jobsAt + 1 || (n >= from && n <= to));
-  });
-}
-
-export function parseHunks(diffText) {
-  return [...diffText.matchAll(/^@@ -\S+ \+(\d+)(?:,(\d+))? @@/gm)].map((m) => ({ start: Number(m[1]), count: m[2] === undefined ? 1 : Number(m[2]) }));
 }
 
 export function ownerOf(file, roots) {
@@ -627,20 +577,6 @@ function narrowResult({ files, affected, toolProjects, toolE2eExists, siteE2ePat
     e2e_paths: e2ePaths.join(' '),
     reason,
   };
-}
-
-// QUAL-34: did the ci.yml edit touch the font-guards job or anything outside a job? Any error answers
-// true (fail-open: the font guards run).
-const CI_FILE = '.github/workflows/ci.yml';
-function ciFontJobChangedBetween(base, head) {
-  try {
-    const git = (args) => execFileSync('git', args, { encoding: 'utf8', cwd: ROOT, stdio: ['ignore', 'pipe', 'ignore'] });
-    const text = head ? git(['show', `${head}:${CI_FILE}`]) : readFileSync(join(ROOT, CI_FILE), 'utf8');
-    const diff = git(['diff', '-U0', base, ...(head ? [head] : []), '--', CI_FILE]);
-    return ciChangeTouchesJob(text, parseHunks(diff), 'font-guards');
-  } catch {
-    return true;
-  }
 }
 
 // Exported for scripts/check-push.mjs (ARCH-29): it computes the scope once,

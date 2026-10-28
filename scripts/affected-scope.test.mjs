@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { deriveScope, ownerOf, toolNameOf, siteE2eOwnPaths, CORE_PROJECTS, ORACLE_FILES, wide, matchesFontsGlob, unownedVerdictOf, filesForNx, ciChangeTouchesJob, parseHunks, narrowByReachability, makeToolOf, runsProductE2e, formatOutputs, buildPipelineFiles } from './affected-scope.mjs';
+import { deriveScope, ownerOf, toolNameOf, siteE2eOwnPaths, CORE_PROJECTS, ORACLE_FILES, wide, matchesFontsGlob, narrowByReachability, makeToolOf, runsProductE2e, formatOutputs, buildPipelineFiles } from './affected-scope.mjs';
 import { readFileSync } from 'node:fs';
 import { buildReachGraph } from './import-graph.mjs';
 
@@ -580,6 +580,7 @@ describe('deriveScope', () => {
     it('the oracle rule fires even when the file also happens to be the only changed file (no affected projects besides tooling)', () => {
       expect(ORACLE_FILES.has('scripts/affected-scope.mjs')).toBe(true);
       expect(ORACLE_FILES.has('scripts/change-scope.mjs')).toBe(true);
+      expect(ORACLE_FILES.has('scripts/unowned-verdicts.mjs')).toBe(true);
       expect(ORACLE_FILES.has('scripts/affected-scope.test.mjs')).toBe(false);
       expect(ORACLE_FILES.has('scripts/change-scope.test.mjs')).toBe(false);
     });
@@ -1154,61 +1155,5 @@ describe('unowned-file verdicts (QUAL-34)', () => {
   it('the manifest next to a tool file adds e2e/offline/ once', () => {
     const scope = deriveScope({ files: ['public/manifest.webmanifest', 'src/tools/compress/PdfCompressTool.tsx'], affected: ['tool-compress'], roots: ROOTS });
     expect(scope.e2e_paths.split(' ')).toEqual(['src/tools/compress/e2e/', 'e2e/offline/']);
-  });
-
-  it('unownedVerdictOf returns null for files outside the table', () => {
-    expect(unownedVerdictOf('package.json')).toBeNull();
-    expect(unownedVerdictOf('middleware.ts').e2e).toBe('none');
-  });
-
-  it('filesForNx drops table files and keeps the rest', () => {
-    expect(filesForNx(['middleware.ts', 'vercel.json', 'src/lib/a.ts', 'package.json', 'public/sw.js'])).toEqual(['src/lib/a.ts', 'package.json']);
-  });
-});
-
-describe('ciChangeTouchesJob (QUAL-34)', () => {
-  const ci = [
-    'name: CI', // 1
-    'on:', // 2
-    '  push:', // 3
-    'jobs:', // 4
-    '  units:', // 5
-    '    runs-on: x', // 6
-    '    steps:', // 7
-    '      - run: a', // 8
-    '  font-guards:', // 9
-    '    runs-on: x', // 10
-    '    steps:', // 11
-    '      - run: b', // 12
-    '  build:', // 13
-    '    runs-on: x', // 14
-  ].join('\n');
-
-  it('a hunk inside font-guards touches it', () => {
-    expect(ciChangeTouchesJob(ci, [{ start: 12, count: 1 }], 'font-guards')).toBe(true);
-  });
-  it('a hunk inside units does not', () => {
-    expect(ciChangeTouchesJob(ci, [{ start: 8, count: 1 }], 'font-guards')).toBe(false);
-  });
-  it('a hunk on a top-level line touches', () => {
-    expect(ciChangeTouchesJob(ci, [{ start: 2, count: 1 }], 'font-guards')).toBe(true);
-  });
-  it('the jobs: line itself touches', () => {
-    expect(ciChangeTouchesJob(ci, [{ start: 4, count: 1 }], 'font-guards')).toBe(true);
-  });
-  it('a pure deletion inside units does not', () => {
-    expect(ciChangeTouchesJob(ci, [{ start: 7, count: 0 }], 'font-guards')).toBe(false);
-  });
-  it('a pure deletion at the end of units touches the next job header', () => {
-    expect(ciChangeTouchesJob(ci, [{ start: 8, count: 0 }], 'font-guards')).toBe(true);
-  });
-  it('the last job runs to EOF', () => {
-    expect(ciChangeTouchesJob(ci, [{ start: 14, count: 1 }], 'build')).toBe(true);
-    expect(ciChangeTouchesJob(ci, [{ start: 14, count: 1 }], 'font-guards')).toBe(false);
-  });
-
-  it('parseHunks reads new-side ranges, count defaulting to 1', () => {
-    const diff = ['diff --git a/x b/x', '@@ -3,2 +3,4 @@ foo', '+a', '@@ -10 +12 @@', '+b', '@@ -20,2 +22,0 @@', '-c'].join('\n');
-    expect(parseHunks(diff)).toEqual([{ start: 3, count: 4 }, { start: 12, count: 1 }, { start: 22, count: 0 }]);
   });
 });
