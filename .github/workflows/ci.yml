@@ -321,7 +321,8 @@ jobs:
       env:
         BASE: ${{ needs.scope.outputs.base }}
       run: |
-        if [ -n "$BASE" ]; then git fetch --no-tags --depth=1 origin "$BASE" || true; fi
+        # No --depth: the checkout is full history and the site build dates pages from it; a depth-limited fetch makes the clone shallow.
+        if [ -n "$BASE" ]; then git fetch --no-tags origin "$BASE" || true; fi
         node scripts/affected-scope.mjs --base "$BASE" >> "$GITHUB_OUTPUT"
 
     - name: Size the e2e matrix

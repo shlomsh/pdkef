@@ -49,6 +49,12 @@ describe('ci.yml builds once (QUAL-42)', () => {
     expect(up?.with?.['retention-days']).toBeGreaterThanOrEqual(3);
   });
 
+  it('plan keeps the full history it checked out: no depth-limited fetch before the build', () => {
+    // A `git fetch --depth=1` turns a full clone shallow, and the site build then dates every older page to the boundary commit.
+    const shallow = stepsOf('plan').filter((s) => /git fetch[^\n]*--depth/.test(s.run ?? ''));
+    expect(shallow.map((s) => s.name)).toEqual([]);
+  });
+
   it('plan checks out full history', () => {
     const co = stepsOf('plan').find((s) => String(s.uses ?? '').startsWith('actions/checkout'));
     expect(co?.with?.['fetch-depth']).toBe(0);
