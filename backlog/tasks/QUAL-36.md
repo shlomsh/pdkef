@@ -1,10 +1,9 @@
 ---
 id: "QUAL-36"
 title: "Editing a dist guard script runs the build and dist guards locally"
-status: "in_progress"
+status: "done"
 priority: "P3"
 epic: "unify-and-narrow"
-horizon: "next"
 depends_on: []
 ---
 
