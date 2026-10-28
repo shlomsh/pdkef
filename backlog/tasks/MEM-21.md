@@ -1,10 +1,9 @@
 ---
 id: "MEM-21"
 title: "A nightly job measures what an update downloads against the previous deploy, with a target of about 500 KB"
-status: "in_progress"
+status: "done"
 priority: "P3"
 epic: "robustness"
-horizon: "next"
 depends_on: ["MEM-19", "MEM-20"]
 ---
 
@@ -36,8 +35,9 @@ depends_on: ["MEM-19", "MEM-20"]
 
 - [x] Unit tests: unchanged builds cost only `sw.js` and the manifest; one renamed chunk costs that chunk
       plus the pages that reference it; a page changed only in bytes, not in references, costs that page.
-- [ ] The nightly run reports the cost and the top contributors in its summary.
-- [ ] The target and the measurement behind it are written in the Done section.
+- [x] The nightly run reports the cost and the top contributors in its summary.
+- [x] The target and the measurement behind it are written in the Done section.
+- [x] The job builds both deploys at one path, and a nightly reading of an ordinary deploy is under target.
 
 ## Progress
 
@@ -47,3 +47,38 @@ that builds the last two production deploys GitHub records for Vercel (main's fi
 deploy). On the 2026-10-27 S8 pair (a8763091 to 7ffc926f with MEM-19 and MEM-20 applied) the CLI reports
 503,058 bytes, above target, led by /sign/, /he/sign/ and the new PdfSignTool chunk, 12 pages changed
 alongside 5 new hashed chunks. Closes once the first nightly run has written its summary.
+
+## Done (2026-10-28)
+
+- **Target:** `UPDATE_COST_TARGET = 500_000` bytes brotli (q5) in `scripts/updateCost.mjs`, from the
+  measurement in Why: about 0.66 MB median once MEM-19 and MEM-20 removed the stamp and CSP-order churn,
+  and 503,058 bytes on the 2026-10-27 S8 pair.
+- **First nightly reading:** run 40662513043 (2026-10-28, a manual dispatch with `nightly: true`, which
+  takes the scheduled path) compared the last two production deploys, de9b06dc and 5522bb04, and wrote
+  the job summary. Result: 1,934,844 bytes, above target, so the job failed as designed. It named the
+  top contributors (`/_astro/sign.*.js` 301,114 new-hashed, `/sign/` 50,488, `/he/sign/` 49,853,
+  `PdfSignTool.*.js` 43,350, `/` 42,643) and the cascade: 54 pages changed alongside 20 new hashed chunks.
+- That deploy changed only `src/lib/telemetry/maintenanceEventSchema.ts` and `src/site-lib/appUpdate.ts`
+  (MEM-24), so the cost is the shared-chunk cascade this ticket warned about, not new content. It is
+  tracked as its own structural ticket, MEM-25.
+
+## Reopened (2026-10-28)
+
+The scheduled nightly that day (run 40665616224, 5522bb04 to 935512c2) read 906,908 bytes with 25 pages
+changed and no chunk renamed. Rebuilt at one path, the same pair costs 23,275 bytes and changes only
+`/about/` (its build stamp). The job built each deploy in its own `git worktree` directory, and Astro
+hashes each island's absolute source path into its `uid` (`shorthash` of `componentUrl` in
+`node_modules/astro/dist/runtime/server/render/component.js`), so every island page differed. About
+880 KB of that reading was the measurement, and no reading could pass the target. The first reading
+(1,934,844 bytes, de9b06dc to 5522bb04) holds: rebuilt at one path it is 1,934,774 bytes and the same 54
+pages, because those pages really changed (MEM-25).
+
+The job now builds both deploys in one worktree, checked out in turn, pinned by
+`scripts/ci-update-cost.test.mjs`. Closes when a nightly reading of an ordinary deploy is under target.
+
+## Closed (2026-10-28)
+
+Run 40717216696 (a manual dispatch with `nightly: true`) compared the production deploys 935512c2 and
+fec5c109, both built at one path: 11,371 bytes, within the 500,000 target, with 0 pages changed and 0 new
+hashed chunks. Every other job in that run passed. A deploy that changes a shared module still reads above
+target until MEM-25 lands, which is the job doing what it is for.

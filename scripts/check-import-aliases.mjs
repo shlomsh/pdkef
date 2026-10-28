@@ -6,6 +6,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { IMPORT_ALIASES, aliasTarget } from './import-aliases.mjs';
+import { functionFiles } from './check-function-imports.mjs';
 import { REPO_ROOT, TEST_FILE, collectSourceFiles, importSpecifiers, resolveRelativeImport, relOf } from './import-graph.mjs';
 
 const layerOf = (rel) => {
@@ -56,8 +57,10 @@ function main() {
   const src = path.join(REPO_ROOT, 'src');
   const files = [...collectSourceFiles(src), ...collectSourceFiles(src, [], { testFiles: true })];
   const violations = [];
+  const inFunction = functionFiles(); // deployed functions cannot load an alias: check-function-imports.mjs requires relative .js there
   for (const abs of files) {
     const rel = relOf(abs);
+    if (inFunction.has(rel)) continue;
     const source = fs.readFileSync(abs, 'utf8');
     const specs = specifiersOf(source, rel);
     violations.push(

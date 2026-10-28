@@ -142,6 +142,11 @@ jobs:
     - name: Verify import aliases
       run: npm run test:import-aliases
 
+    # Everything an api/ function or middleware.ts reaches imports relatively with .js: the
+    # function build cannot load an alias or a .ts specifier (ARCH-44 took /api/report down for 6h).
+    - name: Verify function imports
+      run: npm run test:function-imports
+
     # ARCH-76: scripts/ratchet-limits.json holds every ratchet limit; a value that
     # rose (or an entry added to an existing section) against the base fails here.
     # BASE is empty when the scope job could not resolve one; the script then
@@ -644,6 +649,36 @@ jobs:
     - name: Aggregate per-spec failure and retry rates
       run: node scripts/flake-report.mjs --dir flake-reports --runs "$RUNS" --threshold 0.02
 
+  # ARCH-123: how often the last 50 pushes to main narrowed, replayed against today's project graph.
+  # Nightly only. Reporting only: it never fails the run, and nothing needs it.
+  narrowing-share:
+    runs-on: ubuntu-latest
+    needs: scope
+    if: always() && (github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.nightly))
+    continue-on-error: true
+    permissions:
+      actions: read
+      contents: read
+    steps:
+    - uses: actions/checkout@v5
+      with:
+        fetch-depth: 0
+
+    - name: Use Node.js
+      uses: actions/setup-node@v5
+      with:
+        node-version: '22.x'
+        check-latest: true
+        cache: 'npm'
+
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Write the narrowed share of the last main pushes
+      env:
+        GH_TOKEN: ${{ github.token }}
+      run: node scripts/narrowing-share.mjs --limit 50
+
   # The Playwright version the `e2e` and `e2e-webkit` containers are tagged with: Playwright's image
   # carries the browsers of one release, so the tag comes from the lockfile, never a copy kept by hand.
   # Its own job, not a step of `scope`, because `scope` is skipped on workflow_dispatch and both e2e
@@ -783,12 +818,16 @@ jobs:
       run: |
         node scripts/lastDeploys.mjs "${{ github.repository }}" >> "$GITHUB_OUTPUT"
 
+    # Both deploys build at one path: Astro hashes each island's absolute source path into its
+    # `uid`, so two paths rewrite every island page (about 880 KB of a 907 KB reading, 2026-10-28).
     - name: Build both deploys
       run: |
+        git worktree add --detach "$RUNNER_TEMP/build" "${{ steps.deploys.outputs.before }}"
         for side in before after; do
           sha=$([ "$side" = before ] && echo "${{ steps.deploys.outputs.before }}" || echo "${{ steps.deploys.outputs.after }}")
-          git worktree add "$RUNNER_TEMP/$side" "$sha"
-          (cd "$RUNNER_TEMP/$side" && npm ci && npm run build && mv dist "$RUNNER_TEMP/dist-$side")
+          git -C "$RUNNER_TEMP/build" checkout --detach --force "$sha"
+          git -C "$RUNNER_TEMP/build" clean -fdxq
+          (cd "$RUNNER_TEMP/build" && npm ci && npm run build && mv dist "$RUNNER_TEMP/dist-$side")
         done
 
     - name: Measure the update cost
