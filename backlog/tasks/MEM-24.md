@@ -1,7 +1,7 @@
 ---
 id: "MEM-24"
 title: "A service worker that cannot install, or never completes its precache, says so"
-status: "open"
+status: "in_progress"
 priority: "P3"
 epic: "robustness"
 horizon: "next"
@@ -34,9 +34,46 @@ ready to take over.
 - At most one report per build per device, and it never blocks or delays the install itself.
 - Whether a Vercel preview deployment rewrites HTML is measured once and written down here.
 
+## Design (2026-10-28)
+
+The worker records, the page reports. Nothing in the worker sends anything.
+
+- **Reason codes** (closed list): `other_build` (manifest from another build), `manifest_unreadable`
+  (manifest status other than 404, network failure or invalid shape), `storage` (a cache write threw),
+  `root_unreachable` (`/` failed to load or stalled), `root_mismatch` (`/` is not this build's file),
+  `files_missed` (a retry of the precache, `completePrecache`, still missed files).
+- **Missed-count bucket** (closed list): `0` for an install failure, else `1`, `2-5`, `6-20`, `21+`.
+- **The record.** The worker writes it to Cache Storage in a cache named `maint-sw-v1`, outside the
+  `pdkef-` prefix, so no cleanup, build comparison or critical-version check ever sees it. The key is
+  `/__maint/sw-install/<BUILD_ID>`, and the body is JSON `{"v":1,"build":"<BUILD_ID>","reason":"<code>","missed":"<bucket>"}`.
+  An install failure awaits the write, bounded and with errors swallowed, then fails as before. A
+  `files_missed` record is written after the retry and never awaited by anything.
+- **The report.** On load, after the registration's idle gate, the page reads `maint-sw-v1`. For each
+  record of a build that has no tombstone `/__maint/sw-install-sent/<BUILD_ID>` in the same cache, it
+  sends one maintenance event `sw_install` with outcome `failure`, the reason and the bucket, through
+  `reportMaintenanceEvent` (re-validated by `parseMaintenanceEvent`), then writes the tombstone. That
+  gives at most one report per build per device. It keeps tombstones only for builds that still have a
+  record, and at most 5 entries in all.
+- **The event** is stored as the field `sw_install|failure|<reason>|<bucket>|<engine>`, so the daily read
+  shows it as its own row with no script change.
+
 ## Acceptance
 
-- [ ] Unit tests in `scripts/sw.test.mjs` for each reason code, the once-per-build limit, and a report
+- [x] Unit tests in `scripts/sw.test.mjs` for each reason code, the once-per-build limit, and a report
       that fails to send without affecting the install.
-- [ ] `src/site-lib/reportContract.test.ts` (or its successor) accepts the new report and nothing wider.
-- [ ] The daily error read can tell these reports apart.
+- [x] `src/site-lib/reportContract.test.ts` (or its successor) accepts the new report and nothing wider.
+- [x] The daily error read can tell these reports apart.
+
+## Progress (2026-10-28)
+
+- Built as designed: typed reason codes in `public/sw.js`, the record in `maint-sw-v1`, the page reporter
+  `src/site-lib/swInstallReport.ts` (loaded on demand after the registration's idle gate), and the
+  `sw_install` event in the schema, endpoint tests and `docs/maintenance-telemetry.md`. The daily read shows
+  it as its own `sw_install|failure|<reason>|<bucket>` row with no script change.
+- A review found that the tombstone was written even when the report did not leave (offline). It now
+  follows a send that went out, so an offline load retries on the next one.
+- Still open: whether a Vercel preview rewrites HTML. One preview deployment (2026-10-28) answers every
+  URL with a 302 to Vercel login (Deployment Protection), so curl could not compare anything. Two facts
+  came out of it: a preview is reachable only by someone logged in to Vercel, and Vercel's build id
+  differs from a local build of the same commit, so the comparison has to be the preview's own manifest
+  against its own `/`, from a logged-in browser.

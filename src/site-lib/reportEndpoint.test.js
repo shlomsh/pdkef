@@ -299,6 +299,28 @@ describe('/api/report stays silent', () => {
       expect(hincrbys[0][2]).toBe('sign_form_detection|success|one_to_five|image|ios-17');
     });
 
+    it('counts an sw_install failure as exactly one HINCRBY with its reason and bucket (MEM-24)', async () => {
+      const fetchSpy = vi
+        .spyOn(globalThis, 'fetch')
+        .mockImplementation(async () => new Response(JSON.stringify([{ result: 1 }, { result: 1 }]), { status: 200 }));
+      const sw = { name: 'sw_install', properties: { outcome: 'failure', reason: 'files_missed', missed: '2-5' } };
+      expect((await postJson(sw)).status).toBe(204);
+      const commands = fetchSpy.mock.calls.flatMap(([, init]) => JSON.parse(init.body));
+      expect(commands.filter(([name]) => name === 'HSET')).toHaveLength(0);
+      const hincrbys = commands.filter(([name]) => name === 'HINCRBY');
+      expect(hincrbys).toHaveLength(1);
+      expect(hincrbys[0][1]).toMatch(/^events:\d{4}-\d{2}-\d{2}$/);
+      expect(hincrbys[0][2]).toBe('sw_install|failure|files_missed|2-5|ios-17');
+    });
+
+    it('rejects a malformed sw_install as a reject, not an event (MEM-24)', async () => {
+      const fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation(answerTotal(1));
+      const bad = { name: 'sw_install', properties: { outcome: 'failure', reason: 'storage', missed: '0', url: '/x' } };
+      expect((await postJson(bad)).status).toBe(204);
+      expect(rejectCounts(fetchSpy).length).toBe(1);
+      expect(JSON.stringify(sentPipelines(fetchSpy))).not.toMatch(/events:|errors:/);
+    });
+
     const rejected = {
       'an extra property': { ...event, properties: { ...event.properties, note: 'x' } },
       'an unknown error_code': { ...event, properties: { outcome: 'failure', error_code: 'boom' } },

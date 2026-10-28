@@ -1,8 +1,10 @@
 import { EventEmitter } from 'node:events';
 import { describe, expect, it } from 'vitest';
-import { runStageWith, touchesAstro, fileCannotReachDist, reachesDist, planSteps, stageSteps, narrowTestOnlyChange, portOwnerVerdict, ALWAYS_GUARD_STEPS, DIST_GUARD_STEPS, DOCS_ONLY_STEPS } from './check-push.mjs';
-import { deriveScope, wide } from './affected-scope.mjs';
+import { runStageWith, touchesAstro, fileCannotReachDist, reachesDist, planSteps, stageSteps, localScope, portOwnerVerdict, ALWAYS_GUARD_STEPS, DIST_GUARD_STEPS, DOCS_ONLY_STEPS, distGuardScripts } from './check-push.mjs';
+import { deriveScope, wide, finishScope } from './affected-scope.mjs';
+import { narrowTestOnlyChange } from './test-only-scope.mjs';
 import { classify } from './change-scope.mjs';
+import { readFileSync } from 'node:fs';
 
 /* scripts/check-push.mjs (ARCH-29) computes the CI oracle's scope once (base:
    the merge-base of origin/main and HEAD; files: the working tree against
@@ -91,6 +93,58 @@ describe('fileCannotReachDist / reachesDist', () => {
     expect(fileCannotReachDist('scripts/minifyServiceWorker.mjs')).toBe(false);
     expect(fileCannotReachDist('scripts/precacheClosure.mjs')).toBe(false);
     expect(reachesDist(['scripts/precacheClosure.mjs'])).toBe(true);
+  });
+
+  // QUAL-36: a script a dist guard runs is a dist input, derived from package.json.
+  it.each([
+    'scripts/verify-seo.js',
+    'scripts/verify-csp.js',
+    'scripts/check-page-weight.js',
+    'scripts/check-precache-budget.mjs',
+    'scripts/check-trailing-slash-redirects.js',
+    'scripts/check-lazy-modules.js',
+    'scripts/check-class-resolution.js',
+    'scripts/check-color-literals.mjs',
+    'scripts/check-editor-global-css.js',
+    'scripts/check-dead-utilities.js',
+    'scripts/check-css-duplication.js',
+    'scripts/check-built-html-comments.js',
+    'scripts/check-animation-shorthand.js',
+  ])('%s is run by a dist guard, so it reaches dist', (file) => {
+    expect(reachesDist([file])).toBe(true);
+  });
+
+  it('a new dist guard script and its relative import count with no list edited', () => {
+    const pkg = JSON.stringify({ scripts: { 'test:new': 'node scripts/new-guard.mjs --flag', build: 'node scripts/a.mjs' } });
+    const files = { 'scripts/new-guard.mjs': "import { x } from './helper.mjs';", 'scripts/helper.mjs': 'export const x = 1;' };
+    const scripts = distGuardScripts(pkg, (rel) => files[rel] ?? null, ['test:new']);
+    expect(reachesDist(['scripts/new-guard.mjs'], scripts)).toBe(true);
+    expect(reachesDist(['scripts/helper.mjs'], scripts)).toBe(true);
+    expect(reachesDist(['scripts/unrelated.mjs'], scripts)).toBe(false);
+  });
+
+  // QUAL-36: a JSON data file a dist guard reads is not a script, so it fails open.
+  it.each(['scripts/ratchet-limits.json', 'scripts/css-module-class-allowlist.json', 'scripts/color-literal-allowlist.json'])(
+    '%s is guard data, so it reaches dist',
+    (file) => {
+      expect(reachesDist([file])).toBe(true);
+    },
+  );
+
+  it.each(DIST_GUARD_STEPS)('dist guard step %s contributes a script to distGuardScripts (a bare `npm run x` would not be followed)', (step) => {
+    const pkg = readFileSync(new URL('../package.json', import.meta.url), 'utf8');
+    const read = (rel) => {
+      try {
+        return readFileSync(new URL(`../${rel}`, import.meta.url), 'utf8');
+      } catch {
+        return null;
+      }
+    };
+    expect(distGuardScripts(pkg, read, [step]).size).toBeGreaterThan(0);
+  });
+
+  it('a script no build step and no dist guard runs still cannot reach dist', () => {
+    expect(reachesDist(['scripts/ci-narrowing-report.mjs'])).toBe(false);
   });
 
   it.each(['vercel.json', 'package.json', 'astro.config.mjs', 'middleware.ts', 'src/lib/text/format.js', 'public/fonts/Kalam-Regular.ttf'])(
@@ -224,45 +278,6 @@ describe('planSteps', () => {
   });
 });
 
-describe('narrowTestOnlyChange (ARCH-31)', () => {
-  const wideScope = { everything: true, e2e_paths: '', fonts: true, export_guards: true, reason: 'core' };
-
-  it('leaves the scope alone when any non-test file changed', () => {
-    const files = ['src/tools/merge/lib/merge.test.js', 'src/tools/merge/lib/merge.js'];
-    expect(narrowTestOnlyChange(wideScope, files)).toBe(wideScope);
-  });
-
-  it('leaves the scope alone for a spec helper or fixture, which is not a spec', () => {
-    const files = ['e2e/sign/fixtures/shapingGuardHarness.js', 'e2e/sign/hebrew-guard.spec.js'];
-    expect(narrowTestOnlyChange(wideScope, files)).toBe(wideScope);
-  });
-
-  it('leaves a non-.js spec to the Nx verdict, since Playwright would never discover it', () => {
-    expect(narrowTestOnlyChange(wideScope, ['src/tools/merge/e2e/new.spec.ts'])).toBe(wideScope);
-  });
-
-  it('leaves an empty or docs-only diff to the existing rules', () => {
-    expect(narrowTestOnlyChange(wideScope, [])).toBe(wideScope);
-    expect(narrowTestOnlyChange(wideScope, ['docs/x.md'])).toBe(wideScope);
-  });
-
-  it('unit tests plus docs select no Playwright at all', () => {
-    const scope = narrowTestOnlyChange(wideScope, ['src/lib/text/format.test.js', 'backlog/tasks/ARCH-31.md', 'scripts/check-push.test.mjs']);
-    expect(scope).toMatchObject({ everything: false, e2e_paths: '', fonts: false, export_guards: false });
-  });
-
-  it('a font guard spec runs the font guards, an export guard spec the export guards, nothing else', () => {
-    expect(narrowTestOnlyChange(wideScope, ['e2e/sign/hebrew-guard.spec.js'])).toMatchObject({ e2e_paths: '', fonts: true, export_guards: false });
-    expect(narrowTestOnlyChange(wideScope, ['e2e/sign/noto-parity.spec.js'])).toMatchObject({ e2e_paths: '', fonts: true });
-    expect(narrowTestOnlyChange(wideScope, ['e2e/export/export-render-guard.spec.js'])).toMatchObject({ e2e_paths: '', fonts: false, export_guards: true });
-  });
-
-  it('a tool spec plus a unit test runs just that spec', () => {
-    const scope = narrowTestOnlyChange(wideScope, ['src/tools/merge/e2e/merge-share.spec.js', 'src/tools/merge/lib/merge.test.js']);
-    expect(scope).toMatchObject({ everything: false, e2e_paths: 'src/tools/merge/e2e/merge-share.spec.js', fonts: false, export_guards: false });
-  });
-});
-
 describe('portOwnerVerdict (ARCH-31)', () => {
   const root = '/w/arch-31';
   it('free, own, foreign, unknown', () => {
@@ -355,5 +370,25 @@ describe('runStageWith', () => {
     const r = await settled(stage);
     expect(r.failed).toBe(true);
     expect([...children.keys()]).toEqual(['a']);
+  });
+});
+
+describe('check:push and CI share the test-only scope (QUAL-35)', () => {
+  const files = ['src/tools/merge/merge.test.js', 'src/tools/merge/e2e/merge-grid.spec.js'];
+  const nx = () => deriveScope({ files: ['src/lib/x.js'], affected: ['lib'], roots: ROOTS });
+
+  it('CI narrows to the changed spec and check:push keeps exactly that verdict', () => {
+    const ci = finishScope(nx(), files);
+    expect(ci).toMatchObject({ everything: false, e2e_paths: 'src/tools/merge/e2e/merge-grid.spec.js', fonts: false, export_guards: false });
+    const local = localScope(ci, files, false);
+    for (const key of ['everything', 'e2e_paths', 'fonts', 'export_guards']) expect(local[key]).toBe(ci[key]);
+  });
+
+  it('check:push never applies the narrowing itself', () => {
+    expect(readFileSync(new URL('./check-push.mjs', import.meta.url), 'utf8')).not.toMatch(/narrowTestOnlyChange/);
+  });
+
+  it('resolveScope, which CI and check:push both call, ends with finishScope', () => {
+    expect(readFileSync(new URL('./affected-scope.mjs', import.meta.url), 'utf8')).toMatch(/return finishScope\(deriveScope\(/);
   });
 });

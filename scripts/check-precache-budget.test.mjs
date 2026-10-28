@@ -3,7 +3,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { pageHash } from './pageHash.mjs';
 import { describe, expect, it } from 'vitest';
-import { KNOWN_ORPHANS, closureBytes, findBudgetFailures, findForeignIslands, checkPrecache, findMissingFiles, findMissingIslands, findOrphanedAssets, findUnhandledAssets, installUrls, manifestIdentityProblems, distFontUrls, repoOnlyProblems } from './check-precache-budget.mjs';
+import { brotliSizes, KNOWN_ORPHANS, closureBytes, findBudgetFailures, findForeignIslands, checkPrecache, findMissingFiles, findMissingIslands, findOrphanedAssets, findUnhandledAssets, installUrls, manifestIdentityProblems, distFontUrls, repoOnlyProblems } from './check-precache-budget.mjs';
 
 const sizes = { '/a.js': 600, '/b.js': 500, '/PdfAlpha.1.js': 300, '/PdfBeta.2.js': 400, '/shell.js': 100 };
 const budgets = { shell: 1000, tool: 1000, home: 1000, other: 1000, install: 5000 };
@@ -217,5 +217,104 @@ describe('repo-only files in dist/', () => {
     fs.mkdirSync(path.join(dist, 'fonts'));
     fs.writeFileSync(path.join(dist, 'fonts', 'project.json'), '{}');
     expect(repoOnlyProblems(dist)).toEqual(['fonts/project.json: repo config shipped in dist/ (an Nx project.json inside public/ is copied verbatim and served; run scripts/repoOnlyFiles.mjs or move it)']);
+  });
+});
+
+describe('brotliSizes', () => {
+  const readBytes = (url) => Buffer.from(url);
+  const compressWith = (calls) => (buf) => {
+    calls.push(buf.toString());
+    return 7;
+  };
+
+  it('uses the cached size of a hashed /_astro/ URL without compressing it', () => {
+    const calls = [];
+    const { sizes } = brotliSizes(['/_astro/a.1.js'], { readBytes, compress: compressWith(calls), cache: { key: 'k', sizes: { '/_astro/a.1.js': 99 } }, key: 'k' });
+    expect(sizes['/_astro/a.1.js']).toBe(99);
+    expect(calls).toEqual([]);
+  });
+
+  it('compresses and records a hashed URL that is not cached yet', () => {
+    const calls = [];
+    const { sizes, cache } = brotliSizes(['/_astro/b.2.js'], { readBytes, compress: compressWith(calls), cache: null, key: 'k' });
+    expect(sizes['/_astro/b.2.js']).toBe(7);
+    expect(cache).toEqual({ key: 'k', sizes: { '/_astro/b.2.js': 7 } });
+  });
+
+  it('never reads or writes the cache for a URL with no content hash', () => {
+    const calls = [];
+    const { sizes, cache } = brotliSizes(['/', '/merge/'], { readBytes, compress: compressWith(calls), cache: { key: 'k', sizes: { '/': 99, '/merge/': 99 } }, key: 'k' });
+    expect(sizes).toEqual({ '/': 7, '/merge/': 7 });
+    expect(calls).toEqual(['/', '/merge/']);
+    expect(cache.sizes).toEqual({});
+  });
+
+  it('ignores a cache whose key differs', () => {
+    const calls = [];
+    const { sizes } = brotliSizes(['/_astro/a.1.js'], { readBytes, compress: compressWith(calls), cache: { key: 'old', sizes: { '/_astro/a.1.js': 99 } }, key: 'new' });
+    expect(sizes['/_astro/a.1.js']).toBe(7);
+    expect(calls).toEqual(['/_astro/a.1.js']);
+  });
+
+  it('prunes entries for URLs not in the run', () => {
+    const { cache } = brotliSizes(['/_astro/a.1.js'], { readBytes, compress: compressWith([]), cache: { key: 'k', sizes: { '/_astro/a.1.js': 99, '/_astro/gone.js': 5 } }, key: 'k' });
+    expect(cache.sizes).toEqual({ '/_astro/a.1.js': 99 });
+  });
+
+  const H = pageHash(Buffer.from('/merge/'));
+  const H2 = pageHash(Buffer.from('other bytes'));
+
+  it('reuses the cached size of a page whose manifest hash matches', () => {
+    const calls = [];
+    const { sizes, cache } = brotliSizes(['/merge/'], { readBytes, compress: compressWith(calls), cache: { key: 'k', sizes: { [`/merge/#${H}`]: 99 } }, key: 'k', hashes: { '/merge/': H } });
+    expect(sizes['/merge/']).toBe(99);
+    expect(calls).toEqual([]);
+    expect(cache.sizes).toEqual({ [`/merge/#${H}`]: 99 });
+  });
+
+  it('caches a page whose bytes match its manifest hash', () => {
+    const { cache } = brotliSizes(['/merge/'], { readBytes, compress: compressWith([]), cache: null, key: 'k', hashes: { '/merge/': H } });
+    expect(cache.sizes).toEqual({ [`/merge/#${H}`]: 7 });
+  });
+
+  it('measures but never caches a page whose bytes do not match its manifest hash', () => {
+    const calls = [];
+    const { sizes, cache } = brotliSizes(['/merge/'], { readBytes, compress: compressWith(calls), cache: { key: 'k', sizes: {} }, key: 'k', hashes: { '/merge/': H2 } });
+    expect(sizes['/merge/']).toBe(7);
+    expect(calls).toEqual(['/merge/']);
+    expect(cache.sizes).toEqual({});
+  });
+
+  it('recompresses a page whose manifest hash changed and drops the old entry', () => {
+    const calls = [];
+    const { sizes, cache } = brotliSizes(['/merge/'], { readBytes, compress: compressWith(calls), cache: { key: 'k', sizes: { [`/merge/#${H2}`]: 99 } }, key: 'k', hashes: { '/merge/': H } });
+    expect(sizes['/merge/']).toBe(7);
+    expect(calls).toEqual(['/merge/']);
+    expect(cache.sizes).toEqual({ [`/merge/#${H}`]: 7 });
+  });
+
+  it('always compresses a page with no manifest hash and never writes it', () => {
+    const calls = [];
+    const { cache } = brotliSizes(['/sw.js'], { readBytes, compress: compressWith(calls), cache: { key: 'k', sizes: { [`/sw.js#${H}`]: 99 } }, key: 'k', hashes: { '/merge/': H } });
+    expect(calls).toEqual(['/sw.js']);
+    expect(cache.sizes).toEqual({});
+  });
+
+  it('treats a malformed cache or cached size as absent', () => {
+    for (const bad of [{ key: 'k', sizes: null }, { key: 'k', sizes: 'x' }, { key: 'k', sizes: { '/_astro/a.1.js': 'big' } }, { key: 'k', sizes: { '/_astro/a.1.js': -1 } }, { key: 'k', sizes: { '/_astro/a.1.js': NaN } }, 'junk']) {
+      const { sizes } = brotliSizes(['/_astro/a.1.js'], { readBytes, compress: compressWith([]), cache: bad, key: 'k' });
+      expect(sizes['/_astro/a.1.js']).toBe(7);
+    }
+  });
+
+  it('measures a URL listed twice once', () => {
+    const calls = [];
+    brotliSizes(['/_astro/a.1.js', '/_astro/a.1.js'], { readBytes, compress: compressWith(calls), cache: null, key: 'k' });
+    expect(calls).toHaveLength(1);
+  });
+
+  it('skips a URL with no file', () => {
+    const { sizes } = brotliSizes(['/x.js'], { readBytes: () => null, compress: compressWith([]), cache: null, key: 'k' });
+    expect(sizes).toEqual({});
   });
 });

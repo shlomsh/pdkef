@@ -180,6 +180,23 @@ interface AppUpdateDeps {
    */
   ready?: Promise<void>;
   createMessageChannel?: () => MessageChannelLike;
+  /** Cache Storage for MEM-24's install report; default: the page's own, absent on insecure origins. */
+  caches?: { has(name: string): Promise<boolean>; open(name: string): Promise<any> };
+}
+
+/**
+ * MEM-24: report a worker install failure it recorded. Loaded on demand so
+ * every page does not carry the reporter; nothing waits for it. Without Cache
+ * Storage (an insecure origin) there is nothing to read.
+ */
+function reportRecordedWorkerFailure(injected: AppUpdateDeps['caches']): void {
+  const cacheStorage = injected ?? globalThis.caches;
+  if (!cacheStorage) return;
+  void Promise.all([import('./swInstallReport.ts'), import('#lib/telemetry/maintenanceTelemetry.ts')])
+    .then(([r, t]) => r.reportSwInstallFailures({ caches: cacheStorage, send: (e) => t.reportMaintenanceEvent(e, t.beaconMaintenanceTransport) }))
+    .catch(() => {
+      // expected: best effort, never reaches the page
+    });
 }
 
 export async function startAppUpdates(deps: AppUpdateDeps): Promise<void> {
@@ -301,7 +318,7 @@ export async function startAppUpdates(deps: AppUpdateDeps): Promise<void> {
   });
 
   await deps.ready;
-
+  reportRecordedWorkerFailure(deps.caches);
   // A browser that refuses or blocks workers (private modes, enterprise
   // policy, Playwright's serviceWorkers: 'block') gets no worker and no line.
   let registered: RegistrationLike | undefined;

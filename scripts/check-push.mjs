@@ -33,13 +33,14 @@
 
 import { execFileSync, spawn, spawnSync } from 'node:child_process';
 import { availableParallelism } from 'node:os';
-import { existsSync, realpathSync } from 'node:fs';
+import { existsSync, readFileSync, realpathSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join, resolve as resolvePath } from 'node:path';
 import { resolveBase, changedFiles, classify, isDocsOnly } from './change-scope.mjs';
 import { resolveScope, runE2eProduct, runE2ePerf, runFonts, runExportGuards } from './affected-scope.mjs';
 import { resolveUnitScope, runUnitByImpact } from './unit-scope.mjs';
 import { typecheckSteps, runTypecheck } from './check-fast.mjs';
+import { scriptClosure } from './script-closure.mjs';
 
 const ROOT = resolvePath(dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -81,7 +82,8 @@ const ROOT = resolvePath(dirname(fileURLToPath(import.meta.url)), '..');
 //     BUILD_INVOKED_SCRIPTS. Every other file under scripts/ (check-*.mjs,
 //     generate:* scripts not on that list, spike/, fixtures/) runs only from
 //     package.json's test:*/generate:*/check:* scripts or CI's own steps,
-//     never from `npm run build` itself.
+//     never from `npm run build` itself. QUAL-36: except the scripts a dist guard
+//     runs (distGuardScripts, derived from package.json), which read dist/.
 //
 // Anything else - src/**, public/**, astro.config.mjs, package.json,
 // vercel.json, tsconfig.json, middleware.ts, a brand-new root file this list
@@ -96,54 +98,55 @@ const BUILD_INVOKED_SCRIPTS = new Set([
   'scripts/precacheClosure.mjs',
 ]);
 
-export function fileCannotReachDist(file) {
+// QUAL-36: the scripts the dist guards run (and what they import), derived from package.json's
+// scripts for DIST_GUARD_STEPS, so a new guard needs no list edit. They read dist/, so editing
+// one must build and run the guards. Pure: package.json text and a readFile are injected.
+export function distGuardScripts(packageJsonText, readFile, steps = DIST_GUARD_STEPS) {
+  let scripts;
+  try {
+    scripts = JSON.parse(packageJsonText)?.scripts ?? {};
+  } catch {
+    return new Set();
+  }
+  return scriptClosure(steps.map((step) => scripts[step] ?? '').join(' && '), readFile);
+}
+
+let realDistGuards = null;
+function realDistGuardScripts() {
+  realDistGuards ??= distGuardScripts(readFileSync(join(ROOT, 'package.json'), 'utf8'), (rel) => {
+    try {
+      return readFileSync(join(ROOT, rel), 'utf8');
+    } catch {
+      return null;
+    }
+  });
+  return realDistGuards;
+}
+
+export function fileCannotReachDist(file, guardScripts = realDistGuardScripts()) {
   if (isDocsOnly(file)) return true;
   if (file.startsWith('.github/')) return true;
   if (/\.test\.[^/]+$/.test(file)) return true;
   if (file.startsWith('src/test/')) return true;
   if (file.startsWith('e2e/')) return true;
   if (/^src\/tools\/[^/]+\/e2e\//.test(file)) return true;
-  if (file.startsWith('scripts/')) return !BUILD_INVOKED_SCRIPTS.has(file);
+  // QUAL-36: a dist guard's JSON data (ratchet limits, allowlists) is read, not run, so fail open.
+  if (file.startsWith('scripts/') && file.endsWith('.json')) return false;
+  if (file.startsWith('scripts/')) return !BUILD_INVOKED_SCRIPTS.has(file) && !guardScripts.has(file);
   return false;
 }
 
 // An empty diff (no changed files, or no resolvable base) touches nothing, so
 // it runs the guards only: no build, no dist guards (QUAL-24).
-export function reachesDist(files) {
+export function reachesDist(files, guardScripts) {
   if (files.length === 0) return false;
-  return files.some((file) => !fileCannotReachDist(file));
+  return files.some((file) => !fileCannotReachDist(file, guardScripts));
 }
 
-// ---------------------------------------------------------------------------
-// ARCH-31: a diff of only test files cannot change what a browser sees. Nx
-// decides by folder, so a tool's unit test used to select that tool's e2e and
-// every site-wide spec (measured: a `merge.test.js`-only change ran 67s of
-// Playwright). When every non-docs file is a unit test (`*.test.*`) or a
-// Playwright spec (`*.spec.js`), the unit tests run by impact as always and
-// Playwright runs only the changed specs: the font guards and export guards
-// only when one of their own specs changed (the globs mirror FONT_GUARDS and
-// EXPORT_GUARDS in playwright.config.js). Anything else in the diff, a spec
-// helper or fixture included, keeps the Nx verdict.
-const isUnitTest = (f) => /\.test\.[^/]+$/.test(f);
-// Only `.spec.js`: Playwright's testMatch discovers nothing else, so any other
-// `.spec.*` keeps the Nx verdict rather than narrowing to a spec that never runs.
-const isSpec = (f) => /\.spec\.js$/.test(f);
-const isFontGuardSpec = (f) => /(^|\/)sign\/[^/]+-(guard|parity)\.spec\.js$/.test(f);
-const isExportGuardSpec = (f) => /(^|\/)export\/(export-render-guard|language-acceptance)\.spec\.js$/.test(f);
-
-export function narrowTestOnlyChange(scope, files) {
-  const code = files.filter((f) => !isDocsOnly(f));
-  if (code.length === 0 || !code.every((f) => isUnitTest(f) || isSpec(f))) return scope;
-  const specs = code.filter(isSpec);
-  const productSpecs = specs.filter((f) => !isFontGuardSpec(f) && !isExportGuardSpec(f));
-  return {
-    ...scope,
-    everything: false,
-    e2e_paths: productSpecs.join(' '),
-    fonts: specs.some(isFontGuardSpec),
-    export_guards: specs.some(isExportGuardSpec),
-    reason: specs.length ? `test files only: Playwright runs the ${specs.length} changed spec(s)` : 'unit test files only: no Playwright',
-  };
+// QUAL-35: resolveScope already applied the test-only narrowing (finishScope),
+// so check:push only adds its local facts and must not narrow a second time.
+export function localScope(nxScope, files, docsOnly) {
+  return { ...nxScope, docsOnly, reachesDist: reachesDist(files), touchesAstro: touchesAstro(files) };
 }
 
 // ARCH-31: Playwright reuses whatever listens on its port (4173, or
@@ -360,7 +363,7 @@ function computeScope() {
   const docsOnly = classify(files).docs_only;
   const nxScope = resolveScope({ explicitBase: base ?? undefined });
   const unitScope = resolveUnitScope({ explicitBase: base ?? undefined, mode: 'local' });
-  const scope = narrowTestOnlyChange({ ...nxScope, docsOnly, reachesDist: reachesDist(files), touchesAstro: touchesAstro(files) }, files);
+  const scope = localScope(nxScope, files, docsOnly);
   const typecheck = typecheckSteps({ astroTypesExist: existsSync(join(ROOT, '.astro', 'types.d.ts')) });
   return { base, dirty, scope, unitScope, typecheck };
 }

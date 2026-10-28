@@ -1,10 +1,9 @@
 ---
 id: "QUAL-36"
 title: "Editing a dist guard script runs the build and dist guards locally"
-status: "open"
+status: "done"
 priority: "P3"
 epic: "unify-and-narrow"
-horizon: "next"
 depends_on: []
 ---
 
@@ -27,5 +26,9 @@ depends_on: []
 
 ## Acceptance
 
-- [ ] A `scripts/check-push.test.mjs` case for each current dist guard script.
-- [ ] A test that a new `test:*` entry pointing at a dist guard is picked up with no list to update.
+- [x] A `scripts/check-push.test.mjs` case for each current dist guard script.
+- [x] A test that a new `test:*` entry pointing at a dist guard is picked up with no list to update.
+
+## Done (2026-10-28)
+
+`distGuardScripts` (scripts/check-push.mjs) walks the package.json command of every `DIST_GUARD_STEPS` entry with the shared `scriptClosure` (new scripts/script-closure.mjs, also used by `buildPipelineFiles`; an oracle file). Derived set: check-animation-shorthand.js, check-built-html-comments.js, check-class-resolution.js, check-color-literals.mjs, check-css-duplication.js, check-dead-utilities.js, check-editor-global-css.js, check-lazy-modules.js, check-page-weight.js, check-precache-budget.mjs, check-trailing-slash-redirects.js, verify-csp.js, verify-seo.js, plus their imports localizedSeoChecks.mjs, pageHash.mjs, precacheClosure.mjs, ratchet-limits.mjs, repoOnlyFiles.mjs. Editing any of them now builds and runs the dist guards in `check:push`.

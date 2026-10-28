@@ -7,6 +7,8 @@ import {
   PAGE_TREE_OUTCOMES,
   PAGE_TREE_ROOTS,
   PAGE_TREE_SHAPES,
+  SW_INSTALL_MISSED_BUCKETS,
+  SW_INSTALL_REASONS,
   FORM_DETECTION_ERROR_CODES,
   maintenanceEventField,
   parseMaintenanceEvent,
@@ -235,3 +237,36 @@ describe('maintenanceEventField', () => {
   });
 });
 
+
+describe('sw_install (MEM-24)', () => {
+  const sw = (properties: Record<string, unknown>) => ({ name: 'sw_install', properties });
+  const ok = { outcome: 'failure', reason: 'storage', missed: '0' };
+
+  it('keeps the closed lists exactly', () => {
+    expect([...SW_INSTALL_REASONS]).toEqual([
+      'other_build', 'manifest_unreadable', 'storage', 'root_unreachable', 'root_mismatch', 'files_missed',
+    ]);
+    expect([...SW_INSTALL_MISSED_BUCKETS]).toEqual(['0', '1', '2-5', '6-20', '21+']);
+  });
+  it('accepts every reason with every bucket and stores a stable field', () => {
+    for (const reason of SW_INSTALL_REASONS) {
+      for (const missed of SW_INSTALL_MISSED_BUCKETS) {
+        const event = sw({ outcome: 'failure', reason, missed });
+        expect(parseMaintenanceEvent(event)).toEqual(event);
+        expect(maintenanceEventField(parseMaintenanceEvent(event)!, 'ios-17')).toBe(`sw_install|failure|${reason}|${missed}|ios-17`);
+      }
+    }
+  });
+  it.each([
+    ['an unknown reason', { ...ok, reason: 'boom' }],
+    ['an unknown bucket', { ...ok, missed: '3' }],
+    ['a numeric bucket', { ...ok, missed: 0 }],
+    ['an extra url', { ...ok, url: 'https://pdkef.com/' }],
+    ['a wrong outcome', { ...ok, outcome: 'success' }],
+    ['a missing reason', { outcome: 'failure', missed: '0' }],
+    ['a missing bucket', { outcome: 'failure', reason: 'storage' }],
+    ['a missing outcome', { reason: 'storage', missed: '0' }],
+  ])('rejects %s', (_l, properties) => {
+    expect(parseMaintenanceEvent(sw(properties))).toBeNull();
+  });
+});
