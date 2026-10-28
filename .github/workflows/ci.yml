@@ -142,6 +142,11 @@ jobs:
     - name: Verify import aliases
       run: npm run test:import-aliases
 
+    # Everything an api/ function or middleware.ts reaches imports relatively with .js: the
+    # function build cannot load an alias or a .ts specifier (ARCH-44 took /api/report down for 6h).
+    - name: Verify function imports
+      run: npm run test:function-imports
+
     # ARCH-76: scripts/ratchet-limits.json holds every ratchet limit; a value that
     # rose (or an entry added to an existing section) against the base fails here.
     # BASE is empty when the scope job could not resolve one; the script then

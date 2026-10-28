@@ -37,6 +37,7 @@
     "test:editor-dependency-directions": "node scripts/check-editor-dependency-directions.mjs",
     "test:module-boundaries": "node scripts/check-module-boundaries.mjs",
     "test:import-aliases": "node scripts/check-import-aliases.mjs",
+    "test:function-imports": "node scripts/check-function-imports.mjs",
     "test:ratchet-raises": "node scripts/check-ratchet-raises.mjs",
     "test:size-ratchet": "node scripts/check-size-ratchet.mjs",
     "test:hook-ratchet": "node scripts/check-hook-ratchet.mjs",
