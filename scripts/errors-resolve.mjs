@@ -6,6 +6,9 @@
 // chunk, and decode the position. Decoder: @jridgewell/trace-mapping.
 //
 //   npm run errors:resolve -- PdfSignTool.Ab12Cd.js:12:345 [more frames, top first] [--max 40]
+// A frame is `X.js` (dist/_astro/, hashed) or `site/X.js` / `shared/X.js` (dist/site/, dist/shared/, stable
+// names, MEM-25). Only hashed frames can pick a build out of history, so a report whose frames are all
+// stable-named needs --build; with --build every frame is decoded.
 //   npm run errors:resolve -- <frames> --build <sha>
 // Reports carry the 7-hex-char commit of the build the page came from (`build`); errors:read prints
 // the exact command. With --build ONE commit (any commit, not only first-parent) is checked out and
@@ -19,15 +22,18 @@ import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { TraceMap, originalPositionFor } from '@jridgewell/trace-mapping';
 
-// Same shape as FRAME in src/lib/telemetry/errorReport.ts.
+// Same shape as FRAME in src/lib/telemetry/errorReportSchema.ts.
 const BUILD = /^[0-9a-f]{7,40}$/i;
-const FRAME = /^([A-Za-z0-9_.-]{1,120}\.m?js):(\d{1,7}):(\d{1,7})$/;
+const FRAME = /^(?:(site|shared)\/)?([A-Za-z0-9_.-]{1,120}\.m?js):(\d{1,7}):(\d{1,7})$/;
 
 export function parseFrame(text) {
   const m = FRAME.exec(String(text ?? '').trim());
   if (!m) return null;
-  return { chunk: m[1], line: Number(m[2]), col: Number(m[3]) };
+  return { chunk: m[2], dir: m[1] ?? '_astro', line: Number(m[3]), col: Number(m[4]) };
 }
+
+// Only a hashed `/_astro/` file can identify a build; `/site/` and `/shared/` names are the same in every build.
+export const onlyStable = (frames) => frames.length > 0 && frames.every((f) => f.dir !== '_astro');
 
 export function wrapperConfigText() {
   return [
@@ -119,12 +125,13 @@ export function buildMissMessage(sha, missing, built = true) {
 }
 
 // Builds each commit in turn until one emits every frame's chunk, then decodes. All I/O is in `deps`:
-// checkout(sha), build() -> boolean, readEmitted() -> chunk names, readMap(chunk) -> map json | null,
-// readSource(chunk, source) -> text | null, subject(sha), log(line) for progress.
+// checkout(sha), build() -> boolean, readEmitted() -> chunk names, readMap(chunk, dir) -> map json | null,
+// readSource(chunk, source, dir) -> text | null, subject(sha), log(line) for progress.
 // Returns { found, lines, nearest, last }: nearest is the first partial match, last the final commit tried (with whether its build succeeded).
 export function searchCommits(shas, frames, deps) {
   const log = deps.log ?? (() => {});
-  const chunks = new Set(frames.map((f) => f.chunk));
+  const hashed = frames.filter((f) => f.dir === '_astro');
+  const chunks = new Set(hashed.map((f) => f.chunk));
   let nearest = null;
   let last = null;
   for (let i = 0; i < shas.length; i++) {
@@ -132,7 +139,7 @@ export function searchCommits(shas, frames, deps) {
     const t0 = Date.now();
     deps.checkout(sha);
     const built = deps.build();
-    const match = built ? matchChunks(frames, deps.readEmitted()) : null;
+    const match = built ? matchChunks(hashed, deps.readEmitted()) : null;
     const hit = match?.all === true;
     const partial = match && !hit && match.missing.length < chunks.size;
     if (partial && !nearest) nearest = { sha, missing: match.missing };
@@ -141,13 +148,13 @@ export function searchCommits(shas, frames, deps) {
     if (!hit) continue;
     const lines = [`${sha.slice(0, 8)} ${deps.subject(sha)}`];
     frames.forEach((fr, k) => {
-      const head = `#${k + 1} ${fr.chunk}:${fr.line}:${fr.col}`;
-      const json = deps.readMap(fr.chunk);
+      const head = `#${k + 1} ${fr.dir === '_astro' ? '' : `${fr.dir}/`}${fr.chunk}:${fr.line}:${fr.col}`;
+      const json = deps.readMap(fr.chunk, fr.dir);
       if (!json) { lines.push(`${head}\n  (chunk not in this build)`); return; }
       const pos = mapFrame(json, fr.line, fr.col);
       if (!pos) { lines.push(`${head}\n  no source mapping for that position`); return; }
       lines.push(`#${k + 1} ${pos.source}:${pos.line}:${pos.column}${pos.name ? ` (${pos.name})` : ''}`);
-      const text = deps.readSource(fr.chunk, pos.source);
+      const text = deps.readSource(fr.chunk, pos.source, fr.dir);
       if (text != null) {
         const src = text.split('\n');
         for (let n = Math.max(1, pos.line - 1); n <= Math.min(src.length, pos.line + 1); n++) {
@@ -166,7 +173,7 @@ export function parseFrames(raws) {
   const frames = [];
   for (let i = 0; i < raws.length; i++) {
     const f = parseFrame(raws[i]);
-    if (!f) return { error: `frame #${i + 1} is not chunk.js:line:col: ${raws[i]}` };
+    if (!f) return { error: `frame #${i + 1} is not [site/|shared/]file.js:line:col: ${raws[i]}` };
     frames.push(f);
   }
   return { frames };
@@ -184,6 +191,10 @@ function main() {
     process.exit(2);
   }
   const frames = parsed.frames;
+  if (!build && onlyStable(frames)) {
+    console.error('errors:resolve: stable-named frames (site/, shared/) are the same in every build and cannot pick one out of history; pass --build <sha> (the report carries it)');
+    process.exit(2);
+  }
   const cands = candidateShas({ build, from, max }, (...args) => git(root, ...args));
   if (cands.error) {
     console.error(`errors:resolve: ${cands.error}`);
@@ -191,7 +202,8 @@ function main() {
   }
   const shas = cands.shas;
   const tmp = path.join(mkdtempSync(path.join(tmpdir(), 'errors-resolve-')), 'wt');
-  const astroDir = path.join(tmp, 'dist', '_astro');
+  const distDir = (dir) => path.join(tmp, 'dist', dir);
+  const astroDir = distDir('_astro');
   let added = false;
   const cleanup = () => {
     if (!added) return;
@@ -217,12 +229,12 @@ function main() {
       return b.status === 0 && existsSync(astroDir);
     },
     readEmitted: () => readdirSync(astroDir),
-    readMap(chunk) {
-      const mapFile = path.join(astroDir, `${chunk}.map`);
+    readMap(chunk, dir = '_astro') {
+      const mapFile = path.join(distDir(dir), `${chunk}.map`);
       return existsSync(mapFile) ? JSON.parse(readFileSync(mapFile, 'utf8')) : null;
     },
-    readSource(chunk, source) {
-      const file = path.resolve(astroDir, source);
+    readSource(chunk, source, dir = '_astro') {
+      const file = path.resolve(distDir(dir), source);
       return existsSync(file) ? readFileSync(file, 'utf8') : null;
     },
     subject: (sha) => git(root, 'log', '-1', '--format=%s', sha),

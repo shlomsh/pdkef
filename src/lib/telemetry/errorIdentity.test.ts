@@ -18,6 +18,20 @@ describe('topFrame', () => {
     e.stack = 'Error: x\n at a (https://pdkef.com/other.js:1:1)\n at b (https://pdkef.com/_astro/A.1b.js:3:4)';
     expect(topFrame(e)).toBe('A.1b.js:3:4');
   });
+  it('names /site/ and /shared/ files with their folder, in both engine shapes', () => {
+    const e = new Error('x');
+    e.stack = 'Error: x\n    at f (https://pdkef.com/site/PdfSignTool.js:2:16571)';
+    expect(topFrame(e)).toBe('site/PdfSignTool.js:2:16571');
+    e.stack = 'f@https://pdkef.com/site/PdfSignTool.js:7:8';
+    expect(topFrame(e)).toBe('site/PdfSignTool.js:7:8');
+    e.stack = 'Error: x\n    at https://pdkef.com/shared/openPdfDoc.js:3:4';
+    expect(topFrame(e)).toBe('shared/openPdfDoc.js:3:4');
+  });
+  it('still drops other folders', () => {
+    const e = new Error('x');
+    e.stack = 'Error: x\n    at f (https://pdkef.com/other/X.js:1:2)\n    at g (https://pdkef.com/sitex/X.js:1:2)';
+    expect(topFrame(e)).toBe('');
+  });
   it('never reads a frame out of a V8 message, even one spanning lines', () => {
     const e = new TypeError("Cannot read 'x\n /_astro/Patient diagnosis.js:1:1'");
     e.stack = `${String(e)}\n    at f (https://pdkef.com/_astro/Real.9z.js:5:6)`;
