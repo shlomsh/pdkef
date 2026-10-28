@@ -129,11 +129,13 @@
 
   /* As large as the space allows at the page's own width over height
      (ResultSection's --preview-aspect; A4 portrait, 0.7, until an image has
-     loaded), less the slider's 1px border top and bottom and room for two
-     caption lines under it (2.8rem with the gap), so the image and its
-     caption centre together. */
-  .compare-fit > .compare-frame {
-    width: min(48rem, 100cqw, (100cqh - 2px - 2.8rem) * var(--preview-aspect, 0.7));
+     loaded), less the slider's 1px border top and bottom, the label row above
+     it (1.2rem and its gap) and room for two caption lines under it (2.8rem
+     with the gap), so the three centre together. The label row takes the
+     image's width, so its ends line up with the image's edges. */
+  .compare-fit > .compare-frame,
+  .compare-fit > .compare-labels {
+    width: min(48rem, 100cqw, (100cqh - 2px - 4.6rem) * var(--preview-aspect, 0.7));
   }
 
   .compare-fit > .compare-skeleton {
@@ -315,58 +317,25 @@
   margin-inline: auto;
 }
 
-/* The sides' names and sizes. The sides are physical (compressed on the
-   left, where the slider reveals it), so the row stays left-to-right in a
-   right-to-left page; each label is a bdi. Presses fall through to the
-   slider underneath. */
+/* The sides' names and sizes in one row above the image. The sides are
+   physical (compressed on the left, where the slider reveals it), so the row
+   stays left-to-right in a right-to-left page; each label is a bdi. */
 .compare-labels {
-  position: absolute;
-  top: 10px;
-  left: 10px;
-  right: 10px;
-  z-index: 1;
   direction: ltr;
   display: flex;
   justify-content: space-between;
-  align-items: flex-start;
-  gap: 8px;
+  gap: 0.75rem;
+  width: 100%;
   margin: 0;
-  pointer-events: none;
-  font-size: 0.75rem;
+  font-size: 0.8rem;
   font-weight: 600;
-  line-height: 1.3;
+  line-height: 1.5;
+  color: var(--color-muted);
 }
 
-.compare-labels > span {
-  min-width: 0;
-  padding: 0.3rem 0.65rem;
-  border-radius: var(--radius-pill);
-  background: var(--color-surface);
-  color: var(--color-text);
-  box-shadow: var(--shadow-sm);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-/* The compressed side is the result: it carries the primary colour. */
+/* The compressed side is the result: the darker of the two. */
 .compare-labels > .compare-label-after {
-  background: var(--color-primary);
-  color: var(--color-surface);
-}
-
-/* On a phone both pills would not fit on one line beside each other, so each
-   puts its size under its name rather than cutting it off. */
-@media (max-width: 599px) {
-  .compare-labels > span {
-    display: flex;
-    flex-direction: column;
-    border-radius: 10px;
-  }
-
-  .compare-label-sep {
-    display: none;
-  }
+  color: var(--color-text);
 }
 
 /* Full screen, on the image. 36px drawn, 44px to a finger (the ::before). */

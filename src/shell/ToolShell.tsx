@@ -166,7 +166,7 @@ export default function ToolShell({ editor = false, inlineStatus = false, flush 
 
   return (
     <div
-      class={`${styles.shell}${editor ? ` ${styles.editor}` : ''}${editor && inlineStatus ? ` ${styles['inline-status']}` : ''}${!editor && flush ? ` ${styles.flush}` : ''}`}
+      class={`${styles.shell}${editor ? ` ${styles.editor}` : ''}${editor && inlineStatus ? ` ${styles['inline-status']}` : ''}${!editor && flush ? ` ${styles.flush}` : ''}${!editor && multiple ? ` ${styles.multiple}` : ''}`}
       data-tool-shell
       data-flush={!editor && flush ? true : undefined}
     >

@@ -143,6 +143,12 @@
   text-align: left;
 }
 
+/* On a right-to-left page the row starts on the right, by the thumbnail,
+   whatever script the name is in (`start` would follow the name's own). */
+.name:dir(rtl) {
+  text-align: right;
+}
+
 /* The pages/size text shrinks and ellipsizes; the draft-saved chip is pinned
    so it survives on narrow screens. Truncating "2.5 KB" costs nothing, while
    truncating "Draft saved" would hide the reassurance the user actually
@@ -439,6 +445,24 @@
   border: 0;
   border-bottom: 1px solid var(--color-border);
   border-radius: 0;
+}
+
+/* A list's strip in a tool's rail carries two actions (Add, Clear all); beside
+   the name they left it a few letters in 360px ("4 תמ…" on /he/image-to-pdf/),
+   so in the rail they take their own row under the sizes. */
+@media (min-width: 1024px) {
+  .shell.flush.multiple:not(.editor) {
+    grid-template-areas:
+      'thumb name name'
+      'thumb meta meta'
+      'actions actions actions'
+      'note note note';
+  }
+
+  .shell.flush.multiple:not(.editor) .controls {
+    justify-content: flex-start;
+    margin-top: 8px;
+  }
 }
 
 /* --- Editor variant: Sign and Redact --- */

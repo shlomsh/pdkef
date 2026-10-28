@@ -19,7 +19,7 @@ import { ImageToPdfFinish, ImageToPdfPhoneBar } from './components/ImageToPdfFin
 import ResultGrid from './components/ResultGrid.tsx';
 import { toHandoffFiles } from './lib/handoffFiles';
 import { useHoldUpdate } from '#lib/hooks/useHoldUpdate.ts';
-import { formatFileSize } from '#lib/text/format.js';
+import { formatFileSize, isolateLtr } from '#lib/text/format.js';
 import { useHandoffFilesIntake } from '#lib/handoff/useHandoffIntake.ts';
 import { useNavigatingAway } from '#lib/hooks/useNavigatingAway.ts';
 import { recordAction } from '#lib/telemetry/actionTrail.ts';
@@ -278,7 +278,7 @@ export default withIslandBoundary(function PdfImageToPdfTool({ quietPolicy, mess
       intake={{ accept: PHOTO_ACCEPT, needsPdfjs: false }}
       identity={{
         label: fileSummary,
-        meta: formatFileSize(entries.reduce((total, entry) => total + entry.file.size, 0)),
+        meta: isolateLtr(formatFileSize(entries.reduce((total, entry) => total + entry.file.size, 0)), t.dir),
         hidden: true,
       }}
       empty={{ art: <ImageToPdfVerb />, message: t.dropHere }}
