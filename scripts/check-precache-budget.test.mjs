@@ -3,7 +3,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { pageHash } from './pageHash.mjs';
 import { describe, expect, it } from 'vitest';
-import { brotliSizes, KNOWN_ORPHANS, closureBytes, findBudgetFailures, findForeignIslands, checkPrecache, findMissingFiles, findMissingIslands, findOrphanedAssets, findUnhandledAssets, installUrls, manifestIdentityProblems, distFontUrls, repoOnlyProblems } from './check-precache-budget.mjs';
+import { brotliSizes, KNOWN_ORPHANS, closureBytes, findBudgetFailures, findForeignIslands, checkPrecache, findMissingFiles, findMissingIslands, findOrphanedAssets, findUnhandledAssets, installUrls, manifestIdentityProblems, distFontUrls, repoOnlyProblems, TOOL_ISLAND } from './check-precache-budget.mjs';
 
 const sizes = { '/a.js': 600, '/b.js': 500, '/PdfAlpha.1.js': 300, '/PdfBeta.2.js': 400, '/shell.js': 100 };
 const budgets = { shell: 1000, tool: 1000, home: 1000, other: 1000, install: 5000 };
@@ -316,5 +316,20 @@ describe('brotliSizes', () => {
   it('skips a URL with no file', () => {
     const { sizes } = brotliSizes(['/x.js'], { readBytes: () => null, compress: compressWith([]), cache: null, key: 'k' });
     expect(sizes).toEqual({});
+  });
+});
+
+describe('MEM-25: stable-name folders', () => {
+  it('recognises a tool island under /site/ and still under /_astro/', () => {
+    expect(TOOL_ISLAND.test('/site/PdfSignTool.js')).toBe(true);
+    expect(TOOL_ISLAND.test('/_astro/PdfSignTool.AbC-1.js')).toBe(true);
+    expect(TOOL_ISLAND.test('/site/client.js')).toBe(false);
+    expect(TOOL_ISLAND.test('/shared/PdfSignTool.js')).toBe(false);
+  });
+  it('names an orphan in dist/site and dist/shared like one in dist/_astro', () => {
+    const f = findOrphanedAssets({ astroFiles: ['site/a.js', 'site/lost.js', 'shared/openPdfDoc.js', 'shared/lost.js'], shell: ['/site/a.js'], pages: { '/x/': ['/shared/openPdfDoc.js'] } });
+    expect(f).toHaveLength(2);
+    expect(f[0]).toContain('site/lost.js');
+    expect(f[1]).toContain('shared/lost.js');
   });
 });

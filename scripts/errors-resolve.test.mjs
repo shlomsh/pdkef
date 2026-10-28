@@ -1,9 +1,14 @@
 import { describe, expect, it } from 'vitest';
-import { buildMissMessage, candidateShas, clipLine, mapFrame, matchChunks, parseArgs, parseFrame, parseFrames, searchCommits, wrapperConfigText } from './errors-resolve.mjs';
+import { buildMissMessage, candidateShas, clipLine, mapFrame, matchChunks, onlyStable, parseArgs, parseFrame, parseFrames, searchCommits, wrapperConfigText } from './errors-resolve.mjs';
 
 describe('parseFrame', () => {
   it('parses chunk:line:col', () => {
-    expect(parseFrame('PdfSignTool.Ab12Cd.js:12:345')).toEqual({ chunk: 'PdfSignTool.Ab12Cd.js', line: 12, col: 345 });
+    expect(parseFrame('PdfSignTool.Ab12Cd.js:12:345')).toEqual({ chunk: 'PdfSignTool.Ab12Cd.js', dir: '_astro', line: 12, col: 345 });
+  });
+  it('parses a site/ or shared/ prefix into its folder', () => {
+    expect(parseFrame('site/PdfMergeTool.js:2:16571')).toEqual({ chunk: 'PdfMergeTool.js', dir: 'site', line: 2, col: 16571 });
+    expect(parseFrame('shared/openPdfDoc.js:1:2')).toEqual({ chunk: 'openPdfDoc.js', dir: 'shared', line: 1, col: 2 });
+    expect(parseFrame('evil/X.js:1:2')).toBeNull();
   });
   it('rejects junk', () => {
     expect(parseFrame('https://x/a.js:1:2')).toBeNull();
@@ -111,7 +116,7 @@ describe('candidateShas', () => {
 
 describe('single-commit path with a mocked build', () => {
   const sha = 'abcdef1' + '0'.repeat(33);
-  const frames = [{ chunk: 'PdfMergeTool.C4ILDZF-.js', line: 1, col: 1 }];
+  const frames = [{ chunk: 'PdfMergeTool.C4ILDZF-.js', dir: '_astro', line: 1, col: 1 }];
   const map = { version: 3, sources: ['a.ts'], names: ['foo'], mappings: 'AAAAA,IAAIA', file: 'x.js' };
   const mkDeps = (emitted) => {
     const calls = { checkout: [], build: 0 };
@@ -159,7 +164,7 @@ describe('single-commit path with a mocked build', () => {
 
 describe('parseFrames', () => {
   it('parses all frames in order', () => {
-    expect(parseFrames(['a.js:1:2', 'b.js:3:4']).frames).toEqual([{ chunk: 'a.js', line: 1, col: 2 }, { chunk: 'b.js', line: 3, col: 4 }]);
+    expect(parseFrames(['a.js:1:2', 'b.js:3:4']).frames).toEqual([{ chunk: 'a.js', dir: '_astro', line: 1, col: 2 }, { chunk: 'b.js', dir: '_astro', line: 3, col: 4 }]);
   });
   it('rejects one bad frame among good ones with a one-line message', () => {
     const r = parseFrames(['a.js:1:2', 'oops', 'c.js:5:6']);
@@ -175,9 +180,9 @@ describe('parseFrames', () => {
 
 describe('matchChunks', () => {
   const frames = [
-    { chunk: 'sortable.esm.BqtE8hmV.js', line: 1, col: 1 },
-    { chunk: 'PdfMergeTool.C4ILDZF-.js', line: 2, col: 2 },
-    { chunk: 'sortable.esm.BqtE8hmV.js', line: 3, col: 3 },
+    { chunk: 'sortable.esm.BqtE8hmV.js', dir: '_astro', line: 1, col: 1 },
+    { chunk: 'PdfMergeTool.C4ILDZF-.js', dir: '_astro', line: 2, col: 2 },
+    { chunk: 'sortable.esm.BqtE8hmV.js', dir: '_astro', line: 3, col: 3 },
   ];
   it('matches only when every chunk of the report was emitted', () => {
     expect(matchChunks(frames, ['sortable.esm.BqtE8hmV.js', 'PdfMergeTool.C4ILDZF-.js', 'other.js'])).toEqual({ all: true, missing: [] });
@@ -209,5 +214,23 @@ describe('clipLine', () => {
     expect(out.startsWith('…')).toBe(false);
     expect(out.endsWith('…')).toBe(true);
     expect(out.length).toBeLessThanOrEqual(161);
+  });
+});
+
+describe('stable-named frames', () => {
+  it('readMap and readSource get the frame folder, and a site frame needs no chunk match', () => {
+    const calls = [];
+    const deps = {
+      checkout() {}, build: () => true, readEmitted: () => ['Other.Abc.js'], subject: () => 's',
+      readMap(chunk, dir) { calls.push(['map', chunk, dir]); return { version: 3, sources: ['a.ts'], names: [], mappings: 'AAAA', file: 'x.js' }; },
+      readSource(chunk, source, dir) { calls.push(['src', chunk, dir]); return 'x'; },
+    };
+    const r = searchCommits(['abc'], [parseFrame('site/PdfMergeTool.js:1:1')], deps);
+    expect(r.found).toBe(true);
+    expect(calls).toEqual([['map', 'PdfMergeTool.js', 'site'], ['src', 'PdfMergeTool.js', 'site']]);
+  });
+  it('flags an all-stable frame list so main can demand --build', () => {
+    expect(onlyStable(parseFrames(['site/A.js:1:2', 'shared/B.js:3:4']).frames)).toBe(true);
+    expect(onlyStable(parseFrames(['site/A.js:1:2', 'C.Ab12.js:3:4']).frames)).toBe(false);
   });
 });

@@ -18,17 +18,17 @@ const QUOTE = '["\'`]';
 const STATIC_IMPORT = new RegExp(
   // `import "./x.js"`, `import a from"./x.js"`, `import{a as b}from"./x.js"`.
   // The character class excludes `(` so a dynamic `import("./x.js")` cannot match.
-  `(?:^|[;}\\s])import\\s*(?:[^"'\`()]*?from\\s*)?${QUOTE}\\./([^"'\`]+\\.m?js)${QUOTE}`,
+  `(?:^|[;}\\s])import\\s*(?:[^"'\`()]*?from\\s*)?${QUOTE}(\\.{1,2}/[^"'\`]+\\.m?js)${QUOTE}`,
   'g',
 );
-const REEXPORT = new RegExp(`export\\s*(?:\\*|\\{[^}]*\\})\\s*from\\s*${QUOTE}\\./([^"'\`]+\\.m?js)${QUOTE}`, 'g');
-const DYNAMIC_IMPORT = new RegExp(`import\\(\\s*${QUOTE}\\./([^"'\`]+\\.m?js)${QUOTE}\\s*\\)`, 'g');
+const REEXPORT = new RegExp(`export\\s*(?:\\*|\\{[^}]*\\})\\s*from\\s*${QUOTE}(\\.{1,2}/[^"'\`]+\\.m?js)${QUOTE}`, 'g');
+const DYNAMIC_IMPORT = new RegExp(`import\\(\\s*${QUOTE}(\\.{1,2}/[^"'\`]+\\.m?js)${QUOTE}\\s*\\)`, 'g');
 // Vite's preload list, assigned inside `__vite__mapDeps`: `m.f=["_astro/a.js","_astro/b.css"]`, relative to
 // the site root. The minifier picks the variable's letter, so any identifier matches.
 const MAP_DEPS = /(?<![\w$])[\w$]+\.f=\[([^\]]*)\]/g;
 const QUOTED = new RegExp(`${QUOTE}([^"'\`]+)${QUOTE}`, 'g');
 // A worker or chunk spelled as an absolute path string.
-const ASTRO_STRING = new RegExp(`${QUOTE}(/_astro/[^"'\`\\s]+\\.(?:m?js|css|wasm))${QUOTE}`, 'g');
+const ASTRO_STRING = new RegExp(`${QUOTE}(/(?:_astro|site|shared)/[^"'\`\\s]+\\.(?:m?js|css|wasm))${QUOTE}`, 'g');
 // A same-origin image a chunk names (the offline sample PDF and its preview); the byte policy drops runtime-only directories.
 const IMAGES_STRING = new RegExp(`${QUOTE}(/images/[^"'\`\\s]+\\.[A-Za-z0-9]+)${QUOTE}`, 'g');
 const URL_FROM_META = new RegExp(`new URL\\(\\s*${QUOTE}(\\.{1,2}/[^"'\`]+)${QUOTE}\\s*,\\s*import\\.meta\\.url`, 'g');
@@ -61,12 +61,20 @@ function resolveExisting(url, paths) {
   return null;
 }
 
-/** Entry points a browser fetches for this page without any interaction (all under /_astro/). */
+// MEM-25: client code lives in /_astro/ (content-hashed), /site/ (entries) and /shared/ (hot chunks).
+const CODE_DIRS = '(?:_astro|site|shared)';
+
+/** Every /_astro/, /site/ or /shared/ .js file URL named anywhere in a page's HTML. */
+export function scriptRefs(html) {
+  return [...new Set(matchAll(html, new RegExp(`/${CODE_DIRS}/[A-Za-z0-9._-]+\\.js`, 'g'), 0))];
+}
+
+/** Entry points a browser fetches for this page without any interaction (under /_astro/, /site/ or /shared/). */
 export function pageEntries(html) {
   return [...new Set([
-    ...matchAll(html, /<script[^>]+src="(\/_astro\/[^"]+)"/g),
-    ...matchAll(html, /<link[^>]+rel="modulepreload"[^>]+href="(\/_astro\/[^"]+)"/g),
-    ...matchAll(html, /(?:component-url|renderer-url)="(\/_astro\/[^"]+)"/g),
+    ...matchAll(html, new RegExp(`<script[^>]+src="(/${CODE_DIRS}/[^"]+)"`, 'g')),
+    ...matchAll(html, new RegExp(`<link[^>]+rel="modulepreload"[^>]+href="(/${CODE_DIRS}/[^"]+)"`, 'g')),
+    ...matchAll(html, new RegExp(`(?:component-url|renderer-url)="(/${CODE_DIRS}/[^"]+)"`, 'g')),
   ])];
 }
 
@@ -135,11 +143,11 @@ const joinRelative = (relative, ref) => path.posix.join(fileDir(relative), ref);
 
 /** Relative `./x.js` static imports and re-exports of one JS source, as dist-relative paths. */
 function staticDeps(relative, source) {
-  return [...matchAll(source, STATIC_IMPORT), ...matchAll(source, REEXPORT)].map((ref) => joinRelative(relative, `./${ref}`));
+  return [...matchAll(source, STATIC_IMPORT), ...matchAll(source, REEXPORT)].map((ref) => joinRelative(relative, ref));
 }
 
 function dynamicDeps(relative, source) {
-  const found = matchAll(source, DYNAMIC_IMPORT).map((ref) => joinRelative(relative, `./${ref}`));
+  const found = matchAll(source, DYNAMIC_IMPORT).map((ref) => joinRelative(relative, ref));
   const lists = matchAll(source, MAP_DEPS);
   // Chunks and CSS named only in this list are reached only through it; a form we cannot read must break the build, not drop files.
   if (source.includes('__vite__mapDeps') && lists.length === 0) {

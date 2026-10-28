@@ -39,7 +39,7 @@ test('a reported error carries the commit from the Server-Timing header, and the
   await page.evaluate(() => {
     // A frame inside our own built output is what makes an error reportable.
     const error = new Error('probe');
-    error.stack = `Error: probe\n    at probe (${location.origin}/_astro/PdfMergeTool.C4ILDZF-.js:2:16571)`;
+    error.stack = `Error: probe\n    at probe (${location.origin}/site/PdfMergeTool.js:2:16571)`;
     // Thrown until reported: the page's listener is installed by a deferred module, and the
     // reporter sends each distinct report once, so later throws cost nothing.
     window.__probe = setInterval(() => {
@@ -51,4 +51,5 @@ test('a reported error carries the commit from the Server-Timing header, and the
 
   expect(report).toMatchObject({ area: 'uncaught', tool: '/merge/' });
   expect(report.build).toBe(COMMIT);
+  expect(report.stack[0]).toBe('site/PdfMergeTool.js:2:16571');
 });
