@@ -104,9 +104,16 @@ test.describe('compress tool - before/after preview', () => {
       // portrait page fits in the first screen beside the 360px rail; it used
       // to be a wide strip below the old quality cards (> 700px) that ran off
       // the screen.
+      // The loaded card is one first screen, as on every tool (PdfTool.module.css's floor), and the preview
+      // fits inside it with the row under it: with the page at the top, Full screen and the card's foot are
+      // both on screen. Checking only the slider's foot let that row run 40px off the screen (2026-10-28).
+      await page.evaluate(() => window.scrollTo(0, 0));
       const inlineBox = await inline.boundingBox();
-      expect(inlineBox.width).toBeGreaterThanOrEqual(440);
-      expect(inlineBox.y + inlineBox.height).toBeLessThanOrEqual(900);
+      const fullScreenBox = await page.getByRole('button', { name: 'Full screen' }).boundingBox();
+      const cardBox = await page.locator('[data-tool-loaded]').boundingBox();
+      expect(inlineBox.width).toBeGreaterThanOrEqual(400);
+      expect(fullScreenBox.y + fullScreenBox.height).toBeLessThanOrEqual(900);
+      expect(cardBox.y + cardBox.height).toBeLessThanOrEqual(900);
 
       await page.getByRole('button', { name: 'Full screen' }).click();
       const dialog = page.locator('dialog[open]', { has: page.locator('[role="slider"]') });

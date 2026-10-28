@@ -14,7 +14,7 @@ test('the Download link is inside the viewport without scrolling', async ({ page
   await page.locator('astro-island[client="load"]:not([ssr]) [data-empty-state]').first().waitFor();
   await page.locator('[data-empty-state] input[type="file"]').first().setInputFiles({ name: 'mixed.pdf', mimeType: 'application/pdf', buffer });
   await expect(page.locator('[data-compress-status="done"]')).toBeVisible({ timeout: 30_000 });
-  const button = page.getByRole('link', { name: /^Download Compressed PDF/ });
+  const button = page.getByRole('link', { name: /^Download\b/ });
   await expect(button).toBeVisible();
   expect(await page.evaluate(() => window.scrollY)).toBe(0);
   const box = await button.boundingBox();

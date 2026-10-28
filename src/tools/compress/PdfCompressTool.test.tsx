@@ -236,7 +236,7 @@ describe('PdfCompressTool UI flow', () => {
     noCompressButton();
   });
 
-  it('the loaded state is the shell strip, then the controls, the result and the sheet, in that order, with the run counter', async () => {
+  it('the loaded state is the shell strip, then the result, the controls and the sheet, in that order, with the run counter', async () => {
     await loadPdf('order.pdf');
     const layout = container.querySelector('[data-compress-run]');
     const kids = Array.from(layout.children);
@@ -247,8 +247,10 @@ describe('PdfCompressTool UI flow', () => {
     expect(kids[0].hasAttribute('data-strip')).toBe(true);
     expect(kids[0].querySelector('[data-tool-shell]')).not.toBeNull();
     expect(container.querySelectorAll('[data-tool-shell]')).toHaveLength(1);
-    expect(kids[1].hasAttribute('data-controls')).toBe(true);
-    expect(kids[2].hasAttribute('data-result')).toBe(true);
+    // The image comes straight under the file it was made from (the phone's reading order); the settings
+    // that change it follow.
+    expect(kids[1].hasAttribute('data-result')).toBe(true);
+    expect(kids[2].hasAttribute('data-controls')).toBe(true);
     expect(kids[3].hasAttribute('data-result-action')).toBe(true);
     expect(layout.getAttribute('data-compress-run')).toBe('1');
     expect(layout.getAttribute('data-compress-status')).toBe('done');
