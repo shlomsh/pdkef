@@ -433,8 +433,16 @@ async function readyToTakeOver() {
 }
 
 async function markPrecacheComplete() {
-  const cache = await caches.open(CACHE_VERSION);
-  await cache.put(resolve(PRECACHE_COMPLETE_PATH), new Response('ok'));
+  const cache = await asStorage(() => caches.open(CACHE_VERSION));
+  await asStorage(() => cache.put(resolve(PRECACHE_COMPLETE_PATH), new Response('ok')));
+  // MEM-24: a files_missed record from an earlier pass is stale once this build is complete.
+  try {
+    if (!(await caches.keys()).includes(MAINT_CACHE)) return;
+    const maint = await caches.open(MAINT_CACHE);
+    await maint.delete(resolve(`/__maint/sw-install/${BUILD_ID}`));
+  } catch {
+    // best effort
+  }
 }
 
 // Install misses a URL now and then on a weak connection, and then this build
@@ -448,9 +456,8 @@ function completePrecache() {
     completingPrecache = precacheAppShell({ skipCached: true })
       .then((missed) => {
         if (missed === 0) return markPrecacheComplete();
-        // MEM-24: not awaited by anything; this retry is already off the install path.
-        recordInstallFailure('files_missed', missedBucket(missed));
-        return undefined;
+        // MEM-24: awaited (bounded) so a stopping worker keeps it; off the install path.
+        return recordBounded('files_missed', missedBucket(missed));
       })
       .catch(() => {})
       .finally(() => { completingPrecache = null; });
