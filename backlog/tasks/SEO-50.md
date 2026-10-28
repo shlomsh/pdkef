@@ -1,10 +1,9 @@
 ---
 id: "SEO-50"
 title: "The browser view of /sitemap.xml stops depending on XSLT"
-status: "in_progress"
+status: "done"
 priority: "P3"
 epic: "search-and-languages"
-horizon: "now"
 ---
 
 # SEO-50 · The browser view of /sitemap.xml stops depending on XSLT
