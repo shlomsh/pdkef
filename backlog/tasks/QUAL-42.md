@@ -1,10 +1,10 @@
 ---
 id: "QUAL-42"
 title: "CI builds once per run, not once per job"
-status: "open"
+status: "in_progress"
 priority: "P3"
 epic: "unify-and-narrow"
-horizon: "later"
+horizon: "now"
 depends_on: []
 ---
 

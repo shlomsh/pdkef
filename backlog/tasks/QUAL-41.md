@@ -1,10 +1,10 @@
 ---
 id: "QUAL-41"
 title: "Every file a spec reads directly is covered by a scope rule"
-status: "open"
+status: "in_progress"
 priority: "P3"
 epic: "unify-and-narrow"
-horizon: "later"
+horizon: "now"
 depends_on: ["QUAL-34"]
 ---
 

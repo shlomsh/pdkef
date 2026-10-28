@@ -1,10 +1,10 @@
 ---
 id: "QUAL-39"
 title: "Unit tests run in two parallel CI jobs"
-status: "open"
+status: "in_progress"
 priority: "P3"
 epic: "unify-and-narrow"
-horizon: "later"
+horizon: "now"
 depends_on: []
 ---
 
