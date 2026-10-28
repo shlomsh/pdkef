@@ -59,7 +59,21 @@ The worker records, the page reports. Nothing in the worker sends anything.
 
 ## Acceptance
 
-- [ ] Unit tests in `scripts/sw.test.mjs` for each reason code, the once-per-build limit, and a report
+- [x] Unit tests in `scripts/sw.test.mjs` for each reason code, the once-per-build limit, and a report
       that fails to send without affecting the install.
-- [ ] `src/site-lib/reportContract.test.ts` (or its successor) accepts the new report and nothing wider.
-- [ ] The daily error read can tell these reports apart.
+- [x] `src/site-lib/reportContract.test.ts` (or its successor) accepts the new report and nothing wider.
+- [x] The daily error read can tell these reports apart.
+
+## Progress (2026-10-28)
+
+- Built as designed: typed reason codes in `public/sw.js`, the record in `maint-sw-v1`, the page reporter
+  `src/site-lib/swInstallReport.ts` (loaded on demand after the registration's idle gate), and the
+  `sw_install` event in the schema, endpoint tests and `docs/maintenance-telemetry.md`. The daily read shows
+  it as its own `sw_install|failure|<reason>|<bucket>` row with no script change.
+- A review found that the tombstone was written even when the report did not leave (offline). It now
+  follows a send that went out, so an offline load retries on the next one.
+- Still open: whether a Vercel preview rewrites HTML. One preview deployment (2026-10-28) answers every
+  URL with a 302 to Vercel login (Deployment Protection), so curl could not compare anything. Two facts
+  came out of it: a preview is reachable only by someone logged in to Vercel, and Vercel's build id
+  differs from a local build of the same commit, so the comparison has to be the preview's own manifest
+  against its own `/`, from a logged-in browser.
