@@ -163,3 +163,91 @@ describe('gitToolEntryLastModifiedIso', () => {
     expect(gitToolEntryLastModifiedIso('gamma', { file: 'tools.js', cwd: repo })).toBeNull();
   });
 });
+
+// SEO-49: a commit that only restructures code (ARCH-101's src/lib move,
+// ARCH-44's import alias rewrite) touched home components and so re-dated `/`
+// and `/he/` with no word on either page changing. Such commits are listed in
+// `.git-blame-ignore-revs`, and the date lookup skips them the way
+// `git blame --ignore-revs-file` does.
+describe('structure-only commits listed in .git-blame-ignore-revs', () => {
+  let repo;
+  const git = (cmd, date = '2026-01-01T00:00:00Z') =>
+    execSync(`git ${cmd}`, {
+      cwd: repo,
+      encoding: 'utf8',
+      env: { ...process.env, GIT_AUTHOR_DATE: date, GIT_COMMITTER_DATE: date },
+    }).trim();
+  const write = (file, text) => {
+    fs.mkdirSync(path.dirname(path.join(repo, file)), { recursive: true });
+    fs.writeFileSync(path.join(repo, file), text);
+  };
+  const tools = (title, specifier) =>
+    `import x from '${specifier}';\nexport const tools = [\n  {\n    slug: 'alpha',\n    title: '${title}',\n    icon: '${specifier}',\n  },\n];\n`;
+  let refactor;
+
+  beforeAll(() => {
+    repo = fs.mkdtempSync(path.join(os.tmpdir(), 'pdkef-ignore-revs-test-'));
+    git('init --quiet');
+    git('config user.email t@example.com');
+    git('config user.name t');
+    write('home/Hero.astro', "import a from '../../lib/a.ts';\n<h1>One</h1>\n");
+    write('tools.js', tools('a1', '../lib/a.ts'));
+    git('add .');
+    git('commit --quiet -m first', '2026-01-01T00:00:00Z');
+    write('home/Hero.astro', "import a from '../../lib/a.ts';\n<h1>Two</h1>\n");
+    write('tools.js', tools('a2', '../lib/a.ts'));
+    git('commit --quiet -am content', '2026-02-01T00:00:00Z');
+    write('home/Hero.astro', "import a from '#lib/a.ts';\n<h1>Two</h1>\n");
+    write('home/Moved.astro', '<p>moved here</p>\n');
+    write('tools.js', tools('a2', '#lib/a.ts'));
+    git('add .');
+    git('commit --quiet -m refactor', '2026-03-01T00:00:00Z');
+    refactor = git('rev-parse HEAD');
+    write('.git-blame-ignore-revs', `# imports use aliases\n${refactor}\n`);
+    git('add .git-blame-ignore-revs');
+    git('commit --quiet -m list', '2026-04-01T00:00:00Z');
+  });
+
+  afterAll(() => {
+    if (repo) fs.rmSync(repo, { recursive: true, force: true });
+  });
+
+  it('dates a file and a directory by the last commit before the listed one', () => {
+    expect(gitFileLastModifiedIso('home/Hero.astro', { cwd: repo })).toBe('2026-02-01T00:00:00.000Z');
+    expect(lastModifiedFor(['home/Hero.astro'], { cwd: repo })).toBe('2026-02-01T00:00:00.000Z');
+  });
+
+  it("dates a tool entry by its lines' last commit before the listed one", () => {
+    expect(gitToolEntryLastModifiedIso('alpha', { file: 'tools.js', cwd: repo })).toBe('2026-02-01T00:00:00.000Z');
+  });
+
+  it('keeps the date of a file that only listed commits ever touched, rather than dropping it', () => {
+    // A listed commit only ever moves a date back to a real content change;
+    // "no date" stays reserved for a shallow clone that cannot know.
+    expect(gitFileLastModifiedIso('home/Moved.astro', { cwd: repo })).toBe('2026-03-01T00:00:00.000Z');
+  });
+});
+
+describe("this repository's .git-blame-ignore-revs", () => {
+  const repoRoot = execSync('git rev-parse --show-toplevel', { encoding: 'utf8' }).trim();
+  const listedRevs = () =>
+    fs
+      .readFileSync(path.join(repoRoot, '.git-blame-ignore-revs'), 'utf8')
+      .split('\n')
+      .map((line) => line.trim())
+      .filter((line) => line && !line.startsWith('#'));
+  const shallow = execSync('git rev-parse --is-shallow-repository', { encoding: 'utf8' }).trim() === 'true';
+
+  it('lists full commit hashes', () => {
+    const revs = listedRevs();
+    expect(revs.length).toBeGreaterThan(0);
+    for (const rev of revs) expect(rev).toMatch(/^[0-9a-f]{40}$/);
+  });
+
+  // A rebase rewrites a listed hash, and a stale one silently stops working.
+  it.skipIf(shallow)('names only commits that exist in this history', () => {
+    for (const rev of listedRevs()) {
+      expect(() => execSync(`git merge-base --is-ancestor ${rev} HEAD`, { cwd: repoRoot, stdio: 'ignore' }), rev).not.toThrow();
+    }
+  });
+});
