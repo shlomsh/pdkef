@@ -51,7 +51,7 @@
 //      (`tooling`), so a `scripts/` file is no longer unowned by this rule -
 //      see rule 3 for why the oracle files inside it still force everything.
 //   3. Any changed file is the CI oracle itself (ORACLE_FILES: this script,
-//      change-scope.mjs, import-graph.mjs or unowned-verdicts.mjs) ->
+//      change-scope.mjs, import-graph.mjs, script-closure.mjs or unowned-verdicts.mjs) ->
 //      everything=true. Do not trust a narrowed run to validate the code that decided to narrow it - the same reasoning
 //      CORE_PROJECTS gives for editor. This is checked separately from
 //      ownership because `tooling` (rule 2) would otherwise let an oracle
@@ -105,7 +105,8 @@ import { fileURLToPath } from 'node:url';
 import { dirname, resolve as resolvePath } from 'node:path';
 import { resolveBase, changedFiles, isDocsOnly } from './change-scope.mjs';
 import { resolveUnitScope, runUnitByImpact } from './unit-scope.mjs';
-import { buildReachGraph, importSpecifiers } from './import-graph.mjs';
+import { buildReachGraph } from './import-graph.mjs';
+import { scriptClosure } from './script-closure.mjs';
 import { unownedRowOf, filesForNx, CI_FILE, ciFontJobChangedBetween } from './unowned-verdicts.mjs';
 
 const ROOT = resolvePath(dirname(fileURLToPath(import.meta.url)), '..');
@@ -130,7 +131,7 @@ export const CORE_PROJECTS = new Set(['site', 'shell', 'editor', 'lib', 'data', 
 // regardless of ownership. Their own tests are deliberately not listed here:
 // scripts/affected-scope.test.mjs and scripts/change-scope.test.mjs may
 // narrow like any other tooling file.
-export const ORACLE_FILES = new Set(['scripts/affected-scope.mjs', 'scripts/change-scope.mjs', 'scripts/import-graph.mjs', 'scripts/unowned-verdicts.mjs']);
+export const ORACLE_FILES = new Set(['scripts/affected-scope.mjs', 'scripts/change-scope.mjs', 'scripts/import-graph.mjs', 'scripts/unowned-verdicts.mjs', 'scripts/script-closure.mjs']);
 
 // QUAL-32 follow-up: a file the production build executes shapes dist/ (the precache manifest, the
 // service worker build id, repo-only pruning), which e2e/offline and the rest of the suite exercise,
@@ -146,28 +147,8 @@ export function buildPipelineFiles(packageJsonText, readFile) {
   } catch {
     return new Set();
   }
-  const found = new Set();
   const shaping = build.split('&&').filter((step) => !/(^|\s)--check(\s|$)/.test(step)).join('&&');
-  const queue = [...shaping.matchAll(/\bnode\s+((?:\.\/)?[\w./-]+\.[cm]?[jt]s)\b/g)].map((m) => m[1].replace(/^\.\//, ''));
-  const resolve = (from, spec) => {
-    const base = join(dirname(from), spec).split('\\').join('/');
-    const stem = base.replace(/\.[cm]?[jt]sx?$/, '');
-    const candidates = [base, ...['.mjs', '.js', '.ts', '.tsx', '.jsx'].flatMap((e) => [stem + e, base + e, `${base}/index${e}`])];
-    return candidates.find((c) => readFile(c) != null) ?? null;
-  };
-  while (queue.length > 0) {
-    const file = queue.pop();
-    if (found.has(file)) continue;
-    const source = readFile(file);
-    if (source == null) continue;
-    found.add(file);
-    for (const spec of importSpecifiers(source, file)) {
-      if (!spec.startsWith('.')) continue;
-      const target = resolve(file, spec);
-      if (target) queue.push(target);
-    }
-  }
-  return found;
+  return scriptClosure(shaping, readFile);
 }
 
 let realBuildFiles = null;
