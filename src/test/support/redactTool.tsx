@@ -123,7 +123,6 @@ export async function setSelectedBoxColor(color: string) {
   });
 }
 
-/** Registers the suite's setup and teardown inside the calling describe and returns its shared state and helpers. */
 /** The slice of the tool harness the suite setup touches; the test file passes the real one in. */
 interface SuiteHarness {
   restore(): void;
@@ -208,33 +207,26 @@ export function useRedactSuite<H extends SuiteHarness>({ Tool, checking, gesture
     localStorage.clear();
   });
 
+  return { s, holdNextDocumentRead, lifecycle, failedOperations, ...redactSuiteActions(s, { Tool, waitUntil }) };
+}
+
+interface SuiteState {
+  container: HTMLElement;
+  gestureCommitSpies: Array<ReturnType<typeof vi.fn>>;
+}
+
+/** The suite's load, arm and draw helpers, reading the live container from `s`. */
+function redactSuiteActions(s: SuiteState, { Tool, waitUntil }: { Tool: ComponentType; waitUntil: (condition: () => unknown) => Promise<unknown> }) {
   async function loadFileAndGetDrawArea(file: File = makePdfFile('test_secret.pdf')): Promise<HTMLElement> {
-    s.container = document.createElement('div');
-    document.body.appendChild(s.container);
-    act(() => {
-      render(<Tool />, s.container);
-    });
-
-    const input = query<HTMLInputElement>(s.container, 'input[type="file"]');
-    await act(async () => {
-      setInputFiles(input, [file]);
-    });
-    await waitUntil(() => query(s.container, '.redact-draw-area'));
-
-    const drawArea = query<HTMLElement>(s.container, '.redact-draw-area');
-    drawArea.getBoundingClientRect = () => ({
-      left: 0, top: 0, width: 500, height: 1000, right: 500, bottom: 1000, x: 0, y: 0, toJSON: () => {}
-    });
-
+    const drawArea = await loadFileWithoutArming(file);
     // Nothing is armed on load, and a tool arms for one box at a time, so every
     // caller here that wants drawBox() to actually draw needs Blackout armed
-    // first. Centralized rather than repeated at this file's many drawBox()
+    // first. Centralized rather than repeated at the suite's many drawBox()
     // call sites, since none of them are testing which tool starts selected;
     // they test box drag/resize/delete mechanics and just need a box on the
     // page to exercise. Tests that draw twice have to arm twice - that is the
-    // one-shot contract, and it has its own tests below.
+    // one-shot contract, and it has its own tests in PdfRedactTool.arming.test.tsx.
     await armTool('Blackout');
-
     return drawArea;
   }
 
@@ -317,8 +309,5 @@ export function useRedactSuite<H extends SuiteHarness>({ Tool, checking, gesture
     await act(async () => { await new Promise((resolve) => setTimeout(resolve, 50)); });
   }
 
-  return {
-    s, holdNextDocumentRead, lifecycle, failedOperations, loadFileAndGetDrawArea, armTool, drawBox,
-    expectLatestGestureToCommitOnce, loadFileWithoutArming, findToolButton, openSecondFile,
-  };
+  return { loadFileAndGetDrawArea, armTool, drawBox, expectLatestGestureToCommitOnce, loadFileWithoutArming, findToolButton, openSecondFile };
 }
