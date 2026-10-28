@@ -1,11 +1,18 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { aliasTarget } from './import-aliases.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const repoRoot = path.join(__dirname, '..');
 const srcDir = path.join(repoRoot, 'src');
+
+// A relative specifier resolves from the importing file; a layer alias (ARCH-44) from the repo root.
+const resolveSpec = (fromFile, spec) => {
+  const aliased = aliasTarget(spec);
+  return aliased ? path.join(repoRoot, aliased) : path.resolve(path.dirname(fromFile), spec);
+};
 const allowlistPath = path.join(__dirname, 'css-module-class-allowlist.json');
 
 /*
@@ -183,7 +190,7 @@ export function collectReverseInputs(allFiles, readFile = (f) => fs.readFileSync
     if (!isReader(f)) continue;
     const source = readFile(f);
     for (const { binding, spec } of moduleImportsIn(source)) {
-      const target = path.resolve(path.dirname(f), spec);
+      const target = resolveSpec(f, spec);
       if (!modules.has(target)) continue;
       importers.get(target).add(f);
       if (binding) {
@@ -282,7 +289,7 @@ for (const file of allFiles) {
   const moduleImports = new Map(
     [...source.matchAll(/import\s+(\w+)\s+from\s+['"]([^'"]+\.module\.css)['"]/g)].map((m) => [
       m[1],
-      path.resolve(path.dirname(file), m[2]),
+      resolveSpec(file, m[2]),
     ]),
   );
   const importedModules = new Set(moduleImports.values());
