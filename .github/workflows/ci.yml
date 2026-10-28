@@ -11,6 +11,7 @@ on:
   # landed since its own last completed run - a quiet repo has nothing new for
   # it to catch, and the previous night's run already vouched for that commit.
   # It also runs every chromium spec twice, as a flake pass (QUAL-24).
+  # A manual run with the `nightly` input set takes this same path on demand.
   schedule:
     - cron: "17 3 * * *"
   # The exported-PDF render guard's baseline is platform-bound and must be
@@ -23,6 +24,10 @@ on:
     inputs:
       update-export-render-baseline:
         description: "Recapture the exported-PDF render baseline on this runner and print it"
+        type: boolean
+        default: false
+      nightly:
+        description: "Run the nightly path: scope, every chromium spec twice, update-cost, flake report"
         type: boolean
         default: false
 
@@ -440,14 +445,14 @@ jobs:
     # (`e2e-webkit`) instead of being sharded here alongside chromium.
     # $E2E_PATHS is empty (no filter, the full suite) only when affected-scope.mjs
     # saw everything=true; the step is skipped when product_e2e=false.
-    # On the nightly cron every chromium spec runs twice (the chromium
+    # On the nightly (cron or a nightly dispatch) every chromium spec runs twice (the chromium
     # project has no retries), so a flaky spec turns the nightly red instead
     # of a push (QUAL-24).
     - name: Run Playwright e2e tests (product chromium, shard ${{ matrix.shard }}/4)
       if: steps.affected.outputs.product_e2e != 'false'
       env:
         E2E_PATHS: ${{ steps.affected.outputs.e2e_paths }}
-        REPEAT: ${{ github.event_name == 'schedule' && '--repeat-each=2' || '' }}
+        REPEAT: ${{ (github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.nightly)) && '--repeat-each=2' || '' }}
       run: npx playwright test --project=chromium --shard=${{ matrix.shard }}/4 --pass-with-no-tests $REPEAT $E2E_PATHS
 
     - name: Upload Playwright artifacts
@@ -609,7 +614,7 @@ jobs:
   flake-report:
     runs-on: ubuntu-latest
     needs: [scope, e2e]
-    if: always() && github.event_name == 'schedule'
+    if: always() && (github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.nightly))
     continue-on-error: true
     permissions:
       actions: read
@@ -668,9 +673,10 @@ jobs:
   # `nightly_unchanged` output can gate the nightly cron: `docs_only` resolves
   # to false there (no `before` sha to diff against), which is harmless - it
   # only widens, and `nightly_unchanged` is the output that actually narrows a
-  # scheduled run. `workflow_dispatch` (the manual baseline recapture) is
-  # deliberately left out here: it still skips `scope` entirely and fails open
-  # through `needs.scope.result != 'success'`, same as before.
+  # scheduled run. A plain `workflow_dispatch` (the manual baseline recapture)
+  # still skips `scope` entirely and fails open through
+  # `needs.scope.result != 'success'`; a dispatch with `nightly: true` runs it
+  # like the scheduled path.
   #
   # This job stays dependency-free (no `npm ci`) on purpose - see the
   # workflow header comment. It resolves BASE once and outputs it as `base`
@@ -679,7 +685,7 @@ jobs:
   # `node_modules` for `nx`, hence cannot live here) against the same diff.
   scope:
     runs-on: ubuntu-latest
-    if: github.event_name == 'push' || github.event_name == 'pull_request' || github.event_name == 'schedule'
+    if: github.event_name == 'push' || github.event_name == 'pull_request' || (github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.nightly))
     outputs:
       docs_only: ${{ steps.classify.outputs.docs_only }}
       base: ${{ steps.classify.outputs.base }}
@@ -707,6 +713,7 @@ jobs:
     # `docs_only` below: an unresolvable comparison never hides a real run.
     - name: Check for commits since the last nightly run
       id: nightly
+      # Schedule-only on purpose: a manual nightly is an explicit ask and never skips itself.
       if: github.event_name == 'schedule'
       env:
         GH_TOKEN: ${{ github.token }}
@@ -748,7 +755,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 40
     needs: scope
-    if: always() && github.event_name == 'schedule' && needs.scope.outputs.nightly_unchanged != 'true'
+    if: always() && (github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.nightly)) && needs.scope.outputs.nightly_unchanged != 'true'
     permissions:
       contents: read
       deployments: read
@@ -799,8 +806,9 @@ jobs:
   # per-push decision is a glob again - see backlog/tasks/ARCH-23.md and
   # docs/nx-affected-ci.md's "ARCH-23" section. Every step after that reads
   # costs one runner ~20s in parallel with `checks`/`e2e` and no wall time
-  # when fonts is not affected; on the nightly schedule and a manual dispatch
-  # (no `scope` job, no base) affected-scope.mjs's own fail-open rule makes
+  # when fonts is not affected; on the nightly schedule, a nightly dispatch
+  # and a plain manual dispatch (no base, or `scope` skipped),
+  # affected-scope.mjs's own fail-open rule makes
   # fonts=true, so those still run. The two guards that exercise the real
   # export pipeline (the export render guard, language acceptance) are the
   # `export-guards` job below, not part of this one any more.
