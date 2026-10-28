@@ -2,7 +2,7 @@
 
 # Backlog
 
-The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 98 live: 13 up next, 17 then, 26 waiting, 42 parked.
+The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 97 live: 13 up next, 16 then, 26 waiting, 42 parked.
 
 ## Redact: finish removal
 
@@ -234,7 +234,7 @@ Done and retired tickets are not listed. Their files stay in [backlog/tasks/](ba
 - Tool pages: show the verb: 8 done, 0 retired
 - Form detector accuracy: 19 done, 1 retired
 - Robustness and debt: 70 done, 4 retired
-- Unify the tools, narrow the graph: 77 done, 0 retired
+- Unify the tools, narrow the graph: 78 done, 0 retired
 - Search and languages: 7 done, 0 retired
 - Polish: 19 done, 1 retired
 - Sign tool architecture: 37 done, 1 retired
