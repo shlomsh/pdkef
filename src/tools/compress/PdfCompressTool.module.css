@@ -92,14 +92,15 @@
     margin-top: 20px;
   }
 
-  /* The stage fills the loaded card to its foot, as every tool's first screen
-     does: the card's floor (PdfTool.module.css, --first-screen less the 5.5rem
+  /* The stage is the loaded card to its foot, as every tool's first screen
+     is: the card's floor (PdfTool.module.css, --first-screen less the 5.5rem
      condensed hero) less the card's own 1rem padding and 1px border on each
-     side. */
+     side. Its height is fixed, so the image (.compare-fit) takes what the rows
+     around it leave and the card never grows past the window. */
   .result {
     --stage-h: calc(var(--first-screen) - 5.5rem - 2rem - 2px);
     padding: 20px;
-    min-height: var(--stage-h);
+    height: var(--stage-h);
     justify-content: center;
   }
 
@@ -107,20 +108,22 @@
     margin-bottom: 16px;
   }
 
-  /* A passthrough's column (its title, numbers, note and original) keeps a
-     portrait page's width beside the rail. */
+  /* A passthrough's rows (its title, numbers and note) keep a reading
+     measure that never depends on the image, so nothing moves when the image
+     arrives. */
   .result > * {
-    max-width: min(48rem, calc((var(--stage-h) - 106px - 1.2rem) * var(--preview-aspect, 0.7)));
+    max-width: 32rem;
   }
 
-  /* The comparison owns the stage: the panel is the stage's inner height, the
-     line under the image takes what it needs, and the image takes the rest
-     (.compare-fit), so nothing is budgeted by hand and the card never grows
-     past the window. e2e/compare-preview.spec.js holds Full screen and the
-     card's foot inside it. */
-  .result > .compare-panel {
+  /* The comparison, and any image or placeholder on its own, take the rest of
+     the stage's height (.compare-fit sizes the image inside it), so nothing
+     is budgeted by hand. e2e/compare-preview.spec.js holds Full screen and
+     the card's foot inside the window. */
+  .result > .compare-panel,
+  .result > .compare-fit {
+    flex: 1;
+    min-height: 0;
     max-width: none;
-    height: calc(var(--stage-h) - 40px);
   }
 
   .compare-fit {
@@ -327,6 +330,12 @@
   flex-direction: column;
   align-items: center;
   gap: 0.6rem;
+}
+
+/* Hidden, not absent, until the file's own shape is known (ResultSection's
+   `measuring`): appearing is not a layout shift, resizing is. */
+.compare-fit[data-measuring] {
+  visibility: hidden;
 }
 
 /* The image and what names it: the labels on its top corners, Full screen on
