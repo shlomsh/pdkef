@@ -113,7 +113,7 @@ function scanFile(file, source, files) {
     // `import('./x').T` also lives in JSDoc comments (`@typedef {import('./x.ts').T}`), which the
     // AST skips: read it from the text. `.T` is a named use; a bare import() or `.then` is a
     // use of every export of the target.
-    for (const m of text.matchAll(/\bimport\(\s*['"](\.[^'"]+)['"]\s*\)(?:\.([A-Za-z_$][\w$]*))?/g)) {
+    for (const m of text.matchAll(/\bimport\(\s*['"]((?:\.|#)[^'"]+)['"]\s*\)(?:\.([A-Za-z_$][\w$]*))?/g)) {
       addUse(m[1], m[2] && !['then', 'catch', 'finally'].includes(m[2]) ? m[2] : '*');
     }
 

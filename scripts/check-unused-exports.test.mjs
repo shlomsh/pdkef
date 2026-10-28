@@ -91,6 +91,16 @@ describe('layer aliases (ARCH-44)', () => {
     });
     expect(r.neverUsed).toEqual([]);
   });
+
+  it('treats a dynamic import or import() type through an alias as using every export', () => {
+    const r = analyzeExports({
+      'src/lib/a.ts': 'export const one = 1;\nexport const two = 2;\n',
+      'src/lib/b.ts': 'export const three = 3;\n',
+      'src/shell/c.ts': "export type A = typeof import('#lib/a.ts');\nexport const lazy = () => import('#lib/b.ts');\n",
+      'src/shell/d.ts': "import type { A } from './c';\nimport { lazy } from './c';\nconsole.log(lazy as unknown as A);\n",
+    });
+    expect(r.neverUsed).toEqual([]);
+  });
 });
 
 describe('ratchet comparison (ARCH-61)', () => {

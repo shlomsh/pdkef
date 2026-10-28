@@ -41,7 +41,16 @@ export function findAliasViolations(fromRel, specifiers, { resolveRel, exists })
   return out;
 }
 
-const VI_CALL = /\bvi\.(?:mock|doMock|unmock|importActual|importMock)\s*\(\s*(['"`])([^'"`\n]+)\1/g;
+const VI_CALL = /\bvi\.(?:mock|doMock|unmock|doUnmock|importActual|importMock)\s*(?:<[\s\S]*?>\s*)?\(\s*(['"`])([^'"`\n]+)\1/g;
+const NEW_URL = /\bnew\s+URL\(\s*(['"`])([^'"`\n]+)\1\s*,\s*import\.meta\.url/g;
+
+/** Pure. The specifiers the rule applies to: imports and vi mock-family calls, minus `new URL(..., import.meta.url)`. */
+export function specifiersOf(source, rel) {
+  const urls = new Set([...source.matchAll(NEW_URL)].map((m) => m[2]));
+  const specs = new Set(importSpecifiers(source, rel).filter((s) => !urls.has(s)));
+  for (const m of source.matchAll(VI_CALL)) specs.add(m[2]);
+  return [...specs];
+}
 
 function main() {
   const src = path.join(REPO_ROOT, 'src');
@@ -50,8 +59,7 @@ function main() {
   for (const abs of files) {
     const rel = relOf(abs);
     const source = fs.readFileSync(abs, 'utf8');
-    const specs = importSpecifiers(source, rel);
-    for (const m of source.matchAll(VI_CALL)) specs.push(m[2]);
+    const specs = specifiersOf(source, rel);
     violations.push(
       ...findAliasViolations(rel, specs, {
         resolveRel: (s) => {
