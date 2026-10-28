@@ -12,12 +12,12 @@ vi.mock('../../lib/drafts/draftStore.ts', () => ({
   cacheRecentFile: vi.fn(() => Promise.resolve(true)),
 }));
 
-vi.mock('../../lib/thumbnails.js', () => ({
+vi.mock('../../lib/pdf/thumbnails.js', () => ({
   renderDraftPreview: vi.fn(() => Promise.resolve(null)),
 }));
 
 import { deleteDraft, loadDraft, takeHandoff } from '../../lib/drafts/draftStore.ts';
-import { takeArrival, noteRecentOpen, resetFileArrivalForTests } from '../../lib/fileArrival.ts';
+import { takeArrival, noteRecentOpen, resetFileArrivalForTests } from '../../lib/handoff/fileArrival.ts';
 import { useEditorDraftPersistence } from './useEditorDraftPersistence.ts';
 import { DRAFT_SCHEMA_VERSION, isDraftElement, isEditorElement } from '../registry/draftValidation.ts';
 

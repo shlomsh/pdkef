@@ -1,5 +1,5 @@
 import { useCallback, useRef } from 'preact/hooks';
-import { openThumbnailSource } from '../../lib/thumbnails.js';
+import { openThumbnailSource } from '../../lib/pdf/thumbnails.js';
 
 interface ThumbnailSource {
   pageCount: number;

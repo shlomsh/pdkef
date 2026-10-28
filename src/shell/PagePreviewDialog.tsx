@@ -2,8 +2,8 @@ import { useEffect, useRef, useState } from 'preact/hooks';
 import { useModalDialog } from './useModalDialog.ts';
 import dialogStyles from './Dialog.module.css';
 import styles from './PagePreviewDialog.module.css';
-import { renderPdfThumbnails } from '../lib/thumbnails.js';
-import { reportError } from '../lib/errorReport.ts';
+import { renderPdfThumbnails } from '../lib/pdf/thumbnails.js';
+import { reportError } from '../lib/telemetry/errorReport.ts';
 
 export interface PreviewTarget {
   file: File;

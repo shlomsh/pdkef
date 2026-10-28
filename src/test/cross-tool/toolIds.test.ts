@@ -1,13 +1,13 @@
 import { describe, expect, expectTypeOf, it } from 'vitest';
 import { tools, toolIdOf } from '../../data/tools.js';
 import { LOCALIZED_TOOL_ISLANDS } from '../../i18n/localizedTools.ts';
-import { ANALYTICS_TOOLS } from '../../lib/usageEventSchema.ts';
-import { RATING_TOOLS } from '../../lib/ratingSchema.ts';
+import { ANALYTICS_TOOLS } from '../../lib/telemetry/usageEventSchema.ts';
+import { RATING_TOOLS } from '../../lib/telemetry/ratingSchema.ts';
 import type { HandoffTool } from '../../shell/pageWorkspace/useDownloadFlow.ts';
 import type { ToolSlug } from '../../site-lib/routeFiles.ts';
-import { TOOL_PAGES, TOOL_IDS, type ToolPage, type HandoffTargetId, type EditorToolId, type RedactHandoffTarget, LOCALIZED_ISLAND_SLUGS, handoffKeyOf, handoffHrefOf } from '../../lib/toolIds.ts';
+import { TOOL_PAGES, TOOL_IDS, type ToolPage, type HandoffTargetId, type EditorToolId, type RedactHandoffTarget, LOCALIZED_ISLAND_SLUGS, handoffKeyOf, handoffHrefOf } from '../../lib/app/toolIds.ts';
 
-// ARCH-38: src/lib/toolIds.ts is the one list a new tool is added to; src/data/tools.js stays the
+// ARCH-38: src/lib/app/toolIds.ts is the one list a new tool is added to; src/data/tools.js stays the
 // SEO/content registry. These two must name the same pages, or one of them has been edited alone.
 describe('toolIds.ts and src/data/tools.js agree', () => {
   it('every page in tools.js is in toolIds.ts, and the other way round, in the same order', () => {

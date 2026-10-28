@@ -1,10 +1,10 @@
-import type { MaintenanceEvent } from '../../../lib/maintenanceTelemetry.ts';
+import type { MaintenanceEvent } from '../../../lib/telemetry/maintenanceTelemetry.ts';
 import {
   signFormDetectionCompleted,
   signFormDetectionFailed,
   signFormDetectionNotStarted,
   signFormDetectionUnavailable,
-} from '../../../lib/maintenanceTelemetry.ts';
+} from '../../../lib/telemetry/maintenanceTelemetry.ts';
 import type { FormFieldRegions } from '../hooks/useFormFieldRegions.ts';
 
 /**

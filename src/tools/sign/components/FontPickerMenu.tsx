@@ -3,7 +3,7 @@ import { offset, flip, shift } from '@floating-ui/react';
 import Popover from '../../../shell/Popover.tsx';
 import styles from '../../../editor-ui/EditorControls.module.css';
 import { englishSignMessages } from '../messages';
-import { formatMessage } from '../../../lib/formatMessage';
+import { formatMessage } from '../../../lib/text/formatMessage';
 import type { SignMessages } from '../../../editor/registry/messages';
 import visualViewportClamp, { getStickyToolShellRect } from '../../../editor-ui/hooks/visualViewportClamp.ts';
 import useCoarsePointer from '../../../editor-ui/hooks/useCoarsePointer.ts';

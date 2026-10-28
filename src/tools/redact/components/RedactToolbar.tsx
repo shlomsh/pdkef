@@ -14,7 +14,7 @@ import UndoRedoButtons from '../../../editor-ui/UndoRedoButtons.tsx';
 import redactStyles from '../PdfRedactTool.module.css';
 import barStyles from './RedactToolbar.module.css';
 import { englishRedactMessages as t } from '../messages.ts';
-import { formatMessage } from '../../../lib/formatMessage.ts';
+import { formatMessage } from '../../../lib/text/formatMessage.ts';
 
 // What each tool is called in front of a user and what it is waiting for -
 // the same contract SignToolbar's TOOL_COPY holds, for the same reason: every

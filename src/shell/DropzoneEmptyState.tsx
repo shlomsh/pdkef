@@ -3,8 +3,8 @@ import { dropHasDirectory, filesFromDataTransfer } from './dropFiles.js';
 import type { ComponentChild, Ref } from 'preact';
 import styles from './Dropzone.module.css';
 import { englishShellMessages, type ShellMessages } from './shellMessages';
-import { isAndroidDevice, isIOSDevice } from '../lib/platform.ts';
-import { reportError } from '../lib/errorReport.ts';
+import { isAndroidDevice, isIOSDevice } from '../lib/app/platform.ts';
+import { reportError } from '../lib/telemetry/errorReport.ts';
 
 interface DropzoneEmptyStateProps {
   multiple?: boolean;

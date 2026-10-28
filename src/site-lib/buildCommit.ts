@@ -1,6 +1,6 @@
 // The deploying commit (MEM-19). middleware.ts sends it on every HTML response as a
 // `Server-Timing: build;desc="<sha7>"` header, so no page's bytes change per deploy;
-// src/lib/errorReport.ts reads it back off the navigation entry. Pure, no environment access.
+// src/lib/telemetry/errorReport.ts reads it back off the navigation entry. Pure, no environment access.
 
 /** The first 7 characters of a valid VERCEL_GIT_COMMIT_SHA, or '' when there is none. */
 export function commitFromEnv(env: Record<string, string | undefined> | undefined): string {

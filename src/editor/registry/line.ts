@@ -1,6 +1,6 @@
 import type { ElementDefinition, LineResizeInput, LineResizePatch } from './types.ts';
 import type { LineElement } from '../model/editorModel.ts';
-import { rgb } from '../../lib/pdfLiterals.ts';
+import { rgb } from '../../lib/pdf/pdfLiterals.ts';
 import { hasNumber, hasString, isRecord } from './schema.ts';
 import { hexToRgbFractions } from '../text/imageTint.js';
 import { percentToPoints } from '../geometry/coords.js';

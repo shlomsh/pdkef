@@ -28,11 +28,11 @@ The output is built quietly in the background (`usePreparedOutput`), keyed on ev
 
 | Module | Owner | What it is |
 | --- | --- | --- |
-| `src/lib/imagesToPdf.js` | Image to PDF, Scan | moved from `src/lib/imagesToPdf.js`; gains `options.pageSize` |
-| `src/lib/imagePage.js` | Image to PDF, Merge, Scan | gains `placeImage()` and `addImagePage(..., { pageSize })` |
-| `src/lib/pageOrder.js` | Image to PDF, Scan | moved from `src/lib/pageOrder.js`, unchanged |
-| `src/lib/targetSizeSearch.js` | Compress, Scan | moved from `src/tools/compress/`, plus the quality constants |
-| `src/lib/canvasBlob.js` | Compress, Scan | `canvasToBlob`, moved out of `compress.js` |
+| `src/lib/images/imagesToPdf.js` | Image to PDF, Scan | moved from `src/lib/images/imagesToPdf.js`; gains `options.pageSize` |
+| `src/lib/images/imagePage.js` | Image to PDF, Merge, Scan | gains `placeImage()` and `addImagePage(..., { pageSize })` |
+| `src/lib/pages/pageOrder.js` | Image to PDF, Scan | moved from `src/lib/pages/pageOrder.js`, unchanged |
+| `src/lib/images/targetSizeSearch.js` | Compress, Scan | moved from `src/tools/compress/`, plus the quality constants |
+| `src/lib/images/canvasBlob.js` | Compress, Scan | `canvasToBlob`, moved out of `compress.js` |
 | `src/shell/pageWorkspace/useDownloadFlow.ts`, `FinishRow.tsx` | all page tools | `HandoffTool` gains `'merge'` |
 | `src/shell/BasePdfTool.tsx`, `DropzoneEmptyState.tsx` | all tools | optional `emptyAction` slot under the picker |
 | `src/tools/scan/lib/quad.ts` | Scan | `Point`, `Quad`, `RgbaImage`, `GrayImage`, quad helpers |
@@ -84,13 +84,13 @@ export function warpPerspective(src: RgbaImage, quadPx: Quad, width: number, hei
 export type ScanFilter = 'original' | 'grayscale' | 'document';
 export function applyFilter(image: RgbaImage, filter: ScanFilter): RgbaImage; // never mutates `image`
 
-// src/lib/imagePage.js
+// src/lib/images/imagePage.js
 export type PageSize = 'fit' | 'a4' | 'letter';
 export function placeImage(imageWidth, imageHeight, pageSize):
   { pageWidth, pageHeight, x, y, width, height }; // PDF points
 export async function addImagePage(pdfDoc, bytes, mimeType, label = mimeType, { pageSize = 'fit' } = {});
 
-// src/lib/imagesToPdf.js
+// src/lib/images/imagesToPdf.js
 export async function imagesToPdf(files, onProgress, signal, { pageSize = 'fit' } = {}): Promise<Blob>;
 
 // src/tools/scan/lib/scanBudget.ts

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'preact/hooks';
 import type { PDFDocumentProxy } from 'pdfjs-dist';
-import { reportError } from '../../../lib/errorReport.ts';
+import { reportError } from '../../../lib/telemetry/errorReport.ts';
 import { isDeleteElement, type RedactElement } from '../lib/redactElements.ts';
 
 export interface PageSizePt { width: number; height: number }

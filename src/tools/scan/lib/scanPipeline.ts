@@ -6,11 +6,11 @@ import { warpPerspective, warpSize } from './warp.ts';
 import { applyFilter, type ScanFilter } from './filters.ts';
 import { insetQuad, scaleQuad, type GrayImage, type Quad } from './quad.ts';
 import { fitScanToBudget, type FitResult } from './scanBudget.ts';
-import { canvasToBlob } from '../../../lib/canvasBlob.js';
-import { throwIfAborted } from '../../../lib/abort.js';
-import { imagesToPdf } from '../../../lib/imagesToPdf.js';
-import { placeImage } from '../../../lib/imagePage.js';
-import { MAX_SEARCH_MS } from '../../../lib/targetSizeSearch.js';
+import { canvasToBlob } from '../../../lib/images/canvasBlob.js';
+import { throwIfAborted } from '../../../lib/output/abort.js';
+import { imagesToPdf } from '../../../lib/images/imagesToPdf.js';
+import { placeImage } from '../../../lib/images/imagePage.js';
+import { MAX_SEARCH_MS } from '../../../lib/images/targetSizeSearch.js';
 
 export type PageSize = 'fit' | 'a4' | 'letter';
 export interface ProcessedPage {

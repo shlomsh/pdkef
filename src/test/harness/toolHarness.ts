@@ -23,13 +23,13 @@
 // Installs the global IndexedDB classes (IDBKeyRange, ...); the factory itself is replaced per test.
 import 'fake-indexeddb/auto';
 import { IDBFactory } from 'fake-indexeddb';
-import { resetErrorReportingForTests, setReportingEnabledForTests } from '../../lib/errorReport.ts';
-import { resetUsageEventsForTests } from '../../lib/productAnalytics.ts';
+import { resetErrorReportingForTests, setReportingEnabledForTests } from '../../lib/telemetry/errorReport.ts';
+import { resetUsageEventsForTests } from '../../lib/telemetry/productAnalytics.ts';
 import { createPdfjsHarness, resetPdfjsEdges, type PdfjsHarness } from './pdfjsEdges.ts';
-import { resetActionTrailForTests } from '../../lib/actionTrail.ts';
+import { resetActionTrailForTests } from '../../lib/telemetry/actionTrail.ts';
 import { loadDraft, readRecentFiles, takeHandoff } from '../../lib/drafts/draftStore.ts';
-import type { UsageEvent } from '../../lib/usageEventSchema.ts';
-import type { DropRecord, ErrorReport } from '../../lib/errorReportSchema.ts';
+import type { UsageEvent } from '../../lib/telemetry/usageEventSchema.ts';
+import type { DropRecord, ErrorReport } from '../../lib/telemetry/errorReportSchema.ts';
 
 /** One `navigator.sendBeacon` call: where it was aimed and the JSON it carried. */
 export interface BeaconRecord {

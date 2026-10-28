@@ -2,9 +2,9 @@ import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-vi.mock('../lib/errorReport.ts', () => ({ reportError: vi.fn() }));
+vi.mock('../lib/telemetry/errorReport.ts', () => ({ reportError: vi.fn() }));
 // jsdom has no 2D context; the component only needs a truthy one.
-vi.mock('../lib/pdfRender.js', () => ({ getPdfRenderContext: () => ({ drawImage: vi.fn() }) }));
+vi.mock('../lib/pdf/pdfRender.js', () => ({ getPdfRenderContext: () => ({ drawImage: vi.fn() }) }));
 
 import type { PDFDocumentProxy } from 'pdfjs-dist';
 import { fakePdfDocument } from '../test/support/fakePdfJs.ts';

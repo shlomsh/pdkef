@@ -5,7 +5,7 @@ import type { PresetKey } from '../lib/find/types.ts';
 import { coverAllQueueStep } from '../lib/find/coverAllQueue.ts';
 import styles from './FindBar.module.css';
 import { englishRedactMessages as t } from '../messages.ts';
-import { formatMessage } from '../../../lib/formatMessage.ts';
+import { formatMessage } from '../../../lib/text/formatMessage.ts';
 
 /** What a found match becomes. Whiteout is left out on purpose: it hides
  * text on a white page only, and a search result is exactly where that

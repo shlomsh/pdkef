@@ -63,7 +63,7 @@ function main(args) {
     else { write(next); console.log(`any-ratchet: lowered the record ${recorded} -> ${current} in scripts/ratchet-limits.json.`); }
   }
   if (compareAny(recorded, current).failed) {
-    console.error(`Any ratchet: ${LAYER} has ${current} explicit any, the record is ${recorded}. Use the real type (src/lib/pdfTypes.ts for pdf.js and pdf-lib) or unknown plus a guard instead of raising the record.`);
+    console.error(`Any ratchet: ${LAYER} has ${current} explicit any, the record is ${recorded}. Use the real type (src/lib/pdf/pdfTypes.ts for pdf.js and pdf-lib) or unknown plus a guard instead of raising the record.`);
     return 1;
   }
   console.log(`any-ratchet: ok (${current} explicit any in ${LAYER}, record ${Math.min(recorded, current)}).`);

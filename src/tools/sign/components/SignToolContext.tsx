@@ -1,5 +1,5 @@
 import { createContext } from 'preact';
-import { reportEdit } from '../../../lib/productAnalytics.ts';
+import { reportEdit } from '../../../lib/telemetry/productAnalytics.ts';
 import type { ComponentChildren } from 'preact';
 import { useCallback, useReducer, useContext, useMemo } from 'preact/hooks';
 import { applyHistoryEntries, revertHistoryEntries, type ActionHistoryEntry } from '../../../editor/model/actionHistory.ts';

@@ -1,11 +1,11 @@
-import { applyRotation, embedPageNumberFont, stampPageNumber } from '../../../lib/pageOps.js';
+import { applyRotation, embedPageNumberFont, stampPageNumber } from '../../../lib/pages/pageOps.js';
 import { mergedFileName } from './mergePlan.ts';
 import { addFileOutline } from './outline.js';
-import { getPdfLib } from '../../../lib/pdfLib.js';
-import { openPdfDoc } from '../../../lib/openPdfDoc.ts';
-import { throwIfAborted } from '../../../lib/abort.js';
-import { addImagePage, hasImageSignature } from '../../../lib/imagePage.js';
-import { deriveFileKind, mimeTypeOf } from '../../../lib/fileKind.js';
+import { getPdfLib } from '../../../lib/pdf/pdfLib.js';
+import { openPdfDoc } from '../../../lib/pdf/openPdfDoc.ts';
+import { throwIfAborted } from '../../../lib/output/abort.js';
+import { addImagePage, hasImageSignature } from '../../../lib/images/imagePage.js';
+import { deriveFileKind, mimeTypeOf } from '../../../lib/handoff/fileKind.js';
 
 export { mergedFileName };
 

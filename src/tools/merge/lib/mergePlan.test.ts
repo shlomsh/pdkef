@@ -12,7 +12,7 @@ import {
   sanitizeOutputName,
   toMergeMap,
 } from './mergePlan.ts';
-import { movePlanEntry, planForFile } from '../../../lib/pagePlan.ts';
+import { movePlanEntry, planForFile } from '../../../lib/pages/pagePlan.ts';
 
 describe('fileOrder', () => {
   it('returns distinct file ids in first-appearance order', () => {

@@ -1,11 +1,11 @@
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { recentActions, resetActionTrailForTests } from '../../lib/actionTrail.ts';
+import { recentActions, resetActionTrailForTests } from '../../lib/telemetry/actionTrail.ts';
 import { decideDownloadState, deliverParts, useDownloadFlow, type DownloadFlowInput } from './useDownloadFlow.ts';
 
 const share = vi.hoisted(() => ({ download: vi.fn(), prepare: vi.fn(), prepareFiles: vi.fn(), clearPrepared: vi.fn(), sharePrepared: vi.fn() }));
-vi.mock('../../lib/usePdfShare.js', () => ({
+vi.mock('../../lib/output/usePdfShare.js', () => ({
   usePdfShare: () => ({ shareReady: false, ...share }),
 }));
 const store = vi.hoisted(() => ({ saveHandoff: vi.fn() }));

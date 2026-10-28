@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'preact/hooks';
 import styles from './DownloadElement.module.css';
 import { type DownloadMessages } from './shellMessages';
-import { formatMessage } from '../lib/formatMessage';
+import { formatMessage } from '../lib/text/formatMessage';
 
 export type DownloadElementState = 'one-file' | 'preparing' | 'ready' | 'saved' | 'error' | 'nothing';
 

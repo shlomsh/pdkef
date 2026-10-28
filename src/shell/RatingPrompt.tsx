@@ -1,11 +1,11 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
 import styles from './RatingPrompt.module.css';
-import { onAction } from '../lib/actionTrail.ts';
-import { markAsked, markRated, reportRating, reportRatingComment, shouldAsk, type RatingStorage } from '../lib/ratingReport.ts';
-import type { RatingTool, Stars } from '../lib/ratingSchema.ts';
-import { STARS } from '../lib/ratingSchema.ts';
+import { onAction } from '../lib/telemetry/actionTrail.ts';
+import { markAsked, markRated, reportRating, reportRatingComment, shouldAsk, type RatingStorage } from '../lib/telemetry/ratingReport.ts';
+import type { RatingTool, Stars } from '../lib/telemetry/ratingSchema.ts';
+import { STARS } from '../lib/telemetry/ratingSchema.ts';
 import { englishShellMessages, type ShellMessages } from './shellMessages';
-import { formatMessage } from '../lib/formatMessage';
+import { formatMessage } from '../lib/text/formatMessage';
 
 type RatingMessages = Pick<
   ShellMessages,

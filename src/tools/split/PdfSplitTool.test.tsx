@@ -3,9 +3,9 @@ import fs from 'fs';
 import path from 'path';
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
-import { getPdfLib } from '../../lib/pdfLib.js';
+import { getPdfLib } from '../../lib/pdf/pdfLib.js';
 import { describe, expect, it, vi, afterEach, beforeEach } from 'vitest';
-import { recentActions } from '../../lib/actionTrail.ts';
+import { recentActions } from '../../lib/telemetry/actionTrail.ts';
 import PdfSplitTool from './PdfSplitTool.tsx';
 import { mockNativeFileShare } from '../../test/support/mockFileShare.js';
 import { noPagesKey } from '../../test/support/pdfPageTreeFixtures.ts';
@@ -22,7 +22,7 @@ import { hebrewShellMessages } from '../../shell/shellMessages';
 // Not a fake: loadPdfWithPages still runs for real. The gate only lets one test hold a load open
 // between the pick and the page count, which a real pdf-lib parse gives no way to pause (DEBT-18).
 const { loadGate } = vi.hoisted(() => ({ loadGate: { before: null as null | ((bytes: ArrayBuffer) => Promise<void>) } }));
-vi.mock('../../lib/loadPdfPages.ts', async (importOriginal) => {
+vi.mock('../../lib/pdf/loadPdfPages.ts', async (importOriginal) => {
   const actual: any = await importOriginal();
   return {
     ...actual,

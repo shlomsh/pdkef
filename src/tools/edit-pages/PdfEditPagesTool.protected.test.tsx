@@ -5,7 +5,7 @@ import { describe, expect, it, vi, afterEach, beforeEach } from 'vitest';
 import { readFileSync } from 'node:fs';
 // @ts-expect-error -- same: no Node ambient types.
 import path from 'node:path';
-import type { classifyPdfOpen, probeEncryption } from '../../lib/pdfEncryption.ts';
+import type { classifyPdfOpen, probeEncryption } from '../../lib/pdf/pdfEncryption.ts';
 import PdfEditPagesTool from './PdfEditPagesTool.tsx';
 import * as editPagesLib from './lib/editPages.js';
 import { installToolHarness, type ToolHarness } from '../../test/harness/toolHarness.ts';
@@ -39,7 +39,7 @@ describe('PdfEditPagesTool with a protected PDF', () => {
       };
     }
     input = undefined;
-    const realProbe = (await vi.importActual<{ probeEncryption: typeof probeEncryption }>('../../lib/pdfEncryption.ts')).probeEncryption;
+    const realProbe = (await vi.importActual<{ probeEncryption: typeof probeEncryption }>('../../lib/pdf/pdfEncryption.ts')).probeEncryption;
     const legacyPdfjs = () => import('pdfjs-dist/legacy/build/pdf.mjs') as never;
     harness.pdfjs.probe.mockImplementation((bytes) => realProbe(bytes, legacyPdfjs));
   });

@@ -1,13 +1,13 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
-import type { PdfDocument as PDFDocumentProxy, PdfPage as PDFPageProxy } from '../../../lib/pdfTypes.ts';
+import type { PdfDocument as PDFDocumentProxy, PdfPage as PDFPageProxy } from '../../../lib/pdf/pdfTypes.ts';
 import type { CombRegion, FieldRegion } from '../lib/combPlacement.ts';
 import type { PageGeometry } from '../../../editor/geometry/coords.ts';
 import type { TextDirection } from '../../../editor/model/editorModel.ts';
 import { dominantTextDirection } from '../../../editor/text/textDirection.js';
-import { readTextItems } from '../../../lib/pdfTextItems.ts';
+import { readTextItems } from '../../../lib/pdf/pdfTextItems.ts';
 import { describeFormDetectionFailure } from '../lib/formDetectionDetail.ts';
-import { reportError } from '../../../lib/errorReport.ts';
-import type { PageKind } from '../../../lib/maintenanceEventSchema.ts';
+import { reportError } from '../../../lib/telemetry/errorReport.ts';
+import type { PageKind } from '../../../lib/telemetry/maintenanceEventSchema.ts';
 
 /** A page-percent `{left, top, width, height}` box - what `toPagePercentBox`
  * actually returns, which is `FieldRegion` minus `pageIndex` (the caller's to
@@ -176,7 +176,7 @@ async function pageTextRuns(
   convert: (items: object[], geometry: PageGeometry) => Array<{ str: string } & PercentBox>,
 ) {
   // The iOS-safe drain (why it avoids `getTextContent()`) lives in
-  // `src/lib/pdfTextItems.ts`, shared with Redact's find.
+  // `src/lib/pdf/pdfTextItems.ts`, shared with Redact's find.
   const items = await readTextItems(pdfjsPage);
   return convert(items, geometry);
 }

@@ -17,7 +17,7 @@ import {
   type ActionHistoryEntry,
   type ElementUpdate,
 } from '../../../editor/model/actionHistory.ts';
-import { reportEdit } from '../../../lib/productAnalytics.ts';
+import { reportEdit } from '../../../lib/telemetry/productAnalytics.ts';
 import type { EditCommit } from '../state/redactState.ts';
 import { classifyElementUpdate, createUpdateEntry, type ElementUpdateKind } from '../../../editor/model/updateKind.ts';
 

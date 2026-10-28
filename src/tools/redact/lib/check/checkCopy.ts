@@ -8,7 +8,7 @@
  * English edition's text, for the components that read it directly; each function takes the
  * messages as its last argument, so a second edition needs no change here.
  */
-import { formatMessage } from '../../../../lib/formatMessage.ts';
+import { formatMessage } from '../../../../lib/text/formatMessage.ts';
 import { englishRedactMessages } from '../../messages.ts';
 import type { RedactMessages } from '../../messages.ts';
 import type { Finding, PlaceKind, SavedPlace } from './types.ts';

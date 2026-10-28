@@ -1,6 +1,6 @@
-import { placeImage } from '../../../lib/imagePage.js';
-import { formatFileSize } from '../../../lib/format.js';
-import { formatMessage } from '../../../lib/formatMessage';
+import { placeImage } from '../../../lib/images/imagePage.js';
+import { formatFileSize } from '../../../lib/text/format.js';
+import { formatMessage } from '../../../lib/text/formatMessage';
 import { pagesLabel } from '../../../shell/pageWorkspace/pageCounts.ts';
 import { englishShellMessages } from '../../../shell/shellMessages';
 import { englishScanMessages as t } from '../messages.ts';

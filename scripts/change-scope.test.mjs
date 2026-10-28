@@ -130,7 +130,7 @@ describe('changedFilesWithStatus', () => {
   }
 
   it('passes -M (rename detection on), not --no-renames', () => {
-    const { run, calls } = makeRunStub('M\tsrc/lib/format.js');
+    const { run, calls } = makeRunStub('M\tsrc/lib/text/format.js');
     changedFilesWithStatus('origin/main', undefined, run);
     const diffCall = calls.find((args) => args[0] === 'diff');
     expect(diffCall).toContain('-M');
@@ -139,11 +139,11 @@ describe('changedFilesWithStatus', () => {
   });
 
   it('reports plain add/modify/delete statuses as-is', () => {
-    const { run } = makeRunStub('A\tsrc/tools/merge/new.js\nM\tsrc/lib/format.js\nD\tsrc/lib/gone.js');
+    const { run } = makeRunStub('A\tsrc/tools/merge/new.js\nM\tsrc/lib/text/format.js\nD\tsrc/lib/gone.js');
     const files = changedFilesWithStatus('origin/main', undefined, run);
     expect(files).toEqual([
       { path: 'src/tools/merge/new.js', status: 'A' },
-      { path: 'src/lib/format.js', status: 'M' },
+      { path: 'src/lib/text/format.js', status: 'M' },
       { path: 'src/lib/gone.js', status: 'D' },
     ]);
   });
@@ -176,11 +176,11 @@ describe('changedFilesWithStatus', () => {
   });
 
   it('the head form (a fixed commit range) also uses -M and --name-status, with no untracked-file merge', () => {
-    const { run, calls } = makeRunStub('M\tsrc/lib/format.js');
+    const { run, calls } = makeRunStub('M\tsrc/lib/text/format.js');
     const files = changedFilesWithStatus('370ace3~1', '370ace3', run);
     expect(calls).toHaveLength(1);
     expect(calls[0]).toContain('-M');
-    expect(files).toEqual([{ path: 'src/lib/format.js', status: 'M' }]);
+    expect(files).toEqual([{ path: 'src/lib/text/format.js', status: 'M' }]);
   });
 });
 

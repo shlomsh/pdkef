@@ -5,7 +5,7 @@ import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { describe, expect, it, vi, afterEach, beforeEach } from 'vitest';
 import PdfEditPagesTool from './PdfEditPagesTool.tsx';
-import { getPdfLib } from '../../lib/pdfLib.js';
+import { getPdfLib } from '../../lib/pdf/pdfLib.js';
 import { saveHandoff } from '../../lib/drafts/draftStore.ts';
 import { mockNativeFileShare } from '../../test/support/mockFileShare.js';
 import { healthy, ORIGINAL_WIDTHS } from '../../test/support/pdfPageTreeFixtures.ts';

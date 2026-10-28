@@ -1,4 +1,4 @@
-import { formatMessage } from '../../../lib/formatMessage';
+import { formatMessage } from '../../../lib/text/formatMessage';
 import pdfToolStyles from '../../../shell/PdfTool.module.css';
 import { englishScanMessages as t } from '../messages.ts';
 

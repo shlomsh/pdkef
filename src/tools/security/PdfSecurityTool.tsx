@@ -1,12 +1,12 @@
 import { useRef, useState } from 'preact/hooks';
 import { protectPdf, unlockPdf, UnreadablePdfError, WrongPasswordError } from './lib/security.js';
-import { isPdfFile } from '../../lib/fileKind.js';
-import { probeEncryption } from '../../lib/pdfEncryption.ts';
-import { reportError } from '../../lib/errorReport.ts';
-import { recordAction } from '../../lib/actionTrail.ts';
-import { useObjectUrls } from '../../lib/useObjectUrls.js';
+import { isPdfFile } from '../../lib/handoff/fileKind.js';
+import { probeEncryption } from '../../lib/pdf/pdfEncryption.ts';
+import { reportError } from '../../lib/telemetry/errorReport.ts';
+import { recordAction } from '../../lib/telemetry/actionTrail.ts';
+import { useObjectUrls } from '../../lib/output/useObjectUrls.js';
 import BasePdfTool from '../../shell/BasePdfTool.tsx';
-import { withIslandBoundary } from '../../lib/IslandErrorBoundary.tsx';
+import { withIslandBoundary } from '../../lib/telemetry/IslandErrorBoundary.tsx';
 import UnlockVerb from './verb/UnlockVerb.tsx';
 import PagePreview from './components/PagePreview.tsx';
 import SecurityActions, { SubmitButton, returnToolOf } from './components/SecurityActions.tsx';
@@ -15,13 +15,13 @@ import ToolShell, { FileActions } from '../../shell/ToolShell.tsx';
 import styles from './PdfSecurityTool.module.css';
 import ErrorMessage from '../../shell/ErrorMessage.tsx';
 import { useDownloadFlow } from '../../shell/pageWorkspace/useDownloadFlow.ts';
-import { useHoldUpdate } from '../../lib/useHoldUpdate.ts';
-import { useLatestRun } from '../../lib/useLatestRun.ts';
-import { describeFile } from '../../lib/format.js';
-import { useHandoffIntake } from '../../lib/useHandoffIntake.ts';
+import { useHoldUpdate } from '../../lib/hooks/useHoldUpdate.ts';
+import { useLatestRun } from '../../lib/hooks/useLatestRun.ts';
+import { describeFile } from '../../lib/text/format.js';
+import { useHandoffIntake } from '../../lib/handoff/useHandoffIntake.ts';
 import { outputFileName } from './lib/outputName.ts';
 import { englishSecurityMessages, type SecurityMessages } from './messages.ts';
-import { formatMessage } from '../../lib/formatMessage.ts';
+import { formatMessage } from '../../lib/text/formatMessage.ts';
 
 export default withIslandBoundary(function PdfSecurityTool({ intent = 'unlock', navigate = (href) => { window.location.href = href; }, messages }: {
   intent?: string;

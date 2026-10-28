@@ -6,7 +6,7 @@ import { makePdfBuffer } from '../../../../e2e/support/pdf.js';
 
 /* MERGE-12: the merge is built in the background, so Download is instant.
    Budget: under 500ms of real work for 20 files / 200 pages. The wait before
-   the build (src/lib/quietPrepare.ts's DEFAULT_QUIET, 1500ms) is the policy,
+   the build (src/lib/output/quietPrepare.ts's DEFAULT_QUIET, 1500ms) is the policy,
    not the work, and is not in the number; QUAL-30 has the history. A distinct
    page width per file lets pdf-lib identify which file's page ended up first
    in the output, without drawing any text (kept small and fast to build).

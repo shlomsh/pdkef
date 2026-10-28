@@ -7,12 +7,12 @@
  * `onPick`, which runs first on a new pick, before the history is reset to empty.
  */
 import { useCallback } from 'preact/hooks';
-import { isPdfFile } from '../../lib/fileKind.js';
-import { includeAll, invert, planForFile, skipAll, withIncludedPages, type PlanEntry } from '../../lib/pagePlan.ts';
+import { isPdfFile } from '../../lib/handoff/fileKind.js';
+import { includeAll, invert, planForFile, skipAll, withIncludedPages, type PlanEntry } from '../../lib/pages/pagePlan.ts';
 import { useDocumentHistory } from '../../lib/history/useDocumentHistory.ts';
-import { useHandoffIntake } from '../../lib/useHandoffIntake.ts';
-import { recordAction } from '../../lib/actionTrail.ts';
-import type { AnalyticsTool } from '../../lib/usageEventSchema.ts';
+import { useHandoffIntake } from '../../lib/handoff/useHandoffIntake.ts';
+import { recordAction } from '../../lib/telemetry/actionTrail.ts';
+import type { AnalyticsTool } from '../../lib/telemetry/usageEventSchema.ts';
 import type { NeedsUnlockKind } from '../NeedsUnlock.tsx';
 import { useOpenPageDocument, type OpenPageDocument, type PageDocumentLoader } from './useOpenPageDocument.ts';
 

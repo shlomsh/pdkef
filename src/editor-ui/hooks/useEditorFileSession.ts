@@ -9,9 +9,9 @@ import {
 import { seedUniqueId } from '../../editor/model/ids.ts';
 import type { HistoryElement } from '../../editor/model/actionHistory.ts';
 import { cacheRecentFile } from '../../lib/drafts/draftStore.ts';
-import { isPdfFile } from '../../lib/fileKind.js';
-import { recordAction } from '../../lib/actionTrail.ts';
-import type { EditorToolId } from '../../lib/toolIds.ts';
+import { isPdfFile } from '../../lib/handoff/fileKind.js';
+import { recordAction } from '../../lib/telemetry/actionTrail.ts';
+import type { EditorToolId } from '../../lib/app/toolIds.ts';
 import { useDocumentRetirement } from './useDocumentRetirement.ts';
 
 /**

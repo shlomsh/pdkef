@@ -339,7 +339,7 @@ export function removeSignBundle(bundlePath) {
 
 /**
  * The already-built, content-hashed pdf.js worker Astro emitted, as a
- * same-origin URL: `src/lib/pdfjsWorker.js`, the wrapper that installs
+ * same-origin URL: `src/lib/pdf/pdfjsWorker.js`, the wrapper that installs
  * DEBT-42's polyfills before pdf.js's own worker. `pdfjsWorkerUrlPlugin`
  * hands it to `loadPdfjs.js`; the specs also set it as `workerSrc` on the
  * `pdfjs` they rasterise with.
