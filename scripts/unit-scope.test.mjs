@@ -249,6 +249,11 @@ describe('selectUnitTests: each blind-spot widen rule fires', () => {
       'src/shell/PdfTool.module.css',
       'src/site-lib/FileDropzone.module.css',
       'src/lib/telemetry/errorReportSchema.ts',
+      'patches/some-package+1.0.0.patch',
+      'src/i18n/messages.ts',
+      'src/content/localized-tools/he/merge.yaml',
+      'api/report.ts',
+      'src/tools/merge/PdfMergeTool.tsx',
     ];
     const example = candidates.find((c) => rule.match(c));
     expect(example, `no candidate path in this test matches rule "${id}" - add one`).toBeDefined();

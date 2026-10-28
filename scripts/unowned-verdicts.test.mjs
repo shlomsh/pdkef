@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { readFileSync } from 'node:fs';
-import { unownedVerdictOf, filesForNx, ciChangeTouchesJob, parseHunks, packageJsonReachesE2e } from './unowned-verdicts.mjs';
+import { unownedVerdictOf, filesForNx, ciChangeTouchesJob, ciChangeReachesFontGuards, parseHunks, packageJsonReachesE2e } from './unowned-verdicts.mjs';
 
 describe('UNOWNED_VERDICTS (QUAL-34)', () => {
   it('unownedVerdictOf returns null for files outside the table', () => {
@@ -138,5 +138,35 @@ describe('packageJsonReachesE2e (QUAL-43)', () => {
     }
     const guard = JSON.stringify({ ...real, scripts: { ...real.scripts, 'test:zz-new-guard': 'node x.mjs' } });
     expect(packageJsonReachesE2e(JSON.stringify(real), guard)).toBe(false);
+  });
+});
+
+describe('ciChangeReachesFontGuards (QUAL-42)', () => {
+  const ci = [
+    'name: CI', // 1
+    'jobs:', // 2
+    '  units:', // 3
+    '    steps:', // 4
+    '      - run: a', // 5
+    '  plan:', // 6
+    '    steps:', // 7
+    '      - run: b', // 8
+    '  font-guards:', // 9
+    '    steps:', // 10
+    '      - run: c', // 11
+    '  build:', // 12
+    '    steps:', // 13
+    '      - run: d', // 14
+  ].join('\n');
+
+  it('a hunk inside plan reaches them: font-guards downloads the build plan uploads', () => {
+    expect(ciChangeReachesFontGuards(ci, [{ start: 8, count: 1 }])).toBe(true);
+  });
+  it('a hunk inside font-guards reaches them', () => {
+    expect(ciChangeReachesFontGuards(ci, [{ start: 11, count: 1 }])).toBe(true);
+  });
+  it('a hunk inside units or build does not', () => {
+    expect(ciChangeReachesFontGuards(ci, [{ start: 5, count: 1 }])).toBe(false);
+    expect(ciChangeReachesFontGuards(ci, [{ start: 14, count: 1 }])).toBe(false);
   });
 });

@@ -70,6 +70,12 @@ export function parseHunks(diffText) {
   return [...diffText.matchAll(/^@@ -\S+ \+(\d+)(?:,(\d+))? @@/gm)].map((m) => ({ start: Number(m[1]), count: m[2] === undefined ? 1 : Number(m[2]) }));
 }
 
+// QUAL-42: font-guards downloads the `dist` that `plan` builds and uploads, so an edit to either job can break it.
+export const CI_FONT_JOBS = ['font-guards', 'plan'];
+export function ciChangeReachesFontGuards(ciText, hunks) {
+  return CI_FONT_JOBS.some((job) => ciChangeTouchesJob(ciText, hunks, job));
+}
+
 // QUAL-34: did the ci.yml edit touch the font-guards job or anything outside a job? Any error answers
 // true (fail-open: the font guards run).
 export const CI_FILE = '.github/workflows/ci.yml';
@@ -78,7 +84,7 @@ export function ciFontJobChangedBetween(base, head) {
     const git = (args) => execFileSync('git', args, { encoding: 'utf8', cwd: ROOT, stdio: ['ignore', 'pipe', 'ignore'] });
     const text = head ? git(['show', `${head}:${CI_FILE}`]) : readFileSync(join(ROOT, CI_FILE), 'utf8');
     const diff = git(['diff', '-U0', base, ...(head ? [head] : []), '--', CI_FILE]);
-    return ciChangeTouchesJob(text, parseHunks(diff), 'font-guards');
+    return ciChangeReachesFontGuards(text, parseHunks(diff));
   } catch {
     return true;
   }

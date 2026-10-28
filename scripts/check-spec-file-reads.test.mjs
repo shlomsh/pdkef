@@ -40,6 +40,16 @@ describe('readTargetsOf', () => {
     expect(r.targets).toEqual(['public/images/redaction-guide/sample.pdf', 'src/lib/__fixtures__/']);
   });
 
+  it('treats a folder URL used only as a base for other paths as an anchor, not a read of the folder', () => {
+    const text = "const base = fileURLToPath(new URL('.', import.meta.url));\nreadFileSync(join(base, '..', 'x.txt'));";
+    expect(scan(text).targets).toEqual(['src/x.txt']);
+  });
+
+  it('still reads the folder when the URL variable is itself passed to a directory read', () => {
+    const text = "const dir = fileURLToPath(new URL('.', import.meta.url));\nreaddirSync(dir);";
+    expect(scan(text).targets).toEqual(['src/lib/']);
+  });
+
   it('counts a dynamic read as unresolved and never as a target', () => {
     const r = scan('const t = readFileSync(somePath, "utf8");');
     expect(r.targets).toEqual([]);
@@ -93,6 +103,28 @@ describe('coverageOf', () => {
     expect(r[0].covered).toBe(true);
     expect(r[0].docsOnly).toBe(true);
     expect(r[0].reason).toMatch(/docs/);
+  });
+});
+
+describe('coverageOf, directory targets (a read of a whole folder)', () => {
+  // Without expanding, the folder path itself is no changed file: ci mode answers all=true and the guard passes vacuously.
+  const folder = (selectUnit) => coverageOf({ pairs: [unit('src/a.test.ts', 'api/')], selectUnit, deriveE2e: null, isDocs: noDocs, filesUnder: () => ['api/report.ts', 'api/other.ts'] });
+  const seedsOwnFile = (files) => ({ all: false, seeds: files.map((f) => f.path), reasons: [] });
+
+  it('fails when a file inside the folder does not select the spec, and names that file', () => {
+    const r = folder(seedsOwnFile);
+    expect(r[0].covered).toBe(false);
+    expect(r[0].reason).toContain('api/report.ts');
+  });
+
+  it('passes when every file inside selects the spec', () => {
+    const r = folder((files) => ({ all: false, seeds: [...files.map((f) => f.path), 'src/a.test.ts'], reasons: [] }));
+    expect(r[0].covered).toBe(true);
+  });
+
+  it('fails a folder with no tracked file, which it cannot judge', () => {
+    const r = coverageOf({ pairs: [unit('src/a.test.ts', 'api/')], selectUnit: seedsOwnFile, deriveE2e: null, isDocs: noDocs, filesUnder: () => [] });
+    expect(r[0].covered).toBe(false);
   });
 });
 

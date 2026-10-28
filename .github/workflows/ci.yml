@@ -347,7 +347,8 @@ jobs:
         name: dist
         path: dist/
         include-hidden-files: true
-        retention-days: 1
+        overwrite: true
+        retention-days: 3
         if-no-files-found: error
 
   # The guards that read dist/. The product e2e suite is the `e2e` job below and the font guards have

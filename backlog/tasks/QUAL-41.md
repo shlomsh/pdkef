@@ -41,6 +41,10 @@ depends_on: ["QUAL-34"]
   `unowned-verdicts.mjs` has a row sending it to `src/tools/sign/e2e/` (a project edge first widened every corpus edit
   to everything, so it was replaced). Two guard bugs were fixed: the export and font specs are selected by their flags,
   not by `e2e_paths`, and the guard's own test names files it never reads.
+- The fresh reviewer found the guard passed vacuously for a spec that reads a whole folder (the folder path is never a
+  changed file, so the CI oracle answered "everything"). Folder reads now judge every tracked file inside the folder;
+  that exposed five more specs (`patches/`, `src/i18n/`, `src/content/localized-tools/`, `api/`, `src/tools/`), each
+  given a widen rule. A folder that is only the base other paths are joined onto is no longer counted as a read.
 - Live oracle probes (committed first): a corpus PDF gives `e2e_paths=src/tools/sign/e2e/`, fonts off, not wide; a
   corpus test file stays unit-only; `public/sw.js` and an oracle file still give everything.
 - Runs in `check:push` and the CI `checks` job every time. `check:fast` runs it only when the diff touches a spec, a

@@ -43,6 +43,10 @@ describe('ci.yml builds once (QUAL-42)', () => {
     expect(up?.with?.name).toBe('dist');
     expect(up?.with?.path).toBe('dist/');
     expect(up?.with?.['include-hidden-files']).toBe(true);
+    // A "Re-run all jobs" repeats the upload in the same run; without overwrite it fails on the existing name.
+    expect(up?.with?.overwrite).toBe(true);
+    // A failed consumer is often re-run the next day.
+    expect(up?.with?.['retention-days']).toBeGreaterThanOrEqual(3);
   });
 
   it('plan checks out full history', () => {

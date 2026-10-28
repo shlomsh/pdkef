@@ -197,12 +197,13 @@ function importedCandidates(spec, text) {
 export function readTargetsOf({ spec, text, resolveExisting }) {
   const { expr, args } = makeEvaluator(spec, text);
   const raw = new Set();
+  const urlOnly = new Set(); // new URL(..) seen outside a read call: a file reference, or a folder used as a path base
   let unresolved = 0;
 
   // new URL('<rel>', import.meta.url) anywhere (fetch-free asset references, readFileSync args).
   for (const m of text.matchAll(/new URL\s*\(/g)) {
     const r = expr(m.index, 0);
-    if (r && isUrl(r.v)) raw.add(r.v);
+    if (r && isUrl(r.v)) urlOnly.add(r.v);
   }
 
   READ_CALL.lastIndex = 0;
@@ -237,11 +238,13 @@ export function readTargetsOf({ spec, text, resolveExisting }) {
 
   const imported = importedCandidates(spec, text);
   const targets = new Set();
-  for (const v of raw) {
+  for (const v of new Set([...raw, ...urlOnly])) {
     const rel = toRepoRelative(v);
     if (!rel) continue;
     const found = resolveExisting(rel);
     if (!found || found === spec || imported.has(found.replace(/\/$/, ''))) continue;
+    // A folder only ever named by a URL is the base other paths are joined onto; a folder passed to a read call is read.
+    if (found.endsWith('/') && !raw.has(v)) continue;
     targets.add(found);
   }
   return { targets: [...targets].sort(), unresolved };
@@ -280,12 +283,22 @@ export function affectedFrom(project, dependencies) {
 }
 
 // pairs: [{ spec, target, kind: 'unit' | 'e2e' }]. selectUnit(files) and deriveE2e(target) are the oracles.
-export function coverageOf({ pairs, selectUnit, deriveE2e, isDocs = isDocsOnly }) {
+export function coverageOf({ pairs, selectUnit, deriveE2e, isDocs = isDocsOnly, filesUnder = () => [] }) {
   return pairs.map((pair) => {
     const { spec, target, kind } = pair;
     // A docs-only push runs no unit test or spec in CI (scripts/change-scope.mjs), so no rule can select
     // the spec. Reported, not failed: it is a property of the docs-only class, not a missing rule.
     if (isDocs(target)) return { ...pair, covered: true, docsOnly: true, reason: 'docs-only target: CI runs no test on a docs-only push' };
+    if (kind === 'unit' && target.endsWith('/')) {
+      // A read of a whole folder: the folder path is no changed file, so judge every tracked file inside it.
+      const inside = filesUnder(target);
+      if (inside.length === 0) return { ...pair, covered: false, reason: 'folder with no tracked file: cannot judge it' };
+      const miss = inside.find((f) => {
+        const sel = selectUnit([{ path: f, status: 'M' }]);
+        return !sel.all && !sel.seeds.includes(spec);
+      });
+      return miss ? { ...pair, covered: false, reason: `no widen rule seeds this spec for ${miss}` } : { ...pair, covered: true, reason: 'every file inside selects this spec' };
+    }
     if (kind === 'unit') {
       const sel = selectUnit([{ path: target, status: 'M' }]);
       if (sel.all) return { ...pair, covered: true, reason: `widens to the whole suite (${sel.reasons[0] ?? ''})` };
@@ -376,6 +389,7 @@ async function main(argv) {
     pairs,
     selectUnit: (changed) => selectUnitTests({ files: changed, mode: 'ci', exists: (p) => files.has(p) }),
     deriveE2e,
+    filesUnder: (dir) => [...files].filter((f) => f.startsWith(dir)),
   });
 
   const report = argv.includes('--report');
