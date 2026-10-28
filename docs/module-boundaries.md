@@ -15,7 +15,10 @@ checkers stay separate; nothing here replaces `test:editor-dependency-directions
 
 ```
 src/lib/         the bottom layer: shared logic with no UI layer above it (PDF helpers, drafts,
-                 history, fonts data, telemetry, file intake); imports only lib
+                 history, fonts data, telemetry, file intake); imports only lib. Grouped by
+                 domain: pdf/ pages/ images/ telemetry/ handoff/ output/ hooks/ text/ app/
+                 appUpdate/ drafts/ fonts/ gestures/ history/; the root holds only project.json
+                 (test:tool-shape, ARCH-101)
 src/editor/      the headless editor core shared by Sign and Redact: model, geometry, gestures,
                  text, registry, workspace, PDF adapters; imports no editor-ui or shell
 src/editor-ui/   Preact pieces that render the editor: ElementResizers, ColorPicker, toolbar menus,

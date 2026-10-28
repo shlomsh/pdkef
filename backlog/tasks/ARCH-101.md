@@ -1,10 +1,9 @@
 ---
 id: "ARCH-101"
 title: "src/lib groups its modules by domain, and a check holds the shape"
-status: "in_progress"
+status: "done"
 priority: "P2"
 epic: "unify-and-narrow"
-horizon: "next"
 depends_on: []
 ---
 
@@ -25,5 +24,12 @@ Area: Architecture. Criterion: Cohesion and organization. Structure only: no beh
 
 ## Acceptance
 
-- [ ] No domain mixing remains at the `src/lib` root.
-- [ ] The shape check runs in CI and fails on a new flat root file in `src/lib`.
+- [x] No domain mixing remains at the `src/lib` root.
+- [x] The shape check runs in CI and fails on a new flat root file in `src/lib`.
+
+## Done (2026-10-28)
+
+- 120 files moved with their tests into pdf/, pages/, images/, telemetry/, handoff/, output/, hooks/, text/ and app/;
+  the root keeps only project.json. No barrels or shims; every import, test glob and path matcher rewritten.
+- `findLibShapeViolations` in scripts/check-tool-shape.mjs (test-first) fails a flat root file or an unknown folder;
+  `test:tool-shape` runs in CI, check:push, and now check:fast. The folder list is in docs/module-boundaries.md.
