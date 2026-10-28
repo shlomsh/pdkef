@@ -61,37 +61,80 @@ function isShallowRepository() {
 
 const gitDateCache = new Map();
 
-// `git log` output whose first line is "<iso>\t<parents>" (--format=%cI%x09%P),
-// or null when git has nothing or the only commit it can find is a shallow
-// boundary (see the header comment). Shared by the whole-file and the
-// entry-range lookups so both refuse the boundary the same way.
-function firstCommitIso(command, cwd) {
+// Structure-only commits (SEO-49): ARCH-101 moved src/lib into folders and
+// ARCH-44 rewrote cross-layer imports to `#lib/`-style aliases. Neither
+// changed a word on any page, yet both touched home components, so `/` and
+// `/he/` took the refactor's date. Such commits are listed by full hash in
+// `.git-blame-ignore-revs` (the file `git blame --ignore-revs-file` and
+// GitHub's blame view already read), and the lookups below skip them. A
+// listed commit only ever moves a date back to the last real change: a file
+// that listed commits alone have touched keeps its newest one, because "no
+// date" stays reserved for a shallow clone that cannot know.
+const ignoredRevsCache = new Map();
+
+function ignoredRevs(cwd) {
+  const key = cwd ?? '';
+  if (!ignoredRevsCache.has(key)) {
+    let revs = [];
+    try {
+      revs = fs
+        .readFileSync(cwd ? `${cwd}/.git-blame-ignore-revs` : '.git-blame-ignore-revs', 'utf8')
+        .split('\n')
+        .map((line) => line.trim())
+        .filter((line) => line && !line.startsWith('#'));
+    } catch {
+      // expected: build-time script, no list means no commit is skipped
+    }
+    ignoredRevsCache.set(key, new Set(revs));
+  }
+  return ignoredRevsCache.get(key);
+}
+
+const COMMIT_MARK = 'lastmod-commit';
+
+// `git log` args (a path or a `-L` range) whose newest commit dates the
+// content, skipping listed structure-only commits. Null when git has nothing
+// or the commit it picks is a shallow boundary (see the header comment).
+// Shared by the whole-file and the entry-range lookups so both refuse the
+// boundary and skip the list the same way. Each listed commit can appear at
+// most once, so the first `list size + 1` commits hold the answer.
+function lastCommitIso(logArgs, cwd) {
+  const ignored = ignoredRevs(cwd);
   try {
-    const out = execSync(command, {
-      encoding: 'utf8',
-      stdio: ['ignore', 'pipe', 'ignore'],
-      ...(cwd ? { cwd } : {}),
-    })
-      .split('\n')[0]
-      .trim();
-    if (!out) return null;
-    const [dateIso, parents = ''] = out.split('\t');
+    const commits = execSync(
+      `git log -n ${ignored.size + 1} --format=${COMMIT_MARK}%x09%H%x09%cI%x09%P ${logArgs}`,
+      {
+        encoding: 'utf8',
+        stdio: ['ignore', 'pipe', 'ignore'],
+        ...(cwd ? { cwd } : {}),
+      },
+    )
+      .split('\n')
+      // `-L` prints each commit's patch after its line; keep only our lines.
+      .filter((line) => line.startsWith(`${COMMIT_MARK}\t`))
+      .map((line) => {
+        const [, hash, dateIso, parents = ''] = line.split('\t');
+        return { hash, dateIso, parents };
+      });
+    const commit = commits.find(({ hash }) => !ignored.has(hash)) ?? commits[0];
+    if (!commit) return null;
     // A shallow boundary commit is grafted with no parents and stands in
     // for the entire history git could not fetch, so it "touches" every
     // file in the tree whether or not that file actually changed there -
     // see the header comment. Only trust it when the clone isn't shallow.
-    const isShallowBoundary = isShallowRepository() && parents.trim() === '';
-    return isShallowBoundary ? null : new Date(dateIso).toISOString();
+    const isShallowBoundary = isShallowRepository() && commit.parents.trim() === '';
+    return isShallowBoundary ? null : new Date(commit.dateIso).toISOString();
   } catch {
     // expected: build-time script, no git date falls back to null
     return null;
   }
 }
 
-export function gitFileLastModifiedIso(file) {
-  if (gitDateCache.has(file)) return gitDateCache.get(file);
-  const iso = firstCommitIso(`git log -1 --format=%cI%x09%P -- "${file}"`);
-  gitDateCache.set(file, iso);
+export function gitFileLastModifiedIso(file, { cwd } = {}) {
+  const key = `${cwd ?? ''}\0${file}`;
+  if (gitDateCache.has(key)) return gitDateCache.get(key);
+  const iso = lastCommitIso(`-- "${file}"`, cwd);
+  gitDateCache.set(key, iso);
   return iso;
 }
 
@@ -122,10 +165,7 @@ export function gitToolEntryLastModifiedIso(slug, { file = 'src/data/tools.js', 
   try {
     const range = toolEntryLineRange(fs.readFileSync(cwd ? `${cwd}/${file}` : file, 'utf8'), slug);
     if (range) {
-      iso = firstCommitIso(
-        `git log -1 -L ${range.start},${range.end}:"${file}" --format=%cI%x09%P`,
-        cwd,
-      );
+      iso = lastCommitIso(`-L ${range.start},${range.end}:"${file}"`, cwd);
     }
   } catch {
     // expected: build-time script, an unreadable file falls back to null
@@ -135,10 +175,10 @@ export function gitToolEntryLastModifiedIso(slug, { file = 'src/data/tools.js', 
   return iso;
 }
 
-export function lastModifiedFor(files) {
+export function lastModifiedFor(files, { cwd } = {}) {
   let latest = null;
   for (const file of files) {
-    const iso = gitFileLastModifiedIso(file);
+    const iso = gitFileLastModifiedIso(file, { cwd });
     if (iso && (!latest || iso > latest)) latest = iso;
   }
   return latest;

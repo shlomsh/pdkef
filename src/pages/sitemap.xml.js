@@ -33,6 +33,8 @@ const FALLBACK_SITE = 'https://pdkef.com';
 // of the file(s) that back a URL's content (src/site-lib/gitLastModified.js, which
 // the content pages' visible "Last updated" line also reads - SEO-29), never
 // hand-maintained, so it cannot drift out of sync with what actually changed.
+// Commits listed in `.git-blame-ignore-revs` only restructure code and are
+// skipped (SEO-49), so a refactor's import rewrite does not re-date a page.
 // A URL whose date is unknowable (a shallow clone - see gitLastModified.js's
 // header comment) carries no <lastmod> element at all, rather than a faked one.
 // Tool pages map to their own `src/pages/<slug>.astro` plus that tool's own
