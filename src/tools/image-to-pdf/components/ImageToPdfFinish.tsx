@@ -55,6 +55,8 @@ interface RailProps extends FinishProps {
 /** The finish block: Download, Share and the hand-offs, then the quiet scan link. */
 export function ImageToPdfFinish({ t, flow, prepared, fileName, detail, imageCount, onReadyTap, onEarlyTap, onShare, scanBusy, scanFailed, onScan }: RailProps) {
   const fresh = prepared.status === 'ready';
+  // No per-page render progress here: an empty line leaves only the preparing label.
+  const noRenderCount = { ...t, renderProgress: '' };
   return (
     <div class={styles.finish}>
       <DownloadElement
@@ -62,12 +64,10 @@ export function ImageToPdfFinish({ t, flow, prepared, fileName, detail, imageCou
         href={fresh ? prepared.url : null}
         fileName={fileName}
         detail={detail}
-        renderedCount={imageCount}
-        totalCount={imageCount}
         pageCount={imageCount}
         progress={(prepared as PreparedOutput).progress}
-        errorMessage={t.buildFailed}
-        messages={t}
+        errorMessage={t.tryAgain}
+        messages={noRenderCount}
         onPreparingTap={onEarlyTap}
         onErrorTap={prepared.prepareNow}
         onWarm={prepared.prepareNow}

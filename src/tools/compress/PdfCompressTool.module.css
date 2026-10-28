@@ -39,7 +39,7 @@
   grid-area: sheet;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--space-3);
 }
 
 .result-action[hidden] {

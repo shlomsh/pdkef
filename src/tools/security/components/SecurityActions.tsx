@@ -4,7 +4,7 @@ import PdfShareButton from '#shell/PdfShareButton.tsx';
 import DownloadElement from '#shell/DownloadElement.tsx';
 import PhoneFinish from '#shell/pageWorkspace/PhoneFinish.tsx';
 import { workspaceStyles } from '#shell/pageWorkspace/PageWorkspace.tsx';
-import { formatFileSize } from '#lib/text/format.js';
+import { formatFileSize, isolateLtr } from '#lib/text/format.js';
 import FinishRow from '#shell/pageWorkspace/FinishRow.tsx';
 import type { ExportHandoffItem } from '#shell/ExportHandoffs.tsx';
 import type { PreparedOutput } from '#lib/output/usePreparedOutput.ts';
@@ -61,7 +61,7 @@ export function SecurityPhoneBar({ t, mode, flow, prepared, fileName, size, retu
         flow={flow}
         prepared={prepared}
         fileName={fileName}
-        detail={formatFileSize(size)}
+        detail={isolateLtr(formatFileSize(size), t.dir)}
         handoffs={returnTool ? [] : finishHandoffs(mode, t)}
         labels={{ download: t.downloadShort, ready: mode === 'unlock' ? t.readyUnlocked : t.readyProtected, closeStrip: t.closeStrip, handoffFailed: t.handoffFailed }}
       />

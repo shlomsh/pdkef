@@ -62,6 +62,9 @@ export interface PdfImageToPdfToolProps {
   navigate?: (href: string) => void;
 }
 
+// True while a ready link's tap runs: the flow records that download itself.
+let readyTapping = false;
+
 export default withIslandBoundary(function PdfImageToPdfTool({ quietPolicy, messages: messagesProp, shellMessages, navigate = (href) => { window.location.href = href; } }: PdfImageToPdfToolProps = {}) {
   const t: ImageToPdfMessages = { ...englishImageToPdfMessages, ...messagesProp };
   const [scanBusy, setScanBusy] = useNavigatingAway();
@@ -117,8 +120,7 @@ export default withIslandBoundary(function PdfImageToPdfTool({ quietPolicy, mess
       else announce(text);
     },
     messages: { ready: t.announceReady, shared: t.announceShared, canceled: t.announceShareCanceled, shareError: t.announceShareError },
-    // A tap that beat the build is delivered by the flow; the tap on a ready link records its own download.
-    onDelivered: () => recordAction('download'),
+    onDelivered: () => { if (!readyTapping) recordAction('download'); }, // a tap that beat the build
   });
   const {
     handleShare: shareOutput, onDownloadTap, onRowPreparingTap, reset: resetDownloadFlow,
@@ -229,7 +231,7 @@ export default withIslandBoundary(function PdfImageToPdfTool({ quietPolicy, mess
   // The browser delivers a ready link itself; the flow records the download.
   const onReadyTap = () => {
     recordAction('export');
-    onDownloadTap();
+    readyTapping = true; onDownloadTap(); readyTapping = false; // the flow records a ready tap's download itself
   };
 
   // A tap before the build is done: the flow shows the preparing look and delivers when it lands.

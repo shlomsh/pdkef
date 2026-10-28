@@ -41,7 +41,7 @@ test('the card is full width at 375 in every Unlock and Protect state', async ({
 
   await page.getByLabel('PDF password').fill('u');
   await page.getByRole('button', { name: 'Unlock PDF' }).click();
-  await expect(page.getByRole('link', { name: /^Download/ })).toBeVisible({ timeout: 10_000 });
+  await expect(page.locator('a[download]:not([data-quiet-download])').filter({ hasText: /^Download/ })).toBeVisible({ timeout: 10_000 });
   widths['unlock done'] = await shellWidth(page);
 
   await openAndPick(page, 'plain.pdf', await plainPdf());
@@ -50,7 +50,7 @@ test('the card is full width at 375 in every Unlock and Protect state', async ({
 
   await page.getByLabel('Set Password').fill('secret');
   await page.getByRole('button', { name: 'Protect PDF' }).click();
-  await expect(page.getByRole('link', { name: /^Download/ })).toBeVisible({ timeout: 10_000 });
+  await expect(page.locator('a[download]:not([data-quiet-download])').filter({ hasText: /^Download/ })).toBeVisible({ timeout: 10_000 });
   widths['protect done'] = await shellWidth(page);
 
   // Full width means the card fills what #app offers.

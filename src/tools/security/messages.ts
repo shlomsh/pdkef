@@ -3,6 +3,8 @@
  * English table the way Split does. `{name}`-style tokens are filled with formatMessage.
  */
 export interface SecurityMessages {
+  /* Text direction of the catalogue; isolates left-to-right runs such as a file size. */
+  dir: 'ltr' | 'rtl';
   /* The preview tag (previewPlan.js). */
   tagChecking: string;
   tagNotReadable: string;
@@ -74,6 +76,7 @@ export interface SecurityMessages {
 }
 
 export const englishSecurityMessages: SecurityMessages = {
+  dir: 'ltr',
   tagChecking: 'Checking',
   tagNotReadable: 'Not readable',
   tagProtected: 'Protected',
