@@ -1,6 +1,6 @@
 import type { PDFPage } from '@cantoo/pdf-lib';
 import type { CombRegion, FieldRegion } from '../combPlacement.ts';
-import type { PageGeometry } from '../../../../editor/geometry/coords.ts';
+import type { PageGeometry } from '#editor/geometry/coords.ts';
 
 /**
  * The one field-kind vocabulary (FORM-23), where three copies used to drift

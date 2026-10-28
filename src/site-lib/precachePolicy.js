@@ -1,4 +1,4 @@
-import { DEFAULT_FONT_FAMILY, FONT_MANIFEST } from '../lib/fonts/fontManifest.ts';
+import { DEFAULT_FONT_FAMILY, FONT_MANIFEST } from '#lib/fonts/fontManifest.ts';
 
 /**
  * ARCH-22: this is product behaviour, not build tooling - it decides what

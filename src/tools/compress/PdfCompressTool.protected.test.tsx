@@ -35,7 +35,7 @@ describe('PdfCompressTool with a protected PDF', () => {
     harness = installToolHarness();
     stubImageDecoder();
     input = undefined;
-    const realProbe = (await vi.importActual('../../lib/pdf/pdfEncryption.ts')).probeEncryption;
+    const realProbe = (await vi.importActual('#lib/pdf/pdfEncryption.ts')).probeEncryption;
     const legacyPdfjs = () => import('pdfjs-dist/legacy/build/pdf.mjs');
     harness.pdfjs.probe.mockImplementation((bytes) => realProbe(bytes, legacyPdfjs));
   });

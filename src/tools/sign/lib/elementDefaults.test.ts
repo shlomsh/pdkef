@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { elementDefaultsFor, resolveDocumentStyle } from './elementDefaults.ts';
-import type { DocumentStyle } from '../../../editor/model/documentStyle.ts';
+import type { DocumentStyle } from '#editor/model/documentStyle.ts';
 
 // Mirrors today's constants.js/SignDefaultsContext fallbacks (DEFAULT_FONT_FAMILY,
 // DEFAULT_FONT_SIZE_PT, DEFAULT_COLOR_BLUE, DEFAULT_STROKE_WIDTH,

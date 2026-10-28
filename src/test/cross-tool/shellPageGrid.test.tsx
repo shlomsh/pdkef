@@ -5,17 +5,17 @@ import { act } from 'preact/test-utils';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import Sortable from 'sortablejs';
 // Asserts the .action class on the save link: a cell action is styled as one of the card's actions.
-import styles from '../../shell/pageGrid/PageGrid.module.css';
-import PageGrid, { cellEdge } from '../../shell/pageGrid/PageGrid.tsx';
-import { planForFile } from '../../lib/pages/pagePlan.ts';
+import styles from '#shell/pageGrid/PageGrid.module.css';
+import PageGrid, { cellEdge } from '#shell/pageGrid/PageGrid.tsx';
+import { planForFile } from '#lib/pages/pagePlan.ts';
 import { englishMergeMessages } from '../../tools/merge/messages';
-import * as thumbnailsLib from '../../lib/pdf/thumbnails.js';
+import * as thumbnailsLib from '#lib/pdf/thumbnails.js';
 
 const sources = [];
 // What each mocked file reports for its page sizes; null = the source cannot say (the thumbnail's own size is used).
 const probe = vi.hoisted(() => ({ aspects: null as number[] | null }));
 
-vi.mock('../../lib/pdf/thumbnails.js', () => ({
+vi.mock('#lib/pdf/thumbnails.js', () => ({
   openThumbnailSource: vi.fn(async (file) => {
     const source = {
       file,

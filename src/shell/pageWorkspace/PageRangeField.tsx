@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
-import { parsePageSelector, pageNumbersToRangeString } from '../../lib/pages/pageSelector.js';
-import { includedPageNumbers, type PlanEntry } from '../../lib/pages/pagePlan.ts';
-import { recordAction } from '../../lib/telemetry/actionTrail.ts';
-import { formatMessage } from '../../lib/text/formatMessage';
+import { parsePageSelector, pageNumbersToRangeString } from '#lib/pages/pageSelector.js';
+import { includedPageNumbers, type PlanEntry } from '#lib/pages/pagePlan.ts';
+import { recordAction } from '#lib/telemetry/actionTrail.ts';
+import { formatMessage } from '#lib/text/formatMessage.ts';
 import pdfToolStyles from '../PdfTool.module.css';
 
 /** The strings the field reads; Split's and PDF to Image's catalogues both carry them. */

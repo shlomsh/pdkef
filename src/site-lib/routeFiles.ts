@@ -6,8 +6,8 @@
  * the rule is testable on its own and the toolbar stays a thin renderer.
  */
 
-import { deriveFileKind } from '../lib/handoff/fileKind.js';
-import { FILE_CAPABILITIES, handoffKeyOf, type FileKind, type TOOL_PAGES } from '../lib/app/toolIds.ts';
+import { deriveFileKind } from '#lib/handoff/fileKind.js';
+import { FILE_CAPABILITIES, handoffKeyOf, type FileKind, type TOOL_PAGES } from '#lib/app/toolIds.ts';
 
 /**
  * The pages the home dropzone can route a file to: the registry rows that declare `accepts`.

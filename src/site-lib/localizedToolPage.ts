@@ -24,7 +24,7 @@ import {
 } from '../i18n/localizedTools';
 import { getDocumentationShellMessages } from '../i18n/documentationMessages';
 import { getToolMessages, type ToolMessageSlug, type ToolMessagesFor } from './toolMessageRegistry';
-import { getShellMessages } from '../shell/shellMessages';
+import { getShellMessages } from '#shell/shellMessages.ts';
 import { toolsBySlug } from '../data/tools.js';
 
 export async function localizedToolPaths(toolSlug: string) {

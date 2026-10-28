@@ -1,4 +1,4 @@
-import type { EditorElement } from '../../../editor/model/editorModel.ts';
+import type { EditorElement } from '#editor/model/editorModel.ts';
 
 /** How far a pasted copy sits from the original, in percent of the page, and how far it may travel. */
 const PASTE_OFFSET_PCT = 4;

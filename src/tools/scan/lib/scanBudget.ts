@@ -1,4 +1,4 @@
-import { searchTargetSize, QUALITY_SEARCH_STEPS } from '../../../lib/images/targetSizeSearch.js';
+import { searchTargetSize, QUALITY_SEARCH_STEPS } from '#lib/images/targetSizeSearch.js';
 
 // The size limit for a whole scanned PDF: the same search Compress uses (quality first,
 // then resolution), over every page at once. Pure: the caller injects how pages render

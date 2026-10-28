@@ -12,10 +12,10 @@
  * with text in it becomes.
  */
 import { fieldFontSize, placeTextOnField, type TypableField } from '../combPlacement.ts';
-import { resolveFontFamily } from '../../../../editor/text/fonts.js';
+import { resolveFontFamily } from '#editor/text/fonts.js';
 import { elementIsOnField } from '../fieldOrder.ts';
-import type { TextElement } from '../../../../editor/model/editorModel.ts';
-import { TEXT_BOX_LINE_HEIGHT_EM } from '../../../../editor/model/signGeometry.js';
+import type { TextElement } from '#editor/model/editorModel.ts';
+import { TEXT_BOX_LINE_HEIGHT_EM } from '#editor/model/signGeometry.js';
 import type { FillSlot, PagePoint, SlotPlacement } from './fillTypes.ts';
 
 /** What a placement is built from: the document's carried size (SIGN-33, null

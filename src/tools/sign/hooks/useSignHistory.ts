@@ -1,13 +1,13 @@
-import type { EditorElement } from '../../../editor/model/editorModel.ts';
-import type { SignMessages } from '../../../editor/registry/messages';
+import type { EditorElement } from '#editor/model/editorModel.ts';
+import type { SignMessages } from '#editor/registry/messages.ts';
 import {
   createActionEntry,
   type ActionHistoryEntry,
   type HistoryLogger,
-} from '../../../editor/model/actionHistory.ts';
-import { recordAction } from '../../../lib/telemetry/actionTrail.ts';
-import { formatMessage } from '../../../lib/text/formatMessage';
-import { useHistoryShortcuts } from '../../../lib/history/useHistoryShortcuts.js';
+} from '#editor/model/actionHistory.ts';
+import { recordAction } from '#lib/telemetry/actionTrail.ts';
+import { formatMessage } from '#lib/text/formatMessage.ts';
+import { useHistoryShortcuts } from '#lib/history/useHistoryShortcuts.js';
 import type { SignToolAction } from '../components/SignToolContext.tsx';
 
 interface SignHistoryOptions {

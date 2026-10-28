@@ -13,8 +13,8 @@
 // code, never `src/editor/model/signGeometry.js`. Taking the tool's defaults as
 // data keeps the one set of constants (signGeometry.js) the single source of
 // truth instead of a second copy living in the model layer.
-import type { DocumentStyle } from '../../../editor/model/documentStyle.ts';
-import type { EditorElement, SymbolMark, TextAlign, TextDirection } from '../../../editor/model/editorModel.ts';
+import type { DocumentStyle } from '#editor/model/documentStyle.ts';
+import type { EditorElement, SymbolMark, TextAlign, TextDirection } from '#editor/model/editorModel.ts';
 
 /** The creation-default fields for a freshly placed element, keyed by the
  * element-model field name each one lands on (not by `DocumentStyle`'s own

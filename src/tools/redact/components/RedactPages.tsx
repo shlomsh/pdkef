@@ -3,7 +3,7 @@ import type { RedactArming } from '../hooks/useRedactArming.ts';
 import type { RedactEditing } from '../hooks/useRedactEditing.ts';
 import type { RedactPages as RedactPagesHook } from '../hooks/useRedactPages.ts';
 import type { RedactFind } from '../hooks/useRedactFind.ts';
-import workspaceStyles from '../../../editor-ui/Workspace.module.css';
+import workspaceStyles from '#editor-ui/Workspace.module.css';
 import RedactPage from './RedactPage.tsx';
 
 /** The column of page cards, with the tap-outside handlers a phone needs to let go of a selection. */

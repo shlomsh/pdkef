@@ -1,5 +1,5 @@
-import type { SignToolType } from '../../../editor/model/editorModel.ts';
-import styles from '../../../editor-ui/SignToolbar.module.css';
+import type { SignToolType } from '#editor/model/editorModel.ts';
+import styles from '#editor-ui/SignToolbar.module.css';
 
 /**
  * Class and state attribute for a toolbar tool button. `chosen` is the tool

@@ -5,7 +5,7 @@ import { describe, expect, it } from 'vitest';
 import { PDFDocument, PDFName, PDFRef, PDFStream, decodePDFRawStream } from '@cantoo/pdf-lib';
 import * as pdfjs from 'pdfjs-dist/legacy/build/pdf.mjs';
 import { buildDeletePreviewPage, deleteObjectsFromPdf } from './deleteObjects.js';
-import { buildFormXObjectPdf } from '../../../editor/adapters/pdf/formXObjectFixture.test-helper.js';
+import { buildFormXObjectPdf } from '#editor/adapters/pdf/formXObjectFixture.test-helper.js';
 
 const decoder = new TextDecoder();
 const decodeStream = (stream) => decoder.decode(decodePDFRawStream(stream).decode());

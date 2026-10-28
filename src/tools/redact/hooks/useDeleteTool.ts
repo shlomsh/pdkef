@@ -1,6 +1,6 @@
 import { useMemo, useRef, useState } from 'preact/hooks';
 import type { PDFDocumentProxy } from 'pdfjs-dist';
-import { uniqueId } from '../../../editor/model/ids.ts';
+import { uniqueId } from '#editor/model/ids.ts';
 import useDeletableObjects from './useDeletableObjects.js';
 import useDeletePreviews from './useDeletePreviews.ts';
 import useObjectPreviews from './useObjectPreviews.ts';

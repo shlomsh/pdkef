@@ -2,7 +2,7 @@ import { render, type ComponentChildren } from 'preact';
 import { act } from 'preact/test-utils';
 import { describe, it, expect, afterEach } from 'vitest';
 import ShapeNode from './ShapeNode.tsx';
-import type { EllipseElement, RectangleElement } from '../../../../editor/model/editorModel.ts';
+import type { EllipseElement, RectangleElement } from '#editor/model/editorModel.ts';
 import type { NodeResizeStart } from '../nodeProps.ts';
 
 const onResizeStart: NodeResizeStart = () => {};

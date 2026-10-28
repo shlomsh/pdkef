@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, type Dispatch, type MutableRef, type StateUpdater } from 'preact/hooks';
 import type { RefObject } from 'preact';
-import { reportError } from '../../../lib/telemetry/errorReport.ts';
+import { reportError } from '#lib/telemetry/errorReport.ts';
 import { playFlatten, type FlattenFrom } from '../lib/flattenAnimation.ts';
 import { loadPipeline } from '../lib/loadPipeline.ts';
 import { turnKeyOf } from '../lib/scanPages.ts';

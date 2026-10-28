@@ -3,13 +3,13 @@ import { boxOf, documentFillItems, fillItemIndex, fillItemsByPage, fillReachTarg
 import { freeSlotKey, slotKey } from './fillSlots.ts';
 import { boxKey } from './fillDom.ts';
 import type { FieldRegion, PercentBox, TypableField } from '../combPlacement.ts';
-import type { TextDirection, TextElement } from '../../../../editor/model/editorModel.ts';
+import type { TextDirection, TextElement } from '#editor/model/editorModel.ts';
 import type { FillItem, FillSlot, PagePoint } from './fillTypes.ts';
 import {
   DEFAULT_FALLBACK_ELEMENT_WIDTH_PCT,
   DEFAULT_FONT_SIZE_PT,
   TEXT_BOX_LINE_HEIGHT_EM,
-} from '../../../../editor/model/signGeometry.js';
+} from '#editor/model/signGeometry.js';
 
 const PAGE_HEIGHT_POINTS = 792;
 const pageHeightPointsOf = () => PAGE_HEIGHT_POINTS;

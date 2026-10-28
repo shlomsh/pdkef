@@ -4,11 +4,11 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { PDFDocumentProxy } from 'pdfjs-dist';
 import type { PageGlyph } from '../lib/pageGlyphs.ts';
 import type { DeletablePdfObject } from '../components/DeletableObjectOverlay.tsx';
-import * as errorReport from '../../../lib/telemetry/errorReport.ts';
+import * as errorReport from '#lib/telemetry/errorReport.ts';
 import useObjectPreviews from './useObjectPreviews.ts';
 
 const readGlyphsMock = vi.fn<(pdfjs: unknown, page: { pageNumber: number }) => Promise<PageGlyph[] | null>>();
-vi.mock('../../../editor/adapters/pdf/pdfjsLoader.js', () => ({ getPdfjs: async () => ({}) }));
+vi.mock('#editor/adapters/pdf/pdfjsLoader.js', () => ({ getPdfjs: async () => ({}) }));
 vi.mock('../lib/readGlyphs.js', () => ({ readGlyphs: (pdfjs: unknown, page: { pageNumber: number }) => readGlyphsMock(pdfjs, page) }));
 
 const line = (chars: string): PageGlyph[] =>

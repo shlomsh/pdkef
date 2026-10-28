@@ -1,10 +1,10 @@
-import type { EditorElement, EditorElementPatch } from '../../../editor/model/editorModel.ts';
+import type { EditorElement, EditorElementPatch } from '#editor/model/editorModel.ts';
 // Type-only import, same non-cycle reasoning as registry/types.ts's own.
-import type { SignMessages } from '../../../editor/registry/messages';
+import type { SignMessages } from '#editor/registry/messages.ts';
 // ElementResizers (editor-ui, shared with Redact) owns this contract now;
 // re-exported here so Sign's node components keep one import surface.
-export type { EditorPointerEvent, NodeResizeStart } from '../../../editor-ui/nodeResizeTypes.ts';
-import type { NodeResizeStart } from '../../../editor-ui/nodeResizeTypes.ts';
+export type { EditorPointerEvent, NodeResizeStart } from '#editor-ui/nodeResizeTypes.ts';
+import type { NodeResizeStart } from '#editor-ui/nodeResizeTypes.ts';
 
 /** Shared shell props for a node rendered inside DraggableWrapper. */
 export interface ElementNodeProps<T extends EditorElement> {

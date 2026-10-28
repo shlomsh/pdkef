@@ -1,5 +1,5 @@
-import { formatFileSize } from '../../../lib/text/format.js';
-import { formatMessage } from '../../../lib/text/formatMessage.ts';
+import { formatFileSize } from '#lib/text/format.js';
+import { formatMessage } from '#lib/text/formatMessage.ts';
 import { englishRedactMessages } from '../messages.ts';
 import type { RedactMessages } from '../messages.ts';
 

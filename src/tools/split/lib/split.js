@@ -1,9 +1,9 @@
-import { applyRotation } from '../../../lib/pages/pageOps.js';
-import { getPdfLib } from '../../../lib/pdf/pdfLib.js';
-import { openPdfDoc } from '../../../lib/pdf/openPdfDoc.ts';
-import { throwIfAborted } from '../../../lib/output/abort.js';
-import { toBytes } from '../../../lib/output/toBytes.js';
-import { outputBase, withAffixes } from '../../../lib/output/outputName.ts';
+import { applyRotation } from '#lib/pages/pageOps.js';
+import { getPdfLib } from '#lib/pdf/pdfLib.js';
+import { openPdfDoc } from '#lib/pdf/openPdfDoc.ts';
+import { throwIfAborted } from '#lib/output/abort.js';
+import { toBytes } from '#lib/output/toBytes.js';
+import { outputBase, withAffixes } from '#lib/output/outputName.ts';
 
 // DEBT-23: parsePageSelector moved to src/lib/pages/pageSelector.js (shared with
 // PDF to Image). Import it from there.

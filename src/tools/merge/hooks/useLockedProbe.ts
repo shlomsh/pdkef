@@ -1,10 +1,10 @@
 import { useEffect } from 'preact/hooks';
 import type { Dispatch } from 'preact/hooks';
-import { probeEncryption } from '../../../lib/pdf/pdfEncryption.ts';
-import { reportError } from '../../../lib/telemetry/errorReport.ts';
+import { probeEncryption } from '#lib/pdf/pdfEncryption.ts';
+import { reportError } from '#lib/telemetry/errorReport.ts';
 import type { FileEntry } from '../lib/mergeModel.ts';
 import type { MergeAction, LockedProbe } from '../state/mergeState.ts';
-import type { NeedsUnlockKind } from '../../../shell/NeedsUnlock.tsx';
+import type { NeedsUnlockKind } from '#shell/NeedsUnlock.tsx';
 
 export interface NeedsUnlockView {
   file: File;

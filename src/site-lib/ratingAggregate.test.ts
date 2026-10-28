@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { RATING_MIN_VOTES, loadRatings, ratingText, summarize } from './ratingAggregate.js';
-import { RATING_TOOLS } from '../lib/telemetry/ratingSchema.js';
+import { RATING_TOOLS } from '#lib/telemetry/ratingSchema.ts';
 
 const env = { KV_REST_API_URL: 'https://store.example/', KV_REST_API_TOKEN: 't' };
 const hash = (c: Record<string, number>) => ({ result: Object.entries(c).flatMap(([k, v]) => [k, String(v)]) });

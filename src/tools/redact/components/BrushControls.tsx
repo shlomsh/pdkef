@@ -1,6 +1,6 @@
 import { Pipette } from 'lucide-preact';
-import ColorPickerMenu from '../../../editor-ui/ColorPickerMenu.tsx';
-import type { DocumentStyle } from '../../../editor/model/documentStyle.ts';
+import ColorPickerMenu from '#editor-ui/ColorPickerMenu.tsx';
+import type { DocumentStyle } from '#editor/model/documentStyle.ts';
 import styles from './BrushControls.module.css';
 import { englishRedactMessages as t } from '../messages.ts';
 

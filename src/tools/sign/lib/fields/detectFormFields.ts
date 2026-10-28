@@ -1,5 +1,5 @@
 import type { PDFDocument, PDFPage } from '@cantoo/pdf-lib';
-import { createPageGeometry, toPagePercentBox, type PageGeometry } from '../../../../editor/geometry/coords.ts';
+import { createPageGeometry, toPagePercentBox, type PageGeometry } from '#editor/geometry/coords.ts';
 import type { CombRegion, FieldRegion } from '../combPlacement.ts';
 import type {
   DetectedCell,

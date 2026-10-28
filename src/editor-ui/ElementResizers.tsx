@@ -1,10 +1,10 @@
-import { getElementDefinition } from '../editor/registry/index.ts';
-import type { EditorElement } from '../editor/model/editorModel.ts';
-import type { ResizeHandle } from '../editor/registry/types.ts';
-import { getPointerCoords } from '../editor/gestures/pointer.ts';
+import { getElementDefinition } from '#editor/registry/index.ts';
+import type { EditorElement } from '#editor/model/editorModel.ts';
+import type { ResizeHandle } from '#editor/registry/types.ts';
+import { getPointerCoords } from '#editor/gestures/pointer.ts';
 import type { EditorPointerEvent, NodeResizeStart } from './nodeResizeTypes.ts';
-import { englishSignMessages } from '../editor/registry/signMessages';
-import type { SignMessages } from '../editor/registry/messages';
+import { englishSignMessages } from '#editor/registry/signMessages.ts';
+import type { SignMessages } from '#editor/registry/messages.ts';
 import styles from './EditorElement.module.css';
 
 // Under `pointer: coarse` each handle carries a 44px halo (see the -18px inset

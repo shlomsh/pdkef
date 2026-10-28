@@ -1,13 +1,13 @@
-import PdfPageCanvas from '../../../editor-ui/PdfPageCanvas.tsx';
-import EditorPageHeader from '../../../editor-ui/EditorPageHeader.tsx';
-import { recordAction } from '../../../lib/telemetry/actionTrail.ts';
-import { redactionDrawingPreviewStyle, renderRedactionDrawingPreviewContent } from '../../../editor/registry/redactionSurface.ts';
+import PdfPageCanvas from '#editor-ui/PdfPageCanvas.tsx';
+import EditorPageHeader from '#editor-ui/EditorPageHeader.tsx';
+import { recordAction } from '#lib/telemetry/actionTrail.ts';
+import { redactionDrawingPreviewStyle, renderRedactionDrawingPreviewContent } from '#editor/registry/redactionSurface.ts';
 import type { RedactAction, RedactState } from '../state/redactState.ts';
 import type { RedactArming } from '../hooks/useRedactArming.ts';
 import type { RedactEditing } from '../hooks/useRedactEditing.ts';
 import type { RedactPages } from '../hooks/useRedactPages.ts';
 import type { RedactFind } from '../hooks/useRedactFind.ts';
-import workspaceStyles from '../../../editor-ui/Workspace.module.css';
+import workspaceStyles from '#editor-ui/Workspace.module.css';
 import styles from '../PdfRedactTool.module.css';
 import RedactPageBoxes from './RedactPageBoxes.tsx';
 import DeletableObjectOverlay from './DeletableObjectOverlay.tsx';

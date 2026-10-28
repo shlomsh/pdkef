@@ -1,6 +1,6 @@
 import type { SignMessages } from './messages';
 import type { ElementUpdateKind } from '../model/updateKind';
-import { formatMessage } from '../../lib/text/formatMessage';
+import { formatMessage } from '#lib/text/formatMessage.ts';
 
 /** The whiteout colour group's text from a message table (the shape of `WhiteoutColorLabels`). */
 export function whiteoutColorLabels(t: SignMessages) {

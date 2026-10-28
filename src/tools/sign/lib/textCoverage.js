@@ -17,9 +17,9 @@
  * This module returns facts only. Components turn those facts into localized
  * user-facing messages one layer up.
  */
-import { textForCoverage } from '../../../editor/text/comb.js';
-import { resolveFontFamily } from '../../../editor/text/fonts.js';
-import { unrepresentableCharacters } from '../../../editor/text/textMetrics.ts';
+import { textForCoverage } from '#editor/text/comb.js';
+import { resolveFontFamily } from '#editor/text/fonts.js';
+import { unrepresentableCharacters } from '#editor/text/textMetrics.ts';
 
 /**
  * Every character across every text element that its resolved, embedded font

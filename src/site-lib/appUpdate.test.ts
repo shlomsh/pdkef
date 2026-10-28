@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { holdUpdate, registerBeforeUpdateReload } from '../lib/appUpdate/updateHolds';
+import { holdUpdate, registerBeforeUpdateReload } from '#lib/appUpdate/updateHolds.ts';
 import {
   BUSY_QUERY,
   CHECK_EVERY_MS,

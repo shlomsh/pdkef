@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef } from 'preact/hooks';
-import { isFileDrag } from '../../../shell/fileDragDepth.ts';
+import { isFileDrag } from '#shell/fileDragDepth.ts';
 import { cardInsertIndex, pointWithin, rowInsertIndex } from '../lib/mergeDrag.ts';
 
 /**

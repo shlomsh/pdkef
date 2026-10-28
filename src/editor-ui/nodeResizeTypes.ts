@@ -1,4 +1,4 @@
-import type { ResizeHandle } from '../editor/registry/types.ts';
+import type { ResizeHandle } from '#editor/registry/types.ts';
 
 // Split out of src/tools/sign/components/nodeProps.ts (ARCH-18): ElementResizers
 // is editor-ui, shared by Sign and Redact, so it cannot import a tool's

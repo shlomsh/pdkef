@@ -1,11 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import type { EditorElement } from '../../../editor/model/editorModel.ts';
+import type { EditorElement } from '#editor/model/editorModel.ts';
 import {
   captureAddedElement,
   captureElementSnapshots,
   createActionEntry,
-} from '../../../editor/model/actionHistory.ts';
-import { createUpdateEntry } from '../../../editor/model/updateKind.ts';
+} from '#editor/model/actionHistory.ts';
+import { createUpdateEntry } from '#editor/model/updateKind.ts';
 import { reducer, type SignToolState } from './SignToolContext.tsx';
 
 const back: EditorElement = { id: 'back', type: 'text', pageIndex: 0, left: 5, top: 5, text: 'Back' };

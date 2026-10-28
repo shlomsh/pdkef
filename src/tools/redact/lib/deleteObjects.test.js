@@ -8,7 +8,7 @@ import {
   PDFStream,
   decodePDFRawStream,
 } from '@cantoo/pdf-lib';
-import { extractPageObjects, getPageContentBytes } from '../../../editor/adapters/pdf/pdfObjects.js';
+import { extractPageObjects, getPageContentBytes } from '#editor/adapters/pdf/pdfObjects.js';
 import { withPreviews } from './objectPreviews.test-helper.js';
 import {
   deleteObjectsFromPdf,
@@ -16,9 +16,9 @@ import {
   listDeletableObjects,
   buildDeletePreviewPage,
 } from './deleteObjects.js';
-import { reportError } from '../../../lib/telemetry/errorReport.ts';
+import { reportError } from '#lib/telemetry/errorReport.ts';
 
-vi.mock('../../../lib/telemetry/errorReport.ts', () => ({ reportError: vi.fn() }));
+vi.mock('#lib/telemetry/errorReport.ts', () => ({ reportError: vi.fn() }));
 
 // A real, valid 1x1 transparent PNG (67 bytes).
 const PNG_1X1_BASE64 =
@@ -511,7 +511,7 @@ describe('listDeletableObjects', () => {
     const source = new Uint8Array(await doc.save());
 
     const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-    const pdfObjects = await import('../../../editor/adapters/pdf/pdfObjects.js');
+    const pdfObjects = await import('#editor/adapters/pdf/pdfObjects.js');
     const realExtract = pdfObjects.extractPageObjects;
     const extractSpy = vi
       .spyOn(pdfObjects, 'extractPageObjects')

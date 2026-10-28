@@ -1,7 +1,7 @@
 import { useRef, useEffect } from 'preact/hooks';
-import { recordAction } from '../../../lib/telemetry/actionTrail.ts';
-import { useHistoryShortcuts } from '../../../lib/history/useHistoryShortcuts.js';
-import type { ActionHistoryEntry } from '../../../editor/model/actionHistory.ts';
+import { recordAction } from '#lib/telemetry/actionTrail.ts';
+import { useHistoryShortcuts } from '#lib/history/useHistoryShortcuts.js';
+import type { ActionHistoryEntry } from '#editor/model/actionHistory.ts';
 import type { RedactElement } from '../lib/redactElements.ts';
 import { canRedo as canRedoOf, type RedactAction, type RedactState } from '../state/redactState.ts';
 import { englishRedactMessages as t } from '../messages.ts';

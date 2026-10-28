@@ -2,10 +2,10 @@ import { useRef } from 'preact/hooks';
 import { mergePdfs, MergeFileError } from '../lib/merge.js';
 import { reportableCause } from '../lib/reportableCause.ts';
 import { toMergeMap } from '../lib/mergePlan.ts';
-import { outputPageCount, planKey, type PlanEntry } from '../../../lib/pages/pagePlan.ts';
-import { reportError } from '../../../lib/telemetry/errorReport.ts';
-import { type QuietPolicy } from '../../../lib/output/quietPrepare.ts';
-import { usePreparedOutput, type PreparedOutput, type PreparedStatus } from '../../../lib/output/usePreparedOutput.ts';
+import { outputPageCount, planKey, type PlanEntry } from '#lib/pages/pagePlan.ts';
+import { reportError } from '#lib/telemetry/errorReport.ts';
+import { type QuietPolicy } from '#lib/output/quietPrepare.ts';
+import { usePreparedOutput, type PreparedOutput, type PreparedStatus } from '#lib/output/usePreparedOutput.ts';
 
 /* The quiet-background build lives in src/lib/output/usePreparedOutput.ts; this is
    the merge half: when the set is mergeable, what its state key is, and how

@@ -7,14 +7,14 @@
 // (state/redactState.ts) and reads elements, history, the document revision
 // and the selection back from it.
 import { describe, expect, it, vi, beforeEach } from 'vitest';
-import { reportEdit } from '../../../lib/telemetry/productAnalytics.ts';
+import { reportEdit } from '#lib/telemetry/productAnalytics.ts';
 import useRedactCommands, { type RedactCommandDeps } from './useRedactCommands.ts';
 import { initialRedactState, redactReducer, type EditCommit } from '../state/redactState.ts';
-import type { ActionHistoryEntry } from '../../../editor/model/actionHistory.ts';
+import type { ActionHistoryEntry } from '#editor/model/actionHistory.ts';
 import type { RedactElement } from '../lib/redactElements.ts';
-import type { ElementUpdateKind } from '../../../editor/model/updateKind.ts';
+import type { ElementUpdateKind } from '#editor/model/updateKind.ts';
 
-vi.mock('../../../lib/telemetry/productAnalytics.ts', () => ({ reportEdit: vi.fn() }));
+vi.mock('#lib/telemetry/productAnalytics.ts', () => ({ reportEdit: vi.fn() }));
 beforeEach(() => vi.mocked(reportEdit).mockClear());
 
 interface Box {

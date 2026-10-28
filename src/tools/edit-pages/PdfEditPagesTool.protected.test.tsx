@@ -5,7 +5,7 @@ import { describe, expect, it, vi, afterEach, beforeEach } from 'vitest';
 import { readFileSync } from 'node:fs';
 // @ts-expect-error -- same: no Node ambient types.
 import path from 'node:path';
-import type { classifyPdfOpen, probeEncryption } from '../../lib/pdf/pdfEncryption.ts';
+import type { classifyPdfOpen, probeEncryption } from '#lib/pdf/pdfEncryption.ts';
 import PdfEditPagesTool from './PdfEditPagesTool.tsx';
 import * as editPagesLib from './lib/editPages.js';
 import { installToolHarness, type ToolHarness } from '../../test/harness/toolHarness.ts';

@@ -4,10 +4,10 @@ import { describe, expect, it, afterEach, beforeEach, vi } from 'vitest';
 import TextNode from './nodes/TextNode.tsx';
 import WhiteoutNode from './nodes/WhiteoutNode.tsx';
 import { FONT_PREVIEW_DELAY_MS } from './FontPickerMenu.tsx';
-import { MIN_SHAPE_SIZE_PCT, MAX_SHAPE_SIZE_PCT } from '../../../editor/model/signGeometry.js';
-import type { EditorElement, EditorElementPatch, TextElement, WhiteoutElement } from '../../../editor/model/editorModel.ts';
-import { createPageGeometry } from '../../../editor/geometry/coords.js';
-import type { PageGeometry } from '../../../editor/geometry/coords.ts';
+import { MIN_SHAPE_SIZE_PCT, MAX_SHAPE_SIZE_PCT } from '#editor/model/signGeometry.js';
+import type { EditorElement, EditorElementPatch, TextElement, WhiteoutElement } from '#editor/model/editorModel.ts';
+import { createPageGeometry } from '#editor/geometry/coords.ts';
+import type { PageGeometry } from '#editor/geometry/coords.ts';
 import { topKeepingInkCentre } from '../lib/combPlacement.ts';
 
 declare global {

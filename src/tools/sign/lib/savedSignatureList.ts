@@ -1,4 +1,4 @@
-import type { SavedSignature } from '../../../editor/model/savedSignature.ts';
+import type { SavedSignature } from '#editor/model/savedSignature.ts';
 
 /** How many saved signatures the on-device library keeps; the newest first.
  * @testSeam

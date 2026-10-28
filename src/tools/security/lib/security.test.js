@@ -3,7 +3,7 @@ import path from 'path';
 import { describe, expect, it } from 'vitest';
 import { PDFDocument, PDFName, PDFString, PDFHexString, PDFInvalidObject } from '@cantoo/pdf-lib';
 import * as pdfjs from 'pdfjs-dist/legacy/build/pdf.mjs';
-import { probeEncryption } from '../../../lib/pdf/pdfEncryption.ts';
+import { probeEncryption } from '#lib/pdf/pdfEncryption.ts';
 import { unlockPdf, protectPdf, WrongPasswordError, SecurityError, UnreadablePdfError } from './security.js';
 
 describe('security.js', () => {

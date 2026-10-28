@@ -1,7 +1,7 @@
 import styles from '../PdfCompressTool.module.css';
-import ErrorMessage from '../../../shell/ErrorMessage.tsx';
-import { formatMessage } from '../../../lib/text/formatMessage';
-import { reportError } from '../../../lib/telemetry/errorReport.ts';
+import ErrorMessage from '#shell/ErrorMessage.tsx';
+import { formatMessage } from '#lib/text/formatMessage.ts';
+import { reportError } from '#lib/telemetry/errorReport.ts';
 import type { CompressMessages } from '../messages';
 import type { useComparePreviews } from '../hooks/useComparePreviews.ts';
 import type { CompressMeta } from '../lib/compressCallbacks.ts';

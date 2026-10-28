@@ -4,12 +4,12 @@ import { ScanWork, type ScanPage } from './scanWork.ts';
 import type { Quad } from '../lib/quad.ts';
 import { newPage } from '../lib/scanPages.ts';
 import { englishScanMessages as t } from '../messages.ts';
-import { recordAction } from '../../../lib/telemetry/actionTrail.ts';
-import { reportError } from '../../../lib/telemetry/errorReport.ts';
+import { recordAction } from '#lib/telemetry/actionTrail.ts';
+import { reportError } from '#lib/telemetry/errorReport.ts';
 
-vi.mock('../../../lib/telemetry/actionTrail.ts', () => ({ recordAction: vi.fn() }));
-vi.mock('../../../lib/telemetry/productAnalytics.ts', () => ({ reportEdit: vi.fn() }));
-vi.mock('../../../lib/telemetry/errorReport.ts', () => ({ reportError: vi.fn() }));
+vi.mock('#lib/telemetry/actionTrail.ts', () => ({ recordAction: vi.fn() }));
+vi.mock('#lib/telemetry/productAnalytics.ts', () => ({ reportEdit: vi.fn() }));
+vi.mock('#lib/telemetry/errorReport.ts', () => ({ reportError: vi.fn() }));
 // EDGE: the real pipeline decodes photos on canvases, which node does not have.
 const guessPage = vi.fn();
 vi.mock('../lib/loadPipeline.ts', () => ({ loadPipeline: () => Promise.resolve({ guessPage }) }));

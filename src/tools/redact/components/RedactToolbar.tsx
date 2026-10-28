@@ -1,20 +1,20 @@
 import type { ComponentChildren } from 'preact';
 import { Search, Eye } from 'lucide-preact';
-import ViewControl from '../../../editor-ui/ViewControl.tsx';
-import EditorToolStatus, { type ToolCopy } from '../../../editor-ui/EditorToolStatus.tsx';
-import ArmHint from '../../../editor-ui/ArmHint.tsx';
-import EditorExportActions from '../../../editor-ui/EditorExportActions.tsx';
-import ToolShell, { FILE_ACTIONS, useToolShell } from '../../../shell/ToolShell.tsx';
-import { useArmTool, useAutoArmHint } from '../../../editor-ui/hooks/toolArming.js';
-import { WhiteoutIcon, EraserIcon, BlurToolIcon, BlackoutToolIcon } from '../../../editor-ui/toolIcons.tsx';
-import type { ActionHistoryEntry } from '../../../editor/model/actionHistory.ts';
-import type { RedactToolType } from '../../../editor/model/editorModel.ts';
-import styles from '../../../editor-ui/SignToolbar.module.css';
-import UndoRedoButtons from '../../../editor-ui/UndoRedoButtons.tsx';
+import ViewControl from '#editor-ui/ViewControl.tsx';
+import EditorToolStatus, { type ToolCopy } from '#editor-ui/EditorToolStatus.tsx';
+import ArmHint from '#editor-ui/ArmHint.tsx';
+import EditorExportActions from '#editor-ui/EditorExportActions.tsx';
+import ToolShell, { FILE_ACTIONS, useToolShell } from '#shell/ToolShell.tsx';
+import { useArmTool, useAutoArmHint } from '#editor-ui/hooks/toolArming.js';
+import { WhiteoutIcon, EraserIcon, BlurToolIcon, BlackoutToolIcon } from '#editor-ui/toolIcons.tsx';
+import type { ActionHistoryEntry } from '#editor/model/actionHistory.ts';
+import type { RedactToolType } from '#editor/model/editorModel.ts';
+import styles from '#editor-ui/SignToolbar.module.css';
+import UndoRedoButtons from '#editor-ui/UndoRedoButtons.tsx';
 import redactStyles from '../PdfRedactTool.module.css';
 import barStyles from './RedactToolbar.module.css';
 import { englishRedactMessages as t } from '../messages.ts';
-import { formatMessage } from '../../../lib/text/formatMessage.ts';
+import { formatMessage } from '#lib/text/formatMessage.ts';
 
 // What each tool is called in front of a user and what it is waiting for -
 // the same contract SignToolbar's TOOL_COPY holds, for the same reason: every

@@ -6,7 +6,7 @@ import TextNode from './nodes/TextNode.tsx';
 // Fixture parent: production finds the page with closest() on this class, so the test must carry it.
 import { FillContext, TextFillContext, FILL_OFF } from './fill/FillContext.tsx';
 import type { TextFillProps } from '../lib/fill/fillTypes.ts';
-import type { EditorElementPatch, TextElement } from '../../../editor/model/editorModel.ts';
+import type { EditorElementPatch, TextElement } from '#editor/model/editorModel.ts';
 
 type TextChange = (changes: EditorElementPatch<TextElement>) => void;
 

@@ -1,4 +1,4 @@
-import { workspaceStyles } from '../../../shell/pageWorkspace/PageWorkspace.tsx';
+import { workspaceStyles } from '#shell/pageWorkspace/PageWorkspace.tsx';
 import type { SplitMessages } from '../messages';
 
 interface SplitBulkRowProps {

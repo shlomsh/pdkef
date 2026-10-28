@@ -4,7 +4,7 @@ import { act } from 'preact/test-utils';
 import { describe, expect, it, vi, afterEach, beforeEach } from 'vitest';
 import PdfSecurityTool from './PdfSecurityTool.tsx';
 import * as securityLib from './lib/security.js';
-import { saveHandoff } from '../../lib/drafts/draftStore.ts';
+import { saveHandoff } from '#lib/drafts/draftStore.ts';
 import { mockNativeFileShare } from '../../test/support/mockFileShare.js';
 import { setInputFiles } from '../../test/support/setInputFiles.js';
 import { installToolHarness, type ToolHarness } from '../../test/harness/toolHarness.ts';
@@ -20,12 +20,12 @@ const fixtureFile = (name: string) => new File([fixtureBytes(name)], `${name}.pd
 // build, for checking output bytes. Every other module (security.js, draftStore, analytics, error
 // reports) runs for real.
 const realProbe = async (bytes: ArrayBuffer | Uint8Array) => {
-  const actual: any = await vi.importActual('../../lib/pdf/pdfEncryption.ts');
+  const actual: any = await vi.importActual('#lib/pdf/pdfEncryption.ts');
   return actual.probeEncryption(bytes, () => import('pdfjs-dist/legacy/build/pdf.mjs'));
 };
 
 // The page preview (pdf.js painting) is the harness's too: harness.pdfjs.thumbnails.renderComparePreview.
-import { recentActions, resetActionTrailForTests } from '../../lib/telemetry/actionTrail.ts';
+import { recentActions, resetActionTrailForTests } from '#lib/telemetry/actionTrail.ts';
 
 // What each protection answer looks like as a real file, so unlock and protect run for real on it.
 type Protection = 'open' | 'needs-password' | 'owner-restricted' | 'unreadable';

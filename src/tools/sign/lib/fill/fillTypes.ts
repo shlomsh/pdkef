@@ -9,7 +9,7 @@
  * already renders. A slot becomes an element when it is left with text in it.
  */
 import type { ComponentChildren } from 'preact';
-import type { TextElement } from '../../../../editor/model/editorModel.ts';
+import type { TextElement } from '#editor/model/editorModel.ts';
 import type { PercentBox, TypableField } from '../combPlacement.ts';
 
 /** A point on a page in page-percent (0-100), top-left origin, like every region. */

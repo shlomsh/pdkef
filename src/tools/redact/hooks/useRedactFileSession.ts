@@ -1,7 +1,7 @@
-import { useEditorFileSession } from '../../../editor-ui/hooks/useEditorFileSession.ts';
-import { getAppStyle, getEditorPreference } from '../../../editor/workspace/preferenceStore.ts';
-import { isDraftElement } from '../../../editor/registry/draftValidation.ts';
-import type { NeedsUnlockKind } from '../../../shell/NeedsUnlock.tsx';
+import { useEditorFileSession } from '#editor-ui/hooks/useEditorFileSession.ts';
+import { getAppStyle, getEditorPreference } from '#editor/workspace/preferenceStore.ts';
+import { isDraftElement } from '#editor/registry/draftValidation.ts';
+import type { NeedsUnlockKind } from '#shell/NeedsUnlock.tsx';
 import { resolveBrush } from '../components/BrushControls.tsx';
 import { resolveWhiteoutColor, resolveRedactBlurStrength } from '../lib/redactStyle.ts';
 import { isDirty, type RedactAction, type RedactState } from '../state/redactState.ts';

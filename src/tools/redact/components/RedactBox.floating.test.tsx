@@ -6,7 +6,7 @@ import { describe, expect, it, vi } from 'vitest';
 const clampSpy = vi.hoisted(() => vi.fn());
 const flipSpy = vi.hoisted(() => vi.fn());
 
-vi.mock('../../../editor-ui/hooks/visualViewportClamp.ts', async (importOriginal) => ({
+vi.mock('#editor-ui/hooks/visualViewportClamp.ts', async (importOriginal) => ({
   ...(await importOriginal<any>()),
   default: (opts: unknown) => {
     clampSpy(opts);

@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { planForFile, rotateEntry, withIncludedPages } from '../../../lib/pages/pagePlan.ts';
+import { planForFile, rotateEntry, withIncludedPages } from '#lib/pages/pagePlan.ts';
 import { englishToImageMessages } from '../messages';
 
 const { convert } = vi.hoisted(() => ({ convert: vi.fn() }));

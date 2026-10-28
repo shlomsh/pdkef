@@ -1,8 +1,8 @@
 import { useEffect, useRef } from 'preact/hooks';
-import { startGesture } from '../../../lib/gestures/controller.ts';
-import { makeStroke } from '../../../editor/model/strokeGeometry.ts';
-import { uniqueId } from '../../../editor/model/ids.ts';
-import usePdfCoordinates from '../../../editor-ui/hooks/usePdfCoordinates.ts';
+import { startGesture } from '#lib/gestures/controller.ts';
+import { makeStroke } from '#editor/model/strokeGeometry.ts';
+import { uniqueId } from '#editor/model/ids.ts';
+import usePdfCoordinates from '#editor-ui/hooks/usePdfCoordinates.ts';
 import styles from './BrushLayer.module.css';
 
 // RED-32: the painting surface over one page while a brush is armed. A press

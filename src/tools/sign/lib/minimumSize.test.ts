@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { EditorElement } from '../../../editor/model/editorModel.ts';
+import type { EditorElement } from '#editor/model/editorModel.ts';
 import { ensureMinimumElementSize } from './minimumSize.ts';
 
 const ctx = (tool: string, extra = {}) => ({

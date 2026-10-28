@@ -1,6 +1,6 @@
 import { useMemo, useRef, useState, useEffect } from 'preact/hooks';
-import { uniqueId } from '../../../editor/model/ids.ts';
-import type { PlaceHistoryEntry } from '../../../editor/model/actionHistory.ts';
+import { uniqueId } from '#editor/model/ids.ts';
+import type { PlaceHistoryEntry } from '#editor/model/actionHistory.ts';
 import { checkBoxesFromElements } from '../lib/check/checkBoxes.ts';
 import { removedMessage, type InPlaceFinding } from '../lib/check/checkCopy.ts';
 import { deletedTerms } from '../lib/check/deletedTerms.ts';

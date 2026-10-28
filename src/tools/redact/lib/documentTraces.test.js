@@ -4,7 +4,7 @@ import {
   readDocumentTraces, applyDetailEdits, copyDocumentDetails, reachesPage, removeXmpThumbnails,
 } from './documentTraces.js';
 import { attachmentDetailId } from './detailEdits.js';
-import { buildTracesFixture } from '../../../editor/adapters/pdf/tracesFixture.test-helper.js';
+import { buildTracesFixture } from '#editor/adapters/pdf/tracesFixture.test-helper.js';
 
 const names = (t) => t.attachments.map((a) => a.name).sort();
 

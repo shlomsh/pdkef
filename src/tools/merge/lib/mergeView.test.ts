@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { englishMergeMessages } from '../messages';
-import { englishShellMessages } from '../../../shell/shellMessages';
+import { englishShellMessages } from '#shell/shellMessages.ts';
 import { MergeFileError } from './merge.js';
 import { draftStatusLabelOf, failedFileOf, sortOptionsOf } from './mergeView.ts';
 import type { FileEntry } from './mergeModel.ts';

@@ -10,7 +10,7 @@
  * with no glyph inside gets no preview, never a guess. Pure.
  */
 
-import type { PageGeometry } from '../../../editor/geometry/coords.ts';
+import type { PageGeometry } from '#editor/geometry/coords.ts';
 import type { PageGlyph } from './pageGlyphs.ts';
 import { textInReadingOrder } from './textLayer.ts';
 

@@ -11,7 +11,7 @@ import { isDateFormatId } from '../text/dateFormat.ts';
 // The version constant lives with the draft layer in src/lib/drafts/ (it is
 // stamped there); re-exported so the editor-side callers and tests keep one
 // name for it. `migrateDraftRecord` below is where a bump gets its step.
-import { DRAFT_SCHEMA_VERSION } from '../../lib/drafts/draftPolicy.js';
+import { DRAFT_SCHEMA_VERSION } from '#lib/drafts/draftPolicy.js';
 /** @testSeam */
 export { DRAFT_SCHEMA_VERSION };
 

@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-vi.mock('../../../editor-ui/whiteout/pageSampling.ts', () => ({ sampleRingColor: vi.fn(() => '#abcdef') }));
-import { sampleRingColor } from '../../../editor-ui/whiteout/pageSampling.ts';
+vi.mock('#editor-ui/whiteout/pageSampling.ts', () => ({ sampleRingColor: vi.fn(() => '#abcdef') }));
+import { sampleRingColor } from '#editor-ui/whiteout/pageSampling.ts';
 import { samplePageColor, signPageCanvas } from './whiteoutPageColor.ts';
 
 afterEach(() => { document.body.innerHTML = ''; });

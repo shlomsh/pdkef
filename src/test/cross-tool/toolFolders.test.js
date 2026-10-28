@@ -1,7 +1,7 @@
 import { existsSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { TOOL_PAGES } from '../../lib/app/toolIds.ts';
+import { TOOL_PAGES } from '#lib/app/toolIds.ts';
 
 // ARCH-63: a tool's folder and display label live in its TOOL_PAGES row. Edit Pages is `edit-pdf`
 // (id), `edit-pages` (folder) and `organize-pdf` (slug); Unlock/Protect is the `security` folder;

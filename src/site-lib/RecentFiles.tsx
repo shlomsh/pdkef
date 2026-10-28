@@ -1,9 +1,9 @@
 import { pageForToolId } from '../data/tools.js';
 import styles from './RecentFiles.module.css';
 import { englishRecentFilesMessages, type RecentFilesMessages } from './recentFilesMessages';
-import { formatMessage } from '../lib/text/formatMessage';
-import { getDraftExpiry } from '../lib/drafts/draftPolicy.js';
-import { MAX_RECENT_FILES } from '../lib/drafts/draftStore.ts';
+import { formatMessage } from '#lib/text/formatMessage.ts';
+import { getDraftExpiry } from '#lib/drafts/draftPolicy.js';
+import { MAX_RECENT_FILES } from '#lib/drafts/draftStore.ts';
 
 /** Recent source documents, or the bundled practice form when the cache is empty. */
 export interface RecentFileItem {

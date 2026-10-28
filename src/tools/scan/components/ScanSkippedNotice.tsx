@@ -1,5 +1,5 @@
-import { formatMessage } from '../../../lib/text/formatMessage';
-import pdfToolStyles from '../../../shell/PdfTool.module.css';
+import { formatMessage } from '#lib/text/formatMessage.ts';
+import pdfToolStyles from '#shell/PdfTool.module.css';
 import { englishScanMessages as t } from '../messages.ts';
 
 /** Which picked files were not photos, so the person knows why they are not among the pages. */

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { PDFDocument, StandardFonts } from '@cantoo/pdf-lib';
 import { dropUnreachable, unreachableRefs } from './reachability.js';
-import { buildFormXObjectPdf } from '../../../editor/adapters/pdf/formXObjectFixture.test-helper.js';
+import { buildFormXObjectPdf } from '#editor/adapters/pdf/formXObjectFixture.test-helper.js';
 
 async function simpleDoc() {
   const doc = await PDFDocument.create();

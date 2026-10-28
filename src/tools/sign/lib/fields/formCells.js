@@ -1,5 +1,5 @@
 // @ts-check
-import { createPageGeometry, pagePercentToPdfPoint, toPagePercentBox } from '../../../../editor/geometry/coords.ts';
+import { createPageGeometry, pagePercentToPdfPoint, toPagePercentBox } from '#editor/geometry/coords.ts';
 import { collectPageInk, pageCropBox } from './pageInk.js';
 import { CELL_CONFIDENCE } from './confidenceWeights.ts';
 import { verticalEdges, horizontalRules, ruledCoverage } from './inkEdges.js';
@@ -473,7 +473,7 @@ function buildClosedCells(ink) {
 // Text: page-percent (y down) to PDF points (y up), through the one shared transform.
 /**
  * @param {PageTextRun} item
- * @param {import('../../../../editor/geometry/coords.ts').PageGeometry} geometry
+ * @param {import('#editor/geometry/coords.ts').PageGeometry} geometry
  * @returns {TextPoints}
  */
 function textItemToPoints(item, geometry) {
@@ -515,7 +515,7 @@ function cellRect(cell) {
 /**
  * A box in PDF points as the page-percent box a published field carries.
  *
- * @param {import('../../../../editor/geometry/coords.ts').PageGeometry} geometry
+ * @param {import('#editor/geometry/coords.ts').PageGeometry} geometry
  * @param {Bounds} bounds
  */
 function cellBox(geometry, bounds) {
@@ -762,7 +762,7 @@ function confidenceOf(resolved, kind) {
  * A tick box: its own box, no text, labelled by the column header above it.
  *
  * @param {ClosedCell} cell
- * @param {import('../../../../editor/geometry/coords.ts').PageGeometry} geometry
+ * @param {import('#editor/geometry/coords.ts').PageGeometry} geometry
  * @param {TextPoints[]} textItems
  * @returns {ResolvedCell}
  */
@@ -785,7 +785,7 @@ function tickBoxCell(cell, geometry, textItems) {
  * the column bookkeeping `detectCellCandidates` counts over every closed cell.
  *
  * @typedef {object} CellContext
- * @property {import('../../../../editor/geometry/coords.ts').PageGeometry} geometry
+ * @property {import('#editor/geometry/coords.ts').PageGeometry} geometry
  * @property {TextPoints[]} textItemsPoints every text run on the page, in PDF points
  * @property {TextPoints[]} ownText the runs whose bulk sits inside this cell
  * @property {Map<string, number>} closedColumnCounts closed cells per column key
@@ -953,7 +953,7 @@ const CELL_RESOLVERS = [resolveFloorTicked, resolveNarrowTick, resolveLoneSquare
  * regions the comb/checkbox detector leaves alone.
  *
  * @param {{verticals: VerticalEdge[], horizontals: HorizontalRule[], rects: Array<object>}} ink
- * @param {import('../../../../editor/geometry/coords.ts').PageGeometry} geometry
+ * @param {import('#editor/geometry/coords.ts').PageGeometry} geometry
  * @param {number} pageIndex
  * @param {PageTextRun[]} textItems page text, page-percent bounds
  * @returns {CellCandidate[]}

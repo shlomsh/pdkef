@@ -1,5 +1,5 @@
-import type { EditorElement, EditorElementPatch, TextDirection } from '../../../editor/model/editorModel.ts';
-import { appWideStyleOf, type DocumentStyle } from '../../../editor/model/documentStyle.ts';
+import type { EditorElement, EditorElementPatch, TextDirection } from '#editor/model/editorModel.ts';
+import { appWideStyleOf, type DocumentStyle } from '#editor/model/documentStyle.ts';
 
 /**
  * SIGN-33: what an explicit change to an element carries forward to the

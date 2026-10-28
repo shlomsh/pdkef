@@ -21,7 +21,7 @@ import {
   decodePDFRawStream,
 } from '@cantoo/pdf-lib';
 import * as pdfjs from 'pdfjs-dist/legacy/build/pdf.mjs';
-import { extractPageObjects } from '../../../editor/adapters/pdf/pdfObjects.js';
+import { extractPageObjects } from '#editor/adapters/pdf/pdfObjects.js';
 import { applyPageEdits } from './applyPageEdits.js';
 
 // Same trick redact.test.js and compress.test.js use: intercept the bare

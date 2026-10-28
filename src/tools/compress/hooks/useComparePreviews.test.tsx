@@ -2,12 +2,12 @@ import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
 import { useComparePreviews } from './useComparePreviews.ts';
-import * as thumbnails from '../../../lib/pdf/thumbnails.js';
+import * as thumbnails from '#lib/pdf/thumbnails.js';
 
-vi.mock('../../../lib/pdf/thumbnails.js', () => ({
+vi.mock('#lib/pdf/thumbnails.js', () => ({
   renderComparePreview: vi.fn((fileOrBlob) => Promise.resolve(`data:${fileOrBlob instanceof File ? 'before' : 'after'}`)),
 }));
-vi.mock('../../../lib/telemetry/errorReport.ts', () => ({ reportError: vi.fn() }));
+vi.mock('#lib/telemetry/errorReport.ts', () => ({ reportError: vi.fn() }));
 
 const pdf = () => new File(['%PDF'], 'a.pdf', { type: 'application/pdf' });
 const photo = () => new File(['jpg'], 'a.jpg', { type: 'image/jpeg' });

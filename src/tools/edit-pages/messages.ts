@@ -1,6 +1,6 @@
-import type { DownloadMessages, PageGridMessages } from '../../shell/shellMessages';
-import type { PageToolMessages } from '../../shell/pageWorkspace/pageToolMessages.ts';
-import type { HistoryButtonsMessages } from '../../shell/HistoryButtons.tsx';
+import type { DownloadMessages, PageGridMessages } from '#shell/shellMessages.ts';
+import type { PageToolMessages } from '#shell/pageWorkspace/pageToolMessages.ts';
+import type { HistoryButtonsMessages } from '#shell/HistoryButtons.tsx';
 
 /* Edit Pages' one English catalogue: the slices the shared page grid, the
    Download element and the Undo/Redo pair read, plus the few strings that are

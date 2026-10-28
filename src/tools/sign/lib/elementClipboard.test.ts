@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { EditorElement } from '../../../editor/model/editorModel.ts';
+import type { EditorElement } from '#editor/model/editorModel.ts';
 import { clipboardText, offsetClone } from './elementClipboard.ts';
 
 const text = { id: 't', type: 'text', pageIndex: 0, left: 10, top: 20, width: 30, height: 5, text: 'Hello' } as unknown as EditorElement;

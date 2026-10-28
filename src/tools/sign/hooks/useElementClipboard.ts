@@ -1,10 +1,10 @@
 import { useRef, useEffect } from 'preact/hooks';
-import type { EditorElement } from '../../../editor/model/editorModel.ts';
-import { captureAddedElement, type HistoryLogger } from '../../../editor/model/actionHistory.ts';
-import { uniqueId } from '../../../editor/model/ids.ts';
-import { signElementTypeLabel } from '../../../editor/registry/signLabels';
-import type { SignMessages } from '../../../editor/registry/messages';
-import { formatMessage } from '../../../lib/text/formatMessage';
+import type { EditorElement } from '#editor/model/editorModel.ts';
+import { captureAddedElement, type HistoryLogger } from '#editor/model/actionHistory.ts';
+import { uniqueId } from '#editor/model/ids.ts';
+import { signElementTypeLabel } from '#editor/registry/signLabels.ts';
+import type { SignMessages } from '#editor/registry/messages.ts';
+import { formatMessage } from '#lib/text/formatMessage.ts';
 import type { SignToolAction } from '../components/SignToolContext.tsx';
 import { clipboardText, offsetClone } from '../lib/elementClipboard.ts';
 

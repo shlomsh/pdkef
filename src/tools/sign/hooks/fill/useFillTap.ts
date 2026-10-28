@@ -27,11 +27,11 @@
  * then calls `openFreeSlot` - see docs/sign-fill-mode.md, "The focus proxy".
  */
 import { useRef } from 'preact/hooks';
-import { clientPointToPagePercent, type PageGeometry } from '../../../../editor/geometry/coords.ts';
+import { clientPointToPagePercent, type PageGeometry } from '#editor/geometry/coords.ts';
 import { fillTapDecision } from '../../lib/fill/fillTap.ts';
 import { reachTarget } from '../../lib/fill/fillReach.ts';
 import { fillKeyOf, focusFillInput } from '../../lib/fill/fillDom.ts';
-import { classifyTouchTap, readTapSample, type TapGestureSample } from '../../../../lib/gestures/tapOutsideDeselect.ts';
+import { classifyTouchTap, readTapSample, type TapGestureSample } from '#lib/gestures/tapOutsideDeselect.ts';
 import { useFill } from '../../components/fill/FillContext.tsx';
 import { FILL_KEY_ATTR, type FillTapDecision, type FillTool, type PagePoint, type ReachTarget } from '../../lib/fill/fillTypes.ts';
 
