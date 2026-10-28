@@ -195,6 +195,8 @@ export const ALWAYS_GUARD_STEPS = [
   'test:fonts',
   'test:licenses',
   'test:dependency-governance',
+  'check:unit-shards',
+  'test:spec-file-reads',
 ];
 
 // QUAL-31: tsc does not read the scripts inside .astro files; CI's typecheck

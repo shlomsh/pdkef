@@ -239,6 +239,16 @@ describe('selectUnitTests: each blind-spot widen rule fires', () => {
       'scripts/errors-read.mjs',
       'e2e/home/project.json',
       '.git-blame-ignore-revs',
+      'src/tools/sign/lib/fields/corpus/scoring/forms/income-tax-101-2024.pdf',
+      'src/tools/sign/lib/fields/corpus/scoring/ground-truth/practice-form-page1.json',
+      'middleware.ts',
+      'spikes/red-18/corpus/shared-header-image-full.pdf',
+      'src/components/ToolHero.astro',
+      'src/components/compareFigure.css',
+      'src/editor-ui/SignToolbar.module.css',
+      'src/shell/PdfTool.module.css',
+      'src/site-lib/FileDropzone.module.css',
+      'src/lib/telemetry/errorReportSchema.ts',
     ];
     const example = candidates.find((c) => rule.match(c));
     expect(example, `no candidate path in this test matches rule "${id}" - add one`).toBeDefined();

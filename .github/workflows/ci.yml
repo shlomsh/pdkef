@@ -231,11 +231,25 @@ jobs:
     - name: Verify dependency governance wiring
       run: npm run test:dependency-governance
 
+    # QUAL-39: the `units` shards together run each unit file exactly once.
+    - name: Verify the unit shards cover the suite exactly once
+      run: npm run check:unit-shards
+
+    # QUAL-41: every file a spec reads directly is selected, with that spec, by a scope rule.
+    - name: Verify every file a spec reads has a scope rule
+      run: npm run test:spec-file-reads
+
   # ARCH-86: the unit suite beside the guards in `checks`, so neither delays the other's verdict.
+  # QUAL-39: two `vitest --shard` jobs, so the long pole of a narrowed run is half as long. `checks`
+  # proves the two halves cover every unit file exactly once (scripts/check-unit-shards.mjs).
   units:
     runs-on: ubuntu-latest
     needs: scope
     if: always() && needs.scope.outputs.nightly_unchanged != 'true' && (needs.scope.result != 'success' || needs.scope.outputs.docs_only != 'true')
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2]
 
     steps:
     - uses: actions/checkout@v5
@@ -265,8 +279,8 @@ jobs:
 
     # QUAL-24 (2026-10-18) moved unit narrowing to local checks only; CI runs
     # every unit file on every push.
-    - name: Run tests
-      run: npx vitest run
+    - name: Run tests (shard ${{ matrix.shard }}/${{ strategy.job-total }})
+      run: npx vitest run --shard=${{ matrix.shard }}/${{ strategy.job-total }}
 
   # QUAL-42: the one place that resolves the affected scope and builds. Every consumer downloads
   # `dist` and reads the scope from these outputs. A dependency bump that breaks the build fails here
