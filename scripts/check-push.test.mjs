@@ -367,4 +367,8 @@ describe('check:push and CI share the test-only scope (QUAL-35)', () => {
   it('check:push never applies the narrowing itself', () => {
     expect(readFileSync(new URL('./check-push.mjs', import.meta.url), 'utf8')).not.toMatch(/narrowTestOnlyChange/);
   });
+
+  it('resolveScope, which CI and check:push both call, ends with finishScope', () => {
+    expect(readFileSync(new URL('./affected-scope.mjs', import.meta.url), 'utf8')).toMatch(/return finishScope\(deriveScope\(/);
+  });
 });
