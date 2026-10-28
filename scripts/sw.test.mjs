@@ -70,6 +70,7 @@ function createWorker(fetchImpl = vi.fn(), cacheKeys = ['pdkef-previous'], index
         match: vi.fn(async (request) => entries.get(requestUrl(request))?.clone()),
         put: vi.fn(async (request, response) => entries.set(requestUrl(request), response.clone())),
         keys: vi.fn(async () => [...entries.keys()].map((url) => new Request(url))),
+        delete: vi.fn(async (request) => entries.delete(requestUrl(request))),
       });
     }
     return cacheObjects.get(key);
@@ -1491,7 +1492,7 @@ describe.each([['source', workerSource], ['minified source', minifiedWorkerSourc
   const KEY = 'https://pdkef.test/__maint/sw-install/__BUILD_ID__';
   const recordOf = async (worker) => {
     const stored = worker.entriesByCache.get(MAINT)?.get(KEY);
-    return stored ? JSON.parse(await stored.text()) : undefined;
+    return stored ? JSON.parse(await stored.clone().text()) : undefined;
   };
   const manifestOf = (extra = {}) => ({ version: 2, build: '__BUILD_ID__', shell: ['/', '/sign/'], pages: {}, hashes: {}, ...extra });
   const serving = (manifestResponse, perUrl = () => new Response('asset')) => vi.fn(async (request) => {
@@ -1524,6 +1525,36 @@ describe.each([['source', workerSource], ['minified source', minifiedWorkerSourc
     worker.cache.put.mockRejectedValue(new Error('QuotaExceededError'));
     await expect(dispatchInstall(worker)).rejects.toThrow('QuotaExceededError');
     expect(await recordOf(worker)).toMatchObject({ reason: 'storage', missed: '0' });
+  });
+
+  it('still rejects with the original error, after the bound, when the record write never settles', async () => {
+    const worker = build(serving(new Response(JSON.stringify(manifestOf({ build: 'another' })))));
+    const open = worker.caches.open.getMockImplementation();
+    worker.caches.open.mockImplementation(async (key) => {
+      if (key !== MAINT) return open(key);
+      const maint = await open(key);
+      maint.put.mockImplementation(() => new Promise(() => {}));
+      return maint;
+    });
+    vi.useFakeTimers();
+    try {
+      const settled = dispatchInstall(worker).then(() => 'resolved', (error) => error.message);
+      await vi.advanceTimersByTimeAsync(2500);
+      expect(await settled).toBe('Precache manifest belongs to another build.');
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('records storage when the last step, marking the precache complete, cannot write', async () => {
+    const worker = build(serving(new Response(JSON.stringify(manifestOf()))));
+    const put = worker.cache.put.getMockImplementation();
+    worker.cache.put.mockImplementation(async (request, response) => {
+      if (requestUrl(request).endsWith('/__pdkef/precache-complete/')) throw new Error('QuotaExceededError');
+      return put(request, response);
+    });
+    await expect(dispatchInstall(worker)).rejects.toThrow('QuotaExceededError');
+    expect(await recordOf(worker)).toEqual({ v: 1, build: '__BUILD_ID__', reason: 'storage', missed: '0' });
   });
 
   it.each([
@@ -1606,6 +1637,31 @@ describe.each([['source', workerSource], ['minified source', minifiedWorkerSourc
       await dispatchMessage(worker, { type: 'pdkef:skip-waiting' });
       await flush();
       expect(await recordOf(worker)).toEqual({ v: 1, build: '__BUILD_ID__', reason: 'files_missed', missed: '2-5' });
+    });
+
+    it('leaves no record once a later retry completes', async () => {
+      const failing = ['/_astro/app.js'];
+      const { worker } = buildIncompleteWorker(source, [], failing);
+      await dispatchMessage(worker, { type: 'pdkef:skip-waiting' });
+      await flush();
+      expect(await recordOf(worker)).toMatchObject({ reason: 'files_missed', missed: '1' });
+      failing.length = 0;
+      await dispatchMessage(worker, { type: 'pdkef:skip-waiting' });
+      await flush();
+      expect(worker.entries.has(PRECACHE_MARKER)).toBe(true);
+      expect(await recordOf(worker)).toBeUndefined();
+    });
+
+    it('has the files_missed record written before the retry settles', async () => {
+      const { worker } = buildIncompleteWorker(source, [], ['/_astro/app.js']);
+      const put = worker.caches.open.getMockImplementation();
+      worker.caches.open.mockImplementation(async (key) => {
+        if (key !== MAINT) return put(key);
+        await new Promise((resolveSlow) => setTimeout(resolveSlow, 20));
+        return put(key);
+      });
+      await dispatchMessage(worker, { type: 'pdkef:skip-waiting' });
+      expect(await recordOf(worker)).toMatchObject({ reason: 'files_missed' });
     });
 
     it('writes nothing when the retry completes', async () => {
