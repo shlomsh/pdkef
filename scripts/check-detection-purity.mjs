@@ -98,7 +98,7 @@ export const DETECTION_MODULES = [
   'src/tools/sign/lib/fields/pageInk.js',
   'src/tools/sign/lib/fields/formGrid.js',
   'src/tools/sign/lib/fields/formCells.js',
-  'src/tools/sign/lib/fields/formCellGrid.js',
+  'src/tools/sign/lib/fields/formCellGrid.ts',
   'src/tools/sign/lib/fields/confidenceWeights.ts',
   'src/tools/sign/lib/fields/formLeaders.js',
   'src/tools/sign/lib/fields/combTitleLine.js',

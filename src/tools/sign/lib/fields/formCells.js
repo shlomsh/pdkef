@@ -2,15 +2,15 @@
 import { createPageGeometry, pagePercentToPdfPoint, toPagePercentBox } from '#editor/geometry/coords.ts';
 import { collectPageInk, pageCropBox } from './pageInk.js';
 import { CELL_CONFIDENCE } from './confidenceWeights.ts';
-import { buildClosedCells, POS_TOLERANCE } from './formCellGrid.js';
+import { buildClosedCells, POS_TOLERANCE } from './formCellGrid.ts';
 
 /**
  * Shapes shared by the cell walk below, all in PDF points (origin bottom-left, y up).
- * @typedef {import('./formCellGrid.js').VerticalEdge} VerticalEdge
- * @typedef {import('./formCellGrid.js').HorizontalRule} HorizontalRule
- * @typedef {import('./formCellGrid.js').Bounds} Bounds
- * @typedef {import('./formCellGrid.js').CellBox} CellBox
- * @typedef {import('./formCellGrid.js').ClosedCell} ClosedCell
+ * @typedef {import('./formCellGrid.ts').VerticalEdge} VerticalEdge
+ * @typedef {import('./formCellGrid.ts').HorizontalRule} HorizontalRule
+ * @typedef {import('./formCellGrid.ts').Bounds} Bounds
+ * @typedef {import('./formCellGrid.ts').CellBox} CellBox
+ * @typedef {import('./formCellGrid.ts').ClosedCell} ClosedCell
  * @typedef {{str: string, x0: number, x1: number, y0: number, y1: number}} TextPoints
  * @typedef {{bounds: PercentBox, enclosureBounds: PercentBox | undefined,
  *   writableBounds: PercentBox | undefined, cell: ClosedCell,
