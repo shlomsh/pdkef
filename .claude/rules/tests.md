@@ -227,14 +227,14 @@ all - `fileCannotReachDist()`'s allowlist (docs, backlog, `.github/`, `*.test.*`
 specs, and `scripts/` other than the handful `npm run build` itself invokes) gates the build and its
 dist guards; anything not on that allowlist defaults to "reaches dist," same fail-open direction as
 every rule above. A diff that only needs Playwright still triggers a build even when it doesn't reach
-`dist/` on its own - Playwright cannot run against a stale one. A docs-only diff runs only `check:backlog` and
+`dist/` on its own - Playwright cannot run against a stale one. QUAL-36: the scripts a dist guard runs, their relative imports, and any `scripts/*.json` (guard data) count as reaching dist. A docs-only diff runs only `check:backlog` and
 `check:guidance`, as CI does; an empty diff, or no resolvable base, runs the guards and `tsc` only:
 no unit tests and no build, since CI runs both in full.
 
 ARCH-31 (measured 2026-09-26: a `merge.test.js`-only push ran 67s of Playwright, and 50 of the last
 79 pushes ran every spec) narrows three things. A diff of only `*.test.*`/`*.spec.js` files (plus
 docs) runs no Playwright for a unit test and only the changed specs otherwise, with the font and
-export guards only when one of their own specs changed (`narrowTestOnlyChange()`); a spec helper or
+export guards only when one of their own specs changed (`narrowTestOnlyChange()`, in `scripts/test-only-scope.mjs`; since QUAL-35 CI applies it too, through `resolveScope`'s `finishScope`); a spec helper or
 fixture keeps the Nx verdict. The local typecheck is always `tsc`; CI's `typecheck` job runs `astro check`. Port 4173 is machine-wide
 and Playwright reuses whatever holds it locally, so check:push refuses to start when another
 worktree's process (or one whose directory it cannot read) holds it.

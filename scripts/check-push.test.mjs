@@ -123,6 +123,26 @@ describe('fileCannotReachDist / reachesDist', () => {
     expect(reachesDist(['scripts/unrelated.mjs'], scripts)).toBe(false);
   });
 
+  // QUAL-36: a JSON data file a dist guard reads is not a script, so it fails open.
+  it.each(['scripts/ratchet-limits.json', 'scripts/css-module-class-allowlist.json', 'scripts/color-literal-allowlist.json'])(
+    '%s is guard data, so it reaches dist',
+    (file) => {
+      expect(reachesDist([file])).toBe(true);
+    },
+  );
+
+  it.each(DIST_GUARD_STEPS)('dist guard step %s contributes a script to distGuardScripts (a bare `npm run x` would not be followed)', (step) => {
+    const pkg = readFileSync(new URL('../package.json', import.meta.url), 'utf8');
+    const read = (rel) => {
+      try {
+        return readFileSync(new URL(`../${rel}`, import.meta.url), 'utf8');
+      } catch {
+        return null;
+      }
+    };
+    expect(distGuardScripts(pkg, read, [step]).size).toBeGreaterThan(0);
+  });
+
   it('a script no build step and no dist guard runs still cannot reach dist', () => {
     expect(reachesDist(['scripts/ci-narrowing-report.mjs'])).toBe(false);
   });
