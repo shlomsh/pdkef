@@ -3,9 +3,11 @@ import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 const DRAFT_STORE_PATH = 'src/lib/drafts/draftStore.ts';
+const DRAFT_IDB_PATH = 'src/lib/drafts/draftIdb.ts';
 const SERVICE_WORKER_PATH = 'public/sw.js';
 
 const draftStoreSource = fs.readFileSync(path.join(process.cwd(), DRAFT_STORE_PATH), 'utf8');
+const draftIdbSource = fs.readFileSync(path.join(process.cwd(), DRAFT_IDB_PATH), 'utf8');
 const workerSource = fs.readFileSync(path.join(process.cwd(), SERVICE_WORKER_PATH), 'utf8');
 
 /**
@@ -45,16 +47,16 @@ function extractConst(source, filePath, pattern, label) {
 
 function checkConstantsMatch({ label, draftStoreName, draftStorePattern, workerName, workerPattern }) {
   it(`keeps ${label} in sync between draftStore.js and sw.js`, () => {
-    const draftStoreValue = extractConst(draftStoreSource, DRAFT_STORE_PATH, draftStorePattern, draftStoreName);
+    const draftStoreValue = extractConst(draftIdbSource, DRAFT_IDB_PATH, draftStorePattern, draftStoreName);
     const workerValue = extractConst(workerSource, SERVICE_WORKER_PATH, workerPattern, workerName);
 
     expect(
       workerValue,
-      `${DRAFT_STORE_PATH}'s ${draftStoreName} is '${draftStoreValue}' but ` +
+      `${DRAFT_IDB_PATH}'s ${draftStoreName} is '${draftStoreValue}' but ` +
         `${SERVICE_WORKER_PATH}'s ${workerName} is '${workerValue}'. sw.js is a classic ` +
         `script and cannot import draftStore.js (see its Web Share Target comment), so ` +
         `hand-update ${workerName} in ${SERVICE_WORKER_PATH} to '${draftStoreValue}' to ` +
-        `match ${draftStoreName} in ${DRAFT_STORE_PATH}. A mismatch here means a file ` +
+        `match ${draftStoreName} in ${DRAFT_IDB_PATH}. A mismatch here means a file ` +
         'shared from a phone lands in an IndexedDB store the Sign tool restore path ' +
         'can no longer find, with no thrown error.',
     ).toBe(draftStoreValue);
