@@ -167,6 +167,7 @@ export const ALWAYS_GUARD_STEPS = [
   'check:never-say',
   'test:editor-dependency-directions',
   'test:module-boundaries',
+  'test:import-aliases',
   'test:ratchet-raises',
   'test:size-ratchet',
   'test:hook-ratchet',

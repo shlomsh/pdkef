@@ -133,6 +133,10 @@ jobs:
     - name: Verify module boundaries
       run: npm run test:module-boundaries
 
+    # ARCH-44: cross-layer imports use the #lib/#editor/#editor-ui/#shell aliases.
+    - name: Verify import aliases
+      run: npm run test:import-aliases
+
     # ARCH-76: scripts/ratchet-limits.json holds every ratchet limit; a value that
     # rose (or an entry added to an existing section) against the base fails here.
     # BASE is empty when the scope job could not resolve one; the script then
