@@ -27,7 +27,7 @@ depends_on: []
 ## Acceptance
 
 - [x] A unit test that a cached size is used for a hashed name and never for an unhashed one.
-- [ ] Measured cold and warm times recorded in the ticket.
+- [x] Measured cold and warm times recorded in the ticket.
 
 ## Measured (2026-10-28)
 
@@ -44,3 +44,16 @@ about 0.05 s in everything else (reading files, sha hashing, the guards). That t
 `index.html` pages (7.5 MB), which are unhashed and so always compressed at quality 11 by design. Reaching
 the 5 s bar needs a decision about them (for example keying their size by a content hash of the bytes,
 which the manifest's page hashes already provide), not more tuning of the hashed-file cache.
+
+### Second pass: pages reused by the manifest's content hash
+
+Pages and other non-`/_astro/` URLs are now cached under `url#<manifest.hashes[url]>` (MEM-22 hash of the final
+bytes); a URL with no manifest hash is still always compressed and never cached. Same machine and build:
+
+| run | time |
+| --- | --- |
+| cold (cache file deleted) | 13.3 s |
+| warm | 0.08 s |
+| warm again | 0.07 s |
+
+`--table` output is identical cold vs warm (diffed). The under-5 s bar holds.
