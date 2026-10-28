@@ -50,13 +50,11 @@
     padding: 12px;
   }
 
-  /* Redact (Shlomi, 2026-10-28): the toolbar and every page already carry
-     their own border, so on a phone the card's frame only cost the document
-     48px of width. The loaded card draws nothing and the page spans the page
-     gutter. Redact only: Sign's toolbar row splits are tuned to the narrower
-     card (sign-toolbar-labels-fit, toolbar-touch-targets went red with 48px
-     more). Guard: e2e/tool-layout.spec.js. */
-  .tool-card[data-tool-loaded]:has([data-redact-workspace-ready]) {
+  /* Sign and Redact (Shlomi, 2026-10-28): the toolbar and every page already
+     carry their own border, so on a phone the card's frame only cost the
+     document 48px of width. The loaded editor card draws nothing and the page
+     spans the page gutter. Guard: e2e/tool-layout.spec.js. */
+  .tool-card[data-tool-loaded]:has([data-workspace]) {
     background: transparent;
     border: 0;
     box-shadow: none;

@@ -35,7 +35,8 @@ function measureToolbar() {
     const cs = getComputedStyle(child);
     const box = child.getBoundingClientRect();
     if (cs.display === 'none' || box.width === 0 || box.height === 0) continue;
-    const button = child.matches('button') ? child : child.querySelector('button');
+    // Feedback is a bare <a class=button>; reading only <button> reported it as wordless.
+    const button = child.matches('button, a') ? child : child.querySelector('button, a');
     const labelEl = button && (button.querySelector('[class*="label"]'));
     let label = null;
     if (labelEl) {
@@ -95,7 +96,10 @@ for (const { width, path, share, download } of CASES) {
       expect.soft(overhang, `labels that overflow their button at ${width}px`).toEqual([]);
       expect.soft(missing, `Share and Download both rendered at ${width}px`).toEqual([]);
       expect.soft(balanced, `rows balanced (>=2 each, differ by <=1), got ${split.join('+')}`).toBe(true);
-      if (width === 390) expect.soft(split.length, `two rows at 390px, got ${split.join('+')}`).toBe(2);
+      // Every current iPhone (433px and narrower) stands Feedback down, so Sign's
+      // twelve with Share split 6+6 rather than 7+6 (SignToolbar.module.css, the
+      // 387px rule).
+      expect.soft(split.join('+'), `6+6 on a phone at ${width}px`).toBe('6+6');
     });
   });
 }
