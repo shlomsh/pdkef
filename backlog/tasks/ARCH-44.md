@@ -1,7 +1,7 @@
 ---
 id: "ARCH-44"
 title: "Imports across layers use one path alias per layer"
-status: "open"
+status: "in_progress"
 priority: "P3"
 epic: "unify-and-narrow"
 horizon: "later"
