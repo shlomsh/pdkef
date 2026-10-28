@@ -33,6 +33,9 @@ describe('ciChangeTouchesJob (QUAL-34)', () => {
   it('a hunk inside font-guards touches it', () => {
     expect(ciChangeTouchesJob(ci, [{ start: 12, count: 1 }], 'font-guards')).toBe(true);
   });
+  it('a job missing from the file (renamed or deleted) counts as touched, so the font guards run', () => {
+    expect(ciChangeTouchesJob(ci, [{ start: 8, count: 1 }], 'font-guards-renamed')).toBe(true);
+  });
   it('a hunk inside units does not', () => {
     expect(ciChangeTouchesJob(ci, [{ start: 8, count: 1 }], 'font-guards')).toBe(false);
   });
