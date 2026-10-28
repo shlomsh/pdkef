@@ -1,10 +1,9 @@
 ---
 id: "ARCH-127"
 title: "The advisory exceptions list holds no entry that matches nothing"
-status: "in_progress"
+status: "done"
 priority: "P3"
 epic: "unify-and-narrow"
-horizon: "later"
 depends_on: []
 ---
 
@@ -23,5 +22,11 @@ Area: Supporting. Criterion: Dependency hygiene. Structure only: no behaviour ch
 
 ## Acceptance
 
-- [ ] The braces entry is gone.
-- [ ] An exception that matches no finding fails the advisory check.
+- [x] The braces entry is gone.
+- [x] An exception that matches no finding fails the advisory check.
+
+## Done (2026-10-28)
+
+- The braces entry is deleted; with zod's gone too (ARCH-126) the exceptions list is empty.
+- `findUnmatchedExceptions` in scripts/check-dependency-advisories.mjs (test-first, 6 cases) matches by package and
+  GHSA id at any severity; the weekly advisory scan fails naming each exception that matches no npm audit finding.
