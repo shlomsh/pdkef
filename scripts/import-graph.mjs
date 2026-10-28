@@ -10,6 +10,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { aliasTarget } from './import-aliases.mjs';
 
 export const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -182,10 +183,16 @@ export function expandGlob(fromFile, pattern, root = REPO_ROOT) {
 // extension (Node ESM resolution rules); try the exact path first, then swap
 // any existing extension for each candidate before falling back to appending
 // one, then to an index file.
+// True for a specifier the scans follow: relative, rooted, or one of the ARCH-44 layer aliases.
+export function isLocalSpecifier(specifier) {
+  return specifier.startsWith('.') || specifier.startsWith('/') || aliasTarget(specifier) !== null;
+}
+
 export function resolveRelativeImport(fromFile, specifierRaw, root = REPO_ROOT) {
   const specifier = specifierRaw.split('?')[0]; // strip Vite's `?raw` etc.
-  if (!specifier.startsWith('.') && !specifier.startsWith('/')) return null; // bare package
-  const base = specifier.startsWith('/') ? path.join(root, specifier) : path.resolve(path.dirname(fromFile), specifier);
+  const aliased = aliasTarget(specifier);
+  if (!aliased && !specifier.startsWith('.') && !specifier.startsWith('/')) return null; // bare package
+  const base = aliased ? path.join(root, aliased) : specifier.startsWith('/') ? path.join(root, specifier) : path.resolve(path.dirname(fromFile), specifier);
   const ext = path.extname(base);
   const stem = ext ? base.slice(0, -ext.length) : base;
   const candidates = [
@@ -212,7 +219,7 @@ export function edgesOfFiles(files, root = REPO_ROOT) {
     const source = fs.readFileSync(file, 'utf8');
     const targets = [];
     for (const specifier of importSpecifiers(source, from)) {
-      if (!specifier.startsWith('.') && !specifier.startsWith('/')) continue; // bare package, out of scope
+      if (!isLocalSpecifier(specifier)) continue; // bare package, out of scope
       const resolved = resolveRelativeImport(file, specifier, root);
       if (resolved) targets.push(resolved); // unresolved relative import is not this scan's concern
     }
