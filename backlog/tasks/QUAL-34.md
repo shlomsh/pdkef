@@ -1,7 +1,7 @@
 ---
 id: "QUAL-34"
 title: "Each file outside an Nx project gets its own scope, not \"everything\""
-status: "open"
+status: "in_progress"
 priority: "P2"
 epic: "unify-and-narrow"
 horizon: "next"
@@ -36,6 +36,22 @@ depends_on: []
 - `publicOwnerOf` (`scripts/affected-scope.mjs:220`) grows into a small table of per-file verdicts
   (no e2e; chromium without fonts or webkit; specific specs), and only the files that really can reach
   everything still widen. Unknown files keep failing open.
+
+## Design (2026-10-28)
+
+A table of verdicts for files no Nx project owns, checked after the existing unowned rule:
+
+| Files | Verdict | Evidence |
+| --- | --- | --- |
+| `middleware.ts`, `vercel.json`, `api/**` | no e2e | `astro preview` runs no middleware, reads no `vercel.json` and serves no `api/`; specs only watch `/api/report` requests; their checks are unit tests and `test:csp`/`test:redirects` |
+| `spikes/**`, `prototypes/**`, `.gitignore`, `security/**`, `.github/dependabot.yml`, `.github/ISSUE_TEMPLATE/**`, `public/llms.txt`, `public/agents.md` | no e2e | no spec or build step reads them |
+| `public/manifest.webmanifest` | `e2e/offline/` | only `e2e/offline/twoBuildServer.js` reads it |
+| `public/sw.js`, `public/images/**` | every product spec, no font guards | every page registers the worker; tool specs open `public/images/**`; no font guard reads either |
+| `.github/workflows/ci.yml` | every product spec; font guards only when the diff touches the `font-guards` job or anything outside a job | |
+
+- Table files are left out of the `nx show projects --affected` query: Nx marks most projects affected by
+  `middleware.ts` and `vercel.json`, which would otherwise widen through the core rule.
+- A file in neither Nx nor the table still widens with fonts on, as today.
 
 ## Acceptance
 
