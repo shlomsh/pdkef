@@ -81,18 +81,24 @@ export function ciFontJobChangedBetween(base, head) {
 
 // QUAL-43: does a package.json edit reach a product e2e? False only when both sides parse, every top-level key
 // but `scripts` is deep-equal, and every added, removed or changed script is off the e2e path: build, preview,
-// dev, their pre/post hooks, every test:e2e* script, and each script those call through `npm run`, read on
-// both sides. Anything that throws answers true (fail-open: everything runs).
+// dev, the install lifecycle `npm ci` runs before every e2e job (install, prepare), their pre/post hooks, every
+// test:e2e* script, and every script whose name appears in the text of one already on the path (however it is
+// run: npm run, run-script, npm test, node --run, ...), read on both sides. Anything that throws answers true
+// (fail-open: everything runs).
 const stable = (v) => (v && typeof v === 'object' ? (Array.isArray(v) ? `[${v.map(stable)}]` : `{${Object.keys(v).sort().map((k) => `${JSON.stringify(k)}:${stable(v[k])}`)}}`) : JSON.stringify(v));
-const NPM_RUN = /\bnpm run (?:(?:-s|--silent) )?([\w:.-]+)/g;
 const withHooks = (name) => [name, `pre${name}`, `post${name}`];
+const SEEDS = ['build', 'preview', 'dev', 'install', 'prepare'];
+const escape = (name) => name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+// `npm test` and `npm start` name their script without saying `run`; `npm t` is the short form of the first.
+const mentions = (text, name) => new RegExp(`(?<![\\w:.-])${escape(name)}(?![\\w:.-])`).test(text) || (name === 'test' && /\bnpm t\b/.test(text));
 
 // The script names on the e2e path, given each name's script texts (one per side).
 function e2ePathOf(texts) {
-  const path = new Set(['build', 'preview', 'dev', ...[...texts.keys()].filter((n) => n.startsWith('test:e2e'))].flatMap(withHooks));
+  const path = new Set([...SEEDS, ...[...texts.keys()].filter((n) => n.startsWith('test:e2e'))].flatMap(withHooks));
   const queue = [...path];
   while (queue.length > 0) {
-    const calls = (texts.get(queue.pop()) ?? []).flatMap((text) => [...text.matchAll(NPM_RUN)].map((m) => m[1]));
+    const own = texts.get(queue.pop()) ?? [];
+    const calls = [...texts.keys()].filter((name) => !path.has(name) && own.some((text) => mentions(text, name)));
     for (const name of calls.flatMap(withHooks)) if (!path.has(name)) { path.add(name); queue.push(name); }
   }
   return path;
