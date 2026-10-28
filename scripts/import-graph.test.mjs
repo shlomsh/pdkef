@@ -2,7 +2,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { importGlobPatterns, buildEdges, buildReachGraph, buildToolRouteMap, edgesOfFiles, importSpecifiers, reverseEdgeMap } from './import-graph.mjs';
+import { importGlobPatterns, buildEdges, buildReachGraph, buildToolRouteMap, edgesOfFiles, importSpecifiers, isLocalSpecifier, resolveRelativeImport, reverseEdgeMap } from './import-graph.mjs';
 
 /* scripts/import-graph.mjs is the scan check-module-boundaries.mjs (its own tests are the oracle for
    the main edge scan) and affected-scope.mjs (ARCH-32) share. This pins what only the second one
@@ -147,5 +147,36 @@ describe('comment blanking is string-aware', () => {
   });
   it('returns a plain import() exactly once', () => {
     expect(importSpecifiers("const m = await import('./a.js');", 'src/x.js')).toEqual(['./a.js']);
+  });
+});
+
+describe('import aliases (ARCH-44)', () => {
+  const from = () => path.join(root, 'src/tools/x/PdfXTool.tsx');
+  it('resolves an alias to the same file as the relative spelling, with or without a query', () => {
+    const rel = resolveRelativeImport(from(), '../../lib/b.ts', root);
+    expect(rel).toBe(path.join(root, 'src/lib/b.ts'));
+    expect(resolveRelativeImport(from(), '#lib/b.ts', root)).toBe(rel);
+    expect(resolveRelativeImport(from(), '#lib/b.ts?url', root)).toBe(rel);
+  });
+  it('isLocalSpecifier accepts relative, rooted and alias, not bare or unknown #', () => {
+    for (const s of ['./a', '../a', '/src/a', '#lib/a.ts', '#shell/a.tsx']) expect(isLocalSpecifier(s)).toBe(true);
+    for (const s of ['preact', 'node:fs', '#x/a.ts']) expect(isLocalSpecifier(s)).toBe(false);
+  });
+  it('edgesOfFiles emits the same edge for an aliased import, and skips an unknown #x/', () => {
+    const r = fs.mkdtempSync(path.join(os.tmpdir(), 'import-graph-alias-'));
+    try {
+      fs.mkdirSync(path.join(r, 'src/lib'), { recursive: true });
+      fs.mkdirSync(path.join(r, 'src/tools/x'), { recursive: true });
+      fs.writeFileSync(path.join(r, 'src/lib/b.ts'), 'export const b = 1;\n');
+      fs.writeFileSync(path.join(r, 'src/tools/x/rel.ts'), "import { b } from '../../lib/b.ts';\n");
+      fs.writeFileSync(path.join(r, 'src/tools/x/ali.ts'), "import { b } from '#lib/b.ts';\nimport { z } from '#x/z.ts';\n");
+      const edges = edgesOfFiles([path.join(r, 'src/tools/x/rel.ts'), path.join(r, 'src/tools/x/ali.ts')], r);
+      expect(edges).toEqual([
+        { from: 'src/tools/x/rel.ts', to: 'src/lib/b.ts' },
+        { from: 'src/tools/x/ali.ts', to: 'src/lib/b.ts' },
+      ]);
+    } finally {
+      fs.rmSync(r, { recursive: true, force: true });
+    }
   });
 });
