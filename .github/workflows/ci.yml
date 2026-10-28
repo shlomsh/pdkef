@@ -807,7 +807,8 @@ jobs:
   # docs/nx-affected-ci.md's "ARCH-23" section. Every step after that reads
   # costs one runner ~20s in parallel with `checks`/`e2e` and no wall time
   # when fonts is not affected; on the nightly schedule, a nightly dispatch
-  # and a plain manual dispatch (no base, or `scope` skipped), affected-scope.mjs's own fail-open rule makes
+  # and a plain manual dispatch (no base, or `scope` skipped),
+  # affected-scope.mjs's own fail-open rule makes
   # fonts=true, so those still run. The two guards that exercise the real
   # export pipeline (the export render guard, language acceptance) are the
   # `export-guards` job below, not part of this one any more.
