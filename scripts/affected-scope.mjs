@@ -114,7 +114,7 @@ import { resolveUnitScope, runUnitByImpact } from './unit-scope.mjs';
 import { buildReachGraph } from './import-graph.mjs';
 import { scriptClosure } from './script-closure.mjs';
 import { narrowTestOnlyChange } from './test-only-scope.mjs';
-import { unownedRowOf, filesForNx, CI_FILE, ciFontJobChangedBetween, packageJsonReachesE2eBetween } from './unowned-verdicts.mjs';
+import { unownedRowOf, filesForNx, CI_FILE, PACKAGE_FILE, ciFontJobChangedBetween, packageJsonReachesE2eBetween } from './unowned-verdicts.mjs';
 
 const ROOT = resolvePath(dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -417,8 +417,8 @@ export function deriveScope({ files, affected, roots, toolE2eExists = () => true
   const siteE2eProjects = projectList?.length ? projectList : null;
   // QUAL-43: a package.json diff that only touches scripts off the build and e2e path acts as a table file
   // with verdict 'none' (it adds no spec and no font guard); anything else leaves it unowned and wide.
-  const packageOffPath = files.includes('package.json') && !packageJsonReachesE2e();
-  const unowned = files.filter((f) => !isDocsOnly(f) && !ownerOf(f, roots) && !publicOwnerOf(f) && !unownedRowOf(f) && !(packageOffPath && f === 'package.json'));
+  const packageOffPath = files.includes(PACKAGE_FILE) && !packageJsonReachesE2e();
+  const unowned = files.filter((f) => !isDocsOnly(f) && !ownerOf(f, roots) && !publicOwnerOf(f) && !unownedRowOf(f) && !(packageOffPath && f === PACKAGE_FILE));
   if (unowned.length > 0) {
     return wide(affected, `unowned files: ${unowned.join(', ')}`);
   }
@@ -588,14 +588,18 @@ export function resolveScope({ explicitBase, explicitHead }) {
     return wide([], 'empty changed-file list');
   }
 
+  // QUAL-43: read once; both the Nx query and deriveScope use the answer.
+  const packageReaches = files.includes(PACKAGE_FILE) ? packageJsonReachesE2eBetween(base, explicitHead) : true;
+
   let roots;
   let info;
   let affected;
   try {
     info = projectInfo();
     roots = new Map([...info].map(([name, node]) => [name, node.root]));
-    // QUAL-34: table files stay out of the query (Nx marks most projects affected by middleware.ts).
-    const nxFiles = filesForNx(files);
+    // QUAL-34: table files stay out of the query (Nx marks most projects affected by middleware.ts), and
+    // QUAL-43: so does a package.json edit off the e2e path.
+    const nxFiles = filesForNx(files, { packageJsonOffPath: !packageReaches });
     affected = nxFiles.length === 0 ? [] : JSON.parse(nx(['show', 'projects', '--affected', `--files=${nxFiles.join(',')}`, '--json']));
   } catch (err) {
     return wide([], `nx error: ${err.message}`);
@@ -614,7 +618,7 @@ export function resolveScope({ explicitBase, explicitHead }) {
     siteE2ePaths: siteE2eProjects.flatMap((p) => p.paths),
     siteE2eProjects,
     ciFontJobChanged: files.includes(CI_FILE) ? () => ciFontJobChangedBetween(base, explicitHead) : undefined,
-    packageJsonReachesE2e: files.includes('package.json') ? () => packageJsonReachesE2eBetween(base, explicitHead) : undefined,
+    packageJsonReachesE2e: () => packageReaches,
     // Scanned lazily: only a core-project verdict reads it, and then once.
     loadReachGraph: () => {
       const graph = buildReachGraph();

@@ -17,6 +17,11 @@ describe('UNOWNED_VERDICTS (QUAL-34)', () => {
   it('filesForNx drops table files and keeps the rest', () => {
     expect(filesForNx(['middleware.ts', 'vercel.json', 'src/lib/a.ts', 'package.json', 'public/sw.js'])).toEqual(['src/lib/a.ts', 'package.json']);
   });
+
+  it('filesForNx also drops a package.json whose edit stays off the e2e path (Nx marks every project affected by it)', () => {
+    expect(filesForNx(['src/lib/a.ts', 'package.json'], { packageJsonOffPath: true })).toEqual(['src/lib/a.ts']);
+    expect(filesForNx(['src/lib/a.ts', 'package.json'], { packageJsonOffPath: false })).toEqual(['src/lib/a.ts', 'package.json']);
+  });
 });
 
 describe('ciChangeTouchesJob (QUAL-34)', () => {
