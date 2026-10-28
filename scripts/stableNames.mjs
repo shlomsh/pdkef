@@ -12,5 +12,6 @@ export const HOT_SHARED_CHUNKS = ['maintenanceTelemetry', 'openPdfDoc'];
 
 // Output-name callbacks for the client build (astro.config.mjs). `entryFileNames` runs for every entry
 // chunk; `chunkFileNames` for the rest, where only the hot shared chunks leave the hashed pattern.
-export const entryFileName = (chunk) => `${SITE_DIR}/${chunk.name.replace(/[^\w.@-]/g, '_')}.js`;
+// A stable name keeps no inner dot, so test:stable-names can tell any `name.<hash>.js` apart.
+export const entryFileName = (chunk) => `${SITE_DIR}/${chunk.name.replace(/[^\w@-]/g, '_')}.js`;
 export const chunkFileName = (chunk) => (HOT_SHARED_CHUNKS.includes(chunk.name) ? `${SHARED_DIR}/${chunk.name}.js` : '_astro/[name].[hash].js');

@@ -17,9 +17,9 @@ const HASHED_ASTRO_URL = [
   ['renderer-url', /\brenderer-url="(\/_astro\/[^"]*)"/g],
 ];
 
-// `name.AbCd1234.js`: a dot, eight or more hash characters, then .js. Dotted stable names such as
-// `pdf.worker.js` stay below eight characters in the segment before the extension.
-const HASHED_NAME = /\.[A-Za-z0-9_-]{8,}\.m?js$/;
+// `name.AbCd1234.js`: stable names carry no inner dot (entryFileName turns dots into `_`), so any
+// dot before the extension marks a hash, whatever its length.
+const HASHED_NAME = /\.[^.]+\.m?js$/;
 
 /**
  * Pure core. `pages` maps a dist-relative html path to its text; `site` and `shared` list the file
