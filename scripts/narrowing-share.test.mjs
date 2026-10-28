@@ -32,6 +32,16 @@ describe('tallyVerdicts', () => {
     expect(tally.counts).toEqual({ docs_only: 1, narrowed: 1, everything: 3, nothing: 0, unknown: 1 });
     expect(tally.reasons).toEqual({ 'ci.yml changed': 1, 'core project': 2 });
   });
+
+  it('groups everything reasons by their cause, the text before the first colon', () => {
+    const tally = tallyVerdicts([
+      { kind: 'everything', reason: 'unowned files: package.json' },
+      { kind: 'everything', reason: 'unowned files: playwright.config.js' },
+      { kind: 'everything', reason: 'build pipeline: scripts/pageHash.mjs' },
+      { kind: 'everything' },
+    ]);
+    expect(tally.reasons).toEqual({ 'unowned files': 2, 'build pipeline': 1, 'no reason given': 1 });
+  });
 });
 
 describe('renderShare', () => {
