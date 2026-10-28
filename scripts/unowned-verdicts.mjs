@@ -21,6 +21,11 @@ export const UNOWNED_VERDICTS = [
     'no spec or build step reads it',
   ),
   rowOf((f) => f === 'public/manifest.webmanifest', ['e2e/offline/'], 'precached and served like every public file; only the e2e/offline/ update specs exercise that'),
+  rowOf(
+    (f) => /^src\/tools\/sign\/lib\/fields\/corpus\/scoring\/forms\/[^/]+\.pdf$/.test(f),
+    ['src/tools/sign/e2e/'],
+    'owned by form-corpus, which no project depends on, yet a Sign spec opens these PDFs by path (QUAL-41)',
+  ),
   rowOf((f) => f === 'public/sw.js' || f.startsWith('public/images/'), 'all', 'every page registers the worker and tool specs open public/images/**; no font guard reads either'),
   rowOf((f) => f === '.github/workflows/ci.yml', 'all', 'a workflow edit can break any job; font guards only when the font-guards job or a shared part changed'),
   rowOf((f) => /^\.github\/workflows\/[^/]+\.ya?ml$/.test(f), 'none', "another workflow runs its own jobs; ci.yml's specs never execute it (ci.yml itself is matched by the row above)"),

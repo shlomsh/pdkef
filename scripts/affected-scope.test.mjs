@@ -1147,6 +1147,13 @@ describe('unowned-file verdicts (QUAL-34)', () => {
     expect(scope.fonts).toBe(false);
   });
 
+  it('a scoring-corpus form PDF runs the Sign specs that read it (QUAL-41)', () => {
+    const scope = scopeOf(['src/tools/sign/lib/fields/corpus/scoring/forms/income-tax-101-2024.pdf']);
+    expect(scope.everything).toBe(false);
+    expect(scope.e2e_paths).toContain('src/tools/sign/e2e/');
+    expect(scope.fonts).toBe(false);
+  });
+
   it.each(ALL)('%s: every product spec, fonts off', (file) => {
     const scope = scopeOf([file], { ciFontJobChanged: () => false });
     expect(scope.everything).toBe(true);
