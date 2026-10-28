@@ -17,9 +17,9 @@ export function reportStoreError(area: Parameters<typeof reportError>[0], error:
 // itself such a change (same DB, same store, same keyPath, just richer
 // records under the keys already in use) and the legacy per-tool records
 // are folded into it by `migrateLegacyDraft` below, not by a version bump.
-export const DB_NAME = 'pdf-toolkit-workspace';
-export const STORE_NAME = 'workspace';
-export const DB_VERSION = 1;
+const DB_NAME = 'pdf-toolkit-workspace';
+const STORE_NAME = 'workspace';
+const DB_VERSION = 1;
 
 export function hasIndexedDB() {
   try {
