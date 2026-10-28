@@ -96,6 +96,7 @@ const BUILD_INVOKED_SCRIPTS = new Set([
   'scripts/cspHashOrder.mjs',
   'scripts/minifyServiceWorker.mjs',
   'scripts/precacheClosure.mjs',
+  'scripts/stableNames.mjs', // astro.config.mjs imports it (MEM-25)
 ]);
 
 // QUAL-36: the scripts the dist guards run (and what they import), derived from package.json's
@@ -203,7 +204,7 @@ export function touchesAstro(files) {
 }
 
 // The dist guards ci.yml's `build` job runs after `astro build`, in order.
-export const DIST_GUARD_STEPS = ['test:csp', 'test:seo', 'test:redirects', 'test:css', 'test:weight', 'test:lazy-modules', 'test:precache-budget'];
+export const DIST_GUARD_STEPS = ['test:csp', 'test:seo', 'test:redirects', 'test:css', 'test:weight', 'test:lazy-modules', 'test:precache-budget', 'test:stable-names'];
 
 // ---------------------------------------------------------------------------
 // The pure step-plan builder: given the one computed scope, decide the

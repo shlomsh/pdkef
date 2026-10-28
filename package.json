@@ -61,6 +61,7 @@
     "test:lazy-modules": "node scripts/check-lazy-modules.js",
     "measure:update-cost": "node scripts/measure-update-cost.mjs",
     "test:precache-budget": "node scripts/check-precache-budget.mjs",
+    "test:stable-names": "node scripts/check-stable-names.mjs",
     "test:fonts": "node scripts/check-font-glyf-alignment.js",
     "test:licenses": "node scripts/runtime-license-inventory.mjs --check",
     "test:dependency-governance": "node scripts/verify-dependency-governance.mjs",

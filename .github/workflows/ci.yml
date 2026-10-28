@@ -388,6 +388,11 @@ jobs:
     - name: Check precache closures stay within budget
       run: npm run test:precache-budget
 
+    # MEM-25: pages name /site/ entries and the hot chunks keep /shared/ names, so a shared-module
+    # change does not rewrite every page.
+    - name: Check client entries and hot chunks keep stable names
+      run: npm run test:stable-names
+
   # The product e2e suite, split into shards (QUAL-05: two; QUAL-23,
   # 2026-10-18: four). Files shard whole and in path order, so two shards put
   # every e2e/** spec in shard 1 (355s of test time on run 39124382451) and
