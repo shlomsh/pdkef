@@ -21,6 +21,12 @@ describe('findStableNameProblems', () => {
     expect(f[0]).toContain('/_astro/PdfX.Zz9.js');
     expect(f[1]).toContain('/_astro/client.Q.js');
   });
+  it('names a hashed modulepreload and before-hydration-url', () => {
+    const f = findStableNameProblems({ ...good, pages: { 'a/index.html': page('<link rel="modulepreload" href="/_astro/preact.AbCd1234.js"><astro-island before-hydration-url="/_astro/hyd.AbCd1234.js"></astro-island>') } });
+    expect(f).toHaveLength(2);
+    expect(f[0]).toContain('modulepreload /_astro/preact.AbCd1234.js');
+    expect(f[1]).toContain('before-hydration-url /_astro/hyd.AbCd1234.js');
+  });
   it('names a hot shared chunk with no dist/shared file', () => {
     const f = findStableNameProblems({ ...good, shared: ['openPdfDoc.js'] });
     expect(f).toHaveLength(1);
