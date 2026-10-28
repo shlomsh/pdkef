@@ -26,9 +26,11 @@ and `src/site-lib/appUpdate.ts`, MEM-24). A returning client's update cost 1,934
 | 7 chunks whose content changed | 99,601 | 5% |
 | 2 new chunks, `sw.js`, the manifest | 12,601 | 1% |
 
-- **Pages.** Every page references the two BaseLayout script chunks by hashed name, and `astro-island uid`
-  values derive from the hashed component URL. After normalizing hashed `/_astro/` names, island uids and
-  the build stamp, none of the 54 pages differs. One edit to a script every page loads rewrites all of them.
+- **Pages.** Every page references the two BaseLayout script chunks by hashed name, and island pages name
+  their island chunk in `component-url`. After normalizing hashed `/_astro/` names and the build stamp,
+  none of the 54 pages differs (rebuilt at one path: 1,934,774 bytes, the same 54 pages). One edit to a
+  script every page loads rewrites all of them. (An island's `uid` hashes its absolute source path, not
+  its URL; that only matters when two builds run at different paths, see MEM-21.)
 - **Importers.** The 11 renamed-only chunks (`sign.*.js` 301,114, `PdfMergeTool` 15,842, `PdfToImageTool`
   5,415, `PdfSecurityTool` 5,460, `PdfSplitTool` 5,098 and six smaller) are byte-identical after normalizing
   hashed names: they import a changed chunk (`openPdfDoc`, `maintenanceTelemetry`) by its hashed file name,
