@@ -1059,6 +1059,12 @@ describe('build pipeline files are wide (QUAL-32 follow-up)', () => {
     expect([...set].sort()).toEqual(['scripts/deep/a.mjs', 'scripts/x.mjs', 'src/lib/b.js']);
   });
 
+  it('follows an alias import (ARCH-44)', () => {
+    const files = { 'scripts/x.mjs': "import b from '#lib/b.js';", 'src/lib/b.js': 'export default 1;' };
+    const pkg = JSON.stringify({ scripts: { build: 'node scripts/x.mjs' } });
+    expect([...buildPipelineFiles(pkg, (rel) => files[rel] ?? null)].sort()).toEqual(['scripts/x.mjs', 'src/lib/b.js']);
+  });
+
   it('real set includes the build entries and their imports', () => {
     for (const f of ['scripts/generate-precache-manifest.mjs', 'scripts/repoOnlyFiles.mjs', 'scripts/pageHash.mjs']) expect(real.has(f)).toBe(true);
   });
