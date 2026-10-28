@@ -8,10 +8,10 @@
  * failure on every unrelated pull request.
  */
 import { readFile } from 'node:fs/promises';
-import { resolve } from 'node:path';
+import path, { resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 const HIGH_SEVERITIES = new Set(['high', 'critical']);
-const reportPath = resolve(process.cwd(), process.argv[2] ?? 'dependency-audit.json');
 const exceptionPath = resolve(process.cwd(), 'security/dependency-advisory-exceptions.json');
 const today = new Date().toISOString().slice(0, 10);
 const maxExceptionDate = new Date(`${today}T00:00:00.000Z`);
@@ -22,6 +22,22 @@ function advisoryId(via) {
   if (!via || typeof via !== 'object') return null;
   const url = via.url ?? '';
   return url.match(/GHSA-[\w-]+/i)?.[0]?.toUpperCase() ?? null;
+}
+
+/**
+ * Exceptions that match no finding: the package is absent from the report or none
+ * of its object `via` entries carries the exception's advisory id.
+ * @testSeam
+ */
+export function findUnmatchedExceptions(exceptions, vulnerabilities) {
+  return exceptions.filter((exception) => {
+    const via = vulnerabilities[exception.package]?.via;
+    if (!Array.isArray(via)) return true;
+    return !via.some((entry) => (
+      entry && typeof entry === 'object'
+      && advisoryId(entry) === String(exception.advisory).toUpperCase()
+    ));
+  });
 }
 
 function activeException(exceptions, packageName, id) {
@@ -54,91 +70,104 @@ function validateExceptions(exceptions) {
   }
 }
 
-let report;
-let exceptionFile;
-try {
-  [report, exceptionFile] = await Promise.all([
-    readFile(reportPath, 'utf8').then(JSON.parse),
-    readFile(exceptionPath, 'utf8').then(JSON.parse),
-  ]);
-} catch (error) {
-  console.error(`Could not read the dependency advisory inputs: ${error.message}`);
-  process.exitCode = 1;
-  process.exit();
-}
-
-if (report.error) {
-  console.error(`npm audit could not retrieve an advisory report: ${report.error.summary ?? report.error.message ?? JSON.stringify(report.error)}`);
-  process.exitCode = 1;
-  process.exit();
-}
-
-const exceptions = exceptionFile.exceptions;
-if (!Array.isArray(exceptions)) {
-  console.error('security/dependency-advisory-exceptions.json must contain an exceptions array.');
-  process.exitCode = 1;
-  process.exit();
-}
-
-try {
-  validateExceptions(exceptions);
-} catch (error) {
-  console.error(error.message);
-  process.exitCode = 1;
-  process.exit();
-}
-
-const vulnerabilities = report.vulnerabilities ?? {};
-
-// A package npm flags only because it depends on another flagged package has no
-// advisory of its own (`via` holds the dependency's name). It is covered when
-// every flagged package it chains to is itself fully covered by an exception.
-function coveredByChain(packageName, seen = new Set()) {
-  if (seen.has(packageName)) return false;
-  seen.add(packageName);
-  const via = vulnerabilities[packageName]?.via;
-  if (!Array.isArray(via) || !via.length) return false;
-  return via.every((entry) => {
-    if (typeof entry === 'string') return coveredByChain(entry, seen);
-    if (!HIGH_SEVERITIES.has(entry?.severity)) return true;
-    const id = advisoryId(entry);
-    return Boolean(id && activeException(exceptions, packageName, id));
-  });
-}
-
-const outstanding = [];
-const excepted = [];
-for (const [packageName, vulnerability] of Object.entries(vulnerabilities)) {
-  if (!HIGH_SEVERITIES.has(vulnerability.severity)) continue;
-
-  const advisories = (Array.isArray(vulnerability.via) ? vulnerability.via : [])
-    .filter((via) => via && typeof via === 'object' && HIGH_SEVERITIES.has(via.severity));
-
-  if (!advisories.length) {
-    if (coveredByChain(packageName)) {
-      excepted.push(`${packageName} (${vulnerability.severity}; only through an excepted dependency)`);
-    } else {
-      outstanding.push(`${packageName} (${vulnerability.severity}; advisory ID unavailable)`);
-    }
-    continue;
+async function main() {
+  const reportPath = resolve(process.cwd(), process.argv[2] ?? 'dependency-audit.json');
+  let report;
+  let exceptionFile;
+  try {
+    [report, exceptionFile] = await Promise.all([
+      readFile(reportPath, 'utf8').then(JSON.parse),
+      readFile(exceptionPath, 'utf8').then(JSON.parse),
+    ]);
+  } catch (error) {
+    console.error(`Could not read the dependency advisory inputs: ${error.message}`);
+    process.exitCode = 1;
+    return;
   }
 
-  for (const advisory of advisories) {
-    const id = advisoryId(advisory);
-    const finding = `${packageName} (${advisory.severity}; ${id ?? 'advisory ID unavailable'})`;
-    const matchingException = id && activeException(exceptions, packageName, id);
-    if (matchingException) {
-      excepted.push(`${finding}; exception expires ${matchingException.expires}`);
-    } else {
-      outstanding.push(finding);
+  if (report.error) {
+    console.error(`npm audit could not retrieve an advisory report: ${report.error.summary ?? report.error.message ?? JSON.stringify(report.error)}`);
+    process.exitCode = 1;
+    return;
+  }
+
+  const exceptions = exceptionFile.exceptions;
+  if (!Array.isArray(exceptions)) {
+    console.error('security/dependency-advisory-exceptions.json must contain an exceptions array.');
+    process.exitCode = 1;
+    return;
+  }
+
+  try {
+    validateExceptions(exceptions);
+  } catch (error) {
+    console.error(error.message);
+    process.exitCode = 1;
+    return;
+  }
+
+  const vulnerabilities = report.vulnerabilities ?? {};
+
+  const unmatched = findUnmatchedExceptions(exceptions, vulnerabilities);
+  if (unmatched.length) {
+    console.error(`Dependency advisory exception(s) matching no npm audit finding; delete them:\n- ${unmatched.map(({ package: name, advisory }) => `${name}/${advisory}`).join('\n- ')}`);
+    process.exitCode = 1;
+  }
+
+  // A package npm flags only because it depends on another flagged package has no
+  // advisory of its own (`via` holds the dependency's name). It is covered when
+  // every flagged package it chains to is itself fully covered by an exception.
+  function coveredByChain(packageName, seen = new Set()) {
+    if (seen.has(packageName)) return false;
+    seen.add(packageName);
+    const via = vulnerabilities[packageName]?.via;
+    if (!Array.isArray(via) || !via.length) return false;
+    return via.every((entry) => {
+      if (typeof entry === 'string') return coveredByChain(entry, seen);
+      if (!HIGH_SEVERITIES.has(entry?.severity)) return true;
+      const id = advisoryId(entry);
+      return Boolean(id && activeException(exceptions, packageName, id));
+    });
+  }
+
+  const outstanding = [];
+  const excepted = [];
+  for (const [packageName, vulnerability] of Object.entries(vulnerabilities)) {
+    if (!HIGH_SEVERITIES.has(vulnerability.severity)) continue;
+
+    const advisories = (Array.isArray(vulnerability.via) ? vulnerability.via : [])
+      .filter((via) => via && typeof via === 'object' && HIGH_SEVERITIES.has(via.severity));
+
+    if (!advisories.length) {
+      if (coveredByChain(packageName)) {
+        excepted.push(`${packageName} (${vulnerability.severity}; only through an excepted dependency)`);
+      } else {
+        outstanding.push(`${packageName} (${vulnerability.severity}; advisory ID unavailable)`);
+      }
+      continue;
     }
+
+    for (const advisory of advisories) {
+      const id = advisoryId(advisory);
+      const finding = `${packageName} (${advisory.severity}; ${id ?? 'advisory ID unavailable'})`;
+      const matchingException = id && activeException(exceptions, packageName, id);
+      if (matchingException) {
+        excepted.push(`${finding}; exception expires ${matchingException.expires}`);
+      } else {
+        outstanding.push(finding);
+      }
+    }
+  }
+
+  if (excepted.length) console.log(`Active dependency advisory exception(s):\n- ${excepted.join('\n- ')}`);
+  if (outstanding.length) {
+    console.error(`Untriaged high/critical dependency advisory finding(s):\n- ${outstanding.join('\n- ')}`);
+    process.exitCode = 1;
+  } else if (!unmatched.length) {
+    console.log('Dependency advisory policy passed: no untriaged high/critical findings.');
   }
 }
 
-if (excepted.length) console.log(`Active dependency advisory exception(s):\n- ${excepted.join('\n- ')}`);
-if (outstanding.length) {
-  console.error(`Untriaged high/critical dependency advisory finding(s):\n- ${outstanding.join('\n- ')}`);
-  process.exitCode = 1;
-} else {
-  console.log('Dependency advisory policy passed: no untriaged high/critical findings.');
+if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  await main();
 }
