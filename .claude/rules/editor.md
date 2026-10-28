@@ -264,7 +264,9 @@ Create is a gesture too (click-place or drag-draw), not an exception.
   are the one hand-computed thing in the file and must be redone if `--btn-min-size`, `--toolbar-gap`
   or `--toolbar-padding` change, or if a control is added anywhere. Round a new threshold **up** past
   its figure unless you have checked the box cannot land in the band below it: the content box is the
-  viewport less 96.8px on a phone and 112.8px in the tablet band, so an ordinary integer window width
+  viewport less 46.8px on a phone, 62.8px from there to 767px and 112.8px from 768px (below 768px the
+  loaded Sign/Redact card has no frame since 2026-10-28, 50px wider than the dated measurements below
+  were taken at, so their viewports below 768px now read 50px narrower), so an ordinary integer window width
   puts it on x.2, and both thresholds that were left on the floor() side of a whole-number figure
   (581px, 288px) were measured stranding or unbalancing a real row at one - 693px gave 11+1, 384px
   gave 5+5+2. Flex, not grid: grid packs a
@@ -286,8 +288,9 @@ Create is a gesture too (click-place or drag-draw), not an exception.
   improves it (three gives 3+3+3+1). It was an eleven, and balanced, until History left.
   Thirteen balances only as 7+6, which needs 336.8px of content. Since 2026-10-20 Sign keeps
   Download beside Share below 920px (`keepDownloadOnPhone`, like Redact), so with Share it counts
-  **thirteen**: one line to 743px, 7+6 from 742px, and below 337px of content (a 433px window, every
-  current iPhone) Feedback stands down so twelve render 6+6, 4+4+4, 3+3+3+3. Without Share it stays
+  **thirteen**: one line to 693px, 7+6 from 692px, and at 387px of content and below (a 433px window,
+  every current iPhone) Feedback stands down so twelve render 6+6, 4+4+4, 3+3+3+3. The query sits
+  where 433px lands, not where 7+6 stops fitting, so iPhones keep 6+6's wider controls. Without Share it stays
   twelve with Feedback, as above. Guard: `src/tools/sign/e2e/sign-toolbar-labels-fit.spec.js`, every
   width 919px to 239px with Share, no lone control.
 - **On a phone (480px and down) both toolbars show a word under every control**, Undo, Redo and

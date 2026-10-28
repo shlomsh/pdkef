@@ -397,8 +397,9 @@
      convention every threshold here follows except two, the 581px and 288px
      ones, whose own comments say why: the band is only harmless while the
      toolbar's content box cannot land inside it, and in both of those it can.
-     The box is the viewport less 96.8px of page gutters and toolbar padding on
-     a phone (112.8px in the tablet band), so an ordinary integer window width
+     The box is the viewport less 46.8px of page gutters and toolbar padding on
+     a phone (62.8px in the tablet band below 768px, 112.8px from 768px, where
+     the loaded card keeps its frame), so an ordinary integer window width
      puts it on x.2 and straight into a band that starts on a whole number.
      Check that before adding a threshold, and round up where it lands inside.
      531 to 532 is a real sliver: no toolbar counts exactly eleven today, and
@@ -504,8 +505,8 @@
      caps a row slightly before it has to wrap, never late, so it has never
      shown up as a defect. Do not "fix" them by adding 12.8px here.
      Above it the row still fits one line and the controls simply grow to fill
-     it (measured: one line down to a 694px viewport, 581.2px of content, and a
-     balanced 6+6 from 693px down, guarded at 693px and 660px by
+     it (measured 2026-10-28: one line down to a 644px viewport, 581.2px of
+     content, and a balanced 6+6 from 643px down, guarded at 643px and 610px by
      e2e/tool-toolbars/toolbar-touch-targets.spec.js). */
   @container toolbar (max-width: 581px) {
     .toolbar:has(> :nth-child(12 of :not(.desktop-download):not([role="radiogroup"]))) > * { flex-grow: 0; flex-basis: max(var(--btn-min-size), (100% - (var(--controls-per-row) - 1) * var(--toolbar-gap)) / var(--controls-per-row)); }
@@ -547,15 +548,19 @@
      that way once already, reproduced deterministically (every run, not an
      intermittent flake) against a real build and caught by CI. */
   /* 2026-10-20: thirteen (Sign with Share) balances only as 7+6, and seven
-     stop fitting at 336.8px of content (a 433px window gives 336.2px). Below
-     that, thirteen strands 6+6+1 at every current phone width, so Feedback
-     stands down and the twelve left render 6+6, 4+4+4 and 3+3+3+3, which
-     balance everywhere below. Feedback stays in the site footer. This is why
+     stop fitting at 336.8px of content. Below that, thirteen strands 6+6+1,
+     so Feedback stands down and the twelve left render 6+6, 4+4+4 and
+     3+3+3+3, which balance everywhere below. 2026-10-28: the loaded card
+     dropped its frame on phones, so a 433px window now gives 386.2px of
+     content, where 7+6 would still fit at 44.9-51px a control. The query
+     moved to 387px so every current iPhone (433px and narrower) keeps the
+     6+6 it had, with 48-60px controls instead; 434px and up is 7+6, as
+     before. Guard: sign-toolbar-labels-fit.spec.js, 6+6 at 360-430px. Feedback stays in the site footer. This is why
      the "do not strip Feedback from every phone" note further down no longer
      applies to Sign with Share: here the strand is real at every phone width.
      Sits after the 581px rule and before the 288px one, so the 288px cap of
      four still wins below it by source order. */
-  @container toolbar (max-width: 337px) {
+  @container toolbar (max-width: 387px) {
     .toolbar:has(> :nth-child(13 of :not(.desktop-download):not([role="radiogroup"]))) > [data-optional-control] { display: none; }
     .toolbar:has(> :nth-child(13 of :not(.desktop-download):not([role="radiogroup"]))) > * { --controls-per-row: 6; }
   }
@@ -715,8 +720,8 @@
    Between, up to 1299px: the same one line, every control icon-only with its
    tooltip, 44px targets, growing to share the row (twelve of them are 580.8px,
    so the row fits down to the 920px floor's 796px box and on down through the
-   tablet band, until those twelve no longer fit one line at a 694px viewport -
-   measured: one line at 700px, a balanced 6+6 from 693px down).
+   tablet band, until those twelve no longer fit one line at a 644px viewport -
+   measured: one line at 660px, a balanced 6+6 from 643px down).
 
    iPhone, and any window narrower than that: the centred, evenly split two-row
    icon grid in the phone block above, unchanged.

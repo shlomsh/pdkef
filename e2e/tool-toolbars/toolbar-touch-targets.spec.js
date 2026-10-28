@@ -64,20 +64,21 @@ async function readToolbar(page) {
 // shared 920px icon-only breakpoint for the single/double-row case.
 const tools = [
   // Measured 2026-09-20, headless Chromium, after the History control came
-  // out. 693 and 660 are the top end, and they are the guard on the 581px
-  // container query: twelve 44px controls need a 580.8px line, a 693px window
-  // gives 580.2px of content and a 660px window 547.2px, and until that query
-  // landed both packed greedily as 11+1 with the last control stretched the
-  // full width of the row. 693 is the tighter of the two on purpose - it is
-  // the width that proves the threshold rounds UP past 580.8px rather than
-  // down to 580px, which is the whole reason that one query breaks the file's
-  // floor() convention. One line returns at 694px, which is
-  // toolbar-desktop-one-line.spec.js's job from 700px up.
+  // out; widths moved 2026-10-28 when the loaded card dropped its frame below
+  // 768px, which gave the toolbar 50px more box (the viewport less 62.8px in
+  // this band, 46.8px on a phone). 643 and 610 are the top end, and they are
+  // the guard on the 581px container query: twelve 44px controls need a
+  // 580.8px line, a 643px window gives 580.2px of content and a 610px window
+  // 547.2px, and until that query landed both packed greedily as 11+1 with the
+  // last control stretched the full width of the row. 643 is the tighter of
+  // the two on purpose - it is the width that proves the threshold rounds UP
+  // past 580.8px rather than down to 580px, which is the whole reason that one
+  // query breaks the file's floor() convention. One line returns at 644px.
   // 320 is the other end: Feedback, now Sign's only optional control, stands
   // down at 239px of toolbar, so the counts this walks are twelve and eleven -
   // never ten or thirteen, the two counts that cannot be balanced at the 44px
   // floor.
-  { name: 'Sign', path: '/sign/?next=0', fixture: 'sign-toolbar-e2e.pdf', wrapWidths: [320, 360, 390, 430, 500, 660, 693] },
+  { name: 'Sign', path: '/sign/?next=0', fixture: 'sign-toolbar-e2e.pdf', wrapWidths: [320, 360, 390, 430, 500, 610, 643] },
   // RED-31 made it eleven (Peek joined), so 300-320px packs 4+4+3.
   // RED-02 made Redact ten controls (Find joined). At 300-320px the 44px touch
   // floor caps a line at four, and ten can only pack 4+4+2 there (the comment
