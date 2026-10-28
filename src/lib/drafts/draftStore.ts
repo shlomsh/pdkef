@@ -1,31 +1,29 @@
-import { reportError } from '../telemetry/errorReport.ts';
 import { createDraftRetention, isDraftExpired } from './draftPolicy.js';
 import { markHandoffPending } from '../handoff/handoffPending.ts';
 import { RECENT_FILES_META_KEY } from './recentFilesKey.js';
-import { isObject, parseDraftRecord, parseHandoff, parseLegacyRecord, parseStoredEntry } from './draftRecords.ts';
+import { parseDraftRecord, parseHandoff, parseStoredEntry } from './draftRecords.ts';
 import type {
-  DraftEntry, DraftFile, DraftRecord, DraftSaveRecord, HandoffFile, HandoffRecord, LegacyRecord,
+  DraftEntry, DraftFile, DraftRecord, DraftSaveRecord, HandoffFile, HandoffRecord,
   RecentFileRecord, StoredEntry, ToolWork,
 } from './draftRecords.ts';
+import { hasIndexedDB, reportStoreError, reqToPromise, withStore } from './draftIdb.ts';
+import { DRAFT_CHANGE_PREFIX, getTabWriterId, notifyDraftChange } from './draftChanges.ts';
+import type { DraftChange } from './draftChanges.ts';
+import { clearCurrentEntry, pruneOrphans, readCurrentEntryId, readIndexEntries, recentFileKey, removeRecentMeta, setCurrentEntry, upsertIndexEntry, updateIndexHasWork, writeRecentFiles } from './draftRecentIndex.ts';
+import { sourceIdForBytes, sourceIdForFiles } from './draftSourceId.ts';
+import { ensureMigrated } from './draftMigration.ts';
 
 export type {
   DraftEntry, DraftFile, DraftRecord, DraftSaveRecord, HandoffFile, HandoffRecord, RecentFileRecord,
   StoredEntry, ToolWork,
 } from './draftRecords.ts';
 export { parseDraftRecord, parseHandoff, parseStoredEntry } from './draftRecords.ts';
+// Moved out for size (ARCH-107); the public surface of this module is unchanged.
+export { sourceIdForBytes, sourceIdForFiles } from './draftSourceId.ts';
+export { MAX_RECENT_FILES, clearCurrentEntry, readCurrentEntryId, setCurrentEntry } from './draftRecentIndex.ts';
 
-
-type DraftChange = { kind: 'saved' | 'deleted'; revision: number; updatedAt: number; writerId: string };
 type DraftChangeEvent = { revision: number; kind: 'saved' | 'deleted'; conflictPolicy: 'last-writer-wins' };
 
-// The catches below also cover opening the database, which fails in private or
-// locked-down windows (InvalidStateError, UnknownError). That is the
-// environment, not a defect, so those two names are not reported.
-function reportStoreError(area: Parameters<typeof reportError>[0], error: unknown, step: string) {
-  const name = (error as { name?: string } | null)?.name;
-  if (name === 'InvalidStateError' || name === 'UnknownError') return;
-  reportError(area, error, step);
-}
 
 // Workspace-owned, on-device memory for every PDF a tool has touched. Uses
 // IndexedDB (not localStorage) because a record holds the raw PDF bytes as an
@@ -63,46 +61,7 @@ function reportStoreError(area: Parameters<typeof reportError>[0], error: unknow
 // are opaque to this module - it never reads their shape, only stores and
 // returns them inside `work[tool]`.
 
-// This is intentionally a fixed schema with no upgrade path. Safari can leave
-// an installed app's previous page attached to an old database version, which
-// turns an ordinary schema upgrade into an indefinitely blocked `open()`
-// request. Fields may be added to a record without changing an IndexedDB
-// object store, so this database never needs one; MEM-01's entry model is
-// itself such a change (same DB, same store, same keyPath, just richer
-// records under the keys already in use) and the legacy per-tool records
-// are folded into it by `migrateLegacyDraft` below, not by a version bump.
-const DB_NAME = 'pdf-toolkit-workspace';
-const STORE_NAME = 'workspace';
-const DB_VERSION = 1;
 
-// This tiny localStorage record is deliberately metadata only. It lets a
-// second tab say what happened without ever copying a filename, PDF byte, edit,
-// or document identifier through the `storage` event channel.
-const DRAFT_CHANGE_PREFIX = 'pdf-toolkit:workspace:draft-change:';
-let tabWriterId: string | undefined;
-
-function getTabWriterId(): string {
-  if (tabWriterId) return tabWriterId;
-  try {
-    const existing = sessionStorage.getItem('pdf-toolkit:draft-writer');
-    if (existing) return (tabWriterId = existing);
-    const next = crypto.randomUUID?.() || `tab-${Date.now()}-${Math.random().toString(36).slice(2)}`;
-    sessionStorage.setItem('pdf-toolkit:draft-writer', next);
-    return (tabWriterId = next);
-  } catch {
-    // expected: blocked sessionStorage, falls back to a random tab id
-    return (tabWriterId = `tab-${Date.now()}-${Math.random().toString(36).slice(2)}`);
-  }
-}
-
-function notifyDraftChange(tool: string, change: DraftChange) {
-  try {
-    localStorage.setItem(DRAFT_CHANGE_PREFIX + tool, JSON.stringify(change));
-  } catch {
-    // expected: Coordination is advisory; a blocked localStorage must not stop a draft
-    // write that already committed in IndexedDB.
-  }
-}
 
 /**
  * Subscribe to another tab saving or deleting this tool's work on its current
@@ -128,16 +87,6 @@ export function subscribeToDraftChanges(tool: string, listener: (change: DraftCh
   return () => window.removeEventListener('storage', onStorage);
 }
 
-/** Stable content address for one source PDF. Null means this browser cannot
- * safely deduplicate; we fail the best-effort entry write rather than risk a
- * metadata collision attaching work to a different document. */
-export async function sourceIdForBytes(fileBytes: unknown): Promise<string | null> {
-  // `instanceof ArrayBuffer` fails for a File read in a different browser
-  // realm (and in the test DOM), even though Web Crypto accepts it.
-  if (Object.prototype.toString.call(fileBytes) !== '[object ArrayBuffer]' || !globalThis.crypto?.subtle) return null;
-  const digest = await globalThis.crypto.subtle.digest('SHA-256', fileBytes as ArrayBuffer);
-  return `sha256:${Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, '0')).join('')}`;
-}
 
 /** Starting point for the Merge tool's entry size limit (MERGE-13). A merge
  * entry holds every source file's bytes at once, unlike Sign/Redact's single
@@ -146,34 +95,6 @@ export async function sourceIdForBytes(fileBytes: unknown): Promise<string | nul
  * origin needs measuring on-device before this is trusted as a safe default. */
 export const MERGE_DRAFT_MAX_BYTES = 200 * 1024 * 1024;
 
-/** Stable content address for an ordered set of source PDFs, for the Merge tool's
- * multi-file entry. Built from the per-file `sourceIdForBytes` digests rather than
- * hashing the concatenated bytes directly, so it stays cheap to compute for large
- * files (each file is hashed once, not copied into one buffer first).
- *
- * Order-sensitive on purpose: the files are hashed in the order they appear in
- * `files`, so the same set of files merged in a different order produces a
- * different id. That is correct here, not an accident to fix - a merge's output
- * depends on file order, so an entry for [A, B] must not be treated as resumable
- * for a session that has since reordered to [B, A].
- *
- * Null (like sourceIdForBytes) means this browser cannot safely deduplicate;
- * callers fail the write rather than risk a metadata collision.
- *
- */
-export async function sourceIdForFiles(files: ({ fileBytes?: unknown } | null | undefined)[]): Promise<string | null> {
-  const digests = [];
-  for (const file of files) {
-    // expected: crypto.subtle missing (plain-http LAN), null means no drafts
-    const id = await sourceIdForBytes(file?.fileBytes).catch(() => null);
-    if (!id) return null;
-    digests.push(id.slice('sha256:'.length));
-  }
-  if (!globalThis.crypto?.subtle) return null;
-  const encoded = new TextEncoder().encode(digests.join('\n'));
-  const digest = await globalThis.crypto.subtle.digest('SHA-256', encoded);
-  return `sha256:${Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, '0')).join('')}`;
-}
 
 // Kept as a public re-export for existing callers. The policy itself lives in
 // draftPolicy.js so cache writes and every read path share one definition.
@@ -277,100 +198,6 @@ export async function takeHandoff(tool: string, accept?: (record: HandoffRecord)
   }
 }
 
-// Which entry a tool currently considers "the one it's on", by id. Replaces
-// the old has-draft/draft-meta pair: those said "a draft exists for this
-// tool"; this says "here is the entry (if any) this tool is on", and every
-// other synchronous read below (hasDraftHint, readDraftMeta) resolves through
-// it against the recents index. Reading and writing the pointer never touches
-// IndexedDB, for the same pre-paint reason the old hint didn't: a tool page
-// needs this synchronously, before the async IndexedDB read and Preact
-// hydration would otherwise decide it and cost a real, input-less layout
-// shift. See ToolPageLayout.astro's blocking head script for the other half.
-const CURRENT_ENTRY_PREFIX = 'pdf-toolkit:workspace:current:';
-
-/** Point `tool` at entry `id`. Exported for MEM-02/03: the home page sets this
- * when it opens a recent tile, and saveDraft/cacheRecentFile set it here too. */
-export function setCurrentEntry(tool: string, id: string) {
-  try {
-    localStorage.setItem(CURRENT_ENTRY_PREFIX + tool, id);
-  } catch {
-    // expected: Best-effort, like every other localStorage write in this file.
-  }
-}
-
-/** Drop `tool`'s pointer, e.g. once its work on that entry has been cleared. */
-export function clearCurrentEntry(tool: string) {
-  try {
-    localStorage.removeItem(CURRENT_ENTRY_PREFIX + tool);
-  } catch {
-    // expected: best-effort like every other localStorage write in this file
-  }
-}
-
-/** The entry id `tool` currently points at, or null. Synchronous, best-effort -
- * the id may point at an entry that has since expired or been evicted; callers
- * that care use hasDraftHint/loadDraft, which check against the live index. */
-export function readCurrentEntryId(tool: string): string | null {
-  try {
-    return localStorage.getItem(CURRENT_ENTRY_PREFIX + tool) || null;
-  } catch {
-    // expected: blocked storage, no current-entry pointer
-    return null;
-  }
-}
-
-// The bounded recency cache: up to six entries' display metadata, readable
-// without opening IndexedDB, which is what makes the home page's launcher
-// cheap to render and makes hasDraftHint/readDraftMeta possible before first
-// paint. The actual PDF bytes and `work` live only in IndexedDB; this index
-// never carries them. Its key, RECENT_FILES_META_KEY, lives in recentFilesKey.js.
-const RECENT_FILE_PREFIX = 'recent:';
-export const MAX_RECENT_FILES = 6;
-
-const recentFileKey = (id: string) => `${RECENT_FILE_PREFIX}${id}`;
-
-function writeRecentFiles(entries: DraftEntry[]) {
-  try {
-    localStorage.setItem(RECENT_FILES_META_KEY, JSON.stringify(entries));
-  } catch {
-    // expected: Recent documents are a convenience. A quota failure must not prevent a
-    // PDF from opening or interfere with a tool's own work on it.
-  }
-}
-
-function validIndexEntry(entry: unknown): entry is DraftEntry {
-  return isObject(entry)
-    && typeof entry.id === 'string' && entry.id.length > 0
-    && typeof entry.tool === 'string' && entry.tool.length > 0
-    && typeof entry.fileName === 'string'
-    && Number.isFinite(entry.savedAt)
-    && !isDraftExpired(entry.savedAt);
-}
-
-function readIndexEntries(): DraftEntry[] {
-  try {
-    const raw = localStorage.getItem(RECENT_FILES_META_KEY);
-    if (!raw) return [];
-    const parsed = JSON.parse(raw);
-    if (!Array.isArray(parsed)) return [];
-    const seen = new Set();
-    const entries = parsed
-      .filter(validIndexEntry)
-      .sort((a, b) => b.savedAt - a.savedAt)
-      .filter((entry) => {
-        if (seen.has(entry.id)) return false;
-        seen.add(entry.id);
-        return true;
-      })
-      .slice(0, MAX_RECENT_FILES);
-    // Expired or malformed entries must not leave an ever-growing stale index.
-    if (entries.length !== parsed.length) writeRecentFiles(entries);
-    return entries;
-  } catch {
-    // expected: unparseable stored index falls back to []
-    return [];
-  }
-}
 
 /** Synchronous metadata read for the home page. File bytes are never copied
  * into localStorage; they are loaded only after a person chooses an entry. */
@@ -378,82 +205,6 @@ export function readRecentFiles(): DraftEntry[] {
   return readIndexEntries();
 }
 
-function removeRecentMeta(id: string) {
-  writeRecentFiles(readIndexEntries().filter((entry) => entry.id !== id));
-}
-
-/**
- * Upsert one entry's row in the recency index and cap it at MAX_RECENT_FILES,
- * ordered by `savedAt` alone - no ranking by whether an entry carries work
- * (see this file's header comment). The row is sorted in rather than
- * prepended: a save or open passes `Date.now()` and lands first anyway, but
- * a migrated legacy draft keeps its own, possibly days-old `savedAt`, and
- * must not push out something touched more recently. Returns the kept rows so
- * callers can prune IndexedDB records that fell out of them.
- */
-function upsertIndexEntry({ id, tool, fileName, fileType, savedAt, preview, pageCount, fileCount, hasWork }: DraftEntry): DraftEntry[] {
-  const existing = readIndexEntries();
-  const previous = existing.find((entry) => entry.id === id);
-  const resolvedPreview = preview ?? previous?.preview;
-  const resolvedPageCount = pageCount ?? previous?.pageCount;
-  const resolvedFileCount = fileCount ?? previous?.fileCount;
-  const row = {
-    id,
-    tool,
-    fileName,
-    fileType,
-    savedAt,
-    ...(resolvedPreview ? { preview: resolvedPreview } : {}),
-    ...(resolvedPageCount !== undefined ? { pageCount: resolvedPageCount } : {}),
-    ...(resolvedFileCount !== undefined ? { fileCount: resolvedFileCount } : {}),
-    ...(hasWork && hasWork.length > 0 ? { hasWork } : {}),
-  };
-  const kept = [row, ...existing.filter((entry) => entry.id !== id)]
-    .sort((a, b) => b.savedAt - a.savedAt)
-    .slice(0, MAX_RECENT_FILES);
-  writeRecentFiles(kept);
-  return kept;
-}
-
-/** Patch just the `hasWork` field of an existing index row, e.g. after
- * deleteDraft clears one tool's work but the entry itself stays in recents.
- * A no-op if the row already fell out of the index (nothing to patch). */
-function updateIndexHasWork(id: string, hasWorkKeys: string[]) {
-  const entries = readIndexEntries();
-  const index = entries.findIndex((entry) => entry.id === id);
-  if (index === -1) return;
-  const { hasWork: _hasWork, ...rest } = entries[index];
-  const next = [...entries];
-  next[index] = hasWorkKeys.length > 0 ? { ...rest, hasWork: hasWorkKeys } : rest;
-  writeRecentFiles(next);
-}
-
-/** Delete IndexedDB entry records that fell out of the recency index -
- * mirrors cacheRecentFile's old cursor sweep, pulled out so saveDraft,
- * cacheRecentFile and the legacy migration all bound binary storage to the
- * same six PDFs the index already promises. Runs in its own transaction
- * (this is a best-effort convenience cache, not the source of truth for
- * content, so it does not need to share a transaction with the write that
- * triggered it). */
-async function pruneOrphans(keptEntries: DraftEntry[]) {
-  const keepKeys = new Set(keptEntries.map((entry) => recentFileKey(entry.id)));
-  try {
-    await withStore('readwrite', (store) => {
-      const cursor = store.openCursor();
-      cursor.onsuccess = () => {
-        const current = cursor.result;
-        if (!current) return;
-        if (typeof current.key === 'string' && current.key.startsWith(RECENT_FILE_PREFIX) && !keepKeys.has(current.key)) {
-          current.delete();
-        }
-        current.continue();
-      };
-    });
-  } catch (e) {
-    // expected: a legacy key we cannot remove is harmless and ignored, already reported with console.error
-    console.error('draftStore.pruneOrphans failed:', e);
-  }
-}
 
 /**
  * Save a source PDF in the bounded recents cache without touching any tool's
@@ -653,15 +404,6 @@ function indexIsParseable() {
   }
 }
 
-function hasIndexedDB() {
-  try {
-    return typeof indexedDB !== 'undefined' && indexedDB !== null;
-  } catch {
-    // expected: Accessing indexedDB can throw in some locked-down/Safari-private contexts.
-    return false;
-  }
-}
-
 // Ask the browser to stop treating this origin's storage as disposable.
 //
 // Without this, everything here is "best-effort": the browser may evict the
@@ -717,51 +459,6 @@ export async function isStoragePersisted(): Promise<boolean | 'unknown'> {
     // expected: optional browser API, returns 'unknown'
     return 'unknown';
   }
-}
-
-function openDb(): Promise<IDBDatabase> {
-  return new Promise((resolve, reject) => {
-    const request = indexedDB.open(DB_NAME, DB_VERSION);
-    request.onupgradeneeded = () => {
-      const db = request.result;
-      if (!db.objectStoreNames.contains(STORE_NAME)) {
-        db.createObjectStore(STORE_NAME, { keyPath: 'tool' });
-      }
-    };
-    request.onsuccess = () => resolve(request.result);
-    request.onerror = () => reject(request.error);
-  });
-}
-
-// Run a single transaction against the workspace store and resolve with `resultFn`'s
-// value once the transaction commits. Closes the connection afterwards.
-async function withStore<T>(mode: IDBTransactionMode, work: (store: IDBObjectStore) => T | Promise<T>): Promise<T> {
-  const db = await openDb();
-  try {
-    return await new Promise<T>((resolve, reject) => {
-      const tx = db.transaction(STORE_NAME, mode);
-      const store = tx.objectStore(STORE_NAME);
-      let result: T;
-      Promise.resolve(work(store))
-        .then((value) => {
-          result = value;
-        })
-        // expected: forwards the error to the transaction promise rejection
-        .catch(reject);
-      tx.oncomplete = () => resolve(result);
-      tx.onabort = () => reject(tx.error);
-      tx.onerror = () => reject(tx.error);
-    });
-  } finally {
-    db.close();
-  }
-}
-
-function reqToPromise<T = unknown>(request: IDBRequest<T>): Promise<T> {
-  return new Promise((resolve, reject) => {
-    request.onsuccess = () => resolve(request.result);
-    request.onerror = () => reject(request.error);
-  });
 }
 
 // Shared by saveDraft and the legacy migration: given the work currently
@@ -1006,149 +703,3 @@ export async function deleteDraft(tool: string): Promise<boolean> {
   return true;
 }
 
-// Legacy keys from the pre-MEM-01 schema (one draft record per tool, keyed
-// literally by tool name, plus these two localStorage keys for its
-// pre-paint hint). Kept only so migrateLegacyDraft can find and clear them -
-// nothing in this file writes them again.
-const LEGACY_DRAFT_HINT_PREFIX = 'pdf-toolkit:workspace:has-draft:';
-const LEGACY_DRAFT_META_PREFIX = 'pdf-toolkit:workspace:draft-meta:';
-const LEGACY_TOOLS = ['sign', 'redact', 'merge'];
-
-function clearLegacyLocalStorage(tool: string) {
-  // expected: a legacy key we cannot remove is harmless and ignored
-  try { localStorage.removeItem(LEGACY_DRAFT_HINT_PREFIX + tool); } catch { /* best-effort */ }
-  // expected: a legacy key we cannot remove is harmless and ignored
-  try { localStorage.removeItem(LEGACY_DRAFT_META_PREFIX + tool); } catch { /* best-effort */ }
-}
-
-let migratedPromise: Promise<void> | null = null;
-
-// Runs the fold-in exactly once per module lifetime (memoised, not per call).
-// Every other async export awaits this first, so a legacy record can never
-// shadow or race a write already made under the new schema. Synchronous
-// reads (hasDraftHint, readDraftMeta, readRecentFiles) do not wait on it:
-// they are already best-effort/advisory, and gating a synchronous API on an
-// async migration would defeat the reason they are synchronous at all - a
-// pre-migration read just sees fewer entries until the fold-in lands.
-function ensureMigrated(): Promise<void> {
-  if (!hasIndexedDB()) return Promise.resolve();
-  if (!migratedPromise) {
-    // Sequential, not Promise.all: each migration reads-then-writes the
-    // same localStorage index, and running the three concurrently would let
-    // one overwrite another's update with a snapshot taken before it landed.
-    migratedPromise = (async () => {
-      for (const tool of LEGACY_TOOLS) {
-        // eslint-disable-next-line no-await-in-loop -- deliberately sequential, see above
-        await migrateLegacyDraft(tool);
-      }
-    })().catch((e) => {
-      reportStoreError('drafts', e, 'migrate_legacy_drafts');
-      console.error('draftStore.migrateLegacyDrafts failed:', e);
-    });
-  }
-  return migratedPromise;
-}
-
-// Folds one legacy per-tool draft (keyed literally by 'sign' | 'redact' |
-// 'merge', the schema this file used before MEM-01) into its recents entry:
-// attaches `work[tool]` to the entry if one already exists for this content,
-// otherwise creates the entry from the legacy record's own bytes/files and
-// fileName. Sets the pointer for `tool` and deletes the legacy record and its
-// localStorage hint either way. An expired legacy record, or one whose
-// content cannot be addressed, is simply deleted (MEM-01's ticket: "Legacy
-// records that are expired are simply deleted").
-async function migrateLegacyDraft(tool: string): Promise<void> {
-  let legacy: LegacyRecord | null;
-  try {
-    const stored = await withStore('readonly', (store) => reqToPromise(store.get(tool)));
-    // Stored but not an object: no usable `savedAt`, so it is cleared and deleted as expired below.
-    legacy = parseLegacyRecord(stored) ?? (stored ? ({} as LegacyRecord) : null);
-  } catch (e) {
-    reportStoreError('drafts', e, 'read_legacy_draft');
-    console.error('draftStore.migrateLegacyDraft failed to read:', e);
-    return;
-  }
-  if (!legacy) return;
-  clearLegacyLocalStorage(tool);
-  if (isDraftExpired(legacy.savedAt)) {
-    try {
-      await withStore('readwrite', (store) => { store.delete(tool); });
-    } catch (e) {
-      // expected: a legacy key we cannot remove is harmless and ignored, already reported with console.error
-      console.error('draftStore.migrateLegacyDraft failed to delete an expired record:', e);
-    }
-    return;
-  }
-  const isMulti = Array.isArray(legacy.files);
-  const id = isMulti
-    // expected: crypto.subtle missing, record dropped
-    ? await sourceIdForFiles(legacy.files as DraftFile[]).catch(() => null)
-    // expected: crypto.subtle missing, record dropped
-    : await sourceIdForBytes(legacy.fileBytes).catch(() => null);
-  if (!id) {
-    // Cannot safely address this record's bytes - drop it rather than leak
-    // it forever, the same refusal saveDraft itself would make on a fresh write.
-    try {
-      await withStore('readwrite', (store) => { store.delete(tool); });
-    } catch (e) {
-      // expected: a legacy key we cannot remove is harmless and ignored, already reported with console.error
-      console.error('draftStore.migrateLegacyDraft failed to delete an unaddressable record:', e);
-    }
-    return;
-  }
-  const {
-    tool: _legacyKey, fileBytes, files, savedAt, revision, updatedAt, writerId,
-    sourceId: _sourceId, fileName: _fileName, fileType: _fileType, ...toolFields
-  } = legacy;
-  // Carries the legacy revision/updatedAt/writerId over as-is: this is a
-  // straight fold-in, not a new save, so nothing here bumps the revision.
-  const toolWork: ToolWork = {
-    ...toolFields,
-    revision: Number.isInteger(revision) ? (revision as number) : 1,
-    updatedAt: Number.isFinite(updatedAt) ? (updatedAt as number) : savedAt,
-    writerId: writerId || 'legacy',
-  };
-  const key = recentFileKey(id);
-  let committedEntry: StoredEntry | null = null;
-  try {
-    await withStore('readwrite', (store) => {
-      store.delete(tool);
-      const request = store.get(key);
-      request.onsuccess = () => {
-        const existing = parseStoredEntry(request.result);
-        const work = { ...(existing?.work || {}), [tool]: toolWork };
-        const entry: StoredEntry = existing
-          ? { ...existing, work, savedAt: Math.max(existing.savedAt, savedAt) }
-          : {
-              tool: key,
-              id,
-              fileName: legacy.fileName || 'Untitled document',
-              fileType: legacy.fileType || 'application/pdf',
-              ...(isMulti ? { files } : { fileBytes }),
-              savedAt,
-              work,
-            };
-        store.put(entry);
-        committedEntry = entry;
-      };
-    });
-  } catch (e) {
-    reportStoreError('drafts', e, 'write_legacy_draft');
-    console.error('draftStore.migrateLegacyDraft failed to write:', e);
-    return;
-  }
-  if (!committedEntry) return;
-  const committed = committedEntry as StoredEntry;
-  const kept = upsertIndexEntry({
-    id,
-    tool,
-    fileName: committed.fileName,
-    fileType: committed.fileType,
-    savedAt: committed.savedAt,
-    pageCount: toolFields.pageCount as number | undefined,
-    fileCount: toolFields.fileCount as number | undefined,
-    hasWork: Object.keys(committed.work || {}),
-  });
-  await pruneOrphans(kept);
-  setCurrentEntry(tool, id);
-}
