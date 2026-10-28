@@ -1,10 +1,9 @@
 ---
 id: "ARCH-128"
 title: "The boundary rules are written once and checked against every copy"
-status: "in_progress"
+status: "done"
 priority: "P3"
 epic: "unify-and-narrow"
-horizon: "later"
 depends_on: []
 ---
 
@@ -23,4 +22,11 @@ Area: Supporting. Criterion: Docs and guidance accuracy. Structure only: no beha
 
 ## Acceptance
 
-- [ ] Changing a rule in the script without the other copies fails CI.
+- [x] Changing a rule in the script without the other copies fails CI.
+
+## Done (2026-10-28)
+
+- `scripts/check-module-boundaries.doc.test.mjs` checks the script's header comment against `RULES` (same ids, each
+  item names its rule) as it already did the doc, and checks that every rule number cited on a guidance line that
+  mentions module-boundaries (CLAUDE.md, `.claude/rules/*.md`, comma lists and ranges included) is a live rule.
+- The header had drifted: rule 10 was missing. It now carries every rule.

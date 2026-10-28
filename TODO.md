@@ -15,14 +15,8 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 ### Unify the tools, narrow the graph
 
 - [ARCH-85](backlog/tasks/ARCH-85.md) P3 · Per-spec flake rates are recorded and read nightly (in progress)
-- [ARCH-123](backlog/tasks/ARCH-123.md) P2 · The narrowed share of main runs is reported and acted on (in progress)
 - [QUAL-32](backlog/tasks/QUAL-32.md) P2 · CI skips Playwright when a push reaches no e2e (in progress)
 - [QUAL-33](backlog/tasks/QUAL-33.md) P2 · A stalled apt install costs at most one retry, not ten minutes (in progress)
-- [ARCH-107](backlog/tasks/ARCH-107.md) P3 · draftStore.ts and formCells.js are split by responsibility (in progress)
-- [ARCH-122](backlog/tasks/ARCH-122.md) P3 · PdfRedactTool.test.tsx is split by behaviour area (in progress)
-- [ARCH-124](backlog/tasks/ARCH-124.md) P3 · check-ratchet-raises is tested for a direct push to main (in progress)
-- [ARCH-125](backlog/tasks/ARCH-125.md) P3 · The color-literal check also covers TSX style props (in progress)
-- [ARCH-128](backlog/tasks/ARCH-128.md) P3 · The boundary rules are written once and checked against every copy (in progress)
 
 ### Search and languages
 

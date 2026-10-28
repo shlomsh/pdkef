@@ -1,10 +1,9 @@
 ---
 id: "ARCH-125"
 title: "The color-literal check also covers TSX style props"
-status: "in_progress"
+status: "done"
 priority: "P3"
 epic: "unify-and-narrow"
-horizon: "later"
 depends_on: []
 ---
 
@@ -23,4 +22,11 @@ Area: Supporting. Criterion: Styling architecture. Structure only: no behaviour 
 
 ## Acceptance
 
-- [ ] A new color literal in a TSX style prop fails CI unless allowlisted.
+- [x] A new color literal in a TSX style prop fails CI unless allowlisted.
+
+## Done (2026-10-28)
+
+- `scripts/check-color-literals.mjs` also scans JSX `style=` props in non-test `.tsx` files (`style={...}` with a
+  balanced-brace scan that skips strings and template literals, and quoted `style="..."`), with the same allowlist
+  and stale-entry rules as the CSS scan.
+- The one literal it found, a text mark's default ink in `TextNode.tsx`, is document data and is allowlisted.
