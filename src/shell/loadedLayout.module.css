@@ -13,6 +13,29 @@
   text-align: start;
 }
 
+/* ARCH-41: the phone bar (PageWorkspace's chip-bar) and the layout share this
+   frame, so the bar's sticky range is the whole loaded state, not one grid
+   cell. */
+.finish-frame {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+/* ARCH-41 (Shlomi, 2026-10-28): on a desktop the loaded card is exactly one
+   screen tall. The stage (the result column) is the card's floor less the
+   card's 1rem padding top and bottom and its 1px border: the same uncapped
+   floor the page-grid tools use (PdfTool.module.css), which the tool opts into
+   with `data-fills-stage` on its layout. What the stage holds fits inside it
+   or scrolls inside it, so the card never grows past the window. */
+@media (min-width: 1024px) {
+  .stage {
+    --stage-h: calc(max(600px, 100svh - 3.5rem) - 5.5rem - 2rem - 2px);
+    box-sizing: border-box;
+    height: var(--stage-h);
+  }
+}
+
 @media (min-width: 1024px) {
   .loaded-layout {
     grid-template-columns: minmax(0, 1fr) 360px;
