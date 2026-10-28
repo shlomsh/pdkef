@@ -31,41 +31,24 @@ on:
         type: boolean
         default: false
 
-# Jobs run in parallel instead of one sequential job, so the wall time is the
-# longest chain, not the sum. Measured before the first split (n=8 runs): 8.2
-# min median, two thirds of it Playwright on a single worker, with the font
-# guards more than half of that. All of them wait on the `scope` job (about
-# 10s) and skip when the change is docs-only; when scope produces no verdict
-# they run, so a broken classifier costs time, never coverage.
+# Jobs run in parallel, so the wall time is the longest chain, not the sum. All of them wait on the
+# `scope` job (about 10s) and skip when the change is docs-only; when scope produces no verdict they
+# run, so a broken classifier costs time, never coverage.
 #
-# `build` runs every guard that reads dist/ (csp, seo, redirects, css, weight);
-# `e2e` is a four-shard matrix beside it (two shards until QUAL-23), each
-# shard building for itself and running its share of the product e2e. Splitting it from `build` was QUAL-05
-# (2026-09-13): the product e2e was the long pole in `build` at 1:45-2:10 on
-# two workers, and halving it needs no knowledge of the code, unlike the
-# per-tool gating ARCH-20 plans. Each shard pays the fixed cost (npm ci,
-# build, browser install) again, which is the trade the ticket accepts.
-# `e2e-webkit` (QUAL-09, 2026-09-14) is a separate, unsharded job beside it:
-# the webkit tests and the perf budgets run once there, so the chromium shards
-# install and run chromium only.
+# QUAL-42: `plan` runs once per run. It resolves the affected scope (`scripts/affected-scope.mjs`,
+# which needs node_modules for `nx`, hence cannot live in `scope`), sizes the e2e matrix by the number
+# of specs in scope, builds `dist/` and uploads it as the `dist` artifact. `build` (the guards that
+# read dist/), each `e2e` shard, `e2e-webkit`, each `font-guards` shard and `export-guards` download
+# that artifact and read the scope from plan's outputs instead of installing, resolving and building
+# for themselves. `checks` and `units` read no build and run beside it. `scope` stays free of
+# `npm ci` (about 6s) and adds a `base` output, the resolved base sha, that plan and `checks` reuse so
+# every job agrees on the same diff. The affected computation is described in docs/nx-affected-ci.md.
 #
-# ARCH-20 (2026-09-14): `checks`, each `e2e` shard, each `font-guards` shard and `export-guards` narrow
-# their own unit/e2e work to what a real Nx project graph (one project per
-# src/shell, src/editor, src/editor-ui, src/lib, src/tools/<tool>/, the site,
-# public/fonts and the e2e trees - see nx.json and the project.json files)
-# says the push affects. `scripts/affected-scope.mjs` is the oracle - it asks
-# `nx show projects --affected`, then each job runs ONE `vitest run <paths>`
-# or `playwright test <paths>` itself; Nx never executes a test directly (see
-# docs/nx-affected-ci.md for why 18 separate `nx run <project>:test` calls
-# would cost more than they save whenever most projects are affected). The
-# affected computation happens INSIDE each consuming job, right after its own
-# `npm ci`, not in `scope`: `scope` has no node_modules and stays ~6s so every
-# other job isn't waiting on an `npm ci` most runs don't need to narrow
-# anything from. `scope` only adds a `base` output (the resolved base sha)
-# for the consuming jobs to reuse, so all of them agree on the same diff.
-# DEBT-35: every build here is stamped with the commit, exactly like a Vercel build, so the build
+# `e2e` is a matrix beside `build` (QUAL-05, QUAL-23); `e2e-webkit` (QUAL-09) is a separate,
+# unsharded job, so the chromium shards run chromium only.
+# DEBT-35: the one build here is stamped with the commit, exactly like a Vercel build, so the build
 # guards run on what ships and e2e/error-report-build.spec.js (which reads this variable) fails if
-# a stamped build ever stops carrying the tag. Workflow-level, not per step: five jobs build.
+# a stamped build ever stops carrying the tag. Workflow-level, not per step.
 # QUAL-26: a newer push to the same pull request cancels its older run. Every
 # other event (push to main, the nightly, a manual dispatch) gets a group of
 # its own run id, which nothing else ever joins, so it always runs to the end.
@@ -285,12 +268,22 @@ jobs:
     - name: Run tests
       run: npx vitest run
 
-  # ARCH-86: a dependency bump that breaks the build fails once here instead of in every job that
-  # builds; skipped on every other run, so it costs no wall time there.
-  dependency-gate:
+  # QUAL-42: the one place that resolves the affected scope and builds. Every consumer downloads
+  # `dist` and reads the scope from these outputs. A dependency bump that breaks the build fails here
+  # once (this replaces the old dependabot-only build gate). Full history, because the site build
+  # dates pages from git (see `build`). `product_e2e` false means no e2e job runs; `e2e_shards` is a
+  # JSON array of 1..4 numbers sized by the spec count in scope (scripts/e2e-shard-count.mjs).
+  plan:
     runs-on: ubuntu-latest
     needs: scope
-    if: github.event_name == 'pull_request' && startsWith(github.head_ref, 'dependabot/')
+    if: always() && needs.scope.outputs.nightly_unchanged != 'true' && (needs.scope.result != 'success' || needs.scope.outputs.docs_only != 'true')
+    outputs:
+      product_e2e: ${{ steps.affected.outputs.product_e2e }}
+      e2e_paths: ${{ steps.affected.outputs.e2e_paths }}
+      fonts: ${{ steps.affected.outputs.fonts }}
+      export_guards: ${{ steps.affected.outputs.export_guards }}
+      everything: ${{ steps.affected.outputs.everything }}
+      e2e_shards: ${{ steps.shards.outputs.e2e_shards }}
 
     steps:
     - uses: actions/checkout@v5
@@ -307,12 +300,44 @@ jobs:
     - name: Install dependencies
       run: npm ci
 
+    # An empty e2e_paths is ambiguous (everything=true or nothing e2e-relevant is affected) and an
+    # empty filter runs every spec, so the e2e jobs are gated on `product_e2e` (QUAL-32).
+    - name: Resolve affected scope
+      id: affected
+      env:
+        BASE: ${{ needs.scope.outputs.base }}
+      run: |
+        if [ -n "$BASE" ]; then git fetch --no-tags --depth=1 origin "$BASE" || true; fi
+        node scripts/affected-scope.mjs --base "$BASE" >> "$GITHUB_OUTPUT"
+
+    - name: Size the e2e matrix
+      id: shards
+      if: steps.affected.outputs.product_e2e != 'false'
+      env:
+        EVERYTHING: ${{ steps.affected.outputs.everything }}
+        E2E_PATHS: ${{ steps.affected.outputs.e2e_paths }}
+      run: |
+        if [ "$EVERYTHING" = "true" ]; then
+          node scripts/e2e-shard-count.mjs --everything >> "$GITHUB_OUTPUT"
+        else
+          node scripts/e2e-shard-count.mjs --paths "$E2E_PATHS" >> "$GITHUB_OUTPUT"
+        fi
+
     - name: Build
       run: npm run build
 
-  # The build and every guard that reads dist/. The product e2e suite is the
-  # `e2e` job below, which builds again rather than waiting for this job; the
-  # font guards have their own job further down.
+    # include-hidden-files: dist/.well-known is a dot directory and would be dropped without it.
+    - name: Upload dist
+      uses: actions/upload-artifact@v5
+      with:
+        name: dist
+        path: dist/
+        include-hidden-files: true
+        retention-days: 1
+        if-no-files-found: error
+
+  # The guards that read dist/. The product e2e suite is the `e2e` job below and the font guards have
+  # their own job further down; all of them download plan's build.
   # astro check is CI-only since QUAL-24; local checks run tsc.
   typecheck:
     runs-on: ubuntu-latest
@@ -337,8 +362,8 @@ jobs:
 
   build:
     runs-on: ubuntu-latest
-    needs: scope
-    if: always() && needs.scope.outputs.nightly_unchanged != 'true' && (needs.scope.result != 'success' || needs.scope.outputs.docs_only != 'true')
+    needs: [scope, plan]
+    if: always() && needs.scope.outputs.nightly_unchanged != 'true' && (needs.scope.result != 'success' || needs.scope.outputs.docs_only != 'true') && needs.plan.result == 'success'
 
     steps:
     - uses: actions/checkout@v5
@@ -360,8 +385,11 @@ jobs:
     - name: Install dependencies
       run: npm ci
 
-    - name: Build
-      run: npm run build
+    - name: Download dist
+      uses: actions/download-artifact@v5
+      with:
+        name: dist
+        path: dist
 
     - name: Verify CSP hashes
       run: npm run test:csp
@@ -393,26 +421,18 @@ jobs:
     - name: Check client entries and hot chunks keep stable names
       run: npm run test:stable-names
 
-  # The product e2e suite, split into shards (QUAL-05: two; QUAL-23,
-  # 2026-10-18: four). Files shard whole and in path order, so two shards put
-  # every e2e/** spec in shard 1 (355s of test time on run 39124382451) and
-  # every src/tools/*/e2e/** spec in shard 2 (567s). The repo is public, so a
-  # shard costs runner time only, about 45-60s of fixed cost each. Every chromium spec except the font
-  # guards (their own job below) and webkit/perf (their own job, `e2e-webkit`,
-  # QUAL-09). Each shard builds for itself (10s) instead
-  # of waiting for `build` and downloading its dist/: measured on the first
-  # sharded run, that put 60s of `build` in front of a 65s fixed cost per
-  # shard (checkout, npm ci, browser install) and gave back the whole 43s the
-  # split had saved. The build is deterministic for a commit, so the guards in
-  # `build` still vouch for what these specs load.
+  # The product e2e suite, a matrix sized by plan from the spec count in scope (QUAL-42; QUAL-05 and
+  # QUAL-23 split it). Files shard whole and in path order. Every chromium spec except the font guards
+  # (their own job below) and webkit/perf (`e2e-webkit`, QUAL-09). Each shard downloads plan's `dist`
+  # instead of building, so the guards in `build` vouch for exactly what these specs load.
   e2e:
     runs-on: ubuntu-latest
-    needs: [scope, playwright-version, dependency-gate]
-    if: always() && needs.dependency-gate.result != 'failure' && needs.playwright-version.result == 'success' && needs.scope.outputs.nightly_unchanged != 'true' && (needs.scope.result != 'success' || needs.scope.outputs.docs_only != 'true')
+    needs: [scope, plan, playwright-version]
+    if: always() && needs.plan.result == 'success' && needs.plan.outputs.product_e2e != 'false' && needs.playwright-version.result == 'success'
     strategy:
       fail-fast: false
       matrix:
-        shard: [1, 2, 3, 4]
+        shard: ${{ fromJSON(needs.plan.outputs.e2e_shards || '[1]') }}
     # QUAL-29: Playwright's own image, as `e2e-webkit` below, so no shard waits on the Ubuntu mirror for
     # `install-deps chromium` (11 and 13+ min on two shards of run 40394949781). `font-guards` stays on
     # the runner: its pixel thresholds were measured against the runner's own fonts.
@@ -436,38 +456,24 @@ jobs:
     - name: Install dependencies
       run: npm ci
 
-    # Right after npm ci (needs node_modules for `nx`), so every shard agrees
-    # on the same affected paths - see the workflow header comment and
-    # docs/nx-affected-ci.md. An empty e2e_paths is ambiguous (everything=true
-    # or nothing e2e-relevant is affected) and an empty filter runs every
-    # spec, so the Build and Playwright steps below are gated on the
-    # `product_e2e` output (QUAL-32); a missing output still runs them.
-    # `--pass-with-no-tests` makes a narrowed, zero-match project exit 0.
-    - name: Resolve affected scope
-      id: affected
-      env:
-        BASE: ${{ needs.scope.outputs.base }}
-      run: |
-        if [ -n "$BASE" ]; then git fetch --no-tags --depth=1 origin "$BASE" || true; fi
-        node scripts/affected-scope.mjs --base "$BASE" >> "$GITHUB_OUTPUT"
-
-    - name: Build
-      if: steps.affected.outputs.product_e2e != 'false'
-      run: npm run build
+    - name: Download dist
+      uses: actions/download-artifact@v5
+      with:
+        name: dist
+        path: dist
 
     # One command per project (QUAL-09): webkit now lives in its own job
     # (`e2e-webkit`) instead of being sharded here alongside chromium.
     # $E2E_PATHS is empty (no filter, the full suite) only when affected-scope.mjs
-    # saw everything=true; the step is skipped when product_e2e=false.
+    # saw everything=true; the job is skipped when product_e2e=false.
     # On the nightly (cron or a nightly dispatch) every chromium spec runs twice (the chromium
     # project has no retries), so a flaky spec turns the nightly red instead
     # of a push (QUAL-24).
-    - name: Run Playwright e2e tests (product chromium, shard ${{ matrix.shard }}/4)
-      if: steps.affected.outputs.product_e2e != 'false'
+    - name: Run Playwright e2e tests (product chromium, shard ${{ matrix.shard }}/${{ strategy.job-total }})
       env:
-        E2E_PATHS: ${{ steps.affected.outputs.e2e_paths }}
+        E2E_PATHS: ${{ needs.plan.outputs.e2e_paths }}
         REPEAT: ${{ (github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.nightly)) && '--repeat-each=2' || '' }}
-      run: npx playwright test --project=chromium --shard=${{ matrix.shard }}/4 --pass-with-no-tests $REPEAT $E2E_PATHS
+      run: npx playwright test --project=chromium --shard=${{ matrix.shard }}/${{ strategy.job-total }} --pass-with-no-tests $REPEAT $E2E_PATHS
 
     - name: Upload Playwright artifacts
       if: failure()
@@ -489,22 +495,16 @@ jobs:
         retention-days: 30
         if-no-files-found: ignore
 
-  # QUAL-09 (2026-09-14): webkit and the perf budgets run once here, unsharded,
-  # instead of inside the `e2e` matrix above. Measured on run 34788031094:
-  # each chromium shard's `playwright install --with-deps chromium webkit`
-  # cost 51s to install a browser that only ran 21 webkit tests, about 32s of
-  # test time; both shards paid the 51s, and after QUAL-06 rebalanced the font
-  # guards, the `e2e` shards were the wall at 180-210s. Splitting webkit out
-  # means the two chromium shards install and run chromium only, and webkit
-  # plus the perf budgets are installed and run exactly once, here.
+  # QUAL-09: webkit and the perf budgets run once here, unsharded, so the `e2e` shards run chromium
+  # only. Like them it downloads plan's `dist` and gates on plan's `product_e2e`.
   e2e-webkit:
     # Pinned (QUAL-28, 2026-10-25): ubuntu-latest became Ubuntu 26.04 and
     # Playwright's WebKit build cannot start there (no libicudata.so.74), so
     # every webkit test failed at launch. Back to ubuntu-latest once a
     # Playwright release runs WebKit on 26.04.
     runs-on: ubuntu-24.04
-    needs: [scope, playwright-version, dependency-gate]
-    if: always() && needs.dependency-gate.result != 'failure' && needs.playwright-version.result == 'success' && needs.scope.outputs.nightly_unchanged != 'true' && (needs.scope.result != 'success' || needs.scope.outputs.docs_only != 'true')
+    needs: [scope, plan, playwright-version]
+    if: always() && needs.plan.result == 'success' && needs.plan.outputs.product_e2e != 'false' && needs.playwright-version.result == 'success'
     # QUAL-29 (2026-10-26): Playwright's own image, with chromium, webkit and every system library they
     # need already in it. `install-deps` used to fetch about 119 MB of WebKit libraries from the Azure
     # Ubuntu mirror on every run, usually in 30s but in 35-55 min on 6 runs that day (48 kB/s, run
@@ -519,8 +519,7 @@ jobs:
     steps:
     - uses: actions/checkout@v5
 
-    # The container's git did not create the workspace, so it would refuse it as "dubious ownership"
-    # when affected-scope.mjs and nx ask for the diff.
+    # The container's git did not create the workspace, so it would refuse it as "dubious ownership".
     - name: Trust the workspace for git
       run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
 
@@ -534,29 +533,15 @@ jobs:
     - name: Install dependencies
       run: npm ci
 
-    # Right after npm ci (needs node_modules for `nx`), so this job and the
-    # chromium shards agree on the same affected paths - see the workflow
-    # header comment and docs/nx-affected-ci.md. An empty e2e_paths is
-    # ambiguous (everything=true or nothing e2e-relevant is affected) and an
-    # empty filter runs every spec, so the Build and Playwright steps below
-    # are gated on the `product_e2e` output (QUAL-32); a missing output still
-    # runs them. `--pass-with-no-tests` makes a narrowed, zero-match project exit 0.
-    - name: Resolve affected scope
-      id: affected
-      env:
-        BASE: ${{ needs.scope.outputs.base }}
-      run: |
-        if [ -n "$BASE" ]; then git fetch --no-tags --depth=1 origin "$BASE" || true; fi
-        node scripts/affected-scope.mjs --base "$BASE" >> "$GITHUB_OUTPUT"
-
-    - name: Build
-      if: steps.affected.outputs.product_e2e != 'false'
-      run: npm run build
+    - name: Download dist
+      uses: actions/download-artifact@v5
+      with:
+        name: dist
+        path: dist
 
     - name: Run Playwright e2e tests (product webkit)
-      if: steps.affected.outputs.product_e2e != 'false'
       env:
-        E2E_PATHS: ${{ steps.affected.outputs.e2e_paths }}
+        E2E_PATHS: ${{ needs.plan.outputs.e2e_paths }}
         PLAYWRIGHT_JSON_OUTPUT_NAME: playwright-json/webkit.json
       run: npx playwright test --project=webkit --pass-with-no-tests $E2E_PATHS
 
@@ -565,9 +550,8 @@ jobs:
     # Moved here from `e2e` shard 1 by QUAL-09: this job has the spare time
     # once the chromium shards stop installing webkit.
     - name: Run Playwright e2e tests (performance budgets, one worker)
-      if: steps.affected.outputs.product_e2e != 'false'
       env:
-        E2E_PATHS: ${{ steps.affected.outputs.e2e_paths }}
+        E2E_PATHS: ${{ needs.plan.outputs.e2e_paths }}
         PLAYWRIGHT_JSON_OUTPUT_NAME: playwright-json/perf.json
       run: npx playwright test --project=perf --workers=1 --pass-with-no-tests $E2E_PATHS
 
@@ -724,9 +708,8 @@ jobs:
   #
   # This job stays dependency-free (no `npm ci`) on purpose - see the
   # workflow header comment. It resolves BASE once and outputs it as `base`
-  # so `checks`, each `e2e` shard, each `font-guards` shard, `export-guards` and `e2e-webkit`
-  # can each run their own `scripts/affected-scope.mjs` (which needs
-  # `node_modules` for `nx`, hence cannot live here) against the same diff.
+  # so `plan` (which runs `scripts/affected-scope.mjs`, needing `node_modules`
+  # for `nx`) and `checks` work against the same diff.
   scope:
     runs-on: ubuntu-latest
     if: github.event_name == 'push' || github.event_name == 'pull_request' || (github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.nightly))
@@ -838,41 +821,17 @@ jobs:
     - name: Measure the update cost
       run: npm run measure:update-cost -- "$RUNNER_TEMP/dist-before" "$RUNNER_TEMP/dist-after"
 
-  # The 25 font screening guards (the `fonts` Playwright project): shaping
-  # guards per script, font parity, Hebrew composition. This job now starts on
-  # every non-docs run (same fail-open `if:` as `checks`/`build`/`e2e`) and
-  # computes its own `fonts` boolean right after `npm ci`, via
-  # scripts/affected-scope.mjs's `matchesFontsGlob` file-glob rule (ARCH-23,
-  # 2026-09-18: public/fonts, src/editor/text, editorFonts.css, scripts/fonts,
-  # the guard specs/fixtures under e2e/sign, playwright.config.js; the steps
-  # gate on `!= 'false'` so a missing output runs them, fail-open) - ARCH-20
-  # first retired the hand-kept `FONT_GUARD_INPUTS` list this used to read
-  # from the `scope` job in favour of asking Nx whether `fonts` was affected;
-  # ARCH-23 then found that Nx edge (`fonts` declaring `editor`/`lib`/
-  # `tool-sign` as whole-project dependencies) ran all 27 guards on a Sign
-  # toolbar/tooltip change with zero measured coverage benefit, so the
-  # per-push decision is a glob again - see backlog/tasks/ARCH-23.md and
-  # docs/nx-affected-ci.md's "ARCH-23" section. Every step after that reads
-  # costs one runner ~20s in parallel with `checks`/`e2e` and no wall time
-  # when fonts is not affected; on the nightly schedule, a nightly dispatch
-  # and a plain manual dispatch (no base, or `scope` skipped),
-  # affected-scope.mjs's own fail-open rule makes
-  # fonts=true, so those still run. The two guards that exercise the real
-  # export pipeline (the export render guard, language acceptance) are the
-  # `export-guards` job below, not part of this one any more.
-  #
-  # QUAL-06 (2026-09-14): matrixed into two shards balanced by measured time
-  # in playwright.config.js (`fonts-shard-1`/`fonts-shard-2`), because on
-  # every run where the guards ran this job was the long pole (144-251s
-  # against 135-180s for the `e2e` shards). Both shards compute the same
-  # `fonts` verdict from affected-scope.mjs and skip together. The exported-PDF
-  # baseline recapture step used to live here (shard 1 only, since the export
-  # render guard was its heaviest named spec) - ARCH-23 moved both to the
-  # `export-guards` job below, alongside the guard that owns the baseline.
+  # The 25 font screening guards (the `fonts` Playwright project): shaping guards per script, font
+  # parity, Hebrew composition. Gated on plan's `fonts` verdict, which is the file-glob rule
+  # `matchesFontsGlob` in scripts/affected-scope.mjs (ARCH-23; see docs/nx-affected-ci.md), and fail-open:
+  # `!= 'false'`. The nightly, a nightly dispatch and a plain manual dispatch make fonts=true. Matrixed
+  # into two shards balanced by measured time (QUAL-06: `fonts-shard-1`/`fonts-shard-2` in
+  # playwright.config.js). These run on the plain runner, never the Playwright container: their pixel
+  # thresholds were measured against the runner's own fonts. The export guards are the job below.
   font-guards:
     runs-on: ubuntu-latest
-    needs: [scope, dependency-gate]
-    if: always() && needs.dependency-gate.result != 'failure' && needs.scope.outputs.nightly_unchanged != 'true' && (needs.scope.result != 'success' || needs.scope.outputs.docs_only != 'true')
+    needs: [scope, plan]
+    if: always() && needs.plan.result == 'success' && needs.plan.outputs.fonts != 'false'
     strategy:
       fail-fast: false
       matrix:
@@ -891,26 +850,18 @@ jobs:
     - name: Install dependencies
       run: npm ci
 
-    - name: Resolve affected scope
-      id: affected
-      env:
-        BASE: ${{ needs.scope.outputs.base }}
-      run: |
-        if [ -n "$BASE" ]; then git fetch --no-tags --depth=1 origin "$BASE" || true; fi
-        node scripts/affected-scope.mjs --base "$BASE" >> "$GITHUB_OUTPUT"
-
-    - name: Build
-      if: steps.affected.outputs.fonts != 'false'
-      run: npm run build
+    - name: Download dist
+      uses: actions/download-artifact@v5
+      with:
+        name: dist
+        path: dist
 
     - name: Resolve Playwright version
       id: playwright
-      if: steps.affected.outputs.fonts != 'false'
       run: echo "version=$(node -p "require('@playwright/test/package.json').version")" >> "$GITHUB_OUTPUT"
 
     - name: Cache Playwright browsers
       id: playwright-cache
-      if: steps.affected.outputs.fonts != 'false'
       uses: actions/cache@v4
       with:
         path: ~/.cache/ms-playwright
@@ -918,15 +869,13 @@ jobs:
 
     # QUAL-33: apt is bounded at 120 s, retry 300 s; the browser download is separate.
     - name: Install Playwright system dependencies
-      if: steps.affected.outputs.fonts != 'false'
       run: bash scripts/ci-bounded-apt.sh 120 300 npx playwright install-deps chromium
 
     - name: Install Playwright browsers
-      if: steps.affected.outputs.fonts != 'false' && steps.playwright-cache.outputs.cache-hit != 'true'
+      if: steps.playwright-cache.outputs.cache-hit != 'true'
       run: npx playwright install chromium
 
     - name: Run Playwright e2e tests (font guards, shard ${{ matrix.shard }}/2)
-      if: steps.affected.outputs.fonts != 'false'
       run: npx playwright test --project=fonts-shard-${{ matrix.shard }}
 
     - name: Upload Playwright artifacts
@@ -950,11 +899,11 @@ jobs:
   # verdict from scripts/affected-scope.mjs, not a glob: a Sign toolbar or
   # tooltip change still runs these two (cheap, well under a minute combined),
   # it just no longer drags the other 25 font guards with it. No matrix - two
-  # specs do not need sharding.
+  # specs do not need sharding. Gated on plan's `export_guards`, downloads plan's `dist`.
   export-guards:
     runs-on: ubuntu-latest
-    needs: [scope, dependency-gate]
-    if: always() && needs.dependency-gate.result != 'failure' && needs.scope.outputs.nightly_unchanged != 'true' && (needs.scope.result != 'success' || needs.scope.outputs.docs_only != 'true')
+    needs: [scope, plan]
+    if: always() && needs.plan.result == 'success' && needs.plan.outputs.export_guards != 'false'
 
     steps:
     - uses: actions/checkout@v5
@@ -969,26 +918,18 @@ jobs:
     - name: Install dependencies
       run: npm ci
 
-    - name: Resolve affected scope
-      id: affected
-      env:
-        BASE: ${{ needs.scope.outputs.base }}
-      run: |
-        if [ -n "$BASE" ]; then git fetch --no-tags --depth=1 origin "$BASE" || true; fi
-        node scripts/affected-scope.mjs --base "$BASE" >> "$GITHUB_OUTPUT"
-
-    - name: Build
-      if: steps.affected.outputs.export_guards != 'false'
-      run: npm run build
+    - name: Download dist
+      uses: actions/download-artifact@v5
+      with:
+        name: dist
+        path: dist
 
     - name: Resolve Playwright version
       id: playwright
-      if: steps.affected.outputs.export_guards != 'false'
       run: echo "version=$(node -p "require('@playwright/test/package.json').version")" >> "$GITHUB_OUTPUT"
 
     - name: Cache Playwright browsers
       id: playwright-cache
-      if: steps.affected.outputs.export_guards != 'false'
       uses: actions/cache@v4
       with:
         path: ~/.cache/ms-playwright
@@ -996,15 +937,13 @@ jobs:
 
     # QUAL-33: apt is bounded at 120 s, retry 300 s; the browser download is separate.
     - name: Install Playwright system dependencies
-      if: steps.affected.outputs.export_guards != 'false'
       run: bash scripts/ci-bounded-apt.sh 120 300 npx playwright install-deps chromium
 
     - name: Install Playwright browsers
-      if: steps.affected.outputs.export_guards != 'false' && steps.playwright-cache.outputs.cache-hit != 'true'
+      if: steps.playwright-cache.outputs.cache-hit != 'true'
       run: npx playwright install chromium
 
     - name: Run Playwright e2e tests (export guards)
-      if: steps.affected.outputs.export_guards != 'false'
       run: npx playwright test --project=export-guards
 
     # Prints the recaptured baseline rather than committing it. Review the
