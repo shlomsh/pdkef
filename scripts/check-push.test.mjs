@@ -1,6 +1,6 @@
 import { EventEmitter } from 'node:events';
 import { describe, expect, it } from 'vitest';
-import { runStageWith, touchesAstro, fileCannotReachDist, reachesDist, planSteps, stageSteps, localScope, portOwnerVerdict, ALWAYS_GUARD_STEPS, DIST_GUARD_STEPS, DOCS_ONLY_STEPS, distGuardScripts } from './check-push.mjs';
+import { runStageWith, touchesAstro, fileCannotReachDist, reachesDist, planSteps, stageSteps, localScope, portOwnerVerdict, ALWAYS_GUARD_STEPS, DIST_GUARD_STEPS, DOCS_ONLY_STEPS, distGuardScripts, STEP_RUNNERS } from './check-push.mjs';
 import { deriveScope, wide, finishScope } from './affected-scope.mjs';
 import { narrowTestOnlyChange } from './test-only-scope.mjs';
 import { classify } from './change-scope.mjs';
@@ -131,6 +131,9 @@ describe('fileCannotReachDist / reachesDist', () => {
     },
   );
 
+  it.each([...ALWAYS_GUARD_STEPS, ...DIST_GUARD_STEPS])('step %s has a runner (a listed step with none crashes check:push)', (step) => {
+    expect(typeof STEP_RUNNERS[step]).toBe('function');
+  });
   it.each(DIST_GUARD_STEPS)('dist guard step %s contributes a script to distGuardScripts (a bare `npm run x` would not be followed)', (step) => {
     const pkg = readFileSync(new URL('../package.json', import.meta.url), 'utf8');
     const read = (rel) => {
