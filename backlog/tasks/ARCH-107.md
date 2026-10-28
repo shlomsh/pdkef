@@ -1,7 +1,7 @@
 ---
 id: "ARCH-107"
 title: "draftStore.ts and formCells.js are split by responsibility"
-status: "open"
+status: "in_progress"
 priority: "P3"
 epic: "unify-and-narrow"
 horizon: "later"

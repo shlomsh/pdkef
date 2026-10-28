@@ -1,7 +1,7 @@
 ---
 id: "ARCH-128"
 title: "The boundary rules are written once and checked against every copy"
-status: "open"
+status: "in_progress"
 priority: "P3"
 epic: "unify-and-narrow"
 horizon: "later"

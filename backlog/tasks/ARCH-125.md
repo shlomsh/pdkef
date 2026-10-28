@@ -1,7 +1,7 @@
 ---
 id: "ARCH-125"
 title: "The color-literal check also covers TSX style props"
-status: "open"
+status: "in_progress"
 priority: "P3"
 epic: "unify-and-narrow"
 horizon: "later"

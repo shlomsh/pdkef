@@ -1,7 +1,7 @@
 ---
 id: "ARCH-122"
 title: "PdfRedactTool.test.tsx is split by behaviour area"
-status: "open"
+status: "in_progress"
 priority: "P3"
 epic: "unify-and-narrow"
 horizon: "later"
