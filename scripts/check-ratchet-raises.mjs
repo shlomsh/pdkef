@@ -10,7 +10,7 @@ import { findRaises, parseRenames, readRatchetLimits } from './ratchet-limits.mj
 
 const gitIn = (cwd, args) => execFileSync('git', args, { cwd, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] });
 
-// Compares the limits file at `cwd`'s HEAD tree (the working copy) against `base`.
+// Compares the working copy's limits file in `cwd`'s repo against `base`.
 // Returns { status: 'no-base-file' | 'ok' | 'raised', raises }.
 export function raisesSince(base, { cwd = process.cwd() } = {}) {
   let baseJson;
