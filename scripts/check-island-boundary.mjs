@@ -7,6 +7,7 @@
 import { readFileSync, globSync } from 'node:fs';
 import { dirname, resolve, posix } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { aliasTarget } from './import-aliases.mjs';
 
 const EXTENSIONS = ['', '.tsx', '.ts', '.jsx', '.js'];
 const WRAPPED = /export\s+default\s+withIslandBoundary\s*\(/;
@@ -49,7 +50,7 @@ export function findUnwrappedIslands({ file, text, read }) {
   const problems = [];
   for (const island of new Set(islandsIn(text))) {
     const spec = importPath(text, island);
-    const base = spec?.startsWith('.') ? posix.join(posix.dirname(file), spec) : null;
+    const base = spec?.startsWith('.') ? posix.join(posix.dirname(file), spec) : (spec && aliasTarget(spec)) || null;
     const source = base === null ? null : EXTENSIONS.map((ext) => read(base + ext)).find((s) => s !== null && s !== undefined) ?? null;
     if (source === null) problems.push({ file, island, reason: 'cannot resolve the island import' });
     else if (!WRAPPED.test(stripComments(source))) problems.push({ file, island, reason: 'default export is not withIslandBoundary(...)' });

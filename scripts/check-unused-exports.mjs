@@ -31,6 +31,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import ts from 'typescript';
+import { aliasTarget } from './import-aliases.mjs';
 import { readRatchetLimits, writeRatchetLimits } from './ratchet-limits.mjs';
 
 const root = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -45,8 +46,9 @@ const isCounted = (p) => p.startsWith('src/') && !p.endsWith('.astro') && !p.end
 
 function resolveSpecifier(from, specifierRaw, files) {
   const specifier = specifierRaw.split('?')[0];
-  if (!specifier.startsWith('.')) return null;
-  const base = path.posix.normalize(path.posix.join(path.posix.dirname(from), specifier));
+  const aliased = aliasTarget(specifier);
+  if (!aliased && !specifier.startsWith('.')) return null;
+  const base = aliased ?? path.posix.normalize(path.posix.join(path.posix.dirname(from), specifier));
   const ext = path.posix.extname(base);
   const stem = ext ? base.slice(0, -ext.length) : base;
   const candidates = [base, ...EXTS.map((e) => stem + e), ...EXTS.map((e) => base + e), ...EXTS.map((e) => `${base}/index${e}`)];

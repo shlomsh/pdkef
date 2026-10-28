@@ -7,6 +7,12 @@ const page = (body, importLine = "import Tool from '../tools/x/Tool.tsx';") => `
 const check = (files, text, file = 'src/pages/x.astro') => findUnwrappedIslands({ file, text, read: tree(files) });
 
 describe('check-island-boundary', () => {
+  it('resolves an island imported through an alias like the relative spelling', () => {
+    const files = { 'src/shell/Tool.tsx': 'function Tool() {}\nexport default withIslandBoundary(Tool);', 'src/shell/Bare.tsx': 'export default function Bare() { return null; }' };
+    expect(check(files, page('<Tool client:load />', "import Tool from '#shell/Tool.tsx';"))).toEqual([]);
+    expect(check(files, page('<Bare client:load />', "import Bare from '#shell/Bare.tsx';")).map((p) => p.reason)).toEqual(['default export is not withIslandBoundary(...)']);
+    expect(check(files, page('<Gone client:load />', "import Gone from '#shell/Gone.tsx';")).map((p) => p.reason)).toEqual(['cannot resolve the island import']);
+  });
   it('fails an island whose default export is not withIslandBoundary', () => {
     const files = { 'src/tools/x/Tool.tsx': 'export default function Tool() { return null; }' };
     expect(check(files, page('<Tool client:load />')).map((p) => p.island)).toEqual(['Tool']);
