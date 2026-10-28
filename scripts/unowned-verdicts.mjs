@@ -26,6 +26,8 @@ export const UNOWNED_VERDICTS = [
   rowOf((f) => /^\.github\/workflows\/[^/]+\.ya?ml$/.test(f), 'none', "another workflow runs its own jobs; ci.yml's specs never execute it (ci.yml itself is matched by the row above)"),
 ];
 
+export const PACKAGE_FILE = 'package.json';
+
 export function unownedRowOf(file) {
   return UNOWNED_VERDICTS.find((row) => row.test(file)) ?? null;
 }
@@ -35,8 +37,9 @@ export function unownedVerdictOf(file) {
 }
 
 // The files Nx is asked about: table files are left out, or middleware.ts would mark most projects affected.
-export function filesForNx(files) {
-  return files.filter((f) => !unownedRowOf(f));
+// QUAL-43: so is a package.json whose edit stays off the e2e path, since Nx marks every project affected by it.
+export function filesForNx(files, { packageJsonOffPath = false } = {}) {
+  return files.filter((f) => !unownedRowOf(f) && !(packageJsonOffPath && f === PACKAGE_FILE));
 }
 
 // QUAL-34: does a ci.yml change reach the `job`? `hunks` are new-side {start, count} ranges from
@@ -111,7 +114,6 @@ export function packageJsonReachesE2e(beforeText, afterText) {
 }
 
 // QUAL-43: the same question for a diff base..head (the working tree when head is unset); any error answers true.
-export const PACKAGE_FILE = 'package.json';
 export function packageJsonReachesE2eBetween(base, head) {
   try {
     const git = (args) => execFileSync('git', args, { encoding: 'utf8', cwd: ROOT, stdio: ['ignore', 'pipe', 'ignore'] });
