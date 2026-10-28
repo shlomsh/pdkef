@@ -19,7 +19,7 @@ export const UNOWNED_VERDICTS = [
     'none',
     'no spec or build step reads it',
   ),
-  rowOf((f) => f === 'public/manifest.webmanifest', ['e2e/offline/'], 'only e2e/offline/twoBuildServer.js reads it'),
+  rowOf((f) => f === 'public/manifest.webmanifest', ['e2e/offline/'], 'precached and served like every public file; only the e2e/offline/ update specs exercise that'),
   rowOf((f) => f === 'public/sw.js' || f.startsWith('public/images/'), 'all', 'every page registers the worker and tool specs open public/images/**; no font guard reads either'),
   rowOf((f) => f === '.github/workflows/ci.yml', 'all', 'a workflow edit can break any job; font guards only when the font-guards job or a shared part changed'),
 ];
@@ -47,6 +47,7 @@ export function ciChangeTouchesJob(ciText, hunks, job) {
   lines.forEach((l, i) => { if (jobsAt >= 0 && i > jobsAt && header(l)) jobStarts.push(i + 1); });
   const first = jobStarts[0] ?? lines.length + 1;
   const mine = jobStarts.indexOf(lines.findIndex((l) => l.startsWith(`  ${job}:`)) + 1);
+  if (mine < 0) return true; // renamed or deleted: fail open, the guards run
   const from = mine >= 0 ? jobStarts[mine] : -1;
   const to = mine >= 0 ? (jobStarts[mine + 1] ?? lines.length + 1) - 1 : -1;
   return hunks.some(({ start, count }) => {

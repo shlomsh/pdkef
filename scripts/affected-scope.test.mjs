@@ -1152,6 +1152,18 @@ describe('unowned-file verdicts (QUAL-34)', () => {
     expect(scope.e2e_paths).toBe('src/tools/compress/e2e/');
   });
 
+  it('an unknown unowned file next to a table file still widens with fonts on', () => {
+    const scope = scopeOf(['package.json', 'vercel.json']);
+    expect(scope.everything).toBe(true);
+    expect(scope.fonts).toBe(true);
+  });
+
+  it('the CI oracle next to a table file still widens with fonts on', () => {
+    const scope = scopeOf(['scripts/affected-scope.mjs', 'vercel.json']);
+    expect(scope.everything).toBe(true);
+    expect(scope.fonts).toBe(true);
+  });
+
   it('the manifest next to a tool file adds e2e/offline/ once', () => {
     const scope = deriveScope({ files: ['public/manifest.webmanifest', 'src/tools/compress/PdfCompressTool.tsx'], affected: ['tool-compress'], roots: ROOTS });
     expect(scope.e2e_paths.split(' ')).toEqual(['src/tools/compress/e2e/', 'e2e/offline/']);
