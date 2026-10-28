@@ -35,7 +35,7 @@ for (const { route, selector, name } of pickers) {
     await page.addInitScript(() => { try { localStorage.clear(); } catch { /* private mode */ } });
     let release;
     const chosen = new Promise((resolve) => { release = resolve; });
-    await page.route('**/_astro/*.js', async (request) => {
+    await page.route(/\/(?:_astro|site|shared)\/[^/]+\.js$/, async (request) => {
       await chosen;
       await request.continue();
     });

@@ -13,8 +13,10 @@ import { HOT_SHARED_CHUNKS } from './stableNames.mjs';
 
 const HASHED_ASTRO_URL = [
   ['script src', /<script\b[^>]*\ssrc="(\/_astro\/[^"]*)"/g],
+  ['modulepreload', /<link\b[^>]*\brel="modulepreload"[^>]*\shref="(\/_astro\/[^"]*\.m?js)"/g],
   ['component-url', /\bcomponent-url="(\/_astro\/[^"]*)"/g],
   ['renderer-url', /\brenderer-url="(\/_astro\/[^"]*)"/g],
+  ['before-hydration-url', /\bbefore-hydration-url="(\/_astro\/[^"]*)"/g],
 ];
 
 // `name.AbCd1234.js`: stable names carry no inner dot (entryFileName turns dots into `_`), so any
