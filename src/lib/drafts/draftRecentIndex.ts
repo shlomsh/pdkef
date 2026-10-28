@@ -51,7 +51,7 @@ export function readCurrentEntryId(tool: string): string | null {
 // cheap to render and makes hasDraftHint/readDraftMeta possible before first
 // paint. The actual PDF bytes and `work` live only in IndexedDB; this index
 // never carries them. Its key, RECENT_FILES_META_KEY, lives in recentFilesKey.js.
-export const RECENT_FILE_PREFIX = 'recent:';
+const RECENT_FILE_PREFIX = 'recent:';
 export const MAX_RECENT_FILES = 6;
 
 export const recentFileKey = (id: string) => `${RECENT_FILE_PREFIX}${id}`;
