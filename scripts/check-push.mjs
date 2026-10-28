@@ -130,6 +130,8 @@ export function fileCannotReachDist(file, guardScripts = realDistGuardScripts())
   if (file.startsWith('src/test/')) return true;
   if (file.startsWith('e2e/')) return true;
   if (/^src\/tools\/[^/]+\/e2e\//.test(file)) return true;
+  // QUAL-36: a dist guard's JSON data (ratchet limits, allowlists) is read, not run, so fail open.
+  if (file.startsWith('scripts/') && file.endsWith('.json')) return false;
   if (file.startsWith('scripts/')) return !BUILD_INVOKED_SCRIPTS.has(file) && !guardScripts.has(file);
   return false;
 }

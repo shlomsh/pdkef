@@ -29,6 +29,10 @@ describe('narrowTestOnlyChange (ARCH-31)', () => {
     expect(scope).toMatchObject({ everything: false, e2e_paths: '', fonts: false, export_guards: false });
   });
 
+  it('an oracle file plus its test keeps the wide scope', () => {
+    expect(narrowTestOnlyChange(wideScope, ['scripts/affected-scope.mjs', 'scripts/affected-scope.test.mjs'])).toBe(wideScope);
+  });
+
   it('a font guard spec runs the font guards, an export guard spec the export guards, nothing else', () => {
     expect(narrowTestOnlyChange(wideScope, ['e2e/sign/hebrew-guard.spec.js'])).toMatchObject({ e2e_paths: '', fonts: true, export_guards: false });
     expect(narrowTestOnlyChange(wideScope, ['e2e/sign/noto-parity.spec.js'])).toMatchObject({ e2e_paths: '', fonts: true });
