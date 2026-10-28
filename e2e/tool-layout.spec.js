@@ -1,4 +1,6 @@
 import { test, expect } from '@playwright/test';
+import { makePdfBuffer } from './support/pdf.js';
+import { openTool } from './support/tool.js';
 
 const toolRoutes = [
   '/merge',
@@ -413,5 +415,31 @@ test('redaction guide images load without page overflow on desktop and mobile', 
     const tables = page.getByRole('table');
     expect(await tables.count()).toBeGreaterThanOrEqual(2);
     for (const table of await tables.all()) await expect(table).toBeVisible();
+  }
+});
+
+// On a phone the loaded Sign/Redact card drops its frame (PdfTool.module.css): the
+// toolbar and each page carry their own border, and the card's 24px padding on top
+// of the page gutter cost the document about 14% of the screen width (Shlomi,
+// 2026-10-28). The page spans the card edge to edge; the card paints nothing.
+test('gives the Sign and Redact page the full phone width inside the gutter', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  for (const route of editorRoutes) {
+    await openTool(page, route, {
+      file: { name: 'phone-width.pdf', buffer: await makePdfBuffer('Phone width') },
+      overlaySelector: '[class*="page-wrapper"]',
+    });
+    const look = await page.evaluate(() => {
+      const card = document.querySelector('[data-tool-card]');
+      const sheet = document.querySelector('[class*="page-wrapper"]');
+      const c = card.getBoundingClientRect();
+      const p = sheet.getBoundingClientRect();
+      const style = getComputedStyle(card);
+      return { left: p.left - c.left, right: c.right - p.right, border: style.borderLeftWidth, shadow: style.boxShadow };
+    });
+    expect(look.left, `${route}: page inset from the card's left edge`).toBeLessThanOrEqual(1);
+    expect(look.right, `${route}: page inset from the card's right edge`).toBeLessThanOrEqual(1);
+    expect(look.border, `${route}: card border`).toBe('0px');
+    expect(look.shadow, `${route}: card shadow`).toBe('none');
   }
 });
