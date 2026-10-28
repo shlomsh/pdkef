@@ -26,4 +26,20 @@ depends_on: []
 ## Acceptance
 
 - [ ] Runner-minutes per run before and after, from five runs each, recorded in the ticket.
-- [ ] No job's verdict differs from the single scope job's.
+- [x] No job's verdict differs from the single scope job's.
+
+## Progress (2026-10-28)
+
+- New `plan` job: checkout (full history, the site build dates pages from git), `npm ci`, one
+  `affected-scope.mjs` run, `scripts/e2e-shard-count.mjs`, one build, `dist/` uploaded (hidden files included, for
+  `.well-known`). `build` (guards), `e2e`, `e2e-webkit`, `font-guards` and `export-guards` download `dist` and read
+  scope from `plan`'s job outputs instead of artifacts, which holds the same data. A job with nothing to run is skipped
+  at the job level and no longer pays checkout, `npm ci` and the container first. The chromium matrix is sized by the
+  spec files in scope (1 to 4 shards, 8 files each, a guess to tune). `dependency-gate` is gone: `plan`'s build is
+  that gate. `scripts/ci-single-build.test.mjs` pins it: one build, one scope call, every consumer needs `plan`.
+- Verdicts cannot differ: only `plan` runs `affected-scope.mjs`. `scope-summary` still runs its own `npm ci` and
+  `scope-summary.mjs` (reporting only, left alone).
+- Before, from the last wide runs: 31 to 38 runner-minutes, 286 to 343 s wall, 7 to 9 builds
+  (40731441511: 37.9 min, 40731088174: 34.4, 40726898541: 31.7, 40724286548: 34.4, 40716281658: 31.3); the last
+  narrowed run, 40736175265: 16.6 min.
+- Open: the first box, runner-minutes per run from five runs after landing.

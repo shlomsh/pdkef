@@ -2,7 +2,7 @@
 
 # Backlog
 
-The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 84 live: 16 up next, 11 then, 26 waiting, 31 parked.
+The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 83 live: 15 up next, 11 then, 26 waiting, 31 parked.
 
 ## Redact: finish removal
 
@@ -118,7 +118,6 @@ Every tool on one shell and one set of PDF primitives, and a change reaching onl
 | QUAL-32 | P2 | [QUAL-32](backlog/tasks/QUAL-32.md) · CI skips Playwright when a push reaches no e2e | In progress |
 | QUAL-33 | P2 | [QUAL-33](backlog/tasks/QUAL-33.md) · A stalled apt install costs at most one retry, not ten minutes | In progress |
 | QUAL-39 | P3 | [QUAL-39](backlog/tasks/QUAL-39.md) · Unit tests run in two parallel CI jobs | In progress |
-| QUAL-41 | P3 | [QUAL-41](backlog/tasks/QUAL-41.md) · Every file a spec reads directly is covered by a scope rule | In progress |
 | QUAL-42 | P3 | [QUAL-42](backlog/tasks/QUAL-42.md) · CI builds once per run, not once per job | In progress |
 
 ### Parked
@@ -216,7 +215,7 @@ Done and retired tickets are not listed. Their files stay in [backlog/tasks/](ba
 - Tool pages: show the verb: 8 done, 0 retired
 - Form detector accuracy: 19 done, 1 retired
 - Robustness and debt: 73 done, 4 retired
-- Unify the tools, narrow the graph: 91 done, 0 retired
+- Unify the tools, narrow the graph: 92 done, 0 retired
 - Search and languages: 8 done, 0 retired
 - Polish: 19 done, 1 retired
 - Sign tool architecture: 37 done, 1 retired
