@@ -4,7 +4,7 @@ import type {
   SignToolType,
 } from '../../editor/model/editorModel.ts';
 import BasePdfTool from '../../shell/BasePdfTool.tsx';
-import { withIslandBoundary } from '../../lib/IslandErrorBoundary.tsx';
+import { withIslandBoundary } from '../../lib/telemetry/IslandErrorBoundary.tsx';
 import SignVerb from './verb/SignVerb.tsx';
 import NeedsUnlock from '../../shell/NeedsUnlock.tsx';
 import { englishSignMessages } from './messages';
@@ -33,11 +33,11 @@ import { useSpeculativeExport } from './hooks/useSpeculativeExport.ts';
 import { useSavedSignatures } from './hooks/useSavedSignatures.ts';
 import { isEditorElement } from '../../editor/registry/draftValidation.ts';
 import { getAppStyle } from '../../editor/workspace/preferenceStore.ts';
-import { usePdfShare } from '../../lib/usePdfShare.js';
-import { useHoldUpdate } from '../../lib/useHoldUpdate.ts';
+import { usePdfShare } from '../../lib/output/usePdfShare.js';
+import { useHoldUpdate } from '../../lib/hooks/useHoldUpdate.ts';
 import { getSignExportReadiness } from './lib/signExportReadiness.ts';
 import ConfirmDialog from '../../shell/ConfirmDialog.tsx';
-import { describeFile } from '../../lib/format.js';
+import { describeFile } from '../../lib/text/format.js';
 import { initialSignLifecycleState, signLifecycleReducer } from './state/signState.ts';
 import { signExportReady, type SignedExport } from './lib/exportHandoff.ts';
 

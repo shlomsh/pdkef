@@ -8,11 +8,11 @@ import { signedFileName } from '../../tools/sign/lib/signedFileName.ts';
 import { redactedFileName } from '../../tools/redact/lib/redactFileName.ts';
 import { imageBaseName, imageFileName } from '../../tools/to-image/lib/toImage.js';
 import { englishScanMessages as scanMessages } from '../../tools/scan/messages.ts';
-import { defaultOutputName } from '../../lib/pageOrder.js';
+import { defaultOutputName } from '../../lib/pages/pageOrder.js';
 
 // ARCH-38: every tool's output name, pinned. Six conventions (merged_x, extracted_x, x-compressed,
 // x_modified, x_unlocked, signed_x ...) are the product owner's open question (docs/architecture-debt-review-2026-10-26.md);
-// until he decides, one shared helper (src/lib/outputName.ts) builds all of them and this table
+// until he decides, one shared helper (src/lib/output/outputName.ts) builds all of them and this table
 // proves not one byte moved. Some edge inputs (a bare ".pdf", "a.", ".hidden") pin accidents of the old
 // per-tool regexes on purpose: they are what ships today.
 const LONG = 'a'.repeat(200);

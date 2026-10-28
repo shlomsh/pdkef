@@ -2,9 +2,9 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
 import { saveDraft, loadDraft, deleteDraft, hasDraftHint, subscribeToDraftChanges, attachDraftPreview, cacheRecentFile, isStoragePersisted } from './draftStore.ts';
 import { registerBeforeUpdateReload } from '../appUpdate/updateHolds.ts';
-import { useHoldUpdate } from '../useHoldUpdate.ts';
-import { reportError } from '../errorReport.ts';
-import { consumeRecentOpen } from '../fileArrival.ts';
+import { useHoldUpdate } from '../hooks/useHoldUpdate.ts';
+import { reportError } from '../telemetry/errorReport.ts';
+import { consumeRecentOpen } from '../handoff/fileArrival.ts';
 import { DRAFT_SCHEMA_VERSION } from './draftPolicy.js';
 
 // The unpersisted-warning line is scoped to an installed/home-screen app, not
@@ -299,7 +299,7 @@ export function useDraftPersistence({
     // restore" through this hook's params just to save one decode; not worth
     // it against the restore path staying this thin.
     let cancelled = false;
-    import('../thumbnails.js')
+    import('../pdf/thumbnails.js')
       .then(({ renderDraftPreview }) => renderDraftPreview(file))
       .then((dataUrl) => {
         if (cancelled) return;

@@ -1,7 +1,7 @@
 import type { ComponentChildren } from 'preact';
 import DoneStrip from '../../../shell/DoneStrip.tsx';
 import { DoneHandoffs, DoneResult } from './RedactDone.tsx';
-import type { RedactHandoffTarget } from '../../../lib/toolIds.ts';
+import type { RedactHandoffTarget } from '../../../lib/app/toolIds.ts';
 import type { FinishFacts } from '../lib/finishState.ts';
 
 export interface RedactDoneStripProps {

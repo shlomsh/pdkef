@@ -1,10 +1,10 @@
 import type { EditorElement } from '../../../editor/model/editorModel.ts';
 import type { SignMessages } from '../../../editor/registry/messages';
-import { recordAction } from '../../../lib/actionTrail.ts';
-import { sendHandoff } from '../../../lib/sendHandoff.ts';
-import { useNavigatingAway } from '../../../lib/useNavigatingAway.ts';
-import type { LatestRun } from '../../../lib/useLatestRun.ts';
-import type { usePdfShare } from '../../../lib/usePdfShare.js';
+import { recordAction } from '../../../lib/telemetry/actionTrail.ts';
+import { sendHandoff } from '../../../lib/handoff/sendHandoff.ts';
+import { useNavigatingAway } from '../../../lib/hooks/useNavigatingAway.ts';
+import type { LatestRun } from '../../../lib/hooks/useLatestRun.ts';
+import type { usePdfShare } from '../../../lib/output/usePdfShare.js';
 import { exportAtRevision, exportToHandOff, handoffHref, type SignedExport } from '../lib/exportHandoff.ts';
 import { runSignExport } from '../lib/runSignExport.ts';
 import type { SignLifecycleAction } from '../state/signState.ts';

@@ -1,7 +1,7 @@
 // Pure helpers for `npm run errors:read`: readable frame labels and the stale-tab note.
 // No I/O here; git access arrives as an injected run(args) so tests use a fake.
 
-// Mirror of the build shape in src/lib/errorReportSchema.ts (a script cannot import TS):
+// Mirror of the build shape in src/lib/telemetry/errorReportSchema.ts (a script cannot import TS):
 // a sample's `build` is /^[0-9a-f]{7}$/, the deploying commit; absent on reports from older cached tabs.
 const BUILD = /^[0-9a-f]{7}$/;
 

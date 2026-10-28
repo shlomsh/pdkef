@@ -16,7 +16,7 @@ import { useFill } from './fill/FillContext.tsx';
 import { englishSignMessages } from '../messages';
 import type { SignMessages } from '../../../editor/registry/messages';
 import { englishShellMessages } from '../../../shell/shellMessages';
-import { formatMessage } from '../../../lib/formatMessage';
+import { formatMessage } from '../../../lib/text/formatMessage';
 import type { ActionHistoryEntry } from '../../../editor/model/actionHistory.ts';
 import type { SavedSignature } from '../../../editor/model/savedSignature.ts';
 import type { SignToolType } from '../../../editor/model/editorModel.ts';
@@ -26,7 +26,7 @@ import styles from '../../../editor-ui/SignToolbar.module.css';
 import { isShapeTool, toolButtonProps, type ShapeTool } from './toolButtonProps.ts';
 import UndoRedoButtons from '../../../editor-ui/UndoRedoButtons.tsx';
 import controlStyles from '../../../editor-ui/EditorControls.module.css';
-import { recordAction } from '../../../lib/actionTrail.ts';
+import { recordAction } from '../../../lib/telemetry/actionTrail.ts';
 
 // Every SignToolType TOOL_COPY (below) has an entry for - a static list rather
 // than deriving it from TOOL_COPY's own keys, since TOOL_COPY is now built

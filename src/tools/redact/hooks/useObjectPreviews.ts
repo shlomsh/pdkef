@@ -6,7 +6,7 @@ import { readGlyphs } from '../lib/readGlyphs.js';
 import { pageGeometryFromPdfJsPage } from '../../../editor/geometry/coords.ts';
 import type { DeletablePdfObject } from '../components/DeletableObjectOverlay.tsx';
 import { GLYPH_BUDGET } from '../lib/find/itemGlyphs.ts';
-import { reportError } from '../../../lib/errorReport.ts';
+import { reportError } from '../../../lib/telemetry/errorReport.ts';
 
 /**
  * RED-16: gives each text object Delete offers the words it holds, read from

@@ -1,17 +1,17 @@
 import type { EditorElement } from '../../../editor/model/editorModel.ts';
 import type { SignMessages } from '../../../editor/registry/messages';
-import { recordAction } from '../../../lib/actionTrail.ts';
-import { isEncryptedPdfError } from '../../../lib/encryptedPdfError.ts';
-import { reportError } from '../../../lib/errorReport.ts';
-import { formatMessage } from '../../../lib/formatMessage';
+import { recordAction } from '../../../lib/telemetry/actionTrail.ts';
+import { isEncryptedPdfError } from '../../../lib/pdf/encryptedPdfError.ts';
+import { reportError } from '../../../lib/telemetry/errorReport.ts';
+import { formatMessage } from '../../../lib/text/formatMessage';
 import {
   beaconMaintenanceTransport,
   reportMaintenanceEvent,
   signExportFailed,
   signExportSucceeded,
-} from '../../../lib/maintenanceTelemetry.ts';
-import { reportToolLifecycleEvent } from '../../../lib/productAnalytics.ts';
-import type { LatestRun } from '../../../lib/useLatestRun.ts';
+} from '../../../lib/telemetry/maintenanceTelemetry.ts';
+import { reportToolLifecycleEvent } from '../../../lib/telemetry/productAnalytics.ts';
+import type { LatestRun } from '../../../lib/hooks/useLatestRun.ts';
 import { describeUnrepresentableText } from '../components/textMessages.ts';
 import type { SignLifecycleAction } from '../state/signState.ts';
 import { signedFileName } from './signedFileName.ts';

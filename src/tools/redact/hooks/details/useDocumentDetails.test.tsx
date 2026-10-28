@@ -2,13 +2,13 @@ import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-vi.mock('../../../../lib/errorReport.ts', () => ({ reportError: vi.fn() }));
+vi.mock('../../../../lib/telemetry/errorReport.ts', () => ({ reportError: vi.fn() }));
 const traces = { title: 'T' };
 vi.mock('../../lib/details/readDetails.ts', () => ({ readDetails: vi.fn(async () => traces) }));
 
 import { useDocumentDetails } from './useDocumentDetails.ts';
 import { readDetails } from '../../lib/details/readDetails.ts';
-import { reportError } from '../../../../lib/errorReport.ts';
+import { reportError } from '../../../../lib/telemetry/errorReport.ts';
 
 let host: HTMLElement | null = null;
 afterEach(() => {

@@ -6,8 +6,8 @@
  * the rule is testable on its own and the toolbar stays a thin renderer.
  */
 
-import { deriveFileKind } from '../lib/fileKind.js';
-import { FILE_CAPABILITIES, handoffKeyOf, type FileKind, type TOOL_PAGES } from '../lib/toolIds.ts';
+import { deriveFileKind } from '../lib/handoff/fileKind.js';
+import { FILE_CAPABILITIES, handoffKeyOf, type FileKind, type TOOL_PAGES } from '../lib/app/toolIds.ts';
 
 /**
  * The pages the home dropzone can route a file to: the registry rows that declare `accepts`.
@@ -20,7 +20,7 @@ type Kind = FileKind;
 /** What each tool takes, in src/data/tools.js order: the kinds of file, and whether it takes several.
     Merge takes photos too, but the toolbar offers it for photos only alongside a PDF: photos alone
     belong to Image to PDF, which says what the person came to do (Shlomi, 2026-10-12).
-    The data is the registry's `accepts` (src/lib/toolIds.ts). */
+    The data is the registry's `accepts` (src/lib/app/toolIds.ts). */
 const CAPABILITIES = FILE_CAPABILITIES as readonly { slug: ToolSlug; kinds: readonly Kind[]; several: boolean; needsPdf?: boolean }[];
 
 export type FileRoute =

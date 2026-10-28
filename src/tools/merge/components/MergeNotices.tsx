@@ -1,6 +1,6 @@
 import { LockKeyhole } from 'lucide-preact';
-import { formatMessage } from '../../../lib/formatMessage';
-import { isolateName } from '../../../lib/format.js';
+import { formatMessage } from '../../../lib/text/formatMessage';
+import { isolateName } from '../../../lib/text/format.js';
 import ErrorMessage from '../../../shell/ErrorMessage.tsx';
 import NeedsUnlock from '../../../shell/NeedsUnlock.tsx';
 import pdfToolStyles from '../../../shell/PdfTool.module.css';

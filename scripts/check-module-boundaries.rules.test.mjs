@@ -19,7 +19,7 @@ describe('module boundaries: classify()', () => {
     expect(classify('src/shell/BasePdfTool.tsx')).toBe('shell');
     expect(classify('src/editor-ui/ColorPicker.tsx')).toBe('editor-ui');
     expect(classify('src/editor/model/element.ts')).toBe('editor');
-    expect(classify('src/lib/format.js')).toBe('lib');
+    expect(classify('src/lib/text/format.js')).toBe('lib');
     expect(classify('src/site-lib/markdownRender.js')).toBe('site');
     expect(classify('src/editor/model/signGeometry.js')).toBe('editor');
     expect(classify('src/i18n/translate.js')).toBe('site-i18n');
@@ -70,7 +70,7 @@ describe('module boundaries: ruleViolation() - rule 1, a tool', () => {
     ['src/shell/BasePdfTool.tsx'],
     ['src/editor-ui/ColorPicker.tsx'],
     ['src/editor/model/element.ts'],
-    ['src/lib/format.js'],
+    ['src/lib/text/format.js'],
     ['src/editor/model/signGeometry.js'],
     ['src/i18n/translate.js'],
     ['src/data/tools.js'],
@@ -87,11 +87,11 @@ describe('module boundaries: ruleViolation() - rule 10, lib is the bottom layer 
     ['src/i18n/translate.js', 'site-i18n'],
     ['src/data/tools.js', 'site-data'],
   ])('lib may not import %s (%s)', (to, toName) => {
-    expect(check('src/lib/format.js', to)).toBe(`lib is the bottom layer: it may not import ${toName}`);
+    expect(check('src/lib/text/format.js', to)).toBe(`lib is the bottom layer: it may not import ${toName}`);
   });
 
   it('lib may import lib', () => {
-    expect(check('src/lib/format.js', 'src/lib/other.js')).toBeNull();
+    expect(check('src/lib/text/format.js', 'src/lib/other.js')).toBeNull();
   });
 });
 
@@ -100,7 +100,7 @@ describe('module boundaries: ruleViolation() - rule 2, core modules', () => {
     ['src/shell/BasePdfTool.tsx', 'shell'],
     ['src/editor-ui/ColorPicker.tsx', 'editor-ui'],
     ['src/editor/model/element.ts', 'editor'],
-    ['src/lib/format.js', 'lib'],
+    ['src/lib/text/format.js', 'lib'],
   ])('%s (%s) may not import a tool', (from, moduleName) => {
     expect(check(from, 'src/tools/sign/PdfSignTool.tsx')).toBe(`${moduleName} may not import a tool`);
   });
@@ -117,7 +117,7 @@ describe('module boundaries: ruleViolation() - rule 2, core modules', () => {
     ['src/shell/BasePdfTool.tsx', 'shell'],
     ['src/editor-ui/ColorPicker.tsx', 'editor-ui'],
     ['src/editor/model/element.ts', 'editor'],
-    ['src/lib/format.js', 'lib'],
+    ['src/lib/text/format.js', 'lib'],
   ])('%s (%s) may not import site (pages/layouts/content/styles)', (from, moduleName) => {
     expect(check(from, 'src/pages/index.astro'))
       .toBe(`${moduleName} may import site-i18n and site-data but not site (pages/layouts/content/styles)`);
@@ -193,7 +193,7 @@ describe('module boundaries: ruleViolation() - test infrastructure (src/test/)',
   });
 
   it('may import a core module to build its harness', () => {
-    expect(check('src/test/setup.js', 'src/lib/format.js')).toBeNull();
+    expect(check('src/test/setup.js', 'src/lib/text/format.js')).toBeNull();
   });
 });
 
@@ -213,7 +213,7 @@ describe('module boundaries: testImportViolation() - rule 6, test files scanned 
   });
 
   it('allows a core test importing another core module', () => {
-    expect(testImportViolation('src/editor/workspace/x.test.tsx', 'src/lib/format.js')).toBeNull();
+    expect(testImportViolation('src/editor/workspace/x.test.tsx', 'src/lib/text/format.js')).toBeNull();
   });
 
   it('allows a src/test/cross-tool/ test importing a tool', () => {
@@ -372,20 +372,20 @@ describe('rule 9: commonLayerConsumers() - two or more distinct tool/site consum
 
   it('one site file plus one tool is two distinct consumers (site counts once, the tool counts once, together they pass)', () => {
     const graph = reverseGraph([
-      ['src/lib/maintenanceTelemetry.ts', 'src/layouts/BaseLayout.astro'],
-      ['src/lib/maintenanceTelemetry.ts', 'src/tools/sign/PdfSignTool.tsx'],
+      ['src/lib/telemetry/maintenanceTelemetry.ts', 'src/layouts/BaseLayout.astro'],
+      ['src/lib/telemetry/maintenanceTelemetry.ts', 'src/tools/sign/PdfSignTool.tsx'],
     ]);
-    const consumers = commonLayerConsumers('src/lib/maintenanceTelemetry.ts', graph);
+    const consumers = commonLayerConsumers('src/lib/telemetry/maintenanceTelemetry.ts', graph);
     expect(consumers).toEqual(new Set(['site', 'tool:sign']));
     expect(consumers.size).toBeGreaterThanOrEqual(2);
   });
 
   it('i18n and data modules count as site too, crediting the same single identity', () => {
     const graph = reverseGraph([
-      ['src/lib/platform.ts', 'src/i18n/localizedTools.ts'],
-      ['src/lib/platform.ts', 'src/tools/merge/PdfMergeTool.tsx'],
+      ['src/lib/app/platform.ts', 'src/i18n/localizedTools.ts'],
+      ['src/lib/app/platform.ts', 'src/tools/merge/PdfMergeTool.tsx'],
     ]);
-    expect(commonLayerConsumers('src/lib/platform.ts', graph))
+    expect(commonLayerConsumers('src/lib/app/platform.ts', graph))
       .toEqual(new Set(['site', 'tool:merge']));
   });
 

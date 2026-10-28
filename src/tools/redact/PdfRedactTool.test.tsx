@@ -8,7 +8,7 @@ import { waitUntil } from '../../test/harness/waitUntil.ts';
 import { CHECKING } from './lib/check/checkCopy.ts';
 import { pxToPercent, pxDeltaToPercent } from '../../editor/geometry/coords.js';
 import { setInputFiles } from '../../test/support/setInputFiles.js';
-import { recentActions } from '../../lib/actionTrail.ts';
+import { recentActions } from '../../lib/telemetry/actionTrail.ts';
 import * as gestureController from '../../lib/gestures/controller.ts';
 import { saveDraft } from '../../lib/drafts/draftStore.ts';
 import { installToolHarness, type ToolHarness } from '../../test/harness/toolHarness.ts';

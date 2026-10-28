@@ -1,6 +1,6 @@
 import { useEffect, type Dispatch, type MutableRef, type StateUpdater } from 'preact/hooks';
-import { isAbortError } from '../../../lib/abort.js';
-import { reportError } from '../../../lib/errorReport.ts';
+import { isAbortError } from '../../../lib/output/abort.js';
+import { reportError } from '../../../lib/telemetry/errorReport.ts';
 import { isCurrentKey, resultKey } from '../lib/scanPages.ts';
 import type { ProcessedPage } from '../lib/scanPipeline.ts';
 import type { PageResult, ScanPage, ScanWork } from '../state/scanWork.ts';

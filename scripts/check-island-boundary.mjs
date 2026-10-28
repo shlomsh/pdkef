@@ -1,5 +1,5 @@
 // Island-boundary guard (ARCH-97): every component an .astro file hydrates with a `client:*`
-// directive must default-export `withIslandBoundary(...)` (src/lib/IslandErrorBoundary.tsx), so a
+// directive must default-export `withIslandBoundary(...)` (src/lib/telemetry/IslandErrorBoundary.tsx), so a
 // render error in any island is reported and the window error handlers are installed (ARCH-72).
 // An island added without the wrapper shipped once; this makes that a red check instead.
 //

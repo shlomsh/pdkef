@@ -33,7 +33,7 @@ implementation; it moves to `src/shell/` and the other tools adopt it.
 
 ## The contract
 
-### `src/lib/pagePlan.ts` (pure)
+### `src/lib/pages/pagePlan.ts` (pure)
 
 ```ts
 export interface PlanEntry { key: string; fileId: number; pageIndex: number; rotation: 0 | 90 | 180 | 270; skipped: boolean }
@@ -142,7 +142,7 @@ Split's file card, framed "one document" box, always-on tile icons and undo chip
 
 ### Contract additions (GRID-05)
 
-`src/lib/pagePlan.ts` (pure):
+`src/lib/pages/pagePlan.ts` (pure):
 
 ```ts
 includeAll(plan) / skipAll(plan) / invert(plan)   // moved from src/tools/edit-pages/lib/editPlan.ts, same no-op contract
@@ -153,7 +153,7 @@ withIncludedPages(plan, pageNumbers: number[]): PlanEntry[]  // skipped = not in
 `src/shell/pageGrid/PageGrid.tsx`: `reorderable?: boolean` (default `true`). False creates no Sortable and
 binds no move keys; rotate, skip, preview, R, Delete, Enter and the phone tap behave as before.
 
-`src/lib/usePreparedOutput.ts`: `build` may resolve `{ parts: OutputPart[]; pageCount }` instead of
+`src/lib/output/usePreparedOutput.ts`: `build` may resolve `{ parts: OutputPart[]; pageCount }` instead of
 `{ blob; pageCount }`, with `OutputPart = { blob: Blob; filename: string }`. For parts, `blob` and `url`
 are null, `parts` holds them and `size` is their sum; for a single blob `parts` is null.
 
@@ -186,7 +186,7 @@ moves it to `src/shell/pageWorkspace/`, rule 9).
 `CellAction = { href: string; download: string; label: string; tip: string }`, rendered as a link after
 the preview button, inside the same cluster and with the same reveal rules. Null renders nothing.
 
-`src/lib/usePreparedOutput.ts`:
+`src/lib/output/usePreparedOutput.ts`:
 - `OutputPart` gains an optional `pageNumber` (the 1-based source page an image came from).
 - `PreparedOutput.parts` items gain `url`: an object URL made when the output is ready and revoked
   when it is replaced, cleared or unmounted.

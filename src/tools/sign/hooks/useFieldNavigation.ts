@@ -17,7 +17,7 @@ import type { FormFieldRegions } from './useFormFieldRegions.ts';
 import { visibleViewportOrigin } from '../../../editor-ui/hooks/visualViewportClamp.ts';
 import { englishSignMessages } from '../messages';
 import type { SignMessages } from '../../../editor/registry/messages';
-import { formatMessage } from '../../../lib/formatMessage';
+import { formatMessage } from '../../../lib/text/formatMessage';
 import {
   DEFAULT_COLOR_BLUE,
   DEFAULT_STROKE_WIDTH,

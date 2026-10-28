@@ -1,8 +1,8 @@
 import type { MutableRef } from 'preact/hooks';
-import { throwIfAborted } from '../../../lib/abort.js';
-import { reportError } from '../../../lib/errorReport.ts';
-import type { QuietPolicy } from '../../../lib/quietPrepare.ts';
-import { usePreparedOutput } from '../../../lib/usePreparedOutput.ts';
+import { throwIfAborted } from '../../../lib/output/abort.js';
+import { reportError } from '../../../lib/telemetry/errorReport.ts';
+import type { QuietPolicy } from '../../../lib/output/quietPrepare.ts';
+import { usePreparedOutput } from '../../../lib/output/usePreparedOutput.ts';
 import { useDownloadFlow } from '../../../shell/pageWorkspace/useDownloadFlow.ts';
 import { loadPipeline } from '../lib/loadPipeline.ts';
 import { exportKeyFor } from '../lib/scanPages.ts';

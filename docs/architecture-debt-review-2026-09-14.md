@@ -52,7 +52,7 @@ projects during ARCH-20 (DEBT-02, DEBT-11).
 - `src/lib/drafts/draftStore.ts` is consumed by `shell` (`FileDropzone`), `lib`
   (`useHandoffIntake`), Merge (two dynamic imports), Sign and Redact; `useDraftPersistence.js` by
   Merge. The `shell -> editor` edge exists only for this and `CompareSlider -> gestures/controller`.
-- `src/lib/pdfRender.js` is consumed by compress, split, to-image, lib and
+- `src/lib/pdf/pdfRender.js` is consumed by compress, split, to-image, lib and
   editor-ui: shared pdf.js bootstrap filed under the editor.
 - `src/lib/` (28 non-test modules): 11 genuinely multi-consumer; 6 consumed only by Sign+Redact
   (`useCurrentPage`, `useDraggableElement`, `useElementResize`, `useUndoShortcut`, `toolArming`,

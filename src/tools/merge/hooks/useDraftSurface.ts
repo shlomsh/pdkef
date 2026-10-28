@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'preact/hooks';
 import type { Dispatch } from 'preact/hooks';
 import type { ComponentType } from 'preact';
-import { reportError } from '../../../lib/errorReport.ts';
+import { reportError } from '../../../lib/telemetry/errorReport.ts';
 import type { PageGridProps } from '../../../shell/pageGrid/PageGrid.tsx';
 import type { MergeDraftPersistenceProps } from '../components/MergeDraftPersistence.tsx';
 import type { MergeAction, MergeStatus } from '../state/mergeState.ts';

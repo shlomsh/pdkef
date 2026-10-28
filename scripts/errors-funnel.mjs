@@ -1,5 +1,5 @@
 // Pure reading of the usage:<day> hashes (DEBT-58): the per-tool run table and the page-load funnel.
-// Wire shapes live in src/lib/usageEventSchema.ts (a script cannot import TS; errors-funnel.test.mjs pins them):
+// Wire shapes live in src/lib/telemetry/usageEventSchema.ts (a script cannot import TS; errors-funnel.test.mjs pins them):
 //   run     `<event>|<tool>`, `<event>|<tool>|<build>`, `<event>|<tool>|<build or ->|<source>`
 //   once:   the same behind `once:`, counted on a page load's first event of its kind
 //   pg:     `pg:<event>|<tool>|<source>|<from>|<nav>|<visit>`, `-` for absent, first events only

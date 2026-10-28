@@ -4,8 +4,8 @@ import { tokenize } from '../../../editor/adapters/pdf/contentStream.js';
 import { dropUnreachable } from './reachability.js';
 import { applyDetailEdits } from './documentTraces.js';
 import { linksOverDeleted } from './linksOverDeleted.js';
-import { reportError } from '../../../lib/errorReport.ts';
-import { openPdfDoc } from '../../../lib/openPdfDoc.ts';
+import { reportError } from '../../../lib/telemetry/errorReport.ts';
+import { openPdfDoc } from '../../../lib/pdf/openPdfDoc.ts';
 
 /**
  * Removes chosen drawing operations from a PDF by rewriting the affected page

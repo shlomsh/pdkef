@@ -6,11 +6,11 @@ import fs from 'node:fs';
 import PdfSignTool from './PdfSignTool.tsx';
 import { overlayHost } from '../../editor-ui/whiteout/overlayHost.ts';
 import * as signModule from './lib/sign.js';
-import { resetMaintenanceEventsForTests } from '../../lib/maintenanceTelemetry.ts';
+import { resetMaintenanceEventsForTests } from '../../lib/telemetry/maintenanceTelemetry.ts';
 import { installToolHarness, type ToolHarness } from '../../test/harness/toolHarness.ts';
 import { widthPercentToHeightPercent, pxToPercent, pxDeltaToPercent } from '../../editor/geometry/coords.js';
 import { setInputFiles } from '../../test/support/setInputFiles.js';
-import { recentActions } from '../../lib/actionTrail.ts';
+import { recentActions } from '../../lib/telemetry/actionTrail.ts';
 
 declare const __dirname: string;
 

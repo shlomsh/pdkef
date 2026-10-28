@@ -1,12 +1,12 @@
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { movePlanEntry, planForFile, type PlanEntry } from '../pagePlan.ts';
+import { movePlanEntry, planForFile, type PlanEntry } from '../pages/pagePlan.ts';
 import { useDocumentHistory } from './useDocumentHistory.ts';
 
 const { recordAction, reportEdit } = vi.hoisted(() => ({ recordAction: vi.fn(), reportEdit: vi.fn() }));
-vi.mock('../actionTrail.ts', () => ({ recordAction }));
-vi.mock('../productAnalytics.ts', () => ({ reportEdit }));
+vi.mock('../telemetry/actionTrail.ts', () => ({ recordAction }));
+vi.mock('../telemetry/productAnalytics.ts', () => ({ reportEdit }));
 
 interface Doc { plan: PlanEntry[]; label: string }
 type Api = ReturnType<typeof useDocumentHistory<Doc>>;

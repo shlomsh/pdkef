@@ -1,6 +1,6 @@
 import PdfPageCanvas from '../../../editor-ui/PdfPageCanvas.tsx';
 import EditorPageHeader from '../../../editor-ui/EditorPageHeader.tsx';
-import { recordAction } from '../../../lib/actionTrail.ts';
+import { recordAction } from '../../../lib/telemetry/actionTrail.ts';
 import { redactionDrawingPreviewStyle, renderRedactionDrawingPreviewContent } from '../../../editor/registry/redactionSurface.ts';
 import type { RedactAction, RedactState } from '../state/redactState.ts';
 import type { RedactArming } from '../hooks/useRedactArming.ts';

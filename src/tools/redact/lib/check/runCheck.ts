@@ -6,15 +6,15 @@
  * The result keeps its `context` so a term the person types later is checked
  * with the pure `checkSavedFile` alone, without reading the file again.
  */
-import { openPdfDoc } from '../../../../lib/openPdfDoc';
+import { openPdfDoc } from '../../../../lib/pdf/openPdfDoc';
 import type { PDFDocumentProxy } from 'pdfjs-dist';
 import { readDocumentTraces } from '../documentTraces.js';
 import type { DocumentTraces } from '../documentTraces.js';
 import { getPdfjs } from '../../../../editor/adapters/pdf/pdfjsLoader.js';
 import { readGlyphs } from '../readGlyphs.js';
 import { pageGeometryFromPdfJsPage } from '../../../../editor/geometry/coords.ts';
-import { PDFJS_WASM_URL } from '../../../../lib/pdfjsWasm.js';
-import { readTextItems } from '../../../../lib/pdfTextItems.ts';
+import { PDFJS_WASM_URL } from '../../../../lib/pdf/pdfjsWasm.js';
+import { readTextItems } from '../../../../lib/pdf/pdfTextItems.ts';
 import type { SearchablePage } from '../find/findMatches.ts';
 import { GLYPH_BUDGET } from '../find/itemGlyphs.ts';
 import type { MeasureText } from '../find/matchBoxes.ts';

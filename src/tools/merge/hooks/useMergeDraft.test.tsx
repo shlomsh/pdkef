@@ -30,8 +30,8 @@ import {
   loadDraft, saveDraft, loadRecentFile, sourceIdForFiles, MERGE_DRAFT_MAX_BYTES,
   setCurrentEntry, readCurrentEntryId,
 } from '../../../lib/drafts/draftStore.ts';
-import { takeArrival, noteRecentOpen, resetFileArrivalForTests } from '../../../lib/fileArrival.ts';
-import { planForFile } from '../../../lib/pagePlan.ts';
+import { takeArrival, noteRecentOpen, resetFileArrivalForTests } from '../../../lib/handoff/fileArrival.ts';
+import { planForFile } from '../../../lib/pages/pagePlan.ts';
 import { flushBeforeUpdateReload, isUpdateHeld } from '../../../lib/appUpdate/updateHolds.ts';
 
 function Harness({ apiRef, options }) {

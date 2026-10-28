@@ -5,7 +5,7 @@ import type { CheckOutcome } from '../lib/check/runCheck.ts';
 import type { CheckBox, CheckTerm, TermResult } from '../lib/check/types.ts';
 import { termFinder } from '../lib/find/finders.ts';
 import type { MeasureText } from '../lib/find/matchBoxes.ts';
-import { dropCause, reportError } from '../../../lib/errorReport.ts';
+import { dropCause, reportError } from '../../../lib/telemetry/errorReport.ts';
 import { changesSummary, survivedAlways, survivedDetails, survivorLabel } from '../lib/details/describeDetails.ts';
 import type { DetailRow } from '../lib/details/describeDetails.ts';
 import type { DetailEdits } from '../lib/detailEdits.js';

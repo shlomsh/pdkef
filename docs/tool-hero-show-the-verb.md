@@ -256,7 +256,7 @@ integrated and checked by the lead as it lands, and a fresh zero-context reviewe
 - The throttled layout-shift guard (`e2e/tool-hero-throttled-cls.spec.js`) runs alone, as a perf budget.
 - The app bar's chips are not painted until the row is complete (`src/components/TrustChips.astro`).
 - A hand-off writes a synchronous `pdkef:handoff-pending:<tool>` sessionStorage marker
-  (`src/lib/handoffPending.ts`, read by `src/lib/useHandoffIntake.ts`). The pre-paint script in
+  (`src/lib/handoff/handoffPending.ts`, read by `src/lib/handoff/useHandoffIntake.ts`). The pre-paint script in
   `src/layouts/ToolPageLayout.astro` turns it into `html[data-handoff-pending]`, so the page opens in
   its loaded layout: grid off, hero condensed, column hidden until the file is in. A stale marker (a
   hand-off whose navigation never finished) releases at once and moves the condensed hero to its

@@ -1,4 +1,4 @@
-import { withAffixes } from '../../../lib/outputName.ts';
+import { withAffixes } from '../../../lib/output/outputName.ts';
 
 // The name a redacted copy is saved under. One `redacted_` prefix, never chained,
 // so exporting an already redacted file keeps its name, and a file saved twice

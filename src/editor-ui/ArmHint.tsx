@@ -14,7 +14,7 @@ import {
   autoUpdate
 } from '@floating-ui/react';
 import styles from './SignToolbar.module.css';
-import { formatMessage } from '../lib/formatMessage';
+import { formatMessage } from '../lib/text/formatMessage';
 
 /**
  * How long a pointer must rest on a tool button before its tooltip appears.

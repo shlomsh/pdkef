@@ -4,14 +4,14 @@ import PdfShareButton from '../../../shell/PdfShareButton.tsx';
 import DownloadButton from '../../../shell/DownloadButton.tsx';
 import styles from '../PdfSecurityTool.module.css';
 import pdfToolStyles from '../../../shell/PdfTool.module.css';
-import { UNLOCK_RETURN_IDS, handoffHrefOf, type UnlockReturnId } from '../../../lib/toolIds.ts';
+import { UNLOCK_RETURN_IDS, handoffHrefOf, type UnlockReturnId } from '../../../lib/app/toolIds.ts';
 import type { SecurityMessages } from '../messages.ts';
 import type { HandoffTool } from '../../../shell/pageWorkspace/useDownloadFlow.ts';
-import { formatMessage } from '../../../lib/formatMessage.ts';
+import { formatMessage } from '../../../lib/text/formatMessage.ts';
 
 // The tools that can send a protected file here as a detour, and the way back to each. Unlock's done
 // state leads with "Continue in <name>" for a file that arrived with that `from` (guidelines 13).
-// Which tools those are, and their pages, come from the registry (src/lib/toolIds.ts); the name and icon are this tool's wording.
+// Which tools those are, and their pages, come from the registry (src/lib/app/toolIds.ts); the name and icon are this tool's wording.
 const RETURN_ICON: Record<UnlockReturnId, typeof Eraser> = {
   redact: Eraser,
   sign: FileSignature,

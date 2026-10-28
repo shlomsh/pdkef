@@ -1,6 +1,6 @@
 import { useRef, useEffect } from 'preact/hooks';
 import type { SignMessages } from '../../../editor/registry/messages';
-import { useLatestRun } from '../../../lib/useLatestRun.ts';
+import { useLatestRun } from '../../../lib/hooks/useLatestRun.ts';
 import type { SignedExport } from '../lib/exportHandoff.ts';
 import type { SignLifecycleAction } from '../state/signState.ts';
 

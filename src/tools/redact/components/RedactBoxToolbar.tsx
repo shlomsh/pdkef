@@ -6,7 +6,7 @@ import { TrashIcon } from '../../../editor-ui/toolIcons.tsx';
 import type { BlurStrength } from '../../../editor/model/blurStrength.ts';
 import { englishSignMessages as t } from '../../../editor/registry/signMessages';
 import { whiteoutColorLabels } from '../../../editor/registry/signLabels';
-import { formatMessage } from '../../../lib/formatMessage';
+import { formatMessage } from '../../../lib/text/formatMessage';
 import type { RedactBoxElement, RedactStrokeElement } from '../lib/redactElements.ts';
 import WhiteoutColorGroup, { shownRecents } from '../../../editor-ui/whiteout/WhiteoutColorGroup.tsx';
 import styles from './RedactBoxToolbar.module.css';

@@ -1,8 +1,8 @@
 import { useEffect } from 'preact/hooks';
 import type { Dispatch, StateUpdater } from 'preact/hooks';
-import { recordAction } from '../../../lib/actionTrail.ts';
-import { reportEdit, type AnalyticsTool } from '../../../lib/productAnalytics.ts';
-import type { PreparedOutput } from '../../../lib/usePreparedOutput.ts';
+import { recordAction } from '../../../lib/telemetry/actionTrail.ts';
+import { reportEdit, type AnalyticsTool } from '../../../lib/telemetry/productAnalytics.ts';
+import type { PreparedOutput } from '../../../lib/output/usePreparedOutput.ts';
 import type { useDownloadFlow } from '../../../shell/pageWorkspace/useDownloadFlow.ts';
 import type { Level } from '../components/LevelPicker.tsx';
 import type { useCompressMachine } from '../state/useCompressMachine.ts';

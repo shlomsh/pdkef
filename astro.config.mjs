@@ -82,7 +82,7 @@ export default defineConfig({
     // them yet — that migration is a separate ticket (E3.2), scoped to the
     // static/marketing surface only, per ARCHITECTURE.md §3.1.
     plugins: [tailwindcss()],
-    // The pdf.js worker wrapper (src/lib/pdfjsWorker.js) is a module worker with a dynamic
+    // The pdf.js worker wrapper (src/lib/pdf/pdfjsWorker.js) is a module worker with a dynamic
     // import inside pdf.js, which the default iife worker format cannot code-split (DEBT-42).
     worker: { format: 'es' },
     build: {
@@ -183,7 +183,7 @@ export default defineConfig({
         // the retired has-draft:<slug> hint key - see ToolPageLayout.astro's
         // comment on the script.
         // HERO-02: the script also reads the hand-off marker
-        // (pdkef:handoff-pending:<slug>, src/lib/handoffPending.ts).
+        // (pdkef:handoff-pending:<slug>, src/lib/handoff/handoffPending.ts).
         hashes: ['sha256-Z9AiwdF0bptHZKyQVOtbvFz1N+m9QEXOTEPhv9rZ2QY=']
       },
       styleDirective: { src: ["'self'"] }

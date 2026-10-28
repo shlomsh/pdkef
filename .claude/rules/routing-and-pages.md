@@ -9,7 +9,7 @@ paths:
   - "src/site-lib/markdownRender*"
   - "src/site-lib/acceptNegotiation*"
   - "public/robots.txt"
-  - "src/lib/*elemetry*"
+  - "src/lib/telemetry/*elemetry*"
   - "docs/maintenance-telemetry.md"
   - "scripts/check-trailing-slash-redirects.js"
   - "scripts/verify-seo.js"
@@ -41,7 +41,7 @@ can disagree on whether it's retired with no build error, and the redirect alway
 `toolId` (optional, `src/data/tools.js`): the island's id when it differs from the slug (`organize-pdf` has `toolId: 'edit-pdf'`); drafts, recents, telemetry and hand-offs keep that id.
 `variantOf` (optional): marks a landing page over another tool's island (slug = URL); it stays out of the dock and cross-link cards, and the island keeps writing its own `toolId`.
 
-**Adding a tool starts at its row in `TOOL_PAGES` (`src/lib/toolIds.ts`).** From that row come `TOOL_IDS`
+**Adding a tool starts at its row in `TOOL_PAGES` (`src/lib/app/toolIds.ts`).** From that row come `TOOL_IDS`
 (the analytics and rating schemas validate against it), the hand-off keys and hrefs, `LOCALIZED_ISLAND_SLUGS`,
 `FILE_CAPABILITIES` (what the home dropzone offers a file), `UNLOCK_RETURN_IDS`, the layout slugs, and the
 types `ToolId`, `HandoffTool` (rows flagged `handoffTarget`) and `ToolSlug` (rows with `accepts`). Still by

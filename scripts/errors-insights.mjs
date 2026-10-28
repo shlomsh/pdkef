@@ -200,7 +200,7 @@ export function failuresByBuild(perDay, windowDays) {
 
 
 // The areas a tool reports under: Redact and Sign have their own, every other tool uses pdf_tool_run.
-// Names off ERROR_AREAS in src/lib/errorReportSchema.ts (a script cannot import TS; a test pins them).
+// Names off ERROR_AREAS in src/lib/telemetry/errorReportSchema.ts (a script cannot import TS; a test pins them).
 export const TOOL_AREAS = { redact: ['redact'], sign: ['sign_export', 'sign_form_detection'] };
 
 // Tools that failed in the window while none of their areas has an error report or a drop record in

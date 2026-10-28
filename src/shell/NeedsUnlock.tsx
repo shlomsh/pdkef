@@ -3,8 +3,8 @@ import { FileText, LockKeyhole } from 'lucide-preact';
 import FileName from './FileName.tsx';
 import ReplaceFileLine from './pageWorkspace/ReplaceFileLine.tsx';
 import pdfToolStyles from './PdfTool.module.css';
-import { useNavigatingAway } from '../lib/useNavigatingAway.ts';
-import { sendHandoff } from '../lib/sendHandoff.ts';
+import { useNavigatingAway } from '../lib/hooks/useNavigatingAway.ts';
+import { sendHandoff } from '../lib/handoff/sendHandoff.ts';
 import styles from './NeedsUnlock.module.css';
 
 export type NeedsUnlockKind = 'needs-password' | 'owner-restricted';

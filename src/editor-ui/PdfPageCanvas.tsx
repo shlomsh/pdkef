@@ -1,10 +1,10 @@
 import { useRef, useEffect, useState } from 'preact/hooks';
 import type { PDFDocumentProxy, PDFPageProxy, RenderTask } from 'pdfjs-dist';
 import type { PageGeometry } from '../editor/geometry/coords.ts';
-import { getPdfRenderContext } from '../lib/pdfRender.js';
+import { getPdfRenderContext } from '../lib/pdf/pdfRender.js';
 import { bucketWidth, pageRenderScale } from '../editor/adapters/pdf/pageRenderScale.js';
 import workspaceStyles from './Workspace.module.css';
-import { reportError } from '../lib/errorReport.ts';
+import { reportError } from '../lib/telemetry/errorReport.ts';
 
 // Dedicated canvas rendering component for clean lifecycles and race-free layout paints
 export default function PdfPageCanvas({

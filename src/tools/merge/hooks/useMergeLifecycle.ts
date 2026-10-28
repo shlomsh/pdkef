@@ -1,8 +1,8 @@
 import { useCallback } from 'preact/hooks';
 import type { Dispatch } from 'preact/hooks';
-import { markArrival } from '../../../lib/fileArrival.ts';
-import { recordAction } from '../../../lib/actionTrail.ts';
-import { useHandoffFilesIntake } from '../../../lib/useHandoffIntake.ts';
+import { markArrival } from '../../../lib/handoff/fileArrival.ts';
+import { recordAction } from '../../../lib/telemetry/actionTrail.ts';
+import { useHandoffFilesIntake } from '../../../lib/handoff/useHandoffIntake.ts';
 import { EMPTY_MODEL, toEntry, type FileEntry, type Model } from '../lib/mergeModel.ts';
 import { readRememberedOptions } from '../components/rememberedOptions.ts';
 import type { MergeAction } from '../state/mergeState.ts';

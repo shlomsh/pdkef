@@ -10,7 +10,7 @@ import {
   sortFiles,
   withFileOrder,
 } from './mergePlan.ts';
-import { planForFile } from '../../../lib/pagePlan.ts';
+import { planForFile } from '../../../lib/pages/pagePlan.ts';
 import type { FileEntry, Model } from './mergeModel.ts';
 
 function entry(id: number, name = `f${id}.pdf`, extra: Partial<FileEntry> = {}): FileEntry {

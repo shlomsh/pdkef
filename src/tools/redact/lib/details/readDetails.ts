@@ -8,7 +8,7 @@ import type { DocumentTraces } from '../documentTraces.js';
  */
 export async function readDetails(bytes: ArrayBuffer): Promise<DocumentTraces> {
   const [{ openPdfDoc }, { readDocumentTraces }] = await Promise.all([
-    import('../../../../lib/openPdfDoc'),
+    import('../../../../lib/pdf/openPdfDoc'),
     import('../documentTraces.js'),
   ]);
   const { doc } = await openPdfDoc(bytes, { updateMetadata: false, fast: true });

@@ -34,13 +34,13 @@ vi.mock('./draftStore.ts', () => ({
 }));
 
 // Not what this test is about - avoid a real pdf.js decode of fake PDF bytes.
-vi.mock('../thumbnails.js', () => ({
+vi.mock('../pdf/thumbnails.js', () => ({
   renderDraftPreview: vi.fn(() => Promise.resolve(null))
 }));
 
-import { renderDraftPreview } from '../thumbnails.js';
+import { renderDraftPreview } from '../pdf/thumbnails.js';
 import { saveDraft, attachDraftPreview, isStoragePersisted, loadDraft } from './draftStore.ts';
-import { takeArrival, noteRecentOpen, resetFileArrivalForTests } from '../fileArrival.ts';
+import { takeArrival, noteRecentOpen, resetFileArrivalForTests } from '../handoff/fileArrival.ts';
 
 function Harness({ apiRef, props }) {
   apiRef.current = { result: useDraftPersistence(props) };
@@ -555,7 +555,7 @@ describe('useDraftPersistence - same file opened in two tools (real store)', () 
   // whatever entry the pointer named, and the pointer only moves to the new
   // file once cacheRecentFile has hashed and stored it.
   it('opening a second file leaves the first file its own preview', async () => {
-    const { renderDraftPreview: realRenderDraftPreview } = await import('../thumbnails.js');
+    const { renderDraftPreview: realRenderDraftPreview } = await import('../pdf/thumbnails.js');
     const alphaBytes = new TextEncoder().encode('%PDF-1.4 alpha').buffer;
     const bravoBytes = new TextEncoder().encode('%PDF-1.4 bravo').buffer;
     const props = (name, fileBytes) => ({

@@ -2,11 +2,11 @@
 // pdf.js 6.x decodes CCITT fax, JBIG2 (scanned/faxed PDFs) and ICC color
 // profiles through WASM modules it does not bundle a same-origin URL for by
 // default - with no `wasmUrl`, those images fail to decode and pdf.js drops
-// them from the page silently (see src/lib/pdfjsWasm.js). This script copies
+// them from the page silently (see src/lib/pdf/pdfjsWasm.js). This script copies
 // the installed pdfjs-dist's wasm assets into public/<PDFJS_WASM_DIR>/ so
 // every `getDocument()` call can point `wasmUrl` at a real, same-origin
 // directory, the same treatment pdf.worker.min.mjs already gets. The
-// directory name itself lives in src/lib/pdfjsWasm.js (its own URL is built
+// directory name itself lives in src/lib/pdf/pdfjsWasm.js (its own URL is built
 // from the same constant); this script imports it rather than spelling it
 // twice, safe under plain Node since that module has no imports of its own.
 //
@@ -16,7 +16,7 @@
 import { existsSync, mkdirSync, copyFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { PDFJS_WASM_DIR } from '../src/lib/pdfjsWasm.js';
+import { PDFJS_WASM_DIR } from '../src/lib/pdf/pdfjsWasm.js';
 
 const scriptDir = dirname(fileURLToPath(import.meta.url));
 const repoRoot = join(scriptDir, '..');
@@ -44,7 +44,7 @@ for (const name of FILES) {
     throw new Error(
       `scripts/sync-pdfjs-wasm.mjs: pdfjs-dist is missing wasm/${name}. It ` +
         'likely renamed or dropped a codec asset on upgrade - update FILES ' +
-        'here (and re-check src/lib/pdfjsWasm.js) before shipping.',
+        'here (and re-check src/lib/pdf/pdfjsWasm.js) before shipping.',
     );
   }
   copyFileSync(source, join(targetDir, name));
