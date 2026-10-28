@@ -2,7 +2,7 @@
 
 # Backlog
 
-The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 82 live: 15 up next, 11 then, 26 waiting, 30 parked.
+The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 84 live: 16 up next, 11 then, 26 waiting, 31 parked.
 
 ## Redact: finish removal
 
@@ -71,6 +71,7 @@ Production errors you can see, small tools that clean up after themselves, and d
 | ID | P | Task | Note |
 | --- | --- | --- | --- |
 | DEBT-65 | P2 | [DEBT-65](backlog/tasks/DEBT-65.md) · Two layout-shift specs failed once each in the 2026-10-27 nightly | In progress |
+| MEM-26 | P1 | [MEM-26](backlog/tasks/MEM-26.md) · A CSS Module edit renames its own CSS chunk, not 25 JavaScript chunks |  |
 | ENC-16 | P2 | [ENC-16](backlog/tasks/ENC-16.md) · Locked-file state polish: Merge's calm notice, the panel's sizing, focus ring and file name | In progress |
 | MEM-24 | P3 | [MEM-24](backlog/tasks/MEM-24.md) · A service worker that cannot install, or never completes its precache, says so | In progress |
 
@@ -104,6 +105,7 @@ Production errors you can see, small tools that clean up after themselves, and d
 | ENC-14 | P3 | [ENC-14](backlog/tasks/ENC-14.md) · PDF to Image meets a protected PDF at the door and leads back after Unlock |  |
 | ENC-11 | P3 | [ENC-11](backlog/tasks/ENC-11.md) · Every tool's intake is tested against a real protected file in one table |  |
 | MEM-12 | P3 | [MEM-12](backlog/tasks/MEM-12.md) · An alert when people are stuck on an old build |  |
+| MEM-27 | P3 | [MEM-27](backlog/tasks/MEM-27.md) · A tool-layout style edit does not re-download every tool page |  |
 | MOBI-08 | P3 | [MOBI-08](backlog/tasks/MOBI-08.md) · Offer install at the moment it pays off, not in a card about working offline |  |
 
 ## Unify the tools, narrow the graph
