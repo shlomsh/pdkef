@@ -14,7 +14,7 @@ import { planPreview } from './lib/previewPlan.js';
 import ToolShell, { FileActions } from '#shell/ToolShell.tsx';
 import styles from './PdfSecurityTool.module.css';
 import layoutStyles from '#shell/loadedLayout.module.css';
-import { formatFileSize } from '#lib/text/format.js';
+import { formatFileSize, isolateLtr } from '#lib/text/format.js';
 import ErrorMessage from '#shell/ErrorMessage.tsx';
 import { useDownloadFlow } from '#shell/pageWorkspace/useDownloadFlow.ts';
 import { useHoldUpdate } from '#lib/hooks/useHoldUpdate.ts';
@@ -234,7 +234,7 @@ export default withIslandBoundary(function PdfSecurityTool({ intent = 'unlock', 
       {hasFiles && (
         <div class={layoutStyles['finish-frame']}>
         {phoneBar}
-        <div class={styles['loaded-layout']} data-fills-stage>
+        <div class={`${styles['loaded-layout']}${returnTool ? ` ${styles['return-first']}` : ''}`} data-fills-stage>
           <div class={styles.strip}>
             <ToolShell flush>
               <FileActions />
@@ -285,7 +285,7 @@ export default withIslandBoundary(function PdfSecurityTool({ intent = 'unlock', 
             <PagePreview plan={readError ? UNREADABLE_PLAN : CHECKING_PLAN} source={null} pending={!readError} label={t.firstPageLabel} />
           )}
 
-          <SecurityActions t={t} mode={mode} finished={finished} prepared={prepared} flow={downloadFlow} detail={finished ? formatFileSize(outputBlob.size) : ''} fileName={fileName} returnTool={returnTool} />
+          <SecurityActions t={t} mode={mode} finished={finished} prepared={prepared} flow={downloadFlow} detail={finished ? isolateLtr(formatFileSize(outputBlob.size), t.dir) : ''} fileName={fileName} returnTool={returnTool} />
         </div>
         </div>
       )}

@@ -225,7 +225,7 @@ describe('PdfCompressTool UI flow', () => {
     const sheet = container.querySelector('[data-result-sheet]');
     expect(sheet.contains(downloadButton())).toBe(true);
     expect(downloadButton().textContent).toContain('97.66 KB');
-    expect(sheet.querySelector('[data-processing]')).toBeNull();
+    expect(downloadButton().getAttribute('data-state')).toBe('ready');
     noCompressButton();
 
     await act(async () => {
@@ -315,6 +315,21 @@ describe('PdfCompressTool UI flow', () => {
     expect(imagesLib.compressPdfImages).toHaveBeenCalledTimes(2);
     expect(status()).toBe('done');
     expect(tryAgain()).toBeNull();
+  });
+
+  it('after a failed build, hovering or focusing the phone bar Download does not rebuild', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    imagesLib.compressPdfImages.mockImplementationOnce(() => Promise.reject(new Error('boom')));
+    await loadPdf('flaky.pdf');
+    expect(status()).toBe('error');
+    const quiet = container.querySelector('[data-quiet-download]');
+    expect(quiet).not.toBeNull();
+    await act(async () => {
+      quiet.dispatchEvent(new Event('pointerenter'));
+      quiet.dispatchEvent(new Event('focus'));
+    });
+    await wait(60);
+    expect(imagesLib.compressPdfImages).toHaveBeenCalledTimes(1);
   });
 
   it('a file replaced mid-run by a password-needing PDF never compresses, even after another level was clicked', async () => {

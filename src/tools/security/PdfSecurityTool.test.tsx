@@ -538,6 +538,12 @@ describe('PdfSecurityTool', () => {
       return nativeShare;
     }
 
+    it('keeps the way back above the preview on the phone: the layout carries the return-first modifier', async () => {
+      await unlockFromRedact(vi.fn());
+      const layout = container.querySelector('[data-fills-stage]');
+      expect(layout.className).toContain('return-first');
+    });
+
     it('leads back to Redact: Continue in Redact first, a quiet download, nothing else', async () => {
       const nativeShare = await unlockFromRedact(vi.fn());
       const text = container.textContent;
@@ -697,9 +703,34 @@ describe('PdfSecurityTool', () => {
 
     it('puts Redact and Sign after Download, never before', async () => {
       await unlockDone(vi.fn());
-      const text = container.textContent;
-      expect(text.indexOf('Download')).toBeLessThan(text.indexOf('Redact'));
-      expect(text.indexOf('Redact')).toBeLessThan(text.indexOf('Sign'));
+      // The rail's finish block: the phone bar's quiet Download sits earlier in the page and would pass for it.
+      const block = container.querySelector('a[download]:not([data-quiet-download])').parentElement.textContent;
+      expect(block.indexOf('Download')).toBeGreaterThanOrEqual(0);
+      expect(block.indexOf('Download')).toBeLessThan(block.indexOf('Redact'));
+      expect(block.indexOf('Redact')).toBeLessThan(block.indexOf('Sign'));
+    });
+
+    it('does not carry the return-first modifier without a return tool', async () => {
+      await unlockDone(vi.fn());
+      expect(container.querySelector('[data-fills-stage]').className).not.toContain('return-first');
+    });
+
+    it('isolates the size in right-to-left text, in the Download element and the phone bar', async () => {
+      probeAs('needs-password');
+      mount({ messages: { dir: 'rtl' } });
+      await loadFile();
+      const input = container.querySelector('input[type="password"]');
+      await act(async () => {
+        input.value = 'u';
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+      });
+      await act(async () => {
+        container.querySelector('form').dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+      });
+      await waitUntil(() => expect(container.querySelector('a[download]')).not.toBeNull());
+      await settle();
+      const big = container.querySelector('a[download]:not([data-quiet-download])').parentElement.textContent;
+      expect(big).toMatch(/\u2066[^\u2069]*\u2069/);
     });
 
     it.each([['Redact', 'redact', '/redact/'], ['Sign', 'sign', '/sign/']])('%s saves the unlocked bytes and navigates', async (label, key, href) => {

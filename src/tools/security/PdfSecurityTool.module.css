@@ -96,6 +96,20 @@
   .pulse { animation: none; }
 }
 
+/* A file that came from another tool: the way back leads, above the preview, on the phone. */
+@media (max-width: 1023.98px) {
+  .loaded-layout.return-first {
+    grid-template-areas:
+      'strip'
+      'controls'
+      'actions'
+      'result';
+  }
+}
+
+/* Download, then the Share and hand-off row: one gap at every width. */
+.actions > [data-state] + * { margin-top: var(--space-3); }
+
 @media (min-width: 1024px) {
   .loaded-layout {
     grid-template-columns: minmax(0, 1fr) 360px;

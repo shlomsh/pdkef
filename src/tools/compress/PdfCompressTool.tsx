@@ -251,7 +251,7 @@ export default withIslandBoundary(function PdfCompressTool({
             <div class={workspaceStyles['chip-bar']}>
               <PhoneFinish
                 flow={flow}
-                prepared={prepared}
+                prepared={{ status: prepared.status, url: prepared.url, prepareNow: warmBuild }}
                 fileName={meta?.filename ?? ''}
                 detail={finishDetail ?? ''}
                 handoffs={handoffs}

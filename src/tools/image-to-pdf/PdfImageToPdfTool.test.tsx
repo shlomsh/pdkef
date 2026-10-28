@@ -13,7 +13,7 @@ import { saveHandoff } from '#lib/drafts/draftStore.ts';
 import { installToolHarness } from '../../test/harness/toolHarness.ts';
 import { mockNativeFileShare } from '../../test/support/mockFileShare.js';
 import { setInputFiles } from '../../test/support/setInputFiles.js';
-import { recentActions, resetActionTrailForTests } from '#lib/telemetry/actionTrail.ts';
+import { onAction, recentActions, resetActionTrailForTests } from '#lib/telemetry/actionTrail.ts';
 import { hebrewImageToPdfMessages } from './messages';
 import { hebrewShellMessages } from '#shell/shellMessages.ts';
 
@@ -413,19 +413,46 @@ describe('PdfImageToPdfTool UI flow', () => {
     expect(createSpy.mock.calls[0][1].handle).toBeUndefined();
   });
 
-  it('shows the damaged-file message with Try again, which builds again', async () => {
+  it('shows Try again in the finish on a build failure, and tapping it builds again', async () => {
     mount();
     buildGate.next = () => Promise.reject(new Error('bad image'));
     vi.spyOn(console, 'error').mockImplementation(() => {});
     await loadFiles(['a.png']);
     await wait(0);
     const failure = () => container.querySelector('a[data-state="error"]');
-    expect(failure().textContent).toContain('A file may be damaged - remove it and try again.');
+    expect(failure().textContent).toBe('Try again');
     await act(async () => { failure().click(); });
     await wait(0);
     expect(builtPdfs()).toHaveLength(1);
     expect(failure()).toBeNull();
     expect(downloadLink()).not.toBeNull();
+  });
+
+  it('records one download per ready tap', async () => {
+    resetActionTrailForTests();
+    vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
+    mount();
+    await loadFiles(['a.png', 'b.png']);
+    await wait(0);
+    const heard: string[] = [];
+    const off = onAction((name) => heard.push(name));
+    await act(async () => { downloadLink().dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true })); });
+    off();
+    expect(heard.filter((a) => a === 'download')).toHaveLength(1);
+  });
+
+  it('shows only the preparing line while a tapped build runs, with no render count', async () => {
+    vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
+    mount();
+    await loadFiles(['a.png', 'b.png']);
+    await wait(0);
+    buildGate.next = () => new Promise(() => {});
+    await act(async () => { removeButtons()[1].click(); });
+    await act(async () => { downloadLink().dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true })); });
+    await wait(0);
+    const text = container.querySelector('a[data-state="preparing"]').textContent;
+    expect(text).toContain('Preparing');
+    expect(text).not.toContain('rendered');
   });
 
   it('records what the person did, by name only, in order', async () => {
