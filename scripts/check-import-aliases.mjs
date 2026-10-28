@@ -6,7 +6,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { IMPORT_ALIASES, aliasTarget } from './import-aliases.mjs';
-import { REPO_ROOT, collectSourceFiles, importSpecifiers, resolveRelativeImport, relOf } from './import-graph.mjs';
+import { REPO_ROOT, TEST_FILE, collectSourceFiles, importSpecifiers, resolveRelativeImport, relOf } from './import-graph.mjs';
 
 const layerOf = (rel) => {
   for (const dir of IMPORT_ALIASES.values()) if (rel.startsWith(dir)) return dir;
@@ -35,7 +35,7 @@ export function findAliasViolations(fromRel, specifiers, { resolveRel, exists })
       const target = resolveRel(specifier);
       const layer = target ? layerOf(target) : null;
       if (layer && layer !== own) add(`use the alias ${aliasOf(layer)}`);
-      else if (/^(?:\.\.\/){4,}/.test(specifier)) add('climbs four or more folders: use an alias');
+      else if (!TEST_FILE.test(fromRel) && /^(?:\.\.\/){4,}/.test(specifier)) add('climbs four or more folders: use an alias');
     }
   }
   return out;

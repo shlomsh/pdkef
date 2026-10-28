@@ -41,6 +41,9 @@ describe('findAliasViolations', () => {
   it('flags a relative climb of four or more folders', () => {
     expect(reasons('src/tools/sign/deep/x/y/a.ts', ['../../../../z.ts'])).toEqual([expect.stringMatching(/four/)]);
   });
+  it('lets a test file climb to shared test support (the climb limit is for non-test imports)', () => {
+    expect(run('src/tools/sign/components/nodes/TextNode.test.tsx', ['../../../../test/support/fixtures/wysiwygStrings.js'])).toEqual([]);
+  });
   it('passes a within-layer relative import and a correct alias', () => {
     expect(run('src/lib/pdf/open.ts', ['./other.ts', '../text/sort.ts'])).toEqual([]);
     expect(run('src/tools/sign/a.ts', ['#lib/text/sort.ts', '#editor/model.ts'])).toEqual([]);
