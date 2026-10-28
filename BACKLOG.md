@@ -2,7 +2,7 @@
 
 # Backlog
 
-The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 97 live: 13 up next, 16 then, 26 waiting, 42 parked.
+The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 96 live: 13 up next, 16 then, 26 waiting, 41 parked.
 
 ## Redact: finish removal
 
@@ -149,7 +149,6 @@ Every tool on one shell and one set of PDF primitives, and a change reaching onl
 | ARCH-122 | P3 | [ARCH-122](backlog/tasks/ARCH-122.md) · PdfRedactTool.test.tsx is split by behaviour area |  |
 | ARCH-124 | P3 | [ARCH-124](backlog/tasks/ARCH-124.md) · check-ratchet-raises is tested for a direct push to main |  |
 | ARCH-125 | P3 | [ARCH-125](backlog/tasks/ARCH-125.md) · The color-literal check also covers TSX style props |  |
-| ARCH-126 | P3 | [ARCH-126](backlog/tasks/ARCH-126.md) · The zod pin held by @vercel/cli-config is gone and its exception removed |  |
 | ARCH-127 | P3 | [ARCH-127](backlog/tasks/ARCH-127.md) · The advisory exceptions list holds no entry that matches nothing |  |
 | ARCH-128 | P3 | [ARCH-128](backlog/tasks/ARCH-128.md) · The boundary rules are written once and checked against every copy |  |
 | QUAL-38 | P3 | [QUAL-38](backlog/tasks/QUAL-38.md) · The four chromium e2e shards finish within 20 s of each other |  |
@@ -234,7 +233,7 @@ Done and retired tickets are not listed. Their files stay in [backlog/tasks/](ba
 - Tool pages: show the verb: 8 done, 0 retired
 - Form detector accuracy: 19 done, 1 retired
 - Robustness and debt: 70 done, 4 retired
-- Unify the tools, narrow the graph: 78 done, 0 retired
+- Unify the tools, narrow the graph: 79 done, 0 retired
 - Search and languages: 7 done, 0 retired
 - Polish: 19 done, 1 retired
 - Sign tool architecture: 37 done, 1 retired
