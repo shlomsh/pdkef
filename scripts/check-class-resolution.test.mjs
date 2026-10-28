@@ -1,6 +1,7 @@
 // ARCH-87: the reverse direction of check-class-resolution.js (CSS Module -> its importers).
 // Fixtures are inline; the real tree is checked by `node scripts/check-class-resolution.js`.
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import {
   collectReverseInputs,
@@ -65,6 +66,20 @@ describe('reexportedAliases', () => {
     expect([...reexportedAliases(`export { styles as workspaceStyles };`, 'styles')]).toEqual(['workspaceStyles']);
     expect([...reexportedAliases(`export const shared = styles;\n`, 'styles')]).toEqual(['shared']);
     expect([...reexportedAliases(`export { other as nope };`, 'styles')]).toEqual([]);
+  });
+});
+
+describe('aliased CSS Module imports (ARCH-44)', () => {
+  it('finds a module imported through an alias like a relative one', () => {
+    const root = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'src');
+    const files = {
+      [path.join(root, 'editor-ui/T.module.css')]: '.used {}',
+      [path.join(root, 'tools/sign/S.tsx')]: `import styles from '#editor-ui/T.module.css'; export const u = styles.used;`,
+    };
+    const { importers, used } = collectReverseInputs(Object.keys(files), (f) => files[f]);
+    const css = path.join(root, 'editor-ui/T.module.css');
+    expect([...importers.get(css)]).toEqual([path.join(root, 'tools/sign/S.tsx')]);
+    expect([...used.get(css)]).toEqual(['used']);
   });
 });
 
