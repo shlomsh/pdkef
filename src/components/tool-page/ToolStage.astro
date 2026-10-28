@@ -275,10 +275,21 @@ const { tool, messages, isEditor, toolControlsEnglish } = Astro.props;
      stream below it out of paint until the actual grid has mounted. Unlike
      Sign/Redact this is not an editor shell and intentionally has its own
      marker and readiness signal. A stale pointer releases immediately in
-     PdfMergeTool once the restore check returns with no files. */
+     PdfMergeTool once the restore check returns with no files.
+
+     Same safety net as a hand-off below: if the grid never mounts (the
+     island never runs, a chunk fails, the restore stalls) nothing removes
+     the attribute, and an iPhone showed the condensed h1 over an empty page
+     (2026-10-28). The hidden parts flip back to visible after 6s.
+     Guard: src/tools/merge/e2e/merge-restore-safety-net.spec.js. */
   :global(html[data-merge-restore]) .tool-stage main,
   :global(html[data-merge-restore]) [data-airplane-note] {
     visibility: hidden;
+    animation-name: handoff-pending-reveal;
+    animation-duration: 0s;
+    animation-delay: 6s;
+    animation-timing-function: linear;
+    animation-fill-mode: forwards;
   }
 
   :global(html[data-merge-restore]:has([data-merge-workspace-ready])) .tool-stage main,

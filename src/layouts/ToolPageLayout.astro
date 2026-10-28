@@ -284,6 +284,11 @@ const editionPaths = locale === 'en' ? [] : await getPublishedEditionPaths(local
 
   :global(html[data-merge-restore]) [data-tool-followups] {
     visibility: hidden;
+    animation-name: handoff-pending-reveal;
+    animation-duration: 0s;
+    animation-delay: 6s;
+    animation-timing-function: linear;
+    animation-fill-mode: forwards;
   }
 
   :global(html[data-merge-restore]:has([data-merge-workspace-ready])) [data-tool-followups] {
