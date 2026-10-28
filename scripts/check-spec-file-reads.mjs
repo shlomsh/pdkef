@@ -250,8 +250,14 @@ export function readTargetsOf({ spec, text, resolveExisting }) {
 // ---------------------------------------------------------------------------
 // Verdict.
 
+// The export guards and the font guards are selected by the `export_guards` and `fonts` flags, not by
+// e2e_paths (the product jobs skip them), so a spec in either set is covered by its own flag.
+const FONT_GUARD_SPEC = /^e2e\/sign\/[^/]*-(guard|parity)\.spec\.js$/;
+
 export function e2eCovers(scope, spec) {
   if (scope.everything) return true;
+  if (scope.export_guards && spec.startsWith('e2e/export/')) return true;
+  if (scope.fonts && FONT_GUARD_SPEC.test(spec)) return true;
   return String(scope.e2e_paths ?? '').split(/\s+/).filter(Boolean).some((p) => (p.endsWith('/') ? spec.startsWith(p) : spec === p));
 }
 
@@ -277,7 +283,9 @@ export function affectedFrom(project, dependencies) {
 export function coverageOf({ pairs, selectUnit, deriveE2e, isDocs = isDocsOnly }) {
   return pairs.map((pair) => {
     const { spec, target, kind } = pair;
-    if (isDocs(target)) return { ...pair, covered: false, reason: 'docs-only target: CI skips everything' };
+    // A docs-only push runs no unit test or spec in CI (scripts/change-scope.mjs), so no rule can select
+    // the spec. Reported, not failed: it is a property of the docs-only class, not a missing rule.
+    if (isDocs(target)) return { ...pair, covered: true, docsOnly: true, reason: 'docs-only target: CI runs no test on a docs-only push' };
     if (kind === 'unit') {
       const sel = selectUnit([{ path: target, status: 'M' }]);
       if (sel.all) return { ...pair, covered: true, reason: `widens to the whole suite (${sel.reasons[0] ?? ''})` };
@@ -294,8 +302,11 @@ export function coverageOf({ pairs, selectUnit, deriveE2e, isDocs = isDocsOnly }
 // ---------------------------------------------------------------------------
 // Impure: tracked files, the Nx graph (once), and the CLI.
 
+// This guard's own test is left out: its fixtures are strings that name files it never reads.
+const SELF_TEST = 'scripts/check-spec-file-reads.test.mjs';
+
 export function classifySpecs(tracked) {
-  const unit = tracked.filter((f) => (/^src\/.*\.(test|spec)\.(js|jsx|ts|tsx)$/.test(f) && !/^src\/tools\/[^/]+\/e2e\//.test(f)) || /^scripts\/.*\.test\.mjs$/.test(f));
+  const unit = tracked.filter((f) => f !== SELF_TEST && ((/^src\/.*\.(test|spec)\.(js|jsx|ts|tsx)$/.test(f) && !/^src\/tools\/[^/]+\/e2e\//.test(f)) || /^scripts\/.*\.test\.mjs$/.test(f)));
   const e2e = tracked.filter((f) => /^e2e\/.*\.spec\.[^/]+$/.test(f) || /^src\/tools\/[^/]+\/e2e\/.*\.spec\.[^/]+$/.test(f));
   return { unit, e2e };
 }
@@ -374,6 +385,8 @@ async function main(argv) {
   } else {
     for (const r of bad) console.log(`UNCOVERED  ${r.spec}  reads  ${r.target}  (${r.kind})`);
   }
+  const docsOnly = results.filter((r) => r.docsOnly);
+  if (docsOnly.length > 0) console.log(`docs-only reads (CI runs no test on a docs-only push): ${[...new Set(docsOnly.map((r) => r.target))].join(', ')}`);
   console.log(`spec file reads: ${pairs.length} pairs over ${specs.size} specs, ${unresolved} unresolved reads`);
   console.log(`(${((Date.now() - started) / 1000).toFixed(1)}s)`);
   return report || bad.length === 0 ? 0 : 1;

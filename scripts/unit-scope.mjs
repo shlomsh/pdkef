@@ -116,13 +116,16 @@ export const WIDEN_RULES = [
       'src/tools/sign/PdfSignTool.test.tsx',
       'src/tools/split/PdfSplitTool.test.tsx',
       'src/tools/to-image/lib/toImage.test.js',
+      'src/tools/merge/PdfMergeTool.earlyFiles.test.tsx',
+      'src/tools/image-to-pdf/PdfImageToPdfTool.test.tsx',
+      'src/lib/pdf/pdfjsPolyfills.pdfjs.test.js',
     ],
   },
   {
     id: 'compress-fixtures',
     reason: 'the COMP-01 corpus under src/tools/compress/__fixtures__/ is read by path, not imported',
     match: (f) => f.startsWith('src/tools/compress/__fixtures__/'),
-    tests: ['src/tools/compress/lib/analyzePdf.test.js'],
+    tests: ['src/tools/compress/lib/analyzePdf.test.js', 'src/tools/compress/lib/compressImages.test.js'],
   },
   {
     id: 'sign-field-fixtures',
@@ -132,6 +135,7 @@ export const WIDEN_RULES = [
       'src/tools/sign/lib/fieldOrder.fixtures.test.js',
       'src/tools/sign/lib/fields/formGrid.fixtures.test.js',
       'src/tools/sign/lib/fields/corpus/corpus.test.js',
+      'src/tools/sign/lib/fields/formWidgets.test.js',
     ],
   },
   {
@@ -143,6 +147,10 @@ export const WIDEN_RULES = [
       'src/tools/sign/lib/fields/formGrid.fixtures.test.js',
       'src/tools/sign/lib/fields/corpus/corpus.test.js',
       'src/tools/sign/lib/fields/corpus/scoring/scoring.test.js',
+      'scripts/generate-practice-form.test.mjs',
+      'src/tools/sign/hooks/carriedFontSize.practiceForm.test.tsx',
+      'src/tools/sign/hooks/fullNameFieldSizing.practiceForm.test.tsx',
+      'src/tools/sign/hooks/useFormFieldRegions.practiceForm.test.tsx',
     ],
   },
   {
@@ -190,6 +198,72 @@ export const WIDEN_RULES = [
       f === 'nx.json' ||
       f === 'playwright.config.js',
     tests: ['scripts/e2e-projects.test.mjs'],
+  },
+  // QUAL-41: files a spec reads by name that nothing else seeds. The scanner in
+  // scripts/check-spec-file-reads.mjs found each pair; each row names the readers.
+  {
+    id: 'scoring-forms-read-elsewhere',
+    reason: 'the scoring corpus PDFs are also read by path from the comb, Zapf checkbox and security tests',
+    match: (f) => f.startsWith('src/tools/sign/lib/fields/corpus/scoring/forms/'),
+    tests: [
+      'src/tools/sign/lib/fields/corpus/combRowHeight.test.js',
+      'src/tools/sign/lib/fields/corpus/zapfCheckboxSquare.test.js',
+      'src/tools/security/lib/security.test.js',
+    ],
+  },
+  {
+    id: 'practice-form-generator-inputs',
+    reason: 'scripts/generate-practice-form.test.mjs reads the ground truth and global.css by path',
+    match: (f) => f === 'src/tools/sign/lib/fields/corpus/scoring/ground-truth/practice-form-page1.json' || f === 'src/styles/global.css',
+    tests: ['scripts/generate-practice-form.test.mjs'],
+  },
+  {
+    id: 'middleware-text-read',
+    reason: 'acceptNegotiation.test.js reads middleware.ts as text',
+    match: (f) => f === 'middleware.ts',
+    tests: ['src/site-lib/acceptNegotiation.test.js'],
+  },
+  {
+    id: 'redact-spike-corpus',
+    reason: 'deleteSharedImage.test.js reads the RED-18 corpus PDFs by path',
+    match: (f) => f.startsWith('spikes/red-18/corpus/'),
+    tests: ['src/tools/redact/lib/deleteSharedImage.test.js'],
+  },
+  {
+    id: 'hero-condense-sources',
+    reason: 'heroCondense.test.js reads the tool hero and stage components as text',
+    match: (f) => f === 'src/components/ToolHero.astro' || f === 'src/components/tool-page/ToolStage.astro',
+    tests: ['src/site-lib/heroCondense.test.js'],
+  },
+  {
+    id: 'compare-figure-css',
+    reason: 'compareFigure.test.js reads compareFigure.css as text',
+    match: (f) => f === 'src/components/compareFigure.css',
+    tests: ['src/components/compareFigure.test.js'],
+  },
+  {
+    id: 'sign-toolbar-css',
+    reason: 'SignToolbar.test.tsx reads SignToolbar.module.css as text',
+    match: (f) => f === 'src/editor-ui/SignToolbar.module.css',
+    tests: ['src/tools/sign/components/SignToolbar.test.tsx'],
+  },
+  {
+    id: 'shell-tool-css',
+    reason: 'shellPageRangeField.test.tsx reads PdfTool.module.css as text',
+    match: (f) => f === 'src/shell/PdfTool.module.css',
+    tests: ['src/test/cross-tool/shellPageRangeField.test.tsx'],
+  },
+  {
+    id: 'file-dropzone-css',
+    reason: 'FileDropzone.test.tsx reads FileDropzone.module.css as text',
+    match: (f) => f === 'src/site-lib/FileDropzone.module.css',
+    tests: ['src/site-lib/FileDropzone.test.tsx'],
+  },
+  {
+    id: 'error-report-schema',
+    reason: 'errors-insights.test.mjs reads errorReportSchema.ts as text',
+    match: (f) => f === 'src/lib/telemetry/errorReportSchema.ts',
+    tests: ['scripts/errors-insights.test.mjs'],
   },
   {
     id: 'llms-txt',

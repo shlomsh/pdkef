@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { typecheckSteps, parseArgs, summaryLine, unitsDetail, GUARD_STEPS } from './check-fast.mjs';
+import { typecheckSteps, parseArgs, summaryLine, unitsDetail, GUARD_STEPS, guardSteps } from './check-fast.mjs';
 import { ALWAYS_GUARD_STEPS } from './check-push.mjs';
 import { ORACLE_FILES } from './unit-scope.mjs';
 
@@ -64,5 +64,31 @@ describe('GUARD_STEPS', () => {
   it('runs every ratchet and shape check check:push runs, in the same order', () => {
     const ratchets = ALWAYS_GUARD_STEPS.filter((s) => /ratchet|unused-exports|untested-modules|e2e-sleeps|tool-shape|import-aliases|js-typed/.test(s));
     expect(GUARD_STEPS.filter((s) => ratchets.includes(s))).toEqual(ratchets);
+  });
+});
+
+describe('guardSteps (QUAL-41, QUAL-39)', () => {
+  const SPEC_READS = 'test:spec-file-reads';
+
+  it('always runs the unit-shard check, which costs a third of a second', () => {
+    expect(GUARD_STEPS).toContain('check:unit-shards');
+  });
+
+  it.each([
+    'src/lib/foo.test.js',
+    'src/tools/sign/e2e/a.spec.js',
+    'e2e/home/b.spec.js',
+    'scripts/unit-scope.mjs',
+    'scripts/unowned-verdicts.mjs',
+    'scripts/affected-scope.mjs',
+    'src/tools/sign/project.json',
+    'nx.json',
+  ])('adds the spec-read guard (9s, one Nx graph) when the diff touches %s', (file) => {
+    expect(guardSteps([file])).toContain(SPEC_READS);
+  });
+
+  it('leaves it out for a diff that cannot change what a spec reads or which rule selects it', () => {
+    expect(guardSteps(['src/lib/foo.js', 'docs/a.md'])).not.toContain(SPEC_READS);
+    expect(guardSteps([])).toEqual(GUARD_STEPS);
   });
 });

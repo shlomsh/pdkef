@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { readTargetsOf, coverageOf, e2eCovers, affectedFrom } from './check-spec-file-reads.mjs';
+import { readTargetsOf, coverageOf, e2eCovers, affectedFrom, classifySpecs } from './check-spec-file-reads.mjs';
 
 /* QUAL-41: pins the scanner (readTargetsOf) and the verdict (coverageOf) with synthetic spec text and
    injected oracles, so no nx or git call runs here. */
@@ -88,9 +88,10 @@ describe('coverageOf', () => {
     expect(r.map((x) => x.covered)).toEqual([true, true, false]);
   });
 
-  it('reports a docs-only target as uncovered', () => {
-    const r = coverageOf({ pairs: [unit('src/a.test.ts', 'docs/x.md')], selectUnit: () => ({ all: true, seeds: [], reasons: [] }), deriveE2e: null, isDocs: (f) => f.startsWith('docs/') });
-    expect(r[0].covered).toBe(false);
+  it('flags a docs-only target without failing it: CI skips every test on a docs-only push by design', () => {
+    const r = coverageOf({ pairs: [unit('src/a.test.ts', 'docs/x.md')], selectUnit: () => ({ all: false, seeds: [], reasons: [] }), deriveE2e: null, isDocs: (f) => f.startsWith('docs/') });
+    expect(r[0].covered).toBe(true);
+    expect(r[0].docsOnly).toBe(true);
     expect(r[0].reason).toMatch(/docs/);
   });
 });
@@ -101,11 +102,28 @@ describe('e2eCovers', () => {
     expect(e2eCovers({ everything: false, e2e_paths: 'e2e/a.spec.js e2e/sub/' }, 'e2e/sub/b.spec.js')).toBe(true);
     expect(e2eCovers({ everything: false, e2e_paths: 'e2e/a.spec.js' }, 'e2e/a.spec.jsx')).toBe(false);
   });
+
+  it('selects the export-guards specs by export_guards and the font guards by fonts, not by e2e_paths', () => {
+    const none = { everything: false, e2e_paths: '', export_guards: false, fonts: false };
+    expect(e2eCovers({ ...none, export_guards: true }, 'e2e/export/export-render-guard.spec.js')).toBe(true);
+    expect(e2eCovers(none, 'e2e/export/export-render-guard.spec.js')).toBe(false);
+    expect(e2eCovers({ ...none, export_guards: true }, 'e2e/home/a.spec.js')).toBe(false);
+    expect(e2eCovers({ ...none, fonts: true }, 'e2e/sign/gurmukhi-tiro-shaping-guard.spec.js')).toBe(true);
+    expect(e2eCovers({ ...none, fonts: true }, 'e2e/sign/some-parity.spec.js')).toBe(true);
+    expect(e2eCovers(none, 'e2e/sign/gurmukhi-tiro-shaping-guard.spec.js')).toBe(false);
+  });
 });
 
 describe('affectedFrom', () => {
   it('is the project plus its transitive dependents', () => {
     const deps = { site: [{ target: 'lib' }], tool: [{ target: 'lib' }], lib: [{ target: 'data' }], other: [] };
     expect(affectedFrom('data', deps).sort()).toEqual(['data', 'lib', 'site', 'tool']);
+  });
+});
+
+describe('classifySpecs', () => {
+  it("leaves out this guard's own test, whose fixture text names files it never reads", () => {
+    const { unit } = classifySpecs(['scripts/check-spec-file-reads.test.mjs', 'scripts/other.test.mjs']);
+    expect(unit).toEqual(['scripts/other.test.mjs']);
   });
 });
