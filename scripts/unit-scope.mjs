@@ -265,6 +265,38 @@ export const WIDEN_RULES = [
     match: (f) => f === 'src/lib/telemetry/errorReportSchema.ts',
     tests: ['scripts/errors-insights.test.mjs'],
   },
+  // QUAL-41: specs that read a whole folder. The guard asks about every tracked file inside it, so each rule
+  // matches the whole folder even where the spec only lists names (a conservative extra seed, not a miss).
+  {
+    id: 'patches-folder',
+    reason: 'patch-browser-safety.test.mjs reads every file in patches/',
+    match: (f) => f.startsWith('patches/'),
+    tests: ['scripts/patch-browser-safety.test.mjs'],
+  },
+  {
+    id: 'i18n-folder',
+    reason: 'i18nImportsNothingAbove.test.js lists src/i18n/ and reads each file',
+    match: (f) => f.startsWith('src/i18n/'),
+    tests: ['src/i18n/i18nImportsNothingAbove.test.js'],
+  },
+  {
+    id: 'localized-tools-content',
+    reason: 'toolsH1Name.test.js and localizedToolPage.test.js walk src/content/localized-tools/',
+    match: (f) => f.startsWith('src/content/localized-tools/'),
+    tests: ['src/i18n/toolsH1Name.test.js', 'src/site-lib/localizedToolPage.test.js'],
+  },
+  {
+    id: 'api-folder',
+    reason: 'functionImports.test.js lists api/ and follows each entry\'s runtime imports',
+    match: (f) => f.startsWith('api/'),
+    tests: ['src/site-lib/functionImports.test.js'],
+  },
+  {
+    id: 'tools-folder-listing',
+    reason: 'toolFolders.test.js lists src/tools/ and checks each tool has a project.json and a page',
+    match: (f) => f.startsWith('src/tools/'),
+    tests: ['src/test/cross-tool/toolFolders.test.js'],
+  },
   {
     id: 'llms-txt',
     reason: 'public/llms.txt is read with fs.readFileSync(path.join(process.cwd(), ...))',

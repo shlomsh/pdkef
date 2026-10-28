@@ -37,6 +37,8 @@ depends_on: []
   at the job level and no longer pays checkout, `npm ci` and the container first. The chromium matrix is sized by the
   spec files in scope (1 to 4 shards, 8 files each, a guess to tune). `dependency-gate` is gone: `plan`'s build is
   that gate. `scripts/ci-single-build.test.mjs` pins it: one build, one scope call, every consumer needs `plan`.
+- A `ci.yml` edit inside `plan` now turns the font guards on, as an edit inside `font-guards` does (they consume
+  `plan`'s build), found by the reviewer. The `dist` upload overwrites on a re-run and is kept 3 days.
 - Verdicts cannot differ: only `plan` runs `affected-scope.mjs`. `scope-summary` still runs its own `npm ci` and
   `scope-summary.mjs` (reporting only, left alone).
 - Before, from the last wide runs: 31 to 38 runner-minutes, 286 to 343 s wall, 7 to 9 builds
