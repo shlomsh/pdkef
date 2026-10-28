@@ -1142,6 +1142,25 @@ describe('unowned-file verdicts (QUAL-34)', () => {
     expect(scopeOf(['.github/workflows/ci.yml']).fonts).toBe(true); // fail-open default
   });
 
+  it('package.json: off the e2e path it runs no e2e and no fonts, otherwise it widens (QUAL-43)', () => {
+    const off = scopeOf(['package.json'], { packageJsonReachesE2e: () => false });
+    expect(off.everything).toBe(false);
+    expect(off.e2e_paths).toBe('');
+    expect(off.fonts).toBe(false);
+    expect(runsProductE2e(off)).toBe(false);
+    const withScript = scopeOf(['package.json', 'scripts/check-fast.mjs'], { packageJsonReachesE2e: () => false, affected: ['tooling'] });
+    expect(withScript.everything).toBe(false);
+    expect(withScript.fonts).toBe(false);
+    for (const files of [['package.json'], ['package.json', 'scripts/check-fast.mjs']]) {
+      const on = scopeOf(files, { packageJsonReachesE2e: () => true });
+      expect(on.everything).toBe(true);
+      expect(on.fonts).toBe(true);
+      expect(on.reason).toContain('unowned files: package.json');
+    }
+    expect(scopeOf(['package.json']).everything).toBe(true); // fail-open default
+    expect(scopeOf(['package.json', 'package-lock.json'], { packageJsonReachesE2e: () => false }).everything).toBe(true);
+  });
+
   it('a sw.js change next to a font file keeps fonts on', () => {
     expect(scopeOf(['public/sw.js', 'public/fonts/a.woff2']).fonts).toBe(true);
   });
