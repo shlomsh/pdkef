@@ -1,9 +1,9 @@
 // Pure pieces of the error-report endpoint (api/report.ts, DEBT-17): what is
 // counted (error reports and Sign's maintenance events), under which keys, and
 // how much of a user agent survives. Nothing here does I/O.
-import { MAX_REPORT_BYTES, dropRecordField, type DropRecord, type ErrorReport } from '#lib/telemetry/errorReportSchema.ts';
-import { maintenanceEventField, type MaintenanceEvent } from '#lib/telemetry/maintenanceEventSchema.ts';
-import { usageEventField, usagePageField, type UsageEvent } from '#lib/telemetry/usageEventSchema.ts';
+import { MAX_REPORT_BYTES, dropRecordField, type DropRecord, type ErrorReport } from '../lib/telemetry/errorReportSchema.js';
+import { maintenanceEventField, type MaintenanceEvent } from '../lib/telemetry/maintenanceEventSchema.js';
+import { usageEventField, usagePageField, type UsageEvent } from '../lib/telemetry/usageEventSchema.js';
 
 /**
  * Reports, drop records and Sign events counted per UTC day; past it the day is full. Budget: the

@@ -1,10 +1,9 @@
 ---
 id: "ARCH-124"
 title: "check-ratchet-raises is tested for a direct push to main"
-status: "open"
+status: "done"
 priority: "P3"
 epic: "unify-and-narrow"
-horizon: "later"
 depends_on: []
 ---
 
@@ -23,4 +22,12 @@ Area: Tests and CI. Criterion: Guardrails and CI health. Structure only: no beha
 
 ## Acceptance
 
-- [ ] A planted raised limit on a direct push to main fails the check.
+- [x] A planted raised limit on a direct push to main fails the check.
+
+## Done (2026-10-28)
+
+- On a push to main, CI passes `github.event.before` (the previous tip) as `--base`; the 2026-10-28 run compared
+  against f2b4054, the tip before it. So the case worked, and was untested.
+- `scripts/check-ratchet-raises.mjs` exports `raisesSince(base, { cwd })`; its test builds throwaway git repos: a
+  raised limit on a direct push to main fails (the real CLI exits 1 naming the path), a lowered one passes, and a
+  base without the limits file passes.

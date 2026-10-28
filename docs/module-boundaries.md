@@ -150,6 +150,9 @@ layer stays relative, and no non-test import climbs four or more folders. Exempt
 `new URL(..., import.meta.url)`, and `src/**/e2e/`. The aliases are declared once, in `package.json` "imports",
 which Node, Vite, Vitest (`vi.mock` included), TypeScript and Nx read natively; `scripts/import-aliases.mjs` is the
 one copy the import-resolving scripts map through. `npm run test:import-aliases` holds the rule.
+The exception is everything a Vercel Function reaches (`api/*.ts`, `middleware.ts` and their imports): the function
+build resolves neither `#` aliases nor `.ts` specifiers, so those files import relatively with `.js`, which
+`npm run test:function-imports` holds (on 2026-10-28 aliased imports crashed `/api/report` for six hours).
 
 `scripts/check-module-boundaries.mjs` enforces exactly these eleven rules; its exported `RULES` list
 and this section are checked against each other by `scripts/check-module-boundaries.doc.test.mjs`

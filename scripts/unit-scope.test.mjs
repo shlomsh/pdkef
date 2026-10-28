@@ -142,6 +142,12 @@ describe('selectUnitTests: a core-folder change narrows, it does not force the w
     expect(scope.seeds).toContain('scripts/errors-read.test.mjs');
   });
 
+  it('src/lib/drafts/draftIdb.ts selects the service-worker sync guard, which reads its DB constants as text', () => {
+    const scope = selectUnitTests({ files: [file('src/lib/drafts/draftIdb.ts')], exists: () => true });
+    expect(scope.seeds).toContain('src/lib/drafts/draftStoreServiceWorkerSync.test.js');
+    expect(scope.seeds).toContain('scripts/sw.test.mjs');
+  });
+
   it('src/lib/drafts/draftStore.js selects a handful of seeds, not the whole suite', () => {
     const scope = selectUnitTests({ files: [file('src/lib/drafts/draftStore.ts')], exists: () => true });
     expect(scope.all).toBe(false);

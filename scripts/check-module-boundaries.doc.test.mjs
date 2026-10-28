@@ -1,12 +1,15 @@
-// ARCH-93: docs/module-boundaries.md's "Dependency rules" list and the script's RULES list are
-// one set. A rule renamed, added or dropped on either side fails here, so no hand-sync is needed.
+// ARCH-93, ARCH-128: the doc's "Dependency rules" list, the script's RULES list and its header comment copy
+// are one set, and rule numbers cited in the guidance exist. Drift on any side fails here.
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import { RULES } from './check-module-boundaries.mjs';
 
-const DOC = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', 'docs/module-boundaries.md');
+const HERE = path.dirname(fileURLToPath(import.meta.url));
+const SCRIPT = path.join(HERE, 'check-module-boundaries.mjs');
+const ROOT = path.resolve(HERE, '..');
+const DOC = path.join(ROOT, 'docs/module-boundaries.md');
 
 // { id, text } per numbered item between "## Dependency rules" and the next "## " heading.
 function docRules() {
@@ -21,6 +24,40 @@ function docRules() {
   return rules;
 }
 
+// { id, text } per `//   N. ` item in the script's leading comment block; deeper-indented `//` lines continue it.
+function headerRules() {
+  const rules = [];
+  for (const line of fs.readFileSync(SCRIPT, 'utf8').split('\n')) {
+    if (!line.startsWith('//')) {
+      if (rules.length) break;
+      continue;
+    }
+    const item = line.match(/^\/\/\s+(\d+)\. (.*)/);
+    if (item) rules.push({ id: Number(item[1]), text: item[2] });
+    else if (rules.length && /^\/\/\s{4,}\S/.test(line)) rules[rules.length - 1].text += ` ${line.slice(2).trim()}`;
+  }
+  return rules;
+}
+
+// Every number in a rule citation: `rule 6`, `rules 6 and 7`, `rules 1-3`, `rules 6, 8 and 9`.
+function ruleNumbersIn(line) {
+  return [...line.matchAll(/\brules? (\d+(?:(?:, and |, | and |-)\d+)*)/gi)].flatMap((m) => m[1].match(/\d+/g).map(Number));
+}
+
+// Rule numbers cited on lines that mention module-boundaries.
+function citedRules() {
+  const dir = path.join(ROOT, '.claude/rules');
+  const files = ['CLAUDE.md', ...fs.readdirSync(dir).filter((f) => f.endsWith('.md')).map((f) => `.claude/rules/${f}`)];
+  const cited = [];
+  for (const file of files) {
+    for (const line of fs.readFileSync(path.join(ROOT, file), 'utf8').split('\n')) {
+      if (!line.includes('module-boundaries')) continue;
+      for (const n of ruleNumbersIn(line)) cited.push({ file, n, line: line.trim() });
+    }
+  }
+  return cited;
+}
+
 describe('docs/module-boundaries.md vs the script rule list', () => {
   it('has the same rule ids on both sides', () => {
     expect(docRules().map((r) => r.id)).toEqual(RULES.map((r) => r.id));
@@ -29,6 +66,24 @@ describe('docs/module-boundaries.md vs the script rule list', () => {
     const byId = new Map(docRules().map((r) => [r.id, r.text]));
     for (const { id, name } of RULES) {
       expect(byId.get(id), `rule ${id} (${name})`).toContain(name);
+    }
+  });
+  it('the script header lists the same rules', () => {
+    const header = headerRules();
+    expect(header.map((r) => r.id)).toEqual(RULES.map((r) => r.id));
+    const byId = new Map(header.map((r) => [r.id, r.text]));
+    for (const { id, name } of RULES) {
+      expect(byId.get(id), `header rule ${id} (${name})`).toContain(name);
+    }
+  });
+  it('reads every number in a rule citation', () => {
+    expect(ruleNumbersIn('rule 6 of `docs/module-boundaries.md`')).toEqual([6]);
+    expect(ruleNumbersIn('rules 1-3, and rules 6, 8 and 9, and rules 1, 2, and 5')).toEqual([1, 3, 6, 8, 9, 1, 2, 5]);
+  });
+  it('rule numbers cited in the guidance exist', () => {
+    const live = new Set(RULES.filter((r) => r.name !== 'retired (ARCH-48)').map((r) => r.id));
+    for (const { file, n, line } of citedRules()) {
+      expect(live.has(n), `${file}: rule ${n} in "${line}"`).toBe(true);
     }
   });
 });
