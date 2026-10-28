@@ -43,6 +43,7 @@ export const GUARD_STEPS = [
   'test:any-ratchet',
   'test:ts-nocheck-ratchet',
   'test:e2e-sleeps',
+  'test:tool-shape',
   'test:unused-exports',
   'test:untested-modules',
   'test:gesture-golden-rule',

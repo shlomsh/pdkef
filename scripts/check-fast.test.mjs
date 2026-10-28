@@ -61,8 +61,8 @@ it('is itself an oracle file, so changing it widens the unit run', () => {
 
 describe('GUARD_STEPS', () => {
   // A subagent iterates with check:fast alone; a ratchet it skips fails only at check:push or in CI.
-  it('runs every ratchet check:push runs, in the same order', () => {
-    const ratchets = ALWAYS_GUARD_STEPS.filter((s) => /ratchet|unused-exports|untested-modules|e2e-sleeps/.test(s));
+  it('runs every ratchet and shape check check:push runs, in the same order', () => {
+    const ratchets = ALWAYS_GUARD_STEPS.filter((s) => /ratchet|unused-exports|untested-modules|e2e-sleeps|tool-shape/.test(s));
     expect(GUARD_STEPS.filter((s) => ratchets.includes(s))).toEqual(ratchets);
   });
 });
