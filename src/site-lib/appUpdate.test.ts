@@ -92,7 +92,7 @@ function makeTab(bus: Bus, opts: { controller?: boolean; waiting?: any; active?:
     line, reg, sw, doc, win, reload,
     dismiss: line.querySelector('[data-app-update-dismiss]') as HTMLButtonElement,
     advanceClock: (ms: number) => { clock += ms; },
-    start: (extra: { ready?: Promise<void> } = {}) => startAppUpdates({
+    start: (extra: { ready?: Promise<void>; caches?: any } = {}) => startAppUpdates({
       serviceWorker: sw,
       line,
       createChannel: () => new FakeChannel(bus),
@@ -190,6 +190,21 @@ describe('busy answer', () => {
     hold();
     expect(askBusy(tab)).toEqual([{ busy: true }]);
     expect(tab.sw.register).not.toHaveBeenCalled();
+  });
+
+  it('reports a recorded worker failure only after ready, and skips it without Cache Storage', async () => {
+    const caches = { has: vi.fn(async () => false), open: vi.fn() };
+    let release!: () => void;
+    const tab = makeTab(new Bus());
+    void tab.start({ ready: new Promise<void>((r) => { release = r; }), caches });
+    await settle();
+    expect(caches.has).not.toHaveBeenCalled();
+    release();
+    await vi.dynamicImportSettled();
+    await settle();
+    expect(caches.has).toHaveBeenCalledWith('maint-sw-v1');
+    // no caches (insecure origin): nothing runs and nothing throws
+    await expect(makeTab(new Bus()).start()).resolves.toBeUndefined();
   });
 
   it('registers only once ready resolves', async () => {

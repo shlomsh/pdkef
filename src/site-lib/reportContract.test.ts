@@ -5,6 +5,7 @@ import {
   resetErrorReportingForTests,
   setReportingEnabledForTests,
 } from '../lib/telemetry/errorReport.ts';
+import { beaconMaintenanceTransport, reportMaintenanceEvent } from '../lib/telemetry/maintenanceTelemetry.ts';
 import { reportToolLifecycleEvent, resetUsageEventsForTests } from '../lib/telemetry/productAnalytics.ts';
 
 // DEBT-44: the browser's real output, through the real endpoint. Each side has its own tests against
@@ -77,6 +78,16 @@ describe('what the browser sends is what the endpoint stores (DEBT-44)', () => {
     reportError('redact', thrown, 'export');
     const commands = await deliver();
     expect(counted(commands, 'drops:')).toEqual([field]);
+    expect(counted(commands, 'rejects:')).toEqual([]);
+  });
+
+  it('an sw_install failure sent through the beacon is counted under events:<day> (MEM-24)', async () => {
+    reportMaintenanceEvent(
+      { name: 'sw_install', properties: { outcome: 'failure', reason: 'root_mismatch', missed: '0' } },
+      beaconMaintenanceTransport,
+    );
+    const commands = await deliver();
+    expect(counted(commands, 'events:')).toEqual(['sw_install|failure|root_mismatch|0|other']);
     expect(counted(commands, 'rejects:')).toEqual([]);
   });
 
