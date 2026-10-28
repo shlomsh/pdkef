@@ -1,10 +1,9 @@
 ---
 id: "QUAL-35"
 title: "CI narrows a test-only push the way check:push does"
-status: "in_progress"
+status: "done"
 priority: "P3"
 epic: "unify-and-narrow"
-horizon: "next"
 depends_on: []
 ---
 
