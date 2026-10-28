@@ -1,0 +1,59 @@
+/*
+  Browser-only pretty-print for /sitemap.xml, linked by the xml-stylesheet PI in
+  src/pages/sitemap.xml.js. Search engines parse the XML directly and ignore it.
+  It exists because any <xhtml:link> element (hreflang alternates, standard per
+  sitemaps.org) makes Chrome skip its "no style information" tree view and
+  flatten every element's text into one unstyled run. Plain CSS, not XSLT:
+  Chrome is removing XSLT. Keep the colors in step with the :root tokens.
+*/
+@namespace url(http://www.sitemaps.org/schemas/sitemap/0.9);
+@namespace xhtml url(http://www.w3.org/1999/xhtml);
+
+urlset {
+  display: block;
+  box-sizing: border-box;
+  max-width: 64rem;
+  margin: 0 auto;
+  padding: 2rem 1rem;
+  font: 0.9rem/1.5 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: #276460;
+  background: #faf7f1;
+  color-scheme: light;
+}
+urlset::before {
+  content: 'XML Sitemap. This file is generated for search engines.';
+  display: block;
+  margin-bottom: 1rem;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #0b4c4c;
+}
+url {
+  display: block;
+  padding: 0.6rem 0.9rem;
+  background: #ffffff;
+  border-top: 1px solid #c3f0e6;
+}
+url:first-of-type { border-top: 0; border-radius: 8px 8px 0 0; }
+url:last-of-type { border-radius: 0 0 8px 8px; }
+loc {
+  display: block;
+  font-size: 1rem;
+  color: #006e6e;
+  word-break: break-all;
+}
+lastmod, changefreq, priority {
+  display: inline-block;
+  margin-right: 1.25rem;
+  font-size: 0.8rem;
+}
+lastmod::before { content: 'Modified '; }
+changefreq::before { content: 'Frequency '; }
+priority::before { content: 'Priority '; }
+xhtml|link {
+  display: inline-block;
+  margin-right: 0.6rem;
+  font-size: 0.8rem;
+}
+xhtml|link::before { content: '['; }
+xhtml|link::after { content: attr(hreflang) ']'; }
