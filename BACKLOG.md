@@ -2,7 +2,7 @@
 
 # Backlog
 
-The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 83 live: 15 up next, 11 then, 26 waiting, 31 parked.
+The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 83 live: 16 up next, 11 then, 26 waiting, 30 parked.
 
 ## Redact: finish removal
 
@@ -114,6 +114,7 @@ Every tool on one shell and one set of PDF primitives, and a change reaching onl
 
 | ID | P | Task | Note |
 | --- | --- | --- | --- |
+| ARCH-41 | P3 | [ARCH-41](backlog/tasks/ARCH-41.md) · Compress, Image to PDF and Unlock/Protect finish with the shared Download control | In progress |
 | ARCH-85 | P3 | [ARCH-85](backlog/tasks/ARCH-85.md) · Per-spec flake rates are recorded and read nightly | In progress |
 | QUAL-32 | P2 | [QUAL-32](backlog/tasks/QUAL-32.md) · CI skips Playwright when a push reaches no e2e | In progress |
 | QUAL-33 | P2 | [QUAL-33](backlog/tasks/QUAL-33.md) · A stalled apt install costs at most one retry, not ten minutes | In progress |
@@ -124,7 +125,6 @@ Every tool on one shell and one set of PDF primitives, and a change reaching onl
 
 | ID | P | Task | Note |
 | --- | --- | --- | --- |
-| ARCH-41 | P3 | [ARCH-41](backlog/tasks/ARCH-41.md) · Compress, Image to PDF and Unlock/Protect finish with the shared Download control |  |
 | ARCH-102 | P3 | [ARCH-102](backlog/tasks/ARCH-102.md) · src/tools/sign/lib is split into sub-areas with a file-count ratchet |  |
 | ARCH-104 | P3 | [ARCH-104](backlog/tasks/ARCH-104.md) · ToolHero.astro is split into per-section components |  |
 | ARCH-110 | P3 | [ARCH-110](backlog/tasks/ARCH-110.md) · Scan folds its co-changing fields into the scan reducer |  |
