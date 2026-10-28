@@ -8,14 +8,6 @@
       "owner": "shlomsh",
       "nextReview": "2026-11-02",
       "rationale": "Dev-only: braces is reached through patch-package > find-yarn-workspace-root > micromatch, which only globs our own patches/ directory and workspace root at postinstall. No untrusted patterns reach it and nothing ships to the browser or the functions. No fixed braces release exists (3.0.3 is the latest). The audit's suggested patch-package downgrade would drop our patches."
-    },
-    {
-      "package": "zod",
-      "advisory": "GHSA-MRHX-C7XC-M3W5",
-      "expires": "2026-11-26",
-      "owner": "Shlomi",
-      "nextReview": "2026-11-19",
-      "rationale": "Reachable only from middleware.ts on the server, never from a page or a PDF path. zod 4.1.11 is exactly pinned by @vercel/cli-config (via @vercel/functions and @vercel/oidc), so no override can admit 4.6.6 or later; the fix waits on a newer @vercel/cli-config release. The astro build tooling already resolves the patched zod."
     }
   ]
 }
