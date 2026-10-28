@@ -1086,35 +1086,43 @@ describe('build pipeline files are wide (QUAL-32 follow-up)', () => {
   });
 });
 
-describe('ci.yml gates product e2e on product_e2e (QUAL-32)', () => {
+describe('ci.yml gates product e2e on product_e2e (QUAL-32, QUAL-42)', () => {
   const yml = readFileSync(new URL('../.github/workflows/ci.yml', import.meta.url), 'utf8');
   const jobText = (name) => {
     const m = yml.match(new RegExp(`^  ${name}:\\n[\\s\\S]*?(?=^  [a-z][a-z0-9-]*:\\n)`, 'm'));
     return m ? m[0] : '';
   };
   const steps = (job) => job.split(/^    - /m).slice(1);
-  const GATE = "steps.affected.outputs.product_e2e != 'false'";
   // The step's own `if:` key line (indented), never a comment that mentions one.
   const ifLine = (step) => step.split('\n').find((l) => /^\s+if: /.test(l))?.trim();
 
-  it.each(['e2e', 'e2e-webkit'])('%s: Build and every product Playwright step carry the gate', (name) => {
+  it.each(['e2e', 'e2e-webkit'])('%s: the job itself is gated on plan\'s product_e2e', (name) => {
     const job = jobText(name);
     expect(job).not.toBe('');
-    const gated = steps(job).filter((s) => /^name: Build\n/.test(s) || /playwright test --project=(chromium|webkit|perf)/.test(s));
-    expect(gated.length).toBeGreaterThanOrEqual(name === 'e2e' ? 2 : 3);
-    for (const s of gated) expect(ifLine(s), s.split('\n')[0]).toBe(`if: ${GATE}`);
+    const jobIf = job.split('\n').find((l) => /^    if: /.test(l));
+    expect(jobIf).toContain("needs.plan.outputs.product_e2e != 'false'");
+    expect(jobIf).toContain("needs.plan.result == 'success'");
   });
 
-  it.each(['e2e', 'e2e-webkit'])('%s: Resolve affected scope carries no product_e2e gate', (name) => {
-    const resolve = steps(jobText(name)).filter((s) => /^name: Resolve affected scope\n/.test(s));
-    expect(resolve.length).toBeGreaterThan(0);
-    for (const s of resolve) expect(ifLine(s) ?? '').not.toContain('product_e2e');
+  it.each(['e2e', 'e2e-webkit'])('%s: reads its paths from plan and has no scope or build step of its own', (name) => {
+    const job = jobText(name);
+    const all = steps(job);
+    expect(all.some((s) => /^name: (Build|Resolve affected scope)\n/.test(s))).toBe(false);
+    const playwright = all.filter((s) => /playwright test --project=(chromium|webkit|perf)/.test(s));
+    expect(playwright.length).toBeGreaterThanOrEqual(name === 'e2e' ? 1 : 2);
+    for (const s of playwright) expect(s).toContain('needs.plan.outputs.e2e_paths');
+  });
+
+  it('plan: Resolve affected scope carries no gate', () => {
+    const resolve = steps(jobText('plan')).filter((s) => /^name: Resolve affected scope\n/.test(s));
+    expect(resolve.length).toBe(1);
+    expect(ifLine(resolve[0])).toBeUndefined();
   });
 
   it('ifLine ignores a gate that only appears in a comment', () => {
-    const commented = `name: Build\n  # if: ${GATE}\n  run: npm run build\n`;
+    const commented = 'name: Build\n  # if: x\n  run: npm run build\n';
     expect(ifLine(commented)).toBeUndefined();
-    expect(ifLine(`name: Build\n  if: ${GATE}\n  run: x\n`)).toBe(`if: ${GATE}`);
+    expect(ifLine('name: Build\n  if: x\n  run: x\n')).toBe('if: x');
   });
 });
 
