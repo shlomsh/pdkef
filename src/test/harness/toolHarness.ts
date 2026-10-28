@@ -65,8 +65,35 @@ export interface ToolHarness {
   takeHandoff(tool: string): ReturnType<typeof takeHandoff>;
   /** The recents index, through the real `readRecentFiles`. */
   recents(): ReturnType<typeof readRecentFiles>;
+  /**
+   * Resolves once no IndexedDB connection is open: every read or write a mounted island started (a draft
+   * restore, a hand-off take) has finished and its continuation has run. `await` it in `afterEach`, after
+   * unmounting and before the file ends: work still in flight then lands after jsdom is torn down and
+   * fails the shard with an unhandled `document is not defined`, which names a different test file.
+   */
+  settle(): Promise<void>;
   /** Undo what `installToolHarness` replaced; call from `afterEach`. */
   restore(): void;
+}
+
+/**
+ * A fresh IndexedDB that counts its open connections. `draftIdb` opens one per operation and closes it
+ * in a `finally`, so zero open connections plus a yielded macrotask means every chained read has run out.
+ */
+class CountingIDBFactory extends IDBFactory {
+  connections = 0;
+
+  override open(...args: Parameters<IDBFactory['open']>): IDBOpenDBRequest {
+    const request = super.open(...args);
+    this.connections += 1;
+    request.addEventListener('success', () => {
+      const db = request.result;
+      const close = db.close.bind(db);
+      db.close = () => { close(); this.connections -= 1; };
+    });
+    request.addEventListener('error', () => { this.connections -= 1; });
+    return request;
+  }
 }
 
 /**
@@ -75,7 +102,8 @@ export interface ToolHarness {
  */
 export function installToolHarness(): ToolHarness {
   resetPdfjsEdges();
-  globalThis.indexedDB = new IDBFactory();
+  const idb = new CountingIDBFactory();
+  globalThis.indexedDB = idb;
   localStorage.clear();
   sessionStorage.clear();
 
@@ -129,6 +157,14 @@ export function installToolHarness(): ToolHarness {
     storedDraft: (tool) => loadDraft(tool),
     takeHandoff: (tool) => takeHandoff(tool),
     recents: () => readRecentFiles(),
+    settle: async () => {
+      // Two idle looks a macrotask apart: the first catches a connection that closed with its
+      // continuation (the next transaction's open) still queued behind it.
+      for (let idle = 0; idle < 2;) {
+        await new Promise((resolve) => { setTimeout(resolve, 0); });
+        idle = idb.connections === 0 ? idle + 1 : 0;
+      }
+    },
     restore: () => {
       setReportingEnabledForTests(false);
       if (originalBeacon) Object.defineProperty(navigator, 'sendBeacon', originalBeacon);
