@@ -86,8 +86,12 @@ export default function ResultSection(props: ResultSectionProps) {
   const { t, compare, file, lastBlob, status, kind, arrow, isDone, showCompare, passthrough, unchanged, rasterBytes,
     dimensions, compressedSize, compareCaption, view } = props;
   const { savingsPercent, resultTitle, resultNotice } = view;
-  // The page's width over height, once an image of it has loaded: the column sizes the preview to its real shape.
-  const [aspect, setAspect] = useState<number | null>(null);
+  // The page's width over height, measured from the first image of this file to load: the column sizes the
+  // preview to its real shape. Until then the image and its caption stay hidden, so the stage never paints them
+  // at a guessed size and then moves them (a layout shift on a slow device).
+  const [measured, setMeasured] = useState<{ file: File; aspect: number } | null>(null);
+  const aspect = measured?.file === file ? measured.aspect : null;
+  const onAspect = (value: number) => setMeasured({ file, aspect: value });
 
   // The two sides' names and sizes, on the image's top corners: the compressed side on the left, the original
   // on the right. Presses go through them to the slider.
@@ -106,7 +110,7 @@ export default function ResultSection(props: ResultSectionProps) {
   // The image as large as the stage allows, with what names it drawn on it, so nothing else takes a row; the
   // caption stays right under it.
   const frame = (image: ComponentChildren, labels: ComponentChildren, action?: ComponentChildren, caption?: ComponentChildren) => (
-    <div class={styles['compare-fit']}>
+    <div class={styles['compare-fit']} data-measuring={aspect == null || undefined}>
       <div class={styles['compare-frame']}>
         {image}
         {labels}
@@ -123,7 +127,7 @@ export default function ResultSection(props: ResultSectionProps) {
   );
   const originalBox = compare.original && (
     <div key="original" class={styles['compare-original']}>
-      <img src={compare.original} alt={formatMessage(t.comparePageAlt, { label: t.compareBeforeLabel })} draggable={false} onLoad={aspectHandler(setAspect)} />
+      <img src={compare.original} alt={formatMessage(t.comparePageAlt, { label: t.compareBeforeLabel })} draggable={false} onLoad={aspectHandler(onAspect)} />
     </div>
   );
 
@@ -139,7 +143,9 @@ export default function ResultSection(props: ResultSectionProps) {
         ) : (
           // Only the page's placeholder: the progress itself is the sheet's
           // button (Download's place), so it is said once, not twice.
-          <div key="skeleton" class={styles['compare-skeleton']} data-compare-skeleton aria-hidden="true" />
+          <div key="skeleton" class={styles['compare-fit']}>
+            <div class={styles['compare-skeleton']} data-compare-skeleton aria-hidden="true" />
+          </div>
         )
       )}
 
@@ -174,7 +180,7 @@ export default function ResultSection(props: ResultSectionProps) {
                   afterLabel={t.compareAfterLabel}
                   pageAlt={t.comparePageAlt}
                   sliderLabel={t.compareSliderLabel}
-                  onAspect={setAspect}
+                  onAspect={onAspect}
                 />,
                 labelRow(t.compareAfterLabel, formatBytes(compressedSize ?? 0)),
                 // Beside the slider, not in it, so a press here never starts a drag.
@@ -198,7 +204,11 @@ export default function ResultSection(props: ResultSectionProps) {
       )}
 
       {isDone && passthrough && resultNotice && <p class={styles['honest-note']} data-honest-note>{resultNotice}</p>}
-      {isDone && passthrough && (originalBox || (compare.originalPending && <div key="original-skeleton" class={styles['compare-skeleton']} data-compare-skeleton aria-hidden="true" />))}
+      {isDone && passthrough && (originalBox ? frame(originalBox, null) : compare.originalPending && (
+        <div class={styles['compare-fit']}>
+          <div key="original-skeleton" class={styles['compare-skeleton']} data-compare-skeleton aria-hidden="true" />
+        </div>
+      ))}
     </section>
   );
 }
