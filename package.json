@@ -3,6 +3,12 @@
   "private": true,
   "version": "1.0.0",
   "type": "module",
+  "imports": {
+    "#lib/*": "./src/lib/*",
+    "#editor/*": "./src/editor/*",
+    "#editor-ui/*": "./src/editor-ui/*",
+    "#shell/*": "./src/shell/*"
+  },
   "packageManager": "npm@11.8.0",
   "description": "Free, open-source PDF tools that run 100% locally in your browser - no upload, no signup, no watermark.",
   "license": "MIT",
