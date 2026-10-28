@@ -26,5 +26,13 @@ depends_on: []
 
 ## Acceptance
 
-- [ ] The existing `narrowTestOnlyChange` tests run against the shared function.
-- [ ] A test asserting `check:push` and CI resolve the same scope for a test-only diff.
+- [x] The existing `narrowTestOnlyChange` tests run against the shared function.
+- [x] A test asserting `check:push` and CI resolve the same scope for a test-only diff.
+
+## Done (2026-10-28)
+
+`narrowTestOnlyChange` now lives in `scripts/test-only-scope.mjs` (an oracle file). `resolveScope` ends in
+`finishScope(deriveScope(...), files)`; `check-push.mjs` builds its scope with `localScope` and no longer narrows.
+Real CLI on a test-only commit (`6f4ae5cf`, only `scripts/check-push.test.mjs`):
+`node scripts/affected-scope.mjs --base 6f4ae5cf~1 --head 6f4ae5cf` prints `e2e_paths=` (empty), `everything=false`,
+`product_e2e=false`, `fonts=false`, `export_guards=false`.
