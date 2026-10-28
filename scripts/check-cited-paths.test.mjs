@@ -36,7 +36,7 @@ describe('check-cited-paths', () => {
 });
 
 // DEBT-68: the guard reads the filesystem, so a gitignored file a local tool drops into the worktree
-// (the impeccable plugin writes .claude/skills/impeccable/ and .claude/agents/impeccable-*) failed it
+// (the impeccable plugin writes its skill and agent files under .claude) failed it
 // while CI, which never has those files, passed.
 describe('scanRepo only scans files git knows about', () => {
   const git = (cwd, ...args) => execFileSync('git', args, { cwd, stdio: 'pipe' });
@@ -62,6 +62,20 @@ describe('scanRepo only scans files git knows about', () => {
       expect(deadIn(root)).toEqual(['.claude/agents/implementer.md']);
       put(root, 'docs/new-note.md', 'cites `src/missing-new.ts`\n');
       expect(deadIn(root)).toEqual(['.claude/agents/implementer.md', 'docs/new-note.md']);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it('judges a cited path by the same git-known set, so a gitignored-only target is dead as on CI', () => {
+    const root = makeRepo();
+    try {
+      put(root, '.claude/skills/impeccable/reference/live.md', 'local only\n');
+      put(root, 'src/real/a.ts', 'export {};\n');
+      put(root, 'docs/cites.md', 'dir `src/real/`, file `src/real/a.ts`, local `.claude/skills/impeccable/reference/live.md`\n');
+      git(root, 'add', 'src/real/a.ts', 'docs/cites.md');
+      const dead = scanRepo(root).filter((d) => d.file === 'docs/cites.md').map((d) => d.path);
+      expect(dead).toEqual(['.claude/skills/impeccable/reference/live.md']);
     } finally {
       rmSync(root, { recursive: true, force: true });
     }
