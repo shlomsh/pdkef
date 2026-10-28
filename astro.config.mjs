@@ -1,6 +1,7 @@
 import { defineConfig } from 'astro/config';
 import preact from '@astrojs/preact';
 import tailwindcss from '@tailwindcss/vite';
+import { entryFileName, chunkFileName } from './scripts/stableNames.mjs';
 
 // Static output only — no SSR, no adapter. The app is a flat set of
 // files served by Vercel; all PDF processing happens in the browser.
@@ -85,6 +86,11 @@ export default defineConfig({
     // The pdf.js worker wrapper (src/lib/pdf/pdfjsWorker.js) is a module worker with a dynamic
     // import inside pdf.js, which the default iife worker format cannot code-split (DEBT-42).
     worker: { format: 'es' },
+    // MEM-25: client entries and the hot shared chunks keep one URL across deploys. Client environment
+    // only; the server environment (prerender) must keep Astro's own naming.
+    environments: {
+      client: { build: { rolldownOptions: { output: { entryFileNames: entryFileName, chunkFileNames: chunkFileName } } } },
+    },
     build: {
       rollupOptions: {
         output: {

@@ -3,6 +3,7 @@ import path from 'node:path';
 import zlib from 'node:zlib';
 import { fileURLToPath } from 'node:url';
 import { availableParallelism } from 'node:os';
+import { scriptRefs } from './precacheClosure.mjs';
 import { Worker, isMainThread, parentPort, workerData } from 'node:worker_threads';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -56,7 +57,7 @@ if (!isMainThread) {
  * already has form on exactly that axis (see docs/troubleshooting.md on vite.optimizeDeps and
  * the dynamic-import cascade).
  *
- * "Eagerly referenced" starts from every /_astro/*.js the built HTML names
+ * "Eagerly referenced" starts from every /_astro/, /site/ or /shared/ .js file the built HTML names
  * directly - the astro-island's component-url and renderer-url - and then
  * walks the REAL static-import graph from there, recursively, summing every
  * chunk reached by a plain `import`/`export ... from` edge. Chunks reached
@@ -397,8 +398,7 @@ async function main() {
     const buffer = fs.readFileSync(file);
     const html = buffer.toString('utf8');
 
-    const scriptRefs = [...new Set([...html.matchAll(/\/_astro\/[A-Za-z0-9._-]+\.js/g)].map((m) => m[0]))];
-    const entryFiles = scriptRefs.map((ref) => path.join(distDir, ref));
+    const entryFiles = scriptRefs(html).map((ref) => path.join(distDir, ref));
     const jsFiles = discoverEagerFiles(entryFiles);
     for (const f of jsFiles) {
       if (!jsFileSizes.has(f)) jsFileSizes.set(f, fs.statSync(f).size);

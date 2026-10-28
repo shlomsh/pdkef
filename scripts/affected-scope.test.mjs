@@ -1059,6 +1059,16 @@ describe('build pipeline files are wide (QUAL-32 follow-up)', () => {
     expect([...set].sort()).toEqual(['scripts/deep/a.mjs', 'scripts/x.mjs', 'src/lib/b.js']);
   });
 
+  it('includes astro.config.mjs and its relative imports, transitively (MEM-25)', () => {
+    const files = {
+      'astro.config.mjs': "import { a } from './scripts/x.mjs';\nexport default {};",
+      'scripts/x.mjs': "import './y.mjs';\nexport const a = 1;",
+      'scripts/y.mjs': 'export const y = 1;',
+    };
+    const pkg = JSON.stringify({ scripts: { build: 'astro build' } });
+    expect([...buildPipelineFiles(pkg, (rel) => files[rel] ?? null)].sort()).toEqual(['astro.config.mjs', 'scripts/x.mjs', 'scripts/y.mjs']);
+  });
+
   it('follows an alias import (ARCH-44)', () => {
     const files = { 'scripts/x.mjs': "import b from '#lib/b.js';", 'src/lib/b.js': 'export default 1;' };
     const pkg = JSON.stringify({ scripts: { build: 'node scripts/x.mjs' } });
@@ -1140,6 +1150,25 @@ describe('unowned-file verdicts (QUAL-34)', () => {
     expect(scopeOf(['.github/workflows/ci.yml'], { ciFontJobChanged: () => true }).fonts).toBe(true);
     expect(scopeOf(['.github/workflows/ci.yml'], { ciFontJobChanged: () => false }).fonts).toBe(false);
     expect(scopeOf(['.github/workflows/ci.yml']).fonts).toBe(true); // fail-open default
+  });
+
+  it('package.json: off the e2e path it runs no e2e and no fonts, otherwise it widens (QUAL-43)', () => {
+    const off = scopeOf(['package.json'], { packageJsonReachesE2e: () => false });
+    expect(off.everything).toBe(false);
+    expect(off.e2e_paths).toBe('');
+    expect(off.fonts).toBe(false);
+    expect(runsProductE2e(off)).toBe(false);
+    const withScript = scopeOf(['package.json', 'scripts/check-fast.mjs'], { packageJsonReachesE2e: () => false, affected: ['tooling'] });
+    expect(withScript.everything).toBe(false);
+    expect(withScript.fonts).toBe(false);
+    for (const files of [['package.json'], ['package.json', 'scripts/check-fast.mjs']]) {
+      const on = scopeOf(files, { packageJsonReachesE2e: () => true });
+      expect(on.everything).toBe(true);
+      expect(on.fonts).toBe(true);
+      expect(on.reason).toContain('unowned files: package.json');
+    }
+    expect(scopeOf(['package.json']).everything).toBe(true); // fail-open default
+    expect(scopeOf(['package.json', 'package-lock.json'], { packageJsonReachesE2e: () => false }).everything).toBe(true);
   });
 
   it('a sw.js change next to a font file keeps fonts on', () => {
