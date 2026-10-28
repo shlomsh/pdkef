@@ -124,7 +124,6 @@ Every tool on one shell and one set of PDF primitives, and a change reaching onl
 | ID | P | Task | Note |
 | --- | --- | --- | --- |
 | ARCH-123 | P2 | [ARCH-123](backlog/tasks/ARCH-123.md) · The narrowed share of main runs is reported and acted on |  |
-| QUAL-34 | P2 | [QUAL-34](backlog/tasks/QUAL-34.md) · Each file outside an Nx project gets its own scope, not "everything" |  |
 | QUAL-35 | P3 | [QUAL-35](backlog/tasks/QUAL-35.md) · CI narrows a test-only push the way check:push does |  |
 | QUAL-36 | P3 | [QUAL-36](backlog/tasks/QUAL-36.md) · Editing a dist guard script runs the build and dist guards locally |  |
 | QUAL-37 | P3 | [QUAL-37](backlog/tasks/QUAL-37.md) · test:precache-budget reuses compressed sizes by hashed filename |  |

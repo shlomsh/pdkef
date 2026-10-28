@@ -41,14 +41,18 @@
 //   2. Any changed file that no Nx project owns (a root config file,
 //      patches/, package*.json, .github/, middleware.ts, anything outside a
 //      project root - DOCS_ONLY files excepted, since a docs-only change
-//      never reaches this script's jobs in CI) -> everything=true. "Owned" is
+//      never reaches this script's jobs in CI) -> everything=true, except the
+//      files UNOWNED_VERDICTS names (QUAL-34): each carries its own measured
+//      e2e verdict (none, a named spec dir, or every product spec with fonts
+//      off) and is also kept out of the `nx show projects --affected` query,
+//      since Nx marks most projects affected by middleware.ts or vercel.json. "Owned" is
 //      asked of Nx itself (each project's own `root`), never a second
 //      hand-written path list. ARCH-22 gave `scripts/` itself a project
 //      (`tooling`), so a `scripts/` file is no longer unowned by this rule -
 //      see rule 3 for why the oracle files inside it still force everything.
-//   3. Any changed file is the CI oracle itself (ORACLE_FILES: this script or
-//      change-scope.mjs) -> everything=true. Do not trust a narrowed run to
-//      validate the code that decided to narrow it - the same reasoning
+//   3. Any changed file is the CI oracle itself (ORACLE_FILES: this script,
+//      change-scope.mjs, import-graph.mjs or unowned-verdicts.mjs) ->
+//      everything=true. Do not trust a narrowed run to validate the code that decided to narrow it - the same reasoning
 //      CORE_PROJECTS gives for editor. This is checked separately from
 //      ownership because `tooling` (rule 2) would otherwise let an oracle
 //      change narrow to just `scripts/`. Their own tests
@@ -102,6 +106,7 @@ import { dirname, resolve as resolvePath } from 'node:path';
 import { resolveBase, changedFiles, isDocsOnly } from './change-scope.mjs';
 import { resolveUnitScope, runUnitByImpact } from './unit-scope.mjs';
 import { buildReachGraph, importSpecifiers } from './import-graph.mjs';
+import { unownedRowOf, filesForNx, CI_FILE, ciFontJobChangedBetween } from './unowned-verdicts.mjs';
 
 const ROOT = resolvePath(dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -125,7 +130,7 @@ export const CORE_PROJECTS = new Set(['site', 'shell', 'editor', 'lib', 'data', 
 // regardless of ownership. Their own tests are deliberately not listed here:
 // scripts/affected-scope.test.mjs and scripts/change-scope.test.mjs may
 // narrow like any other tooling file.
-export const ORACLE_FILES = new Set(['scripts/affected-scope.mjs', 'scripts/change-scope.mjs', 'scripts/import-graph.mjs']);
+export const ORACLE_FILES = new Set(['scripts/affected-scope.mjs', 'scripts/change-scope.mjs', 'scripts/import-graph.mjs', 'scripts/unowned-verdicts.mjs']);
 
 // QUAL-32 follow-up: a file the production build executes shapes dist/ (the precache manifest, the
 // service worker build id, repo-only pruning), which e2e/offline and the rest of the suite exercise,
@@ -419,10 +424,10 @@ export function narrowByReachability({
 // run. No `nx`/`git` call in here - scripts/affected-scope.test.mjs exercises
 // this directly with synthetic inputs, the way changeScope.test.js pins
 // scripts/change-scope.mjs's classify() without shelling out to git.
-export function deriveScope({ files, affected, roots, toolE2eExists = () => true, siteE2ePaths = [], siteE2eProjects: projectList = null, loadReachGraph = null, buildFiles = null }) {
+export function deriveScope({ files, affected, roots, toolE2eExists = () => true, siteE2ePaths = [], siteE2eProjects: projectList = null, loadReachGraph = null, buildFiles = null, ciFontJobChanged = () => true }) {
   // An empty list means "none were found", never "no site-wide spec exists": use the old floor.
   const siteE2eProjects = projectList?.length ? projectList : null;
-  const unowned = files.filter((f) => !isDocsOnly(f) && !ownerOf(f, roots) && !publicOwnerOf(f));
+  const unowned = files.filter((f) => !isDocsOnly(f) && !ownerOf(f, roots) && !publicOwnerOf(f) && !unownedRowOf(f));
   if (unowned.length > 0) {
     return wide(affected, `unowned files: ${unowned.join(', ')}`);
   }
@@ -437,6 +442,15 @@ export function deriveScope({ files, affected, roots, toolE2eExists = () => true
     return wide(affected, `build pipeline: ${pipeline.join(', ')}`);
   }
 
+  // QUAL-34: table files the verdict says need every product spec. Fonts follow the font globs, and a
+  // ci.yml edit also turns them on when it touches the font-guards job or anything outside a job.
+  const tableRows = files.map((f) => [f, unownedRowOf(f)]).filter(([, row]) => row);
+  const allRows = tableRows.filter(([, row]) => row.verdict.e2e === 'all');
+  if (allRows.length > 0) {
+    const fonts = files.some(matchesFontsGlob) || (files.includes('.github/workflows/ci.yml') && ciFontJobChanged());
+    return wide(affected, `unowned files that reach every spec: ${allRows.map(([f, row]) => `${f} (${row.why})`).join('; ')}`, fonts);
+  }
+
   const affectedSet = new Set(affected);
   const wideCore = [...affectedSet].filter((p) => CORE_PROJECTS.has(p));
   if (wideCore.length > 0) {
@@ -449,7 +463,7 @@ export function deriveScope({ files, affected, roots, toolE2eExists = () => true
     // ARCH-32: before going wide, ask the import graph which tools the changed files reach.
     const reached = reachFromCore({ files, loadReachGraph, siteE2ePaths });
     if (reached.wide) return wide(affected, `${coreReason} (${reached.wide})`, fonts);
-    return narrowResult({
+    const reachedScope = narrowResult({
       files,
       affected,
       toolProjects: reached.tools.map((t) => `tool-${t}`),
@@ -459,10 +473,11 @@ export function deriveScope({ files, affected, roots, toolE2eExists = () => true
       exportGuards: true, // same as wide(): two cheap specs whose own Nx edges are coarse on purpose
       reason: `${coreReason}, narrowed by import reachability to ${reached.tools.join(', ') || '(no tool; site-e2e only)'} - ${reached.why}`,
     });
+    return withTableSpecs(reachedScope, tableRows.map(([f, row]) => [f, row.verdict.e2e]));
   }
 
   const toolProjects = [...affectedSet].filter((p) => p.startsWith('tool-')).sort();
-  return narrowResult({
+  const narrowed = narrowResult({
     files,
     affected,
     toolProjects,
@@ -475,6 +490,15 @@ export function deriveScope({ files, affected, roots, toolE2eExists = () => true
     exportGuards: affectedSet.has('export-guards'),
     reason: `narrowed to ${toolProjects.join(', ') || '(no tool project; site-e2e/fonts only)'}`,
   });
+  return withTableSpecs(narrowed, tableRows.map(([f, row]) => [f, row.verdict.e2e]));
+}
+
+// QUAL-34: a narrow result gains the spec dirs its table files name (deduped) and says so in the reason.
+function withTableSpecs(scope, tableVerdicts) {
+  if (scope.everything || tableVerdicts.length === 0) return scope;
+  const paths = scope.e2e_paths ? scope.e2e_paths.split(' ') : [];
+  for (const [, e2e] of tableVerdicts) if (Array.isArray(e2e)) for (const p of e2e) if (!paths.includes(p)) paths.push(p);
+  return { ...scope, e2e_paths: paths.join(' '), reason: `${scope.reason}; unowned files with their own verdict: ${tableVerdicts.map(([f]) => f).join(', ')}` };
 }
 
 function changedBuildFiles(buildFiles, files) {
@@ -576,8 +600,9 @@ export function resolveScope({ explicitBase, explicitHead }) {
   try {
     info = projectInfo();
     roots = new Map([...info].map(([name, node]) => [name, node.root]));
-    const affectedRaw = nx(['show', 'projects', '--affected', `--files=${files.join(',')}`, '--json']);
-    affected = JSON.parse(affectedRaw);
+    // QUAL-34: table files stay out of the query (Nx marks most projects affected by middleware.ts).
+    const nxFiles = filesForNx(files);
+    affected = nxFiles.length === 0 ? [] : JSON.parse(nx(['show', 'projects', '--affected', `--files=${nxFiles.join(',')}`, '--json']));
   } catch (err) {
     return wide([], `nx error: ${err.message}`);
   }
@@ -594,6 +619,7 @@ export function resolveScope({ explicitBase, explicitHead }) {
     toolE2eExists: (project) => existsSync(join(ROOT, `src/tools/${toolNameOf(project)}/e2e/`)),
     siteE2ePaths: siteE2eProjects.flatMap((p) => p.paths),
     siteE2eProjects,
+    ciFontJobChanged: files.includes(CI_FILE) ? () => ciFontJobChangedBetween(base, explicitHead) : undefined,
     // Scanned lazily: only a core-project verdict reads it, and then once.
     loadReachGraph: () => {
       const graph = buildReachGraph();

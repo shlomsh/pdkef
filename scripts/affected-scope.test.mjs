@@ -580,6 +580,7 @@ describe('deriveScope', () => {
     it('the oracle rule fires even when the file also happens to be the only changed file (no affected projects besides tooling)', () => {
       expect(ORACLE_FILES.has('scripts/affected-scope.mjs')).toBe(true);
       expect(ORACLE_FILES.has('scripts/change-scope.mjs')).toBe(true);
+      expect(ORACLE_FILES.has('scripts/unowned-verdicts.mjs')).toBe(true);
       expect(ORACLE_FILES.has('scripts/affected-scope.test.mjs')).toBe(false);
       expect(ORACLE_FILES.has('scripts/change-scope.test.mjs')).toBe(false);
     });
@@ -878,10 +879,8 @@ describe('deriveScope: site-wide e2e split by directory (ARCH-34)', () => {
     expect(paths(scope)).toEqual([]);
   });
 
-  it('public/sw.js and the other loose files in public/ stay unowned: everything runs', () => {
-    for (const file of ['public/sw.js', 'public/llms.txt', 'public/manifest.webmanifest']) {
-      expect(derive([file], []).everything, file).toBe(true);
-    }
+  it('public/sw.js has a table verdict (QUAL-34): every product spec', () => {
+    expect(derive(['public/sw.js'], []).everything).toBe(true);
   });
 });
 
@@ -1100,5 +1099,73 @@ describe('ci.yml gates product e2e on product_e2e (QUAL-32)', () => {
     const commented = `name: Build\n  # if: ${GATE}\n  run: npm run build\n`;
     expect(ifLine(commented)).toBeUndefined();
     expect(ifLine(`name: Build\n  if: ${GATE}\n  run: x\n`)).toBe(`if: ${GATE}`);
+  });
+});
+
+describe('unowned-file verdicts (QUAL-34)', () => {
+  const NONE = ['middleware.ts', 'vercel.json', 'api/report.ts', 'spikes/a/b.js', 'prototypes/x.html', '.gitignore', 'security/notes.md', '.github/dependabot.yml', '.github/ISSUE_TEMPLATE/bug.md', 'public/llms.txt', 'public/agents.md'];
+  const ALL = ['public/sw.js', 'public/images/scan-guide/a.jpg', '.github/workflows/ci.yml'];
+  const scopeOf = (files, extra = {}) => deriveScope({ files, affected: [], roots: ROOTS, ...extra });
+
+  it.each(NONE)('%s alone: no e2e, no fonts, no export guards', (file) => {
+    const scope = scopeOf([file]);
+    expect(scope.everything).toBe(false);
+    expect(scope.e2e_paths).toBe('');
+    expect(scope.fonts).toBe(false);
+    expect(scope.export_guards).toBe(false);
+    expect(runsProductE2e(scope)).toBe(false);
+  });
+
+  it('public/manifest.webmanifest runs only e2e/offline/', () => {
+    const scope = scopeOf(['public/manifest.webmanifest']);
+    expect(scope.everything).toBe(false);
+    expect(scope.e2e_paths).toContain('e2e/offline/');
+    expect(scope.fonts).toBe(false);
+  });
+
+  it.each(ALL)('%s: every product spec, fonts off', (file) => {
+    const scope = scopeOf([file], { ciFontJobChanged: () => false });
+    expect(scope.everything).toBe(true);
+    expect(scope.fonts).toBe(false);
+    expect(scope.reason).toContain(file);
+  });
+
+  it('ci.yml turns fonts on only when the font-guards job changed', () => {
+    expect(scopeOf(['.github/workflows/ci.yml'], { ciFontJobChanged: () => true }).fonts).toBe(true);
+    expect(scopeOf(['.github/workflows/ci.yml'], { ciFontJobChanged: () => false }).fonts).toBe(false);
+    expect(scopeOf(['.github/workflows/ci.yml']).fonts).toBe(true); // fail-open default
+  });
+
+  it('a sw.js change next to a font file keeps fonts on', () => {
+    expect(scopeOf(['public/sw.js', 'public/fonts/a.woff2']).fonts).toBe(true);
+  });
+
+  it('an unknown unowned file still widens with fonts on', () => {
+    const scope = scopeOf(['foo.config.mjs']);
+    expect(scope.everything).toBe(true);
+    expect(scope.fonts).toBe(true);
+  });
+
+  it('a none file next to a tool file narrows to that tool only', () => {
+    const scope = deriveScope({ files: ['middleware.ts', 'src/tools/compress/PdfCompressTool.tsx'], affected: ['tool-compress'], roots: ROOTS });
+    expect(scope.everything).toBe(false);
+    expect(scope.e2e_paths).toBe('src/tools/compress/e2e/');
+  });
+
+  it('an unknown unowned file next to a table file still widens with fonts on', () => {
+    const scope = scopeOf(['package.json', 'vercel.json']);
+    expect(scope.everything).toBe(true);
+    expect(scope.fonts).toBe(true);
+  });
+
+  it('the CI oracle next to a table file still widens with fonts on', () => {
+    const scope = scopeOf(['scripts/affected-scope.mjs', 'vercel.json']);
+    expect(scope.everything).toBe(true);
+    expect(scope.fonts).toBe(true);
+  });
+
+  it('the manifest next to a tool file adds e2e/offline/ once', () => {
+    const scope = deriveScope({ files: ['public/manifest.webmanifest', 'src/tools/compress/PdfCompressTool.tsx'], affected: ['tool-compress'], roots: ROOTS });
+    expect(scope.e2e_paths.split(' ')).toEqual(['src/tools/compress/e2e/', 'e2e/offline/']);
   });
 });
