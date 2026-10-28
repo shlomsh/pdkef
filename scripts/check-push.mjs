@@ -284,19 +284,13 @@ function runNpm(script) {
   return spawnSync('npm', ['run', script], { stdio: 'inherit', cwd: ROOT }).status ?? 1;
 }
 
-const STEP_RUNNERS = {
+export const STEP_RUNNERS = {
   'check-class-resolution': () => spawnSync('node', ['scripts/check-class-resolution.js'], { stdio: 'inherit', cwd: ROOT }).status ?? 1,
   'astro-check': () => runNpm('typecheck'),
   build: () => runNpm('build'),
-  'test:csp': () => runNpm('test:csp'),
-  'test:seo': () => runNpm('test:seo'),
-  'test:redirects': () => runNpm('test:redirects'),
-  'test:css': () => runNpm('test:css'),
-  'test:weight': () => runNpm('test:weight'),
-  'test:lazy-modules': () => runNpm('test:lazy-modules'),
-  'test:precache-budget': () => runNpm('test:precache-budget'),
 };
-for (const script of ALWAYS_GUARD_STEPS) {
+// Every listed guard is an npm script of the same name, so a new one in either list needs no row here.
+for (const script of [...ALWAYS_GUARD_STEPS, ...DIST_GUARD_STEPS]) {
   if (!(script in STEP_RUNNERS)) STEP_RUNNERS[script] = () => runNpm(script);
 }
 
