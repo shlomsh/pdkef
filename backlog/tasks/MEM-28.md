@@ -1,7 +1,7 @@
 ---
 id: "MEM-28"
 title: "A worker never serves a page whose files neither its cache nor the network has"
-status: "open"
+status: "in_progress"
 priority: "P2"
 epic: "robustness"
 horizon: "next"
