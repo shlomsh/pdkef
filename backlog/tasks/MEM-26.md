@@ -1,7 +1,7 @@
 ---
 id: "MEM-26"
 title: "A CSS Module edit renames its own CSS chunk, not 25 JavaScript chunks"
-status: "open"
+status: "in_progress"
 priority: "P1"
 horizon: "now"
 epic: "robustness"
