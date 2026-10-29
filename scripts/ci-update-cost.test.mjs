@@ -22,10 +22,10 @@ describe('ci.yml update-cost (MEM-21)', () => {
   });
 });
 
-describe('ci.yml update-cost stays report-only until MEM-26 and MEM-27 land', () => {
-  // The target is real but ordinary deploys read about 1.3 MB from ticketed causes (2026-10-28).
-  // Delete this test together with `continue-on-error` when MEM-26 closes.
-  it('does not fail the nightly', () => {
-    expect(updateCostJob()).toMatch(/\n {4}continue-on-error: true\n/);
+describe('ci.yml update-cost gates the nightly (MEM-26, MEM-27)', () => {
+  // Report-only from 2026-10-28 until a style edit stopped renaming chunks (MEM-26) and re-downloading
+  // every tool page (MEM-27); a reading over target is a real regression now.
+  it('fails the nightly when the update cost is over target', () => {
+    expect(updateCostJob()).not.toMatch(/continue-on-error/);
   });
 });
