@@ -669,6 +669,9 @@ describe('minified service worker', () => {
     expect(await response.text()).toBe('font bytes');
     expect(minifiedWorkerSource).toContain('__BUILD_ID__');
     expect(minifiedWorkerSource.match(/skipWaiting\s*\(/g)).toHaveLength(2);
+    // e2e/offline/twoBuildServer.js fakes a critical deploy by raising the one literal version the
+    // worker compares with (MEM-29: a second call site left the forced takeover at the old one).
+    expect(minifiedWorkerSource.match(/isCriticalOver\(\d+,/g)).toHaveLength(1);
     expect(minifiedWorkerSource.length).toBeLessThan(workerSource.length * 0.6);
   });
 });
