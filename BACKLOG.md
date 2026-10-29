@@ -2,7 +2,7 @@
 
 # Backlog
 
-The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 84 live: 17 up next, 11 then, 26 waiting, 30 parked.
+The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 85 live: 17 up next, 12 then, 26 waiting, 30 parked.
 
 ## Redact: finish removal
 
@@ -82,6 +82,7 @@ Production errors you can see, small tools that clean up after themselves, and d
 | --- | --- | --- | --- |
 | DEBT-47 | P2 | [DEBT-47](backlog/tasks/DEBT-47.md) · Sign's funnel has a clean baseline after the dropzone routing fix |  |
 | DEBT-53 | P2 | [DEBT-53](backlog/tasks/DEBT-53.md) · A Download tapped before the build lands still downloads on an iPhone | Needs Shlomi: A check on your iPhone |
+| MEM-28 | P2 | [MEM-28](backlog/tasks/MEM-28.md) · A worker never serves a page whose files neither its cache nor the network has |  |
 | DEBT-55 | P3 | [DEBT-55](backlog/tasks/DEBT-55.md) · Every tool that loads with pdf-lib repairs a lost page list the way Edit Pages does |  |
 
 ### Waiting

@@ -80,7 +80,21 @@ Also seen on a phone at 14:32, a minute after the revert went live (Shlomi's scr
 list showed bullets and bare remove buttons while the rest of the page was styled. Under `'auto'` the
 file-list rules live only in the linked `/shared/PdfMergeTool-0da6a7.css`; the revert build no longer has
 it (pdkef.com answers 404), so a MEM-27 page that asks for it after the swap loses those rules.
-Reproduced by serving the `'auto'` build of `/merge/` without that one file. The re-land has to cover
-it: a page from one deploy keeps linking sheets the next deploy may not emit, so either keep the
-previous deploy's `/shared/` sheets reachable or make a missing sheet impossible to strand a page.
+Reproduced by serving the `'auto'` build of `/merge/` without that one file. The cause is a worker
+install racing a deploy, not the CSS split, and it strands JS chunks the same way; it is MEM-28.
+
+## Re-landed (2026-10-29)
+
+- **The 8 CI failures were the specs reading layout before first paint.** Probed on the `'auto'` build
+  (Merge restore): the hero sampled 130px at 15 ms with 4 linked sheets still loading, 72px at 24 ms,
+  first paint at 48 ms, CLS 0.00003. The browser does not paint until the head's sheets apply, so no one
+  saw 130px. The samplers in `e2e/tool-hero-first-screen.spec.js` (Merge restore, hand-off arrival) and
+  both `*-saved-work-restore-acceptance.spec.js` now ignore samples before the first paint, which is what
+  "from first paint" in their names says. Not "until every sheet loads", which would hide a late lazy
+  sheet.
+- **The guard still bites:** with the `[data-handoff-pending] .tool-hero` rules stripped from the built
+  sheet, the split hand-off fails with `[312, 72]`.
+- The 115 tests in those three specs pass on the `'auto'` build.
+- The re-land brings back `/shared/PdfMergeTool-0da6a7.css` and `/shared/HomePageLayout-8c8e30.css` under
+  the same module-keyed names, so a phone left on the MEM-27 build finds its sheets again.
 

@@ -88,7 +88,10 @@ async function installRestoreTrace(page) {
     let cls = 0;
     const hero = [];
     const followups = [];
+    // Only what was painted: before the first paint a layout read can run ahead of the page's
+    // stylesheets (a linked sheet, MEM-27), and nobody sees that frame.
     const capture = () => {
+      if (!performance.getEntriesByType('paint').length) return;
       const heading = document.querySelector('.tool-hero h1');
       const subtitle = document.querySelector('[data-hero-sub]');
       const shell = Boolean(document.querySelector('[data-tool-shell]'));
