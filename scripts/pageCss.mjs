@@ -4,20 +4,18 @@ import path from 'node:path';
 /**
  * MEM-27: a page's CSS is its inline <style> blocks plus the same-origin stylesheets it links, in
  * document order (`build.inlineStylesheets: 'auto'` inlines small sheets and links the rest). Every
- * guard that asks what CSS a page ships reads it here, so none goes blind to a linked sheet. CSS
- * inside <noscript> is left out: a visitor with JS never applies it. Pure: `readSheet(href)` returns a
- * linked sheet's text, by its path without any query.
+ * guard that asks what CSS a page ships reads it here, so none goes blind to a linked sheet.
+ * Pure: `readSheet(href)` returns a linked sheet's text.
  */
 export function pageCssBlocks(html, readSheet) {
   const blocks = [];
-  const scripted = html.replace(/<noscript\b[^>]*>[\s\S]*?<\/noscript>/gi, '');
-  for (const match of scripted.matchAll(/<style\b[^>]*>([\s\S]*?)<\/style>|<link\b[^>]*>/gi)) {
+  for (const match of html.matchAll(/<style\b[^>]*>([\s\S]*?)<\/style>|<link\b[^>]*>/gi)) {
     if (match[1] !== undefined) {
       blocks.push({ href: null, css: match[1] });
       continue;
     }
     const rel = /\brel="([^"]*)"/i.exec(match[0])?.[1] ?? '';
-    const href = /\bhref="(\/(?!\/)[^"?#]+\.css)(?:[?#][^"]*)?"/i.exec(match[0])?.[1];
+    const href = /\bhref="(\/[^"]+\.css)"/i.exec(match[0])?.[1];
     if (href && rel.split(/\s+/).includes('stylesheet')) blocks.push({ href, css: readSheet(href) });
   }
   return blocks;
