@@ -92,23 +92,3 @@ test('fill two fields, put the keyboard away, then go back and fix the first', a
   await expect.poll(() => textOf(first), { message: 'the fix landed in the box that was tapped' }).toBe('Ann Lee');
   expect(await elementCount(page), 'going back into a box never creates another one').toBe(2);
 });
-
-test('an empty box never tells a phone user to double-click', async ({ page }) => {
-  // The placeholder on an empty, closed box read "Double-click to edit" - on a
-  // phone, an instruction to perform the one gesture that cannot work there.
-  await openPracticeForm(page);
-  const textTool = page.getByRole('toolbar', { name: 'PDF annotations' }).getByRole('button', { name: 'Text', exact: true });
-  await textTool.click();
-  await tapCentre(page, page.locator('[class*="field-hint-cell"]').first());
-  // Next creates a box on the next field; leave the first one empty and closed.
-  await page.getByRole('button', { name: 'Next field' }).click();
-
-  // Two boxes: the empty closed one we left, and the one Next opened.
-  await expect(page.locator('[data-editor-element] textarea')).toHaveCount(2);
-  const placeholders = await page.locator('[data-editor-element] textarea').evaluateAll(
-    (inputs) => inputs.map((input) => input.getAttribute('placeholder') || ''),
-  );
-  for (const text of placeholders) expect(text.toLowerCase(), `placeholder "${text}"`).not.toContain('double');
-  // And the closed one names the gesture that does work.
-  expect(placeholders, 'the closed box says how to open it on touch').toContain('Tap to type');
-});

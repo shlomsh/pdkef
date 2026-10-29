@@ -18,8 +18,8 @@ import { waitForIsland } from '../../../../e2e/support/tool.js';
  *    (3.97x became 2.12x on a 7.53px field, iOS Simulator).
  * 2. At rest the meta carries `maximum-scale=1` in fill mode (the iOS
  *    zoom-on-focus fix, b4519a2d), the pinch scale is held while zoomed and
- *    released while two fingers are down, and the old editor (`?next=0`)
- *    never gets any of it.
+ *    released while two fingers are down. (That the old editor, `?next=0`,
+ *    never gets any of it is a unit test: useFillViewportLock.test.tsx.)
  * 3. The practice form keeps fill mode (SNG-18, 3d5cc0d6): the practice
  *    form lives in the home page's launcher, which used to navigate to a
  *    bare `/sign/`, dropping `?next=1`.
@@ -229,20 +229,6 @@ test('fill mode: maximum-scale=1 at rest, the pinch scale held while zoomed, rel
     return scaleOf(page);
   }, { message: 'pinched back out to rest' }).toBeCloseTo(1, 2);
   await expect.poll(() => viewportMeta(page), { message: 'pinching back out to rest restores the clamp' }).toBe(`${ORIGINAL_META}, maximum-scale=1`);
-});
-
-test('the old editor (?next=0) never gets maximum-scale, with a field being typed in (SNG-17, b4519a2d)', async ({ page }) => {
-  // Its own test for a fresh context: a second load in the same one would
-  // restore the practice form from recents instead of offering the picker.
-  await openPracticeForm(page, '/sign/?next=0');
-  await expect(page.locator('[data-fill-input]'), 'production is not fill mode').toHaveCount(0);
-  await page.getByRole('toolbar', { name: 'PDF annotations' }).getByRole('button', { name: 'Text', exact: true }).click();
-  const field = page.locator('[class*="field-hint-cell"]').first();
-  await field.scrollIntoViewIfNeeded();
-  const fieldBox = await field.boundingBox();
-  await page.touchscreen.tap(fieldBox.x + fieldBox.width / 2, fieldBox.y + fieldBox.height / 2);
-  await expect(page.locator('[data-editor-element]')).toHaveCount(1);
-  expect(await viewportMeta(page), 'production never gets maximum-scale').toBe(ORIGINAL_META);
 });
 
 test('the practice form keeps fill mode: /?next=1 opens it on /sign/?next=1 (SNG-18, 3d5cc0d6)', async ({ page }) => {

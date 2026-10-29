@@ -269,36 +269,6 @@ test.describe('Sign editor browser guardrails', () => {
 test.describe('Sign editor touch gesture guardrail', () => {
   test.use({ hasTouch: true, isMobile: true, viewport: { width: 390, height: 844 } });
 
-  test('prevents native scrolling during a drag-drawn creation gesture', async ({ page }) => {
-    await openSignTool(page);
-    const whiteoutTool = page
-      .getByRole('toolbar', { name: 'PDF annotations' })
-      .getByRole('button', { name: 'Whiteout', exact: true });
-    await whiteoutTool.click();
-
-    const prevented = await page.locator('[class*="page-overlay"]').first().evaluate((overlay) => {
-      const rect = overlay.getBoundingClientRect();
-      const touchAt = (x, y) => new Touch({ identifier: 1, target: overlay, clientX: x, clientY: y });
-      const start = new TouchEvent('touchstart', {
-        bubbles: true,
-        cancelable: true,
-        touches: [touchAt(rect.left + 30, rect.top + 30)],
-      });
-      overlay.dispatchEvent(start);
-
-      const move = new TouchEvent('touchmove', {
-        bubbles: true,
-        cancelable: true,
-        touches: [touchAt(rect.left + 90, rect.top + 90)],
-      });
-      window.dispatchEvent(move);
-      window.dispatchEvent(new TouchEvent('touchend', { bubbles: true, cancelable: true, touches: [] }));
-      return move.defaultPrevented;
-    });
-
-    expect(prevented).toBe(true);
-  });
-
   test('a selected text box never gives the page horizontal scroll on a phone', async ({ page }) => {
     // The text toolbar has more controls than a phone-width page can hold on
     // one row. It used to spill past the viewport and, with nothing clipping

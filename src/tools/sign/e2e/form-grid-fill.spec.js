@@ -152,24 +152,6 @@ test.describe('tapping a printed comb run', () => {
     });
   });
 
-  test('leaves no tool armed, so the next tap on empty paper deselects', async ({ page }) => {
-    await openWithFixture(page);
-    await tapRun(page, IDENTITY_RUN);
-    await expect(page.locator('[data-editor-element][data-editor-active]')).toHaveCount(1);
-
-    const textTool = page
-      .getByRole('toolbar', { name: 'PDF annotations' })
-      .getByRole('button', { name: 'Text', exact: true });
-    await expect(textTool).toHaveAttribute('aria-pressed', 'false');
-
-    // A second tap on empty paper must deselect rather than place another box.
-    const overlay = page.locator('[class*="page-overlay"]').first();
-    const box = await overlay.boundingBox();
-    await overlay.click({ position: { x: box.width * 0.5, y: box.height * 0.72 } });
-    await expect(page.locator('[data-editor-element]')).toHaveCount(1);
-    await expect(page.locator('[data-editor-element][data-editor-active]')).toHaveCount(0);
-  });
-
   test('keeps the span on the field when the text turns RTL', async ({ page }) => {
     // Both evidence forms are Hebrew. A comb's span is fixed by the paper, so
     // unlike a growing text box it has no anchored edge to flip - typing Hebrew
@@ -214,22 +196,6 @@ test.describe('tapping a printed comb run', () => {
     expect(digits.centreY).toBeLessThan(IDENTITY_RUN.top);
   });
 
-  test('undo removes the placed comb in one step', async ({ page }) => {
-    // "One step" is one history entry as well as one tap: snapping to a printed
-    // field must not log the placement as several actions just because it sets
-    // more fields than a plain text box. Undo and Redo are the whole history
-    // model, so the count of entries is read off them: one tap clears the
-    // page, and Undo then has nothing left to do.
-    await openWithFixture(page);
-    await tapRun(page, IDENTITY_RUN);
-    await expect(page.locator('[data-editor-element]')).toHaveCount(1);
-
-    const toolbar = page.getByRole('toolbar', { name: 'PDF annotations' });
-    const undo = toolbar.getByRole('button', { name: 'Undo', exact: true });
-    await undo.click();
-    await expect(page.locator('[data-editor-element]')).toHaveCount(0);
-    await expect(undo).toBeDisabled();
-  });
 });
 
 test.describe('tapping a detected checkbox', () => {

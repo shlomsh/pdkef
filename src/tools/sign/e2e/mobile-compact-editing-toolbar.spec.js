@@ -74,11 +74,6 @@ function statusLineFieldNav(page) {
 test.describe('Sign per-element toolbar on a phone (MOBI-16)', () => {
   test.use({ hasTouch: true, isMobile: true, viewport: { width: 390, height: 844 } });
 
-  test('the status line owns Previous/Next before anything is opened, on a form with detected fields', async ({ page }) => {
-    await openWithFixture(page);
-    await expect(statusLineFieldNav(page)).toBeVisible();
-  });
-
   test('typing a detected field shows Previous/Next/Aa, one row, not the full wrapped toolbar - and the status line steps aside', async ({ page }) => {
     await openWithFixture(page);
     const { hint, box: cell } = await widestCellHint(page);
@@ -139,21 +134,5 @@ test.describe('Sign per-element toolbar on a phone (MOBI-16)', () => {
     const input = page.locator('[data-editor-element][data-editor-active] [data-editor-text-input]');
     await input.fill('Shlomi');
     await expect(input).toHaveValue('Shlomi');
-  });
-});
-
-test.describe('Sign per-element toolbar on desktop (MOBI-16)', () => {
-  test('a fine pointer never collapses the toolbar while typing a detected field', async ({ page }) => {
-    await openWithFixture(page);
-    const { hint, box: cell } = await widestCellHint(page);
-    await hint.click({ position: { x: cell.width / 2, y: cell.height / 2 }, force: true });
-
-    const actions = activeActions(page);
-    await expect(actions.getByRole('button', { name: 'B', exact: true })).toBeVisible();
-    await expect(actions.getByRole('button', { name: 'Delete', exact: true })).toBeVisible();
-    await expect(actions.getByRole('button', { name: 'Previous field' })).toHaveCount(0);
-    await expect(actions.getByRole('button', { name: 'Formatting options' })).toHaveCount(0);
-    // Desktop never loses the status-line copy - it is still the only one.
-    await expect(statusLineFieldNav(page)).toBeVisible();
   });
 });

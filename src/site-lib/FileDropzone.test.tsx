@@ -93,6 +93,24 @@ describe('FileDropzone', () => {
       expect(container.textContent).toContain('or drop them here, then pick a tool below');
     });
 
+    it('renders two cross-tool records of one file once each', async () => {
+      // The same file signed and then redacted is two index rows with the same
+      // name; each tool's tile must appear exactly once, not once per render pass.
+      const now = Date.now();
+      readRecentFiles.mockReturnValue([
+        { id: 'sha256:signed', tool: 'sign', fileName: 'identity.pdf', savedAt: now - 1 },
+        { id: 'sha256:redacted', tool: 'redact', fileName: 'identity.pdf', savedAt: now },
+      ]);
+      mount();
+      await act(async () => { await Promise.resolve(); });
+
+      const labelCount = (label) => Array.from(container.querySelectorAll('li span'))
+        .filter((span) => span.textContent === label).length;
+      expect(container.querySelectorAll('li')).toHaveLength(2);
+      expect(labelCount('Sign & Fill PDF')).toBe(1);
+      expect(labelCount('Blur & Redact')).toBe(1);
+    });
+
     it('renders the starter document before it reads browser storage', async () => {
       // The homepage server-renders this island, and the server has no
       // localStorage. Reading it during the first client render would produce

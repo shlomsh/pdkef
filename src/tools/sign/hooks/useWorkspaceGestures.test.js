@@ -971,3 +971,96 @@ describe('useWorkspaceGestures - a live gesture finishes after a delegated touch
     document.body.removeChild(el);
   });
 });
+
+// ---------------------------------------------------------------------------
+// Native scrolling during a touch drag-draw
+// ---------------------------------------------------------------------------
+
+// The page's own touchmove has to cancel native scrolling, and Chrome ignores
+// preventDefault() from a passive listener, so both halves are pinned with
+// real window listeners and real events: a drag-drawn shape cancels its
+// touchmove, and the listener is registered non-passive.
+describe('useWorkspaceGestures - touch drag-draw keeps the page from scrolling', () => {
+  const overlay = makeOverlay();
+  const touchStart = {
+    ...makeMouseDownEvent(30, 30, overlay),
+    touches: [{ identifier: 1, clientX: 30, clientY: 30 }],
+  };
+  const finishGesture = () => window.dispatchEvent(new TouchEvent('touchend', { bubbles: true, cancelable: true, touches: [] }));
+
+  it('cancels the touchmove of a drag-drawn whiteout', () => {
+    const { handleOverlayPointerDown } = makeHook({ selectedTool: 'whiteout' });
+    handleOverlayPointerDown(touchStart, 0);
+
+    const move = new TouchEvent('touchmove', {
+      bubbles: true,
+      cancelable: true,
+      touches: [{ identifier: 1, clientX: 90, clientY: 90 }],
+    });
+    window.dispatchEvent(move);
+    finishGesture();
+
+    expect(move.defaultPrevented).toBe(true);
+  });
+
+  it('registers the touchmove listener as non-passive, or the browser would ignore that cancel', () => {
+    const add = vi.spyOn(window, 'addEventListener');
+    try {
+      const { handleOverlayPointerDown } = makeHook({ selectedTool: 'whiteout' });
+      handleOverlayPointerDown(touchStart, 0);
+      finishGesture();
+
+      const touchmove = add.mock.calls.find(([type]) => type === 'touchmove');
+      expect(touchmove?.[2]).toMatchObject({ passive: false });
+    } finally {
+      add.mockRestore();
+    }
+  });
+});
+
+// ---------------------------------------------------------------------------
+// QUAL-44 - a placement on a detected comb run: one step, and nothing left armed
+// ---------------------------------------------------------------------------
+
+describe('useWorkspaceGestures – placing text on a detected comb run', () => {
+  const overlay = makeOverlay();
+  const run = { pageIndex: 0, left: 40, top: 49.5, width: 17, height: 1, cells: 9 };
+
+  it('leaves no tool armed, so the next click on empty paper reaches the deselect', () => {
+    const first = makeHook({
+      selectedTool: 'text',
+      formRegions: { combs: [run], checkboxes: [], cells: [] },
+    });
+    first.handlePageClick(makeClickEvent(500, 500, overlay), 0);
+
+    const types = first.dispatch.mock.calls.map(([action]) => action.type);
+    expect(firstAddElement(first.dispatch)).toMatchObject({ type: 'text', combCells: 9 });
+    expect(first.dispatch).toHaveBeenCalledWith({ type: 'DISARM_TOOL' });
+    expect(types.indexOf('DISARM_TOOL')).toBeGreaterThan(types.indexOf('ADD_ELEMENT'));
+
+    // With the tool disarmed the hook ignores the click and does not stop it,
+    // which is what lets the workspace's blank-area handler deselect.
+    const second = makeHook({ selectedTool: null, formRegions: { combs: [run], checkboxes: [], cells: [] } });
+    const event = makeClickEvent(500, 720, overlay);
+    second.handlePageClick(event, 0);
+    expect(second.dispatch).not.toHaveBeenCalled();
+    expect(event.stopPropagation).not.toHaveBeenCalled();
+  });
+
+  it('is one history entry holding one element, so a single Undo clears it', () => {
+    const logAction = vi.fn();
+    const { dispatch, handlePageClick } = makeHook({
+      selectedTool: 'text',
+      logAction,
+      formRegions: { combs: [run], checkboxes: [], cells: [] },
+    });
+    handlePageClick(makeClickEvent(500, 500, overlay), 0);
+
+    expect(dispatch.mock.calls.filter(([action]) => action.type === 'ADD_ELEMENT')).toHaveLength(1);
+    expect(logAction).toHaveBeenCalledTimes(1);
+    const [kind, , , , snapshots] = logAction.mock.calls[0];
+    expect(kind).toBe('add');
+    expect(snapshots).toHaveLength(1);
+    expect(snapshots[0].element).toMatchObject({ type: 'text', combCells: 9 });
+  });
+});

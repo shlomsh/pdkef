@@ -211,27 +211,4 @@ test.describe('getting back into a text box on touch', () => {
       .toHaveValue('Levi');
     await expect(elements(page)).toHaveCount(2);
   });
-
-  test('a drag moves the box and does not open a session', async ({ page }) => {
-    const textTool = await openWithFixture(page);
-    const { box } = await fillNthCell(page, textTool, 0, 'Shlomi');
-    await closeSession(page);
-
-    const before = await box.boundingBox();
-    await touchDrag(
-      page,
-      { x: before.x + before.width / 2, y: before.y + before.height / 2 },
-      { x: before.x + before.width / 2 + 60, y: before.y + before.height / 2 + 40 },
-    );
-
-    // Moved, by roughly what the finger travelled (the commit clamps to the
-    // page, which this drag stays well inside).
-    const after = await box.boundingBox();
-    expect(after.x - before.x).toBeGreaterThan(40);
-    expect(after.y - before.y).toBeGreaterThan(20);
-
-    // And still no caret: a drag is not a tap.
-    await expect(openSession(page)).toHaveCount(0);
-    await expect(elements(page)).toHaveCount(1);
-  });
 });

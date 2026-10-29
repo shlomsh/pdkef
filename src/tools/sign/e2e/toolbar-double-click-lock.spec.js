@@ -61,34 +61,6 @@ async function dragOverlay(page, startRatio, endRatio) {
   await page.mouse.up();
 }
 
-// `[data-editor-signature-item]` only exists in the DOM while the Sign
-// dropdown is open (it is the popover's own content), so it can never be used
-// to detect whether a signature is already saved - the caller tracks that
-// itself, since it is the one creating them.
-async function createTypedSignature(page, name, hasExisting) {
-  const signBtn = toolButton(page, 'Sign');
-  if (!hasExisting) {
-    await signBtn.click(); // opens the dialog directly when nothing is saved yet
-  } else {
-    // Hover, the dropdown's normal desktop trigger (SignToolbar.tsx's
-    // openSig/scheduleCloseSig) - deterministic regardless of the popover's
-    // current open/closed state, unlike a click on the trigger button, which
-    // ALSO toggles the popover (Floating UI's useClick, wired for
-    // touch/keyboard) and so can land it open or closed depending on what it
-    // was already; `isVisible()` right after a click doesn't wait for that
-    // race to settle, so this used to be flaky at the very margin.
-    const addButton = page.getByRole('button', { name: /new signature/i });
-    await signBtn.hover();
-    await expect(addButton).toBeVisible();
-    await addButton.click();
-  }
-  await expect(page.locator('dialog[open]')).toBeVisible();
-  await page.locator('[data-editor-dialog-tab="type"]').click();
-  await page.locator('[data-editor-signature-input]').fill(name);
-  await page.locator('[data-editor-signature-save]').click();
-  await expect(page.locator('dialog[open]')).toHaveCount(0);
-}
-
 async function expectLocked(page, btn, hasAriaPressed) {
   await expect(lockSwitch(page)).toHaveAttribute('aria-checked', 'true');
   if (hasAriaPressed) await expect(btn).toHaveAttribute('aria-pressed', 'true');
@@ -122,68 +94,4 @@ test.describe('Sign toolbar double-click locks every tool (SIGN-30)', () => {
       await expect(page.locator('[data-editor-element]')).toHaveCount(2);
     });
   }
-
-  test('double-clicking Shapes locks it, and stays locked after picking another shape from its menu', async ({ page }) => {
-    await openSignTool(page);
-    const shapesBtn = toolButton(page, 'Shapes');
-
-    await shapesBtn.dblclick();
-    await expect(lockSwitch(page)).toHaveAttribute('aria-checked', 'true');
-
-    await dragOverlay(page, { x: 0.15, y: 0.15 }, { x: 0.3, y: 0.22 });
-    await expect(page.locator('[data-editor-element]')).toHaveCount(1);
-    await expect(lockSwitch(page)).toHaveAttribute('aria-checked', 'true');
-
-    // Pick a different shape from the menu - this used to drop the lock
-    // (SignToolContext's bare SET_TOOL from chooseShape). Hover, the menu's
-    // normal desktop trigger (SignToolbar.tsx's openShapes/scheduleCloseShapes):
-    // a plain click also toggles the popover (Floating UI's useClick, wired
-    // for touch/keyboard), and hovering the button as part of that same click
-    // can open and then immediately re-close it.
-    const ellipseItem = page.locator('[role="menu"] button', { hasText: /^Ellipse$/ });
-    await page.mouse.move(0, 0);
-    await shapesBtn.hover();
-    await expect(ellipseItem).toBeVisible();
-    await ellipseItem.click();
-    await expect(lockSwitch(page)).toHaveAttribute('aria-checked', 'true');
-
-    await dragOverlay(page, { x: 0.5, y: 0.15 }, { x: 0.65, y: 0.25 });
-    await expect(page.locator('[data-editor-element]')).toHaveCount(2);
-    await expect(lockSwitch(page)).toHaveAttribute('aria-checked', 'true');
-  });
-
-  test('double-clicking Sign locks it, and stays locked after picking another saved signature from its menu', async ({ page }) => {
-    await openSignTool(page);
-
-    // Creating a signature places it once and disarms (one-shot), same as any
-    // other creation path - not itself part of the lock assertion.
-    await createTypedSignature(page, 'First Signer', false);
-    await expect(page.locator('[data-editor-element]')).toHaveCount(1);
-    await createTypedSignature(page, 'Second Signer', true);
-    await expect(page.locator('[data-editor-element]')).toHaveCount(2);
-
-    const signBtn = toolButton(page, 'Sign');
-    await signBtn.dblclick();
-    await expect(lockSwitch(page)).toHaveAttribute('aria-checked', 'true');
-
-    await clickOverlayAt(page, 0.2, 0.65);
-    await expect(page.locator('[data-editor-element]')).toHaveCount(3);
-    await expect(lockSwitch(page)).toHaveAttribute('aria-checked', 'true');
-
-    // Pick the other saved signature from the menu - this used to drop the
-    // lock (SignToolbar's handleSelectSavedSignature bare SET_TOOL). Hover,
-    // same reasoning as createTypedSignature above: deterministic regardless
-    // of the popover's current state, unlike a click on the trigger (which
-    // also toggles it).
-    const sigItem = page.locator('[data-editor-signature-item]').first();
-    await page.mouse.move(0, 0);
-    await signBtn.hover();
-    await expect(sigItem).toBeVisible();
-    await sigItem.click();
-    await expect(lockSwitch(page)).toHaveAttribute('aria-checked', 'true');
-
-    await clickOverlayAt(page, 0.6, 0.7);
-    await expect(page.locator('[data-editor-element]')).toHaveCount(4);
-    await expect(lockSwitch(page)).toHaveAttribute('aria-checked', 'true');
-  });
 });

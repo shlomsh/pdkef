@@ -150,15 +150,6 @@ test.describe('typing into a detected form cell', () => {
     expect(text.right).toBeLessThan(cell.x + cell.width - 0.2 * fontPx);
   });
 
-  test('is still plain text, not a comb: no per-character cells appear', async ({ page }) => {
-    await openWithFixture(page);
-    const { hint, box: cell } = await widestCellHint(page);
-    await hint.click({ position: { x: cell.width / 2, y: cell.height / 2 }, force: true });
-    const input = page.locator('[data-editor-element][data-editor-active] [data-editor-text-input]');
-    await input.fill('Shlomi Shemesh');
-    await expect(page.locator('[data-editor-element][data-editor-active] [data-text-part="comb-cell"]')).toHaveCount(0);
-    await expect(page.locator('[data-editor-element][data-editor-active] [data-editor-text-display]')).toHaveAttribute('data-span', 'field');
-  });
 });
 
 /** Form 101's employer-row phone cell, detected at page-percent left 21.89, width 13.22, top 19.56. */

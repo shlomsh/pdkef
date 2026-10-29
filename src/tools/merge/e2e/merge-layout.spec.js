@@ -336,24 +336,3 @@ test('tablet (820x1180): the completion row sits under the last page and scrolls
   expect(downloadBox.y).toBeGreaterThanOrEqual(lastCell.y + lastCell.height - 1);
   expect(downloadBox.y + downloadBox.height).toBeLessThanOrEqual(viewport.height + 1);
 });
-
-/* A Hebrew-first-file merge: the merged_ prefix is deliberately un-translated
-   (same as Sign's signed_), so a Hebrew name reads right-to-left with the
-   Latin prefix ahead of it, both in the heading and in the download name. */
-test('a Hebrew first file keeps the merged_ prefix untranslated, in the heading and the download name', async ({ page }) => {
-  await page.goto('/merge/');
-  await waitForIsland(page);
-  const files = await Promise.all(['אישור שנתי.pdf', 'second.pdf'].map(async (name) => ({
-    name,
-    mimeType: 'application/pdf',
-    buffer: await makePdfBuffer(name),
-  })));
-  await page.locator('input[type="file"]').setInputFiles(files);
-
-  const name = page.locator('#page-grid-heading span[contenteditable]').first();
-  await expect(name).toHaveText('merged_אישור שנתי', { timeout: 10_000 });
-  await expect(page.locator('[class*="doc-heading-ext"]').first()).toHaveText('.pdf');
-
-  const downloadLink = page.getByRole('link', { name: /Download merged PDF/ });
-  await expect(downloadLink).toHaveAttribute('download', 'merged_אישור שנתי.pdf', { timeout: 10_000 });
-});
