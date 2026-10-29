@@ -1,9 +1,8 @@
 ---
 id: "MEM-29"
 title: "A critical build that cannot install releases the older build's worker"
-status: "in_progress"
+status: "done"
 priority: "P1"
-horizon: "now"
 epic: "robustness"
 depends_on: ["MEM-28"]
 ---
@@ -45,7 +44,7 @@ depends_on: ["MEM-28"]
       matches for the worker.
 - [x] The phone shows the live build after one launch past the deploy (`faa72fb2389a`, 2026-10-29).
 
-## Progress (2026-10-29)
+## Done (2026-10-29)
 
 - `releaseOlderBuild` and the retry in `precacheUrls`, `public/sw.js`. 10 cases in `scripts/sw.test.mjs`
   ("a failed install of a critical build", source and minified); 269 pass.
@@ -66,3 +65,4 @@ depends_on: ["MEM-28"]
   old version. Both now go through `criticalOverDevice()`, and the minified-source test pins one call site
   (seen red with two). `check:e2e` (the full product suite, a `public/sw.js` diff) passes locally.
 - **Live**: pdkef.com served build `faa72fb2389a` and the phone reported the same build after the deploy.
+- **CI green** on 952b6919 (run 40955754193); the deploy (build `72a5f31ca557`) is Ready.
