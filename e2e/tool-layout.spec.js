@@ -418,7 +418,7 @@ test('redaction guide images load without page overflow on desktop and mobile', 
   }
 });
 
-// On a phone the loaded Sign/Redact card drops its frame (PdfTool.module.css): the
+// On a phone the loaded Sign/Redact card drops its frame (Workspace.module.css): the
 // toolbar and each page carry their own border, and the card's 24px padding on top
 // of the page gutter cost the document about 14% of the screen width (Shlomi,
 // 2026-10-28). The page spans the card edge to edge; the card paints nothing.
