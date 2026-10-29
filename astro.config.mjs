@@ -1,7 +1,7 @@
 import { defineConfig } from 'astro/config';
 import preact from '@astrojs/preact';
 import tailwindcss from '@tailwindcss/vite';
-import { entryFileName, chunkFileName, assetFileName, cssModuleClassName } from './scripts/stableNames.mjs';
+import { entryFileName, chunkFileName, assetFileName, cssAssetKeys, cssModuleClassName } from './scripts/stableNames.mjs';
 
 // Static output only — no SSR, no adapter. The app is a flat set of
 // files served by Vercel; all PDF processing happens in the browser.
@@ -82,18 +82,18 @@ export default defineConfig({
     // Utilities are available now but nothing in src/**/*.astro consumes
     // them yet — that migration is a separate ticket (E3.2), scoped to the
     // static/marketing surface only, per ARCHITECTURE.md §3.1.
-    plugins: [tailwindcss()],
+    plugins: [tailwindcss(), cssAssetKeys],
     // The pdf.js worker wrapper (src/lib/pdf/pdfjsWorker.js) is a module worker with a dynamic
     // import inside pdf.js, which the default iife worker format cannot code-split (DEBT-42).
     worker: { format: 'es' },
     // MEM-25: client entries and the hot shared chunks keep one URL across deploys. Client environment
-    // only; the server environment (prerender) must keep Astro's own naming. MEM-26: so do CSS files,
-    // and CSS Module class names hash the module's path, not its CSS, so a style edit changes only the
-    // CSS it touches. Prerender names its CSS the same way: Astro pairs a client stylesheet with the one
-    // it inlined into a page by file name, and drops the client copy only on a match.
+    // only; the server environment (prerender) must keep Astro's own JS naming. MEM-26: CSS Module class
+    // names hash the module's path, not its CSS, and CSS files are named by the modules they hold, in
+    // prerender too (Astro pairs a client stylesheet with the one it inlined by file name), so a style
+    // edit changes only the CSS it touches.
     environments: {
-      client: { build: { rolldownOptions: { output: { entryFileNames: entryFileName, chunkFileNames: chunkFileName, assetFileNames: assetFileName } } } },
-      prerender: { build: { rolldownOptions: { output: { assetFileNames: assetFileName } } } },
+      client: { build: { rolldownOptions: { output: { entryFileNames: entryFileName, chunkFileNames: chunkFileName, assetFileNames: assetFileName('client') } } } },
+      prerender: { build: { rolldownOptions: { output: { assetFileNames: assetFileName('prerender') } } } },
     },
     css: { modules: { generateScopedName: cssModuleClassName } },
     build: {

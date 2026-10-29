@@ -33,3 +33,48 @@ depends_on: []
 - [ ] A unit or build test that edits one CSS Module between two builds and counts the renamed chunks.
 - [ ] 42923db to 1b72a77 rebuilt with the fix reads under 500,000 bytes, or the remainder is named.
 - [ ] `continue-on-error` and its pin test come out of the update-cost job, and the next nightly is green.
+
+## Done (2026-10-29)
+
+- **Cause, two mechanisms** (42923db to 1b72a77, both built at one path): Vite's default CSS Module
+  class name is `_<class>_<hash of the module's whole CSS>_<line>`, so the 12-line edit renamed every
+  class in `PdfTool.module.css`, which changed `useHandoffIntake.*.js` (it holds the class map), and its
+  25 importers renamed. Separately, a CSS file name is part of its chunk's hash (Vite augments it) and of
+  every preload list that names it, so the CSS rename alone renamed its chunk, `registry`, `PageGrid`,
+  `useDraftPersistence` and `useLazyPageGrid`. With stable class names only, the fixture still renamed
+  the chunk owning the CSS and the chunk preloading it. All 25 renamed chunks differed only in hashed
+  names except `useHandoffIntake.*.js` (class names) and the CSS itself.
+- **Fix** (`scripts/stableNames.mjs`, wired in `astro.config.mjs`): `cssModuleClassName` hashes the
+  module's path relative to the repo root (`_<class>_<6 hex>`, so `[class*="_rail_"]` selectors still
+  match), and CSS files are `/shared/<chunk name>-<hash of the CSS module paths it holds>.css`, recorded
+  by the `pdkef:css-asset-keys` plugin just before Vite emits each chunk's CSS. Prerender names its CSS
+  the same way, because Astro drops a client stylesheet when a page inlined one of the same file name and
+  inlines both when they differ. Two designs were measured and dropped: client-only stable names kept 8
+  already-inlined sheets alive as duplicate preloads and orphans; plain `<name>.css` in both put 186
+  duplicate rules (42 KB raw) on `/redact/` and failed `test:css`. Keyed by module set, the names match
+  exactly when the two hold the same modules, which is the pairing Astro itself uses between SSR and
+  prerender. Two chunks with one name and different CSS fail the build loudly rather than get suffixes
+  whose order could swap.
+- **Replay** of 42923db to 1b72a77 with the fix on both sides: 1,343,672 to **787,290 bytes**, 0 new
+  hashed chunks, no `/_astro/` or `/site/` file changed; the one code file that changed is
+  `/shared/useHandoffIntake-326da5.css` (5,230). Before: 399,517 new-hashed and about 161 KB of changed
+  `/site/` entries.
+- **What remains is MEM-27:** 21 tool pages at 760,296 bytes, each differing only in its inline `<style>`
+  and that style's CSP hash (`build.inlineStylesheets: 'always'` inlines the CSS Module into every page
+  that uses it); `/about/` 10,357 (build stamp), `precache-manifest.json` 5,877, `sw.js` 5,530.
+- **Behaviour kept:** the same 3 client stylesheets as before, and `/redact/`'s inline CSS is rule for
+  rule the old build's. Every class inside island markup (161) is in the client JS, so server render and
+  hydration name classes alike.
+- **Tests:** `scripts/stableNames.build.test.mjs` builds a fixture twice with the real client config and
+  edits one CSS Module; red before the fix (2 chunks and the CSS renamed, both islands changed), green
+  after (only `shared/panel-<key>.css` changes). `test:stable-names` now also fails on a hashed CSS file
+  in `/_astro/` or `/shared/`, and on any CSS Module class a page's code can render with no rule on that
+  page (classes holding only `composes` emit no CSS and are skipped); seen red by stripping one class's
+  rules from `/merge/`. The class shape lives once, as `CSS_MODULE_CLASS`, which `check-css-duplication.js`
+  now reads (its old `_name_hash_line` pattern counted every module class as a dead utility).
+- **Review** (fresh reviewer, on the first design): prerender assets that survive are moved into the client
+  folder over a same-named file (`ssrMoveAssets`), and same-named chunks get order-dependent suffixes; the
+  module-keyed names close both, since a shared name now means the same modules. The class-rule guard
+  counts a rule found in any stylesheet the page can load, even a lazy one, so it proves presence on the
+  page, not load order.
+- The deploy that ships this renames every class and moves the CSS once, so that night's reading is high.
