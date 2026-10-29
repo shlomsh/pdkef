@@ -2,7 +2,7 @@
 
 # Backlog
 
-The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 83 live: 16 up next, 11 then, 26 waiting, 30 parked.
+The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 84 live: 17 up next, 11 then, 26 waiting, 30 parked.
 
 ## Redact: finish removal
 
@@ -74,6 +74,7 @@ Production errors you can see, small tools that clean up after themselves, and d
 | MEM-26 | P1 | [MEM-26](backlog/tasks/MEM-26.md) · A CSS Module edit renames its own CSS chunk, not 25 JavaScript chunks | In progress |
 | ENC-16 | P2 | [ENC-16](backlog/tasks/ENC-16.md) · Locked-file state polish: Merge's calm notice, the panel's sizing, focus ring and file name | In progress |
 | MEM-24 | P3 | [MEM-24](backlog/tasks/MEM-24.md) · A service worker that cannot install, or never completes its precache, says so | In progress |
+| MEM-27 | P3 | [MEM-27](backlog/tasks/MEM-27.md) · A tool-layout style edit does not re-download every tool page | In progress |
 
 ### Then, in order
 
@@ -214,7 +215,7 @@ Done and retired tickets are not listed. Their files stay in [backlog/tasks/](ba
 - Sign: finish fill mode: 3 done, 1 retired
 - Tool pages: show the verb: 8 done, 0 retired
 - Form detector accuracy: 19 done, 1 retired
-- Robustness and debt: 76 done, 4 retired
+- Robustness and debt: 75 done, 4 retired
 - Unify the tools, narrow the graph: 95 done, 0 retired
 - Search and languages: 9 done, 0 retired
 - Polish: 19 done, 1 retired

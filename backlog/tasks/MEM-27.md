@@ -1,8 +1,9 @@
 ---
 id: "MEM-27"
 title: "A tool-layout style edit does not re-download every tool page"
-status: "done"
+status: "in_progress"
 priority: "P3"
+horizon: "now"
 epic: "robustness"
 depends_on: ["MEM-26"]
 ---
@@ -31,10 +32,10 @@ depends_on: ["MEM-26"]
 - [x] Both numbers measured for the options, on the same pages as the 2026-08-20 benchmark.
 - [x] The decision and its numbers are in `astro.config.mjs`'s comment.
 
-## Done (2026-10-29)
+## Measured (2026-10-29)
 
-Decision: `build.inlineStylesheets: 'auto'`, with MEM-26's stable `/shared/` CSS names, landed in the
-same change as MEM-26. Recorded beside the setting in `astro.config.mjs` and in `.claude/rules/styling.md`.
+Decision taken: `build.inlineStylesheets: 'auto'`, with MEM-26's stable `/shared/` CSS names. It landed
+with MEM-26 (9484d933, 626b6b6e) and was reverted the same day; see Reverted below.
 The 2026-08-20 benchmark left no page list or script, so first paint was measured on `/`, `/sign/`,
 `/merge/` and `/compress/`.
 
@@ -60,4 +61,18 @@ The 2026-08-20 benchmark left no page list or script, so first paint was measure
   now form one duplication family (0.37x, limit 0.46x).
 - **Naming fix found on the way:** Astro's page CSS (`redact@_@astro.css`) missed the module-set lookup
   and fell back to a hashed `/_astro/` name; `test:stable-names` caught it on the first `'auto'` build.
+
+## Reverted (2026-10-29)
+
+CI run 40868063216 on 626b6b6e failed 8 e2e tests that the local `check:push` does not run:
+`e2e/tool-hero-first-screen.spec.js` (the hero is 130px at first paint, 72px once the tool loads: the
+Merge restore and the home-launcher hand-offs to split and compress-image) and both
+`*-saved-work-restore-acceptance.spec.js` (Sign and Redact, visual churn on restore). Reproduced locally:
+the hand-off spec fails with `'auto'` and passes with `'always'` on the same commit, and all 115 tests in
+the three specs pass on the MEM-26-only build. Both MEM-27 commits were reverted, which restores
+`'always'`, the inline-only CSS guards and `continue-on-error`.
+
+Next: find which first-paint rule `'auto'` delivers late or out of cascade order (the loaded-state hero
+height), fix that, run those three specs and `check:e2e` locally, then land again with the guards
+(`scripts/pageCss.mjs`, recoverable from 9484d933 and 626b6b6e).
 
