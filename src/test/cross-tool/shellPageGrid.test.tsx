@@ -342,6 +342,46 @@ describe('PageGrid', () => {
     expect(onPlanChange.mock.results[0].value[2]).toMatchObject({ key: '2:0', skipped: false });
   });
 
+  // Page numbers are drawn only by PageGrid, from the plan, so one grid mount proves what every
+  // tool shows (this replaces the e2e that compared Merge, Edit Pages, Split and PDF to Image).
+  // The harness here is stateful: each commit becomes the plan the grid is rendered with next.
+  describe('page numbers read as output positions', () => {
+    const numbers = () => cards().map((card) => card.querySelector('[data-page-number]').textContent);
+    const tenPages = () => {
+      const plan = planForFile(1, 10);
+      const entries = [{ id: 1, file: makeFile('ten.pdf'), pageCount: 10, error: null }];
+      let current = plan;
+      const onPlanChange = vi.fn((update) => { current = update(current); });
+      const view = mount({ entries, plan, props: { onPlanChange } });
+      const press = async (key, keyName) => {
+        const card = cards().find((c) => c.dataset.key === key);
+        await act(async () => card.dispatchEvent(new KeyboardEvent('keydown', { key: keyName, bubbles: true, cancelable: true })));
+        view.rerender({ plan: current });
+      };
+      return { press, order: () => cards().map((card) => card.dataset.key) };
+    };
+
+    it('counts 1 to 10 in plan order', () => {
+      tenPages();
+      expect(numbers()).toEqual(['1', '2', '3', '4', '5', '6', '7', '8', '9', '10']);
+    });
+
+    it('after skipping page 2, the skipped page keeps the number it would take and the next page takes it', async () => {
+      const { press } = tenPages();
+      await press('1:1', 'Delete');
+      expect(cards()[1].hasAttribute('data-skipped')).toBe(true);
+      expect(numbers()).toEqual(['1', '2', '2', '3', '4', '5', '6', '7', '8', '9']);
+    });
+
+    it('after skipping page 2 and moving page 5 to the front, numbers follow the new order, not the source pages', async () => {
+      const { press, order } = tenPages();
+      await press('1:1', 'Delete');
+      for (let step = 0; step < 4; step += 1) await press('1:4', 'ArrowLeft');
+      expect(order().slice(0, 5)).toEqual(['1:4', '1:0', '1:1', '1:2', '1:3']);
+      expect(numbers()).toEqual(['1', '2', '3', '3', '4', '5', '6', '7', '8', '9']);
+    });
+  });
+
   it('keyboard: arrows move across files, R rotates, Delete skips, Enter opens the preview', async () => {
     const { onPlanChange } = mount();
     const card = cards()[1];

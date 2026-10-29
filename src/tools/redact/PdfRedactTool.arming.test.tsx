@@ -78,6 +78,28 @@ describe('PdfRedactTool UI flow', () => {
 
       expect(drawArea.style.touchAction).toBe('auto');
     });
+
+    // QUAL-44: this used to be a Playwright case. touch-action alone is not
+    // enough on iOS, the page's own touchmove has to be cancelled too, and that
+    // only happens if the page wrapper really forwards a touchstart to the
+    // drawing hook (the hook's own unit calls the handler directly).
+    it('cancels the touchmove of a touch-drawn box, so the page does not scroll under the finger', async () => {
+      const drawArea = await loadFileAndGetDrawArea(); // arms Blackout
+      const touch = (x: number, y: number) => ({ identifier: 1, target: drawArea, clientX: x, clientY: y });
+
+      await act(async () => {
+        drawArea.dispatchEvent(new TouchEvent('touchstart', {
+          bubbles: true, cancelable: true, touches: [touch(50, 200)] as never, changedTouches: [touch(50, 200)] as never,
+        }));
+      });
+      const move = new TouchEvent('touchmove', {
+        bubbles: true, cancelable: true, touches: [touch(200, 500)] as never, changedTouches: [touch(200, 500)] as never,
+      });
+      await act(async () => { window.dispatchEvent(move); });
+      await act(async () => { window.dispatchEvent(new TouchEvent('touchend', { bubbles: true, cancelable: true, touches: [] })); });
+
+      expect(move.defaultPrevented).toBe(true);
+    });
   });
 
   describe('one-shot tool arming', () => {

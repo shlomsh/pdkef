@@ -783,3 +783,51 @@ describe('TextNode fill mode (SNG-15)', () => {
     expect(onSelect).toHaveBeenCalledTimes(1);
   });
 });
+
+// QUAL-44: two cases that used to need a real browser. Neither asks about
+// layout, only about what the node renders for a given element and pointer.
+describe('TextNode on a detected cell, and its closed placeholder', () => {
+  let host = document.createElement('div');
+  const originalMatchMedia = window.matchMedia;
+
+  function installPointer(coarse: boolean) {
+    const query = { matches: coarse, media: '(pointer: coarse)', addEventListener: () => {}, removeEventListener: () => {} };
+    Object.defineProperty(window, 'matchMedia', { value: vi.fn(() => query), configurable: true, writable: true });
+  }
+
+  afterEach(() => {
+    Object.defineProperty(window, 'matchMedia', { value: originalMatchMedia, configurable: true, writable: true });
+    if (host.isConnected) {
+      act(() => render(null, host));
+      document.body.removeChild(host);
+    }
+  });
+
+  // A box snapped to a blank printed cell carries the cell's span (minWidth)
+  // and no `width`: `width` is what makes a comb, so this one stays plain text.
+  it('is still plain text, not a comb: no per-character cells appear on a spanned cell box', () => {
+    host = mount(
+      <TextNode
+        element={{ text: 'Shlomi Shemesh', fontSize: 12, minWidth: 20.87 }}
+        isActive
+        onChange={() => {}}
+      />
+    );
+    expect(host.querySelectorAll('[data-text-part="comb-cell"]')).toHaveLength(0);
+    expect(requireElement(host, '[data-editor-text-display]').getAttribute('data-span')).toBe('field');
+  });
+
+  it('never tells a phone user to double-click: the closed empty box says "Tap to type"', () => {
+    installPointer(true);
+    host = mount(<TextNode element={{ text: '', fontSize: 12 }} />);
+    const placeholder = requireElement<HTMLTextAreaElement>(host, 'textarea').getAttribute('placeholder') ?? '';
+    expect(placeholder).toBe('Tap to type');
+    expect(placeholder.toLowerCase()).not.toContain('double');
+  });
+
+  it('keeps "Double-click to edit" for a mouse', () => {
+    installPointer(false);
+    host = mount(<TextNode element={{ text: '', fontSize: 12 }} />);
+    expect(requireElement<HTMLTextAreaElement>(host, 'textarea').getAttribute('placeholder')).toBe('Double-click to edit');
+  });
+});

@@ -18,7 +18,6 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 - [ARCH-85](backlog/tasks/ARCH-85.md) P3 · Per-spec flake rates are recorded and read nightly (in progress)
 - [QUAL-32](backlog/tasks/QUAL-32.md) P2 · CI skips Playwright when a push reaches no e2e (in progress)
 - [QUAL-33](backlog/tasks/QUAL-33.md) P2 · A stalled apt install costs at most one retry, not ten minutes (in progress)
-- [QUAL-44](backlog/tasks/QUAL-44.md) P2 · E2e keeps only what a real browser proves: duplicates go, jsdom-able cases move to units (in progress)
 - [QUAL-39](backlog/tasks/QUAL-39.md) P3 · Unit tests run in two parallel CI jobs (in progress)
 - [QUAL-42](backlog/tasks/QUAL-42.md) P3 · CI builds once per run, not once per job (in progress)
 

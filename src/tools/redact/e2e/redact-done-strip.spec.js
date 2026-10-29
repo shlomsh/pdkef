@@ -77,23 +77,3 @@ for (const size of [{ width: 1440, height: 900 }, { width: 390, height: 844 }]) 
     await expect(strip).toHaveCount(0);
   });
 }
-
-test('a second toolbar Download keeps the strip and the rating ask (RED-66 review)', async ({ page }) => {
-  await page.setViewportSize({ width: 1440, height: 900 });
-  await openWithOneBox(page);
-  const toolbar = page.getByRole('toolbar', { name: 'PDF redaction' });
-  const downloadButton = toolbar.getByRole('button', { name: 'Download', exact: true });
-  const strip = page.locator('[data-redact-done-strip]');
-  const ask = strip.getByText('a rating helps more people find it', { exact: false });
-
-  let download = page.waitForEvent('download');
-  await downloadButton.click();
-  await download;
-  await expect(ask).toBeVisible({ timeout: 5000 });
-
-  download = page.waitForEvent('download');
-  await downloadButton.click();
-  await download;
-  await expect(strip).toBeVisible();
-  await expect(ask).toBeVisible();
-});

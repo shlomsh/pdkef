@@ -28,4 +28,4 @@ Never reproduced: Playwright (Chromium, WebKit) and the iOS Simulator both desel
 zoomed or not. Shipped the likely cause's fix anyway: a touch tap (one finger, under 16 screen points of
 movement, under 500ms, no scroll or zoom during it) on blank page area deselects without relying on
 `click`, which iOS drops when finger jitter turns a tap into a pan. `src/tools/sign/tapOutsideDeselect.ts`,
-guarded by `tap-outside-deselect.spec.js`. If Shlomi still sees it on a device, reopen with where he tapped.
+guarded by `tap-outside-deselect.spec.js` (since QUAL-44, by its unit twin in `PdfWorkspace.test.tsx`). If Shlomi still sees it on a device, reopen with where he tapped.

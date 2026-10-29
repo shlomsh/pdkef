@@ -11,6 +11,8 @@ import { setInputFiles } from '../../test/support/setInputFiles.js';
 import fs from 'node:fs';
 import * as gestureController from '#lib/gestures/controller.ts';
 import { installToolHarness } from '../../test/harness/toolHarness.ts';
+import { resetRatingPromptForTests } from '#shell/RatingPrompt.tsx';
+import toolbarStyles from '#editor-ui/SignToolbar.module.css';
 import { useRedactSuite, required, query, settleUntil, installCanvasEdge, buildPdf, makePdfFile } from '../../test/support/redactTool.tsx';
 
 declare const __dirname: string;
@@ -252,6 +254,64 @@ describe('PdfRedactTool UI flow', () => {
     } finally {
       window.URL.createObjectURL = originalCreateObjectURL;
       window.URL.revokeObjectURL = originalRevokeObjectURL;
+    }
+  });
+
+  // RED-66: the done strip (result, hand-offs, the rating ask) hangs under the toolbar after a
+  // toolbar Download. Where it sits on screen is src/tools/redact/e2e/redact-done-strip.spec.js; that a second
+  // Download leaves it, and the one rating ask inside it, in place is state, proved here.
+  it('RED-66: a second toolbar Download keeps the done strip and the rating ask', async () => {
+    resetRatingPromptForTests();
+    s.restoreCanvas = installCanvasEdge();
+    const originalCreateObjectURL = window.URL.createObjectURL;
+    const originalRevokeObjectURL = window.URL.revokeObjectURL;
+    window.URL.createObjectURL = vi.fn(() => 'blob:redacted-pdf');
+    window.URL.revokeObjectURL = vi.fn();
+    const revoked = () => (window.URL.revokeObjectURL as Mock).mock.calls.length;
+    const strip = () => s.container.querySelector('[data-redact-done-strip]');
+    const asks = () => (s.container.textContent ?? '').split('a rating helps more people find it').length - 1;
+    try {
+      const drawArea = await loadFileAndGetDrawArea();
+      await drawBox(drawArea, 50, 200, 200, 500);
+      const downloadButton = () => required(Array.from(s.container.querySelectorAll<HTMLButtonElement>('[role="toolbar"] button'))
+        .find((button) => button.textContent?.includes('Download')), 'Download button');
+
+      await act(async () => { downloadButton().click(); });
+      await settleUntil('the first download', () => revoked() >= 1);
+      await settleUntil('the done strip', () => strip() !== null);
+      // The ask waits 1.5s after a download (RatingPrompt's SHOW_DELAY_MS).
+      await settleUntil('the rating ask', () => asks() === 1, 4000);
+
+      await act(async () => { downloadButton().click(); });
+      await settleUntil('the second download', () => revoked() >= 2);
+      expect(strip()).not.toBeNull();
+      expect(strip()!.textContent).toContain('a rating helps more people find it');
+      expect(asks()).toBe(1);
+    } finally {
+      window.URL.createObjectURL = originalCreateObjectURL;
+      window.URL.revokeObjectURL = originalRevokeObjectURL;
+    }
+  }, 15000);
+
+  // The sticky toolbar drops its Download below 920px only once native Share exists to take its
+  // place (EditorExportActions' `.desktop-download`, hidden by SignToolbar.module.css). With no
+  // Share, Download is the only way to finish from the toolbar, so it must not wear that class.
+  it('keeps the toolbar\'s own Download unhidden when native Share is unavailable', async () => {
+    const originalShare = Object.getOwnPropertyDescriptor(navigator, 'share');
+    const originalCanShare = Object.getOwnPropertyDescriptor(navigator, 'canShare');
+    Object.defineProperty(navigator, 'share', { configurable: true, value: undefined });
+    Object.defineProperty(navigator, 'canShare', { configurable: true, value: undefined });
+    try {
+      await loadFileWithoutArming();
+      const toolbarButtons = Array.from(s.container.querySelectorAll<HTMLButtonElement>('[role="toolbar"] button'));
+      expect(toolbarButtons.find((button) => button.textContent?.trim() === 'Share')).toBeUndefined();
+      const download = required(toolbarButtons.find((button) => button.textContent?.includes('Download')), 'toolbar Download');
+      expect(download.classList.contains(toolbarStyles['desktop-download'])).toBe(false);
+    } finally {
+      for (const [name, descriptor] of [['share', originalShare], ['canShare', originalCanShare]] as const) {
+        if (descriptor) Object.defineProperty(navigator, name, descriptor);
+        else delete (navigator as unknown as Record<string, unknown>)[name];
+      }
     }
   });
 

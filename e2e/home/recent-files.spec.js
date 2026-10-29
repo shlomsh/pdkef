@@ -108,20 +108,6 @@ test.describe('home recent files', () => {
     await expect(page.locator('#home-files li')).toHaveCount(1);
     await expect(page.getByRole('button', { name: /Open bundled sample PDF/ })).toHaveCount(0);
   });
-
-  test('renders two cross-tool records once each', async ({ page }) => {
-    const now = Date.now();
-    await seedRecentFiles(page, [
-      { id: 'sha256:signed', tool: 'sign', fileName, savedAt: now - 1 },
-      { id: 'sha256:redacted', tool: 'redact', fileName, savedAt: now },
-    ]);
-    await page.goto('/');
-
-    const recentFiles = page.locator('#home-files');
-    await expect(recentFiles.locator('li')).toHaveCount(2);
-    await expect(recentFiles.getByText('Sign & Fill PDF', { exact: true })).toHaveCount(1);
-    await expect(recentFiles.getByText('Blur & Redact', { exact: true })).toHaveCount(1);
-  });
 });
 
 // MEM-03: opening a recent tile never asks anything - once a tool's work

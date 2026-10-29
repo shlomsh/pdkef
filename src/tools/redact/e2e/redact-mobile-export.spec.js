@@ -182,32 +182,6 @@ test.describe('redact export actions on a phone', () => {
   test('gives the finish row an even pair, with Share quieter than Download', async ({ page }) => {
     await expectEvenFinishPair(page);
   });
-
-  test('keeps the toolbar\'s own Download visible when native Share is unavailable', async ({ page }) => {
-    // Force the "no native Share" shape explicitly rather than relying on a
-    // browser's ambient default: WebKit ships a real Web Share API, so an
-    // unstubbed context here would make this assertion depend on which
-    // project ran it instead of on the app's own logic.
-    await page.addInitScript(() => {
-      Object.defineProperty(navigator, 'share', { configurable: true, value: undefined });
-      Object.defineProperty(navigator, 'canShare', { configurable: true, value: undefined });
-    });
-    await page.goto('/redact');
-    await waitForIsland(page);
-    const fileChooserPromise = page.waitForEvent('filechooser');
-    await page.getByText('Choose file', { exact: true }).click();
-    const fileChooser = await fileChooserPromise;
-    await fileChooser.setFiles({
-      name: 'redact-mobile-export-no-share.pdf',
-      mimeType: 'application/pdf',
-      buffer: await makePdfBuffer(),
-    });
-    await expect(page.locator('[class*="page-wrapper"]')).toBeVisible();
-
-    const toolbar = page.getByRole('toolbar', { name: 'PDF redaction' });
-    await expect(toolbar.getByRole('button', { name: 'Share', exact: true })).toHaveCount(0);
-    await expect(toolbar.getByRole('button', { name: 'Download', exact: true })).toBeVisible();
-  });
 });
 
 test.describe('redact export actions on desktop', () => {

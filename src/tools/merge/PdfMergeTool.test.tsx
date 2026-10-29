@@ -988,6 +988,21 @@ describe('PdfMergeTool UI flow', () => {
     expect(container.querySelector('bdi [aria-label][tabindex]').textContent).toBe('merged_plain');
   });
 
+  // The merged_ prefix is deliberately untranslated (like Sign's signed_), so a Hebrew first file
+  // reads right-to-left with the Latin prefix ahead of it, in the heading and in the download name.
+  // The English page is the point: the prefix comes from the code, not the catalogue.
+  it('a Hebrew first file keeps the merged_ prefix untranslated, in the heading and the download name', async () => {
+    mount();
+    await loadFiles(['אישור שנתי.pdf', 'second.pdf']);
+    await settle();
+
+    const heading = container.querySelector('#page-grid-heading');
+    expect(heading.querySelector('span[contenteditable]').textContent).toBe('merged_אישור שנתי');
+    expect(heading.querySelector('[dir="ltr"]').textContent).toBe('.pdf');
+    // The download attribute is the name the browser saves under, the last thing our code sets.
+    expect(downloadLink().getAttribute('download')).toBe('merged_אישור שנתי.pdf');
+  });
+
   it('offers no "add one more file" box beside the locked state of a single protected file', async () => {
     harness.pdfjs.probeAs('needs-password');
     pageCounts.set('locked.pdf', { pageCount: 1, encrypted: true });

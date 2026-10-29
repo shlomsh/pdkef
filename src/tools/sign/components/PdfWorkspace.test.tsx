@@ -342,6 +342,32 @@ describe('PdfWorkspace Component', () => {
     expect(dispatch.mock.calls[4][0]).toEqual({ type: 'DISARM_TOOL' });
   });
 
+  // QUAL-44: this used to be a Playwright case. The gesture hook's own unit
+  // calls its handler directly, so only a real touchstart on the overlay proves
+  // the overlay forwards it and the drawing touchmove gets cancelled.
+  it('cancels the touchmove of a touch drag-drawn shape, so the page does not scroll under the finger', () => {
+    const dispatch = vi.fn<(action: SignToolAction) => void>();
+    const state = testState({ selectedTool: 'rectangle' });
+    host = mountWorkspace({ state, dispatch });
+    const overlay = required(host.querySelector<HTMLDivElement>('[data-page-overlay]'), 'page overlay');
+    overlay.getBoundingClientRect = () => rect(100, 100, 1000, 1000);
+    // Plain point literals, as in the MOBI-30 tests below.
+    const touch = (clientX: number, clientY: number) => ({ clientX, clientY, identifier: 1, target: overlay }) as unknown as Touch;
+
+    act(() => {
+      overlay.dispatchEvent(new TouchEvent('touchstart', {
+        touches: [touch(500, 300)], changedTouches: [touch(500, 300)], bubbles: true, cancelable: true,
+      }));
+    });
+    const move = new TouchEvent('touchmove', {
+      touches: [touch(600, 450)], changedTouches: [touch(600, 450)], bubbles: true, cancelable: true,
+    });
+    act(() => { window.dispatchEvent(move); });
+    act(() => { window.dispatchEvent(new TouchEvent('touchend', { touches: [], changedTouches: [touch(600, 450)], bubbles: true, cancelable: true })); });
+
+    expect(move.defaultPrevented).toBe(true);
+  });
+
   it('renders a selected symbol with its chosen mark and color in the editor', () => {
     const dispatch = vi.fn<(action: SignToolAction) => void>();
     const state = testState({

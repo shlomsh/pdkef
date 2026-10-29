@@ -5,8 +5,9 @@ import { makeNumberedGridPdf } from '../support/pdf.js';
 /* GRID epic (docs/shared-page-grid.md): one page grid, identical in every
    tool. Merge, Edit Pages, Split and PDF to Image all render the shared PageGrid
    (src/shell/pageGrid/), so this guard defines "identical": the same
-   thumbnail boxes, column count, action cluster position and numbers at
-   desktop and phone width, and the same keyboard / tap / undo behaviour.
+   thumbnail boxes, column count, action cluster position at
+   desktop and phone width, and the same tap behaviour. Page numbers, keyboard and undo are
+   unit-tested on the shared grid (src/test/cross-tool/shellPageGrid.test.tsx).
    Drag is Merge's and Edit Pages' only; Split and PDF to Image keep source order. It loads the same 10-page PDF (page 4 landscape) into each
    route and compares what the grid renders; headings and rails differ by
    design and are not compared. */
@@ -76,9 +77,9 @@ for (const viewport of VIEWPORTS) {
     test.use({ viewport: { width: viewport.width, height: viewport.height }, hasTouch: viewport.name === 'phone' });
 
     // One measure per route, Merge first: every other tool is compared to it.
-    async function each(browser, contextOptions, measure, routes = ROUTES) {
+    async function each(browser, contextOptions, measure) {
       const out = [];
-      for (const route of routes) {
+      for (const route of ROUTES) {
         const context = await browser.newContext(contextOptions);
         const page = await context.newPage();
         await openGridTool(page, route);
@@ -121,42 +122,6 @@ for (const viewport of VIEWPORTS) {
         });
       });
     });
-
-    test('page numbers read the same', async ({ browser }) => {
-      const [merge, ...others] = await each(browser, options, (page) => page.locator('[data-page-number]').allTextContents());
-      expect(merge.length).toBeGreaterThan(0);
-      others.forEach((other, t) => expect(other, ROUTES[t + 1]).toEqual(merge));
-    });
-
-    test('page numbers read the same after skipping page 2', async ({ browser }) => {
-      const [merge, ...others] = await each(browser, options, async (page) => {
-        await cells(page).nth(1).focus();
-        await page.keyboard.press('Delete');
-        await expect(cells(page).nth(1)).toHaveAttribute('data-skipped', /.*/);
-        return page.locator('[data-page-number]').allTextContents();
-      });
-      others.forEach((other, t) => expect(other, ROUTES[t + 1]).toEqual(merge));
-    });
-
-    // Edit Pages once showed the source number; the number is the output position. Skip
-    // page 2 and bring page 5 to the front by keyboard, then both tools must still agree.
-    test('page numbers read the same after skipping page 2 and moving page 5 to the front', async ({ browser }) => {
-      const [merge, edit] = await each(browser, options, async (page) => {
-        await cells(page).nth(1).focus();
-        await page.keyboard.press('Delete');
-        await expect(cells(page).nth(1)).toHaveAttribute('data-skipped', /.*/);
-        const moved = (await keys(page))[4];
-        await cells(page).nth(4).focus();
-        for (let step = 1; step <= 4; step += 1) {
-          await page.keyboard.press('ArrowLeft');
-          await expect.poll(async () => (await keys(page)).indexOf(moved)).toBe(4 - step);
-        }
-        return { order: await keys(page), numbers: await page.locator('[data-page-number]').allTextContents() };
-      }, REORDERABLE);
-      expect(merge.numbers.length).toBeGreaterThan(0);
-      expect(edit.numbers).toEqual(merge.numbers);
-      expect(edit.order.map((key) => key.split(':')[1])).toEqual(merge.order.map((key) => key.split(':')[1]));
-    });
   });
 }
 
@@ -196,36 +161,6 @@ for (const route of ROUTES) {
       // lands depends on how the landscape page 4 (two columns) reflows under the
       // pointer, so the guard asks only that page 2 moved forward.
       await expect.poll(async () => (await keys(page)).indexOf(before[1])).toBeGreaterThan(1);
-    });
-
-    test('keyboard: r rotates, Delete skips, Enter opens the preview', async ({ page }) => {
-      await openGridTool(page, route);
-      const first = cells(page).first();
-      await first.focus();
-      await expect(first).toBeFocused();
-      await page.keyboard.press('r');
-      await expect(first).toHaveAttribute('data-rotation', '90');
-      await page.keyboard.press('Delete');
-      await expect(first).toHaveAttribute('data-skipped', /.*/);
-      await cells(page).nth(2).focus();
-      await expect(cells(page).nth(2)).toBeFocused();
-      await page.keyboard.press('Enter');
-      await expect(page.locator('dialog[open]')).toBeVisible();
-    });
-
-    test('undo and redo travel through a rotation', async ({ page }) => {
-      await openGridTool(page, route);
-      const first = cells(page).first();
-      await first.focus();
-      await expect(first).toBeFocused();
-      await page.keyboard.press('r');
-      await expect(first).toHaveAttribute('data-rotation', '90');
-      const undo = page.getByRole('button', { name: 'Undo last change' });
-      await expect(undo).toBeEnabled();
-      await undo.click();
-      await expect(first).not.toHaveAttribute('data-rotation', '90');
-      await page.getByRole('button', { name: 'Redo last undone change' }).click();
-      await expect(first).toHaveAttribute('data-rotation', '90');
     });
   });
 
