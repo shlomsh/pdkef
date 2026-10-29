@@ -3,14 +3,12 @@ import path from 'node:path';
 import zlib from 'node:zlib';
 import { fileURLToPath } from 'node:url';
 import { availableParallelism } from 'node:os';
-import { distSheetReader, pageCssBlocks } from './pageCss.mjs';
 import { scriptRefs } from './precacheClosure.mjs';
 import { Worker, isMainThread, parentPort, workerData } from 'node:worker_threads';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const distDir = path.join(__dirname, '..', 'dist');
-const readSheet = distSheetReader(distDir);
 
 // This file is also its own worker: `runCompressionPool` below respawns it via
 // `new Worker(new URL(import.meta.url), ...)`, so importing it re-runs every
@@ -406,22 +404,19 @@ async function main() {
       if (!jsFileSizes.has(f)) jsFileSizes.set(f, fs.statSync(f).size);
     }
 
-    // Inline CSS is part of the document's bytes and reported for context only. Linked sheets
-    // (MEM-27, `inlineStylesheets: 'auto'`) block first paint just the same, so their brotli bytes
-    // join the budget; a sheet shared by many pages is one compression job, like a shared chunk.
-    const blocks = pageCssBlocks(html, readSheet);
-    const css = blocks.filter((block) => !block.href).map((block) => block.css).join('');
-    const cssFiles = new Set(blocks.filter((block) => block.href).map((block) => path.join(distDir, block.href)));
-    for (const f of cssFiles) {
-      if (!jsFileSizes.has(f)) jsFileSizes.set(f, fs.statSync(f).size);
-    }
+    // Reported for context only - the budget is on the document as a whole, since
+    // the CSS is inlined into it and a visitor cannot pay for one without the other.
+    let css = '';
+    let match;
+    const styleTagRegex = /<style[^>]*>([\s\S]*?)<\/style>/gi;
+    while ((match = styleTagRegex.exec(html)) !== null) css += match[1];
 
     // Raw, not brotli: images are already compressed and served as-is.
     const images = eagerImages(html);
     let imgBytes = 0;
     for (const bytes of images.values()) imgBytes += bytes;
 
-    pages.push({ file, buffer, jsFiles, cssFiles, css, images, imgBytes });
+    pages.push({ file, buffer, jsFiles, css, images, imgBytes });
   }
 
   // Phase 2: every brotli call this run needs, as an independent job - one
@@ -446,17 +441,14 @@ async function main() {
     for (const f of p.jsFiles) jsBytes += brotliOf(f);
     const docBytes = getBytes(`${p.file}::doc`, () => p.buffer);
     const cssBytes = p.css ? getBytes(`${p.file}::css`, () => Buffer.from(p.css, 'utf8')) : 0;
-    let linkedCssBytes = 0;
-    for (const f of p.cssFiles) linkedCssBytes += brotliOf(f);
     rows.push({
       label: `/${path.relative(distDir, p.file).replace(/(^|\/)index\.html$/, '/').replace(/^\/+/, '')}`,
       doc: docBytes,
       js: jsBytes,
       css: cssBytes,
-      linkedCss: linkedCssBytes,
       img: p.imgBytes,
       imgCount: p.images.size,
-      total: docBytes + linkedCssBytes + jsBytes,
+      total: docBytes + jsBytes,
       modules: p.jsFiles.size,
     });
   }
@@ -471,9 +463,9 @@ async function main() {
   );
   for (const row of rows) {
     console.log(
-      `  ${row.label.padEnd(16)} ${String(row.doc).padStart(6)} doc + ${String(row.linkedCss).padStart(5)} css + ${String(row.js).padStart(6)} js` +
+      `  ${row.label.padEnd(16)} ${String(row.doc).padStart(6)} doc + ${String(row.js).padStart(6)} js` +
         ` + ${String(row.img).padStart(5)} img` +
-        `   (inline css ${row.css} of doc, ${row.modules} module${row.modules === 1 ? '' : 's'},` +
+        `   (css ${row.css} of doc, ${row.modules} module${row.modules === 1 ? '' : 's'},` +
         ` ${row.imgCount} image${row.imgCount === 1 ? '' : 's'})`,
     );
   }
@@ -483,7 +475,7 @@ async function main() {
   if (worst.total > MAX_FIRST_LOAD_BROTLI) {
     console.error(
       `\nPage weight budget exceeded: ${worst.label} is ${worst.total} bytes brotli on first load ` +
-        `(${worst.doc} document + ${worst.linkedCss} linked CSS + ${worst.js} eager JS), over the ${MAX_FIRST_LOAD_BROTLI} byte limit. ` +
+        `(${worst.doc} document + ${worst.js} eager JS), over the ${MAX_FIRST_LOAD_BROTLI} byte limit. ` +
         'If a chunk that used to load behind a user action is now referenced by the HTML, that is the regression; ' +
         'otherwise raise the limit deliberately and say what shipped.',
     );
@@ -504,7 +496,7 @@ async function main() {
   if (failed) process.exit(1);
 
   console.log(
-    `\nPage weight check passed. Worst document+CSS+JS ${worst.label}: ${worst.total} / ${MAX_FIRST_LOAD_BROTLI} brotli. ` +
+    `\nPage weight check passed. Worst document+JS ${worst.label}: ${worst.total} / ${MAX_FIRST_LOAD_BROTLI} brotli. ` +
       `Worst eager images ${worstImage.label}: ${worstImage.img} / ${MAX_EAGER_IMAGE_BYTES} raw.`,
   );
 }

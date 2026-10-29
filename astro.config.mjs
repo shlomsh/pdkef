@@ -22,28 +22,47 @@ export default defineConfig({
     syntaxHighlight: 'prism',
   },
   build: {
-    // Small sheets inline, larger ones linked (Vite's assetsInlineLimit decides). Measured on both
-    // axes for MEM-27 (2026-10-29, builds of 1b72a77d), and 'auto' wins on balance:
+    // Every page carries its whole stylesheet inline. This looks wasteful and is
+    // measured to be correct anyway, so do not "fix" it: 'auto' was built and
+    // benchmarked head to head (2026-08-20) and lost every scenario tested.
     //
-    // Update cost, what a returning visitor's worker downloads after a style deploy (brotli, with
-    // MEM-26's stable CSS names on both sides). 'always' inlined each CSS Module into every page that
-    // uses it, so a 12-line edit to PdfTool.module.css (42923db to 1b72a77) re-downloaded 21 tool pages:
-    // 787,290 bytes. A 5-line ToolPageLayout.astro edit (1b72a77 to 686e27e) read 782,106. With 'auto'
-    // the pages keep their stable /shared/ links and only the sheet changes: 37,637 and 32,410.
-    // 'never' read about the same (37,204, 31,979).
+    // The waste is real. 'always' ships 1,060,961 raw bytes of inline CSS across
+    // the 20 built pages for 107,384 bytes of distinct rules, and it is the single
+    // biggest input to check-css-duplication.js's 9.73x duplication factor.
+    // Switching to 'auto' drops total build HTML from 2.04 MB to 1.01 MB raw and
+    // the service-worker precache from 12,050,788 to 11,114,237 raw bytes.
     //
-    // First paint, cold view (Chromium, CDP throttling, median of 7, no worker): a linked sheet is
-    // render-blocking and found only after the head arrives, so it costs about one round trip.
-    // 'auto' against 'always', FCP on /, /sign/, /merge/, /compress/: slow 4G +188, +196, +184, +180 ms;
-    // fast 4G +56, -56, +20, +56; broadband +16, +40, +20, +24 (the 2026-08-20 model predicted +150,
-    // +60, +25). 'never' links 4 to 15 sheets and cost more everywhere (slow 4G +216 to +400). That
-    // round trip was weighed against re-downloading every tool page on each style edit, and the
-    // site deploys several times a day; the 2026-08-20 decision had measured first paint only.
+    // It still loses, because bytes are not the binding constraint here, round
+    // trips are. An external <link rel="stylesheet"> is render-blocking and is
+    // discovered only after the document is parsed, so it serializes one extra
+    // RTT in front of first paint, and Astro emits no preload for it. Measured
+    // brotli, first view of /sign/: 41,723 inline vs 43,097 external, so 'auto'
+    // is worse on bytes AND adds the round trip. Modelled render-blocking time
+    // (both a plain bandwidth model and one with TCP slow start) puts 'auto'
+    // behind on every page at every network profile tried: +150ms on slow 4G,
+    // +60ms on fast 4G, +25ms on broadband.
     //
-    // The CSS guards read a page's linked sheets as well as its inline <style> (scripts/pageCss.mjs):
-    // check-css-duplication.js, check-dead-utilities.js, and check-page-weight.js, which counts linked
-    // sheets in the first-load budget. Changing this again changes what those guards measure.
-    inlineStylesheets: 'auto',
+    // The multi-page argument does not rescue it either. 'auto' does not emit one
+    // shared stylesheet; it emits six, and only global.css is used by all 20
+    // pages. The other five cover 1 to 9 pages each, so moving between two tool
+    // pages usually discovers a fresh sheet and pays the RTT again. A four-view
+    // journey saves 24,016 brotli and spends three extra round trips, netting
+    // +330ms on slow 4G. Even an idealized hybrid, where only global.css is
+    // external and every per-page sheet stays inline, saves ~6,441 brotli per
+    // later view and needs 5 (slow 4G) to 15 (broadband) page views in ONE
+    // session to repay its single round trip. This site's traffic is cold
+    // single-page visits from search, and Lighthouse Performance >= 95 is a
+    // stated SEO invariant, so the first view is the case that matters most.
+    //
+    // Two guardrails also assume this setting and go blind without it, which is
+    // a reason to change it deliberately rather than casually:
+    // check-css-duplication.js and check-page-weight.js both read only inline
+    // <style>. Under 'auto' the duplication factor reads 1.72x instead of 9.73x
+    // and per-page dead bytes read 0, while check-page-weight.js silently stops
+    // counting 6,753 to 13,966 brotli of render-blocking CSS per page. If this
+    // ever does flip, teach both scripts to follow <link rel="stylesheet"> in the
+    // same change.
+    inlineStylesheets: 'always',
   },
   // These are only reachable through dynamic import() inside the Preact
   // islands (SortableJS in PdfMergeTool, pdfjs-dist/@pdf-lib/fontkit in

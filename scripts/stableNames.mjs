@@ -61,9 +61,8 @@ export const cssAssetKeys = {
 // Output-name callback per environment. A CSS asset no chunk recorded (a `?url` import) keeps a content
 // hash; other assets keep Astro's own naming, which also strips its internal `@_@` page suffix.
 export const assetFileName = (environment) => (asset) => {
-  const raw = asset.names?.[0] ?? '';
-  const name = raw.split('@_@')[0];
-  const key = raw.endsWith('.css') ? cssModuleKeys.get(slot(environment, raw)) : undefined;
+  const name = (asset.names?.[0] ?? '').split('@_@')[0];
+  const key = name.endsWith('.css') ? cssModuleKeys.get(slot(environment, name)) : undefined;
   if (key) return `${SHARED_DIR}/${path.posix.basename(name, '.css').replace(/[^\w@-]/g, '_')}-${key}.css`;
-  return raw.includes('@_@') ? `_astro/${name}.[hash][extname]` : '_astro/[name].[hash][extname]';
+  return asset.names?.[0]?.includes('@_@') ? `_astro/${name}.[hash][extname]` : '_astro/[name].[hash][extname]';
 };
