@@ -60,8 +60,8 @@ depends_on: []
   changed is `/shared/useHandoffIntake-326da5.css` (5,230). Before: 399,517 new-hashed and about 161 KB
   of changed `/site/` entries. The rest was 21 tool pages (760,296) that differed only in their inline
   `<style>` and its CSP hash, `/about/` 10,357 (build stamp), the manifest 5,877 and `sw.js` 5,530.
-- **With MEM-27's `'auto'`** the pair read 37,701 bytes (and 1b72a77 to 686e27e 32,468), but that change
-  was reverted the same day (see MEM-27), so main reads the 787,290 above until MEM-27 lands.
+- **With MEM-27's `'auto'`** (landed with it, reverted, re-landed the same day as d0e79e1f): the same pair
+  reads 37,701 bytes, and 1b72a77 to 686e27e 32,468.
 - **Behaviour kept:** the same 3 client stylesheets as before, and `/redact/`'s inline CSS is rule for
   rule the old build's. Every class inside island markup (161) is in the client JS, so server render and
   hydration name classes alike.
@@ -77,6 +77,7 @@ depends_on: []
   module-keyed names close both, since a shared name now means the same modules. The class-rule guard
   counts a rule found in any stylesheet the page can load, even a lazy one, so it proves presence on the
   page, not load order.
-- **Nightly:** still report-only. `continue-on-error` came out with MEM-27 and went back in with its
-  revert; it comes out when MEM-27 lands again. The deploy that shipped this renamed every class once,
-  so that night's reading is high. This ticket closes with that acceptance item.
+- **Nightly:** `continue-on-error` is out again with MEM-27's re-land, and `scripts/ci-update-cost.test.mjs`
+  pins that the job gates. The first nightly after it compares d0e79e1f with the revert (4e52df2c), which
+  still inlined every sheet, so it reads high and fails once; the next ordinary deploy is the first real
+  reading. This ticket closes when that one is green.
