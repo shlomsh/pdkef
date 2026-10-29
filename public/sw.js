@@ -46,7 +46,7 @@ const CACHE_PREFIX = 'pdkef-';
 // the next quiet navigation. It rides in the cache name so a waiting build can
 // read, from the cache keys alone, whether it is critical over the build the
 // tabs run. Keys from before this (`pdkef-<hash>`) read as 0.
-const CRITICAL_VERSION = 10;
+const CRITICAL_VERSION = 11;
 // MEM-22: the build id the generator stamps in, which the manifest carries too.
 const BUILD_ID = '__BUILD_ID__';
 const CACHE_VERSION = `${CACHE_PREFIX}c${CRITICAL_VERSION}-__BUILD_ID__`;
