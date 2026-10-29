@@ -1829,7 +1829,14 @@ describe('PdfMergeTool quiet-time prepare', () => {
       setInputFiles(container.querySelector('input[type="file"]'), sources);
     });
     // Settle the inspection and the first build, past the 3s burst window, so each test starts from a built set.
-    for (let i = 0; i < 60 && !(box()?.hasAttribute('href')); i += 1) await advance(100);
+    // Bounded by real time, not by a count of turns: the build's real work takes as long as the runner takes,
+    // and a quiet wait measured from a late first change would no longer be 1500ms.
+    const giveUp = performance.now() + 5000;
+    while (!box()?.hasAttribute('href')) {
+      if (performance.now() > giveUp) throw new Error('the first build never landed, so the quiet-time units would start from the wrong state');
+      await advance(100);
+      await new Promise((resolve) => { setImmediate(resolve); });
+    }
     await advance(4500);
     builtBefore = new Set(harness.createdBlobs()).size;
   });
@@ -1880,21 +1887,25 @@ describe('PdfMergeTool quiet-time prepare', () => {
   });
 
   it('shows preparing only after a tap before the build is done, then delivers', async () => {
-    // The next build starts reading its files and is held there until the test lets it go.
-    const reads = controlReads(sources[0]);
-    reads.holdFrom();
-    const finish = () => reads.release();
+    // mergePdfs is the edge here, held open until the test lets it go: nothing the real build loads or
+    // reads (pdf-lib, the page-number font, the files) can make this unit wait on the real event loop.
+    let release = () => {};
+    const gate = new Promise<void>((resolve) => { release = resolve; });
+    const mergeSpy = vi.spyOn(mergeLib, 'mergePdfs').mockImplementation(async () => {
+      await gate;
+      return new Blob(['%PDF-1.4'], { type: 'application/pdf' });
+    });
     const clickSpy = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
     await act(async () => pageNumbersBox().click());
-    await advance(1700);
-    // The build loads pdf-lib and the page-number font before its first read: real work, not fake time.
-    // Waits on the real loop only, so the fake clock stays at 1700 ms.
-    await waitUntil(() => expect(reads.isBlocked()).toBe(true), { dueFakeTimers: true });
+    // A finger goes down before it taps, which starts the build at once, so the quiet wait (1500ms, or
+    // more inside a burst of changes) is not what this unit depends on.
+    await act(async () => { box().dispatchEvent(new Event('pointerdown', { bubbles: true })); });
+    expect(mergeSpy, 'the build never started').toHaveBeenCalledTimes(1);
     expect(box().getAttribute('data-state')).toBe('ready');
     await act(async () => { box().dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true })); });
     expect(box().getAttribute('data-state')).toBe('preparing');
-    await act(async () => { finish(); await vi.advanceTimersByTimeAsync(50); });
-    await waitUntil(() => expect(clickSpy).toHaveBeenCalledTimes(1), { dueFakeTimers: true });
+    await act(async () => { release(); });
+    await waitUntil(() => expect(clickSpy, 'the held build never delivered').toHaveBeenCalledTimes(1), { dueFakeTimers: true });
     expect(box().getAttribute('data-state')).toBe('saved');
     clickSpy.mockRestore();
   });
