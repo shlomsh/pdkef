@@ -58,3 +58,14 @@
    of import order. */
 .export-action.export-share { display: flex; align-items: center; justify-content: center; gap: var(--space-2); color: var(--color-primary-text); background: var(--color-surface); border: 1px solid var(--color-primary); }
 .export-action.export-share:hover:not(:disabled) { color: var(--color-surface); background: var(--color-primary); border-color: var(--color-primary); }
+/* Sign and Redact (Shlomi, 2026-10-28): the toolbar and every page already
+   carry their own border, so on a phone the card's frame only cost the
+   document 48px of width. The loaded editor card draws nothing and the page
+   spans the page gutter. It lives here, not in the shell's PdfTool.module.css
+   that every tool imports, so editing it runs only Sign and Redact's specs
+   (ARCH-131). The card is reached by the shell's `data-tool-card`, since its
+   class is hashed in the shell's module; the specificity matches the old
+   `.tool-card[data-tool-loaded]:has([data-workspace])`. Guard: e2e/tool-layout.spec.js. */
+@media (max-width: 767px) {
+  :global([data-tool-card][data-tool-loaded]):has(.workspace) { background: transparent; border: 0; box-shadow: none; padding: 0; }
+}
