@@ -41,6 +41,23 @@ never measured. Blur looked stronger in Search Console because `/redact/`'s titl
 - The live title, `Blur PDF Online Free - Blackout & Redact Text`, already carries "Redact" but not the
   exact phrase `redact pdf`.
 
+## The freeze (Shlomi, 2026-10-29)
+
+`/redact/`'s URL, title, H1, meta description and intro copy stay as they are. Shlomi's concern: the page
+brings most of the site's traffic, and a change to it costs work and can cost the ranking, as `/merge/`
+showed. The freeze is written into `.claude/rules/content-and-copy.md` so any agent editing
+`src/data/tools.js` sees it. It lifts only when all of these hold:
+
+- the read below shows redact queries already near page one;
+- the change adds the redact phrase without taking blur out of the title or H1;
+- Shlomi says yes to that specific change;
+- it ships with one indexing request, a dated read, and a revert if blur clicks drop at matched positions.
+
+Redact demand can be chased without touching the page: SEO-03 (external links), and one indexing request
+for `/permanently-delete-text-from-pdf/`, which already answers the "permanently redact" searches and was
+never crawled as of 2026-10-08. A second Redact tool page waits on this read and on SEO-47's new pages
+being crawled; it would need its own job (removal, opening the tool in Delete) to be more than a doorway.
+
 ## The read, and what each answer means
 
 Search Console, `/redact/`, queries containing "redact" against queries containing "blur", last 3 months.
@@ -48,6 +65,6 @@ Search Console, `/redact/`, queries containing "redact" against queries containi
 - **Redact queries already sit around positions 8 to 15 with real impressions:** the page is close on the
   bigger term. Test a title that carries both exact phrases (for example `Blur & Redact PDF Online Free`),
   one indexing request, and read it against the blur queries at matched positions, so blur's clicks are
-  shown not to drop.
+  shown not to drop. Only with the freeze's conditions met.
 - **Redact queries are absent or beyond page two:** it is an authority fight (SEO-03), not a title. Blur
   keeps the lead and this closes.
