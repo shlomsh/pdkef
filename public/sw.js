@@ -640,6 +640,7 @@ async function servableFromCache(cache, cacheKey) {
   const manifest = await manifestOfThisBuild(cache);
   if (!manifest) return undefined;
   const closure = manifest.pages?.[cacheKey] ?? [];
+  if (!Array.isArray(closure)) return undefined;
   const held = await Promise.all(closure.map((url) => cache.match(resolve(url))));
   return held.every(Boolean) ? cached : undefined;
 }
@@ -1101,8 +1102,9 @@ self.addEventListener('fetch', (event) => {
         }
         const fresh = await refreshNavigation(request, cache, cacheKey);
         if (!fresh) return cache.match('/');
-        // Remembered before the page is answered, so its first file request finds it.
-        if (!fresh.ours) await rememberNetworkClient(cache, event.resultingClientId);
+        // Remembered before the page is answered, so its first file request
+        // finds it. A redirect is not a page: the browser asks again for its target.
+        if (!fresh.ours && fresh.response.type !== 'opaqueredirect') await rememberNetworkClient(cache, event.resultingClientId);
         return fresh.response;
       });
     })());
@@ -1131,8 +1133,13 @@ self.addEventListener('fetch', (event) => {
   //
   // MEM-28: a non-hashed file for a page from another build comes from the
   // network and is not stored; a content-hashed one is the same file in any build.
+  // A worker that page starts is from that build too, and its requests carry
+  // the worker's own client id.
   event.respondWith(caches.open(CACHE_VERSION).then(async (cache) => {
-    if (!isHashedUrl(url.pathname) && await isNetworkClient(cache, event.clientId)) return fetch(request);
+    if (await isNetworkClient(cache, event.clientId)) {
+      await rememberNetworkClient(cache, event.resultingClientId);
+      if (!isHashedUrl(url.pathname)) return fetch(request);
+    }
     const cached = await cache.match(request.url);
     if (cached) return cached;
     const response = await fetch(request);
