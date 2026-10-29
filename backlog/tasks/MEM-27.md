@@ -76,3 +76,11 @@ Next: find which first-paint rule `'auto'` delivers late or out of cascade order
 height), fix that, run those three specs and `check:e2e` locally, then land again with the guards
 (`scripts/pageCss.mjs`, recoverable from 9484d933 and 626b6b6e).
 
+Also seen on a phone at 14:32, a minute after the revert went live (Shlomi's screenshot): Merge's file
+list showed bullets and bare remove buttons while the rest of the page was styled. Under `'auto'` the
+file-list rules live only in the linked `/shared/PdfMergeTool-0da6a7.css`; the revert build no longer has
+it (pdkef.com answers 404), so a MEM-27 page that asks for it after the swap loses those rules.
+Reproduced by serving the `'auto'` build of `/merge/` without that one file. The re-land has to cover
+it: a page from one deploy keeps linking sheets the next deploy may not emit, so either keep the
+previous deploy's `/shared/` sheets reachable or make a missing sheet impossible to strand a page.
+
