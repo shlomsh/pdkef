@@ -169,8 +169,8 @@ What this says:
   `/split/` went the same way (251 to 33).
 - **Next, per this ticket's plan:** compare what `/merge/` and `/split/` carry against `/compress/` and
   `/redact/`, which held, for anything a quality system could read as scaled or keyword-stuffed (merge and
-  combine phrasings repeated across title, H1, steps and FAQ; the MERGE-22 photos FAQ). Not started; it
-  needs its own ticket.
+  combine phrasings repeated across title, H1, steps and FAQ; the MERGE-22 photos FAQ). That is
+  [SEO-52](SEO-52.md).
 
 ## Acceptance
 
