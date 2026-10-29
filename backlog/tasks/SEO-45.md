@@ -1,11 +1,9 @@
 ---
 id: "SEO-45"
 title: "/merge/ left Google's results on 2026-10-08, the day its new title was crawled: put the old title and H1 back and read it"
-status: "blocked"
+status: "done"
 priority: "P1"
 epic: "search-and-languages"
-waiting_on: "2026-10-28"
-needs: "The 2026-10-28 Search Console read of /merge/ (Queries, Compare, position on)"
 ---
 
 # SEO-45 · Merge's title and H1 lost the exact phrase it ranked on
@@ -136,9 +134,47 @@ mean a new test, not a verdict on the title. Read it against the domain outside 
 total. Head-term title tests are unreadable while those pages are not ranking (SEO-42 has the same
 problem, plus its own confound).
 
+## Read, 2026-10-29: not the title
+
+Shlomi's two Search Console exports, 10-16 to 10-25 against 10-05 to 10-14 (the restored title was crawled
+10-15), one filtered to `/merge/`, one the whole property.
+
+**`/merge/`:** 818 impressions and 4 clicks before (position 7.6), 24 and 0 after. Twelve of the 24 are the
+brand query `pdkef` (position 1.9); no other query shows. `merge pdf online` 163 to 0 (was 3.7), `merge pdf
+free` 165 to 0 (was 5.4), `merge pdf` 91 to 0, `pdf merge online free` 31 to 0. The before window still
+carries 10-05 to 10-08, the last days before the drop. The daily export for 10-21 to 10-27 is 0 to 9
+impressions a day.
+
+**The domain:** 7,506 to 6,886 impressions, 250 to 292 clicks, position 8.6 to 6.8.
+
+| Slice | Impressions before / after | Clicks before / after |
+| --- | --- | --- |
+| Whole property | 7,506 / 6,886 | 250 / 292 |
+| Israel | 2,985 / 3,198 | 22 / 24 |
+| Outside Israel | 4,521 / 3,688 | 228 / 268 |
+| Outside Israel, without `/merge/` | 3,708 / 3,665 | 224 / 268 |
+
+By page: `/redact/` 2,658 to 2,715 (201 to 233 clicks, position 5.2 to 4.1), `/compress/` 414 to 474,
+`/he/merge/` 2,534 to 2,808, `/split/` 251 to 33.
+
+What this says:
+
+- **The title reading is out.** Ten days after Google read the restored title, `/merge/` is on none of its
+  old queries, not even at the deep positions where it used to collect single impressions.
+- **The domain holds outside Israel.** Without `/merge/`, impressions are flat (-1%), clicks are up 20% and
+  the average position improved. Whatever took `/merge/` out did not touch the rest of the site.
+- **It is shown for its brand and nothing else.** An unranked page still collects stray impressions at
+  position 20 to 80, as `/merge/` did before. Indexed, canonical, and shown only for `pdkef` reads like a
+  page-level filter more than a test that ended. That is inferred, not proven: two windows of ten days.
+  `/split/` went the same way (251 to 33).
+- **Next, per this ticket's plan:** compare what `/merge/` and `/split/` carry against `/compress/` and
+  `/redact/`, which held, for anything a quality system could read as scaled or keyword-stuffed (merge and
+  combine phrasings repeated across title, H1, steps and FAQ; the MERGE-22 photos FAQ). Not started; it
+  needs its own ticket.
+
 ## Acceptance
 
 - [x] Deployed (`ebdd1f9c`, CI green, live title checked 2026-10-14); `/merge/` requested for indexing by Shlomi 2026-10-14
 - [x] Crawl date after the deploy confirmed in URL Inspection, and the indexed title matches the live one (2026-10-20: last crawl 2026-10-15 12:40, Googlebot smartphone, indexed, Google-selected canonical `/merge/`; the crawled HTML carries the restored title and build `8dc1b5b`, which contains `670c17f7` and HERO-02/03)
-- [ ] 2026-10-28 read: `merge pdf online` and `merge pdf free` impressions and position on `/merge/`, 10-day windows before and after the recrawl, plus `/merge/` on all queries and the domain total over the same windows (to tell the title from the spam update)
-- [ ] Outcome recorded in `docs/seo-competitive-findings.md`: back on page one (the lead phrase matters, so keep Merge's vocabulary in the body and never in the title lead), or still gone while the domain holds (the spam-update reading: look at what on `/merge/` differs from `/compress/` and `/split/`)
+- [x] 2026-10-28 read (done 2026-10-29, above): `merge pdf online` and `merge pdf free` impressions and position on `/merge/`, 10-day windows before and after the recrawl, plus `/merge/` on all queries and the domain total over the same windows (to tell the title from the spam update)
+- [x] Outcome recorded in `docs/seo-competitive-findings.md` (2026-10-29: still gone while the domain holds): back on page one (the lead phrase matters, so keep Merge's vocabulary in the body and never in the title lead), or still gone while the domain holds (the spam-update reading: look at what on `/merge/` differs from `/compress/` and `/split/`)
