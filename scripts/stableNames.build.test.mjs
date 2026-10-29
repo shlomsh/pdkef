@@ -4,6 +4,7 @@ import path from 'node:path';
 import { build } from 'vite';
 import { afterAll, describe, expect, it } from 'vitest';
 import astroConfig from '../astro.config.mjs';
+import { assetFileName, cssAssetKeys } from './stableNames.mjs';
 
 // MEM-26: a fixture shaped like the production graph, built twice with the client build's real naming
 // and CSS Module options from astro.config.mjs. Two islands import a shared chunk; the shared chunk lazily
@@ -55,6 +56,18 @@ describe('a CSS Module edit (MEM-26)', () => {
     const scoped = astroConfig.vite.css.modules.generateScopedName;
     expect(scoped('title', path.resolve('src/a.module.css'))).not.toBe(scoped('title', path.resolve('src/b.module.css')));
     expect(scoped('title', path.resolve('src/a.module.css'))).toMatch(/^_title_[\w-]+$/);
+  });
+});
+
+describe('assetFileName', () => {
+  // An Astro page's CSS is emitted as `<page>@_@astro.css`; its lookup must keep the suffix the chunk was
+  // recorded under, or the sheet falls back to a hashed /_astro/ name (seen on the first 'auto' build).
+  it('names a page stylesheet by its module set, without the @_@ suffix', () => {
+    const context = { environment: { name: 'prerender' }, error: (message) => { throw new Error(message); } };
+    cssAssetKeys.buildStart.call(context);
+    cssAssetKeys.renderChunk.call(context, '', { name: 'redact@_@astro', moduleIds: [path.resolve('src/pages/redact.astro?astro&type=style&index=0&lang.css')] });
+    expect(assetFileName('prerender')({ names: ['redact@_@astro.css'] })).toMatch(/^shared\/redact-[0-9a-f]{6}\.css$/);
+    expect(assetFileName('prerender')({ names: ['logo.svg'] })).toBe('_astro/[name].[hash][extname]');
   });
 });
 
