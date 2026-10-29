@@ -181,7 +181,7 @@ re-explanation. Standings in the doc are replaced at each refresh, not appended;
 If a section of the doc starts narrating, move the narrative to the ticket. Do not create a second
 SEO document; extend the one that exists.
 
-Four standing rules, each learned the expensive way (evidence in the doc's section 2):
+Five standing rules, each learned the expensive way (evidence in the doc's section 2):
 
 - **Verify any external audit against `src/data/tools.js` and `src/lib/` before accepting its gap
   list.** The report that started the epic proposed building target-size compression that had
@@ -197,6 +197,10 @@ Four standing rules, each learned the expensive way (evidence in the doc's secti
   Autocomplete does answer (`node scripts/seo-autocomplete.mjs <hl> <gl> <seed...>`): use it to find
   the phrasings a locale actually types before asking for Trends or SERP screenshots, seeding
   verb-first and without the word "pdf" (LOC-11 has the method and the 2026-09-12 sweep).
+- **`/redact/`'s search surface is frozen (Shlomi, 2026-10-29).** It carries most of the site's clicks,
+  and `/merge/` left the results the day Google read its new title (SEO-45). Its URL, `seoTitle`, `h1`,
+  `h1Name`, `seoDescription` and intro copy in `src/data/tools.js` change only with a measured case and
+  Shlomi's explicit OK; SEO-51 holds the conditions. Fixes inside the tool are unaffected.
 
 **Localization is an ongoing programme with one record: the languages page.** It lives at
 https://claude.ai/code/artifact/0758819e-6104-460e-8cf0-05bc3ee84e78 and is the source of truth for
