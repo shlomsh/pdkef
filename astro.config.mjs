@@ -1,7 +1,7 @@
 import { defineConfig } from 'astro/config';
 import preact from '@astrojs/preact';
 import tailwindcss from '@tailwindcss/vite';
-import { entryFileName, chunkFileName } from './scripts/stableNames.mjs';
+import { entryFileName, chunkFileName, assetFileName, cssModuleClassName } from './scripts/stableNames.mjs';
 
 // Static output only — no SSR, no adapter. The app is a flat set of
 // files served by Vercel; all PDF processing happens in the browser.
@@ -87,10 +87,15 @@ export default defineConfig({
     // import inside pdf.js, which the default iife worker format cannot code-split (DEBT-42).
     worker: { format: 'es' },
     // MEM-25: client entries and the hot shared chunks keep one URL across deploys. Client environment
-    // only; the server environment (prerender) must keep Astro's own naming.
+    // only; the server environment (prerender) must keep Astro's own naming. MEM-26: so do CSS files,
+    // and CSS Module class names hash the module's path, not its CSS, so a style edit changes only the
+    // CSS it touches. Prerender names its CSS the same way: Astro pairs a client stylesheet with the one
+    // it inlined into a page by file name, and drops the client copy only on a match.
     environments: {
-      client: { build: { rolldownOptions: { output: { entryFileNames: entryFileName, chunkFileNames: chunkFileName } } } },
+      client: { build: { rolldownOptions: { output: { entryFileNames: entryFileName, chunkFileNames: chunkFileName, assetFileNames: assetFileName } } } },
+      prerender: { build: { rolldownOptions: { output: { assetFileNames: assetFileName } } } },
     },
+    css: { modules: { generateScopedName: cssModuleClassName } },
     build: {
       rollupOptions: {
         output: {
