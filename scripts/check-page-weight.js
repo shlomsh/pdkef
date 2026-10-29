@@ -391,7 +391,7 @@ async function main() {
   }
 
   // Phase 1: read every page and work out what it needs compressed - the
-  // document, its inlined CSS, and (via the static-import graph walk) the set
+  // document, its inline and linked CSS, and (via the static-import graph walk) the set
   // of JS chunks it eagerly loads. This is cheap (fs + regex, no brotli) so it
   // stays sequential; only the actual compression is batched below.
   const pages = [];
