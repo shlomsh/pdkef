@@ -30,9 +30,9 @@ depends_on: []
 
 ## Acceptance
 
-- [ ] A unit or build test that edits one CSS Module between two builds and counts the renamed chunks.
-- [ ] 42923db to 1b72a77 rebuilt with the fix reads under 500,000 bytes, or the remainder is named.
-- [ ] `continue-on-error` and its pin test come out of the update-cost job, and the next nightly is green.
+- [x] A unit or build test that edits one CSS Module between two builds and counts the renamed chunks.
+- [x] 42923db to 1b72a77 rebuilt with the fix reads under 500,000 bytes, or the remainder is named.
+- [ ] `continue-on-error` and its pin test come out (done, landed with MEM-27) of the update-cost job, and the next nightly is green.
 
 ## Done (2026-10-29)
 
@@ -55,13 +55,14 @@ depends_on: []
   exactly when the two hold the same modules, which is the pairing Astro itself uses between SSR and
   prerender. Two chunks with one name and different CSS fail the build loudly rather than get suffixes
   whose order could swap.
-- **Replay** of 42923db to 1b72a77 with the fix on both sides: 1,343,672 to **787,290 bytes**, 0 new
-  hashed chunks, no `/_astro/` or `/site/` file changed; the one code file that changed is
-  `/shared/useHandoffIntake-326da5.css` (5,230). Before: 399,517 new-hashed and about 161 KB of changed
-  `/site/` entries.
-- **What remains is MEM-27:** 21 tool pages at 760,296 bytes, each differing only in its inline `<style>`
-  and that style's CSP hash (`build.inlineStylesheets: 'always'` inlines the CSS Module into every page
-  that uses it); `/about/` 10,357 (build stamp), `precache-manifest.json` 5,877, `sw.js` 5,530.
+- **Replay** of 42923db to 1b72a77 with the fix on both sides, still inlining every sheet: 1,343,672 to
+  787,290 bytes, 0 new hashed chunks, no `/_astro/` or `/site/` file changed; the one code file that
+  changed is `/shared/useHandoffIntake-326da5.css` (5,230). Before: 399,517 new-hashed and about 161 KB
+  of changed `/site/` entries. The rest was 21 tool pages (760,296) that differed only in their inline
+  `<style>` and its CSP hash, `/about/` 10,357 (build stamp), the manifest 5,877 and `sw.js` 5,530.
+- **With MEM-27** (same commit, `inlineStylesheets: 'auto'`): the same pair reads **37,701 bytes**, and
+  1b72a77 to 686e27e (a `ToolPageLayout.astro` edit) 32,468. No page changes on a style edit apart from
+  `/about/`'s stamp.
 - **Behaviour kept:** the same 3 client stylesheets as before, and `/redact/`'s inline CSS is rule for
   rule the old build's. Every class inside island markup (161) is in the client JS, so server render and
   hydration name classes alike.
@@ -77,4 +78,7 @@ depends_on: []
   module-keyed names close both, since a shared name now means the same modules. The class-rule guard
   counts a rule found in any stylesheet the page can load, even a lazy one, so it proves presence on the
   page, not load order.
-- The deploy that ships this renames every class and moves the CSS once, so that night's reading is high.
+- **Nightly:** `continue-on-error` and its pin test are gone; `scripts/ci-update-cost.test.mjs` now pins
+  that the job gates. The deploy that ships this renames every class and links every tool sheet once, so
+  the first nightly after it reads high and fails; the next ordinary deploy is the first real reading.
+  This ticket closes when a nightly reading of an ordinary deploy is green.

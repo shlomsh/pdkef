@@ -2,7 +2,7 @@
 
 # Backlog
 
-The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 84 live: 16 up next, 11 then, 26 waiting, 31 parked.
+The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 83 live: 16 up next, 11 then, 26 waiting, 30 parked.
 
 ## Redact: finish removal
 
@@ -105,7 +105,6 @@ Production errors you can see, small tools that clean up after themselves, and d
 | ENC-14 | P3 | [ENC-14](backlog/tasks/ENC-14.md) · PDF to Image meets a protected PDF at the door and leads back after Unlock |  |
 | ENC-11 | P3 | [ENC-11](backlog/tasks/ENC-11.md) · Every tool's intake is tested against a real protected file in one table |  |
 | MEM-12 | P3 | [MEM-12](backlog/tasks/MEM-12.md) · An alert when people are stuck on an old build |  |
-| MEM-27 | P3 | [MEM-27](backlog/tasks/MEM-27.md) · A tool-layout style edit does not re-download every tool page |  |
 | MOBI-08 | P3 | [MOBI-08](backlog/tasks/MOBI-08.md) · Offer install at the moment it pays off, not in a card about working offline |  |
 
 ## Unify the tools, narrow the graph
@@ -215,7 +214,7 @@ Done and retired tickets are not listed. Their files stay in [backlog/tasks/](ba
 - Sign: finish fill mode: 3 done, 1 retired
 - Tool pages: show the verb: 8 done, 0 retired
 - Form detector accuracy: 19 done, 1 retired
-- Robustness and debt: 75 done, 4 retired
+- Robustness and debt: 76 done, 4 retired
 - Unify the tools, narrow the graph: 95 done, 0 retired
 - Search and languages: 9 done, 0 retired
 - Polish: 19 done, 1 retired
