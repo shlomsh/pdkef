@@ -4,10 +4,12 @@ import { fileURLToPath } from 'node:url';
 import { createHash } from 'node:crypto';
 import { readRatchetLimits } from './ratchet-limits.mjs';
 import { CSS_MODULE_CLASS } from './stableNames.mjs';
+import { distSheetReader, pageCssBlocks } from './pageCss.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const distDir = path.join(__dirname, '..', 'dist');
+const readSheet = distSheetReader(distDir);
 
 /*
  * Measures how much of the CSS we inline into every page that page actually needs.
@@ -26,7 +28,7 @@ const distDir = path.join(__dirname, '..', 'dist');
  * So this script reports three numbers instead:
  *
  *   1. Family duplication - pages are grouped into families by the hash of their
- *      largest <style> block (their inlined page-family entry sheet), and this is
+ *      largest CSS block, inline or linked (their page-family entry sheet), and this is
  *      the HEAVIEST family's mean shipped bytes per page / distinct rule bytes
  *      (see MAX_FAMILY_DUPLICATION below for why it's a max, not a site-wide sum
  *      or mean).
@@ -84,7 +86,7 @@ const distDir = path.join(__dirname, '..', 'dist');
 // DEBT-12 (2026-09-15): the duplication ratchet is the share of the site's
 // distinct CSS that the HEAVIEST page family ships per page. Families are the
 // pages that inline the same entry sheet (src/styles/, one per family per
-// styling.md), detected by hashing each page's largest <style> block rather
+// styling.md), detected by hashing each page's largest CSS block (inline or linked) rather
 // than a hand-maintained map, so a page can't drift out of the map that names
 // it. The number is max over families of (family mean shipped bytes per page /
 // distinct rule bytes) - MAX_FAMILY_DUPLICATION.
@@ -357,12 +359,13 @@ for (const file of htmlFiles) {
     }
   }
 
-  const styleBlocks = [...html.matchAll(/<style[^>]*>([\s\S]*?)<\/style>/gi)].map((m) => m[1]);
+  // Inline <style> and linked sheets alike (MEM-27): a linked sheet ships to the page just the same.
+  const styleBlocks = pageCssBlocks(html, readSheet).map((block) => block.css);
   const css = styleBlocks.join('');
   totalRawStyleBytes += Buffer.byteLength(css, 'utf8');
 
-  // Family detection (DEBT-12): the largest <style> block on a page is Astro's
-  // inlined page-family entry sheet (toolPage.css, contentPage.css, etc, see
+  // Family detection (DEBT-12): the largest CSS block on a page, inline or linked, is Astro's
+  // page-family entry sheet (toolPage.css, contentPage.css, etc, see
   // styling.md); a small second block seen on many pages is a trivial shared
   // fragment, never the largest. Pages whose largest block is byte-identical
   // share a family - hashed rather than compared by size so two same-sized but
@@ -430,7 +433,7 @@ for (const page of pages) {
 let distinctRuleBytes = 0;
 for (const bytes of distinctRules.values()) distinctRuleBytes += bytes;
 
-// Group pages by familyHash (the hash of each page's largest <style> block, i.e.
+// Group pages by familyHash (the hash of each page's largest CSS block, inline or linked, i.e.
 // its inlined page-family entry sheet - see where familyHash is computed above).
 // A family is named by its lexicographically smallest member label, so the name
 // is derived, not hand-maintained, and cannot drift out of sync with a rename.
@@ -484,7 +487,7 @@ const siteWide = pages.reduce(
 const kb = (bytes) => `${bytes.toLocaleString('en-US')} bytes`;
 const pct = (part, whole) => (whole === 0 ? '0%' : `${Math.round((part / whole) * 100)}%`);
 
-console.log(`CSS duplication report (${pages.length} pages, ${kb(totalRawStyleBytes)} of inline <style> shipped):`);
+console.log(`CSS duplication report (${pages.length} pages, ${kb(totalRawStyleBytes)} of page CSS shipped, inline and linked):`);
 console.log(
   `  Family duplication:     ${familyDuplication.toFixed(2)}x  (heaviest of ${families.length} families, ${kb(distinctRuleBytes)} distinct, limit ${MAX_FAMILY_DUPLICATION.toFixed(2)}x)`,
 );
