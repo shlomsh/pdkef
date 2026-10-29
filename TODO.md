@@ -36,7 +36,6 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 
 ## Waiting, by date
 
-- 2026-10-28: [SEO-45](backlog/tasks/SEO-45.md) · /merge/ left Google's results on 2026-10-08, the day its new title was crawled: put the old title and H1 back and read it
 - 2026-11-06: [LOC-03](backlog/tasks/LOC-03.md) · Read 2026-11-06 · Hebrew pilot: three tool pages, phrased the way Israelis actually search, reviewed in-house
 - 2026-11-06: [SEO-17](backlog/tasks/SEO-17.md) · Read 2026-11-06 · One content page on portal size limits, instead of three doorway pages
 - 2026-11-06: [SEO-42](backlog/tasks/SEO-42.md) · Read 2026-11-06 · Title test: "No Upload" in the Split and Compress titles, read per query in Search Console
@@ -67,7 +66,6 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 ## Needs Shlomi
 
 - [MOBI-01](backlog/tasks/MOBI-01.md) · Half an hour with an Android phone
-- [SEO-45](backlog/tasks/SEO-45.md) · The 2026-10-28 Search Console read of /merge/ (Queries, Compare, position on)
 - [DEBT-53](backlog/tasks/DEBT-53.md) · A check on your iPhone
 - [SEO-40](backlog/tasks/SEO-40.md) · The Search Console exports
 - [SEO-42](backlog/tasks/SEO-42.md) · The /compress/ query export (28 days before and after 2026-10-08) and /compress-image/ filtered to queries containing pdf
