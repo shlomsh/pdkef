@@ -164,11 +164,13 @@ function manifestResponder(urls, perUrl = () => new Response('asset'), pages = {
   });
 }
 
-async function dispatchFetch(worker, request) {
+// `ids` carries the event's clientId (a subresource's page) or resultingClientId (a navigation's new page).
+async function dispatchFetch(worker, request, ids = {}) {
   /** @type {Promise<Response>} */
   let responsePromise;
   const background = [];
   worker.listeners.get('fetch')({
+    ...ids,
     request,
     respondWith: (promise) => { responsePromise = Promise.resolve(promise); },
     waitUntil: (promise) => background.push(Promise.resolve(promise)),
@@ -938,6 +940,8 @@ describe.each([['source', workerSource], ['minified source', minifiedWorkerSourc
   const build = ({ answer = { ok: true }, waiting = true } = {}) => {
     const worker = createWorker(vi.fn(async () => new Response('fresh')), ['pdkef-previous'], createFakeIndexedDB(), source);
     worker.entries.set('https://pdkef.test/sign/', new Response('cached sign page'));
+    // A fully precached build, so the cached page is servable (MEM-28).
+    worker.entries.set(PRECACHE_MARKER, new Response('ok'));
     const postMessage = vi.fn((_data, ports) => { if (answer) ports[0].postMessage(answer); });
     if (waiting) worker.self.registration.waiting = { postMessage };
     return { worker, postMessage };
@@ -1483,6 +1487,102 @@ describe.each([['source', workerSource], ['minified source', minifiedWorkerSourc
       expect(await response.text()).toBe('unlisted page');
       expect(worker.entries.has('https://pdkef.test/unlisted/')).toBe(false);
     });
+  });
+});
+
+// MEM-28: a page is served from the cache only with its whole closure, and a page that came
+// from another build on the network gets the network's stable-named files, not this build's.
+describe.each([['source', workerSource], ['minified source', minifiedWorkerSource]])('a page and its files come from one build (%s)', (_label, source) => {
+  const navigate = (path) => ({ method: 'GET', mode: 'navigate', url: `https://pdkef.test${path}` });
+  const asset = (path) => ({ method: 'GET', mode: 'no-cors', url: `https://pdkef.test${path}` });
+  const CSS = '/shared/PdfMergeTool-0da6a7.css';
+  const ENTRY = '/site/PdfMergeTool.js';
+  const CHUNK = '/_astro/pdf.Ab12Cd.js';
+  const pages = { '/': ['/'], '/merge/': ['/merge/', ENTRY, CHUNK, CSS], '/sign/': ['/sign/'] };
+  const THIS = { '/': 'home', '/merge/': 'merge page', '/sign/': 'sign page', [ENTRY]: 'merge entry', [CSS]: 'merge css', [CHUNK]: 'pdf chunk' };
+  const hashes = Object.fromEntries(Object.entries(THIS).filter(([url]) => !url.startsWith('/_astro/')).map(([url, bytes]) => [url, pageHash(bytes)]));
+  // Installs this build while the network serves `during`, then switches the network to `after`
+  // (a map of pathname to body; a missing pathname answers 404, null means offline).
+  const installThen = async (during, after) => {
+    let serving = during;
+    const fetchImpl = vi.fn(async (request) => {
+      const { pathname } = new URL(requestUrl(request));
+      if (pathname === '/precache-manifest.json') return new Response(JSON.stringify({ version: 2, build: '__BUILD_ID__', shell: ['/'], pages, hashes }));
+      if (serving === null) throw new Error('offline');
+      return pathname in serving ? new Response(serving[pathname]) : new Response('missing', { status: 404 });
+    });
+    const worker = createWorker(fetchImpl, [], createFakeIndexedDB(), source);
+    await dispatchInstall(worker);
+    serving = after;
+    return worker;
+  };
+  const withoutCss = Object.fromEntries(Object.entries(THIS).filter(([url]) => url !== CSS));
+  const NEXT = { '/': 'next home', '/merge/': 'next merge page', [ENTRY]: 'next merge entry', [CHUNK]: 'next chunk' };
+
+  it('does not serve a cached page whose closure missed a file at install, and serves the network page', async () => {
+    const worker = await installThen(withoutCss, NEXT);
+    expect(await worker.entries.get('https://pdkef.test/merge/').clone().text()).toBe('merge page');
+    const { response } = await dispatchFetch(worker, navigate('/merge/'), { resultingClientId: 'tab-1' });
+    expect(await response.text()).toBe('next merge page');
+  });
+
+  it('offline, treats that page as uncached and serves the root fallback', async () => {
+    const worker = await installThen(withoutCss, null);
+    const { response } = await dispatchFetch(worker, navigate('/merge/'));
+    expect(await response.text()).toBe('home');
+  });
+
+  it('serves a cached page whose own closure is complete while another page\'s is not', async () => {
+    const worker = await installThen({ ...THIS, '/sign/': 'sign of another build' }, NEXT);
+    expect(worker.entries.has('https://pdkef.test/__pdkef/precache-complete/')).toBe(false);
+    const { response } = await dispatchFetch(worker, navigate('/merge/'));
+    expect(await response.text()).toBe('merge page');
+  });
+
+  it('serves the page once its missing file is fetched from a network that serves this build', async () => {
+    const worker = await installThen(withoutCss, THIS);
+    const first = await dispatchFetch(worker, navigate('/merge/'), { resultingClientId: 'tab-1' });
+    expect(await first.response.text()).toBe('merge page');
+    const css = await dispatchFetch(worker, asset(CSS), { clientId: 'tab-1' });
+    expect(await css.response.text()).toBe('merge css');
+    await Promise.all(css.background);
+    worker.context.fetch = vi.fn(async () => { throw new Error('offline'); });
+    const { response } = await dispatchFetch(worker, navigate('/merge/'));
+    expect(await response.text()).toBe('merge page');
+  });
+
+  it('gives a page from another build the network\'s stable-named files, not this build\'s, and stores none of them', async () => {
+    const worker = await installThen(withoutCss, NEXT);
+    await dispatchFetch(worker, navigate('/merge/'), { resultingClientId: 'tab-1' });
+    const entry = await dispatchFetch(worker, asset(ENTRY), { clientId: 'tab-1' });
+    expect(await entry.response.text()).toBe('next merge entry');
+    await Promise.all(entry.background);
+    expect(await worker.entries.get(`https://pdkef.test${ENTRY}`).clone().text()).toBe('merge entry');
+    // A content-hashed file names its bytes, so the cached copy is still the right one.
+    const chunk = await dispatchFetch(worker, asset(CHUNK), { clientId: 'tab-1' });
+    expect(await chunk.response.text()).toBe('pdf chunk');
+    // Any other tab runs this build's cached page and keeps this build's files.
+    const other = await dispatchFetch(worker, asset(ENTRY), { clientId: 'tab-2' });
+    expect(await other.response.text()).toBe('merge entry');
+  });
+
+  it('remembers that page across a worker restart', async () => {
+    const worker = await installThen(withoutCss, NEXT);
+    const nav = await dispatchFetch(worker, navigate('/merge/'), { resultingClientId: 'tab-1' });
+    await Promise.all(nav.background);
+    const restarted = createWorker(worker.context.fetch, [], createFakeIndexedDB(), source);
+    for (const [key, response] of worker.entries) restarted.entries.set(key, response.clone());
+    const { response } = await dispatchFetch(restarted, asset(ENTRY), { clientId: 'tab-1' });
+    expect(await response.text()).toBe('next merge entry');
+  });
+
+  it('gives an uncached page of this build from the network this build\'s cached files', async () => {
+    const worker = await installThen({ ...THIS, '/merge/': 'merge of another build' }, THIS);
+    const nav = await dispatchFetch(worker, navigate('/merge/'), { resultingClientId: 'tab-1' });
+    expect(await nav.response.text()).toBe('merge page');
+    worker.context.fetch = vi.fn(async () => new Response('next merge entry'));
+    const { response } = await dispatchFetch(worker, asset(ENTRY), { clientId: 'tab-1' });
+    expect(await response.text()).toBe('merge entry');
   });
 });
 

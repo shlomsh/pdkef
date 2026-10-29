@@ -15,8 +15,11 @@
 //   - HTML navigations are cache-first and refresh in the background, so a
 //     returning visitor can reopen the app when the server is unavailable. A
 //     refreshed page is stored only when it belongs to this build: its hash
-//     must match the page's entry in this build's manifest (MEM-22).
-//   - Other same-origin assets are cache-first after precache or first use.
+//     must match the page's entry in this build's manifest (MEM-22). A page
+//     counts as cached only with its whole closure (MEM-28, servableFromCache).
+//   - Other same-origin assets are cache-first after precache or first use,
+//     except a non-hashed file asked for by a page that came from another
+//     build on the network: that page gets the network's file (MEM-28).
 //   - Cross-origin requests are never intercepted — this app makes none
 //     in normal operation; not touching them is a deliberate safeguard.
 //   - An update never takes over a page from the previous build on its own:
@@ -96,6 +99,11 @@ const CRITICAL_TAKEOVER_CAP_MS = 75_000;
 const PRECACHE_COMPLETE_PATH = '/__pdkef/precache-complete/';
 // This build's own manifest, kept so a refreshed page can be checked against it.
 const MANIFEST_PATH = '/__pdkef/manifest/';
+// MEM-28: the clients whose page came from another build on the network (see
+// rememberNetworkClient), kept in this build's cache so a restarted worker still
+// knows them; activation deletes the list with the cache. The newest few only.
+const NETWORK_CLIENTS_PATH = '/__pdkef/network-clients/';
+const NETWORK_CLIENTS_KEPT = 50;
 // How long the silent takeover waits for the waiting worker's answer.
 const TAKEOVER_TIMEOUT_MS = 3000;
 // After one granted takeover, navigations are served normally for this long.
@@ -594,26 +602,75 @@ async function hashBytes(buffer) {
   return Array.from(new Uint8Array(digest).subarray(0, 8), (byte) => byte.toString(16).padStart(2, '0')).join('');
 }
 
-// This build's `hashes`, read from the manifest stored at install and parsed
-// once per worker lifetime. A missing or unreadable manifest is not remembered,
-// so the next write path looks again (null for now).
-let storedHashes = null;
-async function hashesOfThisBuild(cache) {
-  if (!storedHashes) {
+// This build's manifest, read from the copy stored at install and parsed once
+// per worker lifetime. A missing or unreadable manifest is not remembered, so
+// the next caller looks again (null for now).
+let storedManifest = null;
+async function manifestOfThisBuild(cache) {
+  if (!storedManifest) {
     const reading = (async () => {
       const stored = await cache.match(resolve(MANIFEST_PATH));
-      const hashes = stored ? (await stored.json()).hashes : null;
-      if (!hashes || typeof hashes !== 'object') throw new Error('No stored manifest hashes.');
-      return hashes;
+      const manifest = stored ? await stored.json() : null;
+      if (!manifest?.hashes || typeof manifest.hashes !== 'object') throw new Error('No stored manifest hashes.');
+      return manifest;
     })();
-    storedHashes = reading;
-    reading.catch(() => { if (storedHashes === reading) storedHashes = null; });
+    storedManifest = reading;
+    reading.catch(() => { if (storedManifest === reading) storedManifest = null; });
   }
   try {
-    return await storedHashes;
+    return await storedManifest;
   } catch {
     return null;
   }
+}
+
+async function hashesOfThisBuild(cache) {
+  return (await manifestOfThisBuild(cache))?.hashes ?? null;
+}
+
+// MEM-28: the cached page, but only when every file of its closure (the
+// manifest's pages[key]) is cached too. Install tolerates misses, and the
+// network may since have moved to a build without them, so a page missing one
+// would load half. Such a page counts as uncached. The precache-complete marker
+// answers for every page at once; without a readable manifest nothing can be
+// checked, so nothing is served.
+async function servableFromCache(cache, cacheKey) {
+  const cached = await cache.match(cacheKey);
+  if (!cached || await cache.match(resolve(PRECACHE_COMPLETE_PATH))) return cached;
+  const manifest = await manifestOfThisBuild(cache);
+  if (!manifest) return undefined;
+  const closure = manifest.pages?.[cacheKey] ?? [];
+  const held = await Promise.all(closure.map((url) => cache.match(resolve(url))));
+  return held.every(Boolean) ? cached : undefined;
+}
+
+// MEM-28: /site/ and /shared/ names are stable across builds (MEM-25, MEM-26),
+// so a page from another build would get this build's file for them from the
+// cache. Its client is remembered here, and its non-hashed files bypass the
+// cache (see the fetch handler). Resolves once the id is known in memory.
+let networkClients = null;
+function networkClientIds(cache) {
+  if (!networkClients) {
+    networkClients = cache.match(resolve(NETWORK_CLIENTS_PATH))
+      .then((stored) => (stored ? stored.json() : []))
+      .then((ids) => new Set(Array.isArray(ids) ? ids : []), () => new Set());
+  }
+  return networkClients;
+}
+
+async function rememberNetworkClient(cache, clientId) {
+  if (!clientId) return;
+  try {
+    const ids = await networkClientIds(cache);
+    ids.add(clientId);
+    await cache.put(resolve(NETWORK_CLIENTS_PATH), new Response(JSON.stringify([...ids].slice(-NETWORK_CLIENTS_KEPT))));
+  } catch {
+    // A page the worker failed to remember gets this build's files, as before MEM-28.
+  }
+}
+
+async function isNetworkClient(cache, clientId) {
+  return !!clientId && (await networkClientIds(cache)).has(clientId);
 }
 
 // The one answer to "may this response be stored under this key in this
@@ -632,11 +689,14 @@ async function mayStore(cache, key, response, { navigation = false } = {}) {
   }
 }
 
+// Resolves to the network's page and whether it is this build's (and so
+// stored), or null without a network.
 async function refreshNavigation(request, cache, cacheKey) {
   try {
     const response = await fetch(request);
-    if (response.ok && await mayStore(cache, cacheKey, response, { navigation: true })) await cache.put(cacheKey, response.clone());
-    return response;
+    const ours = response.ok && await mayStore(cache, cacheKey, response, { navigation: true });
+    if (ours) await cache.put(cacheKey, response.clone());
+    return { response, ours };
   } catch {
     return null;
   }
@@ -1034,13 +1094,16 @@ self.addEventListener('fetch', (event) => {
       if (takeover) return takeover;
       return caches.open(CACHE_VERSION).then(async (cache) => {
         const cacheKey = navigationCacheKey(request);
-        const cached = await cache.match(cacheKey);
+        const cached = await servableFromCache(cache, cacheKey);
         if (cached) {
           event.waitUntil(refreshNavigation(request, cache, cacheKey));
           return cached;
         }
-        const response = await refreshNavigation(request, cache, cacheKey);
-        return response ?? cache.match('/');
+        const fresh = await refreshNavigation(request, cache, cacheKey);
+        if (!fresh) return cache.match('/');
+        // Remembered before the page is answered, so its first file request finds it.
+        if (!fresh.ours) await rememberNetworkClient(cache, event.resultingClientId);
+        return fresh.response;
       });
     })());
     return;
@@ -1065,20 +1128,22 @@ self.addEventListener('fetch', (event) => {
   // module`) even with a complete, verified cache. Passing `request.url`
   // sidesteps whatever internal state Chromium attaches to the module-loader's
   // Request object.
-  event.respondWith(
-    caches.open(CACHE_VERSION).then((cache) => cache.match(request.url).then((cached) => {
-      if (cached) return cached;
-      return fetch(request).then((response) => {
-        if (response.ok) {
-          // The page gets the network response now; whether this build's cache
-          // may keep it is decided on the clone, in the background.
-          const copy = response.clone();
-          event.waitUntil(mayStore(cache, new URL(request.url).pathname, copy)
-            .then((ok) => (ok ? cache.put(request.url, copy) : undefined))
-            .catch(() => {}));
-        }
-        return response;
-      });
-    })),
-  );
+  //
+  // MEM-28: a non-hashed file for a page from another build comes from the
+  // network and is not stored; a content-hashed one is the same file in any build.
+  event.respondWith(caches.open(CACHE_VERSION).then(async (cache) => {
+    if (!isHashedUrl(url.pathname) && await isNetworkClient(cache, event.clientId)) return fetch(request);
+    const cached = await cache.match(request.url);
+    if (cached) return cached;
+    const response = await fetch(request);
+    if (response.ok) {
+      // The page gets the network response now; whether this build's cache
+      // may keep it is decided on the clone, in the background.
+      const copy = response.clone();
+      event.waitUntil(mayStore(cache, url.pathname, copy)
+        .then((ok) => (ok ? cache.put(request.url, copy) : undefined))
+        .catch(() => {}));
+    }
+    return response;
+  }));
 });
