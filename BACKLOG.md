@@ -2,7 +2,7 @@
 
 # Backlog
 
-The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 83 live: 16 up next, 11 then, 26 waiting, 30 parked.
+The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 84 live: 17 up next, 11 then, 26 waiting, 30 parked.
 
 ## Redact: finish removal
 
@@ -72,6 +72,7 @@ Production errors you can see, small tools that clean up after themselves, and d
 | --- | --- | --- | --- |
 | DEBT-65 | P2 | [DEBT-65](backlog/tasks/DEBT-65.md) · Two layout-shift specs failed once each in the 2026-10-27 nightly | In progress |
 | MEM-26 | P1 | [MEM-26](backlog/tasks/MEM-26.md) · A CSS Module edit renames its own CSS chunk, not 25 JavaScript chunks | In progress |
+| MEM-29 | P1 | [MEM-29](backlog/tasks/MEM-29.md) · A critical build that cannot install releases the older build's worker | In progress |
 | ENC-16 | P2 | [ENC-16](backlog/tasks/ENC-16.md) · Locked-file state polish: Merge's calm notice, the panel's sizing, focus ring and file name | In progress |
 | MEM-24 | P3 | [MEM-24](backlog/tasks/MEM-24.md) · A service worker that cannot install, or never completes its precache, says so | In progress |
 

@@ -1820,3 +1820,85 @@ describe.each([['source', workerSource], ['minified source', minifiedWorkerSourc
     expect(createWorker(vi.fn(), [], createFakeIndexedDB(), source).context.missedBucket(count)).toBe(bucket);
   });
 });
+
+// MEM-29: a phone kept a day-old worker because every install of the fix failed on `/`'s hash. A
+// mismatch is retried once past the HTTP cache, and a critical build whose install still fails
+// unregisters the older build, so the next load comes from the network instead of that stale cache.
+describe.each([['source', workerSource], ['minified source', minifiedWorkerSource]])('a failed install of a critical build (%s)', (_label, source) => {
+  const OLDER = `pdkef-c${SHIPPED_CRITICAL - 1}-older`;
+  const manifest = { version: 2, build: '__BUILD_ID__', shell: ['/', '/sign/'], pages: {}, hashes: { '/': pageHash('home') } };
+  const serving = (root) => vi.fn(async (request) => {
+    if (request.url.endsWith('/precache-manifest.json')) return new Response(JSON.stringify(manifest));
+    return new URL(request.url).pathname === '/' ? root(request) : new Response('asset');
+  });
+  const build = (fetchImpl, keys = [OLDER]) => createWorker(fetchImpl, keys, createFakeIndexedDB(), source);
+
+  it('retries a file whose bytes miss its hash once, past the HTTP cache, and keeps the retry when it matches', async () => {
+    const fetchImpl = serving((request) => new Response(request.cache === 'reload' ? 'home' : 'stale home'));
+    const worker = build(fetchImpl);
+    await dispatchInstall(worker);
+    expect(await worker.entries.get('https://pdkef.test/').text()).toBe('home');
+    expect(fetchImpl.mock.calls.filter(([request]) => new URL(request.url).pathname === '/').map(([request]) => request.cache)).toEqual(['no-cache', 'reload']);
+    expect(worker.self.registration.unregister).not.toHaveBeenCalled();
+  });
+
+  it('unregisters the older build when / still misses its hash, and leaves that build\'s cache to its open pages', async () => {
+    const worker = build(serving(() => new Response('stale home')));
+    worker.entriesByCache.get(OLDER).set('https://pdkef.test/sign/', new Response('older sign'));
+    await expect(dispatchInstall(worker)).rejects.toThrow(/is not this build's file/);
+    expect(worker.self.registration.unregister).toHaveBeenCalledOnce();
+    expect(await worker.entriesByCache.get(OLDER).get('https://pdkef.test/sign/').text()).toBe('older sign');
+  });
+
+  it('fails the install without waiting on the unregister, whose job queues behind this install', async () => {
+    const worker = build(serving(() => new Response('stale home')));
+    worker.self.registration.unregister = vi.fn(() => new Promise(() => {}));
+    const settled = await Promise.race([
+      dispatchInstall(worker).then(() => 'resolved', () => 'rejected'),
+      new Promise((resolveLate) => setTimeout(() => resolveLate('still installing'), 1000)),
+    ]);
+    expect(settled).toBe('rejected');
+    expect(worker.self.registration.unregister).toHaveBeenCalledOnce();
+  });
+
+  it('keeps the older build when / is unreachable, so the app still opens offline', async () => {
+    const worker = build(serving(() => { throw new TypeError('Failed to fetch'); }));
+    await expect(dispatchInstall(worker)).rejects.toThrow();
+    expect(worker.self.registration.unregister).not.toHaveBeenCalled();
+  });
+
+  it('keeps the registration on a first install, with no older build to release', async () => {
+    const worker = build(serving(() => new Response('stale home')), []);
+    await expect(dispatchInstall(worker)).rejects.toThrow(/is not this build's file/);
+    expect(worker.self.registration.unregister).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ['a retry that fails', (request) => (request.cache === 'reload' ? new Response('no', { status: 503 }) : new Response('stale home'))],
+    ['a retry that throws', (request) => { if (request.cache === 'reload') throw new TypeError('Failed to fetch'); return new Response('stale home'); }],
+  ])('keeps the older build for %s, which reads as unreachable', async (_name, root) => {
+    const worker = build(serving(root));
+    await expect(dispatchInstall(worker)).rejects.toThrow();
+    expect(worker.self.registration.unregister).not.toHaveBeenCalled();
+  });
+
+  it('keeps the older build for a manifest of another build, which the next deploy\'s worker clears', async () => {
+    const fetchImpl = vi.fn(async () => new Response(JSON.stringify({ ...manifest, build: 'another' })));
+    const worker = build(fetchImpl);
+    await expect(dispatchInstall(worker)).rejects.toThrow('Precache manifest belongs to another build.');
+    expect(worker.self.registration.unregister).not.toHaveBeenCalled();
+  });
+
+  it('keeps the older build when storage is full, where releasing it frees nothing', async () => {
+    const worker = build(serving(() => new Response('home')));
+    worker.cache.put.mockRejectedValue(new Error('QuotaExceededError'));
+    await expect(dispatchInstall(worker)).rejects.toThrow('QuotaExceededError');
+    expect(worker.self.registration.unregister).not.toHaveBeenCalled();
+  });
+
+  it('keeps a build of the same critical version', async () => {
+    const worker = build(serving(() => new Response('stale home')), [`pdkef-c${SHIPPED_CRITICAL}-same`]);
+    await expect(dispatchInstall(worker)).rejects.toThrow(/is not this build's file/);
+    expect(worker.self.registration.unregister).not.toHaveBeenCalled();
+  });
+});

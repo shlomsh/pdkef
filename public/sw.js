@@ -389,7 +389,7 @@ async function precacheUrls(cache, urls, previousCaches, { skipCached = false, h
         }
       }
       await withPrecacheTimeout(async (signal, touch) => {
-        const response = isHashedUrl(url) ? await fetch(new Request(resolve(url), { signal })) : await fetchFresh(url, signal);
+        let response = isHashedUrl(url) ? await fetch(new Request(resolve(url), { signal })) : await fetchFresh(url, signal);
         if (!response.ok) throw new Error(`Failed to precache ${url}: ${response.status}`);
         const expected = hashes[url];
         if (!expected) {
@@ -399,7 +399,14 @@ async function precacheUrls(cache, urls, previousCaches, { skipCached = false, h
         // MEM-22: an unhashed file is stored only with the bytes this build's
         // manifest names, so a deploy landing mid-install cannot mix builds.
         // Reading the body counts as progress for the stall timer.
-        const bytes = await trackProgress(response, touch).arrayBuffer();
+        let bytes = await trackProgress(response, touch).arrayBuffer();
+        if (await hashBytes(bytes) !== expected) {
+          // MEM-29: ask once more, past the HTTP cache, before calling the file
+          // another build's: a phone failed every install of a fix on `/` alone.
+          response = await fetch(new Request(resolve(url), { cache: 'reload', signal }));
+          if (!response.ok) throw new Error(`Failed to precache ${url}: ${response.status}`);
+          bytes = await trackProgress(response, touch).arrayBuffer();
+        }
         if (await hashBytes(bytes) !== expected) throw new InstallFailure(`Precache ${url} is not this build's file.`, 'root_mismatch');
         await asStorage(() => cache.put(url, new Response(bytes, { status: response.status, statusText: response.statusText, headers: response.headers })));
       });
@@ -479,6 +486,26 @@ async function readyOrCompleting(event) {
   const ready = await readyToTakeOver();
   if (!ready && self.navigator?.onLine !== false) event.waitUntil(completePrecache());
   return ready;
+}
+
+// MEM-29: a failed install leaves the active worker in charge, and a build that
+// bumped CRITICAL_VERSION exists to replace that worker. So when one cannot
+// install over an older critical version because `/` is not its file, even past
+// the HTTP cache, it unregisters the registration: open pages keep their worker
+// and its cache until they close, and the next load comes from the network and
+// installs afresh. Only for root_mismatch, the failure a phone repeated for a day:
+// offline (root_unreachable, manifest_unreadable) the older build is what opens
+// the app, another deploy (other_build) brings its own worker, and a full disk
+// (storage) frees nothing. The unregister is never awaited: its job queues behind
+// this install's, so waiting on it from inside install held the install open for
+// good (WebKit, 2026-10-29).
+async function releaseOlderBuild(reason) {
+  if (reason !== 'root_mismatch') return;
+  try {
+    if (isCriticalOver(CRITICAL_VERSION, await otherBuildKeys())) self.registration?.unregister().catch(() => {});
+  } catch {
+    // expected: no readable cache keys means nothing to release.
+  }
 }
 
 async function removeSelf() {
@@ -808,7 +835,10 @@ self.addEventListener('install', (event) => {
     }
     // MEM-24: leave a reason for the page to report, then fail exactly as before. An error
     // with no reason is left unrecorded rather than reported under a wrong one.
-    if (error instanceof InstallFailure) await recordBounded(error.reason, '0');
+    if (error instanceof InstallFailure) {
+      await recordBounded(error.reason, '0');
+      await releaseOlderBuild(error.reason);
+    }
     throw error;
   });
   event.waitUntil(installed);
