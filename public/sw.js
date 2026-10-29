@@ -220,6 +220,13 @@ function isCriticalOver(ownVersion, otherKeys) {
   return otherKeys.length > 0 && ownVersion > Math.min(...otherKeys.map(criticalVersionOf));
 }
 
+// Whether this build is critical over the one the device runs. The only place
+// CRITICAL_VERSION meets the cache keys, so the minified worker keeps a single
+// `isCriticalOver(<N>,` for e2e/offline/twoBuildServer.js to raise (MEM-29).
+async function criticalOverDevice() {
+  return isCriticalOver(CRITICAL_VERSION, await otherBuildKeys());
+}
+
 // 'no-cache', not 'reload': still validated with the server on every call, so
 // a deploy is never served stale, but an unchanged file comes back as a 304
 // instead of being downloaded again (reload sends no conditional request).
@@ -502,7 +509,7 @@ async function readyOrCompleting(event) {
 async function releaseOlderBuild(reason) {
   if (reason !== 'root_mismatch') return;
   try {
-    if (isCriticalOver(CRITICAL_VERSION, await otherBuildKeys())) self.registration?.unregister().catch(() => {});
+    if (await criticalOverDevice()) self.registration?.unregister().catch(() => {});
   } catch {
     // expected: no readable cache keys means nothing to release.
   }
@@ -1044,7 +1051,7 @@ async function waitForCriticalReady(windows) {
 
 async function forceTakeover() {
   if (!isWaitingWorker()) return;
-  if (!isCriticalOver(CRITICAL_VERSION, await otherBuildKeys())) return;
+  if (!await criticalOverDevice()) return;
   if (!await readyForForce()) return;
   await waitForCriticalReady(await pageWindows());
   // Re-checked after the wait, which can be a minute: the device may have gone

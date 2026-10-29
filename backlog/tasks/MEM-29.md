@@ -43,7 +43,7 @@ depends_on: ["MEM-28"]
       critical version, and an install that does not wait on the unregister.
 - [x] A real-browser run of the stuck phone: an old build's worker installed, then a build whose `/` never
       matches for the worker.
-- [ ] The phone shows the live build after one launch past the deploy.
+- [x] The phone shows the live build after one launch past the deploy (`faa72fb2389a`, 2026-10-29).
 
 ## Progress (2026-10-29)
 
@@ -60,3 +60,9 @@ depends_on: ["MEM-28"]
   stays on the old Build for good. With this change the next load is uncontrolled and from the network:
   `/about/` shows the new Build and `/sign/` has its 52 module classes ruled. An IndexedDB record written
   under the old worker reads back afterwards.
+- **CI on 89a665de failed two critical-build specs** (`e2e/offline/app-update.spec.js`, run 40954007489).
+  `twoBuildServer.js` fakes a critical deploy by raising the minified worker's one `isCriticalOver(<N>,`
+  call, and the release added a second, earlier one: the fake bumped it and left the forced takeover at the
+  old version. Both now go through `criticalOverDevice()`, and the minified-source test pins one call site
+  (seen red with two). `check:e2e` (the full product suite, a `public/sw.js` diff) passes locally.
+- **Live**: pdkef.com served build `faa72fb2389a` and the phone reported the same build after the deploy.
