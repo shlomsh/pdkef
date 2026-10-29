@@ -10,6 +10,7 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 
 - [DEBT-65](backlog/tasks/DEBT-65.md) P2 · Two layout-shift specs failed once each in the 2026-10-27 nightly (in progress)
 - [MEM-26](backlog/tasks/MEM-26.md) P1 · A CSS Module edit renames its own CSS chunk, not 25 JavaScript chunks (in progress)
+- [MEM-29](backlog/tasks/MEM-29.md) P1 · A critical build that cannot install releases the older build's worker (in progress)
 - [ENC-16](backlog/tasks/ENC-16.md) P2 · Locked-file state polish: Merge's calm notice, the panel's sizing, focus ring and file name (in progress)
 - [MEM-24](backlog/tasks/MEM-24.md) P3 · A service worker that cannot install, or never completes its precache, says so (in progress)
 
