@@ -1576,6 +1576,35 @@ describe.each([['source', workerSource], ['minified source', minifiedWorkerSourc
     expect(await response.text()).toBe('next merge entry');
   });
 
+  it('does not take a redirect for a page from another build', async () => {
+    const worker = await installThen(withoutCss, NEXT);
+    const redirect = { type: 'opaqueredirect', ok: false, status: 0 };
+    worker.context.fetch = vi.fn(async () => redirect);
+    const nav = await dispatchFetch(worker, navigate('/merge'), { resultingClientId: 'tab-1' });
+    expect(nav.response).toBe(redirect);
+    const { response } = await dispatchFetch(worker, asset(ENTRY), { clientId: 'tab-1' });
+    expect(await response.text()).toBe('merge entry');
+  });
+
+  it('gives a worker started by a page from another build the network\'s files too', async () => {
+    const worker = await installThen(withoutCss, NEXT);
+    await dispatchFetch(worker, navigate('/merge/'), { resultingClientId: 'tab-1' });
+    await dispatchFetch(worker, asset(CHUNK), { clientId: 'tab-1', resultingClientId: 'worker-1' });
+    const { response } = await dispatchFetch(worker, asset(ENTRY), { clientId: 'worker-1' });
+    expect(await response.text()).toBe('next merge entry');
+  });
+
+  it('treats a closure that is not a list as incomplete rather than failing the navigation', async () => {
+    const worker = await installThen(withoutCss, NEXT);
+    const key = 'https://pdkef.test/__pdkef/manifest/';
+    const manifest = await worker.entries.get(key).clone().json();
+    worker.entries.set(key, new Response(JSON.stringify({ ...manifest, pages: { '/merge/': 'not a list' } })));
+    const restarted = createWorker(worker.context.fetch, [], createFakeIndexedDB(), source);
+    for (const [url, response] of worker.entries) restarted.entries.set(url, response.clone());
+    const { response } = await dispatchFetch(restarted, navigate('/merge/'));
+    expect(await response.text()).toBe('next merge page');
+  });
+
   it('gives an uncached page of this build from the network this build\'s cached files', async () => {
     const worker = await installThen({ ...THIS, '/merge/': 'merge of another build' }, THIS);
     const nav = await dispatchFetch(worker, navigate('/merge/'), { resultingClientId: 'tab-1' });
