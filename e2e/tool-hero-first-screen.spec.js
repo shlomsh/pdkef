@@ -323,7 +323,10 @@ test.describe('Merge restore', () => {
       new PerformanceObserver((list) => {
         for (const e of list.getEntries()) if (!e.hadRecentInput) window.__cls += e.value;
       }).observe({ type: 'layout-shift', buffered: true });
+      // Only what was painted: before the first paint a layout read can run ahead of the page's
+      // stylesheets (a linked sheet, MEM-27), and nobody sees that frame.
       const sample = () => {
+        if (!performance.getEntriesByType('paint').length) return;
         const hero = document.querySelector('.tool-hero');
         if (hero) {
           const h = Math.round(hero.getBoundingClientRect().height * 2) / 2;
@@ -356,7 +359,10 @@ const SAMPLE_HERO = () => {
   new PerformanceObserver((list) => {
     for (const e of list.getEntries()) if (!e.hadRecentInput) window.__cls += e.value;
   }).observe({ type: 'layout-shift', buffered: true });
+  // Only what was painted: before the first paint a layout read can run ahead of the page's
+  // stylesheets (a linked sheet, MEM-27), and nobody sees that frame.
   const sample = () => {
+    if (!performance.getEntriesByType('paint').length) return;
     const hero = document.querySelector('.tool-hero');
     if (hero) {
       const h = Math.round(hero.getBoundingClientRect().height * 2) / 2;
