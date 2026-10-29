@@ -1,9 +1,8 @@
 ---
 id: "MEM-27"
 title: "A tool-layout style edit does not re-download every tool page"
-status: "in_progress"
+status: "done"
 priority: "P3"
-horizon: "now"
 epic: "robustness"
 depends_on: ["MEM-26"]
 ---
@@ -97,4 +96,10 @@ install racing a deploy, not the CSS split, and it strands JS chunks the same wa
 - The 115 tests in those three specs pass on the `'auto'` build.
 - The re-land brings back `/shared/PdfMergeTool-0da6a7.css` and `/shared/HomePageLayout-8c8e30.css` under
   the same module-keyed names, so a phone left on the MEM-27 build finds its sheets again.
+- **Production check** (d0e79e1f live on pdkef.com, CI run 40876835860 green, 2026-10-29): all 44 sheets
+  linked from 16 pages answer 200. On a phone viewport, Merge's file list is styled and the home recents
+  stack name, tool and age, and Sign and Redact open a document with every CSS Module class on the page
+  matched to a rule, no page errors and no failed requests. Lighthouse 13.5 mobile against pdkef.com,
+  3 runs: `/` 97/98/100, `/sign/` 93/100/100 (the first, cold run), `/merge/` 96/100/100, `/compress/`
+  100/100/100, CLS 0 to 0.004.
 
