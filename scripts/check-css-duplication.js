@@ -3,6 +3,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createHash } from 'node:crypto';
 import { readRatchetLimits } from './ratchet-limits.mjs';
+import { CSS_MODULE_CLASS } from './stableNames.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -60,8 +61,8 @@ const distDir = path.join(__dirname, '..', 'dist');
  * consumer of a utility is in build-time-rendered .astro markup and therefore in the
  * built HTML. Nothing can start using a utility after hydration.
  *
- * That reasoning does not transfer to the editor's CSS Modules (`_name_hash_line`,
- * e.g. `_dropzone_1x8mv_7`). Those classes are rendered by Preact islands - a loaded
+ * That reasoning does not transfer to the editor's CSS Modules (`_name_pathhash`,
+ * e.g. `_dropzone_4fe24d`, MEM-26). Those classes are rendered by Preact islands - a loaded
  * file, an open dialog, a selected element - so their absence from the server-
  * rendered HTML is the normal case, not a defect. Counting them would report the
  * whole Sign and Redact editor as dead on every page including its own, which is
@@ -319,8 +320,9 @@ function classesInSelector(selector) {
   return found;
 }
 
-// Vite/Astro's CSS Modules naming: `_localName_hash_line`.
-const isModuleHashed = (className) => /^_.+_[a-z0-9]+_\d+$/.test(className);
+// CSS Module naming, from cssModuleClassName in stableNames.mjs.
+const MODULE_CLASS = new RegExp(`^${CSS_MODULE_CLASS.source}$`);
+const isModuleHashed = (className) => MODULE_CLASS.test(className);
 
 const decodeEntities = (value) =>
   value

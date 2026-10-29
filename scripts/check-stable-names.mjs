@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { pageClosure } from './precacheClosure.mjs';
-import { HOT_SHARED_CHUNKS, cssModuleClassName } from './stableNames.mjs';
+import { CSS_MODULE_CLASS, HOT_SHARED_CHUNKS, cssModuleClassName } from './stableNames.mjs';
 
 /*
  * MEM-25: the build gives every client entry one URL (/site/<name>.js) and the hot shared modules
@@ -81,8 +81,7 @@ export function moduleClasses(modules) {
   return { all, ruleless };
 }
 
-// cssModuleClassName's shape: `_<class>_<six hex>`.
-const CLASS_TOKEN = /_[\w-]+?_[0-9a-f]{6}(?![\w-])/g;
+const CLASS_TOKEN = new RegExp(CSS_MODULE_CLASS.source, 'g');
 
 /**
  * Pure core. `pages` lists each page's code (the JS its closure can load) and CSS (inline plus the

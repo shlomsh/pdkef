@@ -31,6 +31,7 @@ async function buildFixture(css) {
     configFile: false,
     logLevel: 'silent',
     css: astroConfig.vite.css,
+    plugins: astroConfig.vite.plugins.filter((plugin) => plugin.name === 'pdkef:css-asset-keys'),
     build: {
       write: false,
       minify: false,
@@ -47,7 +48,7 @@ describe('a CSS Module edit (MEM-26)', () => {
     const after = await buildFixture(EDITED_CSS);
     const renamed = [...after.keys()].filter((name) => !before.has(name));
     const changed = [...after.keys()].filter((name) => before.has(name) && before.get(name) !== after.get(name));
-    expect({ renamed, changed }).toEqual({ renamed: [], changed: [expect.stringMatching(/\.css$/)] });
+    expect({ renamed, changed }).toEqual({ renamed: [], changed: [expect.stringMatching(/^shared\/panel-[0-9a-f]{6}\.css$/)] });
   });
 
   it('keeps class names unique per file', () => {
