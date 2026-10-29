@@ -1,7 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { distSheetReader, pageCssBlocks } from './pageCss.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -86,7 +85,6 @@ if (htmlFiles.length === 0) {
 // is exactly the silent visual bug the split could introduce, and the reason
 // the split is safe to make: forgetting a @source now fails the build here,
 // naming the page and the class, instead of shipping.
-const readSheet = distSheetReader(distDir);
 const usage = new Map();
 const pageHasRule = new Map(); // dist-relative page -> (className) => boolean
 
@@ -94,8 +92,8 @@ for (const file of htmlFiles) {
   const html = fs.readFileSync(file, 'utf8');
   const pageLabel = path.relative(distDir, file);
 
-  // Inline <style> and linked sheets alike (MEM-27).
-  const css = pageCssBlocks(html, readSheet).map((block) => block.css).join('');
+  let css = '';
+  for (const [, block] of html.matchAll(/<style[^>]*>([\s\S]*?)<\/style>/gi)) css += block;
   // Tailwind escapes the non-identifier characters in a generated selector
   // (`.text-\[0\.9rem\]`). Dropping every backslash lets the raw class name match.
   const flatCss = css.replace(/\\/g, '');
