@@ -12,6 +12,7 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 - [MEM-26](backlog/tasks/MEM-26.md) P1 · A CSS Module edit renames its own CSS chunk, not 25 JavaScript chunks (in progress)
 - [ENC-16](backlog/tasks/ENC-16.md) P2 · Locked-file state polish: Merge's calm notice, the panel's sizing, focus ring and file name (in progress)
 - [MEM-24](backlog/tasks/MEM-24.md) P3 · A service worker that cannot install, or never completes its precache, says so (in progress)
+- [MEM-27](backlog/tasks/MEM-27.md) P3 · A tool-layout style edit does not re-download every tool page (in progress)
 
 ### Unify the tools, narrow the graph
 
