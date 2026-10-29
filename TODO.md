@@ -55,6 +55,7 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 - SEO-06 crawl gate and a volume check: [SEO-20](backlog/tasks/SEO-20.md) · New tool: crop a PDF, the only one of these with nothing to apologise for
 - SEO-05's verdict: [SEO-30](backlog/tasks/SEO-30.md) · A two-click demo below the Compress hero, for a visitor who has never used a PDF tool before
 - About four weeks after indexing: [SEO-38](backlog/tasks/SEO-38.md) · One honest guide: remove the "Scanned with CamScanner" footer from a PDF
+- A Search Console read of /redact/ on redact queries: [SEO-51](backlog/tasks/SEO-51.md) · Redact gets ten times the searches of blur: read where /redact/ ranks on redact queries before touching its title
 - The next Sign NotFoundError report, with the translated flag: [SIGN-40](backlog/tasks/SIGN-40.md) · Sign: Preact NotFoundError while arming a tool or placing a mark
 - @astrojs/preact peer range admits preact 11: [DEBT-40](backlog/tasks/DEBT-40.md) · Move to preact 11 once @astrojs/preact supports it
 - A full UTC day of production reads on a stamped build with the fix: [DEBT-48](backlog/tasks/DEBT-48.md) · The usage funnel can say how many sessions finished, not only how many runs
@@ -72,5 +73,6 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 - [SEO-40](backlog/tasks/SEO-40.md) · The Search Console exports
 - [SEO-42](backlog/tasks/SEO-42.md) · The /compress/ query export (28 days before and after 2026-10-08) and /compress-image/ filtered to queries containing pdf
 - [SEO-44](backlog/tasks/SEO-44.md) · The 2026-11-07 Search Console export: the /split/ and /he/split/ rows
+- [SEO-51](backlog/tasks/SEO-51.md) · Search Console, Performance, page /redact/, query containing "redact", last 3 months: impressions, clicks and position per query, plus the same for "blur"
 
 See [BACKLOG.md](BACKLOG.md) for every lane.

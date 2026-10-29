@@ -15,7 +15,7 @@ depends_on: []
 
 Fix the vocabulary and the prominence, in that order.
 
-**Vocabulary.** "Blur" is what people type. "Redact" is what lawyers say, and it is the word the tool currently leads with. Audit the user-facing strings on `/redact/` and the home page and make blur the primary term, with redact present as the secondary term for the people who do search it. Both should appear; the question is which one leads.
+**Vocabulary.** "Blur" is what people type. "Redact" is what lawyers say, and it is the word the tool currently leads with. (Corrected 2026-10-29: redact is searched about ten times as often as blur, by Keyword Planner; blur still leads because it is the word this page wins on. See SEO-51.) Audit the user-facing strings on `/redact/` and the home page and make blur the primary term, with redact present as the secondary term for the people who do search it. Both should appear; the question is which one leads.
 
 **What not to do.** Do not rename the `/redact/` route. It is indexed, it has inbound content-page links, and CLAUDE.md's URL canonicalization section documents exactly how a redirect there goes wrong (Vercel normalizes the trailing slash *before* matching redirects, which shipped broken once). The visible label, the `<h1>` and the copy can lead with blur without the URL changing.
 

@@ -62,6 +62,7 @@ move today.
 | SEO-45 Merge title lead | blocked on read | 2026-10-22 | **Revised 10-22: a head-term test that ended, not the title.** `/merge/` left the results 10-08 (2,515 to 352 impressions, 10-07 to 10-20 against 09-23 to 10-06), but its "page one" was about 40 impressions a day on a 1M-10M family, a sample. Split, Sign and Unlock left in the same weeks, two of them with no title change and no recrawl; Redact and Compress kept their positions. Outside Israel the property lost 38% of impressions and 9% of clicks; Israel tripled and made the total look flat. Restored title recrawled 10-15, still gone 10-20 | read 2026-10-28 against the domain outside Israel; no return expected whatever the title |
 | SEO-42 "No Upload" in Split and Compress titles | in progress | 2026-10-22 | Deployed and requested 10-08. **Confounded:** `/compress/` halved (901 to 451) at a better position while compress queries held and `/compress-image/` went 57 to 350; Split has had no impressions since about 10-17 | 2026-11-06, per query at matched positions, not page totals |
 | SEO-46 Real star ratings | open, later | 2026-10-21 | PDF24 shows `4.9 ★ (15,074) · Free` on its SERP from a per-tool opt-in vote form and a baked-in JSON-LD `aggregateRating`. Honest route: ask once in the done state, keep a durable per-tool aggregate, bake it in at build time, emit only past a minimum of real votes | markup emitted only for a tool with at least 50 real votes, never fabricated; design in the ticket |
+| SEO-51 blur vs redact demand | blocked on read | 2026-10-29 | **Keyword Planner: `redact pdf` 10K-100K a month, `blur pdf` 1K-10K**, redact bid about six times higher. Title stays Blur-first: `/redact/` carries 81% of clicks on it, and `redact pdf` is the incumbents' head term | Search Console, `/redact/` queries containing "redact" vs "blur": positions 8 to 15 means test a title with both phrases |
 | SEO-18 sign-in-your-language page | open, shipped | 2026-09-12 | `/sign-pdf-in-your-language/` live, hub `sign`; one page, eight-row table guarded by a test against `LANGUAGE_COVERAGE`; divergences named; indexing requested 2026-09-12 | 2026-10-08 crawl state, then the eight-week read 2026-11-07 |
 | SEO-16, 20 to 24, 26, 30 | open | | not started; 20 to 24 wait on the Week 4 gate | per section 4 |
 | SEO-27 localization decision | retired | 2026-09-11 | superseded: the Hindi half was settled by LOC-01's measurement, the Hebrew-guides half is LOC-05 | |
@@ -87,6 +88,10 @@ move today.
 
 Durable lessons, one line each, newest first. The ticket has the evidence.
 
+- **Search Console's query mix shows the title's word, not the searcher's.** Blur outclicked redact on
+  `/redact/` because the title leads with "Blur PDF"; Keyword Planner on 2026-10-29 put `redact pdf` at
+  10K-100K a month against 1K-10K for `blur pdf`. Compare vocabulary on an outside volume source before
+  calling a word unsearched. ([SEO-51](../backlog/tasks/SEO-51.md))
 - **A page-one average on a head term can be a sample, not a ranking.** `merge pdf online` showed position
   5.0 on about 40 impressions a day against a 1M-10M family; Google was testing `/merge/` in a sliver of
   searches and stopped on 10-08, and Split, Sign and Unlock went the same way. Check impressions against

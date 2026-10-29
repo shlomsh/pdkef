@@ -2,7 +2,7 @@
 
 # Backlog
 
-The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 84 live: 17 up next, 11 then, 26 waiting, 30 parked.
+The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 85 live: 17 up next, 11 then, 27 waiting, 30 parked.
 
 ## Redact: finish removal
 
@@ -170,6 +170,7 @@ Mostly waiting on dated Search Console reads. Two small things can ship now.
 | SEO-40 | P2 | [SEO-40](backlog/tasks/SEO-40.md) · The November eight-week reads | Waiting on 2026-11-07. Needs Shlomi: The Search Console exports |
 | SEO-42 | P2 | [SEO-42](backlog/tasks/SEO-42.md) · Read 2026-11-06 · Title test: "No Upload" in the Split and Compress titles, read per query in Search Console | Waiting on 2026-11-06. Needs Shlomi: The /compress/ query export (28 days before and after 2026-10-08) and /compress-image/ filtered to queries containing pdf |
 | SEO-44 | P2 | [SEO-44](backlog/tasks/SEO-44.md) · /split/ ranks 51.6 for a head term that Compress, on the same domain, ranks 9.4 for: find the page-level difference | Waiting on 2026-11-07. Needs Shlomi: The 2026-11-07 Search Console export: the /split/ and /he/split/ rows |
+| SEO-51 | P2 | [SEO-51](backlog/tasks/SEO-51.md) · Redact gets ten times the searches of blur: read where /redact/ ranks on redact queries before touching its title | Waiting on A Search Console read of /redact/ on redact queries. Needs Shlomi: Search Console, Performance, page /redact/, query containing "redact", last 3 months: impressions, clicks and position per query, plus the same for "blur" |
 | SEO-22 | P3 | [SEO-22](backlog/tasks/SEO-22.md) · New tool: extract the images embedded in a PDF, without a zip dependency | Waiting on SEO-06 crawl gate and a volume check |
 | SEO-23 | P3 | [SEO-23](backlog/tasks/SEO-23.md) · New tool: convert a PDF to grayscale, with the cost stated | Waiting on SEO-06 crawl gate and a volume check |
 | SEO-24 | P3 | [SEO-24](backlog/tasks/SEO-24.md) · New tool: make a PDF look scanned | Waiting on SEO-06 crawl gate and a volume check |

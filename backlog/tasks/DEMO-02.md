@@ -29,7 +29,7 @@ An earlier draft had two eight-second loops side by side. Scroll-driven beats it
 
 Mechanically this is DEMO-05's pattern: `position: sticky` panels in a taller track, `100svh` and never `100vh`, no `scroll-snap`, progress computed in a `requestAnimationFrame`-throttled scroll listener and mapped to stages. DEMO-05's placement decision and its `overflow-hidden` warning both apply directly and are not repeated here.
 
-**Use the word "blur."** Not "redact", not "black out". Redact is a lawyer's word and nobody searches for it. Blur is the term that drives traffic here, it already carries 21 mentions in `src/data/tools.js` and its own content page at `blur-vs-blackout-vs-delete-pdf`, and it appears exactly **once** on the home page. See DEMO-07.
+**Use the word "blur."** Not "redact", not "black out". Redact is a lawyer's word and nobody searches for it (corrected 2026-10-29: never measured; Keyword Planner puts `redact pdf` at 10K-100K a month against 1K-10K for `blur pdf`, see SEO-51). Blur is the term that drives traffic here, it already carries 21 mentions in `src/data/tools.js` and its own content page at `blur-vs-blackout-vs-delete-pdf`, and it appears exactly **once** on the home page. See DEMO-07.
 
 **How privacy gets said.** "Your document stays on your phone." That is the whole claim, at that altitude. No bytes, no requests, no network, no policy strings, no architecture. See DEMO-04 for what replaced the technical version of this.
 
