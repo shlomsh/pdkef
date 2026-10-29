@@ -794,14 +794,12 @@ jobs:
   # first parent is the branch), and a docs-only push deploys nothing. One build
   # per commit, so it runs only on the nightly, and skips with it when nothing
   # has landed (`nightly_unchanged`).
-  # Report-only until MEM-26 and MEM-27 land: ordinary deploys still read about 1.3 MB against the
-  # 500 KB target from causes already ticketed, so failing here only turned every nightly red. The
-  # job still measures and writes its summary; a broken build or measurement still shows as a failed
-  # job. Remove `continue-on-error` when MEM-26 closes.
+  # A reading over the 500 KB target fails the nightly: a CSS Module edit changes only its own sheet
+  # (MEM-26) and tool pages link their shared CSS instead of inlining it (MEM-27), so an ordinary
+  # style deploy reads about 35 KB.
   update-cost:
     runs-on: ubuntu-latest
     timeout-minutes: 40
-    continue-on-error: true
     needs: scope
     if: always() && (github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.nightly)) && needs.scope.outputs.nightly_unchanged != 'true'
     permissions:

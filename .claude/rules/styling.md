@@ -110,18 +110,17 @@ for escaped literals (button/dropzone shadows and the body glow have been hardco
   were reused; the class swaps were redone on top of `main`. A long-lived styling branch that touches
   every island is rebuilt that way, not merged.
 
-## `build.inlineStylesheets: 'always'` is a measured decision
+## `build.inlineStylesheets: 'auto'` is a measured decision
 
-Every page inlines its whole stylesheet (1,060,961 raw bytes across 20 pages for 107,384 distinct),
-which is the main input to the duplication factor. `'auto'` was benchmarked head to head (2026-08-20)
-and lost every scenario: an external `<link rel="stylesheet">` is render-blocking, discovered only
-after parse, with no preload from Astro, so it adds a round trip before first paint and costs more
-first-view bytes (`/sign/`: 43,097 vs 41,723 brotli). Modelled: +150ms slow 4G, +60ms fast 4G, +25ms
-broadband. Multi-page does not rescue it (`'auto'` emits six sheets, only `global.css` is shared), and
-even an idealized hybrid needs 5 to 15 page views per session to repay one round trip against cold
-single-page search visits. `check-css-duplication.js` and `check-page-weight.js` read inline `<style>`
-only, so they go blind if this flips. Full numbers in the comment on `inlineStylesheets` in
-`astro.config.mjs`.
+Small sheets inline, larger ones are linked from `/shared/` under names that change only when the set
+of CSS modules in them does (MEM-26). Measured on both axes for MEM-27 (2026-10-29): `'always'`
+re-downloaded all 21 tool pages after any style edit (about 785 KB brotli per deploy for a returning
+visitor), `'auto'` downloads only the changed sheet (about 35 KB). The price is about one round trip
+before a cold first paint: +180 to +196 ms FCP on slow 4G, a few tens of ms on fast 4G and broadband.
+`'never'` costs more on first paint for no update gain. A page's CSS is its inline `<style>` blocks
+plus the sheets it links; every CSS guard reads both through `scripts/pageCss.mjs`, and
+`check-page-weight.js` counts linked sheets in the first-load budget. Full numbers in the comment on
+`inlineStylesheets` in `astro.config.mjs`.
 
 ## CI guardrails for CSS
 
@@ -139,7 +138,7 @@ only, so they go blind if this flips. Full numbers in the comment on `inlineStyl
   2026-09-15 (41 pages; they now live in `scripts/ratchet-limits.json` under `css`, and `npm run test:ratchet-raises` fails a raise): **0.65x** duplication (measured 0.64x), **10,000**
   worst-page dead bytes (9,802 on `/compress-image/`), **148** single-page utilities (32). Duplication is
   the heaviest page family's mean shipped bytes per page over the site's distinct CSS (families are
-  pages sharing an inlined entry sheet, grouped by hashing each page's largest `<style>` block, not a
+  pages sharing an entry sheet, grouped by hashing each page's largest CSS block, inline or linked, not a
   hand-maintained map) - `MAX_FAMILY_DUPLICATION`, DEBT-12 - so a new page never moves it. **The fix is to narrow what a
   page carries, never to raise a limit.**
   **Read the numbers off the script, not off this line.** It said 7.00x/5.79x/7,567/144 until
