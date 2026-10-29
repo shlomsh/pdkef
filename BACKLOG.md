@@ -71,7 +71,7 @@ Production errors you can see, small tools that clean up after themselves, and d
 | ID | P | Task | Note |
 | --- | --- | --- | --- |
 | DEBT-65 | P2 | [DEBT-65](backlog/tasks/DEBT-65.md) · Two layout-shift specs failed once each in the 2026-10-27 nightly | In progress |
-| MEM-26 | P1 | [MEM-26](backlog/tasks/MEM-26.md) · A CSS Module edit renames its own CSS chunk, not 25 JavaScript chunks |  |
+| MEM-26 | P1 | [MEM-26](backlog/tasks/MEM-26.md) · A CSS Module edit renames its own CSS chunk, not 25 JavaScript chunks | In progress |
 | ENC-16 | P2 | [ENC-16](backlog/tasks/ENC-16.md) · Locked-file state polish: Merge's calm notice, the panel's sizing, focus ring and file name | In progress |
 | MEM-24 | P3 | [MEM-24](backlog/tasks/MEM-24.md) · A service worker that cannot install, or never completes its precache, says so | In progress |
 
