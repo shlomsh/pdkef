@@ -2,7 +2,7 @@
 
 # Backlog
 
-The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 81 live: 13 up next, 11 then, 27 waiting, 30 parked.
+The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 82 live: 13 up next, 11 then, 28 waiting, 30 parked.
 
 ## Redact: finish removal
 
@@ -157,6 +157,7 @@ Mostly waiting on dated Search Console reads. Two small things can ship now.
 | --- | --- | --- | --- |
 | LOC-17 | P1 | [LOC-17](backlog/tasks/LOC-17.md) · Read 2026-11-08 · Indonesian pilot: kompres pdf 1 mb / di bawah 1 mb family | Waiting on 2026-11-08 |
 | SEO-47 | P1 | [SEO-47](backlog/tasks/SEO-47.md) · Page tools get the names people search: Organize, Rotate, Remove pages, Page numbers, Extract pages | Waiting on 2026-11-23 |
+| SEO-53 | P1 | [SEO-53](backlog/tasks/SEO-53.md) · URL Inspection's live test fails with "Robots.txt unreachable" while robots.txt serves 200 | Waiting on The robots.txt fetch detail in Crawl stats and the Vercel firewall log. Needs Shlomi: Crawl stats, host pdkef.com, robots.txt fetch (status and time of each failure); Vercel, Firewall, traffic for /robots.txt on 2026-10-30 14:45 to 14:55 UTC |
 | LOC-03 | P2 | [LOC-03](backlog/tasks/LOC-03.md) · Read 2026-11-06 · Hebrew pilot: three tool pages, phrased the way Israelis actually search, reviewed in-house | Waiting on 2026-11-06 |
 | LOC-13 | P2 | [LOC-13](backlog/tasks/LOC-13.md) · Spanish pilot: one target-size compress page for Mexico, on the niche this domain already wins | Waiting on LOC-17 and SEO-40 |
 | SEO-17 | P2 | [SEO-17](backlog/tasks/SEO-17.md) · Read 2026-11-06 · One content page on portal size limits, instead of three doorway pages | Waiting on 2026-11-06 |
