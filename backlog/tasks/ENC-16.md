@@ -1,10 +1,9 @@
 ---
 id: "ENC-16"
 title: "Locked-file state polish: Merge's calm notice, the panel's sizing, focus ring and file name"
-status: "in_progress"
+status: "done"
 priority: "P2"
 epic: "robustness"
-horizon: "now"
 depends_on: []
 ---
 
@@ -38,4 +37,17 @@ touch phone the intro folds and "Unlock it" sits at y=536 of 844, the same as a 
 - [x] Failing tests first for the behaviour changes (output name, no one-file box, calm notice, locked row,
       file chip, Replace line); `check:fast` green
 - [x] Screenshots at 390 and 1280: Merge (one locked, locked + plain), Organize, Sign, Hebrew Merge
-- [ ] Fresh reviewer pass; CI green after landing
+- [x] Fresh reviewer pass; CI green after landing
+
+## Review (2026-10-30)
+
+A fresh reviewer read 36e2ac51 against the current code (Merge has since split into components and hooks) and
+found no defect: the output name skips a locked leader (`PdfMergeTool.tsx`), the calm notice is `role="status"`
+(`MergeNotices.tsx`), and `useLockedProbe.ts` drops a stale probe when the file is removed or replaced. CI was
+green on the landing push (7764998f, run 40397071709). Two notes, neither a change:
+
+- When the probe cannot classify a single locked file, Merge shows the inline notice with the one-file box. That is
+  the fallback `useLockedProbe.ts` documents, and adding a file leads to "Remove it and merge the rest".
+- With an unreadable file listed before a locked one, the red unreadable banner shows first and the locked
+  file's Unlock notice waits until it is removed (`mergeView.ts` reports the first failed entry). Unchanged
+  from before this ticket.
