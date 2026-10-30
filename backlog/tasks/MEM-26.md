@@ -1,9 +1,8 @@
 ---
 id: "MEM-26"
 title: "A CSS Module edit renames its own CSS chunk, not 25 JavaScript chunks"
-status: "in_progress"
+status: "done"
 priority: "P1"
-horizon: "now"
 epic: "robustness"
 depends_on: []
 ---
@@ -32,7 +31,7 @@ depends_on: []
 
 - [x] A unit or build test that edits one CSS Module between two builds and counts the renamed chunks.
 - [x] 42923db to 1b72a77 rebuilt with the fix reads under 500,000 bytes, or the remainder is named.
-- [ ] `continue-on-error` and its pin test come out of the update-cost job, and the next nightly is green. of the update-cost job, and the next nightly is green.
+- [x] `continue-on-error` and its pin test come out of the update-cost job, and the next nightly is green.
 
 ## Done (2026-10-29)
 
@@ -81,3 +80,6 @@ depends_on: []
   pins that the job gates. The first nightly after it compares d0e79e1f with the revert (4e52df2c), which
   still inlined every sheet, so it reads high and fails once; the next ordinary deploy is the first real
   reading. This ticket closes when that one is green.
+- **Closed 2026-10-30:** the nightly (run 41037248652 on 77867f4d) compared the deploy of 89a665de with the
+  one after it and read 19,626 bytes against the 500,000 target, with the job gating
+  (`ci-update-cost.test.mjs` asserts `update-cost` has no `continue-on-error`).

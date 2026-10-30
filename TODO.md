@@ -9,7 +9,6 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 ### Robustness and debt
 
 - [DEBT-65](backlog/tasks/DEBT-65.md) P2 · Two layout-shift specs failed once each in the 2026-10-27 nightly (in progress)
-- [MEM-26](backlog/tasks/MEM-26.md) P1 · A CSS Module edit renames its own CSS chunk, not 25 JavaScript chunks (in progress)
 - [ENC-16](backlog/tasks/ENC-16.md) P2 · Locked-file state polish: Merge's calm notice, the panel's sizing, focus ring and file name (in progress)
 - [MEM-24](backlog/tasks/MEM-24.md) P3 · A service worker that cannot install, or never completes its precache, says so (in progress)
 
@@ -24,7 +23,6 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 ### Search and languages
 
 - [SEO-03](backlog/tasks/SEO-03.md) P1 · External signals: the work that moves the constraint and does not live in this repo
-- [SEO-47](backlog/tasks/SEO-47.md) P1 · Page tools get the names people search: Organize, Rotate, Remove pages, Page numbers, Extract pages (in progress)
 - [LOC-18](backlog/tasks/LOC-18.md) P2 · Hebrew edition sign-off: Israeli portal-limit guides and Shlomi's own /he/ read-through (in progress)
 - [SEO-46](backlog/tasks/SEO-46.md) P2 · Real star ratings: ask once when a tool finishes, bake an honest aggregate into each tool page, and win the SERP stars (in progress)
 - [SEO-48](backlog/tasks/SEO-48.md) P2 · Ratings carry country and region, and a person may add a comment (in progress)
@@ -42,6 +40,7 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 - 2026-11-07: [SEO-40](backlog/tasks/SEO-40.md) · The November eight-week reads
 - 2026-11-07: [SEO-44](backlog/tasks/SEO-44.md) · /split/ ranks 51.6 for a head term that Compress, on the same domain, ranks 9.4 for: find the page-level difference
 - 2026-11-08: [LOC-17](backlog/tasks/LOC-17.md) · Read 2026-11-08 · Indonesian pilot: kompres pdf 1 mb / di bawah 1 mb family
+- 2026-11-23: [SEO-47](backlog/tasks/SEO-47.md) · Page tools get the names people search: Organize, Rotate, Remove pages, Page numbers, Extract pages
 - A full UTC day of production reads on a stamped build with the fix: [DEBT-44](backlog/tasks/DEBT-44.md) · Every counted failure leaves a trace in the error reports
 - An Android phone: [MOBI-01](backlog/tasks/MOBI-01.md) · Verify the Android share-sheet round trip on real hardware
 - A full UTC day of production reads on a build with the fix: [RED-57](backlog/tasks/RED-57.md) · Redact export never embeds an empty page picture on a large page
