@@ -2,7 +2,7 @@
 
 # Backlog
 
-The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 83 live: 14 up next, 12 then, 27 waiting, 30 parked.
+The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 81 live: 13 up next, 11 then, 27 waiting, 30 parked.
 
 ## Redact: finish removal
 
@@ -71,7 +71,6 @@ Production errors you can see, small tools that clean up after themselves, and d
 | ID | P | Task | Note |
 | --- | --- | --- | --- |
 | DEBT-65 | P2 | [DEBT-65](backlog/tasks/DEBT-65.md) · Two layout-shift specs failed once each in the 2026-10-27 nightly | In progress |
-| ENC-16 | P2 | [ENC-16](backlog/tasks/ENC-16.md) · Locked-file state polish: Merge's calm notice, the panel's sizing, focus ring and file name | In progress |
 | MEM-24 | P3 | [MEM-24](backlog/tasks/MEM-24.md) · A service worker that cannot install, or never completes its precache, says so | In progress |
 
 ### Then, in order
@@ -152,12 +151,6 @@ Mostly waiting on dated Search Console reads. Two small things can ship now.
 | SEO-48 | P2 | [SEO-48](backlog/tasks/SEO-48.md) · Ratings carry country and region, and a person may add a comment | In progress |
 | SCAN-01 | P3 | [SCAN-01](backlog/tasks/SCAN-01.md) · Scan to PDF: its own tool at /scan-to-pdf/, sharing Image to PDF's engine, plus a how-to-scan-to-PDF guide | In progress |
 
-### Then, in order
-
-| ID | P | Task | Note |
-| --- | --- | --- | --- |
-| SEO-52 | P2 | [SEO-52](backlog/tasks/SEO-52.md) · /merge/ and /split/ show only for the brand: compare their copy with /compress/ and /redact/, which held |  |
-
 ### Waiting
 
 | ID | P | Task | Note |
@@ -219,9 +212,9 @@ Done and retired tickets are not listed. Their files stay in [backlog/tasks/](ba
 - Sign: finish fill mode: 3 done, 1 retired
 - Tool pages: show the verb: 8 done, 0 retired
 - Form detector accuracy: 19 done, 1 retired
-- Robustness and debt: 79 done, 4 retired
+- Robustness and debt: 80 done, 4 retired
 - Unify the tools, narrow the graph: 95 done, 0 retired
-- Search and languages: 10 done, 0 retired
+- Search and languages: 11 done, 0 retired
 - Polish: 19 done, 1 retired
 - Sign tool architecture: 37 done, 1 retired
 - Editor architecture: 14 done, 0 retired
