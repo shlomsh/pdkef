@@ -45,6 +45,14 @@ Vercel's automatic traffic filtering (system mitigations or bot protection) chal
 fetcher from a US address, which this machine cannot imitate. Vercel has challenged scripted requests to
 pdkef.com before (403 `x-vercel-mitigated: challenge`). Inferred, not seen.
 
+## Reads, 2026-10-30 afternoon
+
+- **Vercel Firewall, past day:** Bot Protection inactive, System Mitigations active, one custom rule. Allowed
+  24.5k, Denied 134, Challenged 283, Rate limited 13; the DDoS Mitigation rule acted 417 times. The challenged
+  and denied spikes on the chart sit in the afternoon, near the live tests. Who they hit is not yet read.
+- **Crawl stats, `www.pdkef.com` host status** (last updated 10-28): no problems in 90 days, robots.txt fetch
+  at 0%. The "Problems in the past" is on the `pdkef.com` host, whose page is still to read.
+
 ## Next
 
 1. Crawl stats, click host `pdkef.com`: the robots.txt fetch chart and its failures (dates, response).
