@@ -59,6 +59,9 @@ pdkef.com before (403 `x-vercel-mitigated: challenge`). Inferred, not seen.
   `/config.json` and `/env.js` 4 each. No Google AS, no Google user agent and no `/robots.txt` in any top five.
   Each list stops at five rows, so two live-test fetches could sit below the cut: this argues against the
   Vercel suspect without excluding it.
+- **Vercel project overview:** the one persistent firewall action is a Challenge from about 23:30 on 10-29,
+  33 requests, which matches the Partner address (Shlomi's connection, during the MEM-29 scripted checks),
+  not Google. Production is 952b691; later pushes changed only tickets and docs, so their builds cancelled.
 
 ## Next
 
