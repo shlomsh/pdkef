@@ -83,3 +83,7 @@ Stems, case-insensitive. Each page has one `<h1>` and one ordered steps list.
 `/merge/` and `/split/` to match the longer pages would be writing to a filter, which the voice guide rules
 out. The effort goes to SEO-03, and the 2026-11-07 read (SEO-40, SEO-44) shows whether the two pages
 come back on their own, as Google's earlier tests of `/merge/` came and went (section 2 of the findings doc).
+
+The September 2026 spam update ran 2026-09-24 to 2026-10-08 (Search Status Dashboard), the day `/merge/`'s
+page-one sample stopped. A date coincidence, not a finding; SEO-53 (the live test's robots.txt failure) is
+the other open question to weigh at that read.
