@@ -43,7 +43,6 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 - A full UTC day of production reads on a stamped build with the fix: [DEBT-44](backlog/tasks/DEBT-44.md) · Every counted failure leaves a trace in the error reports
 - An Android phone: [MOBI-01](backlog/tasks/MOBI-01.md) · Verify the Android share-sheet round trip on real hardware
 - A full UTC day of production reads on a build with the fix: [RED-57](backlog/tasks/RED-57.md) · Redact export never embeds an empty page picture on a large page
-- The robots.txt fetch detail in Crawl stats and the Vercel firewall log: [SEO-53](backlog/tasks/SEO-53.md) · URL Inspection's live test fails with "Robots.txt unreachable" while robots.txt serves 200
 - A full UTC day of production reads on a stamped build with the fix: [DEBT-42](backlog/tasks/DEBT-42.md) · pdf.js runs on browsers that lack the built-ins it calls
 - A full UTC day of production reads on a stamped build with the fix: [DEBT-51](backlog/tasks/DEBT-51.md) · Redact and Sign export from the bytes they hold, so a file gone from disk still exports
 - LOC-17 and SEO-40: [LOC-13](backlog/tasks/LOC-13.md) · Spanish pilot: one target-size compress page for Mexico, on the niche this domain already wins
@@ -65,7 +64,6 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 ## Needs Shlomi
 
 - [MOBI-01](backlog/tasks/MOBI-01.md) · Half an hour with an Android phone
-- [SEO-53](backlog/tasks/SEO-53.md) · Crawl stats, host pdkef.com, robots.txt fetch (status and time of each failure); Vercel, Firewall, traffic for /robots.txt on 2026-10-30 14:45 to 14:55 UTC
 - [DEBT-53](backlog/tasks/DEBT-53.md) · A check on your iPhone
 - [SEO-40](backlog/tasks/SEO-40.md) · The Search Console exports
 - [SEO-42](backlog/tasks/SEO-42.md) · The /compress/ query export (28 days before and after 2026-10-08) and /compress-image/ filtered to queries containing pdf

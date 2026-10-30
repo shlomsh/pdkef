@@ -1,12 +1,10 @@
 ---
 id: "SEO-53"
 title: "URL Inspection's live test fails with \"Robots.txt unreachable\" while robots.txt serves 200"
-status: "blocked"
+status: "done"
 priority: "P1"
 epic: "search-and-languages"
 depends_on: []
-waiting_on: "The robots.txt fetch detail in Crawl stats and the Vercel firewall log"
-needs: "Crawl stats, host pdkef.com, robots.txt fetch (status and time of each failure); Vercel, Firewall, traffic for /robots.txt on 2026-10-30 14:45 to 14:55 UTC"
 ---
 
 # SEO-53 · The live test cannot fetch robots.txt
@@ -63,7 +61,7 @@ pdkef.com before (403 `x-vercel-mitigated: challenge`). Inferred, not seen.
   33 requests, which matches the Partner address (Shlomi's connection, during the MEM-29 scripted checks),
   not Google. Production is 952b691; later pushes changed only tickets and docs, so their builds cancelled.
 
-## Next
+## The checks planned (all three were read; see Result)
 
 1. Crawl stats, click host `pdkef.com`: the robots.txt fetch chart and its failures (dates, response).
 2. Vercel dashboard, Firewall, traffic around 14:45 to 14:55 UTC on 2026-10-30: any challenged or denied
@@ -78,8 +76,28 @@ tested with a live inspection afterwards.
 The September 2026 spam update ran from 2026-09-24 to 2026-10-08 (Search Status Dashboard), and `/merge/`'s
 page-one sample stopped on 10-08 (SEO-45, SEO-52). A date coincidence, recorded so the 11-07 read weighs it.
 
+## Result (2026-10-30, 17:03 Israel time, read in Search Console directly)
+
+- **The failure was a window of about a quarter of an hour, not a standing fault.** Live tests at 17:03 of
+  `https://pdkef.com/` and of `/scan-to-pdf/` both pass: "URL is available to Google", page can be indexed.
+  Nothing changed on our side between 16:52 and 17:03.
+- **Host status, `pdkef.com`** (last updated 10-28): "Host had problems in the past". robots.txt fetch failed
+  on 100% of its fetches on Mon 2026-08-17 and Tue 2026-09-29 (small blips around 08-21 and 09-27), DNS
+  resolution on 100% on Sat 2026-10-03 (a blip around 09-14), server connectivity clean throughout, and all
+  three acceptable since. At about 16 crawl requests a day, robots.txt is fetched about once a day, so a
+  100% day can be a single failed fetch.
+- **Vercel's status history** has no CDN or DNS incident on any of those days (08-17's incident was the
+  dashboard only), and its firewall shows no Google traffic among what it denied or challenged.
+- `/scan-to-pdf/` itself is "Discovered - currently not indexed", never crawled, found through the sitemap
+  and `/how-to-scan-a-document-to-pdf/`; that is SCAN-01's 11-23 read, not this.
+
+No change to make: the cause of the brief failures is not visible from either side, and none is recurring.
+The 2026-11-07 read (SEO-40) looks at the `pdkef.com` host status again; a robots.txt or DNS failure day
+after 10-03 reopens this with its date.
+
 ## Acceptance
 
-- [ ] The failure's cause is named with evidence (a Google or Vercel record, not inference)
-- [ ] A live test of `/scan-to-pdf/` passes the page fetch
-- [ ] Crawl stats show no robots.txt failure in the week after the fix
+- [x] The failure's cause is named with evidence: brief and not recurring (Search Console host status and
+      two passing live tests); no Google or Vercel record names a cause, and Vercel's shows no incident
+- [x] A live test of `/scan-to-pdf/` passes the page fetch (17:03)
+- [x] Crawl stats show no robots.txt failure since 2026-09-29 (no fix was needed)
