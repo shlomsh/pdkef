@@ -120,3 +120,7 @@ per page, the flatten animation, the corner loupe, small previews for iPhone mem
 dock). Still open: an Android phone pass, and the four-week Search Console read. A page with a dark
 band along one edge still defeats the edge guess; an edge-line detector is in its own session.
 
+
+2026-10-30: `/scan-to-pdf/` was still "Discovered - currently not indexed", never crawled (found through the
+sitemap and `/how-to-scan-a-document-to-pdf/`). Its live test passed at 17:03 (SEO-53 has the brief robots.txt
+failure before it), and Shlomi requested indexing at 17:06. The 2026-11-23 read starts from that request.
