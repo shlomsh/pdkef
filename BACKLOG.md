@@ -2,7 +2,7 @@
 
 # Backlog
 
-The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 84 live: 16 up next, 12 then, 26 waiting, 30 parked.
+The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 83 live: 14 up next, 12 then, 27 waiting, 30 parked.
 
 ## Redact: finish removal
 
@@ -71,7 +71,6 @@ Production errors you can see, small tools that clean up after themselves, and d
 | ID | P | Task | Note |
 | --- | --- | --- | --- |
 | DEBT-65 | P2 | [DEBT-65](backlog/tasks/DEBT-65.md) · Two layout-shift specs failed once each in the 2026-10-27 nightly | In progress |
-| MEM-26 | P1 | [MEM-26](backlog/tasks/MEM-26.md) · A CSS Module edit renames its own CSS chunk, not 25 JavaScript chunks | In progress |
 | ENC-16 | P2 | [ENC-16](backlog/tasks/ENC-16.md) · Locked-file state polish: Merge's calm notice, the panel's sizing, focus ring and file name | In progress |
 | MEM-24 | P3 | [MEM-24](backlog/tasks/MEM-24.md) · A service worker that cannot install, or never completes its precache, says so | In progress |
 
@@ -148,7 +147,6 @@ Mostly waiting on dated Search Console reads. Two small things can ship now.
 | ID | P | Task | Note |
 | --- | --- | --- | --- |
 | SEO-03 | P1 | [SEO-03](backlog/tasks/SEO-03.md) · External signals: the work that moves the constraint and does not live in this repo |  |
-| SEO-47 | P1 | [SEO-47](backlog/tasks/SEO-47.md) · Page tools get the names people search: Organize, Rotate, Remove pages, Page numbers, Extract pages | In progress |
 | LOC-18 | P2 | [LOC-18](backlog/tasks/LOC-18.md) · Hebrew edition sign-off: Israeli portal-limit guides and Shlomi's own /he/ read-through | In progress |
 | SEO-46 | P2 | [SEO-46](backlog/tasks/SEO-46.md) · Real star ratings: ask once when a tool finishes, bake an honest aggregate into each tool page, and win the SERP stars | In progress |
 | SEO-48 | P2 | [SEO-48](backlog/tasks/SEO-48.md) · Ratings carry country and region, and a person may add a comment | In progress |
@@ -165,6 +163,7 @@ Mostly waiting on dated Search Console reads. Two small things can ship now.
 | ID | P | Task | Note |
 | --- | --- | --- | --- |
 | LOC-17 | P1 | [LOC-17](backlog/tasks/LOC-17.md) · Read 2026-11-08 · Indonesian pilot: kompres pdf 1 mb / di bawah 1 mb family | Waiting on 2026-11-08 |
+| SEO-47 | P1 | [SEO-47](backlog/tasks/SEO-47.md) · Page tools get the names people search: Organize, Rotate, Remove pages, Page numbers, Extract pages | Waiting on 2026-11-23 |
 | LOC-03 | P2 | [LOC-03](backlog/tasks/LOC-03.md) · Read 2026-11-06 · Hebrew pilot: three tool pages, phrased the way Israelis actually search, reviewed in-house | Waiting on 2026-11-06 |
 | LOC-13 | P2 | [LOC-13](backlog/tasks/LOC-13.md) · Spanish pilot: one target-size compress page for Mexico, on the niche this domain already wins | Waiting on LOC-17 and SEO-40 |
 | SEO-17 | P2 | [SEO-17](backlog/tasks/SEO-17.md) · Read 2026-11-06 · One content page on portal size limits, instead of three doorway pages | Waiting on 2026-11-06 |
@@ -220,7 +219,7 @@ Done and retired tickets are not listed. Their files stay in [backlog/tasks/](ba
 - Sign: finish fill mode: 3 done, 1 retired
 - Tool pages: show the verb: 8 done, 0 retired
 - Form detector accuracy: 19 done, 1 retired
-- Robustness and debt: 78 done, 4 retired
+- Robustness and debt: 79 done, 4 retired
 - Unify the tools, narrow the graph: 95 done, 0 retired
 - Search and languages: 10 done, 0 retired
 - Polish: 19 done, 1 retired

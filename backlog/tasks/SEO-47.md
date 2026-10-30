@@ -1,11 +1,10 @@
 ---
 id: "SEO-47"
 title: "Page tools get the names people search: Organize, Rotate, Remove pages, Page numbers, Extract pages"
-status: "in_progress"
+status: "blocked"
 priority: "P1"
 epic: "search-and-languages"
-horizon: "now"
-order: 1
+waiting_on: "2026-11-23"
 ---
 
 # SEO-47 · Name the page tools after the searches, one page per job
@@ -107,5 +106,5 @@ Exported helpers next to `tools`: `toolIdOf(entry)`, `listedTools` (entries with
       (pdkef.com, 2026-10-26: all five 200 and in sitemap.xml, `/edit-pdf/` one 308)
 - [x] Every internal link points at the new URLs; sitemap carries the five (checked in `dist/`, 2026-10-26)
 - [x] Full CI chain green (`check:push`, then CI run 40361495800 on 5f6a8a87)
-- [ ] Shlomi requests indexing for the five after deploy
+- [x] Shlomi requests indexing for the five after deploy (2026-10-26, noted under "Notes from the build")
 - [ ] 2026-11-23 read: URL Inspection on the five (crawled or not), and Search Console impressions per page
