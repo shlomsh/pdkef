@@ -53,6 +53,13 @@ pdkef.com before (403 `x-vercel-mitigated: challenge`). Inferred, not seen.
 - **Crawl stats, `www.pdkef.com` host status** (last updated 10-28): no problems in 90 days, robots.txt fetch
   at 0%. The "Problems in the past" is on the `pdkef.com` host, whose page is still to read.
 
+- **Vercel Traffic filtered to DDoS Mitigation, past day:** top AS Techoff Srv 249, then 93, 35, Partner
+  (this machine's checks, `curl/8.7.1`) 33, Leibniz-Rechenzentrum 2; top agents a Windows browser string 242,
+  WP-Safe-Scanner 35, curl 32, a WebKit string 10, cohere-ai 8; top paths `/sw.js` 31, `/` 17, `/config.js`,
+  `/config.json` and `/env.js` 4 each. No Google AS, no Google user agent and no `/robots.txt` in any top five.
+  Each list stops at five rows, so two live-test fetches could sit below the cut: this argues against the
+  Vercel suspect without excluding it.
+
 ## Next
 
 1. Crawl stats, click host `pdkef.com`: the robots.txt fetch chart and its failures (dates, response).
