@@ -68,3 +68,10 @@ Search Console, `/redact/`, queries containing "redact" against queries containi
   shown not to drop. Only with the freeze's conditions met.
 - **Redact queries are absent or beyond page two:** it is an authority fight (SEO-03), not a title. Blur
   keeps the lead and this closes.
+
+## Evidence so far
+
+- **2026-10-30, Shlomi:** `/redact/` does not show for `redact pdf online free`. That leans toward the second
+  branch, but one search cannot tell position 25 from no ranking at all, and results vary by searcher and
+  place. The Search Console read still decides: whether redact queries have impressions on `/redact/` at all,
+  and at what position.
