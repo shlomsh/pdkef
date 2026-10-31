@@ -92,9 +92,9 @@ export function findTextRows(win: RasterWindow): TextRow[] {
     if (height < MIN_ROW_HEIGHT) continue;
     const colInk: boolean[] = [];
     for (let x = 0; x < width; x += 1) {
-      let any = false;
-      for (let y = top; y < bottom && !any; y += 1) any = mask[y * width + x] === 1;
-      colInk.push(any);
+      let inked = false;
+      for (let y = top; y < bottom && !inked; y += 1) inked = mask[y * width + x] === 1;
+      colInk.push(inked);
     }
     const first = colInk.indexOf(true);
     if (first < 0) continue;
