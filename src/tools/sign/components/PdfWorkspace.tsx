@@ -298,9 +298,14 @@ export default function PdfWorkspace({
     const element = elementForSlot(slot, text, slotElementBase(slot, createElementId()));
     if (style.fontSize === undefined) dispatch({ type: 'SET_CARRIED', payload: { fontSize: element.fontSize } });
     dispatch({ type: 'ADD_ELEMENT', payload: element });
+    // Text places once (SIGN-45): a slot commit is that placement, so an armed
+    // Text disarms like handlePageClick's does (a locked one stays). Nothing
+    // armed means a keyboard fill, which has nothing to disarm. Focus is the
+    // keyboard's, so the Enter hop to the next field is unaffected.
+    if (fillTool === 'text') dispatch({ type: 'DISARM_TOOL' });
     logAction('add', 'ADD_TEXT', slot.pageIndex, t.addedTextBoxDescription, [captureAddedElement(element, elements.length)]);
     recordAction('fill_field');
-  }, [slotElementBase, style, dispatch, logAction, t, elements.length]);
+  }, [slotElementBase, style, dispatch, logAction, t, elements.length, fillTool]);
 
   // --- Stable element mutation callbacks (hoisted out of the map loop) ---
   // Hoisted so the map loop does not allocate a closure per element; several

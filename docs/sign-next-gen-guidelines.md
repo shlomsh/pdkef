@@ -31,7 +31,7 @@ Open a form on a phone. The keyboard's own next and previous hop between fields,
 - The platform's own next and previous do the hopping between fields, in reading order, across pages: there are no arrows of our own (§3). Landing on a field zooms the view onto it so it is readable, with its printed label in view. There is no count and no progress over elements.
 - A hop focuses a real field: the caret is live at once, ready to type. A hop never shows move or resize handles.
 - False positives and negatives stay first-class, and cheap. A wrong guess costs one extra press of next and never reaches the file. A missed spot is one tap. An empty field made by a tap disappears when left. There is no "Remove" and no verdict UI (§3).
-- A tap on a spot nothing marks adds a field there (Text by default), lined up with the print by the local help (SNG-09), and it joins the hop order at once. A tap within half a fingertip (22px) of a detected spot, or on its printed label, goes to that spot instead of creating a new one (§2.5).
+- With Text armed, a tap on a spot nothing marks adds a field there (once, then Text disarms; a double-click locks it), lined up with the print by the local help (SNG-09), and it joins the hop order at once. A tap within half a fingertip (22px) of a detected spot, or on its printed label, goes to that spot instead of creating a new one (§2.5).
 - Move and resize are intentional: handles appear only after a direct tap on an element. Only a selected element moves or resizes. A pinch only zooms and never moves or resizes anything (a second finger cancels any one-finger claim, §2.2).
 - Pinch is the zoom. Pinching out past the whole page switches to a grid of pages only deliberately (§4); a "Pages" control in the bar does the same.
 - The document takes the screen: one row of bar (44px targets), no second row, minimal gutters around pages, no redundant lines of copy, no persistent coach bands (a first-open hint, if any, disappears on first use).
@@ -69,10 +69,10 @@ Open a form on a phone. The keyboard's own next and previous hop between fields,
 | Input | Outcome |
 |---|---|
 | Tap, within reach of a detected spot (§2.5), or on its printed label | Goes to that spot. Between two rows, the field whose label was tapped wins (SNG-14). |
-| Tap, clearly away from any detected spot | Adds a field there (Text by default), lined up with the print by the local help (§1, SNG-09), and it joins the hop order in reading order. |
-| Tap, empty page, while editing text | Ends typing only; nothing new is created. An empty field left this way disappears, with no undo step. A second tap on that same spot adds a field (SNG-14). |
+| Tap, clearly away from any detected spot | With nothing armed, only selects or deselects. With Text armed, adds a field there (once, then Text disarms; a double-click locks it), lined up with the print by the local help (§1, SNG-09), and it joins the hop order in reading order. |
+| Tap, empty page, while editing text | Ends typing only; nothing new is created. An empty field left this way disappears, with no undo step. A second tap on that same spot only selects or deselects unless Text is armed (SIGN-45). |
 | Tap, the page, an element selected (handles) | Deselect: one level per tap, as Escape. |
-| Tap, the page, a tool armed | As today: the tool places its mark and disarms, unless a double-tap locked it (SIGN-30/31). Date fills today's date once, in production's date formats, then returns to Text (SNG-14). Whether ticks and crosses stay armed by default is open (#21). |
+| Tap, the page, a tool armed | As today: the tool places its mark and disarms, unless a double-tap locked it (SIGN-30/31). Date fills today's date once, in production's date formats, then disarms to nothing armed (SIGN-45). Whether ticks and crosses stay armed by default is open (#21). |
 | Tap, unselected element | Selects it with handles (a direct tap; §2.1). A text element also opens for editing in the same tap (MOBI-21). |
 | Tap, the selected element | Text re-opens editing. Anything else is acted on through the bar. |
 | One-finger drag, blank page or an element that is not selected with handles | Native scroll. The element ignores the touch (owner, 2026-09-25). |
@@ -335,7 +335,7 @@ Builds on UX§9.
 | 0 | The mental model for reading and filling a page about 2.5 times wider than the phone | **Decided (owner, 2026-09-25):** hop between elements, zoomed in, via the platform's own next/previous (refined by SNG-14); detection suggests where to go, and false positives and false negatives are first-class |
 | 1 | Double-tap on the page | Leave it unbound: double-tap already locks a tool, and no competitor zooms on it |
 | 2 | Long-press | Leave it unbound until a real need is named |
-| 3 | What a tap on the page places | The chosen mark, Text by default |
+| 3 | What a tap on the page places | The chosen mark; nothing armed places nothing (SIGN-45) |
 | 4 | "Only a selected element moves" | Touch only; the mouse keeps select-and-drag |
 | 5 | Previous (∧) with nothing selected | **Superseded by SNG-14:** the platform's own next/previous only appear once a field has focus; our "nothing selected" bar has no arrows to disable (§2.6, §3) |
 | 6 | Checkboxes, dates and signatures in the hop order | **Superseded by SNG-14:** checkboxes are never native stops: WebKit's `isAssistableElement` covers text fields, textareas, selects and contenteditable only, and skips real checkboxes regardless of our markup. Ticks and crosses are reached by tap, not by hopping (§1, §3). A date typed as text remains a stop. Whether a signature spot can be one, or is reached by tap like a tick, is now open |

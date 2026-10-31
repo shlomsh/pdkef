@@ -76,7 +76,11 @@ contract; change them first, then the pieces.
   the detected tick boxes (no fill input, so no text); Date, the empty detected slots; a mark, the detected tick boxes; any
   other tool, nothing. While a tool other than Text is armed, fill inputs don't take taps
   (`taps-go-to-tool`), so the tap reaches that tool; with nothing armed the empty slots don't take
-  taps either (`taps-skip-slots`), while text already placed stays clickable.
+  taps either (`taps-skip-slots`), while text already placed stays clickable. Keyboard Tab into a
+  detected slot with nothing armed stays allowed (a keyboard user choosing to fill); that focused slot
+  takes clicks (`.slot:not(:focus)`), so the caret moves instead of typing being dismissed. Text places
+  once: committing a slot with Text armed disarms it (a double-click lock stays), and the Enter hop to
+  the next field is keyboard focus, so it still works.
 - **Hints.** A slot shows a faint frame at rest. The target a tap would reach for the armed tool
   (`FillTool`) gets a distinct "droppable" look (never with nothing armed: no text target is droppable then) while the mouse hovers or a finger is down near it.
   With nothing in reach there is no preview.
