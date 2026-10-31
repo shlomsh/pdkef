@@ -1,10 +1,9 @@
 ---
 id: "SIGN-43"
 title: "Sign: turn a sideways page a quarter turn, next to Clear page"
-status: "in_progress"
+status: "done"
 priority: "P2"
 epic: "polish"
-horizon: "now"
 depends_on: []
 ---
 
@@ -32,11 +31,15 @@ sideways page means turning it. He wants a simple way to rotate a page, next to 
 
 ## Acceptance
 
-- [ ] `pageTurn.ts` is pure and unit-tested: four turns are the identity for points, boxes and every
+- [x] `pageTurn.ts` is pure and unit-tested: four turns are the identity for points, boxes and every
   element type, a covering box swaps width and height, an upright mark keeps its size in points.
-- [ ] Pressing Rotate turns the page on screen and every element on it stays on the same content.
-- [ ] Undo turns it back; a draft restore brings the page back turned.
-- [ ] The exported PDF opens with the page turned and the elements where they were on screen
+- [x] Pressing Rotate turns the page on screen and every element on it stays on the same content.
+- [x] Undo turns it back; a draft restore brings the page back turned.
+- [x] The exported PDF opens with the page turned and the elements where they were on screen
   (a unit test on `signPdf`, and one e2e).
-- [ ] Fill mode's hops and field hints follow a turned page.
-- [ ] Redact's page header is unchanged.
+- [x] Fill mode's hops and field hints follow a turned page.
+- [x] Redact's page header is unchanged.
+
+## Done 2026-10-31
+
+Rotate turns one page a quarter turn on screen and in the export, and every mark stays on its content. A fresh review's seven findings are fixed: field hops and hints read the same turned regions as the workspace (`useDocumentFields`), a page that is only turned counts as something to export, a turn closes an open fill slot, Rotate waits for the page's measured size, and turn history is validated. Upright text turns by its line box and, on a half turn, by its measured width, so text typed on a field stays on that field. e2e `sign-rotate-page.spec.js` (turn, undo, restore, export) passes in Chromium and desktop WebKit; Redact's header check moved to `redact-page-header-no-rotate.spec.js`. Checked at 390px with touch in Hebrew: the page turns and a comment badge stays upright.

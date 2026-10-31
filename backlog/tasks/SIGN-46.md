@@ -1,10 +1,9 @@
 ---
 id: "SIGN-46"
 title: "Sign: a highlighter that lays a straight band along the line under your finger"
-status: "in_progress"
+status: "done"
 priority: "P2"
 epic: "polish"
-horizon: "now"
 depends_on: []
 ---
 
@@ -22,14 +21,18 @@ carries it onto the following lines. The text under it stays as dark in the expo
 
 ## Acceptance
 
-- [ ] `findTextRow` is a pure function with unit tests on synthetic rasters, a Hebrew line, and the
+- [x] `findTextRow` is a pure function with unit tests on synthetic rasters, a Hebrew line, and the
   five corpus scans in `src/tools/sign/lib/fields/corpus/snap/pages/`, each seen failing first.
-- [ ] A swipe makes one `highlight` element with one band per covered line; one undo removes it.
-- [ ] The band's height follows the line under the press, and its ends settle on word gaps.
-- [ ] Six colors, yellow by default; the chosen color is remembered per document and as the app-wide
+- [x] A swipe makes one `highlight` element with one band per covered line; one undo removes it.
+- [x] The band's height follows the line under the press, and its ends settle on word gaps.
+- [x] Six colors, yellow by default; the chosen color is remembered per document and as the app-wide
   default, and never changes the shape or text color.
-- [ ] A highlight survives a draft restore, moves, recolors and deletes.
-- [ ] The export draws each band with Multiply blending; a unit test reads the blend mode back.
-- [ ] One e2e on a digital sample and one on a scanned page check the band sits on the line, at a
+- [x] A highlight survives a draft restore, moves, recolors and deletes.
+- [x] The export draws each band with Multiply blending; a unit test reads the blend mode back.
+- [x] One e2e on a digital sample and one on a scanned page check the band sits on the line, at a
   phone and a desktop size.
-- [ ] The toolbar still fits at 320px wide (`sign-toolbar-labels-fit.spec.js`).
+- [x] The toolbar still fits at 320px wide (`sign-toolbar-labels-fit.spec.js`).
+
+## Done 2026-10-31
+
+The highlighter lays a straight band on the line under a swipe, one band per covered line, in six colors with yellow first, remembered per document. The export draws the bands with Multiply. e2e `sign-highlight.spec.js` (digital, scanned and two lines, at desktop and phone with real touch) passes. With the Highlight button Sign's phone toolbar has thirteen controls: decided 2026-10-31 to keep 7+6 at every phone width and let buttons go under 44px there (40.6px at 360, about 35px at 320, every label inside its button). `sign-toolbar-labels-fit.spec.js` expects 7+6 and passes from 919px down to 239px.
