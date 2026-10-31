@@ -1,13 +1,13 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
 import type { SignMessages } from '#editor/registry/messages.ts';
 import type { CommentCard } from '../../lib/highlight/commentCards.ts';
-import { commentDateLabel } from '../../lib/highlight/commentDate.ts';
 import { commentPatch, type CommentPatch } from '../../lib/highlight/commentCommit.ts';
 import styles from './CommentRail.module.css';
 
 type Patch = CommentPatch;
 
-/** SIGN-44: one comment card's content (rail card, later the phone sheet). Draft is local until Comment. */
+/** SIGN-44: one comment card's content (rail card, later the phone sheet). Draft is local until Comment.
+ * The card shows the comment alone; who and when stay in the saved annotation (/M), not on screen. */
 export function CommentCardBody({ card, active, messages, onSelect, onChange }: {
   card: CommentCard;
   active: boolean;
@@ -51,35 +51,9 @@ export function CommentCardBody({ card, active, messages, onSelect, onChange }: 
     else if (event.key === 'Enter' && (event.ctrlKey || event.metaKey)) { event.preventDefault(); save(); }
   };
 
-  const date = commentDateLabel(card.commentedAt, Date.now(), messages.lang);
   const blankNew = card.isNew && !draft.trim();
   return (
     <div class={styles.body} onClick={() => { if (!card.isNew && !active) onSelect(); }}>
-      <div class={styles.head}>
-        <span class={styles.avatar} style={{ background: card.color }} />
-        <div class={styles.who}>
-          <span class={styles.author}>{messages.commentAuthor}</span>
-          {date && <span class={styles.date}>{date}</span>}
-        </div>
-        {active && !card.isNew && !editing && (
-          <div class={styles.menuWrap} onMouseDown={(event) => event.stopPropagation()}>
-            <button type="button" class={styles.more} aria-label={messages.commentMore} aria-haspopup="menu" aria-expanded={menu}
-              onClick={() => setMenu((open) => !open)}>
-              <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" aria-hidden="true">
-                <circle cx="12" cy="5" r="2" /><circle cx="12" cy="12" r="2" /><circle cx="12" cy="19" r="2" />
-              </svg>
-            </button>
-            {menu && (
-              <div class={styles.menu} role="menu">
-                <button type="button" role="menuitem" class={styles.menuItem}
-                  onClick={() => { setMenu(false); setDraft(card.comment); setEditing(true); }}>{messages.commentEdit}</button>
-                <button type="button" role="menuitem" class={styles.menuItem}
-                  onClick={() => { setMenu(false); onChange({ comment: undefined, commentedAt: undefined }); }}>{messages.commentDelete}</button>
-              </div>
-            )}
-          </div>
-        )}
-      </div>
       {showField ? (
         <>
           <textarea
@@ -101,7 +75,27 @@ export function CommentCardBody({ card, active, messages, onSelect, onChange }: 
           </div>
         </>
       ) : (
-        <p class={styles.text} dir="auto">{card.comment}</p>
+        <div class={styles.row}>
+          <p class={styles.text} dir="auto">{card.comment}</p>
+          {active && (
+            <div class={styles.menuWrap} onMouseDown={(event) => event.stopPropagation()}>
+              <button type="button" class={styles.more} aria-label={messages.commentMore} aria-haspopup="menu" aria-expanded={menu}
+                onClick={() => setMenu((open) => !open)}>
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" aria-hidden="true">
+                  <circle cx="12" cy="5" r="2" /><circle cx="12" cy="12" r="2" /><circle cx="12" cy="19" r="2" />
+                </svg>
+              </button>
+              {menu && (
+                <div class={styles.menu} role="menu">
+                  <button type="button" role="menuitem" class={styles.menuItem}
+                    onClick={() => { setMenu(false); setDraft(card.comment); setEditing(true); }}>{messages.commentEdit}</button>
+                  <button type="button" role="menuitem" class={styles.menuItem}
+                    onClick={() => { setMenu(false); onChange({ comment: undefined, commentedAt: undefined }); }}>{messages.commentDelete}</button>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
       )}
     </div>
   );
