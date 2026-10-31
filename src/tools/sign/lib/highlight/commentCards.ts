@@ -30,6 +30,13 @@ function bandToPage(element: HighlightElement, band: PercentBox): PercentBox {
 }
 
 const isHighlight = (el: EditorElement): el is HighlightElement => el.type === 'highlight';
+const hasCard = (el: EditorElement, activeId: string | null) => isHighlight(el) && el.bands.length > 0
+  && (!!el.comment?.trim() || (el.id === activeId && el.comment !== undefined));
+
+/** Any card on any page: the rail opens with the first comment, never for highlighting alone. */
+export function hasCommentCards(elements: readonly EditorElement[], activeId: string | null): boolean {
+  return elements.some((el) => hasCard(el, activeId));
+}
 
 /**
  * Cards for one page in reading order (top, then left): every highlight with a comment, plus the
@@ -37,9 +44,7 @@ const isHighlight = (el: EditorElement): el is HighlightElement => el.type === '
  */
 export function commentCards(elements: readonly EditorElement[], pageIndex: number, activeId: string | null): CommentCard[] {
   return elements
-    .filter(isHighlight)
-    .filter((el) => el.pageIndex === pageIndex && el.bands.length > 0)
-    .filter((el) => !!el.comment?.trim() || (el.id === activeId && el.comment !== undefined))
+    .filter((el): el is HighlightElement => el.pageIndex === pageIndex && hasCard(el, activeId))
     .map((el) => ({
       id: el.id,
       color: el.color,

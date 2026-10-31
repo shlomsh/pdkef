@@ -109,11 +109,8 @@ async function swipe(page, touch, from, to) {
   await cdp.detach();
 }
 
-// Arming reserves the comments rail on a wide screen, which narrows the page: measure lines after it.
 async function armHighlight(page) {
   await page.getByRole('toolbar', { name: 'PDF annotations' }).getByRole('button', { name: 'Highlight' }).click();
-  const { width } = page.viewportSize();
-  if (width >= 1000) await expect(page.locator('[data-comment-rail]').first()).toBeAttached();
 }
 
 const bandRects = (page) => page.locator('[data-editor-highlight] [data-highlight-band]')
