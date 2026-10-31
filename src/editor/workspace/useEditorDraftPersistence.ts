@@ -3,6 +3,7 @@ import { clearDraftHintAttribute, useDraftPersistence } from '#lib/drafts/useDra
 import { migrateDraftRecord, validateDraftRecord } from '../registry/draftValidation.ts';
 import type { ActionHistoryEntry, HistoryElement } from '../model/actionHistory.ts';
 import type { DetailEdits } from '../registry/draftValidation.ts';
+import type { PageTurns } from '../geometry/pageTurn.ts';
 import type { DocumentStyle } from '../model/documentStyle.ts';
 import { deleteDraft, takeHandoff, type HandoffRecord } from '#lib/drafts/draftStore.ts';
 import { markHandoffArrival } from '#lib/handoff/useHandoffIntake.ts';
@@ -20,6 +21,8 @@ export interface UseEditorDraftPersistenceOptions<TElement extends HistoryElemen
   carried?: Partial<DocumentStyle> | null;
   /** RED-59: Redact's edits to the file's details. Sign passes none. */
   details?: DetailEdits;
+  /** SIGN-43: Sign's page turns. Redact passes none. */
+  pageTurns?: PageTurns;
   status: string;
   /** Explicitly supplied by the editor's document baseline/revision contract. */
   isDirty: boolean;
@@ -40,6 +43,8 @@ export interface EditorDraftInitialState<TElement extends HistoryElement> {
   carried?: Partial<DocumentStyle>;
   /** RED-59: Redact only. */
   details?: DetailEdits;
+  /** SIGN-43: Sign only. */
+  pageTurns?: PageTurns;
 }
 
 /**
@@ -55,6 +60,7 @@ export function useEditorDraftPersistence<TElement extends HistoryElement>({
   actionHistory,
   carried,
   details,
+  pageTurns,
   status,
   isDirty,
   loadStartedRef,
@@ -88,8 +94,9 @@ export function useEditorDraftPersistence<TElement extends HistoryElement>({
       actionHistory,
       carried: carried ?? undefined,
       ...(details ? { details } : {}),
+      ...(pageTurns ? { pageTurns } : {}),
     }),
-    [actionHistory, carried, details],
+    [actionHistory, carried, details, pageTurns],
   );
 
   return useDraftPersistence({
@@ -148,6 +155,7 @@ export function useEditorDraftPersistence<TElement extends HistoryElement>({
           actionHistory: validated.extra?.actionHistory || [],
           carried: validated.extra?.carried,
           details: validated.extra?.details ?? {},
+          pageTurns: validated.extra?.pageTurns,
         },
         true,
       );

@@ -10,6 +10,7 @@ import {
   type DraftElement,
 } from './draftValidation.ts';
 import { applyHistoryEntries, revertHistoryEntries } from '../model/actionHistory.ts';
+import { createPageGeometry } from '../geometry/coords.ts';
 
 const bytesOf = (length = 4) => new ArrayBuffer(length);
 
@@ -611,5 +612,33 @@ describe('restoring extra.details (RED-59)', () => {
     expect('polluted' in {}).toBe(false);
     expect(Object.prototype.hasOwnProperty.call(result, '__proto__')).toBe(false);
     expect({ ...result }).toEqual({ author: { action: 'delete' }, title: { action: 'alter', value: '  Quarterly  ' } });
+  });
+});
+
+describe('restoring extra.pageTurns (SIGN-43)', () => {
+  const geometry = createPageGeometry({ cropBox: { x: 0, y: 0, width: 600, height: 800 } });
+  const turnEntry = {
+    id: 'h1', type: 'ROTATE_PAGE', operation: 'turn-page', pageIndex: 1,
+    description: 'Rotated page 2', timestamp: 5, geometry: JSON.parse(JSON.stringify(geometry)),
+  };
+  const restore = (extra: object) => validateDraftRecord({
+    fileName: 'a.pdf', fileBytes: bytesOf(), schemaVersion: DRAFT_SCHEMA_VERSION, elements: [], extra,
+  }, isDraftElement)?.extra;
+
+  it('keeps pageTurns and a turn-page history entry', () => {
+    const extra = restore({ pageTurns: { 1: 1, 4: 3 }, actionHistory: [turnEntry] });
+    expect(extra?.pageTurns).toEqual({ 1: 1, 4: 3 });
+    expect(extra?.actionHistory).toEqual([turnEntry]);
+  });
+
+  it('drops values that are not an integer page index to 1, 2 or 3', () => {
+    const extra = restore({ pageTurns: { 0: 4, 1: 2, '-1': 1, x: 1, 2: 1.5, 3: 'a' } });
+    expect(extra?.pageTurns).toEqual({ 1: 2 });
+    expect(restore({ pageTurns: 'no' })?.pageTurns).toEqual({});
+  });
+
+  it('drops a turn-page entry with a malformed geometry', () => {
+    const bad = { ...turnEntry, geometry: { rotation: 90 } };
+    expect(restore({ actionHistory: [bad] })?.actionHistory).toEqual([]);
   });
 });

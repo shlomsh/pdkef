@@ -2,7 +2,11 @@ import { createContext } from 'preact';
 import { reportEdit } from '#lib/telemetry/productAnalytics.ts';
 import type { ComponentChildren } from 'preact';
 import { useCallback, useReducer, useContext, useMemo } from 'preact/hooks';
-import { applyHistoryEntries, revertHistoryEntries, type ActionHistoryEntry } from '#editor/model/actionHistory.ts';
+import type { PageGeometry } from '#editor/geometry/coords.ts';
+import { formatMessage } from '#lib/text/formatMessage.ts';
+import { englishSignMessages } from '#editor/registry/signMessages.ts';
+import { addTurn, turnElement, turnGeometry, type PageTurns } from '#editor/geometry/pageTurn.ts';
+import { applyHistoryEntries, createActionEntry, revertHistoryEntries, type ActionHistoryEntry } from '#editor/model/actionHistory.ts';
 import { pushCommand, redoStep, undoStep } from '#editor/model/historyStack.ts';
 import type { EditorElement, EditorElementPatch, SignToolType } from '#editor/model/editorModel.ts';
 import type { DocumentStyle } from '#editor/model/documentStyle.ts';
@@ -32,6 +36,9 @@ export type SignToolAction =
          * document had; its keys still fall through to the app-wide style
          * (SIGN-35), then the tool's own defaults. */
         carried?: Partial<DocumentStyle> | null;
+        /** SIGN-43: the clockwise quarter turns by page index, from the draft.
+         * Absent resets to `{}`, same as `carried`. */
+        pageTurns?: PageTurns;
         /** SIGN-35: the app-wide style, read again from `preferenceStore.ts`
          * whenever a document opens, so a choice made in another tab applies
          * to the next document. Absent leaves whatever is already loaded -
@@ -44,6 +51,10 @@ export type SignToolAction =
   | { type: 'UPDATE_ELEMENT'; payload: { id: string; changes: EditorElementPatch } }
   | { type: 'DELETE_ELEMENT'; payload: string }
   | { type: 'CLEAR_PAGE'; payload: number }
+  /** SIGN-43: turn one page a quarter turn clockwise. `geometry` is the page's
+   * currently displayed geometry (existing turns included). `description` is
+   * the localized history label; absent falls back to English. */
+  | { type: 'ROTATE_PAGE'; payload: { pageIndex: number; geometry: PageGeometry; description?: string } }
   | { type: 'SET_ACTIVE_ELEMENT_ID'; payload: string | null }
   | { type: 'SET_EDITING_ELEMENT_ID'; payload: string | null }
   | { type: 'ADD_ACTION_HISTORY'; payload: ActionHistoryEntry<EditorElement> }
@@ -83,6 +94,8 @@ export interface SignToolState {
    * (historyStack.ts's `future`). In-memory only, never persisted - a
    * restored draft always starts with an empty redo stack. */
   redoHistory: ActionHistoryEntry<EditorElement>[];
+  /** SIGN-43: clockwise quarter turns a person added to each page, on top of its own /Rotate. */
+  pageTurns: PageTurns;
   /** Monotonic document version; exports must match the version they started with. */
   documentRevision: number;
   /** Revision captured when a file is opened/restored; later revisions are edits. */
@@ -137,6 +150,7 @@ const initialState: SignToolState = {
   editingElementId: null,
   actionHistory: [],
   redoHistory: [],
+  pageTurns: {},
   documentRevision: 0,
   draftBaselineRevision: 0,
   carried: {},
@@ -144,6 +158,68 @@ const initialState: SignToolState = {
 };
 
 const nextDocumentRevision = (state: SignToolState) => (state.documentRevision ?? 0) + 1;
+
+/**
+ * SIGN-43: one page turned `by` quarter turns from `geometry`, the geometry it
+ * is displayed with before the turn (selection survives: no element is removed).
+ */
+function turnPage(
+  state: SignToolState, pageIndex: number, geometry: PageGeometry, by: 1 | -1,
+): SignToolState {
+  return {
+    ...state,
+    elements: state.elements.map((el) => (el.pageIndex === pageIndex ? turnElement(el, geometry, by) : el)),
+    pageTurns: addTurn(state.pageTurns, pageIndex, by),
+    activeElementId: null,
+    editingElementId: null,
+    documentRevision: nextDocumentRevision(state),
+  };
+}
+
+/** A turn-page entry undone (the page turns back from its turned geometry) or redone; any other entry is unchanged. */
+function turnedByEntry(
+  state: SignToolState, entry: ActionHistoryEntry<EditorElement>, direction: 'undo' | 'redo',
+): SignToolState {
+  if (entry.operation !== 'turn-page') return state;
+  return direction === 'redo'
+    ? turnPage(state, entry.pageIndex, entry.geometry, 1)
+    : turnPage(state, entry.pageIndex, turnGeometry(entry.geometry, 1), -1);
+}
+
+/** SIGN-43: the page header's Rotate - one undoable turn of one page. */
+function rotatePage(
+  state: SignToolState,
+  { pageIndex, geometry, description }: { pageIndex: number; geometry: PageGeometry; description?: string },
+): SignToolState {
+  const entry = createActionEntry({
+    operation: 'turn-page', type: 'ROTATE_PAGE', pageIndex, geometry,
+    description: description ?? formatMessage(englishSignMessages.rotatePageDescription, { number: pageIndex + 1 }),
+  });
+  const { past, future } = pushCommand(state.actionHistory, state.redoHistory, entry);
+  return { ...turnPage(state, pageIndex, geometry, 1), actionHistory: past, redoHistory: future };
+}
+
+/** One undo or redo step: the entry's elements and page turns, then the stacks it moved to. */
+function stepHistory(
+  state: SignToolState,
+  step: ReturnType<typeof undoStep>,
+  direction: 'undo' | 'redo',
+): SignToolState {
+  if (!step) return state;
+  const turned = turnedByEntry(state, step.entry, direction);
+  const move = direction === 'undo' ? revertHistoryEntries : applyHistoryEntries;
+  const elements = move(turned.elements, [step.entry]);
+  const activeSurvives = elements.some((element) => element.id === turned.activeElementId);
+  return {
+    ...turned,
+    elements,
+    activeElementId: activeSurvives ? turned.activeElementId : null,
+    editingElementId: activeSurvives ? turned.editingElementId : null,
+    actionHistory: step.past,
+    redoHistory: step.future,
+    documentRevision: nextDocumentRevision(state),
+  };
+}
 
 export function reducer(state: SignToolState, action: SignToolAction): SignToolState {
   switch (action.type) {
@@ -169,6 +245,7 @@ export function reducer(state: SignToolState, action: SignToolAction): SignToolS
         // its own, so every one of them falls through to the app-wide style
         // (SIGN-35), then the tool's own defaults.
         carried: action.payload.carried ?? {},
+        pageTurns: action.payload.pageTurns ?? {},
         // SIGN-35: absent leaves whatever app-wide style is already loaded -
         // unlike `carried`, a document never resets this. PdfSignTool passes
         // `getAppStyle()` here on every load, so a choice made in another tab
@@ -252,6 +329,8 @@ export function reducer(state: SignToolState, action: SignToolAction): SignToolS
         documentRevision: nextDocumentRevision(state),
       };
     }
+    case 'ROTATE_PAGE':
+      return rotatePage(state, action.payload);
     case 'SET_ACTIVE_ELEMENT_ID':
       return {
         ...state,
@@ -306,41 +385,15 @@ export function reducer(state: SignToolState, action: SignToolAction): SignToolS
         documentRevision: nextDocumentRevision(state),
       };
     }
-    case 'UNDO': {
-      const step = undoStep(state.actionHistory, state.redoHistory);
-      if (!step) return state;
-      const elements = revertHistoryEntries(state.elements, [step.entry]);
-      const activeSurvives = elements.some((element) => element.id === state.activeElementId);
-      return {
-        ...state,
-        elements,
-        activeElementId: activeSurvives ? state.activeElementId : null,
-        editingElementId: activeSurvives ? state.editingElementId : null,
-        actionHistory: step.past,
-        redoHistory: step.future,
-        documentRevision: nextDocumentRevision(state),
-      };
-    }
+    case 'UNDO':
+      return stepHistory(state, undoStep(state.actionHistory, state.redoHistory), 'undo');
     // UNDO-REDO: the exact mirror of UNDO above. SIGN-14 made every edit,
     // undo and replacement revoke a prepared share file and a running export
     // by bumping documentRevision, so redo must bump it too - a redo that
     // skipped this would let a stale export download against a changed
     // document.
-    case 'REDO': {
-      const step = redoStep(state.actionHistory, state.redoHistory);
-      if (!step) return state;
-      const elements = applyHistoryEntries(state.elements, [step.entry]);
-      const activeSurvives = elements.some((element) => element.id === state.activeElementId);
-      return {
-        ...state,
-        elements,
-        activeElementId: activeSurvives ? state.activeElementId : null,
-        editingElementId: activeSurvives ? state.editingElementId : null,
-        actionHistory: step.past,
-        redoHistory: step.future,
-        documentRevision: nextDocumentRevision(state),
-      };
-    }
+    case 'REDO':
+      return stepHistory(state, redoStep(state.actionHistory, state.redoHistory), 'redo');
     default:
       return state;
   }
