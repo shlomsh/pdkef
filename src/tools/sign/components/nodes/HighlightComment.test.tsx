@@ -2,7 +2,7 @@ import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { describe, it, expect, afterEach, vi } from 'vitest';
 import HighlightNode from './HighlightNode.tsx';
-import { CommentNumbersProvider } from './commentNumbersContext.tsx';
+import { CommentNumbersScope } from './commentNumbersContext.tsx';
 import ElementToolbar from '../ElementToolbar.tsx';
 import type { HighlightElement } from '#editor/model/editorModel.ts';
 
@@ -68,7 +68,7 @@ describe('highlight comment note', () => {
   });
   it('note and badge sit outside the multiply root', () => {
     mount(
-      <CommentNumbersProvider value={new Map([['h1', 1]])}>{node(make({ comment: 'x' }))}</CommentNumbersProvider>,
+      <CommentNumbersScope elements={[make({ comment: 'x' })]}>{node(make({ comment: 'x' }))}</CommentNumbersScope>,
     );
     const root = host.querySelector('[data-highlight-root]')!;
     expect(root).not.toBeNull();
@@ -84,13 +84,13 @@ describe('highlight comment note', () => {
 describe('highlight badge', () => {
   it('shows each highlight its number, none for a blank comment, click selects', () => {
     const onSelect = vi.fn();
-    const numbers = new Map([['h1', 2], ['h2', 1]]);
+    const elements = [make({ id: 'h1', top: 40, comment: 'a' }), make({ id: 'h2', top: 10, comment: 'b' }), make({ id: 'h3', top: 5, comment: '  ' })];
     mount(
-      <CommentNumbersProvider value={numbers}>
-        {node(make({ id: 'h1', comment: 'a' }), { isActive: false, onSelect })}
-        {node(make({ id: 'h2', comment: 'b' }), { isActive: false })}
-        {node(make({ id: 'h3', comment: '  ' }), { isActive: false })}
-      </CommentNumbersProvider>,
+      <CommentNumbersScope elements={elements}>
+        {node(elements[0], { isActive: false, onSelect })}
+        {node(elements[1], { isActive: false })}
+        {node(elements[2], { isActive: false })}
+      </CommentNumbersScope>,
     );
     const badges = Array.from(host.querySelectorAll<HTMLElement>('[data-highlight-badge]'));
     expect(badges.map((b) => b.textContent)).toEqual(['2', '1']);

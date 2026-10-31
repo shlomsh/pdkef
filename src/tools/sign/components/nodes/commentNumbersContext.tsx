@@ -7,11 +7,9 @@ import { commentNumbers } from '../../lib/highlight/commentNumbers.ts';
 /* SIGN-44: highlight id -> comment number, computed once per elements change. */
 const CommentNumbersContext = createContext<ReadonlyMap<string, number>>(new Map());
 
-/** @testSeam */
-export const CommentNumbersProvider = CommentNumbersContext.Provider;
 export const useCommentNumber = (id: string): number | undefined => useContext(CommentNumbersContext).get(id);
 
 export function CommentNumbersScope({ elements, children }: { elements: readonly EditorElement[]; children: ComponentChildren }) {
   const numbers = useMemo(() => commentNumbers(elements), [elements]);
-  return <CommentNumbersProvider value={numbers}>{children}</CommentNumbersProvider>;
+  return <CommentNumbersContext.Provider value={numbers}>{children}</CommentNumbersContext.Provider>;
 }
