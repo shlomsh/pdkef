@@ -65,7 +65,8 @@ describe('page turn geometry', () => {
 
   it('a text element moves as a point and keeps everything else', () => {
     const out = turnElement(ELEMENTS[0], portrait, 1) as any;
-    near(out, { left: 80, top: 10, text: 'hi', fontSize: 12, id: 'a' });
+    // Anchor = top-left of the one-line box (12pt * 1.05 on a 792pt page = 1.5909%): 100 - (20 + 1.5909).
+    near(out, { left: 100 - 20 - (12 * 1.05 * 100) / 792, top: 10, text: 'hi', fontSize: 12, id: 'a' });
   });
 
   it('a highlight turns with the page: its box and every band follow the text under them', () => {
@@ -95,5 +96,21 @@ describe('page turn geometry', () => {
     expect(addTurn(t, 2)).toEqual({});
     expect(addTurn({}, 2, -1)).toEqual({ 2: 3 });
     expect(turnsOf({}, 5)).toBe(0);
+  });
+
+  it('minWidth keeps its span in points', () => {
+    const text = { id: 't', pageIndex: 0, type: 'text', text: 'x', fontSize: 12, left: 10, top: 20, minWidth: 30 } as EditorElement;
+    const out = turnElement(text, portrait, 1) as any;
+    const to = turnGeometry(portrait, 1);
+    expect((out.minWidth * to.width) / 100).toBeCloseTo((30 * portrait.width) / 100, 9);
+  });
+
+  it('a text with a known width does not hang off the page', () => {
+    const text = { id: 't', pageIndex: 0, type: 'text', text: 'x', fontSize: 12, left: 5, top: 5, width: 40 } as EditorElement;
+    const out = turnElement(text, portrait, 1) as any;
+    expect(out.left + out.width).toBeLessThanOrEqual(100 + 1e-9);
+    const minOnly = turnElement({ ...text, width: undefined, minWidth: 40 } as any, portrait, 1) as any;
+    expect(minOnly.left + minOnly.minWidth).toBeLessThanOrEqual(100 + 1e-9);
+    expect(minOnly.left).toBeGreaterThanOrEqual(0);
   });
 });
