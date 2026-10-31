@@ -48,7 +48,7 @@
       "src/tools/sign/components/DraggableWrapper.tsx#DraggableWrapper": 558,
       "src/tools/sign/components/ElementToolbar.tsx#ElementToolbar": 384,
       "src/tools/sign/components/PdfWorkspace.tsx#PdfWorkspace": 634,
-      "src/tools/sign/components/SignToolContext.tsx#reducer": 200,
+      "src/tools/sign/components/SignToolContext.tsx#reducer": 177,
       "src/tools/sign/components/SignToolbar.tsx#SignToolbar": 748,
       "src/tools/sign/components/SignatureDialog.tsx#SignatureDialog": 537,
       "src/tools/sign/components/fill/FieldSlot.tsx#FieldSlot": 249,

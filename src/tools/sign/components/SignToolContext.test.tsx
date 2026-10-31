@@ -571,8 +571,11 @@ describe('ROTATE_PAGE (SIGN-43)', () => {
   const start: SignToolState = { ...base, elements: [onPage0, onPage1] };
   const rotate = (state: SignToolState) => reducer(state, { type: 'ROTATE_PAGE', payload: { pageIndex: 0, geometry } });
   const near = (a: EditorElement, b: EditorElement) => {
-    for (const key of ['left', 'top', 'width', 'height'] as const) {
-      expect((a as Record<string, number>)[key]).toBeCloseTo((b as Record<string, number>)[key], 9);
+    const numbers = (e: EditorElement) => new Map(
+      Object.entries(e).filter((entry): entry is [string, number] => typeof entry[1] === 'number'),
+    );
+    for (const key of ['left', 'top', 'width', 'height']) {
+      expect(numbers(a).get(key)).toBeCloseTo(numbers(b).get(key) ?? NaN, 9);
     }
   };
 
