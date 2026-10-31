@@ -32,7 +32,7 @@ export function CommentCardBody({ card, active, pageNumber, messages, crop, onSe
     setEditing(false);
   };
   const save = () => {
-    const patch = commentPatch(draft, card.comment || undefined);
+    const patch = commentPatch(draft, card.comment || undefined, Date.now());
     setEditing(false);
     if (patch) onChange(patch);
     else if (card.isNew) onChange({ comment: undefined });

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { PDFArray, PDFDict, PDFDocument, PDFName, PDFNumber } from '@cantoo/pdf-lib';
+import { PDFArray, PDFDict, PDFDocument, PDFName, PDFNumber, PDFString } from '@cantoo/pdf-lib';
 import { serializeHighlight } from './highlightPdf.ts';
 import { createPageGeometry } from '../geometry/coords.ts';
 import type { HighlightElement } from '../model/editorModel.ts';
@@ -17,6 +17,15 @@ describe('serializeHighlight', () => {
     const annot = pdfDoc.context.lookup(page.node.Annots()!.get(0)) as PDFDict;
     const quad = (annot.lookup(PDFName.of('QuadPoints'), PDFArray)).asArray().map((n) => (n as PDFNumber).asNumber());
     expect(quad).toEqual([20, 90, 120, 90, 20, 80, 120, 80]);
+  });
+
+  it("writes the comment's own date as /M", async () => {
+    const pdfDoc = await PDFDocument.create();
+    const page = pdfDoc.addPage([200, 100]);
+    const at = Date.UTC(2026, 9, 31, 18, 5, 9);
+    serializeHighlight({ ...element, comment: 'x', commentedAt: at }, { pdfDoc, page, pdfWidth: 200, pdfHeight: 100, pdfX: 20, pdfY: 90, loadCustomFont: async () => null, baselineOffset: () => 0 });
+    const annot = pdfDoc.context.lookup(page.node.Annots()!.get(0)) as PDFDict;
+    expect((annot.lookup(PDFName.of('M')) as PDFString).asString()).toBe('D:20261031180509Z');
   });
 
   it('draws the comment number upright on a turned page', async () => {

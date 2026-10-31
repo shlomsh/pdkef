@@ -90,7 +90,7 @@ export function serializeHighlight(element: HighlightElement, context: Serialize
   const { context: pdfContext } = pdfDoc;
   const highlight = pdfContext.obj({
     Type: 'Annot', Subtype: 'Highlight', Rect: rect, QuadPoints: quads.flat(2), C: [r, g, b], CA: 1, F: 4,
-    NM: PDFHexString.fromText(element.id), M: pdfDate(), AP: { N: ap },
+    NM: PDFHexString.fromText(element.id), M: pdfDate(element.commentedAt === undefined ? undefined : new Date(element.commentedAt)), AP: { N: ap },
     ...(comment ? { Contents: PDFHexString.fromText(comment) } : {}),
   });
   const highlightRef = pdfContext.register(highlight);
