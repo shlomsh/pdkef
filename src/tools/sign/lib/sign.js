@@ -16,6 +16,7 @@ import {
   visiblePageBox,
 } from '#editor/geometry/coords.ts';
 import { getElementDefinition } from '#editor/registry/index.ts';
+import { commentNumbers } from './highlight/commentNumbers.ts';
 import { findUnrepresentableCharacters } from './textCoverage.js';
 import { baselineOffsetEmFromMetrics, embeddedFontFile, resolveTypography } from '#editor/text/fonts.js';
 import { HELVETICA_BASELINE_OFFSET_EM, DEFAULT_LINE_HEIGHT_EM } from '#editor/model/signGeometry.js';
@@ -194,6 +195,7 @@ export async function signPdf(file, elements, onProgress, { pageTurns = {} } = {
     if (angle >= 360) page.setRotation(degrees(angle % 360));
   }
 
+  const numbers = commentNumbers(elements);
   for (let i = 0; i < elements.length; i++) {
     const element = elements[i];
     const page = pdfDoc.getPage(element.pageIndex);
@@ -225,6 +227,7 @@ export async function signPdf(file, elements, onProgress, { pageTurns = {} } = {
         pageGeometry,
         loadCustomFont,
         baselineOffset: baselineOffsetEm,
+        commentNumber: numbers.get(element.id),
       });
     } finally {
       page.pushOperators(popGraphicsState(), endMarkedContent());

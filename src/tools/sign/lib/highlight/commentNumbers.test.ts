@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { commentNumbers } from './highlightComments.ts';
-import type { EditorElement, HighlightElement } from './editorModel.ts';
+import { commentNumbers } from './commentNumbers.ts';
+import type { EditorElement, HighlightElement } from '#editor/model/editorModel.ts';
 
 const highlight = (id: string, pageIndex: number, top: number, left: number, comment?: string, bandTop = 0): HighlightElement => ({
   id, type: 'highlight', pageIndex, left, top, width: 20, height: 10, color: '#FFF34D',
