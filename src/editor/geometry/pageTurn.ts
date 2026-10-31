@@ -69,13 +69,16 @@ export function turnElement<T extends EditorElement>(element: T, from: PageGeome
     return { ...element, ...turnPercentBox(element as unknown as PercentBox, q) };
   }
   const to = turnGeometry(from, q);
-  if (typeof (element as { height?: unknown }).height !== 'number' || typeof element.width !== 'number') {
-    const p = turnPercentPoint({ x: element.left, y: element.top }, q);
-    return { ...element, left: p.x, top: p.y };
+  const { left, top, width, height } = element as { left: number; top: number; width?: unknown; height?: unknown };
+  // A width in percent keeps its size in points on the turned page.
+  const widthAfter = typeof width === 'number' ? (width * from.width) / to.width : undefined;
+  if (typeof width !== 'number' || typeof height !== 'number') {
+    // A point-anchored mark (text, a comb): the anchor follows the content.
+    const p = turnPercentPoint({ x: left, y: top }, q);
+    return { ...element, left: p.x, top: p.y, ...(widthAfter === undefined ? {} : { width: widthAfter }) };
   }
   // Upright box: same size in points, centered where the content under its center went.
-  const width = (element.width * from.width) / to.width;
-  const height = (element.height * from.height) / to.height;
-  const c = turnPercentPoint({ x: element.left + element.width / 2, y: element.top + element.height / 2 }, q);
-  return { ...element, left: c.x - width / 2, top: c.y - height / 2, width, height };
+  const heightAfter = (height * from.height) / to.height;
+  const c = turnPercentPoint({ x: left + width / 2, y: top + height / 2 }, q);
+  return { ...element, left: c.x - widthAfter! / 2, top: c.y - heightAfter / 2, width: widthAfter, height: heightAfter };
 }
