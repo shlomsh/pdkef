@@ -55,6 +55,12 @@ export interface SignMessages {
   highlightColorRed: string;
   highlightColorGreen: string;
   highlightColorBlue: string;
+  /** SIGN-44: the highlight toolbar's Comment button, the note field's placeholder, a number badge's label ({number}), and the exported comments page's title and per-entry page line ({page}). */
+  highlightCommentLabel: string;
+  highlightCommentPlaceholder: string;
+  highlightCommentNumberLabel: string;
+  commentsPageTitle: string;
+  commentsPageEntry: string;
   lineAction: string;
   /** Touch-only short forms of the eight actions above, shown on a coarse pointer in place of
    * them (EditorToolStatus.tsx's `ToolCopy.actionTouch`). "Tap" and "Tap and drag" rather than "Click" and "Click and drag",

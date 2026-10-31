@@ -83,11 +83,12 @@ export function startHighlightSwipe(deps: HighlightSwipeDeps, target: HighlightS
         dispatch({ type: 'SET_ACTIVE_ELEMENT_ID', payload: null });
         return;
       }
-      dispatch({ type: 'UPDATE_ELEMENT', payload: { id, changes: geometry as EditorElementPatch } });
+      const changes = { ...geometry, ...(direction === 'rtl' ? { direction } : {}) };
+      dispatch({ type: 'UPDATE_ELEMENT', payload: { id, changes: changes as EditorElementPatch } });
       dispatch({ type: 'DISARM_TOOL' });
       recordAction('place_mark');
       const label = signElementTypeLabel(t, 'highlight');
-      const finalElement = { ...newEl, ...geometry } as EditorElement;
+      const finalElement = { ...newEl, ...changes } as EditorElement;
       logAction('add', 'ADD_SHAPE', pageIndex, formatMessage(t.addedShapeDescriptionTemplate, { label }), [captureAddedElement(finalElement, nextElementIndex)]);
       setAnnouncement(formatMessage(t.addedShapeAnnouncementTemplate, { label }));
     },
