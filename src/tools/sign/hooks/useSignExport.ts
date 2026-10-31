@@ -1,4 +1,5 @@
 import type { EditorElement } from '#editor/model/editorModel.ts';
+import type { PageTurns } from '#editor/geometry/pageTurn.ts';
 import type { SignMessages } from '#editor/registry/messages.ts';
 import { recordAction } from '#lib/telemetry/actionTrail.ts';
 import { sendHandoff } from '#lib/handoff/sendHandoff.ts';
@@ -13,6 +14,8 @@ interface SignExportOptions {
   file: File | null;
   fileBytesRef: { current: ArrayBuffer | null };
   elements: EditorElement[];
+  /** SIGN-43: extra clockwise quarter turns per page index; omitted means none. */
+  pageTurns?: PageTurns;
   exportRun: LatestRun;
   activeExportSpeculativeRef: { current: boolean };
   documentRevisionRef: { current: number };
@@ -29,7 +32,7 @@ interface SignExportOptions {
  * file on to another tool. The signing run itself is lib/runSignExport.ts.
  */
 export function useSignExport({
-  file, fileBytesRef, elements, exportRun, activeExportSpeculativeRef, documentRevisionRef, preparedExportRef,
+  file, fileBytesRef, elements, pageTurns, exportRun, activeExportSpeculativeRef, documentRevisionRef, preparedExportRef,
   signedExport, share, lifecycleDispatch, setAnnouncement, messages: t,
 }: SignExportOptions) {
   const { prepare, download, downloadPrepared, sharePrepared } = share;
@@ -41,7 +44,7 @@ export function useSignExport({
   ) => {
     if (!file) return;
     await runSignExport(
-      { file, fileBytes: fileBytesRef.current, elements, exportRun, activeExportSpeculativeRef, lifecycleDispatch, messages: t },
+      { file, fileBytes: fileBytesRef.current, elements, pageTurns, exportRun, activeExportSpeculativeRef, lifecycleDispatch, messages: t },
       onSigned,
       options,
     );
