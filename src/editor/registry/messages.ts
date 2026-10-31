@@ -64,6 +64,10 @@ export interface SignMessages {
   /** SIGN-44 comments view: a card's Cancel and Edit buttons (Save reuses highlightCommentLabel), and the page header's count. */
   commentCancel: string;
   commentEdit: string;
+  /** The card header's author name (there are no accounts: always the person on this device), the ⋮ menu's label, and its Delete item. */
+  commentAuthor: string;
+  commentMore: string;
+  commentDelete: string;
   commentsCountOne: string;
   commentsCountOther: string;
   lineAction: string;

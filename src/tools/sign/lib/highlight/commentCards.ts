@@ -11,6 +11,8 @@ export interface CommentCard {
   /** The passage's reading direction: the crop starts where the line is read first. */
   direction: 'ltr' | 'rtl';
   comment: string;
+  /** When the comment was last written (epoch ms); absent on comments made before dates were kept. */
+  commentedAt?: number;
   /** Opened with Comment and nothing typed yet: the card shows an empty field. */
   isNew: boolean;
   /** The first band in page percent: where the card wants to sit and the passage crop's source. */
@@ -43,6 +45,7 @@ export function commentCards(elements: readonly EditorElement[], pageIndex: numb
       color: el.color,
       direction: el.direction ?? 'ltr',
       comment: el.comment ?? '',
+      commentedAt: el.commentedAt,
       isNew: !el.comment?.trim(),
       firstBand: bandToPage(el, el.bands[0]),
     }))

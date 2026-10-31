@@ -28,6 +28,12 @@ describe('highlight definition', () => {
     expect(definition.schema({ ...good, color: undefined })).toBe(false);
   });
 
+  it('accepts a comment date and rejects a bad one', () => {
+    expect(definition.schema({ ...good, comment: 'x', commentedAt: 1_790_000_000_000 })).toBe(true);
+    expect(definition.schema({ ...good, comment: 'x', commentedAt: 'today' })).toBe(false);
+    expect(definition.schema({ ...good, comment: 'x', commentedAt: NaN })).toBe(false);
+  });
+
   it('survives validateDraftElements', () => {
     const { valid, droppedCount } = validateDraftElements([good]);
     expect(valid).toEqual([good]);

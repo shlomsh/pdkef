@@ -66,7 +66,10 @@ test('Rotate turns the page on screen and in the export; marks stay on their con
   // A covering mark dragged over the printed word.
   const before0 = await measure(page);
   expect(before0.height).toBeGreaterThan(before0.width);
-  await toolbar(page).getByRole('button', { name: 'Whiteout', exact: true }).click();
+  const whiteout = toolbar(page).getByRole('button', { name: 'Whiteout', exact: true });
+  await whiteout.click();
+  // The drag must not start before the tool reads as armed (a nightly repeat lost that race).
+  await expect(whiteout).toHaveAttribute('aria-pressed', 'true');
   const box = await wrapper(page).boundingBox();
   const { cx, cy } = before0.ink;
   await page.mouse.move(box.x + box.width * (cx - 0.1), box.y + box.height * (cy - 0.02));

@@ -165,6 +165,8 @@ export interface HighlightElement extends ElementBase, BoxGeometry {
   bands: HighlightBand[];
   /** SIGN-44: the person's note on this passage. Absent or blank means no comment. */
   comment?: string;
+  /** SIGN-44: when the comment was last written (epoch ms), shown on its card and saved as the annotation's /M date. */
+  commentedAt?: number;
   /** SIGN-44: the swiped text's reading direction, so the comment number sits where the passage starts. Absent is LTR. */
   direction?: 'ltr' | 'rtl';
 }
