@@ -4,6 +4,7 @@
 // a turn moves every element on that page with the content under it.
 import { createPageGeometry, type PageGeometry } from './coords.ts';
 import type { EditorElement } from '../model/editorModel.ts';
+import { DEFAULT_LINE_HEIGHT_EM } from '../model/signGeometry.js';
 
 /** Clockwise quarter turns a person added to each page, by page index. A page with none is absent. */
 export type PageTurns = Readonly<Record<number, 1 | 2 | 3>>;
@@ -88,13 +89,25 @@ export function turnElement<T extends EditorElement>(element: T, from: PageGeome
     return { ...element, ...turnPercentBox(element as unknown as PercentBox, q) };
   }
   const to = turnGeometry(from, q);
-  const { left, top, width, height } = element as { left: number; top: number; width?: unknown; height?: unknown };
+  const { left, top, width, height, minWidth, fontSize } = element as {
+    left: number; top: number; width?: unknown; height?: unknown; minWidth?: unknown; fontSize?: unknown;
+  };
   // A width in percent keeps its size in points on the turned page.
-  const widthAfter = typeof width === 'number' ? (width * from.width) / to.width : undefined;
+  const rescale = (v: unknown): number | undefined => (typeof v === 'number' ? (v * from.width) / to.width : undefined);
+  const widthAfter = rescale(width);
   if (typeof width !== 'number' || typeof height !== 'number') {
-    // A point-anchored mark (text, a comb): the anchor follows the content.
-    const p = turnPercentPoint({ x: left, y: top }, q);
-    return { ...element, left: p.x, top: p.y, ...(widthAfter === undefined ? {} : { width: widthAfter }) };
+    // A point-anchored mark (text, a comb): the anchor is the top-left of its one-line box, which follows the content.
+    const lineHeight = typeof fontSize === 'number' ? ((fontSize * DEFAULT_LINE_HEIGHT_EM) / from.height) * 100 : 0;
+    const turned = turnPercentBox({ left, top, width: 0, height: lineHeight }, q);
+    const minWidthAfter = rescale(minWidth);
+    const known = widthAfter ?? minWidthAfter;
+    // A known width must not hang off the turned page.
+    const x = known === undefined ? turned.left : Math.max(0, Math.min(turned.left, 100 - known));
+    return {
+      ...element, left: x, top: turned.top,
+      ...(widthAfter === undefined ? {} : { width: widthAfter }),
+      ...(minWidthAfter === undefined ? {} : { minWidth: minWidthAfter }),
+    };
   }
   // Upright box: same size in points, centered where the content under its center went.
   const heightAfter = (height * from.height) / to.height;
