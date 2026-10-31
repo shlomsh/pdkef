@@ -2,7 +2,7 @@ import { useId } from 'preact/hooks';
 import { PilcrowLeft, PilcrowRight, TextAlignCenter, TextAlignEnd, TextAlignStart } from 'lucide-preact';
 import { TrashIcon } from '#editor-ui/toolIcons.tsx';
 import ColorPickerMenu from '#editor-ui/ColorPickerMenu.tsx';
-import HighlightSwatches from './HighlightSwatches.tsx';
+import HighlightControls from './HighlightControls.tsx';
 import WhiteoutColorControls from './WhiteoutColorControls.tsx';
 import FontPickerMenu from './FontPickerMenu.tsx';
 import ThicknessPickerMenu from './ThicknessPickerMenu.tsx';
@@ -365,7 +365,7 @@ export default function ElementToolbar({
           <div className={styles.divider} />
         </>
       )}
-      {element.type === 'highlight' && <HighlightSwatches color={element.color} onChange={onChange} t={t} />}
+      {element.type === 'highlight' && <HighlightControls element={element} onChange={onChange} t={t} />}
       {element.type === 'whiteout' && (
         <>
           <WhiteoutColorControls element={element} onChange={onChange} messages={t} />

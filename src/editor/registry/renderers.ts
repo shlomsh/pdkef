@@ -55,7 +55,7 @@ export function createElementRenderers(
   const renderers: { [K in ElementType]: (context: NodeRenderContext<ElementForType<K>>) => ComponentChildren } = {
     text: ({ element, onChange, onSelect, pageWidthPoints, messages }) => h(requireComponent('text'), { element, onChange, onSelect, pageWidthPoints, messages, isActive: false, isEditing: false, onBeginEdit: () => {}, onResizeStart: () => {} }),
     rectangle: ({ element, messages }) => h(requireComponent('rectangle'), { element, messages, isActive: false, onResizeStart: () => {} }),
-    highlight: ({ element, messages }) => h(requireComponent('highlight'), { element, messages, isActive: false, onResizeStart: () => {} }),
+    highlight: ({ element, onChange, onSelect, messages }) => h(requireComponent('highlight'), { element, onChange, onSelect, messages, isActive: false, onResizeStart: () => {} }),
     ellipse: ({ element, messages }) => h(requireComponent('ellipse'), { element, messages, isActive: false, onResizeStart: () => {} }),
     line: ({ element, messages }) => h(requireComponent('line'), { element, messages, isActive: false, onResizeStart: () => {}, handlePointerDown: () => {} }),
     symbol: ({ element, messages }) => h(requireComponent('symbol'), { element, messages, isActive: false, onResizeStart: () => {} }),

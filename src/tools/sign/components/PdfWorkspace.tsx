@@ -12,6 +12,7 @@ import SignatureNode from './nodes/SignatureNode.tsx';
 import SymbolNode from './nodes/SymbolNode.tsx';
 import WhiteoutNode from './nodes/WhiteoutNode.tsx';
 import HighlightNode from './nodes/HighlightNode.tsx';
+import { CommentNumbersScope } from './nodes/commentNumbersContext.tsx';
 import { autoColorChanges, followsPage } from '#editor-ui/whiteout/pageColor.ts';
 import { samplePageColor } from '../lib/whiteoutPageColor.ts';
 import type { EditorElement, EditorElementPatch, TextElement, WhiteoutElement } from '#editor/model/editorModel.ts';
@@ -588,7 +589,7 @@ export default function PdfWorkspace({
   }, [elements, dispatch, logAction, setAnnouncement, t]);
 
   return (
-    <div
+    <CommentNumbersScope elements={elements}><div
       className={`${workspaceStyles.workspace}${isPseudoFullscreen ? ` ${workspaceStyles['pseudo-fullscreen']}` : ''}${status === 'signing' ? ` ${workspaceStyles['is-processing']}` : ''}`}
       ref={workspaceRef}
       aria-busy={status === 'signing'}
@@ -779,6 +780,6 @@ export default function PdfWorkspace({
           </span>
         </div>
       )}
-    </div>
+    </div></CommentNumbersScope>
   );
 }
