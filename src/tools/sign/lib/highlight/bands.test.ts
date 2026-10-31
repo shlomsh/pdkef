@@ -38,6 +38,17 @@ describe('bandsForSwipe', () => {
     expect(up).toEqual(down);
   });
 
+  it('pads a band only up to halfway into the leading when lines are set tight', () => {
+    // 2px between rows: pads of 3 would reach into the neighbouring lines.
+    const tight = [row(20), row(42), row(64)];
+    const [first] = bandsForSwipe(tight, { x: 92, y: 30 }, { x: 128, y: 30 }, 20);
+    expect(first.top).toBe(17);
+    expect(first.top + first.height).toBe(41);
+    const [middle] = bandsForSwipe(tight, { x: 92, y: 52 }, { x: 128, y: 52 }, 20);
+    expect(middle.top).toBe(41);
+    expect(middle.top + middle.height).toBe(63);
+  });
+
   it('gives one fallback band when the swipe starts off text', () => {
     const bands = bandsForSwipe(rows, { x: 40, y: 300 }, { x: 140, y: 305 }, 18);
     expect(bands).toEqual([{ left: 40, top: 291, width: 100, height: 18 }]);

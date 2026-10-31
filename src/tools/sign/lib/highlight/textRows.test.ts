@@ -45,6 +45,37 @@ describe('findTextRows', () => {
     expect(findTextRows(paint(200, 80, []))).toEqual([]);
   });
 
+  it('spans a heading\'s sparse ascenders and descenders, not only its x-height core', () => {
+    // Three 40px words, core y 30-50; two 3px ascender stems y 22-30, three 3px descender tails y 50-57.
+    const win = paint(300, 90, [
+      ...line(30, [20, 90, 160], 20),
+      [25, 22, 3, 8], [170, 22, 3, 8],
+      [50, 50, 3, 7], [120, 50, 3, 7], [190, 50, 3, 7],
+    ]);
+    const rows = findTextRows(win);
+    expect(rows).toHaveLength(1);
+    expect(rows[0].top).toBe(22);
+    expect(rows[0].bottom).toBe(57);
+    expect(rows[0].gaps).toEqual([[60, 90], [130, 160]]);
+  });
+
+  it('stops growing at a blank scanline and never runs into the next line', () => {
+    // Line A core 20-34 with tails 34-40; line B with stems 40-46 and core 46-60: ink touches between them.
+    // A speck at y 70-72 sits below a blank scanline under line B.
+    const win = paint(300, 90, [
+      ...line(20, [20, 90, 160]), [50, 34, 3, 6],
+      [100, 40, 3, 6], ...line(46, [20, 90, 160]),
+      [120, 70, 3, 2],
+    ]);
+    const rows = findTextRows(win);
+    expect(rows).toHaveLength(2);
+    expect(rows[0].top).toBe(20);
+    expect(rows[0].bottom).toBeGreaterThan(34);
+    expect(rows[0].bottom).toBeLessThanOrEqual(rows[1].top);
+    expect(rows[1].top).toBeLessThan(46);
+    expect(rows[1].bottom).toBe(60);
+  });
+
   it('handles a right-aligned (Hebrew-like) line', () => {
     const win = paint(300, 60, line(20, [60, 130, 200]));
     const rows = findTextRows(win);

@@ -45,7 +45,9 @@ The band never reads the PDF's text layer. It reads the page as Sign already pai
 1. Take the window's gray pixels and threshold them (Otsu, reusing `otsuThreshold` from
    `src/tools/sign/lib/fields/rasterInk.js`).
 2. Project ink onto the vertical axis. The row is the run of pixel rows with ink that contains the
-   press point, padded a little above and below.
+   press point, padded a little above and below. Its core is where the ink is dense; it then grows
+   through the sparse ascender and descender scanlines up to the first blank one, so the band covers
+   the whole line, and the padding stops halfway into the leading so tight lines stay apart.
 3. Inside that row, project ink onto the horizontal axis. Gaps wider than a fraction of the row height
    are word gaps, and the band's ends snap to the nearest one within reach.
 
