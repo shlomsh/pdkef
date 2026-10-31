@@ -11,6 +11,7 @@ import LineNode from './nodes/LineNode.tsx';
 import SignatureNode from './nodes/SignatureNode.tsx';
 import SymbolNode from './nodes/SymbolNode.tsx';
 import WhiteoutNode from './nodes/WhiteoutNode.tsx';
+import HighlightNode from './nodes/HighlightNode.tsx';
 import { autoColorChanges, followsPage } from '#editor-ui/whiteout/pageColor.ts';
 import { samplePageColor } from '../lib/whiteoutPageColor.ts';
 import type { EditorElement, EditorElementPatch, TextElement, WhiteoutElement } from '#editor/model/editorModel.ts';
@@ -121,6 +122,7 @@ const ELEMENT_RENDERERS = createElementRenderers({
   symbol: SymbolNode,
   signature: SignatureNode,
   whiteout: WhiteoutNode,
+  highlight: HighlightNode,
 });
 
 /**
@@ -213,7 +215,7 @@ export default function PdfWorkspace({
     logAction,
     setAnnouncement,
     initialColor: activeTextElement?.color || style.color,
-    initialWhiteoutColor: style.whiteoutColor,
+    initialWhiteoutColor: style.whiteoutColor, initialHighlightColor: style.highlightColor,
     initialStrokeWidth: style.strokeWidth,
     // The document's resolved style (SIGN-35: its own carried keys over the
     // app-wide style), never the currently selected element's own - a comb

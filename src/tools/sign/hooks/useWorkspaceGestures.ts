@@ -20,6 +20,7 @@ import type { SavedSignature } from '#editor/model/savedSignature.ts';
 import type { PageGeometry } from '#editor/geometry/coords.ts';
 import { getElementDefinition } from '#editor/registry/index.ts';
 import { ensureMinimumElementSize } from '../lib/minimumSize.ts';
+import { startHighlightSwipe } from './highlightSwipeGesture.ts';
 import { samplePageColor } from '../lib/whiteoutPageColor.ts';
 import {
   cellRegionAt,
@@ -97,6 +98,7 @@ export interface WorkspaceGestureOptions {
   setAnnouncement: (message: string) => void;
   initialColor?: string;
   initialWhiteoutColor?: string;
+  initialHighlightColor?: string;
   initialStrokeWidth?: number;
   /** The document's resolved style (SIGN-35): the document's own `carried`
    * keys over the app-wide style, from `useDocumentStyle()` in
@@ -183,6 +185,7 @@ export default function useWorkspaceGestures({
   setAnnouncement,
   initialColor = DEFAULT_COLOR_BLUE,
   initialWhiteoutColor = '#ffffff',
+  initialHighlightColor,
   initialStrokeWidth = DEFAULT_STROKE_WIDTH,
   carried = {},
   initialDateFormat = 'locale',
@@ -460,9 +463,7 @@ export default function useWorkspaceGestures({
    */
   const handleOverlayPointerDown = (e: PagePointerEvent, pageIndex: number) => {
     if (!selectedTool) return;
-    // 'date' is point-mode (see handlePageClick above) so this always returns
-    // before using the definition either way; resolved the same for the type
-    // checker.
+    // 'date' is point-mode (see handlePageClick), so it returns below; resolved for the type checker.
     const definition = getElementDefinition(selectedTool === 'date' ? 'text' : selectedTool);
     if (definition.creation.mode !== 'drag' || !definition.creation.create) return;
     if ((e.target as Element | null)?.closest('[data-editor-element]')) return;
@@ -477,14 +478,11 @@ export default function useWorkspaceGestures({
     const { x: clientX, y: clientY } = getPointerCoords(e);
 
     const id = createElementId();
-    // None of the drag-drawn tools (whiteout, line, ellipse, rectangle) ever
-    // render text - `font`/`fontSize` are here only because the creation
-    // signature is shared with the point-placement tools, so this passes the
-    // carried values through unseeded rather than reading fieldFontSize for
-    // an element type that can never use its answer.
+    // No drag-drawn tool renders text: `font`/`fontSize` are here only because the creation
+    // signature is shared with the point tools, so the carried values pass through unseeded.
     const newEl = definition.creation.create({
       id, pageIndex, point: { left: startLeftPercent, top: startTopPercent }, color: initialColor,
-      whiteoutColor: initialWhiteoutColor, strokeWidth: initialStrokeWidth, font: carriedFont ?? DEFAULT_FONT_FAMILY,
+      whiteoutColor: initialWhiteoutColor, highlightColor: initialHighlightColor, strokeWidth: initialStrokeWidth, font: carriedFont ?? DEFAULT_FONT_FAMILY,
       fontSize: carriedFontSize ?? DEFAULT_FONT_SIZE_PT, direction: carriedDirection,
     });
     const isLineTool = newEl.type === 'line';
@@ -497,6 +495,7 @@ export default function useWorkspaceGestures({
     ).find((node) => node.dataset.editorElementId === id);
 
     gestureCancelRef.current?.();
+    if (newEl.type === 'highlight') return startHighlightSwipe({ dispatch, getPointerPercent, gestureCancelRef, logAction, setAnnouncement, messages: t, nextElementIndex, pageGeometry }, { pageIndex, container, id, newEl, start: { x: startLeftPercent, y: startTopPercent }, getElementNode });
     gestureCancelRef.current = startGesture<PlacementPatch>({
       computePatch: (moveEvent) => {
       if ('touches' in moveEvent && moveEvent.touches && moveEvent.cancelable) moveEvent.preventDefault();
