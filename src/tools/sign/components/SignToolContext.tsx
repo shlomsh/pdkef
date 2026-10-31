@@ -5,7 +5,7 @@ import { useCallback, useReducer, useContext, useMemo } from 'preact/hooks';
 import type { PageGeometry } from '#editor/geometry/coords.ts';
 import { formatMessage } from '#lib/text/formatMessage.ts';
 import { englishSignMessages } from '#editor/registry/signMessages.ts';
-import { addTurn, turnElement, turnGeometry, type PageTurns } from '#editor/geometry/pageTurn.ts';
+import { addTurn, turnElement, turnGeometry, unturnElement, type PageTurns } from '#editor/geometry/pageTurn.ts';
 import { applyHistoryEntries, createActionEntry, revertHistoryEntries, type ActionHistoryEntry } from '#editor/model/actionHistory.ts';
 import { pushCommand, redoStep, undoStep } from '#editor/model/historyStack.ts';
 import type { EditorElement, EditorElementPatch, SignToolType } from '#editor/model/editorModel.ts';
@@ -54,7 +54,7 @@ export type SignToolAction =
   /** SIGN-43: turn one page a quarter turn clockwise. `geometry` is the page's
    * currently displayed geometry (existing turns included). `description` is
    * the localized history label; absent falls back to English. */
-  | { type: 'ROTATE_PAGE'; payload: { pageIndex: number; geometry: PageGeometry; description?: string } }
+  | { type: 'ROTATE_PAGE'; payload: { pageIndex: number; geometry: PageGeometry; textWidths?: Record<string, number>; description?: string } }
   | { type: 'SET_ACTIVE_ELEMENT_ID'; payload: string | null }
   | { type: 'SET_EDITING_ELEMENT_ID'; payload: string | null }
   | { type: 'ADD_ACTION_HISTORY'; payload: ActionHistoryEntry<EditorElement> }
@@ -164,11 +164,14 @@ const nextDocumentRevision = (state: SignToolState) => (state.documentRevision ?
  * is displayed with before the turn (selection survives: no element is removed).
  */
 function turnPage(
-  state: SignToolState, pageIndex: number, geometry: PageGeometry, by: 1 | -1,
+  state: SignToolState, pageIndex: number, geometry: PageGeometry, by: 1 | -1, textWidths?: Record<string, number>,
 ): SignToolState {
+  const turnOne = (el: EditorElement) => (by === 1
+    ? turnElement(el, geometry, 1, textWidths?.[el.id])
+    : unturnElement(el, turnGeometry(geometry, 1), 1, textWidths?.[el.id]));
   return {
     ...state,
-    elements: state.elements.map((el) => (el.pageIndex === pageIndex ? turnElement(el, geometry, by) : el)),
+    elements: state.elements.map((el) => (el.pageIndex === pageIndex ? turnOne(el) : el)),
     pageTurns: addTurn(state.pageTurns, pageIndex, by),
     activeElementId: null,
     editingElementId: null,
@@ -182,21 +185,24 @@ function turnedByEntry(
 ): SignToolState {
   if (entry.operation !== 'turn-page') return state;
   return direction === 'redo'
-    ? turnPage(state, entry.pageIndex, entry.geometry, 1)
-    : turnPage(state, entry.pageIndex, turnGeometry(entry.geometry, 1), -1);
+    ? turnPage(state, entry.pageIndex, entry.geometry, 1, entry.textWidths)
+    : turnPage(state, entry.pageIndex, entry.geometry, -1, entry.textWidths);
 }
 
 /** SIGN-43: the page header's Rotate - one undoable turn of one page. */
 function rotatePage(
   state: SignToolState,
-  { pageIndex, geometry, description }: { pageIndex: number; geometry: PageGeometry; description?: string },
+  { pageIndex, geometry, textWidths, description }: {
+    pageIndex: number; geometry: PageGeometry; textWidths?: Record<string, number>; description?: string;
+  },
 ): SignToolState {
   const entry = createActionEntry({
     operation: 'turn-page', type: 'ROTATE_PAGE', pageIndex, geometry,
+    ...(textWidths ? { textWidths } : {}),
     description: description ?? formatMessage(englishSignMessages.rotatePageDescription, { number: pageIndex + 1 }),
   });
   const { past, future } = pushCommand(state.actionHistory, state.redoHistory, entry);
-  return { ...turnPage(state, pageIndex, geometry, 1), actionHistory: past, redoHistory: future };
+  return { ...turnPage(state, pageIndex, geometry, 1, textWidths), actionHistory: past, redoHistory: future };
 }
 
 /** One undo or redo step: the entry's elements and page turns, then the stacks it moved to. */

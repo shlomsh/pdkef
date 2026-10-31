@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { createPageGeometry } from './coords.ts';
-import { addTurn, turnElement, turnGeometry, turnPercentBox, turnPercentPoint, turnsOf } from './pageTurn.ts';
+import { addTurn, turnElement, unturnElement, turnGeometry, turnPercentBox, turnPercentPoint, turnsOf } from './pageTurn.ts';
 import type { EditorElement } from '../model/editorModel.ts';
 
 const portrait = createPageGeometry({ cropBox: { x: 0, y: 0, width: 612, height: 792 } });
@@ -112,5 +112,25 @@ describe('page turn geometry', () => {
     const minOnly = turnElement({ ...text, width: undefined, minWidth: 40 } as any, portrait, 1) as any;
     expect(minOnly.left + minOnly.minWidth).toBeLessThanOrEqual(100 + 1e-9);
     expect(minOnly.left).toBeGreaterThanOrEqual(0);
+  });
+
+  describe('a measured text width (SIGN-43)', () => {
+    const text = { id: 't', pageIndex: 0, type: 'text', text: 'x', fontSize: 12, left: 10, top: 20 } as EditorElement;
+
+    it('a half turn mirrors the text by its extent: it lands at 100 - left - width', () => {
+      const out = turnElement(text, portrait, 2, 30) as any;
+      expect(out.left).toBeCloseTo(100 - 10 - 30, 9);
+      // without a measurement it behaves as before (mirrors the start)
+      expect((turnElement(text, portrait, 2) as any).left).toBeCloseTo(90, 9);
+    });
+
+    it.each([1, 2, 3] as const)('turn then undo returns the original anchor (%i turns)', (q) => {
+      let cur: EditorElement = text;
+      let geo = portrait;
+      for (let i = 0; i < q; i++) { cur = turnElement(cur, geo, 1, 30); geo = turnGeometry(geo, 1); }
+      for (let i = 0; i < q; i++) { geo = turnGeometry(geo, -1); cur = unturnElement(cur, turnGeometry(geo, 1), 1, 30); }
+      expect((cur as any).left).toBeCloseTo(10, 9);
+      expect((cur as any).top).toBeCloseTo(20, 9);
+    });
   });
 });

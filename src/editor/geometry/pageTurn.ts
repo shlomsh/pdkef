@@ -56,9 +56,13 @@ export function turnPercentBox(box: PercentBox, quarterTurns: number): PercentBo
  * An element after its page turns `quarterTurns` from `from`. Elements that cover
  * content (rectangle, ellipse, whiteout, line, highlight) turn with it. Marks written on the
  * page (text, signature, symbol and the rest) stay upright and keep their size in
- * points; their anchor follows the content.
+ * points; their anchor follows the content. `textWidth` is a point-anchored
+ * text's rendered width in page-width percent of `from`: with it the text's box
+ * turns by its real extent, so a half turn lands it on what it covered.
  */
-export function turnElement<T extends EditorElement>(element: T, from: PageGeometry, quarterTurns: number): T {
+export function turnElement<T extends EditorElement>(
+  element: T, from: PageGeometry, quarterTurns: number, textWidth?: number,
+): T {
   const q = mod4(quarterTurns);
   if (element.type === 'line') {
     const a = turnPercentPoint({ x: element.x1, y: element.y1 }, q);
@@ -98,7 +102,8 @@ export function turnElement<T extends EditorElement>(element: T, from: PageGeome
   if (typeof width !== 'number' || typeof height !== 'number') {
     // A point-anchored mark (text, a comb): the anchor is the top-left of its one-line box, which follows the content.
     const lineHeight = typeof fontSize === 'number' ? ((fontSize * DEFAULT_LINE_HEIGHT_EM) / from.height) * 100 : 0;
-    const turned = turnPercentBox({ left, top, width: 0, height: lineHeight }, q);
+    const boxWidth = widthAfter === undefined && typeof textWidth === 'number' ? textWidth : 0;
+    const turned = turnPercentBox({ left, top, width: boxWidth, height: lineHeight }, q);
     const minWidthAfter = rescale(minWidth);
     const known = widthAfter ?? minWidthAfter;
     // A known width must not hang off the turned page.
@@ -113,4 +118,30 @@ export function turnElement<T extends EditorElement>(element: T, from: PageGeome
   const heightAfter = (height * from.height) / to.height;
   const c = turnPercentPoint({ x: left + width / 2, y: top + height / 2 }, q);
   return { ...element, left: c.x - widthAfter! / 2, top: c.y - heightAfter / 2, width: widthAfter, height: heightAfter };
+}
+
+/**
+ * The exact inverse of `turnElement(original, originalFrame, quarterTurns, textWidth)`
+ * for the turned element; `turnedFrame` is the page as displayed after the turn and
+ * `textWidth` the same pre-turn width the turn used (page-width percent of the
+ * original frame). Everything but a point-anchored mark turns back as before.
+ */
+export function unturnElement<T extends EditorElement>(
+  element: T, turnedFrame: PageGeometry, quarterTurns: number, textWidth?: number,
+): T {
+  const q = mod4(quarterTurns);
+  const back = turnElement(element, turnedFrame, -q);
+  const { type, fontSize, width, height, left, top } = element as unknown as {
+    type: string; fontSize?: unknown; width?: unknown; height?: unknown; left?: unknown; top?: unknown;
+  };
+  const pointAnchored = typeof left === 'number' && typeof top === 'number' && type !== 'line' && type !== 'highlight'
+    && !TURNS_WITH_PAGE.has(type) && (typeof width !== 'number' || typeof height !== 'number');
+  if (!pointAnchored || typeof textWidth !== 'number' || q === 0) return back;
+  const original = turnGeometry(turnedFrame, -q);
+  const lineHeight = typeof fontSize === 'number' ? ((fontSize * DEFAULT_LINE_HEIGHT_EM) / original.height) * 100 : 0;
+  const w = typeof width === 'number' ? 0 : textWidth;
+  // The turned box's corner is the stored anchor; its extent is the original box's, swapped on odd turns.
+  const turnedBox = q % 2 ? { width: lineHeight, height: w } : { width: w, height: lineHeight };
+  const box = turnPercentBox({ left: left as number, top: top as number, ...turnedBox }, 4 - q);
+  return { ...back, left: box.left, top: box.top };
 }
