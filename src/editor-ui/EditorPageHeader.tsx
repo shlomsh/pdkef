@@ -37,6 +37,7 @@ export default function EditorPageHeader({
   clearLabel = 'Clear page',
   lang = 'en',
   dir = 'ltr',
+  note,
 }: {
   pageNumber: number;
   onClear: (() => void) | null;
@@ -50,6 +51,8 @@ export default function EditorPageHeader({
   clearLabel?: string;
   lang?: string;
   dir?: 'ltr' | 'rtl';
+  /** SIGN-44: muted text before Clear page (Sign's comment count); Redact passes none. */
+  note?: string;
 }) {
   const trashIcon = <TrashIcon />;
   return (
@@ -62,6 +65,7 @@ export default function EditorPageHeader({
             {rotateLabel}
           </button>
         )}
+        {note && <span className={styles['page-note']} data-editor-page-note>{note}</span>}
         {onClear && clearOptions && clearOptions.length > 0 ? (
           <ToolbarMenu
             title={clearTitle ?? clearLabel}

@@ -54,3 +54,8 @@
   color: var(--color-danger);
   background: var(--color-danger-soft);
 }
+
+.page-note {
+  font-size: 0.83rem;
+  color: var(--color-muted);
+}

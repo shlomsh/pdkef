@@ -32,4 +32,13 @@ describe('EditorPageHeader', () => {
     const host = mount(<EditorPageHeader pageNumber={1} onClear={() => {}} />);
     expect([...host.querySelectorAll('button')].map((b) => b.textContent)).toEqual(['Clear page']);
   });
+
+  it('shows a note just before Clear page, and nothing without one', () => {
+    const host = mount(<EditorPageHeader pageNumber={1} onClear={() => {}} note="2 comments" />);
+    const note = host.querySelector('[data-editor-page-note]')!;
+    expect(note.textContent).toBe('2 comments');
+    expect(note.nextElementSibling?.textContent).toBe('Clear page');
+    const bare = mount(<EditorPageHeader pageNumber={1} onClear={() => {}} />);
+    expect(bare.querySelector('[data-editor-page-note]')).toBeNull();
+  });
 });
