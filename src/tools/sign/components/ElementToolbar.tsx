@@ -1,4 +1,5 @@
 import { useId } from 'preact/hooks';
+import { offsetClone } from '../lib/elementClipboard.ts';
 import { PilcrowLeft, PilcrowRight, TextAlignCenter, TextAlignEnd, TextAlignStart } from 'lucide-preact';
 import { TrashIcon } from '#editor-ui/toolIcons.tsx';
 import ColorPickerMenu from '#editor-ui/ColorPickerMenu.tsx';
@@ -377,12 +378,7 @@ export default function ElementToolbar({
         className={buttonClass()}
         onClick={() => {
           const newId = `el-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`;
-          onClone({
-            ...element,
-            id: newId,
-            left: Math.min(90, element.left + 4),
-            top: Math.min(90, element.top + 4)
-          });
+          onClone(offsetClone(element, newId));
         }}
         title={t.duplicateElementTitle}
       >
