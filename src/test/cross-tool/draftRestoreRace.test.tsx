@@ -79,6 +79,12 @@ vi.mock('pdfjs-dist', () => ({
   }))
 }));
 
+// Reading a fresh file's annotations back loads a parser chunk, slower than these races' waits;
+// the races are about which file wins, so a fresh file opens as it is.
+vi.mock('../../tools/sign/lib/comments/readBack.ts', () => ({
+  readBackAnnotations: vi.fn(async (bytes: ArrayBuffer) => ({ bytes, elements: [] }))
+}));
+
 async function waitAsync(ms = 30) {
   await act(async () => {
     await new Promise((resolve) => setTimeout(resolve, ms));
