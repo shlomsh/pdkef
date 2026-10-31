@@ -8,7 +8,7 @@ import styles from './HighlightNode.module.css';
 /* SIGN-46: bands are percents of the element's own box. The draft container
  * stays empty in render - the swipe gesture paints live bands into it.
  * SIGN-44: the dot is a sibling of the multiply root, never inside it. */
-export default function HighlightNode({ element, onSelect, messages }: ElementNodeProps<HighlightElement> & {
+export default function HighlightNode({ element, isActive, onSelect, messages }: ElementNodeProps<HighlightElement> & {
   onChange?: ElementNodeChange<HighlightElement>;
   onSelect?: (event: Event) => void;
 }) {
@@ -16,7 +16,7 @@ export default function HighlightNode({ element, onSelect, messages }: ElementNo
   return (
     <>
       <div data-highlight-root class={styles.root}>
-        <div data-highlight-bands class={styles.layer}>
+        <div data-highlight-bands class={styles.layer} data-focused={isActive ? '' : undefined}>
           {element.bands.map((band, i) => (
             <div
               key={i}

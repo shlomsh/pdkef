@@ -3,12 +3,17 @@ import type { EditorElement } from '#editor/model/editorModel.ts';
 import type { SignMessages } from '#editor/registry/messages.ts';
 import { commentCards, stackCards } from '../../lib/highlight/commentCards.ts';
 import { CommentCardBody } from './CommentCardBody.tsx';
-import { PassageCrop } from './PassageCrop.tsx';
 import styles from './CommentRail.module.css';
 
 const GAP = 8;
 const NUDGE = 6;
 const stop = (event: Event) => event.stopPropagation();
+const passageNode = (id: string) => document.querySelector<HTMLElement>(`[data-editor-element-id="${CSS.escape(id)}"]`);
+const markHover = (id: string, on: boolean) => {
+  const node = passageNode(id);
+  if (on) node?.setAttribute('data-comment-hover', '');
+  else node?.removeAttribute('data-comment-hover');
+};
 
 /** SIGN-44: comments in a margin rail beside the page, each card level with its passage. */
 export function CommentRail({ pageIndex, elements, activeElementId, messages, onSelect, onChange }: {
@@ -50,14 +55,13 @@ export function CommentRail({ pageIndex, elements, activeElementId, messages, on
       onClick={stop} onMouseDown={stop} onTouchStart={stop}>
       {cards.map((card) => (
         <div key={card.id} class={styles.card} data-comment-card={card.id} data-active={card.id === activeElementId ? 'true' : undefined}
-          style={{ top: `${layout.tops.get(card.id) ?? 0}px` }}>
+          style={{ top: `${layout.tops.get(card.id) ?? 0}px` }}
+          onMouseEnter={() => markHover(card.id, true)} onMouseLeave={() => markHover(card.id, false)}>
           <CommentCardBody
             card={card}
             active={card.id === activeElementId}
-            pageNumber={pageIndex + 1}
             messages={messages}
-            crop={<PassageCrop pageIndex={pageIndex} band={card.firstBand} direction={card.direction} />}
-            onSelect={() => onSelect(card.id)}
+            onSelect={() => { onSelect(card.id); passageNode(card.id)?.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); }}
             onChange={(patch) => onChange(card.id, patch)}
           />
         </div>

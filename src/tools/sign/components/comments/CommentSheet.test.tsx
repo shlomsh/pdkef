@@ -39,7 +39,17 @@ describe('CommentSheet', () => {
   it('shows the text and Edit for an existing comment', () => {
     mount([hl('a', 'hello there')], 'a');
     expect(sheet()!.textContent).toContain('hello there');
-    expect(sheet()!.textContent).toContain(englishSignMessages.commentEdit);
+    expect(sheet()!.querySelector('[aria-label="More"]')).not.toBeNull();
+  });
+
+  it('scrolls the passage to the centre when it opens', () => {
+    const node = document.createElement('div');
+    node.setAttribute('data-editor-element-id', 'a');
+    node.scrollIntoView = vi.fn();
+    document.body.appendChild(node);
+    mount([hl('a', 'hello')], 'a');
+    expect(node.scrollIntoView).toHaveBeenCalledWith({ block: 'center', behavior: 'smooth' });
+    node.remove();
   });
 
   it('closes on Escape and on the grab bar', () => {
