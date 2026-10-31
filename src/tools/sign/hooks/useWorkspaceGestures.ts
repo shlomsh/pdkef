@@ -15,12 +15,14 @@ import type {
   SymbolMark,
 } from '#editor/model/editorModel.ts';
 import type { DocumentStyle } from '#editor/model/documentStyle.ts';
+import { deletedWith } from '../lib/comments/anchors.ts';
 import { carriedTextStyle } from '../lib/elementDefaults.ts';
 import type { SavedSignature } from '#editor/model/savedSignature.ts';
 import type { PageGeometry } from '#editor/geometry/coords.ts';
 import { getElementDefinition } from '#editor/registry/index.ts';
 import { ensureMinimumElementSize } from '../lib/minimumSize.ts';
 import { startHighlightSwipe } from './highlightSwipeGesture.ts';
+import { startCommentGesture } from './commentGesture.ts';
 import { directionAtPoint, readerTextDirection, resolveHighlightDirection } from '../lib/highlight/resolveDirection.ts';
 import { samplePageColor } from '../lib/whiteoutPageColor.ts';
 import {
@@ -374,7 +376,7 @@ export default function useWorkspaceGestures({
       : null;
     if (existingCheckboxMark) {
       stopUnlessTouchEnd();
-      const snapshots = captureElementSnapshots(elements, (element) => element.id === existingCheckboxMark.id);
+      const snapshots = captureElementSnapshots(elements, deletedWith(existingCheckboxMark.id));
       dispatch({ type: 'DELETE_ELEMENT', payload: existingCheckboxMark.id });
       dispatch({ type: 'SET_ACTIVE_ELEMENT_ID', payload: null });
       dispatch({ type: 'DISARM_TOOL' });
@@ -496,7 +498,7 @@ export default function useWorkspaceGestures({
     ).find((node) => node.dataset.editorElementId === id);
 
     gestureCancelRef.current?.();
-    if (newEl.type === 'highlight') return startHighlightSwipe({ dispatch, getPointerPercent, gestureCancelRef, logAction, setAnnouncement, messages: t, nextElementIndex, pageGeometry, direction: resolveHighlightDirection({ atPress: directionAtPoint(formRegions.pageTextRuns?.[pageIndex] ?? [], { x: startLeftPercent, y: startTopPercent }), page: formRegions.pageDirections?.[pageIndex], pages: formRegions.pageDirections ?? [], elements, readerDirection: readerTextDirection() }), isMouse: !('touches' in e) || !e.touches }, { pageIndex, container, id, newEl, start: { x: startLeftPercent, y: startTopPercent }, getElementNode });
+    if (newEl.type === 'highlight' || newEl.type === 'comment') return (newEl.type === 'comment' ? startCommentGesture : startHighlightSwipe)({ dispatch, getPointerPercent, gestureCancelRef, logAction, setAnnouncement, messages: t, nextElementIndex, pageGeometry, direction: resolveHighlightDirection({ atPress: directionAtPoint(formRegions.pageTextRuns?.[pageIndex] ?? [], { x: startLeftPercent, y: startTopPercent }), page: formRegions.pageDirections?.[pageIndex], pages: formRegions.pageDirections ?? [], elements, readerDirection: readerTextDirection() }), isMouse: !('touches' in e) || !e.touches }, { pageIndex, container, id, newEl, start: { x: startLeftPercent, y: startTopPercent }, getElementNode });
     gestureCancelRef.current = startGesture<PlacementPatch>({
       computePatch: (moveEvent) => {
       if ('touches' in moveEvent && moveEvent.touches && moveEvent.cancelable) moveEvent.preventDefault();

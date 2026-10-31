@@ -18,7 +18,7 @@ export { DRAFT_SCHEMA_VERSION };
 
 const ELEMENT_TYPES: readonly ElementType[] = [
   'text', 'rectangle', 'ellipse', 'line', 'symbol', 'signature', 'whiteout', 'blackout', 'blur',
-  'blurStroke', 'whiteoutStroke', 'highlight',
+  'blurStroke', 'whiteoutStroke', 'highlight', 'comment',
 ];
 
 /**
@@ -103,6 +103,74 @@ function migrateBlurStrengths(record: Record<string, unknown>): Record<string, u
 }
 
 /**
+ * SIGN-44: a comment became its own element. A highlight with a non-blank `comment` splits into the
+ * highlight plus a comment element `<id>-comment` anchored to it (same page and box, same
+ * `commentedAt`), placed right after it; a blank comment element is dropped. History follows:
+ * `comment`/`commentedAt` leave a highlight's update entries (an emptied entry is dropped) and its
+ * snapshots. Only highlights are touched, so a comment element's own history stays as written.
+ * Idempotent and applied to a record of any version.
+ */
+const LEGACY_COMMENT_KEYS = ['comment', 'commentedAt'] as const;
+
+function withoutLegacyComment<T>(value: T): T {
+  if (!isRecord(value) || LEGACY_COMMENT_KEYS.every((key) => !(key in value))) return value;
+  const rest = { ...value };
+  for (const key of LEGACY_COMMENT_KEYS) delete rest[key];
+  return rest;
+}
+
+function isHighlightRecord(value: unknown): value is Record<string, unknown> {
+  return isRecord(value) && value.type === 'highlight';
+}
+
+function splitHighlightComment(element: unknown, present: ReadonlySet<unknown>): unknown[] {
+  if (isRecord(element) && element.type === 'comment' && typeof element.comment === 'string' && !element.comment.trim()) return [];
+  if (!isHighlightRecord(element)) return [element];
+  const highlight = withoutLegacyComment(element);
+  if (typeof element.comment !== 'string' || !element.comment.trim()) return [highlight];
+  if (present.has(`${String(element.id)}-comment`)) return [highlight];
+  const { id, pageIndex, left, top, width, height, comment, commentedAt } = element;
+  return [highlight, {
+    id: `${String(id)}-comment`, type: 'comment', pageIndex, left, top, width, height, comment,
+    ...(commentedAt !== undefined ? { commentedAt } : {}),
+    anchor: { kind: 'element', elementId: id },
+  }];
+}
+
+function highlightIdsIn(elements: unknown[] | undefined, history: unknown[]): Set<unknown> {
+  const ids = new Set<unknown>(elements?.filter(isHighlightRecord).map((el) => el.id));
+  const snapshots = history.flatMap((entry) => (isRecord(entry) && Array.isArray(entry.elements) ? entry.elements : []));
+  for (const item of snapshots) if (isRecord(item) && isHighlightRecord(item.element)) ids.add(item.element.id);
+  return ids;
+}
+
+function migrateHighlightComments(record: Record<string, unknown>): Record<string, unknown> {
+  const elements = Array.isArray(record.elements) ? record.elements : undefined;
+  const present = new Set(elements?.map((el) => (isRecord(el) ? el.id : undefined)));
+  const split = elements?.flatMap((el) => splitHighlightComment(el, present));
+  let extra = record.extra;
+  if (isRecord(extra) && Array.isArray(extra.actionHistory)) {
+    const highlightIds = highlightIdsIn(elements, extra.actionHistory);
+    const actionHistory = extra.actionHistory.flatMap((entry) => {
+      if (!isRecord(entry)) return [entry];
+      const captured = Array.isArray(entry.elements)
+        ? entry.elements.map((item) => (isRecord(item) && isHighlightRecord(item.element) ? { ...item, element: withoutLegacyComment(item.element) } : item))
+        : entry.elements;
+      if (!Array.isArray(entry.updates)) return [captured === undefined ? entry : { ...entry, elements: captured }];
+      const updates = entry.updates.flatMap((update) => {
+        if (!isRecord(update) || !highlightIds.has(update.id)) return [update];
+        const cleaned = { ...update, before: withoutLegacyComment(update.before), after: withoutLegacyComment(update.after) };
+        const size = (part: unknown) => (isRecord(part) ? Object.keys(part).length : 0);
+        return size(cleaned.before) + size(cleaned.after) === 0 && size(update.before) + size(update.after) > 0 ? [] : [cleaned];
+      });
+      return updates.length === 0 && entry.updates.length > 0 ? [] : [{ ...entry, updates }];
+    });
+    extra = { ...extra, actionHistory };
+  }
+  return { ...record, ...(split !== undefined ? { elements: split } : {}), ...(extra !== undefined ? { extra } : {}) };
+}
+
+/**
  * Version-to-version step function. Records written before this change (or
  * whose `schemaVersion` is behind the current one) pass through every step in
  * order; a record already at `DRAFT_SCHEMA_VERSION` is returned unchanged.
@@ -153,7 +221,7 @@ export function migrateDraftRecord(record: unknown): unknown {
     migrated = { ...migrated, extra: { ...migrated.extra, actionHistory } };
   }
 
-  return { ...migrateBlurStrengths(migrated), schemaVersion: DRAFT_SCHEMA_VERSION };
+  return { ...migrateHighlightComments(migrateBlurStrengths(migrated)), schemaVersion: DRAFT_SCHEMA_VERSION };
 }
 
 /**

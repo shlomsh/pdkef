@@ -14,4 +14,5 @@ export const buildToolCopy = (t: SignMessages): Record<SignToolType, ToolCopy> =
   rectangle: { action: t.rectangleAction, actionTouch: t.rectangleActionTouch, button: t.shapesButton },
   line:      { action: t.lineAction,      actionTouch: t.lineActionTouch,      button: t.shapesButton },
   highlight: { action: t.highlightAction, actionTouch: t.highlightActionTouch, button: t.highlightLabel },
+  comment:   { action: t.commentAction,   actionTouch: t.commentActionTouch,   button: t.commentToolLabel },
 });

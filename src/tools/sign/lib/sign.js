@@ -18,6 +18,7 @@ import {
 import { getElementDefinition } from '#editor/registry/index.ts';
 import { commentNumbers } from './highlight/commentNumbers.ts';
 import { planCommentsPages } from './comments/commentsPages.ts';
+import { isComment, resolveCommentBoxes } from './comments/anchors.ts';
 import { findUnrepresentableCharacters } from './textCoverage.js';
 import { drawableCommentElements } from './comments/drawableCommentElements.ts';
 import { baselineOffsetEmFromMetrics, embeddedFontFile, resolveTypography } from '#editor/text/fonts.js';
@@ -114,11 +115,18 @@ export function pageGeometryFromPdfLibPage(page) {
 // already baked into page content by the time export runs. See
 // backlog/tasks/MOBI-02.md for the two alternatives considered and rejected.
 //
+/** SIGN-44: a highlight gets the comment anchored to it (text, date, number); every other element its own number. */
+function commentContext(element, highlightComments, numbers) {
+  const anchored = highlightComments.get(element.id);
+  if (!anchored) return { commentNumber: numbers.get(element.id) };
+  return { commentNumber: numbers.get(anchored.id), comment: { text: anchored.comment, commentedAt: anchored.commentedAt } };
+}
+
 // Bakes each element through its registry owner. Document loading and font caching
 // stay here because they are PDF-wide concerns, not per-element behavior.
 // `pageTurns` (SIGN-43) maps a page index to the extra clockwise quarter turns the
 // person gave it; elements are stored in percent of that turned page.
-// `commentsPage` carries the comments page's strings (the Sign messages); a highlight with a comment
+// `commentsPage` carries the comments page's strings (the Sign messages); a comment
 // appends the comments page(s) (SIGN-44). The defaults are the English ones.
 /**
  * @param {*} file
@@ -173,8 +181,17 @@ export async function signPdf(file, sourceElements, onProgress, { pageTurns = {}
   }
 
   // SIGN-44: the comments page(s), appended now so their text joins the font and coverage passes.
-  const numbers = commentNumbers(sourceElements);
-  const comments = await planCommentsPages(pdfDoc, sourceElements, numbers, {
+  const resolved = resolveCommentBoxes(sourceElements);
+  const numbers = commentNumbers(resolved);
+  // A comment anchored to a highlight lives in that highlight's own annotation, not in one of its own.
+  const highlightComments = new Map();
+  const highlightIds = new Set(resolved.filter((el) => el.type === 'highlight').map((el) => el.id));
+  for (const el of resolved) {
+    if (isComment(el) && el.anchor.kind === 'element' && highlightIds.has(el.anchor.elementId) && !highlightComments.has(el.anchor.elementId)) {
+      highlightComments.set(el.anchor.elementId, el);
+    }
+  }
+  const comments = await planCommentsPages(pdfDoc, resolved, numbers, {
     title: commentsPage?.title ?? 'Comments',
     entryLabel: commentsPage?.entryLabel ?? 'Page {page}',
     loadCustomFont,
@@ -184,7 +201,7 @@ export async function signPdf(file, sourceElements, onProgress, { pageTurns = {}
   // comment stays in the annotation's /Contents), and dropped if its font cannot load at all.
   // Only the source elements go through the strict font and coverage checks below.
   const commentElements = comments ? await drawableCommentElements(comments.elements, loadCustomFont) : [];
-  const elements = sourceElements;
+  const elements = resolved;
 
   // Load every exact face the document needs before coverage checking or page
   // mutation. The old generic Arimo fallback made an uncached Latin display
@@ -221,7 +238,10 @@ export async function signPdf(file, sourceElements, onProgress, { pageTurns = {}
   // annotations and never calls `getForm()`, which would strip XFA data.
   flattenDoc(pdfDoc);
 
-  const drawn = [...elements, ...commentElements];
+  const drawn = [
+    ...elements.filter((el) => !(isComment(el) && el.anchor.kind === 'element' && highlightIds.has(el.anchor.elementId))),
+    ...commentElements,
+  ];
   for (let i = 0; i < drawn.length; i++) {
     const element = drawn[i];
     const page = pdfDoc.getPage(element.pageIndex);
@@ -253,7 +273,7 @@ export async function signPdf(file, sourceElements, onProgress, { pageTurns = {}
         pageGeometry,
         loadCustomFont,
         baselineOffset: baselineOffsetEm,
-        commentNumber: numbers.get(element.id),
+        ...commentContext(element, highlightComments, numbers),
       });
     } finally {
       page.pushOperators(popGraphicsState(), endMarkedContent());

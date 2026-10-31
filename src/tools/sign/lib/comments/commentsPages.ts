@@ -7,13 +7,15 @@ import {
 import type { PDFFont } from '@cantoo/pdf-lib';
 import { applyAffineTransform, composeAffineTransforms, percentToPoints } from '#editor/geometry/coords.ts';
 import type { AffineTransform, PageGeometry } from '#editor/geometry/coords.ts';
-import type { EditorElement, HighlightElement, TextElement } from '#editor/model/editorModel.ts';
+import type { CommentElement, EditorElement, TextElement } from '#editor/model/editorModel.ts';
+import { COMMENT_ANCHOR_COLOR } from '#editor/registry/commentColors.ts';
 import { hexToRgbFractions } from '#editor/text/imageTint.js';
 import { resolveTypography } from '#editor/text/fonts.js';
 import { shapedWidth } from '#editor/text/shapeRun.ts';
 import { detectTextDirection } from '#editor/text/textDirection.js';
 import { BLEND_MULTIPLY } from '#lib/pdf/pdfLiterals.ts';
 import { formatMessage } from '#lib/text/formatMessage.ts';
+import { resolveCommentBoxes } from './anchors.ts';
 import { wrapLines } from './wrapLines.ts';
 
 const CIRCLE_COLOR = '#0F766E';
@@ -26,6 +28,9 @@ const COMMENT_SIZE = 11;
 const LINE_HEIGHT_EM = 1.5;
 const CLIP_PAD = 4;
 const CLIP_MAX_HEIGHT = 110;
+/** The least a pin's or a bare element's clip shows, in points, so there is a page region to look at. */
+const CLIP_MIN_WIDTH = 160;
+const CLIP_MIN_HEIGHT = 40;
 const CLIP_GAP = 6;
 const ENTRY_GAP = 22;
 const WRAP_SLACK = 0.96;
@@ -54,12 +59,22 @@ interface CommentsPlan {
 
 interface Entry {
   number: number;
-  element: HighlightElement;
+  element: CommentElement;
+  target: ClipTarget;
   commentsPage: PDFPage;
   circleY: number;
   clip: ClipPlan;
   linkRect: [number, number, number, number];
 }
+
+/** What a clip shows: a page region (percent of the page) and the tinted bands in it (also percent of the page). */
+interface ClipTarget {
+  box: Box;
+  bands: Box[];
+  color: string;
+}
+
+interface Box { left: number; top: number; width: number; height: number }
 
 interface ClipPlan {
   /** Source user-space box to embed. */
@@ -75,13 +90,48 @@ interface ClipPlan {
 }
 
 /** RTL layout when most comments are written in a right-to-left script: the page is for reading them. */
-function commentsDirection(highlights: readonly HighlightElement[]): Direction {
-  const rtl = highlights.filter((h) => detectTextDirection(h.comment ?? '') === 'rtl').length;
-  return rtl * 2 > highlights.length ? 'rtl' : 'ltr';
+function commentsDirection(comments: readonly CommentElement[]): Direction {
+  const rtl = comments.filter((c) => detectTextDirection(c.comment) === 'rtl').length;
+  return rtl * 2 > comments.length ? 'rtl' : 'ltr';
+}
+
+/** Grows a box around its centre to at least `minW` x `minH` points, kept on the page. */
+function growBox(box: Box, geometry: PageGeometry, minW: number, minH: number): Box {
+  const grow = (start: number, size: number, min: number, extent: number) => {
+    const wanted = Math.min(100, Math.max(size, (min / extent) * 100));
+    return { start: Math.max(0, Math.min(100 - wanted, start + size / 2 - wanted / 2)), size: wanted };
+  };
+  const x = grow(box.left, box.width, minW, geometry.width);
+  const y = grow(box.top, box.height, minH, geometry.height);
+  return { left: x.start, top: y.start, width: x.size, height: y.size };
+}
+
+/** What the clip of one comment shows: its passage, its target (a highlight's own bands), or the area around a pin. */
+function clipTargetOf(comment: CommentElement, byId: ReadonlyMap<string, EditorElement>, geometry: PageGeometry): ClipTarget {
+  const { anchor } = comment;
+  if (anchor.kind === 'passage') {
+    const bands = anchor.bands.map((band) => ({
+      left: comment.left + (band.left / 100) * comment.width, top: comment.top + (band.top / 100) * comment.height,
+      width: (band.width / 100) * comment.width, height: (band.height / 100) * comment.height,
+    }));
+    return { box: comment, bands, color: COMMENT_ANCHOR_COLOR };
+  }
+  if (anchor.kind === 'element') {
+    const target = byId.get(anchor.elementId);
+    if (target?.type === 'highlight') {
+      const bands = target.bands.map((band) => ({
+        left: target.left + (band.left / 100) * target.width, top: target.top + (band.top / 100) * target.height,
+        width: (band.width / 100) * target.width, height: (band.height / 100) * target.height,
+      }));
+      return { box: comment, bands, color: target.color };
+    }
+    return { box: growBox(comment, geometry, CLIP_MIN_WIDTH, CLIP_MIN_HEIGHT), bands: [], color: COMMENT_ANCHOR_COLOR };
+  }
+  return { box: growBox(comment, geometry, CLIP_MIN_WIDTH, CLIP_MIN_HEIGHT), bands: [], color: COMMENT_ANCHOR_COLOR };
 }
 
 /** Geometry of one passage clip, in the source page's editor space (points, bottom-left origin) mapped onto the comments page. */
-function planClip(element: HighlightElement, geometry: PageGeometry, destLeft: number, destBottom: number, columnWidth: number): ClipPlan {
+function planClip({ box: element, bands: targetBands }: ClipTarget, geometry: PageGeometry, destLeft: number, destBottom: number, columnWidth: number): ClipPlan {
   const boxW = percentToPoints(element.width, geometry.width);
   const boxH = percentToPoints(element.height, geometry.height);
   const boxLeft = percentToPoints(element.left, geometry.width);
@@ -105,11 +155,11 @@ function planClip(element: HighlightElement, geometry: PageGeometry, destLeft: n
     composeAffineTransforms(editorToPage, geometry.pdfToEditor),
     [1, 0, 0, 1, bbox.left, bbox.bottom],
   );
-  const bands = element.bands.map((band) => ({
-    x: destLeft + (boxLeft + (band.left / 100) * boxW - x0) * scale,
-    y: destBottom + (boxTop - ((band.top + band.height) / 100) * boxH - yb) * scale,
-    width: (band.width / 100) * boxW * scale,
-    height: (band.height / 100) * boxH * scale,
+  const bands = targetBands.map((band) => ({
+    x: destLeft + (percentToPoints(band.left, geometry.width) - x0) * scale,
+    y: destBottom + (geometry.height - percentToPoints(band.top + band.height, geometry.height) - yb) * scale,
+    width: percentToPoints(band.width, geometry.width) * scale,
+    height: percentToPoints(band.height, geometry.height) * scale,
   }));
   return {
     bbox, matrix, bands, width: w * scale, height: h * scale,
@@ -133,7 +183,7 @@ async function drawComments(pdfDoc: PDFDocument, entries: readonly Entry[], divi
     });
   }
   for (const entry of entries) {
-    const { commentsPage, clip, element } = entry;
+    const { commentsPage, clip, element, target } = entry;
     commentsPage.drawCircle({ x: circleX, y: entry.circleY, size: CIRCLE_DIAMETER / 2, color: rgb(circle.r, circle.g, circle.b) });
     const label = String(entry.number);
     const labelSize = label.length > 2 ? 7 : 10;
@@ -143,9 +193,9 @@ async function drawComments(pdfDoc: PDFDocument, entries: readonly Entry[], divi
       size: labelSize, font: bold, color: rgb(1, 1, 1),
     });
 
-    // The highlight is an annotation, not page content, so the clip gets its bands painted beneath
-    // the page and the page multiplied over them.
-    const { r, g, b } = hexToRgbFractions(element.color);
+    // A highlight or a comment's tint is an annotation, not page content, so the clip gets its bands
+    // painted beneath the page and the page multiplied over them.
+    const { r, g, b } = hexToRgbFractions(target.color);
     for (const band of clip.bands) commentsPage.drawRectangle({ ...band, color: rgb(r, g, b) });
     const sourcePage = pdfDoc.getPage(element.pageIndex);
     const embedded = await pdfDoc.embedPage(sourcePage, clip.bbox);
@@ -165,8 +215,8 @@ async function drawComments(pdfDoc: PDFDocument, entries: readonly Entry[], divi
 }
 
 /**
- * Appends the comments page(s) to `pdfDoc` and plans their content, or returns null when no highlight
- * carries a comment. Call before fonts load so the returned elements share that pass and the coverage check.
+ * Appends the comments page(s) to `pdfDoc` and plans their content, or returns null when no comment
+ * has any text. Call before fonts load so the returned elements share that pass and the coverage check.
  */
 export async function planCommentsPages(
   pdfDoc: PDFDocument,
@@ -175,8 +225,10 @@ export async function planCommentsPages(
   options: CommentsPageOptions,
 ): Promise<CommentsPlan | null> {
   const sourcePageCount = pdfDoc.getPageCount();
-  const commented = elements
-    .filter((element): element is HighlightElement => element.type === 'highlight' && numbers.has(element.id) && element.pageIndex < sourcePageCount)
+  const resolved = resolveCommentBoxes(elements);
+  const byId = new Map(resolved.map((element) => [element.id, element]));
+  const commented = resolved
+    .filter((element): element is CommentElement => element.type === 'comment' && numbers.has(element.id) && element.pageIndex < sourcePageCount)
     .sort((a, b) => numbers.get(a.id)! - numbers.get(b.id)!);
   if (commented.length === 0) return null;
 
@@ -246,23 +298,24 @@ export async function planCommentsPages(
   for (const element of commented) {
     const number = numbers.get(element.id)!;
     const sourceGeometry = options.pageGeometry(pdfDoc.getPage(element.pageIndex));
-    const comment = element.comment!.trim();
+    const comment = element.comment.trim();
     const measure = await measurerFor(comment, COMMENT_SIZE, 'normal');
     const lines = wrapLines(comment, columnWidth * WRAP_SLACK, measure);
-    const probeClip = planClip(element, sourceGeometry, 0, 0, columnWidth);
+    const target = clipTargetOf(element, byId, sourceGeometry);
+    const probeClip = planClip(target, sourceGeometry, 0, 0, columnWidth);
     const headerHeight = pageLineHeight + CLIP_GAP + probeClip.height + CLIP_GAP;
     if (y + headerHeight + commentLineHeight > pageH - MARGIN) newPage();
 
     const entryTop = y;
     const clipTop = entryTop + pageLineHeight + CLIP_GAP;
     const clipLeft = rtl ? columnEdge - probeClip.width : columnEdge;
-    const clip = planClip(element, sourceGeometry, clipLeft, pageH - clipTop - probeClip.height, columnWidth);
+    const clip = planClip(target, sourceGeometry, clipLeft, pageH - clipTop - probeClip.height, columnWidth);
     await pushLine(
       formatMessage(options.entryLabel, { page: element.pageIndex + 1 }),
       PAGE_LINE_SIZE, 'normal', PAGE_LINE_COLOR, entryTop + 2, columnEdge,
     );
     entries.push({
-      number, element, commentsPage: page!, circleY: pageH - (entryTop + CIRCLE_DIAMETER / 2), clip,
+      number, element, target, commentsPage: page!, circleY: pageH - (entryTop + CIRCLE_DIAMETER / 2), clip,
       linkRect: [0, 0, 0, 0],
     });
     const entry = entries[entries.length - 1];

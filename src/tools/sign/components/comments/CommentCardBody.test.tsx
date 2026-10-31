@@ -6,16 +6,16 @@ import type { CommentCard } from '../../lib/highlight/commentCards.ts';
 import { CommentCardBody } from './CommentCardBody.tsx';
 
 const band = { left: 10, top: 10, width: 30, height: 2 };
-const card = (over: Partial<CommentCard> = {}): CommentCard => ({ id: 'h1', color: '#ff0', direction: 'ltr', comment: 'Check this', isNew: false, firstBand: band, ...over });
+const card = (over: Partial<CommentCard> = {}): CommentCard => ({ id: 'h1', direction: 'ltr', comment: 'Check this', isNew: false, firstBand: band, ...over });
 
 let host: HTMLDivElement | null = null;
 afterEach(() => { if (host) render(null, host); host?.remove(); host = null; });
 
-function mount(props: { card: CommentCard; active?: boolean; onSelect?: () => void; onChange?: (p: { comment: string | undefined }) => void }) {
+function mount(props: { card: CommentCard; active?: boolean; onSelect?: () => void; onSave?: (p: { comment: string; commentedAt: number }) => void; onDelete?: () => void; onDiscard?: () => void }) {
   host = document.createElement('div');
   document.body.appendChild(host);
   const draw = (c: CommentCard, active: boolean) => act(() => render(
-    <CommentCardBody card={c} active={active} messages={englishSignMessages}       onSelect={props.onSelect ?? (() => {})} onChange={props.onChange ?? (() => {})} />, host!));
+    <CommentCardBody card={c} active={active} messages={englishSignMessages}       onSelect={props.onSelect ?? (() => {})} onSave={props.onSave ?? (() => {})} onDelete={props.onDelete ?? (() => {})} onDiscard={props.onDiscard ?? (() => {})} />, host!));
   draw(props.card, props.active ?? false);
   return { redraw: (c: CommentCard, active = props.active ?? false) => draw(c, active) };
 }
@@ -36,62 +36,64 @@ describe('CommentCardBody', () => {
   });
 
   it('active existing card has a More menu with Edit, which opens a prefilled field with Cancel and Comment', () => {
-    const onChange = vi.fn();
-    mount({ card: card(), active: true, onChange });
+    const onSave = vi.fn();
+    mount({ card: card(), active: true, onSave });
     act(() => q<HTMLElement>('[aria-label="More"]').click());
     act(() => menuItem('Edit').click());
     expect(q<HTMLTextAreaElement>('textarea').value).toBe('Check this');
     expect(q('textarea').getAttribute('dir')).toBe('auto');
     type('Changed');
     act(() => button('Comment').click());
-    expect(onChange).toHaveBeenCalledWith({ comment: 'Changed', commentedAt: expect.any(Number) });
+    expect(onSave).toHaveBeenCalledWith({ comment: 'Changed', commentedAt: expect.any(Number) });
     expect(host!.querySelector('textarea')).toBeNull();
   });
 
-  it('Cancel on a new card removes the comment; on an edit it only closes', () => {
-    const onChange = vi.fn();
-    mount({ card: card({ comment: '', isNew: true }), active: true, onChange });
+  it('Cancel on a new card discards the comment; on an edit it only closes', () => {
+    const onDiscard = vi.fn();
+    mount({ card: card({ comment: '', isNew: true }), active: true, onDiscard });
     expect(host!.querySelector('[data-highlight-note-input]')).not.toBeNull();
     act(() => button('Cancel').click());
-    expect(onChange).toHaveBeenCalledWith({ comment: undefined });
+    expect(onDiscard).toHaveBeenCalledOnce();
   });
 
   it('Cancel while editing keeps the comment', () => {
-    const onChange = vi.fn();
-    mount({ card: card(), active: true, onChange });
+    const [onSave, onDelete, onDiscard] = [vi.fn(), vi.fn(), vi.fn()];
+    mount({ card: card(), active: true, onSave, onDelete, onDiscard });
     act(() => q<HTMLElement>('[aria-label="More"]').click());
     act(() => menuItem('Edit').click());
     type('half typed');
     act(() => button('Cancel').click());
-    expect(onChange).not.toHaveBeenCalled();
+    expect(onSave).not.toHaveBeenCalled();
+    expect(onDelete).not.toHaveBeenCalled();
+    expect(onDiscard).not.toHaveBeenCalled();
     expect(host!.textContent).toContain('Check this');
   });
 
-  it('a blank save removes the comment, on a new card and on an existing one', () => {
-    const onChange = vi.fn();
-    mount({ card: card({ comment: '', isNew: true }), active: true, onChange });
+  it('a blank save discards a new card and deletes an existing comment', () => {
+    const [onSave, onDelete, onDiscard] = [vi.fn(), vi.fn(), vi.fn()];
+    mount({ card: card({ comment: '', isNew: true }), active: true, onSave, onDelete, onDiscard });
     expect(button('Comment').disabled).toBe(true);
-    act(() => button('Comment').click());
     render(null, host!);
-    mount({ card: card(), active: true, onChange });
+    mount({ card: card(), active: true, onSave, onDelete, onDiscard });
     act(() => q<HTMLElement>('[aria-label="More"]').click());
     act(() => menuItem('Edit').click());
     type('   ');
     act(() => button('Comment').click());
-    expect(onChange).toHaveBeenLastCalledWith({ comment: undefined, commentedAt: undefined });
+    expect(onDelete).toHaveBeenCalledOnce();
+    expect(onSave).not.toHaveBeenCalled();
   });
 
   it('Escape cancels and Ctrl+Enter saves, and keys never travel past the field', () => {
-    const onChange = vi.fn();
+    const [onSave, onDiscard] = [vi.fn(), vi.fn()];
     const outer = vi.fn();
-    mount({ card: card({ comment: '', isNew: true }), active: true, onChange });
+    mount({ card: card({ comment: '', isNew: true }), active: true, onSave, onDiscard });
     document.addEventListener('keydown', outer);
     type('Hello');
     act(() => { q('textarea').dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', ctrlKey: true, bubbles: true })); });
-    expect(onChange).toHaveBeenLastCalledWith({ comment: 'Hello', commentedAt: expect.any(Number) });
+    expect(onSave).toHaveBeenLastCalledWith({ comment: 'Hello', commentedAt: expect.any(Number) });
     act(() => { q('textarea').dispatchEvent(new KeyboardEvent('keydown', { key: 'Delete', bubbles: true })); });
     act(() => { q('textarea').dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); });
-    expect(onChange).toHaveBeenLastCalledWith({ comment: undefined });
+    expect(onDiscard).toHaveBeenCalledOnce();
     expect(outer).not.toHaveBeenCalled();
     document.removeEventListener('keydown', outer);
   });
@@ -102,12 +104,12 @@ describe('CommentCardBody', () => {
     expect(host!.textContent).toContain('After undo');
   });
 
-  it('Delete in the More menu removes the comment and its date, and an inactive or new card has no menu', () => {
-    const onChange = vi.fn();
-    mount({ card: card(), active: true, onChange });
+  it('Delete in the More menu deletes the comment, and an inactive or new card has no menu', () => {
+    const onDelete = vi.fn();
+    mount({ card: card(), active: true, onDelete });
     act(() => q<HTMLElement>('[aria-label="More"]').click());
     act(() => menuItem('Delete').click());
-    expect(onChange).toHaveBeenCalledWith({ comment: undefined, commentedAt: undefined });
+    expect(onDelete).toHaveBeenCalledOnce();
     render(null, host!);
     mount({ card: card(), active: false });
     expect(host!.querySelector('[aria-label="More"]')).toBeNull();

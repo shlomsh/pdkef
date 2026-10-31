@@ -68,7 +68,9 @@ async function readToolbarLine(page) {
 // which need 629.6px and hold one line down to a 693px window (630.2px of
 // content); from 692px it is a balanced 7+6. Since 2026-10-31 the Highlight button
 // (SIGN-46) makes fourteen, which need 678.4px and hold one line down to a 792px
-// window; below it the row is a balanced 7+7. Redact's floor is still 700px.
+// window; below it the row is a balanced 7+7. Since 2026-10-31 the Comment button
+// (SIGN-44) makes fifteen, which need 727.2px and hold one line down to an 841px
+// window; below it the row is a balanced 8+7. Redact's floor is still 700px.
 // Below its own floor a toolbar is the wrapped grid, whose balance is
 // toolbar-touch-targets.spec.js's and sign-toolbar-labels-fit.spec.js's job.
 const WIDTHS = [768, 920, 1000, 1100, 1200, 1299, 1300, 1440, 1600];
@@ -81,7 +83,7 @@ const WIDTHS = [768, 920, 1000, 1100, 1200, 1299, 1300, 1440, 1600];
 const MAX_DOWNLOAD_SHARE = 0.4;
 
 const tools = [
-  { name: 'Sign', path: '/sign/?next=0', fixture: 'sign-desktop-one-line.pdf', floor: 792 },
+  { name: 'Sign', path: '/sign/?next=0', fixture: 'sign-desktop-one-line.pdf', floor: 841 },
   { name: 'Redact', path: '/redact', fixture: 'redact-desktop-one-line.pdf', floor: 700 },
 ];
 
@@ -121,7 +123,7 @@ async function labelWidth(page, text) {
   }, text);
 }
 
-test('Text leads and Sign follows the filling tools, labels show at the desktop anchor except the icon-only three, and none show below 1300px', async ({ page }) => {
+test('Text leads and Sign follows the filling tools, labels show at the desktop anchor except the icon-only five, and none show below 1300px', async ({ page }) => {
   await stubSharePresent(page);
   await page.setViewportSize({ width: 1600, height: 1000 });
   await openTool(page, '/sign/?next=0', 'sign-desktop-one-line-order.pdf');
@@ -133,7 +135,7 @@ test('Text leads and Sign follows the filling tools, labels show at the desktop 
   });
   expect(leadingLabels, 'the filling tools lead and Sign follows them').toEqual(['Text', 'Date', 'Symbols', 'Shapes', 'Whiteout', 'Sign']);
 
-  for (const label of ['Sign', 'Text', 'Date', 'Symbols', 'Whiteout', 'Replace', 'Share', 'Download']) {
+  for (const label of ['Sign', 'Text', 'Date', 'Symbols', 'Whiteout', 'Highlight', 'Share', 'Download']) {
     const width = await labelWidth(page, label);
     expect(width, `${label} label should exist`).not.toBeNull();
     expect(width, `${label} should be labelled at 1440px`).toBeGreaterThan(5);
@@ -142,15 +144,18 @@ test('Text leads and Sign follows the filling tools, labels show at the desktop 
   // History were three controls, and History leaving paid its label back
   // (SignToolbar.module.css's 1300px block carries the measurements). Undo,
   // Redo and Feedback stay icon-only at every width - an arrow is a
-  // convention, and none of the three is a tool.
-  for (const label of ['Undo', 'Redo', 'Feedback']) {
+  // convention, and none of the three is a tool. Since 2026-10-31 (SIGN-44) the
+  // Comment tool and Replace join them: fifteen labelled controls are about
+  // 115px wider than the 1172px box, and a speech bubble and the file icon
+  // (with its tooltip) are the two that read without a word.
+  for (const label of ['Undo', 'Redo', 'Feedback', 'Comment', 'Replace']) {
     const width = await labelWidth(page, label);
     expect(width, `${label} label should exist for screen readers`).not.toBeNull();
     expect(width, `${label} is icon-only at every width`).toBeLessThanOrEqual(2);
   }
 
   await page.setViewportSize({ width: 1200, height: 1000 });
-  for (const label of ['Sign', 'Whiteout', 'Replace', 'Download']) {
+  for (const label of ['Sign', 'Whiteout', 'Highlight', 'Download']) {
     const width = await labelWidth(page, label);
     expect(width, `${label} is icon-only below 1300px`).toBeLessThanOrEqual(2);
   }

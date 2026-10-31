@@ -23,7 +23,7 @@ describe('serializeHighlight', () => {
     const pdfDoc = await PDFDocument.create();
     const page = pdfDoc.addPage([200, 100]);
     const at = Date.UTC(2026, 9, 31, 18, 5, 9);
-    serializeHighlight({ ...element, comment: 'x', commentedAt: at }, { pdfDoc, page, pdfWidth: 200, pdfHeight: 100, pdfX: 20, pdfY: 90, loadCustomFont: async () => null, baselineOffset: () => 0 });
+    serializeHighlight(element, { pdfDoc, page, pdfWidth: 200, pdfHeight: 100, pdfX: 20, pdfY: 90, comment: { text: 'x', commentedAt: at }, loadCustomFont: async () => null, baselineOffset: () => 0 });
     const annot = pdfDoc.context.lookup(page.node.Annots()!.get(0)) as PDFDict;
     expect((annot.lookup(PDFName.of('M')) as PDFString).asString()).toBe('D:20261031180509Z');
   });
@@ -47,5 +47,27 @@ describe('serializeHighlight', () => {
     const ys = [x0, x1].flatMap((x) => [y0, y1].map((y) => b * x + d * y));
     expect(Math.max(...xs) - Math.min(...xs)).toBeCloseTo(rect[2] - rect[0], 3);
     expect(Math.max(...ys) - Math.min(...ys)).toBeCloseTo(rect[3] - rect[1], 3);
+  });
+
+  it('ignores a comment stored on the element: only the context carries it', async () => {
+    const pdfDoc = await PDFDocument.create();
+    const page = pdfDoc.addPage([200, 100]);
+    serializeHighlight({ ...element, comment: 'old' } as typeof element, { pdfDoc, page, pdfWidth: 200, pdfHeight: 100, pdfX: 20, pdfY: 90, loadCustomFont: async () => null, baselineOffset: () => 0 });
+    const annot = pdfDoc.context.lookup(page.node.Annots()!.get(0)) as PDFDict;
+    expect(annot.has(PDFName.of('Contents'))).toBe(false);
+    expect(annot.has(PDFName.of('Popup'))).toBe(false);
+  });
+
+  it('writes /Contents, /Popup and a grouped badge from the context comment and number', async () => {
+    const pdfDoc = await PDFDocument.create();
+    const page = pdfDoc.addPage([200, 100]);
+    serializeHighlight(element, { pdfDoc, page, pdfWidth: 200, pdfHeight: 100, pdfX: 20, pdfY: 90, comment: { text: 'note' }, commentNumber: 3, loadCustomFont: async () => null, baselineOffset: () => 0 });
+    const annots = page.node.Annots()!;
+    expect(annots.size()).toBe(3);
+    const annot = pdfDoc.context.lookup(annots.get(0)) as PDFDict;
+    expect(annot.has(PDFName.of('Contents'))).toBe(true);
+    expect(annot.get(PDFName.of('F'))).toEqual(PDFNumber.of(4));
+    const badge = pdfDoc.context.lookup(annots.get(2)) as PDFDict;
+    expect(badge.get(PDFName.of('IRT'))).toBe(annots.get(0));
   });
 });

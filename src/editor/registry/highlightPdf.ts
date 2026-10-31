@@ -1,6 +1,6 @@
 import { PDFHexString, PDFName, PDFString } from '@cantoo/pdf-lib';
 import type { PDFDocument, PDFRef } from '@cantoo/pdf-lib';
-import type { HighlightElement } from '../model/editorModel.ts';
+import type { HighlightBand, HighlightElement } from '../model/editorModel.ts';
 import type { SerializeContext } from './types.ts';
 import { DEFAULT_HIGHLIGHT_COLOR } from '../model/highlightColors.ts';
 import { hexToRgbFractions } from '../text/imageTint.js';
@@ -18,16 +18,17 @@ const KAPPA = 0.5523;
 
 type Point = [number, number];
 type Bounds = [number, number, number, number];
+interface Edge { left: number; right: number; top: number; bottom: number }
 
-const fixed = (n: number) => String(Math.round(n * 1000) / 1000);
-const boundsOf = (points: Point[]): Bounds => {
+export const fixed = (n: number) => String(Math.round(n * 1000) / 1000);
+export const boundsOf = (points: Point[]): Bounds => {
   const xs = points.map((p) => p[0]);
   const ys = points.map((p) => p[1]);
   return [Math.min(...xs), Math.min(...ys), Math.max(...xs), Math.max(...ys)];
 };
 
 /** `D:YYYYMMDDHHmmSSZ`, the PDF date string for "now" in UTC. */
-function pdfDate(date = new Date()): PDFString {
+export function pdfDate(date = new Date()): PDFString {
   const pad = (n: number) => String(n).padStart(2, '0');
   const text = `D:${date.getUTCFullYear()}${pad(date.getUTCMonth() + 1)}${pad(date.getUTCDate())}`
     + `${pad(date.getUTCHours())}${pad(date.getUTCMinutes())}${pad(date.getUTCSeconds())}Z`;
@@ -58,21 +59,65 @@ function badgeContent(label: string): string {
   ].join('\n');
 }
 
+/** Where a number badge sits: a horizontal strip in editor space (top above bottom), plus the reading direction deciding its side. */
+interface BadgeSpot { left: number; right: number; top: number; bottom: number; rtl: boolean }
+
+/** Maps an editor-space point to the page's raw user space (annotations live outside the page's `cm`). */
+export const userSpace = (context: SerializeContext) => (x: number, y: number): Point => {
+  const p = applyAffineTransform({ x, y }, context.pageGeometry?.editorToPdf ?? IDENTITY);
+  return [p.x, p.y];
+};
+
+/** The numbered `/FreeText` badge, grouped to `parent` through `/IRT`, on the start side of `spot`. */
+export function addNumberBadge(context: SerializeContext, parent: PDFRef, spot: BadgeSpot, number: number): void {
+  const { pdfDoc, page, pageGeometry } = context;
+  const toUser = userSpace(context);
+  const pdfContext = pdfDoc.context;
+  const left = spot.rtl ? spot.right + BADGE_GAP : spot.left - BADGE_GAP - BADGE_SIZE;
+  const middle = (spot.top + spot.bottom) / 2;
+  const badgeRect = boundsOf([toUser(left, middle + BADGE_SIZE / 2), toUser(left + BADGE_SIZE, middle - BADGE_SIZE / 2)]);
+  const label = String(number);
+  const fonts = { Font: { F1: { Type: 'Font', Subtype: 'Type1', BaseFont: 'Helvetica-Bold', Encoding: 'WinAnsiEncoding' } } };
+  const [ma, mb, mc, md] = pageGeometry?.editorToPdf ?? IDENTITY;
+  // A turned page: draw in the badge's own square and let /Matrix carry the page's rotation, so the digit
+  // reads upright as displayed (12.5.5 maps the transformed BBox onto Rect).
+  const turned = ma !== 1 || mb !== 0 || mc !== 0 || md !== 1;
+  const badgeAp = turned
+    ? appearance(pdfDoc, [0, 0, BADGE_SIZE, BADGE_SIZE], badgeContent(label), fonts, [ma, mb, mc, md, 0, 0])
+    : appearance(pdfDoc, [badgeRect[0], badgeRect[1], badgeRect[2], badgeRect[3]],
+      `1 0 0 1 ${fixed(badgeRect[0])} ${fixed(badgeRect[1])} cm\n${badgeContent(label)}`, fonts);
+  const badgeRef = pdfContext.register(pdfContext.obj({
+    Type: 'Annot', Subtype: 'FreeText', Rect: badgeRect, F: 4, Contents: PDFHexString.fromText(label),
+    DA: PDFString.of('1 g /F1 8 Tf'), IRT: parent, RT: 'Group', M: pdfDate(), AP: { N: badgeAp },
+  }));
+  page.node.addAnnot(badgeRef);
+}
+
+interface BandsHighlightSpec {
+  id: string;
+  /** The box the bands are percentages of, in percent of the page. */
+  box: { left: number; top: number; width: number; height: number };
+  bands: HighlightBand[];
+  color: string;
+  fallbackColor: string;
+  direction?: 'ltr' | 'rtl';
+  comment?: { text: string; commentedAt?: number };
+  /** The Print flag: a highlight prints, a comment's tint does not. */
+  print: boolean;
+}
+
 /**
- * ISO 32000 12.5.6.10: one `/Highlight` annotation per element, so any viewer lists it, shows its
- * comment and prints it. The appearance stream paints the quads with Multiply, so it also renders
- * the same everywhere. sign.js wraps serialize in the editor-to-PDF `cm`, but annotations live in
- * raw user space, so every corner is mapped through `editorToPdf` here.
+ * ISO 32000 12.5.6.10: one `/Highlight` annotation, so any viewer lists it, shows its comment and (when
+ * `print`) prints it. The appearance stream paints the quads with Multiply, so it also renders the same
+ * everywhere. sign.js wraps serialize in the editor-to-PDF `cm`, but annotations live in raw user space,
+ * so every corner is mapped through `editorToPdf` here. Returns the annotation's ref, the badge's group.
  */
-export function serializeHighlight(element: HighlightElement, context: SerializeContext): void {
-  const { pdfDoc, page, pdfWidth, pdfHeight, pdfX, pdfY, pageGeometry, commentNumber } = context;
-  const toUser = (x: number, y: number): Point => {
-    const p = applyAffineTransform({ x, y }, pageGeometry?.editorToPdf ?? IDENTITY);
-    return [p.x, p.y];
-  };
-  const boxWidth = percentToPoints(element.width, pdfWidth);
-  const boxHeight = percentToPoints(element.height, pdfHeight);
-  const edges = element.bands.map((band) => {
+export function writeBandsHighlight(spec: BandsHighlightSpec, context: SerializeContext): { ref: PDFRef; edges: Edge[] } {
+  const { pdfDoc, page, pdfWidth, pdfHeight, pdfX, pdfY, commentNumber } = context;
+  const toUser = userSpace(context);
+  const boxWidth = percentToPoints(spec.box.width, pdfWidth);
+  const boxHeight = percentToPoints(spec.box.height, pdfHeight);
+  const edges: Edge[] = spec.bands.map((band) => {
     const left = pdfX + (band.left / 100) * boxWidth;
     const top = pdfY - (band.top / 100) * boxHeight;
     return { left, right: left + (band.width / 100) * boxWidth, top, bottom: top - (band.height / 100) * boxHeight };
@@ -80,23 +125,24 @@ export function serializeHighlight(element: HighlightElement, context: Serialize
   // Upper-left, upper-right, lower-left, lower-right of the band as displayed.
   const quads = edges.map((e) => [toUser(e.left, e.top), toUser(e.right, e.top), toUser(e.left, e.bottom), toUser(e.right, e.bottom)]);
   const rect = boundsOf(quads.flat());
-  const { r, g, b } = hexToRgbFractions(element.color, DEFAULT_HIGHLIGHT_COLOR);
+  const { r, g, b } = hexToRgbFractions(spec.color, spec.fallbackColor);
 
   const paint = quads.map(([ul, ur, ll, lr]) => `${ul.map(fixed).join(' ')} m ${ur.map(fixed).join(' ')} l ${lr.map(fixed).join(' ')} l ${ll.map(fixed).join(' ')} l h f`);
   const ap = appearance(pdfDoc, rect, [`/GS gs ${fixed(r)} ${fixed(g)} ${fixed(b)} rg`, ...paint].join('\n'),
     { ExtGState: { GS: { Type: 'ExtGState', BM: 'Multiply' } } });
 
-  const comment = element.comment?.trim() ? element.comment : undefined;
+  const text = spec.comment?.text.trim() ? spec.comment.text : undefined;
+  const commentedAt = spec.comment?.commentedAt;
   const { context: pdfContext } = pdfDoc;
   const highlight = pdfContext.obj({
-    Type: 'Annot', Subtype: 'Highlight', Rect: rect, QuadPoints: quads.flat(2), C: [r, g, b], CA: 1, F: 4,
-    NM: PDFHexString.fromText(element.id), M: pdfDate(element.commentedAt === undefined ? undefined : new Date(element.commentedAt)), AP: { N: ap },
-    ...(comment ? { Contents: PDFHexString.fromText(comment) } : {}),
+    Type: 'Annot', Subtype: 'Highlight', Rect: rect, QuadPoints: quads.flat(2), C: [r, g, b], CA: 1, ...(spec.print ? { F: 4 } : {}),
+    NM: PDFHexString.fromText(spec.id), M: pdfDate(commentedAt === undefined ? undefined : new Date(commentedAt)), AP: { N: ap },
+    ...(text ? { Contents: PDFHexString.fromText(text) } : {}),
   });
   const highlightRef = pdfContext.register(highlight);
   page.node.addAnnot(highlightRef);
 
-  if (comment) {
+  if (text) {
     // Beside the passage, in displayed (editor) space.
     const right = Math.max(...edges.map((e) => e.right));
     const top = Math.max(...edges.map((e) => e.top));
@@ -106,26 +152,13 @@ export function serializeHighlight(element: HighlightElement, context: Serialize
     page.node.addAnnot(popupRef);
   }
 
-  if (commentNumber !== undefined) {
-    const first = edges[0];
-    const rtl = element.direction === 'rtl';
-    const left = rtl ? first.right + BADGE_GAP : first.left - BADGE_GAP - BADGE_SIZE;
-    const middle = (first.top + first.bottom) / 2;
-    const badgeRect = boundsOf([toUser(left, middle + BADGE_SIZE / 2), toUser(left + BADGE_SIZE, middle - BADGE_SIZE / 2)]);
-    const label = String(commentNumber);
-    const fonts = { Font: { F1: { Type: 'Font', Subtype: 'Type1', BaseFont: 'Helvetica-Bold', Encoding: 'WinAnsiEncoding' } } };
-    const [ma, mb, mc, md] = pageGeometry?.editorToPdf ?? IDENTITY;
-    // A turned page: draw in the badge's own square and let /Matrix carry the page's rotation, so the digit
-    // reads upright as displayed (12.5.5 maps the transformed BBox onto Rect).
-    const turned = ma !== 1 || mb !== 0 || mc !== 0 || md !== 1;
-    const badgeAp = turned
-      ? appearance(pdfDoc, [0, 0, BADGE_SIZE, BADGE_SIZE], badgeContent(label), fonts, [ma, mb, mc, md, 0, 0])
-      : appearance(pdfDoc, [badgeRect[0], badgeRect[1], badgeRect[2], badgeRect[3]],
-        `1 0 0 1 ${fixed(badgeRect[0])} ${fixed(badgeRect[1])} cm\n${badgeContent(label)}`, fonts);
-    const badgeRef = pdfContext.register(pdfContext.obj({
-      Type: 'Annot', Subtype: 'FreeText', Rect: badgeRect, F: 4, Contents: PDFHexString.fromText(label),
-      DA: PDFString.of('1 g /F1 8 Tf'), IRT: highlightRef, RT: 'Group', M: pdfDate(), AP: { N: badgeAp },
-    }));
-    page.node.addAnnot(badgeRef);
-  }
+  if (commentNumber !== undefined) addNumberBadge(context, highlightRef, { ...edges[0], rtl: spec.direction === 'rtl' }, commentNumber);
+  return { ref: highlightRef, edges };
+}
+
+export function serializeHighlight(element: HighlightElement, context: SerializeContext): void {
+  writeBandsHighlight({
+    id: element.id, box: element, bands: element.bands, color: element.color, fallbackColor: DEFAULT_HIGHLIGHT_COLOR,
+    direction: element.direction, comment: context.comment, print: true,
+  }, context);
 }

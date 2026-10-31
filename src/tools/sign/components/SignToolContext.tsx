@@ -10,6 +10,7 @@ import { applyHistoryEntries, createActionEntry, revertHistoryEntries, type Acti
 import { pushCommand, redoStep, undoStep } from '#editor/model/historyStack.ts';
 import type { EditorElement, EditorElementPatch, SignToolType } from '#editor/model/editorModel.ts';
 import type { DocumentStyle } from '#editor/model/documentStyle.ts';
+import { deletedWith } from '../lib/comments/anchors.ts';
 import { resolveDocumentStyle } from '../lib/elementDefaults.ts';
 import { ensureMinimumElementSize } from '../lib/minimumSize.ts';
 
@@ -312,7 +313,7 @@ export function reducer(state: SignToolState, action: SignToolAction): SignToolS
     case 'DELETE_ELEMENT':
       return {
         ...state,
-        elements: state.elements.filter(el => el.id !== action.payload),
+        elements: state.elements.filter(el => !deletedWith(action.payload)(el)), // its comments go too
         activeElementId: state.activeElementId === action.payload ? null : state.activeElementId,
         editingElementId: state.editingElementId === action.payload ? null : state.editingElementId,
         documentRevision: nextDocumentRevision(state),

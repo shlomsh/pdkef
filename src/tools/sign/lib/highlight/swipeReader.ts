@@ -1,11 +1,11 @@
 // Reads the painted page around a swipe and returns page-percent bands. DOM-free apart from the
 // canvas it is handed; all geometry is in swipe.ts, all row logic in textRows.ts / bands.ts.
-import { bandsForSwipe, type Band, type ReadingDirection } from './bands.ts';
+import { bandsForSwipe, rowIndexAt, type Band, type ReadingDirection } from './bands.ts';
 import { columnSpanAt, findTextRows, type RasterWindow, type TextRow } from './textRows.ts';
 import { bandsToPagePercent, canvasWindowRect } from './swipe.ts';
 
 interface PagePoint { x: number; y: number }
-interface SwipeReader { bandsBetween(a: PagePoint, b: PagePoint): Band[] }
+interface SwipeReader { bandsBetween(a: PagePoint, b: PagePoint): Band[]; onText(a: PagePoint): boolean }
 
 const FALLBACK_HEIGHT_PTS = 14;
 const MARGIN_LINES = 3;
@@ -70,6 +70,11 @@ export function createSwipeReader(canvas: HTMLCanvasElement | null, pageHeightPt
   };
 
   return {
+    onText(a) {
+      const y = pct(a.y, size.height);
+      const hit = rowsFor(y, y, pct(a.x, size.width));
+      return !!hit && rowIndexAt(hit.rows, y - hit.top) >= 0;
+    },
     bandsBetween(a, b) {
       const ay = pct(a.y, size.height);
       const by = pct(b.y, size.height);

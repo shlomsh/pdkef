@@ -82,6 +82,23 @@ describe('page turn geometry', () => {
     near(turnElement(turnElement(turned, turnGeometry(portrait, 1), 1), turnGeometry(portrait, 2), 2), highlight);
   });
 
+  it('a passage comment turns its bands like a highlight, a pin turns its box, an element comment passes through', () => {
+    const absolute = (el: any, b: any) => ({ left: el.left + (b.left / 100) * el.width, top: el.top + (b.top / 100) * el.height, width: (b.width / 100) * el.width, height: (b.height / 100) * el.height });
+    const commentBase = { ...base, type: 'comment', left: 10, top: 20, width: 40, height: 10, comment: 'n' };
+    const passage = { ...commentBase, anchor: { kind: 'passage', direction: 'rtl', bands: [{ left: 50, top: 0, width: 50, height: 40 }, { left: 0, top: 60, width: 75, height: 40 }] } } as EditorElement;
+    const turned = turnElement(passage, portrait, 1) as any;
+    near(turned, { ...turnPercentBox(passage as any, 1), comment: 'n' });
+    expect(turned.anchor.direction).toBe('rtl');
+    (passage as any).anchor.bands.forEach((band: any, i: number) => near(absolute(turned, turned.anchor.bands[i]), turnPercentBox(absolute(passage, band), 1)));
+    near(turnElement(turnElement(turned, turnGeometry(portrait, 1), 1), turnGeometry(portrait, 2), 2), passage);
+    const pin = { ...commentBase, width: 2.4, height: 1.8, anchor: { kind: 'point' } } as EditorElement;
+    near(turnElement(pin, portrait, 1), turnPercentBox(pin as any, 1));
+    expect((turnElement(pin, portrait, 1) as any).anchor).toEqual({ kind: 'point' });
+    const onElement = { ...commentBase, anchor: { kind: 'element', elementId: 'h' } } as EditorElement;
+    expect(turnElement(onElement, portrait, 1)).toBe(onElement);
+    expect(unturnElement(turnElement(pin, portrait, 1), turnGeometry(portrait, 1), 1)).toEqual(expect.objectContaining({ anchor: { kind: 'point' } }));
+  });
+
   it('turnGeometry advances the rotation and swaps width and height', () => {
     const g = turnGeometry(portrait, 1);
     expect(g.rotation).toBe(90);

@@ -325,8 +325,8 @@ describe('sign.js signPdf', () => {
 
   describe('the comments page never blocks the export (SIGN-44)', () => {
     const highlightWith = (comment) => ({
-      id: 'h-1', type: 'highlight', pageIndex: 0, left: 10, top: 20, width: 50, height: 5, color: '#FFF34D',
-      comment, bands: [{ left: 0, top: 0, width: 100, height: 100 }],
+      id: 'c-1', type: 'comment', pageIndex: 0, left: 10, top: 20, width: 50, height: 5, comment,
+      anchor: { kind: 'passage', bands: [{ left: 0, top: 0, width: 100, height: 100 }] },
     });
     const commentsPageText = async (blob) => {
       const doc = await PDFDocument.load(await blob.arrayBuffer());

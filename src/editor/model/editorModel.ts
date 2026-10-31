@@ -35,7 +35,8 @@ export type ElementType =
   | 'blur'
   | 'blurStroke'
   | 'whiteoutStroke'
-  | 'highlight';
+  | 'highlight'
+  | 'comment';
 
 /**
  * Element kinds the Sign workspace can arm for placement, plus `'date'`: not
@@ -156,19 +157,31 @@ export interface TextElement extends ElementBase {
 }
 
 /** One covered line of a highlight, in percent of the highlight element's own box. */
-interface HighlightBand { left: number; top: number; width: number; height: number }
+export interface HighlightBand { left: number; top: number; width: number; height: number }
 
 /** SIGN-46: the line band. The element's box is the bands' union, so a move moves them all. */
 export interface HighlightElement extends ElementBase, BoxGeometry {
   type: 'highlight';
   color: string;
   bands: HighlightBand[];
-  /** SIGN-44: the person's note on this passage. Absent or blank means no comment. */
-  comment?: string;
-  /** SIGN-44: when the comment was last written (epoch ms), shown on its card and saved as the annotation's /M date. */
-  commentedAt?: number;
   /** SIGN-44: the swiped text's reading direction, so the comment number sits where the passage starts. Absent is LTR. */
   direction?: 'ltr' | 'rtl';
+}
+
+/** What a comment hangs on: a passage of page text, another element, or a spot on the page. */
+export type CommentAnchor =
+  | { kind: 'passage'; bands: HighlightBand[]; direction?: 'ltr' | 'rtl' } // bands in % of the element box, like a highlight
+  | { kind: 'element'; elementId: string }
+  | { kind: 'point' };
+
+/** A comment, its own element parallel to a highlight (docs/sign-comments-model.md). */
+export interface CommentElement extends ElementBase, BoxGeometry {
+  type: 'comment';
+  /** '' only while a new card is open; never saved blank. */
+  comment: string;
+  /** Epoch ms of the last saved edit, exported as /M, never shown. */
+  commentedAt?: number;
+  anchor: CommentAnchor;
 }
 
 /** A stroked rectangle outline. */
@@ -273,7 +286,8 @@ export type EditorElement =
   | BlurElement
   | BlurStrokeElement
   | WhiteoutStrokeElement
-  | HighlightElement;
+  | HighlightElement
+  | CommentElement;
 
 /**
  * Mutable fields for an existing element. Identity, type, and page placement

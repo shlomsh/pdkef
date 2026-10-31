@@ -4,6 +4,7 @@ import { TextAlignCenter, TextAlignEnd, TextAlignStart } from 'lucide-preact';
 import { TrashIcon } from '#editor-ui/toolIcons.tsx';
 import ColorPickerMenu from '#editor-ui/ColorPickerMenu.tsx';
 import HighlightControls from './HighlightControls.tsx';
+import ElementCommentButton from './ElementCommentButton.tsx';
 import DirectionButton from './DirectionButton.tsx';
 import WhiteoutColorControls from './WhiteoutColorControls.tsx';
 import FontPickerMenu from './FontPickerMenu.tsx';
@@ -60,8 +61,6 @@ export default function ElementToolbar({
   // which has its own separate tool and toolbar section).
   const isDrawnShape = actualType === 'ellipse' || actualType === 'rectangle';
   const buttonClass = (active = false, danger = false) => [styles['element-button'], active && styles.active, danger && styles['element-button-danger']].filter(Boolean).join(' ');
-
-  const trashIcon = <TrashIcon strokeWidth={2.5} rounded={false} />;
   // SIGN-08: the same typography descriptor TextNode renders with and
   // text.ts exports with (fonts.js) - family, and which weight/style the
   // resolved family actually has a real file for, computed once instead of
@@ -106,7 +105,7 @@ export default function ElementToolbar({
     const nextFormatId = nextDateFormatId(dateFormatId);
     onChange({ dateFormatId: nextFormatId, text: formatDate(element.dateValue, nextFormatId) });
   };
-
+  if (element.type === 'comment') return null;
   return (
     <>
       {element.type === 'text' && (
@@ -363,6 +362,7 @@ export default function ElementToolbar({
           <div className={styles.divider} />
         </>
       )}
+      <ElementCommentButton element={element} className={buttonClass()} t={t} />
       <button
         type="button"
         className={buttonClass()}
@@ -383,7 +383,7 @@ export default function ElementToolbar({
         onClick={onDelete}
         title={t.deleteElementTitle}
       >
-        {trashIcon}
+        <TrashIcon strokeWidth={2.5} rounded={false} />
       </button>
     </>
   );

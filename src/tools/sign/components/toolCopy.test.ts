@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { buildToolCopy } from './toolCopy.ts';
 import { englishSignMessages } from '#editor/registry/signMessages.ts';
 
-const TOOLS = ['text', 'date', 'symbol', 'signature', 'whiteout', 'ellipse', 'rectangle', 'line', 'highlight'] as const;
+const TOOLS = ['text', 'date', 'symbol', 'signature', 'whiteout', 'ellipse', 'rectangle', 'line', 'highlight', 'comment'] as const;
 
 describe('buildToolCopy', () => {
   const copy = buildToolCopy(englishSignMessages);
@@ -20,5 +20,11 @@ describe('buildToolCopy', () => {
     expect(copy.highlight.action).toBe(englishSignMessages.highlightAction);
     expect(copy.highlight.actionTouch).toBe(englishSignMessages.highlightActionTouch);
     expect(copy.highlight.button).toBe(englishSignMessages.highlightLabel);
+  });
+
+  it('wires the comment tool to the comment messages', () => {
+    expect(copy.comment.action).toBe(englishSignMessages.commentAction);
+    expect(copy.comment.actionTouch).toBe(englishSignMessages.commentActionTouch);
+    expect(copy.comment.button).toBe(englishSignMessages.commentToolLabel);
   });
 });

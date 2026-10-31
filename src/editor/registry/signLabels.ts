@@ -35,6 +35,7 @@ export function signElementTypeLabel(t: SignMessages, type: string): string {
     case 'rectangle': return t.rectangleLabel;
     case 'line': return t.lineLabel;
     case 'highlight': return t.highlightLabel;
+    case 'comment': return t.commentElementLabel;
     default: return type;
   }
 }

@@ -5,3 +5,4 @@
 .layer[data-focused] { filter: saturate(1.8) brightness(0.88); }
 :global([data-comment-hover]) .layer { filter: saturate(1.35) brightness(0.94); }
 :global([data-comment-hover]) .layer[data-focused] { filter: saturate(1.8) brightness(0.88); }
+:global([data-comment-focus]) .layer { filter: saturate(1.8) brightness(0.88); }

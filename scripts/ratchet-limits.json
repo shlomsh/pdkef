@@ -46,10 +46,10 @@
       "src/tools/security/PdfSecurityTool.tsx#PdfSecurityTool": 272,
       "src/tools/sign/PdfSignTool.tsx#PdfSignToolInner": 285,
       "src/tools/sign/components/DraggableWrapper.tsx#DraggableWrapper": 558,
-      "src/tools/sign/components/ElementToolbar.tsx#ElementToolbar": 368,
-      "src/tools/sign/components/PdfWorkspace.tsx#PdfWorkspace": 549,
+      "src/tools/sign/components/ElementToolbar.tsx#ElementToolbar": 367,
+      "src/tools/sign/components/PdfWorkspace.tsx#PdfWorkspace": 548,
       "src/tools/sign/components/SignToolContext.tsx#reducer": 177,
-      "src/tools/sign/components/SignToolbar.tsx#SignToolbar": 745,
+      "src/tools/sign/components/SignToolbar.tsx#SignToolbar": 735,
       "src/tools/sign/components/SignatureDialog.tsx#SignatureDialog": 537,
       "src/tools/sign/components/fill/FieldSlot.tsx#FieldSlot": 249,
       "src/tools/sign/components/nodes/TextNode.tsx#TextNode": 378,
@@ -150,13 +150,13 @@
     "fileLines": {
       "src/data/tools.js": 1015,
       "src/shell/pageGrid/PageGrid.tsx": 882,
-      "src/tools/sign/components/SignToolbar.tsx": 816
+      "src/tools/sign/components/SignToolbar.tsx": 807
     },
     "fileThreshold": 800
   },
   "unusedExports": {
     "neverUsed": 0,
-    "ownFileOnly": 153,
+    "ownFileOnly": 152,
     "testOnly": 191
   }
 }

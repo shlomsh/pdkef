@@ -6,7 +6,7 @@ import { signElementTypeLabel } from '#editor/registry/signLabels.ts';
 import type { SignMessages } from '#editor/registry/messages.ts';
 import { formatMessage } from '#lib/text/formatMessage.ts';
 import type { SignToolAction } from '../components/SignToolContext.tsx';
-import { clipboardText, offsetClone } from '../lib/elementClipboard.ts';
+import { clipboardText, isCopyable, offsetClone } from '../lib/elementClipboard.ts';
 
 interface ElementClipboardOptions {
   dispatch: (action: SignToolAction) => void;
@@ -35,7 +35,7 @@ export function useElementClipboard({ dispatch, elements, activeElementId, logAc
 
       if (!activeElementId) return;
       const elToCopy = elements.find((el) => el.id === activeElementId);
-      if (elToCopy) {
+      if (elToCopy && isCopyable(elToCopy)) {
         copiedElementRef.current = elToCopy;
         if (e.clipboardData) {
           e.clipboardData.setData('text/plain', clipboardText(elToCopy));

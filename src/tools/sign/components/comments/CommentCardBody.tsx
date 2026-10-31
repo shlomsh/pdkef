@@ -4,16 +4,16 @@ import type { CommentCard } from '../../lib/highlight/commentCards.ts';
 import { commentPatch, type CommentPatch } from '../../lib/highlight/commentCommit.ts';
 import styles from './CommentRail.module.css';
 
-type Patch = CommentPatch;
-
 /** SIGN-44: one comment card's content (rail card, later the phone sheet). Draft is local until Comment.
  * The card shows the comment alone; who and when stay in the saved annotation (/M), not on screen. */
-export function CommentCardBody({ card, active, messages, onSelect, onChange }: {
+export function CommentCardBody({ card, active, messages, onSelect, onSave, onDelete, onDiscard }: {
   card: CommentCard;
   active: boolean;
   messages: SignMessages;
   onSelect: () => void;
-  onChange: (patch: Patch) => void;
+  onSave: (patch: CommentPatch) => void;
+  onDelete: () => void;
+  onDiscard: () => void;
 }) {
   const [editing, setEditing] = useState(false);
   const [menu, setMenu] = useState(false);
@@ -36,14 +36,14 @@ export function CommentCardBody({ card, active, messages, onSelect, onChange }: 
 
   const cancel = () => {
     setDraft(card.comment);
-    if (card.isNew) onChange({ comment: undefined });
+    if (card.isNew) onDiscard();
     setEditing(false);
   };
   const save = () => {
-    const patch = commentPatch(draft, card.comment || undefined, Date.now());
+    const patch = commentPatch(draft, card.comment, Date.now());
     setEditing(false);
-    if (patch) onChange(patch);
-    else if (card.isNew) onChange({ comment: undefined });
+    if (patch) onSave(patch);
+    else if (!draft.trim()) (card.isNew ? onDiscard : onDelete)();
   };
   const onKeyDown = (event: KeyboardEvent) => {
     event.stopPropagation();
@@ -90,7 +90,7 @@ export function CommentCardBody({ card, active, messages, onSelect, onChange }: 
                   <button type="button" role="menuitem" class={styles.menuItem}
                     onClick={() => { setMenu(false); setDraft(card.comment); setEditing(true); }}>{messages.commentEdit}</button>
                   <button type="button" role="menuitem" class={styles.menuItem}
-                    onClick={() => { setMenu(false); onChange({ comment: undefined, commentedAt: undefined }); }}>{messages.commentDelete}</button>
+                    onClick={() => { setMenu(false); onDelete(); }}>{messages.commentDelete}</button>
                 </div>
               )}
             </div>

@@ -2,6 +2,7 @@ import type { ElementType } from '../model/editorModel.ts';
 import { ellipseDefinition } from './ellipse.ts';
 import { blackoutDefinition } from './blackout.ts';
 import { blurDefinition } from './blur.ts';
+import { commentDefinition } from './comment.ts';
 import { highlightDefinition } from './highlight.ts';
 import { lineDefinition } from './line.ts';
 import { rectangleDefinition } from './rectangle.ts';
@@ -18,7 +19,7 @@ const definitions: { [K in ElementType]: ElementDefinition<ElementForType<K>> } 
   text: textDefinition, rectangle: rectangleDefinition, ellipse: ellipseDefinition,
   line: lineDefinition, symbol: symbolDefinition, signature: signatureDefinition, whiteout: whiteoutDefinition,
   blackout: blackoutDefinition, blur: blurDefinition,
-  blurStroke: blurStrokeDefinition, whiteoutStroke: whiteoutStrokeDefinition, highlight: highlightDefinition,
+  blurStroke: blurStrokeDefinition, whiteoutStroke: whiteoutStrokeDefinition, highlight: highlightDefinition, comment: commentDefinition,
 };
 
 export function getElementDefinition<K extends ElementType>(type: K): ElementDefinition<ElementForType<K>> {

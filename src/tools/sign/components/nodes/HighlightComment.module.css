@@ -1,6 +1,9 @@
-.dot {
-  position: absolute; z-index: 3; box-sizing: border-box; width: 9px; height: 9px; padding: 0; margin: 0;
-  border: 0; border-radius: 50%; cursor: pointer; pointer-events: auto; background: var(--color-primary);
+.marker {
+  position: absolute; z-index: 3; box-sizing: border-box; display: grid; place-items: center; width: 22px; height: 22px;
+  padding: 0; margin: 0; border: 0; border-radius: 50%; cursor: pointer; pointer-events: auto;
+  background: var(--color-comment-anchor); color: var(--color-text);
 }
-.dot[data-side='start'] { transform: translate(4px, -50%); }
-.dot[data-side='end'] { transform: translate(calc(-100% - 4px), -50%); }
+.marker[data-side='start'] { transform: translate(4px, -50%); }
+.marker[data-side='end'] { transform: translate(calc(-100% - 4px), -50%); }
+.marker[data-focused] { box-shadow: 0 0 0 2px var(--color-primary); }
+.marker svg { width: 70%; height: 70%; }

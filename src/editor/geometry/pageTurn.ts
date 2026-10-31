@@ -52,9 +52,27 @@ export function turnPercentBox(box: PercentBox, quarterTurns: number): PercentBo
   return { left: Math.min(a.x, b.x), top: Math.min(a.y, b.y), width: Math.abs(b.x - a.x), height: Math.abs(b.y - a.y) };
 }
 
+/** Bands are percents of their element's box: turn each in page percent, then re-express it in the turned box. */
+function turnBands(from: PercentBox, turned: PercentBox, bands: readonly PercentBox[], q: number): PercentBox[] {
+  return bands.map((band) => {
+    const b = turnPercentBox({
+      left: from.left + (band.left / 100) * from.width,
+      top: from.top + (band.top / 100) * from.height,
+      width: (band.width / 100) * from.width,
+      height: (band.height / 100) * from.height,
+    }, q);
+    return {
+      left: ((b.left - turned.left) / turned.width) * 100,
+      top: ((b.top - turned.top) / turned.height) * 100,
+      width: (b.width / turned.width) * 100,
+      height: (b.height / turned.height) * 100,
+    };
+  });
+}
+
 /**
  * An element after its page turns `quarterTurns` from `from`. Elements that cover
- * content (rectangle, ellipse, whiteout, line, highlight) turn with it. Marks written on the
+ * content (rectangle, ellipse, whiteout, line, highlight, and a passage or pin comment) turn with it. Marks written on the
  * page (text, signature, symbol and the rest) stay upright and keep their size in
  * points; their anchor follows the content. `textWidth` is a point-anchored
  * text's rendered width in page-width percent of `from`: with it the text's box
@@ -70,26 +88,16 @@ export function turnElement<T extends EditorElement>(
     return { ...element, x1: a.x, y1: a.y, x2: b.x, y2: b.y };
   }
   if (!('left' in element)) return element;
+  if (element.type === 'comment' && element.anchor.kind === 'element') return element;
   if (element.type === 'highlight') {
     const turned = turnPercentBox(element, q);
-    // Bands are percents of the element's box: turn each in page percent, then re-express it in the turned box.
-    const bands = element.bands.map((band) => {
-      const b = turnPercentBox({
-        left: element.left + (band.left / 100) * element.width,
-        top: element.top + (band.top / 100) * element.height,
-        width: (band.width / 100) * element.width,
-        height: (band.height / 100) * element.height,
-      }, q);
-      return {
-        left: ((b.left - turned.left) / turned.width) * 100,
-        top: ((b.top - turned.top) / turned.height) * 100,
-        width: (b.width / turned.width) * 100,
-        height: (b.height / turned.height) * 100,
-      };
-    });
-    return { ...element, ...turned, bands };
+    return { ...element, ...turned, bands: turnBands(element, turned, element.bands, q) };
   }
-  if (TURNS_WITH_PAGE.has(element.type)) {
+  if (element.type === 'comment' && element.anchor.kind === 'passage') {
+    const turned = turnPercentBox(element, q);
+    return { ...element, ...turned, anchor: { ...element.anchor, bands: turnBands(element, turned, element.anchor.bands, q) } };
+  }
+  if (TURNS_WITH_PAGE.has(element.type) || element.type === 'comment') {
     return { ...element, ...turnPercentBox(element as unknown as PercentBox, q) };
   }
   const to = turnGeometry(from, q);

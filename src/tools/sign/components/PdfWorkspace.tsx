@@ -12,6 +12,7 @@ import SignatureNode from './nodes/SignatureNode.tsx';
 import SymbolNode from './nodes/SymbolNode.tsx';
 import WhiteoutNode from './nodes/WhiteoutNode.tsx';
 import HighlightNode from './nodes/HighlightNode.tsx';
+import CommentNode from './nodes/CommentNode.tsx';
 import { CommentNumbersScope } from './nodes/commentNumbersContext.tsx';
 import { useCommentsView } from './comments/useCommentsView.tsx';
 import { autoColorChanges, followsPage } from '#editor-ui/whiteout/pageColor.ts';
@@ -21,6 +22,8 @@ import { createElementId } from '#editor/model/ids.ts';
 import { orderTypableFields } from '../lib/fieldOrder.ts';
 import { useDocumentStyle, useSignTool } from './SignToolContext.tsx';
 import { chooseStyle } from '../lib/chooseStyle.ts';
+import { deletedWith, resolveCommentBoxes } from '../lib/comments/anchors.ts';
+import { useCommentActions } from '../hooks/useCommentActions.ts';
 import { useSavedSignatures } from './SavedSignaturesContext.tsx';
 import SignToolbar from './SignToolbar.tsx';
 import EditorExportActions from '#editor-ui/EditorExportActions.tsx';
@@ -97,6 +100,7 @@ const ELEMENT_RENDERERS = createElementRenderers({
   signature: SignatureNode,
   whiteout: WhiteoutNode,
   highlight: HighlightNode,
+  comment: CommentNode,
 });
 
 /**
@@ -324,7 +328,7 @@ export default function PdfWorkspace({
 
   const deleteElement = useCallback((id: string) => {
     const el = elements.find(e => e.id === id);
-    const snapshots = captureElementSnapshots(elements, (element) => element.id === id);
+    const snapshots = captureElementSnapshots(elements, deletedWith(id));
     dispatch({ type: 'DELETE_ELEMENT', payload: id });
     dispatch({ type: 'SET_ACTIVE_ELEMENT_ID', payload: null });
     if (el) logAction('delete', 'DELETE_ELEMENT', el.pageIndex, formatMessage(t.deletedElementDescriptionTemplate, { label: signElementTypeLabel(t, el.type) }), snapshots);
@@ -359,7 +363,8 @@ export default function PdfWorkspace({
     recordAction(editActionOf(fields));
   }, [updateElement, elements, dispatch]);
 
-  const comments = useCommentsView({ elements, activeElementId, messages: t, onSelect: (id) => dispatch({ type: 'SET_ACTIVE_ELEMENT_ID', payload: id }), onChange: (id, patch) => makeOnChange(id)(patch) });
+  const commentActions = useCommentActions({ elements, dispatch, logAction, messages: t, deleteElement, makeOnChange });
+  const comments = useCommentsView({ elements, activeElementId, messages: t, onSelect: (id) => dispatch({ type: 'SET_ACTIVE_ELEMENT_ID', payload: id }), ...commentActions });
 
   const makeOnSelect = useCallback((id: string) => (e: Event) => {
     e.stopPropagation();
@@ -373,8 +378,6 @@ export default function PdfWorkspace({
     dispatch({ type: 'SET_ACTIVE_ELEMENT_ID', payload: id });
     dispatch({ type: 'SET_EDITING_ELEMENT_ID', payload: id });
   }, [dispatch]);
-
-  const makeOnDelete = useCallback((id: string) => () => deleteElement(id), [deleteElement]);
 
   const cloneElement = useCallback((original: EditorElement) => {
     // A copy of an auto whiteout sits somewhere else on the page, so it matches what is there.
@@ -410,7 +413,7 @@ export default function PdfWorkspace({
       onBeginEdit={makeOnBeginEdit(el.id)}
       onSelect={makeOnSelect(el.id)}
       onChange={makeOnChange(el.id)}
-      onDelete={makeOnDelete(el.id)}
+      onDelete={() => deleteElement(el.id)}
       onClone={cloneElement}
       pageWidthPoints={size.width}
       pageGeometry={size}
@@ -534,7 +537,7 @@ export default function PdfWorkspace({
             {Array.from({ length: numPages }).map((_, pageIdx) => {
               const size = pageSizes[pageIdx] || DEFAULT_PAGE_GEOMETRY;
 
-              const pageElements = elements.filter((el) => el.pageIndex === pageIdx);
+              const pageElements = resolveCommentBoxes(elements).filter((el) => el.pageIndex === pageIdx);
 
               return (
                 <div key={pageIdx} data-editor-page-card className={comments.cardClass}>
