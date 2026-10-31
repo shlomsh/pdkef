@@ -4,6 +4,7 @@ import {
   endMarkedContent,
   PDFName,
   PDFNumber,
+  degrees,
   concatTransformationMatrix,
   popGraphicsState,
   pushGraphicsState,
