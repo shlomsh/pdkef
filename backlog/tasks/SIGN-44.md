@@ -1,10 +1,9 @@
 ---
 id: "SIGN-44"
 title: "Sign: a comment on a highlight, kept in the PDF as a standard annotation"
-status: "in_progress"
+status: "done"
 priority: "P2"
 epic: "polish"
-horizon: "now"
 depends_on: ["SIGN-46"]
 ---
 
@@ -31,10 +30,14 @@ annotations, so any viewer shows them and they print, plus a numbered comments p
 
 ## Acceptance
 
-- [ ] `commentNumbers` is pure and unit-tested.
-- [ ] Comment button, note field and number badge work with a mouse and on a phone, in Hebrew and English.
-- [ ] A comment survives a draft restore, undo and redo.
-- [ ] The exported PDF carries `/Highlight` annotations with `/Contents`, readable back in a unit test, and
+- [x] `commentNumbers` is pure and unit-tested.
+- [x] Comment button, note field and number badge work with a mouse and on a phone, in Hebrew and English.
+- [x] A comment survives a draft restore, undo and redo.
+- [x] The exported PDF carries `/Highlight` annotations with `/Contents`, readable back in a unit test, and
   shows them in another viewer (pdf.js and Poppler) and when printed.
-- [ ] The comments page lists each comment in number order with a clip of its passage, in the comment's
+- [x] The comments page lists each comment in number order with a clip of its passage, in the comment's
   script, and links back.
+
+## Done 2026-10-31
+
+A highlight takes a comment: the Comment button opens a note under the band, a number badge marks it, and the export carries a standard `/Highlight` annotation with `/Contents` and a Popup, plus a comments page with each passage clipped. e2e `sign-highlight-comments.spec.js` (reload, undo, redo, export read back with pdf-lib) passes in Chromium and desktop WebKit. Checked at 390px with touch in Hebrew: a swipe makes one band, Comment opens a focused note, the badge shows 1. The note and badge colors come from tokens.

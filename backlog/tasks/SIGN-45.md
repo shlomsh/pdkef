@@ -1,10 +1,9 @@
 ---
 id: "SIGN-45"
 title: "Sign: nothing is armed by default; a click makes text only when Text is picked"
-status: "in_progress"
+status: "done"
 priority: "P1"
 epic: "polish"
-horizon: "now"
 depends_on: []
 ---
 
@@ -25,8 +24,12 @@ behaves exactly as before.
 
 ## Acceptance
 
-- [ ] `fillTapDecision` unit tests: tool 'none' gives no `freeSlot` and no `focus` by reach; 'text' is unchanged.
-- [ ] The Text button's pressed state is `selectedTool === 'text'` only; a second press disarms.
-- [ ] Hints: with nothing armed, no text target gets the droppable look.
-- [ ] docs/sign-fill-mode.md "Taps" and "Hints", and `.claude/rules/editor.md` if it states the old rule, say the new one.
-- [ ] Checked in a real browser on desktop and at a phone size.
+- [x] `fillTapDecision` unit tests: tool 'none' gives no `freeSlot` and no `focus` by reach; 'text' is unchanged.
+- [x] The Text button's pressed state is `selectedTool === 'text'` only; a second press disarms.
+- [x] Hints: with nothing armed, no text target gets the droppable look.
+- [x] docs/sign-fill-mode.md "Taps" and "Hints", and `.claude/rules/editor.md` if it states the old rule, say the new one.
+- [x] Checked in a real browser on desktop and at a phone size.
+
+## Done 2026-10-31
+
+Nothing is armed when a document opens. Text reads as pressed only when it is armed, a click with nothing armed makes no text and opens no keyboard, Text places once and disarms, and a double press locks it for several fields in a row. e2e `sign-nothing-armed.spec.js` covers desktop and phone (8 tests: fresh state, arm and disarm, the double-press lock, re-editing placed text) and passes in Chromium and WebKit. `.claude/rules/editor.md` did not state the old rule; docs/sign-fill-mode.md and docs/sign-next-gen-guidelines.md do now.

@@ -2,7 +2,7 @@
 
 # Backlog
 
-The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 86 live: 17 up next, 11 then, 27 waiting, 31 parked.
+The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 82 live: 13 up next, 11 then, 27 waiting, 31 parked.
 
 ## Redact: finish removal
 
@@ -187,11 +187,7 @@ Small, independent, good for a spare hour.
 
 | ID | P | Task | Note |
 | --- | --- | --- | --- |
-| SIGN-45 | P1 | [SIGN-45](backlog/tasks/SIGN-45.md) · Sign: nothing is armed by default; a click makes text only when Text is picked | In progress |
 | QUAL-21 | P2 | [QUAL-21](backlog/tasks/QUAL-21.md) · Pages render at the size they are shown, and the practice form's logo is sharp | In progress |
-| SIGN-43 | P2 | [SIGN-43](backlog/tasks/SIGN-43.md) · Sign: turn a sideways page a quarter turn, next to Clear page | In progress |
-| SIGN-44 | P2 | [SIGN-44](backlog/tasks/SIGN-44.md) · Sign: a comment on a highlight, kept in the PDF as a standard annotation | In progress |
-| SIGN-46 | P2 | [SIGN-46](backlog/tasks/SIGN-46.md) · Sign: a highlighter that lays a straight band along the line under your finger | In progress |
 
 ### Then, in order
 
@@ -220,7 +216,7 @@ Done and retired tickets are not listed. Their files stay in [backlog/tasks/](ba
 - Robustness and debt: 80 done, 4 retired
 - Unify the tools, narrow the graph: 96 done, 0 retired
 - Search and languages: 12 done, 0 retired
-- Polish: 19 done, 1 retired
+- Polish: 23 done, 1 retired
 - Sign tool architecture: 37 done, 1 retired
 - Editor architecture: 14 done, 0 retired
 - Fonts and script support: 6 done, 3 retired
