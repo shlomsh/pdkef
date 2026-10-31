@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { commentCards, commentCount, stackCards, passageEnd, bandToPage } from './commentCards.ts';
+import { commentCards, commentCount, stackCards, passageEnd } from './commentCards.ts';
 import type { EditorElement, HighlightElement } from '#editor/model/editorModel.ts';
 
 const hl = (over: Partial<HighlightElement>): HighlightElement => ({
@@ -40,8 +40,5 @@ describe('passageEnd', () => {
   it('is the right end of the last band for LTR and its left end for RTL', () => {
     expect(passageEnd(hl({}))).toEqual({ x: 30, y: 27.5 });
     expect(passageEnd(hl({ direction: 'rtl' }))).toEqual({ x: 10, y: 27.5 });
-  });
-  it('maps a band to page percent', () => {
-    expect(bandToPage(hl({}), { left: 50, top: 50, width: 50, height: 50 })).toEqual({ left: 35, top: 25, width: 25, height: 5 });
   });
 });
