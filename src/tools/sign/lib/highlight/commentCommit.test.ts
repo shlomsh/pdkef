@@ -6,6 +6,7 @@ describe('commentPatch', () => {
     expect(commentPatch('note', undefined)).toEqual({ comment: 'note' });
     expect(commentPatch('  ', 'old')).toEqual({ comment: undefined });
     expect(commentPatch('same', 'same')).toBeNull();
-    expect(commentPatch('', '')).toBeNull();
+    expect(commentPatch('', '')).toEqual({ comment: undefined });
+    expect(commentPatch('  ', '')).toEqual({ comment: undefined });
   });
 });

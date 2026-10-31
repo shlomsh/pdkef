@@ -18,7 +18,12 @@ export function HighlightNote({ element, onChange, messages }: {
   const t = { ...englishSignMessages, ...messages };
   const [draft, setDraft] = useState(element.comment ?? '');
   const ref = useRef<HTMLTextAreaElement>(null);
-  useEffect(() => { if (!element.comment) ref.current?.focus(); }, []);
+  // Only a note the button just opened (comment === '' at mount) takes focus; a restored comment never does.
+  useEffect(() => { if (element.comment === '') ref.current?.focus(); }, []);
+  // Undo, redo or restore changed the comment from outside: follow it unless the person is typing.
+  useEffect(() => {
+    if (document.activeElement !== ref.current) setDraft(element.comment ?? '');
+  }, [element.comment]);
   return (
     <div data-highlight-note class={styles.note} data-side={element.direction === 'rtl' ? 'end' : 'start'}
       onPointerDown={stop} onMouseDown={stop} onTouchStart={stop} onClick={stop} onKeyDown={stop} onKeyUp={stop}>
@@ -48,14 +53,16 @@ export function HighlightBadge({ element, number, onSelect, messages }: {
 }) {
   const t = { ...englishSignMessages, ...messages };
   const first = element.bands[0];
+  const rtl = element.direction === 'rtl';
   const centre = first ? first.top + first.height / 2 : 50;
+  const edge = first ? (rtl ? first.left + first.width : first.left) : (rtl ? 100 : 0);
   return (
     <button
       type="button"
       data-highlight-badge
       class={styles.badge}
       data-side={element.direction === 'rtl' ? 'end' : 'start'}
-      style={{ top: `${centre}%` }}
+      style={{ left: `${edge}%`, top: `${centre}%` }}
       aria-label={formatMessage(t.highlightCommentNumberLabel, { number })}
       onPointerDown={stop}
       onMouseDown={stop}

@@ -12,6 +12,16 @@ export function clipboardText(element: EditorElement): string {
 
 /** The copy a paste adds: the element under a new id, nudged down and right and kept on the page. */
 export function offsetClone(original: EditorElement, id: string): EditorElement {
+  // SIGN-44: a copy of a highlight is a new passage; it must not carry the comment (and its number).
+  if (original.type === 'highlight') {
+    const { comment: _comment, ...rest } = original;
+    return {
+      ...rest,
+      id,
+      left: Math.min(BOX_MAX_PCT, original.left + PASTE_OFFSET_PCT),
+      top: Math.min(BOX_MAX_PCT, original.top + PASTE_OFFSET_PCT),
+    };
+  }
   if (original.type === 'line') {
     return {
       ...original,

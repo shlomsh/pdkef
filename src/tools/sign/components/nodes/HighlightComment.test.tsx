@@ -81,6 +81,54 @@ describe('highlight comment note', () => {
   });
 });
 
+describe('highlight note lifecycle', () => {
+  it('follows an outside change to the comment when not focused', () => {
+    const onChange = vi.fn();
+    mount(node(make({ comment: 'new' }), { onChange }));
+    act(() => render(node(make({ comment: 'older' }), { onChange }), host));
+    expect(note().value).toBe('older');
+    blur();
+    expect(onChange).not.toHaveBeenCalled();
+  });
+  it('autofocuses only a note just opened empty', () => {
+    mount(node(make({ comment: 'restored' })));
+    expect(document.activeElement).not.toBe(note());
+    act(() => render(null, host));
+    mount(node(make({ comment: '' })));
+    expect(document.activeElement).toBe(note());
+  });
+  it('an untouched blur closes an empty note', () => {
+    const onChange = vi.fn();
+    mount(node(make({ comment: '' }), { onChange }));
+    blur();
+    expect(onChange).toHaveBeenCalledWith({ comment: undefined });
+  });
+});
+
+describe('copies drop the comment', () => {
+  it('Duplicate drops it and keeps the rest', () => {
+    const onClone = vi.fn();
+    mount(<ElementToolbar element={make({ comment: 'x', direction: 'rtl' })} onChange={() => {}} onClone={onClone} onDelete={() => {}} />);
+    act(() => (host.querySelector('button[title="Duplicate"]') as HTMLButtonElement).click());
+    const copy = onClone.mock.calls[0][0];
+    expect('comment' in copy && copy.comment !== undefined).toBe(false);
+    expect(copy.direction).toBe('rtl');
+    expect(copy.bands).toHaveLength(1);
+  });
+});
+
+describe('badge position', () => {
+  it('sits at the first band start edge, right edge for rtl', () => {
+    const bands = [{ left: 30, top: 10, width: 40, height: 20 }, { left: 0, top: 40, width: 100, height: 20 }];
+    mount(<CommentNumbersScope elements={[make({ comment: 'a', bands })]}>{node(make({ comment: 'a', bands }), { isActive: false })}</CommentNumbersScope>);
+    const b = host.querySelector<HTMLElement>('[data-highlight-badge]')!;
+    expect(b.style.left).toBe('30%');
+    expect(b.style.top).toBe('20%');
+    act(() => render(<CommentNumbersScope elements={[make({ comment: 'a', bands, direction: 'rtl' })]}>{node(make({ comment: 'a', bands, direction: 'rtl' }), { isActive: false })}</CommentNumbersScope>, host));
+    expect(host.querySelector<HTMLElement>('[data-highlight-badge]')!.style.left).toBe('70%');
+  });
+});
+
 describe('highlight badge', () => {
   it('shows each highlight its number, none for a blank comment, click selects', () => {
     const onSelect = vi.fn();
