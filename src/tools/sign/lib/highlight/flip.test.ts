@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { HighlightElement } from '#editor/model/editorModel.ts';
-import { flipChanges, swipeEnds } from './flip.ts';
+import { flipChanges } from './flip.ts';
 
 // Box at (10, 20), 40 x 10 page percent; two bands of half the box height each.
 const twoRows = (direction?: 'ltr' | 'rtl'): HighlightElement => ({
@@ -12,12 +12,17 @@ const twoRows = (direction?: 'ltr' | 'rtl'): HighlightElement => ({
   ...(direction ? { direction } : {}),
 });
 
-describe('swipeEnds', () => {
-  it('recovers an RTL swipe: starts at the first row right edge, ends at the last row left edge', () => {
-    expect(swipeEnds(twoRows('rtl'))).toEqual({ start: { x: 50, y: 22.5 }, end: { x: 10, y: 27.5 } });
+describe('flipChanges recovers the swipe from the bands', () => {
+  const ends = (el: HighlightElement) => {
+    const bandsBetween = vi.fn(() => []);
+    flipChanges(el, bandsBetween);
+    return bandsBetween.mock.calls[0];
+  };
+  it('RTL: from the first row right edge to the last row left edge', () => {
+    expect(ends(twoRows('rtl'))).toEqual([{ x: 50, y: 22.5 }, { x: 10, y: 27.5 }]);
   });
-  it('recovers an LTR swipe: starts at the first row left edge, ends at the last row right edge', () => {
-    expect(swipeEnds(twoRows())).toEqual({ start: { x: 30, y: 22.5 }, end: { x: 30, y: 27.5 } });
+  it('LTR: from the first row left edge to the last row right edge', () => {
+    expect(ends(twoRows())).toEqual([{ x: 30, y: 22.5 }, { x: 30, y: 27.5 }]);
   });
 });
 

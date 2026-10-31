@@ -6,7 +6,7 @@ import { highlightGeometry } from './swipe.ts';
 interface Point { x: number; y: number }
 
 /** The swipe's press and release in page percent, read back from the first and last bands. */
-export function swipeEnds(el: HighlightElement): { start: Point; end: Point } {
+function swipeEnds(el: HighlightElement): { start: Point; end: Point } {
   const page = [...el.bands].sort((a, b) => a.top - b.top).map((b) => ({
     left: el.left + (b.left / 100) * el.width,
     right: el.left + ((b.left + b.width) / 100) * el.width,
