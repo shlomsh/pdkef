@@ -48,4 +48,28 @@ describe('bandsForSwipe', () => {
     const rev = bandsForSwipe(rows, { x: 128, y: 30 }, { x: 92, y: 30 }, 20);
     expect(rev).toEqual(fwd);
   });
+
+  describe('right to left', () => {
+    it('runs the first row from its left edge to the press and the last from the release to its right edge', () => {
+      const bands = bandsForSwipe(rows, { x: 128, y: 30 }, { x: 92, y: 110 }, 20, 'rtl');
+      expect(bands).toHaveLength(3);
+      expect(bands[0].left).toBe(20);
+      expect(bands[0].left + bands[0].width).toBe(130);
+      expect(bands[1].left).toBe(20);
+      expect(bands[1].width).toBe(180);
+      expect(bands[2].left).toBe(90);
+      expect(bands[2].left + bands[2].width).toBe(200);
+    });
+
+    it('gives the same bands for an upward swipe', () => {
+      const down = bandsForSwipe(rows, { x: 128, y: 30 }, { x: 92, y: 110 }, 20, 'rtl');
+      const up = bandsForSwipe(rows, { x: 92, y: 110 }, { x: 128, y: 30 }, 20, 'rtl');
+      expect(up).toEqual(down);
+    });
+
+    it('leaves a one-row swipe as in ltr', () => {
+      expect(bandsForSwipe(rows, { x: 128, y: 30 }, { x: 92, y: 30 }, 20, 'rtl'))
+        .toEqual(bandsForSwipe(rows, { x: 128, y: 30 }, { x: 92, y: 30 }, 20));
+    });
+  });
 });

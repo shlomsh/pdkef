@@ -12,6 +12,7 @@ import { signElementTypeLabel } from '#editor/registry/signLabels.ts';
 import { formatMessage } from '#lib/text/formatMessage.ts';
 import { PAGE_HEIGHT_DEFAULT_PTS } from '#editor/model/signGeometry.js';
 import type { Band } from '../lib/highlight/bands.ts';
+import type { ReadingDirection } from '../lib/highlight/bands.ts';
 import { createSwipeReader, paintHighlightDraft } from '../lib/highlight/swipeReader.ts';
 import { highlightGeometry } from '../lib/highlight/swipe.ts';
 import type { WorkspaceGestureAction } from './useWorkspaceGestures.ts';
@@ -27,6 +28,7 @@ interface HighlightSwipeDeps {
   messages: SignMessages;
   nextElementIndex: number;
   pageGeometry?: PageGeometry;
+  direction?: ReadingDirection;
 }
 
 interface HighlightSwipeTarget {
@@ -39,10 +41,10 @@ interface HighlightSwipeTarget {
 }
 
 export function startHighlightSwipe(deps: HighlightSwipeDeps, target: HighlightSwipeTarget): void {
-  const { dispatch, getPointerPercent, gestureCancelRef, logAction, setAnnouncement, messages: t, nextElementIndex, pageGeometry } = deps;
+  const { dispatch, getPointerPercent, gestureCancelRef, logAction, setAnnouncement, messages: t, nextElementIndex, pageGeometry, direction } = deps;
   const { pageIndex, container, id, newEl, start, getElementNode } = target;
   const canvas = container.parentElement?.querySelector<HTMLCanvasElement>('canvas') ?? null;
-  const reader = createSwipeReader(canvas, pageGeometry?.height || PAGE_HEIGHT_DEFAULT_PTS);
+  const reader = createSwipeReader(canvas, pageGeometry?.height || PAGE_HEIGHT_DEFAULT_PTS, direction);
   const color = newEl.type === 'highlight' ? newEl.color : '';
   const clearDraft = () => {
     const node = getElementNode();

@@ -7,19 +7,22 @@ const H = 400;
 const rects: Array<[number, number, number, number]> = [];
 for (const y of [100, 140]) for (const x of [20, 90]) rects.push([x, y, 40, 14]);
 
-function fakeImage(sx: number, sy: number, w: number, h: number) {
-  const data = new Uint8ClampedArray(w * h * 4).fill(255);
-  for (const [x, y, rw, rh] of rects) {
-    for (let j = y; j < y + rh; j += 1) {
-      for (let i = x; i < x + rw; i += 1) {
-        const px = i - sx;
-        const py = j - sy;
-        if (px >= 0 && px < w && py >= 0 && py < h) data.fill(0, (py * w + px) * 4, (py * w + px) * 4 + 3);
+function imageOf(rects: Array<[number, number, number, number]>) {
+  return (sx: number, sy: number, w: number, h: number) => {
+    const data = new Uint8ClampedArray(w * h * 4).fill(255);
+    for (const [x, y, rw, rh] of rects) {
+      for (let j = y; j < y + rh; j += 1) {
+        for (let i = x; i < x + rw; i += 1) {
+          const px = i - sx;
+          const py = j - sy;
+          if (px >= 0 && px < w && py >= 0 && py < h) data.fill(0, (py * w + px) * 4, (py * w + px) * 4 + 3);
+        }
       }
     }
-  }
-  return { data, width: w, height: h };
+    return { data, width: w, height: h };
+  };
 }
+const fakeImage = imageOf(rects);
 
 const canvasWith = (getImageData: unknown) =>
   ({ width: W, height: H, getContext: () => ({ getImageData }) }) as unknown as HTMLCanvasElement;
@@ -61,5 +64,27 @@ describe('createSwipeReader', () => {
     reader.bandsBetween(px(30, 107), px(100, 108));
     reader.bandsBetween(px(30, 107), px(120, 107));
     expect(getImageData).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps the bands inside the column the swipe started in', () => {
+    // Two columns (x 10-138 and 170-298, gutter between); right lines sit 8px lower and overlap the left ones.
+    const cols: Array<[number, number, number, number]> = [];
+    for (const [x0, dy] of [[10, 0], [170, 8]]) {
+      for (const y of [100, 140]) for (const dx of [0, 44, 88]) cols.push([x0 + dx, y + dy, 40, 14]);
+    }
+    const reader = createSwipeReader(canvasWith(imageOf(cols)), 400)!;
+    const bands = reader.bandsBetween(px(200, 115), px(280, 155));
+    expect(bands).toHaveLength(2);
+    for (const band of bands) {
+      expect(band.left).toBeGreaterThanOrEqual((165 / W) * 100);
+      expect(band.left + band.width).toBeLessThanOrEqual(((298 + 4) / W) * 100);
+      expect(band.height).toBeLessThan((24 / H) * 100);
+    }
+  });
+
+  it('passes the reading direction to the bands', () => {
+    const ltr = createSwipeReader(canvasWith(fakeImage), 400)!.bandsBetween(px(120, 107), px(30, 147));
+    const rtl = createSwipeReader(canvasWith(fakeImage), 400, 'rtl')!.bandsBetween(px(120, 107), px(30, 147));
+    expect(rtl).not.toEqual(ltr);
   });
 });
