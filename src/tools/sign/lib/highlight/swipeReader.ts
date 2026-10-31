@@ -34,6 +34,7 @@ export function createSwipeReader(canvas: HTMLCanvasElement | null, pageHeightPt
     try {
       image = ctx.getImageData(rect.x, rect.y, rect.width, rect.height);
     } catch {
+      // expected: an unreadable canvas means the swipe finds no rows and is cancelled
       return null;
     }
     const rows = findTextRows({ data: image.data, width: image.width, height: image.height });
