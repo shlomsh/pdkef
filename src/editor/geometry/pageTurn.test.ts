@@ -68,6 +68,19 @@ describe('page turn geometry', () => {
     near(out, { left: 80, top: 10, text: 'hi', fontSize: 12, id: 'a' });
   });
 
+  it('a highlight turns with the page: its box and every band follow the text under them', () => {
+    const highlight = {
+      ...base, type: 'highlight', left: 10, top: 20, width: 40, height: 10, color: '#FFF34D', comment: 'note', direction: 'rtl',
+      bands: [{ left: 50, top: 0, width: 50, height: 40 }, { left: 0, top: 60, width: 75, height: 40 }],
+    } as EditorElement;
+    // A band in page percent, before and after, through the same point map as the page.
+    const absolute = (el: any, b: any) => ({ left: el.left + (b.left / 100) * el.width, top: el.top + (b.top / 100) * el.height, width: (b.width / 100) * el.width, height: (b.height / 100) * el.height });
+    const turned = turnElement(highlight, portrait, 1) as any;
+    near(turned, { ...turnPercentBox(highlight as any, 1), comment: 'note', direction: 'rtl' });
+    (highlight as any).bands.forEach((band: any, i: number) => near(absolute(turned, turned.bands[i]), turnPercentBox(absolute(highlight, band), 1)));
+    near(turnElement(turnElement(turned, turnGeometry(portrait, 1), 1), turnGeometry(portrait, 2), 2), highlight);
+  });
+
   it('turnGeometry advances the rotation and swaps width and height', () => {
     const g = turnGeometry(portrait, 1);
     expect(g.rotation).toBe(90);

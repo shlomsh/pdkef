@@ -53,7 +53,7 @@ export function turnPercentBox(box: PercentBox, quarterTurns: number): PercentBo
 
 /**
  * An element after its page turns `quarterTurns` from `from`. Elements that cover
- * content (rectangle, ellipse, whiteout, line) turn with it. Marks written on the
+ * content (rectangle, ellipse, whiteout, line, highlight) turn with it. Marks written on the
  * page (text, signature, symbol and the rest) stay upright and keep their size in
  * points; their anchor follows the content.
  */
@@ -65,6 +65,25 @@ export function turnElement<T extends EditorElement>(element: T, from: PageGeome
     return { ...element, x1: a.x, y1: a.y, x2: b.x, y2: b.y };
   }
   if (!('left' in element)) return element;
+  if (element.type === 'highlight') {
+    const turned = turnPercentBox(element, q);
+    // Bands are percents of the element's box: turn each in page percent, then re-express it in the turned box.
+    const bands = element.bands.map((band) => {
+      const b = turnPercentBox({
+        left: element.left + (band.left / 100) * element.width,
+        top: element.top + (band.top / 100) * element.height,
+        width: (band.width / 100) * element.width,
+        height: (band.height / 100) * element.height,
+      }, q);
+      return {
+        left: ((b.left - turned.left) / turned.width) * 100,
+        top: ((b.top - turned.top) / turned.height) * 100,
+        width: (b.width / turned.width) * 100,
+        height: (b.height / turned.height) * 100,
+      };
+    });
+    return { ...element, ...turned, bands };
+  }
   if (TURNS_WITH_PAGE.has(element.type)) {
     return { ...element, ...turnPercentBox(element as unknown as PercentBox, q) };
   }

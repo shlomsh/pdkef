@@ -120,6 +120,12 @@ export function pageGeometryFromPdfLibPage(page) {
 // person gave it; elements are stored in percent of that turned page.
 // `commentsPage` carries the comments page's strings (the Sign messages); a highlight with a comment
 // appends the comments page(s) (SIGN-44). The defaults are the English ones.
+/**
+ * @param {*} file
+ * @param {*} sourceElements
+ * @param {((progress: number) => void) | undefined} onProgress
+ * @param {{ pageTurns?: Readonly<Record<number, 1 | 2 | 3>>, commentsPage?: { title: string, entryLabel: string } }} [options]
+ */
 export async function signPdf(file, sourceElements, onProgress, { pageTurns = {}, commentsPage } = {}) {
   const { doc: pdfDoc } = await openPdfDoc(file);
   pdfDoc.registerFontkit(fontkit);
