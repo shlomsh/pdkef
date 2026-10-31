@@ -34,7 +34,8 @@
    while the first line still stretches edge to edge.
    The count comes from the markup itself: `:has(> :nth-child(9))` reads as "has
    at least a ninth child", and each larger threshold overrides the smaller one
-   above it. Sign has twelve counted children and Redact nine or ten (the
+   above it. Sign has thirteen counted children (fourteen with Share, since the
+   Highlight button, SIGN-46) and Redact nine or ten (the
    desktop-only Download is excluded). Recount by rendering, not by eye,
    whenever a slot's own component changes shape: an unwrapped fragment
    contributes each of its nodes as a child, not one.
@@ -57,8 +58,9 @@
    DOM children whatever their rendering, so Sign counts twelve at every width,
    including below 239px where only eleven render. */
 .toolbar:has(> :nth-child(11 of :not(.desktop-download))) { --controls-per-row: 6; }
-/* Thirteen: Sign with Share once Download stays on the phone
-   (keepDownloadOnPhone, 2026-10-20). Seven is its even split, 7+6. */
+/* Thirteen or fourteen: Sign without and with Share (Download stays on the
+   phone, keepDownloadOnPhone, 2026-10-20; Highlight added the extra one,
+   SIGN-46). Seven per row is both even splits, 7+6 and 7+7. */
 .toolbar:has(> :nth-child(13 of :not(.desktop-download))) { --controls-per-row: 7; }
 
 .dropdown { position: relative; display: flex; }
@@ -448,6 +450,14 @@
     .toolbar:has(> :nth-child(11 of :not(.desktop-download))) > * { flex-grow: 0; flex-basis: max(var(--btn-min-size), (100% - (var(--controls-per-row) - 1) * var(--toolbar-gap)) / var(--controls-per-row)); }
   }
 
+  /* SIGN-46: 678.4px is where fourteen controls stop fitting one line
+     (14 * 44 + 13 * 4.8), one tier up from thirteen's 629.6px. Fourteen is Sign
+     with Share since the Highlight button. Rounded up to 679px for the same
+     reason as the 630px rule below: the content box lands on x.2. */
+  @container toolbar (max-width: 679px) {
+    .toolbar:has(> :nth-child(14 of :not(.desktop-download))) > * { flex-grow: 0; flex-basis: max(var(--btn-min-size), (100% - (var(--controls-per-row) - 1) * var(--toolbar-gap)) / var(--controls-per-row)); }
+  }
+
   /* 2026-10-20: 629.6px is where thirteen controls stop fitting one line
      (13 * 44 + 12 * 4.8), one tier up from twelve's 580.8px. Thirteen is Sign
      with Share, now that Download stays on the phone. Rounded up to 630px, not
@@ -534,9 +544,16 @@
      applies to Sign with Share: here the strand is real at every phone width.
      Sits after the 581px rule and before the 288px one, so the 288px cap of
      four still wins below it by source order. */
+  /* SIGN-46: Highlight made Sign thirteen counted children, fourteen with
+     Share. With Feedback stood down, Sign with Share shows thirteen and splits
+     7+6 (cap of seven, left alone here); Sign without Share shows twelve and
+     splits 6+6 (cap of six, set below). The 13-of/14-of pair keeps the two
+     apart. Seven fit above the 44px floor only from 336.8px of content, so
+     under 337px (a 360px or 375px phone) Sign's thirteen let the floor give
+     way, see the 337px rule after the 288px one (decided 2026-10-31). */
   @container toolbar (max-width: 387px) {
     .toolbar:has(> :nth-child(13 of :not(.desktop-download))) > [data-optional-control] { display: none; }
-    .toolbar:has(> :nth-child(13 of :not(.desktop-download))) > * { --controls-per-row: 6; }
+    .toolbar:has(> :nth-child(13 of :not(.desktop-download))):not(:has(> :nth-child(14 of :not(.desktop-download)))) > * { --controls-per-row: 6; }
   }
 
   /* Feedback does not act on the document, so at the narrowest widths it
@@ -610,7 +627,19 @@
      385px (288.2px of content) on the cap of six, where six fit exactly
      (6 * 44 + 5 * 4.8 = 288.0). */
   @container toolbar (max-width: 288px) {
-    .toolbar:has(> :nth-child(11 of :not(.desktop-download))) > * { --controls-per-row: 4; }
+    .toolbar:has(> :nth-child(11 of :not(.desktop-download))):not(:has(> :nth-child(14 of :not(.desktop-download)))) > * { --controls-per-row: 4; }
+  }
+
+  /* SIGN-46, decided 2026-10-31: Sign with Share (fourteen, thirteen once
+     Feedback stands down) holds 7+6 at every phone width. Below 337px of
+     content seven no longer fit at the 44px touch floor (336.8px, 7 * 44 +
+     6 * 4.8), and no other cap balances thirteen (6+6+1, 5+5+3, 4+4+4+1), so
+     the floor gives way here: a flex-basis of one seventh of the line with no
+     max(), about 40.6px at a 360px viewport and 42.7px at 375px. Rounded up to
+     337px like the 581px rule. Sits after the 288px rule, which skips
+     fourteen, so nothing else sets its cap. */
+  @container toolbar (max-width: 337px) {
+    .toolbar:has(> :nth-child(14 of :not(.desktop-download))) > * { flex-grow: 0; flex-basis: calc((100% - 6 * var(--toolbar-gap)) / 7); }
   }
 
   /* 239.2px is where five 44px targets stop fitting one line (5 * 44 + 4 *
