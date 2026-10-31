@@ -128,7 +128,7 @@ describe('SignToolbar Component', () => {
     // (Full screen here, Feedback next - see
     // SignToolbar.tsx's own ordering comment for the rest).
     const labels = Array.from(buttons, button => query(button, `.${styles.label}`).textContent.trim());
-    expect(labels.slice(0, 11)).toEqual(['Text', 'Date', 'Symbols', 'Shapes', 'Highlight', 'Whiteout', 'Sign', 'Undo', 'Redo', 'Full screen', 'Feedback']);
+    expect(labels.slice(0, 11)).toEqual(['Text', 'Date', 'Symbols', 'Shapes', 'Whiteout', 'Sign', 'Highlight', 'Undo', 'Redo', 'Full screen', 'Feedback']);
     expect(labels.at(-1)).toBe('Download');
 
     // Exact-label match, not "contains Text or has an svg": every button here
