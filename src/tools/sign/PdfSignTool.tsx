@@ -16,7 +16,8 @@ import PdfWorkspace from './components/PdfWorkspace.tsx';
 import SignatureDialog from './components/SignatureDialog.tsx';
 import { pageGeometryFromPdfJsPage } from '#editor/geometry/coords.ts';
 import { DEFAULT_INK_COLOR } from '#editor/model/signGeometry.js';
-import { useEditorFileSession } from '#editor-ui/hooks/useEditorFileSession.ts';
+import { useEditorFileSession, type EditorSessionMessages } from '#editor-ui/hooks/useEditorFileSession.ts';
+import { readBackAnnotations } from './lib/comments/readBack.ts';
 import useFieldNavigation from './hooks/useFieldNavigation.ts';
 import { FillContext, FILL_OFF } from './components/fill/FillContext.tsx';
 import { useFillMode } from './hooks/useFillMode.ts';
@@ -57,6 +58,21 @@ export default withIslandBoundary(function PdfSignTool({ shellMessages, messages
     </SignToolProvider>
   );
 });
+
+/** The shared file session's announcements, in Sign's words. */
+function sessionMessages(t: SignMessages): EditorSessionMessages {
+  return {
+    invalidPdf: t.invalidPdfFile,
+    needsPassword: t.protectedNeedsPasswordTitle,
+    ownerRestricted: t.protectedOwnerOnlyTitle,
+    load: {
+      timeout: t.pdfLoadTimeout,
+      loadFailed: t.pdfLoadFailedGeneric,
+      restoredTemplate: t.pdfRestoredTemplate,
+      loadedTemplate: t.pdfLoadedTemplate,
+    },
+  };
+}
 
 function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial<ShellMessages>; messages?: Partial<SignMessages> }) {
   const t: SignMessages = { ...englishSignMessages, ...messages };
@@ -154,18 +170,9 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
     status,
     setLoadStatus: (next) => lifecycleDispatch({ type: 'LOAD_STATUS_CHANGED', status: next }),
     setAnnouncement,
-    messages: {
-      invalidPdf: t.invalidPdfFile,
-      needsPassword: t.protectedNeedsPasswordTitle,
-      ownerRestricted: t.protectedOwnerOnlyTitle,
-      load: {
-        timeout: t.pdfLoadTimeout,
-        loadFailed: t.pdfLoadFailedGeneric,
-        restoredTemplate: t.pdfRestoredTemplate,
-        loadedTemplate: t.pdfLoadedTemplate,
-      },
-    },
+    messages: sessionMessages(t),
     onNeedsUnlock: (kind) => lifecycleDispatch({ type: 'NEEDS_UNLOCK_FOUND', kind }),
+    prepareFile: readBackAnnotations,
     initialize: ({ file: selected, bytes, preset }) => {
       lifecycleDispatch({ type: 'DOCUMENT_OPENED' });
       lifecycleDispatch({ type: 'DOCUMENT_FILE_SET', file: selected, bytes });

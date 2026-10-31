@@ -69,4 +69,10 @@ describe('commentMarkers', () => {
     expect(commentMarkers([pin]).has('c-2')).toBe(false);
     expect(commentMarkers([passage('rtl')]).has('p')).toBe(false);
   });
+
+  it('reads a highlight with no stored direction (one read back from a PDF) in its page direction', () => {
+    const plain: HighlightElement = { ...highlight, bands: twoLines };
+    expect(commentMarkers([plain, onHighlight], () => 'rtl').get('c-1')).toEqual({ left: 30, top: 80, direction: 'rtl' });
+    expect(commentMarkers([{ ...plain, direction: 'ltr' }, onHighlight], () => 'rtl').get('c-1')?.direction).toBe('ltr');
+  });
 });

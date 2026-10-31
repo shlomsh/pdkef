@@ -2,16 +2,17 @@ import { PDFHexString } from '@cantoo/pdf-lib';
 import type { CommentElement } from '../model/editorModel.ts';
 import type { SerializeContext } from './types.ts';
 import { COMMENT_ANCHOR_COLOR } from './commentColors.ts';
-import { addNumberBadge, boundsOf, pdfDate, userSpace, writeBandsHighlight } from './highlightPdf.ts';
+import { boundsOf, pdfDate, userSpace, writeBandsHighlight } from './highlightPdf.ts';
 import { percentToPoints } from '../geometry/coords.ts';
 
 const NOTE_SIZE = 18;
 const NO_ZOOM_NO_ROTATE = 8 + 16;
 
 /**
- * SIGN-44: a comment's annotation. A passage is its own `/Highlight` in the comment tint; a pin or a
- * comment on another element is a `/Text` sticky note at the box's reading-end top corner. Neither
- * carries the Print flag, so a printout stays clean. A number adds the grouped `/FreeText` badge.
+ * SIGN-44: a comment's annotation. A passage is its own transparent `/Highlight`; a pin or a comment on
+ * another element is a `/Text` sticky note, an 18pt square centered on its anchor point (a pin's box
+ * center, or the other element's top-right corner) and kept on the page. Neither carries the Print flag,
+ * so a printout stays clean.
  */
 export function serializeComment(element: CommentElement, context: SerializeContext): void {
   const text = element.comment.trim() ? element.comment : undefined;
@@ -26,17 +27,15 @@ export function serializeComment(element: CommentElement, context: SerializeCont
     return;
   }
 
-  const { pdfDoc, page, pdfWidth, pdfHeight, pdfX, pdfY, commentNumber } = context;
+  const { pdfDoc, page, pdfWidth, pdfHeight, pdfX, pdfY } = context;
   const toUser = userSpace(context);
-  // Pins and element comments follow the page's reading order, which is left to right.
-  const left = pdfX;
-  const right = pdfX + percentToPoints(element.width, pdfWidth);
-  const top = pdfY;
-  const bottom = pdfY - percentToPoints(element.height, pdfHeight);
-  // The note stays on the page when the box touches its right or bottom edge.
-  const noteX = Math.min(right, pdfWidth - NOTE_SIZE);
-  const noteY = Math.max(top, NOTE_SIZE);
-  const rect = boundsOf([toUser(noteX, noteY), toUser(noteX + NOTE_SIZE, noteY - NOTE_SIZE)]);
+  const boxWidth = percentToPoints(element.width, pdfWidth);
+  const boxHeight = percentToPoints(element.height, pdfHeight);
+  const center = anchor.kind === 'point' ? { x: pdfX + boxWidth / 2, y: pdfY - boxHeight / 2 } : { x: pdfX + boxWidth, y: pdfY };
+  const half = NOTE_SIZE / 2;
+  const x = Math.min(Math.max(center.x, half), pdfWidth - half);
+  const y = Math.min(Math.max(center.y, half), pdfHeight - half);
+  const rect = boundsOf([toUser(x - half, y + half), toUser(x + half, y - half)]);
   const { context: pdfContext } = pdfDoc;
   const noteRef = pdfContext.register(pdfContext.obj({
     Type: 'Annot', Subtype: 'Text', Rect: rect, Name: 'Comment', Open: false, F: NO_ZOOM_NO_ROTATE,
@@ -44,5 +43,4 @@ export function serializeComment(element: CommentElement, context: SerializeCont
     M: pdfDate(element.commentedAt === undefined ? undefined : new Date(element.commentedAt)),
   }));
   page.node.addAnnot(noteRef);
-  if (commentNumber !== undefined) addNumberBadge(context, noteRef, { left, right, top, bottom: Math.min(bottom, top - 11), rtl: false }, commentNumber);
 }

@@ -16,6 +16,7 @@ import { PAGE_HEIGHT_DEFAULT_PTS, PAGE_WIDTH_DEFAULT_PTS } from '#editor/model/s
 import type { Band, ReadingDirection } from '../lib/highlight/bands.ts';
 import { createSwipeReader, paintHighlightDraft } from '../lib/highlight/swipeReader.ts';
 import { highlightGeometry } from '../lib/highlight/swipe.ts';
+import { pinBox } from '../lib/comments/pinBox.ts';
 import type { WorkspaceGestureAction } from './useWorkspaceGestures.ts';
 
 type PointerPercent = (event: MouseEvent | TouchEvent, container: HTMLElement, geometry?: PageGeometry) => { x: number; y: number };
@@ -23,8 +24,6 @@ type Point = { x: number; y: number };
 
 /** Less than this many CSS px of travel is a tap. */
 const TAP_PX = 4;
-/** A pin's box is a square of this width, in percent of the page width. */
-const PIN_WIDTH_PERCENT = 2.4;
 const TINT = 'var(--color-comment-anchor)';
 
 interface CommentGestureDeps {
@@ -46,14 +45,6 @@ interface CommentGestureTarget {
   newEl: EditorElement;
   start: Point;
   getElementNode: () => HTMLElement | undefined;
-}
-
-/** A square (in pixels) pin box centered on the press, kept on the page. Pure. */
-function pinBox(press: Point, page: { width: number; height: number }): { left: number; top: number; width: number; height: number } {
-  const width = PIN_WIDTH_PERCENT;
-  const height = (PIN_WIDTH_PERCENT * page.width) / page.height;
-  const clamp = (v: number, size: number) => Math.min(100 - size, Math.max(0, v - size / 2));
-  return { left: clamp(press.x, width), top: clamp(press.y, height), width, height };
 }
 
 export function startCommentGesture(deps: CommentGestureDeps, target: CommentGestureTarget): void {

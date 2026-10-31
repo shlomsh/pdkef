@@ -55,6 +55,12 @@ export interface EditorFileSessionOptions<TElement extends HistoryElement> {
   onNeedsUnlock: (kind: NeedsUnlockKind) => void;
   /** A new document is starting (fresh pick, restore or launch): reset the tool's state. */
   initialize: (document: { file: File; bytes: ArrayBuffer; preset: EditorDraftInitialState<TElement>; restored: boolean }) => void;
+  /**
+   * A fresh file with no saved work, before anything else sees it: the tool may hand back other bytes
+   * and the document's first elements (Sign reads standard comments back and takes them out of the PDF).
+   * Those bytes are what pdf.js, the export, the draft and recents all get. Not undoable, never logged.
+   */
+  prepareFile?: (bytes: ArrayBuffer) => Promise<{ bytes: ArrayBuffer; elements: TElement[] }>;
   /** pdf.js accepted the file. Resolve with page sizes etc.; the session adds it to recents after. */
   onDocument: (document: PDFDocumentProxy, isCurrent: () => boolean) => Promise<void> | void;
   draft: DraftOptions<TElement>;
@@ -75,6 +81,8 @@ export function useEditorFileSession<TElement extends HistoryElement>(options: E
   // restore that resolves *after* a fast manual pick has already finished editing would otherwise
   // still be "the newer call" and clobber it.
   const loadStartedRef = useRef(false);
+  // Every load takes a ticket before preparing its file; one overtaken by a newer load while it prepared stops.
+  const prepareTicketRef = useRef(0);
 
   useEffect(() => () => {
     loadIdRef.current++;
@@ -92,6 +100,15 @@ export function useEditorFileSession<TElement extends HistoryElement>(options: E
     preset: EditorDraftInitialState<TElement> = { elements: [], actionHistory: [] },
     restored = false,
   ) => {
+    const ticket = ++prepareTicketRef.current;
+    const fresh = preset.elements.length === 0 && preset.actionHistory.length === 0;
+    const prepareFile = optionsRef.current.prepareFile;
+    if (fresh && prepareFile) {
+      const prepared = await prepareFile(bytes);
+      if (ticket !== prepareTicketRef.current) return;
+      bytes = prepared.bytes;
+      preset = { ...preset, elements: prepared.elements };
+    }
     const live = optionsRef.current;
     const m = live.messages;
     await loadEditorPdf({

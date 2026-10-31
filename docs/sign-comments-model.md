@@ -38,14 +38,29 @@ that pattern on screen and still write standard PDF annotations.
 
 ## In the PDF (export and read-back)
 
-| On screen | Exported as | Read back as |
-| --- | --- | --- |
-| Comment on a highlight | the highlight's own `/Highlight`, comment in `/Contents` (today's export) | highlight + comment anchored to it |
-| Comment on a passage | `/Highlight` in the comment tint with `/Contents`, not printed (no Print flag) | passage comment |
-| Comment on another element | `/Text` (sticky note) at the element's reading-end corner | pin, or the element's comment when one sits on it |
-| Pin | `/Text` at the point | pin |
+*Revised 2026-10-31 (Shlomi): the export carries only standard annotations, nothing PDkef-specific. No
+comment-number badge, no comments page, no PDkef tint.* The comment tint is a PDkef display only.
 
-The comments page at the end and "Print my comments" list every comment, whatever its anchor.
+| On screen | Exported as (ISO 32000 12.5.6) | Read back as |
+| --- | --- | --- |
+| Highlight | `/Highlight` in its color, printed | highlight |
+| Comment on a highlight | that `/Highlight` with `/Contents`, `/M`, closed `/Popup` | highlight + comment anchored to it |
+| Comment on a passage | `/Highlight` with `/C []` (transparent) and an empty appearance, `/Contents`, `/M`, closed `/Popup`, not printed | passage comment |
+| Pin | `/Text` note on the pin's spot, not printed | pin |
+| Comment on another element | `/Text` note at the element's top-right corner | pin at that corner (the element itself is page content in the export) |
+
+### Round-trip contract
+
+Export a document with comments, open the file in PDkef again: it looks and behaves exactly as before
+the export. Every annotation PDkef reads back becomes an editable element and leaves the PDF, so it is
+never drawn twice (once baked into the page image, once as an element) and never exported twice. Read
+back means: every `/Highlight` and every `/Text` that is not a reply (`/IRT`), from any tool. Other
+annotations (links, forms, ink, shapes, replies) stay in the PDF untouched.
+
+- Our earlier exports carried a numbered `/FreeText` badge (`/IRT` to a `/Highlight`, `/RT /Group`,
+  digits as `/Contents`); loading drops those. The comments page those exports appended is an ordinary
+  page and is left alone.
+- Ids come back from `/NM`, the comment date from `/M`, a highlight's color from `/C`.
 
 ## Saved work already in production
 
