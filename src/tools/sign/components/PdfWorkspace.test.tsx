@@ -11,7 +11,9 @@ import { createPageGeometry } from '#editor/geometry/coords.ts';
 import { turnGeometry } from '#editor/geometry/pageTurn.ts';
 import { topKeepingInkCentre } from '../lib/combPlacement.ts';
 import type { RectangleElement, SymbolElement, TextElement } from '#editor/model/editorModel.ts';
-import { SignToolContext, reducer, type SignToolAction, type SignToolState } from './SignToolContext.tsx';
+import { SignToolContext, reducer, useSignTool, type SignToolAction, type SignToolState } from './SignToolContext.tsx';
+import { useTurnedPages } from '../hooks/useTurnedPages.ts';
+import { englishSignMessages } from '../messages';
 import { FillContext, FILL_OFF } from './fill/FillContext.tsx';
 import { SavedSignaturesContext, type SavedSignaturesContextValue } from './SavedSignaturesContext.tsx';
 
@@ -112,7 +114,7 @@ type FlatProps = {
   messages?: ComponentProps<typeof PdfWorkspace>['messages'];
 };
 
-function defaultProps(overrides: Partial<FlatProps> = {}): ComponentProps<typeof PdfWorkspace> {
+function defaultProps(overrides: Partial<FlatProps> = {}): Omit<ComponentProps<typeof PdfWorkspace>, 'turned'> {
   const f: FlatProps = {
     status: 'editing',
     isPseudoFullscreen: false,
@@ -164,11 +166,22 @@ interface WorkspaceTreeOptions {
   savedSignatures?: Partial<SavedSignaturesContextValue>;
 }
 
+// SIGN-43: PdfSignTool derives the turned pages once and hands them down; this does the same.
+function TurnedWorkspace(props: Omit<ComponentProps<typeof PdfWorkspace>, 'turned'>) {
+  const { state, dispatch } = useSignTool();
+  const turned = useTurnedPages({
+    filePageSizes: props.document.pageSizes,
+    fileFormRegions: props.document.formRegions ?? { detection: 'pending', combs: [], checkboxes: [], cells: [], pageDirections: [] },
+    pageTurns: state.pageTurns, dispatch, announce: props.announce, t: { ...englishSignMessages, ...props.messages },
+  });
+  return <PdfWorkspace {...props} document={{ ...props.document, pageSizes: turned.pageSizes, formRegions: turned.formRegions }} turned={turned} />;
+}
+
 function workspaceTree({ state, dispatch = vi.fn<(action: SignToolAction) => void>(), props = {}, savedSignatures = {} }: WorkspaceTreeOptions) {
   return (
     <SignToolContext.Provider value={{ state, dispatch }}>
         <SavedSignaturesContext.Provider value={defaultSavedSignatures(savedSignatures)}>
-          <PdfWorkspace {...defaultProps(props)} />
+          <TurnedWorkspace {...defaultProps(props)} />
         </SavedSignaturesContext.Provider>
     </SignToolContext.Provider>
   );
@@ -202,7 +215,7 @@ function StatefulWorkspace({ initialState, stateRef, props = {}, savedSignatures
   return (
     <SignToolContext.Provider value={{ state, dispatch }}>
       <SavedSignaturesContext.Provider value={defaultSavedSignatures(savedSignatures)}>
-        <PdfWorkspace {...defaultProps(props)} />
+        <TurnedWorkspace {...defaultProps(props)} />
       </SavedSignaturesContext.Provider>
     </SignToolContext.Provider>
   );
@@ -742,6 +755,16 @@ describe('PdfWorkspace Component', () => {
       const headers = host.querySelectorAll('[data-editor-page-header]');
       expect(headers[0].querySelectorAll('button')).toHaveLength(2);
       expect(headers[1].querySelectorAll('button')).toHaveLength(1);
+    });
+
+    it('keeps Rotate disabled for a page whose size is not measured yet', () => {
+      const dispatch = vi.fn<(action: SignToolAction) => void>();
+      host = mountWorkspace({ state: testState(), dispatch, props: { numPages: 2, pageSizes: [pageSize] } });
+      const rotates = Array.from(host.querySelectorAll<HTMLButtonElement>('[data-editor-page-header]')).map((h) => h.querySelector<HTMLButtonElement>('button')!);
+      expect(rotates[0].disabled).toBe(false);
+      expect(rotates[1].disabled).toBe(true);
+      act(() => { rotates[1].dispatchEvent(new MouseEvent('click', { bubbles: true })); });
+      expect(dispatch).not.toHaveBeenCalledWith(expect.objectContaining({ type: 'ROTATE_PAGE' }));
     });
 
     it('dispatches ROTATE_PAGE with the displayed geometry of that page', () => {

@@ -12,6 +12,7 @@ interface SpeculativeExportOptions {
   file: File | null;
   status: SignStatus;
   elementCount: number;
+  hasTurnedPage: boolean;
   documentRevision: number;
   /** Text no bundled font can draw: such a run would be refused anyway. */
   blocked: boolean;
@@ -33,10 +34,10 @@ interface SpeculativeExportOptions {
 // still live, per the gesture golden rule - and re-fires on every later
 // edit, letting each speculative export invalidate the previous one.
 export function useSpeculativeExport({
-  file, status, elementCount, documentRevision, blocked, runExport, prepare, preparedExportRef, documentRevisionRef,
+  file, status, elementCount, hasTurnedPage, documentRevision, blocked, runExport, prepare, preparedExportRef, documentRevisionRef,
 }: SpeculativeExportOptions): void {
   useEffect(() => {
-    if (!file || !signExportReady({ status, elementCount, blocked })) return;
+    if (!file || !signExportReady({ status, elementCount, hasTurnedPage, blocked })) return;
     const timer = setTimeout(() => {
       void runExport((signedBlob, filename) => { // reason: runExport catches its own failure and shows it
         if (prepare(signedBlob, filename)) preparedExportRef.current = { blob: signedBlob, name: filename, revision: documentRevisionRef.current };

@@ -311,6 +311,7 @@ function isGeometryPayload(value: unknown): boolean {
   const finite = (n: unknown) => typeof n === 'number' && Number.isFinite(n);
   const { cropBox, rotation, userUnit, width, height } = value;
   if (!isPlainRecord(cropBox) || !['x', 'y', 'width', 'height'].every((key) => finite(cropBox[key]))) return false;
+  if ((cropBox.width as number) <= 0 || (cropBox.height as number) <= 0) return false; // createPageGeometry throws on an empty box
   if (rotation !== 0 && rotation !== 90 && rotation !== 180 && rotation !== 270) return false;
   if (!finite(userUnit) || !finite(width) || !finite(height)) return false;
   return ['pdfToViewport', 'viewportToPdf', 'editorToPdf', 'pdfToEditor'].every((key) => {

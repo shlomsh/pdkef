@@ -29,11 +29,12 @@ export function exportToHandOff(
 
 /**
  * Whether there is a signed export to offer: exactly when the completion pair's
- * Download is enabled (editing, not blocked) and something is placed. A restored
+ * Download is enabled (editing, not blocked) and there is something to export:
+ * a placed mark or a turned page (a turn is content the person made). A restored
  * draft counts. The same gate the background export prepares under.
  */
-export function signExportReady({ status, elementCount, blocked }: { status: SignStatus; elementCount: number; blocked: boolean }): boolean {
-  return status === 'editing' && elementCount > 0 && !blocked;
+export function signExportReady({ status, elementCount, hasTurnedPage = false, blocked }: { status: SignStatus; elementCount: number; hasTurnedPage?: boolean; blocked: boolean }): boolean {
+  return status === 'editing' && (elementCount > 0 || hasTurnedPage) && !blocked;
 }
 
 // Tools that have a Hebrew page of their own (src/content/localized-tools/he).

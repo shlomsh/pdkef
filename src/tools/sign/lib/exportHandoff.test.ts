@@ -36,6 +36,10 @@ describe('signExportReady', () => {
     expect(signExportReady(ready)).toBe(true);
   });
 
+  it('is ready with nothing placed when a page is turned', () => {
+    expect(signExportReady({ ...ready, elementCount: 0, hasTurnedPage: true })).toBe(true);
+  });
+
   it('is not ready with nothing placed', () => {
     expect(signExportReady({ ...ready, elementCount: 0 })).toBe(false);
   });

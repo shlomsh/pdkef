@@ -157,6 +157,50 @@ describe('PdfSignTool UI flow', () => {
     expect(fileBar.textContent).toContain('test_agreement.pdf');
   });
 
+  // SIGN-43: Tab between fields reads the turned page, not the file's own frame.
+  it('Tab lands on the printed field where a turned page now shows it', async () => {
+    formRegionsOverride.value = {
+      detection: 'done', detectionError: undefined,
+      combs: [{ pageIndex: 0, left: 10, top: 20, width: 30, height: 0.84, cells: 9 }],
+      checkboxes: [], cells: [], pageDirections: ['ltr', 'ltr'],
+    };
+    try {
+      container = document.createElement('div');
+      document.body.appendChild(container);
+      act(() => { render(<PdfSignTool />, container); });
+      await act(async () => {
+        setInputFiles(query<HTMLInputElement>(container, 'input[type="file"]'), [makePdfFile('turned.pdf')]);
+        await new Promise((resolve) => setTimeout(resolve, 50));
+      });
+      await act(async () => { findButton(container, 'Rotate').click(); });
+      // Select something so Tab has a place to move from, then hop to the field.
+      const overlay = query<HTMLElement>(container, '[data-page-overlay]');
+      overlay.getBoundingClientRect = () => ({ left: 0, top: 0, width: 600, height: 800, right: 600, bottom: 800, x: 0, y: 0, toJSON() {} });
+      await act(async () => { findButton(container, 'Text').click(); });
+      await act(async () => { overlay.dispatchEvent(new MouseEvent('click', { clientX: 300, clientY: 10, bubbles: true })); });
+      await act(async () => { window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Tab', bubbles: true })); });
+      const placed = Array.from(container.querySelectorAll<HTMLElement>('[data-editor-element]')).at(-1)!;
+      // One quarter turn sends a left-edge field to the right of the page.
+      expect(parseFloat(placed.style.left)).toBeGreaterThan(50);
+    } finally {
+      formRegionsOverride.value = null;
+    }
+  });
+
+  it('a page that is only turned has an export to carry on', async () => {
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    act(() => { render(<PdfSignTool />, container); });
+    await act(async () => {
+      setInputFiles(query<HTMLInputElement>(container, 'input[type="file"]'), [makePdfFile('onlyturned.pdf')]);
+      await new Promise((resolve) => setTimeout(resolve, 50));
+    });
+    // The hand-off row (Compress it / Redact it) appears exactly when there is a signed export to carry on.
+    expect(container.textContent).not.toContain('Compress it');
+    await act(async () => { findButton(container, 'Rotate').click(); });
+    expect(container.textContent).toContain('Compress it');
+  });
+
   // SNG-15: fullscreen works in fill mode exactly as in production.
   it('toggles fullscreen in fill mode (?next=1) same as production', async () => {
     const originalUrl = window.location.href;

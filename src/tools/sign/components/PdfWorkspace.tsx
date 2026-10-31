@@ -34,7 +34,6 @@ import { topKeepingInkCentre } from '../lib/combPlacement.ts';
 import { useAutoFontProvisioning } from '../hooks/useAutoFontProvisioning.js';
 import { getSignExportReadiness } from '../lib/signExportReadiness.ts';
 import { createPageGeometry } from '#editor/geometry/coords.ts';
-import { useTurnedPages } from '../hooks/useTurnedPages.ts';
 import type { PageGeometry } from '#editor/geometry/coords.ts';
 import {
   captureAddedElement,
@@ -163,6 +162,7 @@ export default function PdfWorkspace({
   fieldNavigation = NOOP_FIELD_NAVIGATION,
   messages,
   document: documentProps,
+  turned: { pageSizeOf, directionOfPage, rotateProps }, // SIGN-43
   refs,
   fullscreen,
   history,
@@ -171,11 +171,8 @@ export default function PdfWorkspace({
   signature,
   announce: setAnnouncement,
 }: PdfWorkspaceProps) {
-  const {
-    numPages, pageSizes: filePageSizes,
-    formRegions: fileFormRegions = { detection: 'pending', combs: [], checkboxes: [], cells: [], pageDirections: [] },
-    pdfDocument,
-  } = documentProps;
+  const { numPages, pageSizes, pdfDocument } = documentProps;
+  const formRegions = documentProps.formRegions ?? { detection: 'pending', combs: [], checkboxes: [], cells: [], pageDirections: [] };
   const { workspace: workspaceRef, pageWrappers: pageWrapperRefs } = refs;
   const { isPseudo: isPseudoFullscreen, active: isFullscreen, toggle: toggleFullscreen } = fullscreen;
   const { log: logAction, undo: onUndo, redo: onRedo } = history;
@@ -185,11 +182,7 @@ export default function PdfWorkspace({
   const t: SignMessages = { ...englishSignMessages, ...messages };
   const placementGestureRef = useRef<(() => void) | null>(null);
   useEffect(() => () => placementGestureRef.current?.(), []);
-  const {
-    state: { selectedTool, elements, activeElementId, editingElementId, actionHistory, redoHistory, pageTurns },
-    dispatch,
-  } = useSignTool();
-  const { pageSizes, formRegions, pageSizeOf, directionOfPage, rotateProps } = useTurnedPages({ filePageSizes, fileFormRegions, pageTurns, dispatch, announce: setAnnouncement, t }); // SIGN-43
+  const { state: { selectedTool, elements, activeElementId, editingElementId, actionHistory, redoHistory }, dispatch } = useSignTool();
   // SIGN-35: the document's resolved style - its own carried keys over the
   // app-wide style (the person's latest choice in any document) - is what
   // every placement below starts from, never `carried` alone.
