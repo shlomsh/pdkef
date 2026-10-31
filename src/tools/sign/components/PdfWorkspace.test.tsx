@@ -45,6 +45,7 @@ function testState(overrides: Partial<SignToolState> = {}): SignToolState {
     editingElementId: null,
     actionHistory: [],
     redoHistory: [],
+    pageTurns: {},
     documentRevision: 0,
     carried: {},
     // SIGN-35: the app-wide style layer PdfWorkspace now resolves alongside
