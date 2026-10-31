@@ -32,6 +32,7 @@ import { topKeepingInkCentre } from '../lib/combPlacement.ts';
 import { useAutoFontProvisioning } from '../hooks/useAutoFontProvisioning.js';
 import { getSignExportReadiness } from '../lib/signExportReadiness.ts';
 import { createPageGeometry } from '#editor/geometry/coords.ts';
+import { useTurnedPages } from '../hooks/useTurnedPages.ts';
 import type { PageGeometry } from '#editor/geometry/coords.ts';
 import {
   captureAddedElement,
@@ -168,9 +169,8 @@ export default function PdfWorkspace({
   announce: setAnnouncement,
 }: PdfWorkspaceProps) {
   const {
-    numPages,
-    pageSizes,
-    formRegions = { detection: 'pending', combs: [], checkboxes: [], cells: [], pageDirections: [] },
+    numPages, pageSizes: filePageSizes,
+    formRegions: fileFormRegions = { detection: 'pending', combs: [], checkboxes: [], cells: [], pageDirections: [] },
     pdfDocument,
   } = documentProps;
   const { workspace: workspaceRef, pageWrappers: pageWrapperRefs } = refs;
@@ -183,9 +183,10 @@ export default function PdfWorkspace({
   const placementGestureRef = useRef<(() => void) | null>(null);
   useEffect(() => () => placementGestureRef.current?.(), []);
   const {
-    state: { selectedTool, elements, activeElementId, editingElementId, actionHistory, redoHistory },
+    state: { selectedTool, elements, activeElementId, editingElementId, actionHistory, redoHistory, pageTurns },
     dispatch,
   } = useSignTool();
+  const { pageSizes, formRegions, pageSizeOf, directionOfPage, rotateProps } = useTurnedPages({ filePageSizes, fileFormRegions, pageTurns, dispatch, announce: setAnnouncement, t }); // SIGN-43
   // SIGN-35: the document's resolved style - its own carried keys over the
   // app-wide style (the person's latest choice in any document) - is what
   // every placement below starts from, never `carried` alone.
@@ -239,14 +240,6 @@ export default function PdfWorkspace({
   // filled ones; a commit places exactly what a tap would.
   const fill = useFill();
   const fillTool = fillToolOf(selectedTool);
-  const pageSizeOf = useCallback(
-    (pageIndex: number): PageGeometry => pageSizes[pageIndex] || DEFAULT_PAGE_GEOMETRY,
-    [pageSizes],
-  );
-  const directionOfPage = useCallback(
-    (pageIndex: number) => formRegions.pageDirections?.[pageIndex] ?? 'ltr',
-    [formRegions],
-  );
   const fieldOrder = useMemo(
     () => (fill.enabled ? orderTypableFields(formRegions.combs, formRegions.cells, directionOfPage) : []),
     [fill.enabled, formRegions, directionOfPage],
@@ -653,7 +646,7 @@ export default function PdfWorkspace({
                     onClear={pageElements.length > 0 ? () => clearPage(pageIdx) : null}
                     clearTitle={t.clearPageTitle}
                     pageLabel={formatMessage(t.pageLabel, { number: pageIdx + 1 })}
-                    clearLabel={t.clearPageLabel}
+                    clearLabel={t.clearPageLabel} {...rotateProps(pageIdx)}
                     lang={t.lang}
                     dir={t.dir}
                   />

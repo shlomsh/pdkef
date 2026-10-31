@@ -8,6 +8,7 @@ import { rememberRecentWhiteoutColor } from '#editor/workspace/preferenceStore.t
 import { samplePageColor } from '../lib/whiteoutPageColor.ts';
 // Asserts the is-processing state class; the page overlay has no role or attribute, so it is found by class.
 import { createPageGeometry } from '#editor/geometry/coords.ts';
+import { turnGeometry } from '#editor/geometry/pageTurn.ts';
 import { topKeepingInkCentre } from '../lib/combPlacement.ts';
 import type { RectangleElement, SymbolElement, TextElement } from '#editor/model/editorModel.ts';
 import { SignToolContext, reducer, type SignToolAction, type SignToolState } from './SignToolContext.tsx';
@@ -736,8 +737,31 @@ describe('PdfWorkspace Component', () => {
         props: { numPages: 2, pageSizes: [pageSize, pageSize] }
       });
 
-      const buttons = host.querySelectorAll('[data-editor-page-header] button');
-      expect(buttons).toHaveLength(1);
+      // SIGN-43: Rotate is on every page; Clear page only where there is work.
+      const headers = host.querySelectorAll('[data-editor-page-header]');
+      expect(headers[0].querySelectorAll('button')).toHaveLength(2);
+      expect(headers[1].querySelectorAll('button')).toHaveLength(1);
+    });
+
+    it('dispatches ROTATE_PAGE with the displayed geometry of that page', () => {
+      const dispatch = vi.fn<(action: SignToolAction) => void>();
+      const setAnnouncement = vi.fn();
+      host = mountWorkspace({
+        state: testState({ pageTurns: { 1: 1 } }),
+        dispatch,
+        props: { numPages: 2, pageSizes: [pageSize, pageSize], setAnnouncement },
+      });
+
+      const rotate = host.querySelectorAll<HTMLButtonElement>('[data-editor-page-header]')[1].querySelector('button');
+      act(() => {
+        required(rotate, 'rotate button').dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      });
+
+      expect(dispatch).toHaveBeenCalledWith({
+        type: 'ROTATE_PAGE',
+        payload: { pageIndex: 1, geometry: turnGeometry(pageSize, 1), description: 'Rotated page 2' },
+      });
+      expect(setAnnouncement).toHaveBeenCalledWith('Page 2 turned.');
     });
 
     it('dispatches CLEAR_PAGE and logs an undoable action for that page only', () => {
@@ -759,7 +783,7 @@ describe('PdfWorkspace Component', () => {
         }
       });
 
-      const button = required(host.querySelector<HTMLButtonElement>('[data-editor-page-header] button'), 'clear page button');
+      const button = required(host.querySelector<HTMLButtonElement>('[data-editor-page-header] button:last-of-type'), 'clear page button');
       act(() => {
         button.dispatchEvent(new MouseEvent('click', { bubbles: true }));
       });

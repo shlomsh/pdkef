@@ -37,7 +37,7 @@ export function turnGeometry(geometry: PageGeometry, quarterTurns: number): Page
   });
 }
 
-/** A page-percent point after the page turns clockwise: one quarter maps (x, y) to (100 - y, x). */
+/** A page-percent point after the page turns clockwise: one quarter maps (x, y) to (100 - y, x). @testSeam */
 export function turnPercentPoint(point: PercentPoint, quarterTurns: number): PercentPoint {
   let { x, y } = point;
   for (let i = mod4(quarterTurns); i > 0; i--) [x, y] = [100 - y, x];

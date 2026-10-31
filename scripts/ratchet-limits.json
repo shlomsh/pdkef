@@ -47,7 +47,7 @@
       "src/tools/sign/PdfSignTool.tsx#PdfSignToolInner": 287,
       "src/tools/sign/components/DraggableWrapper.tsx#DraggableWrapper": 558,
       "src/tools/sign/components/ElementToolbar.tsx#ElementToolbar": 384,
-      "src/tools/sign/components/PdfWorkspace.tsx#PdfWorkspace": 634,
+      "src/tools/sign/components/PdfWorkspace.tsx#PdfWorkspace": 626,
       "src/tools/sign/components/SignToolContext.tsx#reducer": 177,
       "src/tools/sign/components/SignToolbar.tsx#SignToolbar": 748,
       "src/tools/sign/components/SignatureDialog.tsx#SignatureDialog": 537,
@@ -102,7 +102,7 @@
       },
       "src/tools/sign/components/PdfWorkspace.tsx": {
         "effects": 1,
-        "hooks": 29
+        "hooks": 28
       },
       "src/tools/sign/components/SignToolbar.tsx": {
         "effects": 1,

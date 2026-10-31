@@ -220,7 +220,7 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
   useElementClipboard({ dispatch, elements, activeElementId, logAction, setAnnouncement, messages: t });
 
   const { runExport, handleSavePdf, handleDownloadPdf, handleSharePdf, requestHandoff, handoffBusy } = useSignExport({
-    file, fileBytesRef, elements, exportRun, activeExportSpeculativeRef, documentRevisionRef, preparedExportRef,
+    file, fileBytesRef, elements, pageTurns, exportRun, activeExportSpeculativeRef, documentRevisionRef, preparedExportRef,
     signedExport, share, lifecycleDispatch, setAnnouncement, messages: t,
   });
 

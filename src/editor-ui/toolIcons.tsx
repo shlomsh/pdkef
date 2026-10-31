@@ -91,3 +91,23 @@ export function TrashIcon({
     </svg>
   );
 }
+
+/** A clockwise quarter-turn arrow (the page header's Rotate). */
+export function RotateIcon({ size = 14, strokeWidth = 2 }: { size?: number; strokeWidth?: number }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 16 16"
+      fill="none"
+      stroke="currentColor"
+      stroke-width={strokeWidth}
+      stroke-linecap="round"
+      stroke-linejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M13 8a5 5 0 1 1-1.5-3.6" />
+      <path d="M13 2v3h-3" />
+    </svg>
+  );
+}
