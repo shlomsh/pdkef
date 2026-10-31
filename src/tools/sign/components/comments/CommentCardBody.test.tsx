@@ -1,0 +1,103 @@
+import { render } from 'preact';
+import { act } from 'preact/test-utils';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { englishSignMessages } from '#editor/registry/signMessages.ts';
+import type { CommentCard } from '../../lib/highlight/commentCards.ts';
+import { CommentCardBody } from './CommentCardBody.tsx';
+
+const band = { left: 10, top: 10, width: 30, height: 2 };
+const card = (over: Partial<CommentCard> = {}): CommentCard => ({ id: 'h1', color: '#ff0', comment: 'Check this', isNew: false, firstBand: band, ...over });
+
+let host: HTMLDivElement | null = null;
+afterEach(() => { if (host) render(null, host); host?.remove(); host = null; });
+
+function mount(props: { card: CommentCard; active?: boolean; onSelect?: () => void; onChange?: (p: { comment: string | undefined }) => void }) {
+  host = document.createElement('div');
+  document.body.appendChild(host);
+  const draw = (c: CommentCard, active: boolean) => act(() => render(
+    <CommentCardBody card={c} active={active} pageNumber={3} messages={englishSignMessages} crop={<i data-crop />}
+      onSelect={props.onSelect ?? (() => {})} onChange={props.onChange ?? (() => {})} />, host!));
+  draw(props.card, props.active ?? false);
+  return { redraw: (c: CommentCard, active = props.active ?? false) => draw(c, active) };
+}
+const q = <T extends Element>(sel: string) => host!.querySelector<T>(sel)!;
+const button = (label: string) => [...host!.querySelectorAll('button')].find((b) => b.textContent === label)!;
+const type = (value: string) => act(() => { const t = q<HTMLTextAreaElement>('textarea'); t.value = value; t.dispatchEvent(new Event('input', { bubbles: true })); });
+
+describe('CommentCardBody', () => {
+  it('shows the text, the crop and the page meta for an existing inactive comment, and a click selects', () => {
+    const onSelect = vi.fn();
+    mount({ card: card(), onSelect });
+    expect(host!.textContent).toContain('Check this');
+    expect(host!.textContent).toContain('Page 3');
+    expect(q('[data-crop]')).not.toBeNull();
+    expect(host!.querySelector('textarea')).toBeNull();
+    expect(host!.querySelector('button')).toBeNull();
+    act(() => q<HTMLElement>('p').click());
+    expect(onSelect).toHaveBeenCalledOnce();
+  });
+
+  it('active existing card offers Edit, which opens a prefilled field with Cancel and Comment', () => {
+    const onChange = vi.fn();
+    mount({ card: card(), active: true, onChange });
+    act(() => button('Edit').click());
+    expect(q<HTMLTextAreaElement>('textarea').value).toBe('Check this');
+    expect(q('textarea').getAttribute('dir')).toBe('auto');
+    type('Changed');
+    act(() => button('Comment').click());
+    expect(onChange).toHaveBeenCalledWith({ comment: 'Changed' });
+    expect(host!.querySelector('textarea')).toBeNull();
+  });
+
+  it('Cancel on a new card removes the comment; on an edit it only closes', () => {
+    const onChange = vi.fn();
+    mount({ card: card({ comment: '', isNew: true }), active: true, onChange });
+    expect(host!.querySelector('[data-highlight-note-input]')).not.toBeNull();
+    act(() => button('Cancel').click());
+    expect(onChange).toHaveBeenCalledWith({ comment: undefined });
+  });
+
+  it('Cancel while editing keeps the comment', () => {
+    const onChange = vi.fn();
+    mount({ card: card(), active: true, onChange });
+    act(() => button('Edit').click());
+    type('half typed');
+    act(() => button('Cancel').click());
+    expect(onChange).not.toHaveBeenCalled();
+    expect(host!.textContent).toContain('Check this');
+  });
+
+  it('a blank save removes the comment, on a new card and on an existing one', () => {
+    const onChange = vi.fn();
+    mount({ card: card({ comment: '', isNew: true }), active: true, onChange });
+    act(() => button('Comment').click());
+    expect(onChange).toHaveBeenLastCalledWith({ comment: undefined });
+    render(null, host!);
+    mount({ card: card(), active: true, onChange });
+    act(() => button('Edit').click());
+    type('   ');
+    act(() => button('Comment').click());
+    expect(onChange).toHaveBeenLastCalledWith({ comment: undefined });
+  });
+
+  it('Escape cancels and Ctrl+Enter saves, and keys never travel past the field', () => {
+    const onChange = vi.fn();
+    const outer = vi.fn();
+    mount({ card: card({ comment: '', isNew: true }), active: true, onChange });
+    document.addEventListener('keydown', outer);
+    type('Hello');
+    act(() => { q('textarea').dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', ctrlKey: true, bubbles: true })); });
+    expect(onChange).toHaveBeenLastCalledWith({ comment: 'Hello' });
+    act(() => { q('textarea').dispatchEvent(new KeyboardEvent('keydown', { key: 'Delete', bubbles: true })); });
+    act(() => { q('textarea').dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); });
+    expect(onChange).toHaveBeenLastCalledWith({ comment: undefined });
+    expect(outer).not.toHaveBeenCalled();
+    document.removeEventListener('keydown', outer);
+  });
+
+  it('shows a comment that changed from outside while not editing', () => {
+    const { redraw } = mount({ card: card() });
+    redraw(card({ comment: 'After undo' }));
+    expect(host!.textContent).toContain('After undo');
+  });
+});
