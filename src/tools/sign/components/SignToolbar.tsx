@@ -157,11 +157,10 @@ export default function SignToolbar({
   // Fill mode (SNG-15), off (FILL_OFF) unless PdfSignTool.tsx provided a real
   // value - see docs/sign-fill-mode.md, "The toolbar".
   const { enabled } = useFill();
-  // Fill mode treats no tool as Text (docs/sign-fill-mode.md, "The armed
-  // tool"): a tap on the page writes text by default, so the button reads as
-  // chosen without arming anything - a real click still arms it the usual
-  // way, and the button's own layout never moves (editor.md's arming rule).
-  const textChosen = selectedTool === 'text' || (enabled && selectedTool === null);
+  // Text reads as chosen only when it is armed (SIGN-45): with nothing armed
+  // a click on the page makes no text, and a second press disarms it through
+  // the usual arming toggle.
+  const textChosen = selectedTool === 'text';
   const [showSigDropdown, setShowSigDropdown] = useState(false);
   const [showShapesDropdown, setShowShapesDropdown] = useState(false);
   // Which shape the Shapes button stands for once its menu has closed. The

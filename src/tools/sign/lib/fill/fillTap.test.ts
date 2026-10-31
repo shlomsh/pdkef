@@ -106,9 +106,14 @@ describe('fillTapDecision', () => {
     expect(fillTapDecision(base)).toEqual({ type: 'delegate' });
   });
 
-  it("focuses a fill target when nothing is armed ('none') and it is in reach, same as Text", () => {
-    const input: FillTapInput = { ...base, tool: 'none', reach: reachOf('fill', 'slot-4') };
+  it("focuses a fill target when Text is armed and it is in reach", () => {
+    const input: FillTapInput = { ...base, tool: 'text', reach: reachOf('fill', 'slot-4') };
     expect(fillTapDecision(input)).toEqual({ type: 'focus', key: 'slot-4' });
+  });
+
+  it("does not focus a fill target in reach when nothing is armed ('none')", () => {
+    const input: FillTapInput = { ...base, tool: 'none', reach: reachOf('fill', 'slot-4') };
+    expect(fillTapDecision(input)).toEqual({ type: 'delegate' });
   });
 
   it("delegates a tick box as the symbol tool when nothing is armed ('none')", () => {
@@ -116,9 +121,14 @@ describe('fillTapDecision', () => {
     expect(fillTapDecision(input)).toEqual({ type: 'delegate', at: { pageIndex: 0, x: 20, y: 15 }, tool: 'symbol' });
   });
 
-  it("opens a free slot when nothing is armed ('none'), not typing, and nothing is in reach", () => {
-    const input: FillTapInput = { ...base, tool: 'none', at: point(3, 4) };
+  it("opens a free slot when Text is armed, not typing, and nothing is in reach", () => {
+    const input: FillTapInput = { ...base, tool: 'text', at: point(3, 4) };
     expect(fillTapDecision(input)).toEqual({ type: 'freeSlot', at: point(3, 4) });
+  });
+
+  it("opens no free slot when nothing is armed ('none') and nothing is in reach", () => {
+    const input: FillTapInput = { ...base, tool: 'none', at: point(3, 4) };
+    expect(fillTapDecision(input)).toEqual({ type: 'delegate' });
   });
 
   it("does not delegate as the symbol tool for a tick box when Text is explicitly armed", () => {

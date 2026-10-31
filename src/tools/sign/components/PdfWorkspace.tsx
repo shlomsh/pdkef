@@ -669,7 +669,7 @@ export default function PdfWorkspace({
 
                     <div
                       data-page-overlay
-                      className={`${workspaceStyles['page-overlay']}${fill.enabled && fillTool !== 'text' && fillTool !== 'none' ? ` ${fillStyles['taps-go-to-tool']}` : ''}`}
+                      className={`${workspaceStyles['page-overlay']}${fill.enabled && fillTool !== 'text' ? ` ${fillStyles[fillTool === 'none' ? 'taps-skip-slots' : 'taps-go-to-tool']}` : ''}`}
                       // Capture sees a tap on an existing checkbox mark before
                       // its wrapper consumes the bubble event, so the same
                       // detected square remains a real toggle target. Fill mode

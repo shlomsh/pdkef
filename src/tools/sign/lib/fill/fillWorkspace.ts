@@ -136,7 +136,7 @@ export function fillReachTargets(
   });
   switch (tool) {
     case 'none':
-      return [...items.map(fillTarget), ...checkboxes.map(boxTarget)];
+      return checkboxes.map(boxTarget);
     case 'text':
       return items.map(fillTarget);
     case 'date':

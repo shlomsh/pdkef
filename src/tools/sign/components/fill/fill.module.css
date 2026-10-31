@@ -191,3 +191,11 @@
 .taps-go-to-tool [data-fill-input] {
   pointer-events: none;
 }
+
+/* On the page overlay with nothing armed (SIGN-45): an empty detected slot is a
+   faint frame at rest, but a click on it must not start typing - only Text does
+   that. The click reaches the page and selects or deselects, as production's
+   plain path. Text already placed (.text-input-fill) stays clickable. */
+.taps-skip-slots .slot {
+  pointer-events: none;
+}
