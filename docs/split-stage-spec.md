@@ -54,7 +54,7 @@ Groups:
    selection; either edits the other.
 4. **The setting that changes the output**: a two-way segmented control, "One PDF" and "One PDF
    per page", full rail width, 44px tall, `role="radiogroup"` with roving focus (pattern from
-   `src/editor-ui/ViewControl.tsx`, restyled as text segments). One outcome sentence under it,
+   the removed three-way view control, restyled as text segments). One outcome sentence under it,
    always present: "Selected pages become a single PDF." / "Each selected page becomes its own
    PDF." A segmented control shows the alternative next to the default; two cards with one tinted
    did not say "choose".

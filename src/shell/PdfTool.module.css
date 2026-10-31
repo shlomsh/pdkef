@@ -79,16 +79,14 @@
    (ToolPageLayout.astro). Sign and Redact carry data-layout too (HERO-05), so a loaded
    editor card keeps the full first-screen height on purpose. */
 @media (min-width: 1024px) {
-  :global(html[data-view-density='condensed']) :global(.tool-stage[data-layout='hero']) .tool-card[data-tool-loaded] {
+  :global(.tool-stage[data-layout='hero']) .tool-card[data-tool-loaded] {
     min-height: calc(var(--first-screen) - 5.5rem);
   }
 
   /* A page-grid card (docs/shared-page-grid.md) is one screen at any window
      height: its floor reaches the viewport's foot, without --first-screen's
-     900px cap, and the page grid sizes its cells to that floor. Its hero folds
-     the same in either view density, so the density gate above does not
-     apply: a 'relaxed' saved in Sign dropped the floor and left every page at
-     the grid's 104px minimum. */
+     900px cap, and the page grid sizes its cells to that floor. Without
+     it every page sat at the grid's 104px minimum. */
   /* Scan's photo and pages (data-fills-stage) fill the same floor (useFloorHeight.ts). */
   :global(html) :global(.tool-stage[data-layout='hero']) .tool-card[data-tool-loaded]:has([data-page-grid], [data-fills-stage]) {
     min-height: calc(max(600px, 100svh - 3.5rem) - 5.5rem);

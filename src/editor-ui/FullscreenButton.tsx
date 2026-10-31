@@ -1,15 +1,18 @@
 import styles from './SignToolbar.module.css';
 
+/** `iconOnly` is Sign's `data-icon-only`, as in UndoRedoButtons: four corners is a convention and its labelled desktop row has no width to spare. Redact keeps the label. */
 export default function FullscreenButton({
   isFullscreen,
   toggleFullscreen,
   label = 'Full screen',
   exitLabel = 'Exit full screen',
+  iconOnly = false,
 }: {
   isFullscreen: boolean;
   toggleFullscreen: () => void;
   label?: string;
   exitLabel?: string;
+  iconOnly?: boolean;
 }) {
   return (
     <button
@@ -17,6 +20,7 @@ export default function FullscreenButton({
       className={styles.button}
       onClick={toggleFullscreen}
       title={isFullscreen ? exitLabel : label}
+      {...(iconOnly ? { 'data-icon-only': true } : {})}
     >
       {isFullscreen ? (
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">

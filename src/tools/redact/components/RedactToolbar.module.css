@@ -55,24 +55,9 @@
    (hint wrappers, dropdowns) stretch their button too. */
 @media (min-width: 920px) {
   .bar.bar.bar { align-items: stretch; }
-  /* Only the wrappers (ArmHint's span, dropdowns). Never the view control:
-     ViewControl.module.css shows its segmented control and hides the lone
-     full-screen button beside it by `display`, and a display set here would
-     override both - the segments stacked and a second Full screen appeared. */
-  .bar.bar.bar > :not(button):not([role="radiogroup"]) { display: flex; flex-direction: column; }
-  .bar.bar.bar > :not(button):not([role="radiogroup"]) > button { flex: 1 1 auto; }
-}
-
-/* The view control's segments are icons in a segmented group, labelled by
-   their title; the word rule above is for the toolbar's own buttons. */
-.bar.bar.bar [role="radiogroup"] button { flex-direction: row; }
-
-/* Below 920px the view control is one Full screen button in the grid. Its
-   word is two words, so it may wrap under the icon rather than clip. */
-.bar.bar.bar [role="radiogroup"] + button > span:last-child {
-  white-space: normal;
-  line-height: 1;
-  text-align: center;
+  /* Only the wrappers (ArmHint's span, dropdowns). */
+  .bar.bar.bar > :not(button) { display: flex; flex-direction: column; }
+  .bar.bar.bar > :not(button) > button { flex: 1 1 auto; }
 }
 
 /* On a phone the grid stays two rows (the editor card's height guard), so a

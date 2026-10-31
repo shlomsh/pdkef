@@ -118,9 +118,6 @@ test('Sign resumes a closed tab\'s work, and moving the pointer to a second file
   // The real content-addressed pointer, captured before anything else moves it.
   const entryAId = await page.evaluate(() => localStorage.getItem('pdf-toolkit:workspace:current:sign'));
   expect(entryAId).toBeTruthy();
-  // Returning users can choose Relaxed. The pre-paint reservation must cover
-  // that preference too, even though the hero itself stays expanded.
-  await page.evaluate(() => localStorage.setItem('pdf-toolkit:view-density', 'relaxed'));
 
   await page.close();
   const reopened = await context.newPage();
@@ -129,7 +126,6 @@ test('Sign resumes a closed tab\'s work, and moving the pointer to a second file
   await reopened.goto('/sign/?next=0');
   await waitForIsland(reopened);
   await expect(reopened.locator('[data-editor-text-input]')).toHaveValue('signed by A', { timeout: 10_000 });
-  await expect(reopened.locator('html')).toHaveAttribute('data-view-density', 'relaxed');
   await expect(reopened.locator('html')).toHaveAttribute('data-draft-hint', '1');
   expect(await reopened.evaluate(() => window.__savedWorkFollowupTrace()
     .some(({ visible, editorReady }) => visible && !editorReady))).toBe(false);

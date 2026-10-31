@@ -341,14 +341,14 @@ const { tool, messages, isEditor, toolControlsEnglish } = Astro.props;
      `.tool-hero` written here compiles to a selector nothing matches
      (QUAL-10 measured the hero dropping 32px at 900px for exactly that). */
   @media (max-width: 1023px) {
-    :global(html[data-view-density='condensed'][data-merge-restore] .tool-hero[data-hero-condensable]),
-    :global(html[data-view-density='condensed']:has([data-merge-restored-workspace]) .tool-hero[data-hero-condensable]) {
+    :global(html[data-merge-restore] .tool-hero[data-hero-condensable]),
+    :global(html:has([data-merge-restored-workspace]) .tool-hero[data-hero-condensable]) {
       padding-top: 1.5rem;
       padding-bottom: 0.75rem;
     }
 
-    :global(html[data-view-density='condensed'][data-merge-restore] .tool-hero[data-hero-condensable] [data-hero-sub]),
-    :global(html[data-view-density='condensed']:has([data-merge-restored-workspace]) .tool-hero[data-hero-condensable] [data-hero-sub]) {
+    :global(html[data-merge-restore] .tool-hero[data-hero-condensable] [data-hero-sub]),
+    :global(html:has([data-merge-restored-workspace]) .tool-hero[data-hero-condensable] [data-hero-sub]) {
       display: none;
     }
   }

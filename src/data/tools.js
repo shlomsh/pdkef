@@ -691,7 +691,7 @@ export const tools = [
     // Was `false` while Compress was one short options card. Once a file is open, the file strip, the
     // level picker and the before/after result share the first screen, and on a laptop the whole
     // result page fits only with the hero folded to one line (src/tools/compress/e2e/compare-preview.spec.js;
-    // docs/view-density-control-spec.md 4.7).
+    // the fold's history is in docs/view-density-control-spec.md 4.7).
     condenseOnLoad: true,
     icon: Shrink,
     gridDescription:

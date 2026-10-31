@@ -1,6 +1,6 @@
 import type { ComponentChildren } from 'preact';
 import { Search, Eye } from 'lucide-preact';
-import ViewControl from '#editor-ui/ViewControl.tsx';
+import FullscreenButton from '#editor-ui/FullscreenButton.tsx';
 import EditorToolStatus, { type ToolCopy } from '#editor-ui/EditorToolStatus.tsx';
 import ArmHint from '#editor-ui/ArmHint.tsx';
 import EditorExportActions from '#editor-ui/EditorExportActions.tsx';
@@ -240,7 +240,7 @@ export default function RedactToolbar({
         />
       }
     >
-      <div className={`${styles.toolbar} ${barStyles.bar}`} role="toolbar" aria-label={t.toolbarLabel} dir="ltr" lang="en">
+      <div className={`${styles.toolbar} ${barStyles.bar}`} role="toolbar" aria-label={t.toolbarLabel} dir="ltr" lang="en" data-editor-toolbar>
         <ArmHint tool="blur" label={TOOL_COPY.blur.button} action={TOOL_COPY.blur.action} locked={activeStyle === 'blur' && toolLocked} autoShowTool={autoShowTool}>
           <button
             type="button"
@@ -332,7 +332,7 @@ export default function RedactToolbar({
             once left a phone unable to redo at all - keep them as two. */}
         <UndoRedoButtons onUndo={onUndo} onRedo={onRedo} canUndo={actionHistory.length > 0} canRedo={canRedo} />
 
-        <ViewControl isFullscreen={isFullscreen} toggleFullscreen={toggleFullscreen} />
+        <FullscreenButton isFullscreen={isFullscreen} toggleFullscreen={toggleFullscreen} />
 
         {/* The united file action, in the exact slot Start over used to hold.
             Both meant "I want a different file"; this one says it once. */}

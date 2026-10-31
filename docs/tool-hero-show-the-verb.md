@@ -105,7 +105,7 @@ today's phone first-viewport behaviour; it picks up the basics and the verb only
 ## After a drop: the same screen is the workspace
 
 - On desktop the hero condenses to the icon and the tool's name (`src/components/ToolHero.astro`). It
-  uses the same signals as the existing condense rules: `html[data-view-density='condensed']` together
+  uses the same signals as the existing condense rules: `html:has([data-editor-toolbar])` (Sign and Redact) together
   with `[data-tool-shell]` or `[data-tool-loaded]`. The rest of the h1 and the subhead are hidden, not
   removed, so the h1's text content is unchanged.
 - This reverses the 2026-09-12 decision to keep page-grid heroes full on desktop. The full hero now

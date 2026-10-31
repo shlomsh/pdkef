@@ -214,7 +214,7 @@ Done and retired tickets are not listed. Their files stay in [backlog/tasks/](ba
 - Tool pages: show the verb: 8 done, 0 retired
 - Form detector accuracy: 19 done, 1 retired
 - Robustness and debt: 80 done, 4 retired
-- Unify the tools, narrow the graph: 95 done, 0 retired
+- Unify the tools, narrow the graph: 96 done, 0 retired
 - Search and languages: 12 done, 0 retired
 - Polish: 19 done, 1 retired
 - Sign tool architecture: 37 done, 1 retired
