@@ -97,7 +97,6 @@ test('Rotate turns the page on screen and in the export; marks stay on their con
   // Turn again; a reload (draft restore) brings the page back turned, mark on the word.
   await page.getByRole('button', { name: 'Rotate', exact: true }).first().click();
   await expect.poll(async () => { const m = await measure(page); return m.width > m.height; }).toBe(true);
-  await page.waitForTimeout(0).catch(() => {});
   await expect(page.locator('[data-tool-shell]').getByText('Draft saved')).toBeVisible({ timeout: 10_000 });
   await page.reload();
   await waitForIsland(page);
