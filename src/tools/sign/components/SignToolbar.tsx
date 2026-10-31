@@ -607,17 +607,6 @@ export default function SignToolbar({
             </div>
           </ArmHint>
 
-          <ArmHint tool="highlight" label={t.highlightLabel} action={TOOL_COPY.highlight.action} locked={selectedTool === 'highlight' && toolLocked} autoShowTool={autoShowTool} hintTemplate={t.armHint} touchHintTemplate={t.armHintTouch}>
-            <button
-              type="button"
-              {...toolButtonProps(selectedTool === 'highlight', toolLocked)}
-              onClick={armTool('highlight')}
-            >
-              <HighlightIcon strokeWidth={2.5} />
-              <span className={styles.label}>{t.highlightLabel}</span>
-            </button>
-          </ArmHint>
-
           <ArmHint tool="whiteout" label={t.whiteoutButton} action={TOOL_COPY.whiteout.action} locked={selectedTool === 'whiteout' && toolLocked} autoShowTool={autoShowTool} hintTemplate={t.armHint} touchHintTemplate={t.armHintTouch}>
             <button
               type="button"
@@ -727,6 +716,17 @@ export default function SignToolbar({
               }
             />
             </div>
+          </ArmHint>
+
+          <ArmHint tool="highlight" label={t.highlightLabel} action={TOOL_COPY.highlight.action} locked={selectedTool === 'highlight' && toolLocked} autoShowTool={autoShowTool} hintTemplate={t.armHint} touchHintTemplate={t.armHintTouch}>
+            <button
+              type="button"
+              {...toolButtonProps(selectedTool === 'highlight', toolLocked)}
+              onClick={armTool('highlight')}
+            >
+              <HighlightIcon strokeWidth={2.5} />
+              <span className={styles.label}>{t.highlightLabel}</span>
+            </button>
           </ArmHint>
 
           {/* Undo and Redo are the whole history model, the same pair

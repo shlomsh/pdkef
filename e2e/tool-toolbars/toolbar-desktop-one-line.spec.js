@@ -66,7 +66,9 @@ async function readToolbarLine(page) {
 // History came out on 2026-09-20). Since 2026-10-20 Sign keeps Download beside
 // Share below 920px (keepDownloadOnPhone), so with Share it counts thirteen,
 // which need 629.6px and hold one line down to a 693px window (630.2px of
-// content); from 692px it is a balanced 7+6. Redact's floor is still 700px.
+// content); from 692px it is a balanced 7+6. Since 2026-10-31 the Highlight button
+// (SIGN-46) makes fourteen, which need 678.4px and hold one line down to a 792px
+// window; below it the row is a balanced 7+7. Redact's floor is still 700px.
 // Below its own floor a toolbar is the wrapped grid, whose balance is
 // toolbar-touch-targets.spec.js's and sign-toolbar-labels-fit.spec.js's job.
 const WIDTHS = [768, 920, 1000, 1100, 1200, 1299, 1300, 1440, 1600];
@@ -79,7 +81,7 @@ const WIDTHS = [768, 920, 1000, 1100, 1200, 1299, 1300, 1440, 1600];
 const MAX_DOWNLOAD_SHARE = 0.4;
 
 const tools = [
-  { name: 'Sign', path: '/sign/?next=0', fixture: 'sign-desktop-one-line.pdf', floor: 743 },
+  { name: 'Sign', path: '/sign/?next=0', fixture: 'sign-desktop-one-line.pdf', floor: 792 },
   { name: 'Redact', path: '/redact', fixture: 'redact-desktop-one-line.pdf', floor: 700 },
 ];
 
@@ -89,7 +91,7 @@ for (const tool of tools) {
     await page.setViewportSize({ width: 1600, height: 1000 });
     await openTool(page, tool.path, tool.fixture);
 
-    for (const width of [tool.floor, ...WIDTHS]) {
+    for (const width of [tool.floor, ...WIDTHS.filter((w) => w > tool.floor)]) {
       await page.setViewportSize({ width, height: 1000 });
       const { childCount, tops, downloadWidth, toolbarWidth } = await readToolbarLine(page);
       expect(childCount, `${tool.name} at ${width}px: expected several visible controls`).toBeGreaterThan(5);
