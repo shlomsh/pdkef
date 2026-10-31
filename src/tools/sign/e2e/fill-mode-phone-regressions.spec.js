@@ -58,6 +58,8 @@ const isFocused = (locator) => locator.evaluate((node) => node === document.acti
  */
 async function fillFirstField(page) {
   await openFillMode(page);
+  // Nothing is armed by default (SIGN-45): Text first, then the field.
+  await page.getByRole('toolbar', { name: 'PDF annotations' }).getByRole('button', { name: 'Text', exact: true }).tap();
   const slot = page.locator('[data-fill-input]').first();
   await slot.scrollIntoViewIfNeeded();
   await slot.tap();
