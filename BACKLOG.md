@@ -187,6 +187,7 @@ Small, independent, good for a spare hour.
 
 | ID | P | Task | Note |
 | --- | --- | --- | --- |
+| SIGN-45 | P1 | [SIGN-45](backlog/tasks/SIGN-45.md) · Sign: nothing is armed by default; a click makes text only when Text is picked | In progress |
 | QUAL-21 | P2 | [QUAL-21](backlog/tasks/QUAL-21.md) · Pages render at the size they are shown, and the practice form's logo is sharp | In progress |
 | SIGN-43 | P2 | [SIGN-43](backlog/tasks/SIGN-43.md) · Sign: turn a sideways page a quarter turn, next to Clear page | In progress |
 | SIGN-44 | P2 | [SIGN-44](backlog/tasks/SIGN-44.md) · Sign: a comment on a highlight, kept in the PDF as a standard annotation | In progress |
