@@ -2,7 +2,7 @@
 
 # Backlog
 
-The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 81 live: 13 up next, 11 then, 27 waiting, 30 parked.
+The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 82 live: 13 up next, 11 then, 27 waiting, 31 parked.
 
 ## Redact: finish removal
 
@@ -203,6 +203,7 @@ Small, independent, good for a spare hour.
 | ID | P | Task | Note |
 | --- | --- | --- | --- |
 | ENC-12 | P3 | [ENC-12](backlog/tasks/ENC-12.md) · One hand-off row, not four copies |  |
+| COMP-03 | P3 | [COMP-03](backlog/tasks/COMP-03.md) · A JPEG quality setting looks the same in Safari as in Chrome, so Safari files stop coming out larger | Needs Shlomi: A check on your iPhone |
 
 # Closed work
 

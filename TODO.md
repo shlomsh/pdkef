@@ -69,5 +69,6 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 - [SEO-42](backlog/tasks/SEO-42.md) · The /compress/ query export (28 days before and after 2026-10-08) and /compress-image/ filtered to queries containing pdf
 - [SEO-44](backlog/tasks/SEO-44.md) · The 2026-11-07 Search Console export: the /split/ and /he/split/ rows
 - [SEO-51](backlog/tasks/SEO-51.md) · Search Console, Performance, page /redact/, query containing "redact", last 3 months: impressions, clicks and position per query, plus the same for "blur"
+- [COMP-03](backlog/tasks/COMP-03.md) · A check on your iPhone
 
 See [BACKLOG.md](BACKLOG.md) for every lane.
