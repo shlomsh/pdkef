@@ -98,8 +98,8 @@ function boxClaims(input: FillTapInput, target: ReachTarget): boolean {
  * a tap on an existing editor element that landed on that element's own fill input,
  * which focuses it instead of selecting the element; then a tap on an existing editor
  * element with no fill input of its own, production's own path; then the rest of the
- * armed tool's reach (Text and None focus a fill field, Date is placed by production at
- * its centre); then closing a typing session; then a free slot for Text or None; and only
+ * armed tool's reach (Text focuses a fill field, Date is placed by production at
+ * its centre); then closing a typing session; then a free slot for Text; and only
  * then production's plain tap path. The order is the behaviour, so it stays a short list
  * of guard clauses rather than a lookup table.
  */
@@ -123,9 +123,9 @@ export function fillTapDecision(input: FillTapInput): FillTapDecision {
   // tap and the keyboard, rather than leaving a "selected here, typing there" split.
   if (onElement && elementFillKey) return { type: 'focus', key: elementFillKey };
   if (onElement) return { type: 'delegate' };
-  if ((tool === 'text' || tool === 'none') && reach?.kind === 'fill') return { type: 'focus', key: reach.key };
+  if (tool === 'text' && reach?.kind === 'fill') return { type: 'focus', key: reach.key };
   if (tool === 'date' && reach?.kind === 'fill') return { type: 'delegate', at: centreOf(reach) };
   if (typing) return { type: 'dismiss' };
-  if ((tool === 'text' || tool === 'none') && at) return { type: 'freeSlot', at };
+  if (tool === 'text' && at) return { type: 'freeSlot', at };
   return { type: 'delegate' };
 }

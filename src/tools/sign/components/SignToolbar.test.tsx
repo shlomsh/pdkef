@@ -1703,4 +1703,47 @@ describe('SignToolbar Component', () => {
     document.body.removeChild(plain.host);
     document.body.removeChild(filling.host);
   });
+
+  describe('Text in fill mode (SIGN-45)', () => {
+    const renderFilling = () => {
+      const host = document.createElement('div');
+      document.body.appendChild(host);
+      let state!: SignToolState;
+      const Probe = () => {
+        state = useSignTool().state;
+        return null;
+      };
+      act(() => {
+        render(
+          <FillContext.Provider value={{ ...FILL_OFF, enabled: true }}>
+            <SignToolProvider>
+              <SignToolbar setAnnouncement={() => {}} actionHistory={[]} toggleFullscreen={() => {}} isFullscreen={false} onSavePdf={() => {}} />
+              <Probe />
+            </SignToolProvider>
+          </FillContext.Provider>,
+          host,
+        );
+      });
+      const textButton = () => required(
+        Array.from(host.querySelectorAll<HTMLButtonElement>('[role="toolbar"] button')).find((b) => b.textContent.includes('Text')),
+        'Text button',
+      );
+      return { host, textButton, getState: () => state };
+    };
+
+    it('is not pressed with nothing armed, is pressed once armed, and a second press disarms it', async () => {
+      const { host, textButton, getState } = renderFilling();
+      expect(getState().selectedTool).toBeNull();
+      expect(textButton().getAttribute('aria-pressed')).toBe('false');
+      act(() => { textButton().click(); });
+      expect(getState().selectedTool).toBe('text');
+      expect(textButton().getAttribute('aria-pressed')).toBe('true');
+      // Past the double-tap window, so the second press is a plain toggle, not a lock.
+      await new Promise((resolve) => setTimeout(resolve, 450));
+      act(() => { textButton().click(); });
+      expect(getState().selectedTool).toBeNull();
+      expect(textButton().getAttribute('aria-pressed')).toBe('false');
+      document.body.removeChild(host);
+    });
+  });
 });

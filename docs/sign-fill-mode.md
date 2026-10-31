@@ -62,21 +62,23 @@ contract; change them first, then the pieces.
      on its own fill input): production's own path, except that a touch on an element not yet selected
      does not claim the gesture (SNG-04), so the page pans natively and a plain tap selects through the
      browser's synthesised mouse click.
-  6. Within reach of the armed tool's target otherwise: Text focuses it inside the touch handler
+  6. Within reach of the armed tool's target otherwise (nothing armed reaches no fill input): Text focuses it inside the touch handler
      (MOBI-24). Date goes to production's `handlePageClick` at the target's centre, so its snap lands
      where the droppable look promised. Reach is 22 px, the printed label just above a field counts,
      and between two rows the label's row wins.
   7. Typing or something selected, and away from every spot: finish that only.
-  8. Text armed (fill mode treats no tool as Text), nothing in reach: open a free slot there.
+  8. Text armed, nothing in reach: open a free slot there. With nothing armed (SIGN-45) a click makes
+     no text: it falls through to step 9, which only selects or deselects.
   9. Everything else: production's `handlePageClick`.
   With nothing armed, a tap on a detected tick box toggles it through production's own symbol path,
   even though no tool is armed.
-- **What each tool reaches** (`fillReachTargets`): Text (and 'none', which fill mode treats the same
-  as Text), every fill input; Date, the empty detected slots; a mark, the detected tick boxes; any
+- **What each tool reaches** (`fillReachTargets`): Text, every fill input; nothing armed ('none'), only
+  the detected tick boxes (no fill input, so no text); Date, the empty detected slots; a mark, the detected tick boxes; any
   other tool, nothing. While a tool other than Text is armed, fill inputs don't take taps
-  (`taps-go-to-tool`), so the tap reaches that tool.
+  (`taps-go-to-tool`), so the tap reaches that tool; with nothing armed the empty slots don't take
+  taps either (`taps-skip-slots`), while text already placed stays clickable.
 - **Hints.** A slot shows a faint frame at rest. The target a tap would reach for the armed tool
-  (`FillTool`) gets a distinct "droppable" look while the mouse hovers or a finger is down near it.
+  (`FillTool`) gets a distinct "droppable" look (never with nothing armed: no text target is droppable then) while the mouse hovers or a finger is down near it.
   With nothing in reach there is no preview.
 - **Keys.**
   - `enterkeyhint` is "next" on every fill input but the last, where it is "done".
@@ -121,7 +123,7 @@ Existing files change only at their seams:
 - `useWorkspaceGestures.ts`: `handlePageClick` takes an optional corrected point.
 - `PdfWorkspace.tsx` also: a click on a fill input never deselects, and `deactivateAll` blurs a focused
   slot as it already blurs a textarea.
-- `SignToolbar.tsx`: shows Text as chosen when nothing is armed in fill mode.
+- `SignToolbar.tsx`: Text is pressed only while it is armed (SIGN-45).
 
 ## Rules for every piece
 
@@ -203,12 +205,11 @@ These are the only places the pieces meet. Each is written down in code: `fillTy
   - `delegate`: production's `handlePageClick`, at the corrected point when one is given. A
     `finishTyping` delegate (nothing armed, a box toggle while typing) calls `dismiss()` first, so the
     fill input does not keep focus once the reducer ends its editing state.
-- **The armed tool, as `FillTool`** (`fillToolOf`): no tool is `'none'` (fill mode treats it like Text:
-  every fill input, and a tap on nothing opens a free slot - plus the detected tick boxes, where a tap
-  runs production's own symbol toggle), Text is `'text'`, Date is `'date'`, the symbol tool is `'mark'`,
+- **The armed tool, as `FillTool`** (`fillToolOf`): no tool is `'none'` (SIGN-45: makes no text, reaching only
+  the detected tick boxes, where a tap runs production's own symbol toggle), Text is `'text'`, Date is `'date'`, the symbol tool is `'mark'`,
   anything else is `'other'`.
 - **The aim.** A mouse hovering with no button down (pointer events, so iOS's synthesized mouse events
   never count), or a finger down, sets the aimed key from `reachTarget`. It clears when the touch ends
   or is cancelled, and when the pointer leaves the page.
-- **The toolbar.** With no tool armed, `SignToolbar` shows Text as chosen in fill mode. It stays
+- **The toolbar.** `SignToolbar` shows Text as pressed only while it is armed; pressing it again disarms it. It stays
   visible while filling, on every pointer.

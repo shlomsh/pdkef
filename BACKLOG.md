@@ -2,7 +2,7 @@
 
 # Backlog
 
-The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 85 live: 16 up next, 11 then, 27 waiting, 31 parked.
+The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 86 live: 17 up next, 11 then, 27 waiting, 31 parked.
 
 ## Redact: finish removal
 
