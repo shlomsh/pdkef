@@ -2,7 +2,7 @@
 import type { EditorElement, HighlightElement } from '#editor/model/editorModel.ts';
 
 /** True when the highlight carries a comment with something in it. */
-function hasComment(element: EditorElement): element is HighlightElement {
+export function hasComment(element: EditorElement): element is HighlightElement {
   return element.type === 'highlight' && !!element.comment?.trim();
 }
 

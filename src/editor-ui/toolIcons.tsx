@@ -31,6 +31,17 @@ export function HighlightIcon({ size = 18, strokeWidth = 2 }: { size?: number; s
   );
 }
 
+/* SIGN-44: a speech bubble with two lines of text. */
+export function CommentIcon({ size = 18, strokeWidth = 2 }: { size?: number; strokeWidth?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width={strokeWidth} stroke-linecap="round" stroke-linejoin="round">
+      <path d="M21 12a8 8 0 0 1-11.6 7.1L3 20.5l1.5-4.9A8 8 0 1 1 21 12z" />
+      <line x1="8.5" y1="10" x2="15.5" y2="10" />
+      <line x1="8.5" y1="14" x2="13" y2="14" />
+    </svg>
+  );
+}
+
 /* Blackout's bar, softened: the band is drawn with a real Gaussian blur, which
  * is what the tool does to the page. The filter region is padded so the blur is
  * not clipped at the band's edge; the id is fixed because every instance
