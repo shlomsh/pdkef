@@ -14,11 +14,12 @@ type CommentPatch = { comment: string | undefined };
 
 /**
  * SIGN-44's comments view, wired once for the workspace: a margin rail beside every page on a wide
- * workspace (as soon as the document has a highlight, so the page never narrows mid-read), a bottom
+ * workspace (once Highlight is armed or a highlight exists, so the page never narrows mid-read), a bottom
  * sheet on a narrow one, and the page header's comment count.
  */
-export function useCommentsView({ elements, activeElementId, messages, onSelect, onChange }: {
+export function useCommentsView({ elements, activeElementId, selectedTool, messages, onSelect, onChange }: {
   elements: readonly EditorElement[];
+  selectedTool: string | null;
   activeElementId: string | null;
   messages: SignMessages;
   onSelect: (id: string | null) => void;
@@ -33,7 +34,9 @@ export function useCommentsView({ elements, activeElementId, messages, onSelect,
     observer.observe(node);
     return () => observer.disconnect();
   }, []);
-  const showRail = wide && elements.some((el) => el.type === 'highlight');
+  // Reserved from the moment Highlight is armed: a swipe adds its element at the press, and a rail
+  // appearing then would narrow the page under the finger.
+  const showRail = wide && (selectedTool === 'highlight' || elements.some((el) => el.type === 'highlight' && el.bands.length > 0));
   return {
     containerRef,
     cardClass: showRail ? styles['page-card-with-rail'] : undefined,

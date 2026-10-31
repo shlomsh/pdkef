@@ -8,7 +8,7 @@
 .body { display: flex; flex-direction: column; gap: 6px; cursor: default; }
 .head { display: flex; align-items: flex-start; gap: 8px; }
 .dot { flex: none; width: 10px; height: 10px; margin-top: 4px; border-radius: 50%; }
-.crop { flex: 1; min-width: 0; width: 100%; display: block; border-radius: 4px; }
+.crop { flex: none; max-width: 100%; display: block; border-radius: 4px; }
 .text { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; }
 .meta { margin: 0; font-size: 12px; color: var(--color-muted); }
 .input {
