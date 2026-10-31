@@ -97,9 +97,10 @@ for (const { width, path, share, download } of CASES) {
       expect.soft(missing, `Share and Download both rendered at ${width}px`).toEqual([]);
       expect.soft(balanced, `rows balanced (>=2 each, differ by <=1), got ${split.join('+')}`).toBe(true);
       // Every current iPhone (433px and narrower) stands Feedback down, so Sign's
-      // twelve with Share split 6+6 rather than 7+6 (SignToolbar.module.css, the
-      // 387px rule).
-      expect.soft(split.join('+'), `6+6 on a phone at ${width}px`).toBe('6+6');
+      // thirteen with Share (Highlight, SIGN-46) split 7+6 (SignToolbar.module.css,
+      // the 387px rule). At 360px and 375px the controls shrink below the 44px
+      // floor to keep it (decided 2026-10-31).
+      expect.soft(split.join('+'), `7+6 on a phone at ${width}px`).toBe('7+6');
     });
   });
 }
@@ -122,8 +123,12 @@ test.describe('Sign row, 919px down to 239px', () => {
       if (Math.max(...split) - Math.min(...split) > 1) problems.push('rows differ by more than 1');
       if (!names.includes('Share')) problems.push('no Share');
       if (!names.includes('Download')) problems.push('no Download');
-      const narrow = controls.filter((c) => c.width < 43.5).map((c) => `${c.name} ${c.width.toFixed(1)}px`);
-      if (narrow.length) problems.push(`narrower than 43.5px: ${narrow.join(', ')}`);
+      // Sign's thirteen hold 7+6 below 337px of content by letting the 44px floor
+      // give way (SignToolbar.module.css, decided 2026-10-31). 40.5px is what a
+      // 360px phone needs (40.6px); narrower windows are not phones, so only the
+      // balance is held there.
+      const narrow = width < 360 ? [] : controls.filter((c) => c.width < 40.5).map((c) => `${c.name} ${c.width.toFixed(1)}px`);
+      if (narrow.length) problems.push(`narrower than 40.5px: ${narrow.join(', ')}`);
       if (problems.length) failures.push(`${width}px [${split.join('+')}] ${problems.join('; ')}`);
     }
     expect(failures, 'widths where the row strands, unbalances or drops a control').toEqual([]);
