@@ -32,8 +32,10 @@
   border-radius: var(--radius-sm);
 }
 
+/* The hover fill is the host's too: the pale default suits Redact's light pill, and a dark
+   pill (Sign's) sets --toolbar-hover-fill, or the pale fill sits under a white icon. */
 .recent:hover,
-.eyedropper:hover { background: var(--color-primary-soft); }
+.eyedropper:hover { background: var(--toolbar-hover-fill, var(--color-primary-soft)); }
 
 .auto {
   height: 44px;
@@ -48,16 +50,18 @@
   height: 30px;
   padding-inline: 8px;
   box-sizing: border-box;
-  border: 1px solid var(--color-border);
+  /* Resting: a clear outline, so the chip reads as a choice on a dark pill and a light one. */
+  border: 1px solid var(--color-border-strong);
   border-radius: 999px;
   font-size: .8rem;
   font-weight: 600;
 }
 
+.auto:hover .autoFace { background: var(--toolbar-hover-fill, var(--color-primary-soft)); }
+
+/* Selected wears the chosen swatch's ring below: one selection mark for the whole group. */
 .auto[aria-pressed='true'] .autoFace {
-  background: var(--color-primary-tint);
-  border-color: var(--color-primary);
-  color: var(--color-primary-text);
+  box-shadow: 0 0 0 2px var(--color-surface), 0 0 0 4px var(--color-primary);
 }
 
 .eyedropper[aria-pressed='true'] {
