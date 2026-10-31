@@ -51,9 +51,9 @@ function passageEnd(bands: readonly HighlightBand[], direction: Direction = 'ltr
 }
 
 /**
- * Every comment's marker, keyed by comment id: a passage's at its end in reading order, a comment on a
- * highlight at that highlight's passage end, on any other element at its top right corner. A pin has
- * none: the pin is its own marker.
+ * The marker of every comment on an element, keyed by comment id: on a highlight at that highlight's
+ * passage end in reading order, on any other element at its top right corner. A passage comment's tint
+ * is its mark (as in Google Docs) and a pin is its own, so neither has one.
  */
 export function commentMarkers(elements: readonly EditorElement[]): ReadonlyMap<string, CommentMarker> {
   const byId = new Map(elements.map((el) => [el.id, el]));
@@ -61,7 +61,6 @@ export function commentMarkers(elements: readonly EditorElement[]): ReadonlyMap<
   for (const el of elements) {
     if (!isComment(el)) continue;
     const { anchor } = el;
-    if (anchor.kind === 'passage') markers.set(el.id, passageEnd(anchor.bands, anchor.direction));
     if (anchor.kind !== 'element') continue;
     const target = byId.get(anchor.elementId);
     if (!target) continue;

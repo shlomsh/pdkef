@@ -22,3 +22,9 @@
 }
 /* The anchored element shows it is the focused card's subject (a highlight draws deeper bands instead). */
 :global([data-comment-focus]:not([data-editor-highlight])) { outline: 2px solid var(--color-comment-anchor); outline-offset: 1px; }
+/* A passage or a pin wears no element chrome (frame, fill, hover outline): its tint or pin is the whole mark. */
+:global([data-editor-element]):has(> [data-comment-root]),
+:global([data-editor-element]:hover):has(> [data-comment-root]),
+:global([data-editor-element][data-editor-active]):has(> [data-comment-root]) {
+  outline-color: transparent; box-shadow: none; background: none;
+}

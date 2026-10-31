@@ -10,7 +10,8 @@ import styles from './CommentNode.module.css';
 /* A comment on the page. A passage shows its bands in the comment tint; the draft layer is where the
  * Comment tool's swipe paints live bands, so every non-element comment carries one. A pin is a marker.
  * An element comment (its box is its target's, resolved upstream) shows only its marker, so the target
- * stays clickable. A passage or element comment's marker is the pin's bubble, placed by commentMarkers. */
+ * stays clickable; its marker is the pin's bubble, placed by commentMarkers. A passage is its tint alone,
+ * as in Google Docs. */
 export default function CommentNode({ element, isActive, onSelect, messages }: ElementNodeProps<CommentElement> & {
   onSelect?: (event: Event) => void;
 }) {
@@ -36,7 +37,6 @@ export default function CommentNode({ element, isActive, onSelect, messages }: E
         </div>
         <div data-highlight-draft class={styles.draft} />
       </div>
-      {anchor.kind === 'passage' && marker}
       {anchor.kind === 'point' && (
         <span
           data-comment-pin

@@ -53,6 +53,8 @@
    shrink-to-fit against that folded the bar into a one-button column. */
 .actions { position: absolute; top: -44px; left: 0; display: flex; flex-wrap: wrap; width: max-content; align-items: center; gap: 4px; background: var(--color-text); color: var(--color-surface); --toolbar-hover-fill: var(--color-primary-hover); padding: 4px 6px; border-radius: var(--radius-sm); box-shadow: var(--shadow-md); z-index: 10; opacity: 0; pointer-events: none; transition: opacity .15s ease; white-space: nowrap; }
 .element.active .actions { opacity: 1; pointer-events: auto; }
+/* An element with no toolbar (a comment) shows no empty bar. */
+.actions:empty { display: none; }
 /* MOBI-20: the wrapped bar's rows have to clear each other's hit boxes. Same
    arithmetic as `.quick-field-nav` below, in the other axis: 28px of button
    against a 44px `::before` target means a 4px row gap leaves the two rows
