@@ -3,7 +3,6 @@ import type { EditorElement } from '#editor/model/editorModel.ts';
 import type { SignMessages } from '#editor/registry/messages.ts';
 import { commentCards } from '../../lib/highlight/commentCards.ts';
 import { CommentCardBody } from './CommentCardBody.tsx';
-import { PassageCrop } from './PassageCrop.tsx';
 import styles from './CommentSheet.module.css';
 
 const stop = (event: Event) => event.stopPropagation();
@@ -19,6 +18,13 @@ export function CommentSheet({ elements, activeElementId, messages, onChange, on
   const active = elements.find((el) => el.id === activeElementId && el.type === 'highlight');
   const card = active ? commentCards(elements, active.pageIndex, activeElementId).find((c) => c.id === active.id) : undefined;
   const open = !!card;
+  const openId = card?.id;
+
+  // The passage sits above the sheet while its comment is open.
+  useEffect(() => {
+    if (!openId) return;
+    document.querySelector<HTMLElement>(`[data-editor-element-id="${CSS.escape(openId)}"]`)?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+  }, [openId]);
 
   useEffect(() => {
     if (!open) return;
@@ -37,9 +43,7 @@ export function CommentSheet({ elements, activeElementId, messages, onChange, on
       <CommentCardBody
         card={card}
         active
-        pageNumber={active.pageIndex + 1}
         messages={messages}
-        crop={<PassageCrop pageIndex={active.pageIndex} band={card.firstBand} direction={card.direction} />}
         onSelect={() => {}}
         onChange={(patch) => onChange(card.id, patch)}
       />

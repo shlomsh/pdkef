@@ -1,3 +1,7 @@
 .root { position: absolute; inset: 0; mix-blend-mode: multiply; pointer-events: none; }
 .layer { position: absolute; inset: 0; }
 .band { position: absolute; }
+/* SIGN-44: the passage of the selected comment reads deeper, hovered lighter (bands still multiply). */
+.layer[data-focused] { filter: saturate(1.8) brightness(0.88); }
+:global([data-comment-hover]) .layer { filter: saturate(1.35) brightness(0.94); }
+:global([data-comment-hover]) .layer[data-focused] { filter: saturate(1.8) brightness(0.88); }

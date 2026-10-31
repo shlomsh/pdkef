@@ -3,7 +3,7 @@
 import type { EditorElement, HighlightElement } from '#editor/model/editorModel.ts';
 import { hasComment } from './commentNumbers.ts';
 
-export interface PercentBox { left: number; top: number; width: number; height: number }
+interface PercentBox { left: number; top: number; width: number; height: number }
 
 export interface CommentCard {
   id: string;

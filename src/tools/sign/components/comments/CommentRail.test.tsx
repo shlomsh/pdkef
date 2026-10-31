@@ -53,4 +53,30 @@ describe('CommentRail', () => {
     act(() => cards()[0].click());
     expect(outer).not.toHaveBeenCalled();
   });
+
+  it('clicking an idle card selects it and scrolls its passage into view', () => {
+    const onSelect = vi.fn();
+    const node = document.createElement('div');
+    node.setAttribute('data-editor-element-id', 'a');
+    const scroll = vi.fn();
+    node.scrollIntoView = scroll;
+    document.body.appendChild(node);
+    mount([hl('a', 10, 'one')], null, { onSelect });
+    act(() => host!.querySelector<HTMLElement>('p')!.click());
+    expect(onSelect).toHaveBeenCalledWith('a');
+    expect(scroll).toHaveBeenCalledWith({ block: 'nearest', behavior: 'smooth' });
+    node.remove();
+  });
+
+  it('hovering a card marks its passage', () => {
+    const node = document.createElement('div');
+    node.setAttribute('data-editor-element-id', 'a');
+    document.body.appendChild(node);
+    mount([hl('a', 10, 'one')]);
+    act(() => { cards()[0].dispatchEvent(new MouseEvent('mouseover', { bubbles: true })); cards()[0].dispatchEvent(new MouseEvent('mouseenter')); });
+    expect(node.hasAttribute('data-comment-hover')).toBe(true);
+    act(() => { cards()[0].dispatchEvent(new MouseEvent('mouseleave')); });
+    expect(node.hasAttribute('data-comment-hover')).toBe(false);
+    node.remove();
+  });
 });

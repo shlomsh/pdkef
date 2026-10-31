@@ -15,37 +15,39 @@ function mount(props: { card: CommentCard; active?: boolean; onSelect?: () => vo
   host = document.createElement('div');
   document.body.appendChild(host);
   const draw = (c: CommentCard, active: boolean) => act(() => render(
-    <CommentCardBody card={c} active={active} pageNumber={3} messages={englishSignMessages} crop={<i data-crop />}
-      onSelect={props.onSelect ?? (() => {})} onChange={props.onChange ?? (() => {})} />, host!));
+    <CommentCardBody card={c} active={active} messages={englishSignMessages}       onSelect={props.onSelect ?? (() => {})} onChange={props.onChange ?? (() => {})} />, host!));
   draw(props.card, props.active ?? false);
   return { redraw: (c: CommentCard, active = props.active ?? false) => draw(c, active) };
 }
 const q = <T extends Element>(sel: string) => host!.querySelector<T>(sel)!;
-const button = (label: string) => [...host!.querySelectorAll('button')].find((b) => b.textContent === label)!;
+const button = (label: string): HTMLButtonElement => [...host!.querySelectorAll<HTMLButtonElement>("button")].find((b) => b.textContent === label)!;
+const menuItem = (label: string) => [...host!.querySelectorAll('[role="menuitem"]')].find((b) => b.textContent === label) as HTMLElement;
 const type = (value: string) => act(() => { const t = q<HTMLTextAreaElement>('textarea'); t.value = value; t.dispatchEvent(new Event('input', { bubbles: true })); });
 
 describe('CommentCardBody', () => {
-  it('shows the text, the crop and the page meta for an existing inactive comment, and a click selects', () => {
+  it('shows author, date and text, no page line, for an inactive comment; a click selects', () => {
     const onSelect = vi.fn();
-    mount({ card: card(), onSelect });
+    mount({ card: card({ commentedAt: new Date(2000, 0, 3, 9, 5).getTime() }), onSelect });
     expect(host!.textContent).toContain('Check this');
-    expect(host!.textContent).toContain('Page 3');
-    expect(q('[data-crop]')).not.toBeNull();
+    expect(host!.textContent).toContain('You');
+    expect(host!.textContent).toMatch(/Jan/);
+    expect(host!.textContent).not.toContain('Page 3');
     expect(host!.querySelector('textarea')).toBeNull();
     expect(host!.querySelector('button')).toBeNull();
     act(() => q<HTMLElement>('p').click());
     expect(onSelect).toHaveBeenCalledOnce();
   });
 
-  it('active existing card offers Edit, which opens a prefilled field with Cancel and Comment', () => {
+  it('active existing card has a More menu with Edit, which opens a prefilled field with Cancel and Comment', () => {
     const onChange = vi.fn();
     mount({ card: card(), active: true, onChange });
-    act(() => button('Edit').click());
+    act(() => q<HTMLElement>('[aria-label="More"]').click());
+    act(() => menuItem('Edit').click());
     expect(q<HTMLTextAreaElement>('textarea').value).toBe('Check this');
     expect(q('textarea').getAttribute('dir')).toBe('auto');
     type('Changed');
     act(() => button('Comment').click());
-    expect(onChange).toHaveBeenCalledWith({ comment: 'Changed' });
+    expect(onChange).toHaveBeenCalledWith({ comment: 'Changed', commentedAt: expect.any(Number) });
     expect(host!.querySelector('textarea')).toBeNull();
   });
 
@@ -60,7 +62,8 @@ describe('CommentCardBody', () => {
   it('Cancel while editing keeps the comment', () => {
     const onChange = vi.fn();
     mount({ card: card(), active: true, onChange });
-    act(() => button('Edit').click());
+    act(() => q<HTMLElement>('[aria-label="More"]').click());
+    act(() => menuItem('Edit').click());
     type('half typed');
     act(() => button('Cancel').click());
     expect(onChange).not.toHaveBeenCalled();
@@ -70,14 +73,15 @@ describe('CommentCardBody', () => {
   it('a blank save removes the comment, on a new card and on an existing one', () => {
     const onChange = vi.fn();
     mount({ card: card({ comment: '', isNew: true }), active: true, onChange });
+    expect(button('Comment').disabled).toBe(true);
     act(() => button('Comment').click());
-    expect(onChange).toHaveBeenLastCalledWith({ comment: undefined });
     render(null, host!);
     mount({ card: card(), active: true, onChange });
-    act(() => button('Edit').click());
+    act(() => q<HTMLElement>('[aria-label="More"]').click());
+    act(() => menuItem('Edit').click());
     type('   ');
     act(() => button('Comment').click());
-    expect(onChange).toHaveBeenLastCalledWith({ comment: undefined });
+    expect(onChange).toHaveBeenLastCalledWith({ comment: undefined, commentedAt: undefined });
   });
 
   it('Escape cancels and Ctrl+Enter saves, and keys never travel past the field', () => {
@@ -87,7 +91,7 @@ describe('CommentCardBody', () => {
     document.addEventListener('keydown', outer);
     type('Hello');
     act(() => { q('textarea').dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', ctrlKey: true, bubbles: true })); });
-    expect(onChange).toHaveBeenLastCalledWith({ comment: 'Hello' });
+    expect(onChange).toHaveBeenLastCalledWith({ comment: 'Hello', commentedAt: expect.any(Number) });
     act(() => { q('textarea').dispatchEvent(new KeyboardEvent('keydown', { key: 'Delete', bubbles: true })); });
     act(() => { q('textarea').dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); });
     expect(onChange).toHaveBeenLastCalledWith({ comment: undefined });
@@ -99,5 +103,19 @@ describe('CommentCardBody', () => {
     const { redraw } = mount({ card: card() });
     redraw(card({ comment: 'After undo' }));
     expect(host!.textContent).toContain('After undo');
+  });
+
+  it('Delete in the More menu removes the comment and its date, and an inactive or new card has no menu', () => {
+    const onChange = vi.fn();
+    mount({ card: card(), active: true, onChange });
+    act(() => q<HTMLElement>('[aria-label="More"]').click());
+    act(() => menuItem('Delete').click());
+    expect(onChange).toHaveBeenCalledWith({ comment: undefined, commentedAt: undefined });
+    render(null, host!);
+    mount({ card: card(), active: false });
+    expect(host!.querySelector('[aria-label="More"]')).toBeNull();
+    render(null, host!);
+    mount({ card: card({ comment: '', isNew: true }), active: true });
+    expect(host!.querySelector('[aria-label="More"]')).toBeNull();
   });
 });

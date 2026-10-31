@@ -28,4 +28,13 @@ describe('HighlightNode', () => {
     expect(draft.children).toHaveLength(0);
     expect(host.querySelector('.resizer, [data-editor-resizer]')).toBeNull();
   });
+
+  it('marks its bands focused while active', () => {
+    host = document.createElement('div');
+    document.body.appendChild(host);
+    act(() => render(<HighlightNode element={element} isActive onResizeStart={() => {}} />, host));
+    expect(host.querySelector('[data-highlight-bands]')!.hasAttribute('data-focused')).toBe(true);
+    act(() => render(<HighlightNode element={element} isActive={false} onResizeStart={() => {}} />, host));
+    expect(host.querySelector('[data-highlight-bands]')!.hasAttribute('data-focused')).toBe(false);
+  });
 });
