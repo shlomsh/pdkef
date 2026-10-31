@@ -23,7 +23,7 @@ function getImageData(sx: number, sy: number, w: number, h: number) {
   return { data, width: w, height: h };
 }
 
-function setup() {
+function setup(isMouse = true) {
   const canvas = { width: W, height: H, getContext: () => ({ getImageData }) };
   const container = { parentElement: { querySelector: () => canvas } } as unknown as HTMLElement;
   const node = document.createElement('div');
@@ -42,6 +42,7 @@ function setup() {
       setAnnouncement: vi.fn(),
       messages: englishSignMessages,
       nextElementIndex: 0,
+      isMouse,
     },
     { pageIndex: 0, container, id: 'h1', newEl, start: { x: (30 / W) * 100, y: (107 / H) * 100 }, getElementNode: () => node },
   );
@@ -75,5 +76,33 @@ describe('startHighlightSwipe', () => {
     expect(dispatch.mock.calls.find(([a]) => a.type === 'DELETE_ELEMENT')![0].payload).toBe('h1');
     expect(types(dispatch)).not.toContain('UPDATE_ELEMENT');
     expect(draft.childElementCount).toBe(0);
+  });
+
+  it('a mouse swipe swallows its trailing click once, and a later click gets through', () => {
+    const page = document.createElement('div');
+    document.body.appendChild(page);
+    const seen = vi.fn();
+    page.addEventListener('click', seen);
+    setup();
+    move(60, 107);
+    release();
+    page.click();
+    expect(seen).not.toHaveBeenCalled();
+    page.click();
+    expect(seen).toHaveBeenCalledTimes(1);
+    page.remove();
+  });
+
+  it('a touch swipe arms nothing', () => {
+    const page = document.createElement('div');
+    document.body.appendChild(page);
+    const seen = vi.fn();
+    page.addEventListener('click', seen);
+    setup(false);
+    move(60, 107);
+    release();
+    page.click();
+    expect(seen).toHaveBeenCalledTimes(1);
+    page.remove();
   });
 });

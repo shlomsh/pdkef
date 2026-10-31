@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'preact/hooks';
+import { swallowNextClick } from '#lib/gestures/swallowNextClick.ts';
 import { overlayHost } from './overlayHost.ts';
 import { createLoupe } from './eyedropperLoupe.ts';
 import { boxPixelRect, medianColor, ringStrips, type PercentBox } from './pageColor.ts';
@@ -19,31 +20,6 @@ export function sampleCanvasColor(canvas: HTMLCanvasElement, clientX: number, cl
     // expected: getImageData can throw on a tainted or empty canvas, null means no colour
     return null;
   }
-}
-
-/** The tool island deselects a selected box on a document click on blank page
- * area, and a box's eyedropper pick must keep it selected, so the click that
- * follows a primary-button pick is swallowed. It outlives the effect (onDone
- * flips `active`) and is dropped when it swallows the click, or after the next
- * mouseup plus a tick (a press that never produces a click). No fixed timer, so
- * a long press still swallows its own click and no later click is ever eaten.
- * On touch, preventDefault on touchstart already suppresses the click. */
-function swallowNextClick() {
-  const onClick = (e: Event) => {
-    e.preventDefault();
-    e.stopPropagation();
-    cleanup();
-  };
-  const onUp = () => {
-    window.removeEventListener('mouseup', onUp, true);
-    setTimeout(cleanup, 0);
-  };
-  function cleanup() {
-    window.removeEventListener('click', onClick, true);
-    window.removeEventListener('mouseup', onUp, true);
-  }
-  window.addEventListener('click', onClick, true);
-  window.addEventListener('mouseup', onUp, true);
 }
 
 /** The page surface under an event target: the page wrapper, minus the selected
