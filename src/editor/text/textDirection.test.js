@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { WYSIWYG_STRING_CASES } from '../../test/support/fixtures/wysiwygStrings.js';
-import { detectTextDirection, dominantTextDirection, getEffectiveTextDirection } from './textDirection.js';
+import { detectTextDirection, pageTextDirection, getEffectiveTextDirection } from './textDirection.js';
 
 describe('sign text direction helpers', () => {
   it('an empty or neutral box starts in its seeded (the document\'s) direction; digits stay LTR (SIGN-34)', () => {
@@ -49,25 +49,36 @@ describe('sign text direction helpers', () => {
   );
 });
 
-describe('dominantTextDirection', () => {
+describe('pageTextDirection (dominant)', () => {
   it('reads a Hebrew form as RTL even with Latin runs on it', () => {
     // Form 101's page 1: Hebrew labels, plus a form number, "Email", a URL.
-    expect(dominantTextDirection([
+    expect(pageTextDirection([
       'טופס 101', 'כרטיס עובד ובקשה להקלה', 'שם משפחה', 'מספר זהות', 'תאריך לידה',
       'Email', 'www.gov.il/taxes', '2026',
     ])).toBe('rtl');
   });
 
   it('reads an English form as LTR', () => {
-    expect(dominantTextDirection(['E-Ticket', 'Traveller Name', 'Nationality', 'Passport/ID', 'שם'])).toBe('ltr');
+    expect(pageTextDirection(['E-Ticket', 'Traveller Name', 'Nationality', 'Passport/ID', 'שם'])).toBe('ltr');
   });
 
   it('counts letters, not runs, so one long Hebrew paragraph outvotes many short Latin labels', () => {
-    expect(dominantTextDirection(['a', 'b', 'c', 'd', 'הצהרת בריאות לעובד חדש במקום העבודה'])).toBe('rtl');
+    expect(pageTextDirection(['a', 'b', 'c', 'd', 'הצהרת בריאות לעובד חדש במקום העבודה'])).toBe('rtl');
   });
 
   it('gives digits and punctuation no vote and falls back to LTR', () => {
-    expect(dominantTextDirection(['123', '27/05/2008', '', undefined])).toBe('ltr');
-    expect(dominantTextDirection([])).toBe('ltr');
+    expect(pageTextDirection(['123', '27/05/2008', '', undefined])).toBeUndefined();
+    expect(pageTextDirection([])).toBeUndefined();
+  });
+});
+
+describe('pageTextDirection', () => {
+  it('has no direction for a page without strong letters', () => {
+    expect(pageTextDirection([])).toBeUndefined();
+    expect(pageTextDirection(['', '123 - 45'])).toBeUndefined();
+  });
+  it('otherwise is the dominant direction', () => {
+    expect(pageTextDirection(['שלום 12'])).toBe('rtl');
+    expect(pageTextDirection(['hello'])).toBe('ltr');
   });
 });

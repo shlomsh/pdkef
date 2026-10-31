@@ -3,7 +3,7 @@ import type { PdfDocument as PDFDocumentProxy, PdfPage as PDFPageProxy } from '#
 import type { CombRegion, FieldRegion } from '../lib/combPlacement.ts';
 import type { PageGeometry } from '#editor/geometry/coords.ts';
 import type { TextDirection } from '#editor/model/editorModel.ts';
-import { dominantTextDirection } from '#editor/text/textDirection.js';
+import { pageTextDirection } from '#editor/text/textDirection.js';
 import { readTextItems } from '#lib/pdf/pdfTextItems.ts';
 import { describeFormDetectionFailure } from '../lib/formDetectionDetail.ts';
 import { reportError } from '#lib/telemetry/errorReport.ts';
@@ -124,8 +124,9 @@ export interface FormFieldRegions {
    * MOBI-06's field-to-field order walks a row by. It comes from the page's
    * own text runs (`dominantTextDirection`), not from the UI locale, because
    * the form decides which of its fields comes first, not the site's language.
+   * A page with no letters (a scan) has no entry (undefined).
    */
-  pageDirections: TextDirection[];
+  pageDirections: Array<TextDirection | undefined>;
 }
 
 const NONE: FormFieldRegions = { detection: 'pending', combs: [], checkboxes: [], cells: [], pageDirections: [] };
@@ -262,7 +263,7 @@ export default function useFormFieldRegions(
         // runs (`dominantTextDirection`) rather than asked of a detector that
         // only knows geometry (see `FormFieldRegions.pageDirections`).
         const textRuns: Array<Array<{ str: string } & PercentBox>> = [];
-        const pageDirections: TextDirection[] = [];
+        const pageDirections: Array<TextDirection | undefined> = [];
         for (let pageIndex = 0; pageIndex < document.getPageCount(); pageIndex += 1) {
           const pdfLibPage = document.getPage(pageIndex);
           // `pageGeometry` is the same function `detectFormFields` calls
@@ -274,7 +275,7 @@ export default function useFormFieldRegions(
           const items = await pageTextRuns(pdfjsPage, geometry, toPageTextRuns);
           if (!current) return;
           textRuns[pageIndex] = items;
-          pageDirections[pageIndex] = dominantTextDirection(items.map((item) => item.str));
+          pageDirections[pageIndex] = pageTextDirection(items.map((item) => item.str));
         }
 
         const detected = await detectFormFields(document, { textRuns });
