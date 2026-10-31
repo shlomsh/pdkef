@@ -22,7 +22,7 @@ describe('a PDF exported with highlight comments, exported again', () => {
 
     const first = await signPdf(file, [highlight, comment]);
     const firstDoc = await PDFDocument.load(await first.arrayBuffer());
-    expect(subtypes(firstDoc).sort()).toEqual(['/FreeText', '/Highlight', '/Popup']);
+    expect(subtypes(firstDoc).sort()).toEqual(['/Highlight', '/Popup']);
 
     const second = await signPdf(new File([first], 'again.pdf', { type: 'application/pdf' }), []);
     const secondDoc = await PDFDocument.load(await second.arrayBuffer());
@@ -38,7 +38,7 @@ describe('a PDF exported with highlight comments, exported again', () => {
     const onHighlight = { ...base, id: 'c-1', left: 0, top: 0, width: 0, height: 0, comment: 'one', anchor: { kind: 'element', elementId: 'h-1' } };
     const pin = { ...base, id: 'c-2', left: 60, top: 60, width: 2, height: 2, comment: 'two', anchor: { kind: 'point' } };
     const doc = await PDFDocument.load(await (await signPdf(file, [pin, highlight, onHighlight])).arrayBuffer());
-    // The page-0 annots: one highlight with its popup and badge 1, one note with badge 2; nothing for the anchored comment itself.
-    expect(subtypes(doc).sort()).toEqual(['/FreeText', '/FreeText', '/Highlight', '/Popup', '/Text']);
+    // The page-0 annots: one highlight with its popup, one note; nothing for the anchored comment itself.
+    expect(subtypes(doc).sort()).toEqual(['/Highlight', '/Popup', '/Text']);
   });
 });

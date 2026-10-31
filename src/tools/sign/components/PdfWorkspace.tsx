@@ -485,7 +485,7 @@ export default function PdfWorkspace({
   }, [elements, dispatch, logAction, setAnnouncement, t]);
 
   return (
-    <CommentNumbersScope elements={elements}><div
+    <CommentNumbersScope elements={elements} directionOfPage={directionOfPage}><div
       className={`${workspaceStyles.workspace}${isPseudoFullscreen ? ` ${workspaceStyles['pseudo-fullscreen']}` : ''}${status === 'signing' ? ` ${workspaceStyles['is-processing']}` : ''}`}
       ref={workspaceRef}
       aria-busy={status === 'signing'}

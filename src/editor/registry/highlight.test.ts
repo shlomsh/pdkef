@@ -108,23 +108,11 @@ describe('highlight definition', () => {
       expect(popup.get(PDFName.of('Open'))?.toString()).toBe('false');
     });
 
-    it('adds a numbered FreeText badge with /IRT only when commentNumber is set', async () => {
-      expect((await run(good, { comment: { text: 'x' } })).annots.some((a) => subtypeOf(a, 'FreeText'))).toBe(false);
-      const ltr = await run(good, { comment: { text: 'x' }, commentNumber: 3 });
-      const badge = ltr.annots.find((a) => subtypeOf(a, 'FreeText'))!;
-      const highlight = ltr.annots.find((a) => subtypeOf(a, 'Highlight'))!;
-      expect(ltr.pdfDoc.context.lookup(badge.get(PDFName.of('IRT')))).toBe(highlight);
-      expect(badge.get(PDFName.of('RT'))?.toString()).toBe('/Group');
-      expect((badge.get(PDFName.of('Contents')) as PDFHexString).decodeText()).toBe('3');
-      expect((badge.get(PDFName.of('F')) as PDFNumber).asNumber()).toBe(4);
-      expect(badge.get(PDFName.of('DA'))).toBeDefined();
-      const [bx0, , bx1] = nums(ltr.pdfDoc, badge.get(PDFName.of('Rect')));
-      expect(bx1).toBeLessThanOrEqual(20);
-      expect(bx1 - bx0).toBeCloseTo(11, 5);
-
-      const rtl = await run({ ...good, direction: 'rtl' }, { comment: { text: 'x' }, commentNumber: 3 });
-      const rtlBadge = rtl.annots.find((a) => subtypeOf(a, 'FreeText'))!;
-      expect(nums(rtl.pdfDoc, rtlBadge.get(PDFName.of('Rect')))[0]).toBeGreaterThanOrEqual(120);
+    it('never writes a badge, and a non-printed comment highlight is transparent with an empty appearance', async () => {
+      const { annots } = await run(good, { comment: { text: 'x' }, commentNumber: 3 } as any);
+      expect(annots.some((a) => subtypeOf(a, 'FreeText'))).toBe(false);
+      const popup = annots.find((a) => subtypeOf(a, 'Popup'))!;
+      expect((popup.get(PDFName.of('F')) as PDFNumber).asNumber()).toBe(24);
     });
 
     it('maps every corner through editorToPdf on a rotated page', async () => {

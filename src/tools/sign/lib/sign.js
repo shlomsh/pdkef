@@ -2,31 +2,23 @@ import {
   PDFDocument,
   beginMarkedContent,
   endMarkedContent,
-  PDFName,
-  PDFNumber,
   degrees,
   concatTransformationMatrix,
   popGraphicsState,
   pushGraphicsState,
 } from '@cantoo/pdf-lib';
 import fontkit from '@pdf-lib/fontkit';
-import {
-  createPageGeometry,
-  pagePercentToEditorPoint,
-  visiblePageBox,
-} from '#editor/geometry/coords.ts';
+import { pagePercentToEditorPoint } from '#editor/geometry/coords.ts';
 import { getElementDefinition } from '#editor/registry/index.ts';
-import { commentNumbers } from './highlight/commentNumbers.ts';
-import { planCommentsPages } from './comments/commentsPages.ts';
 import { isComment, resolveCommentBoxes } from './comments/anchors.ts';
 import { findUnrepresentableCharacters } from './textCoverage.js';
-import { drawableCommentElements } from './comments/drawableCommentElements.ts';
 import { baselineOffsetEmFromMetrics, embeddedFontFile, resolveTypography } from '#editor/text/fonts.js';
 import { HELVETICA_BASELINE_OFFSET_EM, DEFAULT_LINE_HEIGHT_EM } from '#editor/model/signGeometry.js';
 import { reportError } from '#lib/telemetry/errorReport.ts';
 import { openPdfDoc } from '#lib/pdf/openPdfDoc.ts';
 import { applyRotation } from '#lib/pages/pageOps.js';
 import { flattenDoc } from './flatten.js';
+import { pageGeometryFromPdfLibPage } from './pdfLibGeometry.ts';
 
 /**
  * Thrown by signPdf's coverage pre-pass (docs/hebrew-text-shaping-export.md,
@@ -84,25 +76,6 @@ function baselineOffsetEm(pdfFont, lineHeightEm = DEFAULT_LINE_HEIGHT_EM) {
 // Read that one numeric page attribute through the library's typed low-level
 // objects, including an inherited value when present. Invalid producer output
 // falls back to the PDF default of 1, matching pdf.js.
-function pageUserUnit(page) {
-  try {
-    const value = page.node.getInheritableAttribute(PDFName.of('UserUnit'));
-    const number = page.doc.context.lookupMaybe(value, PDFNumber)?.asNumber();
-    return Number.isFinite(number) && number > 0 ? number : 1;
-  } catch {
-    // expected: invalid UserUnit from a producer defaults to 1
-    return 1;
-  }
-}
-
-export function pageGeometryFromPdfLibPage(page) {
-  return createPageGeometry({
-    cropBox: visiblePageBox(page.getMediaBox(), page.getCropBox()),
-    rotation: page.getRotation().angle,
-    userUnit: pageUserUnit(page),
-  });
-}
-
 // Export policy (MOBI-02): a source PDF that carries an AcroForm is flattened
 // before any of PDkef's own content is drawn. Without this, every widget
 // annotation ships intact and still empty, and most viewers paint widget
@@ -115,26 +88,17 @@ export function pageGeometryFromPdfLibPage(page) {
 // already baked into page content by the time export runs. See
 // backlog/tasks/MOBI-02.md for the two alternatives considered and rejected.
 //
-/** SIGN-44: a highlight gets the comment anchored to it (text, date, number); every other element its own number. */
-function commentContext(element, highlightComments, numbers) {
-  const anchored = highlightComments.get(element.id);
-  if (!anchored) return { commentNumber: numbers.get(element.id) };
-  return { commentNumber: numbers.get(anchored.id), comment: { text: anchored.comment, commentedAt: anchored.commentedAt } };
-}
-
 // Bakes each element through its registry owner. Document loading and font caching
 // stay here because they are PDF-wide concerns, not per-element behavior.
 // `pageTurns` (SIGN-43) maps a page index to the extra clockwise quarter turns the
 // person gave it; elements are stored in percent of that turned page.
-// `commentsPage` carries the comments page's strings (the Sign messages); a comment
-// appends the comments page(s) (SIGN-44). The defaults are the English ones.
 /**
  * @param {*} file
  * @param {*} sourceElements
  * @param {((progress: number) => void) | undefined} onProgress
- * @param {{ pageTurns?: Readonly<Record<number, 1 | 2 | 3>>, commentsPage?: { title: string, entryLabel: string } }} [options]
+ * @param {{ pageTurns?: Readonly<Record<number, 1 | 2 | 3>> }} [options]
  */
-export async function signPdf(file, sourceElements, onProgress, { pageTurns = {}, commentsPage } = {}) {
+export async function signPdf(file, sourceElements, onProgress, { pageTurns = {} } = {}) {
   const { doc: pdfDoc } = await openPdfDoc(file);
   pdfDoc.registerFontkit(fontkit);
   const loadedFonts = {};
@@ -168,8 +132,7 @@ export async function signPdf(file, sourceElements, onProgress, { pageTurns = {}
   };
 
   // Turn the pages before any geometry is read: pageGeometryFromPdfLibPage
-  // reads /Rotate, so every element below, and the comments page's passage
-  // clips, land in the turned frame. Flattening draws in raw user space, so
+  // reads /Rotate, so every element below, and land in the turned frame. Flattening draws in raw user space, so
   // it is unaffected by the turn.
   for (const [index, turns] of Object.entries(pageTurns)) {
     if (!(Number(index) in pdfDoc.getPages())) continue;
@@ -180,28 +143,15 @@ export async function signPdf(file, sourceElements, onProgress, { pageTurns = {}
     if (angle >= 360) page.setRotation(degrees(angle % 360));
   }
 
-  // SIGN-44: the comments page(s), appended now so their text joins the font and coverage passes.
-  const resolved = resolveCommentBoxes(sourceElements);
-  const numbers = commentNumbers(resolved);
-  // A comment anchored to a highlight lives in that highlight's own annotation, not in one of its own.
+  // SIGN-44: a comment anchored to a highlight lives in that highlight's own annotation, not in one of its own.
+  const elements = resolveCommentBoxes(sourceElements);
   const highlightComments = new Map();
-  const highlightIds = new Set(resolved.filter((el) => el.type === 'highlight').map((el) => el.id));
-  for (const el of resolved) {
+  const highlightIds = new Set(elements.filter((el) => el.type === 'highlight').map((el) => el.id));
+  for (const el of elements) {
     if (isComment(el) && el.anchor.kind === 'element' && highlightIds.has(el.anchor.elementId) && !highlightComments.has(el.anchor.elementId)) {
       highlightComments.set(el.anchor.elementId, el);
     }
   }
-  const comments = await planCommentsPages(pdfDoc, resolved, numbers, {
-    title: commentsPage?.title ?? 'Comments',
-    entryLabel: commentsPage?.entryLabel ?? 'Page {page}',
-    loadCustomFont,
-    pageGeometry: pageGeometryFromPdfLibPage,
-  });
-  // The comments page never blocks the export: its text is cut to what a font can draw (the full
-  // comment stays in the annotation's /Contents), and dropped if its font cannot load at all.
-  // Only the source elements go through the strict font and coverage checks below.
-  const commentElements = comments ? await drawableCommentElements(comments.elements, loadCustomFont) : [];
-  const elements = resolved;
 
   // Load every exact face the document needs before coverage checking or page
   // mutation. The old generic Arimo fallback made an uncached Latin display
@@ -238,12 +188,10 @@ export async function signPdf(file, sourceElements, onProgress, { pageTurns = {}
   // annotations and never calls `getForm()`, which would strip XFA data.
   flattenDoc(pdfDoc);
 
-  const drawn = [
-    ...elements.filter((el) => !(isComment(el) && el.anchor.kind === 'element' && highlightIds.has(el.anchor.elementId))),
-    ...commentElements,
-  ];
+  const drawn = elements.filter((el) => !(isComment(el) && el.anchor.kind === 'element' && highlightIds.has(el.anchor.elementId)));
   for (let i = 0; i < drawn.length; i++) {
     const element = drawn[i];
+    const anchored = highlightComments.get(element.id);
     const page = pdfDoc.getPage(element.pageIndex);
     const pageGeometry = pageGeometryFromPdfLibPage(page);
     const { x: pdfX, y: pdfY } = pagePercentToEditorPoint({
@@ -273,7 +221,7 @@ export async function signPdf(file, sourceElements, onProgress, { pageTurns = {}
         pageGeometry,
         loadCustomFont,
         baselineOffset: baselineOffsetEm,
-        ...commentContext(element, highlightComments, numbers),
+        ...(anchored && { comment: { text: anchored.comment, commentedAt: anchored.commentedAt } }),
       });
     } finally {
       page.pushOperators(popGraphicsState(), endMarkedContent());
@@ -281,6 +229,5 @@ export async function signPdf(file, sourceElements, onProgress, { pageTurns = {}
     onProgress?.((i + 1) / drawn.length);
   }
 
-  await comments?.finish();
   return new Blob([await pdfDoc.save()], { type: 'application/pdf' });
 }

@@ -117,6 +117,42 @@ describe('useEditorFileSession', () => {
     expect(spies.setAnnouncement).toHaveBeenCalledWith('This PDF has a password. Unlock opens it.');
   });
 
+  it('lets the tool prepare a fresh file before anything sees it: its bytes and its first elements', async () => {
+    const prepared = new ArrayBuffer(8);
+    const prepareFile = vi.fn(async () => ({ bytes: prepared, elements: [{ id: 'imported-1' }] }));
+    const { spies, session } = mount({ prepareFile });
+    await act(async () => { await session().handleFilesAdded([pdf()]); });
+    expect(prepareFile).toHaveBeenCalledTimes(1);
+    expect(mockedLoad.mock.calls[0][0].bytes).toBe(prepared);
+    expect(spies.initialize).toHaveBeenCalledWith(expect.objectContaining({ bytes: prepared, preset: { elements: [{ id: 'imported-1' }], actionHistory: [] } }));
+    expect(session().fileBytesRef.current).toBe(prepared);
+    expect(cacheRecentFile).toHaveBeenCalledWith('redact', expect.objectContaining({ fileBytes: prepared }));
+  });
+
+  it('never prepares a file that comes with saved work', async () => {
+    const prepareFile = vi.fn();
+    mount({ prepareFile });
+    const options = mockedDraft.mock.calls[0][0];
+    await act(async () => {
+      await options.loadPdf(pdf(), new ArrayBuffer(4), { elements: [{ id: 'el-1' }], actionHistory: [] } as any, true);
+    });
+    expect(prepareFile).not.toHaveBeenCalled();
+  });
+
+  it('a newer pick wins over an older one still being prepared', async () => {
+    let releaseFirst: () => void = () => {};
+    const prepareFile = vi.fn()
+      .mockImplementationOnce(() => new Promise((resolve) => { releaseFirst = () => resolve({ bytes: new ArrayBuffer(1), elements: [] }); }))
+      .mockImplementationOnce(async () => ({ bytes: new ArrayBuffer(2), elements: [] }));
+    const { session } = mount({ prepareFile });
+    const first = session().handleFilesAdded([pdf('old.pdf')]);
+    await act(async () => { await session().handleFilesAdded([pdf('new.pdf')]); });
+    releaseFirst();
+    await act(async () => { await first; });
+    expect(mockedLoad).toHaveBeenCalledTimes(1);
+    expect(mockedLoad.mock.calls[0][0].file.name).toBe('new.pdf');
+  });
+
   it('seeds the unique ids from a restored draft so a new mark never reuses one', async () => {
     const { session } = mount();
     const options = mockedDraft.mock.calls[0][0];

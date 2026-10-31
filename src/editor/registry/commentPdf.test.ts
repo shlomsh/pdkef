@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { PDFArray, PDFDict, PDFDocument, PDFHexString, PDFName, PDFNumber, PDFString } from '@cantoo/pdf-lib';
+import { PDFArray, PDFDict, PDFDocument, PDFHexString, PDFName, PDFNumber, PDFStream, PDFString } from '@cantoo/pdf-lib';
 import { serializeComment } from './commentPdf.ts';
 import type { CommentElement } from '../model/editorModel.ts';
 import type { SerializeContext } from './types.ts';
@@ -30,13 +30,18 @@ describe('serializeComment', () => {
     expect((h.lookup(PDFName.of('M')) as PDFString).asString()).toBe('D:20261031180509Z');
   });
 
-  it('adds the numbered badge, grouped to the annotation, when it has a number', async () => {
-    const { dicts, annots, sub } = await run(passage, { commentNumber: 2 });
-    expect(dicts.map(sub)).toEqual(['/Highlight', '/Popup', '/FreeText']);
-    expect(dicts[2].get(PDFName.of('IRT'))).toBe(annots[0]);
+  it('writes a passage comment with an empty /C (transparent) and an appearance that draws nothing', async () => {
+    const { pdfDoc, dicts, nums } = await run(passage);
+    const h = dicts[0];
+    expect(nums(h, 'C')).toEqual([]);
+    const ap = pdfDoc.context.lookup(h.lookup(PDFName.of('AP'), PDFDict).get(PDFName.of('N'))) as PDFStream;
+    expect(nums(ap.dict, 'BBox')).toEqual(nums(h, 'Rect'));
+    expect(ap.getContents().length).toBe(0);
+    const popup = dicts[1];
+    expect((popup.get(PDFName.of('F')) as PDFNumber).asNumber()).toBe(24);
   });
 
-  it('writes a pin as a /Text note at the reading-end (right) top corner, no Print flag', async () => {
+  it('writes a pin as an 18pt /Text note centered on the pin, no Print flag', async () => {
     const pin: CommentElement = { ...base, anchor: { kind: 'point' } };
     const { dicts, sub, nums } = await run(pin);
     expect(dicts.map(sub)).toEqual(['/Text']);
@@ -45,15 +50,13 @@ describe('serializeComment', () => {
     expect(note.has(PDFName.of('F')) && ((note.get(PDFName.of('F')) as PDFNumber).asNumber() & 4)).toBeFalsy();
     expect((note.lookup(PDFName.of('Contents')) as PDFHexString).decodeText()).toBe('note text');
     expect((note.lookup(PDFName.of('NM')) as PDFHexString).decodeText()).toBe('c');
-    const [x0, , , y1] = nums(note, 'Rect');
-    expect(x0).toBe(120);
-    expect(y1).toBe(90);
+    expect(nums(note, 'Rect')).toEqual([61, 76, 79, 94]);
   });
 
-  it('writes an element comment as a /Text note too, at the box top-right', async () => {
+  it('writes an element comment as a /Text note too, at the box top-right corner', async () => {
     const { dicts, sub, nums } = await run({ ...base, anchor: { kind: 'element', elementId: 'x' } });
     expect(dicts.map(sub)).toEqual(['/Text']);
-    expect(nums(dicts[0], 'Rect')[0]).toBe(120);
+    expect(nums(dicts[0], 'Rect')).toEqual([111, 81, 129, 99]);
   });
 
   it('keeps the note on the page when the box touches the right or bottom edge', async () => {
@@ -64,11 +67,6 @@ describe('serializeComment', () => {
     expect(y0).toBeGreaterThanOrEqual(0);
     expect(x1 - x0).toBe(18);
     expect(y1 - y0).toBe(18);
-  });
-
-  it('numbers a pin or element comment with a badge on the start side', async () => {
-    const { dicts, sub } = await run({ ...base, anchor: { kind: 'point' } }, { commentNumber: 1 });
-    expect(dicts.map(sub)).toEqual(['/Text', '/FreeText']);
   });
 
   it('writes nothing for a blank comment', async () => {

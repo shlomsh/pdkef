@@ -119,25 +119,13 @@ test('a comment on a highlight survives reload, undo and redo, goes with its hig
 
   const bytes = await exportBytes(page);
   const { pdf, first, bySubtype } = await firstPageAnnots(bytes);
-  expect(pdf.getPageCount()).toBe(sourcePages + 1);
+  expect(pdf.getPageCount()).toBe(sourcePages);
 
   const [highlight] = bySubtype('Highlight');
   expect(highlight, 'a /Highlight annotation on page 1').toBeTruthy();
   expect(text(get(highlight, 'Contents'))).toBe(COMMENT);
   expect(bySubtype('Popup').length).toBeGreaterThan(0);
-  const freeText = bySubtype('FreeText');
-  expect(freeText.length).toBeGreaterThan(0);
-  expect(freeText.some((a) => a.has(PDFName.of('IRT')))).toBe(true);
-
-  const links = pdf.getPage(sourcePages).node.lookup(PDFName.of('Annots')).asArray()
-    .map((r) => pdf.context.lookup(r, PDFDict)).filter((a) => name(get(a, 'Subtype')) === '/Link');
-  expect(links.length).toBeGreaterThan(0);
-  const firstPageRef = first.ref;
-  for (const link of links) {
-    const dest = link.lookup(PDFName.of('Dest')) ?? get(link.lookup(PDFName.of('A')), 'D');
-    const target = dest.asArray()[0];
-    expect(target instanceof PDFRef && target.toString() === firstPageRef.toString()).toBe(true);
-  }
+  expect(bySubtype('FreeText')).toHaveLength(0);
 });
 
 test('the Comment tool comments on a passage or pins a note, neither printed', async ({ page }) => {
@@ -170,6 +158,8 @@ test('the Comment tool comments on a passage or pins a note, neither printed', a
   expect(highlights).toHaveLength(1);
   expect(text(get(highlights[0], 'Contents'))).toBe('passage note');
   expect(printed(highlights[0])).toBe(false);
+  expect(get(highlights[0], 'C').asArray()).toHaveLength(0);
+  expect(bySubtype('FreeText')).toHaveLength(0);
   const notes = bySubtype('Text');
   expect(notes).toHaveLength(1);
   expect(text(get(notes[0], 'Contents'))).toBe('pin note');

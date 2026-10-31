@@ -53,9 +53,13 @@ function passageEnd(bands: readonly HighlightBand[], direction: Direction = 'ltr
 /**
  * The marker of every comment on an element, keyed by comment id: on a highlight at that highlight's
  * passage end in reading order, on any other element at its top right corner. A passage comment's tint
- * is its mark (as in Google Docs) and a pin is its own, so neither has one.
+ * is its mark (as in Google Docs) and a pin is its own, so neither has one. A highlight read back from a
+ * PDF stores no direction (the standard has none), so it reads in its page's direction.
  */
-export function commentMarkers(elements: readonly EditorElement[]): ReadonlyMap<string, CommentMarker> {
+export function commentMarkers(
+  elements: readonly EditorElement[],
+  directionOfPage: (pageIndex: number) => Direction = () => 'ltr',
+): ReadonlyMap<string, CommentMarker> {
   const byId = new Map(elements.map((el) => [el.id, el]));
   const markers = new Map<string, CommentMarker>();
   for (const el of elements) {
@@ -64,7 +68,7 @@ export function commentMarkers(elements: readonly EditorElement[]): ReadonlyMap<
     if (anchor.kind !== 'element') continue;
     const target = byId.get(anchor.elementId);
     if (!target) continue;
-    markers.set(el.id, target.type === 'highlight' ? passageEnd(target.bands, target.direction) : { left: 100, top: 0, direction: 'ltr' });
+    markers.set(el.id, target.type === 'highlight' ? passageEnd(target.bands, target.direction ?? directionOfPage(target.pageIndex)) : { left: 100, top: 0, direction: 'ltr' });
   }
   return markers;
 }

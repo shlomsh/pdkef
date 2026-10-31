@@ -41,7 +41,7 @@
  * after a file is opened. That boundary is guarded by
  * `scripts/check-lazy-modules.js`.
  */
-import type { BlendMode, Degrees, LineCapStyle, RGB, StandardFonts } from '@cantoo/pdf-lib';
+import type { Degrees, LineCapStyle, RGB, StandardFonts } from '@cantoo/pdf-lib';
 
 /** pdf-lib's own range check, kept so a caller passing 0..255 still fails loudly. */
 function assertFraction(value: number, name: string): void {
@@ -71,6 +71,3 @@ export const LINE_CAP_ROUND = 1 as LineCapStyle;
 
 /** `StandardFonts.Helvetica` from `@cantoo/pdf-lib`. */
 export const HELVETICA = 'Helvetica' as StandardFonts;
-
-/** `BlendMode.Multiply` from `@cantoo/pdf-lib`. */
-export const BLEND_MULTIPLY = 'Multiply' as BlendMode;

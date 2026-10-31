@@ -323,38 +323,24 @@ describe('sign.js signPdf', () => {
     expect(requestedFiles.some((u) => u.includes('GreatVibes-Regular.ttf'))).toBe(true);
   });
 
-  describe('the comments page never blocks the export (SIGN-44)', () => {
-    const highlightWith = (comment) => ({
+  describe('a comment exports as a standard annotation only (SIGN-44)', () => {
+    const passageComment = (comment) => ({
       id: 'c-1', type: 'comment', pageIndex: 0, left: 10, top: 20, width: 50, height: 5, comment,
       anchor: { kind: 'passage', bands: [{ left: 0, top: 0, width: 100, height: 100 }] },
     });
-    const commentsPageText = async (blob) => {
-      const doc = await PDFDocument.load(await blob.arrayBuffer());
-      return { pages: doc.getPageCount(), doc };
-    };
 
-    it('drops a character no font covers from the drawn comment, keeping it in /Contents', async () => {
-      const blob = await signPdf(getFixtureFile(), [highlightWith('great \u{1F44D}')]);
-      const { pages, doc } = await commentsPageText(blob);
+    it('keeps the full text, emoji included, in /Contents and adds no page', async () => {
+      const blob = await signPdf(getFixtureFile(), [passageComment('great \u{1F44D}')]);
+      const doc = await PDFDocument.load(await blob.arrayBuffer());
       const base = await PDFDocument.load(await getFixtureFile().arrayBuffer());
-      expect(pages).toBeGreaterThan(base.getPageCount());
+      expect(doc.getPageCount()).toBe(base.getPageCount());
       const annots = doc.getPage(0).node.Annots();
       let contents = '';
       for (let i = 0; i < annots.size(); i++) {
         const c = doc.context.lookup(annots.get(i)).get(PDFName.of('Contents'));
         if (c && c.decodeText && c.decodeText().includes('great')) contents = c.decodeText();
       }
-      expect(contents).toContain('\u{1F44D}');
-    });
-
-    it('still exports when the comments font cannot load', async () => {
-      const normalFontFetch = global.fetch;
-      global.fetch = vi.fn(async (url) => (
-        String(url).includes('Arimo')
-          ? { ok: false, status: 503, arrayBuffer: async () => new ArrayBuffer(0) }
-          : normalFontFetch(url)
-      ));
-      await expect(signPdf(getFixtureFile(), [highlightWith('great')])).resolves.toBeInstanceOf(Blob);
+      expect(contents).toBe('great \u{1F44D}');
     });
   });
 

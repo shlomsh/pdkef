@@ -60,12 +60,10 @@ export interface SignMessages {
   highlightColorRed: string;
   highlightColorGreen: string;
   highlightColorBlue: string;
-  /** SIGN-44: the highlight toolbar's Comment button, the note field's placeholder, a number badge's label ({number}), and the exported comments page's title and per-entry page line ({page}). */
+  /** SIGN-44: the highlight toolbar's Comment button, the note field's placeholder, and a comment marker's numbered label ({number}). */
   highlightCommentLabel: string;
   highlightCommentPlaceholder: string;
   highlightCommentNumberLabel: string;
-  commentsPageTitle: string;
-  commentsPageEntry: string;
   /** SIGN-44 comments view: a card's Cancel and Edit buttons (Save reuses highlightCommentLabel), and the page header's count. */
   commentCancel: string;
   commentEdit: string;
