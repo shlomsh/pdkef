@@ -45,9 +45,12 @@ function snap(x: number, edges: number[], reach: number): number {
   return best;
 }
 
-/** A band over row r from x0 to x1 (snapped when asked), clamped to the row; null if empty. */
-function bandOf(r: TextRow, x0: number, x1: number, snapStart: boolean, snapEnd: boolean): Band | null {
+/** A band over rows[i] from x0 to x1 (snapped when asked), clamped to the row; null if empty. Its pads stop halfway to the neighbouring rows. */
+function bandOf(rows: TextRow[], i: number, x0: number, x1: number, snapStart: boolean, snapEnd: boolean): Band | null {
+  const r = rows[i];
   const pad = padOf(r);
+  const padAbove = rows[i - 1] ? Math.min(pad, Math.max(0, (r.top - rows[i - 1].bottom) / 2)) : pad;
+  const padBelow = rows[i + 1] ? Math.min(pad, Math.max(0, (rows[i + 1].top - r.bottom) / 2)) : pad;
   const reach = REACH_FRACTION * heightOf(r);
   const starts = [r.left, ...r.gaps.map((g) => g[1])];
   const ends = [r.right, ...r.gaps.map((g) => g[0])];
@@ -55,7 +58,7 @@ function bandOf(r: TextRow, x0: number, x1: number, snapStart: boolean, snapEnd:
   const left = clamp(snapStart ? snap(x0, starts, reach) : x0);
   const right = clamp(snapEnd ? snap(x1, ends, reach) : x1);
   if (right - left <= 0) return null;
-  return { left, top: r.top - pad, width: right - left, height: heightOf(r) + 2 * pad };
+  return { left, top: r.top - padAbove, width: right - left, height: heightOf(r) + padAbove + padBelow };
 }
 
 export type ReadingDirection = 'ltr' | 'rtl';
@@ -87,13 +90,13 @@ export function bandsForSwipe(
   }
   const bands: Array<Band | null> = [];
   if (i0 === i1) {
-    bands.push(bandOf(rows[i0], a.x, b.x, true, true));
+    bands.push(bandOf(rows, i0, a.x, b.x, true, true));
   } else {
     const rtl = direction === 'rtl';
     // Reading order: LTR runs the first row from the press to its end, RTL from its left edge to the press.
-    bands.push(rtl ? bandOf(rows[i0], rows[i0].left, a.x, false, true) : bandOf(rows[i0], a.x, rows[i0].right, true, false));
-    for (let i = i0 + 1; i < i1; i += 1) bands.push(bandOf(rows[i], rows[i].left, rows[i].right, false, false));
-    bands.push(rtl ? bandOf(rows[i1], b.x, rows[i1].right, true, false) : bandOf(rows[i1], rows[i1].left, b.x, false, true));
+    bands.push(rtl ? bandOf(rows, i0, rows[i0].left, a.x, false, true) : bandOf(rows, i0, a.x, rows[i0].right, true, false));
+    for (let i = i0 + 1; i < i1; i += 1) bands.push(bandOf(rows, i, rows[i].left, rows[i].right, false, false));
+    bands.push(rtl ? bandOf(rows, i1, b.x, rows[i1].right, true, false) : bandOf(rows, i1, rows[i1].left, b.x, false, true));
   }
   return bands.filter((band): band is Band => band !== null);
 }

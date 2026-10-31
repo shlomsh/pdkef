@@ -16,6 +16,7 @@ const RELATIVE_INK_FRACTION = 0.12;
 const TALL_RUN_FACTOR = 1.7;
 const VALLEY_FRACTION = 0.5;
 const MERGE_FRACTION = 0.25;
+const GROW_FRACTION = 0.5;
 const GAP_ROW_FRACTION = 0.3;
 const MIN_GAP = 2;
 const GUTTER_INK_FRACTION = 0.003;
@@ -137,6 +138,24 @@ function splitTallRuns(runs: Array<[number, number]>, rawRuns: Array<[number, nu
   return runs.flatMap((run) => splitRun(run, profile, limit).map(([t, b]) => trimTo([t, b], inked)));
 }
 
+/**
+ * Grows each row core up and down through scanlines with any ink (ascenders, descenders, which
+ * carry too little ink to pass the relative cut), stopping at the first blank scanline, at half the
+ * core height, and at the neighbouring row, so tightly set lines never overlap.
+ */
+function growRows(rows: TextRow[], profile: number[], floor: number): TextRow[] {
+  return rows.reduce<TextRow[]>((out, row, i) => {
+    const reach = Math.floor(GROW_FRACTION * (row.bottom - row.top));
+    const ceiling = Math.max(out[i - 1]?.bottom ?? 0, row.top - reach);
+    const limit = Math.min(rows[i + 1]?.top ?? profile.length, row.bottom + reach);
+    let { top, bottom } = row;
+    while (top > ceiling && profile[top - 1] >= floor) top -= 1;
+    while (bottom < limit && profile[bottom] >= floor) bottom += 1;
+    out.push({ ...row, top, bottom });
+    return out;
+  }, []);
+}
+
 /** Every text row in the window, top to bottom. */
 export function findTextRows(win: RasterWindow): TextRow[] {
   const mask = inkMask(win);
@@ -165,7 +184,7 @@ export function findTextRows(win: RasterWindow): TextRow[] {
       .filter(([s, e]) => s > first && e <= last && e - s > minGap);
     rows.push({ top, bottom, left: first, right: last + 1, gaps });
   }
-  return rows;
+  return growRows(rows, profile, floor);
 }
 
 /**
