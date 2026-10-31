@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { commentCards, commentCount, stackCards, passageEnd } from './commentCards.ts';
+import { commentCards, commentCount, hasCommentCards, stackCards, passageEnd } from './commentCards.ts';
 import type { EditorElement, HighlightElement } from '#editor/model/editorModel.ts';
 
 const hl = (over: Partial<HighlightElement>): HighlightElement => ({
@@ -40,5 +40,15 @@ describe('passageEnd', () => {
   it('is the right end of the last band for LTR and its left end for RTL', () => {
     expect(passageEnd(hl({}))).toEqual({ x: 30, y: 27.5 });
     expect(passageEnd(hl({ direction: 'rtl' }))).toEqual({ x: 10, y: 27.5 });
+  });
+});
+
+describe('hasCommentCards', () => {
+  it('is false for highlights without comments, so highlighting alone never opens the rail', () => {
+    expect(hasCommentCards([hl({}), hl({ id: 'b', comment: '  ' })], null)).toBe(false);
+  });
+  it('is true once any page has a comment, or the active highlight just opened one', () => {
+    expect(hasCommentCards([hl({}), hl({ id: 'b', pageIndex: 3, comment: 'Why?' })], null)).toBe(true);
+    expect(hasCommentCards([hl({ comment: '' })], 'h')).toBe(true);
   });
 });

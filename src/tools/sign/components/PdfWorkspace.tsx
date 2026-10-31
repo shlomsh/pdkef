@@ -359,7 +359,7 @@ export default function PdfWorkspace({
     recordAction(editActionOf(fields));
   }, [updateElement, elements, dispatch]);
 
-  const comments = useCommentsView({ elements, activeElementId, selectedTool, messages: t, onSelect: (id) => dispatch({ type: 'SET_ACTIVE_ELEMENT_ID', payload: id }), onChange: (id, patch) => makeOnChange(id)(patch) });
+  const comments = useCommentsView({ elements, activeElementId, messages: t, onSelect: (id) => dispatch({ type: 'SET_ACTIVE_ELEMENT_ID', payload: id }), onChange: (id, patch) => makeOnChange(id)(patch) });
 
   const makeOnSelect = useCallback((id: string) => (e: Event) => {
     e.stopPropagation();

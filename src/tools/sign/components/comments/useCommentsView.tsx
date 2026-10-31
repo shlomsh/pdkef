@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'preact/hooks';
 import type { EditorElement } from '#editor/model/editorModel.ts';
 import type { SignMessages } from '#editor/registry/messages.ts';
 import { formatMessage } from '#lib/text/formatMessage.ts';
-import { commentCount } from '../../lib/highlight/commentCards.ts';
+import { commentCount, hasCommentCards } from '../../lib/highlight/commentCards.ts';
 import { CommentRail } from './CommentRail.tsx';
 import { CommentSheet } from './CommentSheet.tsx';
 import styles from './CommentRail.module.css';
@@ -14,12 +14,11 @@ type CommentPatch = { comment: string | undefined };
 
 /**
  * SIGN-44's comments view, wired once for the workspace: a margin rail beside every page on a wide
- * workspace (once Highlight is armed or a highlight exists, so the page never narrows mid-read), a bottom
+ * workspace (from the first comment on, never for highlighting alone), a bottom
  * sheet on a narrow one, and the page header's comment count.
  */
-export function useCommentsView({ elements, activeElementId, selectedTool, messages, onSelect, onChange }: {
+export function useCommentsView({ elements, activeElementId, messages, onSelect, onChange }: {
   elements: readonly EditorElement[];
-  selectedTool: string | null;
   activeElementId: string | null;
   messages: SignMessages;
   onSelect: (id: string | null) => void;
@@ -34,9 +33,9 @@ export function useCommentsView({ elements, activeElementId, selectedTool, messa
     observer.observe(node);
     return () => observer.disconnect();
   }, []);
-  // Reserved from the moment Highlight is armed: a swipe adds its element at the press, and a rail
-  // appearing then would narrow the page under the finger.
-  const showRail = wide && (selectedTool === 'highlight' || elements.some((el) => el.type === 'highlight' && el.bands.length > 0));
+  // Opens with the first comment (pressing Comment, never mid-swipe), for every page at once so the
+  // pages keep one width; highlighting alone leaves the page at full width.
+  const showRail = wide && hasCommentCards(elements, activeElementId);
   return {
     containerRef,
     cardClass: showRail ? styles['page-card-with-rail'] : undefined,
