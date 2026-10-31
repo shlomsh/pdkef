@@ -1,5 +1,5 @@
 /**
- * SIGN-42: the highlight swipe commits once. A synthetic two-line raster stands in for the page
+ * SIGN-46: the highlight swipe commits once. A synthetic two-line raster stands in for the page
  * canvas (words 20-60 and 90-130 on rows at y 100-114 and 140-154).
  */
 import { describe, it, expect, vi, afterEach } from 'vitest';

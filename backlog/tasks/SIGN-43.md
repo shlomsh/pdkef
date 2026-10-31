@@ -22,7 +22,7 @@ sideways page means turning it. He wants a simple way to rotate a page, next to 
   own /Rotate). It is saved with the draft, is one undo step, and marks the document changed.
 - **Everything follows the content.** Elements are stored in percent of the displayed page, so a turn
   maps each element on that page. Marks that cover content (rectangle, ellipse, whiteout, line, and the
-  highlight from SIGN-42) turn with it. Marks written on the page (text, signature, symbol, date) stay
+  highlight from SIGN-46) turn with it. Marks written on the page (text, signature, symbol, date) stay
   upright and keep their size in points, and their anchor follows the content. Detected fields are
   mapped the same way, so fill mode's hops and hints stay on their fields.
 - **The export turns the page too**, by adding the turn to the page's /Rotate (`applyRotation` in

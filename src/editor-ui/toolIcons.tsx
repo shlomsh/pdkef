@@ -20,7 +20,7 @@ export function WhiteoutIcon({ size = 18, strokeWidth = 2 }: { size?: number; st
   );
 }
 
-/* SIGN-42: a chisel-tip highlighter, tilted, with a short swipe under its tip. */
+/* SIGN-46: a chisel-tip highlighter, tilted, with a short swipe under its tip. */
 export function HighlightIcon({ size = 18, strokeWidth = 2 }: { size?: number; strokeWidth?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width={strokeWidth} stroke-linecap="round" stroke-linejoin="round">

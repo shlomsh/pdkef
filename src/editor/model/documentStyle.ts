@@ -30,7 +30,7 @@ export interface DocumentStyle {
   symbolWidth: number;
   strokeWidth: number;
   whiteoutColor: string;
-  /** SIGN-42: the highlighter's color. Optional so older drafts and callers stay valid; resolved to the shipped yellow. */
+  /** SIGN-46: the highlighter's color. Optional so older drafts and callers stay valid; resolved to the shipped yellow. */
   highlightColor?: string;
   signatureWidth: number;
   /** RED-32: Redact's Box / Brush choice inside Blur and Whiteout. Optional: Sign never sets it. */

@@ -5,7 +5,7 @@ status: "in_progress"
 priority: "P2"
 epic: "polish"
 horizon: "now"
-depends_on: ["SIGN-42"]
+depends_on: ["SIGN-46"]
 ---
 
 # SIGN-44 · A comment on a highlight, kept in the PDF as a standard annotation
