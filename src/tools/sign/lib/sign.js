@@ -20,6 +20,7 @@ import { baselineOffsetEmFromMetrics, embeddedFontFile, resolveTypography } from
 import { HELVETICA_BASELINE_OFFSET_EM, DEFAULT_LINE_HEIGHT_EM } from '#editor/model/signGeometry.js';
 import { reportError } from '#lib/telemetry/errorReport.ts';
 import { openPdfDoc } from '#lib/pdf/openPdfDoc.ts';
+import { applyRotation } from '#lib/pages/pageOps.js';
 import { flattenDoc } from './flatten.js';
 
 /**
@@ -111,7 +112,9 @@ export function pageGeometryFromPdfLibPage(page) {
 //
 // Bakes each element through its registry owner. Document loading and font caching
 // stay here because they are PDF-wide concerns, not per-element behavior.
-export async function signPdf(file, elements, onProgress) {
+// `pageTurns` (SIGN-43) maps a page index to the extra clockwise quarter turns the
+// person gave it; elements are stored in percent of that turned page.
+export async function signPdf(file, elements, onProgress, { pageTurns = {} } = {}) {
   const { doc: pdfDoc } = await openPdfDoc(file);
   pdfDoc.registerFontkit(fontkit);
   const loadedFonts = {};
@@ -178,6 +181,17 @@ export async function signPdf(file, elements, onProgress) {
   // the answer" defect (MOBI-02). It is inert on a document with no
   // annotations and never calls `getForm()`, which would strip XFA data.
   flattenDoc(pdfDoc);
+
+  // Turn the pages before any geometry is read: pageGeometryFromPdfLibPage
+  // reads /Rotate, so every element below lands in the turned frame.
+  for (const [index, turns] of Object.entries(pageTurns)) {
+    if (!(Number(index) in pdfDoc.getPages())) continue;
+    const page = pdfDoc.getPage(Number(index));
+    applyRotation(page, 90 * turns);
+    // applyRotation can leave 360; /Rotate is kept in 0-270 so geometry reads stay canonical.
+    const angle = page.getRotation().angle;
+    if (angle >= 360) page.setRotation(degrees(angle % 360));
+  }
 
   for (let i = 0; i < elements.length; i++) {
     const element = elements[i];

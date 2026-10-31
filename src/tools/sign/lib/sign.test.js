@@ -138,6 +138,51 @@ describe('sign.js signPdf', () => {
     await loadingTask.destroy();
   });
 
+  describe('pageTurns (SIGN-43)', () => {
+    async function buildPages(rotations) {
+      const source = await PDFDocument.create();
+      rotations.forEach((rotation) => {
+        const page = source.addPage([200, 300]);
+        page.setRotation(degrees(rotation));
+      });
+      return new File([await source.save()], 'turn.pdf', { type: 'application/pdf' });
+    }
+    const rotationsOf = async (blob) => {
+      const doc = await PDFDocument.load(await blob.arrayBuffer());
+      return doc.getPages().map((p) => p.getRotation().angle);
+    };
+
+    it('adds the turn to the source rotation, mod 360, and turns element-free pages too', async () => {
+      const file = await buildPages([0, 270, 90]);
+      const blob = await signPdf(file, [], undefined, { pageTurns: { 0: 1, 1: 1, 2: 2 } });
+      expect(await rotationsOf(blob)).toEqual([90, 0, 270]);
+    });
+
+    it('leaves /Rotate untouched without turns', async () => {
+      const file = await buildPages([0, 90]);
+      expect(await rotationsOf(await signPdf(file, []))).toEqual([0, 90]);
+      expect(await rotationsOf(await signPdf(file, [], undefined, { pageTurns: {} }))).toEqual([0, 90]);
+    });
+
+    it('draws a rectangle at its percent of the turned frame', async () => {
+      const file = await buildPages([0]);
+      const rectangle = { id: 'r', type: 'rectangle', pageIndex: 0, left: 10, top: 20, width: 20, height: 10, color: '#1463ff', strokeWidth: 2 };
+      const blob = await signPdf(file, [rectangle], undefined, { pageTurns: { 0: 1 } });
+      const { getDocument, OPS } = await import('pdfjs-dist/legacy/build/pdf.mjs');
+      const task = getDocument({ data: new Uint8Array(await blob.arrayBuffer()), useWorkerFetch: false, isEvalSupported: false });
+      const page = await (await task.promise).getPage(1);
+      expect(page.rotate).toBe(90);
+      const geometry = createPageGeometry({ cropBox: { x: 0, y: 0, width: 200, height: 300 }, rotation: 90, userUnit: 1 });
+      // The turned page is landscape: 300 wide, 200 tall.
+      expect([geometry.width, geometry.height]).toEqual([300, 200]);
+      const list = await page.getOperatorList();
+      const matches = list.fnArray.filter((fn, i) => fn === OPS.transform
+        && geometry.editorToPdf.every((v, k) => Math.abs(list.argsArray[i][k] - v) < 1e-8));
+      expect(matches.length).toBe(1);
+      await task.destroy();
+    });
+  });
+
   it('bakes RTL text so its right edge lands at the stored `left` percent, not its left-start', async () => {
     // num-1.pdf is a 200x200pt page (see __fixtures__).
     const file = getFixtureFile();

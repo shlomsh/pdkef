@@ -1,4 +1,5 @@
 import type { EditorElement } from '#editor/model/editorModel.ts';
+import type { PageTurns } from '#editor/geometry/pageTurn.ts';
 import type { SignMessages } from '#editor/registry/messages.ts';
 import { recordAction } from '#lib/telemetry/actionTrail.ts';
 import { isEncryptedPdfError } from '#lib/pdf/encryptedPdfError.ts';
@@ -45,6 +46,8 @@ export interface RunSignExportDeps {
   /** DEBT-51: the bytes read at load time, so a file moved on disk after picking cannot fail the export. */
   fileBytes: ArrayBuffer | null;
   elements: EditorElement[];
+  /** Extra clockwise quarter turns per page index (SIGN-43); defaults to none. */
+  pageTurns?: PageTurns;
   exportRun: LatestRun;
   /** Whether the export `exportRun` tracks is a background speculative one (see useExportRun). */
   activeExportSpeculativeRef: { current: boolean };
@@ -69,7 +72,7 @@ export async function runSignExport(
   onSigned: (signedBlob: Blob, filename: string) => void,
   { speculative = false }: { speculative?: boolean } = {},
 ): Promise<void> {
-  const { file, elements, exportRun, activeExportSpeculativeRef, lifecycleDispatch, messages: t } = deps;
+  const { file, elements, pageTurns = {}, exportRun, activeExportSpeculativeRef, lifecycleDispatch, messages: t } = deps;
   const sourceBytes = deps.fileBytes ?? file;
   const ticket = exportRun.begin();
   activeExportSpeculativeRef.current = speculative;
@@ -86,7 +89,7 @@ export async function runSignExport(
     const { signPdf } = await import('./sign.js');
     const signedBlob = await signPdf(sourceBytes, elements, (p: number) => {
       if (!speculative && ticket.isCurrent()) lifecycleDispatch({ type: 'EXPORT_PROGRESSED', progress: p });
-    });
+    }, { pageTurns });
     if (!ticket.isCurrent()) return;
     ticket.settle();
     if (!speculative) {
