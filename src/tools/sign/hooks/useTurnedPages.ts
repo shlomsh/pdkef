@@ -13,6 +13,24 @@ const DEFAULT_PAGE_GEOMETRY = createPageGeometry({
 });
 
 /**
+ * The rendered width of each text on a page, in page-width percent of the page as
+ * displayed now (the pre-turn frame). The model has no width for auto-grow text;
+ * the DOM does. Empty when the page or its texts are not rendered.
+ */
+function measureTextWidths(pageIndex: number): Record<string, number> {
+  const page = document.querySelector<HTMLElement>(`[data-sign-page-surface="${pageIndex}"]`);
+  const pageWidth = page?.getBoundingClientRect().width ?? 0;
+  if (!page || !(pageWidth > 0)) return {};
+  const widths: Record<string, number> = {};
+  page.querySelectorAll<HTMLElement>('[data-editor-text][data-editor-element-id]').forEach((node) => {
+    const id = node.getAttribute('data-editor-element-id');
+    const width = node.getBoundingClientRect().width;
+    if (id && width > 0) widths[id] = (width / pageWidth) * 100;
+  });
+  return widths;
+}
+
+/**
  * SIGN-43: where a person's page turns meet the file's own geometry and detected
  * fields. The workspace works in the returned displayed pages and regions only
  * (with their lookups), and `rotateProps` is the page header's Rotate: one
@@ -48,6 +66,7 @@ export function useTurnedPages({ filePageSizes, fileFormRegions, pageTurns, disp
       payload: {
         pageIndex,
         geometry: pageSizeOf(pageIndex),
+        textWidths: measureTextWidths(pageIndex),
         description: formatMessage(t.rotatePageDescription, { number: pageIndex + 1 }),
       },
     });

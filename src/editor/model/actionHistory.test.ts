@@ -506,4 +506,21 @@ describe('restored turn-page entries (SIGN-43)', () => {
     expect(isActionHistoryEntry(entry({ ...geometry.cropBox, width: 0 }), isElement)).toBe(false);
     expect(isActionHistoryEntry(entry({ ...geometry.cropBox, height: -5 }), isElement)).toBe(false);
   });
+
+  it('validates textWidths: absent or a plain object of finite numbers >= 0', async () => {
+    const { createPageGeometry } = await import('../geometry/coords.ts');
+    const geometry = createPageGeometry({ cropBox: { x: 0, y: 0, width: 612, height: 792 } });
+    const entry = (textWidths?: unknown) => ({
+      id: 't1', timestamp: 1, operation: 'turn-page', type: 'ROTATE_PAGE', pageIndex: 0,
+      description: 'Rotated page 1', geometry, ...(textWidths === undefined ? {} : { textWidths }),
+    });
+    const isElement = (_c: unknown): _c is EditorElement => true;
+    expect(isActionHistoryEntry(entry(), isElement)).toBe(true);
+    expect(isActionHistoryEntry(entry({ a: 12.5, b: 0 }), isElement)).toBe(true);
+    expect(isActionHistoryEntry(entry({ a: -1 }), isElement)).toBe(false);
+    expect(isActionHistoryEntry(entry({ a: Number.NaN }), isElement)).toBe(false);
+    expect(isActionHistoryEntry(entry({ a: '5' }), isElement)).toBe(false);
+    expect(isActionHistoryEntry(entry([1]), isElement)).toBe(false);
+    expect(isActionHistoryEntry(entry(null), isElement)).toBe(false);
+  });
 });

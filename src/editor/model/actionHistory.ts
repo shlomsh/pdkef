@@ -120,6 +120,8 @@ interface TurnPageHistoryEntry extends HistoryEntryBase {
   operation: 'turn-page';
   type: 'ROTATE_PAGE';
   geometry: TurnedPageGeometry;
+  /** Rendered widths of the page's point-anchored text at the press, by element id, in page-width percent of `geometry`. */
+  textWidths?: Record<string, number>;
 }
 
 /** One atomic, reversible editor command. */
@@ -281,7 +283,9 @@ export function isActionHistoryEntry<TElement extends HistoryElement>(
   if (typeof entry.timestamp !== 'number' || !Number.isFinite(entry.timestamp)) return false;
   if (entry.operation === 'update') return isUpdatePayload(entry);
   if (entry.operation === 'remove-place') return isPlacePayload(entry);
-  if (entry.operation === 'turn-page') return entry.type === 'ROTATE_PAGE' && isGeometryPayload(entry.geometry);
+  if (entry.operation === 'turn-page') {
+    return entry.type === 'ROTATE_PAGE' && isGeometryPayload(entry.geometry) && isTextWidths(entry.textWidths);
+  }
   if (entry.operation !== 'add' && entry.operation !== 'delete') return false;
   if (!Array.isArray(entry.elements) || entry.elements.length === 0) return false;
 
@@ -304,6 +308,12 @@ function isPlacePayload(entry: Record<string, unknown>): boolean {
   const { kind, text, pageIndex } = place as Record<string, unknown>;
   if (typeof kind !== 'string' || typeof text !== 'string') return false;
   return pageIndex === undefined || (Number.isInteger(pageIndex) && (pageIndex as number) >= 0);
+}
+
+function isTextWidths(value: unknown): boolean {
+  if (value === undefined) return true;
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
+  return Object.values(value).every((w) => typeof w === 'number' && Number.isFinite(w) && w >= 0);
 }
 
 function isGeometryPayload(value: unknown): boolean {

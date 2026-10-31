@@ -46,11 +46,11 @@ describe('turnRegions', () => {
     expect(r.combs[0]).toEqual(input.combs[0]);
   });
 
-  it.each([1, 2, 3] as const)('text typed on a field stays on the turned field (%i turns)', (q) => {
+  it.each([1, 2, 3] as const)('text typed on a full-width field stays on the turned field (%i turns)', (q) => {
     const fontSize = 12;
-    const region = { pageIndex: 0, left: 20, top: 30, width: 0.4, height: (fontSize * 1.05 * 100) / portraitPage.height };
+    const region = { pageIndex: 0, left: 20, top: 30, width: 30, height: (fontSize * 1.05 * 100) / portraitPage.height };
     const text = { id: 't', pageIndex: 0, type: 'text', text: 'x', fontSize, left: region.left, top: region.top } as any;
-    const out = turnElement(text, portraitPage, q) as any;
+    const out = turnElement(text, portraitPage, q, region.width) as any;
     const turned = turnRegions({ combs: [], checkboxes: [], cells: [region] } as any, { 0: q }).cells[0];
     expect(Math.abs(out.left - turned.left)).toBeLessThanOrEqual(0.6);
     expect(Math.abs(out.top - turned.top)).toBeLessThanOrEqual(0.6);

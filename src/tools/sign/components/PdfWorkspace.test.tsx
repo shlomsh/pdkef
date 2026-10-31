@@ -783,7 +783,7 @@ describe('PdfWorkspace Component', () => {
 
       expect(dispatch).toHaveBeenCalledWith({
         type: 'ROTATE_PAGE',
-        payload: { pageIndex: 1, geometry: turnGeometry(pageSize, 1), description: 'Rotated page 2' },
+        payload: { pageIndex: 1, geometry: turnGeometry(pageSize, 1), textWidths: {}, description: 'Rotated page 2' },
       });
       expect(setAnnouncement).toHaveBeenCalledWith('Page 2 turned.');
     });

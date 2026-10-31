@@ -614,6 +614,21 @@ describe('ROTATE_PAGE (SIGN-43)', () => {
     expect(redone.actionHistory).toHaveLength(1);
   });
 
+  it('a half turn uses the measured text width, stores it, and undo restores the original anchor', () => {
+    const t = textElement('t', { pageIndex: 0, left: 10, top: 20 });
+    const withText: SignToolState = { ...base, elements: [t] };
+    const press = (state: SignToolState) => reducer(state, {
+      type: 'ROTATE_PAGE', payload: { pageIndex: 0, geometry, textWidths: { t: 30 } },
+    });
+    const once = press(withText);
+    const twice = reducer(once, { type: 'ROTATE_PAGE', payload: { pageIndex: 0, geometry: createPageGeometry({ cropBox: geometry.cropBox, rotation: 90 }), textWidths: { t: 30 * geometry.width / geometry.height } } });
+    expect(once.actionHistory[0]).toMatchObject({ textWidths: { t: 30 } });
+    expect(twice.pageTurns).toEqual({ 0: 2 });
+    const back = reducer(reducer(twice, { type: 'UNDO' }), { type: 'UNDO' });
+    expect((back.elements[0] as TextElement).left).toBeCloseTo(10, 9);
+    expect((back.elements[0] as TextElement).top).toBeCloseTo(20, 9);
+  });
+
   it('LOAD_DOCUMENT carries pageTurns and defaults to {}', () => {
     const payload = { elements: [], actionHistory: [] };
     expect(reducer(start, { type: 'LOAD_DOCUMENT', payload: { ...payload, pageTurns: { 2: 3 } } }).pageTurns).toEqual({ 2: 3 });
