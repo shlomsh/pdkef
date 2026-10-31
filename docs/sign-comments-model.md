@@ -59,3 +59,63 @@ comment element anchored to it, keeping `commentedAt`. Tested both ways with a f
 2. Deleting an element deletes its comments, one undo step. *Recommended* over keeping orphans.
 3. A passage comment's tint shows in viewers but does not print. *Recommended*: it is a review mark,
    not content.
+
+## Build contract (2026-10-31)
+
+Shlomi approved the three decisions above. The pieces below are built in parallel against this contract.
+
+### Model (`src/editor/model/editorModel.ts`)
+
+```ts
+export interface HighlightBand { left: number; top: number; width: number; height: number } // now exported
+export type CommentAnchor =
+  | { kind: 'passage'; bands: HighlightBand[]; direction?: 'ltr' | 'rtl' } // bands in % of the element box, like a highlight
+  | { kind: 'element'; elementId: string }
+  | { kind: 'point' };
+export interface CommentElement extends ElementBase, BoxGeometry {
+  type: 'comment';
+  comment: string;      // '' only while a new card is open; never saved blank
+  commentedAt?: number; // epoch ms of the last saved edit, exported as /M, never shown
+  anchor: CommentAnchor;
+}
+```
+
+- Box geometry: a passage comment's box is its bands' union; a pin's box is a small square at the
+  tapped point; an element comment's stored box is a snapshot, always replaced by its target's box
+  through `resolveCommentBoxes` before rendering, numbering and export.
+- `HighlightElement.comment` / `commentedAt` stay in the type until the last step removes them; nothing
+  new reads or writes them.
+
+### Shared helpers (`src/tools/sign/lib/comments/anchors.ts`, pure)
+
+- `isComment(el): el is CommentElement`
+- `commentsAnchoredTo(elements, id): CommentElement[]`
+- `deletedWith(id): (el) => boolean`: true for `id` and for comments anchored to it (the snapshot
+  predicate every delete call site uses, so one undo restores both).
+- `resolveCommentBoxes(elements): EditorElement[]`: element comments take their target's box and page;
+  a comment whose target is gone is dropped.
+
+### Behaviour
+
+- Reducer `DELETE_ELEMENT` also removes comments anchored to the deleted id.
+- Draft load (`migrateDraftRecord`, idempotent at every version, `DRAFT_SCHEMA_VERSION` 3): a highlight
+  with a non-blank `comment` becomes the highlight plus a comment element `id = <highlight id>-comment`,
+  anchor `element`, same page and box, same `commentedAt`, placed right after it; the highlight loses the
+  two fields. History: `comment`/`commentedAt` keys leave update entries (an emptied entry is dropped),
+  highlight snapshots lose them. A blank comment element is dropped on load.
+- Comment actions the views call (wired in the workspace):
+  - `onSave(id, patch: { comment: string; commentedAt: number })`: a new comment (stored `comment === ''`)
+    records one `add` history entry with the saved element; an existing one records an update.
+  - `onDelete(id)`: delete with history (the toolbar delete path).
+  - `onDiscard(id)`: Cancel on a new card; removes it with no history.
+- Creating: the Comment tool (swipe across text = passage, a press that moves under 4 CSS px = pin, a
+  swipe that finds no text = pin at the press) and the Comment button on every selected element's
+  toolbar (anchor = that element; if it already has a comment, the button selects that comment). Both
+  add the element with `comment: ''`, no history, and make it the active element so its card opens.
+- Numbers: `commentNumbers(elements)` keys comment element ids, after `resolveCommentBoxes`, ordered by
+  page, then box top, then box left.
+- Tint: `--color-comment-anchor` in `global.css`; the PDF side uses its own literal in the registry.
+- Export: a comment anchored to a highlight goes into that highlight's `/Highlight` (`/Contents`, `/M`,
+  `/Popup`, number badge); a passage comment is its own `/Highlight` in the tint without the Print flag;
+  a pin or a comment on any other element is a `/Text` note at the box's reading-end top corner,
+  without the Print flag. Every comment keeps its numbered `/FreeText` badge and its comments-page entry.
