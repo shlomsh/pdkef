@@ -150,6 +150,24 @@ function removeFields(pdfDoc, removedWidgets) {
   }
 }
 
+/** A /Popup belongs to the annotation it opens; once that is baked in and gone, the popup has nothing to show. */
+function removeOrphanPopups(pdfDoc, removedRefs) {
+  const { context } = pdfDoc;
+  for (const page of pdfDoc.getPages()) {
+    const annots = page.node.Annots();
+    for (let i = (annots?.size() ?? 0) - 1; i >= 0; i -= 1) {
+      const ref = annots.get(i);
+      const popup = context.lookup(ref);
+      const subtype = popup instanceof PDFDict ? context.lookup(popup.get(name('Subtype'))) : undefined;
+      if (!(subtype instanceof PDFName) || subtype.decodeText() !== 'Popup') continue;
+      if (removedRefs.has(popup.get(name('Parent')))) {
+        annots.remove(i);
+        if (ref instanceof PDFRef) context.delete(ref);
+      }
+    }
+  }
+}
+
 /**
  * Bakes every visible annotation's normal appearance into its page and removes
  * the annotation, plus the form field for a widget (keep-text mode: text stays
@@ -208,6 +226,7 @@ export function flattenDoc(pdfDoc) {
     removed.set(annot, annotRef);
   }
   removeFields(pdfDoc, removed);
+  removeOrphanPopups(pdfDoc, new Set(removed.values()));
   for (const ref of removed.values()) if (ref instanceof PDFRef) context.delete(ref);
   return true;
 }
