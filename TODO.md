@@ -31,6 +31,7 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 
 - [QUAL-21](backlog/tasks/QUAL-21.md) P2 · Pages render at the size they are shown, and the practice form's logo is sharp (in progress)
 - [SIGN-43](backlog/tasks/SIGN-43.md) P2 · Sign: turn a sideways page a quarter turn, next to Clear page (in progress)
+- [SIGN-44](backlog/tasks/SIGN-44.md) P2 · Sign: a comment on a highlight, kept in the PDF as a standard annotation (in progress)
 - [SIGN-46](backlog/tasks/SIGN-46.md) P2 · Sign: a highlighter that lays a straight band along the line under your finger (in progress)
 
 ## Waiting, by date

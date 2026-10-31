@@ -23,7 +23,7 @@ function getImageData(sx: number, sy: number, w: number, h: number) {
   return { data, width: w, height: h };
 }
 
-function setup(isMouse = true) {
+function setup(isMouse = true, direction?: 'ltr' | 'rtl') {
   const canvas = { width: W, height: H, getContext: () => ({ getImageData }) };
   const container = { parentElement: { querySelector: () => canvas } } as unknown as HTMLElement;
   const node = document.createElement('div');
@@ -43,6 +43,7 @@ function setup(isMouse = true) {
       messages: englishSignMessages,
       nextElementIndex: 0,
       isMouse,
+      direction,
     },
     { pageIndex: 0, container, id: 'h1', newEl, start: { x: (30 / W) * 100, y: (107 / H) * 100 }, getElementNode: () => node },
   );
@@ -66,6 +67,17 @@ describe('startHighlightSwipe', () => {
     expect(types(dispatch)).toEqual(['UPDATE_ELEMENT', 'DISARM_TOOL']);
     expect(dispatch.mock.calls[0][0].payload.changes.bands).toHaveLength(2);
     expect(draft.childElementCount).toBe(0);
+  });
+
+  it('an RTL swipe records its direction on the highlight; an LTR one leaves it absent', () => {
+    const rtl = setup(true, 'rtl');
+    move(10, 107);
+    release();
+    expect(rtl.dispatch.mock.calls[0][0].payload.changes.direction).toBe('rtl');
+    const ltr = setup(true, 'ltr');
+    move(60, 107);
+    release();
+    expect(ltr.dispatch.mock.calls[0][0].payload.changes).not.toHaveProperty('direction');
   });
 
   it('deletes the element when cancelled', () => {
