@@ -11,6 +11,10 @@ const MIN_INK_FRACTION = 0.001;
 const MIN_CONTRAST = 64;
 const MIN_ROW_HEIGHT = 3;
 const INKED_ROW_FRACTION = 0.002;
+const PEAK_PERCENTILE = 0.9;
+const RELATIVE_INK_FRACTION = 0.12;
+const TALL_RUN_FACTOR = 1.7;
+const VALLEY_FRACTION = 0.5;
 const MERGE_FRACTION = 0.25;
 const GAP_ROW_FRACTION = 0.3;
 const MIN_GAP = 2;
@@ -77,20 +81,74 @@ function mergeRuns(runs: Array<[number, number]>): Array<[number, number]> {
   return out;
 }
 
+/** Ink pixels per pixel row. */
+function inkProfile(mask: Uint8Array, width: number, height: number): number[] {
+  const profile: number[] = [];
+  for (let y = 0; y < height; y += 1) {
+    let n = 0;
+    for (let x = 0; x < width; x += 1) n += mask[y * width + x];
+    profile.push(n);
+  }
+  return profile;
+}
+
+/** The 90th percentile of the non-zero row counts: what a full text row looks like in this window. */
+function peakOf(profile: number[]): number {
+  const counts = profile.filter((n) => n > 0).sort((a, b) => a - b);
+  return counts.length ? counts[Math.min(counts.length - 1, Math.floor(PEAK_PERCENTILE * counts.length))] : 0;
+}
+
+function medianOf(values: number[]): number {
+  const sorted = [...values].sort((a, b) => a - b);
+  return sorted.length ? sorted[Math.floor(sorted.length / 2)] : 0;
+}
+
+/** Cuts a run at its deepest valley of the 3-row smoothed profile, when that valley is under half the run's max. */
+function splitRun([top, bottom]: [number, number], profile: number[], limit: number): Array<[number, number]> {
+  if (bottom - top <= limit) return [[top, bottom]];
+  const smooth = (y: number) => (profile[y - 1] ?? profile[y]) + profile[y] + (profile[y + 1] ?? profile[y]);
+  let max = 0;
+  for (let y = top; y < bottom; y += 1) max = Math.max(max, smooth(y));
+  let cut = -1;
+  let low = VALLEY_FRACTION * max;
+  for (let y = top + MIN_ROW_HEIGHT; y < bottom - MIN_ROW_HEIGHT; y += 1) {
+    const v = smooth(y);
+    if (v < low && v <= smooth(y - 1) && v <= smooth(y + 1)) {
+      cut = y;
+      low = v;
+    }
+  }
+  if (cut < 0) return [[top, bottom]];
+  return [...splitRun([top, cut], profile, limit), ...splitRun([cut, bottom], profile, limit)];
+}
+
+/** Shrinks a part to its first and last inked rows, so a cut does not carry the empty gap with it. */
+function trimTo([top, bottom]: [number, number], inked: boolean[]): [number, number] {
+  let t = top;
+  let b = bottom;
+  while (t < b - 1 && !inked[t]) t += 1;
+  while (b - 1 > t && !inked[b - 1]) b -= 1;
+  return [t, b];
+}
+
+/** Splits runs much taller than the median unmerged run (several lines fused by speckle or skew) at ink valleys. */
+function splitTallRuns(runs: Array<[number, number]>, rawRuns: Array<[number, number]>, profile: number[], inked: boolean[]): Array<[number, number]> {
+  const limit = TALL_RUN_FACTOR * medianOf(rawRuns.map(([t, b]) => b - t));
+  return runs.flatMap((run) => splitRun(run, profile, limit).map(([t, b]) => trimTo([t, b], inked)));
+}
+
 /** Every text row in the window, top to bottom. */
 export function findTextRows(win: RasterWindow): TextRow[] {
   const mask = inkMask(win);
   if (!mask) return [];
   const { width } = win;
-  const minCount = Math.max(1, INKED_ROW_FRACTION * width);
-  const rowInk: boolean[] = [];
-  for (let y = 0; y < win.height; y += 1) {
-    let n = 0;
-    for (let x = 0; x < width; x += 1) n += mask[y * width + x];
-    rowInk.push(n >= minCount);
-  }
+  const profile = inkProfile(mask, width, win.height);
+  const floor = Math.max(1, INKED_ROW_FRACTION * width);
+  const relative = RELATIVE_INK_FRACTION * peakOf(profile);
+  const inked = profile.map((n) => n >= floor && n > relative);
+  const rawRuns = runsOf(inked);
   const rows: TextRow[] = [];
-  for (const [top, bottom] of mergeRuns(runsOf(rowInk))) {
+  for (const [top, bottom] of splitTallRuns(mergeRuns(rawRuns), rawRuns, profile, inked)) {
     const height = bottom - top;
     if (height < MIN_ROW_HEIGHT) continue;
     const colInk: boolean[] = [];

@@ -34,7 +34,7 @@ describe('findTextRows', () => {
   });
 
   it('merges a dot above a word into its row', () => {
-    const win = paint(200, 80, [[20, 30, 40, 14], [35, 25, 3, 3]]);
+    const win = paint(200, 80, [[20, 30, 40, 14], [35, 25, 6, 3]]);
     const rows = findTextRows(win);
     expect(rows).toHaveLength(1);
     expect(rows[0].top).toBeLessThanOrEqual(26);
@@ -52,6 +52,47 @@ describe('findTextRows', () => {
     expect(rows[0].left).toBe(60);
     expect(rows[0].right).toBe(240);
     expect(rows[0].gaps).toHaveLength(2);
+  });
+});
+
+describe('findTextRows on a skewed, speckled scan', () => {
+  it('keeps six lines apart when every gap carries speckle and the lines are skewed', () => {
+    const width = 480;
+    const height = 6 * 25 + 30;
+    const win = paint(width, height, []);
+    let seed = 12345;
+    const rand = () => {
+      seed = (seed * 1664525 + 1013904223) % 4294967296;
+      return seed / 4294967296;
+    };
+    const ink = (x: number, y: number) => {
+      if (x < 0 || y < 0 || x >= width || y >= height) return;
+      win.data.fill(0, (y * width + x) * 4, (y * width + x) * 4 + 3);
+    };
+    const tops: number[] = [];
+    for (let k = 0; k < 6; k += 1) {
+      const top = 10 + k * 25;
+      tops.push(top);
+      // words of 40px with 10px spaces; each column shifts down 1px per 120px of x
+      for (let x = 0; x < width - 10; x += 50) {
+        for (let i = x; i < Math.min(x + 40, width); i += 1) {
+          const shift = Math.floor(i / 120);
+          for (let j = 0; j < 18; j += 1) ink(i, top + shift + j);
+        }
+      }
+      // speckle in the gap below this line, 2-4 pixels per row, over the gap rows
+      for (let y = top + 18 + 3; y < top + 25 - 1; y += 1) {
+        const n = 2 + Math.floor(rand() * 3);
+        for (let q = 0; q < n; q += 1) ink(Math.floor(rand() * width), y);
+      }
+    }
+    const rows = findTextRows(win);
+    expect(rows).toHaveLength(6);
+    rows.forEach((r, k) => {
+      expect(r.bottom - r.top).toBeGreaterThanOrEqual(14);
+      expect(r.bottom - r.top).toBeLessThanOrEqual(24);
+      expect(Math.abs(r.top - tops[k])).toBeLessThanOrEqual(3);
+    });
   });
 });
 
