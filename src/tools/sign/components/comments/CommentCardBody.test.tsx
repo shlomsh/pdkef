@@ -25,13 +25,10 @@ const menuItem = (label: string) => [...host!.querySelectorAll('[role="menuitem"
 const type = (value: string) => act(() => { const t = q<HTMLTextAreaElement>('textarea'); t.value = value; t.dispatchEvent(new Event('input', { bubbles: true })); });
 
 describe('CommentCardBody', () => {
-  it('shows author, date and text, no page line, for an inactive comment; a click selects', () => {
+  it('an inactive comment shows only its text (no author, date or page line); a click selects', () => {
     const onSelect = vi.fn();
     mount({ card: card({ commentedAt: new Date(2000, 0, 3, 9, 5).getTime() }), onSelect });
-    expect(host!.textContent).toContain('Check this');
-    expect(host!.textContent).toContain('You');
-    expect(host!.textContent).toMatch(/Jan/);
-    expect(host!.textContent).not.toContain('Page 3');
+    expect(host!.textContent).toBe('Check this');
     expect(host!.querySelector('textarea')).toBeNull();
     expect(host!.querySelector('button')).toBeNull();
     act(() => q<HTMLElement>('p').click());
