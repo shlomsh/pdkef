@@ -16,7 +16,7 @@ export interface CommentCard {
 }
 
 /** A band of a highlight (percent of its own box) in page percent. */
-export function bandToPage(element: HighlightElement, band: PercentBox): PercentBox {
+function bandToPage(element: HighlightElement, band: PercentBox): PercentBox {
   return {
     left: element.left + (band.left / 100) * element.width,
     top: element.top + (band.top / 100) * element.height,

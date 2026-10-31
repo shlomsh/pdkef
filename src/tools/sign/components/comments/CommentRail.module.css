@@ -22,3 +22,9 @@
 .primary, .secondary { font: inherit; font-size: 13px; font-weight: 600; padding: 4px 12px; border-radius: 999px; cursor: pointer; }
 .primary { background: var(--color-primary); color: var(--color-surface); border: 1px solid var(--color-primary); }
 .secondary { background: transparent; color: var(--color-primary-text); border: 1px solid var(--color-border-strong); }
+
+/* The page card on a wide workspace: header across, page and rail side by side (the rail on the
+   inline end, so a right-to-left interface puts it on the left). */
+.page-card-with-rail { display: grid; grid-template-columns: minmax(0, 1fr) 17.5rem; column-gap: 1rem; align-items: start; }
+.page-card-with-rail > :first-child { grid-column: 1 / -1; }
+.page-card-with-rail > .rail { align-self: stretch; }
