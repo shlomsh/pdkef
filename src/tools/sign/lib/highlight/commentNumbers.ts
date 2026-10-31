@@ -1,8 +1,8 @@
 // SIGN-44: a highlight's comment number, shared by the badge on screen and the exported PDF.
-import type { EditorElement, HighlightElement } from './editorModel.ts';
+import type { EditorElement, HighlightElement } from '#editor/model/editorModel.ts';
 
 /** True when the highlight carries a comment with something in it. */
-export function hasComment(element: EditorElement): element is HighlightElement {
+function hasComment(element: EditorElement): element is HighlightElement {
   return element.type === 'highlight' && !!element.comment?.trim();
 }
 

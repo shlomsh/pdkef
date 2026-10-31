@@ -38,6 +38,8 @@ export interface SerializeContext {
   baselineOffset: (font: PDFFont | null) => number;
   /** Redact's page-scoped destructive flatten pass requests an instruction instead. */
   redaction?: boolean;
+  /** SIGN-44: this element's comment number (`commentNumbers`), when it is a commented highlight. */
+  commentNumber?: number;
 }
 
 interface RedactionInstruction {

@@ -21,7 +21,7 @@ annotations, so any viewer shows them and they print, plus a numbered comments p
   the comment.
 - **The number.** A commented highlight shows a small numbered circle where its passage starts (the right
   end of the first band on RTL text). Numbers follow reading order (`commentNumbers` in
-  `src/editor/model/highlightComments.ts`), the same on screen and in the file.
+  `src/tools/sign/lib/highlight/commentNumbers.ts`), the same on screen and in the file.
 - **The export.** Every highlight is a standard `/Highlight` annotation (QuadPoints in user space, an
   appearance stream with Multiply blending, printable), not a drawn rectangle. A comment rides in its
   `/Contents` with a `/Popup`; a `/FreeText` number badge sits beside it, grouped to the highlight.
