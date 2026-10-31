@@ -114,7 +114,7 @@ export interface FieldNavigation {
  *
  * Ties go `ltr`, the way `dominantTextDirection` breaks its own.
  */
-function arrowDirection(order: TypableField[], pageDirections: TextDirection[]): TextDirection {
+function arrowDirection(order: TypableField[], pageDirections: ReadonlyArray<TextDirection | undefined>): TextDirection {
   const rtl = order.filter((field) => (pageDirections[field.region.pageIndex] ?? 'ltr') === 'rtl').length;
   return rtl * 2 > order.length ? 'rtl' : 'ltr';
 }

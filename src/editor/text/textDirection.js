@@ -29,7 +29,7 @@ export function detectTextDirection(text) {
  * Digits and punctuation vote for nobody. This is the document's direction,
  * not the UI locale's.
  */
-export function dominantTextDirection(strings) {
+function dominantTextDirection(strings) {
   let rtl = 0;
   let ltr = 0;
   for (const value of strings) {
@@ -40,6 +40,17 @@ export function dominantTextDirection(strings) {
     }
   }
   return rtl > ltr ? 'rtl' : 'ltr';
+}
+
+/**
+ * The page's own direction, or undefined when it has no strong letters at all
+ * (a scan, a page of digits): such a page has no direction to report, and
+ * `dominantTextDirection`'s 'ltr' there is only a tie-break, not an answer.
+ */
+export function pageTextDirection(strings) {
+  const list = Array.from(strings);
+  if (!list.some((value) => Array.from(value || '').some((char) => STRONG_DIRECTION_CHAR.test(char)))) return undefined;
+  return dominantTextDirection(list);
 }
 
 export function getEffectiveTextDirection(element) {
