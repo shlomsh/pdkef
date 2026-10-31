@@ -1,9 +1,10 @@
 import { useId } from 'preact/hooks';
 import { offsetClone } from '../lib/elementClipboard.ts';
-import { PilcrowLeft, PilcrowRight, TextAlignCenter, TextAlignEnd, TextAlignStart } from 'lucide-preact';
+import { TextAlignCenter, TextAlignEnd, TextAlignStart } from 'lucide-preact';
 import { TrashIcon } from '#editor-ui/toolIcons.tsx';
 import ColorPickerMenu from '#editor-ui/ColorPickerMenu.tsx';
 import HighlightControls from './HighlightControls.tsx';
+import DirectionButton from './DirectionButton.tsx';
 import WhiteoutColorControls from './WhiteoutColorControls.tsx';
 import FontPickerMenu from './FontPickerMenu.tsx';
 import ThicknessPickerMenu from './ThicknessPickerMenu.tsx';
@@ -164,23 +165,12 @@ export default function ElementToolbar({
             {!canItalic && <span id={italicReasonId} className="sr-only">{formatMessage(t.italicUnavailableTemplate, { family: effectiveFamily ?? '' })}</span>}
           </button>
           <div className={styles.divider} />
-          <button
-            type="button"
-            // This describes the detected writing direction; it is not a
-            // selected formatting option. In particular, RTL text should not
-            // make the control look persistently pressed for Hebrew/Arabic
-            // users.
+          <DirectionButton
+            direction={textDirection}
+            onFlip={() => onChange({ textDirection: textDirection === 'rtl' ? 'ltr' : 'rtl' })}
+            t={t}
             className={buttonClass()}
-            onClick={() => onChange({ textDirection: textDirection === 'rtl' ? 'ltr' : 'rtl' })}
-            title={textDirection === 'rtl' ? t.rtlTextTitle : t.ltrTextTitle}
-            aria-label={textDirection === 'rtl' ? t.directionRtlAria : t.directionLtrAria}
-          >
-            {textDirection === 'rtl' ? (
-              <PilcrowLeft size={14} strokeWidth={2.5} />
-            ) : (
-              <PilcrowRight size={14} strokeWidth={2.5} />
-            )}
-          </button>
+          />
           {canAlign && (
             <button
               type="button"
