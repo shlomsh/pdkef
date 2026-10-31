@@ -34,7 +34,7 @@ function pdfDate(date = new Date()): PDFString {
   return PDFString.of(text);
 }
 
-function appearance(pdfDoc: PDFDocument, bbox: Bounds, content: string, resources: Record<string, unknown>): PDFRef {
+function appearance(pdfDoc: PDFDocument, bbox: Bounds, content: string, resources: Record<string, any>): PDFRef {
   const { context } = pdfDoc;
   const stream = context.stream(content, { Type: 'XObject', Subtype: 'Form', BBox: bbox, Resources: resources });
   return context.register(stream);
