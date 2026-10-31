@@ -138,6 +138,11 @@ describe('elementDefaultsFor', () => {
     expect(elementDefaultsFor({}, 'whiteout', DEFAULTS)).toEqual({ color: '#ffffff' });
   });
 
+  it('highlight: remembered highlightColor, then the shipped yellow, never the shared color', () => {
+    expect(elementDefaultsFor({ highlightColor: '#7FDBFF', color: '#ff0000' }, 'highlight', DEFAULTS)).toEqual({ color: '#7FDBFF' });
+    expect(elementDefaultsFor({ color: '#ff0000' }, 'highlight', DEFAULTS)).toEqual({ color: '#FFF34D' });
+  });
+
   it('whiteout: carried whiteoutColor overrides', () => {
     expect(elementDefaultsFor({ whiteoutColor: '#fdf6e3' }, 'whiteout', DEFAULTS)).toEqual({ color: '#fdf6e3' });
   });

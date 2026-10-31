@@ -14,6 +14,7 @@
 // data keeps the one set of constants (signGeometry.js) the single source of
 // truth instead of a second copy living in the model layer.
 import type { DocumentStyle } from '#editor/model/documentStyle.ts';
+import { DEFAULT_HIGHLIGHT_COLOR } from '#editor/model/highlightColors.ts';
 import type { EditorElement, SymbolMark, TextAlign, TextDirection } from '#editor/model/editorModel.ts';
 
 /** The creation-default fields for a freshly placed element, keyed by the
@@ -148,6 +149,10 @@ export function elementDefaultsFor(
     case 'whiteout':
       return {
         color: value('whiteoutColor'),
+      };
+    case 'highlight':
+      return {
+        color: carried.highlightColor ?? defaults.highlightColor ?? DEFAULT_HIGHLIGHT_COLOR,
       };
     case 'signature':
       return {

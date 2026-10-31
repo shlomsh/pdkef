@@ -56,6 +56,11 @@ describe('carriedPatchFor', () => {
     expect(carriedPatchFor(whiteoutElement, { color: '#fff9e6' }, noDetect)).toEqual({ whiteoutColor: '#fff9e6' });
   });
 
+  it('carries a highlight colour to highlightColor, never to color', () => {
+    const highlight: EditorElement = { id: 'h', type: 'highlight', pageIndex: 0, left: 0, top: 0, width: 10, height: 2, color: '#FFF34D', bands: [{ left: 0, top: 0, width: 100, height: 100 }] };
+    expect(carriedPatchFor(highlight, { color: '#9CF27A' }, noDetect)).toEqual({ highlightColor: '#9CF27A' });
+  });
+
   it('carries fontFamily to font', () => {
     expect(carriedPatchFor(textElement, { fontFamily: 'Great Vibes' }, noDetect)).toEqual({ font: 'Great Vibes' });
   });

@@ -25,6 +25,8 @@ export function carriedPatchFor(
   if (patch.color) {
     if (element.type === 'whiteout') {
       carried.whiteoutColor = patch.color;
+    } else if (element.type === 'highlight') {
+      carried.highlightColor = patch.color;
     } else {
       carried.color = patch.color;
     }

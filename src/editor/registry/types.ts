@@ -59,6 +59,7 @@ interface CreateContext {
   point: { left: number; top: number };
   color: string;
   whiteoutColor: string;
+  highlightColor?: string;
   strokeWidth: number;
   font: string;
   fontSize: number;

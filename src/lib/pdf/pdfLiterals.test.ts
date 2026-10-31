@@ -6,12 +6,13 @@
  */
 import { describe, expect, it } from 'vitest';
 import {
+  BlendMode,
   LineCapStyle,
   StandardFonts,
   degrees as pdfLibDegrees,
   rgb as pdfLibRgb,
 } from '@cantoo/pdf-lib';
-import { HELVETICA, LINE_CAP_ROUND, degrees, rgb } from './pdfLiterals.ts';
+import { BLEND_MULTIPLY, HELVETICA, LINE_CAP_ROUND, degrees, rgb } from './pdfLiterals.ts';
 
 describe('pdfLiterals', () => {
   it('rgb builds the same object pdf-lib builds', () => {
@@ -41,6 +42,10 @@ describe('pdfLiterals', () => {
     expect(() => degrees('90')).toThrow();
     // @ts-expect-error deliberately wrong, to prove the guard matches pdf-lib's
     expect(() => pdfLibDegrees('90')).toThrow();
+  });
+
+  it('BLEND_MULTIPLY is BlendMode.Multiply', () => {
+    expect(BLEND_MULTIPLY).toBe(BlendMode.Multiply);
   });
 
   it('LINE_CAP_ROUND is LineCapStyle.Round', () => {

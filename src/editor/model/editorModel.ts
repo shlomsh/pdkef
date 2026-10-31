@@ -34,7 +34,8 @@ export type ElementType =
   | 'blackout'
   | 'blur'
   | 'blurStroke'
-  | 'whiteoutStroke';
+  | 'whiteoutStroke'
+  | 'highlight';
 
 /**
  * Element kinds the Sign workspace can arm for placement, plus `'date'`: not
@@ -154,6 +155,16 @@ export interface TextElement extends ElementBase {
   dateValue?: string;
 }
 
+/** One covered line of a highlight, in percent of the highlight element's own box. */
+export interface HighlightBand { left: number; top: number; width: number; height: number }
+
+/** SIGN-42: the line band. The element's box is the bands' union, so a move moves them all. */
+export interface HighlightElement extends ElementBase, BoxGeometry {
+  type: 'highlight';
+  color: string;
+  bands: HighlightBand[];
+}
+
 /** A stroked rectangle outline. */
 export interface RectangleElement extends ElementBase, BoxGeometry {
   type: 'rectangle';
@@ -255,7 +266,8 @@ export type EditorElement =
   | BlackoutElement
   | BlurElement
   | BlurStrokeElement
-  | WhiteoutStrokeElement;
+  | WhiteoutStrokeElement
+  | HighlightElement;
 
 /**
  * Mutable fields for an existing element. Identity, type, and page placement
