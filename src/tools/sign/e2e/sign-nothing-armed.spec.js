@@ -114,6 +114,29 @@ for (const [label, profile] of PROFILES) {
       expect(await typingInProgress(page)).toBe(false);
     });
 
+    test('a double press locks Text, so two fill lines in a row each take text', async ({ page }) => {
+      await openFillMode(page);
+      const before = await elementCount(page);
+      if (isTouch) {
+        await textButton(page).tap();
+        await textButton(page).tap();
+      } else {
+        await textButton(page).dblclick();
+      }
+      await expect(textButton(page)).toHaveAttribute('aria-pressed', 'true');
+
+      // Moving to the next line commits the last one; Escape (which also
+      // disarms, by design) only ends the run.
+      for (const [i, word] of [[0, 'Ann'], [1, 'Lee']]) {
+        await press(page, page.locator('[data-fill-input]').nth(i), isTouch);
+        await expect.poll(() => typingInProgress(page)).toBe(true);
+        await page.keyboard.type(word);
+        await expect(textButton(page)).toHaveAttribute('aria-pressed', 'true');
+      }
+      await page.keyboard.press('Escape');
+      await expect.poll(() => elementCount(page)).toBe(before + 2);
+    });
+
     test('text placed earlier stays editable by clicking it with nothing armed', async ({ page }) => {
       await openFillMode(page);
       await textButton(page).click();
