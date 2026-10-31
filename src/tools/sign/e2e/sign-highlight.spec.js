@@ -109,8 +109,11 @@ async function swipe(page, touch, from, to) {
   await cdp.detach();
 }
 
+// Arming reserves the comments rail on a wide screen, which narrows the page: measure lines after it.
 async function armHighlight(page) {
   await page.getByRole('toolbar', { name: 'PDF annotations' }).getByRole('button', { name: 'Highlight' }).click();
+  const { width } = page.viewportSize();
+  if (width >= 1000) await expect(page.locator('[data-comment-rail]').first()).toBeAttached();
 }
 
 const bandRects = (page) => page.locator('[data-editor-highlight] [data-highlight-band]')
@@ -149,10 +152,10 @@ for (const { name, touch, use } of SIZES) {
       test(`${kind}: a swipe along a line lays one band on that line`, async ({ page }) => {
         const buffer = kind === 'digital' ? await digitalPdf() : await (async () => { await page.goto('/sign/?next=0'); return scannedPdf(page); })();
         await openPdf(page, buffer, `${kind}.pdf`);
+        await armHighlight(page);
         const rows = await inkRows(page);
         expect(rows.length).toBeGreaterThanOrEqual(3);
         const line = rows[1];
-        await armHighlight(page);
         await swipe(page, touch, { x: line.left + 2, y: mid(line) }, { x: line.right - 2, y: mid(line) });
 
         await expect(page.locator('[data-editor-highlight]')).toHaveCount(1);
@@ -166,8 +169,8 @@ for (const { name, touch, use } of SIZES) {
 
     test('digital: a swipe from line 1 down to line 2 lays two bands', async ({ page }) => {
       await openPdf(page, await digitalPdf(), 'two-lines.pdf');
-      const rows = await inkRows(page);
       await armHighlight(page);
+      const rows = await inkRows(page);
       await swipe(page, touch, { x: rows[0].left + 40, y: mid(rows[0]) }, { x: rows[1].right - 40, y: mid(rows[1]) });
 
       await expect(page.locator('[data-editor-highlight] [data-highlight-band]')).toHaveCount(2);

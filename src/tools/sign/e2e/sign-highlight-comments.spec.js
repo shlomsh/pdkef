@@ -18,7 +18,7 @@ const MODIFIER = process.platform === 'darwin' ? 'Meta' : 'Control';
 const toolbar = (page) => page.getByRole('toolbar', { name: 'PDF annotations' });
 const overlay = (page) => page.locator('[class*="page-overlay"]').first();
 const dot = (page) => page.locator('[data-highlight-dot]');
-const header = (page) => page.locator('[data-tool-shell]').getByText('1 comment', { exact: true });
+const header = (page) => page.getByText('1 comment', { exact: true });
 
 async function openSign(page) {
   const source = await makePdfBuffer(null, { title: false, lines: [{ text: 'A line of text a student would highlight', y: 700 }] });

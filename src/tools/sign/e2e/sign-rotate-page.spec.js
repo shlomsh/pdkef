@@ -69,7 +69,7 @@ test('Rotate turns the page on screen and in the export; marks stay on their con
   const whiteout = toolbar(page).getByRole('button', { name: 'Whiteout', exact: true });
   await whiteout.click();
   // The drag must not start before the tool reads as armed (a nightly repeat lost that race).
-  await expect(whiteout).toHaveAttribute('aria-pressed', 'true');
+  await expect(whiteout).toHaveClass(/active/);
   const box = await wrapper(page).boundingBox();
   const { cx, cy } = before0.ink;
   await page.mouse.move(box.x + box.width * (cx - 0.1), box.y + box.height * (cy - 0.02));
