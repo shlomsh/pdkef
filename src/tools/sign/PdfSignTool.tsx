@@ -17,14 +17,12 @@ import SignatureDialog from './components/SignatureDialog.tsx';
 import { pageGeometryFromPdfJsPage } from '#editor/geometry/coords.ts';
 import { DEFAULT_INK_COLOR } from '#editor/model/signGeometry.js';
 import { useEditorFileSession } from '#editor-ui/hooks/useEditorFileSession.ts';
-import useFormFieldRegions from './hooks/useFormFieldRegions.ts';
 import useFieldNavigation from './hooks/useFieldNavigation.ts';
 import { FillContext, FILL_OFF } from './components/fill/FillContext.tsx';
 import { useFillMode } from './hooks/useFillMode.ts';
 import { useSignFullscreen } from './hooks/useSignFullscreen.ts';
 import { useExportRun } from './hooks/useExportRun.ts';
 import { useSignHistory } from './hooks/useSignHistory.ts';
-import { useFormDetectionTelemetry } from './hooks/useFormDetectionTelemetry.ts';
 import { useSignKeyboard } from './hooks/useSignKeyboard.ts';
 import { useElementClipboard } from './hooks/useElementClipboard.ts';
 import { useSignaturePlacement } from './hooks/useSignaturePlacement.ts';
@@ -39,6 +37,7 @@ import { getSignExportReadiness } from './lib/signExportReadiness.ts';
 import ConfirmDialog from '#shell/ConfirmDialog.tsx';
 import { describeFile } from '#lib/text/format.js';
 import { initialSignLifecycleState, signLifecycleReducer } from './state/signState.ts';
+import { useDocumentFields } from './hooks/useDocumentFields.ts';
 import { signExportReady, type SignedExport } from './lib/exportHandoff.ts';
 
 /* The editor itself stays English (LOC-02's pilot decision); the dropzone,
@@ -104,7 +103,7 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
   const style = useDocumentStyle();
 
   // Fill mode (SNG-15): see hooks/useFillMode.ts.
-  const { enabled, fillContextValue } = useFillMode(dispatch, elements);
+  const { enabled, fillContextValue } = useFillMode(dispatch, elements, pageTurns);
 
   const { pageWrapperRefs, workspaceRef, isFullscreen, isPseudoFullscreen, isFullscreenActive, currentPage, toggleFullscreen } = useSignFullscreen(numPages);
 
@@ -125,10 +124,8 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
   // side-handle drag (MOBI-04), or at least starts centred on the field
   // instead of wherever the tap landed (MOBI-11). Needs the same pdf.js
   // document PdfWorkspace already renders pages from, for the page's text.
-  const formRegions = useFormFieldRegions(sourceBytes, numPages, pdfDocument);
-
-  // FORM-11: one anonymous maintenance event per finished walk (hooks/useFormDetectionTelemetry.ts).
-  useFormDetectionTelemetry(formRegions);
+  // SIGN-43: derived once (turns applied), shared by field hops and the workspace; FORM-11's one anonymous event per walk is reported inside.
+  const turned = useDocumentFields({ sourceBytes, numPages, pdfDocument, filePageSizes: pageSizes, pageTurns, dispatch, announce: setAnnouncement, t });
 
   // Next/Previous across those same fields (MOBI-06). Built once here, not in
   // PdfWorkspace/SignToolbar, so the desktop Tab shortcut below and the
@@ -140,8 +137,8 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
     elements,
     activeElementId,
     dispatch,
-    formRegions,
-    pageSizes,
+    formRegions: turned.formRegions,
+    pageSizes: turned.pageSizes,
     logAction,
     setAnnouncement,
     initialColor: style.color ?? DEFAULT_INK_COLOR,
@@ -232,7 +229,7 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
 
   // MOBI-07: re-export in the background once idle (hooks/useSpeculativeExport.ts).
   useSpeculativeExport({
-    file, status, elementCount: elements.length, documentRevision, blocked: exportReadiness.blocked,
+    file, status, elementCount: elements.length, hasTurnedPage: turned.hasTurnedPage, documentRevision, blocked: exportReadiness.blocked,
     runExport, prepare, preparedExportRef, documentRevisionRef,
   });
 
@@ -293,13 +290,13 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
                 errorDetail={errorDetail}
                 fieldNavigation={fieldNavigation}
                 messages={t}
-                document={{ numPages, pageSizes, formRegions, pdfDocument }}
+                document={{ numPages, pageSizes: turned.pageSizes, formRegions: turned.formRegions, pdfDocument }} turned={turned}
                 refs={{ workspace: workspaceRef, pageWrappers: pageWrapperRefs }}
                 fullscreen={{ isPseudo: isPseudoFullscreen, active: isFullscreen, toggle: toggleFullscreen }}
                 history={{ log: logAction, undo: undoLast, redo: redoLast }}
                 output={{ save: handleSavePdf, download: handleDownloadPdf, share: handleSharePdf, canShare: canSharePdf, shareReady }}
                 handoff={{
-                  exportReady: handoffBusy || signExportReady({ status, elementCount: elements.length, blocked: exportReadiness.blocked }),
+                  exportReady: handoffBusy || signExportReady({ status, elementCount: elements.length, hasTurnedPage: turned.hasTurnedPage, blocked: exportReadiness.blocked }),
                   busy: handoffBusy,
                   failed: handoffFailed,
                   onHandoff: (tool) => { void requestHandoff(tool); /* reason: requestHandoff catches its own failure and shows the hand-off error */ },

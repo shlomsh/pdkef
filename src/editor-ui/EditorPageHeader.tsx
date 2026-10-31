@@ -28,6 +28,7 @@ export default function EditorPageHeader({
   onRotate,
   rotateLabel = 'Rotate',
   rotateTitle,
+  rotateDisabled = false,
   // LOC-16: "Page N" and "Clear page" are now sourced from SignMessages on
   // /he/sign/ (see PdfWorkspace.tsx) - the props below default to the exact
   // English strings this component always rendered, so PdfRedactTool.tsx
@@ -44,6 +45,7 @@ export default function EditorPageHeader({
   onRotate?: () => void;
   rotateLabel?: string;
   rotateTitle?: string;
+  rotateDisabled?: boolean;
   pageLabel?: string;
   clearLabel?: string;
   lang?: string;
@@ -55,7 +57,7 @@ export default function EditorPageHeader({
       <span className={styles['page-number']} data-editor-page-number>{pageLabel ?? `Page ${pageNumber}`}</span>
       <div className={styles['page-actions']}>
         {onRotate && (
-          <button type="button" className={styles['page-action']} title={rotateTitle} onClick={onRotate}>
+          <button type="button" className={styles['page-action']} title={rotateTitle} onClick={onRotate} disabled={rotateDisabled}>
             <RotateIcon />
             {rotateLabel}
           </button>

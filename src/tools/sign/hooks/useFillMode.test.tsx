@@ -52,3 +52,25 @@ describe('useFillMode - the viewport lock follows ?next=', () => {
     expect(meta.getAttribute('content')).toBe(`${ORIGINAL}, maximum-scale=1`);
   });
 });
+
+describe('useFillMode - an open free slot and a page turn (SIGN-43)', () => {
+  it('closes the open free slot when that page\'s turns change', () => {
+    let fill: ReturnType<typeof useFillMode> | null = null;
+    function TurnHarness({ turns }: { turns: Record<number, 1 | 2 | 3> }) {
+      fill = useFillMode(vi.fn(), [], turns);
+      return null;
+    }
+    const host = document.createElement('div');
+    document.body.appendChild(host);
+    window.history.replaceState(null, '', '/sign/?next=1');
+    act(() => { render(<TurnHarness turns={{}} />, host); });
+    act(() => { fill!.fillContextValue.openFreeSlot({ pageIndex: 1, x: 10, y: 10 }); });
+    expect(fill!.fillContextValue.freeAt).not.toBeNull();
+    act(() => { render(<TurnHarness turns={{ 0: 1 }} />, host); });
+    expect(fill!.fillContextValue.freeAt).not.toBeNull(); // another page turned: slot stays
+    act(() => { render(<TurnHarness turns={{ 0: 1, 1: 1 }} />, host); });
+    expect(fill!.fillContextValue.freeAt).toBeNull();
+    act(() => render(null, host));
+    host.remove();
+  });
+});

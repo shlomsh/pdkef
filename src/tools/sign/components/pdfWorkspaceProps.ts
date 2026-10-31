@@ -6,6 +6,7 @@ import type { SignMessages } from '#editor/registry/messages.ts';
 import type { FormFieldRegions } from '../hooks/useFormFieldRegions.ts';
 import type { FieldNavigation } from '../hooks/useFieldNavigation.ts';
 import type { PendingSignaturePlacement } from '../hooks/useWorkspaceGestures.ts';
+import type { useTurnedPages } from '../hooks/useTurnedPages.ts';
 import type { SignStatus } from '../state/signState.ts';
 
 /** PdfWorkspace's props, grouped by concern (ARCH-57): the document, the refs it measures, full
@@ -31,6 +32,9 @@ export interface PdfWorkspaceProps {
     formRegions?: FormFieldRegions;
     pdfDocument: PDFDocumentProxy | null;
   };
+  /** SIGN-43: the page turns, derived once in PdfSignTool (hooks/useTurnedPages.ts) and
+   * shared with field navigation; `document.pageSizes` and `formRegions` are already turned. */
+  turned: Pick<ReturnType<typeof useTurnedPages>, 'pageSizeOf' | 'directionOfPage' | 'rotateProps'>;
   refs: {
     workspace: { current: HTMLDivElement | null };
     pageWrappers: { current: (HTMLDivElement | null)[] };

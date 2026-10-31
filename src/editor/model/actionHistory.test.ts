@@ -492,3 +492,18 @@ describe('remove-place entries', () => {
     expect(redone && removedPlaces(redone.past)).toEqual([a.operation === 'remove-place' ? a.place : null]);
   });
 });
+
+describe('restored turn-page entries (SIGN-43)', () => {
+  it('refuses a turn-page entry whose cropBox has no area, so undo cannot throw', async () => {
+    const { createPageGeometry } = await import('../geometry/coords.ts');
+    const geometry = createPageGeometry({ cropBox: { x: 0, y: 0, width: 612, height: 792 } });
+    const entry = (cropBox: typeof geometry.cropBox) => ({
+      id: 't1', timestamp: 1, operation: 'turn-page', type: 'ROTATE_PAGE', pageIndex: 0,
+      description: 'Rotated page 1', geometry: { ...geometry, cropBox },
+    });
+    const isElement = (_c: unknown): _c is EditorElement => true;
+    expect(isActionHistoryEntry(entry(geometry.cropBox), isElement)).toBe(true);
+    expect(isActionHistoryEntry(entry({ ...geometry.cropBox, width: 0 }), isElement)).toBe(false);
+    expect(isActionHistoryEntry(entry({ ...geometry.cropBox, height: -5 }), isElement)).toBe(false);
+  });
+});

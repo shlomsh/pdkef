@@ -44,10 +44,10 @@
       "src/tools/redact/state/redactState.ts#redactReducer": 244,
       "src/tools/scan/components/CornerEditor.tsx#CornerEditor": 156,
       "src/tools/security/PdfSecurityTool.tsx#PdfSecurityTool": 272,
-      "src/tools/sign/PdfSignTool.tsx#PdfSignToolInner": 287,
+      "src/tools/sign/PdfSignTool.tsx#PdfSignToolInner": 285,
       "src/tools/sign/components/DraggableWrapper.tsx#DraggableWrapper": 558,
       "src/tools/sign/components/ElementToolbar.tsx#ElementToolbar": 379,
-      "src/tools/sign/components/PdfWorkspace.tsx#PdfWorkspace": 626,
+      "src/tools/sign/components/PdfWorkspace.tsx#PdfWorkspace": 625,
       "src/tools/sign/components/SignToolContext.tsx#reducer": 177,
       "src/tools/sign/components/SignToolbar.tsx#SignToolbar": 745,
       "src/tools/sign/components/SignatureDialog.tsx#SignatureDialog": 537,
@@ -98,11 +98,11 @@
       },
       "src/tools/sign/PdfSignTool.tsx": {
         "effects": 0,
-        "hooks": 20
+        "hooks": 19
       },
       "src/tools/sign/components/PdfWorkspace.tsx": {
         "effects": 1,
-        "hooks": 28
+        "hooks": 27
       },
       "src/tools/sign/components/SignToolbar.tsx": {
         "effects": 1,

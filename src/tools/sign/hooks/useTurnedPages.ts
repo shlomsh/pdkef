@@ -42,6 +42,7 @@ export function useTurnedPages({ filePageSizes, fileFormRegions, pageTurns, disp
     [formRegions],
   );
   const rotatePage = useCallback((pageIndex: number) => {
+    if (!filePageSizes[pageIndex]) return; // not measured yet: there is no geometry for undo to restore
     dispatch({
       type: 'ROTATE_PAGE',
       payload: {
@@ -51,11 +52,12 @@ export function useTurnedPages({ filePageSizes, fileFormRegions, pageTurns, disp
       },
     });
     announce(formatMessage(t.rotatedPageAnnouncementTemplate, { number: pageIndex + 1 }));
-  }, [dispatch, pageSizeOf, announce, t]);
+  }, [dispatch, filePageSizes, pageSizeOf, announce, t]);
   const rotateProps = (pageIndex: number) => ({
     onRotate: () => rotatePage(pageIndex),
+    rotateDisabled: !filePageSizes[pageIndex],
     rotateLabel: t.rotatePageLabel,
     rotateTitle: formatMessage(t.rotatePageTitle, { number: pageIndex + 1 }),
   });
-  return { pageSizes, formRegions, pageSizeOf, directionOfPage, rotateProps };
+  return { pageSizes, formRegions, pageSizeOf, directionOfPage, rotateProps, hasTurnedPage: Object.keys(pageTurns).length > 0 };
 }
