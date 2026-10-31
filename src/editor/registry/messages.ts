@@ -299,6 +299,8 @@ export interface SignMessages {
   clearedPageAnnouncementTemplate: string;
   clearedPageDescriptionOne: string;
   clearedPageDescriptionOther: string;
+  /** SIGN-43: the history label of a page turn; {number} is the 1-based page. */
+  rotatePageDescription: string;
   /** src/tools/sign/hooks/useWorkspaceGestures.ts's announcements and history descriptions -
    * `addedShapeDescriptionTemplate`/`addedShapeAnnouncementTemplate` fix the
    * raw-tool-id interpolation bug this ticket calls out, via

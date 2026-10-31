@@ -38,7 +38,7 @@ export interface EditorSessionMessages {
 
 type DraftOptions<TElement extends HistoryElement> = Pick<
   UseEditorDraftPersistenceOptions<TElement>,
-  'elements' | 'actionHistory' | 'carried' | 'details' | 'isDirty' | 'isElement'
+  'elements' | 'actionHistory' | 'carried' | 'details' | 'pageTurns' | 'isDirty' | 'isElement'
 >;
 
 export interface EditorFileSessionOptions<TElement extends HistoryElement> {
@@ -151,6 +151,7 @@ export function useEditorFileSession<TElement extends HistoryElement>(options: E
     actionHistory: draft.actionHistory,
     carried: draft.carried,
     details: draft.details,
+    pageTurns: draft.pageTurns,
     status,
     isDirty: draft.isDirty,
     loadStartedRef,

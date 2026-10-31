@@ -91,11 +91,43 @@ export interface PlaceHistoryEntry extends HistoryEntryBase {
   place: HistoryPlace;
 }
 
+type Matrix = readonly [number, number, number, number, number, number];
+
+/**
+ * A page's geometry, structurally the same as geometry/coords.ts's
+ * `PageGeometry` (the model may not import geometry code), so one is
+ * assignable to the other.
+ */
+interface TurnedPageGeometry {
+  cropBox: { x: number; y: number; width: number; height: number };
+  rotation: 0 | 90 | 180 | 270;
+  userUnit: number;
+  width: number;
+  height: number;
+  pdfToViewport: Matrix;
+  viewportToPdf: Matrix;
+  editorToPdf: Matrix;
+  pdfToEditor: Matrix;
+}
+
+/**
+ * SIGN-43: a page turned a quarter turn clockwise. `geometry` is the page's
+ * displayed geometry before the turn. It changes no element by itself: the
+ * document reducer maps the page's elements and `pageTurns` (undo and redo
+ * here pass it over, like 'remove-place').
+ */
+interface TurnPageHistoryEntry extends HistoryEntryBase {
+  operation: 'turn-page';
+  type: 'ROTATE_PAGE';
+  geometry: TurnedPageGeometry;
+}
+
 /** One atomic, reversible editor command. */
 export type ActionHistoryEntry<TElement extends HistoryElement = HistoryElement> =
   | SnapshotHistoryEntry<TElement>
   | UpdateHistoryEntry<TElement>
-  | PlaceHistoryEntry;
+  | PlaceHistoryEntry
+  | TurnPageHistoryEntry;
 
 /** The places of every remove-place entry, in past order. */
 export function removedPlaces<TElement extends HistoryElement>(
@@ -143,6 +175,9 @@ export function createActionEntry<TElement extends HistoryElement>(
 export function createActionEntry<TElement extends HistoryElement>(
   entry: Omit<UpdateHistoryEntry<TElement>, 'id' | 'timestamp'>,
 ): UpdateHistoryEntry<TElement>;
+export function createActionEntry(
+  entry: Omit<TurnPageHistoryEntry, 'id' | 'timestamp'>,
+): TurnPageHistoryEntry;
 export function createActionEntry<TElement extends HistoryElement>(
   entry: NewActionHistoryEntry<TElement>,
 ): ActionHistoryEntry<TElement> {
@@ -246,6 +281,7 @@ export function isActionHistoryEntry<TElement extends HistoryElement>(
   if (typeof entry.timestamp !== 'number' || !Number.isFinite(entry.timestamp)) return false;
   if (entry.operation === 'update') return isUpdatePayload(entry);
   if (entry.operation === 'remove-place') return isPlacePayload(entry);
+  if (entry.operation === 'turn-page') return entry.type === 'ROTATE_PAGE' && isGeometryPayload(entry.geometry);
   if (entry.operation !== 'add' && entry.operation !== 'delete') return false;
   if (!Array.isArray(entry.elements) || entry.elements.length === 0) return false;
 
@@ -268,6 +304,19 @@ function isPlacePayload(entry: Record<string, unknown>): boolean {
   const { kind, text, pageIndex } = place as Record<string, unknown>;
   if (typeof kind !== 'string' || typeof text !== 'string') return false;
   return pageIndex === undefined || (Number.isInteger(pageIndex) && (pageIndex as number) >= 0);
+}
+
+function isGeometryPayload(value: unknown): boolean {
+  if (!isPlainRecord(value)) return false;
+  const finite = (n: unknown) => typeof n === 'number' && Number.isFinite(n);
+  const { cropBox, rotation, userUnit, width, height } = value;
+  if (!isPlainRecord(cropBox) || !['x', 'y', 'width', 'height'].every((key) => finite(cropBox[key]))) return false;
+  if (rotation !== 0 && rotation !== 90 && rotation !== 180 && rotation !== 270) return false;
+  if (!finite(userUnit) || !finite(width) || !finite(height)) return false;
+  return ['pdfToViewport', 'viewportToPdf', 'editorToPdf', 'pdfToEditor'].every((key) => {
+    const matrix = value[key];
+    return Array.isArray(matrix) && matrix.length === 6 && matrix.every(finite);
+  });
 }
 
 const isPlainRecord = (value: unknown): value is Record<string, unknown> => (
@@ -334,7 +383,7 @@ export function revertHistoryEntries<TElement extends HistoryElement>(
   entries: readonly ActionHistoryEntry<TElement>[],
 ): TElement[] {
   return entries.reduce<TElement[]>((current, entry) => {
-    if (entry.operation === 'remove-place') return current;
+    if (entry.operation === 'remove-place' || entry.operation === 'turn-page') return current;
     if (entry.operation === 'update') return patchElements(current, entry.updates, 'before');
     if (entry.operation === 'add') {
       const addedIds = new Set(entry.elements.map(({ element }) => element.id));
@@ -360,7 +409,7 @@ export function applyHistoryEntries<TElement extends HistoryElement>(
   entries: readonly ActionHistoryEntry<TElement>[],
 ): TElement[] {
   return entries.reduce<TElement[]>((current, entry) => {
-    if (entry.operation === 'remove-place') return current;
+    if (entry.operation === 'remove-place' || entry.operation === 'turn-page') return current;
     if (entry.operation === 'update') return patchElements(current, entry.updates, 'after');
     if (entry.operation === 'delete') {
       const removedIds = new Set(entry.elements.map(({ element }) => element.id));

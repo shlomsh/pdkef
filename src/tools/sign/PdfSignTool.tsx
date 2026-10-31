@@ -64,7 +64,7 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
   const {
     state: {
       selectedTool, elements, activeElementId, editingElementId, actionHistory, redoHistory,
-      documentRevision, draftBaselineRevision, carried,
+      documentRevision, draftBaselineRevision, carried, pageTurns,
     },
     dispatch,
   } = useSignTool();
@@ -180,7 +180,7 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
           // Absent for a fresh pick or a pre-SIGN-33 draft - the reducer
           // treats that the same as an explicit null, resetting to `{}` so
           // a new document never inherits another document's own choices.
-          carried: preset.carried,
+          carried: preset.carried, pageTurns: preset.pageTurns,
           // SIGN-35: read again whenever a document opens, so a choice made
           // in another tab applies to the next document.
           appStyle: getAppStyle(),
@@ -203,7 +203,7 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
     draft: {
       elements,
       actionHistory,
-      carried,
+      carried, pageTurns,
       isDirty: documentRevision !== (draftBaselineRevision ?? documentRevision),
       isElement: isEditorElement,
     },

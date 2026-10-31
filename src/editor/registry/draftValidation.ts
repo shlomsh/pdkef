@@ -3,6 +3,7 @@ import type { DocumentStyle } from '../model/documentStyle.ts';
 import {
   isActionHistoryEntry, revertHistoryEntries, type ActionHistoryEntry, type HistoryElement,
 } from '../model/actionHistory.ts';
+import type { PageTurns } from '../geometry/pageTurn.ts';
 import { MAX_HISTORY_DEPTH } from '../model/historyStack.ts';
 import { getElementDefinition } from './index.ts';
 import { hasNumber, hasString, isRecord } from './schema.ts';
@@ -325,7 +326,22 @@ interface ValidatedDraftRecord<TElement extends HistoryElement = DraftElement> {
     carried?: Partial<DocumentStyle>;
     /** RED-59: Redact's edits to the file's details, by detail id. */
     details?: DetailEdits;
+    /** SIGN-43: clockwise quarter turns by page index; Sign only. */
+    pageTurns?: PageTurns;
   };
+}
+
+/** SIGN-43: an object of integer page index -> 1|2|3; any other entry is dropped, a non-record is `{}`. */
+function validatePageTurns(value: unknown): PageTurns {
+  const turns: Record<number, 1 | 2 | 3> = {};
+  if (!isRecord(value)) return turns;
+  for (const [key, turn] of Object.entries(value)) {
+    const index = Number(key);
+    if (Number.isInteger(index) && index >= 0 && String(index) === key && (turn === 1 || turn === 2 || turn === 3)) {
+      turns[index] = turn;
+    }
+  }
+  return turns;
 }
 
 /** RED-59: a detail edit is a delete or an alter with a string value. */
@@ -412,6 +428,8 @@ export function validateDraftRecord<TElement extends HistoryElement = DraftEleme
     fileType: typeof record.fileType === 'string' ? record.fileType : undefined,
     fileBytes: record.fileBytes,
     elements: valid,
-    extra: isRecord(record.extra) ? { actionHistory: safeHistory, carried, details } : undefined,
+    extra: isRecord(record.extra)
+      ? { actionHistory: safeHistory, carried, details, pageTurns: validatePageTurns(record.extra.pageTurns) }
+      : undefined,
   };
 }

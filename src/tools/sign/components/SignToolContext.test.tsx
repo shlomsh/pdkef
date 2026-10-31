@@ -7,6 +7,8 @@ import type {
   TextElement,
   WhiteoutElement,
 } from '#editor/model/editorModel.ts';
+import { createPageGeometry } from '#editor/geometry/coords.ts';
+import { turnElement } from '#editor/geometry/pageTurn.ts';
 import { reducer, type SignToolAction, type SignToolState } from './SignToolContext.tsx';
 
 const textElement = (id: string, overrides: Partial<TextElement> = {}): TextElement => ({
@@ -76,6 +78,7 @@ describe('SignToolContext Reducer', () => {
     editingElementId: null,
     actionHistory: [],
     redoHistory: [],
+    pageTurns: {},
     documentRevision: 0,
     carried: {},
     appStyle: {},
@@ -554,5 +557,63 @@ describe('SignToolContext Reducer', () => {
       const nextState = reducer(state, action);
       expect((nextState.elements[0] as RectangleElement).width).toBe(5);
     });
+  });
+});
+
+describe('ROTATE_PAGE (SIGN-43)', () => {
+  const geometry = createPageGeometry({ cropBox: { x: 0, y: 0, width: 600, height: 800 } });
+  const base: SignToolState = {
+    selectedTool: null, toolLocked: false, elements: [], activeElementId: null, editingElementId: null,
+    actionHistory: [], redoHistory: [], pageTurns: {}, documentRevision: 3, carried: {}, appStyle: {},
+  };
+  const onPage0 = rectangleElement('a', { left: 10, top: 20, width: 30, height: 10 });
+  const onPage1 = rectangleElement('b', { pageIndex: 1, left: 10, top: 20, width: 30, height: 10 });
+  const start: SignToolState = { ...base, elements: [onPage0, onPage1] };
+  const rotate = (state: SignToolState) => reducer(state, { type: 'ROTATE_PAGE', payload: { pageIndex: 0, geometry } });
+  const near = (a: EditorElement, b: EditorElement) => {
+    for (const key of ['left', 'top', 'width', 'height'] as const) {
+      expect((a as Record<string, number>)[key]).toBeCloseTo((b as Record<string, number>)[key], 9);
+    }
+  };
+
+  it('turns only that page, records the turn and one history entry, and bumps the revision', () => {
+    const next = rotate(start);
+    expect(next.pageTurns).toEqual({ 0: 1 });
+    expect(next.elements[0]).toEqual(turnElement(onPage0, geometry, 1));
+    expect(next.elements[0]).not.toEqual(onPage0);
+    expect(next.elements[1]).toBe(onPage1);
+    expect(next.actionHistory).toHaveLength(1);
+    expect(next.actionHistory[0]).toMatchObject({ operation: 'turn-page', type: 'ROTATE_PAGE', pageIndex: 0, geometry });
+    expect(next.actionHistory[0].description).toBe('Rotated page 1');
+    expect(next.documentRevision).toBe(4);
+  });
+
+  it('clears redo and the selection', () => {
+    const next = rotate({ ...start, activeElementId: 'a', editingElementId: 'a', redoHistory: [{ id: 'r', type: 'X', operation: 'delete', pageIndex: 0, description: '', timestamp: 0, elements: [] }] });
+    expect(next.redoHistory).toEqual([]);
+    expect(next.activeElementId).toBeNull();
+    expect(next.editingElementId).toBeNull();
+  });
+
+  it('UNDO restores the elements and pageTurns, REDO re-applies the turn', () => {
+    const turned = rotate(start);
+    const undone = reducer(turned, { type: 'UNDO' });
+    expect(undone.pageTurns).toEqual({});
+    near(undone.elements[0], onPage0);
+    expect(undone.elements[1]).toBe(onPage1);
+    expect(undone.actionHistory).toEqual([]);
+    expect(undone.redoHistory).toHaveLength(1);
+    expect(undone.documentRevision).toBeGreaterThan(turned.documentRevision);
+
+    const redone = reducer(undone, { type: 'REDO' });
+    expect(redone.pageTurns).toEqual({ 0: 1 });
+    near(redone.elements[0], turned.elements[0]);
+    expect(redone.actionHistory).toHaveLength(1);
+  });
+
+  it('LOAD_DOCUMENT carries pageTurns and defaults to {}', () => {
+    const payload = { elements: [], actionHistory: [] };
+    expect(reducer(start, { type: 'LOAD_DOCUMENT', payload: { ...payload, pageTurns: { 2: 3 } } }).pageTurns).toEqual({ 2: 3 });
+    expect(reducer({ ...start, pageTurns: { 0: 1 } }, { type: 'LOAD_DOCUMENT', payload }).pageTurns).toEqual({});
   });
 });

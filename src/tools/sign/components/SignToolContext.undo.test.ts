@@ -20,6 +20,7 @@ const baseState = (elements: EditorElement[]): SignToolState => ({
   editingElementId: null,
   actionHistory: [],
   redoHistory: [],
+  pageTurns: {},
   documentRevision: 0,
   carried: {},
   appStyle: {},
