@@ -12,6 +12,7 @@ import { turnGeometry } from '#editor/geometry/pageTurn.ts';
 import { topKeepingInkCentre } from '../lib/combPlacement.ts';
 import type { RectangleElement, SymbolElement, TextElement } from '#editor/model/editorModel.ts';
 import { SignToolContext, reducer, type SignToolAction, type SignToolState } from './SignToolContext.tsx';
+import { FillContext, FILL_OFF } from './fill/FillContext.tsx';
 import { SavedSignaturesContext, type SavedSignaturesContextValue } from './SavedSignaturesContext.tsx';
 
 const pageSize = createPageGeometry({ cropBox: { x: 0, y: 0, width: 600, height: 800 } });
@@ -1144,5 +1145,51 @@ describe('PdfWorkspace Component', () => {
 
       delete (window as any).matchMedia;
     });
+  });
+});
+
+// SIGN-45: Text places once then disarms, in fill mode too (a slot commit is a placement).
+describe('PdfWorkspace fill mode: a committed slot is one placement', () => {
+  let host: HTMLDivElement | null = null;
+  afterEach(() => {
+    if (host) { act(() => { render(null, host!); }); document.body.removeChild(host); host = null; }
+  });
+
+  function mountFillWorkspace(state: SignToolState, dispatch: (a: SignToolAction) => void) {
+    host = mount(
+      <FillContext.Provider value={{ ...FILL_OFF, enabled: true, freeAt: { pageIndex: 0, x: 100, y: 100 } as any }}>
+        {workspaceTree({ state, dispatch })}
+      </FillContext.Provider>,
+    );
+  }
+
+  function typeAndLeave(text: string) {
+    const input = required(host!.querySelector<HTMLInputElement>('input[data-fill-input]'), 'the free slot input');
+    act(() => { input.focus(); });
+    act(() => { input.value = text; input.dispatchEvent(new Event('input', { bubbles: true })); });
+    act(() => { input.blur(); });
+  }
+
+  it('dispatches DISARM_TOOL after the commit when Text is armed', () => {
+    const dispatch = vi.fn<(action: SignToolAction) => void>();
+    mountFillWorkspace(testState({ selectedTool: 'text' }), dispatch);
+    typeAndLeave('Jane');
+    const types = dispatch.mock.calls.map(([a]) => a.type);
+    expect(types).toContain('ADD_ELEMENT');
+    expect(types.indexOf('DISARM_TOOL')).toBeGreaterThan(types.indexOf('ADD_ELEMENT'));
+  });
+
+  it('does not disarm when nothing is armed (a keyboard fill)', () => {
+    const dispatch = vi.fn<(action: SignToolAction) => void>();
+    mountFillWorkspace(testState({ selectedTool: null }), dispatch);
+    typeAndLeave('Jane');
+    const types = dispatch.mock.calls.map(([a]) => a.type);
+    expect(types).toContain('ADD_ELEMENT');
+    expect(types).not.toContain('DISARM_TOOL');
+  });
+
+  it('a locked Text stays armed through the reducer', () => {
+    const locked = reducer(testState({ selectedTool: 'text', toolLocked: true }), { type: 'DISARM_TOOL' });
+    expect(locked.selectedTool).toBe('text');
   });
 });
