@@ -17,6 +17,7 @@ import {
 } from '#editor/geometry/coords.ts';
 import { getElementDefinition } from '#editor/registry/index.ts';
 import { commentNumbers } from './highlight/commentNumbers.ts';
+import { planCommentsPages } from './comments/commentsPages.ts';
 import { findUnrepresentableCharacters } from './textCoverage.js';
 import { baselineOffsetEmFromMetrics, embeddedFontFile, resolveTypography } from '#editor/text/fonts.js';
 import { HELVETICA_BASELINE_OFFSET_EM, DEFAULT_LINE_HEIGHT_EM } from '#editor/model/signGeometry.js';
@@ -116,7 +117,9 @@ export function pageGeometryFromPdfLibPage(page) {
 // stay here because they are PDF-wide concerns, not per-element behavior.
 // `pageTurns` (SIGN-43) maps a page index to the extra clockwise quarter turns the
 // person gave it; elements are stored in percent of that turned page.
-export async function signPdf(file, elements, onProgress, { pageTurns = {} } = {}) {
+// `commentsPage` carries the comments page's strings (the Sign messages); a highlight with a comment
+// appends the comments page(s) (SIGN-44). The defaults are the English ones.
+export async function signPdf(file, sourceElements, onProgress, { pageTurns = {}, commentsPage } = {}) {
   const { doc: pdfDoc } = await openPdfDoc(file);
   pdfDoc.registerFontkit(fontkit);
   const loadedFonts = {};
@@ -148,6 +151,29 @@ export async function signPdf(file, elements, onProgress, { pageTurns = {} } = {
       return null;
     }
   };
+
+  // Turn the pages before any geometry is read: pageGeometryFromPdfLibPage
+  // reads /Rotate, so every element below, and the comments page's passage
+  // clips, land in the turned frame. Flattening draws in raw user space, so
+  // it is unaffected by the turn.
+  for (const [index, turns] of Object.entries(pageTurns)) {
+    if (!(Number(index) in pdfDoc.getPages())) continue;
+    const page = pdfDoc.getPage(Number(index));
+    applyRotation(page, 90 * turns);
+    // applyRotation can leave 360; /Rotate is kept in 0-270 so geometry reads stay canonical.
+    const angle = page.getRotation().angle;
+    if (angle >= 360) page.setRotation(degrees(angle % 360));
+  }
+
+  // SIGN-44: the comments page(s), appended now so their text joins the font and coverage passes.
+  const numbers = commentNumbers(sourceElements);
+  const comments = await planCommentsPages(pdfDoc, sourceElements, numbers, {
+    title: commentsPage?.title ?? 'Comments',
+    entryLabel: commentsPage?.entryLabel ?? 'Page {page}',
+    loadCustomFont,
+    pageGeometry: pageGeometryFromPdfLibPage,
+  });
+  const elements = comments ? [...sourceElements, ...comments.elements] : sourceElements;
 
   // Load every exact face the document needs before coverage checking or page
   // mutation. The old generic Arimo fallback made an uncached Latin display
@@ -184,18 +210,6 @@ export async function signPdf(file, elements, onProgress, { pageTurns = {} } = {
   // annotations and never calls `getForm()`, which would strip XFA data.
   flattenDoc(pdfDoc);
 
-  // Turn the pages before any geometry is read: pageGeometryFromPdfLibPage
-  // reads /Rotate, so every element below lands in the turned frame.
-  for (const [index, turns] of Object.entries(pageTurns)) {
-    if (!(Number(index) in pdfDoc.getPages())) continue;
-    const page = pdfDoc.getPage(Number(index));
-    applyRotation(page, 90 * turns);
-    // applyRotation can leave 360; /Rotate is kept in 0-270 so geometry reads stay canonical.
-    const angle = page.getRotation().angle;
-    if (angle >= 360) page.setRotation(degrees(angle % 360));
-  }
-
-  const numbers = commentNumbers(elements);
   for (let i = 0; i < elements.length; i++) {
     const element = elements[i];
     const page = pdfDoc.getPage(element.pageIndex);
@@ -235,5 +249,6 @@ export async function signPdf(file, elements, onProgress, { pageTurns = {} } = {
     onProgress?.((i + 1) / elements.length);
   }
 
+  await comments?.finish();
   return new Blob([await pdfDoc.save()], { type: 'application/pdf' });
 }
