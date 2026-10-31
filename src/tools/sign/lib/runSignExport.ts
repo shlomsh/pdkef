@@ -89,7 +89,7 @@ export async function runSignExport(
     const { signPdf } = await import('./sign.js');
     const signedBlob = await signPdf(sourceBytes, elements, (p: number) => {
       if (!speculative && ticket.isCurrent()) lifecycleDispatch({ type: 'EXPORT_PROGRESSED', progress: p });
-    }, { pageTurns });
+    }, { pageTurns, commentsPage: { title: t.commentsPageTitle, entryLabel: t.commentsPageEntry } });
     if (!ticket.isCurrent()) return;
     ticket.settle();
     if (!speculative) {
