@@ -17,7 +17,7 @@ import { highlightGeometry } from '../lib/highlight/swipe.ts';
 
 type PointerPercent = (event: MouseEvent | TouchEvent, container: HTMLElement, geometry?: PageGeometry) => { x: number; y: number };
 
-export interface HighlightSwipeDeps {
+interface HighlightSwipeDeps {
   dispatch: (action: { type: string; payload?: unknown }) => void;
   getPointerPercent: PointerPercent;
   gestureCancelRef: { current: (() => void) | null };
@@ -28,7 +28,7 @@ export interface HighlightSwipeDeps {
   pageGeometry?: PageGeometry;
 }
 
-export interface HighlightSwipeTarget {
+interface HighlightSwipeTarget {
   pageIndex: number;
   container: HTMLElement;
   id: string;
