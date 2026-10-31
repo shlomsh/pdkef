@@ -188,7 +188,7 @@ describe('validateDraftRecord', () => {
   const goodCarried = {
     font: 'Caveat', fontSize: 13.5, direction: 'rtl', color: '#112233', textAlign: 'center',
     bold: true, italic: false, dateFormat: 'iso', symbolMark: 'x', symbolWidth: 6, strokeWidth: 2,
-    whiteoutColor: '#ffffff', signatureWidth: 30,
+    whiteoutColor: '#ffffff', highlightColor: '#FFB15C', signatureWidth: 30,
   };
 
   it('keeps a fully valid carried style, key for key', () => {
@@ -213,6 +213,7 @@ describe('validateDraftRecord', () => {
     ['symbolWidth', 'zero', { symbolWidth: 0 }],
     ['strokeWidth', 'negative', { strokeWidth: -1 }],
     ['whiteoutColor', 'empty string', { whiteoutColor: '' }],
+    ['highlightColor', 'not a hex color', { highlightColor: 'yellow' }],
     ['signatureWidth', 'negative', { signatureWidth: -10 }],
   ])('drops only a malformed %s (%s), keeping every other key', (key, _label, badPatch) => {
     const carried = { ...goodCarried, ...badPatch };

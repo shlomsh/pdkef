@@ -18,7 +18,7 @@ export { DRAFT_SCHEMA_VERSION };
 
 const ELEMENT_TYPES: readonly ElementType[] = [
   'text', 'rectangle', 'ellipse', 'line', 'symbol', 'signature', 'whiteout', 'blackout', 'blur',
-  'blurStroke', 'whiteoutStroke',
+  'blurStroke', 'whiteoutStroke', 'highlight',
 ];
 
 /**
@@ -185,6 +185,7 @@ export function validateDocumentStyle(value: unknown): Partial<DocumentStyle> {
   if (hasNumber(value, 'symbolWidth') && (value.symbolWidth as number) > 0) carried.symbolWidth = value.symbolWidth as number;
   if (hasNumber(value, 'strokeWidth') && (value.strokeWidth as number) > 0) carried.strokeWidth = value.strokeWidth as number;
   if (hasString(value, 'whiteoutColor') && (value.whiteoutColor as string)) carried.whiteoutColor = value.whiteoutColor as string;
+  if (hasString(value, 'highlightColor') && /^#[0-9a-fA-F]{6}$/.test(value.highlightColor as string)) carried.highlightColor = value.highlightColor as string;
   if (hasNumber(value, 'signatureWidth') && (value.signatureWidth as number) > 0) {
     carried.signatureWidth = value.signatureWidth as number;
   }

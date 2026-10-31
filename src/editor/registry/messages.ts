@@ -46,6 +46,9 @@ export interface SignMessages {
   whiteoutAction: string;
   ellipseAction: string;
   rectangleAction: string;
+  highlightAction: string;
+  highlightActionTouch: string;
+  highlightLabel: string;
   lineAction: string;
   /** Touch-only short forms of the eight actions above, shown on a coarse pointer in place of
    * them (EditorToolStatus.tsx's `ToolCopy.actionTouch`). "Tap" and "Tap and drag" rather than "Click" and "Click and drag",

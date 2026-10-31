@@ -153,7 +153,7 @@ export default function SignToolbar({
     whiteout:  { action: t.whiteoutAction,  actionTouch: t.whiteoutActionTouch,  button: t.whiteoutButton },
     ellipse:   { action: t.ellipseAction,   actionTouch: t.ellipseActionTouch,   button: t.shapesButton },
     rectangle: { action: t.rectangleAction, actionTouch: t.rectangleActionTouch, button: t.shapesButton },
-    line:      { action: t.lineAction,      actionTouch: t.lineActionTouch,      button: t.shapesButton },
+    line:      { action: t.lineAction,      actionTouch: t.lineActionTouch,      button: t.shapesButton }, highlight: { action: t.highlightAction, actionTouch: t.highlightActionTouch, button: t.highlightLabel },
   };
 
   const blockedExportTitle = formatMessage(exportIssueCount === 1 ? t.exportBlockedTitleOne : t.exportBlockedTitleOther, { count: exportIssueCount });
