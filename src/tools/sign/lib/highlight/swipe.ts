@@ -1,8 +1,8 @@
 // Pure geometry between the page canvas (device pixels) and a highlight element (page percent).
 import type { Band } from './bands.ts';
 
-export interface CanvasSize { width: number; height: number }
-export interface CanvasRect { x: number; y: number; width: number; height: number }
+interface CanvasSize { width: number; height: number }
+interface CanvasRect { x: number; y: number; width: number; height: number }
 
 const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
 

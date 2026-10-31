@@ -4,8 +4,8 @@ import { bandsForSwipe, type Band } from './bands.ts';
 import { findTextRows, type TextRow } from './textRows.ts';
 import { bandsToPagePercent, canvasWindowRect } from './swipe.ts';
 
-export interface PagePoint { x: number; y: number }
-export interface SwipeReader { bandsBetween(a: PagePoint, b: PagePoint): Band[] }
+interface PagePoint { x: number; y: number }
+interface SwipeReader { bandsBetween(a: PagePoint, b: PagePoint): Band[] }
 
 const FALLBACK_HEIGHT_PTS = 14;
 const MARGIN_LINES = 3;
