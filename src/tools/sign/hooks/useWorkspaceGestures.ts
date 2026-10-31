@@ -21,6 +21,7 @@ import type { PageGeometry } from '#editor/geometry/coords.ts';
 import { getElementDefinition } from '#editor/registry/index.ts';
 import { ensureMinimumElementSize } from '../lib/minimumSize.ts';
 import { startHighlightSwipe } from './highlightSwipeGesture.ts';
+import { resolveHighlightDirection } from '../lib/highlight/resolveDirection.ts';
 import { samplePageColor } from '../lib/whiteoutPageColor.ts';
 import {
   cellRegionAt,
@@ -495,7 +496,7 @@ export default function useWorkspaceGestures({
     ).find((node) => node.dataset.editorElementId === id);
 
     gestureCancelRef.current?.();
-    if (newEl.type === 'highlight') return startHighlightSwipe({ dispatch, getPointerPercent, gestureCancelRef, logAction, setAnnouncement, messages: t, nextElementIndex, pageGeometry }, { pageIndex, container, id, newEl, start: { x: startLeftPercent, y: startTopPercent }, getElementNode });
+    if (newEl.type === 'highlight') return startHighlightSwipe({ dispatch, getPointerPercent, gestureCancelRef, logAction, setAnnouncement, messages: t, nextElementIndex, pageGeometry, direction: resolveHighlightDirection(formRegions.pageDirections?.[pageIndex], elements) }, { pageIndex, container, id, newEl, start: { x: startLeftPercent, y: startTopPercent }, getElementNode });
     gestureCancelRef.current = startGesture<PlacementPatch>({
       computePatch: (moveEvent) => {
       if ('touches' in moveEvent && moveEvent.touches && moveEvent.cancelable) moveEvent.preventDefault();

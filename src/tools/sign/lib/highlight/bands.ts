@@ -58,7 +58,15 @@ function bandOf(r: TextRow, x0: number, x1: number, snapStart: boolean, snapEnd:
   return { left, top: r.top - pad, width: right - left, height: heightOf(r) + 2 * pad };
 }
 
-export function bandsForSwipe(rows: TextRow[], start: Point, end: Point, fallbackHeight: number): Band[] {
+export type ReadingDirection = 'ltr' | 'rtl';
+
+export function bandsForSwipe(
+  rows: TextRow[],
+  start: Point,
+  end: Point,
+  fallbackHeight: number,
+  direction: ReadingDirection = 'ltr',
+): Band[] {
   let i0 = rowIndexAt(rows, start.y);
   if (i0 < 0) {
     const left = Math.min(start.x, end.x);
@@ -81,9 +89,11 @@ export function bandsForSwipe(rows: TextRow[], start: Point, end: Point, fallbac
   if (i0 === i1) {
     bands.push(bandOf(rows[i0], a.x, b.x, true, true));
   } else {
-    bands.push(bandOf(rows[i0], a.x, rows[i0].right, true, false));
+    const rtl = direction === 'rtl';
+    // Reading order: LTR runs the first row from the press to its end, RTL from its left edge to the press.
+    bands.push(rtl ? bandOf(rows[i0], rows[i0].left, a.x, false, true) : bandOf(rows[i0], a.x, rows[i0].right, true, false));
     for (let i = i0 + 1; i < i1; i += 1) bands.push(bandOf(rows[i], rows[i].left, rows[i].right, false, false));
-    bands.push(bandOf(rows[i1], rows[i1].left, b.x, false, true));
+    bands.push(rtl ? bandOf(rows[i1], b.x, rows[i1].right, true, false) : bandOf(rows[i1], rows[i1].left, b.x, false, true));
   }
   return bands.filter((band): band is Band => band !== null);
 }

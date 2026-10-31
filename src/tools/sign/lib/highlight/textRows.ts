@@ -14,6 +14,9 @@ const INKED_ROW_FRACTION = 0.002;
 const MERGE_FRACTION = 0.25;
 const GAP_ROW_FRACTION = 0.3;
 const MIN_GAP = 2;
+const GUTTER_INK_FRACTION = 0.003;
+const GUTTER_MIN_PX = 12;
+const GUTTER_MIN_WIDTH_FRACTION = 0.02;
 
 /** Ink mask (1 = ink) by Otsu on luminance, or null when the window has no real ink. */
 function inkMask({ data, width, height }: RasterWindow): Uint8Array | null {
@@ -105,4 +108,41 @@ export function findTextRows(win: RasterWindow): TextRow[] {
     rows.push({ top, bottom, left: first, right: last + 1, gaps });
   }
   return rows;
+}
+
+/**
+ * The column of a multi-column page that holds x: the span between the nearest gutters, a gutter
+ * being a wide run of pixel columns with almost no ink that touches neither window edge. The
+ * whole window when there is none. Rows of different columns sit on different baselines, so
+ * findTextRows only gives clean rows once it is run on this span.
+ */
+export function columnSpanAt(win: RasterWindow, x: number): { left: number; right: number } {
+  const { width, height } = win;
+  const whole = { left: 0, right: width };
+  const mask = inkMask(win);
+  if (!mask) return whole;
+  const quiet: boolean[] = [];
+  for (let c = 0; c < width; c += 1) {
+    let n = 0;
+    for (let y = 0; y < height; y += 1) n += mask[y * width + c];
+    quiet.push(n <= GUTTER_INK_FRACTION * height);
+  }
+  const minWidth = Math.max(GUTTER_MIN_PX, GUTTER_MIN_WIDTH_FRACTION * width);
+  const gutters = runsOf(quiet).filter(([s, e]) => s > 0 && e < width && e - s >= minWidth);
+  let left = 0;
+  let right = width;
+  for (const [s, e] of gutters) {
+    if (x >= s && x < e) {
+      return x - s < e - x ? { left, right: s } : { left: e, right: nextStart(gutters, e, width) };
+    }
+    if (e <= x) left = e;
+    else if (s > x && right === width) right = s;
+  }
+  return { left, right };
+}
+
+/** Start of the first gutter after `from`, else the window edge. */
+function nextStart(gutters: Array<[number, number]>, from: number, width: number): number {
+  const next = gutters.find(([s]) => s > from);
+  return next ? next[0] : width;
 }
