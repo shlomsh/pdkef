@@ -9,14 +9,16 @@ import { makePdfBuffer } from '../../../../e2e/support/pdf.js';
  * the real exported file, so this reads the downloaded PDF back with pdf-lib.
  */
 
-test.use({ serviceWorkers: 'block' });
+// Wide enough for the margin rail of comment cards beside the page.
+test.use({ serviceWorkers: 'block', viewport: { width: 1440, height: 900 } });
 
 const COMMENT = 'הערה לבדיקה';
 const MODIFIER = process.platform === 'darwin' ? 'Meta' : 'Control';
 
 const toolbar = (page) => page.getByRole('toolbar', { name: 'PDF annotations' });
 const overlay = (page) => page.locator('[class*="page-overlay"]').first();
-const badge = (page) => page.locator('[data-highlight-badge]');
+const dot = (page) => page.locator('[data-highlight-dot]');
+const header = (page) => page.locator('[data-tool-shell]').getByText('1 comment', { exact: true });
 
 async function openSign(page) {
   const source = await makePdfBuffer(null, { title: false, lines: [{ text: 'A line of text a student would highlight', y: 700 }] });
@@ -48,25 +50,31 @@ test('a comment on a highlight survives reload, undo and redo, and exports as st
   const sourcePages = await openSign(page);
   await highlightTheLine(page);
 
-  await page.getByRole('button', { name: 'Comment', exact: true }).click();
-  const note = page.locator('[data-highlight-note-input]');
+  // The highlight's toolbar opens a card in the rail; the card's own Comment button saves it.
+  await page.locator('[data-highlight-comment-button]').click();
+  const rail = page.locator('[data-comment-rail]').first();
+  const note = rail.locator('[data-highlight-note-input]');
   await expect(note).toBeFocused();
   await note.fill(COMMENT);
-  await page.keyboard.press('Escape');
-  await expect(badge(page)).toHaveText('1');
+  await rail.getByRole('button', { name: 'Comment', exact: true }).click();
+  await expect(rail.getByText(COMMENT, { exact: true })).toBeVisible();
+  await expect(dot(page)).toHaveCount(1);
+  await expect(header(page)).toBeVisible();
 
   await expect(page.locator('[data-tool-shell]').getByText('Draft saved')).toBeVisible({ timeout: 10_000 });
 
-  // Draft restore: the highlight and its number come back after a real reload.
+  // Draft restore: the comment, its dot and the page header's count come back after a real reload.
   await page.reload();
   await waitForIsland(page);
-  await expect(badge(page)).toHaveText('1', { timeout: 15_000 });
+  await expect(dot(page)).toHaveCount(1, { timeout: 15_000 });
+  await expect(page.locator('[data-comment-rail]').getByText(COMMENT, { exact: true })).toBeVisible();
+  await expect(header(page)).toBeVisible();
 
   // One undo step each way for the whole comment.
   await page.keyboard.press(`${MODIFIER}+z`);
-  await expect(badge(page)).toHaveCount(0);
+  await expect(dot(page)).toHaveCount(0);
   await page.keyboard.press(`${MODIFIER}+Shift+z`);
-  await expect(badge(page)).toHaveText('1');
+  await expect(dot(page)).toHaveCount(1);
 
   const pair = page.locator('[class*="export-actions"]').last();
   const download = pair.getByRole('button', { name: 'Download' });
