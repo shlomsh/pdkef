@@ -1,6 +1,6 @@
 import styles from './EditorPageHeader.module.css';
 import ToolbarMenu, { type ToolbarMenuItem } from './ToolbarMenu.tsx';
-import { TrashIcon } from './toolIcons.tsx';
+import { RotateIcon, TrashIcon } from './toolIcons.tsx';
 
 /*
  * The row above each rendered page in the Sign and Redact editors: the page's
@@ -13,6 +13,9 @@ import { TrashIcon } from './toolIcons.tsx';
  * unconditionally so a page doesn't shift up and down as its last element is
  * added or removed - the button is what appears and disappears.
  *
+ * `onRotate` (SIGN-43, Sign only) adds a "Rotate" action before Clear page, shown
+ * on every page, empty or not; Redact passes none and renders as before.
+ *
  * `clearOptions` (RED-03, Redact) turns the button into a short menu when
  * clearing has more than one meaning, e.g. keeping boxes repeated on every
  * page; without it the button clears in one tap, as it always has.
@@ -22,6 +25,9 @@ export default function EditorPageHeader({
   onClear,
   clearOptions,
   clearTitle,
+  onRotate,
+  rotateLabel = 'Rotate',
+  rotateTitle,
   // LOC-16: "Page N" and "Clear page" are now sourced from SignMessages on
   // /he/sign/ (see PdfWorkspace.tsx) - the props below default to the exact
   // English strings this component always rendered, so PdfRedactTool.tsx
@@ -35,6 +41,9 @@ export default function EditorPageHeader({
   onClear: (() => void) | null;
   clearOptions?: ToolbarMenuItem[];
   clearTitle?: string;
+  onRotate?: () => void;
+  rotateLabel?: string;
+  rotateTitle?: string;
   pageLabel?: string;
   clearLabel?: string;
   lang?: string;
@@ -44,25 +53,33 @@ export default function EditorPageHeader({
   return (
     <div className={styles['page-header']} data-editor-page-header dir={dir} lang={lang}>
       <span className={styles['page-number']} data-editor-page-number>{pageLabel ?? `Page ${pageNumber}`}</span>
-      {onClear && clearOptions && clearOptions.length > 0 ? (
-        <ToolbarMenu
-          title={clearTitle ?? clearLabel}
-          triggerClassName={styles['clear-page']}
-          triggerAttrs={{ 'data-editor-clear-page-trigger': true }}
-          triggerContent={<>{trashIcon}{clearLabel}</>}
-          items={clearOptions}
-        />
-      ) : onClear && (
-        <button
-          type="button"
-          className={styles['clear-page']}
-          title={clearTitle}
-          onClick={onClear}
-        >
-          {trashIcon}
-          {clearLabel}
-        </button>
-      )}
+      <div className={styles['page-actions']}>
+        {onRotate && (
+          <button type="button" className={styles['page-action']} title={rotateTitle} onClick={onRotate}>
+            <RotateIcon />
+            {rotateLabel}
+          </button>
+        )}
+        {onClear && clearOptions && clearOptions.length > 0 ? (
+          <ToolbarMenu
+            title={clearTitle ?? clearLabel}
+            triggerClassName={`${styles['page-action']} ${styles['clear-page']}`}
+            triggerAttrs={{ 'data-editor-clear-page-trigger': true }}
+            triggerContent={<>{trashIcon}{clearLabel}</>}
+            items={clearOptions}
+          />
+        ) : onClear && (
+          <button
+            type="button"
+            className={styles['page-action']}
+            title={clearTitle}
+            onClick={onClear}
+          >
+            {trashIcon}
+            {clearLabel}
+          </button>
+        )}
+      </div>
     </div>
   );
 }

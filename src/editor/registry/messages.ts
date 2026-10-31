@@ -142,6 +142,10 @@ export interface SignMessages {
   pageLabel: string;
   clearPageLabel: string;
   clearPageTitle: string;
+  /** SIGN-43: the page header's Rotate, its history entry and its announcement. */
+  rotatePageLabel: string;
+  rotatePageTitle: string;
+  rotatedPageAnnouncementTemplate: string;
   /** PdfSignTool.tsx's "Delete signature?" ConfirmDialog. */
   deleteSignatureConfirmTitle: string;
   deleteSignatureConfirmBody: string;

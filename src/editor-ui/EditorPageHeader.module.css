@@ -10,6 +10,15 @@
   color: var(--color-text);
 }
 
+/* Rotate and Clear page, grouped on the end side so `space-between` keeps the
+   page number on the start side. The negative margins on the buttons below
+   keep their hit area off the row's rhythm, so the gap here is the visible one. */
+.page-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
 /* "Clear page": wipes one page's work, and nothing else. It used to borrow
    `.clear-all` from PdfTool.module.css, back when that class was the generic
    "throw the user's work away" button eight tools shared. That class is gone -
@@ -17,8 +26,9 @@
    with the page header that is the only thing rendering it. Quiet at rest
    (muted, no border) and only red on hover: it sits beside every page, so a
    permanently red button would read as a warning on a document with nothing
-   wrong with it. */
-.clear-page {
+   wrong with it. Rotate (SIGN-43) shares the quiet look; only the hover colour
+   is Clear's own, so Rotate stays neutral. */
+.page-action {
   display: inline-flex;
   align-items: center;
   gap: 0.25rem;
@@ -35,7 +45,12 @@
   transition: color 0.15s var(--ease-out), background-color 0.15s var(--ease-out);
 }
 
-.clear-page:hover {
+.page-action:hover {
+  color: var(--color-text);
+  background: var(--color-surface-soft);
+}
+
+.page-action.clear-page:hover {
   color: var(--color-danger);
   background: var(--color-danger-soft);
 }
