@@ -1,0 +1,24 @@
+.rail { position: relative; width: 100%; min-width: 0; }
+.card {
+  position: absolute; left: 0; right: 0; box-sizing: border-box; padding: 10px 12px;
+  background: var(--color-surface); border: 1px solid var(--color-border); border-radius: 12px;
+  font-size: 13.5px; line-height: 1.4; color: var(--color-text);
+}
+.card[data-active='true'] { border-color: var(--color-primary); box-shadow: var(--shadow-md); }
+.body { display: flex; flex-direction: column; gap: 6px; cursor: default; }
+.head { display: flex; align-items: flex-start; gap: 8px; }
+.dot { flex: none; width: 10px; height: 10px; margin-top: 4px; border-radius: 50%; }
+.crop { flex: 1; min-width: 0; width: 100%; display: block; border-radius: 4px; }
+.text { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+.meta { margin: 0; font-size: 12px; color: var(--color-muted); }
+.input {
+  display: block; width: 100%; box-sizing: border-box; resize: none;
+  font: inherit; font-size: 16px; line-height: 1.4; padding: 0.4rem 0.55rem;
+  color: var(--color-text); background: var(--color-surface);
+  border: 1px solid var(--color-primary); border-radius: 0.5rem; outline: none;
+}
+.input:focus { box-shadow: 0 0 0 3px var(--color-primary-ring); }
+.actions { display: flex; justify-content: flex-end; gap: 6px; }
+.primary, .secondary { font: inherit; font-size: 13px; font-weight: 600; padding: 4px 12px; border-radius: 999px; cursor: pointer; }
+.primary { background: var(--color-primary); color: var(--color-surface); border: 1px solid var(--color-primary); }
+.secondary { background: transparent; color: var(--color-primary-text); border: 1px solid var(--color-border-strong); }
