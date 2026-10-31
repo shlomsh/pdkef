@@ -41,7 +41,7 @@ async function planOn(elements: EditorElement[], pages = 3) {
 
 async function textOfLastPage(blob: Blob) {
   const { getDocument } = await import('pdfjs-dist/legacy/build/pdf.mjs');
-  const task = getDocument({ data: new Uint8Array(await blob.arrayBuffer()), useWorkerFetch: false, isEvalSupported: false });
+  const task = getDocument({ data: new Uint8Array(await blob.arrayBuffer()), useWorkerFetch: false });
   const pdf = await task.promise;
   const page = await pdf.getPage(pdf.numPages);
   const content = await page.getTextContent();
@@ -137,7 +137,7 @@ describe('signPdf comments page', () => {
       .filter((object): object is PDFRawStream => object instanceof PDFRawStream
         && object.dict.get(PDFName.of('Subtype')) === PDFName.of('Form') && object.dict.has(PDFName.of('BBox')));
     expect(forms.length).toBeGreaterThan(0);
-    const decoded = forms.map((form) => Buffer.from(decodePDFRawStream(form).decode()).toString('latin1'));
+    const decoded = forms.map((form) => new TextDecoder('latin1').decode(decodePDFRawStream(form).decode()));
     expect(decoded.some((content) => content.includes('Tj') && content.includes('BT'))).toBe(true);
   });
 
