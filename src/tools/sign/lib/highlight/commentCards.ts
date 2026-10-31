@@ -8,6 +8,8 @@ export interface PercentBox { left: number; top: number; width: number; height: 
 export interface CommentCard {
   id: string;
   color: string;
+  /** The passage's reading direction: the crop starts where the line is read first. */
+  direction: 'ltr' | 'rtl';
   comment: string;
   /** Opened with Comment and nothing typed yet: the card shows an empty field. */
   isNew: boolean;
@@ -39,6 +41,7 @@ export function commentCards(elements: readonly EditorElement[], pageIndex: numb
     .map((el) => ({
       id: el.id,
       color: el.color,
+      direction: el.direction ?? 'ltr',
       comment: el.comment ?? '',
       isNew: !el.comment?.trim(),
       firstBand: bandToPage(el, el.bands[0]),

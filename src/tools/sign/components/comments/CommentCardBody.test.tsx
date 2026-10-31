@@ -6,7 +6,7 @@ import type { CommentCard } from '../../lib/highlight/commentCards.ts';
 import { CommentCardBody } from './CommentCardBody.tsx';
 
 const band = { left: 10, top: 10, width: 30, height: 2 };
-const card = (over: Partial<CommentCard> = {}): CommentCard => ({ id: 'h1', color: '#ff0', comment: 'Check this', isNew: false, firstBand: band, ...over });
+const card = (over: Partial<CommentCard> = {}): CommentCard => ({ id: 'h1', color: '#ff0', direction: 'ltr', comment: 'Check this', isNew: false, firstBand: band, ...over });
 
 let host: HTMLDivElement | null = null;
 afterEach(() => { if (host) render(null, host); host?.remove(); host = null; });

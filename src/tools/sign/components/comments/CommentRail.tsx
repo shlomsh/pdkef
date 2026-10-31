@@ -56,7 +56,7 @@ export function CommentRail({ pageIndex, elements, activeElementId, messages, on
             active={card.id === activeElementId}
             pageNumber={pageIndex + 1}
             messages={messages}
-            crop={<PassageCrop pageIndex={pageIndex} band={card.firstBand} />}
+            crop={<PassageCrop pageIndex={pageIndex} band={card.firstBand} direction={card.direction} />}
             onSelect={() => onSelect(card.id)}
             onChange={(patch) => onChange(card.id, patch)}
           />

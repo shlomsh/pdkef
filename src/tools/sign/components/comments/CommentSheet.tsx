@@ -39,7 +39,7 @@ export function CommentSheet({ elements, activeElementId, messages, onChange, on
         active
         pageNumber={active.pageIndex + 1}
         messages={messages}
-        crop={<PassageCrop pageIndex={active.pageIndex} band={card.firstBand} />}
+        crop={<PassageCrop pageIndex={active.pageIndex} band={card.firstBand} direction={card.direction} />}
         onSelect={() => {}}
         onChange={(patch) => onChange(card.id, patch)}
       />
