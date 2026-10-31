@@ -3,7 +3,7 @@
 Chosen by Shlomi on 2026-10-31 from four sketched options: a text highlighter (snaps to the text
 layer), a marker pen (freehand), a highlight box (a translucent rectangle) and the line band. The line
 band won because it is the only one that behaves the same on a digital PDF and on a scan or a photo
-of a form, and it stays straight under a finger. Ticket: [SIGN-42](../backlog/tasks/SIGN-42.md).
+of a form, and it stays straight under a finger. Ticket: [SIGN-46](../backlog/tasks/SIGN-46.md).
 
 ## What it does
 

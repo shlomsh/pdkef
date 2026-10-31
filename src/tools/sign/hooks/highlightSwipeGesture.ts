@@ -1,5 +1,5 @@
 /**
- * The highlight's swipe (SIGN-42). The bands come from the page's own pixels, so every move only
+ * The highlight's swipe (SIGN-46). The bands come from the page's own pixels, so every move only
  * reads the canvas and repaints the element's draft layer; state commits once on release.
  */
 import { startGesture } from '#lib/gestures/controller.ts';

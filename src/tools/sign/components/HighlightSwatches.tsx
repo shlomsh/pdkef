@@ -2,7 +2,7 @@ import { HIGHLIGHT_COLORS } from '#editor/model/highlightColors.ts';
 import type { SignMessages } from '#editor/registry/messages.ts';
 import styles from '#editor-ui/EditorControls.module.css';
 
-/** SIGN-42: the highlighter's six colors as round swatches (no thickness: the band follows the text line). */
+/** SIGN-46: the highlighter's six colors as round swatches (no thickness: the band follows the text line). */
 export default function HighlightSwatches({ color, onChange, t }: { color: string; onChange: (changes: { color: string }) => void; t: SignMessages }) {
   return (
     <>

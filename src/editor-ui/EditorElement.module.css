@@ -28,7 +28,7 @@
    click once the touch is let through) drops `data-touch-scroll`, and the
    `.element` rule above - single-finger drag JS-owned - applies again. */
 .element[data-touch-scroll] { touch-action: pan-x pan-y pinch-zoom; }
-/* SIGN-42: a highlight's wrapper is no stacking context, so the band's own multiply (HighlightNode) reaches the
+/* SIGN-46: a highlight's wrapper is no stacking context, so the band's own multiply (HighlightNode) reaches the
    page canvas. Blending the wrapper instead multiplied its toolbar too, and dark text showed through it. */
 .element[data-editor-highlight], .element.active[data-editor-highlight] { z-index: auto; }
 .element.active[data-editor-highlight] .actions { z-index: 50; }

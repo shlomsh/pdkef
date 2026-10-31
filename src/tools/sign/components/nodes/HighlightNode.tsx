@@ -5,7 +5,7 @@ import { HighlightBadge, HighlightNote } from './HighlightComment.tsx';
 import { useCommentNumber } from './commentNumbersContext.tsx';
 import styles from './HighlightNode.module.css';
 
-/* SIGN-42: bands are percents of the element's own box. The draft container
+/* SIGN-46: bands are percents of the element's own box. The draft container
  * stays empty in render - the swipe gesture paints live bands into it.
  * SIGN-44: the note and badge are siblings of the multiply root, never inside it. */
 export default function HighlightNode({ element, isActive, onChange, onSelect, messages }: ElementNodeProps<HighlightElement> & {
