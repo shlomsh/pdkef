@@ -2,6 +2,7 @@ import { useId } from 'preact/hooks';
 import { PilcrowLeft, PilcrowRight, TextAlignCenter, TextAlignEnd, TextAlignStart } from 'lucide-preact';
 import { TrashIcon } from '#editor-ui/toolIcons.tsx';
 import ColorPickerMenu from '#editor-ui/ColorPickerMenu.tsx';
+import HighlightSwatches from './HighlightSwatches.tsx';
 import WhiteoutColorControls from './WhiteoutColorControls.tsx';
 import FontPickerMenu from './FontPickerMenu.tsx';
 import ThicknessPickerMenu from './ThicknessPickerMenu.tsx';
@@ -59,7 +60,6 @@ export default function ElementToolbar({
   const buttonClass = (active = false, danger = false) => [styles['element-button'], active && styles.active, danger && styles['element-button-danger']].filter(Boolean).join(' ');
 
   const trashIcon = <TrashIcon strokeWidth={2.5} rounded={false} />;
-
   // SIGN-08: the same typography descriptor TextNode renders with and
   // text.ts exports with (fonts.js) - family, and which weight/style the
   // resolved family actually has a real file for, computed once instead of
@@ -365,6 +365,7 @@ export default function ElementToolbar({
           <div className={styles.divider} />
         </>
       )}
+      {element.type === 'highlight' && <HighlightSwatches color={element.color} onChange={onChange} t={t} />}
       {element.type === 'whiteout' && (
         <>
           <WhiteoutColorControls element={element} onChange={onChange} messages={t} />

@@ -20,6 +20,17 @@ export function WhiteoutIcon({ size = 18, strokeWidth = 2 }: { size?: number; st
   );
 }
 
+/* SIGN-42: a chisel-tip highlighter, tilted, with a short swipe under its tip. */
+export function HighlightIcon({ size = 18, strokeWidth = 2 }: { size?: number; strokeWidth?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width={strokeWidth} stroke-linecap="round" stroke-linejoin="round">
+      <path d="m15 3 6 6-8.5 8.5-6-6z" />
+      <path d="m6.5 11.5-2.5 5.5 4 1 3.5-1.5" />
+      <line x1="13" y1="21" x2="21" y2="21" />
+    </svg>
+  );
+}
+
 /* Blackout's bar, softened: the band is drawn with a real Gaussian blur, which
  * is what the tool does to the page. The filter region is padded so the blur is
  * not clipped at the band's edge; the id is fixed because every instance

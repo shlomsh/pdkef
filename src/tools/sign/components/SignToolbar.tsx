@@ -4,13 +4,14 @@ import { useSavedSignatures } from './SavedSignaturesContext.tsx';
 import SignFeedbackButton from './SignFeedbackButton.tsx';
 import FullscreenButton from '#editor-ui/FullscreenButton.tsx';
 import Popover from '#shell/Popover.tsx';
-import EditorToolStatus, { type ToolCopy } from '#editor-ui/EditorToolStatus.tsx';
+import { buildToolCopy } from './toolCopy.ts';
+import EditorToolStatus from '#editor-ui/EditorToolStatus.tsx';
 import ArmHint from '#editor-ui/ArmHint.tsx';
 import ExportReadinessNotice from './ExportReadinessNotice.tsx';
 import EditorExportActions from '#editor-ui/EditorExportActions.tsx';
 import ToolShell, { FILE_ACTIONS, useToolShell } from '#shell/ToolShell.tsx';
 import { useArmTool, useAutoArmHint, useDoubleTap } from '#editor-ui/hooks/toolArming.js';
-import { WhiteoutIcon } from '#editor-ui/toolIcons.tsx';
+import { HighlightIcon, WhiteoutIcon } from '#editor-ui/toolIcons.tsx';
 import useCoarsePointer from '#editor-ui/hooks/useCoarsePointer.ts';
 import { useFill } from './fill/FillContext.tsx';
 import { englishSignMessages } from '../messages';
@@ -32,7 +33,7 @@ import { recordAction } from '#lib/telemetry/actionTrail.ts';
 // than deriving it from TOOL_COPY's own keys, since TOOL_COPY is now built
 // per-render from the message catalogue (LOC-09 stage 1) and this guard has to
 // exist before that render happens.
-const SIGN_TOOL_TYPES: readonly SignToolType[] = ['text', 'date', 'symbol', 'signature', 'whiteout', 'ellipse', 'rectangle', 'line'];
+const SIGN_TOOL_TYPES: readonly SignToolType[] = ['text', 'date', 'symbol', 'signature', 'whiteout', 'ellipse', 'rectangle', 'line', 'highlight'];
 const isSignToolType = (tool: string): tool is SignToolType => (SIGN_TOOL_TYPES as readonly string[]).includes(tool);
 
 // What this file's own tests (and any other caller that has no fields to
@@ -140,21 +141,8 @@ export default function SignToolbar({
 
   const t: SignMessages = { ...englishSignMessages, ...messages };
 
-  // TOOL_COPY owns every tool-facing string (CLAUDE.md's editor rule) - built
-  // from `t` per render rather than as a module constant (LOC-09 stage 1), so
-  // a Hebrew catalogue reaches it the same way the English default does. Not
-  // memoized: `t` is a fresh object every render (the spread above), so a
-  // memo keyed on it would recompute every render anyway.
-  const TOOL_COPY: Record<SignToolType, ToolCopy> = {
-    text:      { action: t.textAction,      actionTouch: t.textActionTouch,      button: t.textButton },
-    date:      { action: t.dateAction,      actionTouch: t.dateActionTouch,      button: t.dateButton },
-    symbol:    { action: t.symbolAction,    actionTouch: t.symbolActionTouch,    button: t.symbolsButton },
-    signature: { action: t.signatureAction, actionTouch: t.signatureActionTouch, button: t.signButton },
-    whiteout:  { action: t.whiteoutAction,  actionTouch: t.whiteoutActionTouch,  button: t.whiteoutButton },
-    ellipse:   { action: t.ellipseAction,   actionTouch: t.ellipseActionTouch,   button: t.shapesButton },
-    rectangle: { action: t.rectangleAction, actionTouch: t.rectangleActionTouch, button: t.shapesButton },
-    line:      { action: t.lineAction,      actionTouch: t.lineActionTouch,      button: t.shapesButton }, highlight: { action: t.highlightAction, actionTouch: t.highlightActionTouch, button: t.highlightLabel },
-  };
+  // TOOL_COPY owns every tool-facing string (see toolCopy.ts).
+  const TOOL_COPY = buildToolCopy(t);
 
   const blockedExportTitle = formatMessage(exportIssueCount === 1 ? t.exportBlockedTitleOne : t.exportBlockedTitleOther, { count: exportIssueCount });
 
@@ -618,6 +606,17 @@ export default function SignToolbar({
               }
             />
             </div>
+          </ArmHint>
+
+          <ArmHint tool="highlight" label={t.highlightLabel} action={TOOL_COPY.highlight.action} locked={selectedTool === 'highlight' && toolLocked} autoShowTool={autoShowTool} hintTemplate={t.armHint} touchHintTemplate={t.armHintTouch}>
+            <button
+              type="button"
+              {...toolButtonProps(selectedTool === 'highlight', toolLocked)}
+              onClick={armTool('highlight')}
+            >
+              <HighlightIcon strokeWidth={2.5} />
+              <span className={styles.label}>{t.highlightLabel}</span>
+            </button>
           </ArmHint>
 
           <ArmHint tool="whiteout" label={t.whiteoutButton} action={TOOL_COPY.whiteout.action} locked={selectedTool === 'whiteout' && toolLocked} autoShowTool={autoShowTool} hintTemplate={t.armHint} touchHintTemplate={t.armHintTouch}>
