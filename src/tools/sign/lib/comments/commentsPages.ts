@@ -117,6 +117,53 @@ function planClip(element: HighlightElement, geometry: PageGeometry, destLeft: n
   };
 }
 
+interface Divider { page: PDFPage; y: number }
+interface DrawLayout { pageH: number; columnLeft: number; columnWidth: number; circleX: number }
+
+/** Draws the planned circles, dividers, passage clips and links; runs after the element loop. */
+async function drawComments(pdfDoc: PDFDocument, entries: readonly Entry[], dividers: readonly Divider[], layout: DrawLayout): Promise<void> {
+  const { pageH, columnLeft, columnWidth, circleX } = layout;
+  const bold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+  const circle = hexToRgbFractions(CIRCLE_COLOR);
+  for (const { page: dividerPage, y: dividerY } of dividers.slice(0, -1)) {
+    if (dividerY > pageH - MARGIN) continue;
+    dividerPage.drawLine({
+      start: { x: columnLeft, y: pageH - dividerY }, end: { x: columnLeft + columnWidth, y: pageH - dividerY },
+      thickness: 0.5, color: rgb(DIVIDER_GRAY, DIVIDER_GRAY, DIVIDER_GRAY),
+    });
+  }
+  for (const entry of entries) {
+    const { commentsPage, clip, element } = entry;
+    commentsPage.drawCircle({ x: circleX, y: entry.circleY, size: CIRCLE_DIAMETER / 2, color: rgb(circle.r, circle.g, circle.b) });
+    const label = String(entry.number);
+    const labelSize = label.length > 2 ? 7 : 10;
+    commentsPage.drawText(label, {
+      x: circleX - bold.widthOfTextAtSize(label, labelSize) / 2,
+      y: entry.circleY - labelSize * 0.35,
+      size: labelSize, font: bold, color: rgb(1, 1, 1),
+    });
+
+    // The highlight is an annotation, not page content, so the clip gets its bands painted beneath
+    // the page and the page multiplied over them.
+    const { r, g, b } = hexToRgbFractions(element.color);
+    for (const band of clip.bands) commentsPage.drawRectangle({ ...band, color: rgb(r, g, b) });
+    const sourcePage = pdfDoc.getPage(element.pageIndex);
+    const embedded = await pdfDoc.embedPage(sourcePage, clip.bbox);
+    commentsPage.pushOperators(pushGraphicsState(), concatTransformationMatrix(...clip.matrix));
+    commentsPage.drawPage(embedded, { x: 0, y: 0, blendMode: BLEND_MULTIPLY });
+    commentsPage.pushOperators(popGraphicsState());
+
+    const link = pdfDoc.context.obj({
+      Type: 'Annot',
+      Subtype: 'Link',
+      Rect: entry.linkRect,
+      Border: [0, 0, 0],
+      Dest: [sourcePage.ref, PDFName.of('XYZ'), clip.target.x, clip.target.y, null],
+    });
+    commentsPage.node.addAnnot(pdfDoc.context.register(link));
+  }
+}
+
 /**
  * Appends the comments page(s) to `pdfDoc` and plans their content, or returns null when no highlight
  * carries a comment. Call before fonts load so the returned elements share that pass and the coverage check.
@@ -146,7 +193,7 @@ export async function planCommentsPages(
 
   const textElements: TextElement[] = [];
   const entries: Entry[] = [];
-  const dividers: { page: PDFPage; y: number }[] = [];
+  const dividers: Divider[] = [];
   let pageIndex = -1;
   let page: PDFPage | null = null;
   let y = 0;
@@ -232,47 +279,5 @@ export async function planCommentsPages(
     y += ENTRY_GAP;
   }
 
-  const finish = async () => {
-    const bold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
-    const circle = hexToRgbFractions(CIRCLE_COLOR);
-    for (const { page: dividerPage, y: dividerY } of dividers.slice(0, -1)) {
-      if (dividerY > pageH - MARGIN) continue;
-      dividerPage.drawLine({
-        start: { x: columnLeft, y: pageH - dividerY }, end: { x: columnLeft + columnWidth, y: pageH - dividerY },
-        thickness: 0.5, color: rgb(DIVIDER_GRAY, DIVIDER_GRAY, DIVIDER_GRAY),
-      });
-    }
-    for (const entry of entries) {
-      const { commentsPage, clip, element } = entry;
-      commentsPage.drawCircle({ x: circleX, y: entry.circleY, size: CIRCLE_DIAMETER / 2, color: rgb(circle.r, circle.g, circle.b) });
-      const label = String(entry.number);
-      const labelSize = label.length > 2 ? 7 : 10;
-      commentsPage.drawText(label, {
-        x: circleX - bold.widthOfTextAtSize(label, labelSize) / 2,
-        y: entry.circleY - labelSize * 0.35,
-        size: labelSize, font: bold, color: rgb(1, 1, 1),
-      });
-
-      // The highlight is an annotation, not page content, so the clip gets its bands painted beneath
-      // the page and the page multiplied over them.
-      const { r, g, b } = hexToRgbFractions(element.color);
-      for (const band of clip.bands) commentsPage.drawRectangle({ ...band, color: rgb(r, g, b) });
-      const sourcePage = pdfDoc.getPage(element.pageIndex);
-      const embedded = await pdfDoc.embedPage(sourcePage, clip.bbox);
-      commentsPage.pushOperators(pushGraphicsState(), concatTransformationMatrix(...clip.matrix));
-      commentsPage.drawPage(embedded, { x: 0, y: 0, blendMode: BLEND_MULTIPLY });
-      commentsPage.pushOperators(popGraphicsState());
-
-      const link = pdfDoc.context.obj({
-        Type: 'Annot',
-        Subtype: 'Link',
-        Rect: entry.linkRect,
-        Border: [0, 0, 0],
-        Dest: [sourcePage.ref, PDFName.of('XYZ'), clip.target.x, clip.target.y, null],
-      });
-      commentsPage.node.addAnnot(pdfDoc.context.register(link));
-    }
-  };
-
-  return { elements: textElements, finish };
+  return { elements: textElements, finish: () => drawComments(pdfDoc, entries, dividers, { pageH, columnLeft, columnWidth, circleX }) };
 }
