@@ -61,6 +61,11 @@ export interface SignMessages {
   highlightCommentNumberLabel: string;
   commentsPageTitle: string;
   commentsPageEntry: string;
+  /** SIGN-44 comments view: a card's Cancel and Edit buttons (Save reuses highlightCommentLabel), and the page header's count. */
+  commentCancel: string;
+  commentEdit: string;
+  commentsCountOne: string;
+  commentsCountOther: string;
   lineAction: string;
   /** Touch-only short forms of the eight actions above, shown on a coarse pointer in place of
    * them (EditorToolStatus.tsx's `ToolCopy.actionTouch`). "Tap" and "Tap and drag" rather than "Click" and "Click and drag",
