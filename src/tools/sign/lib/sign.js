@@ -19,6 +19,7 @@ import { getElementDefinition } from '#editor/registry/index.ts';
 import { commentNumbers } from './highlight/commentNumbers.ts';
 import { planCommentsPages } from './comments/commentsPages.ts';
 import { findUnrepresentableCharacters } from './textCoverage.js';
+import { drawableCommentElements } from './comments/drawableCommentElements.ts';
 import { baselineOffsetEmFromMetrics, embeddedFontFile, resolveTypography } from '#editor/text/fonts.js';
 import { HELVETICA_BASELINE_OFFSET_EM, DEFAULT_LINE_HEIGHT_EM } from '#editor/model/signGeometry.js';
 import { reportError } from '#lib/telemetry/errorReport.ts';
@@ -173,7 +174,11 @@ export async function signPdf(file, sourceElements, onProgress, { pageTurns = {}
     loadCustomFont,
     pageGeometry: pageGeometryFromPdfLibPage,
   });
-  const elements = comments ? [...sourceElements, ...comments.elements] : sourceElements;
+  // The comments page never blocks the export: its text is cut to what a font can draw (the full
+  // comment stays in the annotation's /Contents), and dropped if its font cannot load at all.
+  // Only the source elements go through the strict font and coverage checks below.
+  const commentElements = comments ? await drawableCommentElements(comments.elements, loadCustomFont) : [];
+  const elements = sourceElements;
 
   // Load every exact face the document needs before coverage checking or page
   // mutation. The old generic Arimo fallback made an uncached Latin display
@@ -210,8 +215,9 @@ export async function signPdf(file, sourceElements, onProgress, { pageTurns = {}
   // annotations and never calls `getForm()`, which would strip XFA data.
   flattenDoc(pdfDoc);
 
-  for (let i = 0; i < elements.length; i++) {
-    const element = elements[i];
+  const drawn = [...elements, ...commentElements];
+  for (let i = 0; i < drawn.length; i++) {
+    const element = drawn[i];
     const page = pdfDoc.getPage(element.pageIndex);
     const pageGeometry = pageGeometryFromPdfLibPage(page);
     const { x: pdfX, y: pdfY } = pagePercentToEditorPoint({
@@ -246,7 +252,7 @@ export async function signPdf(file, sourceElements, onProgress, { pageTurns = {}
     } finally {
       page.pushOperators(popGraphicsState(), endMarkedContent());
     }
-    onProgress?.((i + 1) / elements.length);
+    onProgress?.((i + 1) / drawn.length);
   }
 
   await comments?.finish();
