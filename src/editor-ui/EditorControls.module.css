@@ -10,7 +10,8 @@
 @media (pointer: coarse) {
   .element-button::before { content: ''; position: absolute; inset: -8px; }
 }
-.element-button:hover { background: var(--color-white-15); }
+/* The dark pill (`.actions`) sets --toolbar-hover-fill from the palette; elsewhere the old fill stays. */
+.element-button:hover { background: var(--toolbar-hover-fill, var(--color-white-15)); }
 .element-button.active { background: var(--color-primary); }
 .element-button:disabled { opacity: .35; cursor: not-allowed; }
 .element-button:disabled:hover { background: transparent; }
