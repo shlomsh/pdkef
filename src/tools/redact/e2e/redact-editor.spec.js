@@ -340,10 +340,9 @@ test.describe('Redact editor browser guardrails', () => {
     await openRedactTool(page);
     await drawRedaction(page, 'Blackout', { x: 0.18, y: 0.28 }, { x: 0.38, y: 0.34 });
 
-    // The desktop toolbar (this test's 1600px viewport) shows ViewControl's
-    // segmented radiogroup instead of a plain FullscreenButton - see
-    // src/editor-ui/ViewControl.tsx.
-    await page.getByRole('radio', { name: 'Full screen' }).click();
+    // The toolbar's chrome group holds the plain FullscreenButton (icon-only on
+    // desktop, accessible name "Full screen").
+    await page.getByRole('button', { name: 'Full screen', exact: true }).click();
     await expect.poll(() => page.evaluate(() => document.fullscreenElement?.getAttribute('aria-busy') === 'false')).toBe(true);
 
     await page.getByRole('button', { name: 'Replace file', exact: true }).click();

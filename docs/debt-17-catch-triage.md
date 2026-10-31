@@ -71,9 +71,6 @@ Tree: /Users/sh/work/pdkef-debt17, non-test source under src/.
 | src/tools/sign/PdfSignTool.tsx:884 | Sign/export PDF | DEFECT | export threw; [surfaced: signExportFailed telemetry + UI detail + console.error] | sign_export |
 | src/tools/sign/components/SignatureDialog.tsx:320 | document.fonts.load for typed name | EXPECTED | offline/slow font, draws with what is loaded | |
 | src/shell/FilePreview.tsx:72 | Render PDF preview thumbnail | EXPECTED | comment: nicety; keeps glyph; encrypted PDFs fail by design | |
-| src/editor-ui/useViewDensity.js:12 | Read stored view density | EXPECTED | stored preference falls back to default | |
-| src/editor-ui/useViewDensity.js:34 | Set data-view-density attribute | EXPECTED | locked-down contexts | |
-| src/editor-ui/useViewDensity.js:44 | Persist view density | EXPECTED | blocked localStorage | |
 | src/editor-ui/hooks/toolArming.js:101 | Read touch-hint-seen flag | EXPECTED | blocked localStorage | |
 | src/editor-ui/hooks/toolArming.js:109 | Set touch-hint-seen flag | EXPECTED | blocked localStorage | |
 | src/editor-ui/PdfPageCanvas.tsx:73 | Render a page onto canvas | DEFECT | pdf.js render threw (cancellation already filtered); [surfaced: console.error only] | pdf_render |

@@ -1,3 +1,5 @@
+> Superseded on 2026-10-31 by SIGN-42: Sign and Redact show one Full screen button; the density preference was removed and the condensed fold always applies. The body below is the historical record.
+
 # View density control (Relaxed / Condensed / Full screen)
 
 > **Status: landed.** `ViewControl.jsx`, `useViewDensity.js` and their tests are in the tree and wired
@@ -175,9 +177,9 @@ attributes. Write `stroke-width`, not `strokeWidth`.
 
 | File | Change |
 |---|---|
-| `src/editor-ui/ViewControl.tsx` | **new** - renders segmented control + `FullscreenButton` |
-| `src/editor-ui/ViewControl.module.css` | **new** - segmented styles + the 920px show/hide |
-| `src/editor-ui/useViewDensity.js` | **new** - the hook: read/write localStorage, sync `data-view-density` |
+| `ViewControl.tsx` (removed) | **new** - renders segmented control + `FullscreenButton` |
+| `ViewControl.module.css` (removed) | **new** - segmented styles + the 920px show/hide |
+| `useViewDensity.js` (removed) | **new** - the hook: read/write localStorage, sync `data-view-density` |
 | `src/tools/sign/components/SignToolbar.tsx` | swap `FullscreenButton` -> `ViewControl` |
 | `src/tools/redact/components/RedactToolbar.tsx` | swap `FullscreenButton` -> `ViewControl` |
 | `src/components/ToolHero.astro` | gate collapse on density + the condensable flag |

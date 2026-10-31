@@ -172,8 +172,7 @@ export default function EditorExportActions({
 
   if (isToolbar) {
     // Rendered unwrapped, as a Fragment: both controls stay direct children of
-    // `.toolbar`, exactly like every other button (see ViewControl.tsx for the
-    // same reasoning). A wrapping element here would count as one child instead
+    // `.toolbar`, exactly like every other button. A wrapping element here would count as one child instead
     // of two for the module's `:has(> :nth-child(N of :not(.desktop-download)))`
     // responsive math, and silently mis-measure every wrap threshold it drives.
     return <>{shareButton}{downloadButton}</>;

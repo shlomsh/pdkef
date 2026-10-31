@@ -36,7 +36,7 @@ interface Props {
 const { icon: Icon, title, subhead, slug, condensable, phoneCondensed = false, subheadAccent, titleName, condenseOnLoad = false } = Astro.props;
 
 // Sign and Redact keep the icon-beside-title row: their condensed editor hero
-// (ViewControl) is sized for it. The other tools stack the icon above the h1,
+// is sized for it. The other tools stack the icon above the h1,
 // every line on one start edge. HERO-05: on a desktop empty state the editors
 // take the stacked look too (the E block below), so their h1 is split like the
 // others and a neutraliser renders the two spans as the one line they were
@@ -278,7 +278,7 @@ const sentences = subhead.split(/(?<=\. )/);
 
   /* MERGE-06: a phone-only fold-away, separate from the condensable gates
      below, because those only ever engage once a file is open
-     ([data-tool-shell], the draft hint, the density preference) - all three
+     ([data-tool-shell], the draft hint) - both
      are about giving a loaded document its room back. This one is about the
      empty state itself: on a 375-wide phone the un-collapsed hero (H1 +
      three-line subhead + the no-limit note) measured "Choose files" landing
@@ -363,21 +363,19 @@ const sentences = subhead.split(/(?<=\. )/);
      show, so a stale hint self-corrects instead of leaving the hero wrongly
      collapsed for good.
 
-     Two more gates sit on top of both triggers now (E9): a `density`
-     preference (`html[data-view-density='condensed']`) so the fold-away is
-     opt-out instead of permanent, and a per-tool `condenseOnLoad` flag
+     A second gate is a per-tool `condenseOnLoad` flag
      (`[data-hero-condensable]`, only rendered on the header when the tool
      opts in - see src/data/tools.js) so short single-card tools never fold at
-     all. `data-draft-hint` itself is density-independent: ToolPageLayout also
-     uses it to reserve space while saved work restores for Relaxed users.
-     These selectors therefore repeat the density gate, so changing to
-     Relaxed expands the hero while the reservation remains available.
+     all. There is no user preference: since SIGN-42 (2026-10-31) the fold
+     always applies where its other gates hold. ToolPageLayout also uses
+     `data-draft-hint` to reserve space while saved work restores.
 
      A third gate, viewport width, was added 2026-09-12 (Shlomi, from the
      /compress/ and /merge/ pass: picking a file used to shrink this title and
      drop the subhead at every width, which is what made the option cards and
      the primary button jump up underneath it). Below 1024px that fold-away is
-     still doing real work: docs/view-density-control-spec.md 4.7 and
+     still doing real work: docs/view-density-control-spec.md 4.7 (a record of
+     the retired density control) and
      src/data/tools.js record it by name for Compress and Compress Image
      (the strip, level picker and result share the first screen once a file
      is open), and it is kept there, unchanged, for that reason. At
@@ -393,14 +391,14 @@ const sentences = subhead.split(/(?<=\. )/);
 
      Since HERO-06 (2026-10-15) every tool also folds through
      `data-hero-condense-on-load` at the end of this style, at every width
-     (Sign and Redact on a coarse phone only, through `data-hero-editor-fold`), whatever the density. The Compress button
+     (Sign and Redact on a coarse phone only, through `data-hero-editor-fold`). The Compress button
      these notes cite is gone (Compress runs on pick); the rules here are kept
      for the draft-hint and hand-off paths until that block is shown to cover
      them too. */
   @media (max-width: 1023px) {
-    :global(html[data-view-density='condensed']:has([data-tool-shell])) .tool-hero[data-hero-condensable],
-    :global(html[data-view-density='condensed'][data-draft-hint]) .tool-hero[data-hero-condensable],
-    :global(html[data-view-density='condensed'][data-handoff-pending]) .tool-hero[data-hero-condensable] {
+    :global(html:has([data-tool-shell])) .tool-hero[data-hero-condensable],
+    :global(html[data-draft-hint]) .tool-hero[data-hero-condensable],
+    :global(html[data-handoff-pending]) .tool-hero[data-hero-condensable] {
       padding-bottom: 0.75rem;
 
       /* Below the desktop breakpoint the hero opens with 56px (pt-14) of air
@@ -410,56 +408,48 @@ const sentences = subhead.split(/(?<=\. )/);
       padding-top: 1.5rem;
     }
 
-    :global(html[data-view-density='condensed']:has([data-tool-shell])) .tool-hero[data-hero-condensable] [data-hero-sub],
-    :global(html[data-view-density='condensed'][data-draft-hint]) .tool-hero[data-hero-condensable] [data-hero-sub],
-    :global(html[data-view-density='condensed'][data-handoff-pending]) .tool-hero[data-hero-condensable] [data-hero-sub] {
+    :global(html:has([data-tool-shell])) .tool-hero[data-hero-condensable] [data-hero-sub],
+    :global(html[data-draft-hint]) .tool-hero[data-hero-condensable] [data-hero-sub],
+    :global(html[data-handoff-pending]) .tool-hero[data-hero-condensable] [data-hero-sub] {
       display: none;
     }
   }
 
   /* Sign and Redact are the one exception to "no condensing at desktop"
-     above, and the reason is a different rule than Compress's: their
-     `ViewControl` (>=920px segmented Relaxed/Condensed/Full screen control,
-     see docs/view-density-control-spec.md) is a user-facing preference
-     whose *only* visible effect is this hero fold - there is nothing else
-     for "Condensed" to do (`ViewControl.tsx`/`useViewDensity.js` only ever
-     write the `data-view-density` attribute this file reads). The spec's own
-     worked example is a 1512x870 laptop, i.e. desktop width; disabling the
-     fold there would make that control's Condensed segment do nothing on a
-     real desktop, which is not the "stop condensing on desktop" this ticket
-     asked for - that request was about the automatic, permanent fold on
-     tools with no control to turn it back on.
+     above: their editor takes the whole screen, so the hero folds there at
+     every desktop width. Compress and the other condensable tools keep their
+     relaxed desktop hero.
 
      Once hydration has mounted the editor, Sign/Redact are told apart by
-     `ViewControl`'s own DOM footprint: `[aria-label="View density"]`. During
-     a saved-work restore, however, that control cannot exist yet: the inline
-     head script has already established the validated, Sign/Redact-only
-     `data-editor-restore` marker while IndexedDB and Preact are still loading.
-     It is the synchronous equivalent of the mounted control, so both paths
-     must use the identical declarations. This keeps the pre-paint geometry
-     from changing when the control appears.
+     `[data-editor-toolbar]` on their toolbar. During a saved-work restore
+     that toolbar cannot exist yet: the inline head script has already
+     established the validated, Sign/Redact-only `data-editor-restore` marker
+     while IndexedDB and Preact are still loading. It is the synchronous
+     equivalent of the mounted toolbar, so both paths must use the identical
+     declarations. This keeps the pre-paint geometry from changing when the
+     toolbar appears.
 
      The marker is deliberately narrower than `data-draft-hint`. Merge also
-     uses the latter to reserve its first viewport, but has no View Density
-     control. ToolPageLayout only writes `data-editor-restore` after the
+     uses the latter to reserve its first viewport, but has no editor
+     toolbar. ToolPageLayout only writes `data-editor-restore` after the
      current pointer matches a recent-file index row; an obviously stale
      pointer therefore remains a fresh, expanded visit instead of collapsing
      then expanding when hydration rejects it. Every other condensable tool
-     (Compress included) falls through to the desktop-relaxed rule above. */
+     (Compress included) falls through to the relaxed desktop rule above. */
   @media (min-width: 1024px) {
-    :global(html[data-view-density='condensed']:has([aria-label='View density'])) .tool-hero[data-hero-condensable],
-    :global(html[data-view-density='condensed'][data-editor-restore]) .tool-hero[data-hero-condensable],
-    :global(html[data-view-density='condensed']:has([data-tool-loaded])) .tool-hero[data-hero-condensable]:not([data-hero-stacked]),
-    :global(html[data-view-density='condensed'][data-handoff-pending]) .tool-hero[data-hero-condensable]:not([data-hero-stacked]) {
+    :global(html:has([data-editor-toolbar])) .tool-hero[data-hero-condensable],
+    :global(html[data-editor-restore]) .tool-hero[data-hero-condensable],
+    :global(html:has([data-tool-loaded])) .tool-hero[data-hero-condensable]:not([data-hero-stacked]),
+    :global(html[data-handoff-pending]) .tool-hero[data-hero-condensable]:not([data-hero-stacked]) {
       padding-bottom: 0.75rem;
       --hero-title: 1.75rem;
       --hero-icon: 2.5rem;
     }
 
-    :global(html[data-view-density='condensed']:has([aria-label='View density'])) .tool-hero[data-hero-condensable] [data-hero-sub],
-    :global(html[data-view-density='condensed'][data-editor-restore]) .tool-hero[data-hero-condensable] [data-hero-sub],
-    :global(html[data-view-density='condensed']:has([data-tool-loaded])) .tool-hero[data-hero-condensable]:not([data-hero-stacked]) [data-hero-sub],
-    :global(html[data-view-density='condensed'][data-handoff-pending]) .tool-hero[data-hero-condensable]:not([data-hero-stacked]) [data-hero-sub] {
+    :global(html:has([data-editor-toolbar])) .tool-hero[data-hero-condensable] [data-hero-sub],
+    :global(html[data-editor-restore]) .tool-hero[data-hero-condensable] [data-hero-sub],
+    :global(html:has([data-tool-loaded])) .tool-hero[data-hero-condensable]:not([data-hero-stacked]) [data-hero-sub],
+    :global(html[data-handoff-pending]) .tool-hero[data-hero-condensable]:not([data-hero-stacked]) [data-hero-sub] {
       display: none;
     }
 
@@ -513,49 +503,49 @@ const sentences = subhead.split(/(?<=\. )/);
      no ToolShell). Sign and Redact are not stacked: loaded, they keep their own rules above,
      and their empty desktop state is the HERO-05 block. */
   @media (min-width: 1024px) {
-    :global(html[data-view-density='condensed']:has([data-tool-shell])) .tool-hero[data-hero-stacked][data-hero-condensable],
-    :global(html[data-view-density='condensed']:has([data-tool-loaded])) .tool-hero[data-hero-stacked][data-hero-condensable],
-    :global(html[data-view-density='condensed'][data-merge-restore]) .tool-hero[data-hero-stacked][data-hero-condensable],
-    :global(html[data-view-density='condensed'][data-handoff-pending]) .tool-hero[data-hero-stacked][data-hero-condensable],
-    :global(html[data-view-density='condensed']:has([data-merge-restored-workspace])) .tool-hero[data-hero-stacked][data-hero-condensable] {
+    :global(html:has([data-tool-shell])) .tool-hero[data-hero-stacked][data-hero-condensable],
+    :global(html:has([data-tool-loaded])) .tool-hero[data-hero-stacked][data-hero-condensable],
+    :global(html[data-merge-restore]) .tool-hero[data-hero-stacked][data-hero-condensable],
+    :global(html[data-handoff-pending]) .tool-hero[data-hero-stacked][data-hero-condensable],
+    :global(html:has([data-merge-restored-workspace])) .tool-hero[data-hero-stacked][data-hero-condensable] {
       --hero-icon: 2rem;
       padding-top: 1rem;
       padding-bottom: 0.75rem;
     }
 
-    :global(html[data-view-density='condensed']:has([data-tool-shell])) .tool-hero[data-hero-stacked][data-hero-condensable] [data-hero-row],
-    :global(html[data-view-density='condensed']:has([data-tool-loaded])) .tool-hero[data-hero-stacked][data-hero-condensable] [data-hero-row],
-    :global(html[data-view-density='condensed'][data-merge-restore]) .tool-hero[data-hero-stacked][data-hero-condensable] [data-hero-row],
-    :global(html[data-view-density='condensed'][data-handoff-pending]) .tool-hero[data-hero-stacked][data-hero-condensable] [data-hero-row],
-    :global(html[data-view-density='condensed']:has([data-merge-restored-workspace])) .tool-hero[data-hero-stacked][data-hero-condensable] [data-hero-row] {
+    :global(html:has([data-tool-shell])) .tool-hero[data-hero-stacked][data-hero-condensable] [data-hero-row],
+    :global(html:has([data-tool-loaded])) .tool-hero[data-hero-stacked][data-hero-condensable] [data-hero-row],
+    :global(html[data-merge-restore]) .tool-hero[data-hero-stacked][data-hero-condensable] [data-hero-row],
+    :global(html[data-handoff-pending]) .tool-hero[data-hero-stacked][data-hero-condensable] [data-hero-row],
+    :global(html:has([data-merge-restored-workspace])) .tool-hero[data-hero-stacked][data-hero-condensable] [data-hero-row] {
       flex-direction: row;
       align-items: center;
       justify-content: flex-start;
       margin-bottom: 0;
     }
 
-    :global(html[data-view-density='condensed']:has([data-tool-shell])) .tool-hero[data-hero-stacked][data-hero-condensable] [data-hero-name],
-    :global(html[data-view-density='condensed']:has([data-tool-loaded])) .tool-hero[data-hero-stacked][data-hero-condensable] [data-hero-name],
-    :global(html[data-view-density='condensed'][data-merge-restore]) .tool-hero[data-hero-stacked][data-hero-condensable] [data-hero-name],
-    :global(html[data-view-density='condensed'][data-handoff-pending]) .tool-hero[data-hero-stacked][data-hero-condensable] [data-hero-name],
-    :global(html[data-view-density='condensed']:has([data-merge-restored-workspace])) .tool-hero[data-hero-stacked][data-hero-condensable] [data-hero-name] {
+    :global(html:has([data-tool-shell])) .tool-hero[data-hero-stacked][data-hero-condensable] [data-hero-name],
+    :global(html:has([data-tool-loaded])) .tool-hero[data-hero-stacked][data-hero-condensable] [data-hero-name],
+    :global(html[data-merge-restore]) .tool-hero[data-hero-stacked][data-hero-condensable] [data-hero-name],
+    :global(html[data-handoff-pending]) .tool-hero[data-hero-stacked][data-hero-condensable] [data-hero-name],
+    :global(html:has([data-merge-restored-workspace])) .tool-hero[data-hero-stacked][data-hero-condensable] [data-hero-name] {
       font-size: 1.6rem;
     }
 
-    :global(html[data-view-density='condensed']:has([data-tool-shell])) .tool-hero[data-hero-stacked][data-hero-condensable] [data-hero-sub],
-    :global(html[data-view-density='condensed']:has([data-tool-loaded])) .tool-hero[data-hero-stacked][data-hero-condensable] [data-hero-sub],
-    :global(html[data-view-density='condensed'][data-merge-restore]) .tool-hero[data-hero-stacked][data-hero-condensable] [data-hero-sub],
-    :global(html[data-view-density='condensed'][data-handoff-pending]) .tool-hero[data-hero-stacked][data-hero-condensable] [data-hero-sub],
-    :global(html[data-view-density='condensed']:has([data-merge-restored-workspace])) .tool-hero[data-hero-stacked][data-hero-condensable] [data-hero-sub] {
+    :global(html:has([data-tool-shell])) .tool-hero[data-hero-stacked][data-hero-condensable] [data-hero-sub],
+    :global(html:has([data-tool-loaded])) .tool-hero[data-hero-stacked][data-hero-condensable] [data-hero-sub],
+    :global(html[data-merge-restore]) .tool-hero[data-hero-stacked][data-hero-condensable] [data-hero-sub],
+    :global(html[data-handoff-pending]) .tool-hero[data-hero-stacked][data-hero-condensable] [data-hero-sub],
+    :global(html:has([data-merge-restored-workspace])) .tool-hero[data-hero-stacked][data-hero-condensable] [data-hero-sub] {
       display: none;
     }
 
     /* Visually hidden, not display:none: the h1 keeps reading in full. */
-    :global(html[data-view-density='condensed']:has([data-tool-shell])) .tool-hero[data-hero-stacked][data-hero-condensable] [data-hero-rest],
-    :global(html[data-view-density='condensed']:has([data-tool-loaded])) .tool-hero[data-hero-stacked][data-hero-condensable] [data-hero-rest],
-    :global(html[data-view-density='condensed'][data-merge-restore]) .tool-hero[data-hero-stacked][data-hero-condensable] [data-hero-rest],
-    :global(html[data-view-density='condensed'][data-handoff-pending]) .tool-hero[data-hero-stacked][data-hero-condensable] [data-hero-rest],
-    :global(html[data-view-density='condensed']:has([data-merge-restored-workspace])) .tool-hero[data-hero-stacked][data-hero-condensable] [data-hero-rest] {
+    :global(html:has([data-tool-shell])) .tool-hero[data-hero-stacked][data-hero-condensable] [data-hero-rest],
+    :global(html:has([data-tool-loaded])) .tool-hero[data-hero-stacked][data-hero-condensable] [data-hero-rest],
+    :global(html[data-merge-restore]) .tool-hero[data-hero-stacked][data-hero-condensable] [data-hero-rest],
+    :global(html[data-handoff-pending]) .tool-hero[data-hero-stacked][data-hero-condensable] [data-hero-rest],
+    :global(html:has([data-merge-restored-workspace])) .tool-hero[data-hero-stacked][data-hero-condensable] [data-hero-rest] {
       position: absolute;
       width: 1px;
       height: 1px;
@@ -568,7 +558,7 @@ const sentences = subhead.split(/(?<=\. )/);
 
   /* Every tool (data-hero-condense-on-load): a loaded file
      gives the screen to the tool, so the hero folds to ONE line, the tile
-     beside the name, whatever the density preference. html[data-handoff-pending]
+     beside the name. html[data-handoff-pending]
      (the pre-paint marker, ToolPageLayout.astro) applies the same look from
      first paint, so a file arriving from another tool keeps one hero height
      instead of jumping when it lands. The subhead stays in the HTML (display:none
@@ -579,8 +569,7 @@ const sentences = subhead.split(/(?<=\. )/);
      that names an element outside the hero is :global(); the hero part keeps
      this component's scope. The hints repeat the old fold rules' (draft hint, Merge restore, editor restore), so
      a restore has the loaded hero's size from first paint. Sign and Redact (data-hero-editor) obey this only
-     below 1024px on a coarse pointer (a phone; browser zoom on a desktop narrows the CSS width but must not fold); from 1024px up their hero follows the View density control
-     (the editor rules above), so the editor copy below sits in a media query. */
+     below 1024px on a coarse pointer (a phone; browser zoom on a desktop narrows the CSS width but must not fold); from 1024px up their hero follows the editor rules above, so the editor copy below sits in a media query. */
   :global(html .tool-stage:has([data-tool-loaded], [data-tool-shell])) .tool-hero.tool-hero.tool-hero[data-hero-condense-on-load]:not([data-hero-editor]),
   :global(html[data-handoff-pending]) .tool-hero.tool-hero.tool-hero[data-hero-condense-on-load]:not([data-hero-editor]),
   :global(html[data-draft-hint]) .tool-hero.tool-hero.tool-hero[data-hero-condense-on-load]:not([data-hero-editor]),
@@ -614,7 +603,7 @@ const sentences = subhead.split(/(?<=\. )/);
   }
 
   /* The tool's name only ("Compress PDF to 100KB"): the rest of the h1 is
-     visually hidden, as the density fold above does, so the h1 still reads in
+     visually hidden, as the fold above does, so the h1 still reads in
      full and stays one line on a 393px phone. */
   :global(html .tool-stage:has([data-tool-loaded], [data-tool-shell])) .tool-hero.tool-hero.tool-hero[data-hero-condense-on-load]:not([data-hero-editor]) [data-hero-rest],
   :global(html[data-handoff-pending]) .tool-hero.tool-hero.tool-hero[data-hero-condense-on-load]:not([data-hero-editor]) [data-hero-rest],
@@ -708,7 +697,7 @@ const sentences = subhead.split(/(?<=\. )/);
     }
 
     /* The tool's name only ("Compress PDF to 100KB"): the rest of the h1 is
-       visually hidden, as the density fold above does, so the h1 still reads in
+       visually hidden, as the fold above does, so the h1 still reads in
        full and stays one line on a 393px phone. */
     :global(html .tool-stage:has([data-tool-loaded], [data-tool-shell])) .tool-hero.tool-hero.tool-hero[data-hero-editor-fold][data-hero-condense-on-load] [data-hero-rest],
     :global(html[data-handoff-pending]) .tool-hero.tool-hero.tool-hero[data-hero-editor-fold][data-hero-condense-on-load] [data-hero-rest],

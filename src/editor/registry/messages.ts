@@ -102,11 +102,8 @@ export interface SignMessages {
   shareTitleUnsaved: string;
   exportBlockedTitleOne: string;
   exportBlockedTitleOther: string;
-  viewRelaxed: string;
-  viewCondensed: string;
   viewFullscreen: string;
   viewExitFullscreen: string;
-  viewDensityLabel: string;
   /** LOC-16 stage 2-5: the shapes menu's plain labels (SignToolbar.tsx) - not
    * to be confused with `ellipseAction` etc above, which describe the arm
    * hint ("Click and drag..."). Also reused by ElementToolbar.tsx's shape

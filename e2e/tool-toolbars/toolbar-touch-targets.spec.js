@@ -58,7 +58,7 @@ async function readToolbar(page) {
 
 // The two tools take different branches of the same shared module: Sign
 // counts twelve controls and takes --controls-per-row:6, Redact counts nine
-// and takes 5 (the counted set skips the view-density radiogroup and, where a
+// and takes 5 (the counted set skips, where a
 // Share button exists, the desktop-only Download). Both tools' widths were
 // picked the same way: narrow enough to force wrapping, one step below the
 // shared 920px icon-only breakpoint for the single/double-row case.

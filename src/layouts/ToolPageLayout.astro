@@ -96,8 +96,6 @@ const prePaintScript = `
         try {
           var segments = location.pathname.split('/').filter(Boolean);
           var slug = segments[segments.length - 1] || '';
-          var density = localStorage.getItem('pdf-toolkit:view-density') || 'condensed';
-          document.documentElement.setAttribute('data-view-density', density);
           var entryId = localStorage.getItem('pdf-toolkit:workspace:current:' + slug);
           var currentEntryIsKnown = false;
           if (entryId) {
@@ -143,10 +141,7 @@ const editionPaths = locale === 'en' ? [] : await getPublishedEditionPaths(local
     {/* Pre-collapses the marketing hero (see ToolHero.astro) for a returning
         visitor who has a saved Sign/Redact draft, before the async IndexedDB
         restore and Preact hydration would otherwise do it later and register
-        as a real, input-less layout shift. Also applies the persisted view
-        density (see useViewDensity.js) before first paint, for the same
-        reason: without it, the density-driven collapse would only land once
-        the Sign/Redact island hydrates and reads localStorage itself. Must be
+        as a real, input-less layout shift. Must be
         a blocking, unprocessed script — a bundled Astro <script> compiles to
         type="module", which is always deferred and runs after the body has
         already parsed, too late to prevent the flash this exists to avoid.
@@ -156,9 +151,9 @@ const editionPaths = locale === 'en' ? [] : await getPublishedEditionPaths(local
         silently stop matching — breaking every tool page's CSP — if this
         script's text changes by even one byte. If you edit it, rebuild,
         extract the exact text Astro emits, and recompute (the marker must be
-        something that appears ONLY inside this script — 'view-density' alone
-        also appears in ToolHero.astro's inlined CSS, in the same <head>):
-          node -e "const f=require('fs'),c=require('crypto');const h=f.readFileSync('dist/sign/index.html','utf8');const i=h.indexOf(\"getItem('pdf-toolkit:view-density')\");const s=h.lastIndexOf('<script>',i);const e=h.indexOf('</script>',s);console.log('sha256-'+c.createHash('sha256').update(h.slice(s+8,e),'utf8').digest('base64'))"
+        something that appears ONLY inside this script; the recent-files key
+        is read nowhere else that renders into the <head>):
+          node -e "const f=require('fs'),c=require('crypto');const h=f.readFileSync('dist/sign/index.html','utf8');const i=h.indexOf(\"getItem('pdf-toolkit:workspace:recent-files')\");const s=h.lastIndexOf('<script>',i);const e=h.indexOf('</script>',s);console.log('sha256-'+c.createHash('sha256').update(h.slice(s+8,e),'utf8').digest('base64'))"
         then paste the result in astro.config.mjs, and confirm the same hash
         is produced for dist/redact/index.html and dist/merge/index.html.
 

@@ -129,22 +129,21 @@ test('top-aligns each tool hero icon with the first line of its title', async ({
 // app's late write is simply outrun by construction. (No transition or
 // animation is declared on the hero's measured properties, so the synchronous
 // read sees settled values.)
-test('uses the hydrated Sign/Redact density geometry for a validated first-paint restore only', async ({ page }) => {
+test('uses the hydrated Sign/Redact editor-toolbar geometry for a validated first-paint restore only', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto('/sign/?next=0');
 
-  const applyAndMeasureHero = ({ draftHint, editorRestore, viewDensityControl }) => page.evaluate(
-    ({ draftHint, editorRestore, viewDensityControl }) => {
+  const applyAndMeasureHero = ({ draftHint, editorRestore, editorToolbar }) => page.evaluate(
+    ({ draftHint, editorRestore, editorToolbar }) => {
       const root = document.documentElement;
-      root.setAttribute('data-view-density', 'condensed');
       for (const [name, on] of [['data-draft-hint', draftHint], ['data-editor-restore', editorRestore]]) {
         if (on) root.setAttribute(name, '1');
         else root.removeAttribute(name);
       }
-      if (viewDensityControl && !document.querySelector('[data-test-view-density]')) {
+      if (editorToolbar && !document.querySelector('[data-test-editor-toolbar]')) {
         const control = document.createElement('div');
-        control.setAttribute('aria-label', 'View density');
-        control.dataset.testViewDensity = '1';
+        control.setAttribute('data-editor-toolbar', '');
+        control.dataset.testEditorToolbar = '1';
         document.body.appendChild(control);
       }
 
@@ -165,24 +164,22 @@ test('uses the hydrated Sign/Redact density geometry for a validated first-paint
       return {
         geometry,
         markers: {
-          density: root.getAttribute('data-view-density'),
           draftHint: root.hasAttribute('data-draft-hint'),
           editorRestore: root.hasAttribute('data-editor-restore'),
-          control: !!document.querySelector('[aria-label="View density"]'),
+          control: !!document.querySelector('[data-editor-toolbar]'),
         },
       };
     },
-    { draftHint, editorRestore, viewDensityControl },
+    { draftHint, editorRestore, editorToolbar },
   );
 
   const measureStep = async (state) => {
     const { geometry, markers } = await applyAndMeasureHero(state);
     expect(geometry).not.toBeNull();
     expect(markers).toEqual({
-      density: 'condensed',
       draftHint: !!state.draftHint,
       editorRestore: !!state.editorRestore,
-      control: !!state.viewDensityControl,
+      control: !!state.editorToolbar,
     });
     return geometry;
   };
@@ -191,7 +188,7 @@ test('uses the hydrated Sign/Redact density geometry for a validated first-paint
 
   // A stale generic hint is not proof that this is the Sign/Redact editor
   // restore path. In particular, it cannot substitute for the marker before
-  // ViewControl has mounted.
+  // the editor toolbar has mounted.
   // Only the condense-sensitive fields are compared: HERO-05 gives a fresh desktop
   // visit the stacked first screen, and a hint (even a stale one) switches that grid
   // off, so the box size and tile differ by design; whether the hero is folded does not.
@@ -204,7 +201,7 @@ test('uses the hydrated Sign/Redact density geometry for a validated first-paint
 
   const firstPaintRestore = await measureStep({ draftHint: true, editorRestore: true });
 
-  const hydratedControl = await measureStep({ draftHint: true, viewDensityControl: true });
+  const hydratedControl = await measureStep({ draftHint: true, editorToolbar: true });
 
   expect(firstPaintRestore).not.toEqual(fresh);
   expect(firstPaintRestore).toEqual(hydratedControl);
@@ -221,7 +218,6 @@ test('does not create inverse CLS when a validated restore marker is later rejec
   await page.goto('/sign/?next=0');
 
   await page.evaluate(async () => {
-    document.documentElement.setAttribute('data-view-density', 'condensed');
     document.documentElement.setAttribute('data-draft-hint', '1');
     document.documentElement.setAttribute('data-editor-restore', '1');
     // Let the compact marker state settle before starting the observation: the

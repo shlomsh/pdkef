@@ -49,7 +49,7 @@
       "src/tools/sign/components/ElementToolbar.tsx#ElementToolbar": 384,
       "src/tools/sign/components/PdfWorkspace.tsx#PdfWorkspace": 634,
       "src/tools/sign/components/SignToolContext.tsx#reducer": 200,
-      "src/tools/sign/components/SignToolbar.tsx#SignToolbar": 756,
+      "src/tools/sign/components/SignToolbar.tsx#SignToolbar": 748,
       "src/tools/sign/components/SignatureDialog.tsx#SignatureDialog": 537,
       "src/tools/sign/components/fill/FieldSlot.tsx#FieldSlot": 249,
       "src/tools/sign/components/nodes/TextNode.tsx#TextNode": 378,
@@ -150,13 +150,13 @@
     "fileLines": {
       "src/data/tools.js": 1015,
       "src/shell/pageGrid/PageGrid.tsx": 882,
-      "src/tools/sign/components/SignToolbar.tsx": 826
+      "src/tools/sign/components/SignToolbar.tsx": 818
     },
     "fileThreshold": 800
   },
   "unusedExports": {
     "neverUsed": 0,
-    "ownFileOnly": 154,
+    "ownFileOnly": 153,
     "testOnly": 192
   }
 }

@@ -319,15 +319,10 @@ Create is a gesture too (click-place or drag-draw), not an exception.
   Date, Symbols, Shapes, Whiteout), then Sign as the last thing you do to a filled form (it is the
   tool the page is named for, but it led the row for one day under SIGN-29 and read as the wrong
   first step), then the history group beside the work it acts on (Undo, Redo - the same
-  pair, in the same order, as Redact), then the chrome group (view density, full screen,
+  pair, in the same order, as Redact), then the chrome group (full screen,
   Feedback), then Replace with the other finishing action, then export at the far edge - one kind of
   thing per group. Redact's own order is unchanged: it already led with Blur, its named tool, since
   f48fcbd8.
-- The view-density segmented control's selected segment is the pale `--color-primary-soft` fill with a
-  `--color-primary-text` icon and a 1px `--color-border-strong` inset ring, not the solid
-  `--color-primary` fill: that fill is what `.active` means on a toolbar button (a tool armed for the
-  next click), and a persistent view setting wearing it read as a tool that was always on. The mint
-  `--color-primary-tint` it wore next was the loudest block in a fresh row (2026-10-19).
 - **The row is quiet**: tools, Replace, Share and Download are all the plain button. Teal fill on a
   toolbar button means one thing, an armed tool. Export is never filled in the toolbar (QUAL-27,
   Shlomi 2026-10-20): the completion row under the document is the call to action, and a restored

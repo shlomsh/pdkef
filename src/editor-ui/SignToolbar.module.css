@@ -34,50 +34,32 @@
    while the first line still stretches edge to edge.
    The count comes from the markup itself: `:has(> :nth-child(9))` reads as "has
    at least a ninth child", and each larger threshold overrides the smaller one
-   above it. Sign has 11-12 children, Redact 9-10 - one more each than a JSX
-   read-through suggests, because ViewControl (E9) returns an unwrapped fragment:
-   its `.segmented` div and the always-rendered FullscreenButton fallback (hidden
-   by CSS below 920px, but a real node) are each their own direct .toolbar child,
-   not one. That swap landed without anyone redoing this arithmetic, so the count
-   here sat stale for both tools until it was rechecked by rendering rather than
-   by reading the component. Recount by rendering, not by eye, whenever a slot's
-   own component changes shape.
-   Every real toolbar today has at least nine children even after that hidden
-   control is excluded (see below): Redact counts nine and Sign twelve, so
-   five per row is Redact's even split and six is Sign's.
-   `.segmented` (ViewControl's >=920px view-density control, the hidden node
-   this whole comment is about) carries no class or attribute of its own that
-   a sibling module's selector can target - CSS Modules hash `styles.segmented`,
-   so nothing outside ViewControl.module.css can name it directly. It does
-   carry `role="radiogroup"`, already on the element for its own accessibility
-   reasons and unique among this toolbar's children, so that is what excludes
-   it here instead of introducing a new attribute. Missing this exclusion is
-   exactly the "4+4+1 instead of 3+3+3" failure below, not a narrower one: an
-   uncounted-for `.segmented` inflates Sign's true nine-visible toolbar to a
-   counted ten, which the counted-ten guard on the three-way split explicitly
-   excludes (see that rule's own comment for why ten is excluded on purpose),
-   so the toolbar it was meant to protect loses the protection entirely and
-   flex wraps 9 real controls under an uncorrected --controls-per-row: 5. */
+   above it. Sign has twelve counted children and Redact nine or ten (the
+   desktop-only Download is excluded). Recount by rendering, not by eye,
+   whenever a slot's own component changes shape: an unwrapped fragment
+   contributes each of its nodes as a child, not one.
+   Every real toolbar today has at least nine counted children: Redact nine
+   and Sign twelve, so five per row is Redact's even split and six is Sign's. */
 .toolbar { --controls-per-row: 4; }
-.toolbar:has(> :nth-child(9 of :not(.desktop-download):not([role="radiogroup"]))) { --controls-per-row: 5; }
+.toolbar:has(> :nth-child(9 of :not(.desktop-download))) { --controls-per-row: 5; }
 /* The Date tool (SignToolbar.tsx) added an 11th real child to Sign - half of
    11 rounded up is 6, not 5, so this needs its own override, later in source
    order than the 9-of rule above so it wins the cascade on a toolbar matched
    by both (every true-11 toolbar also has a 9th child). This is the tier for
    eleven or twelve counted children, and Sign is on it: twelve counted since
    the History control and its dialog came out (2026-09-20), with Share
-   (fourteen children, less the radiogroup and the desktop-only Download) and
-   without it (thirteen, less the radiogroup - Download carries no
+   (thirteen children, less the desktop-only Download) and
+   without it (twelve - Download carries no
    .desktop-download class when there is no Share to swap in, and stays visible
    on a phone). Six per row is Sign's even split from the moment it wraps down
    to the 288px rule at the end of this file, which takes it to four. Redact
    counts nine and stops at the 9-of rule above. `:nth-child(n of ...)` counts
    DOM children whatever their rendering, so Sign counts twelve at every width,
    including below 239px where only eleven render. */
-.toolbar:has(> :nth-child(11 of :not(.desktop-download):not([role="radiogroup"]))) { --controls-per-row: 6; }
+.toolbar:has(> :nth-child(11 of :not(.desktop-download))) { --controls-per-row: 6; }
 /* Thirteen: Sign with Share once Download stays on the phone
    (keepDownloadOnPhone, 2026-10-20). Seven is its even split, 7+6. */
-.toolbar:has(> :nth-child(13 of :not(.desktop-download):not([role="radiogroup"]))) { --controls-per-row: 7; }
+.toolbar:has(> :nth-child(13 of :not(.desktop-download))) { --controls-per-row: 7; }
 
 .dropdown { position: relative; display: flex; }
 .toolbar .dropdown > .button { width: 100%; flex: 1 1 auto; }
@@ -409,15 +391,14 @@
      that line still wraps once it stops fitting, but with no cap active it packs
      greedily and strands whatever's left on the second line at full stretched
      width, exactly the 8+1/1-giant-button failure this whole mechanism exists to
-     prevent. This shipped broken once: E9 (see the recount note by the
-     --controls-per-row rules above) pushed every real toolbar in this file past
-     nine children without anyone adding the ten threshold, so Sign - the ten
-     truly-visible-child case - wrapped uncapped between roughly 448px and 496px
-     of container width.
+     prevent. This shipped broken once: a control added to every real
+     toolbar (see the recount note by the --controls-per-row rules above) pushed
+     them past nine children without anyone adding the ten threshold, so Sign
+     wrapped uncapped between roughly 448px and 496px of container width.
      N here means controls actually rendered, not raw DOM position: Sign with
-     share support counts fourteen children (see the recount note above) but
-     only ever shows twelve here, since Download hides itself below 920px and
-     the view-density control hides above it. `:nth-child(10 of
+     share support counts thirteen children (see the recount note above) but
+     only ever shows twelve here, since Download hides itself below 920px.
+     `:nth-child(10 of
      :not(.desktop-download))` reads as "the tenth child once you skip anything
      wearing that hidden-below-920px class", so it counts what a phone user
      actually sees rather than what exists in the DOM. Using a plain
@@ -453,7 +434,7 @@
   }
 
   @container toolbar (max-width: 495px) {
-    .toolbar:has(> :nth-child(10 of :not(.desktop-download):not([role="radiogroup"]))) > * { flex-grow: 0; flex-basis: max(var(--btn-min-size), (100% - (var(--controls-per-row) - 1) * var(--toolbar-gap)) / var(--controls-per-row)); }
+    .toolbar:has(> :nth-child(10 of :not(.desktop-download))) > * { flex-grow: 0; flex-basis: max(var(--btn-min-size), (100% - (var(--controls-per-row) - 1) * var(--toolbar-gap)) / var(--controls-per-row)); }
   }
 
   /* 532.0px is where eleven controls stop fitting one line at the touch floor
@@ -464,7 +445,7 @@
      flex-basis from the toolbar's own --controls-per-row, so a toolbar matched
      by several of them gets one answer. */
   @container toolbar (max-width: 531px) {
-    .toolbar:has(> :nth-child(11 of :not(.desktop-download):not([role="radiogroup"]))) > * { flex-grow: 0; flex-basis: max(var(--btn-min-size), (100% - (var(--controls-per-row) - 1) * var(--toolbar-gap)) / var(--controls-per-row)); }
+    .toolbar:has(> :nth-child(11 of :not(.desktop-download))) > * { flex-grow: 0; flex-basis: max(var(--btn-min-size), (100% - (var(--controls-per-row) - 1) * var(--toolbar-gap)) / var(--controls-per-row)); }
   }
 
   /* 2026-10-20: 629.6px is where thirteen controls stop fitting one line
@@ -473,7 +454,7 @@
      floored, for the reason the 581px rule below gives: the content box lands
      on x.2 and a floor would leave a band where the cap has not engaged. */
   @container toolbar (max-width: 630px) {
-    .toolbar:has(> :nth-child(13 of :not(.desktop-download):not([role="radiogroup"]))) > * { flex-grow: 0; flex-basis: max(var(--btn-min-size), (100% - (var(--controls-per-row) - 1) * var(--toolbar-gap)) / var(--controls-per-row)); }
+    .toolbar:has(> :nth-child(13 of :not(.desktop-download))) > * { flex-grow: 0; flex-basis: max(var(--btn-min-size), (100% - (var(--controls-per-row) - 1) * var(--toolbar-gap)) / var(--controls-per-row)); }
   }
 
   /* 580.8px is where twelve controls stop fitting one line at the touch floor
@@ -509,7 +490,7 @@
      content, and a balanced 6+6 from 643px down, guarded at 643px and 610px by
      e2e/tool-toolbars/toolbar-touch-targets.spec.js). */
   @container toolbar (max-width: 581px) {
-    .toolbar:has(> :nth-child(12 of :not(.desktop-download):not([role="radiogroup"]))) > * { flex-grow: 0; flex-basis: max(var(--btn-min-size), (100% - (var(--controls-per-row) - 1) * var(--toolbar-gap)) / var(--controls-per-row)); }
+    .toolbar:has(> :nth-child(12 of :not(.desktop-download))) > * { flex-grow: 0; flex-basis: max(var(--btn-min-size), (100% - (var(--controls-per-row) - 1) * var(--toolbar-gap)) / var(--controls-per-row)); }
   }
 
   /* Once even the two-row split stops fitting - five-per-row controls need
@@ -537,16 +518,9 @@
      letting nine fall back to 4+4+1. Note the override has to be set on the
      children: rules inside a container query match the container's
      descendants, never the container element itself.
-     `:not([role="radiogroup"])` alongside `:not(.desktop-download)`, matching
-     the --controls-per-row: 5 trigger above (see its comment for why a role
-     attribute stands in for a class here): without it, ViewControl's hidden
-     `.segmented` control inflates Sign's counted total from nine to ten,
-     which trips the very guard above meant to exclude a true ten-visible
-     toolbar from this rule - so a toolbar that has never actually shown ten
-     visible controls loses the three-way split anyway, and 9 real controls
-     wrap under the uncorrected 5-per-row share as 4+4+1. This shipped exactly
-     that way once already, reproduced deterministically (every run, not an
-     intermittent flake) against a real build and caught by CI. */
+     The counts use `:not(.desktop-download)`, matching the --controls-per-row: 5
+     trigger above, so a toolbar that never shows ten visible controls is not
+     counted as ten and wrapped 4+4+1. */
   /* 2026-10-20: thirteen (Sign with Share) balances only as 7+6, and seven
      stop fitting at 336.8px of content. Below that, thirteen strands 6+6+1,
      so Feedback stands down and the twelve left render 6+6, 4+4+4 and
@@ -561,8 +535,8 @@
      Sits after the 581px rule and before the 288px one, so the 288px cap of
      four still wins below it by source order. */
   @container toolbar (max-width: 387px) {
-    .toolbar:has(> :nth-child(13 of :not(.desktop-download):not([role="radiogroup"]))) > [data-optional-control] { display: none; }
-    .toolbar:has(> :nth-child(13 of :not(.desktop-download):not([role="radiogroup"]))) > * { --controls-per-row: 6; }
+    .toolbar:has(> :nth-child(13 of :not(.desktop-download))) > [data-optional-control] { display: none; }
+    .toolbar:has(> :nth-child(13 of :not(.desktop-download))) > * { --controls-per-row: 6; }
   }
 
   /* Feedback does not act on the document, so at the narrowest widths it
@@ -590,8 +564,7 @@
      at the end of this file for what that cost).
      `[data-optional-control]` rather than a class because CSS Modules hash
      `styles.*`, so this has to be nameable from the counting selectors below
-     too, exactly the reason `[role="radiogroup"]` stands in for `.segmented`
-     further up. Feedback is not lost, it stays in the site footer on every
+     too. Feedback is not lost, it stays in the site footer on every
      page ("Report a bug", "Feedback & ideas"), which is what makes hiding it
      acceptable here - this band is not only 320px-class hardware, it is also
      where a current phone lands at 115-125% browser zoom and where WCAG
@@ -607,7 +580,7 @@
      the nine-control rule. Redact has no such control, so `:not(...)` is inert
      there and both tools keep one code path. */
   @container toolbar (max-width: 251px) {
-    .toolbar:has(> :nth-child(9 of :not(.desktop-download):not([role="radiogroup"]))):not(:has(> :nth-child(10 of :not(.desktop-download):not([role="radiogroup"])))) > * { --controls-per-row: 3; }
+    .toolbar:has(> :nth-child(9 of :not(.desktop-download))):not(:has(> :nth-child(10 of :not(.desktop-download)))) > * { --controls-per-row: 3; }
   }
 
   /* Eleven's own version of the 251px rule above, at eleven's own clamp point
@@ -637,7 +610,7 @@
      385px (288.2px of content) on the cap of six, where six fit exactly
      (6 * 44 + 5 * 4.8 = 288.0). */
   @container toolbar (max-width: 288px) {
-    .toolbar:has(> :nth-child(11 of :not(.desktop-download):not([role="radiogroup"]))) > * { --controls-per-row: 4; }
+    .toolbar:has(> :nth-child(11 of :not(.desktop-download))) > * { --controls-per-row: 4; }
   }
 
   /* 239.2px is where five 44px targets stop fitting one line (5 * 44 + 4 *
@@ -665,7 +638,7 @@
      control is only safe to add while it is here. */
   @container toolbar (max-width: 239px) {
     [data-optional-control] { display: none; }
-    .toolbar:has(> :nth-child(9 of :not(.desktop-download):not([role="radiogroup"]):not([data-optional-control]))):not(:has(> :nth-child(10 of :not(.desktop-download):not([role="radiogroup"]):not([data-optional-control])))) > * { --controls-per-row: 3; }
+    .toolbar:has(> :nth-child(9 of :not(.desktop-download):not([data-optional-control]))):not(:has(> :nth-child(10 of :not(.desktop-download):not([data-optional-control])))) > * { --controls-per-row: 3; }
   }
 }
 
@@ -697,11 +670,12 @@
    Measured a third time the same day, same browser and face, once the History
    control and the change-history dialog behind it came out. History's 36px and
    its 4px gap paid Date's 44px label back, so Date is labelled again and the
-   twelve counted controls (thirteen rendered, the view-density control
-   included) measure 1139.7px against the 1172px box - 32.3px spare, one line
+   twelve counted controls measured 1139.7px against the 1172px box - 32.3px spare, one line
    at every width from 1300px up. The box reaches that 1172px plateau at a
    1280px window, so even a classic 15px scrollbar at a 1300px window leaves it
-   whole. Spend the 32.3px on a thirteenth control and the next label to go is
+   whole. That 1139.7px predates 2026-10-31 (SIGN-42), when the three-segment
+   view control became the 44px icon-only Full screen button, which frees about
+   55px. Spend the spare room on a thirteenth control and the next label to go is
    Replace's (62.7px of label on a 105.1px control); Date's is the one that
    just came back, so it is not the one to take again.
 
@@ -727,7 +701,7 @@
    icon grid in the phone block above, unchanged.
 
    This replaced three container-query label tiers keyed on `data-label-priority`,
-   whose hand-measured thresholds went stale twice (E9's view control, then Date
+   whose hand-measured thresholds went stale twice (the view control, then Date
    and Share) and each time stranded Download on a full-width second row. */
 @media (max-width: 1299px) {
   .toolbar .button { gap: 0; }

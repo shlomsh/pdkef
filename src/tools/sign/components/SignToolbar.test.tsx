@@ -125,7 +125,7 @@ describe('SignToolbar Component', () => {
     // first, Sign after it as the last thing you do to a filled form, then
     // the history group beside the work it acts on (Undo, Redo - the same
     // pair, in the same order, as RedactToolbar), then the chrome group
-    // (view density's Full screen fallback here, Feedback next - see
+    // (Full screen here, Feedback next - see
     // SignToolbar.tsx's own ordering comment for the rest).
     const labels = Array.from(buttons, button => query(button, `.${styles.label}`).textContent.trim());
     expect(labels.slice(0, 10)).toEqual(['Text', 'Date', 'Symbols', 'Shapes', 'Whiteout', 'Sign', 'Undo', 'Redo', 'Full screen', 'Feedback']);
@@ -1313,8 +1313,7 @@ describe('SignToolbar Component', () => {
     });
   });
 
-  // E9: ViewControl replaced FullscreenButton in this exact slot.
-  it('renders the view density control in place of a bare FullscreenButton', () => {
+  it('renders one plain Full screen button and no view density control', () => {
     container = document.createElement('div');
     document.body.appendChild(container);
 
@@ -1333,10 +1332,11 @@ describe('SignToolbar Component', () => {
       );
     });
 
-    const radiogroup = query(container, '[role="toolbar"] [role="radiogroup"]');
-    expect(radiogroup).not.toBeNull();
-    expect(radiogroup.getAttribute('aria-label')).toBe('View density');
-    expect(radiogroup.querySelectorAll('[role="radio"]')).toHaveLength(3);
+    const toolbar = query(container, '[role="toolbar"]');
+    expect(toolbar.hasAttribute('data-editor-toolbar')).toBe(true);
+    expect(toolbar.querySelector('[role="radiogroup"]')).toBeNull();
+    const fullscreen = Array.from(toolbar.querySelectorAll('button')).filter(b => b.textContent.trim() === 'Full screen');
+    expect(fullscreen).toHaveLength(1);
   });
 
   // LOC-09 stage 1: the always-visible toolbar row and its status line read

@@ -87,11 +87,8 @@ export const englishSignMessages: SignMessages = {
   shareTitleUnsaved: 'Save your changes to share the signed PDF',
   exportBlockedTitleOne: '{count} text field needs attention before download or sharing',
   exportBlockedTitleOther: '{count} text fields need attention before download or sharing',
-  viewRelaxed: 'Relaxed view',
-  viewCondensed: 'Condensed view',
   viewFullscreen: 'Full screen',
   viewExitFullscreen: 'Exit full screen',
-  viewDensityLabel: 'View density',
   ellipseLabel: 'Ellipse',
   rectangleLabel: 'Rectangle',
   lineLabel: 'Line',
@@ -334,11 +331,8 @@ export const hebrewSignMessages: SignMessages = {
   shareTitleUnsaved: 'שמרו את השינויים כדי לשתף את ה-PDF החתום',
   exportBlockedTitleOne: '{count} שדה טקסט דורש התייחסות לפני הורדה או שיתוף',
   exportBlockedTitleOther: '{count} שדות טקסט דורשים התייחסות לפני הורדה או שיתוף',
-  viewRelaxed: 'תצוגה מרווחת',
-  viewCondensed: 'תצוגה מצומצמת',
   viewFullscreen: 'מסך מלא',
   viewExitFullscreen: 'יציאה ממסך מלא',
-  viewDensityLabel: 'צפיפות התצוגה',
   // LOC-16 stage 2-5 (2026-09-13): popovers, dialogs, element controls and
   // screen-reader announcements across the whole Sign editor; covered by the
   // same 2026-10-22 read-through as the toolbar row above.

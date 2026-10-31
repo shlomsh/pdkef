@@ -176,7 +176,7 @@ export default defineConfig({
         // comment on the script.
         // HERO-02: the script also reads the hand-off marker
         // (pdkef:handoff-pending:<slug>, src/lib/handoff/handoffPending.ts).
-        hashes: ['sha256-Z9AiwdF0bptHZKyQVOtbvFz1N+m9QEXOTEPhv9rZ2QY=']
+        hashes: ['sha256-k9N098sQ2ZQ4WGEI7pGLQ+4OTGgOerwkeRCYX2z1yg4=']
       },
       styleDirective: { src: ["'self'"] }
     }

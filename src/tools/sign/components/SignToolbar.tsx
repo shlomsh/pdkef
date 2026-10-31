@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'preact/hooks';
 import { useSignTool } from './SignToolContext.tsx';
 import { useSavedSignatures } from './SavedSignaturesContext.tsx';
 import SignFeedbackButton from './SignFeedbackButton.tsx';
-import ViewControl from '#editor-ui/ViewControl.tsx';
+import FullscreenButton from '#editor-ui/FullscreenButton.tsx';
 import Popover from '#shell/Popover.tsx';
 import EditorToolStatus, { type ToolCopy } from '#editor-ui/EditorToolStatus.tsx';
 import ArmHint from '#editor-ui/ArmHint.tsx';
@@ -448,6 +448,8 @@ export default function SignToolbar({
           aria-label={t.toolbarLabel}
           dir={t.dir}
           lang={t.lang}
+          // ToolHero.astro folds the hero on desktop while this exists.
+          data-editor-toolbar
         >
           {/* Order (2026-09-18, revised the same day as SIGN-29): the row
               reads in the order a form gets done. Text, Date, Symbols, Shapes
@@ -749,19 +751,9 @@ export default function SignToolbar({
             labels={{ undoTitle: t.undoTitle, undoButton: t.undoButton, redoTitle: t.redoTitle, redoButton: t.redoButton }}
           />
 
-          <ViewControl
-            isFullscreen={isFullscreen}
-            toggleFullscreen={toggleFullscreen}
-            labels={{
-              relaxed: t.viewRelaxed,
-              condensed: t.viewCondensed,
-              fullscreen: t.viewFullscreen,
-              exitFullscreen: t.viewExitFullscreen,
-              densityLabel: t.viewDensityLabel,
-            }}
-          />
+          <FullscreenButton isFullscreen={isFullscreen} toggleFullscreen={toggleFullscreen} label={t.viewFullscreen} exitLabel={t.viewExitFullscreen} iconOnly />
 
-          {/* View density/full screen and Feedback are the chrome group, one
+          {/* Full screen and Feedback are the chrome group, one
               kind of thing (about the workspace, not the document) beside each
               other. */}
           <SignFeedbackButton

@@ -79,11 +79,11 @@ describe('PdfRedactTool UI flow', () => {
     expect(s.container.querySelector('[data-export-actions]')).toBeNull();
     expect(s.container.textContent).toContain('Draw a box or delete something, then download it here.');
 
-    // E9: ViewControl replaced FullscreenButton in this exact slot.
-    const radiogroup = toolbar.querySelector('[role="radiogroup"]');
-    expect(radiogroup).not.toBeNull();
-    expect(radiogroup.getAttribute('aria-label')).toBe('View density');
-    expect(radiogroup.querySelectorAll('[role="radio"]')).toHaveLength(3);
+    // SIGN-42: one plain Full screen button, no view density control.
+    expect(toolbar.hasAttribute('data-editor-toolbar')).toBe(true);
+    expect(toolbar.querySelector('[role="radiogroup"]')).toBeNull();
+    const fullscreen = Array.from(toolbar.querySelectorAll('button')).filter((b) => b.textContent.trim() === 'Full screen');
+    expect(fullscreen).toHaveLength(1);
   });
 
   it('keeps the redaction editor open after downloading', async () => {
