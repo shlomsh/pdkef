@@ -3,6 +3,7 @@
  * reads the canvas and repaints the element's draft layer; state commits once on release.
  */
 import { startGesture } from '#lib/gestures/controller.ts';
+import { swallowNextClick } from '#lib/gestures/swallowNextClick.ts';
 import { recordAction } from '#lib/telemetry/actionTrail.ts';
 import { captureAddedElement, type HistoryLogger } from '#editor/model/actionHistory.ts';
 import type { EditorElement, EditorElementPatch } from '#editor/model/editorModel.ts';
@@ -29,6 +30,8 @@ interface HighlightSwipeDeps {
   nextElementIndex: number;
   pageGeometry?: PageGeometry;
   direction?: ReadingDirection;
+  /** The swipe started with a mouse press: its trailing click must not reach the page (touch already suppresses it). */
+  isMouse?: boolean;
 }
 
 interface HighlightSwipeTarget {
@@ -41,7 +44,7 @@ interface HighlightSwipeTarget {
 }
 
 export function startHighlightSwipe(deps: HighlightSwipeDeps, target: HighlightSwipeTarget): void {
-  const { dispatch, getPointerPercent, gestureCancelRef, logAction, setAnnouncement, messages: t, nextElementIndex, pageGeometry, direction } = deps;
+  const { dispatch, getPointerPercent, gestureCancelRef, logAction, setAnnouncement, messages: t, nextElementIndex, pageGeometry, direction, isMouse } = deps;
   const { pageIndex, container, id, newEl, start, getElementNode } = target;
   const canvas = container.parentElement?.querySelector<HTMLCanvasElement>('canvas') ?? null;
   const reader = createSwipeReader(canvas, pageGeometry?.height || PAGE_HEIGHT_DEFAULT_PTS, direction);
@@ -71,6 +74,7 @@ export function startHighlightSwipe(deps: HighlightSwipeDeps, target: HighlightS
     },
     commit: (patch) => {
       gestureCancelRef.current = null;
+      if (isMouse) swallowNextClick();
       // A tap never moved: one band on the row under the finger.
       const geometry = highlightGeometry(patch ? patch.pageBands : reader?.bandsBetween(start, start) ?? []);
       clearDraft();
@@ -89,6 +93,7 @@ export function startHighlightSwipe(deps: HighlightSwipeDeps, target: HighlightS
     },
     cancel: () => {
       gestureCancelRef.current = null;
+      if (isMouse) swallowNextClick();
       clearDraft();
       dispatch({ type: 'DELETE_ELEMENT', payload: id });
       dispatch({ type: 'SET_ACTIVE_ELEMENT_ID', payload: null });
