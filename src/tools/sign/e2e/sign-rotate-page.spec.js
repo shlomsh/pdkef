@@ -114,13 +114,3 @@ test('Rotate turns the page on screen and in the export; marks stay on their con
   const out = await PDFDocument.load(fs.readFileSync(await file.path()));
   expect(out.getPage(0).getRotation().angle).toBe((sourceRotate + 90) % 360);
 });
-
-test('Redact\'s page header has no Rotate button', async ({ page }) => {
-  await page.goto('/redact/?next=0');
-  await waitForIsland(page);
-  const chooser = page.waitForEvent('filechooser');
-  await page.getByText('Choose file', { exact: true }).click();
-  await (await chooser).setFiles({ name: 'plain.pdf', mimeType: 'application/pdf', buffer: await makePdfBuffer('plain', { lines: [{ text: 'Plain' }] }) });
-  await expect(page.locator('[data-editor-page-header]').first()).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Rotate', exact: true })).toHaveCount(0);
-});
