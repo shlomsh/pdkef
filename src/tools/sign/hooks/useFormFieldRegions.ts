@@ -127,6 +127,12 @@ export interface FormFieldRegions {
    * A page with no letters (a scan) has no entry (undefined).
    */
   pageDirections: Array<TextDirection | undefined>;
+  /**
+   * Each page's text runs in page percent, by page index, so a press can read the
+   * direction of the text under it (a highlight in an English passage of a Hebrew
+   * paper). A page without a text layer has no entry.
+   */
+  pageTextRuns?: Array<Array<{ str: string } & PercentBox> | undefined>;
 }
 
 const NONE: FormFieldRegions = { detection: 'pending', combs: [], checkboxes: [], cells: [], pageDirections: [] };
@@ -293,6 +299,7 @@ export default function useFormFieldRegions(
           // already there - no widening cast needed to filter on it.
           cells: detected.cells.filter((cell) => cell.kind !== 'signature'),
           pageDirections,
+          pageTextRuns: textRuns,
           pageKind: firstPageKind(document, textRuns),
         };
         if (current) setRegions({ ...found, detectionIssue: issueRef.current.issue ?? undefined });

@@ -1,8 +1,10 @@
-// Which way a highlight swipe reads: the page's detected text direction (none for a scan), else
-// the direction most pages with text have, else the most recent typed text, else the reader's
+// Which way a highlight swipe reads: the text under the press (none on a scan), else the page's
+// detected text direction, else the direction most pages with text have, else the most recent typed text, else the reader's
 // language, else left to right.
-import { getEffectiveTextDirection } from '#editor/text/textDirection.js';
+import { getEffectiveTextDirection, pageTextDirection } from '#editor/text/textDirection.js';
 import type { ReadingDirection } from './bands.ts';
+
+interface PercentRun { str: string; left: number; top: number; width: number; height: number }
 
 interface MaybeText { type: string; text?: string; textDirection?: ReadingDirection }
 
@@ -26,12 +28,28 @@ export function readerTextDirection(
   return first ? languageDirection(first) : 'ltr';
 }
 
-export function resolveHighlightDirection({ page, pages, elements, readerDirection }: {
+/** The direction of the printed text at a page-percent point: the nearest run on that row that has letters. */
+export function directionAtPoint(
+  runs: ReadonlyArray<PercentRun>,
+  point: { x: number; y: number },
+): ReadingDirection | undefined {
+  const gap = (run: PercentRun) => Math.max(run.left - point.x, point.x - (run.left + run.width), 0);
+  const row = runs.filter((run) => point.y >= run.top && point.y <= run.top + run.height);
+  for (const run of row.sort((a, b) => gap(a) - gap(b))) {
+    const direction = pageTextDirection([run.str]);
+    if (direction) return direction;
+  }
+  return undefined;
+}
+
+export function resolveHighlightDirection({ atPress, page, pages, elements, readerDirection }: {
+  atPress?: ReadingDirection;
   page: ReadingDirection | undefined;
   pages: ReadonlyArray<ReadingDirection | undefined>;
   elements: readonly MaybeText[];
   readerDirection: ReadingDirection;
 }): ReadingDirection {
+  if (atPress) return atPress;
   if (page) return page;
   let rtl = 0;
   let ltr = 0;
