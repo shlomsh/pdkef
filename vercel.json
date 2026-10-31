@@ -1,4 +1,10 @@
 {
+  "git": {
+    "deploymentEnabled": {
+      "main": true,
+      "**": false
+    }
+  },
   "ignoreCommand": "node scripts/change-scope.mjs --base \"$VERCEL_GIT_PREVIOUS_SHA\" --head HEAD | grep -q '^docs_only=true$'",
   "headers": [
     {
