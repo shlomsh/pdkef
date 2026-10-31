@@ -40,6 +40,8 @@ export function ensureMinimumElementSize(
       : element;
   }
 
+  // A highlight is exactly the bands the swipe found; inflating its box would misplace them.
+  if (tool === 'highlight') return element;
   if (!('width' in element) || !('height' in element)) return element;
   if (element.width >= MIN_SHAPE_THRESHOLD_PCT || element.height >= MIN_SHAPE_THRESHOLD_PCT) return element;
 
