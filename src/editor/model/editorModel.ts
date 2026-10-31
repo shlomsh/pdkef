@@ -156,7 +156,7 @@ export interface TextElement extends ElementBase {
 }
 
 /** One covered line of a highlight, in percent of the highlight element's own box. */
-export interface HighlightBand { left: number; top: number; width: number; height: number }
+interface HighlightBand { left: number; top: number; width: number; height: number }
 
 /** SIGN-42: the line band. The element's box is the bands' union, so a move moves them all. */
 export interface HighlightElement extends ElementBase, BoxGeometry {
