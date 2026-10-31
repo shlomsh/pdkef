@@ -202,7 +202,7 @@ function rotatePage(
 /** One undo or redo step: the entry's elements and page turns, then the stacks it moved to. */
 function stepHistory(
   state: SignToolState,
-  step: ReturnType<typeof undoStep>,
+  step: ReturnType<typeof undoStep<EditorElement>>,
   direction: 'undo' | 'redo',
 ): SignToolState {
   if (!step) return state;
