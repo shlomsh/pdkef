@@ -12,7 +12,7 @@ const heightOf = (r: TextRow) => r.bottom - r.top;
 const padOf = (r: TextRow) => PAD_FRACTION * heightOf(r);
 
 /** Index of the row under y: inside its padded span, else the nearest within half its height. */
-function rowIndexAt(rows: TextRow[], y: number): number {
+export function rowIndexAt(rows: TextRow[], y: number): number {
   let best = -1;
   let bestDist = Infinity;
   rows.forEach((r, i) => {

@@ -40,6 +40,8 @@ export interface SerializeContext {
   redaction?: boolean;
   /** SIGN-44: this element's comment number (`commentNumbers`), when it is a commented highlight. */
   commentNumber?: number;
+  /** SIGN-44: the comment to write into this highlight's annotation (the one anchored to it). */
+  comment?: { text: string; commentedAt?: number };
 }
 
 interface RedactionInstruction {

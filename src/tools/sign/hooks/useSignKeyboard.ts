@@ -6,6 +6,7 @@ import type { SignMessages } from '#editor/registry/messages.ts';
 import { recordAction } from '#lib/telemetry/actionTrail.ts';
 import { formatMessage } from '#lib/text/formatMessage.ts';
 import type { SignToolAction } from '../components/SignToolContext.tsx';
+import { deletedWith } from '../lib/comments/anchors.ts';
 import { classifySignKey } from '../lib/signKeyAction.ts';
 import type { FieldNavigation } from './useFieldNavigation.ts';
 
@@ -29,7 +30,7 @@ export function useSignKeyboard({
   // Delete placed element
   const deleteElement = (id: string) => {
     const el = elements.find(e => e.id === id);
-    const snapshots = captureElementSnapshots(elements, (element) => element.id === id);
+    const snapshots = captureElementSnapshots(elements, deletedWith(id));
     dispatch({ type: 'DELETE_ELEMENT', payload: id });
     recordAction('delete_mark');
     dispatch({ type: 'SET_ACTIVE_ELEMENT_ID', payload: null });

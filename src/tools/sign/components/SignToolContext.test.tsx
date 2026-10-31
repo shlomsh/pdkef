@@ -248,6 +248,22 @@ describe('SignToolContext Reducer', () => {
     expect(nextState.elements[0].id).toBe('el-2');
   });
 
+  it('DELETE_ELEMENT also removes the comments anchored to the element', () => {
+    const comment = (id: string, anchor: object) => ({ id, type: 'comment', pageIndex: 0, left: 0, top: 0, width: 1, height: 1, comment: 'x', anchor }) as unknown as EditorElement;
+    const state: SignToolState = {
+      ...initialState,
+      elements: [
+        textElement('el-1'),
+        comment('c-1', { kind: 'element', elementId: 'el-1' }),
+        comment('c-2', { kind: 'element', elementId: 'el-2' }),
+        comment('c-3', { kind: 'point' }),
+        rectangleElement('el-2'),
+      ],
+    };
+    const next = reducer(state, { type: 'DELETE_ELEMENT', payload: 'el-1' });
+    expect(next.elements.map((el) => el.id)).toEqual(['c-2', 'c-3', 'el-2']);
+  });
+
   describe('CLEAR_PAGE', () => {
     it('removes only the elements on the given page', () => {
       const state: SignToolState = {

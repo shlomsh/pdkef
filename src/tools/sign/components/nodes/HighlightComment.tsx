@@ -1,37 +1,37 @@
-import type { HighlightElement } from '#editor/model/editorModel.ts';
 import { formatMessage } from '#lib/text/formatMessage.ts';
+import { CommentIcon } from '#editor-ui/toolIcons.tsx';
 import { englishSignMessages } from '../../messages';
 import type { SignMessages } from '#editor/registry/messages.ts';
-import { passageEnd } from '../../lib/highlight/commentCards.ts';
+import type { CommentMarker as Marker } from '../../lib/comments/anchors.ts';
 import styles from './HighlightComment.module.css';
 
 const stop = (event: Event) => event.stopPropagation();
 
-/** SIGN-44: the small dot just past a commented passage's end; a click selects the highlight. */
-export function HighlightDot({ element, number, onSelect, messages }: {
-  element: HighlightElement;
+/** SIGN-44: the comment bubble beside a passage or element (percent of the node's box), the same mark a pin
+ * wears; it sits past the anchor in reading order. A click selects the comment. */
+export function CommentMarker({ at, number, focused, onSelect, messages }: {
+  at: Marker;
   number?: number;
+  focused?: boolean;
   onSelect?: (event: Event) => void;
   messages?: Partial<SignMessages>;
 }) {
   const t = { ...englishSignMessages, ...messages };
-  const end = passageEnd(element);
-  // passageEnd is page percent; the node renders inside the element's own box.
-  const left = ((end.x - element.left) / element.width) * 100;
-  const top = ((end.y - element.top) / element.height) * 100;
   return (
     <button
       type="button"
-      data-highlight-badge
-      data-highlight-dot
-      class={styles.dot}
-      data-side={element.direction === 'rtl' ? 'end' : 'start'}
-      style={{ left: `${left}%`, top: `${top}%` }}
+      data-comment-marker
+      class={styles.marker}
+      data-side={at.direction === 'rtl' ? 'end' : 'start'}
+      data-focused={focused ? '' : undefined}
+      style={{ left: `${at.left}%`, top: `${at.top}%` }}
       aria-label={number === undefined ? t.highlightCommentLabel : formatMessage(t.highlightCommentNumberLabel, { number })}
       onPointerDown={stop}
       onMouseDown={stop}
       onTouchStart={stop}
       onClick={(event) => { event.stopPropagation(); onSelect?.(event); }}
-    />
+    >
+      <CommentIcon size={12} />
+    </button>
   );
 }

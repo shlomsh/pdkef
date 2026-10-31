@@ -62,6 +62,9 @@
    phone, keepDownloadOnPhone, 2026-10-20; Highlight added the extra one,
    SIGN-46). Seven per row is both even splits, 7+6 and 7+7. */
 .toolbar:has(> :nth-child(13 of :not(.desktop-download))) { --controls-per-row: 7; }
+/* SIGN-44: the Comment tool makes Sign fourteen counted children, fifteen with
+   Share. Fourteen keeps the cap of seven (7+7); fifteen is 8+7. */
+.toolbar:has(> :nth-child(15 of :not(.desktop-download))) { --controls-per-row: 8; }
 
 .dropdown { position: relative; display: flex; }
 .toolbar .dropdown > .button { width: 100%; flex: 1 1 auto; }
@@ -450,6 +453,14 @@
     .toolbar:has(> :nth-child(11 of :not(.desktop-download))) > * { flex-grow: 0; flex-basis: max(var(--btn-min-size), (100% - (var(--controls-per-row) - 1) * var(--toolbar-gap)) / var(--controls-per-row)); }
   }
 
+  /* SIGN-44: 727.2px is where fifteen controls stop fitting one line
+     (15 * 44 + 14 * 4.8), one tier up from fourteen's 678.4px. Fifteen is Sign
+     with Share since the Comment button. Rounded up to 728px for the same
+     reason as the 679px rule below. */
+  @container toolbar (max-width: 728px) {
+    .toolbar:has(> :nth-child(15 of :not(.desktop-download))) > * { flex-grow: 0; flex-basis: max(var(--btn-min-size), (100% - (var(--controls-per-row) - 1) * var(--toolbar-gap)) / var(--controls-per-row)); }
+  }
+
   /* SIGN-46: 678.4px is where fourteen controls stop fitting one line
      (14 * 44 + 13 * 4.8), one tier up from thirteen's 629.6px. Fourteen is Sign
      with Share since the Highlight button. Rounded up to 679px for the same
@@ -551,9 +562,14 @@
      apart. Seven fit above the 44px floor only from 336.8px of content, so
      under 337px (a 360px or 375px phone) Sign's thirteen let the floor give
      way, see the 337px rule after the 288px one (decided 2026-10-31). */
+  /* SIGN-44: the Comment tool moved every count up one. Feedback stands down
+     from fourteen counted (Sign without Share, thirteen left: 7+6) and from
+     fifteen (with Share, fourteen left: 7+7, cap of seven instead of the
+     eight fifteen takes above this width). Below 337px the rule after the
+     288px one gives the floor way for both. */
   @container toolbar (max-width: 387px) {
-    .toolbar:has(> :nth-child(13 of :not(.desktop-download))) > [data-optional-control] { display: none; }
-    .toolbar:has(> :nth-child(13 of :not(.desktop-download))):not(:has(> :nth-child(14 of :not(.desktop-download)))) > * { --controls-per-row: 6; }
+    .toolbar:has(> :nth-child(14 of :not(.desktop-download))) > [data-optional-control] { display: none; }
+    .toolbar:has(> :nth-child(15 of :not(.desktop-download))) > * { --controls-per-row: 7; }
   }
 
   /* Feedback does not act on the document, so at the narrowest widths it

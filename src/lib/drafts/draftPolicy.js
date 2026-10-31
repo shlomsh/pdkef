@@ -14,7 +14,7 @@ export const MAX_AGE_MS = 28 * 24 * 60 * 60 * 1000; // 28 days
  * as version 0. Lives here, not in the editor, so the draft layer under
  * `src/lib/` imports nothing from `src/editor/` (DEBT-04).
  */
-export const DRAFT_SCHEMA_VERSION = 2;
+export const DRAFT_SCHEMA_VERSION = 3;
 
 /**
  * Stamp a newly persisted draft. This is intentionally the sole write-side

@@ -5,10 +5,10 @@ import { englishSignMessages } from '#editor/registry/signMessages.ts';
 import type { EditorElement } from '#editor/model/editorModel.ts';
 import { CommentRail } from './CommentRail.tsx';
 
-const hl = (id: string, top: number, comment?: string, pageIndex = 0): EditorElement => ({
-  id, type: 'highlight', pageIndex, left: 10, top, width: 50, height: 2, color: '#ff0', comment,
-  bands: [{ left: 0, top: 0, width: 100, height: 100 }],
-} as unknown as EditorElement);
+const hl = (id: string, top: number, comment: string, pageIndex = 0): EditorElement => ({
+  id, type: 'comment', pageIndex, left: 10, top, width: 50, height: 2, comment,
+  anchor: { kind: 'passage', bands: [{ left: 0, top: 0, width: 100, height: 100 }] },
+});
 
 let host: HTMLDivElement | null = null;
 afterEach(() => { if (host) render(null, host); host?.remove(); host = null; vi.restoreAllMocks(); });
@@ -17,18 +17,18 @@ function mount(elements: EditorElement[], activeElementId: string | null = null,
   host = document.createElement('div');
   document.body.appendChild(host);
   act(() => render(<CommentRail pageIndex={0} elements={elements} activeElementId={activeElementId} messages={englishSignMessages}
-    onSelect={extra.onSelect ?? (() => {})} onChange={() => {}} />, host!));
+    onSelect={extra.onSelect ?? (() => {})} onSave={() => {}} onDelete={() => {}} onDiscard={() => {}} />, host!));
 }
 const cards = () => [...host!.querySelectorAll<HTMLElement>('[data-comment-card]')];
 
 describe('CommentRail', () => {
-  it('renders one card per commented highlight in reading order', () => {
-    mount([hl('b', 50, 'second'), hl('a', 10, 'first'), hl('x', 30), hl('o', 5, 'other page', 1)]);
+  it('renders one card per comment in reading order', () => {
+    mount([hl('b', 50, 'second'), hl('a', 10, 'first'), hl('x', 30, '  '), hl('o', 5, 'other page', 1)]);
     expect(cards().map((c) => c.dataset.commentCard)).toEqual(['a', 'b']);
     expect(host!.querySelector('[data-comment-rail]')).not.toBeNull();
   });
 
-  it('adds the active highlight that was just opened for a comment, and marks the active card', () => {
+  it('adds the active comment that was just opened for a comment, and marks the active card', () => {
     mount([hl('a', 10, 'first'), hl('n', 40, '')], 'n');
     expect(cards().map((c) => c.dataset.commentCard)).toEqual(['a', 'n']);
     expect(cards()[1].dataset.active).toBe('true');
@@ -66,6 +66,23 @@ describe('CommentRail', () => {
     expect(onSelect).toHaveBeenCalledWith('a');
     expect(scroll).toHaveBeenCalledWith({ block: 'nearest', behavior: 'smooth' });
     node.remove();
+  });
+
+  it('selecting or hovering an element comment acts on its target node', () => {
+    const target = document.createElement('div');
+    target.setAttribute('data-editor-element-id', 'box');
+    target.scrollIntoView = vi.fn();
+    document.body.appendChild(target);
+    const onSelect = vi.fn();
+    const box = { id: 'box', type: 'whiteout', pageIndex: 0, left: 5, top: 30, width: 10, height: 4 } as unknown as EditorElement;
+    const onBox: EditorElement = { id: 'c', type: 'comment', pageIndex: 0, left: 0, top: 0, width: 0, height: 0, comment: 'hi', anchor: { kind: 'element', elementId: 'box' } };
+    mount([box, onBox], null, { onSelect });
+    act(() => { cards()[0].dispatchEvent(new MouseEvent('mouseenter')); });
+    expect(target.hasAttribute('data-comment-hover')).toBe(true);
+    act(() => host!.querySelector<HTMLElement>('p')!.click());
+    expect(onSelect).toHaveBeenCalledWith('c');
+    expect(target.scrollIntoView).toHaveBeenCalled();
+    target.remove();
   });
 
   it('hovering a card marks its passage', () => {

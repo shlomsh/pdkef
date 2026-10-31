@@ -11,7 +11,8 @@ import ExportReadinessNotice from './ExportReadinessNotice.tsx';
 import EditorExportActions from '#editor-ui/EditorExportActions.tsx';
 import ToolShell, { FILE_ACTIONS, useToolShell } from '#shell/ToolShell.tsx';
 import { useArmTool, useAutoArmHint, useDoubleTap } from '#editor-ui/hooks/toolArming.js';
-import { HighlightIcon, WhiteoutIcon } from '#editor-ui/toolIcons.tsx';
+import IconToolButton from './IconToolButton.tsx';
+import { CommentIcon, HighlightIcon, WhiteoutIcon } from '#editor-ui/toolIcons.tsx';
 import useCoarsePointer from '#editor-ui/hooks/useCoarsePointer.ts';
 import { useFill } from './fill/FillContext.tsx';
 import { englishSignMessages } from '../messages';
@@ -33,7 +34,7 @@ import { recordAction } from '#lib/telemetry/actionTrail.ts';
 // than deriving it from TOOL_COPY's own keys, since TOOL_COPY is now built
 // per-render from the message catalogue (LOC-09 stage 1) and this guard has to
 // exist before that render happens.
-const SIGN_TOOL_TYPES: readonly SignToolType[] = ['text', 'date', 'symbol', 'signature', 'whiteout', 'ellipse', 'rectangle', 'line', 'highlight'];
+const SIGN_TOOL_TYPES: readonly SignToolType[] = ['text', 'date', 'symbol', 'signature', 'whiteout', 'ellipse', 'rectangle', 'line', 'highlight', 'comment'];
 const isSignToolType = (tool: string): tool is SignToolType => (SIGN_TOOL_TYPES as readonly string[]).includes(tool);
 
 // What this file's own tests (and any other caller that has no fields to
@@ -607,16 +608,9 @@ export default function SignToolbar({
             </div>
           </ArmHint>
 
-          <ArmHint tool="whiteout" label={t.whiteoutButton} action={TOOL_COPY.whiteout.action} locked={selectedTool === 'whiteout' && toolLocked} autoShowTool={autoShowTool} hintTemplate={t.armHint} touchHintTemplate={t.armHintTouch}>
-            <button
-              type="button"
-              {...toolButtonProps(selectedTool === 'whiteout', toolLocked)}
-              onClick={armTool('whiteout')}
-            >
-              <WhiteoutIcon strokeWidth={2.5} />
-              <span className={styles.label}>{t.whiteoutButton}</span>
-            </button>
-          </ArmHint>
+          <IconToolButton tool="whiteout" label={t.whiteoutButton} action={TOOL_COPY.whiteout.action} selectedTool={selectedTool} toolLocked={toolLocked} autoShowTool={autoShowTool} hintTemplate={t.armHint} touchHintTemplate={t.armHintTouch} onArm={armTool('whiteout')}>
+            <WhiteoutIcon strokeWidth={2.5} />
+          </IconToolButton>
 
           {/* Same wrapping reasoning as the Shapes button above: ArmHint anchors to
               the dropdown div, not the button Popover clones. `locked` doubles
@@ -718,16 +712,13 @@ export default function SignToolbar({
             </div>
           </ArmHint>
 
-          <ArmHint tool="highlight" label={t.highlightLabel} action={TOOL_COPY.highlight.action} locked={selectedTool === 'highlight' && toolLocked} autoShowTool={autoShowTool} hintTemplate={t.armHint} touchHintTemplate={t.armHintTouch}>
-            <button
-              type="button"
-              {...toolButtonProps(selectedTool === 'highlight', toolLocked)}
-              onClick={armTool('highlight')}
-            >
-              <HighlightIcon strokeWidth={2.5} />
-              <span className={styles.label}>{t.highlightLabel}</span>
-            </button>
-          </ArmHint>
+          <IconToolButton tool="highlight" label={t.highlightLabel} action={TOOL_COPY.highlight.action} selectedTool={selectedTool} toolLocked={toolLocked} autoShowTool={autoShowTool} hintTemplate={t.armHint} touchHintTemplate={t.armHintTouch} onArm={armTool('highlight')}>
+            <HighlightIcon strokeWidth={2.5} />
+          </IconToolButton>
+
+          <IconToolButton tool="comment" label={t.commentToolLabel} action={TOOL_COPY.comment.action} selectedTool={selectedTool} toolLocked={toolLocked} autoShowTool={autoShowTool} hintTemplate={t.armHint} touchHintTemplate={t.armHintTouch} onArm={armTool('comment')} iconOnly>
+            <CommentIcon />
+          </IconToolButton>
 
           {/* Undo and Redo are the whole history model, the same pair
               RedactToolbar.tsx carries and in the same order: one tap each,
@@ -783,7 +774,7 @@ export default function SignToolbar({
             className={styles.button}
             onClick={requestReplace}
             title={shellMessages.replaceTitle}
-            aria-label={shellMessages.replaceLabel}
+            aria-label={shellMessages.replaceLabel} data-icon-only
           >
             <svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
               <path d={FILE_ACTIONS.replace.icon} />

@@ -1,26 +1,26 @@
-// SIGN-44 comments view: which highlights show a comment card on a page, where each card wants
-// to sit, and where a passage ends (the dot). Pure; page-percent in, page-percent out.
-import type { EditorElement, HighlightElement } from '#editor/model/editorModel.ts';
+// SIGN-44 comments view: which comments show a card on a page, where each card wants to sit, and
+// where a comment's anchor ends (the dot). Pure; page-percent in, page-percent out.
+import type { CommentElement, EditorElement } from '#editor/model/editorModel.ts';
+import { isComment, resolveCommentBoxes } from '../comments/anchors.ts';
 import { hasComment } from './commentNumbers.ts';
 
 interface PercentBox { left: number; top: number; width: number; height: number }
 
 export interface CommentCard {
   id: string;
-  color: string;
   /** The passage's reading direction: the crop starts where the line is read first. */
   direction: 'ltr' | 'rtl';
   comment: string;
   /** When the comment was last written (epoch ms); absent on comments made before dates were kept. */
   commentedAt?: number;
-  /** Opened with Comment and nothing typed yet: the card shows an empty field. */
+  /** Opened and nothing typed yet: the card shows an empty field. */
   isNew: boolean;
-  /** The first band in page percent: where the card wants to sit and the passage crop's source. */
+  /** Where the card wants to sit: the passage's first band in page percent, else the comment's box. */
   firstBand: PercentBox;
 }
 
-/** A band of a highlight (percent of its own box) in page percent. */
-function bandToPage(element: HighlightElement, band: PercentBox): PercentBox {
+/** A band of a passage comment (percent of its own box) in page percent. */
+function bandToPage(element: PercentBox, band: PercentBox): PercentBox {
   return {
     left: element.left + (band.left / 100) * element.width,
     top: element.top + (band.top / 100) * element.height,
@@ -29,37 +29,36 @@ function bandToPage(element: HighlightElement, band: PercentBox): PercentBox {
   };
 }
 
-const isHighlight = (el: EditorElement): el is HighlightElement => el.type === 'highlight';
-const hasCard = (el: EditorElement, activeId: string | null) => isHighlight(el) && el.bands.length > 0
-  && (!!el.comment?.trim() || (el.id === activeId && el.comment !== undefined));
+const directionOf = (el: CommentElement): 'ltr' | 'rtl' => (el.anchor.kind === 'passage' ? el.anchor.direction ?? 'ltr' : 'ltr');
+const cardsOf = (elements: readonly EditorElement[], activeId: string | null): CommentElement[] =>
+  resolveCommentBoxes(elements).filter(isComment).filter((el) => !!el.comment.trim() || (el.id === activeId && el.comment === ''));
 
 /** Any card on any page: the rail opens with the first comment, never for highlighting alone. */
 export function hasCommentCards(elements: readonly EditorElement[], activeId: string | null): boolean {
-  return elements.some((el) => hasCard(el, activeId));
+  return cardsOf(elements, activeId).length > 0;
 }
 
 /**
- * Cards for one page in reading order (top, then left): every highlight with a comment, plus the
- * active highlight when its comment was just opened ('' or blank).
+ * Cards for one page in reading order (top, then left): every comment with text, plus the active
+ * comment while it is new.
  */
 export function commentCards(elements: readonly EditorElement[], pageIndex: number, activeId: string | null): CommentCard[] {
-  return elements
-    .filter((el): el is HighlightElement => el.pageIndex === pageIndex && hasCard(el, activeId))
+  return cardsOf(elements, activeId)
+    .filter((el) => el.pageIndex === pageIndex)
     .map((el) => ({
       id: el.id,
-      color: el.color,
-      direction: el.direction ?? 'ltr',
-      comment: el.comment ?? '',
+      direction: directionOf(el),
+      comment: el.comment,
       commentedAt: el.commentedAt,
-      isNew: !el.comment?.trim(),
-      firstBand: bandToPage(el, el.bands[0]),
+      isNew: !el.comment.trim(),
+      firstBand: el.anchor.kind === 'passage' && el.anchor.bands.length > 0 ? bandToPage(el, el.anchor.bands[0]) : { left: el.left, top: el.top, width: el.width, height: el.height },
     }))
     .sort((a, b) => a.firstBand.top - b.firstBand.top || a.firstBand.left - b.firstBand.left);
 }
 
-/** Commented highlights on one page (the page header's count). */
+/** Comments with text on one page (the page header's count). */
 export function commentCount(elements: readonly EditorElement[], pageIndex: number): number {
-  return elements.filter((el) => el.pageIndex === pageIndex && hasComment(el)).length;
+  return resolveCommentBoxes(elements).filter((el) => el.pageIndex === pageIndex && hasComment(el)).length;
 }
 
 /**
@@ -75,11 +74,4 @@ export function stackCards(cards: ReadonlyArray<{ id: string; want: number; heig
     floor = top + card.height + gap;
   }
   return tops;
-}
-
-/** Where the passage ends, in page percent: the end of its last band in reading order, mid-height. */
-export function passageEnd(element: HighlightElement): { x: number; y: number } {
-  const last = element.bands[element.bands.length - 1];
-  const box = bandToPage(element, last ?? { left: 0, top: 0, width: 100, height: 100 });
-  return { x: element.direction === 'rtl' ? box.left : box.left + box.width, y: box.top + box.height / 2 };
 }

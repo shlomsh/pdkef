@@ -23,10 +23,18 @@ async function sourceBytes(pages = 3, rotate = 0) {
   return doc.save();
 }
 
-function highlight(id: string, pageIndex: number, top: number, comment?: string, direction?: 'ltr' | 'rtl'): EditorElement {
+function highlight(id: string, pageIndex: number, top: number): EditorElement {
   return {
     id, type: 'highlight', pageIndex, left: 10, top, width: 50, height: 3, color: '#ffe066',
-    bands: [{ left: 0, top: 0, width: 100, height: 100 }], comment, direction,
+    bands: [{ left: 0, top: 0, width: 100, height: 100 }],
+  } as EditorElement;
+}
+
+/** A passage comment, like the Comment tool makes it; blank text is an unsaved card. */
+function passageComment(id: string, pageIndex: number, top: number, comment: string, direction?: 'ltr' | 'rtl'): EditorElement {
+  return {
+    id, type: 'comment', pageIndex, left: 10, top, width: 50, height: 3, comment,
+    anchor: { kind: 'passage', bands: [{ left: 0, top: 0, width: 100, height: 100 }], direction },
   } as EditorElement;
 }
 
@@ -52,13 +60,13 @@ async function textOfLastPage(blob: Blob) {
 
 describe('planCommentsPages', () => {
   it('adds nothing when no highlight has a comment', async () => {
-    const { doc, plan } = await planOn([highlight('a', 0, 10), highlight('b', 1, 10, '   ')]);
+    const { doc, plan } = await planOn([highlight('a', 0, 10), passageComment('b', 1, 10, '   ')]);
     expect(plan).toBeNull();
     expect(doc.getPageCount()).toBe(3);
   });
 
   it('appends one page the size of the last source page, with the title and entries as text elements', async () => {
-    const elements = [highlight('late', 2, 10, 'second note'), highlight('early', 0, 10, 'first note')];
+    const elements = [passageComment('late', 2, 10, 'second note'), passageComment('early', 0, 10, 'first note')];
     const { doc, plan } = await planOn(elements);
     expect(doc.getPageCount()).toBe(4);
     expect(doc.getPage(3).getSize()).toEqual({ width: 400, height: 500 });
@@ -71,21 +79,38 @@ describe('planCommentsPages', () => {
   });
 
   it('lays out right to left when most comments are written in a right-to-left script, whatever the highlights recorded', async () => {
-    const { plan } = await planOn([highlight('a', 0, 10, 'הערה ראשונה'), highlight('b', 0, 30, 'הערה שנייה', 'ltr')], 1);
+    const { plan } = await planOn([passageComment('a', 0, 10, 'הערה ראשונה'), passageComment('b', 0, 30, 'הערה שנייה', 'ltr')], 1);
     const title = plan!.elements[0] as { left: number };
     expect(title.left).toBeGreaterThan(50);
   });
 
   it('carries a Hebrew comment as a text element that reads right to left', async () => {
-    const { plan } = await planOn([highlight('h', 0, 10, 'הערה חשובה מאוד', 'rtl')], 1);
+    const { plan } = await planOn([passageComment('h', 0, 10, 'הערה חשובה מאוד', 'rtl')], 1);
     const hebrew = plan!.elements.find((element) => element.type === 'text' && element.text.includes('הערה'));
     expect(hebrew).toBeDefined();
     // A right-anchored line: its left is the column's right edge, past the page middle.
     expect((hebrew as { left: number }).left).toBeGreaterThan(50);
   });
 
+  it('lists a comment on a highlight, on another element and on a pin, one entry each', async () => {
+    const text = { id: 't', type: 'text', pageIndex: 0, left: 10, top: 40, text: 'Hello', fontSize: 12, fontFamily: 'Arimo' } as EditorElement;
+    const onHighlight = { id: 'c1', type: 'comment', pageIndex: 0, left: 0, top: 0, width: 0, height: 0, comment: 'on highlight', anchor: { kind: 'element', elementId: 'h' } } as EditorElement;
+    const onText = { id: 'c2', type: 'comment', pageIndex: 0, left: 0, top: 0, width: 0, height: 0, comment: 'on text', anchor: { kind: 'element', elementId: 't' } } as EditorElement;
+    const pin = { id: 'c3', type: 'comment', pageIndex: 0, left: 50, top: 70, width: 2, height: 2, comment: 'on pin', anchor: { kind: 'point' } } as EditorElement;
+    const { plan } = await planOn([highlight('h', 0, 10), text, onHighlight, onText, pin], 1);
+    const texts = plan!.elements.map((element) => (element as { text: string }).text);
+    expect(texts.filter((t) => t === 'Page 1')).toHaveLength(3);
+    expect(texts).toEqual(expect.arrayContaining(['on highlight', 'on text', 'on pin']));
+  });
+
+  it('drops a comment whose target is gone', async () => {
+    const orphan = { id: 'c', type: 'comment', pageIndex: 0, left: 0, top: 0, width: 0, height: 0, comment: 'lost', anchor: { kind: 'element', elementId: 'gone' } } as EditorElement;
+    const { plan } = await planOn([orphan], 1);
+    expect(plan).toBeNull();
+  });
+
   it('starts a second comments page when the entries do not fit on one', async () => {
-    const elements = Array.from({ length: 14 }, (_, i) => highlight(`h${i}`, 0, 5 + i * 5, `note number ${i + 1}`));
+    const elements = Array.from({ length: 14 }, (_, i) => passageComment(`h${i}`, 0, 5 + i * 5, `note number ${i + 1}`));
     const { doc, plan } = await planOn(elements, 1);
     expect(doc.getPageCount()).toBeGreaterThan(2);
     const pageIndexes = new Set(plan!.elements.map((element) => element.pageIndex));
@@ -105,7 +130,7 @@ describe('signPdf comments page', () => {
   });
 
   it('lists the comments in number order with their source pages', async () => {
-    const blob = await exported([highlight('late', 2, 10, 'second note'), highlight('early', 0, 10, 'first note')]);
+    const blob = await exported([passageComment('late', 2, 10, 'second note'), passageComment('early', 0, 10, 'first note')]);
     const { text, pageCount } = await textOfLastPage(blob);
     expect(pageCount).toBe(4);
     expect(text).toContain('Comments');
@@ -116,7 +141,7 @@ describe('signPdf comments page', () => {
 
   it('exports a Hebrew comment, with the Hebrew title when asked', async () => {
     const file = new File([await sourceBytes(1)], 'paper.pdf', { type: 'application/pdf' });
-    const blob = await signPdf(file, [highlight('h', 0, 10, 'הערה חשובה', 'rtl')], undefined,
+    const blob = await signPdf(file, [passageComment('h', 0, 10, 'הערה חשובה', 'rtl')], undefined,
       { commentsPage: { title: 'הערות', entryLabel: 'עמוד {page}' } });
     const { text } = await textOfLastPage(blob);
     expect(text).toContain('עמוד');
@@ -124,7 +149,7 @@ describe('signPdf comments page', () => {
   });
 
   it('links each entry to the highlighted page', async () => {
-    const blob = await exported([highlight('a', 2, 10, 'on three'), highlight('b', 0, 10, 'on one')]);
+    const blob = await exported([passageComment('a', 2, 10, 'on three'), passageComment('b', 0, 10, 'on one')]);
     const doc = await PDFDocument.load(await blob.arrayBuffer());
     const annots = doc.getPage(3).node.Annots() as PDFArray;
     const links = Array.from({ length: annots.size() }, (_, i) => annots.lookup(i, PDFDict))
@@ -136,7 +161,7 @@ describe('signPdf comments page', () => {
   });
 
   it('embeds the source page content in the clip, not an empty form', async () => {
-    const blob = await exported([highlight('a', 0, 10, 'note')]);
+    const blob = await exported([passageComment('a', 0, 10, 'note')]);
     const doc = await PDFDocument.load(await blob.arrayBuffer());
     const forms = doc.context.enumerateIndirectObjects()
       .map(([, object]) => object)
@@ -148,7 +173,7 @@ describe('signPdf comments page', () => {
   });
 
   it('exports a clip of a rotated page', async () => {
-    const blob = await exported([highlight('a', 1, 10, 'note')], 2, 90);
+    const blob = await exported([passageComment('a', 1, 10, 'note')], 2, 90);
     expect((await textOfLastPage(blob)).pageCount).toBe(3);
   });
 });

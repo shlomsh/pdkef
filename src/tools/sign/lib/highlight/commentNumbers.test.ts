@@ -1,34 +1,41 @@
 import { describe, expect, it } from 'vitest';
 import { commentNumbers } from './commentNumbers.ts';
-import type { EditorElement, HighlightElement } from '#editor/model/editorModel.ts';
+import type { CommentAnchor, CommentElement, EditorElement, HighlightElement } from '#editor/model/editorModel.ts';
 
-const highlight = (id: string, pageIndex: number, top: number, left: number, comment?: string, bandTop = 0): HighlightElement => ({
-  id, type: 'highlight', pageIndex, left, top, width: 20, height: 10, color: '#FFF34D',
-  bands: [{ left: 0, top: bandTop, width: 100, height: 50 }], ...(comment === undefined ? {} : { comment }),
+const comment = (id: string, pageIndex: number, top: number, left: number, text: string, anchor: CommentAnchor = { kind: 'point' }): CommentElement => ({
+  id, type: 'comment', pageIndex, left, top, width: 2, height: 2, comment: text, anchor,
+});
+const highlight = (id: string, pageIndex: number, top: number, left: number): HighlightElement => ({
+  id, type: 'highlight', pageIndex, left, top, width: 20, height: 10, color: '#FFF34D', bands: [],
 });
 
 describe('commentNumbers', () => {
-  it('numbers commented highlights in reading order: page, then from the top of the first band', () => {
+  it('numbers comment ids in reading order: page, then box top, then box left', () => {
     const elements: EditorElement[] = [
-      highlight('c', 1, 5, 10, 'third'),
-      highlight('b', 0, 40, 10, 'second'),
-      highlight('a', 0, 10, 50, 'first'),
+      comment('c', 1, 5, 10, 'third'),
+      comment('b2', 0, 40, 30, 'fourth-ish'),
+      comment('b', 0, 40, 10, 'second'),
+      comment('a', 0, 10, 50, 'first'),
     ];
-    expect([...commentNumbers(elements)]).toEqual([['a', 1], ['b', 2], ['c', 3]]);
+    expect([...commentNumbers(elements)]).toEqual([['a', 1], ['b', 2], ['b2', 3], ['c', 4]]);
   });
 
-  it('uses the first band, not the box top, so a passage starting lower in its box sorts by where it starts', () => {
-    const elements = [highlight('late', 0, 10, 0, 'x', 80), highlight('early', 0, 15, 0, 'y')];
-    expect(commentNumbers(elements).get('early')).toBe(1);
-    expect(commentNumbers(elements).get('late')).toBe(2);
-  });
-
-  it('skips highlights without a comment, a blank comment, and other element types', () => {
+  it('places an element comment at its target, and drops one whose target is gone', () => {
     const elements: EditorElement[] = [
-      highlight('none', 0, 1, 0),
-      highlight('blank', 0, 2, 0, '  \n '),
-      { id: 't', type: 'text', pageIndex: 0, left: 0, top: 0, text: 'hello' } as EditorElement,
-      highlight('kept', 0, 3, 0, 'note'),
+      highlight('h', 0, 70, 0),
+      comment('on-h', 0, 0, 0, 'x', { kind: 'element', elementId: 'h' }),
+      comment('pin', 0, 30, 0, 'y'),
+      comment('lost', 0, 1, 0, 'z', { kind: 'element', elementId: 'gone' }),
+    ];
+    expect([...commentNumbers(elements)]).toEqual([['pin', 1], ['on-h', 2]]);
+  });
+
+  it('skips blank comments and other element types', () => {
+    const elements: EditorElement[] = [
+      comment('blank', 0, 2, 0, '  \n '),
+      comment('new', 0, 2, 0, ''),
+      highlight('h', 0, 1, 0),
+      comment('kept', 0, 3, 0, 'note'),
     ];
     expect([...commentNumbers(elements)]).toEqual([['kept', 1]]);
   });

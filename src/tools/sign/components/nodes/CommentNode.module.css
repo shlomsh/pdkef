@@ -1,0 +1,24 @@
+/* A comment on the page: the passage tint is --color-comment-anchor at low opacity, deeper while focused. */
+.root { position: absolute; inset: 0; pointer-events: none; }
+.layer { position: absolute; inset: 0; opacity: 0.4; }
+.layer[data-focused] { opacity: 0.7; }
+.band { position: absolute; background: var(--color-comment-anchor); }
+.draft { position: absolute; inset: 0; opacity: 0.4; }
+/* The pin: a round marker filling its small square box. */
+.pin {
+  position: absolute; inset: 0; box-sizing: border-box; display: grid; place-items: center; border-radius: 50%;
+  background: var(--color-comment-anchor); color: var(--color-text); pointer-events: none;
+}
+.pin svg { width: 70%; height: 70%; }
+.pin[data-focused] { box-shadow: 0 0 0 2px var(--color-primary); }
+/* While the Comment tool's swipe is painting a passage the pin is not drawn. */
+:global([data-comment-swiping]) .pin { display: none; }
+/* An element comment lives on its target's box: only its dot takes pointer events. */
+.overlay { position: absolute; inset: 0; pointer-events: none; }
+/* The element's own wrapper must not cover the target either; its toolbar keeps its own pointer-events. */
+:global([data-editor-element]):has(> [data-comment-overlay]),
+:global([data-editor-element][data-editor-active]):has(> [data-comment-overlay]) {
+  pointer-events: none; background: none; box-shadow: none; outline-color: transparent;
+}
+/* The anchored element shows it is the focused card's subject (a highlight draws deeper bands instead). */
+:global([data-comment-focus]:not([data-editor-highlight])) { outline: 2px solid var(--color-comment-anchor); outline-offset: 1px; }

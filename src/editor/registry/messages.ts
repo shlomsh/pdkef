@@ -49,6 +49,11 @@ export interface SignMessages {
   highlightAction: string;
   highlightActionTouch: string;
   highlightLabel: string;
+  /** Comments as their own element: the toolbar tool's name, the lowercase noun for history lines, and the tool's arm hints. */
+  commentToolLabel: string;
+  commentElementLabel: string;
+  commentAction: string;
+  commentActionTouch: string;
   highlightColorYellow: string;
   highlightColorOrange: string;
   highlightColorPink: string;

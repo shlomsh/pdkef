@@ -5,28 +5,29 @@ import { englishSignMessages } from '#editor/registry/signMessages.ts';
 import type { EditorElement } from '#editor/model/editorModel.ts';
 import { CommentSheet } from './CommentSheet.tsx';
 
-const hl = (id: string, comment?: string, pageIndex = 1): EditorElement => ({
-  id, type: 'highlight', pageIndex, left: 10, top: 20, width: 50, height: 2, color: '#ff0', comment,
-  bands: [{ left: 0, top: 0, width: 100, height: 100 }],
-} as unknown as EditorElement);
+const hl = (id: string, comment: string, pageIndex = 1): EditorElement => ({
+  id, type: 'comment', pageIndex, left: 10, top: 20, width: 50, height: 2, comment,
+  anchor: { kind: 'passage', bands: [{ left: 0, top: 0, width: 100, height: 100 }] },
+});
+const highlight = (id: string): EditorElement => ({ id, type: 'highlight', pageIndex: 1, left: 10, top: 20, width: 50, height: 2, color: '#ff0', bands: [] });
 
 let host: HTMLDivElement | null = null;
 afterEach(() => { if (host) render(null, host); host?.remove(); host = null; });
 
-function mount(elements: EditorElement[], activeElementId: string | null, fns: { onChange?: (id: string, patch: { comment: string | undefined }) => void; onClose?: () => void } = {}) {
+function mount(elements: EditorElement[], activeElementId: string | null, fns: { onDiscard?: (id: string) => void; onClose?: () => void } = {}) {
   host = document.createElement('div');
   document.body.appendChild(host);
   act(() => render(<CommentSheet elements={elements} activeElementId={activeElementId} messages={englishSignMessages}
-    onChange={fns.onChange ?? (() => {})} onClose={fns.onClose ?? (() => {})} />, host!));
+    onSave={() => {}} onDelete={() => {}} onDiscard={fns.onDiscard ?? (() => {})} onClose={fns.onClose ?? (() => {})} />, host!));
 }
 const sheet = () => host!.querySelector<HTMLElement>('[data-comment-sheet]');
 
 describe('CommentSheet', () => {
-  it('renders nothing without an active commented highlight', () => {
-    mount([hl('a', 'hello'), hl('b')], null);
+  it('renders nothing without an active comment', () => {
+    mount([hl('a', 'hello'), highlight('b')], null);
     expect(sheet()).toBeNull();
     act(() => render(null, host!));
-    mount([hl('a', 'hello'), hl('b')], 'b');
+    mount([hl('a', 'hello'), highlight('b')], 'b');
     expect(sheet()).toBeNull();
   });
 
@@ -42,7 +43,7 @@ describe('CommentSheet', () => {
     expect(sheet()!.querySelector('[aria-label="More"]')).not.toBeNull();
   });
 
-  it('scrolls the passage to the centre when it opens', () => {
+  it('scrolls the anchor to the centre when it opens', () => {
     const node = document.createElement('div');
     node.setAttribute('data-editor-element-id', 'a');
     node.scrollIntoView = vi.fn();
@@ -61,12 +62,12 @@ describe('CommentSheet', () => {
     expect(onClose).toHaveBeenCalledTimes(2);
   });
 
-  it('Cancel on a new comment removes it', () => {
-    const onChange = vi.fn();
-    mount([hl('a', '')], 'a', { onChange });
+  it('Cancel on a new comment discards it', () => {
+    const onDiscard = vi.fn();
+    mount([hl('a', '')], 'a', { onDiscard });
     const cancel = [...host!.querySelectorAll('button')].find((b) => b.textContent === englishSignMessages.commentCancel)!;
     act(() => cancel.click());
-    expect(onChange).toHaveBeenCalledWith('a', { comment: undefined });
+    expect(onDiscard).toHaveBeenCalledWith('a');
   });
 
   it('keeps clicks from reaching the workspace', () => {

@@ -643,3 +643,77 @@ describe('restoring extra.pageTurns (SIGN-43)', () => {
     expect(restore({ actionHistory: [bad] })?.actionHistory).toEqual([]);
   });
 });
+
+describe('comments split from highlights (SIGN-44)', () => {
+  const highlight = {
+    id: 'h-1', type: 'highlight', pageIndex: 1, left: 10, top: 20, width: 30, height: 4, color: '#FFF34D',
+    bands: [{ left: 0, top: 0, width: 100, height: 100 }], direction: 'rtl',
+  };
+  const commented = { ...highlight, comment: 'Check this', commentedAt: 1_790_000_000_000 };
+  const entry = (extra: Record<string, unknown>) => ({
+    id: 'e', type: 'X', pageIndex: 1, description: 'x', timestamp: 1, ...extra,
+  });
+  const v2 = (elements: unknown[], actionHistory: unknown[] = []) => ({
+    fileName: 'a.pdf', fileBytes: bytesOf(), schemaVersion: 2, elements, extra: { actionHistory },
+  });
+
+  it('splits a commented highlight into the highlight and a comment anchored to it', () => {
+    const migrated = migrateDraftRecord(v2([goodText, commented])) as Record<string, any>;
+    expect(migrated.schemaVersion).toBe(3);
+    expect(migrated.elements).toEqual([
+      goodText,
+      highlight,
+      {
+        id: 'h-1-comment', type: 'comment', pageIndex: 1, left: 10, top: 20, width: 30, height: 4,
+        comment: 'Check this', commentedAt: 1_790_000_000_000, anchor: { kind: 'element', elementId: 'h-1' },
+      },
+    ]);
+    expect(validateDraftElements(migrated.elements).droppedCount).toBe(0);
+  });
+
+  it('leaves a highlight without a comment alone, and a blank comment becomes none', () => {
+    const migrated = migrateDraftRecord(v2([highlight, { ...highlight, id: 'h-2', comment: '  ' }])) as Record<string, any>;
+    expect(migrated.elements).toEqual([highlight, { ...highlight, id: 'h-2' }]);
+  });
+
+  it('is a no-op the second time', () => {
+    const once = migrateDraftRecord(v2([commented], [
+      entry({ operation: 'add', elements: [{ element: commented, index: 0 }] }),
+    ]));
+    expect(migrateDraftRecord(once)).toEqual(once);
+    expect(migrateDraftRecord({ ...(once as object), schemaVersion: 2 })).toEqual(once);
+  });
+
+  it('drops a blank comment element on load', () => {
+    const blank = { id: 'c-1', type: 'comment', pageIndex: 0, left: 1, top: 1, width: 0, height: 0, comment: ' ', anchor: { kind: 'point' } };
+    const kept = { ...blank, id: 'c-2', comment: 'hi' };
+    const migrated = migrateDraftRecord({ ...v2([blank, kept]), schemaVersion: 3 }) as Record<string, any>;
+    expect(migrated.elements).toEqual([kept]);
+  });
+
+  it('rewrites history: comment keys leave highlight updates, snapshots lose them', () => {
+    const migrated = migrateDraftRecord(v2([commented], [
+      entry({ operation: 'update', updates: [{ id: 'h-1', before: { comment: undefined, commentedAt: undefined }, after: { comment: 'Check this', commentedAt: 5 } }] }),
+      entry({ id: 'e2', operation: 'update', updates: [{ id: 'h-1', before: { color: '#FFF34D', comment: 'a' }, after: { color: '#FFB15C', comment: 'b' } }] }),
+      entry({ id: 'e3', operation: 'delete', elements: [{ element: commented, index: 0 }] }),
+    ])) as Record<string, any>;
+    const history = migrated.extra.actionHistory;
+    expect(history).toHaveLength(2);
+    expect(history[0].updates).toEqual([{ id: 'h-1', before: { color: '#FFF34D' }, after: { color: '#FFB15C' } }]);
+    expect(history[1].elements[0].element).toEqual(highlight);
+  });
+
+  it('leaves a comment element\'s own history alone', () => {
+    const comment = { id: 'c-1', type: 'comment', pageIndex: 0, left: 1, top: 1, width: 0, height: 0, comment: 'b', anchor: { kind: 'point' } };
+    const updates = [{ id: 'c-1', before: { comment: 'a' }, after: { comment: 'b' } }];
+    const migrated = migrateDraftRecord({ ...v2([comment], [entry({ operation: 'update', updates })]), schemaVersion: 3 }) as Record<string, any>;
+    expect(migrated.extra.actionHistory[0].updates).toEqual(updates);
+  });
+
+  it('validates a v3 record carrying a comment element', () => {
+    const comment = { id: 'c-1', type: 'comment', pageIndex: 0, left: 1, top: 1, width: 0, height: 0, comment: 'b', anchor: { kind: 'point' } };
+    const result = validateDraftRecord({ fileName: 'a.pdf', fileBytes: bytesOf(), schemaVersion: DRAFT_SCHEMA_VERSION, elements: [comment] });
+    expect(result?.elements).toEqual([comment]);
+  });
+});
+

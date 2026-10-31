@@ -28,12 +28,6 @@ describe('highlight definition', () => {
     expect(definition.schema({ ...good, color: undefined })).toBe(false);
   });
 
-  it('accepts a comment date and rejects a bad one', () => {
-    expect(definition.schema({ ...good, comment: 'x', commentedAt: 1_790_000_000_000 })).toBe(true);
-    expect(definition.schema({ ...good, comment: 'x', commentedAt: 'today' })).toBe(false);
-    expect(definition.schema({ ...good, comment: 'x', commentedAt: NaN })).toBe(false);
-  });
-
   it('survives validateDraftElements', () => {
     const { valid, droppedCount } = validateDraftElements([good]);
     expect(valid).toEqual([good]);
@@ -101,10 +95,10 @@ describe('highlight definition', () => {
       const plain = await run(good);
       expect(plain.annots.some((a) => subtypeOf(a, 'Popup'))).toBe(false);
       expect(plain.annots[0].get(PDFName.of('Contents'))).toBeUndefined();
-      const blank = await run({ ...good, comment: '   ' });
+      const blank = await run(good, { comment: { text: '   ' } });
       expect(blank.annots).toHaveLength(1);
 
-      const { pdfDoc, annots } = await run({ ...good, comment: 'שלום, a note' });
+      const { pdfDoc, annots } = await run(good, { comment: { text: 'שלום, a note' } });
       const highlight = annots.find((a) => subtypeOf(a, 'Highlight'))!;
       expect((highlight.get(PDFName.of('Contents')) as PDFHexString).decodeText()).toBe('שלום, a note');
       expect(highlight.get(PDFName.of('T'))).toBeUndefined();
@@ -115,8 +109,8 @@ describe('highlight definition', () => {
     });
 
     it('adds a numbered FreeText badge with /IRT only when commentNumber is set', async () => {
-      expect((await run({ ...good, comment: 'x' })).annots.some((a) => subtypeOf(a, 'FreeText'))).toBe(false);
-      const ltr = await run({ ...good, comment: 'x' }, { commentNumber: 3 });
+      expect((await run(good, { comment: { text: 'x' } })).annots.some((a) => subtypeOf(a, 'FreeText'))).toBe(false);
+      const ltr = await run(good, { comment: { text: 'x' }, commentNumber: 3 });
       const badge = ltr.annots.find((a) => subtypeOf(a, 'FreeText'))!;
       const highlight = ltr.annots.find((a) => subtypeOf(a, 'Highlight'))!;
       expect(ltr.pdfDoc.context.lookup(badge.get(PDFName.of('IRT')))).toBe(highlight);
@@ -128,7 +122,7 @@ describe('highlight definition', () => {
       expect(bx1).toBeLessThanOrEqual(20);
       expect(bx1 - bx0).toBeCloseTo(11, 5);
 
-      const rtl = await run({ ...good, comment: 'x', direction: 'rtl' }, { commentNumber: 3 });
+      const rtl = await run({ ...good, direction: 'rtl' }, { comment: { text: 'x' }, commentNumber: 3 });
       const rtlBadge = rtl.annots.find((a) => subtypeOf(a, 'FreeText'))!;
       expect(nums(rtl.pdfDoc, rtlBadge.get(PDFName.of('Rect')))[0]).toBeGreaterThanOrEqual(120);
     });

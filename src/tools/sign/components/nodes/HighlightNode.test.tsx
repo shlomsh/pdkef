@@ -38,3 +38,14 @@ describe('HighlightNode', () => {
     expect(host.querySelector('[data-highlight-bands]')!.hasAttribute('data-focused')).toBe(false);
   });
 });
+
+describe('HighlightNode without comments', () => {
+  it('draws no dot: comments are their own elements', () => {
+    const host = document.createElement('div');
+    document.body.appendChild(host);
+    act(() => render(<HighlightNode element={{ ...element, comment: 'old' } as typeof element} isActive onResizeStart={() => {}} />, host));
+    expect(host.querySelector('[data-comment-marker]')).toBeNull();
+    act(() => render(null, host));
+    host.remove();
+  });
+});

@@ -1,9 +1,8 @@
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { describe, it, expect, afterEach, vi } from 'vitest';
-import HighlightNode from './HighlightNode.tsx';
-import { CommentNumbersScope } from './commentNumbersContext.tsx';
 import ElementToolbar from '../ElementToolbar.tsx';
+import { SignToolContext, type SignToolContextValue } from '../SignToolContext.tsx';
 import type { HighlightElement } from '#editor/model/editorModel.ts';
 
 const make = (over: Partial<HighlightElement>): HighlightElement => ({
@@ -19,65 +18,13 @@ function mount(node: preact.ComponentChild) {
 }
 afterEach(() => { act(() => render(null, host)); host.remove(); });
 
-function node(element: HighlightElement, extra: Record<string, unknown> = {}) {
-  return <HighlightNode element={element} isActive onResizeStart={() => {}} onChange={() => {}} onSelect={() => {}} {...extra} />;
-}
-describe('highlight dot', () => {
-  const dot = () => host.querySelector<HTMLElement>('[data-highlight-dot]')!;
-  it('renders a numbered-label dot at the passage end, outside the multiply root, no inline note', () => {
-    const onSelect = vi.fn();
-    const el = make({ comment: 'a' });
-    mount(<CommentNumbersScope elements={[el]}>{node(el, { onSelect })}</CommentNumbersScope>);
-    expect(host.querySelector('textarea')).toBeNull();
-    expect(dot().hasAttribute('data-highlight-badge')).toBe(true);
-    expect(dot().textContent).toBe('');
-    expect(dot().getAttribute('aria-label')).toBe('Comment 1');
-    expect(host.querySelector('[data-highlight-root]')!.contains(dot())).toBe(false);
-    // end of the last band: page x = 10 + 50 = 60 -> local 100%; y = 10 + 0.5*(10*0.5)... centred in the band
-    expect(dot().style.left).toBe('100%');
-    expect(dot().style.top).toBe('30%');
-    act(() => dot().click());
-    expect(onSelect).toHaveBeenCalledTimes(1);
-  });
-  it('sits left of the end for rtl', () => {
-    const el = make({ comment: 'a', direction: 'rtl' });
-    mount(<CommentNumbersScope elements={[el]}>{node(el)}</CommentNumbersScope>);
-    expect(dot().dataset.side).toBe('end');
-    expect(dot().style.left).toBe('0%');
-  });
-  it('shows none for a blank comment', () => {
-    const el = make({ comment: '  ' });
-    mount(<CommentNumbersScope elements={[el]}>{node(el)}</CommentNumbersScope>);
-    expect(host.querySelector('[data-highlight-dot]')).toBeNull();
-  });
-});
-
 describe('toolbar comment button', () => {
-  const button = () => host.querySelector('button[title="Comment"]') as HTMLButtonElement;
-  function toolbar(element: HighlightElement, onChange = vi.fn()) {
-    mount(<ElementToolbar element={element} onChange={onChange} onClone={() => {}} onDelete={() => {}} />);
-    return onChange;
-  }
-  it('opens an empty comment when there is no comment', () => {
-    const onChange = toolbar(make({}));
-    expect(button().getAttribute('aria-pressed')).toBe('false');
-    act(() => button().click());
-    expect(onChange).toHaveBeenCalledWith({ comment: '' });
-  });
-  it('removes a blank note', () => {
-    const onChange = toolbar(make({ comment: '' }));
-    expect(button().getAttribute('aria-pressed')).toBe('true');
-    act(() => button().click());
-    expect(onChange).toHaveBeenCalledWith({ comment: undefined });
-  });
-  it('focuses the note and keeps the text when there is one', () => {
-    const onChange = vi.fn();
-    mount(<>
-      <textarea data-highlight-note-input />
-      <ElementToolbar element={make({ comment: 'keep' })} onChange={onChange} onClone={() => {}} onDelete={() => {}} />
-    </>);
-    act(() => button().click());
-    expect(onChange).not.toHaveBeenCalled();
-    expect(document.activeElement).toBe(host.querySelector('textarea'));
+  it('shows the generic Comment button for a highlight, and none for a comment', () => {
+    const sign = { state: { elements: [make({})] }, dispatch: vi.fn() } as unknown as SignToolContextValue;
+    mount(<SignToolContext.Provider value={sign}><ElementToolbar element={make({})} onChange={() => {}} onClone={() => {}} onDelete={() => {}} /></SignToolContext.Provider>);
+    expect(host.querySelectorAll('button[title="Comment"]')).toHaveLength(1);
+    const comment = { id: 'c1', type: 'comment', pageIndex: 0, left: 0, top: 0, width: 1, height: 1, comment: '', anchor: { kind: 'point' } };
+    act(() => render(<SignToolContext.Provider value={sign}><ElementToolbar element={comment} onChange={() => {}} onClone={() => {}} onDelete={() => {}} /></SignToolContext.Provider>, host));
+    expect(host.innerHTML).toBe('');
   });
 });

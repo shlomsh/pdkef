@@ -2,27 +2,25 @@ import { useLayoutEffect, useRef, useState } from 'preact/hooks';
 import type { EditorElement } from '#editor/model/editorModel.ts';
 import type { SignMessages } from '#editor/registry/messages.ts';
 import { commentCards, stackCards } from '../../lib/highlight/commentCards.ts';
+import { anchorNode, markAnchor } from './anchorNode.ts';
+import type { CommentPatch } from '../../lib/highlight/commentCommit.ts';
 import { CommentCardBody } from './CommentCardBody.tsx';
 import styles from './CommentRail.module.css';
 
 const GAP = 8;
 const NUDGE = 6;
 const stop = (event: Event) => event.stopPropagation();
-const passageNode = (id: string) => document.querySelector<HTMLElement>(`[data-editor-element-id="${CSS.escape(id)}"]`);
-const markHover = (id: string, on: boolean) => {
-  const node = passageNode(id);
-  if (on) node?.setAttribute('data-comment-hover', '');
-  else node?.removeAttribute('data-comment-hover');
-};
 
-/** SIGN-44: comments in a margin rail beside the page, each card level with its passage. */
-export function CommentRail({ pageIndex, elements, activeElementId, messages, onSelect, onChange }: {
+/** SIGN-44: comments in a margin rail beside the page, each card level with its anchor. */
+export function CommentRail({ pageIndex, elements, activeElementId, messages, onSelect, onSave, onDelete, onDiscard }: {
   pageIndex: number;
   elements: readonly EditorElement[];
   activeElementId: string | null;
   messages: SignMessages;
   onSelect: (id: string) => void;
-  onChange: (id: string, patch: { comment: string | undefined }) => void;
+  onSave: (id: string, patch: CommentPatch) => void;
+  onDelete: (id: string) => void;
+  onDiscard: (id: string) => void;
 }) {
   const cards = commentCards(elements, pageIndex, activeElementId);
   const rail = useRef<HTMLDivElement>(null);
@@ -56,13 +54,15 @@ export function CommentRail({ pageIndex, elements, activeElementId, messages, on
       {cards.map((card) => (
         <div key={card.id} class={styles.card} data-comment-card={card.id} data-active={card.id === activeElementId ? 'true' : undefined}
           style={{ top: `${layout.tops.get(card.id) ?? 0}px` }}
-          onMouseEnter={() => markHover(card.id, true)} onMouseLeave={() => markHover(card.id, false)}>
+          onMouseEnter={() => markAnchor(elements, card.id, 'data-comment-hover', true)} onMouseLeave={() => markAnchor(elements, card.id, 'data-comment-hover', false)}>
           <CommentCardBody
             card={card}
             active={card.id === activeElementId}
             messages={messages}
-            onSelect={() => { onSelect(card.id); passageNode(card.id)?.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); }}
-            onChange={(patch) => onChange(card.id, patch)}
+            onSelect={() => { onSelect(card.id); anchorNode(elements, card.id)?.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); }}
+            onSave={(patch) => onSave(card.id, patch)}
+            onDelete={() => onDelete(card.id)}
+            onDiscard={() => onDiscard(card.id)}
           />
         </div>
       ))}
