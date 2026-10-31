@@ -34,9 +34,9 @@ function pdfDate(date = new Date()): PDFString {
   return PDFString.of(text);
 }
 
-function appearance(pdfDoc: PDFDocument, bbox: Bounds, content: string, resources: Record<string, any>): PDFRef {
+function appearance(pdfDoc: PDFDocument, bbox: Bounds, content: string, resources: Record<string, any>, matrix?: number[]): PDFRef {
   const { context } = pdfDoc;
-  const stream = context.stream(content, { Type: 'XObject', Subtype: 'Form', BBox: bbox, Resources: resources });
+  const stream = context.stream(content, { Type: 'XObject', Subtype: 'Form', BBox: bbox, Resources: resources, ...(matrix ? { Matrix: matrix } : {}) });
   return context.register(stream);
 }
 
@@ -113,9 +113,15 @@ export function serializeHighlight(element: HighlightElement, context: Serialize
     const middle = (first.top + first.bottom) / 2;
     const badgeRect = boundsOf([toUser(left, middle + BADGE_SIZE / 2), toUser(left + BADGE_SIZE, middle - BADGE_SIZE / 2)]);
     const label = String(commentNumber);
-    const badgeAp = appearance(pdfDoc, [badgeRect[0], badgeRect[1], badgeRect[2], badgeRect[3]],
-      `1 0 0 1 ${fixed(badgeRect[0])} ${fixed(badgeRect[1])} cm\n${badgeContent(label)}`,
-      { Font: { F1: { Type: 'Font', Subtype: 'Type1', BaseFont: 'Helvetica-Bold', Encoding: 'WinAnsiEncoding' } } });
+    const fonts = { Font: { F1: { Type: 'Font', Subtype: 'Type1', BaseFont: 'Helvetica-Bold', Encoding: 'WinAnsiEncoding' } } };
+    const [ma, mb, mc, md] = pageGeometry?.editorToPdf ?? IDENTITY;
+    // A turned page: draw in the badge's own square and let /Matrix carry the page's rotation, so the digit
+    // reads upright as displayed (12.5.5 maps the transformed BBox onto Rect).
+    const turned = ma !== 1 || mb !== 0 || mc !== 0 || md !== 1;
+    const badgeAp = turned
+      ? appearance(pdfDoc, [0, 0, BADGE_SIZE, BADGE_SIZE], badgeContent(label), fonts, [ma, mb, mc, md, 0, 0])
+      : appearance(pdfDoc, [badgeRect[0], badgeRect[1], badgeRect[2], badgeRect[3]],
+        `1 0 0 1 ${fixed(badgeRect[0])} ${fixed(badgeRect[1])} cm\n${badgeContent(label)}`, fonts);
     const badgeRef = pdfContext.register(pdfContext.obj({
       Type: 'Annot', Subtype: 'FreeText', Rect: badgeRect, F: 4, Contents: PDFHexString.fromText(label),
       DA: PDFString.of('1 g /F1 8 Tf'), IRT: highlightRef, RT: 'Group', M: pdfDate(), AP: { N: badgeAp },
