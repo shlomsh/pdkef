@@ -1,0 +1,3 @@
+.root { position: absolute; inset: 0; mix-blend-mode: multiply; pointer-events: none; }
+.layer { position: absolute; inset: 0; }
+.band { position: absolute; }

@@ -382,3 +382,23 @@ describe('ElementToolbar whiteout colour group', () => {
     expect(host.querySelector('[data-whiteout-color-auto]')).toBeNull();
   });
 });
+
+describe('ElementToolbar highlight swatches', () => {
+  it('shows six swatches, marks the current one pressed, and reports the picked hex', () => {
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+    const onChange = vi.fn();
+    const element = { id: 'h1', type: 'highlight', color: '#FF8FCF', bands: [] };
+    act(() => {
+      render(<ElementToolbar element={element} onChange={onChange} onClone={() => {}} onDelete={() => {}} />, container);
+    });
+    const swatches = Array.from(container.querySelectorAll<HTMLButtonElement>('[data-highlight-swatch]'));
+    expect(swatches).toHaveLength(6);
+    expect(swatches.map((b) => b.getAttribute('aria-label'))).toEqual(['Yellow', 'Orange', 'Pink', 'Red', 'Green', 'Blue']);
+    expect(swatches.filter((b) => b.getAttribute('aria-pressed') === 'true').map((b) => b.getAttribute('aria-label'))).toEqual(['Pink']);
+    act(() => { swatches[5].dispatchEvent(new MouseEvent('click', { bubbles: true })); });
+    expect(onChange).toHaveBeenCalledWith({ color: '#7FDBFF' });
+    act(() => render(null, container));
+    container.remove();
+  });
+});

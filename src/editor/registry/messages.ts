@@ -49,6 +49,12 @@ export interface SignMessages {
   highlightAction: string;
   highlightActionTouch: string;
   highlightLabel: string;
+  highlightColorYellow: string;
+  highlightColorOrange: string;
+  highlightColorPink: string;
+  highlightColorRed: string;
+  highlightColorGreen: string;
+  highlightColorBlue: string;
   lineAction: string;
   /** Touch-only short forms of the eight actions above, shown on a coarse pointer in place of
    * them (EditorToolStatus.tsx's `ToolCopy.actionTouch`). "Tap" and "Tap and drag" rather than "Click" and "Click and drag",

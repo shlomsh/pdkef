@@ -28,6 +28,8 @@
    click once the touch is let through) drops `data-touch-scroll`, and the
    `.element` rule above - single-finger drag JS-owned - applies again. */
 .element[data-touch-scroll] { touch-action: pan-x pan-y pinch-zoom; }
+/* SIGN-42: .element is positioned with a z-index, so it is a stacking context and would isolate the node's multiply from the page canvas; blend at the wrapper instead. */
+[data-editor-highlight] { mix-blend-mode: multiply; }
 .element.active { z-index: 50; outline-color: var(--color-primary); box-shadow: 0 0 0 1px var(--color-primary-ring); background: var(--color-element-active-fill); }
 .symbol { padding: 0; }
 .element:hover { outline-color: var(--color-muted-light); }

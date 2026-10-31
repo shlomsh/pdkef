@@ -128,7 +128,7 @@ describe('SignToolbar Component', () => {
     // (Full screen here, Feedback next - see
     // SignToolbar.tsx's own ordering comment for the rest).
     const labels = Array.from(buttons, button => query(button, `.${styles.label}`).textContent.trim());
-    expect(labels.slice(0, 10)).toEqual(['Text', 'Date', 'Symbols', 'Shapes', 'Whiteout', 'Sign', 'Undo', 'Redo', 'Full screen', 'Feedback']);
+    expect(labels.slice(0, 11)).toEqual(['Text', 'Date', 'Symbols', 'Shapes', 'Highlight', 'Whiteout', 'Sign', 'Undo', 'Redo', 'Full screen', 'Feedback']);
     expect(labels.at(-1)).toBe('Download');
 
     // Exact-label match, not "contains Text or has an svg": every button here
@@ -283,6 +283,23 @@ describe('SignToolbar Component', () => {
       expect(state.selectedTool).toBe('text');
       expect(state.toolLocked).toBe(true);
       expect(textBtn.hasAttribute('data-locked')).toBe(true);
+    });
+
+    it('arms Highlight and locks it on double-click', async () => {
+      let state!: SignToolState;
+      renderToolbar((s) => { state = s; });
+
+      const btn = findButton('Highlight');
+      await act(async () => {
+        btn.dispatchEvent(new MouseEvent('click', { bubbles: true, detail: 1 }));
+      });
+      expect(state.selectedTool).toBe('highlight');
+      expect(state.toolLocked).toBe(false);
+      await act(async () => {
+        btn.dispatchEvent(new MouseEvent('click', { bubbles: true, detail: 2 }));
+      });
+      expect(state.toolLocked).toBe(true);
+      expect(btn.hasAttribute('data-locked')).toBe(true);
     });
 
     // These buttons used to carry a native `title` for the action ("Add a text
