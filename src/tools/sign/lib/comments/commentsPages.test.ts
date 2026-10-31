@@ -70,6 +70,12 @@ describe('planCommentsPages', () => {
     expect(plan!.elements.every((element) => element.type === 'text' && element.pageIndex === 3)).toBe(true);
   });
 
+  it('lays out right to left when most comments are written in a right-to-left script, whatever the highlights recorded', async () => {
+    const { plan } = await planOn([highlight('a', 0, 10, 'הערה ראשונה'), highlight('b', 0, 30, 'הערה שנייה', 'ltr')], 1);
+    const title = plan!.elements[0] as { left: number };
+    expect(title.left).toBeGreaterThan(50);
+  });
+
   it('carries a Hebrew comment as a text element that reads right to left', async () => {
     const { plan } = await planOn([highlight('h', 0, 10, 'הערה חשובה מאוד', 'rtl')], 1);
     const hebrew = plan!.elements.find((element) => element.type === 'text' && element.text.includes('הערה'));

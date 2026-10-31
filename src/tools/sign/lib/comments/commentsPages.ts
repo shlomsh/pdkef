@@ -74,9 +74,9 @@ interface ClipPlan {
   height: number;
 }
 
-/** RTL layout when most commented highlights were swiped on right-to-left text. */
+/** RTL layout when most comments are written in a right-to-left script: the page is for reading them. */
 function commentsDirection(highlights: readonly HighlightElement[]): Direction {
-  const rtl = highlights.filter((h) => h.direction === 'rtl').length;
+  const rtl = highlights.filter((h) => detectTextDirection(h.comment ?? '') === 'rtl').length;
   return rtl * 2 > highlights.length ? 'rtl' : 'ltr';
 }
 
