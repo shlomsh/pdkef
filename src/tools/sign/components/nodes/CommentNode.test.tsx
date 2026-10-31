@@ -33,9 +33,10 @@ describe('CommentNode marker', () => {
     expect(marker.dataset.side).toBe('end');
   });
 
-  it('draws a passage comment with the same bubble marker', () => {
+  it('draws a passage comment as its tint alone, like Google Docs: no marker', () => {
     mount({ ...onHighlight, anchor: { kind: 'passage', bands: [{ left: 0, top: 0, width: 100, height: 100 }] } });
-    expect(host.querySelector('[data-comment-marker] svg')).not.toBeNull();
+    expect(host.querySelectorAll('[data-highlight-band]')).toHaveLength(1);
+    expect(host.querySelector('[data-comment-marker]')).toBeNull();
   });
 
   it('rings the marker while its comment is selected', () => {

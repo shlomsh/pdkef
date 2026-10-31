@@ -55,11 +55,6 @@ describe('commentMarkers', () => {
     ...pin, id: 'p', anchor: { kind: 'passage', bands: twoLines, ...(direction ? { direction } : {}) },
   });
 
-  it('puts a passage marker at the end of its last line in reading order', () => {
-    expect(commentMarkers([passage()]).get('p')).toEqual({ left: 100, top: 80, direction: 'ltr' });
-    expect(commentMarkers([passage('rtl')]).get('p')).toEqual({ left: 30, top: 80, direction: 'rtl' });
-  });
-
   it('puts a comment on a highlight at the highlight passage end, in its direction', () => {
     const rtl: HighlightElement = { ...highlight, bands: twoLines, direction: 'rtl' };
     expect(commentMarkers([rtl, onHighlight]).get('c-1')).toEqual({ left: 30, top: 80, direction: 'rtl' });
@@ -70,7 +65,8 @@ describe('commentMarkers', () => {
     expect(commentMarkers([text, onText]).get('c-1')).toEqual({ left: 100, top: 0, direction: 'ltr' });
   });
 
-  it('gives a pin no marker: the pin is its own', () => {
+  it('gives a pin or a passage no marker: the pin is its own, the passage tint is its own', () => {
     expect(commentMarkers([pin]).has('c-2')).toBe(false);
+    expect(commentMarkers([passage('rtl')]).has('p')).toBe(false);
   });
 });

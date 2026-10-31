@@ -146,6 +146,15 @@ test('the Comment tool comments on a passage or pins a note, neither printed', a
   await swipeTheLine(page, 'Comment');
   await saveCard(page, 'passage note');
 
+  // As in Google Docs, a passage comment is its tint alone; a tap on it selects it, with no bubble, frame or empty bar.
+  const passage = page.locator('[data-editor-element]:has([data-comment-root])').first();
+  await page.keyboard.press('Escape');
+  await passage.click();
+  await expect(passage).toHaveAttribute('data-editor-active', 'true');
+  await expect(page.locator('[data-comment-marker]')).toHaveCount(0);
+  await expect(passage).toHaveCSS('outline-color', 'rgba(0, 0, 0, 0)');
+  await expect(passage.locator('[data-editor-actions]')).toBeHidden();
+
   await toolbar(page).getByRole('button', { name: 'Comment', exact: true }).click();
   const box = await overlay(page).boundingBox();
   // Blank page well below the text, still inside the 900px viewport (60% down would be off-screen).
