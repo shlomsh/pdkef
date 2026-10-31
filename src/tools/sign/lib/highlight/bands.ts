@@ -2,7 +2,7 @@
 // Units are whatever the rows are in; the caller passes window pixels.
 import type { TextRow } from './textRows.ts';
 
-export interface Point { x: number; y: number }
+interface Point { x: number; y: number }
 export interface Band { left: number; top: number; width: number; height: number }
 
 const PAD_FRACTION = 0.15;
