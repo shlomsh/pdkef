@@ -645,6 +645,23 @@ describe('HighlightPage touch swipe, armed', () => {
       expect(container.querySelector('[data-element-id="h2"] [data-comment-marker]')).toBeNull();
     });
 
+    it('with a rail the card sits beside its line, so the mark wears no marker', () => {
+      act(() => render(
+        <HighlightPage
+          pdfDocument={null} pageIndex={0} widthPx={600} elements={[mark, savedComment]} marker={DEFAULT_MARKER} rail={<div data-testid="rail" />}
+          dispatch={dispatch} logAction={logAction} rearm={rearm} setAnnouncement={() => {}} cardRef={() => {}}
+        />,
+        container,
+      ));
+      expect(container.querySelector('[data-testid="rail"]')).not.toBeNull();
+      expect(container.querySelector('[data-comment-marker]')).toBeNull();
+    });
+
+    it('without a rail the commented mark wears its marker', () => {
+      mount([mark, savedComment]);
+      expect(container.querySelectorAll('[data-comment-marker]')).toHaveLength(1);
+    });
+
     it('the marker is focused while its comment card is active', () => {
       mount([mark, savedComment], DEFAULT_MARKER, false, { activeElementId: 'c1' });
       expect(container.querySelector('[data-comment-marker]')!.hasAttribute('data-focused')).toBe(true);

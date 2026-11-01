@@ -178,7 +178,7 @@ export default function HighlightPage({ pdfDocument, pageIndex, widthPx, element
               style={{ left: `${mark.left}%`, top: `${mark.top}%`, width: `${mark.width}%`, height: `${mark.height}%` }}
             >
               <HighlightNode element={mark} isActive={false} onResizeStart={noop} />
-              <MarkCommentMarker comment={commentMarks.get(mark.id)} activeElementId={activeElementId} onSelectComment={onSelectComment} />
+              {!rail && <MarkCommentMarker comment={commentMarks.get(mark.id)} activeElementId={activeElementId} onSelectComment={onSelectComment} />}
             </div>
           ))}
         </div>

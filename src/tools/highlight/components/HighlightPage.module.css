@@ -3,6 +3,8 @@
 .mark { position: absolute; }
 /* R40: a dark 2 px outline with a light 1 px ring inside it, so it holds on the page and on any wash. Pointer focus shows nothing. */
 .mark:focus { outline: none; }
-.mark:focus-visible { outline: 2px solid var(--color-text); outline-offset: 1px; box-shadow: 0 0 0 1px var(--color-surface); }
+.mark:focus-visible, .mark[data-comment-focus] { outline: 2px solid var(--color-text); outline-offset: 1px; box-shadow: 0 0 0 1px var(--color-surface); }
+/* The card under the pointer: the same ring, dashed and lighter, so the link reads without competing with the focused one. */
+.mark[data-comment-hover]:not([data-comment-focus]) { outline: 2px dashed color-mix(in srgb, var(--color-text) 60%, transparent); outline-offset: 1px; }
 /* Armed for a finger: the page owns a one-finger touch, so marking does not scroll it. Two fingers still pinch. */
 .touchArmed { touch-action: none; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
