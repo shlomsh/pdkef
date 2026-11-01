@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { displayZoom, opensLamp } from './lamp.ts';
+import { displayZoom, opensLamp, widestPage } from './lamp.ts';
 
 const page = { width: 600, height: 800, textLeft: 100, textRight: 500 };
 const view = { width: 1000, height: 700 };
@@ -29,5 +29,20 @@ describe('opensLamp', () => {
     expect(opensLamp({ type: 'key', action: { type: 'zoomActual' } })).toBe(true);
     expect(opensLamp({ type: 'key', action: { type: 'undo' } })).toBe(false);
     expect(opensLamp({ type: 'key', action: null })).toBe(false);
+  });
+});
+
+describe('widestPage', () => {
+  it('is the page a fit sizes by, so a wider later page never overflows the view', () => {
+    const pages = [
+      { width: 523, height: 744, textLeft: 0, textRight: 523 },
+      { width: 544, height: 742, textLeft: 0, textRight: 544 },
+      { width: 515, height: 735, textLeft: 0, textRight: 515 },
+    ];
+    const zoom = displayZoom('width', false, widestPage(pages), view);
+    expect(Math.max(...pages.map((p) => p.width)) * zoom).toBeLessThanOrEqual(view.width - 32 + 1e-9);
+  });
+  it('is undefined before the pages are measured', () => {
+    expect(widestPage([])).toBeUndefined();
   });
 });

@@ -3,7 +3,7 @@ import type { PDFDocumentProxy } from 'pdfjs-dist';
 import type { DetailEdits } from '#editor/registry/draftValidation.ts';
 import { clampZoom, resolveZoom, stepZoom, type PageBox, type ZoomSetting } from '../lib/zoom/fit.ts';
 import { pageAnchorAt } from '../lib/zoom/pageAnchor.ts';
-import { displayZoom } from '../lib/zoom/lamp.ts';
+import { displayZoom, widestPage } from '../lib/zoom/lamp.ts';
 import { zoomCommit } from '../lib/zoom/commit.ts';
 import { useBoardScroll } from './useBoardScroll.ts';
 import { initialSetting, serializeSetting } from '../lib/zoom/setting.ts';
@@ -81,7 +81,7 @@ export function useWorkspaceZoom({ pdfDocument, workspaceRef, columnRef, fullscr
     return () => observer.disconnect();
   }, [workspaceRef, fullscreen, ready]);
 
-  const zoom = useMemo(() => displayZoom(setting, fullscreen, pages[0], view), [setting, fullscreen, pages, view]);
+  const zoom = useMemo(() => displayZoom(setting, fullscreen, widestPage(pages), view), [setting, fullscreen, pages, view]);
 
   const zoomRef = useRef(zoom);
   zoomRef.current = zoom;
