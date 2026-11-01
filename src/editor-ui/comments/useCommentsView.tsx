@@ -46,6 +46,7 @@ export function useCommentsView({ elements, activeElementId, messages, onSelect,
   const showRail = wide && hasCommentCards(elements, activeElementId);
   return {
     containerRef,
+    showRail,
     cardClass: showRail ? styles['page-card-with-rail'] : undefined,
     headerNote: (pageIndex: number) => {
       const count = commentCount(elements, pageIndex);

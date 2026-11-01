@@ -1,7 +1,7 @@
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import type { EditorElement, HighlightElement } from '#editor/model/editorModel.ts';
+import type { CommentElement, EditorElement, HighlightElement } from '#editor/model/editorModel.ts';
 import { swallowNextClick } from '#lib/gestures/swallowNextClick.ts';
 import { DEFAULT_MARKER } from '../lib/marker/markerState.ts';
 
@@ -16,6 +16,11 @@ const { default: HighlightPage } = await import('./HighlightPage.tsx');
 const mark: HighlightElement = {
   id: 'h1', type: 'highlight', pageIndex: 0, left: 10, top: 20, width: 30, height: 4,
   color: '#FFF34D', bands: [{ left: 0, top: 0, width: 100, height: 100 }],
+};
+
+const savedComment: CommentElement = {
+  id: 'c1', type: 'comment', pageIndex: 0, left: 10, top: 20, width: 30, height: 4,
+  comment: 'Check this', anchor: { kind: 'element', elementId: 'h1' },
 };
 
 let container: HTMLElement;
@@ -195,6 +200,38 @@ describe('HighlightPage rest toolbar', () => {
     expect(dispatch).toHaveBeenCalledWith({ type: 'DELETE_ELEMENT', payload: 'h1' });
     expect(logAction).toHaveBeenCalledWith('delete', 'DELETE_ELEMENT', 0, expect.stringContaining('Delete'), [{ element: mark, index: 0 }]);
     expect(toolbar()).toBeNull();
+  });
+
+  it('R27: Comment on a mark with no comment adds a blank one anchored to it and makes it active', () => {
+    mount([mark]);
+    move(container.querySelector('[data-element-id]')!);
+    act(() => { vi.advanceTimersByTime(800); });
+    act(() => { toolbarButton('Comment').click(); });
+    const added = dispatch.mock.calls.find(([a]) => a.type === 'ADD_ELEMENT')?.[0].payload;
+    expect(added).toMatchObject({ type: 'comment', comment: '', anchor: { kind: 'element', elementId: 'h1' } });
+    expect(dispatch).toHaveBeenCalledWith({ type: 'SET_ACTIVE_ELEMENT_ID', payload: added.id });
+    expect(logAction).not.toHaveBeenCalled();
+    expect(toolbar()).toBeNull();
+  });
+
+  it('R27: Comment on a mark that has one makes that comment active and adds nothing', () => {
+    mount([mark, savedComment]);
+    move(container.querySelector('[data-element-id]')!);
+    act(() => { vi.advanceTimersByTime(800); });
+    act(() => { toolbarButton('Comment').click(); });
+    expect(dispatch.mock.calls.some(([a]) => a.type === 'ADD_ELEMENT')).toBe(false);
+    expect(dispatch).toHaveBeenCalledWith({ type: 'SET_ACTIVE_ELEMENT_ID', payload: 'c1' });
+  });
+
+  it('R27: Delete takes the highlight and its comment in one undo entry', () => {
+    mount([mark, savedComment]);
+    move(container.querySelector('[data-element-id]')!);
+    act(() => { vi.advanceTimersByTime(800); });
+    act(() => { toolbarButton('Delete').click(); });
+    expect(logAction).toHaveBeenCalledTimes(1);
+    expect(logAction).toHaveBeenCalledWith('delete', 'DELETE_ELEMENT', 0, expect.any(String), [
+      { element: mark, index: 0 }, { element: savedComment, index: 1 },
+    ]);
   });
 
   it('a press elsewhere closes it', () => {

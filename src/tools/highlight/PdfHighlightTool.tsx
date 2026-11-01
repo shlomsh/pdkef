@@ -14,6 +14,8 @@ import { reportError } from '#lib/telemetry/errorReport.ts';
 import { usePdfShare } from '#lib/output/usePdfShare.js';
 import { toggleWorkspaceFullscreen, useFullscreenChange } from '#editor-ui/hooks/workspaceFullscreen.ts';
 import { useWorkspaceZoom } from './hooks/useWorkspaceZoom.ts';
+import { useHighlightComments } from './hooks/useHighlightComments.ts';
+import { useNoteRoom } from './hooks/useNoteRoom.ts';
 import { useHighlightMarks } from './hooks/useHighlightMarks.ts';
 import { useMarkerMemory } from './hooks/useMarker.ts';
 import { useHistoryKeys } from './hooks/useHistoryKeys.ts';
@@ -39,9 +41,13 @@ export default withIslandBoundary(function PdfHighlightTool() {
   const fullscreen = realFullscreen || pseudoFullscreen;
   useFullscreenChange(workspaceRef, setRealFullscreen);
   const toggleLamp = () => toggleWorkspaceFullscreen(workspaceRef.current, pseudoFullscreen, setPseudoFullscreen);
-  // A wheel is not a user gesture, so real fullscreen may be refused; the toggle then falls back to pseudo fullscreen.
-  const zoom = useWorkspaceZoom({ pdfDocument, workspaceRef, columnRef, fullscreen, onEnterLamp: toggleLamp });
   const marks = useHighlightMarks();
+  // R28: the first note makes room for the notes column in the event that opens its card, so the dispatches that
+  // open and close cards go through here. Zoom and the comments view are created below and read when it runs.
+  const room = useNoteRoom({ state: marks.state, dispatch: marks.dispatch, columnRef, zoom: () => zoom, isWide: () => comments.sheet === null });
+  const comments = useHighlightComments({ state: marks.state, dispatch: room.dispatch, logAction: marks.logAction, announce: setAnnouncement });
+  // A wheel is not a user gesture, so real fullscreen may be refused; the toggle then falls back to pseudo fullscreen.
+  const zoom = useWorkspaceZoom({ pdfDocument, workspaceRef, columnRef, fullscreen, noted: comments.showRail, onEnterLamp: toggleLamp });
   const markerMemory = useMarkerMemory({ marker: marks.marker, rearm: marks.rearm });
   const details = useMemo(() => ({ ...zoom.details, ...markerMemory.details }), [zoom.details, markerMemory.details]);
   const share = usePdfShare();
@@ -110,7 +116,7 @@ export default withIslandBoundary(function PdfHighlightTool() {
       {!needsUnlock && status === 'editing' && pdfDocument && (
         <HighlightWorkspace
           pdfDocument={pdfDocument} numPages={numPages} fileName={file?.name ?? ''} zoom={zoom}
-          marks={marks} setAnnouncement={setAnnouncement} onDownload={handleDownload}
+          marks={marks} comments={comments} dispatch={room.dispatch} setAnnouncement={setAnnouncement} onDownload={handleDownload}
           workspaceRef={workspaceRef} columnRef={columnRef} fullscreen={fullscreen} pseudoFullscreen={pseudoFullscreen}
           onToggleFullscreen={() => toggleWorkspaceFullscreen(workspaceRef.current, pseudoFullscreen, setPseudoFullscreen)}
         />
