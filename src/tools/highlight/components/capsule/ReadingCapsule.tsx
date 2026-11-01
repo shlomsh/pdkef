@@ -72,7 +72,7 @@ export default function ReadingCapsule(p: ReadingCapsuleProps) {
   };
   useEffect(() => {
     if (!menu) return;
-    const onDown = (e: PointerEvent) => { if (!rootRef.current?.contains(e.target as Node)) closeMenu(); };
+    const onDown = (e: PointerEvent) => { if (!(e.target as Element).closest?.(`[data-menu-wrap="${menu}"]`)) closeMenu(); };
     document.addEventListener('pointerdown', onDown, true);
     return () => document.removeEventListener('pointerdown', onDown, true);
   });
@@ -116,7 +116,7 @@ export default function ReadingCapsule(p: ReadingCapsuleProps) {
     >
       <div class={styles.inner}>
         {shows('file') && <span class={styles.file} title={p.fileName}>{p.fileName}</span>}
-        <span class={styles.menuWrap}>
+        <span class={styles.menuWrap} data-menu-wrap="jump">
           <button type="button" class={styles.page} aria-haspopup="menu" aria-expanded={menu === 'jump'} aria-label={pageLabel} title={labels.jump} onClick={() => openMenu('jump')}>
             {p.page} / {p.pageCount}
           </button>
@@ -135,7 +135,7 @@ export default function ReadingCapsule(p: ReadingCapsuleProps) {
         {shows('download') && <button type="button" class={styles.button} aria-label={labels.download} title={labels.download} onClick={p.onDownload}><DownloadIcon /></button>}
         {display === 'lone' && lone && <button type="button" class={styles.button} aria-label={lone.label} title={lone.label} onClick={lone.onSelect}><SwapIcon /></button>}
         {display === 'menu' && (
-          <span class={styles.menuWrap}>
+          <span class={styles.menuWrap} data-menu-wrap="more">
             <button type="button" class={styles.button} aria-haspopup="menu" aria-expanded={menu === 'more'} aria-label={labels.more} title={labels.more} onClick={() => openMenu('more')}><MoreIcon /></button>
             {menu === 'more' && (
               <div class={`${controls.popover} ${controls['toolbar-menu']} ${styles.menu} ${styles.more}`} role="menu" aria-label={labels.more}>

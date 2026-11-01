@@ -139,4 +139,21 @@ describe('ReadingCapsule', () => {
     click(byLabel('Undo'));
     expect(props.onUndo).not.toHaveBeenCalled();
   });
+
+  it('closes the jump menu when another capsule control, such as the zoom slot, is pressed', () => {
+    setup();
+    click(byLabel('Page 3 of 12'));
+    expect(q('input[type=number]')).not.toBeNull();
+    const zoom = byLabel('Zoom');
+    fire(zoom, 'pointerdown');
+    click(zoom);
+    expect(q('input[type=number]')).toBeNull();
+  });
+
+  it('keeps the jump menu open when its own form is pressed', () => {
+    setup();
+    click(byLabel('Page 3 of 12'));
+    fire(q('input[type=number]')!, 'pointerdown');
+    expect(q('input[type=number]')).not.toBeNull();
+  });
 });
