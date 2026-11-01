@@ -1,5 +1,5 @@
 /* The toolbar a highlight opens when the pointer rests on it (READ-03, R2 to R4). It sits inside the page
-   wrapper, placed once on open beside the end of the ink, above the line or below it, never over it. */
+   wrapper, placed by Sign's floating hook above the mark (inline style), never flipping below it. */
 .bar {
   --cell: 2.25rem;
   position: absolute;
@@ -23,12 +23,9 @@
 @media (pointer: coarse) {
   .bar { --cell: 2.75rem; }
 }
+/* The individual translate property composes with the placement's inline transform instead of replacing it. */
 @keyframes bar-in {
-  from { opacity: 0; transform: translateY(4px); }
-}
-.bar[data-side='below'] { animation-name: bar-in-below; }
-@keyframes bar-in-below {
-  from { opacity: 0; transform: translateY(-4px); }
+  from { opacity: 0; translate: 0 4px; }
 }
 @media (prefers-reduced-motion: reduce) {
   .bar { animation: none; }
@@ -159,7 +156,6 @@
   box-sizing: border-box;
 }
 .bar[data-side='above'] .panel { bottom: calc(100% + 6px); }
-.bar[data-side='below'] .panel { top: calc(100% + 6px); }
 .prow {
   display: flex;
   align-items: center;
