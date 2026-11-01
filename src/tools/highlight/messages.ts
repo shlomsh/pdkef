@@ -18,7 +18,6 @@ export interface HighlightMessages {
   zoomIn: string;
   zoomOut: string;
   /** "{mode} · {percent}%" */
-  readout: string;
   /** The toolbar that opens on a highlight at rest (R2 to R4). */
   /** The tile row's label outside the Reading lamp. */
   toolbarLabel: string;
@@ -65,7 +64,6 @@ export const englishHighlightMessages: HighlightMessages = {
   actualSize: 'Actual size',
   zoomIn: 'Zoom in',
   zoomOut: 'Zoom out',
-  readout: '{mode} · {percent}%',
   toolbarLabel: 'Highlight tools',
   markToolbar: 'Change this highlight',
   markHighlight: 'Highlight',

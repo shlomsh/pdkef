@@ -7,10 +7,8 @@ import EditorExportActions from '#editor-ui/EditorExportActions.tsx';
 import toolbarStyles from '#editor-ui/SignToolbar.module.css';
 import useCurrentPage from '#editor-ui/hooks/useCurrentPage.js';
 import workspaceStyles from '#editor-ui/Workspace.module.css';
-import { formatMessage } from '#lib/text/formatMessage.ts';
 import type { useHighlightMarks } from '../hooks/useHighlightMarks.ts';
 import type { WorkspaceZoom } from '../hooks/useWorkspaceZoom.ts';
-import { zoomPercent } from '../lib/zoom/percent.ts';
 import { englishHighlightMessages as t } from '../messages.ts';
 import ZoomMenu from './ZoomMenu.tsx';
 import HighlightPage from './HighlightPage.tsx';
@@ -28,7 +26,6 @@ import { NOTES_W } from '../lib/zoom/fit.ts';
 import { useTouchArming } from '../hooks/useTouchArming.ts';
 import { usePrint } from '../hooks/usePrint.ts';
 import { hasComments } from '../lib/print/printMenu.ts';
-import ZoomReadout from './ZoomReadout.tsx';
 import styles from './HighlightWorkspace.module.css';
 
 function emitter<A extends unknown[]>() {
@@ -38,8 +35,6 @@ function emitter<A extends unknown[]>() {
     emit(...args: A) { subs.forEach((fn) => fn(...args)); },
   };
 }
-
-const MODE_LABEL = { width: t.fitWidth, text: t.fitText, page: t.fitPage } as const;
 
 /** The page column: the card at its own width, or in the reading lamp a board the reader pans and zooms. */
 export default function HighlightWorkspace({ pdfDocument, numPages, fileName, zoom, marks, undo, redo, comments, dispatch, setAnnouncement, onDownload, workspaceRef, columnRef, fullscreen, pseudoFullscreen, onToggleFullscreen }: {
@@ -114,9 +109,6 @@ export default function HighlightWorkspace({ pdfDocument, numPages, fileName, zo
   const toggleView = () => { setPrintOpen(false); onToggleFullscreen(); };
   const touch = useTouchArming();
   const markerButton = <MarkerButton marker={marks.marker} onChange={marks.rearm} armed={touch.armed} onTap={touch.arm} />;
-  const readout = typeof zoom.setting === 'number'
-    ? `${zoomPercent(zoom.zoom)}%`
-    : formatMessage(t.readout, { mode: MODE_LABEL[zoom.setting], percent: zoomPercent(zoom.zoom) });
 
   return (
     <>
@@ -145,7 +137,6 @@ export default function HighlightWorkspace({ pdfDocument, numPages, fileName, zo
           />
         </div>
       )}
-      {fullscreen && <ZoomReadout text={readout} />}
       {fullscreen && <PrintMenu {...printMenu} placement="floating" />}
       {print.sheets}
       <ArmedChip armed={touch.armed} onStop={touch.disarm} />
