@@ -1,14 +1,16 @@
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'preact/hooks';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'preact/hooks';
 import type { PDFDocumentProxy } from 'pdfjs-dist';
 import { readTextItems } from '#lib/pdf/pdfTextItems.ts';
 import type { DetailEdits } from '#editor/registry/draftValidation.ts';
 import { clampZoom, resolveZoom, stepZoom, type PageBox, type ZoomSetting } from '../lib/zoom/fit.ts';
 import { zoomCommit } from '../lib/zoom/commit.ts';
+import { useBoardScroll } from './useBoardScroll.ts';
 import { initialSetting, serializeSetting } from '../lib/zoom/setting.ts';
 import { textBounds } from '../lib/zoom/textBounds.ts';
 import { ACTUAL_SIZE } from '../lib/zoom/percent.ts';
 import { usePinchZoom } from './usePinchZoom.ts';
 import { useZoomKeys } from './useZoomKeys.ts';
+import { useBoardPan } from './useBoardPan.ts';
 import type { Point } from '../lib/zoom/anchor.ts';
 
 const STORE_KEY = 'pdkef:highlight:zoom-default';
@@ -102,25 +104,16 @@ export function useWorkspaceZoom({ pdfDocument, workspaceRef, columnRef, fullscr
     return r ? { x: r.left + r.width / 2, y: fullscreen ? r.top + r.height / 2 : window.innerHeight / 2 } : { x: 0, y: 0 };
   }, [workspaceRef, fullscreen]);
 
-  // The scroll that goes with a committed zoom is applied after the layout it belongs to.
-  const pendingScroll = useRef<Point | null>(null);
-  useLayoutEffect(() => {
-    const next = pendingScroll.current;
-    const ws = workspaceRef.current;
-    if (!next || !ws) return;
-    pendingScroll.current = null;
-    ws.scrollLeft = next.x;
-    if (fullscreen) ws.scrollTop = next.y;
-    else window.scrollTo(window.scrollX, next.y);
-  });
+  const { pendingScroll, pendingCentre, board } = useBoardScroll({ workspaceRef, fullscreen, pages, zoom, setting, view });
 
-  const commit = useCallback((next: ZoomSetting, nextZoom: number, anchor?: Point) => {
+  const commit = useCallback((next: ZoomSetting, nextZoom: number, anchor?: Point, centreAfter = false) => {
     const f = frame();
     if (f) {
       pendingScroll.current = zoomCommit({
         prevZoom: zoomRef.current, nextZoom, anchor: anchor ?? centre(), scroll: f.scroll, origin: f.origin,
       }).scroll;
     }
+    if (centreAfter) pendingCentre.current = true;
     setSetting(next);
     setTouched(true);
     storeDefault(next);
@@ -130,7 +123,7 @@ export function useWorkspaceZoom({ pdfDocument, workspaceRef, columnRef, fullscr
     const target = typeof next === 'number'
       ? clampZoom(next)
       : pagesRef.current.length ? resolveZoom(next, pagesRef.current[0], viewRef.current, { noted: false }) : zoomRef.current;
-    commit(next, target, anchor);
+    commit(next, target, anchor, typeof next !== 'number');
   }, [commit]);
   const step = useCallback((dir: 1 | -1, anchor?: Point) => {
     const target = stepZoom(zoomRef.current, dir);
@@ -139,6 +132,7 @@ export function useWorkspaceZoom({ pdfDocument, workspaceRef, columnRef, fullscr
   const actual = useCallback((anchor?: Point) => commit(ACTUAL_SIZE, ACTUAL_SIZE, anchor), [commit]);
 
   useZoomKeys({ enabled: ready, step, actual });
+  useBoardPan({ workspaceRef, fullscreen, enabled: ready });
   usePinchZoom({ workspaceRef, columnRef, enabled: ready, zoomRef, commit });
 
   /** A document just opened: its own setting beats the remembered default (R25). */
@@ -146,6 +140,7 @@ export function useWorkspaceZoom({ pdfDocument, workspaceRef, columnRef, fullscr
     const saved = details?.zoom;
     setSetting(initialSetting(saved?.action === 'alter' ? saved.value : undefined, storedDefault()));
     setTouched(false);
+    pendingCentre.current = true;
   }, []);
 
   const details = useMemo<DetailEdits>(() => {
@@ -154,7 +149,7 @@ export function useWorkspaceZoom({ pdfDocument, workspaceRef, columnRef, fullscr
     return edits;
   }, [touched, setting]);
 
-  return { setting, zoom, pages, touched, details, apply, step, actual, restore };
+  return { setting, zoom, pages, board, touched, details, apply, step, actual, restore };
 }
 
 export type WorkspaceZoom = ReturnType<typeof useWorkspaceZoom>;
