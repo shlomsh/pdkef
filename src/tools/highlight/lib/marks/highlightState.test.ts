@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { highlightReducer, initialHighlightState } from './highlightState.ts';
+import { highlightReducer, initialHighlightState, type HighlightState } from './highlightState.ts';
 
 describe('highlightReducer LOAD_DOCUMENT', () => {
   it('restores the page turns of a draft', () => {
@@ -10,7 +10,7 @@ describe('highlightReducer LOAD_DOCUMENT', () => {
   });
 
   it('restores {} for a draft saved before page turns existed', () => {
-    const turned = { ...initialHighlightState, pageTurns: { 0: 1 } };
+    const turned: HighlightState = { ...initialHighlightState, pageTurns: { 0: 1 as never } };
     const state = highlightReducer(turned, { type: 'LOAD_DOCUMENT', payload: { elements: [], actionHistory: [] } });
     expect(state.pageTurns).toEqual({});
   });
