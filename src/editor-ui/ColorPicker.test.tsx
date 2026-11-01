@@ -25,4 +25,13 @@ describe('ColorPicker under compat', () => {
     expect(spy).toHaveBeenCalledTimes(1);
     expect(spy).toHaveBeenCalledWith('#222222');
   });
+
+  it('renders the given presets instead of the default six', () => {
+    host = document.createElement('div');
+    document.body.appendChild(host);
+    const h = host;
+    act(() => render(<ColorPicker value="#ffee00" onChange={() => {}} presets={['#ffee00', '#00ff88']} />, h));
+    const swatches = [...h.querySelectorAll('[data-editor-color-swatch]')].map((el) => el.getAttribute('title'));
+    expect(swatches).toEqual(['#ffee00', '#00ff88']);
+  });
 });
