@@ -1,0 +1,16 @@
+.wrap { position: relative; display: inline-flex; }
+.trigger, .item, .step { font: inherit; color: inherit; background: none; border: 0; cursor: pointer; }
+.trigger { min-height: 32px; padding: 0 var(--space-2); border-radius: var(--radius-sm); font-variant-numeric: tabular-nums; }
+.trigger:hover, .item:hover, .step:hover { background: var(--color-bg-alt, var(--color-surface-2, transparent)); }
+.trigger:focus-visible, .item:focus-visible, .step:focus-visible { outline: 2px solid var(--color-primary); outline-offset: 1px; }
+@media (pointer: coarse) { .trigger, .item, .step { min-height: 44px; } }
+.menu {
+  position: absolute; top: calc(100% + 6px); left: 50%; transform: translateX(-50%); z-index: 20;
+  display: flex; flex-direction: column; min-width: 12rem; padding: var(--space-1);
+  background: var(--color-surface); border: 1px solid var(--color-border-strong); border-radius: var(--radius-sm); box-shadow: var(--shadow-md);
+}
+.item { display: flex; align-items: center; gap: var(--space-2); padding: 0 var(--space-2); min-height: 32px; text-align: start; border-radius: var(--radius-sm); }
+.check { width: 1em; text-align: center; }
+.stepRow { display: flex; align-items: center; justify-content: space-between; border-top: 1px solid var(--color-border); margin-top: var(--space-1); padding-top: var(--space-1); }
+.step { min-width: 32px; min-height: 32px; border-radius: var(--radius-sm); font-size: 1.1rem; }
+.percent { font-variant-numeric: tabular-nums; }
