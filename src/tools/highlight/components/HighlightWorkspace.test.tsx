@@ -204,7 +204,7 @@ describe('HighlightWorkspace comment markers', () => {
   afterEach(() => { vi.unstubAllGlobals(); });
 
   it('a click on a mark\'s comment marker selects that comment', () => {
-    const { dispatch, restore } = mountNoted([mark, note], 1200);
+    const { dispatch, restore } = mountNoted([mark, note], 700);
     const marker = container!.querySelector<HTMLElement>('[data-comment-marker]')!;
     act(() => { marker.click(); });
     expect(dispatch).toHaveBeenCalledWith({ type: 'SET_ACTIVE_ELEMENT_ID', payload: 'c1' });
