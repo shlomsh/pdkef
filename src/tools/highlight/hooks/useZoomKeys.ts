@@ -1,5 +1,5 @@
 import { useEffect } from 'preact/hooks';
-import { isTypingTarget } from '#lib/dom/isTypingTarget.ts';
+import { isTypingTarget } from '#lib/history/isTypingTarget.ts';
 import { keyAction } from '../lib/marker/keys.ts';
 import { isZoomInput } from '../lib/zoom/lamp.ts';
 

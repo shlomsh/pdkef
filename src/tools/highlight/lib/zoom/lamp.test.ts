@@ -68,7 +68,7 @@ describe('isZoomInput', () => {
     expect(isZoomInput({ type: 'wheel', ctrlKey: false })).toBe(false);
     expect(isZoomInput({ type: 'key', action: { type: 'zoom', dir: 1 } })).toBe(true);
     expect(isZoomInput({ type: 'key', action: { type: 'zoomActual' } })).toBe(true);
-    expect(isZoomInput({ type: 'key', action: { type: 'undo' } })).toBe(false);
+    expect(isZoomInput({ type: 'key', action: { type: 'comment' } })).toBe(false);
     expect(isZoomInput({ type: 'key', action: null })).toBe(false);
   });
 });
