@@ -45,6 +45,14 @@ export function PrintDropdown({ open, onOpenChange, withComments, onChoose }: {
   const hoverOpen = () => { clearTimeout(closeTimer.current); onOpenChange(true); };
   const scheduleClose = () => { clearTimeout(closeTimer.current); closeTimer.current = setTimeout(() => onOpenChange(false), 180); };
   useEffect(() => () => clearTimeout(closeTimer.current), []);
+  // Popover reports a trigger click and an outside press alike as onOpenChange(false). The trigger's capture-phase click
+  // handler runs before Popover's toggle, so it marks the click and the toggle's close is dropped on a fine pointer.
+  const triggerClick = useRef(false);
+  const popoverOpenChange = (next: boolean) => {
+    if (!next && triggerClick.current && !coarse && open) return;
+    onOpenChange(next);
+  };
+  const markTriggerClick = () => { triggerClick.current = true; setTimeout(() => { triggerClick.current = false; }, 0); };
   const label = (
     <>
       <PrintIcon />
@@ -61,10 +69,10 @@ export function PrintDropdown({ open, onOpenChange, withComments, onChoose }: {
     <div className={toolbarStyles.dropdown} onMouseEnter={coarse ? undefined : hoverOpen} onMouseLeave={coarse ? undefined : scheduleClose}>
       <Popover
         open={open}
-        onOpenChange={onOpenChange}
+        onOpenChange={popoverOpenChange}
         placement="bottom-start"
         trigger={
-          <button type="button" className={toolbarStyles.button} aria-label={t.capsule.print} aria-haspopup="menu" aria-expanded={open}>
+          <button type="button" className={toolbarStyles.button} aria-label={t.capsule.print} aria-haspopup="menu" aria-expanded={open} onClickCapture={markTriggerClick}>
             {label}
             <svg className={toolbarStyles.chevron} width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <polyline points="6 9 12 15 18 9" />

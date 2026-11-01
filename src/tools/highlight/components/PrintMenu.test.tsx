@@ -1,4 +1,5 @@
 import { render } from 'preact';
+import { useState } from 'preact/hooks';
 import { act } from 'preact/test-utils';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { englishHighlightMessages as t } from '../messages.ts';
@@ -114,5 +115,45 @@ describe('PrintDropdown hover', () => {
     const { wrap, onOpenChange } = hoverMount({ fine: false });
     act(() => { wrap.dispatchEvent(new Event('mouseenter')); });
     expect(onOpenChange).not.toHaveBeenCalled();
+  });
+
+  function stateful(fine: boolean) {
+    window.matchMedia = ((q: string) => ({ matches: !fine, media: q, addEventListener() {}, removeEventListener() {} })) as unknown as typeof window.matchMedia;
+    vi.useFakeTimers();
+    const calls: boolean[] = [];
+    function Harness() {
+      const [open, setOpen] = useState(false);
+      return <PrintDropdown open={open} onOpenChange={(o) => { calls.push(o); setOpen(o); }} withComments onChoose={vi.fn()} />;
+    }
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    act(() => render(<Harness />, container!));
+    const wrap = container.firstElementChild as HTMLElement;
+    const trigger = () => container!.querySelector('button[aria-haspopup="menu"]') as HTMLElement;
+    const menu = () => document.querySelector('[role="menu"]');
+    return { wrap, trigger, menu, calls };
+  }
+
+  it('on a fine pointer a click on the trigger keeps the hover-opened menu open', () => {
+    const { wrap, trigger, menu } = stateful(true);
+    act(() => { wrap.dispatchEvent(new Event('mouseenter')); });
+    expect(menu()).not.toBeNull();
+    act(() => { trigger().click(); vi.advanceTimersByTime(10); });
+    expect(menu()).not.toBeNull();
+  });
+
+  it('Escape still closes it on a fine pointer', () => {
+    const { wrap, menu } = stateful(true);
+    act(() => { wrap.dispatchEvent(new Event('mouseenter')); });
+    act(() => { document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); });
+    expect(menu()).toBeNull();
+  });
+
+  it('on a coarse pointer a tap toggles', () => {
+    const { trigger, menu } = stateful(false);
+    act(() => { trigger().click(); vi.advanceTimersByTime(10); });
+    expect(menu()).not.toBeNull();
+    act(() => { trigger().click(); vi.advanceTimersByTime(10); });
+    expect(menu()).toBeNull();
   });
 });
