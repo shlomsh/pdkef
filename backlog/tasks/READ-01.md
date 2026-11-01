@@ -7,7 +7,7 @@ epic: "highlight-pdf"
 horizon: "now"
 order: 1
 depends_on: []
-needs: "Your OK on the requirements below and your answers to the open calls"
+needs: "Your pick between the two comment sketches"
 ---
 
 # READ-01 · From sketches to hard requirements
@@ -172,6 +172,27 @@ the cached page layout (riskiest: about 3.9 Mpx a page, never timed at page scal
 strip, so it sits behind the windowed path until the swipe KPI and a real iPhone agree); then fields, snap,
 and OCR.
 
+### Found by the Impeccable audit of the sketch (R39 to R43)
+
+An Impeccable technical audit of the reading room (2026-11-01) scored it 13 of 20: accessibility 2, performance
+3, responsive 2, theming 3, integrity 3. The sketch was a mouse-first study; these hold for the real tool.
+
+39. **Every highlight is reachable without a pointer.** Tab reaches the page, arrow keys move between marks in
+    reading order, and a focused mark opens its toolbar as a rest does (R2). On a digital PDF, a keyboard text
+    selection plus H highlights it. In the sketch no mark could be reached by keyboard (WCAG 2.1.1).
+40. **Marks and note markers meet 3:1 against the page** (WCAG 1.4.11). The comment amber (`#e9bd5f`) is
+    1.8:1 on white, so a pin or dot draws a deep amber glyph on an amber wash (6.1:1 in the sketch) and every
+    focusable one shows a focus ring. The capsule may sit below 3:1 only while dozing; awake it meets it.
+41. **A note keeps focus where the reader expects it.** Opening a note puts the caret in it; Esc, Save or a
+    press elsewhere returns focus to the pin or dot that opened it, never to the page body. The note is a
+    labelled group naming its passage.
+42. **The capsule fits a phone.** At 375 px the sketch's capsule (597 px) ran off both edges. On a narrow
+    screen it keeps page, zoom, the marker, Undo and Exit at 44 px and moves the rest into More (READ-05).
+43. **The pages are the page's main landmark**, labelled with the file name; the capsule stays a toolbar.
+
+Not taken from the audit: its "cream background" warning is PDkef's own `--color-bg` token, and the product
+has no dark theme to check.
+
 ## Learnings from building the sketches
 
 - **Measure jank before blaming speed.** A zoom commit cost 3 to 4 ms; every "laggy" feeling was
@@ -186,26 +207,35 @@ and OCR.
   `backdrop-filter` drops the blur.
 - **A test harness must send real click counts.** Playwright's separate `mouse.down()` calls report a click
   count of 1 each, so multi-click tests need `clickCount`.
+- **Read every size, then write every position.** Laying out notes one at a time (read a card's height, place it,
+  read the next) forces a layout per note; hide or show all, read all, then place all.
+- **Animate a settling band with a transform**, not `left` and `width`, so a long passage settles without
+  layout work (the audit flagged the sketch's width transitions).
 - **Realistic scans are the test.** A clean rendered page passed everything; skew, paper grain, dust and a
   spanning heading found all three reader failures.
 
-## Open calls (Shlomi)
+## Decided calls (Shlomi, 2026-11-01)
 
-1. **The name.** "Highlight PDF" (recommended) or "PDF Highlighter".
-2. **Comment placement** (recommended, sketch to follow): each comment is a small marker in the page margin
-   beside its passage, inside the page so it zooms and pinches with it. It opens as a card next to the
-   passage: in the free space beside the page when there is room (Fit page, Actual size on a wide screen),
-   otherwise floating over the page margin without covering the passage's line. The page never makes room
-   for comments. This replaces the first design's rail beside the page.
-3. **Touch targets.** The sketch's popup buttons are 28 px; a phone wants 44 px. Recommended: 44 px on a
-   coarse pointer, 28 to 32 px on a fine one.
-4. **Esc** takes up to three presses (custom panel, colors, toolbar). Recommended: keep, one layer each.
+1. **The name is Highlight PDF**, at `/highlight-pdf/`. "PDF highlighter" is a body phrase.
+2. **Touch targets:** the highlight toolbar's buttons are 44 px on a coarse pointer and 28 to 32 px on a
+   fine one.
+3. **Esc closes one layer at a time:** the custom panel, then the colors, then the toolbar.
+
+## Open call (Shlomi)
+
+**Comment placement**, to be chosen from two sketches in the reading room. Both meet R28 and R29.
+- *Margin marker and card:* a small marker in the page margin beside the passage, inside the page so it
+  zooms with it, opening a card beside the passage (in the free space next to the page when there is room,
+  otherwise over the margin without covering the line).
+- *Popover at the passage:* no margin marker; a commented highlight carries a small note dot at its end, and
+  the card opens just under the passage, over the page.
 
 ## Acceptance
 
 - [x] Sketches built outside `src/` (a scratchpad harness), published as a private artifact.
 - [x] Checked in a real browser at 980, 1280 and 1440 px wide, English, Hebrew and a scanned two-column
   page.
-- [ ] Shlomi agrees the requirements and answers the open calls.
+- [x] Shlomi answers the name, touch target and Esc calls.
+- [ ] Shlomi picks a comment placement from the two sketches.
 - [ ] The design record says the same as this list (no older rule left standing).
 - [ ] READ-03, READ-05 and READ-07 point here for their behaviour.
