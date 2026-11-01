@@ -4,6 +4,7 @@ import { DEFAULT_HIGHLIGHT_COLOR } from '../model/highlightColors.ts';
 import { hasBoxGeometry, hasNumber, hasString, isRecord } from './schema.ts';
 
 const MAX_BANDS = 200;
+const MIN_OPACITY = 0.3;
 
 function isBand(value: unknown): boolean {
   if (!isRecord(value)) return false;
@@ -17,7 +18,9 @@ export const highlightDefinition: ElementDefinition<HighlightElement> = {
   schema: (value): value is HighlightElement => isRecord(value) && value.type === 'highlight' && hasString(value, 'id')
     && hasNumber(value, 'pageIndex') && hasBoxGeometry(value) && hasString(value, 'color')
     && Array.isArray(value.bands) && value.bands.length >= 1 && value.bands.length <= MAX_BANDS && value.bands.every(isBand)
-    && (value.direction === undefined || value.direction === 'ltr' || value.direction === 'rtl'),
+    && (value.direction === undefined || value.direction === 'ltr' || value.direction === 'rtl')
+    && (value.style === undefined || value.style === 'underline')
+    && (value.opacity === undefined || (hasNumber(value, 'opacity') && (value.opacity as number) >= MIN_OPACITY && (value.opacity as number) <= 1)),
   creation: { mode: 'drag', create: ({ id, pageIndex, point, highlightColor }) => ({ id, type: 'highlight', pageIndex, left: point.left, top: point.top, width: 0, height: 0, color: highlightColor ?? DEFAULT_HIGHLIGHT_COLOR, bands: [] }) },
   serialize: async (element, context) => (await import('./highlightPdf.ts')).serializeHighlight(element, context),
   view: {},
