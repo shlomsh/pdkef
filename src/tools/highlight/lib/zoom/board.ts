@@ -1,17 +1,25 @@
-interface BoardLayout { slack: number; boardWidth: number }
+interface BoardLayout { slack: number; boardWidth: number; /** View heights of room above and below the column, so a short zoomed-out document is not clamped to the top. */ slackY: number }
 
-/** The page sits on a board with one view of room each side, so it can be moved and zoomed into freely. */
-export function boardLayout(pageWidth: number, viewWidth: number): BoardLayout {
-  return { slack: viewWidth, boardWidth: pageWidth + 2 * viewWidth };
+/**
+ * The column (the pages, with their notes) sits on a board with one view of room each side, and one view height
+ * above and below when `viewHeight` is given, so it can be moved and zoomed freely.
+ */
+export function boardLayout(columnWidth: number, viewWidth: number, viewHeight = 0): BoardLayout {
+  return { slack: viewWidth, boardWidth: columnWidth + 2 * viewWidth, slackY: viewHeight };
 }
 
-/** The scrollLeft that puts the page, or a span `focus` inside it (px from its left edge), in the middle of the view. */
+/** The scrollTop that puts the column's top at the top of the view, as it sat before the board had vertical room. */
+export function columnTopScrollTop(layout: BoardLayout): number {
+  return layout.slackY;
+}
+
+/** The scrollLeft that puts the page, or a span `focus` inside it (px from the column's left edge), in the middle of the view. */
 export function centredScrollLeft(
   layout: BoardLayout,
-  pageWidth: number,
+  columnWidth: number,
   viewWidth: number,
   focus?: { left: number; right: number },
 ): number {
-  const middle = focus ? (focus.left + focus.right) / 2 : pageWidth / 2;
+  const middle = focus ? (focus.left + focus.right) / 2 : columnWidth / 2;
   return layout.slack + middle - viewWidth / 2;
 }

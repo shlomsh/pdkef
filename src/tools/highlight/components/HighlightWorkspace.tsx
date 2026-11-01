@@ -145,10 +145,10 @@ export default function HighlightWorkspace({ pdfDocument, numPages, fileName, zo
       {fullscreen && <PrintMenu {...printMenu} />}
       {print.sheets}
       <ArmedChip armed={touch.armed} onStop={touch.disarm} />
-      <div className={styles.board} style={{ width: `${zoom.board.boardWidth + notesW}px` }}>
+      <div className={styles.board} style={{ width: `${zoom.board.boardWidth}px`, ...(zoom.board.slackY ? { paddingBlock: `${zoom.board.slackY}px` } : {}) }}>
       <div
         className={styles.column} ref={columnRef}
-        style={{ width: `${widest * zoom.zoom + notesW}px`, marginLeft: `${zoom.board.slack}px` }}
+        style={{ width: `${widest * zoom.zoom + notesW}px`, marginLeft: `${zoom.board.slack}px`, ...(zoom.chrome !== 1 ? { '--chrome': zoom.chrome } : {}) }}
         onPointerDown={() => pagePressEvents.emit()}
       >
         {zoom.pages.map((box, i) => (
