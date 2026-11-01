@@ -5,6 +5,7 @@ export const END_NOTES_MARGIN = 36;
 /** Room the "Notes" heading takes at the top of the first notes sheet, in pt. */
 export const END_NOTES_HEADING = 26;
 /** Space between two notes, in pt. */
+/** @testSeam */
 export const END_NOTES_GAP = 6;
 
 /**

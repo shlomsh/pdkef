@@ -3,7 +3,8 @@ import { useEffect, useReducer, useRef, useState } from 'preact/hooks';
 import { FILE_ACTIONS } from '#shell/ToolShell.tsx';
 import { formatMessage } from '#lib/text/formatMessage.ts';
 import { capsuleReducer, initialCapsule } from './capsuleState.ts';
-import { englishCapsuleLabels, foldedItems, moreDisplay, type CapsuleLabels } from './capsuleItems.ts';
+import { englishHighlightMessages } from '../../messages.ts';
+import { foldedItems, moreDisplay, type CapsuleLabels } from './capsuleItems.ts';
 import controls from '#editor-ui/EditorControls.module.css';
 import styles from './ReadingCapsule.module.css';
 
@@ -44,7 +45,7 @@ const ExitIcon = () => <svg {...svg}><path d="M8 3v3a2 2 0 0 1-2 2H3" /><path d=
  * through `data-mode`, which the CSS keys off.
  */
 export default function ReadingCapsule(p: ReadingCapsuleProps) {
-  const labels = p.labels ?? englishCapsuleLabels;
+  const labels = p.labels ?? englishHighlightMessages.capsule;
   const [state, dispatch] = useReducer(capsuleReducer, initialCapsule);
   const [width, setWidth] = useState(() => (typeof window === 'undefined' ? 1024 : window.innerWidth));
   const [menu, setMenu] = useState<'jump' | 'more' | null>(null);
