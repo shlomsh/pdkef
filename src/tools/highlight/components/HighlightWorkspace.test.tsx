@@ -5,6 +5,7 @@ import type { PDFDocumentProxy } from 'pdfjs-dist';
 import workspaceStyles from '#editor-ui/Workspace.module.css';
 import toolbarStyles from '#editor-ui/SignToolbar.module.css';
 import HighlightWorkspace from './HighlightWorkspace.tsx';
+import styles from './HighlightWorkspace.module.css';
 import { useHighlightComments } from '../hooks/useHighlightComments.ts';
 import type { CommentElement, EditorElement, HighlightElement } from '#editor/model/editorModel.ts';
 import { DEFAULT_MARKER } from '../lib/marker/markerState.ts';
@@ -141,14 +142,14 @@ const note: CommentElement = {
 };
 
 /** A workspace of the given width with one page and these elements; the zoom is 1 and the page 600 px wide. */
-function mountNoted(elements: EditorElement[], workspaceWidth: number, extra: Record<string, unknown> = {}, page?: object, zoomValue = 1, chrome = 1) {
+function mountNoted(elements: EditorElement[], workspaceWidth: number, extra: Record<string, unknown> = {}, page?: object, zoomValue = 1, chrome = 1, lamp = false) {
   const originalRect = HTMLElement.prototype.getBoundingClientRect;
   HTMLElement.prototype.getBoundingClientRect = function rect() {
     return { ...originalRect.call(this), width: this.hasAttribute('data-workspace') ? workspaceWidth : 0 } as DOMRect;
   };
   vi.stubGlobal('ResizeObserver', class { constructor(private cb: () => void) {} observe() { this.cb(); } disconnect() {} });
   const zoom = {
-    zoom: zoomValue, chrome, setting: 'width', pages: [{ width: 600, height: 800, textLeft: 0, textRight: 600 }], board: { boardWidth: 600, slack: 0, slackY: chrome > 1 ? 500 : 0 },
+    zoom: zoomValue, chrome, setting: 'width', pages: [{ width: 600, height: 800, textLeft: 0, textRight: 600 }], board: { boardWidth: 600, slack: 0 },
     apply: vi.fn(), step: vi.fn(), actual: vi.fn(),
   } as unknown as Parameters<typeof HighlightWorkspace>[0]['zoom'];
   const marks = {
@@ -163,7 +164,7 @@ function mountNoted(elements: EditorElement[], workspaceWidth: number, extra: Re
     <Harness
       pdfDocument={{ getPage: () => (page ? Promise.resolve(page) : new Promise(() => {})) } as unknown as PDFDocumentProxy} numPages={1} fileName="a.pdf" zoom={zoom} marks={marks} undo={vi.fn()} redo={vi.fn()}
       setAnnouncement={vi.fn()} onDownload={vi.fn()} workspaceRef={workspaceRef} columnRef={{ current: null }}
-      onToggleFullscreen={vi.fn()} fullscreen={false} pseudoFullscreen={false}
+      onToggleFullscreen={vi.fn()} fullscreen={lamp} pseudoFullscreen={false}
     />,
     container!,
   ));
@@ -194,16 +195,23 @@ describe('HighlightWorkspace notes (R28, R29)', () => {
     restore();
   });
 
-  it('in the lamp the column carries --chrome and the gap scales, and the board has vertical slack', () => {
+  it('in the lamp the column carries --chrome and the gap scales', () => {
     const { column, restore } = mountNoted([], 800, {}, undefined, 1.5, 1.5);
     expect(column.style.getPropertyValue('--chrome')).toBe('1.5');
-    expect(column.parentElement!.style.paddingBlock).toBe('500px');
+    restore();
+  });
+  it('in the lamp the board has no vertical padding and CSS centres a short column', () => {
+    const { column, restore } = mountNoted([], 800, {}, undefined, 1.5, 1.5, true);
+    const board = column.parentElement!;
+    expect(board.style.paddingBlock).toBe('');
+    expect(board.className).toContain(styles.lampBoard);
     restore();
   });
   it('in the normal view the column has no --chrome and the board no vertical slack', () => {
     const { column, restore } = mountNoted([], 800);
     expect(column.style.getPropertyValue('--chrome')).toBe('');
     expect(column.parentElement!.style.paddingBlock).toBe('');
+    expect(column.parentElement!.className).not.toContain(styles.lampBoard);
     restore();
   });
   it('at zoom 1.5 in the lamp the notes column, the rail and the header scale with the page', () => {
