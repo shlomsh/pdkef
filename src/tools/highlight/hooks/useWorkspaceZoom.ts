@@ -3,6 +3,7 @@ import type { PDFDocumentProxy } from 'pdfjs-dist';
 import { readTextItems } from '#lib/pdf/pdfTextItems.ts';
 import type { DetailEdits } from '#editor/registry/draftValidation.ts';
 import { clampZoom, resolveZoom, stepZoom, type PageBox, type ZoomSetting } from '../lib/zoom/fit.ts';
+import { pageAnchorAt } from '../lib/zoom/pageAnchor.ts';
 import { zoomCommit } from '../lib/zoom/commit.ts';
 import { useBoardScroll } from './useBoardScroll.ts';
 import { initialSetting, serializeSetting } from '../lib/zoom/setting.ts';
@@ -104,7 +105,7 @@ export function useWorkspaceZoom({ pdfDocument, workspaceRef, columnRef, fullscr
     return r ? { x: r.left + r.width / 2, y: fullscreen ? r.top + r.height / 2 : window.innerHeight / 2 } : { x: 0, y: 0 };
   }, [workspaceRef, fullscreen]);
 
-  const { pendingScroll, pendingCentre, board } = useBoardScroll({ workspaceRef, fullscreen, pages, zoom, setting, view });
+  const { pendingScroll, pendingCentre, pendingAnchor, board } = useBoardScroll({ workspaceRef, fullscreen, pages, zoom, setting, view });
 
   const commit = useCallback((next: ZoomSetting, nextZoom: number, anchor?: Point, centreAfter = false) => {
     const f = frame();
@@ -114,10 +115,16 @@ export function useWorkspaceZoom({ pdfDocument, workspaceRef, columnRef, fullscr
       }).scroll;
     }
     if (centreAfter) pendingCentre.current = true;
+    else if (nextZoom !== zoomRef.current) {
+      const point = anchor ?? centre();
+      const rects = [...(workspaceRef.current?.querySelectorAll('[data-page-wrapper]') ?? [])].map((el) => el.getBoundingClientRect());
+      const pageAnchor = pageAnchorAt(rects, point);
+      pendingAnchor.current = pageAnchor ? { anchor: pageAnchor, point } : null;
+    }
     setSetting(next);
     setTouched(true);
     storeDefault(next);
-  }, [frame, centre]);
+  }, [frame, centre, workspaceRef, pendingAnchor, pendingCentre, pendingScroll]);
 
   const apply = useCallback((next: ZoomSetting, anchor?: Point) => {
     const target = typeof next === 'number'
