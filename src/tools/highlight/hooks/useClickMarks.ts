@@ -14,6 +14,7 @@ import { recordAction } from '#lib/telemetry/actionTrail.ts';
 import { formatMessage } from '#lib/text/formatMessage.ts';
 import { clickMarkElement, planClick, type ClickSequence, type ClickUnit } from '../lib/marker/clickMark.ts';
 import type { Marker } from '../lib/marker/markerState.ts';
+import { planSweep } from '../lib/marker/sweep.ts';
 import { readScanUnit } from '../lib/marker/scanUnits.ts';
 import { sentenceBoxes, wordBoxes, type Box } from '../lib/text/textUnits.ts';
 
@@ -69,8 +70,25 @@ export function useClickMarks(options: ClickMarksOptions) {
   const run = useRef<string[]>([]);
   const sequence = useRef<ClickSequence | null>(null);
   const stopWatching = useRef<() => void>(() => {});
+  // The mark a click just laid, waiting for its bands to be on the page to be swept in.
+  const pendingSweep = useRef<{ id: string; rtl: boolean } | null>(null);
 
   useEffect(() => () => stopWatching.current(), []);
+
+  // R13: after the render that puts the new mark's bands on the page, draw them in from the first letter.
+  // DOM only: the clip is a Web Animation on each band, with no state per frame.
+  useEffect(() => {
+    const pending = pendingSweep.current;
+    const overlay = latest.current.overlayRef.current;
+    if (!pending || !overlay) return;
+    const bands = Array.from(overlay.querySelectorAll<HTMLElement>(`[data-element-id="${pending.id}"] [data-highlight-band]`));
+    if (bands.length === 0) return;
+    pendingSweep.current = null;
+    const reducedMotion = typeof window.matchMedia === 'function' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const plan = planSweep({ widths: bands.map((band) => band.offsetWidth), rtl: pending.rtl, reducedMotion });
+    if (!plan || typeof bands[0].animate !== 'function') return;
+    bands.forEach((band, i) => band.animate(plan.frames, { ...plan.steps[i], easing: plan.easing, fill: 'backwards' }));
+  });
 
   const handleClick = (event: MouseEvent) => {
     const o = latest.current;
@@ -101,6 +119,7 @@ export function useClickMarks(options: ClickMarksOptions) {
     recordAction('place_mark');
     run.current = [];
     sequence.current = { id: element.id, unit: plan.unit };
+    pendingSweep.current = { id: element.id, rtl: element.direction === 'rtl' };
     o.onMark(element);
   };
 
