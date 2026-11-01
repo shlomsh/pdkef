@@ -141,14 +141,14 @@ const note: CommentElement = {
 };
 
 /** A workspace of the given width with one page and these elements; the zoom is 1 and the page 600 px wide. */
-function mountNoted(elements: EditorElement[], workspaceWidth: number, extra: Record<string, unknown> = {}, page?: object, zoomValue = 1) {
+function mountNoted(elements: EditorElement[], workspaceWidth: number, extra: Record<string, unknown> = {}, page?: object, zoomValue = 1, chrome = 1) {
   const originalRect = HTMLElement.prototype.getBoundingClientRect;
   HTMLElement.prototype.getBoundingClientRect = function rect() {
     return { ...originalRect.call(this), width: this.hasAttribute('data-workspace') ? workspaceWidth : 0 } as DOMRect;
   };
   vi.stubGlobal('ResizeObserver', class { constructor(private cb: () => void) {} observe() { this.cb(); } disconnect() {} });
   const zoom = {
-    zoom: zoomValue, setting: 'width', pages: [{ width: 600, height: 800, textLeft: 0, textRight: 600 }], board: { boardWidth: 600, slack: 0 },
+    zoom: zoomValue, chrome, setting: 'width', pages: [{ width: 600, height: 800, textLeft: 0, textRight: 600 }], board: { boardWidth: 600, slack: 0 },
     apply: vi.fn(), step: vi.fn(), actual: vi.fn(),
   } as unknown as Parameters<typeof HighlightWorkspace>[0]['zoom'];
   const marks = {
@@ -184,8 +184,18 @@ describe('HighlightWorkspace notes (R28, R29)', () => {
     restore();
   });
 
-  it('at zoom 1.5 the notes column, the rail and the header scale with the page, and the rail gets the unzoomed page height', () => {
+  it('at zoom 1.5 in the normal view the notes column, the rail and the header keep the app sizes', () => {
     const { column, restore } = mountNoted([mark, note], 2000, {}, undefined, 1.5);
+    const card = column.querySelector<HTMLElement>('[data-editor-page-card]')!;
+    expect(column.style.width).toBe(`${600 * 1.5 + NOTES_W}px`);
+    expect(card.style.getPropertyValue('--notes-w')).toBe(`${NOTES_W}px`);
+    expect(card.querySelector<HTMLElement>('[data-notes-rail]')!.style.zoom).toBe('');
+    expect(card.querySelector<HTMLElement>('[data-page-header]')!.style.zoom).toBe('');
+    restore();
+  });
+
+  it('at zoom 1.5 in the lamp the notes column, the rail and the header scale with the page', () => {
+    const { column, restore } = mountNoted([mark, note], 2000, {}, undefined, 1.5, 1.5);
     const card = column.querySelector<HTMLElement>('[data-editor-page-card]')!;
     expect(column.style.width).toBe(`${600 * 1.5 + NOTES_W * 1.5}px`);
     expect(card.style.getPropertyValue('--notes-w')).toBe(`${NOTES_W * 1.5}px`);
