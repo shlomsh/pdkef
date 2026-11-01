@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'preact/hooks';
-import { isTypingTarget } from '#lib/dom/isTypingTarget.ts';
+import { isTypingTarget } from '#lib/history/isTypingTarget.ts';
 
 export { isTypingTarget };
 

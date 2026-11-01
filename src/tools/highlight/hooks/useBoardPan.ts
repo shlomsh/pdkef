@@ -1,6 +1,6 @@
 import { useEffect } from 'preact/hooks';
 import { startGesture, type GestureEvent } from '#lib/gestures/controller.ts';
-import { isTypingTarget } from '#lib/dom/isTypingTarget.ts';
+import { isTypingTarget } from '#lib/history/isTypingTarget.ts';
 
 const inRect = (r: DOMRect, x: number, y: number) => x >= r.left && x <= r.right && y >= r.top && y <= r.bottom;
 

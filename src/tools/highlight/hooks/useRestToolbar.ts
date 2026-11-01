@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'preact/hooks';
 import type { HighlightElement } from '#editor/model/editorModel.ts';
-import { isTypingTarget } from '#lib/dom/isTypingTarget.ts';
+import { isTypingTarget } from '#lib/history/isTypingTarget.ts';
 import { keyAction } from '../lib/marker/keys.ts';
 import { HIGHLIGHT_COLORS, type Marker } from '../lib/marker/markerState.ts';
 import { scrolledPast } from '../lib/marker/toolbarLayers.ts';
