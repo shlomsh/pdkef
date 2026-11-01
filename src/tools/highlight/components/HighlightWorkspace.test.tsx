@@ -57,12 +57,18 @@ describe('HighlightWorkspace', () => {
     }
   });
 
-  it('outside the lamp shows the capsule as a bar: the same controls, no zoom, and the way into the lamp last', () => {
-    const ws = mount({ fullscreen: false, pseudoFullscreen: false });
-    const bar = ws.querySelector('[role="toolbar"]')!;
-    const names = [...bar.querySelectorAll(':scope button[aria-label]')].map((b) => b.getAttribute('aria-label'));
-    expect(names.slice(-6)).toEqual(['Undo', 'Redo', 'Print', 'Download', 'More', 'Use the reading lamp']);
-    expect(bar.querySelector('[aria-label*="oom"]')).toBeNull();
+  it('outside the lamp shows the editor card with the tile row, and no capsule; the lamp still has the capsule', () => {
+    mount({ fullscreen: false, pseudoFullscreen: false });
+    const bar = container!.querySelector('[data-editor-toolbar][role="toolbar"]')!;
+    expect(bar).not.toBeNull();
+    expect(bar.closest('[data-shell-controls]')).not.toBeNull();
+    const names = [...bar.querySelectorAll('button[aria-label], button[title]')].map((b) => b.getAttribute('aria-label') ?? b.getAttribute('title'));
+    expect(names).toEqual(['Marker', 'Undo', 'Redo', 'Use the reading lamp', 'Replace file', 'Print', 'Download']);
+    expect(container!.querySelector('[role="toolbar"][aria-label="Reading lamp"]')).toBeNull();
+    act(() => render(null, container!));
+    const lamp = mount({ fullscreen: true, pseudoFullscreen: false });
+    expect(lamp.querySelector('[role="toolbar"][aria-label="Reading lamp"]')).not.toBeNull();
+    expect(container!.querySelector('[data-editor-toolbar]')).toBeNull();
   });
 
   it('covers the screen when the lamp stands in for fullscreen, as on an iPhone', () => {
@@ -153,8 +159,13 @@ describe('HighlightWorkspace notes (R28, R29)', () => {
     restore();
   });
 
-  it('opens the print menu 8 px under the toolbar, in both views', () => {
-    for (const fullscreen of [false, true]) {
+  it('opens the print menu 8 px under the capsule in the lamp, and under its own tile in the row', () => {
+    const row = mount({ fullscreen: false, pseudoFullscreen: false });
+    act(() => { container!.querySelector<HTMLElement>('[data-editor-toolbar] button[title="Print"], [data-editor-toolbar] button[aria-label="Print"]')!.click(); });
+    expect(container!.querySelector('[data-editor-toolbar] [role="menu"]')).not.toBeNull();
+    expect(row).toBeTruthy();
+    act(() => render(null, container!));
+    for (const fullscreen of [true]) {
       const ws = mount({ fullscreen, pseudoFullscreen: false });
       const bar = ws.querySelector<HTMLElement>('[role="toolbar"]')!;
       vi.spyOn(bar, 'getBoundingClientRect').mockReturnValue({ bottom: 100 } as DOMRect);

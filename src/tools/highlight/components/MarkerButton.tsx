@@ -24,6 +24,8 @@ interface MarkerButtonProps {
   onOpenChange?(open: boolean): void;
   /** Whether taps are the input; the coarse-pointer query by default. */
   isCoarse?(): boolean;
+  /** The editor row's tile class; the button then takes the toolbar's look instead of the capsule's round one. */
+  buttonClass?: string;
 }
 
 /** R19: the color input and the opacity slider (30 to 100%) behind the plus. */
@@ -54,7 +56,7 @@ function CustomPanel({ marker, onChange }: { marker: Marker; onChange(change: Pa
  * The marker in the hand, as a button (R19): it shows the armed marker, a dot in its color or the underline
  * glyph, and opens the six colors, Underline and the plus. On touch a tap also arms the marker.
  */
-export default function MarkerButton({ marker, onChange, armed = false, onTap, onOpenChange, isCoarse = coarsePointer }: MarkerButtonProps) {
+export default function MarkerButton({ marker, onChange, armed = false, onTap, onOpenChange, isCoarse = coarsePointer, buttonClass }: MarkerButtonProps) {
   const [open, setOpen] = useState(false);
   const [custom, setCustom] = useState(false);
   const rootRef = useRef<HTMLSpanElement>(null);
@@ -87,7 +89,7 @@ export default function MarkerButton({ marker, onChange, armed = false, onTap, o
 
   return (
     <span
-      class={styles.wrap} ref={rootRef} data-marker-button
+      class={styles.wrap} ref={rootRef} data-marker-button data-tile={buttonClass ? '' : undefined}
       onKeyDown={(e) => {
         if (e.key !== 'Escape' || !open) return;
         e.stopPropagation();
@@ -96,7 +98,7 @@ export default function MarkerButton({ marker, onChange, armed = false, onTap, o
       }}
     >
       <button
-        ref={buttonRef} type="button" class={styles.button} aria-haspopup="true" aria-expanded={open}
+        ref={buttonRef} type="button" class={buttonClass ?? styles.button} data-icon-only={buttonClass ? '' : undefined} aria-haspopup="true" aria-expanded={open}
         aria-label={t.marker} title={t.marker} data-armed={armed && isCoarse() ? '' : undefined}
         onClick={(e) => {
           if (!armed && isCoarse()) onTap?.();

@@ -105,6 +105,7 @@ export default withIslandBoundary(function PdfHighlightTool() {
       empty={{ art: <HighlightVerb />, message: t.emptyMessage }}
       draft={{ saveState: session.draftSaveState, checking: session.isRestoring }}
       analytics={{ tool: 'highlight-pdf' }}
+      owns={{ shell: true }}
     >
       <div className="sr-only" role="status" aria-live="polite">{announcement}</div>
 
