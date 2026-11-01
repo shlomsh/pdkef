@@ -42,13 +42,18 @@ export function printPlan(pages: { width: number; height: number }[], notes: Pri
     };
     const mine = notes.filter((n) => n.page === index).sort((a, b) => a.anchorTop - b.anchorTop);
     if (mine.length === 0) return plan;
-    const tops = stackCards(mine.map((n) => ({ id: n.id, want: n.anchorTop * NOTE_PAGE_SCALE, height: n.height })), CARD_GAP_PT);
-    const last = mine[mine.length - 1];
-    const overshoot = (tops.get(last.id) ?? 0) + last.height - page.height;
-    const shift = Math.max(0, overshoot);
-    const first = tops.get(mine[0].id) ?? 0;
-    const fits = first - shift >= 0;
-    plan.cards = mine.map((n) => ({ id: n.id, top: fits ? (tops.get(n.id) ?? 0) - shift : (tops.get(n.id) ?? 0) - first }));
+    const forward = stackCards(mine.map((n) => ({ id: n.id, want: n.anchorTop * NOTE_PAGE_SCALE, height: n.height })), CARD_GAP_PT);
+    // Reverse pass: only the cards that would run past the sheet go up.
+    const pushed: number[] = [];
+    let ceiling = page.height;
+    for (let i = mine.length - 1; i >= 0; i--) {
+      const top = Math.min(forward.get(mine[i].id) ?? 0, ceiling - mine[i].height);
+      pushed[i] = top;
+      ceiling = top - CARD_GAP_PT;
+    }
+    const fits = pushed[0] >= 0;
+    const base = fits ? 0 : (forward.get(mine[0].id) ?? 0);
+    plan.cards = mine.map((n, i) => ({ id: n.id, top: fits ? pushed[i] : (forward.get(n.id) ?? 0) - base }));
     if (!fits) plan.overflow = true;
     return plan;
   });
