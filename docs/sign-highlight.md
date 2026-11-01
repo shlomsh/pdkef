@@ -43,7 +43,7 @@ The band never reads the PDF's text layer. It reads the page as Sign already pai
 (`src/editor-ui/PdfPageCanvas.tsx`), in a small window around the finger, and finds the text row there:
 
 1. Take the window's gray pixels and threshold them (Otsu, reusing `otsuThreshold` from
-   `src/lib/pageLayout/rasterInk.js`).
+   `src/lib/pageLayout/rasterInk.ts`).
 2. Project ink onto the vertical axis. The row is the run of pixel rows with ink that contains the
    press point, padded a little above and below. Its core is where the ink is dense; it then grows
    through the sparse ascender and descender scanlines up to the first blank one, so the band covers

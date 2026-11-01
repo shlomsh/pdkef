@@ -1,6 +1,6 @@
 // Finds the lines of text in a small raster window: ink rows, then word gaps inside each row.
 // Pure pixel math, no DOM; the caller crops the window and maps the result back to the page.
-import { otsuThreshold } from './rasterInk.js';
+import { otsuThreshold } from './rasterInk.ts';
 
 /** RGBA pixels, the shape of a canvas ImageData. */
 export interface RasterWindow { data: Uint8ClampedArray; width: number; height: number }
