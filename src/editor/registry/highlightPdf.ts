@@ -4,7 +4,7 @@ import type { HighlightBand, HighlightElement } from '../model/editorModel.ts';
 import type { SerializeContext } from './types.ts';
 import { DEFAULT_HIGHLIGHT_COLOR } from '../model/highlightColors.ts';
 import { hexToRgbFractions } from '../text/imageTint.js';
-import { UNDERLINE_WIDTH, underlineInk } from '../model/underlineInk.ts';
+import { UNDERLINE_LIFT, UNDERLINE_WIDTH, underlineInk } from '../model/underlineInk.ts';
 import { applyAffineTransform, percentToPoints } from '../geometry/coords.ts';
 import type { AffineTransform } from '../geometry/coords.ts';
 
@@ -62,12 +62,12 @@ interface BandsHighlightSpec {
   print: boolean;
 }
 
-/** READ-03: a stroke (UNDERLINE_WIDTH.default pt unless set) along a band's bottom edge, half its width inside the band, in user space (works on a rotated page). */
+/** READ-03: a stroke (UNDERLINE_WIDTH.default pt unless set) along a band's bottom edge, its bottom UNDERLINE_LIFT pt above the band's, in user space (works on a rotated page). */
 function underlineLine(ul: Point, ll: Point, lr: Point, width: number): string {
   const dx = ul[0] - ll[0];
   const dy = ul[1] - ll[1];
   const length = Math.hypot(dx, dy) || 1;
-  const inset = width / 2 / length;
+  const inset = (UNDERLINE_LIFT + width / 2) / length;
   const shift = (p: Point) => [p[0] + dx * inset, p[1] + dy * inset].map(fixed).join(' ');
   return `${shift(ll)} m ${shift(lr)} l S`;
 }

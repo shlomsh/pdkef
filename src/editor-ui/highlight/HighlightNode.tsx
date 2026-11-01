@@ -1,6 +1,6 @@
 import type { HighlightElement } from '#editor/model/editorModel.ts';
 import type { ElementNodeChange, ElementNodeProps } from '../nodeProps.ts';
-import { UNDERLINE_WIDTH, underlineInk } from '#editor/model/underlineInk.ts';
+import { UNDERLINE_LIFT, UNDERLINE_WIDTH, underlineInk } from '#editor/model/underlineInk.ts';
 import styles from './HighlightNode.module.css';
 
 /* SIGN-46: bands are percents of the element's own box. The draft container
@@ -23,7 +23,7 @@ export default function HighlightNode({ element, isActive }: ElementNodeProps<Hi
             class={underline ? `${styles.band} ${styles.underline}` : styles.band}
             style={{
               left: `${band.left}%`, top: `${band.top}%`, width: `${band.width}%`, height: `${band.height}%`,
-              ...(underline ? { '--highlight-ink': ink, '--highlight-ink-width': `${element.strokeWidth ?? UNDERLINE_WIDTH.default}px` } : { background: element.color }),
+              ...(underline ? { '--highlight-ink': ink, '--highlight-ink-width': `${element.strokeWidth ?? UNDERLINE_WIDTH.default}px`, '--highlight-ink-lift': `${UNDERLINE_LIFT}px` } : { background: element.color }),
             }}
           />
         ))}
