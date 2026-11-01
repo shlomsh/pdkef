@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { lineAt, wordAt } from './wordAt.ts';
-import type { TextRow } from './textRows.ts';
+import type { TextRow } from '#lib/pageLayout/textRows.ts';
 
 const rows: TextRow[] = [
   { top: 10, bottom: 24, left: 10, right: 90, gaps: [[30, 32], [60, 63]] },

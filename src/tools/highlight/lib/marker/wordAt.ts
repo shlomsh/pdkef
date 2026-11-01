@@ -1,7 +1,7 @@
 // The word or the line under a point on a scanned page, from the raster rows `findTextRows` finds.
 // Units: window pixels, the same as `TextRow` (x to the right, y down); the caller maps the box
 // back to the page. Pure, no DOM.
-import type { TextRow } from './textRows.ts';
+import type { TextRow } from '#lib/pageLayout/textRows.ts';
 
 /** A box in the same window pixels as the rows. */
 interface PixelBox { left: number; right: number; top: number; bottom: number }

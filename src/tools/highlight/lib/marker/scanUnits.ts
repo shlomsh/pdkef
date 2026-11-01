@@ -4,7 +4,7 @@
 import { bandsForSwipe, type Band } from '#lib/pageLayout/bands.ts';
 import { bandsToPagePercent } from '#lib/pageLayout/swipe.ts';
 import { columnSpanAt, findTextRows, type RasterWindow, type TextRow } from '#lib/pageLayout/textRows.ts';
-import { lineAt, wordAt } from '#lib/pageLayout/wordAt.ts';
+import { lineAt, wordAt } from './wordAt.ts';
 
 type ScanUnit = 'word' | 'line';
 interface Point { x: number; y: number }

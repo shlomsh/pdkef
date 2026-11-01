@@ -4,7 +4,7 @@ import { FILE_ACTIONS } from '#shell/ToolShell.tsx';
 import { formatMessage } from '#lib/text/formatMessage.ts';
 import { capsuleReducer, initialCapsule } from './capsuleState.ts';
 import { englishCapsuleLabels, foldedItems, moreDisplay, type CapsuleLabels } from './capsuleItems.ts';
-import controls from '../EditorControls.module.css';
+import controls from '#editor-ui/EditorControls.module.css';
 import styles from './ReadingCapsule.module.css';
 
 /** @testSeam */
