@@ -1,11 +1,11 @@
-import { h, type VNode } from 'preact';
+import { h } from 'preact';
 import { useCallback, useEffect, useState } from 'preact/hooks';
 import type { PDFDocumentProxy } from 'pdfjs-dist';
 import type { EditorElement } from '#editor/model/editorModel.ts';
 import { reportError } from '#lib/telemetry/errorReport.ts';
 import PrintSheets from '../components/PrintSheets.tsx';
 
-/** The sheets get this long to render their pages before the print is given up. */
+/** The sheets get this long to render their pages before the print is given up. @testSeam */
 export const PRINT_TIMEOUT_MS = 15_000;
 
 /**
@@ -41,6 +41,6 @@ export function usePrint({ pdfDocument, elements }: { pdfDocument: PDFDocumentPr
   }, [job, ready]);
 
   const onReady = useCallback(() => setReady(true), []);
-  const sheets: VNode | null = job ? h(PrintSheets, { pdfDocument, elements, withNotes: job.withNotes, onReady }) : null;
+  const sheets = job ? h(PrintSheets, { pdfDocument, elements, withNotes: job.withNotes, onReady }) : null;
   return { print, sheets };
 }

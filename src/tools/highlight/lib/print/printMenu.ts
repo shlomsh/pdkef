@@ -1,7 +1,7 @@
 import { isComment } from '#editor/comments/anchors.ts';
 import type { EditorElement } from '#editor/model/editorModel.ts';
 
-export interface PrintMenuItem {
+interface PrintMenuItem {
   id: 'plain' | 'notes';
   label: string;
   withNotes: boolean;

@@ -4,7 +4,7 @@ import { printMenuItems } from '../lib/print/printMenu.ts';
 import { englishHighlightMessages as t } from '../messages.ts';
 import styles from './PrintMenu.module.css';
 
-export interface PrintMenuProps {
+interface PrintMenuProps {
   open: boolean;
   /** Whether the document has a comment; "Print with my notes" is offered only then. */
   withComments: boolean;
