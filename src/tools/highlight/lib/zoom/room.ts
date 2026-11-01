@@ -1,7 +1,7 @@
 import type { Point } from './anchor.ts';
 
 /** The page column as measured before the zoom changes: its left and top in viewport px, the scroll and the zoom. */
-export interface RoomFrame {
+interface RoomFrame {
   rect: { left: number; top: number };
   scroll: Point;
   zoom: number;
