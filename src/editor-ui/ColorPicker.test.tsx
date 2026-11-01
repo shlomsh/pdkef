@@ -82,4 +82,12 @@ describe('ColorPicker custom control', () => {
     act(() => { input.dispatchEvent(new Event('change', { bubbles: true })); });
     expect(spy).toHaveBeenCalledWith('#336699');
   });
+
+  it("custom='wheel' does not ring the wheel for a preset in another letter case (the native input reports lowercase)", () => {
+    host = document.createElement('div');
+    document.body.appendChild(host);
+    const h = host;
+    act(() => render(<ColorPicker value="#fff34d" presets={['#FFF34D']} onChange={() => {}} custom="wheel" title="Choose a color" />, h));
+    expect(h.querySelector('[data-color-wheel]')?.hasAttribute('data-pressed')).toBe(false);
+  });
 });
