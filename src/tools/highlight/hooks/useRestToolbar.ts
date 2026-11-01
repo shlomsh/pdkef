@@ -1,6 +1,5 @@
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'preact/hooks';
+import { useCallback, useEffect, useRef, useState } from 'preact/hooks';
 import type { HighlightElement } from '#editor/model/editorModel.ts';
-import { inkEnd, placeBar } from '../lib/marker/inkEnd.ts';
 import { keyAction } from '../lib/marker/keys.ts';
 import { HIGHLIGHT_COLORS, type Marker } from '../lib/marker/markerState.ts';
 import { closeLayer, layersOf, scrolledPast, type Layers } from '../lib/marker/toolbarLayers.ts';
@@ -114,44 +113,9 @@ export function useRestToolbar() {
   return { targetId, hint, onPointerMove, onPointerLeave, strokeEnd, openFor, close, showHint, clearHint };
 }
 
-const SIX = HIGHLIGHT_COLORS.length;
 const isTyping = (el: Element | null) => !!el && ((el as HTMLElement).isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName));
 
 type ToolbarLive = { current: { layers: Layers; mark: HighlightElement; onChange(change: Partial<Marker>): void; onDelete(): void; onComment(): void; onClose(): void; look: Marker } };
-
-/** Placed once, before paint: beside the end of the last band, off the line, inside the screen. */
-export function useToolbarPlacement(rootRef: { current: HTMLDivElement | null }, hlRef: { current: HTMLButtonElement | null }, mark: HighlightElement, rtl: boolean) {
-  useLayoutEffect(() => {
-    const root = rootRef.current;
-    const parent = root?.offsetParent as HTMLElement | null;
-    if (!root || !parent) return;
-    const box = parent.getBoundingClientRect();
-    const end = inkEnd(mark);
-    const cell = parseFloat(getComputedStyle(root).getPropertyValue('--cell')) || 32;
-    const barW = root.offsetWidth;
-    const placed = placeBar({
-      x: box.left + (end.x / 100) * box.width,
-      lineTop: box.top + (end.top / 100) * box.height,
-      lineBottom: box.top + (end.bottom / 100) * box.height,
-      barW,
-      barMaxW: barW - (hlRef.current?.offsetWidth ?? 0) + (SIX + 1) * cell,
-      barH: root.offsetHeight,
-      vw: document.documentElement.clientWidth,
-      vh: window.innerHeight,
-      topMin: 8,
-      rtl,
-    });
-    root.dataset.side = placed.side;
-    root.style.top = `${placed.top - box.top}px`;
-    if (placed.align === 'left') {
-      root.style.left = `${placed.edge - box.left}px`;
-      root.style.right = 'auto';
-    } else {
-      root.style.right = `${box.right - placed.edge}px`;
-      root.style.left = 'auto';
-    }
-  }, []);
-}
 
 /** R9: keys, a press elsewhere, and a scroll of more than 24 px. */
 export function useToolbarDismissal(

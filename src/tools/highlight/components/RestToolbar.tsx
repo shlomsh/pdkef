@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef, useState } from 'preact/hooks';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'preact/hooks';
 import { CommentIcon } from '#editor-ui/toolIcons.tsx';
 import HighlightSwatches from '#editor-ui/highlight/HighlightSwatches.tsx';
 import type { HighlightElement } from '#editor/model/editorModel.ts';
@@ -9,8 +9,10 @@ import { nextFocusIndex } from '../lib/marker/roving.ts';
 import {
   closeLayer, initialLayers, openColors, openCustom, pickedColor, type Layers,
 } from '../lib/marker/toolbarLayers.ts';
-import { useToolbarDismissal, useToolbarPlacement, type HintAnchor } from '../hooks/useRestToolbar.ts';
+import { useToolbarDismissal, type HintAnchor } from '../hooks/useRestToolbar.ts';
 import { englishHighlightMessages as t } from '../messages.ts';
+import useElementToolbarFloating from '#editor-ui/hooks/useElementToolbarFloating.ts';
+import useCoarsePointer from '#editor-ui/hooks/useCoarsePointer.ts';
 import controls from '#editor-ui/EditorControls.module.css';
 import styles from './RestToolbar.module.css';
 
@@ -48,7 +50,7 @@ function CustomPanel({ look, onChange }: { look: Marker; onChange(change: Partia
 /**
  * The toolbar a highlight opens on a rest or a tap: Highlight | Underline, Comment, Delete. Resting on Highlight (or
  * clicking it) opens the six colors and a plus, and the plus opens a color input and an opacity slider.
- * It is placed once on open, inside the page wrapper, and every change is the caller's to apply.
+ * It is placed by Sign's floating hook, above the mark, and every change is the caller's to apply.
  */
 export default function RestToolbar({ mark, onChange, onDelete, onComment, onClose }: {
   mark: HighlightElement;
@@ -87,7 +89,18 @@ export default function RestToolbar({ mark, onChange, onDelete, onComment, onClo
   };
   const toggleUnderline = () => live.current.onChange({ style: live.current.look.style === 'underline' ? 'highlight' : 'underline' });
 
-  useToolbarPlacement(rootRef, hlRef, mark, rtl);
+  // Sign's placement: above the mark, start edge (end for RTL), inside the page wrapper and the visual viewport.
+  const toolbar = useElementToolbarFloating({ rtl, coarse: useCoarsePointer() });
+  const { setReference, setFloating } = toolbar;
+  const setRoot = useCallback((node: HTMLDivElement | null) => {
+    rootRef.current = node;
+    setFloating(node);
+  }, [setFloating]);
+  // The mark's node lives in the same page overlay as the bar.
+  useLayoutEffect(() => {
+    const page = rootRef.current?.closest('[data-page-wrapper]');
+    setReference(page?.querySelector(`[data-editor-element-id="${CSS.escape(mark.id)}"]`) ?? null);
+  }, [mark.id, setReference]);
 
   // Focus follows the Highlight half when it turns into the colors and back.
   useEffect(() => {
@@ -119,7 +132,7 @@ export default function RestToolbar({ mark, onChange, onDelete, onComment, onClo
 
   return (
     <div
-      ref={rootRef} class={styles.bar} role="toolbar" aria-label={t.markToolbar} dir={rtl ? 'rtl' : 'ltr'}
+      ref={setRoot} class={styles.bar} style={toolbar.style} role="toolbar" aria-label={t.markToolbar} dir={rtl ? 'rtl' : 'ltr'}
       data-rest-toolbar data-side="above" onKeyDown={onArrow}
     >
       <div class={styles.seg}>
