@@ -56,9 +56,7 @@
 }
 
 .menu {
-  position: absolute;
-  top: calc(100% + 8px);
-  inset-inline-start: 0;
+  /* Position, top and left come from Floating UI (inline, fixed). */
   z-index: 40;
   flex-direction: column;
   gap: 4px;
