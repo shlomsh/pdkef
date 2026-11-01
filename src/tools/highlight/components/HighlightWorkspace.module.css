@@ -14,3 +14,7 @@
 @media (max-width: 480px) {
   .toolRow.toolRow[data-editor-toolbar] button:not([role="menuitem"]) { font-size: 0.5rem; padding-inline: 0; }
 }
+/* The lamp's board is at least the workspace's content box: a column taller than it starts at the top and scrolls to
+   its bottom, a shorter one is centred, with no room to scroll into. */
+.lampBoard { min-height: 100%; display: flex; flex-direction: column; }
+.lampBoard > .column { margin-block: auto; }

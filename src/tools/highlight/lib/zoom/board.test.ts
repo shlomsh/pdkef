@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { boardLayout, centredScrollLeft, columnTopScrollTop } from './board.ts';
+import { boardLayout, centredScrollLeft } from './board.ts';
 import { zoomCommit } from './commit.ts';
 
 describe('boardLayout', () => {
   it('leaves one view of slack each side of the page', () => {
-    expect(boardLayout(600, 900)).toEqual({ slack: 900, boardWidth: 2400, slackY: 0 });
+    expect(boardLayout(600, 900)).toEqual({ slack: 900, boardWidth: 2400 });
   });
 });
 
@@ -53,15 +53,9 @@ describe('a zoom on the board', () => {
   });
 });
 
-describe('vertical slack', () => {
-  it('leaves one view height above and below the column', () => {
-    expect(boardLayout(600, 900, 700)).toMatchObject({ slack: 900, slackY: 700 });
-  });
-  it('has no vertical slack without a view height', () => {
-    expect(boardLayout(600, 900).slackY).toBe(0);
-  });
-  it('puts the column top at the slack when entering the lamp', () => {
-    expect(columnTopScrollTop(boardLayout(600, 900, 700))).toBe(700);
+describe('vertical room', () => {
+  it('has none: the board scrolls from the column top to its bottom', () => {
+    expect(boardLayout(600, 900)).not.toHaveProperty('slackY');
   });
 });
 

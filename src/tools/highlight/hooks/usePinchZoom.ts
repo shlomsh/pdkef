@@ -2,6 +2,7 @@ import { useEffect } from 'preact/hooks';
 import { clampZoom, type ZoomSetting } from '../lib/zoom/fit.ts';
 import type { Point } from '../lib/zoom/anchor.ts';
 import { isZoomInput } from '../lib/zoom/lamp.ts';
+import { previewShiftY } from '../lib/zoom/previewShift.ts';
 
 const PINCH_REST_MS = 150;
 /** A trackpad pinch arrives as wheel events with a few pixels of deltaY; this turns them into a smooth factor. */
@@ -35,7 +36,12 @@ export function usePinchZoom({ workspaceRef, columnRef, enabled, inLamp, zoomRef
     const preview = () => {
       const rect = (startRect ??= col.getBoundingClientRect());
       col.style.transformOrigin = `${anchor.x - rect.left}px ${anchor.y - rect.top}px`;
-      col.style.transform = `scale(${factor})`;
+      // Where the scaled column would sit; the shift keeps it where the board would put it at rest.
+      const scaledTop = anchor.y + (rect.top - anchor.y) * factor;
+      const view = ws.getBoundingClientRect();
+      const pad = getComputedStyle(ws);
+      const dy = previewShiftY(scaledTop, rect.height * factor, view.top, ws.clientHeight, parseFloat(pad.paddingTop) || 0, parseFloat(pad.paddingBottom) || 0);
+      col.style.transform = `translateY(${dy}px) scale(${factor})`;
     };
     const finish = () => {
       clearTimeout(timer);
