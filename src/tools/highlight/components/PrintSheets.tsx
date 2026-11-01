@@ -6,6 +6,7 @@ import type { PageTurns } from '#editor/geometry/pageTurn.ts';
 import { underlineInk, UNDERLINE_LIFT, UNDERLINE_WIDTH } from '#editor/model/underlineInk.ts';
 import { formatMessage } from '#lib/text/formatMessage.ts';
 import { englishSignMessages } from '#editor/registry/signMessages.ts';
+import { notedPages } from '../lib/print/notedPages.ts';
 import { printNotes } from '../lib/print/printNotes.ts';
 import { END_NOTES_MARGIN } from '../lib/print/endNotes.ts';
 import type { PrintNotes } from '../lib/print/printMenu.ts';
@@ -137,7 +138,8 @@ function Sheet({ plan, pageName, image, highlights, texts, marks, onSettled }: {
 export default function PrintSheets({ pdfDocument, elements, notes, pageTurns = NO_TURNS, onReady }: Props) {
   const withNotes = notes === 'beside';
 
-  const pages = usePrintPages(pdfDocument, pageTurns, withNotes);
+  // Only a page that carries a note needs its ink read; the rest print whole.
+  const pages = usePrintPages(pdfDocument, pageTurns, withNotes ? notedPages(elements) : null);
 
   const { sheet: endSheet, entries: endEntries, measure: endMeasure, pages: endPages } = useEndNotes(notes, pages, pageTurns, elements);
   const paperSheets = useMemo(() => (endSheet ? [...pages, endSheet] : pages), [pages, endSheet]);

@@ -74,6 +74,21 @@ describe('PrintSheets', () => {
     expect(parseFloat(notes.style.left)).toBeCloseTo(24 + 480 * s + 12);
   });
 
+  it('reads the ink of the pages that carry a note only', async () => {
+    const doc = { numPages: 3, getPage: async () => ({ getViewport: () => ({ width: 600, height: 800 }) }) } as unknown as PDFDocumentProxy;
+    const els = [
+      { id: 'h', type: 'highlight', pageIndex: 1, color: '#fde047', left: 10, top: 20, width: 50, height: 5, bands: [band] },
+      { id: 'c', type: 'comment', pageIndex: 1, left: 0, top: 0, width: 0, height: 0, comment: 'only', anchor: { kind: 'element', elementId: 'h' } },
+    ] as EditorElement[];
+    renderPageToCanvas.mockResolvedValue({ toDataURL: () => 'data:image/png;base64,AAAA' });
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    await act(async () => { render(<PrintSheets pdfDocument={doc} elements={els} notes="beside" onReady={vi.fn()} />, container!); });
+    await vi.waitFor(() => expect(renderPageToCanvas).toHaveBeenCalledTimes(3));
+    expect(readPageInk).toHaveBeenCalledTimes(1);
+    expect(readPageInk.mock.calls[0][1]).toBe(1);
+  });
+
   it('reads each page\'s own ink, so two sheets with different ink put their notes at different x', async () => {
     readPageInk.mockImplementation(async (_doc, index) => (index === 0 ? { left: 0.1, right: 0.9 } : { left: 0.1, right: 0.6 }));
     await mount(true);

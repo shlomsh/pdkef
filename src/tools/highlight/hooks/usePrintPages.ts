@@ -15,9 +15,11 @@ const CSS_PX_PER_PT = 96 / 72;
 const turnedRotation = (page: { rotate?: number }, turns: PageTurns, index: number) =>
   (((page.rotate ?? 0) + 90 * turnsOf(turns, index)) % 360 + 360) % 360;
 
-/** READ-06: each page's printed size in points, with its own text extent when the notes stand beside it. */
-export function usePrintPages(pdfDocument: PDFDocumentProxy, pageTurns: PageTurns, withNotes: boolean) {
+/** READ-06: each page's printed size in points, with its own text extent when it carries a note standing beside it. */
+export function usePrintPages(pdfDocument: PDFDocumentProxy, pageTurns: PageTurns, notedPages: ReadonlySet<number> | null) {
   const [pages, setPages] = useState<PrintPage[]>([]);
+  // A fresh Set each render must not rerun the scan: depend on its contents.
+  const notedKey = notedPages ? [...notedPages].sort((a, b) => a - b).join(',') : null;
   useEffect(() => {
     let current = true;
     (async () => {
@@ -29,7 +31,7 @@ export function usePrintPages(pdfDocument: PDFDocumentProxy, pageTurns: PageTurn
           const { width, height } = page.getViewport({ scale: 1, rotation });
           // Each page's own text extent, so the notes never cover a line however the pages differ.
           // expected: an unreadable page prints whole beside its notes, the same as a page with no text found.
-          const ink = withNotes && rotation % 180 === 0 ? await readPageInk(pdfDocument, n - 1, () => current, pageTurns).catch(() => null) : null;
+          const ink = notedPages?.has(n - 1) && rotation === 0 ? await readPageInk(pdfDocument, n - 1, () => current, pageTurns).catch(() => null) : null;
           if (!current) return;
           if (!ink) { sizes.push({ width, height }); continue; }
           const box = turnedPageBox({ width, height }, rotation / 90, ink);
@@ -41,7 +43,7 @@ export function usePrintPages(pdfDocument: PDFDocumentProxy, pageTurns: PageTurn
       }
     })();
     return () => { current = false; };
-  }, [pdfDocument, pageTurns, withNotes]);
+  }, [pdfDocument, pageTurns, notedKey]);
 
   return pages;
 }
