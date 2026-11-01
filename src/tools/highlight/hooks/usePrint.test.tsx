@@ -84,14 +84,11 @@ describe('usePrint', () => {
     expect(reportError.mock.calls[0][2]).toBe('print_timeout');
   });
 
-  it('clears the job 1 s after print returns when afterprint never fires, and a second print starts a new job', () => {
+  it('keeps the sheets after print returns with no afterprint (iOS may still be reading them), and the next print starts a new job', () => {
     act(() => api.print(false));
     act(() => sheetProps!.onReady());
+    act(() => { vi.advanceTimersByTime(60_000); });
     expect(mounted()).toBe(true);
-    act(() => { vi.advanceTimersByTime(999); });
-    expect(mounted()).toBe(true);
-    act(() => { vi.advanceTimersByTime(1); });
-    expect(mounted()).toBe(false);
     act(() => api.print(true));
     expect(mounted()).toBe(true);
     expect(sheetProps?.withNotes).toBe(true);
