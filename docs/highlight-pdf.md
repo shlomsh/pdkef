@@ -91,10 +91,10 @@ decision.
   to a highlight. Comment-on-anything is a review pattern (Acrobat, Word, Google Docs) and stays in Sign.
 - **Comment over an uncolored line** lays the band in the last color used and opens the note, as Edge does.
   The reader never chooses between highlighting and commenting.
-- **Nothing moves the page but the reader.** Opening a comment never shifts or re-fits the page, and a note
-  travels with its passage through scroll, pinch and zoom. The sketches tried the SIGN-44 rail beside the
-  page and measured both failures (READ-01, R28 and R29). The recommended placement is a marker in the page
-  margin that opens a card beside its passage (READ-01, open call 2). There is no annotations sidebar.
+- **Nothing moves the page but the reader.** A note travels with its passage through scroll, pinch and
+  zoom. Notes sit beside the page, as in Google Docs: fitting fits the page and its notes together, and the
+  first note makes room at once with its passage held still (READ-01, R28 and R29). There is no
+  annotations sidebar.
 - **No free-standing note at first.** Most reading tools have one (Zotero, Chrome, Acrobat's sticky note);
   it can come later without changing anything above.
 - **In the file:** the same standard annotations Sign writes and reads back (`docs/sign-comments-model.md`):
@@ -157,9 +157,9 @@ Demand sits on iPad; with a mouse almost nobody draws.
 ## Open calls (Shlomi)
 
 1. **The name** is decided: Highlight PDF.
-2. **Where a comment sits** (READ-01, open call): two sketches decide it, a margin marker that opens a card
-   beside its passage, or a popover under the passage itself. *Decided since the first draft:* desktop
-   drags with the marker in the hand (the marker model), which scopes the one-shot rule out of this tool.
+2. **Where a comment sits** is decided: beside the page as in Google Docs, the page and its notes fitted
+   together (READ-01, R28). *Also decided since the first draft:* desktop drags with the marker in the hand
+   (the marker model), which scopes the one-shot rule out of this tool.
 3. **Long-press and drag on a phone**, the gesture phones already teach for selecting text, instead of
    arming. Clean on a scan (no text layer to select); on a digital PDF it needs a real-iPhone check that it
    does not fight the browser's own selection (READ-07).
