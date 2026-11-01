@@ -4,7 +4,7 @@
 import type { TextRow } from './textRows.ts';
 
 /** A box in the same window pixels as the rows. */
-export interface PixelBox { left: number; right: number; top: number; bottom: number }
+interface PixelBox { left: number; right: number; top: number; bottom: number }
 
 /** The row whose top..bottom holds y and whose left..right holds x, else null. */
 function rowAt(rows: TextRow[], { x, y }: { x: number; y: number }): TextRow | null {

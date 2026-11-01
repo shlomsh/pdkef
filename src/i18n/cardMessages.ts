@@ -15,7 +15,7 @@
  */
 import type { DocumentationLocaleId } from './documentationLocales';
 
-export interface CardCopy {
+interface CardCopy {
   title: string;
   description: string;
 }

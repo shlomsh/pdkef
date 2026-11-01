@@ -5,6 +5,7 @@ import { capsuleReducer, initialCapsule } from './capsuleState.ts';
 import { englishCapsuleLabels, foldedItems, type CapsuleLabels } from './capsuleItems.ts';
 import styles from './ReadingCapsule.module.css';
 
+/** @testSeam */
 export interface ReadingCapsuleProps {
   fileName: string;
   page: number;

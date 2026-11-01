@@ -1,10 +1,10 @@
 // READ-06 print layout: where each page and each comment card sits on a printed sheet. Pure; points in, points out.
 import { stackCards } from '#editor/highlight/commentCards.ts';
 
-export const NOTE_PAGE_SCALE = 0.72;
+const NOTE_PAGE_SCALE = 0.72;
 /** Between the drawn page and the notes column. */
-export const NOTE_GAP_PT = 12;
-export const CARD_GAP_PT = 6;
+const NOTE_GAP_PT = 12;
+const CARD_GAP_PT = 6;
 export const NOTE_FONT_PT = 7.5;
 
 export interface PrintNote {

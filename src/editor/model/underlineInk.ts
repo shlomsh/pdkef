@@ -1,6 +1,6 @@
 import { DEFAULT_HIGHLIGHT_COLOR } from './highlightColors.ts';
 
-/** READ-03: an underline is drawn in its band color, darkened by this share. */
+/** READ-03: an underline is drawn in its band color, darkened by this share. @testSeam */
 export const UNDERLINE_DARKEN = 0.35;
 
 /** The ink of an underline for a band color, as `#RRGGBB`. A value that is not a hex color falls back to the default highlight color. */

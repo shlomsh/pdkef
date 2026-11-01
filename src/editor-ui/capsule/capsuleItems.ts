@@ -1,6 +1,6 @@
-export type CapsuleItemId = 'file' | 'page' | 'zoom' | 'marker' | 'undo' | 'redo' | 'print' | 'download' | 'more' | 'exit';
+type CapsuleItemId = 'file' | 'page' | 'zoom' | 'marker' | 'undo' | 'redo' | 'print' | 'download' | 'more' | 'exit';
 
-/** Under this width the capsule keeps only what the reader needs at hand (R15). */
+/** Under this width the capsule keeps only what the reader needs at hand (R15). @testSeam */
 export const FOLD_BELOW_PX = 600;
 
 /** The order they fold into More, which is also the order they appear there. */

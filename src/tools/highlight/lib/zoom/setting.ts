@@ -6,7 +6,7 @@ export function serializeSetting(setting: ZoomSetting): string {
   return String(setting);
 }
 
-/** A stored setting, or null for anything that is not one. */
+/** A stored setting, or null for anything that is not one. @testSeam */
 export function parseSetting(value: unknown): ZoomSetting | null {
   if (typeof value !== 'string') return null;
   const mode = MODES.find((m) => m === value);

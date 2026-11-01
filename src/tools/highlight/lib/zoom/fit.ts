@@ -4,9 +4,9 @@ export interface PageBox { width: number; height: number; textLeft: number; text
 export interface Viewport { width: number; height: number }
 
 export const ZOOM_MIN = 0.5, ZOOM_MAX = 3;
-export const STEPS = [0.5, 0.67, 0.8, 0.9, 1, 1.1, 1.25, 1.5, 1.75, 2, 2.5, 3];
-export const TEXT_GUTTER = 16;
-export const SIDE_PAD = 16;
+const STEPS = [0.5, 0.67, 0.8, 0.9, 1, 1.1, 1.25, 1.5, 1.75, 2, 2.5, 3];
+const TEXT_GUTTER = 16;
+const SIDE_PAD = 16;
 export const NOTES_W = 284;
 
 const EPS = 1e-6;
@@ -40,10 +40,4 @@ export function stepZoom(current: number, dir: 1 | -1): number {
 
 export function resolveZoom(setting: ZoomSetting, page: PageBox, view: Viewport, opts: { noted: boolean }): number {
   return typeof setting === 'number' ? clampZoom(setting) : fitScale(setting, page, view, opts);
-}
-
-export function parseZoomSetting(raw: unknown): ZoomSetting | null {
-  if (raw === 'width' || raw === 'text' || raw === 'page') return raw;
-  if (typeof raw === 'number' && Number.isFinite(raw)) return clampZoom(raw);
-  return null;
 }

@@ -16,7 +16,7 @@ export function rearm(m: Marker, change: Partial<Marker>): Marker {
   return { ...next, opacity: clamp(next.opacity) };
 }
 
-/** The color a Comment over an uncolored line lays. */
+/** The color a Comment over an uncolored line lays. @testSeam */
 export function commentBandColor(lastUsed: Marker | null): string {
   return lastUsed ? lastUsed.color : DEFAULT_MARKER.color;
 }
