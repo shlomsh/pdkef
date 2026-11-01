@@ -4,8 +4,8 @@
 import { underlineInk } from '#editor/model/underlineInk.ts';
 import type { Marker } from './markerState.ts';
 
-export const CURSOR_SIZE = 24;
-export const CURSOR_FALLBACK = 'crosshair';
+const CURSOR_SIZE = 24;
+const CURSOR_FALLBACK = 'crosshair';
 
 const GRID = 32;
 /** The tip on the 32 grid, after the pen is turned. */
@@ -16,7 +16,7 @@ const INK = '#173636';
 const HALO = '#FFFFFF';
 
 const onSize = (n: number) => Math.round((n * CURSOR_SIZE) / GRID);
-export const CURSOR_HOTSPOT = { x: onSize(TIP_ON_GRID.x), y: onSize(TIP_ON_GRID.y) };
+const CURSOR_HOTSPOT = { x: onSize(TIP_ON_GRID.x), y: onSize(TIP_ON_GRID.y) };
 
 /** The pen's outline, upright with the tip at (16, 30): a chisel for highlighting, a fine point for underlining. */
 function outlinePath(underline: boolean): string {
@@ -25,7 +25,7 @@ function outlinePath(underline: boolean): string {
 }
 
 /** The cursor image for the armed marker, as svg markup. */
-export function cursorSvg({ color, style, opacity }: Marker): string {
+function cursorSvg({ color, style, opacity }: Marker): string {
   const underline = style === 'underline';
   const ink = underline ? underlineInk(color) : color;
   const tip = underline
