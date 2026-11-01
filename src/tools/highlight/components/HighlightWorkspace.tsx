@@ -11,6 +11,8 @@ import { englishHighlightMessages as t } from '../messages.ts';
 import ZoomMenu from './ZoomMenu.tsx';
 import HighlightPage from './HighlightPage.tsx';
 import MarkerButton from './MarkerButton.tsx';
+import ArmedChip from './ArmedChip.tsx';
+import { useTouchArming } from '../hooks/useTouchArming.ts';
 import ZoomReadout from './ZoomReadout.tsx';
 import styles from './HighlightWorkspace.module.css';
 
@@ -59,7 +61,8 @@ export default function HighlightWorkspace({ pdfDocument, numPages, fileName, zo
       onSetting={(mode) => zoom.apply(mode)} onStep={(dir) => zoom.step(dir)} onActual={() => zoom.actual()}
     />
   );
-  const markerButton = <MarkerButton marker={marks.marker} onChange={marks.rearm} />;
+  const touch = useTouchArming();
+  const markerButton = <MarkerButton marker={marks.marker} onChange={marks.rearm} armed={touch.armed} onTap={touch.arm} />;
   const readout = typeof zoom.setting === 'number'
     ? `${zoomPercent(zoom.zoom)}%`
     : formatMessage(t.readout, { mode: MODE_LABEL[zoom.setting], percent: zoomPercent(zoom.zoom) });
@@ -86,6 +89,7 @@ export default function HighlightWorkspace({ pdfDocument, numPages, fileName, zo
         </div>
       )}
       {fullscreen && <ZoomReadout text={readout} />}
+      <ArmedChip armed={touch.armed} onStop={touch.disarm} />
       <div className={styles.board} style={{ width: `${zoom.board.boardWidth}px` }}>
       <div
         className={styles.column} ref={columnRef}
