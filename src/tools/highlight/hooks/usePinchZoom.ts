@@ -27,8 +27,10 @@ export function usePinchZoom({ workspaceRef, columnRef, enabled, zoomRef, commit
     const pointers = new Map<number, Point>();
     let startDistance = 0;
 
+    // The column's rect as the gesture began: once it is transformed, its rect is a scaled one.
+    let startRect: DOMRect | null = null;
     const preview = () => {
-      const rect = col.getBoundingClientRect();
+      const rect = (startRect ??= col.getBoundingClientRect());
       col.style.transformOrigin = `${anchor.x - rect.left}px ${anchor.y - rect.top}px`;
       col.style.transform = `scale(${factor})`;
     };
@@ -37,6 +39,7 @@ export function usePinchZoom({ workspaceRef, columnRef, enabled, zoomRef, commit
       if (factor === 1) return;
       const next = clampZoom(zoomRef.current * factor);
       factor = 1;
+      startRect = null;
       // Commit with the column back at its own size, so the frame it measures is the layout one.
       col.style.transform = '';
       col.style.transformOrigin = '';
