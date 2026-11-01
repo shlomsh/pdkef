@@ -6,6 +6,13 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 
 ## Up next
 
+### Highlight PDF: a tool for reading
+
+- [READ-03](backlog/tasks/READ-03.md) P2 · Highlight PDF: the tool at /highlight-pdf/, highlights with a comment on each, and its page (in progress)
+- [READ-04](backlog/tasks/READ-04.md) P2 · Sign hands highlighting to Highlight PDF: no Highlight tool, existing highlights kept (in progress)
+- [READ-05](backlog/tasks/READ-05.md) P2 · The fullscreen capsule, shared by Highlight PDF and Sign (in progress)
+- [READ-06](backlog/tasks/READ-06.md) P2 · Highlight PDF: Print with my notes, comments in the margin beside their passages (in progress)
+
 ### Robustness and debt
 
 - [DEBT-65](backlog/tasks/DEBT-65.md) P2 · Two layout-shift specs failed once each in the 2026-10-27 nightly (in progress)
