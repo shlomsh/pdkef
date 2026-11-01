@@ -24,14 +24,13 @@ describe('displayZoom', () => {
 });
 
 describe('displayZoom with notes', () => {
-  const room = 16 * 2 + NOTES_W;
   it('fits the page plus the notes column in the normal view', () => {
-    expect(displayZoom('width', false, page, view, true)).toBeCloseTo((1000 - NOTES_W) / 600);
+    expect(displayZoom('width', false, page, view, true)).toBeCloseTo(1000 / (600 + NOTES_W));
     expect(displayZoom('width', false, page, view, true)).toBeLessThan(displayZoom('width', false, page, view, false));
   });
   it('fits the page plus the notes column in the lamp, for Fit width and Fit text', () => {
-    expect(displayZoom('width', true, page, view, true)).toBeCloseTo((1000 - room) / 600);
-    expect(displayZoom('text', true, page, view, true)).toBeCloseTo((1000 - room) / (400 + 32));
+    expect(displayZoom('width', true, page, view, true)).toBeCloseTo((1000 - 32) / (600 + NOTES_W));
+    expect(displayZoom('text', true, page, view, true)).toBeCloseTo((1000 - 32) / (400 + 32 + NOTES_W));
   });
   it('leaves a numeric zoom alone', () => {
     expect(displayZoom(2, true, page, view, true)).toBe(2);

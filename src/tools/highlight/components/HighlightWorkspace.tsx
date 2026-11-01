@@ -79,8 +79,8 @@ export default function HighlightWorkspace({ pdfDocument, numPages, fileName, zo
     workspaceRef.current = node;
     commentsContainer(node);
   }, [workspaceRef, commentsContainer]);
-  // R29: the column grows by the notes column while the rail shows.
-  const notesW = comments.showRail ? NOTES_W : 0;
+  // R29: the column grows by the notes column while the rail shows; the notes column is page-space and scales with the zoom.
+  const notesW = comments.showRail ? NOTES_W * zoom.zoom : 0;
 
   const widest = zoom.pages.reduce((w, p) => Math.max(w, p.width), 0);
   const menu = (onOpenChange?: (open: boolean) => void) => (
@@ -154,7 +154,7 @@ export default function HighlightWorkspace({ pdfDocument, numPages, fileName, zo
           <HighlightPage
             key={i} pdfDocument={pdfDocument} pageIndex={i} widthPx={box.width * zoom.zoom}
             elements={marks.state.elements} marker={marks.marker} rearm={marks.rearm} dispatch={dispatch} logAction={marks.logAction}
-            setAnnouncement={setAnnouncement} touchArmed={touch.armed} cardRef={(el) => { pageRefs.current[i] = el; }} rail={comments.rail(i, box.height * zoom.zoom)}
+            setAnnouncement={setAnnouncement} touchArmed={touch.armed} cardRef={(el) => { pageRefs.current[i] = el; }} zoom={zoom.zoom} rail={comments.rail(i, box.height)}
             pageTurns={marks.pageTurns} onRotate={(geometry) => { dispatch(rotatePageAction(i, geometry)); recordAction('rotate'); }}
             onClear={() => { const actions = clearPageActions(marks.state.elements, i); actions.forEach((a) => dispatch(a)); if (actions.length) recordAction('delete_mark'); }}
           />

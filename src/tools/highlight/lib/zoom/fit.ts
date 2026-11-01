@@ -23,11 +23,13 @@ export function fitScale(
   view: Viewport,
   opts: { noted: boolean; capsuleH?: number; pad?: number },
 ): number {
-  const avail = view.width - 2 * (opts.pad ?? SIDE_PAD) - (opts.noted ? NOTES_W : 0);
-  const width = avail / page.width;
+  // The notes column is page-space: it scales with the zoom, so the fit solves page plus notes together.
+  const avail = view.width - 2 * (opts.pad ?? SIDE_PAD);
+  const notes = opts.noted ? NOTES_W : 0;
+  const width = avail / (page.width + notes);
   if (mode === 'width') return clampFit(width);
   if (mode === 'text') {
-    const text = avail / (page.textRight - page.textLeft + 2 * TEXT_GUTTER);
+    const text = avail / (page.textRight - page.textLeft + 2 * TEXT_GUTTER + notes);
     return clampFit(Math.max(text, width));
   }
   return clampFit(Math.min(width, (view.height - (opts.capsuleH ?? 88)) / page.height));
