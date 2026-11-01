@@ -68,4 +68,19 @@ describe('ColorPickerMenu (Popover Refactor)', () => {
     expect(menu.classList.contains('sign-dropdown-menu')).toBe(false);
     expect(menu.hasAttribute('data-editor-color-menu')).toBe(true);
   });
+
+  it('renders its children inside the open popover, and nothing extra without them', async () => {
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    const c = container;
+    act(() => { render(<ColorPickerMenu value="#000000" onChange={() => {}} presets={['#ffee00']}><span data-extra>extra</span></ColorPickerMenu>, c); });
+    await act(async () => { c.querySelector('button')!.click(); });
+    const menu = document.body.querySelector('[data-editor-color-menu]')!;
+    expect(menu.querySelector('[data-extra]')).not.toBeNull();
+    expect(menu.querySelectorAll('[data-editor-color-swatch]').length).toBe(1);
+    await act(async () => { c.querySelector('button')!.click(); });
+    act(() => { render(<ColorPickerMenu value="#000000" onChange={() => {}} />, c); });
+    await act(async () => { c.querySelector('button')!.click(); });
+    expect(document.body.querySelector('[data-editor-color-menu]')!.children.length).toBe(1);
+  });
 });
