@@ -1,6 +1,6 @@
 ---
 id: "READ-05"
-title: "The fullscreen capsule, shared by Highlight PDF and Sign"
+title: "The fullscreen capsule in Highlight PDF"
 status: "in_progress"
 priority: "P2"
 epic: "highlight-pdf"
@@ -18,7 +18,7 @@ capsule) and R20 to R26 (zoom); design record [docs/highlight-pdf.md](../../docs
 
 ## Outcome
 
-In fullscreen both tools show one floating capsule instead of the toolbar: grey and faded at rest, awake
+In fullscreen Highlight PDF shows one floating capsule instead of the toolbar: grey and faded at rest, awake
 when reached for, dozing when the reader goes back to reading, carrying the armed tool and the zoom menu.
 Coarse pointers keep 44 px targets. Leaving fullscreen restores today's toolbar exactly.
 
@@ -33,7 +33,8 @@ Paper).
 
 ## Acceptance
 
-- [ ] One fullscreen style in shared chrome (`src/editor-ui/`), not a container-query tier.
+- [ ] One fullscreen style, not a container-query tier. It lives under `src/tools/highlight/` until a second
+  tool adopts it (module boundaries rule 9), then moves to shared chrome.
 - [ ] The doze is driven by reading (scroll, a press on the page), never a timer; unit tests pin the states.
 - [ ] An e2e at two desktop widths pins the capsule centred on the page column, and that nothing in the
   page moves when it wakes, dozes or opens a menu.
@@ -41,3 +42,8 @@ Paper).
 - [ ] The mode is called Reading lamp in its tooltip and labels ("Reading lamp", "Leave the reading lamp"),
   and מנורת קריאה on the Hebrew edition.
 - [ ] At 375 px the capsule fits the screen with 44 px targets (READ-01, R42).
+
+## Reshaped 2026-11-01
+
+Shlomi: Highlight PDF ships with the capsule, and Sign stays exactly as it is for now, so Sign keeps its
+fullscreen toolbar. Sign adopting the capsule is READ-10 (later), next to READ-04.
