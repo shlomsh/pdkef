@@ -99,6 +99,24 @@ describe('useMarkFocus', () => {
     expect(opened).toEqual([]);
   });
 
+  it.each(['data-comment-card', 'data-comment-sheet'])('focus handed back from %s does not reopen the comment', (attr) => {
+    mount(doc());
+    const card = document.createElement('div');
+    card.setAttribute(attr, '');
+    const field = document.createElement('textarea');
+    card.appendChild(field);
+    container!.appendChild(card);
+    act(() => field.focus());
+    act(() => node('a').focus());
+    expect(opened).toEqual([]);
+  });
+
+  it('keyboard focus with no previous element still opens', () => {
+    mount(doc());
+    act(() => node('a').focus());
+    expect(opened).toEqual(['a']);
+  });
+
   it('a document with no marks has no stop and no key handling', () => {
     mount([]);
     expect(container!.querySelectorAll('[tabindex]').length).toBe(0);
