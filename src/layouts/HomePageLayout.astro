@@ -23,6 +23,7 @@ import TheO from '../components/TheO.astro';
 import '../styles/homePage.css';
 
 import { listedTools } from '../data/tools.js';
+import { dockOrder } from '../data/homeDock.js';
 import { documentationShellMessages, type DocumentationShellMessages } from '../i18n/documentationMessages';
 import { getFileDropzoneMessages } from '../site-lib/fileDropzoneMessages';
 import { getRecentFilesMessages } from '../site-lib/recentFilesMessages';
@@ -100,16 +101,10 @@ const recentFilesMessages = getRecentFilesMessages(locale as any);
 
 // The tool list (home grid + hero card) comes from the shared registry, so it
 // stays in sync with the tool pages and the sitemap. Ordered by SEO priority.
-// Keep the landing toolbar's priority distinct: Compress is intentionally the
-// third shortcut without changing the shared registry or sitemap ordering.
+// The dock leads with its own pick of tools (src/data/homeDock.js) without changing the registry or sitemap order.
 //
 // The home dock holds every listed tool (twelve cards; see the gap maths on `.home-dock`).
-const homeToolsOrder = [...listedTools];
-const compressToolIndex = homeToolsOrder.findIndex((tool) => tool.slug === 'compress');
-if (compressToolIndex !== -1) {
-  const [compressTool] = homeToolsOrder.splice(compressToolIndex, 1);
-  homeToolsOrder.splice(2, 0, compressTool);
-}
+const homeToolsOrder = dockOrder(listedTools);
 
 // Dock labels and links, localized the same way ToolCrossLinks.astro already
 // localizes its own cross-link cards: getToolCardCopy(locale, slug) for the
