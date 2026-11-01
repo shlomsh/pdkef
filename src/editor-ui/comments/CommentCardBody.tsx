@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'preact/hooks';
 import type { SignMessages } from '#editor/registry/messages.ts';
 import type { CommentCard } from '#editor/highlight/commentCards.ts';
 import { commentPatch, type CommentPatch } from '#editor/highlight/commentCommit.ts';
-import { TrashIcon } from '#editor-ui/toolIcons.tsx';
+import { TrashIcon } from '../toolIcons.tsx';
 import dialogStyles from '#shell/Dialog.module.css';
 import styles from './CommentRail.module.css';
 
