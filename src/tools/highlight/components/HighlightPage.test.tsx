@@ -78,6 +78,15 @@ describe('HighlightPage', () => {
     expect(wrappers[0].querySelector('[data-highlight-band]')).not.toBeNull();
   });
 
+  it('marks are one roving tab stop and focusing one with the keyboard opens its toolbar', () => {
+    const later: EditorElement = { ...mark, id: 'h2', top: 60 };
+    mount([later, mark]);
+    const nodes = [...container.querySelectorAll<HTMLElement>('[data-editor-element-id]')];
+    expect(nodes.map((n) => [n.dataset.editorElementId, n.tabIndex])).toEqual([['h2', -1], ['h1', 0]]);
+    act(() => nodes[0].focus());
+    expect(container.querySelector('[data-rest-toolbar]')).not.toBeNull();
+  });
+
   it('a mouse press on the page adds an empty highlight in the marker and starts the swipe', () => {
     const overlay = mount([]);
     press(overlay, { pointerType: 'mouse' });
