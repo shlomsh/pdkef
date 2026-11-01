@@ -15,15 +15,19 @@ export function downloadHandler({ fileName, bytes, elements, pageTurns, save }: 
   pageTurns: PageTurns;
   save(blob: Blob, name: string): void;
 }) {
-  return async () => {
+  /** The saved file name, or null when nothing was saved. */
+  return async (): Promise<string | null> => {
     const source = bytes();
-    if (!fileName || !source) return;
+    if (!fileName || !source) return null;
     try {
       const out = await exportHighlighted(source, elements, pageTurns);
       recordAction('download');
-      save(new Blob([out as BlobPart], { type: 'application/pdf' }), highlightedFileName(fileName));
+      const name = highlightedFileName(fileName);
+      save(new Blob([out as BlobPart], { type: 'application/pdf' }), name);
+      return name;
     } catch (err) {
       reportError('pdf_tool_run', err, 'export_highlighted');
+      return null;
     }
   };
 }
