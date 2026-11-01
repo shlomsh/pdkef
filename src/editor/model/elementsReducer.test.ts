@@ -1,12 +1,12 @@
 import { describe, it, expect } from 'vitest';
-import type { ActionHistoryEntry } from '#editor/model/actionHistory.ts';
+import type { ActionHistoryEntry } from './actionHistory.ts';
 import type {
   CommentElement,
   EditorElement,
   HighlightElement,
   RectangleElement,
   TextElement,
-} from '#editor/model/editorModel.ts';
+} from './editorModel.ts';
 import {
   deletedWith,
   elementsReducer as reducer,
