@@ -6,3 +6,10 @@
 /* The column is as wide as the widest page and sits on the board at a fixed left margin: no auto margins. */
 .column { display: flex; flex-direction: column; gap: 2rem; flex: none; touch-action: pan-x pan-y; }
 .floating { position: fixed; top: 12px; left: 50%; transform: translateX(-50%); z-index: 30; }
+
+/* READ-04: the tool row is seven controls in one row. Sign's phone label size reads --controls-per-row, which falls back to 4 below nine children. The doubled class with the attribute outranks the :has() count rules. */
+.toolRow.toolRow[data-editor-toolbar] { --controls-per-row: 7; }
+/* Seven controls share one phone row; Sign's formula at 7 gives 7.4px, too small; 8px fits Download down to 375px. */
+@media (max-width: 480px) {
+  .toolRow.toolRow[data-editor-toolbar] button { font-size: 0.5rem; }
+}
