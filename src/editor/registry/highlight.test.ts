@@ -28,6 +28,20 @@ describe('highlight definition', () => {
     expect(definition.schema({ ...good, color: undefined })).toBe(false);
   });
 
+  it('keeps an old draft without style or opacity valid, and checks the new fields', () => {
+    expect(definition.schema(good)).toBe(true);
+    expect(definition.schema({ ...good, style: 'underline' })).toBe(true);
+    expect(definition.schema({ ...good, opacity: 0.3 })).toBe(true);
+    expect(definition.schema({ ...good, opacity: 1 })).toBe(true);
+    expect(definition.schema({ ...good, opacity: 0.2 })).toBe(false);
+    expect(definition.schema({ ...good, opacity: 1.1 })).toBe(false);
+    expect(definition.schema({ ...good, opacity: '0.5' })).toBe(false);
+    expect(definition.schema({ ...good, style: 'strike' })).toBe(false);
+    const { valid, droppedCount } = validateDraftElements([good, { ...good, id: 'u', style: 'underline', opacity: 0.5 }, { ...good, id: 'x', opacity: 0.2 }, { ...good, id: 'y', style: 'strike' }]);
+    expect(valid.map((e) => e.id)).toEqual(['h-1', 'u']);
+    expect(droppedCount).toBe(2);
+  });
+
   it('survives validateDraftElements', () => {
     const { valid, droppedCount } = validateDraftElements([good]);
     expect(valid).toEqual([good]);

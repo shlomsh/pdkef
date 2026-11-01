@@ -1,5 +1,6 @@
 import type { HighlightElement } from '#editor/model/editorModel.ts';
 import type { ElementNodeChange, ElementNodeProps } from '../nodeProps.ts';
+import { underlineInk } from '#editor/model/underlineInk.ts';
 import styles from './HighlightNode.module.css';
 
 /* SIGN-46: bands are percents of the element's own box. The draft container
@@ -9,15 +10,21 @@ export default function HighlightNode({ element, isActive }: ElementNodeProps<Hi
   onChange?: ElementNodeChange<HighlightElement>;
   onSelect?: (event: Event) => void;
 }) {
+  const underline = element.style === 'underline';
+  const ink = underline ? underlineInk(element.color) : undefined;
   return (
     <div data-highlight-root class={styles.root}>
-      <div data-highlight-bands class={styles.layer} data-focused={isActive ? '' : undefined}>
+      <div data-highlight-bands class={styles.layer} data-focused={isActive ? '' : undefined} style={element.opacity === undefined ? undefined : { opacity: element.opacity }}>
         {element.bands.map((band, i) => (
           <div
             key={i}
             data-highlight-band
-            class={styles.band}
-            style={{ left: `${band.left}%`, top: `${band.top}%`, width: `${band.width}%`, height: `${band.height}%`, background: element.color }}
+            data-highlight-underline={underline ? '' : undefined}
+            class={underline ? `${styles.band} ${styles.underline}` : styles.band}
+            style={{
+              left: `${band.left}%`, top: `${band.top}%`, width: `${band.width}%`, height: `${band.height}%`,
+              ...(underline ? { '--highlight-ink': ink } : { background: element.color }),
+            }}
           />
         ))}
       </div>
