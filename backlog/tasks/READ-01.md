@@ -7,7 +7,7 @@ epic: "highlight-pdf"
 horizon: "now"
 order: 1
 depends_on: []
-needs: "A name for the fullscreen reading mode"
+needs: "A name for the fullscreen reading mode (Reading room for now)"
 ---
 
 # READ-01 · From sketches to hard requirements
@@ -247,8 +247,11 @@ has no dark theme to check.
 
 ## Open call (Shlomi)
 
-**What the fullscreen reading mode is called.** "Reading room" is the sketch's working name. Suggested:
-Study (plain, what the student is doing) or Folio (a page, short and chic).
+**What the fullscreen reading mode is called.** It stays "Reading room" for now, decided later (Shlomi,
+2026-11-01). The audience is young, café-like, many in art or psychology. Shortlist: Window light (café,
+the painter's light), North light (the art studio's light), Close read (the literary term), Flow (the
+psychology of focus), Corner table, Study, Folio. Dropped: Window seat (reads as a flight), Nook (an
+e-reader brand), Margins (collides with "no margins" in the zoom menu).
 
 ## Acceptance
 
