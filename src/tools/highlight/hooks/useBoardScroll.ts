@@ -24,12 +24,21 @@ export function useBoardScroll({ workspaceRef, fullscreen, pages, zoom, setting,
   const lastViewWidth = useRef(0);
   const ready = pages.length > 0;
   const widest = pages.reduce((w, p) => Math.max(w, p.width), 0);
-  const board = boardLayout(widest * zoom, view.width);
+  // Only the lamp has a board to move on; the normal view is the card at its own width.
+  const board = fullscreen ? boardLayout(widest * zoom, view.width) : { slack: 0, boardWidth: widest * zoom };
+  const lastFullscreen = useRef(fullscreen);
+  const settleView = useRef(false);
   useLayoutEffect(() => {
     const ws = workspaceRef.current;
     if (!ws) return;
+    if (fullscreen !== lastFullscreen.current) {
+      lastFullscreen.current = fullscreen;
+      // The lamp opens centred on the remembered setting, once its own width is known.
+      if (fullscreen) { pendingCentre.current = true; settleView.current = true; }
+    }
     if (view.width !== lastViewWidth.current) {
-      if (lastViewWidth.current !== 0 && typeof setting !== 'number') pendingCentre.current = true;
+      if ((lastViewWidth.current !== 0 && typeof setting !== 'number') || (settleView.current && fullscreen)) pendingCentre.current = true;
+      settleView.current = false;
       lastViewWidth.current = view.width;
     }
     const next = pendingScroll.current;
@@ -37,7 +46,9 @@ export function useBoardScroll({ workspaceRef, fullscreen, pages, zoom, setting,
     if (centring && (!ready || view.width === 0)) return;
     pendingScroll.current = null;
     pendingCentre.current = false;
-    if (centring) {
+    if (centring && !fullscreen) {
+      ws.scrollLeft = 0;
+    } else if (centring) {
       const page0 = pages[0];
       const offset = page0 ? ((widest - page0.width) * zoom) / 2 : 0;
       const focus = setting === 'text' && page0
