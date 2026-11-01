@@ -1,4 +1,4 @@
-import { useRef, useState } from 'preact/hooks';
+import { useMemo, useRef, useState } from 'preact/hooks';
 import type { PDFDocumentProxy } from 'pdfjs-dist';
 import BasePdfTool from '#shell/BasePdfTool.tsx';
 import ErrorMessage from '#shell/ErrorMessage.tsx';
@@ -15,6 +15,7 @@ import { usePdfShare } from '#lib/output/usePdfShare.js';
 import { toggleWorkspaceFullscreen, useFullscreenChange } from '#editor-ui/hooks/workspaceFullscreen.ts';
 import { useWorkspaceZoom } from './hooks/useWorkspaceZoom.ts';
 import { useHighlightMarks } from './hooks/useHighlightMarks.ts';
+import { useMarkerMemory } from './hooks/useMarker.ts';
 import { useHistoryKeys } from './hooks/useHistoryKeys.ts';
 import { exportHighlighted, highlightedFileName } from './lib/export/highlightedPdf.ts';
 import { describeFile } from '#lib/text/format.js';
@@ -41,6 +42,8 @@ export default withIslandBoundary(function PdfHighlightTool() {
   // A wheel is not a user gesture, so real fullscreen may be refused; the toggle then falls back to pseudo fullscreen.
   const zoom = useWorkspaceZoom({ pdfDocument, workspaceRef, columnRef, fullscreen, onEnterLamp: toggleLamp });
   const marks = useHighlightMarks();
+  const markerMemory = useMarkerMemory({ marker: marks.marker, rearm: marks.rearm });
+  const details = useMemo(() => ({ ...zoom.details, ...markerMemory.details }), [zoom.details, markerMemory.details]);
   const share = usePdfShare();
   useHistoryKeys({ enabled: status === 'editing', undo: marks.undo, redo: marks.redo });
 
@@ -58,6 +61,7 @@ export default withIslandBoundary(function PdfHighlightTool() {
       setNeedsUnlock(null);
       marks.dispatch({ type: 'LOAD_DOCUMENT', payload: { elements: preset.elements, actionHistory: preset.actionHistory } });
       zoom.restore(preset.details);
+      markerMemory.restore(preset.details);
       setFile(selected);
     },
     onDocument: (doc, isCurrent) => {
@@ -66,8 +70,8 @@ export default withIslandBoundary(function PdfHighlightTool() {
     draft: {
       elements: marks.state.elements,
       actionHistory: marks.state.actionHistory,
-      details: zoom.details,
-      isDirty: marks.state.documentRevision !== (marks.state.draftBaselineRevision ?? marks.state.documentRevision) || zoom.touched,
+      details,
+      isDirty: marks.state.documentRevision !== (marks.state.draftBaselineRevision ?? marks.state.documentRevision) || zoom.touched || markerMemory.changed,
       isElement: isEditorElement,
     },
   });
