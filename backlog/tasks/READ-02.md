@@ -1,7 +1,7 @@
 ---
 id: "READ-02"
 title: "Move the shared highlight and comment pieces out of Sign, no behaviour change"
-status: "open"
+status: "in_progress"
 priority: "P2"
 epic: "highlight-pdf"
 horizon: "next"
