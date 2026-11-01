@@ -1,5 +1,16 @@
 .row { display: flex; align-items: center; gap: 12px; font: 500 13px/1.2 var(--font-sans); }
 .row label { flex: none; min-width: 52px; }
-.range { flex: 1; min-width: 0; height: 36px; margin: 0; accent-color: var(--color-primary); }
+/* Drawn by hand so every engine shows the same thin filled track and round thumb; iOS ignores accent-color.
+   --fill (set inline) is how far along the track the thumb sits. The input stays 36px tall as the touch target. */
+.range { --thumb: 16px; flex: 1; min-width: 0; height: 36px; margin: 0; background: none; cursor: pointer; appearance: none; -webkit-appearance: none; }
+.range::-webkit-slider-runnable-track { height: 4px; border-radius: 2px; background: linear-gradient(to right, var(--color-primary) var(--fill, 100%), var(--color-border) var(--fill, 100%)); }
+.range::-moz-range-track { height: 4px; border-radius: 2px; background: linear-gradient(to right, var(--color-primary) var(--fill, 100%), var(--color-border) var(--fill, 100%)); }
+.range::-webkit-slider-thumb { -webkit-appearance: none; width: var(--thumb); height: var(--thumb); margin-top: calc((4px - var(--thumb)) / 2); border: 0; border-radius: 50%; background: var(--color-primary); }
+.range::-moz-range-thumb { width: var(--thumb); height: var(--thumb); border: 0; border-radius: 50%; background: var(--color-primary); }
+.range:focus { outline: none; }
+.range:focus-visible::-webkit-slider-thumb { box-shadow: 0 0 0 2px var(--color-surface), 0 0 0 4px var(--color-primary); }
+.range:focus-visible::-moz-range-thumb { box-shadow: 0 0 0 2px var(--color-surface), 0 0 0 4px var(--color-primary); }
+/* A finger needs a larger thumb to grab; same shape and colour. */
+@media (pointer: coarse) { .range { --thumb: 22px; } }
 /* Wide enough for "100%", so the menu keeps its width as the value grows a digit. */
 .value { flex: none; width: 4.5ch; text-align: end; color: var(--color-muted); font-variant-numeric: tabular-nums; }

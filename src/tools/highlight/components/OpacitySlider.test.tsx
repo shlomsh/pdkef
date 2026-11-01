@@ -31,4 +31,10 @@ describe('OpacitySlider', () => {
     const out = host!.querySelector<HTMLElement>('[data-opacity-value]')!;
     expect(out.textContent).toBe('100%');
   });
+
+  it('fills the track up to the thumb across its own range, so every engine draws the same slider', () => {
+    expect(mount(OPACITY_MIN).range.style.getPropertyValue('--fill')).toBe('0%');
+    act(() => render(null, host!)); host!.remove();
+    expect(mount(1).range.style.getPropertyValue('--fill')).toBe('100%');
+  });
 });
