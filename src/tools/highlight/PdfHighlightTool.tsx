@@ -22,6 +22,8 @@ import { downloadHandler } from './lib/export/download.ts';
 import { describeFile } from '#lib/text/format.js';
 import HighlightVerb from './verb/HighlightVerb.tsx';
 import HighlightWorkspace from './components/HighlightWorkspace.tsx';
+import { formatMessage } from '#lib/text/formatMessage.ts';
+import { useDownloadDone } from './components/DownloadDone.tsx';
 import { englishHighlightMessages as t } from './messages.ts';
 
 type Status = 'idle' | 'loading' | 'editing' | 'error';
@@ -80,10 +82,22 @@ export default withIslandBoundary(function PdfHighlightTool() {
     },
   });
 
-  const handleDownload = downloadHandler({
+  const done = useDownloadDone(file, marks.state.documentRevision);
+  const download = downloadHandler({
     fileName: file?.name, bytes: () => session.fileBytesRef.current, elements: marks.state.elements, pageTurns: marks.pageTurns,
     save: (blob, name) => share.download(blob, name),
   });
+
+  // The revision is read before the export, so marks made while it runs retire the strip.
+  const handleDownload = () => {
+    const revision = marks.state.documentRevision;
+    const saved = file;
+    void download().then((name) => { // reason: the handler catches and reports its own failure and resolves null
+      if (!name) return;
+      done.record(name, saved, revision);
+      setAnnouncement(formatMessage(t.downloadDone, { name }));
+    });
+  };
 
   const numPages = pdfDocument?.numPages ?? 0;
 
@@ -107,7 +121,7 @@ export default withIslandBoundary(function PdfHighlightTool() {
       {!needsUnlock && status === 'editing' && pdfDocument && (
         <HighlightWorkspace
           pdfDocument={pdfDocument} numPages={numPages} fileName={file?.name ?? ''} zoom={zoom}
-          marks={marks} undo={undo} redo={redo} comments={comments} dispatch={room.dispatch} setAnnouncement={setAnnouncement} onDownload={handleDownload}
+          marks={marks} undo={undo} redo={redo} comments={comments} dispatch={room.dispatch} setAnnouncement={setAnnouncement} onDownload={handleDownload} doneName={done.name} onCloseDone={done.close}
           workspaceRef={workspaceRef} columnRef={columnRef} fullscreen={fullscreen} pseudoFullscreen={pseudoFullscreen}
           onToggleFullscreen={toggleLamp}
         />

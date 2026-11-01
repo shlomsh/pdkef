@@ -48,6 +48,9 @@ export interface HighlightMessages {
   printNotesAtEnd: string;
   /** The heading on the first sheet of notes at the end of a print. */
   printNotesHeading: string;
+  downloadDone: string;
+  downloadDoneLabel: string;
+  downloadDoneClose: string;
   capsule: CapsuleLabels;
 }
 
@@ -88,6 +91,9 @@ export const englishHighlightMessages: HighlightMessages = {
   printWithNotes: 'Print with my notes',
   printNotesAtEnd: 'Print with notes at the end',
   printNotesHeading: 'Notes',
+  downloadDone: 'Saved as {name}.',
+  downloadDoneLabel: 'Your download',
+  downloadDoneClose: 'Close',
   capsule: {
     toolbar: 'Reading lamp',
     exit: 'Exit full screen',
