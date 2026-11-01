@@ -11,7 +11,7 @@ const coarsePointer = () => Boolean(globalThis.matchMedia?.('(pointer: coarse)')
 
 const underlineIcon = { width: 16, height: 16, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', 'stroke-width': 2, 'stroke-linecap': 'round', 'stroke-linejoin': 'round', 'aria-hidden': true } as const;
 
-export interface MarkerButtonProps {
+interface MarkerButtonProps {
   marker: Marker;
   /** Every change is a re-arm (R5). */
   onChange(change: Partial<Marker>): void;
