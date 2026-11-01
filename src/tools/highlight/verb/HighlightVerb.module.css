@@ -27,6 +27,16 @@
   background: var(--color-border-strong);
 }
 
+/* Six lines 14 apart from 32; the two strokes lie over the second and third. */
+.line:nth-child(1) { top: calc(32 * var(--s)); }
+.line:nth-child(2),
+.mark:nth-child(7) { top: calc(46 * var(--s)); }
+.line:nth-child(3),
+.mark:nth-child(8) { top: calc(60 * var(--s)); }
+.line:nth-child(4) { top: calc(74 * var(--s)); }
+.line:nth-child(5) { top: calc(88 * var(--s)); }
+.line:nth-child(6) { top: calc(102 * var(--s)); }
+
 .mark {
   height: calc(9 * var(--s));
   margin-top: calc(-2.7 * var(--s));
