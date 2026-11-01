@@ -9,6 +9,13 @@ describe('boardLayout', () => {
 });
 
 describe('centredScrollLeft', () => {
+  it('counts the workspace padding the board starts after, so the column sits in the middle of the view', () => {
+    const layout = boardLayout(1408, 1440);
+    const left = centredScrollLeft(layout, 1408, 1440, undefined, 16);
+    // The column's left edge on screen is inset + slack - scrollLeft: equal gutters of 16 px each side.
+    expect(16 + layout.slack - left).toBe(16);
+  });
+
   const view = 900;
   it('puts the page in the middle of the view', () => {
     const layout = boardLayout(600, view);

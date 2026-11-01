@@ -59,7 +59,7 @@ export function useBoardScroll({ workspaceRef, fullscreen, pages, zoom, setting,
       const focus = setting === 'text' && page0
         ? { left: offset + page0.textLeft * zoom, right: offset + page0.textRight * zoom }
         : undefined;
-      ws.scrollLeft = centredScrollLeft(board, columnWidth, view.width, focus);
+      ws.scrollLeft = centredScrollLeft(board, columnWidth, view.width, focus, parseFloat(getComputedStyle(ws).paddingLeft) || 0);
       // Entering the lamp: page 1 starts at the top of the view, below the board's vertical slack.
       if (enteredLamp.current && view.height > 0) { ws.scrollTop = columnTopScrollTop(board); enteredLamp.current = false; }
       pendingAnchor.current = null;
