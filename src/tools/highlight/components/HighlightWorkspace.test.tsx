@@ -73,15 +73,14 @@ describe('HighlightWorkspace', () => {
     expect(hiddenBar.closest('[hidden]')).not.toBeNull();
   });
 
-  it('the row uses Sign\'s grammar: Marker and Print carry a visible label, the four conventions stay icon-only (READ-04)', () => {
+  it('every control in the row carries its word: seven controls leave the room Sign\'s thirteen do not (READ-04)', () => {
     mount({ fullscreen: false, pseudoFullscreen: false });
     const bar = container!.querySelector<HTMLElement>('[data-editor-toolbar]')!;
     const tile = (name: string) => bar.querySelector<HTMLElement>(`button[aria-label="${name}"], button[title="${name}"]`)!;
-    for (const name of ['Marker', 'Print']) {
-      expect(tile(name).hasAttribute('data-icon-only')).toBe(false);
-      expect(tile(name).querySelector(`.${toolbarStyles.label}`)?.textContent).toBe(name);
+    for (const name of ['Marker', 'Undo', 'Redo', 'Full screen', 'Replace file', 'Print', 'Download']) {
+      expect(tile(name).hasAttribute('data-icon-only'), name).toBe(false);
+      expect(tile(name).querySelector(`.${toolbarStyles.label}`)?.textContent, name).toBeTruthy();
     }
-    for (const name of ['Undo', 'Redo', 'Full screen', 'Replace file']) expect(tile(name).hasAttribute('data-icon-only')).toBe(true);
     const printWrap = [...bar.children].find((c) => c.contains(tile('Print')))!;
     expect(printWrap.classList.contains(toolbarStyles.dropdown)).toBe(true);
   });
