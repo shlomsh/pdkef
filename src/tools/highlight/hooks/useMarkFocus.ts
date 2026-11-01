@@ -67,9 +67,9 @@ export function useMarkFocus({ elements, openFor }: { elements: EditorElement[];
       const byPointer = pointerFocus.current;
       pointerFocus.current = false;
       setLastFocused(id);
-      // Focus handed back from the toolbar (Esc) must not reopen the toolbar it just closed.
-      const fromBar = !!(e.relatedTarget as Element | null)?.closest?.('[data-rest-toolbar]');
-      if (!byPointer && !fromBar) live.current(id);
+      // Focus handed back from the toolbar or a comment card must not reopen what was just closed.
+      const handedBack = !!(e.relatedTarget as Element | null)?.closest?.('[data-rest-toolbar], [data-comment-card], [data-comment-sheet]');
+      if (!byPointer && !handedBack) live.current(id);
     },
     onKeyDown: (e: KeyboardEvent) => {
       if (e.target !== e.currentTarget) return;
