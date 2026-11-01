@@ -10,7 +10,7 @@ import { applyHistoryEntries, createActionEntry, revertHistoryEntries, type Acti
 import { pushCommand, redoStep, undoStep } from '#editor/model/historyStack.ts';
 import type { EditorElement, EditorElementPatch, SignToolType } from '#editor/model/editorModel.ts';
 import type { DocumentStyle } from '#editor/model/documentStyle.ts';
-import { deletedWith } from '../lib/comments/anchors.ts';
+import { deletedWith } from '#editor/comments/anchors.ts';
 import { resolveDocumentStyle } from '../lib/elementDefaults.ts';
 import { ensureMinimumElementSize } from '../lib/minimumSize.ts';
 

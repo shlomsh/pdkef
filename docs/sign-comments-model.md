@@ -101,7 +101,7 @@ export interface CommentElement extends ElementBase, BoxGeometry {
 - `HighlightElement.comment` / `commentedAt` stay in the type until the last step removes them; nothing
   new reads or writes them.
 
-### Shared helpers (`src/tools/sign/lib/comments/anchors.ts`, pure)
+### Shared helpers (`src/editor/comments/anchors.ts`, pure)
 
 - `isComment(el): el is CommentElement`
 - `commentsAnchoredTo(elements, id): CommentElement[]`

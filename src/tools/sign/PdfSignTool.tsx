@@ -17,7 +17,7 @@ import SignatureDialog from './components/SignatureDialog.tsx';
 import { pageGeometryFromPdfJsPage } from '#editor/geometry/coords.ts';
 import { DEFAULT_INK_COLOR } from '#editor/model/signGeometry.js';
 import { useEditorFileSession, type EditorSessionMessages } from '#editor-ui/hooks/useEditorFileSession.ts';
-import { readBackAnnotations } from './lib/comments/readBack.ts';
+import { readBackAnnotations } from '#editor/comments/readBack.ts';
 import useFieldNavigation from './hooks/useFieldNavigation.ts';
 import { FillContext, FILL_OFF } from './components/fill/FillContext.tsx';
 import { useFillMode } from './hooks/useFillMode.ts';

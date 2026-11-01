@@ -3,7 +3,7 @@
 import fs from 'node:fs';
 import { PDFDocument } from '@cantoo/pdf-lib';
 import { extractPageImage } from './extractImage.mjs';
-import { inkFromRaster } from '../../../src/tools/sign/lib/fields/rasterInk.js';
+import { inkFromRaster } from '../../../src/lib/pageLayout/rasterInk.js';
 import { detectFormFields } from '../../../src/tools/sign/lib/fields/detectFormFields.ts';
 import { toPagePercentBox } from '../../../src/editor/geometry/coords.ts';
 import { titleLineWritable } from '../../../src/tools/sign/lib/fields/combTitleLine.js';

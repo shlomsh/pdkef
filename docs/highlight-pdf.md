@@ -136,12 +136,14 @@ Demand sits on iPad; with a mouse almost nobody draws.
 
 ## Engineering
 
-- **Shared, not copied.** The line reader, band geometry, swipe gesture, swatches, comment rail, sheet,
-  cards, import and read-back live under `src/tools/sign/` today (`lib/highlight/`, `lib/comments/`,
-  `hooks/highlightSwipeGesture.ts`, `hooks/commentGesture.ts`, `components/comments/`,
-  `components/HighlightSwatches.tsx`, the highlight and comment nodes). What both tools use moves to
-  `src/editor/` or `src/editor-ui/` under `docs/module-boundaries.md` with no behaviour change, before the
-  new island exists (READ-02). Sign-only code stays in Sign.
+- **Shared, not copied.** READ-02 moved what both tools use out of `src/tools/sign/`, with no behaviour
+  change, before the new island exists: the raster and line reader (`rasterInk.js`, `textRows.ts`,
+  `bands.ts`, `swipe.ts`, `swipeReader.ts`) to `src/lib/pageLayout/`; band flip, reading direction and
+  the comment model (`src/editor/highlight/`, `src/editor/comments/`, with `pdfLibGeometry.ts` in
+  `src/editor/adapters/pdf/`); the swipe gesture, swatches and highlight node to `src/editor-ui/highlight/`;
+  the comment rail, sheet, cards, node, marker, gesture and actions to `src/editor-ui/comments/`, beside
+  `nodeProps.ts` and `elementActions.ts` in `src/editor-ui/`. Until READ-03's island imports them, each
+  carries a rule 9 allowlist entry that goes stale the day it does. Sign-only code stays in Sign.
 - **The tool is a new island** (its own `highlight` folder beside the other tools, `PdfHighlightTool.tsx`) over the shared shell, with
   its static SEO shell, a registry entry in `src/data/tools.js`, the non-slash redirect pair in
   `vercel.json`, and the tool count updated wherever it is stated.

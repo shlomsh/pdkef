@@ -4,7 +4,7 @@ import {
   LINE_HIT_TARGET_STOKE_WIDTH
 } from '#editor/model/signGeometry.js';
 import type { LineElement } from '#editor/model/editorModel.ts';
-import type { ElementNodeProps, NodeResizeStart } from '../nodeProps.ts';
+import type { ElementNodeProps, NodeResizeStart } from '#editor-ui/nodeProps.ts';
 import styles from './LineNode.module.css';
 
 export default function LineNode({ element, isActive, onResizeStart, handlePointerDown, messages }: ElementNodeProps<LineElement> & {

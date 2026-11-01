@@ -5,7 +5,7 @@ import { reportError } from '#lib/telemetry/errorReport.ts';
 import { englishSignMessages } from '../../messages';
 import styles from '#editor-ui/EditorElement.module.css';
 import type { SignatureElement } from '#editor/model/editorModel.ts';
-import type { ElementNodeProps } from '../nodeProps.ts';
+import type { ElementNodeProps } from '#editor-ui/nodeProps.ts';
 
 export default function SignatureNode({ element, isActive, onResizeStart, messages }: ElementNodeProps<SignatureElement>) {
   const [tintedSigUrl, setTintedSigUrl] = useState<string | null>(null);

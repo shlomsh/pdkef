@@ -108,6 +108,12 @@ export const DETECTION_MODULES = [
   'src/tools/sign/lib/fields/formWidgets.js',
   'src/tools/sign/lib/fields/fieldRegions.js',
   'src/tools/sign/lib/fields/textRuns.js',
+  // READ-02: the raster and line-reading layer the page layout grows from (READ-01, R34 to R38).
+  'src/lib/pageLayout/rasterInk.js',
+  'src/lib/pageLayout/textRows.ts',
+  'src/lib/pageLayout/bands.ts',
+  'src/lib/pageLayout/swipe.ts',
+  'src/lib/pageLayout/swipeReader.ts',
   'src/editor/adapters/pdf/pdfObjects.js',
   'src/editor/adapters/pdf/textState.js',
   'src/editor/adapters/pdf/contentStreamWalk.js',

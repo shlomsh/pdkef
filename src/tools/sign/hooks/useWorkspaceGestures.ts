@@ -10,20 +10,20 @@ import {
 } from '#editor/model/actionHistory.ts';
 import type {
   EditorElement,
-  EditorElementPatch,
   SignToolType,
   SymbolMark,
 } from '#editor/model/editorModel.ts';
 import type { DocumentStyle } from '#editor/model/documentStyle.ts';
-import { deletedWith } from '../lib/comments/anchors.ts';
+import { deletedWith } from '#editor/comments/anchors.ts';
 import { carriedTextStyle } from '../lib/elementDefaults.ts';
 import type { SavedSignature } from '#editor/model/savedSignature.ts';
 import type { PageGeometry } from '#editor/geometry/coords.ts';
 import { getElementDefinition } from '#editor/registry/index.ts';
 import { ensureMinimumElementSize } from '../lib/minimumSize.ts';
-import { startHighlightSwipe } from './highlightSwipeGesture.ts';
-import { startCommentGesture } from './commentGesture.ts';
-import { directionAtPoint, readerTextDirection, resolveHighlightDirection } from '../lib/highlight/resolveDirection.ts';
+import { startHighlightSwipe } from '#editor-ui/highlight/highlightSwipeGesture.ts';
+import { startCommentGesture } from '#editor-ui/comments/commentGesture.ts';
+import type { ElementAction } from '#editor-ui/elementActions.ts';
+import { directionAtPoint, readerTextDirection, resolveHighlightDirection } from '#editor/highlight/resolveDirection.ts';
 import { samplePageColor } from '../lib/whiteoutPageColor.ts';
 import {
   cellRegionAt,
@@ -63,12 +63,9 @@ export interface PendingSignaturePlacement {
 }
 
 export type WorkspaceGestureAction =
+  | ElementAction
   | { type: 'ADD_ELEMENT'; payload: EditorElement }
-  | { type: 'UPDATE_ELEMENT'; payload: { id: string; changes: EditorElementPatch } }
-  | { type: 'DELETE_ELEMENT'; payload: string }
-  | { type: 'SET_ACTIVE_ELEMENT_ID'; payload: string | null }
   | { type: 'SET_EDITING_ELEMENT_ID'; payload: string | null }
-  | { type: 'DISARM_TOOL' }
   | { type: 'SET_CARRIED'; payload: Partial<DocumentStyle> }
   | {
       type: 'ENSURE_MINIMUM_SIZE';

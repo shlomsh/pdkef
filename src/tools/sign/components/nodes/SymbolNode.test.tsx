@@ -3,7 +3,7 @@ import { act } from 'preact/test-utils';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import SymbolNode from './SymbolNode.tsx';
 import type { SymbolElement } from '#editor/model/editorModel.ts';
-import type { NodeResizeStart } from '../nodeProps.ts';
+import type { NodeResizeStart } from '#editor-ui/nodeProps.ts';
 
 const onResizeStart: NodeResizeStart = () => {};
 

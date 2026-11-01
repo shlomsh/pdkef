@@ -1,7 +1,7 @@
 import ElementResizers from '#editor-ui/ElementResizers.tsx';
 import { DEFAULT_STROKE_WIDTH } from '#editor/model/signGeometry.js';
 import type { EllipseElement, RectangleElement } from '#editor/model/editorModel.ts';
-import type { ElementNodeProps } from '../nodeProps.ts';
+import type { ElementNodeProps } from '#editor-ui/nodeProps.ts';
 import styles from './ShapeNode.module.css';
 
 export default function ShapeNode({ element, isActive, onResizeStart, messages }: ElementNodeProps<RectangleElement | EllipseElement>) {
