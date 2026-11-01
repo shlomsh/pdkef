@@ -4,6 +4,8 @@ export interface PageBox { width: number; height: number; textLeft: number; text
 export interface Viewport { width: number; height: number }
 
 export const ZOOM_MIN = 0.5, ZOOM_MAX = 3;
+/** A fit may go below the zoom floor: a wide page (an A4 turned sideways) in a phone's column needs about 0.45. */
+const FIT_MIN = 0.1;
 const STEPS = [0.5, 0.67, 0.8, 0.9, 1, 1.1, 1.25, 1.5, 1.75, 2, 2.5, 3];
 const TEXT_GUTTER = 16;
 const SIDE_PAD = 16;
@@ -23,12 +25,16 @@ export function fitScale(
 ): number {
   const avail = view.width - 2 * (opts.pad ?? SIDE_PAD) - (opts.noted ? NOTES_W : 0);
   const width = avail / page.width;
-  if (mode === 'width') return clampZoom(width);
+  if (mode === 'width') return clampFit(width);
   if (mode === 'text') {
     const text = avail / (page.textRight - page.textLeft + 2 * TEXT_GUTTER);
-    return clampZoom(Math.max(text, width));
+    return clampFit(Math.max(text, width));
   }
-  return clampZoom(Math.min(width, (view.height - (opts.capsuleH ?? 88)) / page.height));
+  return clampFit(Math.min(width, (view.height - (opts.capsuleH ?? 88)) / page.height));
+}
+
+function clampFit(z: number): number {
+  return Math.min(ZOOM_MAX, Math.max(FIT_MIN, z));
 }
 
 export function stepZoom(current: number, dir: 1 | -1): number {
