@@ -87,7 +87,9 @@ against this list.
     in CLAUDE.md).
 24. **Pages never reflow.** A zoomed page grows and scrolls sideways when wider than the screen; it is never
     squeezed into the column.
-25. **The zoom is remembered per document**, the mode (fit width, fit text, fit page) or the percentage.
+25. ~~**The zoom is remembered per document**, the mode (fit width, fit text, fit page) or the percentage.~~
+    Superseded 2026-11-01 (READ-04 QA): the normal view is always Fit width and full screen always opens at
+    Fit width to make the most of the view, so no zoom is remembered.
 26. **A short readout** under the capsule while zooming ("Fit text · 173%"), fading on its own; it never
     wakes the capsule.
 
