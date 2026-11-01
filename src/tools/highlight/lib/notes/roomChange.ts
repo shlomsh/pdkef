@@ -9,7 +9,7 @@ interface NotesState {
 }
 
 /** Whether the notes column should now be there (`noted`), and the mark whose passage must stay put while it moves. */
-export type RoomChange = { noted: boolean; markId: string } | null;
+type RoomChange = { noted: boolean; markId: string } | null;
 
 /** The mark a state's card is anchored to: the open comment's, else the first saved note's. */
 function cardMark({ elements, activeElementId }: NotesState): string | null {
