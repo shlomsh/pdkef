@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
-import useCoarsePointer from '#editor-ui/hooks/useCoarsePointer.ts';
+import useCoarsePointer from '../hooks/useCoarsePointer.ts';
 import type { SignMessages } from '#editor/registry/messages.ts';
 import type { CommentCard } from '#editor/highlight/commentCards.ts';
 import { commentPatch, type CommentPatch } from '#editor/highlight/commentCommit.ts';
