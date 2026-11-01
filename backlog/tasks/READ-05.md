@@ -7,7 +7,6 @@ epic: "highlight-pdf"
 horizon: "next"
 order: 4
 depends_on: ["READ-01"]
-needs: "A name for the fullscreen reading mode (Reading room until then)"
 ---
 
 # READ-05 · The fullscreen capsule
@@ -15,7 +14,7 @@ needs: "A name for the fullscreen reading mode (Reading room until then)"
 *Filed 2026-11-01, reshaped the same day by the sketches.* Shlomi: in fullscreen the toolbar should be as
 small as possible and focused on the document. The behaviour is READ-01's requirements R15 to R19 (the
 capsule) and R20 to R26 (zoom); design record [docs/highlight-pdf.md](../../docs/highlight-pdf.md),
-"Fullscreen is the reading room".
+"Fullscreen is the reading lamp".
 
 ## Outcome
 
@@ -25,10 +24,12 @@ Coarse pointers keep 44 px targets. Leaving fullscreen restores today's toolbar 
 
 ## The name
 
-The mode is "Reading room" until Shlomi names it. The audience is young, café-like, many in art or
-psychology. Shortlist: Window light (café, the painter's light), North light (the art studio's light), Close
-read (the literary term), Flow (the psychology of focus), Corner table, Study, Folio. Dropped: Window seat
-(reads as a flight), Nook (an e-reader brand), Margins (collides with "no margins" in the zoom menu).
+**Reading lamp** (Hebrew: מנורת קריאה), Shlomi, 2026-11-01: one lit lamp over the page, dimming and waking
+as the capsule does. Chosen from a second round written for the café-like audience of art and psychology
+students. Considered and passed over: Reading room (the working name), Window light, North light, Close
+read, Flow, Corner table, Study, Folio, Long table, Deep read, Hush, Whole page. Dropped: Window seat (reads
+as a flight), Nook (an e-reader brand), Margins (collides with "no margins" in the zoom menu), Paper (Dropbox
+Paper).
 
 ## Acceptance
 
@@ -37,5 +38,6 @@ read (the literary term), Flow (the psychology of focus), Corner table, Study, F
 - [ ] An e2e at two desktop widths pins the capsule centred on the page column, and that nothing in the
   page moves when it wakes, dozes or opens a menu.
 - [ ] Arming a tool in fullscreen does not move the capsule (the SIGN-30 rule).
-- [ ] The mode carries Shlomi's chosen name in its tooltip and labels.
+- [ ] The mode is called Reading lamp in its tooltip and labels ("Reading lamp", "Leave the reading lamp"),
+  and מנורת קריאה on the Hebrew edition.
 - [ ] At 375 px the capsule fits the screen with 44 px targets (READ-01, R42).

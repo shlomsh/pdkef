@@ -7,7 +7,6 @@ epic: "highlight-pdf"
 horizon: "next"
 order: 2
 depends_on: ["READ-01", "READ-02"]
-needs: "Confirm the name: Highlight PDF"
 ---
 
 # READ-03 · The Highlight PDF tool and its page
