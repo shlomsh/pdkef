@@ -11,7 +11,7 @@ const hl = (id: string, pageIndex: number, left: number, top: number): Highlight
 const opened: string[] = [];
 
 function Page({ pageIndex, elements }: { pageIndex: number; elements: EditorElement[] }) {
-  const focus = useMarkFocus({ elements, pageIndex, openFor: (id) => opened.push(id) });
+  const focus = useMarkFocus({ elements, openFor: (id) => opened.push(id) });
   return (
     <div>
       {elements.filter((e) => e.pageIndex === pageIndex).map((e) => (
