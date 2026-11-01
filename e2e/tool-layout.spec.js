@@ -16,10 +16,10 @@ const toolRoutes = [
   '/organize-pdf',
 ];
 
-// Sign and Redact keep the original side-by-side hero below 1024px and once a file is open; on an
-// empty desktop first screen (HERO-05) they take the same stacked look as the other eight, the page-grid
-// tools whose hero is stacked at every width (icon above the h1, HERO-02/03).
-const editorRoutes = ['/sign/?next=0', '/redact'];
+// Sign, Redact and Highlight PDF (the editor-layout tools) keep the original side-by-side hero below 1024px and
+// once a file is open; on an empty desktop first screen (HERO-05) they take the same stacked look as the
+// page-grid tools, whose hero is stacked at every width (icon above the h1, HERO-02/03).
+const editorRoutes = ['/sign/?next=0', '/redact', '/highlight-pdf'];
 
 test('aligns every tool title row with its breadcrumb grid at desktop width', async ({ page }) => {
   for (const route of toolRoutes) {
