@@ -2,6 +2,7 @@ import { useState } from 'preact/hooks';
 import DoneStrip from '#shell/DoneStrip.tsx';
 import { formatMessage } from '#lib/text/formatMessage.ts';
 import { englishHighlightMessages as t } from '../messages.ts';
+import styles from './DownloadDone.module.css';
 
 interface Saved { name: string; file: unknown; revision: number }
 
@@ -26,7 +27,7 @@ export function useDownloadDone(file: unknown, revision: number) {
 export default function DownloadDone({ name, onClose }: { name: string; onClose(): void }) {
   return (
     <DoneStrip label={t.downloadDoneLabel} closeLabel={t.downloadDoneClose} onClose={onClose} data-download-done>
-      <p>{formatMessage(t.downloadDone, { name })}</p>
+      <p class={styles.line}>{formatMessage(t.downloadDone, { name })}</p>
     </DoneStrip>
   );
 }

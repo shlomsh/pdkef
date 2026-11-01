@@ -1,0 +1,2 @@
+/* The one line in the done strip, set like Redact's result line. */
+.line { margin: 0; font-size: 0.9rem; color: var(--color-text-secondary); }
