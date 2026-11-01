@@ -1,24 +1,21 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'preact/hooks';
 import type { PDFDocumentProxy } from 'pdfjs-dist';
 import type { DetailEdits } from '#editor/registry/draftValidation.ts';
-import { clampZoom, resolveZoom, stepZoom, type PageBox, type ZoomSetting } from '../lib/zoom/fit.ts';
+import { clampZoom, resolveZoom, stepZoom, type ZoomSetting } from '../lib/zoom/fit.ts';
 import { pageAnchorAt } from '../lib/zoom/pageAnchor.ts';
 import { displayZoom, widestPage } from '../lib/zoom/lamp.ts';
 import { commitChanges, zoomCommit } from '../lib/zoom/commit.ts';
 import { useBoardScroll } from './useBoardScroll.ts';
 import { initialSetting, serializeSetting } from '../lib/zoom/setting.ts';
-import { turnedPageBox } from '../lib/zoom/turnedBox.ts';
-import { turnsOf, type PageTurns } from '#editor/geometry/pageTurn.ts';
-import { readInkBounds } from './readInkBounds.ts';
+import type { PageTurns } from '#editor/geometry/pageTurn.ts';
+import { usePageSizes } from './usePageSizes.ts';
 import { ACTUAL_SIZE } from '../lib/zoom/percent.ts';
 import { usePinchZoom } from './usePinchZoom.ts';
 import { useZoomKeys } from './useZoomKeys.ts';
 import { useLampAnchor } from './useLampAnchor.ts';
 import { useBoardPan } from './useBoardPan.ts';
 import type { Point } from '../lib/zoom/anchor.ts';
-import { reportError } from '#lib/telemetry/errorReport.ts';
 
-const NO_TURNS: PageTurns = {};
 const STORE_KEY = 'pdkef:highlight:zoom-default';
 
 function storedDefault(): string | null {
@@ -62,41 +59,9 @@ export function useWorkspaceZoom({ pdfDocument, workspaceRef, columnRef, fullscr
   const onEnterLamp = useCallback(() => requestRef.current(), []);
   const [setting, setSetting] = useState<ZoomSetting>(() => initialSetting(undefined, storedDefault()));
   const [touched, setTouched] = useState(false);
-  // The file's own page sizes, then where its text sits (read from the rendered pages, which Fit text sizes the document by).
-  const [sizes, setSizes] = useState<Array<{ width: number; height: number }>>([]);
-  const [ink, setInk] = useState<{ left: number; right: number } | null>(null);
-  const turns = pageTurns ?? NO_TURNS;
-  const turnsKey = JSON.stringify(turns);
-  const pages = useMemo<PageBox[]>(() => sizes.map((size, i) => turnedPageBox(size, turnsOf(turns, i), ink)), [sizes, ink, turnsKey]);
+  const pages = usePageSizes(pdfDocument, pageTurns);
   const [view, setView] = useState({ width: 0, height: 0 });
   const ready = pages.length > 0;
-
-  useEffect(() => {
-    setSizes([]);
-    if (!pdfDocument) return;
-    let live = true;
-    void (async () => {
-      const boxes: Array<{ width: number; height: number }> = [];
-      for (let n = 1; n <= pdfDocument.numPages; n++) {
-        const page = await pdfDocument.getPage(n);
-        if (!live) return;
-        const { width, height } = page.getViewport({ scale: 1 });
-        boxes.push({ width, height });
-      }
-      setSizes(boxes);
-    })().catch((err) => { if (live) reportError('pdf_render', err, 'read_page_sizes'); });
-    return () => { live = false; };
-  }, [pdfDocument]);
-
-  // The ink is read from the pages as they are shown, so a turn reads it again.
-  useEffect(() => {
-    setInk(null);
-    if (!pdfDocument) return;
-    let live = true;
-    void readInkBounds(pdfDocument, () => live, turns).then((bounds) => { if (live) setInk(bounds); })
-      .catch((err) => { if (live) reportError('pdf_render', err, 'read_ink_bounds'); });
-    return () => { live = false; };
-  }, [pdfDocument, turnsKey]);
 
   useEffect(() => {
     const ws = workspaceRef.current;
