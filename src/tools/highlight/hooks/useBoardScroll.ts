@@ -20,7 +20,8 @@ export function useBoardScroll({ workspaceRef, fullscreen, pages, zoom, setting,
   // own: only opening a document, picking a fit mode and resizing under a fit mode do.
   const pendingScroll = useRef<Point | null>(null);
   const pendingCentre = useRef(true);
-  const pendingAnchor = useRef<{ anchor: PageAnchor; point: Point } | null>(null);
+  // `lineOnly` keeps the anchor's line and leaves the sideways scroll alone (a note making room, R28).
+  const pendingAnchor = useRef<{ anchor: PageAnchor; point: Point; lineOnly?: boolean } | null>(null);
   const lastViewWidth = useRef(0);
   const ready = pages.length > 0;
   const widest = pages.reduce((w, p) => Math.max(w, p.width), 0);
@@ -58,12 +59,12 @@ export function useBoardScroll({ workspaceRef, fullscreen, pages, zoom, setting,
       pendingAnchor.current = null;
     } else if (pendingAnchor.current) {
       // Anchored by page fraction: headers and gaps do not scale, so the whole column cannot be the frame.
-      const { anchor, point } = pendingAnchor.current;
+      const { anchor, point, lineOnly } = pendingAnchor.current;
       pendingAnchor.current = null;
       const after = ws.querySelectorAll('[data-page-wrapper]')[anchor.pageIndex]?.getBoundingClientRect();
       if (after) {
         const { dx, dy } = scrollDelta(anchor, after, point);
-        ws.scrollLeft += dx;
+        if (!lineOnly) ws.scrollLeft += dx;
         if (fullscreen) ws.scrollTop += dy;
         else window.scrollBy(0, dy);
         return;

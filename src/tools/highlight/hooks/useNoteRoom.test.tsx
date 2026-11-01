@@ -61,13 +61,13 @@ afterEach(() => {
 });
 
 describe('useNoteRoom', () => {
-  it('the first card makes room in the same event as its dispatch, with the passage from the mark and the zoom', () => {
+  it('the first card makes room in the same event as its dispatch, with the point of the mark on screen', () => {
     act(() => {
       room.dispatch({ type: 'ADD_ELEMENT', payload: blank });
       room.dispatch({ type: 'SET_ACTIVE_ELEMENT_ID', payload: 'c1' });
     });
     expect(makeRoom).toHaveBeenCalledTimes(1);
-    expect(makeRoom).toHaveBeenCalledWith(true, { x: 100, y: 200 });
+    expect(makeRoom).toHaveBeenCalledWith(true, { x: 300, y: 450 });
     expect(order).toEqual(['dispatch:ADD_ELEMENT', 'room:true', 'dispatch:SET_ACTIVE_ELEMENT_ID']);
     expect(marks.state.activeElementId).toBe('c1');
   });
@@ -76,7 +76,7 @@ describe('useNoteRoom', () => {
     act(() => marks.dispatch({ type: 'LOAD_DOCUMENT', payload: { elements: [mark, saved], actionHistory: [] } }));
     makeRoom.mockClear();
     act(() => room.dispatch({ type: 'DELETE_ELEMENT', payload: 'h1' }));
-    expect(makeRoom).toHaveBeenCalledWith(false, { x: 100, y: 200 });
+    expect(makeRoom).toHaveBeenCalledWith(false, { x: 300, y: 450 });
     expect(marks.state.elements).toEqual([]);
   });
 
@@ -87,7 +87,7 @@ describe('useNoteRoom', () => {
     });
     makeRoom.mockClear();
     act(() => room.dispatch({ type: 'SET_ACTIVE_ELEMENT_ID', payload: null }));
-    expect(makeRoom).toHaveBeenCalledWith(false, { x: 100, y: 200 });
+    expect(makeRoom).toHaveBeenCalledWith(false, { x: 300, y: 450 });
   });
 
   it('makes no room on a narrow screen, where the sheet opens instead', () => {
