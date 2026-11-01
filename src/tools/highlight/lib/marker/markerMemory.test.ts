@@ -14,6 +14,15 @@ describe('serializeMarker', () => {
   });
 });
 
+describe('READ-04: stroke width in memory', () => {
+  it('round trips a stroke width and rejects one out of range', () => {
+    const wide = { ...pink, strokeWidth: 3 };
+    expect(parseMarker(serializeMarker(wide))).toEqual(wide);
+    expect(parseMarker('{"color":"#FF8FCF","style":"underline","opacity":1,"strokeWidth":9}')).toBeNull();
+    expect('strokeWidth' in parseMarker(serializeMarker(pink))!).toBe(false);
+  });
+});
+
 describe('parseMarker', () => {
   it('reads a stored marker', () => {
     expect(parseMarker('{"color":"#9CF27A","style":"highlight","opacity":1}')).toEqual({ color: '#9CF27A', style: 'highlight', opacity: 1 });

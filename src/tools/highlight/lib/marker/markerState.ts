@@ -1,4 +1,5 @@
 import { HIGHLIGHT_COLORS } from '#editor/model/highlightColors.ts';
+import { UNDERLINE_WIDTH } from '#editor/model/underlineInk.ts';
 
 export { HIGHLIGHT_COLORS };
 
@@ -10,10 +11,13 @@ export const DEFAULT_MARKER: Marker = { color: HIGHLIGHT_COLORS[0].hex, style: '
 
 const clamp = (n: number) => Math.min(1, Math.max(OPACITY_MIN, n));
 
+export const clampWidth = (n: number) => Math.min(UNDERLINE_WIDTH.max, Math.max(UNDERLINE_WIDTH.min, n));
+
 /** R5: the marker after a change; opacity stays within [0.3, 1]. */
 export function rearm(m: Marker, change: Partial<Marker>): Marker {
   const next = { ...m, ...change };
-  return { ...next, opacity: clamp(next.opacity) };
+  const { strokeWidth, ...rest } = next;
+  return { ...rest, opacity: clamp(next.opacity), ...(strokeWidth === undefined ? {} : { strokeWidth: clampWidth(strokeWidth) }) };
 }
 
 /** The color a Comment over an uncolored line lays. @testSeam */

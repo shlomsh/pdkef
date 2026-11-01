@@ -45,6 +45,7 @@ export function clickMarkElement({ id, pageIndex, boxes, marker, direction }: {
     id, type: 'highlight', pageIndex, ...geometry, color: marker.color,
     ...(marker.style === 'underline' ? { style: 'underline' as const } : {}),
     ...(marker.opacity < 1 ? { opacity: marker.opacity } : {}),
+    ...(marker.strokeWidth !== undefined ? { strokeWidth: marker.strokeWidth } : {}),
     ...(direction === 'rtl' ? { direction } : {}),
   };
 }

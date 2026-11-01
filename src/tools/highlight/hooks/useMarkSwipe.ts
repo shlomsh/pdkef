@@ -93,6 +93,7 @@ export function useMarkSwipe(o: MarkSwipeOptions): (event: PointerEvent) => void
         id, type: 'highlight', pageIndex, left: start.x, top: start.y, width: 0, height: 0, bands: [], color: marker.color,
         ...(marker.style === 'underline' ? { style: 'underline' as const } : {}),
         ...(marker.opacity < 1 ? { opacity: marker.opacity } : {}),
+        ...(marker.strokeWidth !== undefined ? { strokeWidth: marker.strokeWidth } : {}),
       };
       o.dispatch({ type: 'ADD_ELEMENT', payload: newEl });
       gestureCancelRef.current?.();

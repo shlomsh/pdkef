@@ -108,6 +108,17 @@ describe('serializeHighlight: opacity and underline', () => {
     expect((popup.get(PDFName.of('Subtype')) as PDFName).toString()).toBe('/Popup');
   });
 
+  it('READ-04: writes the underline width as /BS /W and in the appearance, and none for the default or a highlight', async () => {
+    const { annot, content } = await write({ ...element, style: 'underline', strokeWidth: 3 });
+    const bs = annot.lookup(PDFName.of('BS'), PDFDict);
+    expect((bs.get(PDFName.of('W')) as PDFNumber).asNumber()).toBe(3);
+    expect(content).toContain('3 w');
+    const plain = await write({ ...element, style: 'underline' });
+    expect(plain.content).toContain('1.5 w');
+    expect((plain.annot.lookup(PDFName.of('BS'), PDFDict).get(PDFName.of('W')) as PDFNumber).asNumber()).toBe(1.5);
+    expect((await write(element)).annot.has(PDFName.of('BS'))).toBe(false);
+  });
+
   it('applies the opacity to an underline too', async () => {
     const { annot } = await write({ ...element, style: 'underline', opacity: 0.6 });
     expect((annot.get(PDFName.of('CA')) as PDFNumber).asNumber()).toBe(0.6);
