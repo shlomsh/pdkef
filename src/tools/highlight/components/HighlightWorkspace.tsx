@@ -101,8 +101,11 @@ export default function HighlightWorkspace({ pdfDocument, numPages, fileName, zo
     setPrintTop(bar ? bar.getBoundingClientRect().bottom + 8 : undefined);
     setPrintOpen(true);
   };
+  const withComments = hasComments(marks.state.elements);
+  // With no comment there is one way to print, so Print prints; the menu is only for a choice.
+  const printNow = () => print.print(false);
   const printMenu = {
-    top: printTop, open: printOpen, withComments: hasComments(marks.state.elements),
+    top: printTop, open: printOpen, withComments,
     onChoose: print.print, onClose: () => setPrintOpen(false),
   };
   // One menu at a time: it belongs to the row or to the capsule, so changing view puts it away.
@@ -116,7 +119,7 @@ export default function HighlightWorkspace({ pdfDocument, numPages, fileName, zo
     <div hidden={fullscreen} style={fullscreen ? undefined : { display: 'contents' }}>
       <TileRow
         marks={marks} undo={undo} redo={redo} touch={touch} printMenu={{ ...printMenu, open: printMenu.open && !fullscreen }} printOpen={printOpen && !fullscreen}
-        onTogglePrint={() => setPrintOpen((o) => !o)} onToggleView={toggleView} onDownload={onDownload}
+        onTogglePrint={withComments ? () => setPrintOpen((o) => !o) : printNow} onToggleView={toggleView} onDownload={onDownload}
       />
     </div>
     <div
@@ -131,7 +134,7 @@ export default function HighlightWorkspace({ pdfDocument, numPages, fileName, zo
             zoomSlot={menu()}
             markerSlot={markerButton}
             onUndo={undo} onRedo={redo} canUndo={marks.canUndo} canRedo={marks.canRedo}
-            onPrint={openPrint}
+            onPrint={withComments ? openPrint : printNow}
             onDownload={onDownload} moreItems={moreItems} onExit={toggleView}
             scrollEvents={scrollEvents} pagePressEvents={pagePressEvents} labels={t.capsule}
           />
@@ -192,7 +195,7 @@ function TileRow({ marks, undo, redo, touch, printMenu, printOpen, onTogglePrint
           <span className={toolbarStyles.label}>{shellMessages.replaceShort}</span>
         </button>
         <PrintMenu {...printMenu} top={undefined} wrapClass={toolbarStyles.dropdown}>
-          <button type="button" className={toolbarStyles.button} aria-label={t.capsule.print} title={t.capsule.print} aria-haspopup="menu" aria-expanded={printOpen} onClick={onTogglePrint}>
+          <button type="button" className={toolbarStyles.button} aria-label={t.capsule.print} title={t.capsule.print} aria-haspopup={printMenu.withComments ? 'menu' : undefined} aria-expanded={printMenu.withComments ? printOpen : undefined} onClick={onTogglePrint}>
             <PrintIcon />
             <span className={toolbarStyles.label}>{t.capsule.print}</span>
           </button>

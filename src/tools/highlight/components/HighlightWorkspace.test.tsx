@@ -11,6 +11,8 @@ import { DEFAULT_MARKER } from '../lib/marker/markerState.ts';
 import { NOTES_W } from '../lib/zoom/fit.ts';
 
 vi.mock('#editor-ui/PdfPageCanvas.tsx', () => ({ default: () => <canvas data-canvas /> }));
+const printSpy = vi.hoisted(() => vi.fn());
+vi.mock('../hooks/usePrint.ts', () => ({ usePrint: () => ({ print: printSpy, sheets: null }) }));
 
 type WorkspaceProps = Parameters<typeof HighlightWorkspace>[0];
 
@@ -28,13 +30,13 @@ afterEach(() => {
 
 let redraw: (level: number) => void = () => {};
 
-function mount(lamp: { fullscreen: boolean; pseudoFullscreen: boolean }) {
+function mount(lamp: { fullscreen: boolean; pseudoFullscreen: boolean }, elements: EditorElement[] = []) {
   const zoomAt = (level: number) => ({
     zoom: level, setting: 'width', pages: [], board: { boardWidth: 0, slack: 0 },
     apply: vi.fn(), step: vi.fn(), actual: vi.fn(),
   } as unknown as Parameters<typeof HighlightWorkspace>[0]['zoom']);
   const marks = {
-    state: { elements: [] }, marker: DEFAULT_MARKER, rearm: vi.fn(), logAction: vi.fn(),
+    state: { elements }, marker: DEFAULT_MARKER, rearm: vi.fn(), logAction: vi.fn(),
     dispatch: vi.fn(), undo: vi.fn(), redo: vi.fn(), canUndo: false, canRedo: false,
   } as unknown as Parameters<typeof HighlightWorkspace>[0]['marks'];
   container = document.createElement('div');
@@ -193,14 +195,27 @@ describe('HighlightWorkspace notes (R28, R29)', () => {
     restore();
   });
 
+  it('prints at once when there is only one way to print: no comment means no menu, in the row or the lamp', () => {
+    for (const fullscreen of [false, true]) {
+      printSpy.mockClear();
+      const ws = mount({ fullscreen, pseudoFullscreen: false });
+      const trigger = (fullscreen ? ws : container!.querySelector('[data-editor-toolbar]')!).querySelector<HTMLElement>('button[aria-label="Print"]')!;
+      expect(trigger.hasAttribute('aria-haspopup')).toBe(false);
+      act(() => { trigger.click(); });
+      expect(printSpy).toHaveBeenCalledWith(false);
+      expect(container!.querySelector('[role="menu"]')).toBeNull();
+      act(() => render(null, container!));
+    }
+  });
+
   it('opens the print menu 8 px under the capsule in the lamp, and under its own tile in the row', () => {
-    const row = mount({ fullscreen: false, pseudoFullscreen: false });
+    const row = mount({ fullscreen: false, pseudoFullscreen: false }, [mark, note]);
     act(() => { container!.querySelector<HTMLElement>('[data-editor-toolbar] button[title="Print"], [data-editor-toolbar] button[aria-label="Print"]')!.click(); });
     expect(container!.querySelector('[data-editor-toolbar] [role="menu"]')).not.toBeNull();
     expect(row).toBeTruthy();
     act(() => render(null, container!));
     for (const fullscreen of [true]) {
-      const ws = mount({ fullscreen, pseudoFullscreen: false });
+      const ws = mount({ fullscreen, pseudoFullscreen: false }, [mark, note]);
       const bar = ws.querySelector<HTMLElement>('[role="toolbar"]')!;
       vi.spyOn(bar, 'getBoundingClientRect').mockReturnValue({ bottom: 100 } as DOMRect);
       act(() => { ws.querySelector<HTMLElement>('button[aria-label="Print"]')!.click(); });

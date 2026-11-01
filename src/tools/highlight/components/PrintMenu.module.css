@@ -5,11 +5,12 @@
 .menu {
   position: absolute;
   top: calc(100% + 6px);
-  /* Print sits near the row's end, so the menu hangs from its end edge and stays on a phone's screen. */
-  inset-inline-end: 0;
+  inset-inline-start: 0;
   z-index: 20;
   min-width: 12rem;
 }
 .floating .menu { position: static; }
+/* On a phone Print is a narrow tile near the row's end: the menu hangs from its end edge so it stays on screen. */
+@media (max-width: 480px) { .menu { inset-inline-start: auto; inset-inline-end: 0; } }
 .item { min-height: 2.25rem; white-space: nowrap; }
 @media (pointer: coarse) { .item { min-height: 2.75rem; } }
