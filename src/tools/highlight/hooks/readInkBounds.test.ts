@@ -58,7 +58,15 @@ describe('readInkBounds', () => {
 
   it('renders at 800 pixels wide whatever the page width', async () => {
     await readInkBounds(fakeDoc([fakePage(0, 400)]), () => true);
-    expect(renderPageToCanvas.mock.calls[0][1]).toEqual({ scale: 2 });
+    expect(renderPageToCanvas.mock.calls[0][1]).toEqual({ scale: 2, rotation: 0 });
+  });
+
+  it('skips a page the person turned sideways, and reads one they turned back upright', async () => {
+    const doc = fakeDoc([fakePage(0), fakePage(90)]);
+    await readInkBounds(doc, () => true, { 0: 1, 1: 3 });
+    expect(renderPageToCanvas).toHaveBeenCalledTimes(1);
+    expect(renderPageToCanvas.mock.calls[0][0]).toBe(await doc.getPage(2));
+    expect(renderPageToCanvas.mock.calls[0][1]).toMatchObject({ rotation: 0 });
   });
 
   it('releases each canvas once it has been read', async () => {

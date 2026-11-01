@@ -32,7 +32,7 @@ function mount(elements: EditorElement[], marker = DEFAULT_MARKER, touchArmed?: 
   act(() => render(
     <HighlightPage
       pdfDocument={null} pageIndex={0} widthPx={600} elements={elements} marker={marker} touchArmed={touchArmed}
-      dispatch={dispatch} logAction={logAction} rearm={rearm} setAnnouncement={() => {}} cardRef={() => {}} {...comments}
+      dispatch={dispatch} logAction={logAction} rearm={rearm} setAnnouncement={() => {}} cardRef={() => {}} onRotate={() => {}} onClear={() => {}} {...comments}
     />,
     container,
   ));
@@ -143,7 +143,7 @@ describe('HighlightPage swipe direction', () => {
       render(
         <HighlightPage
           pdfDocument={textPage(strings)} pageIndex={0} widthPx={600} elements={[]} marker={DEFAULT_MARKER}
-          dispatch={dispatch} logAction={logAction} rearm={rearm} setAnnouncement={() => {}} cardRef={() => {}}
+          dispatch={dispatch} logAction={logAction} rearm={rearm} setAnnouncement={() => {}} cardRef={() => {}} onRotate={() => {}} onClear={() => {}}
         />,
         container,
       );
@@ -353,7 +353,7 @@ describe('HighlightPage click marks on a digital page (R10 to R12)', () => {
   const renderPage = (elements: EditorElement[], marker = DEFAULT_MARKER) => act(() => render(
     <HighlightPage
       pdfDocument={doc} pageIndex={0} widthPx={200} elements={elements} marker={marker}
-      dispatch={dispatch} logAction={logAction} rearm={rearm} setAnnouncement={() => {}} cardRef={() => {}}
+      dispatch={dispatch} logAction={logAction} rearm={rearm} setAnnouncement={() => {}} cardRef={() => {}} onRotate={() => {}} onClear={() => {}}
     />,
     container,
   ));
@@ -476,7 +476,7 @@ describe('HighlightPage sweep (R13)', () => {
     const draw = (elements: EditorElement[]) => act(() => render(
       <HighlightPage
         pdfDocument={doc} pageIndex={0} widthPx={200} elements={elements} marker={DEFAULT_MARKER}
-        dispatch={dispatch} logAction={logAction} rearm={rearm} setAnnouncement={() => {}} cardRef={() => {}}
+        dispatch={dispatch} logAction={logAction} rearm={rearm} setAnnouncement={() => {}} cardRef={() => {}} onRotate={() => {}} onClear={() => {}}
       />,
       container,
     ));
@@ -514,7 +514,7 @@ describe('HighlightPage sweep (R13)', () => {
     act(() => render(
       <HighlightPage
         pdfDocument={null} pageIndex={0} widthPx={300} elements={[laid]} marker={DEFAULT_MARKER}
-        dispatch={dispatch} logAction={logAction} rearm={rearm} setAnnouncement={() => {}} cardRef={() => {}}
+        dispatch={dispatch} logAction={logAction} rearm={rearm} setAnnouncement={() => {}} cardRef={() => {}} onRotate={() => {}} onClear={() => {}}
       />,
       container,
     ));
@@ -576,7 +576,7 @@ describe('HighlightPage click marks on a scan (R10)', () => {
     act(() => render(
       <HighlightPage
         pdfDocument={null} pageIndex={0} widthPx={600} elements={[word]} marker={DEFAULT_MARKER}
-        dispatch={dispatch} logAction={logAction} rearm={rearm} setAnnouncement={() => {}} cardRef={() => {}}
+        dispatch={dispatch} logAction={logAction} rearm={rearm} setAnnouncement={() => {}} cardRef={() => {}} onRotate={() => {}} onClear={() => {}}
       />,
       container,
     ));
@@ -649,7 +649,7 @@ describe('HighlightPage touch swipe, armed', () => {
       act(() => render(
         <HighlightPage
           pdfDocument={null} pageIndex={0} widthPx={600} elements={[mark, savedComment]} marker={DEFAULT_MARKER} rail={<div data-testid="rail" />}
-          dispatch={dispatch} logAction={logAction} rearm={rearm} setAnnouncement={() => {}} cardRef={() => {}}
+          dispatch={dispatch} logAction={logAction} rearm={rearm} setAnnouncement={() => {}} cardRef={() => {}} onRotate={() => {}} onClear={() => {}}
         />,
         container,
       ));

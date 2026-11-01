@@ -95,7 +95,7 @@ export default function HighlightWorkspace({ pdfDocument, numPages, fileName, zo
   // R15: in the lamp, More holds Replace, the shell's own action (it asks before it costs anything, then opens the picker).
   const { requestReplace, messages: shellMessages = englishShellMessages } = useToolShell();
   const moreItems = [{ label: shellMessages.replaceLabel, onSelect: requestReplace }];
-  const print = usePrint({ pdfDocument, elements: marks.state.elements });
+  const print = usePrint({ pdfDocument, elements: marks.state.elements, pageTurns: marks.pageTurns });
   const [printOpen, setPrintOpen] = useState(false);
   const [printTop, setPrintTop] = useState<number | undefined>();
   // The menu opens 8 px under the toolbar, wherever the toolbar is in this view.
@@ -158,6 +158,7 @@ export default function HighlightWorkspace({ pdfDocument, numPages, fileName, zo
             key={i} pdfDocument={pdfDocument} pageIndex={i} widthPx={box.width * zoom.zoom}
             elements={marks.state.elements} marker={marks.marker} rearm={marks.rearm} dispatch={dispatch} logAction={marks.logAction}
             setAnnouncement={setAnnouncement} touchArmed={touch.armed} cardRef={(el) => { pageRefs.current[i] = el; }} rail={comments.rail(i)}
+            pageTurns={marks.pageTurns} onRotate={() => marks.rotatePage(i)} onClear={() => marks.clearPage(i)}
             activeElementId={marks.state.activeElementId} onSelectComment={(id) => dispatch({ type: 'SET_ACTIVE_ELEMENT_ID', payload: id })}
           />
         ))}

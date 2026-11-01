@@ -119,7 +119,7 @@ const note: CommentElement = {
 };
 
 /** A workspace of the given width with one page and these elements; the zoom is 1 and the page 600 px wide. */
-function mountNoted(elements: EditorElement[], workspaceWidth: number) {
+function mountNoted(elements: EditorElement[], workspaceWidth: number, extra: Record<string, unknown> = {}) {
   const originalRect = HTMLElement.prototype.getBoundingClientRect;
   HTMLElement.prototype.getBoundingClientRect = function rect() {
     return { ...originalRect.call(this), width: this.hasAttribute('data-workspace') ? workspaceWidth : 0 } as DOMRect;
@@ -132,6 +132,7 @@ function mountNoted(elements: EditorElement[], workspaceWidth: number) {
   const marks = {
     state: { elements, activeElementId: null }, marker: DEFAULT_MARKER, rearm: vi.fn(), logAction: vi.fn(),
     dispatch: vi.fn(), undo: vi.fn(), redo: vi.fn(), canUndo: false, canRedo: false,
+    pageTurns: {}, rotatePage: vi.fn(), clearPage: vi.fn(), ...extra,
   } as unknown as Parameters<typeof HighlightWorkspace>[0]['marks'];
   const workspaceRef = { current: null as HTMLDivElement | null };
   container = document.createElement('div');
@@ -145,7 +146,7 @@ function mountNoted(elements: EditorElement[], workspaceWidth: number) {
     container!,
   ));
   const restore = () => { HTMLElement.prototype.getBoundingClientRect = originalRect; };
-  return { workspaceRef, dispatch: marks.dispatch, column: container.querySelector<HTMLElement>('[data-editor-page-card]')!.parentElement!, restore };
+  return { workspaceRef, marks, dispatch: marks.dispatch, column: container.querySelector<HTMLElement>('[data-editor-page-card]')!.parentElement!, restore };
 }
 
 describe('HighlightWorkspace notes (R28, R29)', () => {
@@ -208,6 +209,30 @@ describe('HighlightWorkspace comment markers', () => {
     const marker = container!.querySelector<HTMLElement>('[data-comment-marker]')!;
     act(() => { marker.click(); });
     expect(dispatch).toHaveBeenCalledWith({ type: 'SET_ACTIVE_ELEMENT_ID', payload: 'c1' });
+    restore();
+  });
+});
+
+describe('HighlightWorkspace page header (Rotate and Clear page)', () => {
+  beforeEach(() => { vi.unstubAllGlobals(); });
+  afterEach(() => { vi.unstubAllGlobals(); });
+
+  it('shows Rotate and Clear page, and each calls the marks with the page index', () => {
+    const { marks, restore } = mountNoted([mark], 700);
+    const header = container!.querySelector<HTMLElement>('[data-editor-page-header]')!;
+    const button = (text: string) => [...header.querySelectorAll('button')].find((b) => b.textContent?.includes(text))!;
+    act(() => { button('Rotate').click(); });
+    expect((marks as unknown as { rotatePage: ReturnType<typeof vi.fn> }).rotatePage).toHaveBeenCalledWith(0);
+    act(() => { button('Clear page').click(); });
+    expect((marks as unknown as { clearPage: ReturnType<typeof vi.fn> }).clearPage).toHaveBeenCalledWith(0);
+    restore();
+  });
+
+  it('has no Clear page on a page without marks', () => {
+    const { restore } = mountNoted([], 700);
+    const header = container!.querySelector<HTMLElement>('[data-editor-page-header]')!;
+    expect([...header.querySelectorAll('button')].some((b) => b.textContent?.includes('Clear page'))).toBe(false);
+    expect([...header.querySelectorAll('button')].some((b) => b.textContent?.includes('Rotate'))).toBe(true);
     restore();
   });
 });
