@@ -10,6 +10,9 @@
 export const lanes = [
   { key: 'redact', label: 'Redact: finish removal', why: 'Find covers exactly what it matched, Delete reaches every object, and the saved-file check can remove what it finds.' },
   { key: 'sign-fill-mode', label: 'Sign: finish fill mode', why: 'Fill mode is the default since SNG-19. Close the test gaps, then desktop parity, then retire the old editor.' },
+  // Opened 2026-11-01 (docs/highlight-pdf.md): highlights and comments in Sign served students reading
+  // papers, not form filling, so reading becomes its own tool on the shared editor core.
+  { key: 'highlight-pdf', label: 'Highlight PDF: a tool for reading', why: 'Marking should feel like holding a highlighter, not like operating software. Sketch, move the shared pieces out of Sign, then launch with Sign handing highlighting over.' },
   // Opened 2026-10-14 from the tool-page review (docs/tool-hero-show-the-verb.md): Shlomi found the
   // shared template good but not crisp, picked "Show the verb" from three sketched directions and
   // added the full-height desktop hero.

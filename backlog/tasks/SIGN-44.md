@@ -46,7 +46,8 @@ annotations, so any viewer shows them and they print, plus a numbered comments p
 - [x] The comments page lists each comment in number order with a clip of its passage, in the comment's
   script, and links back.
 - [ ] A note pin: a comment anchored to a point on the page, with no highlight.
-- [ ] "Print my comments" at download: the comments page on its own.
+- ~~"Print my comments" at download: the comments page on its own.~~ Moved out of Sign on 2026-11-01:
+  printing with notes is [READ-06](READ-06.md), in Highlight PDF only.
 - [ ] Opening a PDF that already carries `/Highlight` annotations with `/Contents` brings them back as
   editable highlights and comments; a unit round trip proves export then import is lossless.
 

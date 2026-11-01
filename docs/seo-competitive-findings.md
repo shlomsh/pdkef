@@ -483,6 +483,36 @@ always their own pages, and extract is its own page on five of eight.
 
 Decision (Shlomi, 2026-10-26): one island, five named pages, see SEO-47.
 
+### 3.9 Reading and marking: highlight, annotate, comment (2026-11-01)
+
+Google Trends read through its API in the built-in browser, worldwide unless noted. Past 12 months against
+`sign pdf` (47): highlight pdf 3.7, comment on pdf 3.9, annotate pdf 1.3. Against `highlight in pdf` (about
+20): pdf annotation 49, how to highlight pdf 11.7, highlight pdf free 8.3, highlight pdf online 3.8, highlight
+text in pdf 3.1, add comments to pdf 3.1, annotate pdf free 2.5, annotate pdf online 1.1. Against `fill pdf`
+(52.5): sign pdf online 28.7, add text to pdf 10.2, highlight in pdf 7.6, add comments to pdf 1.1. Five years:
+highlight pdf 18.1 against pdf highlighter 3.7 and pdf annotator 3.6.
+
+- `comment on pdf` is mostly French ("comment" is "how"): top regions Madagascar, Togo, Congo, Senegal.
+- `pdf annotation` is app shopping (related: "pdf annotation app", "ipad pdf annotation"), led by South Korea.
+- Highlight and annotate queries are mostly questions ("how to highlight in pdf" tops the related panel).
+- US seasonality (2021-11 to 2025-10): annotate pdf doubles from the May to June low to the August to
+  September and January peaks; highlight pdf follows more gently. The audience is students; nobody searches
+  "for students".
+- Devices, five years: annotate pdf ipad 15.1, highlight pdf on mac 4.7, on iphone 1.1, on android 0.6, on
+  chromebook 0.3.
+- Every long-tail PDF term rose in 2025-26 (sign pdf about 4x) while merge pdf stayed flat, so the rise is not
+  reading demand.
+
+Competitor pages (fourteen sites fetched): only PDFgear has a dedicated highlight tool page. The
+`/highlight-pdf` slugs at Adobe and Smallpdf are 404, and iLovePDF, Sejda, PDF24 and Soda keep highlighting
+inside "edit PDF". Dedicated "annotate PDF" pages: Smallpdf, Xodo, Lumin, PDFgear, PdfMeta, PDF24; Adobe
+answers it with a how-to. No tool page targets studying. "Free", "no signup" and "in your browser" are table
+stakes.
+
+Decision (Shlomi, 2026-11-01): a tool of its own, Highlight PDF at `/highlight-pdf/` (name to confirm),
+primary "highlight pdf", secondary "annotate pdf" and "add comments to pdf". See
+[docs/highlight-pdf.md](./highlight-pdf.md) and READ-03.
+
 ## 4. The plan and its gates
 
 Gates matter more than dates. A phase that starts before its gate is met spends crawl budget the domain
