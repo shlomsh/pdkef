@@ -9,10 +9,12 @@ import type { PageTextRun } from '#editor/geometry/textRuns.ts';
 import { englishSignMessages } from '#editor/registry/signMessages.ts';
 import { signElementTypeLabel } from '#editor/registry/signLabels.ts';
 import type { ReadingDirection } from '#lib/pageLayout/bands.ts';
+import { PAGE_HEIGHT_DEFAULT_PTS } from '#editor/model/signGeometry.js';
 import { recordAction } from '#lib/telemetry/actionTrail.ts';
 import { formatMessage } from '#lib/text/formatMessage.ts';
 import { clickMarkElement, planClick, type ClickSequence, type ClickUnit } from '../lib/marker/clickMark.ts';
 import type { Marker } from '../lib/marker/markerState.ts';
+import { readScanUnit } from '../lib/marker/scanUnits.ts';
 import { sentenceBoxes, wordBoxes, type Box } from '../lib/text/textUnits.ts';
 
 type Point = { x: number; y: number };
@@ -42,6 +44,14 @@ function digitalBoxes(runs: PageTextRun[], unit: ClickUnit, pt: Point): Box[] | 
   if (unit === 'word') return wordBoxes(runs, pt, locale());
   if (unit === 'sentence') return sentenceBoxes(runs, pt, locale());
   return null;
+}
+
+/** The band of the word or line under pt on a scan, read from the displayed canvas once. */
+function scanBoxes(overlay: HTMLElement, unit: ClickUnit, pt: Point, geometry: PageGeometry | undefined): Box[] | null {
+  if (unit === 'sentence') return null;
+  const canvas = overlay.parentElement?.querySelector<HTMLCanvasElement>('canvas') ?? null;
+  const band = readScanUnit(canvas, pt, unit, geometry?.height || PAGE_HEIGHT_DEFAULT_PTS);
+  return band ? [band] : null;
 }
 
 /**
@@ -78,7 +88,7 @@ export function useClickMarks(options: ClickMarksOptions) {
     const plan = planClick({ detail: event.detail, pageKind: runs.length > 0 ? 'text' : 'scan', inks: run.current, overId, sequence: sequence.current });
     if (!plan) return;
     const at = o.getPointerPercent(event, overlay, o.geometry);
-    const boxes = runs.length > 0 ? digitalBoxes(runs, plan.unit, at) : null;
+    const boxes = runs.length > 0 ? digitalBoxes(runs, plan.unit, at) : scanBoxes(overlay, plan.unit, at, o.geometry);
     if (!boxes) return;
     const element = clickMarkElement({ id: createElementId(), pageIndex: o.pageIndex, boxes, marker: o.marker, direction: o.directionAt(at) });
     if (!element) return;

@@ -7,6 +7,8 @@ import { DEFAULT_MARKER } from '../lib/marker/markerState.ts';
 
 const startHighlightSwipe = vi.fn();
 vi.mock('#editor-ui/highlight/highlightSwipeGesture.ts', () => ({ startHighlightSwipe }));
+const readScanUnit = vi.fn();
+vi.mock('../lib/marker/scanUnits.ts', () => ({ readScanUnit }));
 vi.mock('#editor-ui/PdfPageCanvas.tsx', () => ({ default: () => <canvas data-canvas /> }));
 
 const { default: HighlightPage } = await import('./HighlightPage.tsx');
@@ -49,6 +51,7 @@ afterEach(() => {
   dispatch.mockClear();
   logAction.mockClear();
   startHighlightSwipe.mockClear();
+  readScanUnit.mockReset();
   rearm.mockClear();
   localStorage.clear();
   vi.useRealTimers();
@@ -385,5 +388,64 @@ describe('HighlightPage click marks on a digital page (R10 to R12)', () => {
     expect(types.indexOf('UNDO')).toBeGreaterThanOrEqual(0);
     expect(types.indexOf('UNDO')).toBeLessThan(types.indexOf('ADD_ELEMENT'));
     expect(added()[0].width).toBeGreaterThan(word.width);
+  });
+});
+
+describe('HighlightPage click marks on a scan (R10)', () => {
+  let overlay: HTMLElement;
+  beforeEach(() => {
+    overlay = mount([]);
+    overlay.getBoundingClientRect = () => ({ left: 0, top: 0, right: 600, bottom: 800, width: 600, height: 800, x: 0, y: 0, toJSON: () => ({}) });
+  });
+
+  function clickAt(detail: number, target: Element = overlay) {
+    const down = new MouseEvent('pointerdown', { bubbles: true, cancelable: true, button: 0, clientX: 60, clientY: 200 });
+    Object.defineProperty(down, 'pointerType', { value: 'mouse' });
+    act(() => { target.dispatchEvent(down); });
+    act(() => { window.dispatchEvent(new MouseEvent('mouseup', { bubbles: true })); });
+    act(() => { target.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, detail, clientX: 60, clientY: 200 })); });
+  }
+  const added = () => dispatch.mock.calls.map(([a]) => a).filter((a) => a.type === 'ADD_ELEMENT' && a.payload.bands.length > 0).map((a) => a.payload as HighlightElement);
+
+  it('a double-click marks the word the canvas reader finds, read from the displayed canvas', () => {
+    readScanUnit.mockReturnValue({ left: 8, top: 24, width: 12, height: 2 });
+    clickAt(2);
+    expect(readScanUnit).toHaveBeenCalledTimes(1);
+    const [canvas, point, unit, pageHeight] = readScanUnit.mock.calls[0];
+    expect(canvas).toBe(container.querySelector('canvas'));
+    expect(point.x).toBeCloseTo(10, 5);
+    expect(point.y).toBeCloseTo(25, 5);
+    expect(unit).toBe('word');
+    expect(pageHeight).toBe(792);
+    expect(added()[0]).toMatchObject({ type: 'highlight', left: 8, top: 24, width: 12, height: 2, color: DEFAULT_MARKER.color });
+    expect(logAction).toHaveBeenCalledWith('add', 'ADD_SHAPE', 0, expect.any(String), [expect.objectContaining({ index: 0 })]);
+  });
+
+  it('a third click takes the line, because a scan has no sentences', () => {
+    readScanUnit.mockReturnValueOnce({ left: 8, top: 24, width: 12, height: 2 }).mockReturnValueOnce({ left: 5, top: 24, width: 80, height: 2 });
+    clickAt(2);
+    const word = added()[0];
+    act(() => render(
+      <HighlightPage
+        pdfDocument={null} pageIndex={0} widthPx={600} elements={[word]} marker={DEFAULT_MARKER}
+        dispatch={dispatch} logAction={logAction} rearm={rearm} setAnnouncement={() => {}} cardRef={() => {}}
+      />,
+      container,
+    ));
+    dispatch.mockClear();
+    clickAt(3, container.querySelector(`[data-element-id="${word.id}"]`)!);
+    expect(readScanUnit.mock.calls[1][2]).toBe('line');
+    expect(dispatch.mock.calls.map(([a]) => a.type)).toEqual(['UNDO', 'ADD_ELEMENT']);
+  });
+
+  it('marks nothing when the click is not on a word', () => {
+    readScanUnit.mockReturnValue(null);
+    clickAt(2);
+    expect(added()).toHaveLength(0);
+  });
+
+  it('a single click never reads the canvas', () => {
+    clickAt(1);
+    expect(readScanUnit).not.toHaveBeenCalled();
   });
 });
