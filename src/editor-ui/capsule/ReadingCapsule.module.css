@@ -143,26 +143,3 @@
   .capsule[data-mode='awake']::before,
   .capsule[data-mode='awake'] .inner { transition: none !important; }
 }
-
-/* READ-05: the Reading lamp icon. */
-.lamp { overflow: visible; flex: none; }
-/* The head leans toward the page; the nod pivots on its hinge. */
-.lampHead { transform: rotate(-42deg); transform-origin: 0 0; transition: transform 260ms ease; }
-.lampBulb { fill: var(--color-lamp-glow); }
-.lampBeam { fill: var(--color-lamp-glow); opacity: 0.32; transition: opacity 260ms ease; }
-:global(button):hover .lampHead,
-:global(button):focus-visible .lampHead { animation: lampNod 900ms ease-in-out; }
-:global(button):hover .lampBeam,
-:global(button):focus-visible .lampBeam { opacity: 0.6; }
-@keyframes lampNod {
-  0% { transform: rotate(-42deg); }
-  30% { transform: rotate(-26deg); }
-  55% { transform: rotate(-46deg); }
-  80% { transform: rotate(-36deg); }
-  100% { transform: rotate(-42deg); }
-}
-@media (prefers-reduced-motion: reduce) {
-  .lampHead, .lampBeam { transition: none; }
-  :global(button):hover .lampHead,
-  :global(button):focus-visible .lampHead { animation: none; }
-}

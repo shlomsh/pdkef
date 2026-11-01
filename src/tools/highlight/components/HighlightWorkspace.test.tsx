@@ -63,7 +63,7 @@ describe('HighlightWorkspace', () => {
     expect(bar).not.toBeNull();
     expect(bar.closest('[data-shell-controls]')).not.toBeNull();
     const names = [...bar.querySelectorAll('button[aria-label], button[title]')].map((b) => b.getAttribute('aria-label') ?? b.getAttribute('title'));
-    expect(names).toEqual(['Marker', 'Undo', 'Redo', 'Use the reading lamp', 'Replace file', 'Print', 'Download']);
+    expect(names).toEqual(['Marker', 'Undo', 'Redo', 'Full screen', 'Replace file', 'Print', 'Download']);
     expect(container!.querySelector('[role="toolbar"][aria-label="Reading lamp"]')).toBeNull();
     act(() => render(null, container!));
     const lamp = mount({ fullscreen: true, pseudoFullscreen: false });
