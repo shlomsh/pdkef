@@ -50,8 +50,13 @@ describe('usePrint', () => {
     expect(window.print).not.toHaveBeenCalled();
   });
 
+  it('prints the notes at the end like the notes beside, until PrintSheets lays out the end', () => {
+    act(() => api.print('end'));
+    expect(sheetProps?.withNotes).toBe(true);
+  });
+
   it('mounts the sheets with the notes choice, and prints once they are ready', () => {
-    act(() => api.print(true));
+    act(() => api.print('beside'));
     expect(mounted()).toBe(true);
     expect(sheetProps?.withNotes).toBe(true);
     expect(window.print).not.toHaveBeenCalled();
@@ -60,14 +65,14 @@ describe('usePrint', () => {
   });
 
   it('takes the sheets away after the print dialog closes', () => {
-    act(() => api.print(false));
+    act(() => api.print('none'));
     act(() => sheetProps!.onReady());
     act(() => { window.dispatchEvent(new Event('afterprint')); });
     expect(mounted()).toBe(false);
   });
 
   it('does not report anything when the sheets were ready in time', () => {
-    act(() => api.print(false));
+    act(() => api.print('none'));
     act(() => sheetProps!.onReady());
     act(() => { vi.advanceTimersByTime(PRINT_TIMEOUT_MS + 1000); });
     expect(reportError).not.toHaveBeenCalled();
@@ -75,7 +80,7 @@ describe('usePrint', () => {
 
   it('gives up after 15 seconds without sheets, unmounts and reports it', () => {
     expect(PRINT_TIMEOUT_MS).toBe(15_000);
-    act(() => api.print(false));
+    act(() => api.print('none'));
     act(() => { vi.advanceTimersByTime(PRINT_TIMEOUT_MS); });
     expect(mounted()).toBe(false);
     expect(window.print).not.toHaveBeenCalled();
@@ -85,11 +90,11 @@ describe('usePrint', () => {
   });
 
   it('keeps the sheets after print returns with no afterprint (iOS may still be reading them), and the next print starts a new job', () => {
-    act(() => api.print(false));
+    act(() => api.print('none'));
     act(() => sheetProps!.onReady());
     act(() => { vi.advanceTimersByTime(60_000); });
     expect(mounted()).toBe(true);
-    act(() => api.print(true));
+    act(() => api.print('beside'));
     expect(mounted()).toBe(true);
     expect(sheetProps?.withNotes).toBe(true);
     act(() => sheetProps!.onReady());
@@ -97,8 +102,8 @@ describe('usePrint', () => {
   });
 
   it('a second request while one is open is ignored', () => {
-    act(() => api.print(false));
-    act(() => api.print(true));
+    act(() => api.print('none'));
+    act(() => api.print('beside'));
     expect(sheetProps?.withNotes).toBe(false);
   });
 });

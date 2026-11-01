@@ -77,7 +77,7 @@ describe('HighlightWorkspace', () => {
     const bar = container!.querySelector('[data-editor-toolbar][role="toolbar"]')!;
     expect(bar).not.toBeNull();
     expect(bar.closest('[data-shell-controls]')).not.toBeNull();
-    const names = [...bar.querySelectorAll('button[aria-label], button[title]')].map((b) => b.getAttribute('aria-label') ?? b.getAttribute('title'));
+    const names = [...bar.querySelectorAll('button')].map((b) => b.getAttribute('aria-label') ?? b.textContent);
     expect(names).toEqual(['Marker', 'Undo', 'Redo', 'Full screen', 'Replace file', 'Print', 'Download']);
     expect(container!.querySelector('[role="toolbar"][aria-label="Reading lamp"]')).toBeNull();
     act(() => render(null, container!));
@@ -90,13 +90,22 @@ describe('HighlightWorkspace', () => {
   it('every control in the row carries its word: seven controls leave the room Sign\'s thirteen do not (READ-04)', () => {
     mount({ fullscreen: false, pseudoFullscreen: false });
     const bar = container!.querySelector<HTMLElement>('[data-editor-toolbar]')!;
-    const tile = (name: string) => bar.querySelector<HTMLElement>(`button[aria-label="${name}"], button[title="${name}"]`)!;
+    const tile = (name: string) => [...bar.querySelectorAll<HTMLElement>('button')].find((b) => (b.getAttribute('aria-label') ?? b.textContent) === name)!;
     for (const name of ['Marker', 'Undo', 'Redo', 'Full screen', 'Replace file', 'Print', 'Download']) {
       expect(tile(name).hasAttribute('data-icon-only'), name).toBe(false);
       expect(tile(name).querySelector(`.${toolbarStyles.label}`)?.textContent, name).toBeTruthy();
     }
-    const printWrap = [...bar.children].find((c) => c.contains(tile('Print')))!;
-    expect(printWrap.classList.contains(toolbarStyles.dropdown)).toBe(true);
+    expect(tile('Print').parentElement).toBe(bar);
+  });
+
+  it('a labelled button gets no tooltip that repeats its word; Undo and Redo show their keys; Replace keeps the fuller sentence', () => {
+    mount({ fullscreen: false, pseudoFullscreen: false });
+    const bar = container!.querySelector<HTMLElement>('[data-editor-toolbar]')!;
+    const byText = (name: string) => [...bar.querySelectorAll<HTMLElement>('button')].find((b) => (b.getAttribute('aria-label') ?? b.textContent) === name)!;
+    for (const name of ['Print', 'Download', 'Full screen']) expect(byText(name).hasAttribute('title'), name).toBe(false);
+    expect(byText('Replace file').getAttribute('title')).toBe('Replace the current file');
+    expect(byText('Undo').getAttribute('title')).toBe('Ctrl+Z');
+    expect(byText('Redo').getAttribute('title')).toBe('Ctrl+Shift+Z');
   });
 
   it('keeps the tool shell mounted in the lamp, hidden, so the page does not stay behind its restore veil', () => {
@@ -212,7 +221,8 @@ describe('HighlightWorkspace notes (R28, R29)', () => {
       const trigger = (fullscreen ? ws : container!.querySelector('[data-editor-toolbar]')!).querySelector<HTMLElement>('button[aria-label="Print"]')!;
       expect(trigger.hasAttribute('aria-haspopup')).toBe(false);
       act(() => { trigger.click(); });
-      expect(printSpy).toHaveBeenCalledWith(false);
+      expect(printSpy).toHaveBeenCalledWith('none');
+      if (!fullscreen) expect(trigger.querySelector(`.${toolbarStyles.chevron}`)).toBeNull();
       expect(container!.querySelector('[role="menu"]')).toBeNull();
       act(() => render(null, container!));
     }
@@ -220,8 +230,17 @@ describe('HighlightWorkspace notes (R28, R29)', () => {
 
   it('opens the print menu 8 px under the capsule in the lamp, and under its own tile in the row', () => {
     const row = mount({ fullscreen: false, pseudoFullscreen: false }, [mark, note]);
-    act(() => { container!.querySelector<HTMLElement>('[data-editor-toolbar] button[title="Print"], [data-editor-toolbar] button[aria-label="Print"]')!.click(); });
-    expect(container!.querySelector('[data-editor-toolbar] [role="menu"]')).not.toBeNull();
+    const trigger = container!.querySelector<HTMLElement>('[data-editor-toolbar] button[aria-label="Print"]')!;
+    expect(trigger.getAttribute('aria-haspopup')).toBeTruthy();
+    expect(trigger.querySelector(`.${toolbarStyles.chevron}`)).not.toBeNull();
+    expect(trigger.parentElement!.classList.contains(toolbarStyles.dropdown)).toBe(true);
+    act(() => { trigger.click(); });
+    const items = [...document.querySelectorAll('[role="menu"] [role="menuitem"]')];
+    expect(items.map((i) => i.textContent)).toEqual(['Print', 'Print with my notes', 'Print with notes at the end']);
+    expect(items.every((i) => i.querySelector('svg'))).toBe(true);
+    printSpy.mockClear();
+    act(() => { (items[2] as HTMLElement).click(); });
+    expect(printSpy).toHaveBeenCalledWith('end');
     expect(row).toBeTruthy();
     act(() => render(null, container!));
     for (const fullscreen of [true]) {

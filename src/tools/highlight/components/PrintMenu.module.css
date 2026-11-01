@@ -1,16 +1,8 @@
-.wrap { position: relative; display: flex; min-width: 0; }
-/* Under the capsule's Print button; `top` and `left` are set inline from the button's box. */
+/* The lamp's menu: fixed under the capsule's Print button; `top` and `left` are set inline from the button's box. */
+.wrap { display: flex; min-width: 0; }
 .floating { position: fixed; z-index: 40; }
-/* Placement only: the surface is Sign's popover + toolbar-menu. */
-.menu {
-  position: absolute;
-  top: calc(100% + 6px);
-  inset-inline-start: 0;
-  z-index: 20;
-  min-width: 12rem;
-}
-.floating .menu { position: static; }
-/* On a phone Print is a narrow tile near the row's end: the menu hangs from its end edge so it stays on screen. */
-@media (max-width: 480px) { .menu { inset-inline-start: auto; inset-inline-end: 0; } }
+.menu { min-width: 12rem; }
+/* The tool row's menu: Sign's popover surface in a Popover portal, a little wider than its trigger. */
+.rowMenu { min-width: 12rem; border-radius: 12px; padding: .25rem; }
 .item { min-height: 2.25rem; white-space: nowrap; }
 @media (pointer: coarse) { .item { min-height: 2.75rem; } }
