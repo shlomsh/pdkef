@@ -43,6 +43,12 @@ describe('useHighlightMarks', () => {
     expect(marks.canRedo).toBe(false);
   });
 
+  it('re-arms the marker from a change', () => {
+    mount();
+    act(() => marks.rearm({ color: '#FF8080', style: 'underline' }));
+    expect(marks.marker).toEqual({ color: '#FF8080', style: 'underline', opacity: 1 });
+  });
+
   it('logs an added mark, then undoes and redoes it', () => {
     mount();
     act(() => addMark());
