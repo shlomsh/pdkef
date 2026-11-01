@@ -37,7 +37,9 @@ export default withIslandBoundary(function PdfHighlightTool() {
   const [pseudoFullscreen, setPseudoFullscreen] = useState(false);
   const fullscreen = realFullscreen || pseudoFullscreen;
   useFullscreenChange(workspaceRef, setRealFullscreen);
-  const zoom = useWorkspaceZoom({ pdfDocument, workspaceRef, columnRef, fullscreen });
+  const toggleLamp = () => toggleWorkspaceFullscreen(workspaceRef.current, pseudoFullscreen, setPseudoFullscreen);
+  // A wheel is not a user gesture, so real fullscreen may be refused; the toggle then falls back to pseudo fullscreen.
+  const zoom = useWorkspaceZoom({ pdfDocument, workspaceRef, columnRef, fullscreen, onEnterLamp: toggleLamp });
   const marks = useHighlightMarks();
   const share = usePdfShare();
   useHistoryKeys({ enabled: status === 'editing', undo: marks.undo, redo: marks.redo });
