@@ -166,6 +166,10 @@ export interface HighlightElement extends ElementBase, BoxGeometry {
   bands: HighlightBand[];
   /** SIGN-44: the swiped text's reading direction, so the comment number sits where the passage starts. Absent is LTR. */
   direction?: 'ltr' | 'rtl';
+  /** READ-03: absent is a highlight band; `'underline'` draws and exports a line at each band's bottom. */
+  style?: 'underline';
+  /** READ-03: 0.3 to 1, absent is 1. */
+  opacity?: number;
 }
 
 /** What a comment hangs on: a passage of page text, another element, or a spot on the page. */

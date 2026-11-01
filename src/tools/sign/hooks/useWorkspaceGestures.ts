@@ -14,13 +14,12 @@ import type {
   SymbolMark,
 } from '#editor/model/editorModel.ts';
 import type { DocumentStyle } from '#editor/model/documentStyle.ts';
-import { deletedWith } from '#editor/comments/anchors.ts';
+import { deletedWith } from '#editor/model/elementsReducer.ts';
 import { carriedTextStyle } from '../lib/elementDefaults.ts';
 import type { SavedSignature } from '#editor/model/savedSignature.ts';
 import type { PageGeometry } from '#editor/geometry/coords.ts';
 import { getElementDefinition } from '#editor/registry/index.ts';
 import { ensureMinimumElementSize } from '../lib/minimumSize.ts';
-import { startHighlightSwipe } from '#editor-ui/highlight/highlightSwipeGesture.ts';
 import { startCommentGesture } from '#editor-ui/comments/commentGesture.ts';
 import type { ElementAction } from '#editor-ui/elementActions.ts';
 import { directionAtPoint, readerTextDirection, resolveHighlightDirection } from '#editor/highlight/resolveDirection.ts';
@@ -495,7 +494,7 @@ export default function useWorkspaceGestures({
     ).find((node) => node.dataset.editorElementId === id);
 
     gestureCancelRef.current?.();
-    if (newEl.type === 'highlight' || newEl.type === 'comment') return (newEl.type === 'comment' ? startCommentGesture : startHighlightSwipe)({ dispatch, getPointerPercent, gestureCancelRef, logAction, setAnnouncement, messages: t, nextElementIndex, pageGeometry, direction: resolveHighlightDirection({ atPress: directionAtPoint(formRegions.pageTextRuns?.[pageIndex] ?? [], { x: startLeftPercent, y: startTopPercent }), page: formRegions.pageDirections?.[pageIndex], pages: formRegions.pageDirections ?? [], elements, readerDirection: readerTextDirection() }), isMouse: !('touches' in e) || !e.touches }, { pageIndex, container, id, newEl, start: { x: startLeftPercent, y: startTopPercent }, getElementNode });
+    if (newEl.type === 'comment') return startCommentGesture({ dispatch, getPointerPercent, gestureCancelRef, setAnnouncement, messages: t, pageGeometry, direction: resolveHighlightDirection({ atPress: directionAtPoint(formRegions.pageTextRuns?.[pageIndex] ?? [], { x: startLeftPercent, y: startTopPercent }), page: formRegions.pageDirections?.[pageIndex], pages: formRegions.pageDirections ?? [], elements, readerDirection: readerTextDirection() }), isMouse: !('touches' in e) || !e.touches }, { pageIndex, container, id, newEl, start: { x: startLeftPercent, y: startTopPercent }, getElementNode });
     gestureCancelRef.current = startGesture<PlacementPatch>({
       computePatch: (moveEvent) => {
       if ('touches' in moveEvent && moveEvent.touches && moveEvent.cancelable) moveEvent.preventDefault();

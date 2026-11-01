@@ -15,11 +15,6 @@ export function commentsAnchoredTo(elements: readonly EditorElement[], id: strin
   return elements.filter((el): el is CommentElement => isComment(el) && el.anchor.kind === 'element' && el.anchor.elementId === id);
 }
 
-/** The snapshot predicate every delete call site uses: the element and the comments anchored to it go (and come back) together. */
-export function deletedWith(id: string): (element: EditorElement) => boolean {
-  return (el) => el.id === id || (isComment(el) && el.anchor.kind === 'element' && el.anchor.elementId === id);
-}
-
 /** A target's box in percent of its page; a line has endpoints, a text box may have no stored size. */
 function boxOfTarget(target: EditorElement): { left: number; top: number; width: number; height: number } {
   if (target.type === 'line') {

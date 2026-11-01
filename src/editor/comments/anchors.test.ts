@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { CommentElement, EditorElement, HighlightElement, TextElement } from '../model/editorModel.ts';
-import { commentMarkers, commentsAnchoredTo, deletedWith, isComment, resolveCommentBoxes } from './anchors.ts';
+import { commentMarkers, commentsAnchoredTo, isComment, resolveCommentBoxes } from './anchors.ts';
 
 const highlight: HighlightElement = {
   id: 'h-1', type: 'highlight', pageIndex: 2, left: 10, top: 20, width: 30, height: 4, color: '#FFF34D',
@@ -25,11 +25,6 @@ describe('comment anchors', () => {
     const all: EditorElement[] = [highlight, text, onHighlight, pin];
     expect(commentsAnchoredTo(all, 'h-1')).toEqual([onHighlight]);
     expect(commentsAnchoredTo(all, 't-1')).toEqual([]);
-  });
-
-  it('deletedWith matches the id and the comments anchored to it', () => {
-    const matches = deletedWith('h-1');
-    expect([highlight, text, onHighlight, pin].filter(matches)).toEqual([highlight, onHighlight]);
   });
 
   it('gives an element comment its target box and page', () => {

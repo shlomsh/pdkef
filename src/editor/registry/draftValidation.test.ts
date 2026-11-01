@@ -174,6 +174,23 @@ describe('validateDraftRecord', () => {
     expect(result?.extra?.actionHistory).toEqual([repeat]);
   });
 
+  it('READ-04: a Sign draft holding a highlight and its comment restores with both intact', () => {
+    const highlight = {
+      id: 'h-1', type: 'highlight', pageIndex: 0, left: 10, top: 20, width: 30, height: 4, color: '#FFF34D',
+      bands: [{ left: 0, top: 0, width: 100, height: 100 }], direction: 'ltr',
+    };
+    const comment = {
+      id: 'h-1-comment', type: 'comment', pageIndex: 0, left: 10, top: 20, width: 30, height: 4,
+      comment: 'Check this', commentedAt: 1_790_000_000_000, anchor: { kind: 'element', elementId: 'h-1' },
+    };
+    const record = {
+      fileName: 'a.pdf', fileBytes: bytesOf(), schemaVersion: DRAFT_SCHEMA_VERSION,
+      elements: [goodText, highlight, comment], extra: { actionHistory: [] },
+    };
+    const result = validateDraftRecord(record);
+    expect(result?.elements).toEqual([goodText, highlight, comment]);
+  });
+
   let errorSpy: ReturnType<typeof vi.spyOn>;
   beforeEach(() => {
     errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
