@@ -100,8 +100,8 @@ export function CommentCardBody({ card, active, messages, label, onSelect, onSav
                 aria-label={messages.commentDelete} title={messages.commentDelete}
                 onClick={() => { onDelete(); onReturnFocus?.(); }}><TrashIcon /><span class={styles.deleteLabel}>{messages.commentDelete}</span></button>
             )}
-            <button type="button" class={`${dialogStyles.button} ${dialogStyles.secondary}`} onClick={cancel}>{messages.commentCancel}</button>
-            <button type="button" class={`${dialogStyles.button} ${dialogStyles.primary}`} disabled={blankNew} onClick={save}>{messages.highlightCommentLabel}</button>
+            <button type="button" class={`${dialogStyles.button} ${dialogStyles.secondary} ${styles.cancel}`} onClick={cancel}>{messages.commentCancel}</button>
+            <button type="button" class={`${dialogStyles.button} ${dialogStyles.primary} ${styles.save}`} disabled={blankNew} onClick={save}>{messages.highlightCommentLabel}</button>
           </div>
         </>
       ) : (
