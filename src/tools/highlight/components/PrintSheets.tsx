@@ -7,7 +7,7 @@ import { underlineInk, UNDERLINE_LIFT, UNDERLINE_WIDTH } from '#editor/model/und
 import { renderPageToCanvas } from '#lib/pdf/renderPage.js';
 import { reportError } from '#lib/telemetry/errorReport.ts';
 import { printNotes } from '../lib/print/printNotes.ts';
-import { pageSizes } from '../lib/print/pageSizes.ts';
+import { usePrintPaper } from '../hooks/usePrintPaper.ts';
 import { NOTE_FONT_PT, printPlan, type PagePrintPlan, type PrintNote } from '../lib/print/printPlan.ts';
 import styles from './PrintSheets.module.css';
 
@@ -143,16 +143,7 @@ export default function PrintSheets({ pdfDocument, elements, withNotes, pageTurn
     return () => { current = false; };
   }, [pdfDocument, pageTurns]);
 
-  // The paper is the page: each sheet prints on paper of its own size, so the browser adds no margin of its own.
-  // A constructed sheet, not a <style> element, so the CSP's style-src has nothing to refuse.
-  const paper = useMemo(() => pageSizes(pages), [pages]);
-  useEffect(() => {
-    if (paper.rules.length === 0 || typeof CSSStyleSheet === 'undefined' || !('adoptedStyleSheets' in document)) return undefined;
-    const sheet = new CSSStyleSheet();
-    sheet.replaceSync(paper.rules.join('\n'));
-    document.adoptedStyleSheets = [...document.adoptedStyleSheets, sheet];
-    return () => { document.adoptedStyleSheets = document.adoptedStyleSheets.filter((s) => s !== sheet); };
-  }, [paper]);
+  const pageNames = usePrintPaper(pages);
 
   const basePlan = useMemo(() => printPlan(pages, withNotes ? [] : null), [pages, withNotes]);
 
@@ -231,7 +222,7 @@ export default function PrintSheets({ pdfDocument, elements, withNotes, pageTurn
         </div>
       )}
       {plans && images && plans.map((plan, i) => (
-        <Sheet key={i} plan={plan} pageName={paper.names[i]} image={images[i]} highlights={highlightsOf(i)} texts={texts} onSettled={() => onSettled(i)} />
+        <Sheet key={i} plan={plan} pageName={pageNames[i]} image={images[i]} highlights={highlightsOf(i)} texts={texts} onSettled={() => onSettled(i)} />
       ))}
     </div>,
     document.body,

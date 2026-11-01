@@ -215,13 +215,16 @@ async function cycleDateFormat(element, times) {
   }
 }
 
+// Swatches are titled by their plain color name (READ-04), not their hex.
+const SWATCH_NAMES = { '#000000': 'Black', '#d8342b': 'Red', '#1463ff': 'Blue', '#1a8f54': 'Green', '#112d4e': 'Navy', '#ffffff': 'White' };
+const swatch = (page, hex) => page.locator(`[data-editor-color-menu] [data-editor-color-swatch][title="${SWATCH_NAMES[hex] ?? hex}"]`);
 async function setTextColor(element, hex) {
   await element.locator('button[title="Text color"]').click();
-  await element.page().locator(`[data-editor-color-menu] [data-editor-color-swatch][title="${hex}"]`).click();
+  await swatch(element.page(), hex).click();
 }
 async function setWhiteoutColorPreset(element, hex) {
   await element.locator('button[title="Whiteout color"]').click();
-  await element.page().locator(`[data-editor-color-menu] [data-editor-color-swatch][title="${hex}"]`).click();
+  await swatch(element.page(), hex).click();
 }
 /** No cream preset exists in ColorPicker.tsx's PRESET_COLORS (only black, red,
  * blue, green, navy and white) - this reaches through the same popover's native
