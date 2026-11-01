@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'preact/hooks';
+import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
 import type { PDFDocumentProxy } from 'pdfjs-dist';
 import PdfPageCanvas from '#editor-ui/PdfPageCanvas.tsx';
 import EditorPageHeader from '#editor-ui/EditorPageHeader.tsx';
@@ -25,6 +25,7 @@ import { formatMessage } from '#lib/text/formatMessage.ts';
 import { recordAction } from '#lib/telemetry/actionTrail.ts';
 import useCoarsePointer from '#editor-ui/hooks/useCoarsePointer.ts';
 import { useRestToolbar } from '../hooks/useRestToolbar.ts';
+import { cursorValue } from '../lib/marker/cursor.ts';
 import { inkEnd } from '../lib/marker/inkEnd.ts';
 import { buildMarkEdit } from '../lib/marker/markEdit.ts';
 import type { Marker } from '../lib/marker/markerState.ts';
@@ -62,6 +63,8 @@ export default function HighlightPage({ pdfDocument, pageIndex, widthPx, element
   const rest = useRestToolbar();
   const coarse = useCoarsePointer();
   const lastPointerType = useRef('mouse');
+  // R14: over the page the cursor is the pen in the hand. A finger has no cursor.
+  const pen = useMemo(() => (coarse ? undefined : cursorValue(marker)), [coarse, marker.color, marker.style, marker.opacity]);
   // The page's printed text in percent, kept for the swipe's reading direction; never state.
   const textRunsRef = useRef<ReturnType<typeof toPageTextRuns>>([]);
 
@@ -150,7 +153,7 @@ export default function HighlightPage({ pdfDocument, pageIndex, widthPx, element
   return (
     <div data-editor-page-card ref={cardRef}>
       <EditorPageHeader pageNumber={pageIndex + 1} onClear={null} />
-      <div className={`${workspaceStyles['page-wrapper']} ${styles.page}`} data-page-wrapper style={{ width: `${widthPx}px` }}>
+      <div className={`${workspaceStyles['page-wrapper']} ${styles.page}`} data-page-wrapper style={{ width: `${widthPx}px`, ...(pen ? { cursor: pen } : {}) }}>
         <PdfPageCanvas pdfDocument={pdfDocument} pageNum={pageIndex + 1} pageGeometry={geometry} />
         <div
           data-page-overlay className={workspaceStyles['page-overlay']} onPointerDown={onPointerDown}
