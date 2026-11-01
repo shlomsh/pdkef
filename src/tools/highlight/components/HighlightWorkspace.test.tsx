@@ -68,7 +68,15 @@ describe('HighlightWorkspace', () => {
     act(() => render(null, container!));
     const lamp = mount({ fullscreen: true, pseudoFullscreen: false });
     expect(lamp.querySelector('[role="toolbar"][aria-label="Reading lamp"]')).not.toBeNull();
-    expect(container!.querySelector('[data-editor-toolbar]')).toBeNull();
+    const hiddenBar = container!.querySelector('[data-editor-toolbar]')!;
+    expect(hiddenBar.closest('[hidden]')).not.toBeNull();
+  });
+
+  it('keeps the tool shell mounted in the lamp, hidden, so the page does not stay behind its restore veil', () => {
+    mount({ fullscreen: true, pseudoFullscreen: false });
+    const shell = container!.querySelector('[data-tool-shell]');
+    expect(shell).not.toBeNull();
+    expect(shell!.closest('[hidden]')).not.toBeNull();
   });
 
   it('covers the screen when the lamp stands in for fullscreen, as on an iPhone', () => {
