@@ -70,7 +70,7 @@ export default function RestToolbar({ mark, onChange, onDelete, onComment, onClo
       data-rest-toolbar data-side="above" onKeyDown={onArrow}
     >
       <ColorPickerMenu
-        value={look.color} title={t.markColors} presets={SIX_PRESETS} names={COLOR_NAMES}
+        value={look.color} title={t.markColors} presets={SIX_PRESETS} names={COLOR_NAMES} custom="wheel"
         onChange={(color) => live.current.onChange({ color })}
       >
         {!underline && <OpacitySlider value={look.opacity} onChange={(opacity) => live.current.onChange({ opacity })} />}

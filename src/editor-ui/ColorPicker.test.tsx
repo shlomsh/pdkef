@@ -53,3 +53,33 @@ describe('ColorPicker swatch names', () => {
     expect(a.getAttribute('aria-label')).toBe('#ffee00');
   });
 });
+
+describe('ColorPicker custom control', () => {
+  let host: HTMLDivElement | null = null;
+  afterEach(() => { const h = host; if (h) { act(() => render(null, h)); h.remove(); host = null; } });
+
+  it('is the square input by default', () => {
+    host = document.createElement('div');
+    document.body.appendChild(host);
+    const h = host;
+    act(() => render(<ColorPicker value="#000000" onChange={() => {}} />, h));
+    expect(h.querySelector('[data-color-wheel]')).toBeNull();
+    expect(h.querySelector('input[type="color"]')).not.toBeNull();
+  });
+
+  it("custom='wheel' renders the hue wheel, which commits once on change", () => {
+    const spy = vi.fn();
+    host = document.createElement('div');
+    document.body.appendChild(host);
+    const h = host;
+    act(() => render(<ColorPicker value="#000000" onChange={spy} custom="wheel" title="Choose a color" />, h));
+    expect(h.querySelectorAll('input[type="color"]')).toHaveLength(1);
+    expect(h.querySelector('[data-color-wheel]')).not.toBeNull();
+    const input = h.querySelector('input[type="color"]') as HTMLInputElement;
+    input.value = '#336699';
+    act(() => { input.dispatchEvent(new Event('input', { bubbles: true })); });
+    expect(spy).not.toHaveBeenCalled();
+    act(() => { input.dispatchEvent(new Event('change', { bubbles: true })); });
+    expect(spy).toHaveBeenCalledWith('#336699');
+  });
+});

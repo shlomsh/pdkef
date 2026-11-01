@@ -41,14 +41,15 @@ describe('MarkerButton', () => {
     expect(container!.querySelector('[data-marker-dot]')).toBeNull();
   });
 
-  it('a click opens the six colors, Underline and the plus', () => {
+  it('a click opens the six colors, Underline and the color wheel', () => {
     const { open, button } = mount();
     expect(button().getAttribute('aria-expanded')).toBe('false');
     open();
     expect(button().getAttribute('aria-expanded')).toBe('true');
     expect(container!.querySelectorAll('[data-highlight-swatch]')).toHaveLength(HIGHLIGHT_COLORS.length);
     expect(container!.querySelector(`button[aria-label="${t.markUnderline}"]`)).not.toBeNull();
-    expect(container!.querySelector(`button[aria-label="${t.markCustom}"]`)).not.toBeNull();
+    expect(container!.querySelector(`button[aria-label="${t.markCustom}"]`)).toBeNull();
+    expect(container!.querySelector('[data-color-wheel]')).not.toBeNull();
   });
 
   it('picking a color re-arms the marker and closes the colors', () => {
@@ -71,17 +72,32 @@ describe('MarkerButton', () => {
     expect(props.onChange).toHaveBeenLastCalledWith({ style: 'highlight' });
   });
 
-  it('the plus opens a color input and an opacity slider, each a re-arm', () => {
+  it('the wheel commits a chosen color once, as a re-arm', () => {
     const { props, open } = mount();
     open();
-    press(container!.querySelector(`button[aria-label="${t.markCustom}"]`)!);
+    const input = container!.querySelector('[data-color-wheel] input[type="color"]') as HTMLInputElement;
+    expect(input.getAttribute('aria-label')).toBe(t.markColorInput);
+    input.value = '#336699';
+    act(() => { input.dispatchEvent(new Event('input', { bubbles: true })); });
+    expect(props.onChange).not.toHaveBeenCalled();
+    act(() => { input.dispatchEvent(new Event('change', { bubbles: true })); });
+    expect(props.onChange).toHaveBeenCalledWith({ color: '#336699' });
+  });
+
+  it('a highlight shows the opacity slider without a second click, each move a re-arm', () => {
+    const { props, open } = mount();
+    open();
     const range = container!.querySelector('[data-opacity-slider] input') as HTMLInputElement;
     expect(range).not.toBeNull();
-    expect(range.closest('[data-opacity-slider]')).not.toBeNull();
-    expect(container!.querySelector(`input[aria-label="${t.markColorInput}"]`)).not.toBeNull();
     range.value = '0.5';
     act(() => { range.dispatchEvent(new Event('input', { bubbles: true })); });
     expect(props.onChange).toHaveBeenLastCalledWith({ opacity: 0.5 });
+  });
+
+  it('an underline has no opacity slider', () => {
+    const { open } = mount({ marker: { ...DEFAULT_MARKER, style: 'underline' } });
+    open();
+    expect(container!.querySelector('[data-opacity-slider]')).toBeNull();
   });
 
   it('Escape closes the menu and nothing above it hears the key', () => {

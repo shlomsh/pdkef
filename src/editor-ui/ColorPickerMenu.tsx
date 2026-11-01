@@ -8,7 +8,7 @@ import Popover from '#shell/Popover.tsx';
 // dropdown-container/backdrop/menu pattern as the saved-signatures dropdown
 // (PdfSignTool.tsx) so the per-element floating toolbar only shows a single
 // swatch button instead of the full palette inline.
-export default function ColorPickerMenu({ value, onChange, title, defaultColor = '#000000', presets, names, children }: { value?: string; onChange: (color: string) => void; title?: string; defaultColor?: string; presets?: readonly string[]; names?: Readonly<Record<string, string>>; children?: ComponentChildren }) {
+export default function ColorPickerMenu({ value, onChange, title, defaultColor = '#000000', presets, names, custom, children }: { custom?: 'square' | 'wheel'; value?: string; onChange: (color: string) => void; title?: string; defaultColor?: string; presets?: readonly string[]; names?: Readonly<Record<string, string>>; children?: ComponentChildren }) {
   const [open, setOpen] = useState(false);
   const swatchColor = value || defaultColor;
 
@@ -46,6 +46,7 @@ export default function ColorPickerMenu({ value, onChange, title, defaultColor =
             defaultColor={defaultColor}
             presets={presets}
             names={names}
+            custom={custom}
           />
           {children ? <div className={styles['color-menu-extra']}>{children}</div> : null}
         </div>
