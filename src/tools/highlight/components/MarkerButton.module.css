@@ -170,3 +170,10 @@
 @media (prefers-reduced-motion: reduce) {
   .button { transition: none; }
 }
+
+/* On a phone the popover never leaves the viewport: it wraps its 44 px targets onto two rows when they do not fit.
+   Where it starts is set by the row that hosts the button (HighlightWorkspace.module.css). */
+@media (pointer: coarse), (max-width: 480px) {
+  .menu { max-width: calc(100vw - 32px); }
+  .row { flex-wrap: wrap; height: auto; min-height: var(--cell); }
+}
