@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { underlineInk } from '#editor/model/underlineInk.ts';
-import { CURSOR_FALLBACK, CURSOR_HOTSPOT, CURSOR_SIZE, cursorSvg, cursorValue } from './cursor.ts';
+import { cursorValue } from './cursor.ts';
 import type { Marker } from './markerState.ts';
 
 const yellow: Marker = { color: '#FFF34D', style: 'highlight', opacity: 1 };
@@ -8,21 +8,20 @@ const decoded = (value: string) => decodeURIComponent(/url\("data:image\/svg\+xm
 
 describe('highlighter cursor (R14)', () => {
   it('is a 24 px image', () => {
-    expect(CURSOR_SIZE).toBe(24);
-    expect(cursorSvg(yellow)).toMatch(/width="24" height="24"/);
+    expect(decoded(cursorValue(yellow))).toMatch(/width="24" height="24"/);
   });
 
   it('puts the hotspot at the tip, scaled from the 32 grid, inside the image', () => {
-    expect(CURSOR_HOTSPOT).toEqual({ x: 5, y: 22 });
-    expect(CURSOR_HOTSPOT.x).toBeLessThan(CURSOR_SIZE);
-    expect(CURSOR_HOTSPOT.y).toBeLessThan(CURSOR_SIZE);
+    const [x, y] = /\) (\d+) (\d+),/.exec(cursorValue(yellow))!.slice(1).map(Number);
+    expect([x, y]).toEqual([5, 22]);
+    expect(x).toBeLessThan(24);
+    expect(y).toBeLessThan(24);
   });
 
   it('is a css cursor value: the data url, the hotspot, then crosshair', () => {
     const value = cursorValue(yellow);
     expect(value.startsWith('url("data:image/svg+xml,')).toBe(true);
     expect(value.endsWith('") 5 22, crosshair')).toBe(true);
-    expect(CURSOR_FALLBACK).toBe('crosshair');
   });
 
   it('keeps the data url free of characters that would end the css string', () => {
