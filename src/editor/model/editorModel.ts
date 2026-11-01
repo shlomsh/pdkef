@@ -170,6 +170,8 @@ export interface HighlightElement extends ElementBase, BoxGeometry {
   style?: 'underline';
   /** READ-03: 0.3 to 1, absent is 1. */
   opacity?: number;
+  /** READ-04: an underline's line width in PDF points, within UNDERLINE_WIDTH; absent is its default. */
+  strokeWidth?: number;
 }
 
 /** What a comment hangs on: a passage of page text, another element, or a spot on the page. */

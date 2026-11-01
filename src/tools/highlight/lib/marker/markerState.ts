@@ -2,7 +2,7 @@ import { HIGHLIGHT_COLORS } from '#editor/model/highlightColors.ts';
 
 export { HIGHLIGHT_COLORS };
 
-export interface Marker { color: string; style: 'highlight' | 'underline'; opacity: number }
+export interface Marker { color: string; style: 'highlight' | 'underline'; opacity: number; /** READ-04: the underline's width in points; absent is UNDERLINE_WIDTH.default. */ strokeWidth?: number }
 
 export const OPACITY_MIN = 0.3;
 
