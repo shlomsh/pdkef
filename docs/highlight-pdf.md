@@ -22,7 +22,7 @@ PDF24 does (its annotate and edit pages open the same editor), and it reads as n
 
 **Decided 2026-11-01:**
 
-- Reading becomes its own tool, **Highlight PDF**, at `/highlight-pdf/` (name to confirm, see Open calls).
+- Reading becomes its own tool, **Highlight PDF**, at `/highlight-pdf/` (name confirmed the same day).
   It is built on the shared editor core (`src/editor/`, `src/editor-ui/`), not copied from Sign.
 - **Sign keeps comment on everything** (a passage tint, a comment on an element, a pin; see
   `docs/sign-comments-model.md`) and **loses the Highlight tool**. Highlight had been in Sign under twelve
@@ -156,11 +156,10 @@ Demand sits on iPad; with a mouse almost nobody draws.
 
 ## Open calls (Shlomi)
 
-1. **The name.** "Highlight PDF" (recommended: the primary term and our verb naming) against "PDF
-   Highlighter" (a fifth of the searches).
-2. **Where a comment sits** (READ-01, open call 2): a margin marker inside the page that opens a card beside
-   its passage is recommended. *Decided since the first draft:* desktop drags with the marker in the hand
-   (the marker model), which scopes the one-shot rule out of this tool.
+1. **The name** is decided: Highlight PDF.
+2. **Where a comment sits** (READ-01, open call): two sketches decide it, a margin marker that opens a card
+   beside its passage, or a popover under the passage itself. *Decided since the first draft:* desktop
+   drags with the marker in the hand (the marker model), which scopes the one-shot rule out of this tool.
 3. **Long-press and drag on a phone**, the gesture phones already teach for selecting text, instead of
    arming. Clean on a scan (no text layer to select); on a digital PDF it needs a real-iPhone check that it
    does not fight the browser's own selection (READ-07).

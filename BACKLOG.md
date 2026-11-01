@@ -51,7 +51,7 @@ Marking should feel like holding a highlighter, not like operating software. Ske
 
 | ID | P | Task | Note |
 | --- | --- | --- | --- |
-| READ-01 | P2 | [READ-01](backlog/tasks/READ-01.md) · Highlight PDF: the sketches, turned into hard requirements for the real tool | In progress. Needs Shlomi: Your OK on the requirements below and your answers to the open calls |
+| READ-01 | P2 | [READ-01](backlog/tasks/READ-01.md) · Highlight PDF: the sketches, turned into hard requirements for the real tool | In progress. Needs Shlomi: Your pick between the two comment sketches |
 
 ### Then, in order
 

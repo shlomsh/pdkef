@@ -29,3 +29,4 @@ Coarse pointers keep 44 px targets. Leaving fullscreen restores today's toolbar 
 - [ ] An e2e at two desktop widths pins the capsule centred on the page column, and that nothing in the
   page moves when it wakes, dozes or opens a menu.
 - [ ] Arming a tool in fullscreen does not move the capsule (the SIGN-30 rule).
+- [ ] At 375 px the capsule fits the screen with 44 px targets (READ-01, R42).
