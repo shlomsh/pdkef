@@ -84,6 +84,21 @@ describe('usePrint', () => {
     expect(reportError.mock.calls[0][2]).toBe('print_timeout');
   });
 
+  it('clears the job 1 s after print returns when afterprint never fires, and a second print starts a new job', () => {
+    act(() => api.print(false));
+    act(() => sheetProps!.onReady());
+    expect(mounted()).toBe(true);
+    act(() => { vi.advanceTimersByTime(999); });
+    expect(mounted()).toBe(true);
+    act(() => { vi.advanceTimersByTime(1); });
+    expect(mounted()).toBe(false);
+    act(() => api.print(true));
+    expect(mounted()).toBe(true);
+    expect(sheetProps?.withNotes).toBe(true);
+    act(() => sheetProps!.onReady());
+    expect(window.print).toHaveBeenCalledTimes(2);
+  });
+
   it('a second request while one is open is ignored', () => {
     act(() => api.print(false));
     act(() => api.print(true));
