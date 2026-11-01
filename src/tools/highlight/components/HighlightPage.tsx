@@ -1,16 +1,13 @@
-import { useEffect, useRef, useState } from 'preact/hooks';
+import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
 import type { PDFDocumentProxy } from 'pdfjs-dist';
 import PdfPageCanvas from '#editor-ui/PdfPageCanvas.tsx';
 import EditorPageHeader from '#editor-ui/EditorPageHeader.tsx';
 import HighlightNode from '#editor-ui/highlight/HighlightNode.tsx';
-import { startHighlightSwipe } from '#editor-ui/highlight/highlightSwipeGesture.ts';
-import type { ElementAction } from '#editor-ui/elementActions.ts';
 import usePdfCoordinates from '#editor-ui/hooks/usePdfCoordinates.ts';
 import workspaceStyles from '#editor-ui/Workspace.module.css';
 import type { HistoryLogger } from '#editor/model/actionHistory.ts';
 import type { EditorElement, HighlightElement } from '#editor/model/editorModel.ts';
 import type { ElementsAction } from '#editor/model/elementsReducer.ts';
-import { createElementId } from '#editor/model/ids.ts';
 import { pageGeometryFromPdfJsPage, type PageGeometry } from '#editor/geometry/coords.ts';
 import { englishSignMessages } from '#editor/registry/signMessages.ts';
 import { toPageTextRuns } from '#editor/geometry/textRuns.ts';
@@ -24,7 +21,10 @@ import { signElementTypeLabel, signUpdateDescription } from '#editor/registry/si
 import { formatMessage } from '#lib/text/formatMessage.ts';
 import { recordAction } from '#lib/telemetry/actionTrail.ts';
 import useCoarsePointer from '#editor-ui/hooks/useCoarsePointer.ts';
+import { useClickMarks } from '../hooks/useClickMarks.ts';
+import { useMarkSwipe } from '../hooks/useMarkSwipe.ts';
 import { useRestToolbar } from '../hooks/useRestToolbar.ts';
+import { cursorValue } from '../lib/marker/cursor.ts';
 import { inkEnd } from '../lib/marker/inkEnd.ts';
 import { buildMarkEdit } from '../lib/marker/markEdit.ts';
 import type { Marker } from '../lib/marker/markerState.ts';
@@ -34,14 +34,11 @@ import styles from './HighlightPage.module.css';
 
 const noop = () => {};
 
-/** A press by a mouse or a pen marks; a finger scrolls. */
-const isFinePointer = (event: PointerEvent) => event.pointerType === 'mouse' || event.pointerType === 'pen';
-
 /**
  * One page card: its header, the page, and a wrapper per highlight on it. A fine-pointer press on the
  * page starts a swipe that lays the marker's bands; the gesture paints during the swipe and commits once.
  */
-export default function HighlightPage({ pdfDocument, pageIndex, widthPx, elements, marker, rearm, dispatch, logAction, setAnnouncement, cardRef }: {
+export default function HighlightPage({ pdfDocument, pageIndex, widthPx, elements, marker, touchArmed = false, rearm, dispatch, logAction, setAnnouncement, cardRef }: {
   pdfDocument: PDFDocumentProxy | null;
   pageIndex: number;
   /** The page's width in CSS px at the current zoom. */
@@ -49,6 +46,8 @@ export default function HighlightPage({ pdfDocument, pageIndex, widthPx, element
   /** Every element of the document: the page draws its own, and the new one's place in the history comes from the count. */
   elements: EditorElement[];
   marker: Marker;
+  /** The marker is armed for a finger (touch devices): a one-finger press marks and the page does not scroll. */
+  touchArmed?: boolean;
   /** Every change made on a highlight becomes the marker for the next stroke (R5). */
   rearm: (change: Partial<Marker>) => void;
   dispatch: (action: ElementsAction) => void;
@@ -56,14 +55,16 @@ export default function HighlightPage({ pdfDocument, pageIndex, widthPx, element
   setAnnouncement: (message: string) => void;
   cardRef: (node: HTMLDivElement | null) => void;
 }) {
-  const gestureCancelRef = useRef<(() => void) | null>(null);
   const [geometry, setGeometry] = useState<PageGeometry | undefined>(undefined);
   const { getPointerPercent } = usePdfCoordinates();
   const rest = useRestToolbar();
   const coarse = useCoarsePointer();
   const lastPointerType = useRef('mouse');
+  // R14: over the page the cursor is the pen in the hand. A finger has no cursor.
+  const pen = useMemo(() => (coarse ? undefined : cursorValue(marker)), [coarse, marker.color, marker.style, marker.opacity]);
   // The page's printed text in percent, kept for the swipe's reading direction; never state.
   const textRunsRef = useRef<ReturnType<typeof toPageTextRuns>>([]);
+  const overlayRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     setGeometry(undefined);
@@ -83,8 +84,6 @@ export default function HighlightPage({ pdfDocument, pageIndex, widthPx, element
     });
     return () => { live = false; };
   }, [pdfDocument, pageIndex]);
-
-  useEffect(() => () => gestureCancelRef.current?.(), []);
 
   const marks = elements.filter((el): el is HighlightElement => el.type === 'highlight' && el.pageIndex === pageIndex);
 
@@ -110,50 +109,39 @@ export default function HighlightPage({ pdfDocument, pageIndex, widthPx, element
     rest.close();
   };
 
+  /** The way a mark laid at `start` reads: the text under it, else the page, else the reader. */
+  const directionAt = (start: { x: number; y: number }) => resolveHighlightDirection({
+    atPress: directionAtPoint(textRunsRef.current, start), page: pageTextDirection(textRunsRef.current.map((r) => r.str)), pages: [], elements, readerDirection: readerTextDirection(),
+  });
+
+  /** A mark landed, by a swipe or a click: rest waits for the pointer to leave this spot, and the first mark gets its hint. */
+  const inkLanded = (element: HighlightElement) => {
+    rest.strokeEnd();
+    const end = inkEnd(element);
+    rest.showHint({ x: end.x, bottom: end.bottom, rtl: element.direction === 'rtl' });
+  };
+
+  const clicks = useClickMarks({
+    overlayRef, pageIndex, geometry, elements, marker, textRuns: () => textRunsRef.current, getPointerPercent, directionAt,
+    dispatch, logAction, setAnnouncement, onMark: inkLanded,
+  });
+
+  const startSwipe = useMarkSwipe({
+    pageIndex, geometry, elements, marker, touchArmed, getPointerPercent, directionAt, dispatch, logAction, setAnnouncement, clicks,
+    onPress: rest.clearHint, onInk: inkLanded,
+  });
   const onPointerDown = (event: PointerEvent) => {
     lastPointerType.current = event.pointerType;
-    if (event.button !== 0 || !isFinePointer(event)) return;
-    if ((event.target as Element | null)?.closest('[data-element-id]')) return;
-    rest.clearHint();
-    const container = event.currentTarget as HTMLElement;
-    const start = getPointerPercent(event, container, geometry);
-    const id = createElementId();
-    const newEl: HighlightElement = {
-      id, type: 'highlight', pageIndex, left: start.x, top: start.y, width: 0, height: 0, bands: [], color: marker.color,
-      ...(marker.style === 'underline' ? { style: 'underline' as const } : {}),
-      ...(marker.opacity < 1 ? { opacity: marker.opacity } : {}),
-    };
-    dispatch({ type: 'ADD_ELEMENT', payload: newEl });
-    gestureCancelRef.current?.();
-    // The marker stays armed: the swipe's disarm is not an action of this tool's state.
-    const swipeDispatch = (action: ElementAction) => {
-      if (action.type === 'DISARM_TOOL') return;
-      dispatch(action);
-      // The stroke committed its bands: rest waits for the pointer to leave this spot, and the first mark gets its hint.
-      if (action.type === 'UPDATE_ELEMENT' && action.payload.id === id && 'bands' in action.payload.changes) {
-        rest.strokeEnd();
-        const end = inkEnd({ ...newEl, ...action.payload.changes } as HighlightElement);
-        rest.showHint({ x: end.x, bottom: end.bottom, rtl: (action.payload.changes as Partial<HighlightElement>).direction === 'rtl' });
-      }
-    };
-    startHighlightSwipe({
-      dispatch: swipeDispatch, getPointerPercent, gestureCancelRef, logAction, setAnnouncement, messages: englishSignMessages,
-      nextElementIndex: elements.length, pageGeometry: geometry,
-      direction: resolveHighlightDirection({ atPress: directionAtPoint(textRunsRef.current, start), page: pageTextDirection(textRunsRef.current.map((r) => r.str)), pages: [], elements, readerDirection: readerTextDirection() }),
-      isMouse: true,
-    }, {
-      pageIndex, container, id, newEl, start,
-      getElementNode: () => container.querySelector<HTMLElement>(`[data-element-id="${id}"]`) ?? undefined,
-    });
+    startSwipe(event);
   };
 
   return (
     <div data-editor-page-card ref={cardRef}>
       <EditorPageHeader pageNumber={pageIndex + 1} onClear={null} />
-      <div className={`${workspaceStyles['page-wrapper']} ${styles.page}`} data-page-wrapper style={{ width: `${widthPx}px` }}>
+      <div className={`${workspaceStyles['page-wrapper']} ${styles.page}`} data-page-wrapper style={{ width: `${widthPx}px`, ...(pen ? { cursor: pen } : {}) }}>
         <PdfPageCanvas pdfDocument={pdfDocument} pageNum={pageIndex + 1} pageGeometry={geometry} />
         <div
-          data-page-overlay className={workspaceStyles['page-overlay']} onPointerDown={onPointerDown}
+          ref={overlayRef} data-page-overlay data-touch-armed={touchArmed ? '' : undefined} className={touchArmed ? `${workspaceStyles['page-overlay']} ${styles.touchArmed}` : workspaceStyles['page-overlay']} onPointerDown={onPointerDown}
           onPointerMove={rest.onPointerMove} onPointerLeave={rest.onPointerLeave}
           onClick={(event) => {
             // R7: a tap with a finger opens the highlight under it. A mouse opens it by resting.

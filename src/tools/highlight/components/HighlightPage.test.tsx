@@ -2,10 +2,13 @@ import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { EditorElement, HighlightElement } from '#editor/model/editorModel.ts';
+import { swallowNextClick } from '#lib/gestures/swallowNextClick.ts';
 import { DEFAULT_MARKER } from '../lib/marker/markerState.ts';
 
 const startHighlightSwipe = vi.fn();
 vi.mock('#editor-ui/highlight/highlightSwipeGesture.ts', () => ({ startHighlightSwipe }));
+const readScanUnit = vi.fn();
+vi.mock('../lib/marker/scanUnits.ts', () => ({ readScanUnit }));
 vi.mock('#editor-ui/PdfPageCanvas.tsx', () => ({ default: () => <canvas data-canvas /> }));
 
 const { default: HighlightPage } = await import('./HighlightPage.tsx');
@@ -20,10 +23,10 @@ const dispatch = vi.fn();
 const logAction = vi.fn();
 const rearm = vi.fn();
 
-function mount(elements: EditorElement[], marker = DEFAULT_MARKER) {
+function mount(elements: EditorElement[], marker = DEFAULT_MARKER, touchArmed?: boolean) {
   act(() => render(
     <HighlightPage
-      pdfDocument={null} pageIndex={0} widthPx={600} elements={elements} marker={marker}
+      pdfDocument={null} pageIndex={0} widthPx={600} elements={elements} marker={marker} touchArmed={touchArmed}
       dispatch={dispatch} logAction={logAction} rearm={rearm} setAnnouncement={() => {}} cardRef={() => {}}
     />,
     container,
@@ -48,6 +51,7 @@ afterEach(() => {
   dispatch.mockClear();
   logAction.mockClear();
   startHighlightSwipe.mockClear();
+  readScanUnit.mockReset();
   rearm.mockClear();
   localStorage.clear();
   vi.useRealTimers();
@@ -243,5 +247,325 @@ describe('HighlightPage one-time hint', () => {
     finishStroke(overlay);
     press(overlay, { pointerType: 'mouse' });
     expect(container.querySelector('[data-mark-hint]')).toBeNull();
+  });
+});
+
+describe('HighlightPage cursor (R14)', () => {
+  let restore = () => {};
+  afterEach(() => restore());
+  const wrapper = () => container.querySelector<HTMLElement>('[data-page-wrapper]')!;
+
+  it('on a fine pointer the page wears the highlighter in the armed color', () => {
+    restore = stubPointer(false);
+    mount([], { color: '#FF8FCF', style: 'highlight', opacity: 1 });
+    const cursor = wrapper().style.cursor;
+    expect(cursor).toContain('data:image/svg+xml');
+    expect(decodeURIComponent(cursor)).toContain('#FF8FCF');
+    expect(cursor.endsWith('crosshair')).toBe(true);
+  });
+
+  it('follows the marker: underlining swaps the tip', () => {
+    restore = stubPointer(false);
+    mount([], { color: '#FF8FCF', style: 'underline', opacity: 1 });
+    expect(decodeURIComponent(wrapper().style.cursor)).toContain('data-tip="fine"');
+  });
+
+  it('on a finger there is no cursor to set', () => {
+    restore = stubPointer(true);
+    mount([]);
+    expect(wrapper().style.cursor).toBe('');
+  });
+});
+
+describe('HighlightPage click marks on a digital page (R10 to R12)', () => {
+  // One line, 'hello world', 40 pt wide at x = 10 on a 200 x 400 page: left 5%, top 22.5%, 20% wide, 2.5% tall.
+  // The overlay is measured at 200 x 400 px, so a client point is its page point.
+  const WORD = { x: 20, y: 92 };
+  let overlay: HTMLElement;
+
+  let doc: ReturnType<typeof textPage>;
+  const renderPage = (elements: EditorElement[], marker = DEFAULT_MARKER) => act(() => render(
+    <HighlightPage
+      pdfDocument={doc} pageIndex={0} widthPx={200} elements={elements} marker={marker}
+      dispatch={dispatch} logAction={logAction} rearm={rearm} setAnnouncement={() => {}} cardRef={() => {}}
+    />,
+    container,
+  ));
+
+  async function mountText(elements: EditorElement[] = [], marker = DEFAULT_MARKER) {
+    doc = textPage(['hello world']);
+    await act(async () => { renderPage(elements, marker); });
+    await act(async () => { await new Promise((resolve) => setTimeout(resolve, 0)); });
+    overlay = container.querySelector<HTMLElement>('[data-page-overlay]')!;
+    overlay.getBoundingClientRect = () => ({ left: 0, top: 0, right: 200, bottom: 400, width: 200, height: 400, x: 0, y: 0, toJSON: () => ({}) });
+  }
+
+  /** A mouse press, its release and its click, as the browser sends them. */
+  function clickAt(detail: number, target: Element = overlay, at = WORD) {
+    const down = new MouseEvent('pointerdown', { bubbles: true, cancelable: true, button: 0, clientX: at.x, clientY: at.y });
+    Object.defineProperty(down, 'pointerType', { value: 'mouse' });
+    act(() => { target.dispatchEvent(down); });
+    act(() => { window.dispatchEvent(new MouseEvent('mouseup', { bubbles: true, clientX: at.x, clientY: at.y })); });
+    act(() => { target.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, detail, clientX: at.x, clientY: at.y })); });
+  }
+
+  /** The press's swipe lays ink, as a press that drifted a few pixels does. */
+  function layInk() {
+    const [deps, target] = startHighlightSwipe.mock.calls.at(-1)!;
+    act(() => deps.dispatch({ type: 'UPDATE_ELEMENT', payload: { id: target.id, changes: { left: 5, top: 22, width: 20, height: 3, bands: [{ left: 0, top: 0, width: 100, height: 100 }] } } }));
+    return target.id as string;
+  }
+
+  const added = () => dispatch.mock.calls.map(([a]) => a).filter((a) => a.type === 'ADD_ELEMENT' && a.payload.bands.length > 0).map((a) => a.payload as HighlightElement);
+
+  it('a single click marks nothing', async () => {
+    await mountText();
+    clickAt(1);
+    expect(added()).toHaveLength(0);
+  });
+
+  it('sees the click a mouse swipe swallows, because it listens from the press on', async () => {
+    await mountText();
+    // As the swipe does when it commits on mouseup: swallow the click that follows.
+    startHighlightSwipe.mockImplementationOnce(() => {
+      window.addEventListener('mouseup', () => swallowNextClick(), { once: true });
+    });
+    clickAt(2);
+    expect(added()).toHaveLength(1);
+  });
+
+  it('a double-click marks the word under it, in the armed marker, as one undo step', async () => {
+    await mountText([], { color: '#FF8FCF', style: 'underline', opacity: 0.5 });
+    clickAt(2);
+    const [mark] = added();
+    expect(mark).toMatchObject({ type: 'highlight', pageIndex: 0, color: '#FF8FCF', style: 'underline', opacity: 0.5 });
+    expect(mark.bands).toHaveLength(1);
+    expect(mark.left).toBeCloseTo(5, 0);
+    expect(mark.width).toBeLessThan(20);
+    expect(mark.width).toBeGreaterThan(5);
+    expect(logAction).toHaveBeenCalledWith('add', 'ADD_SHAPE', 0, expect.any(String), [expect.objectContaining({ element: mark })]);
+    expect(dispatch.mock.calls.some(([a]) => a.type === 'UNDO')).toBe(false);
+  });
+
+  it('a double-click on the gap between words, or off the text, marks nothing', async () => {
+    await mountText();
+    clickAt(2, overlay, { x: 20, y: 300 });
+    expect(added()).toHaveLength(0);
+  });
+
+  it('a double-click whose press laid ink undoes that ink first, then adds the word, so there is never a second mark', async () => {
+    await mountText();
+    // The press of the second click lays ink before its click arrives.
+    const down = new MouseEvent('pointerdown', { bubbles: true, cancelable: true, button: 0, clientX: WORD.x, clientY: WORD.y });
+    Object.defineProperty(down, 'pointerType', { value: 'mouse' });
+    act(() => { overlay.dispatchEvent(down); });
+    layInk();
+    dispatch.mockClear();
+    act(() => { window.dispatchEvent(new MouseEvent('mouseup', { bubbles: true })); });
+    act(() => { overlay.dispatchEvent(new MouseEvent('click', { bubbles: true, detail: 2, clientX: WORD.x, clientY: WORD.y })); });
+    const types = dispatch.mock.calls.map(([a]) => a.type);
+    expect(types.indexOf('UNDO')).toBeGreaterThanOrEqual(0);
+    expect(types.indexOf('UNDO')).toBeLessThan(types.indexOf('ADD_ELEMENT'));
+  });
+
+  it('never removes an existing highlight: a double-click on one does nothing', async () => {
+    const over: HighlightElement = { ...mark, left: 5, top: 22, width: 20, height: 3 };
+    await mountText([over]);
+    const wrapper = container.querySelector('[data-element-id]')!;
+    clickAt(2, wrapper);
+    expect(added()).toHaveLength(0);
+    expect(dispatch.mock.calls.some(([a]) => a.type === 'UNDO' || a.type === 'DELETE_ELEMENT')).toBe(false);
+  });
+
+  it('a third click grows the word it just laid to the sentence, replacing it', async () => {
+    await mountText();
+    clickAt(2);
+    const [word] = added();
+    act(() => renderPage([word]));
+    dispatch.mockClear();
+    clickAt(3, container.querySelector(`[data-element-id="${word.id}"]`)!);
+    const types = dispatch.mock.calls.map(([a]) => a.type);
+    expect(types.indexOf('UNDO')).toBeGreaterThanOrEqual(0);
+    expect(types.indexOf('UNDO')).toBeLessThan(types.indexOf('ADD_ELEMENT'));
+    expect(added()[0].width).toBeGreaterThan(word.width);
+  });
+});
+
+describe('HighlightPage sweep (R13)', () => {
+  const animate = vi.fn();
+  let restore = () => {};
+  beforeEach(() => { (HTMLElement.prototype as unknown as { animate: unknown }).animate = animate; });
+  afterEach(() => {
+    animate.mockReset();
+    restore();
+    delete (HTMLElement.prototype as unknown as { animate?: unknown }).animate;
+  });
+
+  function markByClick(strings: string[], reduced = false) {
+    const original = window.matchMedia;
+    window.matchMedia = ((query: string) => ({ ...original(query), matches: query.includes('reduce') ? reduced : false })) as typeof window.matchMedia;
+    restore = () => { window.matchMedia = original; };
+    const doc = textPage(strings);
+    const draw = (elements: EditorElement[]) => act(() => render(
+      <HighlightPage
+        pdfDocument={doc} pageIndex={0} widthPx={200} elements={elements} marker={DEFAULT_MARKER}
+        dispatch={dispatch} logAction={logAction} rearm={rearm} setAnnouncement={() => {}} cardRef={() => {}}
+      />,
+      container,
+    ));
+    return { doc, draw };
+  }
+
+  async function laidByDoubleClick(strings: string[], reduced = false) {
+    const { draw } = markByClick(strings, reduced);
+    await act(async () => { draw([]); });
+    await act(async () => { await new Promise((resolve) => setTimeout(resolve, 0)); });
+    const overlay = container.querySelector<HTMLElement>('[data-page-overlay]')!;
+    overlay.getBoundingClientRect = () => ({ left: 0, top: 0, right: 200, bottom: 400, width: 200, height: 400, x: 0, y: 0, toJSON: () => ({}) });
+    const down = new MouseEvent('pointerdown', { bubbles: true, cancelable: true, button: 0, clientX: 20, clientY: 92 });
+    Object.defineProperty(down, 'pointerType', { value: 'mouse' });
+    act(() => { overlay.dispatchEvent(down); });
+    act(() => { window.dispatchEvent(new MouseEvent('mouseup', { bubbles: true })); });
+    act(() => { overlay.dispatchEvent(new MouseEvent('click', { bubbles: true, detail: 2, clientX: 20, clientY: 92 })); });
+    const laid = dispatch.mock.calls.map(([a]) => a).filter((a) => a.type === 'ADD_ELEMENT').at(-1)!.payload as HighlightElement;
+    expect(animate).not.toHaveBeenCalled();
+    draw([laid]);
+    return laid;
+  }
+
+  it('draws the new mark in from its first letter: a clip on each band, once it is on the page', async () => {
+    await laidByDoubleClick(['hello world']);
+    expect(animate).toHaveBeenCalledTimes(1);
+    expect(animate).toHaveBeenCalledWith(
+      [{ clipPath: 'inset(0 100% 0 0)' }, { clipPath: 'inset(0)' }],
+      { delay: 0, duration: 110, easing: 'cubic-bezier(.3, .7, .3, 1)', fill: 'backwards' },
+    );
+  });
+
+  it('does not sweep again on later renders', async () => {
+    const laid = await laidByDoubleClick(['hello world']);
+    act(() => render(
+      <HighlightPage
+        pdfDocument={null} pageIndex={0} widthPx={300} elements={[laid]} marker={DEFAULT_MARKER}
+        dispatch={dispatch} logAction={logAction} rearm={rearm} setAnnouncement={() => {}} cardRef={() => {}}
+      />,
+      container,
+    ));
+    expect(animate).toHaveBeenCalledTimes(1);
+  });
+
+  it('sweeps from the right edge on a Hebrew page', async () => {
+    await laidByDoubleClick(['שלום עולם']);
+    expect(animate.mock.calls[0][0][0]).toEqual({ clipPath: 'inset(0 0 0 100%)' });
+  });
+
+  it('draws nothing under reduced motion', async () => {
+    await laidByDoubleClick(['hello world'], true);
+    expect(animate).not.toHaveBeenCalled();
+  });
+
+  it('a mark laid by a swipe is not swept', async () => {
+    const { draw } = markByClick(['hello world']);
+    await act(async () => { draw([]); });
+    draw([mark]);
+    expect(animate).not.toHaveBeenCalled();
+  });
+});
+
+describe('HighlightPage click marks on a scan (R10)', () => {
+  let overlay: HTMLElement;
+  beforeEach(() => {
+    overlay = mount([]);
+    overlay.getBoundingClientRect = () => ({ left: 0, top: 0, right: 600, bottom: 800, width: 600, height: 800, x: 0, y: 0, toJSON: () => ({}) });
+  });
+
+  function clickAt(detail: number, target: Element = overlay) {
+    const down = new MouseEvent('pointerdown', { bubbles: true, cancelable: true, button: 0, clientX: 60, clientY: 200 });
+    Object.defineProperty(down, 'pointerType', { value: 'mouse' });
+    act(() => { target.dispatchEvent(down); });
+    act(() => { window.dispatchEvent(new MouseEvent('mouseup', { bubbles: true })); });
+    act(() => { target.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, detail, clientX: 60, clientY: 200 })); });
+  }
+  const added = () => dispatch.mock.calls.map(([a]) => a).filter((a) => a.type === 'ADD_ELEMENT' && a.payload.bands.length > 0).map((a) => a.payload as HighlightElement);
+
+  it('a double-click marks the word the canvas reader finds, read from the displayed canvas', () => {
+    readScanUnit.mockReturnValue({ left: 8, top: 24, width: 12, height: 2 });
+    clickAt(2);
+    expect(readScanUnit).toHaveBeenCalledTimes(1);
+    const [canvas, point, unit, pageHeight] = readScanUnit.mock.calls[0];
+    expect(canvas).toBe(container.querySelector('canvas'));
+    expect(point.x).toBeCloseTo(10, 5);
+    expect(point.y).toBeCloseTo(25, 5);
+    expect(unit).toBe('word');
+    expect(pageHeight).toBe(792);
+    expect(added()[0]).toMatchObject({ type: 'highlight', left: 8, top: 24, width: 12, height: 2, color: DEFAULT_MARKER.color });
+    expect(logAction).toHaveBeenCalledWith('add', 'ADD_SHAPE', 0, expect.any(String), [expect.objectContaining({ index: 0 })]);
+  });
+
+  it('a third click takes the line, because a scan has no sentences', () => {
+    readScanUnit.mockReturnValueOnce({ left: 8, top: 24, width: 12, height: 2 }).mockReturnValueOnce({ left: 5, top: 24, width: 80, height: 2 });
+    clickAt(2);
+    const word = added()[0];
+    act(() => render(
+      <HighlightPage
+        pdfDocument={null} pageIndex={0} widthPx={600} elements={[word]} marker={DEFAULT_MARKER}
+        dispatch={dispatch} logAction={logAction} rearm={rearm} setAnnouncement={() => {}} cardRef={() => {}}
+      />,
+      container,
+    ));
+    dispatch.mockClear();
+    clickAt(3, container.querySelector(`[data-element-id="${word.id}"]`)!);
+    expect(readScanUnit.mock.calls[1][2]).toBe('line');
+    expect(dispatch.mock.calls.map(([a]) => a.type)).toEqual(['UNDO', 'ADD_ELEMENT']);
+  });
+
+  it('marks nothing when the click is not on a word', () => {
+    readScanUnit.mockReturnValue(null);
+    clickAt(2);
+    expect(added()).toHaveLength(0);
+  });
+
+  it('a single click never reads the canvas', () => {
+    clickAt(1);
+    expect(readScanUnit).not.toHaveBeenCalled();
+  });
+});
+
+describe('HighlightPage touch swipe, armed', () => {
+  it('a one-finger press starts the same swipe as a mouse, and not as a mouse (its click is not ours to swallow)', () => {
+    const overlay = mount([], DEFAULT_MARKER, true);
+    press(overlay, { pointerType: 'touch' });
+    const added = dispatch.mock.calls.find(([a]) => a.type === 'ADD_ELEMENT')?.[0].payload as HighlightElement;
+    expect(added).toMatchObject({ type: 'highlight', pageIndex: 0, width: 0, height: 0, bands: [], color: DEFAULT_MARKER.color });
+    expect(startHighlightSwipe).toHaveBeenCalledTimes(1);
+    expect(startHighlightSwipe.mock.calls[0][0].isMouse).toBe(false);
+    expect(startHighlightSwipe.mock.calls[0][1]).toMatchObject({ pageIndex: 0, id: added.id });
+  });
+
+  it('the page stops scrolling for the gesture: it owns the touch while armed', () => {
+    const overlay = mount([], DEFAULT_MARKER, true);
+    expect(overlay.hasAttribute('data-touch-armed')).toBe(true);
+    mount([], DEFAULT_MARKER, false);
+    expect(overlay.hasAttribute('data-touch-armed')).toBe(false);
+  });
+
+  it('a mouse still marks as before while a finger is armed', () => {
+    const overlay = mount([], DEFAULT_MARKER, true);
+    press(overlay, { pointerType: 'mouse' });
+    expect(startHighlightSwipe.mock.calls[0][0].isMouse).toBe(true);
+  });
+
+  it('a press on a highlight starts nothing', () => {
+    mount([mark], DEFAULT_MARKER, true);
+    press(container.querySelector('[data-element-id]')!, { pointerType: 'touch' });
+    expect(startHighlightSwipe).not.toHaveBeenCalled();
+  });
+
+  it('without it a finger does nothing new', () => {
+    const overlay = mount([], DEFAULT_MARKER, false);
+    press(overlay, { pointerType: 'touch' });
+    expect(dispatch).not.toHaveBeenCalled();
+    expect(startHighlightSwipe).not.toHaveBeenCalled();
+    expect(overlay.hasAttribute('data-touch-armed')).toBe(false);
   });
 });
