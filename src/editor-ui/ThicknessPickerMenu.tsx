@@ -4,12 +4,14 @@ import styles from './EditorControls.module.css';
 
 const THICKNESS_OPTIONS: readonly number[] = [1, 2, 3, 5, 8, 12, 16];
 
-export default function ThicknessPickerMenu({ value, onChange, title, options = THICKNESS_OPTIONS, itemTitle = (n) => `${n}px thickness` }: {
+export default function ThicknessPickerMenu({ value, onChange, title, options = THICKNESS_OPTIONS, itemTitle = (n) => `${n}px thickness`, trigger = 'line' }: {
   value?: number;
   onChange: (thickness: number) => void;
   title?: string;
   options?: readonly number[];
   itemTitle?: (thickness: number) => string;
+  /** The trigger's glyph: the current line (default) or a small chevron. */
+  trigger?: 'line' | 'caret';
 }) {
   const [open, setOpen] = useState(false);
   const currentThickness = value || (options.includes(3) ? 3 : options[0]);
@@ -27,9 +29,15 @@ export default function ThicknessPickerMenu({ value, onChange, title, options = 
           aria-haspopup="true"
           aria-expanded={open}
         >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width={currentThickness} stroke-linecap="round">
-            <line x1="2" y1="12" x2="22" y2="12" />
-          </svg>
+          {trigger === 'caret' ? (
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <polyline points="6 9 12 15 18 9" />
+            </svg>
+          ) : (
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width={currentThickness} stroke-linecap="round">
+              <line x1="2" y1="12" x2="22" y2="12" />
+            </svg>
+          )}
         </button>
       }
       content={
