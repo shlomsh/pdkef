@@ -1,6 +1,7 @@
 /* The toolbar a highlight opens (READ-04). Sign's .actions class gives the look; Sign shows it only inside an
-   active element, so this bar, which sits beside its mark, shows itself. Placement is the floating hook's inline style. */
-.bar {
+   active element, so this bar, which sits beside its mark, shows itself. Placement is the floating hook's inline style.
+   The attribute lifts it above .actions, whatever order the two sheets load in. */
+.bar[data-rest-toolbar] {
   top: auto;
   left: auto;
   z-index: 50;
