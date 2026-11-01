@@ -13,10 +13,12 @@ export function useMarker() {
 const STORE_KEY = 'pdkef:highlight:marker-default';
 
 function storedDefault(): string | null {
+  // expected: blocked storage reads as no remembered default
   try { return localStorage.getItem(STORE_KEY); } catch { return null; }
 }
 function storeDefault(marker: Marker) {
-  try { localStorage.setItem(STORE_KEY, serializeMarker(marker)); } catch { /* storage is optional */ }
+  // expected: storage is optional, the choice still applies to this visit
+  try { localStorage.setItem(STORE_KEY, serializeMarker(marker)); } catch { /* nothing to keep */ }
 }
 
 /**

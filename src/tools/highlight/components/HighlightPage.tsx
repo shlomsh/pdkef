@@ -85,7 +85,7 @@ export default function HighlightPage({ pdfDocument, pageIndex, widthPx, element
         const items = await readTextItems(page);
         if (live) textRunsRef.current = toPageTextRuns(items, pageGeometry);
       } catch {
-        // No text to read the direction from: the swipe falls back to the reader's own.
+        // expected: no text to read the direction from, so the swipe falls back to the reader's own.
       }
     });
     return () => { live = false; };

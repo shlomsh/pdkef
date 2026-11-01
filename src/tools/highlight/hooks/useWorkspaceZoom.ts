@@ -14,10 +14,12 @@ import { useZoomKeys } from './useZoomKeys.ts';
 import { useLampAnchor } from './useLampAnchor.ts';
 import { useBoardPan } from './useBoardPan.ts';
 import type { Point } from '../lib/zoom/anchor.ts';
+import { reportError } from '#lib/telemetry/errorReport.ts';
 
 const STORE_KEY = 'pdkef:highlight:zoom-default';
 
 function storedDefault(): string | null {
+  // expected: blocked storage reads as no remembered default
   try { return localStorage.getItem(STORE_KEY); } catch { return null; }
 }
 /** The page under `point` (viewport px) and where on it, from the workspace's page wrappers as they are now. */
@@ -27,7 +29,8 @@ function pageAnchorIn(workspace: HTMLElement | null, point: Point) {
 }
 
 function storeDefault(setting: ZoomSetting) {
-  try { localStorage.setItem(STORE_KEY, serializeSetting(setting)); } catch { /* storage is optional */ }
+  // expected: storage is optional, the choice still applies to this visit
+  try { localStorage.setItem(STORE_KEY, serializeSetting(setting)); } catch { /* nothing to keep */ }
 }
 
 interface WorkspaceZoomOptions {
@@ -74,7 +77,7 @@ export function useWorkspaceZoom({ pdfDocument, workspaceRef, columnRef, fullscr
       setPages(boxes);
       const ink = await readInkBounds(pdfDocument, () => live);
       if (live && ink) setPages(boxes.map((b) => ({ ...b, textLeft: ink.left * b.width, textRight: ink.right * b.width })));
-    })().catch(() => { /* the page render reports its own failures */ });
+    })().catch((err) => { if (live) reportError('pdf_render', err, 'read_ink_bounds'); });
     return () => { live = false; };
   }, [pdfDocument]);
 
