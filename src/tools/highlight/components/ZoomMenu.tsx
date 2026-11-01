@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'preact/hooks';
 import type { FitMode, ZoomSetting } from '../lib/zoom/fit.ts';
 import { zoomPercent } from '../lib/zoom/percent.ts';
 import type { HighlightMessages } from '../messages.ts';
+import controlStyles from '#editor-ui/EditorControls.module.css';
 import styles from './ZoomMenu.module.css';
 
 type Labels = Pick<HighlightMessages, 'zoom' | 'fitWidth' | 'fitText' | 'fitPage' | 'actualSize' | 'zoomIn' | 'zoomOut'>;
@@ -41,13 +42,13 @@ export default function ZoomMenu({ zoom, setting, onSetting, onStep, onActual, l
         {percent}%
       </button>
       {open && (
-        <div class={styles.menu} role="menu" aria-label={labels.zoom}>
+        <div class={`${controlStyles.popover} ${controlStyles['toolbar-menu']} ${styles.menu}`} role="menu" aria-label={labels.zoom}>
           {modes.map(([mode, label]) => (
-            <button key={mode} type="button" role="menuitemradio" aria-checked={setting === mode} class={styles.item} onClick={() => { onSetting(mode); close(); }}>
+            <button key={mode} type="button" role="menuitemradio" aria-checked={setting === mode} class={`${controlStyles['menu-item']} ${styles.item}`} onClick={() => { onSetting(mode); close(); }}>
               <span class={styles.check} aria-hidden="true">{setting === mode ? '✓' : ''}</span>{label}
             </button>
           ))}
-          <button type="button" role="menuitem" class={styles.item} onClick={() => { onActual(); close(); }}>
+          <button type="button" role="menuitem" class={`${controlStyles['menu-item']} ${styles.item}`} onClick={() => { onActual(); close(); }}>
             <span class={styles.check} aria-hidden="true" />{labels.actualSize}
           </button>
           <div class={styles.stepRow} role="group" aria-label={labels.zoom}>

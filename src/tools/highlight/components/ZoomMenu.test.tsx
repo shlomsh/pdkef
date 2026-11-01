@@ -47,4 +47,12 @@ describe('ZoomMenu', () => {
     open();
     expect(onOpenChange).toHaveBeenLastCalledWith(true);
   });
+  it('wears the shared popover and menu-item classes', () => {
+    const { open } = mount();
+    open();
+    const menu = container!.querySelector('[role="menu"]') as HTMLElement;
+    expect(menu.className).toMatch(/popover/);
+    expect(menu.className).toMatch(/toolbar-menu/);
+    for (const item of menu.querySelectorAll('[role^="menuitem"]')) expect(item.className).toMatch(/menu-item/);
+  });
 });
