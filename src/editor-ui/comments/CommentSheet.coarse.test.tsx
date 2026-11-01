@@ -40,7 +40,7 @@ describe('CommentSheet on a phone (coarse pointer)', () => {
     mountPhone('hello');
     act(() => tap(host!.querySelector('p')!));
     expect(host!.querySelector('textarea')).not.toBeNull();
-    const field = host!.querySelector('textarea')!;
+    const field = host!.querySelector<HTMLTextAreaElement>('textarea')!;
     field.value = 'hello again';
     act(() => { field.dispatchEvent(new Event('input', { bubbles: true })); });
     act(() => tap(button(englishSignMessages.highlightCommentLabel)));
