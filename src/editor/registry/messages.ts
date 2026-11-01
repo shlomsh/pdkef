@@ -64,12 +64,13 @@ export interface SignMessages {
   highlightCommentLabel: string;
   highlightCommentPlaceholder: string;
   highlightCommentNumberLabel: string;
-  /** SIGN-44 comments view: a card's Cancel and Edit buttons (Save reuses highlightCommentLabel), and the page header's count. */
+  /** SIGN-44 comments view: a card's Cancel button (Save reuses highlightCommentLabel), and the page header's count. */
   commentCancel: string;
   /** A comment card's group name, `{number}` the page; the anchored element's text, when it has one, follows in quotes. */
   commentOnPage: string;
-  commentEdit: string;
-  /** A card's ⋮ menu label and its Delete item. */
+  /** The hover and screen-reader hint on a saved comment card. */
+  commentEditHint: string;
+  /** A card's More label and its Delete button. */
   commentMore: string;
   commentDelete: string;
   commentsCountOne: string;
