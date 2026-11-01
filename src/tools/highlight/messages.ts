@@ -20,6 +20,18 @@ export interface HighlightMessages {
   /** "{mode} · {percent}%" */
   readout: string;
   enterLamp: string;
+  /** The toolbar that opens on a highlight at rest (R2 to R4). */
+  markToolbar: string;
+  markHighlight: string;
+  markUnderline: string;
+  markDelete: string;
+  markColors: string;
+  markCustom: string;
+  markColorInput: string;
+  markOpacity: string;
+  /** R8: shown once, after the first mark. */
+  restHint: string;
+  tapHint: string;
   capsule: CapsuleLabels;
 }
 
@@ -41,5 +53,15 @@ export const englishHighlightMessages: HighlightMessages = {
   zoomOut: 'Zoom out',
   readout: '{mode} · {percent}%',
   enterLamp: 'Use the reading lamp',
+  markToolbar: 'Change this highlight',
+  markHighlight: 'Highlight',
+  markUnderline: 'Underline',
+  markDelete: 'Delete',
+  markColors: 'Color',
+  markCustom: 'Custom color and opacity',
+  markColorInput: 'Custom color',
+  markOpacity: 'Opacity',
+  restHint: 'Rest on a highlight to change it',
+  tapHint: 'Tap a highlight to change it',
   capsule: englishCapsuleLabels,
 };

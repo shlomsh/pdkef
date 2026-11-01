@@ -3,14 +3,15 @@ import { createActionEntry, type HistoryLogger } from '#editor/model/actionHisto
 import type { EditorElement } from '#editor/model/editorModel.ts';
 import { elementsReducer, initialElementsState, type ElementsAction, type ElementsState } from '#editor/model/elementsReducer.ts';
 import { recordAction } from '#lib/telemetry/actionTrail.ts';
-import { DEFAULT_MARKER } from '../lib/marker/markerState.ts';
+import { useMarker } from './useMarker.ts';
 
 /**
  * The marks on the open document: the shared elements state, a logger for undo steps, and the marker.
- * Highlight dispatches only `ElementsAction`s; the marker is fixed until it can be rearmed.
+ * Highlight dispatches only `ElementsAction`s; the marker in the hand re-arms from every change on a highlight.
  */
 export function useHighlightMarks() {
   const [state, dispatch] = useReducer<ElementsState, ElementsAction>(elementsReducer, initialElementsState);
+  const { marker, rearm } = useMarker();
 
   const logAction: HistoryLogger<EditorElement> = (operation, type, pageIndex, description, snapshots) => {
     dispatch({
@@ -32,5 +33,5 @@ export function useHighlightMarks() {
     recordAction('redo');
   };
 
-  return { state, dispatch, logAction, marker: DEFAULT_MARKER, undo, redo, canUndo, canRedo };
+  return { state, dispatch, logAction, marker, rearm, undo, redo, canUndo, canRedo };
 }

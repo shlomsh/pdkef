@@ -18,12 +18,13 @@ const mark: HighlightElement = {
 let container: HTMLElement;
 const dispatch = vi.fn();
 const logAction = vi.fn();
+const rearm = vi.fn();
 
 function mount(elements: EditorElement[], marker = DEFAULT_MARKER) {
   act(() => render(
     <HighlightPage
       pdfDocument={null} pageIndex={0} widthPx={600} elements={elements} marker={marker}
-      dispatch={dispatch} logAction={logAction} setAnnouncement={() => {}} cardRef={() => {}}
+      dispatch={dispatch} logAction={logAction} rearm={rearm} setAnnouncement={() => {}} cardRef={() => {}}
     />,
     container,
   ));
@@ -47,6 +48,9 @@ afterEach(() => {
   dispatch.mockClear();
   logAction.mockClear();
   startHighlightSwipe.mockClear();
+  rearm.mockClear();
+  localStorage.clear();
+  vi.useRealTimers();
 });
 
 describe('HighlightPage', () => {
@@ -100,5 +104,109 @@ describe('HighlightPage', () => {
     expect(dispatch).not.toHaveBeenCalled();
     swipeDispatch({ type: 'SET_ACTIVE_ELEMENT_ID', payload: null });
     expect(dispatch).toHaveBeenCalledWith({ type: 'SET_ACTIVE_ELEMENT_ID', payload: null });
+  });
+});
+
+function move(target: Element, x = 50, y = 60, pointerType = 'mouse') {
+  const event = new MouseEvent('pointermove', { bubbles: true, clientX: x, clientY: y, buttons: 0 });
+  Object.defineProperty(event, 'pointerType', { value: pointerType });
+  act(() => { target.dispatchEvent(event); });
+}
+const toolbar = () => container.querySelector<HTMLElement>('[role="toolbar"]');
+const toolbarButton = (name: string) => container.querySelector<HTMLElement>(`[role="toolbar"] button[aria-label="${name}"]`)!;
+
+describe('HighlightPage rest toolbar', () => {
+  beforeEach(() => { vi.useFakeTimers(); });
+
+  it('opens on a highlight the pointer rests on, and not before', () => {
+    mount([mark]);
+    const wrapper = container.querySelector('[data-element-id]')!;
+    move(wrapper);
+    act(() => { vi.advanceTimersByTime(600); });
+    expect(toolbar()).toBeNull();
+    act(() => { vi.advanceTimersByTime(200); });
+    expect(toolbar()).not.toBeNull();
+  });
+
+  it('a tap with a finger opens it at once', () => {
+    mount([mark]);
+    const wrapper = container.querySelector('[data-element-id]')!;
+    const down = new MouseEvent('pointerdown', { bubbles: true, button: 0 });
+    Object.defineProperty(down, 'pointerType', { value: 'touch' });
+    act(() => { wrapper.dispatchEvent(down); wrapper.dispatchEvent(new MouseEvent('click', { bubbles: true })); });
+    expect(toolbar()).not.toBeNull();
+  });
+
+  it('a color change updates the highlight, logs one undo step and re-arms the marker', () => {
+    mount([mark]);
+    move(container.querySelector('[data-element-id]')!);
+    act(() => { vi.advanceTimersByTime(800); });
+    act(() => { toolbarButton('Underline').click(); });
+    expect(dispatch).toHaveBeenCalledWith({ type: 'UPDATE_ELEMENT', payload: { id: 'h1', changes: { style: 'underline' } } });
+    const entry = dispatch.mock.calls.find(([a]) => a.type === 'ADD_ACTION_HISTORY')?.[0].payload;
+    expect(entry).toMatchObject({ operation: 'update', updates: [{ id: 'h1', after: { style: 'underline' } }] });
+    expect(rearm).toHaveBeenCalledWith({ style: 'underline' });
+  });
+
+  it('Delete removes the highlight, logs it for undo and closes', () => {
+    mount([mark]);
+    move(container.querySelector('[data-element-id]')!);
+    act(() => { vi.advanceTimersByTime(800); });
+    act(() => { toolbarButton('Delete').click(); });
+    expect(dispatch).toHaveBeenCalledWith({ type: 'DELETE_ELEMENT', payload: 'h1' });
+    expect(logAction).toHaveBeenCalledWith('delete', 'DELETE_ELEMENT', 0, expect.stringContaining('Delete'), [{ element: mark, index: 0 }]);
+    expect(toolbar()).toBeNull();
+  });
+
+  it('a press elsewhere closes it', () => {
+    mount([mark]);
+    move(container.querySelector('[data-element-id]')!);
+    act(() => { vi.advanceTimersByTime(800); });
+    press(document.body, { pointerType: 'mouse' });
+    expect(toolbar()).toBeNull();
+  });
+});
+
+function stubPointer(coarse: boolean) {
+  const original = window.matchMedia;
+  window.matchMedia = ((query: string) => ({ ...original(query), matches: query.includes('coarse') ? coarse : true })) as typeof window.matchMedia;
+  return () => { window.matchMedia = original; };
+}
+
+describe('HighlightPage one-time hint', () => {
+  let restore = () => {};
+  beforeEach(() => { restore = stubPointer(false); });
+  afterEach(() => restore());
+  const finishStroke = (overlay: HTMLElement) => {
+    press(overlay, { pointerType: 'mouse' });
+    const swipe = startHighlightSwipe.mock.calls.at(-1)![0];
+    act(() => swipe.dispatch({ type: 'UPDATE_ELEMENT', payload: { id: startHighlightSwipe.mock.calls.at(-1)![1].id, changes: { left: 10, top: 20, width: 30, height: 4, bands: [{ left: 0, top: 0, width: 100, height: 100 }] } } }));
+  };
+  beforeEach(() => { vi.useFakeTimers(); });
+
+  it('shows after the first mark, beside the end of the ink, once', () => {
+    const overlay = mount([]);
+    finishStroke(overlay);
+    const hint = container.querySelector<HTMLElement>('[data-mark-hint]');
+    expect(hint?.textContent).toBe('Rest on a highlight to change it');
+    expect(hint?.style.left).toBe('40%');
+    act(() => { vi.advanceTimersByTime(4100); });
+    expect(container.querySelector('[data-mark-hint]')).toBeNull();
+    finishStroke(overlay);
+    expect(container.querySelector('[data-mark-hint]')).toBeNull();
+  });
+
+  it('asks to tap on a touch screen', () => {
+    restore();
+    restore = stubPointer(true);
+    finishStroke(mount([]));
+    expect(container.querySelector('[data-mark-hint]')?.textContent).toBe('Tap a highlight to change it');
+  });
+
+  it('a new stroke takes it away', () => {
+    const overlay = mount([]);
+    finishStroke(overlay);
+    press(overlay, { pointerType: 'mouse' });
+    expect(container.querySelector('[data-mark-hint]')).toBeNull();
   });
 });
