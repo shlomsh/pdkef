@@ -123,7 +123,7 @@ function mountNoted(elements: EditorElement[], workspaceWidth: number) {
     container!,
   ));
   const restore = () => { HTMLElement.prototype.getBoundingClientRect = originalRect; };
-  return { workspaceRef, column: container.querySelector<HTMLElement>('[data-editor-page-card]')!.parentElement!, restore };
+  return { workspaceRef, dispatch: marks.dispatch, column: container.querySelector<HTMLElement>('[data-editor-page-card]')!.parentElement!, restore };
 }
 
 describe('HighlightWorkspace notes (R28, R29)', () => {
@@ -174,5 +174,18 @@ describe('HighlightWorkspace notes (R28, R29)', () => {
       expect((menu.parentElement as HTMLElement).style.top).toBe('108px');
       act(() => render(null, container!));
     }
+  });
+});
+
+describe('HighlightWorkspace comment markers', () => {
+  beforeEach(() => { vi.unstubAllGlobals(); });
+  afterEach(() => { vi.unstubAllGlobals(); });
+
+  it('a click on a mark\'s comment marker selects that comment', () => {
+    const { dispatch, restore } = mountNoted([mark, note], 1200);
+    const marker = container!.querySelector<HTMLElement>('[data-comment-marker]')!;
+    act(() => { marker.click(); });
+    expect(dispatch).toHaveBeenCalledWith({ type: 'SET_ACTIVE_ELEMENT_ID', payload: 'c1' });
+    restore();
   });
 });

@@ -2,7 +2,7 @@
    sits inside the page column, so a pinch's transform on the column carries the cards with their passages. */
 .withRail {
   display: grid;
-  grid-template-columns: var(--page-w) var(--notes-w);
+  grid-template-columns: var(--page-w) minmax(var(--notes-w), 1fr);
   align-items: start;
 }
 .withRail > :first-child { grid-column: 1 / -1; }
