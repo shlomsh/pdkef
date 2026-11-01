@@ -107,7 +107,7 @@ export default function HighlightWorkspace({ pdfDocument, numPages, fileName, zo
   return (
     <div
       className={`${workspaceStyles.workspace} ${styles.workspace}${pseudoFullscreen ? ` ${workspaceStyles['pseudo-fullscreen']}` : ''}`}
-      ref={setWorkspace} data-workspace data-lamp={fullscreen || undefined} data-pseudo-fullscreen={pseudoFullscreen || undefined}
+      ref={setWorkspace} role="region" aria-label={fileName} data-workspace data-lamp={fullscreen || undefined} data-pseudo-fullscreen={pseudoFullscreen || undefined}
     >
       {fullscreen ? (
         <div class={styles.floating}>
