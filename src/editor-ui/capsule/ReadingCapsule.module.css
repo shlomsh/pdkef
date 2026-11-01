@@ -1,0 +1,166 @@
+/* The Reading lamp (READ-05). Quiet at rest, awake when reached for. `data-mode` is the only switch.
+   The glass is its own layer: an opacity or filter on the element that carries backdrop-filter drops the
+   blur, so only the content (.inner) fades and greys. */
+.capsule {
+  --doze-ease: cubic-bezier(0.45, 0, 0.55, 1);
+  --target: 2rem;
+  position: fixed;
+  top: 12px;
+  /* The mount sets --capsule-center to the page column's middle; it falls back to the screen's. */
+  left: var(--capsule-center, 50%);
+  translate: -50% 0;
+  z-index: 200;
+  max-width: calc(100vw - 16px);
+  height: calc(var(--target) + 12px);
+  padding: 5px 6px 5px 16px;
+  box-sizing: border-box;
+  font: 13px/1 var(--font-sans);
+  color: var(--color-text);
+}
+@media (pointer: coarse) {
+  .capsule { --target: 2.75rem; }
+}
+
+.capsule::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: var(--radius-pill);
+  border: 1px solid color-mix(in srgb, var(--color-border) 50%, transparent);
+  background: color-mix(in srgb, var(--color-surface) 88%, transparent);
+  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(14px);
+  transition: border-color 1400ms var(--doze-ease), box-shadow 1400ms var(--doze-ease);
+}
+.inner {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  height: 100%;
+  opacity: 0.45;
+  filter: grayscale(1);
+  transition: opacity 1400ms var(--doze-ease), filter 1400ms var(--doze-ease);
+}
+.capsule[data-mode='awake']::before {
+  border-color: var(--color-border);
+  box-shadow: var(--shadow-pop-teal);
+  transition: border-color 260ms var(--ease-out), box-shadow 260ms var(--ease-out);
+}
+.capsule[data-mode='awake'] .inner {
+  opacity: 1;
+  filter: grayscale(0);
+  transition: opacity 260ms var(--ease-out), filter 260ms var(--ease-out);
+}
+
+.file {
+  max-width: 22ch;
+  margin-right: 6px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--color-muted);
+}
+.menuWrap { position: relative; flex: none; }
+
+.button,
+.page {
+  appearance: none;
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: var(--target);
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: var(--color-text);
+  font: inherit;
+  cursor: pointer;
+  transition: background-color 120ms var(--ease-out), transform 120ms var(--ease-out);
+}
+.button { width: var(--target); }
+.page {
+  padding: 0 10px;
+  min-width: var(--target);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.button:hover,
+.page:hover,
+.button[aria-expanded='true'],
+.page[aria-expanded='true'] { background: var(--color-primary-soft); }
+.button:active { transform: scale(0.94); }
+.button:focus-visible,
+.page:focus-visible,
+.item:focus-visible,
+.go:focus-visible,
+.number:focus-visible { outline: none; box-shadow: 0 0 0 2px var(--color-surface), 0 0 0 4px var(--color-primary-ring); }
+.button[aria-disabled='true'] { color: var(--color-muted); opacity: 0.4; cursor: default; }
+.button[aria-disabled='true']:hover { background: transparent; }
+.button[aria-disabled='true']:active { transform: none; }
+
+.menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  min-width: 164px;
+  padding: 4px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-pop-teal);
+}
+.more { right: 0; }
+.jump { left: 0; display: flex; gap: 6px; align-items: center; min-width: 0; }
+.number {
+  width: 5rem;
+  height: var(--target);
+  padding: 0 10px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-pill);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font: inherit;
+  font-variant-numeric: tabular-nums;
+}
+.go {
+  appearance: none;
+  height: var(--target);
+  padding: 0 14px;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: var(--color-primary);
+  color: var(--color-surface);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+.item,
+.itemText {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  min-height: var(--target);
+  padding: 0 12px;
+  box-sizing: border-box;
+  border: 0;
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--color-text);
+  font: 500 14px var(--font-sans);
+  text-align: left;
+}
+.item { appearance: none; cursor: pointer; }
+.item:hover { background: var(--color-primary-soft); }
+.itemText { color: var(--color-muted); max-width: 22ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+@media (prefers-reduced-motion: reduce) {
+  .capsule::before,
+  .inner,
+  .button,
+  .page { transition: none !important; }
+  .capsule[data-mode='awake']::before,
+  .capsule[data-mode='awake'] .inner { transition: none !important; }
+}
