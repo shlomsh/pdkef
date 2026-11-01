@@ -1,6 +1,7 @@
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { captureAddedElement } from '#editor/model/actionHistory.ts';
 import type { CommentElement, HighlightElement } from '#editor/model/editorModel.ts';
 import { useHighlightMarks } from './useHighlightMarks.ts';
 import { useNoteRoom } from './useNoteRoom.ts';
@@ -104,5 +105,33 @@ describe('useNoteRoom', () => {
     act(() => room.dispatch({ type: 'UPDATE_ELEMENT', payload: { id: 'h1', changes: { color: '#FF8080' } } }));
     expect(makeRoom).not.toHaveBeenCalled();
     expect(marks.state.elements[0]).toMatchObject({ color: '#FF8080' });
+  });
+
+  it('undo that removes the last saved note gives the room back once, redo that restores it makes room again', () => {
+    act(() => {
+      marks.dispatch({ type: 'ADD_ELEMENT', payload: saved });
+      marks.logAction('add', 'comment', 0, 'Add note', [captureAddedElement(saved, 1)]);
+    });
+    makeRoom.mockClear();
+    act(() => room.dispatch({ type: 'UNDO' }));
+    expect(marks.state.elements).toEqual([mark]);
+    expect(makeRoom).toHaveBeenCalledTimes(1);
+    expect(makeRoom).toHaveBeenCalledWith(false, { x: 300, y: 450 });
+    makeRoom.mockClear();
+    act(() => room.dispatch({ type: 'REDO' }));
+    expect(marks.state.elements).toHaveLength(2);
+    expect(makeRoom).toHaveBeenCalledTimes(1);
+    expect(makeRoom).toHaveBeenCalledWith(true, { x: 300, y: 450 });
+  });
+
+  it('a non-note action in the same event is seen by the next dispatch', () => {
+    act(() => marks.dispatch({ type: 'LOAD_DOCUMENT', payload: { elements: [mark, blank], actionHistory: [] } }));
+    makeRoom.mockClear();
+    act(() => {
+      room.dispatch({ type: 'UPDATE_ELEMENT', payload: { id: 'c1', changes: { comment: 'Check this' } } });
+      room.dispatch({ type: 'DELETE_ELEMENT', payload: 'c1' });
+    });
+    expect(makeRoom).toHaveBeenCalledTimes(1);
+    expect(makeRoom).toHaveBeenCalledWith(false, { x: 300, y: 450 });
   });
 });
