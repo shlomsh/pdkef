@@ -18,7 +18,7 @@ const GAP = 6;
 const EDGE = 8;
 const clamp = (v: number, lo: number, hi: number) => Math.min(Math.max(v, lo), Math.max(lo, hi));
 
-export interface BarPlacement { side: 'above' | 'below'; top: number; edge: number; align: 'left' | 'right' }
+interface BarPlacement { side: 'above' | 'below'; top: number; edge: number; align: 'left' | 'right' }
 
 /**
  * Viewport px. The toolbar sits above the line, or below it when there is no room, never over it. `edge`

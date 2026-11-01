@@ -1,4 +1,9 @@
-import { useCallback, useEffect, useRef, useState } from 'preact/hooks';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'preact/hooks';
+import type { HighlightElement } from '#editor/model/editorModel.ts';
+import { inkEnd, placeBar } from '../lib/marker/inkEnd.ts';
+import { keyAction } from '../lib/marker/keys.ts';
+import { HIGHLIGHT_COLORS, type Marker } from '../lib/marker/markerState.ts';
+import { closeLayer, layersOf, scrolledPast, type Layers } from '../lib/marker/toolbarLayers.ts';
 import { HINT_MS, hintSeen, markHintSeen } from '../lib/marker/hint.ts';
 import { initialRest, nextTickAt, restReducer, type RestEvent, type RestState } from '../lib/marker/restDetector.ts';
 
@@ -94,3 +99,97 @@ export function useRestToolbar() {
 
   return { targetId, hint, onPointerMove, onPointerLeave, strokeEnd, openFor, close, showHint, clearHint };
 }
+
+const SIX = HIGHLIGHT_COLORS.length;
+const isTyping = (el: Element | null) => !!el && ((el as HTMLElement).isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName));
+
+type ToolbarLive = { current: { layers: Layers; mark: HighlightElement; onChange(change: Partial<Marker>): void; onDelete(): void; onClose(): void; look: Marker } };
+
+/** Placed once, before paint: beside the end of the last band, off the line, inside the screen. */
+export function useToolbarPlacement(rootRef: { current: HTMLDivElement | null }, hlRef: { current: HTMLButtonElement | null }, mark: HighlightElement, rtl: boolean) {
+  useLayoutEffect(() => {
+    const root = rootRef.current;
+    const parent = root?.offsetParent as HTMLElement | null;
+    if (!root || !parent) return;
+    const box = parent.getBoundingClientRect();
+    const end = inkEnd(mark);
+    const cell = parseFloat(getComputedStyle(root).getPropertyValue('--cell')) || 32;
+    const barW = root.offsetWidth;
+    const placed = placeBar({
+      x: box.left + (end.x / 100) * box.width,
+      lineTop: box.top + (end.top / 100) * box.height,
+      lineBottom: box.top + (end.bottom / 100) * box.height,
+      barW,
+      barMaxW: barW - (hlRef.current?.offsetWidth ?? 0) + (SIX + 1) * cell,
+      barH: root.offsetHeight,
+      vw: document.documentElement.clientWidth,
+      vh: window.innerHeight,
+      topMin: 8,
+      rtl,
+    });
+    root.dataset.side = placed.side;
+    root.style.top = `${placed.top - box.top}px`;
+    if (placed.align === 'left') {
+      root.style.left = `${placed.edge - box.left}px`;
+      root.style.right = 'auto';
+    } else {
+      root.style.right = `${box.right - placed.edge}px`;
+      root.style.left = 'auto';
+    }
+  }, []);
+}
+
+/** R9: keys, a press elsewhere, and a scroll of more than 24 px. */
+export function useToolbarDismissal(
+  rootRef: { current: HTMLDivElement | null },
+  live: ToolbarLive,
+  { setLayers, foldRow, toggleUnderline }: { setLayers: (fn: (l: Layers) => Layers) => void; foldRow(): void; toggleUnderline(): void },
+) {
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const { layers: current, onChange: change, onDelete: del, onClose: close } = live.current;
+      const action = keyAction(e, { typing: isTyping(e.target as Element | null), layers: layersOf(current) });
+      if (!action) return;
+      if (action.type === 'color') {
+        e.preventDefault();
+        change({ color: HIGHLIGHT_COLORS[action.index].hex });
+        foldRow();
+      } else if (action.type === 'underline') {
+        e.preventDefault();
+        toggleUnderline();
+      } else if (action.type === 'delete') {
+        e.preventDefault();
+        del();
+      } else if (action.type === 'closeLayer') {
+        e.preventDefault();
+        if (action.layer === 'custom' || action.layer === 'colors') setLayers((l) => closeLayer(l, action.layer as 'custom' | 'colors'));
+        else close();
+      }
+    };
+    const onDown = (e: PointerEvent) => {
+      const target = e.target as Element | null;
+      if (rootRef.current?.contains(target)) return;
+      if (target?.closest?.(`[data-element-id="${live.current.mark.id}"]`)) return;
+      live.current.onClose();
+    };
+    const workspace = rootRef.current?.closest<HTMLElement>('[data-workspace]') ?? null;
+    const start = { win: window.scrollY, ws: workspace?.scrollTop ?? 0 };
+    const onScroll = (e: Event) => {
+      const target = e.target;
+      if (target === document) {
+        if (scrolledPast(start.win, window.scrollY)) live.current.onClose();
+      } else if (target === workspace && workspace && scrolledPast(start.ws, workspace.scrollTop)) {
+        live.current.onClose();
+      }
+    };
+    document.addEventListener('keydown', onKey);
+    document.addEventListener('pointerdown', onDown, true);
+    document.addEventListener('scroll', onScroll, { capture: true, passive: true });
+    return () => {
+      document.removeEventListener('keydown', onKey);
+      document.removeEventListener('pointerdown', onDown, true);
+      document.removeEventListener('scroll', onScroll, true);
+    };
+  }, []);
+}
+

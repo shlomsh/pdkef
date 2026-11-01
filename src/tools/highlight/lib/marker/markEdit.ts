@@ -12,6 +12,7 @@ export function markOf(el: HighlightElement): Marker {
  * A marker change as element fields. A highlight style and a full opacity are the absent keys, so a
  * default mark stays as small as one that never changed (old drafts stay valid).
  */
+/** @testSeam */
 export function changePatch(change: Partial<Marker>): Partial<HighlightElement> {
   const patch: Partial<HighlightElement> = {};
   if (change.color !== undefined) patch.color = change.color;
