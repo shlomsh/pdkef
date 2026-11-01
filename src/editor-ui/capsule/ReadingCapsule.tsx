@@ -19,7 +19,12 @@ export interface ReadingCapsuleProps {
   onPrint?(): void;
   onDownload(): void;
   moreItems: { label: string; onSelect(): void }[];
-  onExit(): void;
+  /** Required for the floating variant. */
+  onExit?(): void;
+  /** Required for the bar variant: the way into the Reading lamp. */
+  onEnter?(): void;
+  /** 'floating' dozes over the page; 'bar' is the same controls, always awake, in the flow. */
+  variant?: 'floating' | 'bar';
   /** The workspace feeds scroll deltas. */
   scrollEvents: { subscribe(fn: (dy: number) => void): () => void };
   pagePressEvents: { subscribe(fn: () => void): () => void };
@@ -32,6 +37,7 @@ const RedoIcon = () => <svg {...svg}><path d="M21 7v6h-6" /><path d="M3 17a9 9 0
 const PrintIcon = () => <svg {...svg}><path d="M6 9V2h12v7" /><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" /><path d="M6 14h12v8H6z" /></svg>;
 const DownloadIcon = () => <svg {...svg}><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><path d="m7 10 5 5 5-5" /><path d="M12 15V3" /></svg>;
 const MoreIcon = () => <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="5" cy="12" r="1.8" /><circle cx="12" cy="12" r="1.8" /><circle cx="19" cy="12" r="1.8" /></svg>;
+const EnterIcon = () => <svg {...svg}><path d="M8 3H5a2 2 0 0 0-2 2v3" /><path d="M16 3h3a2 2 0 0 1 2 2v3" /><path d="M21 16v3a2 2 0 0 1-2 2h-3" /><path d="M3 16v3a2 2 0 0 0 2 2h3" /></svg>;
 const ExitIcon = () => <svg {...svg}><path d="M8 3v3a2 2 0 0 1-2 2H3" /><path d="M21 8h-3a2 2 0 0 1-2-2V3" /><path d="M3 16h3a2 2 0 0 1 2 2v3" /><path d="M16 21v-3a2 2 0 0 1 2-2h3" /></svg>;
 
 /**
@@ -41,6 +47,7 @@ const ExitIcon = () => <svg {...svg}><path d="M8 3v3a2 2 0 0 1-2 2H3" /><path d=
  */
 export default function ReadingCapsule(p: ReadingCapsuleProps) {
   const labels = p.labels ?? englishCapsuleLabels;
+  const bar = p.variant === 'bar';
   const [state, dispatch] = useReducer(capsuleReducer, initialCapsule);
   const [width, setWidth] = useState(() => (typeof window === 'undefined' ? 1024 : window.innerWidth));
   const [menu, setMenu] = useState<'jump' | 'more' | null>(null);
@@ -52,8 +59,8 @@ export default function ReadingCapsule(p: ReadingCapsuleProps) {
     window.addEventListener('resize', onResize);
     return () => window.removeEventListener('resize', onResize);
   }, []);
-  useEffect(() => p.scrollEvents.subscribe((dy) => dispatch({ type: 'scroll', dy })), [p.scrollEvents]);
-  useEffect(() => p.pagePressEvents.subscribe(() => dispatch({ type: 'pagePress' })), [p.pagePressEvents]);
+  useEffect(() => (bar ? undefined : p.scrollEvents.subscribe((dy) => dispatch({ type: 'scroll', dy }))), [bar, p.scrollEvents]);
+  useEffect(() => (bar ? undefined : p.pagePressEvents.subscribe(() => dispatch({ type: 'pagePress' }))), [bar, p.pagePressEvents]);
 
   const openMenu = (m: 'jump' | 'more') => {
     if (menu === m) return closeMenu();
@@ -72,7 +79,7 @@ export default function ReadingCapsule(p: ReadingCapsuleProps) {
     return () => document.removeEventListener('pointerdown', onDown, true);
   });
 
-  const folded = foldedItems(width);
+  const folded = foldedItems(width).filter((id) => !(bar && id === 'file'));
   const shows = (id: Parameters<typeof folded.includes>[0]) => !folded.includes(id);
   const pageLabel = formatMessage(labels.page, { n: p.page, count: p.pageCount });
 
@@ -96,10 +103,10 @@ export default function ReadingCapsule(p: ReadingCapsuleProps) {
   return (
     <div
       ref={rootRef}
-      class={styles.capsule}
+      class={`${styles.capsule} ${bar ? styles.bar : ''}`}
       role="toolbar"
       aria-label={labels.toolbar}
-      data-mode={state.mode}
+      data-mode={bar ? 'awake' : state.mode}
       onPointerEnter={() => dispatch({ type: 'pointerEnter' })}
       onPointerLeave={() => dispatch({ type: 'pointerLeave' })}
       onFocusIn={() => dispatch({ type: 'focusIn' })}
@@ -107,7 +114,7 @@ export default function ReadingCapsule(p: ReadingCapsuleProps) {
       onKeyDown={(e) => { if (e.key === 'Escape' && menu) { e.stopPropagation(); closeMenu(); } }}
     >
       <div class={styles.inner}>
-        {shows('file') && <span class={styles.file} title={p.fileName}>{p.fileName}</span>}
+        {!bar && shows('file') && <span class={styles.file} title={p.fileName}>{p.fileName}</span>}
         <span class={styles.menuWrap}>
           <button type="button" class={styles.page} aria-haspopup="menu" aria-expanded={menu === 'jump'} aria-label={pageLabel} title={labels.jump} onClick={() => openMenu('jump')}>
             {p.page} / {p.pageCount}
@@ -142,7 +149,11 @@ export default function ReadingCapsule(p: ReadingCapsuleProps) {
             </div>
           )}
         </span>
-        <button type="button" class={styles.button} aria-label={labels.exit} title={labels.exit} onClick={p.onExit}><ExitIcon /></button>
+        {bar ? (
+          <button type="button" class={styles.button} aria-label={labels.enter} title={labels.enter} onClick={p.onEnter}><EnterIcon /></button>
+        ) : (
+          <button type="button" class={styles.button} aria-label={labels.exit} title={labels.exit} onClick={p.onExit}><ExitIcon /></button>
+        )}
       </div>
     </div>
   );
