@@ -3,7 +3,7 @@
 .workspace[data-lamp] { overflow-x: auto; touch-action: pan-x pan-y; }
 .workspace::-webkit-scrollbar:horizontal { display: none; }
 .board { align-self: flex-start; flex: none; }
-.top { position: sticky; left: 0; display: flex; align-items: center; gap: var(--space-3); justify-content: center; }
+.top { position: sticky; left: 0; display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-3); justify-content: center; }
 .enter, .download { display: inline-flex; align-items: center; gap: var(--space-2); font: inherit; color: inherit; background: none; border: 1px solid var(--color-border-strong); border-radius: var(--radius-sm); min-height: 32px; padding: 0 var(--space-3); cursor: pointer; }
 .enter:focus-visible, .download:focus-visible { outline: 2px solid var(--color-primary); outline-offset: 1px; }
 @media (pointer: coarse) { .enter, .download { min-height: 44px; } }

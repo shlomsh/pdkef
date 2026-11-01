@@ -1,0 +1,172 @@
+/* The marker button (READ-03, R19). In the Reading lamp it inherits the capsule's --target; in the normal view
+   it falls back to 32 px on a fine pointer and 44 px on a coarse one. */
+.wrap {
+  --cell: var(--target, 32px);
+  position: relative;
+  display: inline-flex;
+  flex: none;
+}
+@media (pointer: coarse) {
+  .wrap { --cell: var(--target, 44px); }
+}
+
+.button {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--cell);
+  height: var(--cell);
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-pill, 999px);
+  background: transparent;
+  color: var(--color-text);
+  font: inherit;
+  cursor: pointer;
+  transition: background-color 120ms var(--ease-out);
+}
+.button:hover,
+.button[aria-expanded='true'] { background: var(--color-primary-soft); }
+.button[data-armed] { box-shadow: inset 0 0 0 1.5px var(--color-primary); }
+.button:focus-visible { outline: none; box-shadow: 0 0 0 2px var(--color-surface), 0 0 0 4px var(--color-primary-ring); }
+
+/* The pen, with the armed marker at its foot: a dot in the color, or the underline glyph in the darkened ink. */
+.face { position: relative; display: block; width: 18px; height: 18px; line-height: 0; }
+.dot,
+.glyph { position: absolute; display: block; pointer-events: none; }
+.dot {
+  right: -4px;
+  bottom: -3px;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  box-shadow: 0 0 0 1.5px var(--color-surface), inset 0 0 0 1px color-mix(in srgb, var(--color-text) 28%, transparent);
+}
+.glyph {
+  right: -3px;
+  bottom: -3px;
+  width: 11px;
+  height: 3px;
+  border-radius: 1.5px;
+  box-shadow: 0 0 0 1.5px var(--color-surface);
+}
+
+.menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  inset-inline-start: 0;
+  z-index: 40;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 4px;
+  box-sizing: border-box;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-pop-teal);
+  color: var(--color-text);
+  font-family: var(--font-sans);
+}
+
+/* The six colors, the plus and Underline in one row. The shared swatches are 18 px; the margin and the
+   pseudo-element make each one a full-size target with no overlap, and the shared divider is not needed. */
+.row {
+  display: flex;
+  align-items: center;
+  height: var(--cell);
+  padding-inline: 2px;
+}
+.row > div { display: none; }
+.row [data-highlight-swatch] {
+  position: relative;
+  flex: none;
+  margin: calc((var(--cell) - 18px) / 2);
+}
+.row [data-highlight-swatch]::after {
+  content: '';
+  position: absolute;
+  inset: calc((18px - var(--cell)) / 2);
+  border-radius: 50%;
+}
+.row button:focus-visible,
+.panel input:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 1px;
+  box-shadow: 0 0 0 4px var(--color-primary-ring);
+}
+
+.plus,
+.ul {
+  appearance: none;
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: var(--cell);
+  height: var(--cell);
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: none;
+  color: inherit;
+  cursor: pointer;
+}
+.ul { margin-inline-start: 2px; border-inline-start: 1px solid var(--color-border); border-radius: 0 999px 999px 0; }
+.ul:hover { background: var(--color-primary-soft); }
+.ul[aria-pressed='true'] { background: var(--color-primary-soft); box-shadow: inset 0 0 0 1.5px var(--color-primary); border-radius: 999px; border-inline-start-color: transparent; }
+.plusMark {
+  position: relative;
+  display: block;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--c, var(--color-surface));
+  box-shadow: inset 0 0 0 1.5px var(--color-border-strong);
+}
+.plusMark::before,
+.plusMark::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  border-radius: 1px;
+  background: var(--color-text);
+  transform: translate(-50%, -50%);
+}
+.plusMark::before { width: 8px; height: 1.5px; }
+.plusMark::after { width: 1.5px; height: 8px; }
+.plusCustom::before,
+.plusCustom::after { display: none; }
+.plus[aria-expanded='true'] .plusMark { box-shadow: 0 0 0 2px var(--color-surface), 0 0 0 3.5px var(--color-text); }
+
+/* The custom panel: a large swatch and an opacity slider. */
+.panel { box-sizing: border-box; width: 236px; max-width: 100%; padding: 8px 8px 12px; }
+.prow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font: 500 13px/1.2 var(--font-sans);
+}
+.prow + .prow { margin-top: 12px; }
+.prow > span:first-child { flex: none; width: 52px; }
+.val { flex: none; width: 36px; text-align: end; color: var(--color-muted); font-variant-numeric: tabular-nums; }
+.pick {
+  flex: 1;
+  height: 36px;
+  padding: 0;
+  border: 0;
+  border-radius: 10px;
+  background: none;
+  box-shadow: 0 0 0 1px var(--color-border-strong);
+  cursor: pointer;
+  appearance: none;
+}
+.pick::-webkit-color-swatch-wrapper { padding: 0; }
+.pick::-webkit-color-swatch { border: 0; border-radius: 10px; }
+.pick::-moz-color-swatch { border: 0; border-radius: 10px; }
+.range { flex: 1; min-width: 0; height: var(--cell); margin: 0; accent-color: var(--color-primary); }
+
+@media (prefers-reduced-motion: reduce) {
+  .button { transition: none; }
+}

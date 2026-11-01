@@ -1,0 +1,38 @@
+.wrap { position: relative; display: inline-flex; }
+/* Under the Reading lamp's capsule, in the middle of the screen, where its Print button sits. */
+.floating { position: fixed; top: 64px; left: 50%; translate: -50% 0; z-index: 40; }
+.menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  inset-inline-start: 0;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  min-width: 12rem;
+  padding: var(--space-1);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-md);
+  color: var(--color-text);
+  font-family: var(--font-sans);
+}
+.floating .menu { position: static; }
+.item {
+  appearance: none;
+  display: flex;
+  align-items: center;
+  min-height: 32px;
+  padding: 0 var(--space-3);
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: start;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.item:hover { background: var(--color-primary-soft); }
+.item:focus-visible { outline: 2px solid var(--color-primary); outline-offset: 1px; }
+@media (pointer: coarse) { .item { min-height: 44px; } }
