@@ -191,11 +191,11 @@ function TileRow({ marks, undo, redo, touch, printMenu, printOpen, onTogglePrint
       <div className={`${toolbarStyles.toolbar} ${styles.toolRow}`} role="toolbar" aria-label={t.toolbarLabel} data-editor-toolbar>
         <MarkerButton marker={marks.marker} onChange={marks.rearm} armed={touch.armed} onTap={touch.arm} buttonClass={toolbarStyles.button} />
         <UndoRedoButtons
-          onUndo={undo} onRedo={redo} canUndo={marks.canUndo} canRedo={marks.canRedo} iconOnly
+          onUndo={undo} onRedo={redo} canUndo={marks.canUndo} canRedo={marks.canRedo}
           labels={{ undoTitle: t.capsule.undo, undoButton: t.capsule.undo, redoTitle: t.capsule.redo, redoButton: t.capsule.redo }}
         />
-        <FullscreenButton isFullscreen={false} toggleFullscreen={onToggleView} iconOnly />
-        <button type="button" className={toolbarStyles.button} onClick={requestReplace} title={shellMessages.replaceTitle} aria-label={shellMessages.replaceLabel} data-icon-only>
+        <FullscreenButton isFullscreen={false} toggleFullscreen={onToggleView} />
+        <button type="button" className={toolbarStyles.button} onClick={requestReplace} title={shellMessages.replaceTitle} aria-label={shellMessages.replaceLabel}>
           <svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
             <path d={FILE_ACTIONS.replace.icon} />
           </svg>
