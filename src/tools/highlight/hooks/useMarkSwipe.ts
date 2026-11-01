@@ -19,6 +19,8 @@ interface MarkSwipeOptions {
   /** Every element of the document: the new one's place in the history comes from the count. */
   elements: EditorElement[];
   marker: Marker;
+  /** The marker is armed for a finger: a one-finger press marks instead of scrolling. */
+  touchArmed: boolean;
   getPointerPercent: (event: MouseEvent | TouchEvent, container: HTMLElement, geometry?: PageGeometry) => Point;
   directionAt: (start: Point) => ReadingDirection;
   dispatch: (action: ElementsAction) => void;
@@ -31,8 +33,10 @@ interface MarkSwipeOptions {
   onInk: (element: HighlightElement) => void;
 }
 
-/** A press by a mouse or a pen marks; a finger scrolls. */
-const isFinePointer = (event: PointerEvent) => event.pointerType === 'mouse' || event.pointerType === 'pen';
+/** A press by a mouse or a pen marks; a finger scrolls unless the marker is armed for touch. */
+const marks = (event: PointerEvent, touchArmed: boolean) => (
+  event.pointerType === 'mouse' || event.pointerType === 'pen' || (touchArmed && event.pointerType === 'touch')
+);
 
 /**
  * A press on the page starts a swipe that lays the marker's bands; the gesture paints during the swipe
@@ -43,8 +47,10 @@ export function useMarkSwipe(o: MarkSwipeOptions): (event: PointerEvent) => void
   useEffect(() => () => gestureCancelRef.current?.(), []);
 
   return (event) => {
-    if (event.button !== 0 || !isFinePointer(event)) return;
-    o.clicks.beginPress();
+    if (event.button !== 0 || !marks(event, o.touchArmed)) return;
+    const isMouse = event.pointerType !== 'touch';
+    // A finger's click is not read: the double-click and third click are a mouse's.
+    if (isMouse) o.clicks.beginPress();
     if ((event.target as Element | null)?.closest('[data-element-id]')) return;
     o.onPress();
     const container = event.currentTarget as HTMLElement;
@@ -72,7 +78,7 @@ export function useMarkSwipe(o: MarkSwipeOptions): (event: PointerEvent) => void
       dispatch: swipeDispatch, getPointerPercent: o.getPointerPercent, gestureCancelRef, logAction: o.logAction, setAnnouncement: o.setAnnouncement,
       messages: englishSignMessages, nextElementIndex: o.elements.length, pageGeometry: o.geometry,
       direction: o.directionAt(start),
-      isMouse: true,
+      isMouse,
     }, {
       pageIndex, container, id, newEl, start,
       getElementNode: () => container.querySelector<HTMLElement>(`[data-element-id="${id}"]`) ?? undefined,

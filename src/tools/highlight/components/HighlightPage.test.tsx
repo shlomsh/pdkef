@@ -23,10 +23,10 @@ const dispatch = vi.fn();
 const logAction = vi.fn();
 const rearm = vi.fn();
 
-function mount(elements: EditorElement[], marker = DEFAULT_MARKER) {
+function mount(elements: EditorElement[], marker = DEFAULT_MARKER, touchArmed?: boolean) {
   act(() => render(
     <HighlightPage
-      pdfDocument={null} pageIndex={0} widthPx={600} elements={elements} marker={marker}
+      pdfDocument={null} pageIndex={0} widthPx={600} elements={elements} marker={marker} touchArmed={touchArmed}
       dispatch={dispatch} logAction={logAction} rearm={rearm} setAnnouncement={() => {}} cardRef={() => {}}
     />,
     container,
@@ -528,5 +528,44 @@ describe('HighlightPage click marks on a scan (R10)', () => {
   it('a single click never reads the canvas', () => {
     clickAt(1);
     expect(readScanUnit).not.toHaveBeenCalled();
+  });
+});
+
+describe('HighlightPage touch swipe, armed', () => {
+  it('a one-finger press starts the same swipe as a mouse, and not as a mouse (its click is not ours to swallow)', () => {
+    const overlay = mount([], DEFAULT_MARKER, true);
+    press(overlay, { pointerType: 'touch' });
+    const added = dispatch.mock.calls.find(([a]) => a.type === 'ADD_ELEMENT')?.[0].payload as HighlightElement;
+    expect(added).toMatchObject({ type: 'highlight', pageIndex: 0, width: 0, height: 0, bands: [], color: DEFAULT_MARKER.color });
+    expect(startHighlightSwipe).toHaveBeenCalledTimes(1);
+    expect(startHighlightSwipe.mock.calls[0][0].isMouse).toBe(false);
+    expect(startHighlightSwipe.mock.calls[0][1]).toMatchObject({ pageIndex: 0, id: added.id });
+  });
+
+  it('the page stops scrolling for the gesture: it owns the touch while armed', () => {
+    const overlay = mount([], DEFAULT_MARKER, true);
+    expect(overlay.hasAttribute('data-touch-armed')).toBe(true);
+    mount([], DEFAULT_MARKER, false);
+    expect(overlay.hasAttribute('data-touch-armed')).toBe(false);
+  });
+
+  it('a mouse still marks as before while a finger is armed', () => {
+    const overlay = mount([], DEFAULT_MARKER, true);
+    press(overlay, { pointerType: 'mouse' });
+    expect(startHighlightSwipe.mock.calls[0][0].isMouse).toBe(true);
+  });
+
+  it('a press on a highlight starts nothing', () => {
+    mount([mark], DEFAULT_MARKER, true);
+    press(container.querySelector('[data-element-id]')!, { pointerType: 'touch' });
+    expect(startHighlightSwipe).not.toHaveBeenCalled();
+  });
+
+  it('without it a finger does nothing new', () => {
+    const overlay = mount([], DEFAULT_MARKER, false);
+    press(overlay, { pointerType: 'touch' });
+    expect(dispatch).not.toHaveBeenCalled();
+    expect(startHighlightSwipe).not.toHaveBeenCalled();
+    expect(overlay.hasAttribute('data-touch-armed')).toBe(false);
   });
 });
