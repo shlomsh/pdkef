@@ -66,11 +66,12 @@ describe('PrintSheets', () => {
     expect(sheets()[1].querySelectorAll('[data-print-band]')).toHaveLength(1);
   });
 
-  it('prints an underline as wide as its strokeWidth, 1.5 when it has none, in page-scaled CSS px', async () => {
+  it('prints an underline as wide as its strokeWidth, 3 when it has none, lifted 1pt, in page-scaled CSS px', async () => {
     const under = (id: string, extra: object) => ({ id, type: 'highlight', pageIndex: 0, color: '#fde047', left: 10, top: 20, width: 50, height: 5, bands: [band], style: 'underline', ...extra }) as EditorElement;
-    await mount(false, undefined, pdfDocument, [under('w', { strokeWidth: 3 }), under('d', {})]);
-    const lines = [...sheets()[0].querySelectorAll('[data-print-band]')].map((b) => (b as HTMLElement).style.getPropertyValue('--line'));
-    expect(lines).toEqual(['3px', '1.5px']);
+    await mount(false, undefined, pdfDocument, [under('w', { strokeWidth: 2 }), under('d', {})]);
+    const bands = [...sheets()[0].querySelectorAll('[data-print-band]')] as HTMLElement[];
+    expect(bands.map((b) => b.style.getPropertyValue('--line'))).toEqual(['2px', '3px']);
+    expect(bands.map((b) => b.style.getPropertyValue('--lift'))).toEqual(['1px', '1px']);
   });
 
   it('with notes, puts one card per highlight comment on its sheet, text read as typed', async () => {

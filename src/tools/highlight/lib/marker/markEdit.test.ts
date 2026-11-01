@@ -26,7 +26,7 @@ describe('READ-04: stroke width', () => {
     const { changes, entry } = buildMarkEdit({ ...el, style: 'underline' }, { strokeWidth: 9 }, describeKind);
     expect(changes).toEqual({ strokeWidth: 4 });
     expect(entry).not.toBeNull();
-    expect(changePatch({ strokeWidth: 1.5 })).toHaveProperty('strokeWidth', undefined);
+    expect(changePatch({ strokeWidth: 3 })).toHaveProperty('strokeWidth', undefined);
   });
 });
 

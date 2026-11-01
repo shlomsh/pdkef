@@ -73,11 +73,11 @@ describe('HighlightNode styles', () => {
     host.remove();
   });
 
-  it('READ-04: an underline sets its width custom property, 1.5px by default', () => {
-    const wide = mount({ ...element, style: 'underline', strokeWidth: 3 });
-    wide.querySelectorAll<HTMLElement>('[data-highlight-band]').forEach((band) => expect(band.style.getPropertyValue('--highlight-ink-width')).toBe('3px'));
+  it('READ-04: an underline sets its width custom property, 3px by default', () => {
+    const wide = mount({ ...element, style: 'underline', strokeWidth: 2 });
+    wide.querySelectorAll<HTMLElement>('[data-highlight-band]').forEach((band) => expect(band.style.getPropertyValue('--highlight-ink-width')).toBe('2px'));
     const plain = mount({ ...element, style: 'underline' });
-    plain.querySelectorAll<HTMLElement>('[data-highlight-band]').forEach((band) => expect(band.style.getPropertyValue('--highlight-ink-width')).toBe('1.5px'));
+    plain.querySelectorAll<HTMLElement>('[data-highlight-band]').forEach((band) => expect(band.style.getPropertyValue('--highlight-ink-width')).toBe('3px'));
   });
 
   it('draws an underline as a transparent band with a darkened ink custom property', () => {
@@ -86,7 +86,7 @@ describe('HighlightNode styles', () => {
     expect(bands).toHaveLength(2);
     bands.forEach((band) => {
       expect(band.hasAttribute('data-highlight-underline')).toBe(true);
-      expect(band.style.getPropertyValue('--highlight-ink')).toBe('#A69E32');
+      expect(band.style.getPropertyValue('--highlight-ink')).toBe('#B8AF37');
       expect(band.style.background).toBe('');
       expect(band.style.backgroundColor).toBe('');
     });
