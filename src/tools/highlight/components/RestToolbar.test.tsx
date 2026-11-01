@@ -3,6 +3,7 @@ import { act } from 'preact/test-utils';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { HighlightElement } from '#editor/model/editorModel.ts';
 import { HIGHLIGHT_COLORS } from '../lib/marker/markerState.ts';
+import { toolbarScaleOriginCss } from '#editor-ui/hooks/visualViewportClamp.ts';
 import RestToolbar, { MarkHint } from './RestToolbar.tsx';
 
 const mark: HighlightElement = {
@@ -43,6 +44,20 @@ afterEach(() => {
   onDelete.mockClear();
   onComment.mockClear();
   onClose.mockClear();
+});
+
+describe('RestToolbar placement (Sign floating hook)', () => {
+  it('an LTR mark starts the bar at its left edge, scaling about the top-start corner', () => {
+    expect(mount().style.transformOrigin).toBe(toolbarScaleOriginCss('top-start'));
+  });
+
+  it('an RTL mark ends the bar at its right edge, scaling about the top-end corner', () => {
+    expect(mount({ ...mark, direction: 'rtl' }).style.transformOrigin).toBe(toolbarScaleOriginCss('top-end'));
+  });
+
+  it('the bar is always above the mark', () => {
+    expect(mount().dataset.side).toBe('above');
+  });
 });
 
 describe('RestToolbar', () => {
