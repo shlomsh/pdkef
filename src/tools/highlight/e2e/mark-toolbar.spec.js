@@ -64,7 +64,7 @@ for (const [w, h] of [[375, 812], [402, 874]]) {
       const r = e.getBoundingClientRect();
       return { x: r.x, y: r.y, w: r.width, h: r.height };
     }));
-    expect(rects).toHaveLength(5);
+    expect(rects).toHaveLength(6);
     for (const r of rects) {
       expect(r.x).toBeGreaterThanOrEqual(0);
       expect(r.x + r.w).toBeLessThanOrEqual(w);
