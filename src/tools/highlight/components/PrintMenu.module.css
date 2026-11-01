@@ -1,5 +1,4 @@
-.wrap { position: relative; display: flex; flex: 1 1 0; min-width: 0; }
-.wrap > button { flex: 1; }
+.wrap { position: relative; display: flex; min-width: 0; }
 /* Under the toolbar, in the middle of the screen; the caller's `top` (inline) is the toolbar's bottom edge plus 8 px. */
 .floating { position: fixed; top: 64px; left: 50%; translate: -50% 0; z-index: 40; }
 /* Placement only: the surface is Sign's popover + toolbar-menu. */

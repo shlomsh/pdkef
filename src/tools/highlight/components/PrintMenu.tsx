@@ -17,10 +17,12 @@ interface PrintMenuProps {
   placement?: 'trigger' | 'floating';
   /** Floating only: the menu's top edge in px, measured under the toolbar by the caller. */
   top?: number;
+  /** The row's wrapper class (Sign's dropdown), so the toolbar sizes it like its other items. */
+  wrapClass?: string;
 }
 
 /** READ-06: Print, and Print with my notes. Closes on Esc, on a press outside and on a choice. */
-export default function PrintMenu({ open, withComments, onChoose, onClose, children, placement = 'trigger', top }: PrintMenuProps) {
+export default function PrintMenu({ open, withComments, onChoose, onClose, children, placement = 'trigger', top, wrapClass }: PrintMenuProps) {
   const rootRef = useRef<HTMLSpanElement>(null);
   const live = useRef({ onClose });
   live.current = { onClose };
@@ -53,7 +55,7 @@ export default function PrintMenu({ open, withComments, onChoose, onClose, child
   };
 
   return (
-    <span class={`${styles.wrap} ${placement === 'floating' ? styles.floating : ''}`} ref={rootRef} onKeyDown={onKeyDown}
+    <span class={`${styles.wrap} ${placement === 'floating' ? styles.floating : ''} ${wrapClass ?? ''}`} ref={rootRef} onKeyDown={onKeyDown}
       style={placement === 'floating' && top !== undefined ? { top: `${top}px` } : undefined}>
       {children}
       {open && (

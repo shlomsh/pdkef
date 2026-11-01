@@ -197,8 +197,8 @@ function TileRow({ marks, undo, redo, touch, printMenu, printOpen, onTogglePrint
           </svg>
           <span className={toolbarStyles.label}>{shellMessages.replaceShort}</span>
         </button>
-        <PrintMenu {...printMenu} top={undefined}>
-          <button type="button" className={toolbarStyles.button} data-icon-only aria-label={t.capsule.print} title={t.capsule.print} aria-haspopup="menu" aria-expanded={printOpen} onClick={onTogglePrint}>
+        <PrintMenu {...printMenu} top={undefined} wrapClass={toolbarStyles.dropdown}>
+          <button type="button" className={toolbarStyles.button} aria-label={t.capsule.print} title={t.capsule.print} aria-haspopup="menu" aria-expanded={printOpen} onClick={onTogglePrint}>
             <PrintIcon />
             <span className={toolbarStyles.label}>{t.capsule.print}</span>
           </button>
