@@ -73,6 +73,13 @@ describe('HighlightNode styles', () => {
     host.remove();
   });
 
+  it('READ-04: an underline sets its width custom property, 1.5px by default', () => {
+    const wide = mount({ ...element, style: 'underline', strokeWidth: 3 });
+    wide.querySelectorAll<HTMLElement>('[data-highlight-band]').forEach((band) => expect(band.style.getPropertyValue('--highlight-ink-width')).toBe('3px'));
+    const plain = mount({ ...element, style: 'underline' });
+    plain.querySelectorAll<HTMLElement>('[data-highlight-band]').forEach((band) => expect(band.style.getPropertyValue('--highlight-ink-width')).toBe('1.5px'));
+  });
+
   it('draws an underline as a transparent band with a darkened ink custom property', () => {
     const host = mount({ ...element, style: 'underline', opacity: 0.6 });
     const bands = Array.from(host.querySelectorAll<HTMLElement>('[data-highlight-band]'));

@@ -10,6 +10,7 @@ import type { PDFObject } from '@cantoo/pdf-lib';
 import { pdfPointToPagePercent, type PageGeometry } from '../geometry/coords.ts';
 import type { CommentElement, EditorElement, HighlightBand, HighlightElement } from '../model/editorModel.ts';
 import { DEFAULT_HIGHLIGHT_COLOR } from '../model/highlightColors.ts';
+import { UNDERLINE_WIDTH } from '../model/underlineInk.ts';
 import { openPdfDoc } from '#lib/pdf/openPdfDoc.ts';
 import { uniqueId } from '../model/ids.ts';
 import { pageGeometryFromPdfLibPage } from '../adapters/pdf/pdfLibGeometry.ts';
@@ -28,6 +29,8 @@ export interface RawAnnotation {
   color?: number[];
   /** Constant opacity, `/CA`. */
   ca?: number;
+  /** Border width, `/BS /W`: an underline's line width. */
+  bs?: number;
   contents?: string;
   nm?: string;
   m?: string;
@@ -150,6 +153,9 @@ function highlightElements(a: RawAnnotation, { pageIndex, geometry }: RawPage, t
   const id = takeId(a.nm);
   const highlight: HighlightElement = { id, type: 'highlight', pageIndex, ...geo.box, color: toHex(a.color), bands: geo.bands };
   if (bare(a.subtype) === 'Underline') highlight.style = 'underline';
+  if (highlight.style === 'underline' && typeof a.bs === 'number' && Number.isFinite(a.bs) && a.bs !== UNDERLINE_WIDTH.default) {
+    highlight.strokeWidth = Math.min(UNDERLINE_WIDTH.max, Math.max(UNDERLINE_WIDTH.min, a.bs));
+  }
   if (typeof a.ca === 'number' && Number.isFinite(a.ca) && a.ca < 1) highlight.opacity = Math.max(MIN_OPACITY, a.ca);
   if (!text) return [highlight];
   const commentId = takeId(`${id}-comment`);
@@ -217,6 +223,7 @@ export async function importStandardAnnotations(bytes: ArrayBuffer): Promise<{ b
           ref: entry, subtype, rect,
           quadPoints: numbersOf(lookup(get('QuadPoints') ?? PDFName.of('')), lookup),
           color,
+          bs: (lookup((doc.context.lookupMaybe(get('BS'), PDFDict)?.get(PDFName.of('W'))) ?? PDFName.of('')) as PDFNumber | undefined)?.asNumber?.(),
           ca: (lookup(get('CA') ?? PDFName.of('')) as PDFNumber | undefined)?.asNumber?.(),
           contents: textOf(lookup(get('Contents') ?? PDFName.of(''))),
           nm: textOf(lookup(get('NM') ?? PDFName.of(''))),
