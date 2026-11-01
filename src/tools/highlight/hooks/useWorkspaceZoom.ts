@@ -4,7 +4,7 @@ import type { DetailEdits } from '#editor/registry/draftValidation.ts';
 import { clampZoom, resolveZoom, stepZoom, type PageBox, type ZoomSetting } from '../lib/zoom/fit.ts';
 import { pageAnchorAt } from '../lib/zoom/pageAnchor.ts';
 import { displayZoom, widestPage } from '../lib/zoom/lamp.ts';
-import { zoomCommit } from '../lib/zoom/commit.ts';
+import { commitChanges, zoomCommit } from '../lib/zoom/commit.ts';
 import { useBoardScroll } from './useBoardScroll.ts';
 import { initialSetting, serializeSetting } from '../lib/zoom/setting.ts';
 import { readInkBounds } from './readInkBounds.ts';
@@ -130,6 +130,7 @@ export function useWorkspaceZoom({ pdfDocument, workspaceRef, columnRef, fullscr
   const { pendingScroll, pendingCentre, pendingAnchor, board } = useBoardScroll({ workspaceRef, fullscreen, pages, zoom, setting, view });
 
   const commit = useCallback((next: ZoomSetting, nextZoom: number, anchor?: Point, centreAfter = false) => {
+    if (!commitChanges(settingRef.current, zoomRef.current, next, nextZoom)) return;
     const f = frame();
     if (f) {
       pendingScroll.current = zoomCommit({
@@ -143,8 +144,7 @@ export function useWorkspaceZoom({ pdfDocument, workspaceRef, columnRef, fullscr
       pendingAnchor.current = pageAnchor ? { anchor: pageAnchor, point } : null;
     }
     setSetting(next);
-    setTouched(true);
-    storeDefault(next);
+    setTouched(true); storeDefault(next);
   }, [frame, centre, workspaceRef, pendingAnchor, pendingCentre, pendingScroll]);
 
   const apply = useCallback((next: ZoomSetting, anchor?: Point) => {
