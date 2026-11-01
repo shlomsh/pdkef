@@ -3,7 +3,6 @@ import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
 import type { PDFDocumentProxy } from 'pdfjs-dist';
 import PdfPageCanvas from '#editor-ui/PdfPageCanvas.tsx';
 import EditorPageHeader from '#editor-ui/EditorPageHeader.tsx';
-import { CommentMarker } from '#editor-ui/comments/HighlightComment.tsx';
 import HighlightNode from '#editor-ui/highlight/HighlightNode.tsx';
 import usePdfCoordinates from '#editor-ui/hooks/usePdfCoordinates.ts';
 import workspaceStyles from '#editor-ui/Workspace.module.css';
@@ -19,8 +18,6 @@ import { directionAtPoint, readerTextDirection, resolveHighlightDirection } from
 import type { ActionHistoryEntry } from '#editor/model/actionHistory.ts';
 import type { EditorElementPatch } from '#editor/model/editorModel.ts';
 import { signUpdateDescription } from '#editor/registry/signLabels.ts';
-import { commentMarkers } from '#editor/comments/anchors.ts';
-import { commentNumbers } from '#editor/highlight/commentNumbers.ts';
 import { createElementId } from '#editor/model/ids.ts';
 import { recordAction } from '#lib/telemetry/actionTrail.ts';
 import useCoarsePointer from '#editor-ui/hooks/useCoarsePointer.ts';
@@ -35,6 +32,7 @@ import { deleteWithComments } from '../lib/notes/deleteElement.ts';
 import { openCommentFor } from '../lib/notes/openComment.ts';
 import type { Marker } from '../lib/marker/markerState.ts';
 import { englishHighlightMessages as t } from '../messages.ts';
+import MarkCommentMarker, { commentsByMark } from './MarkCommentMarker.tsx';
 import RestToolbar, { MarkHint } from './RestToolbar.tsx';
 import { NOTES_W } from '../lib/zoom/fit.ts';
 import notes from './NotesColumn.module.css';
@@ -100,24 +98,7 @@ export default function HighlightPage({ pdfDocument, pageIndex, widthPx, element
   }, [pdfDocument, pageIndex]);
 
   const marks = elements.filter((el): el is HighlightElement => el.type === 'highlight' && el.pageIndex === pageIndex);
-
-  // Each mark's comment: its id, number and the marker's place in the mark's box, the way Sign draws them.
-  const commentMarks = useMemo(() => {
-    const places = commentMarkers(elements, () => readerTextDirection());
-    const numbers = commentNumbers(elements);
-    const byMark = new Map<string, { id: string; at: NonNullable<ReturnType<typeof places.get>>; number: number | undefined }>();
-    for (const el of elements) {
-      const at = places.get(el.id);
-      if (el.type === 'comment' && el.anchor.kind === 'element' && at) byMark.set(el.anchor.elementId, { id: el.id, at, number: numbers.get(el.id) });
-    }
-    return byMark;
-  }, [elements]);
-
-  const markerFor = (markId: string) => {
-    const comment = commentMarks.get(markId);
-    return comment && <CommentMarker at={comment.at} number={comment.number} focused={activeElementId === comment.id} onSelect={() => onSelectComment?.(comment.id)} />;
-  };
-
+  const commentMarks = useMemo(() => commentsByMark(elements), [elements]);
   const markFocus = useMarkFocus({ elements, openFor: rest.openFor });
 
   const target = rest.targetId === null ? undefined : marks.find((m) => m.id === rest.targetId);
@@ -197,7 +178,7 @@ export default function HighlightPage({ pdfDocument, pageIndex, widthPx, element
               style={{ left: `${mark.left}%`, top: `${mark.top}%`, width: `${mark.width}%`, height: `${mark.height}%` }}
             >
               <HighlightNode element={mark} isActive={false} onResizeStart={noop} />
-              {markerFor(mark.id)}
+              <MarkCommentMarker comment={commentMarks.get(mark.id)} activeElementId={activeElementId} onSelectComment={onSelectComment} />
             </div>
           ))}
         </div>
