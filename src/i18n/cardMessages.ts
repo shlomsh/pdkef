@@ -41,6 +41,10 @@ const hebrewToolCards: Record<string, CardCopy> = {
     title: 'תמונה ל-PDF',
     description: 'אחדו תמונות JPG או PNG לקובץ PDF אחד באיכות המקורית, בלי סימן מים.',
   },
+  'highlight-pdf': {
+    title: 'הדגשת PDF',
+    description: 'סמנו שורות במרקר והוסיפו הערה ליד כל הדגשה, גם בדף סרוק.',
+  },
   'scan-to-pdf': {
     title: 'סריקה ל-PDF',
     description: 'הפכו צילומים של דפים ל-PDF נקי: יישור כל דף, תאורה אחידה וקובץ קטן.',

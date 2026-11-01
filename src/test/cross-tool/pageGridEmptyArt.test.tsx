@@ -10,6 +10,7 @@ import PdfSecurityTool from '../../tools/security/PdfSecurityTool.tsx';
 import PdfEditPagesTool from '../../tools/edit-pages/PdfEditPagesTool.tsx';
 import PdfSignTool from '../../tools/sign/PdfSignTool.tsx';
 import PdfRedactTool from '../../tools/redact/PdfRedactTool.tsx';
+import PdfHighlightTool from '../../tools/highlight/PdfHighlightTool.tsx';
 import PdfScanTool from '../../tools/scan/PdfScanTool.tsx';
 
 // docs/tool-hero-show-the-verb.md, Guards: every page-grid tool's empty sheet shows its
@@ -26,6 +27,7 @@ const WITH_VERB: [string, () => VNode][] = [
   ['split', () => <PdfSplitTool />],
   ['sign', () => <PdfSignTool />],
   ['redact', () => <PdfRedactTool />],
+  ['highlight-pdf', () => <PdfHighlightTool />],
   ['scan-to-pdf', () => <PdfScanTool />],
 ];
 
