@@ -188,5 +188,10 @@
     "rule": 9,
     "file": "src/editor-ui/capsule/capsuleState.ts",
     "reason": "READ-05: built before its consumers; Highlight PDF's Reading lamp mounts it in READ-03, remove this entry once it does"
+  },
+  {
+    "rule": 9,
+    "file": "src/editor/export/drawElements.ts",
+    "reason": "editor export moved before Highlight PDF imports it (READ-03); remove once it does"
   }
 ]
