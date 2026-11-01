@@ -6,15 +6,21 @@ import NeedsUnlock, { type NeedsUnlockKind } from '#shell/NeedsUnlock.tsx';
 import { FileActions } from '#shell/ToolShell.tsx';
 import { withIslandBoundary } from '#lib/telemetry/IslandErrorBoundary.tsx';
 import { useEditorFileSession } from '#editor-ui/hooks/useEditorFileSession.ts';
-import type { HistoryElement } from '#editor/model/actionHistory.ts';
+import { readBackAnnotations } from '#editor/comments/readBack.ts';
+import type { EditorElement } from '#editor/model/editorModel.ts';
+import { isEditorElement } from '#editor/registry/draftValidation.ts';
+import { recordAction } from '#lib/telemetry/actionTrail.ts';
+import { reportError } from '#lib/telemetry/errorReport.ts';
+import { usePdfShare } from '#lib/output/usePdfShare.js';
 import { toggleWorkspaceFullscreen, useFullscreenChange } from '#editor-ui/hooks/workspaceFullscreen.ts';
 import { useWorkspaceZoom } from './hooks/useWorkspaceZoom.ts';
+import { useHighlightMarks } from './hooks/useHighlightMarks.ts';
+import { useHistoryKeys } from './hooks/useHistoryKeys.ts';
+import { exportHighlighted, highlightedFileName } from './lib/export/highlightedPdf.ts';
 import { describeFile } from '#lib/text/format.js';
 import HighlightVerb from './verb/HighlightVerb.tsx';
 import HighlightWorkspace from './components/HighlightWorkspace.tsx';
 import { englishHighlightMessages as t } from './messages.ts';
-
-const isNoElement = (_value: unknown): _value is HistoryElement => false;
 
 type Status = 'idle' | 'loading' | 'editing' | 'error';
 
@@ -32,8 +38,11 @@ export default withIslandBoundary(function PdfHighlightTool() {
   const fullscreen = realFullscreen || pseudoFullscreen;
   useFullscreenChange(workspaceRef, setRealFullscreen);
   const zoom = useWorkspaceZoom({ pdfDocument, workspaceRef, columnRef, fullscreen });
+  const marks = useHighlightMarks();
+  const share = usePdfShare();
+  useHistoryKeys({ enabled: status === 'editing', undo: marks.undo, redo: marks.redo });
 
-  const session = useEditorFileSession<HistoryElement>({
+  const session = useEditorFileSession<EditorElement>({
     tool: 'highlight-pdf',
     file,
     pdfDocument,
@@ -42,17 +51,37 @@ export default withIslandBoundary(function PdfHighlightTool() {
     setAnnouncement,
     messages: { invalidPdf: t.invalidPdf, needsPassword: t.needsPassword, ownerRestricted: t.ownerRestricted },
     onNeedsUnlock: setNeedsUnlock,
+    prepareFile: readBackAnnotations,
     initialize: ({ file: selected, preset }) => {
       setNeedsUnlock(null);
+      marks.dispatch({ type: 'LOAD_DOCUMENT', payload: { elements: preset.elements, actionHistory: preset.actionHistory } });
       zoom.restore(preset.details);
       setFile(selected);
     },
     onDocument: (doc, isCurrent) => {
       if (isCurrent()) setPdfDocument(doc);
     },
-    // Highlights join the draft in a later slice; for now only the zoom setting is remembered.
-    draft: { elements: [], actionHistory: [], details: zoom.details, isDirty: zoom.touched, isElement: isNoElement },
+    draft: {
+      elements: marks.state.elements,
+      actionHistory: marks.state.actionHistory,
+      details: zoom.details,
+      isDirty: marks.state.documentRevision !== (marks.state.draftBaselineRevision ?? marks.state.documentRevision) || zoom.touched,
+      isElement: isEditorElement,
+    },
   });
+
+  // The export takes the bytes the session holds: the file with its old highlights already read out of it.
+  const handleDownload = async () => {
+    const bytes = session.fileBytesRef.current;
+    if (!file || !bytes) return;
+    try {
+      const out = await exportHighlighted(bytes, marks.state.elements);
+      recordAction('download');
+      share.download(new Blob([out as BlobPart],{ type: 'application/pdf' }), highlightedFileName(file.name));
+    } catch (err) {
+      reportError('pdf_tool_run', err, 'export_highlighted');
+    }
+  };
 
   const numPages = pdfDocument?.numPages ?? 0;
 
@@ -75,6 +104,7 @@ export default withIslandBoundary(function PdfHighlightTool() {
       {!needsUnlock && status === 'editing' && pdfDocument && (
         <HighlightWorkspace
           pdfDocument={pdfDocument} numPages={numPages} fileName={file?.name ?? ''} zoom={zoom}
+          marks={marks} setAnnouncement={setAnnouncement} onDownload={handleDownload}
           workspaceRef={workspaceRef} columnRef={columnRef} fullscreen={fullscreen}
           onToggleFullscreen={() => toggleWorkspaceFullscreen(workspaceRef.current, pseudoFullscreen, setPseudoFullscreen)}
         />

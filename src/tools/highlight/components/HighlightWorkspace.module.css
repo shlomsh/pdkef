@@ -1,9 +1,8 @@
 .workspace { overflow-x: auto; touch-action: pan-x pan-y; }
 .top { display: flex; align-items: center; gap: var(--space-3); justify-content: center; }
-.enter { display: inline-flex; align-items: center; gap: var(--space-2); font: inherit; color: inherit; background: none; border: 1px solid var(--color-border-strong); border-radius: var(--radius-sm); min-height: 32px; padding: 0 var(--space-3); cursor: pointer; }
-.enter:focus-visible { outline: 2px solid var(--color-primary); outline-offset: 1px; }
-@media (pointer: coarse) { .enter { min-height: 44px; } }
+.enter, .download { display: inline-flex; align-items: center; gap: var(--space-2); font: inherit; color: inherit; background: none; border: 1px solid var(--color-border-strong); border-radius: var(--radius-sm); min-height: 32px; padding: 0 var(--space-3); cursor: pointer; }
+.enter:focus-visible, .download:focus-visible { outline: 2px solid var(--color-primary); outline-offset: 1px; }
+@media (pointer: coarse) { .enter, .download { min-height: 44px; } }
 /* The column is as wide as the widest page; a wider one scrolls sideways and is never squeezed (R24). */
 .column { display: flex; flex-direction: column; gap: 2rem; margin: 0 auto; flex: none; touch-action: pan-x pan-y; }
-.page { margin: 0 auto; }
 .floating { position: fixed; top: 12px; left: 50%; transform: translateX(-50%); z-index: 30; }
