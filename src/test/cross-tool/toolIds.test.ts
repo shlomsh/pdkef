@@ -19,7 +19,7 @@ describe('toolIds.ts and src/data/tools.js agree', () => {
     expect(page.href).toBe(tool.href);
     expect(page.href).toMatch(/^\/[a-z0-9-]+\/$/);
     expect(page.id).toBe(toolIdOf(tool));
-    expect(page.variantOf).toBe(tool.variantOf);
+    expect(page.variantOf).toBe((tool as { variantOf?: string }).variantOf);
   });
 
   it('the analytics and rating lists are the registry ids (plus Protect, which has no page of its own)', () => {
