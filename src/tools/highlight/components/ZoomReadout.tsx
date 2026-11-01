@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
 import styles from './ZoomReadout.module.css';
 
-export const READOUT_MS = 1200;
+const READOUT_MS = 1200;
 
 /** R26: a pill that names the zoom on every change and fades after 1200 ms. It never takes focus or wakes the capsule. */
 export default function ZoomReadout({ text }: { text: string }) {

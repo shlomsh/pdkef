@@ -25,7 +25,7 @@ function storeDefault(setting: ZoomSetting) {
   try { localStorage.setItem(STORE_KEY, serializeSetting(setting)); } catch { /* storage is optional */ }
 }
 
-export interface WorkspaceZoomOptions {
+interface WorkspaceZoomOptions {
   pdfDocument: PDFDocumentProxy | null;
   /** The element that scrolls sideways, and in fullscreen vertically too. */
   workspaceRef: { current: HTMLElement | null };

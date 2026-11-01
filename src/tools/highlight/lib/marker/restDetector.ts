@@ -1,3 +1,4 @@
+/** @testSeam */
 export const REST = { awayPx: 12, stillPx: 3, restMs: 700 } as const;
 
 interface Point { x: number; y: number }

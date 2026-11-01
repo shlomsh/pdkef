@@ -14,9 +14,9 @@ import { HELVETICA_BASELINE_OFFSET_EM, DEFAULT_LINE_HEIGHT_EM } from '../model/s
 import { pageGeometryFromPdfLibPage } from '../adapters/pdf/pdfLibGeometry.ts';
 import type { EditorElement } from '../model/editorModel.ts';
 
-export type LoadCustomFont = (family: string, weight?: string, style?: string) => Promise<PDFFont | null>;
+type LoadCustomFont = (family: string, weight?: string, style?: string) => Promise<PDFFont | null>;
 
-export interface DrawElementsOptions {
+interface DrawElementsOptions {
   /** Loads and embeds a face into `pdfDoc`. Needed only when a text element is drawn. */
   loadCustomFont?: LoadCustomFont;
   /** Called after each drawn element with the fraction done, in 0..1. */

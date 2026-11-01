@@ -6,7 +6,7 @@ import styles from './ZoomMenu.module.css';
 
 type Labels = Pick<HighlightMessages, 'zoom' | 'fitWidth' | 'fitText' | 'fitPage' | 'actualSize' | 'zoomIn' | 'zoomOut'>;
 
-export interface ZoomMenuProps {
+interface ZoomMenuProps {
   zoom: number;
   setting: ZoomSetting;
   onSetting(mode: FitMode): void;

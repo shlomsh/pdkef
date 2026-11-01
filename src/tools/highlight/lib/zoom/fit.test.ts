@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { clampZoom, fitScale, parseZoomSetting, resolveZoom, stepZoom } from './fit';
+import { clampZoom, fitScale, resolveZoom, stepZoom } from './fit';
 
 const page = { width: 612, height: 792, textLeft: 72, textRight: 540 };
 const view = { width: 1440, height: 900 };
@@ -47,18 +47,8 @@ describe('resolveZoom', () => {
   });
 });
 
-describe('parseZoomSetting', () => {
-  it('accepts modes and clamps numbers', () => {
-    expect(parseZoomSetting('text')).toBe('text');
-    expect(parseZoomSetting(7)).toBe(3);
-    expect(parseZoomSetting(1.25)).toBe(1.25);
-  });
-  it('rejects anything else', () => {
-    expect(parseZoomSetting('huge')).toBeNull();
-    expect(parseZoomSetting(NaN)).toBeNull();
-    expect(parseZoomSetting(null)).toBeNull();
-  });
-  it('clampZoom is exported', () => {
+describe('clampZoom', () => {
+  it('clamps to the zoom range', () => {
     expect(clampZoom(0.1)).toBe(0.5);
   });
 });

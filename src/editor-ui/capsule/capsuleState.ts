@@ -1,5 +1,6 @@
-export type CapsuleMode = 'dozing' | 'awake';
+type CapsuleMode = 'dozing' | 'awake';
 
+/** @testSeam */
 export interface CapsuleState {
   mode: CapsuleMode;
   hovered: boolean;
@@ -9,6 +10,7 @@ export interface CapsuleState {
   scrolledSinceWake: number;
 }
 
+/** @testSeam */
 export type CapsuleEvent =
   | { type: 'pointerEnter' }
   | { type: 'pointerLeave' }
@@ -19,7 +21,7 @@ export type CapsuleEvent =
   | { type: 'scroll'; dy: number }
   | { type: 'pagePress' };
 
-/** A little trackpad drift is not reading; past this much scrolling the reader has gone back to the page. */
+/** A little trackpad drift is not reading; past this much scrolling the reader has gone back to the page. @testSeam */
 export const DOZE_SCROLL_PX = 24;
 
 export const initialCapsule: CapsuleState = { mode: 'dozing', hovered: false, focused: false, menuOpen: false, scrolledSinceWake: 0 };
