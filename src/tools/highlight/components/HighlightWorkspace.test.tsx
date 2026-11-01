@@ -4,6 +4,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { PDFDocumentProxy } from 'pdfjs-dist';
 import workspaceStyles from '#editor-ui/Workspace.module.css';
 import HighlightWorkspace from './HighlightWorkspace.tsx';
+import { DEFAULT_MARKER } from '../lib/marker/markerState.ts';
 
 let container: HTMLElement | null = null;
 afterEach(() => {
@@ -16,7 +17,8 @@ function mount(lamp: { fullscreen: boolean; pseudoFullscreen: boolean }) {
     apply: vi.fn(), step: vi.fn(), actual: vi.fn(),
   } as unknown as Parameters<typeof HighlightWorkspace>[0]['zoom'];
   const marks = {
-    elements: [], dispatch: vi.fn(), undo: vi.fn(), redo: vi.fn(), canUndo: false, canRedo: false,
+    state: { elements: [] }, marker: DEFAULT_MARKER, rearm: vi.fn(), logAction: vi.fn(),
+    dispatch: vi.fn(), undo: vi.fn(), redo: vi.fn(), canUndo: false, canRedo: false,
   } as unknown as Parameters<typeof HighlightWorkspace>[0]['marks'];
   container = document.createElement('div');
   document.body.appendChild(container);
