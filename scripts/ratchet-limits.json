@@ -128,7 +128,7 @@
     "src/shell": 1
   },
   "jsFilesTools": {
-    "src/tools": 56
+    "src/tools": 55
   },
   "nesting": {
     "cap": 4,
@@ -140,10 +140,10 @@
       "scripts/spike/form-06/measureOcr.mjs#flattenWords": 5,
       "scripts/spike/form-32/renderAndOcr.mjs#collect": 5,
       "src/editor/adapters/pdf/contentStream.js#decodeLiteralString": 5,
+      "src/lib/pageLayout/rasterInk.ts#connectedComponents": 5,
       "src/tools/compress/lib/compressImages.js#compressPdfImagesToTarget": 5,
       "src/tools/redact/lib/deleteObjects.js#stillDrawnImages": 5,
-      "src/tools/scan/lib/edges/outline.ts#outlineFromMap": 7,
-      "src/lib/pageLayout/rasterInk.ts#connectedComponents": 5
+      "src/tools/scan/lib/edges/outline.ts#outlineFromMap": 7
     }
   },
   "size": {

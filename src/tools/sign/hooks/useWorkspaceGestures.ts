@@ -62,7 +62,7 @@ export interface PendingSignaturePlacement {
   top: number;
 }
 
-export type WorkspaceGestureAction =
+type WorkspaceGestureAction =
   | ElementAction
   | { type: 'ADD_ELEMENT'; payload: EditorElement }
   | { type: 'SET_EDITING_ELEMENT_ID'; payload: string | null }

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { inkFromRaster } from '#lib/pageLayout/rasterInk.ts';
-import { FORM, PAGE, near, render, up } from '#lib/pageLayout/rasterInk.test-helper.js';
+import { FORM, PAGE, near, render, up } from '../../../../test/support/syntheticScan.js';
 import { findCombRuns, findCheckboxes } from './formGrid.js';
 
 // READ-02: the cases where Sign's form detectors read what inkFromRaster found, moved whole out of
