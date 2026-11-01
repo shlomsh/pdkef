@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { PDFDocument } from '@cantoo/pdf-lib';
+import { PDFDocument, degrees } from '@cantoo/pdf-lib';
 import type { EditorElement, HighlightElement } from '#editor/model/editorModel.ts';
 import { readBackAnnotations } from '#editor/comments/readBack.ts';
 import { exportHighlighted, highlightedFileName } from './highlightedPdf.ts';
@@ -54,5 +54,32 @@ describe('exportHighlighted', () => {
         for (const key of ['left', 'top', 'width', 'height'] as const) expect(Math.abs(got[i][key] - w[key])).toBeLessThan(0.5);
       });
     }
+  });
+
+  describe('pageTurns', () => {
+    const rotations = async (out: Uint8Array) => (await PDFDocument.load(out)).getPages().map((p) => p.getRotation().angle);
+
+    it('adds the turn to the page rotation, mod 360, and leaves other pages alone', async () => {
+      const src = await PDFDocument.create();
+      src.addPage([612, 792]);
+      src.addPage([612, 792]).setRotation(degrees(270));
+      const bytes = toBuffer(await src.save());
+      expect(await rotations(await exportHighlighted(bytes, [], { 0: 1, 1: 1 }))).toEqual([90, 0]);
+      expect(await rotations(await exportHighlighted(bytes, [], {}))).toEqual([0, 270]);
+      expect(await rotations(await exportHighlighted(bytes, []))).toEqual([0, 270]);
+    });
+
+    it('keeps a highlight on the same text in the turned page', async () => {
+      const out = await exportHighlighted(await twoPagePdf(), [plain] as EditorElement[], { 0: 1 });
+      const { elements } = await readBackAnnotations(toBuffer(out));
+      const back = elements.find((e): e is HighlightElement => e.type === 'highlight');
+      expect(back).toBeDefined();
+      const want = absolute(plain);
+      const got = absolute(back as HighlightElement);
+      expect(got).toHaveLength(want.length);
+      want.forEach((w, i) => {
+        for (const key of ['left', 'top', 'width', 'height'] as const) expect(Math.abs(got[i][key] - w[key])).toBeLessThan(0.5);
+      });
+    });
   });
 });
