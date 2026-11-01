@@ -1,4 +1,4 @@
-import { useFloating, offset, shift, size, autoUpdate } from '@floating-ui/react';
+import { useFloating, offset, shift, size, autoUpdate, type Middleware } from '@floating-ui/react';
 import { TOOLBAR_FLOATING_OFFSET } from '#editor/model/signGeometry.js';
 import useVisualViewportScale from './useVisualViewportScale.ts';
 import visualViewportClamp, { toolbarScaleOriginCss, getStickyToolShellRect } from './visualViewportClamp.ts';
@@ -10,14 +10,8 @@ import visualViewportClamp, { toolbarScaleOriginCss, getStickyToolShellRect } fr
 // this has to change with it.
 const COARSE_HIT_OVERHANG_PX = 8;
 
-/** Sign's element toolbar placement: above the element, anchored to its start edge (end edge for RTL), kept inside the page and the visual viewport, constant physical size under zoom. */
-export default function useElementToolbarFloating({ rtl, coarse }: { rtl: boolean; coarse: boolean }): {
-  setReference(node: Element | null): void;
-  setFloating(node: HTMLElement | null): void;
-  /** floatingStyles plus the counter-scale transform and its origin, ready for `style`. */
-  style: Record<string, string | number | undefined>;
-  update(): void;
-} {
+/** Floating UI middleware for the element toolbar. Module level so the hook body stays short. */
+function toolbarMiddleware(): Middleware[] {
   // Keep the toolbar anchored above the selected element. Earlier versions used
   // Floating UI's vertical `flip()`, but a slightly over-eager overflow reading
   // could move the toolbar to `bottom-*`, visually jumping it under the text.
@@ -66,6 +60,61 @@ export default function useElementToolbarFloating({ rtl, coarse }: { rtl: boolea
     reference?.closest?.('[data-page-wrapper]') || 'clippingAncestors';
   const floatingBoundary = ({ elements }: { elements: { reference: unknown } }) =>
     getFloatingBoundary(elements.reference instanceof Element ? elements.reference : null);
+  return [
+    // MOBI-17: the gap itself moves out of `offset()` and into a
+    // scale-corrected CSS `translateY` below (`toolbarOffsetPx` still
+    // carries the measured value above). `offset()`'s own contribution is a
+    // literal, unscaled pixel push baked straight into `floatingStyles`'
+    // `translate(...)`; under pinch/auto-zoom the browser magnifies that
+    // literal push along with everything else on the page, so an unscaled
+    // 8px gap grows to `8 * scale` on screen while the counter-scaled bar
+    // itself does not - the offset would visibly drift away from the
+    // element it is supposed to sit flush against as zoom increases.
+    // Floating UI's own `autoUpdate` has no `visualViewport` trigger (it
+    // only watches ancestor scroll/resize, `ResizeObserver` and an
+    // intersection-based move detector - none of which fire from a pinch
+    // that does not scroll), so recomputing `offset()` in JS on zoom would
+    // mean this component driving its own extra `visualViewport` listener
+    // and calling `update()` on every element's `useFloating` instance on
+    // every zoom step - the exact per-element re-render storm
+    // `useVisualViewportScale` exists to avoid. A pure CSS `calc()` against
+    // `--vv-scale` has no such cost: it is not simply "add extra distance",
+    // it is a literal-in-layout-space value like `offset()`'s own was.
+    offset(0),
+    shift((state) => ({
+      boundary: floatingBoundary(state),
+      rootBoundary: 'document',
+      padding: TOOLBAR_FLOATING_OFFSET,
+    })),
+    size((state) => ({
+      boundary: floatingBoundary(state),
+      rootBoundary: 'document',
+      padding: TOOLBAR_FLOATING_OFFSET,
+      apply({ availableWidth, elements }) {
+        elements.floating.style.maxWidth = `${Math.max(0, availableWidth)}px`;
+      },
+    })),
+    // MOBI-17: `shift()`/`size()` above hold the bar's physical size and
+    // row count constant by measuring against the page wrapper's own
+    // static rect, which is deliberately zoom-invariant - but that means
+    // they can place the bar anywhere within the *whole* wrapper, not only
+    // within whatever slice of it a pinch-zoomed, panned phone currently
+    // shows. This middleware is the missing containment check: it reads
+    // `window.visualViewport` directly and clamps into it, after
+    // `shift()`/`size()` have already done their own job. Full reasoning
+    // in visualViewportClamp.ts's own header.
+    visualViewportClamp({ getExcludedRect: getStickyToolShellRect }),
+  ];
+}
+
+/** Sign's element toolbar placement: above the element, anchored to its start edge (end edge for RTL), kept inside the page and the visual viewport, constant physical size under zoom. */
+export default function useElementToolbarFloating({ rtl, coarse }: { rtl: boolean; coarse: boolean }): {
+  setReference(node: Element | null): void;
+  setFloating(node: HTMLElement | null): void;
+  /** floatingStyles plus the counter-scale transform and its origin, ready for `style`. */
+  style: Record<string, string | number | undefined>;
+  update(): void;
+} {
   // Measured, not derived: at the plain 8px offset a tap aimed at a short text
   // box (5.8px tall on the health-declaration form) landed on the bar above
   // it instead - Delete in one run, destroying what had just been typed,
@@ -82,51 +131,7 @@ export default function useElementToolbarFloating({ rtl, coarse }: { rtl: boolea
   const { refs, floatingStyles, update } = useFloating({
     placement: rtl ? 'top-end' : 'top-start',
     whileElementsMounted: autoUpdate,
-    middleware: [
-      // MOBI-17: the gap itself moves out of `offset()` and into a
-      // scale-corrected CSS `translateY` below (`toolbarOffsetPx` still
-      // carries the measured value above). `offset()`'s own contribution is a
-      // literal, unscaled pixel push baked straight into `floatingStyles`'
-      // `translate(...)`; under pinch/auto-zoom the browser magnifies that
-      // literal push along with everything else on the page, so an unscaled
-      // 8px gap grows to `8 * scale` on screen while the counter-scaled bar
-      // itself does not - the offset would visibly drift away from the
-      // element it is supposed to sit flush against as zoom increases.
-      // Floating UI's own `autoUpdate` has no `visualViewport` trigger (it
-      // only watches ancestor scroll/resize, `ResizeObserver` and an
-      // intersection-based move detector - none of which fire from a pinch
-      // that does not scroll), so recomputing `offset()` in JS on zoom would
-      // mean this component driving its own extra `visualViewport` listener
-      // and calling `update()` on every element's `useFloating` instance on
-      // every zoom step - the exact per-element re-render storm
-      // `useVisualViewportScale` exists to avoid. A pure CSS `calc()` against
-      // `--vv-scale` has no such cost: it is not simply "add extra distance",
-      // it is a literal-in-layout-space value like `offset()`'s own was.
-      offset(0),
-      shift((state) => ({
-        boundary: floatingBoundary(state),
-        rootBoundary: 'document',
-        padding: TOOLBAR_FLOATING_OFFSET,
-      })),
-      size((state) => ({
-        boundary: floatingBoundary(state),
-        rootBoundary: 'document',
-        padding: TOOLBAR_FLOATING_OFFSET,
-        apply({ availableWidth, elements }) {
-          elements.floating.style.maxWidth = `${Math.max(0, availableWidth)}px`;
-        },
-      })),
-      // MOBI-17: `shift()`/`size()` above hold the bar's physical size and
-      // row count constant by measuring against the page wrapper's own
-      // static rect, which is deliberately zoom-invariant - but that means
-      // they can place the bar anywhere within the *whole* wrapper, not only
-      // within whatever slice of it a pinch-zoomed, panned phone currently
-      // shows. This middleware is the missing containment check: it reads
-      // `window.visualViewport` directly and clamps into it, after
-      // `shift()`/`size()` have already done their own job. Full reasoning
-      // in visualViewportClamp.ts's own header.
-      visualViewportClamp({ getExcludedRect: getStickyToolShellRect }),
-    ]
+    middleware: toolbarMiddleware(),
   });
   // MOBI-17: subscribes this element's toolbar to the shared, ref-counted
   // `--vv-scale` publisher (see the hook's own header) and to its
