@@ -164,3 +164,23 @@
   .capsule[data-mode='awake']::before,
   .capsule[data-mode='awake'] .inner { transition: none !important; }
 }
+
+/* The bar variant: the same controls, always awake, in the flow at the top of the workspace. */
+.capsule.bar {
+  position: sticky;
+  top: 0;
+  left: auto;
+  translate: none;
+  max-width: none;
+  width: 100%;
+  padding: 5px 16px;
+}
+.capsule.bar::before {
+  border-radius: 0;
+  border-width: 0 0 1px;
+  border-color: var(--color-border);
+  background: var(--color-surface);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+.capsule.bar .inner { justify-content: center; }
