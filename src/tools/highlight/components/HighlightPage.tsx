@@ -32,7 +32,6 @@ import { deleteWithComments } from '../lib/notes/deleteElement.ts';
 import { openCommentFor } from '../lib/notes/openComment.ts';
 import type { Marker } from '../lib/marker/markerState.ts';
 import { englishHighlightMessages as t } from '../messages.ts';
-import MarkCommentMarker, { commentsByMark } from './MarkCommentMarker.tsx';
 import RestToolbar, { MarkHint } from './RestToolbar.tsx';
 import { NOTES_W } from '../lib/zoom/fit.ts';
 import notes from './NotesColumn.module.css';
@@ -44,7 +43,7 @@ const noop = () => {};
  * One page card: its header, the page, and a wrapper per highlight on it. A fine-pointer press on the
  * page starts a swipe that lays the marker's bands; the gesture paints during the swipe and commits once.
  */
-export default function HighlightPage({ pdfDocument, pageIndex, widthPx, elements, marker, touchArmed = false, rearm, dispatch, logAction, setAnnouncement, cardRef, rail, activeElementId = null, onSelectComment, pageTurns = {}, onRotate, onClear }: {
+export default function HighlightPage({ pdfDocument, pageIndex, widthPx, elements, marker, touchArmed = false, rearm, dispatch, logAction, setAnnouncement, cardRef, rail, pageTurns = {}, onRotate, onClear }: {
   pdfDocument: PDFDocumentProxy | null;
   pageIndex: number;
   /** The page's width in CSS px at the current zoom. */
@@ -62,10 +61,6 @@ export default function HighlightPage({ pdfDocument, pageIndex, widthPx, element
   cardRef: (node: HTMLDivElement | null) => void;
   /** R29: this page's comments rail, drawn inside the card beside the page so a pinch carries it with its passages. */
   rail?: ComponentChildren;
-  /** The active element: a comment marker wears its focused ring while its card is the active one. */
-  activeElementId?: string | null;
-  /** A click on a comment marker selects that comment, the way a click on its rail card does. */
-  onSelectComment?: (commentId: string) => void;
   /** The quarter turns the person gave each page; this page is drawn, and marked, as turned. */
   pageTurns?: PageTurns;
   /** One quarter turn, handed the page as it is shown now (the turn's starting point). */
@@ -82,7 +77,6 @@ export default function HighlightPage({ pdfDocument, pageIndex, widthPx, element
   const overlayRef = useRef<HTMLDivElement | null>(null);
 
   const marks = elements.filter((el): el is HighlightElement => el.type === 'highlight' && el.pageIndex === pageIndex);
-  const commentMarks = commentsByMark(elements);
   const markFocus = useMarkFocus({ elements, openFor: rest.openFor });
 
   const target = rest.targetId === null ? undefined : marks.find((m) => m.id === rest.targetId);
@@ -162,7 +156,6 @@ export default function HighlightPage({ pdfDocument, pageIndex, widthPx, element
               style={{ left: `${mark.left}%`, top: `${mark.top}%`, width: `${mark.width}%`, height: `${mark.height}%` }}
             >
               <HighlightNode element={mark} isActive={false} onResizeStart={noop} />
-              {!rail && <MarkCommentMarker comment={commentMarks.get(mark.id)} activeElementId={activeElementId} onSelectComment={onSelectComment} />}
             </div>
           ))}
         </div>

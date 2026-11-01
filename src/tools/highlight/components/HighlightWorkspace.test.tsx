@@ -203,11 +203,9 @@ describe('HighlightWorkspace comment markers', () => {
   beforeEach(() => { vi.unstubAllGlobals(); });
   afterEach(() => { vi.unstubAllGlobals(); });
 
-  it('a click on a mark\'s comment marker selects that comment', () => {
-    const { dispatch, restore } = mountNoted([mark, note], 700);
-    const marker = container!.querySelector<HTMLElement>('[data-comment-marker]')!;
-    act(() => { marker.click(); });
-    expect(dispatch).toHaveBeenCalledWith({ type: 'SET_ACTIVE_ELEMENT_ID', payload: 'c1' });
+  it('a commented mark wears no comment marker on a phone either', () => {
+    const { restore } = mountNoted([mark, note], 700);
+    expect(container!.querySelector('[data-comment-marker]')).toBeNull();
     restore();
   });
 });
