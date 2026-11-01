@@ -2,8 +2,9 @@ import { useRef } from 'preact/hooks';
 import styles from './EditorControls.module.css';
 import { useNativeChange } from './useNativeChange.ts';
 import { PRESET_COLORS } from './colorNames.ts';
+import ColorWheelInput from './ColorWheelInput.tsx';
 
-export default function ColorPicker({ value, onChange, onClose, title, defaultColor = '#000000', presets = PRESET_COLORS, names }: {
+export default function ColorPicker({ value, onChange, onClose, title, defaultColor = '#000000', presets = PRESET_COLORS, names, custom = 'square' }: {
   value?: string;
   onChange: (color: string) => void;
   onClose?: () => void;
@@ -12,6 +13,8 @@ export default function ColorPicker({ value, onChange, onClose, title, defaultCo
   presets?: readonly string[];
   /** Plain color names keyed by preset hex, for the swatch tooltip and accessible name. */
   names?: Readonly<Record<string, string>>;
+  /** The "any color" control: Sign's small square input, or the app's hue wheel. */
+  custom?: 'square' | 'wheel';
 }) {
   // One commit per choice: compat turns a JSX onChange into the per-drag-step `input` event.
   const colorInput = useRef<HTMLInputElement>(null);
@@ -37,13 +40,22 @@ export default function ColorPicker({ value, onChange, onClose, title, defaultCo
         />
       ))}
       <span className={styles['color-divider']} aria-hidden="true" />
-      <input
-        type="color"
-        className={styles['color-input']}
-        value={value || defaultColor}
-        ref={colorInput}
-        title={title}
-      />
+      {custom === 'wheel' ? (
+        <ColorWheelInput
+          value={value || defaultColor}
+          label={title ?? ''}
+          onCommit={onChange}
+          pressed={!presets.includes(value || defaultColor)}
+        />
+      ) : (
+        <input
+          type="color"
+          className={styles['color-input']}
+          value={value || defaultColor}
+          ref={colorInput}
+          title={title}
+        />
+      )}
     </div>
   );
 }

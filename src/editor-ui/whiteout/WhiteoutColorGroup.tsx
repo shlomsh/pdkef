@@ -1,7 +1,6 @@
 import { Check, Pipette } from 'lucide-preact';
-import { useEffect, useRef } from 'preact/hooks';
 import { swatchInk } from './swatchInk.ts';
-import { useNativeChange } from '../useNativeChange.ts';
+import ColorWheelInput from '../ColorWheelInput.tsx';
 import styles from './WhiteoutColorGroup.module.css';
 
 /** The group's visible and accessible text, supplied by the host so each edition shows its own language. */
@@ -54,49 +53,6 @@ export default function WhiteoutColorGroup({
 }: WhiteoutColorGroupProps) {
   const hex = HEX.test(color) ? color : '#ffffff';
 
-  // The picker previews live: `input` only paints the box's DOM (no state, no undo step). The
-  // pick commits once, from the native `change` (preact/compat rewrites onChange to `input`, which
-  // fires on every drag step). `blur` and unmount settle a pick whose `change` never arrived, e.g.
-  // the box is deselected as the picker closes. A pick equal to the committed colour commits
-  // nothing and undoes the preview paint.
-  const colorInput = useRef<HTMLInputElement>(null);
-  const pickRef = useRef(onPickColor);
-  pickRef.current = onPickColor;
-  const paintRef = useRef(paintPreview);
-  paintRef.current = paintPreview;
-  const committed = useRef(hex);
-  committed.current = hex;
-  const pending = useRef(false);
-  const reconcile = (el: HTMLInputElement) => {
-    if (el.value.toLowerCase() !== committed.current.toLowerCase()) {
-      pickRef.current(el.value);
-      // A blur then a change with no render between must not commit twice.
-      committed.current = el.value.toLowerCase();
-    } else paintRef.current(committed.current);
-    pending.current = false;
-  };
-  const reconcileRef = useRef(reconcile);
-  reconcileRef.current = reconcile;
-  useNativeChange(colorInput, (el) => reconcileRef.current(el), []);
-  useEffect(() => {
-    const el = colorInput.current;
-    if (!el) return undefined;
-    const onBlur = () => { if (pending.current) reconcileRef.current(el); };
-    el.addEventListener('blur', onBlur);
-    return () => {
-      el.removeEventListener('blur', onBlur);
-      if (pending.current) reconcileRef.current(el);
-    };
-  }, []);
-  // Uncontrolled: a parent re-render while the native picker is open must not re-assert the
-  // committed colour over a pick in flight. The input follows the committed colour only when idle.
-  useEffect(() => {
-    if (colorInput.current && !pending.current) colorInput.current.value = hex;
-  }, [hex]);
-  const previewColor = (e: Event) => {
-    paintPreview((e.currentTarget as HTMLInputElement).value);
-    pending.current = true;
-  };
   const recents = shownRecents(auto ? null : color, recentColors);
 
   return (
@@ -145,16 +101,13 @@ export default function WhiteoutColorGroup({
           </button>
         );
       })}
-      <label className={styles.custom} data-whiteout-color-custom title={labels.customColor}>
-        <span className={styles.wheel} />
-        <input
-          type="color"
-          className={styles.native}
-          aria-label={labels.customColor}
-          ref={colorInput}
-          onInput={previewColor}
-        />
-      </label>
+      <ColorWheelInput
+        value={hex}
+        label={labels.customColor}
+        onPreview={paintPreview}
+        onCommit={onPickColor}
+        {...{ 'data-whiteout-color-custom': '' }}
+      />
     </div>
   );
 }
