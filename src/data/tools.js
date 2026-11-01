@@ -17,14 +17,14 @@
 // from the existing palette, so the grid keeps one accent color:
 //   'primary' - the flagship; mirrors the big dropzone CTA, which opens /sign.
 //   'soft'    - the one we're deliberately pushing.
+import { highlightPdfEntry } from './toolEntries/highlightPdf.js';
+import { scanToPdfEntry } from './toolEntries/scanToPdf.js';
 import { labelOf } from '#lib/app/toolIds.ts';
 import {
   FileSignature,
-  Highlighter,
   Merge,
   ImageUp,
   ImageDown,
-  ScanLine,
   Split,
   Shrink,
   FileLock2,
@@ -318,49 +318,7 @@ export const tools = [
     ],
   },
 
-  {
-    slug: 'highlight-pdf',
-    href: '/highlight-pdf/',
-    icon: Highlighter,
-    gridDescription:
-      'Mark up a paper the way you would with a marker: highlight lines and add a note beside them.',
-    sitemapPriority: '0.9',
-    sitemapChangefreq: 'monthly',
-    seoTitle: 'Highlight PDF Online Free - Highlight Text and Add Comments | PDkef',
-    seoDescription:
-      'Highlight text in a PDF the way you would with a marker, on scanned pages too, and add a comment to any highlight. Free, no signup, no upload.',
-    schemaName: 'PDkef - Highlight PDF',
-    toolName: 'Highlight PDF',
-    h1: 'Highlight PDF Online Free: Mark Up Papers and Add Comments',
-    h1Name: 'Highlight PDF',
-    subhead:
-      'Open a paper and drag along a line to highlight it, the way you would with a marker. Rest on a highlight to change its color or add a comment beside it. Free, open source, and your file stays on your device.',
-    ariaLabel: 'Highlight PDF tool',
-    aboutHeading: 'How to highlight text in a PDF',
-    aboutLead:
-      'Open the PDF and drag along the lines you want to keep. The highlight stays straight along the line and works on scanned pages too, and everything runs in your browser.',
-    freeNoteLead:
-      'Highlight as many pages as you like, with no account and no watermark. Highlights and comments are saved as standard PDF annotations, so they open in other PDF viewers too.',
-    aboutSketch: 'grid',
-    aboutIconPos: 'tl',
-    faqSketch: 'rings',
-    faqIconPos: 'br',
-    steps: [
-      { title: 'Open your PDF', text: 'Drop in a paper, a chapter or a scanned page. A yellow marker is already in your hand.' },
-      { title: 'Drag along a line', text: 'The highlight follows the line and stops at the end of its column. Double-click marks a word, and a third click its sentence.' },
-      { title: 'Change it or add a comment', text: 'Rest on a highlight for its colors, underline and Comment. Then download, and your marks open in any PDF viewer.' },
-    ],
-    faq: [
-      { question: 'Is Highlight PDF free?', answer: 'Yes. Like every tool on PDkef, it is free with no signup, no watermark and no page limit.' },
-      { question: 'Is my PDF uploaded?', answer: 'No. The highlighting, the comments and the download are all made in your browser. Your file never leaves your device, and there is no processing server.' },
-      { question: 'How do I highlight text in a PDF?', answer: 'Open the PDF and drag along the line you want, as you would with a marker. Drag down to carry the highlight onto the next lines. Double-click marks one word and a third click its whole sentence.' },
-      { question: 'How do I change or remove a highlight?', answer: 'Rest the pointer on it, or tap it on a touch screen. Its toolbar offers six colors, underline, Comment and Delete. Whatever you pick becomes your marker for the next lines.' },
-      { question: 'Can I highlight a scanned PDF?', answer: 'Yes. The highlight reads the lines from the page image itself, so a scanned page or a photo of a book page works too, with no text layer needed.' },
-      { question: 'Does it work on a Mac and an iPad?', answer: 'Yes. It runs in Safari and Chrome on a Mac and in Safari on an iPad. On a touch screen, tap a highlight to open its toolbar.' },
-      { question: 'Will my comments show in other PDF viewers?', answer: 'Yes. Highlights and comments are saved as standard PDF annotations, so they show in most PDF viewers, and they come back editable when you open the file here again.' },
-      { question: 'Can I highlight Hebrew or Arabic text?', answer: 'Yes. On a right-to-left page the highlight follows the line from right to left, and a clicked word or sentence fills in from its first letter.' },
-    ],
-  },
+  highlightPdfEntry,
 
   {
     slug: 'redact',
@@ -549,95 +507,7 @@ export const tools = [
     ],
   },
 
-  {
-    slug: 'scan-to-pdf',
-    href: '/scan-to-pdf/',
-    icon: ScanLine,
-    gridDescription:
-      'Turn photos of paper into a clean PDF: straighten each page, even out the light, keep it small.',
-    sitemapPriority: '0.9',
-    sitemapChangefreq: 'monthly',
-    seoTitle: 'Scan to PDF Online Free - Scan Documents with Your Phone | PDkef',
-    seoDescription:
-      'Scan documents to PDF with your phone camera or photos you already have. Straighten pages, clean them up, pick A4 or Letter and a size limit. Free, no upload.',
-    schemaName: 'PDkef - Scan to PDF',
-    toolName: 'Scan to PDF',
-    h1: 'Scan to PDF Online Free: Scan Documents with Your Phone',
-    h1Name: 'Scan to PDF',
-    subhead:
-      'Take a photo of a page, or pick photos you already have, and get a clean PDF. Drag the corners to straighten each page, choose a crisp black-and-white look, and keep the file under the size a form asks for. Free, open source, and your photos stay on your device.',
-    ariaLabel: 'Scan to PDF tool',
-    aboutHeading: 'How to scan a document to PDF with your phone',
-    aboutLead:
-      'Photograph each page, check the corners, and download one PDF. The straightening and cleanup run in your browser, so a passport page or a signed form never leaves your phone.',
-    freeNoteLead:
-      'Scan as many pages as you like, with no account and no watermark. When an upload form caps files at 1 MB, set a size limit and the quality steps down until the PDF fits. For the scanners built into iPhone and Android, see <a class="font-medium text-[var(--color-primary-text)]" href="/how-to-scan-a-document-to-pdf/">how to scan a document to PDF</a>.',
-    aboutSketch: 'grid',
-    aboutIconPos: 'tl',
-    faqSketch: 'rings',
-    faqIconPos: 'br',
-    steps: [
-      { title: 'Add your pages', text: 'Take a photo of each page, or pick photos you already have. Each photo becomes one page.' },
-      { title: 'Straighten and clean up', text: 'Drag the four corners to the edges of each page, which are placed for you when they can be found. Choose Document for crisp black text on white.' },
-      { title: 'Download', text: "Pick A4, Letter or each scan's own size and an optional size limit, then download, or take the PDF straight to Sign, Merge or Compress." },
-    ],
-    faq: [
-      { question: 'Is Scan to PDF free?', answer: 'Yes. Like every tool on PDkef, it is free with no signup, no watermark and no page limit.' },
-      { question: 'Are my photos uploaded?', answer: 'No. The corners, the straightening, the cleanup and the PDF itself are all made in your browser. Your photos never leave your device, and there is no processing server.' },
-      { question: 'Can I scan with my phone camera?', answer: 'Yes. On a phone, Take a photo opens the camera, one page per shot. You can also pick photos you already took, or JPG and PNG files on a computer.' },
-      { question: 'How do I straighten a crooked page?', answer: "Each page has four corners. They are placed on the page edges when those can be found; drag any corner onto the page's real corner and the page is flattened into a rectangle, as if it had been scanned flat." },
-      { question: 'What does the Document look do?', answer: 'It evens out shadows and uneven light, then turns the page into dark text on a white background, which reads well and keeps the file small. Original keeps the colours and Grayscale drops them.' },
-      { question: 'Can I keep the PDF under 1 MB?', answer: 'Yes. Choose a size limit and the image quality, and then the resolution, steps down until the whole PDF is under it. The final size is shown before you download, and if a long scan cannot get that small, it tells you so.' },
-      { question: 'What page size will the PDF be?', answer: 'Fit keeps each page the size of its scan. A4 and Letter put every page on that paper size, turned to match the scan, so it prints at the size people expect.' },
-      { question: 'Can I sign or merge the scan afterwards?', answer: 'Yes. Once the PDF is ready, Sign, Merge and Compress each take it with one tap, with no need to download it and open it again.' },
-    ],
-    examples: {
-      heading: 'What you get',
-      lead: 'Every picture here was made by Scan to PDF from one sample photo, in a browser, the same way it runs for you.',
-      figures: [
-        {
-          kind: 'compare',
-          beforeSrc: '/images/scan-guide/photo.jpg',
-          afterSrc: '/images/scan-guide/scan.jpg',
-          beforeLabel: 'Photo',
-          afterLabel: 'Scan',
-          alt: 'A form photographed at an angle on a dark table, and the flat, even page Scan to PDF made from it',
-          width: 900,
-          height: 1200,
-          caption: 'Four corners and the Document look turn a page photographed at an angle into a flat, even scan.',
-        },
-        {
-          kind: 'row',
-          heading: 'Three looks',
-          caption: 'Original keeps the colours, Grayscale drops them, and Document evens out the light for dark text on white.',
-          items: [
-            { src: '/images/scan-guide/look-original.jpg', label: 'Original', width: 600, height: 800, alt: 'The scanned page in its original colours' },
-            { src: '/images/scan-guide/look-grayscale.jpg', label: 'Grayscale', width: 600, height: 800, alt: 'The same page in shades of gray' },
-            { src: '/images/scan-guide/look-document.jpg', label: 'Document', width: 600, height: 800, alt: 'The same page with even light, dark text on a white background' },
-          ],
-        },
-        {
-          kind: 'row',
-          heading: 'Page size',
-          caption: "Fit keeps the scan's own shape. A4 and Letter lay it on that paper, turned to match.",
-          items: [
-            { src: '/images/scan-guide/size-fit.jpg', label: 'Fit', width: 600, height: 800, alt: 'The scan as a page with exactly its own shape' },
-            { src: '/images/scan-guide/size-a4.jpg', label: 'A4', width: 600, height: 800, alt: 'The scan laid on an A4 page' },
-            { src: '/images/scan-guide/size-letter.jpg', label: 'Letter', width: 600, height: 800, alt: 'The scan laid on a Letter page' },
-          ],
-        },
-        {
-          kind: 'row',
-          heading: 'Size limit',
-          caption: 'The same words at full size. Under a 500 KB limit the text stays readable.',
-          items: [
-            { src: '/images/scan-guide/limit-none.jpg', label: 'No limit · 751 KB PDF', width: 600, height: 400, alt: 'The signature line of the sample form at full size, from the PDF made with no size limit' },
-            { src: '/images/scan-guide/limit-500kb.jpg', label: 'Under 500 KB · 495 KB PDF', width: 600, height: 400, alt: 'The same signature line from the PDF made under a 500 KB limit, still sharp and readable' },
-          ],
-        },
-      ],
-    },
-  },
+  scanToPdfEntry,
 
   {
     slug: 'split',

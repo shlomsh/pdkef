@@ -1,5 +1,5 @@
 /** Highlight's strings. English only at launch; a localized edition follows the languages page. */
-export interface HighlightMessages {
+interface HighlightMessages {
   emptyMessage: string;
   invalidPdf: string;
   needsPassword: string;
