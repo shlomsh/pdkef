@@ -11,12 +11,13 @@ import {
 } from '../lib/marker/toolbarLayers.ts';
 import { useToolbarDismissal, useToolbarPlacement, type HintAnchor } from '../hooks/useRestToolbar.ts';
 import { englishHighlightMessages as t } from '../messages.ts';
+import controls from '#editor-ui/EditorControls.module.css';
 import styles from './RestToolbar.module.css';
 
 /** R3: the colors open after this long a rest on Highlight, so a quick pass toward Delete never opens them. */
 const INTENT_MS = 450;
 
-const icon = { width: 16, height: 16, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', 'stroke-width': 2, 'stroke-linecap': 'round', 'stroke-linejoin': 'round', 'aria-hidden': true } as const;
+const icon = { width: 18, height: 18, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', 'stroke-width': 2, 'stroke-linecap': 'round', 'stroke-linejoin': 'round', 'aria-hidden': true } as const;
 const UnderlineIcon = () => <svg {...icon}><path d="M6 4v7a6 6 0 0 0 12 0V4" /><path d="M4 21h16" /></svg>;
 const TrashIcon = () => <svg {...icon}><path d="M3 6h18" /><path d="M8 6V4h8v2" /><path d="M19 6l-1 14H6L5 6" /><path d="M10 11v6" /><path d="M14 11v6" /></svg>;
 
@@ -24,7 +25,7 @@ const TrashIcon = () => <svg {...icon}><path d="M3 6h18" /><path d="M8 6V4h8v2" 
 function CustomPanel({ look, onChange }: { look: Marker; onChange(change: Partial<Marker>): void }) {
   const percent = Math.round(look.opacity * 100);
   return (
-    <div class={styles.panel} role="group" aria-label={t.markCustom}>
+    <div class={`${styles.panel} ${controls.popover} ${controls['toolbar-menu']}`} role="group" aria-label={t.markCustom}>
       <div class={styles.prow}>
         <span>{t.markColors}</span>
         <input
@@ -163,7 +164,7 @@ export default function RestToolbar({ mark, onChange, onDelete, onComment, onClo
         type="button" class={styles.icon} aria-label={t.markComment} title={t.markComment}
         onClick={() => live.current.onComment()}
       >
-        <CommentIcon size={16} />
+        <CommentIcon size={18} />
       </button>
       <button
         type="button" class={`${styles.icon} ${styles.delete}`} aria-label={t.markDelete} aria-keyshortcuts="Delete" title={t.markDelete}

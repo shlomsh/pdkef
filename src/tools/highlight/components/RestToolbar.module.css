@@ -1,7 +1,7 @@
 /* The toolbar a highlight opens when the pointer rests on it (READ-03, R2 to R4). It sits inside the page
    wrapper, placed once on open beside the end of the ink, above the line or below it, never over it. */
 .bar {
-  --cell: 32px;
+  --cell: 2.25rem;
   position: absolute;
   z-index: 30;
   display: flex;
@@ -9,17 +9,19 @@
   gap: 2px;
   padding: 3px;
   box-sizing: border-box;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   border: 1px solid var(--color-border);
-  background: var(--color-surface);
-  box-shadow: var(--shadow-pop-teal);
+  background: color-mix(in srgb, var(--color-surface) 85%, transparent);
+  backdrop-filter: blur(12px) saturate(180%);
+  -webkit-backdrop-filter: blur(12px) saturate(180%);
+  box-shadow: var(--shadow-lg);
   color: var(--color-text);
   font-family: var(--font-sans);
   user-select: none;
-  animation: bar-in 140ms cubic-bezier(.2, .8, .2, 1);
+  animation: bar-in 140ms var(--ease-out);
 }
 @media (pointer: coarse) {
-  .bar { --cell: 44px; }
+  .bar { --cell: 2.75rem; }
 }
 @keyframes bar-in {
   from { opacity: 0; transform: translateY(4px); }
@@ -42,38 +44,38 @@
   font: inherit;
   cursor: pointer;
 }
-.bar button:focus-visible,
-.bar input:focus-visible {
-  outline: 2px solid var(--color-primary);
-  outline-offset: 1px;
-  box-shadow: 0 0 0 4px var(--color-primary-ring);
+.bar :where(button:not([data-highlight-swatch])) {
+  transition: background-color .15s var(--ease-out), color .15s var(--ease-out), transform .1s var(--ease-out);
 }
+/* S4: one hover and one press for every control face; S5: a disabled one answers to neither. */
+.bar :where(button:not([data-highlight-swatch])):hover { background: var(--color-primary-tint); }
+.bar :where(button:not([data-highlight-swatch])):active { transform: scale(.96); }
+.bar :where(button:not([data-highlight-swatch])):is(:disabled, [aria-disabled='true']) { cursor: not-allowed; }
+.bar :where(button:not([data-highlight-swatch])):is(:disabled, [aria-disabled='true']):hover { background: none; }
+.bar :where(button:not([data-highlight-swatch])):is(:disabled, [aria-disabled='true']):active { transform: none; }
 
 /* The segmented pair: Highlight (or its colors) and Underline. */
 .seg {
   display: flex;
   align-items: center;
   height: var(--cell);
-  border-radius: 999px;
-  background: var(--color-primary-soft);
+  border-radius: var(--radius-pill);
 }
 .hl,
 .ul {
   display: flex;
   align-items: center;
   height: var(--cell);
-  border-radius: 999px;
-  font: 500 13px/1 var(--font-sans);
+  border-radius: var(--radius-pill);
+  font: 600 0.88rem/1 var(--font-sans);
   white-space: nowrap;
 }
 .hl { padding-inline: 4px 12px; gap: 4px; }
 .ul { padding-inline: 10px 12px; gap: 6px; }
-.hl:hover,
-.ul:hover { background: color-mix(in srgb, var(--color-primary) 8%, transparent); }
 .hl[aria-pressed='true'],
 .ul[aria-pressed='true'] {
-  background: var(--color-surface);
-  box-shadow: inset 0 0 0 1.5px var(--color-primary);
+  background: var(--color-primary-tint);
+  color: var(--color-primary-text);
 }
 .dot {
   display: block;
@@ -148,20 +150,13 @@
   height: var(--cell);
   border-radius: 50%;
 }
-.icon:hover { background: var(--color-primary-soft); }
 .delete:hover { color: var(--color-danger); }
 
 /* The custom panel: a large swatch and an opacity slider, on the side away from the line. */
 .panel {
   position: absolute;
   inset-inline-start: 0;
-  width: 236px;
   box-sizing: border-box;
-  padding: 12px;
-  border-radius: 14px;
-  border: 1px solid var(--color-border);
-  background: var(--color-surface);
-  box-shadow: var(--shadow-pop-teal);
 }
 .bar[data-side='above'] .panel { bottom: calc(100% + 6px); }
 .bar[data-side='below'] .panel { top: calc(100% + 6px); }
@@ -171,7 +166,6 @@
   gap: 12px;
   font: 500 13px/1.2 var(--font-sans);
 }
-.prow + .prow { margin-top: 12px; }
 .prow > span:first-child { flex: none; width: 52px; }
 .val {
   flex: none;
@@ -185,15 +179,15 @@
   height: 36px;
   padding: 0;
   border: 0;
-  border-radius: 10px;
+  border-radius: var(--radius-sm);
   background: none;
   box-shadow: 0 0 0 1px var(--color-border-strong);
   cursor: pointer;
   appearance: none;
 }
 .pick::-webkit-color-swatch-wrapper { padding: 0; }
-.pick::-webkit-color-swatch { border: 0; border-radius: 10px; }
-.pick::-moz-color-swatch { border: 0; border-radius: 10px; }
+.pick::-webkit-color-swatch { border: 0; border-radius: var(--radius-sm); }
+.pick::-moz-color-swatch { border: 0; border-radius: var(--radius-sm); }
 .range {
   flex: 1;
   min-width: 0;
@@ -209,7 +203,7 @@
   z-index: 25;
   margin-top: 6px;
   padding: 4px 9px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   border: 1px solid var(--color-border);
   background: var(--color-surface);
   box-shadow: var(--shadow-sm);
@@ -217,7 +211,7 @@
   font: 12px/1.3 var(--font-sans);
   white-space: nowrap;
   pointer-events: none;
-  animation: hint-in 220ms cubic-bezier(.2, .8, .2, 1);
+  animation: hint-in 220ms var(--ease-out);
 }
 .hintRtl { transform: translateX(-100%); }
 @keyframes hint-in {
