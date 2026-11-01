@@ -3,7 +3,7 @@ import { act } from 'preact/test-utils';
 import { afterEach, describe, expect, it } from 'vitest';
 import type { CommentElement, HighlightElement } from '#editor/model/editorModel.ts';
 import CommentNode from './CommentNode.tsx';
-import { CommentNumbersScope } from './commentNumbersContext.tsx';
+import { CommentNumbersScope } from '#editor-ui/comments/commentNumbersContext.tsx';
 
 const highlight: HighlightElement = {
   id: 'h', type: 'highlight', pageIndex: 0, left: 10, top: 10, width: 50, height: 10, color: '#FFF34D',
