@@ -121,10 +121,10 @@ describe('ReadingCapsule', () => {
       const { bar, props } = setup({ variant: 'bar', onEnter: vi.fn(), onExit: undefined });
       expect(bar.textContent).not.toContain('lease.pdf');
       expect(bar.querySelector('[aria-label="Leave the reading lamp"]')).toBeNull();
-      click(byLabel('Enter the reading lamp'));
+      click(byLabel('Use the reading lamp'));
       expect(props.onEnter).toHaveBeenCalled();
       const names = [...bar.querySelectorAll('button')].map((b) => b.getAttribute('aria-label'));
-      expect(names).toEqual(['Page 3 of 12', 'Zoom', 'Marker', 'Undo', 'Redo', 'Print', 'Download', 'More', 'Enter the reading lamp']);
+      expect(names).toEqual(['Page 3 of 12', 'Zoom', 'Marker', 'Undo', 'Redo', 'Print', 'Download', 'More', 'Use the reading lamp']);
     });
 
     it('stays awake through a page press and a 100px scroll', () => {

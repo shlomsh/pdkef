@@ -28,7 +28,7 @@ export interface CapsuleLabels {
 export const englishCapsuleLabels: CapsuleLabels = {
   toolbar: 'Reading lamp',
   exit: 'Leave the reading lamp',
-  enter: 'Enter the reading lamp',
+  enter: 'Use the reading lamp',
   undo: 'Undo',
   redo: 'Redo',
   print: 'Print',
