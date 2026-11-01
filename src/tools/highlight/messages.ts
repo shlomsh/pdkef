@@ -1,5 +1,7 @@
+import { englishCapsuleLabels, type CapsuleLabels } from '#editor-ui/capsule/capsuleItems.ts';
+
 /** Highlight's strings. English only at launch; a localized edition follows the languages page. */
-interface HighlightMessages {
+export interface HighlightMessages {
   emptyMessage: string;
   invalidPdf: string;
   needsPassword: string;
@@ -8,6 +10,17 @@ interface HighlightMessages {
   loadErrorLead: string;
   loadErrorUnlock: string;
   loadErrorTail: string;
+  zoom: string;
+  fitWidth: string;
+  fitText: string;
+  fitPage: string;
+  actualSize: string;
+  zoomIn: string;
+  zoomOut: string;
+  /** "{mode} · {percent}%" */
+  readout: string;
+  enterLamp: string;
+  capsule: CapsuleLabels;
 }
 
 export const englishHighlightMessages: HighlightMessages = {
@@ -19,4 +32,14 @@ export const englishHighlightMessages: HighlightMessages = {
   loadErrorLead: 'It may be damaged, or locked with a password. A locked PDF opens in',
   loadErrorUnlock: 'Unlock',
   loadErrorTail: 'first.',
+  zoom: 'Zoom',
+  fitWidth: 'Fit width',
+  fitText: 'Fit text',
+  fitPage: 'Fit page',
+  actualSize: 'Actual size',
+  zoomIn: 'Zoom in',
+  zoomOut: 'Zoom out',
+  readout: '{mode} · {percent}%',
+  enterLamp: 'Enter the reading lamp',
+  capsule: englishCapsuleLabels,
 };
