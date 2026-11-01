@@ -17,6 +17,19 @@ describe('markOf', () => {
   });
 });
 
+describe('READ-04: stroke width', () => {
+  it('markOf reads strokeWidth only when set', () => {
+    expect(markOf({ ...el, style: 'underline', strokeWidth: 3 })).toMatchObject({ strokeWidth: 3 });
+    expect('strokeWidth' in markOf(el)).toBe(false);
+  });
+  it('buildMarkEdit writes a clamped strokeWidth with a history entry, and the default is the absent key', () => {
+    const { changes, entry } = buildMarkEdit({ ...el, style: 'underline' }, { strokeWidth: 9 }, describeKind);
+    expect(changes).toEqual({ strokeWidth: 4 });
+    expect(entry).not.toBeNull();
+    expect(changePatch({ strokeWidth: 1.5 })).toHaveProperty('strokeWidth', undefined);
+  });
+});
+
 describe('changePatch', () => {
   it('only carries the keys that changed', () => {
     expect(changePatch({ color: '#FF8080' })).toEqual({ color: '#FF8080' });

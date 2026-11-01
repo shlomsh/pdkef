@@ -66,6 +66,12 @@ describe('clickMarkElement', () => {
     expect(el).toMatchObject({ color: '#FF8FCF', style: 'underline', opacity: 0.5, direction: 'rtl' });
   });
 
+  it('READ-04: carries the marker stroke width', () => {
+    const el = clickMarkElement({ id: 'x', pageIndex: 0, boxes, marker: { color: '#FF8FCF', style: 'underline', opacity: 1, strokeWidth: 2 }, direction: 'ltr' })!;
+    expect(el.strokeWidth).toBe(2);
+    expect(clickMarkElement({ id: 'x', pageIndex: 0, boxes, marker: DEFAULT_MARKER, direction: 'ltr' })!.strokeWidth).toBeUndefined();
+  });
+
   it('is null for no boxes or boxes with no area', () => {
     expect(clickMarkElement({ id: 'x', pageIndex: 0, boxes: [], marker: DEFAULT_MARKER, direction: 'ltr' })).toBeNull();
     expect(clickMarkElement({ id: 'x', pageIndex: 0, boxes: [{ left: 1, top: 1, width: 0, height: 2 }], marker: DEFAULT_MARKER, direction: 'ltr' })).toBeNull();
