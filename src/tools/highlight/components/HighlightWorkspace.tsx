@@ -153,7 +153,6 @@ export default function HighlightWorkspace({ pdfDocument, numPages, fileName, zo
             setAnnouncement={setAnnouncement} touchArmed={touch.armed} cardRef={(el) => { pageRefs.current[i] = el; }} rail={comments.rail(i)}
             pageTurns={marks.pageTurns} onRotate={(geometry) => { dispatch(rotatePageAction(i, geometry)); recordAction('rotate'); }}
             onClear={() => { const actions = clearPageActions(marks.state.elements, i); actions.forEach((a) => dispatch(a)); if (actions.length) recordAction('delete_mark'); }}
-            activeElementId={marks.state.activeElementId} onSelectComment={(id) => dispatch({ type: 'SET_ACTIVE_ELEMENT_ID', payload: id })}
           />
         ))}
       </div>

@@ -28,11 +28,11 @@ const dispatch = vi.fn();
 const logAction = vi.fn();
 const rearm = vi.fn();
 
-function mount(elements: EditorElement[], marker = DEFAULT_MARKER, touchArmed?: boolean, comments: { activeElementId?: string | null; onSelectComment?: (id: string) => void } = {}) {
+function mount(elements: EditorElement[], marker = DEFAULT_MARKER, touchArmed?: boolean) {
   act(() => render(
     <HighlightPage
       pdfDocument={null} pageIndex={0} widthPx={600} elements={elements} marker={marker} touchArmed={touchArmed}
-      dispatch={dispatch} logAction={logAction} rearm={rearm} setAnnouncement={() => {}} cardRef={() => {}} onRotate={() => {}} onClear={() => {}} {...comments}
+      dispatch={dispatch} logAction={logAction} rearm={rearm} setAnnouncement={() => {}} cardRef={() => {}} onRotate={() => {}} onClear={() => {}}
     />,
     container,
   ));
@@ -637,15 +637,9 @@ describe('HighlightPage touch swipe, armed', () => {
   });
 
   describe('comment markers', () => {
-    it('a mark with a comment wears one marker, and one without wears none', () => {
-      const bare: HighlightElement = { ...mark, id: 'h2', top: 50 };
-      mount([mark, bare, savedComment]);
-      expect(container.querySelectorAll('[data-comment-marker]')).toHaveLength(1);
-      expect(container.querySelector('[data-element-id="h1"] [data-comment-marker]')).not.toBeNull();
-      expect(container.querySelector('[data-element-id="h2"] [data-comment-marker]')).toBeNull();
-    });
-
-    it('with a rail the card sits beside its line, so the mark wears no marker', () => {
+    it('a commented mark wears no comment marker, with or without a rail', () => {
+      mount([mark, savedComment]);
+      expect(container.querySelector('[data-comment-marker]')).toBeNull();
       act(() => render(
         <HighlightPage
           pdfDocument={null} pageIndex={0} widthPx={600} elements={[mark, savedComment]} marker={DEFAULT_MARKER} rail={<div data-testid="rail" />}
@@ -655,28 +649,6 @@ describe('HighlightPage touch swipe, armed', () => {
       ));
       expect(container.querySelector('[data-testid="rail"]')).not.toBeNull();
       expect(container.querySelector('[data-comment-marker]')).toBeNull();
-    });
-
-    it('without a rail the commented mark wears its marker', () => {
-      mount([mark, savedComment]);
-      expect(container.querySelectorAll('[data-comment-marker]')).toHaveLength(1);
-    });
-
-    it('the marker is focused while its comment card is active', () => {
-      mount([mark, savedComment], DEFAULT_MARKER, false, { activeElementId: 'c1' });
-      expect(container.querySelector('[data-comment-marker]')!.hasAttribute('data-focused')).toBe(true);
-      mount([mark, savedComment], DEFAULT_MARKER, false, { activeElementId: null });
-      expect(container.querySelector('[data-comment-marker]')!.hasAttribute('data-focused')).toBe(false);
-    });
-
-    it('a click selects the comment and a press on it starts no stroke', () => {
-      const onSelectComment = vi.fn();
-      mount([mark, savedComment], DEFAULT_MARKER, false, { onSelectComment });
-      const button = container.querySelector<HTMLElement>('[data-comment-marker]')!;
-      press(button, { pointerType: 'mouse' });
-      expect(startHighlightSwipe).not.toHaveBeenCalled();
-      act(() => { button.click(); });
-      expect(onSelectComment).toHaveBeenCalledWith('c1');
     });
   });
 });
