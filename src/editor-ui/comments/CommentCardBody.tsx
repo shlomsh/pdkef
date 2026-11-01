@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
+import useCoarsePointer from '#editor-ui/hooks/useCoarsePointer.ts';
 import type { SignMessages } from '#editor/registry/messages.ts';
 import type { CommentCard } from '#editor/highlight/commentCards.ts';
 import { commentPatch, type CommentPatch } from '#editor/highlight/commentCommit.ts';
@@ -21,6 +22,7 @@ export function CommentCardBody({ card, active, messages, label, onSelect, onSav
   /** Called once the person is done with the note (Save, Cancel, Esc, Delete): focus goes back to its anchor. */
   onReturnFocus?: () => void;
 }) {
+  const coarse = useCoarsePointer();
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(card.comment);
   const ref = useRef<HTMLTextAreaElement>(null);
@@ -66,7 +68,7 @@ export function CommentCardBody({ card, active, messages, label, onSelect, onSav
       aria-label={label}
       title={showField ? undefined : messages.commentEditHint}
       tabIndex={showField ? undefined : 0}
-      onClick={() => { if (card.isNew || showField) return; if (active) startEdit(); else onSelect(); }}
+      onClick={() => { if (card.isNew || showField) return; if (!active) onSelect(); else if (coarse) startEdit(); }}
       onDblClick={() => { if (!card.isNew && !showField) startEdit(); }}
       onKeyDown={onCardKeyDown}
     >

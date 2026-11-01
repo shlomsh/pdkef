@@ -71,7 +71,6 @@ export interface SignMessages {
   /** The hover and screen-reader hint on a saved comment card. */
   commentEditHint: string;
   /** A card's More label and its Delete button. */
-  commentMore: string;
   commentDelete: string;
   commentsCountOne: string;
   commentsCountOther: string;
