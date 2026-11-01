@@ -6,10 +6,6 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 
 ## Up next
 
-### Highlight PDF: a tool for reading
-
-- [READ-01](backlog/tasks/READ-01.md) P2 · Highlight PDF: the sketches, turned into hard requirements for the real tool (in progress)
-
 ### Robustness and debt
 
 - [DEBT-65](backlog/tasks/DEBT-65.md) P2 · Two layout-shift specs failed once each in the 2026-10-27 nightly (in progress)
@@ -68,8 +64,8 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 
 ## Needs Shlomi
 
-- [READ-01](backlog/tasks/READ-01.md) · A name for the fullscreen reading mode (Reading room for now)
 - [READ-03](backlog/tasks/READ-03.md) · Confirm the name: Highlight PDF
+- [READ-05](backlog/tasks/READ-05.md) · A name for the fullscreen reading mode (Reading room until then)
 - [MOBI-01](backlog/tasks/MOBI-01.md) · Half an hour with an Android phone
 - [DEBT-53](backlog/tasks/DEBT-53.md) · A check on your iPhone
 - [SEO-40](backlog/tasks/SEO-40.md) · The Search Console exports

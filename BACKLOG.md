@@ -2,7 +2,7 @@
 
 # Backlog
 
-The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 92 live: 15 up next, 16 then, 27 waiting, 34 parked.
+The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 91 live: 14 up next, 16 then, 27 waiting, 34 parked.
 
 ## Redact: finish removal
 
@@ -47,12 +47,6 @@ Fill mode is the default since SNG-19. Close the test gaps, then desktop parity,
 
 Marking should feel like holding a highlighter, not like operating software. Sketch, move the shared pieces out of Sign, then launch with Sign handing highlighting over.
 
-### Up next
-
-| ID | P | Task | Note |
-| --- | --- | --- | --- |
-| READ-01 | P2 | [READ-01](backlog/tasks/READ-01.md) · Highlight PDF: the sketches, turned into hard requirements for the real tool | In progress. Needs Shlomi: A name for the fullscreen reading mode (Reading room for now) |
-
 ### Then, in order
 
 | ID | P | Task | Note |
@@ -60,7 +54,7 @@ Marking should feel like holding a highlighter, not like operating software. Ske
 | READ-02 | P2 | [READ-02](backlog/tasks/READ-02.md) · Move the shared highlight and comment pieces out of Sign, no behaviour change |  |
 | READ-03 | P2 | [READ-03](backlog/tasks/READ-03.md) · Highlight PDF: the tool at /highlight-pdf/, highlights with a comment on each, and its page | Needs Shlomi: Confirm the name: Highlight PDF |
 | READ-04 | P2 | [READ-04](backlog/tasks/READ-04.md) · Sign hands highlighting to Highlight PDF: no Highlight tool, existing highlights kept |  |
-| READ-05 | P2 | [READ-05](backlog/tasks/READ-05.md) · The fullscreen capsule, shared by Highlight PDF and Sign |  |
+| READ-05 | P2 | [READ-05](backlog/tasks/READ-05.md) · The fullscreen capsule, shared by Highlight PDF and Sign | Needs Shlomi: A name for the fullscreen reading mode (Reading room until then) |
 | READ-06 | P2 | [READ-06](backlog/tasks/READ-06.md) · Highlight PDF: Print with my notes, comments in the margin beside their passages |  |
 
 ### Parked
@@ -240,7 +234,7 @@ Done and retired tickets are not listed. Their files stay in [backlog/tasks/](ba
 
 - Redact: finish removal: 26 done, 1 retired
 - Sign: finish fill mode: 3 done, 1 retired
-- Highlight PDF: a tool for reading: 0 done, 0 retired
+- Highlight PDF: a tool for reading: 1 done, 0 retired
 - Tool pages: show the verb: 8 done, 0 retired
 - Form detector accuracy: 19 done, 1 retired
 - Robustness and debt: 80 done, 4 retired
