@@ -3,7 +3,7 @@ import { useEffect, useRef } from 'preact/hooks';
 import { useNativeChange } from './useNativeChange.ts';
 import styles from './ColorWheelInput.module.css';
 
-export interface ColorWheelInputProps extends Omit<JSX.HTMLAttributes<HTMLLabelElement>, 'onChange' | 'onInput' | 'value'> {
+interface ColorWheelInputProps extends Omit<JSX.HTMLAttributes<HTMLLabelElement>, 'onChange' | 'onInput' | 'value'> {
   /** The committed colour, '#rrggbb' (anything else reads as white). */
   value: string;
   /** The accessible name and the tooltip, e.g. "Choose a color". */
