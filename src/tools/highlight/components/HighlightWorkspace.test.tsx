@@ -185,6 +185,12 @@ describe('HighlightWorkspace notes (R28, R29)', () => {
     restore();
   });
 
+  it('in the normal view the board is as wide as its column, rail included', () => {
+    const { column, restore } = mountNoted([mark, note], 1200);
+    expect(column.parentElement!.style.width).toBe(column.style.width);
+    restore();
+  });
+
   it('at zoom 1.5 in the normal view the notes column, the rail and the header keep the app sizes', () => {
     const { column, restore } = mountNoted([mark, note], 2000, {}, undefined, 1.5);
     const card = column.querySelector<HTMLElement>('[data-editor-page-card]')!;

@@ -34,7 +34,11 @@ export function fitScale(
   const width = avail / (page.width + notes);
   if (mode === 'width') return clampFit(width);
   if (mode === 'text') {
-    const text = avail / (page.textRight - page.textLeft + 2 * TEXT_GUTTER + notes);
+    // The lamp's px notes grow with the zoom over its Fit width (chrome = z / width): solve them in page units.
+    const textW = page.textRight - page.textLeft + 2 * TEXT_GUTTER;
+    const text = px
+      ? (view.width - 2 * (opts.pad ?? SIDE_PAD)) / (textW + NOTES_W / width)
+      : avail / (textW + notes);
     return clampFit(Math.max(text, width));
   }
   return clampFit(Math.min(width, (view.height - (opts.capsuleH ?? 88)) / page.height));
