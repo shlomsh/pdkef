@@ -38,7 +38,7 @@ const noop = () => {};
  * One page card: its header, the page, and a wrapper per highlight on it. A fine-pointer press on the
  * page starts a swipe that lays the marker's bands; the gesture paints during the swipe and commits once.
  */
-export default function HighlightPage({ pdfDocument, pageIndex, widthPx, elements, marker, rearm, dispatch, logAction, setAnnouncement, cardRef }: {
+export default function HighlightPage({ pdfDocument, pageIndex, widthPx, elements, marker, touchArmed = false, rearm, dispatch, logAction, setAnnouncement, cardRef }: {
   pdfDocument: PDFDocumentProxy | null;
   pageIndex: number;
   /** The page's width in CSS px at the current zoom. */
@@ -46,6 +46,8 @@ export default function HighlightPage({ pdfDocument, pageIndex, widthPx, element
   /** Every element of the document: the page draws its own, and the new one's place in the history comes from the count. */
   elements: EditorElement[];
   marker: Marker;
+  /** The marker is armed for a finger (touch devices): a one-finger press marks and the page does not scroll. */
+  touchArmed?: boolean;
   /** Every change made on a highlight becomes the marker for the next stroke (R5). */
   rearm: (change: Partial<Marker>) => void;
   dispatch: (action: ElementsAction) => void;
@@ -125,7 +127,7 @@ export default function HighlightPage({ pdfDocument, pageIndex, widthPx, element
   });
 
   const startSwipe = useMarkSwipe({
-    pageIndex, geometry, elements, marker, getPointerPercent, directionAt, dispatch, logAction, setAnnouncement, clicks,
+    pageIndex, geometry, elements, marker, touchArmed, getPointerPercent, directionAt, dispatch, logAction, setAnnouncement, clicks,
     onPress: rest.clearHint, onInk: inkLanded,
   });
   const onPointerDown = (event: PointerEvent) => {
@@ -139,7 +141,7 @@ export default function HighlightPage({ pdfDocument, pageIndex, widthPx, element
       <div className={`${workspaceStyles['page-wrapper']} ${styles.page}`} data-page-wrapper style={{ width: `${widthPx}px`, ...(pen ? { cursor: pen } : {}) }}>
         <PdfPageCanvas pdfDocument={pdfDocument} pageNum={pageIndex + 1} pageGeometry={geometry} />
         <div
-          ref={overlayRef} data-page-overlay className={workspaceStyles['page-overlay']} onPointerDown={onPointerDown}
+          ref={overlayRef} data-page-overlay data-touch-armed={touchArmed ? '' : undefined} className={touchArmed ? `${workspaceStyles['page-overlay']} ${styles.touchArmed}` : workspaceStyles['page-overlay']} onPointerDown={onPointerDown}
           onPointerMove={rest.onPointerMove} onPointerLeave={rest.onPointerLeave}
           onClick={(event) => {
             // R7: a tap with a finger opens the highlight under it. A mouse opens it by resting.

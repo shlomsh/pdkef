@@ -1,3 +1,5 @@
 .page { margin: 0 auto; }
 /* A highlight's box is placed by its element in percent of the page; the swipe rewrites it while it paints. */
 .mark { position: absolute; }
+/* Armed for a finger: the page owns a one-finger touch, so marking does not scroll it. Two fingers still pinch. */
+.touchArmed { touch-action: none; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
