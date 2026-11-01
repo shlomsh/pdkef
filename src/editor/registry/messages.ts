@@ -60,6 +60,13 @@ export interface SignMessages {
   highlightColorRed: string;
   highlightColorGreen: string;
   highlightColorBlue: string;
+  /** READ-04: names for the default ink presets, so a swatch never announces a hex code. */
+  colorBlack: string;
+  colorRed: string;
+  colorBlue: string;
+  colorGreen: string;
+  colorNavy: string;
+  colorWhite: string;
   /** SIGN-44: the highlight toolbar's Comment button, the note field's placeholder, and a comment marker's numbered label ({number}). */
   highlightCommentLabel: string;
   highlightCommentPlaceholder: string;

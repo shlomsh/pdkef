@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'preact/hooks';
 import { useModalDialog } from '#shell/useModalDialog.ts';
 import SignaturePad from 'signature_pad';
 import ColorPicker from '#editor-ui/ColorPicker.tsx';
+import { presetColorNames } from '#editor-ui/colorNames.ts';
 import { HANDWRITING_FONTS, resolveFontFamily, textBoxPaddingEm } from '#editor/text/fonts.js';
 import { DEFAULT_LINE_HEIGHT_EM } from '#editor/model/signGeometry.js';
 import { getEditorPreference, setEditorPreference, subscribeToEditorPreference } from '#editor/workspace/preferenceStore.ts';
@@ -422,7 +423,7 @@ export default function SignatureDialog({
         {signatureMode === 'draw' && (
           <>
             <div className={styles['pen-controls']}>
-              <ColorPicker value={penColor} onChange={rememberPenColor} title={t.penColorTitle} defaultColor="#000000" />
+              <ColorPicker value={penColor} onChange={rememberPenColor} title={t.penColorTitle} names={presetColorNames(t)} defaultColor="#000000" />
               <div className={styles['thickness-control']}>
                 <label htmlFor="sig-pen-thickness">{t.thicknessLabel}</label>
                 <input

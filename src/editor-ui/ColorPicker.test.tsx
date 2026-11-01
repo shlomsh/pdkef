@@ -35,3 +35,21 @@ describe('ColorPicker under compat', () => {
     expect(swatches).toEqual(['#ffee00', '#00ff88']);
   });
 });
+
+describe('ColorPicker swatch names', () => {
+  let host: HTMLDivElement | null = null;
+  afterEach(() => { const h = host; if (h) { act(() => render(null, h)); h.remove(); host = null; } });
+  const mount = (node: (h: HTMLDivElement) => any) => { host = document.createElement('div'); document.body.appendChild(host); const h = host; act(() => render(node(h), h)); return Array.from(h.querySelectorAll('[data-editor-color-swatch]')) as HTMLElement[]; };
+
+  it('titles and labels a swatch with its name when names are given', () => {
+    const [a, b] = mount(() => <ColorPicker onChange={() => {}} presets={['#ffee00', '#00ff88']} names={{ '#ffee00': 'Yellow' }} />);
+    expect(a.title).toBe('Yellow');
+    expect(a.getAttribute('aria-label')).toBe('Yellow');
+    expect(b.title).toBe('#00ff88');
+  });
+
+  it('falls back to the hex without names', () => {
+    const [a] = mount(() => <ColorPicker onChange={() => {}} presets={['#ffee00']} />);
+    expect(a.getAttribute('aria-label')).toBe('#ffee00');
+  });
+});
