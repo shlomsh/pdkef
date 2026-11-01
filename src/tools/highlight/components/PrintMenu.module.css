@@ -5,7 +5,8 @@
 .menu {
   position: absolute;
   top: calc(100% + 6px);
-  inset-inline-start: 0;
+  /* Print sits near the row's end, so the menu hangs from its end edge and stays on a phone's screen. */
+  inset-inline-end: 0;
   z-index: 20;
   min-width: 12rem;
 }
