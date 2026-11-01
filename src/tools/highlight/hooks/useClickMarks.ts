@@ -150,5 +150,8 @@ export function useClickMarks(options: ClickMarksOptions) {
     if (action.type === 'DELETE_ELEMENT' && action.payload === id) press.current.laid = false;
   };
 
-  return { beginPress, inkStarted, noteSwipeAction };
+  /** The press now being read has laid ink of its own. */
+  const laidInk = () => press.current.laid;
+
+  return { beginPress, inkStarted, noteSwipeAction, laidInk };
 }

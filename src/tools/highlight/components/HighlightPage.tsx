@@ -98,7 +98,7 @@ export default function HighlightPage({ pdfDocument, pageIndex, widthPx, element
   }, [pdfDocument, pageIndex]);
 
   const marks = elements.filter((el): el is HighlightElement => el.type === 'highlight' && el.pageIndex === pageIndex);
-  const commentMarks = useMemo(() => commentsByMark(elements), [elements]);
+  const commentMarks = commentsByMark(elements);
   const markFocus = useMarkFocus({ elements, openFor: rest.openFor });
 
   const target = rest.targetId === null ? undefined : marks.find((m) => m.id === rest.targetId);
@@ -167,9 +167,9 @@ export default function HighlightPage({ pdfDocument, pageIndex, widthPx, element
           ref={overlayRef} data-page-overlay data-touch-armed={touchArmed ? '' : undefined} className={touchArmed ? `${workspaceStyles['page-overlay']} ${styles.touchArmed}` : workspaceStyles['page-overlay']} onPointerDown={onPointerDown}
           onPointerMove={rest.onPointerMove} onPointerLeave={rest.onPointerLeave}
           onClick={(event) => {
-            // R7: a tap with a finger opens the highlight under it. A mouse opens it by resting.
+            // R7: a single click or tap opens the highlight under it, unless the press just laid ink (that keeps the rest wait and hint).
             const id = (event.target as Element | null)?.closest('[data-element-id]')?.getAttribute('data-element-id');
-            if (id && lastPointerType.current === 'touch') { rest.clearHint(); rest.openFor(id); }
+            if (id && event.detail <= 1 && (lastPointerType.current === 'touch' || !clicks.laidInk())) { rest.clearHint(); rest.openFor(id); }
           }}
         >
           {marks.map((mark) => (
