@@ -1,4 +1,4 @@
-import { useState } from 'preact/hooks';
+import { useRef, useState } from 'preact/hooks';
 import type { PDFDocumentProxy } from 'pdfjs-dist';
 import BasePdfTool from '#shell/BasePdfTool.tsx';
 import ErrorMessage from '#shell/ErrorMessage.tsx';
@@ -7,6 +7,8 @@ import { FileActions } from '#shell/ToolShell.tsx';
 import { withIslandBoundary } from '#lib/telemetry/IslandErrorBoundary.tsx';
 import { useEditorFileSession } from '#editor-ui/hooks/useEditorFileSession.ts';
 import type { HistoryElement } from '#editor/model/actionHistory.ts';
+import { toggleWorkspaceFullscreen, useFullscreenChange } from '#editor-ui/hooks/workspaceFullscreen.ts';
+import { useWorkspaceZoom } from './hooks/useWorkspaceZoom.ts';
 import { describeFile } from '#lib/text/format.js';
 import HighlightVerb from './verb/HighlightVerb.tsx';
 import HighlightWorkspace from './components/HighlightWorkspace.tsx';
@@ -23,6 +25,14 @@ export default withIslandBoundary(function PdfHighlightTool() {
   const [announcement, setAnnouncement] = useState('');
   const [needsUnlock, setNeedsUnlock] = useState<NeedsUnlockKind | null>(null);
 
+  const workspaceRef = useRef<HTMLDivElement | null>(null);
+  const columnRef = useRef<HTMLDivElement | null>(null);
+  const [realFullscreen, setRealFullscreen] = useState(false);
+  const [pseudoFullscreen, setPseudoFullscreen] = useState(false);
+  const fullscreen = realFullscreen || pseudoFullscreen;
+  useFullscreenChange(workspaceRef, setRealFullscreen);
+  const zoom = useWorkspaceZoom({ pdfDocument, workspaceRef, columnRef, fullscreen });
+
   const session = useEditorFileSession<HistoryElement>({
     tool: 'highlight-pdf',
     file,
@@ -32,15 +42,16 @@ export default withIslandBoundary(function PdfHighlightTool() {
     setAnnouncement,
     messages: { invalidPdf: t.invalidPdf, needsPassword: t.needsPassword, ownerRestricted: t.ownerRestricted },
     onNeedsUnlock: setNeedsUnlock,
-    initialize: ({ file: selected }) => {
+    initialize: ({ file: selected, preset }) => {
       setNeedsUnlock(null);
+      zoom.restore(preset.details);
       setFile(selected);
     },
     onDocument: (doc, isCurrent) => {
       if (isCurrent()) setPdfDocument(doc);
     },
-    // Highlights join the draft in a later slice; for now nothing is ever dirty.
-    draft: { elements: [], actionHistory: [], isDirty: false, isElement: isNoElement },
+    // Highlights join the draft in a later slice; for now only the zoom setting is remembered.
+    draft: { elements: [], actionHistory: [], details: zoom.details, isDirty: zoom.touched, isElement: isNoElement },
   });
 
   const numPages = pdfDocument?.numPages ?? 0;
@@ -62,7 +73,11 @@ export default withIslandBoundary(function PdfHighlightTool() {
       )}
 
       {!needsUnlock && status === 'editing' && pdfDocument && (
-        <HighlightWorkspace pdfDocument={pdfDocument} numPages={numPages} />
+        <HighlightWorkspace
+          pdfDocument={pdfDocument} numPages={numPages} fileName={file?.name ?? ''} zoom={zoom}
+          workspaceRef={workspaceRef} columnRef={columnRef} fullscreen={fullscreen}
+          onToggleFullscreen={() => toggleWorkspaceFullscreen(workspaceRef.current, pseudoFullscreen, setPseudoFullscreen)}
+        />
       )}
 
       {status === 'error' && !needsUnlock && (
