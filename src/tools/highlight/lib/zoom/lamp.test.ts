@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { displayZoom, opensLamp, widestPage } from './lamp.ts';
 import { NOTES_W } from './fit.ts';
+import { turnedPageBox } from './turnedBox.ts';
 
 const page = { width: 600, height: 800, textLeft: 100, textRight: 500 };
 const view = { width: 1000, height: 700 };
@@ -61,5 +62,18 @@ describe('widestPage', () => {
   });
   it('is undefined before the pages are measured', () => {
     expect(widestPage([])).toBeUndefined();
+  });
+});
+
+describe('displayZoom with a turned page', () => {
+  const phone = { width: 402, height: 874 };
+  it('sizes a 595x842 page turned a quarter in a 402px column no wider than the column, in the normal view and the lamp', () => {
+    const turned = turnedPageBox({ width: 595, height: 842 }, 1, null);
+    const widest = widestPage([turned])!;
+    expect(widest.width * displayZoom('width', false, widest, phone, false)).toBeLessThanOrEqual(402 + 1e-9);
+    expect(widest.width * displayZoom('width', true, widest, phone, false)).toBeLessThanOrEqual(402 + 16 * 2);
+  });
+  it('keeps an upright page at the same fit as before', () => {
+    expect(displayZoom('width', false, { width: 595, height: 842, textLeft: 0, textRight: 595 }, phone, false)).toBeCloseTo(402 / 595);
   });
 });

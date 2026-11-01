@@ -19,7 +19,10 @@ describe('fitScale', () => {
   });
   it('clamps to the zoom range', () => {
     expect(fitScale('width', page, { width: 4000, height: 900 }, { noted: false })).toBe(3);
-    expect(fitScale('width', page, { width: 200, height: 900 }, { noted: false })).toBe(0.5);
+  });
+  it('lets a fit go below the zoom floor so a wide page still fits a narrow column, and never to nothing', () => {
+    expect(fitScale('width', page, { width: 200, height: 900 }, { noted: false })).toBeCloseTo(168 / 612);
+    expect(fitScale('width', page, { width: 20, height: 900 }, { noted: false })).toBeGreaterThan(0);
   });
   it('never fits text below width', () => {
     const full = { width: 612, height: 792, textLeft: 0, textRight: 612 };
