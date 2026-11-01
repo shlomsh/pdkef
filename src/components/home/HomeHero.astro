@@ -235,20 +235,24 @@ const { h1Prefix, h1Accent, subhead, dir, locale, messages, homeTools, dropzoneM
      block axis explicitly clipped while preserving the familiar sideways
      scroll pattern on narrow screens.
 
-     The dock is eleven cards, ten gaps and padding. From 1024px the cards are
-     80px with 48px of padding, so the full 20px gap needs 1128px and the gap
-     narrows fluidly below that (9.6px at 1024px, 8px at 1008px) instead of
-     the dock overflowing the page (SITE-43). Under 1024px the cards are 72px
-     with 12px gaps and 32px of padding, which is 944px of dock, so it still
-     fits from 960px, the first round step. Below that the scroll comes back and the
-     tooltips clip again, which is the right trade: those widths are phones
-     and small tablets, where there is no hover to show a tooltip with and a
-     sideways-scrolling dock is the familiar pattern. */
-  @media (min-width: 960px) {
-    .home-dock { overflow: visible; gap: clamp(8px, calc((100% - 880px) / 10), 20px); }
+     The dock is twelve cards, eleven gaps and padding. From 1100px the cards
+     are 80px with 48px of padding, so the full 20px gap needs 1228px and the
+     gap narrows fluidly below that (8px at 1100px; 960 is 12 x 80). From
+     940px to 1099.98px the cards are 72px (864 is 12 x 72) and the gap runs
+     from 12px down to 4px, which is 940px of dock at its narrowest, so all
+     twelve fit without scrolling (SITE-43). Below 940px the scroll comes back
+     with 72px cards, 12px gaps and the tooltips clipped again, which is the
+     right trade: those widths are phones and small tablets, where there is
+     no hover to show a tooltip with and a sideways-scrolling dock is the
+     familiar pattern. */
+  @media (min-width: 940px) {
+    .home-dock { overflow: visible; gap: clamp(4px, calc((100% - 864px) / 11), 12px); }
+  }
+  @media (min-width: 1100px) {
+    .home-dock { gap: clamp(8px, calc((100% - 960px) / 11), 20px); }
   }
 
-  @media (max-width: 959.98px) {
+  @media (max-width: 939.98px) {
     /* min-height, and specifically min-content, because `overflow-y: hidden`
        makes the dock a scroll container, and a scroll container's automatic
        minimum size is zero. The dock sits in an `auto` grid row inside a hero
@@ -259,7 +263,7 @@ const { h1Prefix, h1Accent, subhead, dir, locale, messages, homeTools, dropzoneM
        screen that genuinely does not fit grows past 100svh and scrolls - which
        is what e2e/home/scrollable-hero.spec.js already asserts is intended -
        rather than cutting the dock in half. */
-    .home-dock { overflow-x: auto; overflow-y: hidden; overscroll-behavior-inline: contain; min-height: min-content; }
+    .home-dock { gap: 12px; overflow-x: auto; overflow-y: hidden; overscroll-behavior-inline: contain; min-height: min-content; }
     /* A hidden tooltip still counts toward scrollable overflow, so the last
        card's 200px tooltip left 46px of empty dock past the end of the row. */
     .app-tooltip { display: none; }
@@ -272,7 +276,7 @@ const { h1Prefix, h1Accent, subhead, dir, locale, messages, homeTools, dropzoneM
      no observer, no JS. Gated on scroll-driven animations because a strip
      that never dissolves would dim the last tool at the end of the row. */
   @supports (animation-timeline: scroll()) {
-    @media (max-width: 959.98px) {
+    @media (max-width: 939.98px) {
       .home-dock { scroll-timeline: --home-dock inline; }
       .home-dock::before,
       .home-dock::after {
@@ -290,7 +294,7 @@ const { h1Prefix, h1Accent, subhead, dir, locale, messages, homeTools, dropzoneM
            thing that ever shows one. A scroll timeline whose scroller does
            not overflow is inactive, and an inactive timeline leaves the
            element's own opacity standing - so a dock wide enough to hold all
-           eleven tools (any width from ~944px up to this block's 960px ceiling)
+           twelve tools (any width from 940px up to this block's ceiling)
            used to dim its first and last card with nothing to scroll to in
            either direction. Declaring 0 here also means any future failure
            to resolve the timeline degrades to no strips rather than to two
@@ -333,6 +337,10 @@ const { h1Prefix, h1Accent, subhead, dir, locale, messages, homeTools, dropzoneM
   @keyframes home-dock-edge-in { from { opacity: 0; } to { opacity: 1; } }
   @keyframes home-dock-edge-out { from { opacity: 1; } to { opacity: 0; } }
   .app-card { position: relative; display: flex; flex: 0 0 80px; flex-direction: column; align-items: center; gap: 6px; color: inherit; text-decoration: none; }
+  /* Twelve cards: 72px from 940px, back to 80px from 1100px (see .home-dock above). */
+  @media (min-width: 940px) and (max-width: 1099.98px) {
+    .app-card { flex-basis: 72px; }
+  }
   .app-tile { width: 52px; height: 52px; display: flex; align-items: center; justify-content: center; }
   .app-label { font-size: 0.8rem; font-weight: 600; line-height: 1.25; text-align: center; color: var(--color-surface); }
   @media (max-width: 1023px) {
@@ -383,7 +391,7 @@ const { h1Prefix, h1Accent, subhead, dir, locale, messages, homeTools, dropzoneM
        fill the 1fr row that makes up the rest of the first screen, and the
        demo track has to fill the tall row its pinned frame travels through. */
     .workspace-launcher { max-width: none; align-self: stretch; }
-    .home-dock { gap: 12px; padding: 10px 16px; justify-content: flex-start; }
+    .home-dock { padding: 10px 16px; justify-content: flex-start; }
     .app-card { flex-basis: 72px; }
     .app-tile { width: 52px; height: 52px; }
   }
@@ -589,7 +597,12 @@ const { h1Prefix, h1Accent, subhead, dir, locale, messages, homeTools, dropzoneM
        the launcher settles; here the launcher's own content is taller than
        the floor anyway, so the floor only costs height. */
     .home-workspace { min-height: 0; padding: 10px 16px; }
-    .home-dock { gap: 14px; padding: 6px 16px; }
+    .home-dock { padding: 6px 16px; }
+    /* The roomier 14px gap stays only where the dock scrolls; from 940px the
+       fluid gap above is what keeps all twelve cards on the page. */
+    @media (max-width: 939.98px) {
+      .home-dock { gap: 14px; }
+    }
     /* The tile shrinks, the card does not: .app-card stays well over the 44px
        touch target with its label. */
     .app-tile { width: 40px; height: 40px; border-radius: 14px; }

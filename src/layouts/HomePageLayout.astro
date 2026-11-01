@@ -103,7 +103,7 @@ const recentFilesMessages = getRecentFilesMessages(locale as any);
 // Keep the landing toolbar's priority distinct: Compress is intentionally the
 // third shortcut without changing the shared registry or sitemap ordering.
 //
-// The home dock holds every listed tool (eleven cards; see the gap maths on `.home-dock`).
+// The home dock holds every listed tool (twelve cards; see the gap maths on `.home-dock`).
 const homeToolsOrder = [...listedTools];
 const compressToolIndex = homeToolsOrder.findIndex((tool) => tool.slug === 'compress');
 if (compressToolIndex !== -1) {
