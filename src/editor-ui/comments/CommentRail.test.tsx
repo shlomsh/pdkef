@@ -28,6 +28,13 @@ describe('CommentRail', () => {
     expect(host!.querySelector('[data-comment-rail]')).not.toBeNull();
   });
 
+  it('the active saved card carries Edit and Delete buttons, not a menu', () => {
+    mount([hl('a', 10, 'first')], 'a');
+    expect(host!.querySelector('button[aria-label="Edit"]')).not.toBeNull();
+    expect(host!.querySelector('button[aria-label="Delete"]')).not.toBeNull();
+    expect(host!.querySelector('[aria-haspopup]')).toBeNull();
+  });
+
   it('adds the active comment that was just opened for a comment, and marks the active card', () => {
     mount([hl('a', 10, 'first'), hl('n', 40, '')], 'n');
     expect(cards().map((c) => c.dataset.commentCard)).toEqual(['a', 'n']);

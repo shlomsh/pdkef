@@ -2,7 +2,16 @@ import { useEffect, useRef, useState } from 'preact/hooks';
 import type { SignMessages } from '#editor/registry/messages.ts';
 import type { CommentCard } from '#editor/highlight/commentCards.ts';
 import { commentPatch, type CommentPatch } from '#editor/highlight/commentCommit.ts';
+import { TrashIcon } from '#editor-ui/toolIcons.tsx';
+import dialogStyles from '#shell/Dialog.module.css';
 import styles from './CommentRail.module.css';
+
+/* Feather's pencil, at the same 18 px / stroke 2 as the trash beside it (no pencil exists in toolIcons). */
+const PencilIcon = () => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+    <path d="M17 3a2.83 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z" />
+  </svg>
+);
 
 /** SIGN-44: one comment card's content (rail card, later the phone sheet). Draft is local until Comment.
  * The card shows the comment alone; who and when stay in the saved annotation (/M), not on screen. */
@@ -20,23 +29,12 @@ export function CommentCardBody({ card, active, messages, label, onSelect, onSav
   onReturnFocus?: () => void;
 }) {
   const [editing, setEditing] = useState(false);
-  const [menu, setMenu] = useState(false);
   const [draft, setDraft] = useState(card.comment);
   const ref = useRef<HTMLTextAreaElement>(null);
   const showField = card.isNew || editing;
   // Undo, redo or restore changed the comment from outside: follow it unless the person is typing.
   useEffect(() => { if (!showField) setDraft(card.comment); }, [card.comment, showField]);
   useEffect(() => { if (showField) ref.current?.focus(); }, [showField]);
-
-  useEffect(() => {
-    if (!menu) return;
-    const close = () => setMenu(false);
-    const onKey = (event: KeyboardEvent) => { if (event.key === 'Escape') { event.stopPropagation(); close(); } };
-    document.addEventListener('mousedown', close);
-    document.addEventListener('keydown', onKey, true);
-    return () => { document.removeEventListener('mousedown', close); document.removeEventListener('keydown', onKey, true); };
-  }, [menu]);
-  useEffect(() => { if (!active) setMenu(false); }, [active]);
 
   const cancel = () => {
     setDraft(card.comment);
@@ -76,31 +74,23 @@ export function CommentCardBody({ card, active, messages, label, onSelect, onSav
             onKeyUp={(event) => event.stopPropagation()}
           />
           <div class={styles.actions}>
-            <button type="button" class={styles.secondary} onClick={cancel}>{messages.commentCancel}</button>
-            <button type="button" class={styles.primary} disabled={blankNew} onClick={save}>{messages.highlightCommentLabel}</button>
+            <button type="button" class={`${dialogStyles.button} ${dialogStyles.secondary}`} onClick={cancel}>{messages.commentCancel}</button>
+            <button type="button" class={`${dialogStyles.button} ${dialogStyles.primary}`} disabled={blankNew} onClick={save}>{messages.highlightCommentLabel}</button>
           </div>
         </>
       ) : (
         <div class={styles.row}>
           <p class={styles.text} dir="auto">{card.comment}</p>
-          {active && (
-            <div class={styles.menuWrap} onMouseDown={(event) => event.stopPropagation()}>
-              <button type="button" class={styles.more} aria-label={messages.commentMore} aria-haspopup="menu" aria-expanded={menu}
-                onClick={() => setMenu((open) => !open)}>
-                <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" aria-hidden="true">
-                  <circle cx="12" cy="5" r="2" /><circle cx="12" cy="12" r="2" /><circle cx="12" cy="19" r="2" />
-                </svg>
-              </button>
-              {menu && (
-                <div class={styles.menu} role="menu">
-                  <button type="button" role="menuitem" class={styles.menuItem}
-                    onClick={() => { setMenu(false); setDraft(card.comment); setEditing(true); }}>{messages.commentEdit}</button>
-                  <button type="button" role="menuitem" class={styles.menuItem}
-                    onClick={() => { setMenu(false); onDelete(); onReturnFocus?.(); }}>{messages.commentDelete}</button>
-                </div>
-              )}
-            </div>
-          )}
+          <div class={styles.tools} data-active={active}>
+            <button type="button" class={styles.tool} aria-label={messages.commentEdit} title={messages.commentEdit}
+              onClick={() => { setDraft(card.comment); setEditing(true); }}>
+              <PencilIcon />
+            </button>
+            <button type="button" class={`${styles.tool} ${styles.toolDelete}`} aria-label={messages.commentDelete} title={messages.commentDelete}
+              onClick={() => { onDelete(); onReturnFocus?.(); }}>
+              <TrashIcon size={18} />
+            </button>
+          </div>
         </div>
       )}
     </div>

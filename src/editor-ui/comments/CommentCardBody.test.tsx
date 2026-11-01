@@ -21,25 +21,23 @@ function mount(props: { card: CommentCard; active?: boolean; onSelect?: () => vo
 }
 const q = <T extends Element>(sel: string) => host!.querySelector<T>(sel)!;
 const button = (label: string): HTMLButtonElement => [...host!.querySelectorAll<HTMLButtonElement>("button")].find((b) => b.textContent === label)!;
-const menuItem = (label: string) => [...host!.querySelectorAll('[role="menuitem"]')].find((b) => b.textContent === label) as HTMLElement;
 const type = (value: string) => act(() => { const t = q<HTMLTextAreaElement>('textarea'); t.value = value; t.dispatchEvent(new Event('input', { bubbles: true })); });
 
 describe('CommentCardBody', () => {
   it('an inactive comment shows only its text (no author, date or page line); a click selects', () => {
     const onSelect = vi.fn();
     mount({ card: card({ commentedAt: new Date(2000, 0, 3, 9, 5).getTime() }), onSelect });
-    expect(host!.textContent).toBe('Check this');
+    expect(host!.querySelector('p')!.textContent).toBe('Check this');
     expect(host!.querySelector('textarea')).toBeNull();
-    expect(host!.querySelector('button')).toBeNull();
+    expect(host!.querySelector('[aria-haspopup]')).toBeNull();
     act(() => q<HTMLElement>('p').click());
     expect(onSelect).toHaveBeenCalledOnce();
   });
 
-  it('active existing card has a More menu with Edit, which opens a prefilled field with Cancel and Comment', () => {
+  it('active existing card has an Edit button, which opens a prefilled field with Cancel and Comment', () => {
     const onSave = vi.fn();
     mount({ card: card(), active: true, onSave });
-    act(() => q<HTMLElement>('[aria-label="More"]').click());
-    act(() => menuItem('Edit').click());
+    act(() => q<HTMLElement>('button[aria-label="Edit"]').click());
     expect(q<HTMLTextAreaElement>('textarea').value).toBe('Check this');
     expect(q('textarea').getAttribute('dir')).toBe('auto');
     type('Changed');
@@ -59,8 +57,7 @@ describe('CommentCardBody', () => {
   it('Cancel while editing keeps the comment', () => {
     const [onSave, onDelete, onDiscard] = [vi.fn(), vi.fn(), vi.fn()];
     mount({ card: card(), active: true, onSave, onDelete, onDiscard });
-    act(() => q<HTMLElement>('[aria-label="More"]').click());
-    act(() => menuItem('Edit').click());
+    act(() => q<HTMLElement>('button[aria-label="Edit"]').click());
     type('half typed');
     act(() => button('Cancel').click());
     expect(onSave).not.toHaveBeenCalled();
@@ -75,8 +72,7 @@ describe('CommentCardBody', () => {
     expect(button('Comment').disabled).toBe(true);
     render(null, host!);
     mount({ card: card(), active: true, onSave, onDelete, onDiscard });
-    act(() => q<HTMLElement>('[aria-label="More"]').click());
-    act(() => menuItem('Edit').click());
+    act(() => q<HTMLElement>('button[aria-label="Edit"]').click());
     type('   ');
     act(() => button('Comment').click());
     expect(onDelete).toHaveBeenCalledOnce();
@@ -104,18 +100,20 @@ describe('CommentCardBody', () => {
     expect(host!.textContent).toContain('After undo');
   });
 
-  it('Delete in the More menu deletes the comment, and an inactive or new card has no menu', () => {
+  it('Edit and Delete are plain buttons, no menu, and a new card has neither', () => {
     const onDelete = vi.fn();
     mount({ card: card(), active: true, onDelete });
-    act(() => q<HTMLElement>('[aria-label="More"]').click());
-    act(() => menuItem('Delete').click());
+    for (const name of ['Edit', 'Delete']) {
+      const b = q<HTMLButtonElement>(`button[aria-label="${name}"]`);
+      expect(b.title).toBe(name);
+      expect(b.getAttribute('aria-haspopup')).toBeNull();
+    }
+    act(() => q<HTMLElement>('button[aria-label="Delete"]').click());
     expect(onDelete).toHaveBeenCalledOnce();
-    render(null, host!);
-    mount({ card: card(), active: false });
-    expect(host!.querySelector('[aria-label="More"]')).toBeNull();
+    expect(host!.querySelector('[aria-haspopup],[role="menu"],[aria-label="More"]')).toBeNull();
     render(null, host!);
     mount({ card: card({ comment: '', isNew: true }), active: true });
-    expect(host!.querySelector('[aria-label="More"]')).toBeNull();
+    expect(host!.querySelector('button[aria-label="Edit"],button[aria-label="Delete"]')).toBeNull();
   });
 
   it('is a group named by its label', () => {
@@ -143,11 +141,10 @@ describe('CommentCardBody', () => {
     expect(onReturnFocus).toHaveBeenCalledTimes(3);
   });
 
-  it('Delete in the More menu hands focus back too', () => {
+  it('Delete hands focus back too', () => {
     const onReturnFocus = vi.fn();
     mount({ card: card(), active: true, onReturnFocus });
-    act(() => q<HTMLElement>('[aria-label="More"]').click());
-    act(() => menuItem('Delete').click());
+    act(() => q<HTMLElement>('button[aria-label="Delete"]').click());
     expect(onReturnFocus).toHaveBeenCalledOnce();
   });
 });
