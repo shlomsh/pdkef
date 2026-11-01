@@ -47,7 +47,10 @@ export default withIslandBoundary(function PdfHighlightTool() {
   const markerMemory = useMarkerMemory({ marker: marks.marker, rearm: marks.rearm });
   const details = useMemo(() => ({ ...zoom.details, ...markerMemory.details }), [zoom.details, markerMemory.details]);
   const share = usePdfShare();
-  useHistoryKeys({ enabled: status === 'editing', undo: marks.undo, redo: marks.redo });
+  // Undo and redo can bring the first note back or take the last one away, so they go through the room too.
+  const undo = () => { if (!marks.canUndo) return; room.dispatch({ type: 'UNDO' }); recordAction('undo'); };
+  const redo = () => { if (!marks.canRedo) return; room.dispatch({ type: 'REDO' }); recordAction('redo'); };
+  useHistoryKeys({ enabled: status === 'editing', undo, redo });
 
   const session = useEditorFileSession<EditorElement>({
     tool: 'highlight-pdf',
@@ -112,7 +115,7 @@ export default withIslandBoundary(function PdfHighlightTool() {
       {!needsUnlock && status === 'editing' && pdfDocument && (
         <HighlightWorkspace
           pdfDocument={pdfDocument} numPages={numPages} fileName={file?.name ?? ''} zoom={zoom}
-          marks={marks} comments={comments} dispatch={room.dispatch} setAnnouncement={setAnnouncement} onDownload={handleDownload}
+          marks={marks} undo={undo} redo={redo} comments={comments} dispatch={room.dispatch} setAnnouncement={setAnnouncement} onDownload={handleDownload}
           workspaceRef={workspaceRef} columnRef={columnRef} fullscreen={fullscreen} pseudoFullscreen={pseudoFullscreen}
           onToggleFullscreen={toggleLamp}
         />
