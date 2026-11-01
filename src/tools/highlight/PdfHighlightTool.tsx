@@ -18,7 +18,7 @@ import { useNoteRoom } from './hooks/useNoteRoom.ts';
 import { useHighlightMarks } from './hooks/useHighlightMarks.ts';
 import { useMarkerMemory } from './hooks/useMarker.ts';
 import { useHistoryKeys } from './hooks/useHistoryKeys.ts';
-import { useHighlightDownload } from './hooks/useHighlightDownload.ts';
+import { downloadHandler } from './lib/export/download.ts';
 import { describeFile } from '#lib/text/format.js';
 import HighlightVerb from './verb/HighlightVerb.tsx';
 import HighlightWorkspace from './components/HighlightWorkspace.tsx';
@@ -81,7 +81,7 @@ export default withIslandBoundary(function PdfHighlightTool() {
     },
   });
 
-  const handleDownload = useHighlightDownload({
+  const handleDownload = downloadHandler({
     fileName: file?.name, bytes: () => session.fileBytesRef.current, elements: marks.state.elements, pageTurns: marks.pageTurns,
     save: (blob, name) => share.download(blob, name),
   });

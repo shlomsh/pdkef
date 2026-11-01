@@ -17,7 +17,7 @@ export interface PageEditState extends ElementsState {
 
 /**
  * One page turned `by` quarter turns from `geometry`, the geometry it is
- * displayed with before the turn. Selection is dropped; no element is removed.
+ * displayed with before the turn. Selection is dropped; no element is removed. @testSeam
  */
 export function turnPage<S extends PageEditState>(
   state: S, pageIndex: number, geometry: PageGeometry, by: 1 | -1, textWidths?: Record<string, number>,
