@@ -12,7 +12,7 @@ import { test, expect } from '@playwright/test';
 //    the end. The dev server does not minify, so it looked correct there.
 //  - A scroll timeline whose scroller does not overflow is inactive, and an
 //    inactive timeline leaves the element's own opacity standing. At a width
-//    that fits all ten tools the dock does not scroll, yet both strips were
+//    that fits all twelve tools the dock does not scroll, yet both strips were
 //    painted over the first and last card.
 //
 // Asserting on the running animations rather than a screenshot catches both:
@@ -80,8 +80,9 @@ test('the dock fades an edge only while that end of the row has more to reach', 
 });
 
 test('a dock wide enough for every tool fades neither edge', async ({ page }) => {
-  // Wide enough to fit all ten cards, still inside the 960px ceiling the strip
-  // rules are scoped to - the gap the non-overflowing case lives in.
+  // 950px is just above the 940px where all twelve cards fit without scrolling
+  // (72px cards, 4px gaps), so the dock does not overflow and the strip rules,
+  // scoped below 940px, must leave both edges unpainted.
   await page.setViewportSize({ width: 950, height: 844 });
   await page.goto('/');
   await expect(page.locator('.home-dock')).toBeVisible();
@@ -92,11 +93,15 @@ test('a dock wide enough for every tool fades neither edge', async ({ page }) =>
     'the dock still overflows at 950px, so this viewport no longer exercises the non-overflowing case',
   ).toBe(0);
 
-  // An inactive timeline reports null progress, so the strips must be invisible
-  // by their own declared opacity rather than by the animation.
+  // The strips are not generated at all from 940px (content: none), and if a
+  // future change brings them back here, an inactive timeline reports null
+  // progress, so they must be invisible by their own declared opacity.
   const painted = await page.evaluate(() => {
     const dock = document.querySelector('.home-dock');
-    return ['::before', '::after'].map(part => getComputedStyle(dock, part).opacity);
+    return ['::before', '::after'].map(part => {
+      const style = getComputedStyle(dock, part);
+      return style.content === 'none' ? '0' : style.opacity;
+    });
   });
   expect(painted, 'the dock dims a card although the row does not scroll').toEqual(['0', '0']);
 });
