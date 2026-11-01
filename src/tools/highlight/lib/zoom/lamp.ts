@@ -2,10 +2,13 @@ import { clampZoom, fitScale, resolveZoom, type PageBox, type Viewport, type Zoo
 import { ACTUAL_SIZE } from './percent.ts';
 import type { KeyAction } from '../marker/keys.ts';
 
-/** The zoom the view shows: Fit width of the card in the normal view, the remembered setting in the lamp. */
-export function displayZoom(setting: ZoomSetting, inLamp: boolean, page: PageBox | undefined, view: Viewport): number {
+/**
+ * The zoom the view shows: Fit width of the card in the normal view, the remembered setting in the lamp.
+ * With notes, Fit width and Fit text fit the page plus the notes column (R28); a numeric zoom is unchanged.
+ */
+export function displayZoom(setting: ZoomSetting, inLamp: boolean, page: PageBox | undefined, view: Viewport, noted: boolean): number {
   if (!page || view.width === 0) return typeof setting === 'number' && inLamp ? clampZoom(setting) : ACTUAL_SIZE;
-  return inLamp ? resolveZoom(setting, page, view, { noted: false }) : fitScale('width', page, view, { noted: false });
+  return inLamp ? resolveZoom(setting, page, view, { noted }) : fitScale('width', page, view, { noted });
 }
 
 /** In the normal view a ctrl+wheel pinch or a zoom key opens the lamp, where the zoom then works. */

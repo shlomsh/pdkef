@@ -31,6 +31,8 @@ export interface WorkspaceZoomOptions {
   /** The page column the zoom scales. */
   columnRef: { current: HTMLElement | null };
   fullscreen: boolean;
+  /** The document has a note, so Fit width and Fit text leave room for the notes column (R28). */
+  noted?: boolean;
   /** A pinch or zoom key in the normal view asks for the lamp; the owner of the fullscreen state opens it. */
   onEnterLamp(): void;
 }
@@ -40,7 +42,7 @@ export interface WorkspaceZoomOptions {
  * ways to change it. A pinch only scales the column through its ref while the fingers are down and commits
  * once, 150 ms after the last wheel event or when the second finger lifts (the gesture golden rule).
  */
-export function useWorkspaceZoom({ pdfDocument, workspaceRef, columnRef, fullscreen, onEnterLamp: requestLamp }: WorkspaceZoomOptions) {
+export function useWorkspaceZoom({ pdfDocument, workspaceRef, columnRef, fullscreen, noted = false, onEnterLamp: requestLamp }: WorkspaceZoomOptions) {
   const requestRef = useRef(requestLamp);
   requestRef.current = requestLamp;
   const onEnterLamp = useCallback(() => requestRef.current(), []);
@@ -81,7 +83,7 @@ export function useWorkspaceZoom({ pdfDocument, workspaceRef, columnRef, fullscr
     return () => observer.disconnect();
   }, [workspaceRef, fullscreen, ready]);
 
-  const zoom = useMemo(() => displayZoom(setting, fullscreen, pages[0], view), [setting, fullscreen, pages, view]);
+  const zoom = useMemo(() => displayZoom(setting, fullscreen, pages[0], view, noted), [setting, fullscreen, pages, view, noted]);
 
   const zoomRef = useRef(zoom);
   zoomRef.current = zoom;
@@ -89,6 +91,8 @@ export function useWorkspaceZoom({ pdfDocument, workspaceRef, columnRef, fullscr
   pagesRef.current = pages;
   const viewRef = useRef(view);
   viewRef.current = view;
+  const notedRef = useRef(noted);
+  notedRef.current = noted;
 
   // Where the page column sits on screen and how far the reader has scrolled, in one frame (viewport pixels).
   const frame = useCallback(() => {
@@ -129,7 +133,7 @@ export function useWorkspaceZoom({ pdfDocument, workspaceRef, columnRef, fullscr
   const apply = useCallback((next: ZoomSetting, anchor?: Point) => {
     const target = typeof next === 'number'
       ? clampZoom(next)
-      : pagesRef.current.length ? resolveZoom(next, pagesRef.current[0], viewRef.current, { noted: false }) : zoomRef.current;
+      : pagesRef.current.length ? resolveZoom(next, pagesRef.current[0], viewRef.current, { noted: notedRef.current }) : zoomRef.current;
     commit(next, target, anchor, typeof next !== 'number');
   }, [commit]);
   const step = useCallback((dir: 1 | -1, anchor?: Point) => {
