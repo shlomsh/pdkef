@@ -1,10 +1,10 @@
 ---
 id: "READ-05"
 title: "The fullscreen capsule, shared by Highlight PDF and Sign"
-status: "open"
+status: "in_progress"
 priority: "P2"
 epic: "highlight-pdf"
-horizon: "next"
+horizon: "now"
 order: 4
 depends_on: ["READ-01"]
 ---

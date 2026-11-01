@@ -1,10 +1,10 @@
 ---
 id: "READ-03"
 title: "Highlight PDF: the tool at /highlight-pdf/, highlights with a comment on each, and its page"
-status: "open"
+status: "in_progress"
 priority: "P2"
 epic: "highlight-pdf"
-horizon: "next"
+horizon: "now"
 order: 2
 depends_on: ["READ-01", "READ-02"]
 ---

@@ -1,10 +1,10 @@
 ---
 id: "READ-06"
 title: "Highlight PDF: Print with my notes, comments in the margin beside their passages"
-status: "open"
+status: "in_progress"
 priority: "P2"
 epic: "highlight-pdf"
-horizon: "next"
+horizon: "now"
 order: 5
 depends_on: ["READ-03"]
 ---

@@ -2,7 +2,7 @@
 
 # Backlog
 
-The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 90 live: 14 up next, 15 then, 27 waiting, 34 parked.
+The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 90 live: 18 up next, 11 then, 27 waiting, 34 parked.
 
 ## Redact: finish removal
 
@@ -47,14 +47,14 @@ Fill mode is the default since SNG-19. Close the test gaps, then desktop parity,
 
 Marking should feel like holding a highlighter, not like operating software. Sketch, move the shared pieces out of Sign, then launch with Sign handing highlighting over.
 
-### Then, in order
+### Up next
 
 | ID | P | Task | Note |
 | --- | --- | --- | --- |
-| READ-03 | P2 | [READ-03](backlog/tasks/READ-03.md) · Highlight PDF: the tool at /highlight-pdf/, highlights with a comment on each, and its page |  |
-| READ-04 | P2 | [READ-04](backlog/tasks/READ-04.md) · Sign hands highlighting to Highlight PDF: no Highlight tool, existing highlights kept |  |
-| READ-05 | P2 | [READ-05](backlog/tasks/READ-05.md) · The fullscreen capsule, shared by Highlight PDF and Sign |  |
-| READ-06 | P2 | [READ-06](backlog/tasks/READ-06.md) · Highlight PDF: Print with my notes, comments in the margin beside their passages |  |
+| READ-03 | P2 | [READ-03](backlog/tasks/READ-03.md) · Highlight PDF: the tool at /highlight-pdf/, highlights with a comment on each, and its page | In progress |
+| READ-04 | P2 | [READ-04](backlog/tasks/READ-04.md) · Sign hands highlighting to Highlight PDF: no Highlight tool, existing highlights kept | In progress |
+| READ-05 | P2 | [READ-05](backlog/tasks/READ-05.md) · The fullscreen capsule, shared by Highlight PDF and Sign | In progress |
+| READ-06 | P2 | [READ-06](backlog/tasks/READ-06.md) · Highlight PDF: Print with my notes, comments in the margin beside their passages | In progress |
 
 ### Parked
 

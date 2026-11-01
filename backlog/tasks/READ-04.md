@@ -1,10 +1,10 @@
 ---
 id: "READ-04"
 title: "Sign hands highlighting to Highlight PDF: no Highlight tool, existing highlights kept"
-status: "open"
+status: "in_progress"
 priority: "P2"
 epic: "highlight-pdf"
-horizon: "next"
+horizon: "now"
 order: 3
 depends_on: ["READ-03"]
 ---
