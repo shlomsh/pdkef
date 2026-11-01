@@ -4,7 +4,7 @@ import { act } from 'preact/test-utils';
 import { useRef } from 'preact/hooks';
 import { useBoardPan } from './useBoardPan.ts';
 
-let childDown: ReturnType<typeof vi.fn>;
+let childDown: ReturnType<typeof vi.fn<(e: Event) => void>>;
 
 function Board() {
   const ref = useRef<HTMLDivElement>(null);
@@ -29,7 +29,7 @@ const space = (type: 'keydown' | 'keyup') =>
 describe('useBoardPan', () => {
   let card: HTMLElement;
   beforeEach(() => {
-    childDown = vi.fn();
+    childDown = vi.fn<(e: Event) => void>();
     act(() => { render(<Board />, document.body); });
     card = document.querySelector('[data-testid="card"]') as HTMLElement;
     card.addEventListener('pointerdown', childDown);
