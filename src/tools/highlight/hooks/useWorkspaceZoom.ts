@@ -7,6 +7,8 @@ import { displayZoom, widestPage } from '../lib/zoom/lamp.ts';
 import { commitChanges, zoomCommit } from '../lib/zoom/commit.ts';
 import { useBoardScroll } from './useBoardScroll.ts';
 import { initialSetting, serializeSetting } from '../lib/zoom/setting.ts';
+import { turnedPageBox } from '../lib/zoom/turnedBox.ts';
+import { turnsOf, type PageTurns } from '#editor/geometry/pageTurn.ts';
 import { readInkBounds } from './readInkBounds.ts';
 import { ACTUAL_SIZE } from '../lib/zoom/percent.ts';
 import { usePinchZoom } from './usePinchZoom.ts';
@@ -16,6 +18,7 @@ import { useBoardPan } from './useBoardPan.ts';
 import type { Point } from '../lib/zoom/anchor.ts';
 import { reportError } from '#lib/telemetry/errorReport.ts';
 
+const NO_TURNS: PageTurns = {};
 const STORE_KEY = 'pdkef:highlight:zoom-default';
 
 function storedDefault(): string | null {
@@ -42,6 +45,8 @@ interface WorkspaceZoomOptions {
   fullscreen: boolean;
   /** The document has a saved note, so Fit width and Fit text leave room for the notes column (R28). `makeRoom` can lead it. */
   noted?: boolean;
+  /** The quarter turns the person gave each page: a turned page swaps width and height, so every fit sizes it as shown. */
+  pageTurns?: PageTurns;
   /** A pinch or zoom key in the normal view asks for the lamp; the owner of the fullscreen state opens it. */
   onEnterLamp(): void;
 }
@@ -51,35 +56,47 @@ interface WorkspaceZoomOptions {
  * ways to change it. A pinch only scales the column through its ref while the fingers are down and commits
  * once, 150 ms after the last wheel event or when the second finger lifts (the gesture golden rule).
  */
-export function useWorkspaceZoom({ pdfDocument, workspaceRef, columnRef, fullscreen, noted = false, onEnterLamp: requestLamp }: WorkspaceZoomOptions) {
+export function useWorkspaceZoom({ pdfDocument, workspaceRef, columnRef, fullscreen, noted = false, pageTurns, onEnterLamp: requestLamp }: WorkspaceZoomOptions) {
   const requestRef = useRef(requestLamp);
   requestRef.current = requestLamp;
   const onEnterLamp = useCallback(() => requestRef.current(), []);
   const [setting, setSetting] = useState<ZoomSetting>(() => initialSetting(undefined, storedDefault()));
   const [touched, setTouched] = useState(false);
-  const [pages, setPages] = useState<PageBox[]>([]);
+  // The file's own page sizes, then where its text sits (read from the rendered pages, which Fit text sizes the document by).
+  const [sizes, setSizes] = useState<Array<{ width: number; height: number }>>([]);
+  const [ink, setInk] = useState<{ left: number; right: number } | null>(null);
+  const turns = pageTurns ?? NO_TURNS;
+  const turnsKey = JSON.stringify(turns);
+  const pages = useMemo<PageBox[]>(() => sizes.map((size, i) => turnedPageBox(size, turnsOf(turns, i), ink)), [sizes, ink, turnsKey]);
   const [view, setView] = useState({ width: 0, height: 0 });
   const ready = pages.length > 0;
 
-  // Page sizes for every page, then where the text sits (read from the rendered pages), which Fit text sizes the document by.
   useEffect(() => {
-    setPages([]);
+    setSizes([]);
     if (!pdfDocument) return;
     let live = true;
     void (async () => {
-      const boxes: PageBox[] = [];
+      const boxes: Array<{ width: number; height: number }> = [];
       for (let n = 1; n <= pdfDocument.numPages; n++) {
         const page = await pdfDocument.getPage(n);
         if (!live) return;
         const { width, height } = page.getViewport({ scale: 1 });
-        boxes.push({ width, height, textLeft: 0, textRight: width });
+        boxes.push({ width, height });
       }
-      setPages(boxes);
-      const ink = await readInkBounds(pdfDocument, () => live);
-      if (live && ink) setPages(boxes.map((b) => ({ ...b, textLeft: ink.left * b.width, textRight: ink.right * b.width })));
-    })().catch((err) => { if (live) reportError('pdf_render', err, 'read_ink_bounds'); });
+      setSizes(boxes);
+    })().catch((err) => { if (live) reportError('pdf_render', err, 'read_page_sizes'); });
     return () => { live = false; };
   }, [pdfDocument]);
+
+  // The ink is read from the pages as they are shown, so a turn reads it again.
+  useEffect(() => {
+    setInk(null);
+    if (!pdfDocument) return;
+    let live = true;
+    void readInkBounds(pdfDocument, () => live, turns).then((bounds) => { if (live) setInk(bounds); })
+      .catch((err) => { if (live) reportError('pdf_render', err, 'read_ink_bounds'); });
+    return () => { live = false; };
+  }, [pdfDocument, turnsKey]);
 
   useEffect(() => {
     const ws = workspaceRef.current;
