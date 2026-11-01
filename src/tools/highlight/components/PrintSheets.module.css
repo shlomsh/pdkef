@@ -19,10 +19,12 @@
 
 .notes { position: absolute; }
 .card {
-  box-sizing: border-box; width: 100%; padding: 3pt;
+  box-sizing: border-box; width: 100%; padding: 3pt 5pt;
   font: inherit; line-height: 1.3;
   white-space: pre-wrap; overflow-wrap: anywhere;
-  color: var(--color-text); border: 0.5pt solid var(--color-border-strong); background: var(--color-surface);
+  color: var(--color-text); border-radius: 2pt;
+  border-inline-start: 2pt solid var(--mark, var(--color-primary));
+  background: color-mix(in srgb, var(--mark, var(--color-primary)) 10%, var(--color-surface));
 }
 .placed { position: absolute; left: 0; }
 

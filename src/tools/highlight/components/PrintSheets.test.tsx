@@ -7,6 +7,8 @@ import type { PageTurns } from '#editor/geometry/pageTurn.ts';
 import PrintSheets from './PrintSheets.tsx';
 
 const renderPageToCanvas = vi.hoisted(() => vi.fn());
+const readInkBounds = vi.hoisted(() => vi.fn(async (): Promise<{ left: number; right: number } | null> => null));
+vi.mock('../hooks/readInkBounds.ts', () => ({ readInkBounds }));
 vi.mock('#lib/pdf/renderPage.js', () => ({ renderPageToCanvas }));
 
 const band = { left: 0, top: 0, width: 100, height: 100 };
@@ -27,6 +29,8 @@ let container: HTMLElement | null = null;
 afterEach(() => {
   if (container) { act(() => render(null, container!)); container.remove(); container = null; }
   renderPageToCanvas.mockReset();
+  readInkBounds.mockReset();
+  readInkBounds.mockResolvedValue(null);
 });
 
 async function mount(withNotes: boolean, pageTurns?: PageTurns, doc: PDFDocumentProxy = pdfDocument, els: EditorElement[] = elements) {
@@ -57,7 +61,23 @@ describe('PrintSheets', () => {
   it('renders each page at twice its printed size', async () => {
     await mount(true);
     const scales = renderPageToCanvas.mock.calls.map((c) => c[1].scale);
-    expect(scales[0]).toBeCloseTo(2 * 0.8 * (96 / 72));
+    expect(scales[0]).toBeCloseTo(2 * ((600 - 48 - 12 - 132) / 600) * (96 / 72));
+  });
+
+  it('with notes, slides the page so its ink starts at the margin and puts the column 12 pt past the ink', async () => {
+    readInkBounds.mockResolvedValue({ left: 0.1, right: 0.9 });
+    await mount(true);
+    const s = (600 - 48 - 12 - 132) / 480;
+    const box = sheets()[0].querySelector('img')!.parentElement as HTMLElement;
+    expect(parseFloat(box.style.left)).toBeCloseTo(24 - 60 * s);
+    const notes = sheets()[0].querySelector('[data-print-card]')!.parentElement as HTMLElement;
+    expect(parseFloat(notes.style.left)).toBeCloseTo(24 + 480 * s + 12);
+  });
+
+  it('gives a card the color of its highlight as --mark', async () => {
+    await mount(true);
+    const card = sheets()[0].querySelector('[data-print-card]') as HTMLElement;
+    expect(card.style.getPropertyValue('--mark')).toBe('#fde047');
   });
 
   it('draws highlight bands as plain divs, an underline too', async () => {
