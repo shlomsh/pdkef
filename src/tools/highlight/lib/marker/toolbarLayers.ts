@@ -5,7 +5,7 @@ export interface Layers { colors: boolean; custom: boolean }
 
 export const initialLayers: Layers = { colors: false, custom: false };
 
-export const SCROLL_CLOSE_PX = 24;
+const SCROLL_CLOSE_PX = 24;
 
 export const openColors = (l: Layers): Layers => (l.colors ? l : { ...l, colors: true });
 /** The "+" lives at the end of the color row, so the custom panel opens the row too. */

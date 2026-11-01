@@ -1,5 +1,6 @@
 /** R8: the one-time hint after the first mark. */
 export const HINT_MS = 4000;
+/** @testSeam */
 export const HINT_KEY = 'pdkef:highlight:hint-seen';
 
 interface ReadStore { getItem(key: string): string | null }
