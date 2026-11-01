@@ -21,7 +21,9 @@ import ToolShell, { FILE_ACTIONS, useToolShell } from '#shell/ToolShell.tsx';
 import { englishShellMessages } from '#shell/shellMessages.ts';
 import PrintMenu from './PrintMenu.tsx';
 import type { useHighlightComments } from '../hooks/useHighlightComments.ts';
-import type { ElementsAction } from '#editor/model/elementsReducer.ts';
+import type { HighlightAction } from '../lib/marks/highlightState.ts';
+import { clearPageActions, rotatePageAction } from '../lib/marks/pageEditActions.ts';
+import { recordAction } from '#lib/telemetry/actionTrail.ts';
 import { NOTES_W } from '../lib/zoom/fit.ts';
 import { useTouchArming } from '../hooks/useTouchArming.ts';
 import { usePrint } from '../hooks/usePrint.ts';
@@ -52,7 +54,7 @@ export default function HighlightWorkspace({ pdfDocument, numPages, fileName, zo
   /** Sign's comments view over these marks (R27 to R29); its container is this workspace. */
   comments: ReturnType<typeof useHighlightComments>;
   /** The marks' dispatch, as the notes room wraps it: opening the first card makes room in the same event. */
-  dispatch: (action: ElementsAction) => void;
+  dispatch: (action: HighlightAction) => void;
   setAnnouncement(message: string): void;
   onDownload(): void;
   workspaceRef: { current: HTMLDivElement | null };
@@ -158,7 +160,8 @@ export default function HighlightWorkspace({ pdfDocument, numPages, fileName, zo
             key={i} pdfDocument={pdfDocument} pageIndex={i} widthPx={box.width * zoom.zoom}
             elements={marks.state.elements} marker={marks.marker} rearm={marks.rearm} dispatch={dispatch} logAction={marks.logAction}
             setAnnouncement={setAnnouncement} touchArmed={touch.armed} cardRef={(el) => { pageRefs.current[i] = el; }} rail={comments.rail(i)}
-            pageTurns={marks.pageTurns} onRotate={(geometry) => marks.rotatePage(i, geometry)} onClear={() => marks.clearPage(i)}
+            pageTurns={marks.pageTurns} onRotate={(geometry) => { dispatch(rotatePageAction(i, geometry)); recordAction('rotate'); }}
+            onClear={() => { const actions = clearPageActions(marks.state.elements, i); actions.forEach((a) => dispatch(a)); if (actions.length) recordAction('delete_mark'); }}
             activeElementId={marks.state.activeElementId} onSelectComment={(id) => dispatch({ type: 'SET_ACTIVE_ELEMENT_ID', payload: id })}
           />
         ))}
