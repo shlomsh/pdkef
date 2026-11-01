@@ -20,6 +20,9 @@ function storage(): Storage | null {
   }
 }
 
+/** The close of the one rest toolbar that is open in the workspace; opening another closes it. */
+let activeClose: (() => void) | null = null;
+
 /**
  * R2, R7, R8 for one page. Pointer moves feed the rest detector through refs and timers, never state;
  * state changes once, when the detector reports a highlight opened (or a tap, or the hint).
@@ -33,7 +36,15 @@ export function useRestToolbar() {
   const tickTimer = useRef(0);
   const hintTimer = useRef(0);
 
+  const closeRef = useRef<() => void>(() => {});
+
   const open = useCallback((id: string | null) => {
+    if (id !== null) {
+      if (activeClose && activeClose !== closeRef.current) activeClose();
+      activeClose = closeRef.current;
+    } else if (activeClose === closeRef.current) {
+      activeClose = null;
+    }
     openRef.current = id;
     setTargetId(id);
   }, []);
@@ -78,6 +89,8 @@ export function useRestToolbar() {
     feed({ type: 'closed' });
   }, [open, feed]);
 
+  closeRef.current = close;
+
   const clearHint = useCallback(() => {
     window.clearTimeout(hintTimer.current);
     setHint(null);
@@ -93,6 +106,7 @@ export function useRestToolbar() {
   }, []);
 
   useEffect(() => () => {
+    if (activeClose === closeRef.current) activeClose = null;
     window.clearTimeout(tickTimer.current);
     window.clearTimeout(hintTimer.current);
   }, []);
@@ -103,7 +117,7 @@ export function useRestToolbar() {
 const SIX = HIGHLIGHT_COLORS.length;
 const isTyping = (el: Element | null) => !!el && ((el as HTMLElement).isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName));
 
-type ToolbarLive = { current: { layers: Layers; mark: HighlightElement; onChange(change: Partial<Marker>): void; onDelete(): void; onClose(): void; look: Marker } };
+type ToolbarLive = { current: { layers: Layers; mark: HighlightElement; onChange(change: Partial<Marker>): void; onDelete(): void; onComment(): void; onClose(): void; look: Marker } };
 
 /** Placed once, before paint: beside the end of the last band, off the line, inside the screen. */
 export function useToolbarPlacement(rootRef: { current: HTMLDivElement | null }, hlRef: { current: HTMLButtonElement | null }, mark: HighlightElement, rtl: boolean) {
@@ -148,6 +162,7 @@ export function useToolbarDismissal(
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const { layers: current, onChange: change, onDelete: del, onClose: close } = live.current;
+      if (activeClose && activeClose !== close) return; // another page's toolbar is the open one
       const action = keyAction(e, { typing: isTyping(e.target as Element | null), layers: layersOf(current) });
       if (!action) return;
       if (action.type === 'color') {
@@ -157,6 +172,9 @@ export function useToolbarDismissal(
       } else if (action.type === 'underline') {
         e.preventDefault();
         toggleUnderline();
+      } else if (action.type === 'comment') {
+        e.preventDefault();
+        live.current.onComment();
       } else if (action.type === 'delete') {
         e.preventDefault();
         del();
