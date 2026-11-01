@@ -6,7 +6,7 @@ import { turnsOf, type PageTurns } from '#editor/geometry/pageTurn.ts';
 import { underlineInk, UNDERLINE_LIFT, UNDERLINE_WIDTH } from '#editor/model/underlineInk.ts';
 import { renderPageToCanvas } from '#lib/pdf/renderPage.js';
 import { reportError } from '#lib/telemetry/errorReport.ts';
-import { readInkBounds } from '../hooks/readInkBounds.ts';
+import { readPageInk } from '../hooks/readInkBounds.ts';
 import { turnedPageBox } from '../lib/zoom/turnedBox.ts';
 import { printNotes } from '../lib/print/printNotes.ts';
 import { usePrintPaper } from '../hooks/usePrintPaper.ts';
@@ -143,14 +143,14 @@ export default function PrintSheets({ pdfDocument, elements, withNotes, pageTurn
     (async () => {
       try {
         const sizes: PrintPage[] = [];
-        // The zoom code's ink read, applied to the pages that read upright (or upside down) as shown.
-        const ink = withNotes ? await readInkBounds(pdfDocument, () => current, pageTurns).catch(() => null) : null;
-        if (!current) return;
         for (let n = 1; n <= pdfDocument.numPages; n++) {
           const page = await pdfDocument.getPage(n);
           const rotation = turnedRotation(page, pageTurns, n - 1);
           const { width, height } = page.getViewport({ scale: 1, rotation });
-          if (!ink || rotation % 180 !== 0) { sizes.push({ width, height }); continue; }
+          // Each page's own text extent, so the notes never cover a line however the pages differ.
+          const ink = withNotes && rotation % 180 === 0 ? await readPageInk(pdfDocument, n - 1, () => current, pageTurns).catch(() => null) : null;
+          if (!current) return;
+          if (!ink) { sizes.push({ width, height }); continue; }
           const box = turnedPageBox({ width, height }, rotation / 90, ink);
           sizes.push({ width, height, inkLeft: box.textLeft, inkRight: box.textRight });
         }

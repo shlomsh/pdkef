@@ -6,7 +6,7 @@ const findTextRows = vi.fn();
 vi.mock('#lib/pdf/renderPage.js', () => ({ renderPageToCanvas: (...a: unknown[]) => renderPageToCanvas(...a) }));
 vi.mock('#lib/pageLayout/textRows.ts', () => ({ findTextRows: (...a: unknown[]) => findTextRows(...a) }));
 
-import { readInkBounds } from './readInkBounds.ts';
+import { readInkBounds, readPageInk } from './readInkBounds.ts';
 
 // inkBounds.ts stays real: five rows from 100px to 700px on an 800px canvas read back as left 0.125, right 0.875.
 const ROWS = Array.from({ length: 5 }, () => ({ left: 100, right: 700 }));
@@ -79,5 +79,22 @@ describe('readInkBounds', () => {
     await readInkBounds(fakeDoc([fakePage(), fakePage()]), () => true);
     expect(canvases).toHaveLength(2);
     expect(canvases.every((c) => c.width === 0)).toBe(true);
+  });
+});
+
+describe('readPageInk', () => {
+  beforeEach(() => {
+    renderPageToCanvas.mockReset().mockImplementation(async () => fakeCanvas());
+  });
+
+  it('reads one page by index and covers every row, the longest included', async () => {
+    findTextRows.mockReset().mockReturnValue([...ROWS, { left: 80, right: 790 }]);
+    const doc = fakeDoc([fakePage(), fakePage()]);
+    expect(await readPageInk(doc, 1, () => true)).toEqual({ left: 0.1, right: 790 / 800 });
+    expect(doc.getPage).toHaveBeenCalledWith(2);
+  });
+
+  it('is null for a sideways page', async () => {
+    expect(await readPageInk(fakeDoc([fakePage(90)]), 0, () => true)).toBeNull();
   });
 });
