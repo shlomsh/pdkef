@@ -132,7 +132,7 @@ function mountNoted(elements: EditorElement[], workspaceWidth: number, extra: Re
   const marks = {
     state: { elements, activeElementId: null }, marker: DEFAULT_MARKER, rearm: vi.fn(), logAction: vi.fn(),
     dispatch: vi.fn(), undo: vi.fn(), redo: vi.fn(), canUndo: false, canRedo: false,
-    pageTurns: {}, rotatePage: vi.fn(), clearPage: vi.fn(), ...extra,
+    pageTurns: {}, ...extra,
   } as unknown as Parameters<typeof HighlightWorkspace>[0]['marks'];
   const workspaceRef = { current: null as HTMLDivElement | null };
   container = document.createElement('div');
@@ -218,14 +218,14 @@ describe('HighlightWorkspace page header (Rotate and Clear page)', () => {
   afterEach(() => { vi.unstubAllGlobals(); });
 
   it('shows Rotate and Clear page, and each calls the marks with the page index; Rotate hands over the page as shown', async () => {
-    const { marks, restore } = mountNoted([mark], 700, {}, { view: [0, 0, 600, 800], rotate: 0, getTextContent: () => Promise.resolve({ items: [] }) });
+    const { dispatch, restore } = mountNoted([mark], 700, {}, { view: [0, 0, 600, 800], rotate: 0, getTextContent: () => Promise.resolve({ items: [] }) });
     await act(async () => { await Promise.resolve(); });
     const header = container!.querySelector<HTMLElement>('[data-editor-page-header]')!;
     const button = (text: string) => [...header.querySelectorAll('button')].find((b) => b.textContent?.includes(text))!;
     act(() => { button('Rotate').click(); });
-    expect((marks as unknown as { rotatePage: ReturnType<typeof vi.fn> }).rotatePage).toHaveBeenCalledWith(0, expect.objectContaining({ width: 600, height: 800 }));
+    expect(dispatch).toHaveBeenCalledWith(expect.objectContaining({ type: 'ROTATE_PAGE', payload: expect.objectContaining({ pageIndex: 0, geometry: expect.objectContaining({ width: 600, height: 800 }) }) }));
     act(() => { button('Clear page').click(); });
-    expect((marks as unknown as { clearPage: ReturnType<typeof vi.fn> }).clearPage).toHaveBeenCalledWith(0);
+    expect(dispatch).toHaveBeenCalledWith({ type: 'CLEAR_PAGE', payload: 0 });
     restore();
   });
 
