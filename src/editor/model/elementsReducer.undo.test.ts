@@ -1,29 +1,24 @@
 import { describe, expect, it } from 'vitest';
-import type { EditorElement } from '#editor/model/editorModel.ts';
+import type { EditorElement } from './editorModel.ts';
 import {
   captureAddedElement,
   captureElementSnapshots,
   createActionEntry,
-} from '#editor/model/actionHistory.ts';
-import { createUpdateEntry } from '#editor/model/updateKind.ts';
-import { reducer, type SignToolState } from './SignToolContext.tsx';
+} from './actionHistory.ts';
+import { createUpdateEntry } from './updateKind.ts';
+import { elementsReducer as reducer, type ElementsState as SignToolState } from './elementsReducer.ts';
 
 const back: EditorElement = { id: 'back', type: 'text', pageIndex: 0, left: 5, top: 5, text: 'Back' };
 const front: EditorElement = { id: 'front', type: 'ellipse', pageIndex: 0, left: 15, top: 15, width: 20, height: 20 };
 const added: EditorElement = { id: 'added', type: 'rectangle', pageIndex: 0, left: 10, top: 10, width: 20, height: 20 };
 
 const baseState = (elements: EditorElement[]): SignToolState => ({
-  selectedTool: null,
-  toolLocked: false,
   elements,
   activeElementId: null,
   editingElementId: null,
   actionHistory: [],
   redoHistory: [],
-  pageTurns: {},
   documentRevision: 0,
-  carried: {},
-  appStyle: {},
 });
 
 describe('SignTool dependable undo', () => {
@@ -148,11 +143,6 @@ describe('every case that changes the document clears the redo future', () => {
 
   it('SET_ELEMENTS clears it', () => {
     expect(reducer(undoneState(), { type: 'SET_ELEMENTS', payload: [back] }).redoHistory).toEqual([]);
-  });
-
-  it('CLEAR_PAGE clears it', () => {
-    const withElement: SignToolState = { ...undoneState(), elements: [back] };
-    expect(reducer(withElement, { type: 'CLEAR_PAGE', payload: 0 }).redoHistory).toEqual([]);
   });
 });
 

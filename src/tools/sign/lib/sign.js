@@ -1,24 +1,13 @@
-import {
-  PDFDocument,
-  beginMarkedContent,
-  endMarkedContent,
-  degrees,
-  concatTransformationMatrix,
-  popGraphicsState,
-  pushGraphicsState,
-} from '@cantoo/pdf-lib';
+import { degrees } from '@cantoo/pdf-lib';
 import fontkit from '@pdf-lib/fontkit';
-import { pagePercentToEditorPoint } from '#editor/geometry/coords.ts';
-import { getElementDefinition } from '#editor/registry/index.ts';
-import { isComment, resolveCommentBoxes } from '#editor/comments/anchors.ts';
+import { resolveCommentBoxes } from '#editor/comments/anchors.ts';
+import { drawElements } from '#editor/export/drawElements.ts';
 import { findUnrepresentableCharacters } from './textCoverage.js';
-import { baselineOffsetEmFromMetrics, embeddedFontFile, resolveTypography } from '#editor/text/fonts.js';
-import { HELVETICA_BASELINE_OFFSET_EM, DEFAULT_LINE_HEIGHT_EM } from '#editor/model/signGeometry.js';
+import { embeddedFontFile, resolveTypography } from '#editor/text/fonts.js';
 import { reportError } from '#lib/telemetry/errorReport.ts';
 import { openPdfDoc } from '#lib/pdf/openPdfDoc.ts';
 import { applyRotation } from '#lib/pages/pageOps.js';
 import { flattenDoc } from './flatten.js';
-import { pageGeometryFromPdfLibPage } from '#editor/adapters/pdf/pdfLibGeometry.ts';
 
 /**
  * Thrown by signPdf's coverage pre-pass (docs/hebrew-text-shaping-export.md,
@@ -54,24 +43,6 @@ export { FormFlattenError } from './flatten.js';
 // textCoverage.js, so the editor's while-typing warning runs the exact same
 // rule as this refusal. See that file's header for why the two must not fork.
 
-function baselineOffsetEm(pdfFont, lineHeightEm = DEFAULT_LINE_HEIGHT_EM) {
-  try {
-    const fk = pdfFont?.embedder?.font;
-    if (fk?.unitsPerEm && Number.isFinite(fk?.ascent) && Number.isFinite(fk?.descent)) {
-      // Same formula the editor lays out with, from the embedded font's own
-      // metrics rather than the bundled table - see fonts.js.
-      return baselineOffsetEmFromMetrics(
-        fk.ascent / fk.unitsPerEm,
-        fk.descent / fk.unitsPerEm,
-        lineHeightEm,
-      );
-    }
-  } catch {
-    // expected: Use the historic Helvetica fallback when fontkit metrics are unavailable.
-  }
-  return HELVETICA_BASELINE_OFFSET_EM;
-}
-
 // pdf-lib exposes CropBox/MediaBox/Rotate at the page API, but not /UserUnit.
 // Read that one numeric page attribute through the library's typed low-level
 // objects, including an inherited value when present. Invalid producer output
@@ -88,8 +59,8 @@ function baselineOffsetEm(pdfFont, lineHeightEm = DEFAULT_LINE_HEIGHT_EM) {
 // already baked into page content by the time export runs. See
 // backlog/tasks/MOBI-02.md for the two alternatives considered and rejected.
 //
-// Bakes each element through its registry owner. Document loading and font caching
-// stay here because they are PDF-wide concerns, not per-element behavior.
+// Each element is baked through its registry owner by `drawElements` (src/editor/export).
+// Document loading, font caching, page turns, coverage and flattening stay here.
 // `pageTurns` (SIGN-43) maps a page index to the extra clockwise quarter turns the
 // person gave it; elements are stored in percent of that turned page.
 /**
@@ -143,15 +114,9 @@ export async function signPdf(file, sourceElements, onProgress, { pageTurns = {}
     if (angle >= 360) page.setRotation(degrees(angle % 360));
   }
 
-  // SIGN-44: a comment anchored to a highlight lives in that highlight's own annotation, not in one of its own.
+  // The coverage pre-passes judge the elements as drawn, so the comment boxes resolve first;
+  // drawElements resolves them again, which is a no-op on an already-resolved list.
   const elements = resolveCommentBoxes(sourceElements);
-  const highlightComments = new Map();
-  const highlightIds = new Set(elements.filter((el) => el.type === 'highlight').map((el) => el.id));
-  for (const el of elements) {
-    if (isComment(el) && el.anchor.kind === 'element' && highlightIds.has(el.anchor.elementId) && !highlightComments.has(el.anchor.elementId)) {
-      highlightComments.set(el.anchor.elementId, el);
-    }
-  }
 
   // Load every exact face the document needs before coverage checking or page
   // mutation. The old generic Arimo fallback made an uncached Latin display
@@ -188,46 +153,7 @@ export async function signPdf(file, sourceElements, onProgress, { pageTurns = {}
   // annotations and never calls `getForm()`, which would strip XFA data.
   flattenDoc(pdfDoc);
 
-  const drawn = elements.filter((el) => !(isComment(el) && el.anchor.kind === 'element' && highlightIds.has(el.anchor.elementId)));
-  for (let i = 0; i < drawn.length; i++) {
-    const element = drawn[i];
-    const anchored = highlightComments.get(element.id);
-    const page = pdfDoc.getPage(element.pageIndex);
-    const pageGeometry = pageGeometryFromPdfLibPage(page);
-    const { x: pdfX, y: pdfY } = pagePercentToEditorPoint({
-      x: element.left ?? element.x1 ?? 0,
-      y: element.top ?? element.y1 ?? 0,
-    }, pageGeometry);
-
-    // Every registry serializer draws in one rotation/crop-neutral editor
-    // space. This one graphics-state transform maps the complete result back
-    // to raw PDF user space; page /Rotate then displays it exactly where the
-    // pdf.js viewport and DOM overlay placed it.
-    //
-    // The whole frame sits in a `/PDkef` marked-content sequence (RED-55), so a
-    // later Delete reads what was one element as one thing, not as loose paths.
-    page.pushOperators(
-      beginMarkedContent('PDkef'),
-      pushGraphicsState(),
-      concatTransformationMatrix(...pageGeometry.editorToPdf),
-    );
-    try {
-      await getElementDefinition(element.type).serialize(element, {
-        pdfDoc, page,
-        pdfWidth: pageGeometry.width,
-        pdfHeight: pageGeometry.height,
-        pdfX,
-        pdfY,
-        pageGeometry,
-        loadCustomFont,
-        baselineOffset: baselineOffsetEm,
-        ...(anchored && { comment: { text: anchored.comment, commentedAt: anchored.commentedAt } }),
-      });
-    } finally {
-      page.pushOperators(popGraphicsState(), endMarkedContent());
-    }
-    onProgress?.((i + 1) / drawn.length);
-  }
+  await drawElements(pdfDoc, elements, { loadCustomFont, onProgress });
 
   return new Blob([await pdfDoc.save()], { type: 'application/pdf' });
 }
