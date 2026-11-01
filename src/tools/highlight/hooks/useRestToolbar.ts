@@ -181,7 +181,14 @@ export function useToolbarDismissal(
       } else if (action.type === 'closeLayer') {
         e.preventDefault();
         if (action.layer === 'custom' || action.layer === 'colors') setLayers((l) => closeLayer(l, action.layer as 'custom' | 'colors'));
-        else close();
+        else {
+          // Focus inside the bar or on its mark goes back to the mark; focus elsewhere stays where it is.
+          const mark = document.querySelector<HTMLElement>(`[data-editor-element-id="${live.current.mark.id}"]`);
+          const active = document.activeElement;
+          const keep = !!active && (active === mark || !!rootRef.current?.contains(active));
+          close();
+          if (keep) mark?.focus();
+        }
       }
     };
     const onDown = (e: PointerEvent) => {
