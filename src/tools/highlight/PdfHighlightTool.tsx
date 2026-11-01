@@ -16,6 +16,7 @@ import { useWorkspaceZoom } from './hooks/useWorkspaceZoom.ts';
 import { useReadingLamp } from './hooks/useReadingLamp.ts';
 import { useHighlightComments } from './hooks/useHighlightComments.ts';
 import { useNoteRoom } from './hooks/useNoteRoom.ts';
+import type { HighlightAction } from './lib/marks/highlightState.ts';
 import { useHighlightMarks } from './hooks/useHighlightMarks.ts';
 import { useMarkerMemory } from './hooks/useMarker.ts';
 import { useHistoryKeys } from './hooks/useHistoryKeys.ts';
@@ -37,10 +38,12 @@ export default withIslandBoundary(function PdfHighlightTool() {
   const workspaceRef = useRef<HTMLDivElement | null>(null);
   const columnRef = useRef<HTMLDivElement | null>(null);
   const { fullscreen, pseudoFullscreen, toggleLamp } = useReadingLamp(workspaceRef);
-  const marks = useHighlightMarks();
+  const roomRoute = useRef<((action: HighlightAction) => void) | null>(null);
+  const marks = useHighlightMarks({ route: roomRoute });
   // R28: the first note makes room for the notes column in the event that opens its card, so the dispatches that
   // open and close cards go through here. Zoom and the comments view are created below and read when it runs.
   const room = useNoteRoom({ state: marks.state, dispatch: marks.dispatch, columnRef, zoom: () => zoom, isWide: () => comments.sheet === null });
+  roomRoute.current = room.dispatch;
   const comments = useHighlightComments({ state: marks.state, dispatch: room.dispatch, logAction: marks.logAction, announce: setAnnouncement });
   // A wheel is not a user gesture, so real fullscreen may be refused; the toggle then falls back to pseudo fullscreen.
   const zoom = useWorkspaceZoom({ pdfDocument, workspaceRef, columnRef, fullscreen, noted: comments.showRail, onEnterLamp: toggleLamp });
@@ -64,7 +67,7 @@ export default withIslandBoundary(function PdfHighlightTool() {
     prepareFile: readBackAnnotations,
     initialize: ({ file: selected, preset }) => {
       setNeedsUnlock(null);
-      marks.dispatch({ type: 'LOAD_DOCUMENT', payload: { elements: preset.elements, actionHistory: preset.actionHistory } });
+      marks.dispatch({ type: 'LOAD_DOCUMENT', payload: { elements: preset.elements, actionHistory: preset.actionHistory, pageTurns: preset.pageTurns } });
       zoom.restore(preset.details);
       markerMemory.restore(preset.details);
       setFile(selected);
@@ -75,6 +78,7 @@ export default withIslandBoundary(function PdfHighlightTool() {
     draft: {
       elements: marks.state.elements,
       actionHistory: marks.state.actionHistory,
+      pageTurns: marks.pageTurns,
       details,
       isDirty: marks.state.documentRevision !== (marks.state.draftBaselineRevision ?? marks.state.documentRevision) || zoom.touched || markerMemory.changed,
       isElement: isEditorElement,
