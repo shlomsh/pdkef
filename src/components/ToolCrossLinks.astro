@@ -46,7 +46,7 @@ const others = listedTools.filter((tool) => tool.slug !== currentSlug);
 // Variant landing pages (rotate, extract pages, ...) get no card of their own: one quiet text row of
 // plain links, so every indexed tool page hands crawlers and people a path to them. They are English-only pages,
 // so a localized page leaves the row out rather than mixing languages.
-const variants = locale === 'en' ? tools.filter((tool) => tool.variantOf && tool.slug !== currentSlug) : [];
+const variants = locale === 'en' ? tools.filter((tool) => 'variantOf' in tool && tool.variantOf && tool.slug !== currentSlug) : [];
 ---
 
 <section
