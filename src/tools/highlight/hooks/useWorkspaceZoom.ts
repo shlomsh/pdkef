@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'preact/hooks';
 import type { PDFDocumentProxy } from 'pdfjs-dist';
 import type { DetailEdits } from '#editor/registry/draftValidation.ts';
-import { clampZoom, resolveZoom, stepZoom, type ZoomSetting } from '../lib/zoom/fit.ts';
+import { clampZoom, NOTES_W, resolveZoom, stepZoom, type ZoomSetting } from '../lib/zoom/fit.ts';
 import { pageAnchorAt } from '../lib/zoom/pageAnchor.ts';
 import { displayZoom, widestPage } from '../lib/zoom/lamp.ts';
 import { commitChanges, zoomCommit } from '../lib/zoom/commit.ts';
@@ -111,7 +111,7 @@ export function useWorkspaceZoom({ pdfDocument, workspaceRef, columnRef, fullscr
     return r ? { x: r.left + r.width / 2, y: fullscreen ? r.top + r.height / 2 : window.innerHeight / 2 } : { x: 0, y: 0 };
   }, [workspaceRef, fullscreen]);
 
-  const { pendingScroll, pendingCentre, pendingAnchor, board } = useBoardScroll({ workspaceRef, fullscreen, pages, zoom, setting, view });
+  const { pendingScroll, pendingCentre, pendingAnchor, board } = useBoardScroll({ workspaceRef, fullscreen, pages, zoom, setting, view, notesPx: fullscreen && roomy ? NOTES_W * zoom : 0 });
 
   const commit = useCallback((next: ZoomSetting, nextZoom: number, anchor?: Point, centreAfter = false) => {
     if (!commitChanges(settingRef.current, zoomRef.current, next, nextZoom)) return;

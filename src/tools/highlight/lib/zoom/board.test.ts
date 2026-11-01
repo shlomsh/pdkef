@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { boardLayout, centredScrollLeft } from './board.ts';
+import { boardLayout, centredScrollLeft, columnTopScrollTop } from './board.ts';
 import { zoomCommit } from './commit.ts';
 
 describe('boardLayout', () => {
   it('leaves one view of slack each side of the page', () => {
-    expect(boardLayout(600, 900)).toEqual({ slack: 900, boardWidth: 2400 });
+    expect(boardLayout(600, 900)).toEqual({ slack: 900, boardWidth: 2400, slackY: 0 });
   });
 });
 
@@ -43,5 +43,28 @@ describe('a zoom on the board', () => {
     const after = local(next, 1.5);
     expect(after.x).toBeCloseTo(before.x, 6);
     expect(after.y).toBeCloseTo(before.y, 6);
+  });
+});
+
+describe('vertical slack', () => {
+  it('leaves one view height above and below the column', () => {
+    expect(boardLayout(600, 900, 700)).toMatchObject({ slack: 900, slackY: 700 });
+  });
+  it('has no vertical slack without a view height', () => {
+    expect(boardLayout(600, 900).slackY).toBe(0);
+  });
+  it('puts the column top at the slack when entering the lamp', () => {
+    expect(columnTopScrollTop(boardLayout(600, 900, 700))).toBe(700);
+  });
+});
+
+describe('centring with a notes column', () => {
+  it('centres the whole column (page + notes), not the page alone', () => {
+    const view = 900;
+    const column = 600 + 240;
+    const layout = boardLayout(column, view);
+    expect(layout.boardWidth).toBe(column + 2 * view);
+    const left = centredScrollLeft(layout, column, view);
+    expect(layout.slack + column / 2 - left).toBe(view / 2);
   });
 });

@@ -148,7 +148,7 @@ function mountNoted(elements: EditorElement[], workspaceWidth: number, extra: Re
   };
   vi.stubGlobal('ResizeObserver', class { constructor(private cb: () => void) {} observe() { this.cb(); } disconnect() {} });
   const zoom = {
-    zoom: zoomValue, chrome, setting: 'width', pages: [{ width: 600, height: 800, textLeft: 0, textRight: 600 }], board: { boardWidth: 600, slack: 0 },
+    zoom: zoomValue, chrome, setting: 'width', pages: [{ width: 600, height: 800, textLeft: 0, textRight: 600 }], board: { boardWidth: 600, slack: 0, slackY: chrome > 1 ? 500 : 0 },
     apply: vi.fn(), step: vi.fn(), actual: vi.fn(),
   } as unknown as Parameters<typeof HighlightWorkspace>[0]['zoom'];
   const marks = {
@@ -194,6 +194,18 @@ describe('HighlightWorkspace notes (R28, R29)', () => {
     restore();
   });
 
+  it('in the lamp the column carries --chrome and the gap scales, and the board has vertical slack', () => {
+    const { column, restore } = mountNoted([], 800, {}, undefined, 1.5, 1.5);
+    expect(column.style.getPropertyValue('--chrome')).toBe('1.5');
+    expect(column.parentElement!.style.paddingBlock).toBe('500px');
+    restore();
+  });
+  it('in the normal view the column has no --chrome and the board no vertical slack', () => {
+    const { column, restore } = mountNoted([], 800);
+    expect(column.style.getPropertyValue('--chrome')).toBe('');
+    expect(column.parentElement!.style.paddingBlock).toBe('');
+    restore();
+  });
   it('at zoom 1.5 in the lamp the notes column, the rail and the header scale with the page', () => {
     const { column, restore } = mountNoted([mark, note], 2000, {}, undefined, 1.5, 1.5);
     const card = column.querySelector<HTMLElement>('[data-editor-page-card]')!;

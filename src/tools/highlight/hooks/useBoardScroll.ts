@@ -1,5 +1,5 @@
 import { useLayoutEffect, useRef } from 'preact/hooks';
-import { boardLayout, centredScrollLeft } from '../lib/zoom/board.ts';
+import { boardLayout, centredScrollLeft, columnTopScrollTop } from '../lib/zoom/board.ts';
 import type { PageBox, ZoomSetting } from '../lib/zoom/fit.ts';
 import type { Point } from '../lib/zoom/anchor.ts';
 import { scrollDelta, type PageAnchor } from '../lib/zoom/pageAnchor.ts';
@@ -8,13 +8,15 @@ import { scrollDelta, type PageAnchor } from '../lib/zoom/pageAnchor.ts';
  * Where the scroll goes once the layout of a committed zoom is in place. Nothing re-centres on its own: only
  * opening a document, picking a fit mode and a resize under a fit mode do (the page is a board).
  */
-export function useBoardScroll({ workspaceRef, fullscreen, pages, zoom, setting, view }: {
+export function useBoardScroll({ workspaceRef, fullscreen, pages, zoom, setting, view, notesPx = 0 }: {
   workspaceRef: { current: HTMLElement | null };
   fullscreen: boolean;
   pages: PageBox[];
   zoom: number;
   setting: ZoomSetting;
   view: { width: number; height: number };
+  /** The notes column's width in screen px while the rail shows in the lamp: the column is page + notes wide. */
+  notesPx?: number;
 }) {
   // What happens to the scroll once the layout of a committed zoom is in place. Nothing re-centres on its
   // own: only opening a document, picking a fit mode and resizing under a fit mode do.
@@ -26,7 +28,9 @@ export function useBoardScroll({ workspaceRef, fullscreen, pages, zoom, setting,
   const ready = pages.length > 0;
   const widest = pages.reduce((w, p) => Math.max(w, p.width), 0);
   // Only the lamp has a board to move on; the normal view is the card at its own width.
-  const board = fullscreen ? boardLayout(widest * zoom, view.width) : { slack: 0, boardWidth: widest * zoom };
+  const columnWidth = widest * zoom + notesPx;
+  const board = fullscreen ? boardLayout(columnWidth, view.width, view.height) : { slack: 0, slackY: 0, boardWidth: columnWidth };
+  const enteredLamp = useRef(false);
   const lastFullscreen = useRef(fullscreen);
   const settleView = useRef(false);
   useLayoutEffect(() => {
@@ -35,7 +39,7 @@ export function useBoardScroll({ workspaceRef, fullscreen, pages, zoom, setting,
     if (fullscreen !== lastFullscreen.current) {
       lastFullscreen.current = fullscreen;
       // The lamp opens centred on the remembered setting, once its own width is known.
-      if (fullscreen) { pendingCentre.current = true; settleView.current = true; }
+      if (fullscreen) { pendingCentre.current = true; settleView.current = true; enteredLamp.current = true; }
     }
     if (view.width !== lastViewWidth.current) {
       if ((lastViewWidth.current !== 0 && typeof setting !== 'number') || (settleView.current && fullscreen)) pendingCentre.current = true;
@@ -55,7 +59,9 @@ export function useBoardScroll({ workspaceRef, fullscreen, pages, zoom, setting,
       const focus = setting === 'text' && page0
         ? { left: offset + page0.textLeft * zoom, right: offset + page0.textRight * zoom }
         : undefined;
-      ws.scrollLeft = centredScrollLeft(board, widest * zoom, view.width, focus);
+      ws.scrollLeft = centredScrollLeft(board, columnWidth, view.width, focus);
+      // Entering the lamp: page 1 starts at the top of the view, below the board's vertical slack.
+      if (enteredLamp.current && view.height > 0) { ws.scrollTop = columnTopScrollTop(board); enteredLamp.current = false; }
       pendingAnchor.current = null;
     } else if (pendingAnchor.current) {
       // Anchored by page fraction: headers and gaps do not scale, so the whole column cannot be the frame.
