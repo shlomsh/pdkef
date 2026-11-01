@@ -28,11 +28,11 @@ const dispatch = vi.fn();
 const logAction = vi.fn();
 const rearm = vi.fn();
 
-function mount(elements: EditorElement[], marker = DEFAULT_MARKER, touchArmed?: boolean) {
+function mount(elements: EditorElement[], marker = DEFAULT_MARKER, touchArmed?: boolean, comments: { activeElementId?: string | null; onSelectComment?: (id: string) => void } = {}) {
   act(() => render(
     <HighlightPage
       pdfDocument={null} pageIndex={0} widthPx={600} elements={elements} marker={marker} touchArmed={touchArmed}
-      dispatch={dispatch} logAction={logAction} rearm={rearm} setAnnouncement={() => {}} cardRef={() => {}}
+      dispatch={dispatch} logAction={logAction} rearm={rearm} setAnnouncement={() => {}} cardRef={() => {}} {...comments}
     />,
     container,
   ));
@@ -616,5 +616,32 @@ describe('HighlightPage touch swipe, armed', () => {
     expect(dispatch).not.toHaveBeenCalled();
     expect(startHighlightSwipe).not.toHaveBeenCalled();
     expect(overlay.hasAttribute('data-touch-armed')).toBe(false);
+  });
+
+  describe('comment markers', () => {
+    it('a mark with a comment wears one marker, and one without wears none', () => {
+      const bare: HighlightElement = { ...mark, id: 'h2', top: 50 };
+      mount([mark, bare, savedComment]);
+      expect(container.querySelectorAll('[data-comment-marker]')).toHaveLength(1);
+      expect(container.querySelector('[data-element-id="h1"] [data-comment-marker]')).not.toBeNull();
+      expect(container.querySelector('[data-element-id="h2"] [data-comment-marker]')).toBeNull();
+    });
+
+    it('the marker is focused while its comment card is active', () => {
+      mount([mark, savedComment], DEFAULT_MARKER, false, { activeElementId: 'c1' });
+      expect(container.querySelector('[data-comment-marker]')!.hasAttribute('data-focused')).toBe(true);
+      mount([mark, savedComment], DEFAULT_MARKER, false, { activeElementId: null });
+      expect(container.querySelector('[data-comment-marker]')!.hasAttribute('data-focused')).toBe(false);
+    });
+
+    it('a click selects the comment and a press on it starts no stroke', () => {
+      const onSelectComment = vi.fn();
+      mount([mark, savedComment], DEFAULT_MARKER, false, { onSelectComment });
+      const button = container.querySelector<HTMLElement>('[data-comment-marker]')!;
+      press(button, { pointerType: 'mouse' });
+      expect(startHighlightSwipe).not.toHaveBeenCalled();
+      act(() => { button.click(); });
+      expect(onSelectComment).toHaveBeenCalledWith('c1');
+    });
   });
 });
