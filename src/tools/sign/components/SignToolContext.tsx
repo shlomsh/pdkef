@@ -5,10 +5,10 @@ import { useCallback, useReducer, useContext, useMemo } from 'preact/hooks';
 import type { PageGeometry } from '#editor/geometry/coords.ts';
 import { formatMessage } from '#lib/text/formatMessage.ts';
 import { englishSignMessages } from '#editor/registry/signMessages.ts';
-import { addTurn, turnElement, turnGeometry, unturnElement, type PageTurns } from '#editor/geometry/pageTurn.ts';
-import { createActionEntry, type ActionHistoryEntry } from '#editor/model/actionHistory.ts';
+import type { PageTurns } from '#editor/geometry/pageTurn.ts';
+import type { ActionHistoryEntry } from '#editor/model/actionHistory.ts';
+import { clearPage, rotatePage, stepHistory } from '#editor/geometry/pageEdits.ts';
 import { elementsReducer, initialElementsState, nextDocumentRevision } from '#editor/model/elementsReducer.ts';
-import { pushCommand, redoStep, undoStep } from '#editor/model/historyStack.ts';
 import type { EditorElement, EditorElementPatch, SignToolType } from '#editor/model/editorModel.ts';
 import type { DocumentStyle } from '#editor/model/documentStyle.ts';
 import { resolveDocumentStyle } from '../lib/elementDefaults.ts';
@@ -140,67 +140,6 @@ const initialState: SignToolState = {
   appStyle: {},
 };
 
-/**
- * SIGN-43: one page turned `by` quarter turns from `geometry`, the geometry it
- * is displayed with before the turn (selection survives: no element is removed).
- */
-function turnPage(
-  state: SignToolState, pageIndex: number, geometry: PageGeometry, by: 1 | -1, textWidths?: Record<string, number>,
-): SignToolState {
-  const turnOne = (el: EditorElement) => (by === 1
-    ? turnElement(el, geometry, 1, textWidths?.[el.id])
-    : unturnElement(el, turnGeometry(geometry, 1), 1, textWidths?.[el.id]));
-  return {
-    ...state,
-    elements: state.elements.map((el) => (el.pageIndex === pageIndex ? turnOne(el) : el)),
-    pageTurns: addTurn(state.pageTurns, pageIndex, by),
-    activeElementId: null,
-    editingElementId: null,
-    documentRevision: nextDocumentRevision(state),
-  };
-}
-
-/** A turn-page entry undone (the page turns back from its turned geometry) or redone; any other entry is unchanged. */
-function turnedByEntry(
-  state: SignToolState, entry: ActionHistoryEntry<EditorElement>, direction: 'undo' | 'redo',
-): SignToolState {
-  if (entry.operation !== 'turn-page') return state;
-  return direction === 'redo'
-    ? turnPage(state, entry.pageIndex, entry.geometry, 1, entry.textWidths)
-    : turnPage(state, entry.pageIndex, entry.geometry, -1, entry.textWidths);
-}
-
-/** SIGN-43: the page header's Rotate - one undoable turn of one page. */
-function rotatePage(
-  state: SignToolState,
-  { pageIndex, geometry, textWidths, description }: {
-    pageIndex: number; geometry: PageGeometry; textWidths?: Record<string, number>; description?: string;
-  },
-): SignToolState {
-  const entry = createActionEntry({
-    operation: 'turn-page', type: 'ROTATE_PAGE', pageIndex, geometry,
-    ...(textWidths ? { textWidths } : {}),
-    description: description ?? formatMessage(englishSignMessages.rotatePageDescription, { number: pageIndex + 1 }),
-  });
-  const { past, future } = pushCommand(state.actionHistory, state.redoHistory, entry);
-  return { ...turnPage(state, pageIndex, geometry, 1, textWidths), actionHistory: past, redoHistory: future };
-}
-
-/**
- * UNDO and REDO: the shared step runs in `elementsReducer`; a turn-page entry
- * first turns the page (elements and `pageTurns`, Sign-only), then the shared
- * step moves the stacks. The revision is the one bump of the original state.
- */
-function stepHistory(state: SignToolState, direction: 'undo' | 'redo'): SignToolState {
-  const action = { type: direction === 'undo' ? 'UNDO' : 'REDO' } as const;
-  const step = direction === 'undo'
-    ? undoStep(state.actionHistory, state.redoHistory)
-    : redoStep(state.actionHistory, state.redoHistory);
-  if (!step || step.entry.operation !== 'turn-page') return elementsReducer(state, action);
-  const turned = turnedByEntry(state, step.entry, direction);
-  return { ...elementsReducer(turned, action), documentRevision: nextDocumentRevision(state) };
-}
-
 export function reducer(state: SignToolState, action: SignToolAction): SignToolState {
   switch (action.type) {
     // Sign-only parts of a load run after the shared baseline.
@@ -251,21 +190,14 @@ export function reducer(state: SignToolState, action: SignToolAction): SignToolS
     // way it restores a single delete. The reducer's own job is the selection
     // invariant: if what was selected or being edited lived on that page, it
     // just stopped existing, so neither id may survive it.
-    case 'CLEAR_PAGE': {
-      const remaining = state.elements.filter(el => el.pageIndex !== action.payload);
-      if (remaining.length === state.elements.length) return state;
-      const activeSurvives = remaining.some(el => el.id === state.activeElementId);
-      return {
-        ...state,
-        elements: remaining,
-        activeElementId: activeSurvives ? state.activeElementId : null,
-        editingElementId: activeSurvives ? state.editingElementId : null,
-        redoHistory: [],
-        documentRevision: nextDocumentRevision(state),
-      };
-    }
+    case 'CLEAR_PAGE':
+      return clearPage(state, action.payload);
     case 'ROTATE_PAGE':
-      return rotatePage(state, action.payload);
+      return rotatePage(state, {
+        ...action.payload,
+        description: action.payload.description
+          ?? formatMessage(englishSignMessages.rotatePageDescription, { number: action.payload.pageIndex + 1 }),
+      });
     // Bumps documentRevision like any other edit: the carried style is part
     // of the document now (round-tripped through its draft), not a browser
     // preference, so a change to any key is a saveable edit the same way an
