@@ -1,7 +1,7 @@
 import type { ComponentProps } from 'preact';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'preact/hooks';
 import type { PDFDocumentProxy } from 'pdfjs-dist';
-import ReadingCapsule, { PrintIcon } from '#editor-ui/capsule/ReadingCapsule.tsx';
+import ReadingCapsule, { PrintIcon } from './capsule/ReadingCapsule.tsx';
 import UndoRedoButtons from '#editor-ui/UndoRedoButtons.tsx';
 import EditorExportActions from '#editor-ui/EditorExportActions.tsx';
 import toolbarStyles from '#editor-ui/SignToolbar.module.css';
@@ -154,7 +154,7 @@ export default function HighlightWorkspace({ pdfDocument, numPages, fileName, zo
           <HighlightPage
             key={i} pdfDocument={pdfDocument} pageIndex={i} widthPx={box.width * zoom.zoom}
             elements={marks.state.elements} marker={marks.marker} rearm={marks.rearm} dispatch={dispatch} logAction={marks.logAction}
-            setAnnouncement={setAnnouncement} touchArmed={touch.armed} cardRef={(el) => { pageRefs.current[i] = el; }} rail={comments.rail(i)}
+            setAnnouncement={setAnnouncement} touchArmed={touch.armed} cardRef={(el) => { pageRefs.current[i] = el; }} rail={comments.rail(i, box.height * zoom.zoom)}
             pageTurns={marks.pageTurns} onRotate={(geometry) => { dispatch(rotatePageAction(i, geometry)); recordAction('rotate'); }}
             onClear={() => { const actions = clearPageActions(marks.state.elements, i); actions.forEach((a) => dispatch(a)); if (actions.length) recordAction('delete_mark'); }}
           />

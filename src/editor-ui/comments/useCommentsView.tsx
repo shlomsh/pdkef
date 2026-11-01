@@ -77,8 +77,8 @@ export function useCommentsView({ elements, activeElementId, messages, onSelect,
       if (count === 0) return undefined;
       return count === 1 ? messages.commentsCountOne : formatMessage(messages.commentsCountOther, { count });
     },
-    rail: (pageIndex: number) => (showRail ? (
-      <CommentRail pageIndex={pageIndex} elements={elements} activeElementId={activeElementId} messages={messages} onSelect={onSelect} onSave={onSave} onDelete={onDelete} onDiscard={onDiscard} onReturnFocus={returnFocus} />
+    rail: (pageIndex: number, railHeight?: number) => (showRail ? (
+      <CommentRail pageIndex={pageIndex} elements={elements} activeElementId={activeElementId} messages={messages} onSelect={onSelect} onSave={onSave} onDelete={onDelete} onDiscard={onDiscard} onReturnFocus={returnFocus} railHeight={railHeight} />
     ) : null),
     sheet: wide ? null : (
       <CommentSheet elements={elements} activeElementId={activeElementId} messages={messages} onSave={onSave} onDelete={onDelete} onDiscard={onDiscard} onClose={() => onSelect(null)} onReturnFocus={returnFocus} />
