@@ -50,6 +50,19 @@
   background: var(--color-surface-soft);
 }
 
+/* Touch: the visible box stays as it is; the hit area grows to 44 px tall and the full width. */
+@media (pointer: coarse) {
+  .page-action { position: relative; }
+  .page-action::before {
+    content: '';
+    position: absolute;
+    inset-inline: 0;
+    top: 50%;
+    height: 44px;
+    transform: translateY(-50%);
+  }
+}
+
 .page-action.clear-page:hover {
   color: var(--color-danger);
   background: var(--color-danger-soft);

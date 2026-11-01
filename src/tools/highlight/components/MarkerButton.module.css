@@ -76,17 +76,31 @@
 /* The opacity slider sits under the swatches, inset like the row. */
 .menu > [data-opacity-slider] { box-sizing: border-box; min-width: 14rem; padding: 4px 8px 8px; }
 .row > div { display: none; }
+/* The swatch button is the full cell; its inline background is clipped to an 18 px dot by the padding, and the
+   ring (border, inset shadow, armed outline) moves to ::before so it hugs the dot, not the cell. */
 .row [data-highlight-swatch] {
   position: relative;
   flex: none;
-  margin: calc((var(--cell) - 18px) / 2);
+  box-sizing: border-box;
+  width: var(--cell);
+  height: var(--cell);
+  padding: calc((var(--cell) - 18px) / 2);
+  border: 0;
+  box-shadow: none;
+  background-clip: content-box !important;
 }
-.row [data-highlight-swatch]::after {
+.row [data-highlight-swatch][aria-pressed] { box-shadow: none; }
+.row [data-highlight-swatch]::before {
   content: '';
   position: absolute;
-  inset: calc((18px - var(--cell)) / 2);
+  inset: calc((var(--cell) - 18px) / 2);
+  box-sizing: border-box;
+  border: 1px solid var(--color-white-30);
   border-radius: 50%;
+  box-shadow: 0 0 0 1px var(--color-black-15) inset;
+  pointer-events: none;
 }
+.row [data-highlight-swatch][aria-pressed='true']::before { box-shadow: 0 0 0 2px var(--color-surface), 0 0 0 3px var(--color-primary); }
 .ul {
   appearance: none;
   flex: none;
@@ -117,8 +131,9 @@
   .menu > [data-opacity-slider] { min-width: 0; padding: 0 12px 6px; }
 }
 
-/* In the editor row the wrap is one more tile: it shares the row like its siblings and the button fills it. */
-.wrap[data-tile] { flex: 1 1 auto; min-width: 0; }
+/* In the editor row the wrap is one more tile: the toolbar's own `.toolbar > *` flex sizes it like its siblings (a
+   flex declared here outranked that and left it content-wide), and the button fills it. */
+.wrap[data-tile] { min-width: 0; }
 .wrap[data-tile] > button { width: 100%; }
 /* Over a tile's label the badge sits higher, so it never touches the first line of text. */
 .wrap[data-tile] .dot,
