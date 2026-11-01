@@ -18,7 +18,7 @@
   .top::after { content: ''; order: 1; flex-basis: 100%; height: 0; margin-top: calc(-1 * var(--space-3)); }
   .enter { order: 2; }
   .top [data-marker-button] { position: static; }
-  .top [data-marker-button] > [role='group'] { top: auto; margin-top: calc(var(--cell) + 8px); inset-inline-start: 16px; }
+  .top [data-marker-button] > [role='group'] { top: auto; margin-top: calc(var(--cell) + 8px); inset-inline-start: 0; }
 }
 /* The column is as wide as the widest page and sits on the board at a fixed left margin: no auto margins. */
 .column { display: flex; flex-direction: column; gap: 2rem; flex: none; touch-action: pan-x pan-y; }
