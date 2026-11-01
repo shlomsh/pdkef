@@ -108,14 +108,19 @@
   .button { transition: none; }
 }
 
-/* On a phone the popover never leaves the viewport: it wraps its 44 px targets onto two rows when they do not fit.
-   Where it starts is set by the row that hosts the button (HighlightWorkspace.module.css). */
+/* On a phone the menu spans the screen between 16 px gutters (the full-width mobile toolbar rule) and keeps its
+   eight targets on one row: each cell is 44 px or an eighth of the row, whichever is smaller, and the row spreads
+   them edge to edge. 42 px is the gutters, the menu's padding and its border. */
 @media (pointer: coarse), (max-width: 480px) {
-  .menu { max-width: calc(100vw - 32px); }
-  .row { flex-wrap: wrap; height: auto; min-height: var(--cell); }
+  .menu { width: calc(100vw - 32px); max-width: none; min-width: 0; padding: 4px; }
+  .row { --cell: min(2.75rem, (100vw - 42px) / 8); justify-content: space-between; padding-inline: 0; }
+  .menu > [data-opacity-slider] { min-width: 0; padding: 0 12px 6px; }
 }
 
 /* In the editor row the wrap is one more tile: it shares the row like its siblings and the button fills it. */
 .wrap[data-tile] { flex: 1 1 auto; min-width: 0; }
 .wrap[data-tile] > button { width: 100%; }
+/* Over a tile's label the badge sits higher, so it never touches the first line of text. */
+.wrap[data-tile] .dot,
+.wrap[data-tile] .glyph { bottom: 1px; }
 .wrap[data-tile] > button[data-armed] { background: var(--color-primary); color: var(--color-surface); border-color: var(--color-primary); }
