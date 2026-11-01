@@ -1,7 +1,7 @@
 import type { ComponentProps } from 'preact';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'preact/hooks';
 import type { PDFDocumentProxy } from 'pdfjs-dist';
-import ReadingCapsule, { PrintIcon, ReadingLampIcon } from '#editor-ui/capsule/ReadingCapsule.tsx';
+import ReadingCapsule, { PrintIcon } from '#editor-ui/capsule/ReadingCapsule.tsx';
 import UndoRedoButtons from '#editor-ui/UndoRedoButtons.tsx';
 import EditorExportActions from '#editor-ui/EditorExportActions.tsx';
 import toolbarStyles from '#editor-ui/SignToolbar.module.css';
@@ -16,6 +16,7 @@ import ZoomMenu from './ZoomMenu.tsx';
 import HighlightPage from './HighlightPage.tsx';
 import MarkerButton from './MarkerButton.tsx';
 import ArmedChip from './ArmedChip.tsx';
+import FullscreenButton from '#editor-ui/FullscreenButton.tsx';
 import ToolShell, { FILE_ACTIONS, useToolShell } from '#shell/ToolShell.tsx';
 import { englishShellMessages } from '#shell/shellMessages.ts';
 import PrintMenu from './PrintMenu.tsx';
@@ -187,10 +188,7 @@ function TileRow({ marks, undo, redo, touch, printMenu, printOpen, onTogglePrint
           onUndo={undo} onRedo={redo} canUndo={marks.canUndo} canRedo={marks.canRedo} iconOnly
           labels={{ undoTitle: t.capsule.undo, undoButton: t.capsule.undo, redoTitle: t.capsule.redo, redoButton: t.capsule.redo }}
         />
-        <button type="button" className={toolbarStyles.button} data-icon-only aria-label={t.capsule.enter} title={t.capsule.enter} onClick={onToggleView}>
-          <ReadingLampIcon />
-          <span className={toolbarStyles.label}>{t.capsule.enter}</span>
-        </button>
+        <FullscreenButton isFullscreen={false} toggleFullscreen={onToggleView} iconOnly />
         <button type="button" className={toolbarStyles.button} onClick={requestReplace} title={shellMessages.replaceTitle} aria-label={shellMessages.replaceLabel} data-icon-only>
           <svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
             <path d={FILE_ACTIONS.replace.icon} />
