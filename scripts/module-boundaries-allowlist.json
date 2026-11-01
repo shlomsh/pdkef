@@ -188,5 +188,20 @@
     "rule": 9,
     "file": "src/lib/pageLayout/textRows.ts",
     "reason": "READ-02: shared with Highlight PDF, moved out of Sign before its island exists; READ-03 is the second consumer, and this entry goes stale (remove it) once that island imports the file"
+  },
+  {
+    "rule": 9,
+    "file": "src/editor-ui/capsule/ReadingCapsule.tsx",
+    "reason": "READ-05: built before its consumers; Highlight PDF's Reading lamp mounts it in READ-03, remove this entry once it does"
+  },
+  {
+    "rule": 9,
+    "file": "src/editor-ui/capsule/capsuleItems.ts",
+    "reason": "READ-05: built before its consumers; Highlight PDF's Reading lamp mounts it in READ-03, remove this entry once it does"
+  },
+  {
+    "rule": 9,
+    "file": "src/editor-ui/capsule/capsuleState.ts",
+    "reason": "READ-05: built before its consumers; Highlight PDF's Reading lamp mounts it in READ-03, remove this entry once it does"
   }
 ]
