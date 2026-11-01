@@ -23,6 +23,7 @@ const routes = [
   '/pdf-to-image',
   '/image-to-pdf',
   '/scan-to-pdf',
+  '/highlight-pdf',
   '/unlock',
   '/sign',
   '/sign/?next=0',
