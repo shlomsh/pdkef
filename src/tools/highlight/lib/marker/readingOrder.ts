@@ -1,5 +1,5 @@
 /** What the reading order needs of a mark: its page and its box in percent of that page. */
-export interface OrderedMark { id: string; pageIndex: number; left: number; top: number; width: number; height: number }
+interface OrderedMark { id: string; pageIndex: number; left: number; top: number; width: number; height: number }
 
 /**
  * R39: the marks of a whole document in the order a person reads them. Page first, then line (tops within

@@ -30,7 +30,7 @@ const pageDirection = (marks: HighlightElement[], pageIndex: number) => {
  * and End move focus across pages; focusing a mark with the keyboard opens its rest toolbar (as a tap
  * does, through `openFor`). A press with a pointer focuses without opening: rest and tap own that path.
  */
-export function useMarkFocus({ elements, pageIndex, openFor }: { elements: EditorElement[]; pageIndex: number; openFor: (id: string) => void }) {
+export function useMarkFocus({ elements, openFor }: { elements: EditorElement[]; openFor: (id: string) => void }) {
   const [, rerender] = useState(0);
   const pointerFocus = useRef(false);
   const live = useRef(openFor);

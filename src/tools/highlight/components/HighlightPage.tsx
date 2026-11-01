@@ -94,7 +94,7 @@ export default function HighlightPage({ pdfDocument, pageIndex, widthPx, element
 
   const marks = elements.filter((el): el is HighlightElement => el.type === 'highlight' && el.pageIndex === pageIndex);
 
-  const markFocus = useMarkFocus({ elements, pageIndex, openFor: rest.openFor });
+  const markFocus = useMarkFocus({ elements, openFor: rest.openFor });
 
   const target = rest.targetId === null ? undefined : marks.find((m) => m.id === rest.targetId);
   const closeRest = rest.close;

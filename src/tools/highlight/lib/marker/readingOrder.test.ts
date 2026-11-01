@@ -1,8 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { marksInReadingOrder, type OrderedMark } from './readingOrder.ts';
+import { marksInReadingOrder } from './readingOrder.ts';
 
-const m = (id: string, pageIndex: number, left: number, top: number, width = 10, height = 2): OrderedMark => ({ id, pageIndex, left, top, width, height });
-const ids = (marks: OrderedMark[], dir: 'ltr' | 'rtl' = 'ltr') => marksInReadingOrder(marks, () => dir).map((x) => x.id);
+type Mark = Parameters<typeof marksInReadingOrder>[0][number];
+const m = (id: string, pageIndex: number, left: number, top: number, width = 10, height = 2): Mark => ({ id, pageIndex, left, top, width, height });
+const ids = (marks: Mark[], dir: 'ltr' | 'rtl' = 'ltr') => marksInReadingOrder(marks, () => dir).map((x) => x.id);
 
 describe('marksInReadingOrder', () => {
   it('orders by page first', () => {
