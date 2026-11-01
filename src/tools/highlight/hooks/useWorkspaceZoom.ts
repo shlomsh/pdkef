@@ -3,7 +3,7 @@ import type { PDFDocumentProxy } from 'pdfjs-dist';
 import type { DetailEdits } from '#editor/registry/draftValidation.ts';
 import { clampZoom, NOTES_W, resolveZoom, stepZoom, type ZoomSetting } from '../lib/zoom/fit.ts';
 import { pageAnchorAt } from '../lib/zoom/pageAnchor.ts';
-import { displayZoom, widestPage } from '../lib/zoom/lamp.ts';
+import { chromeScale, displayZoom, widestPage } from '../lib/zoom/lamp.ts';
 import { commitChanges, zoomCommit } from '../lib/zoom/commit.ts';
 import { useBoardScroll } from './useBoardScroll.ts';
 import { initialSetting, serializeSetting } from '../lib/zoom/setting.ts';
@@ -83,6 +83,7 @@ export function useWorkspaceZoom({ pdfDocument, workspaceRef, columnRef, fullscr
     wasFullscreen.current = fullscreen;
   }, [fullscreen]);
 
+  const chromeRef = useRef(1);
   const zoomRef = useRef(zoom);
   zoomRef.current = zoom;
   const pagesRef = useRef(pages);
@@ -111,7 +112,12 @@ export function useWorkspaceZoom({ pdfDocument, workspaceRef, columnRef, fullscr
     return r ? { x: r.left + r.width / 2, y: fullscreen ? r.top + r.height / 2 : window.innerHeight / 2 } : { x: 0, y: 0 };
   }, [workspaceRef, fullscreen]);
 
-  const { pendingScroll, pendingCentre, pendingAnchor, board } = useBoardScroll({ workspaceRef, fullscreen, pages, zoom, setting, view, notesPx: fullscreen && roomy ? NOTES_W * zoom : 0 });
+  // Header, rail and comments keep the normal view's size at the lamp's Fit width and scale with the zoom from there.
+  const chrome = chromeScale(zoom, fullscreen, widestPage(pages), view, roomy);
+  chromeRef.current = chrome;
+  const notesPx = fullscreen && roomy ? NOTES_W * chrome : 0;
+
+  const { pendingScroll, pendingCentre, pendingAnchor, board } = useBoardScroll({ workspaceRef, fullscreen, pages, zoom, setting, view, notesPx });
 
   const commit = useCallback((next: ZoomSetting, nextZoom: number, anchor?: Point, centreAfter = false) => {
     if (!commitChanges(settingRef.current, zoomRef.current, next, nextZoom)) return;
@@ -134,7 +140,7 @@ export function useWorkspaceZoom({ pdfDocument, workspaceRef, columnRef, fullscr
   const apply = useCallback((next: ZoomSetting, anchor?: Point) => {
     const target = typeof next === 'number'
       ? clampZoom(next)
-      : pagesRef.current.length ? resolveZoom(next, widestPage(pagesRef.current)!, viewRef.current, { noted: notedRef.current }) : zoomRef.current;
+      : pagesRef.current.length ? resolveZoom(next, widestPage(pagesRef.current)!, viewRef.current, { noted: notedRef.current, notesIn: 'px' }) : zoomRef.current;
     commit(next, target, anchor, typeof next !== 'number');
   }, [commit]);
   const step = useCallback((dir: 1 | -1, anchor?: Point) => {
@@ -153,7 +159,8 @@ export function useWorkspaceZoom({ pdfDocument, workspaceRef, columnRef, fullscr
     const page = widestPage(pagesRef.current);
     if (page && nextNoted !== notedRef.current) {
       const nextZoom = displayZoom(settingRef.current, fullscreenRef.current, page, viewRef.current, nextNoted);
-      if (nextZoom !== zoomRef.current) {
+      const nextChrome = chromeScale(nextZoom, fullscreenRef.current, page, viewRef.current, nextNoted);
+      if (nextZoom !== zoomRef.current || nextChrome !== chromeRef.current) {
         const anchor = pageAnchorIn(workspaceRef.current, point);
         pendingScroll.current = null;
         pendingAnchor.current = anchor ? { anchor, point, lineOnly: true } : null;
@@ -182,10 +189,7 @@ export function useWorkspaceZoom({ pdfDocument, workspaceRef, columnRef, fullscr
     return edits;
   }, [touched, setting]);
 
-  /** How much the page's header and notes scale: the page's zoom in the lamp, their own size in the normal view. */
-  const chrome = fullscreen ? zoom : 1;
-
-  return { setting, zoom, chrome, pages, board, touched, details, apply, step, actual, makeRoom, restore };
+  return { setting, zoom, chrome, notesPx, pages, board, touched, details, apply, step, actual, makeRoom, restore };
 }
 
 export type WorkspaceZoom = ReturnType<typeof useWorkspaceZoom>;
