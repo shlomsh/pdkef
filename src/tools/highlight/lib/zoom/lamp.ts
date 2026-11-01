@@ -17,8 +17,8 @@ export function displayZoom(setting: ZoomSetting, inLamp: boolean, page: PageBox
   return inLamp ? resolveZoom(setting, page, view, { noted }) : fitScale('width', page, view, { noted, pad: 0 });
 }
 
-/** In the normal view a ctrl+wheel pinch or a zoom key opens the lamp, where the zoom then works. */
-export function opensLamp(input: { type: 'wheel'; ctrlKey: boolean } | { type: 'key'; action: KeyAction | null }): boolean {
+/** A ctrl+wheel pinch or a zoom key: the lamp's zoom inputs; the normal view leaves them to the browser. */
+export function isZoomInput(input: { type: 'wheel'; ctrlKey: boolean } | { type: 'key'; action: KeyAction | null }): boolean {
   if (input.type === 'wheel') return input.ctrlKey;
   return input.action?.type === 'zoom' || input.action?.type === 'zoomActual';
 }

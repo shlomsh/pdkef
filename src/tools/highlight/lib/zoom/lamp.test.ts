@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { displayZoom, opensLamp, widestPage } from './lamp.ts';
+import { displayZoom, isZoomInput, widestPage } from './lamp.ts';
 import { NOTES_W } from './fit.ts';
 import { turnedPageBox } from './turnedBox.ts';
 
@@ -38,14 +38,14 @@ describe('displayZoom with notes', () => {
   });
 });
 
-describe('opensLamp', () => {
-  it('opens on a ctrl wheel and on a zoom key, nothing else', () => {
-    expect(opensLamp({ type: 'wheel', ctrlKey: true })).toBe(true);
-    expect(opensLamp({ type: 'wheel', ctrlKey: false })).toBe(false);
-    expect(opensLamp({ type: 'key', action: { type: 'zoom', dir: 1 } })).toBe(true);
-    expect(opensLamp({ type: 'key', action: { type: 'zoomActual' } })).toBe(true);
-    expect(opensLamp({ type: 'key', action: { type: 'undo' } })).toBe(false);
-    expect(opensLamp({ type: 'key', action: null })).toBe(false);
+describe('isZoomInput', () => {
+  it('is a ctrl wheel or a zoom key, nothing else', () => {
+    expect(isZoomInput({ type: 'wheel', ctrlKey: true })).toBe(true);
+    expect(isZoomInput({ type: 'wheel', ctrlKey: false })).toBe(false);
+    expect(isZoomInput({ type: 'key', action: { type: 'zoom', dir: 1 } })).toBe(true);
+    expect(isZoomInput({ type: 'key', action: { type: 'zoomActual' } })).toBe(true);
+    expect(isZoomInput({ type: 'key', action: { type: 'undo' } })).toBe(false);
+    expect(isZoomInput({ type: 'key', action: null })).toBe(false);
   });
 });
 

@@ -12,17 +12,24 @@ const { useWorkspaceZoom } = await import('./useWorkspaceZoom.ts');
 const doc = { numPages: 1, getPage: async () => ({ getViewport: () => ({ width: 600, height: 800 }) }) } as unknown as PDFDocumentProxy;
 
 let pages: ReturnType<typeof useWorkspaceZoom>['pages'] = [];
-function Probe({ pageTurns }: { pageTurns: PageTurns }) {
-  pages = useWorkspaceZoom({ pdfDocument: doc, workspaceRef: { current: null }, columnRef: { current: null }, fullscreen: false, onEnterLamp: () => {}, pageTurns }).pages;
+let latest: ReturnType<typeof useWorkspaceZoom> | null = null;
+const workspace = document.createElement('div');
+const column = document.createElement('div');
+workspace.appendChild(column);
+const workspaceRef = { current: workspace };
+const columnRef = { current: column };
+function Probe({ pageTurns, fullscreen = false }: { pageTurns: PageTurns; fullscreen?: boolean }) {
+  latest = useWorkspaceZoom({ pdfDocument: doc, workspaceRef, columnRef, fullscreen, pageTurns });
+  pages = latest.pages;
   return null;
 }
 
 const container = document.createElement('div');
 afterEach(() => { act(() => render(null, container)); });
 
-async function mount(pageTurns: PageTurns) {
+async function mount(pageTurns: PageTurns, fullscreen = false) {
   readInkBounds.mockResolvedValue(null);
-  await act(async () => { render(<Probe pageTurns={pageTurns} />, container); });
+  await act(async () => { render(<Probe pageTurns={pageTurns} fullscreen={fullscreen} />, container); });
   await act(async () => { await Promise.resolve(); });
 }
 
@@ -45,5 +52,25 @@ describe('useWorkspaceZoom with page turns', () => {
   it('reads the ink with the turns', async () => {
     await mount({ 0: 1 });
     expect(readInkBounds).toHaveBeenCalledWith(doc, expect.any(Function), { 0: 1 });
+  });
+});
+
+describe('useWorkspaceZoom in the normal view', () => {
+  it('leaves a ctrl+wheel pinch to the browser: not prevented, no lamp, zoom unchanged', async () => {
+    await mount({});
+    const before = latest!.zoom;
+    const e = new WheelEvent('wheel', { ctrlKey: true, deltaY: -50, cancelable: true, bubbles: true });
+    await act(async () => { workspace.dispatchEvent(e); });
+    expect(e.defaultPrevented).toBe(false);
+    expect(latest!.zoom).toBe(before);
+  });
+
+  it('leaves mod+= to the browser: not prevented, no lamp, zoom unchanged', async () => {
+    await mount({});
+    const before = latest!.zoom;
+    const e = new KeyboardEvent('keydown', { key: '=', ctrlKey: true, metaKey: true, cancelable: true, bubbles: true });
+    await act(async () => { document.dispatchEvent(e); });
+    expect(e.defaultPrevented).toBe(false);
+    expect(latest!.zoom).toBe(before);
   });
 });
