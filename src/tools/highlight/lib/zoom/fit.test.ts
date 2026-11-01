@@ -8,7 +8,11 @@ const r4 = (n: number) => Math.round(n * 10000) / 10000;
 describe('fitScale', () => {
   it('fits width, with and without the notes column', () => {
     expect(r4(fitScale('width', page, view, { noted: false }))).toBe(2.3007);
-    expect(r4(fitScale('width', page, view, { noted: true }))).toBe(1.8366);
+    expect(r4(fitScale('width', page, view, { noted: true }))).toBe(1.5714);
+  });
+  it('fits text with the notes column as page-space', () => {
+    expect(r4(fitScale('text', page, view, { noted: true }))).toBe(1.7959);
+    expect(r4(fitScale('page', page, view, { noted: true }))).toBe(1.0253);
   });
   it('fits text', () => {
     expect(r4(fitScale('text', page, view, { noted: false }))).toBe(2.816);
