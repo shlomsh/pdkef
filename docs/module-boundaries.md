@@ -17,13 +17,16 @@ checkers stay separate; nothing here replaces `test:editor-dependency-directions
 src/lib/         the bottom layer: shared logic with no UI layer above it (PDF helpers, drafts,
                  history, fonts data, telemetry, file intake); imports only lib. Grouped by
                  domain: pdf/ pages/ images/ telemetry/ handoff/ output/ hooks/ text/ app/
-                 appUpdate/ drafts/ fonts/ gestures/ history/; the root holds only project.json
+                 appUpdate/ drafts/ fonts/ gestures/ history/ pageLayout/ (the raster and line
+                 reader, READ-02); the root holds only project.json
                  (test:tool-shape, ARCH-101)
-src/editor/      the headless editor core shared by Sign and Redact: model, geometry, gestures,
-                 text, registry, workspace, PDF adapters; imports no editor-ui or shell
+src/editor/      the headless editor core shared by Sign, Redact and Highlight PDF: model, geometry,
+                 gestures, text, registry, workspace, PDF adapters, highlight/ and comments/ (READ-02);
+                 imports no editor-ui or shell
 src/editor-ui/   Preact pieces that render the editor: ElementResizers, ColorPicker, toolbar menus,
                  page canvas, page header, undo buttons, view control, whiteout/ colour group,
-                 hooks/ (shared by Sign and Redact)
+                 hooks/ (shared by Sign and Redact), highlight/ and comments/ (shared by Sign and
+                 Highlight PDF, READ-02)
 src/shell/       the shared tool chrome: BasePdfTool, ToolShell, dialogs, download and share
                  buttons, progress, error message, pageGrid/, pageWorkspace/, verb/; imports no tool
 src/tools/<t>/   one folder per tool, holding its island (Pdf*Tool.tsx), messages.ts, components,
@@ -121,7 +124,8 @@ classification table.
    `sampleDocument.ts`) into `src/site-lib/`. Enforced by `commonLayerConsumerViolations()`, with no
    ratcheting allowlist (like rules 6 and 8) beyond `{ rule: 9, file, reason }` entries in
    `scripts/module-boundaries-allowlist.json` (the same file as the rule 1-5 edge entries, which are empty today) for `src/editor/` files only tests, generators or e2e
-   guards read (ARCH-46; a stale entry fails, `*.test-helper.js` is never counted): it holds at zero
+   guards read (ARCH-46; a stale entry fails, `*.test-helper.js` is never counted), and for the modules
+   READ-02 moved out of Sign ahead of Highlight PDF's island, each of which goes stale once READ-03 imports it: it holds at zero
    violations, so a module that fails it moves into the tool that actually uses it, or is deleted if
    nothing does. RED-51 (2026-10-01) gave Redact its own box toolbar, so `ElementToolbar`, the font
    and thickness pickers (`FontPickerMenu`, `FontOptionsList`, `FontSheet`, `ThicknessPickerMenu`)

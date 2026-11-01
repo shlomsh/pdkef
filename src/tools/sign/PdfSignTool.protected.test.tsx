@@ -33,7 +33,7 @@ vi.mock('pdfjs-dist', () => ({
 
 // Reading a fresh file's annotations back loads a parser chunk, slower than `pick`'s wait; these
 // cases are about protection, so a fresh file opens as it is.
-vi.mock('./lib/comments/readBack.ts', () => ({
+vi.mock('#editor/comments/readBack.ts', () => ({
   readBackAnnotations: vi.fn(async (bytes: ArrayBuffer) => ({ bytes, elements: [] })),
 }));
 

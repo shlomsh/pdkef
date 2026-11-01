@@ -17,7 +17,7 @@ import { useTextFill } from '../fill/FillContext.tsx';
 import { AUTOCORRECT_OFF } from '../../lib/fill/fillTypes.ts';
 import elementStyles from '#editor-ui/EditorElement.module.css';
 import type { TextElement } from '#editor/model/editorModel.ts';
-import type { ElementNodeChange, NodeResizeStart } from '../nodeProps.ts';
+import type { ElementNodeChange, NodeResizeStart } from '#editor-ui/nodeProps.ts';
 
 export default function TextNode({ element, isActive, isEditing, onChange, onSelect, onBeginEdit, onResizeStart, pageWidthPoints, isSpanResizing = false, messages }: {
   element: TextElement;

@@ -22,7 +22,7 @@ import { cloneElement, toChildArray } from 'preact';
 import type { ComponentChildren, VNode } from 'preact';
 import type { PageGeometry } from '#editor/geometry/coords.ts';
 import type { EditorElement, EditorElementPatch } from '#editor/model/editorModel.ts';
-import type { NodeResizeStart } from './nodeProps.ts';
+import type { NodeResizeStart } from '#editor-ui/nodeProps.ts';
 // Type-only import kept separate from the value import below for the same
 // non-cycle reasoning as nodeProps.ts's own.
 import { englishSignMessages } from '../messages';

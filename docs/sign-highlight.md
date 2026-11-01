@@ -43,7 +43,7 @@ The band never reads the PDF's text layer. It reads the page as Sign already pai
 (`src/editor-ui/PdfPageCanvas.tsx`), in a small window around the finger, and finds the text row there:
 
 1. Take the window's gray pixels and threshold them (Otsu, reusing `otsuThreshold` from
-   `src/tools/sign/lib/fields/rasterInk.js`).
+   `src/lib/pageLayout/rasterInk.js`).
 2. Project ink onto the vertical axis. The row is the run of pixel rows with ink that contains the
    press point, padded a little above and below. Its core is where the ink is dense; it then grows
    through the sparse ascender and descender scanlines up to the first blank one, so the band covers
@@ -55,7 +55,7 @@ That is one pure function, `findTextRow(pixels, point)`, returning the row's top
 word gaps in page percent. Because it works on pixels, it behaves identically for digital and scanned
 pages, Hebrew and English, and rotated pages (the canvas is already drawn in the rotation the person
 sees). It needs no text extraction, no OCR and no code moved out of Redact. It lives in
-`src/tools/sign/lib/highlight/` because Sign is its only consumer (module-boundaries rule 9).
+`src/lib/pageLayout/` (READ-02), shared with Highlight PDF.
 
 A band is level. On a skewed scan it follows the row found under the press, which holds at the small
 skews a phone photo has after Scan flattens it. The scored check uses the five 200 dpi scans in

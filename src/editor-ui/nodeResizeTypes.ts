@@ -1,9 +1,9 @@
 import type { ResizeHandle } from '#editor/registry/types.ts';
 
-// Split out of src/tools/sign/components/nodeProps.ts (ARCH-18): ElementResizers
-// is editor-ui, shared by Sign and Redact, so it cannot import a tool's
+// Split out of nodeProps.ts (ARCH-18, then in src/tools/sign/components/): ElementResizers
+// is editor-ui, shared by Sign and Redact, so it could not import a tool's
 // contract file. This is the one type it actually needs; nodeProps.ts
-// re-exports it so Sign's own node components keep importing it from there.
+// (src/editor-ui/ since READ-02) re-exports it so the node components keep one import surface.
 
 /** Native events shared by the Preact mouse and touch resize handlers. */
 export type EditorPointerEvent = MouseEvent | TouchEvent;

@@ -2,9 +2,9 @@ import type { HighlightElement } from '#editor/model/editorModel.ts';
 import type { SignMessages } from '#editor/registry/messages.ts';
 import styles from '#editor-ui/EditorControls.module.css';
 import { PAGE_HEIGHT_DEFAULT_PTS } from '#editor/model/signGeometry.js';
-import { flipChanges } from '../lib/highlight/flip.ts';
-import { createSwipeReader } from '../lib/highlight/swipeReader.ts';
-import HighlightSwatches from './HighlightSwatches.tsx';
+import { flipChanges } from '#editor/highlight/flip.ts';
+import { createSwipeReader } from '#lib/pageLayout/swipeReader.ts';
+import HighlightSwatches from '#editor-ui/highlight/HighlightSwatches.tsx';
 import DirectionButton from './DirectionButton.tsx';
 
 type HighlightChanges = { color?: string; direction?: 'ltr' | 'rtl' } & Partial<Pick<HighlightElement, 'left' | 'top' | 'width' | 'height' | 'bands'>>;

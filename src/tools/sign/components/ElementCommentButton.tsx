@@ -3,8 +3,8 @@ import { CommentIcon } from '#editor-ui/toolIcons.tsx';
 import type { EditorElement } from '#editor/model/editorModel.ts';
 import { createElementId } from '#editor/model/ids.ts';
 import type { SignMessages } from '#editor/registry/messages.ts';
-import { commentsAnchoredTo } from '../lib/comments/anchors.ts';
-import { newElementComment } from '../lib/comments/newComment.ts';
+import { commentsAnchoredTo } from '#editor/comments/anchors.ts';
+import { newElementComment } from '#editor/comments/newComment.ts';
 import { SignToolContext } from './SignToolContext.tsx';
 
 /** The Comment button every selected element's toolbar carries: opens the element's comment, adding a blank one first if it has none. */

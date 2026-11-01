@@ -10,7 +10,7 @@ import {
 import fontkit from '@pdf-lib/fontkit';
 import { pagePercentToEditorPoint } from '#editor/geometry/coords.ts';
 import { getElementDefinition } from '#editor/registry/index.ts';
-import { isComment, resolveCommentBoxes } from './comments/anchors.ts';
+import { isComment, resolveCommentBoxes } from '#editor/comments/anchors.ts';
 import { findUnrepresentableCharacters } from './textCoverage.js';
 import { baselineOffsetEmFromMetrics, embeddedFontFile, resolveTypography } from '#editor/text/fonts.js';
 import { HELVETICA_BASELINE_OFFSET_EM, DEFAULT_LINE_HEIGHT_EM } from '#editor/model/signGeometry.js';
@@ -18,7 +18,7 @@ import { reportError } from '#lib/telemetry/errorReport.ts';
 import { openPdfDoc } from '#lib/pdf/openPdfDoc.ts';
 import { applyRotation } from '#lib/pages/pageOps.js';
 import { flattenDoc } from './flatten.js';
-import { pageGeometryFromPdfLibPage } from './pdfLibGeometry.ts';
+import { pageGeometryFromPdfLibPage } from '#editor/adapters/pdf/pdfLibGeometry.ts';
 
 /**
  * Thrown by signPdf's coverage pre-pass (docs/hebrew-text-shaping-export.md,
