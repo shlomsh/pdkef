@@ -117,13 +117,15 @@ export default function RestToolbar({ mark, onChange, onDelete, onComment, onClo
 /** R8: a quiet pill beside the end of the first mark's ink, never over the line being read. */
 export function MarkHint({ anchor, text }: { anchor: HintAnchor; text: string }) {
   const ref = useRef<HTMLDivElement>(null);
-  // Kept inside the screen, once, as it appears.
+  // Kept inside the screen and the page card (which clips it), once, as it appears.
   useLayoutEffect(() => {
     const el = ref.current;
     if (!el) return;
     const r = el.getBoundingClientRect();
-    const vw = document.documentElement.clientWidth;
-    const shift = r.left < 8 ? 8 - r.left : r.right > vw - 8 ? vw - 8 - r.right : 0;
+    const card = el.closest('[data-page-wrapper]')?.getBoundingClientRect();
+    const min = Math.max(0, card?.left ?? 0) + 8;
+    const max = Math.min(document.documentElement.clientWidth, card?.right ?? Infinity) - 8;
+    const shift = r.left < min ? min - r.left : r.right > max ? max - r.right : 0;
     if (shift) el.style.translate = `${shift}px 0`;
   }, []);
   return (
