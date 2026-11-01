@@ -5,11 +5,12 @@ import { englishSignMessages } from '#editor/registry/signMessages.ts';
 import { HIGHLIGHT_COLORS, type Marker } from '../lib/marker/markerState.ts';
 import { markerBadge } from '../lib/marker/markerBadge.ts';
 import { englishHighlightMessages as t } from '../messages.ts';
+import controls from '#editor-ui/EditorControls.module.css';
 import styles from './MarkerButton.module.css';
 
 const coarsePointer = () => Boolean(globalThis.matchMedia?.('(pointer: coarse)').matches);
 
-const underlineIcon = { width: 16, height: 16, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', 'stroke-width': 2, 'stroke-linecap': 'round', 'stroke-linejoin': 'round', 'aria-hidden': true } as const;
+const underlineIcon = { width: 18, height: 18, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', 'stroke-width': 2, 'stroke-linecap': 'round', 'stroke-linejoin': 'round', 'aria-hidden': true } as const;
 
 interface MarkerButtonProps {
   marker: Marker;
@@ -96,7 +97,7 @@ export default function MarkerButton({ marker, onChange, armed = false, onTap, o
     >
       <button
         ref={buttonRef} type="button" class={styles.button} aria-haspopup="true" aria-expanded={open}
-        aria-label={t.marker} title={t.marker} data-armed={armed ? '' : undefined}
+        aria-label={t.marker} title={t.marker} data-armed={armed && isCoarse() ? '' : undefined}
         onClick={(e) => {
           if (!armed && isCoarse()) onTap?.();
           focusColors.current = !open && e.detail === 0;
@@ -113,7 +114,7 @@ export default function MarkerButton({ marker, onChange, armed = false, onTap, o
         </span>
       </button>
       {open && (
-        <div class={styles.menu} role="group" aria-label={t.marker}>
+        <div class={`${styles.menu} ${controls.popover} ${controls['toolbar-menu']}`} role="group" aria-label={t.marker}>
           <div class={styles.row}>
             <HighlightSwatches color={marker.color} t={englishSignMessages} onChange={({ color }) => { onChange({ color }); toggle(false); }} />
             <button
