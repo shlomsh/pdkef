@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { createPageGeometry } from './coords.ts';
-import { toPageTextRuns } from './textRuns.js';
+import { toPageTextRuns } from './textRuns.ts';
 
 /**
  * The conversion two callers share: the sign tool's hook in the browser, and
@@ -8,7 +8,7 @@ import { toPageTextRuns } from './textRuns.js';
  * the same numbers, so these pin the arithmetic rather than the plumbing.
  */
 const geometry = createPageGeometry({ cropBox: { x: 0, y: 0, width: 200, height: 400 } });
-const run = (str, e, f, width, height) => ({ str, transform: [1, 0, 0, 1, e, f], width, height });
+const run = (str: string, e: number, f: number, width: number, height: number) => ({ str, transform: [1, 0, 0, 1, e, f], width, height });
 
 describe('toPageTextRuns', () => {
   it('puts a run where the page does, measured from the top left', () => {

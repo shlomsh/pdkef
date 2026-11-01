@@ -57,7 +57,7 @@ const MAX_CAPTIONED_BOX_POINTS = 45;
 /** See the module doc above: re-exported so a caller reaches the pdf.js-item
  * conversion through this one module rather than importing `textRuns.js`
  * directly. */
-export { toPageTextRuns } from '#editor/geometry/textRuns.js';
+export { toPageTextRuns } from '#editor/geometry/textRuns.ts';
 
 /** Re-exported for the same reason: FORM-35's page kind rides this lazy chunk. */
 export { firstPageKind } from './pageKind.js';
