@@ -46,6 +46,15 @@ describe('roomChange', () => {
   });
 });
 
+describe('roomChange through history', () => {
+  it('undoing the only saved note finds the mark in the before state, and redoing it in the after state', () => {
+    const withNote = state([mark('h1'), comment('c1', 'h1', 'Check this')]);
+    const without = state([mark('h1')]);
+    expect(roomChange(withNote, without, true)).toEqual({ noted: false, markId: 'h1' });
+    expect(roomChange(without, withNote, true)).toEqual({ noted: true, markId: 'h1' });
+  });
+});
+
 describe('affectsNotes', () => {
   it('names the actions that can open or close a card', () => {
     expect(affectsNotes({ type: 'SET_ACTIVE_ELEMENT_ID', payload: null })).toBe(true);
@@ -53,9 +62,14 @@ describe('affectsNotes', () => {
     expect(affectsNotes({ type: 'ADD_ELEMENT', payload: comment('c1', 'h1', '') })).toBe(true);
   });
 
+  it('counts undo and redo, which can bring a note back or take the last one away', () => {
+    expect(affectsNotes({ type: 'UNDO' })).toBe(true);
+    expect(affectsNotes({ type: 'REDO' })).toBe(true);
+  });
+
   it('leaves every swipe, edit and history action alone', () => {
     expect(affectsNotes({ type: 'ADD_ELEMENT', payload: mark('h1') })).toBe(false);
     expect(affectsNotes({ type: 'UPDATE_ELEMENT', payload: { id: 'h1', changes: {} } })).toBe(false);
-    expect(affectsNotes({ type: 'UNDO' })).toBe(false);
+    expect(affectsNotes({ type: 'ADD_ACTION_HISTORY' } as never)).toBe(false);
   });
 });

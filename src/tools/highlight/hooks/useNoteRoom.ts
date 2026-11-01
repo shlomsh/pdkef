@@ -6,7 +6,7 @@ import { affectsNotes, roomChange } from '../lib/notes/roomChange.ts';
 /**
  * R28: a dispatch that opens the first card or closes the last one makes (or gives back) the room for the notes
  * column in the same event, before the state renders, with the point of the mark being commented as it is on
- * screen now. Every other action goes straight through. `zoom` and `isWide` are read when an action
+ * screen now. Every other action goes straight through, but is still folded into `pending`. `zoom` and `isWide` are read when an action
  * arrives, so they may belong to hooks that are created after this one.
  */
 export function useNoteRoom({ state, dispatch, columnRef, zoom, isWide }: {
@@ -22,10 +22,10 @@ export function useNoteRoom({ state, dispatch, columnRef, zoom, isWide }: {
 
   return {
     dispatch: (action: ElementsAction) => {
-      if (!affectsNotes(action)) return dispatch(action);
       const before = pending.current;
       const after = elementsReducer(before, action);
       pending.current = after;
+      if (!affectsNotes(action)) return dispatch(action);
       const change = roomChange(before, after, isWide());
       const point = change && markOnScreen(change.markId, columnRef.current);
       if (change && point) zoom().makeRoom(change.noted, point);
