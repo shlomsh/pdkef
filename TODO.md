@@ -64,8 +64,6 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 
 ## Needs Shlomi
 
-- [READ-03](backlog/tasks/READ-03.md) · Confirm the name: Highlight PDF
-- [READ-05](backlog/tasks/READ-05.md) · A name for the fullscreen reading mode (Reading room until then)
 - [MOBI-01](backlog/tasks/MOBI-01.md) · Half an hour with an Android phone
 - [DEBT-53](backlog/tasks/DEBT-53.md) · A check on your iPhone
 - [SEO-40](backlog/tasks/SEO-40.md) · The Search Console exports

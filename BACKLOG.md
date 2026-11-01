@@ -51,9 +51,9 @@ Marking should feel like holding a highlighter, not like operating software. Ske
 
 | ID | P | Task | Note |
 | --- | --- | --- | --- |
-| READ-03 | P2 | [READ-03](backlog/tasks/READ-03.md) · Highlight PDF: the tool at /highlight-pdf/, highlights with a comment on each, and its page | Needs Shlomi: Confirm the name: Highlight PDF |
+| READ-03 | P2 | [READ-03](backlog/tasks/READ-03.md) · Highlight PDF: the tool at /highlight-pdf/, highlights with a comment on each, and its page |  |
 | READ-04 | P2 | [READ-04](backlog/tasks/READ-04.md) · Sign hands highlighting to Highlight PDF: no Highlight tool, existing highlights kept |  |
-| READ-05 | P2 | [READ-05](backlog/tasks/READ-05.md) · The fullscreen capsule, shared by Highlight PDF and Sign | Needs Shlomi: A name for the fullscreen reading mode (Reading room until then) |
+| READ-05 | P2 | [READ-05](backlog/tasks/READ-05.md) · The fullscreen capsule, shared by Highlight PDF and Sign |  |
 | READ-06 | P2 | [READ-06](backlog/tasks/READ-06.md) · Highlight PDF: Print with my notes, comments in the margin beside their passages |  |
 
 ### Parked

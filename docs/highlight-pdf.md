@@ -100,7 +100,10 @@ decision.
 - **In the file:** the same standard annotations Sign writes and reads back (`docs/sign-comments-model.md`):
   a `/Highlight` in its color, with `/Contents`, `/M` and a closed `/Popup` when it has a comment.
 
-### Fullscreen is the reading room
+### Fullscreen is the reading lamp
+
+The mode is called **Reading lamp** (Shlomi, 2026-11-01; the shortlist is in READ-05).
+
 
 A floating capsule instead of a bar: file name, page jump, zoom, the armed marker, Undo, Redo, Print,
 Download, More and Exit. It never vanishes (controls that vanish get lost), it goes quiet: grey and faded
