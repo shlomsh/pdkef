@@ -4,12 +4,14 @@ import type { HighlightBand, HighlightElement } from '../model/editorModel.ts';
 import type { SerializeContext } from './types.ts';
 import { DEFAULT_HIGHLIGHT_COLOR } from '../model/highlightColors.ts';
 import { hexToRgbFractions } from '../text/imageTint.js';
+import { underlineInk } from '../model/underlineInk.ts';
 import { applyAffineTransform, percentToPoints } from '../geometry/coords.ts';
 import type { AffineTransform } from '../geometry/coords.ts';
 
 const POPUP_WIDTH = 160;
 const POPUP_HEIGHT = 80;
 const IDENTITY: AffineTransform = [1, 0, 0, 1, 0, 0];
+const UNDERLINE_WIDTH = 1.5;
 
 type Point = [number, number];
 type Bounds = [number, number, number, number];
@@ -50,13 +52,27 @@ interface BandsHighlightSpec {
   color: string;
   fallbackColor: string;
   direction?: 'ltr' | 'rtl';
+  /** `'underline'` writes `/Underline`; absent writes `/Highlight`. */
+  style?: 'underline';
+  /** 0.3 to 1, absent is 1: written as `/CA` and as the appearance's `ca`. */
+  opacity?: number;
   comment?: { text: string; commentedAt?: number };
   /** The Print flag: a highlight prints, a comment's tint does not. */
   print: boolean;
 }
 
+/** READ-03: a 1.5 pt stroke along a band's bottom edge, half its width inside the band, in user space (works on a rotated page). */
+function underlineLine(ul: Point, ll: Point, lr: Point): string {
+  const dx = ul[0] - ll[0];
+  const dy = ul[1] - ll[1];
+  const length = Math.hypot(dx, dy) || 1;
+  const inset = UNDERLINE_WIDTH / 2 / length;
+  const shift = (p: Point) => [p[0] + dx * inset, p[1] + dy * inset].map(fixed).join(' ');
+  return `${shift(ll)} m ${shift(lr)} l S`;
+}
+
 /**
- * ISO 32000 12.5.6.10: one `/Highlight` annotation, so any viewer lists it, shows its comment and (when
+ * ISO 32000 12.5.6.10: one `/Highlight` (or, for `style: 'underline'`, `/Underline`) annotation, so any viewer lists it, shows its comment and (when
  * `print`) prints it. The appearance stream paints the quads with Multiply, so it also renders the same
  * everywhere (a non-printed comment's is empty and its `/C` is `[]`, transparent per 12.5.2, so no viewer
  * paints a tint). sign.js wraps serialize in the editor-to-PDF `cm`, but annotations live in raw user space,
@@ -77,16 +93,20 @@ export function writeBandsHighlight(spec: BandsHighlightSpec, context: Serialize
   const rect = boundsOf(quads.flat());
   const { r, g, b } = hexToRgbFractions(spec.color, spec.fallbackColor);
 
-  const paint = spec.print ? quads.map(([ul, ur, ll, lr]) => `${ul.map(fixed).join(' ')} m ${ur.map(fixed).join(' ')} l ${lr.map(fixed).join(' ')} l ${ll.map(fixed).join(' ')} l h f`) : [];
-  const content = spec.print ? [`/GS gs ${fixed(r)} ${fixed(g)} ${fixed(b)} rg`, ...paint].join('\n') : '';
+  const opacity = spec.opacity ?? 1;
+  const underline = spec.style === 'underline';
+  const paint = spec.print ? quads.map(([ul, ur, ll, lr]) => (underline ? underlineLine(ul, ll, lr) : `${ul.map(fixed).join(' ')} m ${ur.map(fixed).join(' ')} l ${lr.map(fixed).join(' ')} l ${ll.map(fixed).join(' ')} l h f`)) : [];
+  const ink = hexToRgbFractions(underlineInk(spec.color), spec.fallbackColor);
+  const setup = underline ? `${UNDERLINE_WIDTH} w ${fixed(ink.r)} ${fixed(ink.g)} ${fixed(ink.b)} RG` : `${fixed(r)} ${fixed(g)} ${fixed(b)} rg`;
+  const content = spec.print ? ['/GS gs', setup, ...paint].join('\n') : '';
   const ap = appearance(pdfDoc, rect, content,
-    { ExtGState: { GS: { Type: 'ExtGState', BM: 'Multiply' } } });
+    { ExtGState: { GS: { Type: 'ExtGState', BM: 'Multiply', ca: opacity, CA: opacity } } });
 
   const text = spec.comment?.text.trim() ? spec.comment.text : undefined;
   const commentedAt = spec.comment?.commentedAt;
   const { context: pdfContext } = pdfDoc;
   const highlight = pdfContext.obj({
-    Type: 'Annot', Subtype: 'Highlight', Rect: rect, QuadPoints: quads.flat(2), C: spec.print ? [r, g, b] : [], CA: 1, ...(spec.print ? { F: 4 } : {}),
+    Type: 'Annot', Subtype: underline ? 'Underline' : 'Highlight', Rect: rect, QuadPoints: quads.flat(2), C: spec.print ? [r, g, b] : [], CA: opacity, ...(spec.print ? { F: 4 } : {}),
     NM: PDFHexString.fromText(spec.id), M: pdfDate(commentedAt === undefined ? undefined : new Date(commentedAt)), AP: { N: ap },
     ...(text ? { Contents: PDFHexString.fromText(text) } : {}),
   });
@@ -109,6 +129,6 @@ export function writeBandsHighlight(spec: BandsHighlightSpec, context: Serialize
 export function serializeHighlight(element: HighlightElement, context: SerializeContext): void {
   writeBandsHighlight({
     id: element.id, box: element, bands: element.bands, color: element.color, fallbackColor: DEFAULT_HIGHLIGHT_COLOR,
-    direction: element.direction, comment: context.comment, print: true,
+    direction: element.direction, style: element.style, opacity: element.opacity, comment: context.comment, print: true,
   }, context);
 }
