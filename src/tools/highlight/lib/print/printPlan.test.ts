@@ -41,4 +41,12 @@ describe('printPlan', () => {
     const [one, two] = printPlan([page, page], [note('a', 0, 100, 40)]);
     expect(two).toEqual({ ...one, cards: [] });
   });
+
+  it('pushes up only the cards that need it', () => {
+    const letter = { width: 612, height: 792 };
+    const at = (id: string, want: number) => note(id, 0, want / 0.72, 40);
+    const [p] = printPlan([letter], [at('a', 10), at('b', 740), at('c', 760)]);
+    expect(p.cards.map((c) => c.top)).toEqual([10, 706, 752]);
+    expect(p.overflow).toBeUndefined();
+  });
 });
