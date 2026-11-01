@@ -5,6 +5,7 @@ import type { CommentCard } from '#editor/highlight/commentCards.ts';
 import { commentPatch, type CommentPatch } from '#editor/highlight/commentCommit.ts';
 import headerStyles from '../EditorPageHeader.module.css';
 import dialogStyles from '#shell/Dialog.module.css';
+import { TrashIcon } from '../toolIcons.tsx';
 import styles from './CommentRail.module.css';
 
 /** SIGN-44: one comment card's content (rail card, later the phone sheet). Draft is local until Comment.
@@ -63,7 +64,7 @@ export function CommentCardBody({ card, active, messages, label, onSelect, onSav
   const blankNew = card.isNew && !draft.trim();
   return (
     <div
-      class={styles.body}
+      class={showField ? styles.body : `${styles.body} ${styles.editable}`}
       role="group"
       aria-label={label}
       title={showField ? undefined : messages.commentEditHint}
@@ -96,14 +97,20 @@ export function CommentCardBody({ card, active, messages, label, onSelect, onSav
           <div class={styles.actions}>
             {!card.isNew && (
               <button type="button" class={`${headerStyles['page-action']} ${headerStyles['clear-page']} ${styles.delete}`}
-                onClick={() => { onDelete(); onReturnFocus?.(); }}>{messages.commentDelete}</button>
+                aria-label={messages.commentDelete} title={messages.commentDelete}
+                onClick={() => { onDelete(); onReturnFocus?.(); }}><TrashIcon /><span class={styles.deleteLabel}>{messages.commentDelete}</span></button>
             )}
             <button type="button" class={`${dialogStyles.button} ${dialogStyles.secondary}`} onClick={cancel}>{messages.commentCancel}</button>
             <button type="button" class={`${dialogStyles.button} ${dialogStyles.primary}`} disabled={blankNew} onClick={save}>{messages.highlightCommentLabel}</button>
           </div>
         </>
       ) : (
-        <p class={styles.text} dir="auto">{card.comment}</p>
+        <>
+          <p class={styles.text} dir="auto">{card.comment}</p>
+          <svg data-comment-edit-icon class={styles.editIcon} aria-hidden="true" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 20h9" /><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z" />
+          </svg>
+        </>
       )}
     </div>
   );

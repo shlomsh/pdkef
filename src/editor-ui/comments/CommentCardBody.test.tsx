@@ -201,4 +201,12 @@ describe('CommentCardBody', () => {
     act(() => button('Delete').click());
     expect(onReturnFocus).toHaveBeenCalledOnce();
   });
+
+  it('Delete is an icon button named Delete, and the saved card carries an aria-hidden edit pencil', () => {
+    mount({ card: card(), active: true });
+    expect(host!.querySelector('[data-comment-edit-icon]')!.getAttribute('aria-hidden')).toBe('true');
+    openEdit();
+    const del = q<HTMLButtonElement>('button[aria-label="Delete"]');
+    expect(del.querySelector('svg')).not.toBeNull();
+  });
 });
