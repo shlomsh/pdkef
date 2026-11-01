@@ -1,0 +1,11 @@
+---
+import ToolPageLayout from '../layouts/ToolPageLayout.astro';
+import PdfHighlightTool from '../tools/highlight/PdfHighlightTool.tsx';
+import { toolsBySlug } from '../data/tools.js';
+
+const tool = toolsBySlug['highlight-pdf'];
+---
+
+<ToolPageLayout tool={tool}>
+  <PdfHighlightTool client:load />
+</ToolPageLayout>

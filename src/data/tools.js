@@ -20,6 +20,7 @@
 import { labelOf } from '#lib/app/toolIds.ts';
 import {
   FileSignature,
+  Highlighter,
   Merge,
   ImageUp,
   ImageDown,
@@ -314,6 +315,50 @@ export const tools = [
         question: 'Can I type Turkish (PDF üzerinde Türkçe imza) when signing a PDF?',
         answer: "Yes. 12 text fonts (Arimo, Tinos, Cousine, Heebo, Alef, PT Sans and others) and six handwriting faces, Kalam, Mali, Sriracha, Tillana, Mynerve and Amatic SC, carry the complete 29-letter Turkish alphabet, checked letter by letter against the real font files rather than assumed from general Latin coverage. That check matters here specifically for Ğ, İ and Ş, the three letters that make Turkish its own alphabet and that a general accented-Latin font does not necessarily draw. All six handwriting faces also work for a typed signature; Amatic SC draws capitals only, so a lowercase name comes out in small capitals.",
       },
+    ],
+  },
+
+  {
+    slug: 'highlight-pdf',
+    href: '/highlight-pdf/',
+    icon: Highlighter,
+    gridDescription:
+      'Mark up a paper the way you would with a marker: highlight lines and add a note beside them.',
+    sitemapPriority: '0.9',
+    sitemapChangefreq: 'monthly',
+    seoTitle: 'Highlight PDF Online Free - Highlight Text and Add Comments | PDkef',
+    seoDescription:
+      'Highlight text in a PDF the way you would with a marker, on scanned pages too, and add a comment to any highlight. Free, no signup, no upload.',
+    schemaName: 'PDkef - Highlight PDF',
+    toolName: 'Highlight PDF',
+    h1: 'Highlight PDF Online Free: Mark Up Papers and Add Comments',
+    h1Name: 'Highlight PDF',
+    subhead:
+      'Open a paper and drag along a line to highlight it, the way you would with a marker. Rest on a highlight to change its color or add a comment beside it. Free, open source, and your file stays on your device.',
+    ariaLabel: 'Highlight PDF tool',
+    aboutHeading: 'How to highlight text in a PDF',
+    aboutLead:
+      'Open the PDF and drag along the lines you want to keep. The highlight stays straight along the line and works on scanned pages too, and everything runs in your browser.',
+    freeNoteLead:
+      'Highlight as many pages as you like, with no account and no watermark. Highlights and comments are saved as standard PDF annotations, so they open in other PDF viewers too.',
+    aboutSketch: 'grid',
+    aboutIconPos: 'tl',
+    faqSketch: 'rings',
+    faqIconPos: 'br',
+    steps: [
+      { title: 'Open your PDF', text: 'Drop in a paper, a chapter or a scanned page. A yellow marker is already in your hand.' },
+      { title: 'Drag along a line', text: 'The highlight follows the line and stops at the end of its column. Double-click marks a word, and a third click its sentence.' },
+      { title: 'Change it or add a comment', text: 'Rest on a highlight for its colors, underline and Comment. Then download, and your marks open in any PDF viewer.' },
+    ],
+    faq: [
+      { question: 'Is Highlight PDF free?', answer: 'Yes. Like every tool on PDkef, it is free with no signup, no watermark and no page limit.' },
+      { question: 'Is my PDF uploaded?', answer: 'No. The highlighting, the comments and the download are all made in your browser. Your file never leaves your device, and there is no processing server.' },
+      { question: 'How do I highlight text in a PDF?', answer: 'Open the PDF and drag along the line you want, as you would with a marker. Drag down to carry the highlight onto the next lines. Double-click marks one word and a third click its whole sentence.' },
+      { question: 'How do I change or remove a highlight?', answer: 'Rest the pointer on it, or tap it on a touch screen. Its toolbar offers six colors, underline, Comment and Delete. Whatever you pick becomes your marker for the next lines.' },
+      { question: 'Can I highlight a scanned PDF?', answer: 'Yes. The highlight reads the lines from the page image itself, so a scanned page or a photo of a book page works too, with no text layer needed.' },
+      { question: 'Does it work on a Mac and an iPad?', answer: 'Yes. It runs in Safari and Chrome on a Mac and in Safari on an iPad. On a touch screen, tap a highlight to open its toolbar.' },
+      { question: 'Will my comments show in other PDF viewers?', answer: 'Yes. Highlights and comments are saved as standard PDF annotations, so they show in most PDF viewers, and they come back editable when you open the file here again.' },
+      { question: 'Can I highlight Hebrew or Arabic text?', answer: 'Yes. On a right-to-left page the highlight follows the line from right to left, and a clicked word or sentence fills in from its first letter.' },
     ],
   },
 
