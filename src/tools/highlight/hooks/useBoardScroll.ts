@@ -2,6 +2,7 @@ import { useLayoutEffect, useRef } from 'preact/hooks';
 import { boardLayout, centredScrollLeft } from '../lib/zoom/board.ts';
 import type { PageBox, ZoomSetting } from '../lib/zoom/fit.ts';
 import type { Point } from '../lib/zoom/anchor.ts';
+import { scrollDelta, type PageAnchor } from '../lib/zoom/pageAnchor.ts';
 
 /**
  * Where the scroll goes once the layout of a committed zoom is in place. Nothing re-centres on its own: only
@@ -19,6 +20,7 @@ export function useBoardScroll({ workspaceRef, fullscreen, pages, zoom, setting,
   // own: only opening a document, picking a fit mode and resizing under a fit mode do.
   const pendingScroll = useRef<Point | null>(null);
   const pendingCentre = useRef(true);
+  const pendingAnchor = useRef<{ anchor: PageAnchor; point: Point } | null>(null);
   const lastViewWidth = useRef(0);
   const ready = pages.length > 0;
   const widest = pages.reduce((w, p) => Math.max(w, p.width), 0);
@@ -42,6 +44,20 @@ export function useBoardScroll({ workspaceRef, fullscreen, pages, zoom, setting,
         ? { left: offset + page0.textLeft * zoom, right: offset + page0.textRight * zoom }
         : undefined;
       ws.scrollLeft = centredScrollLeft(board, widest * zoom, view.width, focus);
+      pendingAnchor.current = null;
+    } else if (pendingAnchor.current) {
+      // Anchored by page fraction: headers and gaps do not scale, so the whole column cannot be the frame.
+      const { anchor, point } = pendingAnchor.current;
+      pendingAnchor.current = null;
+      const after = ws.querySelectorAll('[data-page-wrapper]')[anchor.pageIndex]?.getBoundingClientRect();
+      if (after) {
+        const { dx, dy } = scrollDelta(anchor, after, point);
+        ws.scrollLeft += dx;
+        if (fullscreen) ws.scrollTop += dy;
+        else window.scrollBy(0, dy);
+        return;
+      }
+      if (next) ws.scrollLeft = next.x;
     } else if (next) {
       ws.scrollLeft = next.x;
     }
@@ -51,5 +67,5 @@ export function useBoardScroll({ workspaceRef, fullscreen, pages, zoom, setting,
     }
   });
 
-  return { pendingScroll, pendingCentre, board };
+  return { pendingScroll, pendingCentre, pendingAnchor, board };
 }
