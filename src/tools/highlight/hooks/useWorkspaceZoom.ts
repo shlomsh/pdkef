@@ -20,6 +20,12 @@ const STORE_KEY = 'pdkef:highlight:zoom-default';
 function storedDefault(): string | null {
   try { return localStorage.getItem(STORE_KEY); } catch { return null; }
 }
+/** The page under `point` (viewport px) and where on it, from the workspace's page wrappers as they are now. */
+function pageAnchorIn(workspace: HTMLElement | null, point: Point) {
+  const rects = [...(workspace?.querySelectorAll('[data-page-wrapper]') ?? [])].map((el) => el.getBoundingClientRect());
+  return pageAnchorAt(rects, point);
+}
+
 function storeDefault(setting: ZoomSetting) {
   try { localStorage.setItem(STORE_KEY, serializeSetting(setting)); } catch { /* storage is optional */ }
 }
@@ -130,8 +136,7 @@ export function useWorkspaceZoom({ pdfDocument, workspaceRef, columnRef, fullscr
     if (centreAfter) pendingCentre.current = true;
     else if (nextZoom !== zoomRef.current) {
       const point = anchor ?? centre();
-      const rects = [...(workspaceRef.current?.querySelectorAll('[data-page-wrapper]') ?? [])].map((el) => el.getBoundingClientRect());
-      const pageAnchor = pageAnchorAt(rects, point);
+      const pageAnchor = pageAnchorIn(workspaceRef.current, point);
       pendingAnchor.current = pageAnchor ? { anchor: pageAnchor, point } : null;
     }
     setSetting(next);
@@ -162,8 +167,7 @@ export function useWorkspaceZoom({ pdfDocument, workspaceRef, columnRef, fullscr
     if (page && nextNoted !== notedRef.current) {
       const nextZoom = displayZoom(settingRef.current, fullscreenRef.current, page, viewRef.current, nextNoted);
       if (nextZoom !== zoomRef.current) {
-        const rects = [...(workspaceRef.current?.querySelectorAll('[data-page-wrapper]') ?? [])].map((el) => el.getBoundingClientRect());
-        const anchor = pageAnchorAt(rects, point);
+        const anchor = pageAnchorIn(workspaceRef.current, point);
         pendingScroll.current = null;
         pendingAnchor.current = anchor ? { anchor, point, lineOnly: true } : null;
       }
