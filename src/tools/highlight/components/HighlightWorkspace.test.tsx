@@ -48,6 +48,15 @@ function mount(lamp: { fullscreen: boolean; pseudoFullscreen: boolean }) {
 }
 
 describe('HighlightWorkspace', () => {
+  it('is a landmark region named by the file, in the normal view and in the lamp (R43)', () => {
+    for (const fullscreen of [false, true]) {
+      const ws = mount({ fullscreen, pseudoFullscreen: false });
+      expect(ws.getAttribute('role')).toBe('region');
+      expect(ws.getAttribute('aria-label')).toBe('a.pdf');
+      act(() => render(null, container!));
+    }
+  });
+
   it('covers the screen when the lamp stands in for fullscreen, as on an iPhone', () => {
     const ws = mount({ fullscreen: true, pseudoFullscreen: true });
     expect(ws.classList.contains(workspaceStyles['pseudo-fullscreen'])).toBe(true);
