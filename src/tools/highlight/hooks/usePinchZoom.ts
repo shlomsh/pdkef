@@ -39,13 +39,15 @@ export function usePinchZoom({ workspaceRef, columnRef, enabled, inLamp, zoomRef
     };
     const finish = () => {
       clearTimeout(timer);
-      if (factor === 1) return;
       const next = clampZoom(zoomRef.current * factor);
+      const unchanged = factor === 1;
       factor = 1;
+      // Back to the column's own size before anything else, even when a pinch at the bound commits nothing:
+      // a stale start rect would aim the next pinch's origin at where the column used to be.
       startRect = null;
-      // Commit with the column back at its own size, so the frame it measures is the layout one.
       col.style.transform = '';
       col.style.transformOrigin = '';
+      if (unchanged) return;
       commit(next, next, anchor);
     };
 
