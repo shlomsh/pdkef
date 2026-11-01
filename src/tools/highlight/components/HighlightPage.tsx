@@ -13,6 +13,9 @@ import type { ElementsAction } from '#editor/model/elementsReducer.ts';
 import { createElementId } from '#editor/model/ids.ts';
 import { pageGeometryFromPdfJsPage, type PageGeometry } from '#editor/geometry/coords.ts';
 import { englishSignMessages } from '#editor/registry/signMessages.ts';
+import { toPageTextRuns } from '#editor/geometry/textRuns.ts';
+import { pageTextDirection } from '#editor/text/textDirection.js';
+import { readTextItems } from '#lib/pdf/pdfTextItems.ts';
 import { directionAtPoint, readerTextDirection, resolveHighlightDirection } from '#editor/highlight/resolveDirection.ts';
 import { captureElementSnapshots, type ActionHistoryEntry } from '#editor/model/actionHistory.ts';
 import type { EditorElementPatch } from '#editor/model/editorModel.ts';
@@ -59,13 +62,24 @@ export default function HighlightPage({ pdfDocument, pageIndex, widthPx, element
   const rest = useRestToolbar();
   const coarse = useCoarsePointer();
   const lastPointerType = useRef('mouse');
+  // The page's printed text in percent, kept for the swipe's reading direction; never state.
+  const textRunsRef = useRef<ReturnType<typeof toPageTextRuns>>([]);
 
   useEffect(() => {
     setGeometry(undefined);
+    textRunsRef.current = [];
     if (!pdfDocument) return;
     let live = true;
-    void pdfDocument.getPage(pageIndex + 1).then((page) => {
-      if (live) setGeometry(pageGeometryFromPdfJsPage(page));
+    void pdfDocument.getPage(pageIndex + 1).then(async (page) => {
+      if (!live) return;
+      const pageGeometry = pageGeometryFromPdfJsPage(page);
+      setGeometry(pageGeometry);
+      try {
+        const items = await readTextItems(page);
+        if (live) textRunsRef.current = toPageTextRuns(items, pageGeometry);
+      } catch {
+        // No text to read the direction from: the swipe falls back to the reader's own.
+      }
     });
     return () => { live = false; };
   }, [pdfDocument, pageIndex]);
@@ -125,7 +139,7 @@ export default function HighlightPage({ pdfDocument, pageIndex, widthPx, element
     startHighlightSwipe({
       dispatch: swipeDispatch, getPointerPercent, gestureCancelRef, logAction, setAnnouncement, messages: englishSignMessages,
       nextElementIndex: elements.length, pageGeometry: geometry,
-      direction: resolveHighlightDirection({ atPress: directionAtPoint([], start), page: undefined, pages: [], elements, readerDirection: readerTextDirection() }),
+      direction: resolveHighlightDirection({ atPress: directionAtPoint(textRunsRef.current, start), page: pageTextDirection(textRunsRef.current.map((r) => r.str)), pages: [], elements, readerDirection: readerTextDirection() }),
       isMouse: true,
     }, {
       pageIndex, container, id, newEl, start,

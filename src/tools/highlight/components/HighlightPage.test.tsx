@@ -107,6 +107,41 @@ describe('HighlightPage', () => {
   });
 });
 
+function textPage(strings: string[]) {
+  const items = strings.map((str) => ({ str, transform: [1, 0, 0, 1, 10, 300], width: 40, height: 10 }));
+  const chunks = [{ done: false, value: { items } }, { done: true, value: undefined }];
+  const page = {
+    view: [0, 0, 200, 400], rotate: 0,
+    streamTextContent: () => ({ getReader: () => ({ read: async () => chunks.shift() }) }),
+  };
+  return { getPage: async () => page } as never;
+}
+
+describe('HighlightPage swipe direction', () => {
+  const swipeDirection = async (strings: string[]) => {
+    await act(async () => {
+      render(
+        <HighlightPage
+          pdfDocument={textPage(strings)} pageIndex={0} widthPx={600} elements={[]} marker={DEFAULT_MARKER}
+          dispatch={dispatch} logAction={logAction} rearm={rearm} setAnnouncement={() => {}} cardRef={() => {}}
+        />,
+        container,
+      );
+    });
+    await act(async () => { await new Promise((resolve) => setTimeout(resolve, 0)); });
+    press(container.querySelector<HTMLElement>('[data-page-overlay]')!, { pointerType: 'mouse' });
+    return startHighlightSwipe.mock.calls[0][0].direction;
+  };
+
+  it('a Hebrew page swipes right to left, from its own text', async () => {
+    expect(await swipeDirection(['שלום עולם'])).toBe('rtl');
+  });
+
+  it('an English page swipes left to right', async () => {
+    expect(await swipeDirection(['hello world'])).toBe('ltr');
+  });
+});
+
 function move(target: Element, x = 50, y = 60, pointerType = 'mouse') {
   const event = new MouseEvent('pointermove', { bubbles: true, clientX: x, clientY: y, buttons: 0 });
   Object.defineProperty(event, 'pointerType', { value: pointerType });
