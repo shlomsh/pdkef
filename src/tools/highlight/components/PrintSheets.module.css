@@ -16,6 +16,9 @@
 .layer { position: absolute; inset: 0; mix-blend-mode: multiply; }
 .band { position: absolute; }
 .underline::after { content: ''; position: absolute; inset-inline: 0; bottom: var(--lift); height: var(--line); border-radius: 1px; background: var(--highlight-ink); }
+.sheet[data-page-turns="1"] .underline::after { inset: 0 auto 0 var(--lift); width: var(--line); height: auto; }
+.sheet[data-page-turns="2"] .underline::after { inset: var(--lift) 0 auto 0; height: var(--line); }
+.sheet[data-page-turns="3"] .underline::after { inset: 0 var(--lift) 0 auto; width: var(--line); height: auto; }
 
 .notes { position: absolute; }
 .card {

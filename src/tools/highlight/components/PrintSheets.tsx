@@ -2,7 +2,7 @@ import { createPortal } from 'preact/compat';
 import { useMemo } from 'preact/hooks';
 import type { PDFDocumentProxy } from 'pdfjs-dist';
 import type { EditorElement, HighlightElement } from '#editor/model/editorModel.ts';
-import type { PageTurns } from '#editor/geometry/pageTurn.ts';
+import { turnsOf, type PageTurns } from '#editor/geometry/pageTurn.ts';
 import { underlineInk, UNDERLINE_LIFT, UNDERLINE_WIDTH } from '#editor/model/underlineInk.ts';
 import { formatMessage } from '#lib/text/formatMessage.ts';
 import { englishSignMessages } from '#editor/registry/signMessages.ts';
@@ -97,10 +97,12 @@ function EndEntry({ note, text, color }: { note: NoteSeed; text: string; color: 
   );
 }
 
-function Sheet({ plan, pageName, image, highlights, texts, marks, onSettled }: {
+function Sheet({ plan, pageName, turns, image, highlights, texts, marks, onSettled }: {
   plan: PagePrintPlan;
   /** The named @page that sizes this sheet's paper. */
   pageName?: string;
+  /** Quarter turns of this page; the printed underline sits on the text's bottom edge, which turns with it. */
+  turns: 0 | 1 | 2 | 3;
   image: string;
   highlights: HighlightElement[];
   texts: ReadonlyMap<string, string>;
@@ -109,7 +111,7 @@ function Sheet({ plan, pageName, image, highlights, texts, marks, onSettled }: {
 }) {
   const { sheet, pageBox, notesBox, pageScale } = plan;
   return (
-    <section data-print-sheet class={styles.sheet} style={{ width: pt(sheet.width), height: pt(sheet.height), page: pageName }}>
+    <section data-print-sheet data-page-turns={turns || undefined} class={styles.sheet} style={{ width: pt(sheet.width), height: pt(sheet.height), page: pageName }}>
       <div
         class={styles.pageBox}
         style={{ left: pt(pageBox.x), top: pt(pageBox.y), width: pt(pageBox.width), height: pt(pageBox.height) }}
@@ -190,7 +192,7 @@ export default function PrintSheets({ pdfDocument, elements, notes, pageTurns = 
         </div>
       )}
       {plans && images && plans.map((plan, i) => (
-        <Sheet key={i} plan={plan} pageName={pageNames[i]} image={images[i]} highlights={highlightsOf(i)} texts={texts} marks={marks} onSettled={() => onSettled(i)} />
+        <Sheet key={i} plan={plan} pageName={pageNames[i]} turns={turnsOf(pageTurns, i)} image={images[i]} highlights={highlightsOf(i)} texts={texts} marks={marks} onSettled={() => onSettled(i)} />
       ))}
       {plans && images && endSheet && endPages.map((entries, i) => (
         <section key={`notes-${i}`} data-print-sheet data-print-notes-sheet class={`${styles.sheet} ${styles.endSheet}`} style={{ width: pt(endSheet.width), height: pt(endSheet.height), page: pageNames[pages.length] }}>
