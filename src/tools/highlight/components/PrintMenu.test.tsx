@@ -81,11 +81,17 @@ describe('PrintMenu', () => {
     expect(props.onClose).not.toHaveBeenCalled();
   });
 
-  it('opens at the given top in px when floating, and sets none otherwise', () => {
-    mount({ placement: 'floating', top: 120 });
-    expect((container!.firstElementChild as HTMLElement).style.top).toBe('120px');
+  it('places itself at the anchor top and the start-aligned left when floating, and sets none otherwise', () => {
+    vi.stubGlobal('innerWidth', 1280);
+    vi.spyOn(HTMLElement.prototype, 'offsetWidth', 'get').mockReturnValue(192);
+    mount({ placement: 'floating', anchor: { top: 108, left: 300, right: 340 } });
+    const wrap = container!.firstElementChild as HTMLElement;
+    expect(wrap.style.top).toBe('108px');
+    expect(wrap.style.left).toBe('300px');
     act(() => render(null, container!));
     mount({ placement: 'floating' });
     expect((container!.firstElementChild as HTMLElement).style.top).toBe('');
+    vi.restoreAllMocks();
+    vi.unstubAllGlobals();
   });
 });

@@ -94,18 +94,19 @@ export default function HighlightWorkspace({ pdfDocument, numPages, fileName, zo
   const moreItems = [{ label: shellMessages.replaceLabel, onSelect: requestReplace }];
   const print = usePrint({ pdfDocument, elements: marks.state.elements, pageTurns: marks.pageTurns });
   const [printOpen, setPrintOpen] = useState(false);
-  const [printTop, setPrintTop] = useState<number | undefined>();
-  // The menu opens 8 px under the toolbar, wherever the toolbar is in this view.
+  const [printAnchor, setPrintAnchor] = useState<{ top: number; left: number; right: number } | undefined>();
+  // The menu opens 8 px under the capsule's own Print button, start edges aligned.
   const openPrint = () => {
-    const bar = workspaceRef.current?.querySelector('[role="toolbar"]');
-    setPrintTop(bar ? bar.getBoundingClientRect().bottom + 8 : undefined);
+    const button = workspaceRef.current?.querySelector('[role="toolbar"]')?.querySelector(`button[aria-label="${t.capsule.print}"]`);
+    const rect = button?.getBoundingClientRect();
+    setPrintAnchor(rect ? { top: rect.bottom + 8, left: rect.left, right: rect.right } : undefined);
     setPrintOpen(true);
   };
   const withComments = hasComments(marks.state.elements);
   // With no comment there is one way to print, so Print prints; the menu is only for a choice.
   const printNow = () => print.print(false);
   const printMenu = {
-    top: printTop, open: printOpen, withComments,
+    anchor: printAnchor, open: printOpen, withComments,
     onChoose: print.print, onClose: () => setPrintOpen(false),
   };
   // One menu at a time: it belongs to the row or to the capsule, so changing view puts it away.
@@ -194,7 +195,7 @@ function TileRow({ marks, undo, redo, touch, printMenu, printOpen, onTogglePrint
           </svg>
           <span className={toolbarStyles.label}>{shellMessages.replaceShort}</span>
         </button>
-        <PrintMenu {...printMenu} top={undefined} wrapClass={toolbarStyles.dropdown}>
+        <PrintMenu {...printMenu} anchor={undefined} wrapClass={toolbarStyles.dropdown}>
           <button type="button" className={toolbarStyles.button} aria-label={t.capsule.print} title={t.capsule.print} aria-haspopup={printMenu.withComments ? 'menu' : undefined} aria-expanded={printMenu.withComments ? printOpen : undefined} onClick={onTogglePrint}>
             <PrintIcon />
             <span className={toolbarStyles.label}>{t.capsule.print}</span>

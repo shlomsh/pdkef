@@ -216,11 +216,14 @@ describe('HighlightWorkspace notes (R28, R29)', () => {
     act(() => render(null, container!));
     for (const fullscreen of [true]) {
       const ws = mount({ fullscreen, pseudoFullscreen: false }, [mark, note]);
-      const bar = ws.querySelector<HTMLElement>('[role="toolbar"]')!;
-      vi.spyOn(bar, 'getBoundingClientRect').mockReturnValue({ bottom: 100 } as DOMRect);
-      act(() => { ws.querySelector<HTMLElement>('button[aria-label="Print"]')!.click(); });
+      const button = ws.querySelector<HTMLElement>('button[aria-label="Print"]')!;
+      vi.spyOn(button, 'getBoundingClientRect').mockReturnValue({ left: 300, right: 340, bottom: 100 } as DOMRect);
+      vi.stubGlobal('innerWidth', 1280);
+      vi.spyOn(HTMLElement.prototype, 'offsetWidth', 'get').mockReturnValue(192);
+      act(() => { button.click(); });
       const menu = ws.querySelector('[role="menu"]')!;
       expect((menu.parentElement as HTMLElement).style.top).toBe('108px');
+      expect((menu.parentElement as HTMLElement).style.left).toBe('300px');
       act(() => render(null, container!));
     }
   });
