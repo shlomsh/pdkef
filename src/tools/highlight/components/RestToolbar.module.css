@@ -32,7 +32,8 @@
   .bar { animation: none; }
 }
 
-.bar button {
+/* :where() keeps this reset below each button's own class, so .hl and .ul keep their padding. */
+.bar :where(button) {
   margin: 0;
   padding: 0;
   border: 0;
