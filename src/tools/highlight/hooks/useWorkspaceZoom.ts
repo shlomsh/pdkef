@@ -14,7 +14,6 @@ import { useZoomKeys } from './useZoomKeys.ts';
 import { useLampAnchor } from './useLampAnchor.ts';
 import { useBoardPan } from './useBoardPan.ts';
 import type { Point } from '../lib/zoom/anchor.ts';
-import { keepPassageOnRoom } from '../lib/zoom/room.ts';
 
 const STORE_KEY = 'pdkef:highlight:zoom-default';
 
@@ -154,21 +153,23 @@ export function useWorkspaceZoom({ pdfDocument, workspaceRef, columnRef, fullscr
 
   /**
    * The first note opens (or the last one goes): the page fits with or without the notes column in the same
-   * layout pass, no transition, and the scroll keeps `passage` (unscaled px from the column's top-left, see
-   * `passageInColumn`) on the same line of the screen. It never re-centres and is not a zoom choice.
+   * layout pass, no transition, and the scroll keeps `point` (the passage on screen, viewport px) on the same line.
+   * It is anchored to its page, since headers and gaps do not scale, and only vertically: the page keeps its left
+   * edge. It never re-centres and is not a zoom choice.
    */
-  const makeRoom = useCallback((nextNoted: boolean, passage: Point) => {
-    const f = frame();
+  const makeRoom = useCallback((nextNoted: boolean, point: Point) => {
     const page = widestPage(pagesRef.current);
-    if (f && page && nextNoted !== notedRef.current) {
+    if (page && nextNoted !== notedRef.current) {
       const nextZoom = displayZoom(settingRef.current, fullscreenRef.current, page, viewRef.current, nextNoted);
       if (nextZoom !== zoomRef.current) {
-        pendingScroll.current = keepPassageOnRoom({ before: { rect: f.rect, scroll: f.scroll, zoom: zoomRef.current }, nextZoom, passage });
-        pendingAnchor.current = null;
+        const rects = [...(workspaceRef.current?.querySelectorAll('[data-page-wrapper]') ?? [])].map((el) => el.getBoundingClientRect());
+        const anchor = pageAnchorAt(rects, point);
+        pendingScroll.current = null;
+        pendingAnchor.current = anchor ? { anchor, point, lineOnly: true } : null;
       }
     }
     setMade(nextNoted);
-  }, [frame, pendingScroll, pendingAnchor]);
+  }, [workspaceRef, pendingScroll, pendingAnchor]);
 
   useZoomKeys({ enabled: ready, inLamp: fullscreen, onEnterLamp, step, actual });
   useBoardPan({ workspaceRef, fullscreen, enabled: ready && fullscreen });
