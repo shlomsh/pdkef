@@ -1,15 +1,15 @@
 import { useEffect, useMemo, useRef } from 'preact/hooks';
 import type { PDFDocumentProxy } from 'pdfjs-dist';
-import PdfPageCanvas from '#editor-ui/PdfPageCanvas.tsx';
-import EditorPageHeader from '#editor-ui/EditorPageHeader.tsx';
 import ReadingCapsule, { ReadingLampIcon } from '#editor-ui/capsule/ReadingCapsule.tsx';
 import useCurrentPage from '#editor-ui/hooks/useCurrentPage.js';
 import workspaceStyles from '#editor-ui/Workspace.module.css';
 import { formatMessage } from '#lib/text/formatMessage.ts';
+import type { useHighlightMarks } from '../hooks/useHighlightMarks.ts';
 import type { WorkspaceZoom } from '../hooks/useWorkspaceZoom.ts';
 import { zoomPercent } from '../lib/zoom/percent.ts';
 import { englishHighlightMessages as t } from '../messages.ts';
 import ZoomMenu from './ZoomMenu.tsx';
+import HighlightPage from './HighlightPage.tsx';
 import ZoomReadout from './ZoomReadout.tsx';
 import styles from './HighlightWorkspace.module.css';
 
@@ -24,11 +24,14 @@ function emitter<A extends unknown[]>() {
 const MODE_LABEL = { width: t.fitWidth, text: t.fitText, page: t.fitPage } as const;
 
 /** The page column. Zoomed pages sit centred in a column that scrolls sideways when it is wider than the screen. */
-export default function HighlightWorkspace({ pdfDocument, numPages, fileName, zoom, workspaceRef, columnRef, fullscreen, onToggleFullscreen }: {
+export default function HighlightWorkspace({ pdfDocument, numPages, fileName, zoom, marks, setAnnouncement, onDownload, workspaceRef, columnRef, fullscreen, onToggleFullscreen }: {
   pdfDocument: PDFDocumentProxy;
   numPages: number;
   fileName: string;
   zoom: WorkspaceZoom;
+  marks: ReturnType<typeof useHighlightMarks>;
+  setAnnouncement(message: string): void;
+  onDownload(): void;
   workspaceRef: { current: HTMLDivElement | null };
   columnRef: { current: HTMLDivElement | null };
   fullscreen: boolean;
@@ -67,14 +70,15 @@ export default function HighlightWorkspace({ pdfDocument, numPages, fileName, zo
             fileName={fileName} page={currentPage} pageCount={numPages}
             onJumpToPage={(n) => pageRefs.current[n - 1]?.scrollIntoView()}
             zoomSlot={menu()}
-            onUndo={() => {}} onRedo={() => {}} canUndo={false} canRedo={false}
-            onDownload={() => {}} moreItems={[]} onExit={onToggleFullscreen}
+            onUndo={marks.undo} onRedo={marks.redo} canUndo={marks.canUndo} canRedo={marks.canRedo}
+            onDownload={onDownload} moreItems={[]} onExit={onToggleFullscreen}
             scrollEvents={scrollEvents} pagePressEvents={pagePressEvents} labels={t.capsule}
           />
         </div>
       ) : (
         <div className={styles.top}>
           {menu()}
+          <button type="button" className={styles.download} onClick={onDownload}>{t.capsule.download}</button>
           <button type="button" className={styles.enter} onClick={onToggleFullscreen}><ReadingLampIcon size={20} />{t.enterLamp}</button>
         </div>
       )}
@@ -85,12 +89,11 @@ export default function HighlightWorkspace({ pdfDocument, numPages, fileName, zo
         onPointerDown={() => pagePressEvents.emit()}
       >
         {zoom.pages.map((box, i) => (
-          <div key={i} data-editor-page-card ref={(el) => { pageRefs.current[i] = el; }}>
-            <EditorPageHeader pageNumber={i + 1} onClear={null} />
-            <div className={`${workspaceStyles['page-wrapper']} ${styles.page}`} data-page-wrapper style={{ width: `${box.width * zoom.zoom}px` }}>
-              <PdfPageCanvas pdfDocument={pdfDocument} pageNum={i + 1} />
-            </div>
-          </div>
+          <HighlightPage
+            key={i} pdfDocument={pdfDocument} pageIndex={i} widthPx={box.width * zoom.zoom}
+            elements={marks.state.elements} marker={marks.marker} dispatch={marks.dispatch} logAction={marks.logAction}
+            setAnnouncement={setAnnouncement} cardRef={(el) => { pageRefs.current[i] = el; }}
+          />
         ))}
       </div>
     </div>

@@ -1,0 +1,3 @@
+.page { margin: 0 auto; }
+/* A highlight's box is placed by its element in percent of the page; the swipe rewrites it while it paints. */
+.mark { position: absolute; }
