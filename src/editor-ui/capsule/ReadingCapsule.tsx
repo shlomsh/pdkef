@@ -3,6 +3,7 @@ import { useEffect, useReducer, useRef, useState } from 'preact/hooks';
 import { formatMessage } from '#lib/text/formatMessage.ts';
 import { capsuleReducer, initialCapsule } from './capsuleState.ts';
 import { englishCapsuleLabels, foldedItems, type CapsuleLabels } from './capsuleItems.ts';
+import controls from '../EditorControls.module.css';
 import styles from './ReadingCapsule.module.css';
 
 /** @testSeam */
@@ -32,7 +33,7 @@ export interface ReadingCapsuleProps {
   labels?: CapsuleLabels;
 }
 
-const svg = { width: 18, height: 18, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', 'stroke-width': 2.5, 'stroke-linecap': 'round', 'stroke-linejoin': 'round', 'aria-hidden': true } as const;
+const svg = { width: 18, height: 18, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', 'stroke-width': 2, 'stroke-linecap': 'round', 'stroke-linejoin': 'round', 'aria-hidden': true } as const;
 const UndoIcon = () => <svg {...svg}><path d="M3 7v6h6" /><path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13" /></svg>;
 const RedoIcon = () => <svg {...svg}><path d="M21 7v6h-6" /><path d="M3 17a9 9 0 0 1 9-9 9 9 0 0 1 6 2.3L21 13" /></svg>;
 const PrintIcon = () => <svg {...svg}><path d="M6 9V2h12v7" /><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" /><path d="M6 14h12v8H6z" /></svg>;
@@ -120,7 +121,7 @@ export default function ReadingCapsule(p: ReadingCapsuleProps) {
             {p.page} / {p.pageCount}
           </button>
           {menu === 'jump' && (
-            <form class={`${styles.menu} ${styles.jump}`} role="group" aria-label={labels.jump} onSubmit={go}>
+            <form class={`${controls.popover} ${controls['toolbar-menu']} ${styles.menu} ${styles.jump}`} role="group" aria-label={labels.jump} onSubmit={go}>
               <input class={styles.number} type="number" inputMode="numeric" min={1} max={p.pageCount} value={jump} aria-label={labels.jump} onInput={(e) => setJump((e.target as HTMLInputElement).value)} autoFocus />
               <button type="submit" class={styles.go}>{labels.go}</button>
             </form>
@@ -135,16 +136,16 @@ export default function ReadingCapsule(p: ReadingCapsuleProps) {
         <span class={styles.menuWrap}>
           <button type="button" class={styles.button} aria-haspopup="menu" aria-expanded={menu === 'more'} aria-label={labels.more} title={labels.more} onClick={() => openMenu('more')}><MoreIcon /></button>
           {menu === 'more' && (
-            <div class={`${styles.menu} ${styles.more}`} role="menu" aria-label={labels.more}>
+            <div class={`${controls.popover} ${controls['toolbar-menu']} ${styles.menu} ${styles.more}`} role="menu" aria-label={labels.more}>
               {foldedEntries.map((it) =>
                 it.onSelect ? (
-                  <button key={it.id} type="button" role="menuitem" class={styles.item} onClick={pick(it.onSelect)}>{it.label}</button>
+                  <button key={it.id} type="button" role="menuitem" class={`${controls['menu-item']} ${styles.item}`} onClick={pick(it.onSelect)}>{it.label}</button>
                 ) : (
                   <div key={it.id} role="none" class={styles.itemText}>{it.label}</div>
                 ),
               )}
               {p.moreItems.map((it) => (
-                <button key={it.label} type="button" role="menuitem" class={styles.item} onClick={pick(it.onSelect)}>{it.label}</button>
+                <button key={it.label} type="button" role="menuitem" class={`${controls['menu-item']} ${styles.item}`} onClick={pick(it.onSelect)}>{it.label}</button>
               ))}
             </div>
           )}
