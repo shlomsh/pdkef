@@ -138,8 +138,16 @@ describe('PrintDropdown hover', () => {
     const { wrap, trigger, menu } = stateful(true);
     act(() => { wrap.dispatchEvent(new Event('mouseenter')); });
     expect(menu()).not.toBeNull();
+    act(() => { trigger().dispatchEvent(new MouseEvent('click', { bubbles: true, detail: 1 })); vi.advanceTimersByTime(10); });
+    expect(menu()).not.toBeNull();
+  });
+
+  it('on a fine pointer, keyboard activation of the trigger opens then closes the menu', () => {
+    const { trigger, menu } = stateful(true);
     act(() => { trigger().click(); vi.advanceTimersByTime(10); });
     expect(menu()).not.toBeNull();
+    act(() => { trigger().click(); vi.advanceTimersByTime(10); });
+    expect(menu()).toBeNull();
   });
 
   it('Escape still closes it on a fine pointer', () => {

@@ -52,7 +52,7 @@ export function PrintDropdown({ open, onOpenChange, withComments, onChoose }: {
     if (!next && triggerClick.current && !coarse && open) return;
     onOpenChange(next);
   };
-  const markTriggerClick = () => { triggerClick.current = true; setTimeout(() => { triggerClick.current = false; }, 0); };
+  const markTriggerClick = (e: MouseEvent) => { if (e.detail > 0) triggerClick.current = true; setTimeout(() => { triggerClick.current = false; }, 0); };
   const label = (
     <>
       <PrintIcon />

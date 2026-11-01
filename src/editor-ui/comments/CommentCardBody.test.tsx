@@ -39,6 +39,13 @@ describe('CommentCardBody', () => {
     expect(onSelect).toHaveBeenCalledOnce();
   });
 
+  it('only the active card carries the edit hint title', () => {
+    mount({ card: card(), active: false });
+    expect(q('[role="group"]').getAttribute('title')).toBeNull();
+    mount({ card: card(), active: true });
+    expect(q('[role="group"]').getAttribute('title')).toBe(englishSignMessages.commentEditHint);
+  });
+
   it('on a fine pointer, one click on an active saved card opens the field', () => {
     stubPointer(false);
     const onSelect = vi.fn();

@@ -65,7 +65,8 @@ export function CommentCardBody({ card, active, messages, label, onSelect, onSav
       class={showField ? styles.body : `${styles.body} ${styles.editable}`}
       role="group"
       aria-label={label}
-      title={showField ? undefined : messages.commentEditHint}
+      title={active && !showField ? messages.commentEditHint : undefined}
+      data-active={active || undefined}
       tabIndex={showField ? undefined : 0}
       onClick={(event) => {
         // Save, Cancel and Delete bubble their click up here; once they have closed the field (and the host has
