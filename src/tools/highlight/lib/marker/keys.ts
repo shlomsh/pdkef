@@ -1,3 +1,4 @@
+/** @testSeam */
 export type Layer = 'custom' | 'colors' | 'toolbar' | 'note';
 export type KeyAction =
   | { type: 'color'; index: number }

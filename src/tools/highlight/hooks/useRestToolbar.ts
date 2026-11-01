@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'preact/hooks';
 import type { HighlightElement } from '#editor/model/editorModel.ts';
 import { keyAction } from '../lib/marker/keys.ts';
 import { HIGHLIGHT_COLORS, type Marker } from '../lib/marker/markerState.ts';
-import { closeLayer, layersOf, scrolledPast, type Layers } from '../lib/marker/toolbarLayers.ts';
+import { scrolledPast } from '../lib/marker/toolbarLayers.ts';
 import { HINT_MS, hintSeen, markHintSeen } from '../lib/marker/hint.ts';
 import { initialRest, nextTickAt, restReducer, type RestEvent, type RestState } from '../lib/marker/restDetector.ts';
 
@@ -115,24 +115,25 @@ export function useRestToolbar() {
 
 const isTyping = (el: Element | null) => !!el && ((el as HTMLElement).isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName));
 
-type ToolbarLive = { current: { layers: Layers; mark: HighlightElement; onChange(change: Partial<Marker>): void; onDelete(): void; onComment(): void; onClose(): void; look: Marker } };
+type ToolbarLive = { current: { mark: HighlightElement; onChange(change: Partial<Marker>): void; onDelete(): void; onComment(): void; onClose(): void; look: Marker } };
 
 /** R9: keys, a press elsewhere, and a scroll of more than 24 px. */
 export function useToolbarDismissal(
   rootRef: { current: HTMLDivElement | null },
   live: ToolbarLive,
-  { setLayers, foldRow, toggleUnderline }: { setLayers: (fn: (l: Layers) => Layers) => void; foldRow(): void; toggleUnderline(): void },
+  { toggleUnderline }: { toggleUnderline(): void },
 ) {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      const { layers: current, onChange: change, onDelete: del, onClose: close } = live.current;
+      const { onChange: change, onDelete: del, onClose: close } = live.current;
       if (activeClose && activeClose !== close) return; // another page's toolbar is the open one
-      const action = keyAction(e, { typing: isTyping(e.target as Element | null), layers: layersOf(current) });
+      const action = keyAction(e, { typing: isTyping(e.target as Element | null), layers: ['toolbar'] });
       if (!action) return;
+      // A color or thickness menu that is open answers Esc itself.
+      if (action.type === 'closeLayer' && document.querySelector('[data-editor-popover]')) return;
       if (action.type === 'color') {
         e.preventDefault();
         change({ color: HIGHLIGHT_COLORS[action.index].hex });
-        foldRow();
       } else if (action.type === 'underline') {
         e.preventDefault();
         toggleUnderline();
@@ -144,20 +145,17 @@ export function useToolbarDismissal(
         del();
       } else if (action.type === 'closeLayer') {
         e.preventDefault();
-        if (action.layer === 'custom' || action.layer === 'colors') setLayers((l) => closeLayer(l, action.layer as 'custom' | 'colors'));
-        else {
-          // Focus inside the bar or on its mark goes back to the mark; focus elsewhere stays where it is.
-          const mark = document.querySelector<HTMLElement>(`[data-editor-element-id="${live.current.mark.id}"]`);
-          const active = document.activeElement;
-          const keep = !!active && (active === mark || !!rootRef.current?.contains(active));
-          close();
-          if (keep) mark?.focus();
-        }
+        // Focus inside the bar or on its mark goes back to the mark; focus elsewhere stays where it is.
+        const mark = document.querySelector<HTMLElement>(`[data-editor-element-id="${live.current.mark.id}"]`);
+        const active = document.activeElement;
+        const keep = !!active && (active === mark || !!rootRef.current?.contains(active));
+        close();
+        if (keep) mark?.focus();
       }
     };
     const onDown = (e: PointerEvent) => {
       const target = e.target as Element | null;
-      if (rootRef.current?.contains(target)) return;
+      if (rootRef.current?.contains(target) || target?.closest?.('[data-editor-popover]')) return;
       if (target?.closest?.(`[data-element-id="${live.current.mark.id}"]`)) return;
       live.current.onClose();
     };

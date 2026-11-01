@@ -1,54 +1,29 @@
-import { useEffect, useLayoutEffect, useRef, useState } from 'preact/hooks';
-import { CommentIcon } from '#editor-ui/toolIcons.tsx';
+import { useLayoutEffect, useRef } from 'preact/hooks';
+import { CommentIcon, TrashIcon } from '#editor-ui/toolIcons.tsx';
+import ColorPickerMenu from '#editor-ui/ColorPickerMenu.tsx';
+import ThicknessPickerMenu from '#editor-ui/ThicknessPickerMenu.tsx';
 import HighlightSwatches from '#editor-ui/highlight/HighlightSwatches.tsx';
 import type { HighlightElement } from '#editor/model/editorModel.ts';
+import { EXTRA_HIGHLIGHT_COLORS } from '#editor/model/highlightColors.ts';
+import { UNDERLINE_WIDTH } from '#editor/model/underlineInk.ts';
 import { englishSignMessages } from '#editor/registry/signMessages.ts';
-import { HIGHLIGHT_COLORS, type Marker } from '../lib/marker/markerState.ts';
+import { formatMessage } from '#lib/text/formatMessage.ts';
+import { OPACITY_MIN, type Marker } from '../lib/marker/markerState.ts';
 import { markOf } from '../lib/marker/markEdit.ts';
 import { nextFocusIndex } from '../lib/marker/roving.ts';
-import {
-  closeLayer, initialLayers, openColors, openCustom, pickedColor, type Layers,
-} from '../lib/marker/toolbarLayers.ts';
 import { useToolbarDismissal, type HintAnchor } from '../hooks/useRestToolbar.ts';
 import { englishHighlightMessages as t } from '../messages.ts';
 import useMarkToolbarPlacement from '../hooks/useMarkToolbarPlacement.ts';
 import controls from '#editor-ui/EditorControls.module.css';
+import elementStyles from '#editor-ui/EditorElement.module.css';
 import styles from './RestToolbar.module.css';
 
-/** R3: the colors open after this long a rest on Highlight, so a quick pass toward Delete never opens them. */
-const INTENT_MS = 450;
-
-const icon = { width: 18, height: 18, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', 'stroke-width': 2, 'stroke-linecap': 'round', 'stroke-linejoin': 'round', 'aria-hidden': true } as const;
-const UnderlineIcon = () => <svg {...icon}><path d="M6 4v7a6 6 0 0 0 12 0V4" /><path d="M4 21h16" /></svg>;
-const TrashIcon = () => <svg {...icon}><path d="M3 6h18" /><path d="M8 6V4h8v2" /><path d="M19 6l-1 14H6L5 6" /><path d="M10 11v6" /><path d="M14 11v6" /></svg>;
-
-/** R4: a color input and an opacity slider (30 to 100%). */
-function CustomPanel({ look, onChange }: { look: Marker; onChange(change: Partial<Marker>): void }) {
-  const percent = Math.round(look.opacity * 100);
-  return (
-    <div class={`${styles.panel} ${controls.popover} ${controls['toolbar-menu']}`} role="group" aria-label={t.markCustom}>
-      <div class={styles.prow}>
-        <span>{t.markColors}</span>
-        <input
-          type="color" class={styles.pick} aria-label={t.markColorInput} value={look.color.toLowerCase()}
-          onInput={(e) => onChange({ color: (e.target as HTMLInputElement).value.toUpperCase() })}
-        />
-      </div>
-      <div class={styles.prow}>
-        <span>{t.markOpacity}</span>
-        <input
-          type="range" class={styles.range} min={30} max={100} step={5} value={percent} aria-label={t.markOpacity}
-          onInput={(e) => onChange({ opacity: Number((e.target as HTMLInputElement).value) / 100 })}
-        />
-        <span class={styles.val} aria-hidden="true">{percent}%</span>
-      </div>
-    </div>
-  );
-}
+const EXTRA_PRESETS = EXTRA_HIGHLIGHT_COLORS.map((c) => c.hex);
+const THICKNESS_OPTIONS = [1, 1.5, 2, 3, 4];
 
 /**
- * The toolbar a highlight opens on a rest or a tap: Highlight | Underline, Comment, Delete. Resting on Highlight (or
- * clicking it) opens the six colors and a plus, and the plus opens a color input and an opacity slider.
+ * The toolbar a highlight opens on a rest or a tap, built from Sign's own element toolbar pieces: swatches, a color
+ * menu with opacity, the Highlight and Underline toggles, an underline's thickness, Comment and Delete.
  * It is placed by Sign's floating hook, above the mark, and every change is the caller's to apply.
  */
 export default function RestToolbar({ mark, onChange, onDelete, onComment, onClose }: {
@@ -59,53 +34,21 @@ export default function RestToolbar({ mark, onChange, onDelete, onComment, onClo
   onComment(): void;
   onClose(): void;
 }) {
-  const [layers, setLayers] = useState<Layers>(initialLayers);
   const rootRef = useRef<HTMLDivElement>(null);
-  const hlRef = useRef<HTMLButtonElement>(null);
-  const intent = useRef(0);
-  const focusColors = useRef(false);
-  const refocusHighlight = useRef(false);
   const rtl = mark.direction === 'rtl';
   const look = markOf(mark);
   const underline = look.style === 'underline';
 
   // The latest of everything the document listeners need, so they subscribe once.
-  const live = useRef({ layers, mark, onChange, onDelete, onComment, onClose, look });
-  live.current = { layers, mark, onChange, onDelete, onComment, onClose, look };
+  const live = useRef({ mark, onChange, onDelete, onComment, onClose, look });
+  live.current = { mark, onChange, onDelete, onComment, onClose, look };
 
-  const openRow = (fromKeyboard: boolean) => {
-    window.clearTimeout(intent.current);
-    focusColors.current = fromKeyboard;
-    setLayers(openColors);
-  };
-  const foldRow = () => {
-    refocusHighlight.current = !!rootRef.current?.contains(document.activeElement) && document.activeElement !== document.body;
-    setLayers(pickedColor);
-  };
-  const pickColor = (color: string) => {
-    live.current.onChange({ color });
-    foldRow();
-  };
   const toggleUnderline = () => live.current.onChange({ style: live.current.look.style === 'underline' ? 'highlight' : 'underline' });
 
   // Sign's placement: above the mark, start edge (end for RTL), inside the page wrapper and the visual viewport.
   const placement = useMarkToolbarPlacement(rootRef, mark.id, rtl);
 
-  // Focus follows the Highlight half when it turns into the colors and back.
-  useEffect(() => {
-    if (layers.colors && focusColors.current) {
-      focusColors.current = false;
-      const root = rootRef.current;
-      (root?.querySelector<HTMLElement>('[data-highlight-swatch][aria-pressed="true"]') ?? root?.querySelector<HTMLElement>('[data-highlight-swatch]'))?.focus();
-    } else if (!layers.colors && refocusHighlight.current) {
-      refocusHighlight.current = false;
-      hlRef.current?.focus();
-    }
-  }, [layers.colors]);
-
-  useEffect(() => () => window.clearTimeout(intent.current), []);
-
-  useToolbarDismissal(rootRef, live, { setLayers, foldRow, toggleUnderline });
+  useToolbarDismissal(rootRef, live, { toggleUnderline });
 
   const onArrow = (e: KeyboardEvent) => {
     const target = e.target as HTMLElement;
@@ -119,66 +62,56 @@ export default function RestToolbar({ mark, onChange, onDelete, onComment, onClo
     buttons[next].focus();
   };
 
-  const inSix = HIGHLIGHT_COLORS.some((c) => c.hex.toLowerCase() === look.color.toLowerCase());
+  const styleButton = (kind: Marker['style'], label: string, shortcut?: string) => (
+    <button
+      type="button" class={`${controls['element-button']}${look.style === kind ? ` ${controls.active}` : ''}`}
+      aria-label={label} aria-pressed={look.style === kind} aria-keyshortcuts={shortcut} title={label}
+      onClick={() => live.current.onChange({ style: kind })}
+    >
+      {label}
+    </button>
+  );
 
   return (
     <div
-      ref={placement.setRoot} class={styles.bar} style={placement.style} role="toolbar" aria-label={t.markToolbar}
+      ref={placement.setRoot} class={`${elementStyles.actions} ${styles.bar}`} style={placement.style} role="toolbar" aria-label={t.markToolbar}
       data-rest-toolbar data-side="above" onKeyDown={onArrow}
     >
-      <div class={styles.seg}>
-        {layers.colors ? (
-          <div class={styles.row} role="group" aria-label={t.markColors}>
-            <HighlightSwatches color={look.color} t={englishSignMessages} onChange={({ color }) => pickColor(color)} />
-            <div class={`${controls.divider} ${styles.divider}`} aria-hidden="true" />
-            <button
-              type="button" class={styles.plus} aria-label={t.markCustom} aria-haspopup="true" aria-expanded={layers.custom}
-              onClick={() => setLayers((l) => (l.custom ? closeLayer(l, 'custom') : openCustom(l)))}
-            >
-              <i class={`${styles.plusMark} ${inSix ? '' : styles.plusCustom}`} style={inSix ? undefined : { '--c': look.color }} />
-            </button>
-          </div>
-        ) : (
-          <button
-            ref={hlRef} type="button" class={styles.hl} aria-label={t.markHighlight} aria-pressed={!underline} aria-haspopup="true" aria-expanded={false}
-            aria-keyshortcuts="1 2 3 4 5 6" title={t.markHighlight}
-            onClick={(e) => {
-              if (underline) live.current.onChange({ style: 'highlight' });
-              openRow(e.detail === 0);
-            }}
-            onPointerEnter={(e) => {
-              if (e.pointerType !== 'mouse') return;
-              window.clearTimeout(intent.current);
-              intent.current = window.setTimeout(() => openRow(false), INTENT_MS);
-            }}
-            onPointerLeave={() => window.clearTimeout(intent.current)}
-          >
-            <i class={styles.dot} style={{ background: look.color, opacity: Math.max(0.35, look.opacity) }} />
-            {t.markHighlight}
-          </button>
-        )}
-        <button
-          type="button" class={styles.ul} aria-label={t.markUnderline} aria-pressed={underline} aria-keyshortcuts="U" title={t.markUnderline}
-          onClick={toggleUnderline}
-        >
-          <UnderlineIcon />
-          {t.markUnderline}
-        </button>
-      </div>
-      <div class={`${controls.divider} ${styles.divider}`} aria-hidden="true" />
-      <button
-        type="button" class={styles.icon} aria-label={t.markComment} title={t.markComment}
-        onClick={() => live.current.onComment()}
+      <HighlightSwatches color={look.color} t={englishSignMessages} onChange={({ color }) => live.current.onChange({ color })} />
+      <ColorPickerMenu
+        value={look.color} title={t.markColors} presets={EXTRA_PRESETS}
+        onChange={(color) => live.current.onChange({ color })}
       >
+        {!underline && (
+          <label class={styles.opacity}>
+            <input
+              type="range" min={OPACITY_MIN} max={1} step={0.05} value={look.opacity} aria-label={t.markOpacity}
+              onInput={(e) => live.current.onChange({ opacity: Number((e.target as HTMLInputElement).value) })}
+            />
+            <span aria-hidden="true">{Math.round(look.opacity * 100)}%</span>
+          </label>
+        )}
+      </ColorPickerMenu>
+      <div class={controls.divider} />
+      {styleButton('highlight', t.markHighlight)}
+      {styleButton('underline', t.markUnderline, 'U')}
+      {underline && (
+        <ThicknessPickerMenu
+          value={look.strokeWidth ?? UNDERLINE_WIDTH.default} title={t.markThickness} options={THICKNESS_OPTIONS}
+          itemTitle={(n) => formatMessage(t.thicknessItem, { n })}
+          onChange={(strokeWidth) => live.current.onChange({ strokeWidth })}
+        />
+      )}
+      <div class={controls.divider} />
+      <button type="button" class={controls['element-button']} aria-label={t.markComment} aria-keyshortcuts="C" title={t.markComment} onClick={() => live.current.onComment()}>
         <CommentIcon size={18} />
       </button>
       <button
-        type="button" class={`${styles.icon} ${styles.delete}`} aria-label={t.markDelete} aria-keyshortcuts="Delete" title={t.markDelete}
+        type="button" class={`${controls['element-button']} ${controls['element-button-danger']}`} aria-label={t.markDelete} aria-keyshortcuts="Delete" title={t.markDelete}
         onClick={() => live.current.onDelete()}
       >
         <TrashIcon />
       </button>
-      {layers.custom && <CustomPanel look={look} onChange={(change) => live.current.onChange(change)} />}
     </div>
   );
 }

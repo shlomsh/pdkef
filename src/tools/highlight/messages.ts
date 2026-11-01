@@ -31,6 +31,9 @@ export interface HighlightMessages {
   markColors: string;
   markCustom: string;
   markColorInput: string;
+  markThickness: string;
+  /** "{n} pt" */
+  thicknessItem: string;
   markOpacity: string;
   /** R8: shown once, after the first mark. */
   restHint: string;
@@ -72,6 +75,8 @@ export const englishHighlightMessages: HighlightMessages = {
   markColors: 'Color',
   markCustom: 'Custom color and opacity',
   markColorInput: 'Custom color',
+  markThickness: 'Underline thickness',
+  thicknessItem: '{n} pt',
   markOpacity: 'Opacity',
   restHint: 'Rest on a highlight to change it',
   tapHint: 'Tap a highlight to change it',
