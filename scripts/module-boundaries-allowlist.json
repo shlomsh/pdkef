@@ -36,22 +36,7 @@
   },
   {
     "rule": 9,
-    "file": "src/editor/comments/newComment.ts",
-    "reason": "READ-02: shared with Highlight PDF, moved out of Sign before its island exists; READ-03 is the second consumer, and this entry goes stale (remove it) once that island imports the file"
-  },
-  {
-    "rule": 9,
-    "file": "src/editor/highlight/commentCommit.ts",
-    "reason": "READ-02: shared with Highlight PDF, moved out of Sign before its island exists; READ-03 is the second consumer, and this entry goes stale (remove it) once that island imports the file"
-  },
-  {
-    "rule": 9,
     "file": "src/editor/highlight/flip.ts",
-    "reason": "READ-02: shared with Highlight PDF, moved out of Sign before its island exists; READ-03 is the second consumer, and this entry goes stale (remove it) once that island imports the file"
-  },
-  {
-    "rule": 9,
-    "file": "src/editor-ui/comments/CommentCardBody.tsx",
     "reason": "READ-02: shared with Highlight PDF, moved out of Sign before its island exists; READ-03 is the second consumer, and this entry goes stale (remove it) once that island imports the file"
   },
   {
@@ -61,22 +46,7 @@
   },
   {
     "rule": 9,
-    "file": "src/editor-ui/comments/CommentRail.tsx",
-    "reason": "READ-02: shared with Highlight PDF, moved out of Sign before its island exists; READ-03 is the second consumer, and this entry goes stale (remove it) once that island imports the file"
-  },
-  {
-    "rule": 9,
-    "file": "src/editor-ui/comments/CommentSheet.tsx",
-    "reason": "READ-02: shared with Highlight PDF, moved out of Sign before its island exists; READ-03 is the second consumer, and this entry goes stale (remove it) once that island imports the file"
-  },
-  {
-    "rule": 9,
     "file": "src/editor-ui/comments/HighlightComment.tsx",
-    "reason": "READ-02: shared with Highlight PDF, moved out of Sign before its island exists; READ-03 is the second consumer, and this entry goes stale (remove it) once that island imports the file"
-  },
-  {
-    "rule": 9,
-    "file": "src/editor-ui/comments/anchorNode.ts",
     "reason": "READ-02: shared with Highlight PDF, moved out of Sign before its island exists; READ-03 is the second consumer, and this entry goes stale (remove it) once that island imports the file"
   },
   {
@@ -87,16 +57,6 @@
   {
     "rule": 9,
     "file": "src/editor-ui/comments/commentNumbersContext.tsx",
-    "reason": "READ-02: shared with Highlight PDF, moved out of Sign before its island exists; READ-03 is the second consumer, and this entry goes stale (remove it) once that island imports the file"
-  },
-  {
-    "rule": 9,
-    "file": "src/editor-ui/comments/useCommentActions.ts",
-    "reason": "READ-02: shared with Highlight PDF, moved out of Sign before its island exists; READ-03 is the second consumer, and this entry goes stale (remove it) once that island imports the file"
-  },
-  {
-    "rule": 9,
-    "file": "src/editor-ui/comments/useCommentsView.tsx",
     "reason": "READ-02: shared with Highlight PDF, moved out of Sign before its island exists; READ-03 is the second consumer, and this entry goes stale (remove it) once that island imports the file"
   },
   {
