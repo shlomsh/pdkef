@@ -23,7 +23,7 @@ function emitter<A extends unknown[]>() {
 
 const MODE_LABEL = { width: t.fitWidth, text: t.fitText, page: t.fitPage } as const;
 
-/** The page column. Zoomed pages sit centred in a column that scrolls sideways when it is wider than the screen. */
+/** The page column on a board the reader pans and zooms; nothing re-centres on its own. */
 export default function HighlightWorkspace({ pdfDocument, numPages, fileName, zoom, workspaceRef, columnRef, fullscreen, onToggleFullscreen }: {
   pdfDocument: PDFDocumentProxy;
   numPages: number;
@@ -79,9 +79,10 @@ export default function HighlightWorkspace({ pdfDocument, numPages, fileName, zo
         </div>
       )}
       <ZoomReadout text={readout} />
+      <div className={styles.board} style={{ width: `${zoom.board.boardWidth}px` }}>
       <div
         className={styles.column} ref={columnRef}
-        style={{ width: `${widest * zoom.zoom}px` }}
+        style={{ width: `${widest * zoom.zoom}px`, marginLeft: `${zoom.board.slack}px` }}
         onPointerDown={() => pagePressEvents.emit()}
       >
         {zoom.pages.map((box, i) => (
@@ -92,6 +93,7 @@ export default function HighlightWorkspace({ pdfDocument, numPages, fileName, zo
             </div>
           </div>
         ))}
+      </div>
       </div>
     </div>
   );
