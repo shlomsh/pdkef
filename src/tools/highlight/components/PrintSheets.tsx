@@ -6,9 +6,14 @@ import { turnsOf, type PageTurns } from '#editor/geometry/pageTurn.ts';
 import { underlineInk, UNDERLINE_LIFT, UNDERLINE_WIDTH } from '#editor/model/underlineInk.ts';
 import { renderPageToCanvas } from '#lib/pdf/renderPage.js';
 import { reportError } from '#lib/telemetry/errorReport.ts';
+import { formatMessage } from '#lib/text/formatMessage.ts';
+import { englishSignMessages } from '#editor/registry/signMessages.ts';
 import { readPageInk } from '../hooks/readInkBounds.ts';
 import { turnedPageBox } from '../lib/zoom/turnedBox.ts';
 import { printNotes } from '../lib/print/printNotes.ts';
+import { endNotesPages, END_NOTES_HEADING, END_NOTES_MARGIN } from '../lib/print/endNotes.ts';
+import type { PrintNotes } from '../lib/print/printMenu.ts';
+import { englishHighlightMessages } from '../messages.ts';
 import { usePrintPaper } from '../hooks/usePrintPaper.ts';
 import { NOTE_FONT_PT, printPlan, type PagePrintPlan, type PrintNote, type PrintPage } from '../lib/print/printPlan.ts';
 import styles from './PrintSheets.module.css';
@@ -16,7 +21,8 @@ import styles from './PrintSheets.module.css';
 interface Props {
   pdfDocument: PDFDocumentProxy;
   elements: EditorElement[];
-  withNotes: boolean;
+  /** 'beside' puts each comment in a column next to its page, 'end' lists them on sheets after the pages, 'none' prints the pages alone. */
+  notes: PrintNotes;
   /** Quarter turns a person gave each page; a turned sheet is drawn and sized turned. Marks are stored in percent of the turned page. */
   pageTurns?: PageTurns;
   /** Once every page image has loaded and the sheets are laid out: the moment to call `window.print()`. */
@@ -89,6 +95,16 @@ function Card({ text, style, ...rest }: { text: string; class?: string; style?: 
   return <div data-print-card dir="auto" {...rest} style={{ fontSize: pt(NOTE_FONT_PT), ...style }} class={`${styles.card} ${rest.class ?? ''}`.trim()}>{text}</div>;
 }
 
+/** A comment on a notes-at-the-end sheet: its page, then the note in the beside card's look. */
+function EndEntry({ note, text, color }: { note: NoteSeed; text: string; color: string | undefined }) {
+  return (
+    <div data-print-end-entry data-note-id={note.id} class={`${styles.card} ${styles.endEntry}`} style={{ fontSize: pt(NOTE_FONT_PT), ...markVar(color) }}>
+      <div class={styles.endLabel}>{formatMessage(englishSignMessages.pageLabel, { number: note.page + 1 })}</div>
+      <div dir="auto">{text}</div>
+    </div>
+  );
+}
+
 function Sheet({ plan, pageName, image, highlights, texts, marks, onSettled }: {
   plan: PagePrintPlan;
   /** The named @page that sizes this sheet's paper. */
@@ -127,7 +143,8 @@ function Sheet({ plan, pageName, image, highlights, texts, marks, onSettled }: {
  * `printPlan` after the cards are measured at their real width. Hidden on screen, the only thing
  * shown in print (see the module's @media print rules).
  */
-export default function PrintSheets({ pdfDocument, elements, withNotes, pageTurns = NO_TURNS, onReady }: Props) {
+export default function PrintSheets({ pdfDocument, elements, notes, pageTurns = NO_TURNS, onReady }: Props) {
+  const withNotes = notes === 'beside';
   const [pages, setPages] = useState<PrintPage[]>([]);
   const [images, setImages] = useState<string[] | null>(null);
   const [measured, setMeasured] = useState<{ notes: NoteSeed[]; heights: ReadonlyMap<string, number> } | null>(null);
@@ -162,7 +179,14 @@ export default function PrintSheets({ pdfDocument, elements, withNotes, pageTurn
     return () => { current = false; };
   }, [pdfDocument, pageTurns, withNotes]);
 
-  const pageNames = usePrintPaper(pages);
+  // The notes at the end print on the size of the last page, upright.
+  const endSheet = useMemo(() => {
+    const last = pages[pages.length - 1];
+    if (notes !== 'end' || !last) return null;
+    return turnsOf(pageTurns, pages.length - 1) % 2 === 1 ? { width: last.height, height: last.width } : { width: last.width, height: last.height };
+  }, [notes, pages, pageTurns]);
+  const paperSheets = useMemo(() => (endSheet ? [...pages, endSheet] : pages), [pages, endSheet]);
+  const pageNames = usePrintPaper(paperSheets);
 
   const basePlan = useMemo(() => printPlan(pages, withNotes ? [] : null), [pages, withNotes]);
 
@@ -192,6 +216,7 @@ export default function PrintSheets({ pdfDocument, elements, withNotes, pageTurn
   }, [pdfDocument, pages, basePlan, pageTurns]);
 
   const seeds = useMemo(() => (withNotes && pages.length > 0 ? printNotes(elements, pages) : null), [withNotes, elements, pages]);
+  const endEntries = useMemo(() => (endSheet ? printNotes(elements, pages) : null), [endSheet, elements, pages]);
   const marks = markColors(elements);
   const texts = useMemo(() => new Map(elements.flatMap((el) => (el.type === 'comment' ? [[el.id, el.comment] as const] : []))), [elements]);
 
@@ -205,6 +230,24 @@ export default function PrintSheets({ pdfDocument, elements, withNotes, pageTurn
     });
     setMeasured({ notes: seeds, heights });
   }, [needsMeasure, seeds]);
+
+  // The notes at the end are measured the same way, at the width of the notes sheet.
+  const [endMeasured, setEndMeasured] = useState<{ entries: NoteSeed[]; heights: ReadonlyMap<string, number> } | null>(null);
+  const endMeasureRef = useRef<HTMLDivElement>(null);
+  const needsEndMeasure = endEntries !== null && endEntries.length > 0 && endMeasured?.entries !== endEntries;
+  useLayoutEffect(() => {
+    if (!needsEndMeasure || !endEntries || !endMeasureRef.current) return;
+    const heights = new Map<string, number>();
+    endMeasureRef.current.querySelectorAll<HTMLElement>('[data-print-end-entry]').forEach((entry) => {
+      heights.set(entry.dataset.noteId ?? '', (entry.offsetHeight * 72) / 96);
+    });
+    setEndMeasured({ entries: endEntries, heights });
+  }, [needsEndMeasure, endEntries]);
+
+  const endPages = useMemo(() => {
+    if (!endSheet || !endEntries || endMeasured?.entries !== endEntries) return [];
+    return endNotesPages(endEntries, endSheet.height, (n) => endMeasured.heights.get(n.id) ?? 0, END_NOTES_HEADING);
+  }, [endSheet, endEntries, endMeasured]);
 
   const plans = useMemo(() => {
     if (pages.length === 0) return null;
@@ -241,8 +284,19 @@ export default function PrintSheets({ pdfDocument, elements, withNotes, pageTurn
           })}
         </div>
       )}
+      {needsEndMeasure && endEntries && endSheet && (
+        <div ref={endMeasureRef} data-print-measure class={styles.measure} style={{ width: pt(endSheet.width - 2 * END_NOTES_MARGIN) }}>
+          {endEntries.map((n) => <EndEntry key={n.id} note={n} text={texts.get(n.id) ?? ''} color={marks.get(n.id)} />)}
+        </div>
+      )}
       {plans && images && plans.map((plan, i) => (
         <Sheet key={i} plan={plan} pageName={pageNames[i]} image={images[i]} highlights={highlightsOf(i)} texts={texts} marks={marks} onSettled={() => onSettled(i)} />
+      ))}
+      {plans && images && endSheet && endPages.map((entries, i) => (
+        <section key={`notes-${i}`} data-print-sheet data-print-notes-sheet class={`${styles.sheet} ${styles.endSheet}`} style={{ width: pt(endSheet.width), height: pt(endSheet.height), page: pageNames[pages.length] }}>
+          {i === 0 && <h2 class={styles.endHeading}>{englishHighlightMessages.printNotesHeading}</h2>}
+          {entries.map((n) => <EndEntry key={n.id} note={n} text={texts.get(n.id) ?? ''} color={marks.get(n.id)} />)}
+        </section>
       ))}
     </div>,
     document.body,

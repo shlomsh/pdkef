@@ -6,9 +6,9 @@ import type { PDFDocumentProxy } from 'pdfjs-dist';
 const reportError = vi.hoisted(() => vi.fn());
 vi.mock('#lib/telemetry/errorReport.ts', () => ({ reportError }));
 
-let sheetProps: { withNotes: boolean; onReady(): void } | null = null;
+let sheetProps: { notes: string; onReady(): void } | null = null;
 vi.mock('../components/PrintSheets.tsx', () => ({
-  default: (props: { withNotes: boolean; onReady(): void }) => {
+  default: (props: { notes: string; onReady(): void }) => {
     sheetProps = props;
     return <div data-print-stub />;
   },
@@ -50,15 +50,15 @@ describe('usePrint', () => {
     expect(window.print).not.toHaveBeenCalled();
   });
 
-  it('prints the notes at the end like the notes beside, until PrintSheets lays out the end', () => {
+  it('passes the notes choice through, end included', () => {
     act(() => api.print('end'));
-    expect(sheetProps?.withNotes).toBe(true);
+    expect(sheetProps?.notes).toBe('end');
   });
 
   it('mounts the sheets with the notes choice, and prints once they are ready', () => {
     act(() => api.print('beside'));
     expect(mounted()).toBe(true);
-    expect(sheetProps?.withNotes).toBe(true);
+    expect(sheetProps?.notes).toBe('beside');
     expect(window.print).not.toHaveBeenCalled();
     act(() => sheetProps!.onReady());
     expect(window.print).toHaveBeenCalledTimes(1);
@@ -96,7 +96,7 @@ describe('usePrint', () => {
     expect(mounted()).toBe(true);
     act(() => api.print('beside'));
     expect(mounted()).toBe(true);
-    expect(sheetProps?.withNotes).toBe(true);
+    expect(sheetProps?.notes).toBe('beside');
     act(() => sheetProps!.onReady());
     expect(window.print).toHaveBeenCalledTimes(2);
   });
@@ -104,6 +104,6 @@ describe('usePrint', () => {
   it('a second request while one is open is ignored', () => {
     act(() => api.print('none'));
     act(() => api.print('beside'));
-    expect(sheetProps?.withNotes).toBe(false);
+    expect(sheetProps?.notes).toBe('none');
   });
 });

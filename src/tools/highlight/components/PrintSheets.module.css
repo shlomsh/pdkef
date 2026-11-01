@@ -28,6 +28,13 @@
 }
 .placed { position: absolute; left: 0; }
 
+/* Notes at the end: the same card, in a flowing list on a sheet of its own. */
+.endSheet { box-sizing: border-box; padding: 36pt; }
+.endHeading { margin: 0 0 6pt; font-size: 14pt; font-weight: 600; line-height: 1.3; }
+.endEntry { margin-block-end: 6pt; break-inside: avoid; }
+.endEntry:last-child { margin-block-end: 0; }
+.endLabel { font-size: 0.8em; font-weight: 600; opacity: 0.7; }
+
 /* Cards are measured here, at the notes width, before they are placed. */
 .measure { position: absolute; left: 0; top: 0; visibility: hidden; pointer-events: none; }
 

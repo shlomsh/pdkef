@@ -33,12 +33,12 @@ afterEach(() => {
   readPageInk.mockResolvedValue(null);
 });
 
-async function mount(withNotes: boolean, pageTurns?: PageTurns, doc: PDFDocumentProxy = pdfDocument, els: EditorElement[] = elements) {
+async function mount(notes: boolean | 'end', pageTurns?: PageTurns, doc: PDFDocumentProxy = pdfDocument, els: EditorElement[] = elements) {
   renderPageToCanvas.mockResolvedValue({ toDataURL: () => 'data:image/png;base64,AAAA' });
   const onReady = vi.fn();
   container = document.createElement('div');
   document.body.appendChild(container);
-  await act(async () => { render(<PrintSheets pdfDocument={doc} elements={els} withNotes={withNotes} pageTurns={pageTurns} onReady={onReady} />, container!); });
+  await act(async () => { render(<PrintSheets pdfDocument={doc} elements={els} notes={notes === 'end' ? 'end' : notes ? 'beside' : 'none'} pageTurns={pageTurns} onReady={onReady} />, container!); });
   await vi.waitFor(() => expect(renderPageToCanvas).toHaveBeenCalledTimes(2));
   await act(async () => { await new Promise((r) => setTimeout(r, 20)); });
   return { onReady };
@@ -143,5 +143,52 @@ describe('PrintSheets', () => {
     await mount(false);
     act(() => render(null, container!));
     expect(document.body.querySelector('[data-print-root]')).toBeNull();
+  });
+});
+
+describe('PrintSheets notes at the end', () => {
+  const pageLabels = (sheet: HTMLElement) => [...sheet.querySelectorAll('[data-print-end-entry]')].map((n) => n.textContent);
+
+  it('prints the pages as plain print does, with no notes column, then one notes sheet', async () => {
+    await mount('end');
+    expect(sheets()).toHaveLength(3);
+    expect(root().querySelectorAll('[data-print-card]')).toHaveLength(0);
+    expect(root().querySelectorAll('img')).toHaveLength(2);
+    expect(sheets()[0].querySelectorAll('[data-print-band]')).toHaveLength(2);
+    expect(sheets()[0].style.width).toBe('600pt');
+    expect(sheets()[2].style.width).toBe('600pt');
+    expect(sheets()[2].style.height).toBe('800pt');
+    expect(root().querySelector('[data-print-measure]')).toBeNull();
+  });
+
+  it('lists each comment under its page label, in reading order, with no quoted passage and nothing for a bare highlight', async () => {
+    const els = [
+      ...elements,
+      { id: 'h3', type: 'highlight', pageIndex: 0, color: '#86efac', left: 10, top: 5, width: 50, height: 5, bands: [band] },
+      { id: 'c4', type: 'comment', pageIndex: 0, left: 0, top: 0, width: 0, height: 0, comment: 'earlier on page one', anchor: { kind: 'element', elementId: 'h3' } },
+      { id: 'h4', type: 'highlight', pageIndex: 1, color: '#86efac', left: 10, top: 60, width: 50, height: 5, bands: [band] },
+    ] as EditorElement[];
+    await mount('end', undefined, pdfDocument, els);
+    const entries = [...sheets()[2].querySelectorAll('[data-print-end-entry]')] as HTMLElement[];
+    expect(entries.map((n) => n.textContent)).toEqual(['Page 1earlier on page one', 'Page 1first', 'Page 2שלום']);
+    expect(entries[2].querySelector('[dir="auto"]')?.textContent).toBe('שלום');
+    expect(entries[0].style.getPropertyValue('--mark')).toBe('#86efac');
+    expect(entries[1].style.getPropertyValue('--mark')).toBe('#fde047');
+    expect(pageLabels(sheets()[2])).toHaveLength(3);
+  });
+
+  it('adds no notes sheet when the document has no comment', async () => {
+    await mount('end', undefined, pdfDocument, elements.filter((el) => el.type === 'highlight'));
+    expect(sheets()).toHaveLength(2);
+  });
+
+  it('draws the notes sheet upright when the last page was turned sideways', async () => {
+    await mount('end', { 1: 1 }, {
+      numPages: 2,
+      getPage: async () => ({ getViewport: ({ rotation }: { rotation: number }) => (rotation % 180 === 0 ? { width: 600, height: 800 } : { width: 800, height: 600 }) }),
+    } as unknown as PDFDocumentProxy);
+    expect(sheets()[1].style.width).toBe('800pt');
+    expect(sheets()[2].style.width).toBe('600pt');
+    expect(sheets()[2].style.height).toBe('800pt');
   });
 });
