@@ -32,3 +32,15 @@ export function medianBounds(perPage: Array<{ left: number; right: number } | nu
   const found = perPage.filter((b): b is { left: number; right: number } => b !== null);
   return found.length ? { left: median(found.map((b) => b.left)), right: median(found.map((b) => b.right)) } : null;
 }
+
+/**
+ * The full left-to-right extent of every row on a page, as fractions of the page width. Nothing is trimmed:
+ * print puts notes beside the text, and covering any ink is worse than a wider margin. Null with no rows.
+ */
+export function inkExtent(rows: TextRow[], widthPx: number): { left: number; right: number } | null {
+  if (rows.length === 0) return null;
+  return {
+    left: Math.min(...rows.map((r) => r.left)) / widthPx,
+    right: Math.max(...rows.map((r) => r.right)) / widthPx,
+  };
+}

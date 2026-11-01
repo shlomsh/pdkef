@@ -7,8 +7,8 @@ import type { PageTurns } from '#editor/geometry/pageTurn.ts';
 import PrintSheets from './PrintSheets.tsx';
 
 const renderPageToCanvas = vi.hoisted(() => vi.fn());
-const readInkBounds = vi.hoisted(() => vi.fn(async (): Promise<{ left: number; right: number } | null> => null));
-vi.mock('../hooks/readInkBounds.ts', () => ({ readInkBounds }));
+const readPageInk = vi.hoisted(() => vi.fn(async (_doc?: unknown, _index?: number): Promise<{ left: number; right: number } | null> => null));
+vi.mock('../hooks/readInkBounds.ts', () => ({ readPageInk }));
 vi.mock('#lib/pdf/renderPage.js', () => ({ renderPageToCanvas }));
 
 const band = { left: 0, top: 0, width: 100, height: 100 };
@@ -29,8 +29,8 @@ let container: HTMLElement | null = null;
 afterEach(() => {
   if (container) { act(() => render(null, container!)); container.remove(); container = null; }
   renderPageToCanvas.mockReset();
-  readInkBounds.mockReset();
-  readInkBounds.mockResolvedValue(null);
+  readPageInk.mockReset();
+  readPageInk.mockResolvedValue(null);
 });
 
 async function mount(withNotes: boolean, pageTurns?: PageTurns, doc: PDFDocumentProxy = pdfDocument, els: EditorElement[] = elements) {
@@ -65,13 +65,20 @@ describe('PrintSheets', () => {
   });
 
   it('with notes, slides the page so its ink starts at the margin and puts the column 12 pt past the ink', async () => {
-    readInkBounds.mockResolvedValue({ left: 0.1, right: 0.9 });
+    readPageInk.mockResolvedValue({ left: 0.1, right: 0.9 });
     await mount(true);
     const s = (600 - 48 - 12 - 132) / 480;
     const box = sheets()[0].querySelector('img')!.parentElement as HTMLElement;
     expect(parseFloat(box.style.left)).toBeCloseTo(24 - 60 * s);
     const notes = sheets()[0].querySelector('[data-print-card]')!.parentElement as HTMLElement;
     expect(parseFloat(notes.style.left)).toBeCloseTo(24 + 480 * s + 12);
+  });
+
+  it('reads each page\'s own ink, so two sheets with different ink put their notes at different x', async () => {
+    readPageInk.mockImplementation(async (_doc, index) => (index === 0 ? { left: 0.1, right: 0.9 } : { left: 0.1, right: 0.6 }));
+    await mount(true);
+    const left = (i: number) => parseFloat((sheets()[i].querySelector('[data-print-card]')!.parentElement as HTMLElement).style.left);
+    expect(left(0)).not.toBeCloseTo(left(1));
   });
 
   it('gives a card the color of its highlight as --mark', async () => {

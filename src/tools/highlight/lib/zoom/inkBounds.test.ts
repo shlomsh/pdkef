@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { TextRow } from '#lib/pageLayout/textRows.ts';
-import { inkTextBounds, medianBounds } from './inkBounds.ts';
+import { inkExtent, inkTextBounds, medianBounds } from './inkBounds.ts';
 
 const row = (left: number, right: number): TextRow => ({ top: 0, bottom: 10, left, right, gaps: [] });
 const body = (n: number, left = 100, right = 700) => Array.from({ length: n }, () => row(left, right));
@@ -34,5 +34,20 @@ describe('medianBounds', () => {
   it('is null when no page had any', () => {
     expect(medianBounds([null, null])).toBeNull();
     expect(medianBounds([])).toBeNull();
+  });
+});
+
+describe('inkExtent', () => {
+  it('contains every row, including one longer than the rest and a short one', () => {
+    const rows = [
+      ...Array.from({ length: 9 }, () => ({ top: 0, bottom: 10, left: 100, right: 500 })),
+      { top: 20, bottom: 30, left: 60, right: 700 },
+      { top: 40, bottom: 50, left: 300, right: 330 },
+    ];
+    expect(inkExtent(rows as never, 800)).toEqual({ left: 0.075, right: 0.875 });
+  });
+
+  it('is null with no rows', () => {
+    expect(inkExtent([], 800)).toBeNull();
   });
 });
