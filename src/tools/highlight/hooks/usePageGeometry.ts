@@ -4,6 +4,7 @@ import { pageGeometryFromPdfJsPage, type PageGeometry } from '#editor/geometry/c
 import { turnGeometry } from '#editor/geometry/pageTurn.ts';
 import { toPageTextRuns, type PageTextRun } from '#editor/geometry/textRuns.ts';
 import { readTextItems } from '#lib/pdf/pdfTextItems.ts';
+import { reportError } from '#lib/telemetry/errorReport.ts';
 
 /**
  * One page's geometry as it is shown now (the file's own, advanced by the person's `turns`), and its printed text in
@@ -32,7 +33,7 @@ export function usePageGeometry(pdfDocument: PDFDocumentProxy | null, pageIndex:
       } catch {
         // expected: no text to read the direction from, so the swipe falls back to the reader's own.
       }
-    });
+    }).catch((err) => { if (live) reportError('pdf_render', err, 'read_page_geometry'); });
     return () => { live = false; };
   }, [pdfDocument, pageIndex]);
 
