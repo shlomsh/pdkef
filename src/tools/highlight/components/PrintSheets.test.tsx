@@ -29,12 +29,12 @@ afterEach(() => {
   renderPageToCanvas.mockReset();
 });
 
-async function mount(withNotes: boolean, pageTurns?: PageTurns, doc: PDFDocumentProxy = pdfDocument) {
+async function mount(withNotes: boolean, pageTurns?: PageTurns, doc: PDFDocumentProxy = pdfDocument, els: EditorElement[] = elements) {
   renderPageToCanvas.mockResolvedValue({ toDataURL: () => 'data:image/png;base64,AAAA' });
   const onReady = vi.fn();
   container = document.createElement('div');
   document.body.appendChild(container);
-  await act(async () => { render(<PrintSheets pdfDocument={doc} elements={elements} withNotes={withNotes} pageTurns={pageTurns} onReady={onReady} />, container!); });
+  await act(async () => { render(<PrintSheets pdfDocument={doc} elements={els} withNotes={withNotes} pageTurns={pageTurns} onReady={onReady} />, container!); });
   await vi.waitFor(() => expect(renderPageToCanvas).toHaveBeenCalledTimes(2));
   await act(async () => { await new Promise((r) => setTimeout(r, 20)); });
   return { onReady };
@@ -64,6 +64,13 @@ describe('PrintSheets', () => {
     await mount(false);
     expect(sheets()[0].querySelectorAll('[data-print-band]')).toHaveLength(2);
     expect(sheets()[1].querySelectorAll('[data-print-band]')).toHaveLength(1);
+  });
+
+  it('prints an underline as wide as its strokeWidth, 1.5 when it has none, in page-scaled CSS px', async () => {
+    const under = (id: string, extra: object) => ({ id, type: 'highlight', pageIndex: 0, color: '#fde047', left: 10, top: 20, width: 50, height: 5, bands: [band], style: 'underline', ...extra }) as EditorElement;
+    await mount(false, undefined, pdfDocument, [under('w', { strokeWidth: 3 }), under('d', {})]);
+    const lines = [...sheets()[0].querySelectorAll('[data-print-band]')].map((b) => (b as HTMLElement).style.getPropertyValue('--line'));
+    expect(lines).toEqual(['3px', '1.5px']);
   });
 
   it('with notes, puts one card per highlight comment on its sheet, text read as typed', async () => {

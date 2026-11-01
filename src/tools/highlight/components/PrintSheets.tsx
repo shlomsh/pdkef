@@ -3,7 +3,7 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'preact/ho
 import type { PDFDocumentProxy } from 'pdfjs-dist';
 import type { EditorElement, HighlightElement } from '#editor/model/editorModel.ts';
 import { turnsOf, type PageTurns } from '#editor/geometry/pageTurn.ts';
-import { underlineInk } from '#editor/model/underlineInk.ts';
+import { underlineInk, UNDERLINE_WIDTH } from '#editor/model/underlineInk.ts';
 import { renderPageToCanvas } from '#lib/pdf/renderPage.js';
 import { reportError } from '#lib/telemetry/errorReport.ts';
 import { printNotes } from '../lib/print/printNotes.ts';
@@ -26,8 +26,6 @@ type NoteSeed = Omit<PrintNote, 'height'>;
 /** Pages are drawn at twice their printed size so a sheet stays sharp on paper. */
 const PRINT_OVERSAMPLE = 2;
 const CSS_PX_PER_PT = 96 / 72;
-/** An underline is 1.5 screen px at full size; it shrinks with the page. */
-const UNDERLINE_PX = 1.5;
 
 const NO_TURNS: PageTurns = {};
 
@@ -47,7 +45,8 @@ function pageBands(highlight: HighlightElement) {
   }));
 }
 
-function Highlights({ highlights }: { highlights: HighlightElement[] }) {
+/** An underline's width is in PDF points, drawn as CSS px at full size; it shrinks with the page by `pageScale`. */
+function Highlights({ highlights, pageScale }: { highlights: HighlightElement[]; pageScale: number }) {
   return (
     <>
       {highlights.map((highlight) => {
@@ -62,7 +61,7 @@ function Highlights({ highlights }: { highlights: HighlightElement[] }) {
                 class={underline ? `${styles.band} ${styles.underline}` : styles.band}
                 style={{
                   left: `${band.left}%`, top: `${band.top}%`, width: `${band.width}%`, height: `${band.height}%`,
-                  ...(underline ? { '--highlight-ink': ink } : { background: highlight.color }),
+                  ...(underline ? { '--highlight-ink': ink, '--line': `${(highlight.strokeWidth ?? UNDERLINE_WIDTH.default) * pageScale}px` } : { background: highlight.color }),
                 }}
               />
             ))}
@@ -89,10 +88,10 @@ function Sheet({ plan, image, highlights, texts, onSettled }: {
     <section data-print-sheet class={styles.sheet} style={{ width: pt(sheet.width), height: pt(sheet.height) }}>
       <div
         class={styles.pageBox}
-        style={{ left: pt(pageBox.x), top: pt(pageBox.y), width: pt(pageBox.width), height: pt(pageBox.height), '--line': `${UNDERLINE_PX * pageScale}px` }}
+        style={{ left: pt(pageBox.x), top: pt(pageBox.y), width: pt(pageBox.width), height: pt(pageBox.height) }}
       >
         <img class={styles.pageImage} src={image} alt="" onLoad={onSettled} onError={onSettled} />
-        <Highlights highlights={highlights} />
+        <Highlights highlights={highlights} pageScale={pageScale} />
       </div>
       {notesBox && (
         <div class={styles.notes} style={{ left: pt(notesBox.x), top: pt(notesBox.y), width: pt(notesBox.width), height: pt(notesBox.height) }}>
