@@ -95,6 +95,8 @@
   /* Paper: the one warm surface. The place a file lands (dropzones) and the
      header's link chips wear it; nothing else does. */
   --color-paper: #fff0e4;
+  /* The Reading lamp's bulb and its light (ReadingLampIcon). Nowhere else. */
+  --color-lamp-glow: #ffc94d;
   --color-paper-edge: #f0d8c4;
   /* Clay, from the paper family: the third file-tag colour. 3.5:1 on white, so
      it holds as a 4px band and a 10px square, never as text. */

@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef } from 'preact/hooks';
 import type { PDFDocumentProxy } from 'pdfjs-dist';
 import PdfPageCanvas from '#editor-ui/PdfPageCanvas.tsx';
 import EditorPageHeader from '#editor-ui/EditorPageHeader.tsx';
-import ReadingCapsule from '#editor-ui/capsule/ReadingCapsule.tsx';
+import ReadingCapsule, { ReadingLampIcon } from '#editor-ui/capsule/ReadingCapsule.tsx';
 import useCurrentPage from '#editor-ui/hooks/useCurrentPage.js';
 import workspaceStyles from '#editor-ui/Workspace.module.css';
 import { formatMessage } from '#lib/text/formatMessage.ts';
@@ -75,7 +75,7 @@ export default function HighlightWorkspace({ pdfDocument, numPages, fileName, zo
       ) : (
         <div className={styles.top}>
           {menu()}
-          <button type="button" className={styles.enter} onClick={onToggleFullscreen}>{t.enterLamp}</button>
+          <button type="button" className={styles.enter} onClick={onToggleFullscreen}><ReadingLampIcon size={20} />{t.enterLamp}</button>
         </div>
       )}
       <ZoomReadout text={readout} />
