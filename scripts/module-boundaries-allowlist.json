@@ -36,27 +36,7 @@
   },
   {
     "rule": 9,
-    "file": "src/editor/adapters/pdf/pdfLibGeometry.ts",
-    "reason": "READ-02: shared with Highlight PDF, moved out of Sign before its island exists; READ-03 is the second consumer, and this entry goes stale (remove it) once that island imports the file"
-  },
-  {
-    "rule": 9,
-    "file": "src/editor/comments/importAnnotations.ts",
-    "reason": "READ-02: shared with Highlight PDF, moved out of Sign before its island exists; READ-03 is the second consumer, and this entry goes stale (remove it) once that island imports the file"
-  },
-  {
-    "rule": 9,
     "file": "src/editor/comments/newComment.ts",
-    "reason": "READ-02: shared with Highlight PDF, moved out of Sign before its island exists; READ-03 is the second consumer, and this entry goes stale (remove it) once that island imports the file"
-  },
-  {
-    "rule": 9,
-    "file": "src/editor/comments/pinBox.ts",
-    "reason": "READ-02: shared with Highlight PDF, moved out of Sign before its island exists; READ-03 is the second consumer, and this entry goes stale (remove it) once that island imports the file"
-  },
-  {
-    "rule": 9,
-    "file": "src/editor/comments/readBack.ts",
     "reason": "READ-02: shared with Highlight PDF, moved out of Sign before its island exists; READ-03 is the second consumer, and this entry goes stale (remove it) once that island imports the file"
   },
   {
@@ -121,37 +101,12 @@
   },
   {
     "rule": 9,
-    "file": "src/editor-ui/elementActions.ts",
-    "reason": "READ-02: shared with Highlight PDF, moved out of Sign before its island exists; READ-03 is the second consumer, and this entry goes stale (remove it) once that island imports the file"
-  },
-  {
-    "rule": 9,
-    "file": "src/editor-ui/highlight/HighlightNode.tsx",
-    "reason": "READ-02: shared with Highlight PDF, moved out of Sign before its island exists; READ-03 is the second consumer, and this entry goes stale (remove it) once that island imports the file"
-  },
-  {
-    "rule": 9,
     "file": "src/editor-ui/highlight/HighlightSwatches.tsx",
     "reason": "READ-02: shared with Highlight PDF, moved out of Sign before its island exists; READ-03 is the second consumer, and this entry goes stale (remove it) once that island imports the file"
   },
   {
     "rule": 9,
     "file": "src/editor-ui/highlight/highlightSwipeGesture.ts",
-    "reason": "READ-02: shared with Highlight PDF, moved out of Sign before its island exists; READ-03 is the second consumer, and this entry goes stale (remove it) once that island imports the file"
-  },
-  {
-    "rule": 9,
-    "file": "src/editor-ui/nodeProps.ts",
-    "reason": "READ-02: shared with Highlight PDF, moved out of Sign before its island exists; READ-03 is the second consumer, and this entry goes stale (remove it) once that island imports the file"
-  },
-  {
-    "rule": 9,
-    "file": "src/lib/pageLayout/swipe.ts",
-    "reason": "READ-02: shared with Highlight PDF, moved out of Sign before its island exists; READ-03 is the second consumer, and this entry goes stale (remove it) once that island imports the file"
-  },
-  {
-    "rule": 9,
-    "file": "src/lib/pageLayout/swipeReader.ts",
     "reason": "READ-02: shared with Highlight PDF, moved out of Sign before its island exists; READ-03 is the second consumer, and this entry goes stale (remove it) once that island imports the file"
   },
   {
@@ -168,16 +123,6 @@
     "rule": 9,
     "file": "src/editor-ui/capsule/capsuleState.ts",
     "reason": "READ-05: built before its consumers; Highlight PDF's Reading lamp mounts it in READ-03, remove this entry once it does"
-  },
-  {
-    "rule": 9,
-    "file": "src/editor/export/drawElements.ts",
-    "reason": "editor export moved before Highlight PDF imports it (READ-03); remove once it does"
-  },
-  {
-    "rule": 9,
-    "file": "src/editor/model/elementsReducer.ts",
-    "reason": "element reducer moved before Highlight PDF uses it (READ-03); remove once it does"
   },
   {
     "rule": 9,
