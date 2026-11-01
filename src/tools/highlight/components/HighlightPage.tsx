@@ -3,6 +3,7 @@ import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
 import type { PDFDocumentProxy } from 'pdfjs-dist';
 import PdfPageCanvas from '#editor-ui/PdfPageCanvas.tsx';
 import EditorPageHeader from '#editor-ui/EditorPageHeader.tsx';
+import { CommentMarker } from '#editor-ui/comments/HighlightComment.tsx';
 import HighlightNode from '#editor-ui/highlight/HighlightNode.tsx';
 import usePdfCoordinates from '#editor-ui/hooks/usePdfCoordinates.ts';
 import workspaceStyles from '#editor-ui/Workspace.module.css';
@@ -18,6 +19,8 @@ import { directionAtPoint, readerTextDirection, resolveHighlightDirection } from
 import type { ActionHistoryEntry } from '#editor/model/actionHistory.ts';
 import type { EditorElementPatch } from '#editor/model/editorModel.ts';
 import { signUpdateDescription } from '#editor/registry/signLabels.ts';
+import { commentMarkers } from '#editor/comments/anchors.ts';
+import { commentNumbers } from '#editor/highlight/commentNumbers.ts';
 import { createElementId } from '#editor/model/ids.ts';
 import { recordAction } from '#lib/telemetry/actionTrail.ts';
 import useCoarsePointer from '#editor-ui/hooks/useCoarsePointer.ts';
@@ -43,7 +46,7 @@ const noop = () => {};
  * One page card: its header, the page, and a wrapper per highlight on it. A fine-pointer press on the
  * page starts a swipe that lays the marker's bands; the gesture paints during the swipe and commits once.
  */
-export default function HighlightPage({ pdfDocument, pageIndex, widthPx, elements, marker, touchArmed = false, rearm, dispatch, logAction, setAnnouncement, cardRef, rail }: {
+export default function HighlightPage({ pdfDocument, pageIndex, widthPx, elements, marker, touchArmed = false, rearm, dispatch, logAction, setAnnouncement, cardRef, rail, activeElementId = null, onSelectComment }: {
   pdfDocument: PDFDocumentProxy | null;
   pageIndex: number;
   /** The page's width in CSS px at the current zoom. */
@@ -61,6 +64,10 @@ export default function HighlightPage({ pdfDocument, pageIndex, widthPx, element
   cardRef: (node: HTMLDivElement | null) => void;
   /** R29: this page's comments rail, drawn inside the card beside the page so a pinch carries it with its passages. */
   rail?: ComponentChildren;
+  /** The active element: a comment marker wears its focused ring while its card is the active one. */
+  activeElementId?: string | null;
+  /** A click on a comment marker selects that comment, the way a click on its rail card does. */
+  onSelectComment?: (commentId: string) => void;
 }) {
   const [geometry, setGeometry] = useState<PageGeometry | undefined>(undefined);
   const { getPointerPercent } = usePdfCoordinates();
@@ -93,6 +100,23 @@ export default function HighlightPage({ pdfDocument, pageIndex, widthPx, element
   }, [pdfDocument, pageIndex]);
 
   const marks = elements.filter((el): el is HighlightElement => el.type === 'highlight' && el.pageIndex === pageIndex);
+
+  // Each mark's comment: its id, number and the marker's place in the mark's box, the way Sign draws them.
+  const commentMarks = useMemo(() => {
+    const places = commentMarkers(elements, () => readerTextDirection());
+    const numbers = commentNumbers(elements);
+    const byMark = new Map<string, { id: string; at: NonNullable<ReturnType<typeof places.get>>; number: number | undefined }>();
+    for (const el of elements) {
+      const at = places.get(el.id);
+      if (el.type === 'comment' && el.anchor.kind === 'element' && at) byMark.set(el.anchor.elementId, { id: el.id, at, number: numbers.get(el.id) });
+    }
+    return byMark;
+  }, [elements]);
+
+  const markerFor = (markId: string) => {
+    const comment = commentMarks.get(markId);
+    return comment && <CommentMarker at={comment.at} number={comment.number} focused={activeElementId === comment.id} onSelect={() => onSelectComment?.(comment.id)} />;
+  };
 
   const markFocus = useMarkFocus({ elements, openFor: rest.openFor });
 
@@ -173,6 +197,7 @@ export default function HighlightPage({ pdfDocument, pageIndex, widthPx, element
               style={{ left: `${mark.left}%`, top: `${mark.top}%`, width: `${mark.width}%`, height: `${mark.height}%` }}
             >
               <HighlightNode element={mark} isActive={false} onResizeStart={noop} />
+              {markerFor(mark.id)}
             </div>
           ))}
         </div>
