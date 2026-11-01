@@ -1,6 +1,6 @@
 ---
 id: "READ-05"
-title: "A one-line fullscreen bar on desktop, shared by Highlight PDF and Sign"
+title: "The fullscreen capsule, shared by Highlight PDF and Sign"
 status: "open"
 priority: "P2"
 epic: "highlight-pdf"
@@ -9,22 +9,23 @@ order: 4
 depends_on: ["READ-01"]
 ---
 
-# READ-05 · A one-line fullscreen bar on desktop
+# READ-05 · The fullscreen capsule
 
-*Filed 2026-11-01.* Shlomi: in fullscreen the toolbar should be as small as possible, one line, smaller
-buttons, focused on the document. Design record: [docs/highlight-pdf.md](../../docs/highlight-pdf.md),
-"Fullscreen is the reading room"; the look is READ-01's pick.
+*Filed 2026-11-01, reshaped the same day by the sketches.* Shlomi: in fullscreen the toolbar should be as
+small as possible and focused on the document. The behaviour is READ-01's requirements R15 to R19 (the
+capsule) and R20 to R26 (zoom); design record [docs/highlight-pdf.md](../../docs/highlight-pdf.md),
+"Fullscreen is the reading room".
 
 ## Outcome
 
-In fullscreen with a fine pointer, both tools show one line: 32 to 36 px icon buttons with their names in
-tooltips, the file name and "Page X of N" inline, the status row folded away, no card glass or shadow. The
-bar never auto-hides. Coarse pointers keep today's 44 px targets. Leaving fullscreen restores today's
-toolbar exactly.
+In fullscreen both tools show one floating capsule instead of the toolbar: grey and faded at rest, awake
+when reached for, dozing when the reader goes back to reading, carrying the armed tool and the zoom menu.
+Coarse pointers keep 44 px targets. Leaving fullscreen restores today's toolbar exactly.
 
 ## Acceptance
 
 - [ ] One fullscreen style in shared chrome (`src/editor-ui/`), not a container-query tier.
-- [ ] An e2e at two desktop widths pins one line, the button size, and that the page starts right under the
-  bar.
-- [ ] Arming a tool in fullscreen does not move the bar (the SIGN-30 rule).
+- [ ] The doze is driven by reading (scroll, a press on the page), never a timer; unit tests pin the states.
+- [ ] An e2e at two desktop widths pins the capsule centred on the page column, and that nothing in the
+  page moves when it wakes, dozes or opens a menu.
+- [ ] Arming a tool in fullscreen does not move the capsule (the SIGN-30 rule).

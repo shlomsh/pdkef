@@ -51,7 +51,7 @@ Marking should feel like holding a highlighter, not like operating software. Ske
 
 | ID | P | Task | Note |
 | --- | --- | --- | --- |
-| READ-01 | P2 | [READ-01](backlog/tasks/READ-01.md) · Highlight PDF: clickable sketches of the mark popup and the fullscreen bar | Needs Shlomi: Your pick between the sketches |
+| READ-01 | P2 | [READ-01](backlog/tasks/READ-01.md) · Highlight PDF: the sketches, turned into hard requirements for the real tool | In progress. Needs Shlomi: Your OK on the requirements below and your answers to the open calls |
 
 ### Then, in order
 
@@ -60,14 +60,14 @@ Marking should feel like holding a highlighter, not like operating software. Ske
 | READ-02 | P2 | [READ-02](backlog/tasks/READ-02.md) · Move the shared highlight and comment pieces out of Sign, no behaviour change |  |
 | READ-03 | P2 | [READ-03](backlog/tasks/READ-03.md) · Highlight PDF: the tool at /highlight-pdf/, highlights with a comment on each, and its page | Needs Shlomi: Confirm the name: Highlight PDF |
 | READ-04 | P2 | [READ-04](backlog/tasks/READ-04.md) · Sign hands highlighting to Highlight PDF: no Highlight tool, existing highlights kept |  |
-| READ-05 | P2 | [READ-05](backlog/tasks/READ-05.md) · A one-line fullscreen bar on desktop, shared by Highlight PDF and Sign |  |
+| READ-05 | P2 | [READ-05](backlog/tasks/READ-05.md) · The fullscreen capsule, shared by Highlight PDF and Sign |  |
 | READ-06 | P2 | [READ-06](backlog/tasks/READ-06.md) · Highlight PDF: Print with my notes, comments in the margin beside their passages |  |
 
 ### Parked
 
 | ID | P | Task | Note |
 | --- | --- | --- | --- |
-| READ-07 | P3 | [READ-07](backlog/tasks/READ-07.md) · Highlight PDF: highlight without arming, drag on desktop and long-press on a phone | Needs Shlomi: Your call on bending the one-shot rule in this tool, and an iPhone check |
+| READ-07 | P3 | [READ-07](backlog/tasks/READ-07.md) · Highlight PDF: long-press and drag to highlight on a phone | Needs Shlomi: An iPhone check |
 | READ-08 | P3 | [READ-08](backlog/tasks/READ-08.md) · Highlight PDF: hop between your highlights in reading order |  |
 | READ-09 | P3 | [READ-09](backlog/tasks/READ-09.md) · Highlight PDF: a pen for circles, arrows and margin notes, iPad first |  |
 
