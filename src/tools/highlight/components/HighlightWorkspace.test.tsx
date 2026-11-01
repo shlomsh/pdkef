@@ -4,11 +4,21 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { PDFDocumentProxy } from 'pdfjs-dist';
 import workspaceStyles from '#editor-ui/Workspace.module.css';
 import HighlightWorkspace from './HighlightWorkspace.tsx';
+import { useHighlightComments } from '../hooks/useHighlightComments.ts';
 import type { CommentElement, EditorElement, HighlightElement } from '#editor/model/editorModel.ts';
 import { DEFAULT_MARKER } from '../lib/marker/markerState.ts';
 import { NOTES_W } from '../lib/zoom/fit.ts';
 
 vi.mock('#editor-ui/PdfPageCanvas.tsx', () => ({ default: () => <canvas data-canvas /> }));
+
+type WorkspaceProps = Parameters<typeof HighlightWorkspace>[0];
+
+/** The workspace with the comments view PdfHighlightTool gives it, over the marks the test supplies. */
+function Harness(props: Omit<WorkspaceProps, 'comments' | 'dispatch'>) {
+  const { marks } = props;
+  const comments = useHighlightComments({ state: marks.state, dispatch: marks.dispatch, logAction: marks.logAction, announce: () => {} });
+  return <HighlightWorkspace {...props} comments={comments} dispatch={marks.dispatch} />;
+}
 
 let container: HTMLElement | null = null;
 afterEach(() => {
@@ -27,7 +37,7 @@ function mount(lamp: { fullscreen: boolean; pseudoFullscreen: boolean }) {
   container = document.createElement('div');
   document.body.appendChild(container);
   act(() => render(
-    <HighlightWorkspace
+    <Harness
       pdfDocument={{} as PDFDocumentProxy} numPages={0} fileName="a.pdf" zoom={zoom} marks={marks}
       setAnnouncement={vi.fn()} onDownload={vi.fn()} workspaceRef={{ current: null }} columnRef={{ current: null }}
       onToggleFullscreen={vi.fn()} {...lamp}
@@ -82,7 +92,7 @@ function mountNoted(elements: EditorElement[], workspaceWidth: number) {
   container = document.createElement('div');
   document.body.appendChild(container);
   act(() => render(
-    <HighlightWorkspace
+    <Harness
       pdfDocument={{ getPage: () => new Promise(() => {}) } as unknown as PDFDocumentProxy} numPages={1} fileName="a.pdf" zoom={zoom} marks={marks}
       setAnnouncement={vi.fn()} onDownload={vi.fn()} workspaceRef={workspaceRef} columnRef={{ current: null }}
       onToggleFullscreen={vi.fn()} fullscreen={false} pseudoFullscreen={false}

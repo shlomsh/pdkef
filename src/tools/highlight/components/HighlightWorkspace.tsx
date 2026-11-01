@@ -15,7 +15,8 @@ import ArmedChip from './ArmedChip.tsx';
 import { useToolShell } from '#shell/ToolShell.tsx';
 import { englishShellMessages } from '#shell/shellMessages.ts';
 import PrintMenu from './PrintMenu.tsx';
-import { useHighlightComments } from '../hooks/useHighlightComments.ts';
+import type { useHighlightComments } from '../hooks/useHighlightComments.ts';
+import type { ElementsAction } from '#editor/model/elementsReducer.ts';
 import { NOTES_W } from '../lib/zoom/fit.ts';
 import { useTouchArming } from '../hooks/useTouchArming.ts';
 import { usePrint } from '../hooks/usePrint.ts';
@@ -34,12 +35,16 @@ function emitter<A extends unknown[]>() {
 const MODE_LABEL = { width: t.fitWidth, text: t.fitText, page: t.fitPage } as const;
 
 /** The page column: the card at its own width, or in the reading lamp a board the reader pans and zooms. */
-export default function HighlightWorkspace({ pdfDocument, numPages, fileName, zoom, marks, setAnnouncement, onDownload, workspaceRef, columnRef, fullscreen, pseudoFullscreen, onToggleFullscreen }: {
+export default function HighlightWorkspace({ pdfDocument, numPages, fileName, zoom, marks, comments, dispatch, setAnnouncement, onDownload, workspaceRef, columnRef, fullscreen, pseudoFullscreen, onToggleFullscreen }: {
   pdfDocument: PDFDocumentProxy;
   numPages: number;
   fileName: string;
   zoom: WorkspaceZoom;
   marks: ReturnType<typeof useHighlightMarks>;
+  /** Sign's comments view over these marks (R27 to R29); its container is this workspace. */
+  comments: ReturnType<typeof useHighlightComments>;
+  /** The marks' dispatch, as the notes room wraps it: opening the first card makes room in the same event. */
+  dispatch: (action: ElementsAction) => void;
   setAnnouncement(message: string): void;
   onDownload(): void;
   workspaceRef: { current: HTMLDivElement | null };
@@ -63,8 +68,7 @@ export default function HighlightWorkspace({ pdfDocument, numPages, fileName, zo
     return () => ws.removeEventListener('scroll', onScroll);
   }, [workspaceRef, fullscreen, scrollEvents]);
 
-  // R27 to R29: Sign's comments mechanism over Highlight's marks. Its container is the workspace, whose width it measures.
-  const comments = useHighlightComments({ state: marks.state, dispatch: marks.dispatch, logAction: marks.logAction, announce: setAnnouncement });
+  // The comments view measures the workspace's width to choose the rail or the sheet.
   const commentsContainer = comments.containerRef;
   const setWorkspace = useCallback((node: HTMLDivElement | null) => {
     workspaceRef.current = node;
@@ -138,7 +142,7 @@ export default function HighlightWorkspace({ pdfDocument, numPages, fileName, zo
         {zoom.pages.map((box, i) => (
           <HighlightPage
             key={i} pdfDocument={pdfDocument} pageIndex={i} widthPx={box.width * zoom.zoom}
-            elements={marks.state.elements} marker={marks.marker} rearm={marks.rearm} dispatch={marks.dispatch} logAction={marks.logAction}
+            elements={marks.state.elements} marker={marks.marker} rearm={marks.rearm} dispatch={dispatch} logAction={marks.logAction}
             setAnnouncement={setAnnouncement} touchArmed={touch.armed} cardRef={(el) => { pageRefs.current[i] = el; }} rail={comments.rail(i)}
           />
         ))}
