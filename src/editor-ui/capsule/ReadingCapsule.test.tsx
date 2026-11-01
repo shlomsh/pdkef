@@ -115,31 +115,4 @@ describe('ReadingCapsule', () => {
     click(byLabel('Undo'));
     expect(props.onUndo).not.toHaveBeenCalled();
   });
-
-  describe('bar variant', () => {
-    it('has no file name, and Enter in place of Exit', () => {
-      const { bar, props } = setup({ variant: 'bar', onEnter: vi.fn(), onExit: undefined });
-      expect(bar.textContent).not.toContain('lease.pdf');
-      expect(bar.querySelector('[aria-label="Leave the reading lamp"]')).toBeNull();
-      click(byLabel('Use the reading lamp'));
-      expect(props.onEnter).toHaveBeenCalled();
-      const names = [...bar.querySelectorAll('button')].map((b) => b.getAttribute('aria-label'));
-      expect(names).toEqual(['Page 3 of 12', 'Zoom', 'Marker', 'Undo', 'Redo', 'Print', 'Download', 'More', 'Use the reading lamp']);
-    });
-
-    it('stays awake through a page press and a 100px scroll', () => {
-      const { bar, scroll, press } = setup({ variant: 'bar', onEnter: vi.fn() });
-      expect(bar.dataset.mode).toBe('awake');
-      act(() => press.emit());
-      act(() => scroll.emit(100));
-      expect(bar.dataset.mode).toBe('awake');
-    });
-
-    it('folds Redo, Print and Download under 600px, with no file name entry', () => {
-      const { bar } = setup({ variant: 'bar', onEnter: vi.fn() }, 500);
-      click(byLabel('More'));
-      expect([...q('[role="menu"]')!.children].map((c) => c.textContent)).toEqual(['Redo', 'Print', 'Download', 'Feedback']);
-      expect(bar.dataset.mode).toBe('awake');
-    });
-  });
 });

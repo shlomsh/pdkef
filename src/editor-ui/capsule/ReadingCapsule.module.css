@@ -144,15 +144,6 @@
   .capsule[data-mode='awake'] .inner { transition: none !important; }
 }
 
-/* The bar variant: the same pill, always awake, centered in the tool's row (.top keeps it sticky). */
-.capsule.bar {
-  position: relative;
-  top: auto;
-  left: auto;
-  translate: none;
-  padding-inline: 6px;
-}
-
 /* READ-05: the Reading lamp icon. */
 .lamp { overflow: visible; flex: none; }
 /* The head leans toward the page; the nod pivots on its hinge. */
