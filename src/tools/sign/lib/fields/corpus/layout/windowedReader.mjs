@@ -1,4 +1,4 @@
-// The baseline adapter: today's highlight reader (SIGN-46, `lib/highlight/`), run the way a swipe runs it,
+// The baseline adapter: today's highlight reader (SIGN-46, `src/lib/pageLayout/`), run the way a swipe runs it,
 // behind the layout corpus's reader contract (README "The reader contract"). It does not change the
 // reader: it hands it a canvas-shaped raster and reads the same windows a swipe reads.
 //
@@ -6,10 +6,10 @@
 // column that holds the press, and the rows in that column. So `layout` asks it once per probe, around
 // each truth row the way a swipe would, and the rows it reports are the ones under each press (its other
 // window rows are clipped at the window's cut edges and would be counted twice).
-import { columnSpanAt, findTextRows } from '../../../highlight/textRows.ts';
-import { createSwipeReader } from '../../../highlight/swipeReader.ts';
-import { canvasWindowRect } from '../../../highlight/swipe.ts';
-import { rowIndexAt } from '../../../highlight/bands.ts';
+import { columnSpanAt, findTextRows } from '#lib/pageLayout/textRows.ts';
+import { createSwipeReader } from '#lib/pageLayout/swipeReader.ts';
+import { canvasWindowRect } from '#lib/pageLayout/swipe.ts';
+import { rowIndexAt } from '#lib/pageLayout/bands.ts';
 
 // The reader's own constants (swipeReader.ts), so its windows are the ones the adapter reads.
 const FALLBACK_HEIGHT_PTS = 14;
