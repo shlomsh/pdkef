@@ -41,7 +41,8 @@ export function stepZoom(current: number, dir: 1 | -1): number {
   const next = dir === 1
     ? STEPS.find((s) => s > current + EPS)
     : [...STEPS].reverse().find((s) => s < current - EPS);
-  return clampZoom(next ?? current);
+  // No step past a fit below the floor: stay there rather than clamp, which would turn "out" into a zoom in.
+  return next === undefined ? current : clampZoom(next);
 }
 
 export function resolveZoom(setting: ZoomSetting, page: PageBox, view: Viewport, opts: { noted: boolean }): number {
