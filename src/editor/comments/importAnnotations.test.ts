@@ -130,10 +130,11 @@ describe('annotationsToElements: underline and opacity', () => {
 
   it('READ-04: reads /BS /W of an underline as strokeWidth, clamped, omitted at the default or when missing', () => {
     const width = (bs?: number) => run([page([raw({ subtype: 'Underline', quadPoints: QUAD, bs })])]).elements[0] as HighlightElement;
-    expect(width(3).strokeWidth).toBe(3);
+    expect(width(2).strokeWidth).toBe(2);
+    expect(width(1.5).strokeWidth).toBe(1.5);
     expect(width(9).strokeWidth).toBe(4);
     expect(width(0.2).strokeWidth).toBe(1);
-    for (const bs of [1.5, undefined]) expect('strokeWidth' in width(bs)).toBe(false);
+    for (const bs of [3, undefined]) expect('strokeWidth' in width(bs)).toBe(false);
     const highlight = run([page([raw({ quadPoints: QUAD, bs: 3 })])]).elements[0] as HighlightElement;
     expect('strokeWidth' in highlight).toBe(false);
   });

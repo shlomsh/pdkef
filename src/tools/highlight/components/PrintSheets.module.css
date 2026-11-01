@@ -15,7 +15,7 @@
 .pageImage { display: block; width: 100%; height: 100%; }
 .layer { position: absolute; inset: 0; mix-blend-mode: multiply; }
 .band { position: absolute; }
-.underline { background: linear-gradient(var(--highlight-ink), var(--highlight-ink)) bottom / 100% var(--line) no-repeat; }
+.underline::after { content: ''; position: absolute; inset-inline: 0; bottom: var(--lift); height: var(--line); border-radius: 1px; background: var(--highlight-ink); }
 
 .notes { position: absolute; }
 .card {
