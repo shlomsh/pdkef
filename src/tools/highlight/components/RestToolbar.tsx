@@ -85,7 +85,7 @@ export default function RestToolbar({ mark, onChange, onDelete, onComment, onClo
         )}
       </ColorPickerMenu>
       <div class={controls.divider} />
-      <span class={styles.toggle}>
+      <span class={styles.toggle} data-style-toggle>
         <button
           type="button" class={`${controls['element-button']}${underline ? '' : ` ${controls.active}`}`}
           aria-label={t.markHighlight} aria-pressed={!underline} title={t.markHighlight}
@@ -93,18 +93,21 @@ export default function RestToolbar({ mark, onChange, onDelete, onComment, onClo
         >
           <HighlightIcon />
         </button>
-        <button
-          type="button" class={`${controls['element-button']}${underline ? ` ${controls.active}` : ''}`}
-          aria-label={t.markUnderline} aria-pressed={underline} aria-keyshortcuts="U" title={t.markUnderline}
-          onClick={() => { if (!underline) toggleUnderline(); }}
-        >
-          <UnderlineGlyph />
-        </button>
-        <ThicknessPickerMenu
-          trigger="caret" value={look.strokeWidth ?? UNDERLINE_WIDTH.default} title={t.markThickness} options={THICKNESS_OPTIONS}
-          itemTitle={(n) => formatMessage(t.thicknessItem, { n })}
-          onChange={(strokeWidth) => live.current.onChange({ style: 'underline', strokeWidth })}
-        />
+        {/* The Underline segment owns its thickness: U and caret are one pill, filled together. */}
+        <span class={styles.underline} data-on={underline || undefined}>
+          <button
+            type="button" class={controls['element-button']}
+            aria-label={t.markUnderline} aria-pressed={underline} aria-keyshortcuts="U" title={t.markUnderline}
+            onClick={() => { if (!underline) toggleUnderline(); }}
+          >
+            <UnderlineGlyph bar={look.strokeWidth ?? UNDERLINE_WIDTH.default} />
+          </button>
+          <ThicknessPickerMenu
+            trigger="caret" value={look.strokeWidth ?? UNDERLINE_WIDTH.default} title={t.markThickness} options={THICKNESS_OPTIONS}
+            itemTitle={(n) => formatMessage(t.thicknessItem, { n })}
+            onChange={(strokeWidth) => live.current.onChange({ style: 'underline', strokeWidth })}
+          />
+        </span>
       </span>
       <div class={controls.divider} />
       <button type="button" class={controls['element-button']} aria-label={t.markComment} aria-keyshortcuts="C" title={t.markComment} onClick={() => live.current.onComment()}>
