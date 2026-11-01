@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'preact/hooks';
 import type { PDFDocumentProxy } from 'pdfjs-dist';
 import ReadingCapsule, { ReadingLampIcon } from '#editor-ui/capsule/ReadingCapsule.tsx';
 import useCurrentPage from '#editor-ui/hooks/useCurrentPage.js';
@@ -15,6 +15,8 @@ import ArmedChip from './ArmedChip.tsx';
 import { useToolShell } from '#shell/ToolShell.tsx';
 import { englishShellMessages } from '#shell/shellMessages.ts';
 import PrintMenu from './PrintMenu.tsx';
+import { useHighlightComments } from '../hooks/useHighlightComments.ts';
+import { NOTES_W } from '../lib/zoom/fit.ts';
 import { useTouchArming } from '../hooks/useTouchArming.ts';
 import { usePrint } from '../hooks/usePrint.ts';
 import { hasComments } from '../lib/print/printMenu.ts';
@@ -61,6 +63,16 @@ export default function HighlightWorkspace({ pdfDocument, numPages, fileName, zo
     return () => ws.removeEventListener('scroll', onScroll);
   }, [workspaceRef, fullscreen, scrollEvents]);
 
+  // R27 to R29: Sign's comments mechanism over Highlight's marks. Its container is the workspace, whose width it measures.
+  const comments = useHighlightComments({ state: marks.state, dispatch: marks.dispatch, logAction: marks.logAction, announce: setAnnouncement });
+  const commentsContainer = comments.containerRef;
+  const setWorkspace = useCallback((node: HTMLDivElement | null) => {
+    workspaceRef.current = node;
+    commentsContainer.current = node;
+  }, [workspaceRef, commentsContainer]);
+  // R29: the column grows by the notes column while the rail shows.
+  const notesW = comments.showRail ? NOTES_W : 0;
+
   const widest = zoom.pages.reduce((w, p) => Math.max(w, p.width), 0);
   const menu = (onOpenChange?: (open: boolean) => void) => (
     <ZoomMenu
@@ -88,7 +100,7 @@ export default function HighlightWorkspace({ pdfDocument, numPages, fileName, zo
   return (
     <div
       className={`${workspaceStyles.workspace} ${styles.workspace}${pseudoFullscreen ? ` ${workspaceStyles['pseudo-fullscreen']}` : ''}`}
-      ref={workspaceRef} data-workspace data-lamp={fullscreen || undefined} data-pseudo-fullscreen={pseudoFullscreen || undefined}
+      ref={setWorkspace} data-workspace data-lamp={fullscreen || undefined} data-pseudo-fullscreen={pseudoFullscreen || undefined}
     >
       {fullscreen ? (
         <div class={styles.floating}>
@@ -117,21 +129,22 @@ export default function HighlightWorkspace({ pdfDocument, numPages, fileName, zo
       {fullscreen && <PrintMenu {...printMenu} placement="floating" />}
       {print.sheets}
       <ArmedChip armed={touch.armed} onStop={touch.disarm} />
-      <div className={styles.board} style={{ width: `${zoom.board.boardWidth}px` }}>
+      <div className={styles.board} style={{ width: `${zoom.board.boardWidth + notesW}px` }}>
       <div
         className={styles.column} ref={columnRef}
-        style={{ width: `${widest * zoom.zoom}px`, marginLeft: `${zoom.board.slack}px` }}
+        style={{ width: `${widest * zoom.zoom + notesW}px`, marginLeft: `${zoom.board.slack}px` }}
         onPointerDown={() => pagePressEvents.emit()}
       >
         {zoom.pages.map((box, i) => (
           <HighlightPage
             key={i} pdfDocument={pdfDocument} pageIndex={i} widthPx={box.width * zoom.zoom}
             elements={marks.state.elements} marker={marks.marker} rearm={marks.rearm} dispatch={marks.dispatch} logAction={marks.logAction}
-            setAnnouncement={setAnnouncement} touchArmed={touch.armed} cardRef={(el) => { pageRefs.current[i] = el; }}
+            setAnnouncement={setAnnouncement} touchArmed={touch.armed} cardRef={(el) => { pageRefs.current[i] = el; }} rail={comments.rail(i)}
           />
         ))}
       </div>
       </div>
+      {comments.sheet}
     </div>
   );
 }
