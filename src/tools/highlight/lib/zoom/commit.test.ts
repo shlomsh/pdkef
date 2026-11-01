@@ -1,8 +1,19 @@
 import { describe, expect, it } from 'vitest';
-import { zoomCommit } from './commit.ts';
+import { commitChanges, zoomCommit } from './commit.ts';
 import { ZOOM_MAX, ZOOM_MIN } from './fit.ts';
 
 const origin = { x: 100, y: 50 };
+
+describe('commitChanges', () => {
+  it('is false when the setting and the zoom are both as they were', () => {
+    expect(commitChanges('width', 1.2, 'width', 1.2)).toBe(false);
+    expect(commitChanges(3, 3, 3, 3)).toBe(false);
+  });
+  it('is true when either differs', () => {
+    expect(commitChanges('width', 1.2, 'text', 1.2)).toBe(true);
+    expect(commitChanges('width', 1.2, 'width', 1.3)).toBe(true);
+  });
+});
 
 describe('zoomCommit', () => {
   it('keeps the content under the anchor still', () => {
