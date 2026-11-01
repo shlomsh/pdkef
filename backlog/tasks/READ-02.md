@@ -19,7 +19,9 @@ Everything Highlight PDF and Sign will both use lives in `src/editor/` or `src/e
 `docs/module-boundaries.md`: the line reader and band geometry (`lib/highlight/`), the swipe gesture
 (`hooks/highlightSwipeGesture.ts`), the swatches, the comment rail, sheet and cards
 (`components/comments/`), the highlight and comment nodes, and the import and read-back
-(`lib/comments/`). Sign-only code stays in Sign. Sign behaves exactly as before.
+(`lib/comments/`). The raster code the line reader leans on (`lib/fields/rasterInk.js`) moves with it to
+a shared home for the page layout (READ-01, R34 to R38), for example `src/lib/pageLayout/`, and joins
+`DETECTION_MODULES`. Sign-only code stays in Sign. Sign behaves exactly as before.
 
 ## Acceptance
 

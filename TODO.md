@@ -8,7 +8,7 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 
 ### Highlight PDF: a tool for reading
 
-- [READ-01](backlog/tasks/READ-01.md) P2 · Highlight PDF: clickable sketches of the mark popup and the fullscreen bar
+- [READ-01](backlog/tasks/READ-01.md) P2 · Highlight PDF: the sketches, turned into hard requirements for the real tool (in progress)
 
 ### Robustness and debt
 
@@ -68,7 +68,7 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 
 ## Needs Shlomi
 
-- [READ-01](backlog/tasks/READ-01.md) · Your pick between the sketches
+- [READ-01](backlog/tasks/READ-01.md) · Your OK on the requirements below and your answers to the open calls
 - [READ-03](backlog/tasks/READ-03.md) · Confirm the name: Highlight PDF
 - [MOBI-01](backlog/tasks/MOBI-01.md) · Half an hour with an Android phone
 - [DEBT-53](backlog/tasks/DEBT-53.md) · A check on your iPhone
@@ -77,6 +77,6 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 - [SEO-44](backlog/tasks/SEO-44.md) · The 2026-11-07 Search Console export: the /split/ and /he/split/ rows
 - [SEO-51](backlog/tasks/SEO-51.md) · Search Console, Performance, page /redact/, query containing "redact", last 3 months: impressions, clicks and position per query, plus the same for "blur"
 - [COMP-03](backlog/tasks/COMP-03.md) · A check on your iPhone
-- [READ-07](backlog/tasks/READ-07.md) · Your call on bending the one-shot rule in this tool, and an iPhone check
+- [READ-07](backlog/tasks/READ-07.md) · An iPhone check
 
 See [BACKLOG.md](BACKLOG.md) for every lane.
