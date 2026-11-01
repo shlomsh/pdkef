@@ -1,13 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'preact/hooks';
 import type { PDFDocumentProxy } from 'pdfjs-dist';
-import { readTextItems } from '#lib/pdf/pdfTextItems.ts';
 import type { DetailEdits } from '#editor/registry/draftValidation.ts';
 import { clampZoom, resolveZoom, stepZoom, type PageBox, type ZoomSetting } from '../lib/zoom/fit.ts';
 import { pageAnchorAt } from '../lib/zoom/pageAnchor.ts';
 import { zoomCommit } from '../lib/zoom/commit.ts';
 import { useBoardScroll } from './useBoardScroll.ts';
 import { initialSetting, serializeSetting } from '../lib/zoom/setting.ts';
-import { textBounds } from '../lib/zoom/textBounds.ts';
+import { readInkBounds } from './readInkBounds.ts';
 import { ACTUAL_SIZE } from '../lib/zoom/percent.ts';
 import { usePinchZoom } from './usePinchZoom.ts';
 import { useZoomKeys } from './useZoomKeys.ts';
@@ -44,7 +43,7 @@ export function useWorkspaceZoom({ pdfDocument, workspaceRef, columnRef, fullscr
   const [view, setView] = useState({ width: 0, height: 0 });
   const ready = pages.length > 0;
 
-  // Page sizes for every page, then the first page's text bounds, which the fit modes size the document by.
+  // Page sizes for every page, then where the text sits (read from the rendered pages), which Fit text sizes the document by.
   useEffect(() => {
     setPages([]);
     if (!pdfDocument) return;
@@ -58,10 +57,8 @@ export function useWorkspaceZoom({ pdfDocument, workspaceRef, columnRef, fullscr
         boxes.push({ width, height, textLeft: 0, textRight: width });
       }
       setPages(boxes);
-      const first = await pdfDocument.getPage(1);
-      if (!live || first.rotate !== 0) return;
-      const { textLeft, textRight } = textBounds(await readTextItems(first), boxes[0].width);
-      if (live) setPages(boxes.map((b, i) => (i === 0 ? { ...b, textLeft, textRight } : b)));
+      const ink = await readInkBounds(pdfDocument, () => live);
+      if (live && ink) setPages(boxes.map((b) => ({ ...b, textLeft: ink.left * b.width, textRight: ink.right * b.width })));
     })().catch(() => { /* the page render reports its own failures */ });
     return () => { live = false; };
   }, [pdfDocument]);
