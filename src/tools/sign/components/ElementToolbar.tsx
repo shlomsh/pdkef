@@ -3,6 +3,7 @@ import { offsetClone } from '../lib/elementClipboard.ts';
 import { TextAlignCenter, TextAlignEnd, TextAlignStart } from 'lucide-preact';
 import { TrashIcon } from '#editor-ui/toolIcons.tsx';
 import ColorPickerMenu from '#editor-ui/ColorPickerMenu.tsx';
+import { presetColorNames } from '#editor-ui/colorNames.ts';
 import HighlightControls from './HighlightControls.tsx';
 import ElementCommentButton from './ElementCommentButton.tsx';
 import DirectionButton from './DirectionButton.tsx';
@@ -232,7 +233,7 @@ export default function ElementToolbar({
           <ColorPickerMenu
             value={element.color}
             onChange={(color: string) => onChange({ color })}
-            title={t.textColorTitle}
+            title={t.textColorTitle} names={presetColorNames(t)}
             defaultColor="#000000"
           />
           <div className={styles.divider} />
@@ -275,7 +276,7 @@ export default function ElementToolbar({
           <ColorPickerMenu
             value={element.color}
             onChange={(color: string) => onChange({ color })}
-            title={t.checkboxColorTitle}
+            title={t.checkboxColorTitle} names={presetColorNames(t)}
             defaultColor="#1463ff"
           />
           <div className={styles.divider} />
@@ -338,7 +339,7 @@ export default function ElementToolbar({
           <ColorPickerMenu
             value={element.color}
             onChange={(color: string) => onChange({ color })}
-            title={t.shapeColorTitle}
+            title={t.shapeColorTitle} names={presetColorNames(t)}
             defaultColor="#1463ff"
           />
           <div className={styles.divider} />
@@ -349,7 +350,7 @@ export default function ElementToolbar({
           <ColorPickerMenu
             value={element.color}
             onChange={(color: string) => onChange({ color })}
-            title={t.signatureColorTitle}
+            title={t.signatureColorTitle} names={presetColorNames(t)}
             defaultColor="#000000"
           />
           <div className={styles.divider} />

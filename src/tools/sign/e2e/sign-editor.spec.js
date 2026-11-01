@@ -241,7 +241,7 @@ test.describe('Sign editor browser guardrails', () => {
     expect(Math.abs(toolbarRight - elementRight)).toBeLessThanOrEqual(4);
 
     await rtl.locator('button[title="Text color"]').click();
-    await page.locator('[data-editor-color-menu] [data-editor-color-swatch][title="#d8342b"]').click();
+    await page.locator('[data-editor-color-menu] [data-editor-color-swatch][title="Red"]').click();
     await expect(rtl.locator('[data-editor-text-input]')).toHaveCSS('color', 'rgb(216, 52, 43)');
 
     const whiteout = await addWhiteout(page, { x: 0.28, y: 0.52 }, { x: 0.42, y: 0.59 });
