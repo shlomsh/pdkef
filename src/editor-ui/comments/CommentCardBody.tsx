@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
-import useCoarsePointer from '../hooks/useCoarsePointer.ts';
 import type { SignMessages } from '#editor/registry/messages.ts';
 import type { CommentCard } from '#editor/highlight/commentCards.ts';
 import { commentPatch, type CommentPatch } from '#editor/highlight/commentCommit.ts';
@@ -23,7 +22,6 @@ export function CommentCardBody({ card, active, messages, label, onSelect, onSav
   /** Called once the person is done with the note (Save, Cancel, Esc, Delete): focus goes back to its anchor. */
   onReturnFocus?: () => void;
 }) {
-  const coarse = useCoarsePointer();
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(card.comment);
   const ref = useRef<HTMLTextAreaElement>(null);
@@ -74,7 +72,7 @@ export function CommentCardBody({ card, active, messages, label, onSelect, onSav
         // re-rendered in the same task) that click would read as a tap on the text and reopen it.
         if ((event.target as Element).closest('button, textarea')) return;
         if (card.isNew || showField) return;
-        if (!active) onSelect(); else if (coarse) startEdit();
+        if (!active) onSelect(); else startEdit();
       }}
       onDblClick={() => { if (!card.isNew && !showField) startEdit(); }}
       onKeyDown={onCardKeyDown}
