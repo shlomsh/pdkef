@@ -1,0 +1,11 @@
+/* R29: while the notes show, a page card is the header across, then the page and its rail side by side. The card
+   sits inside the page column, so a pinch's transform on the column carries the cards with their passages. */
+.withRail {
+  display: grid;
+  grid-template-columns: var(--page-w) var(--notes-w);
+  align-items: start;
+}
+.withRail > :first-child { grid-column: 1 / -1; }
+/* The rail's wrapper adds no box: the rail stretches to the page's height, which its cards are placed against. */
+.rail { display: contents; }
+.rail > [data-comment-rail] { align-self: stretch; width: calc(100% - 12px); margin-inline-start: 12px; }

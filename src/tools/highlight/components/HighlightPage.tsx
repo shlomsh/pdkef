@@ -1,3 +1,4 @@
+import type { ComponentChildren } from 'preact';
 import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
 import type { PDFDocumentProxy } from 'pdfjs-dist';
 import PdfPageCanvas from '#editor-ui/PdfPageCanvas.tsx';
@@ -14,11 +15,10 @@ import { toPageTextRuns } from '#editor/geometry/textRuns.ts';
 import { pageTextDirection } from '#editor/text/textDirection.js';
 import { readTextItems } from '#lib/pdf/pdfTextItems.ts';
 import { directionAtPoint, readerTextDirection, resolveHighlightDirection } from '#editor/highlight/resolveDirection.ts';
-import { captureElementSnapshots, type ActionHistoryEntry } from '#editor/model/actionHistory.ts';
+import type { ActionHistoryEntry } from '#editor/model/actionHistory.ts';
 import type { EditorElementPatch } from '#editor/model/editorModel.ts';
-import { deletedWith } from '#editor/model/elementsReducer.ts';
-import { signElementTypeLabel, signUpdateDescription } from '#editor/registry/signLabels.ts';
-import { formatMessage } from '#lib/text/formatMessage.ts';
+import { signUpdateDescription } from '#editor/registry/signLabels.ts';
+import { createElementId } from '#editor/model/ids.ts';
 import { recordAction } from '#lib/telemetry/actionTrail.ts';
 import useCoarsePointer from '#editor-ui/hooks/useCoarsePointer.ts';
 import { useClickMarks } from '../hooks/useClickMarks.ts';
@@ -27,9 +27,13 @@ import { useRestToolbar } from '../hooks/useRestToolbar.ts';
 import { cursorValue } from '../lib/marker/cursor.ts';
 import { inkEnd } from '../lib/marker/inkEnd.ts';
 import { buildMarkEdit } from '../lib/marker/markEdit.ts';
+import { deleteWithComments } from '../lib/notes/deleteElement.ts';
+import { openCommentFor } from '../lib/notes/openComment.ts';
 import type { Marker } from '../lib/marker/markerState.ts';
 import { englishHighlightMessages as t } from '../messages.ts';
 import RestToolbar, { MarkHint } from './RestToolbar.tsx';
+import { NOTES_W } from '../lib/zoom/fit.ts';
+import notes from './NotesColumn.module.css';
 import styles from './HighlightPage.module.css';
 
 const noop = () => {};
@@ -38,7 +42,7 @@ const noop = () => {};
  * One page card: its header, the page, and a wrapper per highlight on it. A fine-pointer press on the
  * page starts a swipe that lays the marker's bands; the gesture paints during the swipe and commits once.
  */
-export default function HighlightPage({ pdfDocument, pageIndex, widthPx, elements, marker, touchArmed = false, rearm, dispatch, logAction, setAnnouncement, cardRef }: {
+export default function HighlightPage({ pdfDocument, pageIndex, widthPx, elements, marker, touchArmed = false, rearm, dispatch, logAction, setAnnouncement, cardRef, rail }: {
   pdfDocument: PDFDocumentProxy | null;
   pageIndex: number;
   /** The page's width in CSS px at the current zoom. */
@@ -54,6 +58,8 @@ export default function HighlightPage({ pdfDocument, pageIndex, widthPx, element
   logAction: HistoryLogger<EditorElement>;
   setAnnouncement: (message: string) => void;
   cardRef: (node: HTMLDivElement | null) => void;
+  /** R29: this page's comments rail, drawn inside the card beside the page so a pinch carries it with its passages. */
+  rail?: ComponentChildren;
 }) {
   const [geometry, setGeometry] = useState<PageGeometry | undefined>(undefined);
   const { getPointerPercent } = usePdfCoordinates();
@@ -101,9 +107,7 @@ export default function HighlightPage({ pdfDocument, pageIndex, widthPx, element
   };
 
   const deleteMark = (el: HighlightElement) => {
-    const snapshots = captureElementSnapshots(elements, deletedWith(el.id));
-    dispatch({ type: 'DELETE_ELEMENT', payload: el.id });
-    logAction('delete', 'DELETE_ELEMENT', el.pageIndex, formatMessage(englishSignMessages.deletedElementDescriptionTemplate, { label: signElementTypeLabel(englishSignMessages, 'highlight') }), snapshots);
+    deleteWithComments(elements, el.id, englishSignMessages, { dispatch, logAction });
     recordAction('delete_mark');
     setAnnouncement(englishSignMessages.removedElement);
     rest.close();
@@ -113,6 +117,14 @@ export default function HighlightPage({ pdfDocument, pageIndex, widthPx, element
   const directionAt = (start: { x: number; y: number }) => resolveHighlightDirection({
     atPress: directionAtPoint(textRunsRef.current, start), page: pageTextDirection(textRunsRef.current.map((r) => r.str)), pages: [], elements, readerDirection: readerTextDirection(),
   });
+
+  /** R27: Comment opens the mark's comment card; a blank one is added first, unlogged (it is saved, and logged, with its text). */
+  const commentOn = (el: HighlightElement) => {
+    const { add, activeId } = openCommentFor(elements, el, createElementId());
+    if (add) dispatch({ type: 'ADD_ELEMENT', payload: add });
+    dispatch({ type: 'SET_ACTIVE_ELEMENT_ID', payload: activeId });
+    rest.close();
+  };
 
   /** A mark landed, by a swipe or a click: rest waits for the pointer to leave this spot, and the first mark gets its hint. */
   const inkLanded = (element: HighlightElement) => {
@@ -136,7 +148,10 @@ export default function HighlightPage({ pdfDocument, pageIndex, widthPx, element
   };
 
   return (
-    <div data-editor-page-card ref={cardRef}>
+    <div
+      data-editor-page-card ref={cardRef} className={rail ? notes.withRail : undefined}
+      style={rail ? { '--page-w': `${widthPx}px`, '--notes-w': `${NOTES_W}px` } : undefined}
+    >
       <EditorPageHeader pageNumber={pageIndex + 1} onClear={null} />
       <div className={`${workspaceStyles['page-wrapper']} ${styles.page}`} data-page-wrapper style={{ width: `${widthPx}px`, ...(pen ? { cursor: pen } : {}) }}>
         <PdfPageCanvas pdfDocument={pdfDocument} pageNum={pageIndex + 1} pageGeometry={geometry} />
@@ -151,7 +166,7 @@ export default function HighlightPage({ pdfDocument, pageIndex, widthPx, element
         >
           {marks.map((mark) => (
             <div
-              key={mark.id} data-element-id={mark.id} className={styles.mark}
+              key={mark.id} data-element-id={mark.id} data-editor-element-id={mark.id} className={styles.mark}
               style={{ left: `${mark.left}%`, top: `${mark.top}%`, width: `${mark.width}%`, height: `${mark.height}%` }}
             >
               <HighlightNode element={mark} isActive={false} onResizeStart={noop} />
@@ -162,10 +177,11 @@ export default function HighlightPage({ pdfDocument, pageIndex, widthPx, element
         {target && (
           <RestToolbar
             key={target.id} mark={target}
-            onChange={(change) => changeMark(target, change)} onDelete={() => deleteMark(target)} onClose={rest.close}
+            onChange={(change) => changeMark(target, change)} onDelete={() => deleteMark(target)} onComment={() => commentOn(target)} onClose={rest.close}
           />
         )}
       </div>
+      {rail && <div className={notes.rail} onPointerDown={(event) => event.stopPropagation()}>{rail}</div>}
     </div>
   );
 }

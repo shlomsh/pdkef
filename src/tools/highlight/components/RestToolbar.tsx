@@ -1,4 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'preact/hooks';
+import { CommentIcon } from '#editor-ui/toolIcons.tsx';
 import HighlightSwatches from '#editor-ui/highlight/HighlightSwatches.tsx';
 import type { HighlightElement } from '#editor/model/editorModel.ts';
 import { englishSignMessages } from '#editor/registry/signMessages.ts';
@@ -44,14 +45,16 @@ function CustomPanel({ look, onChange }: { look: Marker; onChange(change: Partia
 }
 
 /**
- * The toolbar a highlight opens on a rest or a tap: Highlight | Underline, Delete. Resting on Highlight (or
+ * The toolbar a highlight opens on a rest or a tap: Highlight | Underline, Comment, Delete. Resting on Highlight (or
  * clicking it) opens the six colors and a plus, and the plus opens a color input and an opacity slider.
  * It is placed once on open, inside the page wrapper, and every change is the caller's to apply.
  */
-export default function RestToolbar({ mark, onChange, onDelete, onClose }: {
+export default function RestToolbar({ mark, onChange, onDelete, onComment, onClose }: {
   mark: HighlightElement;
   onChange(change: Partial<Marker>): void;
   onDelete(): void;
+  /** R27: open this highlight's comment (a blank one first if it has none). */
+  onComment(): void;
   onClose(): void;
 }) {
   const [layers, setLayers] = useState<Layers>(initialLayers);
@@ -65,8 +68,8 @@ export default function RestToolbar({ mark, onChange, onDelete, onClose }: {
   const underline = look.style === 'underline';
 
   // The latest of everything the document listeners need, so they subscribe once.
-  const live = useRef({ layers, mark, onChange, onDelete, onClose, look });
-  live.current = { layers, mark, onChange, onDelete, onClose, look };
+  const live = useRef({ layers, mark, onChange, onDelete, onComment, onClose, look });
+  live.current = { layers, mark, onChange, onDelete, onComment, onClose, look };
 
   const openRow = (fromKeyboard: boolean) => {
     window.clearTimeout(intent.current);
@@ -156,6 +159,12 @@ export default function RestToolbar({ mark, onChange, onDelete, onClose }: {
           {t.markUnderline}
         </button>
       </div>
+      <button
+        type="button" class={styles.icon} aria-label={t.markComment} title={t.markComment}
+        onClick={() => live.current.onComment()}
+      >
+        <CommentIcon size={16} />
+      </button>
       <button
         type="button" class={`${styles.icon} ${styles.delete}`} aria-label={t.markDelete} aria-keyshortcuts="Delete" title={t.markDelete}
         onClick={() => live.current.onDelete()}

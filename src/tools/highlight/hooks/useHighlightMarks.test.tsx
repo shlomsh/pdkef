@@ -1,8 +1,9 @@
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { afterEach, describe, expect, it } from 'vitest';
-import type { HighlightElement } from '#editor/model/editorModel.ts';
-import { captureAddedElement } from '#editor/model/actionHistory.ts';
+import type { CommentElement, HighlightElement } from '#editor/model/editorModel.ts';
+import { captureAddedElement, captureElementSnapshots } from '#editor/model/actionHistory.ts';
+import { deletedWith } from '#editor/model/elementsReducer.ts';
 import { DEFAULT_MARKER } from '../lib/marker/markerState.ts';
 import { useHighlightMarks } from './useHighlightMarks.ts';
 
@@ -67,5 +68,24 @@ describe('useHighlightMarks', () => {
     const revision = marks.state.documentRevision;
     act(() => { marks.undo(); marks.redo(); });
     expect(marks.state.documentRevision).toBe(revision);
+  });
+
+  it('R27: deleting a highlight takes its comment in the same undo step, and one undo brings both back', () => {
+    const comment: CommentElement = {
+      id: 'c1', type: 'comment', pageIndex: 0, left: 10, top: 10, width: 20, height: 2,
+      comment: 'Check this', anchor: { kind: 'element', elementId: 'm1' },
+    };
+    mount();
+    act(() => { addMark(); marks.dispatch({ type: 'ADD_ELEMENT', payload: comment }); });
+    const stepsBefore = marks.state.actionHistory.length;
+    act(() => {
+      const snapshots = captureElementSnapshots(marks.state.elements, deletedWith('m1'));
+      marks.dispatch({ type: 'DELETE_ELEMENT', payload: 'm1' });
+      marks.logAction('delete', 'DELETE_ELEMENT', 0, 'Deleted a highlight', snapshots);
+    });
+    expect(marks.state.elements).toEqual([]);
+    expect(marks.state.actionHistory).toHaveLength(stepsBefore + 1);
+    act(() => marks.undo());
+    expect(marks.state.elements.map((el) => el.id).sort()).toEqual(['c1', 'm1']);
   });
 });
