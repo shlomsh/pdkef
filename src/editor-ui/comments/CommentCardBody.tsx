@@ -68,7 +68,13 @@ export function CommentCardBody({ card, active, messages, label, onSelect, onSav
       aria-label={label}
       title={showField ? undefined : messages.commentEditHint}
       tabIndex={showField ? undefined : 0}
-      onClick={() => { if (card.isNew || showField) return; if (!active) onSelect(); else if (coarse) startEdit(); }}
+      onClick={(event) => {
+        // Save, Cancel and Delete bubble their click up here; once they have closed the field (and the host has
+        // re-rendered in the same task) that click would read as a tap on the text and reopen it.
+        if ((event.target as Element).closest('button, textarea')) return;
+        if (card.isNew || showField) return;
+        if (!active) onSelect(); else if (coarse) startEdit();
+      }}
       onDblClick={() => { if (!card.isNew && !showField) startEdit(); }}
       onKeyDown={onCardKeyDown}
     >
