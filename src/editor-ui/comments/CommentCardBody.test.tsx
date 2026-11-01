@@ -124,7 +124,20 @@ describe('CommentCardBody', () => {
     expect(host!.querySelector('textarea')).not.toBeNull();
   });
 
-  it('a tap on the active card opens the field; on an inactive card it only selects', () => {
+  const stubPointer = (coarse: boolean) => vi.stubGlobal('matchMedia', (query: string) => ({ matches: coarse && query.includes('coarse'), media: query, addEventListener() {}, removeEventListener() {}, addListener() {}, removeListener() {} }));
+
+  it('a mouse click on the active card does not open the field; a double-click still does', () => {
+    stubPointer(false);
+    mount({ card: card(), active: true });
+    act(() => q<HTMLElement>('p').click());
+    expect(host!.querySelector('textarea')).toBeNull();
+    openEdit();
+    expect(host!.querySelector('textarea')).not.toBeNull();
+    vi.unstubAllGlobals();
+  });
+
+  it('a touch tap on the active card opens the field; on an inactive card it only selects', () => {
+    stubPointer(true);
     const onSelect = vi.fn();
     mount({ card: card(), active: false, onSelect });
     act(() => q<HTMLElement>('p').click());
@@ -134,6 +147,7 @@ describe('CommentCardBody', () => {
     mount({ card: card(), active: true });
     act(() => q<HTMLElement>('p').click());
     expect(host!.querySelector('textarea')).not.toBeNull();
+    vi.unstubAllGlobals();
   });
 
   it('editing a saved comment offers Delete, styled like Clear page, before Cancel; it deletes and returns focus', () => {
