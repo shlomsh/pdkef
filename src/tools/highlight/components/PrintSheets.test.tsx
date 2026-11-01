@@ -154,6 +154,12 @@ describe('PrintSheets', () => {
     expect(rotations).toContain(90);
   });
 
+  it('marks a turned sheet with its quarter turns so the underline can follow the text edge', async () => {
+    await mount(false, { 0: 1 });
+    expect(sheets()[0].getAttribute('data-page-turns')).toBe('1');
+    expect(sheets()[1].hasAttribute('data-page-turns')).toBe(false);
+  });
+
   it('removes its root when it unmounts', async () => {
     await mount(false);
     act(() => render(null, container!));
