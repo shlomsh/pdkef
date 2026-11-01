@@ -30,6 +30,8 @@
 .actions > button { min-width: 0; }
 /* Delete sits at the start as an icon; its label is kept for assistive tech only. */
 .delete { margin: 0; margin-inline-end: auto; padding: 0.4rem; flex: none; }
+/* On touch the icon-only Delete keeps a full 44 px target. */
+@media (pointer: coarse) { .delete { min-width: 44px; min-height: 44px; justify-content: center; } }
 .deleteLabel { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 .actions button:disabled { opacity: .5; cursor: default; }
 

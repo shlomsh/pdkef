@@ -3,7 +3,6 @@ import { isTypingTarget } from '#lib/history/isTypingTarget.ts';
 
 export { isTypingTarget };
 
-
 /**
  * View state for "show what is under every box": held by the toolbar's Peek
  * button (`setPeekAll`) or the Space key. Never written to elements, history

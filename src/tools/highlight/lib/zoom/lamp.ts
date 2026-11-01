@@ -9,7 +9,7 @@ export function widestPage(pages: readonly PageBox[]): PageBox | undefined {
 
 /**
  * The zoom the view shows: Fit width of the card in the normal view, the remembered setting in the lamp.
- * With notes, Fit width and Fit text leave room for the notes column (R28): NOTES_W px beside the page in the
+ * With notes, Fit width and Fit text leave room for the notes column (R28): NOTES_W px beside the page in
  * both views, so the lamp's Fit width has the normal view's proportions. A numeric zoom is unchanged.
  */
 export function displayZoom(setting: ZoomSetting, inLamp: boolean, page: PageBox | undefined, view: Viewport, noted: boolean): number {

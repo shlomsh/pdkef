@@ -45,7 +45,7 @@ export default function ColorPicker({ value, onChange, onClose, title, defaultCo
           value={value || defaultColor}
           label={title ?? ''}
           onCommit={onChange}
-          pressed={!presets.includes(value || defaultColor)}
+          pressed={!presets.some((preset) => preset.toLowerCase() === (value || defaultColor).toLowerCase())}
         />
       ) : (
         <input
