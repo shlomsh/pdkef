@@ -56,8 +56,8 @@ export default function MarkerButton({ marker, onChange, armed = false, onTap, o
     open,
     onOpenChange: toggle,
     placement: 'bottom-start',
-    strategy: 'fixed',
-    middleware: [offset(8), flip(), shift({ padding: 8 })],
+    strategy: 'absolute',
+    middleware: [offset(8), flip(), shift({ padding: 16 })],
     whileElementsMounted: autoUpdate,
   });
   const dismiss = useDismiss(context, { escapeKey: true, outsidePress: true });

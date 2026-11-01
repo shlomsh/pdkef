@@ -18,6 +18,9 @@
   box-shadow: var(--shadow-md);
   font: 500 14px/1.25 var(--font-sans);
 }
+/* One thing at the screen's foot at a time: while a comment sheet is open the chip steps aside, and it returns
+   when the sheet closes. */
+:global(body:has([data-comment-sheet])) .chip { display: none; }
 .text { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 /* On a phone the chip spans the screen between 16 px gutters (the full-width mobile toolbar rule): text left, Stop right. */
 @media (pointer: coarse), (max-width: 480px) {
