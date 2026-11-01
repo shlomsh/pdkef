@@ -210,6 +210,40 @@ describe('RestToolbar keys', () => {
   });
 });
 
+describe('RestToolbar follows the interface direction (READ-04)', () => {
+  const rtlMark: HighlightElement = { ...mark, direction: 'rtl' };
+
+  it('an RTL mark does not mirror the bar: no dir attribute', () => {
+    const bar = mount(rtlMark);
+    expect(bar.hasAttribute('dir')).toBe(false);
+    expect(bar.closest('[dir="rtl"]')).toBeNull();
+  });
+
+  it('Arrow Right moves to the next button in DOM order under the LTR interface, for an RTL mark', () => {
+    mount(rtlMark);
+    button('Highlight').focus();
+    key('ArrowRight', {}, button('Highlight'));
+    expect(document.activeElement).toBe(button('Underline'));
+  });
+
+  it('an aria-hidden divider separates the style segment from Comment, and is no focus stop', () => {
+    const bar = mount();
+    const divider = bar.querySelector('[aria-hidden="true"]:not(svg):not(i)');
+    expect(divider).not.toBeNull();
+    expect(divider!.tagName).toBe('DIV');
+    expect(divider!.nextElementSibling).toBe(button('Comment'));
+    expect(divider!.previousElementSibling).toBe(bar.firstElementChild);
+    expect(divider!.hasAttribute('tabindex')).toBe(false);
+  });
+
+  it('another divider sits between the color swatches and the plus when the colors are open', () => {
+    mount();
+    click(button('Highlight'));
+    const plus = button('Custom color and opacity');
+    expect(plus.previousElementSibling?.getAttribute('aria-hidden')).toBe('true');
+  });
+});
+
 describe('RestToolbar closing', () => {
   const press = (target: Element) => act(() => { target.dispatchEvent(new MouseEvent('pointerdown', { bubbles: true })); });
 

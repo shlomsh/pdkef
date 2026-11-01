@@ -111,7 +111,9 @@ export default function RestToolbar({ mark, onChange, onDelete, onComment, onClo
     const target = e.target as HTMLElement;
     if (target.tagName !== 'BUTTON') return;
     const buttons = [...(rootRef.current?.querySelectorAll<HTMLElement>('button') ?? [])];
-    const next = nextFocusIndex(buttons.indexOf(target), e.key, buttons.length, rtl);
+    // Arrows follow the interface direction, never the mark's text direction.
+    const interfaceRtl = !!rootRef.current && getComputedStyle(rootRef.current).direction === 'rtl';
+    const next = nextFocusIndex(buttons.indexOf(target), e.key, buttons.length, interfaceRtl);
     if (next === null) return;
     e.preventDefault();
     buttons[next].focus();
@@ -121,13 +123,14 @@ export default function RestToolbar({ mark, onChange, onDelete, onComment, onClo
 
   return (
     <div
-      ref={placement.setRoot} class={styles.bar} style={placement.style} role="toolbar" aria-label={t.markToolbar} dir={rtl ? 'rtl' : 'ltr'}
+      ref={placement.setRoot} class={styles.bar} style={placement.style} role="toolbar" aria-label={t.markToolbar}
       data-rest-toolbar data-side="above" onKeyDown={onArrow}
     >
       <div class={styles.seg}>
         {layers.colors ? (
           <div class={styles.row} role="group" aria-label={t.markColors}>
             <HighlightSwatches color={look.color} t={englishSignMessages} onChange={({ color }) => pickColor(color)} />
+            <div class={`${controls.divider} ${styles.divider}`} aria-hidden="true" />
             <button
               type="button" class={styles.plus} aria-label={t.markCustom} aria-haspopup="true" aria-expanded={layers.custom}
               onClick={() => setLayers((l) => (l.custom ? closeLayer(l, 'custom') : openCustom(l)))}
@@ -162,6 +165,7 @@ export default function RestToolbar({ mark, onChange, onDelete, onComment, onClo
           {t.markUnderline}
         </button>
       </div>
+      <div class={`${controls.divider} ${styles.divider}`} aria-hidden="true" />
       <button
         type="button" class={styles.icon} aria-label={t.markComment} title={t.markComment}
         onClick={() => live.current.onComment()}
