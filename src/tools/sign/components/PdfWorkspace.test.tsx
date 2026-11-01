@@ -494,7 +494,7 @@ describe('PdfWorkspace Component', () => {
       colorTrigger.click();
     });
 
-    const redSwatch = required(document.body.querySelector<HTMLButtonElement>('[data-editor-color-swatch][title="#d8342b"]'), 'red color swatch');
+    const redSwatch = required(document.body.querySelector<HTMLButtonElement>('[data-editor-color-swatch][title="Red"]'), 'red color swatch');
     act(() => {
       redSwatch.click();
     });

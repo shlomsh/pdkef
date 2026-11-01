@@ -1084,7 +1084,7 @@ describe('PdfSignTool UI flow', () => {
 
     const colorMenu = query(document.body, '[data-editor-color-menu]');
     expect(colorMenu).not.toBeNull();
-    const redSwatch = query<HTMLButtonElement>(colorMenu, '[data-editor-color-swatch][title="#d8342b"]');
+    const redSwatch = query<HTMLButtonElement>(colorMenu, '[data-editor-color-swatch][title="Red"]');
     expect(redSwatch).not.toBeNull();
     await act(async () => {
       redSwatch.click();

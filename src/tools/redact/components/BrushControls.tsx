@@ -1,5 +1,7 @@
 import { Pipette } from 'lucide-preact';
 import ColorPickerMenu from '#editor-ui/ColorPickerMenu.tsx';
+import { presetColorNames } from '#editor-ui/colorNames.ts';
+import { englishSignMessages } from '#editor/registry/signMessages.ts';
 import type { DocumentStyle } from '#editor/model/documentStyle.ts';
 import styles from './BrushControls.module.css';
 import { englishRedactMessages as t } from '../messages.ts';
@@ -116,7 +118,7 @@ export default function BrushControls({
               ref={(el) => { if (el) el.style.setProperty('--swatch', color); }}
             />
           )}
-          <ColorPickerMenu value={color} onChange={onColor} title={t.moreColours} defaultColor="#ffffff" />
+          <ColorPickerMenu value={color} onChange={onColor} title={t.moreColours} names={presetColorNames(englishSignMessages)} defaultColor="#ffffff" />
           <button
             type="button"
             className={`${styles.pipette}${eyedropping ? ` ${styles.on}` : ''}`}
