@@ -2,13 +2,13 @@ import type { EditorElement } from '#editor/model/editorModel.ts';
 import type { PageTurns } from '#editor/geometry/pageTurn.ts';
 import { recordAction } from '#lib/telemetry/actionTrail.ts';
 import { reportError } from '#lib/telemetry/errorReport.ts';
-import { exportHighlighted, highlightedFileName } from '../lib/export/highlightedPdf.ts';
+import { exportHighlighted, highlightedFileName } from './highlightedPdf.ts';
 
 /**
  * Download: the bytes the session holds (the file with its old highlights already read out of it), turned as the
  * person turned the pages, with the marks written on top.
  */
-export function useHighlightDownload({ fileName, bytes, elements, pageTurns, save }: {
+export function downloadHandler({ fileName, bytes, elements, pageTurns, save }: {
   fileName: string | undefined;
   bytes: () => ArrayBuffer | null | undefined;
   elements: EditorElement[];
