@@ -71,8 +71,8 @@ export async function drawElements(
     const page = pdfDoc.getPage(element.pageIndex);
     const pageGeometry = pageGeometryFromPdfLibPage(page);
     const { x: pdfX, y: pdfY } = pagePercentToEditorPoint({
-      x: ('left' in element ? element.left : (element as { x1?: number }).x1) ?? 0,
-      y: ('top' in element ? element.top : (element as { y1?: number }).y1) ?? 0,
+      x: (element as { left?: number; x1?: number }).left ?? (element as { x1?: number }).x1 ?? 0,
+      y: (element as { top?: number; y1?: number }).top ?? (element as { y1?: number }).y1 ?? 0,
     }, pageGeometry);
 
     // Every registry serializer draws in one rotation/crop-neutral editor

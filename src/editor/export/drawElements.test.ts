@@ -5,6 +5,7 @@ import { drawElements } from './drawElements.ts';
 import { mockFontFetch } from '../adapters/pdf/fontFetch.test-helper.js';
 import { embeddedFontFile } from '../text/fonts.js';
 import { applyAffineTransform, createPageGeometry, pageGeometryFromPdfJsPage } from '../geometry/coords.ts';
+import { getElementDefinition } from '../registry/index.ts';
 import type { EditorElement } from '../model/editorModel.ts';
 
 // The same loader Sign hands over: bundled faces off /fonts, embedded into the document being drawn.
@@ -130,5 +131,23 @@ describe('drawElements', () => {
     pdfDoc.addPage([400, 500]);
     const text = { id: 't', type: 'text', pageIndex: 0, left: 10, top: 10, text: 'A', fontFamily: 'Arimo', fontSize: 12, color: '#000000' } as EditorElement;
     await expect(drawElements(pdfDoc, [text], {})).rejects.toThrow('drawElements: a text element needs loadCustomFont');
+  });
+
+  it('places an element carrying left: undefined at its x1/y1, like the nullish chain Sign used', async () => {
+    const pdfDoc = await PDFDocument.create();
+    pdfDoc.addPage([400, 500]);
+    const serialize = vi.fn(async (_element: EditorElement, _ctx: { pdfX: number; pdfY: number }) => {});
+    const definition = getElementDefinition('line');
+    const original = definition.serialize;
+    (definition as { serialize: unknown }).serialize = serialize;
+    try {
+      const line = (extra: Record<string, unknown>) => ({ id: 'l', type: 'line', pageIndex: 0, x1: 40, y1: 50, x2: 60, y2: 70, color: '#1463ff', strokeWidth: 2, ...extra }) as EditorElement;
+      await drawElements(pdfDoc, [line({}), line({ left: undefined, top: undefined }), line({ left: null, top: null })], {});
+    } finally {
+      (definition as { serialize: unknown }).serialize = original;
+    }
+    const placed = serialize.mock.calls.map(([, ctx]) => [ctx.pdfX, ctx.pdfY]);
+    expect(placed[1]).toEqual(placed[0]);
+    expect(placed[2]).toEqual(placed[0]);
   });
 });
