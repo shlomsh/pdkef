@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'preact/hooks';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'preact/hooks';
 import type { PDFDocumentProxy } from 'pdfjs-dist';
 import type { DetailEdits } from '#editor/registry/draftValidation.ts';
 import { clampZoom, resolveZoom, stepZoom, type PageBox, type ZoomSetting } from '../lib/zoom/fit.ts';
@@ -14,6 +14,7 @@ import { useZoomKeys } from './useZoomKeys.ts';
 import { useLampAnchor } from './useLampAnchor.ts';
 import { useBoardPan } from './useBoardPan.ts';
 import type { Point } from '../lib/zoom/anchor.ts';
+import { keepPassageOnRoom } from '../lib/zoom/room.ts';
 
 const STORE_KEY = 'pdkef:highlight:zoom-default';
 
@@ -31,7 +32,7 @@ export interface WorkspaceZoomOptions {
   /** The page column the zoom scales. */
   columnRef: { current: HTMLElement | null };
   fullscreen: boolean;
-  /** The document has a note, so Fit width and Fit text leave room for the notes column (R28). */
+  /** The document has a saved note, so Fit width and Fit text leave room for the notes column (R28). `makeRoom` can lead it. */
   noted?: boolean;
   /** A pinch or zoom key in the normal view asks for the lamp; the owner of the fullscreen state opens it. */
   onEnterLamp(): void;
@@ -83,7 +84,12 @@ export function useWorkspaceZoom({ pdfDocument, workspaceRef, columnRef, fullscr
     return () => observer.disconnect();
   }, [workspaceRef, fullscreen, ready]);
 
-  const zoom = useMemo(() => displayZoom(setting, fullscreen, pages[0], view, noted), [setting, fullscreen, pages, view, noted]);
+  // A note makes room when its card opens, before it is saved; the saved state takes over when it changes.
+  const [made, setMade] = useState<boolean | null>(null);
+  useLayoutEffect(() => setMade(null), [noted]);
+  const roomy = made ?? noted;
+
+  const zoom = useMemo(() => displayZoom(setting, fullscreen, pages[0], view, roomy), [setting, fullscreen, pages, view, roomy]);
 
   const zoomRef = useRef(zoom);
   zoomRef.current = zoom;
@@ -91,8 +97,12 @@ export function useWorkspaceZoom({ pdfDocument, workspaceRef, columnRef, fullscr
   pagesRef.current = pages;
   const viewRef = useRef(view);
   viewRef.current = view;
-  const notedRef = useRef(noted);
-  notedRef.current = noted;
+  const notedRef = useRef(roomy);
+  notedRef.current = roomy;
+  const settingRef = useRef(setting);
+  settingRef.current = setting;
+  const fullscreenRef = useRef(fullscreen);
+  fullscreenRef.current = fullscreen;
 
   // Where the page column sits on screen and how far the reader has scrolled, in one frame (viewport pixels).
   const frame = useCallback(() => {
@@ -142,6 +152,24 @@ export function useWorkspaceZoom({ pdfDocument, workspaceRef, columnRef, fullscr
   }, [commit]);
   const actual = useCallback((anchor?: Point) => commit(ACTUAL_SIZE, ACTUAL_SIZE, anchor), [commit]);
 
+  /**
+   * The first note opens (or the last one goes): the page fits with or without the notes column in the same
+   * layout pass, no transition, and the scroll keeps `passage` (unscaled px from the column's top-left, see
+   * `passageInColumn`) on the same line of the screen. It never re-centres and is not a zoom choice.
+   */
+  const makeRoom = useCallback((nextNoted: boolean, passage: Point) => {
+    const f = frame();
+    const page = pagesRef.current[0];
+    if (f && page && nextNoted !== notedRef.current) {
+      const nextZoom = displayZoom(settingRef.current, fullscreenRef.current, page, viewRef.current, nextNoted);
+      if (nextZoom !== zoomRef.current) {
+        pendingScroll.current = keepPassageOnRoom({ before: { rect: f.rect, scroll: f.scroll, zoom: zoomRef.current }, nextZoom, passage });
+        pendingAnchor.current = null;
+      }
+    }
+    setMade(nextNoted);
+  }, [frame, pendingScroll, pendingAnchor]);
+
   useZoomKeys({ enabled: ready, inLamp: fullscreen, onEnterLamp, step, actual });
   useBoardPan({ workspaceRef, fullscreen, enabled: ready && fullscreen });
   usePinchZoom({ workspaceRef, columnRef, enabled: ready, inLamp: fullscreen, onEnterLamp, zoomRef, commit });
@@ -152,6 +180,7 @@ export function useWorkspaceZoom({ pdfDocument, workspaceRef, columnRef, fullscr
     const saved = details?.zoom;
     setSetting(initialSetting(saved?.action === 'alter' ? saved.value : undefined, storedDefault()));
     setTouched(false);
+    setMade(null);
     pendingCentre.current = true;
   }, []);
 
@@ -161,7 +190,7 @@ export function useWorkspaceZoom({ pdfDocument, workspaceRef, columnRef, fullscr
     return edits;
   }, [touched, setting]);
 
-  return { setting, zoom, pages, board, touched, details, apply, step, actual, restore };
+  return { setting, zoom, pages, board, touched, details, apply, step, actual, makeRoom, restore };
 }
 
 export type WorkspaceZoom = ReturnType<typeof useWorkspaceZoom>;
