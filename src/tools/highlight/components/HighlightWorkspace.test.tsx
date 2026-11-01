@@ -57,6 +57,14 @@ describe('HighlightWorkspace', () => {
     }
   });
 
+  it('outside the lamp shows the capsule as a bar: the same controls, no zoom, and the way into the lamp last', () => {
+    const ws = mount({ fullscreen: false, pseudoFullscreen: false });
+    const bar = ws.querySelector('[role="toolbar"]')!;
+    const names = [...bar.querySelectorAll(':scope button[aria-label]')].map((b) => b.getAttribute('aria-label'));
+    expect(names.slice(-6)).toEqual(['Undo', 'Redo', 'Print', 'Download', 'More', 'Use the reading lamp']);
+    expect(bar.querySelector('[aria-label*="oom"]')).toBeNull();
+  });
+
   it('covers the screen when the lamp stands in for fullscreen, as on an iPhone', () => {
     const ws = mount({ fullscreen: true, pseudoFullscreen: true });
     expect(ws.classList.contains(workspaceStyles['pseudo-fullscreen'])).toBe(true);
