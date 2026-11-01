@@ -3,6 +3,7 @@ import { act } from 'preact/test-utils';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { englishSignMessages } from '#editor/registry/signMessages.ts';
 import type { CommentCard } from '#editor/highlight/commentCards.ts';
+import headerStyles from '../EditorPageHeader.module.css';
 import { CommentCardBody } from './CommentCardBody.tsx';
 
 const band = { left: 10, top: 10, width: 30, height: 2 };
@@ -21,6 +22,8 @@ function mount(props: { card: CommentCard; active?: boolean; onSelect?: () => vo
 }
 const q = <T extends Element>(sel: string) => host!.querySelector<T>(sel)!;
 const button = (label: string): HTMLButtonElement => [...host!.querySelectorAll<HTMLButtonElement>("button")].find((b) => b.textContent === label)!;
+const dbl = (el: Element) => act(() => { el.dispatchEvent(new MouseEvent('dblclick', { bubbles: true })); });
+const openEdit = () => dbl(q('p'));
 const type = (value: string) => act(() => { const t = q<HTMLTextAreaElement>('textarea'); t.value = value; t.dispatchEvent(new Event('input', { bubbles: true })); });
 
 describe('CommentCardBody', () => {
@@ -34,10 +37,10 @@ describe('CommentCardBody', () => {
     expect(onSelect).toHaveBeenCalledOnce();
   });
 
-  it('active existing card has an Edit button, which opens a prefilled field with Cancel and Comment', () => {
+  it('a double-click on a saved card opens a prefilled field with Cancel and Comment', () => {
     const onSave = vi.fn();
     mount({ card: card(), active: true, onSave });
-    act(() => q<HTMLElement>('button[aria-label="Edit"]').click());
+    openEdit();
     expect(q<HTMLTextAreaElement>('textarea').value).toBe('Check this');
     expect(q('textarea').getAttribute('dir')).toBe('auto');
     type('Changed');
@@ -57,7 +60,7 @@ describe('CommentCardBody', () => {
   it('Cancel while editing keeps the comment', () => {
     const [onSave, onDelete, onDiscard] = [vi.fn(), vi.fn(), vi.fn()];
     mount({ card: card(), active: true, onSave, onDelete, onDiscard });
-    act(() => q<HTMLElement>('button[aria-label="Edit"]').click());
+    openEdit();
     type('half typed');
     act(() => button('Cancel').click());
     expect(onSave).not.toHaveBeenCalled();
@@ -72,7 +75,7 @@ describe('CommentCardBody', () => {
     expect(button('Comment').disabled).toBe(true);
     render(null, host!);
     mount({ card: card(), active: true, onSave, onDelete, onDiscard });
-    act(() => q<HTMLElement>('button[aria-label="Edit"]').click());
+    openEdit();
     type('   ');
     act(() => button('Comment').click());
     expect(onDelete).toHaveBeenCalledOnce();
@@ -100,20 +103,56 @@ describe('CommentCardBody', () => {
     expect(host!.textContent).toContain('After undo');
   });
 
-  it('Edit and Delete are plain buttons, no menu, and a new card has neither', () => {
-    const onDelete = vi.fn();
-    mount({ card: card(), active: true, onDelete });
-    for (const name of ['Edit', 'Delete']) {
-      const b = q<HTMLButtonElement>(`button[aria-label="${name}"]`);
-      expect(b.title).toBe(name);
-      expect(b.getAttribute('aria-haspopup')).toBeNull();
-    }
-    act(() => q<HTMLElement>('button[aria-label="Delete"]').click());
-    expect(onDelete).toHaveBeenCalledOnce();
-    expect(host!.querySelector('[aria-haspopup],[role="menu"],[aria-label="More"]')).toBeNull();
+  it('a saved card in read mode has no buttons and says how to edit', () => {
+    mount({ card: card(), active: true });
+    expect(host!.querySelector('button')).toBeNull();
+    expect(q('[role="group"]').getAttribute('title')).toBe(englishSignMessages.commentEditHint);
+  });
+
+  it('a double-click on the text opens the field, focused with the caret at the end', () => {
+    mount({ card: card() });
+    openEdit();
+    const t = q<HTMLTextAreaElement>('textarea');
+    expect(document.activeElement).toBe(t);
+    expect(t.selectionStart).toBe('Check this'.length);
+  });
+
+  it('Enter on the focused card opens the field', () => {
+    mount({ card: card(), active: true });
+    const group = q<HTMLElement>('[role="group"]');
+    act(() => { group.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true })); });
+    expect(host!.querySelector('textarea')).not.toBeNull();
+  });
+
+  it('a tap on the active card opens the field; on an inactive card it only selects', () => {
+    const onSelect = vi.fn();
+    mount({ card: card(), active: false, onSelect });
+    act(() => q<HTMLElement>('p').click());
+    expect(onSelect).toHaveBeenCalledOnce();
+    expect(host!.querySelector('textarea')).toBeNull();
     render(null, host!);
+    mount({ card: card(), active: true });
+    act(() => q<HTMLElement>('p').click());
+    expect(host!.querySelector('textarea')).not.toBeNull();
+  });
+
+  it('editing a saved comment offers Delete, styled like Clear page, before Cancel; it deletes and returns focus', () => {
+    const [onDelete, onReturnFocus] = [vi.fn(), vi.fn()];
+    mount({ card: card(), active: true, onDelete, onReturnFocus });
+    openEdit();
+    const del = button('Delete');
+    expect(del.classList.contains(headerStyles['page-action'])).toBe(true);
+    expect(del.classList.contains(headerStyles['clear-page'])).toBe(true);
+    expect(del.compareDocumentPosition(button('Cancel')) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    act(() => del.click());
+    expect(onDelete).toHaveBeenCalledOnce();
+    expect(onReturnFocus).toHaveBeenCalledOnce();
+  });
+
+  it('a new comment has no Delete', () => {
     mount({ card: card({ comment: '', isNew: true }), active: true });
-    expect(host!.querySelector('button[aria-label="Edit"],button[aria-label="Delete"]')).toBeNull();
+    expect(host!.querySelector('textarea')).not.toBeNull();
+    expect(host!.textContent).not.toContain('Delete');
   });
 
   it('is a group named by its label', () => {
@@ -144,7 +183,8 @@ describe('CommentCardBody', () => {
   it('Delete hands focus back too', () => {
     const onReturnFocus = vi.fn();
     mount({ card: card(), active: true, onReturnFocus });
-    act(() => q<HTMLElement>('button[aria-label="Delete"]').click());
+    openEdit();
+    act(() => button('Delete').click());
     expect(onReturnFocus).toHaveBeenCalledOnce();
   });
 });
