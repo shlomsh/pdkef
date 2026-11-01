@@ -24,6 +24,12 @@ phone); Comment over an uncolored line lays the band in the last color first. A 
 highlight. Download writes standard annotations that open in any viewer and come back editable here and in
 Sign. Color and underline style are remembered per document and become defaults for new ones.
 
+## Touch at launch
+
+Shlomi, 2026-11-01: on a phone or iPad the marker arms on a tap, as Sign's tools do. A tap on the marker
+button arms it, a one-finger drag then highlights, and the Stop chip disarms it so swipes scroll again.
+READ-07 later replaces this with long-press and drag. Desktop keeps the marker always in the hand (R1).
+
 ## Acceptance
 
 - [ ] New island `src/tools/highlight/` over the shared shell and editor core; no copy of Sign code.
