@@ -1,18 +1,15 @@
 ---
 id: "READ-01"
 title: "Highlight PDF: the sketches, turned into hard requirements for the real tool"
-status: "in_progress"
+status: "done"
 priority: "P2"
 epic: "highlight-pdf"
-horizon: "now"
-order: 1
 depends_on: []
-needs: "A name for the fullscreen reading mode (Reading room for now)"
 ---
 
 # READ-01 · From sketches to hard requirements
 
-*Filed 2026-11-01, rewritten the same day once the sketches had done their job.* Design record:
+*Filed 2026-11-01, rewritten the same day once the sketches had done their job. Done 2026-11-01.* Design record:
 [docs/highlight-pdf.md](../../docs/highlight-pdf.md). The sketches are live, with every round kept, at
 https://claude.ai/artifact/1ZnafnXaU9mPfXfAVey2mb ("Open the reading room"). They ran on a throwaway
 harness outside `src/`, so the real tool is built from this list, not from the sketch code.
@@ -245,13 +242,10 @@ has no dark theme to check.
    room, a note shows as a pin in the margin and opens over the margin under its passage. The popover
    sketch (a dot at the passage's end) was not taken.
 
-## Open call (Shlomi)
+## The name, moved to READ-05
 
-**What the fullscreen reading mode is called.** It stays "Reading room" for now, decided later (Shlomi,
-2026-11-01). The audience is young, café-like, many in art or psychology. Shortlist: Window light (café,
-the painter's light), North light (the art studio's light), Close read (the literary term), Flow (the
-psychology of focus), Corner table, Study, Folio. Dropped: Window seat (reads as a flight), Nook (an
-e-reader brand), Margins (collides with "no margins" in the zoom menu).
+What the fullscreen reading mode is called stays "Reading room" for now (Shlomi, 2026-11-01) and is decided
+in READ-05, which builds that mode; the shortlist is there.
 
 ## Acceptance
 
@@ -260,6 +254,6 @@ e-reader brand), Margins (collides with "no margins" in the zoom menu).
   page.
 - [x] Shlomi answers the name, touch target and Esc calls.
 - [x] Shlomi decides comment placement (beside the page, as in Google Docs).
-- [ ] Shlomi names the fullscreen reading mode.
-- [ ] The design record says the same as this list (no older rule left standing).
-- [ ] READ-03, READ-05 and READ-07 point here for their behaviour.
+- [x] The name moves to READ-05 with its shortlist ("Reading room" until then).
+- [x] The design record says the same as this list (no older rule left standing).
+- [x] READ-03, READ-05 and READ-07 point here for their behaviour.
