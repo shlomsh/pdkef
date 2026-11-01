@@ -13,15 +13,15 @@ describe('printPlan', () => {
   it('a notes print shrinks the page and opens a column to the right', () => {
     const [p] = printPlan([page], [note('a', 0, 100, 40)]);
     expect(p.sheet).toEqual(page);
-    expect(p.pageScale).toBe(0.72);
-    expect(p.pageBox).toEqual({ x: 0, y: 0, width: 432, height: 576 });
-    expect(p.notesBox).toEqual({ x: 444, y: 0, width: 156, height: 800 });
-    expect(p.cards).toEqual([{ id: 'a', top: 72 }]);
+    expect(p.pageScale).toBe(0.8);
+    expect(p.pageBox).toEqual({ x: 0, y: 0, width: 480, height: 640 });
+    expect(p.notesBox).toEqual({ x: 492, y: 0, width: 108, height: 800 });
+    expect(p.cards).toEqual([{ id: 'a', top: 80 }]);
   });
 
   it('stacks a crowded pair below each other, not at their anchors', () => {
     const [p] = printPlan([page], [note('a', 0, 100, 40), note('b', 0, 110, 40)]);
-    expect(p.cards.map((c) => c.top)).toEqual([72, 118]);
+    expect(p.cards.map((c) => c.top)).toEqual([80, 126]);
     expect(p.overflow).toBeUndefined();
   });
 
@@ -44,7 +44,7 @@ describe('printPlan', () => {
 
   it('pushes up only the cards that need it', () => {
     const letter = { width: 612, height: 792 };
-    const at = (id: string, want: number) => note(id, 0, want / 0.72, 40);
+    const at = (id: string, want: number) => note(id, 0, want / 0.8, 40);
     const [p] = printPlan([letter], [at('a', 10), at('b', 740), at('c', 760)]);
     expect(p.cards.map((c) => c.top)).toEqual([10, 706, 752]);
     expect(p.overflow).toBeUndefined();

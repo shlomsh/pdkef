@@ -57,7 +57,7 @@ describe('PrintSheets', () => {
   it('renders each page at twice its printed size', async () => {
     await mount(true);
     const scales = renderPageToCanvas.mock.calls.map((c) => c[1].scale);
-    expect(scales[0]).toBeCloseTo(2 * 0.72 * (96 / 72));
+    expect(scales[0]).toBeCloseTo(2 * 0.8 * (96 / 72));
   });
 
   it('draws highlight bands as plain divs, an underline too', async () => {
