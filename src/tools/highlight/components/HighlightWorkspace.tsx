@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef } from 'preact/hooks';
+import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
 import type { PDFDocumentProxy } from 'pdfjs-dist';
 import ReadingCapsule, { ReadingLampIcon } from '#editor-ui/capsule/ReadingCapsule.tsx';
 import useCurrentPage from '#editor-ui/hooks/useCurrentPage.js';
@@ -10,6 +10,14 @@ import { zoomPercent } from '../lib/zoom/percent.ts';
 import { englishHighlightMessages as t } from '../messages.ts';
 import ZoomMenu from './ZoomMenu.tsx';
 import HighlightPage from './HighlightPage.tsx';
+import MarkerButton from './MarkerButton.tsx';
+import ArmedChip from './ArmedChip.tsx';
+import { useToolShell } from '#shell/ToolShell.tsx';
+import { englishShellMessages } from '#shell/shellMessages.ts';
+import PrintMenu from './PrintMenu.tsx';
+import { useTouchArming } from '../hooks/useTouchArming.ts';
+import { usePrint } from '../hooks/usePrint.ts';
+import { hasComments } from '../lib/print/printMenu.ts';
 import ZoomReadout from './ZoomReadout.tsx';
 import styles from './HighlightWorkspace.module.css';
 
@@ -60,6 +68,19 @@ export default function HighlightWorkspace({ pdfDocument, numPages, fileName, zo
       onSetting={(mode) => zoom.apply(mode)} onStep={(dir) => zoom.step(dir)} onActual={() => zoom.actual()}
     />
   );
+  // R15: More holds Replace, the shell's own action (it asks before it costs anything, then opens the picker).
+  const { requestReplace, messages: shellMessages = englishShellMessages } = useToolShell();
+  const moreItems = [{ label: shellMessages.replaceLabel, onSelect: requestReplace }];
+  const print = usePrint({ pdfDocument, elements: marks.state.elements });
+  const [printOpen, setPrintOpen] = useState(false);
+  const printMenu = {
+    open: printOpen, withComments: hasComments(marks.state.elements),
+    onChoose: print.print, onClose: () => setPrintOpen(false),
+  };
+  // One menu at a time: it belongs to the row or to the capsule, so changing view puts it away.
+  const toggleView = () => { setPrintOpen(false); onToggleFullscreen(); };
+  const touch = useTouchArming();
+  const markerButton = <MarkerButton marker={marks.marker} onChange={marks.rearm} armed={touch.armed} onTap={touch.arm} />;
   const readout = typeof zoom.setting === 'number'
     ? `${zoomPercent(zoom.zoom)}%`
     : formatMessage(t.readout, { mode: MODE_LABEL[zoom.setting], percent: zoomPercent(zoom.zoom) });
@@ -75,18 +96,27 @@ export default function HighlightWorkspace({ pdfDocument, numPages, fileName, zo
             fileName={fileName} page={currentPage} pageCount={numPages}
             onJumpToPage={(n) => pageRefs.current[n - 1]?.scrollIntoView()}
             zoomSlot={menu()}
+            markerSlot={markerButton}
             onUndo={marks.undo} onRedo={marks.redo} canUndo={marks.canUndo} canRedo={marks.canRedo}
-            onDownload={onDownload} moreItems={[]} onExit={onToggleFullscreen}
+            onPrint={() => setPrintOpen(true)}
+            onDownload={onDownload} moreItems={moreItems} onExit={toggleView}
             scrollEvents={scrollEvents} pagePressEvents={pagePressEvents} labels={t.capsule}
           />
         </div>
       ) : (
         <div className={styles.top}>
+          {markerButton}
           <button type="button" className={styles.download} onClick={onDownload}>{t.capsule.download}</button>
-          <button type="button" className={styles.enter} onClick={onToggleFullscreen}><ReadingLampIcon size={20} />{t.enterLamp}</button>
+          <PrintMenu {...printMenu}>
+            <button type="button" className={styles.download} aria-haspopup="menu" aria-expanded={printOpen} onClick={() => setPrintOpen((o) => !o)}>{t.capsule.print}</button>
+          </PrintMenu>
+          <button type="button" className={styles.enter} onClick={toggleView}><ReadingLampIcon size={20} />{t.enterLamp}</button>
         </div>
       )}
       {fullscreen && <ZoomReadout text={readout} />}
+      {fullscreen && <PrintMenu {...printMenu} placement="floating" />}
+      {print.sheets}
+      <ArmedChip armed={touch.armed} onStop={touch.disarm} />
       <div className={styles.board} style={{ width: `${zoom.board.boardWidth}px` }}>
       <div
         className={styles.column} ref={columnRef}

@@ -32,6 +32,14 @@ export interface HighlightMessages {
   /** R8: shown once, after the first mark. */
   restHint: string;
   tapHint: string;
+  /** R19: the marker button, which shows the armed marker and opens its colors. */
+  marker: string;
+  /** READ-03 on touch: the marker is armed by a tap and the Stop chip puts it down. */
+  armedAction: string;
+  armedStop: string;
+  /** READ-06: the two things Print offers. */
+  printPlain: string;
+  printWithNotes: string;
   capsule: CapsuleLabels;
 }
 
@@ -63,5 +71,10 @@ export const englishHighlightMessages: HighlightMessages = {
   markOpacity: 'Opacity',
   restHint: 'Rest on a highlight to change it',
   tapHint: 'Tap a highlight to change it',
+  marker: 'Marker',
+  armedAction: 'Swipe along a line to highlight',
+  armedStop: 'Stop',
+  printPlain: 'Print',
+  printWithNotes: 'Print with my notes',
   capsule: englishCapsuleLabels,
 };
