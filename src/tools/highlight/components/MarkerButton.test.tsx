@@ -75,10 +75,11 @@ describe('MarkerButton', () => {
     const { props, open } = mount();
     open();
     press(container!.querySelector(`button[aria-label="${t.markCustom}"]`)!);
-    const range = container!.querySelector(`input[aria-label="${t.markOpacity}"]`) as HTMLInputElement;
+    const range = container!.querySelector('[data-opacity-slider] input') as HTMLInputElement;
     expect(range).not.toBeNull();
+    expect(range.closest('[data-opacity-slider]')).not.toBeNull();
     expect(container!.querySelector(`input[aria-label="${t.markColorInput}"]`)).not.toBeNull();
-    range.value = '50';
+    range.value = '0.5';
     act(() => { range.dispatchEvent(new Event('input', { bubbles: true })); });
     expect(props.onChange).toHaveBeenLastCalledWith({ opacity: 0.5 });
   });

@@ -8,6 +8,7 @@ import { markerBadge } from '../lib/marker/markerBadge.ts';
 import { englishHighlightMessages as t } from '../messages.ts';
 import controls from '#editor-ui/EditorControls.module.css';
 import toolbarStyles from '#editor-ui/SignToolbar.module.css';
+import OpacitySlider from './OpacitySlider.tsx';
 import styles from './MarkerButton.module.css';
 
 const coarsePointer = () => Boolean(globalThis.matchMedia?.('(pointer: coarse)').matches);
@@ -31,7 +32,6 @@ interface MarkerButtonProps {
 
 /** R19: the color input and the opacity slider (30 to 100%) behind the plus. */
 function CustomPanel({ marker, onChange }: { marker: Marker; onChange(change: Partial<Marker>): void }) {
-  const percent = Math.round(marker.opacity * 100);
   return (
     <div class={styles.panel} role="group" aria-label={t.markCustom}>
       <div class={styles.prow}>
@@ -41,14 +41,7 @@ function CustomPanel({ marker, onChange }: { marker: Marker; onChange(change: Pa
           onInput={(e) => onChange({ color: (e.target as HTMLInputElement).value.toUpperCase() })}
         />
       </div>
-      <div class={styles.prow}>
-        <span>{t.markOpacity}</span>
-        <input
-          type="range" class={styles.range} min={30} max={100} step={5} value={percent} aria-label={t.markOpacity}
-          onInput={(e) => onChange({ opacity: Number((e.target as HTMLInputElement).value) / 100 })}
-        />
-        <span class={styles.val} aria-hidden="true">{percent}%</span>
-      </div>
+      <OpacitySlider value={marker.opacity} onChange={(opacity) => onChange({ opacity })} />
     </div>
   );
 }
