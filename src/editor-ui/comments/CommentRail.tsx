@@ -4,6 +4,7 @@ import type { SignMessages } from '#editor/registry/messages.ts';
 import { commentCards, stackCards } from '#editor/highlight/commentCards.ts';
 import { anchorNode, markAnchor } from './anchorNode.ts';
 import type { CommentPatch } from '#editor/highlight/commentCommit.ts';
+import { commentCardLabel } from './commentLabel.ts';
 import { CommentCardBody } from './CommentCardBody.tsx';
 import styles from './CommentRail.module.css';
 
@@ -12,7 +13,7 @@ const NUDGE = 6;
 const stop = (event: Event) => event.stopPropagation();
 
 /** SIGN-44: comments in a margin rail beside the page, each card level with its anchor. */
-export function CommentRail({ pageIndex, elements, activeElementId, messages, onSelect, onSave, onDelete, onDiscard }: {
+export function CommentRail({ pageIndex, elements, activeElementId, messages, onSelect, onSave, onDelete, onDiscard, onReturnFocus }: {
   pageIndex: number;
   elements: readonly EditorElement[];
   activeElementId: string | null;
@@ -21,6 +22,7 @@ export function CommentRail({ pageIndex, elements, activeElementId, messages, on
   onSave: (id: string, patch: CommentPatch) => void;
   onDelete: (id: string) => void;
   onDiscard: (id: string) => void;
+  onReturnFocus?: (id: string) => void;
 }) {
   const cards = commentCards(elements, pageIndex, activeElementId);
   const rail = useRef<HTMLDivElement>(null);
@@ -59,10 +61,12 @@ export function CommentRail({ pageIndex, elements, activeElementId, messages, on
             card={card}
             active={card.id === activeElementId}
             messages={messages}
+            label={commentCardLabel(elements, card.id, pageIndex, messages)}
             onSelect={() => { onSelect(card.id); anchorNode(elements, card.id)?.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); }}
             onSave={(patch) => onSave(card.id, patch)}
             onDelete={() => onDelete(card.id)}
             onDiscard={() => onDiscard(card.id)}
+            onReturnFocus={() => onReturnFocus?.(card.id)}
           />
         </div>
       ))}
