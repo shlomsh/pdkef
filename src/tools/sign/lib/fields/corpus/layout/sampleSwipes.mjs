@@ -12,6 +12,7 @@ function hashString(s) {
 export const swipeable = (row, lh) => !row.ignore && row.column !== null && row.x1 - row.x0 >= 4 * lh;
 
 /** Runs of consecutive rows (in reading order) of one column of one zone: a swipe never leaves its run. */
+/** @testSeam */
 export function columnRuns(truth) {
   const lh = truth.letterHeightPts;
   const runs = [];
@@ -29,7 +30,7 @@ export function columnRuns(truth) {
 }
 
 /** Word starts and ends along a row, in reading order: where a press and a release land. */
-export function wordEdges(row) {
+function wordEdges(row) {
   const lefts = [row.x0, ...row.gaps.map((g) => g[1])];
   const rights = [...row.gaps.map((g) => g[0]), row.x1];
   return row.dir === 'rtl' ? { starts: [...rights].reverse(), ends: [...lefts].reverse() } : { starts: lefts, ends: rights };
@@ -39,6 +40,7 @@ export function wordEdges(row) {
  * The bands a swipe from (row i0, start) to (row i1, end) should paint, in reading order: the first row from
  * the press to its line end, the rows between whole, the last from its line start to the release.
  */
+/** @testSeam */
 export function expectedBands(rows, start, end) {
   const rtl = rows[0].dir === 'rtl';
   if (rows.length === 1) return [{ rowId: rows[0].id, x0: Math.min(start, end), x1: Math.max(start, end) }];

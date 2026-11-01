@@ -1,6 +1,3 @@
-import fs from 'node:fs';
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import { loadLayoutPages, listLayoutPages } from './layoutStore.mjs';
 import { sampleSwipes, expectedBands, columnRuns } from './sampleSwipes.mjs';
@@ -8,8 +5,8 @@ import { applyEdits } from './edits.mjs';
 import { PINNED_ROWS } from './pinnedRows.mjs';
 import { classifySwipe, matchGaps, matchRows, probeOutcome, runPinnedRows, summariseLayout } from './scoreLayout.mjs';
 import { todaysReader } from './windowedReader.mjs';
+import recorded from './layoutBaselines.json';
 
-const HERE = path.dirname(fileURLToPath(import.meta.url));
 const pages = loadLayoutPages();
 const features = pages.find((p) => p.truth.id === 'composed-features');
 
@@ -127,7 +124,6 @@ describe('layout corpus: pinned rows against today\'s reader', () => {
   });
 
   it('matches the recorded baseline for the pinned rows', () => {
-    const recorded = JSON.parse(fs.readFileSync(path.join(HERE, 'layoutBaselines.json'), 'utf8'));
     expect(recorded.pinned).toEqual(results.map(({ id, knownGap, pass, why }) => ({ id, knownGap, pass, why })));
   });
 });
