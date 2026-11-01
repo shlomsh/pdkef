@@ -51,6 +51,13 @@
 .bar :where(button:not([data-highlight-swatch])):is(:disabled, [aria-disabled='true']):hover { background: none; }
 .bar :where(button:not([data-highlight-swatch])):is(:disabled, [aria-disabled='true']):active { transform: none; }
 
+/* Sign's divider, recoloured for a light bar. */
+.divider {
+  flex: none;
+  margin-inline: var(--space-1);
+  background: var(--color-border);
+}
+
 /* The segmented pair: Highlight (or its colors) and Underline. */
 .seg {
   display: flex;
@@ -92,7 +99,7 @@
   height: var(--cell);
   padding-inline: 2px;
 }
-.row > div { display: none; }
+.row > div:not(.divider) { display: none; }
 .row [data-highlight-swatch] {
   position: relative;
   flex: none;
@@ -162,7 +169,7 @@
   gap: 12px;
   font: 500 13px/1.2 var(--font-sans);
 }
-.prow > span:first-child { flex: none; width: 52px; }
+.prow > span:first-child { flex: none; width: 52px; text-align: start; }
 .val {
   flex: none;
   width: 36px;
