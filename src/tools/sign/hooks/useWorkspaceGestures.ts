@@ -14,7 +14,7 @@ import type {
   SymbolMark,
 } from '#editor/model/editorModel.ts';
 import type { DocumentStyle } from '#editor/model/documentStyle.ts';
-import { deletedWith } from '#editor/model/deleteCascade.ts';
+import { deletedWith } from '#editor/model/elementsReducer.ts';
 import { carriedTextStyle } from '../lib/elementDefaults.ts';
 import type { SavedSignature } from '#editor/model/savedSignature.ts';
 import type { PageGeometry } from '#editor/geometry/coords.ts';

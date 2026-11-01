@@ -71,11 +71,6 @@
   },
   {
     "rule": 9,
-    "file": "src/editor/highlight/resolveDirection.ts",
-    "reason": "READ-02: shared with Highlight PDF, moved out of Sign before its island exists; READ-03 is the second consumer, and this entry goes stale (remove it) once that island imports the file"
-  },
-  {
-    "rule": 9,
     "file": "src/editor-ui/comments/CommentCardBody.tsx",
     "reason": "READ-02: shared with Highlight PDF, moved out of Sign before its island exists; READ-03 is the second consumer, and this entry goes stale (remove it) once that island imports the file"
   },
@@ -151,27 +146,12 @@
   },
   {
     "rule": 9,
-    "file": "src/lib/pageLayout/bands.ts",
-    "reason": "READ-02: shared with Highlight PDF, moved out of Sign before its island exists; READ-03 is the second consumer, and this entry goes stale (remove it) once that island imports the file"
-  },
-  {
-    "rule": 9,
-    "file": "src/lib/pageLayout/rasterInk.ts",
-    "reason": "READ-02: shared with Highlight PDF, moved out of Sign before its island exists; READ-03 is the second consumer, and this entry goes stale (remove it) once that island imports the file"
-  },
-  {
-    "rule": 9,
     "file": "src/lib/pageLayout/swipe.ts",
     "reason": "READ-02: shared with Highlight PDF, moved out of Sign before its island exists; READ-03 is the second consumer, and this entry goes stale (remove it) once that island imports the file"
   },
   {
     "rule": 9,
     "file": "src/lib/pageLayout/swipeReader.ts",
-    "reason": "READ-02: shared with Highlight PDF, moved out of Sign before its island exists; READ-03 is the second consumer, and this entry goes stale (remove it) once that island imports the file"
-  },
-  {
-    "rule": 9,
-    "file": "src/lib/pageLayout/textRows.ts",
     "reason": "READ-02: shared with Highlight PDF, moved out of Sign before its island exists; READ-03 is the second consumer, and this entry goes stale (remove it) once that island imports the file"
   },
   {
@@ -198,5 +178,10 @@
     "rule": 9,
     "file": "src/editor/model/elementsReducer.ts",
     "reason": "element reducer moved before Highlight PDF uses it (READ-03); remove once it does"
+  },
+  {
+    "rule": 9,
+    "file": "src/lib/pageLayout/wordAt.ts",
+    "reason": "word lookup on scans before Highlight PDF's click marks use it (READ-03); remove once they do"
   }
 ]

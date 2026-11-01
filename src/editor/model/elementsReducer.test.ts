@@ -1,11 +1,14 @@
 import { describe, it, expect } from 'vitest';
 import type { ActionHistoryEntry } from '#editor/model/actionHistory.ts';
 import type {
+  CommentElement,
   EditorElement,
+  HighlightElement,
   RectangleElement,
   TextElement,
 } from '#editor/model/editorModel.ts';
 import {
+  deletedWith,
   elementsReducer as reducer,
   type ElementsAction as SignToolAction,
   type ElementsState as SignToolState,
@@ -309,5 +312,21 @@ describe('elementsReducer', () => {
     };
     const next = reducer(state, { type: 'LOAD_DOCUMENT', payload: { elements: [], actionHistory: [] } });
     expect(next.redoHistory).toEqual([]);
+  });
+});
+
+
+const highlight: HighlightElement = {
+  id: 'h-1', type: 'highlight', pageIndex: 2, left: 10, top: 20, width: 30, height: 4, color: '#FFF34D',
+  bands: [{ left: 0, top: 0, width: 100, height: 100 }],
+};
+const other: HighlightElement = { ...highlight, id: 'h-2' };
+const onHighlight = { id: 'c-1', type: 'comment', pageIndex: 2, text: 'note', anchor: { kind: 'element', elementId: 'h-1' } } as unknown as CommentElement;
+const onOther = { ...onHighlight, id: 'c-2', anchor: { kind: 'element', elementId: 'h-2' } } as unknown as CommentElement;
+
+describe('deletedWith', () => {
+  it('matches the id and the comments anchored to it', () => {
+    const all: EditorElement[] = [highlight, other, onHighlight, onOther];
+    expect(all.filter(deletedWith('h-1'))).toEqual([highlight, onHighlight]);
   });
 });

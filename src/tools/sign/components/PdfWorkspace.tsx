@@ -23,7 +23,7 @@ import { orderTypableFields } from '../lib/fieldOrder.ts';
 import { useDocumentStyle, useSignTool } from './SignToolContext.tsx';
 import { chooseStyle } from '../lib/chooseStyle.ts';
 import { resolveCommentBoxes } from '#editor/comments/anchors.ts';
-import { deletedWith } from '#editor/model/deleteCascade.ts';
+import { deletedWith } from '#editor/model/elementsReducer.ts';
 import { useCommentActions } from '#editor-ui/comments/useCommentActions.ts';
 import { useSavedSignatures } from './SavedSignaturesContext.tsx';
 import SignToolbar from './SignToolbar.tsx';
