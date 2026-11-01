@@ -41,8 +41,7 @@ export default withIslandBoundary(function PdfHighlightTool() {
   // open and close cards go through here. Zoom and the comments view are created below and read when it runs.
   const room = useNoteRoom({ state: marks.state, dispatch: marks.dispatch, columnRef, zoom: () => zoom, isWide: () => comments.sheet === null });
   const comments = useHighlightComments({ state: marks.state, dispatch: room.dispatch, logAction: marks.logAction, announce: setAnnouncement });
-  // A wheel is not a user gesture, so real fullscreen may be refused; the toggle then falls back to pseudo fullscreen.
-  const zoom = useWorkspaceZoom({ pdfDocument, workspaceRef, columnRef, fullscreen, noted: comments.showRail, pageTurns: marks.pageTurns, onEnterLamp: toggleLamp });
+  const zoom = useWorkspaceZoom({ pdfDocument, workspaceRef, columnRef, fullscreen, noted: comments.showRail, pageTurns: marks.pageTurns });
   const markerMemory = useMarkerMemory({ marker: marks.marker, rearm: marks.rearm });
   const details = useMemo(() => ({ ...zoom.details, ...markerMemory.details }), [zoom.details, markerMemory.details]);
   const share = usePdfShare();

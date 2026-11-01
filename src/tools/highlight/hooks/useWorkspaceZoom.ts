@@ -44,8 +44,6 @@ interface WorkspaceZoomOptions {
   noted?: boolean;
   /** The quarter turns the person gave each page: a turned page swaps width and height, so every fit sizes it as shown. */
   pageTurns?: PageTurns;
-  /** A pinch or zoom key in the normal view asks for the lamp; the owner of the fullscreen state opens it. */
-  onEnterLamp(): void;
 }
 
 /**
@@ -53,10 +51,7 @@ interface WorkspaceZoomOptions {
  * ways to change it. A pinch only scales the column through its ref while the fingers are down and commits
  * once, 150 ms after the last wheel event or when the second finger lifts (the gesture golden rule).
  */
-export function useWorkspaceZoom({ pdfDocument, workspaceRef, columnRef, fullscreen, noted = false, pageTurns, onEnterLamp: requestLamp }: WorkspaceZoomOptions) {
-  const requestRef = useRef(requestLamp);
-  requestRef.current = requestLamp;
-  const onEnterLamp = useCallback(() => requestRef.current(), []);
+export function useWorkspaceZoom({ pdfDocument, workspaceRef, columnRef, fullscreen, noted = false, pageTurns }: WorkspaceZoomOptions) {
   const [setting, setSetting] = useState<ZoomSetting>(() => initialSetting(undefined, storedDefault()));
   const [touched, setTouched] = useState(false);
   const pages = usePageSizes(pdfDocument, pageTurns);
@@ -160,9 +155,9 @@ export function useWorkspaceZoom({ pdfDocument, workspaceRef, columnRef, fullscr
     setMade(nextNoted);
   }, [workspaceRef, pendingScroll, pendingAnchor]);
 
-  useZoomKeys({ enabled: ready, inLamp: fullscreen, onEnterLamp, step, actual });
+  useZoomKeys({ enabled: ready, inLamp: fullscreen, step, actual });
   useBoardPan({ workspaceRef, fullscreen, enabled: ready && fullscreen });
-  usePinchZoom({ workspaceRef, columnRef, enabled: ready, inLamp: fullscreen, onEnterLamp, zoomRef, commit });
+  usePinchZoom({ workspaceRef, columnRef, enabled: ready, inLamp: fullscreen, zoomRef, commit });
   useLampAnchor({ workspaceRef, fullscreen });
 
   /** A document just opened: its own setting beats the remembered default (R25). */

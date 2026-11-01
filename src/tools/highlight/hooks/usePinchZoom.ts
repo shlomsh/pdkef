@@ -1,7 +1,7 @@
 import { useEffect } from 'preact/hooks';
 import { clampZoom, type ZoomSetting } from '../lib/zoom/fit.ts';
 import type { Point } from '../lib/zoom/anchor.ts';
-import { opensLamp } from '../lib/zoom/lamp.ts';
+import { isZoomInput } from '../lib/zoom/lamp.ts';
 
 const PINCH_REST_MS = 150;
 /** A trackpad pinch arrives as wheel events with a few pixels of deltaY; this turns them into a smooth factor. */
@@ -11,19 +11,19 @@ const WHEEL_PINCH_RATE = 0.01;
  * Pinch. Everything before the commit touches the DOM through refs only: the column is scaled by a CSS
  * transform while the fingers are down, and `commit` runs once when they rest (the gesture golden rule).
  */
-export function usePinchZoom({ workspaceRef, columnRef, enabled, inLamp, onEnterLamp, zoomRef, commit }: {
+export function usePinchZoom({ workspaceRef, columnRef, enabled, inLamp, zoomRef, commit }: {
   workspaceRef: { current: HTMLElement | null };
   columnRef: { current: HTMLElement | null };
   enabled: boolean;
   inLamp: boolean;
-  onEnterLamp(): void;
   zoomRef: { current: number };
   commit(next: ZoomSetting, nextZoom: number, anchor?: Point): void;
 }) {
   useEffect(() => {
     const ws = workspaceRef.current;
     const col = columnRef.current;
-    if (!ws || !col || !enabled) return;
+    // Only the lamp zooms: the normal view leaves a pinch to the browser.
+    if (!ws || !col || !enabled || !inLamp) return;
     let factor = 1;
     let anchor: Point = { x: 0, y: 0 };
     let timer: ReturnType<typeof setTimeout> | undefined;
@@ -49,15 +49,9 @@ export function usePinchZoom({ workspaceRef, columnRef, enabled, inLamp, onEnter
       commit(next, next, anchor);
     };
 
-    let entering = false;
     const onWheel = (e: WheelEvent) => {
-      if (!opensLamp({ type: 'wheel', ctrlKey: e.ctrlKey })) return;
+      if (!isZoomInput({ type: 'wheel', ctrlKey: e.ctrlKey })) return;
       e.preventDefault();
-      if (!inLamp) {
-        // One request per pinch; the stream of wheel events must not toggle the lamp back off.
-        if (!entering) { entering = true; onEnterLamp(); setTimeout(() => { entering = false; }, 600); }
-        return;
-      }
       if (factor === 1) anchor = { x: e.clientX, y: e.clientY };
       const target = clampZoom(zoomRef.current * factor * Math.exp(-e.deltaY * WHEEL_PINCH_RATE));
       factor = target / zoomRef.current;
@@ -70,7 +64,7 @@ export function usePinchZoom({ workspaceRef, columnRef, enabled, inLamp, onEnter
       return Math.hypot(a.x - b.x, a.y - b.y);
     };
     const onDown = (e: PointerEvent) => {
-      if (e.pointerType !== 'touch' || !inLamp) return;
+      if (e.pointerType !== 'touch') return;
       pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
       if (pointers.size === 2) {
         startDistance = distance();
@@ -107,5 +101,5 @@ export function usePinchZoom({ workspaceRef, columnRef, enabled, inLamp, onEnter
       col.style.transform = '';
       col.style.transformOrigin = '';
     };
-  }, [workspaceRef, columnRef, enabled, inLamp, onEnterLamp, zoomRef, commit]);
+  }, [workspaceRef, columnRef, enabled, inLamp, zoomRef, commit]);
 }
