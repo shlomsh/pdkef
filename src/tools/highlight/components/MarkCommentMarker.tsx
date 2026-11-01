@@ -6,7 +6,7 @@ import type { EditorElement } from '#editor/model/editorModel.ts';
 
 type MarkerPlace = NonNullable<ReturnType<ReturnType<typeof commentMarkers>['get']>>;
 
-export type MarkComment = { id: string; at: MarkerPlace; number: number | undefined };
+type MarkComment = { id: string; at: MarkerPlace; number: number | undefined };
 
 /** Each commented mark's comment: its id, number and the marker's place in the mark's box, the way Sign draws them. */
 export function commentsByMark(elements: EditorElement[]): Map<string, MarkComment> {
