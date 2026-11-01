@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
+import { autoUpdate, flip, offset, shift, useDismiss, useFloating, useInteractions } from '@floating-ui/react';
 import UnderlineGlyph from './UnderlineGlyph.tsx';
 import HighlightSwatches from '#editor-ui/highlight/HighlightSwatches.tsx';
 import { HighlightIcon } from '#editor-ui/toolIcons.tsx';
@@ -49,12 +50,18 @@ export default function MarkerButton({ marker, onChange, armed = false, onTap, o
     onOpenChange?.(next);
   };
 
-  useEffect(() => {
-    if (!open) return;
-    const onDown = (e: Event) => { if (!rootRef.current?.contains(e.target as Node)) toggle(false); };
-    document.addEventListener('pointerdown', onDown, true);
-    return () => document.removeEventListener('pointerdown', onDown, true);
+  // Floating UI places the menu inside the wrapper (so it stays in a fullscreen element) and keeps it on screen;
+  // its dismiss hook owns Escape and the outside press.
+  const { refs, floatingStyles, context } = useFloating({
+    open,
+    onOpenChange: toggle,
+    placement: 'bottom-start',
+    strategy: 'fixed',
+    middleware: [offset(8), flip(), shift({ padding: 8 })],
+    whileElementsMounted: autoUpdate,
   });
+  const dismiss = useDismiss(context, { escapeKey: true, outsidePress: true });
+  const { getReferenceProps, getFloatingProps } = useInteractions([dismiss]);
 
   // A keyboard open puts focus on the armed color, so the colors can be walked without a pointer.
   useEffect(() => {
@@ -75,7 +82,9 @@ export default function MarkerButton({ marker, onChange, armed = false, onTap, o
       }}
     >
       <button
-        ref={buttonRef} type="button" class={buttonClass ?? styles.button} aria-haspopup="true" aria-expanded={open}
+        ref={(el: HTMLButtonElement | null) => { buttonRef.current = el; refs.setReference(el); }}
+        {...getReferenceProps()}
+        type="button" class={buttonClass ?? styles.button} aria-haspopup="true" aria-expanded={open}
         aria-label={t.marker} title={t.marker} data-armed={armed && isCoarse() ? '' : undefined}
         onClick={(e) => {
           if (!armed && isCoarse()) onTap?.();
@@ -94,7 +103,10 @@ export default function MarkerButton({ marker, onChange, armed = false, onTap, o
         {buttonClass && <span class={toolbarStyles.label}>{t.marker}</span>}
       </button>
       {open && (
-        <div class={`${styles.menu} ${controls.popover} ${controls['toolbar-menu']}`} role="group" aria-label={t.marker}>
+        <div
+          ref={refs.setFloating} style={floatingStyles} {...getFloatingProps()}
+          class={`${styles.menu} ${controls.popover} ${controls['toolbar-menu']}`} role="group" aria-label={t.marker}
+        >
           <div class={styles.row}>
             <HighlightSwatches color={marker.color} t={englishSignMessages} onChange={({ color }) => { onChange({ color }); toggle(false); }} />
             <ColorWheelInput

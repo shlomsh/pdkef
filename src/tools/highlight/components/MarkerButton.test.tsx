@@ -111,6 +111,13 @@ describe('MarkerButton', () => {
     expect(above).not.toHaveBeenCalled();
   });
 
+  it('Escape on the document closes the menu, as after a tap on WebKit', () => {
+    const { open, button } = mount();
+    open();
+    act(() => { document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); });
+    expect(button().getAttribute('aria-expanded')).toBe('false');
+  });
+
   it('a press outside closes the menu', () => {
     const { open, button } = mount();
     open();
