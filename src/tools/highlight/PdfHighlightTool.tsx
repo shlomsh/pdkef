@@ -10,7 +10,6 @@ import { readBackAnnotations } from '#editor/comments/readBack.ts';
 import type { EditorElement } from '#editor/model/editorModel.ts';
 import { isEditorElement } from '#editor/registry/draftValidation.ts';
 import { recordAction } from '#lib/telemetry/actionTrail.ts';
-import { reportError } from '#lib/telemetry/errorReport.ts';
 import { usePdfShare } from '#lib/output/usePdfShare.js';
 import { useWorkspaceZoom } from './hooks/useWorkspaceZoom.ts';
 import { useReadingLamp } from './hooks/useReadingLamp.ts';
@@ -20,7 +19,7 @@ import type { HighlightAction } from './lib/marks/highlightState.ts';
 import { useHighlightMarks } from './hooks/useHighlightMarks.ts';
 import { useMarkerMemory } from './hooks/useMarker.ts';
 import { useHistoryKeys } from './hooks/useHistoryKeys.ts';
-import { exportHighlighted, highlightedFileName } from './lib/export/highlightedPdf.ts';
+import { useHighlightDownload } from './hooks/useHighlightDownload.ts';
 import { describeFile } from '#lib/text/format.js';
 import HighlightVerb from './verb/HighlightVerb.tsx';
 import HighlightWorkspace from './components/HighlightWorkspace.tsx';
@@ -46,7 +45,7 @@ export default withIslandBoundary(function PdfHighlightTool() {
   roomRoute.current = room.dispatch;
   const comments = useHighlightComments({ state: marks.state, dispatch: room.dispatch, logAction: marks.logAction, announce: setAnnouncement });
   // A wheel is not a user gesture, so real fullscreen may be refused; the toggle then falls back to pseudo fullscreen.
-  const zoom = useWorkspaceZoom({ pdfDocument, workspaceRef, columnRef, fullscreen, noted: comments.showRail, onEnterLamp: toggleLamp });
+  const zoom = useWorkspaceZoom({ pdfDocument, workspaceRef, columnRef, fullscreen, noted: comments.showRail, pageTurns: marks.pageTurns, onEnterLamp: toggleLamp });
   const markerMemory = useMarkerMemory({ marker: marks.marker, rearm: marks.rearm });
   const details = useMemo(() => ({ ...zoom.details, ...markerMemory.details }), [zoom.details, markerMemory.details]);
   const share = usePdfShare();
@@ -85,18 +84,10 @@ export default withIslandBoundary(function PdfHighlightTool() {
     },
   });
 
-  // The export takes the bytes the session holds: the file with its old highlights already read out of it.
-  const handleDownload = async () => {
-    const bytes = session.fileBytesRef.current;
-    if (!file || !bytes) return;
-    try {
-      const out = await exportHighlighted(bytes, marks.state.elements);
-      recordAction('download');
-      share.download(new Blob([out as BlobPart],{ type: 'application/pdf' }), highlightedFileName(file.name));
-    } catch (err) {
-      reportError('pdf_tool_run', err, 'export_highlighted');
-    }
-  };
+  const handleDownload = useHighlightDownload({
+    fileName: file?.name, bytes: () => session.fileBytesRef.current, elements: marks.state.elements, pageTurns: marks.pageTurns,
+    save: (blob, name) => share.download(blob, name),
+  });
 
   const numPages = pdfDocument?.numPages ?? 0;
 

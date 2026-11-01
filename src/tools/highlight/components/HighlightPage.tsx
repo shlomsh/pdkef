@@ -1,19 +1,16 @@
 import type { ComponentChildren } from 'preact';
-import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
+import { useEffect, useMemo, useRef } from 'preact/hooks';
 import type { PDFDocumentProxy } from 'pdfjs-dist';
 import PdfPageCanvas from '#editor-ui/PdfPageCanvas.tsx';
-import EditorPageHeader from '#editor-ui/EditorPageHeader.tsx';
 import HighlightNode from '#editor-ui/highlight/HighlightNode.tsx';
 import usePdfCoordinates from '#editor-ui/hooks/usePdfCoordinates.ts';
 import workspaceStyles from '#editor-ui/Workspace.module.css';
 import type { HistoryLogger } from '#editor/model/actionHistory.ts';
 import type { EditorElement, HighlightElement } from '#editor/model/editorModel.ts';
 import type { ElementsAction } from '#editor/model/elementsReducer.ts';
-import { pageGeometryFromPdfJsPage, type PageGeometry } from '#editor/geometry/coords.ts';
+import { turnsOf, type PageTurns } from '#editor/geometry/pageTurn.ts';
 import { englishSignMessages } from '#editor/registry/signMessages.ts';
-import { toPageTextRuns } from '#editor/geometry/textRuns.ts';
 import { pageTextDirection } from '#editor/text/textDirection.js';
-import { readTextItems } from '#lib/pdf/pdfTextItems.ts';
 import { directionAtPoint, readerTextDirection, resolveHighlightDirection } from '#editor/highlight/resolveDirection.ts';
 import type { ActionHistoryEntry } from '#editor/model/actionHistory.ts';
 import type { EditorElementPatch } from '#editor/model/editorModel.ts';
@@ -21,6 +18,8 @@ import { signUpdateDescription } from '#editor/registry/signLabels.ts';
 import { createElementId } from '#editor/model/ids.ts';
 import { recordAction } from '#lib/telemetry/actionTrail.ts';
 import useCoarsePointer from '#editor-ui/hooks/useCoarsePointer.ts';
+import { usePageGeometry } from '../hooks/usePageGeometry.ts';
+import HighlightPageHeader from './HighlightPageHeader.tsx';
 import { useClickMarks } from '../hooks/useClickMarks.ts';
 import { useMarkFocus } from '../hooks/useMarkFocus.ts';
 import { useMarkSwipe } from '../hooks/useMarkSwipe.ts';
@@ -44,7 +43,7 @@ const noop = () => {};
  * One page card: its header, the page, and a wrapper per highlight on it. A fine-pointer press on the
  * page starts a swipe that lays the marker's bands; the gesture paints during the swipe and commits once.
  */
-export default function HighlightPage({ pdfDocument, pageIndex, widthPx, elements, marker, touchArmed = false, rearm, dispatch, logAction, setAnnouncement, cardRef, rail, activeElementId = null, onSelectComment }: {
+export default function HighlightPage({ pdfDocument, pageIndex, widthPx, elements, marker, touchArmed = false, rearm, dispatch, logAction, setAnnouncement, cardRef, rail, activeElementId = null, onSelectComment, pageTurns = {}, onRotate, onClear }: {
   pdfDocument: PDFDocumentProxy | null;
   pageIndex: number;
   /** The page's width in CSS px at the current zoom. */
@@ -66,36 +65,19 @@ export default function HighlightPage({ pdfDocument, pageIndex, widthPx, element
   activeElementId?: string | null;
   /** A click on a comment marker selects that comment, the way a click on its rail card does. */
   onSelectComment?: (commentId: string) => void;
+  /** The quarter turns the person gave each page; this page is drawn, and marked, as turned. */
+  pageTurns?: PageTurns;
+  onRotate: () => void;
+  onClear: () => void;
 }) {
-  const [geometry, setGeometry] = useState<PageGeometry | undefined>(undefined);
+  const { geometry, textRunsRef } = usePageGeometry(pdfDocument, pageIndex, turnsOf(pageTurns, pageIndex));
   const { getPointerPercent } = usePdfCoordinates();
   const rest = useRestToolbar();
   const coarse = useCoarsePointer();
   const lastPointerType = useRef('mouse');
   // R14: over the page the cursor is the pen in the hand. A finger has no cursor.
   const pen = useMemo(() => (coarse ? undefined : cursorValue(marker)), [coarse, marker.color, marker.style, marker.opacity]);
-  // The page's printed text in percent, kept for the swipe's reading direction; never state.
-  const textRunsRef = useRef<ReturnType<typeof toPageTextRuns>>([]);
   const overlayRef = useRef<HTMLDivElement | null>(null);
-
-  useEffect(() => {
-    setGeometry(undefined);
-    textRunsRef.current = [];
-    if (!pdfDocument) return;
-    let live = true;
-    void pdfDocument.getPage(pageIndex + 1).then(async (page) => {
-      if (!live) return;
-      const pageGeometry = pageGeometryFromPdfJsPage(page);
-      setGeometry(pageGeometry);
-      try {
-        const items = await readTextItems(page);
-        if (live) textRunsRef.current = toPageTextRuns(items, pageGeometry);
-      } catch {
-        // expected: no text to read the direction from, so the swipe falls back to the reader's own.
-      }
-    });
-    return () => { live = false; };
-  }, [pdfDocument, pageIndex]);
 
   const marks = elements.filter((el): el is HighlightElement => el.type === 'highlight' && el.pageIndex === pageIndex);
   const commentMarks = commentsByMark(elements);
@@ -160,7 +142,7 @@ export default function HighlightPage({ pdfDocument, pageIndex, widthPx, element
       data-editor-page-card ref={cardRef} className={rail ? notes.withRail : undefined}
       style={rail ? { '--page-w': `${widthPx}px`, '--notes-w': `${NOTES_W}px` } : undefined}
     >
-      <EditorPageHeader pageNumber={pageIndex + 1} onClear={null} />
+      <HighlightPageHeader pageIndex={pageIndex} hasMarks={elements.some((el) => el.pageIndex === pageIndex)} onRotate={onRotate} onClear={onClear} />
       <div className={`${workspaceStyles['page-wrapper']} ${styles.page}`} data-page-wrapper style={{ width: `${widthPx}px`, ...(pen ? { cursor: pen } : {}) }}>
         <PdfPageCanvas pdfDocument={pdfDocument} pageNum={pageIndex + 1} pageGeometry={geometry} />
         <div
