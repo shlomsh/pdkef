@@ -8,6 +8,8 @@ import PrintSheets from '../components/PrintSheets.tsx';
 /** The sheets get this long to render their pages before the print is given up. @testSeam */
 export const PRINT_TIMEOUT_MS = 15_000;
 
+const AFTERPRINT_GRACE_MS = 1000;
+
 /**
  * READ-06: a print is the sheets mounted on the body for as long as the print dialog needs them. `print(withNotes)`
  * mounts them, `window.print()` runs once their pages are ready, and they come away on `afterprint`. If they are
@@ -35,9 +37,13 @@ export function usePrint({ pdfDocument, elements }: { pdfDocument: PDFDocumentPr
   useEffect(() => {
     if (!job || !ready) return;
     const done = () => { setJob(null); setReady(false); };
-    window.addEventListener('afterprint', done, { once: true });
+    let timer = 0;
+    const finish = () => { window.clearTimeout(timer); done(); };
+    window.addEventListener('afterprint', finish, { once: true });
     window.print();
-    return () => window.removeEventListener('afterprint', done);
+    // print() blocks until the dialog closes; a browser that never fires afterprint (iOS Safari) would keep the job forever.
+    timer = window.setTimeout(finish, AFTERPRINT_GRACE_MS);
+    return () => { window.clearTimeout(timer); window.removeEventListener('afterprint', finish); };
   }, [job, ready]);
 
   const onReady = useCallback(() => setReady(true), []);
