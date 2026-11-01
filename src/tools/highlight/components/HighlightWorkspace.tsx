@@ -12,6 +12,8 @@ import ZoomMenu from './ZoomMenu.tsx';
 import HighlightPage from './HighlightPage.tsx';
 import MarkerButton from './MarkerButton.tsx';
 import ArmedChip from './ArmedChip.tsx';
+import { useToolShell } from '#shell/ToolShell.tsx';
+import { englishShellMessages } from '#shell/shellMessages.ts';
 import PrintMenu from './PrintMenu.tsx';
 import { useTouchArming } from '../hooks/useTouchArming.ts';
 import { usePrint } from '../hooks/usePrint.ts';
@@ -64,6 +66,9 @@ export default function HighlightWorkspace({ pdfDocument, numPages, fileName, zo
       onSetting={(mode) => zoom.apply(mode)} onStep={(dir) => zoom.step(dir)} onActual={() => zoom.actual()}
     />
   );
+  // R15: More holds Replace, the shell's own action (it asks before it costs anything, then opens the picker).
+  const { requestReplace, messages: shellMessages = englishShellMessages } = useToolShell();
+  const moreItems = [{ label: shellMessages.replaceLabel, onSelect: requestReplace }];
   const print = usePrint({ pdfDocument, elements: marks.state.elements });
   const [printOpen, setPrintOpen] = useState(false);
   const printMenu = {
@@ -89,7 +94,7 @@ export default function HighlightWorkspace({ pdfDocument, numPages, fileName, zo
             markerSlot={markerButton}
             onUndo={marks.undo} onRedo={marks.redo} canUndo={marks.canUndo} canRedo={marks.canRedo}
             onPrint={() => setPrintOpen(true)}
-            onDownload={onDownload} moreItems={[]} onExit={toggleView}
+            onDownload={onDownload} moreItems={moreItems} onExit={toggleView}
             scrollEvents={scrollEvents} pagePressEvents={pagePressEvents} labels={t.capsule}
           />
         </div>
