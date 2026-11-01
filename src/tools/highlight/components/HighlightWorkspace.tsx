@@ -92,8 +92,15 @@ export default function HighlightWorkspace({ pdfDocument, numPages, fileName, zo
   const moreItems = [{ label: shellMessages.replaceLabel, onSelect: requestReplace }];
   const print = usePrint({ pdfDocument, elements: marks.state.elements });
   const [printOpen, setPrintOpen] = useState(false);
+  const [printTop, setPrintTop] = useState<number | undefined>();
+  // The menu opens 8 px under the toolbar, wherever the toolbar is in this view.
+  const openPrint = () => {
+    const bar = workspaceRef.current?.querySelector('[role="toolbar"]');
+    setPrintTop(bar ? bar.getBoundingClientRect().bottom + 8 : undefined);
+    setPrintOpen(true);
+  };
   const printMenu = {
-    open: printOpen, withComments: hasComments(marks.state.elements),
+    top: printTop, open: printOpen, withComments: hasComments(marks.state.elements),
     onChoose: print.print, onClose: () => setPrintOpen(false),
   };
   // One menu at a time: it belongs to the row or to the capsule, so changing view puts it away.
@@ -119,7 +126,7 @@ export default function HighlightWorkspace({ pdfDocument, numPages, fileName, zo
           zoomSlot={fullscreen ? menu() : undefined}
           markerSlot={markerButton}
           onUndo={undo} onRedo={redo} canUndo={marks.canUndo} canRedo={marks.canRedo}
-          onPrint={() => setPrintOpen(true)}
+          onPrint={openPrint}
           onDownload={onDownload} moreItems={moreItems} onExit={toggleView} onEnter={toggleView}
           scrollEvents={scrollEvents} pagePressEvents={pagePressEvents} labels={t.capsule}
         />
