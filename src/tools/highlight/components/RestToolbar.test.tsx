@@ -137,7 +137,7 @@ describe('RestToolbar', () => {
     expect(range.min).toBe('0.3');
     expect(range.max).toBe('1');
     expect(range.value).toBe('0.8');
-    expect(range.labels?.[0].textContent).toContain('Opacity');
+    expect(range.getAttribute('aria-label')).toContain('Opacity');
     expect(range.closest('[data-opacity-slider]')).not.toBeNull();
     act(() => { range.value = '0.5'; range.dispatchEvent(new Event('input', { bubbles: true })); });
     expect(onChange).toHaveBeenLastCalledWith({ opacity: 0.5 });

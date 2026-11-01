@@ -21,20 +21,17 @@ describe('OpacitySlider', () => {
     expect(range.min).toBe(String(OPACITY_MIN));
     expect(range.max).toBe('1');
     expect(range.value).toBe('0.8');
-    expect(range.labels?.[0].textContent).toBe(t.markOpacity);
+    expect(range.getAttribute('aria-label')).toBe(t.markOpacity);
     act(() => { range.value = '0.5'; range.dispatchEvent(new Event('input', { bubbles: true })); });
     expect(onChange).toHaveBeenLastCalledWith(0.5);
   });
 
-  it('shows the percent in a readout sized for three digits, so 100% does not widen the menu', () => {
+  it('has a faint and a solid end mark, both hidden from assistive tech', () => {
     mount(1);
-    const out = host!.querySelector<HTMLElement>('[data-opacity-value]')!;
-    expect(out.textContent).toBe('100%');
-  });
-
-  it('fills the track up to the thumb across its own range, so every engine draws the same slider', () => {
-    expect(mount(OPACITY_MIN).range.style.getPropertyValue('--fill')).toBe('0%');
-    act(() => render(null, host!)); host!.remove();
-    expect(mount(1).range.style.getPropertyValue('--fill')).toBe('100%');
+    for (const sel of ['[data-opacity-faint]', '[data-opacity-solid]']) {
+      const mark = host!.querySelector<HTMLElement>(sel)!;
+      expect(mark).not.toBeNull();
+      expect(mark.getAttribute('aria-hidden')).toBe('true');
+    }
   });
 });
