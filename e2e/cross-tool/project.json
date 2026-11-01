@@ -12,6 +12,8 @@
     "tool-merge",
     "tool-edit-pages",
     "tool-split",
-    "tool-to-image"
+    "tool-to-image",
+    "tool-highlight",
+    "tool-sign"
   ]
 }
