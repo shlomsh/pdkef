@@ -118,6 +118,15 @@ describe('MarkerButton', () => {
     expect(props.onTap).toHaveBeenCalledTimes(1);
   });
 
+  it('shows the armed fill on touch only; a fine pointer always has the marker in hand and shows none', () => {
+    const fine = mount({ armed: true, isCoarse: () => false });
+    expect(fine.button().hasAttribute('data-armed')).toBe(false);
+    act(() => render(null, container!));
+    container!.remove();
+    const touch = mount({ armed: true, isCoarse: () => true });
+    expect(touch.button().hasAttribute('data-armed')).toBe(true);
+  });
+
   it('reports when its menu opens and closes', () => {
     const onOpenChange = vi.fn();
     const { open, button } = mount({ onOpenChange });
