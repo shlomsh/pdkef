@@ -68,13 +68,23 @@ describe('stepZoom from a fit below the floor', () => {
 });
 
 describe('fitScale with the notes column in px (the normal view)', () => {
-  it('leaves NOTES_W px of the width to the notes, and fits the page in the rest', () => {
+  it('leaves NOTES_W px of the width to the notes at Fit width, and Fit text lets them scale with the zoom', () => {
     const opts = { noted: true, notesIn: 'px' as const, pad: 0 };
     expect(fitScale('width', page, view, opts)).toBeCloseTo((1440 - NOTES_W) / 612);
-    expect(fitScale('text', page, view, opts)).toBeCloseTo((1440 - NOTES_W) / (468 + 32));
+    expect(fitScale('text', page, view, opts)).toBeCloseTo(1440 / (468 + 32 + NOTES_W / ((1440 - NOTES_W) / 612)));
   });
   it('is the plain fit without notes, and page units stay the default', () => {
     expect(fitScale('width', page, view, { noted: false, notesIn: 'px', pad: 0 })).toBeCloseTo(1440 / 612);
     expect(fitScale('width', page, view, { noted: true, pad: 0 })).toBeCloseTo(1440 / (612 + NOTES_W));
+  });
+  it('Fit text leaves room for the notes as they scale with the chrome in the lamp', () => {
+    // TEXT_GUTTER and SIDE_PAD are 16 (private in fit.ts).
+    const narrow = { width: 612, height: 792, textLeft: 150, textRight: 460 };
+    const opts = { noted: true, notesIn: 'px' as const };
+    const v = { width: 800, height: 900 };
+    const z = fitScale('text', narrow, v, opts);
+    const base = fitScale('width', narrow, v, opts);
+    expect(z).toBeGreaterThan(base);
+    expect(z * (310 + 32) + NOTES_W * (z / base)).toBeLessThanOrEqual(v.width - 32 + 0.01);
   });
 });

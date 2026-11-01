@@ -84,6 +84,7 @@ export default function HighlightWorkspace({ pdfDocument, numPages, fileName, zo
   const notesW = comments.showRail ? NOTES_W * zoom.chrome : 0;
 
   const widest = zoom.pages.reduce((w, p) => Math.max(w, p.width), 0);
+  const columnW = widest * zoom.zoom + notesW;
   const menu = (onOpenChange?: (open: boolean) => void) => (
     <ZoomMenu
       zoom={zoom.zoom} setting={zoom.setting} labels={t} onOpenChange={onOpenChange}
@@ -145,10 +146,10 @@ export default function HighlightWorkspace({ pdfDocument, numPages, fileName, zo
       {fullscreen && <PrintMenu {...printMenu} />}
       {print.sheets}
       <ArmedChip armed={touch.armed} onStop={touch.disarm} />
-      <div className={fullscreen ? `${styles.board} ${styles.lampBoard}` : styles.board} style={{ width: `${zoom.board.boardWidth}px` }}>
+      <div className={fullscreen ? `${styles.board} ${styles.lampBoard}` : styles.board} style={{ width: `${fullscreen ? zoom.board.boardWidth : columnW}px` }}>
       <div
         className={styles.column} ref={columnRef}
-        style={{ width: `${widest * zoom.zoom + notesW}px`, marginLeft: `${zoom.board.slack}px`, ...(zoom.chrome !== 1 ? { '--chrome': zoom.chrome } : {}) }}
+        style={{ width: `${columnW}px`, marginLeft: `${zoom.board.slack}px`, ...(zoom.chrome !== 1 ? { '--chrome': zoom.chrome } : {}) }}
         onPointerDown={() => pagePressEvents.emit()}
       >
         {zoom.pages.map((box, i) => (
