@@ -6,8 +6,8 @@ const page = { width: 600, height: 800, textLeft: 100, textRight: 500 };
 const view = { width: 1000, height: 700 };
 
 describe('displayZoom', () => {
-  it('is always Fit width outside the lamp, whatever was remembered', () => {
-    const fit = (1000 - 32) / 600;
+  it('is always Fit width outside the lamp, whatever was remembered, filling the workspace (it sits inside the card gutters already)', () => {
+    const fit = 1000 / 600;
     expect(displayZoom('text', false, page, view, false)).toBeCloseTo(fit);
     expect(displayZoom(2, false, page, view, false)).toBeCloseTo(fit);
     expect(displayZoom('page', false, page, view, false)).toBeCloseTo(fit);
@@ -25,7 +25,7 @@ describe('displayZoom', () => {
 describe('displayZoom with notes', () => {
   const room = 16 * 2 + NOTES_W;
   it('fits the page plus the notes column in the normal view', () => {
-    expect(displayZoom('width', false, page, view, true)).toBeCloseTo((1000 - room) / 600);
+    expect(displayZoom('width', false, page, view, true)).toBeCloseTo((1000 - NOTES_W) / 600);
     expect(displayZoom('width', false, page, view, true)).toBeLessThan(displayZoom('width', false, page, view, false));
   });
   it('fits the page plus the notes column in the lamp, for Fit width and Fit text', () => {
@@ -57,7 +57,7 @@ describe('widestPage', () => {
       { width: 515, height: 735, textLeft: 0, textRight: 515 },
     ];
     const zoom = displayZoom('width', false, widestPage(pages), view, false);
-    expect(Math.max(...pages.map((p) => p.width)) * zoom).toBeLessThanOrEqual(view.width - 32 + 1e-9);
+    expect(Math.max(...pages.map((p) => p.width)) * zoom).toBeLessThanOrEqual(view.width + 1e-9);
   });
   it('is undefined before the pages are measured', () => {
     expect(widestPage([])).toBeUndefined();

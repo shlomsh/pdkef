@@ -13,7 +13,8 @@ export function widestPage(pages: readonly PageBox[]): PageBox | undefined {
  */
 export function displayZoom(setting: ZoomSetting, inLamp: boolean, page: PageBox | undefined, view: Viewport, noted: boolean): number {
   if (!page || view.width === 0) return typeof setting === 'number' && inLamp ? clampZoom(setting) : ACTUAL_SIZE;
-  return inLamp ? resolveZoom(setting, page, view, { noted }) : fitScale('width', page, view, { noted });
+  // The normal view's workspace already sits inside the card gutters; only the lamp, edge to edge, adds its own.
+  return inLamp ? resolveZoom(setting, page, view, { noted }) : fitScale('width', page, view, { noted, pad: 0 });
 }
 
 /** In the normal view a ctrl+wheel pinch or a zoom key opens the lamp, where the zoom then works. */

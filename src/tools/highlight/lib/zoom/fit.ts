@@ -19,9 +19,9 @@ export function fitScale(
   mode: FitMode,
   page: PageBox,
   view: Viewport,
-  opts: { noted: boolean; capsuleH?: number },
+  opts: { noted: boolean; capsuleH?: number; pad?: number },
 ): number {
-  const avail = view.width - 2 * SIDE_PAD - (opts.noted ? NOTES_W : 0);
+  const avail = view.width - 2 * (opts.pad ?? SIDE_PAD) - (opts.noted ? NOTES_W : 0);
   const width = avail / page.width;
   if (mode === 'width') return clampZoom(width);
   if (mode === 'text') {
