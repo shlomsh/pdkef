@@ -10,18 +10,16 @@
 @media (prefers-reduced-motion: reduce) { .card { transition: none; } }
 .body { display: flex; flex-direction: column; gap: 8px; }
 .row { display: flex; align-items: flex-start; gap: 4px; }
-.menuWrap { position: relative; flex: none; margin: -4px; }
-.more {
-  display: grid; place-items: center; width: 28px; height: 28px; padding: 0; border: none; border-radius: 50%;
-  background: transparent; color: var(--color-muted); cursor: pointer;
+.tools { display: flex; flex: none; margin-block-start: -6px; margin-inline-end: -6px; opacity: 0; pointer-events: none; }
+.card:hover .tools, .card:focus-within .tools, .tools[data-active='true'] { opacity: 1; pointer-events: auto; }
+.tool {
+  display: grid; place-items: center; width: 2.25rem; height: 2.25rem; padding: 0; border: none; border-radius: var(--radius-pill);
+  background: transparent; color: var(--color-muted); cursor: pointer; transition: background .15s var(--ease-out), transform .15s var(--ease-out);
 }
-.more:hover { background: var(--color-border); }
-.menu {
-  position: absolute; inset-inline-end: 0; top: 100%; z-index: 2; min-width: 120px; padding: 4px 0;
-  background: var(--color-surface); border: 1px solid var(--color-border); border-radius: 8px; box-shadow: var(--shadow-md);
-}
-.menuItem { display: block; width: 100%; padding: 6px 12px; border: none; background: transparent; font: inherit; font-size: 13.5px; text-align: start; color: var(--color-text); cursor: pointer; }
-.menuItem:hover { background: var(--color-border); }
+.tool:hover { background: var(--color-primary-tint); }
+.tool:active { transform: scale(.96); }
+.toolDelete:hover { color: var(--color-danger); }
+@media (pointer: coarse) { .tool { width: 2.75rem; height: 2.75rem; } }
 .text { flex: 1; min-width: 0; margin: 0; font-size: 14px; line-height: 1.45; white-space: pre-wrap; overflow-wrap: anywhere; }
 .input {
   display: block; width: 100%; box-sizing: border-box; resize: none;
@@ -31,10 +29,7 @@
 }
 .input:focus { border-color: var(--color-primary); }
 .actions { display: flex; justify-content: flex-end; gap: 6px; }
-.primary, .secondary { font: inherit; font-size: 13px; font-weight: 600; padding: 5px 14px; border-radius: 999px; cursor: pointer; }
-.primary { background: var(--color-primary); color: var(--color-surface); border: 1px solid var(--color-primary); }
-.primary:disabled { opacity: 0.45; cursor: default; }
-.secondary { background: transparent; color: var(--color-primary-text); border: 1px solid transparent; }
+.actions button:disabled { opacity: .5; cursor: default; }
 
 /* The page card on a wide workspace: header across, page and rail side by side (the rail on the
    inline end, so a right-to-left interface puts it on the left). */
