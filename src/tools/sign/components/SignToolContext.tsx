@@ -6,11 +6,11 @@ import type { PageGeometry } from '#editor/geometry/coords.ts';
 import { formatMessage } from '#lib/text/formatMessage.ts';
 import { englishSignMessages } from '#editor/registry/signMessages.ts';
 import { addTurn, turnElement, turnGeometry, unturnElement, type PageTurns } from '#editor/geometry/pageTurn.ts';
-import { applyHistoryEntries, createActionEntry, revertHistoryEntries, type ActionHistoryEntry } from '#editor/model/actionHistory.ts';
+import { createActionEntry, type ActionHistoryEntry } from '#editor/model/actionHistory.ts';
+import { elementsReducer, initialElementsState, nextDocumentRevision } from '#editor/model/elementsReducer.ts';
 import { pushCommand, redoStep, undoStep } from '#editor/model/historyStack.ts';
 import type { EditorElement, EditorElementPatch, SignToolType } from '#editor/model/editorModel.ts';
 import type { DocumentStyle } from '#editor/model/documentStyle.ts';
-import { deletedWith } from '#editor/comments/anchors.ts';
 import { resolveDocumentStyle } from '../lib/elementDefaults.ts';
 import { ensureMinimumElementSize } from '../lib/minimumSize.ts';
 
@@ -134,31 +134,11 @@ const initialState: SignToolState = {
   // "make another one". Locking (double-click the tool button) opts back into
   // the old sticky behaviour for repeat placements - ten check marks on a form.
   toolLocked: false,
-  elements: [],
-  activeElementId: null,
-  // Selection and text editing are separate states. `activeElementId` means
-  // "this element is selected" - the toolbar points at it, Backspace deletes
-  // it, dragging moves it. `editingElementId` means "a text edit session is
-  // open on it", which is the only state where the caret lives inside the box
-  // and Backspace belongs to the text. Without the split there is no way to
-  // have a text box selected but not being typed into, so Backspace can never
-  // delete one.
-  //
-  // Invariant, enforced in this reducer and nowhere else: editingElementId is
-  // either null or equal to activeElementId. Every caller sets selection
-  // through SET_ACTIVE_ELEMENT_ID, so no caller has to remember to close an
-  // edit session - the two cannot drift apart.
-  editingElementId: null,
-  actionHistory: [],
-  redoHistory: [],
+  ...initialElementsState,
   pageTurns: {},
-  documentRevision: 0,
-  draftBaselineRevision: 0,
   carried: {},
   appStyle: {},
 };
-
-const nextDocumentRevision = (state: SignToolState) => (state.documentRevision ?? 0) + 1;
 
 /**
  * SIGN-43: one page turned `by` quarter turns from `geometry`, the geometry it
@@ -206,47 +186,28 @@ function rotatePage(
   return { ...turnPage(state, pageIndex, geometry, 1, textWidths), actionHistory: past, redoHistory: future };
 }
 
-/** One undo or redo step: the entry's elements and page turns, then the stacks it moved to. */
-function stepHistory(
-  state: SignToolState,
-  step: ReturnType<typeof undoStep<EditorElement>>,
-  direction: 'undo' | 'redo',
-): SignToolState {
-  if (!step) return state;
+/**
+ * UNDO and REDO: the shared step runs in `elementsReducer`; a turn-page entry
+ * first turns the page (elements and `pageTurns`, Sign-only), then the shared
+ * step moves the stacks. The revision is the one bump of the original state.
+ */
+function stepHistory(state: SignToolState, direction: 'undo' | 'redo'): SignToolState {
+  const action = { type: direction === 'undo' ? 'UNDO' : 'REDO' } as const;
+  const step = direction === 'undo'
+    ? undoStep(state.actionHistory, state.redoHistory)
+    : redoStep(state.actionHistory, state.redoHistory);
+  if (!step || step.entry.operation !== 'turn-page') return elementsReducer(state, action);
   const turned = turnedByEntry(state, step.entry, direction);
-  const move = direction === 'undo' ? revertHistoryEntries : applyHistoryEntries;
-  const elements = move(turned.elements, [step.entry]);
-  const activeSurvives = elements.some((element) => element.id === turned.activeElementId);
-  return {
-    ...turned,
-    elements,
-    activeElementId: activeSurvives ? turned.activeElementId : null,
-    editingElementId: activeSurvives ? turned.editingElementId : null,
-    actionHistory: step.past,
-    redoHistory: step.future,
-    documentRevision: nextDocumentRevision(state),
-  };
+  return { ...elementsReducer(turned, action), documentRevision: nextDocumentRevision(state) };
 }
 
 export function reducer(state: SignToolState, action: SignToolAction): SignToolState {
   switch (action.type) {
-    // Loading is a baseline, never a person edit. Keeping that fact in the
-    // document model (rather than inferring it from File identity in the draft
-    // hook) means restored element hydration cannot accidentally autosave.
+    // Sign-only parts of a load run after the shared baseline.
     case 'LOAD_DOCUMENT': {
-      const documentRevision = nextDocumentRevision(state);
+      const loaded = elementsReducer(state, action);
       return {
-        ...state,
-        elements: action.payload.elements,
-        actionHistory: action.payload.actionHistory,
-        // A freshly opened file or a restored draft has no redoable future:
-        // history is restored from the draft, but the future never is (it is
-        // in-memory only per historyStack.ts).
-        redoHistory: [],
-        activeElementId: null,
-        editingElementId: null,
-        documentRevision,
-        draftBaselineRevision: documentRevision,
+        ...loaded,
         // A fresh file (no payload field) or a pre-SIGN-33 draft (nothing to
         // restore) both reset to `{}` - a new document starts with no keys of
         // its own, so every one of them falls through to the app-wide style
@@ -278,46 +239,13 @@ export function reducer(state: SignToolState, action: SignToolAction): SignToolS
     case 'DISARM_TOOL':
       return state.toolLocked ? state : { ...state, selectedTool: null };
     case 'SET_ELEMENTS':
-      // A wholesale replacement of the document (load, draft restore, undo)
-      // invalidates any open edit session along with the selection.
-      return {
-        ...state,
-        elements: action.payload,
-        activeElementId: null,
-        editingElementId: null,
-        // Every use of this case replaces the document under the history, so
-        // nothing already undone is safe to redo on top of it.
-        redoHistory: [],
-        documentRevision: nextDocumentRevision(state),
-      };
     case 'ADD_ELEMENT':
-      return {
-        ...state,
-        elements: [...state.elements, action.payload],
-        // A drag-drawn element enters the document here, at pointer-down, and
-        // is only logged on commit. Without this clear, a redo pressed
-        // mid-gesture would splice a restored element in beneath it and the
-        // commit would then log the drawn one at an index it no longer
-        // occupies, painting it behind its neighbour.
-        redoHistory: [],
-        documentRevision: nextDocumentRevision(state),
-      };
     case 'UPDATE_ELEMENT':
-      return {
-        ...state,
-        elements: state.elements.map(el =>
-          el.id === action.payload.id ? { ...el, ...action.payload.changes } : el
-        ),
-        documentRevision: nextDocumentRevision(state),
-      };
     case 'DELETE_ELEMENT':
-      return {
-        ...state,
-        elements: state.elements.filter(el => !deletedWith(action.payload)(el)), // its comments go too
-        activeElementId: state.activeElementId === action.payload ? null : state.activeElementId,
-        editingElementId: state.editingElementId === action.payload ? null : state.editingElementId,
-        documentRevision: nextDocumentRevision(state),
-      };
+    case 'SET_ACTIVE_ELEMENT_ID':
+    case 'SET_EDITING_ELEMENT_ID':
+    case 'ADD_ACTION_HISTORY':
+      return elementsReducer(state, action);
     // Every element on one page at once (the page header's "Clear page"). The
     // caller logs it with a snapshot, so UNDO restores the whole page the same
     // way it restores a single delete. The reducer's own job is the selection
@@ -338,31 +266,6 @@ export function reducer(state: SignToolState, action: SignToolAction): SignToolS
     }
     case 'ROTATE_PAGE':
       return rotatePage(state, action.payload);
-    case 'SET_ACTIVE_ELEMENT_ID':
-      return {
-        ...state,
-        activeElementId: action.payload,
-        // Selecting anything other than the element being edited ends the edit
-        // session. This is what holds the invariant documented on initialState.
-        editingElementId:
-          state.editingElementId === action.payload ? state.editingElementId : null
-      };
-    // Opens a text edit session on the element that is already selected. Guarded
-    // rather than trusted, so a stray dispatch cannot put the caret inside an
-    // element the toolbar is not pointing at.
-    case 'SET_EDITING_ELEMENT_ID':
-      return {
-        ...state,
-        editingElementId: action.payload === state.activeElementId ? action.payload : null
-      };
-    case 'ADD_ACTION_HISTORY': {
-      const { past, future } = pushCommand(state.actionHistory, state.redoHistory, action.payload);
-      return {
-        ...state,
-        actionHistory: past,
-        redoHistory: future
-      };
-    }
     // Bumps documentRevision like any other edit: the carried style is part
     // of the document now (round-tripped through its draft), not a browser
     // preference, so a change to any key is a saveable edit the same way an
@@ -393,14 +296,9 @@ export function reducer(state: SignToolState, action: SignToolAction): SignToolS
       };
     }
     case 'UNDO':
-      return stepHistory(state, undoStep(state.actionHistory, state.redoHistory), 'undo');
-    // UNDO-REDO: the exact mirror of UNDO above. SIGN-14 made every edit,
-    // undo and replacement revoke a prepared share file and a running export
-    // by bumping documentRevision, so redo must bump it too - a redo that
-    // skipped this would let a stale export download against a changed
-    // document.
+      return stepHistory(state, 'undo');
     case 'REDO':
-      return stepHistory(state, redoStep(state.actionHistory, state.redoHistory), 'redo');
+      return stepHistory(state, 'redo');
     default:
       return state;
   }
