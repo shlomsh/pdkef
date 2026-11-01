@@ -10,6 +10,7 @@ import { zoomPercent } from '../lib/zoom/percent.ts';
 import { englishHighlightMessages as t } from '../messages.ts';
 import ZoomMenu from './ZoomMenu.tsx';
 import HighlightPage from './HighlightPage.tsx';
+import MarkerButton from './MarkerButton.tsx';
 import ZoomReadout from './ZoomReadout.tsx';
 import styles from './HighlightWorkspace.module.css';
 
@@ -58,6 +59,7 @@ export default function HighlightWorkspace({ pdfDocument, numPages, fileName, zo
       onSetting={(mode) => zoom.apply(mode)} onStep={(dir) => zoom.step(dir)} onActual={() => zoom.actual()}
     />
   );
+  const markerButton = <MarkerButton marker={marks.marker} onChange={marks.rearm} />;
   const readout = typeof zoom.setting === 'number'
     ? `${zoomPercent(zoom.zoom)}%`
     : formatMessage(t.readout, { mode: MODE_LABEL[zoom.setting], percent: zoomPercent(zoom.zoom) });
@@ -70,6 +72,7 @@ export default function HighlightWorkspace({ pdfDocument, numPages, fileName, zo
             fileName={fileName} page={currentPage} pageCount={numPages}
             onJumpToPage={(n) => pageRefs.current[n - 1]?.scrollIntoView()}
             zoomSlot={menu()}
+            markerSlot={markerButton}
             onUndo={marks.undo} onRedo={marks.redo} canUndo={marks.canUndo} canRedo={marks.canRedo}
             onDownload={onDownload} moreItems={[]} onExit={onToggleFullscreen}
             scrollEvents={scrollEvents} pagePressEvents={pagePressEvents} labels={t.capsule}
@@ -77,6 +80,7 @@ export default function HighlightWorkspace({ pdfDocument, numPages, fileName, zo
         </div>
       ) : (
         <div className={styles.top}>
+          {markerButton}
           <button type="button" className={styles.download} onClick={onDownload}>{t.capsule.download}</button>
           <button type="button" className={styles.enter} onClick={onToggleFullscreen}><ReadingLampIcon size={20} />{t.enterLamp}</button>
         </div>
