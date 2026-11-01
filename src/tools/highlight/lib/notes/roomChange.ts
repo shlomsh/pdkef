@@ -1,7 +1,7 @@
 import { hasCommentCards } from '#editor/highlight/commentCards.ts';
 import { isComment } from '#editor/comments/anchors.ts';
 import type { EditorElement } from '#editor/model/editorModel.ts';
-import type { ElementsAction } from '#editor/model/elementsReducer.ts';
+import type { HighlightAction } from '../marks/highlightState.ts';
 
 interface NotesState {
   elements: readonly EditorElement[];
@@ -34,7 +34,7 @@ export function roomChange(before: NotesState, after: NotesState, wide: boolean)
 }
 
 /** The actions that can open or close a card, undo and redo among them; every swipe and edit is not one. */
-export function affectsNotes(action: ElementsAction): boolean {
+export function affectsNotes(action: HighlightAction): boolean {
   if (action.type === 'ADD_ELEMENT') return action.payload.type === 'comment';
-  return action.type === 'SET_ACTIVE_ELEMENT_ID' || action.type === 'DELETE_ELEMENT' || action.type === 'UNDO' || action.type === 'REDO';
+  return action.type === 'SET_ACTIVE_ELEMENT_ID' || action.type === 'DELETE_ELEMENT' || action.type === 'CLEAR_PAGE' || action.type === 'UNDO' || action.type === 'REDO';
 }
