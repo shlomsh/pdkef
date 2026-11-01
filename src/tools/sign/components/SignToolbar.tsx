@@ -12,7 +12,7 @@ import EditorExportActions from '#editor-ui/EditorExportActions.tsx';
 import ToolShell, { FILE_ACTIONS, useToolShell } from '#shell/ToolShell.tsx';
 import { useArmTool, useAutoArmHint, useDoubleTap } from '#editor-ui/hooks/toolArming.js';
 import IconToolButton from './IconToolButton.tsx';
-import { CommentIcon, WhiteoutIcon } from '#editor-ui/toolIcons.tsx';
+import { CommentIcon, HighlightIcon, WhiteoutIcon } from '#editor-ui/toolIcons.tsx';
 import useCoarsePointer from '#editor-ui/hooks/useCoarsePointer.ts';
 import { useFill } from './fill/FillContext.tsx';
 import { englishSignMessages } from '../messages';
@@ -34,7 +34,7 @@ import { recordAction } from '#lib/telemetry/actionTrail.ts';
 // than deriving it from TOOL_COPY's own keys, since TOOL_COPY is now built
 // per-render from the message catalogue (LOC-09 stage 1) and this guard has to
 // exist before that render happens.
-const SIGN_TOOL_TYPES: readonly SignToolType[] = ['text', 'date', 'symbol', 'signature', 'whiteout', 'ellipse', 'rectangle', 'line', 'comment'];
+const SIGN_TOOL_TYPES: readonly SignToolType[] = ['text', 'date', 'symbol', 'signature', 'whiteout', 'ellipse', 'rectangle', 'line', 'highlight', 'comment'];
 const isSignToolType = (tool: string): tool is SignToolType => (SIGN_TOOL_TYPES as readonly string[]).includes(tool);
 
 // What this file's own tests (and any other caller that has no fields to
@@ -711,6 +711,10 @@ export default function SignToolbar({
             />
             </div>
           </ArmHint>
+
+          <IconToolButton tool="highlight" label={t.highlightLabel} action={TOOL_COPY.highlight.action} selectedTool={selectedTool} toolLocked={toolLocked} autoShowTool={autoShowTool} hintTemplate={t.armHint} touchHintTemplate={t.armHintTouch} onArm={armTool('highlight')}>
+            <HighlightIcon strokeWidth={2.5} />
+          </IconToolButton>
 
           <IconToolButton tool="comment" label={t.commentToolLabel} action={TOOL_COPY.comment.action} selectedTool={selectedTool} toolLocked={toolLocked} autoShowTool={autoShowTool} hintTemplate={t.armHint} touchHintTemplate={t.armHintTouch} onArm={armTool('comment')} iconOnly>
             <CommentIcon />

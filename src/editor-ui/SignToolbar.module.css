@@ -453,6 +453,14 @@
     .toolbar:has(> :nth-child(11 of :not(.desktop-download))) > * { flex-grow: 0; flex-basis: max(var(--btn-min-size), (100% - (var(--controls-per-row) - 1) * var(--toolbar-gap)) / var(--controls-per-row)); }
   }
 
+  /* SIGN-44: 727.2px is where fifteen controls stop fitting one line
+     (15 * 44 + 14 * 4.8), one tier up from fourteen's 678.4px. Fifteen is Sign
+     with Share since the Comment button. Rounded up to 728px for the same
+     reason as the 679px rule below. */
+  @container toolbar (max-width: 728px) {
+    .toolbar:has(> :nth-child(15 of :not(.desktop-download))) > * { flex-grow: 0; flex-basis: max(var(--btn-min-size), (100% - (var(--controls-per-row) - 1) * var(--toolbar-gap)) / var(--controls-per-row)); }
+  }
+
   /* SIGN-46: 678.4px is where fourteen controls stop fitting one line
      (14 * 44 + 13 * 4.8), one tier up from thirteen's 629.6px. Fourteen is Sign
      with Share since the Highlight button. Rounded up to 679px for the same
@@ -470,12 +478,41 @@
     .toolbar:has(> :nth-child(13 of :not(.desktop-download))) > * { flex-grow: 0; flex-basis: max(var(--btn-min-size), (100% - (var(--controls-per-row) - 1) * var(--toolbar-gap)) / var(--controls-per-row)); }
   }
 
-  /* READ-04: the 581px tier (twelve controls, 580.8px) is gone. Sign is thirteen
-     without Share and fourteen with it, so the 630px and 679px tiers above
-     already cap every row that tier used to, and nothing counts exactly twelve.
-     Measured 2026-11-01 at every integer viewport from 919px to 239px, the row
-     is one line to 693px without Share (792px with), then a balanced 7+6
-     (7+7). */
+  /* 580.8px is where twelve controls stop fitting one line at the touch floor
+     (12 * 44 + 11 * 4.8), one tier up from eleven's 532.0px. Sign is the
+     twelve, with Share and without it alike (see the 11-of rule's comment for
+     that count).
+     Skip this tier and the band between 531px and 580.8px has no cap engaged
+     at all, so twelve packs greedily: measured 2026-09-20 in headless Chromium
+     at a 693px viewport (580.2px of content), 11+1 with the twelfth control
+     stretched across the full 580.2px - the stranded full-width row this whole
+     mechanism exists to prevent. Sign spent one day in that band, between
+     History leaving and this rule landing.
+     This one fires at 581px, ABOVE its figure, and is the exception to the
+     floor() convention the thresholds above follow. That convention assumes
+     the sub-pixel band it leaves open (580 to 580.8 here) needs a fractional
+     container width to land in. It does not: the page gutters and the
+     toolbar's own padding take 112.8px off the viewport in this band, so an
+     ordinary integer window width lands on a content box of x.2 - and 693px
+     lands on 580.2px, inside the band, which is exactly where the 11+1 above
+     was measured. Rounding up costs the 0.2px of content between 580.8 and
+     581, where the row would still have fitted one line and is capped to a
+     balanced 6+6 instead; that is the harmless direction, and it is the one to
+     take (the group comment above has the general form of this).
+     Note the figure carries no padding term, unlike 349.6/447.2/496.0 above,
+     which are the same N * 44 + (N-1) * 4.8 plus --toolbar-padding's 12.8px.
+     A container query matches the content box (the 239px rule below says so in
+     its own comment, and it is what the measured stand-down widths confirm), so
+     this one is the honest figure and those three fire ~12.8px early - which
+     caps a row slightly before it has to wrap, never late, so it has never
+     shown up as a defect. Do not "fix" them by adding 12.8px here.
+     Above it the row still fits one line and the controls simply grow to fill
+     it (measured 2026-10-28: one line down to a 644px viewport, 581.2px of
+     content, and a balanced 6+6 from 643px down, guarded at 643px and 610px by
+     e2e/tool-toolbars/toolbar-touch-targets.spec.js). */
+  @container toolbar (max-width: 581px) {
+    .toolbar:has(> :nth-child(12 of :not(.desktop-download))) > * { flex-grow: 0; flex-basis: max(var(--btn-min-size), (100% - (var(--controls-per-row) - 1) * var(--toolbar-gap)) / var(--controls-per-row)); }
+  }
 
   /* Once even the two-row split stops fitting - five-per-row controls need
      252px of toolbar to fit even at the touch floor - split three ways
@@ -505,18 +542,34 @@
      The counts use `:not(.desktop-download)`, matching the --controls-per-row: 5
      trigger above, so a toolbar that never shows ten visible controls is not
      counted as ten and wrapped 4+4+1. */
-  /* READ-04: Sign is thirteen counted controls without Share and fourteen with
-     it. Fourteen balances as 7+7 with Feedback kept, so Share never stands it
-     down. Thirteen balances only as 7+6, which needs 336.8px of content (7 * 44
-     + 6 * 4.8); below that it strands 6+6+1 and then 4+4+4+1, so Feedback stands
-     down and the twelve left render 6+6, then 4+4+4 under the 288px rule.
-     Measured 2026-11-01, 919px to 239px, headless Chromium: without this rule
-     the row strands from a 383px window to 286px. Rounded up to 337px like the
-     581px rule was, since the content box lands on x.2. Sits before the 288px
-     rule so its cap of four still wins below it. */
-  @container toolbar (max-width: 337px) {
-    .toolbar:has(> :nth-child(13 of :not(.desktop-download))):not(:has(> :nth-child(14 of :not(.desktop-download)))) > [data-optional-control] { display: none; }
-    .toolbar:has(> :nth-child(13 of :not(.desktop-download))):not(:has(> :nth-child(14 of :not(.desktop-download)))) > * { --controls-per-row: 6; }
+  /* 2026-10-20: thirteen (Sign with Share) balances only as 7+6, and seven
+     stop fitting at 336.8px of content. Below that, thirteen strands 6+6+1,
+     so Feedback stands down and the twelve left render 6+6, 4+4+4 and
+     3+3+3+3, which balance everywhere below. 2026-10-28: the loaded card
+     dropped its frame on phones, so a 433px window now gives 386.2px of
+     content, where 7+6 would still fit at 44.9-51px a control. The query
+     moved to 387px so every current iPhone (433px and narrower) keeps the
+     6+6 it had, with 48-60px controls instead; 434px and up is 7+6, as
+     before. Guard: sign-toolbar-labels-fit.spec.js, 6+6 at 360-430px. Feedback stays in the site footer. This is why
+     the "do not strip Feedback from every phone" note further down no longer
+     applies to Sign with Share: here the strand is real at every phone width.
+     Sits after the 581px rule and before the 288px one, so the 288px cap of
+     four still wins below it by source order. */
+  /* SIGN-46: Highlight made Sign thirteen counted children, fourteen with
+     Share. With Feedback stood down, Sign with Share shows thirteen and splits
+     7+6 (cap of seven, left alone here); Sign without Share shows twelve and
+     splits 6+6 (cap of six, set below). The 13-of/14-of pair keeps the two
+     apart. Seven fit above the 44px floor only from 336.8px of content, so
+     under 337px (a 360px or 375px phone) Sign's thirteen let the floor give
+     way, see the 337px rule after the 288px one (decided 2026-10-31). */
+  /* SIGN-44: the Comment tool moved every count up one. Feedback stands down
+     from fourteen counted (Sign without Share, thirteen left: 7+6) and from
+     fifteen (with Share, fourteen left: 7+7, cap of seven instead of the
+     eight fifteen takes above this width). Below 337px the rule after the
+     288px one gives the floor way for both. */
+  @container toolbar (max-width: 387px) {
+    .toolbar:has(> :nth-child(14 of :not(.desktop-download))) > [data-optional-control] { display: none; }
+    .toolbar:has(> :nth-child(15 of :not(.desktop-download))) > * { --controls-per-row: 7; }
   }
 
   /* Feedback does not act on the document, so at the narrowest widths it

@@ -293,12 +293,6 @@ Create is a gesture too (click-place or drag-draw), not an exception.
   where 433px lands, not where 7+6 stops fitting, so iPhones keep 6+6's wider controls. Without Share it stays
   twelve with Feedback, as above. Guard: `src/tools/sign/e2e/sign-toolbar-labels-fit.spec.js`, every
   width 919px to 239px with Share, no lone control.
-- **Sign's counts since READ-04 (2026-11-01, Highlight left the toolbar):** **thirteen** without Share and
-  **fourteen** with it. Measured at every integer viewport 919px to 239px, headless Chromium: without Share
-  one line to 693px, 7+6 to 384px, 6+6 to 335px (Feedback stands down at 337px of content, because thirteen
-  strands 6+6+1 and 4+4+4+1), 4+4+4 below; with Share one line to 792px, 7+7 to 286px with Feedback kept
-  (the 44px floor gives way under 337px, 30px controls at 286px), 7+6 once the 239px rule hides it. The 581px and 728px tiers are gone: nothing counts twelve or fifteen.
-  Older figures in this section describe the earlier counts.
 - **On a phone (480px and down) both toolbars show a word under every control**, Undo, Redo and
   Feedback included, from one shared block at the end of `SignToolbar.module.css`, sized by RED-61's
   formula below; a two-word label wraps between words. Sign's guard is
