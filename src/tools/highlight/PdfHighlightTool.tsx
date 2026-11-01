@@ -12,8 +12,8 @@ import { isEditorElement } from '#editor/registry/draftValidation.ts';
 import { recordAction } from '#lib/telemetry/actionTrail.ts';
 import { reportError } from '#lib/telemetry/errorReport.ts';
 import { usePdfShare } from '#lib/output/usePdfShare.js';
-import { toggleWorkspaceFullscreen, useFullscreenChange } from '#editor-ui/hooks/workspaceFullscreen.ts';
 import { useWorkspaceZoom } from './hooks/useWorkspaceZoom.ts';
+import { useReadingLamp } from './hooks/useReadingLamp.ts';
 import { useHighlightComments } from './hooks/useHighlightComments.ts';
 import { useNoteRoom } from './hooks/useNoteRoom.ts';
 import { useHighlightMarks } from './hooks/useHighlightMarks.ts';
@@ -36,11 +36,7 @@ export default withIslandBoundary(function PdfHighlightTool() {
 
   const workspaceRef = useRef<HTMLDivElement | null>(null);
   const columnRef = useRef<HTMLDivElement | null>(null);
-  const [realFullscreen, setRealFullscreen] = useState(false);
-  const [pseudoFullscreen, setPseudoFullscreen] = useState(false);
-  const fullscreen = realFullscreen || pseudoFullscreen;
-  useFullscreenChange(workspaceRef, setRealFullscreen);
-  const toggleLamp = () => toggleWorkspaceFullscreen(workspaceRef.current, pseudoFullscreen, setPseudoFullscreen);
+  const { fullscreen, pseudoFullscreen, toggleLamp } = useReadingLamp(workspaceRef);
   const marks = useHighlightMarks();
   // R28: the first note makes room for the notes column in the event that opens its card, so the dispatches that
   // open and close cards go through here. Zoom and the comments view are created below and read when it runs.
@@ -118,7 +114,7 @@ export default withIslandBoundary(function PdfHighlightTool() {
           pdfDocument={pdfDocument} numPages={numPages} fileName={file?.name ?? ''} zoom={zoom}
           marks={marks} comments={comments} dispatch={room.dispatch} setAnnouncement={setAnnouncement} onDownload={handleDownload}
           workspaceRef={workspaceRef} columnRef={columnRef} fullscreen={fullscreen} pseudoFullscreen={pseudoFullscreen}
-          onToggleFullscreen={() => toggleWorkspaceFullscreen(workspaceRef.current, pseudoFullscreen, setPseudoFullscreen)}
+          onToggleFullscreen={toggleLamp}
         />
       )}
 
