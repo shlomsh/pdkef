@@ -391,6 +391,87 @@ describe('HighlightPage click marks on a digital page (R10 to R12)', () => {
   });
 });
 
+describe('HighlightPage sweep (R13)', () => {
+  const animate = vi.fn();
+  let restore = () => {};
+  beforeEach(() => { (HTMLElement.prototype as unknown as { animate: unknown }).animate = animate; });
+  afterEach(() => {
+    animate.mockReset();
+    restore();
+    delete (HTMLElement.prototype as unknown as { animate?: unknown }).animate;
+  });
+
+  function markByClick(strings: string[], reduced = false) {
+    const original = window.matchMedia;
+    window.matchMedia = ((query: string) => ({ ...original(query), matches: query.includes('reduce') ? reduced : false })) as typeof window.matchMedia;
+    restore = () => { window.matchMedia = original; };
+    const doc = textPage(strings);
+    const draw = (elements: EditorElement[]) => act(() => render(
+      <HighlightPage
+        pdfDocument={doc} pageIndex={0} widthPx={200} elements={elements} marker={DEFAULT_MARKER}
+        dispatch={dispatch} logAction={logAction} rearm={rearm} setAnnouncement={() => {}} cardRef={() => {}}
+      />,
+      container,
+    ));
+    return { doc, draw };
+  }
+
+  async function laidByDoubleClick(strings: string[], reduced = false) {
+    const { draw } = markByClick(strings, reduced);
+    await act(async () => { draw([]); });
+    await act(async () => { await new Promise((resolve) => setTimeout(resolve, 0)); });
+    const overlay = container.querySelector<HTMLElement>('[data-page-overlay]')!;
+    overlay.getBoundingClientRect = () => ({ left: 0, top: 0, right: 200, bottom: 400, width: 200, height: 400, x: 0, y: 0, toJSON: () => ({}) });
+    const down = new MouseEvent('pointerdown', { bubbles: true, cancelable: true, button: 0, clientX: 20, clientY: 92 });
+    Object.defineProperty(down, 'pointerType', { value: 'mouse' });
+    act(() => { overlay.dispatchEvent(down); });
+    act(() => { window.dispatchEvent(new MouseEvent('mouseup', { bubbles: true })); });
+    act(() => { overlay.dispatchEvent(new MouseEvent('click', { bubbles: true, detail: 2, clientX: 20, clientY: 92 })); });
+    const laid = dispatch.mock.calls.map(([a]) => a).filter((a) => a.type === 'ADD_ELEMENT').at(-1)!.payload as HighlightElement;
+    expect(animate).not.toHaveBeenCalled();
+    draw([laid]);
+    return laid;
+  }
+
+  it('draws the new mark in from its first letter: a clip on each band, once it is on the page', async () => {
+    await laidByDoubleClick(['hello world']);
+    expect(animate).toHaveBeenCalledTimes(1);
+    expect(animate).toHaveBeenCalledWith(
+      [{ clipPath: 'inset(0 100% 0 0)' }, { clipPath: 'inset(0)' }],
+      { delay: 0, duration: 110, easing: 'cubic-bezier(.3, .7, .3, 1)', fill: 'backwards' },
+    );
+  });
+
+  it('does not sweep again on later renders', async () => {
+    const laid = await laidByDoubleClick(['hello world']);
+    act(() => render(
+      <HighlightPage
+        pdfDocument={null} pageIndex={0} widthPx={300} elements={[laid]} marker={DEFAULT_MARKER}
+        dispatch={dispatch} logAction={logAction} rearm={rearm} setAnnouncement={() => {}} cardRef={() => {}}
+      />,
+      container,
+    ));
+    expect(animate).toHaveBeenCalledTimes(1);
+  });
+
+  it('sweeps from the right edge on a Hebrew page', async () => {
+    await laidByDoubleClick(['שלום עולם']);
+    expect(animate.mock.calls[0][0][0]).toEqual({ clipPath: 'inset(0 0 0 100%)' });
+  });
+
+  it('draws nothing under reduced motion', async () => {
+    await laidByDoubleClick(['hello world'], true);
+    expect(animate).not.toHaveBeenCalled();
+  });
+
+  it('a mark laid by a swipe is not swept', async () => {
+    const { draw } = markByClick(['hello world']);
+    await act(async () => { draw([]); });
+    draw([mark]);
+    expect(animate).not.toHaveBeenCalled();
+  });
+});
+
 describe('HighlightPage click marks on a scan (R10)', () => {
   let overlay: HTMLElement;
   beforeEach(() => {
