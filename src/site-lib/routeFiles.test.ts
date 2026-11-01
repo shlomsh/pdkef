@@ -3,7 +3,7 @@ import { listedTools } from '../data/tools.js';
 import { handoffKeyFor, routeFiles } from './routeFiles';
 
 const f = (name: string, type = '') => new File(['x'], name, { type });
-const PDF_TOOLS = ['sign', 'redact', 'merge', 'pdf-to-image', 'split', 'compress', 'unlock', 'organize-pdf'];
+const PDF_TOOLS = ['sign', 'highlight-pdf', 'redact', 'merge', 'pdf-to-image', 'split', 'compress', 'unlock', 'organize-pdf'];
 const names = (files: File[]) => files.map((x) => x.name);
 
 describe('routeFiles', () => {

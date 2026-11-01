@@ -148,7 +148,7 @@
   },
   "size": {
     "fileLines": {
-      "src/data/tools.js": 1015,
+      "src/data/tools.js": 930,
       "src/shell/pageGrid/PageGrid.tsx": 882,
       "src/tools/sign/components/SignToolbar.tsx": 807
     },

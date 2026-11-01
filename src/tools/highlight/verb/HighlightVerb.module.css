@@ -1,0 +1,35 @@
+.pg {
+  --s: calc(1.15 * var(--u));
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: calc(132 * var(--s));
+  height: calc(172 * var(--s));
+  margin: calc(-88 * var(--s)) 0 0 calc(-66 * var(--s));
+  border-radius: calc(5 * var(--s));
+  background: var(--color-surface);
+  box-shadow: 0 0 0 1px var(--color-border);
+  font-style: normal;
+  overflow: hidden;
+}
+
+.line,
+.mark {
+  position: absolute;
+  display: block;
+  left: calc(12 * var(--s));
+  width: calc(108 * var(--s));
+  height: calc(3.5 * var(--s));
+  border-radius: calc(1.75 * var(--s));
+}
+
+.line {
+  background: var(--color-border-strong);
+}
+
+.mark {
+  height: calc(9 * var(--s));
+  margin-top: calc(-2.7 * var(--s));
+  background: var(--color-comment-anchor);
+  opacity: 0.55;
+}

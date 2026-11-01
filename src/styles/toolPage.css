@@ -1,6 +1,6 @@
 /* Entry stylesheet for the tool pages (/merge/, /split/, /compress/,
    /compress-image/, /organize-pdf/, /pdf-to-image/, /unlock/, /image-to-pdf/,
-   /scan-to-pdf/, /redact/, /sign/, and the landing pages /rotate-pdf/, /remove-pages/,
+   /scan-to-pdf/, /redact/, /sign/, /highlight-pdf/, and the landing pages /rotate-pdf/, /remove-pages/,
    /add-page-numbers-to-pdf/, /extract-pdf-pages/), imported by ToolPageLayout.astro.
  *
  * ------------------------------------------------------------------------
@@ -61,6 +61,7 @@
 @source "../pages/remove-pages.astro";
 @source "../pages/rotate-pdf.astro";
 @source "../pages/image-to-pdf.astro";
+@source "../pages/highlight-pdf.astro";
 @source "../pages/merge.astro";
 @source "../pages/pdf-to-image.astro";
 @source "../pages/redact.astro";

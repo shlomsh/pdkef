@@ -18,6 +18,7 @@ const routes = [
   '/pdf-to-image/',
   '/image-to-pdf/',
   '/scan-to-pdf/',
+  '/highlight-pdf/',
   '/unlock/',
   '/sign/?next=0',
   '/redact/',

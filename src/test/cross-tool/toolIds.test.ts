@@ -19,7 +19,7 @@ describe('toolIds.ts and src/data/tools.js agree', () => {
     expect(page.href).toBe(tool.href);
     expect(page.href).toMatch(/^\/[a-z0-9-]+\/$/);
     expect(page.id).toBe(toolIdOf(tool));
-    expect(page.variantOf).toBe(tool.variantOf);
+    expect(page.variantOf).toBe((tool as { variantOf?: string }).variantOf);
   });
 
   it('the analytics and rating lists are the registry ids (plus Protect, which has no page of its own)', () => {
@@ -58,16 +58,15 @@ describe('registry-derived tool unions', () => {
     expectTypeOf<HandoffTool>().toEqualTypeOf<HandoffTargetId>();
   });
 
-  it('the editor and Redact hand-off unions are the named subsets of HandoffTargetId', () => {
-    expectTypeOf<EditorToolId>().toEqualTypeOf<'sign' | 'redact'>();
+  it('the editor and Redact hand-off unions are the named subsets of the registry', () => {
+    expectTypeOf<EditorToolId>().toEqualTypeOf<'sign' | 'redact' | 'highlight-pdf'>();
     expectTypeOf<RedactHandoffTarget>().toEqualTypeOf<'compress' | 'sign'>();
-    expectTypeOf<EditorToolId>().toExtend<HandoffTargetId>();
     expectTypeOf<RedactHandoffTarget>().toExtend<HandoffTargetId>();
   });
 
-  it('ToolSlug is exactly the ten pages the home dropzone can route to', () => {
+  it('ToolSlug is exactly the eleven pages the home dropzone can route to', () => {
     expectTypeOf<ToolSlug>().toEqualTypeOf<
-      'sign' | 'redact' | 'merge' | 'pdf-to-image' | 'image-to-pdf' | 'split' | 'compress' | 'compress-image' | 'unlock' | 'organize-pdf'
+      'sign' | 'highlight-pdf' | 'redact' | 'merge' | 'pdf-to-image' | 'image-to-pdf' | 'split' | 'compress' | 'compress-image' | 'unlock' | 'organize-pdf'
     >();
   });
 });
