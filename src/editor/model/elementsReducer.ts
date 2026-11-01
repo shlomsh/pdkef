@@ -1,6 +1,6 @@
-import { applyHistoryEntries, revertHistoryEntries, type ActionHistoryEntry } from '#editor/model/actionHistory.ts';
-import type { EditorElement, EditorElementPatch } from '#editor/model/editorModel.ts';
-import { pushCommand, redoStep, undoStep } from '#editor/model/historyStack.ts';
+import { applyHistoryEntries, revertHistoryEntries, type ActionHistoryEntry } from './actionHistory.ts';
+import type { EditorElement, EditorElementPatch } from './editorModel.ts';
+import { pushCommand, redoStep, undoStep } from './historyStack.ts';
 
 /** The snapshot predicate every delete call site uses: the element and the comments anchored to it go (and come back) together. */
 export function deletedWith(id: string): (element: EditorElement) => boolean {
