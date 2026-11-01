@@ -2,6 +2,7 @@ import { h } from 'preact';
 import { useCallback, useEffect, useRef, useState } from 'preact/hooks';
 import type { PDFDocumentProxy } from 'pdfjs-dist';
 import type { EditorElement } from '#editor/model/editorModel.ts';
+import type { PageTurns } from '#editor/geometry/pageTurn.ts';
 import { reportError } from '#lib/telemetry/errorReport.ts';
 import PrintSheets from '../components/PrintSheets.tsx';
 
@@ -15,7 +16,7 @@ export const PRINT_TIMEOUT_MS = 15_000;
  * A browser that never fires `afterprint` (iOS Safari) keeps its sheets until the next print replaces them: taking
  * them away on a timer could pull them from a print sheet that is still reading them.
  */
-export function usePrint({ pdfDocument, elements }: { pdfDocument: PDFDocumentProxy; elements: EditorElement[] }) {
+export function usePrint({ pdfDocument, elements, pageTurns }: { pdfDocument: PDFDocumentProxy; elements: EditorElement[]; pageTurns?: PageTurns }) {
   const [job, setJob] = useState<{ withNotes: boolean } | null>(null);
   const [ready, setReady] = useState(false);
   // The open job has been sent to window.print(), so a new request replaces it instead of waiting for afterprint.
@@ -47,6 +48,6 @@ export function usePrint({ pdfDocument, elements }: { pdfDocument: PDFDocumentPr
   }, [job, ready]);
 
   const onReady = useCallback(() => setReady(true), []);
-  const sheets = job ? h(PrintSheets, { pdfDocument, elements, withNotes: job.withNotes, onReady }) : null;
+  const sheets = job ? h(PrintSheets, { pdfDocument, elements, pageTurns, withNotes: job.withNotes, onReady }) : null;
   return { print, sheets };
 }

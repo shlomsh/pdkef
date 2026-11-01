@@ -2,6 +2,7 @@ import { createPortal } from 'preact/compat';
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'preact/hooks';
 import type { PDFDocumentProxy } from 'pdfjs-dist';
 import type { EditorElement, HighlightElement } from '#editor/model/editorModel.ts';
+import { turnsOf, type PageTurns } from '#editor/geometry/pageTurn.ts';
 import { underlineInk } from '#editor/model/underlineInk.ts';
 import { renderPageToCanvas } from '#lib/pdf/renderPage.js';
 import { reportError } from '#lib/telemetry/errorReport.ts';
@@ -13,6 +14,8 @@ interface Props {
   pdfDocument: PDFDocumentProxy;
   elements: EditorElement[];
   withNotes: boolean;
+  /** Quarter turns a person gave each page; a turned sheet is drawn and sized turned. Marks are stored in percent of the turned page. */
+  pageTurns?: PageTurns;
   /** Once every page image has loaded and the sheets are laid out: the moment to call `window.print()`. */
   onReady(): void;
 }
@@ -25,6 +28,12 @@ const PRINT_OVERSAMPLE = 2;
 const CSS_PX_PER_PT = 96 / 72;
 /** An underline is 1.5 screen px at full size; it shrinks with the page. */
 const UNDERLINE_PX = 1.5;
+
+const NO_TURNS: PageTurns = {};
+
+/** pdf.js rotation for a page: its own /Rotate plus the person's turns. */
+const turnedRotation = (page: { rotate?: number }, turns: PageTurns, index: number) =>
+  (((page.rotate ?? 0) + 90 * turnsOf(turns, index)) % 360 + 360) % 360;
 
 const pt = (value: number) => `${value}pt`;
 
@@ -103,7 +112,7 @@ function Sheet({ plan, image, highlights, texts, onSettled }: {
  * `printPlan` after the cards are measured at their real width. Hidden on screen, the only thing
  * shown in print (see the module's @media print rules).
  */
-export default function PrintSheets({ pdfDocument, elements, withNotes, onReady }: Props) {
+export default function PrintSheets({ pdfDocument, elements, withNotes, pageTurns = NO_TURNS, onReady }: Props) {
   const [pages, setPages] = useState<PageSize[]>([]);
   const [images, setImages] = useState<string[] | null>(null);
   const [measured, setMeasured] = useState<{ notes: NoteSeed[]; heights: ReadonlyMap<string, number> } | null>(null);
@@ -120,7 +129,8 @@ export default function PrintSheets({ pdfDocument, elements, withNotes, onReady 
       try {
         const sizes: PageSize[] = [];
         for (let n = 1; n <= pdfDocument.numPages; n++) {
-          const { width, height } = (await pdfDocument.getPage(n)).getViewport({ scale: 1 });
+          const page = await pdfDocument.getPage(n);
+          const { width, height } = page.getViewport({ scale: 1, rotation: turnedRotation(page, pageTurns, n - 1) });
           sizes.push({ width, height });
         }
         if (current) setPages(sizes);
@@ -129,7 +139,7 @@ export default function PrintSheets({ pdfDocument, elements, withNotes, onReady 
       }
     })();
     return () => { current = false; };
-  }, [pdfDocument]);
+  }, [pdfDocument, pageTurns]);
 
   const basePlan = useMemo(() => printPlan(pages, withNotes ? [] : null), [pages, withNotes]);
 
@@ -143,7 +153,8 @@ export default function PrintSheets({ pdfDocument, elements, withNotes, onReady 
         const urls: string[] = [];
         for (let i = 0; i < pages.length; i++) {
           const scale = PRINT_OVERSAMPLE * (basePlan[i].pageBox.width / pages[i].width) * CSS_PX_PER_PT;
-          const canvas = await renderPageToCanvas(await pdfDocument.getPage(i + 1), { scale });
+          const page = await pdfDocument.getPage(i + 1);
+          const canvas = await renderPageToCanvas(page, { scale, rotation: turnedRotation(page, pageTurns, i) });
           urls.push(canvas.toDataURL('image/png'));
           canvas.width = 0;
           if (!current) return;
@@ -155,7 +166,7 @@ export default function PrintSheets({ pdfDocument, elements, withNotes, onReady 
       }
     })();
     return () => { current = false; };
-  }, [pdfDocument, pages, basePlan]);
+  }, [pdfDocument, pages, basePlan, pageTurns]);
 
   const seeds = useMemo(() => (withNotes && pages.length > 0 ? printNotes(elements, pages) : null), [withNotes, elements, pages]);
   const texts = useMemo(() => new Map(elements.flatMap((el) => (el.type === 'comment' ? [[el.id, el.comment] as const] : []))), [elements]);
