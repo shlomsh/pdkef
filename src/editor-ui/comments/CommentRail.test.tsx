@@ -28,11 +28,12 @@ describe('CommentRail', () => {
     expect(host!.querySelector('[data-comment-rail]')).not.toBeNull();
   });
 
-  it('the active saved card carries Edit and Delete buttons, not a menu', () => {
+  it('a saved card has no buttons in read mode; a double-click opens it with Delete', () => {
     mount([hl('a', 10, 'first')], 'a');
-    expect(host!.querySelector('button[aria-label="Edit"]')).not.toBeNull();
-    expect(host!.querySelector('button[aria-label="Delete"]')).not.toBeNull();
+    expect(host!.querySelector('button')).toBeNull();
     expect(host!.querySelector('[aria-haspopup]')).toBeNull();
+    act(() => { host!.querySelector('p')!.dispatchEvent(new MouseEvent('dblclick', { bubbles: true })); });
+    expect([...host!.querySelectorAll('button')].some((b) => b.textContent === 'Delete')).toBe(true);
   });
 
   it('adds the active comment that was just opened for a comment, and marks the active card', () => {
