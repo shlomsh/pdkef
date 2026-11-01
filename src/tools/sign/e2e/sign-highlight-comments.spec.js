@@ -2,6 +2,7 @@ import { test, expect } from '@playwright/test';
 import { PDFDocument, PDFName, PDFArray, PDFDict, PDFString, PDFHexString, PDFRef } from '@cantoo/pdf-lib';
 import { waitForIsland } from '../../../../e2e/support/tool.js';
 import { makePdfBuffer } from '../../../../e2e/support/pdf.js';
+import { buildHighlightedPdf } from '../../../test/support/highlightedPdf.js';
 
 /**
  * SIGN-44: a comment on a highlight, end to end. jsdom cannot drag a real
@@ -20,8 +21,14 @@ const overlay = (page) => page.locator('[class*="page-overlay"]').first();
 const header = (page, n = 1) => page.getByText(n === 1 ? '1 comment' : `${n} comments`, { exact: true });
 const cards = (page) => page.locator('[data-comment-card]');
 
-async function openSign(page) {
-  const source = await makePdfBuffer(null, { title: false, lines: [{ text: 'A line of text a student would highlight', y: 700 }] });
+const LINE = 'A line of text a student would highlight';
+
+// Sign no longer makes highlights (READ-04, Highlight PDF does), so a highlight arrives the way it does
+// from another viewer: a standard /Highlight annotation in the file, which Sign reads on open.
+async function openSign(page, { highlighted = false } = {}) {
+  const source = highlighted
+    ? await buildHighlightedPdf({ lines: [{ text: LINE, y: 700 }], highlights: [{ line: LINE }] })
+    : await makePdfBuffer(null, { title: false, lines: [{ text: LINE, y: 700 }] });
   await page.goto('/sign/?next=0');
   await waitForIsland(page);
   const chooser = page.waitForEvent('filechooser');
@@ -47,8 +54,6 @@ async function selectTheHighlight(page) {
   await page.locator('[data-editor-element]').first().click();
   await expect(page.locator('[data-element-comment-button]')).toBeVisible();
 }
-
-const highlightTheLine = (page) => swipeTheLine(page, 'Highlight');
 
 async function saveCard(page, value) {
   const rail = page.locator('[data-comment-rail]').first();
@@ -80,12 +85,11 @@ const text = (obj) => (obj instanceof PDFString || obj instanceof PDFHexString ?
 const name = (obj) => obj?.asString?.();
 
 test('a comment on a highlight survives reload, undo and redo, goes with its highlight, and exports', async ({ page }) => {
-  const sourcePages = await openSign(page);
-  await highlightTheLine(page);
+  const sourcePages = await openSign(page, { highlighted: true });
 
-  // Select the highlight if the swipe did not leave it selected, then comment on it.
+  // The highlight came in with the file; select it, then comment on it.
   const commentButton = page.locator('[data-element-comment-button]');
-  if (!(await commentButton.isVisible())) await selectTheHighlight(page);
+  await selectTheHighlight(page);
   await commentButton.click();
   await saveCard(page, COMMENT);
   await expect(cards(page)).toHaveCount(1);
