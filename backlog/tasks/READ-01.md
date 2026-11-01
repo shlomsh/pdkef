@@ -105,7 +105,24 @@ against this list.
     cards) moves with it in the same frame during scroll, pinch and zoom. Measured in the sketch: a card in a
     separate rail drifted up to 157 px from its passage during a pinch, then snapped back.
 
-How comments are placed is open call 2.
+How comments are placed is the open call below.
+
+### Shared with Sign, in the PDF standard (R44 to R46)
+
+Shlomi, 2026-11-01: highlighting moves out of Sign, comments stay in Sign, and both tools store them in the
+PDF standard so any viewer shows them, sharing as much code as possible on top of the detection layer.
+
+44. **Highlighting leaves Sign; comments stay.** Sign keeps comment on a passage, on an element and the pin
+    (`docs/sign-comments-model.md`), and keeps showing, exporting and deleting highlights it can no longer make
+    (READ-04).
+45. **One standard file format, nothing PDkef-specific.** Both tools write and read the same annotations: a
+    highlight is a `/Highlight` in its color; a comment on it adds `/Contents`, `/M` and a closed `/Popup`;
+    Sign's passage comment is a transparent `/Highlight` and its pin a `/Text` note. One shared codec does the
+    export and the read-back for both tools, so a file marked in one opens in the other, and in Acrobat
+    Reader, macOS Preview and Chrome's viewer, with every highlight and comment showing.
+46. **One passage reader for both tools.** Sign's passage comment and Highlight PDF's highlight lay the same
+    band through the same code: the swipe gesture, band geometry and line reading are shared (READ-02), and
+    read their rows from the shared page layout (R34 to R38), so a scanned page works for both.
 
 ### Scanned and multi-column pages (R30 to R33)
 
@@ -142,9 +159,9 @@ symptoms of reading a three-line strip instead of a page.
     contract and a declared order, the same pattern as field sources: `rasterInk` (today's prep and
     rule finding, the FORM-07 path), `rasterRows` (rows and columns from the raster), `textLayerRows` (rows
     from the PDF's text, exact on digital papers), and later `ocrWords`.
-35. **Every reader takes the layout.** Highlight bands ask the cached layout for the rows at a point; field
-    detection gets `layout` in its context, additively, the way `textRuns` arrives; SNG-09's snap reads
-    baselines from it. No consumer keeps its own row or column finder.
+35. **Every reader takes the layout.** Highlight bands and Sign's passage comments ask the cached layout for
+    the rows at a point; field detection gets `layout` in its context, additively, the way `textRuns`
+    arrives; SNG-09's snap reads baselines from it. No consumer keeps its own row or column finder.
 36. **OCR plugs in once, as a word source** in the `PageTextRun` shape fields already read. It informs
     columns, direction and word gaps; ink still sets a band's height. It is lazy and opt-in (FORM-32 measured
     0.3 to 4.4 s a page on a laptop, never on a phone), and highlighting works fully before it exists.
