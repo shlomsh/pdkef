@@ -1,7 +1,11 @@
-import { deletedWith } from '#editor/model/deleteCascade.ts';
 import { applyHistoryEntries, revertHistoryEntries, type ActionHistoryEntry } from '#editor/model/actionHistory.ts';
 import type { EditorElement, EditorElementPatch } from '#editor/model/editorModel.ts';
 import { pushCommand, redoStep, undoStep } from '#editor/model/historyStack.ts';
+
+/** The snapshot predicate every delete call site uses: the element and the comments anchored to it go (and come back) together. */
+export function deletedWith(id: string): (element: EditorElement) => boolean {
+  return (el) => el.id === id || (el.type === 'comment' && el.anchor.kind === 'element' && el.anchor.elementId === id);
+}
 
 /**
  * READ-03: the tool-agnostic part of an editor's state - the elements, the
