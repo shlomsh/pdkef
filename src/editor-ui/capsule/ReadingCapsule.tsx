@@ -37,7 +37,6 @@ const RedoIcon = () => <svg {...svg}><path d="M21 7v6h-6" /><path d="M3 17a9 9 0
 const PrintIcon = () => <svg {...svg}><path d="M6 9V2h12v7" /><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" /><path d="M6 14h12v8H6z" /></svg>;
 const DownloadIcon = () => <svg {...svg}><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><path d="m7 10 5 5 5-5" /><path d="M12 15V3" /></svg>;
 const MoreIcon = () => <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="5" cy="12" r="1.8" /><circle cx="12" cy="12" r="1.8" /><circle cx="19" cy="12" r="1.8" /></svg>;
-const EnterIcon = () => <svg {...svg}><path d="M8 3H5a2 2 0 0 0-2 2v3" /><path d="M16 3h3a2 2 0 0 1 2 2v3" /><path d="M21 16v3a2 2 0 0 1-2 2h-3" /><path d="M3 16v3a2 2 0 0 0 2 2h3" /></svg>;
 const ExitIcon = () => <svg {...svg}><path d="M8 3v3a2 2 0 0 1-2 2H3" /><path d="M21 8h-3a2 2 0 0 1-2-2V3" /><path d="M3 16h3a2 2 0 0 1 2 2v3" /><path d="M16 21v-3a2 2 0 0 1 2-2h3" /></svg>;
 
 /**
@@ -150,11 +149,34 @@ export default function ReadingCapsule(p: ReadingCapsuleProps) {
           )}
         </span>
         {bar ? (
-          <button type="button" class={styles.button} aria-label={labels.enter} title={labels.enter} onClick={p.onEnter}><EnterIcon /></button>
+          <button type="button" class={styles.button} aria-label={labels.enter} title={labels.enter} onClick={p.onEnter}><ReadingLampIcon /></button>
         ) : (
           <button type="button" class={styles.button} aria-label={labels.exit} title={labels.exit} onClick={p.onExit}><ExitIcon /></button>
         )}
       </div>
     </div>
+  );
+}
+
+/**
+ * READ-05: the Reading lamp's own icon, a small desk lamp leaning in to read. Its head nods and its bulb
+ * warms when the button it sits in is hovered or focused (not under reduced motion).
+ */
+export function ReadingLampIcon({ size = 18 }: { size?: number }) {
+  return (
+    <svg class={styles.lamp} width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <path d="M3.5 21.5h8" />
+      <path d="M4.8 21.4a2.7 1.9 0 0 1 5.4 0" fill="currentColor" />
+      <path d="M7.5 19.6 5 12.3l6.4-6.1" />
+      <circle cx="5" cy="12.3" r="1.1" fill="currentColor" />
+      <g transform="translate(12.2 5.4)">
+        <g class={styles.lampHead}>
+          <path class={styles.lampBeam} d="M-4.2 5.4 L-5.6 10.6 L5.6 10.6 L4.2 5.4 Z" stroke="none" />
+          <path d="M-1.3 0 C-3.6 0.5 -4.8 2.9 -4.8 5 Q0 6.7 4.8 5 C4.8 2.9 3.6 0.5 1.3 0 Z" fill="currentColor" />
+          <circle class={styles.lampBulb} cx="0" cy="5.5" r="1.5" stroke="none" />
+        </g>
+        <circle cx="0" cy="0" r="1" fill="currentColor" />
+      </g>
+    </svg>
   );
 }

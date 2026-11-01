@@ -1,6 +1,6 @@
 .workspace { overflow-x: auto; touch-action: pan-x pan-y; }
 .top { display: flex; align-items: center; gap: var(--space-3); justify-content: center; }
-.enter { font: inherit; color: inherit; background: none; border: 1px solid var(--color-border-strong); border-radius: var(--radius-sm); min-height: 32px; padding: 0 var(--space-3); cursor: pointer; }
+.enter { display: inline-flex; align-items: center; gap: var(--space-2); font: inherit; color: inherit; background: none; border: 1px solid var(--color-border-strong); border-radius: var(--radius-sm); min-height: 32px; padding: 0 var(--space-3); cursor: pointer; }
 .enter:focus-visible { outline: 2px solid var(--color-primary); outline-offset: 1px; }
 @media (pointer: coarse) { .enter { min-height: 44px; } }
 /* The column is as wide as the widest page; a wider one scrolls sideways and is never squeezed (R24). */
