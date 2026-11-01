@@ -13,7 +13,7 @@ import type { ElementsAction } from '#editor/model/elementsReducer.ts';
 import { createElementId } from '#editor/model/ids.ts';
 import { pageGeometryFromPdfJsPage, type PageGeometry } from '#editor/geometry/coords.ts';
 import { englishSignMessages } from '#editor/registry/signMessages.ts';
-import { toPageTextRuns } from '#editor/geometry/textRuns.js';
+import { toPageTextRuns } from '#editor/geometry/textRuns.ts';
 import { pageTextDirection } from '#editor/text/textDirection.js';
 import { readTextItems } from '#lib/pdf/pdfTextItems.ts';
 import { directionAtPoint, readerTextDirection, resolveHighlightDirection } from '#editor/highlight/resolveDirection.ts';

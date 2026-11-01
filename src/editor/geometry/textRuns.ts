@@ -1,4 +1,9 @@
-import { toPagePercentBox } from './coords.ts';
+import { toPagePercentBox, type PageGeometry } from './coords.ts';
+
+/** A pdf.js text run in page percent, the shape `formCells.js` reads. */
+export interface PageTextRun { str: string; left: number; top: number; width: number; height: number; dir?: string }
+
+interface RawTextItem { str?: unknown; transform?: number[]; width?: number; height?: number; dir?: string }
 
 /**
  * pdf.js text items as `formCells.js`'s page-percent `PageTextRun` shape.
@@ -17,16 +22,13 @@ import { toPagePercentBox } from './coords.ts';
  *
  * `TextMarkedContent` entries carry no `str`/`transform` of their own - they
  * are marked-content operators, not glyph runs - and are skipped like a blank.
- *
- * @param {Array<object>} items `getTextContent().items`
- * @param {import('./coords.ts').PageGeometry} geometry
- * @returns {Array<{str: string, left: number, top: number, width: number, height: number, dir?: string}>}
  */
-export function toPageTextRuns(items, geometry) {
-  return items.flatMap((item) => {
-    if (!item || typeof item.str !== 'string' || !item.str.trim()) return [];
+export function toPageTextRuns(items: readonly unknown[], geometry: PageGeometry): PageTextRun[] {
+  return items.flatMap((raw): PageTextRun[] => {
+    const item = raw as RawTextItem | null;
+    if (!item || typeof item.str !== 'string' || !item.str.trim() || !item.transform) return [];
     const [, , , , e, f] = item.transform;
-    const box = toPagePercentBox(geometry, { x0: e, y0: f, x1: e + item.width, y1: f + item.height });
+    const box = toPagePercentBox(geometry, { x0: e, y0: f, x1: e + (item.width ?? 0), y1: f + (item.height ?? 0) });
     // The direction places a blank inside a right-to-left run (`formLeaders.js`).
     return [{ str: item.str, ...box, ...(item.dir ? { dir: item.dir } : {}) }];
   });
