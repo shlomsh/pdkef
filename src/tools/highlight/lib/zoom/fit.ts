@@ -5,6 +5,7 @@ export interface Viewport { width: number; height: number }
 
 type NotesUnit = 'px' | 'page';
 
+/** @testSeam */
 export const ZOOM_MIN = 0.5, ZOOM_MAX = 3;
 /** A fit may go below the zoom floor: a wide page (an A4 turned sideways) in a phone's column needs about 0.45. */
 const FIT_MIN = 0.1;

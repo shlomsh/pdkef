@@ -9,5 +9,5 @@
 /* In the lamp the rail's wrapper carries the page's CSS zoom (in the normal view it is unscaled). It is a box: it
    stretches to the page's height and the rail fills it. Inside it lengths are unzoomed, so the 24px gap and the
    cards scale with the page and keep their tops. Highlight's comment text is a little smaller than Sign's. */
-.rail { display: flex; align-self: stretch; --comment-text-size: 13px; --comment-card-size: 12.5px; }
+.rail { display: flex; align-self: stretch; --comment-text-size: 13px; --comment-card-size: 12.5px; --comment-action-pad: .45rem .65rem; }
 .rail > [data-comment-rail] { width: calc(100% - 24px); margin-inline-start: 24px; }
