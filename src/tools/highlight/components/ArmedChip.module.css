@@ -18,7 +18,11 @@
   box-shadow: var(--shadow-md);
   font: 500 14px/1.25 var(--font-sans);
 }
-.text { min-width: 0; }
+.text { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* On a phone the chip spans the screen between 16 px gutters (the full-width mobile toolbar rule): text left, Stop right. */
+@media (pointer: coarse), (max-width: 480px) {
+  .chip { left: 16px; right: 16px; translate: none; max-width: none; justify-content: space-between; }
+}
 .stop {
   appearance: none;
   flex: none;
