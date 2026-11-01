@@ -89,7 +89,7 @@ describe('RestToolbar', () => {
     expect(button('Highlight').querySelector('svg')).not.toBeNull();
     expect(button('Underline').querySelector('svg')).not.toBeNull();
     expect(button('Highlight').textContent).toBe('');
-    expect(button('Highlight').parentElement).toBe(button('Underline').parentElement);
+    expect(button('Highlight').closest('[data-style-toggle]')).toBe(button('Underline').closest('[data-style-toggle]'));
     expect(button('Highlight').getAttribute('aria-pressed')).toBe('true');
     expect(button('Highlight').className).toContain(controls.active);
     expect(button('Underline').getAttribute('aria-pressed')).toBe('false');
@@ -102,6 +102,20 @@ describe('RestToolbar', () => {
     expect(button('Highlight').getAttribute('aria-pressed')).toBe('false');
     click(button('Highlight'));
     expect(onChange).toHaveBeenLastCalledWith({ style: 'highlight' });
+  });
+
+  it('(c2) the thickness caret belongs to the Underline segment: one pill holds both, filled together, and the U draws its bar at the chosen thickness', () => {
+    mount({ ...mark, style: 'underline', strokeWidth: 3 });
+    const segment = button('Underline').parentElement!;
+    expect(segment.contains(thicknessTrigger())).toBe(true);
+    expect(segment.contains(button('Highlight'))).toBe(false);
+    expect(segment.hasAttribute('data-on')).toBe(true);
+    const bar = (b: HTMLElement) => b.querySelectorAll('path')[1].getAttribute('stroke-width');
+    const thick = bar(button('Underline'));
+    mount({ ...mark, style: 'underline', strokeWidth: 1 });
+    expect(Number(bar(button('Underline')))).toBeLessThan(Number(thick));
+    mount();
+    expect(button('Underline').parentElement!.hasAttribute('data-on')).toBe(false);
   });
 
   it('(d) 3 pt from the thickness menu on a highlight makes it a 3 pt underline in one change', () => {
