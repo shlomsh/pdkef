@@ -1,6 +1,8 @@
 .root { position: absolute; inset: 0; mix-blend-mode: multiply; pointer-events: none; }
 .layer { position: absolute; inset: 0; }
 .band { position: absolute; }
+/* READ-03: an underline is a 1.5px line at the band's bottom in --highlight-ink (set inline per element); the band itself is transparent. */
+.underline { background: linear-gradient(var(--highlight-ink), var(--highlight-ink)) bottom / 100% 1.5px no-repeat; }
 /* SIGN-44: the passage of the selected comment reads deeper, hovered lighter (bands still multiply). */
 .layer[data-focused] { filter: saturate(1.8) brightness(0.88); }
 :global([data-comment-hover]) .layer { filter: saturate(1.35) brightness(0.94); }

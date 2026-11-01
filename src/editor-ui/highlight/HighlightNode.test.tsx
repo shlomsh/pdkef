@@ -49,3 +49,43 @@ describe('HighlightNode without comments', () => {
     host.remove();
   });
 });
+
+describe('HighlightNode styles', () => {
+  const mount = (el: HighlightElement) => {
+    const host = document.createElement('div');
+    document.body.appendChild(host);
+    act(() => render(<HighlightNode element={el} isActive={false} onResizeStart={() => {}} />, host));
+    return host;
+  };
+
+  it('draws a highlight at its opacity', () => {
+    const host = mount({ ...element, opacity: 0.5 });
+    expect(host.querySelector<HTMLElement>('[data-highlight-bands]')!.style.opacity).toBe('0.5');
+    expect(host.querySelector('[data-highlight-underline]')).toBeNull();
+    act(() => render(null, host));
+    host.remove();
+  });
+
+  it('draws full opacity when none is set', () => {
+    const host = mount(element);
+    expect(host.querySelector<HTMLElement>('[data-highlight-bands]')!.style.opacity).toBe('');
+    act(() => render(null, host));
+    host.remove();
+  });
+
+  it('draws an underline as a transparent band with a darkened ink custom property', () => {
+    const host = mount({ ...element, style: 'underline', opacity: 0.6 });
+    const bands = Array.from(host.querySelectorAll<HTMLElement>('[data-highlight-band]'));
+    expect(bands).toHaveLength(2);
+    bands.forEach((band) => {
+      expect(band.hasAttribute('data-highlight-underline')).toBe(true);
+      expect(band.style.getPropertyValue('--highlight-ink')).toBe('#A69E32');
+      expect(band.style.background).toBe('');
+      expect(band.style.backgroundColor).toBe('');
+    });
+    expect(host.querySelector<HTMLElement>('[data-highlight-bands]')!.style.opacity).toBe('0.6');
+    expect(host.querySelector('[data-highlight-draft]')!.children).toHaveLength(0);
+    act(() => render(null, host));
+    host.remove();
+  });
+});

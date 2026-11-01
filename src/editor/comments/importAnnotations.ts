@@ -1,7 +1,7 @@
 /**
  * Read standard PDF markup back as editable elements (docs/sign-comments-model.md, round-trip contract).
  *
- * Every `/Highlight` and every non-reply `/Text` becomes an element and leaves the PDF, so it is never
+ * Every `/Highlight`, `/Underline` and every non-reply `/Text` becomes an element and leaves the PDF, so it is never
  * drawn twice. Two layers: `annotationsToElements` is pure over plain records, and
  * `importStandardAnnotations` is the thin pdf-lib IO around it. Other annotations are never touched.
  */
@@ -26,6 +26,8 @@ export interface RawAnnotation {
   quadPoints?: number[];
   /** Undefined when /C is absent, [] when it is empty (transparent). */
   color?: number[];
+  /** Constant opacity, `/CA`. */
+  ca?: number;
   contents?: string;
   nm?: string;
   m?: string;
@@ -47,6 +49,7 @@ export function parsePdfDate(value: string | undefined): number | undefined {
   return Number.isFinite(time) ? time : undefined;
 }
 
+const MIN_OPACITY = 0.3;
 const isBlank = (text: string | undefined) => !text || !text.trim();
 const bare = (name: string | undefined) => (name ?? '').replace(/^\//, '');
 
@@ -126,12 +129,12 @@ type TakeId = (nm: string | undefined) => string;
 function elementsOf(a: RawAnnotation, page: RawPage, takeId: TakeId): EditorElement[] | null {
   if (a.irt) return null;
   const subtype = bare(a.subtype);
-  if (subtype === 'Highlight') return highlightElements(a, page, takeId);
+  if (subtype === 'Highlight' || subtype === 'Underline') return highlightElements(a, page, takeId);
   if (subtype === 'Text') return noteElement(a, page, takeId);
   return null;
 }
 
-/** A colored `/Highlight` is a highlight (plus its comment); a transparent one with text is a passage comment. */
+/** A colored `/Highlight` or `/Underline` is a highlight (plus its comment); a transparent one with text is a passage comment. */
 function highlightElements(a: RawAnnotation, { pageIndex, geometry }: RawPage, takeId: TakeId): EditorElement[] | null {
   const geo = bandsOf(a.quadPoints, geometry);
   if (!geo) return null;
@@ -146,6 +149,8 @@ function highlightElements(a: RawAnnotation, { pageIndex, geometry }: RawPage, t
   }
   const id = takeId(a.nm);
   const highlight: HighlightElement = { id, type: 'highlight', pageIndex, ...geo.box, color: toHex(a.color), bands: geo.bands };
+  if (bare(a.subtype) === 'Underline') highlight.style = 'underline';
+  if (typeof a.ca === 'number' && Number.isFinite(a.ca) && a.ca < 1) highlight.opacity = Math.max(MIN_OPACITY, a.ca);
   if (!text) return [highlight];
   const commentId = takeId(`${id}-comment`);
   return [highlight, {
@@ -184,7 +189,7 @@ const numbersOf = (object: PDFObject | undefined, lookup: (o: PDFObject) => PDFO
 };
 
 /**
- * Import every `/Highlight` and non-reply `/Text` of a PDF as elements and strip them (and their popups and
+ * Import every `/Highlight`, `/Underline` and non-reply `/Text` of a PDF as elements and strip them (and their popups and
  * legacy PDkef badges) from the file. Encrypted, unreadable or nothing-to-import: the input comes back untouched.
  */
 export async function importStandardAnnotations(bytes: ArrayBuffer): Promise<{ bytes: ArrayBuffer; elements: EditorElement[] }> {
@@ -212,6 +217,7 @@ export async function importStandardAnnotations(bytes: ArrayBuffer): Promise<{ b
           ref: entry, subtype, rect,
           quadPoints: numbersOf(lookup(get('QuadPoints') ?? PDFName.of('')), lookup),
           color,
+          ca: (lookup(get('CA') ?? PDFName.of('')) as PDFNumber | undefined)?.asNumber?.(),
           contents: textOf(lookup(get('Contents') ?? PDFName.of(''))),
           nm: textOf(lookup(get('NM') ?? PDFName.of(''))),
           m: textOf(lookup(get('M') ?? PDFName.of(''))),
