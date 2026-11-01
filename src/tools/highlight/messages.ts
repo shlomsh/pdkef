@@ -42,9 +42,10 @@ export interface HighlightMessages {
   /** READ-03 on touch: the marker is armed by a tap and the Stop chip puts it down. */
   armedAction: string;
   armedStop: string;
-  /** READ-06: the two things Print offers. */
+  /** READ-06: the ways Print offers. */
   printPlain: string;
   printWithNotes: string;
+  printNotesAtEnd: string;
   capsule: CapsuleLabels;
 }
 
@@ -83,5 +84,6 @@ export const englishHighlightMessages: HighlightMessages = {
   armedStop: 'Stop',
   printPlain: 'Print',
   printWithNotes: 'Print with my notes',
+  printNotesAtEnd: 'Print with notes at the end',
   capsule: englishCapsuleLabels,
 };

@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { EditorElement } from '#editor/model/editorModel.ts';
 import { hasComments, printMenuItems } from './printMenu.ts';
 
-const labels = { printPlain: 'Print', printWithNotes: 'Print with my notes' };
+const labels = { printPlain: 'Print', printWithNotes: 'Print with my notes', printNotesAtEnd: 'Print with notes at the end' };
 
 const highlight = { id: 'h1', type: 'highlight', pageIndex: 0, left: 10, top: 10, width: 20, height: 5, bands: [], color: '#FFF34D' } as unknown as EditorElement;
 const comment = { id: 'c1', type: 'comment', pageIndex: 0, left: 10, top: 10, width: 5, height: 5, comment: 'Look again', anchor: { kind: 'element', elementId: 'h1' } } as unknown as EditorElement;
@@ -20,13 +20,14 @@ describe('hasComments', () => {
 
 describe('printMenuItems', () => {
   it('offers Print alone when there are no comments', () => {
-    expect(printMenuItems(false, labels)).toEqual([{ id: 'plain', label: 'Print', withNotes: false }]);
+    expect(printMenuItems(false, labels)).toEqual([{ id: 'plain', label: 'Print', notes: 'none' }]);
   });
 
-  it('adds Print with my notes when the document has a comment', () => {
+  it('adds the two ways to print the notes when the document has a comment', () => {
     expect(printMenuItems(true, labels)).toEqual([
-      { id: 'plain', label: 'Print', withNotes: false },
-      { id: 'notes', label: 'Print with my notes', withNotes: true },
+      { id: 'plain', label: 'Print', notes: 'none' },
+      { id: 'beside', label: 'Print with my notes', notes: 'beside' },
+      { id: 'end', label: 'Print with notes at the end', notes: 'end' },
     ]);
   });
 });

@@ -7,19 +7,22 @@ export default function FullscreenButton({
   label = 'Full screen',
   exitLabel = 'Exit full screen',
   iconOnly = false,
+  title,
 }: {
   isFullscreen: boolean;
   toggleFullscreen: () => void;
   label?: string;
   exitLabel?: string;
   iconOnly?: boolean;
+  /** The tooltip: the label by default, `null` for none (a tool row that already shows the word). */
+  title?: string | null;
 }) {
   return (
     <button
       type="button"
       className={styles.button}
       onClick={toggleFullscreen}
-      title={isFullscreen ? exitLabel : label}
+      title={title === null ? undefined : title ?? (isFullscreen ? exitLabel : label)}
       {...(iconOnly ? { 'data-icon-only': true } : {})}
     >
       {isFullscreen ? (

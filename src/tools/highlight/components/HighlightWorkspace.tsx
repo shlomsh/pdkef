@@ -1,7 +1,7 @@
 import type { ComponentProps } from 'preact';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'preact/hooks';
 import type { PDFDocumentProxy } from 'pdfjs-dist';
-import ReadingCapsule, { PrintIcon } from './capsule/ReadingCapsule.tsx';
+import ReadingCapsule from './capsule/ReadingCapsule.tsx';
 import UndoRedoButtons from '#editor-ui/UndoRedoButtons.tsx';
 import EditorExportActions from '#editor-ui/EditorExportActions.tsx';
 import toolbarStyles from '#editor-ui/SignToolbar.module.css';
@@ -17,13 +17,14 @@ import ArmedChip from './ArmedChip.tsx';
 import FullscreenButton from '#editor-ui/FullscreenButton.tsx';
 import ToolShell, { FILE_ACTIONS, useToolShell } from '#shell/ToolShell.tsx';
 import { englishShellMessages } from '#shell/shellMessages.ts';
-import PrintMenu from './PrintMenu.tsx';
+import PrintMenu, { PrintDropdown } from './PrintMenu.tsx';
 import type { useHighlightComments } from '../hooks/useHighlightComments.ts';
 import type { HighlightAction } from '../lib/marks/highlightState.ts';
 import { clearPageActions, rotatePageAction } from '../lib/marks/pageEditActions.ts';
 import { recordAction } from '#lib/telemetry/actionTrail.ts';
 import { NOTES_W } from '../lib/zoom/fit.ts';
 import { useTouchArming } from '../hooks/useTouchArming.ts';
+import { historyShortcuts, isMacPlatform } from '../lib/marker/historyShortcuts.ts';
 import { usePrint } from '../hooks/usePrint.ts';
 import { hasComments } from '../lib/print/printMenu.ts';
 import styles from './HighlightWorkspace.module.css';
@@ -104,9 +105,9 @@ export default function HighlightWorkspace({ pdfDocument, numPages, fileName, zo
   };
   const withComments = hasComments(marks.state.elements);
   // With no comment there is one way to print, so Print prints; the menu is only for a choice.
-  const printNow = () => print.print(false);
+  const printNow = () => print.print('none');
   const printMenu = {
-    anchor: printAnchor, open: printOpen, withComments,
+    anchor: printAnchor, open: printOpen,
     onChoose: print.print, onClose: () => setPrintOpen(false),
   };
   // One menu at a time: it belongs to the row or to the capsule, so changing view puts it away.
@@ -119,8 +120,8 @@ export default function HighlightWorkspace({ pdfDocument, numPages, fileName, zo
     {/* Stays mounted in the lamp, hidden: the page's restore veil lifts only while a [data-tool-shell] exists. */}
     <div hidden={fullscreen} style={fullscreen ? undefined : { display: 'contents' }}>
       <TileRow
-        marks={marks} undo={undo} redo={redo} touch={touch} printMenu={{ ...printMenu, open: printMenu.open && !fullscreen }} printOpen={printOpen && !fullscreen}
-        onTogglePrint={withComments ? () => setPrintOpen((o) => !o) : printNow} onToggleView={toggleView} onDownload={onDownload}
+        marks={marks} undo={undo} redo={redo} touch={touch} printMenu={{ ...printMenu, open: printMenu.open && !fullscreen }} withComments={withComments}
+        onPrintOpenChange={setPrintOpen} onToggleView={toggleView} onDownload={onDownload}
       />
     </div>
     <div
@@ -141,7 +142,7 @@ export default function HighlightWorkspace({ pdfDocument, numPages, fileName, zo
           />
         </div>
       )}
-      {fullscreen && <PrintMenu {...printMenu} placement="floating" />}
+      {fullscreen && <PrintMenu {...printMenu} />}
       {print.sheets}
       <ArmedChip armed={touch.armed} onStop={touch.disarm} />
       <div className={styles.board} style={{ width: `${zoom.board.boardWidth + notesW}px` }}>
@@ -168,43 +169,39 @@ export default function HighlightWorkspace({ pdfDocument, numPages, fileName, zo
 }
 
 /** Outside the lamp: the editor card Sign and Redact show, with Highlight's tiles in Sign's grammar. */
-function TileRow({ marks, undo, redo, touch, printMenu, printOpen, onTogglePrint, onToggleView, onDownload }: {
+function TileRow({ marks, undo, redo, touch, printMenu, withComments, onPrintOpenChange, onToggleView, onDownload }: {
   marks: ReturnType<typeof useHighlightMarks>;
   undo(): void;
   redo(): void;
   touch: ReturnType<typeof useTouchArming>;
   printMenu: ComponentProps<typeof PrintMenu>;
-  printOpen: boolean;
-  onTogglePrint(): void;
+  withComments: boolean;
+  onPrintOpenChange(open: boolean): void;
   onToggleView(): void;
   onDownload(): void;
 }) {
   const { requestReplace, messages: shellMessages = englishShellMessages } = useToolShell();
+  const shortcuts = historyShortcuts(typeof navigator !== 'undefined' && isMacPlatform(navigator.platform));
   return (
     <ToolShell editor>
       <div className={`${toolbarStyles.toolbar} ${styles.toolRow}`} role="toolbar" aria-label={t.toolbarLabel} data-editor-toolbar>
         <MarkerButton marker={marks.marker} onChange={marks.rearm} armed={touch.armed} onTap={touch.arm} buttonClass={toolbarStyles.button} />
         <UndoRedoButtons
           onUndo={undo} onRedo={redo} canUndo={marks.canUndo} canRedo={marks.canRedo}
-          labels={{ undoTitle: t.capsule.undo, undoButton: t.capsule.undo, redoTitle: t.capsule.redo, redoButton: t.capsule.redo }}
+          labels={{ undoTitle: shortcuts.undo, undoButton: t.capsule.undo, redoTitle: shortcuts.redo, redoButton: t.capsule.redo }}
         />
-        <FullscreenButton isFullscreen={false} toggleFullscreen={onToggleView} />
+        <FullscreenButton isFullscreen={false} toggleFullscreen={onToggleView} title={null} />
         <button type="button" className={toolbarStyles.button} onClick={requestReplace} title={shellMessages.replaceTitle} aria-label={shellMessages.replaceLabel}>
           <svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
             <path d={FILE_ACTIONS.replace.icon} />
           </svg>
           <span className={toolbarStyles.label}>{shellMessages.replaceShort}</span>
         </button>
-        <PrintMenu {...printMenu} anchor={undefined} wrapClass={toolbarStyles.dropdown}>
-          <button type="button" className={toolbarStyles.button} aria-label={t.capsule.print} title={t.capsule.print} aria-haspopup={printMenu.withComments ? 'menu' : undefined} aria-expanded={printMenu.withComments ? printOpen : undefined} onClick={onTogglePrint}>
-            <PrintIcon />
-            <span className={toolbarStyles.label}>{t.capsule.print}</span>
-          </button>
-        </PrintMenu>
+        <PrintDropdown open={printMenu.open} onOpenChange={onPrintOpenChange} withComments={withComments} onChoose={printMenu.onChoose} />
         <EditorExportActions
           variant="toolbar" canShare={false} shareReady={false} disabled={false}
           onDownload={onDownload} onPrepareShare={() => {}} onShare={() => {}}
-          downloadLabel={t.capsule.download} downloadTitle={t.capsule.download} keepDownloadOnPhone
+          downloadLabel={t.capsule.download} keepDownloadOnPhone
         />
       </div>
     </ToolShell>
