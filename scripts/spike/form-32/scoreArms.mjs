@@ -8,7 +8,7 @@ import path from 'node:path';
 import { createRequire } from 'node:module';
 import { PDFDocument } from '@cantoo/pdf-lib';
 import { createCanvas, loadImage } from '@napi-rs/canvas';
-import { inkFromRaster } from '../../../src/lib/pageLayout/rasterInk.js';
+import { inkFromRaster } from '../../../src/lib/pageLayout/rasterInk.ts';
 import { DEFAULT_SOURCES, detectFormFields, pageGeometry, toPageTextRuns } from '../../../src/tools/sign/lib/fields/detectFormFields.ts';
 import { toPagePercentBox } from '../../../src/editor/geometry/coords.ts';
 import { titleLineWritable } from '../../../src/tools/sign/lib/fields/combTitleLine.js';

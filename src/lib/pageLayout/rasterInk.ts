@@ -59,6 +59,93 @@ const MERGE_GAP_PTS = 2.5;
  */
 const MIN_MERGED_DENSITY = 0.75;
 
+type Pixels = Uint8Array | Uint8ClampedArray;
+
+/** Gray, RGB or RGBA pixels, row-major from the top left (a canvas `ImageData` works as is). */
+export interface Raster {
+  data: Pixels;
+  width: number;
+  height: number;
+}
+
+export interface PageSize {
+  pageWidthPts: number;
+  pageHeightPts: number;
+}
+
+/** A run of ink on one axis: `pos` the cross-axis position, `a0..a1` the span. */
+export interface Segment {
+  pos: number;
+  a0: number;
+  a1: number;
+  thickness: number;
+}
+
+/** A merged line: a segment with the ink length that went into it. */
+export interface MergedSegment extends Segment {
+  ink: number;
+}
+
+interface MergeOptions {
+  offset: number;
+  gap: number;
+}
+
+export interface Component {
+  x0: number;
+  y0: number;
+  x1: number;
+  y1: number;
+  ink: number;
+}
+
+interface Band {
+  rows: Array<[number, number]>;
+  a0: number;
+  a1: number;
+}
+
+interface ScanOptions {
+  minLengthPx: number;
+  gapPx: number;
+  offsetPx: number;
+  mergeGapPx: number;
+  maxThicknessPx: number;
+}
+
+interface StructurePoints {
+  xs: Int32Array;
+  ys: Int32Array;
+}
+
+export interface InkVertical {
+  x: number;
+  y0: number;
+  y1: number;
+}
+
+export interface InkHorizontal {
+  y: number;
+  x0: number;
+  x1: number;
+}
+
+export interface InkRect {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  stroked: boolean;
+  filled: boolean;
+}
+
+export interface RasterInk {
+  verticals: InkVertical[];
+  horizontals: InkHorizontal[];
+  rects: InkRect[];
+  skewDegrees: number;
+}
+
 /**
  * Printed text makes strokes that look like short rules (the bar of a T, an E, a dash). What tells
  * a rule from them is the form's own letter size, so rules must be this many letter heights long
@@ -94,7 +181,7 @@ const SKEW_MAX_SAMPLES = 250000;
 /* ---------- luminance and threshold ---------- */
 
 /** Gray levels from a gray, RGB or RGBA buffer, told apart by length. */
-function toGray({ data, width, height }) {
+function toGray({ data, width, height }: Raster): Uint8Array {
   const pixels = width * height;
   if (data.length === pixels) return Uint8Array.from(data);
   const stride = data.length === pixels * 3 ? 3 : 4;
@@ -106,7 +193,7 @@ function toGray({ data, width, height }) {
 }
 
 /** Otsu's threshold: the gray level that best splits the histogram into ink and paper. */
-export function otsuThreshold(gray) {
+export function otsuThreshold(gray: Pixels): number {
   const histogram = new Float64Array(256);
   for (let i = 0; i < gray.length; i += 1) histogram[gray[i]] += 1;
   let sumAll = 0;
@@ -133,14 +220,14 @@ export function otsuThreshold(gray) {
 }
 
 /** 1 where a pixel is ink (at or below the threshold), 0 elsewhere. */
-function binarize(gray, threshold) {
+function binarize(gray: Pixels, threshold: number): Uint8Array {
   const mask = new Uint8Array(gray.length);
   for (let i = 0; i < gray.length; i += 1) mask[i] = gray[i] <= threshold ? 1 : 0;
   return mask;
 }
 
 /** A page that is mostly "ink" is white-on-black: flip it so ink is the minority. */
-function invertIfMostlyInk(gray, mask) {
+function invertIfMostlyInk(gray: Uint8Array, mask: Uint8Array): { gray: Uint8Array; mask: Uint8Array } {
   let ink = 0;
   for (let i = 0; i < mask.length; i += 1) ink += mask[i];
   if (ink * 2 <= mask.length) return { gray, mask };
@@ -151,7 +238,7 @@ function invertIfMostlyInk(gray, mask) {
 /* ---------- skew ---------- */
 
 /** Points on horizontal structure (ink with ink on both sides), thinned to a fixed sample budget. */
-function horizontalStructurePoints(mask, width, height) {
+function horizontalStructurePoints(mask: Uint8Array, width: number, height: number): StructurePoints {
   let total = 0;
   for (let y = 0; y < height; y += 1) {
     const row = y * width;
@@ -181,7 +268,7 @@ function horizontalStructurePoints(mask, width, height) {
  * How sharp the row histogram is when the points are sheared by `slope` (dy/dx). Sum of squared
  * bin counts: many points sharing a row is exactly what a flat rule or a line of text does.
  */
-function profileSharpness(points, slope, width, bins) {
+function profileSharpness(points: StructurePoints, slope: number, width: number, bins: Float64Array): number {
   bins.fill(0);
   const pad = Math.ceil(Math.abs(slope) * width) + 1;
   const cx = width / 2;
@@ -198,16 +285,16 @@ function profileSharpness(points, slope, width, bins) {
  * The angle (degrees, rules' slope in image coordinates with y down) the page is rotated by.
  * Coarse then fine, so the cost is about forty profiles over a capped sample set.
  */
-export function estimateSkewDegrees(mask, width, height) {
+export function estimateSkewDegrees(mask: Uint8Array, width: number, height: number): number {
   const points = horizontalStructurePoints(mask, width, height);
   if (points.xs.length === 0) return 0;
   const bins = new Float64Array(height + 2 * (Math.ceil(Math.tan((SKEW_RANGE_DEGREES * Math.PI) / 180) * width) + 2) + 2);
-  const sharpness = (degrees) => profileSharpness(points, Math.tan((degrees * Math.PI) / 180), width, bins);
+  const sharpness = (degrees: number): number => profileSharpness(points, Math.tan((degrees * Math.PI) / 180), width, bins);
   // Rules a few pixels thick score the same across a plateau of angles; the middle of the plateau
   // is the estimate, not whichever end the scan happened to reach first.
-  const search = (from, to, step) => {
-    const angles = [];
-    const scores = [];
+  const search = (from: number, to: number, step: number): number => {
+    const angles: number[] = [];
+    const scores: number[] = [];
     for (let degrees = from; degrees <= to + 1e-9; degrees += step) {
       angles.push(degrees);
       scores.push(sharpness(degrees));
@@ -224,7 +311,7 @@ export function estimateSkewDegrees(mask, width, height) {
  * Where a pixel of the deskewed page sits on the original page: the same rotation `deskewGray`
  * samples with, as a function. Identity for a page that was not rotated.
  */
-function skewedFrame(width, height, degrees) {
+function skewedFrame(width: number, height: number, degrees: number): (x: number, y: number) => [number, number] {
   const radians = (degrees * Math.PI) / 180;
   const cos = Math.cos(radians);
   const sin = Math.sin(radians);
@@ -234,7 +321,7 @@ function skewedFrame(width, height, degrees) {
 }
 
 /** Rotates gray levels by `-degrees` about the centre (bilinear, white fill) so rules turn level. */
-function deskewGray(gray, width, height, degrees) {
+function deskewGray(gray: Uint8Array, width: number, height: number, degrees: number): Uint8Array {
   const radians = (degrees * Math.PI) / 180;
   const cos = Math.cos(radians);
   const sin = Math.sin(radians);
@@ -270,12 +357,12 @@ function deskewGray(gray, width, height, degrees) {
  * Row runs bridge gaps up to `gap` as long as the run stays `MIN_RUN_DENSITY` ink, so a rule with a
  * speck of paper in it is still one run and a line of text is not.
  */
-function longRunBands(mask, width, height, { minLength, gap }) {
-  const bands = [];
-  let active = [];
+function longRunBands(mask: Uint8Array, width: number, height: number, { minLength, gap }: { minLength: number; gap: number }): Segment[] {
+  const bands: Band[] = [];
+  let active: Band[] = [];
   for (let y = 0; y < height; y += 1) {
     const row = y * width;
-    const runs = [];
+    const runs: Array<[number, number]> = [];
     let start = -1;
     let last = -1;
     let ink = 0;
@@ -298,7 +385,7 @@ function longRunBands(mask, width, height, { minLength, gap }) {
     }
     if (start >= 0) close();
 
-    const next = [];
+    const next: Band[] = [];
     for (const [a0, a1] of runs) {
       const hit = active.find((band) => {
         const overlap = Math.min(band.a1, a1) - Math.max(band.a0, a0);
@@ -332,7 +419,7 @@ function longRunBands(mask, width, height, { minLength, gap }) {
 }
 
 /** Rows become columns, so one scan finds both orientations. */
-function transpose(mask, width, height) {
+function transpose(mask: Uint8Array, width: number, height: number): Uint8Array {
   const out = new Uint8Array(mask.length);
   for (let y = 0; y < height; y += 1) {
     const row = y * width;
@@ -346,13 +433,13 @@ function transpose(mask, width, height) {
  * between them. Fragments come from a scan that lost a pixel or two, or from a rule rotated onto
  * the pixel grid in steps; neither is a real break.
  */
-export function mergeCollinear(segments, { offset, gap }) {
+export function mergeCollinear(segments: Segment[], { offset, gap }: MergeOptions): MergedSegment[] {
   const sorted = [...segments].sort((a, b) => a.pos - b.pos);
-  const lines = [];
-  let cluster = [];
-  const flush = () => {
+  const lines: MergedSegment[] = [];
+  let cluster: Segment[] = [];
+  const flush = (): void => {
     cluster.sort((a, b) => a.a0 - b.a0);
-    let current = null;
+    let current: MergedSegment | null = null;
     for (const seg of cluster) {
       if (current && seg.a0 - current.a1 <= gap && Math.abs(seg.pos - current.pos) <= offset) {
         const weightA = current.ink;
@@ -378,7 +465,7 @@ export function mergeCollinear(segments, { offset, gap }) {
 }
 
 /** Bands of one orientation, as merged lines no thicker than a rule. */
-function ruleLines(mask, width, height, { minLengthPx, gapPx, offsetPx, mergeGapPx, maxThicknessPx }) {
+function ruleLines(mask: Uint8Array, width: number, height: number, { minLengthPx, gapPx, offsetPx, mergeGapPx, maxThicknessPx }: ScanOptions): MergedSegment[] {
   const bands = longRunBands(mask, width, height, { minLength: minLengthPx, gap: gapPx });
   const merged = mergeCollinear(bands, { offset: offsetPx, gap: mergeGapPx });
   return merged.filter((line) => line.thickness <= maxThicknessPx
@@ -393,26 +480,26 @@ function ruleLines(mask, width, height, { minLengthPx, gapPx, offsetPx, mergeGap
  * bounding box and ink count of each. Runs are typed arrays, so the cost is per run, not per pixel
  * object.
  */
-export function connectedComponents(mask, width, height) {
+export function connectedComponents(mask: Uint8Array, width: number, height: number): Component[] {
   let capacity = 1024;
   let parent = new Int32Array(capacity);
   let runY = new Int32Array(capacity);
   let runX0 = new Int32Array(capacity);
   let runX1 = new Int32Array(capacity);
   let count = 0;
-  const doubled = (source) => {
+  const doubled = (source: Int32Array<ArrayBuffer>): Int32Array<ArrayBuffer> => {
     const bigger = new Int32Array(capacity);
     bigger.set(source);
     return bigger;
   };
-  const grow = () => {
+  const grow = (): void => {
     capacity *= 2;
     parent = doubled(parent);
     runY = doubled(runY);
     runX0 = doubled(runX0);
     runX1 = doubled(runX1);
   };
-  const find = (i) => {
+  const find = (i: number): number => {
     let root = i;
     while (parent[root] !== root) root = parent[root];
     let node = i;
@@ -457,7 +544,7 @@ export function connectedComponents(mask, width, height) {
     prevEnd = count;
   }
 
-  const components = new Map();
+  const components = new Map<number, Component>();
   for (let i = 0; i < count; i += 1) {
     const root = find(i);
     let c = components.get(root);
@@ -474,15 +561,15 @@ export function connectedComponents(mask, width, height) {
 }
 
 /** The share of positions along one side of the box with ink within `depth` pixels of the edge. */
-function sideCoverage(mask, width, box, side, depth) {
+function sideCoverage(mask: Uint8Array, width: number, box: Component, side: 'top' | 'bottom' | 'left' | 'right', depth: number): number {
   const horizontal = side === 'top' || side === 'bottom';
   const length = horizontal ? box.x1 - box.x0 : box.y1 - box.y0;
   let covered = 0;
   for (let t = 0; t < length; t += 1) {
     let hit = false;
     for (let d = 0; d < depth && !hit; d += 1) {
-      let x;
-      let y;
+      let x: number;
+      let y: number;
       if (side === 'top') [x, y] = [box.x0 + t, box.y0 + d];
       else if (side === 'bottom') [x, y] = [box.x0 + t, box.y1 - 1 - d];
       else if (side === 'left') [x, y] = [box.x0 + d, box.y0 + t];
@@ -495,7 +582,7 @@ function sideCoverage(mask, width, box, side, depth) {
 }
 
 /** The share of the box's inside (inset by `inset` pixels) that is ink. */
-function interiorInk(mask, width, box, inset) {
+function interiorInk(mask: Uint8Array, width: number, box: Component, inset: number): number {
   let ink = 0;
   let area = 0;
   for (let y = box.y0 + inset; y < box.y1 - inset; y += 1) {
@@ -514,7 +601,7 @@ function interiorInk(mask, width, box, inset) {
  * make the strokes a rule has to be told apart from. 0 when there is too little text for a size to
  * mean anything (a page that is only a comb would otherwise measure its own teeth).
  */
-export function letterHeight(components, pxPerPoint) {
+export function letterHeight(components: Component[], pxPerPoint: number): number {
   const heights = components
     .map((c) => c.y1 - c.y0)
     .filter((h) => h >= MIN_LETTER_PTS * pxPerPoint && h <= MAX_LETTER_PTS * pxPerPoint)
@@ -523,10 +610,10 @@ export function letterHeight(components, pxPerPoint) {
 }
 
 /** Hollow, square, straight-sided components of checkbox size, in pixels. */
-function findBoxComponents(components, mask, width, pxPerPoint) {
+function findBoxComponents(components: Component[], mask: Uint8Array, width: number, pxPerPoint: number): Component[] {
   const minPx = BOX_MIN_PTS * pxPerPoint;
   const maxPx = BOX_MAX_PTS * pxPerPoint;
-  const boxes = [];
+  const boxes: Component[] = [];
   for (const c of components) {
     const w = c.x1 - c.x0;
     const h = c.y1 - c.y0;
@@ -539,7 +626,8 @@ function findBoxComponents(components, mask, width, pxPerPoint) {
     // are arcs, and an arc is within that depth of its bounding box along only part of its length.
     const thickness = c.ink / (2 * (w + h));
     const depth = Math.max(2, Math.ceil(thickness * 0.75));
-    const straight = ['top', 'bottom', 'left', 'right']
+    const sides: Array<'top' | 'bottom' | 'left' | 'right'> = ['top', 'bottom', 'left', 'right'];
+    const straight = sides
       .every((side) => sideCoverage(mask, width, c, side, depth) >= BOX_SIDE_COVERAGE);
     if (!straight) continue;
     if (interiorInk(mask, width, c, Math.ceil(thickness) + 1) > BOX_MAX_INTERIOR_INK) continue;
@@ -564,7 +652,7 @@ function findBoxComponents(components, mask, width, pxPerPoint) {
  *   skewDegrees: number,
  * }}
  */
-export function inkFromRaster(raster, { pageWidthPts, pageHeightPts }) {
+export function inkFromRaster(raster: Raster, { pageWidthPts, pageHeightPts }: PageSize): RasterInk {
   const { width, height } = raster;
   const luminance = toGray(raster);
   let { gray, mask } = invertIfMostlyInk(luminance, binarize(luminance, otsuThreshold(luminance)));
@@ -582,7 +670,7 @@ export function inkFromRaster(raster, { pageWidthPts, pageHeightPts }) {
   const pxPerPoint = 1 / sx;
   const components = connectedComponents(mask, width, height);
   const letterPx = letterHeight(components, pxPerPoint);
-  const scan = (minPts, minPx) => ({
+  const scan = (minPts: number, minPx: number): ScanOptions => ({
     minLengthPx: Math.max(2, Math.round(Math.max(minPts * pxPerPoint, minPx))),
     gapPx: Math.max(1, Math.round(BRIDGE_GAP_PTS * pxPerPoint)),
     offsetPx: Math.max(1, MERGE_OFFSET_PTS * pxPerPoint),

@@ -171,7 +171,7 @@
   },
   {
     "rule": 9,
-    "file": "src/lib/pageLayout/rasterInk.js",
+    "file": "src/lib/pageLayout/rasterInk.ts",
     "reason": "READ-02: shared with Highlight PDF, moved out of Sign before its island exists; READ-03 is the second consumer, and this entry goes stale (remove it) once that island imports the file"
   },
   {
