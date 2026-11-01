@@ -83,19 +83,19 @@ describe('serializeHighlight: opacity and underline', () => {
     expect((annot.get(PDFName.of('CA')) as PDFNumber).asNumber()).toBe(1);
   });
 
-  it('writes an /Underline with the same quads and color, and a 1.5 pt line at each band bottom in a deeper ink', async () => {
+  it('writes an /Underline with the same quads and color, and a 3 pt line lifted 1 pt above each band bottom in a deeper ink', async () => {
     const two: HighlightElement = { ...element, style: 'underline', bands: [{ left: 0, top: 0, width: 100, height: 40 }, { left: 0, top: 60, width: 50, height: 40 }] };
     const { annot, pdfDoc, content } = await write(two);
     expect((annot.get(PDFName.of('Subtype')) as PDFName).toString()).toBe('/Underline');
     expect(numsOf(pdfDoc, annot.get(PDFName.of('QuadPoints')))).toEqual([20, 90, 120, 90, 20, 86, 120, 86, 20, 84, 70, 84, 20, 80, 70, 80]);
     expect(numsOf(pdfDoc, annot.get(PDFName.of('C'))).map((v) => Math.round(v * 255))).toEqual([255, 243, 77]);
     expect((annot.get(PDFName.of('CA')) as PDFNumber).asNumber()).toBe(1);
-    expect(content).toContain('1.5 w');
-    // ink = band color x 0.65 = #A69E32
-    expect(content).toContain('0.651 0.62 0.196 RG');
-    // the line runs along each band's bottom edge, half its width inside the band
-    expect(content).toContain('20 86.75 m 120 86.75 l S');
-    expect(content).toContain('20 80.75 m 70 80.75 l S');
+    expect(content).toContain('3 w');
+    // ink = band color x 0.72 = #B8AF37
+    expect(content).toContain('0.722 0.686 0.216 RG');
+    // the line's bottom sits 1 pt above each band's bottom edge, so its center is 1 + 1.5 above it
+    expect(content).toContain('20 88.5 m 120 88.5 l S');
+    expect(content).toContain('20 82.5 m 70 82.5 l S');
     expect(content).not.toMatch(/\bf\b/);
   });
 
@@ -109,13 +109,13 @@ describe('serializeHighlight: opacity and underline', () => {
   });
 
   it('READ-04: writes the underline width as /BS /W and in the appearance, and none for the default or a highlight', async () => {
-    const { annot, content } = await write({ ...element, style: 'underline', strokeWidth: 3 });
+    const { annot, content } = await write({ ...element, style: 'underline', strokeWidth: 4 });
     const bs = annot.lookup(PDFName.of('BS'), PDFDict);
-    expect((bs.get(PDFName.of('W')) as PDFNumber).asNumber()).toBe(3);
-    expect(content).toContain('3 w');
+    expect((bs.get(PDFName.of('W')) as PDFNumber).asNumber()).toBe(4);
+    expect(content).toContain('4 w');
     const plain = await write({ ...element, style: 'underline' });
-    expect(plain.content).toContain('1.5 w');
-    expect((plain.annot.lookup(PDFName.of('BS'), PDFDict).get(PDFName.of('W')) as PDFNumber).asNumber()).toBe(1.5);
+    expect(plain.content).toContain('3 w');
+    expect((plain.annot.lookup(PDFName.of('BS'), PDFDict).get(PDFName.of('W')) as PDFNumber).asNumber()).toBe(3);
     expect((await write(element)).annot.has(PDFName.of('BS'))).toBe(false);
   });
 

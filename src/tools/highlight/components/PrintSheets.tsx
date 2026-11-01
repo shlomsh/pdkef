@@ -3,7 +3,7 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'preact/ho
 import type { PDFDocumentProxy } from 'pdfjs-dist';
 import type { EditorElement, HighlightElement } from '#editor/model/editorModel.ts';
 import { turnsOf, type PageTurns } from '#editor/geometry/pageTurn.ts';
-import { underlineInk, UNDERLINE_WIDTH } from '#editor/model/underlineInk.ts';
+import { underlineInk, UNDERLINE_LIFT, UNDERLINE_WIDTH } from '#editor/model/underlineInk.ts';
 import { renderPageToCanvas } from '#lib/pdf/renderPage.js';
 import { reportError } from '#lib/telemetry/errorReport.ts';
 import { printNotes } from '../lib/print/printNotes.ts';
@@ -45,7 +45,7 @@ function pageBands(highlight: HighlightElement) {
   }));
 }
 
-/** An underline's width is in PDF points, drawn as CSS px at full size; it shrinks with the page by `pageScale`. */
+/** An underline's width and lift are in PDF points, drawn as CSS px at full size; it shrinks with the page by `pageScale`. */
 function Highlights({ highlights, pageScale }: { highlights: HighlightElement[]; pageScale: number }) {
   return (
     <>
@@ -61,7 +61,7 @@ function Highlights({ highlights, pageScale }: { highlights: HighlightElement[];
                 class={underline ? `${styles.band} ${styles.underline}` : styles.band}
                 style={{
                   left: `${band.left}%`, top: `${band.top}%`, width: `${band.width}%`, height: `${band.height}%`,
-                  ...(underline ? { '--highlight-ink': ink, '--line': `${(highlight.strokeWidth ?? UNDERLINE_WIDTH.default) * pageScale}px` } : { background: highlight.color }),
+                  ...(underline ? { '--highlight-ink': ink, '--line': `${(highlight.strokeWidth ?? UNDERLINE_WIDTH.default) * pageScale}px`, '--lift': `${UNDERLINE_LIFT * pageScale}px` } : { background: highlight.color }),
                 }}
               />
             ))}

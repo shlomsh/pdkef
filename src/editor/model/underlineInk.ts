@@ -1,7 +1,7 @@
 import { DEFAULT_HIGHLIGHT_COLOR } from './highlightColors.ts';
 
 /** READ-03: an underline is drawn in its band color, darkened by this share. @testSeam */
-export const UNDERLINE_DARKEN = 0.35;
+export const UNDERLINE_DARKEN = 0.28;
 
 /** The ink of an underline for a band color, as `#RRGGBB`. A value that is not a hex color falls back to the default highlight color. */
 export function underlineInk(hex: string): string {
@@ -11,4 +11,7 @@ export function underlineInk(hex: string): string {
 }
 
 /** READ-04: an underline's line width in PDF points: the default, and the range the reader can pick from. */
-export const UNDERLINE_WIDTH = { default: 1.5, min: 1, max: 4, step: 0.5 } as const;
+export const UNDERLINE_WIDTH = { default: 3, min: 1, max: 4, step: 0.5 } as const;
+
+/** READ-04: points between an underline's bottom edge and the band's bottom edge, so the line sits just above the band's foot instead of on it. */
+export const UNDERLINE_LIFT = 1;
