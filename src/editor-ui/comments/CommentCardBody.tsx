@@ -6,14 +6,18 @@ import styles from './CommentRail.module.css';
 
 /** SIGN-44: one comment card's content (rail card, later the phone sheet). Draft is local until Comment.
  * The card shows the comment alone; who and when stay in the saved annotation (/M), not on screen. */
-export function CommentCardBody({ card, active, messages, onSelect, onSave, onDelete, onDiscard }: {
+export function CommentCardBody({ card, active, messages, label, onSelect, onSave, onDelete, onDiscard, onReturnFocus }: {
   card: CommentCard;
   active: boolean;
   messages: SignMessages;
+  /** The group's accessible name: which passage this note belongs to. */
+  label: string;
   onSelect: () => void;
   onSave: (patch: CommentPatch) => void;
   onDelete: () => void;
   onDiscard: () => void;
+  /** Called once the person is done with the note (Save, Cancel, Esc, Delete): focus goes back to its anchor. */
+  onReturnFocus?: () => void;
 }) {
   const [editing, setEditing] = useState(false);
   const [menu, setMenu] = useState(false);
@@ -38,12 +42,14 @@ export function CommentCardBody({ card, active, messages, onSelect, onSave, onDe
     setDraft(card.comment);
     if (card.isNew) onDiscard();
     setEditing(false);
+    onReturnFocus?.();
   };
   const save = () => {
     const patch = commentPatch(draft, card.comment, Date.now());
     setEditing(false);
     if (patch) onSave(patch);
     else if (!draft.trim()) (card.isNew ? onDiscard : onDelete)();
+    onReturnFocus?.();
   };
   const onKeyDown = (event: KeyboardEvent) => {
     event.stopPropagation();
@@ -53,7 +59,7 @@ export function CommentCardBody({ card, active, messages, onSelect, onSave, onDe
 
   const blankNew = card.isNew && !draft.trim();
   return (
-    <div class={styles.body} onClick={() => { if (!card.isNew && !active) onSelect(); }}>
+    <div class={styles.body} role="group" aria-label={label} onClick={() => { if (!card.isNew && !active) onSelect(); }}>
       {showField ? (
         <>
           <textarea
@@ -90,7 +96,7 @@ export function CommentCardBody({ card, active, messages, onSelect, onSave, onDe
                   <button type="button" role="menuitem" class={styles.menuItem}
                     onClick={() => { setMenu(false); setDraft(card.comment); setEditing(true); }}>{messages.commentEdit}</button>
                   <button type="button" role="menuitem" class={styles.menuItem}
-                    onClick={() => { setMenu(false); onDelete(); }}>{messages.commentDelete}</button>
+                    onClick={() => { setMenu(false); onDelete(); onReturnFocus?.(); }}>{messages.commentDelete}</button>
                 </div>
               )}
             </div>
