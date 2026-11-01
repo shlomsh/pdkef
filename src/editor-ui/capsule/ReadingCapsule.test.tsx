@@ -2,7 +2,7 @@ import { describe, it, expect, vi, afterEach } from 'vitest';
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import ReadingCapsule, { type ReadingCapsuleProps } from './ReadingCapsule.tsx';
-import { foldedItems, FOLD_BELOW_PX } from './capsuleItems.ts';
+import { foldedItems, moreDisplay, FOLD_BELOW_PX } from './capsuleItems.ts';
 
 function bus<A extends unknown[]>() {
   const fns = new Set<(...a: A) => void>();
@@ -45,7 +45,7 @@ describe('ReadingCapsule', () => {
   it('lists its controls in the contract order', () => {
     const { bar } = setup();
     const names = [...bar.querySelectorAll('button')].map((b) => b.getAttribute('aria-label'));
-    expect(names).toEqual(['Page 3 of 12', 'Zoom', 'Marker', 'Undo', 'Redo', 'Print', 'Download', 'More', 'Leave the reading lamp']);
+    expect(names).toEqual(['Page 3 of 12', 'Zoom', 'Marker', 'Undo', 'Redo', 'Print', 'Download', 'Feedback', 'Exit full screen']);
     expect(bar.textContent).toContain('lease.pdf');
     expect(bar.textContent!.indexOf('lease.pdf')).toBeLessThan(bar.textContent!.indexOf('3 / 12'));
   });
@@ -58,10 +58,34 @@ describe('ReadingCapsule', () => {
   it('folds file name, Redo, Print and Download into More under 600px', () => {
     const { bar } = setup({}, 500);
     const names = [...bar.querySelectorAll('button')].map((b) => b.getAttribute('aria-label'));
-    expect(names).toEqual(['Page 3 of 12', 'Zoom', 'Marker', 'Undo', 'More', 'Leave the reading lamp']);
+    expect(names).toEqual(['Page 3 of 12', 'Zoom', 'Marker', 'Undo', 'More', 'Exit full screen']);
     click(byLabel('More'));
     const items = [...q('[role="menu"]')!.children].map((c) => c.textContent);
     expect(items).toEqual(['lease.pdf', 'Redo', 'Print', 'Download', 'Feedback']);
+  });
+
+  it('shows More only for two or more actions; a lone one is its own button', () => {
+    expect(moreDisplay([], [])).toBe('none');
+    expect(moreDisplay([], [{ onSelect() {} }])).toBe('lone');
+    expect(moreDisplay([], [{ onSelect() {} }, { onSelect() {} }])).toBe('menu');
+    expect(moreDisplay([{ onSelect() {} }], [{ onSelect() {} }])).toBe('menu');
+    // The file name has no action, so it does not make a second item.
+    expect(moreDisplay([{}], [{ onSelect() {} }])).toBe('lone');
+  });
+
+  it('renders a lone More item as an icon button with its label, in More\'s place', () => {
+    const { bar, props } = setup();
+    expect(bar.querySelector('[aria-label="More"]')).toBeNull();
+    const b = byLabel('Feedback') as HTMLButtonElement;
+    expect(b.title).toBe('Feedback');
+    expect(b.querySelector('svg')?.getAttribute('viewBox')).toBe('0 0 16 16');
+    click(b);
+    expect(props.moreItems[0].onSelect).toHaveBeenCalled();
+  });
+
+  it('keeps More when two items remain', () => {
+    const { bar } = setup({ moreItems: [{ label: 'Feedback', onSelect: vi.fn() }, { label: 'Other', onSelect: vi.fn() }] });
+    expect(bar.querySelector('[aria-label="More"]')).not.toBeNull();
   });
 
   it('knows which items fold', () => {
