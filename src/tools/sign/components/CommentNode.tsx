@@ -1,10 +1,10 @@
 import type { CommentElement } from '#editor/model/editorModel.ts';
 import { formatMessage } from '#lib/text/formatMessage.ts';
 import { englishSignMessages } from '#editor/registry/signMessages.ts';
-import { CommentIcon } from '../toolIcons.tsx';
-import type { ElementNodeProps } from '../nodeProps.ts';
-import { CommentMarker } from './HighlightComment.tsx';
-import { useCommentMarker, useCommentNumber } from './commentNumbersContext.tsx';
+import { CommentIcon } from '#editor-ui/toolIcons.tsx';
+import type { ElementNodeProps } from '#editor-ui/nodeProps.ts';
+import { CommentMarker } from './CommentMarker.tsx';
+import { useCommentMarker, useCommentNumber } from '#editor-ui/comments/commentNumbersContext.tsx';
 import styles from './CommentNode.module.css';
 
 /* A comment on the page. A passage shows its bands in the comment tint; the draft layer is where the

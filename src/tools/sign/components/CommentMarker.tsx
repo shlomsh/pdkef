@@ -1,9 +1,9 @@
 import { formatMessage } from '#lib/text/formatMessage.ts';
-import { CommentIcon } from '../toolIcons.tsx';
+import { CommentIcon } from '#editor-ui/toolIcons.tsx';
 import { englishSignMessages } from '#editor/registry/signMessages.ts';
 import type { SignMessages } from '#editor/registry/messages.ts';
 import type { CommentMarker as Marker } from '#editor/comments/anchors.ts';
-import styles from './HighlightComment.module.css';
+import styles from './CommentMarker.module.css';
 
 const stop = (event: Event) => event.stopPropagation();
 

@@ -12,7 +12,7 @@ import SignatureNode from './nodes/SignatureNode.tsx';
 import SymbolNode from './nodes/SymbolNode.tsx';
 import WhiteoutNode from './nodes/WhiteoutNode.tsx';
 import HighlightNode from '#editor-ui/highlight/HighlightNode.tsx';
-import CommentNode from '#editor-ui/comments/CommentNode.tsx';
+import CommentNode from './CommentNode.tsx';
 import { CommentNumbersScope } from '#editor-ui/comments/commentNumbersContext.tsx';
 import { useCommentsView } from '#editor-ui/comments/useCommentsView.tsx';
 import { autoColorChanges, followsPage } from '#editor-ui/whiteout/pageColor.ts';
