@@ -53,7 +53,7 @@ export function useBoardPan({ workspaceRef, fullscreen, enabled }: {
       const onControl = (e.target as HTMLElement).closest('button, a, input, select, textarea, [role="menu"], [role="toolbar"]');
       if (onControl || (onPage && !space)) return;
       swallowMouseDown = true;
-      if (space) { e.stopPropagation(); e.preventDefault(); }
+      if (space) e.stopPropagation();
       const start = { x: e.clientX, y: e.clientY, left: ws.scrollLeft, top: fullscreen ? ws.scrollTop : window.scrollY };
       ws.style.cursor = 'grabbing';
       const done = () => grab(space);
