@@ -188,7 +188,7 @@ function TileRow({ marks, undo, redo, touch, printMenu, printOpen, onTogglePrint
   const { requestReplace, messages: shellMessages = englishShellMessages } = useToolShell();
   return (
     <ToolShell editor>
-      <div className={toolbarStyles.toolbar} role="toolbar" aria-label={t.toolbarLabel} data-editor-toolbar>
+      <div className={`${toolbarStyles.toolbar} ${styles.toolRow}`} role="toolbar" aria-label={t.toolbarLabel} data-editor-toolbar>
         <MarkerButton marker={marks.marker} onChange={marks.rearm} armed={touch.armed} onTap={touch.arm} buttonClass={toolbarStyles.button} />
         <UndoRedoButtons
           onUndo={undo} onRedo={redo} canUndo={marks.canUndo} canRedo={marks.canRedo} iconOnly
