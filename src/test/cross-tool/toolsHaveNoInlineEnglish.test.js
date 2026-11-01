@@ -25,9 +25,6 @@ const ALLOWED = {
   'sign/components/FontPickerMenu.tsx': {
     Aa: 'a specimen of type on the font button, not a word',
   },
-  'sign/components/ThicknessPickerMenu.tsx': {
-    'px thickness': 'a tooltip built from a number; Sign\'s catalogue is in the SNG freeze, so it moves with that text change',
-  },
 };
 
 const toolsDir = fileURLToPath(new URL('../../tools', import.meta.url));
@@ -93,6 +90,7 @@ export function findInlineEnglish(source) {
 // copy modules are stricter: they hold words only, so one word ("Title") counts too.
 /** Plain .ts files whose multi-word strings are not UI text, each with the reason. */
 const TS_NOT_UI = {
+  'highlight/lib/marker/cursor.ts': 'svg markup for the cursor image (attribute names and path data), no copy in it',
   'redact/hooks/useFind.ts': 'a canvas font shorthand used to measure glyphs',
   'scan/lib/edges/corpus.ts': 'names of edge-detection fixtures, shown only in test output',
   'sign/hooks/useFormFieldRegions.ts': 'developer diagnostics sent to the error report, not shown to a person',
