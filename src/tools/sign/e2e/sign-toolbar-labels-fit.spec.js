@@ -96,9 +96,8 @@ for (const { width, path, share, download } of CASES) {
       expect.soft(overhang, `labels that overflow their button at ${width}px`).toEqual([]);
       expect.soft(missing, `Share and Download both rendered at ${width}px`).toEqual([]);
       expect.soft(balanced, `rows balanced (>=2 each, differ by <=1), got ${split.join('+')}`).toBe(true);
-      // Every current iPhone (433px and narrower) stands Feedback down, so Sign's
-      // fourteen with Share (Comment, SIGN-44) split 7+7 (SignToolbar.module.css,
-      // the 387px rule). At 360px and 375px the controls shrink below the 44px
+      // Sign's fourteen with Share (Comment, SIGN-44) split 7+7 with Feedback
+      // kept (READ-04 took Highlight out; SignToolbar.module.css). At 360px and 375px the controls shrink below the 44px
       // floor to keep it (decided 2026-10-31).
       expect.soft(split.join('+'), `7+7 on a phone at ${width}px`).toBe('7+7');
     });
