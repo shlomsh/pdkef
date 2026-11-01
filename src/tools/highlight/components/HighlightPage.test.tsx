@@ -43,6 +43,8 @@ function press(target: Element, { pointerType, button = 0 }: { pointerType: stri
   const event = new MouseEvent('pointerdown', { bubbles: true, cancelable: true, button, clientX: 50, clientY: 60 });
   Object.defineProperty(event, 'pointerType', { value: pointerType });
   act(() => { target.dispatchEvent(event); });
+  // The swipe starts once the pointer has travelled 4 px from the press.
+  act(() => { window.dispatchEvent(new MouseEvent('mousemove', { clientX: 50 + 6, clientY: 60 })); });
 }
 
 beforeEach(() => {
@@ -396,6 +398,7 @@ describe('HighlightPage click marks on a digital page (R10 to R12)', () => {
     const down = new MouseEvent('pointerdown', { bubbles: true, cancelable: true, button: 0, clientX: WORD.x, clientY: WORD.y });
     Object.defineProperty(down, 'pointerType', { value: 'mouse' });
     act(() => { overlay.dispatchEvent(down); });
+    act(() => { window.dispatchEvent(new MouseEvent('mousemove', { clientX: WORD.x + 6, clientY: WORD.y })); });
     layInk();
     dispatch.mockClear();
     act(() => { window.dispatchEvent(new MouseEvent('mouseup', { bubbles: true })); });
