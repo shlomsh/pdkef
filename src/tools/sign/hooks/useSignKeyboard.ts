@@ -6,7 +6,7 @@ import type { SignMessages } from '#editor/registry/messages.ts';
 import { recordAction } from '#lib/telemetry/actionTrail.ts';
 import { formatMessage } from '#lib/text/formatMessage.ts';
 import type { SignToolAction } from '../components/SignToolContext.tsx';
-import { deletedWith } from '#editor/comments/anchors.ts';
+import { deletedWith } from '#editor/model/deleteCascade.ts';
 import { classifySignKey } from '../lib/signKeyAction.ts';
 import type { FieldNavigation } from './useFieldNavigation.ts';
 
