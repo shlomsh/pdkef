@@ -3,7 +3,8 @@ import { act } from 'preact/test-utils';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { HINT_KEY, HINT_MS } from '../lib/marker/hint.ts';
 import { REST } from '../lib/marker/restDetector.ts';
-import { useRestToolbar } from './useRestToolbar.ts';
+import { useRef } from 'preact/hooks';
+import { useRestToolbar, useToolbarDismissal } from './useRestToolbar.ts';
 
 let container: HTMLElement | null = null;
 let api: ReturnType<typeof useRestToolbar>;
@@ -150,5 +151,57 @@ describe('useRestToolbar hint', () => {
     act(() => api.showHint(ink));
     act(() => api.clearHint());
     expect(api.hint).toBeNull();
+  });
+});
+
+describe('one rest toolbar in the workspace', () => {
+  type Rest = ReturnType<typeof useRestToolbar>;
+  const rests: Rest[] = [];
+  const deleted: string[] = [];
+  const commented: string[] = [];
+
+  function Page({ n }: { n: number }) {
+    const rest = useRestToolbar();
+    rests[n] = rest;
+    const live = useRef({
+      layers: { custom: false, colors: false } as never, mark: { id: `m${n}` } as never, onChange: () => {}, onDelete: () => { deleted.push(`m${n}`); },
+      onComment: () => { commented.push(`m${n}`); }, onClose: rest.close, look: {} as never,
+    });
+    live.current.onClose = rest.close;
+    useToolbarDismissal({ current: null }, live as never, { setLayers: () => {}, foldRow: () => {}, toggleUnderline: () => {} });
+    return null;
+  }
+
+  const key = (k: string) => act(() => { document.dispatchEvent(new KeyboardEvent('keydown', { key: k, bubbles: true })); });
+
+  function mountTwo() {
+    rests.length = 0; deleted.length = 0; commented.length = 0;
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    act(() => render(<><Page n={0} /><Page n={1} /></>, container!));
+  }
+
+  it('opening toolbar B closes toolbar A', () => {
+    mountTwo();
+    act(() => rests[0].openFor('a'));
+    expect(rests[0].targetId).toBe('a');
+    act(() => rests[1].openFor('b'));
+    expect(rests[1].targetId).toBe('b');
+    expect(rests[0].targetId).toBeNull();
+  });
+
+  it('Delete with both pages rested acts on one mark only', () => {
+    mountTwo();
+    act(() => rests[0].openFor('a'));
+    act(() => rests[1].openFor('b'));
+    key('Delete');
+    expect(deleted).toEqual(['m1']);
+  });
+
+  it('c with the toolbar open calls the comment handler once', () => {
+    mountTwo();
+    act(() => rests[0].openFor('a'));
+    key('c');
+    expect(commented).toEqual(['m0']);
   });
 });
