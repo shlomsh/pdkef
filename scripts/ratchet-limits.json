@@ -45,7 +45,7 @@
       "src/tools/scan/components/CornerEditor.tsx#CornerEditor": 156,
       "src/tools/security/PdfSecurityTool.tsx#PdfSecurityTool": 272,
       "src/tools/sign/PdfSignTool.tsx#PdfSignToolInner": 276,
-      "src/tools/sign/components/DraggableWrapper.tsx#DraggableWrapper": 558,
+      "src/tools/sign/components/DraggableWrapper.tsx#DraggableWrapper": 412,
       "src/tools/sign/components/ElementToolbar.tsx#ElementToolbar": 367,
       "src/tools/sign/components/PdfWorkspace.tsx#PdfWorkspace": 548,
       "src/tools/sign/components/SignToolbar.tsx#SignToolbar": 731,
