@@ -22,7 +22,7 @@ describe('usePinchZoom', () => {
     const root = document.createElement('div');
     act(() => render(<Harness workspaceRef={{ current: ws }} columnRef={{ current: col }} enabled inLamp zoomRef={{ current: ZOOM_MAX }} commit={commit} />, root));
     ws.dispatchEvent(new WheelEvent('wheel', { ctrlKey: true, deltaY: -50, clientX: 10, clientY: 10, cancelable: true }));
-    expect(col.style.transform).toBe('scale(1)');
+    expect(col.style.transform).toBe('translateY(0px) scale(1)');
     vi.advanceTimersByTime(200);
     expect(col.style.transform).toBe('');
     expect(col.style.transformOrigin).toBe('');
