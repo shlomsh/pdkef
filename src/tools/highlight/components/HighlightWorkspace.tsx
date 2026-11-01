@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'preact/hooks';
 import type { PDFDocumentProxy } from 'pdfjs-dist';
-import ReadingCapsule, { ReadingLampIcon } from '#editor-ui/capsule/ReadingCapsule.tsx';
+import ReadingCapsule from '#editor-ui/capsule/ReadingCapsule.tsx';
 import useCurrentPage from '#editor-ui/hooks/useCurrentPage.js';
 import workspaceStyles from '#editor-ui/Workspace.module.css';
 import { formatMessage } from '#lib/text/formatMessage.ts';
@@ -109,31 +109,23 @@ export default function HighlightWorkspace({ pdfDocument, numPages, fileName, zo
       className={`${workspaceStyles.workspace} ${styles.workspace}${pseudoFullscreen ? ` ${workspaceStyles['pseudo-fullscreen']}` : ''}`}
       ref={setWorkspace} role="region" aria-label={fileName} data-workspace data-lamp={fullscreen || undefined} data-pseudo-fullscreen={pseudoFullscreen || undefined}
     >
-      {fullscreen ? (
-        <div class={styles.floating}>
-          <ReadingCapsule
-            fileName={fileName} page={currentPage} pageCount={numPages}
-            onJumpToPage={(n) => pageRefs.current[n - 1]?.scrollIntoView()}
-            zoomSlot={menu()}
-            markerSlot={markerButton}
-            onUndo={undo} onRedo={redo} canUndo={marks.canUndo} canRedo={marks.canRedo}
-            onPrint={() => setPrintOpen(true)}
-            onDownload={onDownload} moreItems={moreItems} onExit={toggleView}
-            scrollEvents={scrollEvents} pagePressEvents={pagePressEvents} labels={t.capsule}
-          />
-        </div>
-      ) : (
-        <div className={styles.top}>
-          {markerButton}
-          <button type="button" className={styles.download} onClick={onDownload}>{t.capsule.download}</button>
-          <PrintMenu {...printMenu}>
-            <button type="button" className={styles.download} aria-haspopup="menu" aria-expanded={printOpen} onClick={() => setPrintOpen((o) => !o)}>{t.capsule.print}</button>
-          </PrintMenu>
-          <button type="button" className={styles.enter} onClick={toggleView}><ReadingLampIcon size={20} />{t.enterLamp}</button>
-        </div>
-      )}
+      {/* One capsule in both views (the agreed sketch): floating in the lamp, a bar in the flow outside it, where
+          the page fits the width and so has no zoom (R20). */}
+      <div class={fullscreen ? styles.floating : styles.top}>
+        <ReadingCapsule
+          variant={fullscreen ? 'floating' : 'bar'}
+          fileName={fileName} page={currentPage} pageCount={numPages}
+          onJumpToPage={(n) => pageRefs.current[n - 1]?.scrollIntoView()}
+          zoomSlot={fullscreen ? menu() : undefined}
+          markerSlot={markerButton}
+          onUndo={undo} onRedo={redo} canUndo={marks.canUndo} canRedo={marks.canRedo}
+          onPrint={() => setPrintOpen(true)}
+          onDownload={onDownload} moreItems={moreItems} onExit={toggleView} onEnter={toggleView}
+          scrollEvents={scrollEvents} pagePressEvents={pagePressEvents} labels={t.capsule}
+        />
+      </div>
       {fullscreen && <ZoomReadout text={readout} />}
-      {fullscreen && <PrintMenu {...printMenu} placement="floating" />}
+      <PrintMenu {...printMenu} placement="floating" />
       {print.sheets}
       <ArmedChip armed={touch.armed} onStop={touch.disarm} />
       <div className={styles.board} style={{ width: `${zoom.board.boardWidth + notesW}px` }}>

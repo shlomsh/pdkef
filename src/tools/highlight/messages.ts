@@ -19,7 +19,6 @@ export interface HighlightMessages {
   zoomOut: string;
   /** "{mode} · {percent}%" */
   readout: string;
-  enterLamp: string;
   /** The toolbar that opens on a highlight at rest (R2 to R4). */
   markToolbar: string;
   markHighlight: string;
@@ -62,7 +61,6 @@ export const englishHighlightMessages: HighlightMessages = {
   zoomIn: 'Zoom in',
   zoomOut: 'Zoom out',
   readout: '{mode} · {percent}%',
-  enterLamp: 'Use the reading lamp',
   markToolbar: 'Change this highlight',
   markHighlight: 'Highlight',
   markUnderline: 'Underline',
