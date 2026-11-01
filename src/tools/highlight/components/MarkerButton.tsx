@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
+import UnderlineGlyph from './UnderlineGlyph.tsx';
 import HighlightSwatches from '#editor-ui/highlight/HighlightSwatches.tsx';
 import { HighlightIcon } from '#editor-ui/toolIcons.tsx';
 import { englishSignMessages } from '#editor/registry/signMessages.ts';
@@ -11,7 +12,6 @@ import styles from './MarkerButton.module.css';
 
 const coarsePointer = () => Boolean(globalThis.matchMedia?.('(pointer: coarse)').matches);
 
-const underlineIcon = { width: 18, height: 18, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', 'stroke-width': 2, 'stroke-linecap': 'round', 'stroke-linejoin': 'round', 'aria-hidden': true } as const;
 
 interface MarkerButtonProps {
   marker: Marker;
@@ -131,7 +131,7 @@ export default function MarkerButton({ marker, onChange, armed = false, onTap, o
               type="button" class={styles.ul} aria-label={t.markUnderline} aria-pressed={underline} title={t.markUnderline}
               onClick={() => onChange({ style: underline ? 'highlight' : 'underline' })}
             >
-              <svg {...underlineIcon}><path d="M6 4v7a6 6 0 0 0 12 0V4" /><path d="M4 21h16" /></svg>
+              <UnderlineGlyph />
             </button>
           </div>
           {custom && <CustomPanel marker={marker} onChange={onChange} />}
