@@ -5,6 +5,7 @@ import type { CommentElement, HighlightElement } from '#editor/model/editorModel
 import { captureAddedElement, captureElementSnapshots } from '#editor/model/actionHistory.ts';
 import { deletedWith } from '#editor/model/elementsReducer.ts';
 import { createPageGeometry } from '#editor/geometry/coords.ts';
+import { clearPageActions, rotatePageAction } from '../lib/marks/pageEditActions.ts';
 import { DEFAULT_MARKER } from '../lib/marker/markerState.ts';
 import { useHighlightMarks } from './useHighlightMarks.ts';
 
@@ -98,12 +99,12 @@ describe('useHighlightMarks', () => {
       comment: 'Note', anchor: { kind: 'element', elementId },
     });
 
-    it('rotatePage turns a page a quarter at a time', () => {
+    it('rotatePageAction turns a page a quarter at a time', () => {
       mount();
       expect(marks.pageTurns).toEqual({});
-      act(() => marks.rotatePage(0, geometry));
+      act(() => marks.dispatch(rotatePageAction(0, geometry)));
       expect(marks.pageTurns[0]).toBe(1);
-      act(() => marks.rotatePage(0, geometry));
+      act(() => marks.dispatch(rotatePageAction(0, geometry)));
       expect(marks.pageTurns[0]).toBe(2);
     });
 
@@ -111,7 +112,7 @@ describe('useHighlightMarks', () => {
       mount();
       act(() => addMark());
       const before = marks.state.elements[0];
-      act(() => marks.rotatePage(0, geometry));
+      act(() => marks.dispatch(rotatePageAction(0, geometry)));
       expect(marks.state.elements[0]).not.toEqual(before);
       act(() => marks.undo());
       expect(marks.pageTurns[0] ?? 0).toBe(0);
@@ -120,14 +121,14 @@ describe('useHighlightMarks', () => {
       expect(marks.pageTurns[0]).toBe(1);
     });
 
-    it('clearPage removes only that page marks and their comments, and undo brings them back', () => {
+    it('clearPageActions remove only that page marks and their comments, and undo brings them back', () => {
       mount();
       act(() => {
         addMark();
         marks.dispatch({ type: 'ADD_ELEMENT', payload: onPage1 });
         marks.dispatch({ type: 'ADD_ELEMENT', payload: comment('c1', 'm2', 1) });
       });
-      act(() => marks.clearPage(1));
+      act(() => clearPageActions(marks.state.elements, 1).forEach((a) => marks.dispatch(a)));
       expect(marks.state.elements.map((el) => el.id)).toEqual(['m1']);
       act(() => marks.undo());
       expect(marks.state.elements.map((el) => el.id).sort()).toEqual(['c1', 'm1', 'm2']);
