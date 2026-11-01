@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef } from 'preact/hooks';
+import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
 import type { PDFDocumentProxy } from 'pdfjs-dist';
 import ReadingCapsule, { ReadingLampIcon } from '#editor-ui/capsule/ReadingCapsule.tsx';
 import useCurrentPage from '#editor-ui/hooks/useCurrentPage.js';
@@ -12,7 +12,10 @@ import ZoomMenu from './ZoomMenu.tsx';
 import HighlightPage from './HighlightPage.tsx';
 import MarkerButton from './MarkerButton.tsx';
 import ArmedChip from './ArmedChip.tsx';
+import PrintMenu from './PrintMenu.tsx';
 import { useTouchArming } from '../hooks/useTouchArming.ts';
+import { usePrint } from '../hooks/usePrint.ts';
+import { hasComments } from '../lib/print/printMenu.ts';
 import ZoomReadout from './ZoomReadout.tsx';
 import styles from './HighlightWorkspace.module.css';
 
@@ -61,6 +64,14 @@ export default function HighlightWorkspace({ pdfDocument, numPages, fileName, zo
       onSetting={(mode) => zoom.apply(mode)} onStep={(dir) => zoom.step(dir)} onActual={() => zoom.actual()}
     />
   );
+  const print = usePrint({ pdfDocument, elements: marks.state.elements });
+  const [printOpen, setPrintOpen] = useState(false);
+  const printMenu = {
+    open: printOpen, withComments: hasComments(marks.state.elements),
+    onChoose: print.print, onClose: () => setPrintOpen(false),
+  };
+  // One menu at a time: it belongs to the row or to the capsule, so changing view puts it away.
+  const toggleView = () => { setPrintOpen(false); onToggleFullscreen(); };
   const touch = useTouchArming();
   const markerButton = <MarkerButton marker={marks.marker} onChange={marks.rearm} armed={touch.armed} onTap={touch.arm} />;
   const readout = typeof zoom.setting === 'number'
@@ -77,7 +88,8 @@ export default function HighlightWorkspace({ pdfDocument, numPages, fileName, zo
             zoomSlot={menu()}
             markerSlot={markerButton}
             onUndo={marks.undo} onRedo={marks.redo} canUndo={marks.canUndo} canRedo={marks.canRedo}
-            onDownload={onDownload} moreItems={[]} onExit={onToggleFullscreen}
+            onPrint={() => setPrintOpen(true)}
+            onDownload={onDownload} moreItems={[]} onExit={toggleView}
             scrollEvents={scrollEvents} pagePressEvents={pagePressEvents} labels={t.capsule}
           />
         </div>
@@ -85,10 +97,15 @@ export default function HighlightWorkspace({ pdfDocument, numPages, fileName, zo
         <div className={styles.top}>
           {markerButton}
           <button type="button" className={styles.download} onClick={onDownload}>{t.capsule.download}</button>
-          <button type="button" className={styles.enter} onClick={onToggleFullscreen}><ReadingLampIcon size={20} />{t.enterLamp}</button>
+          <PrintMenu {...printMenu}>
+            <button type="button" className={styles.download} aria-haspopup="menu" aria-expanded={printOpen} onClick={() => setPrintOpen((o) => !o)}>{t.capsule.print}</button>
+          </PrintMenu>
+          <button type="button" className={styles.enter} onClick={toggleView}><ReadingLampIcon size={20} />{t.enterLamp}</button>
         </div>
       )}
       {fullscreen && <ZoomReadout text={readout} />}
+      {fullscreen && <PrintMenu {...printMenu} placement="floating" />}
+      {print.sheets}
       <ArmedChip armed={touch.armed} onStop={touch.disarm} />
       <div className={styles.board} style={{ width: `${zoom.board.boardWidth}px` }}>
       <div
