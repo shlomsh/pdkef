@@ -257,4 +257,25 @@ describe('MarkHint', () => {
     expect(hint.style.left).toBe('40%');
     expect(hint.style.top).toBe('12%');
   });
+
+  describe('clamp to the page card', () => {
+    const rect = (left: number, right: number) => ({ left, right, top: 0, bottom: 20, width: right - left, height: 20, x: left, y: 0, toJSON: () => ({}) }) as DOMRect;
+    function place(hint: [number, number], wrapper: [number, number]) {
+      vi.spyOn(Element.prototype, 'getBoundingClientRect').mockImplementation(function (this: Element) {
+        return this.hasAttribute('data-mark-hint') ? rect(...hint) : rect(...wrapper);
+      });
+      vi.spyOn(document.documentElement, 'clientWidth', 'get').mockReturnValue(1000);
+      act(() => render(<MarkHint anchor={{ x: 40, bottom: 12, rtl: false }} text="Rest" />, host));
+      return host.querySelector<HTMLElement>('[data-mark-hint]')!;
+    }
+    afterEach(() => vi.restoreAllMocks());
+
+    it('shifts a hint that runs past the page right edge back to wrapper.right - 8', () => {
+      expect(place([250, 350], [0, 300]).style.translate).toBe('-58px 0');
+    });
+
+    it('shifts a hint that runs past the page left edge back to wrapper.left + 8', () => {
+      expect(place([90, 150], [100, 400]).style.translate).toBe('18px 0');
+    });
+  });
 });

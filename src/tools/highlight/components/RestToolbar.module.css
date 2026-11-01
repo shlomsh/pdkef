@@ -20,6 +20,15 @@
 .underline:hover, .underline:has([aria-expanded="true"]) { background: var(--toolbar-hover-fill, var(--color-white-15)); }
 .underline[data-on] { background: var(--color-primary); }
 
+/* Touch: Sign's 28px buttons get an 8px ::before extension that makes neighbours' hit areas overlap. Here the buttons
+   themselves are the target (44px tall), so the extension is switched off. */
+@media (pointer: coarse) {
+  .bar[data-rest-toolbar] button { min-height: 44px; }
+  .bar[data-rest-toolbar] button::before { inset: 0; }
+  .bar[data-rest-toolbar] button:not([aria-haspopup]) { min-width: 44px; }
+  .bar[data-rest-toolbar] .underline button[aria-haspopup] { min-width: 28px; min-height: 44px; }
+}
+
 /* The one-time hint (R8): a quiet pill beside the end of the ink. */
 .hint {
   position: absolute;
