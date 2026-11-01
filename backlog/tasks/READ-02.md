@@ -1,17 +1,15 @@
 ---
 id: "READ-02"
 title: "Move the shared highlight and comment pieces out of Sign, no behaviour change"
-status: "in_progress"
+status: "done"
 priority: "P2"
 epic: "highlight-pdf"
-horizon: "next"
-order: 1
 depends_on: []
 ---
 
 # READ-02 · The highlight and comment pieces move out of Sign
 
-*Filed 2026-11-01.* Design record: [docs/highlight-pdf.md](../../docs/highlight-pdf.md), section Engineering.
+*Filed 2026-11-01. Done 2026-11-01.* Design record: [docs/highlight-pdf.md](../../docs/highlight-pdf.md), section Engineering.
 
 ## Outcome
 
@@ -25,6 +23,6 @@ a shared home for the page layout (READ-01, R34 to R38), for example `src/lib/pa
 
 ## Acceptance
 
-- [ ] `npm run test:module-boundaries` and `test:editor-dependency-directions` pass with the new homes.
-- [ ] The Sign highlight and comment unit tests and e2e specs pass unchanged apart from import paths.
-- [ ] No file under `src/tools/sign/` is imported from outside Sign.
+- [x] `npm run test:module-boundaries` and `test:editor-dependency-directions` pass with the new homes.
+- [x] The Sign highlight and comment unit tests and e2e specs pass unchanged apart from import paths.
+- [x] No file under `src/tools/sign/` is imported from outside Sign.

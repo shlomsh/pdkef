@@ -2,7 +2,7 @@
 
 # Backlog
 
-The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 91 live: 15 up next, 15 then, 27 waiting, 34 parked.
+The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 90 live: 14 up next, 15 then, 27 waiting, 34 parked.
 
 ## Redact: finish removal
 
@@ -46,12 +46,6 @@ Fill mode is the default since SNG-19. Close the test gaps, then desktop parity,
 ## Highlight PDF: a tool for reading
 
 Marking should feel like holding a highlighter, not like operating software. Sketch, move the shared pieces out of Sign, then launch with Sign handing highlighting over.
-
-### Up next
-
-| ID | P | Task | Note |
-| --- | --- | --- | --- |
-| READ-02 | P2 | [READ-02](backlog/tasks/READ-02.md) · Move the shared highlight and comment pieces out of Sign, no behaviour change | In progress |
 
 ### Then, in order
 
@@ -239,7 +233,7 @@ Done and retired tickets are not listed. Their files stay in [backlog/tasks/](ba
 
 - Redact: finish removal: 26 done, 1 retired
 - Sign: finish fill mode: 3 done, 1 retired
-- Highlight PDF: a tool for reading: 1 done, 0 retired
+- Highlight PDF: a tool for reading: 2 done, 0 retired
 - Tool pages: show the verb: 8 done, 0 retired
 - Form detector accuracy: 19 done, 1 retired
 - Robustness and debt: 80 done, 4 retired
