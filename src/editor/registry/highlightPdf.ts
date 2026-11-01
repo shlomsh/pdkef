@@ -4,14 +4,13 @@ import type { HighlightBand, HighlightElement } from '../model/editorModel.ts';
 import type { SerializeContext } from './types.ts';
 import { DEFAULT_HIGHLIGHT_COLOR } from '../model/highlightColors.ts';
 import { hexToRgbFractions } from '../text/imageTint.js';
-import { underlineInk } from '../model/underlineInk.ts';
+import { UNDERLINE_WIDTH, underlineInk } from '../model/underlineInk.ts';
 import { applyAffineTransform, percentToPoints } from '../geometry/coords.ts';
 import type { AffineTransform } from '../geometry/coords.ts';
 
 const POPUP_WIDTH = 160;
 const POPUP_HEIGHT = 80;
 const IDENTITY: AffineTransform = [1, 0, 0, 1, 0, 0];
-const UNDERLINE_WIDTH = 1.5;
 
 type Point = [number, number];
 type Bounds = [number, number, number, number];
@@ -56,17 +55,19 @@ interface BandsHighlightSpec {
   style?: 'underline';
   /** 0.3 to 1, absent is 1: written as `/CA` and as the appearance's `ca`. */
   opacity?: number;
+  /** An underline's line width in points; absent is UNDERLINE_WIDTH.default. */
+  strokeWidth?: number;
   comment?: { text: string; commentedAt?: number };
   /** The Print flag: a highlight prints, a comment's tint does not. */
   print: boolean;
 }
 
-/** READ-03: a 1.5 pt stroke along a band's bottom edge, half its width inside the band, in user space (works on a rotated page). */
-function underlineLine(ul: Point, ll: Point, lr: Point): string {
+/** READ-03: a stroke (UNDERLINE_WIDTH.default pt unless set) along a band's bottom edge, half its width inside the band, in user space (works on a rotated page). */
+function underlineLine(ul: Point, ll: Point, lr: Point, width: number): string {
   const dx = ul[0] - ll[0];
   const dy = ul[1] - ll[1];
   const length = Math.hypot(dx, dy) || 1;
-  const inset = UNDERLINE_WIDTH / 2 / length;
+  const inset = width / 2 / length;
   const shift = (p: Point) => [p[0] + dx * inset, p[1] + dy * inset].map(fixed).join(' ');
   return `${shift(ll)} m ${shift(lr)} l S`;
 }
@@ -95,9 +96,10 @@ export function writeBandsHighlight(spec: BandsHighlightSpec, context: Serialize
 
   const opacity = spec.opacity ?? 1;
   const underline = spec.style === 'underline';
-  const paint = spec.print ? quads.map(([ul, ur, ll, lr]) => (underline ? underlineLine(ul, ll, lr) : `${ul.map(fixed).join(' ')} m ${ur.map(fixed).join(' ')} l ${lr.map(fixed).join(' ')} l ${ll.map(fixed).join(' ')} l h f`)) : [];
+  const width = spec.strokeWidth ?? UNDERLINE_WIDTH.default;
+  const paint = spec.print ? quads.map(([ul, ur, ll, lr]) => (underline ? underlineLine(ul, ll, lr, width) : `${ul.map(fixed).join(' ')} m ${ur.map(fixed).join(' ')} l ${lr.map(fixed).join(' ')} l ${ll.map(fixed).join(' ')} l h f`)) : [];
   const ink = hexToRgbFractions(underlineInk(spec.color), spec.fallbackColor);
-  const setup = underline ? `${UNDERLINE_WIDTH} w ${fixed(ink.r)} ${fixed(ink.g)} ${fixed(ink.b)} RG` : `${fixed(r)} ${fixed(g)} ${fixed(b)} rg`;
+  const setup = underline ? `${fixed(width)} w ${fixed(ink.r)} ${fixed(ink.g)} ${fixed(ink.b)} RG` : `${fixed(r)} ${fixed(g)} ${fixed(b)} rg`;
   const content = spec.print ? ['/GS gs', setup, ...paint].join('\n') : '';
   const ap = appearance(pdfDoc, rect, content,
     { ExtGState: { GS: { Type: 'ExtGState', BM: 'Multiply', ca: opacity, CA: opacity } } });
@@ -106,7 +108,7 @@ export function writeBandsHighlight(spec: BandsHighlightSpec, context: Serialize
   const commentedAt = spec.comment?.commentedAt;
   const { context: pdfContext } = pdfDoc;
   const highlight = pdfContext.obj({
-    Type: 'Annot', Subtype: underline ? 'Underline' : 'Highlight', Rect: rect, QuadPoints: quads.flat(2), C: spec.print ? [r, g, b] : [], CA: opacity, ...(spec.print ? { F: 4 } : {}),
+    Type: 'Annot', Subtype: underline ? 'Underline' : 'Highlight', Rect: rect, QuadPoints: quads.flat(2), C: spec.print ? [r, g, b] : [], CA: opacity, ...(spec.print ? { F: 4 } : {}), ...(underline ? { BS: { W: width } } : {}),
     NM: PDFHexString.fromText(spec.id), M: pdfDate(commentedAt === undefined ? undefined : new Date(commentedAt)), AP: { N: ap },
     ...(text ? { Contents: PDFHexString.fromText(text) } : {}),
   });
@@ -129,6 +131,6 @@ export function writeBandsHighlight(spec: BandsHighlightSpec, context: Serialize
 export function serializeHighlight(element: HighlightElement, context: SerializeContext): void {
   writeBandsHighlight({
     id: element.id, box: element, bands: element.bands, color: element.color, fallbackColor: DEFAULT_HIGHLIGHT_COLOR,
-    direction: element.direction, style: element.style, opacity: element.opacity, comment: context.comment, print: true,
+    direction: element.direction, style: element.style, opacity: element.opacity, strokeWidth: element.strokeWidth, comment: context.comment, print: true,
   }, context);
 }

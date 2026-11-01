@@ -1,11 +1,12 @@
 import type { HighlightElement } from '#editor/model/editorModel.ts';
 import { createUpdateEntry, type ElementUpdateKind } from '#editor/model/updateKind.ts';
 import type { UpdateHistoryEntry } from '#editor/model/actionHistory.ts';
-import { OPACITY_MIN, type Marker } from './markerState.ts';
+import { UNDERLINE_WIDTH } from '#editor/model/underlineInk.ts';
+import { OPACITY_MIN, clampWidth, type Marker } from './markerState.ts';
 
 /** The marker a highlight carries: what the next stroke lays after the reader changes it (R5). */
 export function markOf(el: HighlightElement): Marker {
-  return { color: el.color, style: el.style === 'underline' ? 'underline' : 'highlight', opacity: el.opacity ?? 1 };
+  return { color: el.color, style: el.style === 'underline' ? 'underline' : 'highlight', opacity: el.opacity ?? 1, ...(el.strokeWidth === undefined ? {} : { strokeWidth: el.strokeWidth }) };
 }
 
 /**
@@ -20,6 +21,10 @@ export function changePatch(change: Partial<Marker>): Partial<HighlightElement> 
   if (change.opacity !== undefined) {
     const opacity = Math.min(1, Math.max(OPACITY_MIN, change.opacity));
     patch.opacity = opacity < 1 ? opacity : undefined;
+  }
+  if (change.strokeWidth !== undefined) {
+    const width = clampWidth(change.strokeWidth);
+    patch.strokeWidth = width === UNDERLINE_WIDTH.default ? undefined : width;
   }
   return patch;
 }

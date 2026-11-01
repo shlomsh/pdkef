@@ -42,6 +42,13 @@ describe('highlight definition', () => {
     expect(droppedCount).toBe(2);
   });
 
+  it('READ-04: accepts an underline width within range and rejects others', () => {
+    expect(definition.schema({ ...good, style: 'underline', strokeWidth: 2 })).toBe(true);
+    expect(definition.schema({ ...good, strokeWidth: 0 })).toBe(false);
+    expect(definition.schema({ ...good, strokeWidth: 9 })).toBe(false);
+    expect(definition.schema({ ...good, strokeWidth: '2' })).toBe(false);
+  });
+
   it('survives validateDraftElements', () => {
     const { valid, droppedCount } = validateDraftElements([good]);
     expect(valid).toEqual([good]);
