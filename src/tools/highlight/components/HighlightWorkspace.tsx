@@ -118,12 +118,13 @@ export default function HighlightWorkspace({ pdfDocument, numPages, fileName, zo
 
   return (
     <>
-    {!fullscreen && (
+    {/* Stays mounted in the lamp, hidden: the page's restore veil lifts only while a [data-tool-shell] exists. */}
+    <div hidden={fullscreen} style={fullscreen ? undefined : { display: 'contents' }}>
       <TileRow
-        marks={marks} undo={undo} redo={redo} touch={touch} printMenu={printMenu} printOpen={printOpen}
+        marks={marks} undo={undo} redo={redo} touch={touch} printMenu={{ ...printMenu, open: printMenu.open && !fullscreen }} printOpen={printOpen && !fullscreen}
         onTogglePrint={() => setPrintOpen((o) => !o)} onToggleView={toggleView} onDownload={onDownload}
       />
-    )}
+    </div>
     <div
       className={`${workspaceStyles.workspace} ${styles.workspace}${pseudoFullscreen ? ` ${workspaceStyles['pseudo-fullscreen']}` : ''}`}
       ref={setWorkspace} role="region" aria-label={fileName} data-workspace data-lamp={fullscreen || undefined} data-pseudo-fullscreen={pseudoFullscreen || undefined}
