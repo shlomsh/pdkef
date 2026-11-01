@@ -55,3 +55,10 @@ describe('clampZoom', () => {
     expect(clampZoom(0.1)).toBe(0.5);
   });
 });
+
+describe('stepZoom from a fit below the floor', () => {
+  it('zooming out stays put and zooming in goes to the first step', () => {
+    expect(stepZoom(0.45, -1)).toBe(0.45);
+    expect(stepZoom(0.45, 1)).toBe(0.5);
+  });
+});
