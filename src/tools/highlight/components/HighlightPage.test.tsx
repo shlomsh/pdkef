@@ -192,6 +192,24 @@ describe('HighlightPage rest toolbar', () => {
     expect(toolbar()).not.toBeNull();
   });
 
+  function mouseClickOn(target: Element, detail: number) {
+    const down = new MouseEvent('pointerdown', { bubbles: true, button: 0 });
+    Object.defineProperty(down, 'pointerType', { value: 'mouse' });
+    act(() => { target.dispatchEvent(down); target.dispatchEvent(new MouseEvent('click', { bubbles: true, detail })); });
+  }
+
+  it('a mouse click on a highlight opens it at once', () => {
+    mount([mark]);
+    mouseClickOn(container.querySelector('[data-element-id]')!, 1);
+    expect(toolbar()).not.toBeNull();
+  });
+
+  it('a double click on a highlight does not open it', () => {
+    mount([mark]);
+    mouseClickOn(container.querySelector('[data-element-id]')!, 2);
+    expect(toolbar()).toBeNull();
+  });
+
   it('a color change updates the highlight, logs one undo step and re-arms the marker', () => {
     mount([mark]);
     move(container.querySelector('[data-element-id]')!);
