@@ -20,6 +20,6 @@ export async function exportHighlighted(bytes: ArrayBuffer, elements: EditorElem
     const angle = page.getRotation().angle;
     if (angle >= 360) page.setRotation(degrees(angle % 360));
   }
-  await drawElements(doc, elements, {});
+  await drawElements(doc, elements, { pageTurns });
   return doc.save();
 }

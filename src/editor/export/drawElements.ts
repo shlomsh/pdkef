@@ -13,12 +13,16 @@ import { baselineOffsetEmFromMetrics } from '../text/fonts.js';
 import { HELVETICA_BASELINE_OFFSET_EM, DEFAULT_LINE_HEIGHT_EM } from '../model/signGeometry.js';
 import { pageGeometryFromPdfLibPage } from '../adapters/pdf/pdfLibGeometry.ts';
 import type { EditorElement } from '../model/editorModel.ts';
+import { turnsOf } from '../geometry/pageTurn.ts';
+import type { PageTurns } from '../geometry/pageTurn.ts';
 
 type LoadCustomFont = (family: string, weight?: string, style?: string) => Promise<PDFFont | null>;
 
 interface DrawElementsOptions {
   /** Loads and embeds a face into `pdfDoc`. Needed only when a text element is drawn. */
   loadCustomFont?: LoadCustomFont;
+  /** Quarter turns a person gave each page, handed to the serializers of its marks. */
+  pageTurns?: PageTurns;
   /** Called after each drawn element with the fraction done, in 0..1. */
   onProgress?: (progress: number) => void;
 }
@@ -52,7 +56,7 @@ const noFontLoader: LoadCustomFont = async () => {
 export async function drawElements(
   pdfDoc: PDFDocument,
   sourceElements: EditorElement[],
-  { loadCustomFont = noFontLoader, onProgress }: DrawElementsOptions,
+  { loadCustomFont = noFontLoader, pageTurns, onProgress }: DrawElementsOptions,
 ): Promise<void> {
   // SIGN-44: a comment anchored to a highlight lives in that highlight's own annotation, not in one of its own.
   const elements = resolveCommentBoxes(sourceElements);
@@ -95,6 +99,7 @@ export async function drawElements(
         pdfX,
         pdfY,
         pageGeometry,
+        ...(pageTurns && { quarterTurns: turnsOf(pageTurns, element.pageIndex) }),
         loadCustomFont,
         baselineOffset: baselineOffsetEm,
         ...(anchored && { comment: { text: anchored.comment, commentedAt: anchored.commentedAt } }),

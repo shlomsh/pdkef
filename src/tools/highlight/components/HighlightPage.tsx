@@ -143,7 +143,7 @@ export default function HighlightPage({ pdfDocument, pageIndex, widthPx, chrome 
       <div data-page-header style={chrome === 1 ? undefined : { zoom: chrome }}>
         <HighlightPageHeader pageIndex={pageIndex} hasMarks={elements.some((el) => el.pageIndex === pageIndex)} onRotate={() => { if (geometry) onRotate(geometry); }} onClear={onClear} />
       </div>
-      <div className={`${workspaceStyles['page-wrapper']} ${styles.page}`} data-page-wrapper style={{ width: `${widthPx}px`, ...(pen ? { cursor: pen } : {}) }}>
+      <div className={`${workspaceStyles['page-wrapper']} ${styles.page}`} data-page-wrapper data-page-turns={turnsOf(pageTurns, pageIndex) || undefined} style={{ width: `${widthPx}px`, ...(pen ? { cursor: pen } : {}) }}>
         <PdfPageCanvas pdfDocument={pdfDocument} pageNum={pageIndex + 1} pageGeometry={geometry} />
         <div
           ref={overlayRef} data-page-overlay data-touch-armed={touchArmed ? '' : undefined} className={touchArmed ? `${workspaceStyles['page-overlay']} ${styles.touchArmed}` : workspaceStyles['page-overlay']} onPointerDown={onPointerDown}

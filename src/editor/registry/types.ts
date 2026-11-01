@@ -38,6 +38,8 @@ export interface SerializeContext {
   baselineOffset: (font: PDFFont | null) => number;
   /** Redact's page-scoped destructive flatten pass requests an instruction instead. */
   redaction?: boolean;
+  /** Clockwise quarter turns a person gave this page (Highlight); absent is 0. */
+  quarterTurns?: 0 | 1 | 2 | 3;
   /** SIGN-44: the comment to write into this highlight's annotation (the one anchored to it). */
   comment?: { text: string; commentedAt?: number };
 }

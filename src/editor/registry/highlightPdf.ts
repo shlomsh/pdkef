@@ -51,6 +51,8 @@ interface BandsHighlightSpec {
   color: string;
   fallbackColor: string;
   direction?: 'ltr' | 'rtl';
+  /** Quarter turns the person gave the page, so the text's own bottom edge is found under the turned band; absent is 0. */
+  quarterTurns?: 0 | 1 | 2 | 3;
   /** `'underline'` writes `/Underline`; absent writes `/Highlight`. */
   style?: 'underline';
   /** 0.3 to 1, absent is 1: written as `/CA` and as the appearance's `ca`. */
@@ -60,6 +62,11 @@ interface BandsHighlightSpec {
   comment?: { text: string; commentedAt?: number };
   /** The Print flag: a highlight prints, a comment's tint does not. */
   print: boolean;
+}
+
+/** The band's corners [ul, ur, ll, lr] as displayed, in the text's own order (QuadPoints are text-relative, ISO 32000 12.5.6.10) after `turns` clockwise quarter turns. */
+export function textCorners([ul, ur, ll, lr]: Point[], turns: 0 | 1 | 2 | 3): Point[] {
+  return [[ul, ur, ll, lr], [ur, lr, ul, ll], [lr, ll, ur, ul], [ll, ul, lr, ur]][turns];
 }
 
 /** READ-03: a stroke (UNDERLINE_WIDTH.default pt unless set) along a band's bottom edge, its bottom UNDERLINE_LIFT pt above the band's, in user space (works on a rotated page). */
@@ -89,8 +96,8 @@ export function writeBandsHighlight(spec: BandsHighlightSpec, context: Serialize
     const top = pdfY - (band.top / 100) * boxHeight;
     return { left, right: left + (band.width / 100) * boxWidth, top, bottom: top - (band.height / 100) * boxHeight };
   });
-  // Upper-left, upper-right, lower-left, lower-right of the band as displayed.
-  const quads = edges.map((e) => [toUser(e.left, e.top), toUser(e.right, e.top), toUser(e.left, e.bottom), toUser(e.right, e.bottom)]);
+  // Upper-left, upper-right, lower-left, lower-right of the text's band (reordered when the page is turned).
+  const quads = edges.map((e) => textCorners([toUser(e.left, e.top), toUser(e.right, e.top), toUser(e.left, e.bottom), toUser(e.right, e.bottom)], spec.quarterTurns ?? 0));
   const rect = boundsOf(quads.flat());
   const { r, g, b } = hexToRgbFractions(spec.color, spec.fallbackColor);
 
@@ -131,6 +138,6 @@ export function writeBandsHighlight(spec: BandsHighlightSpec, context: Serialize
 export function serializeHighlight(element: HighlightElement, context: SerializeContext): void {
   writeBandsHighlight({
     id: element.id, box: element, bands: element.bands, color: element.color, fallbackColor: DEFAULT_HIGHLIGHT_COLOR,
-    direction: element.direction, style: element.style, opacity: element.opacity, strokeWidth: element.strokeWidth, comment: context.comment, print: true,
+    direction: element.direction, style: element.style, opacity: element.opacity, strokeWidth: element.strokeWidth, comment: context.comment, print: true, quarterTurns: context.quarterTurns,
   }, context);
 }

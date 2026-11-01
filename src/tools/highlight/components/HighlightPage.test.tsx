@@ -29,7 +29,7 @@ const dispatch = vi.fn();
 const logAction = vi.fn();
 const rearm = vi.fn();
 
-function mount(elements: EditorElement[], marker = DEFAULT_MARKER, touchArmed?: boolean, extra: { chrome?: number; rail?: preact.ComponentChildren } = {}) {
+function mount(elements: EditorElement[], marker = DEFAULT_MARKER, touchArmed?: boolean, extra: { chrome?: number; rail?: preact.ComponentChildren; pageTurns?: Record<number, 1 | 2 | 3> } = {}) {
   act(() => render(
     <HighlightPage
       pdfDocument={null} pageIndex={0} widthPx={600} elements={elements} marker={marker} touchArmed={touchArmed} {...extra}
@@ -337,6 +337,17 @@ describe('HighlightPage one-time hint', () => {
     finishStroke(overlay);
     press(overlay, { pointerType: 'mouse' });
     expect(container.querySelector('[data-mark-hint]')).toBeNull();
+  });
+});
+
+describe('HighlightPage turns', () => {
+  it('tells the page wrapper how many quarter turns it was given, so an underline can find the text edge', () => {
+    mount([mark], DEFAULT_MARKER, undefined, { pageTurns: { 0: 1 } });
+    expect(container.querySelector<HTMLElement>('[data-page-wrapper]')!.getAttribute('data-page-turns')).toBe('1');
+  });
+  it('carries no attribute on an unturned page', () => {
+    mount([mark], DEFAULT_MARKER, undefined, { pageTurns: { 3: 2 } });
+    expect(container.querySelector<HTMLElement>('[data-page-wrapper]')!.hasAttribute('data-page-turns')).toBe(false);
   });
 });
 

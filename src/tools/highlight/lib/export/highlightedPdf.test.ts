@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { PDFDocument, degrees } from '@cantoo/pdf-lib';
+import { PDFDict, PDFDocument, PDFName, degrees } from '@cantoo/pdf-lib';
 import type { EditorElement, HighlightElement } from '#editor/model/editorModel.ts';
 import { readBackAnnotations } from '#editor/comments/readBack.ts';
 import { exportHighlighted, highlightedFileName } from './highlightedPdf.ts';
@@ -67,6 +67,22 @@ describe('exportHighlighted', () => {
       expect(await rotations(await exportHighlighted(bytes, [], { 0: 1, 1: 1 }))).toEqual([90, 0]);
       expect(await rotations(await exportHighlighted(bytes, [], {}))).toEqual([0, 270]);
       expect(await rotations(await exportHighlighted(bytes, []))).toEqual([0, 270]);
+    });
+
+    it('strokes a turned page\'s underline along the text bottom, which is the displayed left edge', async () => {
+      const wide: HighlightElement = { ...underline, pageIndex: 0, bands: [{ left: 0, top: 0, width: 100, height: 100 }] };
+      const stroke = async (turns: Record<number, 1>) => {
+        const doc = await PDFDocument.load(await exportHighlighted(await twoPagePdf(), [wide] as EditorElement[], turns));
+        const annot = doc.context.lookup(doc.getPage(0).node.Annots()!.get(0)) as PDFDict;
+        const ap = doc.context.lookup(annot.get(PDFName.of('AP'))) as PDFDict;
+        const text = new TextDecoder().decode((doc.context.lookup(ap.get(PDFName.of('N'))) as any).getContents());
+        const [x1, y1, x2, y2] = text.match(/([\d.-]+) ([\d.-]+) m ([\d.-]+) ([\d.-]+) l S/)!.slice(1).map(Number);
+        return { dx: Math.abs(x2 - x1), dy: Math.abs(y2 - y1) };
+      };
+      // The page is turned 90 degrees, so the displayed left edge is the raw bottom edge: level in raw space.
+      expect((await stroke({ 0: 1 })).dy).toBeLessThan(0.01);
+      // Unturned, the displayed bottom is the raw bottom: also level.
+      expect((await stroke({} as never)).dy).toBeLessThan(0.01);
     });
 
     it('keeps a highlight on the same text in the turned page', async () => {

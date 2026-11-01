@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { PDFArray, PDFDict, PDFDocument, PDFName, PDFNumber, PDFString } from '@cantoo/pdf-lib';
-import { serializeHighlight } from './highlightPdf.ts';
+import { serializeHighlight, textCorners } from './highlightPdf.ts';
 import type { HighlightElement } from '../model/editorModel.ts';
 
 const element: HighlightElement = {
@@ -122,5 +122,34 @@ describe('serializeHighlight: opacity and underline', () => {
   it('applies the opacity to an underline too', async () => {
     const { annot } = await write({ ...element, style: 'underline', opacity: 0.6 });
     expect((annot.get(PDFName.of('CA')) as PDFNumber).asNumber()).toBe(0.6);
+  });
+});
+
+describe('textCorners', () => {
+  const corners = [[0, 1], [2, 1], [0, 0], [2, 0]] as [number, number][];
+  const [ul, ur, ll, lr] = corners;
+  it.each([
+    [0, [ul, ur, ll, lr]],
+    [1, [ur, lr, ul, ll]],
+    [2, [lr, ll, ur, ul]],
+    [3, [ll, ul, lr, ur]],
+  ] as const)('puts the corners in the text\'s own order after %i turns', (turns, want) => {
+    expect(textCorners(corners, turns)).toEqual(want);
+  });
+});
+
+describe('serializeHighlight: a turned page', () => {
+  const band: HighlightElement = { ...element, style: 'underline' };
+  async function content(quarterTurns?: 0 | 1 | 2 | 3) {
+    const pdfDoc = await PDFDocument.create();
+    const page = pdfDoc.addPage([200, 100]);
+    serializeHighlight(band, { pdfDoc, page, pdfWidth: 200, pdfHeight: 100, pdfX: 20, pdfY: 90, quarterTurns, loadCustomFont: async () => null, baselineOffset: () => 0 } as any);
+    const annot = pdfDoc.context.lookup(page.node.Annots()!.get(0)) as PDFDict;
+    const ap = pdfDoc.context.lookup(annot.get(PDFName.of('AP'))) as PDFDict;
+    return new TextDecoder().decode((pdfDoc.context.lookup(ap.get(PDFName.of('N'))) as any).getContents());
+  }
+  it('strokes the underline along the displayed left edge after one turn, and still along the bottom with none', async () => {
+    expect(await content(1)).toContain('22.5 90 m 22.5 80 l S');
+    expect(await content(0)).toContain('20 82.5 m 120 82.5 l S');
   });
 });
