@@ -2,7 +2,7 @@
 
 # Backlog
 
-The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 91 live: 14 up next, 16 then, 27 waiting, 34 parked.
+The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 91 live: 15 up next, 15 then, 27 waiting, 34 parked.
 
 ## Redact: finish removal
 
@@ -47,11 +47,16 @@ Fill mode is the default since SNG-19. Close the test gaps, then desktop parity,
 
 Marking should feel like holding a highlighter, not like operating software. Sketch, move the shared pieces out of Sign, then launch with Sign handing highlighting over.
 
+### Up next
+
+| ID | P | Task | Note |
+| --- | --- | --- | --- |
+| READ-02 | P2 | [READ-02](backlog/tasks/READ-02.md) · Move the shared highlight and comment pieces out of Sign, no behaviour change | In progress |
+
 ### Then, in order
 
 | ID | P | Task | Note |
 | --- | --- | --- | --- |
-| READ-02 | P2 | [READ-02](backlog/tasks/READ-02.md) · Move the shared highlight and comment pieces out of Sign, no behaviour change |  |
 | READ-03 | P2 | [READ-03](backlog/tasks/READ-03.md) · Highlight PDF: the tool at /highlight-pdf/, highlights with a comment on each, and its page | Needs Shlomi: Confirm the name: Highlight PDF |
 | READ-04 | P2 | [READ-04](backlog/tasks/READ-04.md) · Sign hands highlighting to Highlight PDF: no Highlight tool, existing highlights kept |  |
 | READ-05 | P2 | [READ-05](backlog/tasks/READ-05.md) · The fullscreen capsule, shared by Highlight PDF and Sign | Needs Shlomi: A name for the fullscreen reading mode (Reading room until then) |
