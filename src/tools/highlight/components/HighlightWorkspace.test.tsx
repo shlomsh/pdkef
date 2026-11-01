@@ -152,4 +152,16 @@ describe('HighlightWorkspace notes (R28, R29)', () => {
     expect(column.style.width).toBe('600px');
     restore();
   });
+
+  it('opens the print menu 8 px under the toolbar, in both views', () => {
+    for (const fullscreen of [false, true]) {
+      const ws = mount({ fullscreen, pseudoFullscreen: false });
+      const bar = ws.querySelector<HTMLElement>('[role="toolbar"]')!;
+      vi.spyOn(bar, 'getBoundingClientRect').mockReturnValue({ bottom: 100 } as DOMRect);
+      act(() => { ws.querySelector<HTMLElement>('button[aria-label="Print"]')!.click(); });
+      const menu = ws.querySelector('[role="menu"]')!;
+      expect((menu.parentElement as HTMLElement).style.top).toBe('108px');
+      act(() => render(null, container!));
+    }
+  });
 });

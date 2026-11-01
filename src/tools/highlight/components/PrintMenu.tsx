@@ -2,6 +2,7 @@ import type { ComponentChildren } from 'preact';
 import { useEffect, useRef } from 'preact/hooks';
 import { printMenuItems } from '../lib/print/printMenu.ts';
 import { englishHighlightMessages as t } from '../messages.ts';
+import controls from '#editor-ui/EditorControls.module.css';
 import styles from './PrintMenu.module.css';
 
 interface PrintMenuProps {
@@ -14,10 +15,12 @@ interface PrintMenuProps {
   children?: ComponentChildren;
   /** 'floating' hangs the menu under the Reading lamp's capsule, whose own Print button is the trigger. */
   placement?: 'trigger' | 'floating';
+  /** Floating only: the menu's top edge in px, measured under the toolbar by the caller. */
+  top?: number;
 }
 
 /** READ-06: Print, and Print with my notes. Closes on Esc, on a press outside and on a choice. */
-export default function PrintMenu({ open, withComments, onChoose, onClose, children, placement = 'trigger' }: PrintMenuProps) {
+export default function PrintMenu({ open, withComments, onChoose, onClose, children, placement = 'trigger', top }: PrintMenuProps) {
   const rootRef = useRef<HTMLSpanElement>(null);
   const live = useRef({ onClose });
   live.current = { onClose };
@@ -50,13 +53,14 @@ export default function PrintMenu({ open, withComments, onChoose, onClose, child
   };
 
   return (
-    <span class={`${styles.wrap} ${placement === 'floating' ? styles.floating : ''}`} ref={rootRef} onKeyDown={onKeyDown}>
+    <span class={`${styles.wrap} ${placement === 'floating' ? styles.floating : ''}`} ref={rootRef} onKeyDown={onKeyDown}
+      style={placement === 'floating' && top !== undefined ? { top: `${top}px` } : undefined}>
       {children}
       {open && (
-        <div class={styles.menu} role="menu" aria-label={t.capsule.print}>
+        <div class={`${controls.popover} ${controls['toolbar-menu']} ${styles.menu}`} role="menu" aria-label={t.capsule.print}>
           {items.map((item) => (
             <button
-              key={item.id} type="button" role="menuitem" class={styles.item}
+              key={item.id} type="button" role="menuitem" class={`${controls['menu-item']} ${styles.item}`}
               onClick={() => { onClose(); onChoose(item.withNotes); }}
             >
               {item.label}
