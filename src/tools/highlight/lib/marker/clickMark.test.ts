@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { clickMarkElement, planClick } from './clickMark.ts';
+import type { PageTextItem } from '#lib/pdf/pdfTextItems.ts';
+import { clickMarkElement, clickPageKind, planClick } from './clickMark.ts';
 import { DEFAULT_MARKER } from './markerState.ts';
 
 const base = { detail: 2, pageKind: 'text' as const, inks: [] as string[], overId: null as string | null, sequence: null };
@@ -75,5 +76,21 @@ describe('clickMarkElement', () => {
   it('is null for no boxes or boxes with no area', () => {
     expect(clickMarkElement({ id: 'x', pageIndex: 0, boxes: [], marker: DEFAULT_MARKER, direction: 'ltr' })).toBeNull();
     expect(clickMarkElement({ id: 'x', pageIndex: 0, boxes: [{ left: 1, top: 1, width: 0, height: 2 }], marker: DEFAULT_MARKER, direction: 'ltr' })).toBeNull();
+  });
+});
+
+describe('clickPageKind', () => {
+  const runs: PageTextItem[] = [{ str: 'The quick brown fox', left: 10, top: 10, width: 19, height: 2 }];
+
+  it('reads text where the click lands on a printed word', () => {
+    expect(clickPageKind(runs, { x: 14.5, y: 11 }, 'en')).toBe('text');
+  });
+
+  it('reads the ink when the page has no text runs', () => {
+    expect(clickPageKind([], { x: 14.5, y: 11 }, 'en')).toBe('scan');
+  });
+
+  it('reads the ink when the click is far from the few typed runs of a signed scan', () => {
+    expect(clickPageKind(runs, { x: 60, y: 70 }, 'en')).toBe('scan');
   });
 });

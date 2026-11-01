@@ -4,6 +4,8 @@ import type { HighlightElement } from '#editor/model/editorModel.ts';
 import type { ReadingDirection } from '#lib/pageLayout/bands.ts';
 import { highlightGeometry } from '#lib/pageLayout/swipe.ts';
 import { clickOutcome } from './clickScope.ts';
+import type { PageTextItem } from '#lib/pdf/pdfTextItems.ts';
+import { wordBoxes } from '../text/textUnits.ts';
 import type { Marker } from './markerState.ts';
 
 export type ClickUnit = 'word' | 'sentence' | 'line';
@@ -48,4 +50,9 @@ export function clickMarkElement({ id, pageIndex, boxes, marker, direction }: {
     ...(marker.strokeWidth !== undefined ? { strokeWidth: marker.strokeWidth } : {}),
     ...(direction === 'rtl' ? { direction } : {}),
   };
+}
+
+/** Text where the click lands on a printed word; anywhere else it reads the ink, so a scan carrying a few typed runs still marks its scanned words. */
+export function clickPageKind(runs: PageTextItem[], pt: { x: number; y: number }, locale: string): 'text' | 'scan' {
+  return runs.length > 0 && wordBoxes(runs, pt, locale) !== null ? 'text' : 'scan';
 }
