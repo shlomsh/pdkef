@@ -165,3 +165,8 @@
   .menu { max-width: calc(100vw - 32px); }
   .row { flex-wrap: wrap; height: auto; min-height: var(--cell); }
 }
+
+/* In the editor row the wrap is one more tile: it shares the row like its siblings and the button fills it. */
+.wrap[data-tile] { flex: 1 1 auto; min-width: 0; }
+.wrap[data-tile] > button { width: 100%; }
+.wrap[data-tile] > button[data-armed] { background: var(--color-primary); color: var(--color-surface); border-color: var(--color-primary); }

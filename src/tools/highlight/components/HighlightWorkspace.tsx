@@ -1,6 +1,10 @@
+import type { ComponentProps } from 'preact';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'preact/hooks';
 import type { PDFDocumentProxy } from 'pdfjs-dist';
-import ReadingCapsule from '#editor-ui/capsule/ReadingCapsule.tsx';
+import ReadingCapsule, { PrintIcon, ReadingLampIcon } from '#editor-ui/capsule/ReadingCapsule.tsx';
+import UndoRedoButtons from '#editor-ui/UndoRedoButtons.tsx';
+import EditorExportActions from '#editor-ui/EditorExportActions.tsx';
+import toolbarStyles from '#editor-ui/SignToolbar.module.css';
 import useCurrentPage from '#editor-ui/hooks/useCurrentPage.js';
 import workspaceStyles from '#editor-ui/Workspace.module.css';
 import { formatMessage } from '#lib/text/formatMessage.ts';
@@ -12,7 +16,7 @@ import ZoomMenu from './ZoomMenu.tsx';
 import HighlightPage from './HighlightPage.tsx';
 import MarkerButton from './MarkerButton.tsx';
 import ArmedChip from './ArmedChip.tsx';
-import { useToolShell } from '#shell/ToolShell.tsx';
+import ToolShell, { FILE_ACTIONS, useToolShell } from '#shell/ToolShell.tsx';
 import { englishShellMessages } from '#shell/shellMessages.ts';
 import PrintMenu from './PrintMenu.tsx';
 import type { useHighlightComments } from '../hooks/useHighlightComments.ts';
@@ -87,7 +91,7 @@ export default function HighlightWorkspace({ pdfDocument, numPages, fileName, zo
       onSetting={(mode) => zoom.apply(mode)} onStep={(dir) => zoom.step(dir)} onActual={() => zoom.actual()}
     />
   );
-  // R15: More holds Replace, the shell's own action (it asks before it costs anything, then opens the picker).
+  // R15: in the lamp, More holds Replace, the shell's own action (it asks before it costs anything, then opens the picker).
   const { requestReplace, messages: shellMessages = englishShellMessages } = useToolShell();
   const moreItems = [{ label: shellMessages.replaceLabel, onSelect: requestReplace }];
   const print = usePrint({ pdfDocument, elements: marks.state.elements });
@@ -112,27 +116,33 @@ export default function HighlightWorkspace({ pdfDocument, numPages, fileName, zo
     : formatMessage(t.readout, { mode: MODE_LABEL[zoom.setting], percent: zoomPercent(zoom.zoom) });
 
   return (
+    <>
+    {!fullscreen && (
+      <TileRow
+        marks={marks} undo={undo} redo={redo} touch={touch} printMenu={printMenu} printOpen={printOpen}
+        onTogglePrint={() => setPrintOpen((o) => !o)} onToggleView={toggleView} onDownload={onDownload}
+      />
+    )}
     <div
       className={`${workspaceStyles.workspace} ${styles.workspace}${pseudoFullscreen ? ` ${workspaceStyles['pseudo-fullscreen']}` : ''}`}
       ref={setWorkspace} role="region" aria-label={fileName} data-workspace data-lamp={fullscreen || undefined} data-pseudo-fullscreen={pseudoFullscreen || undefined}
     >
-      {/* One capsule in both views (the agreed sketch): floating in the lamp, a bar in the flow outside it, where
-          the page fits the width and so has no zoom (R20). */}
-      <div class={fullscreen ? styles.floating : styles.top}>
-        <ReadingCapsule
-          variant={fullscreen ? 'floating' : 'bar'}
-          fileName={fileName} page={currentPage} pageCount={numPages}
-          onJumpToPage={(n) => pageRefs.current[n - 1]?.scrollIntoView()}
-          zoomSlot={fullscreen ? menu() : undefined}
-          markerSlot={markerButton}
-          onUndo={undo} onRedo={redo} canUndo={marks.canUndo} canRedo={marks.canRedo}
-          onPrint={openPrint}
-          onDownload={onDownload} moreItems={moreItems} onExit={toggleView} onEnter={toggleView}
-          scrollEvents={scrollEvents} pagePressEvents={pagePressEvents} labels={t.capsule}
-        />
-      </div>
+      {fullscreen && (
+        <div class={styles.floating}>
+          <ReadingCapsule
+            fileName={fileName} page={currentPage} pageCount={numPages}
+            onJumpToPage={(n) => pageRefs.current[n - 1]?.scrollIntoView()}
+            zoomSlot={menu()}
+            markerSlot={markerButton}
+            onUndo={undo} onRedo={redo} canUndo={marks.canUndo} canRedo={marks.canRedo}
+            onPrint={openPrint}
+            onDownload={onDownload} moreItems={moreItems} onExit={toggleView}
+            scrollEvents={scrollEvents} pagePressEvents={pagePressEvents} labels={t.capsule}
+          />
+        </div>
+      )}
       {fullscreen && <ZoomReadout text={readout} />}
-      <PrintMenu {...printMenu} placement="floating" />
+      {fullscreen && <PrintMenu {...printMenu} placement="floating" />}
       {print.sheets}
       <ArmedChip armed={touch.armed} onStop={touch.disarm} />
       <div className={styles.board} style={{ width: `${zoom.board.boardWidth + notesW}px` }}>
@@ -152,5 +162,53 @@ export default function HighlightWorkspace({ pdfDocument, numPages, fileName, zo
       </div>
       {comments.sheet}
     </div>
+    </>
+  );
+}
+
+/** Outside the lamp: the editor card Sign and Redact show, with Highlight's tiles in Sign's grammar. */
+function TileRow({ marks, undo, redo, touch, printMenu, printOpen, onTogglePrint, onToggleView, onDownload }: {
+  marks: ReturnType<typeof useHighlightMarks>;
+  undo(): void;
+  redo(): void;
+  touch: ReturnType<typeof useTouchArming>;
+  printMenu: ComponentProps<typeof PrintMenu>;
+  printOpen: boolean;
+  onTogglePrint(): void;
+  onToggleView(): void;
+  onDownload(): void;
+}) {
+  const { requestReplace, messages: shellMessages = englishShellMessages } = useToolShell();
+  return (
+    <ToolShell editor>
+      <div className={toolbarStyles.toolbar} role="toolbar" aria-label={t.toolbarLabel} data-editor-toolbar>
+        <MarkerButton marker={marks.marker} onChange={marks.rearm} armed={touch.armed} onTap={touch.arm} buttonClass={toolbarStyles.button} />
+        <UndoRedoButtons
+          onUndo={undo} onRedo={redo} canUndo={marks.canUndo} canRedo={marks.canRedo} iconOnly
+          labels={{ undoTitle: t.capsule.undo, undoButton: t.capsule.undo, redoTitle: t.capsule.redo, redoButton: t.capsule.redo }}
+        />
+        <button type="button" className={toolbarStyles.button} data-icon-only aria-label={t.capsule.enter} title={t.capsule.enter} onClick={onToggleView}>
+          <ReadingLampIcon />
+          <span className={toolbarStyles.label}>{t.capsule.enter}</span>
+        </button>
+        <button type="button" className={toolbarStyles.button} onClick={requestReplace} title={shellMessages.replaceTitle} aria-label={shellMessages.replaceLabel} data-icon-only>
+          <svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+            <path d={FILE_ACTIONS.replace.icon} />
+          </svg>
+          <span className={toolbarStyles.label}>{shellMessages.replaceShort}</span>
+        </button>
+        <PrintMenu {...printMenu} top={undefined}>
+          <button type="button" className={toolbarStyles.button} data-icon-only aria-label={t.capsule.print} title={t.capsule.print} aria-haspopup="menu" aria-expanded={printOpen} onClick={onTogglePrint}>
+            <PrintIcon />
+            <span className={toolbarStyles.label}>{t.capsule.print}</span>
+          </button>
+        </PrintMenu>
+        <EditorExportActions
+          variant="toolbar" canShare={false} shareReady={false} disabled={false}
+          onDownload={onDownload} onPrepareShare={() => {}} onShare={() => {}}
+          downloadLabel={t.capsule.download} downloadTitle={t.capsule.download} keepDownloadOnPhone
+        />
+      </div>
+    </ToolShell>
   );
 }
