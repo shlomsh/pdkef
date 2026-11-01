@@ -6,9 +6,11 @@ import { turnsOf, type PageTurns } from '#editor/geometry/pageTurn.ts';
 import { underlineInk, UNDERLINE_LIFT, UNDERLINE_WIDTH } from '#editor/model/underlineInk.ts';
 import { renderPageToCanvas } from '#lib/pdf/renderPage.js';
 import { reportError } from '#lib/telemetry/errorReport.ts';
+import { readInkBounds } from '../hooks/readInkBounds.ts';
+import { turnedPageBox } from '../lib/zoom/turnedBox.ts';
 import { printNotes } from '../lib/print/printNotes.ts';
 import { usePrintPaper } from '../hooks/usePrintPaper.ts';
-import { NOTE_FONT_PT, printPlan, type PagePrintPlan, type PrintNote } from '../lib/print/printPlan.ts';
+import { NOTE_FONT_PT, printPlan, type PagePrintPlan, type PrintNote, type PrintPage } from '../lib/print/printPlan.ts';
 import styles from './PrintSheets.module.css';
 
 interface Props {
@@ -21,7 +23,6 @@ interface Props {
   onReady(): void;
 }
 
-type PageSize = { width: number; height: number };
 type NoteSeed = Omit<PrintNote, 'height'>;
 
 /** Pages are drawn at twice their printed size so a sheet stays sharp on paper. */
@@ -73,17 +74,29 @@ function Highlights({ highlights, pageScale }: { highlights: HighlightElement[];
   );
 }
 
+const markVar = (color: string | undefined): Record<string, string> => (color ? { '--mark': color } : {});
+
+/** Each highlight comment's id to its highlight's color. */
+function markColors(elements: EditorElement[]) {
+  const colors = new Map(elements.flatMap((el) => (el.type === 'highlight' ? [[el.id, el.color] as const] : [])));
+  return new Map(elements.flatMap((el) => {
+    const color = el.type === 'comment' && el.anchor.kind === 'element' ? colors.get(el.anchor.elementId) : undefined;
+    return color ? [[el.id, color] as const] : [];
+  }));
+}
+
 function Card({ text, style, ...rest }: { text: string; class?: string; style?: Record<string, string>; [attr: string]: unknown }) {
   return <div data-print-card dir="auto" {...rest} style={{ fontSize: pt(NOTE_FONT_PT), ...style }} class={`${styles.card} ${rest.class ?? ''}`.trim()}>{text}</div>;
 }
 
-function Sheet({ plan, pageName, image, highlights, texts, onSettled }: {
+function Sheet({ plan, pageName, image, highlights, texts, marks, onSettled }: {
   plan: PagePrintPlan;
   /** The named @page that sizes this sheet's paper. */
   pageName?: string;
   image: string;
   highlights: HighlightElement[];
   texts: ReadonlyMap<string, string>;
+  marks: ReadonlyMap<string, string>;
   onSettled(): void;
 }) {
   const { sheet, pageBox, notesBox, pageScale } = plan;
@@ -99,7 +112,7 @@ function Sheet({ plan, pageName, image, highlights, texts, onSettled }: {
       {notesBox && (
         <div class={styles.notes} style={{ left: pt(notesBox.x), top: pt(notesBox.y), width: pt(notesBox.width), height: pt(notesBox.height) }}>
           {plan.cards.map((card) => (
-            <Card key={card.id} text={texts.get(card.id) ?? ''} class={styles.placed} style={{ top: pt(card.top) }} />
+            <Card key={card.id} text={texts.get(card.id) ?? ''} class={styles.placed} style={{ top: pt(card.top), ...markVar(marks.get(card.id)) }} />
           ))}
         </div>
       )}
@@ -115,7 +128,7 @@ function Sheet({ plan, pageName, image, highlights, texts, onSettled }: {
  * shown in print (see the module's @media print rules).
  */
 export default function PrintSheets({ pdfDocument, elements, withNotes, pageTurns = NO_TURNS, onReady }: Props) {
-  const [pages, setPages] = useState<PageSize[]>([]);
+  const [pages, setPages] = useState<PrintPage[]>([]);
   const [images, setImages] = useState<string[] | null>(null);
   const [measured, setMeasured] = useState<{ notes: NoteSeed[]; heights: ReadonlyMap<string, number> } | null>(null);
   const measureRef = useRef<HTMLDivElement>(null);
@@ -129,11 +142,17 @@ export default function PrintSheets({ pdfDocument, elements, withNotes, pageTurn
     let current = true;
     (async () => {
       try {
-        const sizes: PageSize[] = [];
+        const sizes: PrintPage[] = [];
+        // The zoom code's ink read, applied to the pages that read upright (or upside down) as shown.
+        const ink = withNotes ? await readInkBounds(pdfDocument, () => current, pageTurns).catch(() => null) : null;
+        if (!current) return;
         for (let n = 1; n <= pdfDocument.numPages; n++) {
           const page = await pdfDocument.getPage(n);
-          const { width, height } = page.getViewport({ scale: 1, rotation: turnedRotation(page, pageTurns, n - 1) });
-          sizes.push({ width, height });
+          const rotation = turnedRotation(page, pageTurns, n - 1);
+          const { width, height } = page.getViewport({ scale: 1, rotation });
+          if (!ink || rotation % 180 !== 0) { sizes.push({ width, height }); continue; }
+          const box = turnedPageBox({ width, height }, rotation / 90, ink);
+          sizes.push({ width, height, inkLeft: box.textLeft, inkRight: box.textRight });
         }
         if (current) setPages(sizes);
       } catch (error) {
@@ -141,7 +160,7 @@ export default function PrintSheets({ pdfDocument, elements, withNotes, pageTurn
       }
     })();
     return () => { current = false; };
-  }, [pdfDocument, pageTurns]);
+  }, [pdfDocument, pageTurns, withNotes]);
 
   const pageNames = usePrintPaper(pages);
 
@@ -173,6 +192,7 @@ export default function PrintSheets({ pdfDocument, elements, withNotes, pageTurn
   }, [pdfDocument, pages, basePlan, pageTurns]);
 
   const seeds = useMemo(() => (withNotes && pages.length > 0 ? printNotes(elements, pages) : null), [withNotes, elements, pages]);
+  const marks = markColors(elements);
   const texts = useMemo(() => new Map(elements.flatMap((el) => (el.type === 'comment' ? [[el.id, el.comment] as const] : []))), [elements]);
 
   // Cards are measured hidden at the notes width, then handed to printPlan.
@@ -222,7 +242,7 @@ export default function PrintSheets({ pdfDocument, elements, withNotes, pageTurn
         </div>
       )}
       {plans && images && plans.map((plan, i) => (
-        <Sheet key={i} plan={plan} pageName={pageNames[i]} image={images[i]} highlights={highlightsOf(i)} texts={texts} onSettled={() => onSettled(i)} />
+        <Sheet key={i} plan={plan} pageName={pageNames[i]} image={images[i]} highlights={highlightsOf(i)} texts={texts} marks={marks} onSettled={() => onSettled(i)} />
       ))}
     </div>,
     document.body,
