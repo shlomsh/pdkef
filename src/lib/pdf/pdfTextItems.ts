@@ -36,3 +36,6 @@ export async function readTextItems(page: TextStreamPage): Promise<object[]> {
   }
   return items;
 }
+
+/** One text item as page percent, top-left origin: the shape Sign's useFormFieldRegions builds. */
+export interface PageTextItem { str: string; left: number; top: number; width: number; height: number }
