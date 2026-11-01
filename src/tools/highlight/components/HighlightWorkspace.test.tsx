@@ -26,29 +26,41 @@ afterEach(() => {
   if (container) { act(() => render(null, container!)); container.remove(); container = null; }
 });
 
+let redraw: (level: number) => void = () => {};
+
 function mount(lamp: { fullscreen: boolean; pseudoFullscreen: boolean }) {
-  const zoom = {
-    zoom: 1, setting: 'width', pages: [], board: { boardWidth: 0, slack: 0 },
+  const zoomAt = (level: number) => ({
+    zoom: level, setting: 'width', pages: [], board: { boardWidth: 0, slack: 0 },
     apply: vi.fn(), step: vi.fn(), actual: vi.fn(),
-  } as unknown as Parameters<typeof HighlightWorkspace>[0]['zoom'];
+  } as unknown as Parameters<typeof HighlightWorkspace>[0]['zoom']);
   const marks = {
     state: { elements: [] }, marker: DEFAULT_MARKER, rearm: vi.fn(), logAction: vi.fn(),
     dispatch: vi.fn(), undo: vi.fn(), redo: vi.fn(), canUndo: false, canRedo: false,
   } as unknown as Parameters<typeof HighlightWorkspace>[0]['marks'];
   container = document.createElement('div');
   document.body.appendChild(container);
-  act(() => render(
+  const draw = (level: number) => act(() => render(
     <Harness
-      pdfDocument={{} as PDFDocumentProxy} numPages={0} fileName="a.pdf" zoom={zoom} marks={marks} undo={vi.fn()} redo={vi.fn()}
+      pdfDocument={{} as PDFDocumentProxy} numPages={0} fileName="a.pdf" zoom={zoomAt(level)} marks={marks} undo={vi.fn()} redo={vi.fn()}
       setAnnouncement={vi.fn()} onDownload={vi.fn()} workspaceRef={{ current: null }} columnRef={{ current: null }}
       onToggleFullscreen={vi.fn()} {...lamp}
     />,
     container!,
   ));
+  redraw = draw;
+  draw(1);
   return container.querySelector<HTMLElement>('[data-workspace]')!;
 }
 
 describe('HighlightWorkspace', () => {
+  it('in the lamp, a zoom change leaves the capsule as the only place the percent shows', () => {
+    mount({ fullscreen: true, pseudoFullscreen: false });
+    redraw(2.25);
+    const showing = [...container!.querySelectorAll('*')].filter((el) => el.children.length === 0 && /\d+%/.test(el.textContent ?? ''));
+    expect(showing).toHaveLength(1);
+    expect(showing[0].closest('[role="toolbar"][aria-label="Reading lamp"]')).not.toBeNull();
+  });
+
   it('is a landmark region named by the file, in the normal view and in the lamp (R43)', () => {
     for (const fullscreen of [false, true]) {
       const ws = mount({ fullscreen, pseudoFullscreen: false });
@@ -129,7 +141,7 @@ function mountNoted(elements: EditorElement[], workspaceWidth: number, extra: Re
     apply: vi.fn(), step: vi.fn(), actual: vi.fn(),
   } as unknown as Parameters<typeof HighlightWorkspace>[0]['zoom'];
   const marks = {
-    state: { elements, activeElementId: null }, marker: DEFAULT_MARKER, rearm: vi.fn(), logAction: vi.fn(),
+    state: { elements,activeElementId: null }, marker: DEFAULT_MARKER, rearm: vi.fn(), logAction: vi.fn(),
     dispatch: vi.fn(), undo: vi.fn(), redo: vi.fn(), canUndo: false, canRedo: false,
     pageTurns: {}, ...extra,
   } as unknown as Parameters<typeof HighlightWorkspace>[0]['marks'];
