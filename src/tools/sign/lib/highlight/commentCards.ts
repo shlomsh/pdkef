@@ -30,8 +30,10 @@ function bandToPage(element: PercentBox, band: PercentBox): PercentBox {
 }
 
 const directionOf = (el: CommentElement): 'ltr' | 'rtl' => (el.anchor.kind === 'passage' ? el.anchor.direction ?? 'ltr' : 'ltr');
+/** A comment still being placed (its box is empty until the gesture commits) opens no card, so the rail never reflows the page under a swipe. */
+const isBeingPlaced = (el: CommentElement): boolean => el.comment === '' && el.width === 0 && el.height === 0;
 const cardsOf = (elements: readonly EditorElement[], activeId: string | null): CommentElement[] =>
-  resolveCommentBoxes(elements).filter(isComment).filter((el) => !!el.comment.trim() || (el.id === activeId && el.comment === ''));
+  resolveCommentBoxes(elements).filter(isComment).filter((el) => !!el.comment.trim() || (el.id === activeId && el.comment === '' && !isBeingPlaced(el)));
 
 /** Any card on any page: the rail opens with the first comment, never for highlighting alone. */
 export function hasCommentCards(elements: readonly EditorElement[], activeId: string | null): boolean {

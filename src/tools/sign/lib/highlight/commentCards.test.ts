@@ -61,4 +61,14 @@ describe('hasCommentCards', () => {
     expect(hasCommentCards([highlight(), pin({ pageIndex: 3, comment: 'Why?' })], null)).toBe(true);
     expect(hasCommentCards([pin({ comment: '' })], 'pin')).toBe(true);
   });
+  it('is false for the active comment while it is still being placed (empty box), so the rail never reflows under a swipe', () => {
+    const placing = pin({ comment: '', left: 0, top: 0, width: 0, height: 0 });
+    expect(hasCommentCards([placing], 'pin')).toBe(false);
+    expect(commentCards([placing], 0, 'pin')).toEqual([]);
+  });
+  it('is true for the same empty comment once the gesture gives it a box', () => {
+    const placed = pin({ comment: '', left: 0, top: 0, width: 3, height: 3 });
+    expect(hasCommentCards([placed], 'pin')).toBe(true);
+    expect(commentCards([placed], 0, 'pin')).toHaveLength(1);
+  });
 });
