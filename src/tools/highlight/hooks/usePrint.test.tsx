@@ -1,4 +1,5 @@
 import { render } from 'preact';
+import { useEffect } from 'preact/hooks';
 import { act } from 'preact/test-utils';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { PDFDocumentProxy } from 'pdfjs-dist';
@@ -7,8 +8,10 @@ const reportError = vi.hoisted(() => vi.fn());
 vi.mock('#lib/telemetry/errorReport.ts', () => ({ reportError }));
 
 let sheetProps: { notes: string; onReady(): void } | null = null;
+let sheetMounts = 0;
 vi.mock('../components/PrintSheets.tsx', () => ({
   default: (props: { notes: string; onReady(): void }) => {
+    useEffect(() => { sheetMounts += 1; }, []);
     sheetProps = props;
     return <div data-print-stub />;
   },
@@ -28,6 +31,7 @@ function Probe() {
 beforeEach(() => {
   vi.useFakeTimers();
   sheetProps = null;
+  sheetMounts = 0;
   reportError.mockClear();
   window.print = vi.fn();
   container = document.createElement('div');
@@ -97,6 +101,17 @@ describe('usePrint', () => {
     act(() => api.print('beside'));
     expect(mounted()).toBe(true);
     expect(sheetProps?.notes).toBe('beside');
+    act(() => sheetProps!.onReady());
+    expect(window.print).toHaveBeenCalledTimes(2);
+  });
+
+  it('prints the same notes choice again after a print that never got afterprint: the sheets are a fresh run', () => {
+    act(() => api.print('beside'));
+    act(() => sheetProps!.onReady());
+    expect(window.print).toHaveBeenCalledTimes(1);
+    act(() => api.print('beside'));
+    // A remount gives usePageImages new state, so its onReady fires again instead of staying "already fired".
+    expect(sheetMounts).toBe(2);
     act(() => sheetProps!.onReady());
     expect(window.print).toHaveBeenCalledTimes(2);
   });

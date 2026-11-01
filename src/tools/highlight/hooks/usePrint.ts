@@ -18,14 +18,17 @@ export const PRINT_TIMEOUT_MS = 15_000;
  * them away on a timer could pull them from a print sheet that is still reading them.
  */
 export function usePrint({ pdfDocument, elements, pageTurns }: { pdfDocument: PDFDocumentProxy; elements: EditorElement[]; pageTurns?: PageTurns }) {
-  const [job, setJob] = useState<{ notes: PrintNotes } | null>(null);
+  const [job, setJob] = useState<{ notes: PrintNotes; id: number } | null>(null);
   const [ready, setReady] = useState(false);
   // The open job has been sent to window.print(), so a new request replaces it instead of waiting for afterprint.
   const printed = useRef(false);
 
+  // Each job has its own id, which keys the sheets: a repeat print remounts them, so they render and report ready afresh.
+  const jobs = useRef(0);
+
   const print = useCallback((notes: PrintNotes) => {
-    if (printed.current) { printed.current = false; setReady(false); setJob({ notes }); return; }
-    setJob((current) => current ?? { notes });
+    if (printed.current) { printed.current = false; setReady(false); setJob({ notes, id: ++jobs.current }); return; }
+    setJob((current) => current ?? { notes, id: ++jobs.current });
   }, []);
 
   // Not ready in time: take the sheets away and say so.
@@ -49,6 +52,6 @@ export function usePrint({ pdfDocument, elements, pageTurns }: { pdfDocument: PD
   }, [job, ready]);
 
   const onReady = useCallback(() => setReady(true), []);
-  const sheets = job ? h(PrintSheets, { pdfDocument, elements, pageTurns, notes: job.notes, onReady }) : null;
+  const sheets = job ? h(PrintSheets, { key: job.id, pdfDocument, elements, pageTurns, notes: job.notes, onReady }) : null;
   return { print, sheets };
 }
