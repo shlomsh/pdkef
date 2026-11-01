@@ -49,7 +49,6 @@ export function usePrint({ pdfDocument, elements, pageTurns }: { pdfDocument: PD
   }, [job, ready]);
 
   const onReady = useCallback(() => setReady(true), []);
-  // TODO(print-end): PrintSheets renders 'end'
-  const sheets = job ? h(PrintSheets, { pdfDocument, elements, pageTurns, withNotes: job.notes !== 'none', onReady }) : null;
+  const sheets = job ? h(PrintSheets, { pdfDocument, elements, pageTurns, notes: job.notes, onReady }) : null;
   return { print, sheets };
 }

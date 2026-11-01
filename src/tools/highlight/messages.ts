@@ -46,6 +46,8 @@ export interface HighlightMessages {
   printPlain: string;
   printWithNotes: string;
   printNotesAtEnd: string;
+  /** The heading on the first sheet of notes at the end of a print. */
+  printNotesHeading: string;
   capsule: CapsuleLabels;
 }
 
@@ -85,5 +87,6 @@ export const englishHighlightMessages: HighlightMessages = {
   printPlain: 'Print',
   printWithNotes: 'Print with my notes',
   printNotesAtEnd: 'Print with notes at the end',
+  printNotesHeading: 'Notes',
   capsule: englishCapsuleLabels,
 };
