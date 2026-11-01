@@ -2,7 +2,7 @@
 
 # Backlog
 
-The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 90 live: 18 up next, 11 then, 27 waiting, 34 parked.
+The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 90 live: 17 up next, 11 then, 27 waiting, 35 parked.
 
 ## Redact: finish removal
 
@@ -52,7 +52,6 @@ Marking should feel like holding a highlighter, not like operating software. Ske
 | ID | P | Task | Note |
 | --- | --- | --- | --- |
 | READ-03 | P2 | [READ-03](backlog/tasks/READ-03.md) · Highlight PDF: the tool at /highlight-pdf/, highlights with a comment on each, and its page | In progress |
-| READ-04 | P2 | [READ-04](backlog/tasks/READ-04.md) · Sign hands highlighting to Highlight PDF: no Highlight tool, existing highlights kept | In progress |
 | READ-05 | P2 | [READ-05](backlog/tasks/READ-05.md) · The fullscreen capsule, shared by Highlight PDF and Sign | In progress |
 | READ-06 | P2 | [READ-06](backlog/tasks/READ-06.md) · Highlight PDF: Print with my notes, comments in the margin beside their passages | In progress |
 
@@ -60,6 +59,7 @@ Marking should feel like holding a highlighter, not like operating software. Ske
 
 | ID | P | Task | Note |
 | --- | --- | --- | --- |
+| READ-04 | P2 | [READ-04](backlog/tasks/READ-04.md) · Sign hands highlighting to Highlight PDF: no Highlight tool, existing highlights kept |  |
 | READ-07 | P3 | [READ-07](backlog/tasks/READ-07.md) · Highlight PDF: long-press and drag to highlight on a phone | Needs Shlomi: An iPhone check |
 | READ-08 | P3 | [READ-08](backlog/tasks/READ-08.md) · Highlight PDF: hop between your highlights in reading order |  |
 | READ-09 | P3 | [READ-09](backlog/tasks/READ-09.md) · Highlight PDF: a pen for circles, arrows and margin notes, iPad first |  |
