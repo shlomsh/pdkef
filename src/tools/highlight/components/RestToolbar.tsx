@@ -1,4 +1,4 @@
-import { useId, useLayoutEffect, useRef } from 'preact/hooks';
+import { useLayoutEffect, useRef } from 'preact/hooks';
 import { CommentIcon, HighlightIcon, TrashIcon } from '#editor-ui/toolIcons.tsx';
 import ColorPickerMenu from '#editor-ui/ColorPickerMenu.tsx';
 import ThicknessPickerMenu from '#editor-ui/ThicknessPickerMenu.tsx';
@@ -7,7 +7,7 @@ import { englishSignMessages } from '#editor/registry/signMessages.ts';
 import type { HighlightElement } from '#editor/model/editorModel.ts';
 import { UNDERLINE_WIDTH } from '#editor/model/underlineInk.ts';
 import { formatMessage } from '#lib/text/formatMessage.ts';
-import { HIGHLIGHT_COLORS, OPACITY_MIN, type Marker } from '../lib/marker/markerState.ts';
+import { HIGHLIGHT_COLORS, type Marker } from '../lib/marker/markerState.ts';
 import { markOf } from '../lib/marker/markEdit.ts';
 import { nextFocusIndex } from '../lib/marker/roving.ts';
 import { useToolbarDismissal, type HintAnchor } from '../hooks/useRestToolbar.ts';
@@ -16,6 +16,7 @@ import useMarkToolbarPlacement from '../hooks/useMarkToolbarPlacement.ts';
 import controls from '#editor-ui/EditorControls.module.css';
 import elementStyles from '#editor-ui/EditorElement.module.css';
 import UnderlineGlyph from './UnderlineGlyph.tsx';
+import OpacitySlider from './OpacitySlider.tsx';
 import styles from './RestToolbar.module.css';
 
 const SIX_PRESETS = HIGHLIGHT_COLORS.map((c) => c.hex);
@@ -36,7 +37,6 @@ export default function RestToolbar({ mark, onChange, onDelete, onComment, onClo
   onClose(): void;
 }) {
   const rootRef = useRef<HTMLDivElement>(null);
-  const opacityId = useId();
   const rtl = mark.direction === 'rtl';
   const look = markOf(mark);
   const underline = look.style === 'underline';
@@ -73,16 +73,7 @@ export default function RestToolbar({ mark, onChange, onDelete, onComment, onClo
         value={look.color} title={t.markColors} presets={SIX_PRESETS} names={COLOR_NAMES}
         onChange={(color) => live.current.onChange({ color })}
       >
-        {!underline && (
-          <div class={styles.opacity}>
-            <label for={opacityId}>{t.markOpacity}</label>
-            <input
-              id={opacityId} type="range" min={OPACITY_MIN} max={1} step={0.05} value={look.opacity}
-              onInput={(e) => live.current.onChange({ opacity: Number((e.target as HTMLInputElement).value) })}
-            />
-            <span aria-hidden="true">{Math.round(look.opacity * 100)}%</span>
-          </div>
-        )}
+        {!underline && <OpacitySlider value={look.opacity} onChange={(opacity) => live.current.onChange({ opacity })} />}
       </ColorPickerMenu>
       <div class={controls.divider} />
       <span class={styles.toggle} data-style-toggle>

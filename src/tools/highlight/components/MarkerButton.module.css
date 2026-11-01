@@ -129,7 +129,7 @@
 .plusCustom::after { display: none; }
 .plus[aria-expanded='true'] .plusMark { box-shadow: 0 0 0 2px var(--color-surface), 0 0 0 3.5px var(--color-text); }
 
-/* The custom panel: a large swatch and an opacity slider. */
+/* The custom panel: a large swatch and the shared opacity slider, 12 px apart. */
 .panel { box-sizing: border-box; width: 236px; max-width: 100%; padding: 8px 8px 12px; }
 .prow {
   display: flex;
@@ -137,9 +137,8 @@
   gap: 12px;
   font: 500 13px/1.2 var(--font-sans);
 }
-.prow + .prow { margin-top: 12px; }
+.prow + * { margin-top: 12px; }
 .prow > span:first-child { flex: none; width: 52px; }
-.val { flex: none; width: 36px; text-align: end; color: var(--color-muted); font-variant-numeric: tabular-nums; }
 .pick {
   flex: 1;
   height: 36px;
@@ -154,7 +153,6 @@
 .pick::-webkit-color-swatch-wrapper { padding: 0; }
 .pick::-webkit-color-swatch { border: 0; border-radius: var(--radius-sm); }
 .pick::-moz-color-swatch { border: 0; border-radius: var(--radius-sm); }
-.range { flex: 1; min-width: 0; height: var(--cell); margin: 0; accent-color: var(--color-primary); }
 
 @media (prefers-reduced-motion: reduce) {
   .button { transition: none; }

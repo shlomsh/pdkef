@@ -1,0 +1,5 @@
+.row { display: flex; align-items: center; gap: 12px; font: 500 13px/1.2 var(--font-sans); }
+.row label { flex: none; min-width: 52px; }
+.range { flex: 1; min-width: 0; height: 36px; margin: 0; accent-color: var(--color-primary); }
+/* Wide enough for "100%", so the menu keeps its width as the value grows a digit. */
+.value { flex: none; width: 4.5ch; text-align: end; color: var(--color-muted); font-variant-numeric: tabular-nums; }
