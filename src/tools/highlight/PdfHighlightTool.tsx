@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'preact/hooks';
+import { useRef, useState } from 'preact/hooks';
 import type { PDFDocumentProxy } from 'pdfjs-dist';
 import BasePdfTool from '#shell/BasePdfTool.tsx';
 import ErrorMessage from '#shell/ErrorMessage.tsx';
@@ -43,7 +43,6 @@ export default withIslandBoundary(function PdfHighlightTool() {
   const comments = useHighlightComments({ state: marks.state, dispatch: room.dispatch, logAction: marks.logAction, announce: setAnnouncement });
   const zoom = useWorkspaceZoom({ pdfDocument, workspaceRef, columnRef, fullscreen, noted: comments.showRail, pageTurns: marks.pageTurns });
   const markerMemory = useMarkerMemory({ marker: marks.marker, rearm: marks.rearm });
-  const details = useMemo(() => ({ ...zoom.details, ...markerMemory.details }), [zoom.details, markerMemory.details]);
   const share = usePdfShare();
   // Undo and redo can bring the first note back or take the last one away, so they go through the room too.
   const undo = () => { if (!marks.canUndo) return; room.dispatch({ type: 'UNDO' }); recordAction('undo'); };
@@ -64,7 +63,7 @@ export default withIslandBoundary(function PdfHighlightTool() {
     initialize: ({ file: selected, preset }) => {
       setNeedsUnlock(null);
       marks.dispatch({ type: 'LOAD_DOCUMENT', payload: { elements: preset.elements, actionHistory: preset.actionHistory, pageTurns: preset.pageTurns } });
-      zoom.restore(preset.details);
+      zoom.reset();
       markerMemory.restore(preset.details);
       setFile(selected);
     },
@@ -75,8 +74,8 @@ export default withIslandBoundary(function PdfHighlightTool() {
       elements: marks.state.elements,
       actionHistory: marks.state.actionHistory,
       pageTurns: marks.pageTurns,
-      details,
-      isDirty: marks.state.documentRevision !== (marks.state.draftBaselineRevision ?? marks.state.documentRevision) || zoom.touched || markerMemory.changed,
+      details: markerMemory.details,
+      isDirty: marks.state.documentRevision !== (marks.state.draftBaselineRevision ?? marks.state.documentRevision) || markerMemory.changed,
       isElement: isEditorElement,
     },
   });

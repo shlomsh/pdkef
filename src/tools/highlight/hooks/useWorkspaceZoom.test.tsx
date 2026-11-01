@@ -86,15 +86,14 @@ describe('useWorkspaceZoom chrome and entering the lamp', () => {
     expect(latest!.notesPx).toBeCloseTo(240);
     expect(latest!.zoom).toBeCloseTo((1000 - 32 - 240) / 600);
   });
-  it('entering the lamp with a remembered 1.8 starts at Fit width', async () => {
+  it('enters the lamp at Fit width and remembers nothing when it is zoomed there', async () => {
     Object.defineProperty(workspace, 'clientWidth', { value: 1000, configurable: true });
-    localStorage.setItem('pdkef:highlight:zoom-default', '1.8');
-    await mount({});
-    expect(latest!.setting).toBe(1.8);
     await mount({}, true);
     expect(latest!.setting).toBe('width');
     expect(latest!.zoom).toBeCloseTo((1000 - 32) / 600);
-    expect(localStorage.getItem('pdkef:highlight:zoom-default')).toBe('1.8');
-    expect(latest!.touched).toBe(false);
+    await act(async () => { latest!.step(1); });
+    expect(latest!.setting).not.toBe('width');
+    expect(localStorage.length).toBe(0);
+    expect('touched' in latest! || 'details' in latest!).toBe(false);
   });
 });

@@ -28,6 +28,8 @@
 .input:focus { border-color: var(--color-primary); }
 .actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 6px; }
 .actions > button { min-width: 0; }
+/* A narrow rail sets a compact size, so Delete, Cancel and Comment share one row; the default is the dialog's own. */
+.actions > button:not(.delete) { padding: var(--comment-action-pad, .6rem 1.25rem); }
 /* Delete sits at the start as an icon; its label is kept for assistive tech only. */
 .delete { margin: 0; margin-inline-end: auto; padding: 0.4rem; flex: none; }
 /* On touch the icon-only Delete keeps a full 44 px target. */

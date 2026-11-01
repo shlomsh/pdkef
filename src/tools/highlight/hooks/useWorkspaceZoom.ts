@@ -1,12 +1,10 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'preact/hooks';
 import type { PDFDocumentProxy } from 'pdfjs-dist';
-import type { DetailEdits } from '#editor/registry/draftValidation.ts';
 import { clampZoom, NOTES_W, resolveZoom, stepZoom, type ZoomSetting } from '../lib/zoom/fit.ts';
 import { pageAnchorAt } from '../lib/zoom/pageAnchor.ts';
 import { chromeScale, displayZoom, widestPage } from '../lib/zoom/lamp.ts';
 import { commitChanges, zoomCommit } from '../lib/zoom/commit.ts';
 import { useBoardScroll } from './useBoardScroll.ts';
-import { initialSetting, serializeSetting } from '../lib/zoom/setting.ts';
 import type { PageTurns } from '#editor/geometry/pageTurn.ts';
 import { usePageSizes } from './usePageSizes.ts';
 import { ACTUAL_SIZE } from '../lib/zoom/percent.ts';
@@ -16,21 +14,10 @@ import { useLampAnchor } from './useLampAnchor.ts';
 import { useBoardPan } from './useBoardPan.ts';
 import type { Point } from '../lib/zoom/anchor.ts';
 
-const STORE_KEY = 'pdkef:highlight:zoom-default';
-
-function storedDefault(): string | null {
-  // expected: blocked storage reads as no remembered default
-  try { return localStorage.getItem(STORE_KEY); } catch { return null; }
-}
 /** The page under `point` (viewport px) and where on it, from the workspace's page wrappers as they are now. */
 function pageAnchorIn(workspace: HTMLElement | null, point: Point) {
   const rects = [...(workspace?.querySelectorAll('[data-page-wrapper]') ?? [])].map((el) => el.getBoundingClientRect());
   return pageAnchorAt(rects, point);
-}
-
-function storeDefault(setting: ZoomSetting) {
-  // expected: storage is optional, the choice still applies to this visit
-  try { localStorage.setItem(STORE_KEY, serializeSetting(setting)); } catch { /* nothing to keep */ }
 }
 
 interface WorkspaceZoomOptions {
@@ -47,13 +34,12 @@ interface WorkspaceZoomOptions {
 }
 
 /**
- * Zoom for the Highlight workspace: a remembered setting, the zoom it resolves to on this viewport, and the
+ * Zoom for the Highlight workspace: the zoom setting (Fit width until changed, never remembered), the zoom it resolves to on this viewport, and the
  * ways to change it. A pinch only scales the column through its ref while the fingers are down and commits
  * once, 150 ms after the last wheel event or when the second finger lifts (the gesture golden rule).
  */
 export function useWorkspaceZoom({ pdfDocument, workspaceRef, columnRef, fullscreen, noted = false, pageTurns }: WorkspaceZoomOptions) {
-  const [setting, setSetting] = useState<ZoomSetting>(() => initialSetting(undefined, storedDefault()));
-  const [touched, setTouched] = useState(false);
+  const [setting, setSetting] = useState<ZoomSetting>('width');
   const pages = usePageSizes(pdfDocument, pageTurns);
   const [view, setView] = useState({ width: 0, height: 0 });
   const ready = pages.length > 0;
@@ -134,7 +120,6 @@ export function useWorkspaceZoom({ pdfDocument, workspaceRef, columnRef, fullscr
       pendingAnchor.current = pageAnchor ? { anchor: pageAnchor, point } : null;
     }
     setSetting(next);
-    setTouched(true); storeDefault(next);
   }, [frame, centre, workspaceRef, pendingAnchor, pendingCentre, pendingScroll]);
 
   const apply = useCallback((next: ZoomSetting, anchor?: Point) => {
@@ -174,22 +159,14 @@ export function useWorkspaceZoom({ pdfDocument, workspaceRef, columnRef, fullscr
   usePinchZoom({ workspaceRef, columnRef, enabled: ready, inLamp: fullscreen, zoomRef, commit });
   useLampAnchor({ workspaceRef, fullscreen });
 
-  /** A document just opened: its own setting beats the remembered default (R25). */
-  const restore = useCallback((details: DetailEdits | undefined) => {
-    const saved = details?.zoom;
-    setSetting(initialSetting(saved?.action === 'alter' ? saved.value : undefined, storedDefault()));
-    setTouched(false);
+  /** A document just opened: Fit width, centred. */
+  const reset = useCallback(() => {
+    setSetting('width');
     setMade(null);
     pendingCentre.current = true;
   }, []);
 
-  const details = useMemo<DetailEdits>(() => {
-    const edits: DetailEdits = {};
-    if (touched) edits.zoom = { action: 'alter', value: serializeSetting(setting) };
-    return edits;
-  }, [touched, setting]);
-
-  return { setting, zoom, chrome, notesPx, pages, board, touched, details, apply, step, actual, makeRoom, restore };
+  return { setting, zoom, chrome, notesPx, pages, board, apply, step, actual, makeRoom, reset };
 }
 
 export type WorkspaceZoom = ReturnType<typeof useWorkspaceZoom>;

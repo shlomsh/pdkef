@@ -28,9 +28,10 @@ describe('displayZoom with notes', () => {
     expect(displayZoom('width', false, page, view, true)).toBeCloseTo((1000 - NOTES_W) / 600);
     expect(displayZoom('width', false, page, view, true)).toBeLessThan(displayZoom('width', false, page, view, false));
   });
-  it('fits the page beside NOTES_W px in the lamp too, for Fit width and Fit text (the normal view proportions)', () => {
-    expect(displayZoom('width', true, page, view, true)).toBeCloseTo((1000 - 32 - NOTES_W) / 600);
-    expect(displayZoom('text', true, page, view, true)).toBeCloseTo((1000 - 32 - NOTES_W) / (400 + 32));
+  it('fits the page beside NOTES_W px in the lamp at Fit width, and Fit text leaves room for the notes as they scale', () => {
+    const base = (1000 - 32 - NOTES_W) / 600;
+    expect(displayZoom('width', true, page, view, true)).toBeCloseTo(base);
+    expect(displayZoom('text', true, page, view, true)).toBeCloseTo((1000 - 32) / (400 + 32 + NOTES_W / base));
   });
   it('leaves a numeric zoom alone', () => {
     expect(displayZoom(2, true, page, view, true)).toBe(2);
