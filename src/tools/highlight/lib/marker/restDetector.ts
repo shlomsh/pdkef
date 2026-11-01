@@ -35,7 +35,7 @@ export function restReducer(s: RestState, e: RestEvent): RestState {
     case 'leave':
       return { ...s, candidate: null, opened: null };
     case 'closed':
-      return s.opened === null ? s : { ...s, opened: null };
+      return { ...s, candidate: null, opened: null };
   }
 }
 

@@ -47,7 +47,15 @@ describe('restDetector', () => {
   it('leave clears candidate and opened; closed clears opened', () => {
     const o = run([mv(1, 1, 0), { type: 'tick', t: 700 }]);
     expect(o.opened).toBe('a');
-    expect(restReducer(o, { type: 'closed' })).toMatchObject({ opened: null, candidate: o.candidate });
+    expect(restReducer(o, { type: 'closed' })).toMatchObject({ opened: null, candidate: null });
     expect(restReducer(o, { type: 'leave' })).toMatchObject({ opened: null, candidate: null });
+  });
+  it('a closed toolbar does not reopen under a resting pointer', () => {
+    const open = run([mv(10, 10, 0), { type: 'tick', t: 700 }]);
+    const closed = restReducer(open, { type: 'closed' });
+    expect(restReducer(closed, { type: 'tick', t: 2700 }).opened).toBeNull();
+    expect(nextTickAt(closed)).toBeNull();
+    const again = run([mv(20, 10, 2800)], closed);
+    expect(restReducer(again, { type: 'tick', t: 3500 }).opened).toBe('a');
   });
 });
