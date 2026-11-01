@@ -24,11 +24,9 @@ describe('keyAction', () => {
     expect(keyAction(k('Escape'), ctx(['custom', 'note']))).toEqual({ type: 'closeLayer', layer: 'note' });
     expect(keyAction(k('Escape'), ctx([]))).toEqual({ type: 'closeLayer', layer: null });
   });
-  it('undo, redo', () => {
-    expect(keyAction(k('z', { metaKey: true }), ctx())).toEqual({ type: 'undo' });
-    expect(keyAction(k('z', { ctrlKey: true }), ctx())).toEqual({ type: 'undo' });
-    expect(keyAction(k('Z', { metaKey: true, shiftKey: true }), ctx())).toEqual({ type: 'redo' });
-    expect(keyAction(k('y', { ctrlKey: true }), ctx())).toEqual({ type: 'redo' });
+  it('undo and redo belong to useHistoryShortcuts, not here', () => {
+    expect(keyAction(k('z', { metaKey: true }), ctx())).toBeNull();
+    expect(keyAction(k('y', { ctrlKey: true }), ctx())).toBeNull();
   });
   it('zoom', () => {
     expect(keyAction(k('=', { metaKey: true }), ctx())).toEqual({ type: 'zoom', dir: 1 });
@@ -42,7 +40,7 @@ describe('keyAction', () => {
   });
   it('while typing only escape acts', () => {
     expect(keyAction(k('1'), ctx(['toolbar'], true))).toBeNull();
-    expect(keyAction(k('z', { metaKey: true }), ctx(['toolbar'], true))).toBeNull();
+    expect(keyAction(k('0', { metaKey: true }), ctx(['toolbar'], true))).toBeNull();
     expect(keyAction(k('Escape'), ctx(['note'], true))).toEqual({ type: 'closeLayer', layer: 'note' });
   });
 });

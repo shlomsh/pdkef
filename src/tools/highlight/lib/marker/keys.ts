@@ -6,8 +6,6 @@ export type KeyAction =
   | { type: 'comment' }
   | { type: 'delete' }
   | { type: 'closeLayer'; layer: Layer | null }
-  | { type: 'undo' }
-  | { type: 'redo' }
   | { type: 'zoom'; dir: 1 | -1 }
   | { type: 'zoomActual' };
 
@@ -20,8 +18,6 @@ export function keyAction(e: KeyLike, ctx: { typing: boolean; layers: Layer[] })
   const mod = e.metaKey || e.ctrlKey;
   const k = e.key.toLowerCase();
   if (mod) {
-    if (k === 'z') return { type: e.shiftKey ? 'redo' : 'undo' };
-    if (k === 'y') return { type: 'redo' };
     if (k === '=' || k === '+') return { type: 'zoom', dir: 1 };
     if (k === '-') return { type: 'zoom', dir: -1 };
     if (k === '0') return { type: 'zoomActual' };

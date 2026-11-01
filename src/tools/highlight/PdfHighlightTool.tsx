@@ -17,7 +17,7 @@ import { useHighlightComments } from './hooks/useHighlightComments.ts';
 import { useNoteRoom } from './hooks/useNoteRoom.ts';
 import { useHighlightMarks } from './hooks/useHighlightMarks.ts';
 import { useMarkerMemory } from './hooks/useMarker.ts';
-import { useHistoryKeys } from './hooks/useHistoryKeys.ts';
+import { useHistoryShortcuts } from '#lib/history/useHistoryShortcuts.js';
 import { downloadHandler } from './lib/export/download.ts';
 import { describeFile } from '#lib/text/format.js';
 import HighlightVerb from './verb/HighlightVerb.tsx';
@@ -48,7 +48,8 @@ export default withIslandBoundary(function PdfHighlightTool() {
   // Undo and redo can bring the first note back or take the last one away, so they go through the room too.
   const undo = () => { if (!marks.canUndo) return; room.dispatch({ type: 'UNDO' }); recordAction('undo'); };
   const redo = () => { if (!marks.canRedo) return; room.dispatch({ type: 'REDO' }); recordAction('redo'); };
-  useHistoryKeys({ enabled: status === 'editing', undo, redo });
+  const editing = status === 'editing';
+  useHistoryShortcuts(editing ? undo : undefined, editing ? redo : undefined);
 
   const session = useEditorFileSession<EditorElement>({
     tool: 'highlight-pdf',

@@ -1,14 +1,15 @@
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { useHistoryKeys } from './useHistoryKeys.ts';
+import { useHistoryShortcuts } from '#lib/history/useHistoryShortcuts.js';
 
 let container: HTMLElement | null = null;
 const undo = vi.fn();
 const redo = vi.fn();
 
 function Probe({ enabled = true }: { enabled?: boolean }) {
-  useHistoryKeys({ enabled, undo, redo });
+  // The wiring PdfHighlightTool uses: handlers only while editing.
+  useHistoryShortcuts(enabled ? undo : undefined, enabled ? redo : undefined);
   return <input data-field />;
 }
 
@@ -20,7 +21,7 @@ function mount(enabled = true) {
 
 function press(init: KeyboardEventInit, target: EventTarget = document.body) {
   const event = new KeyboardEvent('keydown', { bubbles: true, cancelable: true, ...init });
-  target.dispatchEvent(event);
+  (target === document.body ? window : target).dispatchEvent(event);
   return event;
 }
 
@@ -30,7 +31,7 @@ afterEach(() => {
   redo.mockClear();
 });
 
-describe('useHistoryKeys', () => {
+describe('Highlight history keys', () => {
   it('undoes on mod+Z and redoes on shift+mod+Z and ctrl+Y', () => {
     mount();
     expect(press({ key: 'z', metaKey: true }).defaultPrevented).toBe(true);
@@ -41,9 +42,23 @@ describe('useHistoryKeys', () => {
     expect(redo).toHaveBeenCalledTimes(2);
   });
 
+  it('leaves Cmd+Y to the browser', () => {
+    mount();
+    expect(press({ key: 'y', metaKey: true }).defaultPrevented).toBe(false);
+    expect(redo).not.toHaveBeenCalled();
+  });
+
+  it('ignores Alt chords', () => {
+    mount();
+    press({ key: 'z', ctrlKey: true, altKey: true });
+    expect(undo).not.toHaveBeenCalled();
+  });
+
   it('leaves the keys to a field the person is typing in', () => {
     mount();
-    press({ key: 'z', metaKey: true }, container!.querySelector('[data-field]')!);
+    const field = container!.querySelector<HTMLInputElement>('[data-field]')!;
+    field.focus();
+    press({ key: 'z', metaKey: true }, field);
     expect(undo).not.toHaveBeenCalled();
   });
 

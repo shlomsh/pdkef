@@ -1,5 +1,6 @@
 import { useEffect } from 'preact/hooks';
 import { startGesture, type GestureEvent } from '#lib/gestures/controller.ts';
+import { isTypingTarget } from '#lib/dom/isTypingTarget.ts';
 
 const inRect = (r: DOMRect, x: number, y: number) => x >= r.left && x <= r.right && y >= r.top && y <= r.bottom;
 
@@ -19,8 +20,7 @@ export function useBoardPan({ workspaceRef, fullscreen, enabled }: {
     let space = false;
     const grab = (on: boolean) => { ws.style.cursor = on ? 'grab' : ''; };
     const typing = (e: KeyboardEvent) => {
-      const el = e.target as HTMLElement | null;
-      return !!el && (el.isContentEditable || /^(INPUT|TEXTAREA|SELECT|BUTTON)$/.test(el.tagName));
+      return isTypingTarget(e.target) || (e.target as HTMLElement | null)?.tagName === 'BUTTON';
     };
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.code !== 'Space' || typing(e)) return;

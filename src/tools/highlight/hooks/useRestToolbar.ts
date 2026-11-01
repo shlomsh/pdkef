@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'preact/hooks';
 import type { HighlightElement } from '#editor/model/editorModel.ts';
+import { isTypingTarget } from '#lib/dom/isTypingTarget.ts';
 import { keyAction } from '../lib/marker/keys.ts';
 import { HIGHLIGHT_COLORS, type Marker } from '../lib/marker/markerState.ts';
 import { scrolledPast } from '../lib/marker/toolbarLayers.ts';
@@ -113,8 +114,6 @@ export function useRestToolbar() {
   return { targetId, hint, onPointerMove, onPointerLeave, strokeEnd, openFor, close, showHint, clearHint };
 }
 
-const isTyping = (el: Element | null) => !!el && ((el as HTMLElement).isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName));
-
 type ToolbarLive = { current: { mark: HighlightElement; onChange(change: Partial<Marker>): void; onDelete(): void; onComment(): void; onClose(): void; look: Marker } };
 
 /** R9: keys, a press elsewhere, and a scroll of more than 24 px. */
@@ -127,7 +126,7 @@ export function useToolbarDismissal(
     const onKey = (e: KeyboardEvent) => {
       const { onChange: change, onDelete: del, onClose: close } = live.current;
       if (activeClose && activeClose !== close) return; // another page's toolbar is the open one
-      const action = keyAction(e, { typing: isTyping(e.target as Element | null), layers: ['toolbar'] });
+      const action = keyAction(e, { typing: isTypingTarget(e.target), layers: ['toolbar'] });
       if (!action) return;
       // A color or thickness menu that is open answers Esc itself.
       if (action.type === 'closeLayer' && document.querySelector('[data-editor-popover]')) return;

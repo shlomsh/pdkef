@@ -1,12 +1,8 @@
 import { useEffect, useState } from 'preact/hooks';
+import { isTypingTarget } from '#lib/dom/isTypingTarget.ts';
 
-/** Space must not peek while the person is typing (or on a control Space activates). */
-export function isTypingTarget(target: EventTarget | null): boolean {
-  const el = target as HTMLElement | null;
-  if (!el || !el.tagName) return false;
-  const tag = el.tagName;
-  return tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || el.isContentEditable === true || el.getAttribute?.('contenteditable') === 'true';
-}
+export { isTypingTarget };
+
 
 /**
  * View state for "show what is under every box": held by the toolbar's Peek
