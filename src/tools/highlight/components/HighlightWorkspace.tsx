@@ -35,12 +35,15 @@ function emitter<A extends unknown[]>() {
 const MODE_LABEL = { width: t.fitWidth, text: t.fitText, page: t.fitPage } as const;
 
 /** The page column: the card at its own width, or in the reading lamp a board the reader pans and zooms. */
-export default function HighlightWorkspace({ pdfDocument, numPages, fileName, zoom, marks, comments, dispatch, setAnnouncement, onDownload, workspaceRef, columnRef, fullscreen, pseudoFullscreen, onToggleFullscreen }: {
+export default function HighlightWorkspace({ pdfDocument, numPages, fileName, zoom, marks, undo, redo, comments, dispatch, setAnnouncement, onDownload, workspaceRef, columnRef, fullscreen, pseudoFullscreen, onToggleFullscreen }: {
   pdfDocument: PDFDocumentProxy;
   numPages: number;
   fileName: string;
   zoom: WorkspaceZoom;
   marks: ReturnType<typeof useHighlightMarks>;
+  /** Undo and redo through the notes room, so a note coming or going keeps its line in place. */
+  undo(): void;
+  redo(): void;
   /** Sign's comments view over these marks (R27 to R29); its container is this workspace. */
   comments: ReturnType<typeof useHighlightComments>;
   /** The marks' dispatch, as the notes room wraps it: opening the first card makes room in the same event. */
@@ -113,7 +116,7 @@ export default function HighlightWorkspace({ pdfDocument, numPages, fileName, zo
             onJumpToPage={(n) => pageRefs.current[n - 1]?.scrollIntoView()}
             zoomSlot={menu()}
             markerSlot={markerButton}
-            onUndo={marks.undo} onRedo={marks.redo} canUndo={marks.canUndo} canRedo={marks.canRedo}
+            onUndo={undo} onRedo={redo} canUndo={marks.canUndo} canRedo={marks.canRedo}
             onPrint={() => setPrintOpen(true)}
             onDownload={onDownload} moreItems={moreItems} onExit={toggleView}
             scrollEvents={scrollEvents} pagePressEvents={pagePressEvents} labels={t.capsule}
