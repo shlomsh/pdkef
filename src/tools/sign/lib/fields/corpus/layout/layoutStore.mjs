@@ -12,13 +12,14 @@ const TRUTH = path.join(HERE, 'truth');
 let manifestCache = null;
 
 /** The manifest: [{ id, width, height, pxPerPoint, pageWidthPts, pageHeightPts }]. */
+/** @testSeam */
 export function listLayoutPages() {
   manifestCache ??= JSON.parse(fs.readFileSync(path.join(PAGES, 'manifest.json'), 'utf8'));
   return manifestCache;
 }
 
 /** One page raster: gzip of u32 LE width, u32 LE height, then width*height gray bytes (0 black, 255 white). */
-export function loadLayoutRaster(id) {
+function loadLayoutRaster(id) {
   const entry = listLayoutPages().find((page) => page.id === id);
   if (!entry) throw new Error(`layout corpus: no page "${id}"`);
   const bytes = zlib.gunzipSync(fs.readFileSync(path.join(PAGES, `${id}.gray.gz`)));
@@ -30,7 +31,7 @@ export function loadLayoutRaster(id) {
 }
 
 /** The layout truth of one page (README.md). Points, origin top-left, y down. */
-export function loadLayoutTruth(id) {
+function loadLayoutTruth(id) {
   return JSON.parse(fs.readFileSync(path.join(TRUTH, `${id}.json`), 'utf8'));
 }
 

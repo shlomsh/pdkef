@@ -33,7 +33,7 @@ function imageData(raster, x, y, width, height) {
 }
 
 /** A canvas over a gray raster: all the reader asks of one is its size and getImageData. */
-export function canvasOf(raster) {
+function canvasOf(raster) {
   const ctx = {
     getImageData(x, y, width, height) {
       return imageData(raster, Math.max(0, x), Math.max(0, y), Math.min(width, raster.width - x), Math.min(height, raster.height - y));
@@ -57,7 +57,7 @@ const near = (a, b) => Math.abs(a.x0 - b.x0) <= 1 && Math.abs(a.x1 - b.x1) <= 1 
  * probes: [{ x, y, columnXs }] raster px; columnXs are the x's at which to ask for a column.
  * Everything returned is raster px: rows { x0, x1, y0, y1, gaps }, columnsAt[i] the distinct spans.
  */
-export function windowedLayout(raster, { probes, pageHeightPts }) {
+function windowedLayout(raster, { probes, pageHeightPts }) {
   const lineHeight = (FALLBACK_HEIGHT_PTS * raster.height) / pageHeightPts;
   const size = { width: raster.width, height: raster.height };
   const rows = [];

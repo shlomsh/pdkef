@@ -3,7 +3,7 @@
 // degraded-raster pixels; it is carried back to page points through the degradation's own unmapPoint, and
 // every score is computed there, against the truth, in points or letter heights.
 import { degrade, LEVELS } from '../snap/degrade.js';
-import { summarise, clopperPearsonLower } from '../snap/snapStats.js';
+import { summarise } from '../snap/snapStats.js';
 import { greedyMatch } from '../scoring/match.js';
 import { applyEdits } from './edits.mjs';
 import { aimY, sampleSwipes, swipeable } from './sampleSwipes.mjs';
@@ -12,9 +12,9 @@ import { PINNED_ROWS } from './pinnedRows.mjs';
 /** The views the layout corpus reads at: the whole page across a phone, and the 200 dpi master as is. */
 export const LAYOUT_VIEWS = ['fit', 'native'];
 /** Vertical IoU a found row needs with its truth row to count as that row (one to one). */
-export const ROW_IOU = 0.5;
+const ROW_IOU = 0.5;
 /** A row "split" when the reader's row at the press covers less than this share of the truth row's width. */
-export const SPLIT_COVERAGE = 0.6;
+const SPLIT_COVERAGE = 0.6;
 
 const overlap = (a0, a1, b0, b1) => Math.max(0, Math.min(a1, b1) - Math.max(a0, b0));
 const verticalIou = (a, b) => {
@@ -35,7 +35,7 @@ const f1Of = ({ tp, fp, fn }) => {
 };
 
 /** A raster row { x0, x1, y0, y1, gaps } in page points: ends at its mid-height, top and bottom at its mid-width. */
-export function rowToPage(row, unmapPoint) {
+function rowToPage(row, unmapPoint) {
   const ym = (row.y0 + row.y1) / 2;
   const xm = (row.x0 + row.x1) / 2;
   return {
@@ -48,7 +48,7 @@ export function rowToPage(row, unmapPoint) {
 }
 
 /** Which column a found row sits in: 'span' when it reaches a letter past both sides of a gutter. */
-export function columnKey(row, truth) {
+function columnKey(row, truth) {
   const lh = truth.letterHeightPts;
   const cols = [...truth.columns].sort((a, b) => a.x0 - b.x0);
   for (let i = 1; i < cols.length; i++) {
@@ -78,6 +78,7 @@ const inIgnore = (truth, row) => (truth.ignore ?? []).some(([x0, y0, x1, y1]) =>
  * the bounds flattened to their vertical extent). Ignored truth rows absorb what matches them and are never
  * missed; found rows in an ignored region are dropped. Returns pairs and the counts behind row F1.
  */
+/** @testSeam */
 export function matchRows(truth, found) {
   const kept = found.filter((row) => !inIgnore(truth, row));
   const asTarget = (row, i, key) => ({ id: i, pageIndex: key, kind: 'row', bounds: { x: 0, width: 1, y: row.y0, height: row.y1 - row.y0 }, row });
@@ -99,6 +100,7 @@ export function matchRows(truth, found) {
 }
 
 /** Word gaps of one matched row: truth gaps against found gaps, one to one by most overlap. */
+/** @testSeam */
 export function matchGaps(truthGaps, foundGaps) {
   const pairs = [];
   truthGaps.forEach((t, i) => foundGaps.forEach((f, j) => {
@@ -117,6 +119,7 @@ export function matchGaps(truthGaps, foundGaps) {
 }
 
 /** What the reader's row at a press says about one truth row: merged into a neighbour column, split, or fine. */
+/** @testSeam */
 export function probeOutcome(truthRow, found, truth) {
   if (!found) return 'none';
   const lh = truth.letterHeightPts;
@@ -127,7 +130,7 @@ export function probeOutcome(truthRow, found, truth) {
 }
 
 /** Degrees the degradation turned the page, read off its own mapping. */
-export function appliedSkewDeg(mapPoint) {
+function appliedSkewDeg(mapPoint) {
   const a = mapPoint(0, 0);
   const b = mapPoint(100, 0);
   return (Math.atan2(b.y - a.y, b.x - a.x) * 180) / Math.PI;
@@ -139,6 +142,7 @@ export function appliedSkewDeg(mapPoint) {
  * (vertical IoU at least ROW_IOU), each end within a letter height of the word edge, and none reaching into
  * another column. A decoy is never correct: painting on a blank margin is wrong, a pin is a decline.
  */
+/** @testSeam */
 export function classifySwipe(swipe, bands, truth, startsOnText = true) {
   if (!startsOnText || !bands.length) return { outcome: 'declined', why: startsOnText ? 'no-bands' : 'not-on-text' };
   if (swipe.kind === 'decoy') return { outcome: 'wrong', why: 'band-on-blank' };
@@ -170,7 +174,7 @@ function bandToPage(band, raster, unmapPoint) {
 }
 
 /** Runs one swipe through the reader as the product does: a fresh reader, onText on the press, then bands. */
-export function runSwipe(reader, swipe, { raster, truth, mapPoint, unmapPoint }) {
+function runSwipe(reader, swipe, { raster, truth, mapPoint, unmapPoint }) {
   const pct = (p) => {
     const at = mapPoint(p.x, p.y);
     return { x: (at.x / raster.width) * 100, y: (at.y / raster.height) * 100 };
@@ -184,7 +188,7 @@ export function runSwipe(reader, swipe, { raster, truth, mapPoint, unmapPoint })
 }
 
 /** Probes for a layout reader: one press per swipeable truth row, at the middle of its letters. */
-export function probesFor(truth, mapPoint) {
+function probesFor(truth, mapPoint) {
   const lh = truth.letterHeightPts;
   return truth.rows.filter((row) => swipeable(row, lh)).map((row) => {
     const y = aimY(row);
@@ -194,7 +198,7 @@ export function probesFor(truth, mapPoint) {
 }
 
 /** Scores one page at one level and view: every count behind the summary, nothing pooled yet. */
-export function scorePage({ raster, truth }, reader, { level, view, seed = 1, perPage = 36, decoys = 6, edits = [] }) {
+function scorePage({ raster, truth }, reader, { level, view, seed = 1, perPage = 36, decoys = 6, edits = [] }) {
   const d = degrade(applyEdits(raster, edits), { level, view, seed });
   const ctx = { raster: d.raster, truth, mapPoint: d.mapPoint, unmapPoint: d.unmapPoint };
   const lh = truth.letterHeightPts;
@@ -264,6 +268,7 @@ export function scorePage({ raster, truth }, reader, { level, view, seed = 1, pe
 const round = (v, digits = 4) => (v === null || v === undefined ? null : Math.round(v * 10 ** digits) / 10 ** digits);
 
 /** Pools page scores into the corpus's headline numbers (README "Scores"). */
+/** @testSeam */
 export function summariseLayout(pageScores) {
   const sum = (pick) => pageScores.reduce((n, s) => n + pick(s), 0);
   const rows = f1Of({ tp: sum((s) => s.rows.tp), fp: sum((s) => s.rows.fp), fn: sum((s) => s.rows.fn) });
@@ -352,4 +357,3 @@ export function runPinnedRows({ pages, reader, seed = 1, rows = PINNED_ROWS }) {
   });
 }
 
-export { clopperPearsonLower };
