@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { inkFromRaster, otsuThreshold, mergeCollinear } from './rasterInk.ts';
-import { PAGE, WIDTH, HEIGHT, FORM, render, speckle, up, near } from './rasterInk.test-helper.js';
+import { PAGE, WIDTH, HEIGHT, FORM, render, speckle, up, near } from '../../test/support/syntheticScan.js';
 
 describe('inkFromRaster on a clean synthetic form', () => {
   const ink = inkFromRaster(render(FORM), PAGE);

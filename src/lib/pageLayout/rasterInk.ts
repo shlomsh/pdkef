@@ -62,19 +62,19 @@ const MIN_MERGED_DENSITY = 0.75;
 type Pixels = Uint8Array | Uint8ClampedArray;
 
 /** Gray, RGB or RGBA pixels, row-major from the top left (a canvas `ImageData` works as is). */
-export interface Raster {
+interface Raster {
   data: Pixels;
   width: number;
   height: number;
 }
 
-export interface PageSize {
+interface PageSize {
   pageWidthPts: number;
   pageHeightPts: number;
 }
 
 /** A run of ink on one axis: `pos` the cross-axis position, `a0..a1` the span. */
-export interface Segment {
+interface Segment {
   pos: number;
   a0: number;
   a1: number;
@@ -82,7 +82,7 @@ export interface Segment {
 }
 
 /** A merged line: a segment with the ink length that went into it. */
-export interface MergedSegment extends Segment {
+interface MergedSegment extends Segment {
   ink: number;
 }
 
@@ -91,7 +91,7 @@ interface MergeOptions {
   gap: number;
 }
 
-export interface Component {
+interface Component {
   x0: number;
   y0: number;
   x1: number;
@@ -118,19 +118,19 @@ interface StructurePoints {
   ys: Int32Array;
 }
 
-export interface InkVertical {
+interface InkVertical {
   x: number;
   y0: number;
   y1: number;
 }
 
-export interface InkHorizontal {
+interface InkHorizontal {
   y: number;
   x0: number;
   x1: number;
 }
 
-export interface InkRect {
+interface InkRect {
   x: number;
   y: number;
   width: number;
@@ -139,7 +139,7 @@ export interface InkRect {
   filled: boolean;
 }
 
-export interface RasterInk {
+interface RasterInk {
   verticals: InkVertical[];
   horizontals: InkHorizontal[];
   rects: InkRect[];

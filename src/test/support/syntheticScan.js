@@ -1,4 +1,4 @@
-// READ-02: the synthetic scans rasterInk.test.js and Sign's rasterInk.detectors.test.js both read.
+// READ-02: the synthetic scans src/lib/pageLayout/rasterInk.test.js and Sign's rasterInk.detectors.test.js both read.
 /**
  * Synthetic scans: a page described as rectangles in points, rendered to a gray raster at 4 pixels
  * per point (288 dpi), optionally rotated. The module is judged on shapes it can be told the answer
