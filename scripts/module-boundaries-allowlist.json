@@ -48,30 +48,5 @@
     "rule": 9,
     "file": "src/editor-ui/comments/commentNumbersContext.tsx",
     "reason": "READ-02: shared with Highlight PDF, moved out of Sign before its island exists; READ-03 is the second consumer, and this entry goes stale (remove it) once that island imports the file"
-  },
-  {
-    "rule": 9,
-    "file": "src/editor-ui/highlight/highlightSwipeGesture.ts",
-    "reason": "READ-02: shared with Highlight PDF, moved out of Sign before its island exists; READ-03 is the second consumer, and this entry goes stale (remove it) once that island imports the file"
-  },
-  {
-    "rule": 9,
-    "file": "src/editor-ui/capsule/ReadingCapsule.tsx",
-    "reason": "READ-05: built before its consumers; Highlight PDF's Reading lamp mounts it in READ-03, remove this entry once it does"
-  },
-  {
-    "rule": 9,
-    "file": "src/editor-ui/capsule/capsuleItems.ts",
-    "reason": "READ-05: built before its consumers; Highlight PDF's Reading lamp mounts it in READ-03, remove this entry once it does"
-  },
-  {
-    "rule": 9,
-    "file": "src/editor-ui/capsule/capsuleState.ts",
-    "reason": "READ-05: built before its consumers; Highlight PDF's Reading lamp mounts it in READ-03, remove this entry once it does"
-  },
-  {
-    "rule": 9,
-    "file": "src/lib/pageLayout/wordAt.ts",
-    "reason": "word lookup on scans before Highlight PDF's click marks use it (READ-03); remove once they do"
   }
 ]

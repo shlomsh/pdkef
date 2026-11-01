@@ -1,4 +1,4 @@
-import { englishCapsuleLabels, type CapsuleLabels } from '#editor-ui/capsule/capsuleItems.ts';
+import { englishCapsuleLabels, type CapsuleLabels } from './components/capsule/capsuleItems.ts';
 
 /** Highlight's strings. English only at launch; a localized edition follows the languages page. */
 export interface HighlightMessages {
