@@ -14,10 +14,11 @@ let page: HTMLElement;
 let host: HTMLElement;
 const onChange = vi.fn();
 const onDelete = vi.fn();
+const onComment = vi.fn();
 const onClose = vi.fn();
 
 function mount(el: HighlightElement = mark) {
-  act(() => render(<RestToolbar mark={el} onChange={onChange} onDelete={onDelete} onClose={onClose} />, host));
+  act(() => render(<RestToolbar mark={el} onChange={onChange} onDelete={onDelete} onComment={onComment} onClose={onClose} />, host));
   return host.querySelector<HTMLElement>('[role="toolbar"]')!;
 }
 const button = (name: string) => host.querySelector<HTMLElement>(`button[aria-label="${name}"]`)!;
@@ -40,17 +41,26 @@ afterEach(() => {
   vi.useRealTimers();
   onChange.mockClear();
   onDelete.mockClear();
+  onComment.mockClear();
   onClose.mockClear();
 });
 
 describe('RestToolbar', () => {
-  it('is a toolbar with a named Highlight, Underline and Delete', () => {
+  it('R27: a Comment button sits right after Underline and asks the caller to open the comment', () => {
+    const bar = mount();
+    const buttons = [...bar.querySelectorAll('button')].map((b) => b.getAttribute('aria-label'));
+    expect(buttons.indexOf('Comment')).toBe(buttons.indexOf('Underline') + 1);
+    click(button('Comment'));
+    expect(onComment).toHaveBeenCalledTimes(1);
+  });
+
+  it('is a toolbar with a named Highlight, Underline, Comment and Delete', () => {
     const bar = mount();
     expect(bar.getAttribute('aria-label')).toBe('Change this highlight');
     expect(button('Highlight').getAttribute('aria-pressed')).toBe('true');
     expect(button('Underline').getAttribute('aria-pressed')).toBe('false');
     expect(button('Delete')).not.toBeNull();
-    expect(host.querySelector('button[aria-label="Comment"]')).toBeNull();
+    expect(button('Comment')).not.toBeNull();
   });
 
   it('shows the underline as the pressed style on an underlined mark', () => {
