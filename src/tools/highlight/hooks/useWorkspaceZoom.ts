@@ -7,13 +7,11 @@ import { zoomCommit } from '../lib/zoom/commit.ts';
 import { initialSetting, serializeSetting } from '../lib/zoom/setting.ts';
 import { textBounds } from '../lib/zoom/textBounds.ts';
 import { ACTUAL_SIZE } from '../lib/zoom/percent.ts';
-import { keyAction } from '../lib/marker/keys.ts';
+import { usePinchZoom } from './usePinchZoom.ts';
+import { useZoomKeys } from './useZoomKeys.ts';
 import type { Point } from '../lib/zoom/anchor.ts';
 
 const STORE_KEY = 'pdkef:highlight:zoom-default';
-const PINCH_REST_MS = 150;
-/** A trackpad pinch arrives as wheel events with a few pixels of deltaY; this turns them into a smooth factor. */
-const WHEEL_PINCH_RATE = 0.01;
 
 function storedDefault(): string | null {
   try { return localStorage.getItem(STORE_KEY); } catch { return null; }
@@ -140,100 +138,8 @@ export function useWorkspaceZoom({ pdfDocument, workspaceRef, columnRef, fullscr
   }, [commit]);
   const actual = useCallback((anchor?: Point) => commit(ACTUAL_SIZE, ACTUAL_SIZE, anchor), [commit]);
 
-  // Keys: mod+= / + / - / 0, anchored at the middle of the viewport.
-  useEffect(() => {
-    if (!ready) return;
-    const onKey = (e: KeyboardEvent) => {
-      const el = e.target as HTMLElement | null;
-      const typing = !!el && (el.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName));
-      const action = keyAction(e, { typing, layers: [] });
-      if (action?.type === 'zoom') { e.preventDefault(); step(action.dir); }
-      else if (action?.type === 'zoomActual') { e.preventDefault(); actual(); }
-    };
-    document.addEventListener('keydown', onKey);
-    return () => document.removeEventListener('keydown', onKey);
-  }, [ready, step, actual]);
-
-  // Pinch. Everything before the commit touches the DOM through refs only.
-  useEffect(() => {
-    const ws = workspaceRef.current;
-    const col = columnRef.current;
-    if (!ws || !col || !ready) return;
-    let factor = 1;
-    let anchor: Point = { x: 0, y: 0 };
-    let timer: ReturnType<typeof setTimeout> | undefined;
-    const pointers = new Map<number, Point>();
-    let startDistance = 0;
-
-    const preview = () => {
-      const rect = col.getBoundingClientRect();
-      col.style.transformOrigin = `${anchor.x - rect.left}px ${anchor.y - rect.top}px`;
-      col.style.transform = `scale(${factor})`;
-    };
-    const finish = () => {
-      clearTimeout(timer);
-      if (factor === 1) return;
-      const next = clampZoom(zoomRef.current * factor);
-      factor = 1;
-      // Commit with the column back at its own size, so the frame it measures is the layout one.
-      col.style.transform = '';
-      col.style.transformOrigin = '';
-      commit(next, next, anchor);
-    };
-
-    const onWheel = (e: WheelEvent) => {
-      if (!e.ctrlKey) return;
-      e.preventDefault();
-      if (factor === 1) anchor = { x: e.clientX, y: e.clientY };
-      const target = clampZoom(zoomRef.current * factor * Math.exp(-e.deltaY * WHEEL_PINCH_RATE));
-      factor = target / zoomRef.current;
-      preview();
-      clearTimeout(timer);
-      timer = setTimeout(finish, PINCH_REST_MS);
-    };
-    const distance = () => {
-      const [a, b] = [...pointers.values()];
-      return Math.hypot(a.x - b.x, a.y - b.y);
-    };
-    const onDown = (e: PointerEvent) => {
-      if (e.pointerType !== 'touch') return;
-      pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
-      if (pointers.size === 2) {
-        startDistance = distance();
-        const [a, b] = [...pointers.values()];
-        anchor = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
-        factor = 1;
-      }
-    };
-    const onMove = (e: PointerEvent) => {
-      if (!pointers.has(e.pointerId)) return;
-      pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
-      if (pointers.size !== 2 || startDistance === 0) return;
-      const target = clampZoom(zoomRef.current * (distance() / startDistance));
-      factor = target / zoomRef.current;
-      preview();
-    };
-    const onUp = (e: PointerEvent) => {
-      if (!pointers.delete(e.pointerId)) return;
-      if (pointers.size < 2 && startDistance !== 0) { startDistance = 0; finish(); }
-    };
-
-    ws.addEventListener('wheel', onWheel, { passive: false });
-    col.addEventListener('pointerdown', onDown);
-    col.addEventListener('pointermove', onMove);
-    col.addEventListener('pointerup', onUp);
-    col.addEventListener('pointercancel', onUp);
-    return () => {
-      clearTimeout(timer);
-      ws.removeEventListener('wheel', onWheel);
-      col.removeEventListener('pointerdown', onDown);
-      col.removeEventListener('pointermove', onMove);
-      col.removeEventListener('pointerup', onUp);
-      col.removeEventListener('pointercancel', onUp);
-      col.style.transform = '';
-      col.style.transformOrigin = '';
-    };
-  }, [workspaceRef, columnRef, ready, commit]);
+  useZoomKeys({ enabled: ready, step, actual });
+  usePinchZoom({ workspaceRef, columnRef, enabled: ready, zoomRef, commit });
 
   /** A document just opened: its own setting beats the remembered default (R25). */
   const restore = useCallback((details: DetailEdits | undefined) => {
