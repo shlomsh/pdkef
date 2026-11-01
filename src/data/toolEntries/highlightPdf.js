@@ -8,12 +8,12 @@ export const highlightPdfEntry = {
     'Mark up a paper the way you would with a marker: highlight lines and add a note beside them.',
   sitemapPriority: '0.9',
   sitemapChangefreq: 'monthly',
-  seoTitle: 'Highlight PDF Online Free - Highlight Text and Add Comments | PDkef',
+  seoTitle: 'Highlight PDF Online Free - Add Comments, No Upload | PDkef',
   seoDescription:
     'Highlight text in a PDF the way you would with a marker, on scanned pages too, and add a comment to any highlight. Free, no signup, no upload.',
   schemaName: 'PDkef - Highlight PDF',
   toolName: 'Highlight PDF',
-  h1: 'Highlight PDF Online Free: Mark Up Papers and Add Comments',
+  h1: 'Highlight PDF Online Free: Add Comments to Any Page',
   h1Name: 'Highlight PDF',
   subhead:
     'Open a paper and drag along a line to highlight it, the way you would with a marker. Rest on a highlight to change its color or add a comment beside it. Free, open source, and your file stays on your device.',
