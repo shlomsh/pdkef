@@ -3,6 +3,7 @@ import { act } from 'preact/test-utils';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { PDFDocumentProxy } from 'pdfjs-dist';
 import workspaceStyles from '#editor-ui/Workspace.module.css';
+import toolbarStyles from '#editor-ui/SignToolbar.module.css';
 import HighlightWorkspace from './HighlightWorkspace.tsx';
 import { useHighlightComments } from '../hooks/useHighlightComments.ts';
 import type { CommentElement, EditorElement, HighlightElement } from '#editor/model/editorModel.ts';
@@ -70,6 +71,19 @@ describe('HighlightWorkspace', () => {
     expect(lamp.querySelector('[role="toolbar"][aria-label="Reading lamp"]')).not.toBeNull();
     const hiddenBar = container!.querySelector('[data-editor-toolbar]')!;
     expect(hiddenBar.closest('[hidden]')).not.toBeNull();
+  });
+
+  it('the row uses Sign\'s grammar: Marker and Print carry a visible label, the four conventions stay icon-only (READ-04)', () => {
+    mount({ fullscreen: false, pseudoFullscreen: false });
+    const bar = container!.querySelector<HTMLElement>('[data-editor-toolbar]')!;
+    const tile = (name: string) => bar.querySelector<HTMLElement>(`button[aria-label="${name}"], button[title="${name}"]`)!;
+    for (const name of ['Marker', 'Print']) {
+      expect(tile(name).hasAttribute('data-icon-only')).toBe(false);
+      expect(tile(name).querySelector(`.${toolbarStyles.label}`)?.textContent).toBe(name);
+    }
+    for (const name of ['Undo', 'Redo', 'Full screen', 'Replace file']) expect(tile(name).hasAttribute('data-icon-only')).toBe(true);
+    const printWrap = [...bar.children].find((c) => c.contains(tile('Print')))!;
+    expect(printWrap.classList.contains(toolbarStyles.dropdown)).toBe(true);
   });
 
   it('keeps the tool shell mounted in the lamp, hidden, so the page does not stay behind its restore veil', () => {

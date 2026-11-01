@@ -4,8 +4,9 @@
   --cell: var(--target, 2.25rem);
   position: relative;
   display: inline-flex;
-  flex: none;
 }
+/* In the editor row the wrapper is Sign's dropdown and takes the toolbar's flex sizing. */
+.wrap:not([data-tile]) { flex: none; }
 @media (pointer: coarse) {
   .wrap { --cell: var(--target, 2.75rem); }
 }

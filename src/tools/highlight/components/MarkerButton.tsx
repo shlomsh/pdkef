@@ -6,6 +6,7 @@ import { HIGHLIGHT_COLORS, type Marker } from '../lib/marker/markerState.ts';
 import { markerBadge } from '../lib/marker/markerBadge.ts';
 import { englishHighlightMessages as t } from '../messages.ts';
 import controls from '#editor-ui/EditorControls.module.css';
+import toolbarStyles from '#editor-ui/SignToolbar.module.css';
 import styles from './MarkerButton.module.css';
 
 const coarsePointer = () => Boolean(globalThis.matchMedia?.('(pointer: coarse)').matches);
@@ -89,7 +90,7 @@ export default function MarkerButton({ marker, onChange, armed = false, onTap, o
 
   return (
     <span
-      class={styles.wrap} ref={rootRef} data-marker-button data-tile={buttonClass ? '' : undefined}
+      class={buttonClass ? `${styles.wrap} ${toolbarStyles.dropdown}` : styles.wrap} ref={rootRef} data-marker-button data-tile={buttonClass ? '' : undefined}
       onKeyDown={(e) => {
         if (e.key !== 'Escape' || !open) return;
         e.stopPropagation();
@@ -98,7 +99,7 @@ export default function MarkerButton({ marker, onChange, armed = false, onTap, o
       }}
     >
       <button
-        ref={buttonRef} type="button" class={buttonClass ?? styles.button} data-icon-only={buttonClass ? '' : undefined} aria-haspopup="true" aria-expanded={open}
+        ref={buttonRef} type="button" class={buttonClass ?? styles.button} aria-haspopup="true" aria-expanded={open}
         aria-label={t.marker} title={t.marker} data-armed={armed && isCoarse() ? '' : undefined}
         onClick={(e) => {
           if (!armed && isCoarse()) onTap?.();
@@ -114,6 +115,7 @@ export default function MarkerButton({ marker, onChange, armed = false, onTap, o
             <i class={styles.glyph} data-marker-underline style={{ background: badge.ink }} />
           )}
         </span>
+        {buttonClass && <span class={toolbarStyles.label}>{t.marker}</span>}
       </button>
       {open && (
         <div class={`${styles.menu} ${controls.popover} ${controls['toolbar-menu']}`} role="group" aria-label={t.marker}>
