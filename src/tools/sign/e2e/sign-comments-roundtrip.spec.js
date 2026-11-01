@@ -2,7 +2,7 @@ import fs from 'node:fs/promises';
 import { test, expect } from '@playwright/test';
 import { PDFDocument, PDFName, PDFDict } from '@cantoo/pdf-lib';
 import { waitForIsland } from '../../../../e2e/support/tool.js';
-import { makePdfBuffer } from '../../../../e2e/support/pdf.js';
+import { buildHighlightedPdf } from '../../../test/support/highlightedPdf.js';
 
 /**
  * SIGN-44 round-trip contract (docs/sign-comments-model.md): export a document with comments, open the
@@ -79,14 +79,14 @@ async function colouredCanvasPixels(page) {
 }
 
 test('a document with comments exports to standard annotations and opens back looking the same', async ({ page, browser }) => {
-  const source = await makePdfBuffer(null, {
-    title: false,
+  // Sign no longer makes highlights (READ-04): this one is a standard /Highlight in the file, as another viewer writes it.
+  const source = await buildHighlightedPdf({
     lines: [{ text: 'The first line someone highlights', y: 700 }, { text: 'The second line someone comments on', y: 640 }],
+    highlights: [{ line: 'The first line someone highlights' }],
   });
   await openSign(page, 'roundtrip.pdf', source);
   await expect.poll(() => colouredCanvasPixels(page)).toBe(0);
 
-  await swipe(page, 'Highlight', 700);
   await page.locator('[data-editor-highlight]').first().click();
   await page.locator('[data-element-comment-button]').click();
   await save(page, 'on the highlight');
