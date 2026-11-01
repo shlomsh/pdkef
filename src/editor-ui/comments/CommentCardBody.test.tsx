@@ -27,6 +27,8 @@ const openEdit = () => dbl(q('p'));
 const type = (value: string) => act(() => { const t = q<HTMLTextAreaElement>('textarea'); t.value = value; t.dispatchEvent(new Event('input', { bubbles: true })); });
 
 describe('CommentCardBody', () => {
+  const stubPointer = (coarse: boolean) => vi.stubGlobal('matchMedia', (query: string) => ({ matches: coarse && query.includes('coarse'), media: query, addEventListener() {}, removeEventListener() {}, addListener() {}, removeListener() {} }));
+
   it('an inactive comment shows only its text (no author, date or page line); a click selects', () => {
     const onSelect = vi.fn();
     mount({ card: card({ commentedAt: new Date(2000, 0, 3, 9, 5).getTime() }), onSelect });
@@ -35,6 +37,26 @@ describe('CommentCardBody', () => {
     expect(host!.querySelector('[aria-haspopup]')).toBeNull();
     act(() => q<HTMLElement>('p').click());
     expect(onSelect).toHaveBeenCalledOnce();
+  });
+
+  it('on a fine pointer, one click on an active saved card opens the field', () => {
+    stubPointer(false);
+    const onSelect = vi.fn();
+    mount({ card: card(), active: true, onSelect });
+    act(() => q<HTMLElement>('p').click());
+    expect(host!.querySelector('textarea')).not.toBeNull();
+    expect(onSelect).not.toHaveBeenCalled();
+    vi.unstubAllGlobals();
+  });
+
+  it('on a fine pointer, one click on an inactive card selects and does not edit', () => {
+    stubPointer(false);
+    const onSelect = vi.fn();
+    mount({ card: card(), active: false, onSelect });
+    act(() => q<HTMLElement>('p').click());
+    expect(onSelect).toHaveBeenCalledOnce();
+    expect(host!.querySelector('textarea')).toBeNull();
+    vi.unstubAllGlobals();
   });
 
   it('a double-click on a saved card opens a prefilled field with Cancel and Comment', () => {
@@ -124,13 +146,9 @@ describe('CommentCardBody', () => {
     expect(host!.querySelector('textarea')).not.toBeNull();
   });
 
-  const stubPointer = (coarse: boolean) => vi.stubGlobal('matchMedia', (query: string) => ({ matches: coarse && query.includes('coarse'), media: query, addEventListener() {}, removeEventListener() {}, addListener() {}, removeListener() {} }));
-
-  it('a mouse click on the active card does not open the field; a double-click still does', () => {
+  it('a mouse double-click on an active card still opens the field', () => {
     stubPointer(false);
     mount({ card: card(), active: true });
-    act(() => q<HTMLElement>('p').click());
-    expect(host!.querySelector('textarea')).toBeNull();
     openEdit();
     expect(host!.querySelector('textarea')).not.toBeNull();
     vi.unstubAllGlobals();
