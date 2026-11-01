@@ -18,6 +18,7 @@ import { captureElementSnapshots, type ActionHistoryEntry } from '#editor/model/
 import type { EditorElementPatch } from '#editor/model/editorModel.ts';
 import { deletedWith } from '#editor/model/elementsReducer.ts';
 import { signElementTypeLabel, signUpdateDescription } from '#editor/registry/signLabels.ts';
+import { createElementId } from '#editor/model/ids.ts';
 import { formatMessage } from '#lib/text/formatMessage.ts';
 import { recordAction } from '#lib/telemetry/actionTrail.ts';
 import useCoarsePointer from '#editor-ui/hooks/useCoarsePointer.ts';
@@ -27,6 +28,7 @@ import { useRestToolbar } from '../hooks/useRestToolbar.ts';
 import { cursorValue } from '../lib/marker/cursor.ts';
 import { inkEnd } from '../lib/marker/inkEnd.ts';
 import { buildMarkEdit } from '../lib/marker/markEdit.ts';
+import { openCommentFor } from '../lib/notes/openComment.ts';
 import type { Marker } from '../lib/marker/markerState.ts';
 import { englishHighlightMessages as t } from '../messages.ts';
 import RestToolbar, { MarkHint } from './RestToolbar.tsx';
@@ -114,6 +116,14 @@ export default function HighlightPage({ pdfDocument, pageIndex, widthPx, element
     atPress: directionAtPoint(textRunsRef.current, start), page: pageTextDirection(textRunsRef.current.map((r) => r.str)), pages: [], elements, readerDirection: readerTextDirection(),
   });
 
+  /** R27: Comment opens the mark's comment card; a blank one is added first, unlogged (it is saved, and logged, with its text). */
+  const commentOn = (el: HighlightElement) => {
+    const { add, activeId } = openCommentFor(elements, el, createElementId());
+    if (add) dispatch({ type: 'ADD_ELEMENT', payload: add });
+    dispatch({ type: 'SET_ACTIVE_ELEMENT_ID', payload: activeId });
+    rest.close();
+  };
+
   /** A mark landed, by a swipe or a click: rest waits for the pointer to leave this spot, and the first mark gets its hint. */
   const inkLanded = (element: HighlightElement) => {
     rest.strokeEnd();
@@ -162,7 +172,7 @@ export default function HighlightPage({ pdfDocument, pageIndex, widthPx, element
         {target && (
           <RestToolbar
             key={target.id} mark={target}
-            onChange={(change) => changeMark(target, change)} onDelete={() => deleteMark(target)} onClose={rest.close}
+            onChange={(change) => changeMark(target, change)} onDelete={() => deleteMark(target)} onComment={() => commentOn(target)} onClose={rest.close}
           />
         )}
       </div>
