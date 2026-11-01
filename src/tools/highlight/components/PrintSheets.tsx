@@ -1,0 +1,215 @@
+import { createPortal } from 'preact/compat';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'preact/hooks';
+import type { PDFDocumentProxy } from 'pdfjs-dist';
+import type { EditorElement, HighlightElement } from '#editor/model/editorModel.ts';
+import { underlineInk } from '#editor/model/underlineInk.ts';
+import { renderPageToCanvas } from '#lib/pdf/renderPage.js';
+import { reportError } from '#lib/telemetry/errorReport.ts';
+import { printNotes } from '../lib/print/printNotes.ts';
+import { NOTE_FONT_PT, printPlan, type PagePrintPlan, type PrintNote } from '../lib/print/printPlan.ts';
+import styles from './PrintSheets.module.css';
+
+interface Props {
+  pdfDocument: PDFDocumentProxy;
+  elements: EditorElement[];
+  withNotes: boolean;
+  /** Once every page image has loaded and the sheets are laid out: the moment to call `window.print()`. */
+  onReady(): void;
+}
+
+type PageSize = { width: number; height: number };
+type NoteSeed = Omit<PrintNote, 'height'>;
+
+/** Pages are drawn at twice their printed size so a sheet stays sharp on paper. */
+const PRINT_OVERSAMPLE = 2;
+const CSS_PX_PER_PT = 96 / 72;
+/** An underline is 1.5 screen px at full size; it shrinks with the page. */
+const UNDERLINE_PX = 1.5;
+
+const pt = (value: number) => `${value}pt`;
+
+/** The bands of one highlight as percents of the page, so they sit in the page box without the element's own box. */
+function pageBands(highlight: HighlightElement) {
+  return highlight.bands.map((band) => ({
+    left: highlight.left + (band.left * highlight.width) / 100,
+    top: highlight.top + (band.top * highlight.height) / 100,
+    width: (band.width * highlight.width) / 100,
+    height: (band.height * highlight.height) / 100,
+  }));
+}
+
+function Highlights({ highlights }: { highlights: HighlightElement[] }) {
+  return (
+    <>
+      {highlights.map((highlight) => {
+        const underline = highlight.style === 'underline';
+        const ink = underline ? underlineInk(highlight.color) : undefined;
+        return (
+          <div key={highlight.id} class={styles.layer} style={highlight.opacity === undefined ? undefined : { opacity: highlight.opacity }}>
+            {pageBands(highlight).map((band, i) => (
+              <div
+                key={i}
+                data-print-band
+                class={underline ? `${styles.band} ${styles.underline}` : styles.band}
+                style={{
+                  left: `${band.left}%`, top: `${band.top}%`, width: `${band.width}%`, height: `${band.height}%`,
+                  ...(underline ? { '--highlight-ink': ink } : { background: highlight.color }),
+                }}
+              />
+            ))}
+          </div>
+        );
+      })}
+    </>
+  );
+}
+
+function Card({ text, style, ...rest }: { text: string; class?: string; style?: Record<string, string>; [attr: string]: unknown }) {
+  return <div data-print-card dir="auto" {...rest} style={{ fontSize: pt(NOTE_FONT_PT), ...style }} class={`${styles.card} ${rest.class ?? ''}`.trim()}>{text}</div>;
+}
+
+function Sheet({ plan, image, highlights, texts, onSettled }: {
+  plan: PagePrintPlan;
+  image: string;
+  highlights: HighlightElement[];
+  texts: ReadonlyMap<string, string>;
+  onSettled(): void;
+}) {
+  const { sheet, pageBox, notesBox, pageScale } = plan;
+  return (
+    <section data-print-sheet class={styles.sheet} style={{ width: pt(sheet.width), height: pt(sheet.height) }}>
+      <div
+        class={styles.pageBox}
+        style={{ left: pt(pageBox.x), top: pt(pageBox.y), width: pt(pageBox.width), height: pt(pageBox.height), '--line': `${UNDERLINE_PX * pageScale}px` }}
+      >
+        <img class={styles.pageImage} src={image} alt="" onLoad={onSettled} onError={onSettled} />
+        <Highlights highlights={highlights} />
+      </div>
+      {notesBox && (
+        <div class={styles.notes} style={{ left: pt(notesBox.x), top: pt(notesBox.y), width: pt(notesBox.width), height: pt(notesBox.height) }}>
+          {plan.cards.map((card) => (
+            <Card key={card.id} text={texts.get(card.id) ?? ''} class={styles.placed} style={{ top: pt(card.top) }} />
+          ))}
+        </div>
+      )}
+    </section>
+  );
+}
+
+/**
+ * READ-06: the document as printable sheets, mounted on the body outside the app. Each page is a
+ * canvas-rendered image at twice its printed size with its highlights drawn as plain bands over it;
+ * with notes the page shrinks and each highlight's comment stands in a column beside it, placed by
+ * `printPlan` after the cards are measured at their real width. Hidden on screen, the only thing
+ * shown in print (see the module's @media print rules).
+ */
+export default function PrintSheets({ pdfDocument, elements, withNotes, onReady }: Props) {
+  const [pages, setPages] = useState<PageSize[]>([]);
+  const [images, setImages] = useState<string[] | null>(null);
+  const [measured, setMeasured] = useState<{ notes: NoteSeed[]; heights: ReadonlyMap<string, number> } | null>(null);
+  const measureRef = useRef<HTMLDivElement>(null);
+  const settled = useRef(new Set<number>());
+  const fired = useRef<string[] | null>(null);
+  const onReadyRef = useRef(onReady);
+  onReadyRef.current = onReady;
+
+  // Page sizes in points.
+  useEffect(() => {
+    let current = true;
+    (async () => {
+      try {
+        const sizes: PageSize[] = [];
+        for (let n = 1; n <= pdfDocument.numPages; n++) {
+          const { width, height } = (await pdfDocument.getPage(n)).getViewport({ scale: 1 });
+          sizes.push({ width, height });
+        }
+        if (current) setPages(sizes);
+      } catch (error) {
+        if (current) reportError('pdf_render', error, 'print_page_sizes');
+      }
+    })();
+    return () => { current = false; };
+  }, [pdfDocument]);
+
+  const basePlan = useMemo(() => printPlan(pages, withNotes ? [] : null), [pages, withNotes]);
+
+  // Page images, each at 2x of its printed size.
+  useEffect(() => {
+    if (pages.length === 0) return undefined;
+    let current = true;
+    setImages(null);
+    (async () => {
+      try {
+        const urls: string[] = [];
+        for (let i = 0; i < pages.length; i++) {
+          const scale = PRINT_OVERSAMPLE * (basePlan[i].pageBox.width / pages[i].width) * CSS_PX_PER_PT;
+          const canvas = await renderPageToCanvas(await pdfDocument.getPage(i + 1), { scale });
+          urls.push(canvas.toDataURL('image/png'));
+          canvas.width = 0;
+          if (!current) return;
+        }
+        settled.current = new Set();
+        setImages(urls);
+      } catch (error) {
+        if (current) reportError('pdf_render', error, 'print_render');
+      }
+    })();
+    return () => { current = false; };
+  }, [pdfDocument, pages, basePlan]);
+
+  const seeds = useMemo(() => (withNotes && pages.length > 0 ? printNotes(elements, pages) : null), [withNotes, elements, pages]);
+  const texts = useMemo(() => new Map(elements.flatMap((el) => (el.type === 'comment' ? [[el.id, el.comment] as const] : []))), [elements]);
+
+  // Cards are measured hidden at the notes width, then handed to printPlan.
+  const needsMeasure = seeds !== null && seeds.length > 0 && measured?.notes !== seeds;
+  useLayoutEffect(() => {
+    if (!needsMeasure || !seeds || !measureRef.current) return;
+    const heights = new Map<string, number>();
+    measureRef.current.querySelectorAll<HTMLElement>('[data-print-card]').forEach((card) => {
+      heights.set(card.dataset.noteId ?? '', (card.offsetHeight * 72) / 96);
+    });
+    setMeasured({ notes: seeds, heights });
+  }, [needsMeasure, seeds]);
+
+  const plans = useMemo(() => {
+    if (pages.length === 0) return null;
+    if (seeds === null) return printPlan(pages, null);
+    if (seeds.length === 0) return printPlan(pages, []);
+    if (measured?.notes !== seeds) return null;
+    return printPlan(pages, seeds.map((n) => ({ ...n, height: measured.heights.get(n.id) ?? 0 })));
+  }, [pages, seeds, measured]);
+
+  const onSettled = (index: number) => {
+    settled.current.add(index);
+    if (images && settled.current.size === images.length && fired.current !== images) {
+      fired.current = images;
+      onReadyRef.current();
+    }
+  };
+
+  const highlightsOf = (pageIndex: number) =>
+    elements.filter((el): el is HighlightElement => el.type === 'highlight' && el.pageIndex === pageIndex);
+
+  return createPortal(
+    <div data-print-root class={styles.root}>
+      {needsMeasure && seeds && (
+        <div ref={measureRef} data-print-measure class={styles.measure}>
+          {pages.map((_, pageIndex) => {
+            const box = basePlan[pageIndex]?.notesBox;
+            return (
+              <div key={pageIndex} style={{ width: box ? pt(box.width) : undefined }}>
+                {seeds.filter((n) => n.page === pageIndex).map((n) => (
+                  <Card key={n.id} text={texts.get(n.id) ?? ''} data-note-id={n.id} />
+                ))}
+              </div>
+            );
+          })}
+        </div>
+      )}
+      {plans && images && plans.map((plan, i) => (
+        <Sheet key={i} plan={plan} image={images[i]} highlights={highlightsOf(i)} texts={texts} onSettled={() => onSettled(i)} />
+      ))}
+    </div>,
+    document.body,
+  );
+}

@@ -40,6 +40,6 @@ export const englishHighlightMessages: HighlightMessages = {
   zoomIn: 'Zoom in',
   zoomOut: 'Zoom out',
   readout: '{mode} · {percent}%',
-  enterLamp: 'Enter the reading lamp',
+  enterLamp: 'Use the reading lamp',
   capsule: englishCapsuleLabels,
 };
