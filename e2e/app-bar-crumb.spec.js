@@ -13,7 +13,7 @@ test.use({ serviceWorkers: 'block' });
 
 // The three longest tool names ("Add Page Numbers to PDF", "Protect & Unlock PDF", "Blur & Redact PDF")
 // and the one that started it ("Scan to PDF").
-const TOOLS = ['/add-page-numbers-to-pdf/', '/unlock/', '/redact/', '/scan-to-pdf/'];
+const TOOLS = ['/add-page-numbers-to-pdf/', '/unlock/', '/redact/', '/scan-to-pdf/', '/highlight-pdf/'];
 // The phones the ticket names, plus the 721-765px band where the chips regain their labels.
 const SQUEEZED = [320, 360, 375, 390, 744, 768];
 const MIN_READABLE_NAME = 64; // 4rem: "Scan to…" and up
