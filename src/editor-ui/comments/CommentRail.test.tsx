@@ -13,10 +13,10 @@ const hl = (id: string, top: number, comment: string, pageIndex = 0): EditorElem
 let host: HTMLDivElement | null = null;
 afterEach(() => { if (host) render(null, host); host?.remove(); host = null; vi.restoreAllMocks(); });
 
-function mount(elements: EditorElement[], activeElementId: string | null = null, extra: { onSelect?: (id: string) => void; onReturnFocus?: (id: string) => void; pageIndex?: number } = {}) {
-  host = document.createElement('div');
+function mount(elements: EditorElement[], activeElementId: string | null = null, extra: { onSelect?: (id: string) => void; onReturnFocus?: (id: string) => void; pageIndex?: number; railHeight?: number } = {}) {
+  host = host ?? document.createElement('div');
   document.body.appendChild(host);
-  act(() => render(<CommentRail pageIndex={extra.pageIndex ?? 0} onReturnFocus={extra.onReturnFocus} elements={elements} activeElementId={activeElementId} messages={englishSignMessages}
+  act(() => render(<CommentRail pageIndex={extra.pageIndex ?? 0} railHeight={extra.railHeight} onReturnFocus={extra.onReturnFocus} elements={elements} activeElementId={activeElementId} messages={englishSignMessages}
     onSelect={extra.onSelect ?? (() => {})} onSave={() => {}} onDelete={() => {}} onDiscard={() => {}} />, host!));
 }
 const cards = () => [...host!.querySelectorAll<HTMLElement>('[data-comment-card]')];
@@ -52,6 +52,15 @@ describe('CommentRail', () => {
     expect(a.style.top).toBe('94px');
     expect(b.style.top).toBe('182px');
     expect((host!.querySelector('[data-comment-rail]') as HTMLElement).style.minHeight).toBe('262px');
+  });
+
+  it('with a railHeight, a new height places the cards in the same render, no observer round trip', () => {
+    vi.spyOn(HTMLElement.prototype, 'offsetHeight', 'get').mockReturnValue(80);
+    const els = [hl('a', 50, 'one')];
+    mount(els, null, { railHeight: 1000 });
+    expect(cards()[0].style.top).toBe('494px');
+    mount(els, null, { railHeight: 2000 });
+    expect(cards()[0].style.top).toBe('994px');
   });
 
   it('keeps clicks from reaching the workspace', () => {
