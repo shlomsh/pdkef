@@ -6,10 +6,6 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 
 ## Up next
 
-### Highlight PDF: a tool for reading
-
-- [READ-02](backlog/tasks/READ-02.md) P2 · Move the shared highlight and comment pieces out of Sign, no behaviour change (in progress)
-
 ### Robustness and debt
 
 - [DEBT-65](backlog/tasks/DEBT-65.md) P2 · Two layout-shift specs failed once each in the 2026-10-27 nightly (in progress)
