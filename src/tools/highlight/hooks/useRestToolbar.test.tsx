@@ -205,3 +205,58 @@ describe('one rest toolbar in the workspace', () => {
     expect(commented).toEqual(['m0']);
   });
 });
+
+describe('Esc returns focus to the mark', () => {
+  let rest: ReturnType<typeof useRestToolbar>;
+
+  function Bar() {
+    rest = useRestToolbar();
+    const rootRef = useRef<HTMLDivElement | null>(null);
+    const live = useRef({
+      layers: { custom: false, colors: false } as never, mark: { id: 'm' } as never, onChange: () => {}, onDelete: () => {},
+      onComment: () => {}, onClose: rest.close, look: {} as never,
+    });
+    useToolbarDismissal(rootRef, live as never, { setLayers: () => {}, foldRow: () => {}, toggleUnderline: () => {} });
+    return (
+      <div>
+        <div data-editor-element-id="m" tabIndex={0} />
+        <div ref={rootRef}><button type="button">Colors</button></div>
+        <button type="button" id="elsewhere">Elsewhere</button>
+      </div>
+    );
+  }
+
+  const esc = () => act(() => { document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); });
+
+  function mountBar() {
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    act(() => render(<Bar />, container!));
+    act(() => rest.openFor('m'));
+  }
+
+  it('Esc from inside the toolbar closes it and focuses the mark', () => {
+    mountBar();
+    container!.querySelector<HTMLElement>('button')!.focus();
+    esc();
+    expect(rest.targetId).toBeNull();
+    expect(document.activeElement).toBe(container!.querySelector('[data-editor-element-id="m"]'));
+  });
+
+  it('Esc with focus on the mark keeps it there', () => {
+    mountBar();
+    const mark = container!.querySelector<HTMLElement>('[data-editor-element-id="m"]')!;
+    mark.focus();
+    esc();
+    expect(rest.targetId).toBeNull();
+    expect(document.activeElement).toBe(mark);
+  });
+
+  it('Esc with focus elsewhere does not steal it', () => {
+    mountBar();
+    const other = container!.querySelector<HTMLElement>('#elsewhere')!;
+    other.focus();
+    esc();
+    expect(document.activeElement).toBe(other);
+  });
+});

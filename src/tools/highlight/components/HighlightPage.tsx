@@ -22,6 +22,7 @@ import { createElementId } from '#editor/model/ids.ts';
 import { recordAction } from '#lib/telemetry/actionTrail.ts';
 import useCoarsePointer from '#editor-ui/hooks/useCoarsePointer.ts';
 import { useClickMarks } from '../hooks/useClickMarks.ts';
+import { useMarkFocus } from '../hooks/useMarkFocus.ts';
 import { useMarkSwipe } from '../hooks/useMarkSwipe.ts';
 import { useRestToolbar } from '../hooks/useRestToolbar.ts';
 import { cursorValue } from '../lib/marker/cursor.ts';
@@ -92,6 +93,8 @@ export default function HighlightPage({ pdfDocument, pageIndex, widthPx, element
   }, [pdfDocument, pageIndex]);
 
   const marks = elements.filter((el): el is HighlightElement => el.type === 'highlight' && el.pageIndex === pageIndex);
+
+  const markFocus = useMarkFocus({ elements, pageIndex, openFor: rest.openFor });
 
   const target = rest.targetId === null ? undefined : marks.find((m) => m.id === rest.targetId);
   const closeRest = rest.close;
@@ -166,7 +169,7 @@ export default function HighlightPage({ pdfDocument, pageIndex, widthPx, element
         >
           {marks.map((mark) => (
             <div
-              key={mark.id} data-element-id={mark.id} data-editor-element-id={mark.id} className={styles.mark}
+              key={mark.id} data-element-id={mark.id} data-editor-element-id={mark.id} className={styles.mark} {...markFocus.markProps(mark.id)}
               style={{ left: `${mark.left}%`, top: `${mark.top}%`, width: `${mark.width}%`, height: `${mark.height}%` }}
             >
               <HighlightNode element={mark} isActive={false} onResizeStart={noop} />
