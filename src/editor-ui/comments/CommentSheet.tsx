@@ -5,13 +5,14 @@ import { isComment, resolveCommentBoxes } from '#editor/comments/anchors.ts';
 import type { CommentPatch } from '#editor/highlight/commentCommit.ts';
 import { commentCards } from '#editor/highlight/commentCards.ts';
 import { anchorNode } from './anchorNode.ts';
+import { commentCardLabel } from './commentLabel.ts';
 import { CommentCardBody } from './CommentCardBody.tsx';
 import styles from './CommentSheet.module.css';
 
 const stop = (event: Event) => event.stopPropagation();
 
 /** SIGN-44: on a phone the active comment slides up from the bottom instead of a margin rail. */
-export function CommentSheet({ elements, activeElementId, messages, onSave, onDelete, onDiscard, onClose }: {
+export function CommentSheet({ elements, activeElementId, messages, onSave, onDelete, onDiscard, onClose, onReturnFocus }: {
   elements: readonly EditorElement[];
   activeElementId: string | null;
   messages: SignMessages;
@@ -19,6 +20,7 @@ export function CommentSheet({ elements, activeElementId, messages, onSave, onDe
   onDelete: (id: string) => void;
   onDiscard: (id: string) => void;
   onClose: () => void;
+  onReturnFocus?: (id: string) => void;
 }) {
   const active = resolveCommentBoxes(elements).find((el) => el.id === activeElementId && isComment(el));
   const card = active ? commentCards(elements, active.pageIndex, activeElementId).find((c) => c.id === active.id) : undefined;
@@ -49,10 +51,12 @@ export function CommentSheet({ elements, activeElementId, messages, onSave, onDe
         card={card}
         active
         messages={messages}
+        label={commentCardLabel(elements, card.id, active.pageIndex, messages)}
         onSelect={() => {}}
         onSave={(patch) => onSave(card.id, patch)}
         onDelete={() => onDelete(card.id)}
         onDiscard={() => onDiscard(card.id)}
+        onReturnFocus={() => onReturnFocus?.(card.id)}
       />
     </div>
   );

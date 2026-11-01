@@ -14,11 +14,11 @@ const highlight = (id: string): EditorElement => ({ id, type: 'highlight', pageI
 let host: HTMLDivElement | null = null;
 afterEach(() => { if (host) render(null, host); host?.remove(); host = null; });
 
-function mount(elements: EditorElement[], activeElementId: string | null, fns: { onDiscard?: (id: string) => void; onClose?: () => void } = {}) {
+function mount(elements: EditorElement[], activeElementId: string | null, fns: { onDiscard?: (id: string) => void; onClose?: () => void; onReturnFocus?: (id: string) => void } = {}) {
   host = document.createElement('div');
   document.body.appendChild(host);
   act(() => render(<CommentSheet elements={elements} activeElementId={activeElementId} messages={englishSignMessages}
-    onSave={() => {}} onDelete={() => {}} onDiscard={fns.onDiscard ?? (() => {})} onClose={fns.onClose ?? (() => {})} />, host!));
+    onSave={() => {}} onDelete={() => {}} onDiscard={fns.onDiscard ?? (() => {})} onClose={fns.onClose ?? (() => {})} onReturnFocus={fns.onReturnFocus} />, host!));
 }
 const sheet = () => host!.querySelector<HTMLElement>('[data-comment-sheet]');
 
@@ -76,5 +76,20 @@ describe('CommentSheet', () => {
     host!.addEventListener('click', outer);
     act(() => sheet()!.click());
     expect(outer).not.toHaveBeenCalled();
+  });
+
+  it('is a group naming its page, and opening a note puts the caret in the field', () => {
+    mount([hl('a', '')], 'a');
+    expect(sheet()!.querySelector('[role="group"]')!.getAttribute('aria-label')).toBe('Comment on page 2');
+    expect(document.activeElement).toBe(host!.querySelector('textarea'));
+  });
+
+  it('hands focus back when Cancel closes the note', () => {
+    const onReturnFocus = vi.fn();
+    mount([hl('a', '')], 'a', { onReturnFocus });
+    const cancel = [...host!.querySelectorAll('button')].find((b) => b.textContent === englishSignMessages.commentCancel && b.className.includes('secondary'))
+      ?? [...host!.querySelectorAll('button')].filter((b) => b.textContent === englishSignMessages.commentCancel).pop()!;
+    act(() => cancel.click());
+    expect(onReturnFocus).toHaveBeenCalledWith('a');
   });
 });

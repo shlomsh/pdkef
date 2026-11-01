@@ -11,11 +11,11 @@ const card = (over: Partial<CommentCard> = {}): CommentCard => ({ id: 'h1', dire
 let host: HTMLDivElement | null = null;
 afterEach(() => { if (host) render(null, host); host?.remove(); host = null; });
 
-function mount(props: { card: CommentCard; active?: boolean; onSelect?: () => void; onSave?: (p: { comment: string; commentedAt: number }) => void; onDelete?: () => void; onDiscard?: () => void }) {
+function mount(props: { card: CommentCard; active?: boolean; onSelect?: () => void; onSave?: (p: { comment: string; commentedAt: number }) => void; onDelete?: () => void; onDiscard?: () => void; onReturnFocus?: () => void; label?: string }) {
   host = document.createElement('div');
   document.body.appendChild(host);
   const draw = (c: CommentCard, active: boolean) => act(() => render(
-    <CommentCardBody card={c} active={active} messages={englishSignMessages}       onSelect={props.onSelect ?? (() => {})} onSave={props.onSave ?? (() => {})} onDelete={props.onDelete ?? (() => {})} onDiscard={props.onDiscard ?? (() => {})} />, host!));
+    <CommentCardBody card={c} active={active} messages={englishSignMessages}       onSelect={props.onSelect ?? (() => {})} onSave={props.onSave ?? (() => {})} onDelete={props.onDelete ?? (() => {})} onDiscard={props.onDiscard ?? (() => {})} onReturnFocus={props.onReturnFocus} label={props.label ?? 'Comment on page 1'} />, host!));
   draw(props.card, props.active ?? false);
   return { redraw: (c: CommentCard, active = props.active ?? false) => draw(c, active) };
 }
@@ -116,5 +116,38 @@ describe('CommentCardBody', () => {
     render(null, host!);
     mount({ card: card({ comment: '', isNew: true }), active: true });
     expect(host!.querySelector('[aria-label="More"]')).toBeNull();
+  });
+
+  it('is a group named by its label', () => {
+    mount({ card: card(), label: 'Comment on page 3, "Pay by Friday"' });
+    const group = q('[role="group"]');
+    expect(group.getAttribute('aria-label')).toBe('Comment on page 3, "Pay by Friday"');
+    expect(group.textContent).toContain('Check this');
+  });
+
+  it('opening a new note puts the caret in its field', () => {
+    mount({ card: card({ comment: '', isNew: true }), active: true });
+    expect(document.activeElement).toBe(q('textarea'));
+  });
+
+  it('Save, Cancel and Esc hand focus back to the anchor; so does a blank save', () => {
+    const onReturnFocus = vi.fn();
+    mount({ card: card({ comment: '', isNew: true }), active: true, onReturnFocus });
+    type('Hello');
+    act(() => button('Comment').click());
+    expect(onReturnFocus).toHaveBeenCalledTimes(1);
+    act(() => button('Cancel').click());
+    expect(onReturnFocus).toHaveBeenCalledTimes(2);
+    type('again');
+    act(() => { q('textarea').dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); });
+    expect(onReturnFocus).toHaveBeenCalledTimes(3);
+  });
+
+  it('Delete in the More menu hands focus back too', () => {
+    const onReturnFocus = vi.fn();
+    mount({ card: card(), active: true, onReturnFocus });
+    act(() => q<HTMLElement>('[aria-label="More"]').click());
+    act(() => menuItem('Delete').click());
+    expect(onReturnFocus).toHaveBeenCalledOnce();
   });
 });
