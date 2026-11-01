@@ -18,8 +18,8 @@ const column = document.createElement('div');
 workspace.appendChild(column);
 const workspaceRef = { current: workspace };
 const columnRef = { current: column };
-function Probe({ pageTurns, fullscreen = false }: { pageTurns: PageTurns; fullscreen?: boolean }) {
-  latest = useWorkspaceZoom({ pdfDocument: doc, workspaceRef, columnRef, fullscreen, pageTurns });
+function Probe({ pageTurns, fullscreen = false, noted = false }: { pageTurns: PageTurns; fullscreen?: boolean; noted?: boolean }) {
+  latest = useWorkspaceZoom({ pdfDocument: doc, workspaceRef, columnRef, fullscreen, pageTurns, noted });
   pages = latest.pages;
   return null;
 }
@@ -27,9 +27,9 @@ function Probe({ pageTurns, fullscreen = false }: { pageTurns: PageTurns; fullsc
 const container = document.createElement('div');
 afterEach(() => { act(() => render(null, container)); });
 
-async function mount(pageTurns: PageTurns, fullscreen = false) {
+async function mount(pageTurns: PageTurns, fullscreen = false, noted = false) {
   readInkBounds.mockResolvedValue(null);
-  await act(async () => { render(<Probe pageTurns={pageTurns} fullscreen={fullscreen} />, container); });
+  await act(async () => { render(<Probe pageTurns={pageTurns} fullscreen={fullscreen} noted={noted} />, container); });
   await act(async () => { await Promise.resolve(); });
 }
 
@@ -77,13 +77,14 @@ describe('useWorkspaceZoom in the normal view', () => {
 
 describe('useWorkspaceZoom chrome and entering the lamp', () => {
   afterEach(() => { localStorage.clear(); Object.defineProperty(workspace, 'clientWidth', { value: 0, configurable: true }); });
-  it('chrome is 1 in the normal view and equals the zoom in the lamp', async () => {
+  it('chrome is 1 in the normal view and, at the lamp Fit width, still 1 with a 240px notes column', async () => {
     Object.defineProperty(workspace, 'clientWidth', { value: 1000, configurable: true });
-    await mount({});
+    await mount({}, false, true);
     expect(latest!.chrome).toBe(1);
-    await mount({}, true);
-    expect(latest!.chrome).toBe(latest!.zoom);
-    expect(latest!.chrome).not.toBe(1);
+    await mount({}, true, true);
+    expect(latest!.chrome).toBeCloseTo(1);
+    expect(latest!.notesPx).toBeCloseTo(240);
+    expect(latest!.zoom).toBeCloseTo((1000 - 32 - 240) / 600);
   });
   it('entering the lamp with a remembered 1.8 starts at Fit width', async () => {
     Object.defineProperty(workspace, 'clientWidth', { value: 1000, configurable: true });

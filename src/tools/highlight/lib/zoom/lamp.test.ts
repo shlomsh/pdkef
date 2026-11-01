@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { displayZoom, isZoomInput, widestPage } from './lamp.ts';
+import { chromeScale, displayZoom, isZoomInput, widestPage } from './lamp.ts';
 import { NOTES_W } from './fit.ts';
 import { turnedPageBox } from './turnedBox.ts';
 
@@ -28,13 +28,37 @@ describe('displayZoom with notes', () => {
     expect(displayZoom('width', false, page, view, true)).toBeCloseTo((1000 - NOTES_W) / 600);
     expect(displayZoom('width', false, page, view, true)).toBeLessThan(displayZoom('width', false, page, view, false));
   });
-  it('fits the page plus the notes column in the lamp, for Fit width and Fit text', () => {
-    expect(displayZoom('width', true, page, view, true)).toBeCloseTo((1000 - 32) / (600 + NOTES_W));
-    expect(displayZoom('text', true, page, view, true)).toBeCloseTo((1000 - 32) / (400 + 32 + NOTES_W));
+  it('fits the page beside NOTES_W px in the lamp too, for Fit width and Fit text (the normal view proportions)', () => {
+    expect(displayZoom('width', true, page, view, true)).toBeCloseTo((1000 - 32 - NOTES_W) / 600);
+    expect(displayZoom('text', true, page, view, true)).toBeCloseTo((1000 - 32 - NOTES_W) / (400 + 32));
   });
   it('leaves a numeric zoom alone', () => {
     expect(displayZoom(2, true, page, view, true)).toBe(2);
     expect(displayZoom(1.25, true, page, view, false)).toBe(1.25);
+  });
+});
+
+describe('chromeScale', () => {
+  const wide = { width: 1440, height: 800 };
+  const big = { width: 600, height: 800, textLeft: 0, textRight: 600 };
+  it('is 1 in the normal view', () => {
+    expect(chromeScale(1.7, false, big, wide, true)).toBe(1);
+  });
+  it('is 1 at the lamp Fit width with notes, which leaves the page 1440 - 2*pad - 240', () => {
+    const z = displayZoom('width', true, big, wide, true);
+    expect(big.width * z).toBeCloseTo(1440 - 32 - NOTES_W);
+    expect(chromeScale(z, true, big, wide, true)).toBeCloseTo(1);
+  });
+  it('is 2 at twice that zoom', () => {
+    const z = displayZoom('width', true, big, wide, true);
+    expect(chromeScale(2 * z, true, big, wide, true)).toBeCloseTo(2);
+  });
+  it('is 1 at the lamp Fit width without notes', () => {
+    expect(chromeScale(displayZoom('width', true, big, wide, false), true, big, wide, false)).toBeCloseTo(1);
+  });
+  it('is 1 with no page or no width', () => {
+    expect(chromeScale(2, true, undefined, wide, true)).toBe(1);
+    expect(chromeScale(2, true, big, { width: 0, height: 0 }, true)).toBe(1);
   });
 });
 
