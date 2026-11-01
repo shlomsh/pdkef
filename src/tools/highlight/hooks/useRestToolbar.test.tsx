@@ -168,7 +168,7 @@ describe('one rest toolbar in the workspace', () => {
       onComment: () => { commented.push(`m${n}`); }, onClose: rest.close, look: {} as never,
     });
     live.current.onClose = rest.close;
-    useToolbarDismissal({ current: null }, live as never, { setLayers: () => {}, foldRow: () => {}, toggleUnderline: () => {} });
+    useToolbarDismissal({ current: null }, live as never, { toggleUnderline: () => {} });
     return null;
   }
 
@@ -216,7 +216,7 @@ describe('Esc returns focus to the mark', () => {
       layers: { custom: false, colors: false } as never, mark: { id: 'm' } as never, onChange: () => {}, onDelete: () => {},
       onComment: () => {}, onClose: rest.close, look: {} as never,
     });
-    useToolbarDismissal(rootRef, live as never, { setLayers: () => {}, foldRow: () => {}, toggleUnderline: () => {} });
+    useToolbarDismissal(rootRef, live as never, { toggleUnderline: () => {} });
     return (
       <div>
         <div data-editor-element-id="m" tabIndex={0} />
