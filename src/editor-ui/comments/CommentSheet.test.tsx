@@ -37,10 +37,12 @@ describe('CommentSheet', () => {
     expect(host!.querySelector('[data-highlight-note-input]')).not.toBeNull();
   });
 
-  it('shows the text and Edit for an existing comment', () => {
+  it('shows the text, with no buttons, for an existing comment', () => {
     mount([hl('a', 'hello there')], 'a');
     expect(sheet()!.textContent).toContain('hello there');
-    expect(sheet()!.querySelector('button[aria-label="Edit"]')).not.toBeNull();
+    expect(sheet()!.querySelector('[role="group"] button')).toBeNull();
+    act(() => { sheet()!.querySelector('p')!.dispatchEvent(new MouseEvent('dblclick', { bubbles: true })); });
+    expect(sheet()!.querySelector('textarea')).not.toBeNull();
   });
 
   it('scrolls the anchor to the centre when it opens', () => {
