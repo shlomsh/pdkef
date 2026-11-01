@@ -2,6 +2,11 @@ import { clampZoom, fitScale, resolveZoom, type PageBox, type Viewport, type Zoo
 import { ACTUAL_SIZE } from './percent.ts';
 import type { KeyAction } from '../marker/keys.ts';
 
+/** The page a fit sizes by: the widest, since the column is as wide as the widest page. */
+export function widestPage(pages: readonly PageBox[]): PageBox | undefined {
+  return pages.reduce<PageBox | undefined>((w, p) => (!w || p.width > w.width ? p : w), undefined);
+}
+
 /** The zoom the view shows: Fit width of the card in the normal view, the remembered setting in the lamp. */
 export function displayZoom(setting: ZoomSetting, inLamp: boolean, page: PageBox | undefined, view: Viewport): number {
   if (!page || view.width === 0) return typeof setting === 'number' && inLamp ? clampZoom(setting) : ACTUAL_SIZE;

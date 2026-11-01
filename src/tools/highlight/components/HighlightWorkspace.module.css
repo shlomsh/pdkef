@@ -1,4 +1,6 @@
-.workspace { overflow-x: auto; touch-action: pan-x pan-y; scrollbar-width: none; }
+/* Outside the lamp the page fits the width and never pans (R20); the lamp's board scrolls both ways. */
+.workspace { overflow-x: clip; touch-action: pan-y; scrollbar-width: none; }
+.workspace[data-lamp] { overflow-x: auto; touch-action: pan-x pan-y; }
 .workspace::-webkit-scrollbar:horizontal { display: none; }
 .board { align-self: flex-start; flex: none; }
 .top { position: sticky; left: 0; display: flex; align-items: center; gap: var(--space-3); justify-content: center; }
