@@ -7,7 +7,7 @@ epic: "highlight-pdf"
 horizon: "now"
 order: 1
 depends_on: []
-needs: "Your pick between the two comment sketches"
+needs: "A name for the fullscreen reading mode"
 ---
 
 # READ-01 · From sketches to hard requirements
@@ -98,14 +98,18 @@ against this list.
 
 27. **A comment belongs to a highlight**, nothing else (first design, unchanged). Sign keeps comment on
     everything.
-28. **Nothing moves the page but the reader.** Opening, writing or closing a comment never shifts, re-fits or
-    re-zooms the page. Measured in the sketch: reserving a rail when the first comment opened threw the page
-    268 px sideways and slid it back over 600 ms while the reader started typing.
+28. **The page and its notes fit together, as in Google Docs.** With no notes, fitting fits the page alone.
+    Once a document has a note, Fit width and Fit text fit the page plus a notes column beside it, and saved
+    notes show in that column beside their passages. The first note makes room at once, when its card opens:
+    the page keeps its left edge and shrinks, in one layout with no slide, and the passage being commented
+    stays on the same line of the screen (measured in the sketch: the same 431 px before and after). The last
+    note gives the room back the same way. Nothing else about a note moves the page. The first sketch
+    reserved a rail and then re-fitted with an animation, and threw the page 268 px sideways for 600 ms while
+    the reader started typing; that is what this rule replaces. (Shlomi, 2026-11-01, from Google Docs.)
 29. **Comments travel with their passages.** Anything anchored to the page (marks, note markers, open
     cards) moves with it in the same frame during scroll, pinch and zoom. Measured in the sketch: a card in a
     separate rail drifted up to 157 px from its passage during a pinch, then snapped back.
 
-How comments are placed is the open call below.
 
 ### Shared with Sign, in the PDF standard (R44 to R46)
 
@@ -237,15 +241,14 @@ has no dark theme to check.
 2. **Touch targets:** the highlight toolbar's buttons are 44 px on a coarse pointer and 28 to 32 px on a
    fine one.
 3. **Esc closes one layer at a time:** the custom panel, then the colors, then the toolbar.
+4. **Comments sit beside the page**, as in Google Docs (R28). Zoomed in past the fit, where the column has no
+   room, a note shows as a pin in the margin and opens over the margin under its passage. The popover
+   sketch (a dot at the passage's end) was not taken.
 
 ## Open call (Shlomi)
 
-**Comment placement**, to be chosen from two sketches in the reading room. Both meet R28 and R29.
-- *Margin marker and card:* a small marker in the page margin beside the passage, inside the page so it
-  zooms with it, opening a card beside the passage (in the free space next to the page when there is room,
-  otherwise over the margin without covering the line).
-- *Popover at the passage:* no margin marker; a commented highlight carries a small note dot at its end, and
-  the card opens just under the passage, over the page.
+**What the fullscreen reading mode is called.** "Reading room" is the sketch's working name. Suggested:
+Study (plain, what the student is doing) or Folio (a page, short and chic).
 
 ## Acceptance
 
@@ -253,6 +256,7 @@ has no dark theme to check.
 - [x] Checked in a real browser at 980, 1280 and 1440 px wide, English, Hebrew and a scanned two-column
   page.
 - [x] Shlomi answers the name, touch target and Esc calls.
-- [ ] Shlomi picks a comment placement from the two sketches.
+- [x] Shlomi decides comment placement (beside the page, as in Google Docs).
+- [ ] Shlomi names the fullscreen reading mode.
 - [ ] The design record says the same as this list (no older rule left standing).
 - [ ] READ-03, READ-05 and READ-07 point here for their behaviour.
