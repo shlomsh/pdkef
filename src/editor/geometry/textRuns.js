@@ -8,8 +8,9 @@ import { toPagePercentBox } from '#editor/geometry/coords.ts';
  * does, so who performs this conversion is not an implementation detail - it
  * decides whether a measurement describes the product or a subset of it.
  *
- * It lives here because there are two callers with the same need and different
- * ways of opening a document: `useFormFieldRegions.ts` has a `PDFPageProxy`
+ * It lives in the editor geometry because there are three callers with the same
+ * need (Sign's field detection, the scored corpus, and Highlight PDF's swipe
+ * direction) and different ways of opening a document: `useFormFieldRegions.ts` has a `PDFPageProxy`
  * from the viewer, and the scored corpus opens the file itself in Node. Only
  * the opening differs; the conversion is the same arithmetic, and a second
  * copy of it would be a second set of numbers waiting to disagree.
