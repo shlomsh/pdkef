@@ -33,16 +33,3 @@ export interface CapsuleLabels {
   jump: string;
   go: string;
 }
-
-export const englishCapsuleLabels: CapsuleLabels = {
-  toolbar: 'Reading lamp',
-  exit: 'Exit full screen',
-  undo: 'Undo',
-  redo: 'Redo',
-  print: 'Print',
-  download: 'Download',
-  more: 'More',
-  page: 'Page {n} of {count}',
-  jump: 'Go to page',
-  go: 'Go',
-};

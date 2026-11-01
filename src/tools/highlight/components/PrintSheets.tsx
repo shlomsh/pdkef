@@ -1,21 +1,20 @@
 import { createPortal } from 'preact/compat';
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'preact/hooks';
+import { useMemo } from 'preact/hooks';
 import type { PDFDocumentProxy } from 'pdfjs-dist';
 import type { EditorElement, HighlightElement } from '#editor/model/editorModel.ts';
-import { turnsOf, type PageTurns } from '#editor/geometry/pageTurn.ts';
+import type { PageTurns } from '#editor/geometry/pageTurn.ts';
 import { underlineInk, UNDERLINE_LIFT, UNDERLINE_WIDTH } from '#editor/model/underlineInk.ts';
-import { renderPageToCanvas } from '#lib/pdf/renderPage.js';
-import { reportError } from '#lib/telemetry/errorReport.ts';
 import { formatMessage } from '#lib/text/formatMessage.ts';
 import { englishSignMessages } from '#editor/registry/signMessages.ts';
-import { readPageInk } from '../hooks/readInkBounds.ts';
-import { turnedPageBox } from '../lib/zoom/turnedBox.ts';
 import { printNotes } from '../lib/print/printNotes.ts';
-import { endNotesPages, END_NOTES_HEADING, END_NOTES_MARGIN } from '../lib/print/endNotes.ts';
+import { END_NOTES_MARGIN } from '../lib/print/endNotes.ts';
 import type { PrintNotes } from '../lib/print/printMenu.ts';
 import { englishHighlightMessages } from '../messages.ts';
 import { usePrintPaper } from '../hooks/usePrintPaper.ts';
-import { NOTE_FONT_PT, printPlan, type PagePrintPlan, type PrintNote, type PrintPage } from '../lib/print/printPlan.ts';
+import { usePageImages, usePrintPages } from '../hooks/usePrintPages.ts';
+import { useMeasuredHeights } from '../hooks/useMeasuredHeights.ts';
+import { useEndNotes } from '../hooks/useEndNotes.ts';
+import { NOTE_FONT_PT, printPlan, type PagePrintPlan, type PrintNote } from '../lib/print/printPlan.ts';
 import styles from './PrintSheets.module.css';
 
 interface Props {
@@ -31,15 +30,7 @@ interface Props {
 
 type NoteSeed = Omit<PrintNote, 'height'>;
 
-/** Pages are drawn at twice their printed size so a sheet stays sharp on paper. */
-const PRINT_OVERSAMPLE = 2;
-const CSS_PX_PER_PT = 96 / 72;
-
 const NO_TURNS: PageTurns = {};
-
-/** pdf.js rotation for a page: its own /Rotate plus the person's turns. */
-const turnedRotation = (page: { rotate?: number }, turns: PageTurns, index: number) =>
-  (((page.rotate ?? 0) + 90 * turnsOf(turns, index)) % 360 + 360) % 360;
 
 const pt = (value: number) => `${value}pt`;
 
@@ -145,133 +136,40 @@ function Sheet({ plan, pageName, image, highlights, texts, marks, onSettled }: {
  */
 export default function PrintSheets({ pdfDocument, elements, notes, pageTurns = NO_TURNS, onReady }: Props) {
   const withNotes = notes === 'beside';
-  const [pages, setPages] = useState<PrintPage[]>([]);
-  const [images, setImages] = useState<string[] | null>(null);
-  const [measured, setMeasured] = useState<{ notes: NoteSeed[]; heights: ReadonlyMap<string, number> } | null>(null);
-  const measureRef = useRef<HTMLDivElement>(null);
-  const settled = useRef(new Set<number>());
-  const fired = useRef<string[] | null>(null);
-  const onReadyRef = useRef(onReady);
-  onReadyRef.current = onReady;
 
-  // Page sizes in points.
-  useEffect(() => {
-    let current = true;
-    (async () => {
-      try {
-        const sizes: PrintPage[] = [];
-        for (let n = 1; n <= pdfDocument.numPages; n++) {
-          const page = await pdfDocument.getPage(n);
-          const rotation = turnedRotation(page, pageTurns, n - 1);
-          const { width, height } = page.getViewport({ scale: 1, rotation });
-          // Each page's own text extent, so the notes never cover a line however the pages differ.
-          const ink = withNotes && rotation % 180 === 0 ? await readPageInk(pdfDocument, n - 1, () => current, pageTurns).catch(() => null) : null;
-          if (!current) return;
-          if (!ink) { sizes.push({ width, height }); continue; }
-          const box = turnedPageBox({ width, height }, rotation / 90, ink);
-          sizes.push({ width, height, inkLeft: box.textLeft, inkRight: box.textRight });
-        }
-        if (current) setPages(sizes);
-      } catch (error) {
-        if (current) reportError('pdf_render', error, 'print_page_sizes');
-      }
-    })();
-    return () => { current = false; };
-  }, [pdfDocument, pageTurns, withNotes]);
+  const pages = usePrintPages(pdfDocument, pageTurns, withNotes);
 
-  // The notes at the end print on the size of the last page, upright.
-  const endSheet = useMemo(() => {
-    const last = pages[pages.length - 1];
-    if (notes !== 'end' || !last) return null;
-    return turnsOf(pageTurns, pages.length - 1) % 2 === 1 ? { width: last.height, height: last.width } : { width: last.width, height: last.height };
-  }, [notes, pages, pageTurns]);
+  const { sheet: endSheet, entries: endEntries, measure: endMeasure, pages: endPages } = useEndNotes(notes, pages, pageTurns, elements);
   const paperSheets = useMemo(() => (endSheet ? [...pages, endSheet] : pages), [pages, endSheet]);
   const pageNames = usePrintPaper(paperSheets);
 
   const basePlan = useMemo(() => printPlan(pages, withNotes ? [] : null), [pages, withNotes]);
 
-  // Page images, each at 2x of its printed size.
-  useEffect(() => {
-    if (pages.length === 0) return undefined;
-    let current = true;
-    setImages(null);
-    (async () => {
-      try {
-        const urls: string[] = [];
-        for (let i = 0; i < pages.length; i++) {
-          const scale = PRINT_OVERSAMPLE * (basePlan[i].pageBox.width / pages[i].width) * CSS_PX_PER_PT;
-          const page = await pdfDocument.getPage(i + 1);
-          const canvas = await renderPageToCanvas(page, { scale, rotation: turnedRotation(page, pageTurns, i) });
-          urls.push(canvas.toDataURL('image/png'));
-          canvas.width = 0;
-          if (!current) return;
-        }
-        settled.current = new Set();
-        setImages(urls);
-      } catch (error) {
-        if (current) reportError('pdf_render', error, 'print_render');
-      }
-    })();
-    return () => { current = false; };
-  }, [pdfDocument, pages, basePlan, pageTurns]);
+  const { images, onSettled } = usePageImages(pdfDocument, pages, basePlan, pageTurns, onReady);
 
   const seeds = useMemo(() => (withNotes && pages.length > 0 ? printNotes(elements, pages) : null), [withNotes, elements, pages]);
-  const endEntries = useMemo(() => (endSheet ? printNotes(elements, pages) : null), [endSheet, elements, pages]);
   const marks = markColors(elements);
   const texts = useMemo(() => new Map(elements.flatMap((el) => (el.type === 'comment' ? [[el.id, el.comment] as const] : []))), [elements]);
 
   // Cards are measured hidden at the notes width, then handed to printPlan.
-  const needsMeasure = seeds !== null && seeds.length > 0 && measured?.notes !== seeds;
-  useLayoutEffect(() => {
-    if (!needsMeasure || !seeds || !measureRef.current) return;
-    const heights = new Map<string, number>();
-    measureRef.current.querySelectorAll<HTMLElement>('[data-print-card]').forEach((card) => {
-      heights.set(card.dataset.noteId ?? '', (card.offsetHeight * 72) / 96);
-    });
-    setMeasured({ notes: seeds, heights });
-  }, [needsMeasure, seeds]);
-
-  // The notes at the end are measured the same way, at the width of the notes sheet.
-  const [endMeasured, setEndMeasured] = useState<{ entries: NoteSeed[]; heights: ReadonlyMap<string, number> } | null>(null);
-  const endMeasureRef = useRef<HTMLDivElement>(null);
-  const needsEndMeasure = endEntries !== null && endEntries.length > 0 && endMeasured?.entries !== endEntries;
-  useLayoutEffect(() => {
-    if (!needsEndMeasure || !endEntries || !endMeasureRef.current) return;
-    const heights = new Map<string, number>();
-    endMeasureRef.current.querySelectorAll<HTMLElement>('[data-print-end-entry]').forEach((entry) => {
-      heights.set(entry.dataset.noteId ?? '', (entry.offsetHeight * 72) / 96);
-    });
-    setEndMeasured({ entries: endEntries, heights });
-  }, [needsEndMeasure, endEntries]);
-
-  const endPages = useMemo(() => {
-    if (!endSheet || !endEntries || endMeasured?.entries !== endEntries) return [];
-    return endNotesPages(endEntries, endSheet.height, (n) => endMeasured.heights.get(n.id) ?? 0, END_NOTES_HEADING);
-  }, [endSheet, endEntries, endMeasured]);
+  const measure = useMeasuredHeights(seeds);
 
   const plans = useMemo(() => {
     if (pages.length === 0) return null;
     if (seeds === null) return printPlan(pages, null);
     if (seeds.length === 0) return printPlan(pages, []);
-    if (measured?.notes !== seeds) return null;
-    return printPlan(pages, seeds.map((n) => ({ ...n, height: measured.heights.get(n.id) ?? 0 })));
-  }, [pages, seeds, measured]);
-
-  const onSettled = (index: number) => {
-    settled.current.add(index);
-    if (images && settled.current.size === images.length && fired.current !== images) {
-      fired.current = images;
-      onReadyRef.current();
-    }
-  };
+    const heights = measure.heights;
+    if (!heights) return null;
+    return printPlan(pages, seeds.map((n) => ({ ...n, height: heights.get(n.id) ?? 0 })));
+  }, [pages, seeds, measure.heights]);
 
   const highlightsOf = (pageIndex: number) =>
     elements.filter((el): el is HighlightElement => el.type === 'highlight' && el.pageIndex === pageIndex);
 
   return createPortal(
     <div data-print-root class={styles.root}>
-      {needsMeasure && seeds && (
-        <div ref={measureRef} data-print-measure class={styles.measure}>
+      {measure.needs && seeds && (
+        <div ref={measure.ref} data-print-measure class={styles.measure}>
           {pages.map((_, pageIndex) => {
             const box = basePlan[pageIndex]?.notesBox;
             return (
@@ -284,8 +182,8 @@ export default function PrintSheets({ pdfDocument, elements, notes, pageTurns = 
           })}
         </div>
       )}
-      {needsEndMeasure && endEntries && endSheet && (
-        <div ref={endMeasureRef} data-print-measure class={styles.measure} style={{ width: pt(endSheet.width - 2 * END_NOTES_MARGIN) }}>
+      {endMeasure.needs && endEntries && endSheet && (
+        <div ref={endMeasure.ref} data-print-measure class={styles.measure} style={{ width: pt(endSheet.width - 2 * END_NOTES_MARGIN) }}>
           {endEntries.map((n) => <EndEntry key={n.id} note={n} text={texts.get(n.id) ?? ''} color={marks.get(n.id)} />)}
         </div>
       )}

@@ -1,4 +1,4 @@
-import { englishCapsuleLabels, type CapsuleLabels } from './components/capsule/capsuleItems.ts';
+import type { CapsuleLabels } from './components/capsule/capsuleItems.ts';
 
 /** Highlight's strings. English only at launch; a localized edition follows the languages page. */
 export interface HighlightMessages {
@@ -88,5 +88,16 @@ export const englishHighlightMessages: HighlightMessages = {
   printWithNotes: 'Print with my notes',
   printNotesAtEnd: 'Print with notes at the end',
   printNotesHeading: 'Notes',
-  capsule: englishCapsuleLabels,
+  capsule: {
+    toolbar: 'Reading lamp',
+    exit: 'Exit full screen',
+    undo: 'Undo',
+    redo: 'Redo',
+    print: 'Print',
+    download: 'Download',
+    more: 'More',
+    page: 'Page {n} of {count}',
+    jump: 'Go to page',
+    go: 'Go',
+  },
 };
