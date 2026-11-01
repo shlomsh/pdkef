@@ -30,7 +30,7 @@ export function findShapeViolations(paths) {
   return bad;
 }
 
-const LIB_FOLDERS = new Set(['pdf', 'pages', 'images', 'telemetry', 'handoff', 'output', 'hooks', 'text', 'app', 'appUpdate', 'drafts', 'fonts', 'gestures', 'history', '__fixtures__']);
+const LIB_FOLDERS = new Set(['pdf', 'pages', 'images', 'telemetry', 'handoff', 'output', 'hooks', 'text', 'app', 'appUpdate', 'drafts', 'fonts', 'gestures', 'history', 'pageLayout', '__fixtures__']);
 
 /** @param {string[]} paths repo-relative, forward-slash paths. @returns {string[]} the src/lib paths outside the domain folders. */
 export function findLibShapeViolations(paths) {
