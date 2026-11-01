@@ -9,6 +9,7 @@ import type { HistoryLogger } from '#editor/model/actionHistory.ts';
 import type { EditorElement, HighlightElement } from '#editor/model/editorModel.ts';
 import type { ElementsAction } from '#editor/model/elementsReducer.ts';
 import { turnsOf, type PageTurns } from '#editor/geometry/pageTurn.ts';
+import type { PageGeometry } from '#editor/geometry/coords.ts';
 import { englishSignMessages } from '#editor/registry/signMessages.ts';
 import { pageTextDirection } from '#editor/text/textDirection.js';
 import { directionAtPoint, readerTextDirection, resolveHighlightDirection } from '#editor/highlight/resolveDirection.ts';
@@ -67,7 +68,8 @@ export default function HighlightPage({ pdfDocument, pageIndex, widthPx, element
   onSelectComment?: (commentId: string) => void;
   /** The quarter turns the person gave each page; this page is drawn, and marked, as turned. */
   pageTurns?: PageTurns;
-  onRotate: () => void;
+  /** One quarter turn, handed the page as it is shown now (the turn's starting point). */
+  onRotate: (geometry: PageGeometry) => void;
   onClear: () => void;
 }) {
   const { geometry, textRunsRef } = usePageGeometry(pdfDocument, pageIndex, turnsOf(pageTurns, pageIndex));
@@ -142,7 +144,7 @@ export default function HighlightPage({ pdfDocument, pageIndex, widthPx, element
       data-editor-page-card ref={cardRef} className={rail ? notes.withRail : undefined}
       style={rail ? { '--page-w': `${widthPx}px`, '--notes-w': `${NOTES_W}px` } : undefined}
     >
-      <HighlightPageHeader pageIndex={pageIndex} hasMarks={elements.some((el) => el.pageIndex === pageIndex)} onRotate={onRotate} onClear={onClear} />
+      <HighlightPageHeader pageIndex={pageIndex} hasMarks={elements.some((el) => el.pageIndex === pageIndex)} onRotate={() => { if (geometry) onRotate(geometry); }} onClear={onClear} />
       <div className={`${workspaceStyles['page-wrapper']} ${styles.page}`} data-page-wrapper style={{ width: `${widthPx}px`, ...(pen ? { cursor: pen } : {}) }}>
         <PdfPageCanvas pdfDocument={pdfDocument} pageNum={pageIndex + 1} pageGeometry={geometry} />
         <div

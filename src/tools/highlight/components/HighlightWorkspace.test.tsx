@@ -119,7 +119,7 @@ const note: CommentElement = {
 };
 
 /** A workspace of the given width with one page and these elements; the zoom is 1 and the page 600 px wide. */
-function mountNoted(elements: EditorElement[], workspaceWidth: number, extra: Record<string, unknown> = {}) {
+function mountNoted(elements: EditorElement[], workspaceWidth: number, extra: Record<string, unknown> = {}, page?: object) {
   const originalRect = HTMLElement.prototype.getBoundingClientRect;
   HTMLElement.prototype.getBoundingClientRect = function rect() {
     return { ...originalRect.call(this), width: this.hasAttribute('data-workspace') ? workspaceWidth : 0 } as DOMRect;
@@ -139,7 +139,7 @@ function mountNoted(elements: EditorElement[], workspaceWidth: number, extra: Re
   document.body.appendChild(container);
   act(() => render(
     <Harness
-      pdfDocument={{ getPage: () => new Promise(() => {}) } as unknown as PDFDocumentProxy} numPages={1} fileName="a.pdf" zoom={zoom} marks={marks} undo={vi.fn()} redo={vi.fn()}
+      pdfDocument={{ getPage: () => (page ? Promise.resolve(page) : new Promise(() => {})) } as unknown as PDFDocumentProxy} numPages={1} fileName="a.pdf" zoom={zoom} marks={marks} undo={vi.fn()} redo={vi.fn()}
       setAnnouncement={vi.fn()} onDownload={vi.fn()} workspaceRef={workspaceRef} columnRef={{ current: null }}
       onToggleFullscreen={vi.fn()} fullscreen={false} pseudoFullscreen={false}
     />,
@@ -217,12 +217,13 @@ describe('HighlightWorkspace page header (Rotate and Clear page)', () => {
   beforeEach(() => { vi.unstubAllGlobals(); });
   afterEach(() => { vi.unstubAllGlobals(); });
 
-  it('shows Rotate and Clear page, and each calls the marks with the page index', () => {
-    const { marks, restore } = mountNoted([mark], 700);
+  it('shows Rotate and Clear page, and each calls the marks with the page index; Rotate hands over the page as shown', async () => {
+    const { marks, restore } = mountNoted([mark], 700, {}, { view: [0, 0, 600, 800], rotate: 0, getTextContent: () => Promise.resolve({ items: [] }) });
+    await act(async () => { await Promise.resolve(); });
     const header = container!.querySelector<HTMLElement>('[data-editor-page-header]')!;
     const button = (text: string) => [...header.querySelectorAll('button')].find((b) => b.textContent?.includes(text))!;
     act(() => { button('Rotate').click(); });
-    expect((marks as unknown as { rotatePage: ReturnType<typeof vi.fn> }).rotatePage).toHaveBeenCalledWith(0);
+    expect((marks as unknown as { rotatePage: ReturnType<typeof vi.fn> }).rotatePage).toHaveBeenCalledWith(0, expect.objectContaining({ width: 600, height: 800 }));
     act(() => { button('Clear page').click(); });
     expect((marks as unknown as { clearPage: ReturnType<typeof vi.fn> }).clearPage).toHaveBeenCalledWith(0);
     restore();
