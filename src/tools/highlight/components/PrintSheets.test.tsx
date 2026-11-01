@@ -3,6 +3,7 @@ import { act } from 'preact/test-utils';
 import type { PDFDocumentProxy } from 'pdfjs-dist';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { EditorElement } from '#editor/model/editorModel.ts';
+import type { PageTurns } from '#editor/geometry/pageTurn.ts';
 import PrintSheets from './PrintSheets.tsx';
 
 const renderPageToCanvas = vi.hoisted(() => vi.fn());
@@ -28,12 +29,12 @@ afterEach(() => {
   renderPageToCanvas.mockReset();
 });
 
-async function mount(withNotes: boolean) {
+async function mount(withNotes: boolean, pageTurns?: PageTurns, doc: PDFDocumentProxy = pdfDocument) {
   renderPageToCanvas.mockResolvedValue({ toDataURL: () => 'data:image/png;base64,AAAA' });
   const onReady = vi.fn();
   container = document.createElement('div');
   document.body.appendChild(container);
-  await act(async () => { render(<PrintSheets pdfDocument={pdfDocument} elements={elements} withNotes={withNotes} onReady={onReady} />, container!); });
+  await act(async () => { render(<PrintSheets pdfDocument={doc} elements={elements} withNotes={withNotes} pageTurns={pageTurns} onReady={onReady} />, container!); });
   await vi.waitFor(() => expect(renderPageToCanvas).toHaveBeenCalledTimes(2));
   await act(async () => { await new Promise((r) => setTimeout(r, 20)); });
   return { onReady };
@@ -82,6 +83,25 @@ describe('PrintSheets', () => {
     expect(onReady).not.toHaveBeenCalled();
     loadAll();
     expect(onReady).toHaveBeenCalledTimes(1);
+  });
+
+  it('renders a turned page landscape, asking pdf.js for the page rotation plus the turn', async () => {
+    const rotations: number[] = [];
+    const doc = {
+      numPages: 2,
+      getPage: async () => ({
+        rotate: 90,
+        getViewport: ({ rotation }: { rotation: number }) => {
+          rotations.push(rotation);
+          return rotation % 180 === 0 ? { width: 600, height: 800 } : { width: 800, height: 600 };
+        },
+      }),
+    } as unknown as PDFDocumentProxy;
+    await mount(false, { 0: 1 }, doc);
+    expect(sheets()[0].style.width).toBe('600pt');
+    expect(sheets()[1].style.width).toBe('800pt');
+    expect(rotations).toContain(180);
+    expect(rotations).toContain(90);
   });
 
   it('removes its root when it unmounts', async () => {
