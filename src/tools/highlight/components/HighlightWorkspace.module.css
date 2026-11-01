@@ -5,7 +5,7 @@
 .board { align-self: flex-start; flex: none; }
 /* The tool's row stays under the site bar (h-14) while the reader scrolls the document, so leaving the lamp keeps
    the reader's place and the row in view (Shlomi, 2026-11-01). */
-.top { position: sticky; top: 3.5rem; left: 0; z-index: 15; padding-block: var(--space-2); background: var(--color-surface); box-shadow: 0 1px 0 var(--color-border); display: flex; justify-content: center; }
+.top { position: sticky; top: 3.5rem; left: 0; z-index: 15; padding-block: var(--space-2); display: flex; justify-content: center; }
 /* The column is as wide as the widest page and sits on the board at a fixed left margin: no auto margins. */
 .column { display: flex; flex-direction: column; gap: 2rem; flex: none; touch-action: pan-x pan-y; }
 .floating { position: fixed; top: 12px; left: 50%; transform: translateX(-50%); z-index: 30; }

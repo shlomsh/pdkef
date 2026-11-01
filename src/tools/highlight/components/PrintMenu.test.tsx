@@ -80,4 +80,12 @@ describe('PrintMenu', () => {
     act(() => { container!.querySelector('[data-trigger]')!.dispatchEvent(new Event('pointerdown', { bubbles: true })); });
     expect(props.onClose).not.toHaveBeenCalled();
   });
+
+  it('opens at the given top in px when floating, and sets none otherwise', () => {
+    mount({ placement: 'floating', top: 120 });
+    expect((container!.firstElementChild as HTMLElement).style.top).toBe('120px');
+    act(() => render(null, container!));
+    mount({ placement: 'floating' });
+    expect((container!.firstElementChild as HTMLElement).style.top).toBe('');
+  });
 });
