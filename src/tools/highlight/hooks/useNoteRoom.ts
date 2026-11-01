@@ -1,5 +1,5 @@
 import { useRef } from 'preact/hooks';
-import { elementsReducer, type ElementsAction, type ElementsState } from '#editor/model/elementsReducer.ts';
+import { highlightReducer, type HighlightAction, type HighlightState } from '../lib/marks/highlightState.ts';
 import type { Point } from '../lib/zoom/anchor.ts';
 import { affectsNotes, roomChange } from '../lib/notes/roomChange.ts';
 
@@ -10,8 +10,8 @@ import { affectsNotes, roomChange } from '../lib/notes/roomChange.ts';
  * arrives, so they may belong to hooks that are created after this one.
  */
 export function useNoteRoom({ state, dispatch, columnRef, zoom, isWide }: {
-  state: ElementsState;
-  dispatch: (action: ElementsAction) => void;
+  state: HighlightState;
+  dispatch: (action: HighlightAction) => void;
   columnRef: { current: HTMLElement | null };
   zoom: () => { makeRoom(noted: boolean, point: Point): void };
   isWide: () => boolean;
@@ -21,9 +21,9 @@ export function useNoteRoom({ state, dispatch, columnRef, zoom, isWide }: {
   pending.current = state;
 
   return {
-    dispatch: (action: ElementsAction) => {
+    dispatch: (action: HighlightAction) => {
       const before = pending.current;
-      const after = elementsReducer(before, action);
+      const after = highlightReducer(before, action);
       pending.current = after;
       if (!affectsNotes(action)) return dispatch(action);
       const change = roomChange(before, after, isWide());
