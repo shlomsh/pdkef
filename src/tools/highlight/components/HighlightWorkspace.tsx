@@ -23,7 +23,7 @@ function emitter<A extends unknown[]>() {
 
 const MODE_LABEL = { width: t.fitWidth, text: t.fitText, page: t.fitPage } as const;
 
-/** The page column on a board the reader pans and zooms; nothing re-centres on its own. */
+/** The page column: the card at its own width, or in the reading lamp a board the reader pans and zooms. */
 export default function HighlightWorkspace({ pdfDocument, numPages, fileName, zoom, marks, setAnnouncement, onDownload, workspaceRef, columnRef, fullscreen, onToggleFullscreen }: {
   pdfDocument: PDFDocumentProxy;
   numPages: number;
@@ -77,12 +77,11 @@ export default function HighlightWorkspace({ pdfDocument, numPages, fileName, zo
         </div>
       ) : (
         <div className={styles.top}>
-          {menu()}
           <button type="button" className={styles.download} onClick={onDownload}>{t.capsule.download}</button>
           <button type="button" className={styles.enter} onClick={onToggleFullscreen}><ReadingLampIcon size={20} />{t.enterLamp}</button>
         </div>
       )}
-      <ZoomReadout text={readout} />
+      {fullscreen && <ZoomReadout text={readout} />}
       <div className={styles.board} style={{ width: `${zoom.board.boardWidth}px` }}>
       <div
         className={styles.column} ref={columnRef}

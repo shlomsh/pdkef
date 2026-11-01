@@ -3,6 +3,7 @@ import type { PDFDocumentProxy } from 'pdfjs-dist';
 import type { DetailEdits } from '#editor/registry/draftValidation.ts';
 import { clampZoom, resolveZoom, stepZoom, type PageBox, type ZoomSetting } from '../lib/zoom/fit.ts';
 import { pageAnchorAt } from '../lib/zoom/pageAnchor.ts';
+import { displayZoom } from '../lib/zoom/lamp.ts';
 import { zoomCommit } from '../lib/zoom/commit.ts';
 import { useBoardScroll } from './useBoardScroll.ts';
 import { initialSetting, serializeSetting } from '../lib/zoom/setting.ts';
@@ -10,6 +11,7 @@ import { readInkBounds } from './readInkBounds.ts';
 import { ACTUAL_SIZE } from '../lib/zoom/percent.ts';
 import { usePinchZoom } from './usePinchZoom.ts';
 import { useZoomKeys } from './useZoomKeys.ts';
+import { useLampAnchor } from './useLampAnchor.ts';
 import { useBoardPan } from './useBoardPan.ts';
 import type { Point } from '../lib/zoom/anchor.ts';
 
@@ -29,6 +31,8 @@ export interface WorkspaceZoomOptions {
   /** The page column the zoom scales. */
   columnRef: { current: HTMLElement | null };
   fullscreen: boolean;
+  /** A pinch or zoom key in the normal view asks for the lamp; the owner of the fullscreen state opens it. */
+  onEnterLamp(): void;
 }
 
 /**
@@ -36,7 +40,10 @@ export interface WorkspaceZoomOptions {
  * ways to change it. A pinch only scales the column through its ref while the fingers are down and commits
  * once, 150 ms after the last wheel event or when the second finger lifts (the gesture golden rule).
  */
-export function useWorkspaceZoom({ pdfDocument, workspaceRef, columnRef, fullscreen }: WorkspaceZoomOptions) {
+export function useWorkspaceZoom({ pdfDocument, workspaceRef, columnRef, fullscreen, onEnterLamp: requestLamp }: WorkspaceZoomOptions) {
+  const requestRef = useRef(requestLamp);
+  requestRef.current = requestLamp;
+  const onEnterLamp = useCallback(() => requestRef.current(), []);
   const [setting, setSetting] = useState<ZoomSetting>(() => initialSetting(undefined, storedDefault()));
   const [touched, setTouched] = useState(false);
   const [pages, setPages] = useState<PageBox[]>([]);
@@ -74,11 +81,7 @@ export function useWorkspaceZoom({ pdfDocument, workspaceRef, columnRef, fullscr
     return () => observer.disconnect();
   }, [workspaceRef, fullscreen, ready]);
 
-  const zoom = useMemo(() => {
-    if (typeof setting === 'number') return clampZoom(setting);
-    if (pages.length === 0 || view.width === 0) return ACTUAL_SIZE;
-    return resolveZoom(setting, pages[0], view, { noted: false });
-  }, [setting, pages, view]);
+  const zoom = useMemo(() => displayZoom(setting, fullscreen, pages[0], view), [setting, fullscreen, pages, view]);
 
   const zoomRef = useRef(zoom);
   zoomRef.current = zoom;
@@ -135,9 +138,10 @@ export function useWorkspaceZoom({ pdfDocument, workspaceRef, columnRef, fullscr
   }, [commit]);
   const actual = useCallback((anchor?: Point) => commit(ACTUAL_SIZE, ACTUAL_SIZE, anchor), [commit]);
 
-  useZoomKeys({ enabled: ready, step, actual });
-  useBoardPan({ workspaceRef, fullscreen, enabled: ready });
-  usePinchZoom({ workspaceRef, columnRef, enabled: ready, zoomRef, commit });
+  useZoomKeys({ enabled: ready, inLamp: fullscreen, onEnterLamp, step, actual });
+  useBoardPan({ workspaceRef, fullscreen, enabled: ready && fullscreen });
+  usePinchZoom({ workspaceRef, columnRef, enabled: ready, inLamp: fullscreen, onEnterLamp, zoomRef, commit });
+  useLampAnchor({ workspaceRef, fullscreen });
 
   /** A document just opened: its own setting beats the remembered default (R25). */
   const restore = useCallback((details: DetailEdits | undefined) => {
