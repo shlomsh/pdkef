@@ -34,14 +34,26 @@ export function useBoardPan({ workspaceRef, fullscreen, enabled }: {
       grab(false);
     };
 
+    const reset = () => { space = false; grab(false); };
+    const onHide = () => { if (document.visibilityState === 'hidden') reset(); };
+
+    // The press starts on pointerdown, which fires before the page overlay's own swipe would see it. The pointerdown
+    // is not cancelled (that would suppress the mouse moves the gesture controller listens to); the compatibility
+    // mousedown that follows is cancelled instead, to stop text selection.
+    let swallowMouseDown = false;
     const onMouseDown = (e: MouseEvent) => {
-      if (e.button !== 0) return;
+      if (!swallowMouseDown) return;
+      swallowMouseDown = false;
+      e.preventDefault();
+    };
+    const onPointerDown = (e: PointerEvent) => {
+      if (e.button !== 0 || e.pointerType === 'touch') return;
       const cards = [...ws.querySelectorAll('[data-editor-page-card]')].map((c) => c.getBoundingClientRect());
       const onPage = cards.some((r) => inRect(r, e.clientX, e.clientY));
       const onControl = (e.target as HTMLElement).closest('button, a, input, select, textarea, [role="menu"], [role="toolbar"]');
       if (onControl || (onPage && !space)) return;
-      e.preventDefault();
-      if (space) e.stopPropagation();
+      swallowMouseDown = true;
+      if (space) { e.stopPropagation(); e.preventDefault(); }
       const start = { x: e.clientX, y: e.clientY, left: ws.scrollLeft, top: fullscreen ? ws.scrollTop : window.scrollY };
       ws.style.cursor = 'grabbing';
       const done = () => grab(space);
@@ -60,11 +72,17 @@ export function useBoardPan({ workspaceRef, fullscreen, enabled }: {
       });
     };
 
+    ws.addEventListener('pointerdown', onPointerDown, true);
     ws.addEventListener('mousedown', onMouseDown, true);
     document.addEventListener('keydown', onKeyDown);
     document.addEventListener('keyup', onKeyUp);
+    document.addEventListener('visibilitychange', onHide);
+    window.addEventListener('blur', reset);
     return () => {
+      ws.removeEventListener('pointerdown', onPointerDown, true);
       ws.removeEventListener('mousedown', onMouseDown, true);
+      document.removeEventListener('visibilitychange', onHide);
+      window.removeEventListener('blur', reset);
       document.removeEventListener('keydown', onKeyDown);
       document.removeEventListener('keyup', onKeyUp);
       ws.style.cursor = '';
