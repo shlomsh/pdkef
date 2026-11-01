@@ -38,7 +38,7 @@ function mount(lamp: { fullscreen: boolean; pseudoFullscreen: boolean }) {
   document.body.appendChild(container);
   act(() => render(
     <Harness
-      pdfDocument={{} as PDFDocumentProxy} numPages={0} fileName="a.pdf" zoom={zoom} marks={marks}
+      pdfDocument={{} as PDFDocumentProxy} numPages={0} fileName="a.pdf" zoom={zoom} marks={marks} undo={vi.fn()} redo={vi.fn()}
       setAnnouncement={vi.fn()} onDownload={vi.fn()} workspaceRef={{ current: null }} columnRef={{ current: null }}
       onToggleFullscreen={vi.fn()} {...lamp}
     />,
@@ -93,7 +93,7 @@ function mountNoted(elements: EditorElement[], workspaceWidth: number) {
   document.body.appendChild(container);
   act(() => render(
     <Harness
-      pdfDocument={{ getPage: () => new Promise(() => {}) } as unknown as PDFDocumentProxy} numPages={1} fileName="a.pdf" zoom={zoom} marks={marks}
+      pdfDocument={{ getPage: () => new Promise(() => {}) } as unknown as PDFDocumentProxy} numPages={1} fileName="a.pdf" zoom={zoom} marks={marks} undo={vi.fn()} redo={vi.fn()}
       setAnnouncement={vi.fn()} onDownload={vi.fn()} workspaceRef={workspaceRef} columnRef={{ current: null }}
       onToggleFullscreen={vi.fn()} fullscreen={false} pseudoFullscreen={false}
     />,
