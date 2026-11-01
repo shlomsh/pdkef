@@ -1,0 +1,36 @@
+/* READ-06: printable sheets. Everything is in pt so a sheet is exactly its PDF page. */
+@page { margin: 0; }
+
+/* Off screen, not display none, so the page images still load. */
+.root {
+  position: fixed; left: -100000px; top: 0;
+  -webkit-print-color-adjust: exact; print-color-adjust: exact;
+  background: var(--color-surface); color: var(--color-text);
+}
+
+.sheet { position: relative; overflow: hidden; break-after: page; break-inside: avoid; background: var(--color-surface); }
+.sheet:last-child { break-after: auto; }
+
+.pageBox { position: absolute; }
+.pageImage { display: block; width: 100%; height: 100%; }
+.layer { position: absolute; inset: 0; mix-blend-mode: multiply; }
+.band { position: absolute; }
+.underline { background: linear-gradient(var(--highlight-ink), var(--highlight-ink)) bottom / 100% var(--line) no-repeat; }
+
+.notes { position: absolute; }
+.card {
+  box-sizing: border-box; width: 100%; padding: 3pt;
+  font: inherit; line-height: 1.3;
+  white-space: pre-wrap; overflow-wrap: anywhere;
+  color: var(--color-text); border: 0.5pt solid var(--color-border-strong); background: var(--color-surface);
+}
+.placed { position: absolute; left: 0; }
+
+/* Cards are measured here, at the notes width, before they are placed. */
+.measure { position: absolute; left: 0; top: 0; visibility: hidden; pointer-events: none; }
+
+@media print {
+  :global(body > *:not([data-print-root])) { display: none !important; }
+  .root { position: static; }
+  .measure { display: none; }
+}
