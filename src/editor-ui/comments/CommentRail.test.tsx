@@ -13,10 +13,10 @@ const hl = (id: string, top: number, comment: string, pageIndex = 0): EditorElem
 let host: HTMLDivElement | null = null;
 afterEach(() => { if (host) render(null, host); host?.remove(); host = null; vi.restoreAllMocks(); });
 
-function mount(elements: EditorElement[], activeElementId: string | null = null, extra: { onSelect?: (id: string) => void } = {}) {
+function mount(elements: EditorElement[], activeElementId: string | null = null, extra: { onSelect?: (id: string) => void; onReturnFocus?: (id: string) => void; pageIndex?: number } = {}) {
   host = document.createElement('div');
   document.body.appendChild(host);
-  act(() => render(<CommentRail pageIndex={0} elements={elements} activeElementId={activeElementId} messages={englishSignMessages}
+  act(() => render(<CommentRail pageIndex={extra.pageIndex ?? 0} onReturnFocus={extra.onReturnFocus} elements={elements} activeElementId={activeElementId} messages={englishSignMessages}
     onSelect={extra.onSelect ?? (() => {})} onSave={() => {}} onDelete={() => {}} onDiscard={() => {}} />, host!));
 }
 const cards = () => [...host!.querySelectorAll<HTMLElement>('[data-comment-card]')];
@@ -95,5 +95,25 @@ describe('CommentRail', () => {
     act(() => { cards()[0].dispatchEvent(new MouseEvent('mouseleave')); });
     expect(node.hasAttribute('data-comment-hover')).toBe(false);
     node.remove();
+  });
+
+  it('names each card as a group for its page, quoting the anchored text when the element has one', () => {
+    const text = { id: 't', type: 'text', pageIndex: 2, left: 5, top: 10, text: 'Pay by Friday', width: 20, height: 4 } as unknown as EditorElement;
+    const onText: EditorElement = { id: 'c', type: 'comment', pageIndex: 2, left: 0, top: 0, width: 0, height: 0, comment: 'hi', anchor: { kind: 'element', elementId: 't' } };
+    mount([text, onText, hl('a', 10, 'plain', 2)], null, { pageIndex: 2 });
+    const labels = cards().map((c) => c.querySelector('[role="group"]')!.getAttribute('aria-label'));
+    expect(labels).toEqual(['Comment on page 3, "Pay by Friday"', 'Comment on page 3']);
+  });
+
+  it('opening a note puts the caret in its field', () => {
+    mount([hl('n', 40, '')], 'n');
+    expect(document.activeElement).toBe(host!.querySelector('textarea'));
+  });
+
+  it('hands focus back to the card\'s comment id when a card closes by Cancel', () => {
+    const onReturnFocus = vi.fn();
+    mount([hl('n', 40, '')], 'n', { onReturnFocus });
+    act(() => [...host!.querySelectorAll('button')].find((b) => b.textContent === 'Cancel')!.click());
+    expect(onReturnFocus).toHaveBeenCalledWith('n');
   });
 });
