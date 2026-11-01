@@ -127,7 +127,7 @@ export default function HighlightWorkspace({ pdfDocument, numPages, fileName, zo
           <HighlightPage
             key={i} pdfDocument={pdfDocument} pageIndex={i} widthPx={box.width * zoom.zoom}
             elements={marks.state.elements} marker={marks.marker} rearm={marks.rearm} dispatch={marks.dispatch} logAction={marks.logAction}
-            setAnnouncement={setAnnouncement} cardRef={(el) => { pageRefs.current[i] = el; }}
+            setAnnouncement={setAnnouncement} touchArmed={touch.armed} cardRef={(el) => { pageRefs.current[i] = el; }}
           />
         ))}
       </div>
