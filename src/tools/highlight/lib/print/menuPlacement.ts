@@ -1,4 +1,4 @@
-export interface MenuPlacementInput {
+interface MenuPlacementInput {
   triggerLeft: number;
   triggerRight: number;
   menuWidth: number;
