@@ -107,7 +107,7 @@ export default withIslandBoundary(function PdfHighlightTool() {
         <HighlightWorkspace
           pdfDocument={pdfDocument} numPages={numPages} fileName={file?.name ?? ''} zoom={zoom}
           marks={marks} setAnnouncement={setAnnouncement} onDownload={handleDownload}
-          workspaceRef={workspaceRef} columnRef={columnRef} fullscreen={fullscreen}
+          workspaceRef={workspaceRef} columnRef={columnRef} fullscreen={fullscreen} pseudoFullscreen={pseudoFullscreen}
           onToggleFullscreen={() => toggleWorkspaceFullscreen(workspaceRef.current, pseudoFullscreen, setPseudoFullscreen)}
         />
       )}

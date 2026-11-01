@@ -24,7 +24,7 @@ function emitter<A extends unknown[]>() {
 const MODE_LABEL = { width: t.fitWidth, text: t.fitText, page: t.fitPage } as const;
 
 /** The page column: the card at its own width, or in the reading lamp a board the reader pans and zooms. */
-export default function HighlightWorkspace({ pdfDocument, numPages, fileName, zoom, marks, setAnnouncement, onDownload, workspaceRef, columnRef, fullscreen, onToggleFullscreen }: {
+export default function HighlightWorkspace({ pdfDocument, numPages, fileName, zoom, marks, setAnnouncement, onDownload, workspaceRef, columnRef, fullscreen, pseudoFullscreen, onToggleFullscreen }: {
   pdfDocument: PDFDocumentProxy;
   numPages: number;
   fileName: string;
@@ -35,6 +35,8 @@ export default function HighlightWorkspace({ pdfDocument, numPages, fileName, zo
   workspaceRef: { current: HTMLDivElement | null };
   columnRef: { current: HTMLDivElement | null };
   fullscreen: boolean;
+  /** The lamp stands in for fullscreen: iPhone Safari has none, and a wheel or a refused request gets none. */
+  pseudoFullscreen: boolean;
   onToggleFullscreen(): void;
 }) {
   const pageRefs = useRef<(HTMLDivElement | null)[]>([]);
@@ -63,7 +65,10 @@ export default function HighlightWorkspace({ pdfDocument, numPages, fileName, zo
     : formatMessage(t.readout, { mode: MODE_LABEL[zoom.setting], percent: zoomPercent(zoom.zoom) });
 
   return (
-    <div className={`${workspaceStyles.workspace} ${styles.workspace}`} ref={workspaceRef} data-workspace>
+    <div
+      className={`${workspaceStyles.workspace} ${styles.workspace}${pseudoFullscreen ? ` ${workspaceStyles['pseudo-fullscreen']}` : ''}`}
+      ref={workspaceRef} data-workspace data-pseudo-fullscreen={pseudoFullscreen || undefined}
+    >
       {fullscreen ? (
         <div class={styles.floating}>
           <ReadingCapsule
