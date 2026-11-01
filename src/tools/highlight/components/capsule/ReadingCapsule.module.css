@@ -16,6 +16,8 @@
   box-sizing: border-box;
   font: 600 0.88rem/1 var(--font-sans);
   color: var(--color-text);
+  /* Two quick taps on a button would otherwise be iOS double-tap zoom. */
+  touch-action: manipulation;
 }
 @media (pointer: coarse) {
   .capsule { --target: 2.75rem; }
@@ -116,6 +118,10 @@
   color: var(--color-text);
   font: inherit;
   font-variant-numeric: tabular-nums;
+}
+@media (pointer: coarse) {
+  /* iOS zooms into a field set smaller than 16px. */
+  .number { font-size: 16px; }
 }
 .go {
   appearance: none;
