@@ -10,9 +10,9 @@
 /* READ-04: the tool row is seven controls in one row. Sign's phone label size reads --controls-per-row, which falls back to 4 below nine children. The doubled class with the attribute outranks the :has() count rules. */
 .toolRow.toolRow[data-editor-toolbar] { --controls-per-row: 7; }
 /* Seven controls share one phone row; Sign's formula at 7 gives 7.4px, too small; 8px fits Download down to 375px.
-   The tiles drop their side padding, since Safari sets the label wider than Chromium. A menu's items keep their size. */
+   The tiles drop their side padding, since Safari sets the label wider than Chromium. A menu's items and the Marker swatches (whose padding draws the dot) keep theirs. */
 @media (max-width: 480px) {
-  .toolRow.toolRow[data-editor-toolbar] button:not([role="menuitem"]) { font-size: 0.5rem; padding-inline: 0; }
+  .toolRow.toolRow[data-editor-toolbar] button:not([role="menuitem"]):not([data-highlight-swatch]) { font-size: 0.5rem; padding-inline: 0; }
 }
 /* The lamp's board is at least the workspace's content box: a column taller than it starts at the top and scrolls to
    its bottom, a shorter one is centred, with no room to scroll into. */
