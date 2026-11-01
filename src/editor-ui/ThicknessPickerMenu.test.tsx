@@ -25,4 +25,15 @@ describe('ThicknessPickerMenu', () => {
     await open({});
     expect(document.body.querySelectorAll('[data-editor-thickness]').length).toBe(7);
   });
+
+  it('draws the line glyph by default and a caret with trigger="caret"', () => {
+    const host = document.createElement('div');
+    document.body.appendChild(host);
+    act(() => { render(<ThicknessPickerMenu onChange={() => {}} />, host); });
+    expect(host.querySelector('button line')).not.toBeNull();
+    expect(host.querySelector('button polyline')).toBeNull();
+    act(() => { render(<ThicknessPickerMenu onChange={() => {}} trigger="caret" />, host); });
+    expect(host.querySelector('button polyline')?.getAttribute('points')).toBe('6 9 12 15 18 9');
+    expect(host.querySelector('button line')).toBeNull();
+  });
 });

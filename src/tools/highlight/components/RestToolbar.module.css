@@ -13,7 +13,10 @@
   align-items: center;
   gap: 8px;
 }
+.opacity label { flex: none; font: 600 0.88rem/1 var(--font-sans); }
 .opacity input { flex: 1; min-width: 0; margin: 0; }
+/* Underline toggle and its thickness chevron: one group, no divider between. */
+.split { display: inline-flex; align-items: center; }
 .opacity span { flex: none; min-width: 3ch; text-align: end; font-variant-numeric: tabular-nums; }
 
 /* The one-time hint (R8): a quiet pill beside the end of the ink. */
