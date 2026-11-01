@@ -72,7 +72,7 @@ export default function HighlightWorkspace({ pdfDocument, numPages, fileName, zo
   const commentsContainer = comments.containerRef;
   const setWorkspace = useCallback((node: HTMLDivElement | null) => {
     workspaceRef.current = node;
-    commentsContainer.current = node;
+    commentsContainer(node);
   }, [workspaceRef, commentsContainer]);
   // R29: the column grows by the notes column while the rail shows.
   const notesW = comments.showRail ? NOTES_W : 0;

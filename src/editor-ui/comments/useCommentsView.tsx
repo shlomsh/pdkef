@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'preact/hooks';
+import { useEffect, useState } from 'preact/hooks';
 import type { EditorElement } from '#editor/model/editorModel.ts';
 import type { SignMessages } from '#editor/registry/messages.ts';
 import { formatMessage } from '#lib/text/formatMessage.ts';
@@ -26,15 +26,16 @@ export function useCommentsView({ elements, activeElementId, messages, onSelect,
   onDelete: (id: string) => void;
   onDiscard: (id: string) => void;
 }) {
-  const containerRef = useRef<HTMLDivElement>(null);
+  // A callback ref, so a container that mounts after this hook (Highlight's workspace opens with its file) is
+  // measured too.
+  const [container, containerRef] = useState<HTMLElement | null>(null);
   const [wide, setWide] = useState(false);
   useEffect(() => {
-    const node = containerRef.current;
-    if (!node || typeof ResizeObserver === 'undefined') return undefined;
-    const observer = new ResizeObserver(() => setWide(node.getBoundingClientRect().width >= RAIL_MIN_WIDTH_PX));
-    observer.observe(node);
+    if (!container || typeof ResizeObserver === 'undefined') return undefined;
+    const observer = new ResizeObserver(() => setWide(container.getBoundingClientRect().width >= RAIL_MIN_WIDTH_PX));
+    observer.observe(container);
     return () => observer.disconnect();
-  }, []);
+  }, [container]);
   // The selected comment's anchor wears a deeper tint (or outline) while it is selected.
   useEffect(() => {
     if (!activeElementId) return undefined;
