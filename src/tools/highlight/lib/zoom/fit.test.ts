@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { clampZoom, fitScale, resolveZoom, stepZoom } from './fit';
+import { NOTES_W, clampZoom, fitScale, resolveZoom, stepZoom } from './fit';
 
 const page = { width: 612, height: 792, textLeft: 72, textRight: 540 };
 const view = { width: 1440, height: 900 };
@@ -8,10 +8,10 @@ const r4 = (n: number) => Math.round(n * 10000) / 10000;
 describe('fitScale', () => {
   it('fits width, with and without the notes column', () => {
     expect(r4(fitScale('width', page, view, { noted: false }))).toBe(2.3007);
-    expect(r4(fitScale('width', page, view, { noted: true }))).toBe(1.5714);
+    expect(r4(fitScale('width', page, view, { noted: true }))).toBe(1.6526);
   });
   it('fits text with the notes column as page-space', () => {
-    expect(r4(fitScale('text', page, view, { noted: true }))).toBe(1.7959);
+    expect(r4(fitScale('text', page, view, { noted: true }))).toBe(1.9027);
     expect(r4(fitScale('page', page, view, { noted: true }))).toBe(1.0253);
   });
   it('fits text', () => {
@@ -64,5 +64,17 @@ describe('stepZoom from a fit below the floor', () => {
   it('zooming out stays put and zooming in goes to the first step', () => {
     expect(stepZoom(0.45, -1)).toBe(0.45);
     expect(stepZoom(0.45, 1)).toBe(0.5);
+  });
+});
+
+describe('fitScale with the notes column in px (the normal view)', () => {
+  it('leaves NOTES_W px of the width to the notes, and fits the page in the rest', () => {
+    const opts = { noted: true, notesIn: 'px' as const, pad: 0 };
+    expect(fitScale('width', page, view, opts)).toBeCloseTo((1440 - NOTES_W) / 612);
+    expect(fitScale('text', page, view, opts)).toBeCloseTo((1440 - NOTES_W) / (468 + 32));
+  });
+  it('is the plain fit without notes, and page units stay the default', () => {
+    expect(fitScale('width', page, view, { noted: false, notesIn: 'px', pad: 0 })).toBeCloseTo(1440 / 612);
+    expect(fitScale('width', page, view, { noted: true, pad: 0 })).toBeCloseTo(1440 / (612 + NOTES_W));
   });
 });

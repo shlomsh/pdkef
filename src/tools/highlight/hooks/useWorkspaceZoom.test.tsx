@@ -74,3 +74,26 @@ describe('useWorkspaceZoom in the normal view', () => {
     expect(latest!.zoom).toBe(before);
   });
 });
+
+describe('useWorkspaceZoom chrome and entering the lamp', () => {
+  afterEach(() => { localStorage.clear(); Object.defineProperty(workspace, 'clientWidth', { value: 0, configurable: true }); });
+  it('chrome is 1 in the normal view and equals the zoom in the lamp', async () => {
+    Object.defineProperty(workspace, 'clientWidth', { value: 1000, configurable: true });
+    await mount({});
+    expect(latest!.chrome).toBe(1);
+    await mount({}, true);
+    expect(latest!.chrome).toBe(latest!.zoom);
+    expect(latest!.chrome).not.toBe(1);
+  });
+  it('entering the lamp with a remembered 1.8 starts at Fit width', async () => {
+    Object.defineProperty(workspace, 'clientWidth', { value: 1000, configurable: true });
+    localStorage.setItem('pdkef:highlight:zoom-default', '1.8');
+    await mount({});
+    expect(latest!.setting).toBe(1.8);
+    await mount({}, true);
+    expect(latest!.setting).toBe('width');
+    expect(latest!.zoom).toBeCloseTo((1000 - 32) / 600);
+    expect(localStorage.getItem('pdkef:highlight:zoom-default')).toBe('1.8');
+    expect(latest!.touched).toBe(false);
+  });
+});

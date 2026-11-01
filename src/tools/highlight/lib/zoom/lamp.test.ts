@@ -24,8 +24,8 @@ describe('displayZoom', () => {
 });
 
 describe('displayZoom with notes', () => {
-  it('fits the page plus the notes column in the normal view', () => {
-    expect(displayZoom('width', false, page, view, true)).toBeCloseTo(1000 / (600 + NOTES_W));
+  it('fits the page beside a notes column of NOTES_W px in the normal view', () => {
+    expect(displayZoom('width', false, page, view, true)).toBeCloseTo((1000 - NOTES_W) / 600);
     expect(displayZoom('width', false, page, view, true)).toBeLessThan(displayZoom('width', false, page, view, false));
   });
   it('fits the page plus the notes column in the lamp, for Fit width and Fit text', () => {

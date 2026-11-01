@@ -43,13 +43,13 @@ const noop = () => {};
  * One page card: its header, the page, and a wrapper per highlight on it. A fine-pointer press on the
  * page starts a swipe that lays the marker's bands; the gesture paints during the swipe and commits once.
  */
-export default function HighlightPage({ pdfDocument, pageIndex, widthPx, zoom = 1, elements, marker, touchArmed = false, rearm, dispatch, logAction, setAnnouncement, cardRef, rail, pageTurns = {}, onRotate, onClear }: {
+export default function HighlightPage({ pdfDocument, pageIndex, widthPx, chrome = 1, elements, marker, touchArmed = false, rearm, dispatch, logAction, setAnnouncement, cardRef, rail, pageTurns = {}, onRotate, onClear }: {
   pdfDocument: PDFDocumentProxy | null;
   pageIndex: number;
   /** The page's width in CSS px at the current zoom. */
   widthPx: number;
-  /** The page's zoom: the header and the rail scale with it (CSS zoom), and the notes column is NOTES_W of it. */
-  zoom?: number;
+  /** How much the header and the rail scale (CSS zoom): 1 in the normal view, the page's zoom in the lamp. The notes column is NOTES_W of it. */
+  chrome?: number;
   /** Every element of the document: the page draws its own, and the new one's place in the history comes from the count. */
   elements: EditorElement[];
   marker: Marker;
@@ -138,9 +138,9 @@ export default function HighlightPage({ pdfDocument, pageIndex, widthPx, zoom = 
   return (
     <div
       data-editor-page-card ref={cardRef} className={rail ? notes.withRail : undefined}
-      style={rail ? { '--page-w': `${widthPx}px`, '--notes-w': `${NOTES_W * zoom}px` } : undefined}
+      style={rail ? { '--page-w': `${widthPx}px`, '--notes-w': `${NOTES_W * chrome}px` } : undefined}
     >
-      <div data-page-header style={{ zoom }}>
+      <div data-page-header style={chrome === 1 ? undefined : { zoom: chrome }}>
         <HighlightPageHeader pageIndex={pageIndex} hasMarks={elements.some((el) => el.pageIndex === pageIndex)} onRotate={() => { if (geometry) onRotate(geometry); }} onClear={onClear} />
       </div>
       <div className={`${workspaceStyles['page-wrapper']} ${styles.page}`} data-page-wrapper style={{ width: `${widthPx}px`, ...(pen ? { cursor: pen } : {}) }}>
@@ -171,7 +171,7 @@ export default function HighlightPage({ pdfDocument, pageIndex, widthPx, zoom = 
           />
         )}
       </div>
-      {rail && <div className={notes.rail} data-notes-rail style={{ zoom }} onPointerDown={(event) => event.stopPropagation()}>{rail}</div>}
+      {rail && <div className={notes.rail} data-notes-rail style={chrome === 1 ? undefined : { zoom: chrome }} onPointerDown={(event) => event.stopPropagation()}>{rail}</div>}
     </div>
   );
 }

@@ -9,12 +9,13 @@ export function widestPage(pages: readonly PageBox[]): PageBox | undefined {
 
 /**
  * The zoom the view shows: Fit width of the card in the normal view, the remembered setting in the lamp.
- * With notes, Fit width and Fit text fit the page plus the notes column (R28); a numeric zoom is unchanged.
+ * With notes, Fit width and Fit text leave room for the notes column (R28): NOTES_W px beside the page in the
+ * normal view, NOTES_W page units (the column scales) in the lamp. A numeric zoom is unchanged.
  */
 export function displayZoom(setting: ZoomSetting, inLamp: boolean, page: PageBox | undefined, view: Viewport, noted: boolean): number {
   if (!page || view.width === 0) return typeof setting === 'number' && inLamp ? clampZoom(setting) : ACTUAL_SIZE;
   // The normal view's workspace already sits inside the card gutters; only the lamp, edge to edge, adds its own.
-  return inLamp ? resolveZoom(setting, page, view, { noted }) : fitScale('width', page, view, { noted, pad: 0 });
+  return inLamp ? resolveZoom(setting, page, view, { noted }) : fitScale('width', page, view, { noted, notesIn: 'px', pad: 0 });
 }
 
 /** A ctrl+wheel pinch or a zoom key: the lamp's zoom inputs; the normal view leaves them to the browser. */
