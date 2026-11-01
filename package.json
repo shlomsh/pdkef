@@ -76,6 +76,7 @@
     "generate:backlog": "node scripts/generate-backlog.mjs",
     "generate:practice-form": "node scripts/generate-practice-form.mjs",
     "sync:pdfjs-wasm": "node scripts/sync-pdfjs-wasm.mjs",
+    "score:layout": "node --experimental-strip-types scripts/score-layout.mjs",
     "check:fast": "node scripts/check-fast.mjs",
     "check:push": "node scripts/check-push.mjs",
     "check:e2e": "node scripts/check-push.mjs --e2e",
