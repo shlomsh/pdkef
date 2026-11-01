@@ -2,7 +2,7 @@
 
 # Backlog
 
-The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 83 live: 14 up next, 11 then, 27 waiting, 31 parked.
+The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 92 live: 15 up next, 16 then, 27 waiting, 34 parked.
 
 ## Redact: finish removal
 
@@ -42,6 +42,34 @@ Fill mode is the default since SNG-19. Close the test gaps, then desktop parity,
 | SNG-09 | P1 | [SNG-09](backlog/tasks/SNG-09.md) · Every mark lands neatly: at the fingertip, text sits on the line, a tick centres in its box, a circle wraps the word, a strike runs through it; local, declining when unsure, on every document |  |
 | SNG-04 | P1 | [SNG-04](backlog/tasks/SNG-04.md) · One interaction machine and one input router, pure and synchronous, with the MOBI history as tests |  |
 | SNG-12 | P3 | [SNG-12](backlog/tasks/SNG-12.md) · The model step (postponed): a model the person connects reads the form, and a document that clears 90/90/85 unlocks asking its questions |  |
+
+## Highlight PDF: a tool for reading
+
+Marking should feel like holding a highlighter, not like operating software. Sketch, move the shared pieces out of Sign, then launch with Sign handing highlighting over.
+
+### Up next
+
+| ID | P | Task | Note |
+| --- | --- | --- | --- |
+| READ-01 | P2 | [READ-01](backlog/tasks/READ-01.md) · Highlight PDF: clickable sketches of the mark popup and the fullscreen bar | Needs Shlomi: Your pick between the sketches |
+
+### Then, in order
+
+| ID | P | Task | Note |
+| --- | --- | --- | --- |
+| READ-02 | P2 | [READ-02](backlog/tasks/READ-02.md) · Move the shared highlight and comment pieces out of Sign, no behaviour change |  |
+| READ-03 | P2 | [READ-03](backlog/tasks/READ-03.md) · Highlight PDF: the tool at /highlight-pdf/, highlights with a comment on each, and its page | Needs Shlomi: Confirm the name: Highlight PDF |
+| READ-04 | P2 | [READ-04](backlog/tasks/READ-04.md) · Sign hands highlighting to Highlight PDF: no Highlight tool, existing highlights kept |  |
+| READ-05 | P2 | [READ-05](backlog/tasks/READ-05.md) · A one-line fullscreen bar on desktop, shared by Highlight PDF and Sign |  |
+| READ-06 | P2 | [READ-06](backlog/tasks/READ-06.md) · Highlight PDF: Print with my notes, comments in the margin beside their passages |  |
+
+### Parked
+
+| ID | P | Task | Note |
+| --- | --- | --- | --- |
+| READ-07 | P3 | [READ-07](backlog/tasks/READ-07.md) · Highlight PDF: highlight without arming, drag on desktop and long-press on a phone | Needs Shlomi: Your call on bending the one-shot rule in this tool, and an iPhone check |
+| READ-08 | P3 | [READ-08](backlog/tasks/READ-08.md) · Highlight PDF: hop between your highlights in reading order |  |
+| READ-09 | P3 | [READ-09](backlog/tasks/READ-09.md) · Highlight PDF: a pen for circles, arrows and margin notes, iPad first |  |
 
 ## Tool pages: show the verb
 
@@ -212,6 +240,7 @@ Done and retired tickets are not listed. Their files stay in [backlog/tasks/](ba
 
 - Redact: finish removal: 26 done, 1 retired
 - Sign: finish fill mode: 3 done, 1 retired
+- Highlight PDF: a tool for reading: 0 done, 0 retired
 - Tool pages: show the verb: 8 done, 0 retired
 - Form detector accuracy: 19 done, 1 retired
 - Robustness and debt: 80 done, 4 retired
