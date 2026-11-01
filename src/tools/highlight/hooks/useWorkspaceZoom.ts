@@ -76,6 +76,13 @@ export function useWorkspaceZoom({ pdfDocument, workspaceRef, columnRef, fullscr
 
   const zoom = useMemo(() => displayZoom(setting, fullscreen, widestPage(pages), view, roomy), [setting, fullscreen, pages, view, roomy]);
 
+  // Entering the lamp always starts at Fit width, whatever was set before; it is not a choice, so nothing is remembered.
+  const wasFullscreen = useRef(fullscreen);
+  useLayoutEffect(() => {
+    if (fullscreen && !wasFullscreen.current) setSetting('width');
+    wasFullscreen.current = fullscreen;
+  }, [fullscreen]);
+
   const zoomRef = useRef(zoom);
   zoomRef.current = zoom;
   const pagesRef = useRef(pages);
@@ -175,7 +182,10 @@ export function useWorkspaceZoom({ pdfDocument, workspaceRef, columnRef, fullscr
     return edits;
   }, [touched, setting]);
 
-  return { setting, zoom, pages, board, touched, details, apply, step, actual, makeRoom, restore };
+  /** How much the page's header and notes scale: the page's zoom in the lamp, their own size in the normal view. */
+  const chrome = fullscreen ? zoom : 1;
+
+  return { setting, zoom, chrome, pages, board, touched, details, apply, step, actual, makeRoom, restore };
 }
 
 export type WorkspaceZoom = ReturnType<typeof useWorkspaceZoom>;

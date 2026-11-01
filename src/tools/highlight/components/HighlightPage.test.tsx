@@ -1,4 +1,5 @@
 import { render } from 'preact';
+import type * as preact from 'preact';
 import { act } from 'preact/test-utils';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { CommentElement, EditorElement, HighlightElement } from '#editor/model/editorModel.ts';
@@ -28,10 +29,10 @@ const dispatch = vi.fn();
 const logAction = vi.fn();
 const rearm = vi.fn();
 
-function mount(elements: EditorElement[], marker = DEFAULT_MARKER, touchArmed?: boolean) {
+function mount(elements: EditorElement[], marker = DEFAULT_MARKER, touchArmed?: boolean, extra: { chrome?: number; rail?: preact.ComponentChildren } = {}) {
   act(() => render(
     <HighlightPage
-      pdfDocument={null} pageIndex={0} widthPx={600} elements={elements} marker={marker} touchArmed={touchArmed}
+      pdfDocument={null} pageIndex={0} widthPx={600} elements={elements} marker={marker} touchArmed={touchArmed} {...extra}
       dispatch={dispatch} logAction={logAction} rearm={rearm} setAnnouncement={() => {}} cardRef={() => {}} onRotate={() => {}} onClear={() => {}}
     />,
     container,
@@ -136,6 +137,29 @@ function textPage(strings: string[]) {
   };
   return { getPage: async () => page } as never;
 }
+
+describe('HighlightPage chrome scale', () => {
+  const parts = () => ({
+    header: container.querySelector<HTMLElement>('[data-page-header]')!,
+    rail: container.querySelector<HTMLElement>('[data-notes-rail]')!,
+    card: container.querySelector<HTMLElement>('[data-page-wrapper], [data-page-card]')?.parentElement ?? container,
+  });
+  it('draws the header and the rail at normal size when the chrome scale is 1', () => {
+    mount([mark], DEFAULT_MARKER, undefined, { rail: <div /> });
+    expect(parts().header.style.zoom).toBe('');
+    expect(parts().rail.style.zoom).toBe('');
+  });
+  it('scales both with the chrome scale, and the notes column is NOTES_W of it', () => {
+    mount([mark], DEFAULT_MARKER, undefined, { chrome: 1.5, rail: <div /> });
+    expect(parts().header.style.zoom).toBe('1.5');
+    expect(parts().rail.style.zoom).toBe('1.5');
+    expect(container.querySelector<HTMLElement>('[style*="--notes-w"]')!.style.getPropertyValue('--notes-w')).toBe('360px');
+  });
+  it('is NOTES_W px at chrome 1', () => {
+    mount([mark], DEFAULT_MARKER, undefined, { rail: <div /> });
+    expect(container.querySelector<HTMLElement>('[style*="--notes-w"]')!.style.getPropertyValue('--notes-w')).toBe('240px');
+  });
+});
 
 describe('HighlightPage swipe direction', () => {
   const swipeDirection = async (strings: string[]) => {
