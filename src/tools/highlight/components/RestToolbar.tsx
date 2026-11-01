@@ -1,7 +1,9 @@
 import { useId, useLayoutEffect, useRef } from 'preact/hooks';
-import { CommentIcon, TrashIcon } from '#editor-ui/toolIcons.tsx';
+import { CommentIcon, HighlightIcon, TrashIcon } from '#editor-ui/toolIcons.tsx';
 import ColorPickerMenu from '#editor-ui/ColorPickerMenu.tsx';
 import ThicknessPickerMenu from '#editor-ui/ThicknessPickerMenu.tsx';
+import { highlightColorNames } from '#editor-ui/highlight/highlightColorNames.ts';
+import { englishSignMessages } from '#editor/registry/signMessages.ts';
 import type { HighlightElement } from '#editor/model/editorModel.ts';
 import { UNDERLINE_WIDTH } from '#editor/model/underlineInk.ts';
 import { formatMessage } from '#lib/text/formatMessage.ts';
@@ -18,10 +20,11 @@ import styles from './RestToolbar.module.css';
 
 const SIX_PRESETS = HIGHLIGHT_COLORS.map((c) => c.hex);
 const THICKNESS_OPTIONS = [1, 1.5, 2, 3, 4];
+const COLOR_NAMES = highlightColorNames(englishSignMessages);
 
 /**
  * The toolbar a highlight opens on a rest or a tap, built from Sign's own element toolbar pieces: a color
- * menu with opacity, the Underline split button (toggle plus thickness), Comment and Delete.
+ * menu with opacity, the Highlight | Underline toggle (icons, with the underline's thickness caret), Comment and Delete.
  * It is placed by Sign's floating hook, above the mark, and every change is the caller's to apply.
  */
 export default function RestToolbar({ mark, onChange, onDelete, onComment, onClose }: {
@@ -67,7 +70,7 @@ export default function RestToolbar({ mark, onChange, onDelete, onComment, onClo
       data-rest-toolbar data-side="above" onKeyDown={onArrow}
     >
       <ColorPickerMenu
-        value={look.color} title={t.markColors} presets={SIX_PRESETS}
+        value={look.color} title={t.markColors} presets={SIX_PRESETS} names={COLOR_NAMES}
         onChange={(color) => live.current.onChange({ color })}
       >
         {!underline && (
@@ -82,11 +85,18 @@ export default function RestToolbar({ mark, onChange, onDelete, onComment, onClo
         )}
       </ColorPickerMenu>
       <div class={controls.divider} />
-      <span class={styles.split}>
+      <span class={styles.toggle}>
+        <button
+          type="button" class={`${controls['element-button']}${underline ? '' : ` ${controls.active}`}`}
+          aria-label={t.markHighlight} aria-pressed={!underline} title={t.markHighlight}
+          onClick={() => { if (underline) toggleUnderline(); }}
+        >
+          <HighlightIcon />
+        </button>
         <button
           type="button" class={`${controls['element-button']}${underline ? ` ${controls.active}` : ''}`}
           aria-label={t.markUnderline} aria-pressed={underline} aria-keyshortcuts="U" title={t.markUnderline}
-          onClick={toggleUnderline}
+          onClick={() => { if (!underline) toggleUnderline(); }}
         >
           <UnderlineGlyph />
         </button>

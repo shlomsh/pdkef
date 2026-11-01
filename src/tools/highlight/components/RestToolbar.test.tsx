@@ -72,27 +72,35 @@ describe('RestToolbar', () => {
       : b.getAttribute('aria-label') ?? (b.getAttribute('aria-haspopup') ? 'Thickness' : b.title));
   const thicknessTrigger = () => [...host.querySelectorAll<HTMLElement>('[aria-haspopup]')].find((b) => !b.classList.contains(controls['color-trigger']))!;
 
-  it('(a) the controls in order are Color, Underline, thickness, Comment, Delete', () => {
+  it('(a) the controls in order are Color, the Highlight | Underline toggle with its thickness caret, Comment, Delete', () => {
     const bar = mount();
     expect(bar.getAttribute('aria-label')).toBe('Change this highlight');
-    expect(controlsOf(bar)).toEqual(['Color', 'Underline', 'Thickness', 'Comment', 'Delete']);
+    expect(controlsOf(bar)).toEqual(['Color', 'Highlight', 'Underline', 'Thickness', 'Comment', 'Delete']);
     expect(bar.querySelectorAll('[data-highlight-swatch]')).toHaveLength(0);
     expect(bar.querySelectorAll(`.${controls.divider}`)).toHaveLength(2);
   });
 
-  it('(b) the same five controls are present on an underline', () => {
-    expect(controlsOf(mount({ ...mark, style: 'underline' }))).toEqual(['Color', 'Underline', 'Thickness', 'Comment', 'Delete']);
+  it('(b) the same controls are present on an underline', () => {
+    expect(controlsOf(mount({ ...mark, style: 'underline' }))).toEqual(['Color', 'Highlight', 'Underline', 'Thickness', 'Comment', 'Delete']);
   });
 
-  it('(c) Underline is pressed only on an underline, and a click flips the style', () => {
+  it('(c) Highlight and Underline are icons in one toggle: the current style is pressed, the other one switches to it', () => {
     mount();
+    expect(button('Highlight').querySelector('svg')).not.toBeNull();
+    expect(button('Underline').querySelector('svg')).not.toBeNull();
+    expect(button('Highlight').textContent).toBe('');
+    expect(button('Highlight').parentElement).toBe(button('Underline').parentElement);
+    expect(button('Highlight').getAttribute('aria-pressed')).toBe('true');
+    expect(button('Highlight').className).toContain(controls.active);
     expect(button('Underline').getAttribute('aria-pressed')).toBe('false');
+    click(button('Highlight'));
+    expect(onChange).not.toHaveBeenCalled();
     click(button('Underline'));
     expect(onChange).toHaveBeenLastCalledWith({ style: 'underline' });
     mount({ ...mark, style: 'underline' });
     expect(button('Underline').getAttribute('aria-pressed')).toBe('true');
-    expect(button('Underline').className).toContain(controls.active);
-    click(button('Underline'));
+    expect(button('Highlight').getAttribute('aria-pressed')).toBe('false');
+    click(button('Highlight'));
     expect(onChange).toHaveBeenLastCalledWith({ style: 'highlight' });
   });
 
@@ -109,7 +117,7 @@ describe('RestToolbar', () => {
     expect(host.querySelector('input[type="range"]')).toBeNull();
     click(host.querySelector(`.${controls['color-trigger']}`)!);
     const swatches = [...document.querySelectorAll('[data-editor-popover] [data-editor-color-swatch]')].map((el) => el.getAttribute('title'));
-    expect(swatches).toEqual(HIGHLIGHT_COLORS.map((c) => c.hex));
+    expect(swatches).toEqual(['Yellow', 'Orange', 'Pink', 'Red', 'Green', 'Blue']);
     expect(document.querySelector('[data-editor-popover] input[type="color"]')).not.toBeNull();
     const range = document.querySelector<HTMLInputElement>('[data-editor-popover] input[type="range"]')!;
     expect(range.min).toBe('0.3');
@@ -177,8 +185,8 @@ describe('RestToolbar keys', () => {
     const color = host.querySelector<HTMLElement>(`.${controls['color-trigger']}`)!;
     color.focus();
     key('ArrowRight', {}, color);
-    expect(document.activeElement).toBe(button('Underline'));
-    key('End', {}, button('Underline'));
+    expect(document.activeElement).toBe(button('Highlight'));
+    key('End', {}, button('Highlight'));
     expect(document.activeElement).toBe(button('Delete'));
     key('Home', {}, button('Delete'));
     expect(document.activeElement).toBe(color);
@@ -199,7 +207,7 @@ describe('RestToolbar follows the interface direction (READ-04)', () => {
     const color = host.querySelector<HTMLElement>(`.${controls['color-trigger']}`)!;
     color.focus();
     key('ArrowRight', {}, color);
-    expect(document.activeElement).toBe(button('Underline'));
+    expect(document.activeElement).toBe(button('Highlight'));
   });
 });
 

@@ -16,7 +16,8 @@
 .opacity label { flex: none; font: 600 0.88rem/1 var(--font-sans); }
 .opacity input { flex: 1; min-width: 0; margin: 0; }
 /* Underline toggle and its thickness chevron: one group, no divider between. */
-.split { display: inline-flex; align-items: center; }
+/* Highlight | Underline read as one switch: a quiet outline holds both icons and the thickness caret. */
+.toggle { display: inline-flex; align-items: center; gap: 2px; padding: 2px; border-radius: var(--radius-sm); box-shadow: inset 0 0 0 1px var(--color-white-20); }
 .opacity span { flex: none; min-width: 3ch; text-align: end; font-variant-numeric: tabular-nums; }
 
 /* The one-time hint (R8): a quiet pill beside the end of the ink. */
