@@ -245,3 +245,30 @@ describe('HighlightPage one-time hint', () => {
     expect(container.querySelector('[data-mark-hint]')).toBeNull();
   });
 });
+
+describe('HighlightPage cursor (R14)', () => {
+  let restore = () => {};
+  afterEach(() => restore());
+  const wrapper = () => container.querySelector<HTMLElement>('[data-page-wrapper]')!;
+
+  it('on a fine pointer the page wears the highlighter in the armed color', () => {
+    restore = stubPointer(false);
+    mount([], { color: '#FF8FCF', style: 'highlight', opacity: 1 });
+    const cursor = wrapper().style.cursor;
+    expect(cursor).toContain('data:image/svg+xml');
+    expect(decodeURIComponent(cursor)).toContain('#FF8FCF');
+    expect(cursor.endsWith('crosshair')).toBe(true);
+  });
+
+  it('follows the marker: underlining swaps the tip', () => {
+    restore = stubPointer(false);
+    mount([], { color: '#FF8FCF', style: 'underline', opacity: 1 });
+    expect(decodeURIComponent(wrapper().style.cursor)).toContain('data-tip="fine"');
+  });
+
+  it('on a finger there is no cursor to set', () => {
+    restore = stubPointer(true);
+    mount([]);
+    expect(wrapper().style.cursor).toBe('');
+  });
+});
