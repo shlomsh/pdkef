@@ -24,7 +24,9 @@ https://claude.ai/artifact/QM7Zruj8GSR6bu3ffhS18C
   the next card peeking at the edge. A swipe snaps to the next note; the page glides so its passage sits
   above the pane, outlined, while the other marks step back (READ-13). Each card quotes the start of its
   passage with its colour and page. A close button hides the pane; a small note mark at a passage's end
-  shows which highlights have notes, and tapping one reopens the pane there.
+  shows which highlights have notes, and tapping one reopens the pane there. Every card has Delete (a
+  word beside the bin, as touch needs) and Edit; Delete removes the note at once, keeps the highlight, and
+  shows a "Note deleted · Undo" chip, never a confirm dialog (guidelines §6).
 - **A, keyboard up**: writing a note, the pane rides on top of the keyboard and the passage stays in view
   above it.
 - **A, closed**: the page alone, note marks at passage ends.
