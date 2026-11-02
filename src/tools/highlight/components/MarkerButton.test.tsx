@@ -127,12 +127,21 @@ describe('MarkerButton', () => {
     expect(props.onTap).not.toHaveBeenCalled();
   });
 
-  it('on a coarse pointer a tap arms the marker and opens the panel', () => {
+  it('on a coarse pointer a tap arms the marker and opens nothing', () => {
     const { props, open, button } = mount({ isCoarse: () => true });
     open();
     expect(props.onTap).toHaveBeenCalledTimes(1);
-    expect(button().getAttribute('aria-expanded')).toBe('true');
+    expect(button().getAttribute('aria-expanded')).toBe('false');
+    expect(container!.querySelector('[role=group]')).toBeNull();
+  });
+
+  it('given a mark on a coarse pointer, the panel is open on the mark and Marker releases it', () => {
+    const onRelease = vi.fn();
+    const mark = { look: DEFAULT_MARKER as Marker, onChange: vi.fn(), onComment: vi.fn(), onDelete: vi.fn(), onRelease };
+    const { button } = mount({ isCoarse: () => true, armed: true, mark });
     expect(container!.querySelector('[role=group]')).not.toBeNull();
+    press(button());
+    expect(onRelease).toHaveBeenCalledTimes(1);
   });
 
   it('on a coarse pointer a tap while armed disarms the marker, closes the panel and does not arm again', () => {

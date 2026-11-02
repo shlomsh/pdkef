@@ -1,0 +1,11 @@
+/* The dot and glyph are the marker button's badge (MarkerButton.module.css), inline on the hint's text. */
+.hint { display: inline-flex; align-items: baseline; gap: 0.4em; }
+.dot,
+.glyph { flex: none; display: inline-block; align-self: center; }
+.dot {
+  width: 0.7rem;
+  height: 0.7rem;
+  border-radius: 50%;
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-text) 28%, transparent);
+}
+.glyph { width: 0.8rem; height: 3px; border-radius: 1.5px; }
