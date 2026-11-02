@@ -31,6 +31,8 @@ export interface RawAnnotation {
   ca?: number;
   /** Border width, `/BS /W`: an underline's line width. */
   bs?: number;
+  /** `/PDkefStyle`, a name only our own export writes: `Pencil` on a `/Highlight` brings the mark back as Pencil. */
+  pdkefStyle?: string;
   contents?: string;
   nm?: string;
   m?: string;
@@ -153,6 +155,7 @@ function highlightElements(a: RawAnnotation, { pageIndex, geometry }: RawPage, t
   const id = takeId(a.nm);
   const highlight: HighlightElement = { id, type: 'highlight', pageIndex, ...geo.box, color: toHex(a.color), bands: geo.bands };
   if (bare(a.subtype) === 'Underline') highlight.style = 'underline';
+  else if (a.pdkefStyle === 'Pencil') highlight.style = 'pencil';
   if (highlight.style === 'underline' && typeof a.bs === 'number' && Number.isFinite(a.bs) && a.bs !== UNDERLINE_WIDTH.default) {
     highlight.strokeWidth = Math.min(UNDERLINE_WIDTH.max, Math.max(UNDERLINE_WIDTH.min, a.bs));
   }
@@ -223,6 +226,7 @@ export async function importStandardAnnotations(bytes: ArrayBuffer): Promise<{ b
           ref: entry, subtype, rect,
           quadPoints: numbersOf(lookup(get('QuadPoints') ?? PDFName.of('')), lookup),
           color,
+          pdkefStyle: name('PDkefStyle'),
           bs: (lookup((doc.context.lookupMaybe(get('BS'), PDFDict)?.get(PDFName.of('W'))) ?? PDFName.of('')) as PDFNumber | undefined)?.asNumber?.(),
           ca: (lookup(get('CA') ?? PDFName.of('')) as PDFNumber | undefined)?.asNumber?.(),
           contents: textOf(lookup(get('Contents') ?? PDFName.of(''))),

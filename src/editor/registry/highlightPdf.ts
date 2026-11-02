@@ -54,8 +54,8 @@ interface BandsHighlightSpec {
   direction?: 'ltr' | 'rtl';
   /** Quarter turns the person gave the page, so the text's own bottom edge is found under the turned band; absent is 0. */
   quarterTurns?: 0 | 1 | 2 | 3;
-  /** `'underline'` writes `/Underline`; absent writes `/Highlight`. */
-  style?: 'underline';
+  /** `'underline'` writes `/Underline`; absent writes `/Highlight`; `'pencil'` writes a `/Highlight` that also carries `/PDkefStyle /Pencil`. */
+  style?: 'underline' | 'pencil';
   /** 0.3 to 1, absent is 1: written as `/CA` and as the appearance's `ca`. */
   opacity?: number;
   /** An underline's line width in points; absent is UNDERLINE_WIDTH.default. */
@@ -140,6 +140,8 @@ export function writeBandsHighlight(spec: BandsHighlightSpec, context: Serialize
   const { context: pdfContext } = pdfDoc;
   const highlight = pdfContext.obj({
     Type: 'Annot', Subtype: underline ? 'Underline' : 'Highlight', Rect: rect, QuadPoints: quads.flat(2), C: spec.print ? [r, g, b] : [], CA: opacity, ...(spec.print ? { F: 4 } : {}), ...(underline ? { BS: { W: width } } : {}),
+    // READ-14: any other viewer sees a standard highlight; our own importer reads this key to bring the mark back as Pencil.
+    ...(spec.style === 'pencil' ? { PDkefStyle: 'Pencil' } : {}),
     NM: PDFHexString.fromText(spec.id), M: pdfDate(commentedAt === undefined ? undefined : new Date(commentedAt)), AP: { N: ap },
     ...(text ? { Contents: PDFHexString.fromText(text) } : {}),
   });

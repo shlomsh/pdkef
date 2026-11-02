@@ -127,6 +127,14 @@ describe('serializeHighlight: opacity and underline', () => {
     expect((await write(element)).annot.has(PDFName.of('BS'))).toBe(false);
   });
 
+  it('READ-14: a pencil mark stays a /Highlight and carries /PDkefStyle /Pencil for our own reader; others carry none', async () => {
+    const { annot } = await write({ ...element, style: 'pencil' });
+    expect((annot.get(PDFName.of('Subtype')) as PDFName).toString()).toBe('/Highlight');
+    expect((annot.get(PDFName.of('PDkefStyle')) as PDFName).toString()).toBe('/Pencil');
+    expect((await write(element)).annot.get(PDFName.of('PDkefStyle'))).toBeUndefined();
+    expect((await write({ ...element, style: 'underline' })).annot.get(PDFName.of('PDkefStyle'))).toBeUndefined();
+  });
+
   it('applies the opacity to an underline too', async () => {
     const { annot } = await write({ ...element, style: 'underline', opacity: 0.6 });
     expect((annot.get(PDFName.of('CA')) as PDFNumber).asNumber()).toBe(0.6);

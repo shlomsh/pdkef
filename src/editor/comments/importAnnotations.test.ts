@@ -4,6 +4,7 @@ import {
 } from '@cantoo/pdf-lib';
 import type { CommentElement, HighlightElement } from '../model/editorModel.ts';
 import { createPageGeometry } from '../geometry/coords.ts';
+import { serializeHighlight } from '../registry/highlightPdf.ts';
 import {
   annotationsToElements, importStandardAnnotations, parsePdfDate, type RawAnnotation, type RawPage,
 } from './importAnnotations.ts';
@@ -105,6 +106,20 @@ describe('annotationsToElements: highlights', () => {
     expect(h.left).toBeCloseTo(5);
     expect(h.top).toBeCloseTo(70);
     expect(h.width).toBeCloseTo(50);
+  });
+});
+
+describe('READ-14: pencil marks come back as Pencil', () => {
+  it('reads a /Highlight marked PDkefStyle Pencil as a pencil highlight with no stroke settings', () => {
+    const a = raw({ quadPoints: QUAD, color: [1, 0, 0.5], nm: 'p-1', pdkefStyle: 'Pencil', bs: 4 });
+    const el = run([page([a])]).elements[0] as HighlightElement;
+    expect(el).toMatchObject({ id: 'p-1', type: 'highlight', style: 'pencil', color: '#FF0080' });
+    expect(el.strokeWidth).toBeUndefined();
+  });
+
+  it('ignores a style it does not know, and a Pencil marker on an /Underline', () => {
+    expect((run([page([raw({ quadPoints: QUAD, pdkefStyle: 'Charcoal' })])]).elements[0] as HighlightElement).style).toBeUndefined();
+    expect((run([page([raw({ subtype: 'Underline', quadPoints: QUAD, pdkefStyle: 'Pencil' })])]).elements[0] as HighlightElement).style).toBe('underline');
   });
 });
 
@@ -252,6 +267,21 @@ async function subtypesOf(bytes: ArrayBuffer | Uint8Array): Promise<string[]> {
 }
 
 const toBuffer = (u: Uint8Array): ArrayBuffer => u.buffer.slice(u.byteOffset, u.byteOffset + u.byteLength) as ArrayBuffer;
+
+describe('importStandardAnnotations: our own pencil export', () => {
+  it('brings a pencil mark we exported back as Pencil and strips the annotation', async () => {
+    const doc = await PDFDocument.create();
+    const page = doc.addPage([200, 100]);
+    serializeHighlight(
+      { id: 'pen-1', type: 'highlight', pageIndex: 0, left: 10, top: 10, width: 50, height: 10, color: '#FFF34D', style: 'pencil', opacity: 0.6, bands: [{ left: 0, top: 0, width: 100, height: 100 }] },
+      { pdfDoc: doc, page, pdfWidth: 200, pdfHeight: 100, pdfX: 20, pdfY: 90, loadCustomFont: async () => null, baselineOffset: () => 0 } as never,
+    );
+    const out = await importStandardAnnotations(toBuffer(await doc.save()));
+    expect(out.elements).toHaveLength(1);
+    expect(out.elements[0]).toMatchObject({ id: 'pen-1', type: 'highlight', style: 'pencil', color: '#FFF34D', opacity: 0.6 });
+    expect(await subtypesOf(out.bytes)).toEqual([]);
+  });
+});
 
 describe('importStandardAnnotations', () => {
   it('imports highlights and notes, removes them and their popups and badges, keeps everything else', async () => {
