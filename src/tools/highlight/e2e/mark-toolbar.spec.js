@@ -38,6 +38,28 @@ test('clicking a highlight shows its toolbar, visible and on screen, and Escape 
   await expect(bar).toBeHidden();
 });
 
+/* READ-11: each thickness in the underline menu draws its line. The line's svg is absolute inside a flex item, so the
+   item must grow: it shipped as five empty rows under Clean and Sketch (2026-11-02), which no unit test sees. */
+test('the underline thickness menu draws a line for every thickness', async ({ page }) => {
+  const source = await makePdfBuffer(null, { title: false, lines: [{ text: 'A line of text a student would highlight', y: 700 }] });
+  await openTool(page, '/highlight-pdf/', { file: { name: 'thickness.pdf', buffer: source }, overlaySelector: '[data-page-overlay]' });
+  const box = await page.locator('[data-page-overlay]').first().boundingBox();
+  const y = box.y + box.height * ((792 - 694) / 792);
+  await page.mouse.move(box.x + box.width * (72 / 612), y);
+  await page.mouse.down();
+  await page.mouse.move(box.x + box.width * (330 / 612), y, { steps: 8 });
+  await page.mouse.up();
+  const band = await page.locator('[data-page-overlay] [data-element-id]').boundingBox();
+  await page.mouse.click(band.x + band.width / 2, band.y + band.height / 2);
+  await page.locator('[data-style-toggle] [role="radio"]:visible').nth(1).click();
+  await page.locator('[data-setting-line]:visible').click();
+  const lines = page.locator('[data-editor-thickness] svg');
+  await expect(lines).toHaveCount(5);
+  for (const width of await lines.evaluateAll((svgs) => svgs.map((svg) => svg.getBoundingClientRect().width))) {
+    expect(width).toBeGreaterThan(60);
+  }
+});
+
 /* R47, R49: on a phone the picked mark's panel is one row from 402 px up, in the normal view and in full screen, and
    with a color behind More (which then wears its ink band), with 44 px tall targets and switch halves at least 40 px wide. At 375 px only Comment and Delete may wrap, and the page
    never scrolls sideways. A real finger lays and picks the mark (CDP touch), since touch has its own panel host. */
