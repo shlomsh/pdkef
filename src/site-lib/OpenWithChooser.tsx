@@ -5,12 +5,14 @@ import { pdfFromLaunch, type LaunchParams } from './openWithLaunch.ts';
 import styles from './OpenWithChooser.module.css';
 
 /* ARCH-37: the installed app's "Open with" lands here (manifest.webmanifest's file_handlers), because
-   a second file_handlers entry cannot carry its own name and so cannot offer Redact beside Sign. The
+   a second file_handlers entry cannot carry its own name and so cannot offer the other tools beside Sign. The
    file reaches this page's launchQueue, is parked under the chosen tool's hand-off key, and the tool
    opens it exactly as it opens a file from the home page. Nothing leaves the device. */
 const CHOICES = [
   { tool: 'sign', name: 'Sign', label: 'Sign it', note: 'Fill in and sign' },
   { tool: 'redact', name: 'Redact', label: 'Redact it', note: 'Black out private parts' },
+  { tool: 'highlight-pdf', name: 'Highlight', label: 'Highlight it', note: 'Mark what matters' },
+  { tool: 'compress', name: 'Compress', label: 'Compress it', note: 'Make the file smaller' },
 ] as const;
 
 function OpenWithChooser() {
