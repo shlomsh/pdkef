@@ -7,6 +7,7 @@ import { hexToRgbFractions } from '../text/imageTint.js';
 import { UNDERLINE_LIFT, UNDERLINE_WIDTH, underlineInk } from '../model/underlineInk.ts';
 import { applyAffineTransform, percentToPoints } from '../geometry/coords.ts';
 import type { AffineTransform } from '../geometry/coords.ts';
+import { sketchBands, sketchUnderline, strokeSeed } from '../geometry/sketchStroke.ts';
 
 const POPUP_WIDTH = 160;
 const POPUP_HEIGHT = 80;
@@ -59,6 +60,8 @@ interface BandsHighlightSpec {
   opacity?: number;
   /** An underline's line width in points; absent is UNDERLINE_WIDTH.default. */
   strokeWidth?: number;
+  /** `'sketch'` draws the mark as a hand-drawn vector path; absent is the clean quads or line. */
+  stroke?: 'sketch';
   comment?: { text: string; commentedAt?: number };
   /** The Print flag: a highlight prints, a comment's tint does not. */
   print: boolean;
@@ -98,15 +101,36 @@ export function writeBandsHighlight(spec: BandsHighlightSpec, context: Serialize
   });
   // Upper-left, upper-right, lower-left, lower-right of the text's band (reordered when the page is turned).
   const quads = edges.map((e) => textCorners([toUser(e.left, e.top), toUser(e.right, e.top), toUser(e.left, e.bottom), toUser(e.right, e.bottom)], spec.quarterTurns ?? 0));
-  const rect = boundsOf(quads.flat());
+  let rect = boundsOf(quads.flat());
   const { r, g, b } = hexToRgbFractions(spec.color, spec.fallbackColor);
 
   const opacity = spec.opacity ?? 1;
   const underline = spec.style === 'underline';
   const width = spec.strokeWidth ?? UNDERLINE_WIDTH.default;
-  const paint = spec.print ? quads.map(([ul, ur, ll, lr]) => (underline ? underlineLine(ul, ll, lr, width) : `${ul.map(fixed).join(' ')} m ${ur.map(fixed).join(' ')} l ${lr.map(fixed).join(' ')} l ${ll.map(fixed).join(' ')} l h f`)) : [];
   const ink = hexToRgbFractions(underlineInk(spec.color), spec.fallbackColor);
-  const setup = underline ? `${fixed(width)} w ${fixed(ink.r)} ${fixed(ink.g)} ${fixed(ink.b)} RG` : `${fixed(r)} ${fixed(g)} ${fixed(b)} rg`;
+  const paint: string[] = [];
+  let setup: string;
+  if (spec.print && spec.stroke === 'sketch') {
+    // READ-11: the shared sketch ops (y down) mapped to user space, one nonzero fill; the Rect and BBox grow so the overshoot is not clipped.
+    const rects = edges.map((e) => ({ x: e.left, y: -e.top, w: e.right - e.left, h: e.top - e.bottom }));
+    const seed = strokeSeed(spec.id);
+    const turns = spec.quarterTurns ?? 0;
+    const ops = underline ? sketchUnderline(rects, seed, width, turns) : sketchBands(rects, seed, turns);
+    const drawn: Point[] = [];
+    const parts = ops.map((op) => {
+      if (op[0] === 'Z') return 'h';
+      const pairs: Point[] = [];
+      for (let i = 1; i < op.length; i += 2) pairs.push(toUser(op[i] as number, -(op[i + 1] as number)));
+      drawn.push(...pairs);
+      return `${pairs.map((q) => q.map(fixed).join(' ')).join(' ')} ${op[0] === 'M' ? 'm' : 'c'}`;
+    });
+    if (parts.length) paint.push(`${parts.join(' ')} f`);
+    if (drawn.length) rect = boundsOf([[rect[0], rect[1]], [rect[2], rect[3]], ...drawn]);
+    setup = `${fixed(underline ? ink.r : r)} ${fixed(underline ? ink.g : g)} ${fixed(underline ? ink.b : b)} rg`;
+  } else {
+    if (spec.print) paint.push(...quads.map(([ul, ur, ll, lr]) => (underline ? underlineLine(ul, ll, lr, width) : `${ul.map(fixed).join(' ')} m ${ur.map(fixed).join(' ')} l ${lr.map(fixed).join(' ')} l ${ll.map(fixed).join(' ')} l h f`)));
+    setup = underline ? `${fixed(width)} w ${fixed(ink.r)} ${fixed(ink.g)} ${fixed(ink.b)} RG` : `${fixed(r)} ${fixed(g)} ${fixed(b)} rg`;
+  }
   const content = spec.print ? ['/GS gs', setup, ...paint].join('\n') : '';
   const ap = appearance(pdfDoc, rect, content,
     { ExtGState: { GS: { Type: 'ExtGState', BM: 'Multiply', ca: opacity, CA: opacity } } });
@@ -138,6 +162,6 @@ export function writeBandsHighlight(spec: BandsHighlightSpec, context: Serialize
 export function serializeHighlight(element: HighlightElement, context: SerializeContext): void {
   writeBandsHighlight({
     id: element.id, box: element, bands: element.bands, color: element.color, fallbackColor: DEFAULT_HIGHLIGHT_COLOR,
-    direction: element.direction, style: element.style, opacity: element.opacity, strokeWidth: element.strokeWidth, comment: context.comment, print: true, quarterTurns: context.quarterTurns,
+    direction: element.direction, style: element.style, opacity: element.opacity, strokeWidth: element.strokeWidth, stroke: element.stroke, comment: context.comment, print: true, quarterTurns: context.quarterTurns,
   }, context);
 }

@@ -146,7 +146,10 @@ export default function HighlightPage({ pdfDocument, pageIndex, widthPx, chrome 
               key={mark.id} data-element-id={mark.id} data-editor-element-id={mark.id} data-picked={mark.id === pickedId ? '' : undefined} className={styles.mark} {...markFocus.markProps(mark.id)}
               style={{ left: `${mark.left}%`, top: `${mark.top}%`, width: `${mark.width}%`, height: `${mark.height}%` }}
             >
-              <HighlightNode element={mark} isActive={false} onResizeStart={noop} />
+              <HighlightNode
+                element={mark} isActive={false} onResizeStart={noop} turns={turnsOf(pageTurns, pageIndex)}
+                boxPts={geometry ? { width: (mark.width / 100) * geometry.width, height: (mark.height / 100) * geometry.height } : undefined}
+              />
             </div>
           ))}
         </div>

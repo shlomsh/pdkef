@@ -172,6 +172,8 @@ export interface HighlightElement extends ElementBase, BoxGeometry {
   opacity?: number;
   /** READ-04: an underline's line width in PDF points, within UNDERLINE_WIDTH; absent is its default. */
   strokeWidth?: number;
+  /** READ-11: absent is a clean band or line; `'sketch'` draws it as by hand (`#editor/geometry/sketchStroke.ts`), on screen, in print and in the PDF. */
+  stroke?: 'sketch';
 }
 
 /** What a comment hangs on: a passage of page text, another element, or a spot on the page. */

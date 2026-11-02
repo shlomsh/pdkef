@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'preact/hooks';
+import { useEffect, useId, useRef, useState } from 'preact/hooks';
 import { autoUpdate, flip, offset, shift, useDismiss, useFloating, useInteractions } from '@floating-ui/react';
 import { HighlightIcon } from '#editor-ui/toolIcons.tsx';
 import type { Marker } from '../lib/marker/markerState.ts';
@@ -40,6 +40,7 @@ interface MarkerButtonProps {
  */
 export default function MarkerButton({ marker, armed = false, onTap, onDisarm, onOpenChange, mark, buttonClass }: MarkerButtonProps) {
   const open = Boolean(mark);
+  const panelId = useId();
   const [moreOpen, setMoreOpen] = useState(false);
   const badge = markerBadge(marker);
 
@@ -107,7 +108,7 @@ export default function MarkerButton({ marker, armed = false, onTap, onDisarm, o
       <button
         ref={refs.setReference}
         {...getReferenceProps()}
-        type="button" class={buttonClass ?? styles.button} aria-haspopup={mark ? 'true' : undefined} aria-expanded={open}
+        type="button" class={buttonClass ?? styles.button} aria-pressed={!!armed} aria-expanded={mark ? open : undefined} aria-controls={mark && open ? panelId : undefined}
         aria-label={t.marker} title={t.marker} data-armed={armed ? '' : undefined}
         onClick={() => {
           // A mark's panel is open: the button releases it. Otherwise a click arms the marker and the next one puts it away.
@@ -128,7 +129,7 @@ export default function MarkerButton({ marker, armed = false, onTap, onDisarm, o
       </button>
       {mark && (
         <div
-          ref={refs.setFloating} style={floatingStyles} {...getFloatingProps()}
+          id={panelId} ref={refs.setFloating} style={floatingStyles} {...getFloatingProps()}
           class={`${styles.menu} ${controls.popover} ${controls['toolbar-menu']}`} role="group" aria-label={t.marker}
         >
           <MarkPanel

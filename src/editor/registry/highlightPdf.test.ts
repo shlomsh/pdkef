@@ -1,7 +1,15 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { PDFArray, PDFDict, PDFDocument, PDFName, PDFNumber, PDFString } from '@cantoo/pdf-lib';
 import { serializeHighlight, textCorners } from './highlightPdf.ts';
 import type { HighlightElement } from '../model/editorModel.ts';
+
+// READ-11: known ops, one M, one C, one Z per band, so the exact stream is assertable.
+vi.mock('../geometry/sketchStroke.ts', () => {
+  const ops = (bands: { x: number; y: number; w: number; h: number }[]) => bands.flatMap((b) => [
+    ['M', b.x, b.y], ['C', b.x + 1, b.y, b.x + b.w, b.y - 5, b.x + b.w, b.y + b.h], ['Z'],
+  ]);
+  return { strokeSeed: () => 7, sketchBands: (bands: any[]) => ops(bands), sketchUnderline: (bands: any[]) => ops(bands) };
+});
 
 const element: HighlightElement = {
   id: 'h', type: 'highlight', pageIndex: 0, left: 10, top: 10, width: 50, height: 10, color: '#FFF34D',
@@ -151,5 +159,46 @@ describe('serializeHighlight: a turned page', () => {
   it('strokes the underline along the displayed left edge after one turn, and still along the bottom with none', async () => {
     expect(await content(1)).toContain('22.5 90 m 22.5 80 l S');
     expect(await content(0)).toContain('20 82.5 m 120 82.5 l S');
+  });
+});
+
+describe('serializeHighlight: READ-11 sketched stroke', () => {
+  async function write(el: HighlightElement) {
+    const pdfDoc = await PDFDocument.create();
+    const page = pdfDoc.addPage([200, 100]);
+    serializeHighlight(el, { pdfDoc, page, pdfWidth: 200, pdfHeight: 100, pdfX: 20, pdfY: 90, loadCustomFont: async () => null, baselineOffset: () => 0 } as any);
+    const annot = pdfDoc.context.lookup(page.node.Annots()!.get(0)) as PDFDict;
+    const ap = pdfDoc.context.lookup(annot.get(PDFName.of('AP'))) as PDFDict;
+    const stream = pdfDoc.context.lookup(ap.get(PDFName.of('N'))) as any;
+    const nums = (a: unknown) => (a as PDFArray).asArray().map((n) => (n as PDFNumber).asNumber());
+    return { annot, content: new TextDecoder().decode(stream.getContents()), rect: nums(annot.get(PDFName.of('Rect'))), bbox: nums(stream.dict.get(PDFName.of('BBox'))), quad: nums(annot.get(PDFName.of('QuadPoints'))) };
+  }
+
+  it('keeps a clean mark byte-identical', async () => {
+    expect((await write(element)).content).toBe('/GS gs\n1 0.953 0.302 rg\n20 90 m 120 90 l 120 80 l 20 80 l h f');
+    expect((await write({ ...element, style: 'underline' })).content)
+      .toBe('/GS gs\n3 w 0.722 0.686 0.216 RG\n20 82.5 m 120 82.5 l S');
+  });
+
+  it('draws a sketched highlight as m, c, h and one trailing f, with no line-to', async () => {
+    const { content } = await write({ ...element, stroke: 'sketch' });
+    expect(content).toBe('/GS gs\n1 0.953 0.302 rg\n20 90 m 21 90 120 95 120 80 c h f');
+    expect(content).not.toContain(' l ');
+    expect(content.match(/\bf\b/g)).toHaveLength(1);
+  });
+
+  it('fills a sketched underline in the underline ink, with no stroke', async () => {
+    const { content } = await write({ ...element, style: 'underline', stroke: 'sketch' });
+    expect(content).toContain('0.722 0.686 0.216 rg');
+    expect(content).not.toMatch(/RG|\bw\b|\bS\b/);
+    expect(content).toMatch(/ c h f$/);
+  });
+
+  it('grows the Rect and BBox to the path and leaves the quads as the text bands', async () => {
+    const { rect, bbox, quad } = await write({ ...element, stroke: 'sketch' });
+    // the control point y 95 lies above the quad top, 90
+    expect(rect).toEqual([20, 80, 120, 95]);
+    expect(bbox).toEqual(rect);
+    expect(quad).toEqual([20, 90, 120, 90, 20, 80, 120, 80]);
   });
 });

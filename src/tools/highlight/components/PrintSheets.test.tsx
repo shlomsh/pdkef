@@ -9,6 +9,8 @@ import PrintSheets from './PrintSheets.tsx';
 const renderPageToCanvas = vi.hoisted(() => vi.fn());
 const readPageInk = vi.hoisted(() => vi.fn(async (_doc?: unknown, _index?: number): Promise<{ left: number; right: number } | null> => null));
 vi.mock('../hooks/readInkBounds.ts', () => ({ readPageInk }));
+const sketchBands = vi.hoisted(() => vi.fn((_bands: unknown, _seed: number, _turns?: number) => [['Z']]));
+vi.mock('#editor/geometry/sketchStroke.ts', () => ({ strokeSeed: () => 9, sketchBands, sketchUnderline: () => [['Z']], svgPath: () => 'M0 0Z' }));
 vi.mock('#lib/pdf/renderPage.js', () => ({ renderPageToCanvas }));
 
 const band = { left: 0, top: 0, width: 100, height: 100 };
@@ -48,6 +50,19 @@ const sheets = () => [...root().querySelectorAll('[data-print-sheet]')] as HTMLE
 const loadAll = () => act(() => { root().querySelectorAll('img').forEach((img) => img.dispatchEvent(new Event('load'))); });
 
 describe('PrintSheets', () => {
+  it('READ-11: a sketched mark prints as one svg path in page points, inside the opacity layer', async () => {
+    sketchBands.mockClear();
+    const sketched = { ...elements[0], stroke: 'sketch', opacity: 0.6 } as EditorElement;
+    await mount(false, undefined, pdfDocument, [sketched]);
+    const svg = sheets()[0].querySelector('svg[data-highlight-sketch]')!;
+    expect(svg.getAttribute('viewBox')).toBe('0 0 600 800');
+    expect(svg.querySelector('path')!.getAttribute('fill')).toBe('#fde047');
+    expect((svg.parentElement as HTMLElement).style.opacity).toBe('0.6');
+    expect(sheets()[0].querySelectorAll('[data-print-band]')).toHaveLength(0);
+    // h1 is 50% x 5% of the 600 x 800 page at (10%, 20%); both bands fill it.
+    expect(sketchBands).toHaveBeenCalledWith(Array(2).fill({ x: 60, y: 160, w: 300, h: 40 }), 9, 0);
+  });
+
   it('mounts a print root on the body with one sized sheet per page', async () => {
     await mount(false);
     expect(root().parentElement).toBe(document.body);

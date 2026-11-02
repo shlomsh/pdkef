@@ -85,3 +85,15 @@ describe('sameMarker', () => {
     expect(sameMarker(pink, { ...pink, color: '#FF8080' })).toBe(false);
   });
 });
+
+describe('READ-11: stroke in memory', () => {
+  it('round trips sketch, treats an old record as Clean and rejects a bad value', () => {
+    const sketch = { ...pink, stroke: 'sketch' as const };
+    expect(parseMarker(serializeMarker(sketch))).toEqual(sketch);
+    expect(serializeMarker(pink)).not.toContain('stroke');
+    expect('stroke' in parseMarker(serializeMarker(pink))!).toBe(false);
+    expect(parseMarker('{"color":"#FF8FCF","style":"underline","opacity":0.6,"stroke":"clean"}')).toBeNull();
+    expect(sameMarker(pink, sketch)).toBe(false);
+    expect(sameMarker(sketch, { ...sketch })).toBe(true);
+  });
+});

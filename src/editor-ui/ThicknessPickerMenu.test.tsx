@@ -36,4 +36,17 @@ describe('ThicknessPickerMenu', () => {
     expect(host.querySelector('button polyline')?.getAttribute('points')).toBe('6 9 12 15 18 9');
     expect(host.querySelector('button line')).toBeNull();
   });
+
+  it('renders a header above the list and replaces each line with renderLine', async () => {
+    await open({ options: [2, 4], header: <p data-head>H</p>, renderLine: (n: number) => <i data-custom={n} /> });
+    expect(document.body.querySelector('[data-head]')).not.toBeNull();
+    expect([...document.body.querySelectorAll('[data-custom]')].map((e) => e.getAttribute('data-custom'))).toEqual(['2', '4']);
+    expect(document.body.querySelector('[data-editor-thickness] svg')).toBeNull();
+  });
+
+  it('without the new props draws the plain svg line and no header', async () => {
+    await open({ options: [2] });
+    expect(document.body.querySelector('[data-editor-thickness] svg rect')).not.toBeNull();
+    expect(document.body.querySelector('[data-head]')).toBeNull();
+  });
 });

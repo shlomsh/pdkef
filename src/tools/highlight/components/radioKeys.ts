@@ -5,7 +5,9 @@ import { nextRadioIndex } from '../lib/marker/roving.ts';
 export function onRadioKeyDown(e: KeyboardEvent) {
   const group = e.currentTarget as HTMLElement;
   const radios = [...group.querySelectorAll<HTMLElement>('[role="radio"]')];
-  const current = radios.findIndex((r) => r.getAttribute('aria-checked') === 'true');
+  // Step from the focused radio, else the checked one: with none checked the tab stop is the first, and an arrow must leave it.
+  let current = radios.indexOf(document.activeElement as HTMLElement);
+  if (current < 0) current = radios.findIndex((r) => r.getAttribute('aria-checked') === 'true');
   const next = nextRadioIndex(current, e.key, radios.length, getComputedStyle(group).direction === 'rtl');
   if (next === null) return;
   e.preventDefault();

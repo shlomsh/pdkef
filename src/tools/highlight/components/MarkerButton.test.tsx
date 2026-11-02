@@ -48,7 +48,7 @@ describe('MarkerButton', () => {
       const { props, button } = mount({});
       press(button());
       expect(props.onTap).toHaveBeenCalledTimes(1);
-      expect(button().getAttribute('aria-expanded')).toBe('false');
+      expect(button().hasAttribute('aria-expanded')).toBe(false);
       expect(button().hasAttribute('aria-haspopup')).toBe(false);
       expect(container!.querySelector('[role=group]')).toBeNull();
     });
@@ -61,6 +61,13 @@ describe('MarkerButton', () => {
       expect(props.onTap).not.toHaveBeenCalled();
       expect(container!.querySelector('[role=group]')).toBeNull();
     });
+  });
+
+  it('exposes the armed state as aria-pressed', () => {
+    const { button } = mount({ armed: true });
+    expect(button().getAttribute('aria-pressed')).toBe('true');
+    act(() => render(<MarkerButton marker={DEFAULT_MARKER} onTap={vi.fn()} armed={false} />, container!));
+    expect(button().getAttribute('aria-pressed')).toBe('false');
   });
 
   it('shows the armed fill while armed and none once put down, on every pointer (R50)', () => {
@@ -94,7 +101,7 @@ describe('MarkerButton', () => {
       const { props, button } = mount({ mark: markProps(look) });
       expect(container!.querySelectorAll('[data-highlight-swatch]')[2].getAttribute('aria-checked')).toBe('true');
       act(() => render(<MarkerButton {...props} mark={undefined} />, container!));
-      expect(button().getAttribute('aria-expanded')).toBe('false');
+      expect(button().hasAttribute('aria-expanded')).toBe(false);
       expect(named(t.markComment)).toBeNull();
     });
 

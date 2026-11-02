@@ -88,6 +88,7 @@ describe('MarkPanel', () => {
       arrow('ArrowRight', radios()[0]);
       expect(onChange).toHaveBeenLastCalledWith({ color: TOP_COLORS[1].hex });
       expect(document.activeElement).toBe(radios()[1]);
+      radios()[0].focus();
       arrow('ArrowLeft', radios()[0]);
       expect(onChange).toHaveBeenLastCalledWith({ color: TOP_COLORS[2].hex });
     });
@@ -147,12 +148,20 @@ describe('MarkPanel', () => {
       expect(setting().closest('[data-style-toggle]')).toBeNull();
     });
 
-    it('on a highlight shows a dot in the color at its opacity and the percent, and opens the slider', () => {
-      const { onChange } = mount({ ...DEFAULT_MARKER, color: '#FF8FCF', opacity: 0.5 });
+    it('on a highlight marks its percent in the color, the opacity and the stroke, and opens the slider', () => {
+      const { onChange, draw } = mount({ ...DEFAULT_MARKER, color: '#FF8FCF', opacity: 0.5 });
       expect(setting().textContent).toBe('50%');
-      const dot = setting().querySelector<HTMLElement>('[data-setting-dot]')!;
-      expect(dot.style.background.toLowerCase()).toContain('rgb(255, 143, 207)');
-      expect(dot.style.opacity).toBe('0.5');
+      expect(setting().querySelector('[data-setting-dot]')).toBeNull();
+      const clean = setting().querySelector('svg rect')!;
+      expect(clean.getAttribute('fill')).toBe('#FF8FCF');
+      expect(clean.getAttribute('fill-opacity')).toBe('0.5');
+      draw({ ...DEFAULT_MARKER, color: '#FF8FCF', opacity: 0.8, stroke: 'sketch' });
+      expect(setting().textContent).toBe('80%');
+      const sketched = setting().querySelector('svg path')!;
+      expect(sketched.getAttribute('d')).toMatch(/^M.*C.*Z$/);
+      expect(sketched.getAttribute('fill-opacity')).toBe('0.8');
+      expect(setting().querySelector('svg rect')).toBeNull();
+      draw({ ...DEFAULT_MARKER, color: '#FF8FCF', opacity: 0.5 });
       expect(setting().querySelector('polyline')).not.toBeNull();
       expect(document.querySelector('[data-opacity-slider]')).toBeNull();
       press(setting());
@@ -166,7 +175,7 @@ describe('MarkPanel', () => {
       const { onChange } = mount({ ...DEFAULT_MARKER, style: 'underline', strokeWidth: 2 });
       expect(setting().getAttribute('aria-label')).toBe('Underline thickness');
       expect(setting().querySelector('[data-setting-dot]')).toBeNull();
-      expect(setting().querySelector('[data-setting-line]')!.getAttribute('stroke-width')).toBe('2');
+      expect(setting().querySelector('[data-setting-line] rect')!.getAttribute('height')).toBe('2');
       expect(setting().querySelector('polyline')).not.toBeNull();
       press(setting());
       press(document.querySelector('[data-editor-thickness="3"]')!);

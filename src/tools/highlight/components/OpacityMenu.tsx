@@ -3,12 +3,20 @@ import { useState } from 'preact/hooks';
 import Popover from '#shell/Popover.tsx';
 import controls from '#editor-ui/EditorControls.module.css';
 import { englishHighlightMessages as t } from '../messages.ts';
+import StrokeChoice from './StrokeChoice.tsx';
+import type { Marker } from '../lib/marker/markerState.ts';
 import OpacitySlider from './OpacitySlider.tsx';
+import { COUNTER_SCALE, useToolbarScaled } from './toolbarScale.ts';
 import styles from './OpacityMenu.module.css';
 
 /** The button that opens the opacity slider: a quiet caret, or the caller's own face (`children`, styled by `triggerClass`). */
-export default function OpacityMenu({ value, onChange, triggerClass, children }: { value: number; onChange(opacity: number): void; triggerClass?: string; children?: ComponentChildren }) {
+export default function OpacityMenu({ value, onChange, triggerClass, children, stroke, color = 'currentColor', onStroke }: {
+  value: number; onChange(opacity: number): void; triggerClass?: string; children?: ComponentChildren;
+  /** With `onStroke`: the Clean | Sketch scraps above the slider. */
+  stroke?: Marker['stroke']; color?: string; onStroke?(change: Partial<Marker>): void;
+}) {
   const [open, setOpen] = useState(false);
+  const scaled = useToolbarScaled();
   return (
     <Popover
       open={open}
@@ -22,7 +30,8 @@ export default function OpacityMenu({ value, onChange, triggerClass, children }:
         </button>
       }
       content={
-        <div class={`${controls.popover} ${styles.menu}`}>
+        <div class={`${controls.popover} ${styles.menu}`} style={scaled ? COUNTER_SCALE : undefined} data-counter-scaled={scaled || undefined}>
+          {onStroke && <StrokeChoice stroke={stroke} underline={false} color={color} onChange={onStroke} />}
           <OpacitySlider value={value} onChange={onChange} />
         </div>
       }

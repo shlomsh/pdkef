@@ -7,6 +7,7 @@ import { useToolbarDismissal, type HintAnchor } from '../hooks/useRestToolbar.ts
 import { englishHighlightMessages as t } from '../messages.ts';
 import useMarkToolbarPlacement from '../hooks/useMarkToolbarPlacement.ts';
 import MarkPanel from './MarkPanel.tsx';
+import { ToolbarScale } from './toolbarScale.ts';
 import styles from './RestToolbar.module.css';
 
 /**
@@ -55,10 +56,12 @@ export default function RestToolbar({ mark, onChange, onDelete, onComment, onClo
       ref={placement.setRoot} class={styles.bar} style={placement.style} role="toolbar" aria-label={t.markToolbar}
       data-rest-toolbar data-side="above" onKeyDown={onArrow}
     >
+      <ToolbarScale.Provider value={true}>
       <MarkPanel
         look={look} moreOpen={moreOpen} onMoreOpenChange={setMoreOpen} onChange={(change) => live.current.onChange(change)}
         onComment={() => live.current.onComment()} onDelete={() => live.current.onDelete()}
       />
+      </ToolbarScale.Provider>
     </div>
   );
 }

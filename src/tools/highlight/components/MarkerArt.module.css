@@ -115,5 +115,6 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .band, .wrap, .body, .collar, .nib, .cap { transition: none; }
+  /* Doubled .art outranks the picked and hover rules above, which set their own transitions. */
+  .art.art .band, .art.art .wrap, .art.art .body, .art.art .collar, .art.art .nib, .art.art .cap { transition: none; }
 }

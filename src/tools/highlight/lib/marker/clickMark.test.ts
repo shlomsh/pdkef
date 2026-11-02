@@ -71,6 +71,9 @@ describe('clickMarkElement', () => {
     const el = clickMarkElement({ id: 'x', pageIndex: 0, boxes, marker: { color: '#FF8FCF', style: 'underline', opacity: 1, strokeWidth: 2 }, direction: 'ltr' })!;
     expect(el.strokeWidth).toBe(2);
     expect(clickMarkElement({ id: 'x', pageIndex: 0, boxes, marker: DEFAULT_MARKER, direction: 'ltr' })!.strokeWidth).toBeUndefined();
+    const sketch = clickMarkElement({ id: 'x', pageIndex: 0, boxes, marker: { ...DEFAULT_MARKER, stroke: 'sketch' }, direction: 'ltr' })!;
+    expect(sketch.stroke).toBe('sketch');
+    expect('stroke' in clickMarkElement({ id: 'x', pageIndex: 0, boxes, marker: DEFAULT_MARKER, direction: 'ltr' })!).toBe(false);
   });
 
   it('is null for no boxes or boxes with no area', () => {
