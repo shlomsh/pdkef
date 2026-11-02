@@ -1,7 +1,17 @@
 import { describe, expect, it } from 'vitest';
-import { DEFAULT_MARKER, HIGHLIGHT_COLORS, commentBandColor, rearm } from './markerState.ts';
+import { DEFAULT_MARKER, HIGHLIGHT_COLORS, MORE_COLORS, TOP_COLORS, commentBandColor, isTopColor, rearm } from './markerState.ts';
 
 describe('markerState', () => {
+  it('the top three are yellow, pink and green, and the rest sit behind more', () => {
+    expect(TOP_COLORS.map((c) => c.id)).toEqual(['yellow', 'pink', 'green']);
+    expect(MORE_COLORS.map((c) => c.id)).toEqual(['orange', 'red', 'blue']);
+  });
+  it('isTopColor ignores case and says no to the rest and to custom colors', () => {
+    expect(isTopColor('#ff8fcf')).toBe(true);
+    expect(isTopColor('#FFF34D')).toBe(true);
+    expect(isTopColor('#FFB15C')).toBe(false);
+    expect(isTopColor('#336699')).toBe(false);
+  });
   it('defaults to the first palette color, yellow', () => {
     expect(HIGHLIGHT_COLORS[0].id).toBe('yellow');
     expect(DEFAULT_MARKER).toEqual({ color: HIGHLIGHT_COLORS[0].hex, style: 'highlight', opacity: 0.5 });

@@ -1,0 +1,70 @@
+/* The color cells of the Marker panel and of its More popover. The cell is as tall as the panel's targets
+   (--cell, set by the panel) and --swatch-w wide; the 18 px dot is centred in it and the ring hugs the dot. */
+.cells { display: contents; }
+.cells [data-highlight-swatch] {
+  position: relative;
+  flex: none;
+  box-sizing: border-box;
+  width: var(--swatch-w, var(--cell, 2.25rem));
+  height: var(--cell, 2.25rem);
+  padding: calc((var(--cell, 2.25rem) - 18px) / 2) calc((var(--swatch-w, var(--cell, 2.25rem)) - 18px) / 2);
+  border: 0;
+  border-radius: 50%;
+  box-shadow: none;
+  background-clip: content-box !important;
+  cursor: pointer;
+}
+.cells [data-highlight-swatch]:hover { transform: none; }
+.cells [data-highlight-swatch]::before {
+  content: '';
+  position: absolute;
+  inset: calc((var(--cell, 2.25rem) - 18px) / 2) calc((var(--swatch-w, var(--cell, 2.25rem)) - 18px) / 2);
+  box-sizing: border-box;
+  border: 1px solid var(--color-white-30);
+  border-radius: 50%;
+  box-shadow: 0 0 0 1px var(--color-black-15) inset;
+  pointer-events: none;
+}
+.cells [data-highlight-swatch][aria-pressed='true']::before { box-shadow: 0 0 0 2px var(--color-surface), 0 0 0 3px var(--color-primary); }
+
+/* More: a quiet caret, or the picked color as a pressed dot. */
+.more {
+  appearance: none;
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: var(--swatch-w, var(--cell, 2.25rem));
+  height: var(--cell, 2.25rem);
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--color-text);
+  cursor: pointer;
+}
+.more:hover,
+.more[aria-expanded='true'] { background: var(--color-primary-tint); }
+.dot {
+  display: block;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 1px solid var(--color-white-30);
+  box-sizing: border-box;
+  box-shadow: 0 0 0 1px var(--color-black-15) inset;
+}
+.more[aria-pressed='true'] .dot { box-shadow: 0 0 0 2px var(--color-surface), 0 0 0 3px var(--color-primary); }
+
+/* The popover: orange, red, blue and the wheel in a row. */
+.menu {
+  --cell: var(--target, 2.25rem);
+  --wheel-cell: var(--cell);
+  flex-direction: row;
+  align-items: center;
+  gap: 0;
+  min-width: 0;
+  padding: 4px;
+}
+@media (pointer: coarse) {
+  .menu { --cell: var(--target, 2.75rem); --swatch-w: 2.25rem; }
+}

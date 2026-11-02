@@ -3,12 +3,20 @@ import type { SignMessages } from '#editor/registry/messages.ts';
 import styles from '../EditorControls.module.css';
 import { highlightColorNames } from './highlightColorNames.ts';
 
-/** SIGN-46: the highlighter's six colors as round swatches (no thickness: the band follows the text line). */
-export default function HighlightSwatches({ color, onChange, t }: { color: string; onChange: (changes: { color: string }) => void; t: SignMessages }) {
+/** SIGN-46: the highlighter's colors (six, or a subset) as round swatches (no thickness: the band follows the text line). */
+export default function HighlightSwatches({ color, onChange, t, colors = HIGHLIGHT_COLORS, divider = true }: {
+  color: string;
+  onChange: (changes: { color: string }) => void;
+  t: SignMessages;
+  /** A subset of the six, in the order to show them. */
+  colors?: readonly { id: string; hex: string }[];
+  /** The trailing divider; a host that lays out its own row leaves it out. */
+  divider?: boolean;
+}) {
   const names = highlightColorNames(t);
   return (
     <>
-      {HIGHLIGHT_COLORS.map(({ id, hex }) => (
+      {colors.map(({ id, hex }) => (
         <button
           key={id}
           type="button"
@@ -21,7 +29,7 @@ export default function HighlightSwatches({ color, onChange, t }: { color: strin
           onClick={() => onChange({ color: hex })}
         />
       ))}
-      <div className={styles.divider} />
+      {divider && <div className={styles.divider} />}
     </>
   );
 }

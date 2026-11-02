@@ -60,49 +60,24 @@
   z-index: 40;
   flex-direction: column;
   gap: 4px;
+  /* Placed absolutely in the button's wrapper, it would otherwise shrink to the button and wrap the row. */
+  width: max-content;
   max-width: none;
   box-sizing: border-box;
 }
 
-/* The six colors and the wheel in one row. The shared swatches are 18 px; the margin and the
-   pseudo-element make each one a full-size target with no overlap, and the shared divider is not needed. */
-.row {
+/* The whole panel is one row: the top colors, More, a divider, the toggle, and for a mark Comment and Delete at
+   the end. Where the row does not fit, Comment and Delete wrap to a second line, right aligned. */
+.bar {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  height: var(--cell);
+  gap: 0 2px;
+  min-height: var(--cell);
   padding-inline: 2px;
-  --wheel-cell: var(--cell);
 }
-/* The opacity slider sits under the swatches, inset like the row. */
-.menu > [data-opacity-slider] { box-sizing: border-box; min-width: 14rem; padding: 4px 8px 8px; }
-.row > div { display: none; }
-/* The swatch button is the full cell; its inline background is clipped to an 18 px dot by the padding, and the
-   ring (border, inset shadow, armed outline) moves to ::before so it hugs the dot, not the cell. */
-.row [data-highlight-swatch] {
-  position: relative;
-  flex: none;
-  box-sizing: border-box;
-  width: var(--cell);
-  height: var(--cell);
-  padding: calc((var(--cell) - 18px) / 2);
-  border: 0;
-  box-shadow: none;
-  background-clip: content-box !important;
-}
-.row [data-highlight-swatch][aria-pressed] { box-shadow: none; }
-.row [data-highlight-swatch]::before {
-  content: '';
-  position: absolute;
-  inset: calc((var(--cell) - 18px) / 2);
-  box-sizing: border-box;
-  border: 1px solid var(--color-white-30);
-  border-radius: 50%;
-  box-shadow: 0 0 0 1px var(--color-black-15) inset;
-  pointer-events: none;
-}
-.row [data-highlight-swatch][aria-pressed='true']::before { box-shadow: 0 0 0 2px var(--color-surface), 0 0 0 3px var(--color-primary); }
-/* The look row: the Highlight | Underline toggle, and for a mark Comment and Delete at the end. */
-.look { display: flex; align-items: center; gap: 4px; min-height: var(--cell); padding-inline: 2px; }
+.divider { flex: none; width: 1px; height: 24px; margin: 0 4px; background: var(--color-border); }
+.acts { display: inline-flex; align-items: center; gap: 2px; margin-inline-start: auto; }
 .act {
   appearance: none;
   flex: none;
@@ -119,19 +94,16 @@
 }
 .act:hover { background: var(--color-primary-tint); }
 .danger:hover { background: var(--color-danger-soft); color: var(--color-danger); }
-.end { margin-inline-start: auto; }
 @media (prefers-reduced-motion: reduce) {
   .button { transition: none; }
 }
 
-/* On a phone the menu spans the screen between 16 px gutters (the full-width mobile toolbar rule) and keeps its
-   seven targets on one row: each cell is 44 px or a seventh of the row, whichever is smaller, and the row spreads
-   them edge to edge. 42 px is the gutters, the menu's padding and its border. */
+/* On a phone the menu spans the screen between 16 px gutters (the full-width mobile toolbar rule). Every target is
+   44 px tall; colors and More are 36 wide, Comment and Delete 40, and the carets 24 (LookControls). */
 @media (pointer: coarse), (max-width: 480px) {
   .menu { width: calc(100vw - 32px); max-width: none; min-width: 0; padding: 4px; }
-  .row { --cell: min(2.75rem, (100vw - 42px) / 7); justify-content: space-between; padding-inline: 0; }
-  .look { padding-inline: 0; }
-  .menu > [data-opacity-slider] { min-width: 0; padding: 0 12px 6px; }
+  .bar { --swatch-w: 2.25rem; padding-inline: 0; }
+  .act { width: 2.5rem; border-radius: var(--radius-sm); }
 }
 
 /* In the editor row the wrap is one more tile: the toolbar's own `.toolbar > *` flex sizes it like its siblings (a
