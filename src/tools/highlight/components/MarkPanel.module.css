@@ -30,7 +30,7 @@
 .act:hover { background: var(--color-primary-tint); }
 .danger:hover { background: var(--color-danger-soft); color: var(--color-danger); }
 
-/* Coarse: every target is 44 px tall; colors are 30 wide, More 28, the three switch segments 28, Comment and Delete 36, so the whole row fits
+/* Coarse: every target is 44 px tall; colors are 30 wide, More 28, the switch halves 40, Comment and Delete 36, so the whole row fits
    on one line from a 393 px phone up. The same sizes hold on a narrow screen with a fine pointer. */
 @media (pointer: coarse) {
   .bar { --cell: var(--target, 2.75rem); }
