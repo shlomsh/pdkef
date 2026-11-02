@@ -18,15 +18,15 @@ https://claude.ai/artifact/TGjFAxSxw9SRDpjusNDiPo shows the hatching.
 
 ## Outcome
 
-The style toggle offers Highlight, Underline and Pencil. A pencil mark is hatching in the mark's own color,
+A highlight can be Clean, Sketch or Pencil, picked in one toggle in the opacity popover. A pencil mark is hatching in the mark's own color,
 with no outline of its own (an outline means the mark is open, READ-13). It looks the same on screen, in
 print and in the downloaded PDF, and opening our own export again brings it back as Pencil.
 
 ## Decided
 
 - **A style, not a stroke.** `HighlightElement.style` becomes `'underline' | 'pencil'`
-  (`src/editor/model/editorModel.ts:169-170`). READ-11's Clean/Sketch choice does not apply to it (hatching is
-  already by hand), so `StrokeChoice` hides for Pencil; the opacity menu stays.
+  (`src/editor/model/editorModel.ts:169-170`). In the model it is a style; in the UI it is a look of a highlight,
+  beside Clean and Sketch (see "Pencil moved into the look toggle" below).
 - **One drawing for every surface.** A pure function beside `src/editor/geometry/sketchStroke.ts` takes the
   bands, the seed (`strokeSeed(id)`) and the page turns, and returns rough.js generator output: hachure at
   about -41 degrees, a gap of about 3.4px and a line weight of about 1.6px at 100%, in the mark's color. Screen
@@ -52,15 +52,16 @@ print and in the downloaded PDF, and opening our own export again brings it back
 5. **Export**: stroked hatch lines in the appearance stream; `highlightPdf.test.ts` asserts them.
 6. **Round trip**: `src/editor/comments/importAnnotations.ts` brings our own pencil marks back as Pencil.
    Check first how READ-11's sketch comes back (or whether it does) and use the same mechanism.
-7. **The picker**: `StyleToggle` (`LookControls.tsx`) gains a third segment. Check the panel at phone width
-   (44px targets) and in `/he/`.
+7. **The picker**: Pencil is the third segment of the opacity popover's look toggle (`StrokeChoice.tsx`), not of
+   `StyleToggle`. Check the panel at phone width (44px targets).
 8. **Legibility**: look at it on a scanned page and on pointed Hebrew, and tune the gap and weight if letters
    get lost in the lines.
 
 ## Acceptance
 
-- [x] Pencil is in the style toggle on desktop and touch, and a pencil mark shows no outline until it is
-      opened. (`pencil-mark.spec.js`; the touch row is one line from 393 px in `mark-toolbar.spec.js`.)
+- [x] Pencil is picked from the opacity popover's Clean | Sketch | Pencil toggle on desktop and touch, and a pencil
+      mark shows no outline until it is opened. (`pencil-mark.spec.js`; the touch row and the toggle's fit at 402,
+      393 and 375 px in `mark-toolbar.spec.js`.)
 - [x] Screen, print and the downloaded PDF draw the same hatch (unit tests on the shared function and the
       appearance stream).
 - [ ] The exported PDF shows the hatch in Preview and Acrobat and is still listed as a highlight there.
@@ -79,5 +80,22 @@ print and in the downloaded PDF, and opening our own export again brings it back
   49 degrees on screen) and `hatchInk.ts`, in the editor because the PDF export needs it too. It has no `turns`
   argument: it is drawn in displayed space and the export maps it through the page matrix, so a turned page
   hatches as shown.
-- The touch panel's three style segments are 28 px wide (44 tall), so the row stays one line from 393 px.
 - Sign shows an imported pencil mark as a plain highlight (it hands in no hatch) and still exports it as Pencil.
+
+## Pencil moved into the look toggle (2026-11-02)
+
+Shipped first as a third button beside Highlight and Underline, with the touch panel's segments cut to 28 px to
+fit. Shlomi: a highlight can be clean, sketch or pencil, so those are one 3-way toggle in the dropdown, and the old
+Clean | Sketch scraps looked bad too. Now:
+
+- The kind switch is Highlight | Underline again (40 px halves on touch). Highlight stays pressed on a pencil mark,
+  and a click there keeps the pencil.
+- `StrokeChoice` is one segmented toggle: a mint track, equal segments, each word marked in its own look (a band,
+  a sketched band, static hatch lines from `hatchLines`, since rough.js stays lazy), and a paper thumb that slides
+  under the picked one. A highlight gets Clean | Sketch | Pencil in its opacity popover, an underline Clean | Sketch
+  in its thickness menu. A highlight's choice carries its style, so Clean from a pencil mark is `{ style:
+  'highlight', stroke: undefined }`.
+- The opacity face on a pencil mark shows its percent over hatching. `P` still toggles Pencil.
+- The model and the PDF are unchanged (`style: 'pencil'`, `/PDkefStyle /Pencil`).
+- Measured in Chromium on 2026-11-02: three 69 px segments in a 240 px popover at desktop, 402 and 375 px (44 tall
+  on touch), no overflow, and the mark row one line at all three.

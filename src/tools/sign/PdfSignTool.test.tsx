@@ -146,14 +146,9 @@ describe('PdfSignTool UI flow', () => {
       setInputFiles(input, [file]);
     });
 
-    // Wait for chained async operations (getPdfjs -> arrayBuffer -> getDocument) to settle
-    await act(async () => {
-      await new Promise((resolve) => setTimeout(resolve, 50));
-    });
-
-    // The dropzone should now be replaced by the loaded-state identity line.
-    const fileBar = query(container, '[data-file-identity]');
-    expect(fileBar).not.toBeNull();
+    // The load chains getPdfjs -> arrayBuffer -> getDocument, which can outlast any fixed settle on a
+    // loaded machine, so wait for the dropzone to be replaced by the loaded-state identity line.
+    const fileBar = await vi.waitFor(() => query(container, '[data-file-identity]'), { timeout: 3000, interval: 20 });
     expect(fileBar.textContent).toContain('test_agreement.pdf');
   });
 

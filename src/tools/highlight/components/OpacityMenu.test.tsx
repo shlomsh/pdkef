@@ -1,6 +1,7 @@
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { DEFAULT_MARKER } from '../lib/marker/markerState.ts';
 import OpacityMenu from './OpacityMenu.tsx';
 import { ToolbarScale } from './toolbarScale.ts';
 
@@ -42,15 +43,15 @@ describe('OpacityMenu', () => {
     expect(range()).toBeNull();
   });
 
-  it('shows the stroke scraps above the slider when given a stroke handler', () => {
+  it('shows the Clean | Sketch | Pencil toggle above the slider when given the look and its handler', () => {
     container = document.createElement('div');
     document.body.appendChild(container);
-    const onStroke = vi.fn();
-    act(() => render(<OpacityMenu value={0.8} onChange={() => {}} color="#ff8fcf" onStroke={onStroke} />, container!));
+    const onLook = vi.fn();
+    act(() => render(<OpacityMenu value={0.8} onChange={() => {}} look={{ ...DEFAULT_MARKER, color: '#ff8fcf' }} onLook={onLook} />, container!));
     act(() => trigger().click());
     const sketch = document.querySelector<HTMLElement>('[role="radiogroup"][aria-label="Stroke"] [aria-label="Sketch"]')!;
     act(() => sketch.click());
-    expect(onStroke).toHaveBeenLastCalledWith({ stroke: 'sketch' });
+    expect(onLook).toHaveBeenLastCalledWith({ style: 'highlight', stroke: 'sketch' });
     expect(range()).not.toBeNull();
   });
 

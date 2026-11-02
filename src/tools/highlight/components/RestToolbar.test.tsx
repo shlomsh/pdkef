@@ -73,7 +73,7 @@ describe('RestToolbar', () => {
     const bar = mount();
     expect(bar.querySelector('[data-marker-row]')).not.toBeNull();
     expect([...bar.querySelectorAll('button')].map((b) => b.getAttribute('aria-label'))).toEqual(
-      ['Yellow', 'Pink', 'Green', 'More colors', 'Highlight', 'Underline', 'Pencil', 'Opacity', 'Comment', 'Delete'],
+      ['Yellow', 'Pink', 'Green', 'More colors', 'Highlight', 'Underline', 'Opacity', 'Comment', 'Delete'],
     );
   });
 
