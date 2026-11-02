@@ -64,8 +64,8 @@ pages fetched; numbers are relative, not volumes). The full record is in
 
 The page fills the screen, fitted to its width and centred. On a desktop a yellow marker is already in the
 hand: the cursor over the page is a small highlighter in the armed color. No panel is open, nothing asks for
-a decision. On a phone or iPad a tap on Marker arms it, and a tap on Marker again puts it down so swipes
-scroll again (R1, R50). The contract is [READ-01](../backlog/tasks/READ-01.md); this section is the story.
+a decision. A phone or iPad opens armed too, with "Swipe to highlight" beside the file name. A click or tap on
+Marker puts it down and another picks it up again; it stays in the hand between marks (R1, R50). The contract is [READ-01](../backlog/tasks/READ-01.md); this section is the story.
 
 ### Marking
 

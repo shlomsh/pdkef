@@ -214,21 +214,29 @@ The reasons and the rejected alternatives are in "Decisions and why" at the end.
     rest into More (READ-05).
 43. The pages are the page's main landmark, labelled with the file name; the capsule stays a toolbar.
 
-## Open from the 2026-11-02 review
+## Open from the 2026-11-02 reviews
 
-Found by the zero-context review of `1e729ad1..1db48f20`; each is checked against the contract before READ-01
-closes.
-- A live two-finger pan is not clamped until release (`usePinchZoom.ts`, the preview's `translate`), so at an
-  edge the page slides past it and snaps back (R56, R62); likely part of the full-screen zoom jump.
+Found by two zero-context reviews (`1e729ad1..1db48f20`, then `1e729ad1..36f5a564`); each is checked against
+the contract before READ-01 closes. Fixed since: the unclamped live pan (`94f8b17d`), the hidden tile row's
+second panel in full screen, and the digest recomputed on every autosave (now once per file).
+- R49: the switch's halves are 36 px wide on touch, not 40. Restoring 40 widens the panel row, which already
+  wraps at 402 px by about 15 px; settle both with the colors-as-one-choice decision.
+- R9, R39 on a coarse pointer with a keyboard (iPad): the touch panel has no 1-6/U/C/Delete keys, though its
+  buttons advertise them, and a keyboard focus on a mark sets the desktop panel's target, which never shows.
+- A sideways finger swipe that starts on an existing highlight neither marks nor pans (`useMarkSwipe` returns
+  on `[data-element-id]` before deciding to pan), so a zoomed page cannot be dragged from a marked line.
+- Outside full screen the armed page is `touch-action: pan-y`, so the browser's own pinch is off and nothing
+  replaces it; decide whether R62's pinch covers the normal view (`pan-y pinch-zoom` is the likely answer).
 - A pinch that lands after the first finger began a native scroll cannot cancel that scroll (touchmove is no
   longer cancelable), so the page may scroll and scale at once.
-- Outside full screen the armed page is `touch-action: pan-y`, so the browser's own pinch is off and nothing
-  replaces it; decide whether R62's pinch covers the normal view.
+- The capsule's `menuOpen` is one boolean: a menu closing while the Marker panel is open lets the capsule doze.
+- More's open state is held twice (MarkerButton and MarkPanel) and kept in sync by a callback, so Escape closes
+  More before the panel only while that sync holds.
 - Each touch press reads the page canvas for `onLine`, and a mark reads it again; one reader per press would do.
-- On a plain-http page the SHA-256 fallback is synchronous; a very large PDF blocks the main thread for about a
-  second per 50 MB.
-- In full screen the hidden tile row's Marker also opens a panel for a picked mark (harmless, redundant).
-- `useBoardScroll` reads the workspace's padding during render, before the lamp padding may apply.
+- On a plain-http page the SHA-256 fallback is synchronous: a very large PDF blocks the main thread for about a
+  second per 50 MB, once per file.
+- `useBoardScroll` reads the workspace's padding during render, on every render of the lamp; measure it with
+  the view instead.
 
 ## Decisions and why
 

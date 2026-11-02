@@ -58,6 +58,18 @@ afterEach(() => {
   dispatch.mockClear(); onPress.mockClear(); logAction.mockClear(); setAnnouncement.mockClear(); vi.restoreAllMocks();
 });
 
+describe('useMarkSwipe second finger', () => {
+  it('a non-primary touch pointer never marks and never begins a press', () => {
+    mount();
+    const target = document.createElement('div');
+    handler({ button: 0, pointerType: 'touch', isPrimary: false, clientX: 100, clientY: 100, target, currentTarget: target } as unknown as PointerEvent);
+    move(150, 100);
+    window.dispatchEvent(new TouchEvent('touchmove', { touches: [{ clientX: 150, clientY: 100 } as Touch] }));
+    expect(dispatch).not.toHaveBeenCalled();
+    expect(onPress).not.toHaveBeenCalled();
+  });
+});
+
 describe('useMarkSwipe threshold', () => {
   it('a mouse drag lays a mark while armed and none once the marker is put down', () => {
     mount(); press(); move(150, 150);

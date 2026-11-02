@@ -27,8 +27,6 @@ export interface HighlightMessages {
   markDelete: string;
   /** R27: opens the highlight's comment. */
   markComment: string;
-  markColors: string;
-  markCustom: string;
   markColorInput: string;
   /** The button that opens the colors beyond the top three. */
   moreColors: string;
@@ -43,7 +41,7 @@ export interface HighlightMessages {
   tapHint: string;
   /** R19: the marker button, which shows the armed marker and opens its colors. */
   marker: string;
-  /** READ-03 on touch: the marker is armed by a tap and the Stop chip puts it down. */
+  /** The hint beside the file name while the marker is armed on touch. */
   armedAction: string;
   /** READ-06: the ways Print offers. */
   printPlain: string;
@@ -79,8 +77,6 @@ export const englishHighlightMessages: HighlightMessages = {
   markUnderline: 'Underline',
   markDelete: 'Delete',
   markComment: 'Comment',
-  markColors: 'Color',
-  markCustom: 'Custom color and opacity',
   markColorInput: 'Custom color',
   moreColors: 'More colors',
   markThickness: 'Underline thickness',

@@ -136,7 +136,7 @@ export default function HighlightWorkspace({ pdfDocument, numPages, fileName, zo
     {/* Stays mounted in the lamp, hidden: the page's restore veil lifts only while a [data-tool-shell] exists. */}
     <div hidden={fullscreen} style={fullscreen ? undefined : { display: 'contents' }}>
       <TileRow
-        marks={marks} undo={undo} redo={redo} touch={touch} mark={mark} printMenu={{ ...printMenu, open: printMenu.open && !fullscreen }} withComments={withComments}
+        marks={marks} undo={undo} redo={redo} touch={touch} mark={fullscreen ? undefined : mark} printMenu={{ ...printMenu, open: printMenu.open && !fullscreen }} withComments={withComments}
         onPrintOpenChange={setPrintOpen} onToggleView={toggleView} onDownload={onDownload} doneName={doneName} onCloseDone={onCloseDone}
       />
     </div>

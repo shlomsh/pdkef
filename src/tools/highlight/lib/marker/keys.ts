@@ -1,5 +1,5 @@
 /** @testSeam */
-export type Layer = 'custom' | 'colors' | 'toolbar' | 'note';
+export type Layer = 'custom' | 'toolbar' | 'note';
 export type KeyAction =
   | { type: 'color'; index: number }
   | { type: 'underline' }
