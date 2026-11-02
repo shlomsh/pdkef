@@ -161,6 +161,16 @@ describe('useLampEntrance', () => {
     expect(document.activeElement).toBe(container!.querySelector('[data-lamp-part="pull"]'));
   });
 
+  it('after a pointer exit, focus stays where it fell: a click or tap never lights the keyboard ring on the cord', async () => {
+    const start = await pressExit();
+    (document.activeElement as HTMLElement | null)?.blur();
+    window.dispatchEvent(new Event('pointerdown'));
+    act(() => api.toggle());
+    await flush();
+    await act(async () => { played.slice(start).forEach((p) => p.finish()); await Promise.resolve(); await Promise.resolve(); });
+    expect(document.activeElement).toBe(document.body);
+  });
+
   it('leaves focus alone when the reader already has it somewhere else', async () => {
     const start = await pressExit();
     const other = document.createElement('input');
