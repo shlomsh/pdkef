@@ -38,7 +38,7 @@ describe('OpenWithChooser', () => {
 
   it('shows plain links to both tools until a file arrives', () => {
     const hrefs = [...container!.querySelectorAll('a')].map((a) => a.getAttribute('href'));
-    expect(hrefs).toEqual(expect.arrayContaining(['/sign/', '/redact/']));
+    expect(hrefs).toEqual(expect.arrayContaining(['/sign/', '/redact/', '/highlight-pdf/', '/compress/']));
     expect(container!.querySelectorAll('button')).toHaveLength(0);
   });
 
@@ -65,6 +65,13 @@ describe('OpenWithChooser', () => {
     await act(async () => { button('Sign').click(); });
     await flush();
     expect(vi.mocked(sendHandoff).mock.calls[0][0]).toBe('sign');
+  });
+
+  it.each([['Highlight', 'highlight-pdf'], ['Compress', 'compress']])('hands the file to %s', async (label, target) => {
+    await launch(pdf());
+    await act(async () => { button(label).click(); });
+    await flush();
+    expect(vi.mocked(sendHandoff).mock.calls[0][0]).toBe(target);
   });
 
   it('keeps the newest launch when a second file arrives before a choice', async () => {
