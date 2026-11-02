@@ -7,15 +7,16 @@
 .dialog[open] { display: flex; flex-direction: column; }
 .dialog::backdrop { background: var(--color-surface); }
 .header {
-  display: flex; align-items: center; justify-content: space-between; gap: 8px; flex: none;
+  display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 8px; flex: none;
   box-sizing: content-box; height: 48px; padding: env(safe-area-inset-top) 8px 0;
 }
-.title { flex: 1; margin: 0; text-align: center; font: inherit; font-size: 15px; font-weight: 600; }
+.title { margin: 0; text-align: center; font: inherit; font-size: 15px; font-weight: 600; }
 .cancel, .save {
   min-width: 44px; min-height: 44px; padding: 6px 12px; background: transparent; border: 0; border-radius: 6px;
   font: inherit; font-size: 15px; font-weight: 600; cursor: pointer;
 }
-.cancel { color: var(--color-muted); }
+.cancel { justify-self: start; color: var(--color-muted); }
+.save { justify-self: end; }
 .save { color: var(--color-primary-text); }
 .cancel:focus-visible, .save:not(:disabled):focus-visible { background: var(--color-primary-soft); outline: none; }
 .save:disabled { opacity: .45; cursor: default; }
