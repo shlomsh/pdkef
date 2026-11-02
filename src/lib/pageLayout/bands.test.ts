@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { bandsForSwipe } from './bands.ts';
+import { bandsForSwipe, onLine } from './bands.ts';
 import type { TextRow } from './textRows.ts';
 
 // Rows 20px tall, pad 3. Words at x 20-60, 90-130, 160-200.
@@ -82,5 +82,30 @@ describe('bandsForSwipe', () => {
       expect(bandsForSwipe(rows, { x: 128, y: 30 }, { x: 92, y: 30 }, 20, 'rtl'))
         .toEqual(bandsForSwipe(rows, { x: 128, y: 30 }, { x: 92, y: 30 }, 20));
     });
+  });
+});
+
+describe('onLine', () => {
+  // Rows 20px tall: the first spans y 20-40, x 20-200; a line's height is 20.
+  it('is true on the row, and half a line above or below it', () => {
+    expect(onLine(rows, 100, 30)).toBe(true);
+    expect(onLine(rows, 100, 12)).toBe(true);
+    expect(onLine(rows, 100, 48)).toBe(true);
+  });
+
+  it('is false in the gap between paragraphs, beyond half a line', () => {
+    expect(onLine(rows, 100, 50)).toBe(false);
+    expect(onLine([row(20), row(120)], 100, 80)).toBe(false);
+  });
+
+  it('allows a line height before and after the row, and no more', () => {
+    expect(onLine(rows, 0, 30)).toBe(true);
+    expect(onLine(rows, 220, 30)).toBe(true);
+    expect(onLine(rows, -1, 30)).toBe(false);
+    expect(onLine(rows, 221, 30)).toBe(false);
+  });
+
+  it('is false with no rows', () => {
+    expect(onLine([], 100, 30)).toBe(false);
   });
 });

@@ -28,6 +28,8 @@ interface MarkSwipeOptions {
   logAction: HistoryLogger<EditorElement>;
   setAnnouncement: (message: string) => void;
   clicks: ReturnType<typeof useClickMarks>;
+  /** Whether a finger pressed here is on a line of text (page percent). Off a line it moves the page and never marks. Absent: on a line. */
+  startsOnLine?: (point: Point) => boolean;
   /** A press that will lay a mark begins. */
   onPress: () => void;
   /** The swipe committed a mark. */
@@ -61,6 +63,10 @@ export function useMarkSwipe(o: MarkSwipeOptions): (event: PointerEvent) => void
     const container = event.currentTarget as HTMLElement;
     const start = o.getPointerPercent(event, container, o.geometry);
     const origin = { x: event.clientX, y: event.clientY };
+    // A finger that starts off the text moves the page sideways and never marks; the browser keeps the vertical scroll.
+    const pans = !isMouse && o.startsOnLine?.(start) === false;
+    const scroller = pans ? container.closest<HTMLElement>('[data-workspace]') : null;
+    const startScrollLeft = scroller?.scrollLeft ?? 0;
     pendingCancelRef.current?.();
     // Nothing is laid until the pointer has moved: a plain click adds no element and leaves Redo alone.
     // Window listeners, not state: the move is never routed through a store.
@@ -81,6 +87,11 @@ export function useMarkSwipe(o: MarkSwipeOptions): (event: PointerEvent) => void
       const point = 'touches' in move && move.touches?.length ? move.touches[0] : (move as MouseEvent);
       const dx = point.clientX - origin.x;
       const dy = point.clientY - origin.y;
+      if (pans) {
+        // DOM only: the browser clamps it, and nothing here is state.
+        if (scroller) scroller.scrollLeft = startScrollLeft - dx;
+        return;
+      }
       if (isMouse) {
         if (Math.hypot(dx, dy) < SWIPE_THRESHOLD_PX) return;
       } else {
