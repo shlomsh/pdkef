@@ -183,3 +183,54 @@ describe('paintDraft dep', () => {
     expect(paintDraft.mock.calls.at(-1)![1]).toBeNull();
   });
 });
+
+describe('draft and commit agree', () => {
+  const blankImageData = (_sx: number, _sy: number, w: number, h: number) => ({ data: new Uint8ClampedArray(w * h * 4).fill(255), width: w, height: h });
+  type Geometry = { bands: unknown[]; left: number; top: number; width: number; height: number };
+
+  /** Runs a trace, returns the geometry painted on the last move and the one in the committed patch. */
+  function run(trace: Array<[number, number]>, opts: { direction?: 'ltr' | 'rtl'; blank?: boolean; directionAt?: (p: { x: number; y: number }) => 'ltr' | 'rtl' } = {}) {
+    const paintDraft = vi.fn();
+    const getContext = () => ({ getImageData: opts.blank ? blankImageData : getImageData });
+    const { dispatch } = setup(true, opts.direction, undefined, getContext, paintDraft, opts.directionAt);
+    for (const [x, y] of trace) move(x, y);
+    const drafted = paintDraft.mock.calls.filter(([, g]) => g).at(-1)![1] as Geometry;
+    release();
+    const changes = dispatch.mock.calls[0][0].payload.changes as Geometry & { direction?: string };
+    return { drafted, changes };
+  }
+
+  function expectAgree(drafted: Geometry, changes: Geometry) {
+    expect(drafted.bands.length).toBeGreaterThan(0);
+    expect(changes.bands).toEqual(drafted.bands);
+    for (const k of ['left', 'top', 'width', 'height'] as const) expect(changes[k]).toBeCloseTo(drafted[k], 2);
+  }
+
+  it('(a) a text page, left to right', () => {
+    const { drafted, changes } = run([[60, 107], [100, 147]], { direction: 'ltr' });
+    expectAgree(drafted, changes);
+    expect(changes).not.toHaveProperty('direction');
+  });
+
+  it('(b) a text page, right to left', () => {
+    const { drafted, changes } = run([[10, 107], [10, 147]], { direction: 'rtl' });
+    expectAgree(drafted, changes);
+    expect(changes.direction).toBe('rtl');
+  });
+
+  it('(c) a text-less page with a latched leftward first move, then a diagonal drag over three lines', () => {
+    let latched: 'ltr' | 'rtl' | null = null;
+    const directionAt = (p: { x: number; y: number }) => {
+      if (!latched && Math.abs(p.x - (30 / W) * 100) > 2) latched = p.x < (30 / W) * 100 ? 'rtl' : 'ltr';
+      return latched ?? 'ltr';
+    };
+    const { drafted, changes } = run([[10, 107], [60, 140], [120, 190], [200, 250]], { blank: true, directionAt });
+    expectAgree(drafted, changes);
+    expect(changes.direction).toBe('rtl');
+  });
+
+  it('(d) a last move that doubles back before release', () => {
+    const { drafted, changes } = run([[60, 107], [200, 147], [40, 112]], { direction: 'ltr' });
+    expectAgree(drafted, changes);
+  });
+});
