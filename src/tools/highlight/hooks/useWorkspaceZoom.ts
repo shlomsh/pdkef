@@ -42,13 +42,18 @@ interface WorkspaceZoomOptions {
 export function useWorkspaceZoom({ pdfDocument, workspaceRef, columnRef, fullscreen, noted = false, pageTurns }: WorkspaceZoomOptions) {
   const [setting, setSetting] = useState<ZoomSetting>('width');
   const pages = usePageSizes(pdfDocument, pageTurns);
-  const [view, setView] = useState({ width: 0, height: 0 });
+  const [view, setView] = useState({ width: 0, height: 0, inset: 0 });
   const ready = pages.length > 0;
 
   useEffect(() => {
     const ws = workspaceRef.current;
     if (!ws) return;
-    const measure = () => setView({ width: ws.clientWidth, height: fullscreen ? ws.clientHeight : window.innerHeight });
+    // The lamp's side padding is read here, with the size, never while rendering.
+    const measure = () => setView({
+      width: ws.clientWidth,
+      height: fullscreen ? ws.clientHeight : window.innerHeight,
+      inset: fullscreen ? parseFloat(getComputedStyle(ws).paddingLeft) || 0 : 0,
+    });
     measure();
     if (typeof ResizeObserver === 'undefined') return;
     const observer = new ResizeObserver(measure);
