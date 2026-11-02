@@ -1,7 +1,7 @@
 ---
 id: "READ-14"
 title: "Highlight PDF: a third mark style, Pencil, hatching in the mark's color"
-status: "open"
+status: "in_progress"
 priority: "P2"
 epic: "highlight-pdf"
 horizon: "next"
@@ -59,11 +59,25 @@ print and in the downloaded PDF, and opening our own export again brings it back
 
 ## Acceptance
 
-- [ ] Pencil is in the style toggle on desktop and touch, and a pencil mark shows no outline until it is
-      opened.
-- [ ] Screen, print and the downloaded PDF draw the same hatch (unit tests on the shared function and the
+- [x] Pencil is in the style toggle on desktop and touch, and a pencil mark shows no outline until it is
+      opened. (`pencil-mark.spec.js`; the touch row is one line from 393 px in `mark-toolbar.spec.js`.)
+- [x] Screen, print and the downloaded PDF draw the same hatch (unit tests on the shared function and the
       appearance stream).
 - [ ] The exported PDF shows the hatch in Preview and Acrobat and is still listed as a highlight there.
-- [ ] Opening our own export again brings the marks back as Pencil.
-- [ ] A build without Pencil reads a pencil mark as a highlight and never drops it.
-- [ ] Looked at on a scanned page and on pointed Hebrew.
+      Quick Look (CoreGraphics, Preview's renderer) and poppler draw it on 2026-11-02; Acrobat not yet looked at.
+- [x] Opening our own export again brings the marks back as Pencil (`/PDkefStyle /Pencil`; checked in the
+      browser on a real export, and in `importAnnotations.test.ts`). READ-11's Sketch stroke does not come back
+      on import; it reads as Clean.
+- [ ] A build without Pencil reads a pencil mark as a highlight and never drops it. Written (step 1), but it
+      only holds for users once step 1 is deployed alone before the rest.
+- [x] Looked at on a scanned page and on pointed Hebrew (2026-11-02, default 50% yellow): the points and
+      letters stay readable, gap and weight unchanged.
+
+## What shipped, and where it differs from the plan
+
+- The hatch is `src/editor/geometry/hatchStroke.ts` (rough.js, roughness 0.5, `hachureAngle` -41, which climbs
+  49 degrees on screen) and `hatchInk.ts`, in the editor because the PDF export needs it too. It has no `turns`
+  argument: it is drawn in displayed space and the export maps it through the page matrix, so a turned page
+  hatches as shown.
+- The touch panel's three style segments are 28 px wide (44 tall), so the row stays one line from 393 px.
+- Sign shows an imported pencil mark as a plain highlight (it hands in no hatch) and still exports it as Pencil.

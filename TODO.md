@@ -12,6 +12,7 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 - [READ-05](backlog/tasks/READ-05.md) P2 · The fullscreen capsule in Highlight PDF (in progress)
 - [READ-06](backlog/tasks/READ-06.md) P2 · Highlight PDF: Print with my notes, comments in the margin beside their passages (in progress)
 - [READ-13](backlog/tasks/READ-13.md) P2 · Highlight PDF: the open mark wears a pencil outline, the other marks step back (in progress)
+- [READ-14](backlog/tasks/READ-14.md) P2 · Highlight PDF: a third mark style, Pencil, hatching in the mark's color (in progress)
 
 ### Robustness and debt
 
