@@ -1,0 +1,769 @@
+{
+ "reader": "windowed (SIGN-46 textRows + swipeReader)",
+ "summary": {
+  "all": {
+   "rowF1": 0.3488,
+   "rowPrecision": 0.425,
+   "rowRecall": 0.2957,
+   "rowCounts": {
+    "tp": 2058,
+    "fp": 2784,
+    "fn": 4902
+   },
+   "crossColumnMergeRate": 0.6807,
+   "crossColumnSplitRate": 0,
+   "probeNoRowRate": 0.0008,
+   "edgeErrorLh": {
+    "p50": 0.0207,
+    "p90": 0.0935
+   },
+   "marginSpeckRate": 0.0462,
+   "wordGapF1": 0.9589,
+   "wordGapCounts": {
+    "tp": 12796,
+    "fp": 705,
+    "fn": 393
+   },
+   "columnCountAccuracy": 0.2649,
+   "gutterErrorPts": {
+    "p50": 0.26,
+    "p90": 4.86
+   },
+   "spanningRowF1": null,
+   "spanningCounts": {
+    "tp": 0,
+    "fp": 2723,
+    "fn": 128
+   },
+   "readingOrderAccuracy": null,
+   "skewErrorDeg": null,
+   "swipes": {
+    "correct": 1166,
+    "wrong": 1428,
+    "declined": 94,
+    "total": 2688,
+    "precision": 0.4495,
+    "lower": 0.4333,
+    "declineRate": 0.035,
+    "why": {
+     "wrong:cross-column": 638,
+     "wrong:wrong-row": 179,
+     "wrong:band-on-blank": 294,
+     "declined:not-on-text": 32,
+     "wrong:too-few-rows": 243,
+     "declined:no-bands": 62,
+     "wrong:left-end": 28,
+     "wrong:too-many-rows": 37,
+     "wrong:right-end": 9
+    }
+   }
+  },
+  "byLevel": {
+   "clean": {
+    "rowF1": 0.6208,
+    "rowPrecision": 0.7215,
+    "rowRecall": 0.5448,
+    "rowCounts": {
+     "tp": 948,
+     "fp": 366,
+     "fn": 792
+    },
+    "crossColumnMergeRate": 0.4134,
+    "crossColumnSplitRate": 0,
+    "probeNoRowRate": 0.0024,
+    "edgeErrorLh": {
+     "p50": 0.0126,
+     "p90": 0.0741
+    },
+    "marginSpeckRate": 0.038,
+    "wordGapF1": 0.9623,
+    "wordGapCounts": {
+     "tp": 6245,
+     "fp": 434,
+     "fn": 55
+    },
+    "columnCountAccuracy": 0.5126,
+    "gutterErrorPts": {
+     "p50": 0.18,
+     "p90": 2.88
+    },
+    "spanningRowF1": null,
+    "spanningCounts": {
+     "tp": 0,
+     "fp": 343,
+     "fn": 32
+    },
+    "readingOrderAccuracy": null,
+    "skewErrorDeg": null,
+    "swipes": {
+     "correct": 440,
+     "wrong": 213,
+     "declined": 19,
+     "total": 672,
+     "precision": 0.6738,
+     "lower": 0.6423,
+     "declineRate": 0.0283,
+     "why": {
+      "wrong:cross-column": 98,
+      "wrong:wrong-row": 4,
+      "wrong:band-on-blank": 78,
+      "wrong:left-end": 11,
+      "wrong:too-many-rows": 17,
+      "wrong:too-few-rows": 4,
+      "declined:no-bands": 3,
+      "declined:not-on-text": 16,
+      "wrong:right-end": 1
+     }
+    }
+   },
+   "scan": {
+    "rowF1": 0.5442,
+    "rowPrecision": 0.6494,
+    "rowRecall": 0.4684,
+    "rowCounts": {
+     "tp": 815,
+     "fp": 440,
+     "fn": 925
+    },
+    "crossColumnMergeRate": 0.4991,
+    "crossColumnSplitRate": 0,
+    "probeNoRowRate": 0.0006,
+    "edgeErrorLh": {
+     "p50": 0.0238,
+     "p90": 0.0743
+    },
+    "marginSpeckRate": 0.0258,
+    "wordGapF1": 0.9843,
+    "wordGapCounts": {
+     "tp": 5216,
+     "fp": 105,
+     "fn": 61
+    },
+    "columnCountAccuracy": 0.4226,
+    "gutterErrorPts": {
+     "p50": 0.1879,
+     "p90": 4.6812
+    },
+    "spanningRowF1": null,
+    "spanningCounts": {
+     "tp": 0,
+     "fp": 424,
+     "fn": 32
+    },
+    "readingOrderAccuracy": null,
+    "skewErrorDeg": null,
+    "swipes": {
+     "correct": 402,
+     "wrong": 256,
+     "declined": 14,
+     "total": 672,
+     "precision": 0.6109,
+     "lower": 0.5786,
+     "declineRate": 0.0208,
+     "why": {
+      "wrong:cross-column": 137,
+      "wrong:wrong-row": 11,
+      "wrong:band-on-blank": 82,
+      "wrong:left-end": 11,
+      "wrong:too-many-rows": 13,
+      "declined:not-on-text": 12,
+      "declined:no-bands": 2,
+      "wrong:too-few-rows": 2
+     }
+    }
+   },
+   "fax": {
+    "rowF1": 0.007,
+    "rowPrecision": 0.0107,
+    "rowRecall": 0.0052,
+    "rowCounts": {
+     "tp": 9,
+     "fp": 832,
+     "fn": 1731
+    },
+    "crossColumnMergeRate": 0.9946,
+    "crossColumnSplitRate": 0,
+    "probeNoRowRate": 0,
+    "edgeErrorLh": {
+     "p50": 3.6193,
+     "p90": 8.3756
+    },
+    "marginSpeckRate": 1,
+    "wordGapF1": 0.5372,
+    "wordGapCounts": {
+     "tp": 65,
+     "fp": 111,
+     "fn": 1
+    },
+    "columnCountAccuracy": 0.0066,
+    "gutterErrorPts": {
+     "p50": 2.8942,
+     "p90": 38.1513
+    },
+    "spanningRowF1": null,
+    "spanningCounts": {
+     "tp": 0,
+     "fp": 832,
+     "fn": 32
+    },
+    "readingOrderAccuracy": null,
+    "skewErrorDeg": null,
+    "swipes": {
+     "correct": 213,
+     "wrong": 456,
+     "declined": 3,
+     "total": 672,
+     "precision": 0.3184,
+     "lower": 0.2887,
+     "declineRate": 0.0045,
+     "why": {
+      "wrong:cross-column": 350,
+      "wrong:wrong-row": 8,
+      "declined:not-on-text": 2,
+      "wrong:band-on-blank": 93,
+      "wrong:right-end": 3,
+      "declined:no-bands": 1,
+      "wrong:left-end": 2
+     }
+    }
+   },
+   "phone": {
+    "rowF1": 0.1803,
+    "rowPrecision": 0.1997,
+    "rowRecall": 0.1644,
+    "rowCounts": {
+     "tp": 286,
+     "fp": 1146,
+     "fn": 1454
+    },
+    "crossColumnMergeRate": 0.8151,
+    "crossColumnSplitRate": 0,
+    "probeNoRowRate": 0,
+    "edgeErrorLh": {
+     "p50": 0.0411,
+     "p90": 0.1978
+    },
+    "marginSpeckRate": 0.1014,
+    "wordGapF1": 0.8847,
+    "wordGapCounts": {
+     "tp": 1270,
+     "fp": 55,
+     "fn": 276
+    },
+    "columnCountAccuracy": 0.1176,
+    "gutterErrorPts": {
+     "p50": 1.434,
+     "p90": 7.0942
+    },
+    "spanningRowF1": null,
+    "spanningCounts": {
+     "tp": 0,
+     "fp": 1124,
+     "fn": 32
+    },
+    "readingOrderAccuracy": null,
+    "skewErrorDeg": null,
+    "swipes": {
+     "correct": 111,
+     "wrong": 503,
+     "declined": 58,
+     "total": 672,
+     "precision": 0.1808,
+     "lower": 0.1556,
+     "declineRate": 0.0863,
+     "why": {
+      "wrong:wrong-row": 156,
+      "wrong:too-few-rows": 237,
+      "wrong:cross-column": 53,
+      "declined:no-bands": 56,
+      "wrong:band-on-blank": 41,
+      "declined:not-on-text": 2,
+      "wrong:left-end": 4,
+      "wrong:right-end": 5,
+      "wrong:too-many-rows": 7
+     }
+    }
+   }
+  },
+  "byLevelView": {
+   "clean/fit": {
+    "rowF1": 0.5335,
+    "rowPrecision": 0.6399,
+    "rowRecall": 0.4575,
+    "rowCounts": {
+     "tp": 398,
+     "fp": 224,
+     "fn": 472
+    },
+    "crossColumnMergeRate": 0.5042,
+    "crossColumnSplitRate": 0,
+    "probeNoRowRate": 0.0024,
+    "edgeErrorLh": {
+     "p50": 0.0239,
+     "p90": 0.0738
+    },
+    "marginSpeckRate": 0.005,
+    "wordGapF1": 0.9747,
+    "wordGapCounts": {
+     "tp": 2564,
+     "fp": 108,
+     "fn": 25
+    },
+    "columnCountAccuracy": 0.4142,
+    "gutterErrorPts": {
+     "p50": 0.2631,
+     "p90": 5.1399
+    },
+    "spanningRowF1": null,
+    "spanningCounts": {
+     "tp": 0,
+     "fp": 212,
+     "fn": 16
+    },
+    "readingOrderAccuracy": null,
+    "skewErrorDeg": null,
+    "swipes": {
+     "correct": 215,
+     "wrong": 113,
+     "declined": 8,
+     "total": 336,
+     "precision": 0.6555,
+     "lower": 0.6099,
+     "declineRate": 0.0238,
+     "why": {
+      "wrong:cross-column": 65,
+      "wrong:wrong-row": 2,
+      "wrong:band-on-blank": 40,
+      "wrong:too-many-rows": 3,
+      "wrong:too-few-rows": 2,
+      "declined:no-bands": 2,
+      "declined:not-on-text": 6,
+      "wrong:left-end": 1
+     }
+    }
+   },
+   "scan/fit": {
+    "rowF1": 0.4755,
+    "rowPrecision": 0.5836,
+    "rowRecall": 0.4011,
+    "rowCounts": {
+     "tp": 349,
+     "fp": 249,
+     "fn": 521
+    },
+    "crossColumnMergeRate": 0.5714,
+    "crossColumnSplitRate": 0,
+    "probeNoRowRate": 0,
+    "edgeErrorLh": {
+     "p50": 0.0277,
+     "p90": 0.0756
+    },
+    "marginSpeckRate": 0.0086,
+    "wordGapF1": 0.9816,
+    "wordGapCounts": {
+     "tp": 2187,
+     "fp": 49,
+     "fn": 33
+    },
+    "columnCountAccuracy": 0.3469,
+    "gutterErrorPts": {
+     "p50": 0.2494,
+     "p90": 5.0196
+    },
+    "spanningRowF1": null,
+    "spanningCounts": {
+     "tp": 0,
+     "fp": 242,
+     "fn": 16
+    },
+    "readingOrderAccuracy": null,
+    "skewErrorDeg": null,
+    "swipes": {
+     "correct": 187,
+     "wrong": 142,
+     "declined": 7,
+     "total": 336,
+     "precision": 0.5684,
+     "lower": 0.5216,
+     "declineRate": 0.0208,
+     "why": {
+      "wrong:cross-column": 86,
+      "wrong:wrong-row": 8,
+      "wrong:band-on-blank": 41,
+      "wrong:too-many-rows": 5,
+      "declined:not-on-text": 6,
+      "declined:no-bands": 1,
+      "wrong:left-end": 2
+     }
+    }
+   },
+   "fax/fit": {
+    "rowF1": 0.014,
+    "rowPrecision": 0.0215,
+    "rowRecall": 0.0103,
+    "rowCounts": {
+     "tp": 9,
+     "fp": 409,
+     "fn": 861
+    },
+    "crossColumnMergeRate": 0.9892,
+    "crossColumnSplitRate": 0,
+    "probeNoRowRate": 0,
+    "edgeErrorLh": {
+     "p50": 3.6193,
+     "p90": 8.3756
+    },
+    "marginSpeckRate": 1,
+    "wordGapF1": 0.5372,
+    "wordGapCounts": {
+     "tp": 65,
+     "fp": 111,
+     "fn": 1
+    },
+    "columnCountAccuracy": 0.0132,
+    "gutterErrorPts": {
+     "p50": 2.8942,
+     "p90": 38.1513
+    },
+    "spanningRowF1": null,
+    "spanningCounts": {
+     "tp": 0,
+     "fp": 409,
+     "fn": 16
+    },
+    "readingOrderAccuracy": null,
+    "skewErrorDeg": null,
+    "swipes": {
+     "correct": 105,
+     "wrong": 229,
+     "declined": 2,
+     "total": 336,
+     "precision": 0.3144,
+     "lower": 0.2724,
+     "declineRate": 0.006,
+     "why": {
+      "wrong:cross-column": 175,
+      "wrong:wrong-row": 5,
+      "declined:not-on-text": 2,
+      "wrong:band-on-blank": 46,
+      "wrong:right-end": 2,
+      "wrong:left-end": 1
+     }
+    }
+   },
+   "phone/fit": {
+    "rowF1": 0.1335,
+    "rowPrecision": 0.1476,
+    "rowRecall": 0.1218,
+    "rowCounts": {
+     "tp": 106,
+     "fp": 612,
+     "fn": 764
+    },
+    "crossColumnMergeRate": 0.8679,
+    "crossColumnSplitRate": 0,
+    "probeNoRowRate": 0,
+    "edgeErrorLh": {
+     "p50": 0.0422,
+     "p90": 0.1689
+    },
+    "marginSpeckRate": 0.0943,
+    "wordGapF1": 0.8198,
+    "wordGapCounts": {
+     "tp": 398,
+     "fp": 28,
+     "fn": 147
+    },
+    "columnCountAccuracy": 0.0708,
+    "gutterErrorPts": {
+     "p50": 1.8908,
+     "p90": 54.6857
+    },
+    "spanningRowF1": null,
+    "spanningCounts": {
+     "tp": 0,
+     "fp": 608,
+     "fn": 16
+    },
+    "readingOrderAccuracy": null,
+    "skewErrorDeg": null,
+    "swipes": {
+     "correct": 39,
+     "wrong": 263,
+     "declined": 34,
+     "total": 336,
+     "precision": 0.1291,
+     "lower": 0.0986,
+     "declineRate": 0.1012,
+     "why": {
+      "wrong:wrong-row": 89,
+      "wrong:too-few-rows": 136,
+      "wrong:cross-column": 17,
+      "declined:no-bands": 33,
+      "wrong:band-on-blank": 16,
+      "declined:not-on-text": 1,
+      "wrong:left-end": 1,
+      "wrong:right-end": 1,
+      "wrong:too-many-rows": 3
+     }
+    }
+   },
+   "clean/native": {
+    "rowF1": 0.7042,
+    "rowPrecision": 0.7948,
+    "rowRecall": 0.6322,
+    "rowCounts": {
+     "tp": 550,
+     "fp": 142,
+     "fn": 320
+    },
+    "crossColumnMergeRate": 0.3225,
+    "crossColumnSplitRate": 0,
+    "probeNoRowRate": 0.0024,
+    "edgeErrorLh": {
+     "p50": 0,
+     "p90": 0.1029
+    },
+    "marginSpeckRate": 0.0618,
+    "wordGapF1": 0.9539,
+    "wordGapCounts": {
+     "tp": 3681,
+     "fp": 326,
+     "fn": 30
+    },
+    "columnCountAccuracy": 0.611,
+    "gutterErrorPts": {
+     "p50": 0.18,
+     "p90": 2.51
+    },
+    "spanningRowF1": null,
+    "spanningCounts": {
+     "tp": 0,
+     "fp": 131,
+     "fn": 16
+    },
+    "readingOrderAccuracy": null,
+    "skewErrorDeg": null,
+    "swipes": {
+     "correct": 225,
+     "wrong": 100,
+     "declined": 11,
+     "total": 336,
+     "precision": 0.6923,
+     "lower": 0.6475,
+     "declineRate": 0.0327,
+     "why": {
+      "wrong:left-end": 10,
+      "wrong:band-on-blank": 38,
+      "declined:not-on-text": 10,
+      "wrong:cross-column": 33,
+      "wrong:too-many-rows": 14,
+      "wrong:too-few-rows": 2,
+      "wrong:right-end": 1,
+      "wrong:wrong-row": 2,
+      "declined:no-bands": 1
+     }
+    }
+   },
+   "scan/native": {
+    "rowF1": 0.6103,
+    "rowPrecision": 0.7093,
+    "rowRecall": 0.5356,
+    "rowCounts": {
+     "tp": 466,
+     "fp": 191,
+     "fn": 404
+    },
+    "crossColumnMergeRate": 0.4267,
+    "crossColumnSplitRate": 0,
+    "probeNoRowRate": 0.0012,
+    "edgeErrorLh": {
+     "p50": 0.0203,
+     "p90": 0.0733
+    },
+    "marginSpeckRate": 0.0386,
+    "wordGapF1": 0.9863,
+    "wordGapCounts": {
+     "tp": 3029,
+     "fp": 56,
+     "fn": 28
+    },
+    "columnCountAccuracy": 0.4982,
+    "gutterErrorPts": {
+     "p50": 0.1578,
+     "p90": 2.5607
+    },
+    "spanningRowF1": null,
+    "spanningCounts": {
+     "tp": 0,
+     "fp": 182,
+     "fn": 16
+    },
+    "readingOrderAccuracy": null,
+    "skewErrorDeg": null,
+    "swipes": {
+     "correct": 215,
+     "wrong": 114,
+     "declined": 7,
+     "total": 336,
+     "precision": 0.6535,
+     "lower": 0.6079,
+     "declineRate": 0.0208,
+     "why": {
+      "wrong:left-end": 9,
+      "wrong:cross-column": 51,
+      "wrong:band-on-blank": 41,
+      "wrong:too-many-rows": 8,
+      "wrong:too-few-rows": 2,
+      "declined:not-on-text": 6,
+      "declined:no-bands": 1,
+      "wrong:wrong-row": 3
+     }
+    }
+   },
+   "fax/native": {
+    "rowF1": null,
+    "rowPrecision": 0,
+    "rowRecall": 0,
+    "rowCounts": {
+     "tp": 0,
+     "fp": 423,
+     "fn": 870
+    },
+    "crossColumnMergeRate": 1,
+    "crossColumnSplitRate": 0,
+    "probeNoRowRate": 0,
+    "edgeErrorLh": {
+     "p50": null,
+     "p90": null
+    },
+    "marginSpeckRate": null,
+    "wordGapF1": null,
+    "wordGapCounts": {
+     "tp": 0,
+     "fp": 0,
+     "fn": 0
+    },
+    "columnCountAccuracy": 0,
+    "gutterErrorPts": {
+     "p50": null,
+     "p90": null
+    },
+    "spanningRowF1": null,
+    "spanningCounts": {
+     "tp": 0,
+     "fp": 423,
+     "fn": 16
+    },
+    "readingOrderAccuracy": null,
+    "skewErrorDeg": null,
+    "swipes": {
+     "correct": 108,
+     "wrong": 227,
+     "declined": 1,
+     "total": 336,
+     "precision": 0.3224,
+     "lower": 0.2802,
+     "declineRate": 0.003,
+     "why": {
+      "wrong:cross-column": 175,
+      "wrong:wrong-row": 3,
+      "wrong:band-on-blank": 47,
+      "declined:no-bands": 1,
+      "wrong:left-end": 1,
+      "wrong:right-end": 1
+     }
+    }
+   },
+   "phone/native": {
+    "rowF1": 0.2273,
+    "rowPrecision": 0.2521,
+    "rowRecall": 0.2069,
+    "rowCounts": {
+     "tp": 180,
+     "fp": 534,
+     "fn": 690
+    },
+    "crossColumnMergeRate": 0.7623,
+    "crossColumnSplitRate": 0,
+    "probeNoRowRate": 0,
+    "edgeErrorLh": {
+     "p50": 0.0407,
+     "p90": 0.2118
+    },
+    "marginSpeckRate": 0.1056,
+    "wordGapF1": 0.9179,
+    "wordGapCounts": {
+     "tp": 872,
+     "fp": 27,
+     "fn": 129
+    },
+    "columnCountAccuracy": 0.1645,
+    "gutterErrorPts": {
+     "p50": 0.7038,
+     "p90": 5.7999
+    },
+    "spanningRowF1": null,
+    "spanningCounts": {
+     "tp": 0,
+     "fp": 516,
+     "fn": 16
+    },
+    "readingOrderAccuracy": null,
+    "skewErrorDeg": null,
+    "swipes": {
+     "correct": 72,
+     "wrong": 240,
+     "declined": 24,
+     "total": 336,
+     "precision": 0.2308,
+     "lower": 0.192,
+     "declineRate": 0.0714,
+     "why": {
+      "wrong:wrong-row": 67,
+      "wrong:too-few-rows": 101,
+      "wrong:cross-column": 36,
+      "declined:no-bands": 23,
+      "wrong:band-on-blank": 25,
+      "declined:not-on-text": 1,
+      "wrong:left-end": 3,
+      "wrong:right-end": 4,
+      "wrong:too-many-rows": 4
+     }
+    }
+   }
+  }
+ },
+ "pinned": [
+  {
+   "id": "gutter-dust",
+   "knownGap": true,
+   "pass": false,
+   "why": "right-end"
+  },
+  {
+   "id": "spanning-heading",
+   "knownGap": true,
+   "pass": false,
+   "why": "merged"
+  },
+  {
+   "id": "margin-speck",
+   "knownGap": true,
+   "pass": false,
+   "why": "left-end"
+  },
+  {
+   "id": "drop-cap",
+   "knownGap": true,
+   "pass": false,
+   "why": "left-end"
+  },
+  {
+   "id": "pull-quote",
+   "knownGap": false,
+   "pass": true,
+   "why": "ok"
+  }
+ ]
+}
