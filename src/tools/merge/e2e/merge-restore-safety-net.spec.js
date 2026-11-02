@@ -23,5 +23,6 @@ test('a Merge restore marker with the island blocked still reveals the page with
   await expect(page.locator('html')).toHaveAttribute('data-merge-restore', '1');
   expect(await main.evaluate((el) => getComputedStyle(el).visibility), 'hidden at first').toBe('hidden');
   await expect.poll(() => main.evaluate((el) => getComputedStyle(el).visibility), { timeout: 7000 }).toBe('visible');
-  expect(await airplane.evaluate((el) => getComputedStyle(el).visibility)).toBe('visible');
+  // Its 6s reveal starts when its own style is first computed, a few ms after <main>'s, so it is waited for too.
+  await expect.poll(() => airplane.evaluate((el) => getComputedStyle(el).visibility), { timeout: 1000 }).toBe('visible');
 });
