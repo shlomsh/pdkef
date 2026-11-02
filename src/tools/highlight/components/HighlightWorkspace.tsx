@@ -1,6 +1,7 @@
 import type { ComponentProps } from 'preact';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'preact/hooks';
 import type { PDFDocumentProxy } from 'pdfjs-dist';
+import FeedbackButton from '#editor-ui/FeedbackButton.tsx';
 import ReadingCapsule from './capsule/ReadingCapsule.tsx';
 import UndoRedoButtons from '#editor-ui/UndoRedoButtons.tsx';
 import EditorExportActions from '#editor-ui/EditorExportActions.tsx';
@@ -203,7 +204,10 @@ function TileRow({ marks, undo, redo, touch, mark, printMenu, withComments, onPr
   const { requestReplace, messages: shellMessages = englishShellMessages } = useToolShell();
   const shortcuts = historyShortcuts(typeof navigator !== 'undefined' && isMacPlatform(navigator.platform));
   return (
-    <ToolShell editor statusBeside status={touch.armed && coarsePointer() ? <PenHint marker={marks.marker} text={t.armedAction} /> : null}>
+    <ToolShell
+      editor statusBeside status={touch.armed && coarsePointer() ? <PenHint marker={marks.marker} text={t.armedAction} /> : null}
+      aside={<FeedbackButton tool={{ name: t.feedback.name, body: t.feedback.body }} className={styles.feedback} labelClassName={styles.feedbackLabel} label={t.feedback.label} title={t.feedback.title} />}
+    >
       <div className={`${toolbarStyles.toolbar} ${styles.toolRow}`} role="toolbar" aria-label={t.toolbarLabel} data-editor-toolbar>
         <MarkerButton marker={marks.marker} armed={touch.armed} onTap={touch.arm} onDisarm={touch.disarm} mark={mark} buttonClass={toolbarStyles.button} />
         <UndoRedoButtons

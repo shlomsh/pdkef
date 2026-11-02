@@ -81,6 +81,16 @@
   line-height: 1.35;
 }
 
+/* A tool's own item at the end of the file line (Highlight's Feedback link): pinned to the trailing edge, after the hint. */
+.aside {
+  flex: none;
+  margin-inline-start: auto;
+}
+/* With a hint, the hint stays with the name and the aside keeps the trailing edge. */
+.status:has(+ .aside) {
+  margin-inline-start: 0;
+}
+
 /* Wrapped, it is a line of its own and the auto margin would strand it right. */
 @media (max-width: 719px) {
   .status {

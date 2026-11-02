@@ -150,7 +150,7 @@ export function useToolShell() {
  * you work (see ToolHero.astro). Keep the attribute even if nothing local reads
  * it.
  */
-export default function ToolShell({ editor = false, inlineStatus = false, statusBeside = false, flush = false, status = null, children }: { editor?: boolean; inlineStatus?: boolean; statusBeside?: boolean; flush?: boolean; status?: ComponentChildren; children?: ComponentChildren }) {
+export default function ToolShell({ editor = false, inlineStatus = false, statusBeside = false, flush = false, status = null, aside = null, children }: { editor?: boolean; inlineStatus?: boolean; statusBeside?: boolean; flush?: boolean; status?: ComponentChildren; /** The tool's own quiet item at the end of the file line (Highlight's Feedback link). */ aside?: ComponentChildren; children?: ComponentChildren }) {
   const { fileLabel, fileMeta, metaExtra, note, file, draftSaveState = 'idle', multiple, messages = englishShellMessages } = useToolShell();
   const draftStatus = draftSaveState === 'saved'
     ? { label: messages.draftSaved, className: styles.saved, state: 'saved' }
@@ -202,6 +202,7 @@ export default function ToolShell({ editor = false, inlineStatus = false, status
         </span>
 
         {status && <div class={styles.status}>{status}</div>}
+        {aside && <div class={styles.aside} data-shell-aside>{aside}</div>}
       </div>
 
       <div class={styles.controls} data-shell-controls>{children}</div>

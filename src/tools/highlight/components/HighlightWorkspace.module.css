@@ -8,6 +8,20 @@
 .column { display: flex; flex-direction: column; gap: calc(2rem * var(--chrome, 1)); flex: none; touch-action: pan-x pan-y pinch-zoom; }
 .floating { position: fixed; top: 12px; left: 50%; transform: translateX(-50%); z-index: 30; }
 
+/* Feedback (a GitHub issue) at the end of the file line: quiet, out of the tool row, never in the lamp. Its target grows
+   past the line's height without growing the line. */
+.feedback {
+  display: inline-flex; align-items: center; gap: 5px; min-height: 32px; margin-block: -6px; padding: 0 8px;
+  border-radius: var(--radius-sm); color: var(--color-muted); font-size: 0.8rem; font-weight: 500; text-decoration: none;
+}
+.feedback:hover { color: var(--color-text); background: var(--color-primary-tint); }
+.feedback > svg { width: 15px; height: 15px; flex: none; }
+/* A phone's file line keeps the name: the link is its icon, named by its title. */
+@media (max-width: 480px) {
+  .feedbackLabel { display: none; }
+  .feedback { min-width: 32px; justify-content: center; padding: 0; }
+}
+
 /* READ-04: the tool row is six controls in one row (Full screen is the cord under the card). Sign's phone label size reads --controls-per-row, which falls back to 4 below nine children. The doubled class with the attribute outranks the :has() count rules. */
 .toolRow.toolRow[data-editor-toolbar] { --controls-per-row: 6; }
 /* Six controls share one phone row; Sign's formula gives too small a label; 8px fits Download down to 375px.

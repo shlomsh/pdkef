@@ -56,6 +56,8 @@ export interface HighlightMessages {
   printNotesAtEnd: string;
   /** The heading on the first sheet of notes at the end of a print. */
   printNotesHeading: string;
+  /** The Feedback tile: opens a prefilled GitHub issue. `body` is the issue template, English like the repository's issues. */
+  feedback: { label: string; title: string; name: string; body: string };
   downloadDone: string;
   downloadDoneLabel: string;
   downloadDoneClose: string;
@@ -105,6 +107,27 @@ export const englishHighlightMessages: HighlightMessages = {
   printWithNotes: 'Print with my notes',
   printNotesAtEnd: 'Print with notes at the end',
   printNotesHeading: 'Notes',
+  feedback: {
+    label: 'Feedback',
+    title: 'Report a bug or suggest a feature for Highlight PDF (opens GitHub)',
+    name: 'Highlight PDF',
+    body: `## What would you like to report or suggest?
+
+Tell us about a bug, an idea, or anything about Highlight PDF you would like to share.
+
+## What happened (optional)
+
+- What were you trying to do?
+- What happened, and what did you expect?
+- How can we reproduce it?
+
+## Helpful details (optional)
+
+Browser and device, the feature involved (highlights, underlines, sketch strokes, comments, full screen, print, download), and the language of the document.
+
+Please leave out private documents and personal information. GitHub issues are public.
+`,
+  },
   downloadDone: 'Saved as {name}.',
   downloadDoneLabel: 'Your download',
   downloadDoneClose: 'Close',
