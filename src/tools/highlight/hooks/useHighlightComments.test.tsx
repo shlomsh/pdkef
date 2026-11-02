@@ -1,6 +1,6 @@
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { CommentElement, HighlightElement } from '#editor/model/editorModel.ts';
 import { useHighlightComments } from './useHighlightComments.ts';
 import { useHighlightMarks } from './useHighlightMarks.ts';
@@ -13,8 +13,15 @@ let announced: string[];
 function Probe() {
   marks = useHighlightMarks();
   comments = useHighlightComments({ state: marks.state, dispatch: marks.dispatch, logAction: marks.logAction, announce: (m) => announced.push(m) });
-  return null;
+  return <div ref={(node) => { if (node) { node.getBoundingClientRect = () => ({ width: 1200 } as DOMRect); comments.containerRef(node); } }}>{comments.rail(0)}</div>;
 }
+
+class FakeResizeObserver {
+  constructor(private callback: () => void) {}
+  observe() { this.callback(); }
+  disconnect() {}
+}
+beforeEach(() => { vi.stubGlobal('ResizeObserver', FakeResizeObserver); });
 
 const mark: HighlightElement = {
   id: 'm1', type: 'highlight', pageIndex: 0, left: 10, top: 10, width: 20, height: 2,
@@ -33,6 +40,7 @@ function mount(elements = [mark, saved]) {
 }
 
 afterEach(() => {
+  vi.unstubAllGlobals();
   if (container) { act(() => render(null, container!)); container.remove(); container = null; }
 });
 
@@ -73,5 +81,13 @@ describe('useHighlightComments', () => {
     act(() => comments.actions.onDiscard('c2'));
     expect(marks.state.elements.map((el) => el.id)).toEqual(['m1']);
     expect(marks.state.actionHistory).toHaveLength(0);
+  });
+
+  it('its rail shows Delete and Edit as buttons on the selected card', () => {
+    mount();
+    expect(container!.querySelector('[data-comment-read-delete]')).toBeNull();
+    act(() => marks.dispatch({ type: 'SET_ACTIVE_ELEMENT_ID', payload: 'c1' }));
+    expect(container!.querySelector('[data-comment-read-delete]')).not.toBeNull();
+    expect(container!.querySelector('[data-comment-read-edit]')).not.toBeNull();
   });
 });

@@ -39,7 +39,7 @@ export function useHighlightComments({ state, dispatch, logAction, announce }: {
   const forward = (action: ElementAction) => { if (action.type !== 'DISARM_TOOL') dispatch(action); };
   const actions = useCommentActions({ elements, dispatch: forward, logAction, messages: t, deleteElement, makeOnChange });
   const view = useCommentsView({
-    elements, activeElementId, messages: t,
+    elements, activeElementId, messages: t, readActions: true,
     onSelect: (id) => dispatch({ type: 'SET_ACTIVE_ELEMENT_ID', payload: id }),
     ...actions,
   });
