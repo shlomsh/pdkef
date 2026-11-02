@@ -24,8 +24,12 @@ async function panelGutters(page, { lamp }) {
   const mark = page.locator('[data-page-overlay] [data-element-id]');
   await expect(mark).toHaveCount(1);
   const band = await mark.boundingBox();
-  await page.touchscreen.tap(band.x + band.width / 2, band.y + band.height / 2);
-  await expect(page.locator('[data-marker-row]')).toBeVisible();
+  const row = page.locator('[data-marker-row]:visible');
+  // As in mark-toolbar.spec.js: a tap the browser counts as a second click opens nothing, so it is tried again.
+  await expect.poll(async () => {
+    if (await row.count() === 0) await page.touchscreen.tap(band.x + band.width / 2, band.y + band.height / 2);
+    return row.count();
+  }, { intervals: [600] }).toBe(1);
   const gutters = () => page.evaluate(() => {
     const r = document.querySelector('[data-marker-row]').closest('[id]').getBoundingClientRect();
     return { left: Math.round(r.left), right: Math.round(window.innerWidth - r.right) };
