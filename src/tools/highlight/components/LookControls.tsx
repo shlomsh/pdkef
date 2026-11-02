@@ -57,8 +57,8 @@ export function StyleSetting({ look, onChange }: Look) {
           </span>
         )}
       >
-        <span class={styles.faceLine} data-setting-line>
-          <StrokeInk underline sketch={sketch} color="currentColor" width={width} w={28} h={14} />
+        <span class={`${styles.face} ${styles.faceLine}`} data-setting-line data-setting-face>
+          <StrokeInk underline sketch={sketch} color="currentColor" width={width} w={40} h={14} />
         </span>
         <Chevron />
       </ThicknessPickerMenu>
@@ -69,7 +69,7 @@ export function StyleSetting({ look, onChange }: Look) {
       value={look.opacity} triggerClass={styles.setting} onChange={(opacity) => onChange({ style: 'highlight', opacity })}
       stroke={look.stroke} color={look.color} onStroke={onChange}
     >
-      <span class={styles.paper}>
+      <span class={`${styles.face} ${styles.paper}`} data-setting-face>
         <StrokeInk underline={false} sketch={sketch} color={look.color} opacity={look.opacity} w={40} h={16} />
         <span class={styles.percent}>{Math.round(look.opacity * 100)}%</span>
       </span>
