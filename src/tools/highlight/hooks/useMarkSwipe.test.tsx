@@ -1,6 +1,7 @@
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { startHighlightSwipe } from '#editor-ui/highlight/highlightSwipeGesture.ts';
 import { useMarkSwipe } from './useMarkSwipe.ts';
 
 vi.mock('#editor-ui/highlight/highlightSwipeGesture.ts', () => ({ startHighlightSwipe: vi.fn() }));
@@ -9,6 +10,8 @@ let container: HTMLElement | null = null;
 let handler: (event: PointerEvent) => void;
 const dispatch = vi.fn();
 const onPress = vi.fn();
+const logAction = vi.fn();
+const setAnnouncement = vi.fn();
 
 function Probe() {
   handler = useMarkSwipe({
@@ -17,7 +20,7 @@ function Probe() {
     touchArmed: true,
     getPointerPercent: (e: MouseEvent | TouchEvent) => ({ x: (e as MouseEvent).clientX / 10, y: (e as MouseEvent).clientY / 10 }),
     directionAt: () => 'ltr' as never,
-    dispatch, logAction: vi.fn(), setAnnouncement: vi.fn(),
+    dispatch, logAction, setAnnouncement,
     clicks: { beginPress: vi.fn(), inkStarted: vi.fn(), noteSwipeAction: vi.fn() } as never,
     onPress, onInk: vi.fn(),
   });
@@ -43,7 +46,7 @@ const move = (x: number, y: number) => window.dispatchEvent(new MouseEvent('mous
 
 afterEach(() => {
   if (container) { act(() => render(null, container!)); container.remove(); container = null; }
-  dispatch.mockClear(); onPress.mockClear(); vi.restoreAllMocks();
+  dispatch.mockClear(); onPress.mockClear(); logAction.mockClear(); setAnnouncement.mockClear(); vi.restoreAllMocks();
 });
 
 describe('useMarkSwipe threshold', () => {
@@ -98,5 +101,42 @@ describe('useMarkSwipe touch intent', () => {
     move(130, 100);
     expect(dispatch).toHaveBeenCalledTimes(1);
     expect(dispatch.mock.calls[0][0]).toMatchObject({ type: 'ADD_ELEMENT' });
+  });
+});
+
+describe('useMarkSwipe two fingers', () => {
+  const finger = (x: number, y: number) => ({ clientX: x, clientY: y });
+  const touch = (type: string, touches: Array<{ clientX: number; clientY: number }>) =>
+    window.dispatchEvent(Object.assign(new Event(type, { cancelable: true }), { touches }));
+
+  it('a second finger while the swipe is pending lays nothing, even once the first drifts sideways', () => {
+    mount(); pressTouch();
+    touch('touchstart', [finger(100, 100), finger(200, 100)]);
+    touch('touchmove', [finger(130, 100), finger(200, 100)]);
+    expect(dispatch).not.toHaveBeenCalled();
+    expect(onPress).not.toHaveBeenCalled();
+  });
+
+  it('a second finger moving while the swipe is pending lays nothing', () => {
+    mount(); pressTouch();
+    touch('touchmove', [finger(130, 100), finger(200, 100)]);
+    expect(dispatch).not.toHaveBeenCalled();
+  });
+
+  it('a second finger after the mark began cancels it: the element goes, no history, no announcement', () => {
+    vi.mocked(startHighlightSwipe).mockImplementationOnce((deps, target) => {
+      deps.gestureCancelRef.current = () => {
+        deps.gestureCancelRef.current = null;
+        deps.dispatch({ type: 'DELETE_ELEMENT', payload: target.id } as never);
+      };
+    });
+    mount(); pressTouch();
+    move(130, 100);
+    expect(dispatch.mock.calls[0][0]).toMatchObject({ type: 'ADD_ELEMENT' });
+    touch('touchstart', [finger(130, 100), finger(250, 100)]);
+    expect(dispatch.mock.calls.at(-1)?.[0]).toMatchObject({ type: 'DELETE_ELEMENT' });
+    expect(logAction).not.toHaveBeenCalled();
+    expect(setAnnouncement).not.toHaveBeenCalled();
+    expect(dispatch.mock.calls.some((c) => c[0].type === 'ADD_ACTION_HISTORY')).toBe(false);
   });
 });

@@ -73,9 +73,11 @@ scroll again (R1, R50). The contract is [READ-01](../backlog/tasks/READ-01.md); 
   carried onto the next lines by dragging down, ends settling on word gaps, working on scans).
 - **Finishing a stroke shows nothing.** A popup after every band asks a question the reader did not have;
   the next stroke is the answer most of the time (R1, R52).
-- **On touch, only a sideways start marks.** The first few pixels decide: sideways lays a mark, anything
-  else scrolls the page, so reading with a finger never paints by accident. While the marker is armed the
-  toolbar says "Swipe along a line to highlight" with the pen's look beside it (R51, R52).
+- **On touch, one finger marks only sideways along a line of text.** The first few pixels decide: sideways
+  on a line lays a mark, anything else scrolls, and a finger that starts off the text moves the page in any
+  direction. Two fingers always zoom and move the page and never mark. Reading with a finger never paints
+  by accident. While the marker is armed the toolbar says "Swipe along a line to highlight" with the pen's
+  look beside it (R51, R52, R62).
 - **Double-click marks a word, a third click its sentence**, the way selection works everywhere, sweeping in
   from the first letter.
 - **Underline is a style of the band, not a tool:** the line reader already knows the baseline, and the

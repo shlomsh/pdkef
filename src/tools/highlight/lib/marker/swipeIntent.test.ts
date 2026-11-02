@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { swipeIntent } from './swipeIntent.ts';
+import { isMultiTouch, swipeIntent } from './swipeIntent.ts';
 
 describe('swipeIntent', () => {
   it('waits below 10 px of travel, whatever the direction', () => {
@@ -27,5 +27,14 @@ describe('swipeIntent', () => {
   it('marks a leftward start the same as a rightward one', () => {
     expect(swipeIntent(-30, 4)).toBe('mark');
     expect(swipeIntent(-30, -4)).toBe('mark');
+  });
+});
+
+describe('isMultiTouch', () => {
+  it('is true only with a second finger down', () => {
+    const touch = (n: number) => Object.assign(new Event('touchmove'), { touches: new Array(n).fill({}) });
+    expect(isMultiTouch(touch(1))).toBe(false);
+    expect(isMultiTouch(touch(2))).toBe(true);
+    expect(isMultiTouch(new Event('mousemove'))).toBe(false);
   });
 });

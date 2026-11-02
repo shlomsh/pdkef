@@ -3,6 +3,7 @@ import type { PDFDocumentProxy } from 'pdfjs-dist';
 import { clampZoom, NOTES_W, ZOOM_MIN, resolveZoom, stepZoom, type ZoomSetting } from '../lib/zoom/fit.ts';
 import { pageAnchorAt } from '../lib/zoom/pageAnchor.ts';
 import { chromeScale, displayZoom, lampFloor, widestPage } from '../lib/zoom/lamp.ts';
+import { panScroll } from '../lib/zoom/pan.ts';
 import { commitChanges, zoomCommit } from '../lib/zoom/commit.ts';
 import { useBoardScroll } from './useBoardScroll.ts';
 import type { PageTurns } from '#editor/geometry/pageTurn.ts';
@@ -108,19 +109,21 @@ export function useWorkspaceZoom({ pdfDocument, workspaceRef, columnRef, fullscr
 
   const { pendingScroll, pendingCentre, pendingAnchor, board } = useBoardScroll({ workspaceRef, fullscreen, pages, zoom, setting, view, notesPx });
 
-  const commit = useCallback((next: ZoomSetting, nextZoom: number, anchor?: Point, centreAfter = false) => {
+  const commit = useCallback((next: ZoomSetting, nextZoom: number, anchor?: Point, centreAfter = false, pan?: Point) => {
     if (!commitChanges(settingRef.current, zoomRef.current, next, nextZoom)) return;
     const f = frame();
     if (f) {
-      pendingScroll.current = zoomCommit({
+      const zoomed = zoomCommit({
         prevZoom: zoomRef.current, nextZoom, anchor: anchor ?? centre(), scroll: f.scroll, origin: f.origin, floor: floorRef.current,
       }).scroll;
+      // A two-finger pan carries the pinch's anchor along with the fingers.
+      pendingScroll.current = pan ? panScroll(zoomed, pan) : zoomed;
     }
     if (centreAfter) pendingCentre.current = true;
     else if (nextZoom !== zoomRef.current) {
       const point = anchor ?? centre();
       const pageAnchor = pageAnchorIn(workspaceRef.current, point);
-      pendingAnchor.current = pageAnchor ? { anchor: pageAnchor, point } : null;
+      pendingAnchor.current = pageAnchor ? { anchor: pageAnchor, point: pan ? { x: point.x + pan.x, y: point.y + pan.y } : point } : null;
     }
     setSetting(next);
   }, [frame, centre, workspaceRef, pendingAnchor, pendingCentre, pendingScroll]);
