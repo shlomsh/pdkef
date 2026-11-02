@@ -8,6 +8,7 @@ import { markerBadge } from '../lib/marker/markerBadge.ts';
 import { englishHighlightMessages as t } from '../messages.ts';
 import controls from '#editor-ui/EditorControls.module.css';
 import toolbarStyles from '#editor-ui/SignToolbar.module.css';
+import PencilGlyph from './PencilGlyph.tsx';
 import MarkPanel from './MarkPanel.tsx';
 import styles from './MarkerButton.module.css';
 
@@ -121,6 +122,8 @@ export default function MarkerButton({ marker, armed = false, onTap, onDisarm, o
           <HighlightIcon size={18} />
           {badge.kind === 'dot' ? (
             <i class={styles.dot} data-marker-dot style={{ background: badge.color, opacity: badge.opacity }} />
+          ) : badge.kind === 'pencil' ? (
+            <span class={styles.hatch} data-marker-pencil style={{ color: badge.color, opacity: badge.opacity }}><PencilGlyph size={11} /></span>
           ) : (
             <i class={styles.glyph} data-marker-underline style={{ background: badge.ink }} />
           )}

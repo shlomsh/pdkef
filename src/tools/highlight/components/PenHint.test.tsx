@@ -41,4 +41,11 @@ describe('PenHint', () => {
     const hint = mount({ color: '#FFF34D', style: 'highlight', opacity: 0.5 }).querySelector('[data-pen-hint]')!;
     expect(hint.hasAttribute('data-status-active')).toBe(true);
   });
+
+  it('shows a pencil pen as a hatch in its color, hidden from assistive tech', () => {
+    const root = mount({ color: '#FF8FCF', style: 'pencil', opacity: 0.6 });
+    const hatch = root.querySelector('[data-marker-pencil]') as HTMLElement;
+    expect(hatch.style.color.toLowerCase()).toContain('rgb(255, 143, 207)');
+    expect(hatch.getAttribute('aria-hidden')).toBe('true');
+  });
 });

@@ -19,6 +19,7 @@ describe('markerState', () => {
   });
   it('rearm merges a change', () => {
     expect(rearm(DEFAULT_MARKER, { style: 'underline' })).toEqual({ ...DEFAULT_MARKER, style: 'underline' });
+    expect(rearm({ ...DEFAULT_MARKER, style: 'underline', strokeWidth: 2, stroke: 'sketch' }, { style: 'pencil' })).toEqual({ ...DEFAULT_MARKER, style: 'pencil' });
   });
   it('rearm clamps opacity to 0.3..1', () => {
     expect(rearm(DEFAULT_MARKER, { opacity: 0.1 }).opacity).toBe(0.3);

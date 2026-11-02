@@ -42,6 +42,13 @@ describe('highlighter cursor (R14)', () => {
     expect(svg).not.toContain('data-tip="chisel"');
   });
 
+  it('pencil: the highlight body with a hatch tip in the color', () => {
+    const svg = decoded(cursorValue({ ...yellow, style: 'pencil' }));
+    expect(svg).toContain('data-tip="hatch"');
+    expect(svg).toMatch(/data-tip="hatch"[^>]*stroke="#FFF34D"/);
+    expect(svg).not.toContain('data-tip="chisel"');
+  });
+
   it('shows a lighter marker lighter, never fainter than a visible tip', () => {
     const faint = decoded(cursorValue({ ...yellow, opacity: 0.3 }));
     expect(faint).toMatch(/data-tip="chisel"[^>]*fill-opacity="0\.55"/);

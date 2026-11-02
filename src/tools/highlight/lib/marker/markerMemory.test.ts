@@ -55,9 +55,18 @@ describe('parseMarker', () => {
   });
 });
 
+describe('READ-14: pencil', () => {
+  it('round-trips as pencil, without a width or stroke', () => {
+    const pencil = { color: '#FFF34D', style: 'pencil', opacity: 0.5 } as const;
+    expect(parseMarker(serializeMarker(pencil))).toEqual(pencil);
+    expect(serializeMarker({ ...pencil, strokeWidth: 2, stroke: 'sketch' })).toBe(serializeMarker(pencil));
+    expect(parseMarker('{"color":"#FFF34D","style":"pencil","opacity":0.5,"strokeWidth":2,"stroke":"sketch"}')).toEqual({ color: '#FFF34D', style: 'pencil', opacity: 0.5 });
+  });
+});
+
 describe('READ-14: a style this build does not know', () => {
   it('reads as a highlight in the same color and opacity instead of resetting the marker', () => {
-    expect(parseMarker('{"color":"#FFF34D","style":"pencil","opacity":0.5}')).toEqual({ color: '#FFF34D', style: 'highlight', opacity: 0.5 });
+    expect(parseMarker('{"color":"#FFF34D","style":"strike","opacity":0.5}')).toEqual({ color: '#FFF34D', style: 'highlight', opacity: 0.5 });
   });
 });
 

@@ -272,7 +272,7 @@ describe('importStandardAnnotations: our own pencil export', () => {
   it('brings a pencil mark we exported back as Pencil and strips the annotation', async () => {
     const doc = await PDFDocument.create();
     const page = doc.addPage([200, 100]);
-    serializeHighlight(
+    await serializeHighlight(
       { id: 'pen-1', type: 'highlight', pageIndex: 0, left: 10, top: 10, width: 50, height: 10, color: '#FFF34D', style: 'pencil', opacity: 0.6, bands: [{ left: 0, top: 0, width: 100, height: 100 }] },
       { pdfDoc: doc, page, pdfWidth: 200, pdfHeight: 100, pdfX: 20, pdfY: 90, loadCustomFont: async () => null, baselineOffset: () => 0 } as never,
     );

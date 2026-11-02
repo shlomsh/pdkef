@@ -30,7 +30,9 @@ function cursorSvg({ color, style, opacity }: Marker): string {
   const ink = underline ? underlineInk(color) : color;
   const tip = underline
     ? `<path data-tip="fine" fill="${ink}" d="M13.5 22.5h5L16 30z"/>`
-    : `<path data-tip="chisel" fill="${color}" fill-opacity="${Math.max(MIN_TIP_OPACITY, opacity)}" d="M12 22.5h8v3.2L13.6 30H12z"/>`;
+    : style === 'pencil'
+      ? `<path data-tip="hatch" fill="none" stroke="${color}" stroke-opacity="${Math.max(MIN_TIP_OPACITY, opacity)}" stroke-width="1.6" stroke-linecap="round" d="M12.4 27.6l2.6-3.4M14.4 29.6l3.2-4.2M17.6 28.6l2.2-2.8"/>`
+      : `<path data-tip="chisel" fill="${color}" fill-opacity="${Math.max(MIN_TIP_OPACITY, opacity)}" d="M12 22.5h8v3.2L13.6 30H12z"/>`;
   const body = `<rect x="10" y="3" width="12" height="19.5" rx="2.4" fill="#fff"/>`
     + `<path d="M10 7.5V5.4A2.4 2.4 0 0 1 12.4 3h7.2A2.4 2.4 0 0 1 22 5.4v2.1z" fill="${ink}"/>`
     + `<path d="M10.6 18h10.8" stroke="${INK}" stroke-width=".8" stroke-opacity=".45"/>`;

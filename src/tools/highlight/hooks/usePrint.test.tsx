@@ -19,6 +19,7 @@ vi.mock('../components/PrintSheets.tsx', () => ({
   },
 }));
 
+import type { EditorElement } from '#editor/model/editorModel.ts';
 import { PRINT_TIMEOUT_MS, usePrint } from './usePrint.ts';
 
 let container: HTMLElement | null = null;
@@ -123,6 +124,25 @@ describe('usePrint', () => {
     act(() => api.print('none'));
     act(() => api.print('beside'));
     expect(sheetProps?.notes).toBe('none');
+  });
+
+  describe('READ-14: a pencil mark waits for rough.js', () => {
+    it('mounts the sheets only after the hatch has loaded, and ignores a second request meanwhile', async () => {
+      const { _resetForTest, hatchIfLoaded } = await import('../lib/outline/hatchLoader.ts');
+      _resetForTest();
+      const pencil = { id: 'p', type: 'highlight', pageIndex: 0, left: 0, top: 0, width: 10, height: 10, color: '#FFF34D', style: 'pencil', bands: [{ left: 0, top: 0, width: 100, height: 100 }] } as EditorElement;
+      function PencilProbe() {
+        api = usePrint({ pdfDocument, elements: [pencil] });
+        return <>{api.sheets}</>;
+      }
+      act(() => render(<PencilProbe />, container!));
+      vi.useRealTimers();
+      act(() => { api.print('none'); api.print('none'); });
+      expect(mounted()).toBe(false);
+      await vi.waitFor(() => expect(mounted()).toBe(true), { timeout: 3000 });
+      expect(hatchIfLoaded()).not.toBeNull();
+      await vi.waitFor(() => expect(sheetMounts).toBe(1));
+    });
   });
 
   describe('funnel events', () => {

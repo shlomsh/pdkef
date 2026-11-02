@@ -5,6 +5,7 @@ export type Layer = 'custom' | 'toolbar' | 'note';
 export type KeyAction =
   | { type: 'color'; index: number }
   | { type: 'underline' }
+  | { type: 'pencil' }
   | { type: 'comment' }
   | { type: 'delete' }
   | { type: 'closeLayer'; layer: Layer | null }
@@ -28,6 +29,7 @@ export function keyAction(e: KeyLike, ctx: { typing: boolean; layers: Layer[] })
   if (!ctx.layers.includes('toolbar')) return null;
   if (/^[1-6]$/.test(e.key)) return { type: 'color', index: Number(e.key) - 1 };
   if (k === 'u') return { type: 'underline' };
+  if (k === 'p') return { type: 'pencil' };
   if (k === 'c') return { type: 'comment' };
   if (e.key === 'Delete' || e.key === 'Backspace') return { type: 'delete' };
   return null;
@@ -37,6 +39,7 @@ export function keyAction(e: KeyLike, ctx: { typing: boolean; layers: Layer[] })
 export function markKeyIntent(action: KeyAction, look: Marker): { change: Partial<Marker> } | { comment: true } | { delete: true } | null {
   if (action.type === 'color') return { change: { color: PANEL_COLORS[action.index].hex } };
   if (action.type === 'underline') return { change: { style: look.style === 'underline' ? 'highlight' : 'underline' } };
+  if (action.type === 'pencil') return { change: { style: look.style === 'pencil' ? 'highlight' : 'pencil' } };
   if (action.type === 'comment') return { comment: true };
   if (action.type === 'delete') return { delete: true };
   return null;

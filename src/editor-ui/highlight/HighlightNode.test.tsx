@@ -18,6 +18,20 @@ describe('HighlightNode', () => {
   let host: HTMLDivElement;
   afterEach(() => { act(() => render(null, host)); host.remove(); });
 
+  it('READ-14: a pencil mark shows the hatch its tool hands in instead of bands, and plain bands where none is handed in (Sign)', () => {
+    host = document.createElement('div');
+    document.body.appendChild(host);
+    const pencil = { ...element, style: 'pencil' as const };
+    act(() => render(<HighlightNode element={pencil} isActive={false} onResizeStart={() => {}} hatch={<svg data-test-hatch />} />, host));
+    expect(host.querySelector('[data-test-hatch]')).not.toBeNull();
+    expect(host.querySelectorAll('[data-highlight-band]')).toHaveLength(0);
+    act(() => render(<HighlightNode element={pencil} isActive={false} onResizeStart={() => {}} />, host));
+    expect(host.querySelectorAll('[data-highlight-band]')).toHaveLength(2);
+    act(() => render(<HighlightNode element={element} isActive={false} onResizeStart={() => {}} hatch={<svg data-test-hatch />} />, host));
+    expect(host.querySelector('[data-test-hatch]')).toBeNull();
+    expect(host.querySelectorAll('[data-highlight-band]')).toHaveLength(2);
+  });
+
   it('renders one band per element band at its percents, and an empty draft container', () => {
     host = document.createElement('div');
     document.body.appendChild(host);

@@ -8,7 +8,7 @@ vi.mock('../geometry/sketchStroke.ts', () => {
   const ops = (bands: { x: number; y: number; w: number; h: number }[]) => bands.flatMap((b) => [
     ['M', b.x, b.y], ['C', b.x + 1, b.y, b.x + b.w, b.y - 5, b.x + b.w, b.y + b.h], ['Z'],
   ]);
-  return { strokeSeed: () => 7, sketchBands: (bands: any[]) => ops(bands), sketchUnderline: (bands: any[]) => ops(bands) };
+  return { strokeSeed: (id: string) => id.length * 31 + 7, sketchBands: (bands: any[]) => ops(bands), sketchUnderline: (bands: any[]) => ops(bands) };
 });
 
 const element: HighlightElement = {
@@ -66,7 +66,7 @@ describe('serializeHighlight: opacity and underline', () => {
   async function write(el: HighlightElement, extra: Record<string, unknown> = {}) {
     const pdfDoc = await PDFDocument.create();
     const page = pdfDoc.addPage([200, 100]);
-    serializeHighlight(el, ctx(pdfDoc, page, extra));
+    await serializeHighlight(el, ctx(pdfDoc, page, extra));
     const annots = page.node.Annots()!;
     const annot = pdfDoc.context.lookup(annots.get(0)) as PDFDict;
     const ap = pdfDoc.context.lookup(annot.get(PDFName.of('AP'))) as PDFDict;
@@ -133,6 +133,68 @@ describe('serializeHighlight: opacity and underline', () => {
     expect((annot.get(PDFName.of('PDkefStyle')) as PDFName).toString()).toBe('/Pencil');
     expect((await write(element)).annot.get(PDFName.of('PDkefStyle'))).toBeUndefined();
     expect((await write({ ...element, style: 'underline' })).annot.get(PDFName.of('PDkefStyle'))).toBeUndefined();
+  });
+
+  describe('READ-14: the pencil hatch in the appearance stream', () => {
+    const pencil: HighlightElement = { ...element, style: 'pencil', opacity: 0.6, bands: [{ left: 0, top: 0, width: 100, height: 40 }, { left: 0, top: 60, width: 60, height: 40 }] };
+    // serializeHighlight loads rough.js on first use, so the stream is only there once its promise has settled.
+    const written = async (el: HighlightElement, extra: Record<string, unknown> = {}) => {
+      const pdfDoc = await PDFDocument.create();
+      const page = pdfDoc.addPage([200, 100]);
+      await serializeHighlight(el, ctx(pdfDoc, page, extra));
+      const annot = pdfDoc.context.lookup(page.node.Annots()!.get(0)) as PDFDict;
+      const stream = pdfDoc.context.lookup((pdfDoc.context.lookup(annot.get(PDFName.of('AP'))) as PDFDict).get(PDFName.of('N'))) as any;
+      return { annot, content: new TextDecoder().decode(stream.getContents()), stream, pdfDoc };
+    };
+
+    it('strokes the hatch in the mark color at 1.6 pt, and fills nothing', async () => {
+      const { content } = await written(pencil);
+      expect(content).toContain('/GS gs');
+      expect(content).toMatch(/1\.6 w 1 J 1 0\.95\d* 0\.30\d* RG/);
+      expect(content).toContain(' m');
+      expect(content).toContain(' c');
+      expect(content.trim().endsWith('S')).toBe(true);
+      expect(content).not.toMatch(/ f\b/);
+    });
+
+    it('is still a standard /Highlight with the quads of the bands, and multiplies', async () => {
+      const { annot, stream, pdfDoc } = await written(pencil);
+      expect((annot.get(PDFName.of('Subtype')) as PDFName).toString()).toBe('/Highlight');
+      expect((annot.lookup(PDFName.of('QuadPoints'), PDFArray)).asArray()).toHaveLength(16);
+      const resources = pdfDoc.context.lookup(stream.dict.get(PDFName.of('Resources'))) as PDFDict;
+      const states = pdfDoc.context.lookup(resources.get(PDFName.of('ExtGState'))) as PDFDict;
+      const state = pdfDoc.context.lookup(states.get(states.keys()[0])) as PDFDict;
+      expect((state.get(PDFName.of('BM')) as PDFName).toString()).toBe('/Multiply');
+      expect((state.get(PDFName.of('ca')) as PDFNumber).asNumber()).toBe(0.6);
+    });
+
+    it('hatches the same every time for the same id, and differently for another', async () => {
+      const first = (await written(pencil)).content;
+      expect((await written(pencil)).content).toBe(first);
+      expect((await written({ ...pencil, id: 'other' })).content).not.toBe(first);
+    });
+
+    it('hatches in the displayed orientation: a turned page maps the same strokes through the page matrix', async () => {
+      const upright = (await written(pencil)).content;
+      // editor (x, y) -> user (-y, x): a quarter turn
+      const turned = (await written(pencil, { pageGeometry: { editorToPdf: [0, 1, -1, 0, 0, 0] } })).content;
+      const firstMove = (text: string) => text.match(/(-?[\d.]+) (-?[\d.]+) m/)!.slice(1).map(Number);
+      const [x, y] = firstMove(upright);
+      const [tx, ty] = firstMove(turned);
+      expect(tx).toBeCloseTo(-y, 1);
+      expect(ty).toBeCloseTo(x, 1);
+    });
+
+    it('lets the appearance grow to hold the strokes that wobble past the band', async () => {
+      const { annot } = await written(pencil);
+      const rect = (annot.lookup(PDFName.of('Rect'), PDFArray)).asArray().map((n) => (n as PDFNumber).asNumber());
+      const quad = (annot.lookup(PDFName.of('QuadPoints'), PDFArray)).asArray().map((n) => (n as PDFNumber).asNumber());
+      const xs = quad.filter((_, i) => i % 2 === 0), ys = quad.filter((_, i) => i % 2 === 1);
+      expect(rect[0]).toBeLessThanOrEqual(Math.min(...xs));
+      expect(rect[2]).toBeGreaterThanOrEqual(Math.max(...xs));
+      expect(rect[1]).toBeLessThanOrEqual(Math.min(...ys));
+      expect(rect[3]).toBeGreaterThanOrEqual(Math.max(...ys));
+    });
   });
 
   it('applies the opacity to an underline too', async () => {

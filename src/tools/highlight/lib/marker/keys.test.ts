@@ -54,6 +54,14 @@ describe('markKeyIntent', () => {
     expect(markKeyIntent({ type: 'underline' }, look)).toEqual({ change: { style: 'underline' } });
     expect(markKeyIntent({ type: 'underline' }, { ...look, style: 'underline' })).toEqual({ change: { style: 'highlight' } });
   });
+  it('P toggles pencil and highlight, and moves between pencil and underline', () => {
+    expect(keyAction(k('p'), ctx())).toEqual({ type: 'pencil' });
+    expect(keyAction(k('P'), ctx([]))).toBeNull();
+    expect(markKeyIntent({ type: 'pencil' }, look)).toEqual({ change: { style: 'pencil' } });
+    expect(markKeyIntent({ type: 'pencil' }, { ...look, style: 'pencil' })).toEqual({ change: { style: 'highlight' } });
+    expect(markKeyIntent({ type: 'pencil' }, { ...look, style: 'underline' })).toEqual({ change: { style: 'pencil' } });
+    expect(markKeyIntent({ type: 'underline' }, { ...look, style: 'pencil' })).toEqual({ change: { style: 'underline' } });
+  });
   it('C comments and Delete deletes', () => {
     expect(markKeyIntent({ type: 'comment' }, look)).toEqual({ comment: true });
     expect(markKeyIntent({ type: 'delete' }, look)).toEqual({ delete: true });

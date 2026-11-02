@@ -7,6 +7,8 @@ import { turnsOf, type PageTurns } from '#editor/geometry/pageTurn.ts';
 import { underlineInk, UNDERLINE_LIFT, UNDERLINE_WIDTH } from '#editor/model/underlineInk.ts';
 import { formatMessage } from '#lib/text/formatMessage.ts';
 import { englishSignMessages } from '#editor/registry/signMessages.ts';
+import { hatchInkAttrs, hatchPathD } from '#editor/geometry/hatchInk.ts';
+import { hatchIfLoaded } from '../lib/outline/hatchLoader.ts';
 import { notedPages } from '../lib/print/notedPages.ts';
 import { printNotes } from '../lib/print/printNotes.ts';
 import { END_NOTES_MARGIN } from '../lib/print/endNotes.ts';
@@ -63,6 +65,20 @@ function Highlights({ highlights, pageScale, pagePts, turns }: { highlights: Hig
             <div key={highlight.id} class={styles.layer} style={opacity}>
               <svg data-highlight-sketch viewBox={`0 0 ${pagePts.width} ${pagePts.height}`} preserveAspectRatio="none" aria-hidden="true" class={styles.sketch}>
                 <path d={d} fill={fill} />
+              </svg>
+            </div>
+          );
+        }
+        const hatch = highlight.style === 'pencil' ? hatchIfLoaded() : null;
+        if (hatch) {
+          // READ-14: the screen's hatch, in the page's own points; usePrint waits for rough.js before it mounts the sheets.
+          const d = hatchPathD(hatch.hatchOps, pageBands(highlight).map((b) => ({
+            x: (b.left / 100) * pagePts.width, y: (b.top / 100) * pagePts.height, w: (b.width / 100) * pagePts.width, h: (b.height / 100) * pagePts.height,
+          })), highlight.id);
+          return (
+            <div key={highlight.id} class={styles.layer} style={opacity}>
+              <svg data-highlight-hatch viewBox={`0 0 ${pagePts.width} ${pagePts.height}`} preserveAspectRatio="none" aria-hidden="true" class={styles.sketch}>
+                <path d={d} {...hatchInkAttrs(highlight.color)} />
               </svg>
             </div>
           );

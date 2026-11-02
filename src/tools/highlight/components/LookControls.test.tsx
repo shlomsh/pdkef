@@ -18,9 +18,9 @@ function mount(look = DEFAULT_MARKER, onChange = vi.fn()) {
 const button = (name: string) => container!.querySelector<HTMLElement>(`button[aria-label="${name}"]`)!;
 
 describe('StyleToggle', () => {
-  it('holds the two style buttons and no caret', () => {
+  it('holds the three style buttons and no caret', () => {
     mount();
-    expect(container!.querySelectorAll('[data-style-toggle] button')).toHaveLength(2);
+    expect(container!.querySelectorAll('[data-style-toggle] button')).toHaveLength(3);
     expect(container!.querySelectorAll('[data-style-toggle] [aria-haspopup]')).toHaveLength(0);
   });
 
@@ -33,7 +33,9 @@ describe('StyleToggle', () => {
     expect(button('Highlight').getAttribute('aria-checked')).toBe('true');
     expect(button('Underline').getAttribute('aria-checked')).toBe('false');
     expect(button('Highlight').hasAttribute('aria-pressed')).toBe(false);
-    expect([button('Highlight').tabIndex, button('Underline').tabIndex]).toEqual([0, -1]);
+    expect([button('Highlight').tabIndex, button('Underline').tabIndex, button('Pencil').tabIndex]).toEqual([0, -1, -1]);
+    expect(button('Pencil').getAttribute('aria-checked')).toBe('false');
+    expect(button('Pencil').getAttribute('aria-keyshortcuts')).toBe('P');
     act(() => render(null, container!)); container!.remove(); container = null;
     mount({ ...DEFAULT_MARKER, style: 'underline' });
     expect(button('Underline').getAttribute('aria-checked')).toBe('true');
@@ -46,6 +48,20 @@ describe('StyleToggle', () => {
     act(() => { button('Highlight').dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true, cancelable: true })); });
     expect(onChange).toHaveBeenLastCalledWith({ style: 'underline' });
     expect(document.activeElement).toBe(button('Underline'));
+    act(() => { button('Underline').dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true, cancelable: true })); });
+    expect(onChange).toHaveBeenLastCalledWith({ style: 'pencil' });
+    expect(document.activeElement).toBe(button('Pencil'));
+  });
+
+  it('Pencil is checked alone on a pencil mark, and clicking it again does nothing', () => {
+    const onChange = mount({ ...DEFAULT_MARKER, style: 'pencil' });
+    expect(button('Pencil').getAttribute('aria-checked')).toBe('true');
+    expect(button('Highlight').getAttribute('aria-checked')).toBe('false');
+    expect(button('Underline').getAttribute('aria-checked')).toBe('false');
+    act(() => button('Pencil').click());
+    expect(onChange).not.toHaveBeenCalled();
+    act(() => button('Highlight').click());
+    expect(onChange).toHaveBeenLastCalledWith({ style: 'highlight' });
   });
 
   it('the other style button switches to it, and the pressed one does nothing', () => {
@@ -54,6 +70,8 @@ describe('StyleToggle', () => {
     expect(onChange).not.toHaveBeenCalled();
     act(() => button('Underline').click());
     expect(onChange).toHaveBeenLastCalledWith({ style: 'underline' });
+    act(() => button('Pencil').click());
+    expect(onChange).toHaveBeenLastCalledWith({ style: 'pencil' });
   });
 });
 
@@ -88,5 +106,23 @@ describe('StyleSetting', () => {
     act(() => button('Underline thickness').click());
     expect(document.querySelector('[role="radiogroup"][aria-label="Stroke"]')).not.toBeNull();
     expect(document.querySelectorAll('[data-editor-thickness]').length).toBe(5);
+  });
+
+  it('a pencil shows the opacity percent and no stroke choice, and sends its opacity with the style', () => {
+    const onChange = mount({ ...DEFAULT_MARKER, style: 'pencil', opacity: 0.6 });
+    expect(button('Opacity').textContent).toContain('60%');
+    expect(button('Opacity').querySelector('[data-setting-face]')).not.toBeNull();
+    act(() => button('Opacity').click());
+    expect(document.querySelector('[role="radiogroup"][aria-label="Stroke"]')).toBeNull();
+    const range = document.querySelector('[data-opacity-slider] input') as HTMLInputElement;
+    range.value = '0.7';
+    act(() => { range.dispatchEvent(new Event('input', { bubbles: true })); });
+    expect(onChange).toHaveBeenLastCalledWith({ style: 'pencil', opacity: 0.7 });
+  });
+
+  it('a highlight still offers the stroke choice in the opacity popover', () => {
+    mount();
+    act(() => button('Opacity').click());
+    expect(document.querySelector('[role="radiogroup"][aria-label="Stroke"]')).not.toBeNull();
   });
 });

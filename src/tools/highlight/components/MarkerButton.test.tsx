@@ -43,6 +43,15 @@ describe('MarkerButton', () => {
     expect(container!.querySelector('[data-marker-dot]')).toBeNull();
   });
 
+  it('shows a pencil marker as a hatch badge in its color and opacity', () => {
+    mount({ marker: { color: '#FF8FCF', style: 'pencil', opacity: 0.6 } });
+    const hatch = container!.querySelector('[data-marker-pencil]') as HTMLElement;
+    expect(hatch).not.toBeNull();
+    expect(hatch.style.color.toLowerCase()).toContain('rgb(255, 143, 207)');
+    expect(container!.querySelector('[data-marker-dot]')).toBeNull();
+    expect(container!.querySelector('[data-marker-underline]')).toBeNull();
+  });
+
   describe('without a mark it never opens a panel', () => {
     it('a click arms the marker and opens nothing, on every pointer', () => {
       const { props, button } = mount({});
@@ -86,7 +95,7 @@ describe('MarkerButton', () => {
       const row = container!.querySelector('[data-marker-row]')!;
       expect(row.querySelectorAll('[data-highlight-swatch]')).toHaveLength(3);
       expect([...row.querySelectorAll('button')].map((b) => b.getAttribute('aria-label')).slice(3)).toEqual(
-        ['More colors', 'Highlight', 'Underline', 'Opacity', 'Comment', 'Delete'],
+        ['More colors', 'Highlight', 'Underline', 'Pencil', 'Opacity', 'Comment', 'Delete'],
       );
     });
 
@@ -122,6 +131,13 @@ describe('MarkerButton', () => {
       act(() => render(<MarkerButton {...props} mark={{ ...m, look: { ...DEFAULT_MARKER, style: 'underline' } }} />, container!));
       press(named(t.markHighlight));
       expect(m.onChange).toHaveBeenLastCalledWith({ style: 'highlight' });
+    });
+
+    it('Pencil is a third style, one click from either', () => {
+      const m = markProps();
+      mount({ mark: m });
+      press(named(t.markPencil));
+      expect(m.onChange).toHaveBeenLastCalledWith({ style: 'pencil' });
     });
 
     it('opacity is one click away on the setting button', () => {

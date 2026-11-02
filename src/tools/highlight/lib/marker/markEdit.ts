@@ -6,7 +6,7 @@ import { OPACITY_MIN, clampWidth, type Marker } from './markerState.ts';
 
 /** The marker a highlight carries: what the next stroke lays after the reader changes it (R5). */
 export function markOf(el: HighlightElement): Marker {
-  return { color: el.color, style: el.style === 'underline' ? 'underline' : 'highlight', opacity: el.opacity ?? 1, ...(el.strokeWidth === undefined ? {} : { strokeWidth: el.strokeWidth }), ...(el.stroke ? { stroke: el.stroke } : {}) };
+  return { color: el.color, style: el.style === 'underline' || el.style === 'pencil' ? el.style : 'highlight', opacity: el.opacity ?? 1, ...(el.strokeWidth === undefined ? {} : { strokeWidth: el.strokeWidth }), ...(el.stroke ? { stroke: el.stroke } : {}) };
 }
 
 /**
@@ -17,7 +17,7 @@ export function markOf(el: HighlightElement): Marker {
 export function changePatch(change: Partial<Marker>): Partial<HighlightElement> {
   const patch: Partial<HighlightElement> = {};
   if (change.color !== undefined) patch.color = change.color;
-  if (change.style !== undefined) patch.style = change.style === 'underline' ? 'underline' : undefined;
+  if (change.style !== undefined) patch.style = change.style === 'underline' || change.style === 'pencil' ? change.style : undefined;
   if (change.opacity !== undefined) {
     const opacity = Math.min(1, Math.max(OPACITY_MIN, change.opacity));
     patch.opacity = opacity < 1 ? opacity : undefined;
@@ -27,6 +27,8 @@ export function changePatch(change: Partial<Marker>): Partial<HighlightElement> 
     patch.strokeWidth = width === UNDERLINE_WIDTH.default ? undefined : width;
   }
   if ('stroke' in change) patch.stroke = change.stroke === 'sketch' ? 'sketch' : undefined;
+  // READ-14: pencil carries neither a line width nor a pen stroke
+  if (change.style === 'pencil') { patch.strokeWidth = undefined; patch.stroke = undefined; }
   return patch;
 }
 

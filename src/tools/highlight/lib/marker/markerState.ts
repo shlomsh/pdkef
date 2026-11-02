@@ -13,7 +13,7 @@ const sameColor = (a: string, b: string) => a.toLowerCase() === b.toLowerCase();
 
 export const isTopColor = (hex: string) => TOP_COLORS.some((c) => sameColor(c.hex, hex));
 
-export interface Marker { color: string; style: 'highlight' | 'underline'; opacity: number; /** READ-04: the underline's width in points; absent is UNDERLINE_WIDTH.default. */ strokeWidth?: number; /** READ-11: absent is Clean; a change to Clean is `{ stroke: undefined }`. */ stroke?: 'sketch' }
+export interface Marker { color: string; style: 'highlight' | 'underline' | 'pencil'; opacity: number; /** READ-04: the underline's width in points; absent is UNDERLINE_WIDTH.default. */ strokeWidth?: number; /** READ-11: absent is Clean; a change to Clean is `{ stroke: undefined }`. */ stroke?: 'sketch' }
 
 export const OPACITY_MIN = 0.3;
 
@@ -28,6 +28,8 @@ export const clampWidth = (n: number) => Math.min(UNDERLINE_WIDTH.max, Math.max(
 export function rearm(m: Marker, change: Partial<Marker>): Marker {
   const next = { ...m, ...change };
   const { strokeWidth, stroke, ...rest } = next;
+  // READ-14: pencil hatching is already by hand and has no line width
+  if (next.style === 'pencil') return { ...rest, opacity: clamp(next.opacity) };
   return { ...rest, opacity: clamp(next.opacity), ...(strokeWidth === undefined ? {} : { strokeWidth: clampWidth(strokeWidth) }), ...(stroke ? { stroke } : {}) };
 }
 

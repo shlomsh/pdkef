@@ -63,6 +63,20 @@ describe('PrintSheets', () => {
     expect(sketchBands).toHaveBeenCalledWith(Array(2).fill({ x: 60, y: 160, w: 300, h: 40 }), 9, 0);
   });
 
+  it('READ-14: a pencil mark prints as hatch strokes in page points, inside the opacity layer', async () => {
+    const { loadHatch } = await import('../lib/outline/hatchLoader.ts');
+    await loadHatch();
+    const pencil = { ...elements[0], style: 'pencil', opacity: 0.6 } as EditorElement;
+    await mount(false, undefined, pdfDocument, [pencil]);
+    const svg = sheets()[0].querySelector('svg[data-highlight-hatch]')!;
+    expect(svg.getAttribute('viewBox')).toBe('0 0 600 800');
+    const path = svg.querySelector('path')!;
+    expect(path.getAttribute('stroke')).toBe('#fde047');
+    expect(path.getAttribute('stroke-width')).toBe('1.6');
+    expect((svg.parentElement as HTMLElement).style.opacity).toBe('0.6');
+    expect(sheets()[0].querySelectorAll('[data-print-band]')).toHaveLength(0);
+  });
+
   it('mounts a print root on the body with one sized sheet per page', async () => {
     await mount(false);
     expect(root().parentElement).toBe(document.body);

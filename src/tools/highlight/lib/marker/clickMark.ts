@@ -45,10 +45,10 @@ export function clickMarkElement({ id, pageIndex, boxes, marker, direction }: {
   if (!geometry) return null;
   return {
     id, type: 'highlight', pageIndex, ...geometry, color: marker.color,
-    ...(marker.style === 'underline' ? { style: 'underline' as const } : {}),
+    ...(marker.style !== 'highlight' ? { style: marker.style } : {}),
     ...(marker.opacity < 1 ? { opacity: marker.opacity } : {}),
-    ...(marker.strokeWidth !== undefined ? { strokeWidth: marker.strokeWidth } : {}),
-    ...(marker.stroke ? { stroke: marker.stroke } : {}),
+    ...(marker.style !== 'pencil' && marker.strokeWidth !== undefined ? { strokeWidth: marker.strokeWidth } : {}),
+    ...(marker.style !== 'pencil' && marker.stroke ? { stroke: marker.stroke } : {}),
     ...(direction === 'rtl' ? { direction } : {}),
   };
 }
