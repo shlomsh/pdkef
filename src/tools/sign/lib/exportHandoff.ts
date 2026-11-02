@@ -5,6 +5,11 @@ export interface SignedExport {
   blob: Blob;
   name: string;
   revision: number;
+  /**
+   * Made by the background run (MOBI-07), which sends no funnel events: whoever delivers the
+   * file reports it, once per download or share. A file made on request already reported.
+   */
+  speculative?: boolean;
 }
 
 /**
