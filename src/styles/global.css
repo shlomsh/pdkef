@@ -142,6 +142,9 @@
      page's --home-citron aliases these two. */
   --color-citron: #efffa6;
   --color-citron-ink: #4f6c2d;
+  /* The marker stroke under the Highlight PDF icon: the editor's default yellow ink, because
+     citron is too close to the near-white tool tile to read at icon size. */
+  --color-highlighter: #fff34d;
   --color-surface-soft: rgba(0, 0, 0, 0.02);
 
   /* ARCH-88: scrims, shadows and translucent inks that used to be literals in
