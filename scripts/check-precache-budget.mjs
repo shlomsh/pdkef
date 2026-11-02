@@ -86,6 +86,7 @@ const CODE_EXTENSIONS = new Set(['.js', '.mjs', '.css', '.wasm']);
 // Files that are in dist/ on purpose and in no list, keyed by name without the hash ("PageWorkspace.css"), each with its reason.
 export const KNOWN_ORPHANS = {
   'PageWorkspace.css': 'its rules are inlined into the pages that use it and no file or page names the file',
+  'DriveOpen.js': 'MERGE-25: the /drive/ island is online-only on purpose (it signs in with Google), so /drive/ and its chunk stay out of the install',
 };
 
 const withoutHash = (file) => path.basename(file).replace(/\.[\w-]+(\.[a-z]+)$/i, '$1');
