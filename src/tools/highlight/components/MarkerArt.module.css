@@ -102,18 +102,6 @@
 .art[data-picked] :is(.body, .collar, .nib) { transform: translateX(-1.3px); }
 :hover > .art:not([data-picked]) .cap { transform: translateX(1.1px); }
 
-/* The More button's band: the same ink, smaller, no marker. */
-.moreInk {
-  display: block;
-  flex: none;
-  width: 16px;
-  height: 10px;
-  border-radius: 2.2px 5.1px 4.2px 2.6px / 4.2px 5.8px 4.8px 3.5px;
-  background: var(--ink);
-  transform: skewX(-10deg) rotate(-4deg);
-  box-shadow: inset 0 0 0 0.5px var(--color-black-12);
-}
-
 @media (prefers-reduced-motion: reduce) {
   /* Doubled .art outranks the picked and hover rules above, which set their own transitions. */
   .art.art .band, .art.art .wrap, .art.art .body, .art.art .collar, .art.art .nib, .art.art .cap { transition: none; }

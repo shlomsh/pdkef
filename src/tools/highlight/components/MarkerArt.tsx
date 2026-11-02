@@ -28,8 +28,3 @@ export default function MarkerArt({ ink, picked, wheel }: { ink: string; picked:
     </span>
   );
 }
-
-/** The ink band the More button wears when the pen is not a top color. */
-export function MoreInk({ ink }: { ink: string }) {
-  return <span class={styles.moreInk} data-more-ink style={{ '--ink': ink }} />;
-}

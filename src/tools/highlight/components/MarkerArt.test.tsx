@@ -2,7 +2,7 @@ import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { afterEach, describe, expect, it } from 'vitest';
 import { BLANK_BARREL, WHEEL_CAP } from '../lib/marker/markerShades.ts';
-import MarkerArt, { MoreInk } from './MarkerArt.tsx';
+import MarkerArt from './MarkerArt.tsx';
 
 let container: HTMLElement | null = null;
 afterEach(() => {
@@ -51,13 +51,5 @@ describe('MarkerArt', () => {
     expect(v(art, '--nib')).toBe('#a99cff');
     expect(v(art, '--ink')).toBe('#a99cff');
     expect(v(art, '--cap-image')).toBe(WHEEL_CAP);
-  });
-});
-
-describe('MoreInk', () => {
-  it('is a band in the ink', () => {
-    mount(<MoreInk ink="#FFB15C" />);
-    const band = container!.querySelector<HTMLElement>('[data-more-ink]')!;
-    expect(band.style.getPropertyValue('--ink')).toBe('#FFB15C');
   });
 });
