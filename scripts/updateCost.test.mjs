@@ -4,7 +4,7 @@ import path from 'node:path';
 import zlib from 'node:zlib';
 import { afterAll, describe, expect, it } from 'vitest';
 import { readInstallSet } from './measure-update-cost.mjs';
-import { UPDATE_COST_TARGET, summarize, updateCost } from './updateCost.mjs';
+import { UPDATE_COST_TARGET, explainChanged, firstDifference, summarize, updateCost } from './updateCost.mjs';
 
 const build = (entries) => new Map(Object.entries(entries));
 const SW = { '/sw.js': { hash: 'sw1', bytes: 3000 }, '/precache-manifest.json': { hash: 'm1', bytes: 2000 } };
@@ -84,6 +84,75 @@ describe('summarize cascade detail', () => {
     const text = summarize(updateCost(build({ ...SW }), build({ ...SW, ...entries })), 1e9).join('\n');
     const tail = text.slice(text.indexOf('New chunks:'));
     expect(tail.match(/\/_astro\/c\d+\.js/g)).toHaveLength(10);
+  });
+});
+
+describe('firstDifference', () => {
+  it('is null for equal strings', () => {
+    expect(firstDifference('abc', 'abc')).toBeNull();
+  });
+
+  it('clips the context at both ends of a mid-string difference', () => {
+    const pre = 'a'.repeat(100);
+    const post = 'z'.repeat(100);
+    const d = firstDifference(`${pre}X${post}`, `${pre}Y${post}`, 5);
+    expect(d).toEqual({ index: 100, before: 'aaaaaXzzzzz', after: 'aaaaaYzzzzz' });
+  });
+
+  it('keeps short strings whole and shows newlines as a glyph', () => {
+    const d = firstDifference('a\nb', 'a\nc');
+    expect(d).toEqual({ index: 2, before: 'a⏎b', after: 'a⏎c' });
+  });
+
+  it('handles one string being a prefix of the other', () => {
+    expect(firstDifference('ab', 'abcd')).toEqual({ index: 2, before: 'ab', after: 'abcd' });
+  });
+});
+
+describe('explainChanged', () => {
+  it('groups pages by their first difference, biggest group first', () => {
+    const groups = explainChanged([
+      { url: '/a/', before: '<p>x</p>', after: '<p>y</p>' },
+      { url: '/b/', before: '<q>1</q><p>x</p>', after: '<q>1</q><p>y</p>' },
+      { url: '/c/', before: 'one', after: 'two' },
+      { url: '/d/', before: 'same', after: 'same' },
+    ]);
+    expect(groups.map((g) => [g.count, g.urls])).toEqual([[1, ['/a/']], [1, ['/b/']], [1, ['/c/']]]);
+    const wide = explainChanged([
+      { url: '/a/', before: '<script src="/_astro/a.1.js">', after: '<script src="/_astro/a.2.js">' },
+      { url: '/b/', before: '<script src="/_astro/a.1.js">', after: '<script src="/_astro/a.2.js">' },
+      { url: '/c/', before: 'one', after: 'two' },
+    ]);
+    expect(wide).toHaveLength(2);
+    expect(wide[0].count).toBe(2);
+    expect(wide[0].urls).toEqual(['/a/', '/b/']);
+    expect(wide[0].sample.before).toContain('a.1.js');
+    expect(wide[0].sample.after).toContain('a.2.js');
+    expect(wide[1].count).toBe(1);
+  });
+});
+
+describe('summarize what changed', () => {
+  const result = updateCost(build({ ...SW }), build({ ...SW, '/a/': { hash: 'a', bytes: 100 } }));
+
+  it('adds no section without an explanation', () => {
+    expect(summarize(result, 1000).join('\n')).not.toContain('What changed in pages:');
+  });
+
+  it('prints at most 3 groups with at most 3 urls each', () => {
+    const explanation = Array.from({ length: 4 }, (_, i) => ({
+      count: 10 - i,
+      urls: ['/p1/', '/p2/', '/p3/', '/p4/'],
+      sample: { before: `old${i}`, after: `new${i}` },
+    }));
+    const lines = summarize(result, 1000, explanation);
+    const text = lines.join('\n');
+    expect(text).toContain('What changed in pages:');
+    expect(text).toContain('  10 pages: before «old0» after «new0»');
+    expect(text).toContain('/p1/');
+    expect(text).not.toContain('/p4/');
+    expect(text).toContain('new2');
+    expect(text).not.toContain('new3');
   });
 });
 

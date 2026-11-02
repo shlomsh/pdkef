@@ -39,7 +39,35 @@ export function updateCost(before, after) {
 const fmt = (n) => n.toLocaleString('en-US');
 const isPage = (url) => url.endsWith('/') || url.endsWith('.html');
 
-export function summarize({ total, items }, target = UPDATE_COST_TARGET) {
+const glyph = (str) => str.replace(/\r?\n/g, '⏎');
+
+// The first place two strings differ, with `context` chars either side in each.
+export function firstDifference(before, after, context = 60) {
+  if (before === after) return null;
+  const max = Math.min(before.length, after.length);
+  let index = 0;
+  while (index < max && before[index] === after[index]) index++;
+  const clip = (str) => glyph(str.slice(Math.max(0, index - context), index + context + 1));
+  return { index, before: clip(before), after: clip(after) };
+}
+
+// pairs: [{ url, before, after }] for changed pages. Groups pages whose first
+// difference reads the same, largest group first.
+export function explainChanged(pairs) {
+  const groups = new Map();
+  for (const { url, before, after } of pairs) {
+    const d = firstDifference(before, after);
+    if (!d) continue;
+    const key = `${d.before}\u0000${d.after}`;
+    const g = groups.get(key) ?? { count: 0, urls: [], sample: { before: d.before, after: d.after } };
+    g.count++;
+    g.urls.push(url);
+    groups.set(key, g);
+  }
+  return [...groups.values()].sort((a, b) => b.count - a.count);
+}
+
+export function summarize({ total, items }, target = UPDATE_COST_TARGET, explanation) {
   const chunks = items.filter((i) => i.reason === 'new-hashed');
   const pages = items.filter((i) => i.reason === 'changed' && isPage(i.url)).length;
   const verdict = total > target ? 'ABOVE' : 'within';
@@ -51,6 +79,13 @@ export function summarize({ total, items }, target = UPDATE_COST_TARGET) {
     lines.push('New chunks:');
     for (const i of chunks.slice(0, 10)) lines.push(`  ${i.url}`);
     if (chunks.length > 10) lines.push(`  ...and ${chunks.length - 10} more`);
+  }
+  if (explanation?.length) {
+    lines.push('What changed in pages:');
+    for (const g of explanation.slice(0, 3)) {
+      lines.push(`  ${g.count} ${g.count === 1 ? 'page' : 'pages'}: before «${g.sample.before}» after «${g.sample.after}»`);
+      lines.push(`    e.g. ${g.urls.slice(0, 3).join(' ')}`);
+    }
   }
   return lines;
 }
