@@ -7,7 +7,6 @@ epic: "highlight-pdf"
 horizon: "now"
 order: 15
 depends_on: []
-needs: "Pick a sketch: A (pane, swipe sideways), B (pane, scroll down) or C (pins)"
 ---
 
 # READ-15 · Notes on a phone: a model of their own
@@ -60,10 +59,7 @@ page included), except while its field is open, so a draft is never lost. The ph
 
 ## Desktop: next and previous note (2026-11-02)
 
-Shlomi, on desktop: a document whose first comment is on page 3 was confusing; there is no way to jump to
-the first comment, only scrolling to find it, and next and previous would help. The pane's reading-order
-list (`paneNotes`) drives this too: a "1 of 4" stepper that selects a note and scrolls its passage and card
-into view. Placement is sketched for Shlomi before it is built.
+Split to [READ-16](READ-16.md) and parked there at Shlomi's call.
 
 ## First round (superseded by the sketches above)
 
@@ -135,11 +131,14 @@ lamp, gets none of that.
 
 ## Acceptance
 
-- [ ] Shlomi picks a direction.
-- [ ] On a 402 pt phone, normal view and lamp: every saved note shows a pin beside its passage, a tap
-  opens and a second tap hides its card, and two notes can be open together.
-- [ ] Pins and open cards stay on their passages through scroll, pinch and zoom (R29).
-- [ ] A new note opens with the keyboard up and the passage and card in view above it.
-- [ ] Hebrew passages get their pin in the left margin.
-- [ ] No bottom sheet in Highlight; Sign and the desktop rail unchanged.
+- [x] Shlomi picks a direction (A, 2026-11-02).
+- [ ] Below the rail width, normal view and lamp: a tapped note opens in the bottom pane, one at a time; a
+  sideways swipe or Previous and Next moves through every note in reading order and the page brings its
+  passage into view, outlined; Close and Esc hide the pane.
+- [ ] Delete removes a note at once, keeps its highlight, and shows "Note deleted · Undo"; Undo brings it back.
+- [ ] Writing a note, the pane sits above the keyboard.
+- [ ] Desktop rail: the selected note shows Delete and Edit; a note closes when focus leaves its card and
+  mark, unless its field is open; only one mark is ever outlined.
+- [ ] Sign unchanged.
+- [ ] `docs/ux-design-guidelines.md` §8 names the notes pane as its one exception.
 - [ ] Checked on the iPhone simulator with screenshots.

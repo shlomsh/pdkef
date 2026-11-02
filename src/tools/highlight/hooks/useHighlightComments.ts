@@ -1,3 +1,4 @@
+import { useCallback, useRef } from 'preact/hooks';
 import type { HistoryLogger } from '#editor/model/actionHistory.ts';
 import type { EditorElement, EditorElementPatch } from '#editor/model/editorModel.ts';
 import type { ElementsAction, ElementsState } from '#editor/model/elementsReducer.ts';
@@ -9,6 +10,7 @@ import { useCommentActions } from '#editor-ui/comments/useCommentActions.ts';
 import { useCommentsView } from '#editor-ui/comments/useCommentsView.tsx';
 import { recordAction } from '#lib/telemetry/actionTrail.ts';
 import { deleteWithComments } from '../lib/notes/deleteElement.ts';
+import { useNoteFocusOut } from './useNoteFocusOut.ts';
 
 /**
  * Highlight's wiring of Sign's comments mechanism (R27 to R29): the same view (rail, sheet) and the same card
@@ -43,5 +45,13 @@ export function useHighlightComments({ state, dispatch, logAction, announce }: {
     onSelect: (id) => dispatch({ type: 'SET_ACTIVE_ELEMENT_ID', payload: id }),
     ...actions,
   });
-  return { ...view, actions };
+  // On the rail a note closes when focus leaves its card and mark (READ-15); the phone pane has its own Close.
+  const root = useRef<HTMLElement | null>(null);
+  const { containerRef: measure } = view;
+  const containerRef = useCallback((node: HTMLElement | null) => { root.current = node; measure(node); }, [measure]);
+  useNoteFocusOut({
+    rootRef: root, elements, activeElementId, enabled: view.wide,
+    onClose: () => dispatch({ type: 'SET_ACTIVE_ELEMENT_ID', payload: null }),
+  });
+  return { ...view, containerRef, actions };
 }

@@ -3,7 +3,7 @@ import { isComment } from '#editor/comments/anchors.ts';
 
 /**
  * Whether the open note stays open when focus lands on `next` (the card and the element that hold it, null for neither): it stays
- * while focus is in its card or on the mark it hangs on, and a non-note active element has nothing to close. @testSeam until HighlightWorkspace consumes it
+ * while focus is in its card or on the mark it hangs on, and a non-note active element has nothing to close.
  */
 export function noteStaysOpen(
   elements: readonly EditorElement[],

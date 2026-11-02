@@ -17,13 +17,13 @@ afterEach(() => {
   vi.useRealTimers();
 });
 
-function mount(opts: { enabled?: boolean; field?: boolean } = {}) {
+function mount(opts: { enabled?: boolean; field?: boolean; activeId?: string } = {}) {
   vi.useFakeTimers();
   vi.spyOn(document, 'hasFocus').mockReturnValue(true);
   const onClose = vi.fn();
   function Probe() {
     const ref = useRef<HTMLDivElement>(null);
-    useNoteFocusOut({ rootRef: ref, elements: [mark, note], activeElementId: 'c1', enabled: opts.enabled ?? true, onClose });
+    useNoteFocusOut({ rootRef: ref, elements: [mark, note], activeElementId: opts.activeId ?? 'c1', enabled: opts.enabled ?? true, onClose });
     return (
       <div ref={ref}>
         <span data-editor-element-id="m1" tabIndex={0} id="mark" />
@@ -80,6 +80,11 @@ describe('useNoteFocusOut', () => {
     const { onClose, q } = mount();
     q('blank').dispatchEvent(new Event('pointerdown', { bubbles: true }));
     expect(onClose).toHaveBeenCalledTimes(1);
+  });
+  it('a press on blank page leaves a picked highlight alone: only a note closes', () => {
+    const { onClose, q } = mount({ activeId: 'm1' });
+    q('blank').dispatchEvent(new Event('pointerdown', { bubbles: true }));
+    expect(onClose).not.toHaveBeenCalled();
   });
   it('stays open on a press in the card or on a mark', () => {
     const { onClose, q } = mount();

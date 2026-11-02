@@ -73,7 +73,7 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 
 ## Needs Shlomi
 
-- [READ-15](backlog/tasks/READ-15.md) · Pick a sketch: A (pane, swipe sideways), B (pane, scroll down) or C (pins)
+- [READ-16](backlog/tasks/READ-16.md) · Pick the stepper's place: the toolbar capsule, the top of the rail, or the page header
 - [MOBI-01](backlog/tasks/MOBI-01.md) · Half an hour with an Android phone
 - [DEBT-53](backlog/tasks/DEBT-53.md) · A check on your iPhone
 - [SEO-40](backlog/tasks/SEO-40.md) · The Search Console exports
