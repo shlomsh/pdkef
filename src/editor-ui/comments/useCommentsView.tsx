@@ -70,6 +70,8 @@ export function useCommentsView({ elements, activeElementId, messages, onSelect,
   return {
     containerRef,
     returnFocus,
+    /** The workspace is wide enough for the rail; a tool with its own narrow view (Highlight's note pane) reads this. */
+    wide,
     showRail,
     cardClass: showRail ? styles['page-card-with-rail'] : undefined,
     headerNote: (pageIndex: number) => {
