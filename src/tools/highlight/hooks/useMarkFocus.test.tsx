@@ -2,6 +2,7 @@ import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { EditorElement, HighlightElement } from '#editor/model/editorModel.ts';
+import { handFocusBack } from '#editor-ui/comments/anchorNode.ts';
 import { useMarkFocus } from './useMarkFocus.ts';
 
 const hl = (id: string, pageIndex: number, left: number, top: number): HighlightElement => ({
@@ -109,6 +110,18 @@ describe('useMarkFocus', () => {
     act(() => field.focus());
     act(() => node('a').focus());
     expect(opened).toEqual([]);
+  });
+
+  // READ-15: Close in the phone's note pane leaves focus on the body (WebKit never focuses a clicked button), the
+  // comments view hands it back to the mark, and on touch an opened mark picks its note: the pane came straight back.
+  it('focus the comments view hands back from the body does not reopen the note', () => {
+    mount(doc());
+    act(() => handFocusBack(node('a')));
+    expect(document.activeElement).toBe(node('a'));
+    expect(opened).toEqual([]);
+    act(() => node('a').blur());
+    act(() => node('a').focus());
+    expect(opened).toEqual(['a']);
   });
 
   it('keyboard focus with no previous element still opens', () => {

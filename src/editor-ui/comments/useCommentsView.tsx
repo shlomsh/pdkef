@@ -4,7 +4,7 @@ import type { SignMessages } from '#editor/registry/messages.ts';
 import { formatMessage } from '#lib/text/formatMessage.ts';
 import { commentCount, hasCommentCards } from '#editor/highlight/commentCards.ts';
 import type { CommentPatch } from '#editor/highlight/commentCommit.ts';
-import { markAnchor } from './anchorNode.ts';
+import { handFocusBack, markAnchor } from './anchorNode.ts';
 import { commentTarget } from './commentLabel.ts';
 import { CommentRail } from './CommentRail.tsx';
 import { CommentSheet } from './CommentSheet.tsx';
@@ -48,7 +48,7 @@ export function useCommentsView({ elements, activeElementId, messages, onSelect,
   // Focus goes back to the mark a note belongs to, else to the workspace itself; never the body.
   const focusAnchor = (markId: string | null) => {
     const node = markId ? container?.querySelector<HTMLElement>(`[data-editor-element-id="${CSS.escape(markId)}"]`) : null;
-    node?.focus();
+    if (node) handFocusBack(node);
     if (node && document.activeElement === node) return;
     if (!container) return;
     if (!container.hasAttribute('tabindex')) container.setAttribute('tabindex', '-1');
