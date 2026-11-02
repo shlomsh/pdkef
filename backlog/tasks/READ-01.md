@@ -77,7 +77,7 @@ The reasons and the rejected alternatives are in "Decisions and why" at the end.
    the panel to it.
 47. There is one panel, and it belongs to a picked highlight: on desktop it floats above the mark (R2), on
     touch it sits under the top toolbar (R7). It is one row where it fits: the colours (R4); a plain
-    Highlight | Underline | Pencil switch with no carets (READ-14: Pencil shows the opacity and no Clean/Sketch choice); a separate setting button a gap away that shows the active
+    Highlight | Underline switch with no carets (READ-14: Pencil is a look of a highlight, picked in the opacity popover's Clean | Sketch | Pencil toggle); a separate setting button a gap away that shows the active
     style's value (the opacity as a dot and a percentage, or the underline's thickness as a line) and opens
     its control; then Comment and Delete. On the narrowest phones Comment and Delete wrap to a second line
     instead of shrinking.
@@ -248,8 +248,9 @@ Shlomi's calls, with the reason, newest group first.
   fill. The marker shades are document colors in the model (`lib/marker/markerShades.ts`); custom inks derive
   theirs from the same rule. The switch keeps the tint. Sign's round swatches are unchanged.
 - R49 at 402 px: on touch the row drops its 1 px gaps and the divider before Comment, colors are 30 px wide, More 28,
-  the switch halves 40, and the percent keeps room for "100%" so the row never changes width. READ-14: the switch grew
-  a third segment, so its segments are 28 px (the colors' own floor, 44 tall) and the row is one line from 393 px up.
+  the switch halves 40, and the percent keeps room for "100%" so the row never changes width. READ-14 briefly gave the switch
+  a third segment (Pencil, 28 px segments); Pencil moved into the opacity popover the same day, the halves are 40 again, and
+  the row is still one line from 393 px up (and measured one line at 375 px on 2026-11-02).
 - Touch arms on a tap and disarms on a tap, with no Stop button: it is how Sign's tool buttons already work.
 - Touch has no hover, so a tap picks a highlight and its panel opens under the toolbar; nothing floats on the
   page, which keeps the lines being read free.

@@ -3,7 +3,8 @@ import { openTool } from '../../../../e2e/support/tool.js';
 import { makePdfBuffer } from '../../../../e2e/support/pdf.js';
 
 /* READ-14: a Pencil mark is hatching, not a band. The hatch is one svg path over the mark's box, kept inside it up to the
-   pencil's wobble. jsdom has no layout, so the drawn box is read here; the touch panel's three style targets are in mark-toolbar.spec.js. */
+   pencil's wobble. jsdom has no layout, so the drawn box is read here. Pencil is the third segment of the look toggle in the opacity popover
+   (Clean | Sketch | Pencil), not a kind beside Underline; the phone widths are in mark-toolbar.spec.js. */
 
 test.use({ serviceWorkers: 'block' });
 
@@ -32,9 +33,16 @@ async function layMark(page) {
 
 test('Pencil turns the mark into hatching inside its box, with no band under it', async ({ page }) => {
   const mark = await layMark(page);
-  const pencil = page.locator('[data-style-toggle] [role="radio"]:visible').nth(2);
+  await expect(page.locator('[data-style-toggle] [role="radio"]:visible')).toHaveCount(2);
+  await page.getByRole('button', { name: 'Opacity' }).click();
+  const look = page.locator('[role="radiogroup"][aria-label="Stroke"]:visible');
+  await expect(look.getByRole('radio')).toHaveCount(3);
+  expect(await look.evaluate((group) => group.scrollWidth - group.clientWidth), 'the toggle does not overflow').toBeLessThanOrEqual(0);
+  const pencil = look.getByRole('radio').nth(2);
   await expect(pencil).toHaveAccessibleName('Pencil');
   await pencil.click();
+  await expect(pencil).toHaveAttribute('aria-checked', 'true');
+  await page.keyboard.press('Escape');
   const hatch = mark.locator('svg[data-highlight-hatch] path');
   await expect(hatch).toHaveCount(1);
   await expect(mark.locator('[data-highlight-band]')).toHaveCount(0);

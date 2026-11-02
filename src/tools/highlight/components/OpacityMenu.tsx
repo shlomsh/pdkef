@@ -10,10 +10,10 @@ import { COUNTER_SCALE, useToolbarScaled } from './toolbarScale.ts';
 import styles from './OpacityMenu.module.css';
 
 /** The button that opens the opacity slider: a quiet caret, or the caller's own face (`children`, styled by `triggerClass`). */
-export default function OpacityMenu({ value, onChange, triggerClass, children, stroke, color = 'currentColor', onStroke }: {
+export default function OpacityMenu({ value, onChange, triggerClass, children, look, onLook }: {
   value: number; onChange(opacity: number): void; triggerClass?: string; children?: ComponentChildren;
-  /** With `onStroke`: the Clean | Sketch scraps above the slider. */
-  stroke?: Marker['stroke']; color?: string; onStroke?(change: Partial<Marker>): void;
+  /** With `onLook`: the Clean | Sketch | Pencil toggle above the slider. */
+  look?: Marker; onLook?(change: Partial<Marker>): void;
 }) {
   const [open, setOpen] = useState(false);
   const scaled = useToolbarScaled();
@@ -31,7 +31,7 @@ export default function OpacityMenu({ value, onChange, triggerClass, children, s
       }
       content={
         <div class={`${controls.popover} ${styles.menu}`} style={scaled ? COUNTER_SCALE : undefined} data-counter-scaled={scaled || undefined}>
-          {onStroke && <StrokeChoice stroke={stroke} underline={false} color={color} onChange={onStroke} />}
+          {look && onLook && <StrokeChoice look={look} onChange={onLook} />}
           <OpacitySlider value={value} onChange={onChange} />
         </div>
       }
