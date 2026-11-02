@@ -1,9 +1,9 @@
-import { Highlighter } from 'lucide-preact';
+import { HighlighterMark } from './HighlighterMark.js';
 
 export const highlightPdfEntry = {
   slug: 'highlight-pdf',
   href: '/highlight-pdf/',
-  icon: Highlighter,
+  icon: HighlighterMark,
   gridDescription:
     'Mark up a paper the way you would with a marker: highlight lines and add a note beside them.',
   sitemapPriority: '0.9',
