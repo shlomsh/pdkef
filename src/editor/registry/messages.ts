@@ -75,8 +75,6 @@ export interface SignMessages {
   commentCancel: string;
   /** A comment card's group name, `{number}` the page; the anchored element's text, when it has one, follows in quotes. */
   commentOnPage: string;
-  /** The hover and screen-reader hint on a saved comment card. */
-  commentEditHint: string;
   /** A card's More label and its Delete button. */
   commentDelete: string;
   commentEdit: string;
