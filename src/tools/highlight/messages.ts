@@ -30,6 +30,8 @@ export interface HighlightMessages {
   markColors: string;
   markCustom: string;
   markColorInput: string;
+  /** The button that opens the colors beyond the top three. */
+  moreColors: string;
   markThickness: string;
   /** "{n} pt" */
   thicknessItem: string;
@@ -80,6 +82,7 @@ export const englishHighlightMessages: HighlightMessages = {
   markColors: 'Color',
   markCustom: 'Custom color and opacity',
   markColorInput: 'Custom color',
+  moreColors: 'More colors',
   markThickness: 'Underline thickness',
   thicknessItem: '{n} pt',
   markOpacity: 'Opacity',

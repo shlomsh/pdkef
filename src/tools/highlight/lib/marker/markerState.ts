@@ -3,6 +3,15 @@ import { UNDERLINE_WIDTH } from '#editor/model/underlineInk.ts';
 
 export { HIGHLIGHT_COLORS };
 
+/** The three most popular highlighters, in the order the panel shows them; the rest sit behind "more". */
+export const TOP_COLORS = (['yellow', 'pink', 'green'] as const).map((id) => HIGHLIGHT_COLORS.find((c) => c.id === id)!);
+/** The colors behind "more", in palette order. */
+export const MORE_COLORS = HIGHLIGHT_COLORS.filter((c) => !TOP_COLORS.includes(c));
+
+const sameColor = (a: string, b: string) => a.toLowerCase() === b.toLowerCase();
+
+export const isTopColor = (hex: string) => TOP_COLORS.some((c) => sameColor(c.hex, hex));
+
 export interface Marker { color: string; style: 'highlight' | 'underline'; opacity: number; /** READ-04: the underline's width in points; absent is UNDERLINE_WIDTH.default. */ strokeWidth?: number }
 
 export const OPACITY_MIN = 0.3;
