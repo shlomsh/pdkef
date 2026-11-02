@@ -12,6 +12,8 @@ import type { SignLifecycleAction } from '../state/signState.ts';
 
 interface SignExportOptions {
   file: File | null;
+  /** The name every export saves as; a file prepared under another name is not reused. */
+  outputName: string;
   fileBytesRef: { current: ArrayBuffer | null };
   elements: EditorElement[];
   /** SIGN-43: extra clockwise quarter turns per page index; omitted means none. */
@@ -32,10 +34,12 @@ interface SignExportOptions {
  * file on to another tool. The signing run itself is lib/runSignExport.ts.
  */
 export function useSignExport({
-  file, fileBytesRef, elements, pageTurns, exportRun, activeExportSpeculativeRef, documentRevisionRef, preparedExportRef,
+  file, outputName, fileBytesRef, elements, pageTurns, exportRun, activeExportSpeculativeRef, documentRevisionRef, preparedExportRef,
   signedExport, share, lifecycleDispatch, setAnnouncement, messages: t,
 }: SignExportOptions) {
   const { prepare, download, downloadPrepared, sharePrepared } = share;
+  // A file made under an earlier name is stale once the person renames the output.
+  const named = (made: SignedExport | null) => (made && made.name === outputName ? made : null);
   const [handoffBusy, setHandoffBusy] = useNavigatingAway();
 
   const runExport = async (
@@ -44,7 +48,7 @@ export function useSignExport({
   ) => {
     if (!file) return;
     await runSignExport(
-      { file, fileBytes: fileBytesRef.current, elements, pageTurns, exportRun, activeExportSpeculativeRef, lifecycleDispatch, messages: t },
+      { file, outputName, fileBytes: fileBytesRef.current, elements, pageTurns, exportRun, activeExportSpeculativeRef, lifecycleDispatch, messages: t },
       onSigned,
       options,
     );
@@ -69,7 +73,7 @@ export function useSignExport({
 
   const handleDownloadPdf = () => {
     lifecycleDispatch({ type: 'EXPORT_ERROR_CLEARED' });
-    if (downloadPrepared()) {
+    if (named(preparedExportRef.current) && downloadPrepared()) {
       recordAction('download');
       lifecycleDispatch({
         type: 'EXPORT_DELIVERED',
@@ -130,7 +134,7 @@ export function useSignExport({
   const requestHandoff = async (tool: string) => {
     if (handoffBusy) return;
     setHandoffBusy(true);
-    const ready = exportToHandOff(signedExport, preparedExportRef.current, documentRevisionRef.current);
+    const ready = exportToHandOff(named(signedExport), named(preparedExportRef.current), documentRevisionRef.current);
     lifecycleDispatch({ type: 'HANDOFF_REQUESTED', ready });
     if (ready) {
       await carryOn(tool, ready);

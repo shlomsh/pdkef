@@ -5,7 +5,7 @@ import pdfToolStyles from './PdfTool.module.css';
 import dialogStyles from './Dialog.module.css';
 import ConfirmDialog from './ConfirmDialog.tsx';
 import DropzoneEmptyState from './DropzoneEmptyState.tsx';
-import ToolShell, { FileActions, ToolShellContext } from './ToolShell.tsx';
+import ToolShell, { FileActions, ToolShellContext, type IdentityRename } from './ToolShell.tsx';
 import { unsupportedBrowser, type UnsupportedBrowser } from '#lib/app/browserSupport.ts';
 import { withIslandBoundary } from '#lib/telemetry/IslandErrorBoundary.tsx';
 import { reportError } from '#lib/telemetry/errorReport.ts';
@@ -59,6 +59,10 @@ interface BasePdfToolProps {
      * thumbnails), gets today's icon unchanged. */
     file?: File | null;
     label?: string;
+    /** The output name as an editable identity row (OutputName), in place of `label`: a fixed `prefix`,
+     * the editable `name`, and `onRename` ('' goes back to the automatic name). Pair it with
+     * useOutputNameOverride so every export saves under the same name. */
+    rename?: IdentityRename;
     meta?: string;
     /** Optional tool content after the file meta, and a note under it (the shell strip's slots). */
     metaExtra?: ComponentChildren;
@@ -138,7 +142,7 @@ function BasePdfTool({
   shellMessages,
 }: BasePdfToolProps) {
   const { multiple = true, accept = 'application/pdf', dropAnywhere = true, needsPdfjs = true } = intake ?? {};
-  const { file = null, label: fileLabel, meta: fileMeta, metaExtra: fileMetaExtra, note: fileNote, hidden: hideIdentity = false } = identity ?? {};
+  const { file = null, label: fileLabel, rename: fileRename, meta: fileMeta, metaExtra: fileMetaExtra, note: fileNote, hidden: hideIdentity = false } = identity ?? {};
   const { message: emptyStateMessage, art: emptyArt, heading: emptyHeading, body: emptyBody, action: emptyAction } = empty ?? {};
   const { iosFilesHint: showIosFilesHint = false, cloudDriveHint: showCloudDriveHint = false } = empty ?? {};
   /* True while a tool with draft persistence is still checking IndexedDB for a
@@ -387,7 +391,7 @@ function BasePdfTool({
   // and any other `multiple` tool has its own list of thumbnails, so `file`
   // is dropped here regardless of what a tool passes in, rather than trusting
   // every call site to gate it itself.
-  const shell = { fileLabel, fileMeta, metaExtra: fileMetaExtra, note: fileNote, file: multiple ? null : file, draftSaveState, multiple, requestReplace, requestClear, messages: sm };
+  const shell = { fileLabel, fileRename, fileMeta, metaExtra: fileMetaExtra, note: fileNote, file: multiple ? null : file, draftSaveState, multiple, requestReplace, requestClear, messages: sm };
 
   return (
     <ToolShellContext.Provider value={shell}>

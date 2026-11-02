@@ -6,7 +6,7 @@ import { getAppStyle, getEditorPreference } from '#editor/workspace/preferenceSt
 import { resolveWhiteoutColor, resolveRedactBlurStrength } from './lib/redactStyle.ts';
 import { resolveBrush } from './components/BrushControls.tsx';
 import { initialRedactState, redactReducer } from './state/redactState.ts';
-import { redactedFileName } from './lib/redactFileName.ts';
+import { useOutputNameOverride } from '#shell/useOutputNameOverride.ts';
 import { useHoldUpdate } from '#lib/hooks/useHoldUpdate.ts';
 import ErrorMessage from '#shell/ErrorMessage.tsx';
 import { FileActions } from '#shell/ToolShell.tsx';
@@ -36,10 +36,11 @@ export default withIslandBoundary(function PdfRedactTool() {
     activeBlurStrength: resolveRedactBlurStrength(undefined, getAppStyle(), getEditorPreference('lastBlurStrength')),
     brush: resolveBrush(undefined, getAppStyle()),
   }));
-  const { elements } = state.edits;
   const { announcement, isPseudoFullscreen } = state.view;
   const { file, numPages, pdfDocument, sizedPageCount, status } = state.document;
   const setAnnouncement = (message: string) => dispatch({ type: 'ANNOUNCED', message });
+  // Download saves as `redacted_<name>` until the person types their own in the identity row.
+  const { parts, rename, setRenaming } = useOutputNameOverride(file, { prefix: 'redacted_', dedupePrefix: true });
   useHoldUpdate(status === 'redacting'); // finishPhase 'exporting' is this same state
 
   // activeStyle is null | 'delete' | 'blackout' | 'blur' | 'whiteout'. Null -
@@ -54,7 +55,7 @@ export default withIslandBoundary(function PdfRedactTool() {
   const { workspaceRef, needsUnlock, setNeedsUnlock, isFullscreenActive, currentPage } = pages;
 
   const exp = useRedactExport({
-    state, dispatch, setAnnouncement, setNeedsUnlock, getFileBytes: () => fileBytesRef.current,
+    state, dispatch, setAnnouncement, setNeedsUnlock, getFileBytes: () => fileBytesRef.current, outputFileName: parts.fileName,
   });
 
   const { handleFilesAdded, fileBytesRef, draftSaveState, isRestoring } = useRedactFileSession({
@@ -75,7 +76,7 @@ export default withIslandBoundary(function PdfRedactTool() {
   const details = useRedactDetails({
     state, dispatch, setAnnouncement, fileBytes: fileBytesRef.current, findKit, handleSavePdf: exp.handleSavePdf,
   });
-  const finish = useRedactFinish({ state, handleDownloadPdf: exp.handleDownloadPdf });
+  const finish = useRedactFinish({ state, handleDownloadPdf: exp.handleDownloadPdf, outputFileName: parts.fileName });
   // SEO-46's ask, mounted once: in the strip while it is open, else last in the
   // bottom row. Two mounted copies would race for the one device-wide ask.
   const rating = <RatingPrompt tool="redact" downloaded={finish.downloaded} />;
@@ -88,12 +89,7 @@ export default withIslandBoundary(function PdfRedactTool() {
       intake={{ multiple: false, accept: '.pdf,application/pdf' }}
       identity={{
         file,
-        // Finding #5/#6: a real page-1 thumbnail (FilePreview.tsx, via `file`)
-        // instead of the generic glyph, and the identity row names what
-        // Download will actually produce once there is something to redact -
-        // rename-in-place is not required, so this stays derived rather than
-        // becoming its own editable field the way Merge's output name is.
-        label: elements.length > 0 && file ? redactedFileName(file.name) : file?.name,
+        rename: { prefix: parts.prefix, name: parts.base, onRename: rename, onEditingChange: setRenaming },
         meta: describeFile(file, numPages, isFullscreenActive ? currentPage : null),
       }}
       empty={{ art: <RedactVerb />, message: 'Select or drop a PDF to redact' }}

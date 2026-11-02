@@ -15,7 +15,6 @@ import { reportToolLifecycleEvent } from '#lib/telemetry/productAnalytics.ts';
 import type { LatestRun } from '#lib/hooks/useLatestRun.ts';
 import { describeUnrepresentableText } from '../components/textMessages.ts';
 import type { SignLifecycleAction } from '../state/signState.ts';
-import { signedFileName } from './signedFileName.ts';
 
 // Recoverable export failures keep the editor open. Name unsupported text
 // precisely; other failures explain that the user can retry without losing
@@ -41,8 +40,9 @@ export function describeSignFailure(err: unknown, t: SignMessages): string {
 
 /** @testSeam */
 export interface RunSignExportDeps {
-  /** The picked file; its name makes the signed copy's name. */
   file: File;
+  /** The name the signed copy is saved under (the typed name, else `signed_<source>`). */
+  outputName: string;
   /** DEBT-51: the bytes read at load time, so a file moved on disk after picking cannot fail the export. */
   fileBytes: ArrayBuffer | null;
   elements: EditorElement[];
@@ -72,7 +72,7 @@ export async function runSignExport(
   onSigned: (signedBlob: Blob, filename: string) => void,
   { speculative = false }: { speculative?: boolean } = {},
 ): Promise<void> {
-  const { file, elements, pageTurns = {}, exportRun, activeExportSpeculativeRef, lifecycleDispatch, messages: t } = deps;
+  const { file, outputName, elements, pageTurns = {}, exportRun, activeExportSpeculativeRef, lifecycleDispatch, messages: t } = deps;
   const sourceBytes = deps.fileBytes ?? file;
   const ticket = exportRun.begin();
   activeExportSpeculativeRef.current = speculative;
@@ -96,7 +96,7 @@ export async function runSignExport(
       reportMaintenanceEvent(signExportSucceeded(performance.now() - exportStartedAt), telemetryTransport);
       reportToolLifecycleEvent('tool_result_ready', 'sign');
     }
-    onSigned(signedBlob, signedFileName(file.name));
+    onSigned(signedBlob, outputName);
   } catch (err) {
     if (!ticket.isCurrent()) return;
     ticket.settle();

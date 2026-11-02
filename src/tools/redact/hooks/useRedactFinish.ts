@@ -1,6 +1,5 @@
 import { useDownloaded } from '#shell/RatingPrompt.tsx';
 import { finishPhaseOf, type RedactState } from '../state/redactState.ts';
-import { redactedFileName } from '../lib/redactFileName.ts';
 import type { FinishFacts, FinishPhase } from '../lib/finishState.ts';
 import useFinishStrip from './useFinishStrip.ts';
 
@@ -9,8 +8,9 @@ import useFinishStrip from './useFinishStrip.ts';
  * already exists. A page with any box is saved as a picture; a page with only
  * deletions keeps its text (applyPageEdits.js).
  */
-export default function useRedactFinish({ state, handleDownloadPdf }: {
+export default function useRedactFinish({ state, handleDownloadPdf, outputFileName }: {
   state: RedactState;
+  outputFileName: string;
   handleDownloadPdf: () => void;
 }) {
   const { elements } = state.edits;
@@ -20,7 +20,7 @@ export default function useRedactFinish({ state, handleDownloadPdf }: {
   const finishFacts: FinishFacts = {
     phase: finishPhase,
     progress,
-    fileName: exportedForHandoff?.name ?? (file ? redactedFileName(file.name) : ''),
+    fileName: exportedForHandoff?.name ?? (file ? outputFileName : ''),
     pageCount: numPages,
     picturePages: new Set(elements.filter((el) => el.type !== 'delete').map((el) => el.pageIndex)).size,
     boxCount: elements.filter((el) => el.type !== 'delete').length,

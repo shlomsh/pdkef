@@ -10,6 +10,7 @@ import { readBackAnnotations } from '#editor/comments/readBack.ts';
 import type { EditorElement } from '#editor/model/editorModel.ts';
 import { isEditorElement } from '#editor/registry/draftValidation.ts';
 import { recordAction } from '#lib/telemetry/actionTrail.ts';
+import { useOutputNameOverride } from '#shell/useOutputNameOverride.ts';
 import { usePdfShare } from '#lib/output/usePdfShare.js';
 import { useWorkspaceZoom } from './hooks/useWorkspaceZoom.ts';
 import { useReadingLamp } from './hooks/useReadingLamp.ts';
@@ -82,9 +83,10 @@ export default withIslandBoundary(function PdfHighlightTool() {
     },
   });
 
+  const { parts, rename, setRenaming } = useOutputNameOverride(file, { prefix: 'highlighted_' });
   const done = useDownloadDone(file, marks.state.documentRevision);
   const download = downloadHandler({
-    fileName: file?.name, bytes: () => session.fileBytesRef.current, elements: marks.state.elements, pageTurns: marks.pageTurns,
+    outputName: file ? parts.fileName : undefined, bytes: () => session.fileBytesRef.current, elements: marks.state.elements, pageTurns: marks.pageTurns,
     save: (blob, name) => share.download(blob, name),
   });
 
@@ -106,7 +108,7 @@ export default withIslandBoundary(function PdfHighlightTool() {
       hasFiles={!!file}
       onFilesAdded={session.handleFilesAdded}
       intake={{ multiple: false, accept: '.pdf,application/pdf' }}
-      identity={{ file, label: file?.name, meta: describeFile(file, numPages, null) }}
+      identity={{ file, label: file ? parts.fileName : undefined, rename: { prefix: parts.prefix, name: parts.base, onRename: rename, onEditingChange: setRenaming }, meta: describeFile(file, numPages, null) }}
       empty={{ art: <HighlightVerb />, message: t.emptyMessage }}
       draft={{ saveState: session.draftSaveState, checking: session.isRestoring }}
       analytics={{ tool: 'highlight-pdf' }}
@@ -120,7 +122,7 @@ export default withIslandBoundary(function PdfHighlightTool() {
 
       {!needsUnlock && status === 'editing' && pdfDocument && (
         <HighlightWorkspace
-          pdfDocument={pdfDocument} numPages={numPages} fileName={file?.name ?? ''} zoom={zoom}
+          pdfDocument={pdfDocument} numPages={numPages} fileName={file ? parts.fileName : ''} zoom={zoom}
           marks={marks} undo={undo} redo={redo} comments={comments} dispatch={room.dispatch} setAnnouncement={setAnnouncement} onDownload={handleDownload} doneName={done.name} onCloseDone={done.close}
           workspaceRef={workspaceRef} columnRef={columnRef} fullscreen={fullscreen} pseudoFullscreen={pseudoFullscreen}
           onToggleFullscreen={toggleLamp}

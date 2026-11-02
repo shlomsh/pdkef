@@ -28,6 +28,7 @@ import { useSignKeyboard } from './hooks/useSignKeyboard.ts';
 import { useElementClipboard } from './hooks/useElementClipboard.ts';
 import { useSignaturePlacement } from './hooks/useSignaturePlacement.ts';
 import { useSignExport } from './hooks/useSignExport.ts';
+import { useOutputNameOverride } from '#shell/useOutputNameOverride.ts';
 import { useSpeculativeExport } from './hooks/useSpeculativeExport.ts';
 import { useSavedSignatures } from './hooks/useSavedSignatures.ts';
 import { isEditorElement } from '#editor/registry/draftValidation.ts';
@@ -223,8 +224,11 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
 
   useElementClipboard({ dispatch, elements, activeElementId, logAction, setAnnouncement, messages: t });
 
+  const { parts: outputParts, rename: renameOutput, setRenaming: setRenamingOutput } = useOutputNameOverride(file, { prefix: 'signed_' });
+  const outputName = outputParts.fileName;
+
   const { runExport, handleSavePdf, handleDownloadPdf, handleSharePdf, requestHandoff, handoffBusy } = useSignExport({
-    file, fileBytesRef, elements, pageTurns, exportRun, activeExportSpeculativeRef, documentRevisionRef, preparedExportRef,
+    file, outputName, fileBytesRef, elements, pageTurns, exportRun, activeExportSpeculativeRef, documentRevisionRef, preparedExportRef,
     signedExport, share, lifecycleDispatch, setAnnouncement, messages: t,
   });
 
@@ -236,7 +240,7 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
 
   // MOBI-07: re-export in the background once idle (hooks/useSpeculativeExport.ts).
   useSpeculativeExport({
-    file, status, elementCount: elements.length, hasTurnedPage: turned.hasTurnedPage, documentRevision, blocked: exportReadiness.blocked,
+    file, outputName, status, elementCount: elements.length, hasTurnedPage: turned.hasTurnedPage, documentRevision, blocked: exportReadiness.blocked,
     runExport, prepare, preparedExportRef, documentRevisionRef,
   });
 
@@ -250,7 +254,7 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
       identity={{
         // Editor-mode shell draws no preview; the shell uses it to count a replacement (DEBT-58).
         file,
-        label: file?.name,
+        rename: { prefix: outputParts.prefix, name: outputParts.base, onRename: renameOutput, onEditingChange: setRenamingOutput },
         meta: describeFile(file, numPages, isFullscreenActive ? currentPage : null, shellMessages),
       }}
       empty={{

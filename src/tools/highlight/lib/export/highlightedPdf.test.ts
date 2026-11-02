@@ -2,13 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { PDFDict, PDFDocument, PDFName, degrees } from '@cantoo/pdf-lib';
 import type { EditorElement, HighlightElement } from '#editor/model/editorModel.ts';
 import { readBackAnnotations } from '#editor/comments/readBack.ts';
-import { exportHighlighted, highlightedFileName } from './highlightedPdf.ts';
-
-describe('highlightedFileName', () => {
-  it('prefixes the source name and keeps its extension', () => {
-    expect(highlightedFileName('Lecture 3.pdf')).toBe('highlighted_Lecture 3.pdf');
-  });
-});
+import { exportHighlighted } from './highlightedPdf.ts';
 
 const toBuffer = (bytes: Uint8Array) => bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer;
 
