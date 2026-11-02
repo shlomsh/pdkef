@@ -301,10 +301,16 @@ describe('CommentCardBody', () => {
     });
     it('Edit opens the textarea with the current text', () => {
       const onSelect = vi.fn();
-      mount({ card: card(), readActions: true, onSelect });
+      mount({ card: card(), active: true, readActions: true, onSelect });
       act(() => q<HTMLElement>('[data-comment-read-edit]').click());
       expect(q<HTMLTextAreaElement>('textarea').value).toBe('Check this');
       expect(onSelect).not.toHaveBeenCalled();
+    });
+    it('Edit on a neighbouring note selects it as its field takes focus', () => {
+      const onSelect = vi.fn();
+      mount({ card: card(), readActions: true, onSelect });
+      act(() => q<HTMLElement>('[data-comment-read-edit]').click());
+      expect(onSelect).toHaveBeenCalledTimes(1);
     });
     it('without readActions neither button exists and the pencil shows', () => {
       mount({ card: card() });
