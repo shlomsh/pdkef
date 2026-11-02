@@ -1,10 +1,15 @@
-import { clampZoom, fitScale, resolveZoom, type PageBox, type Viewport, type ZoomSetting } from './fit.ts';
+import { ZOOM_MIN, clampZoom, fitScale, resolveZoom, type PageBox, type Viewport, type ZoomSetting } from './fit.ts';
 import { ACTUAL_SIZE } from './percent.ts';
 import type { KeyAction } from '../marker/keys.ts';
 
 /** The page a fit sizes by: the widest, since the column is as wide as the widest page. */
 export function widestPage(pages: readonly PageBox[]): PageBox | undefined {
   return pages.reduce<PageBox | undefined>((w, p) => (!w || p.width > w.width ? p : w), undefined);
+}
+
+/** The lamp's lowest zoom: the whole-page fit (the widest page with its notes column), whatever ZOOM_MIN says. */
+export function lampFloor(page: PageBox | undefined, view: Viewport, noted: boolean): number {
+  return page && view.width > 0 ? fitScale('page', page, view, { noted, notesIn: 'px' }) : ZOOM_MIN;
 }
 
 /**
@@ -14,8 +19,9 @@ export function widestPage(pages: readonly PageBox[]): PageBox | undefined {
  */
 export function displayZoom(setting: ZoomSetting, inLamp: boolean, page: PageBox | undefined, view: Viewport, noted: boolean): number {
   if (!page || view.width === 0) return typeof setting === 'number' && inLamp ? clampZoom(setting) : ACTUAL_SIZE;
+  // Only the lamp floors a numeric zoom at the page fit; the normal view is always Fit width.
   // The normal view's workspace already sits inside the card gutters; only the lamp, edge to edge, adds its own.
-  return inLamp ? resolveZoom(setting, page, view, { noted, notesIn: 'px' }) : fitScale('width', page, view, { noted, notesIn: 'px', pad: 0 });
+  return inLamp ? resolveZoom(setting, page, view, { noted, notesIn: 'px' }, lampFloor(page, view, noted)) : fitScale('width', page, view, { noted, notesIn: 'px', pad: 0 });
 }
 
 /**

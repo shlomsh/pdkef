@@ -7,10 +7,10 @@ export function commitChanges(prevSetting: ZoomSetting, prevZoom: number, nextSe
 }
 
 /** The zoom a gesture or a menu choice settles on, and the scroll that keeps the content under `anchor` still (R23). */
-export function zoomCommit({ prevZoom, nextZoom, anchor, scroll, origin }: {
-  prevZoom: number; nextZoom: number; anchor: Point; scroll: Point; origin: Point;
+export function zoomCommit({ prevZoom, nextZoom, anchor, scroll, origin, floor }: {
+  prevZoom: number; nextZoom: number; anchor: Point; scroll: Point; origin: Point; floor?: number;
 }): { zoom: number; scroll: Point } {
-  const zoom = clampZoom(nextZoom);
+  const zoom = clampZoom(nextZoom, floor);
   if (zoom === prevZoom) return { zoom, scroll };
   return { zoom, scroll: anchoredScroll({ zoom: prevZoom, scroll, origin }, zoom, anchor) };
 }

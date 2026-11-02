@@ -12,12 +12,14 @@ const WHEEL_PINCH_RATE = 0.01;
  * Pinch. Everything before the commit touches the DOM through refs only: the column is scaled by a CSS
  * transform while the fingers are down, and `commit` runs once when they rest (the gesture golden rule).
  */
-export function usePinchZoom({ workspaceRef, columnRef, enabled, inLamp, zoomRef, commit }: {
+export function usePinchZoom({ workspaceRef, columnRef, enabled, inLamp, zoomRef, floorRef, commit }: {
   workspaceRef: { current: HTMLElement | null };
   columnRef: { current: HTMLElement | null };
   enabled: boolean;
   inLamp: boolean;
   zoomRef: { current: number };
+  /** The lowest zoom a pinch may reach: the lamp's whole-page fit. */
+  floorRef: { current: number };
   commit(next: ZoomSetting, nextZoom: number, anchor?: Point): void;
 }) {
   useEffect(() => {
@@ -45,7 +47,7 @@ export function usePinchZoom({ workspaceRef, columnRef, enabled, inLamp, zoomRef
     };
     const finish = () => {
       clearTimeout(timer);
-      const next = clampZoom(zoomRef.current * factor);
+      const next = clampZoom(zoomRef.current * factor, floorRef.current);
       const unchanged = factor === 1;
       factor = 1;
       // Back to the column's own size before anything else, even when a pinch at the bound commits nothing:
@@ -61,7 +63,7 @@ export function usePinchZoom({ workspaceRef, columnRef, enabled, inLamp, zoomRef
       if (!isZoomInput({ type: 'wheel', ctrlKey: e.ctrlKey })) return;
       e.preventDefault();
       if (factor === 1) anchor = { x: e.clientX, y: e.clientY };
-      const target = clampZoom(zoomRef.current * factor * Math.exp(-e.deltaY * WHEEL_PINCH_RATE));
+      const target = clampZoom(zoomRef.current * factor * Math.exp(-e.deltaY * WHEEL_PINCH_RATE), floorRef.current);
       factor = target / zoomRef.current;
       preview();
       clearTimeout(timer);
@@ -85,7 +87,7 @@ export function usePinchZoom({ workspaceRef, columnRef, enabled, inLamp, zoomRef
       if (!pointers.has(e.pointerId)) return;
       pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
       if (pointers.size !== 2 || startDistance === 0) return;
-      const target = clampZoom(zoomRef.current * (distance() / startDistance));
+      const target = clampZoom(zoomRef.current * (distance() / startDistance), floorRef.current);
       factor = target / zoomRef.current;
       preview();
     };
@@ -109,5 +111,5 @@ export function usePinchZoom({ workspaceRef, columnRef, enabled, inLamp, zoomRef
       col.style.transform = '';
       col.style.transformOrigin = '';
     };
-  }, [workspaceRef, columnRef, enabled, inLamp, zoomRef, commit]);
+  }, [workspaceRef, columnRef, enabled, inLamp, zoomRef, floorRef, commit]);
 }

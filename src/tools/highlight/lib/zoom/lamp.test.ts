@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { chromeScale, displayZoom, isZoomInput, widestPage } from './lamp.ts';
-import { NOTES_W } from './fit.ts';
+import { chromeScale, displayZoom, isZoomInput, lampFloor, widestPage } from './lamp.ts';
+import { NOTES_W, ZOOM_MIN, fitScale } from './fit.ts';
 import { turnedPageBox } from './turnedBox.ts';
 
 const page = { width: 600, height: 800, textLeft: 100, textRight: 500 };
@@ -99,5 +99,25 @@ describe('displayZoom with a turned page', () => {
   });
   it('keeps an upright page at the same fit as before', () => {
     expect(displayZoom('width', false, { width: 595, height: 842, textLeft: 0, textRight: 595 }, phone, false)).toBeCloseTo(402 / 595);
+  });
+});
+
+describe('lampFloor', () => {
+  const pg = { width: 612, height: 792, textLeft: 72, textRight: 540 };
+  const v = { width: 400, height: 800 };
+  it('is the whole-page fit, with or without the notes column', () => {
+    expect(lampFloor(pg, v, false)).toBeCloseTo(fitScale('page', pg, v, { noted: false, notesIn: 'px' }));
+    expect(lampFloor(pg, v, true)).toBeLessThan(lampFloor(pg, v, false));
+  });
+  it('can be below the old 0.5 minimum', () => {
+    expect(lampFloor(pg, v, false)).toBeLessThan(0.65);
+    expect(lampFloor(pg, { width: 200, height: 800 }, false)).toBeLessThan(0.5);
+  });
+  it('is the old minimum until a page is measured', () => {
+    expect(lampFloor(undefined, v, false)).toBe(ZOOM_MIN);
+    expect(lampFloor(pg, { width: 0, height: 0 }, false)).toBe(ZOOM_MIN);
+  });
+  it('floors a saved numeric zoom in the lamp', () => {
+    expect(displayZoom(0.5, true, pg, { width: 800, height: 1000 }, false)).toBeCloseTo(lampFloor(pg, { width: 800, height: 1000 }, false));
   });
 });

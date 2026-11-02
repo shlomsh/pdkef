@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'preact/hooks';
 import type { PDFDocumentProxy } from 'pdfjs-dist';
-import { clampZoom, NOTES_W, resolveZoom, stepZoom, type ZoomSetting } from '../lib/zoom/fit.ts';
+import { clampZoom, NOTES_W, ZOOM_MIN, resolveZoom, stepZoom, type ZoomSetting } from '../lib/zoom/fit.ts';
 import { pageAnchorAt } from '../lib/zoom/pageAnchor.ts';
-import { chromeScale, displayZoom, widestPage } from '../lib/zoom/lamp.ts';
+import { chromeScale, displayZoom, lampFloor, widestPage } from '../lib/zoom/lamp.ts';
 import { commitChanges, zoomCommit } from '../lib/zoom/commit.ts';
 import { useBoardScroll } from './useBoardScroll.ts';
 import type { PageTurns } from '#editor/geometry/pageTurn.ts';
@@ -72,6 +72,9 @@ export function useWorkspaceZoom({ pdfDocument, workspaceRef, columnRef, fullscr
   const chromeRef = useRef(1);
   const zoomRef = useRef(zoom);
   zoomRef.current = zoom;
+  // The lamp zooms out no further than the whole page (with its notes column) fits.
+  const floorRef = useRef(ZOOM_MIN);
+  floorRef.current = fullscreen ? lampFloor(widestPage(pages), view, roomy) : ZOOM_MIN;
   const pagesRef = useRef(pages);
   pagesRef.current = pages;
   const viewRef = useRef(view);
@@ -110,7 +113,7 @@ export function useWorkspaceZoom({ pdfDocument, workspaceRef, columnRef, fullscr
     const f = frame();
     if (f) {
       pendingScroll.current = zoomCommit({
-        prevZoom: zoomRef.current, nextZoom, anchor: anchor ?? centre(), scroll: f.scroll, origin: f.origin,
+        prevZoom: zoomRef.current, nextZoom, anchor: anchor ?? centre(), scroll: f.scroll, origin: f.origin, floor: floorRef.current,
       }).scroll;
     }
     if (centreAfter) pendingCentre.current = true;
@@ -124,12 +127,12 @@ export function useWorkspaceZoom({ pdfDocument, workspaceRef, columnRef, fullscr
 
   const apply = useCallback((next: ZoomSetting, anchor?: Point) => {
     const target = typeof next === 'number'
-      ? clampZoom(next)
+      ? clampZoom(next, floorRef.current)
       : pagesRef.current.length ? resolveZoom(next, widestPage(pagesRef.current)!, viewRef.current, { noted: notedRef.current, notesIn: 'px' }) : zoomRef.current;
     commit(next, target, anchor, typeof next !== 'number');
   }, [commit]);
   const step = useCallback((dir: 1 | -1, anchor?: Point) => {
-    const target = stepZoom(zoomRef.current, dir);
+    const target = stepZoom(zoomRef.current, dir, floorRef.current);
     commit(target, target, anchor);
   }, [commit]);
   const actual = useCallback((anchor?: Point) => commit(ACTUAL_SIZE, ACTUAL_SIZE, anchor), [commit]);
@@ -156,7 +159,7 @@ export function useWorkspaceZoom({ pdfDocument, workspaceRef, columnRef, fullscr
 
   useZoomKeys({ enabled: ready, inLamp: fullscreen, step, actual });
   useBoardPan({ workspaceRef, fullscreen, enabled: ready && fullscreen });
-  usePinchZoom({ workspaceRef, columnRef, enabled: ready, inLamp: fullscreen, zoomRef, commit });
+  usePinchZoom({ workspaceRef, columnRef, enabled: ready, inLamp: fullscreen, zoomRef, floorRef, commit });
   useLampAnchor({ workspaceRef, fullscreen });
 
   /** A document just opened: Fit width, centred. */
