@@ -55,6 +55,12 @@ describe('createSwipeReader', () => {
     expect(reader.onText(px(30, 127))).toBe(false);
   });
 
+  it('tells a finger near a line from one far beside it or between paragraphs', () => {
+    const reader = createSwipeReader(canvasWith(fakeImage), 400)!;
+    expect(reader.onLine(px(30, 107))).toBe(true);
+    expect(reader.onLine(px(30, 127))).toBe(false);
+  });
+
   it('returns null without a 2d context and [] when pixels cannot be read', () => {
     const noCtx = { width: W, height: H, getContext: () => null } as unknown as HTMLCanvasElement;
     expect(createSwipeReader(noCtx, 400)).toBeNull();

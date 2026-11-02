@@ -31,6 +31,15 @@ export function rowIndexAt(rows: TextRow[], y: number): number {
   return best;
 }
 
+/** A point is on a line when it is on a row (half a row's height above or below counts) and no more than a row's height before or after it. */
+export function onLine(rows: TextRow[], x: number, y: number): boolean {
+  const i = rowIndexAt(rows, y);
+  if (i < 0) return false;
+  const r = rows[i];
+  const h = heightOf(r);
+  return x >= r.left - h && x <= r.right + h;
+}
+
 /** The candidate nearest x within reach, else x. */
 function snap(x: number, edges: number[], reach: number): number {
   let best = x;
