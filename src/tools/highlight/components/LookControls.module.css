@@ -54,11 +54,14 @@
 }
 .setting:hover,
 .setting[aria-expanded='true'] { background: var(--color-primary-tint); }
+/* The one box both faces share (the opacity paper and the underline scrap), so switching style never moves the row. */
+.face { box-sizing: border-box; display: inline-flex; align-items: center; justify-content: center; flex: none; width: calc(4ch + 8px); }
 /* The highlight face: the percent marked by its own highlight, on a white paper pill so the mint hover or open tint never tints the ink. */
 .paper {
   position: relative;
   display: grid;
   place-items: center;
+  height: auto;
   padding: 0 4px;
   border-radius: 4px;
   background: var(--color-surface);
@@ -66,7 +69,7 @@
   overflow: hidden;
 }
 .paper > svg { position: absolute; inset: 15% 4px; width: calc(100% - 8px); height: 70%; overflow: visible; }
-.faceLine { position: relative; flex: none; width: 14px; height: 14px; }
+.faceLine { position: relative; height: 14px; }
 .faceLine > svg { position: absolute; inset: 0; width: 100%; height: 100%; }
 .thicknessLine { position: relative; display: block; height: 14px; margin: 0 10%; }
 .thicknessLine > svg { position: absolute; inset: 0; width: 100%; height: 100%; }
@@ -76,5 +79,5 @@
 /* Coarse or narrow: the switch halves are 40 px wide and the setting button is tighter, so the row fits from a 402 px phone up. */
 @media (pointer: coarse), (max-width: 480px) {
   .segment { min-width: 2.5rem; padding: 0; }
-  .setting { padding: 0 4px; }
+  .setting { margin-inline-start: 0; padding: 0 4px; }
 }

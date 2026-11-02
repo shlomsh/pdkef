@@ -72,6 +72,17 @@ describe('StyleSetting', () => {
     expect(face.textContent).toContain('50%');
   });
 
+  it('the opacity face and the underline face are one box, so toggling the style does not move the row', () => {
+    mount();
+    const highlightFace = button('Opacity').querySelector('[data-setting-face]')!;
+    expect(highlightFace.className).not.toBe('');
+    act(() => render(null, container!)); container!.remove(); container = null;
+    mount({ ...DEFAULT_MARKER, style: 'underline' });
+    const lineFace = button('Underline thickness').querySelector('[data-setting-line]')!;
+    expect(lineFace.className.split(' ')).toContain(highlightFace.className.split(' ')[0]);
+    expect(highlightFace.className.split(' ')).toContain(lineFace.className.split(' ')[0]);
+  });
+
   it('the underline popover shows the stroke scraps above the thickness items', () => {
     mount({ ...DEFAULT_MARKER, style: 'underline' });
     act(() => button('Underline thickness').click());
