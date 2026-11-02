@@ -14,6 +14,7 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 - [READ-13](backlog/tasks/READ-13.md) P2 · Highlight PDF: the open mark wears a pencil outline, the other marks step back (in progress)
 - [READ-14](backlog/tasks/READ-14.md) P2 · Highlight PDF: a third mark style, Pencil, hatching in the mark's color (in progress)
 - [READ-15](backlog/tasks/READ-15.md) P2 · Highlight PDF: notes on a phone and in the lamp get a model of their own (in progress)
+- [READ-17](backlog/tasks/READ-17.md) P2 · Highlight PDF: a note card with one way to edit, and long notes kept short until opened
 
 ### Robustness and debt
 
@@ -75,6 +76,7 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 ## Needs Shlomi
 
 - [READ-16](backlog/tasks/READ-16.md) · Pick the stepper's place: the toolbar capsule, the top of the rail, or the page header
+- [READ-17](backlog/tasks/READ-17.md) · Pick the card's model: A (the open note is its own field) or B (read first, a menu for Edit and Delete)
 - [MOBI-01](backlog/tasks/MOBI-01.md) · Half an hour with an Android phone
 - [DEBT-53](backlog/tasks/DEBT-53.md) · A check on your iPhone
 - [SEO-40](backlog/tasks/SEO-40.md) · The Search Console exports
