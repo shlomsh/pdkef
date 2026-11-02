@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'preact/hooks';
+import { paintMarkDraft } from '../lib/marks/paintMarkDraft.ts';
 import { startHighlightSwipe } from '#editor-ui/highlight/highlightSwipeGesture.ts';
 import type { ElementAction } from '#editor-ui/elementActions.ts';
 import type { PageGeometry } from '#editor/geometry/coords.ts';
@@ -19,6 +20,8 @@ type SwipeReader = NonNullable<ReturnType<typeof createSwipeReader>>;
 interface MarkSwipeOptions {
   pageIndex: number;
   geometry: PageGeometry | undefined;
+  /** The page's quarter turns, which a sketched underline's preview follows like the committed mark. */
+  turns?: number;
   /** Every element of the document: the new one's place in the history comes from the count. */
   elements: EditorElement[];
   marker: Marker;
@@ -201,6 +204,11 @@ export function useMarkSwipe(o: MarkSwipeOptions): (event: PointerEvent) => void
         direction: o.directionAt(start),
         ...(reader !== undefined ? { reader } : {}),
         isMouse,
+        // The preview draws the mark as it will stand (sketch, underline, clean), so the release changes nothing.
+        paintDraft: (node, g) => {
+          const boxPts = g && o.geometry ? { width: (g.width / 100) * o.geometry.width, height: (g.height / 100) * o.geometry.height } : undefined;
+          paintMarkDraft(node, { ...newEl, ...(g ?? {}) } as HighlightElement, g ? g.bands : [], boxPts, o.turns ?? 0);
+        },
       }, {
         pageIndex, container, id, newEl, start,
         getElementNode: () => container.querySelector<HTMLElement>(`[data-element-id="${id}"]`) ?? undefined,

@@ -12,6 +12,18 @@ export function sketchMark(element: HighlightElement, rects: SketchRect[], turns
   return { d: svgPath(ops), fill: underline ? underlineInk(element.color) : element.color };
 }
 
+/** The bands (percents of the element's box) as rects in points, what the sketch reads. */
+export function bandRectsPts(bands: HighlightElement['bands'], boxPts: { width: number; height: number }): SketchRect[] {
+  return bands.map((b) => ({
+    x: (b.left / 100) * boxPts.width, y: (b.top / 100) * boxPts.height, w: (b.width / 100) * boxPts.width, h: (b.height / 100) * boxPts.height,
+  }));
+}
+
+/** The custom properties an underline band's line reads. */
+export function underlineVars(element: HighlightElement) {
+  return { '--highlight-ink': underlineInk(element.color), '--highlight-ink-width': `${element.strokeWidth ?? UNDERLINE_WIDTH.default}px`, '--highlight-ink-lift': `${UNDERLINE_LIFT}px` };
+}
+
 /* SIGN-46: bands are percents of the element's own box. The draft container
  * stays empty in render - the swipe gesture paints live bands into it.
  * Comments are their own elements now (CommentNode), so a highlight draws no dot. */
@@ -23,11 +35,8 @@ export default function HighlightNode({ element, isActive, boxPts, turns = 0 }: 
   onChange?: ElementNodeChange<HighlightElement>;
   onSelect?: (event: Event) => void;
 }) {
-  const sketchPath = element.stroke === 'sketch' && boxPts ? sketchMark(element, element.bands.map((b) => ({
-    x: (b.left / 100) * boxPts.width, y: (b.top / 100) * boxPts.height, w: (b.width / 100) * boxPts.width, h: (b.height / 100) * boxPts.height,
-  })), turns) : null;
+  const sketchPath = element.stroke === 'sketch' && boxPts ? sketchMark(element, bandRectsPts(element.bands, boxPts), turns) : null;
   const underline = element.style === 'underline';
-  const ink = underline ? underlineInk(element.color) : undefined;
   // The live swipe and the committed bands share the mark's opacity, so the ink never changes strength on release.
   const opacity = element.opacity === undefined ? undefined : { opacity: element.opacity };
   return (
@@ -45,7 +54,7 @@ export default function HighlightNode({ element, isActive, boxPts, turns = 0 }: 
             class={underline ? `${styles.band} ${styles.underline}` : styles.band}
             style={{
               left: `${band.left}%`, top: `${band.top}%`, width: `${band.width}%`, height: `${band.height}%`,
-              ...(underline ? { '--highlight-ink': ink, '--highlight-ink-width': `${element.strokeWidth ?? UNDERLINE_WIDTH.default}px`, '--highlight-ink-lift': `${UNDERLINE_LIFT}px` } : { background: element.color }),
+              ...(underline ? underlineVars(element) : { background: element.color }),
             }}
           />
         ))}
