@@ -15,6 +15,8 @@ import ZoomMenu from './ZoomMenu.tsx';
 import HighlightPage from './HighlightPage.tsx';
 import MarkerButton from './MarkerButton.tsx';
 import PenHint from './PenHint.tsx';
+import NotePane from './NotePane.tsx';
+import { englishSignMessages } from '#editor/registry/signMessages.ts';
 import DownloadDone from './DownloadDone.tsx';
 import LampCord from './LampCord.tsx';
 import LampStage from './LampStage.tsx';
@@ -84,7 +86,7 @@ export default function HighlightWorkspace({ pdfDocument, numPages, fileName, zo
     return () => ws.removeEventListener('scroll', onScroll);
   }, [workspaceRef, fullscreen, scrollEvents]);
 
-  // The comments view measures the workspace's width to choose the rail or the sheet.
+  // The comments view measures the workspace's width to choose the margin rail or the bottom note pane.
   const commentsContainer = comments.containerRef;
   const setWorkspace = useCallback((node: HTMLDivElement | null) => {
     workspaceRef.current = node;
@@ -188,7 +190,10 @@ export default function HighlightWorkspace({ pdfDocument, numPages, fileName, zo
         ))}
       </div>
       </div>
-      {comments.sheet}
+      {!comments.wide && (
+        <NotePane elements={marks.state.elements} activeElementId={marks.state.activeElementId} messages={englishSignMessages} labels={t.notes}
+          onSelect={(id) => dispatch({ type: 'SET_ACTIVE_ELEMENT_ID', payload: id })} {...comments.actions} onUndo={undo} onReturnFocus={comments.returnFocus} />
+      )}
     </div>
     </>
   );
