@@ -37,8 +37,8 @@ The reasons and the rejected alternatives are in "Decisions and why" at the end.
    on touch.
 9. Keys: 1 to 6 pick a colour, U toggles underline, C comments, Delete deletes, and Esc closes one layer at a
    time (an open menu or caret first, then the toolbar or the picked mark).
-50. On touch a tap on Marker arms it and opens nothing; a tap on Marker while armed disarms it, as Sign's
-    tool buttons do. There is no Stop button and no bar at the foot of the screen.
+50. On touch a file opens with the marker armed. A tap on Marker disarms it and another arms it, as Sign's
+    tool buttons do, and opens nothing. There is no Stop button and no bar at the foot of the screen.
 51. On touch, while armed, the hint "Swipe to highlight", preceded by the pen's look (a dot in its colour at
     its opacity, or the underline glyph), sits beside the file name on one line in the toolbar card's
     identity row, after a hairline; the name ellipsises first, and the row's height never changes. In full
@@ -222,6 +222,8 @@ Shlomi's calls, with the reason, newest group first.
   places); a Stop strip under the toolbar (a second control for what Marker already does); arming opening
   the panel (the panel is the context of a picked highlight only).
 - On touch, changing a picked highlight is the only way to change the pen (R5), confirmed.
+- A file opens armed on touch (R50): the reader came to highlight, and the line-only sideways start (R52)
+  keeps scrolling with a finger safe.
 - Only a sideways start marks on touch: with an any-direction start, scrolling marked every line passed.
 - Two fingers navigate and one finger marks only from a line of text (R52, R62): on a real iPhone a pinch
   laid marks and a zoomed page could not be moved sideways, because every sideways start marked, even in a

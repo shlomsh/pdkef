@@ -88,22 +88,21 @@ describe('HighlightWorkspace', () => {
     expect(hiddenBar.closest('[hidden]')).not.toBeNull();
   });
 
-  it('on touch, the hint shows in the card\'s identity row while armed, Marker toggles arming, and the lamp shows no hint', () => {
+  it('on touch, a file opens armed with the hint in the card\'s identity row, Marker toggles arming, and the lamp shows no hint', () => {
     vi.stubGlobal('matchMedia', (q: string) => ({ matches: q.includes('coarse'), media: q, addEventListener() {}, removeEventListener() {} }));
     try {
       mount({ fullscreen: false, pseudoFullscreen: false });
       const marker = () => container!.querySelector<HTMLButtonElement>('[data-editor-toolbar] button[aria-label="Marker"]')!;
       const hint = () => [...container!.querySelectorAll('[data-tool-shell] *')].find((el) => el.children.length === 0 && el.textContent === 'Swipe to highlight');
+      expect(hint()).toBeDefined();
+      expect(container!.querySelector('[data-pen-hint] [data-marker-dot]')).not.toBeNull();
+      act(() => { marker().click(); });
       expect(hint()).toBeUndefined();
       act(() => { marker().click(); });
       expect(hint()).toBeDefined();
-      expect(container!.querySelector('[data-pen-hint] [data-marker-dot]')).not.toBeNull();
-      expect(container!.querySelector('[data-armed-chip]')).toBeNull();
-      act(() => { marker().click(); });
-      expect(hint()).toBeUndefined();
       act(() => render(null, container!));
       const lamp = mount({ fullscreen: true, pseudoFullscreen: false });
-      act(() => { lamp.querySelector<HTMLButtonElement>('[role="toolbar"][aria-label="Reading lamp"] button[aria-label="Marker"]')!.click(); });
+      expect(lamp.querySelector('[role="toolbar"][aria-label="Reading lamp"] button[aria-label="Marker"][data-armed]')).not.toBeNull();
       expect(lamp.textContent).not.toContain('Swipe to highlight');
     } finally { vi.unstubAllGlobals(); }
   });

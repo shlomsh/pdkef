@@ -1,6 +1,6 @@
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { useTouchArming } from './useTouchArming.ts';
 
 let container: HTMLElement | null = null;
@@ -17,11 +17,21 @@ function mount() {
 }
 
 afterEach(() => {
+  vi.unstubAllGlobals();
   if (container) { act(() => render(null, container!)); container.remove(); container = null; }
 });
 
 describe('useTouchArming', () => {
-  it('starts with the marker put down, so a swipe scrolls', () => {
+  const pointer = (coarse: boolean) => vi.stubGlobal('matchMedia', (query: string) => ({ matches: coarse && query === '(pointer: coarse)' }));
+
+  it('starts with the marker in the hand on a touch screen, so a file opens ready to mark', () => {
+    pointer(true);
+    mount();
+    expect(api.armed).toBe(true);
+  });
+
+  it('starts put down on a fine pointer, which never reads it (R1)', () => {
+    pointer(false);
     mount();
     expect(api.armed).toBe(false);
   });
