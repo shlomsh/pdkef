@@ -259,10 +259,15 @@ export function nextUnusedRecord(recorded, current) {
   return Object.fromEntries(KEYS.map((k) => [k, Math.min(recorded[k] ?? 0, current[k])]));
 }
 
-function readTree() {
-  const tracked = execFileSync('git', ['ls-files', 'src', 'e2e', 'scripts', 'api', 'middleware.ts', 'astro.config.mjs'], { cwd: root, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 })
+/** @testSeam The scanned files under `dir`: tracked and untracked-but-not-ignored. */
+export function listSourceFiles(dir) {
+  return execFileSync('git', ['ls-files', '-co', '--exclude-standard', 'src', 'e2e', 'scripts', 'api', 'middleware.ts', 'astro.config.mjs'], { cwd: dir, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 })
     .split('\n')
-    .filter((f) => f && EXTS.includes(path.extname(f)) && fs.existsSync(path.join(root, f)));
+    .filter((f) => f && EXTS.includes(path.extname(f)) && fs.existsSync(path.join(dir, f)));
+}
+
+function readTree() {
+  const tracked = listSourceFiles(root);
   return Object.fromEntries(tracked.map((f) => [f, fs.readFileSync(path.join(root, f), 'utf8')]));
 }
 
