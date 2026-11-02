@@ -165,6 +165,10 @@ jobs:
     - name: Verify the ts-nocheck ratchet
       run: npm run test:ts-nocheck-ratchet
 
+    # Raw touchscreen.tap( in specs only gets fewer: use tapUntil / tapOnce from e2e/support/touch.js.
+    - name: Verify the raw-tap ratchet
+      run: node scripts/check-raw-tap-ratchet.mjs
+
     - name: Verify e2e sleep ratchet
       run: npm run test:e2e-sleeps
 

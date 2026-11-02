@@ -1,6 +1,7 @@
 import { test, expect } from '@playwright/test';
 import { openTool } from '../../../../e2e/support/tool.js';
 import { makePdfBuffer } from '../../../../e2e/support/pdf.js';
+import { tapUntil } from '../../../../e2e/support/touch.js';
 
 /* A fixed floating panel inside a glass bar. WebKit makes an element with backdrop-filter or filter the containing
    block of its fixed descendants while floating-ui assumes it does not, so the glass pushed the phone's mark panel
@@ -26,10 +27,7 @@ async function panelGutters(page, { lamp }) {
   const band = await mark.boundingBox();
   const row = page.locator('[data-marker-row]:visible');
   // As in mark-toolbar.spec.js: a tap the browser counts as a second click opens nothing, so it is tried again.
-  await expect.poll(async () => {
-    if (await row.count() === 0) await page.touchscreen.tap(band.x + band.width / 2, band.y + band.height / 2);
-    return row.count();
-  }, { intervals: [600] }).toBe(1);
+  await tapUntil(page, { x: band.x + band.width / 2, y: band.y + band.height / 2 }, async () => (await row.count()) === 1);
   const gutters = () => page.evaluate(() => {
     const r = document.querySelector('[data-marker-row]').closest('[id]').getBoundingClientRect();
     return { left: Math.round(r.left), right: Math.round(window.innerWidth - r.right) };

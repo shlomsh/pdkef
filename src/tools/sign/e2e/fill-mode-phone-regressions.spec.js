@@ -3,6 +3,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { test, expect } from '@playwright/test';
 import { waitForIsland } from '../../../../e2e/support/tool.js';
+import { tapOnce } from '../../../../e2e/support/touch.js';
 
 /**
  * Fill mode (`/sign/?next=1`) on a phone: guards for the regressions Shlomi
@@ -229,7 +230,7 @@ test.describe('fill mode on a phone, WebKit (SNG-17 regressions, Shlomi 2026-09-
       }, { capture: true });
     });
 
-    await page.touchscreen.tap(point.x, point.y);
+    await tapOnce(page, point);
     await expect.poll(() => isFocused(textarea), 'the tapped element\'s own input takes focus').toBe(true);
     expect(await page.evaluate(() => window.__focusArrivedDuring), 'focused by the tap itself, not a synthesised click').toBe('touchend');
     await expect(element).toHaveAttribute('data-editor-active', /.*/);

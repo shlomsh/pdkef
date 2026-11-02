@@ -3,6 +3,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { test, expect } from '@playwright/test';
 import { waitForIsland } from '../../../../e2e/support/tool.js';
+import { tapUntil } from '../../../../e2e/support/touch.js';
 
 /**
  * Which way the element bar's field arrows point, measured in a real engine.
@@ -90,8 +91,9 @@ for (const doc of DOCUMENTS) {
     await expect(field).toBeVisible();
     await field.scrollIntoViewIfNeeded();
     const box = await field.boundingBox();
-    await page.touchscreen.tap(box.x + box.width / 2, box.y + box.height / 2);
-    await expect(page.locator('[data-editor-actions]').first().getByRole('button', { name: 'Next field' })).toBeVisible();
+    const nextField = page.locator('[data-editor-actions]').first().getByRole('button', { name: 'Next field' });
+    await tapUntil(page, { x: box.x + box.width / 2, y: box.y + box.height / 2 }, () => nextField.isVisible());
+    await expect(nextField).toBeVisible();
 
     const arrows = await readArrows(page);
     expect(arrows, 'both arrows are in the element bar').toHaveLength(2);

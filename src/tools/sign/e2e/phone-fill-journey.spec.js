@@ -3,6 +3,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { test, expect } from '@playwright/test';
 import { waitForIsland } from '../../../../e2e/support/tool.js';
+import { tapOnce, tapUntil } from '../../../../e2e/support/touch.js';
 
 /**
  * The whole phone form-fill round trip, as one person does it (MOBI-21).
@@ -49,7 +50,7 @@ async function openPracticeForm(page) {
 async function tapCentre(page, locator) {
   await locator.scrollIntoViewIfNeeded();
   const box = await locator.boundingBox();
-  await page.touchscreen.tap(box.x + box.width / 2, box.y + box.height / 2);
+  await tapOnce(page, { x: box.x + box.width / 2, y: box.y + box.height / 2 });
 }
 
 const elementCount = (page) => page.locator('[data-editor-element]').count();
@@ -75,7 +76,7 @@ test('fill two fields, put the keyboard away, then go back and fix the first', a
   // The form's own header band is printed ink, not a field.
   const overlay = page.locator('[class*="page-overlay"]').first();
   const o = await overlay.boundingBox();
-  await page.touchscreen.tap(o.x + 12, o.y + 12);
+  await tapUntil(page, { x: o.x + 12, y: o.y + 12 }, async () => (await page.locator('[data-editor-text-input]:not([readonly])').count()) === 0);
   // Assert the session really closed - otherwise the "go back in" step below
   // would pass without ever testing re-entry.
   await expect(page.locator('[data-editor-text-input]:not([readonly])')).toHaveCount(0);
