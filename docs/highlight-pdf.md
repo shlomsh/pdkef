@@ -62,27 +62,40 @@ pages fetched; numbers are relative, not volumes). The full record is in
 
 ### Opening a file
 
-The page fills the screen, fitted to its width and centred. A yellow marker is already in the hand: the
-cursor over the page is a small highlighter in the armed color. No panel is open, nothing asks for a
-decision.
+The page fills the screen, fitted to its width and centred. On a desktop a yellow marker is already in the
+hand: the cursor over the page is a small highlighter in the armed color. No panel is open, nothing asks for
+a decision. On a phone or iPad a tap on Marker arms it, and a tap on Marker again puts it down so swipes
+scroll again (R1, R50). The contract is [READ-01](../backlog/tasks/READ-01.md); this section is the story.
 
 ### Marking
 
-- **The passage is the unit.** Swipe or drag along a line (the SIGN-46 line band: straight, as tall as the
-  line, carried onto the next lines by dragging down, ends settling on word gaps, working on scans).
+- **The passage is the unit.** Swipe or drag along a line (the line band: straight, as tall as the line,
+  carried onto the next lines by dragging down, ends settling on word gaps, working on scans).
 - **Finishing a stroke shows nothing.** A popup after every band asks a question the reader did not have;
-  the next stroke is the answer most of the time.
+  the next stroke is the answer most of the time (R1, R52).
+- **On touch, only a sideways start marks.** The first few pixels decide: sideways lays a mark, anything
+  else scrolls the page, so reading with a finger never paints by accident. While the marker is armed the
+  toolbar says "Swipe along a line to highlight" with the pen's look beside it (R51, R52).
 - **Double-click marks a word, a third click its sentence**, the way selection works everywhere, sweeping in
   from the first letter.
-- **Rest on a highlight to change it.** A quiet rest opens Highlight or Underline, Comment and Delete; a
-  longer rest on Highlight opens the six colors, and "+" there a custom color and opacity. On touch, a tap.
+- **Underline is a style of the band, not a tool:** the line reader already knows the baseline, and the
+  underline follows the page's turn on screen, in the file and in print (R55).
+- **First marks are half strength** (50%), so the text stays readable on every screen (R53).
+- **No height control, no strikethrough.** Our band follows the text, and strikethrough is the reviewer's
+  "delete this", not a reader's mark.
+
+### Changing a highlight
+
+- **On a desktop, rest on a highlight or click it.** A dark toolbar opens above the mark: colors, Highlight
+  or Underline, Comment, Delete (R2).
+- **On touch, tap a highlight to pick it.** The mark gets a ring and the panel opens under the top toolbar
+  (in full screen, under the capsule's Marker) with that mark's look, Comment and Delete. Nothing floats on
+  the page. A tap elsewhere or on Marker lets it go (R7).
+- **The panel is one quiet row:** yellow, pink and green, a "more" button for orange, red, blue and the color
+  wheel, the Highlight or Underline pair with an opacity or thickness caret, then Comment and Delete. The
+  least common controls are one click away, never in the way (R4, R47, R48).
 - **Whatever is picked becomes the marker.** Changing one highlight re-arms the pen, so choosing a color
-  once is choosing it for the next strokes.
-- **Underline is a style of the band, not a tool:** the line reader already knows the baseline.
-- **No height control.** PDF24 and Xodo offer one to make up for a band that does not follow the text; ours
-  does, and it keeps the text dark (Multiply). Custom color and opacity exist but sit two rests deep, so the
-  six colors stay the whole vocabulary for most readers.
-- **No strikethrough.** It is the reviewer's "delete this", not a reader's mark.
+  once is choosing it for the next strokes. On touch this is the only way to change the pen (R5).
 
 ### Comments
 
@@ -104,13 +117,15 @@ decision.
 
 The mode is called **Reading lamp** (Shlomi, 2026-11-01; the shortlist is in READ-05).
 
-
 A floating capsule instead of a bar: file name, page jump, zoom, the armed marker, Undo, Redo, Print,
 Download, More and Exit. It never vanishes (controls that vanish get lost), it goes quiet: grey and faded
 while the reader reads, awake when reached for, dozing slowly when the reader scrolls or presses the page
 again. Zoom offers Fit width (the default), Fit text (the paper's empty margins trimmed away, what a
 student reading a paper wants most), Fit page and Actual size, with pinch and Cmd/Ctrl plus or minus around
-the pointer, remembered per document. Coarse pointers keep the 44 px targets `editor.md` requires. It is
+the pointer; no zoom is remembered. Sideways movement stops at the edge of the pages and their notes, and
+zooming out stops at the whole page (R56, R57). Coarse pointers keep the 44 px targets `editor.md` requires
+(R49), and on a phone the Marker is armed and put down with a tap, with no hint of its own in this mode (R51).
+Download says "Saved as {name}." in the strip under the toolbar (R59). It is
 one fullscreen style, not a container-query tier (those drifted twice), built once in shared chrome so
 Sign's fullscreen gets the same capsule (READ-05).
 
@@ -151,7 +166,7 @@ Demand sits on iPad; with a mouse almost nobody draws.
   its static SEO shell, a registry entry in `src/data/tools.js`, the non-slash redirect pair in
   `vercel.json`, and the tool count updated wherever it is stated.
 - **Settings are remembered per document** and become defaults for new documents, like every Sign setting:
-  the color, the underline style, the opacity, the zoom.
+  the color, the underline style, the opacity. Zoom is not remembered.
 - **One page layout for every reader.** Highlight bands, field detection and snapping read text rows, word
   gaps and columns from one pure, swappable layout layer with its own corpus and KPIs, and OCR later joins
   it once for all of them (READ-01, R32 to R38). SIGN-46's line reader is a day-old experiment and is
@@ -161,13 +176,17 @@ Demand sits on iPad; with a mouse almost nobody draws.
 
 ## Open calls (Shlomi)
 
-1. **The name** is decided: Highlight PDF.
-2. **Where a comment sits** is decided: beside the page as in Google Docs, the page and its notes fitted
-   together (READ-01, R28). *Also decided since the first draft:* desktop drags with the marker in the hand
-   (the marker model), which scopes the one-shot rule out of this tool.
-3. **Long-press and drag on a phone**, the gesture phones already teach for selecting text, instead of
+Decided: the name is Highlight PDF; a comment sits beside the page (R28); desktop drags with the marker
+always in the hand; touch arms on a tap and changes the pen only through a picked highlight (R50, R5).
+
+1. **Long-press and drag on a phone**, the gesture phones already teach for selecting text, instead of
    arming. Clean on a scan (no text layer to select); on a digital PDF it needs a real-iPhone check that it
    does not fight the browser's own selection (READ-07).
+2. **Armed by default on touch.** Whether the marker is already armed when a file opens on a phone or iPad.
+   Shlomi leans yes; the sideways-start rule (R52) is what makes it safe.
+3. **iOS Safari download.** It may open the PDF in the tab instead of saving it; check on a real iPhone.
+4. **Landscape on a phone.** The capsule touches the page header; look at it and decide.
+5. **The Replace dialog's red "Choose a file".** It is cross-tool, so the fix belongs to every tool.
 
 ## Order of work
 
