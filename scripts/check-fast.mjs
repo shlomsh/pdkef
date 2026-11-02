@@ -22,12 +22,13 @@
 //
 // Usage: npm run check:fast [-- --since <ref>]
 
-import { existsSync, mkdirSync } from 'node:fs';
+import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { dirname, join, resolve as resolvePath } from 'node:path';
 import { resolveBase, changedFilesWithStatus } from './change-scope.mjs';
 import { selectUnitTests, runUnitByImpact } from './unit-scope.mjs';
+import { treeFingerprint, RECORD_PATH } from './commitGate.mjs';
 
 const ROOT = resolvePath(dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -135,6 +136,17 @@ function timed(fn) {
   return { status, seconds: (performance.now() - start) / 1000 };
 }
 
+// The commit gate's record (scripts/commitGate.mjs). Never allowed to change the exit code.
+function recordVerdict(failed) {
+  try {
+    mkdirSync(join(ROOT, 'node_modules', '.cache'), { recursive: true });
+    const record = { verdict: failed ? 'FAIL' : 'PASS', failed: failed ?? null, fingerprint: treeFingerprint(ROOT), at: new Date().toISOString() };
+    writeFileSync(join(ROOT, RECORD_PATH), JSON.stringify(record));
+  } catch {
+    // best effort
+  }
+}
+
 function main(argv) {
   const args = parseArgs(argv);
   if (args.error) {
@@ -179,6 +191,7 @@ function main(argv) {
     }
   }
 
+  recordVerdict(failed);
   console.log(`\n${summaryLine({ ok: !failed, failed, base, since: args.since, steps })}`);
   return failed ? 1 : 0;
 }

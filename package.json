@@ -13,6 +13,7 @@
   "description": "Free, open-source PDF tools that run 100% locally in your browser - no upload, no signup, no watermark.",
   "license": "MIT",
   "scripts": {
+    "prepare": "git config core.hooksPath .githooks || true",
     "postinstall": "patch-package && node scripts/sync-pdfjs-wasm.mjs",
     "dev": "astro dev",
     "errors:resolve": "node scripts/errors-resolve.mjs",
