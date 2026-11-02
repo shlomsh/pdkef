@@ -166,6 +166,8 @@
   align-items: baseline;
   min-width: 0;
   max-width: 100%;
+  /* The name's focus ring is a box-shadow outside it: the plain label's clip would cut it to two brackets. */
+  overflow: visible;
 }
 
 /* The pages/size text shrinks and ellipsizes; the draft-saved chip is pinned
