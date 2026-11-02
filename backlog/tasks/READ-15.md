@@ -1,16 +1,43 @@
 ---
 id: "READ-15"
-title: "Highlight PDF: notes on a phone and in the lamp are pins in the margin, not a bottom sheet"
+title: "Highlight PDF: notes on a phone and in the lamp get a model of their own"
 status: "in_progress"
 priority: "P2"
 epic: "highlight-pdf"
 horizon: "now"
 order: 15
 depends_on: []
-needs: "Pick a direction: margin pins or a notes column"
+needs: "Pick a sketch: A (pane, swipe sideways), B (pane, scroll down) or C (pins)"
 ---
 
-# READ-15 · Notes on a phone: pins in the margin
+# READ-15 · Notes on a phone: a model of their own
+
+## Sketches (2026-11-02, second round)
+
+Shlomi: the phone gets its own approach, not the desktop's. His idea: the notes pane stays where the sheet
+is today and shows one note at a time; tapping a highlight with a note opens it for reading and editing;
+native scrolling moves to the next note while making clear which highlight it belongs to; the pane can be
+closed. Sketched on a design canvas, five phone frames at 402 pt:
+https://claude.ai/artifact/QM7Zruj8GSR6bu3ffhS18C
+
+- **A. Note pane, swipe sideways** (interactive): the pane holds one card per note in reading order, with
+  the next card peeking at the edge. A swipe snaps to the next note; the page glides so its passage sits
+  above the pane, outlined, while the other marks step back (READ-13). Each card quotes the start of its
+  passage with its colour and page. A close button hides the pane; a small note mark at a passage's end
+  shows which highlights have notes, and tapping one reopens the pane there.
+- **A, keyboard up**: writing a note, the pane rides on top of the keyboard and the passage stays in view
+  above it.
+- **A, closed**: the page alone, note marks at passage ends.
+- **B. Note pane, scroll down** (interactive): the same pane, cards stacked vertically with the next one
+  peeking below.
+- **C. Pins in the margin**: the first round's pick, kept for comparison.
+
+Lead's read: A. Sideways keeps the pane's gesture apart from the page's vertical scroll (B's vertical
+list sits right on top of a vertically scrolling page and invites scroll chaining). A needs one exception
+written into `docs/ux-design-guidelines.md` §8, which says "no sticky bottom sheet": the notes pane is
+that exception, short (about a quarter of the screen) and closable.
+
+## First round (superseded by the sketches above)
 
 *Opened 2026-11-02.* Shlomi: in the lamp on a phone, tapping a highlight pops its comment up as a bottom
 sheet. It can't be hidden in any way a person would find (only a thin grab bar closes it), it is not beside
