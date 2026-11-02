@@ -14,7 +14,7 @@ function Probe() {
   handler = useMarkSwipe({
     pageIndex: 0, geometry: undefined, elements: [],
     marker: { color: 'yellow', style: 'highlight', opacity: 1 } as never,
-    touchArmed: false,
+    touchArmed: true,
     getPointerPercent: (e: MouseEvent | TouchEvent) => ({ x: (e as MouseEvent).clientX / 10, y: (e as MouseEvent).clientY / 10 }),
     directionAt: () => 'ltr' as never,
     dispatch, logAction: vi.fn(), setAnnouncement: vi.fn(),
@@ -32,6 +32,11 @@ function mount() {
 function press(x = 100, y = 100) {
   const target = document.createElement('div');
   handler({ button: 0, pointerType: 'mouse', clientX: x, clientY: y, target, currentTarget: target } as unknown as PointerEvent);
+}
+
+function pressTouch(x = 100, y = 100) {
+  const target = document.createElement('div');
+  handler({ button: 0, pointerType: 'touch', clientX: x, clientY: y, target, currentTarget: target } as unknown as PointerEvent);
 }
 
 const move = (x: number, y: number) => window.dispatchEvent(new MouseEvent('mousemove', { clientX: x, clientY: y }));
@@ -76,5 +81,22 @@ describe('useMarkSwipe threshold', () => {
     for (const type of added) expect(remove.mock.calls.map((c) => c[0])).toContain(type);
     move(200, 200);
     expect(dispatch).not.toHaveBeenCalled();
+  });
+});
+
+describe('useMarkSwipe touch intent', () => {
+  it('a touch press moving 30 px down lays no element and leaves the scroll to the browser', () => {
+    mount(); pressTouch();
+    move(100, 130);
+    move(130, 130);
+    expect(dispatch).not.toHaveBeenCalled();
+    expect(onPress).not.toHaveBeenCalled();
+  });
+
+  it('a touch press moving 30 px sideways lays an element', () => {
+    mount(); pressTouch();
+    move(130, 100);
+    expect(dispatch).toHaveBeenCalledTimes(1);
+    expect(dispatch.mock.calls[0][0]).toMatchObject({ type: 'ADD_ELEMENT' });
   });
 });

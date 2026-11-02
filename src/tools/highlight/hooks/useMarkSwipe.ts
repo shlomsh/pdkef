@@ -9,6 +9,7 @@ import { createElementId } from '#editor/model/ids.ts';
 import { englishSignMessages } from '#editor/registry/signMessages.ts';
 import type { ReadingDirection } from '#lib/pageLayout/bands.ts';
 import type { Marker } from '../lib/marker/markerState.ts';
+import { swipeIntent } from '../lib/marker/swipeIntent.ts';
 import type { useClickMarks } from './useClickMarks.ts';
 
 type Point = { x: number; y: number };
@@ -73,7 +74,16 @@ export function useMarkSwipe(o: MarkSwipeOptions): (event: PointerEvent) => void
     };
     const onMove = (move: MouseEvent | TouchEvent) => {
       const point = 'touches' in move && move.touches?.length ? move.touches[0] : (move as MouseEvent);
-      if (Math.hypot(point.clientX - origin.x, point.clientY - origin.y) < SWIPE_THRESHOLD_PX) return;
+      const dx = point.clientX - origin.x;
+      const dy = point.clientY - origin.y;
+      if (isMouse) {
+        if (Math.hypot(dx, dy) < SWIPE_THRESHOLD_PX) return;
+      } else {
+        // A finger that starts mostly vertical is a scroll the browser takes; only a sideways start marks.
+        const intent = swipeIntent(dx, dy);
+        if (intent === 'wait') return;
+        if (intent === 'scroll') { stop(); return; }
+      }
       stop();
       begin();
     };
