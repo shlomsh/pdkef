@@ -57,9 +57,10 @@ export default function NotePane({ elements, activeElementId, messages, labels, 
     const behavior: ScrollBehavior = !wasOpen.current || reducedMotion() ? 'auto' : 'smooth';
     wasOpen.current = true;
     const node = anchorNode(elements, activeElementId!);
-    // The margin makes block: 'center' centre the passage in the band above the pane, not in the whole viewport.
+    // The margin makes block: 'center' centre the passage in the band above the pane, not in the whole viewport; it is cleared right after, since the scroll target is computed at call time.
     if (node) node.style.scrollMarginBottom = `${section.current?.offsetHeight ?? 0}px`;
     node?.scrollIntoView({ block: 'center', behavior });
+    if (node) node.style.scrollMarginBottom = '';
     const el = track.current;
     if (!el || !el.scrollTo || snapIndex(el.scrollLeft, cardStep(el), notes.length) === idx) return;
     steering.current = idx;

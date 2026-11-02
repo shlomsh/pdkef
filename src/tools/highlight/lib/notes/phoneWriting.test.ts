@@ -44,4 +44,12 @@ describe('withPhoneWriting', () => {
     commands.remove(mark);
     expect(base.remove).toHaveBeenCalledWith(mark);
   });
+
+  it('Edit on a blank note opens the writer as new', () => {
+    const writer = { open: vi.fn() };
+    const base = { comment: vi.fn(), remove: vi.fn() };
+    const commands = withPhoneWriting(base, [{ ...saved, comment: ' ' }], { wide: false, writer });
+    commands.editNote('c1');
+    expect(writer.open).toHaveBeenCalledWith({ id: 'c1', comment: ' ', isNew: true });
+  });
 });

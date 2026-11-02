@@ -138,3 +138,16 @@ test.describe('the phone writing page', () => {
     }).toBe(true);
   });
 });
+
+test.describe('a narrow window with a mouse', () => {
+  test.use({ viewport: { width: 800, height: 900 }, hasTouch: false });
+
+  test('the rest toolbar Comment opens the writer with its field focused', async ({ page }) => {
+    await open(page);
+    const mark = await highlight(page, 700);
+    await mark.click();
+    await page.locator('[data-rest-toolbar]').getByRole('button', { name: 'Comment' }).click();
+    await expect(page.locator('[data-note-writer]')).toHaveAttribute('open', '');
+    await expect(page.locator('[data-note-writer-input]')).toBeFocused();
+  });
+});

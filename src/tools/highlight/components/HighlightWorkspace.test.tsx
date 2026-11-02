@@ -236,6 +236,13 @@ describe('HighlightWorkspace notes (R28, R29)', () => {
     restore();
   });
 
+  it('READ-19: the writing page stays mounted on a wide workspace, and the pane does not', () => {
+    const { restore } = mountNoted([mark, note], 1200);
+    expect(container!.querySelector('[data-note-writer]')).not.toBeNull();
+    expect(container!.querySelector('[data-note-pane]')).toBeNull();
+    restore();
+  });
+
   it('in the normal view the board is as wide as its column, rail included', () => {
     const { column, restore } = mountNoted([mark, note], 1200);
     expect(column.parentElement!.style.width).toBe(column.style.width);
