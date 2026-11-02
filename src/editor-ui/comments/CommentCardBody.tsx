@@ -3,8 +3,7 @@ import { autoUpdate, computePosition, flip, offset, shift } from '@floating-ui/d
 import type { SignMessages } from '#editor/registry/messages.ts';
 import type { CommentCard } from '#editor/highlight/commentCards.ts';
 import { commentPatch, type CommentPatch } from '#editor/highlight/commentCommit.ts';
-import dialogStyles from '#shell/Dialog.module.css';
-import { TrashIcon } from '../toolIcons.tsx';
+import { PencilIcon, TrashIcon } from '../toolIcons.tsx';
 import styles from './CommentRail.module.css';
 
 /** SIGN-44: one comment card's content (rail card, later the phone sheet). Draft is local until Comment.
@@ -115,8 +114,8 @@ export function CommentCardBody({ card, active, messages, label, onSelect, onSav
             onKeyUp={(event) => event.stopPropagation()}
           />
           <div class={styles.actions}>
-            <button type="button" class={`${dialogStyles.button} ${dialogStyles.secondary} ${styles.cancel}`} onClick={cancel}>{messages.commentCancel}</button>
-            <button type="button" class={`${dialogStyles.button} ${dialogStyles.primary} ${styles.save}`} disabled={blank} onClick={save}>{card.isNew ? messages.highlightCommentLabel : messages.commentSave}</button>
+            <button type="button" class={styles.cancel} onClick={cancel}>{messages.commentCancel}</button>
+            <button type="button" class={styles.save} disabled={blank} onClick={save}>{card.isNew ? messages.highlightCommentLabel : messages.commentSave}</button>
           </div>
         </>
       ) : (
@@ -219,8 +218,8 @@ function MoreMenu({ messages, onEdit, onDelete }: { messages: SignMessages; onEd
       </button>
       {menuOpen && (
         <div ref={menuRef} role="menu" data-comment-menu popover={TOP_LAYER ? 'manual' : undefined} class={styles.menu} onKeyDown={onMenuKeyDown} onFocusOut={onFocusOut}>
-          <button type="button" role="menuitem" data-comment-menu-edit class={styles.menuItem} onClick={onEdit}>{messages.commentEdit}</button>
-          <button type="button" role="menuitem" data-comment-menu-delete class={styles.menuItem} onClick={onDelete}><TrashIcon />{messages.commentDelete}</button>
+          <button type="button" role="menuitem" data-comment-menu-edit class={styles.menuItem} onClick={onEdit}><PencilIcon />{messages.commentEdit}</button>
+          <button type="button" role="menuitem" data-comment-menu-delete class={`${styles.menuItem} ${styles.danger}`} onClick={onDelete}><TrashIcon />{messages.commentDelete}</button>
         </div>
       )}
     </>

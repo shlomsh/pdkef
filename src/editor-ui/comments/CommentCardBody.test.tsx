@@ -60,7 +60,9 @@ describe('CommentCardBody', () => {
       expect(q('[data-comment-more]').getAttribute('aria-expanded')).toBe('true');
       const items = [...host!.querySelectorAll('[data-comment-menu] [role="menuitem"]')];
       expect(items.map((i) => i.textContent)).toEqual(['Edit', 'Delete']);
-      expect(items[1].querySelector('svg')).not.toBeNull();
+      // Each item leads with its own icon, so the two words line up in one column.
+      expect(items.map((i) => i.firstElementChild?.tagName.toLowerCase())).toEqual(['svg', 'svg']);
+      expect(items[1].className).toContain(styles.danger);
       expect(document.activeElement).toBe(q('[data-comment-menu-edit]'));
     });
 
@@ -221,6 +223,13 @@ describe('CommentCardBody', () => {
     expect(button('Save')).toBeDefined();
     expect(host!.querySelector('button[aria-label="Delete"]')).toBeNull();
     expect(host!.textContent).not.toContain('Delete');
+  });
+
+  it("Cancel and Save are the card's own quiet buttons, not the dialog's filled ones", () => {
+    mount({ card: card(), active: true });
+    openEdit();
+    expect(button('Cancel').className).toBe(styles.cancel);
+    expect(button('Save').className).toBe(styles.save);
   });
 
   it('Cancel while editing keeps the comment', () => {

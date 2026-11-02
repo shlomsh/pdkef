@@ -98,8 +98,7 @@ describe('CommentSheet', () => {
   it('hands focus back when Cancel closes the note', () => {
     const onReturnFocus = vi.fn();
     mount([hl('a', '')], 'a', { onReturnFocus });
-    const cancel = [...host!.querySelectorAll('button')].find((b) => b.textContent === englishSignMessages.commentCancel && b.className.includes('secondary'))
-      ?? [...host!.querySelectorAll('button')].filter((b) => b.textContent === englishSignMessages.commentCancel).pop()!;
+    const cancel = [...host!.querySelectorAll('button')].filter((b) => b.textContent === englishSignMessages.commentCancel).pop()!;
     act(() => cancel.click());
     expect(onReturnFocus).toHaveBeenCalledWith('a');
   });
