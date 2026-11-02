@@ -5,7 +5,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { PDFDocumentProxy } from 'pdfjs-dist';
 
 const reportError = vi.hoisted(() => vi.fn());
+const reportToolLifecycleEvent = vi.hoisted(() => vi.fn());
 vi.mock('#lib/telemetry/errorReport.ts', () => ({ reportError }));
+vi.mock('#lib/telemetry/productAnalytics.ts', () => ({ reportToolLifecycleEvent }));
 
 let sheetProps: { notes: string; onReady(): void } | null = null;
 let sheetMounts = 0;
@@ -33,6 +35,7 @@ beforeEach(() => {
   sheetProps = null;
   sheetMounts = 0;
   reportError.mockClear();
+  reportToolLifecycleEvent.mockClear();
   window.print = vi.fn();
   container = document.createElement('div');
   document.body.appendChild(container);
@@ -120,5 +123,41 @@ describe('usePrint', () => {
     act(() => api.print('none'));
     act(() => api.print('beside'));
     expect(sheetProps?.notes).toBe('none');
+  });
+
+  describe('funnel events', () => {
+    const events = () => reportToolLifecycleEvent.mock.calls.map((c) => c[0]);
+
+    it('reports started on a request, and the result just before window.print()', () => {
+      act(() => api.print('none'));
+      expect(events()).toEqual(['tool_operation_started']);
+      expect(reportToolLifecycleEvent.mock.calls[0][1]).toBe('highlight-pdf');
+      vi.mocked(window.print).mockImplementation(() => { expect(events()).toEqual(['tool_operation_started', 'tool_result_ready']); });
+      act(() => sheetProps!.onReady());
+      expect(window.print).toHaveBeenCalledTimes(1);
+      expect(events()).toEqual(['tool_operation_started', 'tool_result_ready']);
+    });
+
+    it('reports failed with the print_timeout error and no result', () => {
+      act(() => api.print('none'));
+      act(() => { vi.advanceTimersByTime(PRINT_TIMEOUT_MS); });
+      expect(events()).toEqual(['tool_operation_started', 'tool_operation_failed']);
+      expect(reportToolLifecycleEvent.mock.calls[1][1]).toBe('highlight-pdf');
+    });
+
+    it('a request ignored while one is open reports nothing', () => {
+      act(() => api.print('none'));
+      act(() => api.print('beside'));
+      expect(events()).toEqual(['tool_operation_started']);
+    });
+
+    it('a request that replaces a printed job starts again, with one result per job', () => {
+      act(() => api.print('none'));
+      act(() => sheetProps!.onReady());
+      act(() => api.print('beside'));
+      expect(events()).toEqual(['tool_operation_started', 'tool_result_ready', 'tool_operation_started']);
+      act(() => sheetProps!.onReady());
+      expect(events()).toEqual(['tool_operation_started', 'tool_result_ready', 'tool_operation_started', 'tool_result_ready']);
+    });
   });
 });

@@ -1,6 +1,7 @@
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { reportEdit } from '#lib/telemetry/productAnalytics.ts';
 import type { CommentElement, HighlightElement } from '#editor/model/editorModel.ts';
 import { captureAddedElement, captureElementSnapshots } from '#editor/model/actionHistory.ts';
 import { deletedWith } from '#editor/model/elementsReducer.ts';
@@ -8,6 +9,8 @@ import { createPageGeometry } from '#editor/geometry/coords.ts';
 import { clearPageActions, rotatePageAction } from '../lib/marks/pageEditActions.ts';
 import { DEFAULT_MARKER } from '../lib/marker/markerState.ts';
 import { useHighlightMarks } from './useHighlightMarks.ts';
+
+vi.mock('#lib/telemetry/productAnalytics.ts', () => ({ reportEdit: vi.fn() }));
 
 type Marks = ReturnType<typeof useHighlightMarks>;
 let container: HTMLElement | null = null;
@@ -34,6 +37,7 @@ function mount() {
 }
 
 afterEach(() => {
+  vi.mocked(reportEdit).mockClear();
   if (container) { act(() => render(null, container!)); container.remove(); container = null; }
 });
 
@@ -44,6 +48,23 @@ describe('useHighlightMarks', () => {
     expect(marks.marker).toEqual(DEFAULT_MARKER);
     expect(marks.canUndo).toBe(false);
     expect(marks.canRedo).toBe(false);
+  });
+
+  it('reports the first edit when a change is logged in history, as highlight-pdf', () => {
+    mount();
+    act(() => marks.dispatch({ type: 'ADD_ELEMENT', payload: mark }));
+    expect(reportEdit).not.toHaveBeenCalled();
+    act(() => addMark());
+    expect(reportEdit).toHaveBeenCalledWith('highlight-pdf');
+  });
+
+  it('reports nothing for undo and redo', () => {
+    mount();
+    act(() => addMark());
+    vi.mocked(reportEdit).mockClear();
+    act(() => marks.undo());
+    act(() => marks.redo());
+    expect(reportEdit).not.toHaveBeenCalled();
   });
 
   it('re-arms the marker from a change', () => {
