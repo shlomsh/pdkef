@@ -27,8 +27,13 @@ test('outside the lamp two fingers zoom the page, and one finger marks from a li
   const marks = page.locator('[data-page-overlay] [data-element-id]');
   const cdp = await page.context().newCDPSession(page);
 
-  await cdp.send('Input.synthesizePinchGesture', { x: textX + 10, y: lineY, scaleFactor: 2, relativeSpeed: 400, gestureSourceType: 'touch' });
-  await expect.poll(async () => (await view(page)).scale).toBeGreaterThan(1.5);
+  // The default source, not 'touch': on CI's Linux Chromium a touch-source pinch never zooms the page (SNG-21, see
+  // fill-mode-zoom.spec.js), and a loaded runner can stop one short, so it pinches again until the page is zoomed.
+  await expect.poll(async () => {
+    const { scale } = await view(page);
+    if (scale <= 1.5) await cdp.send('Input.synthesizePinchGesture', { x: textX + 10, y: lineY, scaleFactor: 2 / scale, relativeSpeed: 400 });
+    return (await view(page)).scale;
+  }).toBeGreaterThan(1.5);
   await expect(marks).toHaveCount(0);
 
   const zoomed = await view(page);

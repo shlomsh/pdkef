@@ -48,10 +48,14 @@
   box-shadow: var(--shadow-lg);
   transition: box-shadow 260ms var(--ease-out);
 }
-.capsule[data-mode='awake'] .inner {
+/* Awake, or showing a picked mark's panel from its Marker, the filter is none, not grayscale(0): any filter makes .inner the
+   containing block of that fixed panel in WebKit, which floating-ui does not expect (panel-gutters-webkit.spec.js). The
+   grey lifts at once and only the opacity fades in, so no filter is left on .inner while the panel is placed. */
+.capsule[data-mode='awake'] .inner,
+.capsule:has([data-marker-row]) .inner {
   opacity: 1;
-  filter: grayscale(0);
-  transition: opacity 260ms var(--ease-out), filter 260ms var(--ease-out);
+  filter: none;
+  transition: opacity 260ms var(--ease-out);
 }
 
 .file {
