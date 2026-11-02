@@ -25,7 +25,7 @@ function getImageData(sx: number, sy: number, w: number, h: number) {
   return { data, width: w, height: h };
 }
 
-function setup(isMouse = true, direction?: 'ltr' | 'rtl', reader?: SwipeReaderOption, getContext: () => unknown = () => ({ getImageData }), paintDraft?: (node: HTMLElement, geometry: unknown) => void) {
+function setup(isMouse = true, direction?: 'ltr' | 'rtl', reader?: SwipeReaderOption, getContext: () => unknown = () => ({ getImageData }), paintDraft?: (node: HTMLElement, geometry: unknown) => void, directionAt?: (point: { x: number; y: number }) => 'ltr' | 'rtl') {
   const canvas = { width: W, height: H, getContext };
   const container = { parentElement: { querySelector: () => canvas } } as unknown as HTMLElement;
   const node = document.createElement('div');
@@ -48,6 +48,7 @@ function setup(isMouse = true, direction?: 'ltr' | 'rtl', reader?: SwipeReaderOp
       direction,
       ...(reader !== undefined ? { reader } : {}),
       ...(paintDraft ? { paintDraft } : {}),
+      ...(directionAt ? { directionAt } : {}),
     },
     { pageIndex: 0, container, id: 'h1', newEl, start: { x: (30 / W) * 100, y: (107 / H) * 100 }, getElementNode: () => node },
   );
@@ -134,6 +135,38 @@ describe('startHighlightSwipe with a given reader', () => {
     expect(getContext).not.toHaveBeenCalled();
     expect(reader.bandsBetween).toHaveBeenCalled();
     expect(types(dispatch)).toEqual(['UPDATE_ELEMENT', 'DISARM_TOOL']);
+  });
+});
+
+describe('startHighlightSwipe with directionAt', () => {
+  const band = { left: 10, top: 20, width: 30, height: 5 };
+  const readerSpy = () => ({ bandsBetween: vi.fn((..._args: unknown[]) => [band]), onText: vi.fn(), onLine: vi.fn() });
+
+  it('asks it at each move, passes the answer to the bands and commits the last one', () => {
+    const reader = readerSpy();
+    let answer: 'ltr' | 'rtl' = 'ltr';
+    const { dispatch } = setup(true, undefined, reader as never, undefined, undefined, () => answer);
+    move(60, 107);
+    answer = 'rtl';
+    move(20, 107);
+    expect(reader.bandsBetween.mock.calls.at(-2)![2]).toBe('ltr');
+    expect(reader.bandsBetween.mock.calls.at(-1)![2]).toBe('rtl');
+    release();
+    expect(dispatch.mock.calls[0][0].payload.changes.direction).toBe('rtl');
+  });
+
+  it('commits no direction when the last answer is ltr, whatever the fixed one was', () => {
+    const { dispatch } = setup(true, 'rtl', readerSpy() as never, undefined, undefined, () => 'ltr');
+    move(60, 107);
+    release();
+    expect(dispatch.mock.calls[0][0].payload.changes).not.toHaveProperty('direction');
+  });
+
+  it('absent, the fixed direction is passed to the bands as today', () => {
+    const reader = readerSpy();
+    setup(true, 'rtl', reader as never);
+    move(60, 107);
+    expect(reader.bandsBetween.mock.calls.at(-1)![2]).toBeUndefined();
   });
 });
 
