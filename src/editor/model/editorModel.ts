@@ -166,8 +166,8 @@ export interface HighlightElement extends ElementBase, BoxGeometry {
   bands: HighlightBand[];
   /** SIGN-44: the swiped text's reading direction, so the comment number sits where the passage starts. Absent is LTR. */
   direction?: 'ltr' | 'rtl';
-  /** READ-03: absent is a highlight band; `'underline'` draws and exports a line at each band's bottom. */
-  style?: 'underline';
+  /** READ-03: absent is a highlight band; `'underline'` draws and exports a line at each band's bottom. READ-14: `'pencil'` hatches each band in the mark's color. */
+  style?: 'underline' | 'pencil';
   /** READ-03: 0.3 to 1, absent is 1. */
   opacity?: number;
   /** READ-04: an underline's line width in PDF points, within UNDERLINE_WIDTH; absent is its default. */
