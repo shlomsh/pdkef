@@ -1,0 +1,34 @@
+import { test, expect } from '@playwright/test';
+import { openTool } from '../../../../e2e/support/tool.js';
+import { makePdfBuffer } from '../../../../e2e/support/pdf.js';
+
+/* A fixed floating panel inside the sticky editor card. WebKit makes an element with backdrop-filter the containing
+   block of its fixed descendants while floating-ui assumes it does not, so the glass on the card itself pushed the
+   phone's mark panel 16 px right of its gutters on iOS. Only WebKit lays it out that way, so this runs in the webkit
+   project. */
+
+test.use({ serviceWorkers: 'block', isMobile: false, hasTouch: true, viewport: { width: 402, height: 874 } });
+
+test('on a phone the mark panel keeps its 16 px gutters inside the glass editor card', async ({ page }) => {
+  const source = await makePdfBuffer(null, { title: false, lines: [{ text: 'A line of text a student would highlight', y: 700 }] });
+  await openTool(page, '/highlight-pdf/', { file: { name: 'gutters.pdf', buffer: source }, overlaySelector: '[data-page-overlay]' });
+  const box = await page.locator('[data-page-overlay]').first().boundingBox();
+  const y = box.y + box.height * ((792 - 694) / 792);
+  await page.mouse.move(box.x + box.width * (72 / 612), y);
+  await page.mouse.down();
+  await page.mouse.move(box.x + box.width * (330 / 612), y, { steps: 8 });
+  await page.mouse.up();
+  const mark = page.locator('[data-page-overlay] [data-element-id]');
+  await expect(mark).toHaveCount(1);
+  const band = await mark.boundingBox();
+  await page.touchscreen.tap(band.x + band.width / 2, band.y + band.height / 2);
+  const row = page.locator('[data-marker-row]');
+  await expect(row).toBeVisible();
+
+  const { left, right, width } = await page.evaluate(() => {
+    const r = document.querySelector('[data-marker-row]').closest('[id]').getBoundingClientRect();
+    return { left: r.left, right: r.right, width: window.innerWidth };
+  });
+  expect(left).toBeCloseTo(16, 0);
+  expect(width - right).toBeCloseTo(16, 0);
+});

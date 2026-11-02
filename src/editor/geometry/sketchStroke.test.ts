@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { sketchBands, sketchUnderline, strokeSeed, svgPath, type PathOp, type SketchRect } from './sketchStroke.ts';
+import { sketchBands, sketchUnderline, strokeSeed, svgPath, type SketchRect } from './sketchStroke.ts';
 
 const lines: SketchRect[] = [{ x: 40, y: 100, w: 300, h: 14 }, { x: 40, y: 116, w: 180, h: 14 }];
 const seed = strokeSeed('mark-1');
-const nums = (ops: readonly PathOp[]) => ops.flatMap((op) => op.slice(1) as number[]);
+const nums = (ops: ReturnType<typeof sketchBands>) => ops.flatMap((op) => op.slice(1) as number[]);
 
 describe('strokeSeed', () => {
   it('is FNV-1a', () => { expect(strokeSeed('a')).toBe(0xe40c292c); });
