@@ -38,19 +38,21 @@ function mountPhone(text: string) {
 describe('CommentSheet on a phone (coarse pointer)', () => {
   it('Save on an existing comment leaves the edit field closed', () => {
     mountPhone('hello');
-    act(() => tap(host!.querySelector('p')!));
+    act(() => tap(host!.querySelector('[data-comment-more]')!));
+    act(() => tap(host!.querySelector('[data-comment-menu-edit]')!));
     expect(host!.querySelector('textarea')).not.toBeNull();
     const field = host!.querySelector<HTMLTextAreaElement>('textarea')!;
     field.value = 'hello again';
     act(() => { field.dispatchEvent(new Event('input', { bubbles: true })); });
-    act(() => tap(button(englishSignMessages.highlightCommentLabel)));
+    act(() => tap(button(englishSignMessages.commentSave)));
     expect(host!.querySelector('textarea')).toBeNull();
     expect(host!.querySelector('p')!.textContent).toBe('hello again');
   });
 
   it('Cancel on an existing comment leaves the edit field closed', () => {
     mountPhone('hello');
-    act(() => tap(host!.querySelector('p')!));
+    act(() => tap(host!.querySelector('[data-comment-more]')!));
+    act(() => tap(host!.querySelector('[data-comment-menu-edit]')!));
     expect(host!.querySelector('textarea')).not.toBeNull();
     act(() => tap(button(englishSignMessages.commentCancel)));
     expect(host!.querySelector('textarea')).toBeNull();

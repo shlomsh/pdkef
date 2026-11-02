@@ -20,12 +20,12 @@ const note = (comment: string): EditorElement => ({
   id: 'c', type: 'comment', pageIndex: 0, left: 1, top: 1, width: 10, height: 2, comment, anchor: { kind: 'element', elementId: 'm' },
 });
 
-function Probe({ showContainer, width, elements = [], activeElementId = null, withMark = false, readActions }: {
-  showContainer: boolean; width: number; elements?: EditorElement[]; activeElementId?: string | null; withMark?: boolean; readActions?: boolean;
+function Probe({ showContainer, width, elements = [], activeElementId = null, withMark = false }: {
+  showContainer: boolean; width: number; elements?: EditorElement[]; activeElementId?: string | null; withMark?: boolean;
 }) {
   view = useCommentsView({
     elements, activeElementId, messages: englishSignMessages,
-    onSelect: () => {}, onSave: () => {}, onDelete: () => {}, onDiscard: () => {}, readActions,
+    onSelect: () => {}, onSave: () => {}, onDelete: () => {}, onDiscard: () => {}
   });
   return showContainer ? (
     <div ref={(node) => { if (node) node.getBoundingClientRect = () => ({ width } as DOMRect); view.containerRef(node); }}>
@@ -42,7 +42,7 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-function mount(props: { showContainer: boolean; width: number; elements?: EditorElement[]; activeElementId?: string | null; withMark?: boolean; readActions?: boolean }) {
+function mount(props: { showContainer: boolean; width: number; elements?: EditorElement[]; activeElementId?: string | null; withMark?: boolean}) {
   container ??= document.createElement('div');
   act(() => render(<Probe {...props} />, container!));
 }
@@ -53,12 +53,12 @@ describe('useCommentsView', () => {
     expect(view.sheet).toBeNull();
   });
 
-  it('the rail shows the read buttons on the selected card only when readActions is on', () => {
-    const props = { showContainer: true, width: 1200, elements: [mark, note('hi')], activeElementId: 'c' };
-    mount(props);
-    expect(container!.querySelector('[data-comment-read-delete]')).toBeNull();
-    mount({ ...props, readActions: true });
-    expect(container!.querySelector('[data-comment-read-delete]')).not.toBeNull();
+  it('the rail shows the more button on the selected card only', () => {
+    const props = { showContainer: true, width: 1200, elements: [mark, note('hi')] };
+    mount({ ...props, activeElementId: null });
+    expect(container!.querySelector('[data-comment-more]')).toBeNull();
+    mount({ ...props, activeElementId: 'c' });
+    expect(container!.querySelector('[data-comment-more]')).not.toBeNull();
   });
 
   it('uses the sheet on a narrow container', () => {
