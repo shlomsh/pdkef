@@ -215,7 +215,7 @@ export function readRecentFiles(): DraftEntry[] {
 export async function cacheRecentFile(tool: string, record: DraftSaveRecord | null | undefined): Promise<boolean> {
   if (!hasIndexedDB() || !record?.fileBytes) return false;
   await ensureMigrated();
-  // expected: crypto.subtle missing, returns false
+  // expected: the bytes cannot be hashed, returns false
   const id = await sourceIdForBytes(record.fileBytes).catch(() => null);
   if (!id) return false;
   const savedAt = Date.now();
@@ -516,9 +516,9 @@ export async function saveDraft(tool: string, record: DraftSaveRecord): Promise<
   // avoids storing the same image twice.
   const { preview, fileBytes, files, fileName, fileType, ...toolFields } = record;
   const id = isMulti
-    // expected: crypto.subtle missing, save skipped
+    // expected: the bytes cannot be hashed, save skipped
     ? await sourceIdForFiles(files as DraftFile[]).catch(() => null)
-    // expected: crypto.subtle missing, save skipped
+    // expected: the bytes cannot be hashed, save skipped
     : await sourceIdForBytes(fileBytes).catch(() => null);
   if (!id) return false;
   const { savedAt } = createDraftRetention();
