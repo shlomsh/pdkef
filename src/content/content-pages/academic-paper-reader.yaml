@@ -46,12 +46,12 @@ sections:
     blocks:
       - kind: 'image'
         src: '/images/paper-reader-guide/marked-paper.jpg'
-        alt: 'A two-column sample paper in Highlight PDF with yellow, green and pink highlights, one underlined line, and a comment in the margin beside the yellow passage'
+        alt: 'A two-column sample paper in Highlight PDF with hand-drawn yellow, green and pink highlights, a sketched pink underline, and two comments in the margin beside their passages'
         width: 1000
         height: 600
         caption: >-
-          <strong>One page of a sample paper, marked in Highlight PDF.</strong> Three colors, an
-          underline, and a comment in the margin beside the passage it is about.
+          <strong>One page of a sample paper, marked in Highlight PDF.</strong> Three colors and an
+          underline in the Sketch stroke, and each comment in the margin beside the passage it is about.
       - kind: 'prose'
         text: >-
           Open the paper and a yellow marker is already in your hand. Drag along a line and the
@@ -66,19 +66,21 @@ sections:
     blocks:
       - kind: 'image'
         src: '/images/paper-reader-guide/mark-toolbar.jpg'
-        alt: 'A yellow highlight on a paper with its toolbar open above it: three markers, more colors, highlight or underline, opacity, Comment and Delete'
+        alt: 'A sketched yellow highlight with its toolbar open above it, and the stroke setting open below the toolbar with Sketch picked over Clean and an opacity slider'
         width: 1000
-        height: 316
+        height: 400
         caption: >-
           <strong>Rest on a highlight for its toolbar:</strong> its colors, highlight or underline,
-          opacity, Comment and Delete.
+          the stroke and opacity, Comment and Delete.
       - kind: 'prose'
         text: >-
           Rest the pointer on a highlight, or tap it on an iPad, and its toolbar opens. Whatever you
           pick becomes your marker for the next lines, so a color can carry a meaning: yellow for
-          claims, green for methods, pink for the parts you want to question. <strong>Comment</strong>
-          opens a card in the margin beside its passage, and the card moves with the page as you scroll
-          and zoom.
+          claims, green for methods, pink for the parts you want to question. Pick
+          <strong>Sketch</strong> and every highlight and underline looks drawn by hand, with a chisel
+          edge and ends that run a little past the line, the same on screen, in print and in the
+          downloaded PDF. <strong>Comment</strong> opens a card in the margin beside its passage, and
+          the card moves with the page as you scroll and zoom.
   - variant: 'highlight'
     sketch: 'rings'
     icon: 'ScanText'
@@ -91,7 +93,7 @@ sections:
         afterSrc: '/images/paper-reader-guide/scanned-after.jpg'
         beforeLabel: 'Scanned page'
         afterLabel: 'Highlighted'
-        alt: 'A slightly tilted scanned page of a paper with no marks, wiping to the same scan with a yellow and a green highlight lying along two lines'
+        alt: 'A slightly tilted scanned page of a paper with no marks, wiping to the same scan with sketched yellow and green highlights and a pink underline lying along their lines'
         width: 1000
         height: 600
         caption: >-
@@ -112,7 +114,7 @@ sections:
     blocks:
       - kind: 'image'
         src: '/images/paper-reader-guide/reading-lamp.jpg'
-        alt: 'Highlight PDF in full screen: the marked paper fills the view, a small capsule of controls floats at the top, and the comment sits beside the page'
+        alt: 'Highlight PDF in full screen: the marked paper fills the view, a small capsule of controls floats at the top, and the comments sit beside the page'
         width: 1000
         height: 672
         caption: >-
@@ -127,22 +129,55 @@ sections:
   - sketch: 'arcs'
     icon: 'Printer'
     iconPos: 'tr'
-    kicker: 'Keep your notes'
-    heading: 'Print with your notes, or keep them in the PDF'
+    kicker: 'Print'
+    heading: 'Three ways to print a marked paper'
     blocks:
+      - kind: 'prose'
+        text: >-
+          A downloaded PDF keeps each comment as a note that opens on a click, and those notes usually
+          stay off the paper when you print. So <strong>Print</strong> in Highlight PDF lays the paper
+          out for printing in three ways. The two with notes appear once the paper has a comment.
+      - kind: 'table'
+        caption: 'The three print options, and when each one helps.'
+        headers: ['Print option', 'What you get', 'Good for']
+        rows:
+          - ['Print', 'The pages with their highlights and underlines, at full size', 'Rereading on paper, or a clean copy to bring along']
+          - ['Print with my notes', 'Each page a little smaller, with every comment in the right margin beside its passage', 'A seminar or revision, where a note belongs next to its line']
+          - ['Print with notes at the end', 'The pages at full size, then a Notes sheet listing every comment with its page', 'Long comments, or pages that need all their room']
       - kind: 'image'
         src: '/images/paper-reader-guide/print-with-notes.jpg'
-        alt: 'A print sheet of the marked paper, the page a little smaller, with its comment printed in the right margin beside the yellow passage'
+        alt: 'A print sheet of the marked paper, the page a little smaller, with its two comments printed in the right margin beside the yellow and pink passages'
         width: 1000
         height: 650
         caption: >-
-          <strong>Print with my notes:</strong> the comment lands in the margin beside the lines it is
-          about, ready for a seminar.
+          <strong>Print with my notes:</strong> each comment lands in the margin beside the lines it is
+          about.
+      - kind: 'image'
+        src: '/images/paper-reader-guide/print-notes-at-end.jpg'
+        alt: 'The Notes sheet printed after the pages, listing two comments, each under its page number and edged in its highlight color'
+        width: 1000
+        height: 354
+        caption: >-
+          <strong>Print with notes at the end:</strong> the pages print at full size, and a Notes sheet
+          follows with every comment and its page.
+      - kind: 'image'
+        src: '/images/paper-reader-guide/print-plain.jpg'
+        alt: 'A plain print sheet of the paper at full size with its sketched highlights and underline and no notes'
+        width: 1000
+        height: 604
+        caption: >-
+          <strong>Print:</strong> the pages and your marks, nothing else, with the sketched strokes just
+          as they look on screen.
+  - sketch: 'grid'
+    icon: 'Save'
+    iconPos: 'bl'
+    kicker: 'Keep your notes'
+    heading: 'Your marks stay in the PDF and on your device'
+    blocks:
       - kind: 'table'
-        caption: 'Where your highlights and comments go, depending on what you need next.'
+        caption: 'Where your highlights and comments go after you close the paper.'
         headers: ['What you need', 'What to do']
         rows:
-          - ['Take your notes into a seminar or an exam', 'Print with my notes: each page a little smaller, its comments in the right margin beside their passages']
           - ['Share a marked paper with a study partner or a supervisor', 'Download: highlights and comments are saved as standard PDF annotations that open in any PDF viewer']
           - ['Come back to the paper later', 'It stays in your recent files on this device with everything you did']
           - ['Edit your marks again after downloading', 'Open the downloaded file here again and every highlight and comment comes back editable']
@@ -184,9 +219,15 @@ faq:
       come back editable when you open the file in Highlight PDF again.
   - question: 'Can I print a paper with my comments?'
     answer: >-
-      Yes. Once a paper has a comment, Print offers Print with my notes, which makes each page a
-      little smaller and puts its comments in the right margin beside their passages. It can also put
-      the notes at the end. Plain Print gives the pages with their highlights.
+      Yes, in three ways. Print gives the pages with their highlights at full size. Print with my notes
+      makes each page a little smaller and puts its comments in the right margin beside their passages.
+      Print with notes at the end keeps the pages at full size and lists every comment with its page on
+      a Notes sheet after them. The two with notes appear once the paper has a comment.
+  - question: 'Can my highlights look hand drawn?'
+    answer: >-
+      Yes. Choose Sketch in a highlight's stroke setting and its band or underline gets a chisel edge
+      and ends that run a little past the line. It looks the same on screen, in print and in the
+      downloaded PDF.
   - question: 'Does it work on an iPad?'
     answer: >-
       Yes, in Safari. Swipe along a line to highlight it, tap a highlight to open its toolbar, and use
