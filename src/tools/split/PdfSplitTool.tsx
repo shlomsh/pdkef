@@ -36,7 +36,7 @@ import PageRangeField from '#shell/pageWorkspace/PageRangeField.tsx';
 import { buildSplit, type SplitMode } from './lib/splitOutput.ts';
 import SplitHeading from './components/SplitHeading.tsx';
 import SplitBulkRow from './components/SplitBulkRow.tsx';
-import { outputBaseName, extractedFileName } from './lib/split.js';
+import { outputBaseName, extractedTitle } from './lib/split.js';
 
 
 // The one file has one source in the shared plan.
@@ -110,9 +110,9 @@ export default withIslandBoundary(function PdfSplitTool({
   const outputCount = outputPageCount(plan);
   const skippedCount = plan.length - outputCount;
   const baseName = file ? outputBaseName(file.name) : '';
-  const title = customName ?? baseName;
+  const title = customName ?? extractedTitle(baseName);
   const combined = mode === 'combined';
-  const fileName = combined ? extractedFileName(title) : `${baseName}-page-N.pdf`;
+  const fileName = combined ? `${title}.pdf` : `${baseName}-page-N.pdf`;
 
   // The output name is not in the key: renaming never rebuilds.
   const key = file && workingFile && loadStatus === 'idle' && !needsUnlock && outputCount > 0
@@ -158,7 +158,7 @@ export default withIslandBoundary(function PdfSplitTool({
 
   // '' means the person emptied the name, which goes back to the source's own.
   const renameOutput = useCallback((next: string) => {
-    setCustomName(next.length > 0 && next !== baseName ? next : null);
+    setCustomName(next.length > 0 && next !== extractedTitle(baseName) ? next : null);
   }, [baseName]);
 
   const pdfsLabel = (n: number) => (n === 1 ? t.pdfOne : formatMessage(t.pdfOther, { count: n }));

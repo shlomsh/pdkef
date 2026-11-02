@@ -336,16 +336,16 @@ describe('PdfSplitTool UI flow', () => {
     await open();
     const builds = harness.createdBlobs().length;
     const nameEl = () => container.querySelector('[aria-label="File name, editable"]');
-    expect(nameEl().textContent).toBe('open');
+    expect(nameEl().textContent).toBe('extracted_open');
     expect(downloadElement().getAttribute('download')).toBe('extracted_open.pdf');
     await act(async () => { nameEl().dispatchEvent(new MouseEvent('mousedown', { bubbles: true })); });
     await act(async () => { nameEl().textContent = 'chapter two'; });
     await act(async () => {
       nameEl().dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }));
     });
-    await until(() => heading()?.textContent.includes('extracted_chapter two.pdf'));
-    expect(heading().textContent).toContain('extracted_chapter two.pdf');
-    expect(downloadElement().getAttribute('download')).toBe('extracted_chapter two.pdf');
+    await until(() => heading()?.textContent.includes('chapter two.pdf'));
+    expect(heading().textContent).toContain('chapter two.pdf');
+    expect(downloadElement().getAttribute('download')).toBe('chapter two.pdf');
     expect(harness.createdBlobs().length).toBe(builds);
   });
 

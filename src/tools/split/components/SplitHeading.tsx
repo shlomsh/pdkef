@@ -28,7 +28,6 @@ export default function SplitHeading({
       <span class="sr-only">{t.documentHeading}</span>
       {combined ? (
         <OutputName
-          prefix="extracted_"
           name={title}
           label={t.fileNameEditableLabel}
           onRename={onRename}

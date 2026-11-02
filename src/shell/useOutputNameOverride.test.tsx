@@ -20,19 +20,20 @@ function mount(initial: File | null) {
 const pdf = (name: string) => new File(['x'], name, { type: 'application/pdf' });
 
 describe('useOutputNameOverride', () => {
-  it('starts as prefix plus the source name', () => {
+  it('starts as prefix plus the source name, all of it editable', () => {
     const h = mount(pdf('Lease.pdf'));
+    expect(h.get().identityRename.name).toBe('signed_Lease');
     expect(h.get().parts.fileName).toBe('signed_Lease.pdf');
   });
 
-  it('a typed name wins; empty or the source name goes back to automatic', () => {
+  it('a typed name replaces the whole name, prefix included; empty or the automatic name goes back', () => {
     const h = mount(pdf('Lease.pdf'));
     act(() => h.get().rename('Final'));
-    expect(h.get().parts.fileName).toBe('signed_Final.pdf');
+    expect(h.get().parts.fileName).toBe('Final.pdf');
     act(() => h.get().rename(''));
     expect(h.get().parts.fileName).toBe('signed_Lease.pdf');
     act(() => h.get().rename('Final'));
-    act(() => h.get().rename('Lease'));
+    act(() => h.get().rename('signed_Lease'));
     expect(h.get().customised).toBe(false);
   });
 

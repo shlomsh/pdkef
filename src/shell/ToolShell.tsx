@@ -15,7 +15,7 @@ interface FileAction {
 }
 
 export interface IdentityRename {
-  prefix: string;
+  /** The whole editable name without its extension. */
   name: string;
   onRename: (next: string) => void;
   onEditingChange?: (editing: boolean) => void;
