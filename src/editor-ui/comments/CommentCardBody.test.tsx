@@ -12,11 +12,11 @@ const card = (over: Partial<CommentCard> = {}): CommentCard => ({ id: 'h1', dire
 let host: HTMLDivElement | null = null;
 afterEach(() => { if (host) render(null, host); host?.remove(); host = null; });
 
-function mount(props: { card: CommentCard; active?: boolean; onSelect?: () => void; onSave?: (p: { comment: string; commentedAt: number }) => void; onDelete?: () => void; onDiscard?: () => void; onReturnFocus?: () => void; label?: string}) {
+function mount(props: { card: CommentCard; active?: boolean; onSelect?: () => void; onSave?: (p: { comment: string; commentedAt: number }) => void; onDelete?: () => void; onDiscard?: () => void; onReturnFocus?: () => void; onEdit?: () => void; label?: string}) {
   host = document.createElement('div');
   document.body.appendChild(host);
   const draw = (c: CommentCard, active: boolean) => act(() => render(
-    <CommentCardBody card={c} active={active} messages={englishSignMessages} onSelect={props.onSelect ?? (() => {})} onSave={props.onSave ?? (() => {})} onDelete={props.onDelete ?? (() => {})} onDiscard={props.onDiscard ?? (() => {})} onReturnFocus={props.onReturnFocus} label={props.label ?? 'Comment on page 1'} />, host!));
+    <CommentCardBody card={c} active={active} messages={englishSignMessages} onSelect={props.onSelect ?? (() => {})} onSave={props.onSave ?? (() => {})} onDelete={props.onDelete ?? (() => {})} onDiscard={props.onDiscard ?? (() => {})} onReturnFocus={props.onReturnFocus} onEdit={props.onEdit} label={props.label ?? 'Comment on page 1'} />, host!));
   draw(props.card, props.active ?? false);
   return { redraw: (c: CommentCard, active = props.active ?? false) => draw(c, active) };
 }
@@ -28,6 +28,20 @@ const openEdit = () => { openMenu(); act(() => q<HTMLElement>('[data-comment-men
 const type = (value: string) => act(() => { const t = q<HTMLTextAreaElement>('textarea'); t.value = value; t.dispatchEvent(new Event('input', { bubbles: true })); });
 
 describe('CommentCardBody', () => {
+  describe('with onEdit (the phone writes elsewhere)', () => {
+    it('Edit calls onEdit and opens no field', () => {
+      const onEdit = vi.fn();
+      mount({ card: card(), active: true, onEdit });
+      openEdit();
+      expect(onEdit).toHaveBeenCalledOnce();
+      expect(host!.querySelector('textarea')).toBeNull();
+    });
+    it('a new blank card still renders its read state', () => {
+      mount({ card: card({ comment: '', isNew: true }), active: true, onEdit: () => {} });
+      expect(host!.querySelector('textarea')).toBeNull();
+    });
+  });
+
   it('a closed card shows only its text, clamped, with no buttons or hint; a click and Enter select it', () => {
     const onSelect = vi.fn();
     mount({ card: card(), onSelect });

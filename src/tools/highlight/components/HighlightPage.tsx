@@ -40,7 +40,7 @@ const noop = () => {};
  * One page card: its header, the page, and a wrapper per highlight on it. While armed, a press from any pointer on the
  * page starts a swipe that lays the marker's bands; the gesture paints during the swipe and commits once.
  */
-export default function HighlightPage({ pdfDocument, pageIndex, widthPx, chrome = 1, elements, marker, armed = true, pickedId, openMarks, onPickMark, rearm, dispatch, logAction, setAnnouncement, cardRef, rail, pageTurns = {}, onRotate, onClear }: {
+export default function HighlightPage({ pdfDocument, pageIndex, widthPx, chrome = 1, elements, marker, armed = true, pickedId, openMarks, onPickMark, rearm, dispatch, logAction, setAnnouncement, cardRef, rail, pageTurns = {}, onComment, onRotate, onClear }: {
   pdfDocument: PDFDocumentProxy | null;
   pageIndex: number;
   /** The page's width in CSS px at the current zoom. */
@@ -68,6 +68,8 @@ export default function HighlightPage({ pdfDocument, pageIndex, widthPx, chrome 
   rail?: ComponentChildren;
   /** The quarter turns the person gave each page; this page is drawn, and marked, as turned. */
   pageTurns?: PageTurns;
+  /** READ-19, the workspace's Comment, which opens the phone's writing page on a narrow workspace. */
+  onComment?: (mark: HighlightElement) => void;
   /** One quarter turn, handed the page as it is shown now (the turn's starting point). */
   onRotate: (geometry: PageGeometry) => void;
   onClear: () => void;
@@ -171,7 +173,7 @@ export default function HighlightPage({ pdfDocument, pageIndex, widthPx, chrome 
           <RestToolbar
             key={target.id} mark={target}
             onChange={(change) => commands.change(target, change)} onDelete={() => { commands.remove(target); rest.close(); }}
-            onComment={() => { commands.comment(target); rest.close(); }} onClose={rest.close}
+            onComment={() => { (onComment ?? commands.comment)(target); rest.close(); }} onClose={rest.close}
           />
         )}
       </div>

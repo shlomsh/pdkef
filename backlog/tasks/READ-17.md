@@ -77,3 +77,5 @@ first line, so the open note keeps its full width.
 - [x] iPhone simulator check: not possible 2026-11-02. Safari's page process crashes at launch in `dyld_sim` on
   this Mac's iOS 26.2 runtime (SIGBUS in `DyldSharedCache::getUUID`), before any page code runs. Closed on the
   WebKit checks at 1400 and 402 px instead (Shlomi, 2026-11-02).
+- [x] On a real iPhone, through [READ-19](READ-19.md) (2026-11-02): it rebuilt where a phone note is written, and
+  Shlomi's check of it covers this card in the pane.

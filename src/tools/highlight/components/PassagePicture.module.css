@@ -1,0 +1,14 @@
+/* READ-19: the writing page lays it out (gutters and gap), so the picture lines up with the field. */
+.picture {
+  margin: 0;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--color-surface);
+}
+
+.canvas {
+  display: block;
+  max-width: 100%;
+  height: auto;
+}

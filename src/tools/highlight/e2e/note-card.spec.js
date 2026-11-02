@@ -101,7 +101,7 @@ test.describe('in the phone note pane', () => {
     const band = await page.locator('[data-page-overlay] [data-element-id]').first().boundingBox();
     await tapUntil(page, { x: band.x + band.width / 2, y: band.y + band.height / 2 }, async () => (await page.locator('[data-marker-row]:visible').count()) === 1);
     await page.getByRole('button', { name: 'Comment' }).first().click();
-    await expect(page.locator('[data-note-pane] textarea')).toBeFocused();
+    await expect(page.locator('[data-note-writer-input]')).toBeFocused();
     await page.keyboard.type('short note');
     await page.keyboard.press('Control+Enter');
 

@@ -18,7 +18,7 @@ afterEach(() => {
 });
 
 function mount(activeElementId: string | null, over: Partial<Parameters<typeof NotePane>[0]> = {}) {
-  const props = { onSelect: vi.fn(), onSave: vi.fn(), onDelete: vi.fn(), onDiscard: vi.fn(), onUndo: vi.fn() };
+  const props = { onSelect: vi.fn(), onSave: vi.fn(), onDelete: vi.fn(), onDiscard: vi.fn(), onUndo: vi.fn(), onEdit: vi.fn() };
   host = document.createElement('div');
   document.body.appendChild(host);
   act(() => render(<NotePane elements={elements} activeElementId={activeElementId} messages={englishSignMessages} labels={t.notes} {...props} {...over} />, host!));
@@ -84,13 +84,31 @@ describe('NotePane', () => {
     expect(onSelect).toHaveBeenCalledWith('c2');
   });
 
-  it('sits above the on-screen keyboard', () => {
-    const vv = Object.assign(new EventTarget(), { height: 500, pageTop: 0 });
-    vi.stubGlobal('visualViewport', vv);
-    Object.defineProperty(window, 'innerHeight', { value: 800, configurable: true });
-    const { root } = mount('c1');
-    expect(root()!.style.bottom).toBe('300px');
-    act(() => { vv.height = 800; vv.dispatchEvent(new Event('resize')); });
-    expect(root()!.style.bottom).toBe('0px');
+  it('sets no inline bottom: it has no keyboard to ride above', () => {
+    expect(mount('c1').root()!.style.bottom).toBe('');
+  });
+
+  it('opening a note keeps its passage out from under the pane', () => {
+    const anchor = document.createElement('div');
+    anchor.setAttribute('data-editor-element-id', 'm1');
+    let marginAtScroll = '';
+    anchor.scrollIntoView = vi.fn(() => { marginAtScroll = anchor.style.scrollMarginBottom; });
+    document.body.appendChild(anchor);
+    const height = vi.spyOn(HTMLElement.prototype, 'offsetHeight', 'get').mockReturnValue(220);
+    mount('c1');
+    expect(marginAtScroll).toBe('220px');
+    expect(anchor.style.scrollMarginBottom).toBe('');
+    expect(anchor.scrollIntoView).toHaveBeenCalled();
+    height.mockRestore();
+    anchor.remove();
+  });
+
+  it('Edit in a card asks the workspace to write that note', () => {
+    const onEdit = vi.fn();
+    const { root, click } = mount('c2', { onEdit });
+    click(root()!.querySelector('[data-note-card="c2"] [data-comment-more]')!);
+    click(root()!.querySelector('[data-note-card="c2"] [data-comment-menu-edit]')!);
+    expect(onEdit).toHaveBeenCalledWith('c2');
+    expect(root()!.querySelector('textarea')).toBeNull();
   });
 });

@@ -15,7 +15,7 @@ import ZoomMenu from './ZoomMenu.tsx';
 import HighlightPage from './HighlightPage.tsx';
 import MarkerButton from './MarkerButton.tsx';
 import PenHint from './PenHint.tsx';
-import NotePane from './NotePane.tsx';
+import PhoneNotes from './PhoneNotes.tsx';
 import { englishSignMessages } from '#editor/registry/signMessages.ts';
 import DownloadDone from './DownloadDone.tsx';
 import LampCord from './LampCord.tsx';
@@ -33,6 +33,7 @@ import type { HighlightElement } from '#editor/model/editorModel.ts';
 import { coarsePointer, useMarkerArming } from '../hooks/useMarkerArming.ts';
 import { useMarkPanel } from '../hooks/useMarkPanel.ts';
 import { markCommands } from '../lib/marks/markCommands.ts';
+import { withPhoneWriting } from '../lib/notes/phoneWriting.ts';
 import { activeAfterPick } from '../lib/notes/notePane.ts';
 import { historyShortcuts, isMacPlatform } from '../lib/marker/historyShortcuts.ts';
 import { usePrint } from '../hooks/usePrint.ts';
@@ -137,7 +138,7 @@ export default function HighlightWorkspace({ pdfDocument, numPages, fileName, zo
     if (next !== marks.state.activeElementId) dispatch({ type: 'SET_ACTIVE_ELEMENT_ID', payload: next });
   };
   const picked = panel.markId ? elements.find((el) => el.id === panel.markId) as HighlightElement | undefined : undefined;
-  const commands = markCommands({ elements, dispatch, logAction: marks.logAction, rearm: marks.rearm, setAnnouncement });
+  const commands = withPhoneWriting(markCommands({ elements, dispatch, logAction: marks.logAction, rearm: marks.rearm, setAnnouncement }), elements, comments);
   const mark = picked && {
     look: markOf(picked), onChange: (change: Partial<typeof marks.marker>) => commands.change(picked, change),
     onComment: () => commands.comment(picked), onDelete: () => commands.remove(picked), onRelease: panel.release,
@@ -184,16 +185,14 @@ export default function HighlightWorkspace({ pdfDocument, numPages, fileName, zo
             key={i} pdfDocument={pdfDocument} pageIndex={i} widthPx={box.width * zoom.zoom}
             elements={marks.state.elements} marker={marks.marker} rearm={marks.rearm} dispatch={dispatch} logAction={marks.logAction}
             setAnnouncement={setAnnouncement} armed={touch.armed} pickedId={panel.markId} openMarks={openMarks} onPickMark={pickMark} cardRef={(el) => { pageRefs.current[i] = el; }} chrome={zoom.chrome} rail={comments.rail(i, (box.height * zoom.zoom) / zoom.chrome)}
-            pageTurns={marks.pageTurns} onRotate={(geometry) => { dispatch(rotatePageAction(i, geometry)); recordAction('rotate'); }}
+            pageTurns={marks.pageTurns} onComment={commands.comment} onRotate={(geometry) => { dispatch(rotatePageAction(i, geometry)); recordAction('rotate'); }}
             onClear={() => { const actions = clearPageActions(marks.state.elements, i); actions.forEach((a) => dispatch(a)); if (actions.length) recordAction('delete_mark'); }}
           />
         ))}
       </div>
       </div>
-      {!comments.wide && (
-        <NotePane elements={marks.state.elements} activeElementId={marks.state.activeElementId} messages={englishSignMessages} labels={t.notes}
+      <PhoneNotes wide={comments.wide} elements={marks.state.elements} activeElementId={marks.state.activeElementId} messages={englishSignMessages} labels={t.notes} writer={comments.writer} onEdit={commands.editNote}
           onSelect={(id) => dispatch({ type: 'SET_ACTIVE_ELEMENT_ID', payload: id })} {...comments.actions} onUndo={undo} onReturnFocus={comments.returnFocus} />
-      )}
     </div>
     </>
   );

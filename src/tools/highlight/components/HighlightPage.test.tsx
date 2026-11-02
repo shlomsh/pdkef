@@ -42,7 +42,7 @@ const dispatch = vi.fn();
 const logAction = vi.fn();
 const rearm = vi.fn();
 
-function mount(elements: EditorElement[], marker = DEFAULT_MARKER, armed?: boolean, extra: { chrome?: number; pickedId?: string | null; openMarks?: { openId: string | null; hoverId: string | null }; onPickMark?: (id: string) => void; rail?: preact.ComponentChildren; pageTurns?: Record<number, 1 | 2 | 3> } = {}) {
+function mount(elements: EditorElement[], marker = DEFAULT_MARKER, armed?: boolean, extra: { chrome?: number; pickedId?: string | null; openMarks?: { openId: string | null; hoverId: string | null }; onPickMark?: (id: string) => void; onComment?: (mark: HighlightElement) => void; rail?: preact.ComponentChildren; pageTurns?: Record<number, 1 | 2 | 3> } = {}) {
   act(() => render(
     <HighlightPage
       pdfDocument={null} pageIndex={0} widthPx={600} elements={elements} marker={marker} armed={armed} {...extra}
@@ -322,6 +322,17 @@ describe('HighlightPage rest toolbar', () => {
     expect(added).toMatchObject({ type: 'comment', comment: '', anchor: { kind: 'element', elementId: 'h1' } });
     expect(dispatch).toHaveBeenCalledWith({ type: 'SET_ACTIVE_ELEMENT_ID', payload: added.id });
     expect(logAction).not.toHaveBeenCalled();
+    expect(toolbar()).toBeNull();
+  });
+
+  it('READ-19: with an onComment prop the toolbar hands the mark to it and adds nothing itself', () => {
+    const onComment = vi.fn();
+    mount([mark], DEFAULT_MARKER, undefined, { onComment });
+    move(container.querySelector('[data-element-id]')!);
+    act(() => { vi.advanceTimersByTime(800); });
+    act(() => { toolbarButton('Comment').click(); });
+    expect(onComment).toHaveBeenCalledWith(mark);
+    expect(dispatch.mock.calls.some(([a]) => a.type === 'ADD_ELEMENT')).toBe(false);
     expect(toolbar()).toBeNull();
   });
 
