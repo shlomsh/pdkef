@@ -1,6 +1,7 @@
 import { test, expect } from '@playwright/test';
 import { openTool } from '../../../../e2e/support/tool.js';
 import { makePdfBuffer } from '../../../../e2e/support/pdf.js';
+import { expectControlsSized } from '../../../../e2e/support/layout.js';
 
 /* READ-04: the mark toolbar reuses Sign's .actions class, which is opacity 0 outside an active Sign element.
    Highlight's own rule must win whatever order the stylesheets load in. It shipped invisible once while every
@@ -53,11 +54,8 @@ test('the underline thickness menu draws a line for every thickness', async ({ p
   await page.mouse.click(band.x + band.width / 2, band.y + band.height / 2);
   await page.locator('[data-style-toggle] [role="radio"]:visible').nth(1).click();
   await page.locator('[data-setting-line]:visible').click();
-  const lines = page.locator('[data-editor-thickness] svg');
-  await expect(lines).toHaveCount(5);
-  for (const width of await lines.evaluateAll((svgs) => svgs.map((svg) => svg.getBoundingClientRect().width))) {
-    expect(width).toBeGreaterThan(60);
-  }
+  await expect(page.locator('[data-editor-thickness] svg')).toHaveCount(5);
+  await expectControlsSized(page.locator('[role="menu"]:has([data-editor-thickness])'), { selector: '[data-editor-thickness] svg', minWidth: 60 });
 });
 
 /* R47, R49: on a phone the picked mark's panel is one row from 402 px up, in the normal view and in full screen, and
@@ -121,11 +119,18 @@ test.describe('touch panel', () => {
         for (const r of oneLine) expect(Math.abs(r.y - rects[0].y), `${pen}: ${r.name} on the first line`).toBeLessThan(2);
       };
       await fits('yellow');
+      // Color cells, More and the switch halves keep the CSS floor (min-width 1.75rem = 28 px) and a 44 px target; a squeezed cell stayed green once.
+      const sized = async () => {
+        await expectControlsSized(row, { selector: '[data-highlight-swatch], [data-more-colors], [data-style-toggle] [role="radio"]', minWidth: 28, minHeight: 44 });
+        await expectControlsSized(row, { selector: 'svg', minWidth: 8, minHeight: 8 });
+      };
+      await sized();
       // A color behind More puts its ink band on the More button, which must still leave the row one line.
       await row.getByRole('button', { name: 'More colors' }).tap();
       await page.locator('[data-more-popover] [data-highlight-swatch]').first().tap();
       await expect(row.locator('[data-more-ink]')).toHaveCount(1);
       await fits('orange');
+      await sized();
       expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(w);
     });
   }

@@ -1,6 +1,7 @@
 import { test, expect } from '@playwright/test';
 import { openTool } from '../../../../e2e/support/tool.js';
 import { makePdfBuffer } from '../../../../e2e/support/pdf.js';
+import { expectControlsSized } from '../../../../e2e/support/layout.js';
 
 /* READ-04: Highlight's six controls sit in one row (Full screen is the cord under the card), but Sign's phone rule
    sizes the label font from --controls-per-row, which defaulted to 4 here: labels wrapped badly and "Download"
@@ -39,5 +40,8 @@ for (const size of [{ width: 402, height: 874 }, { width: 375, height: 812 }]) {
       expect(r.lines, `${r.text} line count`).toBeLessThanOrEqual(1);
     }
     expect(new Set(rows.map((r) => r.top)).size).toBe(1);
+    const bar = page.locator('[data-editor-toolbar]');
+    await expectControlsSized(bar, { selector: ':scope > *', minWidth: 44, minHeight: 44 });
+    await expectControlsSized(bar, { selector: 'svg', minWidth: 8, minHeight: 8 });
   });
 }
