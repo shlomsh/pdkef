@@ -24,6 +24,9 @@ import type { HighlightAction } from '../lib/marks/highlightState.ts';
 import { clearPageActions, rotatePageAction } from '../lib/marks/pageEditActions.ts';
 import { recordAction } from '#lib/telemetry/actionTrail.ts';
 import { NOTES_W } from '../lib/zoom/fit.ts';
+import { markOf } from '../lib/marker/markEdit.ts';
+import type { Marker } from '../lib/marker/markerState.ts';
+import type { HighlightElement } from '#editor/model/editorModel.ts';
 import { useTouchArming } from '../hooks/useTouchArming.ts';
 import { historyShortcuts, isMacPlatform } from '../lib/marker/historyShortcuts.ts';
 import { usePrint } from '../hooks/usePrint.ts';
@@ -118,6 +121,12 @@ export default function HighlightWorkspace({ pdfDocument, numPages, fileName, zo
   // One menu at a time: it belongs to the row or to the capsule, so changing view puts it away.
   const toggleView = () => { setPrintOpen(false); onToggleFullscreen(); };
   const touch = useTouchArming();
+  // The mark whose toolbar is open, as its page reports it: the pen bar shows and edits its look while it stands.
+  const [selection, setSelection] = useState<{ pageIndex: number; mark: HighlightElement; change(change: Partial<Marker>): void } | null>(null);
+  const onSelect = useCallback((page: number, next: typeof selection) => {
+    // A page reporting null clears only its own selection: it can arrive after another page's new one.
+    setSelection((current) => next ?? (current && current.pageIndex !== page ? current : null));
+  }, []);
   const markerButton = <MarkerButton marker={marks.marker} onChange={marks.rearm} armed={touch.armed} onTap={touch.arm} />;
 
   return (
@@ -149,7 +158,10 @@ export default function HighlightWorkspace({ pdfDocument, numPages, fileName, zo
       )}
       {fullscreen && <PrintMenu {...printMenu} />}
       {print.sheets}
-      <ArmedChip armed={touch.armed} onStop={touch.disarm} />
+      <ArmedChip
+        armed={touch.armed} look={selection ? markOf(selection.mark) : marks.marker}
+        onLook={selection ? selection.change : marks.rearm} onStop={touch.disarm}
+      />
       <div className={fullscreen ? `${styles.board} ${styles.lampBoard}` : styles.board} style={{ width: `${fullscreen ? zoom.board.boardWidth : columnW}px` }}>
       <div
         className={styles.column} ref={columnRef}
@@ -160,7 +172,7 @@ export default function HighlightWorkspace({ pdfDocument, numPages, fileName, zo
           <HighlightPage
             key={i} pdfDocument={pdfDocument} pageIndex={i} widthPx={box.width * zoom.zoom}
             elements={marks.state.elements} marker={marks.marker} rearm={marks.rearm} dispatch={dispatch} logAction={marks.logAction}
-            setAnnouncement={setAnnouncement} touchArmed={touch.armed} cardRef={(el) => { pageRefs.current[i] = el; }} chrome={zoom.chrome} rail={comments.rail(i, (box.height * zoom.zoom) / zoom.chrome)}
+            setAnnouncement={setAnnouncement} touchArmed={touch.armed} onSelect={(next) => onSelect(i, next)} cardRef={(el) => { pageRefs.current[i] = el; }} chrome={zoom.chrome} rail={comments.rail(i, (box.height * zoom.zoom) / zoom.chrome)}
             pageTurns={marks.pageTurns} onRotate={(geometry) => { dispatch(rotatePageAction(i, geometry)); recordAction('rotate'); }}
             onClear={() => { const actions = clearPageActions(marks.state.elements, i); actions.forEach((a) => dispatch(a)); if (actions.length) recordAction('delete_mark'); }}
           />

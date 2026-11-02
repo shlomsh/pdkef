@@ -44,8 +44,8 @@ function press(target: Element, { pointerType, button = 0 }: { pointerType: stri
   const event = new MouseEvent('pointerdown', { bubbles: true, cancelable: true, button, clientX: 50, clientY: 60 });
   Object.defineProperty(event, 'pointerType', { value: pointerType });
   act(() => { target.dispatchEvent(event); });
-  // The swipe starts once the pointer has travelled 4 px from the press.
-  act(() => { window.dispatchEvent(new MouseEvent('mousemove', { clientX: 50 + 6, clientY: 60 })); });
+  // The swipe starts once the pointer has travelled 4 px from the press, a finger 10 px and clearly sideways.
+  act(() => { window.dispatchEvent(new MouseEvent('mousemove', { clientX: 50 + 12, clientY: 60 })); });
 }
 
 beforeEach(() => {
@@ -195,7 +195,10 @@ const toolbar = () => container.querySelector<HTMLElement>('[role="toolbar"]');
 const toolbarButton = (name: string) => container.querySelector<HTMLElement>(`[role="toolbar"] button[aria-label="${name}"]`)!;
 
 describe('HighlightPage rest toolbar', () => {
-  beforeEach(() => { vi.useFakeTimers(); });
+  // The full bar (color and style too) is the mouse's; a finger sets the look on the pen bar.
+  let restorePointer = () => {};
+  beforeEach(() => { vi.useFakeTimers(); restorePointer = stubPointer(false); });
+  afterEach(() => restorePointer());
 
   it('opens on a highlight the pointer rests on, and not before', () => {
     mount([mark]);
@@ -302,25 +305,6 @@ function stubPointer(coarse: boolean) {
   return () => { window.matchMedia = original; };
 }
 
-describe('HighlightPage on a finger', () => {
-  let restore = () => {};
-  beforeEach(() => { restore = stubPointer(true); });
-  afterEach(() => restore());
-
-  it('a mark that lands opens its toolbar at once, with no hint', () => {
-    const overlay = mount([], DEFAULT_MARKER, true);
-    press(overlay, { pointerType: 'touch' });
-    const deps = startHighlightSwipe.mock.calls.at(-1)![0];
-    const added = dispatch.mock.calls.find(([a]) => a.type === 'ADD_ELEMENT')![0].payload as HighlightElement;
-    mount([added], DEFAULT_MARKER, true); // the reducer is a mock, so the page is handed the pressed mark
-    const changes = { left: 10, top: 20, width: 30, height: 4, bands: [{ left: 0, top: 0, width: 100, height: 100 }] };
-    act(() => deps.dispatch({ type: 'UPDATE_ELEMENT', payload: { id: added.id, changes } }));
-    mount([{ ...added, ...changes }], DEFAULT_MARKER, true); // and then the landed one
-    expect(container.querySelector('[data-rest-toolbar]')).not.toBeNull();
-    expect(container.querySelector('[data-mark-hint]')).toBeNull();
-  });
-});
-
 describe('HighlightPage one-time hint', () => {
   let restore = () => {};
   beforeEach(() => { restore = stubPointer(false); });
@@ -342,6 +326,13 @@ describe('HighlightPage one-time hint', () => {
     expect(container.querySelector('[data-mark-hint]')).toBeNull();
     finishStroke(overlay);
     expect(container.querySelector('[data-mark-hint]')).toBeNull();
+  });
+
+  it('asks to tap on a touch screen', () => {
+    restore();
+    restore = stubPointer(true);
+    finishStroke(mount([]));
+    expect(container.querySelector('[data-mark-hint]')?.textContent).toBe('Tap a highlight to change it');
   });
 
   it('a new stroke takes it away', () => {
