@@ -76,8 +76,9 @@ Marker puts it down and another picks it up again; it stays in the hand between 
 - **On touch, one finger marks only sideways along a line of text.** The first few pixels decide: sideways
   on a line lays a mark, anything else scrolls, and a finger that starts off the text moves the page in any
   direction. Two fingers always zoom and move the page and never mark. Reading with a finger never paints
-  by accident. While the marker is armed the toolbar says "Swipe to highlight" with the pen's
-  look beside it (R51, R52, R62).
+  by accident. Outside full screen the pinch is the browser's own, and zoomed in a finger on a line still
+  marks while one anywhere else moves the page. While the marker is armed the toolbar says "Swipe to highlight"
+  with the pen's look beside it (R51, R52, R62).
 - **Double-click marks a word, a third click its sentence**, the way selection works everywhere, sweeping in
   from the first letter.
 - **Underline is a style of the band, not a tool:** the line reader already knows the baseline, and the
@@ -100,6 +101,9 @@ Marker puts it down and another picks it up again; it stays in the hand between 
   uncaps while a band of its ink swipes in behind it, so the row shows the ink you get. More wears that band
   when the pen is one of its colors, and the wheel is a blank marker under a rainbow cap until a custom ink
   fills it. The Highlight | Underline switch keeps its soft tint (chosen 2026-11-02, "Ink swipe").
+- **A stroke can look drawn by hand.** Beside clean, the setting popover offers a sketch: a chisel-nib band with
+  uneven edges and ends that overshoot the line, seeded from the mark so screen, print and the PDF draw the same
+  wobble, and drawn as a vector path in the export (READ-11).
 - **Whatever is picked becomes the marker.** Changing one highlight re-arms the pen, so choosing a color
   once is choosing it for the next strokes. It is the only way to change the pen (R5).
 
