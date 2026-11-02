@@ -80,9 +80,9 @@ async function migrateLegacyDraft(tool: string): Promise<void> {
   }
   const isMulti = Array.isArray(legacy.files);
   const id = isMulti
-    // expected: crypto.subtle missing, record dropped
+    // expected: the bytes cannot be hashed, record dropped
     ? await sourceIdForFiles(legacy.files as DraftFile[]).catch(() => null)
-    // expected: crypto.subtle missing, record dropped
+    // expected: the bytes cannot be hashed, record dropped
     : await sourceIdForBytes(legacy.fileBytes).catch(() => null);
   if (!id) {
     // Cannot safely address this record's bytes - drop it rather than leak

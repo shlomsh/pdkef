@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { sourceIdForBytes, sourceIdForFiles } from './draftSourceId.ts';
 
 const EMPTY_SHA256 = 'sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855';
@@ -28,5 +28,26 @@ describe('sourceIdForFiles', () => {
   it('returns null when any file has no addressable bytes', async () => {
     expect(await sourceIdForFiles([a, { fileBytes: 'nope' }])).toBeNull();
     expect(await sourceIdForFiles([null])).toBeNull();
+  });
+});
+
+describe('without Web Crypto (a page that is not a secure context)', () => {
+  afterEach(() => vi.unstubAllGlobals());
+
+  const bytes = new Uint8Array([1, 2, 3, 250]).buffer;
+  const files = [{ fileBytes: new Uint8Array([1]).buffer }, { fileBytes: new Uint8Array([2]).buffer }];
+
+  it('sourceIdForBytes returns the same id as with subtle present', async () => {
+    const withSubtle = await sourceIdForBytes(bytes);
+    vi.stubGlobal('crypto', { subtle: undefined });
+    expect(await sourceIdForBytes(bytes)).toBe(withSubtle);
+    expect(withSubtle).toMatch(/^sha256:[0-9a-f]{64}$/);
+  });
+
+  it('sourceIdForFiles returns the same id as with subtle present', async () => {
+    const withSubtle = await sourceIdForFiles(files);
+    vi.stubGlobal('crypto', { subtle: undefined });
+    expect(await sourceIdForFiles(files)).toBe(withSubtle);
+    expect(withSubtle).toMatch(/^sha256:[0-9a-f]{64}$/);
   });
 });
