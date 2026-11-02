@@ -210,4 +210,16 @@ describe('useLampEntrance', () => {
       expect(parts()).toContain('morph');
     } finally { vi.useRealTimers(); }
   });
+
+  it('a view change long after an unanswered press does not fly from that old measurement', async () => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+    try {
+      holdView = true;
+      act(() => api.toggle());
+      await act(async () => { vi.advanceTimersByTime(60_000); });
+      act(() => api.setLamp(true));
+      await flush();
+      expect(parts()).not.toContain('morph');
+    } finally { vi.useRealTimers(); }
+  });
 });
