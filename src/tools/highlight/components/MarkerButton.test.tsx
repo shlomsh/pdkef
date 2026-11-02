@@ -95,7 +95,7 @@ describe('MarkerButton', () => {
       const row = container!.querySelector('[data-marker-row]')!;
       expect(row.querySelectorAll('[data-highlight-swatch]')).toHaveLength(3);
       expect([...row.querySelectorAll('button')].map((b) => b.getAttribute('aria-label')).slice(3)).toEqual(
-        ['More colors', 'Highlight', 'Underline', 'Pencil', 'Opacity', 'Comment', 'Delete'],
+        ['More colors', 'Highlight', 'Underline', 'Opacity', 'Comment', 'Delete'],
       );
     });
 
@@ -133,10 +133,12 @@ describe('MarkerButton', () => {
       expect(m.onChange).toHaveBeenLastCalledWith({ style: 'highlight' });
     });
 
-    it('Pencil is a third style, one click from either', () => {
+    it('Pencil is picked in the opacity popover, beside Clean and Sketch', () => {
       const m = markProps();
       mount({ mark: m });
-      press(named(t.markPencil));
+      expect(named(t.markPencil)).toBeNull();
+      press(named(t.markOpacityMenu));
+      press(document.querySelector('[role="radiogroup"][aria-label="Stroke"] [aria-label="Pencil"]')!);
       expect(m.onChange).toHaveBeenLastCalledWith({ style: 'pencil' });
     });
 

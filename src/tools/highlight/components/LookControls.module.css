@@ -71,17 +71,16 @@
 .paper > svg { position: absolute; inset: 15% 4px; width: calc(100% - 8px); height: 70%; overflow: visible; }
 .faceLine { position: relative; height: 14px; }
 .faceLine > svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+/* The Clean | Sketch toggle above the thickness items keeps the gutter the opacity popover gives it. */
+.menuHeader { display: block; padding: .375rem .375rem .25rem; }
 /* The menu item is a flex row and the svg is absolute, so the line grows to the row or it has no width. */
 .thicknessLine { position: relative; display: block; flex: 1 1 auto; height: 14px; margin: 0 10%; }
 .thicknessLine > svg { position: absolute; inset: 0; width: 100%; height: 100%; }
 
-.hatch { position: absolute; inset: 0; display: grid; place-items: center; }
-.hatch > svg { width: 100%; height: 100%; }
-
 .percent { position: relative; min-width: 4ch; text-align: end; }
 
-/* Coarse or narrow: the three switch segments are 28 px wide, the floor the colors keep (still 44 tall on touch) and the setting button is tighter, so the row fits from a 393 px phone up. */
+/* Coarse or narrow: the switch halves are 40 px wide and the setting button is tighter, so the row fits from a 393 px phone up. */
 @media (pointer: coarse), (max-width: 480px) {
-  .segment { min-width: 1.75rem; padding: 0; }
+  .segment { min-width: 2.5rem; padding: 0; }
   .setting { margin-inline-start: 0; padding: 0 4px; }
 }
