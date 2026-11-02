@@ -527,11 +527,23 @@
   gap: 0;
   margin-bottom: 0;
   padding: 0;
+  background: transparent;
+  border-color: var(--color-border);
+  box-shadow: var(--shadow-lg), 0 4px 20px var(--color-surface-soft);
+}
+
+/* The glass lives on its own layer. WebKit makes an element with backdrop-filter the containing block of its fixed
+   descendants, and floating-ui assumes it does not, so on the card itself it pushed every fixed menu inside it off
+   by the card's inset on iOS (panel-gutters-webkit.spec.js). The card's z-index keeps this layer under its content. */
+.editor::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
   background: color-mix(in srgb, var(--color-surface) 85%, transparent);
   backdrop-filter: blur(12px) saturate(180%);
   -webkit-backdrop-filter: blur(12px) saturate(180%);
-  border-color: var(--color-border);
-  box-shadow: var(--shadow-lg), 0 4px 20px var(--color-surface-soft);
 }
 
 .editor .identity {
