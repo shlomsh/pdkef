@@ -36,6 +36,8 @@ interface HighlightSwipeDeps {
   reader?: SwipeReader | null;
   /** The swipe started with a mouse press: its trailing click must not reach the page (touch already suppresses it). */
   isMouse?: boolean;
+  /** Paints the live bands (null clears); absent: plain filled bands in the mark's color. */
+  paintDraft?: (node: HTMLElement, geometry: NonNullable<ReturnType<typeof highlightGeometry>> | null) => void;
 }
 
 interface HighlightSwipeTarget {
@@ -55,9 +57,13 @@ export function startHighlightSwipe(deps: HighlightSwipeDeps, target: HighlightS
     container.parentElement?.querySelector<HTMLCanvasElement>('canvas') ?? null, pageGeometry?.height || PAGE_HEIGHT_DEFAULT_PTS, direction,
   );
   const color = newEl.type === 'highlight' ? newEl.color : '';
+  const paint = (node: HTMLElement, geometry: NonNullable<ReturnType<typeof highlightGeometry>> | null) => {
+    if (deps.paintDraft) deps.paintDraft(node, geometry);
+    else paintHighlightDraft(node, geometry ? geometry.bands : [], color);
+  };
   const clearDraft = () => {
     const node = getElementNode();
-    if (node) paintHighlightDraft(node, [], color);
+    if (node) paint(node, null);
   };
   gestureCancelRef.current = startGesture<{ pageBands: Band[] }>({
     computePatch: (moveEvent) => {
@@ -69,14 +75,14 @@ export function startHighlightSwipe(deps: HighlightSwipeDeps, target: HighlightS
       if (!node) return;
       const geometry = highlightGeometry(pageBands);
       if (!geometry) {
-        paintHighlightDraft(node, [], color);
+        paint(node, null);
         return;
       }
       node.style.left = `${geometry.left}%`;
       node.style.top = `${geometry.top}%`;
       node.style.width = `${geometry.width}%`;
       node.style.height = `${geometry.height}%`;
-      paintHighlightDraft(node, geometry.bands, color);
+      paint(node, geometry);
     },
     commit: (patch) => {
       gestureCancelRef.current = null;

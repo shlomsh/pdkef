@@ -13,6 +13,7 @@ const onPress = vi.fn();
 const logAction = vi.fn();
 const setAnnouncement = vi.fn();
 let armed = true;
+let pageGeometry: { width: number; height: number } | undefined;
 let marker: Record<string, unknown> = { color: 'yellow', style: 'highlight', opacity: 1 };
 let readerAt: ((point: { x: number; y: number }) => Reader | null) | undefined;
 type Reader = { onLine: (point: { x: number; y: number }) => boolean };
@@ -20,7 +21,7 @@ const readerOf = (on: boolean): Reader => ({ onLine: () => on });
 
 function Probe() {
   handler = useMarkSwipe({
-    pageIndex: 0, geometry: undefined, elements: [],
+    pageIndex: 0, geometry: pageGeometry as never, elements: [],
     marker: marker as never,
     armed,
     getPointerPercent: (e: MouseEvent | TouchEvent) => ({ x: (e as MouseEvent).clientX / 10, y: (e as MouseEvent).clientY / 10 }),
@@ -366,5 +367,25 @@ describe('useMarkSwipe on an existing highlight', () => {
     move(160, 100);
     expect(dispatch).not.toHaveBeenCalled();
     expect(onPress).not.toHaveBeenCalled();
+  });
+});
+
+describe('the swipe preview draws the mark as it will stand', () => {
+  afterEach(() => { marker = { color: 'yellow', style: 'highlight', opacity: 1 }; pageGeometry = undefined; });
+  it('a sketched marker puts an svg path in the draft layer; a clean one fills divs', () => {
+    pageGeometry = { width: 600, height: 800 };
+    marker = { ...marker, stroke: 'sketch' };
+    mount(); press(); move(150, 150);
+    const { paintDraft } = vi.mocked(startHighlightSwipe).mock.calls.at(-1)![0];
+    const node = document.createElement('div');
+    const draft = document.createElement('div');
+    draft.setAttribute('data-highlight-draft', '');
+    node.append(draft);
+    const g = { left: 10, top: 10, width: 50, height: 10, bands: [{ left: 0, top: 0, width: 100, height: 100 }] };
+    paintDraft!(node, g);
+    expect(draft.querySelector('svg[data-highlight-sketch] path')!.getAttribute('d')).toBeTruthy();
+    expect(draft.querySelector('svg')!.getAttribute('viewBox')).toBe('0 0 300 80');
+    paintDraft!(node, null);
+    expect(draft.children).toHaveLength(0);
   });
 });

@@ -25,7 +25,7 @@ function getImageData(sx: number, sy: number, w: number, h: number) {
   return { data, width: w, height: h };
 }
 
-function setup(isMouse = true, direction?: 'ltr' | 'rtl', reader?: SwipeReaderOption, getContext: () => unknown = () => ({ getImageData })) {
+function setup(isMouse = true, direction?: 'ltr' | 'rtl', reader?: SwipeReaderOption, getContext: () => unknown = () => ({ getImageData }), paintDraft?: (node: HTMLElement, geometry: unknown) => void) {
   const canvas = { width: W, height: H, getContext };
   const container = { parentElement: { querySelector: () => canvas } } as unknown as HTMLElement;
   const node = document.createElement('div');
@@ -47,6 +47,7 @@ function setup(isMouse = true, direction?: 'ltr' | 'rtl', reader?: SwipeReaderOp
       isMouse,
       direction,
       ...(reader !== undefined ? { reader } : {}),
+      ...(paintDraft ? { paintDraft } : {}),
     },
     { pageIndex: 0, container, id: 'h1', newEl, start: { x: (30 / W) * 100, y: (107 / H) * 100 }, getElementNode: () => node },
   );
@@ -133,5 +134,19 @@ describe('startHighlightSwipe with a given reader', () => {
     expect(getContext).not.toHaveBeenCalled();
     expect(reader.bandsBetween).toHaveBeenCalled();
     expect(types(dispatch)).toEqual(['UPDATE_ELEMENT', 'DISARM_TOOL']);
+  });
+});
+
+describe('paintDraft dep', () => {
+  it('replaces the plain paint while swiping and clears with null on release', () => {
+    const paintDraft = vi.fn();
+    const { draft } = setup(true, undefined, undefined, undefined, paintDraft);
+    move(150, 107);
+    const last = paintDraft.mock.calls.at(-1)!;
+    expect(last[1]).toMatchObject({ bands: expect.any(Array) });
+    expect(last[1].bands.length).toBeGreaterThan(0);
+    expect(draft.children).toHaveLength(0);
+    release();
+    expect(paintDraft.mock.calls.at(-1)![1]).toBeNull();
   });
 });

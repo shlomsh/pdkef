@@ -112,7 +112,7 @@ export default function HighlightPage({ pdfDocument, pageIndex, widthPx, chrome 
   };
 
   const startSwipe = useMarkSwipe({
-    pageIndex, geometry, elements, marker, armed, getPointerPercent, directionAt, dispatch, logAction, setAnnouncement, clicks,
+    pageIndex, geometry, turns: turnsOf(pageTurns, pageIndex), elements, marker, armed, getPointerPercent, directionAt, dispatch, logAction, setAnnouncement, clicks,
     onPress: rest.clearHint, onInk: inkLanded, readerAt,
   });
   const onPointerDown = (event: PointerEvent) => {
