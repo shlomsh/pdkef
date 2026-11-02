@@ -1,21 +1,21 @@
 /* The look controls of the dark bars (a mark's, the pen's). Colors come from the bar's own tokens. */
-/* Underline toggle and its thickness chevron: one group, no divider between. */
-/* Highlight | Underline read as one switch: a quiet outline holds both icons and the thickness caret. */
+/* Highlight and Underline segments, each with its chevron: one group, no divider between. */
+/* Highlight | Underline read as one switch: a quiet outline holds both icons and the two carets. */
 .toggle { display: inline-flex; align-items: center; gap: 2px; padding: 2px; border-radius: var(--radius-sm); box-shadow: inset 0 0 0 1px var(--color-white-20); }
-/* Underline and its caret are one segment: they hover, open and fill as a single pill, so the caret reads as Underline's. */
-.underline { display: inline-flex; align-items: center; border-radius: 4px; }
-.underline > *, .underline button { background: transparent !important; }
-.underline button[aria-haspopup] { min-width: 16px; padding: 0 3px 0 0; }
-.underline:hover, .underline:has([aria-expanded="true"]) { background: var(--toolbar-hover-fill, var(--color-white-15)); }
-.underline[data-on] { background: var(--color-primary); }
+/* An icon and its caret are one segment: they hover, open and fill as a single pill, so the caret reads as the icon's. */
+.segment { display: inline-flex; align-items: center; border-radius: 4px; }
+.segment > *, .segment button { background: transparent !important; }
+.segment button[aria-haspopup] { min-width: 16px; padding: 0 3px 0 0; }
+.segment:hover, .segment:has([aria-expanded="true"]) { background: var(--toolbar-hover-fill, var(--color-white-15)); }
+.segment[data-on] { background: var(--color-primary); }
 /* Touch: the caret stays narrower than the 44px the bar gives every other button (the extra class outranks the bar's rule). */
 @media (pointer: coarse) {
-  .toggle .underline button[aria-haspopup] { min-width: 28px; min-height: 44px; }
+  .toggle .segment button[aria-haspopup] { min-width: 28px; min-height: 44px; }
 }
 /* On a light popover (the Marker panel) the toggle reads in the page's ink, and the pressed segment is the primary fill. */
 .light { box-shadow: inset 0 0 0 1px var(--color-border); }
 .light button { color: var(--color-text); }
 .light button:hover:not([aria-pressed='true']) { background: var(--color-primary-tint); }
 .light button[aria-pressed='true'] { color: var(--color-surface); }
-.light .underline:hover:not([data-on]), .light .underline:has([aria-expanded="true"]):not([data-on]) { background: var(--color-primary-tint); }
-.light .underline[data-on] button { color: var(--color-surface); }
+.light .segment:hover:not([data-on]), .light .segment:has([aria-expanded="true"]):not([data-on]) { background: var(--color-primary-tint); }
+.light .segment[data-on] button { color: var(--color-surface); }

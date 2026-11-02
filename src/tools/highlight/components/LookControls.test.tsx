@@ -51,11 +51,19 @@ describe('StyleToggle', () => {
     return onChange;
   }
 
-  it('holds the two style buttons and the thickness caret, without the color menu', () => {
+  it('holds the two style buttons and a caret for each, without the color menu', () => {
     mountToggle();
     expect(container!.querySelector('[data-style-toggle]')).not.toBeNull();
     expect(container!.querySelector(`.${controls['color-trigger']}`)).toBeNull();
-    expect(container!.querySelector('[data-style-toggle] button[aria-haspopup]')).not.toBeNull();
+    expect(container!.querySelectorAll('[data-style-toggle] button[aria-haspopup]')).toHaveLength(2);
+  });
+
+  it('the highlight caret opens the opacity and choosing one selects Highlight with it', () => {
+    const onChange = mountToggle({ ...DEFAULT_MARKER, style: 'underline' });
+    act(() => container!.querySelector<HTMLElement>('button[title="Opacity"]')!.click());
+    const range = document.querySelector<HTMLInputElement>('[data-opacity-slider] input')!;
+    act(() => { range.value = '0.5'; range.dispatchEvent(new Event('input', { bubbles: true })); });
+    expect(onChange).toHaveBeenLastCalledWith({ style: 'highlight', opacity: 0.5 });
   });
 
   it('switches the style and presses the current one', () => {

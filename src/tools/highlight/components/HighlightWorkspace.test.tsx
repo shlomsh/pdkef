@@ -88,6 +88,23 @@ describe('HighlightWorkspace', () => {
     expect(hiddenBar.closest('[hidden]')).not.toBeNull();
   });
 
+  it('on touch, the armed strip hangs in the toolbar card, not at the workspace foot; in the lamp it hangs under the capsule', () => {
+    vi.stubGlobal('matchMedia', (q: string) => ({ matches: q.includes('coarse'), media: q, addEventListener() {}, removeEventListener() {} }));
+    try {
+      const ws = mount({ fullscreen: false, pseudoFullscreen: false });
+      expect(container!.querySelector('[data-armed-chip]')).toBeNull();
+      act(() => { container!.querySelector<HTMLButtonElement>('[data-editor-toolbar] button[aria-label="Marker"]')!.click(); });
+      const chip = container!.querySelector('[data-armed-chip]')!;
+      expect(chip.closest('[data-shell-controls]')).not.toBeNull();
+      expect(ws.contains(chip)).toBe(false);
+      act(() => render(null, container!));
+      const lamp = mount({ fullscreen: true, pseudoFullscreen: false });
+      act(() => { lamp.querySelector<HTMLButtonElement>('[role="toolbar"][aria-label="Reading lamp"] button[aria-label="Marker"]')!.click(); });
+      const lampChip = lamp.querySelector('[data-armed-chip]')!;
+      expect(lampChip.parentElement!.className).toContain(styles.floating);
+    } finally { vi.unstubAllGlobals(); }
+  });
+
   it('every control in the row carries its word: seven controls leave the room Sign\'s thirteen do not (READ-04)', () => {
     mount({ fullscreen: false, pseudoFullscreen: false });
     const bar = container!.querySelector<HTMLElement>('[data-editor-toolbar]')!;

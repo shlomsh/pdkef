@@ -84,21 +84,17 @@ describe('MarkerButton', () => {
     expect(props.onChange).toHaveBeenCalledWith({ color: '#336699' });
   });
 
-  it('a highlight shows the opacity slider without a second click, each move a re-arm', () => {
+  it('the panel holds no slider row, opacity is one click away on the highlight caret, each move a re-arm', () => {
     const { props, open } = mount();
     open();
-    const range = container!.querySelector('[data-opacity-slider] input') as HTMLInputElement;
-    expect(range).not.toBeNull();
+    expect(container!.querySelector('[data-opacity-slider]')).toBeNull();
+    act(() => container!.querySelector<HTMLElement>('button[title="Opacity"]')!.click());
+    const range = document.querySelector('[data-opacity-slider] input') as HTMLInputElement;
     range.value = '0.5';
     act(() => { range.dispatchEvent(new Event('input', { bubbles: true })); });
-    expect(props.onChange).toHaveBeenLastCalledWith({ opacity: 0.5 });
+    expect(props.onChange).toHaveBeenLastCalledWith({ style: 'highlight', opacity: 0.5 });
   });
 
-  it('an underline has no opacity slider', () => {
-    const { open } = mount({ marker: { ...DEFAULT_MARKER, style: 'underline' } });
-    open();
-    expect(container!.querySelector('[data-opacity-slider]')).toBeNull();
-  });
 
   it('Escape closes the menu and nothing above it hears the key', () => {
     const { open, button } = mount();

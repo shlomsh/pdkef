@@ -96,7 +96,7 @@ describe('HighlightPage', () => {
     const added = dispatch.mock.calls.find(([a]) => a.type === 'ADD_ELEMENT')?.[0].payload as HighlightElement;
     expect(added).toMatchObject({ type: 'highlight', pageIndex: 0, width: 0, height: 0, bands: [], color: DEFAULT_MARKER.color });
     expect(added.style).toBeUndefined();
-    expect(added.opacity).toBeUndefined();
+    expect(added.opacity).toBe(DEFAULT_MARKER.opacity);
     expect(startHighlightSwipe).toHaveBeenCalledTimes(1);
     expect(startHighlightSwipe.mock.calls[0][1]).toMatchObject({ pageIndex: 0, id: added.id });
     expect(startHighlightSwipe.mock.calls[0][0].isMouse).toBe(true);

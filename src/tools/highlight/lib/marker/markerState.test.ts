@@ -4,7 +4,7 @@ import { DEFAULT_MARKER, HIGHLIGHT_COLORS, commentBandColor, rearm } from './mar
 describe('markerState', () => {
   it('defaults to the first palette color, yellow', () => {
     expect(HIGHLIGHT_COLORS[0].id).toBe('yellow');
-    expect(DEFAULT_MARKER).toEqual({ color: HIGHLIGHT_COLORS[0].hex, style: 'highlight', opacity: 1 });
+    expect(DEFAULT_MARKER).toEqual({ color: HIGHLIGHT_COLORS[0].hex, style: 'highlight', opacity: 0.5 });
   });
   it('rearm merges a change', () => {
     expect(rearm(DEFAULT_MARKER, { style: 'underline' })).toEqual({ ...DEFAULT_MARKER, style: 'underline' });
