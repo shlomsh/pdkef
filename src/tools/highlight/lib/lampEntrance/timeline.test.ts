@@ -42,11 +42,16 @@ describe('enterPlan', () => {
 
   it('the bead dips 14 px at 150 ms, rides to the capsule\'s centre, then opens into the pill', () => {
     const keys = track(plan.tracks, 'morph').keys;
-    expect(keys.map((k) => k.t)).toEqual([0, 150, 580, 900]);
+    expect(keys.map((k) => k.t)).toEqual([0, 150, 580, 900, 1000]);
     expect(keys[1].top).toBe(`${272 + 14 - 10}px`);
     expect(keys[2]).toMatchObject({ left: `${481 + 477 / 2 - 10}px`, top: `${24 + 24 - 10}px`, width: '20px', height: '20px' });
     expect(keys[3]).toMatchObject({ left: '481px', top: '24px', width: '477px', height: '48px' });
     expect(keys[1].ease).toBe('cubic-bezier(.5, 0, .12, 1)');
+  });
+
+  it('the morph fades out as the capsule\'s content fades in, so it never covers the real capsule', () => {
+    const keys = track(plan.tracks, 'morph').keys;
+    expect(keys.at(-1)).toMatchObject({ t: 1000, opacity: 0, left: '481px', width: '477px' });
   });
 
   it('the capsule\'s content waits for the pill: invisible until 780 ms, whole by 1000 ms', () => {

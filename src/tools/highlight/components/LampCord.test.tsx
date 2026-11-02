@@ -24,4 +24,24 @@ describe('LampCord', () => {
     for (const part of ['cord', 'settle', 'line', 'pull', 'tag']) expect(container.querySelector(`[data-lamp-part="${part}"]`), part).not.toBeNull();
     expect(container.querySelector('[data-lamp-bead]')).not.toBeNull();
   });
+
+  it('the tag is inside the button, hidden from assistive tech, so a click on the words pulls the cord', () => {
+    const onPull = vi.fn();
+    container = document.createElement('div');
+    act(() => render(<LampCord onPull={onPull} />, container!));
+    const tag = container.querySelector<HTMLElement>('[data-lamp-part="tag"]')!;
+    expect(tag.closest('button')).not.toBeNull();
+    expect(tag.getAttribute('aria-hidden')).toBe('true');
+    act(() => tag.click());
+    expect(onPull).toHaveBeenCalledTimes(1);
+  });
+
+  it('the drop-in is flagged until it has played once, then never again', () => {
+    container = document.createElement('div');
+    act(() => render(<LampCord onPull={() => {}} />, container!));
+    const root = container.querySelector<HTMLElement>('[data-lamp-part="cord"]')!;
+    expect(root.hasAttribute('data-intro')).toBe(true);
+    act(() => { root.firstElementChild!.dispatchEvent(new Event('animationend', { bubbles: true })); });
+    expect(root.hasAttribute('data-intro')).toBe(false);
+  });
 });

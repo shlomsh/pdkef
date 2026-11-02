@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useRef } from 'preact/hooks';
 import { playPlan } from '../lib/lampEntrance/lampPlayer.ts';
-import { measureBefore, partsIn, planAfter, type Before } from '../lib/lampEntrance/lampDom.ts';
+import { measureBefore, partsIn, planAfter, restoreCordFocus, type Before } from '../lib/lampEntrance/lampDom.ts';
 import type { Rect } from '../lib/lampEntrance/geometry.ts';
 
 /** How long a press waits for the view to change (real fullscreen answers later) before it is forgotten. */
@@ -48,12 +48,20 @@ export function useLampEntrance({ workspaceRef, fullscreen, toggleLamp }: { work
       if (cancelled) return;
       const { plan, capsule: pill } = planAfter(direction, ws, pressed?.before ?? null, capsule.current);
       capsule.current = pill;
+      // The ghost is only for the full exit, which fades it; any other plan (or none) leaves it nothing to do.
+      if (!plan.tracks.some((track) => track.part === 'ghost')) clearGhost(ws);
       const current = playPlan(plan, partsIn(ws));
       inner = current;
-      if (!current) { if (run.current === handle) run.current = null; return; }
+      if (!current) {
+        if (run.current === handle) run.current = null;
+        clearGhost(ws);
+        if (direction === 'exit') restoreCordFocus(ws);
+        return;
+      }
       void current.finished.then(() => { // reason: playPlan's finished never rejects; it settles on end and on cancel
         if (run.current === handle) run.current = null;
         clearGhost(ws);
+        if (direction === 'exit' && !cancelled) restoreCordFocus(ws);
       });
     });
   }, [workspaceRef, fullscreen]);

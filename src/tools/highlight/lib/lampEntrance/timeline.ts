@@ -70,6 +70,7 @@ export function enterPlan(m: Marks): Plan {
       { t: 150, opacity: 1, ...circle(bead, DIP), ease: RETRACT },
       { t: 580, opacity: 1, ...boxStyle(circleBox(centre)), ease: OPEN },
       { t: 900, opacity: 1, ...boxStyle(capsule) },
+      { t: 1000, opacity: 0, ...boxStyle(capsule) },
     ] },
     { part: 'face', keys: [{ t: 0, opacity: 1 }, { t: 560, opacity: 1, ease: INOUT }, { t: 820, opacity: 0 }] },
     { part: 'capsule', keys: [{ t: 0, opacity: 0 }, { t: 780, opacity: 0, ease: INOUT }, { t: 1000, opacity: 1 }] },

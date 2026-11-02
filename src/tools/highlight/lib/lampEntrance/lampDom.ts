@@ -35,10 +35,28 @@ function capsuleRect(ws: HTMLElement): Rect | null {
   return pill ? rectOf(pill) : null;
 }
 
+/**
+ * The bead at rest. Its own rect is wrong while the cord's drop-in (a scaleY transform on an ancestor) is playing, so
+ * it is the cord's rect (the root has no transform) plus the bead's offset boxes, which ignore transforms.
+ */
 const beadOf = (ws: HTMLElement): Circle | null => {
-  const bead = rootOf(ws).querySelector('[data-lamp-bead]');
-  return bead ? circleOf(rectOf(bead)) : null;
+  const root = rootOf(ws);
+  const bead = root.querySelector<HTMLElement>('[data-lamp-bead]');
+  const cord = root.querySelector<HTMLElement>('[data-lamp-part="cord"]');
+  if (!bead || !cord) return null;
+  let x = 0;
+  let y = 0;
+  for (let el: HTMLElement | null = bead; el && el !== cord; el = el.offsetParent as HTMLElement | null) { x += el.offsetLeft; y += el.offsetTop; }
+  const at = rectOf(cord);
+  return circleOf({ left: at.left + x, top: at.top + y, width: bead.offsetWidth, height: bead.offsetHeight });
 };
+
+/** After a way out, a keyboard reader whose focus fell to the page (the cord was hidden) gets the cord's button back. */
+export function restoreCordFocus(ws: HTMLElement): void {
+  const active = document.activeElement;
+  if (active && active !== document.body) return;
+  (partsIn(ws)('pull')[0] as HTMLElement | undefined)?.focus({ preventScroll: true });
+}
 
 const pageRects = (ws: HTMLElement): Rect[] => [...ws.querySelectorAll('[data-page-wrapper]')].map(rectOf);
 
