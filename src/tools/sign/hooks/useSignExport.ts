@@ -8,6 +8,7 @@ import { useNavigatingAway } from '#lib/hooks/useNavigatingAway.ts';
 import type { LatestRun } from '#lib/hooks/useLatestRun.ts';
 import type { usePdfShare } from '#lib/output/usePdfShare.js';
 import { exportAtRevision, exportToHandOff, handoffHref, type SignedExport } from '../lib/exportHandoff.ts';
+import { reportToolLifecycleEvent } from '#lib/telemetry/productAnalytics.ts';
 import { useOutputNameOverride } from '#shell/useOutputNameOverride.ts';
 import { runSignExport } from '../lib/runSignExport.ts';
 import type { SignLifecycleAction } from '../state/signState.ts';
@@ -45,6 +46,14 @@ export function useSignExport({
   const named = (made: SignedExport | null) => (made && made.name === outputName ? made : null);
   const [handoffBusy, setHandoffBusy] = useNavigatingAway();
 
+  // The background run reports nothing, so a download or share of the file it prepared is the
+  // started-and-ready pair; a file made on request reported both when it was made.
+  const reportPreparedDelivery = (prepared: SignedExport | null) => {
+    if (!prepared?.speculative) return;
+    reportToolLifecycleEvent('tool_operation_started', 'sign');
+    reportToolLifecycleEvent('tool_result_ready', 'sign');
+  };
+
   const runExport = async (
     onSigned: (signedBlob: Blob, filename: string) => void,
     options: { speculative?: boolean } = {},
@@ -78,6 +87,7 @@ export function useSignExport({
     lifecycleDispatch({ type: 'EXPORT_ERROR_CLEARED' });
     if (named(preparedExportRef.current) && downloadPrepared()) {
       recordAction('download');
+      reportPreparedDelivery(preparedExportRef.current);
       lifecycleDispatch({
         type: 'EXPORT_DELIVERED',
         signedExport: exportAtRevision(preparedExportRef.current, documentRevisionRef.current),
@@ -101,6 +111,7 @@ export function useSignExport({
     const result = await sharePrepared();
     if (result.status === 'shared') {
       recordAction('share');
+      reportPreparedDelivery(preparedExportRef.current);
       lifecycleDispatch({
         type: 'EXPORT_DELIVERED',
         signedExport: exportAtRevision(preparedExportRef.current, documentRevisionRef.current),

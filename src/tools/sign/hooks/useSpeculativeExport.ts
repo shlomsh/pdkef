@@ -42,7 +42,7 @@ export function useSpeculativeExport({
     if (!file || !signExportReady({ status, elementCount, hasTurnedPage, blocked })) return;
     const timer = setTimeout(() => {
       void runExport((signedBlob, filename) => { // reason: runExport catches its own failure and shows it
-        if (prepare(signedBlob, filename)) preparedExportRef.current = { blob: signedBlob, name: filename, revision: documentRevisionRef.current };
+        if (prepare(signedBlob, filename)) preparedExportRef.current = { blob: signedBlob, name: filename, revision: documentRevisionRef.current, speculative: true };
       }, { speculative: true });
     }, SPECULATIVE_EXPORT_DEBOUNCE_MS);
     return () => clearTimeout(timer);
