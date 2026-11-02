@@ -1,45 +1,116 @@
+/* Base styles are the LAST frame: three strokes laid, the note open. Geometry is in the SVG's
+   stage coordinates (the VerbStage box, 420 x 236 base pixels); the inks come from the
+   highlight palette as fill attributes, so no color literal lives here and no style attribute
+   is needed (CSP). */
 .pg {
-  --s: calc(1.15 * var(--u));
   position: absolute;
   left: 50%;
   top: 50%;
-  width: calc(132 * var(--s));
-  height: calc(172 * var(--s));
-  margin: calc(-88 * var(--s)) 0 0 calc(-66 * var(--s));
-  border-radius: calc(5 * var(--s));
+  width: calc(132 * var(--u));
+  height: calc(172 * var(--u));
+  margin: calc(-92 * var(--u)) 0 0 calc(-66 * var(--u));
+  border-radius: calc(5 * var(--u));
   background: var(--color-surface);
-  box-shadow: 0 0 0 1px var(--color-border);
+  box-shadow:
+    0 0 0 1px var(--color-border),
+    0 calc(10 * var(--u)) calc(18 * var(--u)) calc(-12 * var(--u))
+      color-mix(in srgb, var(--color-night) 45%, transparent);
   font-style: normal;
-  overflow: hidden;
 }
 
-.line,
-.mark {
+.art {
   position: absolute;
-  display: block;
-  left: calc(12 * var(--s));
-  width: calc(108 * var(--s));
-  height: calc(3.5 * var(--s));
-  border-radius: calc(1.75 * var(--s));
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
 }
 
 .line {
-  background: var(--color-border-strong);
+  fill: var(--color-border-strong);
+  opacity: 0.55;
 }
 
-/* Six lines 14 apart from 32; the two strokes lie over the second and third. */
-.line:nth-child(1) { top: calc(32 * var(--s)); }
-.line:nth-child(2),
-.mark:nth-child(7) { top: calc(46 * var(--s)); }
-.line:nth-child(3),
-.mark:nth-child(8) { top: calc(60 * var(--s)); }
-.line:nth-child(4) { top: calc(74 * var(--s)); }
-.line:nth-child(5) { top: calc(88 * var(--s)); }
-.line:nth-child(6) { top: calc(102 * var(--s)); }
-
+/* Multiply, so the line under a stroke reads through it the way ink does on paper. */
 .mark {
-  height: calc(9 * var(--s));
-  margin-top: calc(-2.7 * var(--s));
-  background: var(--color-comment-anchor);
+  opacity: 0.7;
+  mix-blend-mode: multiply;
+  transform-box: fill-box;
+  transform-origin: left center;
+}
+
+.cord {
+  fill: none;
+  stroke: var(--color-muted);
+  stroke-width: 0.9;
+  stroke-linecap: round;
+  stroke-dasharray: 1;
+  stroke-dashoffset: 0;
+  opacity: 0.6;
+}
+
+.note {
+  transform-box: fill-box;
+  transform-origin: left center;
+}
+
+.card {
+  fill: var(--color-surface);
+  stroke: var(--color-border);
+  stroke-width: 0.8;
+  filter: drop-shadow(0 3px 5px color-mix(in srgb, var(--color-night) 18%, transparent));
+}
+
+.text {
+  fill: var(--color-muted);
   opacity: 0.55;
+  transform-box: fill-box;
+  transform-origin: left center;
+}
+
+@keyframes sweep {
+  from {
+    scale: 0 1;
+  }
+}
+
+@keyframes draw {
+  from {
+    stroke-dashoffset: 1;
+  }
+}
+
+@keyframes open {
+  from {
+    opacity: 0;
+    translate: -6px 0;
+    scale: 0.94;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .mark {
+    animation: sweep 0.55s cubic-bezier(0.45, 0.05, 0.4, 1) both;
+  }
+
+  .mark:nth-of-type(11) { animation-delay: 0.35s; }
+  .mark:nth-of-type(12) { animation-delay: 1.05s; animation-duration: 0.45s; }
+  .mark:nth-of-type(13) { animation-delay: 1.65s; }
+
+  .cord {
+    animation: draw 0.3s var(--ease-out) 2.35s both;
+  }
+
+  .note {
+    animation: open 0.4s var(--ease-out) 2.55s both;
+  }
+
+  .text {
+    animation: sweep 0.45s steps(8) 2.85s both;
+  }
+
+  .text + .text {
+    animation-delay: 3.25s;
+    animation-duration: 0.35s;
+  }
 }
