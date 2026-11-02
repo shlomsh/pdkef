@@ -79,6 +79,7 @@ export interface SignMessages {
   commentEditHint: string;
   /** A card's More label and its Delete button. */
   commentDelete: string;
+  commentEdit: string;
   commentsCountOne: string;
   commentsCountOther: string;
   lineAction: string;
