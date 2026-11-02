@@ -12,11 +12,11 @@ const card = (over: Partial<CommentCard> = {}): CommentCard => ({ id: 'h1', dire
 let host: HTMLDivElement | null = null;
 afterEach(() => { if (host) render(null, host); host?.remove(); host = null; });
 
-function mount(props: { card: CommentCard; active?: boolean; onSelect?: () => void; onSave?: (p: { comment: string; commentedAt: number }) => void; onDelete?: () => void; onDiscard?: () => void; onReturnFocus?: () => void; label?: string }) {
+function mount(props: { card: CommentCard; active?: boolean; onSelect?: () => void; onSave?: (p: { comment: string; commentedAt: number }) => void; onDelete?: () => void; onDiscard?: () => void; onReturnFocus?: () => void; label?: string; readActions?: boolean }) {
   host = document.createElement('div');
   document.body.appendChild(host);
   const draw = (c: CommentCard, active: boolean) => act(() => render(
-    <CommentCardBody card={c} active={active} messages={englishSignMessages}       onSelect={props.onSelect ?? (() => {})} onSave={props.onSave ?? (() => {})} onDelete={props.onDelete ?? (() => {})} onDiscard={props.onDiscard ?? (() => {})} onReturnFocus={props.onReturnFocus} label={props.label ?? 'Comment on page 1'} />, host!));
+    <CommentCardBody card={c} active={active} messages={englishSignMessages}       onSelect={props.onSelect ?? (() => {})} onSave={props.onSave ?? (() => {})} onDelete={props.onDelete ?? (() => {})} onDiscard={props.onDiscard ?? (() => {})} onReturnFocus={props.onReturnFocus} readActions={props.readActions} label={props.label ?? 'Comment on page 1'} />, host!));
   draw(props.card, props.active ?? false);
   return { redraw: (c: CommentCard, active = props.active ?? false) => draw(c, active) };
 }
@@ -283,5 +283,40 @@ describe('CommentCardBody', () => {
     openEdit();
     const del = q<HTMLButtonElement>('button[aria-label="Delete"]');
     expect(del.querySelector('svg')).not.toBeNull();
+  });
+  describe('readActions', () => {
+    it('shows Delete and Edit buttons in the read state, without the pencil', () => {
+      mount({ card: card(), readActions: true });
+      expect(q('[data-comment-read-delete]').textContent).toBe('Delete');
+      expect(q('[data-comment-read-edit]').textContent).toBe('Edit');
+      expect(host!.querySelector('[data-comment-edit-icon]')).toBeNull();
+    });
+    it('Delete calls onDelete and onReturnFocus once and does not select', () => {
+      const onDelete = vi.fn(); const onReturnFocus = vi.fn(); const onSelect = vi.fn();
+      mount({ card: card(), readActions: true, onDelete, onReturnFocus, onSelect });
+      act(() => q<HTMLElement>('[data-comment-read-delete]').click());
+      expect(onDelete).toHaveBeenCalledOnce();
+      expect(onReturnFocus).toHaveBeenCalledOnce();
+      expect(onSelect).not.toHaveBeenCalled();
+    });
+    it('Edit opens the textarea with the current text', () => {
+      const onSelect = vi.fn();
+      mount({ card: card(), readActions: true, onSelect });
+      act(() => q<HTMLElement>('[data-comment-read-edit]').click());
+      expect(q<HTMLTextAreaElement>('textarea').value).toBe('Check this');
+      expect(onSelect).not.toHaveBeenCalled();
+    });
+    it('without readActions neither button exists and the pencil shows', () => {
+      mount({ card: card() });
+      expect(host!.querySelector('[data-comment-read-delete]')).toBeNull();
+      expect(host!.querySelector('[data-comment-read-edit]')).toBeNull();
+      expect(host!.querySelector('[data-comment-edit-icon]')).not.toBeNull();
+    });
+    it('a new card shows the field, not the row', () => {
+      mount({ card: card({ isNew: true, comment: '' }), readActions: true });
+      expect(host!.querySelector('textarea')).not.toBeNull();
+      expect(host!.querySelector('[data-comment-read-delete]')).toBeNull();
+      expect(host!.querySelector('[data-comment-read-edit]')).toBeNull();
+    });
   });
 });

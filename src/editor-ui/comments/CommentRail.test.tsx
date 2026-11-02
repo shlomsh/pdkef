@@ -13,10 +13,10 @@ const hl = (id: string, top: number, comment: string, pageIndex = 0): EditorElem
 let host: HTMLDivElement | null = null;
 afterEach(() => { if (host) render(null, host); host?.remove(); host = null; vi.restoreAllMocks(); });
 
-function mount(elements: EditorElement[], activeElementId: string | null = null, extra: { onSelect?: (id: string) => void; onReturnFocus?: (id: string) => void; pageIndex?: number; railHeight?: number } = {}) {
+function mount(elements: EditorElement[], activeElementId: string | null = null, extra: { onSelect?: (id: string) => void; onReturnFocus?: (id: string) => void; pageIndex?: number; railHeight?: number; readActions?: boolean } = {}) {
   host = host ?? document.createElement('div');
   document.body.appendChild(host);
-  act(() => render(<CommentRail pageIndex={extra.pageIndex ?? 0} railHeight={extra.railHeight} onReturnFocus={extra.onReturnFocus} elements={elements} activeElementId={activeElementId} messages={englishSignMessages}
+  act(() => render(<CommentRail pageIndex={extra.pageIndex ?? 0} railHeight={extra.railHeight} readActions={extra.readActions} onReturnFocus={extra.onReturnFocus} elements={elements} activeElementId={activeElementId} messages={englishSignMessages}
     onSelect={extra.onSelect ?? (() => {})} onSave={() => {}} onDelete={() => {}} onDiscard={() => {}} />, host!));
 }
 const cards = () => [...host!.querySelectorAll<HTMLElement>('[data-comment-card]')];
@@ -34,6 +34,19 @@ describe('CommentRail', () => {
     expect(host!.querySelector('[aria-haspopup]')).toBeNull();
     act(() => { host!.querySelector('p')!.dispatchEvent(new MouseEvent('dblclick', { bubbles: true })); });
     expect([...host!.querySelectorAll('button')].some((b) => b.textContent === 'Delete')).toBe(true);
+  });
+
+  it('readActions shows Delete and Edit as buttons on the active card only', () => {
+    mount([hl('a', 10, 'first'), hl('b', 40, 'second')], 'b', { readActions: true });
+    const [a, b] = cards();
+    expect(a.querySelector('[data-comment-read-delete], [data-comment-read-edit]')).toBeNull();
+    expect(b.querySelector('[data-comment-read-delete]')).not.toBeNull();
+    expect(b.querySelector('[data-comment-read-edit]')).not.toBeNull();
+  });
+
+  it('without readActions no card shows the buttons', () => {
+    mount([hl('a', 10, 'first')], 'a');
+    expect(host!.querySelector('[data-comment-read-delete], [data-comment-read-edit]')).toBeNull();
   });
 
   it('adds the active comment that was just opened for a comment, and marks the active card', () => {
@@ -110,6 +123,18 @@ describe('CommentRail', () => {
     act(() => { cards()[0].dispatchEvent(new MouseEvent('mouseover', { bubbles: true })); cards()[0].dispatchEvent(new MouseEvent('mouseenter')); });
     expect(node.hasAttribute('data-comment-hover')).toBe(true);
     act(() => { cards()[0].dispatchEvent(new MouseEvent('mouseleave')); });
+    expect(node.hasAttribute('data-comment-hover')).toBe(false);
+    node.remove();
+  });
+
+  it('a card that unmounts while hovered clears its passage', () => {
+    const node = document.createElement('div');
+    node.setAttribute('data-editor-element-id', 'a');
+    document.body.appendChild(node);
+    mount([hl('a', 10, 'one'), hl('b', 40, 'two')]);
+    act(() => { cards()[0].dispatchEvent(new MouseEvent('mouseenter')); });
+    expect(node.hasAttribute('data-comment-hover')).toBe(true);
+    mount([hl('b', 40, 'two')]);
     expect(node.hasAttribute('data-comment-hover')).toBe(false);
     node.remove();
   });
