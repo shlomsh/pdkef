@@ -21,7 +21,8 @@ export const highlightDefinition: ElementDefinition<HighlightElement> = {
     && Array.isArray(value.bands) && value.bands.length >= 1 && value.bands.length <= MAX_BANDS && value.bands.every(isBand)
     && (value.direction === undefined || value.direction === 'ltr' || value.direction === 'rtl')
     && (value.stroke === undefined || value.stroke === 'sketch')
-    && (value.style === undefined || value.style === 'underline')
+    // READ-14: a style a newer build wrote stays in the draft and draws as a highlight here; dropping it would lose the mark on the next autosave
+    && (value.style === undefined || typeof value.style === 'string')
     && (value.opacity === undefined || (hasNumber(value, 'opacity') && (value.opacity as number) >= MIN_OPACITY && (value.opacity as number) <= 1))
     && (value.strokeWidth === undefined || (hasNumber(value, 'strokeWidth') && (value.strokeWidth as number) >= UNDERLINE_WIDTH.min && (value.strokeWidth as number) <= UNDERLINE_WIDTH.max)),
   creation: { mode: 'drag', create: ({ id, pageIndex, point, highlightColor }) => ({ id, type: 'highlight', pageIndex, left: point.left, top: point.top, width: 0, height: 0, color: highlightColor ?? DEFAULT_HIGHLIGHT_COLOR, bands: [] }) },

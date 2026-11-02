@@ -8,7 +8,7 @@ export function serializeMarker(marker: Marker): string {
   return JSON.stringify({ color: marker.color, style: marker.style, opacity: marker.opacity, ...(marker.strokeWidth === undefined ? {} : { strokeWidth: marker.strokeWidth }), ...(marker.stroke === 'sketch' ? { stroke: 'sketch' } : {}) });
 }
 
-/** A stored marker, or null for anything that is not one (color hex, style, opacity 0.3 to 1). */
+/** A stored marker, or null for anything that is not one (color hex, a style string, opacity 0.3 to 1). */
 export function parseMarker(value: unknown): Marker | null {
   if (typeof value !== 'string') return null;
   let raw: unknown;
@@ -21,11 +21,12 @@ export function parseMarker(value: unknown): Marker | null {
   if (typeof raw !== 'object' || raw === null || Array.isArray(raw)) return null;
   const { color, style, opacity, strokeWidth, stroke } = raw as Record<string, unknown>;
   if (typeof color !== 'string' || !HEX.test(color)) return null;
-  if (style !== 'highlight' && style !== 'underline') return null;
+  if (typeof style !== 'string') return null;
   if (typeof opacity !== 'number' || !Number.isFinite(opacity) || opacity < OPACITY_MIN || opacity > 1) return null;
   if (strokeWidth !== undefined && (typeof strokeWidth !== 'number' || !Number.isFinite(strokeWidth) || strokeWidth < UNDERLINE_WIDTH.min || strokeWidth > UNDERLINE_WIDTH.max)) return null;
   if (stroke !== undefined && stroke !== 'sketch') return null;
-  return { color: color.toUpperCase(), style, opacity, ...(strokeWidth === undefined ? {} : { strokeWidth }), ...(stroke === 'sketch' ? { stroke } : {}) };
+  // READ-14: a style a newer build wrote reads as a highlight, so the color and opacity still carry over
+  return { color: color.toUpperCase(), style: style === 'underline' ? 'underline' : 'highlight', opacity, ...(strokeWidth === undefined ? {} : { strokeWidth }), ...(stroke === 'sketch' ? { stroke } : {}) };
 }
 
 /** The document's own marker beats the remembered default, which beats the yellow marker. */
