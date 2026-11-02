@@ -244,6 +244,10 @@ Shlomi's calls, with the reason, newest group first.
   the picked color sits on a soft tint inset 3 px, and the switch's picked half uses the same fill instead of a solid
   block. Both are radio groups with arrow keys; Home and End stay with the desktop toolbar, which treats each group as
   one stop. Chosen from three sketches (a fill in the color's own tint and an unframed row were the others).
+- Superseded for the color cells the same day ("Ink swipe", picked from the design board): each cell draws a
+  highlighter in its own color, and the picked one is a band of its ink swiped in behind the marker, with no tint
+  fill. The marker shades are document colors in the model (`lib/marker/markerShades.ts`); custom inks derive
+  theirs from the same rule. The switch keeps the tint. Sign's round swatches are unchanged.
 - R49 at 402 px: on touch the row drops its 1 px gaps and the divider before Comment, colors are 30 px wide, More 28,
   the switch halves 40, and the percent keeps room for "100%" so the row never changes width.
 - Touch arms on a tap and disarms on a tap, with no Stop button: it is how Sign's tool buttons already work.

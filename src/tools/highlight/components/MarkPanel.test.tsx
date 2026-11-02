@@ -41,6 +41,15 @@ describe('MarkPanel', () => {
       expect(radios().map((r) => r.getAttribute('aria-checked'))).toEqual(['true', 'false', 'false']);
     });
 
+    it('each draws a marker, the checked one picked; More wears an ink band only for a hidden color', () => {
+      const { draw } = mount();
+      expect(radios().map((r) => !!r.querySelector('[data-marker-art]'))).toEqual([true, true, true]);
+      expect(radios().map((r) => !!r.querySelector('[data-marker-art][data-picked]'))).toEqual([true, false, false]);
+      expect(named('More colors').querySelector('[data-more-ink]')).toBeNull();
+      draw({ ...DEFAULT_MARKER, color: '#FFB15C' });
+      expect(named('More colors').querySelector('[data-more-ink]')).not.toBeNull();
+    });
+
     it('sit in one framed track with More, which stays a plain button outside the group', () => {
       mount();
       const track = container!.querySelector('[data-color-track]')!;
@@ -148,22 +157,22 @@ describe('MarkPanel', () => {
     it('shows its chevron alone while the color is a top one', () => {
       mount();
       expect(more().querySelector('polyline')).not.toBeNull();
-      expect(more().querySelector('i')).toBeNull();
+      expect(more().querySelector('[data-more-ink]')).toBeNull();
       expect(more().getAttribute('aria-pressed')).toBeNull();
     });
 
-    it('keeps its chevron and shows the hidden color as a pressed dot before it', () => {
+    it('keeps its chevron and shows the hidden color as an ink band before it', () => {
       mount({ ...DEFAULT_MARKER, color: '#FF8080' });
       expect(more().querySelector('polyline')).not.toBeNull();
       expect(more().getAttribute('aria-pressed')).toBe('true');
-      const dot = more().querySelector('i')!;
-      expect(dot.style.background.toLowerCase()).toContain('rgb(255, 128, 128)');
+      const dot = more().querySelector<HTMLElement>('[data-more-ink]')!;
+      expect(dot.style.getPropertyValue('--ink').toLowerCase()).toBe('#ff8080');
       expect(dot.nextElementSibling!.tagName.toLowerCase()).toBe('svg');
     });
 
     it('a custom color shows its dot too, and a pick applies', () => {
       const { onChange } = mount({ ...DEFAULT_MARKER, color: '#336699' });
-      expect(more().querySelector('i')).not.toBeNull();
+      expect(more().querySelector('[data-more-ink]')).not.toBeNull();
       press(more());
       press(document.querySelectorAll('[data-more-popover] [data-highlight-swatch]')[1]);
       expect(onChange).toHaveBeenCalledWith({ color: '#FF8080' });

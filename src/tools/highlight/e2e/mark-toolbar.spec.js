@@ -38,8 +38,8 @@ test('clicking a highlight shows its toolbar, visible and on screen, and Escape 
   await expect(bar).toBeHidden();
 });
 
-/* R47, R49: on a phone the picked mark's panel is one row from 402 px up, in the normal view and in full screen, with
-   44 px tall targets and switch halves at least 40 px wide. At 375 px only Comment and Delete may wrap, and the page
+/* R47, R49: on a phone the picked mark's panel is one row from 402 px up, in the normal view and in full screen, and
+   with a color behind More (which then wears its ink band), with 44 px tall targets and switch halves at least 40 px wide. At 375 px only Comment and Delete may wrap, and the page
    never scrolls sideways. A real finger lays and picks the mark (CDP touch), since touch has its own panel host. */
 test.describe('touch panel', () => {
   test.use({ hasTouch: true, isMobile: true });
@@ -79,20 +79,28 @@ test.describe('touch panel', () => {
 
       const row = page.locator('[data-marker-row]:visible');
       await expect(row).toHaveCount(1);
-      const rects = await row.locator('button').evaluateAll((els) => els.map((e) => {
-        const r = e.getBoundingClientRect();
-        return { name: e.getAttribute('aria-label'), x: r.x, y: r.y, w: r.width, h: r.height };
-      }));
-      console.log(w, full ? 'full' : 'normal', JSON.stringify(rects.map((r) => `${r.name}:${Math.round(r.w)}x${Math.round(r.h)}@${Math.round(r.y)}`)));
-      expect(rects).toHaveLength(9);
-      for (const r of rects) {
-        expect(r.h, `${r.name} height`).toBeGreaterThanOrEqual(44);
-        expect(r.x, `${r.name} left`).toBeGreaterThanOrEqual(0);
-        expect(r.x + r.w, `${r.name} right`).toBeLessThanOrEqual(w);
-      }
-      for (const name of ['Highlight', 'Underline']) expect(rects.find((r) => r.name === name).w, `${name} width`).toBeGreaterThanOrEqual(40);
-      const oneLine = w >= 402 ? rects : rects.filter((r) => r.name !== 'Comment' && r.name !== 'Delete');
-      for (const r of oneLine) expect(Math.abs(r.y - rects[0].y), `${r.name} on the first line`).toBeLessThan(2);
+      const fits = async (pen) => {
+        const rects = await row.locator('button').evaluateAll((els) => els.map((e) => {
+          const r = e.getBoundingClientRect();
+          return { name: e.getAttribute('aria-label'), x: r.x, y: r.y, w: r.width, h: r.height };
+        }));
+        console.log(w, full ? 'full' : 'normal', pen, JSON.stringify(rects.map((r) => `${r.name}:${Math.round(r.w)}x${Math.round(r.h)}@${Math.round(r.y)}`)));
+        expect(rects).toHaveLength(9);
+        for (const r of rects) {
+          expect(r.h, `${r.name} height`).toBeGreaterThanOrEqual(44);
+          expect(r.x, `${r.name} left`).toBeGreaterThanOrEqual(0);
+          expect(r.x + r.w, `${r.name} right`).toBeLessThanOrEqual(w);
+        }
+        for (const name of ['Highlight', 'Underline']) expect(rects.find((r) => r.name === name).w, `${name} width`).toBeGreaterThanOrEqual(40);
+        const oneLine = w >= 402 ? rects : rects.filter((r) => r.name !== 'Comment' && r.name !== 'Delete');
+        for (const r of oneLine) expect(Math.abs(r.y - rects[0].y), `${pen}: ${r.name} on the first line`).toBeLessThan(2);
+      };
+      await fits('yellow');
+      // A color behind More puts its ink band on the More button, which must still leave the row one line.
+      await row.getByRole('button', { name: 'More colors' }).tap();
+      await page.locator('[data-more-popover] [data-highlight-swatch]').first().tap();
+      await expect(row.locator('[data-more-ink]')).toHaveCount(1);
+      await fits('orange');
       expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(w);
     });
   }

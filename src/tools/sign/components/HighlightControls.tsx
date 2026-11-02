@@ -4,7 +4,7 @@ import styles from '#editor-ui/EditorControls.module.css';
 import { PAGE_HEIGHT_DEFAULT_PTS } from '#editor/model/signGeometry.js';
 import { flipChanges } from '#editor/highlight/flip.ts';
 import { createSwipeReader } from '#lib/pageLayout/swipeReader.ts';
-import HighlightSwatches from '#editor-ui/highlight/HighlightSwatches.tsx';
+import HighlightSwatches from './HighlightSwatches.tsx';
 import DirectionButton from './DirectionButton.tsx';
 
 type HighlightChanges = { color?: string; direction?: 'ltr' | 'rtl' } & Partial<Pick<HighlightElement, 'left' | 'top' | 'width' | 'height' | 'bands'>>;

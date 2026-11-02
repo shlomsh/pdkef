@@ -96,6 +96,10 @@ Marker puts it down and another picks it up again; it stays in the hand between 
 - **The panel is one quiet row:** yellow, pink and green, a "more" button for orange, red, blue and the color
   wheel, a plain Highlight or Underline switch, one setting button beside it for the opacity or the thickness, then
   Comment and Delete. The least common controls are one click away, never in the way (R4, R47, R48).
+- **Each color is a small highlighter.** Every color cell draws a marker in its own plastic, and the picked one
+  uncaps while a band of its ink swipes in behind it, so the row shows the ink you get. More wears that band
+  when the pen is one of its colors, and the wheel is a blank marker under a rainbow cap until a custom ink
+  fills it. The Highlight | Underline switch keeps its soft tint (chosen 2026-11-02, "Ink swipe").
 - **Whatever is picked becomes the marker.** Changing one highlight re-arms the pen, so choosing a color
   once is choosing it for the next strokes. It is the only way to change the pen (R5).
 
