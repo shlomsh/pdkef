@@ -169,6 +169,7 @@ export const ALWAYS_GUARD_STEPS = [
   'check:backlog',
   'check:guidance',
   'check:never-say',
+  'check-orphaned-selectors',
   'test:editor-dependency-directions',
   'test:module-boundaries',
   'test:import-aliases',
@@ -287,6 +288,7 @@ function runNpm(script) {
 }
 
 export const STEP_RUNNERS = {
+  'check-orphaned-selectors': () => spawnSync('node', ['scripts/check-orphaned-selectors.mjs'], { stdio: 'inherit', cwd: ROOT }).status ?? 1,
   'check-class-resolution': () => spawnSync('node', ['scripts/check-class-resolution.js'], { stdio: 'inherit', cwd: ROOT }).status ?? 1,
   'astro-check': () => runNpm('typecheck'),
   build: () => runNpm('build'),

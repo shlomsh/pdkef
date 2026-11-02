@@ -139,6 +139,14 @@ jobs:
         BASE: ${{ needs.scope.outputs.base }}
       run: npm run test:ratchet-raises -- --base "$BASE"
 
+    # A deleted CSS rule whose selector list the line before continued with a comma joins
+    # that selector to the next rule (RED-30 cost the thickness menus their picked row).
+    # Diff-based, so it reads the same base; empty falls back to the merge base.
+    - name: Refuse orphaned CSS selector lists
+      env:
+        BASE: ${{ needs.scope.outputs.base }}
+      run: node scripts/check-orphaned-selectors.mjs ${BASE:+--base "$BASE"}
+
     # ARCH-50: files over 800 lines and functions over 300 are recorded in the same
     # JSON; one that grew, or a new one over the threshold, fails.
     - name: Verify size ratchet

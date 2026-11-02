@@ -3,7 +3,8 @@
 // and never widens to the whole unit suite; CI and the nightly flake pass
 // carry the wide runs.
 //
-//   guards         the cheap source guards, always.
+//   guards         the cheap source guards, always (incl. check-orphaned-selectors, RED-30:
+//                  a deleted CSS rule whose comma-ended selector now joins the next rule).
 //   units          `vitest related` over the diff (scripts/unit-scope.mjs,
 //                  mode 'local'). What would make CI run everything is only
 //                  noted; an empty diff or no usable base skips units.
@@ -35,6 +36,7 @@ export const GUARD_STEPS = [
   'check:backlog',
   'check:guidance',
   'check:never-say',
+  'check-orphaned-selectors',
   'test:editor-dependency-directions',
   'test:module-boundaries',
   'test:import-aliases',
@@ -102,8 +104,9 @@ function run(cmd, args) {
   return spawnSync(cmd, args, { stdio: 'inherit', cwd: ROOT }).status ?? 1;
 }
 
-function runGuard(step) {
+function runGuard(step, base) {
   if (step === 'check-class-resolution') return run('node', ['scripts/check-class-resolution.js']);
+  if (step === 'check-orphaned-selectors') return run('node', ['scripts/check-orphaned-selectors.mjs', ...(base ? ['--base', base] : [])]);
   return run('npm', ['run', '-s', step]);
 }
 
@@ -153,7 +156,7 @@ function main(argv) {
   const typecheck = typecheckSteps({ astroTypesExist: existsSync(join(ROOT, '.astro', 'types.d.ts')) });
 
   const plan = [
-    { name: 'guards', run: () => guardSteps(files ? files.map((f) => f.path) : []).reduce((status, step) => status || runGuard(step), 0) },
+    { name: 'guards', run: () => guardSteps(files ? files.map((f) => f.path) : []).reduce((status, step) => status || runGuard(step, base), 0) },
     {
       name: 'units',
       detail: unitsDetail(unitScope),
