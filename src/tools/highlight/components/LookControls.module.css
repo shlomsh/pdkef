@@ -12,3 +12,10 @@
 @media (pointer: coarse) {
   .toggle .underline button[aria-haspopup] { min-width: 28px; min-height: 44px; }
 }
+/* On a light popover (the Marker panel) the toggle reads in the page's ink, and the pressed segment is the primary fill. */
+.light { box-shadow: inset 0 0 0 1px var(--color-border); }
+.light button { color: var(--color-text); }
+.light button:hover:not([aria-pressed='true']) { background: var(--color-primary-tint); }
+.light button[aria-pressed='true'] { color: var(--color-surface); }
+.light .underline:hover:not([data-on]), .light .underline:has([aria-expanded="true"]):not([data-on]) { background: var(--color-primary-tint); }
+.light .underline[data-on] button { color: var(--color-surface); }

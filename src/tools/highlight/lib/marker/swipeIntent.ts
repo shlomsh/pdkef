@@ -1,10 +1,10 @@
-export type SwipeIntent = 'wait' | 'mark' | 'scroll';
+type SwipeIntent = 'wait' | 'mark' | 'scroll';
 
 /** Screen px a finger must travel before its direction is read. */
-export const TOUCH_DECIDE_PX = 10;
+const TOUCH_DECIDE_PX = 10;
 
 /** How many times longer the sideways travel must be than the vertical for a press to be a mark. */
-export const SIDEWAYS_RATIO = 2;
+const SIDEWAYS_RATIO = 2;
 
 /** What a touch press means from its travel so far: undecided, a mark (clearly sideways), or a scroll. */
 export function swipeIntent(dx: number, dy: number): SwipeIntent {

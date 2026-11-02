@@ -6,7 +6,7 @@ import styles from './DownloadDone.module.css';
 
 interface Saved { name: string; file: unknown; revision: number }
 
-/** The strip shows while the file on disk still matches what is on screen: same document, same marks, not closed. */
+/** The strip shows while the file on disk still matches what is on screen: same document, same marks, not closed. @testSeam */
 export function isDownloadDoneVisible(saved: Saved | null, file: unknown, revision: number): boolean {
   return !!saved && saved.file === file && saved.revision === revision;
 }

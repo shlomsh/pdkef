@@ -22,7 +22,6 @@ const COLOR_NAMES = highlightColorNames(englishSignMessages);
  */
 export default function LookControls({ look, onChange }: { look: Marker; onChange(change: Partial<Marker>): void }) {
   const underline = look.style === 'underline';
-  const toggleUnderline = () => onChange({ style: underline ? 'highlight' : 'underline' });
   return (
     <>
       <ColorPickerMenu
@@ -32,30 +31,39 @@ export default function LookControls({ look, onChange }: { look: Marker; onChang
         {!underline && <OpacitySlider value={look.opacity} onChange={(opacity) => onChange({ opacity })} />}
       </ColorPickerMenu>
       <div class={controls.divider} />
-      <span class={styles.toggle} data-style-toggle>
-        <button
-          type="button" class={`${controls['element-button']}${underline ? '' : ` ${controls.active}`}`}
-          aria-label={t.markHighlight} aria-pressed={!underline} title={t.markHighlight}
-          onClick={() => { if (underline) toggleUnderline(); }}
-        >
-          <HighlightIcon />
-        </button>
-        {/* The Underline segment owns its thickness: U and caret are one pill, filled together. */}
-        <span class={styles.underline} data-on={underline || undefined}>
-          <button
-            type="button" class={controls['element-button']}
-            aria-label={t.markUnderline} aria-pressed={underline} aria-keyshortcuts="U" title={t.markUnderline}
-            onClick={() => { if (!underline) toggleUnderline(); }}
-          >
-            <UnderlineGlyph bar={look.strokeWidth ?? UNDERLINE_WIDTH.default} />
-          </button>
-          <ThicknessPickerMenu
-            trigger="caret" value={look.strokeWidth ?? UNDERLINE_WIDTH.default} title={t.markThickness} options={THICKNESS_OPTIONS}
-            itemTitle={(n) => formatMessage(t.thicknessItem, { n })}
-            onChange={(strokeWidth) => onChange({ style: 'underline', strokeWidth })}
-          />
-        </span>
-      </span>
+      <StyleToggle look={look} onChange={onChange} />
     </>
+  );
+}
+
+/** Highlight | Underline with the underline's thickness caret; `light` is for a light popover (the Marker panel), not a dark bar. */
+export function StyleToggle({ look, onChange, tone = 'dark' }: { look: Marker; onChange(change: Partial<Marker>): void; tone?: 'dark' | 'light' }) {
+  const underline = look.style === 'underline';
+  const toggleUnderline = () => onChange({ style: underline ? 'highlight' : 'underline' });
+  return (
+    <span class={tone === 'light' ? `${styles.toggle} ${styles.light}` : styles.toggle} data-style-toggle>
+      <button
+        type="button" class={`${controls['element-button']}${underline ? '' : ` ${controls.active}`}`}
+        aria-label={t.markHighlight} aria-pressed={!underline} title={t.markHighlight}
+        onClick={() => { if (underline) toggleUnderline(); }}
+      >
+        <HighlightIcon />
+      </button>
+      {/* The Underline segment owns its thickness: U and caret are one pill, filled together. */}
+      <span class={styles.underline} data-on={underline || undefined}>
+        <button
+          type="button" class={controls['element-button']}
+          aria-label={t.markUnderline} aria-pressed={underline} aria-keyshortcuts="U" title={t.markUnderline}
+          onClick={() => { if (!underline) toggleUnderline(); }}
+        >
+          <UnderlineGlyph bar={look.strokeWidth ?? UNDERLINE_WIDTH.default} />
+        </button>
+        <ThicknessPickerMenu
+          trigger="caret" value={look.strokeWidth ?? UNDERLINE_WIDTH.default} title={t.markThickness} options={THICKNESS_OPTIONS}
+          itemTitle={(n) => formatMessage(t.thicknessItem, { n })}
+          onChange={(strokeWidth) => onChange({ style: 'underline', strokeWidth })}
+        />
+      </span>
+    </span>
   );
 }

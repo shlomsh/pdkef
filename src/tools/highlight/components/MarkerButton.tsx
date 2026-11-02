@@ -1,8 +1,7 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
 import { autoUpdate, flip, offset, shift, useDismiss, useFloating, useInteractions } from '@floating-ui/react';
-import UnderlineGlyph from './UnderlineGlyph.tsx';
 import HighlightSwatches from '#editor-ui/highlight/HighlightSwatches.tsx';
-import { HighlightIcon } from '#editor-ui/toolIcons.tsx';
+import { CommentIcon, HighlightIcon, TrashIcon } from '#editor-ui/toolIcons.tsx';
 import { englishSignMessages } from '#editor/registry/signMessages.ts';
 import { HIGHLIGHT_COLORS, type Marker } from '../lib/marker/markerState.ts';
 import { markerBadge } from '../lib/marker/markerBadge.ts';
@@ -11,16 +10,16 @@ import controls from '#editor-ui/EditorControls.module.css';
 import toolbarStyles from '#editor-ui/SignToolbar.module.css';
 import ColorWheelInput from '#editor-ui/ColorWheelInput.tsx';
 import OpacitySlider from './OpacitySlider.tsx';
+import { StyleToggle } from './LookControls.tsx';
 import styles from './MarkerButton.module.css';
 
 const coarsePointer = () => Boolean(globalThis.matchMedia?.('(pointer: coarse)').matches);
-
 
 interface MarkerButtonProps {
   marker: Marker;
   /** Every change is a re-arm (R5). */
   onChange(change: Partial<Marker>): void;
-  /** On touch: the marker is armed, so a tap does nothing (Stop disarms). */
+  /** On touch: the marker is armed, so a tap opens and closes the panel. */
   armed?: boolean;
   /** On touch: the tap that arms the marker. A fine pointer never calls it (the marker is always armed, R1). */
   onTap?(): void;
@@ -28,33 +27,56 @@ interface MarkerButtonProps {
   onOpenChange?(open: boolean): void;
   /** Whether taps are the input; the coarse-pointer query by default. */
   isCoarse?(): boolean;
+  /** A tapped highlight: the panel is open on its look and edits it (Comment and Delete too) until it is released. */
+  mark?: {
+    look: Marker;
+    onChange(change: Partial<Marker>): void;
+    onComment(): void;
+    onDelete(): void;
+    onRelease(): void;
+  };
   /** The editor row's tile class; the button then takes the toolbar's look instead of the capsule's round one. */
   buttonClass?: string;
 }
 
 /**
  * The marker in the hand, as a button (R19): it shows the armed marker, a dot in its color or the underline
- * glyph, and opens the six colors, the color wheel and Underline, with the opacity slider under them on a highlight. On touch it opens no menu (the look is chosen on the mark's own toolbar): a tap arms the marker.
+ * glyph, and opens the panel of the look: the six colors and the color wheel, the Highlight | Underline toggle, and the opacity slider on a highlight. On touch a tap also arms the marker. Given a `mark`, the panel is that highlight's: it edits it, adds Comment and Delete, and a dismissal releases it.
  */
-export default function MarkerButton({ marker, onChange, armed = false, onTap, onOpenChange, isCoarse = coarsePointer, buttonClass }: MarkerButtonProps) {
-  const [open, setOpen] = useState(false);
+export default function MarkerButton({ marker, onChange, armed = false, onTap, onOpenChange, isCoarse = coarsePointer, mark, buttonClass }: MarkerButtonProps) {
+  const [penOpen, setOpen] = useState(false);
+  const open = penOpen || Boolean(mark);
+  const look = mark ? mark.look : marker;
+  const apply = mark ? mark.onChange : onChange;
   const rootRef = useRef<HTMLSpanElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const focusColors = useRef(false);
   const badge = markerBadge(marker);
-  const underline = marker.style === 'underline';
-  const inSix = HIGHLIGHT_COLORS.some((c) => c.hex.toLowerCase() === marker.color.toLowerCase());
+  const underline = look.style === 'underline';
+  const inSix = HIGHLIGHT_COLORS.some((c) => c.hex.toLowerCase() === look.color.toLowerCase());
 
   const toggle = (next: boolean) => {
     setOpen(next);
     onOpenChange?.(next);
   };
+  // Closing a mark's panel by any way lets the mark go.
+  const close = () => {
+    toggle(false);
+    mark?.onRelease();
+  };
+  const hasMark = Boolean(mark);
+  // A mark's panel keeps the capsule awake like the pen's, and tells it when the mark goes.
+  useEffect(() => {
+    if (!hasMark) return;
+    onOpenChange?.(true);
+    return () => { setOpen(false); onOpenChange?.(false); };
+  }, [hasMark]);
 
   // Floating UI places the menu inside the wrapper (so it stays in a fullscreen element) and keeps it on screen;
   // its dismiss hook owns Escape and the outside press.
   const { refs, floatingStyles, context } = useFloating({
     open,
-    onOpenChange: toggle,
+    onOpenChange: (next) => (next ? toggle(true) : close()),
     placement: 'bottom-start',
     strategy: 'absolute',
     middleware: [offset(8), flip(), shift({ padding: 16 })],
@@ -77,7 +99,7 @@ export default function MarkerButton({ marker, onChange, armed = false, onTap, o
       onKeyDown={(e) => {
         if (e.key !== 'Escape' || !open) return;
         e.stopPropagation();
-        toggle(false);
+        close();
         buttonRef.current?.focus();
       }}
     >
@@ -87,13 +109,10 @@ export default function MarkerButton({ marker, onChange, armed = false, onTap, o
         type="button" class={buttonClass ?? styles.button} aria-haspopup="true" aria-expanded={open}
         aria-label={t.marker} title={t.marker} data-armed={armed && isCoarse() ? '' : undefined}
         onClick={(e) => {
-          // On touch the look is chosen on the mark, so the button only arms.
-          if (isCoarse()) {
-            if (!armed) onTap?.();
-            return;
-          }
+          // On touch the first tap arms the marker and opens the panel; later taps open and close it.
+          if (isCoarse() && !armed) onTap?.();
           focusColors.current = !open && e.detail === 0;
-          toggle(!open);
+          if (open) close(); else toggle(true);
         }}
       >
         <span class={styles.face}>
@@ -112,19 +131,35 @@ export default function MarkerButton({ marker, onChange, armed = false, onTap, o
           class={`${styles.menu} ${controls.popover} ${controls['toolbar-menu']}`} role="group" aria-label={t.marker}
         >
           <div class={styles.row}>
-            <HighlightSwatches color={marker.color} t={englishSignMessages} onChange={({ color }) => { onChange({ color }); toggle(false); }} />
-            <ColorWheelInput
-              value={marker.color} label={t.markColorInput} pressed={!inSix}
-              onCommit={(color) => onChange({ color })}
+            <HighlightSwatches
+              color={look.color} t={englishSignMessages}
+              onChange={({ color }) => { apply({ color }); if (!mark) toggle(false); }}
             />
-            <button
-              type="button" class={styles.ul} aria-label={t.markUnderline} aria-pressed={underline} title={t.markUnderline}
-              onClick={() => onChange({ style: underline ? 'highlight' : 'underline' })}
-            >
-              <UnderlineGlyph />
-            </button>
+            <ColorWheelInput
+              value={look.color} label={t.markColorInput} pressed={!inSix}
+              onCommit={(color) => apply({ color })}
+            />
           </div>
-          {!underline && <OpacitySlider value={marker.opacity} onChange={(opacity) => onChange({ opacity })} />}
+          <div class={styles.look}>
+            <StyleToggle look={look} onChange={apply} tone="light" />
+            {mark && (
+              <>
+                <button
+                  type="button" class={`${styles.act} ${styles.end}`} aria-label={t.markComment} title={t.markComment}
+                  onClick={() => { mark.onComment(); close(); }}
+                >
+                  <CommentIcon size={18} />
+                </button>
+                <button
+                  type="button" class={`${styles.act} ${styles.danger}`} aria-label={t.markDelete} title={t.markDelete}
+                  onClick={() => { mark.onDelete(); close(); }}
+                >
+                  <TrashIcon />
+                </button>
+              </>
+            )}
+          </div>
+          {!underline && <OpacitySlider value={look.opacity} onChange={(opacity) => apply({ opacity })} />}
         </div>
       )}
     </span>

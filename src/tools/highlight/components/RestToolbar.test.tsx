@@ -20,8 +20,8 @@ const onDelete = vi.fn();
 const onComment = vi.fn();
 const onClose = vi.fn();
 
-function mount(el: HighlightElement = mark, lookControls?: boolean) {
-  act(() => render(<RestToolbar mark={el} onChange={onChange} onDelete={onDelete} onComment={onComment} onClose={onClose} lookControls={lookControls} />, host));
+function mount(el: HighlightElement = mark) {
+  act(() => render(<RestToolbar mark={el} onChange={onChange} onDelete={onDelete} onComment={onComment} onClose={onClose} />, host));
   return host.querySelector<HTMLElement>('[role="toolbar"]')!;
 }
 const button = (name: string) => host.querySelector<HTMLElement>(`button[aria-label="${name}"]`)!;
@@ -78,13 +78,6 @@ describe('RestToolbar', () => {
     expect(controlsOf(bar)).toEqual(['Color', 'Highlight', 'Underline', 'Thickness', 'Comment', 'Delete']);
     expect(bar.querySelectorAll('[data-highlight-swatch]')).toHaveLength(0);
     expect(bar.querySelectorAll(`.${controls.divider}`)).toHaveLength(2);
-  });
-
-  it('with lookControls off (a finger) the bar is Comment and Delete only', () => {
-    const bar = mount(mark, false);
-    expect(controlsOf(bar)).toEqual(['Comment', 'Delete']);
-    expect(bar.querySelector('[data-style-toggle]')).toBeNull();
-    expect(bar.querySelectorAll(`.${controls.divider}`)).toHaveLength(0);
   });
 
   it('(b) the same controls are present on an underline', () => {

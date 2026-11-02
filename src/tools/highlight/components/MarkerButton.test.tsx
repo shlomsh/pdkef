@@ -41,13 +41,14 @@ describe('MarkerButton', () => {
     expect(container!.querySelector('[data-marker-dot]')).toBeNull();
   });
 
-  it('a click opens the six colors, Underline and the color wheel', () => {
+  it('a click opens the six colors, the color wheel and the Highlight | Underline toggle', () => {
     const { open, button } = mount();
     expect(button().getAttribute('aria-expanded')).toBe('false');
     open();
     expect(button().getAttribute('aria-expanded')).toBe('true');
     expect(container!.querySelectorAll('[data-highlight-swatch]')).toHaveLength(HIGHLIGHT_COLORS.length);
-    expect(container!.querySelector(`button[aria-label="${t.markUnderline}"]`)).not.toBeNull();
+    expect(container!.querySelector('[data-style-toggle]')).not.toBeNull();
+    expect(container!.querySelectorAll(`button[aria-label="${t.markUnderline}"]`)).toHaveLength(1);
     expect(container!.querySelector(`button[aria-label="${t.markCustom}"]`)).toBeNull();
     expect(container!.querySelector('[data-color-wheel]')).not.toBeNull();
   });
@@ -66,9 +67,8 @@ describe('MarkerButton', () => {
     press(container!.querySelector(`button[aria-label="${t.markUnderline}"]`)!);
     expect(props.onChange).toHaveBeenLastCalledWith({ style: 'underline' });
     act(() => render(<MarkerButton {...props} marker={{ ...DEFAULT_MARKER, style: 'underline' }} />, container!));
-    const toggle = container!.querySelector(`button[aria-label="${t.markUnderline}"]`)!;
-    expect(toggle.getAttribute('aria-pressed')).toBe('true');
-    press(toggle);
+    expect(container!.querySelector(`button[aria-label="${t.markUnderline}"]`)!.getAttribute('aria-pressed')).toBe('true');
+    press(container!.querySelector(`button[aria-label="${t.markHighlight}"]`)!);
     expect(props.onChange).toHaveBeenLastCalledWith({ style: 'highlight' });
   });
 
@@ -131,19 +131,21 @@ describe('MarkerButton', () => {
     expect(props.onTap).not.toHaveBeenCalled();
   });
 
-  it('on a coarse pointer a tap arms the marker and never opens the colors', () => {
-    const { props, open } = mount({ isCoarse: () => true });
+  it('on a coarse pointer a tap arms the marker and opens the panel', () => {
+    const { props, open, button } = mount({ isCoarse: () => true });
     open();
     expect(props.onTap).toHaveBeenCalledTimes(1);
-    expect(container!.querySelector('[role=group]')).toBeNull();
+    expect(button().getAttribute('aria-expanded')).toBe('true');
+    expect(container!.querySelector('[role=group]')).not.toBeNull();
   });
 
-  it('on a coarse pointer a tap while armed does nothing', () => {
+  it('on a coarse pointer a tap while armed toggles the panel and does not arm again', () => {
     const { props, button } = mount({ isCoarse: () => true, armed: true });
     press(button());
-    expect(props.onTap).not.toHaveBeenCalled();
+    expect(button().getAttribute('aria-expanded')).toBe('true');
+    press(button());
     expect(button().getAttribute('aria-expanded')).toBe('false');
-    expect(container!.querySelector('[role=group]')).toBeNull();
+    expect(props.onTap).not.toHaveBeenCalled();
   });
 
   it('shows the armed fill on touch only; a fine pointer always has the marker in hand and shows none', () => {
@@ -161,5 +163,64 @@ describe('MarkerButton', () => {
     open();
     press(button());
     expect(onOpenChange.mock.calls).toEqual([[true], [false]]);
+  });
+
+  describe('on a mark', () => {
+    const mark = () => ({ look: { ...DEFAULT_MARKER } as Marker, onChange: vi.fn(), onComment: vi.fn(), onDelete: vi.fn(), onRelease: vi.fn() });
+    const named = (name: string) => container!.querySelector(`button[aria-label="${name}"]`) as HTMLButtonElement;
+
+    it('is open with Comment and Delete, and the pen button keeps showing the pen', () => {
+      const pen = { color: '#FF8FCF', style: 'highlight' as const, opacity: 1 };
+      const { button } = mount({ marker: pen, mark: mark() });
+      expect(button().getAttribute('aria-expanded')).toBe('true');
+      expect(named(t.markComment)).not.toBeNull();
+      expect(named(t.markDelete)).not.toBeNull();
+      expect((container!.querySelector('[data-marker-dot]') as HTMLElement).style.background.toLowerCase()).toContain('rgb(255, 143, 207)');
+    });
+
+    it('shows the mark\'s look: a swatch pressed, and no Comment or Delete for the pen', () => {
+      const look = { ...DEFAULT_MARKER, color: HIGHLIGHT_COLORS[3].hex };
+      mount({ mark: { ...mark(), look } });
+      expect(container!.querySelectorAll('[data-highlight-swatch]')[3].getAttribute('aria-pressed')).toBe('true');
+      act(() => render(<MarkerButton marker={DEFAULT_MARKER} onChange={vi.fn()} />, container!));
+      expect(named(t.markComment)).toBeNull();
+    });
+
+    it('a swatch changes the mark, not the pen, and keeps the panel open', () => {
+      const m = mark();
+      const { props, button } = mount({ mark: m });
+      press(container!.querySelectorAll('[data-highlight-swatch]')[2]);
+      expect(m.onChange).toHaveBeenCalledWith({ color: HIGHLIGHT_COLORS[2].hex });
+      expect(props.onChange).not.toHaveBeenCalled();
+      expect(button().getAttribute('aria-expanded')).toBe('true');
+      expect(m.onRelease).not.toHaveBeenCalled();
+    });
+
+    it('Comment and Delete act, then release the mark', () => {
+      const m = mark();
+      mount({ mark: m });
+      press(named(t.markComment));
+      expect(m.onComment).toHaveBeenCalledTimes(1);
+      expect(m.onRelease).toHaveBeenCalledTimes(1);
+      press(named(t.markDelete));
+      expect(m.onDelete).toHaveBeenCalledTimes(1);
+      expect(m.onRelease).toHaveBeenCalledTimes(2);
+    });
+
+    it('Escape and a press outside release the mark', () => {
+      const m = mark();
+      mount({ mark: m });
+      act(() => { document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); });
+      expect(m.onRelease).toHaveBeenCalledTimes(1);
+      act(() => { document.body.dispatchEvent(new Event('pointerdown', { bubbles: true })); });
+      expect(m.onRelease).toHaveBeenCalledTimes(2);
+    });
+
+    it('closes when the mark goes away', () => {
+      const m = mark();
+      const { props, button } = mount({ mark: m });
+      act(() => render(<MarkerButton {...props} mark={undefined} />, container!));
+      expect(button().getAttribute('aria-expanded')).toBe('false');
+    });
   });
 });

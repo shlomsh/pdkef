@@ -17,15 +17,13 @@ import styles from './RestToolbar.module.css';
  * menu with opacity, the Highlight | Underline toggle (icons, with the underline's thickness caret; LookControls), Comment and Delete.
  * It is placed by Sign's floating hook, above the mark, and every change is the caller's to apply.
  */
-export default function RestToolbar({ mark, onChange, onDelete, onComment, onClose, lookControls = true }: {
+export default function RestToolbar({ mark, onChange, onDelete, onComment, onClose }: {
   mark: HighlightElement;
   onChange(change: Partial<Marker>): void;
   onDelete(): void;
   /** R27: open this highlight's comment (a blank one first if it has none). */
   onComment(): void;
   onClose(): void;
-  /** The color and style controls; a finger sets the look on the pen bar, so the mark's bar there is Comment and Delete only. */
-  lookControls?: boolean;
 }) {
   const rootRef = useRef<HTMLDivElement>(null);
   const rtl = mark.direction === 'rtl';
@@ -59,12 +57,8 @@ export default function RestToolbar({ mark, onChange, onDelete, onComment, onClo
       ref={placement.setRoot} class={`${elementStyles.actions} ${styles.bar}`} style={placement.style} role="toolbar" aria-label={t.markToolbar}
       data-rest-toolbar data-side="above" onKeyDown={onArrow}
     >
-      {lookControls && (
-        <>
-          <LookControls look={look} onChange={(change) => live.current.onChange(change)} />
-          <div class={controls.divider} />
-        </>
-      )}
+      <LookControls look={look} onChange={(change) => live.current.onChange(change)} />
+      <div class={controls.divider} />
       <button type="button" class={controls['element-button']} aria-label={t.markComment} aria-keyshortcuts="C" title={t.markComment} onClick={() => live.current.onComment()}>
         <CommentIcon size={18} />
       </button>

@@ -29,7 +29,7 @@ const dispatch = vi.fn();
 const logAction = vi.fn();
 const rearm = vi.fn();
 
-function mount(elements: EditorElement[], marker = DEFAULT_MARKER, touchArmed?: boolean, extra: { chrome?: number; rail?: preact.ComponentChildren; pageTurns?: Record<number, 1 | 2 | 3> } = {}) {
+function mount(elements: EditorElement[], marker = DEFAULT_MARKER, touchArmed?: boolean, extra: { chrome?: number; pickedId?: string | null; onPickMark?: (id: string) => void; rail?: preact.ComponentChildren; pageTurns?: Record<number, 1 | 2 | 3> } = {}) {
   act(() => render(
     <HighlightPage
       pdfDocument={null} pageIndex={0} widthPx={600} elements={elements} marker={marker} touchArmed={touchArmed} {...extra}
@@ -80,12 +80,14 @@ describe('HighlightPage', () => {
   });
 
   it('marks are one roving tab stop and focusing one with the keyboard opens its toolbar', () => {
+    const restore = stubPointer(false); // the toolbar on the page is the mouse's
     const later: EditorElement = { ...mark, id: 'h2', top: 60 };
     mount([later, mark]);
     const nodes = [...container.querySelectorAll<HTMLElement>('[data-editor-element-id]')];
     expect(nodes.map((n) => [n.dataset.editorElementId, n.tabIndex])).toEqual([['h2', -1], ['h1', 0]]);
     act(() => nodes[0].focus());
     expect(container.querySelector('[data-rest-toolbar]')).not.toBeNull();
+    restore();
   });
 
   it('a mouse press on the page adds an empty highlight in the marker and starts the swipe', () => {
@@ -304,6 +306,36 @@ function stubPointer(coarse: boolean) {
   window.matchMedia = ((query: string) => ({ ...original(query), matches: query.includes('coarse') ? coarse : true })) as typeof window.matchMedia;
   return () => { window.matchMedia = original; };
 }
+
+describe('HighlightPage picking a mark', () => {
+  let restore = () => {};
+  afterEach(() => restore());
+
+  it('on a finger a tap on a mark reports it upward and opens no toolbar on the page', () => {
+    restore = stubPointer(true);
+    const onPickMark = vi.fn();
+    mount([mark], DEFAULT_MARKER, true, { onPickMark });
+    act(() => { container.querySelector<HTMLElement>('[data-element-id="h1"]')!.click(); });
+    expect(onPickMark).toHaveBeenCalledWith('h1');
+    expect(container.querySelector('[data-rest-toolbar]')).toBeNull();
+  });
+
+  it('the picked mark carries data-picked, the others do not', () => {
+    restore = stubPointer(true);
+    mount([mark, { ...mark, id: 'h2', top: 60 }], DEFAULT_MARKER, true, { pickedId: 'h2' });
+    expect(container.querySelector('[data-element-id="h1"]')!.hasAttribute('data-picked')).toBe(false);
+    expect(container.querySelector('[data-element-id="h2"]')!.hasAttribute('data-picked')).toBe(true);
+  });
+
+  it('with a fine pointer a click still opens the mark toolbar', () => {
+    restore = stubPointer(false);
+    const onPickMark = vi.fn();
+    mount([mark], DEFAULT_MARKER, undefined, { onPickMark });
+    act(() => { container.querySelector<HTMLElement>('[data-element-id="h1"]')!.click(); });
+    expect(container.querySelector('[data-rest-toolbar]')).not.toBeNull();
+    expect(onPickMark).not.toHaveBeenCalled();
+  });
+});
 
 describe('HighlightPage one-time hint', () => {
   let restore = () => {};

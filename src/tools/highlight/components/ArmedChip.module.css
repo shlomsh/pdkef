@@ -1,5 +1,4 @@
-/* The pen bar at the foot of the screen, in thumb reach, while the marker is armed on touch. It wears the mark toolbar's
-   dark look (EditorElement's .actions), so the look controls render here as they do on a mark. */
+/* A quiet pill at the foot of the screen, in thumb reach, while the marker is armed on touch. */
 .chip {
   position: fixed;
   bottom: calc(16px + env(safe-area-inset-bottom, 0px));
@@ -8,28 +7,28 @@
   z-index: 30;
   display: flex;
   align-items: center;
-  gap: 4px;
-  --toolbar-hover-fill: var(--color-white-20);
+  gap: var(--space-3);
   max-width: calc(100vw - 32px);
   box-sizing: border-box;
-  padding: 4px 6px;
-  border-radius: var(--radius-sm);
-  background: var(--color-text);
-  color: var(--color-surface);
+  padding: var(--space-1) var(--space-1) var(--space-1) var(--space-4);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-pill, 999px);
+  background: var(--color-surface);
+  color: var(--color-text);
   box-shadow: var(--shadow-md);
   font: 500 14px/1.25 var(--font-sans);
 }
 /* One thing at the screen's foot at a time: while a comment sheet is open the chip steps aside, and it returns
    when the sheet closes. */
 :global(body:has([data-comment-sheet])) .chip { display: none; }
-/* On a phone the chip spans the screen between 16 px gutters (the full-width mobile toolbar rule): look controls left, Stop right. */
+.text { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* On a phone the chip spans the screen between 16 px gutters (the full-width mobile toolbar rule): text left, Stop right. */
 @media (pointer: coarse), (max-width: 480px) {
   .chip { left: 16px; right: 16px; translate: none; max-width: none; justify-content: space-between; }
 }
 .stop {
   appearance: none;
   flex: none;
-  margin-inline-start: auto;
   min-height: 32px;
   padding: 0 var(--space-4);
   border: 0;
@@ -40,9 +39,5 @@
   font-weight: 600;
   cursor: pointer;
 }
-.stop:focus-visible { outline: 2px solid var(--color-surface); outline-offset: 2px; }
-/* Touch: the buttons themselves are the 44px targets, so Sign's 8px hit extension is switched off (as on a mark's bar). */
-@media (pointer: coarse) {
-  .chip button { min-width: 44px; min-height: 44px; }
-  .chip button::before { inset: 0; }
-}
+.stop:focus-visible { outline: 2px solid var(--color-primary); outline-offset: 2px; }
+@media (pointer: coarse) { .stop { min-height: 44px; } }
