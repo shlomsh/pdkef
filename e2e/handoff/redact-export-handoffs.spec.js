@@ -38,6 +38,6 @@ test('Sign it exports the redacted file without a download and carries it on', a
   await sign.click();
   await page.waitForURL(/\/sign\/$/);
   await expect(page.locator('[class*="page-wrapper"]').first()).toBeVisible();
-  await expect(page.getByText(/^redacted_/).first()).toBeVisible();
+  await expect(page.locator('[data-output-name]')).toContainText('redacted_');
   expect(downloads).toBe(0);
 });

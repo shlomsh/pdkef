@@ -47,7 +47,7 @@ test('Compress it and Redact it show once export is ready, and carry the file on
   await redact.click();
   await page.waitForURL(/\/redact\/$/);
   await expect(page.locator('[class*="page-wrapper"]').first()).toBeVisible();
-  await expect(page.getByText(/^signed_/).first()).toBeVisible();
+  await expect(page.locator('[data-output-name]')).toContainText('signed_');
 });
 
 test('a restored draft shows the hand-offs with no action', async ({ page }) => {
