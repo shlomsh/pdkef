@@ -5,6 +5,8 @@ import type { Rect } from '../lib/lampEntrance/geometry.ts';
 
 /** How long a press waits for the view to change (real fullscreen answers later) before it is forgotten. */
 const PRESS_EXPIRES_MS = 1500;
+/** A view change later than this is not this press's answer, so it no longer flies from the press's measurement. */
+const MEASURE_EXPIRES_MS = 10_000;
 
 /** The capsule leaves a copy of itself behind to fade out over the closing pill: it is unmounted before the view changes. */
 function leaveGhost(ws: HTMLElement) {
@@ -35,7 +37,7 @@ function trackCapsule(ws: HTMLElement, into: { current: Rect | null }): () => vo
 export function useLampEntrance({ workspaceRef, fullscreen, toggleLamp }: { workspaceRef: { current: HTMLElement | null }; fullscreen: boolean; toggleLamp(): void }) {
   // The timer only ends the "press pending" block; the measurement outlives it, so a slow full screen still gets its entrance.
   const press = useRef<{ timer: ReturnType<typeof setTimeout> } | null>(null);
-  const measured = useRef<Before | null>(null);
+  const measured = useRef<{ before: Before; timer: ReturnType<typeof setTimeout> } | null>(null);
   const run = useRef<{ cancel(): void } | null>(null);
   const was = useRef(fullscreen);
   const capsule = useRef<Rect | null>(null);
@@ -56,7 +58,8 @@ export function useLampEntrance({ workspaceRef, fullscreen, toggleLamp }: { work
     const ws = workspaceRef.current;
     if (press.current) clearTimeout(press.current.timer);
     press.current = null;
-    const before = measured.current;
+    const before = measured.current?.before ?? null;
+    if (measured.current) clearTimeout(measured.current.timer);
     measured.current = null;
     run.current?.cancel();
     if (!ws) return;
@@ -103,7 +106,8 @@ export function useLampEntrance({ workspaceRef, fullscreen, toggleLamp }: { work
     if (direction === 'exit') leaveGhost(ws);
     const timer = setTimeout(() => { press.current = null; clearGhost(ws); }, PRESS_EXPIRES_MS);
     press.current = { timer };
-    measured.current = measureBefore(direction, ws);
+    if (measured.current) clearTimeout(measured.current.timer);
+    measured.current = { before: measureBefore(direction, ws), timer: setTimeout(() => { measured.current = null; }, MEASURE_EXPIRES_MS) };
     toggleLamp();
   };
 }
