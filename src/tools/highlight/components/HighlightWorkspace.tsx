@@ -14,7 +14,6 @@ import ZoomMenu from './ZoomMenu.tsx';
 import HighlightPage from './HighlightPage.tsx';
 import MarkerButton from './MarkerButton.tsx';
 import DownloadDone from './DownloadDone.tsx';
-import ArmedChip from './ArmedChip.tsx';
 import FullscreenButton from '#editor-ui/FullscreenButton.tsx';
 import ToolShell, { FILE_ACTIONS, useToolShell } from '#shell/ToolShell.tsx';
 import { englishShellMessages } from '#shell/shellMessages.ts';
@@ -130,7 +129,7 @@ export default function HighlightWorkspace({ pdfDocument, numPages, fileName, zo
     look: markOf(picked), onChange: (change: Partial<typeof marks.marker>) => commands.change(picked, change),
     onComment: () => commands.comment(picked), onDelete: () => commands.remove(picked), onRelease: panel.release,
   };
-  const markerButton = <MarkerButton marker={marks.marker} onChange={marks.rearm} armed={touch.armed} onTap={touch.arm} mark={mark} />;
+  const markerButton = <MarkerButton marker={marks.marker} onChange={marks.rearm} armed={touch.armed} onTap={touch.arm} onDisarm={touch.disarm} mark={mark} />;
 
   return (
     <>
@@ -157,7 +156,6 @@ export default function HighlightWorkspace({ pdfDocument, numPages, fileName, zo
             onDownload={onDownload} moreItems={moreItems} onExit={toggleView}
             scrollEvents={scrollEvents} pagePressEvents={pagePressEvents} labels={t.capsule}
           />
-          <ArmedChip armed={touch.armed} onStop={touch.disarm} lamp />
         </div>
       )}
       {fullscreen && <PrintMenu {...printMenu} />}
@@ -203,9 +201,9 @@ function TileRow({ marks, undo, redo, touch, mark, printMenu, withComments, onPr
   const { requestReplace, messages: shellMessages = englishShellMessages } = useToolShell();
   const shortcuts = historyShortcuts(typeof navigator !== 'undefined' && isMacPlatform(navigator.platform));
   return (
-    <ToolShell editor>
+    <ToolShell editor status={touch.armed ? t.armedAction : null}>
       <div className={`${toolbarStyles.toolbar} ${styles.toolRow}`} role="toolbar" aria-label={t.toolbarLabel} data-editor-toolbar>
-        <MarkerButton marker={marks.marker} onChange={marks.rearm} armed={touch.armed} onTap={touch.arm} mark={mark} buttonClass={toolbarStyles.button} />
+        <MarkerButton marker={marks.marker} onChange={marks.rearm} armed={touch.armed} onTap={touch.arm} onDisarm={touch.disarm} mark={mark} buttonClass={toolbarStyles.button} />
         <UndoRedoButtons
           onUndo={undo} onRedo={redo} canUndo={marks.canUndo} canRedo={marks.canRedo}
           labels={{ undoTitle: shortcuts.undo, undoButton: t.capsule.undo, redoTitle: shortcuts.redo, redoButton: t.capsule.redo }}
@@ -224,7 +222,7 @@ function TileRow({ marks, undo, redo, touch, mark, printMenu, withComments, onPr
           downloadLabel={t.capsule.download} keepDownloadOnPhone
         />
       </div>
-      {doneName ? <DownloadDone name={doneName} onClose={() => onCloseDone?.()} /> : <ArmedChip armed={touch.armed} onStop={touch.disarm} />}
+      {doneName && <DownloadDone name={doneName} onClose={() => onCloseDone?.()} />}
     </ToolShell>
   );
 }

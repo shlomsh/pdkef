@@ -18,10 +18,12 @@ interface MarkerButtonProps {
   marker: Marker;
   /** Every change is a re-arm (R5). */
   onChange(change: Partial<Marker>): void;
-  /** On touch: the marker is armed, so a tap opens and closes the panel. */
+  /** On touch: the marker is armed, so a tap on it puts it away (and closes the panel). */
   armed?: boolean;
   /** On touch: the tap that arms the marker. A fine pointer never calls it (the marker is always armed, R1). */
   onTap?(): void;
+  /** On touch: the tap that disarms an armed marker. A mark's panel is the exception: that tap releases the mark. */
+  onDisarm?(): void;
   /** The capsule listens, so an open menu keeps it awake. */
   onOpenChange?(open: boolean): void;
   /** Whether taps are the input; the coarse-pointer query by default. */
@@ -42,7 +44,7 @@ interface MarkerButtonProps {
  * The marker in the hand, as a button (R19): it shows the armed marker, a dot in its color or the underline
  * glyph, and opens the panel of the look: the six colors and the color wheel, and the Highlight | Underline toggle, whose highlight caret holds the opacity. On touch a tap also arms the marker. Given a `mark`, the panel is that highlight's: it edits it, adds Comment and Delete, and a dismissal releases it.
  */
-export default function MarkerButton({ marker, onChange, armed = false, onTap, onOpenChange, isCoarse = coarsePointer, mark, buttonClass }: MarkerButtonProps) {
+export default function MarkerButton({ marker, onChange, armed = false, onTap, onDisarm, onOpenChange, isCoarse = coarsePointer, mark, buttonClass }: MarkerButtonProps) {
   const [penOpen, setOpen] = useState(false);
   const open = penOpen || Boolean(mark);
   const look = mark ? mark.look : marker;
@@ -107,7 +109,8 @@ export default function MarkerButton({ marker, onChange, armed = false, onTap, o
         type="button" class={buttonClass ?? styles.button} aria-haspopup="true" aria-expanded={open}
         aria-label={t.marker} title={t.marker} data-armed={armed && isCoarse() ? '' : undefined}
         onClick={(e) => {
-          // On touch the first tap arms the marker and opens the panel; later taps open and close it.
+          // On touch a tap arms the marker and opens the panel; the next tap disarms it and closes the panel.
+          if (isCoarse() && armed && !mark) { onDisarm?.(); toggle(false); return; }
           if (isCoarse() && !armed) onTap?.();
           focusColors.current = !open && e.detail === 0;
           if (open) close(); else toggle(true);

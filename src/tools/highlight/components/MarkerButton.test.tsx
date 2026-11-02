@@ -135,13 +135,31 @@ describe('MarkerButton', () => {
     expect(container!.querySelector('[role=group]')).not.toBeNull();
   });
 
-  it('on a coarse pointer a tap while armed toggles the panel and does not arm again', () => {
-    const { props, button } = mount({ isCoarse: () => true, armed: true });
+  it('on a coarse pointer a tap while armed disarms the marker, closes the panel and does not arm again', () => {
+    const onDisarm = vi.fn();
+    const { props, button } = mount({ isCoarse: () => true, armed: true, onDisarm });
     press(button());
-    expect(button().getAttribute('aria-expanded')).toBe('true');
-    press(button());
+    expect(onDisarm).toHaveBeenCalledTimes(1);
     expect(button().getAttribute('aria-expanded')).toBe('false');
+    expect(container!.querySelector('[role=group]')).toBeNull();
     expect(props.onTap).not.toHaveBeenCalled();
+  });
+
+  it('a fine pointer never disarms', () => {
+    const onDisarm = vi.fn();
+    const { button } = mount({ armed: true, onDisarm });
+    press(button());
+    expect(onDisarm).not.toHaveBeenCalled();
+  });
+
+  it('given a mark, a tap on Marker releases the mark and leaves arming alone', () => {
+    const onDisarm = vi.fn();
+    const onRelease = vi.fn();
+    const mark = { look: DEFAULT_MARKER as Marker, onChange: vi.fn(), onComment: vi.fn(), onDelete: vi.fn(), onRelease };
+    const { button } = mount({ isCoarse: () => true, armed: true, onDisarm, mark });
+    press(button());
+    expect(onRelease).toHaveBeenCalledTimes(1);
+    expect(onDisarm).not.toHaveBeenCalled();
   });
 
   it('shows the armed fill on touch only; a fine pointer always has the marker in hand and shows none', () => {
