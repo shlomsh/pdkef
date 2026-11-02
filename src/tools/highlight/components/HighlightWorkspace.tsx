@@ -15,6 +15,8 @@ import ZoomMenu from './ZoomMenu.tsx';
 import HighlightPage from './HighlightPage.tsx';
 import MarkerButton from './MarkerButton.tsx';
 import PenHint from './PenHint.tsx';
+import NotePane from './NotePane.tsx';
+import { englishSignMessages } from '#editor/registry/signMessages.ts';
 import DownloadDone from './DownloadDone.tsx';
 import LampCord from './LampCord.tsx';
 import LampStage from './LampStage.tsx';
@@ -31,6 +33,7 @@ import type { HighlightElement } from '#editor/model/editorModel.ts';
 import { coarsePointer, useMarkerArming } from '../hooks/useMarkerArming.ts';
 import { useMarkPanel } from '../hooks/useMarkPanel.ts';
 import { markCommands } from '../lib/marks/markCommands.ts';
+import { activeAfterPick } from '../lib/notes/notePane.ts';
 import { historyShortcuts, isMacPlatform } from '../lib/marker/historyShortcuts.ts';
 import { usePrint } from '../hooks/usePrint.ts';
 import { hasComments } from '../lib/print/printMenu.ts';
@@ -83,7 +86,7 @@ export default function HighlightWorkspace({ pdfDocument, numPages, fileName, zo
     return () => ws.removeEventListener('scroll', onScroll);
   }, [workspaceRef, fullscreen, scrollEvents]);
 
-  // The comments view measures the workspace's width to choose the rail or the sheet.
+  // The comments view measures the workspace's width to choose the margin rail or the bottom note pane.
   const commentsContainer = comments.containerRef;
   const setWorkspace = useCallback((node: HTMLDivElement | null) => {
     workspaceRef.current = node;
@@ -128,6 +131,11 @@ export default function HighlightWorkspace({ pdfDocument, numPages, fileName, zo
   const panel = useMarkPanel(elements, workspaceRef);
   // READ-13: the open mark wears the pencil outline, and the other marks step back while one is open.
   const { openMarks } = panel;
+  const pickMark = (id: string) => {
+    panel.pick(id);
+    const next = activeAfterPick(elements, marks.state.activeElementId, id);
+    if (next !== marks.state.activeElementId) dispatch({ type: 'SET_ACTIVE_ELEMENT_ID', payload: next });
+  };
   const picked = panel.markId ? elements.find((el) => el.id === panel.markId) as HighlightElement | undefined : undefined;
   const commands = markCommands({ elements, dispatch, logAction: marks.logAction, rearm: marks.rearm, setAnnouncement });
   const mark = picked && {
@@ -175,14 +183,17 @@ export default function HighlightWorkspace({ pdfDocument, numPages, fileName, zo
           <HighlightPage
             key={i} pdfDocument={pdfDocument} pageIndex={i} widthPx={box.width * zoom.zoom}
             elements={marks.state.elements} marker={marks.marker} rearm={marks.rearm} dispatch={dispatch} logAction={marks.logAction}
-            setAnnouncement={setAnnouncement} armed={touch.armed} pickedId={panel.markId} openMarks={openMarks} onPickMark={panel.pick} cardRef={(el) => { pageRefs.current[i] = el; }} chrome={zoom.chrome} rail={comments.rail(i, (box.height * zoom.zoom) / zoom.chrome)}
+            setAnnouncement={setAnnouncement} armed={touch.armed} pickedId={panel.markId} openMarks={openMarks} onPickMark={pickMark} cardRef={(el) => { pageRefs.current[i] = el; }} chrome={zoom.chrome} rail={comments.rail(i, (box.height * zoom.zoom) / zoom.chrome)}
             pageTurns={marks.pageTurns} onRotate={(geometry) => { dispatch(rotatePageAction(i, geometry)); recordAction('rotate'); }}
             onClear={() => { const actions = clearPageActions(marks.state.elements, i); actions.forEach((a) => dispatch(a)); if (actions.length) recordAction('delete_mark'); }}
           />
         ))}
       </div>
       </div>
-      {comments.sheet}
+      {!comments.wide && (
+        <NotePane elements={marks.state.elements} activeElementId={marks.state.activeElementId} messages={englishSignMessages} labels={t.notes}
+          onSelect={(id) => dispatch({ type: 'SET_ACTIVE_ELEMENT_ID', payload: id })} {...comments.actions} onUndo={undo} onReturnFocus={comments.returnFocus} />
+      )}
     </div>
     </>
   );

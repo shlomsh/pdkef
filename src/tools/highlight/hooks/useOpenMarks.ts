@@ -14,8 +14,8 @@ export function readOpenMarks(root: ParentNode, pickedId: string | null): OpenMa
   const active = document.activeElement;
   const focused = active && root.contains(active) && active.matches('[data-editor-element-id]:focus-visible') ? idOf(active) : null;
   const openId = idOf(root.querySelector('[data-comment-focus]')) ?? pickedId ?? focused;
-  const hoverId = idOf(root.querySelector('[data-comment-hover]:not([data-comment-focus])'));
-  return { openId, hoverId: hoverId === openId ? null : hoverId };
+  const hoverId = openId ? null : idOf(root.querySelector('[data-comment-hover]:not([data-comment-focus])'));
+  return { openId, hoverId };
 }
 
 /** Re-reads `readOpenMarks` whenever an attribute it looks at changes or focus moves; the state only changes when the answer does. */

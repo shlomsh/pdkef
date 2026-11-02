@@ -161,6 +161,9 @@ and on focus; on touch the word is always there or the control is not an icon.
   document, in the page flow: the setting, the filled primary control, then the next steps. The
   pinned sheet measured 259px of a 402px phone screen in Edit Pages (2026-10-21).
   Secondary commands live in a "…" popover anchored at the inline end, so the Hebrew edition flips it.
+  One exception: Highlight's note pane on the phone (READ-15, 2026-11-02). It holds the open note, not
+  the tool's commands, shows only while a note is open, and has its own Close; its cards scroll
+  sideways so the pane never competes with the page's vertical scroll.
 - A quiet toolbar Download uses the one-word label "Download"; "Download merged PDF" made it 197px wide
   in the sticky bar. The full label belongs to the filled primary control. (MERGE-24, 2026-10-23)
 - On the phone, Share may matter more than Download: it is how a phone saves to Files, AirDrop and

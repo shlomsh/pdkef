@@ -1,4 +1,4 @@
-import { useLayoutEffect, useMemo, useRef, useState } from 'preact/hooks';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'preact/hooks';
 import type { EditorElement } from '#editor/model/editorModel.ts';
 import type { SignMessages } from '#editor/registry/messages.ts';
 import { commentCards, stackCards } from '#editor/highlight/commentCards.ts';
@@ -13,7 +13,7 @@ const NUDGE = 6;
 const stop = (event: Event) => event.stopPropagation();
 
 /** SIGN-44: comments in a margin rail beside the page, each card level with its anchor. */
-export function CommentRail({ pageIndex, elements, activeElementId, messages, onSelect, onSave, onDelete, onDiscard, onReturnFocus, railHeight }: {
+export function CommentRail({ pageIndex, elements, activeElementId, messages, onSelect, onSave, onDelete, onDiscard, onReturnFocus, railHeight, readActions }: {
   pageIndex: number;
   elements: readonly EditorElement[];
   activeElementId: string | null;
@@ -25,6 +25,8 @@ export function CommentRail({ pageIndex, elements, activeElementId, messages, on
   onReturnFocus?: (id: string) => void;
   /** The rail's height in px, when the caller knows it: cards are then placed in the render that changes it. */
   railHeight?: number;
+  /** Highlight: the selected card shows Delete and Edit as buttons. */
+  readActions?: boolean;
 }) {
   const cards = commentCards(elements, pageIndex, activeElementId);
   const rail = useRef<HTMLDivElement>(null);
@@ -63,13 +65,23 @@ export function CommentRail({ pageIndex, elements, activeElementId, messages, on
   }, [key, known]);
   const shown = derived ?? layout;
 
+  // A card that unmounts under the pointer never fires mouseleave: clear its passage here (the node is kept, its comment may be gone).
+  const hovered = useRef<{ id: string; node: HTMLElement | null } | null>(null);
+  const cardIds = cards.map((c) => c.id).join('|');
+  const clearHover = () => { hovered.current?.node?.removeAttribute('data-comment-hover'); hovered.current = null; };
+  useEffect(() => {
+    if (hovered.current && !cards.some((c) => c.id === hovered.current!.id)) clearHover();
+  }, [cardIds]);
+  useEffect(() => clearHover, []);
+
   return (
     <div ref={rail} class={styles.rail} data-comment-rail style={{ minHeight: `${shown.height}px` }}
       onClick={stop} onMouseDown={stop} onTouchStart={stop}>
       {cards.map((card) => (
         <div key={card.id} class={styles.card} data-comment-card={card.id} data-active={card.id === activeElementId ? 'true' : undefined}
           style={{ top: `${shown.tops.get(card.id) ?? 0}px` }}
-          onMouseEnter={() => markAnchor(elements, card.id, 'data-comment-hover', true)} onMouseLeave={() => markAnchor(elements, card.id, 'data-comment-hover', false)}>
+          onMouseEnter={() => { hovered.current = { id: card.id, node: anchorNode(elements, card.id) }; markAnchor(elements, card.id, 'data-comment-hover', true); }}
+          onMouseLeave={() => { hovered.current = null; markAnchor(elements, card.id, 'data-comment-hover', false); }}>
           <CommentCardBody
             card={card}
             active={card.id === activeElementId}
@@ -80,6 +92,7 @@ export function CommentRail({ pageIndex, elements, activeElementId, messages, on
             onDelete={() => onDelete(card.id)}
             onDiscard={() => onDiscard(card.id)}
             onReturnFocus={() => onReturnFocus?.(card.id)}
+            readActions={readActions && card.id === activeElementId}
           />
         </div>
       ))}
