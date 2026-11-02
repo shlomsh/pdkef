@@ -27,13 +27,15 @@
 }
 .cells [data-highlight-swatch][aria-pressed='true']::before { box-shadow: 0 0 0 2px var(--color-surface), 0 0 0 3px var(--color-primary); }
 
-/* More: a quiet caret, or the picked color as a pressed dot. */
+/* More: the chevron, with the picked color as a pressed dot before it. */
 .more {
   appearance: none;
   flex: none;
-  display: grid;
-  place-items: center;
-  width: var(--swatch-w, var(--cell, 2.25rem));
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  min-width: var(--swatch-w, var(--cell, 2.25rem));
   height: var(--cell, 2.25rem);
   padding: 0;
   border: 0;
@@ -42,6 +44,7 @@
   color: var(--color-text);
   cursor: pointer;
 }
+.more[aria-pressed='true'] { padding-inline: 8px; }
 .more:hover,
 .more[aria-expanded='true'] { background: var(--color-primary-tint); }
 .dot {

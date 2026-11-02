@@ -29,10 +29,10 @@ const dispatch = vi.fn();
 const logAction = vi.fn();
 const rearm = vi.fn();
 
-function mount(elements: EditorElement[], marker = DEFAULT_MARKER, touchArmed?: boolean, extra: { chrome?: number; pickedId?: string | null; onPickMark?: (id: string) => void; rail?: preact.ComponentChildren; pageTurns?: Record<number, 1 | 2 | 3> } = {}) {
+function mount(elements: EditorElement[], marker = DEFAULT_MARKER, armed?: boolean, extra: { chrome?: number; pickedId?: string | null; onPickMark?: (id: string) => void; rail?: preact.ComponentChildren; pageTurns?: Record<number, 1 | 2 | 3> } = {}) {
   act(() => render(
     <HighlightPage
-      pdfDocument={null} pageIndex={0} widthPx={600} elements={elements} marker={marker} touchArmed={touchArmed} {...extra}
+      pdfDocument={null} pageIndex={0} widthPx={600} elements={elements} marker={marker} armed={armed} {...extra}
       dispatch={dispatch} logAction={logAction} rearm={rearm} setAnnouncement={() => {}} cardRef={() => {}} onRotate={() => {}} onClear={() => {}}
     />,
     container,
@@ -110,7 +110,7 @@ describe('HighlightPage', () => {
   });
 
   it('a touch press, a secondary button and a press on a highlight do nothing', () => {
-    const overlay = mount([mark]);
+    const overlay = mount([mark], DEFAULT_MARKER, false);
     press(overlay, { pointerType: 'touch' });
     press(overlay, { pointerType: 'mouse', button: 2 });
     press(container.querySelector('[data-element-id]')!, { pointerType: 'mouse' });
@@ -229,6 +229,12 @@ describe('HighlightPage rest toolbar', () => {
 
   it('a mouse click on a highlight opens it at once', () => {
     mount([mark]);
+    mouseClickOn(container.querySelector('[data-element-id]')!, 1);
+    expect(toolbar()).not.toBeNull();
+  });
+
+  it('a mouse click on a highlight opens it while the marker is put down', () => {
+    mount([mark], DEFAULT_MARKER, false);
     mouseClickOn(container.querySelector('[data-element-id]')!, 1);
     expect(toolbar()).not.toBeNull();
   });
@@ -400,6 +406,12 @@ describe('HighlightPage cursor (R14)', () => {
     expect(cursor.endsWith('crosshair')).toBe(true);
   });
 
+  it('put down, the page wears the ordinary cursor', () => {
+    restore = stubPointer(false);
+    mount([], DEFAULT_MARKER, false);
+    expect(wrapper().style.cursor).toBe('');
+  });
+
   it('follows the marker: underlining swaps the tip', () => {
     restore = stubPointer(false);
     mount([], { color: '#FF8FCF', style: 'underline', opacity: 1 });
@@ -420,17 +432,17 @@ describe('HighlightPage click marks on a digital page (R10 to R12)', () => {
   let overlay: HTMLElement;
 
   let doc: ReturnType<typeof textPage>;
-  const renderPage = (elements: EditorElement[], marker = DEFAULT_MARKER) => act(() => render(
+  const renderPage = (elements: EditorElement[], marker = DEFAULT_MARKER, armed?: boolean) => act(() => render(
     <HighlightPage
-      pdfDocument={doc} pageIndex={0} widthPx={200} elements={elements} marker={marker}
+      pdfDocument={doc} pageIndex={0} widthPx={200} elements={elements} marker={marker} armed={armed}
       dispatch={dispatch} logAction={logAction} rearm={rearm} setAnnouncement={() => {}} cardRef={() => {}} onRotate={() => {}} onClear={() => {}}
     />,
     container,
   ));
 
-  async function mountText(elements: EditorElement[] = [], marker = DEFAULT_MARKER) {
+  async function mountText(elements: EditorElement[] = [], marker = DEFAULT_MARKER, armed?: boolean) {
     doc = textPage(['hello world']);
-    await act(async () => { renderPage(elements, marker); });
+    await act(async () => { renderPage(elements, marker, armed); });
     await act(async () => { await new Promise((resolve) => setTimeout(resolve, 0)); });
     overlay = container.querySelector<HTMLElement>('[data-page-overlay]')!;
     overlay.getBoundingClientRect = () => ({ left: 0, top: 0, right: 200, bottom: 400, width: 200, height: 400, x: 0, y: 0, toJSON: () => ({}) });
@@ -481,6 +493,13 @@ describe('HighlightPage click marks on a digital page (R10 to R12)', () => {
     expect(mark.width).toBeGreaterThan(5);
     expect(logAction).toHaveBeenCalledWith('add', 'ADD_SHAPE', 0, expect.any(String), [expect.objectContaining({ element: mark })]);
     expect(dispatch.mock.calls.some(([a]) => a.type === 'UNDO')).toBe(false);
+  });
+
+  it('a double-click lays nothing while the marker is put down', async () => {
+    await mountText([], DEFAULT_MARKER, false);
+    clickAt(2);
+    expect(added()).toHaveLength(0);
+    expect(dispatch).not.toHaveBeenCalled();
   });
 
   it('a double-click on the gap between words, or off the text, marks nothing', async () => {
@@ -669,6 +688,10 @@ describe('HighlightPage click marks on a scan (R10)', () => {
 });
 
 describe('HighlightPage touch swipe, armed', () => {
+  let restorePointer = () => {};
+  beforeEach(() => { restorePointer = stubPointer(true); });
+  afterEach(() => restorePointer());
+
   it('a one-finger press starts the same swipe as a mouse, and not as a mouse (its click is not ours to swallow)', () => {
     const overlay = mount([], DEFAULT_MARKER, true);
     press(overlay, { pointerType: 'touch' });
@@ -684,6 +707,25 @@ describe('HighlightPage touch swipe, armed', () => {
     expect(overlay.hasAttribute('data-touch-armed')).toBe(true);
     mount([], DEFAULT_MARKER, false);
     expect(overlay.hasAttribute('data-touch-armed')).toBe(false);
+  });
+
+  it('on a fine pointer the armed page keeps its text selectable and scrolling: the touch style is touch only', () => {
+    restorePointer();
+    restorePointer = stubPointer(false);
+    const overlay = mount([], DEFAULT_MARKER, true);
+    expect(overlay.hasAttribute('data-touch-armed')).toBe(false);
+  });
+
+  it('a mouse drag lays a mark while armed and none once the marker is put down', () => {
+    restorePointer();
+    restorePointer = stubPointer(false);
+    const overlay = mount([], DEFAULT_MARKER, false);
+    press(overlay, { pointerType: 'mouse' });
+    expect(dispatch).not.toHaveBeenCalled();
+    expect(startHighlightSwipe).not.toHaveBeenCalled();
+    mount([], DEFAULT_MARKER, true);
+    press(overlay, { pointerType: 'mouse' });
+    expect(startHighlightSwipe).toHaveBeenCalledTimes(1);
   });
 
   it('a mouse still marks as before while a finger is armed', () => {

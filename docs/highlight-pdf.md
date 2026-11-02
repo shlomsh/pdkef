@@ -88,16 +88,16 @@ scroll again (R1, R50). The contract is [READ-01](../backlog/tasks/READ-01.md); 
 
 ### Changing a highlight
 
-- **On a desktop, rest on a highlight or click it.** A dark toolbar opens above the mark: colors, Highlight
-  or Underline, Comment, Delete (R2).
+- **There is one panel, and only a highlight opens it.** On a desktop, rest on a highlight or click it and
+  the panel floats above the mark (R2, R47).
 - **On touch, tap a highlight to pick it.** The mark gets a ring and the panel opens under the top toolbar
   (in full screen, under the capsule's Marker) with that mark's look, Comment and Delete. Nothing floats on
   the page. A tap elsewhere or on Marker lets it go (R7).
 - **The panel is one quiet row:** yellow, pink and green, a "more" button for orange, red, blue and the color
-  wheel, the Highlight or Underline pair with an opacity or thickness caret, then Comment and Delete. The
-  least common controls are one click away, never in the way (R4, R47, R48).
+  wheel, a plain Highlight or Underline switch, one setting button beside it for the opacity or the thickness, then
+  Comment and Delete. The least common controls are one click away, never in the way (R4, R47, R48).
 - **Whatever is picked becomes the marker.** Changing one highlight re-arms the pen, so choosing a color
-  once is choosing it for the next strokes. On touch this is the only way to change the pen (R5).
+  once is choosing it for the next strokes. It is the only way to change the pen (R5).
 
 ### Comments
 
@@ -178,9 +178,9 @@ Demand sits on iPad; with a mouse almost nobody draws.
 
 ## Open calls (Shlomi)
 
-Decided: the name is Highlight PDF; a comment sits beside the page (R28); desktop drags with the marker
-always in the hand; touch opens armed, a tap on Marker toggles it, and the pen changes only through a picked highlight (R50,
-R5).
+Decided: the name is Highlight PDF; a comment sits beside the page (R28); every device opens armed, Marker
+toggles it and it stays armed between marks; one panel, only for a picked highlight; the pen changes only
+through a picked highlight (R1, R47, R50, R5).
 
 1. **Long-press and drag on a phone**, the gesture phones already teach for selecting text, instead of
    arming. Clean on a scan (no text layer to select); on a digital PDF it needs a real-iPhone check that it

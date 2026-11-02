@@ -1,20 +1,19 @@
-/* The toolbar a highlight opens (READ-04). Sign's .actions class gives the look; Sign shows it only inside an
-   active element, so this bar, which sits beside its mark, shows itself. Placement is the floating hook's inline style.
-   The attribute lifts it above .actions, whatever order the two sheets load in.
-   Sign's hover fill (--color-primary-hover) is too close to the dark bar to see; a white wash reads on it. */
+/* The panel a highlight opens on a fine pointer (READ-04): MarkPanel's light row in a floating card. It sits beside its
+   mark, so it shows itself; placement is the floating hook's inline style. */
 .bar[data-rest-toolbar] {
-  --toolbar-hover-fill: var(--color-white-20);
+  position: absolute;
   top: auto;
   left: auto;
   z-index: 50;
-  opacity: 1;
+  width: max-content;
+  padding: 4px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  color: var(--color-text);
+  box-shadow: var(--shadow-lg);
+  white-space: nowrap;
   pointer-events: auto;
-}
-/* Touch: Sign's 28px buttons get an 8px ::before extension that makes neighbours' hit areas overlap. Here the buttons
-   themselves are the target (44px tall), so the extension is switched off. */
-@media (pointer: coarse) {
-  .bar[data-rest-toolbar] button { min-width: 44px; min-height: 44px; }
-  .bar[data-rest-toolbar] button::before { inset: 0; }
 }
 
 /* The one-time hint (R8): a quiet pill beside the end of the ink. */

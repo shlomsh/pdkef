@@ -26,12 +26,12 @@ Sign. Color and underline style are remembered per document and become defaults 
 
 ## Touch at launch
 
-On a phone or iPad a tap on Marker arms it and opens nothing, and a tap on Marker again disarms it, as Sign's
-tool buttons do; there is no Stop button and no bar at the foot of the screen (R50). While armed, the toolbar
-says "Swipe to highlight" (R51); one finger marks only sideways along a line of text, and
-otherwise scrolls or moves the page (R52), and two fingers always zoom and move it (R62). A tap on a highlight picks it and opens its panel under the toolbar (R7, R47). A file opens with the
-marker armed on touch (R50). Desktop keeps the marker always in the
-hand (R1). READ-07 later replaces arming with long-press and drag.
+A file opens with the marker armed on every device; a tap or click on Marker disarms it and another arms it,
+and it stays armed between marks; there is no Stop button and no bar at the foot of the screen (R1, R50).
+While armed on touch, the toolbar says "Swipe to highlight" (R51); one finger marks only sideways along a line
+of text and otherwise scrolls or moves the page (R52), and two fingers always zoom and move it (R62). A tap on
+a highlight picks it and opens the one panel under the toolbar (R7, R47). READ-07 later replaces arming with
+long-press and drag.
 
 ## Acceptance
 

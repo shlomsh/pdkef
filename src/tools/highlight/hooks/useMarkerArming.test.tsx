@@ -1,13 +1,13 @@
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { useTouchArming } from './useTouchArming.ts';
+import { useMarkerArming } from './useMarkerArming.ts';
 
 let container: HTMLElement | null = null;
-let api: ReturnType<typeof useTouchArming>;
+let api: ReturnType<typeof useMarkerArming>;
 
 function Probe() {
-  api = useTouchArming();
+  api = useMarkerArming();
   return null;
 }
 
@@ -21,7 +21,7 @@ afterEach(() => {
   if (container) { act(() => render(null, container!)); container.remove(); container = null; }
 });
 
-describe('useTouchArming', () => {
+describe('useMarkerArming', () => {
   const pointer = (coarse: boolean) => vi.stubGlobal('matchMedia', (query: string) => ({ matches: coarse && query === '(pointer: coarse)' }));
 
   it('starts with the marker in the hand on a touch screen, so a file opens ready to mark', () => {
@@ -30,10 +30,10 @@ describe('useTouchArming', () => {
     expect(api.armed).toBe(true);
   });
 
-  it('starts put down on a fine pointer, which never reads it (R1)', () => {
+  it('starts with the marker in the hand on a fine pointer too: Marker toggles it for every pointer', () => {
     pointer(false);
     mount();
-    expect(api.armed).toBe(false);
+    expect(api.armed).toBe(true);
   });
 
   it('arm picks the marker up and disarm puts it down', () => {

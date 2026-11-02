@@ -26,7 +26,7 @@ import { recordAction } from '#lib/telemetry/actionTrail.ts';
 import { NOTES_W } from '../lib/zoom/fit.ts';
 import { markOf } from '../lib/marker/markEdit.ts';
 import type { HighlightElement } from '#editor/model/editorModel.ts';
-import { useTouchArming } from '../hooks/useTouchArming.ts';
+import { coarsePointer, useMarkerArming } from '../hooks/useMarkerArming.ts';
 import { useMarkPanel } from '../hooks/useMarkPanel.ts';
 import { markCommands } from '../lib/marks/markCommands.ts';
 import { historyShortcuts, isMacPlatform } from '../lib/marker/historyShortcuts.ts';
@@ -120,7 +120,7 @@ export default function HighlightWorkspace({ pdfDocument, numPages, fileName, zo
   };
   // One menu at a time: it belongs to the row or to the capsule, so changing view puts it away.
   const toggleView = () => { setPrintOpen(false); onToggleFullscreen(); };
-  const touch = useTouchArming();
+  const touch = useMarkerArming();
   // A tapped highlight: the Marker panel shows and edits its look until the panel is dismissed.
   const elements = marks.state.elements;
   const panel = useMarkPanel(elements);
@@ -150,7 +150,7 @@ export default function HighlightWorkspace({ pdfDocument, numPages, fileName, zo
             fileName={fileName} page={currentPage} pageCount={numPages}
             onJumpToPage={(n) => pageRefs.current[n - 1]?.scrollIntoView()}
             zoomSlot={menu}
-            markerSlot={(onOpenChange) => <MarkerButton marker={marks.marker} onChange={marks.rearm} armed={touch.armed} onTap={touch.arm} onDisarm={touch.disarm} mark={mark} onOpenChange={onOpenChange} />}
+            markerSlot={(onOpenChange) => <MarkerButton marker={marks.marker} armed={touch.armed} onTap={touch.arm} onDisarm={touch.disarm} mark={mark} onOpenChange={onOpenChange} />}
             onUndo={undo} onRedo={redo} canUndo={marks.canUndo} canRedo={marks.canRedo}
             onPrint={withComments ? openPrint : printNow}
             onDownload={onDownload} moreItems={moreItems} onExit={toggleView}
@@ -170,7 +170,7 @@ export default function HighlightWorkspace({ pdfDocument, numPages, fileName, zo
           <HighlightPage
             key={i} pdfDocument={pdfDocument} pageIndex={i} widthPx={box.width * zoom.zoom}
             elements={marks.state.elements} marker={marks.marker} rearm={marks.rearm} dispatch={dispatch} logAction={marks.logAction}
-            setAnnouncement={setAnnouncement} touchArmed={touch.armed} pickedId={panel.markId} onPickMark={panel.pick} cardRef={(el) => { pageRefs.current[i] = el; }} chrome={zoom.chrome} rail={comments.rail(i, (box.height * zoom.zoom) / zoom.chrome)}
+            setAnnouncement={setAnnouncement} armed={touch.armed} pickedId={panel.markId} onPickMark={panel.pick} cardRef={(el) => { pageRefs.current[i] = el; }} chrome={zoom.chrome} rail={comments.rail(i, (box.height * zoom.zoom) / zoom.chrome)}
             pageTurns={marks.pageTurns} onRotate={(geometry) => { dispatch(rotatePageAction(i, geometry)); recordAction('rotate'); }}
             onClear={() => { const actions = clearPageActions(marks.state.elements, i); actions.forEach((a) => dispatch(a)); if (actions.length) recordAction('delete_mark'); }}
           />
@@ -188,7 +188,7 @@ function TileRow({ marks, undo, redo, touch, mark, printMenu, withComments, onPr
   marks: ReturnType<typeof useHighlightMarks>;
   undo(): void;
   redo(): void;
-  touch: ReturnType<typeof useTouchArming>;
+  touch: ReturnType<typeof useMarkerArming>;
   mark: ComponentProps<typeof MarkerButton>['mark'];
   printMenu: ComponentProps<typeof PrintMenu>;
   withComments: boolean;
@@ -201,9 +201,9 @@ function TileRow({ marks, undo, redo, touch, mark, printMenu, withComments, onPr
   const { requestReplace, messages: shellMessages = englishShellMessages } = useToolShell();
   const shortcuts = historyShortcuts(typeof navigator !== 'undefined' && isMacPlatform(navigator.platform));
   return (
-    <ToolShell editor statusBeside status={touch.armed ? <PenHint marker={marks.marker} text={t.armedAction} /> : null}>
+    <ToolShell editor statusBeside status={touch.armed && coarsePointer() ? <PenHint marker={marks.marker} text={t.armedAction} /> : null}>
       <div className={`${toolbarStyles.toolbar} ${styles.toolRow}`} role="toolbar" aria-label={t.toolbarLabel} data-editor-toolbar>
-        <MarkerButton marker={marks.marker} onChange={marks.rearm} armed={touch.armed} onTap={touch.arm} onDisarm={touch.disarm} mark={mark} buttonClass={toolbarStyles.button} />
+        <MarkerButton marker={marks.marker} armed={touch.armed} onTap={touch.arm} onDisarm={touch.disarm} mark={mark} buttonClass={toolbarStyles.button} />
         <UndoRedoButtons
           onUndo={undo} onRedo={redo} canUndo={marks.canUndo} canRedo={marks.canRedo}
           labels={{ undoTitle: shortcuts.undo, undoButton: t.capsule.undo, redoTitle: shortcuts.redo, redoButton: t.capsule.redo }}

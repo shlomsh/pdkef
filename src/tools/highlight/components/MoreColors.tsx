@@ -5,6 +5,7 @@ import { englishSignMessages } from '#editor/registry/signMessages.ts';
 import controls from '#editor-ui/EditorControls.module.css';
 import { MORE_COLORS, isTopColor } from '../lib/marker/markerState.ts';
 import { englishHighlightMessages as t } from '../messages.ts';
+import Chevron from './Chevron.tsx';
 import styles from './MoreColors.module.css';
 
 /** The shared swatches in a box that sizes them as the panel's targets; the box adds no layout of its own. */
@@ -26,7 +27,7 @@ interface MoreColorsProps {
 
 /**
  * The colors behind the top three: orange, red, blue and the color wheel, in a popover. The button wears a
- * quiet caret, or, when the color in force is one of these (or a custom one), that color as a pressed swatch.
+ * chevron, with, when the color in force is one of these (or a custom one), that color's pressed dot before it.
  */
 export default function MoreColors({ color, onPick, open, onOpenChange }: MoreColorsProps) {
   const hidden = !isTopColor(color);
@@ -41,13 +42,8 @@ export default function MoreColors({ color, onPick, open, onOpenChange }: MoreCo
           type="button" data-more-colors class={styles.more} aria-label={t.moreColors} title={t.moreColors}
           aria-haspopup="true" aria-expanded={open} aria-pressed={hidden ? true : undefined}
         >
-          {hidden ? (
-            <i class={styles.dot} style={{ background: color }} />
-          ) : (
-            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <polyline points="6 9 12 15 18 9" />
-            </svg>
-          )}
+          {hidden && <i class={styles.dot} style={{ background: color }} />}
+          <Chevron />
         </button>
       }
       content={

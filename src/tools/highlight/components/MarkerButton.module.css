@@ -30,7 +30,7 @@
 .button:hover,
 .button[aria-expanded='true'] { background: var(--color-primary-tint); }
 .button:active { transform: scale(.96); }
-/* Touch only: the armed tool is Sign's solid fill. A fine pointer never sets data-armed. */
+/* The armed marker is Sign's solid fill, on every pointer (R50). */
 .button[data-armed] { background: var(--color-primary); color: var(--color-surface); }
 .button[data-armed]:hover { background: var(--color-primary-hover); }
 
@@ -66,44 +66,13 @@
   box-sizing: border-box;
 }
 
-/* The whole panel is one row: the top colors, More, a divider, the toggle, and for a mark Comment and Delete at
-   the end. Where the row does not fit, Comment and Delete wrap to a second line, right aligned. */
-.bar {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0 2px;
-  min-height: var(--cell);
-  padding-inline: 2px;
-}
-.divider { flex: none; width: 1px; height: 24px; margin: 0 4px; background: var(--color-border); }
-.acts { display: inline-flex; align-items: center; gap: 2px; margin-inline-start: auto; }
-.act {
-  appearance: none;
-  flex: none;
-  display: grid;
-  place-items: center;
-  width: var(--cell);
-  height: var(--cell);
-  padding: 0;
-  border: 0;
-  border-radius: 50%;
-  background: none;
-  color: var(--color-text);
-  cursor: pointer;
-}
-.act:hover { background: var(--color-primary-tint); }
-.danger:hover { background: var(--color-danger-soft); color: var(--color-danger); }
 @media (prefers-reduced-motion: reduce) {
   .button { transition: none; }
 }
 
-/* On a phone the menu spans the screen between 16 px gutters (the full-width mobile toolbar rule). Every target is
-   44 px tall; colors and More are 36 wide, Comment and Delete 40, and the carets 24 (LookControls). */
+/* On a phone the menu spans the screen between 16 px gutters (the full-width mobile toolbar rule); the row's sizes are MarkPanel's. */
 @media (pointer: coarse), (max-width: 480px) {
   .menu { width: calc(100vw - 32px); max-width: none; min-width: 0; padding: 4px; }
-  .bar { --swatch-w: 2.25rem; padding-inline: 0; }
-  .act { width: 2.5rem; border-radius: var(--radius-sm); }
 }
 
 /* In the editor row the wrap is one more tile: the toolbar's own `.toolbar > *` flex sizes it like its siblings (a

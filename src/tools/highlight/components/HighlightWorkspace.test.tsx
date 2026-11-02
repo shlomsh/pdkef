@@ -107,6 +107,14 @@ describe('HighlightWorkspace', () => {
     } finally { vi.unstubAllGlobals(); }
   });
 
+  it('on a fine pointer a file opens armed too, but the touch hint stays away', () => {
+    vi.stubGlobal('matchMedia', (q: string) => ({ matches: !q.includes('coarse'), media: q, addEventListener() {}, removeEventListener() {} }));
+    try {
+      mount({ fullscreen: false, pseudoFullscreen: false });
+      expect(container!.querySelector('[data-pen-hint]')).toBeNull();
+    } finally { vi.unstubAllGlobals(); }
+  });
+
   it('every control in the row carries its word: seven controls leave the room Sign\'s thirteen do not (READ-04)', () => {
     mount({ fullscreen: false, pseudoFullscreen: false });
     const bar = container!.querySelector<HTMLElement>('[data-editor-toolbar]')!;
