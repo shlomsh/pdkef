@@ -137,7 +137,7 @@ for (const file of htmlFiles) {
 
   // 5. SoftwareApplication schema is expected on all main pages except licenses and the
   // installed app's "Open with" landing (/open/), neither of which is a page to search for
-  if (!hasSoftwareApp && !relPath.includes('licenses') && !/(^|\/)open\/index\.html$/.test(relPath)) {
+  if (!hasSoftwareApp && !relPath.includes('licenses') && !/(^|\/)(open|drive)\/index\.html$/.test(relPath)) {
     error(`Missing SoftwareApplication JSON-LD`);
   }
 

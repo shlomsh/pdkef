@@ -110,6 +110,30 @@ for (const file of htmlFiles) {
   }
 }
 
+// MERGE-25: the Google origins belong to /drive/ alone and must appear in no other page's CSP.
+const GOOGLE_ORIGINS = ['https://accounts.google.com', 'https://www.googleapis.com'];
+const drivePage = path.join(distDir, 'drive', 'index.html');
+if (!fs.existsSync(drivePage)) {
+  console.error('[ERROR] dist/drive/index.html is missing: the /drive/ page is required.');
+  hasError = true;
+}
+for (const file of htmlFiles) {
+  if (isGoogleVerificationFile(file, fs.readFileSync(file, 'utf-8'))) continue;
+  const csp = new JSDOM(fs.readFileSync(file, 'utf-8')).window.document
+    .querySelector('meta[http-equiv="Content-Security-Policy"]')?.getAttribute('content') ?? '';
+  const relative = path.relative(process.cwd(), file);
+  for (const origin of GOOGLE_ORIGINS) {
+    const present = csp.includes(origin);
+    if (file === drivePage && !present) {
+      console.error(`[ERROR] ${relative}: CSP is missing ${origin}, which the Drive page needs.`);
+      hasError = true;
+    } else if (file !== drivePage && present) {
+      console.error(`[ERROR] ${relative}: CSP contains ${origin}, which only dist/drive/index.html may allow.`);
+      hasError = true;
+    }
+  }
+}
+
 if (hasError) {
   process.exit(1);
 } else {

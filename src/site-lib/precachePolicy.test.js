@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { PRECACHED_FONTS, shouldPrecache } from './precachePolicy.js';
+import { NEVER_PRECACHED_PAGES, PRECACHED_FONTS, shouldPrecache } from './precachePolicy.js';
 
 /**
  * SIGN-07: installation precaches the whole app (every page and script,
@@ -16,6 +16,11 @@ import { PRECACHED_FONTS, shouldPrecache } from './precachePolicy.js';
  */
 describe('precache manifest delivery policy', () => {
   const names = { manifestName: 'precache-manifest.json', workerName: 'sw.js' };
+
+  it('keeps the online-only Drive page out of the install', () => {
+    expect(NEVER_PRECACHED_PAGES).toEqual(['drive/index.html']);
+    expect(shouldPrecache('merge/index.html', names)).toBe(true);
+  });
 
   it('leaves the font catalogue out, so a visitor does not download faces they never pick', () => {
     expect(shouldPrecache('fonts/Pacifico-Regular.ttf', names)).toBe(false);

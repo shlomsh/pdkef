@@ -53,6 +53,11 @@ export const PRECACHED_FONTS = [`fonts/${defaultFontEntry.faces.normal}`];
 // The Scan guide's photos (about 750 KB) are shown only on a controlled page and cached then, at runtime.
 const RUNTIME_ONLY_IMAGE_DIRS = ['/images/scan-guide/'];
 
+// MERGE-25: /drive/ is an optional, online-only Google route. Its page, and so the chunks only it
+// reaches, stay out of the manifest; the Google script is never cached at install.
+/** @testSeam */
+export const NEVER_PRECACHED_PAGES = ['drive/index.html'];
+
 export function shouldPrecache(relative, { manifestName, workerName }) {
   if (relative === manifestName || relative === workerName) return false;
   if (relative.startsWith('fonts/')) return PRECACHED_FONTS.includes(relative);
