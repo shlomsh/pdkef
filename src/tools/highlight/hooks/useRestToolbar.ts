@@ -116,7 +116,7 @@ export function useRestToolbar() {
 
 type ToolbarLive = { current: { mark: HighlightElement; onChange(change: Partial<Marker>): void; onDelete(): void; onComment(): void; onClose(): void; look: Marker } };
 
-/** R9: keys, a press elsewhere, and a scroll of more than 24 px. */
+/** R9: keys, a press elsewhere (not on the pen bar), and a scroll of more than 24 px. */
 export function useToolbarDismissal(
   rootRef: { current: HTMLDivElement | null },
   live: ToolbarLive,
@@ -154,7 +154,8 @@ export function useToolbarDismissal(
     };
     const onDown = (e: PointerEvent) => {
       const target = e.target as Element | null;
-      if (rootRef.current?.contains(target) || target?.closest?.('[data-editor-popover]')) return;
+      // The pen bar on touch edits the open mark, so a press there keeps it open.
+      if (rootRef.current?.contains(target) || target?.closest?.('[data-editor-popover], [data-armed-chip]')) return;
       if (target?.closest?.(`[data-element-id="${live.current.mark.id}"]`)) return;
       live.current.onClose();
     };

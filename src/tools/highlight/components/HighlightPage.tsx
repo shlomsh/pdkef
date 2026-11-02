@@ -43,7 +43,7 @@ const noop = () => {};
  * One page card: its header, the page, and a wrapper per highlight on it. A fine-pointer press on the
  * page starts a swipe that lays the marker's bands; the gesture paints during the swipe and commits once.
  */
-export default function HighlightPage({ pdfDocument, pageIndex, widthPx, chrome = 1, elements, marker, touchArmed = false, rearm, dispatch, logAction, setAnnouncement, cardRef, rail, pageTurns = {}, onRotate, onClear }: {
+export default function HighlightPage({ pdfDocument, pageIndex, widthPx, chrome = 1, elements, marker, touchArmed = false, onSelect, rearm, dispatch, logAction, setAnnouncement, cardRef, rail, pageTurns = {}, onRotate, onClear }: {
   pdfDocument: PDFDocumentProxy | null;
   pageIndex: number;
   /** The page's width in CSS px at the current zoom. */
@@ -55,6 +55,8 @@ export default function HighlightPage({ pdfDocument, pageIndex, widthPx, chrome 
   marker: Marker;
   /** The marker is armed for a finger (touch devices): a one-finger press marks and the page does not scroll. */
   touchArmed?: boolean;
+  /** The mark whose toolbar is open (null when none), with how to change it: the pen bar shows its look on a finger. */
+  onSelect?: (selection: { pageIndex: number; mark: HighlightElement; change(change: Partial<Marker>): void } | null) => void;
   /** Every change made on a highlight becomes the marker for the next stroke (R5). */
   rearm: (change: Partial<Marker>) => void;
   dispatch: (action: ElementsAction) => void;
@@ -86,6 +88,15 @@ export default function HighlightPage({ pdfDocument, pageIndex, widthPx, chrome 
   // A toolbar whose highlight is gone (deleted, undone) goes with it.
   useEffect(() => { if (rest.targetId !== null && !target) closeRest(); }, [rest.targetId, target, closeRest]);
 
+  const select = useRef(onSelect);
+  select.current = onSelect;
+  const changeOpen = (change: Partial<Marker>) => { if (target) changeMark(target, change); };
+  const changeOpenRef = useRef(changeOpen);
+  changeOpenRef.current = changeOpen;
+  useEffect(() => {
+    select.current?.(target ? { pageIndex, mark: target, change: (change) => changeOpenRef.current(change) } : null);
+  }, [target, pageIndex]);
+
   const changeMark = (el: HighlightElement, change: Partial<Marker>) => {
     const { changes, entry } = buildMarkEdit(el, change, (kind) => signUpdateDescription(englishSignMessages, kind, 'highlight'));
     dispatch({ type: 'UPDATE_ELEMENT', payload: { id: el.id, changes: changes as EditorElementPatch } });
@@ -114,9 +125,8 @@ export default function HighlightPage({ pdfDocument, pageIndex, widthPx, chrome 
     rest.close();
   };
 
-  /** A mark landed, by a swipe or a click. On a finger its toolbar opens on it at once; otherwise rest waits for the pointer to leave this spot, and the first mark gets its hint. */
+  /** A mark landed, by a swipe or a click: rest waits for the pointer to leave this spot, and the first mark gets its hint. */
   const inkLanded = (element: HighlightElement) => {
-    if (coarse) { rest.openFor(element.id); return; }
     rest.strokeEnd();
     const end = inkEnd(element);
     rest.showHint({ x: end.x, bottom: end.bottom, rtl: element.direction === 'rtl' });
@@ -168,7 +178,7 @@ export default function HighlightPage({ pdfDocument, pageIndex, widthPx, chrome 
         {target && (
           <RestToolbar
             key={target.id} mark={target}
-            onChange={(change) => changeMark(target, change)} onDelete={() => deleteMark(target)} onComment={() => commentOn(target)} onClose={rest.close}
+            onChange={(change) => changeMark(target, change)} onDelete={() => deleteMark(target)} onComment={() => commentOn(target)} onClose={rest.close} lookControls={!coarse}
           />
         )}
       </div>

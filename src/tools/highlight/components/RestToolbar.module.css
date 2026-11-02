@@ -10,22 +10,11 @@
   opacity: 1;
   pointer-events: auto;
 }
-/* Underline toggle and its thickness chevron: one group, no divider between. */
-/* Highlight | Underline read as one switch: a quiet outline holds both icons and the thickness caret. */
-.toggle { display: inline-flex; align-items: center; gap: 2px; padding: 2px; border-radius: var(--radius-sm); box-shadow: inset 0 0 0 1px var(--color-white-20); }
-/* Underline and its caret are one segment: they hover, open and fill as a single pill, so the caret reads as Underline's. */
-.underline { display: inline-flex; align-items: center; border-radius: 4px; }
-.underline > *, .underline button { background: transparent !important; }
-.underline button[aria-haspopup] { min-width: 16px; padding: 0 3px 0 0; }
-.underline:hover, .underline:has([aria-expanded="true"]) { background: var(--toolbar-hover-fill, var(--color-white-15)); }
-.underline[data-on] { background: var(--color-primary); }
-
 /* Touch: Sign's 28px buttons get an 8px ::before extension that makes neighbours' hit areas overlap. Here the buttons
    themselves are the target (44px tall), so the extension is switched off. */
 @media (pointer: coarse) {
   .bar[data-rest-toolbar] button { min-width: 44px; min-height: 44px; }
   .bar[data-rest-toolbar] button::before { inset: 0; }
-  .bar[data-rest-toolbar] .underline button[aria-haspopup] { min-width: 28px; min-height: 44px; }
 }
 
 /* The one-time hint (R8): a quiet pill beside the end of the ink. */
