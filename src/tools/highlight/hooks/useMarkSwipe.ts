@@ -9,7 +9,7 @@ import { createElementId } from '#editor/model/ids.ts';
 import { englishSignMessages } from '#editor/registry/signMessages.ts';
 import type { ReadingDirection } from '#lib/pageLayout/bands.ts';
 import type { Marker } from '../lib/marker/markerState.ts';
-import { isMultiTouch, swipeIntent } from '../lib/marker/swipeIntent.ts';
+import { isMultiTouch, sidewaysEnough, swipeIntent } from '../lib/marker/swipeIntent.ts';
 import type { createSwipeReader } from '#lib/pageLayout/swipeReader.ts';
 import type { useClickMarks } from './useClickMarks.ts';
 
@@ -47,16 +47,18 @@ const marks = (event: PointerEvent, armed: boolean) => (
 );
 
 // R52 under the browser's zoom: a zoomed page pans sideways with one finger whatever touch-action says, so a finger on a
-// line claims its sideways moves, and every move once it marks. WebKit reads the touch listeners in place when a touch
-// starts, so the claim listens from mount and a press only names the finger.
-function useLineTouchClaim() {
+// line claims a move as sideways as a mark, and every move once it marks. At 1x the page cannot move sideways and
+// nothing is claimed, so a scroll is never held up. WebKit reads the touch listeners in place when a touch starts, so
+// the claim listens while the marker is armed and a press only names the finger.
+function useLineTouchClaim(armed: boolean) {
   const lineTouchRef = useRef<{ x: number; y: number; marking: boolean } | null>(null);
   useEffect(() => {
+    if (!armed) return undefined;
     const claim = (move: TouchEvent) => {
       const press = lineTouchRef.current;
-      if (!press || !move.cancelable || move.touches?.length !== 1) return;
+      if (!press || !move.cancelable || move.touches?.length !== 1 || (window.visualViewport?.scale ?? 1) <= 1) return;
       const dx = move.touches[0].clientX - press.x, dy = move.touches[0].clientY - press.y;
-      if (press.marking || Math.abs(dx) > Math.abs(dy)) move.preventDefault();
+      if (press.marking || sidewaysEnough(dx, dy)) move.preventDefault();
     };
     const release = (touch: TouchEvent) => { if (touch.type !== 'touchstart' || isMultiTouch(touch)) lineTouchRef.current = null; };
     window.addEventListener('touchmove', claim, { passive: false });
@@ -69,7 +71,7 @@ function useLineTouchClaim() {
       window.removeEventListener('touchend', release);
       window.removeEventListener('touchcancel', release);
     };
-  }, []);
+  }, [armed]);
   return lineTouchRef;
 }
 
@@ -82,7 +84,7 @@ export function useMarkSwipe(o: MarkSwipeOptions): (event: PointerEvent) => void
   const pendingCancelRef = useRef<(() => void) | null>(null);
   const abandonRef = useRef<(() => void) | null>(null);
   useEffect(() => () => { pendingCancelRef.current?.(); abandonRef.current?.(); gestureCancelRef.current?.(); }, []);
-  const lineTouchRef = useLineTouchClaim();
+  const lineTouchRef = useLineTouchClaim(o.armed);
 
   return (event) => {
     // A second finger is a pinch or a pan, never a press (R62).
