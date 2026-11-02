@@ -27,6 +27,16 @@ export function useLampEntrance({ workspaceRef, fullscreen, toggleLamp }: { work
   const run = useRef<{ cancel(): void } | null>(null);
   const was = useRef(fullscreen);
   const capsule = useRef<Rect | null>(null);
+  // Focus goes back to the cord only for a keyboard reader: moved by script after a click or tap, it would light the
+  // cord's focus ring for someone who never pressed Tab.
+  const byKeyboard = useRef(true);
+  useEffect(() => {
+    const pointer = () => { byKeyboard.current = false; };
+    const key = () => { byKeyboard.current = true; };
+    window.addEventListener('pointerdown', pointer, true);
+    window.addEventListener('keydown', key, true);
+    return () => { window.removeEventListener('pointerdown', pointer, true); window.removeEventListener('keydown', key, true); };
+  }, []);
 
   useLayoutEffect(() => {
     if (was.current === fullscreen) return;
@@ -55,13 +65,13 @@ export function useLampEntrance({ workspaceRef, fullscreen, toggleLamp }: { work
       if (!current) {
         if (run.current === handle) run.current = null;
         clearGhost(ws);
-        if (direction === 'exit') restoreCordFocus(ws);
+        if (direction === 'exit' && byKeyboard.current) restoreCordFocus(ws);
         return;
       }
       void current.finished.then(() => { // reason: playPlan's finished never rejects; it settles on end and on cancel
         if (run.current === handle) run.current = null;
         clearGhost(ws);
-        if (direction === 'exit' && !cancelled) restoreCordFocus(ws);
+        if (direction === 'exit' && !cancelled && byKeyboard.current) restoreCordFocus(ws);
       });
     });
   }, [workspaceRef, fullscreen]);
