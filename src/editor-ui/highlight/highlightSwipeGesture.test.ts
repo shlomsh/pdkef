@@ -4,6 +4,8 @@ import { startHighlightSwipe } from './highlightSwipeGesture.ts';
 import { englishSignMessages } from '#editor/registry/signMessages.ts';
 import type { EditorElement } from '#editor/model/editorModel.ts';
 
+type SwipeReaderOption = NonNullable<Parameters<typeof startHighlightSwipe>[0]['reader']> | null;
+
 const W = 300;
 const H = 400;
 const rects: Array<[number, number, number, number]> = [];
@@ -23,8 +25,8 @@ function getImageData(sx: number, sy: number, w: number, h: number) {
   return { data, width: w, height: h };
 }
 
-function setup(isMouse = true, direction?: 'ltr' | 'rtl') {
-  const canvas = { width: W, height: H, getContext: () => ({ getImageData }) };
+function setup(isMouse = true, direction?: 'ltr' | 'rtl', reader?: SwipeReaderOption, getContext: () => unknown = () => ({ getImageData })) {
+  const canvas = { width: W, height: H, getContext };
   const container = { parentElement: { querySelector: () => canvas } } as unknown as HTMLElement;
   const node = document.createElement('div');
   const draft = document.createElement('div');
@@ -44,6 +46,7 @@ function setup(isMouse = true, direction?: 'ltr' | 'rtl') {
       nextElementIndex: 0,
       isMouse,
       direction,
+      ...(reader !== undefined ? { reader } : {}),
     },
     { pageIndex: 0, container, id: 'h1', newEl, start: { x: (30 / W) * 100, y: (107 / H) * 100 }, getElementNode: () => node },
   );
@@ -116,5 +119,19 @@ describe('startHighlightSwipe', () => {
     page.click();
     expect(seen).toHaveBeenCalledTimes(1);
     page.remove();
+  });
+});
+
+describe('startHighlightSwipe with a given reader', () => {
+  it('uses the reader it is given and reads no canvas', () => {
+    const getContext = vi.fn(() => ({ getImageData }));
+    const band = { left: 10, top: 20, width: 30, height: 5 };
+    const reader = { bandsBetween: vi.fn(() => [band]), onText: vi.fn(), onLine: vi.fn() };
+    const { dispatch } = setup(true, undefined, reader as never, getContext);
+    move(60, 107);
+    release();
+    expect(getContext).not.toHaveBeenCalled();
+    expect(reader.bandsBetween).toHaveBeenCalled();
+    expect(types(dispatch)).toEqual(['UPDATE_ELEMENT', 'DISARM_TOOL']);
   });
 });

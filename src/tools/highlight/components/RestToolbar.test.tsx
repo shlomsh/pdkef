@@ -136,6 +136,17 @@ describe('RestToolbar keys', () => {
     expect(onClose).toHaveBeenCalledTimes(1);
   });
 
+  it('Esc closes More first, then the toolbar', () => {
+    mount();
+    click(button('More colors'));
+    expect(document.querySelector('[data-more-popover]')).not.toBeNull();
+    key('Escape');
+    expect(document.querySelector('[data-more-popover]')).toBeNull();
+    expect(onClose).not.toHaveBeenCalled();
+    key('Escape');
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
   it('arrow keys move focus along the buttons, each radio group one stop at its checked radio', () => {
     mount();
     const more = button('More colors');

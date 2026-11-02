@@ -1,4 +1,5 @@
 import { render } from 'preact';
+import { useState } from 'preact/hooks';
 import { act } from 'preact/test-utils';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { DEFAULT_MARKER, TOP_COLORS, type Marker } from '../lib/marker/markerState.ts';
@@ -9,11 +10,18 @@ afterEach(() => {
   if (container) { act(() => render(null, container!)); container.remove(); container = null; }
 });
 
+// The host owns More's open state, as MarkerButton and RestToolbar do.
+function Host({ look, spy, ...rest }: { look: Marker; spy(open: boolean): void; onChange(): void; onComment(): void; onDelete(): void }) {
+  const [moreOpen, setMoreOpen] = useState(false);
+  return <MarkPanel look={look} moreOpen={moreOpen} onMoreOpenChange={(open) => { spy(open); setMoreOpen(open); }} {...rest} />;
+}
+
 function mount(look: Marker = DEFAULT_MARKER) {
-  const props = { onChange: vi.fn(), onComment: vi.fn(), onDelete: vi.fn() };
+  const props = { onChange: vi.fn(), onComment: vi.fn(), onDelete: vi.fn(), onMoreOpenChange: vi.fn() };
   container = document.createElement('div');
   document.body.appendChild(container);
-  const draw = (next: Marker) => act(() => render(<MarkPanel look={next} {...props} />, container!));
+  const { onMoreOpenChange, ...rest } = props;
+  const draw = (next: Marker) => act(() => render(<Host look={next} spy={onMoreOpenChange} {...rest} />, container!));
   draw(look);
   return { ...props, draw };
 }
@@ -22,6 +30,21 @@ const press = (el: Element) => act(() => { (el as HTMLElement).click(); });
 const setting = () => container!.querySelector<HTMLElement>('button[aria-haspopup][aria-label="Opacity"], button[aria-haspopup][aria-label="Underline thickness"]')!;
 
 describe('MarkPanel', () => {
+  it('holds no More state: the host\'s moreOpen shows the popover, and the toggle only asks the host', () => {
+    const onMoreOpenChange = vi.fn();
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    const draw = (open: boolean) => act(() => render(
+      <MarkPanel look={DEFAULT_MARKER} moreOpen={open} onMoreOpenChange={onMoreOpenChange} onChange={vi.fn()} onComment={vi.fn()} onDelete={vi.fn()} />, container!));
+    draw(true);
+    expect(document.querySelector('[data-more-popover]')).not.toBeNull();
+    press(named('More colors'));
+    expect(onMoreOpenChange.mock.calls[0][0]).toBe(false);
+    expect(document.querySelector('[data-more-popover]')).not.toBeNull();
+    draw(false);
+    expect(document.querySelector('[data-more-popover]')).toBeNull();
+  });
+
   it('is one row: three colors, More, the switch, its setting button, Comment, Delete, in that order', () => {
     mount();
     const row = container!.querySelector('[data-marker-row]')!;

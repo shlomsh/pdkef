@@ -1,4 +1,3 @@
-import { useState } from 'preact/hooks';
 import { CommentIcon, TrashIcon } from '#editor-ui/toolIcons.tsx';
 import { TOP_COLORS, type Marker } from '../lib/marker/markerState.ts';
 import { englishHighlightMessages as t } from '../messages.ts';
@@ -12,22 +11,21 @@ interface MarkPanelProps {
   onChange(change: Partial<Marker>): void;
   onComment(): void;
   onDelete(): void;
-  /** The host lets Escape close More before it closes the panel. */
-  onMoreOpenChange?(open: boolean): void;
+  /** More's open state belongs to the host, so its Escape can close More before the panel. */
+  moreOpen: boolean;
+  onMoreOpenChange(open: boolean): void;
 }
 
 /**
  * The one panel a picked highlight opens, as one light row: the three top colors and More in one framed track, the Highlight | Underline
  * switch with its setting button, then Comment and Delete. Where the row does not fit, Comment and Delete wrap to a second line.
  */
-export default function MarkPanel({ look, onChange, onComment, onDelete, onMoreOpenChange }: MarkPanelProps) {
-  const [moreOpen, setMoreOpen] = useState(false);
-  const setMore = (open: boolean) => { setMoreOpen(open); onMoreOpenChange?.(open); };
+export default function MarkPanel({ look, onChange, onComment, onDelete, moreOpen, onMoreOpenChange }: MarkPanelProps) {
   return (
     <div class={styles.bar} data-marker-row>
       <span class={styles.track} data-color-track>
         <ColorCells colors={TOP_COLORS} label={t.markColor} color={look.color} onChange={(color) => onChange({ color })} />
-        <MoreColors color={look.color} open={moreOpen} onOpenChange={setMore} onPick={(color) => onChange({ color })} />
+        <MoreColors color={look.color} open={moreOpen} onOpenChange={onMoreOpenChange} onPick={(color) => onChange({ color })} />
       </span>
       <StyleToggle look={look} onChange={onChange} />
       <StyleSetting look={look} onChange={onChange} />

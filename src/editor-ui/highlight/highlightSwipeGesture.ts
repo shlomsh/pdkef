@@ -20,6 +20,8 @@ import type { ElementAction } from '../elementActions.ts';
 
 type PointerPercent = (event: MouseEvent | TouchEvent, container: HTMLElement, geometry?: PageGeometry) => { x: number; y: number };
 
+type SwipeReader = NonNullable<ReturnType<typeof createSwipeReader>>;
+
 interface HighlightSwipeDeps {
   dispatch: (action: ElementAction) => void;
   getPointerPercent: PointerPercent;
@@ -30,6 +32,8 @@ interface HighlightSwipeDeps {
   nextElementIndex: number;
   pageGeometry?: PageGeometry;
   direction?: ReadingDirection;
+  /** A reader the caller already made for this press (null: no canvas). Absent: the gesture makes its own. */
+  reader?: SwipeReader | null;
   /** The swipe started with a mouse press: its trailing click must not reach the page (touch already suppresses it). */
   isMouse?: boolean;
 }
@@ -45,9 +49,11 @@ interface HighlightSwipeTarget {
 
 export function startHighlightSwipe(deps: HighlightSwipeDeps, target: HighlightSwipeTarget): void {
   const { dispatch, getPointerPercent, gestureCancelRef, logAction, setAnnouncement, messages: t, nextElementIndex, pageGeometry, direction, isMouse } = deps;
+  const given = deps.reader;
   const { pageIndex, container, id, newEl, start, getElementNode } = target;
-  const canvas = container.parentElement?.querySelector<HTMLCanvasElement>('canvas') ?? null;
-  const reader = createSwipeReader(canvas, pageGeometry?.height || PAGE_HEIGHT_DEFAULT_PTS, direction);
+  const reader = given !== undefined ? given : createSwipeReader(
+    container.parentElement?.querySelector<HTMLCanvasElement>('canvas') ?? null, pageGeometry?.height || PAGE_HEIGHT_DEFAULT_PTS, direction,
+  );
   const color = newEl.type === 'highlight' ? newEl.color : '';
   const clearDraft = () => {
     const node = getElementNode();

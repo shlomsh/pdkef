@@ -13,7 +13,9 @@ const onPress = vi.fn();
 const logAction = vi.fn();
 const setAnnouncement = vi.fn();
 let armed = true;
-let startsOnLine: ((point: { x: number; y: number }) => boolean) | undefined;
+let readerAt: ((point: { x: number; y: number }) => Reader | null) | undefined;
+type Reader = { onLine: (point: { x: number; y: number }) => boolean };
+const readerOf = (on: boolean): Reader => ({ onLine: () => on });
 
 function Probe() {
   handler = useMarkSwipe({
@@ -24,7 +26,7 @@ function Probe() {
     directionAt: () => 'ltr' as never,
     dispatch, logAction, setAnnouncement,
     clicks: { beginPress: vi.fn(), inkStarted: vi.fn(), noteSwipeAction: vi.fn() } as never,
-    onPress, onInk: vi.fn(), startsOnLine,
+    onPress, onInk: vi.fn(), readerAt: readerAt as never,
   });
   return null;
 }
@@ -52,7 +54,7 @@ function pressTouch(x = 100, y = 100) {
 const move = (x: number, y: number) => window.dispatchEvent(new MouseEvent('mousemove', { clientX: x, clientY: y }));
 
 afterEach(() => {
-  startsOnLine = undefined;
+  readerAt = undefined;
   armed = true;
   if (container) { act(() => render(null, container!)); container.remove(); container = null; }
   dispatch.mockClear(); onPress.mockClear(); logAction.mockClear(); setAnnouncement.mockClear(); vi.restoreAllMocks();
@@ -178,7 +180,7 @@ describe('useMarkSwipe off the text', () => {
     window.dispatchEvent(Object.assign(new Event(type, { cancelable: true }), { touches }));
 
   it('a sideways start off a line lays nothing and moves the page sideways with the finger', () => {
-    startsOnLine = () => false;
+    readerAt = () => readerOf(false);
     mount(); const workspace = pressTouch();
     touch('touchmove', [finger(130, 100)]);
     expect(dispatch).not.toHaveBeenCalled();
@@ -189,7 +191,7 @@ describe('useMarkSwipe off the text', () => {
   });
 
   it('stops moving the page when the finger lifts or a second finger lands', () => {
-    startsOnLine = () => false;
+    readerAt = () => readerOf(false);
     mount(); const workspace = pressTouch();
     touch('touchstart', [finger(100, 100), finger(200, 100)]);
     touch('touchmove', [finger(130, 100)]);
@@ -201,7 +203,7 @@ describe('useMarkSwipe off the text', () => {
   });
 
   it('a sideways start on a line marks as before and leaves the page', () => {
-    startsOnLine = () => true;
+    readerAt = () => readerOf(true);
     mount(); const workspace = pressTouch();
     touch('touchmove', [finger(130, 100)]);
     expect(dispatch.mock.calls[0][0]).toMatchObject({ type: 'ADD_ELEMENT' });
@@ -214,8 +216,33 @@ describe('useMarkSwipe off the text', () => {
     expect(dispatch.mock.calls[0][0]).toMatchObject({ type: 'ADD_ELEMENT' });
   });
 
+  it('no canvas to read (a null reader) counts as on a line', () => {
+    readerAt = () => null;
+    mount(); pressTouch();
+    touch('touchmove', [finger(130, 100)]);
+    expect(dispatch.mock.calls[0][0]).toMatchObject({ type: 'ADD_ELEMENT' });
+  });
+
+  it('one touch press that marks reads once and the gesture gets that reader', () => {
+    const reader = readerOf(true);
+    const factory = vi.fn(() => reader);
+    readerAt = factory;
+    mount(); pressTouch();
+    touch('touchmove', [finger(130, 100)]);
+    expect(factory).toHaveBeenCalledTimes(1);
+    expect(vi.mocked(startHighlightSwipe).mock.calls.at(-1)![0].reader).toBe(reader);
+  });
+
+  it('a mouse press never asks for a reader', () => {
+    const factory = vi.fn(() => readerOf(true));
+    readerAt = factory;
+    mount(); press();
+    move(130, 100);
+    expect(factory).not.toHaveBeenCalled();
+  });
+
   it('a mouse ignores the line test', () => {
-    startsOnLine = () => false;
+    readerAt = () => readerOf(false);
     mount(); press();
     move(130, 100);
     expect(dispatch.mock.calls[0][0]).toMatchObject({ type: 'ADD_ELEMENT' });
