@@ -127,6 +127,9 @@ export function useToolShell() {
  * `inlineStatus` (editor only) keeps that hint on the filename's line on a wide
  * desktop; see `.inline-status` in ToolShell.module.css for why it is opt-in.
  *
+ * `statusBeside` (editor only) puts the hint next to the filename on a phone,
+ * both shortened, instead of replacing it; see `.status-beside` in the CSS.
+ *
  * `status` is the tool's live hint line. It rides in the identity row rather
  * than under the toolbar because that row is mostly empty space past the
  * filename, and a hint on a line of its own cost 53px of the most valuable band
@@ -147,7 +150,7 @@ export function useToolShell() {
  * you work (see ToolHero.astro). Keep the attribute even if nothing local reads
  * it.
  */
-export default function ToolShell({ editor = false, inlineStatus = false, flush = false, status = null, children }: { editor?: boolean; inlineStatus?: boolean; flush?: boolean; status?: ComponentChildren; children?: ComponentChildren }) {
+export default function ToolShell({ editor = false, inlineStatus = false, statusBeside = false, flush = false, status = null, children }: { editor?: boolean; inlineStatus?: boolean; statusBeside?: boolean; flush?: boolean; status?: ComponentChildren; children?: ComponentChildren }) {
   const { fileLabel, fileMeta, metaExtra, note, file, draftSaveState = 'idle', multiple, messages = englishShellMessages } = useToolShell();
   const draftStatus = draftSaveState === 'saved'
     ? { label: messages.draftSaved, className: styles.saved, state: 'saved' }
@@ -166,7 +169,7 @@ export default function ToolShell({ editor = false, inlineStatus = false, flush 
 
   return (
     <div
-      class={`${styles.shell}${editor ? ` ${styles.editor}` : ''}${editor && inlineStatus ? ` ${styles['inline-status']}` : ''}${!editor && flush ? ` ${styles.flush}` : ''}${!editor && multiple ? ` ${styles.multiple}` : ''}`}
+      class={`${styles.shell}${editor ? ` ${styles.editor}` : ''}${editor && inlineStatus ? ` ${styles['inline-status']}` : ''}${editor && statusBeside ? ` ${styles['status-beside']}` : ''}${!editor && flush ? ` ${styles.flush}` : ''}${!editor && multiple ? ` ${styles.multiple}` : ''}`}
       data-tool-shell
       data-flush={!editor && flush ? true : undefined}
     >

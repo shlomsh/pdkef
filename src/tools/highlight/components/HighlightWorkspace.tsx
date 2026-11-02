@@ -202,7 +202,7 @@ function TileRow({ marks, undo, redo, touch, mark, printMenu, withComments, onPr
   const { requestReplace, messages: shellMessages = englishShellMessages } = useToolShell();
   const shortcuts = historyShortcuts(typeof navigator !== 'undefined' && isMacPlatform(navigator.platform));
   return (
-    <ToolShell editor status={touch.armed ? <PenHint marker={marks.marker} text={t.armedAction} /> : null}>
+    <ToolShell editor statusBeside status={touch.armed ? <PenHint marker={marks.marker} text={t.armedAction} /> : null}>
       <div className={`${toolbarStyles.toolbar} ${styles.toolRow}`} role="toolbar" aria-label={t.toolbarLabel} data-editor-toolbar>
         <MarkerButton marker={marks.marker} onChange={marks.rearm} armed={touch.armed} onTap={touch.arm} onDisarm={touch.disarm} mark={mark} buttonClass={toolbarStyles.button} />
         <UndoRedoButtons

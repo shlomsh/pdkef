@@ -76,7 +76,7 @@ scroll again (R1, R50). The contract is [READ-01](../backlog/tasks/READ-01.md); 
 - **On touch, one finger marks only sideways along a line of text.** The first few pixels decide: sideways
   on a line lays a mark, anything else scrolls, and a finger that starts off the text moves the page in any
   direction. Two fingers always zoom and move the page and never mark. Reading with a finger never paints
-  by accident. While the marker is armed the toolbar says "Swipe along a line to highlight" with the pen's
+  by accident. While the marker is armed the toolbar says "Swipe to highlight" with the pen's
   look beside it (R51, R52, R62).
 - **Double-click marks a word, a third click its sentence**, the way selection works everywhere, sweeping in
   from the first letter.

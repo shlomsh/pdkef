@@ -28,7 +28,7 @@ Sign. Color and underline style are remembered per document and become defaults 
 
 On a phone or iPad a tap on Marker arms it and opens nothing, and a tap on Marker again disarms it, as Sign's
 tool buttons do; there is no Stop button and no bar at the foot of the screen (R50). While armed, the toolbar
-says "Swipe along a line to highlight" (R51); one finger marks only sideways along a line of text, and
+says "Swipe to highlight" (R51); one finger marks only sideways along a line of text, and
 otherwise scrolls or moves the page (R52), and two fingers always zoom and move it (R62). A tap on a highlight picks it and opens its panel under the toolbar (R7, R47). Whether the marker is
 armed when a file opens on touch is an open call in the design record. Desktop keeps the marker always in the
 hand (R1). READ-07 later replaces arming with long-press and drag.

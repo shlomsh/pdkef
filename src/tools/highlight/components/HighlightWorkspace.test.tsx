@@ -93,7 +93,7 @@ describe('HighlightWorkspace', () => {
     try {
       mount({ fullscreen: false, pseudoFullscreen: false });
       const marker = () => container!.querySelector<HTMLButtonElement>('[data-editor-toolbar] button[aria-label="Marker"]')!;
-      const hint = () => [...container!.querySelectorAll('[data-tool-shell] *')].find((el) => el.children.length === 0 && el.textContent === 'Swipe along a line to highlight');
+      const hint = () => [...container!.querySelectorAll('[data-tool-shell] *')].find((el) => el.children.length === 0 && el.textContent === 'Swipe to highlight');
       expect(hint()).toBeUndefined();
       act(() => { marker().click(); });
       expect(hint()).toBeDefined();
@@ -104,7 +104,7 @@ describe('HighlightWorkspace', () => {
       act(() => render(null, container!));
       const lamp = mount({ fullscreen: true, pseudoFullscreen: false });
       act(() => { lamp.querySelector<HTMLButtonElement>('[role="toolbar"][aria-label="Reading lamp"] button[aria-label="Marker"]')!.click(); });
-      expect(lamp.textContent).not.toContain('Swipe along a line to highlight');
+      expect(lamp.textContent).not.toContain('Swipe to highlight');
     } finally { vi.unstubAllGlobals(); }
   });
 
