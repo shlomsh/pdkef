@@ -15,8 +15,8 @@ const CHOICES = [
   { tool: 'compress', name: 'Compress', label: 'Compress it', note: 'Make the file smaller' },
 ] as const;
 
-function OpenWithChooser() {
-  const [file, setFile] = useState<File | null>(null);
+function OpenWithChooser({ initialFile }: { initialFile?: File }) {
+  const [file, setFile] = useState<File | null>(initialFile ?? null);
   const [busy, setBusy] = useState(false);
   const [failed, setFailed] = useState(false);
   const latestLaunch = useRef(0);
