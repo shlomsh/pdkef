@@ -114,6 +114,16 @@ export function TrashIcon({
   );
 }
 
+/** A pencil (the note card's Edit), drawn to sit beside TrashIcon at the same size and stroke. */
+export function PencilIcon({ size = 14, strokeWidth = 2 }: { size?: number; strokeWidth?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width={strokeWidth} stroke-linecap="round" stroke-linejoin="round">
+      <path d="M12 20h9" />
+      <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z" />
+    </svg>
+  );
+}
+
 /** A clockwise quarter-turn arrow (the page header's Rotate). */
 export function RotateIcon({ size = 14, strokeWidth = 2 }: { size?: number; strokeWidth?: number }) {
   return (
