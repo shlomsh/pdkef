@@ -2,7 +2,7 @@ import type { ComponentChildren } from 'preact';
 import { useEffect, useReducer, useRef, useState } from 'preact/hooks';
 import { FILE_ACTIONS } from '#shell/ToolShell.tsx';
 import { formatMessage } from '#lib/text/formatMessage.ts';
-import { capsuleReducer, initialCapsule } from './capsuleState.ts';
+import { capsuleReducer, initialCapsule, type CapsuleMenu } from './capsuleState.ts';
 import { englishHighlightMessages } from '../../messages.ts';
 import { foldedItems, moreDisplay, type CapsuleLabels } from './capsuleItems.ts';
 import controls from '#editor-ui/EditorControls.module.css';
@@ -63,12 +63,14 @@ export default function ReadingCapsule(p: ReadingCapsuleProps) {
 
   const openMenu = (m: 'jump' | 'more') => {
     if (menu === m) return closeMenu();
+    // One capsule menu at a time (R58): the one it replaces is closed for the doze count too.
+    if (menu) dispatch({ type: 'menuClose', menu });
     setMenu(m);
     if (m === 'jump') setJump(String(p.page));
-    dispatch({ type: 'menuOpen' });
+    dispatch({ type: 'menuOpen', menu: m });
   };
   const closeMenu = () => {
-    if (menu) dispatch({ type: 'menuClose' });
+    if (menu) dispatch({ type: 'menuClose', menu });
     setMenu(null);
   };
   useEffect(() => {
@@ -78,7 +80,7 @@ export default function ReadingCapsule(p: ReadingCapsuleProps) {
     return () => document.removeEventListener('pointerdown', onDown, true);
   });
 
-  const slotOpenChange = (open: boolean) => dispatch({ type: open ? 'menuOpen' : 'menuClose' });
+  const slotOpenChange = (menu: CapsuleMenu) => (open: boolean) => dispatch({ type: open ? 'menuOpen' : 'menuClose', menu });
 
   const folded = foldedItems(width);
   const shows = (id: Parameters<typeof folded.includes>[0]) => !folded.includes(id);
@@ -130,8 +132,8 @@ export default function ReadingCapsule(p: ReadingCapsuleProps) {
             </form>
           )}
         </span>
-        {p.zoomSlot?.(slotOpenChange)}
-        {p.markerSlot?.(slotOpenChange)}
+        {p.zoomSlot?.(slotOpenChange('zoom'))}
+        {p.markerSlot?.(slotOpenChange('marker'))}
         <button type="button" class={styles.button} aria-label={labels.undo} title={labels.undo} aria-disabled={!p.canUndo} onClick={() => p.canUndo && p.onUndo()}><UndoIcon /></button>
         {shows('redo') && <button type="button" class={styles.button} aria-label={labels.redo} title={labels.redo} aria-disabled={!p.canRedo} onClick={() => p.canRedo && p.onRedo()}><RedoIcon /></button>}
         {shows('print') && p.onPrint && <button type="button" class={styles.button} aria-label={labels.print} title={labels.print} onClick={p.onPrint}><PrintIcon /></button>}
