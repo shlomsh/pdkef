@@ -2,7 +2,7 @@
 
 # Backlog
 
-The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 98 live: 22 up next, 12 then, 27 waiting, 37 parked.
+The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 99 live: 22 up next, 12 then, 27 waiting, 38 parked.
 
 ## Redact: finish removal
 
@@ -239,6 +239,7 @@ Small, independent, good for a spare hour.
 | --- | --- | --- | --- |
 | ENC-12 | P3 | [ENC-12](backlog/tasks/ENC-12.md) · One hand-off row, not four copies |  |
 | COMP-03 | P3 | [COMP-03](backlog/tasks/COMP-03.md) · A JPEG quality setting looks the same in Safari as in Chrome, so Safari files stop coming out larger | Needs Shlomi: A check on your iPhone |
+| MERGE-25 | P3 | [MERGE-25](backlog/tasks/MERGE-25.md) · Open PDFs from Google Drive's Open with menu: a Drive app, which needs the first invariant rewritten | Needs Shlomi: Your sign-off on the rewritten invariant, then the Google Cloud and Marketplace setup in your account |
 
 # Closed work
 

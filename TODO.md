@@ -83,6 +83,7 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 - [SEO-44](backlog/tasks/SEO-44.md) · The 2026-11-07 Search Console export: the /split/ and /he/split/ rows
 - [SEO-51](backlog/tasks/SEO-51.md) · Search Console, Performance, page /redact/, query containing "redact", last 3 months: impressions, clicks and position per query, plus the same for "blur"
 - [COMP-03](backlog/tasks/COMP-03.md) · A check on your iPhone
+- [MERGE-25](backlog/tasks/MERGE-25.md) · Your sign-off on the rewritten invariant, then the Google Cloud and Marketplace setup in your account
 - [READ-07](backlog/tasks/READ-07.md) · An iPhone check
 
 See [BACKLOG.md](BACKLOG.md) for every lane.
