@@ -4,7 +4,7 @@ import { computeBuildId } from './buildId.mjs';
 import { pruneCspHashes, sortCspHashes } from './cspHashOrder.mjs';
 import { pageHash } from './pageHash.mjs';
 import { minifyServiceWorker } from './minifyServiceWorker.mjs';
-import { shouldPrecache } from '../src/site-lib/precachePolicy.js';
+import { NEVER_PRECACHED_PAGES, shouldPrecache } from '../src/site-lib/precachePolicy.js';
 import { pageClosure, shellClosure, toPublicUrl as relativeToUrl } from './precacheClosure.mjs';
 
 const distDir = path.join(process.cwd(), 'dist');
@@ -44,7 +44,8 @@ const view = {
 };
 const keep = (relative) => shouldPrecache(relative, { manifestName, workerName });
 const pages = {};
-for (const relative of [...view.files.keys()].filter((name) => name.endsWith('.html')).sort()) {
+// MERGE-25: the optional, online-only /drive/ page is skipped, so neither it nor the chunks only it uses are installed.
+for (const relative of [...view.files.keys()].filter((name) => name.endsWith('.html') && !NEVER_PRECACHED_PAGES.includes(name)).sort()) {
   pages[relativeToUrl(relative)] = pageClosure(view, relative, { keep });
 }
 const shell = shellClosure(view, { keep });

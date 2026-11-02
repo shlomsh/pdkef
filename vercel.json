@@ -116,6 +116,11 @@
       "permanent": true
     },
     {
+      "source": "/drive",
+      "destination": "/drive/",
+      "permanent": true
+    },
+    {
       "source": "/licenses",
       "destination": "/licenses/",
       "permanent": true
