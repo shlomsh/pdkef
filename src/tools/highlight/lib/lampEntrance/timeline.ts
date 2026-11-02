@@ -4,7 +4,7 @@ import { boxStyle, circleBox, coneBox, type Circle, type Rect, type Size } from 
 export type Part =
   | 'string' | 'ring' | 'morph' | 'face' | 'capsule' | 'ghost' | 'cone' | 'veil' | 'board' | 'site'
   | 'cord' | 'pull' | 'line' | 'settle' | 'tag';
-export type Key = { t: number; ease?: string } & Record<string, string | number | undefined>;
+type Key = { t: number; ease?: string } & Record<string, string | number | undefined>;
 interface Track { part: Part; keys: Key[] }
 export interface Plan { duration: number; tracks: Track[] }
 

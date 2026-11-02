@@ -3,7 +3,7 @@ import { toKeyframes, type Part, type Plan } from './timeline.ts';
 /** How long past its duration a plan may run before it is cancelled: the lamp must never be left mid-animation. */
 const FAILSAFE_MS = 400;
 
-export interface LampRun {
+interface LampRun {
   /** Settles when every animation has finished or been cancelled; by then the natural (final) state shows. */
   finished: Promise<void>;
   cancel(): void;

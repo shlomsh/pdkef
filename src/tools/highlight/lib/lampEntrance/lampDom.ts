@@ -30,7 +30,7 @@ export function partsIn(ws: HTMLElement): (part: Part) => Element[] {
   return (part) => [...root.querySelectorAll(part === 'site' ? '[data-lamp-part="site"] > *' : `[data-lamp-part="${part}"]`)];
 }
 
-export function capsuleRect(ws: HTMLElement): Rect | null {
+function capsuleRect(ws: HTMLElement): Rect | null {
   const pill = ws.querySelector('[data-lamp-part="capsule"] [role="toolbar"]');
   return pill ? rectOf(pill) : null;
 }
@@ -58,7 +58,7 @@ export function measureBefore(direction: Direction, ws: HTMLElement): Before {
 }
 
 /** The reduced-motion preference, read when the lamp turns. */
-export function prefersReducedMotion(): boolean {
+function prefersReducedMotion(): boolean {
   try { return window.matchMedia('(prefers-reduced-motion: reduce)').matches === true; } catch { return false; // expected: matchMedia is missing where there is no window, and then motion is welcome
   }
 }
