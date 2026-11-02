@@ -15,7 +15,7 @@ interface Options {
 
 /**
  * Closes the open note when focus (or a press) goes anywhere but its card or the mark it hangs on. A card whose text field is open
- * never closes, so a draft is not lost, and a window that lost focus closes nothing. @testSeam until HighlightWorkspace consumes it
+ * never closes, so a draft is not lost, and a window that lost focus closes nothing.
  */
 export function useNoteFocusOut({ rootRef, elements, activeElementId, enabled, onClose }: Options): void {
   const latest = useRef({ elements, activeElementId, onClose });
@@ -41,10 +41,11 @@ export function useNoteFocusOut({ rootRef, elements, activeElementId, enabled, o
       }, 0);
     };
     const onPointerDown = (event: Event) => {
-      const { activeElementId: id, onClose: close } = latest.current;
+      const { elements: els, activeElementId: id, onClose: close } = latest.current;
       const target = event.target instanceof Element ? event.target : null;
+      // A press on a mark is the mark's own pick (activeAfterPick); anywhere else closes a note, never a picked highlight.
       if (!id || target?.closest(CARD) || target?.closest(MARK) || fieldOpen(id)) return;
-      close();
+      if (!noteStaysOpen(els, id, { cardId: null, elementId: null })) close();
     };
     root.addEventListener('focusout', onFocusOut);
     root.addEventListener('pointerdown', onPointerDown);
