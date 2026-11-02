@@ -59,14 +59,14 @@ test('the underline thickness menu draws a line for every thickness', async ({ p
   await expectControlsSized(page.locator('[role="menu"]:has([data-editor-thickness])'), { selector: '[data-editor-thickness] svg', minWidth: 60 });
 });
 
-/* R47, R49: on a phone the picked mark's panel is one row from 402 px up, in the normal view and in full screen, and
-   with a color behind More (which then wears its ink band), with 44 px tall targets and switch halves at least 40 px wide. At 375 px only Comment and Delete may wrap, and the page
+/* R47, R49: on a phone the picked mark's panel is one row from 393 px up, in the normal view and in full screen, and
+   with a color behind More (which then wears its ink band), with 44 px tall targets and switch segments at least 28 px wide. At 375 px only Comment and Delete may wrap, and the page
    never scrolls sideways. A real finger lays and picks the mark (CDP touch), since touch has its own panel host. */
 test.describe('touch panel', () => {
   test.use({ hasTouch: true, isMobile: true });
 
-  for (const [w, h, full] of [[402, 874, false], [402, 874, true], [375, 812, false]]) {
-    test(`${w}x${h}${full ? ' full screen' : ''}: one row, 44 px targets, 40 px switch halves`, async ({ page }) => {
+  for (const [w, h, full] of [[402, 874, false], [402, 874, true], [393, 852, false], [375, 812, false]]) {
+    test(`${w}x${h}${full ? ' full screen' : ''}: one row, 44 px targets, 28 px switch segments`, async ({ page }) => {
       await page.setViewportSize({ width: w, height: h });
       const source = await makePdfBuffer(null, { title: false, lines: [{ text: 'A line of text a student would highlight', y: 700 }] });
       await openTool(page, '/highlight-pdf/', { file: { name: 'toolbar.pdf', buffer: source }, overlaySelector: '[data-page-overlay]' });
@@ -106,18 +106,18 @@ test.describe('touch panel', () => {
           return { name: e.getAttribute('aria-label'), x: r.x, y: r.y, w: r.width, h: r.height };
         }));
         console.log(w, full ? 'full' : 'normal', pen, JSON.stringify(rects.map((r) => `${r.name}:${Math.round(r.w)}x${Math.round(r.h)}@${Math.round(r.y)}`)));
-        expect(rects).toHaveLength(9);
+        expect(rects).toHaveLength(10);
         for (const r of rects) {
           expect(r.h, `${r.name} height`).toBeGreaterThanOrEqual(44);
           expect(r.x, `${r.name} left`).toBeGreaterThanOrEqual(0);
           expect(r.x + r.w, `${r.name} right`).toBeLessThanOrEqual(w);
         }
-        for (const name of ['Highlight', 'Underline']) expect(rects.find((r) => r.name === name).w, `${name} width`).toBeGreaterThanOrEqual(40);
-        const oneLine = w >= 402 ? rects : rects.filter((r) => r.name !== 'Comment' && r.name !== 'Delete');
+        for (const name of ['Highlight', 'Underline', 'Pencil']) expect(rects.find((r) => r.name === name).w, `${name} width`).toBeGreaterThanOrEqual(28);
+        const oneLine = w >= 393 ? rects : rects.filter((r) => r.name !== 'Comment' && r.name !== 'Delete');
         for (const r of oneLine) expect(Math.abs(r.y - rects[0].y), `${pen}: ${r.name} on the first line`).toBeLessThan(2);
       };
       await fits('yellow');
-      // Color cells, More and the switch halves keep the CSS floor (min-width 1.75rem = 28 px) and a 44 px target; a squeezed cell stayed green once.
+      // Color cells, More and the switch segments keep the CSS floor (min-width 1.75rem = 28 px) and a 44 px target; a squeezed cell stayed green once.
       const sized = async () => {
         await expectControlsSized(row, { selector: '[data-highlight-swatch], [data-more-colors], [data-style-toggle] [role="radio"]', minWidth: 28, minHeight: 44 });
         await expectControlsSized(row, { selector: 'svg', minWidth: 8, minHeight: 8 });

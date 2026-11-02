@@ -80,8 +80,8 @@
 
 .percent { position: relative; min-width: 4ch; text-align: end; }
 
-/* Coarse or narrow: the switch halves are 40 px wide and the setting button is tighter, so the row fits from a 402 px phone up. */
+/* Coarse or narrow: the three switch segments are 28 px wide, the floor the colors keep (still 44 tall on touch) and the setting button is tighter, so the row fits from a 393 px phone up. */
 @media (pointer: coarse), (max-width: 480px) {
-  .segment { min-width: 2.5rem; padding: 0; }
+  .segment { min-width: 1.75rem; padding: 0; }
   .setting { margin-inline-start: 0; padding: 0 4px; }
 }
