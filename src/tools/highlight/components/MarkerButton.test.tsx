@@ -11,17 +11,19 @@ afterEach(() => {
   if (container) { act(() => render(null, container!)); container.remove(); container = null; }
 });
 
+const markProps = (look: Marker = { ...DEFAULT_MARKER }) => ({ look, onChange: vi.fn(), onComment: vi.fn(), onDelete: vi.fn(), onRelease: vi.fn() });
+
 function mount(over: Partial<Parameters<typeof MarkerButton>[0]> = {}) {
-  const props = { marker: DEFAULT_MARKER as Marker, onChange: vi.fn(), onTap: vi.fn(), isCoarse: () => false, ...over };
+  const props = { marker: DEFAULT_MARKER as Marker, onTap: vi.fn(), ...over };
   container = document.createElement('div');
   document.body.appendChild(container);
   act(() => render(<MarkerButton {...props} />, container!));
   const button = () => container!.querySelector(`button[aria-label="${t.marker}"]`) as HTMLButtonElement;
-  const open = () => act(() => { button().click(); });
-  return { props, button, open };
+  return { props, button };
 }
 
 const press = (el: Element) => act(() => { (el as HTMLElement).click(); });
+const named = (name: string) => container!.querySelector(`button[aria-label="${name}"]`) as HTMLButtonElement;
 
 describe('MarkerButton', () => {
   it('shows the armed marker as a dot in its color', () => {
@@ -41,262 +43,93 @@ describe('MarkerButton', () => {
     expect(container!.querySelector('[data-marker-dot]')).toBeNull();
   });
 
-  it('a click opens the three top colors, More and the Highlight | Underline toggle in one row', () => {
-    const { open, button } = mount();
-    expect(button().getAttribute('aria-expanded')).toBe('false');
-    open();
-    expect(button().getAttribute('aria-expanded')).toBe('true');
-    const swatches = [...container!.querySelectorAll('[data-highlight-swatch]')];
-    expect(swatches.map((el) => el.getAttribute('aria-pressed'))).toEqual(['true', 'false', 'false']);
-    expect(container!.querySelectorAll(`button[aria-label="${t.moreColors}"]`)).toHaveLength(1);
-    expect(container!.querySelector('[data-style-toggle]')).not.toBeNull();
-    expect(container!.querySelectorAll(`button[aria-label="${t.markUnderline}"]`)).toHaveLength(1);
-    expect(container!.querySelector(`button[aria-label="${t.markCustom}"]`)).toBeNull();
-    expect(container!.querySelector('[data-color-wheel]')).toBeNull();
-    const row = container!.querySelector('[data-marker-row]')!;
-    expect(row.querySelectorAll('[data-highlight-swatch]')).toHaveLength(3);
-    expect(row.querySelector('[data-more-colors]')).not.toBeNull();
-    expect(row.querySelector('[data-style-toggle]')).not.toBeNull();
-  });
-
-  describe('More', () => {
-    const more = () => container!.querySelector('[data-more-colors]') as HTMLButtonElement;
-    const hidden = () => [...document.querySelectorAll('[data-more-popover] [data-highlight-swatch]')] as HTMLElement[];
-
-    it('opens orange, red, blue and the color wheel', () => {
-      const { open } = mount();
-      open();
-      press(more());
-      expect(hidden().map((el) => el.getAttribute('aria-label'))).toEqual(['Orange', 'Red', 'Blue']);
-      expect(document.querySelector('[data-more-popover] [data-color-wheel]')).not.toBeNull();
-    });
-
-    it('wears a neutral face on a top color and the picked color, pressed, on any other', () => {
-      const { props, open } = mount();
-      open();
-      expect(more().getAttribute('aria-pressed')).toBeNull();
-      press(more());
-      press(hidden()[1]);
-      expect(props.onChange).toHaveBeenCalledWith({ color: '#FF8080' });
-      act(() => render(<MarkerButton {...props} marker={{ ...DEFAULT_MARKER, color: '#FF8080' }} />, container!));
-      open();
-      expect(more().getAttribute('aria-pressed')).toBe('true');
-      expect(more().querySelector('i')!.style.background.toLowerCase()).toContain('rgb(255, 128, 128)');
-    });
-
-    it('a custom color shows on More too', () => {
-      const { open } = mount({ marker: { ...DEFAULT_MARKER, color: '#336699' } });
-      open();
-      expect(more().getAttribute('aria-pressed')).toBe('true');
-    });
-
-    it('picking there applies it, closes the popover and, for the pen, the panel', () => {
-      const { open, button } = mount();
-      open();
-      press(more());
-      press(hidden()[0]);
-      expect(document.querySelector('[data-more-popover]')).toBeNull();
+  describe('without a mark it never opens a panel', () => {
+    it('a click arms the marker and opens nothing, on every pointer', () => {
+      const { props, button } = mount({});
+      press(button());
+      expect(props.onTap).toHaveBeenCalledTimes(1);
       expect(button().getAttribute('aria-expanded')).toBe('false');
+      expect(button().hasAttribute('aria-haspopup')).toBe(false);
+      expect(container!.querySelector('[role=group]')).toBeNull();
     });
 
-    it('on a mark the panel stays open after a pick', () => {
-      const m = { look: DEFAULT_MARKER as Marker, onChange: vi.fn(), onComment: vi.fn(), onDelete: vi.fn(), onRelease: vi.fn() };
-      const { button } = mount({ mark: m, isCoarse: () => true });
-      press(more());
-      press(hidden()[2]);
-      expect(m.onChange).toHaveBeenCalledWith({ color: '#7FDBFF' });
-      expect(document.querySelector('[data-more-popover]')).toBeNull();
-      expect(button().getAttribute('aria-expanded')).toBe('true');
-    });
-
-    it('Escape closes More first, then the panel', () => {
-      const { open, button } = mount();
-      open();
-      press(more());
-      act(() => { document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); });
-      expect(document.querySelector('[data-more-popover]')).toBeNull();
-      expect(button().getAttribute('aria-expanded')).toBe('true');
-      act(() => { more().dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); });
-      expect(button().getAttribute('aria-expanded')).toBe('false');
+    it('a click while armed disarms it and does not arm again, on every pointer', () => {
+      const onDisarm = vi.fn();
+      const { props, button } = mount({ armed: true, onDisarm });
+      press(button());
+      expect(onDisarm).toHaveBeenCalledTimes(1);
+      expect(props.onTap).not.toHaveBeenCalled();
+      expect(container!.querySelector('[role=group]')).toBeNull();
     });
   });
 
-  it('picking a color re-arms the marker and closes the colors', () => {
-    const { props, open, button } = mount();
-    open();
-    press(container!.querySelectorAll('[data-highlight-swatch]')[1]);
-    expect(props.onChange).toHaveBeenCalledWith({ color: TOP_COLORS[1].hex });
-    expect(button().getAttribute('aria-expanded')).toBe('false');
-  });
-
-  it('Underline toggles the style both ways', () => {
-    const { props, open } = mount();
-    open();
-    press(container!.querySelector(`button[aria-label="${t.markUnderline}"]`)!);
-    expect(props.onChange).toHaveBeenLastCalledWith({ style: 'underline' });
-    act(() => render(<MarkerButton {...props} marker={{ ...DEFAULT_MARKER, style: 'underline' }} />, container!));
-    expect(container!.querySelector(`button[aria-label="${t.markUnderline}"]`)!.getAttribute('aria-pressed')).toBe('true');
-    press(container!.querySelector(`button[aria-label="${t.markHighlight}"]`)!);
-    expect(props.onChange).toHaveBeenLastCalledWith({ style: 'highlight' });
-  });
-
-  it('the wheel, inside More, commits a chosen color once, as a re-arm', () => {
-    const { props, open } = mount();
-    open();
-    press(container!.querySelector('[data-more-colors]')!);
-    const input = document.querySelector('[data-color-wheel] input[type="color"]') as HTMLInputElement;
-    expect(input.getAttribute('aria-label')).toBe(t.markColorInput);
-    input.value = '#336699';
-    act(() => { input.dispatchEvent(new Event('input', { bubbles: true })); });
-    expect(props.onChange).not.toHaveBeenCalled();
-    act(() => { input.dispatchEvent(new Event('change', { bubbles: true })); });
-    expect(props.onChange).toHaveBeenCalledWith({ color: '#336699' });
-  });
-
-  it('the panel holds no slider row, opacity is one click away on the highlight caret, each move a re-arm', () => {
-    const { props, open } = mount();
-    open();
-    expect(container!.querySelector('[data-opacity-slider]')).toBeNull();
-    act(() => container!.querySelector<HTMLElement>('button[title="Opacity"]')!.click());
-    const range = document.querySelector('[data-opacity-slider] input') as HTMLInputElement;
-    range.value = '0.5';
-    act(() => { range.dispatchEvent(new Event('input', { bubbles: true })); });
-    expect(props.onChange).toHaveBeenLastCalledWith({ style: 'highlight', opacity: 0.5 });
-  });
-
-
-  it('Escape closes the menu and nothing above it hears the key', () => {
-    const { open, button } = mount();
-    const above = vi.fn();
-    document.addEventListener('keydown', above);
-    open();
-    act(() => { container!.querySelector('[data-highlight-swatch]')!.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); });
-    document.removeEventListener('keydown', above);
-    expect(button().getAttribute('aria-expanded')).toBe('false');
-    expect(above).not.toHaveBeenCalled();
-  });
-
-  it('Escape on the document closes the menu, as after a tap on WebKit', () => {
-    const { open, button } = mount();
-    open();
-    act(() => { document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); });
-    expect(button().getAttribute('aria-expanded')).toBe('false');
-  });
-
-  it('a press outside closes the menu', () => {
-    const { open, button } = mount();
-    open();
-    act(() => { document.body.dispatchEvent(new Event('pointerdown', { bubbles: true })); });
-    expect(button().getAttribute('aria-expanded')).toBe('false');
-  });
-
-  it('on a fine pointer the click only opens the colors', () => {
-    const { props, open } = mount();
-    open();
-    expect(props.onTap).not.toHaveBeenCalled();
-  });
-
-  it('on a coarse pointer a tap arms the marker and opens nothing', () => {
-    const { props, open, button } = mount({ isCoarse: () => true });
-    open();
-    expect(props.onTap).toHaveBeenCalledTimes(1);
-    expect(button().getAttribute('aria-expanded')).toBe('false');
-    expect(container!.querySelector('[role=group]')).toBeNull();
-  });
-
-  it('given a mark on a coarse pointer, the panel is open on the mark and Marker releases it', () => {
-    const onRelease = vi.fn();
-    const mark = { look: DEFAULT_MARKER as Marker, onChange: vi.fn(), onComment: vi.fn(), onDelete: vi.fn(), onRelease };
-    const { button } = mount({ isCoarse: () => true, armed: true, mark });
-    expect(container!.querySelector('[role=group]')).not.toBeNull();
-    press(button());
-    expect(onRelease).toHaveBeenCalledTimes(1);
-  });
-
-  it('on a coarse pointer a tap while armed disarms the marker, closes the panel and does not arm again', () => {
-    const onDisarm = vi.fn();
-    const { props, button } = mount({ isCoarse: () => true, armed: true, onDisarm });
-    press(button());
-    expect(onDisarm).toHaveBeenCalledTimes(1);
-    expect(button().getAttribute('aria-expanded')).toBe('false');
-    expect(container!.querySelector('[role=group]')).toBeNull();
-    expect(props.onTap).not.toHaveBeenCalled();
-  });
-
-  it('a fine pointer never disarms', () => {
-    const onDisarm = vi.fn();
-    const { button } = mount({ armed: true, onDisarm });
-    press(button());
-    expect(onDisarm).not.toHaveBeenCalled();
-  });
-
-  it('given a mark, a tap on Marker releases the mark and leaves arming alone', () => {
-    const onDisarm = vi.fn();
-    const onRelease = vi.fn();
-    const mark = { look: DEFAULT_MARKER as Marker, onChange: vi.fn(), onComment: vi.fn(), onDelete: vi.fn(), onRelease };
-    const { button } = mount({ isCoarse: () => true, armed: true, onDisarm, mark });
-    press(button());
-    expect(onRelease).toHaveBeenCalledTimes(1);
-    expect(onDisarm).not.toHaveBeenCalled();
-  });
-
-  it('shows the armed fill on touch only; a fine pointer always has the marker in hand and shows none', () => {
-    const fine = mount({ armed: true, isCoarse: () => false });
-    expect(fine.button().hasAttribute('data-armed')).toBe(false);
+  it('shows the armed fill while armed and none once put down, on every pointer (R50)', () => {
+    const armed = mount({ armed: true });
+    expect(armed.button().hasAttribute('data-armed')).toBe(true);
     act(() => render(null, container!));
     container!.remove();
-    const touch = mount({ armed: true, isCoarse: () => true });
-    expect(touch.button().hasAttribute('data-armed')).toBe(true);
-  });
-
-  it('reports when its menu opens and closes', () => {
-    const onOpenChange = vi.fn();
-    const { open, button } = mount({ onOpenChange });
-    open();
-    press(button());
-    expect(onOpenChange.mock.calls).toEqual([[true], [false]]);
+    const down = mount({ armed: false });
+    expect(down.button().hasAttribute('data-armed')).toBe(false);
   });
 
   describe('on a mark', () => {
-    const mark = () => ({ look: { ...DEFAULT_MARKER } as Marker, onChange: vi.fn(), onComment: vi.fn(), onDelete: vi.fn(), onRelease: vi.fn() });
-    const named = (name: string) => container!.querySelector(`button[aria-label="${name}"]`) as HTMLButtonElement;
-
-    it('puts Comment and Delete in the same row as the toggle', () => {
-      mount({ mark: mark() });
+    it('opens the panel under the button, with the colors, More, the switch, its setting, Comment and Delete in one row', () => {
+      const { button } = mount({ mark: markProps() });
+      expect(button().getAttribute('aria-expanded')).toBe('true');
       const row = container!.querySelector('[data-marker-row]')!;
-      expect(row.querySelector(`button[aria-label="${t.markComment}"]`)).not.toBeNull();
-      expect(row.querySelector(`button[aria-label="${t.markDelete}"]`)).not.toBeNull();
+      expect(row.querySelectorAll('[data-highlight-swatch]')).toHaveLength(3);
+      expect([...row.querySelectorAll('button')].map((b) => b.getAttribute('aria-label')).slice(3)).toEqual(
+        ['More colors', 'Highlight', 'Underline', 'Opacity', 'Comment', 'Delete'],
+      );
     });
 
-    it('is open with Comment and Delete, and the pen button keeps showing the pen', () => {
+    it('keeps showing the pen on the button', () => {
       const pen = { color: '#FF8FCF', style: 'highlight' as const, opacity: 1 };
-      const { button } = mount({ marker: pen, mark: mark() });
-      expect(button().getAttribute('aria-expanded')).toBe('true');
-      expect(named(t.markComment)).not.toBeNull();
-      expect(named(t.markDelete)).not.toBeNull();
+      mount({ marker: pen, mark: markProps() });
       expect((container!.querySelector('[data-marker-dot]') as HTMLElement).style.background.toLowerCase()).toContain('rgb(255, 143, 207)');
     });
 
-    it('shows the mark\'s look: a swatch pressed, and no Comment or Delete for the pen', () => {
+    it('shows the mark\'s look, and closes when the mark goes away', () => {
       const look = { ...DEFAULT_MARKER, color: TOP_COLORS[2].hex };
-      mount({ mark: { ...mark(), look } });
+      const { props, button } = mount({ mark: markProps(look) });
       expect(container!.querySelectorAll('[data-highlight-swatch]')[2].getAttribute('aria-pressed')).toBe('true');
-      act(() => render(<MarkerButton marker={DEFAULT_MARKER} onChange={vi.fn()} />, container!));
+      act(() => render(<MarkerButton {...props} mark={undefined} />, container!));
+      expect(button().getAttribute('aria-expanded')).toBe('false');
       expect(named(t.markComment)).toBeNull();
     });
 
-    it('a swatch changes the mark, not the pen, and keeps the panel open', () => {
-      const m = mark();
-      const { props, button } = mount({ mark: m });
+    it('a swatch changes the mark and keeps the panel open', () => {
+      const m = markProps();
+      const { button } = mount({ mark: m });
       press(container!.querySelectorAll('[data-highlight-swatch]')[2]);
       expect(m.onChange).toHaveBeenCalledWith({ color: TOP_COLORS[2].hex });
-      expect(props.onChange).not.toHaveBeenCalled();
       expect(button().getAttribute('aria-expanded')).toBe('true');
       expect(m.onRelease).not.toHaveBeenCalled();
     });
 
+    it('Highlight | Underline switches the mark both ways', () => {
+      const m = markProps();
+      const { props } = mount({ mark: m });
+      press(named(t.markUnderline));
+      expect(m.onChange).toHaveBeenLastCalledWith({ style: 'underline' });
+      act(() => render(<MarkerButton {...props} mark={{ ...m, look: { ...DEFAULT_MARKER, style: 'underline' } }} />, container!));
+      press(named(t.markHighlight));
+      expect(m.onChange).toHaveBeenLastCalledWith({ style: 'highlight' });
+    });
+
+    it('opacity is one click away on the setting button', () => {
+      const m = markProps();
+      mount({ mark: m });
+      expect(container!.querySelector('[data-opacity-slider]')).toBeNull();
+      press(named(t.markOpacityMenu));
+      const range = document.querySelector('[data-opacity-slider] input') as HTMLInputElement;
+      range.value = '0.7';
+      act(() => { range.dispatchEvent(new Event('input', { bubbles: true })); });
+      expect(m.onChange).toHaveBeenLastCalledWith({ style: 'highlight', opacity: 0.7 });
+    });
+
     it('Comment and Delete act, then release the mark', () => {
-      const m = mark();
+      const m = markProps();
       mount({ mark: m });
       press(named(t.markComment));
       expect(m.onComment).toHaveBeenCalledTimes(1);
@@ -306,8 +139,18 @@ describe('MarkerButton', () => {
       expect(m.onRelease).toHaveBeenCalledTimes(2);
     });
 
+    it('a tap on Marker releases the mark and leaves arming alone', () => {
+      const onDisarm = vi.fn();
+      const m = markProps();
+      const { button, props } = mount({ armed: true, onDisarm, mark: m });
+      press(button());
+      expect(m.onRelease).toHaveBeenCalledTimes(1);
+      expect(onDisarm).not.toHaveBeenCalled();
+      expect(props.onTap).not.toHaveBeenCalled();
+    });
+
     it('Escape and a press outside release the mark', () => {
-      const m = mark();
+      const m = markProps();
       mount({ mark: m });
       act(() => { document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); });
       expect(m.onRelease).toHaveBeenCalledTimes(1);
@@ -315,11 +158,68 @@ describe('MarkerButton', () => {
       expect(m.onRelease).toHaveBeenCalledTimes(2);
     });
 
-    it('closes when the mark goes away', () => {
-      const m = mark();
-      const { props, button } = mount({ mark: m });
+    it('Escape on the panel releases the mark and nothing above it hears the key', () => {
+      const m = markProps();
+      mount({ mark: m });
+      const above = vi.fn();
+      document.addEventListener('keydown', above);
+      act(() => { container!.querySelector('[data-highlight-swatch]')!.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); });
+      document.removeEventListener('keydown', above);
+      expect(m.onRelease).toHaveBeenCalledTimes(1);
+      expect(above).not.toHaveBeenCalled();
+    });
+
+    it('reports when its panel opens and closes', () => {
+      const onOpenChange = vi.fn();
+      const { props } = mount({ onOpenChange, mark: markProps() });
       act(() => render(<MarkerButton {...props} mark={undefined} />, container!));
-      expect(button().getAttribute('aria-expanded')).toBe('false');
+      expect(onOpenChange.mock.calls).toEqual([[true], [false]]);
+    });
+
+    describe('More', () => {
+      const more = () => container!.querySelector('[data-more-colors]') as HTMLButtonElement;
+      const hidden = () => [...document.querySelectorAll('[data-more-popover] [data-highlight-swatch]')] as HTMLElement[];
+
+      it('opens orange, red, blue and the color wheel', () => {
+        mount({ mark: markProps() });
+        press(more());
+        expect(hidden().map((el) => el.getAttribute('aria-label'))).toEqual(['Orange', 'Red', 'Blue']);
+        expect(document.querySelector('[data-more-popover] [data-color-wheel]')).not.toBeNull();
+      });
+
+      it('a pick applies, closes the popover and leaves the panel open', () => {
+        const m = markProps();
+        const { button } = mount({ mark: m });
+        press(more());
+        press(hidden()[2]);
+        expect(m.onChange).toHaveBeenCalledWith({ color: '#7FDBFF' });
+        expect(document.querySelector('[data-more-popover]')).toBeNull();
+        expect(button().getAttribute('aria-expanded')).toBe('true');
+      });
+
+      it('the wheel commits a chosen color once', () => {
+        const m = markProps();
+        mount({ mark: m });
+        press(more());
+        const input = document.querySelector('[data-color-wheel] input[type="color"]') as HTMLInputElement;
+        input.value = '#336699';
+        act(() => { input.dispatchEvent(new Event('input', { bubbles: true })); });
+        expect(m.onChange).not.toHaveBeenCalled();
+        act(() => { input.dispatchEvent(new Event('change', { bubbles: true })); });
+        expect(m.onChange).toHaveBeenCalledWith({ color: '#336699' });
+      });
+
+      it('Escape closes More first, then the panel', () => {
+        const m = markProps();
+        const { button } = mount({ mark: m });
+        press(more());
+        act(() => { document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); });
+        expect(document.querySelector('[data-more-popover]')).toBeNull();
+        expect(m.onRelease).not.toHaveBeenCalled();
+        expect(button().getAttribute('aria-expanded')).toBe('true');
+        act(() => { more().dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); });
+        expect(m.onRelease).toHaveBeenCalledTimes(1);
+      });
     });
   });
 });

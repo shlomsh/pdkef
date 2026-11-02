@@ -37,7 +37,7 @@ const noop = () => {};
  * One page card: its header, the page, and a wrapper per highlight on it. A fine-pointer press on the
  * page starts a swipe that lays the marker's bands; the gesture paints during the swipe and commits once.
  */
-export default function HighlightPage({ pdfDocument, pageIndex, widthPx, chrome = 1, elements, marker, touchArmed = false, pickedId, onPickMark, rearm, dispatch, logAction, setAnnouncement, cardRef, rail, pageTurns = {}, onRotate, onClear }: {
+export default function HighlightPage({ pdfDocument, pageIndex, widthPx, chrome = 1, elements, marker, armed = true, pickedId, onPickMark, rearm, dispatch, logAction, setAnnouncement, cardRef, rail, pageTurns = {}, onRotate, onClear }: {
   pdfDocument: PDFDocumentProxy | null;
   pageIndex: number;
   /** The page's width in CSS px at the current zoom. */
@@ -47,8 +47,8 @@ export default function HighlightPage({ pdfDocument, pageIndex, widthPx, chrome 
   /** Every element of the document: the page draws its own, and the new one's place in the history comes from the count. */
   elements: EditorElement[];
   marker: Marker;
-  /** The marker is armed for a finger (touch devices): a one-finger press marks and the page does not scroll. */
-  touchArmed?: boolean;
+  /** The marker is in the hand, for any pointer: put down, the page lays no ink and wears the ordinary cursor. On touch, armed also means a one-finger press marks and the page does not scroll. */
+  armed?: boolean;
   /** The mark the panel up top is editing, on touch; it shows a ring. */
   pickedId?: string | null;
   /** On touch a tap on a highlight picks it for the panel up top, instead of opening a toolbar on the page. */
@@ -72,8 +72,10 @@ export default function HighlightPage({ pdfDocument, pageIndex, widthPx, chrome 
   const rest = useRestToolbar();
   const coarse = useCoarsePointer();
   const lastPointerType = useRef('mouse');
-  // R14: over the page the cursor is the pen in the hand. A finger has no cursor.
-  const pen = useMemo(() => (coarse ? undefined : cursorValue(marker)), [coarse, marker.color, marker.style, marker.opacity]);
+  // R14: over the page the cursor is the pen in the hand, once it is picked up. A finger has no cursor.
+  const pen = useMemo(() => (coarse || !armed ? undefined : cursorValue(marker)), [coarse, armed, marker.color, marker.style, marker.opacity]);
+  // The touch-only style (no scroll, no selection) never reaches a fine pointer.
+  const touchArmed = armed && coarse;
   const overlayRef = useRef<HTMLDivElement | null>(null);
 
   const marks = elements.filter((el): el is HighlightElement => el.type === 'highlight' && el.pageIndex === pageIndex);
@@ -111,7 +113,7 @@ export default function HighlightPage({ pdfDocument, pageIndex, widthPx, chrome 
   };
 
   const startSwipe = useMarkSwipe({
-    pageIndex, geometry, elements, marker, touchArmed, getPointerPercent, directionAt, dispatch, logAction, setAnnouncement, clicks,
+    pageIndex, geometry, elements, marker, armed, getPointerPercent, directionAt, dispatch, logAction, setAnnouncement, clicks,
     onPress: rest.clearHint, onInk: inkLanded, startsOnLine,
   });
   const onPointerDown = (event: PointerEvent) => {

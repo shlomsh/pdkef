@@ -20,8 +20,8 @@ interface MarkSwipeOptions {
   /** Every element of the document: the new one's place in the history comes from the count. */
   elements: EditorElement[];
   marker: Marker;
-  /** The marker is armed for a finger: a one-finger press marks instead of scrolling. */
-  touchArmed: boolean;
+  /** The marker is in the hand, for any pointer: put down, a press does nothing here. A finger's press then marks instead of scrolling. */
+  armed: boolean;
   getPointerPercent: (event: MouseEvent | TouchEvent, container: HTMLElement, geometry?: PageGeometry) => Point;
   directionAt: (start: Point) => ReadingDirection;
   dispatch: (action: ElementsAction) => void;
@@ -39,9 +39,9 @@ interface MarkSwipeOptions {
 /** Screen px a press must travel before it becomes a swipe. */
 const SWIPE_THRESHOLD_PX = 4;
 
-/** A press by a mouse or a pen marks; a finger scrolls unless the marker is armed for touch. */
-const marks = (event: PointerEvent, touchArmed: boolean) => (
-  event.pointerType === 'mouse' || event.pointerType === 'pen' || (touchArmed && event.pointerType === 'touch')
+/** A press by a mouse, a pen or a finger marks while the marker is armed; put down, none does. */
+const marks = (event: PointerEvent, armed: boolean) => (
+  armed && (event.pointerType === 'mouse' || event.pointerType === 'pen' || event.pointerType === 'touch')
 );
 
 /**
@@ -55,7 +55,7 @@ export function useMarkSwipe(o: MarkSwipeOptions): (event: PointerEvent) => void
   useEffect(() => () => { pendingCancelRef.current?.(); abandonRef.current?.(); gestureCancelRef.current?.(); }, []);
 
   return (event) => {
-    if (event.button !== 0 || !marks(event, o.touchArmed)) return;
+    if (event.button !== 0 || !marks(event, o.armed)) return;
     const isMouse = event.pointerType !== 'touch';
     // A finger's click is not read: the double-click and third click are a mouse's.
     if (isMouse) o.clicks.beginPress();

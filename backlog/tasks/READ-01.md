@@ -27,8 +27,9 @@ The reasons and the rejected alternatives are in "Decisions and why" at the end.
 
 ### Marking and arming (R1, R5, R6, R8, R9, R50 to R55, R62)
 
-1. On desktop the marker is always armed: a yellow marker is in the hand when a file opens, dragging along
-   text lays a band, and nothing appears when the stroke ends.
+1. A file opens with the marker armed on every device: dragging (or swiping, R52) along text lays a band,
+   and nothing appears when the stroke ends. It stays armed after each mark until Marker is clicked again
+   (R50).
 5. Every change made on a highlight (colour, Highlight or Underline, opacity, thickness) becomes the pen for
    the next marks. On touch this is the only way to change the pen.
 6. Any existing highlight can be changed (colour, underline, comment) or deleted.
@@ -37,8 +38,10 @@ The reasons and the rejected alternatives are in "Decisions and why" at the end.
    on touch.
 9. Keys: 1 to 6 pick a colour, U toggles underline, C comments, Delete deletes, and Esc closes one layer at a
    time (an open menu or caret first, then the toolbar or the picked mark).
-50. On touch a file opens with the marker armed. A tap on Marker disarms it and another arms it, as Sign's
-    tool buttons do, and opens nothing. There is no Stop button and no bar at the foot of the screen.
+50. On every device a file opens with the marker armed. A click or tap on Marker disarms it and another
+    arms it, and opens nothing. Unlike Sign's one-shot tools it stays armed after each mark. Disarmed, the
+    page lays no ink and shows the ordinary cursor; a highlight can still be picked. There is no Stop button
+    and no bar at the foot of the screen.
 51. On touch, while armed, the hint "Swipe to highlight", preceded by the pen's look (a dot in its colour at
     its opacity, or the underline glyph), sits beside the file name on one line in the toolbar card's
     identity row, after a hairline; the name ellipsises first, and the row's height never changes. In full
@@ -59,24 +62,27 @@ The reasons and the rejected alternatives are in "Decisions and why" at the end.
 
 ### Changing a highlight: the toolbar and the panel (R2 to R4, R7, R47 to R49)
 
-2. On desktop, resting on or clicking a highlight opens its toolbar above the mark (dark): the colour menu,
-   the Highlight | Underline toggle, Comment and Delete. A rest counts after the pointer has left the spot
-   where the stroke ended (12 px) and then stays under 3 px of movement for 700 ms.
+2. On desktop, resting on or clicking a highlight opens the panel (R47) floating above the mark. A rest
+   counts after the pointer has left the spot where the stroke ended (12 px) and then stays under 3 px of
+   movement for 700 ms. Nothing else opens the panel.
 3. (retired: replaced by R4)
-4. The Marker's panel shows the three most popular highlighter colours (yellow, pink, green) first. A
-   "more" button opens orange, red, blue and the colour wheel, and shows pressed when the current colour is
-   one of the hidden ones or a custom one. The desktop toolbar's colour menu (R2) keeps all six and the wheel.
+4. The panel shows the three most popular highlighter colours (yellow, pink, green) first. A "more" button
+   with a chevron opens orange, red, blue and the colour wheel; when the current colour is one of those or a
+   custom one, it shows that colour's dot before its chevron, pressed.
 7. On touch, tapping a highlight picks it: the mark shows a ring and the context panel opens under the top
    toolbar (in full screen, under the capsule's Marker) with that mark's look, Comment and Delete. Nothing
    floats on the page. A tap elsewhere, Esc, or a tap on Marker releases the mark; tapping another mark moves
    the panel to it.
-47. The panel is one row where it fits: the colours (R4), then the Highlight | Underline toggle, where
-    Highlight has an opacity caret and Underline a thickness caret, then Comment and Delete when a mark is
-    picked. On the narrowest phones Comment and Delete wrap to a second line instead of shrinking.
+47. There is one panel, and it belongs to a picked highlight: on desktop it floats above the mark (R2), on
+    touch it sits under the top toolbar (R7). It is one row where it fits: the colours (R4); a plain
+    Highlight | Underline switch with no carets; a separate setting button a gap away that shows the active
+    style's value (the opacity as a dot and a percentage, or the underline's thickness as a line) and opens
+    its control; then Comment and Delete. On the narrowest phones Comment and Delete wrap to a second line
+    instead of shrinking.
 48. The opacity control is Redact's blur-strength slider look: a native range between a faint and a solid
     dot, with no label or readout. Opacity runs from 30% to 100%.
-49. Touch targets are at least 44 px tall and the carets at least 28 px wide (24 px inside the one-row
-    panel). On a fine pointer the toolbar's buttons are 28 to 32 px.
+49. Touch targets are at least 44 px tall; the switch's two halves are at least 40 px wide each. On a fine
+    pointer the panel's buttons are 28 to 36 px.
 
 ### Clicking and the cursor (R10 to R14)
 
@@ -118,9 +124,8 @@ The reasons and the rejected alternatives are in "Decisions and why" at the end.
     the reader looks at it.
 18. It dozes, not on a timer, when the reader goes back to reading: a scroll of more than about 24 px or a
     press on the page fades it slowly (1.4 s, ease in and out).
-19. The Marker button shows the armed marker (its colour, or the underline glyph). On desktop it opens the
-    pen's panel; on touch a tap arms and disarms the marker (R50) and a picked highlight's panel opens
-    under it (R7).
+19. The Marker button shows the pen (its colour, or the underline glyph). A click arms and disarms the
+    marker (R50) and opens nothing; on touch a picked highlight's panel opens under it (R7).
 58. The capsule's page field uses a 16 px font on touch (no iOS focus zoom), the capsule is
     `touch-action: manipulation` (no double-tap zoom), and opening one capsule menu closes the other.
 
@@ -240,6 +245,12 @@ Shlomi's calls, with the reason, newest group first.
 - On touch, changing a picked highlight is the only way to change the pen (R5), confirmed.
 - A file opens armed on touch (R50): the reader came to highlight, and the line-only sideways start (R52)
   keeps scrolling with a finger safe.
+- One panel, only for a picked highlight, on every device (R2, R47): the Marker's pen panel on desktop was a
+  second toolbar beside the mark's own, and the two looked different. The pen follows the last change (R5).
+- Marker toggles on desktop too and stays armed between marks (R1, R50): one model everywhere; a one-shot
+  marker, as Sign's tools are, would cost a click per line read.
+- The switch has no carets; one setting button sits a gap away (R47): a caret inside each half put two
+  intents a finger's width apart.
 - Only a sideways start marks on touch: with an any-direction start, scrolling marked every line passed.
 - Two fingers navigate and one finger marks only from a line of text (R52, R62): on a real iPhone a pinch
   laid marks and a zoomed page could not be moved sideways, because every sideways start marked, even in a

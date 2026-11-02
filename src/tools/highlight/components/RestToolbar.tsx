@@ -1,5 +1,4 @@
 import { useLayoutEffect, useRef } from 'preact/hooks';
-import { CommentIcon, TrashIcon } from '#editor-ui/toolIcons.tsx';
 import type { HighlightElement } from '#editor/model/editorModel.ts';
 import type { Marker } from '../lib/marker/markerState.ts';
 import { markOf } from '../lib/marker/markEdit.ts';
@@ -7,15 +6,12 @@ import { nextFocusIndex } from '../lib/marker/roving.ts';
 import { useToolbarDismissal, type HintAnchor } from '../hooks/useRestToolbar.ts';
 import { englishHighlightMessages as t } from '../messages.ts';
 import useMarkToolbarPlacement from '../hooks/useMarkToolbarPlacement.ts';
-import controls from '#editor-ui/EditorControls.module.css';
-import elementStyles from '#editor-ui/EditorElement.module.css';
-import LookControls from './LookControls.tsx';
+import MarkPanel from './MarkPanel.tsx';
 import styles from './RestToolbar.module.css';
 
 /**
- * The toolbar a highlight opens on a rest or a tap, built from Sign's own element toolbar pieces: a color
- * menu with opacity, the Highlight | Underline toggle (icons, with the underline's thickness caret; LookControls), Comment and Delete.
- * It is placed by Sign's floating hook, above the mark, and every change is the caller's to apply.
+ * The panel a highlight opens on a rest or a click on a fine pointer: MarkPanel, the same row touch shows under the top
+ * toolbar. It is placed by Sign's floating hook, above the mark, and every change is the caller's to apply.
  */
 export default function RestToolbar({ mark, onChange, onDelete, onComment, onClose }: {
   mark: HighlightElement;
@@ -54,20 +50,13 @@ export default function RestToolbar({ mark, onChange, onDelete, onComment, onClo
 
   return (
     <div
-      ref={placement.setRoot} class={`${elementStyles.actions} ${styles.bar}`} style={placement.style} role="toolbar" aria-label={t.markToolbar}
+      ref={placement.setRoot} class={styles.bar} style={placement.style} role="toolbar" aria-label={t.markToolbar}
       data-rest-toolbar data-side="above" onKeyDown={onArrow}
     >
-      <LookControls look={look} onChange={(change) => live.current.onChange(change)} />
-      <div class={controls.divider} />
-      <button type="button" class={controls['element-button']} aria-label={t.markComment} aria-keyshortcuts="C" title={t.markComment} onClick={() => live.current.onComment()}>
-        <CommentIcon size={18} />
-      </button>
-      <button
-        type="button" class={`${controls['element-button']} ${controls['element-button-danger']}`} aria-label={t.markDelete} aria-keyshortcuts="Delete" title={t.markDelete}
-        onClick={() => live.current.onDelete()}
-      >
-        <TrashIcon />
-      </button>
+      <MarkPanel
+        look={look} onChange={(change) => live.current.onChange(change)}
+        onComment={() => live.current.onComment()} onDelete={() => live.current.onDelete()}
+      />
     </div>
   );
 }

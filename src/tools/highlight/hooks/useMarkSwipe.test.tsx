@@ -12,13 +12,14 @@ const dispatch = vi.fn();
 const onPress = vi.fn();
 const logAction = vi.fn();
 const setAnnouncement = vi.fn();
+let armed = true;
 let startsOnLine: ((point: { x: number; y: number }) => boolean) | undefined;
 
 function Probe() {
   handler = useMarkSwipe({
     pageIndex: 0, geometry: undefined, elements: [],
     marker: { color: 'yellow', style: 'highlight', opacity: 1 } as never,
-    touchArmed: true,
+    armed,
     getPointerPercent: (e: MouseEvent | TouchEvent) => ({ x: (e as MouseEvent).clientX / 10, y: (e as MouseEvent).clientY / 10 }),
     directionAt: () => 'ltr' as never,
     dispatch, logAction, setAnnouncement,
@@ -52,11 +53,22 @@ const move = (x: number, y: number) => window.dispatchEvent(new MouseEvent('mous
 
 afterEach(() => {
   startsOnLine = undefined;
+  armed = true;
   if (container) { act(() => render(null, container!)); container.remove(); container = null; }
   dispatch.mockClear(); onPress.mockClear(); logAction.mockClear(); setAnnouncement.mockClear(); vi.restoreAllMocks();
 });
 
 describe('useMarkSwipe threshold', () => {
+  it('a mouse drag lays a mark while armed and none once the marker is put down', () => {
+    mount(); press(); move(150, 150);
+    expect(dispatch).toHaveBeenCalledWith(expect.objectContaining({ type: 'ADD_ELEMENT' }));
+    dispatch.mockClear(); onPress.mockClear();
+    window.dispatchEvent(new MouseEvent('mouseup'));
+    armed = false; act(() => render(null, container!)); mount(); press(); move(150, 150);
+    expect(dispatch).not.toHaveBeenCalled();
+    expect(onPress).not.toHaveBeenCalled();
+  });
+
   it('a press and release with no movement dispatches nothing', () => {
     mount(); press();
     window.dispatchEvent(new MouseEvent('mouseup'));

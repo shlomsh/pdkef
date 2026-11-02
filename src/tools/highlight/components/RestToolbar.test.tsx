@@ -3,7 +3,6 @@ import { act } from 'preact/test-utils';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { HighlightElement } from '#editor/model/editorModel.ts';
 import { HIGHLIGHT_COLORS } from '../lib/marker/markerState.ts';
-import controls from '#editor-ui/EditorControls.module.css';
 import elementStyles from '#editor-ui/EditorElement.module.css';
 import { toolbarScaleOriginCss } from '#editor-ui/hooks/visualViewportClamp.ts';
 import RestToolbar, { MarkHint } from './RestToolbar.tsx';
@@ -63,90 +62,32 @@ describe('RestToolbar placement (Sign floating hook)', () => {
 });
 
 describe('RestToolbar', () => {
-  it('(a) the root is Sign\'s element toolbar container', () => {
-    expect(mount().className).toContain(elementStyles.actions);
-  });
-
-  const controlsOf = (bar: HTMLElement) => [...bar.querySelectorAll<HTMLElement>('button')].map((b) =>
-    b.classList.contains(controls['color-trigger']) ? 'Color'
-      : b.getAttribute('aria-label') ?? (b.getAttribute('aria-haspopup') ? (b.title === 'Opacity' ? 'Opacity' : 'Thickness') : b.title));
-  const thicknessTrigger = () => [...host.querySelectorAll<HTMLElement>('[aria-haspopup]')].find((b) => !b.classList.contains(controls['color-trigger']) && b.title !== 'Opacity')!;
-
-  it('(a) the controls in order are Color, the Highlight | Underline toggle with its two carets, Comment, Delete', () => {
+  it('the root is a light floating bar, not Sign\'s dark element toolbar', () => {
     const bar = mount();
+    expect(bar.className).not.toContain(elementStyles.actions);
     expect(bar.getAttribute('aria-label')).toBe('Change this highlight');
-    expect(controlsOf(bar)).toEqual(['Color', 'Highlight', 'Opacity', 'Underline', 'Thickness', 'Comment', 'Delete']);
-    expect(bar.querySelectorAll('[data-highlight-swatch]')).toHaveLength(0);
-    expect(bar.querySelectorAll(`.${controls.divider}`)).toHaveLength(2);
   });
 
-  it('(b) the same controls are present on an underline', () => {
-    expect(controlsOf(mount({ ...mark, style: 'underline' }))).toEqual(['Color', 'Highlight', 'Opacity', 'Underline', 'Thickness', 'Comment', 'Delete']);
+  it('renders the Marker panel: colors, More, the switch, its setting, Comment, Delete', () => {
+    const bar = mount();
+    expect(bar.querySelector('[data-marker-row]')).not.toBeNull();
+    expect([...bar.querySelectorAll('button')].map((b) => b.getAttribute('aria-label'))).toEqual(
+      ['Yellow', 'Pink', 'Green', 'More colors', 'Highlight', 'Underline', 'Opacity', 'Comment', 'Delete'],
+    );
   });
 
-  it('(c) Highlight and Underline are icons in one toggle: the current style is pressed, the other one switches to it', () => {
+  it('an underline shows the thickness setting', () => {
+    mount({ ...mark, style: 'underline' });
+    expect(button('Underline thickness')).not.toBeNull();
+    expect(button('Opacity')).toBeNull();
+  });
+
+  it('the panel\'s changes reach the caller', () => {
     mount();
-    expect(button('Highlight').querySelector('svg')).not.toBeNull();
-    expect(button('Underline').querySelector('svg')).not.toBeNull();
-    expect(button('Highlight').textContent).toBe('');
-    expect(button('Highlight').closest('[data-style-toggle]')).toBe(button('Underline').closest('[data-style-toggle]'));
-    expect(button('Highlight').getAttribute('aria-pressed')).toBe('true');
-    expect(button('Highlight').parentElement!.hasAttribute('data-on')).toBe(true);
-    expect(button('Underline').getAttribute('aria-pressed')).toBe('false');
-    click(button('Highlight'));
-    expect(onChange).not.toHaveBeenCalled();
     click(button('Underline'));
     expect(onChange).toHaveBeenLastCalledWith({ style: 'underline' });
-    mount({ ...mark, style: 'underline' });
-    expect(button('Underline').getAttribute('aria-pressed')).toBe('true');
-    expect(button('Highlight').getAttribute('aria-pressed')).toBe('false');
-    click(button('Highlight'));
-    expect(onChange).toHaveBeenLastCalledWith({ style: 'highlight' });
-  });
-
-  it('(c2) the thickness caret belongs to the Underline segment: one pill holds both, filled together, and the U draws its bar at the chosen thickness', () => {
-    mount({ ...mark, style: 'underline', strokeWidth: 3 });
-    const segment = button('Underline').parentElement!;
-    expect(segment.contains(thicknessTrigger())).toBe(true);
-    expect(segment.contains(button('Highlight'))).toBe(false);
-    expect(segment.hasAttribute('data-on')).toBe(true);
-    const bar = (b: HTMLElement) => b.querySelectorAll('path')[1].getAttribute('stroke-width');
-    const thick = bar(button('Underline'));
-    mount({ ...mark, style: 'underline', strokeWidth: 1 });
-    expect(Number(bar(button('Underline')))).toBeLessThan(Number(thick));
-    mount();
-    expect(button('Underline').parentElement!.hasAttribute('data-on')).toBe(false);
-  });
-
-  it('(d) 3 pt from the thickness menu on a highlight makes it a 3 pt underline in one change', () => {
-    mount();
-    click(thicknessTrigger());
-    click(document.querySelector('[data-editor-thickness="3"]')!);
-    expect(onChange).toHaveBeenCalledTimes(1);
-    expect(onChange).toHaveBeenLastCalledWith({ style: 'underline', strokeWidth: 3 });
-  });
-
-  it('(e) the color menu shows the six presets and the custom square', () => {
-    mount({ ...mark, opacity: 0.8 });
-    click(host.querySelector(`.${controls['color-trigger']}`)!);
-    const swatches = [...document.querySelectorAll('[data-editor-popover] [data-editor-color-swatch]')].map((el) => el.getAttribute('title'));
-    expect(swatches).toEqual(['Yellow', 'Orange', 'Pink', 'Red', 'Green', 'Blue']);
-    expect(document.querySelector('[data-editor-popover] input[type="color"]')).not.toBeNull();
-    expect(document.querySelector('[data-editor-popover] input[type="range"]')).toBeNull();
-  });
-
-  it('(e) the highlight caret opens a labelled Opacity slider', () => {
-    mount({ ...mark, opacity: 0.8 });
-    expect(host.querySelector('input[type="range"]')).toBeNull();
-    click(host.querySelector('button[title="Opacity"]')!);
-    const range = document.querySelector<HTMLInputElement>('[data-editor-popover] input[type="range"]')!;
-    expect(range.min).toBe('0.3');
-    expect(range.max).toBe('1');
-    expect(range.value).toBe('0.8');
-    expect(range.getAttribute('aria-label')).toContain('Opacity');
-    expect(range.closest('[data-opacity-slider]')).not.toBeNull();
-    act(() => { range.value = '0.5'; range.dispatchEvent(new Event('input', { bubbles: true })); });
-    expect(onChange).toHaveBeenLastCalledWith({ style: 'highlight', opacity: 0.5 });
+    click(host.querySelectorAll('[data-highlight-swatch]')[2]);
+    expect(onChange).toHaveBeenLastCalledWith({ color: HIGHLIGHT_COLORS.find((c) => c.id === 'green')!.hex });
   });
 
   it('R27: Comment asks the caller to open the comment', () => {
@@ -155,14 +96,13 @@ describe('RestToolbar', () => {
     expect(onComment).toHaveBeenCalledTimes(1);
   });
 
-  it('Delete is the danger button and deletes', () => {
+  it('Delete deletes', () => {
     mount();
-    expect(button('Delete').className).toContain(controls['element-button-danger']);
     click(button('Delete'));
     expect(onDelete).toHaveBeenCalledTimes(1);
   });
 
-  it('(f) the bar itself holds no native color input', () => {
+  it('holds no native color input', () => {
     mount();
     expect(host.querySelector('input[type="color"]')).toBeNull();
   });
@@ -197,14 +137,14 @@ describe('RestToolbar keys', () => {
 
   it('arrow keys move focus along the buttons', () => {
     mount();
-    const color = host.querySelector<HTMLElement>(`.${controls['color-trigger']}`)!;
-    color.focus();
-    key('ArrowRight', {}, color);
-    expect(document.activeElement).toBe(button('Highlight'));
-    key('End', {}, button('Highlight'));
+    const first = button('Yellow');
+    first.focus();
+    key('ArrowRight', {}, first);
+    expect(document.activeElement).toBe(button('Pink'));
+    key('End', {}, button('Pink'));
     expect(document.activeElement).toBe(button('Delete'));
     key('Home', {}, button('Delete'));
-    expect(document.activeElement).toBe(color);
+    expect(document.activeElement).toBe(first);
   });
 });
 
@@ -219,10 +159,10 @@ describe('RestToolbar follows the interface direction (READ-04)', () => {
 
   it('Arrow Right moves to the next button in DOM order under the LTR interface, for an RTL mark', () => {
     mount(rtlMark);
-    const color = host.querySelector<HTMLElement>(`.${controls['color-trigger']}`)!;
-    color.focus();
-    key('ArrowRight', {}, color);
-    expect(document.activeElement).toBe(button('Highlight'));
+    const first = button('Yellow');
+    first.focus();
+    key('ArrowRight', {}, first);
+    expect(document.activeElement).toBe(button('Pink'));
   });
 });
 
