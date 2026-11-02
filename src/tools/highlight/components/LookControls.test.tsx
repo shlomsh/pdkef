@@ -64,4 +64,18 @@ describe('StyleSetting', () => {
     act(() => (document.querySelector('[data-editor-thickness="4"]') as HTMLElement).click());
     expect(onChange).toHaveBeenLastCalledWith({ style: 'underline', strokeWidth: 4 });
   });
+
+  it('the highlight face shows the percent on paper and no dot', () => {
+    mount({ ...DEFAULT_MARKER, opacity: 0.5 });
+    const face = button('Opacity');
+    expect(face.querySelector('[data-setting-dot]')).toBeNull();
+    expect(face.textContent).toContain('50%');
+  });
+
+  it('the underline popover shows the stroke scraps above the thickness items', () => {
+    mount({ ...DEFAULT_MARKER, style: 'underline' });
+    act(() => button('Underline thickness').click());
+    expect(document.querySelector('[role="radiogroup"][aria-label="Stroke"]')).not.toBeNull();
+    expect(document.querySelectorAll('[data-editor-thickness]').length).toBe(5);
+  });
 });

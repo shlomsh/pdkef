@@ -63,3 +63,23 @@ describe('buildMarkEdit', () => {
     expect(buildMarkEdit(el, { color: '#FFF34D', style: 'highlight', opacity: 1 }, describeKind).entry).toBeNull();
   });
 });
+
+describe('READ-11: stroke', () => {
+  it('markOf reads the stroke only when set', () => {
+    expect(markOf({ ...el, stroke: 'sketch' })).toMatchObject({ stroke: 'sketch' });
+    expect('stroke' in markOf(el)).toBe(false);
+  });
+  it('a change to sketch writes it, a change back to Clean is the absent key, and it round-trips', () => {
+    expect(changePatch({ stroke: 'sketch' })).toEqual({ stroke: 'sketch' });
+    expect(changePatch({ stroke: undefined })).toHaveProperty('stroke', undefined);
+    expect(changePatch({ color: '#FF8080' })).not.toHaveProperty('stroke');
+    const { changes, entry } = buildMarkEdit(el, { stroke: 'sketch' }, describeKind);
+    expect(changes).toEqual({ stroke: 'sketch' });
+    expect(entry).not.toBeNull();
+    const sketched = { ...el, ...changes };
+    expect(markOf(sketched).stroke).toBe('sketch');
+    const back = buildMarkEdit(sketched, { stroke: undefined }, describeKind);
+    expect(back.changes).toHaveProperty('stroke', undefined);
+    expect(back.entry).not.toBeNull();
+  });
+});

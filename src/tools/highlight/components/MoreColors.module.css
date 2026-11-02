@@ -47,7 +47,8 @@
 @media (prefers-reduced-motion: reduce) {
   .menu .cell, .menu [data-color-wheel] { animation: none; }
 }
-.menu {
+/* Doubled so it outranks the shared .popover regardless of stylesheet order. */
+.menu.menu {
   --cell: var(--target, 2.25rem);
   --wheel-cell: var(--cell);
   flex-direction: row;
@@ -62,5 +63,5 @@
   .more[aria-pressed='true'] { gap: 0; padding-inline: 3px; }
 }
 @media (pointer: coarse) {
-  .menu { --cell: var(--target, 2.75rem); --swatch-w: 2.25rem; }
+  .menu.menu { --cell: var(--target, 2.75rem); --swatch-w: 2.25rem; }
 }

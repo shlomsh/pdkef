@@ -12,6 +12,18 @@ const readScanUnit = vi.fn();
 vi.mock('../lib/marker/scanUnits.ts', () => ({ readScanUnit }));
 vi.mock('#editor-ui/PdfPageCanvas.tsx', () => ({ default: () => <canvas data-canvas /> }));
 
+let geometryOverride: { width: number; height: number } | null = null;
+vi.mock('../hooks/usePageGeometry.ts', async (importOriginal) => {
+  const original = await importOriginal<typeof import('../hooks/usePageGeometry.ts')>();
+  return { usePageGeometry: (...args: Parameters<typeof original.usePageGeometry>) => {
+    const real = original.usePageGeometry(...args);
+    return geometryOverride ? { ...real, geometry: geometryOverride as never } : real;
+  } };
+});
+vi.mock('#editor/geometry/sketchStroke.ts', () => ({
+  strokeSeed: () => 7, sketchBands: vi.fn(() => [['Z']]), sketchUnderline: vi.fn(() => [['Z']]), svgPath: () => 'M0 0Z',
+}));
+
 const { default: HighlightPage } = await import('./HighlightPage.tsx');
 
 const mark: HighlightElement = {
@@ -62,10 +74,19 @@ afterEach(() => {
   readScanUnit.mockReset();
   rearm.mockClear();
   localStorage.clear();
+  geometryOverride = null;
   vi.useRealTimers();
 });
 
 describe('HighlightPage', () => {
+  it('READ-11: a sketched mark gets its box in points from the page geometry, a clean one stays bands', () => {
+    geometryOverride = { width: 600, height: 800 };
+    mount([{ ...mark, stroke: 'sketch' }, { ...mark, id: 'h2', stroke: undefined }]);
+    const svg = container.querySelector('[data-element-id="h1"] svg[data-highlight-sketch]')!;
+    expect(svg.getAttribute('viewBox')).toBe('0 0 180 32');
+    expect(container.querySelector('[data-element-id="h2"] [data-highlight-band]')).not.toBeNull();
+  });
+
   it('draws each highlight on this page in a wrapper placed by its box in percent', () => {
     const other: EditorElement = { ...mark, id: 'h2', pageIndex: 1 };
     mount([mark, other]);

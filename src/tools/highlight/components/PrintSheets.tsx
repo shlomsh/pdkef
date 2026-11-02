@@ -2,6 +2,7 @@ import { createPortal } from 'preact/compat';
 import { useMemo } from 'preact/hooks';
 import type { PDFDocumentProxy } from 'pdfjs-dist';
 import type { EditorElement, HighlightElement } from '#editor/model/editorModel.ts';
+import { sketchMark } from '#editor-ui/highlight/HighlightNode.tsx';
 import { turnsOf, type PageTurns } from '#editor/geometry/pageTurn.ts';
 import { underlineInk, UNDERLINE_LIFT, UNDERLINE_WIDTH } from '#editor/model/underlineInk.ts';
 import { formatMessage } from '#lib/text/formatMessage.ts';
@@ -46,14 +47,28 @@ function pageBands(highlight: HighlightElement) {
 }
 
 /** An underline's width and lift are in PDF points, drawn as CSS px at full size; it shrinks with the page by `pageScale`. */
-function Highlights({ highlights, pageScale }: { highlights: HighlightElement[]; pageScale: number }) {
+function Highlights({ highlights, pageScale, pagePts, turns }: { highlights: HighlightElement[]; pageScale: number; pagePts: { width: number; height: number }; turns: number }) {
   return (
     <>
       {highlights.map((highlight) => {
         const underline = highlight.style === 'underline';
         const ink = underline ? underlineInk(highlight.color) : undefined;
+        const opacity = highlight.opacity === undefined ? undefined : { opacity: highlight.opacity };
+        if (highlight.stroke === 'sketch') {
+          // READ-11: one svg in the page's own points, so the stroke is the screen's.
+          const { d, fill } = sketchMark(highlight, pageBands(highlight).map((b) => ({
+            x: (b.left / 100) * pagePts.width, y: (b.top / 100) * pagePts.height, w: (b.width / 100) * pagePts.width, h: (b.height / 100) * pagePts.height,
+          })), turns);
+          return (
+            <div key={highlight.id} class={styles.layer} style={opacity}>
+              <svg data-highlight-sketch viewBox={`0 0 ${pagePts.width} ${pagePts.height}`} preserveAspectRatio="none" aria-hidden="true" class={styles.sketch}>
+                <path d={d} fill={fill} />
+              </svg>
+            </div>
+          );
+        }
         return (
-          <div key={highlight.id} class={styles.layer} style={highlight.opacity === undefined ? undefined : { opacity: highlight.opacity }}>
+          <div key={highlight.id} class={styles.layer} style={opacity}>
             {pageBands(highlight).map((band, i) => (
               <div
                 key={i}
@@ -117,7 +132,7 @@ function Sheet({ plan, pageName, turns, image, highlights, texts, marks, onSettl
         style={{ left: pt(pageBox.x), top: pt(pageBox.y), width: pt(pageBox.width), height: pt(pageBox.height) }}
       >
         <img class={styles.pageImage} src={image} alt="" onLoad={onSettled} onError={onSettled} />
-        <Highlights highlights={highlights} pageScale={pageScale} />
+        <Highlights highlights={highlights} pageScale={pageScale} pagePts={sheet} turns={turns} />
       </div>
       {notesBox && (
         <div class={styles.notes} style={{ left: pt(notesBox.x), top: pt(notesBox.y), width: pt(notesBox.width), height: pt(notesBox.height) }}>

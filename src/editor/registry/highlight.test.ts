@@ -42,6 +42,12 @@ describe('highlight definition', () => {
     expect(droppedCount).toBe(2);
   });
 
+  it('READ-11: accepts the sketch stroke or none and rejects anything else', () => {
+    expect(definition.schema({ ...good, stroke: 'sketch' })).toBe(true);
+    expect(definition.schema(good)).toBe(true);
+    for (const bad of ['clean', 1, '']) expect(definition.schema({ ...good, stroke: bad })).toBe(false);
+  });
+
   it('READ-04: accepts an underline width within range and rejects others', () => {
     expect(definition.schema({ ...good, style: 'underline', strokeWidth: 2 })).toBe(true);
     expect(definition.schema({ ...good, strokeWidth: 0 })).toBe(false);

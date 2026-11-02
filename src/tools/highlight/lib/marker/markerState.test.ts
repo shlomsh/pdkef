@@ -30,6 +30,8 @@ describe('markerState', () => {
     expect(rearm(DEFAULT_MARKER, { strokeWidth: 0.2 }).strokeWidth).toBe(1);
     expect(rearm(DEFAULT_MARKER, { strokeWidth: 2 }).strokeWidth).toBe(2);
     expect('strokeWidth' in rearm(DEFAULT_MARKER, {})).toBe(false);
+    expect(rearm(DEFAULT_MARKER, { stroke: 'sketch' }).stroke).toBe('sketch');
+    expect('stroke' in rearm({ ...DEFAULT_MARKER, stroke: 'sketch' }, { stroke: undefined })).toBe(false);
   });
   it('rearm clamps an opacity already out of range even with no change to it', () => {
     expect(rearm({ ...DEFAULT_MARKER, opacity: 0 }, { color: '#000' }).opacity).toBe(0.3);

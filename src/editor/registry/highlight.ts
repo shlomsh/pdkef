@@ -20,6 +20,7 @@ export const highlightDefinition: ElementDefinition<HighlightElement> = {
     && hasNumber(value, 'pageIndex') && hasBoxGeometry(value) && hasString(value, 'color')
     && Array.isArray(value.bands) && value.bands.length >= 1 && value.bands.length <= MAX_BANDS && value.bands.every(isBand)
     && (value.direction === undefined || value.direction === 'ltr' || value.direction === 'rtl')
+    && (value.stroke === undefined || value.stroke === 'sketch')
     && (value.style === undefined || value.style === 'underline')
     && (value.opacity === undefined || (hasNumber(value, 'opacity') && (value.opacity as number) >= MIN_OPACITY && (value.opacity as number) <= 1))
     && (value.strokeWidth === undefined || (hasNumber(value, 'strokeWidth') && (value.strokeWidth as number) >= UNDERLINE_WIDTH.min && (value.strokeWidth as number) <= UNDERLINE_WIDTH.max)),

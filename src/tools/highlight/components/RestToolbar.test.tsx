@@ -242,4 +242,10 @@ describe('MarkHint', () => {
       expect(place([90, 150], [100, 400]).style.translate).toBe('18px 0');
     });
   });
+
+  it('its opacity popover is counter-scaled, as the bar is', () => {
+    mount();
+    click(button('Opacity'));
+    expect(document.querySelector('[data-editor-popover] [data-counter-scaled]')).not.toBeNull();
+  });
 });

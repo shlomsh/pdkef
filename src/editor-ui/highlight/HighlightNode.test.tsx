@@ -1,8 +1,13 @@
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
-import { describe, it, expect, afterEach } from 'vitest';
+import { describe, it, expect, afterEach, vi } from 'vitest';
+import { sketchBands, sketchUnderline, strokeSeed } from '#editor/geometry/sketchStroke.ts';
 import HighlightNode from './HighlightNode.tsx';
 import type { HighlightElement } from '#editor/model/editorModel.ts';
+
+vi.mock('#editor/geometry/sketchStroke.ts', () => ({
+  strokeSeed: vi.fn(() => 42), sketchBands: vi.fn(() => [['Z']]), sketchUnderline: vi.fn(() => [['Z']]), svgPath: vi.fn(() => 'M0 0Z'),
+}));
 
 const element: HighlightElement = {
   id: 'h1', type: 'highlight', pageIndex: 0, left: 10, top: 10, width: 50, height: 10, color: '#FFF34D',
@@ -104,4 +109,47 @@ describe('HighlightNode styles', () => {
     act(() => render(null, host));
     host.remove();
   });
+
+});
+
+describe('HighlightNode sketch stroke', () => {
+  let host: HTMLDivElement;
+  afterEach(() => { act(() => render(null, host)); host.remove(); });
+    const mount = (el: HighlightElement, props: Record<string, unknown> = {}) => {
+      host = document.createElement('div');
+      document.body.appendChild(host);
+      act(() => render(<HighlightNode element={el} isActive={false} onResizeStart={() => {}} {...props} />, host));
+    };
+    const box = { width: 200, height: 20 };
+
+    it('draws a sketched highlight as one svg path in the layer, no bands', () => {
+      vi.mocked(sketchBands).mockClear();
+      mount({ ...element, stroke: 'sketch', opacity: 0.5 }, { boxPts: box, turns: 2 });
+      expect(host.querySelectorAll('[data-highlight-band]')).toHaveLength(0);
+      const path = host.querySelector('[data-highlight-bands] svg[data-highlight-sketch] path')!;
+      expect(path.getAttribute('fill')).toBe('#FFF34D');
+      expect(path.getAttribute('d')).toBe('M0 0Z');
+      expect(host.querySelector('svg')!.getAttribute('viewBox')).toBe('0 0 200 20');
+      expect((host.querySelector('[data-highlight-bands]') as HTMLElement).style.opacity).toBe('0.5');
+      expect(strokeSeed).toHaveBeenCalledWith('h1');
+      expect(sketchBands).toHaveBeenCalledWith([{ x: 0, y: 2, w: 200, h: 8 }, { x: 10, y: 12, w: 180, h: 6 }], 42, 2);
+      expect(host.querySelector('[data-highlight-draft]')!.children).toHaveLength(0);
+    });
+
+    it('draws a sketched underline in its ink and width', () => {
+      vi.mocked(sketchUnderline).mockClear();
+      mount({ ...element, style: 'underline', stroke: 'sketch', strokeWidth: 2 }, { boxPts: box });
+      expect(host.querySelector('[data-highlight-sketch] path')!.getAttribute('fill')).toBe('#B8AF37');
+      expect(sketchUnderline).toHaveBeenCalledWith(expect.any(Array), 42, 2, 0);
+    });
+
+    it('stays clean without boxPts or without the sketch stroke', () => {
+      mount({ ...element, stroke: 'sketch' });
+      expect(host.querySelector('[data-highlight-sketch]')).toBeNull();
+      expect(host.querySelectorAll('[data-highlight-band]')).toHaveLength(2);
+      act(() => render(null, host)); host.remove();
+      mount(element, { boxPts: box });
+      expect(host.querySelector('[data-highlight-sketch]')).toBeNull();
+      expect(host.querySelectorAll('[data-highlight-band]')).toHaveLength(2);
+    });
 });

@@ -8,6 +8,7 @@ import { englishHighlightMessages as t } from '../messages.ts';
 import { onRadioKeyDown, radioTabIndex } from './radioKeys.ts';
 import MarkerArt, { MoreInk } from './MarkerArt.tsx';
 import Chevron from './Chevron.tsx';
+import { COUNTER_SCALE, useToolbarScaled } from './toolbarScale.ts';
 import styles from './MoreColors.module.css';
 
 const names = highlightColorNames(englishSignMessages);
@@ -49,6 +50,7 @@ interface MoreColorsProps {
 export default function MoreColors({ color, onPick, open, onOpenChange }: MoreColorsProps) {
   const hidden = !isTopColor(color);
   const customInForce = hidden && !MORE_COLORS.some((c) => c.hex.toLowerCase() === color.toLowerCase());
+  const scaled = useToolbarScaled();
   const pick = (next: string) => { onPick(next); onOpenChange(false); };
   return (
     <Popover
@@ -65,7 +67,7 @@ export default function MoreColors({ color, onPick, open, onOpenChange }: MoreCo
         </button>
       }
       content={
-        <div class={`${controls.popover} ${styles.menu}`} data-more-popover role="group" aria-label={t.moreColors}>
+        <div class={`${controls.popover} ${styles.menu}`} data-more-popover style={scaled ? COUNTER_SCALE : undefined} data-counter-scaled={scaled || undefined} role="group" aria-label={t.moreColors}>
           <ColorCells colors={MORE_COLORS} color={color} onChange={pick} />
           <ColorWheelInput value={color} label={t.markColorInput} pressed={customInForce} onCommit={pick}>
             <MarkerArt wheel ink={color} picked={customInForce} />

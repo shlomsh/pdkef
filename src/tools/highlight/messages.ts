@@ -39,6 +39,10 @@ export interface HighlightMessages {
   markOpacity: string;
   /** The caret beside Highlight, which opens the opacity slider. */
   markOpacityMenu: string;
+  /** READ-11: the Clean | Sketch choice and its two words. */
+  markStroke: string;
+  strokeClean: string;
+  strokeSketch: string;
   /** R8: shown once, after the first mark. */
   restHint: string;
   tapHint: string;
@@ -88,6 +92,9 @@ export const englishHighlightMessages: HighlightMessages = {
   thicknessItem: '{n} pt',
   markOpacity: 'Opacity',
   markOpacityMenu: 'Opacity',
+  markStroke: 'Stroke',
+  strokeClean: 'Clean',
+  strokeSketch: 'Sketch',
   restHint: 'Rest on a highlight to change it',
   tapHint: 'Tap a highlight to change it',
   marker: 'Marker',

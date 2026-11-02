@@ -5,9 +5,10 @@ let group: HTMLElement | null = null;
 afterEach(() => { group?.remove(); group = null; });
 
 /** A radio group of three, the second checked, wired the way the mark panel wires it. */
-function mount(checked = 1) {
+function mount(checked = 1, dir?: string) {
   group = document.createElement('div');
   group.setAttribute('role', 'radiogroup');
+  if (dir) group.setAttribute('dir', dir);
   const clicks = vi.fn();
   for (let i = 0; i < 3; i += 1) {
     const radio = document.createElement('button');
@@ -37,6 +38,31 @@ describe('onRadioKeyDown', () => {
     expect(document.activeElement).toBe(radios[2]);
     expect(e.defaultPrevented).toBe(true);
     expect(outer).not.toHaveBeenCalled();
+  });
+
+  it('starts from the focused radio when none is checked, so the first arrow moves on', () => {
+    const { clicks, radios } = mount(-1);
+    radios[0].focus();
+    press(radios[0], 'ArrowRight');
+    expect(clicks).toHaveBeenCalledTimes(1);
+    expect(clicks).toHaveBeenCalledWith(1);
+  });
+
+  it('ArrowDown steps forward and ArrowUp back', () => {
+    const { clicks, radios } = mount(-1);
+    radios[1].focus();
+    press(radios[1], 'ArrowDown');
+    expect(clicks).toHaveBeenLastCalledWith(2);
+    radios[1].focus();
+    press(radios[1], 'ArrowUp');
+    expect(clicks).toHaveBeenLastCalledWith(0);
+  });
+
+  it('in an RTL group ArrowRight moves back', () => {
+    const { clicks, radios } = mount(-1, 'rtl');
+    radios[1].focus();
+    press(radios[1], 'ArrowRight');
+    expect(clicks).toHaveBeenCalledWith(0);
   });
 
   it('leaves other keys alone', () => {

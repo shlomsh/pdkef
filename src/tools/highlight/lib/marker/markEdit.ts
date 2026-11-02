@@ -6,7 +6,7 @@ import { OPACITY_MIN, clampWidth, type Marker } from './markerState.ts';
 
 /** The marker a highlight carries: what the next stroke lays after the reader changes it (R5). */
 export function markOf(el: HighlightElement): Marker {
-  return { color: el.color, style: el.style === 'underline' ? 'underline' : 'highlight', opacity: el.opacity ?? 1, ...(el.strokeWidth === undefined ? {} : { strokeWidth: el.strokeWidth }) };
+  return { color: el.color, style: el.style === 'underline' ? 'underline' : 'highlight', opacity: el.opacity ?? 1, ...(el.strokeWidth === undefined ? {} : { strokeWidth: el.strokeWidth }), ...(el.stroke ? { stroke: el.stroke } : {}) };
 }
 
 /**
@@ -26,6 +26,7 @@ export function changePatch(change: Partial<Marker>): Partial<HighlightElement> 
     const width = clampWidth(change.strokeWidth);
     patch.strokeWidth = width === UNDERLINE_WIDTH.default ? undefined : width;
   }
+  if ('stroke' in change) patch.stroke = change.stroke === 'sketch' ? 'sketch' : undefined;
   return patch;
 }
 

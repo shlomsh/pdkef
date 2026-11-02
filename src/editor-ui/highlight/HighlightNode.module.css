@@ -1,6 +1,8 @@
 .root { position: absolute; inset: 0; mix-blend-mode: multiply; pointer-events: none; }
 .layer { position: absolute; inset: 0; }
 .band { position: absolute; }
+/* READ-11: the sketched mark is one svg over the box; its ink may run past the band like a pen does. */
+.sketch { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
 /* READ-03/04: an underline is a rounded line (--highlight-ink-width, 3px by default) in --highlight-ink, its bottom --highlight-ink-lift (1px) above the band's bottom (both set inline per element); the band itself is transparent. */
 .underline::after { content: ''; position: absolute; inset-inline: 0; bottom: var(--highlight-ink-lift, 1px); height: var(--highlight-ink-width, 3px); border-radius: 1px; background: var(--highlight-ink); }
 /* A page turned for the reader moves the band's text bottom to its displayed left (1), top (2) or right (3) edge; the line follows it. */

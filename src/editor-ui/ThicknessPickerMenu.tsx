@@ -5,7 +5,7 @@ import styles from './EditorControls.module.css';
 
 const THICKNESS_OPTIONS: readonly number[] = [1, 2, 3, 5, 8, 12, 16];
 
-export default function ThicknessPickerMenu({ value, onChange, title, options = THICKNESS_OPTIONS, itemTitle = (n) => `${n}px thickness`, trigger = 'line', triggerClass, children }: {
+export default function ThicknessPickerMenu({ value, onChange, title, options = THICKNESS_OPTIONS, itemTitle = (n) => `${n}px thickness`, trigger = 'line', triggerClass, children, header, renderLine, counterScaled }: {
   value?: number;
   onChange: (thickness: number) => void;
   title?: string;
@@ -16,6 +16,12 @@ export default function ThicknessPickerMenu({ value, onChange, title, options = 
   /** A caller's own face for the trigger (replacing the glyph) and its class; the title then names the button. */
   triggerClass?: string;
   children?: ComponentChildren;
+  /** Rendered above the list. */
+  header?: ComponentChildren;
+  /** Replaces each item's drawn line. */
+  renderLine?: (thickness: number) => ComponentChildren;
+  /** Hold the menu's physical size under pinch-zoom (the host's toolbar does): shrinks it by 1 / --vv-scale toward the trigger. */
+  counterScaled?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const currentThickness = value || (options.includes(3) ? 3 : options[0]);
@@ -46,7 +52,9 @@ export default function ThicknessPickerMenu({ value, onChange, title, options = 
         </button>
       }
       content={
-        <div className={`${styles.popover} ${styles['thickness-menu']}`} role="menu">
+        <div className={`${styles.popover} ${styles['thickness-menu']}`} role="menu" data-counter-scaled={counterScaled || undefined}
+          style={counterScaled ? { scale: 'calc(1 / var(--vv-scale, 1))', transformOrigin: 'top center' } : undefined}>
+          {header}
           <div className={styles['thickness-menu-list']}>
             {options.map(thickness => (
               <button
@@ -63,9 +71,11 @@ export default function ThicknessPickerMenu({ value, onChange, title, options = 
                 }}
                 title={itemTitle(thickness)}
               >
-                <svg width="100%" height="14" viewBox="0 0 100 14" fill="currentColor">
-                  <rect x="10" y={7 - thickness / 2} width="80" height={thickness} rx={thickness > 4 ? 2 : 0} />
-                </svg>
+                {renderLine ? renderLine(thickness) : (
+                  <svg width="100%" height="14" viewBox="0 0 100 14" fill="currentColor">
+                    <rect x="10" y={7 - thickness / 2} width="80" height={thickness} rx={thickness > 4 ? 2 : 0} />
+                  </svg>
+                )}
               </button>
             ))}
           </div>

@@ -105,3 +105,38 @@ test.describe('touch panel', () => {
     });
   }
 });
+
+/* A trackpad pinch (visual viewport scale above 1) leaves the mark toolbar at its physical size; its popovers must stay
+   the size they are at 1x too, not grow with the page. */
+test('the opacity popover holds its physical size under zoom, like the toolbar', async ({ page, context }) => {
+  const source = await makePdfBuffer(null, { title: false, lines: [{ text: 'A line of text a student would highlight', y: 700 }] });
+  await openTool(page, '/highlight-pdf/', { file: { name: 'toolbar.pdf', buffer: source }, overlaySelector: '[data-page-overlay]' });
+  const box = await page.locator('[data-page-overlay]').first().boundingBox();
+  const y = box.y + box.height * ((792 - 694) / 792);
+  await page.mouse.move(box.x + box.width * (72 / 612), y);
+  await page.mouse.down();
+  await page.mouse.move(box.x + box.width * (330 / 612), y, { steps: 8 });
+  await page.mouse.up();
+  const mark = page.locator('[data-page-overlay] [data-element-id]');
+  await expect(mark).toHaveCount(1);
+  const band = await mark.boundingBox();
+  await page.mouse.click(band.x + band.width / 2, band.y + band.height / 2);
+  const bar = page.locator('[data-rest-toolbar]');
+  await expect(bar).toBeVisible();
+
+  const scale = () => page.evaluate(() => window.visualViewport.scale);
+  const widths = () => page.evaluate(() => {
+    const w = (el) => el.getBoundingClientRect().width * window.visualViewport.scale;
+    return { bar: w(document.querySelector('[data-rest-toolbar]')), menu: w(document.querySelector('[data-editor-popover] > *')) };
+  });
+  await bar.getByRole('button', { name: 'Opacity' }).click();
+  await expect(page.locator('[data-editor-popover]')).toBeVisible();
+  const rest = await widths();
+
+  const cdp = await context.newCDPSession(page);
+  await cdp.send('Emulation.setPageScaleFactor', { pageScaleFactor: 2 });
+  await expect.poll(() => page.evaluate(() => Number(getComputedStyle(document.documentElement).getPropertyValue('--vv-scale')))).toBeCloseTo(2, 1);
+  await expect(page.locator('[data-editor-popover]')).toBeVisible();
+  await expect.poll(async () => Math.abs((await widths()).menu - rest.menu)).toBeLessThan(2);
+  expect(Math.abs((await widths()).bar - rest.bar)).toBeLessThan(2);
+});

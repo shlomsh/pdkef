@@ -6,8 +6,10 @@ import type { Marker } from '../lib/marker/markerState.ts';
 import { englishHighlightMessages as t } from '../messages.ts';
 import Chevron from './Chevron.tsx';
 import { onRadioKeyDown, radioTabIndex } from './radioKeys.ts';
+import StrokeChoice, { StrokeInk } from './StrokeChoice.tsx';
 import UnderlineGlyph from './UnderlineGlyph.tsx';
 import OpacityMenu from './OpacityMenu.tsx';
+import { useToolbarScaled } from './toolbarScale.ts';
 import styles from './LookControls.module.css';
 
 const THICKNESS_OPTIONS = [1, 1.5, 2, 3, 4];
@@ -37,27 +39,40 @@ export function StyleToggle({ look, onChange }: Look) {
   );
 }
 
-/** The active style's one setting, beside the switch: the highlight's opacity (a dot and its percent) or the underline's thickness (a line). */
+/** The active style's one setting, beside the switch: the highlight's opacity (its percent, marked in the current color and stroke) or the underline's thickness (the line it lays). */
 export function StyleSetting({ look, onChange }: Look) {
+  const sketch = look.stroke === 'sketch';
+  const counterScaled = useToolbarScaled();
   if (look.style === 'underline') {
     const width = look.strokeWidth ?? UNDERLINE_WIDTH.default;
     return (
       <ThicknessPickerMenu
-        value={width} title={t.markThickness} options={THICKNESS_OPTIONS} triggerClass={styles.setting}
+        value={width} title={t.markThickness} options={THICKNESS_OPTIONS} triggerClass={styles.setting} counterScaled={counterScaled}
         itemTitle={(n) => formatMessage(t.thicknessItem, { n })}
         onChange={(strokeWidth) => onChange({ style: 'underline', strokeWidth })}
+        header={<StrokeChoice stroke={look.stroke} underline color={look.color} onChange={onChange} />}
+        renderLine={(n) => (
+          <span class={styles.thicknessLine}>
+            <StrokeInk underline sketch={sketch} color="currentColor" width={n} w={80} h={n + 4} seed={n} />
+          </span>
+        )}
       >
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width={width} stroke-linecap="round" aria-hidden="true" data-setting-line>
-          <line x1="2" y1="12" x2="22" y2="12" />
-        </svg>
+        <span class={styles.faceLine} data-setting-line>
+          <StrokeInk underline sketch={sketch} color="currentColor" width={width} w={28} h={14} />
+        </span>
         <Chevron />
       </ThicknessPickerMenu>
     );
   }
   return (
-    <OpacityMenu value={look.opacity} triggerClass={styles.setting} onChange={(opacity) => onChange({ style: 'highlight', opacity })}>
-      <i class={styles.dot} data-setting-dot style={{ background: look.color, opacity: look.opacity }} />
-      <span class={styles.percent}>{Math.round(look.opacity * 100)}%</span>
+    <OpacityMenu
+      value={look.opacity} triggerClass={styles.setting} onChange={(opacity) => onChange({ style: 'highlight', opacity })}
+      stroke={look.stroke} color={look.color} onStroke={onChange}
+    >
+      <span class={styles.paper}>
+        <StrokeInk underline={false} sketch={sketch} color={look.color} opacity={look.opacity} w={40} h={16} />
+        <span class={styles.percent}>{Math.round(look.opacity * 100)}%</span>
+      </span>
       <Chevron />
     </OpacityMenu>
   );
