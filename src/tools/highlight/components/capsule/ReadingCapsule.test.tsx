@@ -118,6 +118,32 @@ describe('ReadingCapsule', () => {
     expect(bar.dataset.mode).toBe('dozing');
   });
 
+  it('stays awake while the Marker panel is open, though the zoom menu opened and closed meanwhile', () => {
+    let marker: (open: boolean) => void = () => {};
+    let zoom: (open: boolean) => void = () => {};
+    const { bar, press } = setup({
+      markerSlot: (onOpenChange) => { marker = onOpenChange; return <button type="button" aria-label="Marker">M</button>; },
+      zoomSlot: (onOpenChange) => { zoom = onOpenChange; return <button type="button" aria-label="Zoom">100%</button>; },
+    });
+    act(() => marker(true));
+    act(() => zoom(true));
+    act(() => zoom(false));
+    act(() => press.emit());
+    expect(bar.dataset.mode).toBe('awake');
+    act(() => marker(false));
+    act(() => press.emit());
+    expect(bar.dataset.mode).toBe('dozing');
+  });
+
+  it('switching from the page menu to More and closing More lets it doze', () => {
+    const { bar, press } = setup({ moreItems: [{ label: 'Feedback', onSelect: vi.fn() }, { label: 'Replace', onSelect: vi.fn() }] });
+    click(byLabel('Page 3 of 12'));
+    click(byLabel('More'));
+    click(byLabel('More'));
+    act(() => press.emit());
+    expect(bar.dataset.mode).toBe('dozing');
+  });
+
   it('dozes after more than 24px of scrolling', () => {
     const { bar, scroll } = setup();
     fire(bar, 'pointerenter', { bubbles: false });

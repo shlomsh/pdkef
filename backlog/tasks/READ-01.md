@@ -220,14 +220,14 @@ Found by two zero-context reviews (`1e729ad1..1db48f20`, then `1e729ad1..36f5a56
 the contract before READ-01 closes. Fixed since: the unclamped live pan (`94f8b17d`), the hidden tile row's
 second panel in full screen, the digest recomputed on every autosave (now once per file), and R49's 36 px switch
 halves with the row wrapping at 402 px (the colors became one framed choice and the row fits, 2026-11-02), and the
-finger swipe that did nothing when it started on a highlight (a marked line is a line of text: sideways lays a band, R52).
+finger swipe that did nothing when it started on a highlight (a marked line is a line of text: sideways lays a band, R52), and the capsule's one
+`menuOpen` flag (it now tracks each open menu, so the zoom menu closing never dozes it under an open Marker panel).
 - R9, R39 on a coarse pointer with a keyboard (iPad): the touch panel has no 1-6/U/C/Delete keys, though its
   buttons advertise them, and a keyboard focus on a mark sets the desktop panel's target, which never shows.
 - Outside full screen the armed page is `touch-action: pan-y`, so the browser's own pinch is off and nothing
   replaces it; decide whether R62's pinch covers the normal view (`pan-y pinch-zoom` is the likely answer).
 - A pinch that lands after the first finger began a native scroll cannot cancel that scroll (touchmove is no
   longer cancelable), so the page may scroll and scale at once.
-- The capsule's `menuOpen` is one boolean: a menu closing while the Marker panel is open lets the capsule doze.
 - More's open state is held twice (MarkerButton and MarkPanel) and kept in sync by a callback, so Escape closes
   More before the panel only while that sync holds.
 - Each touch press reads the page canvas for `onLine`, and a mark reads it again; one reader per press would do.
