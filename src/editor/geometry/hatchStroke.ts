@@ -8,8 +8,8 @@ import { HATCH_GAP, HATCH_WEIGHT } from './hatchInk.ts';
 /** rough.js's `hachureAngle`: the strokes climb to the right, 49 degrees from the horizontal in y-down space. */
 const HATCH_ANGLE = -41;
 
-/** Measured over 60 seeds: 0.6 wobbles strokes about 2pt past a line's band, 1 about 4pt, which reaches the next line. */
-const HATCH_ROUGHNESS = 0.6;
+/** Measured over 60 seeds on a 14pt line: 0.5 wobbles strokes up to 2pt past the band, 1 up to 4pt, which reaches the next line. */
+const HATCH_ROUGHNESS = 0.5;
 /** Strokes this short or shorter are dropped. */
 const MIN_STROKE = 1;
 

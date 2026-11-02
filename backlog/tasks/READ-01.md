@@ -36,7 +36,7 @@ The reasons and the rejected alternatives are in "Decisions and why" at the end.
 8. After the first mark a once-only hint appears at the end of the ink, never over the line being read, and
    fades after a few seconds: "Rest on a highlight to change it" on desktop, "Tap a highlight to change it"
    on touch.
-9. Keys: 1 to 6 pick a colour, U toggles underline, C comments, Delete deletes, and Esc closes one layer at a
+9. Keys: 1 to 6 pick a colour, U toggles underline, P toggles pencil (READ-14), C comments, Delete deletes, and Esc closes one layer at a
    time (an open menu or caret first, then the toolbar or the picked mark).
 50. On every device a file opens with the marker armed. A click or tap on Marker disarms it and another
     arms it, and opens nothing. Unlike Sign's one-shot tools it stays armed after each mark. Disarmed, the
@@ -77,7 +77,7 @@ The reasons and the rejected alternatives are in "Decisions and why" at the end.
    the panel to it.
 47. There is one panel, and it belongs to a picked highlight: on desktop it floats above the mark (R2), on
     touch it sits under the top toolbar (R7). It is one row where it fits: the colours (R4); a plain
-    Highlight | Underline switch with no carets; a separate setting button a gap away that shows the active
+    Highlight | Underline | Pencil switch with no carets (READ-14: Pencil shows the opacity and no Clean/Sketch choice); a separate setting button a gap away that shows the active
     style's value (the opacity as a dot and a percentage, or the underline's thickness as a line) and opens
     its control; then Comment and Delete. On the narrowest phones Comment and Delete wrap to a second line
     instead of shrinking.
@@ -126,7 +126,7 @@ The reasons and the rejected alternatives are in "Decisions and why" at the end.
     the reader looks at it.
 18. It dozes, not on a timer, when the reader goes back to reading: a scroll of more than about 24 px or a
     press on the page fades it slowly (1.4 s, ease in and out).
-19. The Marker button shows the pen (its colour, or the underline glyph). A click arms and disarms the
+19. The Marker button shows the pen (its colour, the underline glyph, or the pencil's hatching). A click arms and disarms the
     marker (R50) and opens nothing; on touch a picked highlight's panel opens under it (R7).
 58. The capsule's page field uses a 16 px font on touch (no iOS focus zoom), the capsule is
     `touch-action: manipulation` (no double-tap zoom), and opening one capsule menu closes the other.
@@ -248,7 +248,8 @@ Shlomi's calls, with the reason, newest group first.
   fill. The marker shades are document colors in the model (`lib/marker/markerShades.ts`); custom inks derive
   theirs from the same rule. The switch keeps the tint. Sign's round swatches are unchanged.
 - R49 at 402 px: on touch the row drops its 1 px gaps and the divider before Comment, colors are 30 px wide, More 28,
-  the switch halves 40, and the percent keeps room for "100%" so the row never changes width.
+  the switch halves 40, and the percent keeps room for "100%" so the row never changes width. READ-14: the switch grew
+  a third segment, so its segments are 28 px (the colors' own floor, 44 tall) and the row is one line from 393 px up.
 - Touch arms on a tap and disarms on a tap, with no Stop button: it is how Sign's tool buttons already work.
 - Touch has no hover, so a tap picks a highlight and its panel opens under the toolbar; nothing floats on the
   page, which keeps the lines being read free.
