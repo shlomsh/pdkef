@@ -137,10 +137,20 @@ function timed(fn) {
 }
 
 // The commit gate's record (scripts/commitGate.mjs). Never allowed to change the exit code.
-function recordVerdict(failed) {
+// The fingerprint is taken before the steps run, so an edit made during the run is never recorded as checked.
+function startedTree() {
   try {
+    return treeFingerprint(ROOT);
+  } catch {
+    return null;
+  }
+}
+
+function recordVerdict(failed, fingerprint) {
+  try {
+    if (!fingerprint) return;
     mkdirSync(join(ROOT, 'node_modules', '.cache'), { recursive: true });
-    const record = { verdict: failed ? 'FAIL' : 'PASS', failed: failed ?? null, fingerprint: treeFingerprint(ROOT), at: new Date().toISOString() };
+    const record = { verdict: failed ? 'FAIL' : 'PASS', failed: failed ?? null, fingerprint, at: new Date().toISOString() };
     writeFileSync(join(ROOT, RECORD_PATH), JSON.stringify(record));
   } catch {
     // best effort
@@ -160,6 +170,7 @@ function main(argv) {
     return 2;
   }
 
+  const tree = startedTree();
   const base = resolveBase(args.since);
   const files = base ? changedFilesWithStatus(base) : null;
   const unitScope = files
@@ -191,7 +202,7 @@ function main(argv) {
     }
   }
 
-  recordVerdict(failed);
+  recordVerdict(failed, tree);
   console.log(`\n${summaryLine({ ok: !failed, failed, base, since: args.since, steps })}`);
   return failed ? 1 : 0;
 }
