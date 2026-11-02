@@ -3,7 +3,7 @@ import { act } from 'preact/test-utils';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import controls from '#editor-ui/EditorControls.module.css';
 import { DEFAULT_MARKER } from '../lib/marker/markerState.ts';
-import LookControls from './LookControls.tsx';
+import LookControls, { StyleToggle } from './LookControls.tsx';
 
 let container: HTMLElement | null = null;
 afterEach(() => {
@@ -42,3 +42,41 @@ describe('LookControls', () => {
     expect(onChange).toHaveBeenLastCalledWith({ style: 'underline' });
   });
 });
+
+describe('StyleToggle', () => {
+  function mountToggle(look = DEFAULT_MARKER, onChange = vi.fn(), tone?: 'light') {
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    act(() => render(<StyleToggle look={look} onChange={onChange} tone={tone} />, container!));
+    return onChange;
+  }
+
+  it('holds the two style buttons and the thickness caret, without the color menu', () => {
+    mountToggle();
+    expect(container!.querySelector('[data-style-toggle]')).not.toBeNull();
+    expect(container!.querySelector(`.${controls['color-trigger']}`)).toBeNull();
+    expect(container!.querySelector('[data-style-toggle] button[aria-haspopup]')).not.toBeNull();
+  });
+
+  it('switches the style and presses the current one', () => {
+    const onChange = mountToggle({ ...DEFAULT_MARKER, style: 'underline' });
+    expect(button('Underline').getAttribute('aria-pressed')).toBe('true');
+    act(() => button('Highlight').click());
+    expect(onChange).toHaveBeenLastCalledWith({ style: 'highlight' });
+  });
+
+  it('the light tone is a variant of the same toggle', () => {
+    mountToggle(DEFAULT_MARKER, vi.fn(), 'light');
+    expect(container!.querySelector('[data-style-toggle]')!.className).not.toBe(mountDarkClass());
+  });
+});
+
+function mountDarkClass() {
+  const el = document.createElement('div');
+  document.body.appendChild(el);
+  act(() => render(<StyleToggle look={DEFAULT_MARKER} onChange={vi.fn()} />, el));
+  const name = el.querySelector('[data-style-toggle]')!.className;
+  act(() => render(null, el));
+  el.remove();
+  return name;
+}

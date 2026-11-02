@@ -10,14 +10,8 @@ import type { EditorElement, HighlightElement } from '#editor/model/editorModel.
 import type { ElementsAction } from '#editor/model/elementsReducer.ts';
 import { turnsOf, type PageTurns } from '#editor/geometry/pageTurn.ts';
 import type { PageGeometry } from '#editor/geometry/coords.ts';
-import { englishSignMessages } from '#editor/registry/signMessages.ts';
 import { pageTextDirection } from '#editor/text/textDirection.js';
 import { directionAtPoint, readerTextDirection, resolveHighlightDirection } from '#editor/highlight/resolveDirection.ts';
-import type { ActionHistoryEntry } from '#editor/model/actionHistory.ts';
-import type { EditorElementPatch } from '#editor/model/editorModel.ts';
-import { signUpdateDescription } from '#editor/registry/signLabels.ts';
-import { createElementId } from '#editor/model/ids.ts';
-import { recordAction } from '#lib/telemetry/actionTrail.ts';
 import useCoarsePointer from '#editor-ui/hooks/useCoarsePointer.ts';
 import { usePageGeometry } from '../hooks/usePageGeometry.ts';
 import HighlightPageHeader from './HighlightPageHeader.tsx';
@@ -27,9 +21,7 @@ import { useMarkSwipe } from '../hooks/useMarkSwipe.ts';
 import { useRestToolbar } from '../hooks/useRestToolbar.ts';
 import { cursorValue } from '../lib/marker/cursor.ts';
 import { inkEnd } from '../lib/marker/inkEnd.ts';
-import { buildMarkEdit } from '../lib/marker/markEdit.ts';
-import { deleteWithComments } from '../lib/notes/deleteElement.ts';
-import { openCommentFor } from '../lib/notes/openComment.ts';
+import { markCommands } from '../lib/marks/markCommands.ts';
 import type { Marker } from '../lib/marker/markerState.ts';
 import { englishHighlightMessages as t } from '../messages.ts';
 import RestToolbar, { MarkHint } from './RestToolbar.tsx';
@@ -43,7 +35,7 @@ const noop = () => {};
  * One page card: its header, the page, and a wrapper per highlight on it. A fine-pointer press on the
  * page starts a swipe that lays the marker's bands; the gesture paints during the swipe and commits once.
  */
-export default function HighlightPage({ pdfDocument, pageIndex, widthPx, chrome = 1, elements, marker, touchArmed = false, onSelect, rearm, dispatch, logAction, setAnnouncement, cardRef, rail, pageTurns = {}, onRotate, onClear }: {
+export default function HighlightPage({ pdfDocument, pageIndex, widthPx, chrome = 1, elements, marker, touchArmed = false, pickedId, onPickMark, rearm, dispatch, logAction, setAnnouncement, cardRef, rail, pageTurns = {}, onRotate, onClear }: {
   pdfDocument: PDFDocumentProxy | null;
   pageIndex: number;
   /** The page's width in CSS px at the current zoom. */
@@ -55,8 +47,10 @@ export default function HighlightPage({ pdfDocument, pageIndex, widthPx, chrome 
   marker: Marker;
   /** The marker is armed for a finger (touch devices): a one-finger press marks and the page does not scroll. */
   touchArmed?: boolean;
-  /** The mark whose toolbar is open (null when none), with how to change it: the pen bar shows its look on a finger. */
-  onSelect?: (selection: { pageIndex: number; mark: HighlightElement; change(change: Partial<Marker>): void } | null) => void;
+  /** The mark the panel up top is editing, on touch; it shows a ring. */
+  pickedId?: string | null;
+  /** On touch a tap on a highlight picks it for the panel up top, instead of opening a toolbar on the page. */
+  onPickMark?: (id: string) => void;
   /** Every change made on a highlight becomes the marker for the next stroke (R5). */
   rearm: (change: Partial<Marker>) => void;
   dispatch: (action: ElementsAction) => void;
@@ -88,42 +82,12 @@ export default function HighlightPage({ pdfDocument, pageIndex, widthPx, chrome 
   // A toolbar whose highlight is gone (deleted, undone) goes with it.
   useEffect(() => { if (rest.targetId !== null && !target) closeRest(); }, [rest.targetId, target, closeRest]);
 
-  const select = useRef(onSelect);
-  select.current = onSelect;
-  const changeOpen = (change: Partial<Marker>) => { if (target) changeMark(target, change); };
-  const changeOpenRef = useRef(changeOpen);
-  changeOpenRef.current = changeOpen;
-  useEffect(() => {
-    select.current?.(target ? { pageIndex, mark: target, change: (change) => changeOpenRef.current(change) } : null);
-  }, [target, pageIndex]);
-
-  const changeMark = (el: HighlightElement, change: Partial<Marker>) => {
-    const { changes, entry } = buildMarkEdit(el, change, (kind) => signUpdateDescription(englishSignMessages, kind, 'highlight'));
-    dispatch({ type: 'UPDATE_ELEMENT', payload: { id: el.id, changes: changes as EditorElementPatch } });
-    if (entry) dispatch({ type: 'ADD_ACTION_HISTORY', payload: entry as ActionHistoryEntry<EditorElement> });
-    rearm(change);
-    recordAction('edit_mark');
-  };
-
-  const deleteMark = (el: HighlightElement) => {
-    deleteWithComments(elements, el.id, englishSignMessages, { dispatch, logAction });
-    recordAction('delete_mark');
-    setAnnouncement(englishSignMessages.removedElement);
-    rest.close();
-  };
+  const commands = markCommands({ elements, dispatch, logAction, rearm, setAnnouncement });
 
   /** The way a mark laid at `start` reads: the text under it, else the page, else the reader. */
   const directionAt = (start: { x: number; y: number }) => resolveHighlightDirection({
     atPress: directionAtPoint(textRunsRef.current, start), page: pageTextDirection(textRunsRef.current.map((r) => r.str)), pages: [], elements, readerDirection: readerTextDirection(),
   });
-
-  /** R27: Comment opens the mark's comment card; a blank one is added first, unlogged (it is saved, and logged, with its text). */
-  const commentOn = (el: HighlightElement) => {
-    const { add, activeId } = openCommentFor(elements, el, createElementId());
-    if (add) dispatch({ type: 'ADD_ELEMENT', payload: add });
-    dispatch({ type: 'SET_ACTIVE_ELEMENT_ID', payload: activeId });
-    rest.close();
-  };
 
   /** A mark landed, by a swipe or a click: rest waits for the pointer to leave this spot, and the first mark gets its hint. */
   const inkLanded = (element: HighlightElement) => {
@@ -162,12 +126,14 @@ export default function HighlightPage({ pdfDocument, pageIndex, widthPx, chrome 
           onClick={(event) => {
             // R7: a single click or tap opens the highlight under it, unless the press just laid ink (that keeps the rest wait and hint).
             const id = (event.target as Element | null)?.closest('[data-element-id]')?.getAttribute('data-element-id');
-            if (id && event.detail <= 1 && (lastPointerType.current === 'touch' || !clicks.laidInk())) { rest.clearHint(); rest.openFor(id); }
+            if (!id || event.detail > 1 || (lastPointerType.current !== 'touch' && clicks.laidInk())) return;
+            rest.clearHint();
+            if (coarse) onPickMark?.(id); else rest.openFor(id);
           }}
         >
           {marks.map((mark) => (
             <div
-              key={mark.id} data-element-id={mark.id} data-editor-element-id={mark.id} className={styles.mark} {...markFocus.markProps(mark.id)}
+              key={mark.id} data-element-id={mark.id} data-editor-element-id={mark.id} data-picked={mark.id === pickedId ? '' : undefined} className={styles.mark} {...markFocus.markProps(mark.id)}
               style={{ left: `${mark.left}%`, top: `${mark.top}%`, width: `${mark.width}%`, height: `${mark.height}%` }}
             >
               <HighlightNode element={mark} isActive={false} onResizeStart={noop} />
@@ -175,10 +141,11 @@ export default function HighlightPage({ pdfDocument, pageIndex, widthPx, chrome 
           ))}
         </div>
         {rest.hint && <MarkHint anchor={rest.hint} text={coarse ? t.tapHint : t.restHint} />}
-        {target && (
+        {target && !coarse && (
           <RestToolbar
             key={target.id} mark={target}
-            onChange={(change) => changeMark(target, change)} onDelete={() => deleteMark(target)} onComment={() => commentOn(target)} onClose={rest.close} lookControls={!coarse}
+            onChange={(change) => commands.change(target, change)} onDelete={() => { commands.remove(target); rest.close(); }}
+            onComment={() => { commands.comment(target); rest.close(); }} onClose={rest.close}
           />
         )}
       </div>

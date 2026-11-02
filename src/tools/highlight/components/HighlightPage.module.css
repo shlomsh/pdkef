@@ -1,9 +1,9 @@
 .page { margin: 0 auto; }
 /* A highlight's box is placed by its element in percent of the page; the swipe rewrites it while it paints. */
 .mark { position: absolute; }
-/* R40: a dark 2 px outline with a light 1 px ring inside it, so it holds on the page and on any wash. Pointer focus shows nothing. */
+/* R40: a dark 2 px outline with a light 1 px ring inside it, so it holds on the page and on any wash. Pointer focus shows nothing. The mark the panel up top is editing (touch) wears it too. */
 .mark:focus { outline: none; }
-.mark:focus-visible, .mark[data-comment-focus] { outline: 2px solid var(--color-text); outline-offset: 1px; box-shadow: 0 0 0 1px var(--color-surface); }
+.mark:focus-visible, .mark[data-comment-focus], .mark[data-picked] { outline: 2px solid var(--color-text); outline-offset: 1px; box-shadow: 0 0 0 1px var(--color-surface); }
 /* The card under the pointer: the same ring, dashed and lighter, so the link reads without competing with the focused one. */
 .mark[data-comment-hover]:not([data-comment-focus]) { outline: 2px dashed color-mix(in srgb, var(--color-text) 60%, transparent); outline-offset: 1px; }
 /* Armed for a finger: a vertical start scrolls natively, a sideways one is ours to mark (see swipeIntent). Two fingers still pinch. */

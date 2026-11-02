@@ -64,7 +64,7 @@
   box-sizing: border-box;
 }
 
-/* The six colors, the wheel and Underline in one row. The shared swatches are 18 px; the margin and the
+/* The six colors and the wheel in one row. The shared swatches are 18 px; the margin and the
    pseudo-element make each one a full-size target with no overlap, and the shared divider is not needed. */
 .row {
   display: flex;
@@ -101,7 +101,9 @@
   pointer-events: none;
 }
 .row [data-highlight-swatch][aria-pressed='true']::before { box-shadow: 0 0 0 2px var(--color-surface), 0 0 0 3px var(--color-primary); }
-.ul {
+/* The look row: the Highlight | Underline toggle, and for a mark Comment and Delete at the end. */
+.look { display: flex; align-items: center; gap: 4px; min-height: var(--cell); padding-inline: 2px; }
+.act {
   appearance: none;
   flex: none;
   display: grid;
@@ -112,22 +114,23 @@
   border: 0;
   border-radius: 50%;
   background: none;
-  color: inherit;
+  color: var(--color-text);
   cursor: pointer;
 }
-.ul { margin-inline-start: 2px; border-inline-start: 1px solid var(--color-border); border-radius: 0 var(--radius-pill) var(--radius-pill) 0; }
-.ul:hover { background: var(--color-primary-tint); }
-.ul[aria-pressed='true'] { background: var(--color-primary-tint); color: var(--color-primary-text); border-radius: var(--radius-pill); border-inline-start-color: transparent; }
+.act:hover { background: var(--color-primary-tint); }
+.danger:hover { background: var(--color-danger-soft); color: var(--color-danger); }
+.end { margin-inline-start: auto; }
 @media (prefers-reduced-motion: reduce) {
   .button { transition: none; }
 }
 
 /* On a phone the menu spans the screen between 16 px gutters (the full-width mobile toolbar rule) and keeps its
-   eight targets on one row: each cell is 44 px or an eighth of the row, whichever is smaller, and the row spreads
+   seven targets on one row: each cell is 44 px or a seventh of the row, whichever is smaller, and the row spreads
    them edge to edge. 42 px is the gutters, the menu's padding and its border. */
 @media (pointer: coarse), (max-width: 480px) {
   .menu { width: calc(100vw - 32px); max-width: none; min-width: 0; padding: 4px; }
-  .row { --cell: min(2.75rem, (100vw - 42px) / 8); justify-content: space-between; padding-inline: 0; }
+  .row { --cell: min(2.75rem, (100vw - 42px) / 7); justify-content: space-between; padding-inline: 0; }
+  .look { padding-inline: 0; }
   .menu > [data-opacity-slider] { min-width: 0; padding: 0 12px 6px; }
 }
 
