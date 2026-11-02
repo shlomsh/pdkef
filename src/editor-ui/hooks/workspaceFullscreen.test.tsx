@@ -63,10 +63,67 @@ describe('toggleWorkspaceFullscreen', () => {
       const setPseudo = vi.fn();
       toggleWorkspaceFullscreen(workspace, false, setPseudo);
       vi.advanceTimersByTime(FULLSCREEN_ANSWER_MS);
+      Object.defineProperty(document, 'fullscreenElement', { value: workspace, configurable: true });
       grant();
       await flush();
       expect(exit).toHaveBeenCalled();
       expect(setPseudo).toHaveBeenCalledTimes(1);
+    });
+
+    it('a second press during the wait cancels the request instead of asking again', async () => {
+      vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+      let grant!: () => void;
+      const workspace = { requestFullscreen: vi.fn(() => new Promise<void>((resolve) => { grant = resolve; })) } as any;
+      const exit = vi.fn(() => Promise.resolve());
+      (document as any).exitFullscreen = exit;
+      const setPseudo = vi.fn();
+      toggleWorkspaceFullscreen(workspace, false, setPseudo);
+      vi.advanceTimersByTime(1000);
+      toggleWorkspaceFullscreen(workspace, false, setPseudo);
+      vi.advanceTimersByTime(FULLSCREEN_ANSWER_MS * 2);
+      expect(workspace.requestFullscreen).toHaveBeenCalledTimes(1);
+      expect(setPseudo).not.toHaveBeenCalled();
+      Object.defineProperty(document, 'fullscreenElement', { value: workspace, configurable: true });
+      grant();
+      await flush();
+      expect(exit).toHaveBeenCalled();
+    });
+
+    it('does not fall back for a workspace that has left the page', () => {
+      vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+      const workspace = { isConnected: true, requestFullscreen: vi.fn(() => new Promise<void>(() => {})) } as any;
+      const setPseudo = vi.fn();
+      toggleWorkspaceFullscreen(workspace, false, setPseudo);
+      workspace.isConnected = false;
+      vi.advanceTimersByTime(FULLSCREEN_ANSWER_MS);
+      expect(setPseudo).not.toHaveBeenCalled();
+    });
+
+    it('does not fall back when real fullscreen is already on', () => {
+      vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+      const workspace = { requestFullscreen: vi.fn(() => new Promise<void>(() => {})) } as any;
+      const setPseudo = vi.fn();
+      toggleWorkspaceFullscreen(workspace, false, setPseudo);
+      Object.defineProperty(document, 'fullscreenElement', { value: workspace, configurable: true });
+      vi.advanceTimersByTime(FULLSCREEN_ANSWER_MS);
+      expect(setPseudo).not.toHaveBeenCalled();
+    });
+
+    it('a late grant of an earlier request leaves alone the full screen a newer request asked for', async () => {
+      vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+      const grants: Array<() => void> = [];
+      const workspace = { requestFullscreen: vi.fn(() => new Promise<void>((resolve) => { grants.push(resolve); })) } as any;
+      const exit = vi.fn(() => Promise.resolve());
+      (document as any).exitFullscreen = exit;
+      const setPseudo = vi.fn();
+      toggleWorkspaceFullscreen(workspace, false, setPseudo);
+      vi.advanceTimersByTime(FULLSCREEN_ANSWER_MS);
+      toggleWorkspaceFullscreen(workspace, true, setPseudo);
+      toggleWorkspaceFullscreen(workspace, false, setPseudo);
+      Object.defineProperty(document, 'fullscreenElement', { value: workspace, configurable: true });
+      grants.forEach((g) => g());
+      await flush();
+      expect(exit).not.toHaveBeenCalled();
     });
 
     it('a refusal after the fallback does not fall back a second time', async () => {
