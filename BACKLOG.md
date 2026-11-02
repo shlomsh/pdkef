@@ -246,7 +246,7 @@ Done and retired tickets are not listed. Their files stay in [backlog/tasks/](ba
 
 - Redact: finish removal: 26 done, 1 retired
 - Sign: finish fill mode: 3 done, 1 retired
-- Highlight PDF: a tool for reading: 4 done, 0 retired
+- Highlight PDF: a tool for reading: 5 done, 1 retired
 - Tool pages: show the verb: 8 done, 0 retired
 - Form detector accuracy: 19 done, 1 retired
 - Robustness and debt: 80 done, 4 retired

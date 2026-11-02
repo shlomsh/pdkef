@@ -37,12 +37,3 @@ export function activeAfterPick(elements: readonly EditorElement[], activeId: st
   if (withText) return withText.id;
   return openIsNote ? null : activeId;
 }
-
-/**
- * How far the on-screen keyboard covers the layout viewport's bottom, for a position:fixed pane. It uses
- * pageTop - scrollY and not visualViewport.offsetTop because offsetTop is wrong with the keyboard up
- * (WebKit bug 237851; see docs/sign-next-gen.md section 3).
- */
-export function keyboardInset(v: { innerHeight: number; vvHeight: number; vvPageTop: number; scrollY: number }): number {
-  return Math.max(0, v.innerHeight - v.vvHeight - (v.vvPageTop - v.scrollY));
-}

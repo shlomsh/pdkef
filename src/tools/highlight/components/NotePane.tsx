@@ -8,7 +8,7 @@ import { commentCardLabel } from '#editor-ui/comments/commentLabel.ts';
 import { CommentCardBody } from '#editor-ui/comments/CommentCardBody.tsx';
 import { formatMessage } from '#lib/text/formatMessage.ts';
 import type { HighlightMessages } from '../messages.ts';
-import { keyboardInset, paneIndex, paneNotes, snapIndex } from '../lib/notes/notePane.ts';
+import { paneIndex, paneNotes, snapIndex } from '../lib/notes/notePane.ts';
 import styles from './NotePane.module.css';
 
 const stop = (event: Event) => event.stopPropagation();
@@ -16,21 +16,6 @@ const UNDO_MS = 5000;
 const STEER_MS = 700;
 
 const reducedMotion = () => !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
-
-/** How far the on-screen keyboard covers the bottom of the layout viewport; the pane rides above it. */
-function useKeyboardInset(): number {
-  const [inset, setInset] = useState(0);
-  useEffect(() => {
-    const vv = window.visualViewport;
-    if (!vv) return;
-    const update = () => setInset(keyboardInset({ innerHeight: window.innerHeight, vvHeight: vv.height, vvPageTop: vv.pageTop, scrollY: window.scrollY }));
-    update();
-    vv.addEventListener('resize', update);
-    vv.addEventListener('scroll', update);
-    return () => { vv.removeEventListener('resize', update); vv.removeEventListener('scroll', update); };
-  }, []);
-  return inset;
-}
 
 /** The distance between two neighbouring cards, which is how far one swipe travels. */
 function cardStep(track: HTMLElement): number {
@@ -43,7 +28,7 @@ const Chevron = ({ flip }: { flip?: boolean }) => (
 );
 
 /** READ-15: on a phone the notes sit in a bottom pane, one at a time; swipe sideways to read the next in page order. */
-export default function NotePane({ elements, activeElementId, messages, labels, onSelect, onSave, onDelete, onDiscard, onUndo, onReturnFocus }: {
+export default function NotePane({ elements, activeElementId, messages, labels, onSelect, onSave, onDelete, onDiscard, onUndo, onEdit, onReturnFocus }: {
   elements: readonly EditorElement[];
   activeElementId: string | null;
   messages: SignMessages;
@@ -53,12 +38,13 @@ export default function NotePane({ elements, activeElementId, messages, labels, 
   onDelete: (id: string) => void;
   onDiscard: (id: string) => void;
   onUndo: () => void;
+  onEdit: (id: string) => void;
   onReturnFocus?: (id: string) => void;
 }) {
   const notes = paneNotes(elements, activeElementId);
   const idx = paneIndex(notes, activeElementId);
   const open = idx >= 0;
-  const inset = useKeyboardInset();
+  const section = useRef<HTMLElement>(null);
   const track = useRef<HTMLDivElement>(null);
   const steering = useRef<number | null>(null);
   const wasOpen = useRef(false);
@@ -70,7 +56,11 @@ export default function NotePane({ elements, activeElementId, messages, labels, 
     if (!open) { wasOpen.current = false; return; }
     const behavior: ScrollBehavior = !wasOpen.current || reducedMotion() ? 'auto' : 'smooth';
     wasOpen.current = true;
-    anchorNode(elements, activeElementId!)?.scrollIntoView({ block: 'center', behavior });
+    const node = anchorNode(elements, activeElementId!);
+    // The margin makes block: 'center' centre the passage in the band above the pane, not in the whole viewport; it is cleared right after, since the scroll target is computed at call time.
+    if (node) node.style.scrollMarginBottom = `${section.current?.offsetHeight ?? 0}px`;
+    node?.scrollIntoView({ block: 'center', behavior });
+    if (node) node.style.scrollMarginBottom = '';
     const el = track.current;
     if (!el || !el.scrollTo || snapIndex(el.scrollLeft, cardStep(el), notes.length) === idx) return;
     steering.current = idx;
@@ -119,7 +109,7 @@ export default function NotePane({ elements, activeElementId, messages, labels, 
   const close = () => { setDeleted(null); onSelect(null); };
 
   return (
-    <section class={styles.pane} data-note-pane aria-label={labels.region} dir={messages.dir} style={{ bottom: `${inset}px` }}
+    <section ref={section} class={styles.pane} data-note-pane aria-label={labels.region} dir={messages.dir}
       onClick={stop} onMouseDown={stop} onTouchStart={stop} onPointerDown={stop}>
       {deleted && (
         <div class={styles.chip} role="status">
@@ -158,6 +148,7 @@ export default function NotePane({ elements, activeElementId, messages, labels, 
                     onSave={(patch) => onSave(note.id, patch)}
                     onDelete={() => remove(i)}
                     onDiscard={() => onDiscard(note.id)}
+                    onEdit={() => onEdit(note.id)}
                     onReturnFocus={() => onReturnFocus?.(note.id)}
                   />
                 </div>

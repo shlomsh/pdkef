@@ -36,15 +36,24 @@ describe('markCommands', () => {
 
   it('comment on a mark with none adds a blank one and makes it active', () => {
     const { deps, commands } = setup();
-    commands.comment(mark);
+    const target = commands.comment(mark);
     const [add, active] = deps.dispatch.mock.calls.map(([a]) => a);
     expect(add).toMatchObject({ type: 'ADD_ELEMENT', payload: { type: 'comment', anchor: { elementId: 'h1' } } });
     expect(active).toEqual({ type: 'SET_ACTIVE_ELEMENT_ID', payload: add.payload.id });
+    expect(target).toEqual({ id: add.payload.id, comment: '', isNew: true });
   });
 
   it('comment on a mark that has one only opens it', () => {
     const { deps, commands } = setup([mark, saved]);
-    commands.comment(mark);
+    const target = commands.comment(mark);
     expect(deps.dispatch.mock.calls.map(([a]) => a)).toEqual([{ type: 'SET_ACTIVE_ELEMENT_ID', payload: 'c1' }]);
+    expect(target).toEqual({ id: 'c1', comment: 'Check this', isNew: false });
+  });
+
+  it('comment on a mark whose note is blank counts the note as new', () => {
+    for (const comment of ['', '  ']) {
+      const { commands } = setup([mark, { ...saved, comment }]);
+      expect(commands.comment(mark)).toEqual({ id: 'c1', comment, isNew: true });
+    }
   });
 });

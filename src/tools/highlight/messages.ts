@@ -59,7 +59,7 @@ export interface HighlightMessages {
   printNotesHeading: string;
   /** The Feedback tile: opens a prefilled GitHub issue. `body` is the issue template, English like the repository's issues. */
   /** The phone's bottom note pane. `count` is "{index} of {count}", `page` is "Page {number}". */
-  notes: { region: string; previous: string; next: string; close: string; count: string; page: string; deleted: string; undo: string };
+  notes: { region: string; previous: string; next: string; close: string; count: string; page: string; deleted: string; undo: string; writerTitle: string };
   feedback: { label: string; title: string; name: string; body: string };
   downloadDone: string;
   downloadDoneLabel: string;
@@ -111,7 +111,7 @@ export const englishHighlightMessages: HighlightMessages = {
   printWithNotes: 'Print with my notes',
   printNotesAtEnd: 'Print with notes at the end',
   printNotesHeading: 'Notes',
-  notes: { region: 'Notes', previous: 'Previous note', next: 'Next note', close: 'Close notes', count: '{index} of {count}', page: 'Page {number}', deleted: 'Note deleted', undo: 'Undo' },
+  notes: { region: 'Notes', previous: 'Previous note', next: 'Next note', close: 'Close notes', count: '{index} of {count}', page: 'Page {number}', deleted: 'Note deleted', undo: 'Undo', writerTitle: 'Note' },
   feedback: {
     label: 'Feedback',
     title: 'Report a bug or suggest a feature for Highlight PDF (opens GitHub)',
