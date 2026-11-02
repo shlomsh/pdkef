@@ -44,3 +44,24 @@ long-press and drag.
 - [ ] The toolbar and panel decisions are pure functions with unit tests, each seen failing first.
 - [ ] Export then read-back is lossless, in Highlight PDF and in Sign (one round-trip e2e).
 - [ ] `npm run build && npm run preview` checked for CSP; `test:seo`, `test:redirects`, `test:css` pass.
+
+## Progress (2026-11-02, live at da93d162)
+
+- Done: on a page with no text layer the swipe's own sideways direction picks the mark's reading
+  direction (leftward is right to left), latched on the first clear sideways move, so a diagonal drag
+  across lines in a Hebrew scan bands the right lines (ff50509d).
+- Done: the underline thickness menu draws its lines again and tints the picked one (e68367f3). Guards
+  added the same day so a deleted rule or an unsized box cannot hide controls again: the orphaned
+  selector check, the sized-host check in `test:css`, and `expectControlsSized` in the toolbar e2e
+  (5441d512, 01ab2ab7, 5816c96f).
+- Done: the cord tucks into the card once the page scrolls past 12 px, leaving the bead's tip; a tap on
+  the tip brings it back, and the next pull opens full screen (145f83ee).
+- Done: leaving the lamp returns focus to the cord only for a keyboard reader, so no focus ring shows
+  around the knob after a tap or click (0f96a10b).
+- Done: Highlight reports the same funnel steps as Sign and Redact (page view, file accepted, first
+  edit, operation started, result ready, failed), and a print counts as a result (b1bcb3b9).
+- Done: the Feedback link sits at the end of the file line, as in Sign, and never in the lamp
+  (da93d162). `FeedbackButton` moved to `src/editor-ui/`; Sign keeps a thin wrapper.
+- Checked in Chromium at desktop, 402 and 375 px, and on the iPhone 17 Pro iOS 27 simulator: the cord tucks
+  on scroll, a tap on the tip brings it back with no focus ring, the next tap opens the lamp, the lamp
+  has no Feedback link, and one tap on Exit leaves it with the cord back at rest.
