@@ -45,19 +45,24 @@ test('clicking another note, even from one being edited, opens its mark and lets
     fields: document.querySelectorAll('[data-comment-card] textarea').length,
   }));
 
+  const editNote = async (n) => {
+    const card = page.locator('[data-comment-card]').nth(n);
+    await card.locator('[data-comment-more]').click();
+    await card.locator('[data-comment-menu-edit]').click();
+    await expect(page.locator('[data-comment-card] textarea')).toHaveCount(1);
+  };
+
   await group(0).click();
   await expect.poll(async () => (await state()).active).toBe(0);
   const marksOf = async () => page.locator('[data-page-overlay] [data-element-id]').evaluateAll((n) => n.map((m) => m.getAttribute('data-editor-element-id')));
   const [firstMark, secondMark] = await marksOf();
-  expect((await state()).focused).toEqual([firstMark]);
+  await expect.poll(async () => (await state()).focused).toEqual([firstMark]);
 
   // Open the first note for editing, then go to the second, and back: each click lands on that note alone.
-  await group(0).click();
-  await expect(page.locator('[data-comment-card] textarea')).toHaveCount(1);
+  await editNote(0);
   await group(1).click();
   await expect.poll(state).toMatchObject({ active: 1, focused: [secondMark], outlines: 1, fields: 0 });
-  await group(1).click();
-  await expect(page.locator('[data-comment-card] textarea')).toHaveCount(1);
+  await editNote(1);
   await group(0).click();
   await expect.poll(state).toMatchObject({ active: 0, focused: [firstMark], outlines: 1, fields: 0 });
 });
