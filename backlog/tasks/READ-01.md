@@ -25,7 +25,7 @@ The reasons and the rejected alternatives are in "Decisions and why" at the end.
 
 ## Requirements
 
-### Marking and arming (R1, R5, R6, R8, R9, R50 to R55)
+### Marking and arming (R1, R5, R6, R8, R9, R50 to R55, R62)
 
 1. On desktop the marker is always armed: a yellow marker is in the hand when a file opens, dragging along
    text lays a band, and nothing appears when the stroke ends.
@@ -43,10 +43,15 @@ The reasons and the rejected alternatives are in "Decisions and why" at the end.
     its colour at its opacity, or the underline glyph), takes the file name's place in the toolbar card's
     identity row (the shared ToolShell status line, as Sign's tool hint). In full screen there is no hint;
     the capsule's Marker shows the armed state (R19).
-52. On touch, while armed, only a sideways start marks: the first 10 px of travel decide, sideways at least
-    twice the vertical lays a mark and anything else is a native scroll (the armed page is
-    `touch-action: pan-y`). A mark that started sideways may run down several lines. Mouse and pen start a
-    mark after 4 px in any direction. A finished mark opens nothing.
+52. On touch, while armed, one finger marks only when it starts on a line of text and moves sideways: the
+    first 10 px of travel decide, sideways at least twice the vertical lays a mark and anything else is a
+    native scroll. A finger that starts off the text (a margin, a gap between paragraphs) moves the page in
+    any direction and never marks. "On a line" allows half a line's height above and below it and about a
+    line's height before and after it. A mark that started sideways may run down several lines. Mouse and
+    pen start a mark after 4 px in any direction. A finished mark opens nothing.
+62. On touch, two fingers always navigate: they pinch to zoom and move the page in any direction, and never
+    mark. A second finger landing while a one-finger mark is deciding or under way cancels that mark,
+    leaving no trace and no Undo step.
 53. First-time marks start at 50% opacity; a remembered choice wins.
 54. The live swipe paints at the mark's own opacity, so the ink never changes strength on release.
 55. An underline follows its page's turn on screen, in the downloaded PDF (QuadPoints in the text's own
@@ -218,6 +223,9 @@ Shlomi's calls, with the reason, newest group first.
   the panel (the panel is the context of a picked highlight only).
 - On touch, changing a picked highlight is the only way to change the pen (R5), confirmed.
 - Only a sideways start marks on touch: with an any-direction start, scrolling marked every line passed.
+- Two fingers navigate and one finger marks only from a line of text (R52, R62): on a real iPhone a pinch
+  laid marks and a zoomed page could not be moved sideways, because every sideways start marked, even in a
+  blank gap. Two fingers to navigate is the drawing-app convention.
 - The panel replaces rest-for-colours: three colours first, the rest behind "more", so the least common
   controls are one click away and the panel stays simple, not a cockpit.
 - Opacity uses Redact's slider look, so one control means one thing across tools.

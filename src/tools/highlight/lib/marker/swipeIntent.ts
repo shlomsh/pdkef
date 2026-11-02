@@ -11,3 +11,8 @@ export function swipeIntent(dx: number, dy: number): SwipeIntent {
   if (Math.hypot(dx, dy) < TOUCH_DECIDE_PX) return 'wait';
   return Math.abs(dx) >= SIDEWAYS_RATIO * Math.abs(dy) ? 'mark' : 'scroll';
 }
+
+/** Two fingers navigate (pinch, pan) and never mark: any touch event with a second finger down is one. */
+export function isMultiTouch(event: Event): boolean {
+  return ((event as TouchEvent).touches?.length ?? 0) > 1;
+}

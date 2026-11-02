@@ -9,7 +9,7 @@ import { createElementId } from '#editor/model/ids.ts';
 import { englishSignMessages } from '#editor/registry/signMessages.ts';
 import type { ReadingDirection } from '#lib/pageLayout/bands.ts';
 import type { Marker } from '../lib/marker/markerState.ts';
-import { swipeIntent } from '../lib/marker/swipeIntent.ts';
+import { isMultiTouch, swipeIntent } from '../lib/marker/swipeIntent.ts';
 import type { useClickMarks } from './useClickMarks.ts';
 
 type Point = { x: number; y: number };
@@ -49,7 +49,8 @@ const marks = (event: PointerEvent, touchArmed: boolean) => (
 export function useMarkSwipe(o: MarkSwipeOptions): (event: PointerEvent) => void {
   const gestureCancelRef = useRef<(() => void) | null>(null);
   const pendingCancelRef = useRef<(() => void) | null>(null);
-  useEffect(() => () => { pendingCancelRef.current?.(); gestureCancelRef.current?.(); }, []);
+  const abandonRef = useRef<(() => void) | null>(null);
+  useEffect(() => () => { pendingCancelRef.current?.(); abandonRef.current?.(); gestureCancelRef.current?.(); }, []);
 
   return (event) => {
     if (event.button !== 0 || !marks(event, o.touchArmed)) return;
@@ -66,13 +67,17 @@ export function useMarkSwipe(o: MarkSwipeOptions): (event: PointerEvent) => void
     const stop = () => {
       window.removeEventListener('mousemove', onMove);
       window.removeEventListener('mouseup', stop);
+      window.removeEventListener('touchstart', onSecondFinger);
       window.removeEventListener('touchmove', onMove);
       window.removeEventListener('touchend', stop);
       window.removeEventListener('touchcancel', stop);
       window.removeEventListener('blur', stop);
       pendingCancelRef.current = null;
     };
+    // A second finger is a pinch or a pan: it never marks.
+    const onSecondFinger = (touch: Event) => { if (isMultiTouch(touch)) stop(); };
     const onMove = (move: MouseEvent | TouchEvent) => {
+      if (isMultiTouch(move)) { stop(); return; }
       const point = 'touches' in move && move.touches?.length ? move.touches[0] : (move as MouseEvent);
       const dx = point.clientX - origin.x;
       const dy = point.clientY - origin.y;
@@ -90,6 +95,7 @@ export function useMarkSwipe(o: MarkSwipeOptions): (event: PointerEvent) => void
     pendingCancelRef.current = stop;
     window.addEventListener('mousemove', onMove);
     window.addEventListener('mouseup', stop);
+    window.addEventListener('touchstart', onSecondFinger);
     window.addEventListener('touchmove', onMove);
     window.addEventListener('touchend', stop);
     window.addEventListener('touchcancel', stop);
@@ -117,6 +123,26 @@ export function useMarkSwipe(o: MarkSwipeOptions): (event: PointerEvent) => void
           o.onInk({ ...newEl, ...action.payload.changes } as HighlightElement);
         }
       };
+      // A second finger landing mid-swipe turns it into a pinch or a pan: the engine's cancel leaves nothing behind.
+      const abandon = (touch: Event) => {
+        if (!gestureCancelRef.current) { done(); return; }
+        if (isMultiTouch(touch)) { done(); gestureCancelRef.current(); }
+      };
+      const done = () => {
+        window.removeEventListener('touchstart', abandon);
+        window.removeEventListener('touchmove', abandon);
+        window.removeEventListener('touchend', done);
+        window.removeEventListener('touchcancel', done);
+        abandonRef.current = null;
+      };
+      if (!isMouse) {
+        abandonRef.current?.();
+        window.addEventListener('touchstart', abandon);
+        window.addEventListener('touchmove', abandon);
+        window.addEventListener('touchend', done);
+        window.addEventListener('touchcancel', done);
+        abandonRef.current = done;
+      }
       startHighlightSwipe({
         dispatch: swipeDispatch, getPointerPercent: o.getPointerPercent, gestureCancelRef, logAction: o.logAction, setAnnouncement: o.setAnnouncement,
         messages: englishSignMessages, nextElementIndex: o.elements.length, pageGeometry: o.geometry,

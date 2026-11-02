@@ -2,6 +2,7 @@ import { useEffect } from 'preact/hooks';
 import { clampZoom, type ZoomSetting } from '../lib/zoom/fit.ts';
 import type { Point } from '../lib/zoom/anchor.ts';
 import { isZoomInput } from '../lib/zoom/lamp.ts';
+import { panScroll } from '../lib/zoom/pan.ts';
 import { previewShiftY } from '../lib/zoom/previewShift.ts';
 
 const PINCH_REST_MS = 150;
@@ -20,7 +21,7 @@ export function usePinchZoom({ workspaceRef, columnRef, enabled, inLamp, zoomRef
   zoomRef: { current: number };
   /** The lowest zoom a pinch may reach: the lamp's whole-page fit. */
   floorRef: { current: number };
-  commit(next: ZoomSetting, nextZoom: number, anchor?: Point): void;
+  commit(next: ZoomSetting, nextZoom: number, anchor?: Point, centreAfter?: boolean, pan?: Point): void;
 }) {
   useEffect(() => {
     const ws = workspaceRef.current;
@@ -30,7 +31,7 @@ export function usePinchZoom({ workspaceRef, columnRef, enabled, inLamp, zoomRef
     let factor = 1;
     let anchor: Point = { x: 0, y: 0 };
     let timer: ReturnType<typeof setTimeout> | undefined;
-    const pointers = new Map<number, Point>();
+    let pan: Point = { x: 0, y: 0 };
     let startDistance = 0;
 
     // The column's rect as the gesture began: once it is transformed, its rect is a scaled one.
@@ -43,20 +44,30 @@ export function usePinchZoom({ workspaceRef, columnRef, enabled, inLamp, zoomRef
       const view = ws.getBoundingClientRect();
       const pad = getComputedStyle(ws);
       const dy = previewShiftY(scaledTop, rect.height * factor, view.top, ws.clientHeight, parseFloat(pad.paddingTop) || 0, parseFloat(pad.paddingBottom) || 0);
-      col.style.transform = `translateY(${dy}px) scale(${factor})`;
+      col.style.transform = `translate(${pan.x}px, ${dy + pan.y}px) scale(${factor})`;
     };
     const finish = () => {
       clearTimeout(timer);
       const next = clampZoom(zoomRef.current * factor, floorRef.current);
       const unchanged = factor === 1;
+      const travel = pan;
       factor = 1;
+      pan = { x: 0, y: 0 };
       // Back to the column's own size before anything else, even when a pinch at the bound commits nothing:
       // a stale start rect would aim the next pinch's origin at where the column used to be.
       startRect = null;
       col.style.transform = '';
       col.style.transformOrigin = '';
-      if (unchanged) return;
-      commit(next, next, anchor);
+      if (unchanged) {
+        // No scale change: the fingers only moved the page.
+        const max = { x: ws.scrollWidth - ws.clientWidth, y: ws.scrollHeight - ws.clientHeight };
+        const moved = panScroll({ x: ws.scrollLeft, y: ws.scrollTop }, travel, max);
+        ws.scrollLeft = moved.x;
+        ws.scrollTop = moved.y;
+        return;
+      }
+      if (travel.x || travel.y) commit(next, next, anchor, false, travel);
+      else commit(next, next, anchor);
     };
 
     const onWheel = (e: WheelEvent) => {
@@ -69,45 +80,41 @@ export function usePinchZoom({ workspaceRef, columnRef, enabled, inLamp, zoomRef
       clearTimeout(timer);
       timer = setTimeout(finish, PINCH_REST_MS);
     };
-    const distance = () => {
-      const [a, b] = [...pointers.values()];
-      return Math.hypot(a.x - b.x, a.y - b.y);
+    // The pinch reads touches, not pointers: once the browser starts a one-finger scroll it cancels the pointers.
+    const spread = (t: TouchList) => Math.hypot(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY);
+    const middle = (t: TouchList): Point => ({ x: (t[0].clientX + t[1].clientX) / 2, y: (t[0].clientY + t[1].clientY) / 2 });
+    const onTouchStart = (e: TouchEvent) => {
+      if (e.touches.length !== 2) return;
+      startDistance = spread(e.touches);
+      anchor = middle(e.touches);
+      pan = { x: 0, y: 0 };
+      factor = 1;
     };
-    const onDown = (e: PointerEvent) => {
-      if (e.pointerType !== 'touch') return;
-      pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
-      if (pointers.size === 2) {
-        startDistance = distance();
-        const [a, b] = [...pointers.values()];
-        anchor = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
-        factor = 1;
-      }
-    };
-    const onMove = (e: PointerEvent) => {
-      if (!pointers.has(e.pointerId)) return;
-      pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
-      if (pointers.size !== 2 || startDistance === 0) return;
-      const target = clampZoom(zoomRef.current * (distance() / startDistance), floorRef.current);
+    const onTouchMove = (e: TouchEvent) => {
+      if (e.touches.length !== 2 || startDistance === 0) return;
+      if (e.cancelable) e.preventDefault();
+      const target = clampZoom(zoomRef.current * (spread(e.touches) / startDistance), floorRef.current);
       factor = target / zoomRef.current;
+      const mid = middle(e.touches);
+      pan = { x: mid.x - anchor.x, y: mid.y - anchor.y };
       preview();
     };
-    const onUp = (e: PointerEvent) => {
-      if (!pointers.delete(e.pointerId)) return;
-      if (pointers.size < 2 && startDistance !== 0) { startDistance = 0; finish(); }
+    const onTouchEnd = (e: TouchEvent) => {
+      if (e.touches.length < 2 && startDistance !== 0) { startDistance = 0; finish(); }
     };
 
     ws.addEventListener('wheel', onWheel, { passive: false });
-    col.addEventListener('pointerdown', onDown);
-    col.addEventListener('pointermove', onMove);
-    col.addEventListener('pointerup', onUp);
-    col.addEventListener('pointercancel', onUp);
+    col.addEventListener('touchstart', onTouchStart, { passive: false });
+    col.addEventListener('touchmove', onTouchMove, { passive: false });
+    col.addEventListener('touchend', onTouchEnd);
+    col.addEventListener('touchcancel', onTouchEnd);
     return () => {
       clearTimeout(timer);
       ws.removeEventListener('wheel', onWheel);
-      col.removeEventListener('pointerdown', onDown);
-      col.removeEventListener('pointermove', onMove);
-      col.removeEventListener('pointerup', onUp);
-      col.removeEventListener('pointercancel', onUp);
+      col.removeEventListener('touchstart', onTouchStart);
+      col.removeEventListener('touchmove', onTouchMove);
+      col.removeEventListener('touchend', onTouchEnd);
+      col.removeEventListener('touchcancel', onTouchEnd);
       col.style.transform = '';
       col.style.transformOrigin = '';
     };
