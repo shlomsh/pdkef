@@ -6,14 +6,18 @@ import { useMarkPanel } from './useMarkPanel.ts';
 let container: HTMLElement | null = null;
 let api: ReturnType<typeof useMarkPanel>;
 
-function Probe() {
-  api = useMarkPanel();
+function Probe({ ids }: { ids: string[] }) {
+  api = useMarkPanel(ids.map((id) => ({ id })));
   return null;
 }
 
-function mount() {
+function mount(ids = ['a', 'b']) {
   container = document.createElement('div');
-  act(() => render(<Probe />, container!));
+  act(() => render(<Probe ids={ids} />, container!));
+}
+
+function rerender(ids: string[]) {
+  act(() => render(<Probe ids={ids} />, container!));
 }
 
 afterEach(() => {
@@ -42,5 +46,21 @@ describe('useMarkPanel', () => {
     act(() => api.pick('a'));
     expect(api.pick).toBe(pick);
     expect(api.release).toBe(release);
+  });
+
+  it('lets go of a mark that disappears, and does not reopen when it comes back', () => {
+    mount();
+    act(() => api.pick('a'));
+    rerender(['b']);
+    expect(api.markId).toBeNull();
+    rerender(['a', 'b']);
+    expect(api.markId).toBeNull();
+  });
+
+  it('keeps the picked mark while other marks come and go', () => {
+    mount();
+    act(() => api.pick('a'));
+    rerender(['a']);
+    expect(api.markId).toBe('a');
   });
 });

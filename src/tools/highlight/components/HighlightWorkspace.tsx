@@ -122,8 +122,8 @@ export default function HighlightWorkspace({ pdfDocument, numPages, fileName, zo
   const toggleView = () => { setPrintOpen(false); onToggleFullscreen(); };
   const touch = useTouchArming();
   // A tapped highlight: the Marker panel shows and edits its look until the panel is dismissed.
-  const panel = useMarkPanel();
   const elements = marks.state.elements;
+  const panel = useMarkPanel(elements);
   const picked = panel.markId ? elements.find((el) => el.id === panel.markId) as HighlightElement | undefined : undefined;
   const commands = markCommands({ elements, dispatch, logAction: marks.logAction, rearm: marks.rearm, setAnnouncement });
   const mark = picked && {

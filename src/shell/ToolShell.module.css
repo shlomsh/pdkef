@@ -322,6 +322,38 @@
   }
 }
 
+/* `statusBeside` (Highlight): the hint sits next to the filename on one row
+   instead of replacing it, so the name stays visible while a tool is armed.
+   The hint keeps its natural width, up to 60% of the row, and the name
+   ellipsises in what is left. The row is the same height with or without the hint,
+   so arming moves nothing under it. */
+.editor.status-beside .identity {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.editor.status-beside .text {
+  flex: 0 1 auto;
+  min-width: 0;
+}
+
+.editor.status-beside .identity:has([data-status-active]) .text {
+  visibility: visible;
+}
+
+.editor.status-beside .status {
+  flex: 0 0 auto;
+  max-width: 60%;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  padding-inline-start: var(--space-3);
+  border-inline-start: 1px solid var(--color-border);
+}
+
 /* The loaded-file strip, at every width (docs/ux-design-guidelines.md §18,
    rule 2): a 40x52 thumbnail, the name with the quiet actions on its line, the
    meta line under it, and an optional note across the strip's whole width
@@ -606,38 +638,6 @@
 
   .editor .identity:has([data-status-active]) .text {
     visibility: hidden;
-  }
-
-  /* `statusBeside` (Highlight): the hint sits next to the filename on one row
-     instead of replacing it, so the name stays visible while a tool is armed.
-     The hint keeps its natural width, up to 60% of the row, and the name
-     ellipsises in what is left. The row is the same height with or without the hint,
-     so arming moves nothing under it. */
-  .editor.status-beside .identity {
-    display: flex;
-    flex-wrap: nowrap;
-    align-items: center;
-    gap: var(--space-2);
-  }
-
-  .editor.status-beside .text {
-    flex: 0 1 auto;
-    min-width: 0;
-  }
-
-  .editor.status-beside .identity:has([data-status-active]) .text {
-    visibility: visible;
-  }
-
-  .editor.status-beside .status {
-    flex: 0 0 auto;
-    max-width: 60%;
-    min-width: 0;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    padding-inline-start: var(--space-3);
-    border-inline-start: 1px solid var(--color-border);
   }
 
   .editor .meta-text {
