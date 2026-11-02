@@ -1,4 +1,4 @@
-import { useLayoutEffect, useMemo, useRef, useState } from 'preact/hooks';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'preact/hooks';
 import type { EditorElement } from '#editor/model/editorModel.ts';
 import type { SignMessages } from '#editor/registry/messages.ts';
 import { commentCards, stackCards } from '#editor/highlight/commentCards.ts';
@@ -65,13 +65,23 @@ export function CommentRail({ pageIndex, elements, activeElementId, messages, on
   }, [key, known]);
   const shown = derived ?? layout;
 
+  // A card that unmounts under the pointer never fires mouseleave: clear its passage here (the node is kept, its comment may be gone).
+  const hovered = useRef<{ id: string; node: HTMLElement | null } | null>(null);
+  const cardIds = cards.map((c) => c.id).join('|');
+  const clearHover = () => { hovered.current?.node?.removeAttribute('data-comment-hover'); hovered.current = null; };
+  useEffect(() => {
+    if (hovered.current && !cards.some((c) => c.id === hovered.current!.id)) clearHover();
+  }, [cardIds]);
+  useEffect(() => clearHover, []);
+
   return (
     <div ref={rail} class={styles.rail} data-comment-rail style={{ minHeight: `${shown.height}px` }}
       onClick={stop} onMouseDown={stop} onTouchStart={stop}>
       {cards.map((card) => (
         <div key={card.id} class={styles.card} data-comment-card={card.id} data-active={card.id === activeElementId ? 'true' : undefined}
           style={{ top: `${shown.tops.get(card.id) ?? 0}px` }}
-          onMouseEnter={() => markAnchor(elements, card.id, 'data-comment-hover', true)} onMouseLeave={() => markAnchor(elements, card.id, 'data-comment-hover', false)}>
+          onMouseEnter={() => { hovered.current = { id: card.id, node: anchorNode(elements, card.id) }; markAnchor(elements, card.id, 'data-comment-hover', true); }}
+          onMouseLeave={() => { hovered.current = null; markAnchor(elements, card.id, 'data-comment-hover', false); }}>
           <CommentCardBody
             card={card}
             active={card.id === activeElementId}

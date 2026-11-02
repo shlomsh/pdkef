@@ -27,12 +27,18 @@ describe('readOpenMarks', () => {
     expect(readOpenMarks(mount(marks), null)).toEqual({ openId: null, hoverId: null });
   });
 
-  it('an open note, a picked mark and the card under the pointer are told apart', () => {
+  it('an open note wins over a picked mark and over the card under the pointer', () => {
     mount(marks);
     root.querySelector('[data-editor-element-id="a"]')!.setAttribute('data-comment-focus', '');
     root.querySelector('[data-editor-element-id="b"]')!.setAttribute('data-comment-hover', '');
-    expect(readOpenMarks(root, 'b')).toEqual({ openId: 'a', hoverId: 'b' });
-    expect(readOpenMarks(root, null)).toEqual({ openId: 'a', hoverId: 'b' });
+    expect(readOpenMarks(root, 'b')).toEqual({ openId: 'a', hoverId: null });
+    expect(readOpenMarks(root, null)).toEqual({ openId: 'a', hoverId: null });
+  });
+
+  it('with no note open, the hovered card points at its mark', () => {
+    mount(marks);
+    root.querySelector('[data-editor-element-id="b"]')!.setAttribute('data-comment-hover', '');
+    expect(readOpenMarks(root, null)).toEqual({ openId: null, hoverId: 'b' });
   });
 
   it('the mark a card is hovering is not also faint once it is the open one', () => {
