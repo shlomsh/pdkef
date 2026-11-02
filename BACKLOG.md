@@ -2,7 +2,7 @@
 
 # Backlog
 
-The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 98 live: 22 up next, 12 then, 27 waiting, 37 parked.
+The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 97 live: 21 up next, 12 then, 27 waiting, 37 parked.
 
 ## Redact: finish removal
 
@@ -57,7 +57,6 @@ Marking should feel like holding a highlighter, not like operating software. Ske
 | READ-13 | P2 | [READ-13](backlog/tasks/READ-13.md) · Highlight PDF: the open mark wears a pencil outline, the other marks step back | In progress |
 | READ-14 | P2 | [READ-14](backlog/tasks/READ-14.md) · Highlight PDF: a third mark style, Pencil, hatching in the mark's color | In progress |
 | READ-15 | P2 | [READ-15](backlog/tasks/READ-15.md) · Highlight PDF: notes on a phone and in the lamp get a model of their own | In progress |
-| READ-17 | P2 | [READ-17](backlog/tasks/READ-17.md) · Highlight PDF: a note card with one way to edit, and long notes kept short until opened | In progress |
 
 ### Then, in order
 
@@ -246,7 +245,7 @@ Done and retired tickets are not listed. Their files stay in [backlog/tasks/](ba
 
 - Redact: finish removal: 26 done, 1 retired
 - Sign: finish fill mode: 3 done, 1 retired
-- Highlight PDF: a tool for reading: 3 done, 0 retired
+- Highlight PDF: a tool for reading: 4 done, 0 retired
 - Tool pages: show the verb: 8 done, 0 retired
 - Form detector accuracy: 19 done, 1 retired
 - Robustness and debt: 80 done, 4 retired
