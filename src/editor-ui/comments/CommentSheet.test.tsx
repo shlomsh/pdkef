@@ -45,6 +45,15 @@ describe('CommentSheet', () => {
     expect(sheet()!.querySelector('textarea')).not.toBeNull();
   });
 
+  it('a second, new comment opens an empty field, not the text of the first one', () => {
+    const elements = [hl('a', 'first comment'), hl('b', '')];
+    mount(elements, 'a');
+    expect(sheet()!.textContent).toContain('first comment');
+    act(() => render(<CommentSheet elements={elements} activeElementId="b" messages={englishSignMessages}
+      onSave={() => {}} onDelete={() => {}} onDiscard={() => {}} onClose={() => {}} />, host!));
+    expect(host!.querySelector<HTMLTextAreaElement>('[data-highlight-note-input]')!.value).toBe('');
+  });
+
   it('scrolls the anchor to the centre when it opens', () => {
     const node = document.createElement('div');
     node.setAttribute('data-editor-element-id', 'a');
