@@ -3,7 +3,7 @@ import os from 'node:os';
 import path from 'node:path';
 import zlib from 'node:zlib';
 import { afterAll, describe, expect, it } from 'vitest';
-import { readInstallSet } from './measure-update-cost.mjs';
+import { explainPages, readInstallSet } from './measure-update-cost.mjs';
 import { UPDATE_COST_TARGET, explainChanged, firstDifference, summarize, updateCost } from './updateCost.mjs';
 
 const build = (entries) => new Map(Object.entries(entries));
@@ -200,5 +200,28 @@ describe('readInstallSet', () => {
     fs.writeFileSync(path.join(empty, 'precache-manifest.json'), JSON.stringify({ version: 2, shell: [], pages: {} }));
     expect(() => readInstallSet(empty)).toThrow(/empty/);
     fs.rmSync(empty, { recursive: true, force: true });
+  });
+});
+
+describe('explainPages', () => {
+  const dirs = [];
+  afterAll(() => { for (const d of dirs) fs.rmSync(d, { recursive: true, force: true }); });
+  const dist = (files) => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'explain-'));
+    dirs.push(dir);
+    for (const [rel, text] of Object.entries(files)) {
+      fs.mkdirSync(path.dirname(path.join(dir, rel)), { recursive: true });
+      fs.writeFileSync(path.join(dir, rel), text);
+    }
+    return dir;
+  };
+
+  it('skips a page that is new in this build instead of failing on it', () => {
+    const before = dist({ 'a/index.html': '<p>one</p>' });
+    const after = dist({ 'a/index.html': '<p>two</p>', 'new/index.html': '<p>fresh</p>' });
+    const items = [{ url: '/a/', reason: 'changed' }, { url: '/new/', reason: 'changed' }];
+    const groups = explainPages({ items }, before, after);
+    expect(groups).toHaveLength(1);
+    expect(groups[0].urls).toEqual(['/a/']);
   });
 });
