@@ -13,6 +13,7 @@ const onPress = vi.fn();
 const logAction = vi.fn();
 const setAnnouncement = vi.fn();
 let armed = true;
+let marker: Record<string, unknown> = { color: 'yellow', style: 'highlight', opacity: 1 };
 let readerAt: ((point: { x: number; y: number }) => Reader | null) | undefined;
 type Reader = { onLine: (point: { x: number; y: number }) => boolean };
 const readerOf = (on: boolean): Reader => ({ onLine: () => on });
@@ -20,7 +21,7 @@ const readerOf = (on: boolean): Reader => ({ onLine: () => on });
 function Probe() {
   handler = useMarkSwipe({
     pageIndex: 0, geometry: undefined, elements: [],
-    marker: { color: 'yellow', style: 'highlight', opacity: 1 } as never,
+    marker: marker as never,
     armed,
     getPointerPercent: (e: MouseEvent | TouchEvent) => ({ x: (e as MouseEvent).clientX / 10, y: (e as MouseEvent).clientY / 10 }),
     directionAt: () => 'ltr' as never,
@@ -69,6 +70,20 @@ describe('useMarkSwipe second finger', () => {
     window.dispatchEvent(new TouchEvent('touchmove', { touches: [{ clientX: 150, clientY: 100 } as Touch] }));
     expect(dispatch).not.toHaveBeenCalled();
     expect(onPress).not.toHaveBeenCalled();
+  });
+});
+
+describe('READ-11: the swiped mark carries the pen stroke', () => {
+  afterEach(() => { marker = { color: 'yellow', style: 'highlight', opacity: 1 }; });
+  it('stroke sketch rides on the new element, and no key when the marker is clean', () => {
+    marker = { ...marker, stroke: 'sketch' };
+    mount(); press(); move(150, 150);
+    expect(dispatch.mock.calls[0][0].payload.stroke).toBe('sketch');
+    dispatch.mockClear(); window.dispatchEvent(new MouseEvent('mouseup'));
+    act(() => render(null, container!));
+    marker = { color: 'yellow', style: 'highlight', opacity: 1 };
+    mount(); press(); move(150, 150);
+    expect('stroke' in dispatch.mock.calls[0][0].payload).toBe(false);
   });
 });
 
@@ -208,6 +223,50 @@ describe('useMarkSwipe off the text', () => {
     touch('touchmove', [finger(130, 100)]);
     expect(dispatch.mock.calls[0][0]).toMatchObject({ type: 'ADD_ELEMENT' });
     expect(workspace.scrollLeft).toBe(50);
+  });
+
+  // R52 under the browser's zoom: a zoomed page pans sideways with one finger whatever touch-action says, so a press on a
+  // line claims its sideways moves; a vertical one, or any move off the text, stays the browser's.
+  it('on a line, a sideways move is claimed from the first pixel, a vertical one is left to the browser', () => {
+    readerAt = () => readerOf(true);
+    mount(); pressTouch();
+    expect(touch('touchmove', [finger(100, 104)])).toBe(true);
+    expect(touch('touchmove', [finger(104, 101)])).toBe(false);
+  });
+
+  // WebKit reads the touch listeners in place when a touch starts: one added at the press cannot stop that touch's pan.
+  it('the claiming touchmove listener is in place before any press', () => {
+    const added = vi.spyOn(window, 'addEventListener');
+    readerAt = () => readerOf(true);
+    mount();
+    expect(added).toHaveBeenCalledWith('touchmove', expect.any(Function), { passive: false });
+    added.mockClear();
+    pressTouch();
+    expect(added.mock.calls.some(([type, , options]) => type === 'touchmove' && (options as AddEventListenerOptions)?.passive === false)).toBe(false);
+  });
+
+  it('once a line\'s swipe has begun, its later moves stay claimed until the finger lifts', () => {
+    readerAt = () => readerOf(true);
+    mount(); pressTouch();
+    touch('touchmove', [finger(130, 100)]);
+    expect(dispatch.mock.calls[0][0]).toMatchObject({ type: 'ADD_ELEMENT' });
+    expect(touch('touchmove', [finger(160, 102)])).toBe(false);
+    expect(touch('touchmove', [finger(162, 140)])).toBe(false);
+    touch('touchend', []);
+    expect(touch('touchmove', [finger(200, 100)])).toBe(true);
+  });
+
+  it('two fingers are never claimed, mid-swipe or not: the pinch stays the browser\'s', () => {
+    readerAt = () => readerOf(true);
+    mount(); pressTouch();
+    touch('touchmove', [finger(130, 100)]);
+    expect(touch('touchmove', [finger(140, 100), finger(260, 100)])).toBe(true);
+  });
+
+  it('off a line, nothing is claimed: the browser pans the zoomed page', () => {
+    readerAt = () => readerOf(false);
+    mount(); pressTouch();
+    expect(touch('touchmove', [finger(104, 100)])).toBe(true);
   });
 
   it('without a reader a sideways start marks, as before', () => {

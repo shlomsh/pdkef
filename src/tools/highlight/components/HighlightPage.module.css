@@ -6,5 +6,8 @@
 .mark:focus-visible, .mark[data-comment-focus], .mark[data-picked] { outline: 2px solid var(--color-text); outline-offset: 1px; box-shadow: 0 0 0 1px var(--color-surface); }
 /* The card under the pointer: the same ring, dashed and lighter, so the link reads without competing with the focused one. */
 .mark[data-comment-hover]:not([data-comment-focus]) { outline: 2px dashed color-mix(in srgb, var(--color-text) 60%, transparent); outline-offset: 1px; }
-/* Armed for a finger: a vertical start scrolls natively, a sideways one is ours to mark (see swipeIntent). Two fingers still pinch. */
+/* Armed for a finger: a vertical start scrolls natively, a sideways one from a line is ours to mark (useMarkSwipe claims it).
+   In the lamp the page moves sideways through its own pan. Outside it the browser zooms and pans (R62): a line's sideways move
+   is claimed from its first pixel, so a sideways start off the text pans the zoomed page natively. */
 .touchArmed { touch-action: pan-y; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+[data-workspace]:not([data-lamp]) .touchArmed { touch-action: pan-x pan-y pinch-zoom; }

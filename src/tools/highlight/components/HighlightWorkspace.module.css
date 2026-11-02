@@ -1,10 +1,11 @@
-/* Outside the lamp the page fits the width and never pans (R20); the lamp's board scrolls both ways. */
-.workspace { overflow-x: clip; touch-action: pan-y; scrollbar-width: none; }
+/* Outside the lamp the page fits the width (R20) and the browser zooms and pans it (R62); the lamp's board scrolls both ways
+   and zooms with its own pinch. */
+.workspace { overflow-x: clip; touch-action: pan-x pan-y pinch-zoom; scrollbar-width: none; }
 .workspace[data-lamp] { overflow-x: auto; touch-action: pan-x pan-y; }
 .workspace::-webkit-scrollbar:horizontal { display: none; }
 .board { align-self: flex-start; flex: none; }
 /* The column is as wide as the widest page and sits on the board at a fixed left margin: no auto margins. */
-.column { display: flex; flex-direction: column; gap: calc(2rem * var(--chrome, 1)); flex: none; touch-action: pan-x pan-y; }
+.column { display: flex; flex-direction: column; gap: calc(2rem * var(--chrome, 1)); flex: none; touch-action: pan-x pan-y pinch-zoom; }
 .floating { position: fixed; top: 12px; left: 50%; transform: translateX(-50%); z-index: 30; }
 
 /* READ-04: the tool row is seven controls in one row. Sign's phone label size reads --controls-per-row, which falls back to 4 below nine children. The doubled class with the attribute outranks the :has() count rules. */
@@ -14,6 +15,11 @@
    which sits inside the row on touch, keep their own sizes. */
 @media (max-width: 480px) {
   .toolRow.toolRow[data-editor-toolbar] button:not([role="menuitem"], [data-marker-row] *) { font-size: 0.5rem; padding-inline: 0; }
+}
+/* A wrapping row breaks at each tile's 44 px floor before it shrinks: at 375 px seven tiles need 326 px with these gaps,
+   and the row's content box is 333 px. */
+@media (max-width: 400px) {
+  .toolRow.toolRow[data-editor-toolbar] { column-gap: 3px; padding-inline: 4px; }
 }
 /* The lamp's board is at least the workspace's content box: a column taller than it starts at the top and scrolls to
    its bottom, a shorter one is centred, with no room to scroll into. */

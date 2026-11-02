@@ -46,6 +46,33 @@ const marks = (event: PointerEvent, armed: boolean) => (
   armed && (event.pointerType === 'mouse' || event.pointerType === 'pen' || event.pointerType === 'touch')
 );
 
+// R52 under the browser's zoom: a zoomed page pans sideways with one finger whatever touch-action says, so a finger on a
+// line claims its sideways moves, and every move once it marks. WebKit reads the touch listeners in place when a touch
+// starts, so the claim listens from mount and a press only names the finger.
+function useLineTouchClaim() {
+  const lineTouchRef = useRef<{ x: number; y: number; marking: boolean } | null>(null);
+  useEffect(() => {
+    const claim = (move: TouchEvent) => {
+      const press = lineTouchRef.current;
+      if (!press || !move.cancelable || move.touches?.length !== 1) return;
+      const dx = move.touches[0].clientX - press.x, dy = move.touches[0].clientY - press.y;
+      if (press.marking || Math.abs(dx) > Math.abs(dy)) move.preventDefault();
+    };
+    const release = (touch: TouchEvent) => { if (touch.type !== 'touchstart' || isMultiTouch(touch)) lineTouchRef.current = null; };
+    window.addEventListener('touchmove', claim, { passive: false });
+    window.addEventListener('touchstart', release);
+    window.addEventListener('touchend', release);
+    window.addEventListener('touchcancel', release);
+    return () => {
+      window.removeEventListener('touchmove', claim);
+      window.removeEventListener('touchstart', release);
+      window.removeEventListener('touchend', release);
+      window.removeEventListener('touchcancel', release);
+    };
+  }, []);
+  return lineTouchRef;
+}
+
 /**
  * A press on the page starts a swipe that lays the marker's bands; the gesture paints during the swipe
  * and commits once. Returns the pointerdown handler. A mouse press on a highlight starts nothing.
@@ -55,6 +82,7 @@ export function useMarkSwipe(o: MarkSwipeOptions): (event: PointerEvent) => void
   const pendingCancelRef = useRef<(() => void) | null>(null);
   const abandonRef = useRef<(() => void) | null>(null);
   useEffect(() => () => { pendingCancelRef.current?.(); abandonRef.current?.(); gestureCancelRef.current?.(); }, []);
+  const lineTouchRef = useLineTouchClaim();
 
   return (event) => {
     // A second finger is a pinch or a pan, never a press (R62).
@@ -76,6 +104,7 @@ export function useMarkSwipe(o: MarkSwipeOptions): (event: PointerEvent) => void
     const scroller = pans ? container.closest<HTMLElement>('[data-workspace]') : null;
     const startScrollLeft = scroller?.scrollLeft ?? 0;
     pendingCancelRef.current?.();
+    lineTouchRef.current = !isMouse && !pans ? { ...origin, marking: false } : null;
     // Nothing is laid until the pointer has moved: a plain click adds no element and leaves Redo alone.
     // Window listeners, not state: the move is never routed through a store.
     const stop = () => {
@@ -106,9 +135,10 @@ export function useMarkSwipe(o: MarkSwipeOptions): (event: PointerEvent) => void
         // A finger that starts mostly vertical is a scroll the browser takes; only a sideways start marks.
         const intent = swipeIntent(dx, dy);
         if (intent === 'wait') return;
-        if (intent === 'scroll') { stop(); return; }
+        if (intent === 'scroll') { lineTouchRef.current = null; stop(); return; }
       }
       stop();
+      if (lineTouchRef.current) lineTouchRef.current.marking = true;
       begin();
     };
     pendingCancelRef.current = stop;
@@ -129,6 +159,7 @@ export function useMarkSwipe(o: MarkSwipeOptions): (event: PointerEvent) => void
         ...(marker.style === 'underline' ? { style: 'underline' as const } : {}),
         ...(marker.opacity < 1 ? { opacity: marker.opacity } : {}),
         ...(marker.strokeWidth !== undefined ? { strokeWidth: marker.strokeWidth } : {}),
+        ...(marker.stroke ? { stroke: marker.stroke } : {}),
       };
       o.dispatch({ type: 'ADD_ELEMENT', payload: newEl });
       gestureCancelRef.current?.();
