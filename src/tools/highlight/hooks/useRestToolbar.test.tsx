@@ -222,7 +222,6 @@ describe('Esc returns focus to the mark', () => {
         <div data-editor-element-id="m" tabIndex={0} />
         <div ref={rootRef}><button type="button">Colors</button></div>
         <button type="button" id="elsewhere">Elsewhere</button>
-        <div data-armed-chip><button type="button" id="pen">Pen</button></div>
       </div>
     );
   }
@@ -251,16 +250,6 @@ describe('Esc returns focus to the mark', () => {
     esc();
     expect(rest.targetId).toBeNull();
     expect(document.activeElement).toBe(mark);
-  });
-
-  const press = (sel: string) => act(() => { container!.querySelector(sel)!.dispatchEvent(new Event('pointerdown', { bubbles: true })); });
-
-  it('a press on the pen bar keeps the toolbar open, since the bar edits the open mark', () => {
-    mountBar();
-    press('#pen');
-    expect(rest.targetId).toBe('m');
-    press('#elsewhere');
-    expect(rest.targetId).toBeNull();
   });
 
   it('Esc with focus elsewhere does not steal it', () => {

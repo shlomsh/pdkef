@@ -88,20 +88,22 @@ describe('HighlightWorkspace', () => {
     expect(hiddenBar.closest('[hidden]')).not.toBeNull();
   });
 
-  it('on touch, the armed strip hangs in the toolbar card, not at the workspace foot; in the lamp it hangs under the capsule', () => {
+  it('on touch, the hint shows in the card\'s identity row while armed, Marker toggles arming, and the lamp shows no hint', () => {
     vi.stubGlobal('matchMedia', (q: string) => ({ matches: q.includes('coarse'), media: q, addEventListener() {}, removeEventListener() {} }));
     try {
-      const ws = mount({ fullscreen: false, pseudoFullscreen: false });
+      mount({ fullscreen: false, pseudoFullscreen: false });
+      const marker = () => container!.querySelector<HTMLButtonElement>('[data-editor-toolbar] button[aria-label="Marker"]')!;
+      const hint = () => [...container!.querySelectorAll('[data-tool-shell] *')].find((el) => el.children.length === 0 && el.textContent === 'Swipe along a line to highlight');
+      expect(hint()).toBeUndefined();
+      act(() => { marker().click(); });
+      expect(hint()).toBeDefined();
       expect(container!.querySelector('[data-armed-chip]')).toBeNull();
-      act(() => { container!.querySelector<HTMLButtonElement>('[data-editor-toolbar] button[aria-label="Marker"]')!.click(); });
-      const chip = container!.querySelector('[data-armed-chip]')!;
-      expect(chip.closest('[data-shell-controls]')).not.toBeNull();
-      expect(ws.contains(chip)).toBe(false);
+      act(() => { marker().click(); });
+      expect(hint()).toBeUndefined();
       act(() => render(null, container!));
       const lamp = mount({ fullscreen: true, pseudoFullscreen: false });
       act(() => { lamp.querySelector<HTMLButtonElement>('[role="toolbar"][aria-label="Reading lamp"] button[aria-label="Marker"]')!.click(); });
-      const lampChip = lamp.querySelector('[data-armed-chip]')!;
-      expect(lampChip.parentElement!.className).toContain(styles.floating);
+      expect(lamp.textContent).not.toContain('Swipe along a line to highlight');
     } finally { vi.unstubAllGlobals(); }
   });
 
