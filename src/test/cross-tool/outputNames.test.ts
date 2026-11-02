@@ -278,7 +278,7 @@ describe('output names, every tool', () => {
       editPages: modifiedTitle(input),
       security_unlock: securityName(input, 'unlock'),
       security_protect: securityName(input, 'protect'),
-      sign: outputNameParts(input, { prefix: 'signed_' }).fileName,
+      sign: outputNameParts(input, { prefix: "signed_" }).fileName,
       redact: outputNameParts(input, { prefix: 'redacted_', dedupePrefix: true }).fileName,
       toImagePng: imageFileName(imageBaseName(input), 'png'),
       toImagePageN: imageFileName(imageBaseName(input), 'jpg', 'N'),

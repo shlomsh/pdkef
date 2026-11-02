@@ -356,12 +356,12 @@ describe('PdfRedactTool UI flow', () => {
     await act(async () => {
       nameEl().dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }));
     });
-    expect(query(s.container, '[data-file-identity] [data-output-name]').textContent).toBe('redacted_Board minutes.pdf');
+    expect(query(s.container, '[data-file-identity] [data-output-name]').textContent).toBe('Board minutes.pdf');
 
     const download = required(Array.from(s.container.querySelectorAll<HTMLButtonElement>('[role="toolbar"] button'))
       .find((button) => button.textContent.includes('Download')), 'Download button');
     await act(async () => { download.click(); });
-    await settleUntil('the saved name', () => s.container.textContent.includes('Saved redacted_Board minutes.pdf'));
+    await settleUntil('the saved name', () => s.container.textContent.includes('Saved Board minutes.pdf'));
     } finally {
       window.URL.createObjectURL = originalCreateObjectURL;
       window.URL.revokeObjectURL = originalRevokeObjectURL;

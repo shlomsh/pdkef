@@ -24,8 +24,13 @@ export function outputFileName(fileName, mode, pageNumber) {
   return mode === 'separate' ? withAffixes(base, { suffix: `-page-${pageNumber}` }) : extractedFileName(base);
 }
 
+// The default heading name, `extracted_<base>`: the whole name, so a typed name replaces the prefix too.
+export function extractedTitle(base) {
+  return withAffixes(base, { prefix: 'extracted_', ext: null });
+}
+
 // The single-file name for a base the person may have renamed in the heading.
-export function extractedFileName(base) {
+function extractedFileName(base) {
   return withAffixes(base, { prefix: 'extracted_' });
 }
 

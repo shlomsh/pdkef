@@ -4,8 +4,8 @@ import type { IdentityRename } from './ToolShell.tsx';
 
 /**
  * A single-file tool's output name: `<prefix><source's name>` until the person types their own in the
- * identity row (`identity.rename`). Emptying it, or typing the source's own name, goes back to the
- * automatic one; opening a different file does too (a typed name belongs to the File it was typed for).
+ * identity row (`identity.rename`), which replaces all of it, prefix included. Emptying it, or typing the
+ * automatic name, goes back to the automatic one; opening a different file does too (a typed name belongs to the File it was typed for).
  * `parts.fileName` is what every export saves as.
  */
 export function useOutputNameOverride(file: File | null, { prefix, dedupePrefix = false }: { prefix: string; dedupePrefix?: boolean }) {
@@ -17,9 +17,9 @@ export function useOutputNameOverride(file: File | null, { prefix, dedupePrefix 
   const automatic = outputNameParts(sourceName, { prefix, dedupePrefix });
   const parts: OutputNameParts = outputNameParts(sourceName, { prefix, dedupePrefix, custom });
   const rename = useCallback((next: string) => {
-    setTyped(next.length > 0 && next !== automatic.base ? { file, name: next } : null);
-  }, [file, automatic.base]);
+    setTyped(next.length > 0 && next !== automatic.name ? { file, name: next } : null);
+  }, [file, automatic.name]);
 
-  const identityRename: IdentityRename = { prefix: parts.prefix, name: parts.base, onRename: rename, onEditingChange: setRenaming };
+  const identityRename: IdentityRename = { name: parts.name, onRename: rename, onEditingChange: setRenaming };
   return { parts, rename, renaming, setRenaming, identityRename, customised: custom !== null };
 }
