@@ -123,6 +123,69 @@ describe('CommentCardBody', () => {
       expect(onSelect).not.toHaveBeenCalled();
     });
 
+    it('a press outside closes the menu even where a parent stops propagation', () => {
+      host = document.createElement('div');
+      document.body.appendChild(host);
+      const stop = (e: Event) => e.stopPropagation();
+      act(() => render(
+        <div onPointerDown={stop} onClick={stop}>
+          <CommentCardBody card={card()} active messages={englishSignMessages} label="x" onSelect={() => {}} onSave={() => {}} onDelete={() => {}} onDiscard={() => {}} />
+          <span data-elsewhere>elsewhere</span>
+        </div>, host!));
+      openMenu();
+      expect(host.querySelector('[data-comment-menu]')).not.toBeNull();
+      act(() => { const el = q('[data-elsewhere]'); el.dispatchEvent(new MouseEvent('pointerdown', { bubbles: true })); el.dispatchEvent(new MouseEvent('click', { bubbles: true })); });
+      expect(host.querySelector('[data-comment-menu]')).toBeNull();
+    });
+
+    it('focus moving out of the menu closes it', () => {
+      mount({ card: card(), active: true });
+      const outside = document.createElement('button');
+      document.body.appendChild(outside);
+      openMenu();
+      act(() => outside.focus());
+      expect(host!.querySelector('[data-comment-menu]')).toBeNull();
+      outside.remove();
+    });
+
+    it('ArrowDown and ArrowUp move focus between Edit and Delete, wrapping', () => {
+      mount({ card: card(), active: true });
+      openMenu();
+      const edit = q('[data-comment-menu-edit]');
+      const del = q('[data-comment-menu-delete]');
+      key(edit, 'ArrowDown');
+      expect(document.activeElement).toBe(del);
+      key(del, 'ArrowDown');
+      expect(document.activeElement).toBe(edit);
+      key(edit, 'ArrowUp');
+      expect(document.activeElement).toBe(del);
+    });
+
+    it('Space on the group toggles the fold and is default-prevented; from a child it does not', () => {
+      mount({ card: card(), active: true });
+      const group = q('[role="group"]');
+      const ev = new KeyboardEvent('keydown', { key: ' ', bubbles: true, cancelable: true });
+      act(() => { group.dispatchEvent(ev); });
+      expect(ev.defaultPrevented).toBe(true);
+      expect(group.getAttribute('aria-expanded')).toBe('false');
+      key(q('[data-comment-more]'), ' ');
+      expect(group.getAttribute('aria-expanded')).toBe('false');
+    });
+
+    it('a click that ends a text selection inside the card does not toggle', () => {
+      mount({ card: card(), active: true });
+      const text = q('p span').lastChild!;
+      const range = document.createRange();
+      range.setStart(text, 0);
+      range.setEnd(text, 5);
+      const sel = window.getSelection()!;
+      sel.removeAllRanges();
+      sel.addRange(range);
+      act(() => q<HTMLElement>('p').click());
+      expect(q('[role="group"]').getAttribute('aria-expanded')).toBe('true');
+      sel.removeAllRanges();
+    });
+
     it('Enter on the group toggles too; the menu button does not', () => {
       mount({ card: card(), active: true });
       key(q('[role="group"]'), 'Enter');
@@ -214,14 +277,20 @@ describe('CommentCardBody', () => {
     });
   });
 
-  it('a blank save deletes an existing comment', () => {
-    const [onSave, onDelete] = [vi.fn(), vi.fn()];
-    mount({ card: card(), active: true, onSave, onDelete });
+  it('Save is disabled while a saved note is blank; Ctrl+Enter then does nothing, and a blank new note still discards', () => {
+    const [onSave, onDelete, onDiscard] = [vi.fn(), vi.fn(), vi.fn()];
+    mount({ card: card(), active: true, onSave, onDelete, onDiscard });
     openEdit();
     type('   ');
-    act(() => button('Save').click());
-    expect(onDelete).toHaveBeenCalledOnce();
+    expect(button('Save').disabled).toBe(true);
+    act(() => { q('textarea').dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', ctrlKey: true, bubbles: true })); });
+    expect(host!.querySelector('textarea')).not.toBeNull();
     expect(onSave).not.toHaveBeenCalled();
+    expect(onDelete).not.toHaveBeenCalled();
+    render(null, host!);
+    mount({ card: card({ comment: '', isNew: true }), active: true, onSave, onDelete, onDiscard });
+    act(() => { q('textarea').dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', ctrlKey: true, bubbles: true })); });
+    expect(onDiscard).toHaveBeenCalledOnce();
   });
 
   it('Escape cancels and Ctrl+Enter saves, and keys never travel past the field', () => {
