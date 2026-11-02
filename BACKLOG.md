@@ -55,7 +55,7 @@ Marking should feel like holding a highlighter, not like operating software. Ske
 | READ-05 | P2 | [READ-05](backlog/tasks/READ-05.md) · The fullscreen capsule in Highlight PDF | In progress |
 | READ-06 | P2 | [READ-06](backlog/tasks/READ-06.md) · Highlight PDF: Print with my notes, comments in the margin beside their passages | In progress |
 | READ-13 | P2 | [READ-13](backlog/tasks/READ-13.md) · Highlight PDF: the open mark wears a pencil outline, the other marks step back | In progress |
-| READ-15 | P2 | [READ-15](backlog/tasks/READ-15.md) · Highlight PDF: notes on a phone and in the lamp are pins in the margin, not a bottom sheet | In progress. Needs Shlomi: Pick a direction: margin pins or a notes column |
+| READ-15 | P2 | [READ-15](backlog/tasks/READ-15.md) · Highlight PDF: notes on a phone and in the lamp get a model of their own | In progress. Needs Shlomi: Pick a sketch: A (pane, swipe sideways), B (pane, scroll down) or C (pins) |
 
 ### Then, in order
 
