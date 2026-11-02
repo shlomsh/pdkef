@@ -30,7 +30,6 @@ export default function useRedactExport({ state, dispatch, setAnnouncement, setN
   setAnnouncement: (message: string) => void;
   setNeedsUnlock: (kind: NeedsUnlockKind | null) => void;
   getFileBytes: () => ArrayBuffer | null;
-  /** What Download saves as (`parts.fileName` of useOutputNameOverride). */
   outputFileName: string;
 }) {
   const { file, status } = state.document;
@@ -88,7 +87,7 @@ export default function useRedactExport({ state, dispatch, setAnnouncement, setN
     // while leaving this effect asleep, and the workspace would stay behind
     // `.is-processing` with no way out but a reload. Sign keys on the
     // revision for the same reason (PdfSignTool.tsx).
-  }, [file, documentRevision, clearPrepared, exportRun]);
+  }, [file, documentRevision, clearPrepared, exportRun, outputFileName]);
 
   const exportRedacted = async (exportAction: 'download' | 'share' | 'handoff' = 'download', overrides: ExportOverrides = {}): Promise<SavedExport | null> => {
     if (!file) return null;
@@ -135,21 +134,20 @@ export default function useRedactExport({ state, dispatch, setAnnouncement, setN
       });
       if (!run.isCurrent()) return null;
       run.settle();
-      const filename = outputFileName;
       // Finding #4: a successful export (either export path - Download or
       // Share - counts) is what unlocks the "Compress" hand-off below.
-      const saved = { blob: redactedBlob, name: filename };
+      const saved = { blob: redactedBlob, name: outputFileName };
       dispatch({ type: 'EXPORT_SAVED', saved });
 
       if (exportAction === 'handoff') {
         // The chips want the file, not a download: make it, keep it, deliver nothing.
         dispatch({ type: 'EXPORT_DELIVERED', announcement: t.readyHandoff });
-      } else if (exportAction === 'share' && prepare(redactedBlob, filename)) {
+      } else if (exportAction === 'share' && prepare(redactedBlob, outputFileName)) {
         dispatch({ type: 'EXPORT_DELIVERED', announcement: t.readyShare });
         reportToolLifecycleEvent('tool_result_ready', 'redact');
       } else {
         recordAction('download');
-        download(redactedBlob, filename);
+        download(redactedBlob, outputFileName);
         dispatch({ type: 'EXPORT_DELIVERED', announcement: t.savedStarted });
         reportToolLifecycleEvent('tool_result_ready', 'redact');
       }

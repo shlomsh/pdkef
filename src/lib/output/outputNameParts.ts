@@ -9,6 +9,15 @@ export interface OutputNameParts {
   fileName: string;
 }
 
+/** The leading run of repeated `prefix` copies in `text`, as written ('' when there is none). */
+function prefixRun(text: string, prefix: string): string {
+  if (!prefix) return '';
+  const escaped = prefix.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return text.match(new RegExp(`^(?:${escaped})+`, 'i'))?.[0] ?? '';
+}
+
+const withoutPrefixRun = (text: string, prefix: string) => text.slice(prefixRun(text, prefix).length);
+
 /**
  * The one answer to "what is this tool's output called": a fixed prefix plus an editable base that
  * falls back to the source's name. `dedupePrefix` keeps a source that already starts with the prefix
@@ -21,17 +30,14 @@ export function outputNameParts(sourceName: string, { prefix, custom = null, ded
 }): OutputNameParts {
   let lead = prefix;
   let base = outputBase(sourceName);
-  if (dedupePrefix && prefix) {
-    const escaped = prefix.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    const run = base.match(new RegExp(`^(?:${escaped})+`, 'i'))?.[0];
-    if (run) {
-      lead = base.slice(0, prefix.length);
-      base = base.slice(run.length);
-    }
+  const run = dedupePrefix ? prefixRun(base, prefix) : '';
+  if (run) {
+    lead = base.slice(0, prefix.length);
+    base = base.slice(run.length);
   }
   if (custom !== null) {
     lead = prefix;
-    base = custom;
+    base = dedupePrefix ? withoutPrefixRun(custom, prefix) : custom;
   }
   return { prefix: lead, base, fileName: `${lead}${base}.pdf` };
 }
