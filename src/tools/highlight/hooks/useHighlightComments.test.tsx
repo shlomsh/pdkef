@@ -83,11 +83,10 @@ describe('useHighlightComments', () => {
     expect(marks.state.actionHistory).toHaveLength(0);
   });
 
-  it('its rail shows Delete and Edit as buttons on the selected card', () => {
+  it('its rail shows the more button on the selected card', () => {
     mount();
-    expect(container!.querySelector('[data-comment-read-delete]')).toBeNull();
+    expect(container!.querySelector('[data-comment-more]')).toBeNull();
     act(() => marks.dispatch({ type: 'SET_ACTIVE_ELEMENT_ID', payload: 'c1' }));
-    expect(container!.querySelector('[data-comment-read-delete]')).not.toBeNull();
-    expect(container!.querySelector('[data-comment-read-edit]')).not.toBeNull();
+    expect(container!.querySelector('[data-comment-more]')).not.toBeNull();
   });
 });

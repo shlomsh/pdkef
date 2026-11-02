@@ -152,7 +152,6 @@ export default function NotePane({ elements, activeElementId, messages, labels, 
                     key={note.id}
                     card={card}
                     active={note.id === activeElementId}
-                    readActions
                     messages={messages}
                     label={commentCardLabel(elements, note.id, note.pageIndex, messages)}
                     onSelect={() => onSelect(note.id)}

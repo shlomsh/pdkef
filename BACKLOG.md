@@ -57,7 +57,7 @@ Marking should feel like holding a highlighter, not like operating software. Ske
 | READ-13 | P2 | [READ-13](backlog/tasks/READ-13.md) · Highlight PDF: the open mark wears a pencil outline, the other marks step back | In progress |
 | READ-14 | P2 | [READ-14](backlog/tasks/READ-14.md) · Highlight PDF: a third mark style, Pencil, hatching in the mark's color | In progress |
 | READ-15 | P2 | [READ-15](backlog/tasks/READ-15.md) · Highlight PDF: notes on a phone and in the lamp get a model of their own | In progress |
-| READ-17 | P2 | [READ-17](backlog/tasks/READ-17.md) · Highlight PDF: a note card with one way to edit, and long notes kept short until opened | Needs Shlomi: Pick the card's model: A (the open note is its own field) or B (read first, a menu for Edit and Delete) |
+| READ-17 | P2 | [READ-17](backlog/tasks/READ-17.md) · Highlight PDF: a note card with one way to edit, and long notes kept short until opened | In progress |
 
 ### Then, in order
 

@@ -18,7 +18,7 @@ const RAIL_MIN_WIDTH_PX = 1000;
  * workspace (from the first comment on, never for highlighting alone), a bottom
  * sheet on a narrow one, and the page header's comment count.
  */
-export function useCommentsView({ elements, activeElementId, messages, onSelect, onSave, onDelete, onDiscard, readActions }: {
+export function useCommentsView({ elements, activeElementId, messages, onSelect, onSave, onDelete, onDiscard }: {
   elements: readonly EditorElement[];
   activeElementId: string | null;
   messages: SignMessages;
@@ -26,8 +26,6 @@ export function useCommentsView({ elements, activeElementId, messages, onSelect,
   onSave: (id: string, patch: CommentPatch) => void;
   onDelete: (id: string) => void;
   onDiscard: (id: string) => void;
-  /** Highlight: the rail's selected card shows Delete and Edit as buttons. Off for Sign. */
-  readActions?: boolean;
 }) {
   // A callback ref, so a container that mounts after this hook (Highlight's workspace opens with its file) is
   // measured too.
@@ -82,7 +80,7 @@ export function useCommentsView({ elements, activeElementId, messages, onSelect,
       return count === 1 ? messages.commentsCountOne : formatMessage(messages.commentsCountOther, { count });
     },
     rail: (pageIndex: number, railHeight?: number) => (showRail ? (
-      <CommentRail pageIndex={pageIndex} elements={elements} activeElementId={activeElementId} messages={messages} onSelect={onSelect} onSave={onSave} onDelete={onDelete} onDiscard={onDiscard} onReturnFocus={returnFocus} railHeight={railHeight} readActions={readActions} />
+      <CommentRail pageIndex={pageIndex} elements={elements} activeElementId={activeElementId} messages={messages} onSelect={onSelect} onSave={onSave} onDelete={onDelete} onDiscard={onDiscard} onReturnFocus={returnFocus} railHeight={railHeight} />
     ) : null),
     sheet: wide ? null : (
       <CommentSheet elements={elements} activeElementId={activeElementId} messages={messages} onSave={onSave} onDelete={onDelete} onDiscard={onDiscard} onClose={() => onSelect(null)} onReturnFocus={returnFocus} />
