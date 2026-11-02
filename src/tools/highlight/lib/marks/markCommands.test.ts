@@ -49,4 +49,11 @@ describe('markCommands', () => {
     expect(deps.dispatch.mock.calls.map(([a]) => a)).toEqual([{ type: 'SET_ACTIVE_ELEMENT_ID', payload: 'c1' }]);
     expect(target).toEqual({ id: 'c1', comment: 'Check this', isNew: false });
   });
+
+  it('comment on a mark whose note is blank counts the note as new', () => {
+    for (const comment of ['', '  ']) {
+      const { commands } = setup([mark, { ...saved, comment }]);
+      expect(commands.comment(mark)).toEqual({ id: 'c1', comment, isNew: true });
+    }
+  });
 });

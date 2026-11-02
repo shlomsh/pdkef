@@ -49,7 +49,8 @@ export function markCommands({ elements, dispatch, logAction, rearm, setAnnounce
       dispatch({ type: 'SET_ACTIVE_ELEMENT_ID', payload: activeId });
       if (add) return { id: activeId, comment: '', isNew: true };
       const existing = elements.find((el) => el.id === activeId);
-      return { id: activeId, comment: existing && 'comment' in existing ? existing.comment : '', isNew: false };
+      const comment = existing && 'comment' in existing ? existing.comment : '';
+      return { id: activeId, comment, isNew: !comment.trim() };
     },
   };
 }

@@ -18,7 +18,7 @@ export function withPhoneWriting<C extends { comment(mark: HighlightElement): No
     },
     editNote(id: string) {
       const note = elements.find((el) => el.id === id);
-      if (note && isComment(note)) writer.open({ id, comment: note.comment, isNew: false });
+      if (note && isComment(note)) writer.open({ id, comment: note.comment, isNew: !note.comment.trim() });
     },
   };
 }

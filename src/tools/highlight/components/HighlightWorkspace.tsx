@@ -185,16 +185,14 @@ export default function HighlightWorkspace({ pdfDocument, numPages, fileName, zo
             key={i} pdfDocument={pdfDocument} pageIndex={i} widthPx={box.width * zoom.zoom}
             elements={marks.state.elements} marker={marks.marker} rearm={marks.rearm} dispatch={dispatch} logAction={marks.logAction}
             setAnnouncement={setAnnouncement} armed={touch.armed} pickedId={panel.markId} openMarks={openMarks} onPickMark={pickMark} cardRef={(el) => { pageRefs.current[i] = el; }} chrome={zoom.chrome} rail={comments.rail(i, (box.height * zoom.zoom) / zoom.chrome)}
-            pageTurns={marks.pageTurns} onRotate={(geometry) => { dispatch(rotatePageAction(i, geometry)); recordAction('rotate'); }}
+            pageTurns={marks.pageTurns} onComment={commands.comment} onRotate={(geometry) => { dispatch(rotatePageAction(i, geometry)); recordAction('rotate'); }}
             onClear={() => { const actions = clearPageActions(marks.state.elements, i); actions.forEach((a) => dispatch(a)); if (actions.length) recordAction('delete_mark'); }}
           />
         ))}
       </div>
       </div>
-      {!comments.wide && (
-        <PhoneNotes elements={marks.state.elements} activeElementId={marks.state.activeElementId} messages={englishSignMessages} labels={t.notes} writer={comments.writer} onEdit={commands.editNote}
+      <PhoneNotes wide={comments.wide} elements={marks.state.elements} activeElementId={marks.state.activeElementId} messages={englishSignMessages} labels={t.notes} writer={comments.writer} onEdit={commands.editNote}
           onSelect={(id) => dispatch({ type: 'SET_ACTIVE_ELEMENT_ID', payload: id })} {...comments.actions} onUndo={undo} onReturnFocus={comments.returnFocus} />
-      )}
     </div>
     </>
   );

@@ -91,11 +91,13 @@ describe('NotePane', () => {
   it('opening a note keeps its passage out from under the pane', () => {
     const anchor = document.createElement('div');
     anchor.setAttribute('data-editor-element-id', 'm1');
-    anchor.scrollIntoView = vi.fn();
+    let marginAtScroll = '';
+    anchor.scrollIntoView = vi.fn(() => { marginAtScroll = anchor.style.scrollMarginBottom; });
     document.body.appendChild(anchor);
     const height = vi.spyOn(HTMLElement.prototype, 'offsetHeight', 'get').mockReturnValue(220);
     mount('c1');
-    expect(anchor.style.scrollMarginBottom).toBe('220px');
+    expect(marginAtScroll).toBe('220px');
+    expect(anchor.style.scrollMarginBottom).toBe('');
     expect(anchor.scrollIntoView).toHaveBeenCalled();
     height.mockRestore();
     anchor.remove();
