@@ -12,6 +12,7 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 - [READ-05](backlog/tasks/READ-05.md) P2 · The fullscreen capsule in Highlight PDF (in progress)
 - [READ-06](backlog/tasks/READ-06.md) P2 · Highlight PDF: Print with my notes, comments in the margin beside their passages (in progress)
 - [READ-13](backlog/tasks/READ-13.md) P2 · Highlight PDF: the open mark wears a pencil outline, the other marks step back (in progress)
+- [READ-15](backlog/tasks/READ-15.md) P2 · Highlight PDF: notes on a phone and in the lamp are pins in the margin, not a bottom sheet (in progress)
 
 ### Robustness and debt
 
@@ -72,6 +73,7 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 
 ## Needs Shlomi
 
+- [READ-15](backlog/tasks/READ-15.md) · Pick a direction: margin pins or a notes column
 - [MOBI-01](backlog/tasks/MOBI-01.md) · Half an hour with an Android phone
 - [DEBT-53](backlog/tasks/DEBT-53.md) · A check on your iPhone
 - [SEO-40](backlog/tasks/SEO-40.md) · The Search Console exports
