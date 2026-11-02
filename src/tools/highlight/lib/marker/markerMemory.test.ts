@@ -40,7 +40,7 @@ describe('parseMarker', () => {
     ['an array', '[1,2,3]'],
     ['a color that is not a hex', '{"color":"yellow","style":"highlight","opacity":1}'],
     ['a short hex', '{"color":"#FFF","style":"highlight","opacity":1}'],
-    ['an unknown style', '{"color":"#FFF34D","style":"strike","opacity":1}'],
+    ['a style that is not a string', '{"color":"#FFF34D","style":7,"opacity":1}'],
     ['an opacity below 30%', '{"color":"#FFF34D","style":"highlight","opacity":0.1}'],
     ['an opacity above 100%', '{"color":"#FFF34D","style":"highlight","opacity":1.5}'],
     ['an opacity that is not a number', '{"color":"#FFF34D","style":"highlight","opacity":"1"}'],
@@ -52,6 +52,12 @@ describe('parseMarker', () => {
   it('accepts the opacity limits', () => {
     expect(parseMarker('{"color":"#FFF34D","style":"highlight","opacity":0.3}')?.opacity).toBe(0.3);
     expect(parseMarker('{"color":"#FFF34D","style":"highlight","opacity":1}')?.opacity).toBe(1);
+  });
+});
+
+describe('READ-14: a style this build does not know', () => {
+  it('reads as a highlight in the same color and opacity instead of resetting the marker', () => {
+    expect(parseMarker('{"color":"#FFF34D","style":"pencil","opacity":0.5}')).toEqual({ color: '#FFF34D', style: 'highlight', opacity: 0.5 });
   });
 });
 

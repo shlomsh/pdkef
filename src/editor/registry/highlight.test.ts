@@ -36,10 +36,18 @@ describe('highlight definition', () => {
     expect(definition.schema({ ...good, opacity: 0.2 })).toBe(false);
     expect(definition.schema({ ...good, opacity: 1.1 })).toBe(false);
     expect(definition.schema({ ...good, opacity: '0.5' })).toBe(false);
-    expect(definition.schema({ ...good, style: 'strike' })).toBe(false);
-    const { valid, droppedCount } = validateDraftElements([good, { ...good, id: 'u', style: 'underline', opacity: 0.5 }, { ...good, id: 'x', opacity: 0.2 }, { ...good, id: 'y', style: 'strike' }]);
+    expect(definition.schema({ ...good, style: 7 })).toBe(false);
+    const { valid, droppedCount } = validateDraftElements([good, { ...good, id: 'u', style: 'underline', opacity: 0.5 }, { ...good, id: 'x', opacity: 0.2 }, { ...good, id: 'y', style: 7 }]);
     expect(valid.map((e) => e.id)).toEqual(['h-1', 'u']);
     expect(droppedCount).toBe(2);
+  });
+
+  it('READ-14: a style this build does not know stays in the draft and reads as a highlight, never dropped', () => {
+    const newer = { ...good, id: 'p', style: 'pencil' };
+    expect(definition.schema(newer)).toBe(true);
+    const { valid, droppedCount } = validateDraftElements([newer]);
+    expect(valid).toEqual([newer]);
+    expect(droppedCount).toBe(0);
   });
 
   it('READ-11: accepts the sketch stroke or none and rejects anything else', () => {
