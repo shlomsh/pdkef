@@ -1,6 +1,6 @@
 import { useCallback, useState } from 'preact/hooks';
 
-/** Whether the primary pointer is a finger. Read when asked: the touch-only parts of arming (R50) follow it. */
+/** Whether the primary pointer is a finger. Read when asked. */
 export const coarsePointer = () => Boolean(globalThis.matchMedia?.('(pointer: coarse)').matches);
 
 /**

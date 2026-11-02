@@ -55,6 +55,8 @@ export function useMarkSwipe(o: MarkSwipeOptions): (event: PointerEvent) => void
   useEffect(() => () => { pendingCancelRef.current?.(); abandonRef.current?.(); gestureCancelRef.current?.(); }, []);
 
   return (event) => {
+    // A second finger is a pinch or a pan, never a press (R62).
+    if (event.isPrimary === false) return;
     if (event.button !== 0 || !marks(event, o.armed)) return;
     const isMouse = event.pointerType !== 'touch';
     // A finger's click is not read: the double-click and third click are a mouse's.

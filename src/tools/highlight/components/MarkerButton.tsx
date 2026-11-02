@@ -11,7 +11,7 @@ import styles from './MarkerButton.module.css';
 
 interface MarkerButtonProps {
   marker: Marker;
-  /** On touch: the marker is armed, so a tap on it puts it away (and closes the panel). */
+  /** For any pointer: the marker is armed, so a click or tap on it puts it down (and closes the panel). */
   armed?: boolean;
   /** The click or tap that arms the marker. */
   onTap?(): void;

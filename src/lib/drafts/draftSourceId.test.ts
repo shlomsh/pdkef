@@ -8,6 +8,16 @@ describe('sourceIdForBytes', () => {
     expect(await sourceIdForBytes(new ArrayBuffer(0))).toBe(EMPTY_SHA256);
   });
 
+  it('hashes one buffer once, however many autosaves ask', async () => {
+    const spy = vi.spyOn(globalThis.crypto.subtle, 'digest');
+    const buffer = new Uint8Array([9, 8, 7]).buffer;
+    const first = await sourceIdForBytes(buffer);
+    expect(await sourceIdForBytes(buffer)).toBe(first);
+    expect(spy).toHaveBeenCalledTimes(1);
+    expect(await sourceIdForBytes(new Uint8Array([9, 8, 7]).buffer)).toBe(first);
+    spy.mockRestore();
+  });
+
   it('returns null for anything that is not an ArrayBuffer', async () => {
     expect(await sourceIdForBytes(new Uint8Array(4))).toBeNull();
     expect(await sourceIdForBytes(undefined)).toBeNull();

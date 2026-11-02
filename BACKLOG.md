@@ -2,7 +2,7 @@
 
 # Backlog
 
-The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 92 live: 17 up next, 11 then, 27 waiting, 37 parked.
+The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 93 live: 17 up next, 12 then, 27 waiting, 37 parked.
 
 ## Redact: finish removal
 
@@ -54,6 +54,12 @@ Marking should feel like holding a highlighter, not like operating software. Ske
 | READ-03 | P2 | [READ-03](backlog/tasks/READ-03.md) · Highlight PDF: the tool at /highlight-pdf/, highlights with a comment on each, and its page | In progress |
 | READ-05 | P2 | [READ-05](backlog/tasks/READ-05.md) · The fullscreen capsule in Highlight PDF | In progress |
 | READ-06 | P2 | [READ-06](backlog/tasks/READ-06.md) · Highlight PDF: Print with my notes, comments in the margin beside their passages | In progress |
+
+### Then, in order
+
+| ID | P | Task | Note |
+| --- | --- | --- | --- |
+| READ-12 | P2 | [READ-12](backlog/tasks/READ-12.md) · Highlight PDF: one owner for the open mark, one marking session, a smaller swipe hook |  |
 
 ### Parked
 

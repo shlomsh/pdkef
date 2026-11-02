@@ -13,7 +13,7 @@ depends_on: ["READ-01", "READ-02"]
 
 *Filed 2026-11-01.* Design record: [docs/highlight-pdf.md](../../docs/highlight-pdf.md). Lands in the same
 push as READ-04, so highlighting is never missing from the product.
-The behaviour is [READ-01](READ-01.md)'s requirements (R1 to R46); this ticket builds them.
+The behaviour is [READ-01](READ-01.md)'s requirements (R1 to R62); this ticket builds them.
 
 ## Outcome
 

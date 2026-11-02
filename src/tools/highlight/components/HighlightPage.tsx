@@ -34,7 +34,7 @@ import styles from './HighlightPage.module.css';
 const noop = () => {};
 
 /**
- * One page card: its header, the page, and a wrapper per highlight on it. A fine-pointer press on the
+ * One page card: its header, the page, and a wrapper per highlight on it. While armed, a press from any pointer on the
  * page starts a swipe that lays the marker's bands; the gesture paints during the swipe and commits once.
  */
 export default function HighlightPage({ pdfDocument, pageIndex, widthPx, chrome = 1, elements, marker, armed = true, pickedId, onPickMark, rearm, dispatch, logAction, setAnnouncement, cardRef, rail, pageTurns = {}, onRotate, onClear }: {
@@ -47,7 +47,7 @@ export default function HighlightPage({ pdfDocument, pageIndex, widthPx, chrome 
   /** Every element of the document: the page draws its own, and the new one's place in the history comes from the count. */
   elements: EditorElement[];
   marker: Marker;
-  /** The marker is in the hand, for any pointer: put down, the page lays no ink and wears the ordinary cursor. On touch, armed also means a one-finger press marks and the page does not scroll. */
+  /** The marker is in the hand, for any pointer: put down, the page lays no ink and wears the ordinary cursor. On touch, armed means a one-finger sideways swipe that starts on a line marks; the vertical scroll stays the browser's (R52). */
   armed?: boolean;
   /** The mark the panel up top is editing, on touch; it shows a ring. */
   pickedId?: string | null;

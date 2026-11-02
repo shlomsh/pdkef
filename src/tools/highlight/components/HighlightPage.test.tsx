@@ -197,7 +197,7 @@ const toolbar = () => container.querySelector<HTMLElement>('[role="toolbar"]');
 const toolbarButton = (name: string) => container.querySelector<HTMLElement>(`[role="toolbar"] button[aria-label="${name}"]`)!;
 
 describe('HighlightPage rest toolbar', () => {
-  // The full bar (color and style too) is the mouse's; a finger sets the look on the pen bar.
+  // The full bar (color and style too) is the mouse's; the same bar serves a finger.
   let restorePointer = () => {};
   beforeEach(() => { vi.useFakeTimers(); restorePointer = stubPointer(false); });
   afterEach(() => restorePointer());

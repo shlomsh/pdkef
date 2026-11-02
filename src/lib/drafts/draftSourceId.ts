@@ -12,6 +12,11 @@ async function digestHex(data: ArrayBuffer | Uint8Array): Promise<string> {
   return Array.from(digest, (byte) => byte.toString(16).padStart(2, '0')).join('');
 }
 
+/** One digest per buffer: every autosave asks again, and re-hashing the whole PDF
+ * each time blocks the main thread on pages that use the JS fallback. A failure
+ * is dropped so a later call retries. */
+const ids = new WeakMap<ArrayBuffer, Promise<string>>();
+
 /** Stable content address for one source PDF. Null means the input is not an
  * ArrayBuffer; we fail the best-effort entry write rather than risk a metadata
  * collision attaching work to a different document. Works on pages without Web
@@ -20,7 +25,17 @@ export async function sourceIdForBytes(fileBytes: unknown): Promise<string | nul
   // `instanceof ArrayBuffer` fails for a File read in a different browser
   // realm (and in the test DOM), even though Web Crypto accepts it.
   if (Object.prototype.toString.call(fileBytes) !== '[object ArrayBuffer]') return null;
-  return `sha256:${await digestHex(fileBytes as ArrayBuffer)}`;
+  const buffer = fileBytes as ArrayBuffer;
+  let id = ids.get(buffer);
+  if (!id) {
+    id = digestHex(buffer).then((hex) => `sha256:${hex}`);
+    ids.set(buffer, id);
+    id.catch(() => {
+      // expected: the caller sees the rejection; the entry is dropped so a retry rehashes
+      ids.delete(buffer);
+    });
+  }
+  return id;
 }
 
 /** Stable content address for an ordered set of source PDFs, for the Merge tool's
