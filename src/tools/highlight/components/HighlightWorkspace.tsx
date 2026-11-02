@@ -31,7 +31,7 @@ import type { HighlightElement } from '#editor/model/editorModel.ts';
 import { coarsePointer, useMarkerArming } from '../hooks/useMarkerArming.ts';
 import { useMarkPanel } from '../hooks/useMarkPanel.ts';
 import { markCommands } from '../lib/marks/markCommands.ts';
-import { closesNoteOnPick } from '../lib/notes/closeNoteOnPick.ts';
+import { activeAfterPick } from '../lib/notes/notePane.ts';
 import { historyShortcuts, isMacPlatform } from '../lib/marker/historyShortcuts.ts';
 import { usePrint } from '../hooks/usePrint.ts';
 import { hasComments } from '../lib/print/printMenu.ts';
@@ -131,7 +131,8 @@ export default function HighlightWorkspace({ pdfDocument, numPages, fileName, zo
   const { openMarks } = panel;
   const pickMark = (id: string) => {
     panel.pick(id);
-    if (closesNoteOnPick(elements, marks.state.activeElementId, id)) dispatch({ type: 'SET_ACTIVE_ELEMENT_ID', payload: null });
+    const next = activeAfterPick(elements, marks.state.activeElementId, id);
+    if (next !== marks.state.activeElementId) dispatch({ type: 'SET_ACTIVE_ELEMENT_ID', payload: next });
   };
   const picked = panel.markId ? elements.find((el) => el.id === panel.markId) as HighlightElement | undefined : undefined;
   const commands = markCommands({ elements, dispatch, logAction: marks.logAction, rearm: marks.rearm, setAnnouncement });

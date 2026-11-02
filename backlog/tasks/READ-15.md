@@ -39,6 +39,25 @@ list sits right on top of a vertically scrolling page and invites scroll chainin
 written into `docs/ux-design-guidelines.md` §8, which says "no sticky bottom sheet": the notes pane is
 that exception, short (about a quarter of the screen) and closable.
 
+## Picked: A (2026-11-02)
+
+Shlomi picked A, with Delete on every note. The card shows the highlight's colour and page instead of a
+quote: a highlight does not store its text, so the outline and the page gliding to the passage are what
+say which highlight a note belongs to.
+
+## Desktop: the same Delete and Edit (2026-11-02)
+
+Shlomi: the phone's Delete and Edit buttons belong on the desktop notes too. Highlight's rail shows them on
+the selected note (a click on a note selects it); the other cards stay text only, so a long rail stays
+quiet. Sign's rail is unchanged.
+
+## Desktop: next and previous note (2026-11-02)
+
+Shlomi, on desktop: a document whose first comment is on page 3 was confusing; there is no way to jump to
+the first comment, only scrolling to find it, and next and previous would help. The pane's reading-order
+list (`paneNotes`) drives this too: a "1 of 4" stepper that selects a note and scrolls its passage and card
+into view. Placement is sketched for Shlomi before it is built.
+
 ## First round (superseded by the sketches above)
 
 *Opened 2026-11-02.* Shlomi: in the lamp on a phone, tapping a highlight pops its comment up as a bottom

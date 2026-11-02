@@ -41,7 +41,14 @@
   .delete { min-width: 44px; min-height: 44px; justify-content: center; }
   .cancel, .save { min-height: 44px; }
 }
+/* Touch read state: Delete and Edit as visible buttons, each a full 44 px target. */
+.readActions { display: flex; justify-content: space-between; align-items: center; margin-top: 4px; }
+.readActions > button { min-height: 44px; }
+.readEdit { background: transparent; border: 0; font: inherit; font-size: 15px; font-weight: 600; color: var(--color-primary-text); padding: 0 8px; cursor: pointer; }
 .deleteLabel { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+/* Here Delete says its word: an icon alone is not a control on touch. */
+.readActions .delete { gap: 6px; }
+.readActions .deleteLabel { position: static; width: auto; height: auto; overflow: visible; clip-path: none; }
 .actions button:disabled { opacity: .5; cursor: default; }
 /* Cancel and Comment answer the pointer like the rest of the app's buttons; Delete has the page header's danger hover. */
 .cancel, .save { transition: background-color .15s var(--ease-out), border-color .15s var(--ease-out); }
