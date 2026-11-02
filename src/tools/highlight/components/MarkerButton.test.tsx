@@ -128,6 +128,45 @@ describe('MarkerButton', () => {
       expect(m.onChange).toHaveBeenLastCalledWith({ style: 'highlight', opacity: 0.7 });
     });
 
+    describe('keys, for a touch screen with a keyboard (R9)', () => {
+      const key = (k: string, target: EventTarget = document.body) =>
+        act(() => { target.dispatchEvent(new KeyboardEvent('keydown', { key: k, bubbles: true, cancelable: true })); });
+
+      it('1 to 6 pick a color and U flips the style, the panel staying open', () => {
+        const m = markProps();
+        mount({ mark: m });
+        key('3');
+        expect(m.onChange).toHaveBeenLastCalledWith({ color: TOP_COLORS[2].hex });
+        key('u');
+        expect(m.onChange).toHaveBeenLastCalledWith({ style: 'underline' });
+        expect(m.onRelease).not.toHaveBeenCalled();
+      });
+
+      it('C comments and Delete deletes, each releasing the mark as their buttons do', () => {
+        const m = markProps();
+        mount({ mark: m });
+        key('c');
+        expect(m.onComment).toHaveBeenCalledTimes(1);
+        key('Delete');
+        expect(m.onDelete).toHaveBeenCalledTimes(1);
+        expect(m.onRelease).toHaveBeenCalledTimes(2);
+      });
+
+      it('nothing answers while typing, or with no mark picked', () => {
+        const m = markProps();
+        mount({ mark: m });
+        const input = document.createElement('textarea');
+        document.body.append(input);
+        key('3', input);
+        input.remove();
+        expect(m.onChange).not.toHaveBeenCalled();
+        act(() => render(null, container!));
+        mount();
+        key('Delete');
+        expect(m.onDelete).not.toHaveBeenCalled();
+      });
+    });
+
     it('Comment and Delete act, then release the mark', () => {
       const m = markProps();
       mount({ mark: m });

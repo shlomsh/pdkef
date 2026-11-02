@@ -1,7 +1,9 @@
-import { useEffect, useState } from 'preact/hooks';
+import { useEffect, useRef, useState } from 'preact/hooks';
 import { autoUpdate, flip, offset, shift, useDismiss, useFloating, useInteractions } from '@floating-ui/react';
 import { HighlightIcon } from '#editor-ui/toolIcons.tsx';
 import type { Marker } from '../lib/marker/markerState.ts';
+import { isTypingTarget } from '#lib/history/isTypingTarget.ts';
+import { keyAction, markKeyIntent } from '../lib/marker/keys.ts';
 import { markerBadge } from '../lib/marker/markerBadge.ts';
 import { englishHighlightMessages as t } from '../messages.ts';
 import controls from '#editor-ui/EditorControls.module.css';
@@ -51,6 +53,28 @@ export default function MarkerButton({ marker, armed = false, onTap, onDisarm, o
     if (!open) return;
     onOpenChange?.(true);
     return () => { setMoreOpen(false); onOpenChange?.(false); };
+  }, [open]);
+
+  // R9: a touch screen with a keyboard answers the desktop keys while the panel is open. The latest mark is read
+  // through a ref, so the listener is added once per open. Escape stays with the dismiss hook below.
+  const live = useRef(mark);
+  live.current = mark;
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => {
+      const current = live.current;
+      if (!current) return;
+      const action = keyAction(e, { typing: isTypingTarget(e.target), layers: ['toolbar'] });
+      const intent = action && markKeyIntent(action, current.look);
+      if (!intent) return;
+      e.preventDefault();
+      if ('change' in intent) { current.onChange(intent.change); return; }
+      if ('comment' in intent) current.onComment();
+      else current.onDelete();
+      close();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
   }, [open]);
 
   // Floating UI places the menu inside the wrapper (so it stays in a fullscreen element) and keeps it on screen;

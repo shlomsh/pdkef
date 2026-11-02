@@ -222,9 +222,9 @@ second panel in full screen, the digest recomputed on every autosave (now once p
 halves with the row wrapping at 402 px (the colors became one framed choice and the row fits, 2026-11-02), and the
 finger swipe that did nothing when it started on a highlight (a marked line is a line of text: sideways lays a band, R52), and the capsule's one
 `menuOpen` flag (it now tracks each open menu, so the zoom menu closing never dozes it under an open Marker panel), and the lamp's padding read on every render
-(now measured with the view).
-- R9, R39 on a coarse pointer with a keyboard (iPad): the touch panel has no 1-6/U/C/Delete keys, though its
-  buttons advertise them, and a keyboard focus on a mark sets the desktop panel's target, which never shows.
+(now measured with the view), and the touch panel without keys on an iPad keyboard (it answers 1 to 6, U, C and
+Delete as the toolbar does, a keyboard focus on a mark opens it, and the number keys follow the panel's color
+order).
 - Outside full screen the armed page is `touch-action: pan-y`, so the browser's own pinch is off and nothing
   replaces it; decide whether R62's pinch covers the normal view (`pan-y pinch-zoom` is the likely answer).
 - A pinch that lands after the first finger began a native scroll cannot cancel that scroll (touchmove is no

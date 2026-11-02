@@ -1,12 +1,13 @@
 import { HIGHLIGHT_COLORS } from '#editor/model/highlightColors.ts';
 import { UNDERLINE_WIDTH } from '#editor/model/underlineInk.ts';
 
-export { HIGHLIGHT_COLORS };
 
 /** The three most popular highlighters, in the order the panel shows them; the rest sit behind "more". */
 export const TOP_COLORS = (['yellow', 'pink', 'green'] as const).map((id) => HIGHLIGHT_COLORS.find((c) => c.id === id)!);
 /** The colors behind "more", in palette order. */
 export const MORE_COLORS = HIGHLIGHT_COLORS.filter((c) => !TOP_COLORS.includes(c));
+/** The colors in the order the panel shows them, which is the order of the keys 1 to 6 (R9). */
+export const PANEL_COLORS = [...TOP_COLORS, ...MORE_COLORS];
 
 const sameColor = (a: string, b: string) => a.toLowerCase() === b.toLowerCase();
 

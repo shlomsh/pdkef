@@ -2,7 +2,8 @@ import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { HighlightElement } from '#editor/model/editorModel.ts';
-import { HIGHLIGHT_COLORS, TOP_COLORS } from '../lib/marker/markerState.ts';
+import { HIGHLIGHT_COLORS } from '#editor/model/highlightColors.ts';
+import { TOP_COLORS } from '../lib/marker/markerState.ts';
 import elementStyles from '#editor-ui/EditorElement.module.css';
 import { toolbarScaleOriginCss } from '#editor-ui/hooks/visualViewportClamp.ts';
 import RestToolbar, { MarkHint } from './RestToolbar.tsx';
@@ -112,7 +113,7 @@ describe('RestToolbar keys', () => {
   it('1 to 6 pick a color', () => {
     mount();
     key('3');
-    expect(onChange).toHaveBeenLastCalledWith({ color: HIGHLIGHT_COLORS[2].hex });
+    expect(onChange).toHaveBeenLastCalledWith({ color: TOP_COLORS[2].hex });
   });
 
   it('U toggles the underline and Delete deletes', () => {

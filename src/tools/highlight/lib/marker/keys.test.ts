@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { keyAction, type Layer } from './keys.ts';
+import { DEFAULT_MARKER, MORE_COLORS, TOP_COLORS } from './markerState.ts';
+import { keyAction, markKeyIntent, type Layer } from './keys.ts';
 
 const k = (key: string, m: Partial<{ metaKey: boolean; ctrlKey: boolean; shiftKey: boolean }> = {}) => ({ key, metaKey: false, ctrlKey: false, shiftKey: false, ...m });
 const ctx = (layers: Layer[] = ['toolbar'], typing = false) => ({ typing, layers });
@@ -42,5 +43,23 @@ describe('keyAction', () => {
     expect(keyAction(k('1'), ctx(['toolbar'], true))).toBeNull();
     expect(keyAction(k('0', { metaKey: true }), ctx(['toolbar'], true))).toBeNull();
     expect(keyAction(k('Escape'), ctx(['note'], true))).toEqual({ type: 'closeLayer', layer: 'note' });
+  });
+});
+
+describe('markKeyIntent', () => {
+  const look = { ...DEFAULT_MARKER };
+  it('R9: the color keys follow the panel, the three shown first and then More, and U flips the style either way', () => {
+    expect(markKeyIntent({ type: 'color', index: 1 }, look)).toEqual({ change: { color: TOP_COLORS[1].hex } });
+    expect(markKeyIntent({ type: 'color', index: 3 }, look)).toEqual({ change: { color: MORE_COLORS[0].hex } });
+    expect(markKeyIntent({ type: 'underline' }, look)).toEqual({ change: { style: 'underline' } });
+    expect(markKeyIntent({ type: 'underline' }, { ...look, style: 'underline' })).toEqual({ change: { style: 'highlight' } });
+  });
+  it('C comments and Delete deletes', () => {
+    expect(markKeyIntent({ type: 'comment' }, look)).toEqual({ comment: true });
+    expect(markKeyIntent({ type: 'delete' }, look)).toEqual({ delete: true });
+  });
+  it('leaves Esc and zoom to their own owners', () => {
+    expect(markKeyIntent({ type: 'closeLayer', layer: 'toolbar' }, look)).toBeNull();
+    expect(markKeyIntent({ type: 'zoom', dir: 1 }, look)).toBeNull();
   });
 });

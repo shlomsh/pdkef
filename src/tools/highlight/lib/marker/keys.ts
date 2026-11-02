@@ -1,3 +1,5 @@
+import { PANEL_COLORS, type Marker } from './markerState.ts';
+
 /** @testSeam */
 export type Layer = 'custom' | 'toolbar' | 'note';
 export type KeyAction =
@@ -28,5 +30,14 @@ export function keyAction(e: KeyLike, ctx: { typing: boolean; layers: Layer[] })
   if (k === 'u') return { type: 'underline' };
   if (k === 'c') return { type: 'comment' };
   if (e.key === 'Delete' || e.key === 'Backspace') return { type: 'delete' };
+  return null;
+}
+
+/** R9: what a mark's key does to the mark; the toolbar and the touch panel both answer it. */
+export function markKeyIntent(action: KeyAction, look: Marker): { change: Partial<Marker> } | { comment: true } | { delete: true } | null {
+  if (action.type === 'color') return { change: { color: PANEL_COLORS[action.index].hex } };
+  if (action.type === 'underline') return { change: { style: look.style === 'underline' ? 'highlight' : 'underline' } };
+  if (action.type === 'comment') return { comment: true };
+  if (action.type === 'delete') return { delete: true };
   return null;
 }

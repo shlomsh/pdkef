@@ -29,12 +29,10 @@ export default function RestToolbar({ mark, onChange, onDelete, onComment, onClo
   const live = useRef({ mark, onChange, onDelete, onComment, onClose, look });
   live.current = { mark, onChange, onDelete, onComment, onClose, look };
 
-  const toggleUnderline = () => live.current.onChange({ style: live.current.look.style === 'underline' ? 'highlight' : 'underline' });
-
   // Sign's placement: above the mark, start edge (end for RTL), inside the page wrapper and the visual viewport.
   const placement = useMarkToolbarPlacement(rootRef, mark.id, rtl);
 
-  useToolbarDismissal(rootRef, live, { toggleUnderline });
+  useToolbarDismissal(rootRef, live);
 
   const onArrow = (e: KeyboardEvent) => {
     const target = e.target as HTMLElement;
