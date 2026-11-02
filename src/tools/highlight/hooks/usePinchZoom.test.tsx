@@ -20,12 +20,25 @@ describe('usePinchZoom', () => {
     document.body.append(ws, col);
     const commit = vi.fn();
     const root = document.createElement('div');
-    act(() => render(<Harness workspaceRef={{ current: ws }} columnRef={{ current: col }} enabled inLamp zoomRef={{ current: ZOOM_MAX }} commit={commit} />, root));
+    act(() => render(<Harness workspaceRef={{ current: ws }} columnRef={{ current: col }} enabled inLamp zoomRef={{ current: ZOOM_MAX }} floorRef={{ current: 0.5 }} commit={commit} />, root));
     ws.dispatchEvent(new WheelEvent('wheel', { ctrlKey: true, deltaY: -50, clientX: 10, clientY: 10, cancelable: true }));
     expect(col.style.transform).toBe('translateY(0px) scale(1)');
     vi.advanceTimersByTime(200);
     expect(col.style.transform).toBe('');
     expect(col.style.transformOrigin).toBe('');
     expect(commit).not.toHaveBeenCalled();
+  });
+
+  it('a wheel pinch out stops at the floor, however far it goes', () => {
+    const ws = document.createElement('div');
+    const col = document.createElement('div');
+    document.body.append(ws, col);
+    const commit = vi.fn();
+    const root = document.createElement('div');
+    act(() => render(<Harness workspaceRef={{ current: ws }} columnRef={{ current: col }} enabled inLamp zoomRef={{ current: 1 }} floorRef={{ current: 0.8 }} commit={commit} />, root));
+    ws.dispatchEvent(new WheelEvent('wheel', { ctrlKey: true, deltaY: 500, clientX: 10, clientY: 10, cancelable: true }));
+    expect(col.style.transform).toMatch(/scale\(0\.8\)$/);
+    vi.advanceTimersByTime(200);
+    expect(commit).toHaveBeenCalledWith(0.8, 0.8, { x: 10, y: 10 });
   });
 });

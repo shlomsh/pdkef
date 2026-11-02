@@ -3,8 +3,14 @@ import { boardLayout, centredScrollLeft } from './board.ts';
 import { zoomCommit } from './commit.ts';
 
 describe('boardLayout', () => {
-  it('leaves one view of slack each side of the page', () => {
-    expect(boardLayout(600, 900)).toEqual({ slack: 900, boardWidth: 2400 });
+  it('centres a column narrower than the view: slack each side makes the board the view, so it cannot move', () => {
+    expect(boardLayout(600, 900)).toEqual({ slack: 150, boardWidth: 900 });
+  });
+  it('takes the workspace inset off the room, so a narrow column still has nothing to scroll', () => {
+    expect(boardLayout(600, 900, 16)).toEqual({ slack: 134, boardWidth: 868 });
+  });
+  it('gives a column wider than the view no slack: it moves only until its edge meets the view', () => {
+    expect(boardLayout(1200, 900)).toEqual({ slack: 0, boardWidth: 1200 });
   });
 });
 
@@ -34,7 +40,7 @@ describe('a zoom on the board', () => {
   it('keeps the anchored page point under the same screen x and y', () => {
     const view = 900;
     const page0 = 400; // css px wide at zoom 1
-    const slack = boardLayout(page0, view).slack;
+    const slack = boardLayout(page0, view).slack; // 250
     const origin = { x: slack, y: 80 }; // the column's top-left on the board
     const scroll = { x: 650, y: 200 };
     const anchor = { x: 420, y: 310 };
@@ -45,8 +51,8 @@ describe('a zoom on the board', () => {
     const before = local(scroll, 1);
     const { zoom, scroll: next } = zoomCommit({ prevZoom: 1, nextZoom: 1.5, anchor, scroll, origin });
     expect(zoom).toBe(1.5);
-    // slack is the view width, so it did not change with the zoom
-    expect(boardLayout(page0 * 1.5, view).slack).toBe(slack);
+    // the column was narrower than the view at both zooms, so only the slack changed, which the origin follows
+    expect(boardLayout(page0 * 1.5, view).slack).toBe(150);
     const after = local(next, 1.5);
     expect(after.x).toBeCloseTo(before.x, 6);
     expect(after.y).toBeCloseTo(before.y, 6);
@@ -64,8 +70,20 @@ describe('centring with a notes column', () => {
     const view = 900;
     const column = 600 + 240;
     const layout = boardLayout(column, view);
-    expect(layout.boardWidth).toBe(column + 2 * view);
+    expect(layout.boardWidth).toBe(view);
     const left = centredScrollLeft(layout, column, view);
     expect(layout.slack + column / 2 - left).toBe(view / 2);
+  });
+});
+
+describe('centring a column that fills the view', () => {
+  it('starts at the inset when the column is exactly the view less the inset', () => {
+    const layout = boardLayout(868, 900, 16);
+    expect(centredScrollLeft(layout, 868, 900, undefined, 16)).toBe(0);
+  });
+  it('centres a wider column in its scroll range', () => {
+    const layout = boardLayout(1200, 900, 16);
+    // scrollWidth is 1200 + 32, clientWidth 900: the range is 332 and the middle of it 166
+    expect(centredScrollLeft(layout, 1200, 900, undefined, 16)).toBe(166);
   });
 });

@@ -29,7 +29,10 @@ export function useBoardScroll({ workspaceRef, fullscreen, pages, zoom, setting,
   const widest = pages.reduce((w, p) => Math.max(w, p.width), 0);
   // Only the lamp has a board to move on; the normal view is the card at its own width.
   const columnWidth = widest * zoom + notesPx;
-  const board = fullscreen ? boardLayout(columnWidth, view.width) : { slack: 0, boardWidth: columnWidth };
+  // The workspace's own padding: the board has to leave it out of the room it centres in, or a narrow column could still scroll.
+  const ws0 = workspaceRef.current;
+  const inset = fullscreen && ws0 ? (parseFloat(getComputedStyle(ws0).paddingLeft) || 0) : 0;
+  const board = fullscreen ? boardLayout(columnWidth, view.width, inset) : { slack: 0, boardWidth: columnWidth };
   const lastFullscreen = useRef(fullscreen);
   const settleView = useRef(false);
   useLayoutEffect(() => {
@@ -58,7 +61,7 @@ export function useBoardScroll({ workspaceRef, fullscreen, pages, zoom, setting,
       const focus = setting === 'text' && page0
         ? { left: offset + page0.textLeft * zoom, right: offset + page0.textRight * zoom }
         : undefined;
-      ws.scrollLeft = centredScrollLeft(board, columnWidth, view.width, focus, parseFloat(getComputedStyle(ws).paddingLeft) || 0);
+      ws.scrollLeft = centredScrollLeft(board, columnWidth, view.width, focus, inset);
       pendingAnchor.current = null;
     } else if (pendingAnchor.current) {
       // Anchored by page fraction: headers and gaps do not scale, so the whole column cannot be the frame.

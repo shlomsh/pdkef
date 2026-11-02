@@ -88,3 +88,28 @@ describe('fitScale with the notes column in px (the normal view)', () => {
     expect(z * (310 + 32) + NOTES_W * (z / base)).toBeLessThanOrEqual(v.width - 32 + 0.01);
   });
 });
+
+describe('a floor above the zoom minimum', () => {
+  it('clampZoom raises a zoom to it, and still caps at the maximum', () => {
+    expect(clampZoom(0.6, 0.8)).toBe(0.8);
+    expect(clampZoom(0.1, 0.8)).toBe(0.8);
+    expect(clampZoom(9, 0.8)).toBe(3);
+  });
+  it('a floor below the minimum lowers it, for a page that needs less than 0.5 to fit', () => {
+    expect(clampZoom(0.1, 0.3)).toBe(0.3);
+  });
+  it('stepZoom lands exactly on the floor when the next step would pass it, then stays', () => {
+    expect(stepZoom(1, -1, 0.85)).toBe(0.9);
+    expect(stepZoom(0.9, -1, 0.85)).toBe(0.85);
+    expect(stepZoom(0.85, -1, 0.85)).toBe(0.85);
+  });
+  it('stepZoom below the old minimum goes down to a low floor', () => {
+    expect(stepZoom(0.5, -1, 0.4)).toBe(0.4);
+  });
+  it('stepZoom up from the floor takes the next step', () => {
+    expect(stepZoom(0.85, 1, 0.85)).toBe(0.9);
+  });
+  it('resolveZoom floors a numeric setting', () => {
+    expect(resolveZoom(0.6, page, view, { noted: false }, 0.9)).toBe(0.9);
+  });
+});

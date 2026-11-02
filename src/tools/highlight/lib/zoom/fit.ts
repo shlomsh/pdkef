@@ -17,8 +17,9 @@ export const NOTES_W = 240;
 
 const EPS = 1e-6;
 
-export function clampZoom(z: number): number {
-  return Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, z));
+/** `floor` is the lowest zoom allowed: ZOOM_MIN, or in the lamp the whole-page fit, which may be above or below it. */
+export function clampZoom(z: number, floor = ZOOM_MIN): number {
+  return Math.min(ZOOM_MAX, Math.max(floor, z));
 }
 
 export function fitScale(
@@ -49,14 +50,17 @@ function clampFit(z: number): number {
   return Math.min(ZOOM_MAX, Math.max(FIT_MIN, z));
 }
 
-export function stepZoom(current: number, dir: 1 | -1): number {
-  const next = dir === 1
-    ? STEPS.find((s) => s > current + EPS)
-    : [...STEPS].reverse().find((s) => s < current - EPS);
-  // No step past a fit below the floor: stay there rather than clamp, which would turn "out" into a zoom in.
-  return next === undefined ? current : clampZoom(next);
+export function stepZoom(current: number, dir: 1 | -1, floor = ZOOM_MIN): number {
+  if (dir === 1) {
+    const up = STEPS.find((s) => s > current + EPS);
+    return up === undefined ? current : clampZoom(up, floor);
+  }
+  // A step out that would pass the floor lands on it; at or below it, stay rather than clamp, which would turn "out" into a zoom in.
+  const down = [...STEPS].reverse().find((s) => s < current - EPS);
+  const next = Math.max(down ?? floor, floor);
+  return next >= current - EPS ? current : next;
 }
 
-export function resolveZoom(setting: ZoomSetting, page: PageBox, view: Viewport, opts: { noted: boolean; notesIn?: NotesUnit }): number {
-  return typeof setting === 'number' ? clampZoom(setting) : fitScale(setting, page, view, opts);
+export function resolveZoom(setting: ZoomSetting, page: PageBox, view: Viewport, opts: { noted: boolean; notesIn?: NotesUnit }, floor = ZOOM_MIN): number {
+  return typeof setting === 'number' ? clampZoom(setting, floor) : fitScale(setting, page, view, opts);
 }

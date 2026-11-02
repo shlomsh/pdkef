@@ -30,3 +30,10 @@ describe('zoomCommit', () => {
     expect(scroll).toEqual({ x: 12, y: 34 });
   });
 });
+
+describe('zoomCommit with a floor', () => {
+  it('settles no lower than the floor', () => {
+    const args = { prevZoom: 1, nextZoom: 0.5, anchor: { x: 0, y: 0 }, scroll: { x: 0, y: 0 }, origin: { x: 0, y: 0 }, floor: 0.8 };
+    expect(zoomCommit(args).zoom).toBe(0.8);
+  });
+});
