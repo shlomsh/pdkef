@@ -1,42 +1,20 @@
 /* The color cells of the Marker panel and of its More popover. The cell is as tall as the panel's targets
-   (--cell, set by the panel) and --swatch-w wide; the 18 px dot is centred in it. In the panel's framed track the picked
-   color (or More) sits on an inset tint fill; the popover's cells keep the ring around the dot. */
+   (--cell, set by the panel) and --swatch-w wide; MarkerArt fills it. */
 .cells { display: inline-flex; }
-.cells [data-highlight-swatch] {
+.cell {
   position: relative;
   flex: none;
   box-sizing: border-box;
   width: var(--swatch-w, var(--cell, 2.25rem));
   height: var(--cell, 2.25rem);
-  padding: calc((var(--cell, 2.25rem) - 18px) / 2) calc((var(--swatch-w, var(--cell, 2.25rem)) - 18px) / 2);
+  padding: 0;
   border: 0;
-  border-radius: 50%;
-  box-shadow: none;
-  background-clip: content-box !important;
+  border-radius: var(--radius-sm);
+  background: transparent;
   cursor: pointer;
 }
-.cells [data-highlight-swatch]:hover { transform: none; }
-.cells [data-highlight-swatch]::before {
-  content: '';
-  position: absolute;
-  inset: calc((var(--cell, 2.25rem) - 18px) / 2) calc((var(--swatch-w, var(--cell, 2.25rem)) - 18px) / 2);
-  box-sizing: border-box;
-  border: 1px solid var(--color-white-30);
-  border-radius: 50%;
-  box-shadow: 0 0 0 1px var(--color-black-15) inset;
-  pointer-events: none;
-}
-.cells [data-highlight-swatch][aria-pressed='true']::before { box-shadow: 0 0 0 2px var(--color-surface), 0 0 0 3px var(--color-primary); }
-.cells [data-highlight-swatch][aria-checked='true']::before {
-  inset: 3px;
-  border: 0;
-  border-radius: calc(var(--radius-sm) - 2px);
-  background: var(--color-primary-tint);
-  box-shadow: none;
-  z-index: -1;
-}
 
-/* More: the chevron, with the picked color as a pressed dot before it. */
+/* More: the chevron, with the picked color as an ink band before it. */
 .more {
   appearance: none;
   position: relative;
@@ -57,25 +35,18 @@
 .more[aria-pressed='true'] { padding-inline: 8px; }
 .more:hover,
 .more[aria-expanded='true'] { background: var(--color-primary-tint); }
-.dot {
-  display: block;
-  width: 18px;
-  height: 18px;
-  border-radius: 50%;
-  border: 1px solid var(--color-white-30);
-  box-sizing: border-box;
-  box-shadow: 0 0 0 1px var(--color-black-15) inset;
-}
-.more[aria-pressed='true']::before {
-  content: '';
-  position: absolute;
-  inset: 3px;
-  border-radius: calc(var(--radius-sm) - 2px);
-  background: var(--color-primary-tint);
-  z-index: -1;
-}
 
-/* The popover: orange, red, blue and the wheel in a row. */
+/* The popover: orange, red, blue and the wheel in a row, rising in one after another. */
+@keyframes rise { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+.menu .cell,
+.menu [data-color-wheel] { animation: rise 460ms cubic-bezier(.16, 1, .3, 1) both; }
+.menu .cell:nth-child(1) { animation-delay: 40ms; }
+.menu .cell:nth-child(2) { animation-delay: 85ms; }
+.menu .cell:nth-child(3) { animation-delay: 130ms; }
+.menu [data-color-wheel] { animation-delay: 175ms; }
+@media (prefers-reduced-motion: reduce) {
+  .menu .cell, .menu [data-color-wheel] { animation: none; }
+}
 .menu {
   --cell: var(--target, 2.25rem);
   --wheel-cell: var(--cell);
@@ -87,6 +58,8 @@
 }
 @media (pointer: coarse), (max-width: 480px) {
   .more { min-width: 1.75rem; }
+  /* R49: the ink band leaves the row one line at 402 px. */
+  .more[aria-pressed='true'] { gap: 0; padding-inline: 3px; }
 }
 @media (pointer: coarse) {
   .menu { --cell: var(--target, 2.75rem); --swatch-w: 2.25rem; }

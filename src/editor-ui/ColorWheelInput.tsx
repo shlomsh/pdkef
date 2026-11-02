@@ -24,7 +24,7 @@ const HEX = /^#[0-9a-f]{6}$/i;
  * step). `blur` and unmount settle a pick whose `change` never arrived, e.g. the host is deselected as the
  * picker closes. Uncontrolled while a pick is in flight, so a parent re-render never re-asserts the old colour.
  */
-export default function ColorWheelInput({ value, label, onPreview, onCommit, pressed, ...rest }: ColorWheelInputProps) {
+export default function ColorWheelInput({ value, label, onPreview, onCommit, pressed, children, ...rest }: ColorWheelInputProps) {
   const hex = HEX.test(value) ? value : '#ffffff';
   const colorInput = useRef<HTMLInputElement>(null);
   const commitRef = useRef(onCommit);
@@ -61,7 +61,7 @@ export default function ColorWheelInput({ value, label, onPreview, onCommit, pre
 
   return (
     <label className={styles.custom} title={label} data-color-wheel data-pressed={pressed ? '' : undefined} {...rest}>
-      <span className={styles.wheel} />
+      {children ?? <span className={styles.wheel} />}
       <input
         type="color"
         className={styles.native}

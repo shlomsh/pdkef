@@ -155,9 +155,20 @@
   --color-black: #000;
   --color-black-12: rgba(0, 0, 0, 0.12);
   --color-black-15: rgba(0,0,0,.15);
+  --color-black-20: rgba(0,0,0,.2);
+  --color-black-25: rgba(0,0,0,.25);
+  --color-black-30: rgba(0,0,0,.3);
+  /* The Highlight color cells' marker art: its drop shadow and the metal collar. */
+  --color-marker-shadow: rgba(6, 40, 38, .28);
+  --color-marker-metal: #eeeae1;
+  --color-white-12: rgba(255,255,255,.12);
   --color-white-15: rgba(255,255,255,.15);
   --color-white-20: rgba(255,255,255,.2);
   --color-white-30: rgba(255,255,255,.3);
+  --color-white-50: rgba(255,255,255,.5);
+  --color-white-55: rgba(255,255,255,.55);
+  --color-white-65: rgba(255,255,255,.65);
+  --color-white-80: rgba(255,255,255,.8);
   --color-white-90: rgba(255,255,255,.9);
   --color-signature-ink: #0c0c0e;
   --color-element-active-fill: rgba(238, 243, 255, .4);

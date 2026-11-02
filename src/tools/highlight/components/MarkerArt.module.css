@@ -1,0 +1,119 @@
+/* A color cell's marker (ported from the pencil-case PanelInk design): the ink band, then the marker at -45deg.
+   Every motion keys on [data-picked]; reduced motion snaps all of it. */
+.art { position: absolute; inset: 0; pointer-events: none; }
+
+.band {
+  position: absolute;
+  left: 4px;
+  right: 4px;
+  top: 50%;
+  height: 11px;
+  margin-top: -5.5px;
+  border-radius: 2.2px 5.1px 4.2px 2.6px / 4.2px 5.8px 4.8px 3.5px;
+  background: var(--ink);
+  transform: skewX(-10deg) rotate(-4deg);
+  clip-path: inset(0 100% 0 0);
+  transition: clip-path 200ms ease-in;
+}
+.art[data-picked] .band {
+  clip-path: inset(0);
+  transition: clip-path 460ms cubic-bezier(.6, .05, .25, 1) 140ms;
+}
+
+.wrap {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 28px;
+  height: 8px;
+  margin: -4px 0 0 -14px;
+  transform: rotate(-45deg);
+  filter: drop-shadow(0 1.3px 1px var(--color-marker-shadow));
+  transition: transform 300ms cubic-bezier(.16, 1, .3, 1);
+}
+:hover > .art:not([data-picked]) .wrap { transform: rotate(-45deg) translateY(-0.8px); }
+
+.body {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 18.5px;
+  height: 8px;
+  border-radius: 2px 1px 1px 2px;
+  background-color: var(--barrel);
+  background-image: linear-gradient(180deg, var(--color-white-50), var(--color-white-12) 30%, transparent 55%, var(--color-black-25));
+  transition: transform 420ms cubic-bezier(.16, 1, .3, 1);
+}
+.collar {
+  position: absolute;
+  left: 18px;
+  top: 1.1px;
+  width: 2.2px;
+  height: 5.8px;
+  background-color: var(--color-marker-metal);
+  background-image: linear-gradient(180deg, var(--color-white-80), var(--color-black-20));
+  transition: transform 420ms cubic-bezier(.16, 1, .3, 1);
+}
+.nib {
+  position: absolute;
+  left: 20px;
+  top: 1.6px;
+  width: 4.5px;
+  height: 4.8px;
+  clip-path: polygon(0 0, 100% 35%, 100% 100%, 0 100%);
+  background-color: var(--nib, var(--ink));
+  background-image: linear-gradient(180deg, var(--color-white-55), var(--color-black-15));
+  transition: transform 420ms cubic-bezier(.16, 1, .3, 1);
+}
+.cap {
+  position: absolute;
+  left: 17px;
+  top: -0.8px;
+  width: 11px;
+  height: 9.6px;
+  z-index: 2;
+  border-radius: 1px 4.8px 4.8px 1px;
+  background-color: var(--cap);
+  background-image:
+    linear-gradient(180deg, var(--color-white-55), var(--color-white-12) 30%, transparent 55%, var(--color-black-25)),
+    linear-gradient(90deg, transparent 1.6px, var(--color-black-15) 1.6px, var(--color-black-15) 2.4px, transparent 2.4px);
+  box-shadow: 0 0.5px 0.8px var(--color-black-20);
+  transform-origin: 0 50%;
+  transition: transform 220ms cubic-bezier(.4, 0, .2, 1);
+}
+.wheel {
+  background-image:
+    linear-gradient(180deg, var(--color-white-50), var(--color-white-12) 30%, transparent 55%, var(--color-black-25)),
+    var(--cap-image);
+}
+.clip {
+  position: absolute;
+  left: 2.9px;
+  top: 1.3px;
+  width: 7px;
+  height: 2px;
+  border-radius: 1px;
+  background-color: var(--clip, var(--cap));
+  background-image: linear-gradient(180deg, var(--color-white-65), var(--color-black-20));
+  box-shadow: 0 0.5px 0.6px var(--color-black-30);
+}
+
+.art[data-picked] .cap { transform: translateX(6.4px) rotate(-10deg); transition: transform 540ms cubic-bezier(.16, 1, .3, 1); }
+.art[data-picked] :is(.body, .collar, .nib) { transform: translateX(-1.3px); }
+:hover > .art:not([data-picked]) .cap { transform: translateX(1.1px); }
+
+/* The More button's band: the same ink, smaller, no marker. */
+.moreInk {
+  display: block;
+  flex: none;
+  width: 16px;
+  height: 10px;
+  border-radius: 2.2px 5.1px 4.2px 2.6px / 4.2px 5.8px 4.8px 3.5px;
+  background: var(--ink);
+  transform: skewX(-10deg) rotate(-4deg);
+  box-shadow: inset 0 0 0 0.5px var(--color-black-12);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .band, .wrap, .body, .collar, .nib, .cap { transition: none; }
+}

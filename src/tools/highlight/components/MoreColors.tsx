@@ -1,19 +1,35 @@
 import Popover from '#shell/Popover.tsx';
 import ColorWheelInput from '#editor-ui/ColorWheelInput.tsx';
-import HighlightSwatches from '#editor-ui/highlight/HighlightSwatches.tsx';
+import { highlightColorNames } from '#editor-ui/highlight/highlightColorNames.ts';
 import { englishSignMessages } from '#editor/registry/signMessages.ts';
 import controls from '#editor-ui/EditorControls.module.css';
 import { MORE_COLORS, isTopColor } from '../lib/marker/markerState.ts';
 import { englishHighlightMessages as t } from '../messages.ts';
-import { onRadioKeyDown } from './radioKeys.ts';
+import { onRadioKeyDown, radioTabIndex } from './radioKeys.ts';
+import MarkerArt, { MoreInk } from './MarkerArt.tsx';
 import Chevron from './Chevron.tsx';
 import styles from './MoreColors.module.css';
 
-/** The shared swatches in a box that sizes them as the panel's targets. With a label they are one radio group. */
+const names = highlightColorNames(englishSignMessages);
+
+/** The color cells as the panel's targets, each a marker over the ink picked. With a label they are one radio group. */
 export function ColorCells({ colors, color, label, onChange }: { colors: readonly { id: string; hex: string }[]; color: string; label?: string; onChange(color: string): void }) {
+  const same = (hex: string) => hex.toLowerCase() === color.toLowerCase();
+  const anyChecked = colors.some((c) => same(c.hex));
   return (
     <span class={styles.cells} role={label ? 'radiogroup' : undefined} aria-label={label} onKeyDown={label ? onRadioKeyDown : undefined}>
-      <HighlightSwatches radio={!!label} colors={colors} divider={false} color={color} t={englishSignMessages} onChange={({ color: next }) => onChange(next)} />
+      {colors.map(({ id, hex }, index) => {
+        const checked = same(hex);
+        return (
+          <button
+            key={id} type="button" data-highlight-swatch class={styles.cell} aria-label={names[hex]} title={names[hex]}
+            {...(label ? { role: 'radio', 'aria-checked': checked, tabIndex: radioTabIndex(checked, index, anyChecked) } : { 'aria-pressed': checked })}
+            onClick={() => onChange(hex)}
+          >
+            <MarkerArt ink={hex} picked={checked} />
+          </button>
+        );
+      })}
     </span>
   );
 }
@@ -28,10 +44,11 @@ interface MoreColorsProps {
 
 /**
  * The colors behind the top three: orange, red, blue and the color wheel, in a popover. The button wears a
- * chevron, with, when the color in force is one of these (or a custom one), that color's pressed dot before it.
+ * chevron, with, when the color in force is one of these (or a custom one), that color's ink band before it.
  */
 export default function MoreColors({ color, onPick, open, onOpenChange }: MoreColorsProps) {
   const hidden = !isTopColor(color);
+  const customInForce = hidden && !MORE_COLORS.some((c) => c.hex.toLowerCase() === color.toLowerCase());
   const pick = (next: string) => { onPick(next); onOpenChange(false); };
   return (
     <Popover
@@ -43,14 +60,16 @@ export default function MoreColors({ color, onPick, open, onOpenChange }: MoreCo
           type="button" data-more-colors class={styles.more} aria-label={t.moreColors} title={t.moreColors}
           aria-haspopup="true" aria-expanded={open} aria-pressed={hidden ? true : undefined}
         >
-          {hidden && <i class={styles.dot} style={{ background: color }} />}
+          {hidden && <MoreInk ink={color} />}
           <Chevron />
         </button>
       }
       content={
         <div class={`${controls.popover} ${styles.menu}`} data-more-popover role="group" aria-label={t.moreColors}>
           <ColorCells colors={MORE_COLORS} color={color} onChange={pick} />
-          <ColorWheelInput value={color} label={t.markColorInput} pressed={hidden && !MORE_COLORS.some((c) => c.hex.toLowerCase() === color.toLowerCase())} onCommit={pick} />
+          <ColorWheelInput value={color} label={t.markColorInput} pressed={customInForce} onCommit={pick}>
+            <MarkerArt wheel ink={color} picked={customInForce} />
+          </ColorWheelInput>
         </div>
       }
     />
