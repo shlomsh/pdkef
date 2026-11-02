@@ -79,7 +79,11 @@ describe('HighlightWorkspace', () => {
     expect(bar).not.toBeNull();
     expect(bar.closest('[data-shell-controls]')).not.toBeNull();
     const names = [...bar.querySelectorAll('button')].map((b) => b.getAttribute('aria-label') ?? b.textContent);
-    expect(names).toEqual(['Marker', 'Undo', 'Redo', 'Full screen', 'Replace file', 'Print', 'Download']);
+    expect(names).toEqual(['Marker', 'Undo', 'Redo', 'Replace file', 'Print', 'Download']);
+    // Full screen is the cord under the card, not a tile.
+    const cord = container!.querySelector<HTMLButtonElement>('[data-tool-shell] [data-lamp-part="cord"] button')!;
+    expect(cord.getAttribute('aria-label')).toBe('Full screen');
+    expect(bar.contains(cord)).toBe(false);
     expect(container!.querySelector('[role="toolbar"][aria-label="Reading lamp"]')).toBeNull();
     act(() => render(null, container!));
     const lamp = mount({ fullscreen: true, pseudoFullscreen: false });
@@ -115,11 +119,11 @@ describe('HighlightWorkspace', () => {
     } finally { vi.unstubAllGlobals(); }
   });
 
-  it('every control in the row carries its word: seven controls leave the room Sign\'s thirteen do not (READ-04)', () => {
+  it('every control in the row carries its word: six controls leave the room Sign\'s thirteen do not (READ-04)', () => {
     mount({ fullscreen: false, pseudoFullscreen: false });
     const bar = container!.querySelector<HTMLElement>('[data-editor-toolbar]')!;
     const tile = (name: string) => [...bar.querySelectorAll<HTMLElement>('button')].find((b) => (b.getAttribute('aria-label') ?? b.textContent) === name)!;
-    for (const name of ['Marker', 'Undo', 'Redo', 'Full screen', 'Replace file', 'Print', 'Download']) {
+    for (const name of ['Marker', 'Undo', 'Redo', 'Replace file', 'Print', 'Download']) {
       expect(tile(name).hasAttribute('data-icon-only'), name).toBe(false);
       expect(tile(name).querySelector(`.${toolbarStyles.label}`)?.textContent, name).toBeTruthy();
     }
@@ -130,7 +134,7 @@ describe('HighlightWorkspace', () => {
     mount({ fullscreen: false, pseudoFullscreen: false });
     const bar = container!.querySelector<HTMLElement>('[data-editor-toolbar]')!;
     const byText = (name: string) => [...bar.querySelectorAll<HTMLElement>('button')].find((b) => (b.getAttribute('aria-label') ?? b.textContent) === name)!;
-    for (const name of ['Print', 'Download', 'Full screen']) expect(byText(name).hasAttribute('title'), name).toBe(false);
+    for (const name of ['Print', 'Download']) expect(byText(name).hasAttribute('title'), name).toBe(false);
     expect(byText('Replace file').getAttribute('title')).toBe('Replace the current file');
     expect(byText('Undo').getAttribute('title')).toBe('Ctrl+Z');
     expect(byText('Redo').getAttribute('title')).toBe('Ctrl+Shift+Z');

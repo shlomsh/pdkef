@@ -8,15 +8,15 @@
 .column { display: flex; flex-direction: column; gap: calc(2rem * var(--chrome, 1)); flex: none; touch-action: pan-x pan-y pinch-zoom; }
 .floating { position: fixed; top: 12px; left: 50%; transform: translateX(-50%); z-index: 30; }
 
-/* READ-04: the tool row is seven controls in one row. Sign's phone label size reads --controls-per-row, which falls back to 4 below nine children. The doubled class with the attribute outranks the :has() count rules. */
-.toolRow.toolRow[data-editor-toolbar] { --controls-per-row: 7; }
-/* Seven controls share one phone row; Sign's formula at 7 gives 7.4px, too small; 8px fits Download down to 375px.
+/* READ-04: the tool row is six controls in one row (Full screen is the cord under the card). Sign's phone label size reads --controls-per-row, which falls back to 4 below nine children. The doubled class with the attribute outranks the :has() count rules. */
+.toolRow.toolRow[data-editor-toolbar] { --controls-per-row: 6; }
+/* Six controls share one phone row; Sign's formula gives too small a label; 8px fits Download down to 375px.
    The tiles drop their side padding, since Safari sets the label wider than Chromium. A menu's items and the mark panel,
    which sits inside the row on touch, keep their own sizes. */
 @media (max-width: 480px) {
   .toolRow.toolRow[data-editor-toolbar] button:not([role="menuitem"], [data-marker-row] *) { font-size: 0.5rem; padding-inline: 0; }
 }
-/* A wrapping row breaks at each tile's 44 px floor before it shrinks: at 375 px seven tiles need 326 px with these gaps,
+/* A wrapping row breaks at each tile's 44 px floor before it shrinks: at 375 px seven tiles needed 326 px with these gaps,
    and the row's content box is 333 px. */
 @media (max-width: 400px) {
   .toolRow.toolRow[data-editor-toolbar] { column-gap: 3px; padding-inline: 4px; }

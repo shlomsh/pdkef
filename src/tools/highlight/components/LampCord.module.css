@@ -1,0 +1,70 @@
+/* The pull cord (READ lamp, direction A). It hangs from the sticky editor card: ToolShell's .editor is the containing block,
+   so `top: 100%` is the card's bottom edge and `left: 50%` its centre, the capsule's column. The root has no size; its
+   parts hang from it. Desktop and phone differ in the string's length, the bead and the label's side. */
+.cord {
+  --len: 15px;
+  --bead: 20px;
+  --hit: 44px;
+  --bead-lit: 0 3px 7px var(--color-black-20), 0 0 0 5px color-mix(in srgb, var(--color-lamp-glow) 30%, transparent), 0 0 26px 4px color-mix(in srgb, var(--color-lamp-glow) 70%, transparent);
+  /* The bead's centre: the string, a 3 px gap, then half the bead. */
+  --by: calc(var(--len) + 3px + var(--bead) / 2);
+  position: absolute;
+  left: 50%;
+  top: calc(100% - 1px);
+  width: 0;
+  height: 0;
+  z-index: 5;
+}
+@media (max-width: 640px) {
+  .cord { --len: 10px; --bead: 19px; }
+}
+.drop, .settle, .swing { position: absolute; left: 0; top: 0; transform-origin: 0 0; }
+.line { position: absolute; left: 0; top: 0; transform-origin: 0 0; }
+.string {
+  position: absolute; left: -0.75px; top: 0; width: 1.5px; height: calc(var(--len) + 2px); border-radius: 1px;
+  background: linear-gradient(var(--color-muted), var(--color-muted-light));
+}
+.crimp {
+  position: absolute; left: -2.5px; top: var(--len); width: 5px; height: 4px; border-radius: 1px;
+  background: linear-gradient(var(--color-border), var(--color-border-strong));
+}
+.pull {
+  appearance: none; position: absolute; left: calc(var(--hit) / -2); top: calc(var(--by) - var(--hit) / 2); width: var(--hit); height: var(--hit);
+  display: flex; align-items: center; justify-content: center; padding: 0; border: 0; background: transparent; cursor: pointer;
+  -webkit-tap-highlight-color: transparent; touch-action: manipulation;
+}
+.bead {
+  display: block; width: var(--bead); height: var(--bead); border-radius: 50%;
+  background: radial-gradient(circle at 34% 30%, color-mix(in srgb, var(--color-lamp-glow) 25%, var(--color-surface)) 0 12%, var(--color-lamp-glow) 48%, color-mix(in srgb, var(--color-lamp-glow) 62%, var(--color-clay)) 100%);
+  box-shadow: 0 3px 7px var(--color-black-20), inset 0 -1px 2px var(--color-black-20);
+  transition: box-shadow 260ms var(--ease-out), transform 260ms var(--ease-out);
+}
+.pull:focus-visible .bead { box-shadow: var(--bead-lit); }
+/* Hover only where a pointer hovers: iOS Safari spends a finger's first tap on a :hover that changes the cord. */
+@media (hover: hover) {
+  .pull:hover .bead { box-shadow: var(--bead-lit); }
+  .cord:hover .swing { animation: sway 1100ms ease-in-out; }
+}
+.pull:focus-visible { outline: 2px solid var(--color-text); outline-offset: -4px; border-radius: 50%; }
+.cord:has(.pull:focus-visible) .swing { animation: sway 1100ms ease-in-out; }
+
+/* The label sits beside the bead: to its right on a desktop (with the hint), to its left on a phone, where the row is full. */
+.tag {
+  position: absolute; top: calc(var(--by) - 9px); left: calc(var(--bead) / 2 + 10px); display: inline-flex; align-items: center; gap: 6px;
+  white-space: nowrap; font-size: 13px; font-weight: 600; line-height: 18px; color: var(--color-text); pointer-events: none;
+}
+.hint { font-style: normal; font-weight: 400; color: var(--color-muted); }
+@media (max-width: 640px) {
+  .tag { left: auto; right: calc(var(--bead) / 2 + 9px); top: calc(var(--by) - 8px); font-size: 12px; line-height: 16px; }
+  .hint { display: none; }
+}
+
+/* It drops in with a small swing when the file opens. */
+.drop { animation: drop 900ms var(--ease-out) 250ms both; }
+@keyframes sway { 0% { rotate: 0deg; } 22% { rotate: -5deg; } 48% { rotate: 3.4deg; } 72% { rotate: -1.6deg; } 100% { rotate: 0deg; } }
+@keyframes drop { 0% { transform: scaleY(0.05); opacity: 0; } 30% { opacity: 1; } 62% { transform: scaleY(1.08); } 82% { transform: scaleY(0.98); } 100% { transform: scaleY(1); opacity: 1; } }
+@media (prefers-reduced-motion: reduce) {
+  .drop { animation: none; }
+  .cord:hover .swing, .cord:has(.pull:focus-visible) .swing { animation: none; }
+  .bead { transition: none; }
+}
