@@ -24,13 +24,28 @@ describe('StyleToggle', () => {
     expect(container!.querySelectorAll('[data-style-toggle] [aria-haspopup]')).toHaveLength(0);
   });
 
-  it('presses the current style', () => {
+  it('is a radio group named Style, the current style checked and the only tab stop', () => {
     mount();
-    expect(button('Highlight').getAttribute('aria-pressed')).toBe('true');
-    expect(button('Underline').getAttribute('aria-pressed')).toBe('false');
+    const group = container!.querySelector('[data-style-toggle]')!;
+    expect(group.getAttribute('role')).toBe('radiogroup');
+    expect(group.getAttribute('aria-label')).toBe('Style');
+    expect(button('Highlight').getAttribute('role')).toBe('radio');
+    expect(button('Highlight').getAttribute('aria-checked')).toBe('true');
+    expect(button('Underline').getAttribute('aria-checked')).toBe('false');
+    expect(button('Highlight').hasAttribute('aria-pressed')).toBe(false);
+    expect([button('Highlight').tabIndex, button('Underline').tabIndex]).toEqual([0, -1]);
+    act(() => render(null, container!)); container!.remove(); container = null;
     mount({ ...DEFAULT_MARKER, style: 'underline' });
-    expect(button('Underline').getAttribute('aria-pressed')).toBe('true');
-    expect(button('Highlight').getAttribute('aria-pressed')).toBe('false');
+    expect(button('Underline').getAttribute('aria-checked')).toBe('true');
+    expect(button('Highlight').getAttribute('aria-checked')).toBe('false');
+  });
+
+  it('arrow keys switch the style either way', () => {
+    const onChange = mount();
+    button('Highlight').focus();
+    act(() => { button('Highlight').dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true, cancelable: true })); });
+    expect(onChange).toHaveBeenLastCalledWith({ style: 'underline' });
+    expect(document.activeElement).toBe(button('Underline'));
   });
 
   it('the other style button switches to it, and the pressed one does nothing', () => {

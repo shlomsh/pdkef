@@ -22,6 +22,9 @@ export interface HighlightMessages {
   /** The tile row's label outside the Reading lamp. */
   toolbarLabel: string;
   markToolbar: string;
+  /** The mark panel's color choice and its Highlight | Underline switch, as radio groups. */
+  markColor: string;
+  markStyle: string;
   markHighlight: string;
   markUnderline: string;
   markDelete: string;
@@ -73,6 +76,8 @@ export const englishHighlightMessages: HighlightMessages = {
   zoomOut: 'Zoom out',
   toolbarLabel: 'Highlight tools',
   markToolbar: 'Change this highlight',
+  markColor: 'Color',
+  markStyle: 'Style',
   markHighlight: 'Highlight',
   markUnderline: 'Underline',
   markDelete: 'Delete',

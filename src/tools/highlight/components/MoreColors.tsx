@@ -5,14 +5,15 @@ import { englishSignMessages } from '#editor/registry/signMessages.ts';
 import controls from '#editor-ui/EditorControls.module.css';
 import { MORE_COLORS, isTopColor } from '../lib/marker/markerState.ts';
 import { englishHighlightMessages as t } from '../messages.ts';
+import { onRadioKeyDown } from './radioKeys.ts';
 import Chevron from './Chevron.tsx';
 import styles from './MoreColors.module.css';
 
-/** The shared swatches in a box that sizes them as the panel's targets; the box adds no layout of its own. */
-export function ColorCells({ colors, color, onChange }: { colors: readonly { id: string; hex: string }[]; color: string; onChange(color: string): void }) {
+/** The shared swatches in a box that sizes them as the panel's targets. With a label they are one radio group. */
+export function ColorCells({ colors, color, label, onChange }: { colors: readonly { id: string; hex: string }[]; color: string; label?: string; onChange(color: string): void }) {
   return (
-    <span class={styles.cells}>
-      <HighlightSwatches colors={colors} divider={false} color={color} t={englishSignMessages} onChange={({ color: next }) => onChange(next)} />
+    <span class={styles.cells} role={label ? 'radiogroup' : undefined} aria-label={label} onKeyDown={label ? onRadioKeyDown : undefined}>
+      <HighlightSwatches radio={!!label} colors={colors} divider={false} color={color} t={englishSignMessages} onChange={({ color: next }) => onChange(next)} />
     </span>
   );
 }

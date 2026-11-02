@@ -5,6 +5,7 @@ import { formatMessage } from '#lib/text/formatMessage.ts';
 import type { Marker } from '../lib/marker/markerState.ts';
 import { englishHighlightMessages as t } from '../messages.ts';
 import Chevron from './Chevron.tsx';
+import { onRadioKeyDown, radioTabIndex } from './radioKeys.ts';
 import UnderlineGlyph from './UnderlineGlyph.tsx';
 import OpacityMenu from './OpacityMenu.tsx';
 import styles from './LookControls.module.css';
@@ -17,17 +18,17 @@ type Look = { look: Marker; onChange(change: Partial<Marker>): void };
 export function StyleToggle({ look, onChange }: Look) {
   const underline = look.style === 'underline';
   return (
-    <span class={styles.toggle} data-style-toggle>
+    <span class={styles.toggle} data-style-toggle role="radiogroup" aria-label={t.markStyle} onKeyDown={onRadioKeyDown}>
       <button
-        type="button" class={styles.segment}
-        aria-label={t.markHighlight} aria-pressed={!underline} title={t.markHighlight}
+        type="button" class={styles.segment} role="radio"
+        aria-label={t.markHighlight} aria-checked={!underline} tabIndex={radioTabIndex(!underline, 0, true)} title={t.markHighlight}
         onClick={() => { if (underline) onChange({ style: 'highlight' }); }}
       >
         <HighlightIcon />
       </button>
       <button
-        type="button" class={styles.segment}
-        aria-label={t.markUnderline} aria-pressed={underline} aria-keyshortcuts="U" title={t.markUnderline}
+        type="button" class={styles.segment} role="radio"
+        aria-label={t.markUnderline} aria-checked={underline} tabIndex={radioTabIndex(underline, 1, true)} aria-keyshortcuts="U" title={t.markUnderline}
         onClick={() => { if (!underline) onChange({ style: 'underline' }); }}
       >
         <UnderlineGlyph bar={look.strokeWidth ?? UNDERLINE_WIDTH.default} />
@@ -56,7 +57,7 @@ export function StyleSetting({ look, onChange }: Look) {
   return (
     <OpacityMenu value={look.opacity} triggerClass={styles.setting} onChange={(opacity) => onChange({ style: 'highlight', opacity })}>
       <i class={styles.dot} data-setting-dot style={{ background: look.color, opacity: look.opacity }} />
-      <span>{Math.round(look.opacity * 100)}%</span>
+      <span class={styles.percent}>{Math.round(look.opacity * 100)}%</span>
       <Chevron />
     </OpacityMenu>
   );

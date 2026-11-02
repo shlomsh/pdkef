@@ -17,7 +17,7 @@ interface MarkPanelProps {
 }
 
 /**
- * The one panel a picked highlight opens, as one light row: the three top colors and More, the Highlight | Underline
+ * The one panel a picked highlight opens, as one light row: the three top colors and More in one framed track, the Highlight | Underline
  * switch with its setting button, then Comment and Delete. Where the row does not fit, Comment and Delete wrap to a second line.
  */
 export default function MarkPanel({ look, onChange, onComment, onDelete, onMoreOpenChange }: MarkPanelProps) {
@@ -25,9 +25,10 @@ export default function MarkPanel({ look, onChange, onComment, onDelete, onMoreO
   const setMore = (open: boolean) => { setMoreOpen(open); onMoreOpenChange?.(open); };
   return (
     <div class={styles.bar} data-marker-row>
-      <ColorCells colors={TOP_COLORS} color={look.color} onChange={(color) => onChange({ color })} />
-      <MoreColors color={look.color} open={moreOpen} onOpenChange={setMore} onPick={(color) => onChange({ color })} />
-      <span class={styles.divider} />
+      <span class={styles.track} data-color-track>
+        <ColorCells colors={TOP_COLORS} label={t.markColor} color={look.color} onChange={(color) => onChange({ color })} />
+        <MoreColors color={look.color} open={moreOpen} onOpenChange={setMore} onPick={(color) => onChange({ color })} />
+      </span>
       <StyleToggle look={look} onChange={onChange} />
       <StyleSetting look={look} onChange={onChange} />
       <span class={styles.acts}>

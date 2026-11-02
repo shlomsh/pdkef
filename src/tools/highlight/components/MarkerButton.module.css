@@ -55,7 +55,9 @@
   box-shadow: 0 0 0 1.5px var(--color-surface);
 }
 
-.menu {
+/* `.wrap .menu` outranks the shared popover classes on the same element (`.popover`, `.toolbar-menu`: a 320 px max
+   width, a 160 px min width, 5 px padding) whatever order the stylesheets load in; a production build loads them last. */
+.wrap .menu {
   /* Position, top and left come from Floating UI (inline, fixed). */
   z-index: 40;
   flex-direction: column;
@@ -72,7 +74,7 @@
 
 /* On a phone the menu spans the screen between 16 px gutters (the full-width mobile toolbar rule); the row's sizes are MarkPanel's. */
 @media (pointer: coarse), (max-width: 480px) {
-  .menu { width: calc(100vw - 32px); max-width: none; min-width: 0; padding: 4px; }
+  .wrap .menu { width: calc(100vw - 32px); max-width: none; min-width: 0; padding: 4px; }
 }
 
 /* In the editor row the wrap is one more tile: the toolbar's own `.toolbar > *` flex sizes it like its siblings (a

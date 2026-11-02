@@ -29,6 +29,44 @@ describe('MarkPanel', () => {
     expect(order).toEqual(['Yellow', 'Pink', 'Green', 'More colors', 'Highlight', 'Underline', 'Opacity', 'Comment', 'Delete']);
   });
 
+  describe('the colors', () => {
+    const group = () => container!.querySelector<HTMLElement>('[role="radiogroup"][aria-label="Color"]')!;
+    const radios = () => [...group().querySelectorAll<HTMLElement>('[role="radio"]')];
+    const arrow = (k: string, target: Element) =>
+      act(() => { target.dispatchEvent(new KeyboardEvent('keydown', { key: k, bubbles: true, cancelable: true })); });
+
+    it('are one radio group of the three top colors, the current one checked', () => {
+      mount();
+      expect(radios().map((r) => r.getAttribute('aria-label'))).toEqual(['Yellow', 'Pink', 'Green']);
+      expect(radios().map((r) => r.getAttribute('aria-checked'))).toEqual(['true', 'false', 'false']);
+    });
+
+    it('sit in one framed track with More, which stays a plain button outside the group', () => {
+      mount();
+      const track = container!.querySelector('[data-color-track]')!;
+      expect(track.contains(group())).toBe(true);
+      const more = named('More colors');
+      expect(track.contains(more)).toBe(true);
+      expect(group().contains(more)).toBe(false);
+    });
+
+    it('arrow keys check the next color and wrap', () => {
+      const { onChange } = mount();
+      radios()[0].focus();
+      arrow('ArrowRight', radios()[0]);
+      expect(onChange).toHaveBeenLastCalledWith({ color: TOP_COLORS[1].hex });
+      expect(document.activeElement).toBe(radios()[1]);
+      arrow('ArrowLeft', radios()[0]);
+      expect(onChange).toHaveBeenLastCalledWith({ color: TOP_COLORS[2].hex });
+    });
+
+    it('with a color from More, no top color is checked and More shows it', () => {
+      mount({ ...DEFAULT_MARKER, color: '#123456' });
+      expect(radios().every((r) => r.getAttribute('aria-checked') === 'false')).toBe(true);
+      expect(named('More colors').getAttribute('aria-pressed')).toBe('true');
+    });
+  });
+
   it('a color changes the look', () => {
     const { onChange } = mount();
     press(container!.querySelectorAll('[data-highlight-swatch]')[1]);
@@ -60,10 +98,10 @@ describe('MarkPanel', () => {
       expect(onChange).toHaveBeenLastCalledWith({ style: 'underline' });
     });
 
-    it('presses the current style', () => {
+    it('checks the current style', () => {
       const { draw, onChange } = mount();
       draw({ ...DEFAULT_MARKER, style: 'underline' });
-      expect(named('Underline').getAttribute('aria-pressed')).toBe('true');
+      expect(named('Underline').getAttribute('aria-checked')).toBe('true');
       press(named('Underline'));
       expect(onChange).not.toHaveBeenCalled();
       press(named('Highlight'));
