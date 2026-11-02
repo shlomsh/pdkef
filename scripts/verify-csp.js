@@ -70,6 +70,14 @@ for (const file of htmlFiles) {
       .map(token => token.slice(1, -1)); // remove surrounding quotes
   };
 
+  // A page that widens script-src for one origin can drop the base 'self' (MERGE-25: /drive/ did, and its own
+  // island was blocked), so every page must still allow its own bundled scripts.
+  const scriptSrc = cspDirectives.find(d => d.startsWith('script-src'));
+  if (!scriptSrc || !scriptSrc.split(/\s+/).includes("'self'")) {
+    console.error(`[ERROR] ${path.relative(process.cwd(), file)}: CSP script-src is missing 'self', so the page's own scripts are blocked!`);
+    hasError = true;
+  }
+
   const allowedScriptHashes = new Set(getHashes('script-src'));
   const allowedStyleHashes = new Set(getHashes('style-src'));
 

@@ -7,6 +7,8 @@ import '../styles/openPage.css';
 // MERGE-25: where Google Drive's "Open with > PDkef" lands. The approved exception to "no external
 // origins": Google's sign-in script and its Drive API, on this page only. Every other page keeps
 // `connect-src 'self'`; the file still goes straight from Drive to this device.
+// Adding a script resource replaces the base script-src source list for this page, so 'self' is restated.
+Astro.csp?.insertScriptResource("'self'");
 Astro.csp?.insertScriptResource('https://accounts.google.com/gsi/client');
 Astro.csp?.insertDirective("connect-src 'self' https://www.googleapis.com https://accounts.google.com");
 
