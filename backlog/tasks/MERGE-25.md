@@ -1,17 +1,17 @@
 ---
 id: "MERGE-25"
 title: "Open PDFs from Google Drive's Open with menu: a Drive app, which needs the first invariant rewritten"
-status: "open"
+status: "in_progress"
 priority: "P3"
 epic: "polish"
-horizon: "later"
+horizon: "now"
 depends_on: ["MERGE-18"]
 needs: "Your sign-off on the rewritten invariant, then the Google Cloud and Marketplace setup in your account"
 ---
 
 # MERGE-25 · Open PDFs from Google Drive's Open with menu
 
-*Filed 2026-11-02.* MERGE-18 chose Route A (the OS picker) for picking Drive files from inside PDkef.
+*Filed 2026-11-02; invariant approved 2026-11-02.* MERGE-18 chose Route A (the OS picker) for picking Drive files from inside PDkef.
 This is the other direction, and it is MERGE-18's Route B: in Drive, right-click a PDF, Open with,
 PDkef, the way DocHub and Lumin PDF appear there today. Nothing below is built until the invariant
 wording is approved.

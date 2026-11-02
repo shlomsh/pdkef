@@ -114,7 +114,9 @@ brackets carries the evidence; do not relearn it.
 
 - **No file bytes ever leave the device.** No `fetch`/XHR of PDF contents, no external `connect-src`,
   no cookies or accounts. Anonymous, allowlisted maintenance telemetry is permitted and must never block
-  the tools. CSP `connect-src 'self'` is the backstop. [csp-scripts-pwa]
+  the tools. CSP `connect-src 'self'` is the backstop. One exception, MERGE-25: the optional Drive app
+  on `/drive/` alone signs in with Google (`drive.file`) and fetches the opened file from
+  `www.googleapis.com`; no other page loads a Google script or connects to Google. [csp-scripts-pwa]
 - **The SEO shell stays static HTML.** Marketing, how-to, FAQ and JSON-LD are never moved into an
   island or injected client-side. One `<h1>` per page; primary keyword in title, h1 and description;
   FAQ JSON-LD must match on-page content. Off the table: SSR, any external `connect-src`, any JS
