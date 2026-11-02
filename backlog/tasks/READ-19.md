@@ -167,12 +167,14 @@ Not in C, kept as they are: a tap on the page does not close the pane; Escape's 
 
 ## Acceptance
 
-- [ ] Failing tests first, each seen red: the writer opens and focuses synchronously; `onEdit` replaces the card's
+- [x] Failing tests first, each seen red: the writer opens and focuses synchronously; `onEdit` replaces the card's
   own field; `comment` returns its target; the crop geometry; the pane has no keyboard offset.
-- [ ] WebKit e2e at 402x874 with touch: Comment and Edit open the writer with its field focused and the pane has
+- [x] WebKit e2e at 402x874 with touch: Comment and Edit open the writer with its field focused and the pane has
   no field; Save and Cancel do what they say; a long note's passage sits above the pane; the writer covers the
-  screen in the lamp.
-- [ ] Fresh-context review, findings fixed test first.
+  screen in the lamp. `note-writer.spec.js`, 6 tests, green in WebKit and Chromium with the rest of Highlight's 34.
+- [x] Fresh-context review, findings fixed test first (de944988): the hover toolbar's Comment on a narrow window
+  with a mouse made a note nobody could type into; a blank old note survived Cancel; a turn across 1000 px lost the
+  writer; the pane's scroll margin stayed on the mark.
 - [ ] On Shlomi's iPhone (LAN dev server), normal view and lamp: Comment and Edit raise the keyboard; the field
   stays in view while typing and while the page behind is scrolled; nothing drifts.
 - [x] READ-18 retired as replaced by this ticket; READ-17's phone line moved here and READ-17 closed.
