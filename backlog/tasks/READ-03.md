@@ -18,17 +18,20 @@ The behaviour is [READ-01](READ-01.md)'s requirements (R1 to R46); this ticket b
 ## Outcome
 
 A student opens a paper at `/highlight-pdf/`, on desktop, iPad or phone, digital or scanned. The page fills
-the screen with no tool armed. They swipe along a line and get the band; the popup at its end offers the six
-colors, the underline style and Comment. Comment opens a card in the margin beside the passage (a sheet on a
-phone); Comment over an uncolored line lays the band in the last color first. A comment exists only on a
-highlight. Download writes standard annotations that open in any viewer and come back editable here and in
+the screen. They swipe along a line and get the band, with nothing opening at its end; resting on or tapping
+a highlight offers its colors, the underline style, Comment and Delete. Comment opens a card in the margin
+beside the passage (a sheet on a phone); Comment over an uncolored line lays the band in the last color
+first. A comment exists only on a highlight. Download writes standard annotations that open in any viewer and come back editable here and in
 Sign. Color and underline style are remembered per document and become defaults for new ones.
 
 ## Touch at launch
 
-Shlomi, 2026-11-01: on a phone or iPad the marker arms on a tap, as Sign's tools do. A tap on the marker
-button arms it, a one-finger drag then highlights, and the Stop chip disarms it so swipes scroll again.
-READ-07 later replaces this with long-press and drag. Desktop keeps the marker always in the hand (R1).
+On a phone or iPad a tap on Marker arms it and opens nothing, and a tap on Marker again disarms it, as Sign's
+tool buttons do; there is no Stop button and no bar at the foot of the screen (R50). While armed, the toolbar
+says "Swipe along a line to highlight" (R51) and only a sideways start marks, so a vertical swipe scrolls
+(R52). A tap on a highlight picks it and opens its panel under the toolbar (R7, R47). Whether the marker is
+armed when a file opens on touch is an open call in the design record. Desktop keeps the marker always in the
+hand (R1). READ-07 later replaces arming with long-press and drag.
 
 ## Acceptance
 
@@ -38,6 +41,6 @@ READ-07 later replaces this with long-press and drag. Desktop keeps the marker a
   voice, every claim checked against the code.
 - [ ] Registry entry in `src/data/tools.js`, the non-slash redirect pair in `vercel.json`, the tool count
   updated in CLAUDE.md, README and site copy.
-- [ ] The popup's decisions are pure functions with unit tests, each seen failing first.
+- [ ] The toolbar and panel decisions are pure functions with unit tests, each seen failing first.
 - [ ] Export then read-back is lossless, in Highlight PDF and in Sign (one round-trip e2e).
 - [ ] `npm run build && npm run preview` checked for CSP; `test:seo`, `test:redirects`, `test:css` pass.
