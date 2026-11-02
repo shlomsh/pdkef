@@ -41,6 +41,7 @@ import {
   ScanText,
   IdCard,
   Languages,
+  BookOpen,
 } from 'lucide-preact';
 
 const landingPages = [
@@ -145,6 +146,14 @@ const landingPages = [
     blurb: 'Which fonts draw which languages, generated from the real font files.',
     icon: Languages,
     hub: 'sign',
+    sitemapPriority: '0.6',
+    sitemapChangefreq: 'monthly',
+  },  {
+    href: '/academic-paper-reader/',
+    label: 'Reading academic papers',
+    blurb: 'Highlight a paper, comment beside a passage, and print it with your notes.',
+    icon: BookOpen,
+    hub: 'highlight-pdf',
     sitemapPriority: '0.6',
     sitemapChangefreq: 'monthly',
   },

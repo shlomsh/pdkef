@@ -1,0 +1,197 @@
+title: 'Academic Paper Reader: Highlight and Annotate PDFs | PDkef'
+description: >-
+  A free academic paper reader in your browser. Highlight and underline PDF papers, scanned chapters
+  too, write a comment beside any passage, and print with your notes. Nothing is uploaded.
+breadcrumb: 'Academic paper reader'
+icon: 'FileText'
+kicker: 'Reading papers on a screen'
+h1: 'An Academic Paper Reader for Highlighting and Notes'
+subhead: >-
+  Reading a paper well means marking it: the claim you want to keep, the method you doubt, a question
+  for later. Highlight PDF is the reader I built for that. Drag along a line like a marker, write a
+  comment beside it, and your paper never leaves your device.
+primaryCta:
+  href: '/highlight-pdf/'
+  label: 'Open a paper in Highlight PDF'
+sections:
+  - variant: 'highlight'
+    sketch: 'grid'
+    icon: 'Lightbulb'
+    iconPos: 'tr'
+    kicker: 'Who it is for'
+    heading: 'For anyone who reads to understand'
+    blocks:
+      - kind: 'columns'
+        items:
+          - icon: 'PenLine'
+            title: 'Students'
+            body: >-
+              A course pack, a scanned chapter, the paper your seminar meets on. Mark it as you read,
+              then print it with your notes beside the lines for revision.
+          - icon: 'FileText'
+            title: 'Researchers'
+            body: >-
+              A literature review is a pile of PDFs you keep coming back to. Your highlights and
+              comments download inside the file, so they open in any PDF viewer next time.
+          - icon: 'Lightbulb'
+            title: 'Close readers'
+            body: >-
+              A report, a contract, a long article saved as a PDF. The same marker and the same notes,
+              with nothing to install and no account to make.
+  - sketch: 'arcs'
+    icon: 'PenLine'
+    iconPos: 'br'
+    kicker: 'Highlight'
+    heading: 'Drag along a line, the way you would with a marker'
+    blocks:
+      - kind: 'image'
+        src: '/images/paper-reader-guide/marked-paper.jpg'
+        alt: 'A two-column sample paper in Highlight PDF with yellow, green and pink highlights, one underlined line, and a comment in the margin beside the yellow passage'
+        width: 1000
+        height: 600
+        caption: >-
+          <strong>One page of a sample paper, marked in Highlight PDF.</strong> Three colors, an
+          underline, and a comment in the margin beside the passage it is about.
+      - kind: 'prose'
+        text: >-
+          Open the paper and a yellow marker is already in your hand. Drag along a line and the
+          highlight stays straight on it, stopping at the end of its column, so a two-column paper marks
+          cleanly. Drag down to carry it onto the next lines. Double-click marks one word, and a third
+          click its whole sentence.
+  - sketch: 'waves'
+    icon: 'MousePointerClick'
+    iconPos: 'tl'
+    kicker: 'Annotate'
+    heading: 'Change a mark, underline it, or comment beside it'
+    blocks:
+      - kind: 'image'
+        src: '/images/paper-reader-guide/mark-toolbar.jpg'
+        alt: 'A yellow highlight on a paper with its toolbar open above it: three markers, more colors, highlight or underline, opacity, Comment and Delete'
+        width: 1000
+        height: 316
+        caption: >-
+          <strong>Rest on a highlight for its toolbar:</strong> its colors, highlight or underline,
+          opacity, Comment and Delete.
+      - kind: 'prose'
+        text: >-
+          Rest the pointer on a highlight, or tap it on an iPad, and its toolbar opens. Whatever you
+          pick becomes your marker for the next lines, so a color can carry a meaning: yellow for
+          claims, green for methods, pink for the parts you want to question. <strong>Comment</strong>
+          opens a card in the margin beside its passage, and the card moves with the page as you scroll
+          and zoom.
+  - variant: 'highlight'
+    sketch: 'rings'
+    icon: 'ScanText'
+    iconPos: 'tr'
+    kicker: 'Scanned chapters'
+    heading: 'Highlight a scanned page that has no text to select'
+    blocks:
+      - kind: 'compareFigure'
+        beforeSrc: '/images/paper-reader-guide/scanned-before.jpg'
+        afterSrc: '/images/paper-reader-guide/scanned-after.jpg'
+        beforeLabel: 'Scanned page'
+        afterLabel: 'Highlighted'
+        alt: 'A slightly tilted scanned page of a paper with no marks, wiping to the same scan with a yellow and a green highlight lying along two lines'
+        width: 1000
+        height: 600
+        caption: >-
+          <strong>A page that is only a picture, highlighted line by line.</strong> There is no text
+          layer under it.
+        wipe: true
+      - kind: 'prose'
+        text: >-
+          Library scans and photographed pages are images, with no text in them to select. Highlight
+          PDF reads the lines from the page image itself, and the band still lies
+          along each line, the same as on a digital paper. Pages in Hebrew or Arabic work too: on a
+          right-to-left page the highlight follows the line from right to left.
+  - sketch: 'grid'
+    icon: 'Monitor'
+    iconPos: 'bl'
+    kicker: 'Reading lamp'
+    heading: 'Full screen, with only the paper in front of you'
+    blocks:
+      - kind: 'image'
+        src: '/images/paper-reader-guide/reading-lamp.jpg'
+        alt: 'Highlight PDF in full screen: the marked paper fills the view, a small capsule of controls floats at the top, and the comment sits beside the page'
+        width: 1000
+        height: 672
+        caption: >-
+          <strong>The Reading lamp:</strong> the paper fills the screen, and a small capsule holds
+          everything else.
+      - kind: 'prose'
+        text: >-
+          Pull the cord under the page for the Reading lamp. The paper fills the screen and a floating
+          capsule holds the page jump, zoom, the marker, Undo, Print and Download. It goes quiet while
+          you read and wakes when you reach for it. <strong>Fit text</strong> trims the paper's empty
+          margins away, which is what a laptop screen wants.
+  - sketch: 'arcs'
+    icon: 'Printer'
+    iconPos: 'tr'
+    kicker: 'Keep your notes'
+    heading: 'Print with your notes, or keep them in the PDF'
+    blocks:
+      - kind: 'image'
+        src: '/images/paper-reader-guide/print-with-notes.jpg'
+        alt: 'A print sheet of the marked paper, the page a little smaller, with its comment printed in the right margin beside the yellow passage'
+        width: 1000
+        height: 650
+        caption: >-
+          <strong>Print with my notes:</strong> the comment lands in the margin beside the lines it is
+          about, ready for a seminar.
+      - kind: 'table'
+        caption: 'Where your highlights and comments go, depending on what you need next.'
+        headers: ['What you need', 'What to do']
+        rows:
+          - ['Take your notes into a seminar or an exam', 'Print with my notes: each page a little smaller, its comments in the right margin beside their passages']
+          - ['Share a marked paper with a study partner or a supervisor', 'Download: highlights and comments are saved as standard PDF annotations that open in any PDF viewer']
+          - ['Come back to the paper later', 'It stays in your recent files on this device with everything you did, ready on the home page']
+          - ['Edit your marks again after downloading', 'Open the downloaded file here again and every highlight and comment comes back editable']
+  - variant: 'highlight'
+    sketch: 'waves'
+    icon: 'ShieldCheck'
+    iconPos: 'br'
+    kicker: 'Private by default'
+    heading: 'Your papers and your notes stay on your device'
+    blocks:
+      - kind: 'prose'
+        text: >-
+          A draft you are writing, a paper under review, your own thoughts in the margin: none of it is
+          uploaded. The highlighting, the comments and the download all happen in your browser, and
+          once the page has loaded it keeps working with no connection. It is free and open source,
+          with no account, no watermark and no page limit. I think a good way to read should be free
+          for everyone.
+faq:
+  - question: 'Is this academic paper reader free?'
+    answer: >-
+      Yes. Highlight PDF is free with no signup, no watermark and no page limit, and it is open source.
+      It runs in your browser on a Mac, a PC or an iPad.
+  - question: 'Can I highlight a two-column paper?'
+    answer: >-
+      Yes. The highlight follows the line you drag along and stops at the end of its column, so it
+      never runs across into the next one.
+  - question: 'How do I annotate a PDF paper?'
+    answer: >-
+      Highlight or underline the passages that matter, then rest on a highlight and choose Comment to
+      write a note beside it. A comment always belongs to a highlight, so every note sits next to the
+      words it is about.
+  - question: 'Can I highlight a scanned chapter or a photo of a page?'
+    answer: >-
+      Yes. The highlight reads the lines from the page image itself, so a scanned page or a photo of a
+      book page works with no text layer needed.
+  - question: 'Will my highlights and comments open in other PDF readers?'
+    answer: >-
+      Yes. Download saves them as standard PDF annotations, so they open in any PDF viewer, and they
+      come back editable when you open the file in Highlight PDF again.
+  - question: 'Can I print a paper with my comments?'
+    answer: >-
+      Yes. Print offers Print with my notes, which makes each page a little smaller and puts its
+      comments in the right margin beside their passages. Plain Print gives the pages with their
+      highlights.
+  - question: 'Does it work on an iPad?'
+    answer: >-
+      Yes, in Safari. Swipe along a line to highlight it, tap a highlight to open its toolbar, and use
+      two fingers to zoom and move the page.
+  - question: 'Is my paper uploaded anywhere?'
+    answer: >-
+      No. The highlighting, the comments and the download are all made in your browser. Your file never
+      leaves your device, and there is no processing server.

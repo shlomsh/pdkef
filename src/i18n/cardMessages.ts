@@ -104,6 +104,10 @@ const hebrewGuideCards: Record<string, CardCopy> = {
     title: 'למה 100KB לא מספיק',
     description: 'דוגמאות שנמדדו באמת: כמה עמודים נכנסים לפני שהטקסט מתטשטש.',
   },
+  'academic-paper-reader': {
+    title: 'קריאת מאמרים אקדמיים',
+    description: 'מסמנים מאמר, כותבים הערה ליד הקטע, ומדפיסים אותו עם ההערות.',
+  },
   'how-to-scan-a-document-to-pdf': {
     title: 'איך לסרוק מסמך ל-PDF',
     description: 'הסורקים המובנים באייפון, באנדרואיד ובמחשב, ומתי כדאי להשתמש בכלי הסריקה כאן.',
