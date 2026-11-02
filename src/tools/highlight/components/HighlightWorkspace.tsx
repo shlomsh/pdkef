@@ -13,6 +13,7 @@ import { englishHighlightMessages as t } from '../messages.ts';
 import ZoomMenu from './ZoomMenu.tsx';
 import HighlightPage from './HighlightPage.tsx';
 import MarkerButton from './MarkerButton.tsx';
+import PenHint from './PenHint.tsx';
 import DownloadDone from './DownloadDone.tsx';
 import FullscreenButton from '#editor-ui/FullscreenButton.tsx';
 import ToolShell, { FILE_ACTIONS, useToolShell } from '#shell/ToolShell.tsx';
@@ -201,7 +202,7 @@ function TileRow({ marks, undo, redo, touch, mark, printMenu, withComments, onPr
   const { requestReplace, messages: shellMessages = englishShellMessages } = useToolShell();
   const shortcuts = historyShortcuts(typeof navigator !== 'undefined' && isMacPlatform(navigator.platform));
   return (
-    <ToolShell editor status={touch.armed ? t.armedAction : null}>
+    <ToolShell editor status={touch.armed ? <PenHint marker={marks.marker} text={t.armedAction} /> : null}>
       <div className={`${toolbarStyles.toolbar} ${styles.toolRow}`} role="toolbar" aria-label={t.toolbarLabel} data-editor-toolbar>
         <MarkerButton marker={marks.marker} onChange={marks.rearm} armed={touch.armed} onTap={touch.arm} onDisarm={touch.disarm} mark={mark} buttonClass={toolbarStyles.button} />
         <UndoRedoButtons

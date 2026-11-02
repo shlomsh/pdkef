@@ -42,7 +42,7 @@ interface MarkerButtonProps {
 
 /**
  * The marker in the hand, as a button (R19): it shows the armed marker, a dot in its color or the underline
- * glyph, and opens the panel of the look: the six colors and the color wheel, and the Highlight | Underline toggle, whose highlight caret holds the opacity. On touch a tap also arms the marker. Given a `mark`, the panel is that highlight's: it edits it, adds Comment and Delete, and a dismissal releases it.
+ * glyph, and opens the panel of the look: the six colors and the color wheel, and the Highlight | Underline toggle, whose highlight caret holds the opacity. On touch a tap only arms and disarms it. Given a `mark`, the panel is that highlight's: it edits it, adds Comment and Delete, and a dismissal releases it.
  */
 export default function MarkerButton({ marker, onChange, armed = false, onTap, onDisarm, onOpenChange, isCoarse = coarsePointer, mark, buttonClass }: MarkerButtonProps) {
   const [penOpen, setOpen] = useState(false);
@@ -109,9 +109,8 @@ export default function MarkerButton({ marker, onChange, armed = false, onTap, o
         type="button" class={buttonClass ?? styles.button} aria-haspopup="true" aria-expanded={open}
         aria-label={t.marker} title={t.marker} data-armed={armed && isCoarse() ? '' : undefined}
         onClick={(e) => {
-          // On touch a tap arms the marker and opens the panel; the next tap disarms it and closes the panel.
-          if (isCoarse() && armed && !mark) { onDisarm?.(); toggle(false); return; }
-          if (isCoarse() && !armed) onTap?.();
+          // On touch a tap only arms the marker and the next one disarms it; the panel is a tapped highlight's.
+          if (isCoarse() && !mark) { if (armed) onDisarm?.(); else onTap?.(); return; }
           focusColors.current = !open && e.detail === 0;
           if (open) close(); else toggle(true);
         }}

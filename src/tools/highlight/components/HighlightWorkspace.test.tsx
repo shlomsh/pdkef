@@ -97,6 +97,7 @@ describe('HighlightWorkspace', () => {
       expect(hint()).toBeUndefined();
       act(() => { marker().click(); });
       expect(hint()).toBeDefined();
+      expect(container!.querySelector('[data-pen-hint] [data-marker-dot]')).not.toBeNull();
       expect(container!.querySelector('[data-armed-chip]')).toBeNull();
       act(() => { marker().click(); });
       expect(hint()).toBeUndefined();
