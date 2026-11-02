@@ -19,6 +19,17 @@
   .cord { --len: 10px; --bead: 19px; }
 }
 .drop, .settle, .swing { position: absolute; left: 0; top: 0; transform-origin: 0 0; }
+.tuck { position: absolute; left: 0; top: 0; transition: translate 560ms cubic-bezier(.3, 1.45, .55, 1); }
+/* Scrolled away: the cord slides up into the card until the bead's centre is 2 px above the edge, so only its lower tip shows. The clip hides the rest.
+   Tucking rises past the target, hidden, and the tip then pops down to it. */
+.cord[data-tucked] .tuck { translate: 0 calc(2px - var(--by)); animation: tuck 520ms ease-out; }
+/* At rest the clip is the whole screen (the entrance flies the bead up to the capsule); it lets go only once an untuck has dropped the bead. */
+.drop { clip-path: inset(-100vh -100vw); transition: clip-path 0s 560ms; }
+.cord[data-tucked] .drop { clip-path: inset(0 -100vw -100vh); transition: none; }
+.cord[data-tucked] .tag { opacity: 0; transition: opacity 160ms; }
+.cord[data-tucked] .bead, .cord[data-tucked] .pull:hover .bead, .cord[data-tucked] .pull:focus-visible .bead { box-shadow: 0 3px 7px var(--color-black-20), inset 0 -1px 2px var(--color-black-20); }
+/* The 44 px hit area mostly sits above the edge and is clipped: this strip under it makes the tip's target 44 x 30 px. */
+.cord[data-tucked] .pull::after { content: ''; position: absolute; left: 0; right: 0; top: 100%; height: 10px; }
 .line { position: absolute; left: 0; top: 0; transform-origin: 0 0; }
 .string {
   position: absolute; left: -0.75px; top: 0; width: 1.5px; height: calc(var(--len) + 2px); border-radius: 1px;
@@ -43,10 +54,10 @@
 /* Hover only where a pointer hovers: iOS Safari spends a finger's first tap on a :hover that changes the cord. */
 @media (hover: hover) {
   .pull:hover .bead { box-shadow: var(--bead-lit); }
-  .cord:hover .swing { animation: sway 1100ms ease-in-out; }
+  .cord:not([data-tucked]):hover .swing { animation: sway 1100ms ease-in-out; }
 }
 .pull:focus-visible { outline: 2px solid var(--color-text); outline-offset: -4px; border-radius: 50%; }
-.cord:has(.pull:focus-visible) .swing { animation: sway 1100ms ease-in-out; }
+.cord:not([data-tucked]):has(.pull:focus-visible) .swing { animation: sway 1100ms ease-in-out; }
 
 /* The label is inside the button, so a click on the words pulls the cord. It sits beside the bead: to its right on a desktop (with the hint), to its left on a phone, where the row is full. */
 .tag {
@@ -62,9 +73,11 @@
 /* It drops in with a small swing when the file opens, once: the lamp's display:none would otherwise replay it on every exit. */
 .cord[data-intro] .drop { animation: drop 900ms var(--ease-out) 250ms both; }
 @keyframes sway { 0% { rotate: 0deg; } 22% { rotate: -5deg; } 48% { rotate: 3.4deg; } 72% { rotate: -1.6deg; } 100% { rotate: 0deg; } }
+@keyframes tuck { 0% { translate: 0 0; } 65% { translate: 0 calc(-6px - var(--by)); } 100% { translate: 0 calc(2px - var(--by)); } }
 @keyframes drop { 0% { transform: scaleY(0.05); opacity: 0; } 30% { opacity: 1; } 62% { transform: scaleY(1.08); } 82% { transform: scaleY(0.98); } 100% { transform: scaleY(1); opacity: 1; } }
 @media (prefers-reduced-motion: reduce) {
   .cord[data-intro] .drop { animation: none; }
   .cord:hover .swing, .cord:has(.pull:focus-visible) .swing { animation: none; }
-  .bead { transition: none; }
+  .bead, .tuck, .drop, .cord[data-tucked] .tag { transition: none; }
+  .cord[data-tucked] .tuck { animation: none; }
 }
