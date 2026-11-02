@@ -90,7 +90,7 @@ export const englishHighlightMessages: HighlightMessages = {
   restHint: 'Rest on a highlight to change it',
   tapHint: 'Tap a highlight to change it',
   marker: 'Marker',
-  armedAction: 'Swipe along a line to highlight',
+  armedAction: 'Swipe to highlight',
   printPlain: 'Print',
   printWithNotes: 'Print with my notes',
   printNotesAtEnd: 'Print with notes at the end',

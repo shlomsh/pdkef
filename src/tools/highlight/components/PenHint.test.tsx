@@ -13,7 +13,7 @@ afterEach(() => {
 function mount(marker: Marker) {
   container = document.createElement('div');
   document.body.appendChild(container);
-  act(() => render(<PenHint marker={marker} text="Swipe along a line to highlight" />, container!));
+  act(() => render(<PenHint marker={marker} text="Swipe to highlight" />, container!));
   return container;
 }
 
@@ -24,7 +24,7 @@ describe('PenHint', () => {
     expect(dot.style.background.toLowerCase()).toContain('rgb(255, 143, 207)');
     expect(dot.getAttribute('aria-hidden')).toBe('true');
     expect(root.querySelector('[data-marker-underline]')).toBeNull();
-    expect(root.textContent).toBe('Swipe along a line to highlight');
+    expect(root.textContent).toBe('Swipe to highlight');
     expect(dot.compareDocumentPosition(root.querySelector('span span')!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 

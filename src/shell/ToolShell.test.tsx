@@ -20,7 +20,7 @@ describe('ToolShell editor variant', () => {
     container.remove();
   });
 
-  const mount = (editor: boolean) => {
+  const mount = (editor: boolean, extra: Record<string, unknown> = {}) => {
     const file = new File(['%PDF-1.4'], 'form.pdf', { type: 'application/pdf' });
     act(() => {
       render(
@@ -34,7 +34,7 @@ describe('ToolShell editor variant', () => {
             draftSaveState: 'saved',
           }}
         >
-          <ToolShell editor={editor} status={<span data-status>hint</span>}>
+          <ToolShell editor={editor} status={<span data-status>hint</span>} {...extra}>
             <button type="button">tool</button>
           </ToolShell>
         </ToolShellContext.Provider>,
@@ -42,6 +42,16 @@ describe('ToolShell editor variant', () => {
       );
     });
   };
+
+  // Highlight's phone hint sits beside the name; only the editor shell honours it.
+  it('adds the status-beside class only on the editor variant', () => {
+    mount(true, { statusBeside: true });
+    expect(container.querySelector('[class*="status-beside"]')).not.toBeNull();
+    mount(true);
+    expect(container.querySelector('[class*="status-beside"]')).toBeNull();
+    mount(false, { statusBeside: true });
+    expect(container.querySelector('[class*="status-beside"]')).toBeNull();
+  });
 
   // The document is right under the card at full size; the 34px page-1 render
   // was what forced the phone identity into two lines, and cost a pdf.js

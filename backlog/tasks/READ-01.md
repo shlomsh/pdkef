@@ -39,10 +39,10 @@ The reasons and the rejected alternatives are in "Decisions and why" at the end.
    time (an open menu or caret first, then the toolbar or the picked mark).
 50. On touch a tap on Marker arms it and opens nothing; a tap on Marker while armed disarms it, as Sign's
     tool buttons do. There is no Stop button and no bar at the foot of the screen.
-51. On touch, while armed, the hint "Swipe along a line to highlight", preceded by the pen's look (a dot in
-    its colour at its opacity, or the underline glyph), takes the file name's place in the toolbar card's
-    identity row (the shared ToolShell status line, as Sign's tool hint). In full screen there is no hint;
-    the capsule's Marker shows the armed state (R19).
+51. On touch, while armed, the hint "Swipe to highlight", preceded by the pen's look (a dot in its colour at
+    its opacity, or the underline glyph), sits beside the file name on one line in the toolbar card's
+    identity row, after a hairline; the name ellipsises first, and the row's height never changes. In full
+    screen there is no hint; the capsule's Marker shows the armed state (R19).
 52. On touch, while armed, one finger marks only when it starts on a line of text and moves sideways: the
     first 10 px of travel decide, sideways at least twice the vertical lays a mark and anything else is a
     native scroll. A finger that starts off the text (a margin, a gap between paragraphs) moves the page in
