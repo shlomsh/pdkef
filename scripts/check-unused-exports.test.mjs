@@ -1,5 +1,9 @@
+import { execFileSync } from 'node:child_process';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { analyzeExports, compareUnused, nextUnusedRecord } from './check-unused-exports.mjs';
+import { analyzeExports, compareUnused, listSourceFiles, nextUnusedRecord } from './check-unused-exports.mjs';
 
 // A planted mini-project is a { path: source } map; paths are repo-relative.
 const names = (list) => list.map((e) => `${e.file}:${e.name}`).sort();
@@ -113,5 +117,24 @@ describe('ratchet comparison (ARCH-61)', () => {
     expect(nextUnusedRecord(rec, { neverUsed: 3, ownFileOnly: 9, testOnly: 20 })).toEqual({ neverUsed: 3, ownFileOnly: 9, testOnly: 20 });
     expect(nextUnusedRecord(rec, rec)).toBeNull();
     expect(nextUnusedRecord(rec, { neverUsed: 4, ownFileOnly: 1, testOnly: 20 })).toBeNull();
+  });
+});
+
+describe('listSourceFiles', () => {
+  it('lists a new untracked file, but not an ignored one', () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'unused-exports-'));
+    try {
+      const git = (...a) => execFileSync('git', a, { cwd: dir });
+      git('init', '-q');
+      fs.mkdirSync(path.join(dir, 'src'));
+      fs.writeFileSync(path.join(dir, '.gitignore'), 'src/ignored.ts\n');
+      fs.writeFileSync(path.join(dir, 'src/tracked.ts'), 'export const a = 1;\n');
+      git('add', '.gitignore', 'src/tracked.ts');
+      fs.writeFileSync(path.join(dir, 'src/fresh.ts'), 'export const b = 1;\n');
+      fs.writeFileSync(path.join(dir, 'src/ignored.ts'), 'export const c = 1;\n');
+      expect(listSourceFiles(dir).sort()).toEqual(['src/fresh.ts', 'src/tracked.ts']);
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
   });
 });
