@@ -14,7 +14,8 @@ export function useBoardScroll({ workspaceRef, fullscreen, pages, zoom, setting,
   pages: PageBox[];
   zoom: number;
   setting: ZoomSetting;
-  view: { width: number; height: number };
+  /** `inset` is the workspace's own side padding, measured with its size (the lamp's only). */
+  view: { width: number; height: number; inset?: number };
   /** The notes column's width in screen px while the rail shows in the lamp: the column is page + notes wide. */
   notesPx?: number;
 }) {
@@ -30,8 +31,7 @@ export function useBoardScroll({ workspaceRef, fullscreen, pages, zoom, setting,
   // Only the lamp has a board to move on; the normal view is the card at its own width.
   const columnWidth = widest * zoom + notesPx;
   // The workspace's own padding: the board has to leave it out of the room it centres in, or a narrow column could still scroll.
-  const ws0 = workspaceRef.current;
-  const inset = fullscreen && ws0 ? (parseFloat(getComputedStyle(ws0).paddingLeft) || 0) : 0;
+  const inset = fullscreen ? view.inset ?? 0 : 0;
   const board = fullscreen ? boardLayout(columnWidth, view.width, inset) : { slack: 0, boardWidth: columnWidth };
   const lastFullscreen = useRef(fullscreen);
   const settleView = useRef(false);

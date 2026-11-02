@@ -221,7 +221,8 @@ the contract before READ-01 closes. Fixed since: the unclamped live pan (`94f8b1
 second panel in full screen, the digest recomputed on every autosave (now once per file), and R49's 36 px switch
 halves with the row wrapping at 402 px (the colors became one framed choice and the row fits, 2026-11-02), and the
 finger swipe that did nothing when it started on a highlight (a marked line is a line of text: sideways lays a band, R52), and the capsule's one
-`menuOpen` flag (it now tracks each open menu, so the zoom menu closing never dozes it under an open Marker panel).
+`menuOpen` flag (it now tracks each open menu, so the zoom menu closing never dozes it under an open Marker panel), and the lamp's padding read on every render
+(now measured with the view).
 - R9, R39 on a coarse pointer with a keyboard (iPad): the touch panel has no 1-6/U/C/Delete keys, though its
   buttons advertise them, and a keyboard focus on a mark sets the desktop panel's target, which never shows.
 - Outside full screen the armed page is `touch-action: pan-y`, so the browser's own pinch is off and nothing
@@ -233,8 +234,6 @@ finger swipe that did nothing when it started on a highlight (a marked line is a
 - Each touch press reads the page canvas for `onLine`, and a mark reads it again; one reader per press would do.
 - On a plain-http page the SHA-256 fallback is synchronous: a very large PDF blocks the main thread for about a
   second per 50 MB, once per file.
-- `useBoardScroll` reads the workspace's padding during render, on every render of the lamp; measure it with
-  the view instead.
 
 ## Decisions and why
 
