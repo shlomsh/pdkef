@@ -18,7 +18,10 @@ beforeEach(() => {
   ws = root.querySelector<HTMLElement>('#ws')!;
   box(ws, 0, 0, 1000, 800);
   box(root.querySelector('[data-lamp-part="cord"]')!, 500, 250, 0, 0);
-  box(root.querySelector('[data-lamp-bead]')!, 490, 270, 20, 20);
+  // The bead's rect is what the drop-in's squash leaves (a 1 px dot); its offset box is the rest position, 20 px at (-10, 20) from the cord.
+  const bead = root.querySelector('[data-lamp-bead]')!;
+  box(bead, 500, 251, 1, 1);
+  for (const [prop, value] of [['offsetLeft', -10], ['offsetTop', 20], ['offsetWidth', 20], ['offsetHeight', 20]] as const) Object.defineProperty(bead, prop, { configurable: true, value });
   box(root.querySelector('[role="toolbar"]')!, 300, 12, 400, 48);
   box(root.querySelector('#p0')!, 100, 300, 200, 280);
   box(root.querySelector('#p1')!, 100, 900, 200, 280);
@@ -38,6 +41,7 @@ describe('lampDom', () => {
     expect(before.pageIndex).toBe(0);
     expect(before.page).toEqual({ left: 100, top: 300, width: 200, height: 280 });
     expect(before.bead).toEqual({ cx: 500, cy: 280, r: 10 });
+    expect(planAfter('exit', ws, null, { left: 300, top: 12, width: 400, height: 48 }).plan.tracks.find((t) => t.part === 'morph')!.keys.at(-2)).toMatchObject({ left: '490px', top: '270px', width: '20px' });
     expect(before.cordTop).toBe(250);
     expect(measureBefore('exit', ws).capsule).toEqual({ left: 300, top: 12, width: 400, height: 48 });
   });

@@ -34,6 +34,9 @@ function Harness() {
 }
 
 function stubLayout() {
+  // The bead is measured by its offset box (the drop-in's transform must not matter): 20 px at (-10, 10) from the cord at (720, 252).
+  const offset = (prop: string, value: number) => vi.spyOn(HTMLElement.prototype, prop as 'offsetLeft', 'get').mockImplementation(function (this: HTMLElement) { return this.hasAttribute('data-lamp-bead') ? value : 0; });
+  offset('offsetLeft', -10); offset('offsetTop', 10); offset('offsetWidth', 20); offset('offsetHeight', 20);
   vi.spyOn(Element.prototype, 'getBoundingClientRect').mockImplementation(function (this: Element) {
     const key = this.hasAttribute('data-lamp-bead') ? 'bead' : this.getAttribute('data-lamp-part') === 'cord' ? 'cord' : this.hasAttribute('data-pill') ? 'pill' : null;
     const [left, top, width, height] = key ? BOXES[key] : this.hasAttribute('data-lamp-page') ? [100, 300, 200, 280] : [0, 0, 1000, 800];
@@ -56,10 +59,12 @@ beforeEach(() => {
   stubLayout();
   vi.stubGlobal('matchMedia', () => ({ matches: false, addEventListener() {}, removeEventListener() {} }));
   container = document.createElement('div');
+  document.body.appendChild(container);
   act(() => render(<Harness />, container!));
 });
 afterEach(() => {
   act(() => render(null, container!));
+  container!.remove();
   vi.restoreAllMocks();
   delete (Element.prototype as { animate?: unknown }).animate;
   vi.unstubAllGlobals();
@@ -119,5 +124,52 @@ describe('useLampEntrance', () => {
     act(() => api.toggle());
     await flush();
     expect(parts()).toEqual(['capsule']);
+  });
+
+  async function pressExit() {
+    act(() => api.toggle());
+    await flush();
+    await act(async () => { played.forEach((p) => p.finish()); await Promise.resolve(); await Promise.resolve(); });
+    return played.length;
+  }
+
+  it('reduced motion leaves no ghost capsule behind on the way out', async () => {
+    await pressExit();
+    vi.stubGlobal('matchMedia', () => ({ matches: true, addEventListener() {}, removeEventListener() {} }));
+    act(() => api.toggle());
+    await flush();
+    expect(container!.querySelector('[data-lamp-part="ghost"]')!.childElementCount).toBe(0);
+  });
+
+  it('with nothing to animate the ghost is cleared and focus still returns to the cord', async () => {
+    await pressExit();
+    delete (Element.prototype as { animate?: unknown }).animate;
+    (document.activeElement as HTMLElement | null)?.blur();
+    act(() => api.toggle());
+    await flush();
+    expect(container!.querySelector('[data-lamp-part="ghost"]')!.childElementCount).toBe(0);
+    expect(document.activeElement).toBe(container!.querySelector('[data-lamp-part="pull"]'));
+  });
+
+  it('after the exit settles, focus returns to the cord if it was dropped on the body', async () => {
+    const start = await pressExit();
+    (document.activeElement as HTMLElement | null)?.blur();
+    act(() => api.toggle());
+    await flush();
+    expect(document.activeElement).toBe(document.body);
+    await act(async () => { played.slice(start).forEach((p) => p.finish()); await Promise.resolve(); await Promise.resolve(); });
+    expect(document.activeElement).toBe(container!.querySelector('[data-lamp-part="pull"]'));
+  });
+
+  it('leaves focus alone when the reader already has it somewhere else', async () => {
+    const start = await pressExit();
+    const other = document.createElement('input');
+    document.body.appendChild(other);
+    act(() => api.toggle());
+    await flush();
+    other.focus();
+    await act(async () => { played.slice(start).forEach((p) => p.finish()); await Promise.resolve(); await Promise.resolve(); });
+    expect(document.activeElement).toBe(other);
+    other.remove();
   });
 });

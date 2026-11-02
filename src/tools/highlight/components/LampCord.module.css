@@ -48,23 +48,23 @@
 .pull:focus-visible { outline: 2px solid var(--color-text); outline-offset: -4px; border-radius: 50%; }
 .cord:has(.pull:focus-visible) .swing { animation: sway 1100ms ease-in-out; }
 
-/* The label sits beside the bead: to its right on a desktop (with the hint), to its left on a phone, where the row is full. */
+/* The label is inside the button, so a click on the words pulls the cord. It sits beside the bead: to its right on a desktop (with the hint), to its left on a phone, where the row is full. */
 .tag {
-  position: absolute; top: calc(var(--by) - 9px); left: calc(var(--bead) / 2 + 10px); display: inline-flex; align-items: center; gap: 6px;
-  white-space: nowrap; font-size: 13px; font-weight: 600; line-height: 18px; color: var(--color-text); pointer-events: none;
+  position: absolute; top: calc(var(--hit) / 2 - 9px); left: calc(var(--hit) / 2 + var(--bead) / 2 + 10px); display: inline-flex; align-items: center; gap: 6px;
+  white-space: nowrap; font-size: 13px; font-weight: 600; line-height: 18px; color: var(--color-text);
 }
 .hint { font-style: normal; font-weight: 400; color: var(--color-muted); }
 @media (max-width: 640px) {
-  .tag { left: auto; right: calc(var(--bead) / 2 + 9px); top: calc(var(--by) - 8px); font-size: 12px; line-height: 16px; }
+  .tag { left: auto; right: calc(var(--hit) / 2 + var(--bead) / 2 + 9px); top: calc(var(--hit) / 2 - 8px); font-size: 12px; line-height: 16px; }
   .hint { display: none; }
 }
 
-/* It drops in with a small swing when the file opens. */
-.drop { animation: drop 900ms var(--ease-out) 250ms both; }
+/* It drops in with a small swing when the file opens, once: the lamp's display:none would otherwise replay it on every exit. */
+.cord[data-intro] .drop { animation: drop 900ms var(--ease-out) 250ms both; }
 @keyframes sway { 0% { rotate: 0deg; } 22% { rotate: -5deg; } 48% { rotate: 3.4deg; } 72% { rotate: -1.6deg; } 100% { rotate: 0deg; } }
 @keyframes drop { 0% { transform: scaleY(0.05); opacity: 0; } 30% { opacity: 1; } 62% { transform: scaleY(1.08); } 82% { transform: scaleY(0.98); } 100% { transform: scaleY(1); opacity: 1; } }
 @media (prefers-reduced-motion: reduce) {
-  .drop { animation: none; }
+  .cord[data-intro] .drop { animation: none; }
   .cord:hover .swing, .cord:has(.pull:focus-visible) .swing { animation: none; }
   .bead { transition: none; }
 }
