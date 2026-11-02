@@ -20,6 +20,7 @@ vi.mock('../hooks/usePageGeometry.ts', async (importOriginal) => {
     return geometryOverride ? { ...real, geometry: geometryOverride as never } : real;
   } };
 });
+vi.mock('../lib/outline/markOutline.ts', () => ({ outlineVertices: () => [[0, 0], [10, 0], [10, 10]] }));
 vi.mock('#editor/geometry/sketchStroke.ts', () => ({
   strokeSeed: () => 7, sketchBands: vi.fn(() => [['Z']]), sketchUnderline: vi.fn(() => [['Z']]), svgPath: () => 'M0 0Z',
 }));
@@ -41,7 +42,7 @@ const dispatch = vi.fn();
 const logAction = vi.fn();
 const rearm = vi.fn();
 
-function mount(elements: EditorElement[], marker = DEFAULT_MARKER, armed?: boolean, extra: { chrome?: number; pickedId?: string | null; onPickMark?: (id: string) => void; rail?: preact.ComponentChildren; pageTurns?: Record<number, 1 | 2 | 3> } = {}) {
+function mount(elements: EditorElement[], marker = DEFAULT_MARKER, armed?: boolean, extra: { chrome?: number; pickedId?: string | null; openMarks?: { openId: string | null; hoverId: string | null }; onPickMark?: (id: string) => void; rail?: preact.ComponentChildren; pageTurns?: Record<number, 1 | 2 | 3> } = {}) {
   act(() => render(
     <HighlightPage
       pdfDocument={null} pageIndex={0} widthPx={600} elements={elements} marker={marker} armed={armed} {...extra}
@@ -85,6 +86,21 @@ describe('HighlightPage', () => {
     const svg = container.querySelector('[data-element-id="h1"] svg[data-highlight-sketch]')!;
     expect(svg.getAttribute('viewBox')).toBe('0 0 180 32');
     expect(container.querySelector('[data-element-id="h2"] [data-highlight-band]')).not.toBeNull();
+  });
+
+  it('READ-13: only the open mark wears the pencil outline, and the card-hovered one a faint pass', async () => {
+    geometryOverride = { width: 600, height: 800 };
+    mount([mark, { ...mark, id: 'h2', top: 40 }, { ...mark, id: 'h3', top: 60 }], DEFAULT_MARKER, undefined, { openMarks: { openId: 'h1', hoverId: 'h2' } });
+    await vi.waitFor(() => expect(container.querySelectorAll('svg[data-mark-outline]')).toHaveLength(2), { timeout: 3000 });
+    expect(container.querySelector('[data-element-id="h1"] svg[data-mark-outline]')).not.toBeNull();
+    expect(container.querySelector('[data-element-id="h2"] svg[data-mark-outline]')).not.toBeNull();
+    expect(container.querySelector('[data-element-id="h3"] svg[data-mark-outline]')).toBeNull();
+  });
+
+  it('READ-13: with nothing open no outline is drawn', () => {
+    geometryOverride = { width: 600, height: 800 };
+    mount([mark]);
+    expect(container.querySelector('svg[data-mark-outline]')).toBeNull();
   });
 
   it('draws each highlight on this page in a wrapper placed by its box in percent', () => {

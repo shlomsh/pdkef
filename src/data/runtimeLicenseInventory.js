@@ -103,6 +103,12 @@ export const RUNTIME_LICENSE_PACKAGES = [
     "url": "https://101arrowz.github.io/fflate"
   },
   {
+    "name": "hachure-fill",
+    "version": "0.5.2",
+    "license": "MIT",
+    "url": "https://github.com/pshihn/hachure-fill#readme"
+  },
+  {
     "name": "html-entities",
     "version": "2.6.0",
     "license": "MIT",
@@ -127,10 +133,28 @@ export const RUNTIME_LICENSE_PACKAGES = [
     "url": "https://github.com/nodeca/pako"
   },
   {
+    "name": "path-data-parser",
+    "version": "0.1.0",
+    "license": "MIT",
+    "url": "https://github.com/pshihn/path-data-parser#readme"
+  },
+  {
     "name": "pdfjs-dist",
     "version": "6.4.299",
     "license": "Apache-2.0",
     "url": "https://mozilla.github.io/pdf.js/"
+  },
+  {
+    "name": "points-on-curve",
+    "version": "0.2.0",
+    "license": "MIT",
+    "url": "https://github.com/pshihn/bezier-points#readme"
+  },
+  {
+    "name": "points-on-path",
+    "version": "0.2.1",
+    "license": "MIT",
+    "url": "https://github.com/pshihn/points-on-path#readme"
   },
   {
     "name": "preact",
@@ -149,6 +173,12 @@ export const RUNTIME_LICENSE_PACKAGES = [
     "version": "2.0.2",
     "license": "MIT",
     "url": "https://github.com/floatdrop/require-from-string"
+  },
+  {
+    "name": "roughjs",
+    "version": "4.6.6",
+    "license": "MIT",
+    "url": "https://roughjs.com"
   },
   {
     "name": "signature_pad",

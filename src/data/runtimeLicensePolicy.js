@@ -28,7 +28,7 @@ export const APPROVED_RUNTIME_LICENSES = new Set([
 export const RUNTIME_ROOT_PACKAGES = [
   '@astrojs/preact', '@cantoo/pdf-lib', '@floating-ui/dom', '@floating-ui/react', '@pdf-lib/fontkit',
   '@vercel/analytics', '@vercel/functions', '@vercel/speed-insights', 'astro', 'bidi-js', 'lucide-preact',
-  'pdfjs-dist', 'preact', 'regenerator-runtime', 'signature_pad', 'sortablejs',
+  'pdfjs-dist', 'preact', 'regenerator-runtime', 'roughjs', 'signature_pad', 'sortablejs',
 ];
 
 export const BUILD_ONLY_CLOSURES = new Set(['astro', '@astrojs/preact', '@vercel/functions']);
@@ -40,7 +40,8 @@ export const RUNTIME_PACKAGE_NAMES = [
   ...RUNTIME_ROOT_PACKAGES,
   '@preact/signals', '@preact/signals-core',
   '@floating-ui/core', '@floating-ui/react-dom', '@floating-ui/utils', 'culori', 'fflate',
-  'html-entities', 'node-html-better-parser', 'pako', 'require-from-string', 'tabbable', 'tslib',
+  'hachure-fill', 'html-entities', 'node-html-better-parser', 'pako', 'path-data-parser', 'points-on-curve',
+  'points-on-path', 'require-from-string', 'tabbable', 'tslib',
 ].sort((a, b) => a.localeCompare(b));
 
 export const LICENSE_URL_OVERRIDES = {

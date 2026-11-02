@@ -100,6 +100,7 @@
     "pdfjs-dist": "^6.4.299",
     "preact": "^10.29.8",
     "regenerator-runtime": "^0.14.1",
+    "roughjs": "4.6.6",
     "signature_pad": "^5.1.4",
     "sortablejs": "^1.15.7"
   },

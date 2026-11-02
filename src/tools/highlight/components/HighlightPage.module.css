@@ -1,11 +1,12 @@
 .page { margin: 0 auto; }
 /* A highlight's box is placed by its element in percent of the page; the swipe rewrites it while it paints. */
 .mark { position: absolute; }
-/* R40: a dark 2 px outline with a light 1 px ring inside it, so it holds on the page and on any wash. Pointer focus shows nothing. The mark the panel up top is editing (touch) wears it too. */
-.mark:focus { outline: none; }
-.mark:focus-visible, .mark[data-comment-focus], .mark[data-picked] { outline: 2px solid var(--color-text); outline-offset: 1px; box-shadow: 0 0 0 1px var(--color-surface); }
-/* The card under the pointer: the same ring, dashed and lighter, so the link reads without competing with the focused one. */
-.mark[data-comment-hover]:not([data-comment-focus]) { outline: 2px dashed color-mix(in srgb, var(--color-text) 60%, transparent); outline-offset: 1px; }
+/* R40 / READ-13: the open mark (its note open, picked on touch, or keyboard focus) is outlined by MarkOutline, a pencil line around the text, so the box itself carries no CSS outline. Pointer focus shows nothing. */
+.mark:focus, .mark:focus-visible { outline: none; }
+/* READ-13: while a note is open or a mark is picked, the other marks step back; the hovered or focused one, and the open one, stay at full. Note markers are not marks and never fade. */
+:global([data-mark-open]) .mark:not(:hover, :focus-visible, [data-comment-focus], [data-picked]) > :global([data-highlight-root]) { opacity: 0.55; }
+.mark > :global([data-highlight-root]) { transition: opacity 150ms var(--ease-out, ease-out); }
+@media (prefers-reduced-motion: reduce) { .mark > :global([data-highlight-root]) { transition: none; } }
 /* Armed for a finger: a vertical start scrolls natively, a sideways one from a line is ours to mark (useMarkSwipe claims it).
    In the lamp the page moves sideways through its own pan. Outside it the browser zooms and pans (R62): a line's sideways move
    is claimed from its first pixel, so a sideways start off the text pans the zoomed page natively. */

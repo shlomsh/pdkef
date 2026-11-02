@@ -71,7 +71,7 @@ const LAZY_ONLY = [
     // Every tool that writes a PDF. /pdf-to-image/ is deliberately absent: it
     // reads with pdf.js and never builds a document, so it should not reach
     // pdf-lib at all, and listing it here would make that a requirement.
-    reachableFrom: ['sign', 'redact', 'merge', 'split', 'compress', 'unlock', 'image-to-pdf', 'scan-to-pdf', 'organize-pdf', 'rotate-pdf', 'remove-pages', 'add-page-numbers-to-pdf', 'extract-pdf-pages'],
+    reachableFrom: ['sign', 'redact', 'highlight-pdf', 'merge', 'split', 'compress', 'unlock', 'image-to-pdf', 'scan-to-pdf', 'organize-pdf', 'rotate-pdf', 'remove-pages', 'add-page-numbers-to-pdf', 'extract-pdf-pages'],
   },
   {
     chunk: /^pdf\./,
@@ -86,6 +86,7 @@ const LAZY_ONLY = [
     why: 'Scan\'s warp, filters and edge guess (SCAN-01): nothing needs them until a photo is in',
     reachableFrom: ['scan-to-pdf'],
   },
+  { chunk: /^markOutlinePath\./, why: 'rough.js pencil outline, loaded on the first open mark (READ-13)', reachableFrom: ['highlight-pdf'] },
 ];
 
 /**
@@ -100,7 +101,7 @@ const PAGES = [
   '', 'he',
   'sign', 'redact', 'merge', 'compress', 'compress-image', 'split',
   'unlock', 'image-to-pdf', 'scan-to-pdf', 'organize-pdf', 'rotate-pdf', 'remove-pages',
-  'add-page-numbers-to-pdf', 'extract-pdf-pages', 'pdf-to-image',
+  'add-page-numbers-to-pdf', 'extract-pdf-pages', 'pdf-to-image', 'highlight-pdf',
   'he/sign', 'he/merge', 'he/compress',
 ];
 

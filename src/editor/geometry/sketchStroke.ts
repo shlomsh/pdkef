@@ -57,7 +57,7 @@ function closedCurve(p: readonly Pt[], map: (pt: Pt) => Pt): PathOp[] {
  * A rect in the text's own frame (text runs along +x, its foot is the bottom) and the map from that frame back to the
  * page. Turns match the clean underline: 1 puts the foot on the displayed left, 2 on the top, 3 on the right.
  */
-function textFrame(band: SketchRect, turns: number): { rect: SketchRect; map: (pt: Pt) => Pt } {
+export function textFrame(band: SketchRect, turns: number): { rect: SketchRect; map: (pt: Pt) => Pt } {
   const { x, y, w, h } = band;
   switch (turns & 3) {
     case 1: return { rect: { x: 0, y: 0, w: h, h: w }, map: ([a, b]) => [x + w - b, y + a] };

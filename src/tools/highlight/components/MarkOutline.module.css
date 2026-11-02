@@ -1,0 +1,7 @@
+/* READ-13: the open mark's pencil outline. It sits over the box and runs past it (the staircase is padded around the text); it is only ink, never a hit target. */
+.outline { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; }
+.outline path { fill: none; stroke: var(--color-text); stroke-width: 1.2px; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 1; animation: draw 450ms ease-out; }
+/* The card under the pointer: one faint pass, drawn whole. */
+.faint path { stroke: color-mix(in srgb, var(--color-text) 45%, transparent); animation: none; }
+@keyframes draw { from { stroke-dashoffset: 1; } to { stroke-dashoffset: 0; } }
+@media (prefers-reduced-motion: reduce) { .outline path { animation: none; } }
