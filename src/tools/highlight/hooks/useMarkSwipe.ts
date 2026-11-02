@@ -46,7 +46,7 @@ const marks = (event: PointerEvent, armed: boolean) => (
 
 /**
  * A press on the page starts a swipe that lays the marker's bands; the gesture paints during the swipe
- * and commits once. Returns the pointerdown handler. A press on a highlight starts nothing.
+ * and commits once. Returns the pointerdown handler. A mouse press on a highlight starts nothing.
  */
 export function useMarkSwipe(o: MarkSwipeOptions): (event: PointerEvent) => void {
   const gestureCancelRef = useRef<(() => void) | null>(null);
@@ -61,12 +61,15 @@ export function useMarkSwipe(o: MarkSwipeOptions): (event: PointerEvent) => void
     const isMouse = event.pointerType !== 'touch';
     // A finger's click is not read: the double-click and third click are a mouse's.
     if (isMouse) o.clicks.beginPress();
-    if ((event.target as Element | null)?.closest('[data-element-id]')) return;
+    // A mouse press on a highlight is a click that picks it. A finger on one is on a line of text (R52): a tap still
+    // picks it, a sideways start lays a new band, and a vertical one is the browser's scroll.
+    const onMark = !!(event.target as Element | null)?.closest('[data-element-id]');
+    if (isMouse && onMark) return;
     const container = event.currentTarget as HTMLElement;
     const start = o.getPointerPercent(event, container, o.geometry);
     const origin = { x: event.clientX, y: event.clientY };
     // A finger that starts off the text moves the page sideways and never marks; the browser keeps the vertical scroll.
-    const pans = !isMouse && o.startsOnLine?.(start) === false;
+    const pans = !isMouse && !onMark && o.startsOnLine?.(start) === false;
     const scroller = pans ? container.closest<HTMLElement>('[data-workspace]') : null;
     const startScrollLeft = scroller?.scrollLeft ?? 0;
     pendingCancelRef.current?.();

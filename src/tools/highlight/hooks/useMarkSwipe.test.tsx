@@ -221,3 +221,36 @@ describe('useMarkSwipe off the text', () => {
     expect(dispatch.mock.calls[0][0]).toMatchObject({ type: 'ADD_ELEMENT' });
   });
 });
+
+describe('useMarkSwipe on an existing highlight', () => {
+  /** A press whose target is inside a highlight that sits on the page. */
+  function pressOnMark(pointerType: 'touch' | 'mouse', x = 100, y = 100) {
+    const page = document.createElement('div');
+    const mark = document.createElement('div');
+    mark.setAttribute('data-element-id', 'h1');
+    const band = document.createElement('span');
+    mark.append(band);
+    page.append(mark);
+    handler({ button: 0, pointerType, clientX: x, clientY: y, target: band, currentTarget: page } as unknown as PointerEvent);
+  }
+
+  it('R52: a finger moving sideways from a highlight lays a new band, as from any line of text', () => {
+    mount(); pressOnMark('touch');
+    move(130, 100);
+    expect(dispatch).toHaveBeenCalledTimes(1);
+    expect(dispatch.mock.calls[0][0]).toMatchObject({ type: 'ADD_ELEMENT' });
+  });
+
+  it('a finger moving down from a highlight lays nothing and leaves the scroll to the browser', () => {
+    mount(); pressOnMark('touch');
+    move(100, 130);
+    expect(dispatch).not.toHaveBeenCalled();
+  });
+
+  it('a mouse press on a highlight is a click that picks it and lays nothing, however far it drags', () => {
+    mount(); pressOnMark('mouse');
+    move(160, 100);
+    expect(dispatch).not.toHaveBeenCalled();
+    expect(onPress).not.toHaveBeenCalled();
+  });
+});

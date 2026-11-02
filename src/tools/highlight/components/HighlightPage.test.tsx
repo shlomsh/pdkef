@@ -734,10 +734,12 @@ describe('HighlightPage touch swipe, armed', () => {
     expect(startHighlightSwipe.mock.calls[0][0].isMouse).toBe(true);
   });
 
-  it('a press on a highlight starts nothing', () => {
+  it('R52: a finger moving sideways from a highlight starts a swipe; a mouse press on one starts nothing', () => {
     mount([mark], DEFAULT_MARKER, true);
-    press(container.querySelector('[data-element-id]')!, { pointerType: 'touch' });
+    press(container.querySelector('[data-element-id]')!, { pointerType: 'mouse' });
     expect(startHighlightSwipe).not.toHaveBeenCalled();
+    press(container.querySelector('[data-element-id]')!, { pointerType: 'touch' });
+    expect(startHighlightSwipe).toHaveBeenCalledTimes(1);
   });
 
   it('without it a finger does nothing new', () => {
