@@ -80,6 +80,9 @@ export interface SignMessages {
   /** A card's More label and its Delete button. */
   commentDelete: string;
   commentEdit: string;
+  /** READ-17: an open card's ⋯ button, and the primary button when a saved comment is being changed (a new one says highlightCommentLabel). */
+  commentMore: string;
+  commentSave: string;
   commentsCountOne: string;
   commentsCountOther: string;
   lineAction: string;
