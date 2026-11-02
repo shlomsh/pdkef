@@ -2,6 +2,7 @@ import { test, expect } from '@playwright/test';
 import { openTool } from '../../../../e2e/support/tool.js';
 import { makePdfBuffer } from '../../../../e2e/support/pdf.js';
 import { expectControlsSized } from '../../../../e2e/support/layout.js';
+import { tapUntil } from '../../../../e2e/support/touch.js';
 
 /* READ-04: the mark toolbar reuses Sign's .actions class, which is opacity 0 outside an active Sign element.
    Highlight's own rule must win whatever order the stylesheets load in. It shipped invisible once while every
@@ -98,10 +99,7 @@ test.describe('touch panel', () => {
       const row = page.locator('[data-marker-row]:visible');
       // On CI's Linux runner the first tap after Full screen left the panel shut (passes on macOS). A click the browser
       // counts as a second one (detail 2) opens nothing (R7), so the tap is tried again once that window has passed.
-      await expect.poll(async () => {
-        if (await row.count() === 0) await page.touchscreen.tap(band.x + band.width / 2, band.y + band.height / 2);
-        return row.count();
-      }, { intervals: [600] }).toBe(1);
+      await tapUntil(page, { x: band.x + band.width / 2, y: band.y + band.height / 2 }, async () => (await row.count()) === 1);
       const fits = async (pen) => {
         const rects = await row.locator('button').evaluateAll((els) => els.map((e) => {
           const r = e.getBoundingClientRect();

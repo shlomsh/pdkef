@@ -3,6 +3,7 @@ import { fileURLToPath } from 'node:url';
 import { test, expect } from '@playwright/test';
 import { makePdfBuffer as buildPdf } from '../support/pdf.js';
 import { openTool as openSharedTool } from '../support/tool.js';
+import { tapOnce } from '../support/touch.js';
 
 /**
  * SIGN-30 follow-up: a real double-click has a real gap between its two
@@ -156,8 +157,8 @@ test.describe('A double-tap on a phone locks the tool', () => {
     const box = await btn.boundingBox();
     const x = box.x + box.width / 2;
     const y = box.y + box.height / 2;
-    await page.touchscreen.tap(x, y);
-    await page.touchscreen.tap(x, y);
+    await tapOnce(page, { x, y });
+    await tapOnce(page, { x, y });
     await expect(lockSwitch(page)).toHaveAttribute('aria-checked', 'true');
     await expect(btn).toHaveClass(/locked/);
   });

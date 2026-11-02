@@ -3,6 +3,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { test, expect } from '@playwright/test';
 import { waitForIsland } from '../../../../e2e/support/tool.js';
+import { tapOnce } from '../../../../e2e/support/touch.js';
 
 /**
  * SIGN-45 (backlog/tasks/SIGN-45.md, docs/sign-fill-mode.md "Taps"): nothing is
@@ -54,7 +55,7 @@ async function press(page, locator, isTouch) {
   if (!box) throw new Error('target has no bounding box');
   const x = box.x + box.width / 2;
   const y = box.y + box.height / 2;
-  if (isTouch) await page.touchscreen.tap(x, y);
+  if (isTouch) await tapOnce(page, { x, y });
   else await page.mouse.click(x, y);
 }
 
@@ -77,7 +78,7 @@ for (const [label, profile] of PROFILES) {
       const before = await elementCount(page);
 
       const spot = await blankSpot(page);
-      if (isTouch) await page.touchscreen.tap(spot.x, spot.y);
+      if (isTouch) await tapOnce(page, spot);
       else await page.mouse.click(spot.x, spot.y);
       await press(page, page.locator('[data-fill-input]').first(), isTouch);
 

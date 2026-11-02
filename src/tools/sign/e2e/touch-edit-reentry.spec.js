@@ -3,6 +3,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { test, expect } from '@playwright/test';
 import { waitForIsland } from '../../../../e2e/support/tool.js';
+import { tapOnce, tapUntil } from '../../../../e2e/support/touch.js';
 
 /**
  * MOBI-21: on a phone there is a way back into a text box.
@@ -21,7 +22,7 @@ import { waitForIsland } from '../../../../e2e/support/tool.js';
  * jsdom has neither `pointer-events` nor touch-to-mouse synthesis.
  *
  * So every assertion here needs a real browser driven by real touch input.
- * `page.touchscreen.tap()` and the CDP touch drag below dispatch actual touch
+ * `tapOnce` (a real touchscreen tap) and the CDP touch drag below dispatch actual touch
  * events, which is the whole point - a Playwright `.click()` would take the
  * mouse path and prove nothing about the gesture that was broken.
  *
@@ -76,7 +77,7 @@ async function armText(page, textTool) {
 async function tapCentre(page, locator) {
   await locator.scrollIntoViewIfNeeded();
   const rect = await locator.boundingBox();
-  await page.touchscreen.tap(rect.x + rect.width / 2, rect.y + rect.height / 2);
+  await tapOnce(page, { x: rect.x + rect.width / 2, y: rect.y + rect.height / 2 });
   return rect;
 }
 
@@ -101,7 +102,7 @@ async function fillNthCell(page, textTool, index, text, expectedCount = 1) {
 /** Tapping the page card's own background: how a phone dismisses the keyboard. */
 async function closeSession(page) {
   const container = await page.locator('[class*="pages-container"]').boundingBox();
-  await page.touchscreen.tap(container.x + 4, container.y + 4);
+  await tapUntil(page, { x: container.x + 4, y: container.y + 4 }, async () => (await openSession(page).count()) === 0);
   await expect(openSession(page)).toHaveCount(0);
   await expect(page.locator('[data-editor-element][data-editor-active]')).toHaveCount(0);
 }
