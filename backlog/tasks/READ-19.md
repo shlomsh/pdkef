@@ -1,13 +1,10 @@
 ---
 id: "READ-19"
 title: "Highlight PDF: reading and writing notes on a phone, rethought as a whole"
-status: "in_progress"
+status: "done"
 priority: "P1"
 epic: "highlight-pdf"
-horizon: "now"
-order: 19
 depends_on: ["READ-15", "READ-17"]
-needs: "Your pick of a model, then a check on your iPhone"
 ---
 
 # READ-19 · Notes on a phone, as a whole
@@ -175,6 +172,6 @@ Not in C, kept as they are: a tap on the page does not close the pane; Escape's 
 - [x] Fresh-context review, findings fixed test first (de944988): the hover toolbar's Comment on a narrow window
   with a mouse made a note nobody could type into; a blank old note survived Cancel; a turn across 1000 px lost the
   writer; the pane's scroll margin stayed on the mark.
-- [ ] On Shlomi's iPhone (LAN dev server), normal view and lamp: Comment and Edit raise the keyboard; the field
+- [x] On Shlomi's iPhone (LAN dev server, 2026-11-02: "Works"), normal view and lamp: Comment and Edit raise the keyboard; the field
   stays in view while typing and while the page behind is scrolled; nothing drifts.
 - [x] READ-18 retired as replaced by this ticket; READ-17's phone line moved here and READ-17 closed.
