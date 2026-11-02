@@ -1,0 +1,66 @@
+[
+ {
+  "id": "arxiv-2610.39111-p1",
+  "width": 1700,
+  "height": 2200,
+  "pxPerPoint": 2.7777777777777777,
+  "pageWidthPts": 612,
+  "pageHeightPts": 792
+ },
+ {
+  "id": "arxiv-2610.39533-p4",
+  "width": 1700,
+  "height": 2200,
+  "pxPerPoint": 2.7777777777777777,
+  "pageWidthPts": 612,
+  "pageHeightPts": 792
+ },
+ {
+  "id": "arxiv-2610.39699-p3",
+  "width": 1700,
+  "height": 2200,
+  "pxPerPoint": 2.7777777777777777,
+  "pageWidthPts": 612,
+  "pageHeightPts": 792
+ },
+ {
+  "id": "arxiv-2610.40607-p1",
+  "width": 1700,
+  "height": 2200,
+  "pxPerPoint": 2.7777777777777777,
+  "pageWidthPts": 612,
+  "pageHeightPts": 792
+ },
+ {
+  "id": "fr-2026-22353-p1",
+  "width": 1700,
+  "height": 2200,
+  "pxPerPoint": 2.7777777777777777,
+  "pageWidthPts": 612,
+  "pageHeightPts": 792
+ },
+ {
+  "id": "fr-2026-22349-p2",
+  "width": 1700,
+  "height": 2200,
+  "pxPerPoint": 2.7777777777777777,
+  "pageWidthPts": 612,
+  "pageHeightPts": 792
+ },
+ {
+  "id": "composed-features",
+  "width": 1700,
+  "height": 2200,
+  "pxPerPoint": 2.7777777777777777,
+  "pageWidthPts": 612,
+  "pageHeightPts": 792
+ },
+ {
+  "id": "composed-hebrew",
+  "width": 1700,
+  "height": 2200,
+  "pxPerPoint": 2.7777777777777777,
+  "pageWidthPts": 612,
+  "pageHeightPts": 792
+ }
+]
