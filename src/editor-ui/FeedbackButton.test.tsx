@@ -1,9 +1,40 @@
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { afterEach, describe, expect, it } from 'vitest';
-import SignFeedbackButton from './SignFeedbackButton.tsx';
+import FeedbackButton from './FeedbackButton.tsx';
 
-describe('SignFeedbackButton', () => {
+const tool = {
+  name: 'Sign & Fill PDF',
+  body: `## What would you like to report or suggest?
+
+Describe your bug, idea, or feedback about the Sign & Fill PDF tool.
+
+## If something went wrong (optional)
+
+- What were you trying to do?
+- What happened, and what did you expect?
+- How can we reproduce it?
+
+## Helpful details (optional)
+
+Browser and device, the feature involved (text, signatures, shapes, download, etc.), and language or font if relevant.
+
+Please leave out private documents, signatures, and personal information. GitHub issues are public.
+`,
+};
+
+describe('FeedbackButton', () => {
+  it('takes its title text and issue title from the tool it is given', () => {
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    act(() => render(<FeedbackButton tool={{ name: 'Other PDF', body: 'Hello' }} className="b" labelClassName="l" />, container!));
+    const link = container.querySelector<HTMLAnchorElement>('.b')!;
+    expect(link.title).toBe('Report a bug or share feedback about Other PDF (opens GitHub)');
+    const url = new URL(link.href);
+    expect(url.searchParams.get('title')).toBe('[Other PDF] Bug report or feedback');
+    expect(url.searchParams.get('body')).toBe('Hello');
+  });
+
   let container: HTMLElement | null = null;
 
   afterEach(() => {
@@ -18,7 +49,7 @@ describe('SignFeedbackButton', () => {
     container = document.createElement('div');
     document.body.appendChild(container);
 
-    act(() => render(<SignFeedbackButton className="toolbar-button" labelClassName="toolbar-label" />, container!));
+    act(() => render(<FeedbackButton tool={tool} className="toolbar-button" labelClassName="toolbar-label" />, container!));
 
     const link = container.querySelector('.toolbar-button');
     expect(link.getAttribute('target')).toBe('_blank');
@@ -50,7 +81,8 @@ describe('SignFeedbackButton', () => {
     document.body.appendChild(container);
 
     act(() => render(
-      <SignFeedbackButton
+      <FeedbackButton
+        tool={tool}
         className="toolbar-button"
         labelClassName="toolbar-label"
         detectionFailure="TypeError: undefined is not an object (evaluating 'p.getOrInsertComputed')"

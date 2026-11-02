@@ -53,6 +53,15 @@ describe('ToolShell editor variant', () => {
     expect(container.querySelector('[class*="status-beside"]')).toBeNull();
   });
 
+  // Highlight's Feedback link: the tool's own item at the end of the file line, after the hint.
+  it('puts the aside last in the identity row', () => {
+    mount(true, { statusBeside: true, aside: <a href="#f" data-aside-link>Feedback</a> });
+    const row = container.querySelector('[data-file-identity]')!;
+    expect(row.lastElementChild?.querySelector('[data-aside-link]')).not.toBeNull();
+    mount(true);
+    expect(container.querySelector('[data-shell-aside]')).toBeNull();
+  });
+
   // The document is right under the card at full size; the 34px page-1 render
   // was what forced the phone identity into two lines, and cost a pdf.js
   // render Sign and Redact were only doing for it.

@@ -119,6 +119,26 @@ describe('HighlightWorkspace', () => {
     } finally { vi.unstubAllGlobals(); }
   });
 
+  it('the regular view offers a Feedback link on the file line that opens a prefilled Highlight PDF issue; the lamp shows none', () => {
+    mount({ fullscreen: false, pseudoFullscreen: false });
+    const title = 'Report a bug or suggest a feature for Highlight PDF (opens GitHub)';
+    // At the end of the file line, not a seventh tile: the row's labels hold for six controls.
+    const link = container!.querySelector<HTMLAnchorElement>(`[data-file-identity] [data-shell-aside] a[title="${title}"]`)!;
+    expect(link).not.toBeNull();
+    expect(container!.querySelector('[data-editor-toolbar] a[href*="issues/new"]')).toBeNull();
+    expect(link.textContent).toBe('Feedback');
+    expect(link.href.startsWith('https://github.com/shlomsh/pdkef/issues/new?')).toBe(true);
+    const params = new URL(link.href).searchParams;
+    expect(params.get('title')).toBe('[Highlight PDF] Bug report or feedback');
+    expect(params.get('body')).toContain('GitHub issues are public.');
+    act(() => render(null, container!));
+    mount({ fullscreen: true, pseudoFullscreen: false });
+    // In the lamp the whole tile row sits in a hidden wrapper, and nothing of it is in the capsule.
+    const lampLinks = [...container!.querySelectorAll<HTMLAnchorElement>('a[href*="issues/new"]')].filter((a) => !a.closest('[hidden]'));
+    expect(lampLinks).toEqual([]);
+    expect(container!.querySelector('[role="toolbar"][aria-label="Reading lamp"] a[href*="issues/new"]')).toBeNull();
+  });
+
   it('every control in the row carries its word: six controls leave the room Sign\'s thirteen do not (READ-04)', () => {
     mount({ fullscreen: false, pseudoFullscreen: false });
     const bar = container!.querySelector<HTMLElement>('[data-editor-toolbar]')!;
