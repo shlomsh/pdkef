@@ -219,11 +219,10 @@ The reasons and the rejected alternatives are in "Decisions and why" at the end.
 Found by two zero-context reviews (`1e729ad1..1db48f20`, then `1e729ad1..36f5a564`); each is checked against
 the contract before READ-01 closes. Fixed since: the unclamped live pan (`94f8b17d`), the hidden tile row's
 second panel in full screen, the digest recomputed on every autosave (now once per file), and R49's 36 px switch
-halves with the row wrapping at 402 px (the colors became one framed choice and the row fits, 2026-11-02).
+halves with the row wrapping at 402 px (the colors became one framed choice and the row fits, 2026-11-02), and the
+finger swipe that did nothing when it started on a highlight (a marked line is a line of text: sideways lays a band, R52).
 - R9, R39 on a coarse pointer with a keyboard (iPad): the touch panel has no 1-6/U/C/Delete keys, though its
   buttons advertise them, and a keyboard focus on a mark sets the desktop panel's target, which never shows.
-- A sideways finger swipe that starts on an existing highlight neither marks nor pans (`useMarkSwipe` returns
-  on `[data-element-id]` before deciding to pan), so a zoomed page cannot be dragged from a marked line.
 - Outside full screen the armed page is `touch-action: pan-y`, so the browser's own pinch is off and nothing
   replaces it; decide whether R62's pinch covers the normal view (`pan-y pinch-zoom` is the likely answer).
 - A pinch that lands after the first finger began a native scroll cannot cancel that scroll (touchmove is no
