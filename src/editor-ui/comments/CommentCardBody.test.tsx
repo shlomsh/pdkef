@@ -98,6 +98,56 @@ describe('CommentCardBody', () => {
     expect(host!.textContent).toContain('Check this');
   });
 
+  describe('moving from one note to another', () => {
+    it('opening the field of a card that is not the active one (it takes the caret) selects it', () => {
+      const onSelect = vi.fn();
+      mount({ card: card(), active: false, onSelect });
+      openEdit();
+      expect(onSelect).toHaveBeenCalledOnce();
+    });
+
+    it('focusing the field of the active card selects nothing', () => {
+      const onSelect = vi.fn();
+      mount({ card: card(), active: true, onSelect });
+      openEdit();
+      act(() => { q<HTMLTextAreaElement>('textarea').dispatchEvent(new FocusEvent('focus')); });
+      expect(onSelect).not.toHaveBeenCalled();
+    });
+
+    it('a note being edited saves what was typed when another note takes over, closes, and leaves focus where it went', () => {
+      const [onSave, onReturnFocus] = [vi.fn(), vi.fn()];
+      const { redraw } = mount({ card: card(), active: true, onSave, onReturnFocus });
+      openEdit();
+      type('Check this, and more');
+      redraw(card(), false);
+      expect(onSave).toHaveBeenCalledWith({ comment: 'Check this, and more', commentedAt: expect.any(Number) });
+      expect(host!.querySelector('textarea')).toBeNull();
+      expect(onReturnFocus).not.toHaveBeenCalled();
+    });
+
+    it('closes without saving or deleting when nothing changed, or when the field was emptied', () => {
+      const [onSave, onDelete] = [vi.fn(), vi.fn()];
+      const first = mount({ card: card(), active: true, onSave, onDelete });
+      openEdit();
+      first.redraw(card(), false);
+      expect(host!.querySelector('textarea')).toBeNull();
+      first.redraw(card(), true);
+      openEdit();
+      type('  ');
+      first.redraw(card(), false);
+      expect(host!.querySelector('textarea')).toBeNull();
+      expect(onSave).not.toHaveBeenCalled();
+      expect(onDelete).not.toHaveBeenCalled();
+    });
+
+    it('a note opened by double-click while inactive stays open', () => {
+      const onSave = vi.fn();
+      mount({ card: card(), active: false, onSave });
+      openEdit();
+      expect(host!.querySelector('textarea')).not.toBeNull();
+    });
+  });
+
   it('a blank save discards a new card and deletes an existing comment', () => {
     const [onSave, onDelete, onDiscard] = [vi.fn(), vi.fn(), vi.fn()];
     mount({ card: card({ comment: '', isNew: true }), active: true, onSave, onDelete, onDiscard });

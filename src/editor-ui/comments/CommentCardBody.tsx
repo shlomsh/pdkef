@@ -35,6 +35,18 @@ export function CommentCardBody({ card, active, messages, label, onSelect, onSav
     field.setSelectionRange(field.value.length, field.value.length);
   }, [showField]);
 
+  // Another note took over while this one was open for editing: keep what was typed (an emptied or unchanged field
+  // keeps the old comment), close the field, and leave focus with the note that was picked.
+  const wasActive = useRef(active);
+  useEffect(() => {
+    if (wasActive.current && !active && editing) {
+      const patch = commentPatch(draft, card.comment, Date.now());
+      setEditing(false);
+      if (patch) onSave(patch);
+    }
+    wasActive.current = active;
+  }, [active]);
+
   const cancel = () => {
     setDraft(card.comment);
     if (card.isNew) onDiscard();
@@ -89,6 +101,7 @@ export function CommentCardBody({ card, active, messages, label, onSelect, onSav
             value={draft}
             placeholder={messages.highlightCommentPlaceholder}
             aria-label={messages.highlightCommentLabel}
+            onFocus={() => { if (!active) onSelect(); }}
             onInput={(event) => setDraft((event.currentTarget as HTMLTextAreaElement).value)}
             onKeyDown={onKeyDown}
             onKeyUp={(event) => event.stopPropagation()}
