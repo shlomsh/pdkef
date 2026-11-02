@@ -120,10 +120,10 @@ sections:
           everything else.
       - kind: 'prose'
         text: >-
-          Pull the cord under the page for the Reading lamp. The paper fills the screen and a floating
+          Pull or click the cord under the page for the Reading lamp. The paper fills the screen and a floating
           capsule holds the page jump, zoom, the marker, Undo, Print and Download. It goes quiet while
           you read and wakes when you reach for it. <strong>Fit text</strong> trims the paper's empty
-          margins away, which is what a laptop screen wants.
+          margins away, so the words fill the screen.
   - sketch: 'arcs'
     icon: 'Printer'
     iconPos: 'tr'
@@ -144,7 +144,7 @@ sections:
         rows:
           - ['Take your notes into a seminar or an exam', 'Print with my notes: each page a little smaller, its comments in the right margin beside their passages']
           - ['Share a marked paper with a study partner or a supervisor', 'Download: highlights and comments are saved as standard PDF annotations that open in any PDF viewer']
-          - ['Come back to the paper later', 'It stays in your recent files on this device with everything you did, ready on the home page']
+          - ['Come back to the paper later', 'It stays in your recent files on this device with everything you did']
           - ['Edit your marks again after downloading', 'Open the downloaded file here again and every highlight and comment comes back editable']
   - variant: 'highlight'
     sketch: 'waves'
@@ -184,9 +184,9 @@ faq:
       come back editable when you open the file in Highlight PDF again.
   - question: 'Can I print a paper with my comments?'
     answer: >-
-      Yes. Print offers Print with my notes, which makes each page a little smaller and puts its
-      comments in the right margin beside their passages. Plain Print gives the pages with their
-      highlights.
+      Yes. Once a paper has a comment, Print offers Print with my notes, which makes each page a
+      little smaller and puts its comments in the right margin beside their passages. It can also put
+      the notes at the end. Plain Print gives the pages with their highlights.
   - question: 'Does it work on an iPad?'
     answer: >-
       Yes, in Safari. Swipe along a line to highlight it, tap a highlight to open its toolbar, and use
