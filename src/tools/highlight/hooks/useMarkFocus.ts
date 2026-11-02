@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
 import type { EditorElement, HighlightElement } from '#editor/model/editorModel.ts';
+import { FOCUS_HANDED_BACK } from '#editor-ui/comments/anchorNode.ts';
 import { marksInReadingOrder } from '../lib/marker/readingOrder.ts';
 
 /**
@@ -67,8 +68,10 @@ export function useMarkFocus({ elements, openFor }: { elements: EditorElement[];
       const byPointer = pointerFocus.current;
       pointerFocus.current = false;
       setLastFocused(id);
-      // Focus handed back from the toolbar or a comment card must not reopen what was just closed.
-      const handedBack = !!(e.relatedTarget as Element | null)?.closest?.('[data-rest-toolbar], [data-comment-card], [data-comment-sheet]');
+      // Focus handed back (from the toolbar, a comment card, or by the comments view after a note closes) must not
+      // reopen what was just closed.
+      const handedBack = (e.currentTarget as Element).hasAttribute(FOCUS_HANDED_BACK)
+        || !!(e.relatedTarget as Element | null)?.closest?.('[data-rest-toolbar], [data-comment-card], [data-comment-sheet]');
       if (!byPointer && !handedBack) live.current(id);
     },
     onKeyDown: (e: KeyboardEvent) => {
