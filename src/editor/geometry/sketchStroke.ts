@@ -111,9 +111,13 @@ function outline(len: number, h: number): Pt[] {
   return pts;
 }
 
+/** A band with no area draws nothing: its knot count would be infinite. */
+const drawable = (band: SketchRect) => band.w > 0 && band.h > 0;
+
 /** A highlight's sketched bands: one path, a subpath per line, filled nonzero so touching lines never double. `turns` is the page's quarter turns. */
 export function sketchBands(bands: readonly SketchRect[], seed: number, turns = 0): PathOp[] {
   return bands.flatMap((band, i) => {
+    if (!drawable(band)) return [];
     const r = rng(seed ^ Math.imul(i + 1, 0x9e3779b1));
     const { rect, map } = textFrame(band, turns);
     const f = lineFrame(rect, r);
@@ -124,6 +128,7 @@ export function sketchBands(bands: readonly SketchRect[], seed: number, turns = 
 /** An underline's sketched line under each band, as a filled outline `width` points thick, its centre where the clean line's is. */
 export function sketchUnderline(bands: readonly SketchRect[], seed: number, width: number, turns = 0): PathOp[] {
   return bands.flatMap((band, i) => {
+    if (!drawable(band)) return [];
     const r = rng(seed ^ Math.imul(i + 1, 0x85ebca6b));
     const { rect: { x, y, w, h }, map } = textFrame(band, turns);
     const o0 = h * (0.04 + r() * 0.12), o1 = h * (0.16 + r() * 0.3);

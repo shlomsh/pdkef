@@ -1,6 +1,6 @@
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { startHighlightSwipe } from '#editor-ui/highlight/highlightSwipeGesture.ts';
 import { useMarkSwipe } from './useMarkSwipe.ts';
 
@@ -193,6 +193,10 @@ describe('useMarkSwipe off the text', () => {
   const finger = (x: number, y: number) => ({ clientX: x, clientY: y });
   const touch = (type: string, touches: Array<{ clientX: number; clientY: number }>) =>
     window.dispatchEvent(Object.assign(new Event(type, { cancelable: true }), { touches }));
+  // The browser's zoom: only a zoomed page can move sideways under one finger, so only then is a line's move claimed.
+  const zoom = (scale: number) => Object.defineProperty(window, 'visualViewport', { value: { scale }, configurable: true });
+  beforeEach(() => zoom(2));
+  afterEach(() => zoom(1));
 
   it('a sideways start off a line lays nothing and moves the page sideways with the finger', () => {
     readerAt = () => readerOf(false);
@@ -243,6 +247,30 @@ describe('useMarkSwipe off the text', () => {
     added.mockClear();
     pressTouch();
     expect(added.mock.calls.some(([type, , options]) => type === 'touchmove' && (options as AddEventListenerOptions)?.passive === false)).toBe(false);
+  });
+
+  it('at the browser\'s 1x nothing is claimed: the page cannot move sideways, and a scroll stays the browser\'s', () => {
+    zoom(1);
+    readerAt = () => readerOf(true);
+    mount(); pressTouch();
+    expect(touch('touchmove', [finger(104, 101)])).toBe(true);
+    touch('touchmove', [finger(130, 100)]);
+    expect(dispatch.mock.calls[0][0]).toMatchObject({ type: 'ADD_ELEMENT' });
+    expect(touch('touchmove', [finger(160, 102)])).toBe(true);
+  });
+
+  it('zoomed in, a move is claimed only once it is as sideways as a mark: a diagonal stays a scroll', () => {
+    readerAt = () => readerOf(true);
+    mount(); pressTouch();
+    expect(touch('touchmove', [finger(103, 102)])).toBe(true);
+    expect(touch('touchmove', [finger(115, 110)])).toBe(true);
+  });
+
+  it('put down, the marker listens to no touch at all', () => {
+    const added = vi.spyOn(window, 'addEventListener');
+    armed = false;
+    mount();
+    expect(added.mock.calls.some(([type]) => type === 'touchmove')).toBe(false);
   });
 
   it('once a line\'s swipe has begun, its later moves stay claimed until the finger lifts', () => {

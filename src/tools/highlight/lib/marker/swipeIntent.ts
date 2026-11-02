@@ -9,7 +9,12 @@ const SIDEWAYS_RATIO = 2;
 /** What a touch press means from its travel so far: undecided, a mark (clearly sideways), or a scroll. */
 export function swipeIntent(dx: number, dy: number): SwipeIntent {
   if (Math.hypot(dx, dy) < TOUCH_DECIDE_PX) return 'wait';
-  return Math.abs(dx) >= SIDEWAYS_RATIO * Math.abs(dy) ? 'mark' : 'scroll';
+  return sidewaysEnough(dx, dy) ? 'mark' : 'scroll';
+}
+
+/** A move at least twice as sideways as it is vertical: the direction a mark starts in. */
+export function sidewaysEnough(dx: number, dy: number): boolean {
+  return Math.abs(dx) >= SIDEWAYS_RATIO * Math.abs(dy);
 }
 
 /** Two fingers navigate (pinch, pan) and never mark: any touch event with a second finger down is one. */
