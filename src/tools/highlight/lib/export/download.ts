@@ -1,6 +1,7 @@
 import type { EditorElement } from '#editor/model/editorModel.ts';
 import type { PageTurns } from '#editor/geometry/pageTurn.ts';
 import { recordAction } from '#lib/telemetry/actionTrail.ts';
+import { reportToolLifecycleEvent } from '#lib/telemetry/productAnalytics.ts';
 import { reportError } from '#lib/telemetry/errorReport.ts';
 import { exportHighlighted, highlightedFileName } from './highlightedPdf.ts';
 
@@ -19,14 +20,17 @@ export function downloadHandler({ fileName, bytes, elements, pageTurns, save }: 
   return async (): Promise<string | null> => {
     const source = bytes();
     if (!fileName || !source) return null;
+    reportToolLifecycleEvent('tool_operation_started', 'highlight-pdf');
     try {
       const out = await exportHighlighted(source, elements, pageTurns);
       recordAction('download');
       const name = highlightedFileName(fileName);
       save(new Blob([out as BlobPart], { type: 'application/pdf' }), name);
+      reportToolLifecycleEvent('tool_result_ready', 'highlight-pdf');
       return name;
     } catch (err) {
       reportError('pdf_tool_run', err, 'export_highlighted');
+      reportToolLifecycleEvent('tool_operation_failed', 'highlight-pdf');
       return null;
     }
   };
