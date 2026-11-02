@@ -9,6 +9,7 @@ import { buildMarkEdit } from '../marker/markEdit.ts';
 import type { Marker } from '../marker/markerState.ts';
 import { deleteWithComments } from '../notes/deleteElement.ts';
 import { openCommentFor } from '../notes/openComment.ts';
+import type { NoteTarget } from '../notes/noteWriter.ts';
 
 interface MarkCommandDeps {
   /** Every element of the document: a delete takes the mark's comments with it, a comment is found or added. */
@@ -23,8 +24,8 @@ interface MarkCommandDeps {
 interface MarkCommands {
   change(mark: HighlightElement, change: Partial<Marker>): void;
   remove(mark: HighlightElement): void;
-  /** R27: opens the mark's comment card; a blank one is added first, unlogged (it is saved, and logged, with its text). */
-  comment(mark: HighlightElement): void;
+  /** R27: opens the mark's comment card; a blank one is added first, unlogged (it is saved, and logged, with its text). Returns the note it made active. */
+  comment(mark: HighlightElement): NoteTarget;
 }
 
 /** What can be done to one highlight, wherever its controls are drawn: on the mark (a fine pointer) or up top (touch). */
@@ -46,6 +47,9 @@ export function markCommands({ elements, dispatch, logAction, rearm, setAnnounce
       const { add, activeId } = openCommentFor(elements, mark, createElementId());
       if (add) dispatch({ type: 'ADD_ELEMENT', payload: add });
       dispatch({ type: 'SET_ACTIVE_ELEMENT_ID', payload: activeId });
+      if (add) return { id: activeId, comment: '', isNew: true };
+      const existing = elements.find((el) => el.id === activeId);
+      return { id: activeId, comment: existing && 'comment' in existing ? existing.comment : '', isNew: false };
     },
   };
 }

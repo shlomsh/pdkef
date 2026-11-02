@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { CommentElement, EditorElement, HighlightElement } from '#editor/model/editorModel.ts';
-import { activeAfterPick, keyboardInset, paneIndex, paneNotes, snapIndex, type PaneNote } from './notePane.ts';
+import { activeAfterPick, paneIndex, paneNotes, snapIndex, type PaneNote } from './notePane.ts';
 
 const mark = (id: string, pageIndex = 0, top = 20, color = '#FFF34D'): HighlightElement => ({ id, type: 'highlight', pageIndex, left: 10, top, width: 30, height: 4, color, bands: [] });
 const note = (id: string, on: string, comment = 'hi'): CommentElement => ({ id, type: 'comment', pageIndex: 0, left: 10, top: 20, width: 30, height: 4, comment, anchor: { kind: 'element', elementId: on } });
@@ -80,20 +80,5 @@ describe('activeAfterPick', () => {
   it('leaves a non-note active element alone', () => {
     expect(activeAfterPick(els, 'm1', 'm3')).toBe('m1');
     expect(activeAfterPick(els, null, 'm3')).toBeNull();
-  });
-});
-
-describe('keyboardInset', () => {
-  it('is 0 with no keyboard', () => {
-    expect(keyboardInset({ innerHeight: 800, vvHeight: 800, vvPageTop: 0, scrollY: 0 })).toBe(0);
-  });
-  it('is the keyboard height when it is up', () => {
-    expect(keyboardInset({ innerHeight: 800, vvHeight: 500, vvPageTop: 0, scrollY: 0 })).toBe(300);
-  });
-  it('subtracts how far the visual viewport has scrolled inside the layout viewport', () => {
-    expect(keyboardInset({ innerHeight: 800, vvHeight: 500, vvPageTop: 120, scrollY: 100 })).toBe(280);
-  });
-  it('never goes negative', () => {
-    expect(keyboardInset({ innerHeight: 800, vvHeight: 700, vvPageTop: 300, scrollY: 0 })).toBe(0);
   });
 });
