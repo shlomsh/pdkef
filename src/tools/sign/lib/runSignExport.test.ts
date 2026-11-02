@@ -18,6 +18,7 @@ function setup(current = true) {
   const activeExportSpeculativeRef = { current: false };
   const deps: RunSignExportDeps = {
     file: new File(['x'], 'form.pdf'),
+    outputName: 'signed_form.pdf',
     fileBytes: null,
     elements: [],
     exportRun,
@@ -32,6 +33,14 @@ describe('runSignExport', () => {
   beforeEach(() => {
     signPdf.mockReset();
     vi.spyOn(console, 'error').mockImplementation(() => {});
+  });
+
+  it('saves under the typed name, not the source-derived one', async () => {
+    signPdf.mockResolvedValue(new Blob(['pdf']));
+    const { deps } = setup();
+    const onSigned = vi.fn();
+    await runSignExport({ ...deps, outputName: 'My contract.pdf' }, onSigned);
+    expect(onSigned).toHaveBeenCalledWith(expect.any(Blob), 'My contract.pdf');
   });
 
   it('shows the signing state and hands the named result on for a real export', async () => {

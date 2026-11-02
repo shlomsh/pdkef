@@ -159,6 +159,15 @@
   text-align: right;
 }
 
+/* The editable output name (OutputName's fragment): a flex row so the name cuts in the middle
+   and the extension never shrinks, like the document headings it comes from. */
+.name-editable {
+  display: flex;
+  align-items: baseline;
+  min-width: 0;
+  max-width: 100%;
+}
+
 /* The pages/size text shrinks and ellipsizes; the draft-saved chip is pinned
    so it survives on narrow screens. Truncating "2.5 KB" costs nothing, while
    truncating "Draft saved" would hide the reassurance the user actually

@@ -10,6 +10,8 @@ const SPECULATIVE_EXPORT_DEBOUNCE_MS = 1500;
 
 interface SpeculativeExportOptions {
   file: File | null;
+  /** Part of the effect's key: a rename re-prepares the file under the new name. */
+  outputName: string;
   status: SignStatus;
   elementCount: number;
   hasTurnedPage: boolean;
@@ -34,7 +36,7 @@ interface SpeculativeExportOptions {
 // still live, per the gesture golden rule - and re-fires on every later
 // edit, letting each speculative export invalidate the previous one.
 export function useSpeculativeExport({
-  file, status, elementCount, hasTurnedPage, documentRevision, blocked, runExport, prepare, preparedExportRef, documentRevisionRef,
+  file, outputName, status, elementCount, hasTurnedPage, documentRevision, blocked, runExport, prepare, preparedExportRef, documentRevisionRef,
 }: SpeculativeExportOptions): void {
   useEffect(() => {
     if (!file || !signExportReady({ status, elementCount, hasTurnedPage, blocked })) return;
@@ -45,5 +47,5 @@ export function useSpeculativeExport({
     }, SPECULATIVE_EXPORT_DEBOUNCE_MS);
     return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [file, documentRevision, blocked, status]);
+  }, [file, outputName, documentRevision, blocked, status]);
 }

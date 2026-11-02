@@ -13,7 +13,6 @@ import type { HistoryPlace } from '#editor/model/actionHistory.ts';
 import type { NeedsUnlockKind } from '#shell/NeedsUnlock.tsx';
 import type { DetailEdits } from '../lib/detailEdits.js';
 import type { SavedPlace } from '../lib/check/types.ts';
-import { redactedFileName } from '../lib/redactFileName.ts';
 import { englishRedactMessages as t } from '../messages.ts';
 import { selectDetailEdits, selectRemovedPlaces, type RedactAction, type RedactState, type SavedExport } from '../state/redactState.ts';
 
@@ -25,12 +24,14 @@ export type ExportOverrides = { removedPlaces?: HistoryPlace[]; details?: Detail
  * of an export the document has moved on from (DEBT-18, RED-36). It owns the
  * share state and the hand-off busy flag, and reads the reducer state it exports.
  */
-export default function useRedactExport({ state, dispatch, setAnnouncement, setNeedsUnlock, getFileBytes }: {
+export default function useRedactExport({ state, dispatch, setAnnouncement, setNeedsUnlock, getFileBytes, outputFileName }: {
   state: RedactState;
   dispatch: (action: RedactAction) => void;
   setAnnouncement: (message: string) => void;
   setNeedsUnlock: (kind: NeedsUnlockKind | null) => void;
   getFileBytes: () => ArrayBuffer | null;
+  /** What Download saves as (`parts.fileName` of useOutputNameOverride). */
+  outputFileName: string;
 }) {
   const { file, status } = state.document;
   const { elements, documentRevision } = state.edits;
@@ -134,7 +135,7 @@ export default function useRedactExport({ state, dispatch, setAnnouncement, setN
       });
       if (!run.isCurrent()) return null;
       run.settle();
-      const filename = redactedFileName(sourceFile.name);
+      const filename = outputFileName;
       // Finding #4: a successful export (either export path - Download or
       // Share - counts) is what unlocks the "Compress" hand-off below.
       const saved = { blob: redactedBlob, name: filename };

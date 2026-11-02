@@ -4,8 +4,7 @@ import { outputFileName as splitName } from '../../tools/split/lib/split.js';
 import { compressedFileName } from '../../tools/compress/lib/outputName.ts';
 import { modifiedTitle } from '../../tools/edit-pages/lib/outputName.ts';
 import { outputFileName as securityName } from '../../tools/security/lib/outputName.ts';
-import { signedFileName } from '../../tools/sign/lib/signedFileName.ts';
-import { redactedFileName } from '../../tools/redact/lib/redactFileName.ts';
+import { outputNameParts } from '#lib/output/outputNameParts.ts';
 import { imageBaseName, imageFileName } from '../../tools/to-image/lib/toImage.js';
 import { englishScanMessages as scanMessages } from '../../tools/scan/messages.ts';
 import { defaultOutputName } from '#lib/pages/pageOrder.js';
@@ -67,8 +66,8 @@ const PINNED: [string, Names][] = [
     editPages: "notes_modified",
     security_unlock: "notes_unlocked.pdf",
     security_protect: "notes_protected.pdf",
-    sign: "signed_notes",
-    redact: "redacted_notes",
+    sign: "signed_notes.pdf",
+    redact: "redacted_notes.pdf",
     toImagePng: "notes.png",
     toImagePageN: "notes-page-N.jpg",
     imageToPdf: "notes",
@@ -83,8 +82,8 @@ const PINNED: [string, Names][] = [
     editPages: "SCAN_modified",
     security_unlock: "SCAN_unlocked.pdf",
     security_protect: "SCAN_protected.pdf",
-    sign: "signed_SCAN.PDF",
-    redact: "redacted_SCAN.PDF",
+    sign: "signed_SCAN.pdf",
+    redact: "redacted_SCAN.pdf",
     toImagePng: "SCAN.png",
     toImagePageN: "SCAN-page-N.jpg",
     imageToPdf: "SCAN",
@@ -147,8 +146,8 @@ const PINNED: [string, Names][] = [
     editPages: "a._modified",
     security_unlock: "a._unlocked.pdf",
     security_protect: "a._protected.pdf",
-    sign: "signed_a.",
-    redact: "redacted_a.",
+    sign: "signed_a..pdf",
+    redact: "redacted_a..pdf",
     toImagePng: "a..png",
     toImagePageN: "a.-page-N.jpg",
     imageToPdf: "a",
@@ -163,8 +162,8 @@ const PINNED: [string, Names][] = [
     editPages: "photo.jpeg_modified",
     security_unlock: "photo.jpeg_unlocked.pdf",
     security_protect: "photo.jpeg_protected.pdf",
-    sign: "signed_photo.jpeg",
-    redact: "redacted_photo.jpeg",
+    sign: "signed_photo.jpeg.pdf",
+    redact: "redacted_photo.jpeg.pdf",
     toImagePng: "photo.jpeg.png",
     toImagePageN: "photo.jpeg-page-N.jpg",
     imageToPdf: "photo",
@@ -243,8 +242,8 @@ const PINNED: [string, Names][] = [
     editPages: ".hidden_modified",
     security_unlock: ".hidden_unlocked.pdf",
     security_protect: ".hidden_protected.pdf",
-    sign: "signed_.hidden",
-    redact: "redacted_.hidden",
+    sign: "signed_.hidden.pdf",
+    redact: "redacted_.hidden.pdf",
     toImagePng: ".hidden.png",
     toImagePageN: ".hidden-page-N.jpg",
     imageToPdf: "images",
@@ -259,8 +258,8 @@ const PINNED: [string, Names][] = [
     editPages: "a b_modified",
     security_unlock: "a b_unlocked.pdf",
     security_protect: "a b_protected.pdf",
-    sign: "signed_a b.PdF",
-    redact: "redacted_a b.PdF",
+    sign: "signed_a b.pdf",
+    redact: "redacted_a b.pdf",
     toImagePng: "a b.png",
     toImagePageN: "a b-page-N.jpg",
     imageToPdf: "a b",
@@ -279,8 +278,8 @@ describe('output names, every tool', () => {
       editPages: modifiedTitle(input),
       security_unlock: securityName(input, 'unlock'),
       security_protect: securityName(input, 'protect'),
-      sign: signedFileName(input),
-      redact: redactedFileName(input),
+      sign: outputNameParts(input, { prefix: 'signed_' }).fileName,
+      redact: outputNameParts(input, { prefix: 'redacted_', dedupePrefix: true }).fileName,
       toImagePng: imageFileName(imageBaseName(input), 'png'),
       toImagePageN: imageFileName(imageBaseName(input), 'jpg', 'N'),
       imageToPdf: defaultOutputName([{ file: { name: input } }]),

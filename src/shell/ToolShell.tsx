@@ -3,6 +3,7 @@ import type { ComponentChildren } from 'preact';
 import { useContext } from 'preact/hooks';
 import styles from './ToolShell.module.css';
 import FilePreview from './FilePreview.tsx';
+import OutputName from './OutputName.tsx';
 import DraftRetentionHint from './DraftRetentionHint';
 import { englishShellMessages, type ShellMessages } from './shellMessages';
 
@@ -13,10 +14,21 @@ interface FileAction {
   icon: string;
 }
 
+export interface IdentityRename {
+  prefix: string;
+  name: string;
+  onRename: (next: string) => void;
+  onEditingChange?: (editing: boolean) => void;
+  /** aria-label of the editable name. */
+  label?: string;
+}
+
 interface ToolShellContextValue {
   requestReplace: () => void;
   requestClear: () => void;
   fileLabel?: string;
+  /** Replaces the label with the editable output name. */
+  fileRename?: IdentityRename;
   fileMeta?: string;
   /** Tool-owned content on the meta line, after the file meta (e.g. a size
    * before and after). Strip only; the editor variant ignores it. */
@@ -151,7 +163,7 @@ export function useToolShell() {
  * it.
  */
 export default function ToolShell({ editor = false, inlineStatus = false, statusBeside = false, flush = false, status = null, aside = null, children }: { editor?: boolean; inlineStatus?: boolean; statusBeside?: boolean; flush?: boolean; status?: ComponentChildren; /** The tool's own quiet item at the end of the file line (Highlight's Feedback link). */ aside?: ComponentChildren; children?: ComponentChildren }) {
-  const { fileLabel, fileMeta, metaExtra, note, file, draftSaveState = 'idle', multiple, messages = englishShellMessages } = useToolShell();
+  const { fileLabel, fileRename, fileMeta, metaExtra, note, file, draftSaveState = 'idle', multiple, messages = englishShellMessages } = useToolShell();
   const draftStatus = draftSaveState === 'saved'
     ? { label: messages.draftSaved, className: styles.saved, state: 'saved' }
     : draftSaveState === 'unpersisted'
@@ -177,9 +189,15 @@ export default function ToolShell({ editor = false, inlineStatus = false, status
         {!editor && <FilePreview file={file} />}
 
         <span class={styles.text}>
-          <span class={styles.name} title={fileLabel || undefined}>
-            {fileLabel || (multiple ? messages.filesLoaded : messages.pdfLoaded)}
-          </span>
+          {fileRename ? (
+            <span class={`${styles.name} ${styles['name-editable']}`} data-output-name>
+              <OutputName {...fileRename} label={fileRename.label ?? 'File name, editable'} />
+            </span>
+          ) : (
+            <span class={styles.name} title={fileLabel || undefined}>
+              {fileLabel || (multiple ? messages.filesLoaded : messages.pdfLoaded)}
+            </span>
+          )}
           {(fileMeta || draftStatus || (!editor && metaExtra)) && (
             <span class={styles.meta} data-meta>
               {fileMeta && <span class={styles['meta-text']} data-meta-text>{fileMeta}</span>}

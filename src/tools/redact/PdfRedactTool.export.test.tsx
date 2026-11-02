@@ -319,12 +319,11 @@ describe('PdfRedactTool UI flow', () => {
   // produce, and the identity row's file name never hinted at the output
   // name either.
   describe('honest export count and output name (finding #5)', () => {
-    it('shows no box count and the plain file name before any box exists', async () => {
+    it('shows no box count, and the redacted_ output name, before any box exists', async () => {
       await loadFileWithoutArming(makePdfFile('secret.pdf'));
 
       expect(s.container.querySelector('[data-redact-count]')).toBeNull();
-      const name = query(s.container, '[data-file-identity] [title]');
-      expect(name.textContent).toBe('secret.pdf');
+      expect(query(s.container, '[data-file-identity] [data-output-name]').textContent).toBe('redacted_secret.pdf');
     });
 
     it('shows a live box count and the redacted_ output name once a box exists, updating as more are added', async () => {
@@ -332,13 +331,41 @@ describe('PdfRedactTool UI flow', () => {
       await drawBox(drawArea, 50, 200, 200, 500);
 
       expect(query(s.container, '[data-redact-count]').textContent).toBe('Saves with 1 box');
-      expect(query(s.container, '[data-file-identity] [title]').textContent).toBe('redacted_secret.pdf');
+      expect(query(s.container, '[data-file-identity] [data-output-name]').textContent).toBe('redacted_secret.pdf');
 
       await armTool('Blackout');
       await drawBox(drawArea, 60, 220, 220, 520);
 
       expect(query(s.container, '[data-redact-count]').textContent).toBe('Saves with 2 boxes');
     });
+  });
+
+  it('a name typed in the identity row is the displayed name and the saved name', async () => {
+    s.restoreCanvas = installCanvasEdge();
+    const originalCreateObjectURL = window.URL.createObjectURL;
+    const originalRevokeObjectURL = window.URL.revokeObjectURL;
+    window.URL.createObjectURL = vi.fn(() => 'blob:redacted-pdf');
+    window.URL.revokeObjectURL = vi.fn();
+    try {
+    const drawArea = await loadFileAndGetDrawArea(makePdfFile('secret.pdf'));
+    await drawBox(drawArea, 50, 200, 200, 500);
+
+    const nameEl = () => query(s.container, '[data-file-identity] [data-output-name] [aria-label][tabindex]');
+    await act(async () => { nameEl().dispatchEvent(new MouseEvent('mousedown', { bubbles: true })); });
+    await act(async () => { nameEl().textContent = 'Board minutes'; });
+    await act(async () => {
+      nameEl().dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }));
+    });
+    expect(query(s.container, '[data-file-identity] [data-output-name]').textContent).toBe('redacted_Board minutes.pdf');
+
+    const download = required(Array.from(s.container.querySelectorAll<HTMLButtonElement>('[role="toolbar"] button'))
+      .find((button) => button.textContent.includes('Download')), 'Download button');
+    await act(async () => { download.click(); });
+    await settleUntil('the saved name', () => s.container.textContent.includes('Saved redacted_Board minutes.pdf'));
+    } finally {
+      window.URL.createObjectURL = originalCreateObjectURL;
+      window.URL.revokeObjectURL = originalRevokeObjectURL;
+    }
   });
 
   // DEBT-18: the export is the one async path here whose stale result is a
