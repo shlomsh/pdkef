@@ -10,10 +10,10 @@
 @media (prefers-reduced-motion: reduce) { .card { transition: none; } }
 .body { position: relative; display: flex; flex-direction: column; gap: 8px; }
 .clamp { display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; }
-/* The open note's text answers a click by folding, and leaves the corner to the more button. */
-.open { cursor: pointer; padding-inline-end: 28px; }
+/* The open note's text answers a click by folding; the more button floats at the end of its first line. */
+.open { cursor: pointer; }
 .more {
-  position: absolute; top: -4px; inset-inline-end: -6px; display: inline-flex; align-items: center; justify-content: center;
+  float: inline-end; margin-block-start: -4px; margin-inline-start: 6px; margin-inline-end: -6px; display: inline-flex; align-items: center; justify-content: center;
   width: 28px; height: 28px; padding: 0; background: transparent; border: 0; border-radius: 6px; color: var(--color-muted); cursor: pointer;
 }
 .more:hover, .more[aria-expanded='true'] { background: var(--color-primary-soft); color: var(--color-text); }
@@ -30,7 +30,7 @@
 }
 .menuItem:hover, .menuItem:focus-visible { background: var(--color-primary-soft); outline: none; }
 @media (pointer: coarse) {
-  .more { min-width: 44px; min-height: 44px; top: -12px; inset-inline-end: -12px; }
+  .more { min-width: 44px; min-height: 44px; margin-block-start: -12px; margin-inline-end: -12px; }
   .menu { top: 30px; }
   .menuItem { min-height: 44px; }
 }
