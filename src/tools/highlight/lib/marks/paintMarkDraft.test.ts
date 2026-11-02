@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { paintMarkDraft } from './paintMarkDraft.ts';
+import { hatchIfLoaded, loadHatch } from '../outline/hatchLoader.ts';
 import { sketchMark, bandRectsPts } from '#editor-ui/highlight/HighlightNode.tsx';
 import type { HighlightElement } from '#editor/model/editorModel.ts';
 
@@ -53,5 +54,33 @@ describe('paintMarkDraft', () => {
     paintMarkDraft(node, element, bands, box, 0);
     paintMarkDraft(node, element, [], box, 0);
     expect(draft.children).toHaveLength(0);
+  });
+
+  describe('READ-14: pencil', () => {
+    const pencil = { ...element, style: 'pencil' as const };
+
+    it('draws the hatch the committed node draws once rough.js is in, and repaints itself when it arrives', async () => {
+      const { node, draft } = nodeWithDraft();
+      expect(hatchIfLoaded()).toBeNull();
+      paintMarkDraft(node, pencil, bands, box, 0);
+      expect(draft.children).toHaveLength(0);
+      await vi.waitFor(() => expect(draft.querySelector('svg[data-highlight-hatch]')).not.toBeNull());
+      const path = draft.querySelector('svg[data-highlight-hatch] path')!;
+      expect(path.getAttribute('stroke')).toBe('#FFF34D');
+      const hatch = (await loadHatch()).hatchOps;
+      const { hatchPathD } = await import('#editor/geometry/hatchInk.ts');
+      expect(path.getAttribute('d')).toBe(hatchPathD(hatch, bandRectsPts(bands, box), 'h1'));
+    });
+
+    it('does not bring a mark back that was cleared while rough.js was loading', async () => {
+      const { node, draft } = nodeWithDraft();
+      const { _resetForTest } = await import('../outline/hatchLoader.ts');
+      _resetForTest();
+      paintMarkDraft(node, pencil, bands, box, 0);
+      paintMarkDraft(node, pencil, [], box, 0);
+      await loadHatch();
+      await new Promise((r) => setTimeout(r, 0));
+      expect(draft.children).toHaveLength(0);
+    });
   });
 });

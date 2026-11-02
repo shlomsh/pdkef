@@ -88,6 +88,16 @@ describe('HighlightPage', () => {
     expect(container.querySelector('[data-element-id="h2"] [data-highlight-band]')).not.toBeNull();
   });
 
+  it('READ-14: a pencil mark is hatched in its color instead of banded, with the box in points', async () => {
+    geometryOverride = { width: 600, height: 800 };
+    mount([{ ...mark, style: 'pencil' }, { ...mark, id: 'h2' }]);
+    await vi.waitFor(() => expect(container.querySelector('[data-element-id="h1"] svg[data-highlight-hatch]')).not.toBeNull(), { timeout: 3000 });
+    const svg = container.querySelector('[data-element-id="h1"] svg[data-highlight-hatch]')!;
+    expect(svg.getAttribute('viewBox')).toBe('0 0 180 32');
+    expect(container.querySelector('[data-element-id="h1"] [data-highlight-band]')).toBeNull();
+    expect(container.querySelector('[data-element-id="h2"] [data-highlight-band]')).not.toBeNull();
+  });
+
   it('READ-13: only the open mark wears the pencil outline, and the card-hovered one a faint pass', async () => {
     geometryOverride = { width: 600, height: 800 };
     mount([mark, { ...mark, id: 'h2', top: 40 }, { ...mark, id: 'h3', top: 60 }], DEFAULT_MARKER, undefined, { openMarks: { openId: 'h1', hoverId: 'h2' } });

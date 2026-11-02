@@ -6,7 +6,7 @@ import { UNDERLINE_LIFT } from '../model/underlineInk.ts';
 export interface SketchRect { x: number; y: number; w: number; h: number }
 
 /** M, C and Z only, so an SVG `d` and a PDF content stream (m, c, h) draw the same curve. */
-type PathOp = readonly ['M', number, number] | readonly ['C', number, number, number, number, number, number] | readonly ['Z'];
+export type PathOp = readonly ['M', number, number] | readonly ['C', number, number, number, number, number, number] | readonly ['Z'];
 
 type Pt = readonly [number, number];
 type Rng = () => number;

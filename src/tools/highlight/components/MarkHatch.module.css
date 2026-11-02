@@ -1,0 +1,2 @@
+/* READ-14: the hatch is ink over the box and may run a little past a band, like a pencil does; never a hit target. */
+.hatch { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; }

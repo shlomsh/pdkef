@@ -37,7 +37,8 @@
 /* The pen, with the armed marker at its foot: a dot in the color, or the underline glyph in the darkened ink. */
 .face { position: relative; display: block; width: 18px; height: 18px; line-height: 0; }
 .dot,
-.glyph { position: absolute; display: block; pointer-events: none; }
+.glyph,
+.hatch { position: absolute; display: block; pointer-events: none; }
 .dot {
   right: -4px;
   bottom: -3px;
@@ -46,6 +47,16 @@
   border-radius: 50%;
   box-shadow: 0 0 0 1.5px var(--color-surface), inset 0 0 0 1px color-mix(in srgb, var(--color-text) 28%, transparent);
 }
+.hatch {
+  right: -4px;
+  bottom: -3px;
+  width: 11px;
+  height: 11px;
+  line-height: 0;
+  border-radius: 3px;
+  background: var(--color-surface);
+}
+.hatch > svg { width: 100%; height: 100%; }
 .glyph {
   right: -3px;
   bottom: -3px;
@@ -83,5 +94,6 @@
 .wrap[data-tile] > button { width: 100%; }
 /* Over a tile's label the badge sits higher, so it never touches the first line of text. */
 .wrap[data-tile] .dot,
-.wrap[data-tile] .glyph { bottom: 1px; }
+.wrap[data-tile] .glyph,
+.wrap[data-tile] .hatch { bottom: 1px; }
 .wrap[data-tile] > button[data-armed] { background: var(--color-primary); color: var(--color-surface); border-color: var(--color-primary); }

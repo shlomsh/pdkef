@@ -17,6 +17,7 @@ import { createSwipeReader } from '#lib/pageLayout/swipeReader.ts';
 import { PAGE_HEIGHT_DEFAULT_PTS } from '#editor/model/signGeometry.js';
 import { usePageGeometry } from '../hooks/usePageGeometry.ts';
 import HighlightPageHeader from './HighlightPageHeader.tsx';
+import MarkHatch from './MarkHatch.tsx';
 import MarkOutline from './MarkOutline.tsx';
 import type { OpenMarks } from '../hooks/useOpenMarks.ts';
 import { useClickMarks } from '../hooks/useClickMarks.ts';
@@ -154,6 +155,7 @@ export default function HighlightPage({ pdfDocument, pageIndex, widthPx, chrome 
               <HighlightNode
                 element={mark} isActive={false} onResizeStart={noop} turns={turnsOf(pageTurns, pageIndex)}
                 boxPts={geometry ? { width: (mark.width / 100) * geometry.width, height: (mark.height / 100) * geometry.height } : undefined}
+                hatch={geometry && mark.style === 'pencil' ? <MarkHatch mark={mark} boxPts={{ width: (mark.width / 100) * geometry.width, height: (mark.height / 100) * geometry.height }} /> : undefined}
               />
               {geometry && (mark.id === openMarks?.openId || mark.id === openMarks?.hoverId) && (
                 <MarkOutline

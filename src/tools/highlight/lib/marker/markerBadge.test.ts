@@ -11,6 +11,10 @@ describe('markerBadge', () => {
     expect(markerBadge({ color: '#FF8FCF', style: 'highlight', opacity: 0.3 })).toEqual({ kind: 'dot', color: '#FF8FCF', opacity: 0.35 });
   });
 
+  it('a pencil marker shows the hatch glyph in its color', () => {
+    expect(markerBadge({ color: '#FFF34D', style: 'pencil', opacity: 0.5 })).toEqual({ kind: 'pencil', color: '#FFF34D', opacity: 0.5 });
+  });
+
   it('an underline marker shows the underline glyph in the darkened ink', () => {
     expect(markerBadge({ color: '#FFF34D', style: 'underline', opacity: 0.5 })).toEqual({ kind: 'underline', ink: underlineInk('#FFF34D') });
   });

@@ -1,3 +1,4 @@
+import type { ComponentChildren } from 'preact';
 import type { HighlightElement } from '#editor/model/editorModel.ts';
 import type { ElementNodeChange, ElementNodeProps } from '../nodeProps.ts';
 import { sketchBands, sketchUnderline, strokeSeed, svgPath, type SketchRect } from '#editor/geometry/sketchStroke.ts';
@@ -27,13 +28,15 @@ export function underlineVars(element: HighlightElement) {
 /* SIGN-46: bands are percents of the element's own box. The draft container
  * stays empty in render - the swipe gesture paints live bands into it.
  * Comments are their own elements now (CommentNode), so a highlight draws no dot. */
-export default function HighlightNode({ element, isActive, boxPts, turns = 0 }: ElementNodeProps<HighlightElement> & {
+export default function HighlightNode({ element, isActive, boxPts, turns = 0, hatch }: ElementNodeProps<HighlightElement> & {
   /** READ-11: the element's box in PDF points; with it a `stroke: 'sketch'` mark draws as one svg path (Sign passes none). */
   boxPts?: { width: number; height: number };
   /** The page's quarter turns, which the sketched underline follows (the clean one reads them from `data-page-turns`). */
   turns?: number;
   onChange?: ElementNodeChange<HighlightElement>;
   onSelect?: (event: Event) => void;
+  /** READ-14: what a `style: 'pencil'` mark shows instead of bands (the Highlight tool hands in its hatch); a tool that hands none in shows the plain bands. */
+  hatch?: ComponentChildren;
 }) {
   const sketchPath = element.stroke === 'sketch' && boxPts ? sketchMark(element, bandRectsPts(element.bands, boxPts), turns) : null;
   const underline = element.style === 'underline';
@@ -46,7 +49,7 @@ export default function HighlightNode({ element, isActive, boxPts, turns = 0 }: 
           <svg data-highlight-sketch viewBox={`0 0 ${boxPts.width} ${boxPts.height}`} preserveAspectRatio="none" aria-hidden="true" class={styles.sketch}>
             <path d={sketchPath.d} fill={sketchPath.fill} />
           </svg>
-        ) : element.bands.map((band, i) => (
+        ) : hatch && element.style === 'pencil' ? hatch : element.bands.map((band, i) => (
           <div
             key={i}
             data-highlight-band

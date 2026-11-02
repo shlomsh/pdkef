@@ -8,6 +8,8 @@ import { UNDERLINE_LIFT, UNDERLINE_WIDTH, underlineInk } from '../model/underlin
 import { applyAffineTransform, percentToPoints } from '../geometry/coords.ts';
 import type { AffineTransform } from '../geometry/coords.ts';
 import { sketchBands, sketchUnderline, strokeSeed } from '../geometry/sketchStroke.ts';
+import { HATCH_WEIGHT } from '../geometry/hatchInk.ts';
+import type { hatchOps } from '../geometry/hatchStroke.ts';
 
 const POPUP_WIDTH = 160;
 const POPUP_HEIGHT = 80;
@@ -62,6 +64,8 @@ interface BandsHighlightSpec {
   strokeWidth?: number;
   /** `'sketch'` draws the mark as a hand-drawn vector path; absent is the clean quads or line. */
   stroke?: 'sketch';
+  /** READ-14: rough.js's hatch, handed in by `serializeHighlight` (it is fetched on demand) for a `'pencil'` mark; without it the mark is written as plain bands. */
+  hatch?: typeof hatchOps;
   comment?: { text: string; commentedAt?: number };
   /** The Print flag: a highlight prints, a comment's tint does not. */
   print: boolean;
@@ -110,7 +114,25 @@ export function writeBandsHighlight(spec: BandsHighlightSpec, context: Serialize
   const ink = hexToRgbFractions(underlineInk(spec.color), spec.fallbackColor);
   const paint: string[] = [];
   let setup: string;
-  if (spec.print && spec.stroke === 'sketch') {
+  if (spec.print && spec.style === 'pencil' && spec.hatch) {
+    // READ-14: the screen's hatch as stroked lines in the mark's color, mapped to user space (so a turned page hatches as displayed).
+    const rects = edges.map((e) => ({ x: e.left, y: -e.top, w: e.right - e.left, h: e.top - e.bottom }));
+    const drawn: Point[] = [];
+    const parts = spec.hatch(rects, strokeSeed(spec.id)).map((op) => {
+      if (op[0] === 'Z') return '';
+      const pairs: Point[] = [];
+      for (let i = 1; i < op.length; i += 2) pairs.push(toUser(op[i] as number, -(op[i + 1] as number)));
+      drawn.push(...pairs);
+      return `${pairs.map((q) => q.map(fixed).join(' ')).join(' ')} ${op[0] === 'M' ? 'm' : 'c'}`;
+    });
+    if (parts.length) paint.push(`${parts.join(' ')} S`);
+    if (drawn.length) {
+      const pad = HATCH_WEIGHT / 2;
+      const [x0, y0, x1, y1] = boundsOf([[rect[0], rect[1]], [rect[2], rect[3]], ...drawn]);
+      rect = [x0 - pad, y0 - pad, x1 + pad, y1 + pad];
+    }
+    setup = `${fixed(HATCH_WEIGHT)} w 1 J ${fixed(r)} ${fixed(g)} ${fixed(b)} RG`;
+  } else if (spec.print && spec.stroke === 'sketch') {
     // READ-11: the shared sketch ops (y down) mapped to user space, one nonzero fill; the Rect and BBox grow so the overshoot is not clipped.
     const rects = edges.map((e) => ({ x: e.left, y: -e.top, w: e.right - e.left, h: e.top - e.bottom }));
     const seed = strokeSeed(spec.id);
@@ -161,9 +183,11 @@ export function writeBandsHighlight(spec: BandsHighlightSpec, context: Serialize
   return { ref: highlightRef, edges };
 }
 
-export function serializeHighlight(element: HighlightElement, context: SerializeContext): void {
+export async function serializeHighlight(element: HighlightElement, context: SerializeContext): Promise<void> {
+  // Only a Pencil mark waits (for rough.js); every other style still writes before the first await.
+  const hatch = element.style === 'pencil' ? (await import('../geometry/hatchStroke.ts')).hatchOps : undefined;
   writeBandsHighlight({
     id: element.id, box: element, bands: element.bands, color: element.color, fallbackColor: DEFAULT_HIGHLIGHT_COLOR,
-    direction: element.direction, style: element.style, opacity: element.opacity, strokeWidth: element.strokeWidth, stroke: element.stroke, comment: context.comment, print: true, quarterTurns: context.quarterTurns,
+    direction: element.direction, style: element.style, opacity: element.opacity, strokeWidth: element.strokeWidth, stroke: element.stroke, hatch, comment: context.comment, print: true, quarterTurns: context.quarterTurns,
   }, context);
 }

@@ -62,6 +62,13 @@ describe('clickMarkElement', () => {
     expect(el.direction).toBeUndefined();
   });
 
+  it('carries a pencil marker as style pencil with no stroke or width', () => {
+    const el = clickMarkElement({ id: 'x', pageIndex: 0, boxes, marker: { color: '#FF8FCF', style: 'pencil', opacity: 0.5 }, direction: 'ltr' })!;
+    expect(el).toMatchObject({ style: 'pencil', opacity: 0.5 });
+    expect(el).not.toHaveProperty('strokeWidth');
+    expect(el).not.toHaveProperty('stroke');
+  });
+
   it('carries the armed underline and opacity, and a right to left direction', () => {
     const el = clickMarkElement({ id: 'x', pageIndex: 0, boxes, marker: { color: '#FF8FCF', style: 'underline', opacity: 0.5 }, direction: 'rtl' })!;
     expect(el).toMatchObject({ color: '#FF8FCF', style: 'underline', opacity: 0.5, direction: 'rtl' });

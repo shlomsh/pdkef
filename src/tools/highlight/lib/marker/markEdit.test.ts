@@ -12,6 +12,12 @@ describe('markOf', () => {
   it('reads a plain highlight as the default look', () => {
     expect(markOf(el)).toEqual({ color: '#FFF34D', style: 'highlight', opacity: 1 });
   });
+  it('reads pencil', () => {
+    expect(markOf({ ...el, style: 'pencil' })).toMatchObject({ style: 'pencil' });
+  });
+  it('writes pencil and clears the stroke and width a pencil never carries', () => {
+    expect(changePatch({ style: 'pencil' })).toEqual({ style: 'pencil', strokeWidth: undefined, stroke: undefined });
+  });
   it('reads underline and opacity', () => {
     expect(markOf({ ...el, style: 'underline', opacity: 0.5, color: '#FF8080' })).toEqual({ color: '#FF8080', style: 'underline', opacity: 0.5 });
   });

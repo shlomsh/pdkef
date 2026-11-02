@@ -49,7 +49,7 @@ describe('MarkPanel', () => {
     mount();
     const row = container!.querySelector('[data-marker-row]')!;
     const order = [...row.querySelectorAll('button')].map((b) => b.getAttribute('aria-label'));
-    expect(order).toEqual(['Yellow', 'Pink', 'Green', 'More colors', 'Highlight', 'Underline', 'Opacity', 'Comment', 'Delete']);
+    expect(order).toEqual(['Yellow', 'Pink', 'Green', 'More colors', 'Highlight', 'Underline', 'Pencil', 'Opacity', 'Comment', 'Delete']);
   });
 
   describe('the colors', () => {
@@ -115,10 +115,10 @@ describe('MarkPanel', () => {
   });
 
   describe('the switch', () => {
-    it('is two plain segments with no caret inside', () => {
+    it('is three plain segments with no caret inside', () => {
       mount();
       const toggle = container!.querySelector('[data-style-toggle]')!;
-      expect(toggle.querySelectorAll('button')).toHaveLength(2);
+      expect(toggle.querySelectorAll('button')).toHaveLength(3);
       expect(toggle.querySelector('[aria-haspopup]')).toBeNull();
       expect(toggle.querySelector('polyline')).toBeNull();
     });
@@ -129,6 +129,8 @@ describe('MarkPanel', () => {
       expect(onChange).not.toHaveBeenCalled();
       press(named('Underline'));
       expect(onChange).toHaveBeenLastCalledWith({ style: 'underline' });
+      press(named('Pencil'));
+      expect(onChange).toHaveBeenLastCalledWith({ style: 'pencil' });
     });
 
     it('checks the current style', () => {

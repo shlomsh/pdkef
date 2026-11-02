@@ -93,6 +93,18 @@ describe('READ-11: the swiped mark carries the pen stroke', () => {
   });
 });
 
+describe('READ-14: the swiped mark carries pencil', () => {
+  afterEach(() => { marker = { color: 'yellow', style: 'highlight', opacity: 1 }; });
+  it('style pencil rides on the new element, with no stroke or width', () => {
+    marker = { color: 'yellow', style: 'pencil', opacity: 0.5, stroke: 'sketch', strokeWidth: 2 };
+    mount(); press(); move(150, 150);
+    const payload = dispatch.mock.calls[0][0].payload;
+    expect(payload.style).toBe('pencil');
+    expect('stroke' in payload).toBe(false);
+    expect('strokeWidth' in payload).toBe(false);
+  });
+});
+
 describe('useMarkSwipe threshold', () => {
   it('a mouse drag lays a mark while armed and none once the marker is put down', () => {
     mount(); press(); move(150, 150);

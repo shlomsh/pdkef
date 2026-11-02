@@ -27,6 +27,7 @@ export interface HighlightMessages {
   markStyle: string;
   markHighlight: string;
   markUnderline: string;
+  markPencil: string;
   markDelete: string;
   /** R27: opens the highlight's comment. */
   markComment: string;
@@ -88,6 +89,7 @@ export const englishHighlightMessages: HighlightMessages = {
   markStyle: 'Style',
   markHighlight: 'Highlight',
   markUnderline: 'Underline',
+  markPencil: 'Pencil',
   markDelete: 'Delete',
   markComment: 'Comment',
   markColorInput: 'Custom color',

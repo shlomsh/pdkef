@@ -5,7 +5,7 @@ const HEX = /^#[0-9a-f]{6}$/i;
 
 /** The marker as the text a draft's details and the remembered default keep. */
 export function serializeMarker(marker: Marker): string {
-  return JSON.stringify({ color: marker.color, style: marker.style, opacity: marker.opacity, ...(marker.strokeWidth === undefined ? {} : { strokeWidth: marker.strokeWidth }), ...(marker.stroke === 'sketch' ? { stroke: 'sketch' } : {}) });
+  return JSON.stringify({ color: marker.color, style: marker.style, opacity: marker.opacity, ...(marker.style === 'pencil' || marker.strokeWidth === undefined ? {} : { strokeWidth: marker.strokeWidth }), ...(marker.style !== 'pencil' && marker.stroke === 'sketch' ? { stroke: 'sketch' } : {}) });
 }
 
 /** A stored marker, or null for anything that is not one (color hex, a style string, opacity 0.3 to 1). */
@@ -26,7 +26,9 @@ export function parseMarker(value: unknown): Marker | null {
   if (strokeWidth !== undefined && (typeof strokeWidth !== 'number' || !Number.isFinite(strokeWidth) || strokeWidth < UNDERLINE_WIDTH.min || strokeWidth > UNDERLINE_WIDTH.max)) return null;
   if (stroke !== undefined && stroke !== 'sketch') return null;
   // READ-14: a style a newer build wrote reads as a highlight, so the color and opacity still carry over
-  return { color: color.toUpperCase(), style: style === 'underline' ? 'underline' : 'highlight', opacity, ...(strokeWidth === undefined ? {} : { strokeWidth }), ...(stroke === 'sketch' ? { stroke } : {}) };
+  const known = style === 'underline' || style === 'pencil' ? style : 'highlight';
+  const pencil = known === 'pencil';
+  return { color: color.toUpperCase(), style: known, opacity, ...(pencil || strokeWidth === undefined ? {} : { strokeWidth }), ...(!pencil && stroke === 'sketch' ? { stroke } : {}) };
 }
 
 /** The document's own marker beats the remembered default, which beats the yellow marker. */

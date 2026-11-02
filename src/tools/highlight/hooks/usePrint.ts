@@ -5,6 +5,7 @@ import type { EditorElement } from '#editor/model/editorModel.ts';
 import type { PageTurns } from '#editor/geometry/pageTurn.ts';
 import { reportError } from '#lib/telemetry/errorReport.ts';
 import { reportToolLifecycleEvent } from '#lib/telemetry/productAnalytics.ts';
+import { hatchIfLoaded, loadHatch } from '../lib/outline/hatchLoader.ts';
 import type { PrintNotes } from '../lib/print/printMenu.ts';
 import PrintSheets from '../components/PrintSheets.tsx';
 
@@ -30,7 +31,7 @@ export function usePrint({ pdfDocument, elements, pageTurns }: { pdfDocument: PD
   // A job is open from its request until its sheets come away, so a request made meanwhile is ignored (and unreported).
   const open = useRef(false);
 
-  const print = useCallback((notes: PrintNotes) => {
+  const begin = useCallback((notes: PrintNotes) => {
     if (printed.current) {
       printed.current = false;
       setReady(false);
@@ -43,6 +44,17 @@ export function usePrint({ pdfDocument, elements, pageTurns }: { pdfDocument: PD
     reportToolLifecycleEvent('tool_operation_started', 'highlight-pdf');
     setJob({ notes, id: ++jobs.current });
   }, []);
+
+  // READ-14: a Pencil mark prints from rough.js's strokes, so the sheets wait for it (a few ms once cached) instead of printing the mark blank.
+  const hasPencil = useRef(false);
+  hasPencil.current = elements.some((el) => el.type === 'highlight' && el.style === 'pencil');
+  const loadingHatch = useRef(false);
+  const print = useCallback((notes: PrintNotes) => {
+    if (loadingHatch.current) return;
+    if (!hasPencil.current || hatchIfLoaded()) { begin(notes); return; }
+    loadingHatch.current = true;
+    loadHatch().catch((err) => reportError('pdf_render', err, 'draw_mark_hatch')).finally(() => { loadingHatch.current = false; begin(notes); });
+  }, [begin]);
 
   // Not ready in time: take the sheets away and say so.
   useEffect(() => {
