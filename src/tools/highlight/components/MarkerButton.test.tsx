@@ -92,7 +92,7 @@ describe('MarkerButton', () => {
     it('shows the mark\'s look, and closes when the mark goes away', () => {
       const look = { ...DEFAULT_MARKER, color: TOP_COLORS[2].hex };
       const { props, button } = mount({ mark: markProps(look) });
-      expect(container!.querySelectorAll('[data-highlight-swatch]')[2].getAttribute('aria-pressed')).toBe('true');
+      expect(container!.querySelectorAll('[data-highlight-swatch]')[2].getAttribute('aria-checked')).toBe('true');
       act(() => render(<MarkerButton {...props} mark={undefined} />, container!));
       expect(button().getAttribute('aria-expanded')).toBe('false');
       expect(named(t.markComment)).toBeNull();

@@ -33,4 +33,26 @@ describe('HighlightSwatches', () => {
     act(() => swatches[1].click());
     expect(onChange).toHaveBeenCalledWith({ color: HIGHLIGHT_COLORS[4].hex });
   });
+
+  it('stays a set of pressed buttons by default (Sign)', () => {
+    mount();
+    const first = container!.querySelector('[data-highlight-swatch]')!;
+    expect(first.getAttribute('aria-pressed')).toBe('true');
+    expect(first.hasAttribute('role')).toBe(false);
+  });
+
+  it('as radios: checked instead of pressed, with one tab stop on the checked one', () => {
+    mount({ colors: HIGHLIGHT_COLORS.slice(0, 3), color: HIGHLIGHT_COLORS[1].hex, radio: true });
+    const swatches = [...container!.querySelectorAll<HTMLElement>('[data-highlight-swatch]')];
+    expect(swatches.map((b) => b.getAttribute('role'))).toEqual(['radio', 'radio', 'radio']);
+    expect(swatches.map((b) => b.getAttribute('aria-checked'))).toEqual(['false', 'true', 'false']);
+    expect(swatches.some((b) => b.hasAttribute('aria-pressed'))).toBe(false);
+    expect(swatches.map((b) => b.tabIndex)).toEqual([-1, 0, -1]);
+  });
+
+  it('as radios with none checked, the first is the tab stop', () => {
+    mount({ colors: HIGHLIGHT_COLORS.slice(0, 3), color: '#123456', radio: true });
+    const swatches = [...container!.querySelectorAll<HTMLElement>('[data-highlight-swatch]')];
+    expect(swatches.map((b) => b.tabIndex)).toEqual([0, -1, -1]);
+  });
 });

@@ -39,7 +39,8 @@ export default function RestToolbar({ mark, onChange, onDelete, onComment, onClo
   const onArrow = (e: KeyboardEvent) => {
     const target = e.target as HTMLElement;
     if (target.tagName !== 'BUTTON') return;
-    const buttons = [...(rootRef.current?.querySelectorAll<HTMLElement>('button') ?? [])];
+    // A radio group is one stop, at its checked radio; its own handler moves within it.
+    const buttons = [...(rootRef.current?.querySelectorAll<HTMLElement>('button') ?? [])].filter((b) => !(b.getAttribute('role') === 'radio' && b.tabIndex === -1));
     // Arrows follow the interface direction, never the mark's text direction.
     const interfaceRtl = !!rootRef.current && getComputedStyle(rootRef.current).direction === 'rtl';
     const next = nextFocusIndex(buttons.indexOf(target), e.key, buttons.length, interfaceRtl);

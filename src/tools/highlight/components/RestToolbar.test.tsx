@@ -2,7 +2,7 @@ import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { HighlightElement } from '#editor/model/editorModel.ts';
-import { HIGHLIGHT_COLORS } from '../lib/marker/markerState.ts';
+import { HIGHLIGHT_COLORS, TOP_COLORS } from '../lib/marker/markerState.ts';
 import elementStyles from '#editor-ui/EditorElement.module.css';
 import { toolbarScaleOriginCss } from '#editor-ui/hooks/visualViewportClamp.ts';
 import RestToolbar, { MarkHint } from './RestToolbar.tsx';
@@ -135,16 +135,28 @@ describe('RestToolbar keys', () => {
     expect(onClose).toHaveBeenCalledTimes(1);
   });
 
-  it('arrow keys move focus along the buttons', () => {
+  it('arrow keys move focus along the buttons, each radio group one stop at its checked radio', () => {
     mount();
-    const first = button('Yellow');
-    first.focus();
-    key('ArrowRight', {}, first);
-    expect(document.activeElement).toBe(button('Pink'));
-    key('End', {}, button('Pink'));
+    const more = button('More colors');
+    more.focus();
+    key('ArrowLeft', {}, more);
+    expect(document.activeElement).toBe(button('Yellow'));
+    key('ArrowRight', {}, button('Opacity'));
+    expect(document.activeElement).toBe(button('Comment'));
+    key('ArrowLeft', {}, button('Opacity'));
+    expect(document.activeElement).toBe(button('Highlight'));
+    key('End', {}, button('Yellow'));
     expect(document.activeElement).toBe(button('Delete'));
     key('Home', {}, button('Delete'));
-    expect(document.activeElement).toBe(first);
+    expect(document.activeElement).toBe(button('Yellow'));
+  });
+
+  it('inside the colors, arrows check the next color instead of only moving focus', () => {
+    mount();
+    button('Yellow').focus();
+    key('ArrowRight', {}, button('Yellow'));
+    expect(onChange).toHaveBeenLastCalledWith({ color: TOP_COLORS[1].hex });
+    expect(document.activeElement).toBe(button('Pink'));
   });
 });
 
@@ -159,10 +171,10 @@ describe('RestToolbar follows the interface direction (READ-04)', () => {
 
   it('Arrow Right moves to the next button in DOM order under the LTR interface, for an RTL mark', () => {
     mount(rtlMark);
-    const first = button('Yellow');
+    const first = button('More colors');
     first.focus();
     key('ArrowRight', {}, first);
-    expect(document.activeElement).toBe(button('Pink'));
+    expect(document.activeElement).toBe(button('Highlight'));
   });
 });
 

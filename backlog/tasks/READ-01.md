@@ -218,9 +218,8 @@ The reasons and the rejected alternatives are in "Decisions and why" at the end.
 
 Found by two zero-context reviews (`1e729ad1..1db48f20`, then `1e729ad1..36f5a564`); each is checked against
 the contract before READ-01 closes. Fixed since: the unclamped live pan (`94f8b17d`), the hidden tile row's
-second panel in full screen, and the digest recomputed on every autosave (now once per file).
-- R49: the switch's halves are 36 px wide on touch, not 40. Restoring 40 widens the panel row, which already
-  wraps at 402 px by about 15 px; settle both with the colors-as-one-choice decision.
+second panel in full screen, the digest recomputed on every autosave (now once per file), and R49's 36 px switch
+halves with the row wrapping at 402 px (the colors became one framed choice and the row fits, 2026-11-02).
 - R9, R39 on a coarse pointer with a keyboard (iPad): the touch panel has no 1-6/U/C/Delete keys, though its
   buttons advertise them, and a keyboard focus on a mark sets the desktop panel's target, which never shows.
 - A sideways finger swipe that starts on an existing highlight neither marks nor pans (`useMarkSwipe` returns
@@ -243,6 +242,12 @@ second panel in full screen, and the digest recomputed on every autosave (now on
 Shlomi's calls, with the reason, newest group first.
 
 2026-11-02, touch and the panel
+- The colors are one choice, drawn like the switch beside them: one framed track holds yellow, pink, green and More,
+  the picked color sits on a soft tint inset 3 px, and the switch's picked half uses the same fill instead of a solid
+  block. Both are radio groups with arrow keys; Home and End stay with the desktop toolbar, which treats each group as
+  one stop. Chosen from three sketches (a fill in the color's own tint and an unframed row were the others).
+- R49 at 402 px: on touch the row drops its 1 px gaps and the divider before Comment, colors are 30 px wide, More 28,
+  the switch halves 40, and the percent keeps room for "100%" so the row never changes width.
 - Touch arms on a tap and disarms on a tap, with no Stop button: it is how Sign's tool buttons already work.
 - Touch has no hover, so a tap picks a highlight and its panel opens under the toolbar; nothing floats on the
   page, which keeps the lines being read free.
@@ -326,6 +331,10 @@ Learnings from the sketches that shape the build
   multi-click tests need `clickCount`.
 - Read every size, then write every position: laying out notes one at a time forces a layout per note.
 - A settling band animates with a transform, not `left` and `width`.
+- A component's own sizing must outrank the shared popover classes on the same element (`.wrap .menu`, not `.menu`):
+  a production build loads those classes last, so the touch panel wrapped on the built site and not in `astro dev`.
+- A floating panel placed with `strategy: 'absolute'` sits at its anchor for one frame before it is shifted; on a
+  375 px phone that frame widened the page and mobile Chrome kept the wider layout viewport. Touch panels use `fixed`.
 
 ## Acceptance
 

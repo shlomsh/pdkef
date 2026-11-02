@@ -54,12 +54,12 @@ export default function MarkerButton({ marker, armed = false, onTap, onDisarm, o
   }, [open]);
 
   // Floating UI places the menu inside the wrapper (so it stays in a fullscreen element) and keeps it on screen;
-  // its dismiss hook owns Escape and the outside press.
+  // its dismiss hook owns Escape and the outside press. Fixed, so the first frame never widens the page's scroll width.
   const { refs, floatingStyles, context } = useFloating({
     open,
     onOpenChange: (next) => { if (!next) close(); },
     placement: 'bottom-start',
-    strategy: 'absolute',
+    strategy: 'fixed',
     middleware: [offset(8), flip(), shift({ padding: 16 })],
     whileElementsMounted: autoUpdate,
   });

@@ -1,4 +1,4 @@
-/* The mark panel's row (READ-03, R19): the top colors, More, a divider, the switch and its setting, a divider, Comment
+/* The mark panel's row (READ-03, R19): the framed track of the top colors and More, the switch and its setting, a divider, Comment
    and Delete. The cell is 36 px on a fine pointer and 44 on a coarse one; the Reading lamp's --target wins over both.
    Where the row does not fit, Comment and Delete wrap to a second line, right aligned. */
 .bar {
@@ -10,6 +10,7 @@
   min-height: var(--cell);
   padding-inline: 2px;
 }
+.track { display: inline-flex; flex: none; align-items: center; isolation: isolate; margin-inline-end: 6px; border-radius: var(--radius-sm); box-shadow: inset 0 0 0 1px var(--color-border); }
 .divider { display: block; flex: none; width: 1px; height: 24px; margin: 0 3px; background: var(--color-border); }
 .acts { display: inline-flex; align-items: center; gap: 2px; margin-inline-start: auto; }
 .act {
@@ -29,12 +30,14 @@
 .act:hover { background: var(--color-primary-tint); }
 .danger:hover { background: var(--color-danger-soft); color: var(--color-danger); }
 
-/* Coarse: every target is 44 px tall; colors and More are 32 wide, Comment and Delete 36, so the whole row fits
+/* Coarse: every target is 44 px tall; colors are 30 wide, More 28, the switch halves 40, Comment and Delete 36, so the whole row fits
    on one line from a 402 px phone up. The same sizes hold on a narrow screen with a fine pointer. */
 @media (pointer: coarse) {
   .bar { --cell: var(--target, 2.75rem); }
 }
 @media (pointer: coarse), (max-width: 480px) {
-  .bar { --swatch-w: 2rem; padding-inline: 0; }
+  .bar { --swatch-w: 1.875rem; gap: 0; padding-inline: 0; }
+  .track { margin-inline-end: 4px; }
+  .acts .divider { display: none; }
   .act { width: 2.25rem; border-radius: var(--radius-sm); }
 }

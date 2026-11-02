@@ -38,43 +38,62 @@ test('clicking a highlight shows its toolbar, visible and on screen, and Escape 
   await expect(bar).toBeHidden();
 });
 
-/* READ-04: on a phone the five controls sit on one row inside the screen, and the bar keeps its width when the
-   style changes (the underline's thickness trigger is always there). */
-for (const [w, h] of [[375, 812], [402, 874]]) {
-  test(`phone ${w}x${h}: one row inside the viewport, same width for highlight and underline`, async ({ page }) => {
-    await page.setViewportSize({ width: w, height: h });
-    const source = await makePdfBuffer(null, { title: false, lines: [{ text: 'A line of text a student would highlight', y: 700 }] });
-    await openTool(page, '/highlight-pdf/', { file: { name: 'toolbar.pdf', buffer: source }, overlaySelector: '[data-page-overlay]' });
+/* R47, R49: on a phone the picked mark's panel is one row from 402 px up, in the normal view and in full screen, with
+   44 px tall targets and switch halves at least 40 px wide. At 375 px only Comment and Delete may wrap, and the page
+   never scrolls sideways. A real finger lays and picks the mark (CDP touch), since touch has its own panel host. */
+test.describe('touch panel', () => {
+  test.use({ hasTouch: true, isMobile: true });
 
-    const box = await page.locator('[data-page-overlay]').first().boundingBox();
-    const y = box.y + box.height * ((792 - 694) / 792);
-    await page.mouse.move(box.x + box.width * (72 / 612), y);
-    await page.mouse.down();
-    await page.mouse.move(box.x + box.width * (330 / 612), y, { steps: 8 });
-    await page.mouse.up();
+  for (const [w, h, full] of [[402, 874, false], [402, 874, true], [375, 812, false]]) {
+    test(`${w}x${h}${full ? ' full screen' : ''}: one row, 44 px targets, 40 px switch halves`, async ({ page }) => {
+      await page.setViewportSize({ width: w, height: h });
+      const source = await makePdfBuffer(null, { title: false, lines: [{ text: 'A line of text a student would highlight', y: 700 }] });
+      await openTool(page, '/highlight-pdf/', { file: { name: 'toolbar.pdf', buffer: source }, overlaySelector: '[data-page-overlay]' });
+      if (full) {
+        await page.getByRole('button', { name: 'Full screen' }).first().tap();
+        await expect(page.locator('[role="toolbar"][data-mode]')).toBeVisible();
+        // The page is fitted again for the bigger view: wait until it holds still for a few frames.
+        await page.waitForFunction(() => new Promise((done) => {
+          const rect = () => JSON.stringify(document.querySelector('[data-page-overlay]')?.getBoundingClientRect());
+          const first = rect();
+          let frames = 6;
+          const tick = () => (frames-- ? requestAnimationFrame(tick) : done(rect() === first));
+          requestAnimationFrame(tick);
+        }));
+      }
 
-    const mark = page.locator('[data-page-overlay] [data-element-id]');
-    await expect(mark).toHaveCount(1);
-    const band = await mark.boundingBox();
-    await page.mouse.click(band.x + band.width / 2, band.y + band.height / 2);
+      const box = await page.locator('[data-page-overlay]').first().boundingBox();
+      const y = box.y + box.height * ((792 - 694) / 792);
+      const x0 = box.x + box.width * (72 / 612);
+      const x1 = box.x + box.width * (330 / 612);
+      const cdp = await page.context().newCDPSession(page);
+      const touch = (type, x) => cdp.send('Input.dispatchTouchEvent', { type, touchPoints: type === 'touchEnd' ? [] : [{ x, y }] });
+      await touch('touchStart', x0);
+      for (let i = 1; i <= 12; i += 1) await touch('touchMove', x0 + ((x1 - x0) * i) / 12);
+      await touch('touchEnd', x1);
 
-    const bar = page.locator('[data-rest-toolbar]');
-    await expect(bar).toBeVisible();
-    const rects = await bar.locator('button').evaluateAll((els) => els.map((e) => {
-      const r = e.getBoundingClientRect();
-      return { x: r.x, y: r.y, w: r.width, h: r.height };
-    }));
-    expect(rects).toHaveLength(6);
-    for (const r of rects) {
-      expect(r.x).toBeGreaterThanOrEqual(0);
-      expect(r.x + r.w).toBeLessThanOrEqual(w);
-      expect(Math.abs(r.y - rects[0].y)).toBeLessThan(2);
-    }
-    const before = (await bar.boundingBox()).width;
-    await bar.getByRole('button', { name: 'Underline', exact: true }).click();
-    await expect(bar.getByRole('button', { name: 'Underline', exact: true })).toHaveAttribute('aria-pressed', 'true');
-    const after = (await bar.boundingBox()).width;
-    console.log(`bar width ${w}: highlight ${before}, underline ${after}`);
-    expect(Math.abs(after - before)).toBeLessThanOrEqual(1);
-  });
-}
+      const mark = page.locator('[data-page-overlay] [data-element-id]');
+      await expect(mark).toHaveCount(1);
+      const band = await mark.boundingBox();
+      await page.touchscreen.tap(band.x + band.width / 2, band.y + band.height / 2);
+
+      const row = page.locator('[data-marker-row]:visible');
+      await expect(row).toHaveCount(1);
+      const rects = await row.locator('button').evaluateAll((els) => els.map((e) => {
+        const r = e.getBoundingClientRect();
+        return { name: e.getAttribute('aria-label'), x: r.x, y: r.y, w: r.width, h: r.height };
+      }));
+      console.log(w, full ? 'full' : 'normal', JSON.stringify(rects.map((r) => `${r.name}:${Math.round(r.w)}x${Math.round(r.h)}@${Math.round(r.y)}`)));
+      expect(rects).toHaveLength(9);
+      for (const r of rects) {
+        expect(r.h, `${r.name} height`).toBeGreaterThanOrEqual(44);
+        expect(r.x, `${r.name} left`).toBeGreaterThanOrEqual(0);
+        expect(r.x + r.w, `${r.name} right`).toBeLessThanOrEqual(w);
+      }
+      for (const name of ['Highlight', 'Underline']) expect(rects.find((r) => r.name === name).w, `${name} width`).toBeGreaterThanOrEqual(40);
+      const oneLine = w >= 402 ? rects : rects.filter((r) => r.name !== 'Comment' && r.name !== 'Delete');
+      for (const r of oneLine) expect(Math.abs(r.y - rects[0].y), `${r.name} on the first line`).toBeLessThan(2);
+      expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(w);
+    });
+  }
+});

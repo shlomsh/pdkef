@@ -1,14 +1,16 @@
-/* The Highlight | Underline switch and the setting button of the Marker panel. Sizes follow the panel's --cell
+/* The Highlight | Underline switch (a radio group; the picked half is a soft inset fill) and the setting button of the Marker panel. Sizes follow the panel's --cell
    (36 px on a fine pointer, 44 on a coarse one); colors are the page's tokens. */
 .toggle {
   display: inline-flex;
   flex: none;
+  isolation: isolate;
   overflow: hidden;
   border-radius: var(--radius-sm);
   box-shadow: inset 0 0 0 1px var(--color-border);
 }
 .segment {
   appearance: none;
+  position: relative;
   display: grid;
   place-items: center;
   min-width: 2.25rem;
@@ -19,8 +21,16 @@
   color: var(--color-text);
   cursor: pointer;
 }
-.segment:hover:not([aria-pressed='true']) { background: var(--color-primary-tint); }
-.segment[aria-pressed='true'] { background: var(--color-primary); color: var(--color-surface); cursor: default; }
+.segment:hover:not([aria-checked='true']) { background: var(--color-primary-tint); }
+.segment[aria-checked='true'] { background: transparent; color: var(--color-text); cursor: default; }
+.segment[aria-checked='true']::before {
+  content: '';
+  position: absolute;
+  inset: 3px;
+  border-radius: calc(var(--radius-sm) - 2px);
+  background: var(--color-primary-tint);
+  z-index: -1;
+}
 .segment:focus-visible { outline-offset: -2px; }
 
 /* The setting button: the active style's value and a chevron, 5 px after the switch (the row's own gap is 1). */
@@ -50,4 +60,12 @@
   height: 14px;
   border-radius: 50%;
   box-shadow: inset 0 0 0 1px var(--color-black-15);
+}
+
+.percent { min-width: 4ch; text-align: end; }
+
+/* Coarse or narrow: the switch halves are 40 px wide and the setting button is tighter, so the row fits from a 402 px phone up. */
+@media (pointer: coarse), (max-width: 480px) {
+  .segment { min-width: 2.5rem; padding: 0; }
+  .setting { padding: 0 4px; }
 }
