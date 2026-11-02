@@ -6,7 +6,6 @@ import { getAppStyle, getEditorPreference } from '#editor/workspace/preferenceSt
 import { resolveWhiteoutColor, resolveRedactBlurStrength } from './lib/redactStyle.ts';
 import { resolveBrush } from './components/BrushControls.tsx';
 import { initialRedactState, redactReducer } from './state/redactState.ts';
-import { useOutputNameOverride } from '#shell/useOutputNameOverride.ts';
 import { useHoldUpdate } from '#lib/hooks/useHoldUpdate.ts';
 import ErrorMessage from '#shell/ErrorMessage.tsx';
 import { FileActions } from '#shell/ToolShell.tsx';
@@ -39,8 +38,6 @@ export default withIslandBoundary(function PdfRedactTool() {
   const { announcement, isPseudoFullscreen } = state.view;
   const { file, numPages, pdfDocument, sizedPageCount, status } = state.document;
   const setAnnouncement = (message: string) => dispatch({ type: 'ANNOUNCED', message });
-  // Download saves as `redacted_<name>` until the person types their own in the identity row.
-  const { parts, identityRename } = useOutputNameOverride(file, { prefix: 'redacted_', dedupePrefix: true });
   useHoldUpdate(status === 'redacting'); // finishPhase 'exporting' is this same state
 
   // activeStyle is null | 'delete' | 'blackout' | 'blur' | 'whiteout'. Null -
@@ -55,7 +52,7 @@ export default withIslandBoundary(function PdfRedactTool() {
   const { workspaceRef, needsUnlock, setNeedsUnlock, isFullscreenActive, currentPage } = pages;
 
   const exp = useRedactExport({
-    state, dispatch, setAnnouncement, setNeedsUnlock, getFileBytes: () => fileBytesRef.current, outputFileName: parts.fileName,
+    state, dispatch, setAnnouncement, setNeedsUnlock, getFileBytes: () => fileBytesRef.current
   });
 
   const { handleFilesAdded, fileBytesRef, draftSaveState, isRestoring } = useRedactFileSession({
@@ -76,7 +73,7 @@ export default withIslandBoundary(function PdfRedactTool() {
   const details = useRedactDetails({
     state, dispatch, setAnnouncement, fileBytes: fileBytesRef.current, findKit, handleSavePdf: exp.handleSavePdf,
   });
-  const finish = useRedactFinish({ state, handleDownloadPdf: exp.handleDownloadPdf, outputFileName: parts.fileName });
+  const finish = useRedactFinish({ state, handleDownloadPdf: exp.handleDownloadPdf, outputFileName: exp.outputFileName });
   // SEO-46's ask, mounted once: in the strip while it is open, else last in the
   // bottom row. Two mounted copies would race for the one device-wide ask.
   const rating = <RatingPrompt tool="redact" downloaded={finish.downloaded} />;
@@ -89,7 +86,7 @@ export default withIslandBoundary(function PdfRedactTool() {
       intake={{ multiple: false, accept: '.pdf,application/pdf' }}
       identity={{
         file,
-        label: file?.name, rename: identityRename,
+        label: file?.name, rename: exp.identityRename,
         meta: describeFile(file, numPages, isFullscreenActive ? currentPage : null),
       }}
       empty={{ art: <RedactVerb />, message: 'Select or drop a PDF to redact' }}

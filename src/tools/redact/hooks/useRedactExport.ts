@@ -13,6 +13,7 @@ import type { HistoryPlace } from '#editor/model/actionHistory.ts';
 import type { NeedsUnlockKind } from '#shell/NeedsUnlock.tsx';
 import type { DetailEdits } from '../lib/detailEdits.js';
 import type { SavedPlace } from '../lib/check/types.ts';
+import { useOutputNameOverride } from '#shell/useOutputNameOverride.ts';
 import { englishRedactMessages as t } from '../messages.ts';
 import { selectDetailEdits, selectRemovedPlaces, type RedactAction, type RedactState, type SavedExport } from '../state/redactState.ts';
 
@@ -24,15 +25,15 @@ export type ExportOverrides = { removedPlaces?: HistoryPlace[]; details?: Detail
  * of an export the document has moved on from (DEBT-18, RED-36). It owns the
  * share state and the hand-off busy flag, and reads the reducer state it exports.
  */
-export default function useRedactExport({ state, dispatch, setAnnouncement, setNeedsUnlock, getFileBytes, outputFileName }: {
+export default function useRedactExport({ state, dispatch, setAnnouncement, setNeedsUnlock, getFileBytes }: {
   state: RedactState;
   dispatch: (action: RedactAction) => void;
   setAnnouncement: (message: string) => void;
   setNeedsUnlock: (kind: NeedsUnlockKind | null) => void;
   getFileBytes: () => ArrayBuffer | null;
-  outputFileName: string;
 }) {
   const { file, status } = state.document;
+  const { parts: { fileName: outputFileName }, identityRename } = useOutputNameOverride(file, { prefix: 'redacted_', dedupePrefix: true });
   const { elements, documentRevision } = state.edits;
   const { exportedForHandoff } = state.finish;
   // Draft persistence needs an editor-owned baseline, not a guess based on
@@ -240,5 +241,5 @@ export default function useRedactExport({ state, dispatch, setAnnouncement, setN
     }
   };
 
-  return { canSharePdf, shareReady, handoffBusy, handleSavePdf, handleDownloadPdf, handleSharePdf, requestHandoff };
+  return { canSharePdf, shareReady, handoffBusy, handleSavePdf, handleDownloadPdf, handleSharePdf, requestHandoff, outputFileName, identityRename };
 }
