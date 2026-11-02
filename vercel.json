@@ -161,6 +161,11 @@
       "permanent": true
     },
     {
+      "source": "/academic-paper-reader",
+      "destination": "/academic-paper-reader/",
+      "permanent": true
+    },
+    {
       "source": "/how-to-scan-a-document-to-pdf",
       "destination": "/how-to-scan-a-document-to-pdf/",
       "permanent": true
