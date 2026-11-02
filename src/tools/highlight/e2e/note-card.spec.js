@@ -1,6 +1,7 @@
 import { test, expect } from '@playwright/test';
 import { openTool } from '../../../../e2e/support/tool.js';
 import { makePdfBuffer } from '../../../../e2e/support/pdf.js';
+import { tapUntil } from '../../../../e2e/support/touch.js';
 
 /* READ-17: a closed note card clamps its text to four lines, the open card shows it whole and a click on the text
    toggles that, and editing is reached from the card's menu. Rendered line clamping needs a real browser. */
@@ -81,4 +82,37 @@ test('a long note clamps when closed, shows whole when open, and is edited from 
   await expect(card.locator('textarea')).toBeFocused();
   await page.keyboard.press('Escape');
   await expect(page.locator('[data-comment-card] textarea')).toHaveCount(0);
+});
+
+/* On a phone the note sits in the bottom pane, whose cards scroll: the menu must open above every scroll container,
+   or Delete is cut off under the card's edge. */
+test.describe('in the phone note pane', () => {
+  test.use({ isMobile: false, hasTouch: true, viewport: { width: 402, height: 874 } });
+
+  test('the menu of a short note is whole and every item can be tapped', async ({ page }) => {
+    const source = await makePdfBuffer(null, { title: false, lines: LINES });
+    await openTool(page, '/highlight-pdf/', { file: { name: 'notes.pdf', buffer: source }, overlaySelector: '[data-page-overlay]' });
+    const box = await page.locator('[data-page-overlay]').first().boundingBox();
+    const y = box.y + box.height * ((792 - 694) / 792);
+    await page.mouse.move(box.x + box.width * (72 / 612), y);
+    await page.mouse.down();
+    await page.mouse.move(box.x + box.width * (330 / 612), y, { steps: 8 });
+    await page.mouse.up();
+    const band = await page.locator('[data-page-overlay] [data-element-id]').first().boundingBox();
+    await tapUntil(page, { x: band.x + band.width / 2, y: band.y + band.height / 2 }, async () => (await page.locator('[data-marker-row]:visible').count()) === 1);
+    await page.getByRole('button', { name: 'Comment' }).first().click();
+    await expect(page.locator('[data-note-pane] textarea')).toBeFocused();
+    await page.keyboard.type('short note');
+    await page.keyboard.press('Control+Enter');
+
+    const card = page.locator('[data-note-card][data-active]');
+    await card.locator('[data-comment-more]').click();
+    const items = page.locator('[data-comment-menu] [role="menuitem"]');
+    await expect(items).toHaveCount(2);
+    // Polled: the menu is placed a frame after it opens.
+    await expect.poll(() => items.evaluateAll((nodes) => nodes.map((n) => {
+      const r = n.getBoundingClientRect();
+      return n.contains(document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2));
+    }))).toEqual([true, true]);
+  });
 });

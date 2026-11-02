@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
+import { autoUpdate, computePosition, flip, offset, shift } from '@floating-ui/dom';
 import type { SignMessages } from '#editor/registry/messages.ts';
 import type { CommentCard } from '#editor/highlight/commentCards.ts';
 import { commentPatch, type CommentPatch } from '#editor/highlight/commentCommit.ts';
@@ -124,21 +125,42 @@ export function CommentCardBody({ card, active, messages, label, onSelect, onSav
   );
 }
 
+/** The top layer, where the browser has it; without it the menu stays an absolute box inside the card. */
+const TOP_LAYER = typeof HTMLElement !== 'undefined' && 'showPopover' in HTMLElement.prototype;
+
 /** READ-17: the open note's ... button and its Edit / Delete menu. Edit takes focus on open; Escape closes only the menu. */
 function MoreMenu({ messages, onEdit, onDelete }: { messages: SignMessages; onEdit: () => void; onDelete: () => void }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const moreRef = useRef<HTMLButtonElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
-    if (!menuOpen) return;
-    menuRef.current?.querySelector<HTMLElement>('[data-comment-menu-edit]')?.focus();
+    const menu = menuRef.current;
+    const more = moreRef.current;
+    if (!menuOpen || !menu || !more) return;
+    // The menu opens in the top layer: the phone pane's cards scroll, and any scroll container would cut it off.
+    // It stays in the card's DOM, so focus and presses on it still count as inside the note.
+    let stopPlacing = () => {};
+    if (TOP_LAYER) {
+      menu.showPopover();
+      const place = () => computePosition(more, menu, {
+        strategy: 'fixed',
+        placement: getComputedStyle(more).direction === 'rtl' ? 'bottom-start' : 'bottom-end',
+        middleware: [offset(4), flip(), shift({ padding: 8 })],
+      }).then(({ x, y }) => Object.assign(menu.style, { left: `${x}px`, top: `${y}px` }));
+      stopPlacing = autoUpdate(more, menu, place);
+    }
+    menu.querySelector<HTMLElement>('[data-comment-menu-edit]')?.focus();
     const away = (event: Event) => {
       const target = event.target as Node;
       if (!menuRef.current?.contains(target) && !moreRef.current?.contains(target)) setMenuOpen(false);
     };
     document.addEventListener('pointerdown', away);
     document.addEventListener('click', away);
-    return () => { document.removeEventListener('pointerdown', away); document.removeEventListener('click', away); };
+    return () => {
+      stopPlacing();
+      document.removeEventListener('pointerdown', away);
+      document.removeEventListener('click', away);
+    };
   }, [menuOpen]);
   const onMenuKeyDown = (event: KeyboardEvent) => {
     if (event.key !== 'Escape') return;
@@ -154,7 +176,7 @@ function MoreMenu({ messages, onEdit, onDelete }: { messages: SignMessages; onEd
         <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="2" /><circle cx="12" cy="12" r="2" /><circle cx="19" cy="12" r="2" /></svg>
       </button>
       {menuOpen && (
-        <div ref={menuRef} role="menu" data-comment-menu class={styles.menu} onKeyDown={onMenuKeyDown}>
+        <div ref={menuRef} role="menu" data-comment-menu popover={TOP_LAYER ? 'manual' : undefined} class={styles.menu} onKeyDown={onMenuKeyDown}>
           <button type="button" role="menuitem" data-comment-menu-edit class={styles.menuItem} onClick={onEdit}>{messages.commentEdit}</button>
           <button type="button" role="menuitem" data-comment-menu-delete class={styles.menuItem} onClick={onDelete}><TrashIcon />{messages.commentDelete}</button>
         </div>
