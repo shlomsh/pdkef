@@ -37,11 +37,11 @@ describe('CommentSheet', () => {
     expect(host!.querySelector('[data-highlight-note-input]')).not.toBeNull();
   });
 
-  it('shows the text, with no buttons, for an existing comment', () => {
+  it('shows the text and a more button for an existing comment; its menu Edit opens the field', () => {
     mount([hl('a', 'hello there')], 'a');
     expect(sheet()!.textContent).toContain('hello there');
-    expect(sheet()!.querySelector('[role="group"] button')).toBeNull();
-    act(() => { sheet()!.querySelector('p')!.dispatchEvent(new MouseEvent('dblclick', { bubbles: true })); });
+    act(() => sheet()!.querySelector<HTMLElement>('[data-comment-more]')!.click());
+    act(() => sheet()!.querySelector<HTMLElement>('[data-comment-menu-edit]')!.click());
     expect(sheet()!.querySelector('textarea')).not.toBeNull();
   });
 
@@ -98,8 +98,7 @@ describe('CommentSheet', () => {
   it('hands focus back when Cancel closes the note', () => {
     const onReturnFocus = vi.fn();
     mount([hl('a', '')], 'a', { onReturnFocus });
-    const cancel = [...host!.querySelectorAll('button')].find((b) => b.textContent === englishSignMessages.commentCancel && b.className.includes('secondary'))
-      ?? [...host!.querySelectorAll('button')].filter((b) => b.textContent === englishSignMessages.commentCancel).pop()!;
+    const cancel = [...host!.querySelectorAll('button')].filter((b) => b.textContent === englishSignMessages.commentCancel).pop()!;
     act(() => cancel.click());
     expect(onReturnFocus).toHaveBeenCalledWith('a');
   });

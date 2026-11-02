@@ -13,7 +13,7 @@ const NUDGE = 6;
 const stop = (event: Event) => event.stopPropagation();
 
 /** SIGN-44: comments in a margin rail beside the page, each card level with its anchor. */
-export function CommentRail({ pageIndex, elements, activeElementId, messages, onSelect, onSave, onDelete, onDiscard, onReturnFocus, railHeight, readActions }: {
+export function CommentRail({ pageIndex, elements, activeElementId, messages, onSelect, onSave, onDelete, onDiscard, onReturnFocus, railHeight }: {
   pageIndex: number;
   elements: readonly EditorElement[];
   activeElementId: string | null;
@@ -25,8 +25,6 @@ export function CommentRail({ pageIndex, elements, activeElementId, messages, on
   onReturnFocus?: (id: string) => void;
   /** The rail's height in px, when the caller knows it: cards are then placed in the render that changes it. */
   railHeight?: number;
-  /** Highlight: the selected card shows Delete and Edit as buttons. */
-  readActions?: boolean;
 }) {
   const cards = commentCards(elements, pageIndex, activeElementId);
   const rail = useRef<HTMLDivElement>(null);
@@ -92,7 +90,6 @@ export function CommentRail({ pageIndex, elements, activeElementId, messages, on
             onDelete={() => onDelete(card.id)}
             onDiscard={() => onDiscard(card.id)}
             onReturnFocus={() => onReturnFocus?.(card.id)}
-            readActions={readActions && card.id === activeElementId}
           />
         </div>
       ))}

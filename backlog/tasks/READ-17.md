@@ -1,13 +1,12 @@
 ---
 id: "READ-17"
 title: "Highlight PDF: a note card with one way to edit, and long notes kept short until opened"
-status: "open"
+status: "in_progress"
 priority: "P2"
 epic: "highlight-pdf"
 horizon: "now"
 order: 17
 depends_on: ["READ-15"]
-needs: "Pick the card's model: A (the open note is its own field) or B (read first, a menu for Edit and Delete)"
 ---
 
 # READ-17 · One edit path, long notes clamped
@@ -41,12 +40,40 @@ here which should be rebuilt, the ux and action buttons should be rebuilt".
 Either way: the clamp lifts when a card opens, the phone pane keeps its fixed height and scrolls a long note
 inside its card, and Sign's rail uses the same card body unless Shlomi says otherwise.
 
-## Acceptance (after the pick)
+## Picked: B (2026-11-02)
 
-- [ ] Shlomi picks A or B.
-- [ ] A closed card shows at most four lines; the open card shows all of it, on the rail and in the phone pane.
-- [ ] Exactly one way into editing an existing note, and Delete in exactly one place.
-- [ ] The primary button says what it does: Comment for a new note, Done or Save for a change.
-- [ ] A typed draft is never lost by leaving the card (READ-15's focus-out rule).
-- [ ] Failing unit tests first; one e2e for the clamp's rendered height; checked in a desktop browser and on the
-  iPhone simulator with screenshots.
+Shlomi picked B from a clickable mockup of both. He added: clicking an open long note again collapses it back.
+That is a toggle local to the card, not a deselect, so it works the same on the rail and in the phone pane (where
+deselecting would close the pane).
+
+The contract:
+
+- **Closed** (not the active note): the text clamped to four lines; a click or Enter selects it. No pencil, no
+  hint, no buttons.
+- **Open** (active, not editing): the whole text and a ⋯ button (`commentMore`) with a menu of Edit and Delete.
+  A click on the text, or Enter on the card, toggles it between whole and clamped; it opens whole each time it
+  becomes active. Nothing else starts editing: no click-to-edit, no double-click.
+- **Editing** (Edit, or a new note): the field, then Cancel and the primary button, Save (`commentSave`) for a
+  saved note and Comment for a new one. No bin here: Delete lives only in the menu.
+- Sign's rail and sheet use the same card body. The `readActions` prop is gone.
+
+## Review (2026-11-02)
+
+A fresh-context review found: the menu placed on the wrong side in RTL (Floating UI already mirrors), the menu
+staying open after a tap inside the phone pane (the pane stops propagation, so the outside press now listens in the
+capture phase), a text selection folding the note, Tab and arrow keys in the menu, Space, a one-frame flash before
+placement, and an emptied note deleted by Save. All fixed in 2c40d9df; the more button now floats at the end of the
+first line, so the open note keeps its full width.
+
+## Acceptance
+
+- [x] Shlomi picks A or B (B, 2026-11-02).
+- [x] A closed card shows at most four lines; the open card shows all of it, on the rail and in the phone pane,
+  and a click on an open card's text collapses it back.
+- [x] Exactly one way into editing an existing note, and Delete in exactly one place.
+- [x] The primary button says what it does: Comment for a new note, Save for a change.
+- [x] A typed draft is never lost by leaving the card (READ-15's focus-out rule).
+- [x] Failing unit tests first; one e2e for the clamp's rendered height (`note-card.spec.js`, desktop and phone
+  pane); checked in WebKit at 1400 and 402 px with screenshots.
+- [ ] Checked on the iPhone simulator. Blocked 2026-11-02: Safari's page process crashes at launch in `dyld_sim`
+  on this Mac's iOS 26.2 runtime (SIGBUS in `DyldSharedCache::getUUID`), before any page code runs.

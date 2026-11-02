@@ -63,7 +63,8 @@ describe('NotePane', () => {
 
   it('deletes a note, moves on, and Undo brings it back', () => {
     const { root, click, onDelete, onSelect, onUndo } = mount('c2');
-    click(root()!.querySelector('[data-note-card="c2"] [data-comment-read-delete]')!);
+    click(root()!.querySelector('[data-note-card="c2"] [data-comment-more]')!);
+    click(root()!.querySelector('[data-note-card="c2"] [data-comment-menu-delete]')!);
     expect(onDelete).toHaveBeenCalledWith('c2');
     expect(onSelect).toHaveBeenLastCalledWith('c3');
     const chip = root()!.querySelector('[role="status"]')!;
