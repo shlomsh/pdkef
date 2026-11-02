@@ -1,7 +1,7 @@
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { toggleWorkspaceFullscreen, useFullscreenChange } from './workspaceFullscreen.ts';
+import { FULLSCREEN_ANSWER_MS, toggleWorkspaceFullscreen, useFullscreenChange } from './workspaceFullscreen.ts';
 import { recentActions, resetActionTrailForTests } from '#lib/telemetry/actionTrail.ts';
 
 afterEach(() => {
@@ -27,6 +27,59 @@ describe('toggleWorkspaceFullscreen', () => {
     await Promise.resolve();
     await Promise.resolve();
     expect(setPseudo).toHaveBeenCalledWith(true);
+  });
+
+  describe('a request the browser never answers', () => {
+    const flush = async () => { await Promise.resolve(); await Promise.resolve(); };
+    afterEach(() => { vi.useRealTimers(); delete (document as any).exitFullscreen; });
+
+    it('falls back to pseudo fullscreen once the wait is over, and not before', () => {
+      vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+      const workspace = { requestFullscreen: vi.fn(() => new Promise<void>(() => {})) } as any;
+      const setPseudo = vi.fn();
+      toggleWorkspaceFullscreen(workspace, false, setPseudo);
+      vi.advanceTimersByTime(FULLSCREEN_ANSWER_MS - 1);
+      expect(setPseudo).not.toHaveBeenCalled();
+      vi.advanceTimersByTime(1);
+      expect(setPseudo).toHaveBeenCalledWith(true);
+    });
+
+    it('does not fall back when the request is granted in time', async () => {
+      vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+      const workspace = { requestFullscreen: vi.fn(() => Promise.resolve()) } as any;
+      const setPseudo = vi.fn();
+      toggleWorkspaceFullscreen(workspace, false, setPseudo);
+      await flush();
+      vi.advanceTimersByTime(FULLSCREEN_ANSWER_MS * 2);
+      expect(setPseudo).not.toHaveBeenCalled();
+    });
+
+    it('leaves real fullscreen again when it is granted after the fallback, so one full screen remains', async () => {
+      vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+      let grant!: () => void;
+      const workspace = { requestFullscreen: vi.fn(() => new Promise<void>((resolve) => { grant = resolve; })) } as any;
+      const exit = vi.fn(() => Promise.resolve());
+      (document as any).exitFullscreen = exit;
+      const setPseudo = vi.fn();
+      toggleWorkspaceFullscreen(workspace, false, setPseudo);
+      vi.advanceTimersByTime(FULLSCREEN_ANSWER_MS);
+      grant();
+      await flush();
+      expect(exit).toHaveBeenCalled();
+      expect(setPseudo).toHaveBeenCalledTimes(1);
+    });
+
+    it('a refusal after the fallback does not fall back a second time', async () => {
+      vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+      let refuse!: (err: Error) => void;
+      const workspace = { requestFullscreen: vi.fn(() => new Promise<void>((_, reject) => { refuse = reject; })) } as any;
+      const setPseudo = vi.fn();
+      toggleWorkspaceFullscreen(workspace, false, setPseudo);
+      vi.advanceTimersByTime(FULLSCREEN_ANSWER_MS);
+      refuse(new Error('no'));
+      await flush();
+      expect(setPseudo).toHaveBeenCalledTimes(1);
+    });
   });
 
   it('falls back when the browser has no requestFullscreen or it is disabled', () => {
