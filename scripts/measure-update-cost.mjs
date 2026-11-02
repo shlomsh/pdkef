@@ -10,7 +10,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import zlib from 'node:zlib';
-import { UPDATE_COST_TARGET, summarize, updateCost } from './updateCost.mjs';
+import { UPDATE_COST_TARGET, explainChanged, summarize, updateCost } from './updateCost.mjs';
 
 const RAW_EXT = /\.(png|jpe?g|webp|avif|gif|woff2|pdf|zip)$/i;
 const brotliQ5 = (buf) =>
@@ -40,6 +40,20 @@ export function readInstallSet(dir) {
   return set;
 }
 
+const isPage = (url) => url.endsWith('/') || url.endsWith('.html');
+
+// Reads only the changed HTML pages from both dists, so no other file's content is held.
+export function explainPages({ items }, beforeDir, afterDir) {
+  const pairs = items
+    .filter((i) => i.reason === 'changed' && isPage(i.url))
+    .map((i) => ({
+      url: i.url,
+      before: fs.readFileSync(path.join(beforeDir, toRel(i.url)), 'utf8'),
+      after: fs.readFileSync(path.join(afterDir, toRel(i.url)), 'utf8'),
+    }));
+  return explainChanged(pairs);
+}
+
 function main(argv) {
   const args = argv.slice(2);
   const t = args.indexOf('--target');
@@ -50,14 +64,16 @@ function main(argv) {
     process.exit(2);
   }
   let result;
+  let explanation;
   try {
     result = updateCost(readInstallSet(beforeDir), readInstallSet(afterDir));
+    explanation = explainPages(result, beforeDir, afterDir);
   } catch (err) {
     console.error(err.message);
     if (process.env.GITHUB_STEP_SUMMARY) fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, `### Update cost\n\n${err.message}\n`);
     process.exit(1);
   }
-  const lines = summarize(result, target);
+  const lines = summarize(result, target, explanation);
   console.log(lines.join('\n'));
   if (process.env.GITHUB_STEP_SUMMARY) {
     fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, `### Update cost\n\n\`\`\`\n${lines.join('\n')}\n\`\`\`\n`);
