@@ -89,6 +89,7 @@ export default function HighlightPage({ pdfDocument, pageIndex, widthPx, chrome 
   const commands = markCommands({ elements, dispatch, logAction, rearm, setAnnouncement });
 
   /** The way a mark laid at `start` reads: the text under it, else the page, else the reader. */
+  const textDirectionAt = (start: { x: number; y: number }) => directionAtPoint(textRunsRef.current, start) ?? pageTextDirection(textRunsRef.current.map((r) => r.str));
   const directionAt = (start: { x: number; y: number }) => resolveHighlightDirection({
     atPress: directionAtPoint(textRunsRef.current, start), page: pageTextDirection(textRunsRef.current.map((r) => r.str)), pages: [], elements, readerDirection: readerTextDirection(),
   });
@@ -112,7 +113,7 @@ export default function HighlightPage({ pdfDocument, pageIndex, widthPx, chrome 
   };
 
   const startSwipe = useMarkSwipe({
-    pageIndex, geometry, turns: turnsOf(pageTurns, pageIndex), elements, marker, armed, getPointerPercent, directionAt, dispatch, logAction, setAnnouncement, clicks,
+    pageIndex, geometry, turns: turnsOf(pageTurns, pageIndex), elements, marker, armed, getPointerPercent, directionAt, textDirectionAt, dispatch, logAction, setAnnouncement, clicks,
     onPress: rest.clearHint, onInk: inkLanded, readerAt,
   });
   const onPointerDown = (event: PointerEvent) => {

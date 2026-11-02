@@ -15,6 +15,8 @@ const setAnnouncement = vi.fn();
 let armed = true;
 let pageGeometry: { width: number; height: number } | undefined;
 let marker: Record<string, unknown> = { color: 'yellow', style: 'highlight', opacity: 1 };
+let textDirection: 'ltr' | 'rtl' | undefined;
+let fallbackDirection: 'ltr' | 'rtl' = 'ltr';
 let readerAt: ((point: { x: number; y: number }) => Reader | null) | undefined;
 type Reader = { onLine: (point: { x: number; y: number }) => boolean };
 const readerOf = (on: boolean): Reader => ({ onLine: () => on });
@@ -25,7 +27,8 @@ function Probe() {
     marker: marker as never,
     armed,
     getPointerPercent: (e: MouseEvent | TouchEvent) => ({ x: (e as MouseEvent).clientX / 10, y: (e as MouseEvent).clientY / 10 }),
-    directionAt: () => 'ltr' as never,
+    directionAt: () => fallbackDirection,
+    textDirectionAt: () => textDirection,
     dispatch, logAction, setAnnouncement,
     clicks: { beginPress: vi.fn(), inkStarted: vi.fn(), noteSwipeAction: vi.fn() } as never,
     onPress, onInk: vi.fn(), readerAt: readerAt as never,
@@ -57,6 +60,8 @@ const move = (x: number, y: number) => window.dispatchEvent(new MouseEvent('mous
 
 afterEach(() => {
   readerAt = undefined;
+  textDirection = undefined;
+  fallbackDirection = 'ltr';
   armed = true;
   if (container) { act(() => render(null, container!)); container.remove(); container = null; }
   dispatch.mockClear(); onPress.mockClear(); logAction.mockClear(); setAnnouncement.mockClear(); vi.restoreAllMocks();
@@ -387,5 +392,33 @@ describe('the swipe preview draws the mark as it will stand', () => {
     expect(draft.querySelector('svg')!.getAttribute('viewBox')).toBe('0 0 300 80');
     paintDraft!(node, null);
     expect(draft.children).toHaveLength(0);
+  });
+});
+
+describe('READ-01: the swipe decides the direction on a page with no text', () => {
+  const swipeDirectionAfter = (...moves: Array<[number, number]>) => {
+    vi.mocked(startHighlightSwipe).mockClear();
+    mount(); press();
+    move(...moves[0]);
+    const deps = vi.mocked(startHighlightSwipe).mock.calls[0][0];
+    let answer;
+    for (const [x, y] of moves) { move(x, y); answer = deps.directionAt!({ x: x / 10, y: y / 10 }); }
+    return answer;
+  };
+  it('a leftward swipe reads rtl while the reader language is ltr', () => {
+    expect(swipeDirectionAfter([80, 100], [30, 100], [-40, 100])).toBe('rtl');
+  });
+  it('a rightward swipe reads ltr while the fallback is rtl', () => {
+    fallbackDirection = 'rtl';
+    expect(swipeDirectionAfter([120, 100], [180, 100], [20, 100])).toBe('ltr');
+  });
+  it('before a clear sideways move the fallback answers', () => {
+    fallbackDirection = 'rtl';
+    expect(swipeDirectionAfter([104, 100], [105, 103])).toBe('rtl');
+  });
+  it('a text page keeps its text direction whatever the swipe does', () => {
+    textDirection = 'ltr';
+    fallbackDirection = 'rtl';
+    expect(swipeDirectionAfter([80, 100], [30, 100], [-40, 100])).toBe('ltr');
   });
 });

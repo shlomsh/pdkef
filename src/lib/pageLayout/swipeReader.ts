@@ -5,7 +5,7 @@ import { columnSpanAt, findTextRows, type RasterWindow, type TextRow } from './t
 import { bandsToPagePercent, canvasWindowRect } from './swipe.ts';
 
 interface PagePoint { x: number; y: number }
-interface SwipeReader { bandsBetween(a: PagePoint, b: PagePoint): Band[]; onText(a: PagePoint): boolean; onLine(a: PagePoint): boolean }
+interface SwipeReader { bandsBetween(a: PagePoint, b: PagePoint, direction?: ReadingDirection): Band[]; onText(a: PagePoint): boolean; onLine(a: PagePoint): boolean }
 
 const FALLBACK_HEIGHT_PTS = 14;
 const MARGIN_LINES = 3;
@@ -80,7 +80,7 @@ export function createSwipeReader(canvas: HTMLCanvasElement | null, pageHeightPt
       const hit = rowsFor(y, y, pct(a.x, size.width));
       return !!hit && onLine(hit.rows, pct(a.x, size.width), y - hit.top);
     },
-    bandsBetween(a, b) {
+    bandsBetween(a, b, overrideDirection) {
       const ay = pct(a.y, size.height);
       const by = pct(b.y, size.height);
       const hit = rowsFor(Math.min(ay, by), Math.max(ay, by), pct(a.x, size.width));
@@ -90,7 +90,7 @@ export function createSwipeReader(canvas: HTMLCanvasElement | null, pageHeightPt
         { x: pct(a.x, size.width), y: ay - hit.top },
         { x: pct(b.x, size.width), y: by - hit.top },
         lineHeight,
-        direction,
+        overrideDirection ?? direction,
       );
       return bandsToPagePercent(bands, hit.top, size).filter((band) => band.width > 0 && band.height > 0);
     },

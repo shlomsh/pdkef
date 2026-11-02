@@ -10,7 +10,7 @@ import { createElementId } from '#editor/model/ids.ts';
 import { englishSignMessages } from '#editor/registry/signMessages.ts';
 import type { ReadingDirection } from '#lib/pageLayout/bands.ts';
 import type { Marker } from '../lib/marker/markerState.ts';
-import { isMultiTouch, sidewaysEnough, swipeIntent } from '../lib/marker/swipeIntent.ts';
+import { directionLatch, isMultiTouch, sidewaysEnough, swipeIntent } from '../lib/marker/swipeIntent.ts';
 import type { createSwipeReader } from '#lib/pageLayout/swipeReader.ts';
 import type { useClickMarks } from './useClickMarks.ts';
 
@@ -29,6 +29,8 @@ interface MarkSwipeOptions {
   armed: boolean;
   getPointerPercent: (event: MouseEvent | TouchEvent, container: HTMLElement, geometry?: PageGeometry) => Point;
   directionAt: (start: Point) => ReadingDirection;
+  /** The direction the page's text gives a mark laid at `start`, none on a scan. Given: with none, the swipe's own direction decides. */
+  textDirectionAt?: (start: Point) => ReadingDirection | undefined;
   dispatch: (action: ElementsAction) => void;
   logAction: HistoryLogger<EditorElement>;
   setAnnouncement: (message: string) => void;
@@ -78,6 +80,24 @@ function useLineTouchClaim(armed: boolean) {
   return lineTouchRef;
 }
 
+/** Keeps `offset` at the pointer's screen offset from `origin` until the press ends. */
+function followPointerOffset(origin: Point, offset: { dx: number; dy: number }) {
+  const follow = (move: MouseEvent | TouchEvent) => {
+    const point = 'touches' in move && move.touches?.length ? move.touches[0] : (move as MouseEvent);
+    offset.dx = point.clientX - origin.x;
+    offset.dy = point.clientY - origin.y;
+  };
+  const ends = ['mouseup', 'touchend', 'touchcancel', 'blur'] as const;
+  const unfollow = () => {
+    window.removeEventListener('mousemove', follow);
+    window.removeEventListener('touchmove', follow);
+    for (const type of ends) window.removeEventListener(type, unfollow);
+  };
+  window.addEventListener('mousemove', follow);
+  window.addEventListener('touchmove', follow);
+  for (const type of ends) window.addEventListener(type, unfollow);
+}
+
 /**
  * A press on the page starts a swipe that lays the marker's bands; the gesture paints during the swipe
  * and commits once. Returns the pointerdown handler. A mouse press on a highlight starts nothing.
@@ -103,6 +123,8 @@ export function useMarkSwipe(o: MarkSwipeOptions): (event: PointerEvent) => void
     const container = event.currentTarget as HTMLElement;
     const start = o.getPointerPercent(event, container, o.geometry);
     const origin = { x: event.clientX, y: event.clientY };
+    // The pointer's screen offset from the press, for the swipe's own direction.
+    const offset = { dx: 0, dy: 0 };
     // A finger that starts off the text moves the page sideways and never marks; the browser keeps the vertical scroll.
     const reader = !isMouse && !onMark ? o.readerAt?.(start) : undefined;
     const pans = !!reader && !reader.onLine(start);
@@ -129,6 +151,8 @@ export function useMarkSwipe(o: MarkSwipeOptions): (event: PointerEvent) => void
       const point = 'touches' in move && move.touches?.length ? move.touches[0] : (move as MouseEvent);
       const dx = point.clientX - origin.x;
       const dy = point.clientY - origin.y;
+      offset.dx = dx;
+      offset.dy = dy;
       if (pans) {
         // DOM only: the browser clamps it, and nothing here is state.
         if (scroller) scroller.scrollLeft = startScrollLeft - dx;
@@ -198,10 +222,14 @@ export function useMarkSwipe(o: MarkSwipeOptions): (event: PointerEvent) => void
         window.addEventListener('touchcancel', done);
         abandonRef.current = done;
       }
+      const fallback = o.directionAt(start);
+      const latch = o.textDirectionAt ? directionLatch(o.textDirectionAt(start), fallback) : null;
+      if (latch) followPointerOffset(origin, offset);
       startHighlightSwipe({
         dispatch: swipeDispatch, getPointerPercent: o.getPointerPercent, gestureCancelRef, logAction: o.logAction, setAnnouncement: o.setAnnouncement,
         messages: englishSignMessages, nextElementIndex: o.elements.length, pageGeometry: o.geometry,
-        direction: o.directionAt(start),
+        direction: fallback,
+        ...(latch ? { directionAt: () => latch(offset.dx, offset.dy) } : {}),
         ...(reader !== undefined ? { reader } : {}),
         isMouse,
         // The preview draws the mark as it will stand (sketch, underline, clean), so the release changes nothing.

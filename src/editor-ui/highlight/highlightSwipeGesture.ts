@@ -32,6 +32,8 @@ interface HighlightSwipeDeps {
   nextElementIndex: number;
   pageGeometry?: PageGeometry;
   direction?: ReadingDirection;
+  /** The direction at the pointer (page percent), asked on every move; the last answer is committed. Absent: the fixed `direction`. */
+  directionAt?: (point: { x: number; y: number }) => ReadingDirection;
   /** A reader the caller already made for this press (null: no canvas). Absent: the gesture makes its own. */
   reader?: SwipeReader | null;
   /** The swipe started with a mouse press: its trailing click must not reach the page (touch already suppresses it). */
@@ -61,6 +63,7 @@ export function startHighlightSwipe(deps: HighlightSwipeDeps, target: HighlightS
     if (deps.paintDraft) deps.paintDraft(node, geometry);
     else paintHighlightDraft(node, geometry ? geometry.bands : [], color);
   };
+  let lastDirection = direction;
   const clearDraft = () => {
     const node = getElementNode();
     if (node) paint(node, null);
@@ -68,7 +71,9 @@ export function startHighlightSwipe(deps: HighlightSwipeDeps, target: HighlightS
   gestureCancelRef.current = startGesture<{ pageBands: Band[] }>({
     computePatch: (moveEvent) => {
       if ('touches' in moveEvent && moveEvent.touches && moveEvent.cancelable) moveEvent.preventDefault();
-      return { pageBands: reader?.bandsBetween(start, getPointerPercent(moveEvent, container, pageGeometry)) ?? [] };
+      const pointer = getPointerPercent(moveEvent, container, pageGeometry);
+      if (deps.directionAt) lastDirection = deps.directionAt(pointer);
+      return { pageBands: reader?.bandsBetween(start, pointer, deps.directionAt ? lastDirection : undefined) ?? [] };
     },
     writeDOM: ({ pageBands }) => {
       const node = getElementNode();
@@ -95,7 +100,7 @@ export function startHighlightSwipe(deps: HighlightSwipeDeps, target: HighlightS
         dispatch({ type: 'SET_ACTIVE_ELEMENT_ID', payload: null });
         return;
       }
-      const changes = { ...geometry, ...(direction === 'rtl' ? { direction } : {}) };
+      const changes = { ...geometry, ...(lastDirection === 'rtl' ? { direction: lastDirection } : {}) };
       dispatch({ type: 'UPDATE_ELEMENT', payload: { id, changes: changes as EditorElementPatch } });
       dispatch({ type: 'DISARM_TOOL' });
       recordAction('place_mark');

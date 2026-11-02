@@ -94,6 +94,13 @@ describe('createSwipeReader', () => {
     }
   });
 
+  it('a direction given to bandsBetween overrides the reader\'s own', () => {
+    const reader = createSwipeReader(canvasWith(fakeImage), 400, 'ltr')!;
+    const viaRtl = reader.bandsBetween(px(120, 107), px(30, 147), 'rtl');
+    expect(viaRtl).toEqual(createSwipeReader(canvasWith(fakeImage), 400, 'rtl')!.bandsBetween(px(120, 107), px(30, 147)));
+    expect(viaRtl).not.toEqual(reader.bandsBetween(px(120, 107), px(30, 147)));
+  });
+
   it('passes the reading direction to the bands', () => {
     const ltr = createSwipeReader(canvasWith(fakeImage), 400)!.bandsBetween(px(120, 107), px(30, 147));
     const rtl = createSwipeReader(canvasWith(fakeImage), 400, 'rtl')!.bandsBetween(px(120, 107), px(30, 147));
