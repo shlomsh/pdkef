@@ -131,15 +131,19 @@ describe('MarkerButton', () => {
     expect(props.onTap).not.toHaveBeenCalled();
   });
 
-  it('on a coarse pointer a tap arms the marker, and a tap while armed only opens the colors', () => {
-    const { props, open, button } = mount({ isCoarse: () => true });
+  it('on a coarse pointer a tap arms the marker and never opens the colors', () => {
+    const { props, open } = mount({ isCoarse: () => true });
     open();
     expect(props.onTap).toHaveBeenCalledTimes(1);
-    act(() => render(<MarkerButton {...props} armed />, container!));
+    expect(container!.querySelector('[role=group]')).toBeNull();
+  });
+
+  it('on a coarse pointer a tap while armed does nothing', () => {
+    const { props, button } = mount({ isCoarse: () => true, armed: true });
     press(button());
-    press(button());
-    expect(button().getAttribute('aria-expanded')).toBe('true');
-    expect(props.onTap).toHaveBeenCalledTimes(1);
+    expect(props.onTap).not.toHaveBeenCalled();
+    expect(button().getAttribute('aria-expanded')).toBe('false');
+    expect(container!.querySelector('[role=group]')).toBeNull();
   });
 
   it('shows the armed fill on touch only; a fine pointer always has the marker in hand and shows none', () => {

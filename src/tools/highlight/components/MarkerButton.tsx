@@ -20,7 +20,7 @@ interface MarkerButtonProps {
   marker: Marker;
   /** Every change is a re-arm (R5). */
   onChange(change: Partial<Marker>): void;
-  /** On touch: the marker is armed, so a tap only opens the colors. */
+  /** On touch: the marker is armed, so a tap does nothing (Stop disarms). */
   armed?: boolean;
   /** On touch: the tap that arms the marker. A fine pointer never calls it (the marker is always armed, R1). */
   onTap?(): void;
@@ -34,7 +34,7 @@ interface MarkerButtonProps {
 
 /**
  * The marker in the hand, as a button (R19): it shows the armed marker, a dot in its color or the underline
- * glyph, and opens the six colors, the color wheel and Underline, with the opacity slider under them on a highlight. On touch a tap also arms the marker.
+ * glyph, and opens the six colors, the color wheel and Underline, with the opacity slider under them on a highlight. On touch it opens no menu (the look is chosen on the mark's own toolbar): a tap arms the marker.
  */
 export default function MarkerButton({ marker, onChange, armed = false, onTap, onOpenChange, isCoarse = coarsePointer, buttonClass }: MarkerButtonProps) {
   const [open, setOpen] = useState(false);
@@ -87,7 +87,11 @@ export default function MarkerButton({ marker, onChange, armed = false, onTap, o
         type="button" class={buttonClass ?? styles.button} aria-haspopup="true" aria-expanded={open}
         aria-label={t.marker} title={t.marker} data-armed={armed && isCoarse() ? '' : undefined}
         onClick={(e) => {
-          if (!armed && isCoarse()) onTap?.();
+          // On touch the look is chosen on the mark, so the button only arms.
+          if (isCoarse()) {
+            if (!armed) onTap?.();
+            return;
+          }
           focusColors.current = !open && e.detail === 0;
           toggle(!open);
         }}

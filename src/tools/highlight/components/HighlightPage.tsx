@@ -114,8 +114,9 @@ export default function HighlightPage({ pdfDocument, pageIndex, widthPx, chrome 
     rest.close();
   };
 
-  /** A mark landed, by a swipe or a click: rest waits for the pointer to leave this spot, and the first mark gets its hint. */
+  /** A mark landed, by a swipe or a click. On a finger its toolbar opens on it at once; otherwise rest waits for the pointer to leave this spot, and the first mark gets its hint. */
   const inkLanded = (element: HighlightElement) => {
+    if (coarse) { rest.openFor(element.id); return; }
     rest.strokeEnd();
     const end = inkEnd(element);
     rest.showHint({ x: end.x, bottom: end.bottom, rtl: element.direction === 'rtl' });
