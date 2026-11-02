@@ -209,6 +209,22 @@ The reasons and the rejected alternatives are in "Decisions and why" at the end.
     rest into More (READ-05).
 43. The pages are the page's main landmark, labelled with the file name; the capsule stays a toolbar.
 
+## Open from the 2026-11-02 review
+
+Found by the zero-context review of `1e729ad1..1db48f20`; each is checked against the contract before READ-01
+closes.
+- A live two-finger pan is not clamped until release (`usePinchZoom.ts`, the preview's `translate`), so at an
+  edge the page slides past it and snaps back (R56, R62); likely part of the full-screen zoom jump.
+- A pinch that lands after the first finger began a native scroll cannot cancel that scroll (touchmove is no
+  longer cancelable), so the page may scroll and scale at once.
+- Outside full screen the armed page is `touch-action: pan-y`, so the browser's own pinch is off and nothing
+  replaces it; decide whether R62's pinch covers the normal view.
+- Each touch press reads the page canvas for `onLine`, and a mark reads it again; one reader per press would do.
+- On a plain-http page the SHA-256 fallback is synchronous; a very large PDF blocks the main thread for about a
+  second per 50 MB.
+- In full screen the hidden tile row's Marker also opens a panel for a picked mark (harmless, redundant).
+- `useBoardScroll` reads the workspace's padding during render, before the lamp padding may apply.
+
 ## Decisions and why
 
 Shlomi's calls, with the reason, newest group first.
