@@ -15,8 +15,8 @@ function setup(over: Partial<ReadingCapsuleProps> = {}, width = 1024) {
   const press = bus<[]>();
   const props: ReadingCapsuleProps = {
     fileName: 'lease.pdf', page: 3, pageCount: 12, onJumpToPage: vi.fn(),
-    zoomSlot: <button type="button" aria-label="Zoom">100%</button>,
-    markerSlot: <button type="button" aria-label="Marker">M</button>,
+    zoomSlot: () => <button type="button" aria-label="Zoom">100%</button>,
+    markerSlot: () => <button type="button" aria-label="Marker">M</button>,
     onUndo: vi.fn(), onRedo: vi.fn(), canUndo: true, canRedo: true,
     onPrint: vi.fn(), onDownload: vi.fn(), moreItems: [{ label: 'Feedback', onSelect: vi.fn() }],
     onExit: vi.fn(), scrollEvents: scroll, pagePressEvents: press, ...over,
@@ -102,6 +102,18 @@ describe('ReadingCapsule', () => {
     expect(bar.dataset.mode).toBe('awake'); // still hovered
     fire(bar, 'pointerleave', { bubbles: false });
     expect(bar.dataset.mode).toBe('awake');
+    act(() => press.emit());
+    expect(bar.dataset.mode).toBe('dozing');
+  });
+
+  it('stays awake through a page press while a slot reports its panel open', () => {
+    let report: (open: boolean) => void = () => {};
+    const { bar, press } = setup({ markerSlot: (onOpenChange) => { report = onOpenChange; return <button type="button" aria-label="Marker">M</button>; } });
+    act(() => report(true));
+    expect(bar.dataset.mode).toBe('awake');
+    act(() => press.emit());
+    expect(bar.dataset.mode).toBe('awake');
+    act(() => report(false));
     act(() => press.emit());
     expect(bar.dataset.mode).toBe('dozing');
   });
