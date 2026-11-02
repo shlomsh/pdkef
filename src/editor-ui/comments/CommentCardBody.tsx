@@ -8,7 +8,7 @@ import styles from './CommentRail.module.css';
 
 /** SIGN-44: one comment card's content (rail card, later the phone sheet). Draft is local until Comment.
  * The card shows the comment alone; who and when stay in the saved annotation (/M), not on screen. */
-export function CommentCardBody({ card, active, messages, label, onSelect, onSave, onDelete, onDiscard, onReturnFocus }: {
+export function CommentCardBody({ card, active, messages, label, onSelect, onSave, onDelete, onDiscard, onReturnFocus, onEdit }: {
   card: CommentCard;
   active: boolean;
   messages: SignMessages;
@@ -20,13 +20,15 @@ export function CommentCardBody({ card, active, messages, label, onSelect, onSav
   onDiscard: () => void;
   /** Called once the person is done with the note (Save, Cancel, Esc, Delete): focus goes back to its anchor. */
   onReturnFocus?: () => void;
+  /** READ-19: writing happens elsewhere (the phone's writing page); Edit calls this inside the click and the card never opens a field. */
+  onEdit?: () => void;
 }) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(card.comment);
   // READ-17: an open note shows whole and a tap on it folds it to four lines and back; it opens whole each time it becomes active.
   const [collapsed, setCollapsed] = useState(false);
   const ref = useRef<HTMLTextAreaElement>(null);
-  const showField = card.isNew || editing;
+  const showField = !onEdit && (card.isNew || editing);
   // Undo, redo or restore changed the comment from outside: follow it unless the person is typing.
   useEffect(() => { if (!showField) setDraft(card.comment); }, [card.comment, showField]);
   useEffect(() => {
@@ -124,7 +126,7 @@ export function CommentCardBody({ card, active, messages, label, onSelect, onSav
             {open ? (
               // The more button floats at the end of the first line, so it lives in the text's own inline flow; the span keeps the clamp's box from swallowing the float.
               <span>
-                <MoreMenu messages={messages} onEdit={startEdit} onDelete={() => { onDelete(); onReturnFocus?.(); }} />
+                <MoreMenu messages={messages} onEdit={onEdit ?? startEdit} onDelete={() => { onDelete(); onReturnFocus?.(); }} />
                 {card.comment}
               </span>
             ) : card.comment}

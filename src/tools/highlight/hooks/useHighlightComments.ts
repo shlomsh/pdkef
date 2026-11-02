@@ -11,6 +11,7 @@ import { useCommentsView } from '#editor-ui/comments/useCommentsView.tsx';
 import { recordAction } from '#lib/telemetry/actionTrail.ts';
 import { deleteWithComments } from '../lib/notes/deleteElement.ts';
 import { useNoteFocusOut } from './useNoteFocusOut.ts';
+import { useNoteWriter } from './useNoteWriter.ts';
 
 /**
  * Highlight's wiring of Sign's comments mechanism (R27 to R29): the same view (rail, sheet) and the same card
@@ -53,5 +54,7 @@ export function useHighlightComments({ state, dispatch, logAction, announce }: {
     rootRef: root, elements, activeElementId, enabled: view.wide,
     onClose: () => dispatch({ type: 'SET_ACTIVE_ELEMENT_ID', payload: null }),
   });
-  return { ...view, containerRef, actions };
+  // READ-19: the phone's writing page, opened by Comment and Edit on a narrow workspace.
+  const writer = useNoteWriter();
+  return { ...view, containerRef, actions, writer };
 }

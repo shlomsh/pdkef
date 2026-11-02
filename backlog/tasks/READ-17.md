@@ -1,11 +1,9 @@
 ---
 id: "READ-17"
 title: "Highlight PDF: a note card with one way to edit, and long notes kept short until opened"
-status: "in_progress"
+status: "done"
 priority: "P2"
 epic: "highlight-pdf"
-horizon: "now"
-order: 17
 depends_on: ["READ-15"]
 ---
 
@@ -75,5 +73,5 @@ first line, so the open note keeps its full width.
 - [x] A typed draft is never lost by leaving the card (READ-15's focus-out rule).
 - [x] Failing unit tests first; one e2e for the clamp's rendered height (`note-card.spec.js`, desktop and phone
   pane); checked in WebKit at 1400 and 402 px with screenshots.
-- [ ] Checked on the iPhone simulator. Blocked 2026-11-02: Safari's page process crashes at launch in `dyld_sim`
-  on this Mac's iOS 26.2 runtime (SIGBUS in `DyldSharedCache::getUUID`), before any page code runs.
+- [x] The phone check moved to [READ-19](READ-19.md) (2026-11-02): the Simulator is broken on this Mac, and
+  READ-19 rebuilds where a phone note is written, so its check on Shlomi's iPhone covers this card in the pane.
