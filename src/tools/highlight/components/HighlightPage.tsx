@@ -79,7 +79,7 @@ export default function HighlightPage({ pdfDocument, pageIndex, widthPx, chrome 
   const overlayRef = useRef<HTMLDivElement | null>(null);
 
   const marks = elements.filter((el): el is HighlightElement => el.type === 'highlight' && el.pageIndex === pageIndex);
-  const markFocus = useMarkFocus({ elements, openFor: rest.openFor });
+  const markFocus = useMarkFocus({ elements, openFor: (id) => { if (coarse) onPickMark?.(id); else rest.openFor(id); } });
 
   const target = rest.targetId === null ? undefined : marks.find((m) => m.id === rest.targetId);
   const closeRest = rest.close;

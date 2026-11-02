@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'preact/hooks';
 import type { HighlightElement } from '#editor/model/editorModel.ts';
 import { isTypingTarget } from '#lib/history/isTypingTarget.ts';
-import { keyAction } from '../lib/marker/keys.ts';
-import { HIGHLIGHT_COLORS, type Marker } from '../lib/marker/markerState.ts';
+import { keyAction, markKeyIntent } from '../lib/marker/keys.ts';
+import type { Marker } from '../lib/marker/markerState.ts';
 import { scrolledPast } from '../lib/marker/toolbarLayers.ts';
 import { HINT_MS, hintSeen, markHintSeen } from '../lib/marker/hint.ts';
 import { initialRest, nextTickAt, restReducer, type RestEvent, type RestState } from '../lib/marker/restDetector.ts';
@@ -120,7 +120,6 @@ type ToolbarLive = { current: { mark: HighlightElement; onChange(change: Partial
 export function useToolbarDismissal(
   rootRef: { current: HTMLDivElement | null },
   live: ToolbarLive,
-  { toggleUnderline }: { toggleUnderline(): void },
 ) {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -130,18 +129,12 @@ export function useToolbarDismissal(
       if (!action) return;
       // A color or thickness menu that is open answers Esc itself.
       if (action.type === 'closeLayer' && document.querySelector('[data-editor-popover]')) return;
-      if (action.type === 'color') {
+      const intent = markKeyIntent(action, live.current.look);
+      if (intent) {
         e.preventDefault();
-        change({ color: HIGHLIGHT_COLORS[action.index].hex });
-      } else if (action.type === 'underline') {
-        e.preventDefault();
-        toggleUnderline();
-      } else if (action.type === 'comment') {
-        e.preventDefault();
-        live.current.onComment();
-      } else if (action.type === 'delete') {
-        e.preventDefault();
-        del();
+        if ('change' in intent) change(intent.change);
+        else if ('comment' in intent) live.current.onComment();
+        else del();
       } else if (action.type === 'closeLayer') {
         e.preventDefault();
         // Focus inside the bar or on its mark goes back to the mark; focus elsewhere stays where it is.

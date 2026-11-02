@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { DEFAULT_MARKER, HIGHLIGHT_COLORS, MORE_COLORS, TOP_COLORS, commentBandColor, isTopColor, rearm } from './markerState.ts';
+import { HIGHLIGHT_COLORS } from '#editor/model/highlightColors.ts';
+import { DEFAULT_MARKER, MORE_COLORS, TOP_COLORS, commentBandColor, isTopColor, rearm } from './markerState.ts';
 
 describe('markerState', () => {
   it('the top three are yellow, pink and green, and the rest sit behind more', () => {

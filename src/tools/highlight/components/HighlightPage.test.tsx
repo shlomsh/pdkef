@@ -326,6 +326,15 @@ describe('HighlightPage picking a mark', () => {
     expect(container.querySelector('[data-rest-toolbar]')).toBeNull();
   });
 
+  it('R39 on a touch screen with a keyboard: focusing a mark with the keyboard picks it, and opens no toolbar on the page', () => {
+    restore = stubPointer(true);
+    const onPickMark = vi.fn();
+    mount([mark], DEFAULT_MARKER, true, { onPickMark });
+    act(() => container.querySelector<HTMLElement>('[data-editor-element-id="h1"]')!.focus());
+    expect(onPickMark).toHaveBeenCalledWith('h1');
+    expect(container.querySelector('[data-rest-toolbar]')).toBeNull();
+  });
+
   it('the picked mark carries data-picked, the others do not', () => {
     restore = stubPointer(true);
     mount([mark, { ...mark, id: 'h2', top: 60 }], DEFAULT_MARKER, true, { pickedId: 'h2' });
