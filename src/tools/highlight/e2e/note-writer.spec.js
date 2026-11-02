@@ -87,7 +87,8 @@ test.describe('the phone writing page', () => {
 
   test('Cancel on a brand new note leaves no note', async ({ page }) => {
     await open(page);
-    await commentOn(page, await highlight(page, 700));
+    const first = await highlight(page, 700);
+    await commentOn(page, first);
     await page.keyboard.type('kept');
     const writer = page.locator('[data-note-writer]');
     await writer.getByRole('button', { name: 'Comment' }).click();
@@ -97,6 +98,9 @@ test.describe('the phone writing page', () => {
     await expect(page.locator('[data-note-writer-input]')).toBeFocused();
     await writer.getByRole('button', { name: 'Cancel' }).click();
     await expect(writer).not.toHaveAttribute('open', '');
+    // Cancel discards the blank note and closes the pane, as the card's own Cancel did; reopen it to count the notes.
+    await expect(page.locator('[data-note-pane]')).toHaveCount(0);
+    await tapMark(page, first, async () => (await page.locator('[data-note-pane]').count()) === 1);
     await expect(cards).toHaveCount(before);
     await expect(page.locator('[data-note-card]', { hasText: /^\s*$/ })).toHaveCount(0);
   });
