@@ -2,10 +2,10 @@ import type { EditorElement } from '#editor/model/editorModel.ts';
 import { commentCards } from '#editor/highlight/commentCards.ts';
 import { commentsAnchoredTo, isComment, resolveCommentBoxes } from '#editor/comments/anchors.ts';
 
-/** One note in the phone's bottom pane: the comment, the mark it hangs on and that mark's color. @testSeam until the note pane consumes it; then drop the tag. */
+/** One note in the phone's bottom pane: the comment, the mark it hangs on and that mark's color. @testSeam only the test reads the type by name. */
 export interface PaneNote { id: string; markId: string | null; pageIndex: number; comment: string; isNew: boolean; color: string | null }
 
-/** Every note card in the document in reading order: page by page, each page top to left. @testSeam until the note pane consumes it; then drop the tag. */
+/** Every note card in the document in reading order: page by page, each page top to left. */
 export function paneNotes(elements: readonly EditorElement[], activeId: string | null): PaneNote[] {
   const byId = new Map(elements.map((el) => [el.id, el]));
   const pages = [...new Set(resolveCommentBoxes(elements).filter(isComment).map((el) => el.pageIndex))].sort((a, b) => a - b);
@@ -17,12 +17,12 @@ export function paneNotes(elements: readonly EditorElement[], activeId: string |
   }));
 }
 
-/** Where the active note sits in the pane's notes, -1 when it is not one of them. @testSeam until the note pane consumes it; then drop the tag. */
+/** Where the active note sits in the pane's notes, -1 when it is not one of them. */
 export function paneIndex(notes: readonly PaneNote[], activeId: string | null): number {
   return notes.findIndex((n) => n.id === activeId);
 }
 
-/** The card a sideways scroll rests on; abs because an RTL scroller reports a negative scrollLeft. @testSeam until the note pane consumes it; then drop the tag. */
+/** The card a sideways scroll rests on; abs because an RTL scroller reports a negative scrollLeft. */
 export function snapIndex(scrollStart: number, step: number, count: number): number {
   if (step <= 0 || count <= 0) return 0;
   return Math.min(count - 1, Math.max(0, Math.round(Math.abs(scrollStart) / step)));
@@ -39,7 +39,6 @@ export function activeAfterPick(elements: readonly EditorElement[], activeId: st
 }
 
 /**
- * @testSeam until the note pane consumes it; then drop the tag.
  * How far the on-screen keyboard covers the layout viewport's bottom, for a position:fixed pane. It uses
  * pageTop - scrollY and not visualViewport.offsetTop because offsetTop is wrong with the keyboard up
  * (WebKit bug 237851; see docs/sign-next-gen.md section 3).
