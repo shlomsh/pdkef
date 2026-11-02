@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useRef } from 'preact/hooks';
 import { playPlan } from '../lib/lampEntrance/lampPlayer.ts';
-import { measureBefore, partsIn, planAfter, restoreCordFocus, type Before } from '../lib/lampEntrance/lampDom.ts';
+import { capsuleRect, measureBefore, partsIn, planAfter, restoreCordFocus, type Before } from '../lib/lampEntrance/lampDom.ts';
 import type { Rect } from '../lib/lampEntrance/geometry.ts';
 
 /** How long a press waits for the view to change (real fullscreen answers later) before it is forgotten. */
@@ -14,6 +14,16 @@ function leaveGhost(ws: HTMLElement) {
 }
 const clearGhost = (ws: HTMLElement) => ws.querySelector('[data-lamp-part="ghost"]')?.replaceChildren();
 
+/** Esc and the browser leaving full screen have no press to measure, so the pill's rect is kept current while it is open. */
+function trackCapsule(ws: HTMLElement, into: { current: Rect | null }): () => void {
+  const update = () => { into.current = capsuleRect(ws) ?? into.current; };
+  const pill = ws.querySelector('[data-lamp-part="capsule"] [role="toolbar"]');
+  const observer = pill && typeof ResizeObserver !== 'undefined' ? new ResizeObserver(update) : null;
+  if (pill) observer?.observe(pill);
+  window.addEventListener('resize', update);
+  return () => { observer?.disconnect(); window.removeEventListener('resize', update); };
+}
+
 /**
  * The Reading lamp's way in and out (R-lamp "Pull the cord"). `toggle` stands in for the lamp's own toggle: it measures
  * what is on screen, flips the view, and when the new view has laid out (a layout effect, so before it paints) plays the
@@ -23,7 +33,9 @@ const clearGhost = (ws: HTMLElement) => ws.querySelector('[data-lamp-part="ghost
  * The plan is made a microtask after the view changes, so the scroll anchoring has settled when the new boxes are measured.
  */
 export function useLampEntrance({ workspaceRef, fullscreen, toggleLamp }: { workspaceRef: { current: HTMLElement | null }; fullscreen: boolean; toggleLamp(): void }) {
-  const press = useRef<{ before: Before; timer: ReturnType<typeof setTimeout> } | null>(null);
+  // The timer only ends the "press pending" block; the measurement outlives it, so a slow full screen still gets its entrance.
+  const press = useRef<{ timer: ReturnType<typeof setTimeout> } | null>(null);
+  const measured = useRef<Before | null>(null);
   const run = useRef<{ cancel(): void } | null>(null);
   const was = useRef(fullscreen);
   const capsule = useRef<Rect | null>(null);
@@ -42,9 +54,10 @@ export function useLampEntrance({ workspaceRef, fullscreen, toggleLamp }: { work
     if (was.current === fullscreen) return;
     was.current = fullscreen;
     const ws = workspaceRef.current;
-    const pressed = press.current;
-    if (pressed) clearTimeout(pressed.timer);
+    if (press.current) clearTimeout(press.current.timer);
     press.current = null;
+    const before = measured.current;
+    measured.current = null;
     run.current?.cancel();
     if (!ws) return;
     const direction = fullscreen ? 'enter' : 'exit';
@@ -56,7 +69,7 @@ export function useLampEntrance({ workspaceRef, fullscreen, toggleLamp }: { work
     run.current = handle;
     queueMicrotask(() => {
       if (cancelled) return;
-      const { plan, capsule: pill } = planAfter(direction, ws, pressed?.before ?? null, capsule.current);
+      const { plan, capsule: pill } = planAfter(direction, ws, before, capsule.current);
       capsule.current = pill;
       // The ghost is only for the full exit, which fades it; any other plan (or none) leaves it nothing to do.
       if (!plan.tracks.some((track) => track.part === 'ghost')) clearGhost(ws);
@@ -76,6 +89,11 @@ export function useLampEntrance({ workspaceRef, fullscreen, toggleLamp }: { work
     });
   }, [workspaceRef, fullscreen]);
 
+  useEffect(() => {
+    const ws = workspaceRef.current;
+    return fullscreen && ws ? trackCapsule(ws, capsule) : undefined;
+  }, [workspaceRef, fullscreen]);
+
   useEffect(() => () => { run.current?.cancel(); }, []);
 
   return () => {
@@ -84,7 +102,8 @@ export function useLampEntrance({ workspaceRef, fullscreen, toggleLamp }: { work
     const direction = fullscreen ? 'exit' : 'enter';
     if (direction === 'exit') leaveGhost(ws);
     const timer = setTimeout(() => { press.current = null; clearGhost(ws); }, PRESS_EXPIRES_MS);
-    press.current = { before: measureBefore(direction, ws), timer };
+    press.current = { timer };
+    measured.current = measureBefore(direction, ws);
     toggleLamp();
   };
 }

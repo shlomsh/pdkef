@@ -7,6 +7,8 @@ import { useLampEntrance } from './useLampEntrance.ts';
 interface Played { part: string | null; frames: Keyframe[]; cancel: ReturnType<typeof vi.fn>; finish(): void }
 let played: Played[] = [];
 let toggles = 0;
+/** Real full screen answers later: the toggle is asked for but the view does not change until the test says so. */
+let holdView = false;
 let api: { toggle(): void; setLamp(on: boolean): void };
 let container: HTMLElement | null = null;
 
@@ -17,7 +19,7 @@ const BOXES: Record<string, [number, number, number, number]> = {
 function Harness() {
   const [lamp, setLamp] = useState(false);
   const ws = useRef<HTMLDivElement | null>(null);
-  const toggle = useLampEntrance({ workspaceRef: ws, fullscreen: lamp, toggleLamp: () => { toggles += 1; setLamp((v) => !v); } });
+  const toggle = useLampEntrance({ workspaceRef: ws, fullscreen: lamp, toggleLamp: () => { toggles += 1; if (!holdView) setLamp((v) => !v); } });
   api = { toggle, setLamp };
   return (
     <div>
@@ -45,7 +47,8 @@ function stubLayout() {
 }
 
 beforeEach(() => {
-  played = []; toggles = 0;
+  played = []; toggles = 0; holdView = false;
+  BOXES.pill = [481, 24, 477, 48];
   Object.defineProperty(Element.prototype, 'animate', {
     configurable: true,
     value(this: Element, frames: Keyframe[]) {
@@ -181,5 +184,30 @@ describe('useLampEntrance', () => {
     await act(async () => { played.slice(start).forEach((p) => p.finish()); await Promise.resolve(); await Promise.resolve(); });
     expect(document.activeElement).toBe(other);
     other.remove();
+  });
+
+  it('Esc after the capsule moved plays the exit from where the capsule is now, not where it entered', async () => {
+    act(() => api.toggle());
+    await flush();
+    await act(async () => { played.forEach((p) => p.finish()); await Promise.resolve(); await Promise.resolve(); });
+    BOXES.pill = [300, 24, 400, 48];
+    window.dispatchEvent(new Event('resize'));
+    const before = played.length;
+    act(() => api.setLamp(false));
+    await flush();
+    const morph = played.slice(before).find((p) => p.part === 'morph')!;
+    expect(morph.frames[0]).toMatchObject({ left: '300px', width: '400px' });
+  });
+
+  it('a full-screen answer that arrives after the press expired still gets the measured entrance', async () => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+    try {
+      holdView = true;
+      act(() => api.toggle());
+      await act(async () => { vi.advanceTimersByTime(2000); });
+      act(() => api.setLamp(true));
+      await flush();
+      expect(parts()).toContain('morph');
+    } finally { vi.useRealTimers(); }
   });
 });

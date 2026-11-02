@@ -30,7 +30,7 @@ export function partsIn(ws: HTMLElement): (part: Part) => Element[] {
   return (part) => [...root.querySelectorAll(part === 'site' ? '[data-lamp-part="site"] > *' : `[data-lamp-part="${part}"]`)];
 }
 
-function capsuleRect(ws: HTMLElement): Rect | null {
+export function capsuleRect(ws: HTMLElement): Rect | null {
   const pill = ws.querySelector('[data-lamp-part="capsule"] [role="toolbar"]');
   return pill ? rectOf(pill) : null;
 }
