@@ -10,7 +10,6 @@ import { readBackAnnotations } from '#editor/comments/readBack.ts';
 import type { EditorElement } from '#editor/model/editorModel.ts';
 import { isEditorElement } from '#editor/registry/draftValidation.ts';
 import { recordAction } from '#lib/telemetry/actionTrail.ts';
-import { useOutputNameOverride } from '#shell/useOutputNameOverride.ts';
 import { usePdfShare } from '#lib/output/usePdfShare.js';
 import { useWorkspaceZoom } from './hooks/useWorkspaceZoom.ts';
 import { useReadingLamp } from './hooks/useReadingLamp.ts';
@@ -24,7 +23,7 @@ import { describeFile } from '#lib/text/format.js';
 import HighlightVerb from './verb/HighlightVerb.tsx';
 import HighlightWorkspace from './components/HighlightWorkspace.tsx';
 import { formatMessage } from '#lib/text/formatMessage.ts';
-import { useDownloadDone } from './components/DownloadDone.tsx';
+import { useHighlightOutput } from './hooks/useHighlightOutput.ts';
 import { englishHighlightMessages as t } from './messages.ts';
 
 type Status = 'idle' | 'loading' | 'editing' | 'error';
@@ -83,8 +82,7 @@ export default withIslandBoundary(function PdfHighlightTool() {
     },
   });
 
-  const { parts, identityRename } = useOutputNameOverride(file, { prefix: 'highlighted_' });
-  const done = useDownloadDone(file, marks.state.documentRevision);
+  const { parts, identityRename, done } = useHighlightOutput(file, marks.state.documentRevision);
   const download = downloadHandler({
     outputName: file ? parts.fileName : undefined, bytes: () => session.fileBytesRef.current, elements: marks.state.elements, pageTurns: marks.pageTurns,
     save: (blob, name) => share.download(blob, name),
