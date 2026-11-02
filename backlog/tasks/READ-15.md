@@ -51,6 +51,13 @@ Shlomi: the phone's Delete and Edit buttons belong on the desktop notes too. Hig
 the selected note (a click on a note selects it); the other cards stay text only, so a long rail stays
 quiet. Sign's rail is unchanged.
 
+## Desktop: a note closes when focus leaves it (2026-11-02)
+
+Shlomi: leaving a comment card should turn its highlight's outline off. Today the note stays active (outline
+on, other marks faded) until something else is picked, Esc, or Delete. Rule: on a wide workspace a note stays
+open while focus is in its card or on its mark, and closes when focus goes anywhere else (a click on blank
+page included), except while its field is open, so a draft is never lost. The phone pane has its own Close.
+
 ## Desktop: next and previous note (2026-11-02)
 
 Shlomi, on desktop: a document whose first comment is on page 3 was confusing; there is no way to jump to

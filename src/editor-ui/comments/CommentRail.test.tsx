@@ -127,6 +127,18 @@ describe('CommentRail', () => {
     node.remove();
   });
 
+  it('a card that unmounts while hovered clears its passage', () => {
+    const node = document.createElement('div');
+    node.setAttribute('data-editor-element-id', 'a');
+    document.body.appendChild(node);
+    mount([hl('a', 10, 'one'), hl('b', 40, 'two')]);
+    act(() => { cards()[0].dispatchEvent(new MouseEvent('mouseenter')); });
+    expect(node.hasAttribute('data-comment-hover')).toBe(true);
+    mount([hl('b', 40, 'two')]);
+    expect(node.hasAttribute('data-comment-hover')).toBe(false);
+    node.remove();
+  });
+
   it('names each card as a group for its page, quoting the anchored text when the element has one', () => {
     const text = { id: 't', type: 'text', pageIndex: 2, left: 5, top: 10, text: 'Pay by Friday', width: 20, height: 4 } as unknown as EditorElement;
     const onText: EditorElement = { id: 'c', type: 'comment', pageIndex: 2, left: 0, top: 0, width: 0, height: 0, comment: 'hi', anchor: { kind: 'element', elementId: 't' } };
