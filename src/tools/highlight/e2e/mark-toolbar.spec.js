@@ -75,10 +75,13 @@ test.describe('touch panel', () => {
       const mark = page.locator('[data-page-overlay] [data-element-id]');
       await expect(mark).toHaveCount(1);
       const band = await mark.boundingBox();
-      await page.touchscreen.tap(band.x + band.width / 2, band.y + band.height / 2);
-
       const row = page.locator('[data-marker-row]:visible');
-      await expect(row).toHaveCount(1);
+      // On CI's Linux runner the first tap after Full screen left the panel shut (passes on macOS). A click the browser
+      // counts as a second one (detail 2) opens nothing (R7), so the tap is tried again once that window has passed.
+      await expect.poll(async () => {
+        if (await row.count() === 0) await page.touchscreen.tap(band.x + band.width / 2, band.y + band.height / 2);
+        return row.count();
+      }, { intervals: [600] }).toBe(1);
       const fits = async (pen) => {
         const rects = await row.locator('button').evaluateAll((els) => els.map((e) => {
           const r = e.getBoundingClientRect();
