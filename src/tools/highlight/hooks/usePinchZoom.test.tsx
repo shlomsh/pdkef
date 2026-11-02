@@ -59,6 +59,14 @@ describe('usePinchZoom', () => {
   }
   const f = (x: number, y: number) => ({ clientX: x, clientY: y });
 
+  // A wide column (rect 1000 wide, scrolled 100px in) in a 400 wide view with no padding: it may move only until an edge meets the view's.
+  function mountWide() {
+    const m = mountTouch();
+    m.col.getBoundingClientRect = () => ({ left: -100, top: 0, width: 1000, height: 3000, right: 900, bottom: 3000, x: -100, y: 0, toJSON() {} }) as DOMRect;
+    m.ws.getBoundingClientRect = () => ({ left: 0, top: 0, width: 400, height: 800, right: 400, bottom: 800, x: 0, y: 0, toJSON() {} }) as DOMRect;
+    return m;
+  }
+
   it('a pinch read from touches zooms after a touchstart sequence that began as one finger', () => {
     const { col, commit } = mountTouch();
     col.dispatchEvent(touchEvent('touchstart', [f(100, 100)]));
@@ -73,7 +81,7 @@ describe('usePinchZoom', () => {
   });
 
   it('a pinch that also travels hands the midpoint travel to the commit', () => {
-    const { col, commit } = mountTouch();
+    const { col, commit } = mountWide();
     col.dispatchEvent(touchEvent('touchstart', [f(100, 100), f(200, 100)]));
     col.dispatchEvent(touchEvent('touchmove', [f(80, 140), f(280, 140)]));
     col.dispatchEvent(touchEvent('touchend', [f(80, 140)]));
@@ -81,15 +89,45 @@ describe('usePinchZoom', () => {
   });
 
   it('two fingers that only travel move the page and commit no zoom', () => {
-    const { ws, col, commit } = mountTouch();
+    const { ws, col, commit } = mountWide();
     ws.scrollLeft = 100;
     ws.scrollTop = 500;
     col.dispatchEvent(touchEvent('touchstart', [f(100, 100), f(200, 100)]));
     col.dispatchEvent(touchEvent('touchmove', [f(70, 160), f(170, 160)]));
-    expect(col.style.transform).toMatch(/^translate\(-30px, [\d.]+px\) scale\(1\)$/);
+    expect(col.style.transform).toBe('translate(-30px, 0px) scale(1)');
     col.dispatchEvent(touchEvent('touchend', [f(70, 160)]));
     expect(commit).not.toHaveBeenCalled();
     expect(ws.scrollLeft).toBe(130);
-    expect(ws.scrollTop).toBe(440);
+    // The page was already at the top, so the downward pan is held back and the scroll stays.
+    expect(ws.scrollTop).toBe(500);
+  });
+
+  it('a pan past the board edge shows a clamped transform while the fingers are down', () => {
+    const { col } = mountWide();
+    col.dispatchEvent(touchEvent('touchstart', [f(100, 100), f(200, 100)]));
+    col.dispatchEvent(touchEvent('touchmove', [f(270, 100), f(370, 100)]));
+    // The fingers travelled 170px right, but the column's left edge may only come back to the view's left edge.
+    expect(col.style.transform).toBe('translate(100px, 0px) scale(1)');
+  });
+
+  it('a pan-only release moves the scroll by what the preview showed, so nothing jumps', () => {
+    const { ws, col, commit } = mountWide();
+    ws.scrollLeft = 100;
+    col.dispatchEvent(touchEvent('touchstart', [f(100, 100), f(200, 100)]));
+    col.dispatchEvent(touchEvent('touchmove', [f(270, 100), f(370, 100)]));
+    const shown = Number(/translate\((-?[\d.]+)px/.exec(col.style.transform)![1]);
+    col.dispatchEvent(touchEvent('touchend', [f(270, 100)]));
+    expect(commit).not.toHaveBeenCalled();
+    expect(ws.scrollLeft).toBe(100 - shown);
+  });
+
+  it('a pinch that pans past the edge hands the commit the travel the preview showed', () => {
+    const { col, commit } = mountWide();
+    col.dispatchEvent(touchEvent('touchstart', [f(100, 100), f(200, 100)]));
+    col.dispatchEvent(touchEvent('touchmove', [f(140, 100), f(200, 100)]));
+    const shown = Number(/translate\((-?[\d.]+)px/.exec(col.style.transform)![1]);
+    col.dispatchEvent(touchEvent('touchend', [f(140, 100)]));
+    expect(shown).toBe(0);
+    expect(commit.mock.calls[0][4].x).toBe(shown);
   });
 });

@@ -3,7 +3,7 @@ import { clampZoom, type ZoomSetting } from '../lib/zoom/fit.ts';
 import type { Point } from '../lib/zoom/anchor.ts';
 import { isZoomInput } from '../lib/zoom/lamp.ts';
 import { panScroll } from '../lib/zoom/pan.ts';
-import { previewShiftY } from '../lib/zoom/previewShift.ts';
+import { previewShiftX, previewShiftY } from '../lib/zoom/previewShift.ts';
 
 const PINCH_REST_MS = 150;
 /** A trackpad pinch arrives as wheel events with a few pixels of deltaY; this turns them into a smooth factor. */
@@ -34,28 +34,45 @@ export function usePinchZoom({ workspaceRef, columnRef, enabled, inLamp, zoomRef
     let pan: Point = { x: 0, y: 0 };
     let startDistance = 0;
 
-    // The column's rect as the gesture began: once it is transformed, its rect is a scaled one.
-    let startRect: DOMRect | null = null;
+    // The column's rect and the workspace's box as the gesture began: once the column is transformed its rect is a
+    // scaled one, and reading the padding per frame would force a style recalc each time.
+    let start: { rect: DOMRect; view: DOMRect; pad: { top: number; right: number; bottom: number; left: number } } | null = null;
+    // What the preview added to the fingers' travel to keep the page where the board would put it.
+    let shift: Point = { x: 0, y: 0 };
     const preview = () => {
-      const rect = (startRect ??= col.getBoundingClientRect());
+      if (!start) {
+        const css = getComputedStyle(ws);
+        const px = (v: string) => parseFloat(v) || 0;
+        start = {
+          rect: col.getBoundingClientRect(),
+          view: ws.getBoundingClientRect(),
+          pad: { top: px(css.paddingTop), right: px(css.paddingRight), bottom: px(css.paddingBottom), left: px(css.paddingLeft) },
+        };
+      }
+      const { rect, view, pad } = start;
       col.style.transformOrigin = `${anchor.x - rect.left}px ${anchor.y - rect.top}px`;
-      // Where the scaled column would sit; the shift keeps it where the board would put it at rest.
-      const scaledTop = anchor.y + (rect.top - anchor.y) * factor;
-      const view = ws.getBoundingClientRect();
-      const pad = getComputedStyle(ws);
-      const dy = previewShiftY(scaledTop, rect.height * factor, view.top, ws.clientHeight, parseFloat(pad.paddingTop) || 0, parseFloat(pad.paddingBottom) || 0);
-      col.style.transform = `translate(${pan.x}px, ${dy + pan.y}px) scale(${factor})`;
+      // Where the scaled, panned column would sit; the shift keeps it where the board would put it at rest.
+      const scaledLeft = anchor.x + (rect.left - anchor.x) * factor + pan.x;
+      const scaledTop = anchor.y + (rect.top - anchor.y) * factor + pan.y;
+      shift = {
+        x: previewShiftX(scaledLeft, rect.width * factor, view.left, ws.clientWidth, pad.left, pad.right),
+        y: previewShiftY(scaledTop, rect.height * factor, view.top, ws.clientHeight, pad.top, pad.bottom),
+      };
+      col.style.transform = `translate(${pan.x + shift.x}px, ${pan.y + shift.y}px) scale(${factor})`;
     };
     const finish = () => {
       clearTimeout(timer);
       const next = clampZoom(zoomRef.current * factor, floorRef.current);
       const unchanged = factor === 1;
-      const travel = pan;
+      // The travel the preview showed, so the release lands where the fingers left the page.
+      const travel = { x: pan.x + shift.x, y: pan.y + shift.y };
+      const panned = pan.x !== 0 || pan.y !== 0;
       factor = 1;
       pan = { x: 0, y: 0 };
+      shift = { x: 0, y: 0 };
       // Back to the column's own size before anything else, even when a pinch at the bound commits nothing:
       // a stale start rect would aim the next pinch's origin at where the column used to be.
-      startRect = null;
+      start = null;
       col.style.transform = '';
       col.style.transformOrigin = '';
       if (unchanged) {
@@ -66,7 +83,7 @@ export function usePinchZoom({ workspaceRef, columnRef, enabled, inLamp, zoomRef
         ws.scrollTop = moved.y;
         return;
       }
-      if (travel.x || travel.y) commit(next, next, anchor, false, travel);
+      if (panned) commit(next, next, anchor, false, travel);
       else commit(next, next, anchor);
     };
 
