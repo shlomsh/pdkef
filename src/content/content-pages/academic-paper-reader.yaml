@@ -45,10 +45,10 @@ sections:
     heading: 'Drag along a line, the way you would with a marker'
     blocks:
       - kind: 'image'
-        src: '/images/paper-reader-guide/marked-paper.jpg'
+        src: '/images/paper-reader-guide/marked-paper.webp'
         alt: 'A two-column sample paper in Highlight PDF with hand-drawn yellow, green and pink highlights, a sketched pink underline, and two comments in the margin beside their passages'
-        width: 1000
-        height: 600
+        width: 2000
+        height: 1200
         caption: >-
           <strong>One page of a sample paper, marked in Highlight PDF.</strong> Three colors and an
           underline in the Sketch stroke, and each comment in the margin beside the passage it is about.
@@ -65,10 +65,10 @@ sections:
     heading: 'Change a mark, underline it, or comment beside it'
     blocks:
       - kind: 'image'
-        src: '/images/paper-reader-guide/mark-toolbar.jpg'
+        src: '/images/paper-reader-guide/mark-toolbar.webp'
         alt: 'A sketched yellow highlight with its toolbar open above it, and the stroke setting open below the toolbar with Sketch picked over Clean and an opacity slider'
-        width: 1000
-        height: 400
+        width: 2000
+        height: 802
         caption: >-
           <strong>Rest on a highlight for its toolbar:</strong> its colors, highlight or underline,
           the stroke and opacity, Comment and Delete.
@@ -89,13 +89,13 @@ sections:
     heading: 'Highlight a scanned page that has no text to select'
     blocks:
       - kind: 'compareFigure'
-        beforeSrc: '/images/paper-reader-guide/scanned-before.jpg'
-        afterSrc: '/images/paper-reader-guide/scanned-after.jpg'
+        beforeSrc: '/images/paper-reader-guide/scanned-before.webp'
+        afterSrc: '/images/paper-reader-guide/scanned-after.webp'
         beforeLabel: 'Scanned page'
         afterLabel: 'Highlighted'
         alt: 'A slightly tilted scanned page of a paper with no marks, wiping to the same scan with sketched yellow and green highlights and a pink underline lying along their lines'
-        width: 1000
-        height: 600
+        width: 2000
+        height: 1200
         caption: >-
           <strong>A page that is only a picture, highlighted line by line.</strong> There is no text
           layer under it.
@@ -113,10 +113,10 @@ sections:
     heading: 'Full screen, with only the paper in front of you'
     blocks:
       - kind: 'image'
-        src: '/images/paper-reader-guide/reading-lamp.jpg'
+        src: '/images/paper-reader-guide/reading-lamp.webp'
         alt: 'Highlight PDF in full screen: the marked paper fills the view, a small capsule of controls floats at the top, and the comments sit beside the page'
-        width: 1000
-        height: 672
+        width: 2000
+        height: 1344
         caption: >-
           <strong>The Reading lamp:</strong> the paper fills the screen, and a small capsule holds
           everything else.
@@ -145,26 +145,26 @@ sections:
           - ['Print with my notes', 'Each page a little smaller, with every comment in the right margin beside its passage', 'A seminar or revision, where a note belongs next to its line']
           - ['Print with notes at the end', 'The pages at full size, then a Notes sheet listing every comment with its page', 'Long comments, or pages that need all their room']
       - kind: 'image'
-        src: '/images/paper-reader-guide/print-with-notes.jpg'
+        src: '/images/paper-reader-guide/print-with-notes.webp'
         alt: 'A print sheet of the marked paper, the page a little smaller, with its two comments printed in the right margin beside the yellow and pink passages'
-        width: 1000
-        height: 650
+        width: 2000
+        height: 1300
         caption: >-
           <strong>Print with my notes:</strong> each comment lands in the margin beside the lines it is
           about.
       - kind: 'image'
-        src: '/images/paper-reader-guide/print-notes-at-end.jpg'
+        src: '/images/paper-reader-guide/print-notes-at-end.webp'
         alt: 'The Notes sheet printed after the pages, listing two comments, each under its page number and edged in its highlight color'
-        width: 1000
-        height: 354
+        width: 2000
+        height: 708
         caption: >-
           <strong>Print with notes at the end:</strong> the pages print at full size, and a Notes sheet
           follows with every comment and its page.
       - kind: 'image'
-        src: '/images/paper-reader-guide/print-plain.jpg'
+        src: '/images/paper-reader-guide/print-plain.webp'
         alt: 'A plain print sheet of the paper at full size with its sketched highlights and underline and no notes'
-        width: 1000
-        height: 604
+        width: 2000
+        height: 1210
         caption: >-
           <strong>Print:</strong> the pages and your marks, nothing else, with the sketched strokes just
           as they look on screen.
