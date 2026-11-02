@@ -1,7 +1,7 @@
 import { HIGHLIGHT_COLORS } from '#editor/model/highlightColors.ts';
 
 /** The two plastic shades a color cell's marker is drawn in; the nib and the band are the ink itself. */
-export interface MarkerShades { cap: string; barrel: string }
+interface MarkerShades { cap: string; barrel: string }
 
 /** The palette's markers as drawn. Document content colors, so they live in the model, not in global.css. */
 const DRAWN: Record<string, MarkerShades> = {
@@ -35,7 +35,7 @@ function toHex(h: number, s: number, l: number): string {
   return `#${[r, g, b].map((v) => Math.round((v + m) * 255).toString(16).padStart(2, '0')).join('').toUpperCase()}`;
 }
 
-/** Any ink's marker: the cap a deeper, less saturated shade of the ink, the barrel a touch darker than it. The drawn six sit within a small step of this. */
+/** Any ink's marker: the cap a deeper, less saturated shade of the ink, the barrel a touch darker than it. The drawn six sit within a small step of this. @testSeam */
 export function deriveShades(ink: string): MarkerShades {
   const [h, s, l] = toHsl(ink);
   return { cap: toHex(h, clamp(s * 0.85), clamp(l - 0.16)), barrel: toHex(h, clamp(s * 0.96), clamp(l - 0.035)) };

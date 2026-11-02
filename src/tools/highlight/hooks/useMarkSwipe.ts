@@ -10,9 +10,11 @@ import { englishSignMessages } from '#editor/registry/signMessages.ts';
 import type { ReadingDirection } from '#lib/pageLayout/bands.ts';
 import type { Marker } from '../lib/marker/markerState.ts';
 import { isMultiTouch, swipeIntent } from '../lib/marker/swipeIntent.ts';
+import type { createSwipeReader } from '#lib/pageLayout/swipeReader.ts';
 import type { useClickMarks } from './useClickMarks.ts';
 
 type Point = { x: number; y: number };
+type SwipeReader = NonNullable<ReturnType<typeof createSwipeReader>>;
 
 interface MarkSwipeOptions {
   pageIndex: number;
@@ -28,8 +30,8 @@ interface MarkSwipeOptions {
   logAction: HistoryLogger<EditorElement>;
   setAnnouncement: (message: string) => void;
   clicks: ReturnType<typeof useClickMarks>;
-  /** Whether a finger pressed here is on a line of text (page percent). Off a line it moves the page and never marks. Absent: on a line. */
-  startsOnLine?: (point: Point) => boolean;
+  /** The page's reader for a finger pressed here (page percent), read once per press. Off a line it moves the page and never marks. Absent or null (no canvas): on a line. */
+  readerAt?: (point: Point) => SwipeReader | null;
   /** A press that will lay a mark begins. */
   onPress: () => void;
   /** The swipe committed a mark. */
@@ -69,7 +71,8 @@ export function useMarkSwipe(o: MarkSwipeOptions): (event: PointerEvent) => void
     const start = o.getPointerPercent(event, container, o.geometry);
     const origin = { x: event.clientX, y: event.clientY };
     // A finger that starts off the text moves the page sideways and never marks; the browser keeps the vertical scroll.
-    const pans = !isMouse && !onMark && o.startsOnLine?.(start) === false;
+    const reader = !isMouse && !onMark ? o.readerAt?.(start) : undefined;
+    const pans = !!reader && !reader.onLine(start);
     const scroller = pans ? container.closest<HTMLElement>('[data-workspace]') : null;
     const startScrollLeft = scroller?.scrollLeft ?? 0;
     pendingCancelRef.current?.();
@@ -163,6 +166,7 @@ export function useMarkSwipe(o: MarkSwipeOptions): (event: PointerEvent) => void
         dispatch: swipeDispatch, getPointerPercent: o.getPointerPercent, gestureCancelRef, logAction: o.logAction, setAnnouncement: o.setAnnouncement,
         messages: englishSignMessages, nextElementIndex: o.elements.length, pageGeometry: o.geometry,
         direction: o.directionAt(start),
+        ...(reader !== undefined ? { reader } : {}),
         isMouse,
       }, {
         pageIndex, container, id, newEl, start,

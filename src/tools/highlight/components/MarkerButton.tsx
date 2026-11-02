@@ -132,7 +132,7 @@ export default function MarkerButton({ marker, armed = false, onTap, onDisarm, o
           class={`${styles.menu} ${controls.popover} ${controls['toolbar-menu']}`} role="group" aria-label={t.marker}
         >
           <MarkPanel
-            look={mark.look} onChange={mark.onChange} onMoreOpenChange={setMoreOpen}
+            look={mark.look} onChange={mark.onChange} moreOpen={moreOpen} onMoreOpenChange={setMoreOpen}
             onComment={() => { mark.onComment(); close(); }} onDelete={() => { mark.onDelete(); close(); }}
           />
         </div>

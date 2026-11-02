@@ -1,4 +1,4 @@
-import { useLayoutEffect, useRef } from 'preact/hooks';
+import { useLayoutEffect, useRef, useState } from 'preact/hooks';
 import type { HighlightElement } from '#editor/model/editorModel.ts';
 import type { Marker } from '../lib/marker/markerState.ts';
 import { markOf } from '../lib/marker/markEdit.ts';
@@ -24,6 +24,9 @@ export default function RestToolbar({ mark, onChange, onDelete, onComment, onClo
   const rootRef = useRef<HTMLDivElement>(null);
   const rtl = mark.direction === 'rtl';
   const look = markOf(mark);
+  // More closes with the toolbar (it unmounts) and when the toolbar moves to another mark.
+  const [moreOpen, setMoreOpen] = useState(false);
+  useLayoutEffect(() => setMoreOpen(false), [mark.id]);
 
   // The latest of everything the document listeners need, so they subscribe once.
   const live = useRef({ mark, onChange, onDelete, onComment, onClose, look });
@@ -53,7 +56,7 @@ export default function RestToolbar({ mark, onChange, onDelete, onComment, onClo
       data-rest-toolbar data-side="above" onKeyDown={onArrow}
     >
       <MarkPanel
-        look={look} onChange={(change) => live.current.onChange(change)}
+        look={look} moreOpen={moreOpen} onMoreOpenChange={setMoreOpen} onChange={(change) => live.current.onChange(change)}
         onComment={() => live.current.onComment()} onDelete={() => live.current.onDelete()}
       />
     </div>
