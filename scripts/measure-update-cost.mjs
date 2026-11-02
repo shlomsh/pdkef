@@ -45,7 +45,8 @@ const isPage = (url) => url.endsWith('/') || url.endsWith('.html');
 // Reads only the changed HTML pages from both dists, so no other file's content is held.
 export function explainPages({ items }, beforeDir, afterDir) {
   const pairs = items
-    .filter((i) => i.reason === 'changed' && isPage(i.url))
+    // A page new in this build has nothing to compare against.
+    .filter((i) => i.reason === 'changed' && isPage(i.url) && fs.existsSync(path.join(beforeDir, toRel(i.url))))
     .map((i) => ({
       url: i.url,
       before: fs.readFileSync(path.join(beforeDir, toRel(i.url)), 'utf8'),
