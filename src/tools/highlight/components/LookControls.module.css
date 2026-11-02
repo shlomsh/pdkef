@@ -71,7 +71,8 @@
 .paper > svg { position: absolute; inset: 15% 4px; width: calc(100% - 8px); height: 70%; overflow: visible; }
 .faceLine { position: relative; height: 14px; }
 .faceLine > svg { position: absolute; inset: 0; width: 100%; height: 100%; }
-.thicknessLine { position: relative; display: block; height: 14px; margin: 0 10%; }
+/* The menu item is a flex row and the svg is absolute, so the line grows to the row or it has no width. */
+.thicknessLine { position: relative; display: block; flex: 1 1 auto; height: 14px; margin: 0 10%; }
 .thicknessLine > svg { position: absolute; inset: 0; width: 100%; height: 100%; }
 
 .percent { position: relative; min-width: 4ch; text-align: end; }
