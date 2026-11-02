@@ -179,16 +179,15 @@ Demand sits on iPad; with a mouse almost nobody draws.
 ## Open calls (Shlomi)
 
 Decided: the name is Highlight PDF; a comment sits beside the page (R28); desktop drags with the marker
-always in the hand; touch arms on a tap and changes the pen only through a picked highlight (R50, R5).
+always in the hand; touch opens armed, a tap on Marker toggles it, and the pen changes only through a picked highlight (R50,
+R5).
 
 1. **Long-press and drag on a phone**, the gesture phones already teach for selecting text, instead of
    arming. Clean on a scan (no text layer to select); on a digital PDF it needs a real-iPhone check that it
    does not fight the browser's own selection (READ-07).
-2. **Armed by default on touch.** Whether the marker is already armed when a file opens on a phone or iPad.
-   Shlomi leans yes; the sideways-start rule (R52) is what makes it safe.
-3. **iOS Safari download.** It may open the PDF in the tab instead of saving it; check on a real iPhone.
-4. **Landscape on a phone.** The capsule touches the page header; look at it and decide.
-5. **The Replace dialog's red "Choose a file".** It is cross-tool, so the fix belongs to every tool.
+2. **iOS Safari download.** It may open the PDF in the tab instead of saving it; check on a real iPhone.
+3. **Landscape on a phone.** The capsule touches the page header; look at it and decide.
+4. **The Replace dialog's red "Choose a file".** It is cross-tool, so the fix belongs to every tool.
 
 ## Order of work
 
