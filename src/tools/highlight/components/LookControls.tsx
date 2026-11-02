@@ -9,7 +9,7 @@ import { HIGHLIGHT_COLORS, type Marker } from '../lib/marker/markerState.ts';
 import { englishHighlightMessages as t } from '../messages.ts';
 import controls from '#editor-ui/EditorControls.module.css';
 import UnderlineGlyph from './UnderlineGlyph.tsx';
-import OpacitySlider from './OpacitySlider.tsx';
+import OpacityMenu from './OpacityMenu.tsx';
 import styles from './LookControls.module.css';
 
 const SIX_PRESETS = HIGHLIGHT_COLORS.map((c) => c.hex);
@@ -17,40 +17,40 @@ const THICKNESS_OPTIONS = [1, 1.5, 2, 3, 4];
 const COLOR_NAMES = highlightColorNames(englishSignMessages);
 
 /**
- * The controls that choose a look, on the dark bar of a mark or of the pen: a color menu with opacity (none for an
- * underline), then the Highlight | Underline toggle with the underline's thickness caret. Every change is the caller's.
+ * The controls that choose a look, on the dark bar of a mark or of the pen: a color menu, then the Highlight | Underline toggle with
+ * the highlight's opacity caret and the underline's thickness caret. Every change is the caller's.
  */
 export default function LookControls({ look, onChange }: { look: Marker; onChange(change: Partial<Marker>): void }) {
-  const underline = look.style === 'underline';
   return (
     <>
       <ColorPickerMenu
         value={look.color} title={t.markColors} presets={SIX_PRESETS} names={COLOR_NAMES} custom="wheel"
         onChange={(color) => onChange({ color })}
-      >
-        {!underline && <OpacitySlider value={look.opacity} onChange={(opacity) => onChange({ opacity })} />}
-      </ColorPickerMenu>
+      />
       <div class={controls.divider} />
       <StyleToggle look={look} onChange={onChange} />
     </>
   );
 }
 
-/** Highlight | Underline with the underline's thickness caret; `light` is for a light popover (the Marker panel), not a dark bar. */
+/** Highlight | Underline, each with its caret (opacity, thickness); `light` is for a light popover (the Marker panel), not a dark bar. */
 export function StyleToggle({ look, onChange, tone = 'dark' }: { look: Marker; onChange(change: Partial<Marker>): void; tone?: 'dark' | 'light' }) {
   const underline = look.style === 'underline';
   const toggleUnderline = () => onChange({ style: underline ? 'highlight' : 'underline' });
   return (
     <span class={tone === 'light' ? `${styles.toggle} ${styles.light}` : styles.toggle} data-style-toggle>
-      <button
-        type="button" class={`${controls['element-button']}${underline ? '' : ` ${controls.active}`}`}
-        aria-label={t.markHighlight} aria-pressed={!underline} title={t.markHighlight}
-        onClick={() => { if (underline) toggleUnderline(); }}
-      >
-        <HighlightIcon />
-      </button>
-      {/* The Underline segment owns its thickness: U and caret are one pill, filled together. */}
-      <span class={styles.underline} data-on={underline || undefined}>
+      {/* Each segment owns its caret: icon and caret are one pill, filled together. */}
+      <span class={styles.segment} data-on={underline ? undefined : true}>
+        <button
+          type="button" class={controls['element-button']}
+          aria-label={t.markHighlight} aria-pressed={!underline} title={t.markHighlight}
+          onClick={() => { if (underline) toggleUnderline(); }}
+        >
+          <HighlightIcon />
+        </button>
+        <OpacityMenu value={look.opacity} onChange={(opacity) => onChange({ style: 'highlight', opacity })} />
+      </span>
+      <span class={styles.segment} data-on={underline || undefined}>
         <button
           type="button" class={controls['element-button']}
           aria-label={t.markUnderline} aria-pressed={underline} aria-keyshortcuts="U" title={t.markUnderline}

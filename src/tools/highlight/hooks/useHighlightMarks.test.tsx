@@ -49,7 +49,7 @@ describe('useHighlightMarks', () => {
   it('re-arms the marker from a change', () => {
     mount();
     act(() => marks.rearm({ color: '#FF8080', style: 'underline' }));
-    expect(marks.marker).toEqual({ color: '#FF8080', style: 'underline', opacity: 1 });
+    expect(marks.marker).toEqual({ color: '#FF8080', style: 'underline', opacity: DEFAULT_MARKER.opacity });
   });
 
   it('logs an added mark, then undoes and redoes it', () => {

@@ -95,4 +95,13 @@ describe('HighlightNode styles', () => {
     act(() => render(null, host));
     host.remove();
   });
+
+  it('paints the live swipe at the opacity of its bands', () => {
+    const host = document.createElement('div');
+    document.body.appendChild(host);
+    act(() => render(<HighlightNode element={{ ...element, opacity: 0.5 }} isActive={false} onResizeStart={() => {}} />, host));
+    expect(host.querySelector<HTMLElement>('[data-highlight-draft]')!.style.opacity).toBe('0.5');
+    act(() => render(null, host));
+    host.remove();
+  });
 });

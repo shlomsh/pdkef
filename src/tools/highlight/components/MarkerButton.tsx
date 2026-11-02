@@ -9,7 +9,6 @@ import { englishHighlightMessages as t } from '../messages.ts';
 import controls from '#editor-ui/EditorControls.module.css';
 import toolbarStyles from '#editor-ui/SignToolbar.module.css';
 import ColorWheelInput from '#editor-ui/ColorWheelInput.tsx';
-import OpacitySlider from './OpacitySlider.tsx';
 import { StyleToggle } from './LookControls.tsx';
 import styles from './MarkerButton.module.css';
 
@@ -41,7 +40,7 @@ interface MarkerButtonProps {
 
 /**
  * The marker in the hand, as a button (R19): it shows the armed marker, a dot in its color or the underline
- * glyph, and opens the panel of the look: the six colors and the color wheel, the Highlight | Underline toggle, and the opacity slider on a highlight. On touch a tap also arms the marker. Given a `mark`, the panel is that highlight's: it edits it, adds Comment and Delete, and a dismissal releases it.
+ * glyph, and opens the panel of the look: the six colors and the color wheel, and the Highlight | Underline toggle, whose highlight caret holds the opacity. On touch a tap also arms the marker. Given a `mark`, the panel is that highlight's: it edits it, adds Comment and Delete, and a dismissal releases it.
  */
 export default function MarkerButton({ marker, onChange, armed = false, onTap, onOpenChange, isCoarse = coarsePointer, mark, buttonClass }: MarkerButtonProps) {
   const [penOpen, setOpen] = useState(false);
@@ -52,7 +51,6 @@ export default function MarkerButton({ marker, onChange, armed = false, onTap, o
   const buttonRef = useRef<HTMLButtonElement>(null);
   const focusColors = useRef(false);
   const badge = markerBadge(marker);
-  const underline = look.style === 'underline';
   const inSix = HIGHLIGHT_COLORS.some((c) => c.hex.toLowerCase() === look.color.toLowerCase());
 
   const toggle = (next: boolean) => {
@@ -159,7 +157,6 @@ export default function MarkerButton({ marker, onChange, armed = false, onTap, o
               </>
             )}
           </div>
-          {!underline && <OpacitySlider value={look.opacity} onChange={(opacity) => apply({ opacity })} />}
         </div>
       )}
     </span>

@@ -9,10 +9,10 @@ afterEach(() => {
   if (container) { act(() => render(null, container!)); container.remove(); container = null; }
 });
 
-function mount(armed: boolean, onStop = vi.fn()) {
+function mount(armed: boolean, onStop = vi.fn(), lamp = false) {
   container = document.createElement('div');
   document.body.appendChild(container);
-  act(() => render(<ArmedChip armed={armed} onStop={onStop} />, container!));
+  act(() => render(<ArmedChip armed={armed} onStop={onStop} lamp={lamp} />, container!));
   return onStop;
 }
 
@@ -34,5 +34,12 @@ describe('ArmedChip', () => {
     const stop = [...container!.querySelectorAll('button')].find((b) => b.textContent === t.armedStop)!;
     act(() => { stop.click(); });
     expect(onStop).toHaveBeenCalledTimes(1);
+  });
+
+  it('in the lamp it is placed on its own under the capsule, which is fixed and gives it no box to hang from', () => {
+    mount(true, vi.fn(), true);
+    expect(container!.querySelector('[data-armed-chip]')!.hasAttribute('data-lamp')).toBe(true);
+    mount(true);
+    expect(container!.querySelector('[data-armed-chip]')!.hasAttribute('data-lamp')).toBe(false);
   });
 });

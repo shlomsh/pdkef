@@ -7,7 +7,8 @@ export interface Marker { color: string; style: 'highlight' | 'underline'; opaci
 
 export const OPACITY_MIN = 0.3;
 
-export const DEFAULT_MARKER: Marker = { color: HIGHLIGHT_COLORS[0].hex, style: 'highlight', opacity: 1 };
+/** Half strength by default: phones draw ink over the page without the multiply blend, so full strength would hide the text. */
+export const DEFAULT_MARKER: Marker = { color: HIGHLIGHT_COLORS[0].hex, style: 'highlight', opacity: 0.5 };
 
 const clamp = (n: number) => Math.min(1, Math.max(OPACITY_MIN, n));
 

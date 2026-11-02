@@ -34,6 +34,8 @@ export interface HighlightMessages {
   /** "{n} pt" */
   thicknessItem: string;
   markOpacity: string;
+  /** The caret beside Highlight, which opens the opacity slider. */
+  markOpacityMenu: string;
   /** R8: shown once, after the first mark. */
   restHint: string;
   tapHint: string;
@@ -82,6 +84,7 @@ export const englishHighlightMessages: HighlightMessages = {
   markThickness: 'Underline thickness',
   thicknessItem: '{n} pt',
   markOpacity: 'Opacity',
+  markOpacityMenu: 'Opacity',
   restHint: 'Rest on a highlight to change it',
   tapHint: 'Tap a highlight to change it',
   marker: 'Marker',

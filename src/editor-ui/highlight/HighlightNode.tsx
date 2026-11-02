@@ -12,9 +12,11 @@ export default function HighlightNode({ element, isActive }: ElementNodeProps<Hi
 }) {
   const underline = element.style === 'underline';
   const ink = underline ? underlineInk(element.color) : undefined;
+  // The live swipe and the committed bands share the mark's opacity, so the ink never changes strength on release.
+  const opacity = element.opacity === undefined ? undefined : { opacity: element.opacity };
   return (
     <div data-highlight-root class={styles.root}>
-      <div data-highlight-bands class={styles.layer} data-focused={isActive ? '' : undefined} style={element.opacity === undefined ? undefined : { opacity: element.opacity }}>
+      <div data-highlight-bands class={styles.layer} data-focused={isActive ? '' : undefined} style={opacity}>
         {element.bands.map((band, i) => (
           <div
             key={i}
@@ -28,7 +30,7 @@ export default function HighlightNode({ element, isActive }: ElementNodeProps<Hi
           />
         ))}
       </div>
-      <div data-highlight-draft class={styles.layer} />
+      <div data-highlight-draft class={styles.layer} style={opacity} />
     </div>
   );
 }

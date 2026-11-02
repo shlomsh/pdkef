@@ -58,7 +58,7 @@ describe('clickMarkElement', () => {
     expect(el.bands).toHaveLength(2);
     expect(el.bands[0]).toEqual({ left: 0, top: 0, width: 60, height: expect.closeTo(33.33, 1) });
     expect(el.style).toBeUndefined();
-    expect(el.opacity).toBeUndefined();
+    expect(el.opacity).toBe(DEFAULT_MARKER.opacity);
     expect(el.direction).toBeUndefined();
   });
 

@@ -157,11 +157,11 @@ export default function HighlightWorkspace({ pdfDocument, numPages, fileName, zo
             onDownload={onDownload} moreItems={moreItems} onExit={toggleView}
             scrollEvents={scrollEvents} pagePressEvents={pagePressEvents} labels={t.capsule}
           />
+          <ArmedChip armed={touch.armed} onStop={touch.disarm} lamp />
         </div>
       )}
       {fullscreen && <PrintMenu {...printMenu} />}
       {print.sheets}
-      <ArmedChip armed={touch.armed} onStop={touch.disarm} />
       <div className={fullscreen ? `${styles.board} ${styles.lampBoard}` : styles.board} style={{ width: `${fullscreen ? zoom.board.boardWidth : columnW}px` }}>
       <div
         className={styles.column} ref={columnRef}
@@ -224,7 +224,7 @@ function TileRow({ marks, undo, redo, touch, mark, printMenu, withComments, onPr
           downloadLabel={t.capsule.download} keepDownloadOnPhone
         />
       </div>
-      {doneName && <DownloadDone name={doneName} onClose={() => onCloseDone?.()} />}
+      {doneName ? <DownloadDone name={doneName} onClose={() => onCloseDone?.()} /> : <ArmedChip armed={touch.armed} onStop={touch.disarm} />}
     </ToolShell>
   );
 }

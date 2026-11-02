@@ -31,7 +31,7 @@ describe('useMarker', () => {
   it('rearm merges a change into the armed marker', () => {
     mount();
     act(() => api.rearm({ color: '#FF8FCF', style: 'underline' }));
-    expect(api.marker).toEqual({ color: '#FF8FCF', style: 'underline', opacity: 1 });
+    expect(api.marker).toEqual({ color: '#FF8FCF', style: 'underline', opacity: DEFAULT_MARKER.opacity });
   });
 
   it('rearm keeps opacity within 0.3 to 1', () => {

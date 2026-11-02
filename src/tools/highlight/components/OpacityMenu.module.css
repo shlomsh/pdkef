@@ -1,0 +1,2 @@
+/* The popover that holds the opacity slider; the slider brings its own width and height. */
+.menu { padding: .15rem; cursor: default; }
