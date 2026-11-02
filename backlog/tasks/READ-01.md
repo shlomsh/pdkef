@@ -54,7 +54,9 @@ The reasons and the rejected alternatives are in "Decisions and why" at the end.
     pen start a mark after 4 px in any direction. A finished mark opens nothing.
 62. On touch, two fingers always navigate: they pinch to zoom and move the page in any direction, and never
     mark. A second finger landing while a one-finger mark is deciding or under way cancels that mark,
-    leaving no trace and no Undo step.
+    leaving no trace and no Undo step. Outside full screen the pinch is the browser's own; zoomed in, one
+    finger sideways on a line still marks (R52) and from anywhere else pans the page. Full screen keeps the
+    lamp's zoom (R23).
 53. First-time marks start at 50% opacity; a remembered choice wins.
 54. The live swipe paints at the mark's own opacity, so the ink never changes strength on release.
 55. An underline follows its page's turn on screen, in the downloaded PDF (QuadPoints in the text's own
@@ -103,7 +105,7 @@ The reasons and the rejected alternatives are in "Decisions and why" at the end.
 21. Fit text trims the paper's empty side margins so the text column fills the width. Text bounds come from
     the text layer, or from the page raster on a scan.
 22. Fit page, Actual size and the minus and plus steps are in one small menu under the zoom percentage.
-23. Pinch and Cmd/Ctrl plus or minus zoom around the pointer; Cmd/Ctrl+0 is actual size. During the gesture
+23. In full screen, pinch and Cmd/Ctrl plus or minus zoom around the pointer; Cmd/Ctrl+0 is actual size. During the gesture
     the document scales as a transform and is laid out once when the fingers rest.
 24. Pages never reflow: a zoomed page grows and scrolls sideways when wider than the screen.
 25. (retired: replaced by R20)
@@ -224,14 +226,10 @@ finger swipe that did nothing when it started on a highlight (a marked line is a
 `menuOpen` flag (it now tracks each open menu, so the zoom menu closing never dozes it under an open Marker panel), and the lamp's padding read on every render
 (now measured with the view), and the touch panel without keys on an iPad keyboard (it answers 1 to 6, U, C and
 Delete as the toolbar does, a keyboard focus on a mark opens it, and the number keys follow the panel's color
-order).
-- Outside full screen the armed page is `touch-action: pan-y`, so the browser's own pinch is off and nothing
-  replaces it; decide whether R62's pinch covers the normal view (`pan-y pinch-zoom` is the likely answer).
+order), and More's open state held twice (MarkPanel is controlled, `d930652d`), and the canvas read twice per touch
+press (one reader per press, `d930652d`), and the normal view without a pinch (it is the browser's own now, R62).
 - A pinch that lands after the first finger began a native scroll cannot cancel that scroll (touchmove is no
   longer cancelable), so the page may scroll and scale at once.
-- More's open state is held twice (MarkerButton and MarkPanel) and kept in sync by a callback, so Escape closes
-  More before the panel only while that sync holds.
-- Each touch press reads the page canvas for `onLine`, and a mark reads it again; one reader per press would do.
 - On a plain-http page the SHA-256 fallback is synchronous: a very large PDF blocks the main thread for about a
   second per 50 MB, once per file.
 
@@ -266,6 +264,11 @@ Shlomi's calls, with the reason, newest group first.
   marker, as Sign's tools are, would cost a click per line read.
 - The switch has no carets; one setting button sits a gap away (R47): a caret inside each half put two
   intents a finger's width apart.
+- Outside full screen the pinch is the browser's (R62, 2026-11-02): "use the native capabilities as much as
+  possible, modern phones are doing a good job." Our own zoom stays in full screen, where the capsule must hold
+  still and R56/R57 bound the page. Zoomed in, WebKit pans with one finger whatever `touch-action` says, so a
+  finger on a line claims its sideways moves through a `touchmove` listener that is in place from mount (WebKit
+  reads the listeners when a touch starts; one added at the press cannot stop that touch's pan).
 - Only a sideways start marks on touch: with an any-direction start, scrolling marked every line passed.
 - Two fingers navigate and one finger marks only from a line of text (R52, R62): on a real iPhone a pinch
   laid marks and a zoomed page could not be moved sideways, because every sideways start marked, even in a
@@ -328,7 +331,9 @@ Learnings from the sketches that shape the build
 - CSS `zoom` on the page column needs `justify-content: safe center`, or a wide page overflows to the left
   where it cannot be scrolled to.
 - A capsule's glass lives on its own layer: opacity or a filter on the element carrying `backdrop-filter`
-  drops the blur.
+  drops the blur. The editor card's glass moved to its own layer too (2026-11-02): iOS WebKit makes an element
+  with `backdrop-filter` the containing block of its fixed descendants and floating-ui assumes it does not, so the
+  phone's mark panel sat 16 px right of its gutters (`panel-gutters-webkit.spec.js`).
 - A test harness must send real click counts: Playwright's separate `mouse.down()` calls report 1 each, so
   multi-click tests need `clickCount`.
 - Read every size, then write every position: laying out notes one at a time forces a layout per note.
