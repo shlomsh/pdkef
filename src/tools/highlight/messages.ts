@@ -60,6 +60,8 @@ export interface HighlightMessages {
   downloadDoneLabel: string;
   downloadDoneClose: string;
   capsule: CapsuleLabels;
+  /** The pull cord that opens the Reading lamp: the button's name, and the hint beside its label on a desktop. */
+  cord: { label: string; hint: string };
 }
 
 export const englishHighlightMessages: HighlightMessages = {
@@ -118,4 +120,5 @@ export const englishHighlightMessages: HighlightMessages = {
     jump: 'Go to page',
     go: 'Go',
   },
+  cord: { label: 'Full screen', hint: 'pull or click' },
 };

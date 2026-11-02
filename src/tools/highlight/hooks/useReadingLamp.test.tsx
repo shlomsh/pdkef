@@ -28,12 +28,14 @@ describe('useReadingLamp', () => {
     expect(api.pseudoFullscreen).toBe(false);
   });
 
-  it('falls back to the pseudo lamp where real fullscreen is missing, and the toggle leaves it', () => {
+  it('falls back to the pseudo lamp where real fullscreen is missing, and the toggle leaves it', async () => {
     workspaceRef.current = document.createElement('div');
     mount();
     act(() => api.toggleLamp());
     expect(api.pseudoFullscreen).toBe(true);
     expect(api.fullscreen).toBe(true);
+    // The entrance plans in a microtask; with nothing to animate it lets go at once.
+    await act(async () => { await Promise.resolve(); });
     act(() => api.toggleLamp());
     expect(api.fullscreen).toBe(false);
   });

@@ -2,9 +2,9 @@ import { test, expect } from '@playwright/test';
 import { openTool } from '../../../../e2e/support/tool.js';
 import { makePdfBuffer } from '../../../../e2e/support/pdf.js';
 
-/* READ-04: Highlight's seven controls sit in one row, but Sign's phone rule sizes the label font from
-   --controls-per-row, which defaulted to 4 here: "Full screen" wrapped badly and "Download" clipped on a 402px
-   phone. The row declares its own count so the label stays readable (9px or more) and inside its button. */
+/* READ-04: Highlight's six controls sit in one row (Full screen is the cord under the card), but Sign's phone rule
+   sizes the label font from --controls-per-row, which defaulted to 4 here: labels wrapped badly and "Download"
+   clipped on a 402px phone. The row declares its own count so the label stays readable and inside its button. */
 
 test.use({ serviceWorkers: 'block', hasTouch: true, isMobile: true });
 
@@ -32,11 +32,11 @@ for (const size of [{ width: 402, height: 874 }, { width: 375, height: 812 }]) {
         });
     });
     console.log(size.width, JSON.stringify(rows));
-    expect(rows.length).toBe(7);
+    expect(rows.length).toBe(6);
     for (const r of rows) {
       expect(r.font, `${r.text} font size`).toBeGreaterThanOrEqual(8);
       expect(r.label, `${r.text} fits its button`).toBeLessThanOrEqual(r.button);
-      expect(r.lines, `${r.text} line count`).toBeLessThanOrEqual(r.text === 'Full screen' ? 2 : 1);
+      expect(r.lines, `${r.text} line count`).toBeLessThanOrEqual(1);
     }
     expect(new Set(rows.map((r) => r.top)).size).toBe(1);
   });

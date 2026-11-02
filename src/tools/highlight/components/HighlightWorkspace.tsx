@@ -15,7 +15,8 @@ import HighlightPage from './HighlightPage.tsx';
 import MarkerButton from './MarkerButton.tsx';
 import PenHint from './PenHint.tsx';
 import DownloadDone from './DownloadDone.tsx';
-import FullscreenButton from '#editor-ui/FullscreenButton.tsx';
+import LampCord from './LampCord.tsx';
+import LampStage from './LampStage.tsx';
 import ToolShell, { FILE_ACTIONS, useToolShell } from '#shell/ToolShell.tsx';
 import { englishShellMessages } from '#shell/shellMessages.ts';
 import PrintMenu, { PrintDropdown } from './PrintMenu.tsx';
@@ -133,8 +134,8 @@ export default function HighlightWorkspace({ pdfDocument, numPages, fileName, zo
 
   return (
     <>
-    {/* Stays mounted in the lamp, hidden: the page's restore veil lifts only while a [data-tool-shell] exists. */}
-    <div hidden={fullscreen} style={fullscreen ? undefined : { display: 'contents' }}>
+    {/* Stays mounted in the lamp, hidden: the page's restore veil lifts only while a [data-tool-shell] exists. The lamp's exit slides it back in. */}
+    <div hidden={fullscreen} style={fullscreen ? undefined : { display: 'contents' }} data-lamp-part="site">
       <TileRow
         marks={marks} undo={undo} redo={redo} touch={touch} mark={fullscreen ? undefined : mark} printMenu={{ ...printMenu, open: printMenu.open && !fullscreen }} withComments={withComments}
         onPrintOpenChange={setPrintOpen} onToggleView={toggleView} onDownload={onDownload} doneName={doneName} onCloseDone={onCloseDone}
@@ -145,7 +146,7 @@ export default function HighlightWorkspace({ pdfDocument, numPages, fileName, zo
       ref={setWorkspace} role="region" aria-label={fileName} data-workspace data-lamp={fullscreen || undefined} data-pseudo-fullscreen={pseudoFullscreen || undefined}
     >
       {fullscreen && (
-        <div class={styles.floating}>
+        <div class={styles.floating} data-lamp-part="capsule">
           <ReadingCapsule
             fileName={fileName} page={currentPage} pageCount={numPages}
             onJumpToPage={(n) => pageRefs.current[n - 1]?.scrollIntoView()}
@@ -160,7 +161,8 @@ export default function HighlightWorkspace({ pdfDocument, numPages, fileName, zo
       )}
       {fullscreen && <PrintMenu {...printMenu} />}
       {print.sheets}
-      <div className={fullscreen ? `${styles.board} ${styles.lampBoard}` : styles.board} style={{ width: `${fullscreen ? zoom.board.boardWidth : columnW}px` }}>
+      <LampStage />
+      <div className={fullscreen ? `${styles.board} ${styles.lampBoard}` : styles.board} data-lamp-part="board" style={{ width: `${fullscreen ? zoom.board.boardWidth : columnW}px` }}>
       <div
         className={styles.column} ref={columnRef}
         style={{ width: `${columnW}px`, marginLeft: `${zoom.board.slack}px`, ...(zoom.chrome !== 1 ? { '--chrome': zoom.chrome } : {}) }}
@@ -208,7 +210,6 @@ function TileRow({ marks, undo, redo, touch, mark, printMenu, withComments, onPr
           onUndo={undo} onRedo={redo} canUndo={marks.canUndo} canRedo={marks.canRedo}
           labels={{ undoTitle: shortcuts.undo, undoButton: t.capsule.undo, redoTitle: shortcuts.redo, redoButton: t.capsule.redo }}
         />
-        <FullscreenButton isFullscreen={false} toggleFullscreen={onToggleView} title={null} />
         <button type="button" className={toolbarStyles.button} onClick={requestReplace} title={shellMessages.replaceTitle} aria-label={shellMessages.replaceLabel}>
           <svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
             <path d={FILE_ACTIONS.replace.icon} />
@@ -223,6 +224,7 @@ function TileRow({ marks, undo, redo, touch, mark, printMenu, withComments, onPr
         />
       </div>
       {doneName && <DownloadDone name={doneName} onClose={() => onCloseDone?.()} />}
+      <LampCord onPull={onToggleView} />
     </ToolShell>
   );
 }
