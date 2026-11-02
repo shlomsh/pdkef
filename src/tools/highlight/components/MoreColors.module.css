@@ -33,6 +33,7 @@
   cursor: pointer;
 }
 .more[aria-pressed='true'] { padding-inline: 8px; }
+.moreArt { position: relative; display: block; width: var(--swatch-w, var(--cell, 2.25rem)); height: var(--cell, 2.25rem); }
 .more:hover,
 .more[aria-expanded='true'] { background: var(--color-primary-tint); }
 
@@ -59,8 +60,8 @@
 }
 @media (pointer: coarse), (max-width: 480px) {
   .more { min-width: 1.75rem; }
-  /* R49: the ink band leaves the row one line at 402 px. */
-  .more[aria-pressed='true'] { gap: 0; padding-inline: 3px; }
+  /* R49: the hidden color's marker leaves the row one line at 402 px. */
+  .more[aria-pressed='true'] { gap: 0; padding-inline: 0; }
 }
 @media (pointer: coarse) {
   .menu.menu { --cell: var(--target, 2.75rem); --swatch-w: 2.25rem; }

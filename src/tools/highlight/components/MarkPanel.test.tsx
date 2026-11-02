@@ -193,18 +193,19 @@ describe('MarkPanel', () => {
       expect(more().getAttribute('aria-pressed')).toBeNull();
     });
 
-    it('keeps its chevron and shows the hidden color as an ink band before it', () => {
+    it('keeps its chevron and shows the hidden color as its own marker, uncapped over its band, before it', () => {
       mount({ ...DEFAULT_MARKER, color: '#FF8080' });
       expect(more().querySelector('polyline')).not.toBeNull();
       expect(more().getAttribute('aria-pressed')).toBe('true');
-      const dot = more().querySelector<HTMLElement>('[data-more-ink]')!;
-      expect(dot.style.getPropertyValue('--ink').toLowerCase()).toBe('#ff8080');
-      expect(dot.nextElementSibling!.tagName.toLowerCase()).toBe('svg');
+      const slot = more().querySelector<HTMLElement>('[data-more-ink]')!;
+      const art = slot.querySelector<HTMLElement>('[data-marker-art][data-picked]')!;
+      expect(art.style.getPropertyValue('--ink').toLowerCase()).toBe('#ff8080');
+      expect(slot.nextElementSibling!.tagName.toLowerCase()).toBe('svg');
     });
 
-    it('a custom color shows its dot too, and a pick applies', () => {
+    it('a custom color shows its marker too, and a pick applies', () => {
       const { onChange } = mount({ ...DEFAULT_MARKER, color: '#336699' });
-      expect(more().querySelector('[data-more-ink]')).not.toBeNull();
+      expect(more().querySelector('[data-more-ink] [data-marker-art][data-picked]')).not.toBeNull();
       press(more());
       press(document.querySelectorAll('[data-more-popover] [data-highlight-swatch]')[1]);
       expect(onChange).toHaveBeenCalledWith({ color: '#FF8080' });

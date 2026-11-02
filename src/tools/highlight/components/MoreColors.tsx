@@ -6,7 +6,7 @@ import controls from '#editor-ui/EditorControls.module.css';
 import { MORE_COLORS, isTopColor } from '../lib/marker/markerState.ts';
 import { englishHighlightMessages as t } from '../messages.ts';
 import { onRadioKeyDown, radioTabIndex } from './radioKeys.ts';
-import MarkerArt, { MoreInk } from './MarkerArt.tsx';
+import MarkerArt from './MarkerArt.tsx';
 import Chevron from './Chevron.tsx';
 import { COUNTER_SCALE, useToolbarScaled } from './toolbarScale.ts';
 import styles from './MoreColors.module.css';
@@ -62,7 +62,7 @@ export default function MoreColors({ color, onPick, open, onOpenChange }: MoreCo
           type="button" data-more-colors class={styles.more} aria-label={t.moreColors} title={t.moreColors}
           aria-haspopup="true" aria-expanded={open} aria-pressed={hidden ? true : undefined}
         >
-          {hidden && <MoreInk ink={color} />}
+          {hidden && <span class={styles.moreArt} data-more-ink><MarkerArt ink={color} picked /></span>}
           <Chevron />
         </button>
       }
