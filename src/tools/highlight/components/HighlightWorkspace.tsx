@@ -130,7 +130,6 @@ export default function HighlightWorkspace({ pdfDocument, numPages, fileName, zo
     look: markOf(picked), onChange: (change: Partial<typeof marks.marker>) => commands.change(picked, change),
     onComment: () => commands.comment(picked), onDelete: () => commands.remove(picked), onRelease: panel.release,
   };
-  const markerButton = <MarkerButton marker={marks.marker} onChange={marks.rearm} armed={touch.armed} onTap={touch.arm} onDisarm={touch.disarm} mark={mark} />;
 
   return (
     <>
@@ -150,8 +149,8 @@ export default function HighlightWorkspace({ pdfDocument, numPages, fileName, zo
           <ReadingCapsule
             fileName={fileName} page={currentPage} pageCount={numPages}
             onJumpToPage={(n) => pageRefs.current[n - 1]?.scrollIntoView()}
-            zoomSlot={menu()}
-            markerSlot={markerButton}
+            zoomSlot={menu}
+            markerSlot={(onOpenChange) => <MarkerButton marker={marks.marker} onChange={marks.rearm} armed={touch.armed} onTap={touch.arm} onDisarm={touch.disarm} mark={mark} onOpenChange={onOpenChange} />}
             onUndo={undo} onRedo={redo} canUndo={marks.canUndo} canRedo={marks.canRedo}
             onPrint={withComments ? openPrint : printNow}
             onDownload={onDownload} moreItems={moreItems} onExit={toggleView}

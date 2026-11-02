@@ -14,8 +14,9 @@ export interface ReadingCapsuleProps {
   page: number;
   pageCount: number;
   onJumpToPage(page: number): void;
-  zoomSlot?: ComponentChildren;
-  markerSlot?: ComponentChildren;
+  /** Slots build their own menu or panel and report its open state, so the capsule stays awake while one is open (R17). */
+  zoomSlot?: (onOpenChange: (open: boolean) => void) => ComponentChildren;
+  markerSlot?: (onOpenChange: (open: boolean) => void) => ComponentChildren;
   onUndo(): void;
   onRedo(): void;
   canUndo: boolean;
@@ -77,6 +78,8 @@ export default function ReadingCapsule(p: ReadingCapsuleProps) {
     return () => document.removeEventListener('pointerdown', onDown, true);
   });
 
+  const slotOpenChange = (open: boolean) => dispatch({ type: open ? 'menuOpen' : 'menuClose' });
+
   const folded = foldedItems(width);
   const shows = (id: Parameters<typeof folded.includes>[0]) => !folded.includes(id);
   const pageLabel = formatMessage(labels.page, { n: p.page, count: p.pageCount });
@@ -127,8 +130,8 @@ export default function ReadingCapsule(p: ReadingCapsuleProps) {
             </form>
           )}
         </span>
-        {p.zoomSlot}
-        {p.markerSlot}
+        {p.zoomSlot?.(slotOpenChange)}
+        {p.markerSlot?.(slotOpenChange)}
         <button type="button" class={styles.button} aria-label={labels.undo} title={labels.undo} aria-disabled={!p.canUndo} onClick={() => p.canUndo && p.onUndo()}><UndoIcon /></button>
         {shows('redo') && <button type="button" class={styles.button} aria-label={labels.redo} title={labels.redo} aria-disabled={!p.canRedo} onClick={() => p.canRedo && p.onRedo()}><RedoIcon /></button>}
         {shows('print') && p.onPrint && <button type="button" class={styles.button} aria-label={labels.print} title={labels.print} onClick={p.onPrint}><PrintIcon /></button>}
