@@ -47,7 +47,9 @@ export function CommentSheet({ elements, activeElementId, messages, onSave, onDe
       <button type="button" class={styles.grab} data-comment-sheet-grab aria-label={messages.commentCancel} onClick={onClose}>
         <span class={styles.bar} />
       </button>
+      {/* Keyed by comment: its draft is local state, so a second note must not open with the first one's text. */}
       <CommentCardBody
+        key={card.id}
         card={card}
         active
         messages={messages}
