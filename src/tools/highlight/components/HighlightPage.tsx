@@ -17,6 +17,8 @@ import { createSwipeReader } from '#lib/pageLayout/swipeReader.ts';
 import { PAGE_HEIGHT_DEFAULT_PTS } from '#editor/model/signGeometry.js';
 import { usePageGeometry } from '../hooks/usePageGeometry.ts';
 import HighlightPageHeader from './HighlightPageHeader.tsx';
+import MarkOutline from './MarkOutline.tsx';
+import type { OpenMarks } from '../hooks/useOpenMarks.ts';
 import { useClickMarks } from '../hooks/useClickMarks.ts';
 import { useMarkFocus } from '../hooks/useMarkFocus.ts';
 import { useMarkSwipe } from '../hooks/useMarkSwipe.ts';
@@ -37,7 +39,7 @@ const noop = () => {};
  * One page card: its header, the page, and a wrapper per highlight on it. While armed, a press from any pointer on the
  * page starts a swipe that lays the marker's bands; the gesture paints during the swipe and commits once.
  */
-export default function HighlightPage({ pdfDocument, pageIndex, widthPx, chrome = 1, elements, marker, armed = true, pickedId, onPickMark, rearm, dispatch, logAction, setAnnouncement, cardRef, rail, pageTurns = {}, onRotate, onClear }: {
+export default function HighlightPage({ pdfDocument, pageIndex, widthPx, chrome = 1, elements, marker, armed = true, pickedId, openMarks, onPickMark, rearm, dispatch, logAction, setAnnouncement, cardRef, rail, pageTurns = {}, onRotate, onClear }: {
   pdfDocument: PDFDocumentProxy | null;
   pageIndex: number;
   /** The page's width in CSS px at the current zoom. */
@@ -51,6 +53,8 @@ export default function HighlightPage({ pdfDocument, pageIndex, widthPx, chrome 
   armed?: boolean;
   /** The mark the panel up top is editing, on touch; it shows a ring. */
   pickedId?: string | null;
+  /** READ-13: the mark that wears the pencil outline, and the one the pointer's note card points at (a faint pass). */
+  openMarks?: OpenMarks;
   /** On touch a tap on a highlight picks it for the panel up top, instead of opening a toolbar on the page. */
   onPickMark?: (id: string) => void;
   /** Every change made on a highlight becomes the marker for the next stroke (R5). */
@@ -151,6 +155,12 @@ export default function HighlightPage({ pdfDocument, pageIndex, widthPx, chrome 
                 element={mark} isActive={false} onResizeStart={noop} turns={turnsOf(pageTurns, pageIndex)}
                 boxPts={geometry ? { width: (mark.width / 100) * geometry.width, height: (mark.height / 100) * geometry.height } : undefined}
               />
+              {geometry && (mark.id === openMarks?.openId || mark.id === openMarks?.hoverId) && (
+                <MarkOutline
+                  mark={mark} turns={turnsOf(pageTurns, pageIndex)} faint={mark.id !== openMarks?.openId}
+                  boxPts={{ width: (mark.width / 100) * geometry.width, height: (mark.height / 100) * geometry.height }}
+                />
+              )}
             </div>
           ))}
         </div>

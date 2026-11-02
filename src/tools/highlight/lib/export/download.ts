@@ -3,7 +3,6 @@ import type { PageTurns } from '#editor/geometry/pageTurn.ts';
 import { recordAction } from '#lib/telemetry/actionTrail.ts';
 import { reportToolLifecycleEvent } from '#lib/telemetry/productAnalytics.ts';
 import { reportError } from '#lib/telemetry/errorReport.ts';
-import { exportHighlighted } from './highlightedPdf.ts';
 
 /**
  * Download: the bytes the session holds (the file with its old highlights already read out of it), turned as the
@@ -23,6 +22,8 @@ export function downloadHandler({ outputName, bytes, elements, pageTurns, save }
     if (!outputName || !source) return null;
     reportToolLifecycleEvent('tool_operation_started', 'highlight-pdf');
     try {
+      // pdf-lib is 628 KiB and nothing needs it until a download (test:lazy-modules).
+      const { exportHighlighted } = await import('./highlightedPdf.ts');
       const out = await exportHighlighted(source, elements, pageTurns);
       recordAction('download');
       const name = outputName;

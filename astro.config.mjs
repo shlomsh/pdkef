@@ -144,6 +144,9 @@ export default defineConfig({
         // Imported from BaseLayout's bundled analytics script, so it is
         // discovered on first navigation rather than at startup.
         '@vercel/analytics',
+        // Imported by src/tools/highlight/lib/outline/markOutlinePath.ts (READ-13), which the Highlight island
+        // loads with import() on the first open mark, so the startup crawl misses it.
+        'roughjs/bin/generator',
       ],
     },
   },

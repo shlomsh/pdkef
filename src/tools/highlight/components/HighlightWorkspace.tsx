@@ -125,7 +125,9 @@ export default function HighlightWorkspace({ pdfDocument, numPages, fileName, zo
   const touch = useMarkerArming();
   // A tapped highlight: the Marker panel shows and edits its look until the panel is dismissed.
   const elements = marks.state.elements;
-  const panel = useMarkPanel(elements);
+  const panel = useMarkPanel(elements, workspaceRef);
+  // READ-13: the open mark wears the pencil outline, and the other marks step back while one is open.
+  const { openMarks } = panel;
   const picked = panel.markId ? elements.find((el) => el.id === panel.markId) as HighlightElement | undefined : undefined;
   const commands = markCommands({ elements, dispatch, logAction: marks.logAction, rearm: marks.rearm, setAnnouncement });
   const mark = picked && {
@@ -144,7 +146,7 @@ export default function HighlightWorkspace({ pdfDocument, numPages, fileName, zo
     </div>
     <div
       className={`${workspaceStyles.workspace} ${styles.workspace}${pseudoFullscreen ? ` ${workspaceStyles['pseudo-fullscreen']}` : ''}`}
-      ref={setWorkspace} role="region" aria-label={fileName} data-workspace data-lamp={fullscreen || undefined} data-pseudo-fullscreen={pseudoFullscreen || undefined}
+      ref={setWorkspace} role="region" aria-label={fileName} data-workspace data-mark-open={openMarks.openId ? '' : undefined} data-lamp={fullscreen || undefined} data-pseudo-fullscreen={pseudoFullscreen || undefined}
     >
       {fullscreen && (
         <div class={styles.floating} data-lamp-part="capsule">
@@ -173,7 +175,7 @@ export default function HighlightWorkspace({ pdfDocument, numPages, fileName, zo
           <HighlightPage
             key={i} pdfDocument={pdfDocument} pageIndex={i} widthPx={box.width * zoom.zoom}
             elements={marks.state.elements} marker={marks.marker} rearm={marks.rearm} dispatch={dispatch} logAction={marks.logAction}
-            setAnnouncement={setAnnouncement} armed={touch.armed} pickedId={panel.markId} onPickMark={panel.pick} cardRef={(el) => { pageRefs.current[i] = el; }} chrome={zoom.chrome} rail={comments.rail(i, (box.height * zoom.zoom) / zoom.chrome)}
+            setAnnouncement={setAnnouncement} armed={touch.armed} pickedId={panel.markId} openMarks={openMarks} onPickMark={panel.pick} cardRef={(el) => { pageRefs.current[i] = el; }} chrome={zoom.chrome} rail={comments.rail(i, (box.height * zoom.zoom) / zoom.chrome)}
             pageTurns={marks.pageTurns} onRotate={(geometry) => { dispatch(rotatePageAction(i, geometry)); recordAction('rotate'); }}
             onClear={() => { const actions = clearPageActions(marks.state.elements, i); actions.forEach((a) => dispatch(a)); if (actions.length) recordAction('delete_mark'); }}
           />

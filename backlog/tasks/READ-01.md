@@ -208,8 +208,9 @@ The reasons and the rejected alternatives are in "Decisions and why" at the end.
     reading order, and a focused mark opens its toolbar as a rest does (R2). On a digital PDF, a keyboard
     text selection plus H highlights it.
 40. Marks and note markers meet 3:1 against the page (WCAG 1.4.11): a pin or dot draws a deep amber glyph
-    on an amber wash (6.1:1), and every focusable one shows a focus ring. The capsule may sit below 3:1 only
-    while dozing.
+    on an amber wash (6.1:1), and every focusable one shows a focus ring (on a mark, the pencil outline of
+    READ-13). The capsule may sit below 3:1 only while dozing, and the other marks may sit at about 55% while a
+    note is open or a mark is picked.
 41. Opening a note puts the caret in it; Esc, Save or a press elsewhere returns focus to the pin or dot that
     opened it, never to the page body. The note is a labelled group naming its passage.
 42. At 375 px the capsule fits the screen: it keeps page, zoom, Marker, Undo and Exit at 44 px and moves the

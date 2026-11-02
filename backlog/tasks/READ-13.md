@@ -1,7 +1,7 @@
 ---
 id: "READ-13"
 title: "Highlight PDF: the open mark wears a pencil outline, the other marks step back"
-status: "open"
+status: "in_progress"
 priority: "P2"
 epic: "highlight-pdf"
 horizon: "now"
@@ -55,7 +55,7 @@ highlighter: the outline is the only new ink, and it sits around the text, never
    with `import()` on the first open so it stays out of first-load JS. Add a highlight-pdf row to
    `scripts/check-lazy-modules.js` so it cannot slip into the page's first paint, and check
    `test:precache-budget`.
-2. **A pure outline function** beside `sketchStroke.ts`: bands in, staircase vertices out, then rough.js's
+2. **A pure outline function** (in `src/tools/highlight/lib/outline/`, since the module-boundary rule keeps a single-consumer module out of `src/editor/`): bands in, staircase vertices out, then rough.js's
    generator (not its DOM renderer) turns them into path data with the mark's seed. Unit tests first: one
    band, a three-line RTL passage, near-equal line ends, the same id giving the same path.
 3. **Draw it** in the mark's box as an SVG that overflows the box, and delete the outline rules in
@@ -64,13 +64,13 @@ highlighter: the outline is the only new ink, and it sits around the text, never
 
 ## Acceptance
 
-- [ ] Opening a note, picking a mark on touch and Tab focus all show the pencil outline, and no mark has a CSS
+- [x] Opening a note, picking a mark on touch and Tab focus all show the pencil outline, and no mark has a CSS
       outline any more (e2e reads the computed style).
-- [ ] A multi-line passage gets one outline whose box encloses all its bands (e2e, desktop and phone width).
-- [ ] The same mark draws the same path every time it opens (unit).
-- [ ] While a note is open the other marks' fills sit at about 55%, a hovered or focused one is at full
+- [x] A multi-line passage gets one outline whose box encloses all its bands (e2e, desktop and phone width).
+- [x] The same mark draws the same path every time it opens (unit).
+- [x] While a note is open the other marks' fills sit at about 55%, a hovered or focused one is at full
       strength, and note markers do not fade.
-- [ ] rough.js is not in the page's first-load JS (`test:weight`, `test:lazy-modules`), and
+- [x] rough.js is not in the page's first-load JS (`test:weight`, `test:lazy-modules`), and
       `test:licenses` passes with the new packages listed.
-- [ ] Reduced motion draws no animation.
+- [x] Reduced motion draws no animation.
 - [ ] Seen on a real phone: picking a mark shows the outline and the bottom sheet as before.
