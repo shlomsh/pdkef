@@ -18,4 +18,7 @@ describe('outputNameParts', () => {
   it('a typed name beats the deduped source', () => {
     expect(outputNameParts('redacted_x.pdf', { prefix: 'redacted_', custom: 'y', dedupePrefix: true }).fileName).toBe('redacted_y.pdf');
   });
+  it('a typed name does not chain the prefix when asked not to', () => {
+    expect(outputNameParts('x.pdf', { prefix: 'redacted_', custom: 'redacted_y', dedupePrefix: true }).fileName).toBe('redacted_y.pdf');
+  });
 });

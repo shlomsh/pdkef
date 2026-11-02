@@ -1,3 +1,4 @@
+import { useEffect } from 'preact/hooks';
 import type { EditorElement } from '#editor/model/editorModel.ts';
 import type { PageTurns } from '#editor/geometry/pageTurn.ts';
 import type { SignMessages } from '#editor/registry/messages.ts';
@@ -7,13 +8,12 @@ import { useNavigatingAway } from '#lib/hooks/useNavigatingAway.ts';
 import type { LatestRun } from '#lib/hooks/useLatestRun.ts';
 import type { usePdfShare } from '#lib/output/usePdfShare.js';
 import { exportAtRevision, exportToHandOff, handoffHref, type SignedExport } from '../lib/exportHandoff.ts';
+import { useOutputNameOverride } from '#shell/useOutputNameOverride.ts';
 import { runSignExport } from '../lib/runSignExport.ts';
 import type { SignLifecycleAction } from '../state/signState.ts';
 
 interface SignExportOptions {
   file: File | null;
-  /** The name every export saves as; a file prepared under another name is not reused. */
-  outputName: string;
   fileBytesRef: { current: ArrayBuffer | null };
   elements: EditorElement[];
   /** SIGN-43: extra clockwise quarter turns per page index; omitted means none. */
@@ -34,11 +34,14 @@ interface SignExportOptions {
  * file on to another tool. The signing run itself is lib/runSignExport.ts.
  */
 export function useSignExport({
-  file, outputName, fileBytesRef, elements, pageTurns, exportRun, activeExportSpeculativeRef, documentRevisionRef, preparedExportRef,
+  file, fileBytesRef, elements, pageTurns, exportRun, activeExportSpeculativeRef, documentRevisionRef, preparedExportRef,
   signedExport, share, lifecycleDispatch, setAnnouncement, messages: t,
 }: SignExportOptions) {
   const { prepare, download, downloadPrepared, sharePrepared } = share;
+  // Every export saves as `signed_<name>` until the person types their own; a file made under an earlier name is stale.
+  const { parts: { fileName: outputName }, identityRename } = useOutputNameOverride(file, { prefix: 'signed_' });
   // A file made under an earlier name is stale once the person renames the output.
+  useEffect(() => { share.clearPrepared(); }, [outputName]);
   const named = (made: SignedExport | null) => (made && made.name === outputName ? made : null);
   const [handoffBusy, setHandoffBusy] = useNavigatingAway();
 
@@ -151,5 +154,5 @@ export function useSignExport({
     if (!handedOn) setHandoffBusy(false);
   };
 
-  return { runExport, handleSavePdf, handleDownloadPdf, handleSharePdf, requestHandoff, handoffBusy };
+  return { runExport, handleSavePdf, handleDownloadPdf, handleSharePdf, requestHandoff, handoffBusy, outputName, identityRename };
 }

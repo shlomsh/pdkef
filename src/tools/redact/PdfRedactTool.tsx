@@ -40,7 +40,7 @@ export default withIslandBoundary(function PdfRedactTool() {
   const { file, numPages, pdfDocument, sizedPageCount, status } = state.document;
   const setAnnouncement = (message: string) => dispatch({ type: 'ANNOUNCED', message });
   // Download saves as `redacted_<name>` until the person types their own in the identity row.
-  const { parts, rename, setRenaming } = useOutputNameOverride(file, { prefix: 'redacted_', dedupePrefix: true });
+  const { parts, identityRename } = useOutputNameOverride(file, { prefix: 'redacted_', dedupePrefix: true });
   useHoldUpdate(status === 'redacting'); // finishPhase 'exporting' is this same state
 
   // activeStyle is null | 'delete' | 'blackout' | 'blur' | 'whiteout'. Null -
@@ -89,7 +89,7 @@ export default withIslandBoundary(function PdfRedactTool() {
       intake={{ multiple: false, accept: '.pdf,application/pdf' }}
       identity={{
         file,
-        rename: { prefix: parts.prefix, name: parts.base, onRename: rename, onEditingChange: setRenaming },
+        label: file?.name, rename: identityRename,
         meta: describeFile(file, numPages, isFullscreenActive ? currentPage : null),
       }}
       empty={{ art: <RedactVerb />, message: 'Select or drop a PDF to redact' }}

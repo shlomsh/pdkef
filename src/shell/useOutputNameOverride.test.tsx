@@ -42,4 +42,11 @@ describe('useOutputNameOverride', () => {
     h.show(pdf('Other.pdf'));
     expect(h.get().parts.fileName).toBe('signed_Other.pdf');
   });
+
+  it('a different File with the same name drops the typed name too', () => {
+    const h = mount(pdf('Lease.pdf'));
+    act(() => h.get().rename('Final'));
+    h.show(pdf('Lease.pdf'));
+    expect(h.get().parts.fileName).toBe('signed_Lease.pdf');
+  });
 });

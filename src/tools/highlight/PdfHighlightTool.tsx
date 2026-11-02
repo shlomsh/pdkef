@@ -83,7 +83,7 @@ export default withIslandBoundary(function PdfHighlightTool() {
     },
   });
 
-  const { parts, rename, setRenaming } = useOutputNameOverride(file, { prefix: 'highlighted_' });
+  const { parts, identityRename } = useOutputNameOverride(file, { prefix: 'highlighted_' });
   const done = useDownloadDone(file, marks.state.documentRevision);
   const download = downloadHandler({
     outputName: file ? parts.fileName : undefined, bytes: () => session.fileBytesRef.current, elements: marks.state.elements, pageTurns: marks.pageTurns,
@@ -108,7 +108,7 @@ export default withIslandBoundary(function PdfHighlightTool() {
       hasFiles={!!file}
       onFilesAdded={session.handleFilesAdded}
       intake={{ multiple: false, accept: '.pdf,application/pdf' }}
-      identity={{ file, label: file ? parts.fileName : undefined, rename: { prefix: parts.prefix, name: parts.base, onRename: rename, onEditingChange: setRenaming }, meta: describeFile(file, numPages, null) }}
+      identity={{ file, label: file ? parts.fileName : undefined, rename: identityRename, meta: describeFile(file, numPages, null) }}
       empty={{ art: <HighlightVerb />, message: t.emptyMessage }}
       draft={{ saveState: session.draftSaveState, checking: session.isRestoring }}
       analytics={{ tool: 'highlight-pdf' }}

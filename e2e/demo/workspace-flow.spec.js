@@ -103,7 +103,7 @@ test('complete stories, information, session handoff, and real bundled sample en
   await page.locator('#try-workspace').getByRole('button',{name:/PDkef practice form\.pdf/}).click();
   await expect(page).toHaveURL(/\/sign\/$/);
   await expect(page.locator('canvas').first()).toBeVisible({timeout:20000});
-  await expect(page.getByText(SAMPLE_FILE_NAME, {exact:true}).first()).toBeVisible();
+  await expect(page.locator('[data-output-name]')).toHaveText(`signed_${SAMPLE_FILE_NAME}`);
   // QUAL-10: opening alone deliberately writes no `work` (that starts on the
   // first real edit); the entry and its current-tool pointer are what land
   // immediately, which is what the recents card below actually reads.
