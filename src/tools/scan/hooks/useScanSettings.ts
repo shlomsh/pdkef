@@ -4,7 +4,7 @@ import { reportEdit } from '#lib/telemetry/productAnalytics.ts';
 import type { ScanFilter } from '../lib/filters.ts';
 import type { SizeLimitId } from '../lib/scanBudget.ts';
 import type { PageSize } from '../lib/scanPipeline.ts';
-import { englishScanMessages as t } from '../messages.ts';
+import { defaultScanName } from '../lib/scanName.ts';
 
 /** A change of one setting: remembered, counted, and a no-op when nothing changed. */
 const choose = <T,>(setter: (value: T) => void, current: T) => (next: T) => {
@@ -22,10 +22,12 @@ export function useScanSettings() {
   const [limit, setLimit] = useState<SizeLimitId>('none');
   const [customName, setCustomName] = useState<string | null>(null);
   const [isRenaming, setIsRenaming] = useState(false);
+  /** Read once, so a midnight roll never renames the file. */
+  const [defaultName] = useState(() => defaultScanName(new Date()));
   return {
-    defaultFilter, setDefaultFilter, pageSize, limit, customName, setCustomName, isRenaming, setIsRenaming,
+    defaultName, defaultFilter, setDefaultFilter, pageSize, limit, customName, setCustomName, isRenaming, setIsRenaming,
     choosePageSize: choose(setPageSize, pageSize),
     chooseLimit: choose(setLimit, limit),
-    rename: (next: string) => setCustomName(next.length > 0 && next !== t.defaultName ? next : null),
+    rename: (next: string) => setCustomName(next.length > 0 && next !== defaultName ? next : null),
   };
 }
