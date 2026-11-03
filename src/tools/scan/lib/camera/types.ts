@@ -62,10 +62,10 @@ export interface ViewfinderProps {
   onTaken: (file: File) => void;
   /** Done, the close button, Escape: back to the table. The camera stops. */
   onClose: () => void;
-  /** The review's Retake: the last page goes and the camera stays. */
-  onRetakeLast: () => void;
-  /** The review's quiet link: close, and open the last page's corners. */
-  onFixCorners: () => void;
+  /** The stack: open the last page in the viewer, over the camera. */
+  onReview: () => void;
+  /** True while the viewer is over a many-mode camera: auto never fires. */
+  paused: boolean;
   /** Camera refused or unavailable: the photos taken with the native input instead. */
   onFallbackFiles: (files: File[]) => void;
 }

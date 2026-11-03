@@ -65,9 +65,6 @@
 .round,
 .auto,
 .done,
-.secondary,
-.primary,
-.quiet,
 .fallback {
   min-height: 44px;
   font: inherit;
@@ -222,58 +219,7 @@
 .done:focus-visible,
 .stack:focus-visible,
 .shutter:focus-visible,
-.secondary:focus-visible,
-.primary:focus-visible,
-.quiet:focus-visible,
 .fallback:focus-visible {
   outline: 2px solid var(--color-surface);
   outline-offset: 2px;
-}
-
-.sheet {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 16px;
-  padding: max(16px, env(safe-area-inset-top)) 16px max(16px, env(safe-area-inset-bottom));
-  background: var(--color-night);
-}
-
-.review {
-  flex: 1;
-  min-height: 0;
-  max-width: 100%;
-  object-fit: contain;
-}
-
-.sheetActions {
-  display: flex;
-  gap: 12px;
-  width: 100%;
-  max-width: 420px;
-}
-
-.secondary,
-.primary {
-  flex: 1;
-  padding: 0 16px;
-  border: 0;
-  border-radius: 22px;
-}
-
-.secondary {
-  background: var(--color-white-20);
-}
-
-.primary {
-  background: var(--color-primary);
-}
-
-.quiet {
-  padding: 0 12px;
-  background: transparent;
-  border: 0;
-  text-decoration: underline;
 }

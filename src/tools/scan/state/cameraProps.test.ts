@@ -7,10 +7,10 @@ import type { ScanPage } from './scanWork.ts';
 const file = new File(['x'], 'a.jpg', { type: 'image/jpeg' });
 const page = (preview: string): ScanPage => ({ ...newPage(file, 'document'), preview });
 
-function setup(camera: CameraMode | null, pages: ScanPage[] = [page('first'), page('last')]) {
-  const host = { dispatch: vi.fn(), addFiles: vi.fn(), retakePage: vi.fn(), removePage: vi.fn() };
+function setup(camera: CameraMode | null, pages: ScanPage[] = [page('first'), page('last')], view: 'table' | 'result' | 'corners' = 'table') {
+  const host = { dispatch: vi.fn(), addFiles: vi.fn(), retakePage: vi.fn() };
   const [first, last] = pages;
-  return { host, first, last, props: cameraProps({ camera, pages, results: {}, ...host }) };
+  return { host, first, last, props: cameraProps({ camera, pages, results: {}, view, ...host }) };
 }
 
 describe('cameraProps', () => {
@@ -29,7 +29,7 @@ describe('cameraProps', () => {
     const pages = [page('photo')];
     const [last] = pages;
     const result = (key: string) => ({ [last.id]: { key, url: 'made', thumbUrl: 'thumb', page: null } }) as unknown as Parameters<typeof cameraProps>[0]['results'];
-    const props = (results: ReturnType<typeof result>) => cameraProps({ camera: { mode: 'many' }, pages, results, dispatch: vi.fn(), addFiles: vi.fn(), retakePage: vi.fn(), removePage: vi.fn() });
+    const props = (results: ReturnType<typeof result>) => cameraProps({ camera: { mode: 'many' }, pages, results, dispatch: vi.fn(), addFiles: vi.fn(), retakePage: vi.fn(), view: 'table' });
     expect(props(result(resultKey(last)))?.lastSrc).toBe('made');
     expect(props(result('stale'))?.lastSrc).toBe('photo');
   });
@@ -49,17 +49,30 @@ describe('cameraProps', () => {
     expect(host.dispatch).toHaveBeenCalledWith({ type: 'cameraClosed' });
   });
 
-  it('Retake in the review removes the last page', () => {
+  it('the stack opens the last page in the viewer', () => {
     const { host, last, props } = setup({ mode: 'many' });
-    props?.onRetakeLast();
-    expect(host.removePage).toHaveBeenCalledWith(last.id);
+    props?.onReview();
+    expect(host.dispatch).toHaveBeenCalledWith({ type: 'pageOpened', id: last.id });
+    const empty = setup({ mode: 'many' }, []);
+    empty.props?.onReview();
+    expect(empty.host.dispatch).not.toHaveBeenCalled();
   });
 
-  it('Fix the corners closes the camera and opens the last page at its corners', () => {
-    const { host, last, props } = setup({ mode: 'many' });
-    props?.onFixCorners();
-    expect(host.dispatch.mock.calls.map(([e]) => e.type)).toEqual(['cameraClosed', 'pageOpened', 'cornersOpened']);
-    expect(host.dispatch).toHaveBeenCalledWith({ type: 'pageOpened', id: last.id });
+  it('paused only while the viewer is over a many-mode camera', () => {
+    expect(setup({ mode: 'many' }, undefined, 'table').props?.paused).toBe(false);
+    expect(setup({ mode: 'many' }, undefined, 'result').props?.paused).toBe(true);
+    expect(setup({ mode: 'many' }, undefined, 'corners').props?.paused).toBe(true);
+    expect(setup({ mode: 'one', pageId: 1 }, undefined, 'result').props?.paused).toBe(false);
+    expect(setup({ mode: 'one', pageId: 1, thenMany: true }, undefined, 'result').props?.paused).toBe(false);
+  });
+
+  it('a retake replaces the page and goes through cameraClosed, also from thenMany', () => {
+    const pages = [page('first')];
+    const { host, props } = setup({ mode: 'one', pageId: pages[0].id, thenMany: true }, pages);
+    props?.onTaken(file);
+    expect(host.retakePage).toHaveBeenCalledWith(pages[0].id, file);
+    expect(host.dispatch).toHaveBeenCalledWith({ type: 'cameraClosed' });
+    expect(host.addFiles).not.toHaveBeenCalled();
   });
 
   it('the native photos join the scan (many) or replace the page (one), and the camera closes', () => {

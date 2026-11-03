@@ -16,7 +16,7 @@ vi.mock('../lib/camera/viewfinderModel.ts', () => ({
 let container: HTMLElement | null = null;
 const baseProps = () => ({
   mode: 'many' as const, count: 2, lastSrc: 'blob:last',
-  onTaken: vi.fn(), onClose: vi.fn(), onRetakeLast: vi.fn(), onFixCorners: vi.fn(), onFallbackFiles: vi.fn(),
+  onTaken: vi.fn(), onClose: vi.fn(), onReview: vi.fn(), paused: false, onFallbackFiles: vi.fn(),
 });
 function mount(props: Record<string, unknown> = {}) {
   const all = { ...baseProps(), ...props };
@@ -74,23 +74,11 @@ describe('Viewfinder', () => {
     expect(props.onClose).toHaveBeenCalled();
   });
 
-  it('Escape with the review open closes only the sheet', () => {
-    const { container, props } = mount();
-    click(container.querySelector('[data-stack]'));
-    expect(byText('Keep')).toBeDefined();
-    const event = new Event('cancel', { cancelable: true });
-    act(() => { container.querySelector('dialog')!.dispatchEvent(event); });
-    expect(event.defaultPrevented).toBe(true);
-    expect(byText('Keep')).toBeUndefined();
-    expect(props.onClose).not.toHaveBeenCalled();
-  });
-
-  it('auto is paused while the review is open', () => {
-    const { container } = mount();
-    expect(cameraInput.paused).toBe(false);
-    click(container.querySelector('[data-stack]'));
+  it('paused reaches the camera as given', () => {
+    mount({ paused: true });
     expect(cameraInput.paused).toBe(true);
-    click(byText('Keep'));
+    act(() => render(null, container!));
+    mount({ paused: false });
     expect(cameraInput.paused).toBe(false);
   });
 
@@ -121,19 +109,12 @@ describe('Viewfinder', () => {
     expect(props.onClose).toHaveBeenCalledTimes(2);
   });
 
-  it('the stack opens the review: Retake, Keep, Fix the corners', () => {
+  it('the stack calls onReview and shows no sheet', () => {
     const { props } = mount();
-    const open = () => click(container!.querySelector('[data-stack]'));
-    open();
-    click(byText('Retake'));
-    expect(props.onRetakeLast).toHaveBeenCalled();
+    click(container!.querySelector('[data-stack]'));
+    expect(props.onReview).toHaveBeenCalledTimes(1);
     expect(byText('Keep')).toBeUndefined();
-    open();
-    click(byText('Keep'));
-    expect(byText('Keep')).toBeUndefined();
-    open();
-    click(byText('Fix the corners'));
-    expect(props.onFixCorners).toHaveBeenCalled();
+    expect(byText('Retake')).toBeUndefined();
   });
 
   it('refused shows the camera-off line and a photo control', () => {
