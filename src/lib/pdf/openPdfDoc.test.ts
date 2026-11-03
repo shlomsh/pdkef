@@ -2,7 +2,7 @@
 import { readFileSync } from 'node:fs';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { openPdfDoc } from './openPdfDoc';
-import { buildPdf, healthy, noPagesKey } from '../../test/support/pdfPageTreeFixtures';
+import { healthy, noPagesKey } from '../../test/support/pdfPageTreeFixtures';
 import { getPdfLib } from './pdfLib.js';
 
 vi.mock('../telemetry/maintenanceTelemetry', () => ({
