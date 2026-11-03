@@ -10,7 +10,6 @@ export interface ScanMessages extends DownloadMessages {
   skippedMany: string;
   documentHeading: string;
   fileNameLabel: string;
-  defaultName: string;
   pageOf: string;
   findingEdges: string;
   cornersGroup: string;
@@ -108,7 +107,6 @@ export const englishScanMessages: ScanMessages = {
   skippedMany: '{count} files were skipped: only JPG and PNG photos can be scanned.',
   documentHeading: 'Your scan',
   fileNameLabel: 'File name, select to rename',
-  defaultName: 'scan',
   pageOf: 'Page {position} of {total}',
   findingEdges: 'Finding the page edges…',
   cornersGroup: 'Page corners',

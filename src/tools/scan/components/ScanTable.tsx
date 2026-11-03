@@ -26,7 +26,7 @@ interface ScanTableProps {
   onFiles: (files: File[]) => void;
   onPickMore: () => void;
   onClear: () => void;
-  flow: Pick<ReturnType<typeof useDownloadFlow>, 'downloadState' | 'downloadLinkReady' | 'shareReady' | 'handoffBusy' | 'onQuietDownloadTap' | 'onQuietPreparingTap' | 'handleShare' | 'requestHandoff'>;
+  flow: Pick<ReturnType<typeof useDownloadFlow>, 'downloadState' | 'downloadLinkReady' | 'shareReady' | 'canSharePdf' | 'handoffBusy' | 'onQuietDownloadTap' | 'onQuietPreparingTap' | 'handleShare' | 'requestHandoff'>;
   prepared: Pick<PreparedOutput, 'status' | 'url' | 'size' | 'prepareNow'>;
   fileName: string;
   pageSize: PageSize;
@@ -87,7 +87,7 @@ export default function ScanTable({
       <div class={styles.phone}>
         <ScanSizeRow sizeText={sizeValueText(prepared.status, prepared.size, t.dir)} limit={limit} onLimit={onLimit} limitNote={limitNote} />
 
-        {flow.shareReady ? (
+        {flow.canSharePdf ? (
           <button
             type="button"
             class={styles.primary}
@@ -103,7 +103,7 @@ export default function ScanTable({
         ) : fallbackDownload}
 
         <div class={workspaceStyles['quiet-row']} data-quiet-row>
-          {flow.shareReady && (
+          {flow.canSharePdf && (
             <QuietDownload
               state={flow.downloadState}
               linkReady={flow.downloadLinkReady}

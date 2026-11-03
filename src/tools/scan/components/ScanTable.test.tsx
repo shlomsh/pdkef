@@ -12,7 +12,7 @@ const results = {
 
 function makeFlow(over: Record<string, unknown> = {}) {
   return {
-    downloadState: 'ready', downloadLinkReady: true, shareReady: true, handoffBusy: false,
+    downloadState: 'ready', downloadLinkReady: true, shareReady: true, canSharePdf: true, handoffBusy: false,
     onQuietDownloadTap: vi.fn(), onQuietPreparingTap: vi.fn(), handleShare: vi.fn(), requestHandoff: vi.fn(),
     ...over,
   };
@@ -91,8 +91,17 @@ describe('ScanTable', () => {
     expect(flow.handleShare).not.toHaveBeenCalled();
   });
 
+  it('keeps Share (disabled) while the PDF builds, so the button does not flip from Download', () => {
+    const flow = makeFlow({ shareReady: false, canSharePdf: true, downloadState: 'preparing' });
+    const { container } = mount({ flow: flow as never, prepared: { status: 'pending', url: null, size: 0, prepareNow: vi.fn() } });
+    const share = container.querySelector('[data-share]') as HTMLElement;
+    expect(share.getAttribute('aria-disabled')).toBe('true');
+    expect(container.querySelector('[data-fallback-download]')).toBeNull();
+    expect(container.querySelector('[data-quiet-download]')).not.toBeNull();
+  });
+
   it('puts Download in the Share place where the browser cannot share files', () => {
-    const { container } = mount({ flow: makeFlow({ shareReady: false }) as never });
+    const { container } = mount({ flow: makeFlow({ shareReady: false, canSharePdf: false }) as never });
     expect(container.querySelector('[data-share]')).toBeNull();
     expect(container.querySelector('[data-fallback-download]')).not.toBeNull();
     // The quiet row then has no second Download.

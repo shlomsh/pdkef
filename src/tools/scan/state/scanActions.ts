@@ -108,13 +108,7 @@ export function createPageActions(input: PageActionsInput) {
     if (left.length === 0) reset();
   };
 
-  /** Remove from the corners box: the next photo comes into view, and this one's error box was not its height. */
-  const removeFromCorners = (id: number) => {
-    dispatch({ type: 'scrollFocusRequested', top: true });
-    removePage(id);
-  };
-
-  return { findPage, removePage, removeFromCorners, reset };
+  return { findPage, removePage, reset };
 }
 
 interface EditActionsInput {
@@ -194,19 +188,11 @@ export function createEditActions(input: EditActionsInput) {
   /** Replace page `id` with a new photo, in place. */
   const retakePage = (id: number, file: File) => retakeFile(id, file);
 
-  /** Done in the corners box: to the result as it is. */
-  const finishCorners = () => {
-    if (!selected) return;
-    showResult(selected);
-    dispatch({ type: 'scrollFocusRequested', top: true, focus: true });
-    announce(t.announceResult);
-  };
-
   /** From the editor head: the corners, with focus on the heading. */
   const adjustCorners = () => {
     dispatch({ type: 'cornersOpened', focus: true });
     announce(formatMessage(t.announceCornersOf, { position: selectedIndex + 1 }));
   };
 
-  return { onTileKeyDown, commitCorners, chooseLook, rotatePage, showFailedPage, approveCorners, finishCorners, adjustCorners, openPage, closePage, retakePage };
+  return { onTileKeyDown, commitCorners, chooseLook, rotatePage, showFailedPage, approveCorners, adjustCorners, openPage, closePage, retakePage };
 }

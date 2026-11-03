@@ -50,8 +50,10 @@ test.describe('scan - corner drag', () => {
       buffer: await makePhotoBytes(page),
     });
 
+    // New photos land on the table: tap the page, then Corners.
+    await page.locator('[data-table-page]').first().click();
+    await page.getByRole('button', { name: 'Corners', exact: true }).click();
     await waitForScrollToSettle(page);
-    // A new photo opens in the corners view, to approve or adjust first.
     const group = page.getByRole('group', { name: 'Page corners' });
     // The group div has no box of its own (its handles are absolutely placed), so wait on a handle.
     const handle = group.getByRole('button', { name: 'Top-left corner' });
