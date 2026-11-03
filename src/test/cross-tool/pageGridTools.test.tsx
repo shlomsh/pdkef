@@ -17,16 +17,6 @@ import { until } from '../support/until.js';
 // What Split, PDF to Image and Edit Pages share by construction (the page workspace, the bulk row, the Replace line,
 // the file intake): each tool wires it, so each tool runs the same cases. What differs per tool stays in its own test.
 
-// This file lives outside the island projects of vitest.config.js, so it registers the same two pdf.js fakes
-// as src/test/harness/setup/workerEdges.ts, which the harness steers.
-vi.mock('#lib/pdf/pdfEncryption.ts', async (importOriginal) => {
-  const { pdfjsEdges: edges } = await import('../harness/pdfjsEdges.ts');
-  return { ...(await importOriginal<object>()), probeEncryption: edges.probe };
-});
-vi.mock('#lib/pdf/thumbnails.js', async (importOriginal) => {
-  const { pdfjsEdges: edges } = await import('../harness/pdfjsEdges.ts');
-  return { ...(await importOriginal<object>()), ...edges.thumbnails };
-});
 // EDGE: the conversion paints every page through pdf.js onto a canvas, neither of which jsdom has.
 vi.mock('../../tools/to-image/lib/toImage.js', async (importOriginal) => ({
   ...(await importOriginal()),
