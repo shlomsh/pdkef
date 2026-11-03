@@ -114,4 +114,34 @@ test.describe('compress image - batch', () => {
     await expect.poll(() => suggested.length, { timeout: 10_000 }).toBe(3);
     expect([...suggested].sort()).toEqual([...names].sort());
   });
+
+  // Reported 2026-11-03 with twelve photos: a set longer than the desktop stage squeezed every row
+  // below its content, so the status line and Save spilled over the row's edge and nothing scrolled.
+  // Small photos pass through untouched, so a long set is quick to make.
+  test('a set longer than the stage keeps every row whole and scrolls the list', async ({ page, browserName }) => {
+    test.skip(browserName !== 'chromium', 'Layout only needs checking once.');
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto('/compress-image/');
+    await waitForIsland(page);
+
+    const photos = [];
+    for (let i = 1; i <= 14; i += 1) photos.push({ name: `photo-${i}.jpg`, mimeType: 'image/jpeg', buffer: await makeJpeg(page, 120, 90) });
+    await page.locator('input[type="file"]').setInputFiles(photos);
+    await expect(page.locator('[data-compress-batch]')).toHaveAttribute('data-compress-status', 'done', { timeout: 60_000 });
+
+    const layout = await page.locator('[data-batch] ol').evaluate((list) => ({
+      listScrolls: list.scrollHeight > list.clientHeight,
+      // A row is clipped when any of its text (name, sizes, status) reaches past its bottom edge. Save's
+      // 44px touch target reaches past the padding on purpose, so it is measured by its text alone.
+      clippedRows: [...list.children].filter((row) => {
+        const bottom = row.getBoundingClientRect().bottom;
+        return [...row.children].some((part) => {
+          const range = document.createRange();
+          range.selectNodeContents(part);
+          return range.getBoundingClientRect().bottom > bottom + 0.5;
+        });
+      }).length,
+    }));
+    expect(layout).toEqual({ listScrolls: true, clippedRows: 0 });
+  });
 });
