@@ -51,6 +51,17 @@ describe('flattenDoc', () => {
     expect(painted.some((c) => c.includes('1 0 0 rg 0 0 100 50 re f'))).toBe(true);
   });
 
+  it('lands an appearance whose BBox starts above the origin on the bottom edge of its /Rect', async () => {
+    const doc = await PDFDocument.create();
+    const page = doc.addPage([300, 300]);
+    // The form's own space runs from y=20 to y=70, so its content at y=20 must end up at the rect's bottom (y=10).
+    addAnnot(doc, page, { subtype: 'Stamp', rect: [10, 10, 210, 110], bbox: [0, 20, 100, 70], paint: '0 20 100 50 re f' });
+
+    const out = await PDFDocument.load(await flattenPdf(await doc.save()));
+
+    expect(text(getPageContentBytes(out.getPage(0)))).toContain('2 0 0 2 10 -30 cm');
+  });
+
   it('places a form field appearance inside its /Rect on a rotated page', async () => {
     const doc = await PDFDocument.create();
     const page = doc.addPage([400, 500]);
@@ -163,5 +174,14 @@ describe('appearanceToRectMatrix', () => {
     // A 90 degree appearance matrix swaps the box extents before scaling.
     const m = appearanceToRectMatrix([0, 0, 100, 50], [0, 1, -1, 0, 0, 0], [0, 0, 50, 100]);
     expect(m).toEqual([1, 0, 0, 1, 50, 0]);
+  });
+
+  it('puts a BBox that starts above or right of the origin on the rect corner', () => {
+    expect(appearanceToRectMatrix([5, 20, 105, 70], [1, 0, 0, 1, 0, 0], [10, 10, 210, 110])).toEqual([2, 0, 0, 2, 0, -30]);
+  });
+
+  it('keeps a scale of 1 on an axis where the BBox has no extent', () => {
+    expect(appearanceToRectMatrix([0, 0, 0, 50], [1, 0, 0, 1, 0, 0], [10, 10, 210, 110])).toEqual([1, 0, 0, 2, 10, 10]);
+    expect(appearanceToRectMatrix([0, 0, 100, 0], [1, 0, 0, 1, 0, 0], [10, 10, 210, 110])).toEqual([2, 0, 0, 1, 10, 10]);
   });
 });
