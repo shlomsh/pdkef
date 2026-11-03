@@ -1,6 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { GLYPH_BUDGET } from '../find/itemGlyphs.ts';
 import { termFinder } from '../find/finders.ts';
+import { PDFJS_WASM_URL } from '#lib/pdf/pdfjsWasm.js';
 import { boxAroundLine, buildPdf, installCanvas, openOriginal, openedTasks } from '../../../../test/support/redactCheckPdfs.ts';
 import type { PageSpec } from '../../../../test/support/redactCheckPdfs.ts';
 import type { CheckBox, CheckTerm } from './types.ts';
@@ -23,7 +24,7 @@ const blackout = (pageIndex: number, row: number, width?: number): CheckBox => (
 async function run(original: PageSpec[], saved: PageSpec[], rest: { boxes?: CheckBox[]; extraTerms?: CheckTerm[]; picturePages?: number[]; savedTitle?: string; originalTitle?: string; measure?: never } = {}) {
   const originalBytes = await buildPdf(original, { title: rest.originalTitle });
   const savedBytes = await buildPdf(saved, { title: rest.savedTitle });
-  const { doc, close } = await openOriginal(originalBytes);
+  const { doc, close } = await openOriginal(originalBytes, PDFJS_WASM_URL);
   try {
     return await runSavedFileCheck({ originalDoc: doc, originalBytes, savedBytes, boxes: rest.boxes ?? [], extraTerms: rest.extraTerms ?? [], picturePages: rest.picturePages ?? [], measure: rest.measure });
   } finally {
@@ -71,7 +72,7 @@ describe('runSavedFileCheck', () => {
 
   it('gives no covered term for a boxed page whose text cannot be read', async () => {
     const originalBytes = await buildPdf([SECRET]);
-    const { doc, close } = await openOriginal(originalBytes);
+    const { doc, close } = await openOriginal(originalBytes, PDFJS_WASM_URL);
     const page = await doc.getPage(1);
     page.getOperatorList = () => Promise.reject(new Error('broken content stream'));
     const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
