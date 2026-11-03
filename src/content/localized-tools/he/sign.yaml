@@ -30,16 +30,17 @@ status: 'published'
 reviewer: 'Shlomi Shemesh'
 reviewedAt: '2026-09-12'
 reviewNotes: >-
-  2026-09-11/12: approved for publish after RTL/editor-notice review and
-  the FONT-08 + Turkish/Vietnamese fixes (no hash-relevant Hebrew change).
-  09-19 (x2): English h1 and subhead trimmed; hash refreshed mechanically
-  both times, Hebrew unchanged, still pending review. 09-28: FAQ answer on
+  2026-09-11/12: approved after RTL/editor-notice review and the FONT-08 +
+  Turkish/Vietnamese fixes.
+  09-19 (x2): English h1 and subhead trimmed; hash refreshed mechanically,
+  Hebrew unchanged, pending review. 09-28: FAQ answer on
   language support rescoped from unqualified "right, every time" to
   "right, in the 20 languages listed above" (fixed a self-contradiction);
   Hebrew answer updated to match; pending Shlomi's read-through.
   10-15: hash moved only for h1Name; translation unchanged.
   10-27: lead is "חתימה על מסמך PDF" (LOC-03).
-sourceHash: 'fnv1a64:4deee9e1ec9995f4'
+  11-03: Drive FAQ is an AI draft (MERGE-27).
+sourceHash: 'fnv1a64:80b44f7026efbd98'
 seoTitle: 'חתימה על מסמך PDF ומילוי טפסים בחינם, גם בעברית | PDkef'
 seoDescription: >-
   חתמו על מסמך PDF והוסיפו חתימה, טקסט וסימוני וי לטפסים, אונליין ובחינם,
@@ -153,3 +154,9 @@ faq:
       שלהם, כך שמה שרואים על המסך זה מה שמוטבע בקובץ שמורידים, בלי
       ריבועים ריקים במקום האותיות. אפשר גם להקליד את החתימה בגופן כתב יד
       עברי במקום לצייר אותה.
+  - question: 'אפשר לחתום על קובץ PDF שנמצא ב-Google Drive?'
+    answer: >-
+      כן. לחצו על בחירת קובץ ובחרו Google Drive בבוחר הקבצים של המכשיר (באייפון
+      או באייפד לחצו על עיון), או, במחשב, לחצו קליק ימני על הקובץ ב-Drive,
+      בחרו "פתיחה באמצעות" ואז PDkef. בשני המקרים הקובץ עובר מ-Drive למכשיר
+      שלכם ולשום מקום אחר.
