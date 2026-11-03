@@ -62,7 +62,9 @@ live lock instead of a video still; that decision is written here too.
 3. **Camera permission: first visit only.** On load the state was `prompt`; Start camera asked once and the
    stream ran 1.9 s after the tap. Open: next visit, next day, home screen, and Safari itself (Chrome on iOS
    keeps its own permission).
-4. **Share sheet: `canShare` true for a 512 KB PDF**; the sheet opened and was cancelled. Open: is WhatsApp in
-   the sheet, and does the chat show the name and size.
+4. **Share sheet: WhatsApp is there, twice.** `canShare` is true for a 512 KB PDF. The iOS sheet heads with
+   "Scan 3 Nov 2026, PDF Document, 512 KB", offers WhatsApp in the app row, and puts recent WhatsApp chats in
+   the people row, so sending to a chat is one tap from Share (screenshot from Shlomi, 23:27). Open: does the
+   WhatsApp chat show the name and size after sending.
 
 Android: not measured yet.
