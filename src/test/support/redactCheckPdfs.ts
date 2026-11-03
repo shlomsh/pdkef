@@ -7,8 +7,9 @@ import { createCanvas } from '@napi-rs/canvas';
 import * as pdfjs from 'pdfjs-dist/legacy/build/pdf.mjs';
 import { PDFDocument, StandardFonts, rgb } from '@cantoo/pdf-lib';
 import type { PDFDocumentProxy } from 'pdfjs-dist';
-import { PDFJS_WASM_URL } from '#lib/pdf/pdfjsWasm.js';
-import type { PercentBox } from '../../tools/redact/lib/find/types.ts';
+
+/** A box in page percent, as the Redact check takes them (structurally its PercentBox). */
+type PercentBox = { left: number; top: number; width: number; height: number };
 
 export const PAGE_WIDTH = 400;
 export const PAGE_HEIGHT = 200;
@@ -67,8 +68,8 @@ export function legacyPdfjs(): typeof pdfjs {
 }
 
 /** The original file as the island holds it: an open pdf.js document. Call `close` when done. */
-export async function openOriginal(bytes: Uint8Array): Promise<{ doc: PDFDocumentProxy; close: () => Promise<void> }> {
-  const task = pdfjs.getDocument({ data: bytes.slice(), wasmUrl: PDFJS_WASM_URL });
+export async function openOriginal(bytes: Uint8Array, wasmUrl: string): Promise<{ doc: PDFDocumentProxy; close: () => Promise<void> }> {
+  const task = pdfjs.getDocument({ data: bytes.slice(), wasmUrl });
   return { doc: await task.promise, close: () => task.destroy() };
 }
 
