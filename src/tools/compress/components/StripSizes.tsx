@@ -5,7 +5,8 @@ import { formatBytes } from '../lib/resultView.ts';
 
 interface StripSizesProps {
   t: CompressMessages;
-  file: File;
+  /** The size before: the file's, or a whole set's. */
+  before: number;
   arrow: string;
   /** A compressed result is on screen (done, and not handed back unchanged). */
   showResult: boolean;
@@ -15,11 +16,11 @@ interface StripSizesProps {
 
 /** The shell strip's meta line: before to after, and the citron tag. Quiet: until a new build lands it keeps
  *  the last result's numbers (or the original alone, before the first result). */
-export default function StripSizes({ t, file, arrow, showResult, compressedSize, savingsPercent }: StripSizesProps) {
+export default function StripSizes({ t, before, arrow, showResult, compressedSize, savingsPercent }: StripSizesProps) {
   const savedLabel = showResult && savingsPercent > 0 ? formatMessage(t.percentSmaller, { percent: savingsPercent }) : null;
   return (
     <span class={styles.sizes} data-compress-sizes>
-      <bdi class={styles.before}>{formatBytes(file.size)}</bdi>
+      <bdi class={styles.before}>{formatBytes(before)}</bdi>
       {showResult && compressedSize != null && (
         <>
           <span aria-hidden="true">{arrow}</span>

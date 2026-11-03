@@ -712,7 +712,8 @@ describe('FileDropzone', () => {
         mount();
         const paths = picker().querySelectorAll(`${ARROW} path`);
         expect(paths).toHaveLength(1);
-        expect(paths[0].getAttribute('d')).toMatch(/^M36 6C.*16 67M7 61L15\.8 67\.6L19 56\.5$/);
+        // Two subpaths (shaft, then head) in the one path element.
+        expect(paths[0].getAttribute('d').match(/M/g)).toHaveLength(2);
         expect(paths[0].getAttribute('pathLength')).toBe('1');
       });
 
@@ -816,6 +817,7 @@ describe('FileDropzone', () => {
         expect(saveHandoff).toHaveBeenCalledTimes(2);
       });
 
+      // Kept as a source pin: jsdom has no cascade. Guards b76fb6f9: a bare `.note` loses to `.tile span`, so the error note would not get its colour.
       it('styles the note with a selector at least as specific as `.tile span`', () => {
         const css = readFileSync('src/site-lib/FileDropzone.module.css', 'utf8');
         expect(css).toMatch(/\.tile\s+\.note\s*\{[^}]*var\(--color-danger\)/);

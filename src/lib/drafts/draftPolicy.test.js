@@ -16,6 +16,12 @@ describe('workspace draft retention policy', () => {
     expect(isDraftExpired(savedAt, savedAt + MAX_AGE_MS)).toBe(true);
   });
 
+  it('keeps a draft for exactly 28 days', () => {
+    const DAY = 24 * 60 * 60 * 1000;
+    expect(isDraftExpired(0, 28 * DAY - 1)).toBe(false);
+    expect(isDraftExpired(0, 28 * DAY)).toBe(true);
+  });
+
   it('treats an invalid timestamp as expired', () => {
     expect(isDraftExpired(undefined, 100)).toBe(true);
   });

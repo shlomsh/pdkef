@@ -35,12 +35,32 @@ interface FileIntakeInput {
   setAnnouncement: Dispatch<StateUpdater<string>>;
   setNeedsUnlockBytes: Dispatch<StateUpdater<ArrayBuffer | null>>;
   setAnalysis: Dispatch<StateUpdater<PdfAnalysis | null>>;
+  /** COMP-04: two or more photos go to the batch (hooks/useImageBatch.ts) instead of the single-file path. */
+  batch: { choose: (files: File[], targetKB: number, leftOutPdfs: string[]) => void; clear: (leftOutPdfs?: string[]) => void };
+  targetKB: number;
 }
 
 /** Everything that happens when a file is picked, dropped or handed off: accept, check, analyse, open the gate. */
 export function useFileIntake(input: FileIntakeInput) {
   const { t, machine, compare, flow, encryptionCheck, file, fileSeq, runnable, preparedStatus, prepareNow, forgetLast, currentFileRef,
-    setFile, setFileSeq, setRejectedFiles, setAnnouncement, setNeedsUnlockBytes, setAnalysis } = input;
+    setFile, setFileSeq, setRejectedFiles, setAnnouncement, setNeedsUnlockBytes, setAnalysis, batch, targetKB } = input;
+
+  // Whatever the single-file path holds goes: its runs, result, previews and checks. `next` is the file
+  // it opens, or null when the set goes to the batch instead.
+  const resetSingle = (next: File | null) => {
+    // A new file's key differs from the old one's, so the old build is dropped and its cache never hit.
+    machine.send({ type: 'fileAccepted' });
+    setFileSeq((n) => n + 1);
+    currentFileRef.current = next;
+    setFile(next);
+    forgetLast();
+    flow.reset();
+    compare.clear();
+    compare.clearOriginal();
+    setNeedsUnlockBytes(null);
+    encryptionCheck.invalidate();
+    setAnalysis(null);
+  };
 
   const handleFilesAdded = (files: FileList | File[]) => {
     const incoming = Array.from(files);
@@ -49,22 +69,23 @@ export function useFileIntake(input: FileIntakeInput) {
 
     setRejectedFiles(rejected.length > 0 ? rejected.map((f) => f.name) : []);
 
+    const images = accepted.filter((f) => deriveFileKind(f) === 'image');
+    const pdfNames = accepted.filter((f) => deriveFileKind(f) === 'pdf').map((f) => f.name);
+    if (images.length >= 2) {
+      resetSingle(null);
+      batch.choose(images, targetKB, pdfNames);
+      setAnnouncement(formatMessage(t.batchLoaded, { count: images.length }));
+      recordAction('add_files');
+      return;
+    }
+
     if (accepted.length > 0) {
       const next = accepted[0];
-      // A new file's key differs from the old one's, so the old build is dropped and its cache never hit.
-      machine.send({ type: 'fileAccepted' });
-      setFileSeq((n) => n + 1);
-      currentFileRef.current = next;
-      setFile(next);
-      forgetLast();
-      flow.reset();
-      compare.clear();
-      compare.clearOriginal();
+      // A photo picked with PDFs opens alone and names them, as a set does.
+      batch.clear(deriveFileKind(next) === 'image' ? pdfNames : []);
+      resetSingle(next);
       setAnnouncement(formatMessage(deriveFileKind(next) === 'image' ? t.imageLoaded : t.loaded, { name: next.name }));
       recordAction('add_files');
-      setNeedsUnlockBytes(null);
-      encryptionCheck.invalidate();
-      setAnalysis(null);
       if (deriveFileKind(next) === 'pdf') {
         void checkEncryption(next); // reason: checkEncryption catches and reports its own failure
         void analyze(next); // reason: analyze catches and reports its own failure

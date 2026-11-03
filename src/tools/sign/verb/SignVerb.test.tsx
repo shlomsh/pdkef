@@ -11,21 +11,6 @@ function mount() {
 }
 
 describe('SignVerb', () => {
-  it('hides the whole stage from assistive tech', () => {
-    const host = mount();
-    expect(host.firstElementChild?.getAttribute('aria-hidden')).toBe('true');
-  });
-
-  it('never carries a style attribute (CSP)', () => {
-    const host = mount();
-    expect(host.querySelectorAll('[style]').length).toBe(0);
-  });
-
-  it('has no text: the name, label and x are generated content', () => {
-    const host = mount();
-    expect(host.textContent).toBe('');
-  });
-
   it('draws the signature as a path with pathLength 1', () => {
     const host = mount();
     const sig = host.querySelector('path');

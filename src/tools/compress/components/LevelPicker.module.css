@@ -74,74 +74,127 @@
 .target-row {
   display: flex;
   flex-wrap: wrap;
-  align-items: center;
-  gap: 0.5rem;
+  align-items: stretch;
+  gap: 8px;
 }
 
+/* A field that reads as one: a white, bordered box with the unit beside the
+   number, as tall as the shortcuts' track next to it. */
 .target-input-row {
+  flex: none;
   display: inline-flex;
   align-items: center;
-  gap: 0.5rem;
-  background: var(--color-surface-sunken);
-  border-radius: var(--radius-sm);
-  min-height: 44px;
-  padding: 0 0.9rem;
+  gap: 4px;
+  min-height: 52px;
+  padding: 0 14px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border-strong);
+  border-radius: 14px;
+  cursor: text;
+  transition: border-color 120ms ease, box-shadow 120ms ease;
+}
+
+.target-input-row:hover {
+  border-color: var(--color-primary);
 }
 
 .target-input-row:has(input:focus-visible) {
+  border-color: var(--color-primary);
   box-shadow: var(--shadow-focus);
 }
 
 .target-input-row input {
-  width: 7ch;
+  padding: 0;
   border: none;
   background: none;
-  font-size: 0.95rem;
+  font: inherit;
+  font-size: 1rem;
   font-weight: 600;
+  font-variant-numeric: tabular-nums;
   color: var(--color-text);
-  text-align: start;
+  text-align: end;
 }
 
 .target-input-row input:focus-visible {
   outline: none;
 }
 
+/* No stepper arrows: they hold their width even when hidden, which pushed the
+   unit away from the number; the shortcuts beside it are the quick changes. */
+.target-input-row input {
+  appearance: textfield;
+}
+
+.target-input-row input::-webkit-inner-spin-button,
+.target-input-row input::-webkit-outer-spin-button {
+  appearance: none;
+  margin: 0;
+}
+
+/* The same small unit the shortcuts carry. */
 .target-unit {
-  font-size: 0.85rem;
+  font-size: 0.7rem;
+  font-weight: 500;
+  letter-spacing: 0.02em;
   color: var(--color-muted);
 }
 
+/* The shortcuts are one segmented row, the same control as the level picker
+   above them: equal columns, the chosen one raised. */
 .target-presets {
-  display: inline-flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.5rem;
+  /* Wide enough for four labels; below that the row wraps instead of spilling. */
+  flex: 1 1 13.5rem;
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
+  gap: 4px;
+  padding: 3px;
+  border-radius: 14px;
+  background: var(--color-primary-soft);
+  border: 1px solid var(--color-border);
 }
 
 .target-preset {
-  font-size: 0.78rem;
-  font-weight: 500;
-  color: var(--color-muted);
-  background: var(--color-surface-sunken);
-  border: 1px solid transparent;
   min-height: 44px;
-  padding: 0 1rem;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: var(--radius-pill);
+  padding: 0 4px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  font: inherit;
+  font-size: 0.84rem;
+  font-weight: 600;
+  color: var(--color-muted);
+  white-space: nowrap;
   cursor: pointer;
+  transition: background-color 120ms ease, color 120ms ease;
+}
+
+.preset-number {
+  font-size: 1rem;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+}
+
+.preset-unit {
+  font-size: 0.7rem;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  color: var(--color-muted);
 }
 
 .target-preset:hover {
   color: var(--color-text);
-  border-color: var(--color-border-strong);
 }
 
 .target-preset.is-selected {
-  color: var(--color-primary-text);
-  background: var(--color-primary-soft);
-  border-color: var(--color-primary);
+  background: var(--color-surface);
+  color: var(--color-text);
+  box-shadow: var(--shadow-sm);
+}
+
+.target-preset:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
 }
 
 @media (max-width: 400px) {

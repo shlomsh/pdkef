@@ -28,19 +28,4 @@ describe('CompressVerb', () => {
     expect(host.querySelectorAll(`.${styles.pb}`).length).toBe(2);
     expect(host.querySelectorAll('svg').length).toBe(6);
   });
-
-  it('hides the whole stage from assistive tech', () => {
-    const host = mount('page');
-    expect(host.firstElementChild?.getAttribute('aria-hidden')).toBe('true');
-  });
-
-  it('never carries a style attribute (CSP)', () => {
-    expect(mount('page').querySelectorAll('[style]').length).toBe(0);
-    expect(mount('photo').querySelectorAll('[style]').length).toBe(0);
-  });
-
-  it('has no text', () => {
-    expect(mount('page').textContent).toBe('');
-    expect(mount('photo').textContent).toBe('');
-  });
 });

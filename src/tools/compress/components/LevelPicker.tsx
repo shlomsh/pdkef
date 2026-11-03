@@ -6,7 +6,7 @@ export type Level = 'high' | 'medium' | 'low' | 'target';
 
 const ORDER: Level[] = ['high', 'medium', 'low', 'target'];
 
-type OnTargetChange = (kb: number, opts: { immediate: boolean }) => void;
+export type OnTargetChange = (kb: number, opts: { immediate: boolean }) => void;
 
 interface TargetSizePanelProps {
   t: CompressMessages;
@@ -25,7 +25,8 @@ export function TargetSizePanel({ t, targetKB, presets, onChange, inputId, min, 
         {t.targetSizeLabel}
       </label>
       <div class={styles['target-row']}>
-        <div class={styles['target-input-row']}>
+        {/* The whole box takes the press, unit and padding included. */}
+        <div class={styles['target-input-row']} onClick={(e) => e.currentTarget.querySelector('input')?.focus()}>
           <input
             id={inputId}
             type="number"
@@ -33,6 +34,8 @@ export function TargetSizePanel({ t, targetKB, presets, onChange, inputId, min, 
             min={min}
             step={step}
             value={targetKB}
+            // As wide as its digits: three hold the common sizes, a five-digit one still shows whole.
+            style={{ width: `${Math.max(3, String(targetKB).length) + 0.5}ch` }}
             onInput={(e) => {
               const n = Number(e.currentTarget.value);
               if (Number.isFinite(n) && n > 0) onChange(n, { immediate: false });
@@ -49,7 +52,9 @@ export function TargetSizePanel({ t, targetKB, presets, onChange, inputId, min, 
               class={`${styles['target-preset']}${targetKB === kb ? ` ${styles['is-selected']}` : ''}`}
               onClick={() => onChange(kb, { immediate: true })}
             >
-              {kb >= 1024 ? `${kb / 1024} MB` : `${kb} KB`}
+              {/* The number is what tells the shortcuts apart; the unit repeats, so it stays small. */}
+              <span class={styles['preset-number']}>{kb >= 1024 ? kb / 1024 : kb}</span>{' '}
+              <span class={styles['preset-unit']}>{kb >= 1024 ? 'MB' : 'KB'}</span>
             </button>
           ))}
         </div>

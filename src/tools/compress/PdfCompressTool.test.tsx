@@ -810,14 +810,16 @@ describe('PdfCompressTool UI flow', () => {
     expect(compressImageLib.compressImageToTarget).toHaveBeenCalledTimes(1);
     expect(compressImageLib.compressImageToTarget).toHaveBeenLastCalledWith(file, expect.objectContaining({ targetKB: 100 }));
 
-    // The tighter photo-cap shortcut only the image presets offer.
+    // A photo's shortcuts (Shlomi, 2026-11-03: 500 KB back in place of 20 KB); 50 KB is the tighter
+    // photo-cap one only the image presets offer.
+    expect(Array.from(container.querySelectorAll('[data-controls] button[aria-pressed]'), (b) => b.textContent)).toEqual(['50 KB', '100 KB', '200 KB', '500 KB']);
     await act(async () => {
-      preset('20 KB').dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      preset('50 KB').dispatchEvent(new MouseEvent('click', { bubbles: true }));
     });
     await settled();
-    expect(preset('20 KB').getAttribute('aria-pressed')).toBe('true');
+    expect(preset('50 KB').getAttribute('aria-pressed')).toBe('true');
     expect(compressImageLib.compressImageToTarget).toHaveBeenCalledTimes(2);
-    expect(compressImageLib.compressImageToTarget).toHaveBeenLastCalledWith(file, expect.objectContaining({ targetKB: 20 }));
+    expect(compressImageLib.compressImageToTarget).toHaveBeenLastCalledWith(file, expect.objectContaining({ targetKB: 50 }));
     expect(compressLib.compressPdf).not.toHaveBeenCalled();
     expect(compressLib.compressPdfToTarget).not.toHaveBeenCalled();
 
@@ -1675,5 +1677,363 @@ describe('PdfCompressTool UI flow', () => {
     await act(async () => { preset('200 KB').dispatchEvent(new MouseEvent('click', { bubbles: true })); });
     await act(async () => { held.resolve(imagesResult()); });
     await waitUntil(() => expect(statusOf()).toBe('done'));
+  });
+
+  describe('COMP-04 several photos', () => {
+    const rows = () => Array.from(container.querySelectorAll('li[data-batch-photo]'));
+    const outcomes = () => rows().map((r) => r.getAttribute('data-outcome'));
+    const pickMany = async (files, until) => {
+      await act(async () => {
+        setInputFiles(fileInput, files);
+      });
+      await (until ? waitFor(until) : settled());
+    };
+    const toTarget = compressImageLib.compressImageToTarget;
+
+    it('two photos show the batch, one call per file in order, every row met, and no single-photo result', async () => {
+      mount();
+      const a = makeImageFile('a.jpg', 900_000);
+      const b = makeImageFile('b.jpg', 800_000);
+      await pickMany([a, b]);
+      expect(container.querySelector('[data-compress-batch]')).not.toBeNull();
+      expect(rows()).toHaveLength(2);
+      expect(toTarget).toHaveBeenCalledTimes(2);
+      expect(toTarget.mock.calls[0][0]).toBe(a);
+      expect(toTarget.mock.calls[1][0]).toBe(b);
+      expect(toTarget.mock.calls[0][1]).toEqual(expect.objectContaining({ targetKB: 100 }));
+      expect(toTarget.mock.calls[1][1]).toEqual(expect.objectContaining({ targetKB: 100 }));
+      expect(outcomes()).toEqual(['met', 'met']);
+      expect(statusOf()).toBe('done');
+      expect(container.querySelector('[data-result]')).toBeNull();
+      // The set is the photos themselves: one Save lives in each photo's preview, not on every tile.
+      expect(container.querySelectorAll('[data-batch-save]')).toHaveLength(0);
+    });
+
+    it('shows each photo from its original, rendered once, and keeps them through a new target', async () => {
+      mount();
+      const thumbnails = harness.pdfjs.thumbnails.renderThumbnail;
+      thumbnails.mockImplementation(async (file) => `data:image/jpeg;base64,${file.name}`);
+      const a = makeImageFile('a.jpg', 900_000);
+      const b = makeImageFile('b.jpg', 800_000);
+      await pickMany([a, b]);
+      await waitUntil(() => expect(rows().map((r) => r.querySelector('img')?.getAttribute('src'))).toEqual(['data:image/jpeg;base64,a.jpg', 'data:image/jpeg;base64,b.jpg']));
+      expect(thumbnails.mock.calls.map((c) => c[0])).toEqual([a, b]);
+      await act(async () => { preset('50 KB').dispatchEvent(new MouseEvent('click', { bubbles: true })); });
+      await waitFor(ran(toTarget, 4));
+      await settled();
+      expect(thumbnails).toHaveBeenCalledTimes(2);
+      expect(rows()[0].querySelector('img').getAttribute('src')).toBe('data:image/jpeg;base64,a.jpg');
+    });
+
+    it('the strip names the set by its first photo and sums it, before and after', async () => {
+      mount();
+      toTarget
+        .mockImplementationOnce(() => Promise.resolve(makeImageResult({ blob: new Blob([new Uint8Array(90_000)], { type: 'image/jpeg' }) })))
+        .mockImplementationOnce(() => Promise.resolve(makeImageResult({ blob: new Blob([new Uint8Array(10_000)], { type: 'image/jpeg' }) })));
+      await pickMany([makeImageFile('a.jpg', 600_000), makeImageFile('b.jpg', 400_000)]);
+      const strip = container.querySelector('[data-strip]');
+      expect(strip.textContent).toContain('2 photos');
+      const sizes = strip.querySelector('[data-compress-sizes]').textContent;
+      expect(sizes).toContain('976.56 KB');
+      expect(sizes).toContain('97.66 KB');
+      expect(sizes).toContain('90% smaller');
+    });
+
+    it('runs one photo at a time', async () => {
+      mount();
+      const first = deferred();
+      toTarget.mockImplementationOnce(() => first.promise);
+      await pickMany([makeImageFile('a.jpg', 900_000), makeImageFile('b.jpg', 800_000)], ran(toTarget, 1));
+      await wait(50);
+      expect(toTarget).toHaveBeenCalledTimes(1);
+      expect(statusOf()).toBe('processing');
+      await act(async () => { first.resolve(makeImageResult()); });
+      await waitFor(ran(toTarget, 2));
+      await settled();
+      expect(toTarget).toHaveBeenCalledTimes(2);
+    });
+
+    it('the strip sums only the photos Download saves when one fails', async () => {
+      mount();
+      toTarget
+        .mockImplementationOnce(() => Promise.resolve(makeImageResult({ blob: new Blob([new Uint8Array(100_000)], { type: 'image/jpeg' }) })))
+        .mockImplementationOnce(() => Promise.reject(new Error('unreadable')));
+      await pickMany([makeImageFile('a.jpg', 1_000_000), makeImageFile('b.jpg', 1_000_000)]);
+      const sizes = container.querySelector('[data-strip] [data-compress-sizes]').textContent;
+      expect(sizes).toContain('976.56 KB');
+      expect(sizes).toContain('90% smaller');
+    });
+
+    it('draws no thumbnail while a photo is compressing: one big image in memory at a time', async () => {
+      mount();
+      const first = deferred();
+      toTarget.mockImplementationOnce(() => first.promise);
+      await pickMany([makeImageFile('a.jpg', 900_000), makeImageFile('b.jpg', 800_000)], ran(toTarget, 1));
+      await wait(30);
+      expect(harness.pdfjs.thumbnails.renderThumbnail).not.toHaveBeenCalled();
+      await act(async () => { first.resolve(makeImageResult()); });
+      await settled();
+      expect(harness.pdfjs.thumbnails.renderThumbnail).toHaveBeenCalledTimes(2);
+    });
+
+    it('a failed or unchanged photo says its state once to a screen reader', async () => {
+      mount();
+      const b = makeImageFile('b.jpg', 50_000);
+      toTarget
+        .mockImplementationOnce(() => Promise.reject(new Error('boom')))
+        .mockImplementationOnce(() => Promise.resolve(makeImageResult({ blob: b })));
+      await pickMany([makeImageFile('a.jpg', 900_000), b]);
+      const [failed, kept] = rows().map((r) => r.querySelector('[data-batch-caption]').textContent);
+      expect(failed).toBe("Couldn't read this one");
+      expect(kept).toMatch(/^[\d.]+ KB · unchanged$/);
+    });
+
+    it('names missed, kept and failed rows and still finishes', async () => {
+      mount();
+      const a = makeImageFile('a.jpg', 900_000);
+      const b = makeImageFile('b.jpg', 50_000);
+      const c = makeImageFile('c.jpg', 700_000);
+      toTarget
+        .mockImplementationOnce(() => Promise.resolve(makeImageResult({ metTarget: false })))
+        .mockImplementationOnce(() => Promise.resolve(makeImageResult({ blob: b })))
+        .mockImplementationOnce(() => Promise.reject(new Error('boom')));
+      await pickMany([a, b, c]);
+      expect(outcomes()).toEqual(['missed', 'kept', 'failed']);
+      expect(statusOf()).toBe('done');
+    });
+
+    it('a preset target recompresses every photo with that target', async () => {
+      mount();
+      await pickMany([makeImageFile('a.jpg', 900_000), makeImageFile('b.jpg', 800_000)]);
+      expect(toTarget).toHaveBeenCalledTimes(2);
+      await act(async () => {
+        preset('50 KB').dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      });
+      await waitFor(ran(toTarget, 4));
+      await settled();
+      expect(toTarget.mock.calls[2][1]).toEqual(expect.objectContaining({ targetKB: 50 }));
+      expect(toTarget.mock.calls[3][1]).toEqual(expect.objectContaining({ targetKB: 50 }));
+      expect(outcomes()).toEqual(['met', 'met']);
+    });
+
+    it('a PDF picked among photos is named as left out and never compressed as a photo', async () => {
+      mount();
+      const pdf = makePdfFile('notes.pdf', 50_000);
+      await pickMany([makeImageFile('a.jpg', 900_000), pdf, makeImageFile('b.jpg', 800_000)]);
+      expect(rows()).toHaveLength(2);
+      // Inside the stage, under its status line, not a band above the card's columns.
+      expect(container.querySelector('[data-batch] [data-batch-left-out]').textContent).toContain('notes.pdf');
+      expect(toTarget.mock.calls.map((c) => c[0])).not.toContain(pdf);
+      expect(toTarget).toHaveBeenCalledTimes(2);
+    });
+
+    it('a PDF picked with one photo is named as left out too', async () => {
+      mount();
+      await pickMany([makeImageFile('a.jpg', 900_000), makePdfFile('notes.pdf', 50_000)]);
+      expect(container.querySelector('[data-compress-batch]')).toBeNull();
+      expect(container.textContent).toContain('Left out "notes.pdf"');
+    });
+
+    it('the status line counts a photo that could not be read apart from the ones that missed', async () => {
+      mount();
+      toTarget
+        .mockImplementationOnce(() => Promise.resolve(makeImageResult()))
+        .mockImplementationOnce(() => Promise.reject(new Error('unreadable')));
+      await pickMany([makeImageFile('a.jpg', 900_000), makeImageFile('b.jpg', 800_000)]);
+      expect(container.querySelector('[data-batch-summary]').textContent).toBe("1 of 2 photos are now 100 KB or less. One couldn't be read.");
+    });
+
+    it('the strip shows the first photo that could be drawn', async () => {
+      mount();
+      const bad = makeImageFile('bad.jpg', 900_000);
+      const good = makeImageFile('good.jpg', 800_000);
+      harness.pdfjs.thumbnails.renderThumbnail.mockImplementation(async (file) => {
+        if (file === bad) throw new Error('unreadable');
+        return 'data:image/jpeg;base64,good';
+      });
+      await pickMany([bad, good]);
+      await waitUntil(() => expect(harness.createdBlobs()).toContain(good));
+      expect(harness.createdBlobs()).not.toContain(bad);
+    });
+
+    it('an unchanged photo is named by its name alone, not offered as a comparison', async () => {
+      mount();
+      const b = makeImageFile('b.jpg', 50_000);
+      toTarget
+        .mockImplementationOnce(() => Promise.resolve(makeImageResult()))
+        .mockImplementationOnce(() => Promise.resolve(makeImageResult({ blob: b })));
+      await pickMany([makeImageFile('a.jpg', 900_000), b]);
+      expect(Array.from(container.querySelectorAll('[data-batch-open]')).map((el) => el.getAttribute('aria-label'))).toEqual(['Compare a.jpg', 'b.jpg']);
+    });
+
+    it("opening a photo brings its preview's bar into view", async () => {
+      mount();
+      const scrolled = [];
+      const original = Element.prototype.scrollIntoView;
+      Element.prototype.scrollIntoView = function () { scrolled.push(this); };
+      try {
+        await pickMany([makeImageFile('a.jpg', 900_000), makeImageFile('b.jpg', 800_000)]);
+        await act(async () => { container.querySelector('[data-batch-open]').click(); });
+        await settled();
+        expect(scrolled).toContain(container.querySelector('[data-batch-preview-bar]'));
+      } finally {
+        Element.prototype.scrollIntoView = original;
+      }
+    });
+
+    it('counts the Download tap, not the compression a pick starts', async () => {
+      mount();
+      await pickMany([makeImageFile('a.jpg', 900_000), makeImageFile('b.jpg', 800_000)]);
+      await harness.flush();
+      expect(harness.usageEvents('tool_operation_started')).toHaveLength(0);
+      expect(harness.usageEvents('tool_result_ready')).toHaveLength(0);
+    });
+
+    it("announces the finished set once, and names each photo's button by its photo", async () => {
+      mount();
+      await pickMany([makeImageFile('a.jpg', 900_000), makeImageFile('b.jpg', 800_000)]);
+      const live = container.querySelector('[data-batch-live]');
+      expect(live.textContent).toBe(container.querySelector('[data-batch-summary]').textContent);
+      expect(Array.from(container.querySelectorAll('[data-batch-open]')).map((b) => b.getAttribute('aria-label'))).toEqual(['Compare a.jpg', 'Compare b.jpg']);
+      expect(container.querySelector('[data-batch] ol').getAttribute('role')).toBe('list');
+    });
+
+    it('a finished row opens its photo in the compare preview with Full screen, and Back returns to the list', async () => {
+      mount();
+      const a = makeImageFile('a.jpg', 900_000);
+      await pickMany([a, makeImageFile('b.jpg', 800_000)]);
+      expect(container.querySelector('[data-result]')).toBeNull();
+      await act(async () => { container.querySelector('[data-batch-open]').click(); });
+      await settled();
+      // The set stays mounted behind the preview, so its scroll and pictures are as they were on the way back.
+      expect(container.querySelector('[data-batch]').hidden).toBe(true);
+      const result = container.querySelector('[data-result]');
+      expect(result.querySelector('[data-compare-panel]')).not.toBeNull();
+      expect(result.textContent).toContain('1600 × 1200');
+      expect(Array.from(result.querySelectorAll('button')).some((b) => b.textContent.includes('Full screen'))).toBe(true);
+      await act(async () => { container.querySelector('[data-batch-back]').click(); });
+      expect(container.querySelector('[data-result]')).toBeNull();
+      expect(rows()).toHaveLength(2);
+    });
+
+    it("Escape in a photo's preview goes back to the set and lands on that photo; not while Full screen is open", async () => {
+      mount();
+      await pickMany([makeImageFile('a.jpg', 900_000), makeImageFile('b.jpg', 800_000)]);
+      await act(async () => { container.querySelectorAll('[data-batch-open]')[1].click(); });
+      await settled();
+      const escape = () => act(async () => { document.activeElement.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true })); });
+      await act(async () => { Array.from(container.querySelectorAll('[data-result] button')).find((b) => b.textContent.includes('Full screen')).click(); });
+      await settled();
+      expect(document.querySelector('dialog[open]')).not.toBeNull();
+      document.querySelector('dialog[open]').querySelector('button').focus();
+      await escape();
+      expect(container.querySelector('[data-batch-preview-bar]')).not.toBeNull();
+      // jsdom's dialog has no close() of its own; dropping `open` is what close() does to the markup.
+      document.querySelector('dialog[open]')?.removeAttribute('open');
+      // A held key repeats: the repeat that follows Full screen's close must not leave the preview too.
+      await act(async () => { document.body.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', repeat: true, bubbles: true, cancelable: true })); });
+      expect(container.querySelector('[data-batch-preview-bar]')).not.toBeNull();
+      container.querySelector('[data-batch-next]')?.focus();
+      await escape();
+      expect(container.querySelector('[data-batch-preview-bar]')).toBeNull();
+      expect(rows()).toHaveLength(2);
+      expect(document.activeElement).toBe(rows()[1].querySelector('[data-batch-open]'));
+    });
+
+    it('back from a photo whose new run has not reached it yet still lands focus in the set', async () => {
+      mount();
+      await pickMany([makeImageFile('a.jpg', 900_000), makeImageFile('b.jpg', 800_000)]);
+      await act(async () => { container.querySelectorAll('[data-batch-open]')[1].click(); });
+      await settled();
+      const held = deferred();
+      toTarget.mockImplementationOnce(() => held.promise);
+      await act(async () => { preset('200 KB').dispatchEvent(new MouseEvent('click', { bubbles: true })); });
+      // b.jpg waits behind a.jpg, so its tile is not openable yet.
+      await act(async () => { container.querySelector('[data-batch-back]').click(); });
+      expect(document.activeElement).toBe(container.querySelector('[data-batch] ol'));
+      await act(async () => { held.resolve(makeImageResult()); });
+      await settled();
+    });
+
+    it('the target field widens for a five-digit size', async () => {
+      mount();
+      await pickMany([makeImageFile('a.jpg', 900_000), makeImageFile('b.jpg', 800_000)]);
+      const field = container.querySelector('#image-target-size-input');
+      expect(field.style.width).toBe('3.5ch');
+      await act(async () => {
+        field.value = '10240';
+        field.dispatchEvent(new Event('input', { bubbles: true }));
+      });
+      expect(field.style.width).toBe('5.5ch');
+    });
+
+    it('Escape while typing a target stays in the preview', async () => {
+      mount();
+      await pickMany([makeImageFile('a.jpg', 900_000), makeImageFile('b.jpg', 800_000)]);
+      await act(async () => { container.querySelector('[data-batch-open]').click(); });
+      await settled();
+      const field = container.querySelector('#image-target-size-input');
+      field.focus();
+      await act(async () => { field.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true })); });
+      expect(container.querySelector('[data-batch-preview-bar]')).not.toBeNull();
+    });
+
+    it('the preview steps through the finished photos and saves the one on screen', async () => {
+      mount();
+      await pickMany([makeImageFile('a.jpg', 900_000), makeImageFile('b.jpg', 800_000)]);
+      await act(async () => { container.querySelector('[data-batch-open]').click(); });
+      await settled();
+      const bar = () => container.querySelector('[data-batch-preview-bar]');
+      const prev = () => bar().querySelector('[data-batch-prev]');
+      const next = () => bar().querySelector('[data-batch-next]');
+      const save = () => bar().querySelector('a[data-batch-save]');
+      expect(bar().querySelector('[data-batch-position]').textContent).toBe('1 of 2');
+      expect(bar().textContent).toContain('a.jpg');
+      // Disabled by aria-disabled, so a keyboard press on the last arrow keeps its focus.
+      expect(prev().getAttribute('aria-disabled')).toBe('true');
+      expect(save().getAttribute('aria-label')).toBe('Save a.jpg');
+      expect(save().getAttribute('download')).toBe('a-compressed.jpg');
+      await act(async () => { next().click(); });
+      await settled();
+      expect(bar().querySelector('[data-batch-position]').textContent).toBe('2 of 2');
+      expect(bar().textContent).toContain('b.jpg');
+      expect(next().getAttribute('aria-disabled')).toBe('true');
+      expect(next().disabled).toBe(false);
+      next().focus();
+      await act(async () => { next().click(); });
+      expect(bar().querySelector('[data-batch-position]').textContent).toBe('2 of 2');
+      expect(document.activeElement).toBe(next());
+      expect(save().getAttribute('aria-label')).toBe('Save b.jpg');
+      await act(async () => { prev().click(); });
+      expect(bar().querySelector('[data-batch-position]').textContent).toBe('1 of 2');
+    });
+
+    it('the open preview stays on its photo while a new target recompresses it', async () => {
+      mount();
+      const held = deferred();
+      await pickMany([makeImageFile('a.jpg', 900_000), makeImageFile('b.jpg', 800_000)]);
+      await act(async () => { container.querySelector('[data-batch-open]').click(); });
+      await settled();
+      toTarget.mockImplementationOnce(() => held.promise);
+      await act(async () => {
+        preset('200 KB').dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      });
+      // While the photo recompresses the stage still shows it, as a single photo does mid-run.
+      expect(container.querySelector('[data-result]')).not.toBeNull();
+      await act(async () => { held.resolve(makeImageResult()); });
+      await settled();
+      expect(container.querySelector('[data-result] [data-compare-panel]')).not.toBeNull();
+      await act(async () => { container.querySelector('[data-batch-back]').click(); });
+      expect(container.querySelectorAll('[data-batch-open]')).toHaveLength(2);
+    });
+
+    it('a single photo after a batch goes back to the single-photo view', async () => {
+      mount();
+      await pickMany([makeImageFile('a.jpg', 900_000), makeImageFile('b.jpg', 800_000)]);
+      expect(container.querySelector('[data-compress-batch]')).not.toBeNull();
+      await pickMany([makeImageFile('solo.jpg', 900_000)]);
+      expect(container.querySelector('[data-compress-batch]')).toBeNull();
+      expect(container.querySelector('[data-result]')).not.toBeNull();
+    });
   });
 });

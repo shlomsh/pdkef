@@ -56,22 +56,11 @@ interface AffixOptions {
   suffix?: string;
   /** The file extension without the dot; 'pdf' by default, null for a title that has none yet. */
   ext?: string | null;
-  /** Collapse a run of repeated prefixes at the start of the base into the first, as written ("redacted_redacted_x" is "redacted_x"). */
-  dedupePrefix?: boolean;
 }
 
 /** `<prefix><base><suffix>.<ext>`: the one shape every convention is a choice of. */
-export function withAffixes(base: string, { prefix = '', suffix = '', ext = 'pdf', dedupePrefix = false }: AffixOptions = {}): string {
-  let name = base;
-  let lead = prefix;
-  if (dedupePrefix && prefix) {
-    const run = name.match(new RegExp(`^(?:${prefix.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})+`, 'i'))?.[0];
-    if (run) {
-      lead = name.slice(0, prefix.length);
-      name = name.slice(run.length);
-    }
-  }
-  return `${lead}${name}${suffix}${ext === null ? '' : `.${ext}`}`;
+export function withAffixes(base: string, { prefix = '', suffix = '', ext = 'pdf' }: AffixOptions = {}): string {
+  return `${prefix}${base}${suffix}${ext === null ? '' : `.${ext}`}`;
 }
 
 /** Source name to output name in one call: `outputBase` then `withAffixes`. */

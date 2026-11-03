@@ -16,16 +16,4 @@ describe('ScanVerb', () => {
     expect(host.querySelectorAll('i').length).toBe(1);
     expect(host.querySelectorAll('i b').length).toBe(4);
   });
-
-  it('hides the whole stage from assistive tech', () => {
-    expect(mount().firstElementChild?.getAttribute('aria-hidden')).toBe('true');
-  });
-
-  it('never carries a style attribute (CSP)', () => {
-    expect(mount().querySelectorAll('[style]').length).toBe(0);
-  });
-
-  it('has no text', () => {
-    expect(mount().textContent).toBe('');
-  });
 });

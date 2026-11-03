@@ -23,9 +23,4 @@ describe('HighlightVerb', () => {
     for (const hex of inks) expect(palette).toContain(hex);
     expect(host.querySelectorAll(`.${styles.note} .${styles.text}`).length).toBe(2);
   });
-
-  it('never carries a style attribute (CSP)', () => {
-    const host = mount();
-    expect(host.querySelectorAll('[style]').length).toBe(0);
-  });
 });

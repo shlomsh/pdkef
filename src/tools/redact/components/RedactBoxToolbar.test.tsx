@@ -1,6 +1,7 @@
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { BLUR_SLIDER_MAX } from '#editor/model/blurStrength.ts';
 import { renderRedactionSurface } from '#editor/registry/redactionSurface.ts';
 import RedactBoxToolbar, { shownRecents, type RedactBoxToolbarProps } from './RedactBoxToolbar.tsx';
 
@@ -267,7 +268,8 @@ describe('RedactBoxToolbar other types', () => {
       input.dispatchEvent(new Event('input', { bubbles: true }));
       input.dispatchEvent(new Event('change', { bubbles: true }));
     });
-    expect(onChangeStrength).toHaveBeenCalled();
+    expect(onChangeStrength).toHaveBeenCalledTimes(1);
+    expect(onChangeStrength).toHaveBeenCalledWith(BLUR_SLIDER_MAX);
   });
 
   it('blackout has no settings group and exactly Duplicate + Delete', () => {

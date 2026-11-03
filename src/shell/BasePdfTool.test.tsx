@@ -17,7 +17,7 @@ vi.mock('#lib/pdf/thumbnails.js', () => ({
 
 // The tests below are written with flat props; BasePdfTool takes them grouped.
 const GROUPS = {
-  intake: { multiple: 'multiple', accept: 'accept', dropAnywhere: 'dropAnywhere', needsPdfjs: 'needsPdfjs' },
+  intake: { multiple: 'multiple', pickMany: 'pickMany', accept: 'accept', dropAnywhere: 'dropAnywhere', needsPdfjs: 'needsPdfjs' },
   identity: { file: 'file', fileLabel: 'label', fileMeta: 'meta', fileMetaExtra: 'metaExtra', fileNote: 'note', hideIdentity: 'hidden' },
   empty: { emptyStateMessage: 'message', emptyArt: 'art', emptyHeading: 'heading', emptyBody: 'body', emptyAction: 'action', showIosFilesHint: 'iosFilesHint', showCloudDriveHint: 'cloudDriveHint' },
   draft: { draftSaveState: 'saveState', checkingDraft: 'checking' },
@@ -453,6 +453,40 @@ describe('BasePdfTool', () => {
 
     expect(dialogNamed(container, 'confirm-replace-title').open).toBe(true);
     expect(openedPicker).not.toHaveBeenCalled();
+  });
+
+  describe('pickMany intake', () => {
+    it('lets the picker select several files in the empty state and once files are loaded', () => {
+      mount({ hasFiles: false, onFilesAdded: vi.fn(), multiple: false, pickMany: true });
+      expect(container.querySelector('input[type="file"]').multiple).toBe(true);
+      act(() => render(null, container));
+      mount({ hasFiles: true, onFilesAdded: vi.fn(), multiple: false, pickMany: true });
+      expect(container.querySelector('input[type="file"]').multiple).toBe(true);
+    });
+
+    it('still asks before a new pick replaces what is loaded', () => {
+      const onFilesAddedSpy = vi.fn();
+      mount({ hasFiles: true, onFilesAdded: onFilesAddedSpy, multiple: false, pickMany: true });
+      selectFile(container.querySelector('input[type="file"]'));
+      expect(onFilesAddedSpy).not.toHaveBeenCalled();
+      expect(dialogNamed(container, 'confirm-replace-title').open).toBe(true);
+    });
+
+    it('names the count, not the first file, when several are picked', () => {
+      const onFilesAddedSpy = vi.fn();
+      mount({ hasFiles: true, onFilesAdded: onFilesAddedSpy, multiple: false, pickMany: true, accept: 'image/jpeg,image/png' });
+      act(() => {
+        setInputFiles(container.querySelector('input[type="file"]'), [
+          new File([''], 'a.jpg', { type: 'image/jpeg' }),
+          new File([''], 'b.jpg', { type: 'image/jpeg' }),
+        ]);
+      });
+      const dialog = dialogNamed(container, 'confirm-replace-title');
+      expect(dialog.open).toBe(true);
+      expect(onFilesAddedSpy).not.toHaveBeenCalled();
+      expect(dialog.textContent).toContain('2 files');
+      expect(dialog.textContent).not.toContain('a.jpg');
+    });
   });
 
   it('asks about a dropped file by name, since that one arrives already chosen', () => {

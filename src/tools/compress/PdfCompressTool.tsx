@@ -10,21 +10,18 @@ import { withIslandBoundary } from '#lib/telemetry/IslandErrorBoundary.tsx';
 import ToolShell, { FileActions } from '#shell/ToolShell.tsx';
 import CompressVerb from './verb/CompressVerb.tsx';
 import styles from './PdfCompressTool.module.css';
-import pdfToolStyles from '#shell/PdfTool.module.css';
 import LevelPicker, { TargetSizePanel, type Level } from './components/LevelPicker.tsx';
 import ResultSection from './components/ResultSection.tsx';
 import ResultSheet from './components/ResultSheet.tsx';
 import ResultNotes, { hasResultNotes } from './components/ResultNotes.tsx';
 import StripSizes from './components/StripSizes.tsx';
 import { useComparePreviews } from './hooks/useComparePreviews.ts';
-import { useDownloadFlow } from '#shell/pageWorkspace/useDownloadFlow.ts';
 import PhoneFinish from '#shell/pageWorkspace/PhoneFinish.tsx';
 import { workspaceStyles } from '#shell/pageWorkspace/PageWorkspace.tsx';
 import layoutStyles from '#shell/loadedLayout.module.css';
 import { compressHandoffItems, compressHandoffTools } from './lib/handoffs.ts';
 import { useLastResult } from './hooks/useLastResult.ts';
 import { useHoldUpdate } from '#lib/hooks/useHoldUpdate.ts';
-import { isolateName } from '#lib/text/format.js';
 import { englishCompressMessages, type CompressMessages } from './messages';
 import { type ShellMessages } from '#shell/shellMessages.ts';
 import { formatMessage } from '#lib/text/formatMessage.ts';
@@ -34,14 +31,18 @@ import { createCompressCallbacks, superseded, type CompressCallbacks, type Compr
 import { useFileIntake, type PdfAnalysis } from './hooks/useFileIntake.ts';
 import { useRunActions } from './hooks/useRunActions.ts';
 import { deriveResultView, formatBytes } from './lib/resultView.ts';
+import { useCompressFinish } from './hooks/useCompressFinish.ts';
+import BatchWorkspace from './components/BatchWorkspace.tsx';
+import IntakeNotes from './components/IntakeNotes.tsx';
 
 const TARGET_SIZE_PRESETS_KB = [100, 200, 500, 1024];
-// Lower than the PDF presets above: the image half of this tool's demand is
-// the photo half of application portals, which commonly cap a photo at
+// Starts lower than the PDF presets above: the image half of this tool's demand
+// is the photo half of application portals, which commonly cap a photo at
 // 20-50KB, tighter than the document limits the PDF presets target. Four, so
-// they fit one row beside the KB field: 500KB went (Shlomi, 2026-10-15), a PDF
-// cap rather than a photo one; any size can still be typed.
-const IMAGE_TARGET_SIZE_PRESETS_KB = [20, 50, 100, 200];
+// they fit one row beside the KB field. 500KB came back in place of 20KB
+// (Shlomi, 2026-11-03, trying a set of photos and scans for a portal upload);
+// 20KB or any other size can still be typed.
+const IMAGE_TARGET_SIZE_PRESETS_KB = [50, 100, 200, 500];
 
 interface PdfCompressToolProps {
   /** LOC-02: server-rendered by its src/pages/[locale]/<tool>.astro route for a
@@ -54,6 +55,8 @@ interface PdfCompressToolProps {
   emptyStateMessage?: string;
   /** Test-only: a short quiet-time policy so tests that are not about timing do not wait in real time. */
   quietPolicy?: QuietPolicy;
+  /** COMP-04: the picker selects several photos at once (/compress-image/). A drop of several works on every page. */
+  pickMany?: boolean;
 }
 
 /** The state a build depends on, with the file's number so a new file never reuses an old result. */
@@ -70,6 +73,7 @@ export default withIslandBoundary(function PdfCompressTool({
   analyticsTool = 'compress',
   emptyStateMessage,
   quietPolicy,
+  pickMany,
 }: PdfCompressToolProps = {}) {
   const t: CompressMessages = { ...englishCompressMessages, ...messagesProp };
 
@@ -145,24 +149,16 @@ export default withIslandBoundary(function PdfCompressTool({
   const isImageMode = kind === 'image';
   const targetSizePresets = isImageMode ? IMAGE_TARGET_SIZE_PRESETS_KB : TARGET_SIZE_PRESETS_KB;
 
-  const flow = useDownloadFlow({
-    // A passthrough is the input itself: nothing to deliver or share.
-    prepared: { status: prepared.status, blob: prepared.meta?.passthrough ? null : prepared.blob, url: prepared.url, parts: null, generation: prepared.generation, prepareNow: prepared.prepareNow },
-    fileName: meta?.filename ?? '',
-    blocked: prepared.status === 'error' ? 'error' : null,
-    announce: (message) => { if (message) setAnnouncement(message); },
-    messages: {
-      ready: t.readyAnnouncement,
-      shared: kind === 'image' ? t.imageSharedSuccessfully : t.sharedSuccessfully,
-      canceled: kind === 'image' ? t.imageSharingCanceled : t.sharingCanceled,
-      shareError: t.shareError,
-    },
+  // COMP-04: `batch` is two or more photos, compressed one after another to one target.
+  const { flow, batch, batchName } = useCompressFinish({
+    t, kind, prepared: { ...prepared, passthrough: !!prepared.meta?.passthrough }, fileName: meta?.filename ?? '', setAnnouncement,
   });
 
   const { handleFilesAdded } = useFileIntake({
     t, machine, compare, flow, encryptionCheck, file, fileSeq, runnable, preparedStatus: prepared.status,
     prepareNow: prepared.prepareNow, forgetLast, currentFileRef,
     setFile, setFileSeq, setRejectedFiles, setAnnouncement, setNeedsUnlockBytes, setAnalysis,
+    batch, targetKB,
   });
 
   callbacksRef.current = createCompressCallbacks({ t, machine, compare, currentFileRef, optionsRef, setAnnouncement });
@@ -172,7 +168,7 @@ export default withIslandBoundary(function PdfCompressTool({
     level, targetKB, flatten, setLevel, setTargetKB, setFlatten,
   });
 
-  const hasFiles = !!file;
+  const hasFiles = !!file || batch.active;
   const isDone = hasFiles && status === 'done';
   const view = deriveResultView({
     t, file, kind, level, targetKB, flatten, isDone, compressedSize, passthrough, unchanged, metTarget, rasterBytes,
@@ -207,27 +203,21 @@ export default withIslandBoundary(function PdfCompressTool({
   // A photo never has a strip note, so the strip reserves no lines for one.
   const stripNoteNode = isImageMode ? undefined : <span data-compress-note>{stripNote}</span>;
 
-  const sizesExtra = file && (
-    <StripSizes t={t} file={file} arrow={arrow} showResult={isDone && !passthrough} compressedSize={compressedSize} savingsPercent={savingsPercent} />
-  );
+  const stripSizes = batch.active ? batch.strip : file && { before: file.size, showResult: isDone && !passthrough, compressedSize, savingsPercent };
+  const sizesExtra = stripSizes && <StripSizes t={t} arrow={arrow} {...stripSizes} />;
+  const intakeNotes = (className?: string) => <IntakeNotes t={t} rejected={rejectedFiles} leftOutPdfs={batch.leftOutPdfs} className={className} />;
 
   return (
     <BasePdfTool
       hasFiles={hasFiles}
       onFilesAdded={handleFilesAdded}
-      intake={{ multiple: false, accept: 'application/pdf,image/jpeg,image/png', needsPdfjs: !isImageMode }}
-      identity={{ file, label: file?.name, metaExtra: sizesExtra, note: stripNoteNode, hidden: true }}
+      intake={{ multiple: false, pickMany, accept: 'application/pdf,image/jpeg,image/png', needsPdfjs: !isImageMode && !batch.active }}
+      identity={batch.active ? { file: batch.cover, label: batchName, metaExtra: sizesExtra, hidden: true } : { file, label: file?.name, metaExtra: sizesExtra, note: stripNoteNode, hidden: true }}
       empty={{ art: <CompressVerb subject={analyticsTool === 'compress-image' ? 'photo' : 'page'} />, message: emptyStateMessage ?? t.dropHint }}
-      analytics={{ tool: analyticsTool, status: status === 'error' ? 'error' : flow.tap !== 'idle' ? flow.tap : retryTap }}
+      analytics={{ tool: analyticsTool, status: (batch.active ? batch.phase : status) === 'error' ? 'error' : flow.tap !== 'idle' ? flow.tap : batch.active ? 'idle' : retryTap }}
       shellMessages={shellMessages}
     >
-      {rejectedFiles.length > 0 && (
-        <p class={pdfToolStyles['hint-message']} role="status">
-          {rejectedFiles.length === 1
-            ? formatMessage(t.skippedOne, { name: isolateName(rejectedFiles[0], t.dir) })
-            : formatMessage(t.skippedMany, { count: rejectedFiles.length })}
-        </p>
-      )}
+      {!batch.active && intakeNotes()}
 
       {needsUnlockBytes ? (
         <NeedsUnlock
@@ -244,6 +234,8 @@ export default withIslandBoundary(function PdfCompressTool({
             handoffFailed: t.protectedHandoffFailed,
           }}
         />
+      ) : batch.active ? (
+        <BatchWorkspace t={t} batch={batch} compare={compare} flow={flow} notes={intakeNotes} name={batchName} targetKB={targetKB} presets={IMAGE_TARGET_SIZE_PRESETS_KB} onTargetKBChange={handleTargetKBChange} arrow={arrow} />
       ) : hasFiles && file ? (
         <div class={layoutStyles['finish-frame']}>
           {/* ARCH-41: the phone's sticky bar spans the whole loaded state (the frame), not one grid cell. */}

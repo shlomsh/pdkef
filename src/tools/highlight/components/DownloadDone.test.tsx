@@ -26,6 +26,6 @@ describe('DownloadDone', () => {
     const strip = container.querySelector('[data-download-done]')!;
     expect(strip.textContent).toBe('Saved as highlighted_a.pdf.');
     act(() => (strip.querySelector('button') as HTMLButtonElement).click());
-    expect(onClose).toHaveBeenCalled();
+    expect(onClose).toHaveBeenCalledTimes(1);
   });
 });

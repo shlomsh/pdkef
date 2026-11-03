@@ -153,6 +153,54 @@ describe('useMarkSwipe threshold', () => {
   });
 });
 
+describe('useMarkSwipe what a press lays', () => {
+  const swipeCall = () => vi.mocked(startHighlightSwipe).mock.calls.at(-1)!;
+  beforeEach(() => { vi.mocked(startHighlightSwipe).mockClear(); });
+  afterEach(() => { marker = { color: 'yellow', style: 'highlight', opacity: 1 }; });
+
+  it('lays an empty highlight at the press in the marker, and starts the swipe on it', () => {
+    marker = { color: '#FF8FCF', style: 'underline', opacity: 0.5 };
+    mount(); press(); move(150, 150);
+    const added = dispatch.mock.calls[0][0].payload;
+    expect(added).toMatchObject({ type: 'highlight', pageIndex: 0, left: 10, top: 10, width: 0, height: 0, bands: [], color: '#FF8FCF', style: 'underline', opacity: 0.5 });
+    expect(swipeCall()[1]).toMatchObject({ pageIndex: 0, id: added.id });
+  });
+
+  it('the plain marker adds no style or opacity of its own', () => {
+    mount(); press(); move(150, 150);
+    const added = dispatch.mock.calls[0][0].payload;
+    expect('style' in added).toBe(false);
+    expect('opacity' in added).toBe(false);
+  });
+
+  it('a mouse press swipes as a mouse, a finger as a finger whose click is not ours to swallow', () => {
+    mount(); press(); move(150, 150);
+    expect(swipeCall()[0].isMouse).toBe(true);
+    window.dispatchEvent(new MouseEvent('mouseup'));
+    pressTouch(); move(250, 150);
+    expect(swipeCall()[0].isMouse).toBe(false);
+  });
+
+  it('a secondary button never marks', () => {
+    mount();
+    const target = document.createElement('div');
+    handler({ button: 2, pointerType: 'mouse', clientX: 100, clientY: 100, target, currentTarget: target } as unknown as PointerEvent);
+    move(150, 150);
+    expect(dispatch).not.toHaveBeenCalled();
+    expect(onPress).not.toHaveBeenCalled();
+  });
+
+  it('keeps the marker armed: a swipe that asks to disarm dispatches nothing, anything else passes through', () => {
+    mount(); press(); move(150, 150);
+    dispatch.mockClear();
+    const swipeDispatch = swipeCall()[0].dispatch;
+    swipeDispatch({ type: 'DISARM_TOOL' } as never);
+    expect(dispatch).not.toHaveBeenCalled();
+    swipeDispatch({ type: 'SET_ACTIVE_ELEMENT_ID', payload: null } as never);
+    expect(dispatch).toHaveBeenCalledWith({ type: 'SET_ACTIVE_ELEMENT_ID', payload: null });
+  });
+});
+
 describe('useMarkSwipe touch intent', () => {
   it('a touch press moving 30 px down lays no element and leaves the scroll to the browser', () => {
     mount(); pressTouch();

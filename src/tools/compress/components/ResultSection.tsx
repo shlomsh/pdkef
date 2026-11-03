@@ -79,13 +79,15 @@ interface ResultSectionProps {
   compressedSize: number | null;
   compareCaption: string;
   view: ResultView;
+  /** COMP-04: above everything else in the stage (a set's way back to its list). */
+  header?: ComponentChildren;
 }
 
 /** The result column: the in-flight placeholder, the failure, the before/after slider, and a passthrough's own note.
  *  Notes about a compressed file sit beside Download instead (ResultNotes). */
 export default function ResultSection(props: ResultSectionProps) {
   const { t, compare, file, lastBlob, status, kind, arrow, isDone, showCompare, passthrough, unchanged, rasterBytes,
-    dimensions, compressedSize, compareCaption, view } = props;
+    dimensions, compressedSize, compareCaption, view, header } = props;
   const { savingsPercent, resultTitle, resultNotice } = view;
   // The page's width over height, measured from the first image of this file to load: the column sizes the
   // preview to its real shape. Until then the image and its caption stay hidden, so the stage never paints them
@@ -134,6 +136,7 @@ export default function ResultSection(props: ResultSectionProps) {
 
   return (
     <section class={`${styles.result} ${layoutStyles.stage}`} data-result style={aspect ? ({ '--preview-aspect': aspect } as JSX.CSSProperties) : undefined}>
+      {header}
       {status !== 'done' && status !== 'error' && (
         // Keyed apart: reused, the skeleton's own box would move and shrink into the panel's, a
         // layout shift (0.116 at 1440x820, DEBT-56); replaced, the panel is new content.
@@ -198,7 +201,7 @@ export default function ResultSection(props: ResultSectionProps) {
           )}
         </div>
       )}
-      {showCompare && compare.fullscreen.open && <CompareFullscreen t={t} compare={compare} caption={compareCaption} />}
+      {showCompare && compare.fullscreen.open && <CompareFullscreen t={t} compare={compare} caption={compareCaption} fit={kind === 'image'} />}
 
       {isDone && passthrough && (
         <StatsGrid t={t} file={file} kind={kind} unchanged={unchanged} rasterBytes={rasterBytes} dimensions={dimensions} savingsPercent={savingsPercent} />

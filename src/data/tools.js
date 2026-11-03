@@ -656,8 +656,7 @@ export const tools = [
     // Same island and loaded layout as compress, so the same fold.
     condenseOnLoad: true,
     icon: ImageMinus,
-    gridDescription:
-      'Shrink a JPG or PNG toward a size limit like 100KB, for portals that cap a photo separately, with no daily cap.',
+    gridDescription: 'Shrink a JPG or PNG toward a size limit like 100KB, for portals that cap a photo separately, with no daily cap.',
     sitemapPriority: '0.8',
     sitemapChangefreq: 'monthly',
     seoTitle: 'Compress Image to 100KB Free - Reduce Photo Size | PDkef',
@@ -680,8 +679,8 @@ export const tools = [
     faqSketch: 'grid',
     faqIconPos: 'tl',
     steps: [
-      { title: 'Add your photo', text: 'Select or drag in the JPG or PNG you want to shrink. It stays on your device.' },
-      { title: 'Set a target size', text: 'Enter a limit in KB, or pick a shortcut like 20 KB, 50 KB, or 100 KB for a portal photo cap. The photo is compressed as soon as you pick it, and again whenever you change the target.' },
+      { title: 'Add your photo', text: 'Select or drag in the JPG or PNG you want to shrink, or several at once. It stays on your device.' },
+      { title: 'Set a target size', text: 'Enter a limit in KB, or pick a shortcut like 50 KB, 100 KB, or 500 KB for a portal\'s cap. The photo is compressed as soon as you pick it, and again whenever you change the target.' },
       { title: 'Compress and download', text: 'Check the actual output size and dimensions, and download your file.' },
     ],
     faq: [
@@ -690,6 +689,7 @@ export const tools = [
       { question: 'What file type does the compressed image come out as?', answer: 'A JPEG, whatever format you started with, whenever the tool had to compress it. If your original was a PNG with a transparent background, that transparency is filled in white first, since a JPEG has no transparency of its own. A file that is already under the target comes back exactly as it was, PNG included.' },
       { question: 'Will compressing a screenshot or scan of text look blurry?', answer: 'It can. JPEG compression is built for photos, and a small target size can leave visible artefacts around sharp edges like text or fine lines, more so on a screenshot or scanned document than on an ordinary photo. If the result looks too rough to read, try a larger target.' },
       { question: 'Does compressing remove information from my photo?', answer: 'Yes. Re-encoding to JPEG drops EXIF metadata, including the location a phone camera often records, along with the camera model and timestamp. That is a side effect of redrawing the pixels rather than a deliberate scrub, so do not rely on it as one, but the compressed copy carries none of it. If you need to keep that metadata, do not run the photo through this tool.' },
+      { question: 'Can I compress several photos at once?', answer: 'Yes. Pick or drop several JPG or PNG files, or drop a whole folder, and set one target. Each photo is compressed on its own to that size or less, and a list shows each one\'s new size and whether it fit. Download saves them one at a time rather than as a zip, so your browser may ask to allow multiple downloads the first time, and each photo also has its own Save.' },
       { question: 'Is this built for job applications and portals that cap photo size?', answer: "Yes, exactly that. Many application portals cap a photo at 20 to 50KB and a document at 100 to 200KB, checked separately, so one \"under 100KB\" result does not necessarily clear the photo limit. Set your own target here, including one below 100KB, to match whatever the portal actually asks for." },
       { question: 'Is my photo uploaded anywhere?', answer: 'No. Nothing is uploaded. Compression runs on your device, in your browser, and your photo, including a scanned ID, passport photo, or signature image, never leaves it. There is no processing server. For offline use, install PDkef and let its required assets load while connected.' },
       { question: "What's the difference between this and Compress PDF?", answer: 'This tool takes a JPG or PNG image and shrinks it to a target size. Compress PDF does the same for the images inside a PDF, and leaves its text as it is. Use whichever matches what you actually have; if a form needs both a smaller document and a smaller photo, use both tools.' },

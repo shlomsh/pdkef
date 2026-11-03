@@ -1,11 +1,9 @@
 ---
 id: "QUAL-48"
 title: "Every CI guard behind a CLAUDE.md invariant has a red fixture that proves it can fail"
-status: "open"
+status: "done"
 priority: "P2"
 epic: "robustness"
-horizon: "next"
-order: 3
 depends_on: []
 ---
 
@@ -35,6 +33,12 @@ headline invariants have no unit test at all, so one that quietly stopped checki
 
 ## Acceptance
 
-- [ ] Each red fixture is seen failing for the reason the guard exists.
-- [ ] No guard's CI behaviour changes on today's tree.
-- [ ] `npm run check:fast` and `npm run check:push` pass.
+- [x] Each red fixture is seen failing for the reason the guard exists.
+- [x] No guard's CI behaviour changes on today's tree.
+- [x] `npm run check:fast` and `npm run check:push` pass.
+
+## Result (2026-11-03)
+
+- `check-gesture-golden-rule.js` exports `findForbiddenCalls`; its CLI runs from `main()` and prints and exits the same on today's tree and on a planted violation. Five tests.
+- `verify-csp.js` (9 tests), `check-trailing-slash-redirects.js` (5), `check-page-weight.js` (6) and `generate-precache-manifest.mjs` (5) run unchanged as child processes on a planted tree; each check, neutered, fails its violating test. A `guard-clis-run-by-path` row in `scripts/unit-scope.mjs` selects these tests when the scripts change.
+- `generate-language-acceptance.test.mjs` now compares the committed doc with `matrixMarkdown()`.

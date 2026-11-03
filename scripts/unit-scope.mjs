@@ -113,6 +113,7 @@ export const WIDEN_RULES = [
       'src/tools/redact/PdfRedactTool.details.test.tsx',
       'src/tools/redact/PdfRedactTool.export.test.tsx',
       'src/tools/security/lib/security.test.js',
+      'src/test/cross-tool/pageGridTools.test.tsx',
       'src/tools/sign/PdfSignTool.test.tsx',
       'src/tools/split/PdfSplitTool.test.tsx',
       'src/tools/to-image/lib/toImage.test.js',
@@ -222,6 +223,17 @@ export const WIDEN_RULES = [
     reason: 'scripts/generate-practice-form.test.mjs reads the ground truth and global.css by path',
     match: (f) => f === 'src/tools/sign/lib/fields/corpus/scoring/ground-truth/practice-form-page1.json' || f === 'src/styles/global.css',
     tests: ['scripts/generate-practice-form.test.mjs'],
+  },
+  {
+    id: 'guard-clis-run-by-path',
+    reason: 'QUAL-48: these guards are run as a child process on a planted tree, so no import edge reaches their tests',
+    match: (f) => ['scripts/verify-csp.js', 'scripts/check-trailing-slash-redirects.js', 'scripts/generate-precache-manifest.mjs', 'scripts/check-page-weight.js', 'scripts/pageCss.mjs', 'scripts/precacheClosure.mjs'].includes(f),
+    tests: [
+      'scripts/verify-csp.test.mjs',
+      'scripts/check-trailing-slash-redirects.test.mjs',
+      'scripts/generate-precache-manifest.test.mjs',
+      'scripts/check-page-weight.test.mjs',
+    ],
   },
   {
     id: 'middleware-text-read',

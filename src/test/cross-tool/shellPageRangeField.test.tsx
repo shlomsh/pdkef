@@ -143,7 +143,7 @@ describe('PageRangeField', () => {
     expect(host.querySelector('[role="alert"]').textContent).toContain('9');
   });
 
-  // jsdom cannot evaluate :dir(), so this pins the rule itself: the input is dir=ltr for
+  // Kept as a source pin (GRID-06, d8d1af96): the RTL text-align regression is a :dir() rule, which jsdom cannot evaluate. It pins the rule itself: the input is dir=ltr for
   // the range text, and in a right-to-left page its text and placeholder sit at the right.
   it('aligns the range text right in a right-to-left page, and stays ltr text', () => {
     mount(planForFile(0, 6));

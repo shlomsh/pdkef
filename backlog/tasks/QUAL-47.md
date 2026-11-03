@@ -1,11 +1,9 @@
 ---
 id: "QUAL-47"
 title: "Output paths that only mocks reach are tested on real bytes"
-status: "open"
+status: "done"
 priority: "P2"
 epic: "robustness"
-horizon: "next"
-order: 2
 depends_on: []
 ---
 
@@ -40,6 +38,14 @@ absent:
 
 ## Acceptance
 
-- [ ] Each new test is seen failing against a planted fault in the path it covers.
-- [ ] `runCheck.test.ts` mocks nothing the module itself owns.
-- [ ] `npm run check:fast` and `npm run check:push` pass.
+- [x] Each new test is seen failing against a planted fault in the path it covers.
+- [x] `runCheck.test.ts` mocks nothing the module itself owns.
+- [x] `npm run check:fast` and `npm run check:push` pass.
+
+## Result (2026-11-03)
+
+- `runCheck.test.ts` rewritten on real pdf-lib files and the legacy pdf.js build; the only fakes are pdf.js's worker URL and the canvas (`@napi-rs/canvas`). It goes over `GLYPH_BUDGET` for real (one 400,001-glyph run) and checks each box against its own saved page; four mutants at `:86` and `:104` that survived the old mock suite now fail. Fixtures in `src/test/support/redactCheckPdfs.test-helper.ts`. The `type !== 'blur'` filter at `:100` is no longer observable (a blur box has no solidity result), so it is not pinned.
+- `scanPipeline.test.ts` (new, 12 tests): inset crop, warp quad in photo pixels, JPEG quality steps, resolution fallback keeping the printed size, the shown pages matching the PDF, EXIF-upright load, object URL release. Every planted fault passed `PdfScanTool.test.tsx` before. The pipeline's own abort check is equivalent (`imagesToPdf` checks the signal too).
+- Highlight export: pencil, sketch, highlight comment, pin and passage comment read back from the saved bytes. Only `drawElements` skipping `resolveCommentBoxes` survived before.
+- `signature.test.ts` (new): the image rectangle after the y-flip, width in points, and the tint, read back with pdf.js and pdf-lib; all three faults survived 57 related files before.
+- `visiblePageBox`: CropBox past the MediaBox and a CropBox off the page, compared with pdf.js `page.view`.

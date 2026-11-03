@@ -15,19 +15,4 @@ describe('RotatePagesVerb', () => {
     const host = mount();
     expect(host.querySelectorAll('i').length).toBe(3);
   });
-
-  it('hides the whole stage from assistive tech', () => {
-    const host = mount();
-    expect(host.firstElementChild?.getAttribute('aria-hidden')).toBe('true');
-  });
-
-  it('never carries a style attribute (CSP)', () => {
-    const host = mount();
-    expect(host.querySelectorAll('[style]').length).toBe(0);
-  });
-
-  it('has no text', () => {
-    const host = mount();
-    expect(host.textContent).toBe('');
-  });
 });

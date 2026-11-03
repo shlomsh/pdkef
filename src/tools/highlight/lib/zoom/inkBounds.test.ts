@@ -17,6 +17,13 @@ describe('inkTextBounds', () => {
     const rows = [row(10, 700), ...body(8), row(100, 790)];
     expect(inkTextBounds(rows, 800)).toEqual({ left: 0.125, right: 0.875 });
   });
+  it('reads the bounds from exactly three rows', () => {
+    expect(inkTextBounds(body(3), 800)).toEqual({ left: 0.125, right: 0.875 });
+  });
+  it('trims the rounded-down tenth of the rows at each edge, so eleven rows drop one a side', () => {
+    const rows = [row(10, 700), row(20, 700), ...body(7), row(100, 780), row(100, 790)];
+    expect(inkTextBounds(rows, 800)).toEqual({ left: 20 / 800, right: 780 / 800 });
+  });
   it('is null with fewer than three rows', () => {
     expect(inkTextBounds(body(2), 800)).toBeNull();
     expect(inkTextBounds([], 800)).toBeNull();

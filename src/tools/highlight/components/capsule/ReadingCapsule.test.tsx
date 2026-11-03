@@ -80,7 +80,7 @@ describe('ReadingCapsule', () => {
     expect(b.title).toBe('Feedback');
     expect(b.querySelector('svg')?.getAttribute('viewBox')).toBe('0 0 16 16');
     click(b);
-    expect(props.moreItems[0].onSelect).toHaveBeenCalled();
+    expect(props.moreItems[0].onSelect).toHaveBeenCalledTimes(1);
   });
 
   it('keeps More when two items remain', () => {
