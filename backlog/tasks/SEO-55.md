@@ -17,7 +17,7 @@ the 50 a tool needs before its page may carry stars. Shlomi asked for a friendli
 - Redact, Sign, Highlight and Merge open a modal `<dialog>` (showModal, so it also shows over a fullscreen editor)
   1.5 s after the first download or completed share. Every other tool keeps the inline row.
 - Five stars send the rating at once, then a thank-you with Share and Star on GitHub.
-- One to four stars ask what happened first. Send stays off until there are words, and the rating and the words go
+- One to four stars ask what happened first. Send stays off until there is a real reason (20 characters once trimmed), and the rating and the words go
   together; nothing is sent or remembered as rated if the person leaves.
 - Not now, Escape and the backdrop all leave without sending anything. The once-per-14-days device marker still
   applies, so leaving is not nagged about.

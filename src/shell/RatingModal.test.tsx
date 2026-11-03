@@ -80,7 +80,7 @@ describe('RatingPrompt as a modal (merge, sign, highlight-pdf, redact)', () => {
     expect(dialog()).toBeNull();
   });
 
-  it.each([1, 2, 3, 4])('%i stars asks what happened and sends nothing until there are words', (n) => {
+  it.each([1, 2, 3, 4])('%i stars asks what happened and sends nothing until there is a real reason', (n) => {
     show();
     act(() => star(n).click());
     expect(sendBeacon).not.toHaveBeenCalled();
@@ -89,6 +89,11 @@ describe('RatingPrompt as a modal (merge, sign, highlight-pdf, redact)', () => {
     expect(send.disabled).toBe(true);
     type('   ');
     expect((button(/^send$/i) as HTMLButtonElement).disabled).toBe(true);
+    type('Too short');
+    expect((button(/^send$/i) as HTMLButtonElement).disabled).toBe(true);
+    expect(container.textContent).toContain('A sentence or two is plenty');
+    act(() => { container.querySelector('form')!.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })); });
+    expect(sendBeacon).not.toHaveBeenCalled();
     type('The page order came out wrong');
     expect((button(/^send$/i) as HTMLButtonElement).disabled).toBe(false);
     act(() => button(/^send$/i)!.click());
@@ -113,10 +118,10 @@ describe('RatingPrompt as a modal (merge, sign, highlight-pdf, redact)', () => {
   it('a send that cannot go keeps the words and says so, and sends no rating', () => {
     show();
     act(() => star(3).click());
-    type('Slow on my phone');
+    type('It was slow on my phone today');
     vi.mocked(sendBeacon).mockReturnValue(false);
     act(() => button(/^send$/i)!.click());
-    expect(container.querySelector<HTMLTextAreaElement>('textarea')?.value).toBe('Slow on my phone');
+    expect(container.querySelector<HTMLTextAreaElement>('textarea')?.value).toBe('It was slow on my phone today');
     expect(container.querySelector('[role="alert"]')).not.toBeNull();
     expect(localStorage.getItem('pdkef:rated:merge')).toBeNull();
     vi.mocked(sendBeacon).mockReturnValue(true);

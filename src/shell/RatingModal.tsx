@@ -10,10 +10,13 @@ import styles from './RatingModal.module.css';
 
 export type RatingModalMessages = Pick<
   ShellMessages,
-  | 'ratingModalTitle' | 'ratingModalIntro' | 'ratingNotNow' | 'ratingExplainTitle' | 'ratingExplainBody' | 'ratingExplainLabel'
+  | 'ratingModalTitle' | 'ratingModalIntro' | 'ratingNotNow' | 'ratingExplainTitle' | 'ratingExplainBody' | 'ratingExplainLabel' | 'ratingExplainHint'
   | 'ratingBack' | 'ratingSendFailed' | 'ratingThanksTitle' | 'ratingThanksHigh' | 'ratingThanksLowModal' | 'ratingDone'
   | 'ratingShare' | 'ratingShareCopied' | 'ratingStarGithub' | 'ratingCommentSend' | 'ratingStarOne' | 'ratingStarOther'
 >;
+
+/** A low rating needs a real reason: this many characters once trimmed, about a short sentence. Send stays off below it. */
+const MIN_REASON_LENGTH = 20;
 
 type Step = 'pick' | 'explain' | 'thanks';
 
@@ -63,7 +66,7 @@ export default function RatingModal({
   const send = (event: Event) => {
     event.preventDefault();
     const text = words.trim();
-    if (stars === null || text === '') return;
+    if (stars === null || text.length < MIN_REASON_LENGTH) return;
     // The words go first: if they cannot be sent the rating stays unsent too, so a low vote never lands without its reason.
     if (!reportRatingComment(tool, stars, text)) {
       setFailed(true);
@@ -75,6 +78,7 @@ export default function RatingModal({
     setStep('thanks');
   };
 
+  const longEnough = words.trim().length >= MIN_REASON_LENGTH;
   const title = step === 'pick' ? messages.ratingModalTitle : step === 'explain' ? messages.ratingExplainTitle : messages.ratingThanksTitle;
   const starLabel = (n: number) => (n === 1 ? messages.ratingStarOne : formatMessage(messages.ratingStarOther, { count: String(n) }));
 
@@ -117,6 +121,7 @@ export default function RatingModal({
               placeholder={messages.ratingExplainLabel}
               onInput={(event) => { setWords((event.currentTarget as HTMLTextAreaElement).value); setFailed(false); }}
             />
+            {!longEnough && <p class={styles.hint}>{messages.ratingExplainHint}</p>}
             {failed && <p class={styles.error} role="alert">{messages.ratingSendFailed}</p>}
           </form>
         )}
@@ -146,7 +151,7 @@ export default function RatingModal({
           <>
             <button type="button" class={`${dialogStyles.button} ${dialogStyles.secondary}`} onClick={onClose}>{messages.ratingNotNow}</button>
             <button type="button" class={`${dialogStyles.button} ${dialogStyles.secondary}`} onClick={() => setStep('pick')}>{messages.ratingBack}</button>
-            <button type="submit" form="rating-explain" class={`${dialogStyles.button} ${dialogStyles.primary} ${styles.send}`} disabled={words.trim() === ''}>{messages.ratingCommentSend}</button>
+            <button type="submit" form="rating-explain" class={`${dialogStyles.button} ${dialogStyles.primary} ${styles.send}`} disabled={!longEnough}>{messages.ratingCommentSend}</button>
           </>
         )}
         {step === 'thanks' && (

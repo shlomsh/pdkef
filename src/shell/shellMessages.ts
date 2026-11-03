@@ -153,6 +153,7 @@ export interface ShellMessages {
   ratingExplainTitle: string;
   ratingExplainBody: string;
   ratingExplainLabel: string;
+  ratingExplainHint: string;
   ratingBack: string;
   ratingSendFailed: string;
   ratingThanksTitle: string;
@@ -231,6 +232,7 @@ export const englishShellMessages: ShellMessages = {
   ratingExplainTitle: 'Thank you for being honest',
   ratingExplainBody: "I'm sorry it wasn't a great time. What happened, and what would have made it better? Only your stars and these words are sent, never your file.",
   ratingExplainLabel: 'What happened?',
+  ratingExplainHint: 'A sentence or two is plenty. It helps me see what to fix.',
   ratingBack: 'Back',
   ratingSendFailed: "That didn't go through just now. Your words are still here, so you can try again.",
   ratingThanksTitle: 'Thank you',
@@ -307,6 +309,7 @@ export const hebrewShellMessages: ShellMessages = {
   ratingExplainTitle: 'תודה על הכנות',
   ratingExplainBody: 'מצטער שזה לא היה נעים. מה קרה, ומה היה עושה את זה טוב יותר? נשלחים רק הכוכבים והמילים האלה, אף פעם לא הקובץ שלכם.',
   ratingExplainLabel: 'מה קרה?',
+  ratingExplainHint: 'משפט או שניים מספיקים. זה עוזר לי להבין מה לתקן.',
   ratingBack: 'חזרה',
   ratingSendFailed: 'זה לא יצא הפעם. המילים שלכם עדיין כאן, אפשר לנסות שוב.',
   ratingThanksTitle: 'תודה',
