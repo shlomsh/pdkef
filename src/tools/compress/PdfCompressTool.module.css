@@ -527,6 +527,24 @@
   padding: 1rem;
 }
 
+/* A photo (COMP-04): the pair fits the screen whole and nothing scrolls. The body is a size container that
+   centres the slider, and the slider takes the largest width its height still fits: the photo's own aspect
+   (--preview-aspect, set on the result section) against the body's width and height. */
+.compare-fullscreen[data-fit] .compare-fullscreen-body {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  container-type: size;
+  padding: 8px;
+}
+
+.compare-fullscreen[data-fit] .compare-fullscreen-body > * {
+  flex: none;
+  width: min(100cqw, 100cqh * var(--preview-aspect, 0.75));
+  touch-action: none;
+}
+
 .compare-fullscreen-header .compare-caption {
   text-align: start;
 }

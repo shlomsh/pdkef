@@ -1,19 +1,24 @@
+import { useState } from 'preact/hooks';
 import PhoneFinish from '#shell/pageWorkspace/PhoneFinish.tsx';
 import { workspaceStyles } from '#shell/pageWorkspace/PageWorkspace.tsx';
 import type { useDownloadFlow } from '#shell/pageWorkspace/useDownloadFlow.ts';
 import ToolShell, { FileActions } from '#shell/ToolShell.tsx';
 import layoutStyles from '#shell/loadedLayout.module.css';
+import type { useComparePreviews } from '../hooks/useComparePreviews.ts';
 import type { useImageBatch } from '../hooks/useImageBatch.ts';
 import { formatBytes } from '../lib/resultView.ts';
 import type { CompressMessages } from '../messages';
 import styles from '../PdfCompressTool.module.css';
 import BatchList from './BatchList.tsx';
+import BatchPreview from './BatchPreview.tsx';
 import { TargetSizePanel, type OnTargetChange } from './LevelPicker.tsx';
 import ResultSheet from './ResultSheet.tsx';
 
 interface BatchWorkspaceProps {
   t: CompressMessages;
   batch: ReturnType<typeof useImageBatch>;
+  /** The island's compare previews, free while a set is open: one photo's preview borrows them. */
+  compare: ReturnType<typeof useComparePreviews>;
   flow: ReturnType<typeof useDownloadFlow>;
   /** "12 photos": the set's name in the strip, the Download element and the phone bar. */
   name: string;
@@ -26,8 +31,11 @@ interface BatchWorkspaceProps {
 }
 
 /** COMP-04: the loaded state for several photos, on the single photo's grid: strip, target, rows, Download. */
-export default function BatchWorkspace({ t, batch, flow, name, targetKB, presets, onTargetKBChange, arrow }: BatchWorkspaceProps) {
+export default function BatchWorkspace({ t, batch, compare, flow, name, targetKB, presets, onTargetKBChange, arrow }: BatchWorkspaceProps) {
   const { prepared } = batch;
+  // The photo whose preview is open, by file, so a new set (whose ids start over) never opens a stranger.
+  const [opened, setOpened] = useState<File | null>(null);
+  const openedRow = batch.state.rows.find((row) => row.file === opened) ?? null;
   const onTargetChange: OnTargetChange = (kb, options) => {
     onTargetKBChange(kb);
     batch.setTarget(kb, options);
@@ -51,15 +59,20 @@ export default function BatchWorkspace({ t, batch, flow, name, targetKB, presets
             <FileActions />
           </ToolShell>
         </div>
-        <BatchList
-          t={t}
-          rows={batch.state.rows}
-          summary={batch.summary}
-          targetKB={batch.state.targetKB}
-          arrow={arrow}
-          urlFor={batch.urlFor}
-          onRowSaved={flow.onPartSaved}
-        />
+        {openedRow ? (
+          <BatchPreview t={t} compare={compare} row={openedRow} targetKB={batch.state.targetKB} total={batch.summary.total} arrow={arrow} onBack={() => setOpened(null)} />
+        ) : (
+          <BatchList
+            t={t}
+            rows={batch.state.rows}
+            summary={batch.summary}
+            targetKB={batch.state.targetKB}
+            arrow={arrow}
+            urlFor={batch.urlFor}
+            onRowSaved={flow.onPartSaved}
+            onOpen={setOpened}
+          />
+        )}
         <div class={styles.controls} data-controls>
           <TargetSizePanel
             t={t}

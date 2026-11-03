@@ -34,7 +34,8 @@ export function useImageBatch() {
       dispatch({ type: 'rowStarted', id, run });
       try {
         const result = await compressImageToTarget(row.file, { targetKB: current.targetKB });
-        dispatch({ type: 'rowDone', id, run, blob: result.blob, metTarget: result.metTarget });
+        const { blob, metTarget, width, height, originalWidth, originalHeight } = result;
+        dispatch({ type: 'rowDone', id, run, blob, metTarget, dimensions: { width, height, originalWidth, originalHeight } });
       } catch (err) {
         reportError('pdf_tool_run', err, 'compress_batch_image');
         dispatch({ type: 'rowFailed', id, run });
