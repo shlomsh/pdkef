@@ -1,6 +1,7 @@
 import { test, expect } from '@playwright/test';
 import { openTool } from '../../../../e2e/support/tool.js';
 import { makePdfBuffer } from '../../../../e2e/support/pdf.js';
+import { pullCord } from './lamp.js';
 import { tapUntil } from '../../../../e2e/support/touch.js';
 
 /* A fixed floating panel inside a glass bar. WebKit makes an element with backdrop-filter or filter the containing
@@ -13,7 +14,7 @@ async function panelGutters(page, { lamp }) {
   const source = await makePdfBuffer(null, { title: false, lines: [{ text: 'A line of text a student would highlight', y: 700 }] });
   await openTool(page, '/highlight-pdf/', { file: { name: 'gutters.pdf', buffer: source }, overlaySelector: '[data-page-overlay]' });
   if (lamp) {
-    await page.getByRole('button', { name: 'Full screen' }).first().tap();
+    await pullCord(page, 'tap');
     await expect(page.locator('[role="toolbar"][data-mode]')).toBeVisible();
   }
   const box = await page.locator('[data-page-overlay]').first().boundingBox();
