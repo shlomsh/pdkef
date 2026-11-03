@@ -149,6 +149,11 @@ describe('ScanPhoneTable', () => {
     expect(onClear).toHaveBeenCalled();
   });
 
+  it('does not claim the size is updating while a page holds the PDF back', () => {
+    const { container } = mount({ failedIds: [3] });
+    expect(container.querySelector('[data-size-value]')!.textContent).toBe('');
+  });
+
   it('draws the tiles on the chosen paper', () => {
     const fit = mount({ pageSize: 'fit' }).container.querySelectorAll('[data-paper]')[1].getAttribute('style');
     act(() => render(null, container!)); container!.remove(); container = null;
