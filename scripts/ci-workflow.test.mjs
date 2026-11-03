@@ -90,7 +90,7 @@ describe('ci.yml update-cost (MEM-21)', () => {
   // differ on every island page; measured 2026-10-28, that was about 880 KB of a 907 KB reading.
   it('builds both deploys at one path', () => {
     const job = updateCostJob();
-    const adds = [...job.matchAll(/git worktree add\s+("[^"]*"|\S+)/g)].map((m) => m[1]);
+    const adds = [...job.matchAll(/git worktree add\s+(?:-\S+\s+)*("[^"]*"|\S+)/g)].map((m) => m[1]);
     expect(adds).toHaveLength(1);
     expect(adds[0]).not.toMatch(/\$side|\$\{\{/);
   });
