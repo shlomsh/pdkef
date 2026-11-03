@@ -8,8 +8,9 @@ import type { Quad } from '../lib/quad.ts';
 type FullMode = 'native' | 'layer' | null;
 /** Approved full screen: the page whose flatten starts once the card is back on screen. */
 interface Landing { quad: Quad; turns: number }
-/** The camera in the page (SCAN-08): taking pages for the scan, or one page's replacement (Retake). */
-export type CameraMode = { mode: 'many' } | { mode: 'one'; pageId: number };
+/** The camera in the page (SCAN-08): taking pages for the scan, or one page's replacement (Retake).
+ * `thenMany`: the retake came from the camera's own stack, so closing goes back to taking pages. */
+export type CameraMode = { mode: 'many' } | { mode: 'one'; pageId: number; thenMany?: boolean };
 
 interface Shared {
   selectedId: number | null;
@@ -58,6 +59,7 @@ type ScanEvent =
   | { type: 'resultAfterFullQueued'; landing: Landing }
   | { type: 'resultAfterFullShown' }
   | { type: 'cameraOpened'; camera: CameraMode }
+  | { type: 'retakeOpened'; pageId: number }
   | { type: 'cameraClosed' };
 
 export const initialScanState: ScanState = {
@@ -145,7 +147,12 @@ export function reduceScan(state: ScanState, event: ScanEvent): ScanState {
       return state.full === null && state.landing !== null ? patch(state, { landing: null, phase: 'result' }) : state;
     case 'cameraOpened':
       return patch(state, { camera: event.camera });
+    case 'retakeOpened':
+      // Over the running camera the one-page screen steps aside; over the table it stays, under the camera.
+      return state.camera?.mode === 'many'
+        ? patch(state, { phase: 'table', camera: { mode: 'one', pageId: event.pageId, thenMany: true } })
+        : patch(state, { camera: { mode: 'one', pageId: event.pageId } });
     case 'cameraClosed':
-      return patch(state, { camera: null });
+      return patch(state, { camera: state.camera?.mode === 'one' && state.camera.thenMany ? { mode: 'many' } : null });
   }
 }

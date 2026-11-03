@@ -223,4 +223,21 @@ describe('the camera (SCAN-08)', () => {
   it('closing a closed camera changes nothing', () => {
     expect(reduceScan(initialScanState, { type: 'cameraClosed' })).toBe(initialScanState);
   });
+
+  describe('Retake from the one-page screen (SCAN-13)', () => {
+    const open: ScanState = { ...initialScanState, phase: 'result', selectedId: 4 };
+
+    it('over the table: the camera opens for that page and the page stays open under it', () => {
+      const next = reduceScan(open, { type: 'retakeOpened', pageId: 4 });
+      expect(next).toMatchObject({ phase: 'result', camera: { mode: 'one', pageId: 4 } });
+      expect(reduceScan(next, { type: 'cameraClosed' })).toMatchObject({ phase: 'result', camera: null });
+    });
+
+    it('over the camera: the page steps aside, and closing goes back to taking pages', () => {
+      const overCamera: ScanState = { ...open, camera: { mode: 'many' } };
+      const next = reduceScan(overCamera, { type: 'retakeOpened', pageId: 4 });
+      expect(next).toMatchObject({ phase: 'table', camera: { mode: 'one', pageId: 4, thenMany: true } });
+      expect(reduceScan(next, { type: 'cameraClosed' }).camera).toEqual({ mode: 'many' });
+    });
+  });
 });

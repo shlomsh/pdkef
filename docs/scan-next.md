@@ -49,8 +49,8 @@ the table. On desktop, Choose photos (and the drop) stay the way in.
   is never taken twice.
 - **Controls:** the shutter (always works, auto or not), the stack, **Done**, close, and an **Auto** switch.
   Nothing else.
-- **Keep or retake:** tapping the stack shows the last page as it will download, with **Retake** and
-  **Keep**, and a quiet "Fix the corners" link.
+- **Keep or retake:** tapping the stack opens the one-page screen (section 4) on the last page. Done goes back
+  to the camera; Retake takes that page again and goes back to taking pages (SCAN-13).
 - **The photo** is `ImageCapture.takePhoto` from the running camera, at the native photo's quality without
   leaving the page (SCAN-04: a frame grabbed from the video reads clearly worse).
 - **Without the camera:** if permission is refused or the browser has no camera access, today's native
@@ -67,15 +67,21 @@ The loaded state after Done, or after Choose photos.
 - **Size**, the real size of the PDF that will be sent, with **Full · 2 MB · 1 MB · 500 KB** inline under it.
   The size shown is the size sent. The PDF is built in the background while the person scans, so the size is
   there when the table appears.
+- **Page size: Fit**, a quiet line inside the same card: it says what the PDF is, like the size.
 - **Share**, the one filled button (Download on desktop, where Share is the quiet one).
-- A quiet row: **Download · Sign · Redact**, and **Page size: Fit**.
+- The quiet next steps under it: **Download · Sign · Redact**.
+- **Clear all**, alone at the very bottom, away from anything that moves the scan forward.
+
+Pages move by hold and drag on the grid.
 
 ### 4. One page
 
-Opened by tapping a page on the table. It shows the page as it will download, and one quiet row:
+Opened by tapping a page on the table. It fills the screen, over the site and everything else, and nothing
+sits below Done. It shows the page as it will download, swiping left and right moves through the scan, and
+under it one quiet row:
 
-- **Corners** steps into today's corner editor, unchanged: drag with the loupe, Auto-detect, Whole photo,
-  full screen, "Use these corners".
+- **Corners** steps into today's corner editor inside the same screen: drag with the loupe, Auto-detect,
+  Whole photo, "Use these corners".
 - **Rotate** a quarter turn per press. Available, never in focus.
 - **Look**: Document, Grayscale, Original for this page.
 - **Retake** opens the camera for this page only and puts the new photo in its place.
