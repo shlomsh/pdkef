@@ -75,7 +75,7 @@ function ShareOrDownload({ pages, failedIds, output, canShare }: { pages: ScanPa
   );
 }
 
-/** The loaded state on a phone: the name, the numbered pages, the size card, Share, the quiet next steps and, alone at the bottom, Clear all. */
+/** The loaded state on a phone: the name with a small Clear all beside it, the numbered pages, the size card, Share and the quiet next steps. */
 export default function ScanPhoneTable({ pages, results, resultKeyOf, failedIds, listRef, onOpen, onTileKeyDown, onFiles, onCamera, onPickMore, onClear, output, options, rating }: ScanPhoneTableProps) {
   const { prepared, flow } = output;
   const ready = prepared.status === 'ready';
@@ -84,7 +84,13 @@ export default function ScanPhoneTable({ pages, results, resultKeyOf, failedIds,
   return (
     <div class={styles.table} data-scan-ready={ready || undefined}>
       <ScanErrors pages={pages} failedIds={failedIds} buildFailed={prepared.status === 'error'} />
-      <ScanHeading pageCount={pages.length} output={output} />
+      <div class={styles.top}>
+        <ScanHeading pageCount={pages.length} output={output} />
+        <button type="button" class={styles.clear} data-clear-all onClick={onClear}>
+          <Trash2 size={14} aria-hidden="true" />
+          {t.clearAll}
+        </button>
+      </div>
       <ScanPageGrid
         pages={pages}
         results={results}
@@ -130,12 +136,6 @@ export default function ScanPhoneTable({ pages, results, resultKeyOf, failedIds,
         <p class={`${pdfToolStyles['hint-message']} ${pdfToolStyles.danger}`} role="status">{t.handoffFailed}</p>
       )}
       {rating}
-      <div class={styles['clear-row']}>
-        <button type="button" class={styles.clear} data-clear-all onClick={onClear}>
-          <Trash2 size={16} aria-hidden="true" />
-          {t.clearAll}
-        </button>
-      </div>
     </div>
   );
 }

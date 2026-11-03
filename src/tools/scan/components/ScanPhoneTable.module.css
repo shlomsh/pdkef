@@ -1,4 +1,4 @@
-/* The phone's table: name, numbered pages, hint, one card, Share, quiet next steps, Clear all alone at the foot.
+/* The phone's table: name and a small Clear all, numbered pages, hint, one card, Share, quiet next steps.
    Sizes follow the approved mock (SCAN-13). */
 
 .table {
@@ -7,6 +7,14 @@
   gap: var(--space-4);
   min-width: 0;
   padding-inline: var(--space-4);
+}
+
+.top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  min-width: 0;
 }
 
 .hint-row {
@@ -176,22 +184,17 @@
   cursor: default;
 }
 
-/* Clear all stands alone: clear space above, nothing beside it. */
-.clear-row {
-  display: flex;
-  justify-content: center;
-  margin-block-start: var(--space-5);
-}
-
+/* Small, at the end of the name row: out of the way of everything that moves the scan forward. */
 .clear {
+  flex: none;
   display: inline-flex;
   align-items: center;
-  justify-content: center;
-  gap: 6px;
+  gap: 4px;
   min-height: 44px;
-  padding: 0 var(--space-4);
+  margin-inline-end: calc(-1 * var(--space-2));
+  padding: 0 var(--space-2);
   font: inherit;
-  font-size: 0.875rem;
+  font-size: 0.8125rem;
   color: var(--color-muted);
   background: transparent;
   border: 0;
