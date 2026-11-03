@@ -63,7 +63,7 @@ function OpenWithChooser({ initialFile }: { initialFile?: File }) {
   return (
     <div class={styles.chooser}>
       <p class={styles.lead}>
-        <span class={styles.fileName} dir="auto">{file.name}</span> is ready. What would you like to do with it?
+        <span class={styles.fileName} dir="ltr">{file.name}</span> is ready. What would you like to do with it?
       </p>
       <div class={styles.choices}>
         {CHOICES.map(({ tool, label, note }) => (

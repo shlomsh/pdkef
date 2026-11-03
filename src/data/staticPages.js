@@ -93,9 +93,15 @@ export const staticPages = [
         ],
       },
       {
+        heading: 'Opening a file from Google Drive',
+        paragraphs: [
+          'If you choose PDkef from the Open with menu in Google Drive, one page, <a href="/drive/">/drive/</a>, signs you in with Google and asks for access to that one file only. The file goes from Drive straight to your device, and PDkef never sees your Google password or the rest of your Drive. Your file is never sent anywhere else, and no other page on PDkef loads anything from Google.',
+        ],
+      },
+      {
         heading: 'A technical backstop, not just a promise',
         paragraphs: [
-          "These are not just policy statements: PDkef ships a strict Content-Security-Policy that locks connect-src down to the site's own origin, so the browser itself blocks any script from sending data to a third-party server, even if a future bug tried to add one by accident.",
+          "These are not just policy statements: PDkef ships a strict Content-Security-Policy that locks connect-src down to the site's own origin (the Drive page above adds Google's, and only there), so the browser itself blocks any script from sending data to a third-party server, even if a future bug tried to add one by accident.",
           'Because PDkef is <a href="https://github.com/shlomsh/pdkef" target="_blank" rel="noopener noreferrer">open source</a>, none of this has to be taken on trust: you can read the exact code that runs on your device, including this policy, for yourself. Questions about any of this are welcome on the <a href="/contact/">contact page</a>.',
         ],
       },
