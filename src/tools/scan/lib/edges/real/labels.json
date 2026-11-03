@@ -1,0 +1,7 @@
+{
+  "envelope-on-lap": {
+    "corners": [[0.2889, 0.295], [0.8667, 0.3225], [0.8089, 0.845], [0.096, 0.779]],
+    "conditions": ["lap", "low-contrast"],
+    "source": "the SCAN-01 real-photo fixture (fixtures/envelopeOnLap.ts); who took it is not recorded there"
+  }
+}

@@ -253,6 +253,7 @@ describe('selectUnitTests: each blind-spot widen rule fires', () => {
       'src/i18n/messages.ts',
       'src/content/localized-tools/he/merge.yaml',
       'api/report.ts',
+      'src/tools/scan/lib/edges/real/baseline.json',
       'src/tools/merge/PdfMergeTool.tsx',
     ];
     const example = candidates.find((c) => rule.match(c));

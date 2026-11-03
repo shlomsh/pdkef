@@ -20,7 +20,7 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 
 - [SCAN-06](backlog/tasks/SCAN-06.md) P1 · Scan next: the table and the one-page view, with size and compression right before Share
 - [SCAN-04](backlog/tasks/SCAN-04.md) P1 · Scan next: the phone measurements that decide the camera build
-- [SCAN-05](backlog/tasks/SCAN-05.md) P1 · Scan next: a real page-detection corpus with scored KPIs
+- [SCAN-05](backlog/tasks/SCAN-05.md) P1 · Scan next: a real page-detection corpus with scored KPIs (in progress)
 
 ### Robustness and debt
 
