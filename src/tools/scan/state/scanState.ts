@@ -25,8 +25,9 @@ interface Shared {
   focusPending: boolean;
 }
 
-/** The centre shows the page as it will download (`result`); corners are a mode you step into. */
-type ScanState = Shared & ({ phase: 'result' } | { phase: 'corners' });
+/** The centre shows all the pages (`table`); a tapped page opens as it will download (`result`);
+ * corners are a mode you step into from there. */
+type ScanState = Shared & ({ phase: 'table' } | { phase: 'result' } | { phase: 'corners' });
 
 type ScanEvent =
   | { type: 'photosAdded'; firstId: number }
@@ -34,6 +35,9 @@ type ScanEvent =
   | { type: 'cornersOpened'; focus: boolean }
   | { type: 'failedPageShown'; id: number }
   | { type: 'resultShown' }
+  | { type: 'pageOpened'; id: number }
+  | { type: 'tableShown' }
+  | { type: 'pageRetaken'; oldId: number; newId: number }
   | { type: 'scrollFocusRequested'; top?: boolean; focus?: boolean }
   | { type: 'scrollFocusConsumed' }
   | { type: 'findStarted'; id: number }
@@ -42,7 +46,7 @@ type ScanEvent =
   | { type: 'findFound'; id: number }
   | { type: 'pageFailed'; id: number }
   | { type: 'failureCleared'; id: number }
-  | { type: 'pageRemoved'; id: number; neighbourId: number | null; nextNewId: number | null }
+  | { type: 'pageRemoved'; id: number; neighbourId: number | null }
   | { type: 'cleared' }
   | { type: 'fullscreenChanged'; native: boolean }
   | { type: 'fullLayerEntered' }
@@ -51,7 +55,7 @@ type ScanEvent =
   | { type: 'resultAfterFullShown' };
 
 export const initialScanState: ScanState = {
-  phase: 'result',
+  phase: 'table',
   selectedId: null,
   finding: null,
   findMissed: [],
@@ -74,8 +78,8 @@ const withoutId = (ids: number[], id: number) => (ids.includes(id) ? ids.filter(
 export function reduceScan(state: ScanState, event: ScanEvent): ScanState {
   switch (event.type) {
     case 'photosAdded':
-      // A new photo is shown first as itself, corners on top, to approve or adjust.
-      return patch(state, { selectedId: event.firstId, phase: 'corners', topPending: true });
+      // New photos land on the table; the first is selected so the strip and the table show where they went.
+      return patch(state, { selectedId: event.firstId, phase: 'table', topPending: true });
     case 'pageSelected':
       return patch(state, { selectedId: event.id });
     case 'cornersOpened':
@@ -84,6 +88,16 @@ export function reduceScan(state: ScanState, event: ScanEvent): ScanState {
       return patch(state, { selectedId: event.id, phase: 'corners', topPending: true, focusPending: true });
     case 'resultShown':
       return patch(state, { phase: 'result' });
+    case 'pageOpened':
+      return patch(state, { selectedId: event.id, phase: 'result', topPending: true, focusPending: true });
+    case 'tableShown':
+      return patch(state, { phase: 'table' });
+    case 'pageRetaken':
+      return patch(state, {
+        selectedId: event.newId,
+        failedIds: withoutId(state.failedIds, event.oldId),
+        findMissed: withoutId(state.findMissed, event.oldId),
+      });
     case 'scrollFocusRequested':
       return patch(state, {
         ...(event.top ? { topPending: true } : {}),
@@ -106,17 +120,11 @@ export function reduceScan(state: ScanState, event: ScanEvent): ScanState {
     case 'pageRemoved': {
       const failedIds = withoutId(state.failedIds, event.id);
       if (state.selectedId !== event.id) return patch(state, { failedIds });
-      // Removing the photo under review: on to the next new one, or to the result when none is left.
-      return patch(state, {
-        failedIds,
-        selectedId: event.nextNewId ?? event.neighbourId,
-        ...(state.phase === 'corners' && event.nextNewId === null ? { phase: 'result' as const } : {}),
-        // A new photo opens in view, whether this one went from its own box or from the strip.
-        ...(event.nextNewId !== null ? { topPending: true } : {}),
-      });
+      // The open page went: back to the table, on its neighbour.
+      return patch(state, { failedIds, selectedId: event.neighbourId, phase: 'table' });
     }
     case 'cleared':
-      return patch(state, { phase: 'result', selectedId: null, failedIds: state.failedIds.length > 0 ? [] : state.failedIds });
+      return patch(state, { phase: 'table', selectedId: null, failedIds: state.failedIds.length > 0 ? [] : state.failedIds });
     case 'fullscreenChanged':
       return patch(state, { full: event.native ? 'native' : state.full === 'native' ? null : state.full });
     case 'fullLayerEntered':

@@ -37,7 +37,7 @@ export default withIslandBoundary(function PdfScanTool({ quietPolicy, navigate }
   const [pages, setPages] = useState<ScanPage[]>([]);
   const [state, dispatch] = useReducer(reduceScan, initialScanState);
   const { selectedId, finding, findMissed, failedIds, full } = state;
-  /** The centre shows the page as it will download; corners are a mode you step into. */
+  /** The table of all the pages, one page as it will download, or that page's corners. */
   const view = state.phase;
   const settings = useScanSettings();
   const board = useScanBoard();
@@ -49,7 +49,7 @@ export default withIslandBoundary(function PdfScanTool({ quietPolicy, navigate }
   work.defaultFilter = settings.defaultFilter;
   const { rating, wide } = useScanRating();
 
-  const { processed, addFiles } = useScanPages({ pages, setPages, work, unmountedRef, dispatch, ...board });
+  const { processed, addFiles, retakeFile } = useScanPages({ pages, setPages, work, unmountedRef, dispatch, ...board });
 
   const { key, prepared, outputName, fileName, downloadFlow } = useScanExport({
     pages, failedIds, ...settings, work, processed, unmountedRef, ...board, quietPolicy, navigate,
@@ -71,8 +71,8 @@ export default withIslandBoundary(function PdfScanTool({ quietPolicy, navigate }
     state, dispatch, work, hasPages: pages.length > 0, selected, editorRef, headingRef, listRef, unmountedRef, ...board,
   });
 
-  const { findPage, removePage, removeFromCorners, reset } = createPageActions({ pages, view, setPages, work, unmountedRef, dispatch, focusIdRef, ...board, ...settings });
-  const edit = createEditActions({ pages, selected, selectedIndex, failedIds, setPages, dispatch, focusIdRef, showResult, ...board, ...settings });
+  const { findPage, removePage, reset } = createPageActions({ pages, view, setPages, work, unmountedRef, dispatch, focusIdRef, ...board, ...settings });
+  const edit = createEditActions({ pages, selected, selectedIndex, failedIds, setPages, dispatch, focusIdRef, showResult, retakeFile, ...board, ...settings });
 
   const shown = key === null ? undefined : work.shown.get(key);
   const limitNote = key !== null && work.missedKeys.has(key) ? t.limitMissed : undefined;
@@ -95,6 +95,10 @@ export default withIslandBoundary(function PdfScanTool({ quietPolicy, navigate }
           {(bridge) => (
             <ScanWorkspace
               bridge={bridge}
+              view={view}
+              onOpen={edit.openPage}
+              results={results}
+              resultKeyOf={resultKey}
               pages={pages}
               failedIds={failedIds}
               addFiles={addFiles}
@@ -132,14 +136,14 @@ export default withIslandBoundary(function PdfScanTool({ quietPolicy, navigate }
                   onRotate: edit.rotatePage,
                   onToggleFull: full ? exitFull : enterFull,
                   onAdjustCorners: edit.adjustCorners,
-                  onAdjustFromNote: () => dispatch({ type: 'cornersOpened', focus: false }),
                   onCommit: edit.commitCorners,
                   onFind: findPage,
                   onApprove: edit.approveCorners,
-                  onDone: edit.finishCorners,
-                  onRemoveFromCorners: removeFromCorners,
+                  onDone: edit.closePage,
+                  onRetake: (file) => edit.retakePage(selected.id, file),
+                  onRemovePage: removePage,
                   onChooseLook: edit.chooseLook,
-                  onSelect: (id) => dispatch({ type: 'pageSelected', id }),
+                  onSelect: edit.openPage,
                   onTileKeyDown: edit.onTileKeyDown,
                   onRemove: removePage,
                   onFiles: addFiles,

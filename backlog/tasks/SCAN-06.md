@@ -1,7 +1,7 @@
 ---
 id: "SCAN-06"
 title: "Scan next: the table and the one-page view, with size and compression right before Share"
-status: "open"
+status: "in_progress"
 priority: "P1"
 epic: "scan-next"
 horizon: "now"
@@ -38,7 +38,21 @@ voice, no em dashes.
 
 - [ ] On an iPhone: three photos with the native camera, then Share to WhatsApp, with no corners stop, in
       about 13 taps (16 today); the size shown before Share is the size of the file shared.
-- [ ] Tapping a page offers Corners, Rotate, Look, Retake and Remove, and Retake replaces that page in place.
+- [x] Tapping a page offers Corners, Rotate, Look, Retake and Remove, and Retake replaces that page in place.
 - [ ] Phone 390x844 and 375x667: the size row and Share are on the first screen of the table; no sideways
       scroll at 320. Desktop 1440x900 and 1280x720 still fill the first screen (SCAN-02's rule).
-- [ ] Unit tests for the state changes start red; the corner-drag and loupe e2e specs still pass.
+- [x] Unit tests for the state changes start red; the corner-drag and loupe e2e specs still pass.
+
+## Progress
+
+- 2026-11-03, branch `claude/scan-06-table` (6 commits from 3ed6956c to ba2a62cc): the table phase and events,
+  retake in place, the one-page view (Corners, Rotate, Look, Retake, Remove, Done), the table (numbered
+  grid, Add pages tile, real size with the limit chips, Share chosen by capability so it does not flip while
+  the PDF builds), the date-based name, `docs/scan-to-pdf.md` "The flow". check:fast passes; the corner-drag
+  and corner-loupe specs pass on a production build.
+- Production build, scripted at 390x844, 375x667, 320x640, 820x1180 and 1440x900: three photos land on the
+  table, a tile opens the page, Corners shows four handles, no sideways scroll at any size. On 390x844 and
+  375x667 the size row and the filled button are on the first screen. Found and fixed there: below 1024px
+  the rail's finish stacked under the table's own, two Download buttons (ba2a62cc).
+- Open: 1280x720 not yet checked; the iPhone run (native camera, Share to WhatsApp, tap count) needs Shlomi's
+  phone.

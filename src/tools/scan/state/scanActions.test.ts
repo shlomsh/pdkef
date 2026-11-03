@@ -88,7 +88,7 @@ describe('createPageActions', () => {
       expect(work.removed.has(a.id)).toBe(true);
       expect(work.results).toEqual({});
       expect(ctx.setResults).toHaveBeenCalledWith({});
-      expect(ctx.dispatch).toHaveBeenCalledWith({ type: 'pageRemoved', id: a.id, neighbourId: b.id, nextNewId: null });
+      expect(ctx.dispatch).toHaveBeenCalledWith({ type: 'pageRemoved', id: a.id, neighbourId: b.id });
       expect(ctx.focusIdRef.current).toBe(b.id);
       expect(recordAction).toHaveBeenCalledWith('remove_file');
     });
@@ -98,12 +98,6 @@ describe('createPageActions', () => {
       createPageActions(ctx).removePage(a.id);
       expect(ctx.dispatch).toHaveBeenCalledWith({ type: 'cleared' });
       expect(ctx.announce).toHaveBeenLastCalledWith(t.announceCleared);
-    });
-    it('from the corners asks for the top first', () => {
-      const [a, b] = [newPage(photo(), 'document'), newPage(photo(), 'document')];
-      const { ctx } = setup([a, b]);
-      createPageActions(ctx).removeFromCorners(a.id);
-      expect(ctx.dispatch.mock.calls[0][0]).toEqual({ type: 'scrollFocusRequested', top: true });
     });
   });
 
@@ -123,11 +117,11 @@ describe('createPageActions', () => {
 });
 
 describe('createEditActions', () => {
-  function editSetup(pages: ScanPage[], selectedIndex = 0, failedIds: number[] = []) {
+  function editSetup(pages: ScanPage[], selectedIndex = 0, failedIds: number[] = [], extra: Record<string, unknown> = {}) {
     const { ctx, pagesNow } = setup(pages);
     const showResult = vi.fn();
     const setDefaultFilter = vi.fn();
-    const actions = createEditActions({ ...ctx, selected: pages[selectedIndex], selectedIndex, failedIds, setDefaultFilter, showResult });
+    const actions = createEditActions({ ...ctx, selected: pages[selectedIndex], selectedIndex, failedIds, setDefaultFilter, showResult, retakeFile: vi.fn(), ...extra });
     return { ctx, actions, pagesNow, showResult, setDefaultFilter };
   }
   const arrow = (key: string, extra = {}) => ({ key, altKey: false, metaKey: false, ctrlKey: false, shiftKey: false, preventDefault: vi.fn(), ...extra }) as unknown as KeyboardEvent;
@@ -178,28 +172,33 @@ describe('createEditActions', () => {
     actions.showFailedPage();
     expect(ctx.dispatch).toHaveBeenCalledWith({ type: 'failedPageShown', id: b.id });
   });
-  describe('approveCorners', () => {
-    it('goes on to the next new photo', () => {
-      const [a, b] = [newPage(photo(), 'document'), newPage(photo(), 'document')];
-      const { ctx, actions, pagesNow, showResult } = editSetup([a, b]);
-      actions.approveCorners();
-      expect(pagesNow()[0].reviewed).toBe(true);
-      expect(ctx.dispatch).toHaveBeenCalledWith({ type: 'pageSelected', id: b.id });
-      expect(showResult).not.toHaveBeenCalled();
-    });
-    it('goes to the result when none is left', () => {
-      const a = newPage(photo(), 'document');
-      const { ctx, actions, showResult } = editSetup([a]);
-      actions.approveCorners();
-      expect(showResult).toHaveBeenCalledWith(a);
-      expect(ctx.announce).toHaveBeenCalledWith(t.announceResult);
-    });
-  });
-  it('finishes the corners on the result and opens them again from the head', () => {
-    const a = newPage(photo(), 'document');
-    const { ctx, actions, showResult } = editSetup([a]);
-    actions.finishCorners();
+  it('approving the corners returns to the result on the same page', () => {
+    const [a, b] = [newPage(photo(), 'document'), newPage(photo(), 'document')];
+    const { ctx, actions, showResult } = editSetup([a, b]);
+    actions.approveCorners();
     expect(showResult).toHaveBeenCalledWith(a);
+    expect(ctx.dispatch).not.toHaveBeenCalledWith(expect.objectContaining({ type: 'pageSelected' }));
+    expect(ctx.announce).toHaveBeenCalledWith(t.announceResult);
+  });
+  it('opens and closes a page', () => {
+    const a = newPage(photo(), 'document');
+    const { ctx, actions } = editSetup([a]);
+    actions.openPage(a.id);
+    expect(ctx.dispatch).toHaveBeenCalledWith({ type: 'pageOpened', id: a.id });
+    actions.closePage();
+    expect(ctx.dispatch).toHaveBeenCalledWith({ type: 'tableShown' });
+  });
+  it('retakes a page through the host', () => {
+    const a = newPage(photo(), 'document');
+    const retakeFile = vi.fn();
+    const { actions } = editSetup([a], 0, [], { retakeFile });
+    const file = photo();
+    actions.retakePage(a.id, file);
+    expect(retakeFile).toHaveBeenCalledWith(a.id, file);
+  });
+  it('opens the corners again from the head', () => {
+    const a = newPage(photo(), 'document');
+    const { ctx, actions } = editSetup([a]);
     actions.adjustCorners();
     expect(ctx.dispatch).toHaveBeenCalledWith({ type: 'cornersOpened', focus: true });
   });

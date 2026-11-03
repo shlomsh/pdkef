@@ -44,8 +44,10 @@ test('a touch drag on a corner shows a loupe away from the finger, gone on relea
   await page.locator('input[type=file]:not([capture])').first().setInputFiles({
     name: 'desk-photo.jpg', mimeType: 'image/jpeg', buffer: await makePhotoBytes(page),
   });
+  // New photos land on the table: tap the page, then Corners.
+  await page.locator('[data-table-page]').first().click();
+  await page.getByRole('button', { name: 'Corners', exact: true }).click();
   await waitForScrollToSettle(page);
-  // A new photo opens in the corners view, to approve or adjust first.
   const handle = page.getByRole('button', { name: 'Top-left corner' });
   await expect(handle).toBeVisible({ timeout: 20_000 });
   await handle.scrollIntoViewIfNeeded();

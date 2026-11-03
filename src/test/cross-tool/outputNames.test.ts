@@ -6,7 +6,7 @@ import { modifiedTitle } from '../../tools/edit-pages/lib/outputName.ts';
 import { outputFileName as securityName } from '../../tools/security/lib/outputName.ts';
 import { outputNameParts } from '#lib/output/outputNameParts.ts';
 import { imageBaseName, imageFileName } from '../../tools/to-image/lib/toImage.js';
-import { englishScanMessages as scanMessages } from '../../tools/scan/messages.ts';
+import { defaultScanName } from '../../tools/scan/lib/scanName.ts';
 import { defaultOutputName } from '#lib/pages/pageOrder.js';
 
 // ARCH-38: every tool's output name, pinned. Six conventions (merged_x, extracted_x, x-compressed,
@@ -288,7 +288,7 @@ describe('output names, every tool', () => {
   });
 
   it('names that need no source file', () => {
-    expect(scanMessages.defaultName).toBe('scan');
+    expect(defaultScanName(new Date(2026, 10, 3))).toBe('Scan 3 Nov 2026');
     expect(defaultOutputName([])).toBe('images');
     expect(splitName('', 'combined')).toBe('extracted_split.pdf');
     expect(imageBaseName('.pdf')).toBe('page');

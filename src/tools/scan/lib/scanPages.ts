@@ -27,7 +27,7 @@ export function partitionFiles(files: File[], acceptedTypes: readonly string[]) 
 /** A new photo: the whole photo as its corners, the look last chosen, nothing inspected yet. */
 export function newPage(file: File, filter: ScanFilter): ScanPage {
   return {
-    id: nextId++, file, preview: null, aspect: null, filter, reviewed: false,
+    id: nextId++, file, preview: null, aspect: null, filter,
     quad: FULL_QUAD, turns: 0, guessed: false, edited: false, found: null,
   };
 }
@@ -99,7 +99,7 @@ export const failedPositions = (pages: ScanPage[], failedIds: number[]) => (
 );
 
 /** Where a page was and which page the person lands on once it is gone. */
-export function afterRemoval(pages: ScanPage[], id: number, view: 'corners' | 'result') {
+export function afterRemoval(pages: ScanPage[], id: number) {
   const index = pages.findIndex((p) => p.id === id);
   const left = pages.filter((p) => p.id !== id);
   return {
@@ -107,13 +107,16 @@ export function afterRemoval(pages: ScanPage[], id: number, view: 'corners' | 'r
     removed: pages[index] as ScanPage | undefined,
     left,
     neighbour: left[index] ?? left[index - 1],
-    // Removing the photo under review: on to the next new one, or to the result when none is left.
-    nextNew: view === 'corners' ? left.find((p) => !p.reviewed) : undefined,
   };
 }
 
-/** The next new photo still waiting for a look, other than `id`. */
-export const nextUnreviewed = (pages: ScanPage[], id: number) => pages.find((p) => !p.reviewed && p.id !== id);
+/** A retake: `fresh` takes the place of page `oldId` in the list, with the look the old page had and no turns.
+ * It is a new page with a new id, since a result is keyed by id and must never show the old photo. */
+export function replacePage(pages: ScanPage[], oldId: number, fresh: ScanPage): ScanPage[] {
+  const old = pages.find((p) => p.id === oldId);
+  if (!old) return pages;
+  return pages.map((p) => (p === old ? { ...fresh, filter: old.filter, turns: 0 } : p));
+}
 
 /** What the built PDF is keyed by: every page's result key and the settings, once all pages are read; null before. */
 export function exportKeyFor(pages: ScanPage[], failedIds: number[], pageSize: string, limit: string): string | null {

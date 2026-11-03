@@ -1,0 +1,245 @@
+/* The table: the pages as a numbered grid ending in Add pages. Below 1024px it is the whole first
+   screen (name, grid, hint, Size, Share, quiet row); from 1024px the grid fills the centre and the
+   rail carries the rest. */
+
+.table {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  min-width: 0;
+}
+
+.grid {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--space-2);
+}
+
+@media (min-width: 1024px) {
+  .grid {
+    grid-template-columns: repeat(auto-fill, minmax(9.5rem, 1fr));
+    gap: var(--space-4);
+  }
+}
+
+.cell {
+  min-width: 0;
+}
+
+.tile {
+  position: relative;
+  display: grid;
+  place-items: center;
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 44px;
+  padding: 0;
+  aspect-ratio: 3 / 4;
+  overflow: hidden;
+  font: inherit;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.tile:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+@media (hover: hover) {
+  .tile:hover {
+    border-color: var(--color-primary);
+  }
+}
+
+.tile img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  pointer-events: none;
+  user-select: none;
+}
+
+.tile img[data-stale] {
+  opacity: 0.45;
+}
+
+.pending {
+  padding: 4px;
+  font-size: 0.7rem;
+  text-align: center;
+  color: var(--color-muted);
+}
+
+.badge {
+  position: absolute;
+  inset-block-end: 6px;
+  inset-inline-start: 6px;
+  padding: 0 7px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-surface);
+  background: var(--color-text);
+  border-radius: var(--radius-pill);
+  pointer-events: none;
+}
+
+/* The Add pages tile is the grid's last slot, the same 3:4 shape as a page. */
+.add {
+  display: flex;
+  height: 100%;
+}
+
+.add-button {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  box-sizing: border-box;
+  width: 100%;
+  aspect-ratio: 3 / 4;
+  min-height: 44px;
+  padding: 4px;
+  font: inherit;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-align: center;
+  color: var(--color-primary-text);
+  background: transparent;
+  border: 1.5px dashed var(--color-border-strong);
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.add-button:focus-visible {
+  background: var(--color-primary-soft);
+  border-color: var(--color-primary);
+}
+
+@media (hover: hover) {
+  .add-button:hover {
+    background: var(--color-primary-soft);
+    border-color: var(--color-primary);
+  }
+}
+
+/* TakePhotoButton's wrapper is a flex child that fills the tile. */
+.add > :first-child {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+/* A phone adds with the camera, a mouse with the picker. */
+@media (pointer: coarse) {
+  .add-pick {
+    display: none;
+  }
+}
+
+.hint {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--color-muted);
+}
+
+/* Phone only. */
+.phone {
+  display: grid;
+  gap: var(--space-3);
+}
+
+@media (min-width: 1024px) {
+  .phone {
+    display: none;
+  }
+}
+
+/* Desktop only: on a phone the table carries the finish itself. */
+.wide {
+  display: none;
+}
+
+@media (min-width: 1024px) {
+  .wide {
+    display: contents;
+  }
+}
+
+.size {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.size-line {
+  margin: 0;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.size-label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--color-muted);
+}
+
+/* Room for "99.9 MB" so the figure arriving or changing moves nothing. */
+.size-value {
+  min-width: 7ch;
+  text-align: end;
+  font-size: 1.75rem;
+  font-weight: 700;
+  line-height: 1.2;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text);
+}
+
+.size-value[data-pending] {
+  font-size: 1rem;
+  font-weight: 400;
+  color: var(--color-muted);
+}
+
+/* Share, or Download where the browser cannot share files: the one filled button. */
+.primary {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 52px;
+  font: inherit;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--color-surface);
+  background: var(--color-primary);
+  border: 1px solid var(--color-primary);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.primary[aria-disabled='true'] {
+  opacity: 0.55;
+  cursor: default;
+}
+
+.primary:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+@media (hover: hover) {
+  .primary:not([aria-disabled='true']):hover {
+    background: var(--color-primary-hover);
+    border-color: var(--color-primary-hover);
+  }
+}

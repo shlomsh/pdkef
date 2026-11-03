@@ -85,7 +85,7 @@ export function useDownloadFlow(input: DownloadFlowInput) {
   // Only the person's Download tap, not the speculative background build.
   useHoldUpdate(tap === 'processing');
   const [downloadedOnce, setDownloadedOnce] = useState(false);
-  const { shareReady, prepare, prepareFiles, clearPrepared, sharePrepared, download } = usePdfShare();
+  const { shareReady, canSharePdf, prepare, prepareFiles, clearPrepared, sharePrepared, download } = usePdfShare();
   /* MERGE-14: hand the result to Compress or Sign without re-picking. */
   const [handoffBusy, setHandoffBusy] = useNavigatingAway();
   const [handoffFailed, setHandoffFailed] = useState(false);
@@ -267,7 +267,7 @@ export function useDownloadFlow(input: DownloadFlowInput) {
     downloadedOnce,
     downloadLinkReady,
     showStrip,
-    shareReady,
+    shareReady, canSharePdf, // canSharePdf is known up front; shareReady waits for the built file
     handoffBusy,
     handoffFailed,
     requestHandoff,

@@ -9,18 +9,26 @@ demand data and acceptance are in `backlog/tasks/SCAN-01.md`; this record says h
 1. **In.** Photos from the library (the dropzone's picker, JPEG or PNG) or "Take a photo" (a second
    `<input type="file" capture="environment">`, coarse pointers only). One photo is one page; more can
    be added at any time. A hand-off from Image to PDF arrives the same way (`useHandoffFilesIntake`).
-2. **Corners.** Each page gets four corners, prefilled by `guessCorners` (below) when it finds a page and
-   the whole photo when it does not. The selected page shows its photo with the corners over it; the
-   person drags them. A corner the person moved is never re-guessed: their corners always win.
-3. **Look.** Three filters for every page: Original, Grayscale, Document (even out the lighting, then a
+2. **The table.** Photos land on a numbered grid of pages that ends in an Add pages tile. The table shows
+   the real size of the PDF and one filled button, Share (Download where the browser cannot share
+   files). The button is chosen by capability, not by whether the file is built yet, so it does not
+   change while the PDF is made.
+3. **One page.** Tapping a page shows it alone, as it will download, with Corners, Rotate, Look,
+   Retake and Remove, and one Done that returns to the table. Retake puts the new photo in the same
+   place; Remove returns to the table.
+4. **Corners.** Each page gets four corners, prefilled by `guessCorners` (below) when it finds a page and
+   the whole photo when it does not. Corners opens from the page and returns to it. A corner the person
+   moved is never re-guessed: their corners always win.
+5. **Look.** Three filters for every page: Original, Grayscale, Document (even out the lighting, then a
    clean black on white). Default: Document, since that is what a scan looks like.
-4. **Page size.** Fit (the page is the scan's own size, as Image to PDF does it), A4 or Letter, the same
+6. **Page size.** Fit (the page is the scan's own size, as Image to PDF does it), A4 or Letter, the same
    for every page. A4 and Letter follow the scan's orientation and fit it inside the page, centred.
-5. **Size limit.** Off, 2 MB, 1 MB or 500 KB for the whole PDF. With a limit, JPEG quality and then
-   resolution step down until it fits (the search Compress already uses); the Download element shows the
+7. **Size limit.** Full quality, 2 MB, 1 MB or 500 KB for the whole PDF. With a limit, JPEG quality and
+   then resolution step down until it fits (the search Compress already uses); the table shows the
    final size either way.
-6. **Done.** The shared page-tool finish (`DownloadElement`, `FinishRow`, `PhoneFinish`) hands the PDF
-   off to Sign, Merge and Compress.
+8. **Done.** The shared page-tool finish (`DownloadElement`, `FinishRow`, `PhoneFinish`) hands the PDF
+   off to Sign, Redact and Compress. The file is named "Scan 3 Nov 2026" (the day it was made) until the
+   person renames it.
 
 The output is built quietly in the background (`usePreparedOutput`), keyed on everything that changes it.
 
