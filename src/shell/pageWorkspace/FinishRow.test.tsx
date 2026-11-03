@@ -77,4 +77,27 @@ describe('FinishRow', () => {
     expect([...container.querySelectorAll('button')].map((b) => b.textContent)).toEqual(['Share']);
     expect(container.querySelector('div')!.getAttribute('data-count')).toBe('1');
   });
+
+  it('shows no Share before the output is ready, even when sharing is available', () => {
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    act(() => render(<FinishRow ready={false} shareReady onShare={vi.fn()} onHandoff={vi.fn()} onWarm={vi.fn()} labels={labels} />, container));
+    expect([...container.querySelectorAll('button')].map((b) => b.textContent)).toEqual(['Compress it', 'Sign it']);
+    expect(container.querySelector('div')!.getAttribute('data-count')).toBe('2');
+  });
+
+  it('disables the hand-offs while busy or before the output is ready, and enables them otherwise', () => {
+    const disabled = (ready: boolean, busy: boolean) => {
+      container = document.createElement('div');
+      document.body.appendChild(container);
+      act(() => render(<FinishRow ready={ready} shareReady onShare={vi.fn()} busy={busy} onHandoff={vi.fn()} onWarm={vi.fn()} labels={labels} />, container));
+      const result = [...container.querySelectorAll('button')].filter((b) => b.textContent !== 'Share').map((b) => b.disabled);
+      render(null, container);
+      container.remove();
+      return result;
+    };
+    expect(disabled(true, false)).toEqual([false, false]);
+    expect(disabled(true, true)).toEqual([true, true]);
+    expect(disabled(false, false)).toEqual([true, true]);
+  });
 });
