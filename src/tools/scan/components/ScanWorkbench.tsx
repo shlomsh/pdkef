@@ -43,12 +43,12 @@ export interface ScanWorkbenchProps {
     onRotate: () => void;
     onToggleFull: () => void;
     onAdjustCorners: () => void;
-    onAdjustFromNote: () => void;
     onCommit: (id: number, quad: Quad) => void;
     onFind: (page: ScanPage) => void;
     onApprove: () => void;
     onDone: () => void;
-    onRemoveFromCorners: (id: number) => void;
+    onRetake: (file: File) => void;
+    onRemovePage: (id: number) => void;
     onChooseLook: (next: ScanFilter) => void;
     onSelect: (id: number) => void;
     onTileKeyDown: (event: KeyboardEvent, id: number) => void;
@@ -83,7 +83,7 @@ export default function ScanWorkbench({ refs, stageHeight, pages, selected, sele
           headingRef={refs.heading}
           onRotate={actions.onRotate}
           onToggleFull={actions.onToggleFull}
-          onAdjustCorners={actions.onAdjustCorners}
+          onDone={actions.onDone}
         />
         {view === 'corners' && (
           <ScanCornersView
@@ -94,8 +94,7 @@ export default function ScanWorkbench({ refs, stageHeight, pages, selected, sele
             onCommit={actions.onCommit}
             onFind={actions.onFind}
             onApprove={actions.onApprove}
-            onDone={actions.onDone}
-            onRemove={actions.onRemoveFromCorners}
+            onRemove={actions.onRemovePage}
           />
         )}
         {view === 'result' && (
@@ -103,7 +102,11 @@ export default function ScanWorkbench({ refs, stageHeight, pages, selected, sele
             selected={selected}
             lookOptions={lookOptions()}
             onChooseLook={actions.onChooseLook}
-            onAdjustCorners={actions.onAdjustFromNote}
+            onAdjustCorners={actions.onAdjustCorners}
+            onRotate={actions.onRotate}
+            onRetake={actions.onRetake}
+            onRemovePage={actions.onRemovePage}
+            onDone={actions.onDone}
             pageProps={resultViewFor(selected, selectedIndex, { shown: built.shown, ready: exact, results, pageSize })}
             detail={exact ? exactResultDetail(built.size, pages.length) : undefined}
           />
