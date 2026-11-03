@@ -5,7 +5,7 @@ import { describe, expect, it, vi, afterEach, beforeEach } from 'vitest';
 import { readFileSync } from 'node:fs';
 // @ts-expect-error -- same: no Node ambient types.
 import path from 'node:path';
-import type { classifyPdfOpen, probeEncryption } from '#lib/pdf/pdfEncryption.ts';
+import type { probeEncryption } from '#lib/pdf/pdfEncryption.ts';
 import PdfEditPagesTool from './PdfEditPagesTool.tsx';
 import * as editPagesLib from './lib/editPages.js';
 import { installToolHarness, type ToolHarness } from '../../test/harness/toolHarness.ts';
@@ -118,20 +118,5 @@ describe('PdfEditPagesTool with a protected PDF', () => {
 
     expect(container!.querySelector('[data-needs-unlock]')).toBeNull();
     expect(container!.querySelector('ul[data-page-grid]')).not.toBeNull();
-  });
-
-  it('drops a probe result that lands after a newer pick', async () => {
-    let release!: (kind: ReturnType<typeof classifyPdfOpen>) => void;
-    harness.pdfjs.probe.mockImplementationOnce(() => new Promise((resolve) => { release = resolve; }));
-    container = document.createElement('div');
-    document.body.appendChild(container);
-    act(() => render(<PdfEditPagesTool />, container!));
-    input = container.querySelector<HTMLInputElement>('input[type="file"]')!;
-    await act(async () => { setInputFiles(input, [fixtureFile('needs-password')]); });
-    await pick(fixtureFile('plain'));
-    await act(async () => { release('needs-password'); await new Promise((resolve) => setTimeout(resolve, 50)); });
-
-    expect(container.querySelector('[data-needs-unlock]')).toBeNull();
-    expect(container.querySelector('ul[data-page-grid]')).not.toBeNull();
   });
 });

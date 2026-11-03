@@ -108,6 +108,23 @@ describe('useOpenPageDocument', () => {
     expect(onLoaded).toHaveBeenCalledWith({ pageCount: 5, file: newer });
   });
 
+  it('drops a probe result that lands after a newer pick', async () => {
+    let releaseOld: (v: unknown) => void = () => {};
+    mocks.probe.mockImplementationOnce(() => new Promise((r) => { releaseOld = r; }));
+    mount();
+    const newer = pdf('new.pdf');
+    await act(async () => { current.open(pdf('old.pdf')); });
+    await flush();
+    await act(async () => { current.open(newer); });
+    await flush();
+    await act(async () => { releaseOld('needs-password'); });
+    await flush();
+    expect(current.file).toBe(newer);
+    expect(current.needsUnlock).toBeNull();
+    expect(announce).not.toHaveBeenCalledWith(messages.needsPassword);
+    expect(onLoaded).toHaveBeenCalledTimes(1);
+  });
+
   it('reports a damaged PDF and shows the error state', async () => {
     const boom = new Error('bad xref');
     mocks.load.mockRejectedValue(boom);
