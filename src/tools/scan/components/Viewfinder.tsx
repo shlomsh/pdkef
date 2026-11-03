@@ -45,10 +45,9 @@ export default function Viewfinder(props: ViewfinderProps) {
   const [snapUrl, setSnapUrl] = useState<string | null>(null);
   const stopFlight = useRef<() => void>(() => {});
   const snapUrlRef = useRef<string | null>(null);
-  const [reviewing, setReviewing] = useState(false);
 
   const camera = useCamera({
-    paused: reviewing,
+    paused: props.paused,
     onTaken: (page: TakenPage) => {
       const dialog = dialogRef.current;
       propsRef.current.onTaken(page.file);
@@ -95,7 +94,7 @@ export default function Viewfinder(props: ViewfinderProps) {
   const cover = coverRect(camera.videoSize, size);
   const offered = camera.status === 'refused' || camera.status === 'unavailable';
 
-  const onCancel = (event: Event) => { event.preventDefault(); if (reviewing) setReviewing(false); else props.onClose(); };
+  const onCancel = (event: Event) => { event.preventDefault(); props.onClose(); };
 
   return (
     <dialog ref={dialogRef} class={styles.dialog} onCancel={onCancel} aria-label={t.startScanning}>
@@ -144,7 +143,7 @@ export default function Viewfinder(props: ViewfinderProps) {
         <div class={styles.bottom}>
           <div class={styles.side}>
             {showStack && (
-              <button type="button" class={styles.stack} data-stack aria-label={formatMessage(t.stackLabel, { count: props.count })} onClick={() => setReviewing(true)}>
+              <button type="button" class={styles.stack} data-stack aria-label={formatMessage(t.stackLabel, { count: props.count })} onClick={props.onReview}>
                 {thumb && <img ref={stackImgRef} class={styles.thumb} src={thumb} alt="" />}
                 <span class={styles.badge}>{props.count}</span>
               </button>
@@ -165,17 +164,6 @@ export default function Viewfinder(props: ViewfinderProps) {
           <div class={`${styles.side} ${styles.sideEnd}`}>
             {many && <button type="button" class={styles.done} onClick={props.onClose}>{t.cameraDone}</button>}
           </div>
-        </div>
-      )}
-
-      {reviewing && (
-        <div class={styles.sheet}>
-          {thumb && <img class={styles.review} src={thumb} alt="" />}
-          <div class={styles.sheetActions}>
-            <button type="button" class={styles.secondary} onClick={() => { setReviewing(false); props.onRetakeLast(); }}>{t.retake}</button>
-            <button type="button" class={styles.primary} onClick={() => setReviewing(false)}>{t.keepPage}</button>
-          </div>
-          <button type="button" class={styles.quiet} onClick={props.onFixCorners}>{t.fixCorners}</button>
         </div>
       )}
     </dialog>

@@ -13,7 +13,8 @@ interface CameraPropsInput {
   dispatch: ScanDispatch;
   addFiles: (files: File[]) => void;
   retakePage: (id: number, file: File) => void;
-  removePage: (id: number) => void;
+  /** The centre view: the viewer (result, corners) over a many-mode camera pauses it. */
+  view: 'table' | 'result' | 'corners';
 }
 
 /** The page as it will download once its result is current (corners and look), its photo until then. */
@@ -23,7 +24,7 @@ function lastPageSrc(page: ScanPage, results: Record<number, PageResult>): strin
 }
 
 /** The viewfinder's props while the camera is open, null otherwise. */
-export function cameraProps({ camera, pages, results, dispatch, addFiles, retakePage, removePage }: CameraPropsInput): ViewfinderProps | null {
+export function cameraProps({ camera, pages, results, dispatch, addFiles, retakePage, view }: CameraPropsInput): ViewfinderProps | null {
   if (!camera) return null;
   const last = pages[pages.length - 1];
   const close = () => dispatch({ type: 'cameraClosed' });
@@ -34,14 +35,9 @@ export function cameraProps({ camera, pages, results, dispatch, addFiles, retake
     lastSrc: last ? lastPageSrc(last, results) : null,
     onTaken: (file) => (camera.mode === 'one' ? retakeWith(camera.pageId, file) : addFiles([file])),
     onClose: close,
-    onRetakeLast: () => last && removePage(last.id),
-    // Close and open the last page's corners, as a tap on its tile and then Corners would.
-    onFixCorners: () => {
-      close();
-      if (!last) return;
-      dispatch({ type: 'pageOpened', id: last.id });
-      dispatch({ type: 'cornersOpened', focus: true });
-    },
+    paused: camera.mode === 'many' && view !== 'table',
+    // The last page opens in the viewer, over the running camera.
+    onReview: () => { if (last) dispatch({ type: 'pageOpened', id: last.id }); },
     onFallbackFiles: (files) => {
       if (camera.mode === 'one') retakeWith(camera.pageId, files[0]);
       else { addFiles(files); close(); }
