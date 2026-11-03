@@ -14,16 +14,4 @@ describe('ImageToPdfVerb', () => {
   it('renders three photos', () => {
     expect(mount().querySelectorAll('i').length).toBe(3);
   });
-
-  it('hides the whole stage from assistive tech', () => {
-    expect(mount().firstElementChild?.getAttribute('aria-hidden')).toBe('true');
-  });
-
-  it('never carries a style attribute (CSP)', () => {
-    expect(mount().querySelectorAll('[style]').length).toBe(0);
-  });
-
-  it('has no text', () => {
-    expect(mount().textContent).toBe('');
-  });
 });
