@@ -1,5 +1,6 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
+import Doodle from '../components/Doodle.astro';
 import Footer from '../components/Footer.astro';
 import OpenWithChooser from '../site-lib/OpenWithChooser.tsx';
 import '../styles/openPage.css';
@@ -11,8 +12,9 @@ const description = 'Choose what to do with the PDF you opened: sign it or redac
 ---
 
 <BaseLayout title={title} description={description} noindex={true}>
-  <header class="mx-auto max-w-[540px] px-6 pb-8 pt-[4.5rem] text-center">
-    <h1 class="type-hero space-heading-content mt-0 text-[var(--color-text)]">Open a PDF</h1>
+  <header class="mx-auto max-w-[540px] px-6 pb-4 pt-[3.5rem] text-center">
+    <Doodle figure="page-to-phone" />
+    <h1 class="type-hero space-heading-content mt-3 text-[var(--color-text)]">Open a PDF</h1>
   </header>
 
   <main class="mx-auto mb-16 max-w-[540px] px-6">
