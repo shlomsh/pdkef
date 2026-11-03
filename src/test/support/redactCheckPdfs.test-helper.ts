@@ -7,6 +7,7 @@ import { createCanvas } from '@napi-rs/canvas';
 import * as pdfjs from 'pdfjs-dist/legacy/build/pdf.mjs';
 import { PDFDocument, StandardFonts, rgb } from '@cantoo/pdf-lib';
 import type { PDFDocumentProxy } from 'pdfjs-dist';
+import type { DocumentInitParameters } from 'pdfjs-dist/types/src/display/api';
 
 /** A box in page percent, as the Redact check takes them (structurally its PercentBox). */
 type PercentBox = { left: number; top: number; width: number; height: number };
@@ -60,8 +61,9 @@ export const openedTasks: ReturnType<typeof pdfjs.getDocument>[] = [];
 
 /** The legacy pdf.js build, as `getPdfjs()` hands it out, remembering the tasks the check opens. */
 export function legacyPdfjs(): typeof pdfjs {
-  return { ...pdfjs, getDocument: ((...args: Parameters<typeof pdfjs.getDocument>) => {
-    const task = pdfjs.getDocument(...args);
+  return { ...pdfjs, getDocument: ((params: DocumentInitParameters) => {
+    // Forwards the check's own wasmUrl, so the run decodes what production decodes.
+    const task = pdfjs.getDocument({ ...params, wasmUrl: params.wasmUrl });
     openedTasks.push(task);
     return task;
   }) as typeof pdfjs.getDocument };
