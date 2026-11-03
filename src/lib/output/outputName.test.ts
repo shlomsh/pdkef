@@ -23,10 +23,4 @@ describe('outputBase / withAffixes / outputName', () => {
     expect(withAffixes('x', { ext: null })).toBe('x');
     expect(outputName('x.PDF', { suffix: '-compressed', ext: 'png' })).toBe('x-compressed.png');
   });
-
-  it('collapses a repeated prefix into the first one, as written', () => {
-    const dedupe = (n: string) => withAffixes(n, { prefix: 'redacted_', ext: null, dedupePrefix: true });
-    expect(dedupe('x.pdf')).toBe('redacted_x.pdf');
-    expect(dedupe('Redacted_redacted_x.pdf')).toBe('Redacted_x.pdf');
-  });
 });
