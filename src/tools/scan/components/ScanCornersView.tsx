@@ -14,9 +14,8 @@ interface ScanCornersViewProps {
   finding: number | null;
   onCommit: (id: number, quad: Quad) => void;
   onFind: (page: ScanPage) => void;
-  /** Use these corners, or Done once they are approved. */
+  /** Use these corners: back to the page. */
   onApprove: () => void;
-  onDone: () => void;
   onRemove: (id: number) => void;
 }
 
