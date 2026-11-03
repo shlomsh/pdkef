@@ -1,7 +1,7 @@
 ---
 id: "SCAN-07"
 title: "Scan next: the live capture logic, steady, sharp, once per page, with a confidence"
-status: "open"
+status: "in_progress"
 priority: "P1"
 epic: "scan-next"
 horizon: "next"
@@ -32,3 +32,18 @@ only; the camera that feeds it is SCAN-08.
       lock are scored and gated.
 - [ ] Unit tests drive each state change from hand-written observation sequences, red first.
 - [ ] `test:detection-purity` and `test:lazy-modules` pass; no DOM in the pure modules.
+
+## Progress 2026-11-03 (branch `claude/scan-07-capture`)
+
+- `detectPage` (`edges/detect.ts`): outline first, brightness only below `CONFIDENT` (0.8); confidence is the
+  winning quad's edge score over `FULL_SCORE` (0.6), capped at 1. Every corpus page scores 0.53 to 0.70. It
+  passes the corpus gate `guessCorners` passes. About 23 ms against `guessCorners`' 64 ms on the same corpus run
+  (Mac, under load; relative only). `guessCorners` is unchanged for photos from the library.
+- `sharpness`, `quadArea` (`capture/sharpness.ts`), `averageHash`, `hashDistance` (`capture/hash.ts`).
+- `stepCapture` (`capture/captureMachine.ts`): searching, locked, holding, fire, waitingForChange; 15 tests on
+  hand-written sequences. Thresholds in `DEFAULT_CAPTURE_PARAMS` are first guesses until SCAN-05's recorded
+  sequences tune them.
+- `test:detection-purity` did not cover Scan at all; its module list now names Scan's detection and capture
+  files.
+
+Still open: tuning on SCAN-05's real sequences, and the worker that runs it (SCAN-08).

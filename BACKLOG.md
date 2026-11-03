@@ -85,6 +85,7 @@ The camera takes pages, the table fixes them, Share sends them. The table first 
 | ID | P | Task | Note |
 | --- | --- | --- | --- |
 | SCAN-06 | P1 | [SCAN-06](backlog/tasks/SCAN-06.md) · Scan next: the table and the one-page view, with size and compression right before Share |  |
+| SCAN-07 | P1 | [SCAN-07](backlog/tasks/SCAN-07.md) · Scan next: the live capture logic, steady, sharp, once per page, with a confidence | In progress |
 | SCAN-04 | P1 | [SCAN-04](backlog/tasks/SCAN-04.md) · Scan next: the phone measurements that decide the camera build | Needs Shlomi: Your iPhone, and an Android phone if one is at hand |
 | SCAN-05 | P1 | [SCAN-05](backlog/tasks/SCAN-05.md) · Scan next: a real page-detection corpus with scored KPIs | In progress. Needs Shlomi: Photos and short videos of real pages taken on your phone, ours to check in |
 
@@ -92,7 +93,6 @@ The camera takes pages, the table fixes them, Share sends them. The table first 
 
 | ID | P | Task | Note |
 | --- | --- | --- | --- |
-| SCAN-07 | P1 | [SCAN-07](backlog/tasks/SCAN-07.md) · Scan next: the live capture logic, steady, sharp, once per page, with a confidence |  |
 | SCAN-08 | P1 | [SCAN-08](backlog/tasks/SCAN-08.md) · Scan next: the camera in the page, pages taken by themselves, Share straight after |  |
 | SCAN-11 | P2 | [SCAN-11](backlog/tasks/SCAN-11.md) · Scan next: the page copy and the scanning guide follow the new flow |  |
 | SCAN-12 | P2 | [SCAN-12](backlog/tasks/SCAN-12.md) · Scan next: a short, very visual video of camera to WhatsApp on /scan-to-pdf/ |  |

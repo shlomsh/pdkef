@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { corpus } from './corpus.ts';
+import { CONFIDENT, detectPage } from './detect.ts';
 import { guessCorners } from './index.ts';
 
 const FOUND_TOL = 0.035;
@@ -25,5 +26,24 @@ describe('edge guess corpus', () => {
     expect(wrong).toEqual([]);
     expect(found).toBeGreaterThanOrEqual(corpus.length - 1);
     // About 2.5s alone, all CPU: next to the other test files it ran past the 5s default and failed.
+  }, 30_000);
+
+  it('detectPage holds the same gate, and is confident exactly where it found the page', () => {
+    let found = 0;
+    const wrong: string[] = [];
+    const unsure: string[] = [];
+    for (const c of corpus) {
+      const { quad, confidence } = detectPage(c.image);
+      if (!quad && confidence !== 0) unsure.push(`${c.name} (null with confidence ${confidence})`);
+      let err = Infinity;
+      if (quad) err = Math.max(...quad.map((p, i) => Math.max(Math.abs(p.x - c.truth[i].x), Math.abs(p.y - c.truth[i].y))));
+      const ok = quad ? err <= (c.tol ?? FOUND_TOL) : !!c.nullOk;
+      if (ok) found += 1;
+      if (ok && quad && confidence < CONFIDENT) unsure.push(`${c.name} (${confidence.toFixed(2)})`);
+      if (quad && err > WRONG_TOL) wrong.push(c.name);
+    }
+    expect(wrong).toEqual([]);
+    expect(found).toBeGreaterThanOrEqual(corpus.length - 1);
+    expect(unsure).toEqual([]);
   }, 30_000);
 });
