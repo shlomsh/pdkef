@@ -136,6 +136,10 @@ export interface CompressMessages {
   batchRowSaveLabel: string;
   batchRowOpenLabel: string;
   batchBack: string;
+  batchTileKept: string;
+  batchPosition: string;
+  batchPrevious: string;
+  batchNext: string;
   batchSharedSuccessfully: string;
   batchSharingCanceled: string;
   batchLeftOutPdfOne: string;
@@ -258,6 +262,10 @@ export const englishCompressMessages: CompressMessages = {
   batchRowSaveLabel: 'Save {name}',
   batchRowOpenLabel: 'Compare {name}',
   batchBack: 'All {count} photos',
+  batchTileKept: '{size} · unchanged',
+  batchPosition: '{index} of {total}',
+  batchPrevious: 'Previous photo',
+  batchNext: 'Next photo',
   batchSharedSuccessfully: 'Compressed photos shared successfully.',
   batchSharingCanceled: 'Sharing canceled. Your compressed photos are still ready.',
   batchLeftOutPdfOne: 'Left out "{name}". Open a PDF on its own to compress it.',
@@ -387,6 +395,10 @@ export const hebrewCompressMessages: CompressMessages = {
   batchRowSaveLabel: 'שמירת {name}',
   batchRowOpenLabel: 'השוואה של {name}',
   batchBack: 'כל {count} התמונות',
+  batchTileKept: '{size} · ללא שינוי',
+  batchPosition: '{index} מתוך {total}',
+  batchPrevious: 'התמונה הקודמת',
+  batchNext: 'התמונה הבאה',
   batchSharedSuccessfully: 'התמונות המכווצות שותפו.',
   batchSharingCanceled: 'השיתוף בוטל. התמונות המכווצות עדיין מוכנות.',
   batchLeftOutPdfOne: 'השארנו בחוץ את "{name}". פתחו PDF לבד כדי לכווץ אותו.',

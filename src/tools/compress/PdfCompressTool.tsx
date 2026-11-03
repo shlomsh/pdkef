@@ -203,21 +203,21 @@ export default withIslandBoundary(function PdfCompressTool({
   // A photo never has a strip note, so the strip reserves no lines for one.
   const stripNoteNode = isImageMode ? undefined : <span data-compress-note>{stripNote}</span>;
 
-  const sizesExtra = file && (
-    <StripSizes t={t} file={file} arrow={arrow} showResult={isDone && !passthrough} compressedSize={compressedSize} savingsPercent={savingsPercent} />
-  );
+  const stripSizes = batch.active ? batch.strip : file && { before: file.size, showResult: isDone && !passthrough, compressedSize, savingsPercent };
+  const sizesExtra = stripSizes && <StripSizes t={t} arrow={arrow} {...stripSizes} />;
+  const intakeNotes = (className?: string) => <IntakeNotes t={t} rejected={rejectedFiles} leftOutPdfs={batch.leftOutPdfs} className={className} />;
 
   return (
     <BasePdfTool
       hasFiles={hasFiles}
       onFilesAdded={handleFilesAdded}
       intake={{ multiple: false, pickMany, accept: 'application/pdf,image/jpeg,image/png', needsPdfjs: !isImageMode && !batch.active }}
-      identity={batch.active ? { label: batchName, hidden: true } : { file, label: file?.name, metaExtra: sizesExtra, note: stripNoteNode, hidden: true }}
+      identity={batch.active ? { file: batch.state.rows[0]?.file, label: batchName, metaExtra: sizesExtra, hidden: true } : { file, label: file?.name, metaExtra: sizesExtra, note: stripNoteNode, hidden: true }}
       empty={{ art: <CompressVerb subject={analyticsTool === 'compress-image' ? 'photo' : 'page'} />, message: emptyStateMessage ?? t.dropHint }}
       analytics={{ tool: analyticsTool, status: (batch.active ? batch.phase : status) === 'error' ? 'error' : flow.tap !== 'idle' ? flow.tap : batch.active ? 'idle' : retryTap }}
       shellMessages={shellMessages}
     >
-      <IntakeNotes t={t} rejected={rejectedFiles} leftOutPdfs={batch.leftOutPdfs} />
+      {!batch.active && intakeNotes()}
 
       {needsUnlockBytes ? (
         <NeedsUnlock
@@ -235,7 +235,7 @@ export default withIslandBoundary(function PdfCompressTool({
           }}
         />
       ) : batch.active ? (
-        <BatchWorkspace t={t} batch={batch} compare={compare} flow={flow} name={batchName} targetKB={targetKB} presets={IMAGE_TARGET_SIZE_PRESETS_KB} onTargetKBChange={handleTargetKBChange} arrow={arrow} />
+        <BatchWorkspace t={t} batch={batch} compare={compare} flow={flow} notes={intakeNotes} name={batchName} targetKB={targetKB} presets={IMAGE_TARGET_SIZE_PRESETS_KB} onTargetKBChange={handleTargetKBChange} arrow={arrow} />
       ) : hasFiles && file ? (
         <div class={layoutStyles['finish-frame']}>
           {/* ARCH-41: the phone's sticky bar spans the whole loaded state (the frame), not one grid cell. */}

@@ -1680,7 +1680,7 @@ describe('PdfCompressTool UI flow', () => {
   });
 
   describe('COMP-04 several photos', () => {
-    const rows = () => Array.from(container.querySelectorAll('li[data-batch-row]'));
+    const rows = () => Array.from(container.querySelectorAll('li[data-batch-photo]'));
     const outcomes = () => rows().map((r) => r.getAttribute('data-outcome'));
     const pickMany = async (files, until) => {
       await act(async () => {
@@ -1705,7 +1705,38 @@ describe('PdfCompressTool UI flow', () => {
       expect(outcomes()).toEqual(['met', 'met']);
       expect(statusOf()).toBe('done');
       expect(container.querySelector('[data-result]')).toBeNull();
-      expect(container.querySelectorAll('a[data-batch-save][download]')).toHaveLength(2);
+      // The set is the photos themselves: one Save lives in each photo's preview, not on every tile.
+      expect(container.querySelectorAll('[data-batch-save]')).toHaveLength(0);
+    });
+
+    it('shows each photo from its original, rendered once, and keeps them through a new target', async () => {
+      mount();
+      const thumbnails = harness.pdfjs.thumbnails.renderThumbnail;
+      thumbnails.mockImplementation(async (file) => `data:image/jpeg;base64,${file.name}`);
+      const a = makeImageFile('a.jpg', 900_000);
+      const b = makeImageFile('b.jpg', 800_000);
+      await pickMany([a, b]);
+      await waitUntil(() => expect(rows().map((r) => r.querySelector('img')?.getAttribute('src'))).toEqual(['data:image/jpeg;base64,a.jpg', 'data:image/jpeg;base64,b.jpg']));
+      expect(thumbnails.mock.calls.map((c) => c[0])).toEqual([a, b]);
+      await act(async () => { preset('50 KB').dispatchEvent(new MouseEvent('click', { bubbles: true })); });
+      await waitFor(ran(toTarget, 4));
+      await settled();
+      expect(thumbnails).toHaveBeenCalledTimes(2);
+      expect(rows()[0].querySelector('img').getAttribute('src')).toBe('data:image/jpeg;base64,a.jpg');
+    });
+
+    it('the strip names the set by its first photo and sums it, before and after', async () => {
+      mount();
+      toTarget
+        .mockImplementationOnce(() => Promise.resolve(makeImageResult({ blob: new Blob([new Uint8Array(90_000)], { type: 'image/jpeg' }) })))
+        .mockImplementationOnce(() => Promise.resolve(makeImageResult({ blob: new Blob([new Uint8Array(10_000)], { type: 'image/jpeg' }) })));
+      await pickMany([makeImageFile('a.jpg', 600_000), makeImageFile('b.jpg', 400_000)]);
+      const strip = container.querySelector('[data-strip]');
+      expect(strip.textContent).toContain('2 photos');
+      const sizes = strip.querySelector('[data-compress-sizes]').textContent;
+      expect(sizes).toContain('976.56 KB');
+      expect(sizes).toContain('97.66 KB');
+      expect(sizes).toContain('90% smaller');
     });
 
     it('runs one photo at a time', async () => {
@@ -1755,7 +1786,8 @@ describe('PdfCompressTool UI flow', () => {
       const pdf = makePdfFile('notes.pdf', 50_000);
       await pickMany([makeImageFile('a.jpg', 900_000), pdf, makeImageFile('b.jpg', 800_000)]);
       expect(rows()).toHaveLength(2);
-      expect(container.querySelector('[data-batch-left-out]').textContent).toContain('notes.pdf');
+      // Inside the stage, under its status line, not a band above the card's columns.
+      expect(container.querySelector('[data-batch] [data-batch-left-out]').textContent).toContain('notes.pdf');
       expect(toTarget.mock.calls.map((c) => c[0])).not.toContain(pdf);
       expect(toTarget).toHaveBeenCalledTimes(2);
     });
@@ -1768,12 +1800,12 @@ describe('PdfCompressTool UI flow', () => {
       expect(harness.usageEvents('tool_result_ready')).toHaveLength(0);
     });
 
-    it('announces the finished set once, and names each Save by its photo', async () => {
+    it("announces the finished set once, and names each photo's button by its photo", async () => {
       mount();
       await pickMany([makeImageFile('a.jpg', 900_000), makeImageFile('b.jpg', 800_000)]);
       const live = container.querySelector('[data-batch] [role="status"]');
       expect(live.textContent).toBe(container.querySelector('[data-batch-summary]').textContent);
-      expect(Array.from(container.querySelectorAll('a[data-batch-save]')).map((a) => a.getAttribute('aria-label'))).toEqual(['Save a.jpg', 'Save b.jpg']);
+      expect(Array.from(container.querySelectorAll('[data-batch-open]')).map((b) => b.getAttribute('aria-label'))).toEqual(['Compare a.jpg', 'Compare b.jpg']);
       expect(container.querySelector('[data-batch] ol').getAttribute('role')).toBe('list');
     });
 
@@ -1792,6 +1824,30 @@ describe('PdfCompressTool UI flow', () => {
       await act(async () => { container.querySelector('[data-batch-back]').click(); });
       expect(container.querySelector('[data-result]')).toBeNull();
       expect(rows()).toHaveLength(2);
+    });
+
+    it('the preview steps through the finished photos and saves the one on screen', async () => {
+      mount();
+      await pickMany([makeImageFile('a.jpg', 900_000), makeImageFile('b.jpg', 800_000)]);
+      await act(async () => { container.querySelector('[data-batch-open]').click(); });
+      await settled();
+      const bar = () => container.querySelector('[data-batch-preview-bar]');
+      const prev = () => bar().querySelector('[data-batch-prev]');
+      const next = () => bar().querySelector('[data-batch-next]');
+      const save = () => bar().querySelector('a[data-batch-save]');
+      expect(bar().querySelector('[data-batch-position]').textContent).toBe('1 of 2');
+      expect(bar().textContent).toContain('a.jpg');
+      expect(prev().disabled).toBe(true);
+      expect(save().getAttribute('aria-label')).toBe('Save a.jpg');
+      expect(save().getAttribute('download')).toBe('a-compressed.jpg');
+      await act(async () => { next().click(); });
+      await settled();
+      expect(bar().querySelector('[data-batch-position]').textContent).toBe('2 of 2');
+      expect(bar().textContent).toContain('b.jpg');
+      expect(next().disabled).toBe(true);
+      expect(save().getAttribute('aria-label')).toBe('Save b.jpg');
+      await act(async () => { prev().click(); });
+      expect(bar().querySelector('[data-batch-position]').textContent).toBe('1 of 2');
     });
 
     it('the open preview stays on its photo while a new target recompresses it', async () => {
