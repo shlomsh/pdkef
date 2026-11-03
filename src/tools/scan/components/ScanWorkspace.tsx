@@ -21,6 +21,7 @@ import { englishScanMessages as t } from '../messages.ts';
 import type { PageResult, ScanPage } from '../state/scanWork.ts';
 import styles from '../PdfScanTool.module.css';
 import ScanTable from './ScanTable.tsx';
+import tableStyles from './ScanTable.module.css';
 import ScanWorkbench, { type ScanWorkbenchProps } from './ScanWorkbench.tsx';
 import TakePhotoButton from './TakePhotoButton.tsx';
 
@@ -123,9 +124,9 @@ function ScanDownloadElement({ pages, failedIds, output }: { pages: ScanPage[]; 
 }
 
 /** The rail's pinned region: the Download element, what follows it, and on a phone the rating ask. */
-function ScanRailPinned({ pages, failedIds, output, rating }: { pages: ScanPage[]; failedIds: number[]; output: ScanOutput; rating: ComponentChildren }) {
+function ScanRailPinned({ view, pages, failedIds, output, rating }: { view: ScanWorkspaceProps['view']; pages: ScanPage[]; failedIds: number[]; output: ScanOutput; rating: ComponentChildren }) {
   const { prepared, flow } = output;
-  return (
+  const finish = (
     <>
       <ScanDownloadElement pages={pages} failedIds={failedIds} output={output} />
       <FinishRow
@@ -138,6 +139,12 @@ function ScanRailPinned({ pages, failedIds, output, rating }: { pages: ScanPage[
         labels={{ share: t.shareLabel, compress: t.handoffCompress, sign: t.handoffSign, redact: t.handoffRedact }}
         tools={HANDOFF_TOOLS}
       />
+    </>
+  );
+  return (
+    <>
+      {/* The table's phone block already carries the finish, so the rail's copy is desktop only there. */}
+      {view === 'table' ? <div class={tableStyles.wide} data-rail-finish>{finish}</div> : finish}
       {flow.handoffFailed && (
         <p class={`${pdfToolStyles['hint-message']} ${pdfToolStyles.danger}`} role="status">{t.handoffFailed}</p>
       )}
@@ -198,7 +205,7 @@ export default function ScanWorkspace({ view, onOpen, results, resultKeyOf, brid
           </div>
         </>
       )}
-      railPinned={<ScanRailPinned pages={pages} failedIds={failedIds} output={output} rating={!wide && rating} />}
+      railPinned={<ScanRailPinned view={view} pages={pages} failedIds={failedIds} output={output} rating={!wide && rating} />}
     >
       <ScanErrors pages={pages} failedIds={failedIds} buildFailed={output.prepared.status === 'error'} />
       {view === 'table' ? (
