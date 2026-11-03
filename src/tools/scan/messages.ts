@@ -57,6 +57,7 @@ export interface ScanMessages extends DownloadMessages {
   addPages: string;
   retake: string;
   pageDone: string;
+  backToPages: string;
   cornersAction: string;
   lookAction: string;
   removeShort: string;
@@ -168,6 +169,7 @@ export const englishScanMessages: ScanMessages = {
   addPages: 'Add pages',
   retake: 'Retake',
   pageDone: 'Done',
+  backToPages: 'Back to all pages',
   cornersAction: 'Corners',
   lookAction: 'Look',
   removeShort: 'Remove',
