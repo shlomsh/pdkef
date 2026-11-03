@@ -1,41 +1,65 @@
-import { deflateSync, inflateSync } from 'node:zlib';
 import { describe, expect, it, vi } from 'vitest';
 import { PDFDict, PDFDocument, PDFName, PDFRawStream } from '@cantoo/pdf-lib';
 import { drawElements } from '../export/drawElements.ts';
 import type { EditorElement, SignatureElement } from '../model/editorModel.ts';
 
-/** A solid-colour RGB PNG, `size` pixels square. */
+/** A solid-colour RGB PNG, `size` pixels square. Its zlib stream uses stored (uncompressed) blocks, so it stays synchronous. */
 function solidPng(size: number, [r, g, b]: number[]): string {
   const crcTable = Array.from({ length: 256 }, (_, n) => {
     let c = n;
     for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1;
     return c >>> 0;
   });
-  const crc = (bytes: Buffer) => {
+  const crc = (bytes: Uint8Array) => {
     let c = 0xffffffff;
     for (const byte of bytes) c = crcTable[(c ^ byte) & 0xff] ^ (c >>> 8);
     return (c ^ 0xffffffff) >>> 0;
   };
-  const chunk = (type: string, data: Buffer) => {
-    const body = Buffer.concat([Buffer.from(type), data]);
-    const out = Buffer.alloc(body.length + 8);
-    out.writeUInt32BE(data.length, 0);
-    body.copy(out, 4);
-    out.writeUInt32BE(crc(body), body.length + 4);
+  const concat = (parts: Uint8Array[]) => {
+    const out = new Uint8Array(parts.reduce((n, part) => n + part.length, 0));
+    let at = 0;
+    for (const part of parts) {
+      out.set(part, at);
+      at += part.length;
+    }
     return out;
   };
-  const header = Buffer.alloc(13);
-  header.writeUInt32BE(size, 0);
-  header.writeUInt32BE(size, 4);
-  header.set([8, 2, 0, 0, 0], 8);
-  const row = Buffer.concat([Buffer.from([0]), Buffer.from(Array.from({ length: size }, () => [r, g, b]).flat())]);
-  const png = Buffer.concat([
-    Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
+  const u32 = (n: number) => new Uint8Array([n >>> 24, (n >>> 16) & 0xff, (n >>> 8) & 0xff, n & 0xff]);
+  const chunk = (type: string, data: Uint8Array) => {
+    const body = concat([new TextEncoder().encode(type), data]);
+    return concat([u32(data.length), body, u32(crc(body))]);
+  };
+  const adler32 = (bytes: Uint8Array) => {
+    let a = 1;
+    let b = 0;
+    for (const byte of bytes) {
+      a = (a + byte) % 65521;
+      b = (b + a) % 65521;
+    }
+    return ((b << 16) | a) >>> 0;
+  };
+  // One stored deflate block (the scanlines here are far below its 65535-byte limit) in a zlib wrapper.
+  const zlibStored = (raw: Uint8Array) =>
+    concat([
+      new Uint8Array([0x78, 0x01, 0x01, raw.length & 0xff, raw.length >>> 8, ~raw.length & 0xff, (~raw.length >>> 8) & 0xff]),
+      raw,
+      u32(adler32(raw)),
+    ]);
+  const header = concat([u32(size), u32(size), new Uint8Array([8, 2, 0, 0, 0])]);
+  const row = new Uint8Array([0, ...Array.from({ length: size }, () => [r, g, b]).flat()]);
+  const png = concat([
+    new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
     chunk('IHDR', header),
-    chunk('IDAT', deflateSync(Buffer.concat(Array.from({ length: size }, () => row)))),
-    chunk('IEND', Buffer.alloc(0)),
+    chunk('IDAT', zlibStored(concat(Array.from({ length: size }, () => row)))),
+    chunk('IEND', new Uint8Array(0)),
   ]);
-  return `data:image/png;base64,${png.toString('base64')}`;
+  return `data:image/png;base64,${btoa(String.fromCharCode(...png))}`;
+}
+
+/** Inflates a zlib stream with the web DecompressionStream. */
+async function inflate(bytes: Uint8Array): Promise<Uint8Array> {
+  const stream = new Blob([bytes as BlobPart]).stream().pipeThrough(new DecompressionStream('deflate'));
+  return new Uint8Array(await new Response(stream).arrayBuffer());
 }
 
 const BLACK_INK = solidPng(2, [0, 0, 0]);
@@ -80,8 +104,9 @@ async function drawAndReadBack(elements: EditorElement[]) {
 
   const out = await PDFDocument.load(bytes);
   const xobjects = out.getPage(0).node.Resources()!.lookup(PDFName.of('XObject'), PDFDict);
-  const image = xobjects.lookup(xobjects.keys()[0], PDFRawStream);
-  const pixel = [...inflateSync(image.getContents()).subarray(0, 3)];
+  const image = xobjects.lookup(xobjects.keys()[0]);
+  if (!(image instanceof PDFRawStream)) throw new Error('expected the image XObject to be a raw stream');
+  const pixel = [...(await inflate(image.getContents())).subarray(0, 3)];
   return { rect: { x, y, width, height }, pixel };
 }
 
