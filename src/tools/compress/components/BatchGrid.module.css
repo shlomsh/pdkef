@@ -44,6 +44,16 @@
   gap: 12px;
 }
 
+.grid:focus {
+  outline: none;
+}
+
+.grid:focus-visible {
+  outline: 2px solid var(--color-primary-ring);
+  outline-offset: 2px;
+  border-radius: var(--radius-md);
+}
+
 .tile {
   min-width: 0;
 }

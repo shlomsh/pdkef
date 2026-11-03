@@ -34,6 +34,8 @@ export function TargetSizePanel({ t, targetKB, presets, onChange, inputId, min, 
             min={min}
             step={step}
             value={targetKB}
+            // As wide as its digits: three hold the common sizes, a five-digit one still shows whole.
+            style={{ width: `${Math.max(3, String(targetKB).length) + 0.5}ch` }}
             onInput={(e) => {
               const n = Number(e.currentTarget.value);
               if (Number.isFinite(n) && n > 0) onChange(n, { immediate: false });

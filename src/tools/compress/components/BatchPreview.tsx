@@ -59,7 +59,8 @@ export default function BatchPreview({ t, compare, row, rows, targetKB, arrow, u
   onBackRef.current = onBack;
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key !== 'Escape' || event.defaultPrevented || document.querySelector('dialog[open]')) return;
+      // A held key's repeat would leave the preview right after Full screen closed on the first press.
+      if (event.key !== 'Escape' || event.repeat || event.defaultPrevented || document.querySelector('dialog[open]')) return;
       if ((event.target as Element | null)?.closest?.('input, textarea, select, [contenteditable="true"]')) return;
       onBackRef.current();
     };

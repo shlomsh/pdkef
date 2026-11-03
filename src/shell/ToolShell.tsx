@@ -195,8 +195,11 @@ export default function ToolShell({ editor = false, inlineStatus = false, status
               <OutputName {...fileRename} label={fileRename.label ?? 'File name, editable'} />
             </span>
           ) : (
-            // Cut in the middle, so a long name keeps its tail and extension (the guideline's section 9).
-            <FileName name={fileLabel || (multiple ? messages.filesLoaded : messages.pdfLoaded)} className={styles.name} />
+            // The block keeps the page's alignment; inside it the name cuts in the middle, so a long name
+            // keeps its tail and extension (the guideline's section 9).
+            <span class={styles.name}>
+              <FileName name={fileLabel || (multiple ? messages.filesLoaded : messages.pdfLoaded)} />
+            </span>
           )}
           {(fileMeta || draftStatus || (!editor && metaExtra)) && (
             <span class={styles.meta} data-meta>

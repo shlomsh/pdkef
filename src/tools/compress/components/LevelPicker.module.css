@@ -104,7 +104,6 @@
 }
 
 .target-input-row input {
-  width: 4ch;
   padding: 0;
   border: none;
   background: none;
@@ -143,7 +142,8 @@
 /* The shortcuts are one segmented row, the same control as the level picker
    above them: equal columns, the chosen one raised. */
 .target-presets {
-  flex: 1 1 200px;
+  /* Wide enough for four labels; below that the row wraps instead of spilling. */
+  flex: 1 1 13.5rem;
   display: grid;
   grid-auto-flow: column;
   grid-auto-columns: minmax(0, 1fr);
