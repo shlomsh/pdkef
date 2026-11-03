@@ -1,6 +1,7 @@
 import { test, expect } from '@playwright/test';
 import { openTool } from '../../../../e2e/support/tool.js';
 import { makePdfBuffer } from '../../../../e2e/support/pdf.js';
+import { pullCord } from './lamp.js';
 import { tapUntil } from '../../../../e2e/support/touch.js';
 
 /* READ-19: on a phone a note is read in the bottom pane and typed only on the full-screen writing page. Focus after a
@@ -128,7 +129,7 @@ test.describe('the phone writing page', () => {
   test('in the lamp the writer covers the screen and takes focus', async ({ page }) => {
     await open(page);
     await page.evaluate(() => { delete Element.prototype.requestFullscreen; Element.prototype.requestFullscreen = undefined; });
-    await page.getByRole('button', { name: 'Full screen' }).first().click();
+    await pullCord(page);
     await expect(page.locator('[data-pseudo-fullscreen]')).toHaveCount(1);
     await commentOn(page, await highlight(page, 700));
     await expect(page.locator('[data-note-writer-input]')).toBeFocused();

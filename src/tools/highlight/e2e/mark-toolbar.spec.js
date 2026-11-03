@@ -1,6 +1,7 @@
 import { test, expect } from '@playwright/test';
 import { openTool } from '../../../../e2e/support/tool.js';
 import { makePdfBuffer } from '../../../../e2e/support/pdf.js';
+import { pullCord } from './lamp.js';
 import { expectControlsSized } from '../../../../e2e/support/layout.js';
 import { tapUntil } from '../../../../e2e/support/touch.js';
 
@@ -72,7 +73,7 @@ test.describe('touch panel', () => {
       const source = await makePdfBuffer(null, { title: false, lines: [{ text: 'A line of text a student would highlight', y: 700 }] });
       await openTool(page, '/highlight-pdf/', { file: { name: 'toolbar.pdf', buffer: source }, overlaySelector: '[data-page-overlay]' });
       if (full) {
-        await page.getByRole('button', { name: 'Full screen' }).first().tap();
+        await pullCord(page, 'tap');
         await expect(page.locator('[role="toolbar"][data-mode]')).toBeVisible();
         // The page is fitted again for the bigger view: wait until it holds still for a few frames.
         await page.waitForFunction(() => new Promise((done) => {
