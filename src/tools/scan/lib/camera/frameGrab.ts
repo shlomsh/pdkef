@@ -1,6 +1,6 @@
 // Pixels out of the playing video (SCAN-08). DOM; no jsdom test.
 import { canvasToBlob } from '#lib/images/canvasBlob.js';
-import type { GrayImage } from '../lib/quad.ts';
+import type { GrayImage } from '../quad.ts';
 
 /** The current frame as gray pixels with the short edge at `shortEdge`; null until the video has a size. */
 export function grabGray(video: HTMLVideoElement, canvas: HTMLCanvasElement, shortEdge = 320): GrayImage | null {

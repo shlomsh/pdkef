@@ -127,10 +127,6 @@
   border-radius: 22px;
 }
 
-.dialog :global(span:has(> .fallback)) {
-  display: inline-flex;
-}
-
 .bottom {
   position: absolute;
   bottom: 0;

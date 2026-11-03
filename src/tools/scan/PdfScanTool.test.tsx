@@ -7,7 +7,7 @@ import * as pipeline from './lib/scanPipeline.ts';
 import { setInputFiles } from '../../test/support/setInputFiles.js';
 import { rotateQuad, turnedQuad } from './lib/quad.ts';
 import { playFlatten } from './lib/flattenAnimation.ts';
-import { canUseCamera } from './camera/canUseCamera.ts';
+import { canUseCamera } from './lib/camera/canUseCamera.ts';
 import { installToolHarness, type ToolHarness } from '../../test/harness/toolHarness.ts';
 
 // EDGE: the flatten animation paints the photo into a 2d canvas context, which jsdom does not have.
@@ -27,9 +27,9 @@ vi.mock('./lib/scanPipeline.ts', () => ({
 }));
 
 // The live camera: whether it is usable is the test's call, and the viewfinder is a stub that exposes its props.
-vi.mock('./camera/canUseCamera.ts', () => ({ canUseCamera: vi.fn(() => false) }));
+vi.mock('./lib/camera/canUseCamera.ts', () => ({ canUseCamera: vi.fn(() => false) }));
 const finder = vi.hoisted(() => ({ props: null as any }));
-vi.mock('./camera/loadCamera.ts', () => ({
+vi.mock('./lib/camera/loadCamera.ts', () => ({
   loadViewfinder: () => Promise.resolve({
     default: (props: any) => {
       finder.props = props;

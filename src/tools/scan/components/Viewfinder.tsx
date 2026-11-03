@@ -1,20 +1,40 @@
 // The camera in the page (SCAN-08): a full-screen dialog with the live outline, the hint, the shutter and
 // its hold ring, the stack, Done, close and Auto. Loaded with import() after Start scanning.
-import { useEffect, useRef, useState } from 'preact/hooks';
+import { useEffect, useRef, useState, type MutableRef } from 'preact/hooks';
 import { X } from 'lucide-preact';
 import { formatMessage } from '#lib/text/formatMessage.ts';
-import TakePhotoButton from '../components/TakePhotoButton.tsx';
+import TakePhotoButton from './TakePhotoButton.tsx';
 import { playFlatten, relativeBox } from '../lib/flattenAnimation.ts';
-import { scaleQuad, type Quad } from '../lib/quad.ts';
+import type { Quad } from '../lib/quad.ts';
 import { englishScanMessages as t } from '../messages.ts';
-import { useCamera } from './useCamera.ts';
-import { coverRect, hintText } from './viewfinderModel.ts';
-import type { TakenPage, ViewfinderProps } from './types.ts';
+import { useCamera } from '../hooks/useCamera.ts';
+import { coverRect, hintText } from '../lib/camera/viewfinderModel.ts';
+import type { TakenPage, ViewfinderProps } from '../lib/camera/types.ts';
 import styles from './Viewfinder.module.css';
 
 const RING_RADIUS = 34;
 const RING_LENGTH = 2 * Math.PI * RING_RADIUS;
 const FULL_FRAME: Quad = [{ x: 0, y: 0 }, { x: 1, y: 0 }, { x: 1, y: 1 }, { x: 0, y: 1 }];
+
+/** The page taken flies from where it sits in the viewfinder into the stack. The stack's image is read after the
+ * decode: by then it shows this page's thumbnail, the first page's too. */
+function flyToStack(dialog: HTMLElement, url: string, quad: Quad | null, videoSize: { width: number; height: number }, stackImg: () => HTMLImageElement | null, stop: MutableRef<() => void>) {
+  const photo = new Image();
+  photo.src = url;
+  // expected: a snapshot that will not decode only skips the flight; the page itself is already taken
+  photo.decode().then(() => {
+    const target = stackImg();
+    if (!target) return;
+    stop.current();
+    const host = dialog.getBoundingClientRect();
+    const cover = coverRect(videoSize, { width: host.width, height: host.height });
+    stop.current = playFlatten(dialog, {
+      photo,
+      frame: relativeBox(new DOMRect(host.left + cover.x, host.top + cover.y, cover.width, cover.height), host),
+      quad: quad ?? FULL_FRAME,
+    }, target);
+  }, () => {});
+}
 
 export default function Viewfinder(props: ViewfinderProps) {
   const dialogRef = useRef<HTMLDialogElement | null>(null);
@@ -32,21 +52,7 @@ export default function Viewfinder(props: ViewfinderProps) {
       propsRef.current.onTaken(page.file);
       const url = URL.createObjectURL(page.snapshot);
       setSnapUrl((old) => { if (old) URL.revokeObjectURL(old); return url; });
-      const stackImg = stackImgRef.current;
-      if (!dialog || !stackImg) return;
-      const photo = new Image();
-      photo.src = url;
-      photo.decode().then(() => {
-        stopFlight.current();
-        const host = dialog.getBoundingClientRect();
-        const box = { width: host.width, height: host.height };
-        const cover = coverRect(camera.videoSize, box);
-        stopFlight.current = playFlatten(dialog, {
-          photo,
-          frame: relativeBox(new DOMRect(host.left + cover.x, host.top + cover.y, cover.width, cover.height), host),
-          quad: page.quad ?? scaleQuad(FULL_FRAME, cover.width, cover.height),
-        }, stackImg);
-      }, () => {});
+      if (dialog) flyToStack(dialog, url, page.quad, camera.videoSize, () => stackImgRef.current, stopFlight);
     },
   });
 
@@ -75,7 +81,8 @@ export default function Viewfinder(props: ViewfinderProps) {
   const { live } = camera;
   const thumb = snapUrl ?? props.lastSrc;
   const many = props.mode === 'many';
-  const showStack = many && props.count > 0;
+  // Kept in the layout from the start, hidden until a page is in it, so the first page has somewhere to fly.
+  const showStack = many && (props.count > 0 || thumb !== null);
   const cover = coverRect(camera.videoSize, size);
   const offered = camera.status === 'refused' || camera.status === 'unavailable';
 

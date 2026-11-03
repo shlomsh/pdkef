@@ -1,6 +1,6 @@
 // The camera in the page (SCAN-08, docs/scan-next.md section 2): the contract between the pure model,
 // the camera hook and the viewfinder. Everything here is data; no DOM.
-import type { Quad } from '../lib/quad.ts';
+import type { Quad } from '../quad.ts';
 
 /** Which line the viewfinder says: "Point at a page", "Hold still", "Page 3. Turn the page." */
 export type Hint = 'point' | 'hold' | 'turn';

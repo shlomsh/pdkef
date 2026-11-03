@@ -11,6 +11,7 @@ const FULL_SCORE = 0.6;
 
 /**
  * Confidence at or above this is trusted without asking the brightness strategy (0.8 of FULL_SCORE).
+ * @testSeam The test pins found pages at this confidence; the camera reads `confidence`, not the threshold.
  */
 export const CONFIDENT = 0.8;
 

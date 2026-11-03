@@ -210,3 +210,17 @@ describe('reduceScan', () => {
     });
   });
 });
+
+describe('the camera (SCAN-08)', () => {
+  it('opens for the scan or for one page, and closes', () => {
+    const many = reduceScan(initialScanState, { type: 'cameraOpened', camera: { mode: 'many' } });
+    expect(many.camera).toEqual({ mode: 'many' });
+    const one = reduceScan(initialScanState, { type: 'cameraOpened', camera: { mode: 'one', pageId: 4 } });
+    expect(one.camera).toEqual({ mode: 'one', pageId: 4 });
+    expect(reduceScan(many, { type: 'cameraClosed' }).camera).toBeNull();
+  });
+
+  it('closing a closed camera changes nothing', () => {
+    expect(reduceScan(initialScanState, { type: 'cameraClosed' })).toBe(initialScanState);
+  });
+});

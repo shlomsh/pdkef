@@ -1,7 +1,7 @@
 // The viewfinder's pure side (SCAN-08): what to draw from the capture state, and where the video frame
 // sits on screen. No DOM.
 import { formatMessage } from '#lib/text/formatMessage.ts';
-import { DEFAULT_CAPTURE_PARAMS, type CaptureParams, type CaptureState } from '../lib/capture/types.ts';
+import { DEFAULT_CAPTURE_PARAMS, type CaptureParams, type CaptureState } from '../capture/types.ts';
 import type { Hint, LiveView, Rect } from './types.ts';
 
 /** The outline, hold ring and hint for the capture state at time `now` (ms, the same clock as obs.t). */

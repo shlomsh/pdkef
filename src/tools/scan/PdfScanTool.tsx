@@ -10,8 +10,8 @@ import { downloadDetail, pagesLabel } from '#shell/pageWorkspace/pageCounts.ts';
 import { englishShellMessages } from '#shell/shellMessages.ts';
 import ScanSkippedNotice from './components/ScanSkippedNotice.tsx';
 import ScanWorkspace from './components/ScanWorkspace.tsx';
+import ScanCamera from './components/ScanCamera.tsx';
 import StartScanButton from './components/StartScanButton.tsx';
-import { useScanCamera } from './hooks/useScanCamera.ts';
 import { useScanBoard } from './hooks/useScanBoard.ts';
 import { useScanExport } from './hooks/useScanExport.ts';
 import { useScanPages } from './hooks/useScanPages.ts';
@@ -23,6 +23,7 @@ import { useScanView } from './hooks/useScanView.ts';
 import { resultKey } from './lib/scanPages.ts';
 import { initialScanState, reduceScan } from './state/scanState.ts';
 import { createEditActions, createPageActions } from './state/scanActions.ts';
+import { cameraProps } from './state/cameraProps.ts';
 import type { ScanPage } from './state/scanWork.ts';
 import { englishScanMessages as t } from './messages.ts';
 import styles from './PdfScanTool.module.css';
@@ -75,7 +76,8 @@ export default withIslandBoundary(function PdfScanTool({ quietPolicy, navigate }
   const { findPage, removePage, reset } = createPageActions({ pages, view, setPages, work, unmountedRef, dispatch, focusIdRef, ...board, ...settings });
   const edit = createEditActions({ pages, selected, selectedIndex, failedIds, setPages, dispatch, focusIdRef, showResult, retakeFile, ...board, ...settings });
 
-  const { Viewfinder, viewfinderProps, openMany, openOne } = useScanCamera({ pages, results, unmountedRef, dispatch, addFiles, retakePage: edit.retakePage, removePage });
+  const viewfinder = cameraProps({ camera: state.camera, pages, results, dispatch, addFiles, retakePage: edit.retakePage, removePage });
+  const openMany = () => dispatch({ type: 'cameraOpened', camera: { mode: 'many' } });
 
   const shown = key === null ? undefined : work.shown.get(key);
   const limitNote = key !== null && work.missedKeys.has(key) ? t.limitMissed : undefined;
@@ -145,7 +147,7 @@ export default withIslandBoundary(function PdfScanTool({ quietPolicy, navigate }
                   onApprove: edit.approveCorners,
                   onDone: edit.closePage,
                   onRetake: (file) => edit.retakePage(selected.id, file),
-                  onRetakeCamera: () => openOne(selected.id),
+                  onRetakeCamera: () => dispatch({ type: 'cameraOpened', camera: { mode: 'one', pageId: selected.id } }),
                   onRemovePage: removePage,
                   onChooseLook: edit.chooseLook,
                   onSelect: edit.openPage,
@@ -159,7 +161,7 @@ export default withIslandBoundary(function PdfScanTool({ quietPolicy, navigate }
         </ToolShellBridge>
       )}
 
-      {Viewfinder && viewfinderProps && <Viewfinder {...viewfinderProps} />}
+      {viewfinder && <ScanCamera {...viewfinder} />}
 
       <p class="sr-only" role="status" aria-live="polite">{board.announcement}</p>
     </BasePdfTool>

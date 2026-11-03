@@ -5,13 +5,13 @@ import { reportError } from '#lib/telemetry/errorReport.ts';
 import type { Quad } from '../lib/quad.ts';
 import { INITIAL_CAPTURE_STATE, markTaken, stepCapture } from '../lib/capture/captureMachine.ts';
 import type { CaptureState, FrameObservation } from '../lib/capture/types.ts';
-import { cameraStatusFor } from './cameraErrors.ts';
-import { openCamera, stopCamera, takePhoto } from './cameraStream.ts';
-import { grabGray, snapshot } from './frameGrab.ts';
-import { IDLE_VIEW, type CameraHandle, type CameraStatus, type TakenPage } from './types.ts';
-import { liveView } from './viewfinderModel.ts';
+import { cameraStatusFor } from '../lib/camera/cameraErrors.ts';
+import { openCamera, stopCamera, takePhoto } from '../lib/camera/cameraStream.ts';
+import { grabGray, snapshot } from '../lib/camera/frameGrab.ts';
+import { IDLE_VIEW, type CameraHandle, type CameraStatus, type TakenPage } from '../lib/camera/types.ts';
+import { liveView } from '../lib/camera/viewfinderModel.ts';
 
-export interface UseCameraInput {
+interface UseCameraInput {
   /** Called once per page taken, auto or by the shutter. */
   onTaken: (page: TakenPage) => void;
 }
@@ -38,6 +38,7 @@ export function useCamera(input: UseCameraInput): CameraHandle {
     el.srcObject = stream;
     el.muted = true;
     el.playsInline = true;
+    // expected: a muted inline video that will not autoplay still delivers frames to the grab
     el.play().catch(() => {});
   }, []);
 
@@ -76,7 +77,7 @@ export function useCamera(input: UseCameraInput): CameraHandle {
     let frame = 0;
     let inFlight = false;
     const canvas = document.createElement('canvas');
-    const worker = new Worker(new URL('./camera.worker.ts', import.meta.url), { type: 'module' });
+    const worker = new Worker(new URL('../lib/camera/camera.worker.ts', import.meta.url), { type: 'module' });
 
     worker.onmessage = (e: MessageEvent<FrameObservation>) => {
       inFlight = false;
@@ -118,6 +119,7 @@ export function useCamera(input: UseCameraInput): CameraHandle {
         attach();
         frame = requestAnimationFrame(tick);
       } catch (err) {
+        // expected: a refused or missing camera is a status the viewfinder shows, with the photo fallback
         if (alive) setStatus(cameraStatusFor(err));
       }
     };

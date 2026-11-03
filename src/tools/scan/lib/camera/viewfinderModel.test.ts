@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { coverRect, hintText, liveView } from './viewfinderModel.ts';
-import { DEFAULT_CAPTURE_PARAMS, type CaptureState } from '../lib/capture/types.ts';
-import type { Quad } from '../lib/quad.ts';
+import { DEFAULT_CAPTURE_PARAMS, type CaptureState } from '../capture/types.ts';
+import type { Quad } from '../quad.ts';
 
 const Q: Quad = [{ x: 0.1, y: 0.1 }, { x: 0.9, y: 0.1 }, { x: 0.9, y: 0.9 }, { x: 0.1, y: 0.9 }];
 

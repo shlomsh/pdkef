@@ -15,7 +15,6 @@
   "src/editor/registry/stroke.ts",
   "src/editor/registry/whiteout.ts",
   "src/editor/text/textMetrics.ts",
-  "src/lib/images/canvasBlob.js",
   "src/lib/pdf/loadPdfjs.js",
   "src/lib/pdf/pdfjsPolyfillsFirst.js",
   "src/lib/pdf/pdfjsWorker.js",

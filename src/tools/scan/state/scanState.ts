@@ -8,6 +8,8 @@ import type { Quad } from '../lib/quad.ts';
 type FullMode = 'native' | 'layer' | null;
 /** Approved full screen: the page whose flatten starts once the card is back on screen. */
 interface Landing { quad: Quad; turns: number }
+/** The camera in the page (SCAN-08): taking pages for the scan, or one page's replacement (Retake). */
+export type CameraMode = { mode: 'many' } | { mode: 'one'; pageId: number };
 
 interface Shared {
   selectedId: number | null;
@@ -23,6 +25,8 @@ interface Shared {
   topPending: boolean;
   /** A view change owes the page heading focus. */
   focusPending: boolean;
+  /** The viewfinder, open over whichever view, or null. */
+  camera: CameraMode | null;
 }
 
 /** The centre shows all the pages (`table`); a tapped page opens as it will download (`result`);
@@ -52,7 +56,9 @@ type ScanEvent =
   | { type: 'fullLayerEntered' }
   | { type: 'fullExited' }
   | { type: 'resultAfterFullQueued'; landing: Landing }
-  | { type: 'resultAfterFullShown' };
+  | { type: 'resultAfterFullShown' }
+  | { type: 'cameraOpened'; camera: CameraMode }
+  | { type: 'cameraClosed' };
 
 export const initialScanState: ScanState = {
   phase: 'table',
@@ -64,6 +70,7 @@ export const initialScanState: ScanState = {
   landing: null,
   topPending: false,
   focusPending: false,
+  camera: null,
 };
 
 /** The same state when the patch changes nothing, so an event that does not apply is a no-op. */
@@ -136,5 +143,9 @@ export function reduceScan(state: ScanState, event: ScanEvent): ScanState {
     case 'resultAfterFullShown':
       // Only once the card is back on screen with a page waiting.
       return state.full === null && state.landing !== null ? patch(state, { landing: null, phase: 'result' }) : state;
+    case 'cameraOpened':
+      return patch(state, { camera: event.camera });
+    case 'cameraClosed':
+      return patch(state, { camera: null });
   }
 }

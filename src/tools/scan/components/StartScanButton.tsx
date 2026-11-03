@@ -2,8 +2,8 @@ import { useRef } from 'preact/hooks';
 import { PHOTO_ACCEPT as ACCEPT } from '#lib/hooks/usePhotoTileList.ts';
 import { takeInputFiles, useAdoptPrePickedFiles } from '#shell/prePickedFiles.ts';
 import dropzoneStyles from '#shell/Dropzone.module.css';
-import { canUseCamera } from '../camera/canUseCamera.ts';
-import { loadViewfinder } from '../camera/loadCamera.ts';
+import { canUseCamera } from '../lib/camera/canUseCamera.ts';
+import { loadViewfinder } from '../lib/camera/loadCamera.ts';
 import { englishScanMessages as t } from '../messages.ts';
 import styles from '../PdfScanTool.module.css';
 
@@ -23,7 +23,10 @@ export default function StartScanButton({ onFiles, onStart }: { onFiles: (files:
     onStart();
   };
   // Warm the chunk while the finger is down; a failed load surfaces when the viewfinder is needed.
-  const warm = () => { if (canUseCamera()) loadViewfinder().catch(() => {}); };
+  const warm = () => {
+    // expected: only a warm-up; a load that fails is reported when the camera opens (ScanCamera)
+    if (canUseCamera()) loadViewfinder().catch(() => {});
+  };
   return (
     <span class={styles['take-photo']}>
       <label class={dropzoneStyles['file-picker-button']} onClick={onClick} onPointerDown={warm}>

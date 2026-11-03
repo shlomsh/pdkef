@@ -3,7 +3,7 @@ import { Camera } from 'lucide-preact';
 import { PHOTO_ACCEPT as ACCEPT } from '#lib/hooks/usePhotoTileList.ts';
 import { takeInputFiles, useAdoptPrePickedFiles } from '#shell/prePickedFiles.ts';
 import dropzoneStyles from '#shell/Dropzone.module.css';
-import { canUseCamera } from '../camera/canUseCamera.ts';
+import { canUseCamera } from '../lib/camera/canUseCamera.ts';
 import { englishScanMessages as t } from '../messages.ts';
 import styles from '../PdfScanTool.module.css';
 
