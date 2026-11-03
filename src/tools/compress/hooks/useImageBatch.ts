@@ -23,9 +23,11 @@ export function useImageBatch() {
   // Each row waits for the one before it, even one a target change made stale: the search cannot be
   // aborted, so a new run starts only once the old photo has let go of its canvas.
   const tailRef = useRef<Promise<void>>(Promise.resolve());
-  // The thumbnails take their turns on the same queue: one big image in memory at a time.
+  // The thumbnails take their turns on the same queue: one big image in memory at a time. They are asked for
+  // as a set lands, so every photo shows before the second one compresses. A job that throws never stalls
+  // the jobs behind it.
   const enqueue = (job: () => Promise<void>) => {
-    tailRef.current = tailRef.current.then(job);
+    tailRef.current = tailRef.current.then(job).catch((err) => reportError('pdf_tool_run', err, 'compress_batch_queue'));
   };
   const next = nextRow(state);
   useEffect(() => {

@@ -1785,7 +1785,7 @@ describe('PdfCompressTool UI flow', () => {
       await pickMany([makeImageFile('a.jpg', 900_000), b]);
       const [failed, kept] = rows().map((r) => r.querySelector('[data-batch-caption]').textContent);
       expect(failed).toBe("Couldn't read this one");
-      expect(kept).not.toContain('kept as it was');
+      expect(kept).toMatch(/^[\d.]+ KB · unchanged$/);
     });
 
     it('names missed, kept and failed rows and still finishes', async () => {
@@ -1870,17 +1870,46 @@ describe('PdfCompressTool UI flow', () => {
       const escape = () => act(async () => { document.activeElement.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true })); });
       await act(async () => { Array.from(container.querySelectorAll('[data-result] button')).find((b) => b.textContent.includes('Full screen')).click(); });
       await settled();
-      if (document.querySelector('dialog[open]')) {
-        document.querySelector('dialog[open]').querySelector('button').focus();
-        await escape();
-        expect(container.querySelector('[data-batch-preview-bar]')).not.toBeNull();
-        document.querySelector('dialog[open]')?.close();
-      }
+      expect(document.querySelector('dialog[open]')).not.toBeNull();
+      document.querySelector('dialog[open]').querySelector('button').focus();
+      await escape();
+      expect(container.querySelector('[data-batch-preview-bar]')).not.toBeNull();
+      document.querySelector('dialog[open]')?.close();
+      // A held key repeats: the repeat that follows Full screen's close must not leave the preview too.
+      await act(async () => { document.body.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', repeat: true, bubbles: true, cancelable: true })); });
+      expect(container.querySelector('[data-batch-preview-bar]')).not.toBeNull();
       container.querySelector('[data-batch-next]')?.focus();
       await escape();
       expect(container.querySelector('[data-batch-preview-bar]')).toBeNull();
       expect(rows()).toHaveLength(2);
       expect(document.activeElement).toBe(rows()[1].querySelector('[data-batch-open]'));
+    });
+
+    it('back from a photo whose new run has not reached it yet still lands focus in the set', async () => {
+      mount();
+      await pickMany([makeImageFile('a.jpg', 900_000), makeImageFile('b.jpg', 800_000)]);
+      await act(async () => { container.querySelectorAll('[data-batch-open]')[1].click(); });
+      await settled();
+      const held = deferred();
+      toTarget.mockImplementationOnce(() => held.promise);
+      await act(async () => { preset('200 KB').dispatchEvent(new MouseEvent('click', { bubbles: true })); });
+      // b.jpg waits behind a.jpg, so its tile is not openable yet.
+      await act(async () => { container.querySelector('[data-batch-back]').click(); });
+      expect(document.activeElement).toBe(container.querySelector('[data-batch] ol'));
+      await act(async () => { held.resolve(makeImageResult()); });
+      await settled();
+    });
+
+    it('the target field widens for a five-digit size', async () => {
+      mount();
+      await pickMany([makeImageFile('a.jpg', 900_000), makeImageFile('b.jpg', 800_000)]);
+      const field = container.querySelector('#image-target-size-input');
+      expect(field.style.width).toBe('3.5ch');
+      await act(async () => {
+        field.value = '10240';
+        field.dispatchEvent(new Event('input', { bubbles: true }));
+      });
+      expect(field.style.width).toBe('5.5ch');
     });
 
     it('Escape while typing a target stays in the preview', async () => {

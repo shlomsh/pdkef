@@ -50,9 +50,17 @@ export default function BatchGrid({ t, rows, summary, targetKB, arrow, thumbnail
   const target = `${targetKB} KB`;
   const gridRef = useRef<HTMLOListElement>(null);
   const columns = useFittedColumns(gridRef, rows.length);
+  // The grid's own scroll, kept across a photo's preview: a hidden box keeps no offset of its own.
+  const scrollRef = useRef(0);
   useEffect(() => {
+    const grid = gridRef.current;
+    if (hidden || !grid) return;
+    grid.scrollTop = scrollRef.current;
     const index = focusOn ? rows.findIndex((row) => row.file === focusOn) : -1;
-    if (!hidden && index >= 0) gridRef.current?.children[index]?.querySelector('button')?.focus();
+    if (index < 0) return;
+    // A tile a new run has not reached yet cannot take focus; the set itself does.
+    const tile = grid.children[index]?.querySelector<HTMLButtonElement>('button');
+    (tile && !tile.disabled ? tile : grid).focus();
   }, [focusOn, hidden]);
   const heading = !summary.allFinished
     ? formatMessage(t.batchWorking, { done: summary.finished, total: summary.total })
@@ -66,7 +74,13 @@ export default function BatchGrid({ t, rows, summary, targetKB, arrow, thumbnail
       {/* Only the finished set is announced: a line per photo would talk over the person. */}
       <p class="sr-only" role="status" data-batch-live>{summary.allFinished ? heading : ''}</p>
       {/* role="list": Safari drops the list semantics of an unstyled list. */}
-      <ol ref={gridRef} class={styles.grid} role="list" data-fitted={columns ? '' : undefined} style={columns ? ({ '--columns': columns } as JSX.CSSProperties) : undefined}>
+      <ol
+        ref={gridRef}
+        class={styles.grid}
+        role="list"
+        tabIndex={-1}
+        onScroll={(e) => { scrollRef.current = e.currentTarget.scrollTop; }}
+        data-fitted={columns ? '' : undefined} style={columns ? ({ '--columns': columns } as JSX.CSSProperties) : undefined}>
         {rows.map((row) => {
           const outcome = row.status !== 'done' ? row.status : row.passthrough ? 'kept' : row.metTarget ? 'met' : 'missed';
           const thumbnail = thumbnails.get(row.file);
