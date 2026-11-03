@@ -14,6 +14,11 @@ describe('simplifyStroke', () => {
     expect(simplifyStroke([[10, 10]], 0.5, W, H)).toEqual([[10, 10]]);
   });
 
+  it('keeps a point exactly one step from the last kept one', () => {
+    // 50% of the 600pt width is 300pt.
+    expect(simplifyStroke([[0, 10], [50, 10], [100, 10]], 300, W, H)).toEqual([[0, 10], [50, 10], [100, 10]]);
+  });
+
   it('drops points closer than the step, measured in points not percent', () => {
     // 0.05% of width = 0.3pt (dropped); 0.2% = 1.2pt (kept).
     const out = simplifyStroke([[10, 10], [10.05, 10], [10.08, 10], [10.4, 10], [20, 10]], 0.5, W, H);
@@ -118,6 +123,11 @@ describe('strokeSvgInPoints', () => {
     expect(vh).toBeCloseTo((s.height / 100) * H, 2);
     // Start point sits one radius in from the bbox corner.
     expect(svg.d.startsWith('M 6 6 ')).toBe(true);
+  });
+
+  it('draws a single point as a zero-length segment so the round cap leaves a dot', () => {
+    const s = makeStroke('whiteoutStroke', { id: 'a', pageIndex: 0, points: [[10, 10]], sizePt: 12, pageWidthPt: W, pageHeightPt: H });
+    expect(strokeSvgInPoints(s, W, H).d).toBe('M 6 6 L 6 6');
   });
 });
 
