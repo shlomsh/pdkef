@@ -13,15 +13,14 @@ status: 'published'
 reviewer: 'Shlomi Shemesh'
 reviewedAt: '2026-09-12'
 reviewNotes: >-
-  2026-09-11/12: reviewed in RTL on desktop and mobile and approved by
-  Shlomi; English vocabulary and FAQ additions (SEO-33) left the Hebrew
+  2026-09-11/12: approved by Shlomi after RTL review; English vocabulary and FAQ additions (SEO-33) left the Hebrew
   unchanged. 09-19 (SEO-36): English closer and FAQ reworded, hash refreshed
-  mechanically. 10-01 (QUAL-14): closer now "נשאר אצלכם במכשיר", matching
-  merge and sign; wording chosen by Shlomi. 10-02 (COMP-01): about, subhead and three FAQ answers rewritten
+  mechanically. 10-01 (QUAL-14): closer now "נשאר אצלכם במכשיר" (Shlomi's pick). 10-02 (COMP-01): about, subhead and three FAQ answers rewritten
   for the image-only compressor; awaiting Shlomi's read; size answers corrected (bisection).
   10-15: h1Name added; steps and FAQ renamed to the new levels, no Compress button; awaiting Shlomi's read.
+  11-03: Drive FAQ is an AI draft (MERGE-27).
 # 10-08 (SEO-42): English title gained "No Upload"; the Hebrew title is its own phrasing and stays. Hash refreshed mechanically.
-sourceHash: 'fnv1a64:7954b12e2094a246'
+sourceHash: 'fnv1a64:cb82826fef5dd10d'
 seoTitle: 'כיווץ קובץ PDF ל-100KB בחינם - הקטנת גודל | PDkef'
 seoDescription: >-
   כווצו קובץ PDF ל-100KB בחינם, ישירות בדפדפן. גם דחיסת PDF וגם הקטנת קובץ
@@ -84,3 +83,9 @@ faq:
       כן. הקיצורים 100KB, 200KB, 500KB ו-1MB הם קיצורי דרך. הזינו מגבלה
       משלכם בשדה ה-KB, ואז בדקו אם התוצאה שהורדתם עמדה בה. יעד הוא לא
       הבטחה שכל PDF יוכל להתאים בלי לאבד קריאות.
+  - question: 'אפשר לכווץ קובץ PDF שנמצא ב-Google Drive?'
+    answer: >-
+      כן. לחצו על בחירת קובץ ובחרו Google Drive בבוחר הקבצים של המכשיר (באייפון
+      או באייפד לחצו על עיון), או, במחשב, לחצו קליק ימני על הקובץ ב-Drive,
+      בחרו "פתיחה באמצעות" ואז PDkef. בשני המקרים הקובץ עובר מ-Drive למכשיר
+      שלכם ולשום מקום אחר.

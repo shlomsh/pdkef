@@ -42,6 +42,7 @@ import {
   IdCard,
   Languages,
   BookOpen,
+  HardDriveDownload,
 } from 'lucide-preact';
 
 const landingPages = [
@@ -154,6 +155,16 @@ const landingPages = [
     blurb: 'Highlight a paper, comment beside a passage, and print it with your notes.',
     icon: BookOpen,
     hub: 'highlight-pdf',
+    sitemapPriority: '0.6',
+    sitemapChangefreq: 'monthly',
+  },
+  {
+    href: '/how-to-open-a-pdf-from-google-drive/',
+    label: 'Open a PDF from Google Drive',
+    blurb: 'Drive\'s Open with menu, or your device\'s file picker. The file goes to your device and nowhere else.',
+    icon: HardDriveDownload,
+    hub: 'merge',
+    alsoHub: ['sign', 'compress'],
     sitemapPriority: '0.6',
     sitemapChangefreq: 'monthly',
   },

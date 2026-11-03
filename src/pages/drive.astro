@@ -2,6 +2,7 @@
 import BaseLayout from '../layouts/BaseLayout.astro';
 import Footer from '../components/Footer.astro';
 import DriveOpen from '../site-lib/DriveOpen.tsx';
+import { Code2, Gift, HardDrive, ShieldCheck } from 'lucide-preact';
 import '../styles/openPage.css';
 
 // MERGE-25: where Google Drive's "Open with > PDkef" lands. The approved exception to "no external
@@ -17,13 +18,65 @@ const description = 'Open a PDF from Google Drive in PDkef: it goes from Drive t
 ---
 
 <BaseLayout title={title} description={description} noindex={true}>
-  <header class="mx-auto max-w-[540px] px-6 pb-8 pt-[4.5rem] text-center">
-    <h1 class="type-hero space-heading-content mt-0 text-[var(--color-text)]">Open a PDF from Google Drive</h1>
+  <header class="mx-auto max-w-[540px] px-6 pb-4 pt-[3.5rem] text-center">
+    {/* Hand-drawn, decorative: a file leaving a cloud for this device. Plain strokes in site tokens, no glow. */}
+    <svg class="journey" viewBox="0 0 360 150" fill="none" aria-hidden="true">
+      <path class="doodle" d="M34 96c-14-1-22-11-20-22 2-11 12-17 22-15 3-14 16-24 31-22 14 2 24 12 25 24 12-1 22 8 21 20-1 11-10 17-20 16z" fill="var(--color-primary-tint)" />
+      <g class="doodle">
+        <path d="M70 62h19l8 9v21H70z" fill="var(--color-surface)" />
+        <path d="M89 62v9h8" />
+        <path d="M76 80h15M76 86h10" />
+      </g>
+      <path class="trail" d="M128 70c34-44 72-48 109-13" />
+      <path class="doodle" d="M227 57l11 1-4-11" />
+      <g class="doodle">
+        <rect x="246" y="38" width="92" height="62" rx="7" fill="var(--color-surface)" />
+        <path d="M236 108h112c0 5-4 8-9 8h-94c-5 0-9-3-9-8z" fill="var(--color-paper)" />
+        <path d="M280 50h20l8 9v28h-28z" fill="var(--color-citron)" />
+        <path d="M300 50v9h8" />
+        <path d="M286 72h16M286 79h10" />
+      </g>
+      <g class="spark">
+        <path d="M120 24v10M115 29h10" />
+        <path d="M344 22v8M340 26h8" />
+        <path d="M200 110v8M196 114h8" />
+      </g>
+    </svg>
+    <h1 class="type-hero space-heading-content mt-3 text-[var(--color-text)]">Open a PDF from Google Drive</h1>
+    <p class="mx-auto mt-3 max-w-[26rem] text-[var(--color-muted)]">From Drive to your device, and no further.</p>
   </header>
 
   <main class="mx-auto mb-16 max-w-[540px] px-6">
     <DriveOpen client:load />
+
+    <ul class="stickers" aria-label="What to expect">
+      <li><ShieldCheck size={22} strokeWidth={1.8} aria-hidden="true" /><strong>Private</strong><span>Your PDF goes from Drive to this device and nowhere else.</span></li>
+      <li><Gift size={22} strokeWidth={1.8} aria-hidden="true" /><strong>Free</strong><span>No account, no watermark, no catch.</span></li>
+      <li><Code2 size={22} strokeWidth={1.8} aria-hidden="true" /><strong>Open source</strong><span><a href="https://github.com/shlomsh/pdkef" target="_blank" rel="noopener noreferrer">Read every line</a> on GitHub.</span></li>
+      <li><HardDrive size={22} strokeWidth={1.8} aria-hidden="true" /><strong>Local</strong><span>The work happens in your browser, on your device.</span></li>
+    </ul>
   </main>
 
   <Footer />
 </BaseLayout>
+
+<style>
+  .journey { display: block; width: min(100%, 22rem); height: auto; margin: 0 auto; color: var(--color-text); }
+  .journey .doodle { stroke: currentColor; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
+  .journey .spark { stroke: var(--color-clay); stroke-width: 2.2; stroke-linecap: round; }
+  .journey .trail { stroke: var(--color-primary); stroke-width: 2.6; stroke-linecap: round; stroke-dasharray: 3 9; }
+  @media (prefers-reduced-motion: no-preference) {
+    .journey .trail { animation: trail 1.6s linear infinite; }
+  }
+  @keyframes trail { to { stroke-dashoffset: -24; } }
+
+  .stickers { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.85rem; margin: 2.25rem 0 0; padding: 0; list-style: none; }
+  .stickers li { display: flex; flex-direction: column; gap: 0.3rem; padding: 0.9rem 1rem 1rem; border: 1.5px solid var(--color-border-strong); border-radius: 1.1rem 1.4rem 1.1rem 1.3rem; background: var(--color-paper); color: var(--color-primary-text); font-size: 0.85rem; line-height: 1.4; }
+  .stickers li:nth-child(odd) { transform: rotate(-1deg); }
+  .stickers li:nth-child(even) { transform: rotate(1deg); }
+  .stickers li:nth-child(2) { background: var(--color-citron); border-color: var(--color-citron-ink); color: var(--color-citron-ink); }
+  .stickers li:nth-child(3) { background: var(--color-primary-soft); }
+  .stickers strong { color: var(--color-text); font-size: 1rem; font-weight: 600; }
+  .stickers span { color: var(--color-muted); }
+  .stickers a { color: inherit; text-underline-offset: 0.15em; }
+</style>

@@ -166,6 +166,11 @@
       "permanent": true
     },
     {
+      "source": "/how-to-open-a-pdf-from-google-drive",
+      "destination": "/how-to-open-a-pdf-from-google-drive/",
+      "permanent": true
+    },
+    {
       "source": "/academic-paper-reader",
       "destination": "/academic-paper-reader/",
       "permanent": true
