@@ -4,7 +4,7 @@ import { waitForIsland } from '../../../../e2e/support/tool.js';
 
 // RED-66: the toolbar Download finishes where the person is looking. The strip
 // hangs under the sticky toolbar card, so whether the result, both hand-offs and
-// the rating ask are on screen after a click is real layout (the card's sticky
+// the rating dialog (SEO-55) are on screen after a click is real layout (the card's sticky
 // offset, the strip's absolute placement, the phone toolbar's height), which
 // jsdom cannot measure.
 
@@ -56,23 +56,23 @@ for (const size of [{ width: 1440, height: 900 }, { width: 390, height: 844 }]) 
     await expect(strip).toBeVisible();
     await expect(toolbar.getByRole('button', { name: 'Download', exact: true })).toContainText('Saved');
     await expect(strip.locator('[data-redact-done-result]')).toContainText('Saved');
-    const rating = strip.getByText('a rating helps more people find it', { exact: false });
+    const rating = page.getByRole('dialog', { name: 'How did it go?' });
     await expect(rating).toBeVisible({ timeout: 5000 });
 
     await expectInViewport(page, strip.locator('[data-redact-done-result]'), 'the result');
     await expectInViewport(page, strip.getByRole('button', { name: /Compress it/ }), 'Compress it');
     await expectInViewport(page, strip.getByRole('button', { name: /Sign it/ }), 'Sign it');
-    await expectInViewport(page, rating, 'the rating ask');
-    const stripBox = await strip.boundingBox();
-    const starsBox = await strip.getByRole('button').last().boundingBox();
-    expect(starsBox.y + starsBox.height, 'the rating row spills out of the strip').toBeLessThanOrEqual(stripBox.y + stripBox.height);
-    // One ask on the page, not one in the strip and another at the bottom.
-    await expect(page.getByText('a rating helps more people find it', { exact: false })).toHaveCount(1);
+    await expectInViewport(page, rating, 'the rating dialog');
+    // One ask on the page. It is mounted beside the strip but paints in the top layer.
+    await expect(page.getByRole('dialog', { name: 'How did it go?' })).toHaveCount(1);
     // The bottom row has no before-download caption once saved.
     await expect(page.locator('[data-redact-count]')).toHaveCount(0);
 
     await page.screenshot({ path: test.info().outputPath(`done-strip-${size.width}.png`) });
 
+    // Not now leaves the dialog without rating; the page underneath is usable again.
+    await rating.getByRole('button', { name: 'Not now' }).click();
+    await expect(rating).toHaveCount(0);
     await strip.getByRole('button', { name: 'Close' }).click();
     await expect(strip).toHaveCount(0);
   });

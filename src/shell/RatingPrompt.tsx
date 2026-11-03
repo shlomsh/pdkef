@@ -6,11 +6,16 @@ import type { RatingTool, Stars } from '#lib/telemetry/ratingSchema.ts';
 import { STARS } from '#lib/telemetry/ratingSchema.ts';
 import { englishShellMessages, type ShellMessages } from './shellMessages';
 import { formatMessage } from '#lib/text/formatMessage.ts';
+import RatingModal, { type RatingModalMessages } from './RatingModal.tsx';
 
 type RatingMessages = Pick<
   ShellMessages,
   'ratingQuestion' | 'ratingThanksHigh' | 'ratingShare' | 'ratingShareCopied' | 'ratingStarGithub' | 'ratingThanksLow' | 'ratingTellMe' | 'ratingStarOne' | 'ratingStarOther' | 'ratingCommentLabel' | 'ratingCommentSend' | 'ratingCommentThanks'
->;
+> &
+  RatingModalMessages;
+
+/** The four busiest tools ask in a dialog right after the download; every other tool keeps the quiet inline row. */
+const MODAL_TOOLS: ReadonlySet<RatingTool> = new Set<RatingTool>(['redact', 'sign', 'highlight-pdf', 'merge']);
 
 // Same value as GITHUB_REPO_URL in src/data/organizationSchema.js; src/shell does not import src/data.
 const GITHUB_REPO_URL = 'https://github.com/shlomsh/pdkef';
@@ -42,7 +47,7 @@ function pageUrl(): string {
   return canonical || location.origin + location.pathname;
 }
 
-type Phase = 'hidden' | 'asking' | 'high' | 'low';
+type Phase = 'hidden' | 'asking' | 'high' | 'low' | 'closed';
 type ShareState = 'idle' | 'copied' | 'link';
 
 // The live phase per tool for this page load. A host may move one <RatingPrompt> between tree positions
@@ -91,7 +96,7 @@ export default function RatingPrompt({ tool, downloaded, messages = englishShell
     return () => clearTimeout(timer);
   }, [downloaded, tool]);
 
-  if (phase === 'hidden') return null;
+  if (phase === 'hidden' || phase === 'closed') return null;
 
   const rate = (stars: Stars) => {
     reportRating(tool, stars);
@@ -118,6 +123,21 @@ export default function RatingPrompt({ tool, downloaded, messages = englishShell
       if (typeof navigator.share !== 'function') setShare('link');
     }
   };
+
+  if (MODAL_TOOLS.has(tool)) {
+    return (
+      <RatingModal
+        tool={tool}
+        messages={messages}
+        storage={localStore()}
+        githubUrl={GITHUB_REPO_URL}
+        onShare={onShare}
+        shareState={share}
+        shareLink={pageUrl()}
+        onClose={() => setPhase('closed')}
+      />
+    );
+  }
 
   const onComment = (event: Event) => {
     event.preventDefault();

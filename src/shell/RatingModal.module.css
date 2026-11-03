@@ -1,0 +1,101 @@
+/* --- Rating dialog (SEO-55) ---
+   Sits inside Dialog.module.css's shell; only what is specific to the rating step lives here. Tokens only. */
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.text {
+  margin: 0;
+  color: var(--color-muted);
+  line-height: 1.55;
+}
+
+.stars {
+  display: flex;
+  justify-content: center;
+  gap: 0.25rem;
+}
+
+.star {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  /* A comfortable thumb target. */
+  width: 2.75rem;
+  height: 2.75rem;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--color-muted);
+  cursor: pointer;
+}
+
+.star svg {
+  fill: none;
+  stroke: currentColor;
+}
+
+/* Hover and focus fill the star; every star up to it fills too, like picking a number on a scale. */
+.star:hover svg,
+.star:focus-visible svg {
+  fill: var(--color-primary);
+  stroke: var(--color-primary);
+}
+
+.stars:hover .star:has(~ .star:hover) svg {
+  fill: var(--color-primary);
+  stroke: var(--color-primary);
+}
+
+.star:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.words {
+  box-sizing: border-box;
+  width: 100%;
+  margin-top: 0.75rem;
+  padding: 0.625rem 0.75rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font: inherit;
+  resize: vertical;
+}
+
+.words:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 1px;
+}
+
+.error {
+  margin: 0.5rem 0 0;
+  color: var(--color-danger);
+  font-size: 0.9rem;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1.25rem;
+}
+
+.link {
+  padding: 0.25rem 0;
+  border: none;
+  background: none;
+  color: var(--color-primary);
+  font: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.send:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
