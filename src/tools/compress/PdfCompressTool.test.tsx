@@ -1676,4 +1676,95 @@ describe('PdfCompressTool UI flow', () => {
     await act(async () => { held.resolve(imagesResult()); });
     await waitUntil(() => expect(statusOf()).toBe('done'));
   });
+
+  describe('COMP-04 several photos', () => {
+    const rows = () => Array.from(container.querySelectorAll('li[data-batch-row]'));
+    const outcomes = () => rows().map((r) => r.getAttribute('data-outcome'));
+    const pickMany = async (files, until) => {
+      await act(async () => {
+        setInputFiles(fileInput, files);
+      });
+      await (until ? waitFor(until) : settled());
+    };
+    const toTarget = compressImageLib.compressImageToTarget;
+
+    it('two photos show the batch, one call per file in order, every row met, and no single-photo result', async () => {
+      mount();
+      const a = makeImageFile('a.jpg', 900_000);
+      const b = makeImageFile('b.jpg', 800_000);
+      await pickMany([a, b]);
+      expect(container.querySelector('[data-compress-batch]')).not.toBeNull();
+      expect(rows()).toHaveLength(2);
+      expect(toTarget).toHaveBeenCalledTimes(2);
+      expect(toTarget.mock.calls[0][0]).toBe(a);
+      expect(toTarget.mock.calls[1][0]).toBe(b);
+      expect(toTarget.mock.calls[0][1]).toEqual(expect.objectContaining({ targetKB: 100 }));
+      expect(toTarget.mock.calls[1][1]).toEqual(expect.objectContaining({ targetKB: 100 }));
+      expect(outcomes()).toEqual(['met', 'met']);
+      expect(statusOf()).toBe('done');
+      expect(container.querySelector('[data-result]')).toBeNull();
+      expect(container.querySelectorAll('a[data-batch-save][download]')).toHaveLength(2);
+    });
+
+    it('runs one photo at a time', async () => {
+      mount();
+      const first = deferred();
+      toTarget.mockImplementationOnce(() => first.promise);
+      await pickMany([makeImageFile('a.jpg', 900_000), makeImageFile('b.jpg', 800_000)], ran(toTarget, 1));
+      await wait(50);
+      expect(toTarget).toHaveBeenCalledTimes(1);
+      expect(statusOf()).toBe('processing');
+      await act(async () => { first.resolve(makeImageResult()); });
+      await waitFor(ran(toTarget, 2));
+      await settled();
+      expect(toTarget).toHaveBeenCalledTimes(2);
+    });
+
+    it('names missed, kept and failed rows and still finishes', async () => {
+      mount();
+      const a = makeImageFile('a.jpg', 900_000);
+      const b = makeImageFile('b.jpg', 50_000);
+      const c = makeImageFile('c.jpg', 700_000);
+      toTarget
+        .mockImplementationOnce(() => Promise.resolve(makeImageResult({ metTarget: false })))
+        .mockImplementationOnce(() => Promise.resolve(makeImageResult({ blob: b })))
+        .mockImplementationOnce(() => Promise.reject(new Error('boom')));
+      await pickMany([a, b, c]);
+      expect(outcomes()).toEqual(['missed', 'kept', 'failed']);
+      expect(statusOf()).toBe('done');
+    });
+
+    it('a preset target recompresses every photo with that target', async () => {
+      mount();
+      await pickMany([makeImageFile('a.jpg', 900_000), makeImageFile('b.jpg', 800_000)]);
+      expect(toTarget).toHaveBeenCalledTimes(2);
+      await act(async () => {
+        preset('50 KB').dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      });
+      await waitFor(ran(toTarget, 4));
+      await settled();
+      expect(toTarget.mock.calls[2][1]).toEqual(expect.objectContaining({ targetKB: 50 }));
+      expect(toTarget.mock.calls[3][1]).toEqual(expect.objectContaining({ targetKB: 50 }));
+      expect(outcomes()).toEqual(['met', 'met']);
+    });
+
+    it('a PDF picked among photos is named as left out and never compressed as a photo', async () => {
+      mount();
+      const pdf = makePdfFile('notes.pdf', 50_000);
+      await pickMany([makeImageFile('a.jpg', 900_000), pdf, makeImageFile('b.jpg', 800_000)]);
+      expect(rows()).toHaveLength(2);
+      expect(container.querySelector('[data-batch-left-out]').textContent).toContain('notes.pdf');
+      expect(toTarget.mock.calls.map((c) => c[0])).not.toContain(pdf);
+      expect(toTarget).toHaveBeenCalledTimes(2);
+    });
+
+    it('a single photo after a batch goes back to the single-photo view', async () => {
+      mount();
+      await pickMany([makeImageFile('a.jpg', 900_000), makeImageFile('b.jpg', 800_000)]);
+      expect(container.querySelector('[data-compress-batch]')).not.toBeNull();
+      await pickMany([makeImageFile('solo.jpg', 900_000)]);
+      expect(container.querySelector('[data-compress-batch]')).toBeNull();
+      expect(container.querySelector('[data-result]')).not.toBeNull();
+    });
+  });
 });
