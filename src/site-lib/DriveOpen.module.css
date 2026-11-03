@@ -1,5 +1,6 @@
 .panel { display: flex; flex-direction: column; align-items: center; gap: 20px; }
 .lead { margin: 0; text-align: center; color: var(--color-muted); font-size: 1.05rem; line-height: 1.6; }
+.lead a { color: var(--color-text); text-underline-offset: 0.15em; }
 .primary { box-sizing: border-box; min-height: 48px; border: 0; border-radius: 999px; padding: 12px 28px; background: var(--color-primary); color: var(--color-surface); font: inherit; font-weight: 500; cursor: pointer; transition: background-color 160ms var(--ease-out); }
 .primary:hover { background: var(--color-primary-hover); }
 .primary:active { background: var(--color-primary-active); }

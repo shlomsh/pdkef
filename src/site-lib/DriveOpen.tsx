@@ -42,6 +42,10 @@ function DriveOpen() {
     return (
       <div class={styles.panel}>
         <p class={styles.lead}>To open a PDF from Google Drive, right-click it in Drive, choose Open with, then PDkef.</p>
+        <p class={styles.lead}>
+          Or open any PDkef tool and pick the file from Drive in your device's file picker, with no sign-in at all.{' '}
+          <a href="/how-to-open-a-pdf-from-google-drive/">Step by step</a>
+        </p>
       </div>
     );
   }

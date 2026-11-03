@@ -95,7 +95,7 @@ export const staticPages = [
       {
         heading: 'Opening a file from Google Drive',
         paragraphs: [
-          'If you choose PDkef from the Open with menu in Google Drive, one page, <a href="/drive/">/drive/</a>, signs you in with Google and asks for access to that one file only. The file goes from Drive straight to your device, and PDkef never sees your Google password or the rest of your Drive. Your file is never sent anywhere else, and no other page on PDkef loads anything from Google.',
+          'If you choose PDkef from the Open with menu in Google Drive, one page, <a href="/drive/">/drive/</a>, signs you in with Google and asks for access to that one file only. The file goes from Drive straight to your device, and PDkef never sees your Google password or the rest of your Drive. Your file is never sent anywhere else, and no other page on PDkef loads anything from Google. Picking a file from Drive in your device\'s own file picker involves no Google sign-in at all. <a href="/how-to-open-a-pdf-from-google-drive/">How to open a PDF from Google Drive</a> has both ways, step by step.',
         ],
       },
       {

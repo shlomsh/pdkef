@@ -300,6 +300,12 @@
   line-height: 1.4;
 }
 
+.ios-files-link {
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 0.15em;
+}
+
 /* The loaded state is not styled here any more. Once a file is picked the
    dropzone is replaced by the identity line and control row, which are one
    joined object and live in ToolShell.module.css. */
