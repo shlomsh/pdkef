@@ -2,6 +2,7 @@
 import BaseLayout from '../layouts/BaseLayout.astro';
 import Footer from '../components/Footer.astro';
 import SeoSchema from '../components/SeoSchema.astro';
+import Doodle from '../components/Doodle.astro';
 import { renderInline } from '../site-lib/contentMarkup.ts';
 import { staticPages } from '../data/staticPages.js';
 import '../styles/staticPage.css';
@@ -12,8 +13,9 @@ if (!page) throw new Error('staticPages is missing the "contact" entry');
 
 <BaseLayout title={page.title} description={page.description}>
   <SeoSchema name="PDkef" description={page.description} />
-  <header class="mx-auto max-w-[720px] px-6 pb-6 pt-[4.5rem]">
-    <h1 class="type-hero space-heading-content mt-0 text-[var(--color-text)]">{page.h1}</h1>
+  <header class="mx-auto max-w-[720px] px-6 pb-6 pt-[3.5rem] text-center">
+    <Doodle figure="say-hello" />
+    <h1 class="type-hero space-heading-content mt-3 text-[var(--color-text)]">{page.h1}</h1>
   </header>
 
   <main>
