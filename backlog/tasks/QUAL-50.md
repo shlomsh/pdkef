@@ -1,10 +1,9 @@
 ---
 id: "QUAL-50"
 title: "Assertions that cannot fail, or fail only on a refactor, are made real or removed"
-status: "in_progress"
+status: "done"
 priority: "P3"
 epic: "robustness"
-horizon: "later"
 depends_on: []
 ---
 
@@ -41,5 +40,15 @@ ones the audit found so they do not mislead.
 
 ## Acceptance
 
-- [ ] Each item above is marked fixed, deleted (with the covering test) or kept (with the reason).
-- [ ] `npm run check:fast` and `npm run check:push` pass.
+- [x] Each item above is marked fixed, deleted (with the covering test) or kept (with the reason).
+- [x] `npm run check:fast` and `npm run check:push` pass.
+
+## Result (2026-11-04)
+
+- Cannot fail: the HighlightWorkspace lookup check is gone; DraggableWrapper asserts the elements exist; the savedSignature contract says `astro check` enforces it and reads real values.
+- Constant echoes: `750_000` deleted (the re-encode test fails on a wrong cap); `DEFAULT_MARKER` finds yellow by id. The palette hex-shape checks are kept with a comment: a non-`#RRGGBB` value exports an opaque black band. Highlight inks are now checked unique.
+- Titles that promised more: the dragged position, the scroll options, the blur strength and the call counts are asserted. `check-swallowed-errors` checks the printed findings, and without `--list` that the run fails.
+- Mock echoes: "English defaults for a protected file" is deleted (the hook takes its messages; the announcement test covers the mapping). Draft persistence now has a behavioural test of the manual-pick slot.
+- `PdfSplitTool.test.tsx`: five `toBeDefined()` lines after a wait that proved presence are gone.
+- Source-text pins (14 files): `FileDropzone`'s arrow is a rendered check now; the CSS and `.astro` pins jsdom cannot see stay, each with a comment naming the regression or commit it guards. None was deleted.
+- Found on the way: the `update-cost` worktree path assertion read `--detach`, not the path; it reads the path now and fails on a per-side path.

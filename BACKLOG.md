@@ -2,7 +2,7 @@
 
 # Backlog
 
-The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 114 live: 31 up next, 17 then, 27 waiting, 39 parked.
+The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 112 live: 29 up next, 17 then, 27 waiting, 39 parked.
 
 ## Redact: finish removal
 
@@ -131,10 +131,8 @@ Production errors you can see, small tools that clean up after themselves, and d
 
 | ID | P | Task | Note |
 | --- | --- | --- | --- |
-| QUAL-49 | P3 | [QUAL-49](backlog/tasks/QUAL-49.md) · Copy-pasted unit suites collapse into one parametrised guard each | In progress |
 | DEBT-65 | P2 | [DEBT-65](backlog/tasks/DEBT-65.md) · Two layout-shift specs failed once each in the 2026-10-27 nightly | In progress |
 | MEM-24 | P3 | [MEM-24](backlog/tasks/MEM-24.md) · A service worker that cannot install, or never completes its precache, says so | In progress |
-| QUAL-50 | P3 | [QUAL-50](backlog/tasks/QUAL-50.md) · Assertions that cannot fail, or fail only on a refactor, are made real or removed | In progress |
 
 ### Then, in order
 
@@ -285,7 +283,7 @@ Done and retired tickets are not listed. Their files stay in [backlog/tasks/](ba
 - Scan: camera to WhatsApp: 0 done, 0 retired
 - Tool pages: show the verb: 8 done, 0 retired
 - Form detector accuracy: 19 done, 1 retired
-- Robustness and debt: 84 done, 4 retired
+- Robustness and debt: 86 done, 4 retired
 - Unify the tools, narrow the graph: 96 done, 0 retired
 - Search and languages: 12 done, 0 retired
 - Polish: 24 done, 1 retired

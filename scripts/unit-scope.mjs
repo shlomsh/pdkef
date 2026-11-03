@@ -113,6 +113,7 @@ export const WIDEN_RULES = [
       'src/tools/redact/PdfRedactTool.details.test.tsx',
       'src/tools/redact/PdfRedactTool.export.test.tsx',
       'src/tools/security/lib/security.test.js',
+      'src/test/cross-tool/pageGridTools.test.tsx',
       'src/tools/sign/PdfSignTool.test.tsx',
       'src/tools/split/PdfSplitTool.test.tsx',
       'src/tools/to-image/lib/toImage.test.js',
