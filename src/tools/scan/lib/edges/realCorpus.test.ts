@@ -1,9 +1,8 @@
 // The page-detection KPI table: every labelled photo in real/ plus the synthetic corpus, scored by the same
 // scorer against today's detector. Asserted against real/baseline.json; a regression fails. To move the
 // baseline on purpose: UPDATE_BASELINE=1 npx vitest run src/tools/scan/lib/edges/realCorpus.test.ts
+// @ts-expect-error -- this browser-first project intentionally omits Node ambient types; Vitest provides the runtime.
 import { readdirSync, readFileSync, writeFileSync } from 'node:fs';
-import { dirname, join } from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import type { Quad } from '../quad.ts';
 import { corpus } from './corpus.ts';
@@ -11,8 +10,8 @@ import { guessCorners } from './index.ts';
 import { formatKpiTable, scoreDetector, TOLERANCES, type KpiCase, type KpiResult } from './kpi.ts';
 import { parsePgm } from './real/pgm.ts';
 
-const dir = join(dirname(fileURLToPath(import.meta.url)), 'real');
-const BASELINE = join(dir, 'baseline.json');
+const dir = new URL('./real/', import.meta.url);
+const BASELINE = new URL('baseline.json', dir);
 
 const CONDITIONS = ['low-contrast', 'shadow', 'glare', 'dark-print', 'clutter', 'lap', 'curled', 'partly-out', 'hand', 'no-page', 'plain'];
 
@@ -24,8 +23,8 @@ interface Label { corners: number[][] | null; conditions: string[]; source: stri
 interface Baseline { real: KpiResult; synthetic: KpiResult }
 
 function loadReal(): { cases: KpiCase[]; problems: string[] } {
-  const labels = JSON.parse(readFileSync(join(dir, 'labels.json'), 'utf8')) as Record<string, Label>;
-  const files = readdirSync(dir).filter((f) => f.endsWith('.pgm')).map((f) => f.slice(0, -4));
+  const labels = JSON.parse(readFileSync(new URL('labels.json', dir), 'utf8')) as Record<string, Label>;
+  const files = (readdirSync(dir) as string[]).filter((f) => f.endsWith('.pgm')).map((f) => f.slice(0, -4));
   const problems: string[] = [];
   for (const f of files) if (!labels[f]) problems.push(`${f}.pgm has no label`);
   const cases: KpiCase[] = [];
@@ -35,7 +34,7 @@ function loadReal(): { cases: KpiCase[]; problems: string[] } {
     for (const c of l.conditions) if (!CONDITIONS.includes(c)) problems.push(`"${name}": unknown condition "${c}"`);
     if ((l.corners === null) !== l.conditions.includes('no-page')) problems.push(`"${name}": null corners and the no-page condition go together`);
     if (!l.source?.trim()) problems.push(`"${name}": source is empty`);
-    const image = parsePgm(new Uint8Array(readFileSync(join(dir, `${name}.pgm`))));
+    const image = parsePgm(new Uint8Array(readFileSync(new URL(`${name}.pgm`, dir))));
     if (Math.max(image.width, image.height) !== 320) problems.push(`"${name}": long edge is ${Math.max(image.width, image.height)}, expected 320`);
     const truth = l.corners && (l.corners.map(([x, y]) => ({ x, y })) as Quad);
     cases.push({ name, image, truth, conditions: l.conditions });
@@ -62,6 +61,7 @@ function regressions(got: KpiResult, base: KpiResult): string[] {
 }
 
 const score = (cases: KpiCase[]) => scoreDetector(cases, (img) => guessCorners(img));
+// @ts-expect-error -- no Node ambient types here (see the fs import).
 const update = process.env.UPDATE_BASELINE === '1';
 const measured: Partial<Baseline> = {};
 

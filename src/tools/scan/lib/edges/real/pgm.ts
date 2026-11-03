@@ -3,6 +3,7 @@ import type { GrayImage } from '../../quad.ts';
 
 const isSpace = (b: number) => b === 32 || (b >= 9 && b <= 13);
 
+/** @testSeam */
 export function parsePgm(bytes: Uint8Array): GrayImage {
   let pos = 0;
   const token = (): string => {
@@ -27,6 +28,7 @@ export function parsePgm(bytes: Uint8Array): GrayImage {
   return { width, height, data: new Uint8ClampedArray(data) };
 }
 
+/** @testSeam */
 export function encodePgm(image: GrayImage): Uint8Array {
   const head = new TextEncoder().encode(`P5\n${image.width} ${image.height}\n255\n`);
   const out = new Uint8Array(head.length + image.data.length);
