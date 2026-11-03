@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { quadArea, sharpness } from './sharpness.ts';
+import { focusMeasure, quadArea, sharpness } from './sharpness.ts';
 import { addNoise, solid } from '../edges/testImages.ts';
 import type { GrayImage, Quad } from '../quad.ts';
 
@@ -56,5 +56,34 @@ describe('quadArea', () => {
 
   it('does not depend on winding', () => {
     expect(quadArea([{ x: 0, y: 0 }, { x: 0, y: 1 }, { x: 1, y: 1 }, { x: 1, y: 0 }])).toBeCloseTo(1);
+  });
+});
+
+describe('focusMeasure', () => {
+  const text = (): GrayImage => {
+    const img = solid(256, 256, 230);
+    // dark strokes, 3px wide every 8px, like small print
+    for (let y = 0; y < 256; y += 1) for (let x = 0; x < 256; x += 1) if (x % 8 < 3 && (y >> 4) % 2 === 0) img.data[y * 256 + x] = 30;
+    return img;
+  };
+  const noiseOnly = (): GrayImage => { const i = solid(256, 256, 120); addNoise(i, 12, 3); return i; };
+  const noisyText = (blurs: number): GrayImage => {
+    let i = text();
+    for (let k = 0; k < blurs; k += 1) i = blur(i);
+    addNoise(i, 12, 3);
+    return i;
+  };
+
+  it('scores noise alone well under the same noise over sharp text', () => {
+    expect(focusMeasure(noiseOnly())).toBeLessThan(focusMeasure(noisyText(0)) / 4);
+  });
+
+  it('scores blurred text under sharp text at the same noise', () => {
+    expect(focusMeasure(noisyText(3))).toBeLessThan(focusMeasure(noisyText(0)) / 2);
+  });
+
+  it('is zero on a flat patch and on one too small to bin', () => {
+    expect(focusMeasure(solid(64, 64, 100))).toBe(0);
+    expect(focusMeasure(solid(4, 4, 100))).toBe(0);
   });
 });
