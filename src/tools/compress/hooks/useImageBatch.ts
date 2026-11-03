@@ -1,6 +1,7 @@
 import { useEffect, useReducer, useRef, useState } from 'preact/hooks';
 import type { PreparedOutput, PreparedStatus } from '#lib/output/usePreparedOutput.ts';
 import { DEFAULT_QUIET } from '#lib/output/quietPrepare.ts';
+import { useHoldUpdate } from '#lib/hooks/useHoldUpdate.ts';
 import { reportError } from '#lib/telemetry/errorReport.ts';
 import { compressImageToTarget } from '../lib/compressImage.js';
 import { batchParts, batchReducer, emptyBatch, nextRow, summarizeBatch } from '../state/imageBatch.ts';
@@ -72,6 +73,9 @@ export function useImageBatch() {
   useEffect(() => () => { for (const url of urlsRef.current.values()) URL.revokeObjectURL(url); }, []);
 
   const summary = summarizeBatch(state);
+  // There is no draft behind a set: an update reload would drop every photo and result, so hold it.
+  useHoldUpdate(summary.total > 0, 'open');
+  useHoldUpdate(summary.total > 0 && !summary.allFinished);
   const parts = batchParts(state).map((part) => ({ ...part, url: urlFor(part.blob) }));
   const status: PreparedStatus = summary.total === 0 ? 'idle' : !summary.allFinished ? 'pending' : parts.length > 0 ? 'ready' : 'error';
   // The finish flow's view of the set: ready once every photo has finished. A run is ready at most once,
