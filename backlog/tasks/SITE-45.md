@@ -108,6 +108,10 @@ drafts; a fresh reviewer checks every one against the code and the page's own te
 
 - 2026-11-03: step 0 landed (`Doodle`, `PromiseStickers`, `src/data/promises.js`; `/drive/` uses them).
 - 2026-11-03: `/open/` (page-to-phone figure, tool buttons as tilted stickers) and `/404` (page-walking-off
-  figure, tool links as tilted tags) built from pitches 1 and 2; pitches 3 and 4 (`/about`, `/privacy`) wait
-  for Shlomi's go and a fresh reviewer on the sticker lines. Both pages were looked at on a 375px viewport;
+  figure, tool links as tilted tags) built from pitches 1 and 2. Both pages were looked at on a 375px viewport;
   the file-ready state of `/open/` (buttons, not links) is covered by the existing unit tests, not by eye.
+- 2026-11-03: `/about` (slides-to-pdf figure, four stickers) and `/privacy` (stays-on-device figure, three
+  stickers: private, local, open source) built from pitches 3 and 4. A fresh reviewer checked every sticker and
+  tagline against `staticPages.js` and the code: no objections; the one wording note was taken ("never sent
+  anywhere else", the page's own phrase). No Hebrew edition of either page exists, so step 3 has nothing to do
+  for them. Waiting on Shlomi's look on an iPhone; `/contact`, `/licenses` and the guides stay optional.

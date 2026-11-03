@@ -37,6 +37,7 @@ const icons = { ShieldCheck, Gift, Code2, HardDrive };
 <style>
   .stickers { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.85rem; margin: 2.25rem 0 0; padding: 0; list-style: none; }
   .stickers li { display: flex; flex-direction: column; gap: 0.3rem; padding: 0.9rem 1rem 1rem; border: 1.5px solid var(--color-border-strong); border-radius: 1.1rem 1.4rem 1.1rem 1.3rem; background: var(--color-paper); color: var(--color-primary-text); font-size: 0.85rem; line-height: 1.4; }
+  .stickers li:last-child:nth-child(odd) { grid-column: 1 / -1; }
   .stickers li:nth-child(odd) { transform: rotate(-1deg); }
   .stickers li:nth-child(even) { transform: rotate(1deg); }
   .stickers li.tone-citron { background: var(--color-citron); border-color: var(--color-citron-ink); color: var(--color-citron-ink); }

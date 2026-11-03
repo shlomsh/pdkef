@@ -2,6 +2,8 @@
 import BaseLayout from '../layouts/BaseLayout.astro';
 import Footer from '../components/Footer.astro';
 import SeoSchema from '../components/SeoSchema.astro';
+import Doodle from '../components/Doodle.astro';
+import PromiseStickers from '../components/PromiseStickers.astro';
 import { renderInline } from '../site-lib/contentMarkup.ts';
 import { staticPages } from '../data/staticPages.js';
 import '../styles/staticPage.css';
@@ -12,13 +14,15 @@ if (!page) throw new Error('staticPages is missing the "privacy" entry');
 
 <BaseLayout title={page.title} description={page.description}>
   <SeoSchema name="PDkef" description={page.description} />
-  <header class="mx-auto max-w-[720px] px-6 pb-6 pt-[4.5rem]">
-    <h1 class="type-hero space-heading-content mt-0 text-[var(--color-text)]">{page.h1}</h1>
+  <header class="mx-auto max-w-[720px] px-6 pb-6 pt-[3.5rem] text-center">
+    <Doodle figure="stays-on-device" />
+    <h1 class="type-hero space-heading-content mt-3 text-[var(--color-text)]">{page.h1}</h1>
+    <p class="mx-auto mt-3 max-w-[26rem] text-balance text-[var(--color-muted)]">The short version, then the details.</p>
   </header>
 
   <main>
     <section class="mx-auto max-w-[720px] px-6 pb-16 text-[var(--color-text)]">
-      {page.sections.map((section) => (
+      {page.sections.map((section, index) => (
         <div class="mb-8 last:mb-0">
           {section.heading && (
             <h2 class="type-section space-heading-content mt-0 text-[var(--color-text)]">{section.heading}</h2>
@@ -26,6 +30,15 @@ if (!page) throw new Error('staticPages is missing the "privacy" entry');
           {section.paragraphs.map((paragraph) => (
             <p class="type-body mb-4 leading-[1.7] text-[var(--color-muted)] last:mb-0" set:html={renderInline(paragraph)} />
           ))}
+          {index === 0 && (
+            <PromiseStickers
+              items={[
+                { kind: 'private', line: 'Your files are never sent anywhere else, the Drive page included.' },
+                { kind: 'local', line: 'Every tool runs in your browser, like a desktop app.' },
+                { kind: 'open-source', line: 'Read the exact code on GitHub, this policy included.' },
+              ]}
+            />
+          )}
         </div>
       ))}
     </section>
