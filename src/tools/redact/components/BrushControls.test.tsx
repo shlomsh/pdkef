@@ -17,6 +17,11 @@ describe('brush settings', () => {
     expect(resolveBrush({ brushSize: 8 }, { brushMode: 'brush', brushSize: 25 })).toEqual({ mode: 'brush', size: 8 });
   });
 
+  it('a document keeps its own brush mode over the latest choice anywhere', () => {
+    expect(resolveBrush({ brushMode: 'box' }, { brushMode: 'brush' }).mode).toBe('box');
+    expect(resolveBrush({ brushMode: 'brush' }, { brushMode: 'box' }).mode).toBe('brush');
+  });
+
   it('starts new documents at the last choice and keeps each document its own', () => {
     localStorage.clear();
     // Document A: the person picks size 30.

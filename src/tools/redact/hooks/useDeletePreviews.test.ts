@@ -92,6 +92,32 @@ describe('useDeletePreviews', () => {
     expect(proxyB).toBeDefined();
     expect(proxyB).not.toBe(proxyA);
   });
+
+  it('destroys the pdf.js handles of a rebuild that was cancelled before it finished', async () => {
+    vi.useFakeTimers();
+    vi.mocked(PDFDocument.load).mockResolvedValue({} as any);
+    vi.mocked(buildDeletePreviewPage).mockResolvedValue(new Uint8Array([1]));
+
+    let release!: (proxy: unknown) => void;
+    const held = new Promise((resolve) => { release = resolve; });
+    const getDocument = vi.fn(() => ({ promise: held }));
+    vi.mocked(getPdfjs).mockResolvedValue({ getDocument } as any);
+
+    const file = new ArrayBuffer(8);
+    const onPreviews = () => {};
+    mount(file, [{ type: 'delete', pageIndex: 0, start: 10, end: 20 }], onPreviews);
+    await act(async () => { await vi.advanceTimersByTimeAsync(REBUILD_DEBOUNCE_MS + 10); });
+    expect(getDocument).toHaveBeenCalledTimes(1);
+
+    // The marks change while the first parse is still open: that rebuild is cancelled.
+    act(() => { render(h(Harness, { fileBytes: file, elements: [], onPreviews }), container!); });
+
+    const stale = { destroy: vi.fn() };
+    release(stale);
+    await act(async () => { await vi.advanceTimersByTimeAsync(0); });
+
+    expect(stale.destroy).toHaveBeenCalledOnce();
+  });
 });
 
 describe('deleteSpansByPage', () => {
