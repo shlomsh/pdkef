@@ -26,7 +26,13 @@ or PNG files, or a folder of them, opens a batch view instead of the single-phot
 - Download saves every result, one file after another (the same delivery PDF to Image uses for
   separate pages; no zip), Share hands the whole set to the phone's share sheet, and each row has
   its own save link;
-- changing the target recompresses the set.
+- changing the target recompresses the set;
+- clicking a finished row opens that photo in the single photo's own result view, compare slider
+  and Full screen included, with a way back to the set.
+
+The photo presets are 50, 100, 200 and 500 KB (500 replaced 20, which stays one typed number
+away). A photo's Full screen, single or from a set, sizes the pair to the screen's width or height,
+whichever it meets first, so nothing scrolls.
 
 One file keeps today's single-photo view, compare slider and all. The PDF path stays single-file:
 PDFs in a mixed drop are skipped and named, as any other unaccepted file is.
