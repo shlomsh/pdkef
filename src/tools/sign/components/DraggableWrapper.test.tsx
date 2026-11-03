@@ -278,7 +278,6 @@ describe('DraggableWrapper RTL text positioning', () => {
     // collapse the textarea to ~1ch and wrap every character vertically (the original
     // regression this test now guards against from the other direction).
     expect(input.getAttribute('cols')).toBe('1');
-    expect(measure).toBeTruthy();
     expect(measure.style.display).not.toBe('none');
   });
 });
@@ -363,9 +362,9 @@ describe('DraggableWrapper compact editing toolbar (MOBI-16)', () => {
     setPointerCoarse(true);
     const wrapper = mount(baseElement());
 
-    expect(requiredElement(wrapper, 'button[aria-label="Previous field"]')).toBeTruthy();
-    expect(requiredElement(wrapper, 'button[aria-label="Next field"]')).toBeTruthy();
-    expect(requiredElement(wrapper, 'button[aria-label="Formatting options"]')).toBeTruthy();
+    expect(wrapper.querySelector('button[aria-label="Previous field"]')).not.toBeNull();
+    expect(wrapper.querySelector('button[aria-label="Next field"]')).not.toBeNull();
+    expect(wrapper.querySelector('button[aria-label="Formatting options"]')).not.toBeNull();
     expect(wrapper.querySelector('button[title="Delete"]')).toBeNull();
   });
 
@@ -377,14 +376,14 @@ describe('DraggableWrapper compact editing toolbar (MOBI-16)', () => {
       requiredElement<HTMLButtonElement>(wrapper, 'button[aria-label="Formatting options"]').click();
     });
 
-    expect(requiredElement(wrapper, 'button[title="Delete"]')).toBeTruthy();
+    expect(wrapper.querySelector('button[title="Delete"]')).not.toBeNull();
     expect(wrapper.querySelector('button[aria-label="Previous field"]')).toBeNull();
 
     act(() => {
       requiredElement<HTMLButtonElement>(wrapper, 'button[aria-label="Formatting options"]').click();
     });
 
-    expect(requiredElement(wrapper, 'button[aria-label="Previous field"]')).toBeTruthy();
+    expect(wrapper.querySelector('button[aria-label="Previous field"]')).not.toBeNull();
     expect(wrapper.querySelector('button[title="Delete"]')).toBeNull();
   });
 
@@ -392,7 +391,7 @@ describe('DraggableWrapper compact editing toolbar (MOBI-16)', () => {
     setPointerCoarse(false);
     const wrapper = mount(baseElement());
 
-    expect(requiredElement(wrapper, 'button[title="Delete"]')).toBeTruthy();
+    expect(wrapper.querySelector('button[title="Delete"]')).not.toBeNull();
     expect(wrapper.querySelector('button[aria-label="Previous field"]')).toBeNull();
   });
 
@@ -400,7 +399,7 @@ describe('DraggableWrapper compact editing toolbar (MOBI-16)', () => {
     setPointerCoarse(true);
     const wrapper = mount(baseElement(), { fieldNav: null });
 
-    expect(requiredElement(wrapper, 'button[title="Delete"]')).toBeTruthy();
+    expect(wrapper.querySelector('button[title="Delete"]')).not.toBeNull();
     expect(wrapper.querySelector('button[aria-label="Previous field"]')).toBeNull();
   });
 
@@ -408,7 +407,7 @@ describe('DraggableWrapper compact editing toolbar (MOBI-16)', () => {
     setPointerCoarse(true);
     const wrapper = mount(baseElement(), { isEditing: false });
 
-    expect(requiredElement(wrapper, 'button[title="Delete"]')).toBeTruthy();
+    expect(wrapper.querySelector('button[title="Delete"]')).not.toBeNull();
     expect(wrapper.querySelector('button[aria-label="Previous field"]')).toBeNull();
   });
 
@@ -527,7 +526,7 @@ describe('DraggableWrapper fill mode (SNG-15)', () => {
       );
     });
 
-    expect(requiredElement(wrapper, 'button[aria-label="Formatting options"]')).toBeTruthy();
+    expect(wrapper.querySelector('button[aria-label="Formatting options"]')).not.toBeNull();
     expect(wrapper.querySelector('button[aria-label="Previous field"]')).toBeNull();
     expect(wrapper.querySelector('button[aria-label="Next field"]')).toBeNull();
     expect(wrapper.querySelector('button[aria-label="Previous field"]')).toBeNull();

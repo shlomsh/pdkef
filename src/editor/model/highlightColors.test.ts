@@ -2,11 +2,14 @@ import { describe, it, expect } from 'vitest';
 import { HIGHLIGHT_COLORS, DEFAULT_HIGHLIGHT_COLOR } from './highlightColors.ts';
 
 describe('highlight colors', () => {
-  it('offers six colors with unique ids', () => {
+  it('offers six colors with unique ids and unique inks', () => {
     expect(HIGHLIGHT_COLORS).toHaveLength(6);
     expect(new Set(HIGHLIGHT_COLORS.map((c) => c.id)).size).toBe(6);
+    expect(new Set(HIGHLIGHT_COLORS.map((c) => c.hex.toUpperCase())).size).toBe(6);
   });
 
+  // Not a shape echo: the PDF writer's hexToRgbFractions reads anything but #RRGGBB as black, so a typo in
+  // the palette would export an opaque black band over the text.
   it('uses #RRGGBB hex values', () => {
     for (const { hex } of HIGHLIGHT_COLORS) expect(hex).toMatch(/^#[0-9A-Fa-f]{6}$/);
   });

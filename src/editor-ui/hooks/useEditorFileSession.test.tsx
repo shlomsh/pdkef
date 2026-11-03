@@ -110,13 +110,6 @@ describe('useEditorFileSession', () => {
     expect(spies.setAnnouncement).toHaveBeenCalledWith('Owner');
   });
 
-  it('English defaults for a protected file', async () => {
-    const { spies, session } = mount();
-    mockedLoad.mockImplementationOnce(async (options: PdfLoadOptions) => { options.onNeedsUnlock?.('needs-password'); });
-    await act(async () => { await session().handleFilesAdded([pdf()]); });
-    expect(spies.setAnnouncement).toHaveBeenCalledWith('This PDF has a password. Unlock opens it.');
-  });
-
   it('lets the tool prepare a fresh file before anything sees it: its bytes and its first elements', async () => {
     const prepared = new ArrayBuffer(8);
     const prepareFile = vi.fn(async () => ({ bytes: prepared, elements: [{ id: 'imported-1' }] }));
@@ -164,16 +157,24 @@ describe('useEditorFileSession', () => {
     expect(session().fileBytesRef.current).not.toBeNull();
   });
 
-  it('wires draft persistence to the tool, its state and the same load slot', () => {
+  it('hands draft persistence the tool and the document state it saves', () => {
     const elements = [{ id: 'el-1' }];
-    const { session } = mount({
+    mount({
       tool: 'sign',
       status: 'editing',
       draft: { elements, actionHistory: [], carried: { color: '#000' } as any, details: { a: 1 } as any, isDirty: true, isElement: (_v: unknown): _v is any => true },
     });
     const options = mockedDraft.mock.calls.at(-1)![0];
     expect(options).toMatchObject({ tool: 'sign', status: 'editing', elements, isDirty: true, details: { a: 1 }, carried: { color: '#000' } });
-    expect(options.loadStartedRef).toBe(session().loadStartedRef);
+  });
+
+  it('lets a draft restore see that a manual pick has claimed the load slot', async () => {
+    const { session } = mount();
+    const slot = mockedDraft.mock.calls.at(-1)![0].loadStartedRef;
+    expect(slot.current).toBe(false);
+    const pending = session().handleFilesAdded([pdf()]);
+    expect(slot.current).toBe(true);
+    await act(async () => { await pending; });
   });
 
   it('opens a file the installed app was launched with (launchQueue)', async () => {

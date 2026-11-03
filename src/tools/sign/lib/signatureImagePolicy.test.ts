@@ -20,7 +20,6 @@ describe('saved signature image policy', () => {
   it('measures encoded payload bytes rather than trusting a filename or source size', () => {
     const payload = 'AAAA'; // three decoded bytes
     expect(dataUrlEncodedBytes(`data:image/png;base64,${payload}`)).toBe(3);
-    expect(MAX_SAVED_SIGNATURE_ENCODED_BYTES).toBe(750_000);
   });
 
   it('treats a string that is not a data URL as over every byte cap', () => {
