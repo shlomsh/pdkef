@@ -175,6 +175,20 @@ describe('PdfScanTool', () => {
     expect(labels).toEqual(expect.arrayContaining(['Sign', 'Redact', 'Compress']));
   });
 
+  it('marks the rail finish desktop-only on the table (the phone block carries it) and not on a page view', async () => {
+    mount();
+    await pick([jpeg('a.jpg')]);
+    await settle(1000);
+    const pinned = container.querySelector('[data-rail-pinned]');
+    const finish = pinned.querySelector('[data-rail-finish]');
+    expect(finish).not.toBeNull();
+    expect(finish.querySelector('a, button')).not.toBeNull();
+    await openPage(1);
+    await settle();
+    expect(container.querySelector('[data-rail-finish]')).toBeNull();
+    expect(container.querySelector('[data-rail-pinned]')).not.toBeNull();
+  });
+
   it('says so when a size limit cannot be met', async () => {
     vi.mocked(pipeline.buildScanPdf).mockImplementation(() => Promise.resolve({
       blob: new Blob(['%PDF'], { type: 'application/pdf' }), metTarget: false, scale: 0.5, quality: 0.4,
