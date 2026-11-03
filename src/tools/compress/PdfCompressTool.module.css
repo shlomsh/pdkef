@@ -570,3 +570,26 @@
   padding: 2px 8px;
   border-radius: 999px;
 }
+
+/* COMP-04: a set's strip shows its first photo on top of a small stack, so the
+   one picture reads as several. Two offset cards drawn as shadows, nothing in
+   the layout moves; the margin keeps them clear of the name. */
+.batch-layout .strip [data-file-icon][data-loaded] {
+  margin-block-start: 6px;
+  margin-inline-end: 6px;
+  box-shadow:
+    inset 0 0 0 1px var(--color-border),
+    3px -3px 0 -1px var(--color-surface),
+    3px -3px 0 0 var(--color-border-strong),
+    6px -6px 0 -2px var(--color-surface),
+    6px -6px 0 -1px var(--color-border);
+}
+
+.batch-layout .strip [data-file-icon][data-loaded]:dir(rtl) {
+  box-shadow:
+    inset 0 0 0 1px var(--color-border),
+    -3px -3px 0 -1px var(--color-surface),
+    -3px -3px 0 0 var(--color-border-strong),
+    -6px -6px 0 -2px var(--color-surface),
+    -6px -6px 0 -1px var(--color-border);
+}

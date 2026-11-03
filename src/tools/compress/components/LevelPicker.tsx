@@ -25,7 +25,8 @@ export function TargetSizePanel({ t, targetKB, presets, onChange, inputId, min, 
         {t.targetSizeLabel}
       </label>
       <div class={styles['target-row']}>
-        <div class={styles['target-input-row']}>
+        {/* The whole box takes the press, unit and padding included. */}
+        <div class={styles['target-input-row']} onClick={(e) => e.currentTarget.querySelector('input')?.focus()}>
           <input
             id={inputId}
             type="number"

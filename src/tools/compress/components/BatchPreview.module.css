@@ -88,11 +88,11 @@
   cursor: pointer;
 }
 
-.arrow:hover:not(:disabled) {
+.arrow:hover:not([aria-disabled]) {
   background: var(--color-surface);
 }
 
-.arrow:disabled {
+.arrow[aria-disabled] {
   color: var(--color-muted-light);
   cursor: default;
 }

@@ -3,6 +3,7 @@ import type { ComponentChildren } from 'preact';
 import { useContext } from 'preact/hooks';
 import styles from './ToolShell.module.css';
 import FilePreview from './FilePreview.tsx';
+import FileName from './FileName.tsx';
 import OutputName from './OutputName.tsx';
 import DraftRetentionHint from './DraftRetentionHint';
 import { englishShellMessages, type ShellMessages } from './shellMessages';
@@ -194,9 +195,8 @@ export default function ToolShell({ editor = false, inlineStatus = false, status
               <OutputName {...fileRename} label={fileRename.label ?? 'File name, editable'} />
             </span>
           ) : (
-            <span class={styles.name} title={fileLabel || undefined}>
-              {fileLabel || (multiple ? messages.filesLoaded : messages.pdfLoaded)}
-            </span>
+            // Cut in the middle, so a long name keeps its tail and extension (the guideline's section 9).
+            <FileName name={fileLabel || (multiple ? messages.filesLoaded : messages.pdfLoaded)} className={styles.name} />
           )}
           {(fileMeta || draftStatus || (!editor && metaExtra)) && (
             <span class={styles.meta} data-meta>

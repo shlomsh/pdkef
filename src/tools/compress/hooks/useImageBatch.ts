@@ -23,12 +23,16 @@ export function useImageBatch() {
   // Each row waits for the one before it, even one a target change made stale: the search cannot be
   // aborted, so a new run starts only once the old photo has let go of its canvas.
   const tailRef = useRef<Promise<void>>(Promise.resolve());
+  // The thumbnails take their turns on the same queue: one big image in memory at a time.
+  const enqueue = (job: () => Promise<void>) => {
+    tailRef.current = tailRef.current.then(job);
+  };
   const next = nextRow(state);
   useEffect(() => {
     if (!next) return;
     const { id } = next;
     const { run } = state;
-    tailRef.current = tailRef.current.then(async () => {
+    enqueue(async () => {
       const current = stateRef.current;
       const row = current.rows.find((r) => r.id === id);
       if (current.run !== run || row?.status !== 'waiting') return;
@@ -79,13 +83,13 @@ export function useImageBatch() {
   useHoldUpdate(summary.total > 0, 'open');
   useHoldUpdate(summary.total > 0 && !summary.allFinished);
   const parts = batchParts(state).map((part) => ({ ...part, url: urlFor(part.blob) }));
-  const thumbnails = usePhotoThumbnails(state.rows.map((row) => row.file));
-  // The set as one file in the strip: everything picked, against everything Download saves.
-  const before = state.rows.reduce((total, row) => total + row.file.size, 0);
-  const after = parts.reduce((total, part) => total + part.blob.size, 0);
+  const thumbnails = usePhotoThumbnails(state.rows.map((row) => row.file), enqueue);
   const status: PreparedStatus = summary.total === 0 ? 'idle' : !summary.allFinished ? 'pending' : parts.length > 0 ? 'ready' : 'error';
   // The finish flow's view of the set: ready once every photo has finished. A run is ready at most once,
   // so the run number is the generation.
+  // The set as one file in the strip: what was picked while it works, then only what Download saves.
+  const before = state.rows.reduce((total, row) => total + (status !== 'ready' || row.blob ? row.file.size : 0), 0);
+  const after = parts.reduce((total, part) => total + part.blob.size, 0);
   const prepared: Pick<PreparedOutput, 'status' | 'blob' | 'url' | 'parts' | 'generation' | 'progress' | 'prepareNow'> = {
     status,
     blob: null,

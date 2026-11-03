@@ -1,5 +1,5 @@
 import type { ComponentChildren, JSX } from 'preact';
-import { useRef } from 'preact/hooks';
+import { useEffect, useRef } from 'preact/hooks';
 import { formatMessage } from '#lib/text/formatMessage.ts';
 import { useFittedColumns } from '../hooks/useFittedColumns.ts';
 import type { BatchRow, BatchSummary } from '../state/imageBatch.ts';
@@ -21,6 +21,10 @@ interface BatchGridProps {
   notes: ComponentChildren;
   /** A finished photo, opened in the compare preview. */
   onOpen: (file: File) => void;
+  /** The photo whose preview was just closed: its tile takes focus. */
+  focusOn?: File | null;
+  /** Behind a photo's preview: kept mounted, so its scroll and pictures are as they were on the way back. */
+  hidden?: boolean;
 }
 
 function rowStatus(t: CompressMessages, row: BatchRow, target: string): string {
@@ -42,21 +46,25 @@ function Caption({ t, row, arrow }: { t: CompressMessages; row: BatchRow; arrow:
 }
 
 /** COMP-04: the set as the photos themselves: where the set stands, then a tile per photo that opens its preview. */
-export default function BatchGrid({ t, rows, summary, targetKB, arrow, thumbnails, notes, onOpen }: BatchGridProps) {
+export default function BatchGrid({ t, rows, summary, targetKB, arrow, thumbnails, notes, onOpen, focusOn = null, hidden = false }: BatchGridProps) {
   const target = `${targetKB} KB`;
   const gridRef = useRef<HTMLOListElement>(null);
   const columns = useFittedColumns(gridRef, rows.length);
+  useEffect(() => {
+    const index = focusOn ? rows.findIndex((row) => row.file === focusOn) : -1;
+    if (!hidden && index >= 0) gridRef.current?.children[index]?.querySelector('button')?.focus();
+  }, [focusOn, hidden]);
   const heading = !summary.allFinished
     ? formatMessage(t.batchWorking, { done: summary.finished, total: summary.total })
     : formatMessage(summary.met === summary.total ? t.batchAllMet : t.batchSomeMissed, { met: summary.met, total: summary.total, target });
   return (
-    <section class={`${styles.batch} ${layoutStyles.stage}`} data-batch aria-busy={!summary.allFinished || undefined}>
+    <section class={`${styles.batch} ${layoutStyles.stage}`} data-batch hidden={hidden} aria-busy={!summary.allFinished || undefined}>
       <div class={styles.head}>
         <p class={styles.heading} data-batch-summary>{heading}</p>
         {notes}
       </div>
       {/* Only the finished set is announced: a line per photo would talk over the person. */}
-      <p class="sr-only" role="status">{summary.allFinished ? heading : ''}</p>
+      <p class="sr-only" role="status" data-batch-live>{summary.allFinished ? heading : ''}</p>
       {/* role="list": Safari drops the list semantics of an unstyled list. */}
       <ol ref={gridRef} class={styles.grid} role="list" data-fitted={columns ? '' : undefined} style={columns ? ({ '--columns': columns } as JSX.CSSProperties) : undefined}>
         {rows.map((row) => {
@@ -71,7 +79,8 @@ export default function BatchGrid({ t, rows, summary, targetKB, arrow, thumbnail
               </span>
               <span class={styles.caption} id={captionId} data-batch-caption>
                 <Caption t={t} row={row} arrow={arrow} />
-                <span class="sr-only">, {rowStatus(t, row, target)}</span>
+                {/* A failed or unchanged photo's caption already says so. */}
+                {row.status !== 'failed' && !row.passthrough && <span class="sr-only">, {rowStatus(t, row, target)}</span>}
               </span>
             </>
           );
@@ -84,7 +93,7 @@ export default function BatchGrid({ t, rows, summary, targetKB, arrow, thumbnail
                 class={styles.open}
                 disabled={!row.blob}
                 onClick={() => onOpen(row.file)}
-                aria-label={formatMessage(t.batchRowOpenLabel, { name: row.file.name })}
+                aria-label={row.blob ? formatMessage(t.batchRowOpenLabel, { name: row.file.name }) : row.file.name}
                 aria-describedby={captionId}
                 data-batch-open={row.blob ? '' : undefined}
               >
