@@ -3,13 +3,14 @@ import { Camera } from 'lucide-preact';
 import { PHOTO_ACCEPT as ACCEPT } from '#lib/hooks/usePhotoTileList.ts';
 import { takeInputFiles, useAdoptPrePickedFiles } from '#shell/prePickedFiles.ts';
 import dropzoneStyles from '#shell/Dropzone.module.css';
+import { canUseCamera } from '../camera/canUseCamera.ts';
 import { englishScanMessages as t } from '../messages.ts';
 import styles from '../PdfScanTool.module.css';
 
 /** "Take a photo": the camera straight away on a phone, one page per shot. Coarse pointers only (CSS).
  * `primary` is the empty state's, the equal of Choose files: the same label-around-input as the shell's
- * picker, so iOS opens the camera natively. The pages column's is a quiet tile, the phone bar's a bar button. */
-export default function TakePhotoButton({ onFiles, primary = false, buttonClass = styles['take-photo-button'], label = t.takePhoto }: { onFiles: (files: File[]) => void; primary?: boolean; buttonClass?: string; label?: string }) {
+ * picker, so iOS opens the camera natively. `onCamera` opens the live viewfinder instead where it works. The pages column's is a quiet tile, the phone bar's a bar button. */
+export default function TakePhotoButton({ onFiles, primary = false, buttonClass = styles['take-photo-button'], label = t.takePhoto, onCamera }: { onFiles: (files: File[]) => void; primary?: boolean; buttonClass?: string; label?: string; onCamera?: () => void }) {
   const inputRef = useRef<HTMLInputElement | null>(null);
   // The empty state's camera button is server-rendered, so a photo can be taken before this loads.
   useAdoptPrePickedFiles(inputRef, onFiles);
@@ -30,7 +31,7 @@ export default function TakePhotoButton({ onFiles, primary = false, buttonClass 
   }
   return (
     <span class={styles['take-photo']}>
-      <button type="button" class={buttonClass} onClick={() => inputRef.current?.click()}>
+      <button type="button" class={buttonClass} onClick={() => (onCamera && canUseCamera() ? onCamera() : inputRef.current?.click())}>
         <Camera size={18} aria-hidden="true" />
         {label}
       </button>

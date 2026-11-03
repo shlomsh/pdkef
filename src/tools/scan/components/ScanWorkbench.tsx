@@ -48,6 +48,7 @@ export interface ScanWorkbenchProps {
     onApprove: () => void;
     onDone: () => void;
     onRetake: (file: File) => void;
+    onRetakeCamera?: () => void;
     onRemovePage: (id: number) => void;
     onChooseLook: (next: ScanFilter) => void;
     onSelect: (id: number) => void;
@@ -105,6 +106,7 @@ export default function ScanWorkbench({ refs, stageHeight, pages, selected, sele
             onAdjustCorners={actions.onAdjustCorners}
             onRotate={actions.onRotate}
             onRetake={actions.onRetake}
+            onRetakeCamera={actions.onRetakeCamera}
             onRemovePage={actions.onRemovePage}
             onDone={actions.onDone}
             pageProps={resultViewFor(selected, selectedIndex, { shown: built.shown, ready: exact, results, pageSize })}
