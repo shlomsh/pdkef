@@ -43,6 +43,7 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 - [QUAL-21](backlog/tasks/QUAL-21.md) P2 · Pages render at the size they are shown, and the practice form's logo is sharp (in progress)
 - [SIGN-44](backlog/tasks/SIGN-44.md) P2 · Sign: a comment on a highlight, kept in the PDF as a standard annotation (in progress)
 - [MERGE-25](backlog/tasks/MERGE-25.md) P3 · Open PDFs from Google Drive's Open with menu: a Drive app, which needs the first invariant rewritten (in progress)
+- [MERGE-27](backlog/tasks/MERGE-27.md) P3 · Explain loading files from Drive where people look for it: a how-to page, the hints, and the Marketplace help link
 
 ## Waiting, by date
 
@@ -85,6 +86,8 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 - [SEO-51](backlog/tasks/SEO-51.md) · Search Console, Performance, page /redact/, query containing "redact", last 3 months: impressions, clicks and position per query, plus the same for "blur"
 - [COMP-03](backlog/tasks/COMP-03.md) · A check on your iPhone
 - [MERGE-25](backlog/tasks/MERGE-25.md) · Your sign-off on the rewritten invariant, then the Google Cloud and Marketplace setup in your account
+- [MERGE-26](backlog/tasks/MERGE-26.md) · Your rewrite of the first CLAUDE.md invariant (saving is the first time bytes leave the device)
+- [MERGE-28](backlog/tasks/MERGE-28.md) · Evidence that people want it, and your sign-off on a wider Google exception
 - [READ-07](backlog/tasks/READ-07.md) · An iPhone check
 
 See [BACKLOG.md](BACKLOG.md) for every lane.
