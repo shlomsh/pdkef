@@ -155,3 +155,13 @@ describe('batchParts', () => {
     ]);
   });
 });
+
+describe('a done row keeps its dimensions (COMP-04 preview)', () => {
+  it('stores what the search reported, and a new target clears it', () => {
+    const dims = { width: 800, height: 600, originalWidth: 1600, originalHeight: 1200 };
+    let s = batchReducer(chosen('a.jpg'), { type: 'rowDone', id: 0, run: 1, blob: blob(), metTarget: true, dimensions: dims });
+    expect(s.rows[0].dimensions).toEqual(dims);
+    s = batchReducer(s, { type: 'targetChanged', targetKB: 50 });
+    expect(s.rows[0].dimensions).toBeNull();
+  });
+});

@@ -27,6 +27,7 @@
 }
 
 .row {
+  position: relative;
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   grid-template-areas:
@@ -83,8 +84,43 @@
   color: var(--color-danger-ink);
 }
 
-/* A 44px target on touch, quiet beside the status line. */
+/* A finished row opens its photo's preview: the name is the button, and its
+   ::after stretches over the row so a press anywhere on it opens the photo. */
+.open {
+  display: flex;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+}
+
+.open::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: var(--radius);
+}
+
+.row:has(.open):hover {
+  box-shadow: inset 0 0 0 1px var(--color-border-strong);
+}
+
+.open:focus-visible {
+  outline: none;
+}
+
+.open:focus-visible::after {
+  outline: 2px solid var(--color-primary-ring);
+  outline-offset: 2px;
+}
+
+/* A 44px target on touch, quiet beside the status line, above the row's own press. */
 .save {
+  position: relative;
+  z-index: 1;
   grid-area: save;
   justify-self: end;
   display: inline-flex;
@@ -101,6 +137,22 @@
 
 .save:hover {
   text-decoration: underline;
+}
+
+/* The way back from one photo's preview to its set, at the stage's top. */
+.back {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 0 4px;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-weight: 600;
+  color: var(--color-primary-text);
+  cursor: pointer;
 }
 
 /* The card is one screen tall (data-fills-stage): the summary stays put and

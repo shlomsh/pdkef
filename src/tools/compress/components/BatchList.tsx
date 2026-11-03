@@ -16,6 +16,8 @@ interface BatchListProps {
   urlFor: (blob: Blob) => string;
   /** A row's own save, counted like a Download tap. */
   onRowSaved: () => void;
+  /** A finished row's photo, opened in the compare preview. */
+  onOpen: (file: File) => void;
 }
 
 function rowStatus(t: CompressMessages, row: BatchRow, target: string): string {
@@ -27,7 +29,7 @@ function rowStatus(t: CompressMessages, row: BatchRow, target: string): string {
 }
 
 /** COMP-04: the result area for several photos: where the set stands, then a row per photo. */
-export default function BatchList({ t, rows, summary, targetKB, arrow, urlFor, onRowSaved }: BatchListProps) {
+export default function BatchList({ t, rows, summary, targetKB, arrow, urlFor, onRowSaved, onOpen }: BatchListProps) {
   const target = `${targetKB} KB`;
   const heading = !summary.allFinished
     ? formatMessage(t.batchWorking, { done: summary.finished, total: summary.total })
@@ -43,7 +45,14 @@ export default function BatchList({ t, rows, summary, targetKB, arrow, urlFor, o
           const outcome = row.status !== 'done' ? row.status : row.passthrough ? 'kept' : row.metTarget ? 'met' : 'missed';
           return (
             <li key={row.id} class={styles.row} data-batch-row data-outcome={outcome}>
-              <FileName name={row.file.name} className={styles.name} />
+              {row.blob ? (
+                // The whole row opens the preview (the button's ::after covers it); Save sits above it.
+                <button type="button" class={`${styles.name} ${styles.open}`} onClick={() => onOpen(row.file)} aria-label={formatMessage(t.batchRowOpenLabel, { name: row.file.name })} data-batch-open>
+                  <FileName name={row.file.name} />
+                </button>
+              ) : (
+                <FileName name={row.file.name} className={styles.name} />
+              )}
               <span class={styles.sizes}>
                 {formatBytes(row.file.size)}
                 {row.blob && !row.passthrough && <> {arrow} <strong>{formatBytes(row.blob.size)}</strong></>}

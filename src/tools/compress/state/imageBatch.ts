@@ -21,7 +21,11 @@ export interface BatchRow {
   passthrough: boolean;
   /** Once done: the save name, unique within the batch. */
   filename: string | null;
+  /** Once done: the photo's size in pixels before and after, for its preview's caption. */
+  dimensions: BatchDimensions | null;
 }
+
+interface BatchDimensions { width: number; height: number; originalWidth: number; originalHeight: number }
 
 /** @testSeam */
 export interface BatchState {
@@ -37,7 +41,7 @@ export type BatchEvent =
   | { type: 'targetChanged'; targetKB: number }
   | { type: 'cleared' }
   | { type: 'rowStarted'; id: number; run: number }
-  | { type: 'rowDone'; id: number; run: number; blob: Blob; metTarget: boolean }
+  | { type: 'rowDone'; id: number; run: number; blob: Blob; metTarget: boolean; dimensions?: BatchDimensions }
   | { type: 'rowFailed'; id: number; run: number };
 
 export const emptyBatch: BatchState = { rows: [], targetKB: 100, run: 0 };
@@ -49,6 +53,7 @@ const waiting = (row: BatchRow): BatchRow => ({
   metTarget: null,
   passthrough: false,
   filename: null,
+  dimensions: null,
 });
 
 /** `name`, or `name (2)`, `name (3)`... before the last extension, until no taken name matches (case-insensitive). */
@@ -96,6 +101,7 @@ export function batchReducer(state: BatchState, event: BatchEvent): BatchState {
           metTarget: event.metTarget,
           passthrough,
           filename: uniqueName(base, taken),
+          dimensions: event.dimensions ?? null,
         };
       }
       return { ...state, rows: state.rows.map((r) => (r === row ? next : r)) };
