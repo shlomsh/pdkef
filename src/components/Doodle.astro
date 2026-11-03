@@ -1,0 +1,59 @@
+---
+/**
+ * Doodle: small hand-drawn pictures that sit beside a sentence.
+ *
+ * One figure per branch below. Adding a figure is one more
+ * `{figure === '...' && (...)}` block plus its rules in the <style>.
+ *
+ * Shared stroke rules (pencil): round caps and joins, currentColor strokes
+ * about 2.4 wide, clay sparkles, no glow, no filters. Colours come from
+ * the :root tokens only.
+ *
+ * The trail moves only when motion is allowed (prefers-reduced-motion:
+ * no-preference); otherwise it is a still dashed line.
+ *
+ * The picture is decorative and aria-hidden, so the sentence beside it
+ * carries the meaning.
+ */
+interface Props {
+  figure: 'cloud-to-device';
+  class?: string;
+}
+const { figure, class: className } = Astro.props;
+---
+
+{figure === 'cloud-to-device' && (
+  <svg class:list={['journey', className]} viewBox="0 0 360 150" fill="none" aria-hidden="true">
+    <path class="doodle" d="M34 96c-14-1-22-11-20-22 2-11 12-17 22-15 3-14 16-24 31-22 14 2 24 12 25 24 12-1 22 8 21 20-1 11-10 17-20 16z" fill="var(--color-primary-tint)" />
+    <g class="doodle">
+      <path d="M70 62h19l8 9v21H70z" fill="var(--color-surface)" />
+      <path d="M89 62v9h8" />
+      <path d="M76 80h15M76 86h10" />
+    </g>
+    <path class="trail" d="M128 70c34-44 72-48 109-13" />
+    <path class="doodle" d="M227 57l11 1-4-11" />
+    <g class="doodle">
+      <rect x="246" y="38" width="92" height="62" rx="7" fill="var(--color-surface)" />
+      <path d="M236 108h112c0 5-4 8-9 8h-94c-5 0-9-3-9-8z" fill="var(--color-paper)" />
+      <path d="M280 50h20l8 9v28h-28z" fill="var(--color-citron)" />
+      <path d="M300 50v9h8" />
+      <path d="M286 72h16M286 79h10" />
+    </g>
+    <g class="spark">
+      <path d="M120 24v10M115 29h10" />
+      <path d="M344 22v8M340 26h8" />
+      <path d="M200 110v8M196 114h8" />
+    </g>
+  </svg>
+)}
+
+<style>
+  .journey { display: block; width: min(100%, 22rem); height: auto; margin: 0 auto; color: var(--color-text); }
+  .journey .doodle { stroke: currentColor; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
+  .journey .spark { stroke: var(--color-clay); stroke-width: 2.2; stroke-linecap: round; }
+  .journey .trail { stroke: var(--color-primary); stroke-width: 2.6; stroke-linecap: round; stroke-dasharray: 3 9; }
+  @media (prefers-reduced-motion: no-preference) {
+    .journey .trail { animation: trail 1.6s linear infinite; }
+  }
+  @keyframes trail { to { stroke-dashoffset: -24; } }
+</style>
