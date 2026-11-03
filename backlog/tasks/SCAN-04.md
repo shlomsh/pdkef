@@ -58,13 +58,25 @@ live lock instead of a video still; that decision is written here too.
      PDF at the 1 MB limit 277 KB;
    - `ImageCapture.takePhoto` (present on this WebKit): 6.9 MB, corners found, `guessPage` 1341 ms, PDF 379 KB;
    - native photo input: 1.9 MB, corners found, `guessPage` 79 ms, PDF 512 KB.
-   All met the 1 MB target at full scale and quality 0.82. Open: which of the three reads best.
-3. **Camera permission: first visit only.** On load the state was `prompt`; Start camera asked once and the
-   stream ran 1.9 s after the tap. Open: next visit, next day, home screen, and Safari itself (Chrome on iOS
-   keeps its own permission).
+   All met the 1 MB target at full scale and quality 0.82. Shlomi read them: the video still is clearly worse,
+   `takePhoto` and the native photo are both good.
+3. **Camera permission: asked on every visit.** On load the state was `prompt`; Start camera asked and the
+   stream ran 1.9 s after the tap. After a reload it asked again. Open: Safari itself (Chrome on iOS keeps its
+   own permission), next day and the home screen.
 4. **Share sheet: WhatsApp is there, twice.** `canShare` is true for a 512 KB PDF. The iOS sheet heads with
    "Scan 3 Nov 2026, PDF Document, 512 KB", offers WhatsApp in the app row, and puts recent WhatsApp chats in
-   the people row, so sending to a chat is one tap from Share (screenshot from Shlomi, 23:27). Open: does the
-   WhatsApp chat show the name and size after sending.
+   the people row, so sending to a chat is one tap from Share (screenshot from Shlomi, 23:27). The sheet shows
+   the name and size, which Shlomi takes as the answer.
 
 Android: not measured yet.
+
+**Decision: take the still with `ImageCapture.takePhoto`.** The video still loses (point 2), and the native input
+would leave the page for every photo, which ends continuous taking. `takePhoto` on the running track keeps the
+person in the viewfinder at the native photo's quality. Where `ImageCapture` is missing, the native input after
+a lock is the fallback. Its cost: a 6.9 MB photo whose `guessPage` took 1.3 s, so the page is processed off the
+shutter path while the next one is taken.
+
+**Also found:** iOS's sheet says 512 KB where our `formatFileSize` says 500 KB for the same file (we divide by
+1024, Apple by 1000).
+
+**Left:** the same run in Safari (Shlomi, later). Android: not measured.
