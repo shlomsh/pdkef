@@ -83,6 +83,10 @@ interface BasePdfToolProps {
     body?: string;
     /** An extra action under the pick button in the empty-state sheet. */
     action?: ComponentChild;
+    /** On coarse pointers the action leads, large, and the pick button follows it, quiet (Scan's Start scanning). */
+    actionLeads?: boolean;
+    /** The pick button's words, when a tool's files are not "files" (Scan's "Choose photos"). */
+    pickLabel?: string;
     /** MOBI-09: opt-in per tool page (currently the Sign tool only - see its
      * ticket for why the Files-app notice is scoped there rather than shown
      * shell-wide). Forwarded to DropzoneEmptyState, which still gates the
