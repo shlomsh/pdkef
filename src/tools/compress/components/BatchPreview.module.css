@@ -10,6 +10,8 @@
   row-gap: 4px;
   align-self: stretch;
   margin-bottom: 4px;
+  /* Brought into view clear of the sticky site header. */
+  scroll-margin-top: 4.5rem;
 }
 
 /* A bordered button with a 36px face and a 44px press, as Replace and the hand-offs are. */

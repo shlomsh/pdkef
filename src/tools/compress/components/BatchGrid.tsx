@@ -35,14 +35,24 @@ function rowStatus(t: CompressMessages, row: BatchRow, target: string): string {
   return formatMessage(row.metTarget ? t.batchRowMet : t.batchRowMissed, { target });
 }
 
+/** The set's line when some photos could not be read: those are counted apart from any that only missed. */
+function withUnread(t: CompressMessages, summary: BatchSummary, target: string): string {
+  const { met, missed, failed, total } = summary;
+  return [
+    formatMessage(t.batchMetOf, { met, total, target }),
+    missed > 0 && (missed === 1 ? t.batchMissedOne : formatMessage(t.batchMissedMany, { count: missed })),
+    failed === 1 ? t.batchFailedOne : formatMessage(t.batchFailedMany, { count: failed }),
+  ].filter(Boolean).join(' ');
+}
+
 /** The line under a photo: its sizes once it has a result, its original size until then. On a narrow tile
  *  the original size gives way first, so the new one always shows whole. */
 function Caption({ t, row, arrow }: { t: CompressMessages; row: BatchRow; arrow: string }) {
   if (row.status === 'failed') return <span class={styles.fit}>{t.batchRowFailed}</span>;
   if (row.passthrough) return <span class={styles.fit}>{formatMessage(t.batchTileKept, { size: formatBytes(row.file.size) })}</span>;
-  const before = <span class={styles.fit}><bdi>{formatBytes(row.file.size)}</bdi></span>;
-  if (!row.blob) return before;
-  return <>{before}<span aria-hidden="true">{arrow}</span><b><bdi>{formatBytes(row.blob.size)}</bdi></b></>;
+  const before = <bdi>{formatBytes(row.file.size)}</bdi>;
+  if (!row.blob) return <span class={styles.fit}>{before}</span>;
+  return <><span class={styles.was}>{before}<span aria-hidden="true">{arrow}</span></span><b><bdi>{formatBytes(row.blob.size)}</bdi></b></>;
 }
 
 /** COMP-04: the set as the photos themselves: where the set stands, then a tile per photo that opens its preview. */
@@ -64,6 +74,7 @@ export default function BatchGrid({ t, rows, summary, targetKB, arrow, thumbnail
   }, [focusOn, hidden]);
   const heading = !summary.allFinished
     ? formatMessage(t.batchWorking, { done: summary.finished, total: summary.total })
+    : summary.failed > 0 ? withUnread(t, summary, target)
     : formatMessage(summary.met === summary.total ? t.batchAllMet : t.batchSomeMissed, { met: summary.met, total: summary.total, target });
   return (
     <section class={`${styles.batch} ${layoutStyles.stage}`} data-batch hidden={hidden} aria-busy={!summary.allFinished || undefined}>
@@ -107,7 +118,7 @@ export default function BatchGrid({ t, rows, summary, targetKB, arrow, thumbnail
                 class={styles.open}
                 disabled={!row.blob}
                 onClick={() => onOpen(row.file)}
-                aria-label={row.blob ? formatMessage(t.batchRowOpenLabel, { name: row.file.name }) : row.file.name}
+                aria-label={row.blob && !row.passthrough ? formatMessage(t.batchRowOpenLabel, { name: row.file.name }) : row.file.name}
                 aria-describedby={captionId}
                 data-batch-open={row.blob ? '' : undefined}
               >

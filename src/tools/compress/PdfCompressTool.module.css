@@ -511,6 +511,11 @@
   flex-direction: column;
 }
 
+/* The page under Full screen stays where it was. */
+:global(html):has(.compare-fullscreen[open]) {
+  overflow: hidden;
+}
+
 .compare-fullscreen-header {
   display: flex;
   align-items: center;

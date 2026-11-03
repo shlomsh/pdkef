@@ -53,6 +53,10 @@ export default function BatchPreview({ t, compare, row, rows, targetKB, arrow, u
     if (blob && !passthrough) compare.open(file, blob).catch((err) => reportError('pdf_render', err, 'compare_open'));
   }, [blob]);
 
+  // On a phone the set may have scrolled the page well past the preview's top: show the bar it opens under.
+  const barRef = useRef<HTMLDivElement>(null);
+  useEffect(() => { barRef.current?.scrollIntoView?.({ block: 'nearest' }); }, []);
+
   // Escape goes back to the set, as the bar's own button does, except while Full screen is open (Escape
   // closes that alone) or while a field takes the key.
   const onBackRef = useRef(onBack);
@@ -81,7 +85,7 @@ export default function BatchPreview({ t, compare, row, rows, targetKB, arrow, u
     unchanged: false, metTarget: row.metTarget ?? true, rasterBytes: null, imageReason: null, keptBytes: 0, resultImageBytes: 0,
   });
   const bar = (
-    <div class={styles.bar} data-batch-preview-bar>
+    <div ref={barRef} class={styles.bar} data-batch-preview-bar>
       <button type="button" class={`${styles.pill} ${styles.back}`} onClick={onBack} data-batch-back>
         <Glyph d={back} />
         {formatMessage(t.batchBack, { count: rows.length })}

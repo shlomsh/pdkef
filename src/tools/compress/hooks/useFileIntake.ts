@@ -36,7 +36,7 @@ interface FileIntakeInput {
   setNeedsUnlockBytes: Dispatch<StateUpdater<ArrayBuffer | null>>;
   setAnalysis: Dispatch<StateUpdater<PdfAnalysis | null>>;
   /** COMP-04: two or more photos go to the batch (hooks/useImageBatch.ts) instead of the single-file path. */
-  batch: { choose: (files: File[], targetKB: number, leftOutPdfs: string[]) => void; clear: () => void };
+  batch: { choose: (files: File[], targetKB: number, leftOutPdfs: string[]) => void; clear: (leftOutPdfs?: string[]) => void };
   targetKB: number;
 }
 
@@ -70,9 +70,10 @@ export function useFileIntake(input: FileIntakeInput) {
     setRejectedFiles(rejected.length > 0 ? rejected.map((f) => f.name) : []);
 
     const images = accepted.filter((f) => deriveFileKind(f) === 'image');
+    const pdfNames = accepted.filter((f) => deriveFileKind(f) === 'pdf').map((f) => f.name);
     if (images.length >= 2) {
       resetSingle(null);
-      batch.choose(images, targetKB, accepted.filter((f) => deriveFileKind(f) === 'pdf').map((f) => f.name));
+      batch.choose(images, targetKB, pdfNames);
       setAnnouncement(formatMessage(t.batchLoaded, { count: images.length }));
       recordAction('add_files');
       return;
@@ -80,7 +81,8 @@ export function useFileIntake(input: FileIntakeInput) {
 
     if (accepted.length > 0) {
       const next = accepted[0];
-      batch.clear();
+      // A photo picked with PDFs opens alone and names them, as a set does.
+      batch.clear(deriveFileKind(next) === 'image' ? pdfNames : []);
       resetSingle(next);
       setAnnouncement(formatMessage(deriveFileKind(next) === 'image' ? t.imageLoaded : t.loaded, { name: next.name }));
       recordAction('add_files');

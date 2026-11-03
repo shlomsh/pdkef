@@ -111,6 +111,8 @@ export function useImageBatch() {
     active: summary.total > 0,
     urlFor,
     thumbnails,
+    /** The strip's picture of the set: the first photo that could be drawn, so a broken first file never shows. */
+    cover: state.rows.find((row) => thumbnails.has(row.file))?.file,
     /** The strip's sizes for the whole set, in StripSizes' own shape. */
     strip: { before, compressedSize: after, showResult: status === 'ready', savingsPercent: before > 0 && after > 0 ? Math.round((1 - after / before) * 100) : 0 },
     leftOutPdfs,
@@ -119,8 +121,9 @@ export function useImageBatch() {
       dispatch({ type: 'filesChosen', files, targetKB });
     },
     setTarget,
-    clear: () => {
-      setLeftOutPdfs([]);
+    /** Back to one file; `leftOut` names the PDFs picked with that one photo. */
+    clear: (leftOut: string[] = []) => {
+      setLeftOutPdfs(leftOut);
       if (stateRef.current.rows.length > 0) dispatch({ type: 'cleared' });
     },
     /** Try again after every photo failed: the same set, from the top. */
