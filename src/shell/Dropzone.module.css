@@ -217,7 +217,8 @@
     width: 100%;
   }
 
-  .pick-row[data-action-leads] .file-picker-button {
+  /* The row's own picker only; the action can be a picker label too (Scan's Start scanning). */
+  .pick-row[data-action-leads] > .file-picker-button {
     background: none;
     border: 0;
     box-shadow: none;
@@ -227,8 +228,8 @@
     padding: 0.4rem 1rem;
   }
 
-  .pick-row[data-action-leads] .file-picker-button:hover,
-  .pick-row[data-action-leads] .file-picker-button:active {
+  .pick-row[data-action-leads] > .file-picker-button:hover,
+  .pick-row[data-action-leads] > .file-picker-button:active {
     background: none;
     box-shadow: none;
     transform: none;
