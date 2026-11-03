@@ -180,4 +180,28 @@ describe('DropzoneEmptyState', () => {
       expect(caption().textContent).toBe('גררו לכאן כדי להוסיף קובץ');
     });
   });
+
+  describe('actionLeads and pickLabel', () => {
+    const action = <button type="button" data-testid="lead-action">Start</button>;
+    const order = () => Array.from(container.querySelector('[data-pick-row]').children).map((el) => el.tagName);
+
+    it('pickLabel replaces the picker words', () => {
+      mount({ pickLabel: 'Choose photos' });
+      expect(container.querySelector('label').textContent).toBe('Choose photos');
+    });
+
+    it('with actionLeads the action comes first and the row is marked', () => {
+      mount({ action, actionLeads: true });
+      const row = container.querySelector('[data-pick-row]');
+      expect(row.hasAttribute('data-action-leads')).toBe(true);
+      expect(order()).toEqual(['BUTTON', 'LABEL']);
+    });
+
+    it('without actionLeads the picker comes first and there is no attribute', () => {
+      mount({ action });
+      const row = container.querySelector('[data-pick-row]');
+      expect(row.hasAttribute('data-action-leads')).toBe(false);
+      expect(order()).toEqual(['LABEL', 'BUTTON']);
+    });
+  });
 });

@@ -48,7 +48,7 @@ export default function DropzoneEmptyState({
   art,
   heading,
   body,
-  action,
+  action, actionLeads = false, pickLabel,
 }: DropzoneEmptyStateProps) {
   const [isDragOver, setIsDragOver] = useState(false);
   // `false` on the server and on this component's first client render, same
@@ -115,7 +115,7 @@ export default function DropzoneEmptyState({
   // Enter and Space on a focused file input open the picker natively.
   const pickerEl = (
     <label class={styles['file-picker-button']}>
-      {multiple ? messages.chooseFilesMany : messages.chooseFileOne}
+      {pickLabel ?? (multiple ? messages.chooseFilesMany : messages.chooseFileOne)}
       <input
         ref={inputRef}
         type="file"
@@ -172,7 +172,7 @@ export default function DropzoneEmptyState({
       </p>
 
       {/* A tool's extra way in (Scan's "Take a photo") is an equal choice: one row, side by side. */}
-      {action ? <div class={styles['pick-row']} data-pick-row>{pickerEl}{action}</div> : pickerEl}
+      {action ? <div class={styles['pick-row']} data-pick-row data-action-leads={actionLeads || undefined}>{actionLeads ? [action, pickerEl] : [pickerEl, action]}</div> : pickerEl}
 
       <PrivacyLine>{twoWidths(messages.privacyLine, body)}</PrivacyLine>
 

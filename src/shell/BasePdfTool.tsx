@@ -148,7 +148,7 @@ function BasePdfTool({
 }: BasePdfToolProps) {
   const { multiple = true, accept = 'application/pdf', dropAnywhere = true, needsPdfjs = true } = intake ?? {};
   const { file = null, label: fileLabel, rename: fileRename, meta: fileMeta, metaExtra: fileMetaExtra, note: fileNote, hidden: hideIdentity = false } = identity ?? {};
-  const { message: emptyStateMessage, art: emptyArt, heading: emptyHeading, body: emptyBody, action: emptyAction } = empty ?? {};
+  const { message: emptyStateMessage, art: emptyArt, heading: emptyHeading, body: emptyBody, action: emptyAction, actionLeads: emptyActionLeads, pickLabel: emptyPickLabel } = empty ?? {};
   const { iosFilesHint: showIosFilesHint = false, cloudDriveHint: showCloudDriveHint = true } = empty ?? {};
   /* True while a tool with draft persistence is still checking IndexedDB for a
      saved draft on mount (see useDraftPersistence.js's `isRestoring`). Renders
@@ -442,7 +442,7 @@ function BasePdfTool({
             art={emptyArt}
             heading={emptyHeading}
             body={emptyBody}
-            action={emptyAction}
+            action={emptyAction} actionLeads={emptyActionLeads} pickLabel={emptyPickLabel}
           />
         )
       )}
