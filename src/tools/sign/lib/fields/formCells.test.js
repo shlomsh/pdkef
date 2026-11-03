@@ -320,6 +320,14 @@ describe('detectCellCandidates -> placeTextOnCell: where the typed box goes', ()
     expect(placed.left + placed.minWidth).toBeGreaterThan(88);
   });
 
+  it('keeps a cell whose printed separator sits just past its midpoint', () => {
+    // The slash ends at 77.5 of a 50..100 cell: past its half-way mark (75) but short of 85.
+    const pairInk = rowBand({ top: 80, bottom: 60, columns: [0, 50, 100] });
+    const slash = text('/', { left: 76, top: 29, width: 1.5, height: 2.2 });
+    const cells = detectCellCandidates(pairInk, geometry, 0, [slash]);
+    expect(cells.find((c) => c.kind === 'date')).toBeDefined();
+  });
+
   it('gives a phone cell the width under its caption, writing across its area-code slash', () => {
     // Form 101's lower phone cells: the caption in the top corner, a lone `/`
     // low in the middle. Read as caption, the slash carved the cell sideways

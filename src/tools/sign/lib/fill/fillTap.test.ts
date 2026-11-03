@@ -177,6 +177,14 @@ describe('fillTapDecision', () => {
     expect(fillTapDecision(input)).toEqual({ type: 'delegate', at: { pageIndex: 0, x: 20, y: 15 } });
   });
 
+  it('a box reach wins when the tap point lands exactly on the box\'s right edge', () => {
+    // Box is left 10, top 10, width 20, height 10; x = 30 is its right edge.
+    const input: FillTapInput = {
+      ...base, onElement: true, onMark: false, tool: 'none', reach: reachOf('box', 'box-4'), at: point(30, 12),
+    };
+    expect(fillTapDecision(input)).toEqual({ type: 'delegate', at: { pageIndex: 0, x: 20, y: 15 }, tool: 'symbol' });
+  });
+
   it('a tap on an existing element still beats a fill reach: the element wins over a text field', () => {
     const input: FillTapInput = { ...base, onElement: true, tool: 'none', reach: reachOf('fill', 'slot-5') };
     expect(fillTapDecision(input)).toEqual({ type: 'delegate' });

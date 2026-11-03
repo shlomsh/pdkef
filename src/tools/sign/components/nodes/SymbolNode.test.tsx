@@ -56,6 +56,36 @@ describe('SymbolNode', () => {
     expect(path.getAttribute('d')).toBe('M4 4L20 20M20 4L4 20');
   });
 
+  it('draws a cross for the legacy symbolType when no mark is set', () => {
+    host = mount(symbolElement({ symbolType: 'cross' }));
+    expect(requireElement<SVGPathElement>(host, 'path').getAttribute('d')).toBe('M4 4L20 20M20 4L4 20');
+  });
+
+  it('draws a check when neither mark nor symbolType is set', () => {
+    host = mount(symbolElement());
+    expect(requireElement<SVGPathElement>(host, 'path').getAttribute('d')).toBe('M4 12L9 17L20 6');
+  });
+
+  it('stops observing its size when it unmounts', () => {
+    const originalObserver = globalThis.ResizeObserver;
+    const disconnected: Element[] = [];
+    const observed: Element[] = [];
+    globalThis.ResizeObserver = class {
+      observe(node: Element) { observed.push(node); }
+      unobserve() {}
+      disconnect() { disconnected.push(...observed); }
+    } as unknown as typeof ResizeObserver;
+    try {
+      host = mount(symbolElement({ mark: 'x' }));
+      expect(observed).toHaveLength(1);
+      expect(disconnected).toHaveLength(0);
+      act(() => render(null, host));
+      expect(disconnected).toEqual(observed);
+    } finally {
+      globalThis.ResizeObserver = originalObserver;
+    }
+  });
+
   it('renders dot marks from the same mark field used by toolbar and export', () => {
     host = mount(symbolElement({ mark: 'dot', color: '#ff3300' }));
     const dot = requireElement<SVGCircleElement>(host, 'circle');
