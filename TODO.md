@@ -25,8 +25,10 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 
 ### Robustness and debt
 
+- [QUAL-49](backlog/tasks/QUAL-49.md) P3 · Copy-pasted unit suites collapse into one parametrised guard each (in progress)
 - [DEBT-65](backlog/tasks/DEBT-65.md) P2 · Two layout-shift specs failed once each in the 2026-10-27 nightly (in progress)
 - [MEM-24](backlog/tasks/MEM-24.md) P3 · A service worker that cannot install, or never completes its precache, says so (in progress)
+- [QUAL-50](backlog/tasks/QUAL-50.md) P3 · Assertions that cannot fail, or fail only on a refactor, are made real or removed (in progress)
 
 ### Unify the tools, narrow the graph
 

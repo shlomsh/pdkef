@@ -1,7 +1,7 @@
 ---
 id: "QUAL-50"
 title: "Assertions that cannot fail, or fail only on a refactor, are made real or removed"
-status: "open"
+status: "in_progress"
 priority: "P3"
 epic: "robustness"
 horizon: "later"
