@@ -1,13 +1,13 @@
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { IDLE_VIEW, type CameraHandle } from './types.ts';
+import { IDLE_VIEW, type CameraHandle } from '../lib/camera/types.ts';
 import Viewfinder from './Viewfinder.tsx';
 
 let handle: CameraHandle;
-vi.mock('./useCamera.ts', () => ({ useCamera: () => handle }));
+vi.mock('../hooks/useCamera.ts', () => ({ useCamera: () => handle }));
 // The model is another file's work; the component only calls it.
-vi.mock('./viewfinderModel.ts', () => ({
+vi.mock('../lib/camera/viewfinderModel.ts', () => ({
   hintText: (hint: string, count: number) => (hint === 'point' ? 'Point at a page' : hint === 'hold' ? 'Hold still' : `Page ${count}. Turn the page.`),
   coverRect: () => ({ x: 0, y: 0, width: 100, height: 100 }),
 }));

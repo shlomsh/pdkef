@@ -2,7 +2,7 @@ import { useRef } from 'preact/hooks';
 import { RefreshCw } from 'lucide-preact';
 import { PHOTO_ACCEPT } from '#lib/hooks/usePhotoTileList.ts';
 import { takeInputFiles } from '#shell/prePickedFiles.ts';
-import { canUseCamera } from '../camera/canUseCamera.ts';
+import { canUseCamera } from '../lib/camera/canUseCamera.ts';
 import { englishScanMessages as t } from '../messages.ts';
 import styles from './ScanPageView.module.css';
 
