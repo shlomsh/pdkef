@@ -23,6 +23,10 @@ describe('saved signature image policy', () => {
     expect(MAX_SAVED_SIGNATURE_ENCODED_BYTES).toBe(750_000);
   });
 
+  it('treats a string that is not a data URL as over every byte cap', () => {
+    expect(dataUrlEncodedBytes('AAAA')).toBe(Number.POSITIVE_INFINITY);
+  });
+
   it('re-encodes an oversized upload until both measured caps hold', () => {
     const originalContext = HTMLCanvasElement.prototype.getContext;
     const originalToDataUrl = HTMLCanvasElement.prototype.toDataURL;
@@ -54,6 +58,16 @@ describe('typed signature font size (SIGN-37)', () => {
     expect(fontPx).toBeGreaterThanOrEqual(TYPED_SIGNATURE_MIN_FONT_PX);
     expect(fontPx).toBeLessThanOrEqual(TYPED_SIGNATURE_MAX_FONT_PX);
     expect((widthPerPx * fontPx) * (heightPerPx * fontPx)).toBeLessThanOrEqual(0.9 * MAX_SAVED_SIGNATURE_PIXELS);
+  });
+
+  it('picks the largest font whose canvas still fits 90% of the pixel budget', () => {
+    // 30 pixels of canvas per px^2 of font: unclamped, 173px fits 90% of the budget and 174px does not.
+    const widthPerPx = 20;
+    const heightPerPx = 1.5;
+    const fontPx = typedSignatureFontPx({ widthPerPx, heightPerPx });
+    const canvasPixels = (px: number) => (widthPerPx * px) * (heightPerPx * px);
+    expect(canvasPixels(fontPx)).toBeLessThanOrEqual(0.9 * MAX_SAVED_SIGNATURE_PIXELS);
+    expect(canvasPixels(fontPx + 1)).toBeGreaterThan(0.9 * MAX_SAVED_SIGNATURE_PIXELS);
   });
 
   it('clamps a very long name down to the minimum font size', () => {

@@ -51,6 +51,8 @@ the table. On desktop, Choose photos (and the drop) stay the way in.
   Nothing else.
 - **Keep or retake:** tapping the stack shows the last page as it will download, with **Retake** and
   **Keep**, and a quiet "Fix the corners" link.
+- **The photo** is `ImageCapture.takePhoto` from the running camera, at the native photo's quality without
+  leaving the page (SCAN-04: a frame grabbed from the video reads clearly worse).
 - **Without the camera:** if permission is refused or the browser has no camera access, today's native
   "Take a photo" input is the fallback, feeding the same table.
 
@@ -94,8 +96,8 @@ guarded by a corpus and scored KPIs.
 **Baseline (2026-11-03, main at 66718661):** 20 edge tests pass and the corpus finds 18 of 18 with corner
 errors of 0.002 to 0.006 of the frame. The corpus is synthetic (flat fills plus noise) with one real photo, so
 it is saturated and cannot tell a better detector from a worse one. One `guessCorners` takes about 42 ms on a
-320x427 frame on a Mac in Node (brightness 26 ms, outline 16.5 ms); on a phone that is probably 3 to 6 times
-slower (inferred, SCAN-04 measures it). It answers found or `null`, with no confidence, and reads gray only.
+320x427 frame on a Mac in Node (brightness 26 ms, outline 16.5 ms), and the same 42 ms on an iPhone (iOS 26,
+in a worker at 320x569, 12.5 checks a second end to end with `detectPage`; SCAN-04). It answers found or `null`, with no confidence, and reads gray only.
 
 **The order:**
 

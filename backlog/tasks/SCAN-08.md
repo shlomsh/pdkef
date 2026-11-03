@@ -25,7 +25,11 @@ and the mocks (https://claude.ai/artifact/TRgSt9SUjqyXM5NWGkr83L, screens 1 to 5
 - **Done** goes to the table (SCAN-06), with the PDF already built in the background.
 - **Retake** from the one-page view opens the camera for that page only.
 - **Fallback:** camera refused or unavailable, today's native "Take a photo" input, same table.
-- The still is taken the way SCAN-04 decided (video still, or the native input after a lock).
+- The still is `ImageCapture.takePhoto` on the running track (SCAN-04: the video still reads clearly worse,
+  `takePhoto` as well as a native photo); where `ImageCapture` is missing, the native input after a lock. The
+  photo is about 7 MB and its corners take about 1.3 s, so processing runs off the shutter path.
+- The browser may ask for the camera on every visit (SCAN-04, Chrome on iOS), so the first screen expects the
+  prompt and the refused path is ordinary.
 - No frame leaves the tab; the camera stops when the viewfinder closes or the tab hides.
 
 ## Acceptance

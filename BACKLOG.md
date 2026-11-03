@@ -2,7 +2,7 @@
 
 # Backlog
 
-The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 112 live: 29 up next, 17 then, 27 waiting, 39 parked.
+The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 114 live: 29 up next, 18 then, 27 waiting, 40 parked.
 
 ## Redact: finish removal
 
@@ -86,7 +86,7 @@ The camera takes pages, the table fixes them, Share sends them. The table first 
 | --- | --- | --- | --- |
 | SCAN-06 | P1 | [SCAN-06](backlog/tasks/SCAN-06.md) · Scan next: the table and the one-page view, with size and compression right before Share | In progress |
 | SCAN-07 | P1 | [SCAN-07](backlog/tasks/SCAN-07.md) · Scan next: the live capture logic, steady, sharp, once per page, with a confidence | In progress |
-| SCAN-04 | P1 | [SCAN-04](backlog/tasks/SCAN-04.md) · Scan next: the phone measurements that decide the camera build | Needs Shlomi: Your iPhone, and an Android phone if one is at hand |
+| SCAN-04 | P1 | [SCAN-04](backlog/tasks/SCAN-04.md) · Scan next: the phone measurements that decide the camera build | In progress. Needs Shlomi: Your iPhone, and an Android phone if one is at hand |
 | SCAN-05 | P1 | [SCAN-05](backlog/tasks/SCAN-05.md) · Scan next: a real page-detection corpus with scored KPIs | In progress. Needs Shlomi: Photos and short videos of real pages taken on your phone, ours to check in |
 
 ### Then, in order
@@ -138,6 +138,7 @@ Production errors you can see, small tools that clean up after themselves, and d
 
 | ID | P | Task | Note |
 | --- | --- | --- | --- |
+| QUAL-49 | P3 | [QUAL-49](backlog/tasks/QUAL-49.md) · Copy-pasted unit suites collapse into one parametrised guard each |  |
 | DEBT-47 | P2 | [DEBT-47](backlog/tasks/DEBT-47.md) · Sign's funnel has a clean baseline after the dropzone routing fix |  |
 | DEBT-53 | P2 | [DEBT-53](backlog/tasks/DEBT-53.md) · A Download tapped before the build lands still downloads on an iPhone | Needs Shlomi: A check on your iPhone |
 | DEBT-55 | P3 | [DEBT-55](backlog/tasks/DEBT-55.md) · Every tool that loads with pdf-lib repairs a lost page list the way Edit Pages does |  |
@@ -165,6 +166,7 @@ Production errors you can see, small tools that clean up after themselves, and d
 | ENC-11 | P3 | [ENC-11](backlog/tasks/ENC-11.md) · Every tool's intake is tested against a real protected file in one table |  |
 | MEM-12 | P3 | [MEM-12](backlog/tasks/MEM-12.md) · An alert when people are stuck on an old build |  |
 | MOBI-08 | P3 | [MOBI-08](backlog/tasks/MOBI-08.md) · Offer install at the moment it pays off, not in a card about working offline |  |
+| QUAL-50 | P3 | [QUAL-50](backlog/tasks/QUAL-50.md) · Assertions that cannot fail, or fail only on a refactor, are made real or removed |  |
 
 ## Unify the tools, narrow the graph
 
@@ -283,7 +285,7 @@ Done and retired tickets are not listed. Their files stay in [backlog/tasks/](ba
 - Scan: camera to WhatsApp: 0 done, 0 retired
 - Tool pages: show the verb: 8 done, 0 retired
 - Form detector accuracy: 19 done, 1 retired
-- Robustness and debt: 80 done, 4 retired
+- Robustness and debt: 84 done, 4 retired
 - Unify the tools, narrow the graph: 96 done, 0 retired
 - Search and languages: 12 done, 0 retired
 - Polish: 24 done, 1 retired

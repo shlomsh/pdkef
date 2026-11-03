@@ -43,6 +43,15 @@ describe('sampleTaps', () => {
       }
     }
   })
+  it('also taps just below a rule, 1 to 4 pt under it, and still snaps to it', () => {
+    // r3 has no rival rule within reach, so a tap under it is a clear snap.
+    const below = cases.filter((c) => c.expect.ruleId === 'r3' && c.tap.y > byId.r3.y)
+    expect(below.length).toBeGreaterThan(0)
+    for (const { tap } of below) {
+      expect(tap.y - byId.r3.y).toBeGreaterThanOrEqual(1)
+      expect(tap.y - byId.r3.y).toBeLessThanOrEqual(4)
+    }
+  })
   it('far decoys are beyond 2x maxSnapPts from every rule', () => {
     const far = cases.filter((c) => c.expect.why === 'far')
     expect(far.length).toBeGreaterThan(0)
