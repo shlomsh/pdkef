@@ -225,7 +225,7 @@ Small, independent, good for a spare hour.
 | QUAL-21 | P2 | [QUAL-21](backlog/tasks/QUAL-21.md) · Pages render at the size they are shown, and the practice form's logo is sharp | In progress |
 | SIGN-44 | P2 | [SIGN-44](backlog/tasks/SIGN-44.md) · Sign: a comment on a highlight, kept in the PDF as a standard annotation | In progress |
 | MERGE-25 | P3 | [MERGE-25](backlog/tasks/MERGE-25.md) · Open PDFs from Google Drive's Open with menu: a Drive app, which needs the first invariant rewritten | In progress. Needs Shlomi: Your sign-off on the rewritten invariant, then the Google Cloud and Marketplace setup in your account |
-| MERGE-27 | P3 | [MERGE-27](backlog/tasks/MERGE-27.md) · Explain loading files from Drive where people look for it: a how-to page, the hints, and the Marketplace help link |  |
+| MERGE-27 | P3 | [MERGE-27](backlog/tasks/MERGE-27.md) · Explain loading files from Drive where people look for it: a how-to page, the hints, and the Marketplace help link | In progress |
 
 ### Then, in order
 

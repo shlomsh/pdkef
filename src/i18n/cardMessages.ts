@@ -132,6 +132,10 @@ const hebrewGuideCards: Record<string, CardCopy> = {
     title: 'Android',
     description: 'חתימה על PDF באנדרואיד בלי להתקין אפליקציה.',
   },
+  'how-to-open-a-pdf-from-google-drive': {
+    title: 'פתיחת PDF מ-Google Drive',
+    description: 'פתיחה באמצעות ב-Drive, או בוחר הקבצים של המכשיר. הקובץ עובר למכשיר שלכם ולשום מקום אחר.',
+  },
   'sign-pdf-in-your-language': {
     title: 'חתימה בשפה שלכם',
     description: 'איזה גופן מצייר איזו שפה, לפי קובצי הגופן בפועל.',
