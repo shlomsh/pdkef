@@ -93,6 +93,7 @@ const TS_NOT_UI = {
   'highlight/lib/marker/cursor.ts': 'svg markup for the cursor image (attribute names and path data), no copy in it',
   'redact/hooks/useFind.ts': 'a canvas font shorthand used to measure glyphs',
   'scan/lib/edges/corpus.ts': 'names of edge-detection fixtures, shown only in test output',
+  'scan/lib/edges/kpi.ts': 'column headers of the detection KPI table, printed only in test output',
   'sign/hooks/useFormFieldRegions.ts': 'developer diagnostics sent to the error report, not shown to a person',
 };
 const COPY_MODULES = new Set(['redact/lib/check/checkCopy.ts', 'redact/lib/details/describeDetails.ts']);
