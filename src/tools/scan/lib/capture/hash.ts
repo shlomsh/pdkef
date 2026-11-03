@@ -5,8 +5,7 @@ import type { GrayImage, Quad } from '../quad.ts';
 
 const GRID = 8;
 
-/** @testSeam The camera island (SCAN-07) is the real consumer.
- * 16 hex chars. Hashes the quad's bounding box, or the whole image when there is no quad. */
+/** 16 hex chars. Hashes the quad's bounding box, or the whole image when there is no quad. */
 export function averageHash(image: GrayImage, quad?: Quad | null): string {
   const { width, height, data } = image;
   let x0 = 0;
