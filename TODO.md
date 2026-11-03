@@ -97,5 +97,6 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 - [MERGE-26](backlog/tasks/MERGE-26.md) · Your rewrite of the first CLAUDE.md invariant (saving is the first time bytes leave the device)
 - [MERGE-28](backlog/tasks/MERGE-28.md) · Evidence that people want it, and your sign-off on a wider Google exception
 - [READ-07](backlog/tasks/READ-07.md) · An iPhone check
+- [SITE-45](backlog/tasks/SITE-45.md) · Pick which pitches below to build (step 1)
 
 See [BACKLOG.md](BACKLOG.md) for every lane.
