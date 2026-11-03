@@ -1,13 +1,13 @@
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { GLYPH_BUDGET } from '../find/itemGlyphs.ts';
 import { termFinder } from '../find/finders.ts';
-import { boxAroundLine, buildPdf, installCanvas, openOriginal, openedTasks } from './runCheck.test-helper.ts';
-import type { PageSpec } from './runCheck.test-helper.ts';
+import { boxAroundLine, buildPdf, installCanvas, openOriginal, openedTasks } from '../../../../test/support/redactCheckPdfs.ts';
+import type { PageSpec } from '../../../../test/support/redactCheckPdfs.ts';
 import type { CheckBox, CheckTerm } from './types.ts';
 
 // The one edge: getPdfjs() is the vite worker import, which node cannot run; the legacy build stands in.
 vi.mock('#editor/adapters/pdf/pdfjsLoader.js', async () => {
-  const { legacyPdfjs: stand } = await import('./runCheck.test-helper.ts');
+  const { legacyPdfjs: stand } = await import('../../../../test/support/redactCheckPdfs.ts');
   return { getPdfjs: async () => stand() };
 });
 

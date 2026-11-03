@@ -1,5 +1,5 @@
 /**
- * Real files for `runCheck.test.ts`: small PDFs built with pdf-lib and opened in the legacy pdf.js build,
+ * Real files for the Redact check's `runCheck.test.ts`: small PDFs built with pdf-lib and opened in the legacy pdf.js build,
  * so the whole check runs on real bytes. The only fakes are the edges node lacks: pdf.js's worker URL and
  * the page's canvas (`installCanvas`).
  */
@@ -8,7 +8,7 @@ import * as pdfjs from 'pdfjs-dist/legacy/build/pdf.mjs';
 import { PDFDocument, StandardFonts, rgb } from '@cantoo/pdf-lib';
 import type { PDFDocumentProxy } from 'pdfjs-dist';
 import { PDFJS_WASM_URL } from '#lib/pdf/pdfjsWasm.js';
-import type { PercentBox } from '../find/types.ts';
+import type { PercentBox } from '../../tools/redact/lib/find/types.ts';
 
 export const PAGE_WIDTH = 400;
 export const PAGE_HEIGHT = 200;
@@ -51,7 +51,7 @@ export async function buildPdf(pages: PageSpec[], options: { title?: string } = 
 }
 
 // Node has no bundled worker URL; point pdf.js at the legacy build's own.
-const workerUrl = new URL('../../../../../node_modules/pdfjs-dist/legacy/build/pdf.worker.mjs', import.meta.url).href;
+const workerUrl = new URL('../../../node_modules/pdfjs-dist/legacy/build/pdf.worker.mjs', import.meta.url).href;
 Object.defineProperty(pdfjs.GlobalWorkerOptions, 'workerSrc', { get: () => workerUrl, set() {}, configurable: true });
 
 /** Every loading task the check opened through `legacyPdfjs`, so a test can see it was destroyed. */
