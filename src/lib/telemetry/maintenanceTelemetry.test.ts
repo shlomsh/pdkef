@@ -40,6 +40,13 @@ describe('anonymous maintenance telemetry', () => {
     expect('error_code' in event.properties).toBe(false);
   });
 
+  it('buckets an impossible duration (negative, NaN, infinite) as the slowest, never as a fast export', () => {
+    for (const bad of [-1, -5_000, Number.NaN, Number.POSITIVE_INFINITY, Number.NEGATIVE_INFINITY]) {
+      expect(signExportSucceeded(bad).properties).toMatchObject({ duration_bucket: '30s_or_more' });
+    }
+    expect(signExportSucceeded(0).properties).toMatchObject({ duration_bucket: 'under_1s' });
+  });
+
   it('maps errors to stable codes without retaining sensitive exception data', () => {
     const error = Object.assign(new Error(sensitiveValues.rawMessage), sensitiveValues, {
       name: 'UnrepresentableTextError',
