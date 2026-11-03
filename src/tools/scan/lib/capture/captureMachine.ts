@@ -14,7 +14,6 @@ import {
   type FrameObservation,
 } from './types.ts';
 
-/** @testSeam Until the camera (SCAN-08) imports it; drop the tag then. */
 export const INITIAL_CAPTURE_STATE: CaptureState = {
   phase: 'searching',
   smoothed: null,
@@ -30,7 +29,6 @@ const maxCornerDistance = (a: Quad, b: Quad) => Math.max(...a.map((p, i) => dist
 const blend = (old: Quad, next: Quad, alpha: number): Quad =>
   old.map((p, i) => ({ x: p.x + (next[i].x - p.x) * alpha, y: p.y + (next[i].y - p.y) * alpha })) as Quad;
 
-/** @testSeam Until the camera (SCAN-08) imports it; drop the tag then. */
 export function stepCapture(
   state: CaptureState,
   obs: FrameObservation,
@@ -75,4 +73,9 @@ export function stepCapture(
     return { state: { ...next, phase: 'waitingForChange', holdSince: null, lastCaptureHash: obs.hash }, capture: smoothed };
   }
   return { state: { ...next, phase: 'holding', holdSince }, capture: null };
+}
+
+/** A shot the shutter took by hand: wait for the page to change, so auto does not take it again. */
+export function markTaken(state: CaptureState, hash: string): CaptureState {
+  return { ...state, phase: 'waitingForChange', lastCaptureHash: hash, holdSince: null, lostSince: null };
 }
