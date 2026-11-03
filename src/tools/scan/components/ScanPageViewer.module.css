@@ -1,0 +1,150 @@
+/* The phone's page viewer (SCAN-13): a modal dialog in the top layer, header included, inside the safe areas. */
+.dialog {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  max-width: none;
+  height: 100%;
+  max-height: none;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  overflow: hidden;
+  overscroll-behavior: none;
+  color: var(--color-text);
+  background: var(--color-bg);
+}
+
+.dialog::backdrop {
+  background: var(--color-bg);
+}
+
+.editor {
+  position: relative;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  height: 100%;
+  padding: env(safe-area-inset-top) calc(16px + env(safe-area-inset-right)) calc(16px + env(safe-area-inset-bottom)) calc(16px + env(safe-area-inset-left));
+}
+
+.head {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 60px;
+  width: 100%;
+}
+
+.back {
+  position: absolute;
+  inset-inline-start: -8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--color-primary-text);
+  cursor: pointer;
+}
+
+.back:dir(rtl) svg {
+  transform: scaleX(-1);
+}
+
+.back:focus-visible,
+.done:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.title {
+  margin: 0;
+  font-size: 1.0625rem;
+  font-weight: 600;
+}
+
+.hint {
+  margin: 0;
+  max-width: 36rem;
+  text-align: center;
+  color: var(--color-muted);
+  font-size: 0.875rem;
+}
+
+.notFound {
+  margin: 0;
+}
+
+/* The page or the photo takes what the rows around it leave: a size container, so cqh is that room. */
+.stage {
+  flex: 1 1 0;
+  min-height: 0;
+  width: 100%;
+  container-type: size;
+  --scan-paper-h: calc(100cqh - 8px);
+}
+
+.cornersStage {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  --scan-view-h: 100cqh;
+}
+
+.scroller {
+  display: flex;
+  width: 100%;
+  height: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scroll-snap-type: x mandatory;
+  overscroll-behavior: contain;
+  scrollbar-width: none;
+}
+
+.scroller::-webkit-scrollbar {
+  display: none;
+}
+
+.slide {
+  flex: 0 0 100%;
+  width: 100%;
+  height: 100%;
+  display: grid;
+  align-items: center;
+  justify-items: center;
+  scroll-snap-align: center;
+  scroll-snap-stop: always;
+}
+
+/* The caption stays for screen readers and out of sight. */
+.slide figcaption {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.done {
+  flex: 0 0 auto;
+  width: min(100%, 36rem);
+  height: 56px;
+  border: 0;
+  border-radius: 16px;
+  background: var(--color-primary);
+  color: var(--color-surface);
+  font: inherit;
+  font-size: 17px;
+  font-weight: 600;
+  cursor: pointer;
+}

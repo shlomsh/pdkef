@@ -24,7 +24,7 @@ interface ScanEditorHeadProps {
 }
 
 /** What the corners hint says, in the order the states can overlap. */
-function cornersHint(selected: ScanPage, finding: number | null, findMissed: number[]): string {
+export function cornersHint(selected: ScanPage, finding: number | null, findMissed: number[]): string {
   if (selected.guessed && selected.preview === null) return t.pageFailed;
   if (!selected.guessed || finding === selected.id) return t.findingEdges;
   if (findMissed.includes(selected.id)) return t.findMissed;
