@@ -1,7 +1,7 @@
 ---
 id: "MERGE-27"
 title: "Explain loading files from Drive where people look for it: a how-to page, the hints, and the Marketplace help link"
-status: "open"
+status: "in_progress"
 priority: "P3"
 epic: "polish"
 horizon: "now"

@@ -89,6 +89,7 @@ interface BasePdfToolProps {
      * actual notice on a mount-effect iOS check; this only says the tool is
      * allowed to show it. */
     iosFilesHint?: boolean;
+    /** MERGE-27: on by default, the phone line about Drive and its how-to link. A tool opts out with false. */
     cloudDriveHint?: boolean;
   };
   draft?: {
@@ -144,7 +145,7 @@ function BasePdfTool({
   const { multiple = true, accept = 'application/pdf', dropAnywhere = true, needsPdfjs = true } = intake ?? {};
   const { file = null, label: fileLabel, rename: fileRename, meta: fileMeta, metaExtra: fileMetaExtra, note: fileNote, hidden: hideIdentity = false } = identity ?? {};
   const { message: emptyStateMessage, art: emptyArt, heading: emptyHeading, body: emptyBody, action: emptyAction } = empty ?? {};
-  const { iosFilesHint: showIosFilesHint = false, cloudDriveHint: showCloudDriveHint = false } = empty ?? {};
+  const { iosFilesHint: showIosFilesHint = false, cloudDriveHint: showCloudDriveHint = true } = empty ?? {};
   /* True while a tool with draft persistence is still checking IndexedDB for a
      saved draft on mount (see useDraftPersistence.js's `isRestoring`). Renders
      a brief neutral placeholder instead of the "drop a file here" empty state,

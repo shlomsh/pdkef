@@ -18,7 +18,8 @@ interface DropzoneEmptyStateProps {
    * still depends on the mount-effect iOS check below - this only says
    * "this tool is allowed to show it at all". */
   showIosFilesHint?: boolean;
-  /** MERGE-18: opt-in. Phones only (iOS or Android), same mount-effect rule. */
+  /** MERGE-18, MERGE-27: on unless a tool turns it off; BasePdfTool passes it. Phones only (iOS or Android),
+   * same mount-effect rule. */
   showCloudDriveHint?: boolean;
   /** The tool's verb, drawn in place of the file-plus icon. */
   art?: ComponentChild;
@@ -175,13 +176,26 @@ export default function DropzoneEmptyState({
         <p class={styles['ios-files-hint']}>{messages.iosFilesHint}</p>
       )}
 
-      {isPhone && (
-        <p class={styles['ios-files-hint']}>{messages.cloudDriveHint}</p>
-      )}
+      {isPhone && <CloudDriveHint messages={messages} />}
 
       {/* The sheet's last child: its presence means the whole sheet has been parsed. */}
       <i class={styles['sheet-end']} data-sheet-end hidden />
     </div>
+  );
+}
+
+/** MERGE-18, MERGE-27: one muted line on phones, with the how-to link where an edition of that page exists. */
+function CloudDriveHint({ messages }: { messages: ShellMessages }) {
+  return (
+    <p class={styles['ios-files-hint']}>
+      {messages.cloudDriveHint}
+      {messages.cloudDriveHowTo && (
+        <>
+          {' '}
+          <a href="/how-to-open-a-pdf-from-google-drive/" class={styles['ios-files-link']}>{messages.cloudDriveHowTo}</a>
+        </>
+      )}
+    </p>
   );
 }
 

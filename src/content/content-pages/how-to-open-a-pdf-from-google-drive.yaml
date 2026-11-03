@@ -1,0 +1,104 @@
+title: 'How to Open a PDF from Google Drive | PDkef'
+description: >-
+  Two ways to bring a PDF from Google Drive into PDkef: Drive's Open with menu, or the file picker
+  on your phone or computer. The file goes from Drive to your device and nowhere else.
+breadcrumb: 'Open from Drive'
+icon: 'HardDriveDownload'
+kicker: 'Google Drive, optional'
+h1: 'How to Open a PDF from Google Drive'
+subhead: >-
+  A PDF that lives in Google Drive can be signed, redacted, highlighted or compressed here without
+  a detour. Use Open with in Drive, or pick the file the usual way. Either way it goes from Drive
+  to your device, and no further.
+primaryCta:
+  href: '/sign/'
+  label: 'Open the signing tool'
+sections:
+  - variant: 'highlight'
+    sketch: 'arcs'
+    icon: 'HardDriveDownload'
+    iconPos: 'tr'
+    kicker: 'Two ways in'
+    heading: 'Open a PDF from Drive with Open with'
+    blocks:
+      - kind: 'steps'
+        items:
+          - >-
+            <strong>Find the PDF in Google Drive on a computer.</strong> Right-click it.
+          - >-
+            <strong>Choose Open with, then PDkef.</strong> If PDkef is not in that list yet, use
+            the file picker in the next section, which works for everyone.
+          - >-
+            <strong>Tap Continue with Google.</strong> PDkef asks Google for access to this one
+            file only, not the rest of your Drive. Google shows you what it is asking for.
+          - >-
+            <strong>Choose what to do with it.</strong> Sign it, redact it, highlight it or
+            compress it. The PDF opens in that tool, ready to work on.
+      - kind: 'prose'
+        text: >-
+          The PDF is fetched from Drive straight to your device and is not sent anywhere else.
+          PDkef never sees your Google password, and it does not keep a sign-in: every time you
+          open a file this way, you tap Continue with Google again.
+  - sketch: 'waves'
+    icon: 'Smartphone'
+    iconPos: 'cl'
+    kicker: 'No Google sign-in needed'
+    heading: 'Pick the file from Drive in the file picker'
+    blocks:
+      - kind: 'steps'
+        items:
+          - >-
+            <strong>Open any PDkef tool and tap Choose files.</strong> Your device shows its own
+            file picker, the same one other apps use.
+          - >-
+            <strong>On Android, pick Google Drive from the list</strong> next to Downloads, then
+            choose the PDF.
+          - >-
+            <strong>On iPhone or iPad, tap Browse.</strong> Your Google Drive, Dropbox or iCloud
+            Drive appears in the list once its app is installed.
+          - >-
+            <strong>On a Mac or Windows PC, use the Drive desktop app.</strong> Its folder shows up
+            in the file picker like any other folder.
+      - kind: 'prose'
+        text: >-
+          This way PDkef never connects to Google at all. Your device's picker does the fetching,
+          and PDkef only receives the file you chose.
+  - sketch: 'rings'
+    icon: 'ShieldCheck'
+    iconPos: 'cl'
+    kicker: 'Optional and on your terms'
+    heading: 'What stays on your device'
+    blocks:
+      - kind: 'prose'
+        text: >-
+          Open with is a convenience, not a requirement. Everything in PDkef works without ever
+          touching Google. The one page that talks to Google is <a href="/drive/">/drive/</a>,
+          where Open with lands; every other page loads nothing from Google. The
+          <a href="/privacy/">privacy page</a> has the whole picture.
+      - kind: 'prose'
+        text: >-
+          Once the PDF is open, the work happens in your browser like any other file. The finished
+          PDF is yours to download, then add back to Drive yourself if you want it there.
+faq:
+  - question: 'How do I open a PDF from Google Drive in PDkef?'
+    answer: >-
+      Right-click the PDF in Drive on a computer, choose Open with, then PDkef, and tap Continue
+      with Google. Or open any PDkef tool, tap Choose files, and pick Google Drive from your
+      device's file picker. Both bring the file straight to your device.
+  - question: 'Does PDkef get access to everything in my Google Drive?'
+    answer: >-
+      No. Open with asks Google for access to the one file you chose, not the rest of your Drive,
+      and PDkef never sees your Google password. The file's bytes go from Drive to your device and
+      nowhere else. Choosing a file in your device's picker involves no Google sign-in at all.
+  - question: 'Why do I tap Continue with Google every time?'
+    answer: >-
+      PDkef does not keep a sign-in or store any Google token, so each file is a fresh, one-file
+      request. It is a small price for there being no account and nothing remembered about you.
+  - question: 'I do not see PDkef in the Open with list. What now?'
+    answer: >-
+      Use the file picker instead: open a PDkef tool, tap Choose files, and pick Google Drive on
+      Android, or Browse on iPhone. It needs no sign-in and no listing, so it always works.
+  - question: 'Can I save the finished PDF back to Google Drive?'
+    answer: >-
+      PDkef gives you the finished PDF as a download on your device, and you can upload it to Drive
+      from there. The original in Drive is only read, never changed.
