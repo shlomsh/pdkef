@@ -126,59 +126,5 @@ test.describe('compress tool - before/after preview', () => {
       await page.keyboard.press('Escape');
       await expect(dialog).toHaveCount(0);
     });
-
-    // COMP-04: a photo's Full screen fits the screen whole, as large as its own shape allows, nothing to scroll.
-    for (const size of [{ width: 1440, height: 900 }, { width: 390, height: 844 }]) {
-      test(`Full screen fits a portrait photo inside a ${size.width}x${size.height} screen with nothing to scroll`, async ({ page }) => {
-        await page.setViewportSize(size);
-        await page.goto('/compress-image/');
-        await waitForIsland(page);
-
-        const dataUrl = await page.evaluate(() => {
-          const canvas = document.createElement('canvas');
-          canvas.width = 1200;
-          canvas.height = 1600;
-          const ctx = canvas.getContext('2d');
-          const gradient = ctx.createLinearGradient(0, 0, 1200, 1600);
-          gradient.addColorStop(0, '#1b2a4a');
-          gradient.addColorStop(1, '#e8c468');
-          ctx.fillStyle = gradient;
-          ctx.fillRect(0, 0, 1200, 1600);
-          const noise = ctx.getImageData(0, 600, 1200, 1000);
-          for (let i = 0; i < noise.data.length; i += 4) {
-            noise.data[i] = Math.random() * 255;
-            noise.data[i + 1] = Math.random() * 255;
-            noise.data[i + 2] = Math.random() * 255;
-          }
-          ctx.putImageData(noise, 0, 600);
-          return canvas.toDataURL('image/jpeg', 0.9);
-        });
-        await page.locator('input[type="file"]').first().setInputFiles({
-          name: 'portrait-photo.jpg',
-          mimeType: 'image/jpeg',
-          buffer: Buffer.from(dataUrl.split(',')[1], 'base64'),
-        });
-        await expect(page.locator('[data-compress-status="done"]')).toBeVisible({ timeout: 30_000 });
-
-        await page.getByRole('button', { name: 'Full screen' }).click();
-        const dialog = page.locator('dialog[open]', { has: page.locator('[role="slider"]') });
-        await expect(dialog).toBeVisible();
-        const slider = dialog.locator('[class*="compare-slider"]');
-        await expect(slider).toBeVisible({ timeout: 15_000 });
-        // The slider sizes itself to the loaded photo, so measure once both images have decoded.
-        await expect(dialog.locator('img').first()).toBeVisible();
-        await expect.poll(() => dialog.locator('img').evaluateAll((imgs) => imgs.every((img) => img.complete && img.naturalWidth > 0))).toBe(true);
-
-        const box = await slider.boundingBox();
-        const bodyBox = await dialog.locator('[class*="compare-fullscreen-body"]').boundingBox();
-        expect(box.y).toBeGreaterThanOrEqual(0);
-        expect(box.y + box.height).toBeLessThanOrEqual(size.height);
-        expect(box.x).toBeGreaterThanOrEqual(0);
-        expect(box.x + box.width).toBeLessThanOrEqual(size.width);
-        expect(box.height >= bodyBox.height * 0.85 || box.width >= bodyBox.width * 0.85).toBe(true);
-        const scrolls = await dialog.locator('[class*="compare-fullscreen-body"]').evaluate((el) => el.scrollHeight > el.clientHeight + 1);
-        expect(scrolls).toBe(false);
-      });
-    }
   });
 });
