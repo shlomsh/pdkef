@@ -188,3 +188,16 @@ saw the domain re-weighed without any change of ours: `/merge/` went from positi
 - 9 stars: openalternative.co reopens at 10.
 
 Table and counts: [findings doc section 8](../../docs/seo-competitive-findings.md#8-reference-seo-03-venue-list-and-outreach-log).
+
+## 2026-11-04: pluja closed, venue withdrawn
+
+- pluja closed [pluja/awesome-privacy#1103](https://github.com/pluja/awesome-privacy/pull/1103) on
+  2026-11-02 in a backlog sweep: "still too new or too small for the list", with an invitation to open
+  a new PR once that changes. Their
+  [bar](https://github.com/pluja/awesome-privacy/blob/main/misc/Contributing.md#what-makes-a-good-entry)
+  asks for at least 6 months of age and a real user base.
+- Shlomi's call: withdrawn, no resubmit. The point of a list like this is to give a young project a
+  stage. Once PDkef stands on its own, the list needs it more than it needs the list, so waiting to
+  qualify is a waste of time.
+- [Withdrawal posted on the PR](https://github.com/pluja/awesome-privacy/pull/1103#issuecomment-6618100165)
+  on 2026-11-04 with that reason.
