@@ -124,6 +124,25 @@ describe('startHighlightSwipe', () => {
   });
 });
 
+describe('which end of the swipe is the press', () => {
+  it('reads from the press to the pointer, so a pointer dragged past the last text row still covers the rows between', () => {
+    const { dispatch } = setup();
+    move(100, 200); // below the last row: the press is on the first row, the pointer on blank page
+    release();
+    const { bands } = dispatch.mock.calls[0][0].payload.changes;
+    expect(bands).toHaveLength(2);
+  });
+
+  it('on a page with no text the one band sits at the press, not at the pointer', () => {
+    const blank = (_sx: number, _sy: number, w: number, h: number) => ({ data: new Uint8ClampedArray(w * h * 4).fill(255), width: w, height: h });
+    const { dispatch } = setup(true, undefined, undefined, () => ({ getImageData: blank }));
+    move(100, 250);
+    release();
+    const { top, height } = dispatch.mock.calls[0][0].payload.changes;
+    expect(top + height / 2).toBeCloseTo((107 / H) * 100, 0);
+  });
+});
+
 describe('startHighlightSwipe with a given reader', () => {
   it('uses the reader it is given and reads no canvas', () => {
     const getContext = vi.fn(() => ({ getImageData }));
