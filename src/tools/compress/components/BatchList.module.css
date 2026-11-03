@@ -36,6 +36,8 @@
   column-gap: var(--space-3);
   row-gap: 2px;
   min-height: 44px;
+  /* In the desktop stage the list scrolls; a row never shrinks below its own two lines. */
+  flex-shrink: 0;
   padding: 8px 12px;
   background: var(--color-surface);
   border-radius: var(--radius);
