@@ -2,11 +2,13 @@
 // Truth and guesses are normalized, upright, top-left first (docs/scan-to-pdf.md).
 import type { GrayImage, Point, Quad } from '../quad.ts';
 
+/** @testSeam */
 export const TOLERANCES = [0.02, 0.035, 0.08] as const;
-export const FOUND_TOL = 0.035;
+const FOUND_TOL = 0.035;
 /** A guess further than this from the truth is confidently wrong, not just imprecise. */
-export const WRONG_TOL = 0.08;
+const WRONG_TOL = 0.08;
 
+/** @testSeam */
 export interface KpiCase {
   name: string;
   image: GrayImage;
@@ -19,8 +21,9 @@ export interface KpiCase {
   tol?: number;
 }
 
-export type Guess = (image: GrayImage, c: KpiCase) => Quad | null;
+type Guess = (image: GrayImage, c: KpiCase) => Quad | null;
 
+/** @testSeam */
 export interface KpiResult {
   n: number;
   /** Share of cases answered right, keyed by tolerance ("0.02", "0.035", "0.08"). */
@@ -39,6 +42,7 @@ export interface KpiResult {
 }
 
 /** Largest per-axis distance between matched corners. */
+/** @testSeam */
 export function cornerError(guess: Quad, truth: Quad): number {
   return Math.max(...guess.map((p, i) => Math.max(Math.abs(p.x - truth[i].x), Math.abs(p.y - truth[i].y))));
 }
@@ -78,6 +82,7 @@ function clip(subject: Point[], clipper: Point[]): Point[] {
 }
 
 /** Intersection over union of two convex quads, whichever way their corners wind. */
+/** @testSeam */
 export function quadIou(a: Quad, b: Quad): number {
   const ccw = (q: Quad): Point[] => (area(q) < 0 ? [...q].reverse() : [...q]);
   const pa = ccw(a);
@@ -96,6 +101,7 @@ const median = (xs: number[]): number => {
 
 const key = (t: number) => String(t);
 
+/** @testSeam */
 export function scoreDetector(cases: KpiCase[], guess: Guess): KpiResult {
   const found: Record<string, number> = Object.fromEntries(TOLERANCES.map((t) => [key(t), 0]));
   const condTotal: Record<string, number> = {};
@@ -145,6 +151,7 @@ export function scoreDetector(cases: KpiCase[], guess: Guess): KpiResult {
 
 const pct = (x: number) => `${(x * 100).toFixed(1)}%`;
 
+/** @testSeam */
 export function formatKpiTable(r: KpiResult): string {
   const rows: [string, string][] = [
     ['photos', String(r.n)],
