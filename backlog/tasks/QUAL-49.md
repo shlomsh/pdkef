@@ -1,11 +1,9 @@
 ---
 id: "QUAL-49"
 title: "Copy-pasted unit suites collapse into one parametrised guard each"
-status: "in_progress"
+status: "done"
 priority: "P3"
 epic: "robustness"
-horizon: "next"
-order: 4
 depends_on: []
 ---
 
@@ -46,5 +44,22 @@ suite) assert what another test already does.
 
 ## Acceptance
 
-- [ ] The test count removed and added is recorded here per group.
-- [ ] `npm run check:fast` and `npm run check:push` pass.
+- [x] The test count removed and added is recorded here per group.
+- [x] `npm run check:fast` and `npm run check:push` pass.
+
+## Result (2026-11-04)
+
+Before each copy was deleted, the test that stays was seen failing on the fault the copy caught (each fault and red run is in the commit messages and session report).
+
+| Group | Removed | Added or moved | Where it lives now |
+| --- | --- | --- | --- |
+| Verbs | 41 (3 in each of 14 files) | 43 (14 verbs x 3 checks + discovery) | `src/test/cross-tool/verbs.test.tsx`, globbing every `*/verb/*Verb.tsx` |
+| Page-grid tools | 15, plus 3 trimmed | 9 cases over 3 tools (25 runs, 2 skipped where a tool has no range field) | `src/test/cross-tool/pageGridTools.test.tsx`, in the island-worker project |
+| Rotation export | 1 (Sign's copy) | 0 | `src/editor/export/drawElements.test.ts` |
+| Highlight | 11, plus 1 trimmed to wiring | 5 moved into `useMarkSwipe.test.tsx` first | the hook's own test; `useClickMarks` (no test file) stays covered by HighlightPage |
+| CI workflow | 4 files | 1 file, the same 21 tests | `scripts/ci-workflow.test.mjs`; check-fast/check-push are not copies (one checks order, the other that a ratchet stays in the list) |
+| Catalogue parity | 9 | 2 per catalogue over 7 catalogues | `src/test/cross-tool/messageCatalogues.test.ts` (key parity is the type's job) |
+| draftRecentIndex | 3 from `draftStore.test.js` | 1 | `draftRecentIndex.test.ts`, which owns the pointer and the cap |
+| dedupePrefix | the unused option in `withAffixes` and its test | 0 | `outputNameParts` is the one implementation |
+| Noto blocks | 0 | one table (15 tests either way) | `src/editor/text/fonts.test.js` |
+| Probe race | 1 (Edit Pages) | 1 | `useOpenPageDocument.test.tsx`; Compress and Security race through their own code, so their tests are not copies |
