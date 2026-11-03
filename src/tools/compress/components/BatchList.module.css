@@ -41,14 +41,19 @@
   border-radius: var(--radius);
 }
 
+/* Sized to the name and held at the row's start: a Hebrew name's own
+   direction (FileName's dir="auto") would otherwise push it to the far end. */
 .name {
   grid-area: name;
+  justify-self: start;
+  max-width: 100%;
   min-width: 0;
   font-size: 0.92rem;
 }
 
 .sizes {
   grid-area: sizes;
+  justify-self: end;
   font-size: 0.85rem;
   font-variant-numeric: tabular-nums;
   color: var(--color-muted);
@@ -79,6 +84,7 @@
 /* A 44px target on touch, quiet beside the status line. */
 .save {
   grid-area: save;
+  justify-self: end;
   display: inline-flex;
   align-items: center;
   min-height: 44px;
