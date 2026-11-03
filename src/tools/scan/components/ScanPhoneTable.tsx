@@ -33,12 +33,12 @@ interface ScanPhoneTableProps {
 }
 
 /** The card: the PDF's real size, the limits that shape it, and the paper it is laid on. */
-function SizeCard({ output, options }: { output: ScanOutput; options: ScanOptionsProps }) {
+function SizeCard({ output, options, held }: { output: ScanOutput; options: ScanOptionsProps; held: boolean }) {
   const [paperOpen, setPaperOpen] = useState(false);
   const { prepared } = output;
   return (
     <div class={styles.card} data-card>
-      <ScanSizeRow sizeText={sizeValueText(prepared.status, prepared.size, t.dir)} limit={options.limit} onLimit={options.onLimit} limitNote={options.limitNote} />
+      <ScanSizeRow sizeText={held ? '' : sizeValueText(prepared.status, prepared.size, t.dir)} limit={options.limit} onLimit={options.onLimit} limitNote={options.limitNote} />
       <button type="button" class={styles['page-size']} data-page-size aria-expanded={paperOpen} aria-controls="scan-size-table" onClick={() => setPaperOpen(!paperOpen)}>
         {pageSizeQuietLabel(options.pageSize)}
         <ChevronDown size={14} aria-hidden="true" />
@@ -79,7 +79,9 @@ function ShareOrDownload({ pages, failedIds, output, canShare }: { pages: ScanPa
 export default function ScanPhoneTable({ pages, results, resultKeyOf, failedIds, listRef, onOpen, onTileKeyDown, onFiles, onCamera, onPickMore, onClear, output, options, rating }: ScanPhoneTableProps) {
   const { prepared, flow } = output;
   const ready = prepared.status === 'ready';
-  const canShare = flow.canSharePdf && failedIds.length === 0 && prepared.status !== 'error';
+  // A page that could not be read, or a failed build: there is no PDF to size or share until it is dealt with.
+  const held = failedIds.length > 0 || prepared.status === 'error';
+  const canShare = flow.canSharePdf && !held;
   const handoff = (tool: 'sign' | 'redact') => { void flow.requestHandoff(tool); /* reason: requestHandoff catches its own failure */ };
   return (
     <div class={styles.table} data-scan-ready={ready || undefined}>
@@ -108,7 +110,7 @@ export default function ScanPhoneTable({ pages, results, resultKeyOf, failedIds,
         <p class={styles.hint} data-hint>{t.tableHint}</p>
         <button type="button" class={styles.choose} onClick={onPickMore}>{t.choosePhotos}</button>
       </div>
-      <SizeCard output={output} options={options} />
+      <SizeCard output={output} options={options} held={held} />
       <ShareOrDownload pages={pages} failedIds={failedIds} output={output} canShare={canShare} />
       <div class={styles.steps} data-quiet-row>
         {canShare && (
