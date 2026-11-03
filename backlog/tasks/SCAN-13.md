@@ -24,7 +24,8 @@ and the desktop workspace stay.
 
 - **The table** (`ScanPhoneTable`): the name, the numbered grid ending in Add pages (the camera), the hint,
   one card with Size, the limits and Page size, then Share as the one filled button. Under it the quiet next
-  steps Download, Sign and Redact. Clear all stands alone at the very bottom. Pages reorder by hold and drag.
+  steps Download, Sign and Redact. Clear all is small, at the right of the name row. Pages reorder by hold and
+  drag.
 - **One page** (`ScanPageViewer`): full screen over everything. The page as it will download, swiped left and
   right through the scan, one row of Corners, Rotate, Look, Retake and Remove, then Done, and nothing under it.
   Corners happens inside the same screen.
@@ -47,14 +48,15 @@ Download element), `state/scanOutput.ts` (new, types), `ScanTable`, `ScanWorkspa
 
 Done when:
 
-1. Top to bottom the screen renders exactly: errors if any, name and page count, grid, hint, card, Share, next
-   steps, rating if asked, Clear all. A test asserts this order.
+1. Top to bottom the screen renders exactly: errors if any, name and page count with Clear all, grid, hint, card,
+   Share, next steps, rating if asked. A test asserts this order.
 2. The grid's last slot is Add pages, which opens the camera. A quiet Choose photos sits on the hint's row.
 3. The card holds Size, Full, 2 MB, 1 MB, 500 KB, the limit note and Page size. Page size opens in the card.
 4. Share is the only filled control on the screen: 60px tall, radius 16px, icon and label, disabled until the PDF
    is ready. It calls `flow.handleShare`, and a test proves it.
 5. Download, Sign and Redact sit under Share in three equal columns, the same height, content centred.
-6. Clear all is the last control in the DOM, alone on its row, and nothing shares that row.
+6. Clear all is small and right-aligned on the name row, the only thing beside the name (Shlomi on the phone,
+   2026-11-04: not below Download).
 7. A phone that cannot share shows the filled Download in Share's place, with Sign and Redact under it. A held
    back PDF (a failed photo, a failed build) shows the Download element's error there, and its tap goes to the
    failed page.

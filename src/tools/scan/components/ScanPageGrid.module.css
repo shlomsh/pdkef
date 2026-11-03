@@ -30,7 +30,7 @@
   min-height: 44px;
   aspect-ratio: 3 / 4;
   overflow: hidden;
-  background: var(--color-surface-sunken);
+  background: var(--color-bg);
   border-radius: 6px;
   cursor: pointer;
   touch-action: manipulation;

@@ -98,14 +98,14 @@ export default function ScanPageViewer({ refs, pages, selected, selectedIndex, v
       onCancel={(event) => { event.preventDefault(); backRef.current(); }}
     >
       <section ref={refs.editor} class={styles.editor} aria-label={formatMessage(t.pageOf, { position: selectedIndex + 1, total: pages.length })}>
-        <header class={styles.head}>
+        <div class={styles.head}>
           <button type="button" class={styles.back} data-back aria-label={t.backToPages} onClick={goBack}>
             <ChevronLeft size={24} aria-hidden="true" />
           </button>
           <p class={styles.title} ref={refs.heading} tabIndex={-1} data-page-heading>
             {formatMessage(t.pageOf, { position: selectedIndex + 1, total: pages.length })}
           </p>
-        </header>
+        </div>
         {view === 'corners' && <p class={styles.hint} role="status">{cornersHint(selected, finding, findMissed)}</p>}
         {view === 'result' ? (
           <div class={styles.stage}>

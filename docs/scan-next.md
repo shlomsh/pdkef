@@ -70,7 +70,7 @@ The loaded state after Done, or after Choose photos.
 - **Page size: Fit**, a quiet line inside the same card: it says what the PDF is, like the size.
 - **Share**, the one filled button (Download on desktop, where Share is the quiet one).
 - The quiet next steps under it: **Download · Sign · Redact**.
-- **Clear all**, alone at the very bottom, away from anything that moves the scan forward.
+- **Clear all**, small, at the right of the name row, away from anything that moves the scan forward.
 
 Pages move by hold and drag on the grid.
 

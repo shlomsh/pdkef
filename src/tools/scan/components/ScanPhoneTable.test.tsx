@@ -52,12 +52,12 @@ afterEach(() => {
 const before = (a: Element, b: Element) => Boolean(a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING);
 
 describe('ScanPhoneTable', () => {
-  it('renders errors, name, grid, hint, card, Share, next steps, rating, Clear all in that order', () => {
+  it('renders errors, name and Clear all, grid, hint, card, Share, next steps, rating in that order', () => {
     const { container } = mount({ failedIds: [3] });
     // The Download element stands in for Share while a page holds the PDF back, so order is checked on a healthy table below.
     const healthy = mount();
     const q = (s: string) => healthy.container.querySelector(s)!;
-    const seq = ['h2', 'ul', '[data-hint]', '[data-card]', '[data-share]', '[data-quiet-row]', '[data-rating]', '[data-clear-all]'].map(q);
+    const seq = ['h2', '[data-clear-all]', 'ul', '[data-hint]', '[data-card]', '[data-share]', '[data-quiet-row]', '[data-rating]'].map(q);
     seq.forEach((el, i) => { if (i > 0) expect(before(seq[i - 1], el)).toBe(true); });
     expect(container.querySelector('[role="alert"]')).not.toBeNull();
     expect(before(container.querySelector('[role="alert"]')!, container.querySelector('h2')!)).toBe(true);
@@ -139,12 +139,12 @@ describe('ScanPhoneTable', () => {
     expect(onShowFailedPage).toHaveBeenCalled();
   });
 
-  it('keeps Clear all as the last control, alone on its row', () => {
+  it('puts Clear all on the name row, away from everything that moves the scan forward', () => {
     const { container, onClear } = mount();
     const clear = container.querySelector('[data-clear-all]') as HTMLElement;
-    const controls = [...container.querySelectorAll('button, a, [role="button"], [role="radio"]')];
-    expect(controls[controls.length - 1]).toBe(clear);
-    expect(clear.parentElement!.children).toHaveLength(1);
+    expect(clear.parentElement).toBe(container.querySelector('h2')!.parentElement);
+    expect(clear.parentElement!.children).toHaveLength(2);
+    expect(container.querySelector('[data-quiet-row]')!.contains(clear)).toBe(false);
     act(() => clear.click());
     expect(onClear).toHaveBeenCalled();
   });
