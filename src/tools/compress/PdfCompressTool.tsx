@@ -212,7 +212,7 @@ export default withIslandBoundary(function PdfCompressTool({
       hasFiles={hasFiles}
       onFilesAdded={handleFilesAdded}
       intake={{ multiple: false, pickMany, accept: 'application/pdf,image/jpeg,image/png', needsPdfjs: !isImageMode && !batch.active }}
-      identity={batch.active ? { file: batch.state.rows[0]?.file, label: batchName, metaExtra: sizesExtra, hidden: true } : { file, label: file?.name, metaExtra: sizesExtra, note: stripNoteNode, hidden: true }}
+      identity={batch.active ? { file: batch.cover, label: batchName, metaExtra: sizesExtra, hidden: true } : { file, label: file?.name, metaExtra: sizesExtra, note: stripNoteNode, hidden: true }}
       empty={{ art: <CompressVerb subject={analyticsTool === 'compress-image' ? 'photo' : 'page'} />, message: emptyStateMessage ?? t.dropHint }}
       analytics={{ tool: analyticsTool, status: (batch.active ? batch.phase : status) === 'error' ? 'error' : flow.tap !== 'idle' ? flow.tap : batch.active ? 'idle' : retryTap }}
       shellMessages={shellMessages}

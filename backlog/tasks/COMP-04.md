@@ -1,11 +1,9 @@
 ---
 id: "COMP-04"
 title: "Compress Image takes many photos at once: one KB target, a row per photo, Download saves them all"
-status: "in_progress"
+status: "done"
 priority: "P2"
 epic: "polish"
-horizon: "now"
-order: 1
 ---
 
 # COMP-04 · Compress several photos to one size limit
@@ -72,6 +70,9 @@ find, and the list was cluttered (a status line and a Save on every row). The ou
 - **Stage, one photo:** a bar on top: "← All 12 photos" as a bordered button (36px face, 44px hit),
   the photo's name, then "‹ 3 of 12 ›" stepping through finished photos (disabled at the ends) and a
   bordered Save for that photo. Under it, the single photo's compare and Full screen, unchanged.
+  Escape goes back to the set and lands on that photo; opening a photo brings its bar into view.
+- **Unreadable photos** are counted apart in the status line ("9 of 10 photos are now 100 KB or less.
+  One couldn't be read."), and the strip shows the first photo that could be drawn.
 
 ## Done when
 
@@ -80,4 +81,5 @@ find, and the list was cluttered (a status line and a Save on every row). The ou
 - [x] One e2e (`src/tools/compress/e2e/batch-images.spec.js`): several photos picked on `/compress-image/` each land at or under the target, with a
       row each, and Download saves them all.
 - [x] English and Hebrew strings; one FAQ entry on `/compress-image/` about several photos.
-- [ ] Shlomi has tried it and confirmed before it lands.
+- [x] Shlomi has tried it and confirmed before it lands (2026-11-04: "land when done", after an
+      independent QA pass and two code reviews).

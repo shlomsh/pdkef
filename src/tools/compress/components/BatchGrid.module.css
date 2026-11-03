@@ -56,6 +56,7 @@
 
 .tile {
   min-width: 0;
+  container-type: inline-size;
 }
 
 /* The whole tile is the press: the photo and its caption. */
@@ -136,6 +137,7 @@ button.open:focus-visible .photo {
   display: flex;
   gap: 0.3em;
   min-width: 0;
+  overflow: hidden;
   white-space: nowrap;
   font-size: 0.82rem;
   font-variant-numeric: tabular-nums;
@@ -149,6 +151,20 @@ button.open:focus-visible .photo {
 
 .caption b {
   color: var(--color-text);
+}
+
+/* The original size and its arrow: on a narrow tile they step aside, so the new size shows whole. */
+.was {
+  display: flex;
+  flex: none;
+  gap: 0.3em;
+}
+
+/* "12.34 MB → 499.87 KB" needs about 160px. */
+@container (max-width: 159px) {
+  .was {
+    display: none;
+  }
 }
 
 /* The part that gives way on a narrow tile. */

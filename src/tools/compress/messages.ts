@@ -126,6 +126,11 @@ export interface CompressMessages {
   batchWorking: string;
   batchAllMet: string;
   batchSomeMissed: string;
+  batchMetOf: string;
+  batchMissedOne: string;
+  batchMissedMany: string;
+  batchFailedOne: string;
+  batchFailedMany: string;
   batchRowWaiting: string;
   batchRowWorking: string;
   batchRowMet: string;
@@ -252,6 +257,11 @@ export const englishCompressMessages: CompressMessages = {
   batchWorking: 'Compressing {done} of {total}…',
   batchAllMet: 'All {total} photos are now {target} or less.',
   batchSomeMissed: '{met} of {total} photos are now {target} or less. The rest are as small as I could make them.',
+  batchMetOf: '{met} of {total} photos are now {target} or less.',
+  batchMissedOne: 'One is as small as I could make it.',
+  batchMissedMany: '{count} are as small as I could make them.',
+  batchFailedOne: "One couldn't be read.",
+  batchFailedMany: "{count} couldn't be read.",
   batchRowWaiting: 'Waiting',
   batchRowWorking: 'Compressing…',
   batchRowMet: '{target} or less',
@@ -385,6 +395,11 @@ export const hebrewCompressMessages: CompressMessages = {
   batchWorking: 'מכווצים {done} מתוך {total}…',
   batchAllMet: 'כל {total} התמונות עכשיו {target} או פחות.',
   batchSomeMissed: '{met} מתוך {total} התמונות עכשיו {target} או פחות. השאר קטנות ככל שהצלחנו.',
+  batchMetOf: '{met} מתוך {total} התמונות עכשיו {target} או פחות.',
+  batchMissedOne: 'אחת קטנה ככל שהצלחנו.',
+  batchMissedMany: '{count} קטנות ככל שהצלחנו.',
+  batchFailedOne: 'את אחת לא הצלחנו לקרוא.',
+  batchFailedMany: 'את {count} לא הצלחנו לקרוא.',
   batchRowWaiting: 'ממתינה',
   batchRowWorking: 'מכווצים…',
   batchRowMet: '{target} או פחות',

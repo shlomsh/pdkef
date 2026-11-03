@@ -48,7 +48,6 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 
 ### Polish
 
-- [COMP-04](backlog/tasks/COMP-04.md) P2 · Compress Image takes many photos at once: one KB target, a row per photo, Download saves them all (in progress)
 - [QUAL-21](backlog/tasks/QUAL-21.md) P2 · Pages render at the size they are shown, and the practice form's logo is sharp (in progress)
 - [SIGN-44](backlog/tasks/SIGN-44.md) P2 · Sign: a comment on a highlight, kept in the PDF as a standard annotation (in progress)
 - [MERGE-25](backlog/tasks/MERGE-25.md) P3 · Open PDFs from Google Drive's Open with menu: a Drive app, which needs the first invariant rewritten (in progress)

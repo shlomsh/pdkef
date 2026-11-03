@@ -1827,6 +1827,60 @@ describe('PdfCompressTool UI flow', () => {
       expect(toTarget).toHaveBeenCalledTimes(2);
     });
 
+    it('a PDF picked with one photo is named as left out too', async () => {
+      mount();
+      await pickMany([makeImageFile('a.jpg', 900_000), makePdfFile('notes.pdf', 50_000)]);
+      expect(container.querySelector('[data-compress-batch]')).toBeNull();
+      expect(container.textContent).toContain('Left out "notes.pdf"');
+    });
+
+    it('the status line counts a photo that could not be read apart from the ones that missed', async () => {
+      mount();
+      toTarget
+        .mockImplementationOnce(() => Promise.resolve(makeImageResult()))
+        .mockImplementationOnce(() => Promise.reject(new Error('unreadable')));
+      await pickMany([makeImageFile('a.jpg', 900_000), makeImageFile('b.jpg', 800_000)]);
+      expect(container.querySelector('[data-batch-summary]').textContent).toBe("1 of 2 photos are now 100 KB or less. One couldn't be read.");
+    });
+
+    it('the strip shows the first photo that could be drawn', async () => {
+      mount();
+      const bad = makeImageFile('bad.jpg', 900_000);
+      const good = makeImageFile('good.jpg', 800_000);
+      harness.pdfjs.thumbnails.renderThumbnail.mockImplementation(async (file) => {
+        if (file === bad) throw new Error('unreadable');
+        return 'data:image/jpeg;base64,good';
+      });
+      await pickMany([bad, good]);
+      await waitUntil(() => expect(harness.createdBlobs()).toContain(good));
+      expect(harness.createdBlobs()).not.toContain(bad);
+    });
+
+    it('an unchanged photo is named by its name alone, not offered as a comparison', async () => {
+      mount();
+      const b = makeImageFile('b.jpg', 50_000);
+      toTarget
+        .mockImplementationOnce(() => Promise.resolve(makeImageResult()))
+        .mockImplementationOnce(() => Promise.resolve(makeImageResult({ blob: b })));
+      await pickMany([makeImageFile('a.jpg', 900_000), b]);
+      expect(Array.from(container.querySelectorAll('[data-batch-open]')).map((el) => el.getAttribute('aria-label'))).toEqual(['Compare a.jpg', 'b.jpg']);
+    });
+
+    it("opening a photo brings its preview's bar into view", async () => {
+      mount();
+      const scrolled = [];
+      const original = Element.prototype.scrollIntoView;
+      Element.prototype.scrollIntoView = function () { scrolled.push(this); };
+      try {
+        await pickMany([makeImageFile('a.jpg', 900_000), makeImageFile('b.jpg', 800_000)]);
+        await act(async () => { container.querySelector('[data-batch-open]').click(); });
+        await settled();
+        expect(scrolled).toContain(container.querySelector('[data-batch-preview-bar]'));
+      } finally {
+        Element.prototype.scrollIntoView = original;
+      }
+    });
+
     it('counts the Download tap, not the compression a pick starts', async () => {
       mount();
       await pickMany([makeImageFile('a.jpg', 900_000), makeImageFile('b.jpg', 800_000)]);
@@ -1874,7 +1928,8 @@ describe('PdfCompressTool UI flow', () => {
       document.querySelector('dialog[open]').querySelector('button').focus();
       await escape();
       expect(container.querySelector('[data-batch-preview-bar]')).not.toBeNull();
-      document.querySelector('dialog[open]')?.close();
+      // jsdom's dialog has no close() of its own; dropping `open` is what close() does to the markup.
+      document.querySelector('dialog[open]')?.removeAttribute('open');
       // A held key repeats: the repeat that follows Full screen's close must not leave the preview too.
       await act(async () => { document.body.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', repeat: true, bubbles: true, cancelable: true })); });
       expect(container.querySelector('[data-batch-preview-bar]')).not.toBeNull();
