@@ -1,7 +1,7 @@
 ---
 id: "QUAL-45"
 title: "Every real survivor of the 2026-11-03 mutation probe fails a unit test"
-status: "open"
+status: "in_progress"
 priority: "P1"
 epic: "robustness"
 horizon: "now"

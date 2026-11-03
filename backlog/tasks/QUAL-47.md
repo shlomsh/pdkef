@@ -1,7 +1,7 @@
 ---
 id: "QUAL-47"
 title: "Output paths that only mocks reach are tested on real bytes"
-status: "open"
+status: "in_progress"
 priority: "P2"
 epic: "robustness"
 horizon: "next"

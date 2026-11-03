@@ -1,7 +1,7 @@
 ---
 id: "QUAL-46"
 title: "The branches that keep a person's work safe have unit tests: drafts across tabs, saved signatures, share, a second finger"
-status: "open"
+status: "in_progress"
 priority: "P1"
 epic: "robustness"
 horizon: "next"
