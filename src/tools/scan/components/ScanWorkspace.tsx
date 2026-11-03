@@ -18,8 +18,9 @@ import { limitOptions, sizeOptions } from '../lib/scanOptions.ts';
 import type { PageSize } from '../lib/scanPipeline.ts';
 import type { SizeLimitId } from '../lib/scanBudget.ts';
 import { englishScanMessages as t } from '../messages.ts';
-import type { ScanPage } from '../state/scanWork.ts';
+import type { PageResult, ScanPage } from '../state/scanWork.ts';
 import styles from '../PdfScanTool.module.css';
+import ScanTable from './ScanTable.tsx';
 import ScanWorkbench, { type ScanWorkbenchProps } from './ScanWorkbench.tsx';
 import TakePhotoButton from './TakePhotoButton.tsx';
 
@@ -97,28 +98,36 @@ function ScanHeading({ pageCount, output }: { pageCount: number; output: ScanOut
   );
 }
 
+/** The Download element: the rail's primary on desktop, and on a phone that cannot share files the table's filled button. */
+function ScanDownloadElement({ pages, failedIds, output }: { pages: ScanPage[]; failedIds: number[]; output: ScanOutput }) {
+  const { prepared, flow } = output;
+  return (
+    <DownloadElement
+      state={flow.downloadState}
+      href={prepared.status === 'ready' ? prepared.url : null}
+      fileName={output.fileName}
+      detail={output.detail}
+      pageCount={pages.length}
+      progress={prepared.progress}
+      errorMessage={failedIds.length > 0
+        ? formatMessage(t.removeToMake, { pages: failedPositions(pages, failedIds) })
+        : t.buildFailed}
+      messages={t}
+      onPreparingTap={flow.onRowPreparingTap}
+      onErrorTap={failedIds.length > 0 ? output.onShowFailedPage : undefined}
+      onWarm={prepared.prepareNow}
+      onDownloadClick={flow.onDownloadTap}
+      isOutputNameBeingRenamed={output.isRenaming}
+    />
+  );
+}
+
 /** The rail's pinned region: the Download element, what follows it, and on a phone the rating ask. */
 function ScanRailPinned({ pages, failedIds, output, rating }: { pages: ScanPage[]; failedIds: number[]; output: ScanOutput; rating: ComponentChildren }) {
   const { prepared, flow } = output;
   return (
     <>
-      <DownloadElement
-        state={flow.downloadState}
-        href={prepared.status === 'ready' ? prepared.url : null}
-        fileName={output.fileName}
-        detail={output.detail}
-        pageCount={pages.length}
-        progress={prepared.progress}
-        errorMessage={failedIds.length > 0
-          ? formatMessage(t.removeToMake, { pages: failedPositions(pages, failedIds) })
-          : t.buildFailed}
-        messages={t}
-        onPreparingTap={flow.onRowPreparingTap}
-        onErrorTap={failedIds.length > 0 ? output.onShowFailedPage : undefined}
-        onWarm={prepared.prepareNow}
-        onDownloadClick={flow.onDownloadTap}
-        isOutputNameBeingRenamed={output.isRenaming}
-      />
+      <ScanDownloadElement pages={pages} failedIds={failedIds} output={output} />
       <FinishRow
         ready={prepared.status === 'ready'}
         shareReady={flow.shareReady}
@@ -152,6 +161,12 @@ function ScanErrors({ pages, failedIds, buildFailed }: { pages: ScanPage[]; fail
 }
 
 interface ScanWorkspaceProps {
+  /** The table (the loaded state), or the page view (result, corners) beside the page column. */
+  view: 'table' | 'result' | 'corners';
+  /** A tile on the table opens that page. */
+  onOpen: (id: number) => void;
+  results: Record<number, PageResult>;
+  resultKeyOf: (page: ScanPage) => string;
   bridge: { requestReplace: () => void; requestClear: () => void };
   pages: ScanPage[];
   failedIds: number[];
@@ -165,11 +180,12 @@ interface ScanWorkspaceProps {
 }
 
 /** The workspace around the photo and the pages: the phone bar, the heading, the rail and the errors. */
-export default function ScanWorkspace({ bridge, pages, failedIds, addFiles, output, options, rating, wide, workbench }: ScanWorkspaceProps) {
+export default function ScanWorkspace({ view, onOpen, results, resultKeyOf, bridge, pages, failedIds, addFiles, output, options, rating, wide, workbench }: ScanWorkspaceProps) {
   return (
     <PageWorkspace
       rootAttrs={{ 'data-scan-ready': output.prepared.status === 'ready' || undefined }}
-      phoneBar={<ScanPhoneBar addFiles={addFiles} requestReplace={bridge.requestReplace} output={output} />}
+      // The table has no bar: Add pages is a tile, Download and the hand-offs are its quiet row.
+      phoneBar={view === 'table' ? undefined : <ScanPhoneBar addFiles={addFiles} requestReplace={bridge.requestReplace} output={output} />}
       heading={<ScanHeading pageCount={pages.length} output={output} />}
       railContent={(
         <>
@@ -185,10 +201,33 @@ export default function ScanWorkspace({ bridge, pages, failedIds, addFiles, outp
       railPinned={<ScanRailPinned pages={pages} failedIds={failedIds} output={output} rating={!wide && rating} />}
     >
       <ScanErrors pages={pages} failedIds={failedIds} buildFailed={output.prepared.status === 'error'} />
-      <ScanWorkbench {...workbench} actions={{ ...workbench.actions, onPickMore: bridge.requestReplace }} />
-
-      {/* On a phone the corners come first; the choices follow the pages they apply to. */}
-      <div class={styles['phone-options']}><ScanOptions suffix="-phone" options={options} /></div>
+      {view === 'table' ? (
+        <ScanTable
+          pages={pages}
+          results={results}
+          resultKeyOf={resultKeyOf}
+          failedIds={failedIds}
+          onOpen={onOpen}
+          onFiles={addFiles}
+          onPickMore={bridge.requestReplace}
+          onClear={bridge.requestClear}
+          flow={output.flow}
+          prepared={output.prepared}
+          fileName={output.fileName}
+          pageSize={options.pageSize}
+          onPageSize={options.onPageSize}
+          limit={options.limit}
+          onLimit={options.onLimit}
+          limitNote={options.limitNote}
+          fallbackDownload={<ScanDownloadElement pages={pages} failedIds={failedIds} output={output} />}
+        />
+      ) : (
+        <>
+          <ScanWorkbench {...workbench} actions={{ ...workbench.actions, onPickMore: bridge.requestReplace }} />
+          {/* On a phone the corners come first; the choices follow the pages they apply to. */}
+          <div class={styles['phone-options']}><ScanOptions suffix="-phone" options={options} /></div>
+        </>
+      )}
       {/* Desktop: under the page, inside the first screen (useFloorHeight leaves it the room). */}
       {wide && <div class={styles['rating-slot']}>{rating}</div>}
     </PageWorkspace>
