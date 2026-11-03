@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { Quad } from '../quad.ts';
-import { INITIAL_CAPTURE_STATE, stepCapture } from './captureMachine.ts';
+import { INITIAL_CAPTURE_STATE, markTaken, stepCapture } from './captureMachine.ts';
 import type { CaptureState, FrameObservation } from './types.ts';
 
 const FRAME = 33;
@@ -99,5 +99,25 @@ describe('stepCapture', () => {
   });
   it('locks on a good page before holding', () => {
     expect(stepCapture(INITIAL_CAPTURE_STATE, page(0)).state.phase).toBe('locked');
+  });
+});
+
+describe('markTaken', () => {
+  it('waits for a change after a shot by hand, and keeps smoothed', () => {
+    const held = run(seq(0, 300, (t) => page(t))).state;
+    const state = markTaken(held, HASH_A);
+    expect(state.phase).toBe('waitingForChange');
+    expect(state.lastCaptureHash).toBe(HASH_A);
+    expect(state.holdSince).toBeNull();
+    expect(state.lostSince).toBeNull();
+    expect(state.smoothed).toEqual(held.smoothed);
+  });
+  it('does not fire again on the same page', () => {
+    const state = markTaken(INITIAL_CAPTURE_STATE, HASH_A);
+    expect(run(seq(0, 3000, (t) => page(t)), state).fired).toEqual([]);
+  });
+  it('re-arms on a different page', () => {
+    const state = markTaken(INITIAL_CAPTURE_STATE, HASH_A);
+    expect(run(seq(0, 1500, (t) => page(t, { hash: HASH_B })), state).fired).toHaveLength(1);
   });
 });
