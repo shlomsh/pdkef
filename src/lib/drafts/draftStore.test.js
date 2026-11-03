@@ -9,7 +9,7 @@ import 'fake-indexeddb/auto';
 import { IDBFactory } from 'fake-indexeddb';
 import * as errorReport from '../telemetry/errorReport.ts';
 import {
-  MAX_AGE_MS, MAX_RECENT_FILES, MERGE_DRAFT_MAX_BYTES,
+  HANDOFF_MAX_AGE_MS, MAX_AGE_MS, MAX_RECENT_FILES, MERGE_DRAFT_MAX_BYTES,
   attachDraftPreview, cacheRecentFile, deleteDraft, hasDraftHint, isStoragePersisted, loadDraft, loadRecentFile,
   readCurrentEntryId, readDraftMeta, readRecentFiles, saveDraft, setCurrentEntry, clearCurrentEntry,
   sourceIdForBytes, sourceIdForFiles, subscribeToDraftChanges, saveHandoff, takeHandoff,
@@ -888,6 +888,69 @@ describe('isStoragePersisted', () => {
   });
 });
 
+describe('draft-change signal and concurrent saves (IndexedDB, fake-indexeddb)', () => {
+  const SIGNAL_KEY = 'pdf-toolkit:workspace:draft-change:sign';
+  const signalFrom = (writerId, revision = 9) => new StorageEvent('storage', {
+    key: SIGNAL_KEY,
+    newValue: JSON.stringify({ kind: 'saved', revision, updatedAt: 1, writerId }),
+  });
+
+  beforeEach(() => {
+    localStorage.clear();
+    sessionStorage.clear();
+    vi.stubGlobal('crypto', webcrypto);
+    indexedDB = new IDBFactory();
+  });
+
+  it('a save leaves a signal stamped with this tab, which this tab ignores while another tab\'s is heard', async () => {
+    expect(await saveDraft('sign', { fileBytes: bytesOf('%PDF-1.4 signal'), elements: [] })).toBe(true);
+    const signal = JSON.parse(localStorage.getItem(SIGNAL_KEY));
+    expect(signal).toMatchObject({ kind: 'saved', revision: 1 });
+    expect(typeof signal.writerId).toBe('string');
+
+    const heard = [];
+    const stop = subscribeToDraftChanges('sign', (change) => heard.push(change));
+    // The storage event never reaches the tab that wrote, but a signal carrying our own id must not warn either.
+    window.dispatchEvent(signalFrom(signal.writerId));
+    expect(heard).toEqual([]);
+    window.dispatchEvent(signalFrom('another-tab', 2));
+    stop();
+
+    expect(heard).toEqual([{ revision: 2, kind: 'saved', conflictPolicy: 'last-writer-wins' }]);
+  });
+
+  it('two saves of the same document at once land as revisions 1 and 2, not both as 1', async () => {
+    const fileBytes = bytesOf('%PDF-1.4 concurrent same tool');
+    const results = await Promise.all([
+      saveDraft('sign', { fileName: 'a.pdf', fileBytes, elements: [{ id: 'first' }] }),
+      saveDraft('sign', { fileName: 'a.pdf', fileBytes, elements: [{ id: 'second' }] }),
+    ]);
+    expect(results).toEqual([true, true]);
+
+    const loaded = await loadDraft('sign');
+    expect(loaded.revision).toBe(2);
+    // The later transaction wins whole; the two saves are never blended.
+    expect(['first', 'second']).toContain(loaded.elements[0].id);
+    expect(loaded.elements).toHaveLength(1);
+  });
+
+  it('two tools saving the same document at once each keep their own work', async () => {
+    const fileBytes = bytesOf('%PDF-1.4 concurrent two tools');
+    await Promise.all([
+      saveDraft('sign', { fileName: 'a.pdf', fileBytes, elements: [{ id: 'sig' }] }),
+      saveDraft('redact', { fileName: 'a.pdf', fileBytes, elements: [{ id: 'redaction' }] }),
+    ]);
+
+    // Each save carries forward the other tool's work it read in its own transaction.
+    setCurrentEntry('sign', await sourceIdForBytes(fileBytes));
+    setCurrentEntry('redact', await sourceIdForBytes(fileBytes));
+    expect((await loadDraft('sign')).elements).toEqual([{ id: 'sig' }]);
+    expect((await loadDraft('redact')).elements).toEqual([{ id: 'redaction' }]);
+    expect((await loadDraft('sign')).revision).toBe(1);
+    expect((await loadDraft('redact')).revision).toBe(1);
+  });
+});
+
 describe('saveHandoff / takeHandoff (single and multi-file records)', () => {
   beforeEach(() => {
     localStorage.clear();
@@ -933,6 +996,33 @@ describe('saveHandoff / takeHandoff (single and multi-file records)', () => {
     const taken = await takeHandoff('compress', (record) => record.fileType === 'application/pdf');
     expect(taken.fileName).toBe('doc.pdf');
     expect(await takeHandoff('compress')).toBeNull();
+  });
+
+  it('does not return a handoff older than the age limit, and removes it', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    try {
+      vi.setSystemTime(1_000_000);
+      await saveHandoff('sign', { fileName: 'old.pdf', fileBytes: bytesOf('old') });
+      vi.setSystemTime(1_000_000 + HANDOFF_MAX_AGE_MS + 1);
+      expect(await takeHandoff('sign')).toBeNull();
+      // Consumed even though refused: it must not ambush a later visit.
+      vi.setSystemTime(1_000_000);
+      expect(await takeHandoff('sign')).toBeNull();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('still returns a handoff exactly at the age limit', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    try {
+      vi.setSystemTime(1_000_000);
+      await saveHandoff('sign', { fileName: 'fresh.pdf', fileBytes: bytesOf('fresh') });
+      vi.setSystemTime(1_000_000 + HANDOFF_MAX_AGE_MS);
+      expect((await takeHandoff('sign')).fileName).toBe('fresh.pdf');
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('returns null for a multi record with no files', async () => {

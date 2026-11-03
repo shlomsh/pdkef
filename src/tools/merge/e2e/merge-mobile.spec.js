@@ -459,7 +459,14 @@ test.describe('Merge on a phone (MERGE-06)', () => {
     await expect(strip).toBeVisible();
     await expect(strip.getByRole('button', { name: /^Compress/ })).toBeVisible();
     await expect(strip.getByRole('button', { name: /^Sign/ })).toBeVisible();
-    await expect(strip.getByRole('group')).toBeVisible();
+    // SEO-55: the rating ask is a modal dialog now. It is mounted inside the strip but paints in the top layer.
+    const rating = page.getByRole('dialog', { name: 'How did it go?' });
+    await expect(rating).toBeVisible({ timeout: 5000 });
+    await expect(rating).toHaveCount(1);
+
+    // Not now leaves the dialog without rating; the page underneath is usable again.
+    await rating.getByRole('button', { name: 'Not now' }).click();
+    await expect(rating).toHaveCount(0);
 
     const barBox = await page.locator('[class*="chip-bar"]').boundingBox();
     const stripBox = await strip.boundingBox();

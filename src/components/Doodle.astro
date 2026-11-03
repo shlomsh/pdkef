@@ -16,7 +16,7 @@
  * carries the meaning.
  */
 interface Props {
-  figure: 'cloud-to-device' | 'page-to-phone' | 'page-walking-off' | 'slides-to-pdf' | 'stays-on-device';
+  figure: 'cloud-to-device' | 'page-to-phone' | 'page-walking-off' | 'slides-to-pdf' | 'stays-on-device' | 'say-hello' | 'thank-you-cards';
   class?: string;
 }
 const { figure, class: className } = Astro.props;
@@ -165,6 +165,66 @@ const { figure, class: className } = Astro.props;
       <path d="M190 24v10M185 29h10" />
       <path d="M340 30v8M336 34h8" />
       <path d="M160 128v8M156 132h8" />
+    </g>
+  </svg>
+)}
+
+{figure === 'say-hello' && (
+  <svg class:list={['journey', className]} viewBox="0 0 360 150" fill="none" aria-hidden="true">
+    <g class="doodle">
+      <path d="M24 26h70a8 8 0 0 1 8 8v30a8 8 0 0 1-8 8H60l-14 14V72H24a8 8 0 0 1-8-8V34a8 8 0 0 1 8-8z" fill="var(--color-surface)" />
+      <path d="M28 40h46M28 52h30" />
+    </g>
+    <path class="trail" d="M112 44c32-20 66-18 92 6" />
+    <path class="doodle" d="M202 38l4 12-12 3" />
+    <g class="doodle">
+      <rect x="216" y="38" width="100" height="68" rx="7" fill="var(--color-citron)" />
+      <path d="M216 45l50 38 50-38" />
+      <path d="M266 108c-11-7-9-17-1.5-17 3 0 1.5 2.5 1.5 2.5s-1.5-2.5 1.5-2.5c7.5 0 9.5 10-1.5 17z" fill="var(--color-clay)" transform="translate(0 -8)" />
+    </g>
+    <g class="doodle" transform="rotate(-20 150 128)">
+      <rect x="118" y="122" width="62" height="12" rx="3" fill="var(--color-surface)" />
+      <path d="M118 122l-14 6 14 6z" fill="var(--color-paper)" />
+      <path d="M110 125.5l-6 2.5 6 2.5" fill="var(--color-clay)" />
+      <path d="M180 122v12" />
+    </g>
+    <g class="spark">
+      <path d="M160 18v10M155 23h10" />
+      <path d="M338 56v8M334 60h8" />
+      <path d="M230 126v8M226 130h8" />
+    </g>
+  </svg>
+)}
+
+{figure === 'thank-you-cards' && (
+  <svg class:list={['journey', className]} viewBox="0 0 360 150" fill="none" aria-hidden="true">
+    <g class="doodle">
+      <g transform="rotate(-16 80 122)">
+        <rect x="56" y="46" width="48" height="76" rx="6" fill="var(--color-surface)" />
+        <path d="M66 62h28M66 72h18" />
+      </g>
+      <g transform="rotate(-8 130 122)">
+        <rect x="106" y="46" width="48" height="76" rx="6" fill="var(--color-primary-tint)" />
+        <path d="M116 62h28M116 72h18" />
+      </g>
+      <g transform="rotate(0 180 122)">
+        <rect x="156" y="46" width="48" height="76" rx="6" fill="var(--color-citron)" />
+        <path d="M166 62h28M166 72h18" />
+      </g>
+      <g transform="rotate(8 230 122)">
+        <rect x="206" y="46" width="48" height="76" rx="6" fill="var(--color-paper)" />
+        <path d="M216 62h28M216 72h18" />
+      </g>
+      <g transform="rotate(16 280 122)">
+        <rect x="256" y="46" width="48" height="76" rx="6" fill="var(--color-surface)" />
+        <path d="M266 62h28M266 72h18" />
+      </g>
+    </g>
+    <path class="doodle" d="M180 36c-18-10-14-28-3-28 4 0 3 5 3 5s-1-5 3-5c11 0 15 18-3 28z" fill="var(--color-clay)" />
+    <g class="spark">
+      <path d="M118 22v10M113 27h10" />
+      <path d="M244 22v8M240 26h8" />
+      <path d="M336 70v8M332 74h8" />
     </g>
   </svg>
 )}

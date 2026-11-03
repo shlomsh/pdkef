@@ -1,6 +1,7 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
 import Footer from '../components/Footer.astro';
+import Doodle from '../components/Doodle.astro';
 import { FONT_MANIFEST } from '#lib/fonts/fontManifest.ts';
 import { licenseFor } from '#lib/fonts/fontLicenses.ts';
 import { RUNTIME_LICENSE_PACKAGES } from '../data/runtimeLicenseInventory.js';
@@ -28,6 +29,7 @@ const packages = [...softwarePackages, ...fontPackages];
 
 <BaseLayout title={title} description={description} noindex={true}>
   <header>
+    <Doodle figure="thank-you-cards" />
     <h1 class="type-hero space-heading-content mt-0 text-[var(--color-text)]">Open Source Licenses</h1>
     <p class="type-lead m-0 text-[var(--color-muted)]">The open source software that powers PDkef, and their license terms.</p>
   </header>

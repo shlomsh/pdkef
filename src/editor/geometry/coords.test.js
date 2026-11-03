@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { PDFDocument } from '@cantoo/pdf-lib';
 import {
   applyAffineTransform,
   clientDeltaToPagePercent,
@@ -14,6 +15,7 @@ import {
   pointsToPx,
   pxToPoints,
   scaleFactorFromPx,
+  visiblePageBox,
   widthPercentToHeightPercent
 } from './coords.js';
 
@@ -129,5 +131,31 @@ describe('coords.js', () => {
       expect(clientPointToPagePercent({ x: 190, y: 380 }, rect, geometry)).toEqual({ x: 25, y: 75 });
       expect(clientDeltaToPagePercent({ x: -120, y: 40 }, rect, geometry)).toEqual({ x: -20, y: 10 });
     });
+  });
+});
+
+describe('visiblePageBox', () => {
+  // A real one-page file, read back by pdf.js, whose `view` is the box viewers actually show.
+  async function boxes(cropBox) {
+    const doc = await PDFDocument.create();
+    const page = doc.addPage([200, 100]);
+    page.setCropBox(...cropBox);
+    const { getDocument } = await import('pdfjs-dist/legacy/build/pdf.mjs');
+    const pdf = await getDocument({ data: new Uint8Array(await doc.save()), useWorkerFetch: false, isEvalSupported: false }).promise;
+    const viewed = (await pdf.getPage(1)).view;
+    return { ours: visiblePageBox(page.getMediaBox(), page.getCropBox()), viewed };
+  }
+  const asView = ({ x, y, width, height }) => [x, y, x + width, y + height];
+
+  it('clips a CropBox that reaches past the MediaBox to their intersection, as pdf.js shows it', async () => {
+    const { ours, viewed } = await boxes([150, -20, 100, 80]);
+    expect(ours).toEqual({ x: 150, y: 0, width: 50, height: 60 });
+    expect(asView(ours)).toEqual(viewed);
+  });
+
+  it('falls back to the MediaBox when the CropBox misses it entirely, as pdf.js shows it', async () => {
+    const { ours, viewed } = await boxes([300, 200, 50, 50]);
+    expect(ours).toEqual({ x: 0, y: 0, width: 200, height: 100 });
+    expect(asView(ours)).toEqual(viewed);
   });
 });

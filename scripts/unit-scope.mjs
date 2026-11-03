@@ -224,6 +224,17 @@ export const WIDEN_RULES = [
     tests: ['scripts/generate-practice-form.test.mjs'],
   },
   {
+    id: 'guard-clis-run-by-path',
+    reason: 'QUAL-48: these guards are run as a child process on a planted tree, so no import edge reaches their tests',
+    match: (f) => ['scripts/verify-csp.js', 'scripts/check-trailing-slash-redirects.js', 'scripts/generate-precache-manifest.mjs', 'scripts/check-page-weight.js', 'scripts/pageCss.mjs', 'scripts/precacheClosure.mjs'].includes(f),
+    tests: [
+      'scripts/verify-csp.test.mjs',
+      'scripts/check-trailing-slash-redirects.test.mjs',
+      'scripts/generate-precache-manifest.test.mjs',
+      'scripts/check-page-weight.test.mjs',
+    ],
+  },
+  {
     id: 'middleware-text-read',
     reason: 'acceptNegotiation.test.js reads middleware.ts as text',
     match: (f) => f === 'middleware.ts',
