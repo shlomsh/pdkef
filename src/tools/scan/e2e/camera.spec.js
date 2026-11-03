@@ -20,7 +20,7 @@ test.use({
   },
 });
 
-test('the camera takes a page by itself, once, and Done lands on the table', async ({ page }) => {
+test('the camera takes a page by itself and Done lands on the table', async ({ page }) => {
   await page.goto('/scan-to-pdf/');
   await waitForIsland(page);
 
