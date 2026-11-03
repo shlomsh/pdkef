@@ -13,6 +13,9 @@ export const lanes = [
   // Opened 2026-11-01 (docs/highlight-pdf.md): highlights and comments in Sign served students reading
   // papers, not form filling, so reading becomes its own tool on the shared editor core.
   { key: 'highlight-pdf', label: 'Highlight PDF: a tool for reading', why: 'Marking should feel like holding a highlighter, not like operating software. Sketch, move the shared pieces out of Sign, then launch with Sign handing highlighting over.' },
+  // Opened 2026-11-03 (docs/scan-next.md): scanning a page with the camera and sharing it to WhatsApp is
+  // the workflow that matters most, so Scan becomes a live camera, one table and Share.
+  { key: 'scan-next', label: 'Scan: camera to WhatsApp', why: 'The camera takes pages, the table fixes them, Share sends them. The table first on today\'s camera input, then a real detection corpus, then the live camera.' },
   // Opened 2026-10-14 from the tool-page review (docs/tool-hero-show-the-verb.md): Shlomi found the
   // shared template good but not crisp, picked "Show the verb" from three sketched directions and
   // added the full-height desktop hero.

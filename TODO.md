@@ -16,6 +16,12 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 - [READ-15](backlog/tasks/READ-15.md) P2 · Highlight PDF: notes on a phone and in the lamp get a model of their own (in progress)
 - [READ-20](backlog/tasks/READ-20.md) P2 · One page layout shared by highlighting and field detection (in progress)
 
+### Scan: camera to WhatsApp
+
+- [SCAN-06](backlog/tasks/SCAN-06.md) P1 · Scan next: the table and the one-page view, with size and compression right before Share
+- [SCAN-04](backlog/tasks/SCAN-04.md) P1 · Scan next: the phone measurements that decide the camera build
+- [SCAN-05](backlog/tasks/SCAN-05.md) P1 · Scan next: a real page-detection corpus with scored KPIs
+
 ### Robustness and debt
 
 - [DEBT-65](backlog/tasks/DEBT-65.md) P2 · Two layout-shift specs failed once each in the 2026-10-27 nightly (in progress)
@@ -77,6 +83,8 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 
 ## Needs Shlomi
 
+- [SCAN-04](backlog/tasks/SCAN-04.md) · Your iPhone, and an Android phone if one is at hand
+- [SCAN-05](backlog/tasks/SCAN-05.md) · Photos and short videos of real pages taken on your phone, ours to check in
 - [READ-16](backlog/tasks/READ-16.md) · Pick the stepper's place: the toolbar capsule, the top of the rail, or the page header
 - [MOBI-01](backlog/tasks/MOBI-01.md) · Half an hour with an Android phone
 - [DEBT-53](backlog/tasks/DEBT-53.md) · A check on your iPhone
