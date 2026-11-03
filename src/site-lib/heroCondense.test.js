@@ -4,6 +4,8 @@ import { describe, expect, it } from 'vitest';
 const layout = readFileSync('src/components/tool-page/ToolStage.astro', 'utf8');
 const hero = readFileSync('src/components/ToolHero.astro', 'utf8');
 
+// Kept as source pins (907d57cd, 0fbc2836): which tools fold their hero is decided by .astro markup and CSS selectors that no vitest environment renders;
+// the Playwright specs measure the fold for Compress only.
 describe('loaded tool hero is one line for every tool', () => {
   it('ToolPageLayout passes condenseOnLoad for every tool, not a slug list', () => {
     const tag = layout.match(/<ToolHero [^>]*\/>/)?.[0] ?? '';
