@@ -121,12 +121,13 @@ describe('checking-draft placeholder (avoids the empty-dropzone flicker)', () =>
   it('gives up waiting after the restore timeout and reveals the empty state, but still applies a late-arriving draft', async () => {
     // Only the clock is faked: setImmediate stays real so lazy imports can settle between steps.
     vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'setInterval', 'clearInterval', 'Date'] });
+    const realTick = (globalThis as unknown as { setImmediate(run: () => void): void }).setImmediate;
     // Steps the fake clock until the condition holds, bounded so a regression fails instead of hanging.
     const stepUntil = async (cond: () => boolean) => {
       for (let i = 0; i < 200 && !cond(); i++) {
         await act(async () => {
           await vi.advanceTimersByTimeAsync(100);
-          await new Promise((resolve) => setImmediate(resolve));
+          await new Promise<void>((resolve) => { realTick(resolve); });
         });
       }
     };

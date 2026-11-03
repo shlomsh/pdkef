@@ -1,11 +1,9 @@
 ---
 id: "QUAL-51"
 title: "The 23 faults the fresh mutation probe found unguarded each get a test that fails on them"
-status: "in_progress"
+status: "done"
 priority: "P2"
 epic: "robustness"
-horizon: "now"
-order: 1
 depends_on: []
 ---
 
@@ -104,3 +102,34 @@ Caught only by distant tests, so pinned in a sibling test as well:
 - The placeholder test passes alone and in a full run, with no fixed wait.
 - The two WebKit specs have a known cause and are fixed at it, not retried.
 - The layout corpus test holds in a full local run.
+
+## Result
+
+*Closed 2026-11-04.* 22 of the 23 survivors and both distant catches now have a test that fails on that mutant by
+name and passes on the real code. The lead replayed 7 of them directly, one or more from each area. No test found
+a bug in today's code.
+
+Item 11 is equivalent, so it has no test. `src/editor/workspace/loadPdf.ts` checks `isCurrent()` and calls
+`onDocument` with no `await` between, and `useEditorFileSession` passes the call straight through, so the island's
+own `isCurrent()` cannot be false when it runs. The guard is harmless and stays.
+
+Items 10 and 11 needed a PDF open in the Highlight island, which no test did. `ISLAND_REDACT` in `vitest.config.js`
+now also takes `src/tools/highlight/Pdf*Tool*.test.tsx`, so Highlight runs over the same `pdfjs-dist` edge, and
+`PdfHighlightTool.open.test.tsx` opens a real generated PDF.
+
+Test health:
+
+- `draftCheckingPlaceholder.test.tsx` waits for conditions, on a bounded fake-clock loop where the clock is faked,
+  and passes alone. A late draft dropped after the timeout fails it on the assertion.
+- The WebKit flakes had one cause, in the specs. `openTool` returns while the lamp cord is still dropping in (250 ms
+  delay, 900 ms run). `.tap()` on the moving button made WebKit scroll to 298, `useCordTuck` tucked the cord, and the
+  press only popped it back, so `onPull` never ran. Reproduced on `panel-gutters-webkit.spec.js` at 2 of 20. For
+  `note-writer.spec.js` the same cause is inferred: it did not fail locally. Why WebKit scrolls there is not explained.
+  All four specs that pull the cord now go through `pullCord` in `src/tools/highlight/e2e/lamp.js`, which waits for
+  `data-intro` to clear. After the fix: 120 of 120 on WebKit with `--repeat-each=15`, 15 of 15 on Chromium.
+- The layout corpus test's time is real work: two fresh degrade-and-read passes that differ from the shared results.
+  That one test has an explicit 30 s timeout. The cause of its timeout under load was not reproduced.
+
+Seen on the way: `formCells.test.js` "stays cheap on a dense hatch" asserts a 500 ms wall-clock budget and failed at
+836 ms and 4372 ms with the machine at a load average over 100. It passes otherwise; its comment says the bound is
+loose on purpose.
