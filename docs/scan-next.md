@@ -51,6 +51,8 @@ the table. On desktop, Choose photos (and the drop) stay the way in.
   Nothing else.
 - **Keep or retake:** tapping the stack shows the last page as it will download, with **Retake** and
   **Keep**, and a quiet "Fix the corners" link.
+- **The photo** is `ImageCapture.takePhoto` from the running camera, at the native photo's quality without
+  leaving the page (SCAN-04: a frame grabbed from the video reads clearly worse).
 - **Without the camera:** if permission is refused or the browser has no camera access, today's native
   "Take a photo" input is the fallback, feeding the same table.
 
