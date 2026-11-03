@@ -5,6 +5,21 @@ export interface ScanMessages extends DownloadMessages {
   dir: 'ltr' | 'rtl';
   dropHere: string;
   takePhoto: string;
+  /** SCAN-08, the camera in the page. */
+  startScanning: string;
+  choosePhotos: string;
+  cameraStarting: string;
+  cameraOff: string;
+  hintPoint: string;
+  hintHold: string;
+  hintTurn: string;
+  shutter: string;
+  autoLabel: string;
+  cameraDone: string;
+  closeCamera: string;
+  stackLabel: string;
+  keepPage: string;
+  fixCorners: string;
   addPhotos: string;
   skippedOne: string;
   skippedMany: string;
@@ -102,6 +117,20 @@ export const englishScanMessages: ScanMessages = {
   dir: 'ltr',
   dropHere: 'Drop photos of your pages here',
   takePhoto: 'Take a photo',
+  startScanning: 'Start scanning',
+  choosePhotos: 'Choose photos',
+  cameraStarting: 'Opening the camera…',
+  cameraOff: "The camera didn't open here, so each page goes in as a photo instead.",
+  hintPoint: 'Point at a page',
+  hintHold: 'Hold still',
+  hintTurn: 'Page {count}. Turn the page.',
+  shutter: 'Take this page',
+  autoLabel: 'Auto',
+  cameraDone: 'Done',
+  closeCamera: 'Close the camera',
+  stackLabel: 'The last page taken, {count} so far',
+  keepPage: 'Keep',
+  fixCorners: 'Fix the corners',
   addPhotos: 'Add photos',
   skippedOne: '{name} was skipped: only JPG and PNG photos can be scanned.',
   skippedMany: '{count} files were skipped: only JPG and PNG photos can be scanned.',

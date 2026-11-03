@@ -1,7 +1,7 @@
 ---
 id: "SCAN-08"
 title: "Scan next: the camera in the page, pages taken by themselves, Share straight after"
-status: "open"
+status: "in_progress"
 priority: "P1"
 epic: "scan-next"
 horizon: "next"

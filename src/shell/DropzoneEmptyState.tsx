@@ -29,6 +29,10 @@ interface DropzoneEmptyStateProps {
   body?: string;
   /** An extra action directly under the pick button (Scan's "Take a photo"). */
   action?: ComponentChild;
+  /** On coarse pointers the action leads, large, and the pick button follows it, quiet (Scan's Start scanning). */
+  actionLeads?: boolean;
+  /** The pick button's words, when a tool's files are not "files" (Scan's "Choose photos"). */
+  pickLabel?: string;
 }
 
 /** Empty-state file picker shared by the PDF tool pages. */
