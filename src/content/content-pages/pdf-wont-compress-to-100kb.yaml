@@ -124,7 +124,7 @@ sections:
           candidate portal, photograph and signature guidelines</a>). A photograph is one image
           rather than a page count, so a cap that small is usually reachable, unlike a multi-page
           scan. <a href="/compress-image/">Compress Image</a> runs a target-size search on a JPG or
-          PNG, with presets down to 20KB, and it shows the closest size it found if your file
+          PNG, with presets down to 50KB and any smaller size you type, and it shows the closest size it found if your file
           still will not fit.
       - kind: 'prose'
         text: >-
