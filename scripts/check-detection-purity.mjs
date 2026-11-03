@@ -140,6 +140,8 @@ export const DETECTION_MODULES = [
   'src/tools/scan/lib/capture/hash.ts',
   'src/tools/scan/lib/capture/sharpness.ts',
   'src/tools/scan/lib/capture/captureMachine.ts',
+  'src/tools/scan/lib/capture/observe.ts',
+  'src/tools/scan/camera/viewfinderModel.ts',
 ];
 
 // ARCH-24's one entry point (`detectFormFields(document, { textRuns, sources? })`).
