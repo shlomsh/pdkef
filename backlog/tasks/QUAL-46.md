@@ -1,11 +1,9 @@
 ---
 id: "QUAL-46"
 title: "The branches that keep a person's work safe have unit tests: drafts across tabs, saved signatures, share, a second finger"
-status: "in_progress"
+status: "done"
 priority: "P1"
 epic: "robustness"
-horizon: "next"
-order: 1
 depends_on: []
 ---
 
@@ -38,6 +36,13 @@ Each of these protects a person's work or a gesture's single commit, and no unit
 
 ## Acceptance
 
-- [ ] Each branch's mutant is shown surviving today, then failing with the new test.
-- [ ] The concurrent-save test uses the real `fake-indexeddb` store, not a mock.
-- [ ] `npm run check:fast` and `npm run check:push` pass.
+- [x] Each branch's mutant is shown surviving today, then failing with the new test.
+- [x] The concurrent-save test uses the real `fake-indexeddb` store, not a mock.
+- [x] `npm run check:fast` and `npm run check:push` pass.
+
+## Result (2026-11-03)
+
+- `controller.ts`: second finger, `blur` and hidden `visibilitychange` each cancel without a commit, with a negative case each. The multi-touch mutant was caught before only by consumer hook tests; blur and visibility survived everything.
+- `usePdfShare.js`: "opens the native sheet once when Share is tapped twice before the first settles" (and the guard lifts after), AbortError maps to `canceled`, any other rejection to `error`.
+- `draftStore.ts`: a save's own `draft-change` signal is ignored by its tab and heard by another (the dropped filter survived; the inverted one was already caught). Two concurrent `saveDraft` calls on real `fake-indexeddb` land as revisions 1 and 2, and two tools saving at once keep their own work; today's code has no lost update. `takeHandoff` drops a handoff 1 ms past `HANDOFF_MAX_AGE_MS` and keeps one exactly at it.
+- `useSavedSignatures.ts`: new test file, six tests on the real preference store: save and delete persist, the active slot moves on delete, deleting the last disarms the tool, another tab's change keeps or moves the active signature through `activeAfterSync`.
