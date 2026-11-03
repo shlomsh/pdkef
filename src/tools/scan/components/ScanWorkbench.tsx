@@ -28,7 +28,7 @@ export interface ScanWorkbenchProps {
   pages: ScanPage[];
   selected: ScanPage;
   selectedIndex: number;
-  view: 'corners' | 'result';
+  view: 'table' | 'corners' | 'result';
   results: Record<number, PageResult>;
   turnedPreviews: Record<string, string>;
   failedIds: number[];

@@ -13,7 +13,7 @@ interface FullScreenInput {
   work: ScanWork;
   dispatch: ScanDispatch;
   full: 'native' | 'layer' | null;
-  view: 'corners' | 'result';
+  view: 'table' | 'corners' | 'result';
   /** The page whose flatten starts once approved full screen is back on the card (state.landing). */
   landing: { quad: Quad; turns: number } | null;
 }
