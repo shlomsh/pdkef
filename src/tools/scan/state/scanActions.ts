@@ -8,13 +8,37 @@ import type { ScanDispatch, SetPages } from '../hooks/scanHost.ts';
 import { loadPipeline } from '../lib/loadPipeline.ts';
 import type { ScanFilter } from '../lib/filters.ts';
 import type { Quad } from '../lib/quad.ts';
-import { afterRemoval, nextUnreviewed, patchPage, tileDelta, turnPage } from '../lib/scanPages.ts';
+import { afterRemoval, patchPage, tileDelta, turnPage } from '../lib/scanPages.ts';
 import { englishScanMessages as t } from '../messages.ts';
 import type { PageResult, ScanPage, ScanWork } from './scanWork.ts';
 
+interface DropHost {
+  work: ScanWork;
+  setResults: (results: Record<number, PageResult>) => void;
+  forgetTurned: (match: (key: string) => boolean) => void;
+}
+
+/** Let go of everything a page owns: its preview, turned previews, bytes, cached runs and result.
+ * A removed page and a retaken one (replaced by a new photo) both end this way. */
+export function dropPageWork({ work, setResults, forgetTurned }: DropHost, page: ScanPage) {
+  const id = page.id;
+  if (page.preview) URL.revokeObjectURL(page.preview);
+  forgetTurned((k) => k.startsWith(`${id}|`));
+  work.previewBlobs.delete(id);
+  work.removed.add(id);
+  work.dropCached(id);
+  if (work.results[id]) {
+    URL.revokeObjectURL(work.results[id].url);
+    URL.revokeObjectURL(work.results[id].thumbUrl);
+    const { [id]: _gone, ...rest } = work.results;
+    work.results = rest;
+    setResults(rest);
+  }
+}
+
 interface PageActionsInput {
   pages: ScanPage[];
-  view: 'corners' | 'result';
+  view: 'table' | 'corners' | 'result';
   setPages: SetPages;
   setResults: (results: Record<number, PageResult>) => void;
   setCustomName: (name: string | null) => void;
@@ -29,7 +53,7 @@ interface PageActionsInput {
 
 /** The actions that find a page again, take a page away, or start over. */
 export function createPageActions(input: PageActionsInput) {
-  const { pages, view, setPages, setResults, setCustomName, setRejectedFiles, forgetTurned, work, unmountedRef, dispatch, announce, focusIdRef } = input;
+  const { pages, setPages, setResults, setCustomName, setRejectedFiles, forgetTurned, work, unmountedRef, dispatch, announce, focusIdRef } = input;
 
   // Find the page again, on request: the person asked, so what it finds becomes their corners.
   const findPage = (page: ScanPage) => {
@@ -73,22 +97,11 @@ export function createPageActions(input: PageActionsInput) {
   };
 
   const removePage = (id: number) => {
-    const { index, removed, left, neighbour, nextNew } = afterRemoval(pages, id, view);
+    const { index, removed, left, neighbour } = afterRemoval(pages, id);
     if (!removed) return;
-    if (removed.preview) URL.revokeObjectURL(removed.preview);
-    forgetTurned((k) => k.startsWith(`${id}|`));
-    work.previewBlobs.delete(id);
-    work.removed.add(id);
-    work.dropCached(id);
-    if (work.results[id]) {
-      URL.revokeObjectURL(work.results[id].url);
-      URL.revokeObjectURL(work.results[id].thumbUrl);
-      const { [id]: _gone, ...rest } = work.results;
-      work.results = rest;
-      setResults(rest);
-    }
+    dropPageWork(input, removed);
     setPages(left);
-    dispatch({ type: 'pageRemoved', id, neighbourId: neighbour?.id ?? null, nextNewId: nextNew?.id ?? null });
+    dispatch({ type: 'pageRemoved', id, neighbourId: neighbour?.id ?? null });
     focusIdRef.current = neighbour?.id ?? null;
     announce(formatMessage(t.announceRemoved, { position: index + 1 }));
     recordAction('remove_file');
@@ -115,11 +128,13 @@ interface EditActionsInput {
   announce: (text: string) => void;
   focusIdRef: MutableRef<number | null>;
   showResult: (page: ScanPage) => void;
+  /** Swap page `id` for a new photo in the same place (useScanPages). */
+  retakeFile: (id: number, file: File) => void;
 }
 
 /** The actions that change a page: its order, corners, look and turns, and moving on from the corners. */
 export function createEditActions(input: EditActionsInput) {
-  const { pages, selected, selectedIndex, failedIds, setPages, setDefaultFilter, dispatch, announce, focusIdRef, showResult } = input;
+  const { pages, selected, selectedIndex, failedIds, setPages, setDefaultFilter, dispatch, announce, focusIdRef, showResult, retakeFile } = input;
 
   const onTileKeyDown = (event: KeyboardEvent, id: number) => {
     const delta = tileDelta(event);
@@ -163,17 +178,21 @@ export function createEditActions(input: EditActionsInput) {
     dispatch({ type: 'failedPageShown', id: failed.id });
   };
 
-  // Use these corners: on to the next new photo still waiting for a look, or to the result.
+  // Use these corners: back to the result, on the same page.
   const approveCorners = () => {
     if (!selected) return;
-    setPages((current) => patchPage(current, selected.id, { reviewed: true }));
-    const next = nextUnreviewed(pages, selected.id);
-    if (next) dispatch({ type: 'pageSelected', id: next.id });
-    else showResult(selected);
+    showResult(selected);
     dispatch({ type: 'scrollFocusRequested', top: true, focus: true });
-    announce(next ? formatMessage(t.announceCornersOf, { position: pages.indexOf(next) + 1 }) : t.announceResult);
+    announce(t.announceResult);
     recordAction('move_mark');
   };
+
+  /** A tap on a page of the table opens its result. */
+  const openPage = (id: number) => dispatch({ type: 'pageOpened', id });
+  /** Back to the table of all the pages. */
+  const closePage = () => dispatch({ type: 'tableShown' });
+  /** Replace page `id` with a new photo, in place. */
+  const retakePage = (id: number, file: File) => retakeFile(id, file);
 
   /** Done in the corners box: to the result as it is. */
   const finishCorners = () => {
@@ -189,5 +208,5 @@ export function createEditActions(input: EditActionsInput) {
     announce(formatMessage(t.announceCornersOf, { position: selectedIndex + 1 }));
   };
 
-  return { onTileKeyDown, commitCorners, chooseLook, rotatePage, showFailedPage, approveCorners, finishCorners, adjustCorners };
+  return { onTileKeyDown, commitCorners, chooseLook, rotatePage, showFailedPage, approveCorners, finishCorners, adjustCorners, openPage, closePage, retakePage };
 }

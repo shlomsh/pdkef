@@ -21,7 +21,7 @@ interface ScanCornersViewProps {
 }
 
 /** The corners view under the editor head: the photo with its corners, then the bottom bar of choices. */
-export default function ScanCornersView({ selected, photo, shownAspect, finding, onCommit, onFind, onApprove, onDone, onRemove }: ScanCornersViewProps) {
+export default function ScanCornersView({ selected, photo, shownAspect, finding, onCommit, onFind, onApprove, onRemove }: ScanCornersViewProps) {
   const unreadable = selected.guessed && selected.preview === null;
   return (
     <>
@@ -77,10 +77,10 @@ export default function ScanCornersView({ selected, photo, shownAspect, finding,
             type="button"
             class={`${workspaceStyles['quiet-button']} ${styles['done-button']}`}
             disabled={selected.preview === null}
-            onClick={selected.reviewed ? onDone : onApprove}
+            onClick={onApprove}
           >
             <Check size={18} aria-hidden="true" />
-            {selected.reviewed ? t.cornersDone : t.useCorners}
+            {t.useCorners}
           </button>
         </div>
       )}

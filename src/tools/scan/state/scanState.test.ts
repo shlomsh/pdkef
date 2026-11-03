@@ -8,26 +8,40 @@ const corners: ScanState = { ...initialScanState, phase: 'corners', selectedId: 
 const landing = { quad: FULL_QUAD, turns: 1 };
 
 describe('reduceScan', () => {
-  it('starts on the result with nothing selected or pending', () => {
-    expect(initialScanState).toMatchObject({ phase: 'result', selectedId: null, full: null, landing: null, topPending: false, focusPending: false });
+  it('starts on the table with nothing selected or pending', () => {
+    expect(initialScanState).toMatchObject({ phase: 'table', selectedId: null, full: null, landing: null, topPending: false, focusPending: false });
   });
 
   describe('photosAdded', () => {
-    it('selects the first new photo, opens its corners and owes the top', () => {
-      expect(reduceScan(initialScanState, { type: 'photosAdded', firstId: 4 })).toMatchObject({ phase: 'corners', selectedId: 4, topPending: true });
+    it('selects the first new photo, stays on the table and owes the top', () => {
+      expect(reduceScan(initialScanState, { type: 'photosAdded', firstId: 4 })).toMatchObject({ phase: 'table', selectedId: 4, topPending: true });
     });
-    it('from the corners moves the selection on', () => {
-      expect(reduceScan(corners, { type: 'photosAdded', firstId: 7 })).toMatchObject({ phase: 'corners', selectedId: 7, topPending: true });
+    it('from the corners goes back to the table', () => {
+      expect(reduceScan(corners, { type: 'photosAdded', firstId: 7 })).toMatchObject({ phase: 'table', selectedId: 7, topPending: true });
     });
     it('is a no-op when everything already holds', () => {
-      const s = { ...corners, selectedId: 7, topPending: true };
+      const s: ScanState = { ...initialScanState, selectedId: 7, topPending: true };
       expect(reduceScan(s, { type: 'photosAdded', firstId: 7 })).toBe(s);
+    });
+  });
+
+  describe('pageOpened, tableShown, pageRetaken', () => {
+    it('pageOpened shows the result of that page and owes the top and the heading focus', () => {
+      expect(reduceScan(initialScanState, { type: 'pageOpened', id: 3 })).toMatchObject({ phase: 'result', selectedId: 3, topPending: true, focusPending: true });
+    });
+    it('tableShown goes back to the table', () => {
+      expect(reduceScan(corners, { type: 'tableShown' }).phase).toBe('table');
+      expect(reduceScan(initialScanState, { type: 'tableShown' })).toBe(initialScanState);
+    });
+    it('pageRetaken selects the new page, stays on the result and forgets the old one', () => {
+      const s: ScanState = { ...initialScanState, phase: 'result', selectedId: 1, failedIds: [1, 5], findMissed: [1, 6] };
+      expect(reduceScan(s, { type: 'pageRetaken', oldId: 1, newId: 2 })).toMatchObject({ phase: 'result', selectedId: 2, failedIds: [5], findMissed: [6] });
     });
   });
 
   describe('pageSelected', () => {
     it('selects the page in either phase and keeps the phase', () => {
-      expect(reduceScan(initialScanState, { type: 'pageSelected', id: 2 })).toMatchObject({ phase: 'result', selectedId: 2 });
+      expect(reduceScan(initialScanState, { type: 'pageSelected', id: 2 })).toMatchObject({ phase: 'table', selectedId: 2 });
       expect(reduceScan(corners, { type: 'pageSelected', id: 2 })).toMatchObject({ phase: 'corners', selectedId: 2 });
     });
     it('is a no-op for the page already selected', () => {
@@ -62,7 +76,8 @@ describe('reduceScan', () => {
       expect(reduceScan(corners, { type: 'resultShown' }).phase).toBe('result');
     });
     it('is a no-op on the result', () => {
-      expect(reduceScan(initialScanState, { type: 'resultShown' })).toBe(initialScanState);
+      const result: ScanState = { ...initialScanState, phase: 'result' };
+      expect(reduceScan(result, { type: 'resultShown' })).toBe(result);
     });
   });
 
@@ -125,29 +140,26 @@ describe('reduceScan', () => {
   describe('pageRemoved', () => {
     it('another page leaving only forgets its failure', () => {
       const s: ScanState = { ...corners, failedIds: [9] };
-      const next = reduceScan(s, { type: 'pageRemoved', id: 9, neighbourId: 2, nextNewId: 8 });
-      expect(next).toEqual({ ...s, failedIds: [] });
+      expect(reduceScan(s, { type: 'pageRemoved', id: 9, neighbourId: 2 })).toEqual({ ...s, failedIds: [] });
     });
     it('another page leaving with nothing failed is a no-op', () => {
-      expect(reduceScan(corners, { type: 'pageRemoved', id: 9, neighbourId: 2, nextNewId: null })).toBe(corners);
+      expect(reduceScan(corners, { type: 'pageRemoved', id: 9, neighbourId: 2 })).toBe(corners);
     });
-    it('the photo under review hands over to the next new one and owes the top', () => {
-      expect(reduceScan(corners, { type: 'pageRemoved', id: 1, neighbourId: 2, nextNewId: 3 })).toMatchObject({ phase: 'corners', selectedId: 3, topPending: true });
+    it('the open page leaving, from the corners or the result, goes back to the table on the neighbour', () => {
+      expect(reduceScan(corners, { type: 'pageRemoved', id: 1, neighbourId: 2 })).toMatchObject({ phase: 'table', selectedId: 2 });
+      const result: ScanState = { ...initialScanState, phase: 'result', selectedId: 1 };
+      expect(reduceScan(result, { type: 'pageRemoved', id: 1, neighbourId: null })).toMatchObject({ phase: 'table', selectedId: null });
     });
-    it('with no new photo left, the corners give way to the result on the neighbour', () => {
-      expect(reduceScan(corners, { type: 'pageRemoved', id: 1, neighbourId: 2, nextNewId: null })).toMatchObject({ phase: 'result', selectedId: 2, topPending: false });
-    });
-    it('from the result it selects the neighbour, or nothing, and stays on the result', () => {
+    it('from the table it selects the neighbour and stays', () => {
       const s: ScanState = { ...initialScanState, selectedId: 1 };
-      expect(reduceScan(s, { type: 'pageRemoved', id: 1, neighbourId: 2, nextNewId: null })).toMatchObject({ phase: 'result', selectedId: 2 });
-      expect(reduceScan(s, { type: 'pageRemoved', id: 1, neighbourId: null, nextNewId: null })).toMatchObject({ phase: 'result', selectedId: null });
+      expect(reduceScan(s, { type: 'pageRemoved', id: 1, neighbourId: 2 })).toMatchObject({ phase: 'table', selectedId: 2 });
     });
   });
 
   describe('cleared', () => {
     it('empties the selection, the failures and the corners, keeping the rest', () => {
       const busy: ScanState = { ...corners, failedIds: [1], finding: 1, findMissed: [1], full: 'layer', topPending: true };
-      expect(reduceScan(busy, { type: 'cleared' })).toEqual({ ...busy, phase: 'result', selectedId: null, failedIds: [] });
+      expect(reduceScan(busy, { type: 'cleared' })).toEqual({ ...busy, phase: 'table', selectedId: null, failedIds: [] });
     });
     it('is a no-op when already empty', () => {
       expect(reduceScan(initialScanState, { type: 'cleared' })).toBe(initialScanState);

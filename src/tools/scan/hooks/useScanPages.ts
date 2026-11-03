@@ -6,9 +6,10 @@ import { formatMessage } from '#lib/text/formatMessage.ts';
 import { PHOTO_ACCEPTED_TYPES } from '#lib/hooks/usePhotoTileList.ts';
 import { useHandoffFilesIntake } from '#lib/handoff/useHandoffIntake.ts';
 import { loadPipeline } from '../lib/loadPipeline.ts';
-import { isCurrentKey, newPage, pageQuad, partitionFiles, resultKey, withInspection } from '../lib/scanPages.ts';
+import { isCurrentKey, newPage, pageQuad, partitionFiles, replacePage, resultKey, withInspection } from '../lib/scanPages.ts';
 import type { ProcessedPage } from '../lib/scanPipeline.ts';
 import type { PageResult, ScanPage, ScanWork } from '../state/scanWork.ts';
+import { dropPageWork } from '../state/scanActions.ts';
 import { englishScanMessages as t } from '../messages.ts';
 import type { ScanDispatch, SetPages } from './scanHost.ts';
 import { useScanResults } from './useScanResults.ts';
@@ -24,6 +25,7 @@ interface ScanPagesInput {
   results: Record<number, PageResult>;
   setResults: Dispatch<StateUpdater<Record<number, PageResult>>>;
   turnedPreviews: Record<string, string>;
+  forgetTurned: (match: (key: string) => boolean) => void;
 }
 
 type InspectHost = Pick<ScanPagesInput, 'work' | 'unmountedRef' | 'dispatch' | 'setPages'>;
@@ -77,17 +79,27 @@ export function useScanPages(input: ScanPagesInput) {
     if (accepted.length === 0) return;
     const added = accepted.map((file) => newPage(file, work.defaultFilter));
     setPages((current) => [...current, ...added]);
-    // A new photo is shown first as itself, corners on top, to approve or adjust (Use these corners).
-    // Also brings the new photo's corners into view, wherever the page was scrolled to pick it.
+    // New photos land on the table, the first one selected and brought into view.
     dispatch({ type: 'photosAdded', firstId: added[0].id });
     announce(added.length === 1 ? t.announceAddedOne : formatMessage(t.announceAddedMany, { count: added.length }));
     recordAction('add_files');
     for (const page of added) inspectPage(page, input);
   }, []);
 
+  /** A retake: the new photo takes the old page's place, with the old page's look and its own id. */
+  const retakeFile = useCallback((id: number, file: File) => {
+    const old = work.pages.find((p) => p.id === id);
+    if (!old) return;
+    const fresh = newPage(file, old.filter);
+    dropPageWork(input, old);
+    setPages((current) => replacePage(current, id, fresh));
+    dispatch({ type: 'pageRetaken', oldId: id, newId: fresh.id });
+    inspectPage(fresh, input);
+  }, []);
+
   // Photos handed over from Image to PDF ("Clean it up as a scan") arrive like a pick.
   useHandoffFilesIntake('scan-to-pdf', (files) => addFiles(files));
 
   useScanResults({ ...input, processed });
-  return { processed, addFiles };
+  return { processed, addFiles, retakeFile };
 }

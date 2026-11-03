@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { FULL_QUAD } from './quad.ts';
 import {
-  afterRemoval, exportKeyFor, failedPositions, isCurrentKey, newPage, nextUnreviewed, partitionFiles, partitionTurned,
+  afterRemoval, exportKeyFor, failedPositions, isCurrentKey, newPage, partitionFiles, replacePage, partitionTurned,
   patchPage, resultKey, shownAspect, shownPhoto, tileDelta, turnKeyOf, turnPage, withInspection,
 } from './scanPages.ts';
 
@@ -53,7 +53,7 @@ describe('scanPages', () => {
 
   it('patches and turns one page only', () => {
     const [a, b] = [newPage(photo(), 'document'), newPage(photo(), 'document')];
-    expect(patchPage([a, b], a.id, { reviewed: true }).map((p) => p.reviewed)).toEqual([true, false]);
+    expect(patchPage([a, b], a.id, { edited: true }).map((p) => p.edited)).toEqual([true, false]);
     expect(turnPage([{ ...a, turns: 3 }, b], a.id).map((p) => p.turns)).toEqual([0, 0]);
     expect(turnPage([a, b], b.id).map((p) => p.turns)).toEqual([0, 1]);
   });
@@ -93,22 +93,27 @@ describe('scanPages', () => {
   describe('afterRemoval', () => {
     const pages = [newPage(photo(), 'document'), newPage(photo(), 'document'), newPage(photo(), 'document')];
     it('lands on the page that takes its place, or the one before at the end', () => {
-      expect(afterRemoval(pages, pages[1].id, 'result').neighbour).toBe(pages[2]);
-      expect(afterRemoval(pages, pages[2].id, 'result').neighbour).toBe(pages[1]);
-    });
-    it('offers the next new photo only from the corners', () => {
-      expect(afterRemoval(pages, pages[0].id, 'result').nextNew).toBeUndefined();
-      expect(afterRemoval(pages, pages[0].id, 'corners').nextNew).toBe(pages[1]);
+      expect(afterRemoval(pages, pages[1].id).neighbour).toBe(pages[2]);
+      expect(afterRemoval(pages, pages[2].id).neighbour).toBe(pages[1]);
     });
     it('finds nothing for an unknown id', () => {
-      expect(afterRemoval(pages, -1, 'result').removed).toBeUndefined();
+      expect(afterRemoval(pages, -1).removed).toBeUndefined();
     });
   });
 
-  it('finds the next page still waiting for its corners to be used', () => {
-    const [a, b] = [newPage(photo(), 'document'), { ...newPage(photo(), 'document'), reviewed: true }];
-    expect(nextUnreviewed([a, b], a.id)).toBeUndefined();
-    expect(nextUnreviewed([a, b], b.id)).toBe(a);
+  describe('replacePage', () => {
+    it('puts the new page at the old index with a new id, keeping the look and resetting the turns', () => {
+      const [a, b, c] = [newPage(photo(), 'document'), { ...newPage(photo(), 'grayscale'), turns: 2 }, newPage(photo(), 'document')];
+      const fresh = newPage(photo(), 'document');
+      const next = replacePage([a, b, c], b.id, fresh);
+      expect(next.map((p) => p.id)).toEqual([a.id, fresh.id, c.id]);
+      expect(next[1]).toMatchObject({ filter: 'grayscale', turns: 0 });
+      expect(next[1].id).not.toBe(b.id);
+    });
+    it('leaves the pages alone for an unknown id', () => {
+      const a = newPage(photo(), 'document');
+      expect(replacePage([a], -1, newPage(photo(), 'document'))).toEqual([a]);
+    });
   });
 
   describe('exportKeyFor', () => {

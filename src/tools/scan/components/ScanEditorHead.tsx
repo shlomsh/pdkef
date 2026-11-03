@@ -8,7 +8,7 @@ import styles from '../PdfScanTool.module.css';
 import FullScreenButton from './FullScreenButton.tsx';
 
 interface ScanEditorHeadProps {
-  view: 'corners' | 'result';
+  view: 'table' | 'corners' | 'result';
   selected: ScanPage;
   selectedIndex: number;
   pageCount: number;

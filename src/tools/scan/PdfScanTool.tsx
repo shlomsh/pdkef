@@ -49,7 +49,7 @@ export default withIslandBoundary(function PdfScanTool({ quietPolicy, navigate }
   work.defaultFilter = settings.defaultFilter;
   const { rating, wide } = useScanRating();
 
-  const { processed, addFiles } = useScanPages({ pages, setPages, work, unmountedRef, dispatch, ...board });
+  const { processed, addFiles, retakeFile } = useScanPages({ pages, setPages, work, unmountedRef, dispatch, ...board });
 
   const { key, prepared, outputName, fileName, downloadFlow } = useScanExport({
     pages, failedIds, ...settings, work, processed, unmountedRef, ...board, quietPolicy, navigate,
@@ -72,7 +72,7 @@ export default withIslandBoundary(function PdfScanTool({ quietPolicy, navigate }
   });
 
   const { findPage, removePage, removeFromCorners, reset } = createPageActions({ pages, view, setPages, work, unmountedRef, dispatch, focusIdRef, ...board, ...settings });
-  const edit = createEditActions({ pages, selected, selectedIndex, failedIds, setPages, dispatch, focusIdRef, showResult, ...board, ...settings });
+  const edit = createEditActions({ pages, selected, selectedIndex, failedIds, setPages, dispatch, focusIdRef, showResult, retakeFile, ...board, ...settings });
 
   const shown = key === null ? undefined : work.shown.get(key);
   const limitNote = key !== null && work.missedKeys.has(key) ? t.limitMissed : undefined;
@@ -139,7 +139,7 @@ export default withIslandBoundary(function PdfScanTool({ quietPolicy, navigate }
                   onDone: edit.finishCorners,
                   onRemoveFromCorners: removeFromCorners,
                   onChooseLook: edit.chooseLook,
-                  onSelect: (id) => dispatch({ type: 'pageSelected', id }),
+                  onSelect: edit.openPage,
                   onTileKeyDown: edit.onTileKeyDown,
                   onRemove: removePage,
                   onFiles: addFiles,
