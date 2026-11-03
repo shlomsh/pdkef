@@ -1,0 +1,47 @@
+---
+/**
+ * The four promises as tilted sticker cards, drawn from src/data/promises.js.
+ * The picture that sits beside them is Doodle.astro. A page should not show the
+ * same four lines as every other page: pick the kinds it needs and reword a
+ * line through `line` where the page has something more specific to say.
+ */
+import { ShieldCheck, Gift, Code2, HardDrive } from 'lucide-preact';
+import { promises } from '../data/promises.js';
+
+interface Props {
+  items: Array<{ kind: 'private' | 'free' | 'open-source' | 'local'; line?: string }>;
+  label?: string;
+}
+
+const { items, label = 'The short version' } = Astro.props;
+const icons = { ShieldCheck, Gift, Code2, HardDrive };
+---
+
+<ul class="stickers" aria-label={label}>
+  {items.map((item) => {
+    const promise = promises[item.kind];
+    const Icon = icons[promise.icon as keyof typeof icons];
+    const line = item.line ?? promise.line;
+    return (
+      <li class={promise.tone === 'paper' ? undefined : `tone-${promise.tone}`}>
+        <Icon size={22} strokeWidth={1.8} aria-hidden="true" />
+        <strong>{promise.title}</strong>
+        <span>
+          {promise.href ? <a href={promise.href} target="_blank" rel="noopener noreferrer">{line}</a> : line}
+        </span>
+      </li>
+    );
+  })}
+</ul>
+
+<style>
+  .stickers { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.85rem; margin: 2.25rem 0 0; padding: 0; list-style: none; }
+  .stickers li { display: flex; flex-direction: column; gap: 0.3rem; padding: 0.9rem 1rem 1rem; border: 1.5px solid var(--color-border-strong); border-radius: 1.1rem 1.4rem 1.1rem 1.3rem; background: var(--color-paper); color: var(--color-primary-text); font-size: 0.85rem; line-height: 1.4; }
+  .stickers li:nth-child(odd) { transform: rotate(-1deg); }
+  .stickers li:nth-child(even) { transform: rotate(1deg); }
+  .stickers li.tone-citron { background: var(--color-citron); border-color: var(--color-citron-ink); color: var(--color-citron-ink); }
+  .stickers li.tone-mint { background: var(--color-primary-soft); }
+  .stickers strong { color: var(--color-text); font-size: 1rem; font-weight: 600; }
+  .stickers span { color: var(--color-muted); }
+  .stickers a { color: inherit; text-underline-offset: 0.15em; }
+</style>
