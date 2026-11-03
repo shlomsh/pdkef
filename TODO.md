@@ -25,6 +25,7 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 
 ### Robustness and debt
 
+- [QUAL-51](backlog/tasks/QUAL-51.md) P2 · The 23 faults the fresh mutation probe found unguarded each get a test that fails on them (in progress)
 - [DEBT-65](backlog/tasks/DEBT-65.md) P2 · Two layout-shift specs failed once each in the 2026-10-27 nightly (in progress)
 - [MEM-24](backlog/tasks/MEM-24.md) P3 · A service worker that cannot install, or never completes its precache, says so (in progress)
 
