@@ -10,7 +10,6 @@ export interface ScanMessages extends DownloadMessages {
   skippedMany: string;
   documentHeading: string;
   fileNameLabel: string;
-  defaultName: string;
   pageOf: string;
   findingEdges: string;
   cornersGroup: string;
@@ -38,6 +37,15 @@ export interface ScanMessages extends DownloadMessages {
   pagesLabel: string;
   reorderHint: string;
   tileLabel: string;
+  tableHint: string;
+  sizeLabel: string;
+  addPages: string;
+  retake: string;
+  pageDone: string;
+  cornersAction: string;
+  lookAction: string;
+  removeShort: string;
+  pageSizeQuiet: string;
   removeLabel: string;
   processing: string;
   pageFailed: string;
@@ -99,7 +107,6 @@ export const englishScanMessages: ScanMessages = {
   skippedMany: '{count} files were skipped: only JPG and PNG photos can be scanned.',
   documentHeading: 'Your scan',
   fileNameLabel: 'File name, select to rename',
-  defaultName: 'scan',
   pageOf: 'Page {position} of {total}',
   findingEdges: 'Finding the page edges…',
   cornersGroup: 'Page corners',
@@ -126,7 +133,16 @@ export const englishScanMessages: ScanMessages = {
   resultUpdating: 'Updating…',
   pagesLabel: 'Pages',
   reorderHint: 'Drag a page to move it, or use the arrow keys on a selected page.',
-  tileLabel: 'Page {position} of {total}, select to adjust its corners',
+  tileLabel: 'Page {position} of {total}, open it to fix its corners, turn it or retake it',
+  tableHint: 'Tap a page to fix its corners, turn it or retake it.',
+  sizeLabel: 'Size',
+  addPages: 'Add pages',
+  retake: 'Retake',
+  pageDone: 'Done',
+  cornersAction: 'Corners',
+  lookAction: 'Look',
+  removeShort: 'Remove',
+  pageSizeQuiet: 'Page size: {size}',
   removeLabel: 'Remove page {position}',
   processing: 'Straightening…',
   pageFailed: 'Could not read this photo',
@@ -145,7 +161,7 @@ export const englishScanMessages: ScanMessages = {
   pageSizeFitHint: 'Each page is the size of its scan.',
   pageSizePaperHint: 'Every page on {size} paper, turned to match the scan.',
   limitLabel: 'Size limit',
-  limitNone: 'None',
+  limitNone: 'Full',
   limit2mb: '2 MB',
   limit1mb: '1 MB',
   limit500kb: '500 KB',

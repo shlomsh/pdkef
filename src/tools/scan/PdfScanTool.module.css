@@ -112,11 +112,6 @@
   font-size: 0.9rem;
 }
 
-.page-look {
-  width: 100%;
-  max-width: 32rem;
-}
-
 /* The photo's own shape and size (inline), held while its preview is made, so nothing below jumps
    when it lands. */
 .corners-wait {

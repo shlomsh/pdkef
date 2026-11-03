@@ -17,6 +17,8 @@ interface ScanExportInput {
   pageSize: PageSize;
   limit: SizeLimitId;
   customName: string | null;
+  /** The date-based name used when the person has not typed one. */
+  defaultName: string;
   work: ScanWork;
   processed: (page: ScanPage) => Promise<ProcessedPage>;
   unmountedRef: MutableRef<boolean>;
@@ -46,7 +48,7 @@ async function buildScan(input: ScanExportInput, signal: AbortSignal, onProgress
 
 /** The PDF prepared for the current pages and settings, and the download flow over it. */
 export function useScanExport(input: ScanExportInput) {
-  const { pages, failedIds, pageSize, limit, customName, work, setAnnouncement, quietPolicy, navigate } = input;
+  const { pages, failedIds, pageSize, limit, customName, defaultName, work, setAnnouncement, quietPolicy, navigate } = input;
   const key = exportKeyFor(pages, failedIds, pageSize, limit);
   work.inputs = { pages, pageSize, limit, key };
   const prepared = usePreparedOutput({
@@ -56,7 +58,7 @@ export function useScanExport(input: ScanExportInput) {
     onBuildError: (err) => reportError('pdf_tool_run', err, 'prepare_scan'),
   });
 
-  const outputName = customName ?? t.defaultName;
+  const outputName = customName ?? defaultName;
   const fileName = `${outputName}.pdf`;
   const downloadFlow = useDownloadFlow({
     prepared,

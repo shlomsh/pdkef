@@ -13,8 +13,6 @@ export interface ScanPage {
   aspect: number | null;
   /** This page's look: a colour ID card and a printed form can sit in one PDF. */
   filter: ScanFilter;
-  /** The person has seen this page's corners and used them (Use these corners). */
-  reviewed: boolean;
   /** The page's corners in the photo, as photographed: rotating never moves them. */
   quad: Quad;
   /** Quarter turns clockwise for the page as it downloads (0 to 3): a page shot sideways stands up. */
