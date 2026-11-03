@@ -69,7 +69,8 @@ export function useScanView(input: ScanViewInput) {
     const from = work.flattenFrom;
     work.flattenFrom = null;
     const host = editorRef.current;
-    const target = host?.querySelector<HTMLImageElement>('[data-paper] img');
+    // The phone's viewer holds its neighbours too: the page that lands is the current one.
+    const target = host?.querySelector<HTMLImageElement>('[data-current] [data-paper] img') ?? host?.querySelector<HTMLImageElement>('[data-paper] img');
     // Only when the page is already made: an empty paper has nothing to land.
     const flatten = !!(from && view === 'result' && host && target);
     // One motion at a time: with a flatten to play, the scroll jumps first and the page moves alone.

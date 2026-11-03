@@ -10,6 +10,8 @@ import { downloadDetail, pagesLabel } from '#shell/pageWorkspace/pageCounts.ts';
 import { englishShellMessages } from '#shell/shellMessages.ts';
 import ScanSkippedNotice from './components/ScanSkippedNotice.tsx';
 import ScanWorkspace from './components/ScanWorkspace.tsx';
+import ScanPhoneTable from './components/ScanPhoneTable.tsx';
+import ScanPageViewer from './components/ScanPageViewer.tsx';
 import ScanCamera from './components/ScanCamera.tsx';
 import StartScanButton from './components/StartScanButton.tsx';
 import { useScanBoard } from './hooks/useScanBoard.ts';
@@ -21,8 +23,8 @@ import { useScanSettings } from './hooks/useScanSettings.ts';
 import { useScanStage } from './hooks/useScanStage.ts';
 import { useScanView } from './hooks/useScanView.ts';
 import { resultKey } from './lib/scanPages.ts';
-import { initialScanState, reduceScan } from './state/scanState.ts';
-import { createEditActions, createPageActions } from './state/scanActions.ts';
+import { initialScanState, pageViewerMode, reduceScan } from './state/scanState.ts';
+import { createEditActions, createPageActions, pageViewActions } from './state/scanActions.ts';
 import { cameraProps } from './state/cameraProps.ts';
 import type { ScanPage } from './state/scanWork.ts';
 import { englishScanMessages as t } from './messages.ts';
@@ -58,7 +60,8 @@ export default withIslandBoundary(function PdfScanTool({ quietPolicy, navigate }
   });
 
   const { listRef, focusIdRef } = usePhotoTileList({
-    active: pages.length > 0,
+    // The list on screen is the grid or, beside a page on desktop, the strip.
+    active: pages.length > 0 && (!wide || view === 'table' ? 'grid' : 'strip'),
     items: pages,
     ghostClass: styles['is-ghost'],
     onReorder: (oldIndex, newIndex) => {
@@ -76,11 +79,51 @@ export default withIslandBoundary(function PdfScanTool({ quietPolicy, navigate }
   const { findPage, removePage, reset } = createPageActions({ pages, view, setPages, work, unmountedRef, dispatch, focusIdRef, ...board, ...settings });
   const edit = createEditActions({ pages, selected, selectedIndex, failedIds, setPages, dispatch, focusIdRef, showResult, retakeFile, ...board, ...settings });
 
-  const viewfinder = cameraProps({ camera: state.camera, pages, results, dispatch, addFiles, retakePage: edit.retakePage, removePage });
+  const viewfinder = cameraProps({ camera: state.camera, pages, results, dispatch, addFiles, retakePage: edit.retakePage, view });
   const openMany = () => dispatch({ type: 'cameraOpened', camera: { mode: 'many' } });
+  const viewerMode = pageViewerMode(state, wide);
 
   const shown = key === null ? undefined : work.shown.get(key);
   const limitNote = key !== null && work.missedKeys.has(key) ? t.limitMissed : undefined;
+  const output = {
+    prepared,
+    flow: downloadFlow,
+    fileName,
+    detail: downloadDetail(prepared, pages.length, englishShellMessages, t.dir),
+    outputName,
+    isRenaming: settings.isRenaming,
+    onRename: settings.rename,
+    onEditingChange: settings.setIsRenaming,
+    onShowFailedPage: edit.showFailedPage,
+  };
+  const options = { pageSize: settings.pageSize, limit: settings.limit, onPageSize: settings.choosePageSize, onLimit: settings.chooseLimit, limitNote };
+  /** What the desktop's page view and the phone's viewer both show and do. */
+  const onePage = {
+    pages,
+    selectedIndex,
+    results,
+    turnedPreviews,
+    finding,
+    findMissed,
+    pageSize: settings.pageSize,
+    built: { shown, ready: prepared.status === 'ready', size: prepared.size },
+  };
+  const pageActions = pageViewActions({ edit, findPage, removePage, selected, dispatch });
+  /** What the desktop workspace and the phone's table both read. */
+  const loaded = {
+    pages,
+    results,
+    resultKeyOf: resultKey,
+    failedIds,
+    listRef,
+    onOpen: edit.openPage,
+    onTileKeyDown: edit.onTileKeyDown,
+    onFiles: addFiles,
+    onCamera: openMany,
+    output,
+    options,
+    rating,
+  };
 
   return (
     <BasePdfTool
@@ -97,59 +140,24 @@ export default withIslandBoundary(function PdfScanTool({ quietPolicy, navigate }
 
       {pages.length > 0 && selected && (
         <ToolShellBridge>
-          {(bridge) => (
+          {(bridge) => (wide ? (
             <ScanWorkspace
+              {...loaded}
               bridge={bridge}
-              view={view}
-              onOpen={edit.openPage}
-              results={results}
-              resultKeyOf={resultKey}
-              pages={pages}
-              failedIds={failedIds}
-              addFiles={addFiles}
-              onCamera={openMany}
-              rating={rating}
-              wide={wide}
-              output={{
-                prepared,
-                flow: downloadFlow,
-                fileName,
-                detail: downloadDetail(prepared, pages.length, englishShellMessages, t.dir),
-                outputName,
-                isRenaming: settings.isRenaming,
-                onRename: settings.rename,
-                onEditingChange: settings.setIsRenaming,
-                onShowFailedPage: edit.showFailedPage,
-              }}
-              options={{ pageSize: settings.pageSize, limit: settings.limit, onPageSize: settings.choosePageSize, onLimit: settings.chooseLimit, limitNote }}
+              // The stack's viewer, over the camera on a large tablet, shows the page itself.
+              view={viewerMode ? 'table' : view}
               workbench={{
+                ...onePage,
                 refs: { workbench: workbenchRef, editor: editorRef, heading: headingRef, list: listRef },
                 stageHeight,
-                pages,
                 selected,
-                selectedIndex,
                 view,
-                results,
-                turnedPreviews,
                 failedIds,
-                finding,
-                findMissed,
                 full,
-                pageSize: settings.pageSize,
-                built: { shown, ready: prepared.status === 'ready', size: prepared.size },
                 resultKeyOf: resultKey,
                 actions: {
-                  onRotate: edit.rotatePage,
+                  ...pageActions,
                   onToggleFull: full ? exitFull : enterFull,
-                  onAdjustCorners: edit.adjustCorners,
-                  onCommit: edit.commitCorners,
-                  onFind: findPage,
-                  onApprove: edit.approveCorners,
-                  onDone: edit.closePage,
-                  onRetake: (file) => edit.retakePage(selected.id, file),
-                  onRetakeCamera: () => dispatch({ type: 'cameraOpened', camera: { mode: 'one', pageId: selected.id } }),
-                  onRemovePage: removePage,
-                  onChooseLook: edit.chooseLook,
                   onSelect: edit.openPage,
                   onTileKeyDown: edit.onTileKeyDown,
                   onRemove: removePage,
@@ -157,8 +165,20 @@ export default withIslandBoundary(function PdfScanTool({ quietPolicy, navigate }
                 },
               }}
             />
-          )}
+          ) : (
+            <ScanPhoneTable {...loaded} onPickMore={bridge.requestReplace} onClear={bridge.requestClear} />
+          ))}
         </ToolShellBridge>
+      )}
+
+      {viewerMode && selected && (
+        <ScanPageViewer
+          {...onePage}
+          refs={{ editor: editorRef, heading: headingRef }}
+          selected={selected}
+          view={viewerMode}
+          actions={{ ...pageActions, onSelect: edit.selectPage }}
+        />
       )}
 
       {viewfinder && <ScanCamera {...viewfinder} />}

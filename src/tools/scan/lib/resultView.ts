@@ -32,3 +32,22 @@ export function resultViewFor(page: ScanPage, index: number, { shown, ready, res
 export const exactResultDetail = (size: number, pageCount: number) => (
   formatMessage(t.resultDetail, { size: formatFileSize(size), pages: pagesLabel(pageCount, englishShellMessages) })
 );
+
+/** A table tile is a 3:4 box; the paper sits inside it with a little room all round. */
+const TILE_ASPECT = 3 / 4;
+const PAPER_FILL = 0.88;
+
+/** A page's thumbnail on its paper for the table's tile, by the same placement rule as the viewer:
+ * on A4 a wide or narrow scan shows its margins, on Fit it fills the paper. Null before the first result. */
+export function tilePaper(page: ScanPage, results: Record<number, PageResult>, pageSize: PageSize): { src: string; place: Placement } | null {
+  const result = results[page.id];
+  if (!result) return null;
+  return { src: result.thumbUrl, place: placeImage(result.page.width, result.page.height, pageSize, FIT_POINTS_PER_PIXEL) };
+}
+
+/** The paper's box inside the 3:4 tile, as percentages of the tile: the long side fills, the other follows the paper's shape. */
+export function paperFit({ pageWidth, pageHeight }: Pick<Placement, 'pageWidth' | 'pageHeight'>): { widthPct: number; heightPct: number } {
+  const aspect = pageWidth / pageHeight;
+  if (aspect <= TILE_ASPECT) return { widthPct: (PAPER_FILL * 100 * aspect) / TILE_ASPECT, heightPct: PAPER_FILL * 100 };
+  return { widthPct: PAPER_FILL * 100, heightPct: (PAPER_FILL * 100 * TILE_ASPECT) / aspect };
+}

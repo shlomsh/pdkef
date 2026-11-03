@@ -183,6 +183,8 @@ export function createEditActions(input: EditActionsInput) {
 
   /** A tap on a page of the table opens its result. */
   const openPage = (id: number) => dispatch({ type: 'pageOpened', id });
+  /** A swipe in the phone's viewer reached this page. */
+  const selectPage = (id: number) => dispatch({ type: 'pageSelected', id });
   /** Back to the table of all the pages. */
   const closePage = () => dispatch({ type: 'tableShown' });
   /** Replace page `id` with a new photo, in place. */
@@ -194,5 +196,29 @@ export function createEditActions(input: EditActionsInput) {
     announce(formatMessage(t.announceCornersOf, { position: selectedIndex + 1 }));
   };
 
-  return { onTileKeyDown, commitCorners, chooseLook, rotatePage, showFailedPage, approveCorners, adjustCorners, openPage, closePage, retakePage };
+  return { onTileKeyDown, commitCorners, chooseLook, rotatePage, showFailedPage, approveCorners, adjustCorners, openPage, selectPage, closePage, retakePage };
+}
+
+interface PageViewInput {
+  edit: ReturnType<typeof createEditActions>;
+  findPage: (page: ScanPage) => void;
+  removePage: (id: number) => void;
+  selected: ScanPage | undefined;
+  dispatch: ScanDispatch;
+}
+
+/** What a shown page can do, the same beside the desktop's pages and in the phone's viewer. */
+export function pageViewActions({ edit, findPage, removePage, selected, dispatch }: PageViewInput) {
+  return {
+    onRotate: edit.rotatePage,
+    onAdjustCorners: edit.adjustCorners,
+    onCommit: edit.commitCorners,
+    onFind: findPage,
+    onApprove: edit.approveCorners,
+    onDone: edit.closePage,
+    onRetake: (file: File) => { if (selected) edit.retakePage(selected.id, file); },
+    onRetakeCamera: () => { if (selected) dispatch({ type: 'retakeOpened', pageId: selected.id }); },
+    onRemovePage: removePage,
+    onChooseLook: edit.chooseLook,
+  };
 }

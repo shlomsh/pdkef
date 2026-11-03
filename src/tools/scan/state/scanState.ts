@@ -75,6 +75,13 @@ export const initialScanState: ScanState = {
   camera: null,
 };
 
+/** What the full-screen page viewer shows, or null when it is closed. A phone has no other way to show a
+ * page; a wide screen has its workspace, so there only the camera's stack opens it (SCAN-13). */
+export function pageViewerMode(state: ScanState, wide: boolean): 'result' | 'corners' | null {
+  if (state.phase === 'table') return null;
+  return !wide || state.camera?.mode === 'many' ? state.phase : null;
+}
+
 /** The same state when the patch changes nothing, so an event that does not apply is a no-op. */
 function patch(state: ScanState, changes: Partial<ScanState>): ScanState {
   const keys = Object.keys(changes) as (keyof ScanState)[];

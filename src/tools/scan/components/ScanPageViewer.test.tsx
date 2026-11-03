@@ -1,9 +1,12 @@
+import type { ComponentProps } from 'preact';
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { englishScanMessages as t } from '../messages.ts';
 import type { ScanPage } from '../state/scanWork.ts';
-import ScanPageViewer, { type ScanPageViewerProps } from './ScanPageViewer.tsx';
+import ScanPageViewer from './ScanPageViewer.tsx';
+
+type ScanPageViewerProps = ComponentProps<typeof ScanPageViewer>;
 
 let container: HTMLElement | null = null;
 const showModal = vi.fn(function (this: HTMLDialogElement) { this.setAttribute('open', ''); });

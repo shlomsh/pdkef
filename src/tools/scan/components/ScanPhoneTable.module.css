@@ -1,0 +1,200 @@
+/* The phone's table: name, numbered pages, hint, one card, Share, quiet next steps, Clear all alone at the foot.
+   Sizes follow the approved mock (SCAN-13). */
+
+.table {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  min-width: 0;
+  padding-inline: var(--space-4);
+}
+
+.hint-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-block-start: calc(-1 * var(--space-1));
+}
+
+.hint {
+  margin: 0;
+  font-size: 0.875rem;
+  color: var(--color-muted);
+}
+
+/* Quiet: text only, no frame, a 44px target. */
+.choose {
+  flex: none;
+  min-height: 44px;
+  padding: 0 var(--space-2);
+  font: inherit;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--color-primary-text);
+  background: transparent;
+  border: 0;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 18px 16px 16px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+}
+
+.size {
+  display: grid;
+  gap: 12px;
+}
+
+.size-line {
+  margin: 0;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.size-label {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+/* Room for "99.9 MB" so the figure arriving or changing moves nothing. */
+.size-value {
+  min-width: 7ch;
+  text-align: end;
+  font-size: 1.625rem;
+  font-weight: 700;
+  line-height: 1.2;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text);
+}
+
+.size-value[data-pending] {
+  font-size: 1rem;
+  font-weight: 400;
+  color: var(--color-muted);
+}
+
+.page-size {
+  align-self: center;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 0 var(--space-3);
+  font: inherit;
+  font-size: 0.875rem;
+  color: var(--color-muted);
+  background: transparent;
+  border: 0;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.page-size:focus-visible,
+.choose:focus-visible,
+.clear:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* Share: the one filled control on the screen. */
+.share {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  box-sizing: border-box;
+  width: 100%;
+  height: 60px;
+  font: inherit;
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--color-surface);
+  background: var(--color-primary);
+  border: 0;
+  border-radius: var(--radius);
+  cursor: pointer;
+}
+
+.share[aria-disabled='true'] {
+  opacity: 0.55;
+  cursor: default;
+}
+
+.share:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+@media (hover: hover) {
+  .share:not([aria-disabled='true']):hover {
+    background: var(--color-primary-hover);
+  }
+}
+
+/* Download, Sign, Redact: equal columns, one height, content centred. The Download is the shell's QuietDownload,
+   so these rules restyle it too (the :is() outranks its own class). */
+.steps {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
+  gap: var(--space-2);
+}
+
+.steps > :is(a, button) {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  box-sizing: border-box;
+  height: 44px;
+  margin: 0;
+  padding: 0 var(--space-2);
+  font: inherit;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  text-decoration: none;
+  color: var(--color-primary-text);
+  background: transparent;
+  border: 0;
+  border-radius: 12px;
+  cursor: pointer;
+}
+
+.steps > :is(a, button):disabled {
+  color: var(--color-muted);
+  cursor: default;
+}
+
+/* Clear all stands alone: clear space above, nothing beside it. */
+.clear-row {
+  display: flex;
+  justify-content: center;
+  margin-block-start: var(--space-5);
+}
+
+.clear {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 0 var(--space-4);
+  font: inherit;
+  font-size: 0.875rem;
+  color: var(--color-muted);
+  background: transparent;
+  border: 0;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}

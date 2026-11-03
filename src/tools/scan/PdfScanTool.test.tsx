@@ -2,6 +2,7 @@
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { describe, expect, it, vi, afterEach, beforeEach } from 'vitest';
+import Sortable from 'sortablejs';
 import PdfScanTool from './PdfScanTool.tsx';
 import * as pipeline from './lib/scanPipeline.ts';
 import { setInputFiles } from '../../test/support/setInputFiles.js';
@@ -37,8 +38,7 @@ vi.mock('./lib/camera/loadCamera.ts', () => ({
         <div data-viewfinder data-mode={props.mode} data-count={props.count}>
           <button type="button" onClick={() => props.onTaken(new File(['x'], 'shot.jpg', { type: 'image/jpeg' }))}>stub-take</button>
           <button type="button" onClick={props.onClose}>stub-close</button>
-          <button type="button" onClick={props.onRetakeLast}>stub-retake-last</button>
-          <button type="button" onClick={props.onFixCorners}>stub-fix</button>
+          <button type="button" onClick={props.onReview}>stub-review</button>
           <button type="button" onClick={() => props.onFallbackFiles([new File(['x'], 'f1.jpg', { type: 'image/jpeg' }), new File(['x'], 'f2.jpg', { type: 'image/jpeg' })])}>stub-fallback</button>
         </div>
       );
@@ -153,29 +153,6 @@ describe('PdfScanTool', () => {
       expect(tableTiles()).toHaveLength(1);
     });
 
-    it('takes the last page away on Retake and keeps the camera', async () => {
-      await openCamera();
-      await act(async () => { stub('stub-take').click(); });
-      await settle();
-      await act(async () => { stub('stub-take').click(); });
-      await settle();
-      await act(async () => { stub('stub-retake-last').click(); });
-      await settle();
-      expect(viewfinder().getAttribute('data-count')).toBe('1');
-      await act(async () => { stub('stub-close').click(); });
-      expect(tableTiles()).toHaveLength(1);
-    });
-
-    it('closes and opens the last page\'s corners from Fix corners', async () => {
-      await openCamera();
-      await act(async () => { stub('stub-take').click(); });
-      await settle();
-      await act(async () => { stub('stub-fix').click(); });
-      await settle();
-      expect(viewfinder()).toBeNull();
-      expect(handles()).toHaveLength(4);
-    });
-
     it('adds the photos of the native input when the camera falls back', async () => {
       await openCamera();
       await act(async () => { stub('stub-fallback').click(); });
@@ -277,30 +254,16 @@ describe('PdfScanTool', () => {
     expect(checked('Page size')).toBe('A4');
   });
 
-  it('offers Sign, Redact, Compress once the PDF is ready', async () => {
+  it('offers Sign, Redact, Compress in the rail once the PDF is ready, on the table and beside a page', async () => {
     mount();
     await pick([jpeg('a.jpg')]);
     await settle(1000);
     expect(container.querySelector('[data-scan-ready]')).not.toBeNull();
-    // The table's quiet row hands off to Sign and Redact; the rail adds Compress.
-    const labels = Array.from(container.querySelectorAll('button')).map((b) => b.textContent.trim());
-    const quiet = Array.from(container.querySelectorAll('[data-quiet-row] button')).map((b) => b.textContent.trim());
-    expect(quiet).toEqual(expect.arrayContaining(['Sign', 'Redact']));
-    expect(labels).toEqual(expect.arrayContaining(['Sign', 'Redact', 'Compress']));
-  });
-
-  it('marks the rail finish desktop-only on the table (the phone block carries it) and not on a page view', async () => {
-    mount();
-    await pick([jpeg('a.jpg')]);
-    await settle(1000);
-    const pinned = container.querySelector('[data-rail-pinned]');
-    const finish = pinned.querySelector('[data-rail-finish]');
-    expect(finish).not.toBeNull();
-    expect(finish.querySelector('a, button')).not.toBeNull();
+    const pinned = () => Array.from(container.querySelectorAll('[data-rail-pinned] button')).map((b) => b.textContent.trim());
+    expect(pinned()).toEqual(expect.arrayContaining(['Sign', 'Redact', 'Compress']));
     await openPage(1);
     await settle();
-    expect(container.querySelector('[data-rail-finish]')).toBeNull();
-    expect(container.querySelector('[data-rail-pinned]')).not.toBeNull();
+    expect(pinned()).toEqual(expect.arrayContaining(['Sign', 'Redact', 'Compress']));
   });
 
   it('says so when a size limit cannot be met', async () => {
@@ -701,5 +664,120 @@ describe('PdfScanTool', () => {
     } finally {
       scrollTo.mockRestore();
     }
+  });
+
+  describe('on a phone (SCAN-13)', () => {
+    const viewer = () => container.querySelector('[data-page-viewer]');
+    const viewfinder = () => container.querySelector('[data-viewfinder]');
+    let realMatchMedia;
+    let realShowModal;
+    let realClose;
+
+    beforeEach(() => {
+      realMatchMedia = window.matchMedia;
+      window.matchMedia = (query) => ({ matches: !query.includes('min-width'), media: query, addEventListener() {}, removeEventListener() {} });
+      realShowModal = HTMLDialogElement.prototype.showModal;
+      realClose = HTMLDialogElement.prototype.close;
+      HTMLDialogElement.prototype.showModal = function showModal() { this.setAttribute('open', ''); };
+      HTMLDialogElement.prototype.close = function close() { this.removeAttribute('open'); };
+    });
+    afterEach(() => {
+      // Unmounted here: an open viewer closes its dialog on the way out, while the stub is still in place.
+      if (container) { act(() => render(null, container)); container.remove(); container = null; }
+      window.matchMedia = realMatchMedia;
+      HTMLDialogElement.prototype.showModal = realShowModal;
+      HTMLDialogElement.prototype.close = realClose;
+      vi.mocked(canUseCamera).mockReturnValue(false);
+    });
+
+    it('renders the phone table and none of the workspace', async () => {
+      mount();
+      await pick([jpeg('a.jpg'), jpeg('b.jpg')]);
+      await settle(400);
+      expect(tableTiles()).toHaveLength(2);
+      expect(container.querySelector('[data-clear-all]')).not.toBeNull();
+      expect(container.querySelector('[data-rail]')).toBeNull();
+    });
+
+    it('a tile opens the viewer over the table, and Done closes it', async () => {
+      mount();
+      await pick([jpeg('a.jpg'), jpeg('b.jpg')]);
+      await openPage(2);
+      expect(viewer().querySelector('[data-page-heading]').textContent).toContain('Page 2 of 2');
+      expect(tableTiles()).toHaveLength(2);
+      expect(container.querySelector('[data-rail]')).toBeNull();
+      await act(async () => { viewer().querySelector('[data-page-done]').click(); });
+      await settle();
+      expect(viewer()).toBeNull();
+    });
+
+    it('Use these corners lands the flatten on the current page, not its neighbour', async () => {
+      mount();
+      await pick([jpeg('a.jpg'), jpeg('b.jpg')]);
+      await settle(400);
+      await openCorners(2);
+      vi.mocked(playFlatten).mockClear();
+      await useCorners();
+      await settle();
+      const target = vi.mocked(playFlatten).mock.calls.at(-1)?.[2];
+      expect(target?.closest('[data-current]')).not.toBeNull();
+    });
+
+    it('the stack opens the viewer over the paused camera; Done goes back to the camera', async () => {
+      vi.mocked(canUseCamera).mockReturnValue(true);
+      mount();
+      await act(async () => { Array.from(container.querySelectorAll('label')).find((l) => l.textContent.trim() === 'Start scanning').click(); });
+      await settle();
+      await act(async () => { byText('stub-take')[0].click(); });
+      await settle();
+      await act(async () => { byText('stub-review')[0].click(); });
+      await settle();
+      expect(viewer()).not.toBeNull();
+      expect(finder.props.paused).toBe(true);
+      await act(async () => { viewer().querySelector('[data-page-done]').click(); });
+      await settle();
+      expect(viewer()).toBeNull();
+      expect(viewfinder().getAttribute('data-mode')).toBe('many');
+      expect(finder.props.paused).toBe(false);
+    });
+
+    it('Retake from the stack takes that page again and goes back to taking pages', async () => {
+      vi.mocked(canUseCamera).mockReturnValue(true);
+      mount();
+      await act(async () => { Array.from(container.querySelectorAll('label')).find((l) => l.textContent.trim() === 'Start scanning').click(); });
+      await settle();
+      await act(async () => { byText('stub-take')[0].click(); });
+      await settle();
+      await act(async () => { byText('stub-review')[0].click(); });
+      await settle();
+      await act(async () => { byText('Retake')[0].click(); });
+      await settle();
+      expect(viewer()).toBeNull();
+      expect(viewfinder().getAttribute('data-mode')).toBe('one');
+      await act(async () => { byText('stub-take')[0].click(); });
+      await settle();
+      expect(viewfinder().getAttribute('data-mode')).toBe('many');
+      expect(viewfinder().getAttribute('data-count')).toBe('1');
+    });
+
+    it('binds hold and drag to the grid on screen', async () => {
+      const create = vi.spyOn(Sortable, 'create');
+      mount();
+      await pick([jpeg('a.jpg'), jpeg('b.jpg')]);
+      await settle();
+      expect(create.mock.calls.at(-1)?.[0]).toBe(tableTiles()[0].closest('ul'));
+      create.mockRestore();
+    });
+  });
+
+  it('binds hold and drag to the table on desktop, and to the strip beside a page', async () => {
+    const create = vi.spyOn(Sortable, 'create');
+    mount();
+    await pick([jpeg('a.jpg'), jpeg('b.jpg')]);
+    await settle();
+    expect(create.mock.calls.at(-1)?.[0]).toBe(tableTiles()[0].closest('ul'));
+    await openPage(1);
+    expect(create.mock.calls.at(-1)?.[0]).toBe(container.querySelector('[data-selected]').closest('ul'));
+    create.mockRestore();
   });
 });
