@@ -2,6 +2,7 @@ import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
 import PdfSignTool from '../../tools/sign/PdfSignTool.tsx';
+import { until } from '../support/until.js';
 import { RESTORE_TIMEOUT_MS } from '#lib/drafts/useDraftPersistence.js';
 
 // Coverage for the "checking draft" gate that replaces the flicker of an empty
@@ -64,6 +65,8 @@ vi.mock('pdfjs-dist', () => ({
 describe('checking-draft placeholder (avoids the empty-dropzone flicker)', () => {
   let container: HTMLElement | null = null;
 
+  const announcedText = () => container?.querySelector('p.sr-only[role="status"]')?.textContent ?? '';
+
   beforeEach(() => {
     loadDraftDeferred = deferred();
     hint = false;
@@ -108,17 +111,25 @@ describe('checking-draft placeholder (avoids the empty-dropzone flicker)', () =>
     await act(async () => {
       loadDraftDeferred.resolve(draftRecord('draft-old.pdf'));
     });
-    await act(async () => {
-      await new Promise((resolve) => setTimeout(resolve, 30));
-    });
+    await until(() => announcedText().includes('Restored your last draft'));
 
     expect(container.textContent).not.toContain('Checking for a saved draft');
-    const announcement = container.querySelector('p.sr-only[role="status"]');
-    expect(announcement.textContent).toContain('Restored your last draft of "draft-old.pdf"');
-  });
+    expect(announcedText()).toContain('Restored your last draft of "draft-old.pdf"');
+    // The wait is on the condition, which waits on a lazy import: allow for a loaded machine.
+  }, 20_000);
 
   it('gives up waiting after the restore timeout and reveals the empty state, but still applies a late-arriving draft', async () => {
-    vi.useFakeTimers();
+    // Only the clock is faked: setImmediate stays real so lazy imports can settle between steps.
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'setInterval', 'clearInterval', 'Date'] });
+    // Steps the fake clock until the condition holds, bounded so a regression fails instead of hanging.
+    const stepUntil = async (cond: () => boolean) => {
+      for (let i = 0; i < 200 && !cond(); i++) {
+        await act(async () => {
+          await vi.advanceTimersByTimeAsync(100);
+          await new Promise((resolve) => setImmediate(resolve));
+        });
+      }
+    };
     try {
       hint = true;
       container = document.createElement('div');
@@ -129,9 +140,9 @@ describe('checking-draft placeholder (avoids the empty-dropzone flicker)', () =>
 
       expect(container.querySelector('[aria-busy]')?.getAttribute('aria-busy')).toBe('true');
 
-      await act(async () => {
-        await vi.advanceTimersByTimeAsync(RESTORE_TIMEOUT_MS + 10);
-      });
+      const startedAt = Date.now();
+      await stepUntil(() => container!.textContent!.includes('Drop PDF'));
+      expect(Date.now() - startedAt).toBeGreaterThanOrEqual(RESTORE_TIMEOUT_MS);
 
       // Timed out: the real dropzone is back, even though the restore itself
       // is still pending.
@@ -144,14 +155,11 @@ describe('checking-draft placeholder (avoids the empty-dropzone flicker)', () =>
       await act(async () => {
         loadDraftDeferred.resolve(draftRecord('slow-draft.pdf'));
       });
-      await act(async () => {
-        await vi.advanceTimersByTimeAsync(30);
-      });
+      await stepUntil(() => announcedText().includes('Restored your last draft'));
 
-      const announcement = container.querySelector('p.sr-only[role="status"]');
-      expect(announcement.textContent).toContain('Restored your last draft of "slow-draft.pdf"');
+      expect(announcedText()).toContain('Restored your last draft of "slow-draft.pdf"');
     } finally {
       vi.useRealTimers();
     }
-  });
+  }, 20_000);
 });

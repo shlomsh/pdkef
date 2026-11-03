@@ -121,7 +121,8 @@ describe('layout corpus: pinned rows against today\'s reader', () => {
     expect(results.find((r) => r.id === 'pull-quote').pass).toBe(true);
     const controls = runPinnedRows({ pages, reader: todaysReader, rows: PINNED_ROWS.filter((p) => ['gutter-dust', 'margin-speck'].includes(p.id)).map((p) => ({ ...p, edits: undefined })) });
     expect(controls.every((r) => r.pass)).toBe(true);
-  });
+    // Two fresh degrade-and-read passes with no edits (about 1.2 s alone) are the point, so allow for a loaded machine.
+  }, 30_000);
 
   it('matches the recorded baseline for the pinned rows', () => {
     expect(recorded.pinned).toEqual(results.map(({ id, knownGap, pass, why }) => ({ id, knownGap, pass, why })));
