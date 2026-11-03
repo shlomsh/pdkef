@@ -1,3 +1,4 @@
+import type { ComponentChildren } from 'preact';
 import { useState } from 'preact/hooks';
 import PhoneFinish from '#shell/pageWorkspace/PhoneFinish.tsx';
 import { workspaceStyles } from '#shell/pageWorkspace/PageWorkspace.tsx';
@@ -9,7 +10,8 @@ import type { useImageBatch } from '../hooks/useImageBatch.ts';
 import { formatBytes } from '../lib/resultView.ts';
 import type { CompressMessages } from '../messages';
 import styles from '../PdfCompressTool.module.css';
-import BatchList from './BatchList.tsx';
+import BatchGrid from './BatchGrid.tsx';
+import gridStyles from './BatchGrid.module.css';
 import BatchPreview from './BatchPreview.tsx';
 import { TargetSizePanel, type OnTargetChange } from './LevelPicker.tsx';
 import ResultSheet from './ResultSheet.tsx';
@@ -20,6 +22,8 @@ interface BatchWorkspaceProps {
   /** The island's compare previews, free while a set is open: one photo's preview borrows them. */
   compare: ReturnType<typeof useComparePreviews>;
   flow: ReturnType<typeof useDownloadFlow>;
+  /** What the pick left out, drawn with the class it is given. */
+  notes: (className: string) => ComponentChildren;
   /** "12 photos": the set's name in the strip, the Download element and the phone bar. */
   name: string;
   targetKB: number;
@@ -31,7 +35,7 @@ interface BatchWorkspaceProps {
 }
 
 /** COMP-04: the loaded state for several photos, on the single photo's grid: strip, target, rows, Download. */
-export default function BatchWorkspace({ t, batch, compare, flow, name, targetKB, presets, onTargetKBChange, arrow }: BatchWorkspaceProps) {
+export default function BatchWorkspace({ t, batch, compare, flow, notes, name, targetKB, presets, onTargetKBChange, arrow }: BatchWorkspaceProps) {
   const { prepared } = batch;
   // The photo whose preview is open, by file, so a new set (whose ids start over) never opens a stranger.
   const [opened, setOpened] = useState<File | null>(null);
@@ -60,16 +64,27 @@ export default function BatchWorkspace({ t, batch, compare, flow, name, targetKB
           </ToolShell>
         </div>
         {openedRow ? (
-          <BatchPreview t={t} compare={compare} row={openedRow} targetKB={batch.state.targetKB} total={batch.summary.total} arrow={arrow} onBack={() => setOpened(null)} />
+          <BatchPreview
+            t={t}
+            compare={compare}
+            row={openedRow}
+            rows={batch.state.rows}
+            targetKB={batch.state.targetKB}
+            arrow={arrow}
+            urlFor={batch.urlFor}
+            onSaved={flow.onPartSaved}
+            onOpen={setOpened}
+            onBack={() => setOpened(null)}
+          />
         ) : (
-          <BatchList
+          <BatchGrid
             t={t}
             rows={batch.state.rows}
             summary={batch.summary}
             targetKB={batch.state.targetKB}
             arrow={arrow}
-            urlFor={batch.urlFor}
-            onRowSaved={flow.onPartSaved}
+            thumbnails={batch.thumbnails}
+            notes={notes(gridStyles.note)}
             onOpen={setOpened}
           />
         )}

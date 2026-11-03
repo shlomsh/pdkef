@@ -6,12 +6,12 @@ import { waitForIsland } from '../../../../e2e/support/tool.js';
 // claims cannot be proven in jsdom: it has no JPEG encoder (so no real
 // re-encode to a byte target), no multi-file picker, and no real downloads.
 // This spec drives the real island in a real browser: three photos go in
-// through one setInputFiles call, every row must land on the 50 KB target,
-// and the bytes each row saves (and the rail's save-everything Download) are
+// through one setInputFiles call, every photo must land on the 50 KB target,
+// and the bytes each photo's preview saves (and the rail's save-everything Download) are
 // checked as real JPEGs, not component state.
 //
 // Fixtures are generated in-page with canvas (the drawing approach of
-// image-target-size.spec.js), so no binary is committed. Row links are read by
+// image-target-size.spec.js), so no binary is committed. Save links are read by
 // clicking them, as in that spec: fetch() on a blob: URL is blocked by the
 // app's connect-src 'self'.
 //
@@ -79,8 +79,10 @@ test.describe('compress image - batch', () => {
 
     await page.locator('input[type="file"]').setInputFiles(files);
 
-    const rows = page.locator('li[data-batch-row]');
-    await expect(rows).toHaveCount(3);
+    const tiles = page.locator('li[data-batch-photo]');
+    await expect(tiles).toHaveCount(3);
+    // Each photo shows as itself, drawn from the original.
+    await expect.poll(() => tiles.locator('img').evaluateAll((imgs) => imgs.filter((img) => img.complete && img.naturalWidth > 0).length)).toBe(3);
     const layout = page.locator('[data-compress-batch]');
     await expect(layout).toHaveAttribute('data-compress-status', 'done', { timeout: 60_000 });
 
@@ -89,13 +91,15 @@ test.describe('compress image - batch', () => {
     // "done" can never pass for this one.
     await expect(page.locator('[data-batch-summary]')).toContainText(`${TARGET_KB} KB`, { timeout: 60_000 });
     await expect(layout).toHaveAttribute('data-compress-status', 'done');
-    await expect(rows).toHaveCount(3);
+    for (let i = 0; i < 3; i += 1) await expect(tiles.nth(i)).toHaveAttribute('data-outcome', 'met');
 
+    // Each photo saves from its own preview; the bar's arrow walks to the next one.
+    await tiles.first().locator('[data-batch-open]').click();
+    const bar = page.locator('[data-batch-preview-bar]');
     const names = [];
     for (let i = 0; i < 3; i += 1) {
-      const row = rows.nth(i);
-      await expect(row).toHaveAttribute('data-outcome', 'met');
-      const link = row.locator('a[data-batch-save]');
+      await expect(bar.locator('[data-batch-position]')).toHaveText(`${i + 1} of 3`);
+      const link = bar.locator('a[data-batch-save]');
       await expect(link).toHaveAttribute('href', /^blob:/);
       names.push(await link.getAttribute('download'));
 
@@ -105,8 +109,11 @@ test.describe('compress image - batch', () => {
       const bytes = fs.readFileSync(await download.path());
       expect(Array.from(bytes.slice(0, 3))).toEqual([0xff, 0xd8, 0xff]);
       expect(bytes.length).toBeLessThanOrEqual(TARGET_KB * 1024);
+      if (i < 2) await bar.locator('[data-batch-next]').click();
     }
     expect(new Set(names).size).toBe(3);
+    await bar.locator('[data-batch-back]').click();
+    await expect(tiles).toHaveCount(3);
 
     const suggested = [];
     page.on('download', (d) => suggested.push(d.suggestedFilename()));
@@ -116,32 +123,31 @@ test.describe('compress image - batch', () => {
   });
 
   // Reported 2026-11-03 with twelve photos: a set longer than the desktop stage squeezed every row
-  // below its content, so the status line and Save spilled over the row's edge and nothing scrolled.
-  // Small photos pass through untouched, so a long set is quick to make.
-  test('a set longer than the stage keeps every row whole and scrolls the list', async ({ page, browserName }) => {
+  // below its content and nothing scrolled. A long set keeps every tile square and whole and scrolls
+  // inside the stage, with Download still on screen. Small photos pass through untouched, so it is quick.
+  test('a set longer than the stage keeps every tile whole and scrolls the grid', async ({ page, browserName }) => {
     test.skip(browserName !== 'chromium', 'Layout only needs checking once.');
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.goto('/compress-image/');
     await waitForIsland(page);
 
     const photos = [];
-    for (let i = 1; i <= 14; i += 1) photos.push({ name: `photo-${i}.jpg`, mimeType: 'image/jpeg', buffer: await makeJpeg(page, 120, 90) });
+    for (let i = 1; i <= 30; i += 1) photos.push({ name: `photo-${i}.jpg`, mimeType: 'image/jpeg', buffer: await makeJpeg(page, 120, 90) });
     await page.locator('input[type="file"]').setInputFiles(photos);
     await expect(page.locator('[data-compress-batch]')).toHaveAttribute('data-compress-status', 'done', { timeout: 60_000 });
 
-    const layout = await page.locator('[data-batch] ol').evaluate((list) => ({
-      listScrolls: list.scrollHeight > list.clientHeight,
-      // A row is clipped when any of its text (name, sizes, status) reaches past its bottom edge. Save's
-      // 44px touch target reaches past the padding on purpose, so it is measured by its text alone.
-      clippedRows: [...list.children].filter((row) => {
-        const bottom = row.getBoundingClientRect().bottom;
-        return [...row.children].some((part) => {
-          const range = document.createRange();
-          range.selectNodeContents(part);
-          return range.getBoundingClientRect().bottom > bottom + 0.5;
-        });
+    const layout = await page.locator('[data-batch] ol').evaluate((grid) => ({
+      gridScrolls: grid.scrollHeight > grid.clientHeight,
+      // A tile is broken when its photo is not square or its caption reaches past the tile's foot.
+      brokenTiles: [...grid.children].filter((tile) => {
+        const box = tile.getBoundingClientRect();
+        const photo = tile.querySelector('[data-batch-thumb]').getBoundingClientRect();
+        const caption = tile.querySelector('[data-batch-caption]').getBoundingClientRect();
+        return Math.abs(photo.width - photo.height) > 1 || caption.bottom > box.bottom + 0.5;
       }).length,
     }));
-    expect(layout).toEqual({ listScrolls: true, clippedRows: 0 });
+    expect(layout).toEqual({ gridScrolls: true, brokenTiles: 0 });
+    const download = await page.getByRole('button', { name: /^Download\b/ }).boundingBox();
+    expect(download.y + download.height).toBeLessThanOrEqual(900);
   });
 });
