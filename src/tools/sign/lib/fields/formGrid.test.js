@@ -120,6 +120,29 @@ describe('findCombRuns', () => {
       ].join(' ');
       expect(findCombRuns(inkOf(stream)).map((run) => run.cells).sort()).toEqual([6, 6]);
     });
+
+    it('keeps a neighbouring box that shares a wall but is 4pt off the pitch as its own run', () => {
+      // The redaction sample's postal code sits next to a 16pt cell at 20pt pitch. The ratio (0.8) is
+      // the same as a real field's, so only the absolute pitch difference tells them apart.
+      const stream = [
+        teeth({ from: 100, pitch: 16, count: 7 }),
+        teeth({ from: 196, pitch: 20, count: 7 }),
+      ].join(' ');
+      const runs = findCombRuns(inkOf(stream)).sort((a, b) => a.left - b.left);
+      expect(runs.map((run) => run.cells)).toEqual([6, 6]);
+      expect(runs[0].right).toBeCloseTo(runs[1].left, 5);
+    });
+
+    it('joins two pieces of one field whose pitches differ by under 2pt around a decimal gap', () => {
+      const stream = [
+        teeth({ from: 100, pitch: 9.5, count: 7 }),
+        teeth({ from: 161.8, pitch: 8.2, count: 6 }),
+      ].join(' ');
+      const runs = findCombRuns(inkOf(stream));
+      expect(runs).toHaveLength(1);
+      expect(runs[0].left).toBeCloseTo(100, 5);
+      expect(runs[0].right).toBeCloseTo(202.8, 5);
+    });
   });
 
   describe('closed cells versus teeth on a line', () => {
