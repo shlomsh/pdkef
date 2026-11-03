@@ -1,4 +1,4 @@
-import { useEffect } from 'preact/hooks';
+import { useEffect, useRef } from 'preact/hooks';
 import FileName from '#shell/FileName.tsx';
 import { formatMessage } from '#lib/text/formatMessage.ts';
 import { reportError } from '#lib/telemetry/errorReport.ts';
@@ -53,6 +53,20 @@ export default function BatchPreview({ t, compare, row, rows, targetKB, arrow, u
     if (blob && !passthrough) compare.open(file, blob).catch((err) => reportError('pdf_render', err, 'compare_open'));
   }, [blob]);
 
+  // Escape goes back to the set, as the bar's own button does, except while Full screen is open (Escape
+  // closes that alone) or while a field takes the key.
+  const onBackRef = useRef(onBack);
+  onBackRef.current = onBack;
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape' || event.defaultPrevented || document.querySelector('dialog[open]')) return;
+      if ((event.target as Element | null)?.closest?.('input, textarea, select, [contenteditable="true"]')) return;
+      onBackRef.current();
+    };
+    document.addEventListener('keydown', onKeyDown);
+    return () => document.removeEventListener('keydown', onKeyDown);
+  }, []);
+
   const index = rows.indexOf(row);
   const previous = rows.slice(0, index).reverse().find((r) => r.blob);
   const next = rows.slice(index + 1).find((r) => r.blob);
@@ -73,11 +87,12 @@ export default function BatchPreview({ t, compare, row, rows, targetKB, arrow, u
       </button>
       <FileName name={file.name} className={styles.name} />
       <div class={styles.step}>
-        <button type="button" class={styles.arrow} disabled={!previous} onClick={() => previous && onOpen(previous.file)} aria-label={t.batchPrevious} data-batch-prev>
+        {/* aria-disabled, not disabled: a keyboard press on the last arrow keeps its focus. */}
+        <button type="button" class={styles.arrow} aria-disabled={!previous || undefined} onClick={() => previous && onOpen(previous.file)} aria-label={t.batchPrevious} data-batch-prev>
           <Glyph d={back} />
         </button>
         <span class={styles.position} data-batch-position>{formatMessage(t.batchPosition, { index: index + 1, total: rows.length })}</span>
-        <button type="button" class={styles.arrow} disabled={!next} onClick={() => next && onOpen(next.file)} aria-label={t.batchNext} data-batch-next>
+        <button type="button" class={styles.arrow} aria-disabled={!next || undefined} onClick={() => next && onOpen(next.file)} aria-label={t.batchNext} data-batch-next>
           <Glyph d={forward} />
         </button>
       </div>

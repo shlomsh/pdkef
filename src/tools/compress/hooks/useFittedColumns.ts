@@ -18,6 +18,8 @@ export function useFittedColumns(ref: RefObject<HTMLElement>, count: number): nu
     if (!grid || typeof ResizeObserver === 'undefined' || typeof window.matchMedia !== 'function') return undefined;
     const desktop = window.matchMedia(DESKTOP);
     const measure = () => {
+      // A hidden grid (behind a photo's preview) measures nothing; it is measured again when it shows.
+      if (grid.clientWidth === 0) return;
       if (!desktop.matches) {
         setColumns(null);
         return;

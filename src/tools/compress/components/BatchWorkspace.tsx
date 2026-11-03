@@ -40,6 +40,12 @@ export default function BatchWorkspace({ t, batch, compare, flow, notes, name, t
   // The photo whose preview is open, by file, so a new set (whose ids start over) never opens a stranger.
   const [opened, setOpened] = useState<File | null>(null);
   const openedRow = batch.state.rows.find((row) => row.file === opened) ?? null;
+  // Back from a photo lands on its tile, so the keyboard picks up where the person left the set.
+  const [returnTo, setReturnTo] = useState<File | null>(null);
+  const back = () => {
+    setReturnTo(opened);
+    setOpened(null);
+  };
   const onTargetChange: OnTargetChange = (kb, options) => {
     onTargetKBChange(kb);
     batch.setTarget(kb, options);
@@ -63,7 +69,19 @@ export default function BatchWorkspace({ t, batch, compare, flow, notes, name, t
             <FileActions />
           </ToolShell>
         </div>
-        {openedRow ? (
+        <BatchGrid
+          t={t}
+          rows={batch.state.rows}
+          summary={batch.summary}
+          targetKB={batch.state.targetKB}
+          arrow={arrow}
+          thumbnails={batch.thumbnails}
+          focusOn={returnTo}
+          hidden={!!openedRow}
+          notes={notes(gridStyles.note)}
+          onOpen={setOpened}
+        />
+        {openedRow && (
           <BatchPreview
             t={t}
             compare={compare}
@@ -74,18 +92,7 @@ export default function BatchWorkspace({ t, batch, compare, flow, notes, name, t
             urlFor={batch.urlFor}
             onSaved={flow.onPartSaved}
             onOpen={setOpened}
-            onBack={() => setOpened(null)}
-          />
-        ) : (
-          <BatchGrid
-            t={t}
-            rows={batch.state.rows}
-            summary={batch.summary}
-            targetKB={batch.state.targetKB}
-            arrow={arrow}
-            thumbnails={batch.thumbnails}
-            notes={notes(gridStyles.note)}
-            onOpen={setOpened}
+            onBack={back}
           />
         )}
         <div class={styles.controls} data-controls>

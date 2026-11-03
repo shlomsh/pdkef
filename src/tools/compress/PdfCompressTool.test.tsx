@@ -1753,6 +1753,41 @@ describe('PdfCompressTool UI flow', () => {
       expect(toTarget).toHaveBeenCalledTimes(2);
     });
 
+    it('the strip sums only the photos Download saves when one fails', async () => {
+      mount();
+      toTarget
+        .mockImplementationOnce(() => Promise.resolve(makeImageResult({ blob: new Blob([new Uint8Array(100_000)], { type: 'image/jpeg' }) })))
+        .mockImplementationOnce(() => Promise.reject(new Error('unreadable')));
+      await pickMany([makeImageFile('a.jpg', 1_000_000), makeImageFile('b.jpg', 1_000_000)]);
+      const sizes = container.querySelector('[data-strip] [data-compress-sizes]').textContent;
+      expect(sizes).toContain('976.56 KB');
+      expect(sizes).toContain('90% smaller');
+    });
+
+    it('draws no thumbnail while a photo is compressing: one big image in memory at a time', async () => {
+      mount();
+      const first = deferred();
+      toTarget.mockImplementationOnce(() => first.promise);
+      await pickMany([makeImageFile('a.jpg', 900_000), makeImageFile('b.jpg', 800_000)], ran(toTarget, 1));
+      await wait(30);
+      expect(harness.pdfjs.thumbnails.renderThumbnail).not.toHaveBeenCalled();
+      await act(async () => { first.resolve(makeImageResult()); });
+      await settled();
+      expect(harness.pdfjs.thumbnails.renderThumbnail).toHaveBeenCalledTimes(2);
+    });
+
+    it('a failed or unchanged photo says its state once to a screen reader', async () => {
+      mount();
+      const b = makeImageFile('b.jpg', 50_000);
+      toTarget
+        .mockImplementationOnce(() => Promise.reject(new Error('boom')))
+        .mockImplementationOnce(() => Promise.resolve(makeImageResult({ blob: b })));
+      await pickMany([makeImageFile('a.jpg', 900_000), b]);
+      const [failed, kept] = rows().map((r) => r.querySelector('[data-batch-caption]').textContent);
+      expect(failed).toBe("Couldn't read this one");
+      expect(kept).not.toContain('kept as it was');
+    });
+
     it('names missed, kept and failed rows and still finishes', async () => {
       mount();
       const a = makeImageFile('a.jpg', 900_000);
@@ -1803,7 +1838,7 @@ describe('PdfCompressTool UI flow', () => {
     it("announces the finished set once, and names each photo's button by its photo", async () => {
       mount();
       await pickMany([makeImageFile('a.jpg', 900_000), makeImageFile('b.jpg', 800_000)]);
-      const live = container.querySelector('[data-batch] [role="status"]');
+      const live = container.querySelector('[data-batch-live]');
       expect(live.textContent).toBe(container.querySelector('[data-batch-summary]').textContent);
       expect(Array.from(container.querySelectorAll('[data-batch-open]')).map((b) => b.getAttribute('aria-label'))).toEqual(['Compare a.jpg', 'Compare b.jpg']);
       expect(container.querySelector('[data-batch] ol').getAttribute('role')).toBe('list');
@@ -1816,7 +1851,8 @@ describe('PdfCompressTool UI flow', () => {
       expect(container.querySelector('[data-result]')).toBeNull();
       await act(async () => { container.querySelector('[data-batch-open]').click(); });
       await settled();
-      expect(container.querySelector('[data-batch] ol')).toBeNull();
+      // The set stays mounted behind the preview, so its scroll and pictures are as they were on the way back.
+      expect(container.querySelector('[data-batch]').hidden).toBe(true);
       const result = container.querySelector('[data-result]');
       expect(result.querySelector('[data-compare-panel]')).not.toBeNull();
       expect(result.textContent).toContain('1600 × 1200');
@@ -1824,6 +1860,38 @@ describe('PdfCompressTool UI flow', () => {
       await act(async () => { container.querySelector('[data-batch-back]').click(); });
       expect(container.querySelector('[data-result]')).toBeNull();
       expect(rows()).toHaveLength(2);
+    });
+
+    it("Escape in a photo's preview goes back to the set and lands on that photo; not while Full screen is open", async () => {
+      mount();
+      await pickMany([makeImageFile('a.jpg', 900_000), makeImageFile('b.jpg', 800_000)]);
+      await act(async () => { container.querySelectorAll('[data-batch-open]')[1].click(); });
+      await settled();
+      const escape = () => act(async () => { document.activeElement.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true })); });
+      await act(async () => { Array.from(container.querySelectorAll('[data-result] button')).find((b) => b.textContent.includes('Full screen')).click(); });
+      await settled();
+      if (document.querySelector('dialog[open]')) {
+        document.querySelector('dialog[open]').querySelector('button').focus();
+        await escape();
+        expect(container.querySelector('[data-batch-preview-bar]')).not.toBeNull();
+        document.querySelector('dialog[open]')?.close();
+      }
+      container.querySelector('[data-batch-next]')?.focus();
+      await escape();
+      expect(container.querySelector('[data-batch-preview-bar]')).toBeNull();
+      expect(rows()).toHaveLength(2);
+      expect(document.activeElement).toBe(rows()[1].querySelector('[data-batch-open]'));
+    });
+
+    it('Escape while typing a target stays in the preview', async () => {
+      mount();
+      await pickMany([makeImageFile('a.jpg', 900_000), makeImageFile('b.jpg', 800_000)]);
+      await act(async () => { container.querySelector('[data-batch-open]').click(); });
+      await settled();
+      const field = container.querySelector('#image-target-size-input');
+      field.focus();
+      await act(async () => { field.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true })); });
+      expect(container.querySelector('[data-batch-preview-bar]')).not.toBeNull();
     });
 
     it('the preview steps through the finished photos and saves the one on screen', async () => {
@@ -1837,14 +1905,20 @@ describe('PdfCompressTool UI flow', () => {
       const save = () => bar().querySelector('a[data-batch-save]');
       expect(bar().querySelector('[data-batch-position]').textContent).toBe('1 of 2');
       expect(bar().textContent).toContain('a.jpg');
-      expect(prev().disabled).toBe(true);
+      // Disabled by aria-disabled, so a keyboard press on the last arrow keeps its focus.
+      expect(prev().getAttribute('aria-disabled')).toBe('true');
       expect(save().getAttribute('aria-label')).toBe('Save a.jpg');
       expect(save().getAttribute('download')).toBe('a-compressed.jpg');
       await act(async () => { next().click(); });
       await settled();
       expect(bar().querySelector('[data-batch-position]').textContent).toBe('2 of 2');
       expect(bar().textContent).toContain('b.jpg');
-      expect(next().disabled).toBe(true);
+      expect(next().getAttribute('aria-disabled')).toBe('true');
+      expect(next().disabled).toBe(false);
+      next().focus();
+      await act(async () => { next().click(); });
+      expect(bar().querySelector('[data-batch-position]').textContent).toBe('2 of 2');
+      expect(document.activeElement).toBe(next());
       expect(save().getAttribute('aria-label')).toBe('Save b.jpg');
       await act(async () => { prev().click(); });
       expect(bar().querySelector('[data-batch-position]').textContent).toBe('1 of 2');

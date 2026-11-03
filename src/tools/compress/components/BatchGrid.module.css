@@ -11,6 +11,10 @@
   border-radius: 18px;
 }
 
+.batch[hidden] {
+  display: none;
+}
+
 .head {
   display: flex;
   flex-direction: column;
