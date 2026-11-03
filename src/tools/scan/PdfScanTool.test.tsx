@@ -7,6 +7,7 @@ import * as pipeline from './lib/scanPipeline.ts';
 import { setInputFiles } from '../../test/support/setInputFiles.js';
 import { rotateQuad, turnedQuad } from './lib/quad.ts';
 import { playFlatten } from './lib/flattenAnimation.ts';
+import { canUseCamera } from './camera/canUseCamera.ts';
 import { installToolHarness, type ToolHarness } from '../../test/harness/toolHarness.ts';
 
 // EDGE: the flatten animation paints the photo into a 2d canvas context, which jsdom does not have.
@@ -23,6 +24,26 @@ vi.mock('./lib/scanPipeline.ts', () => ({
   processPage: vi.fn(),
   buildScanPdf: vi.fn(),
   turnImage: vi.fn(),
+}));
+
+// The live camera: whether it is usable is the test's call, and the viewfinder is a stub that exposes its props.
+vi.mock('./camera/canUseCamera.ts', () => ({ canUseCamera: vi.fn(() => false) }));
+const finder = vi.hoisted(() => ({ props: null as any }));
+vi.mock('./camera/loadCamera.ts', () => ({
+  loadViewfinder: () => Promise.resolve({
+    default: (props: any) => {
+      finder.props = props;
+      return (
+        <div data-viewfinder data-mode={props.mode} data-count={props.count}>
+          <button type="button" onClick={() => props.onTaken(new File(['x'], 'shot.jpg', { type: 'image/jpeg' }))}>stub-take</button>
+          <button type="button" onClick={props.onClose}>stub-close</button>
+          <button type="button" onClick={props.onRetakeLast}>stub-retake-last</button>
+          <button type="button" onClick={props.onFixCorners}>stub-fix</button>
+          <button type="button" onClick={() => props.onFallbackFiles([new File(['x'], 'f1.jpg', { type: 'image/jpeg' }), new File(['x'], 'f2.jpg', { type: 'image/jpeg' })])}>stub-fallback</button>
+        </div>
+      );
+    },
+  }),
 }));
 
 const QUIET = { baseMs: 100, stepMs: 50, maxMs: 300, burstWindowMs: 1000 };
@@ -87,14 +108,107 @@ describe('PdfScanTool', () => {
     .find((g) => (g.getAttribute('aria-label') ?? container.querySelector(`#${g.getAttribute('aria-labelledby')}`)?.textContent) === label);
   const checked = (label) => radioGroup(label).querySelector('[aria-checked="true"]').textContent.trim();
 
-  it('offers Take a photo on the empty state as an equal of Choose files, wired to the rear camera', () => {
+  it('offers Start scanning on the empty state as an equal of Choose photos, wired to the rear camera', () => {
     mount();
-    const take = Array.from(container.querySelectorAll('label')).find((l) => l.textContent.trim() === 'Take a photo');
-    const choose = Array.from(container.querySelectorAll('label')).find((l) => l.textContent.trim() === 'Choose files');
+    const take = Array.from(container.querySelectorAll('label')).find((l) => l.textContent.trim() === 'Start scanning');
+    const choose = Array.from(container.querySelectorAll('label')).find((l) => l.textContent.trim() === 'Choose photos');
     expect(take.className.split(' ')).toContain(choose.className);
     const input = container.querySelector('input[capture]');
     expect(input.getAttribute('capture')).toBe('environment');
     expect(input.getAttribute('accept')).toBe('image/jpeg,image/png');
+  });
+
+  describe('the live camera', () => {
+    const viewfinder = () => container.querySelector('[data-viewfinder]');
+    const startScanning = () => Array.from(container.querySelectorAll('label')).find((l) => l.textContent.trim() === 'Start scanning');
+    const stub = (text) => byText(text)[0];
+    async function openCamera() {
+      mount();
+      await act(async () => { startScanning().click(); });
+      await settle();
+    }
+
+    beforeEach(() => { vi.mocked(canUseCamera).mockReturnValue(true); });
+    afterEach(() => { vi.mocked(canUseCamera).mockReturnValue(false); });
+
+    it('opens the viewfinder from Start scanning, without opening the input', async () => {
+      mount();
+      const input = startScanning().querySelector('input');
+      const opened = vi.fn();
+      input.addEventListener('click', opened);
+      await act(async () => { startScanning().click(); });
+      await settle();
+      expect(viewfinder().getAttribute('data-mode')).toBe('many');
+      expect(viewfinder().getAttribute('data-count')).toBe('0');
+      expect(opened).not.toHaveBeenCalled();
+    });
+
+    it('adds a page for each photo taken and closes on Done', async () => {
+      await openCamera();
+      await act(async () => { stub('stub-take').click(); });
+      await settle();
+      expect(viewfinder().getAttribute('data-count')).toBe('1');
+      await act(async () => { stub('stub-close').click(); });
+      expect(viewfinder()).toBeNull();
+      expect(tableTiles()).toHaveLength(1);
+    });
+
+    it('takes the last page away on Retake and keeps the camera', async () => {
+      await openCamera();
+      await act(async () => { stub('stub-take').click(); });
+      await settle();
+      await act(async () => { stub('stub-take').click(); });
+      await settle();
+      await act(async () => { stub('stub-retake-last').click(); });
+      await settle();
+      expect(viewfinder().getAttribute('data-count')).toBe('1');
+      await act(async () => { stub('stub-close').click(); });
+      expect(tableTiles()).toHaveLength(1);
+    });
+
+    it('closes and opens the last page\'s corners from Fix corners', async () => {
+      await openCamera();
+      await act(async () => { stub('stub-take').click(); });
+      await settle();
+      await act(async () => { stub('stub-fix').click(); });
+      await settle();
+      expect(viewfinder()).toBeNull();
+      expect(handles()).toHaveLength(4);
+    });
+
+    it('adds the photos of the native input when the camera falls back', async () => {
+      await openCamera();
+      await act(async () => { stub('stub-fallback').click(); });
+      await settle();
+      expect(viewfinder()).toBeNull();
+      expect(tableTiles()).toHaveLength(2);
+    });
+
+    it('replaces the page in place from its page view, in mode one, and closes', async () => {
+      mount();
+      await pick([jpeg('a.jpg'), jpeg('b.jpg')]);
+      await openPage(1);
+      await act(async () => { byText('Retake')[0].click(); });
+      await settle();
+      expect(viewfinder().getAttribute('data-mode')).toBe('one');
+      await act(async () => { stub('stub-take').click(); });
+      await settle();
+      expect(viewfinder()).toBeNull();
+      expect(container.querySelector('[data-page-heading]').textContent).toContain('Page 1 of 2');
+      expect(vi.mocked(pipeline.inspectPhoto).mock.calls.some(([file]) => file.name === 'shot.jpg')).toBe(true);
+    });
+
+    it('is a plain native input when the camera is not usable', async () => {
+      vi.mocked(canUseCamera).mockReturnValue(false);
+      mount();
+      const input = startScanning().querySelector('input');
+      const opened = vi.fn((e) => e.preventDefault());
+      input.addEventListener('click', opened);
+      await act(async () => { startScanning().click(); });
+      await settle();
+      expect(opened).toHaveBeenCalled();
+      expect(viewfinder()).toBeNull();
+    });
   });
 
   it('adds one page per JPEG and names the skipped HEIC', async () => {

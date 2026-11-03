@@ -68,10 +68,10 @@ function ScanOptions({ suffix, options }: { suffix: string; options: ScanOptions
 
 /** The next page is one tap away however far down the page is: the camera on a phone, the picker with a mouse.
  * The pages column carries these from 1024px. */
-function ScanPhoneBar({ addFiles, requestReplace, output }: { addFiles: (files: File[]) => void; requestReplace: () => void; output: ScanOutput }) {
+function ScanPhoneBar({ addFiles, onCamera, requestReplace, output }: { addFiles: (files: File[]) => void; onCamera?: () => void; requestReplace: () => void; output: ScanOutput }) {
   return (
     <div class={workspaceStyles['chip-bar']}>
-      <TakePhotoButton onFiles={addFiles} buttonClass={styles['bar-add']} />
+      <TakePhotoButton onFiles={addFiles} onCamera={onCamera} buttonClass={styles['bar-add']} />
       <button type="button" class={`${styles['bar-add']} ${styles['bar-pick']}`} onClick={requestReplace}>
         <ImagePlus size={18} aria-hidden="true" />
         {t.addPhotos}
@@ -178,6 +178,8 @@ interface ScanWorkspaceProps {
   pages: ScanPage[];
   failedIds: number[];
   addFiles: (files: File[]) => void;
+  /** Opens the live viewfinder, where the device has one. */
+  onCamera?: () => void;
   output: ScanOutput;
   options: ScanOptionsProps;
   /** On a phone the rating ask follows the next steps; on desktop it sits under the page instead. */
@@ -187,12 +189,12 @@ interface ScanWorkspaceProps {
 }
 
 /** The workspace around the photo and the pages: the phone bar, the heading, the rail and the errors. */
-export default function ScanWorkspace({ view, onOpen, results, resultKeyOf, bridge, pages, failedIds, addFiles, output, options, rating, wide, workbench }: ScanWorkspaceProps) {
+export default function ScanWorkspace({ view, onOpen, results, resultKeyOf, bridge, pages, failedIds, addFiles, onCamera, output, options, rating, wide, workbench }: ScanWorkspaceProps) {
   return (
     <PageWorkspace
       rootAttrs={{ 'data-scan-ready': output.prepared.status === 'ready' || undefined }}
       // The table has no bar: Add pages is a tile, Download and the hand-offs are its quiet row.
-      phoneBar={view === 'table' ? undefined : <ScanPhoneBar addFiles={addFiles} requestReplace={bridge.requestReplace} output={output} />}
+      phoneBar={view === 'table' ? undefined : <ScanPhoneBar addFiles={addFiles} onCamera={onCamera} requestReplace={bridge.requestReplace} output={output} />}
       heading={<ScanHeading pageCount={pages.length} output={output} />}
       railContent={(
         <>
@@ -216,6 +218,7 @@ export default function ScanWorkspace({ view, onOpen, results, resultKeyOf, brid
           failedIds={failedIds}
           onOpen={onOpen}
           onFiles={addFiles}
+          onCamera={onCamera}
           onPickMore={bridge.requestReplace}
           onClear={bridge.requestClear}
           flow={output.flow}

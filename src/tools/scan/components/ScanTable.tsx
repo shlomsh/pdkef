@@ -24,6 +24,7 @@ interface ScanTableProps {
   failedIds: number[];
   onOpen: (id: number) => void;
   onFiles: (files: File[]) => void;
+  onCamera?: () => void;
   onPickMore: () => void;
   onClear: () => void;
   flow: Pick<ReturnType<typeof useDownloadFlow>, 'downloadState' | 'downloadLinkReady' | 'shareReady' | 'canSharePdf' | 'handoffBusy' | 'onQuietDownloadTap' | 'onQuietPreparingTap' | 'handleShare' | 'requestHandoff'>;
@@ -40,7 +41,7 @@ interface ScanTableProps {
 
 /** The loaded state: the pages as a numbered grid ending in Add pages, then (phone) the size and the one filled button. */
 export default function ScanTable({
-  pages, results, resultKeyOf, failedIds, onOpen, onFiles, onPickMore, onClear,
+  pages, results, resultKeyOf, failedIds, onOpen, onFiles, onCamera, onPickMore, onClear,
   flow, prepared, fileName, pageSize, onPageSize, limit, onLimit, limitNote, fallbackDownload,
 }: ScanTableProps) {
   const [paperOpen, setPaperOpen] = useState(false);
@@ -72,7 +73,7 @@ export default function ScanTable({
         <li class={styles.cell}>
           <div class={styles.add} data-add-pages>
             {/* A phone opens the camera, a mouse the picker (the pointer media queries in the sheet). */}
-            <TakePhotoButton onFiles={onFiles} label={t.addPages} buttonClass={styles['add-button']} />
+            <TakePhotoButton onFiles={onFiles} onCamera={onCamera} label={t.addPages} buttonClass={styles['add-button']} />
             <button type="button" class={`${styles['add-button']} ${styles['add-pick']}`} data-add-pick onClick={onPickMore}>
               <ImagePlus size={20} aria-hidden="true" />
               {t.addPages}

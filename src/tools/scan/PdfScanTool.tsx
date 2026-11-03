@@ -10,7 +10,8 @@ import { downloadDetail, pagesLabel } from '#shell/pageWorkspace/pageCounts.ts';
 import { englishShellMessages } from '#shell/shellMessages.ts';
 import ScanSkippedNotice from './components/ScanSkippedNotice.tsx';
 import ScanWorkspace from './components/ScanWorkspace.tsx';
-import TakePhotoButton from './components/TakePhotoButton.tsx';
+import StartScanButton from './components/StartScanButton.tsx';
+import { useScanCamera } from './hooks/useScanCamera.ts';
 import { useScanBoard } from './hooks/useScanBoard.ts';
 import { useScanExport } from './hooks/useScanExport.ts';
 import { useScanPages } from './hooks/useScanPages.ts';
@@ -74,6 +75,8 @@ export default withIslandBoundary(function PdfScanTool({ quietPolicy, navigate }
   const { findPage, removePage, reset } = createPageActions({ pages, view, setPages, work, unmountedRef, dispatch, focusIdRef, ...board, ...settings });
   const edit = createEditActions({ pages, selected, selectedIndex, failedIds, setPages, dispatch, focusIdRef, showResult, retakeFile, ...board, ...settings });
 
+  const { Viewfinder, viewfinderProps, openMany, openOne } = useScanCamera({ pages, results, unmountedRef, dispatch, addFiles, retakePage: edit.retakePage, removePage });
+
   const shown = key === null ? undefined : work.shown.get(key);
   const limitNote = key !== null && work.missedKeys.has(key) ? t.limitMissed : undefined;
 
@@ -83,7 +86,7 @@ export default withIslandBoundary(function PdfScanTool({ quietPolicy, navigate }
       onFilesAdded={addFiles}
       intake={{ accept: ACCEPT, needsPdfjs: false }}
       identity={{ label: pagesLabel(pages.length, englishShellMessages), hidden: true }}
-      empty={{ art: <ScanVerb />, action: <TakePhotoButton onFiles={addFiles} primary />, message: t.dropHere }}
+      empty={{ art: <ScanVerb />, action: <StartScanButton onFiles={addFiles} onStart={openMany} />, actionLeads: true, pickLabel: t.choosePhotos, message: t.dropHere }}
       clearAll={{ onClear: reset, summary: pagesLabel(pages.length, englishShellMessages) }}
       analytics={{ tool: 'scan-to-pdf', status: prepared.status === 'error' ? 'error' : downloadFlow.tap }}
       owns={{ rating: true }}
@@ -102,6 +105,7 @@ export default withIslandBoundary(function PdfScanTool({ quietPolicy, navigate }
               pages={pages}
               failedIds={failedIds}
               addFiles={addFiles}
+              onCamera={openMany}
               rating={rating}
               wide={wide}
               output={{
@@ -141,6 +145,7 @@ export default withIslandBoundary(function PdfScanTool({ quietPolicy, navigate }
                   onApprove: edit.approveCorners,
                   onDone: edit.closePage,
                   onRetake: (file) => edit.retakePage(selected.id, file),
+                  onRetakeCamera: () => openOne(selected.id),
                   onRemovePage: removePage,
                   onChooseLook: edit.chooseLook,
                   onSelect: edit.openPage,
@@ -153,6 +158,8 @@ export default withIslandBoundary(function PdfScanTool({ quietPolicy, navigate }
           )}
         </ToolShellBridge>
       )}
+
+      {Viewfinder && viewfinderProps && <Viewfinder {...viewfinderProps} />}
 
       <p class="sr-only" role="status" aria-live="polite">{board.announcement}</p>
     </BasePdfTool>

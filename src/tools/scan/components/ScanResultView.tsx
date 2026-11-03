@@ -17,6 +17,7 @@ interface ScanResultViewProps {
   onAdjustCorners: () => void;
   onRotate: () => void;
   onRetake: (file: File) => void;
+  onRetakeCamera?: () => void;
   onRemovePage: (id: number) => void;
   onDone: () => void;
   /** The props ResultPage takes for this page: its src, place and whether the built PDF's own JPEG is showing. */
@@ -25,7 +26,7 @@ interface ScanResultViewProps {
 }
 
 /** The one-page view under the head: the page as it will download, then one quiet row of five and one Done. */
-export default function ScanResultView({ selected, lookOptions, onChooseLook, onAdjustCorners, onRotate, onRetake, onRemovePage, onDone, pageProps, detail }: ScanResultViewProps) {
+export default function ScanResultView({ selected, lookOptions, onChooseLook, onAdjustCorners, onRotate, onRetake, onRetakeCamera, onRemovePage, onDone, pageProps, detail }: ScanResultViewProps) {
   const [lookOpen, setLookOpen] = useState(false);
   return (
     <>
@@ -59,7 +60,7 @@ export default function ScanResultView({ selected, lookOptions, onChooseLook, on
           <SlidersHorizontal size={20} aria-hidden="true" />
           <span>{t.lookAction}</span>
         </button>
-        <RetakeButton onRetake={onRetake} />
+        <RetakeButton onRetake={onRetake} onCamera={onRetakeCamera} />
         <button type="button" class={`${pageView.item} ${pageView.danger}`} onClick={() => onRemovePage(selected.id)}>
           <Trash2 size={20} aria-hidden="true" />
           <span>{t.removeShort}</span>
