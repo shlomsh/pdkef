@@ -2,6 +2,7 @@
 import BaseLayout from '../layouts/BaseLayout.astro';
 import Footer from '../components/Footer.astro';
 import { listedTools } from '../data/tools.js';
+import Doodle from '../components/Doodle.astro';
 import '../styles/notFoundPage.css';
 
 const title = 'Page not found - PDkef';
@@ -9,24 +10,17 @@ const description = 'The page you are looking for does not exist. Browse our fre
 ---
 
 <BaseLayout title={title} description={description} noindex={true}>
-  <header class="not-found-header mx-auto max-w-[540px] px-6 pb-10 pt-[4.5rem] text-center">
-    <div class="mb-6 inline-flex size-20 items-center justify-center rounded-[var(--radius-lg)] bg-[var(--color-primary-soft)] text-[var(--color-primary-text)]">
-      <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-        <path d="M14 2v6h6" />
-        <path d="m9.5 13.5 5 5" />
-        <path d="m14.5 13.5-5 5" />
-      </svg>
-    </div>
-    <h1 class="type-hero space-heading-content mt-0 text-[var(--color-text)]">Page not found</h1>
-    <p class="type-lead mb-8 mt-0 text-[var(--color-muted)]">The page you're looking for doesn't exist, or may have moved. Try one of the tools below.</p>
+  <header class="not-found-header mx-auto max-w-[540px] px-6 pb-4 pt-[3.5rem] text-center">
+    <Doodle figure="page-walking-off" />
+    <h1 class="type-hero space-heading-content mt-3 text-[var(--color-text)]">Page not found</h1>
+    <p class="type-lead mb-8 mt-0 text-[var(--color-muted)]">This page wandered off, or never existed. The tools are right here.</p>
     <a href="/" class="inline-flex items-center justify-center rounded-[var(--radius-pill)] bg-[var(--color-primary)] px-7 py-3 text-[var(--color-surface)] no-underline shadow-sm transition-[transform,background-color,color] duration-200 ease-out hover:-translate-y-0.5 hover:bg-[var(--color-primary-hover)]">Back to home</a>
   </header>
 
   <main>
     <div class="mx-auto mb-12 grid max-w-[760px] grid-cols-4 gap-[0.85rem] px-6 max-[768px]:grid-cols-2">
       {listedTools.map((tool) => (
-        <a href={tool.href} class="flex items-center justify-center rounded-[var(--radius)] border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-4 text-center text-[0.92rem] font-medium text-[var(--color-text)] no-underline shadow-sm transition-[transform,box-shadow,border-color,color] duration-200 ease-out hover:-translate-y-[3px] hover:border-[var(--color-primary)] hover:text-[var(--color-primary-text)] hover:shadow-md">
+        <a href={tool.href} class="not-found-tag">
           {tool.toolName}
         </a>
       ))}
@@ -38,3 +32,33 @@ const description = 'The page you are looking for does not exist. Browse our fre
 
   <Footer />
 </BaseLayout>
+
+<style>
+  .not-found-tag {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem 0.75rem;
+    text-align: center;
+    font-size: 0.92rem;
+    font-weight: 500;
+    text-decoration: none;
+    color: var(--color-text);
+    background: var(--color-paper);
+    border: 1.5px solid var(--color-border-strong);
+    border-radius: 1.1rem 1.4rem 1.1rem 1.3rem;
+    transition: transform 200ms ease-out, border-color 200ms ease-out;
+  }
+  .not-found-tag:nth-child(odd) { transform: rotate(-1deg); }
+  .not-found-tag:nth-child(even) { transform: rotate(1deg); }
+  .not-found-tag:nth-child(4n + 2) { background: var(--color-primary-soft); }
+  .not-found-tag:nth-child(6n) {
+    background: var(--color-citron);
+    border-color: var(--color-citron-ink);
+  }
+  .not-found-tag:hover,
+  .not-found-tag:focus-visible {
+    transform: translateY(-2px) rotate(0);
+    border-color: var(--color-primary);
+  }
+</style>

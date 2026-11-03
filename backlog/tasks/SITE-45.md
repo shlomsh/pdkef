@@ -103,3 +103,11 @@ drafts; a fresh reviewer checks every one against the code and the page's own te
   scrolling on a 375x812 phone, `test:css`, `test:weight`, `test:seo`, `test:csp` green.
 - Sticker lines checked against the code by a fresh reviewer who quotes the line each objection applies to.
 - Shlomi has seen each page on his iPhone before it lands.
+
+## Progress
+
+- 2026-11-03: step 0 landed (`Doodle`, `PromiseStickers`, `src/data/promises.js`; `/drive/` uses them).
+- 2026-11-03: `/open/` (page-to-phone figure, tool buttons as tilted stickers) and `/404` (page-walking-off
+  figure, tool links as tilted tags) built from pitches 1 and 2; pitches 3 and 4 (`/about`, `/privacy`) wait
+  for Shlomi's go and a fresh reviewer on the sticker lines. Both pages were looked at on a 375px viewport;
+  the file-ready state of `/open/` (buttons, not links) is covered by the existing unit tests, not by eye.

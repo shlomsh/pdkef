@@ -16,7 +16,7 @@
  * carries the meaning.
  */
 interface Props {
-  figure: 'cloud-to-device';
+  figure: 'cloud-to-device' | 'page-to-phone' | 'page-walking-off';
   class?: string;
 }
 const { figure, class: className } = Astro.props;
@@ -43,6 +43,64 @@ const { figure, class: className } = Astro.props;
       <path d="M120 24v10M115 29h10" />
       <path d="M344 22v8M340 26h8" />
       <path d="M200 110v8M196 114h8" />
+    </g>
+  </svg>
+)}
+
+{figure === 'page-to-phone' && (
+  <svg class:list={['journey', className]} viewBox="0 0 360 150" fill="none" aria-hidden="true">
+    <g class="doodle" transform="rotate(-8 50 30)">
+      <path d="M36 12h20l9 10v24H36z" fill="var(--color-surface)" />
+      <path d="M56 12v10h9" />
+      <path d="M42 30h16M42 37h10" />
+    </g>
+    <path class="trail" d="M72 26c34-8 62 6 74 36" />
+    <path class="doodle" d="M144 51l-2 11-10-6" />
+    <g class="doodle">
+      <rect x="152" y="18" width="62" height="120" rx="11" fill="var(--color-surface)" />
+      <path d="M170 28h26" />
+      <path d="M166 70h17l8 9v24h-25z" fill="var(--color-citron)" />
+      <path d="M183 70v9h8" />
+      <path d="M171 92h14M171 99h9" />
+    </g>
+    <g class="doodle">
+      <path d="M246 60l6-14 20-20 9 9-20 20z" fill="var(--color-surface)" />
+      <path d="M254 52l9 9" />
+      <rect x="292" y="34" width="34" height="11" rx="3" fill="var(--color-text)" />
+      <g transform="rotate(32 262 112)">
+        <rect x="256" y="96" width="12" height="28" rx="3" fill="var(--color-citron)" />
+        <path d="M256 124l6 8 6-8" fill="var(--color-citron)" />
+      </g>
+      <path d="M246 140c10 3 22 3 34 0" stroke="var(--color-highlighter)" stroke-width="6" />
+      <path d="M298 98l12 12m0 0h-8m8 0v-8M336 136l-12-12m0 0h8m-8 0v8" />
+    </g>
+    <g class="spark">
+      <path d="M118 112v10M113 117h10" />
+      <path d="M232 20v8M228 24h8" />
+      <path d="M338 76v8M334 80h8" />
+    </g>
+  </svg>
+)}
+
+{figure === 'page-walking-off' && (
+  <svg class:list={['journey', className]} viewBox="0 0 360 150" fill="none" aria-hidden="true">
+    <path class="trail" d="M14 132c46 8 96-6 142-4" />
+    <g class="doodle">
+      <path d="M170 34h40l14 15v58h-54z" fill="var(--color-surface)" />
+      <path d="M210 34v15h14" />
+      <path d="M182 64h.1M206 64h.1" stroke-width="5" />
+      <path d="M186 80c5 5 14 5 19 0" />
+      <path d="M190 107l-4 20h-9M216 107l5 18h9" />
+      <g transform="rotate(-24 174 26)">
+        <rect x="170" y="2" width="9" height="26" rx="2" fill="var(--color-citron)" />
+        <path d="M170 28l4.5 8 4.5-8z" fill="var(--color-clay)" />
+      </g>
+    </g>
+    <path class="doodle" d="M290 8l12 16-12 16 12 16-12 16 12 16-12 16H352V8z" fill="var(--color-paper)" />
+    <g class="spark">
+      <path d="M246 36v10M241 41h10" />
+      <path d="M124 100v8M120 104h8" />
+      <path d="M326 60v8M322 64h8" />
     </g>
   </svg>
 )}
