@@ -1322,6 +1322,7 @@ describe('SignToolbar Component', () => {
     expect(toolbar).not.toBeNull();
     expect(required(toolbar.parentElement, 'toolbar parent').hasAttribute('data-shell-controls')).toBe(true);
 
+    // Kept as a source pin: the full-width mobile toolbar is computed layout (width and flex), which jsdom cannot measure.
     // The owning module source-of-truth check: `.toolbar` spans full width at
     // every breakpoint (no separate narrow-screen override shrinks it back to
     // a centered pill — see CLAUDE.md's "full-width mobile
