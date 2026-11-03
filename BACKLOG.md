@@ -2,7 +2,7 @@
 
 # Backlog
 
-The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 102 live: 24 up next, 13 then, 27 waiting, 38 parked.
+The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 111 live: 27 up next, 18 then, 27 waiting, 39 parked.
 
 ## Redact: finish removal
 
@@ -75,6 +75,34 @@ Marking should feel like holding a highlighter, not like operating software. Ske
 | READ-07 | P3 | [READ-07](backlog/tasks/READ-07.md) · Highlight PDF: long-press and drag to highlight on a phone | Needs Shlomi: An iPhone check |
 | READ-08 | P3 | [READ-08](backlog/tasks/READ-08.md) · Highlight PDF: hop between your highlights in reading order |  |
 | READ-09 | P3 | [READ-09](backlog/tasks/READ-09.md) · Highlight PDF: a pen for circles, arrows and margin notes, iPad first |  |
+
+## Scan: camera to WhatsApp
+
+The camera takes pages, the table fixes them, Share sends them. The table first on today's camera input, then a real detection corpus, then the live camera.
+
+### Up next
+
+| ID | P | Task | Note |
+| --- | --- | --- | --- |
+| SCAN-06 | P1 | [SCAN-06](backlog/tasks/SCAN-06.md) · Scan next: the table and the one-page view, with size and compression right before Share |  |
+| SCAN-04 | P1 | [SCAN-04](backlog/tasks/SCAN-04.md) · Scan next: the phone measurements that decide the camera build | Needs Shlomi: Your iPhone, and an Android phone if one is at hand |
+| SCAN-05 | P1 | [SCAN-05](backlog/tasks/SCAN-05.md) · Scan next: a real page-detection corpus with scored KPIs | Needs Shlomi: Photos and short videos of real pages taken on your phone, ours to check in |
+
+### Then, in order
+
+| ID | P | Task | Note |
+| --- | --- | --- | --- |
+| SCAN-07 | P1 | [SCAN-07](backlog/tasks/SCAN-07.md) · Scan next: the live capture logic, steady, sharp, once per page, with a confidence |  |
+| SCAN-08 | P1 | [SCAN-08](backlog/tasks/SCAN-08.md) · Scan next: the camera in the page, pages taken by themselves, Share straight after |  |
+| SCAN-11 | P2 | [SCAN-11](backlog/tasks/SCAN-11.md) · Scan next: the page copy and the scanning guide follow the new flow |  |
+| SCAN-12 | P2 | [SCAN-12](backlog/tasks/SCAN-12.md) · Scan next: a short, very visual video of camera to WhatsApp on /scan-to-pdf/ |  |
+| SCAN-09 | P2 | [SCAN-09](backlog/tasks/SCAN-09.md) · Scan next: classical page-detection upgrades, each gated on the real corpus |  |
+
+### Parked
+
+| ID | P | Task | Note |
+| --- | --- | --- | --- |
+| SCAN-10 | P3 | [SCAN-10](backlog/tasks/SCAN-10.md) · Scan next: evaluate a small learned page detector behind the same contract |  |
 
 ## Tool pages: show the verb
 
@@ -251,6 +279,7 @@ Done and retired tickets are not listed. Their files stay in [backlog/tasks/](ba
 - Redact: finish removal: 26 done, 1 retired
 - Sign: finish fill mode: 3 done, 1 retired
 - Highlight PDF: a tool for reading: 5 done, 1 retired
+- Scan: camera to WhatsApp: 0 done, 0 retired
 - Tool pages: show the verb: 8 done, 0 retired
 - Form detector accuracy: 19 done, 1 retired
 - Robustness and debt: 80 done, 4 retired
