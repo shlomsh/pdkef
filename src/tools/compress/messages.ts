@@ -120,6 +120,23 @@ export interface CompressMessages {
   handoffFailed: string;
   handoffSign: string;
   handoffMerge: string;
+  /** COMP-04: several photos at once (components/BatchList.tsx). {target} is a size like "50 KB". */
+  batchLabel: string;
+  batchLoaded: string;
+  batchWorking: string;
+  batchAllMet: string;
+  batchSomeMissed: string;
+  batchRowWaiting: string;
+  batchRowWorking: string;
+  batchRowMet: string;
+  batchRowKept: string;
+  batchRowMissed: string;
+  batchRowFailed: string;
+  batchRowSave: string;
+  batchSharedSuccessfully: string;
+  batchSharingCanceled: string;
+  batchLeftOutPdfOne: string;
+  batchLeftOutPdfMany: string;
 }
 
 export const englishCompressMessages: CompressMessages = {
@@ -223,6 +240,22 @@ export const englishCompressMessages: CompressMessages = {
   handoffFailed: 'Could not hand the file over. Download it instead.',
   handoffSign: 'Sign',
   handoffMerge: 'Merge',
+  batchLabel: '{count} photos',
+  batchLoaded: '{count} photos loaded.',
+  batchWorking: 'Compressing {done} of {total}…',
+  batchAllMet: 'All {total} photos are now {target} or less.',
+  batchSomeMissed: '{met} of {total} photos are now {target} or less. The rest are as small as I could make them.',
+  batchRowWaiting: 'Waiting',
+  batchRowWorking: 'Compressing…',
+  batchRowMet: '{target} or less',
+  batchRowKept: 'Already under {target}, kept as it was',
+  batchRowMissed: 'Over {target}, the smallest I could make',
+  batchRowFailed: "Couldn't read this one",
+  batchRowSave: 'Save',
+  batchSharedSuccessfully: 'Compressed photos shared successfully.',
+  batchSharingCanceled: 'Sharing canceled. Your compressed photos are still ready.',
+  batchLeftOutPdfOne: 'Left out "{name}". Open a PDF on its own to compress it.',
+  batchLeftOutPdfMany: 'Left out {count} PDFs. Open a PDF on its own to compress it.',
 };
 
 // LOC-03: not yet reviewed by a native speaker in-house (see LOC-03.md's
@@ -333,6 +366,22 @@ export const hebrewCompressMessages: CompressMessages = {
   handoffFailed: 'לא הצלחנו להעביר את הקובץ. הורידו אותו במקום.',
   handoffSign: 'חתימה',
   handoffMerge: 'איחוד',
+  batchLabel: '{count} תמונות',
+  batchLoaded: '{count} תמונות נטענו.',
+  batchWorking: 'מכווצים {done} מתוך {total}…',
+  batchAllMet: 'כל {total} התמונות עכשיו {target} או פחות.',
+  batchSomeMissed: '{met} מתוך {total} התמונות עכשיו {target} או פחות. השאר קטנות ככל שהצלחנו.',
+  batchRowWaiting: 'ממתינה',
+  batchRowWorking: 'מכווצים…',
+  batchRowMet: '{target} או פחות',
+  batchRowKept: 'כבר מתחת ל-{target}, נשארה כמו שהיא',
+  batchRowMissed: 'מעל {target}, הקטנה ביותר שהצלחנו',
+  batchRowFailed: 'לא הצלחנו לקרוא את הקובץ הזה',
+  batchRowSave: 'שמירה',
+  batchSharedSuccessfully: 'התמונות המכווצות שותפו.',
+  batchSharingCanceled: 'השיתוף בוטל. התמונות המכווצות עדיין מוכנות.',
+  batchLeftOutPdfOne: 'השארנו בחוץ את "{name}". פתחו PDF לבד כדי לכווץ אותו.',
+  batchLeftOutPdfMany: 'השארנו בחוץ {count} קובצי PDF. פתחו PDF לבד כדי לכווץ אותו.',
 };
 
 const compressMessages: Partial<Record<DocumentationLocaleId, CompressMessages>> = {

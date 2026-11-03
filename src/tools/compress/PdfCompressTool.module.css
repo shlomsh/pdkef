@@ -79,6 +79,18 @@
   }
 }
 
+/* COMP-04: several photos. The target comes before the list on a phone, so
+   the one setting that changes every row is never below a long list. */
+@media (max-width: 1023px) {
+  .loaded-layout.batch-layout {
+    grid-template-areas:
+      'strip'
+      'controls'
+      'result'
+      'sheet';
+  }
+}
+
 @media (min-width: 768px) and (max-width: 1023px) {
   .result {
     margin-inline: -1.5rem;

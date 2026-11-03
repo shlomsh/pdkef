@@ -1,0 +1,118 @@
+/* COMP-04: several photos in the result area. One row per photo: the name and
+   its sizes on the first line, what happened and its own Save on the second. */
+.batch {
+  grid-area: result;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: 12px;
+  background: var(--color-surface-sunken);
+  border-radius: 18px;
+}
+
+.heading {
+  margin: 0;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.rows {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas:
+    'name sizes'
+    'status save';
+  align-items: center;
+  column-gap: var(--space-3);
+  row-gap: 2px;
+  min-height: 44px;
+  padding: 8px 12px;
+  background: var(--color-surface);
+  border-radius: var(--radius);
+}
+
+.name {
+  grid-area: name;
+  min-width: 0;
+  font-size: 0.92rem;
+}
+
+.sizes {
+  grid-area: sizes;
+  font-size: 0.85rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-muted);
+  white-space: nowrap;
+}
+
+.sizes strong {
+  color: var(--color-text);
+}
+
+.status {
+  grid-area: status;
+  min-width: 0;
+  font-size: 0.82rem;
+  color: var(--color-muted);
+}
+
+.row[data-outcome='met'] .status,
+.row[data-outcome='kept'] .status {
+  color: var(--color-success);
+}
+
+.row[data-outcome='missed'] .status,
+.row[data-outcome='failed'] .status {
+  color: var(--color-danger-ink);
+}
+
+/* A 44px target on touch, quiet beside the status line. */
+.save {
+  grid-area: save;
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  margin-block: -12px;
+  padding-inline: 8px;
+  margin-inline-end: -8px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--color-primary-text);
+  text-decoration: none;
+}
+
+.save:hover {
+  text-decoration: underline;
+}
+
+/* The card is one screen tall (data-fills-stage): the summary stays put and
+   the rows scroll inside the stage. */
+@media (min-width: 1024px) {
+  .batch {
+    padding: 20px;
+  }
+
+  .rows {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+  }
+}
+
+@media (max-width: 1023px) {
+  .batch {
+    margin-inline: -12px;
+    padding: 10px 8px;
+    border-radius: 0;
+  }
+}

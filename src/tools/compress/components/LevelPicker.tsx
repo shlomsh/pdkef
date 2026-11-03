@@ -6,7 +6,7 @@ export type Level = 'high' | 'medium' | 'low' | 'target';
 
 const ORDER: Level[] = ['high', 'medium', 'low', 'target'];
 
-type OnTargetChange = (kb: number, opts: { immediate: boolean }) => void;
+export type OnTargetChange = (kb: number, opts: { immediate: boolean }) => void;
 
 interface TargetSizePanelProps {
   t: CompressMessages;
