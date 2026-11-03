@@ -70,7 +70,7 @@ describe('NotePane', () => {
     const chip = root()!.querySelector('[role="status"]')!;
     expect(chip.textContent).toContain('Note deleted');
     click(chip.querySelector('button')!);
-    expect(onUndo).toHaveBeenCalled();
+    expect(onUndo).toHaveBeenCalledTimes(1);
     expect(onSelect).toHaveBeenLastCalledWith('c2');
     expect(root()?.querySelector('[role="status"]') ?? null).toBeNull();
   });
@@ -98,7 +98,7 @@ describe('NotePane', () => {
     mount('c1');
     expect(marginAtScroll).toBe('220px');
     expect(anchor.style.scrollMarginBottom).toBe('');
-    expect(anchor.scrollIntoView).toHaveBeenCalled();
+    expect(anchor.scrollIntoView).toHaveBeenCalledWith({ block: 'center', behavior: 'auto' });
     height.mockRestore();
     anchor.remove();
   });

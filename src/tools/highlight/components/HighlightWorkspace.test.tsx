@@ -323,7 +323,7 @@ describe('HighlightWorkspace notes (R28, R29)', () => {
   });
 
   it('opens the print menu 8 px under the capsule in the lamp, and under its own tile in the row', () => {
-    const row = mount({ fullscreen: false, pseudoFullscreen: false }, [mark, note]);
+    mount({ fullscreen: false, pseudoFullscreen: false }, [mark, note]);
     const trigger = container!.querySelector<HTMLElement>('[data-editor-toolbar] button[aria-label="Print"]')!;
     expect(trigger.getAttribute('aria-haspopup')).toBeTruthy();
     expect(trigger.querySelector(`.${toolbarStyles.chevron}`)).not.toBeNull();
@@ -335,7 +335,6 @@ describe('HighlightWorkspace notes (R28, R29)', () => {
     printSpy.mockClear();
     act(() => { (items[2] as HTMLElement).click(); });
     expect(printSpy).toHaveBeenCalledWith('end');
-    expect(row).toBeTruthy();
     act(() => render(null, container!));
     for (const fullscreen of [true]) {
       const ws = mount({ fullscreen, pseudoFullscreen: false }, [mark, note]);
