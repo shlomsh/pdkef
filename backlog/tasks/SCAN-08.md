@@ -36,9 +36,32 @@ and the mocks (https://claude.ai/artifact/TRgSt9SUjqyXM5NWGkr83L, screens 1 to 5
 
 - [ ] On an iPhone and an Android phone: three pages turned in front of the camera are taken with no tap,
       none twice, then Done, Share, WhatsApp: 6 taps, plus Allow the first time.
-- [ ] Refusing the camera lands on the native input with no dead end.
-- [ ] `test:csp`, `test:weight`, `test:lazy-modules` and the precache budget pass; the page's first load
+- [x] Refusing the camera lands on the native input with no dead end.
+- [x] `test:csp`, `test:weight`, `test:lazy-modules` and the precache budget pass; the page's first load
       carries none of the camera code.
 - [ ] The `@testSeam` tags SCAN-07 put on `detectPage`, `CONFIDENT`, `sharpness`, `quadArea`, `averageHash`,
       `stepCapture` and `INITIAL_CAPTURE_STATE` are gone, since the camera now imports them.
-- [ ] One e2e drives the viewfinder with a fake camera stream (Chromium `--use-file-for-fake-video-capture`).
+- [x] One e2e drives the viewfinder with a fake camera stream (Chromium `--use-file-for-fake-video-capture`).
+
+## Progress 2026-11-04 (branch `claude/scan-08-camera`)
+
+Built and checked on a production build; the phone run is open.
+
+- Start scanning leads the empty state on coarse pointers, Choose photos quiet under it (two shell props,
+  `actionLeads` and `pickLabel`). Without a secure context, getUserMedia or `ImageCapture` the same label opens
+  the native camera, as before hydration.
+- The viewfinder (`components/Viewfinder.tsx`, loaded by `ScanCamera` on the first open), the camera hook and
+  its worker (`hooks/useCamera.ts`, `lib/camera/`), the frame observation (`lib/capture/observe.ts`), the
+  view model (`lib/camera/viewfinderModel.ts`), and the open camera as reducer state (`cameraOpened`,
+  `cameraClosed`) with its props from `state/cameraProps.ts`.
+- Refused: checked in Chromium with the prompt denied: the line and Take a photo, no dead end.
+- `src/tools/scan/e2e/camera.spec.js` drives a drawn page (`fakeCamera.js`, Y4M made at run time): taken with
+  no tap, Done, one page on the table. Never taking a page twice stays proven on sequences in
+  `captureMachine.test.ts`; the sleep ratchet rules out a timed wait for it.
+- Screens checked at 390x844, 375x667, 320x640 and 1440x900: no sideways scroll, no errors.
+- A fresh review found eight defects, all fixed: a failed chunk load is retried, no double camera start, a
+  failed snapshot keeps the photo, a camera that dies shows the photo fallback, rotation remeasures the video,
+  worker errors are reported, auto pauses under the review and Escape closes the review first, no URL leak.
+- `@testSeam` tags are gone except `CONFIDENT`'s: the camera reads `confidence`, never the threshold, so only
+  its test imports it.
+- Not done: focus does not return to Retake after a one-page retake.
