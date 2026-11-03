@@ -16,7 +16,7 @@
  * carries the meaning.
  */
 interface Props {
-  figure: 'cloud-to-device' | 'page-to-phone' | 'page-walking-off';
+  figure: 'cloud-to-device' | 'page-to-phone' | 'page-walking-off' | 'slides-to-pdf' | 'stays-on-device';
   class?: string;
 }
 const { figure, class: className } = Astro.props;
@@ -105,10 +105,69 @@ const { figure, class: className } = Astro.props;
   </svg>
 )}
 
+{figure === 'slides-to-pdf' && (
+  <svg class:list={['journey', className]} viewBox="0 0 360 150" fill="none" aria-hidden="true">
+    <g class="doodle">
+      <g transform="rotate(-5 50 30)">
+        <rect x="20" y="12" width="60" height="38" rx="5" fill="var(--color-surface)" />
+        <path d="M28 24h26M28 32h18" />
+      </g>
+      <g transform="rotate(4 58 66)">
+        <rect x="28" y="52" width="60" height="38" rx="5" fill="var(--color-primary-tint)" />
+        <path d="M36 64h26M36 72h18" />
+      </g>
+      <g transform="rotate(-3 44 118)">
+        <path d="M22 98h42l6 7v35H22z" fill="var(--color-paper)" />
+        <path d="M30 112h26M30 120h14" />
+        <path d="M30 132c4-8 7 4 11-2s5 2 9-2" stroke="var(--color-clay)" />
+      </g>
+    </g>
+    <path class="trail" d="M92 44c30-4 52 6 76 22" />
+    <path class="trail" d="M76 124c34 2 62-14 92-38" />
+    <g class="doodle">
+      <path d="M180 22h58l16 17v86h-74z" fill="var(--color-citron)" />
+      <path d="M238 22v17h16" />
+      <path d="M196 62h46M196 74h46M196 86h30" />
+    </g>
+    <g class="doodle" transform="rotate(-28 306 112)">
+      <rect x="276" y="106" width="58" height="12" rx="3" fill="var(--color-surface)" />
+      <path d="M276 106l-14 6 14 6z" fill="var(--color-paper)" />
+      <path d="M268 109.5l-6 2.5 6 2.5" fill="var(--color-clay)" />
+      <path d="M334 106v12" />
+    </g>
+    <g class="spark">
+      <path d="M130 20v10M125 25h10" />
+      <path d="M338 36v8M334 40h8" />
+      <path d="M156 128v8M152 132h8" />
+    </g>
+  </svg>
+)}
+
+{figure === 'stays-on-device' && (
+  <svg class:list={['journey', className]} viewBox="0 0 360 150" fill="none" aria-hidden="true">
+    <g class="doodle">
+      <rect x="40" y="22" width="130" height="80" rx="8" fill="var(--color-surface)" />
+      <path d="M26 112h158c0 6-5 10-11 10H37c-6 0-11-4-11-10z" fill="var(--color-paper)" />
+      <path d="M62 36h26l9 10v34H62z" fill="var(--color-citron)" />
+      <path d="M88 36v10h9" />
+      <path d="M69 58h16M69 66h10" />
+    </g>
+    <path class="trail" d="M108 62h38" />
+    <circle class="doodle" cx="154" cy="62" r="3.5" fill="var(--color-text)" />
+    <path class="ghost" d="M234 96c-12-1-19-9-17-19 2-9 10-14 19-13 3-12 14-20 26-19 12 2 20 10 21 20 10-1 19 7 18 17-1 9-9 15-17 14z" />
+    <g class="spark">
+      <path d="M200 30v10M195 35h10" />
+      <path d="M336 44v8M332 48h8" />
+      <path d="M196 116v8M192 120h8" />
+    </g>
+  </svg>
+)}
+
 <style>
   .journey { display: block; width: min(100%, 22rem); height: auto; margin: 0 auto; color: var(--color-text); }
   .journey .doodle { stroke: currentColor; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
   .journey .spark { stroke: var(--color-clay); stroke-width: 2.2; stroke-linecap: round; }
+  .journey .ghost { stroke: var(--color-border-strong); stroke-width: 2.2; stroke-linecap: round; stroke-dasharray: 2 7; }
   .journey .trail { stroke: var(--color-primary); stroke-width: 2.6; stroke-linecap: round; stroke-dasharray: 3 9; }
   @media (prefers-reduced-motion: no-preference) {
     .journey .trail { animation: trail 1.6s linear infinite; }
