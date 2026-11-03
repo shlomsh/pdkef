@@ -26,7 +26,8 @@ export interface TakenPage {
   /** The full photo (ImageCapture.takePhoto), what joins the scan. */
   file: File;
   /** A small copy of the video frame at the shot (long edge about 480 px), for the flight into the stack. */
-  snapshot: Blob;
+  /** Null when the small copy could not be made: the page is still taken, only the flight is skipped. */
+  snapshot: Blob | null;
   /** The outline at the shot, normalized to the video frame; null when the shutter was pressed with none. */
   quad: Quad | null;
 }

@@ -14,6 +14,18 @@ import { liveView } from '../lib/camera/viewfinderModel.ts';
 interface UseCameraInput {
   /** Called once per page taken, auto or by the shutter. */
   onTaken: (page: TakenPage) => void;
+  /** While true the machine keeps following the page but auto does not shoot; the shutter still works. */
+  paused?: boolean;
+}
+
+/** The full photo and its small copy, taken together. */
+async function captureShot(track: MediaStreamTrack, video: HTMLVideoElement) {
+  const [photo, small] = await Promise.all([
+    takePhoto(track),
+    // expected: the small copy is only for the flight into the stack; the photo is still worth keeping
+    snapshot(video).catch(() => null),
+  ]);
+  return { file: new File([photo], `scan-${Date.now()}.jpg`, { type: photo.type || 'image/jpeg' }), snapshot: small };
 }
 
 export function useCamera(input: UseCameraInput): CameraHandle {
@@ -24,6 +36,8 @@ export function useCamera(input: UseCameraInput): CameraHandle {
 
   const onTakenRef = useRef(input.onTaken);
   onTakenRef.current = input.onTaken;
+  const pausedRef = useRef(input.paused ?? false);
+  pausedRef.current = input.paused ?? false;
   const autoRef = useRef(true);
   const videoEl = useRef<HTMLVideoElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -45,7 +59,10 @@ export function useCamera(input: UseCameraInput): CameraHandle {
   const videoRef = useCallback((el: HTMLVideoElement | null) => {
     videoEl.current = el;
     if (!el) return;
-    el.onloadedmetadata = () => setVideoSize({ width: el.videoWidth, height: el.videoHeight });
+    const measure = () => setVideoSize({ width: el.videoWidth, height: el.videoHeight });
+    el.onloadedmetadata = measure;
+    // a rotated phone swaps the intrinsic size without a new loadedmetadata
+    el.onresize = measure;
     attach();
   }, [attach]);
 
@@ -57,12 +74,7 @@ export function useCamera(input: UseCameraInput): CameraHandle {
     try {
       const taken = quad === undefined ? stateRef.current.smoothed : quad;
       if (byShutter && lastObs.current) stateRef.current = markTaken(stateRef.current, lastObs.current.hash);
-      const [photo, small] = await Promise.all([takePhoto(track), snapshot(video)]);
-      onTakenRef.current({
-        file: new File([photo], `scan-${Date.now()}.jpg`, { type: photo.type || 'image/jpeg' }),
-        snapshot: small,
-        quad: taken,
-      });
+      onTakenRef.current({ ...(await captureShot(track, video)), quad: taken });
     } catch (err) {
       reportError('pdf_tool_run', err, 'scan_camera_photo');
     } finally {
@@ -76,6 +88,7 @@ export function useCamera(input: UseCameraInput): CameraHandle {
     let alive = true;
     let frame = 0;
     let inFlight = false;
+    let starting = false;
     const canvas = document.createElement('canvas');
     const worker = new Worker(new URL('../lib/camera/camera.worker.ts', import.meta.url), { type: 'module' });
 
@@ -86,7 +99,13 @@ export function useCamera(input: UseCameraInput): CameraHandle {
       stateRef.current = step.state;
       lastObs.current = obs;
       setLive(liveView(step.state, obs.t));
-      if (step.capture && autoRef.current) void shootRef.current(step.capture);
+      if (step.capture && autoRef.current && !pausedRef.current) void shootRef.current(step.capture);
+    };
+
+    worker.onerror = (event) => {
+      event.preventDefault();
+      inFlight = false;
+      reportError('pdf_tool_run', event.error ?? new Error(event.message), 'scan_camera_observe');
     };
 
     const tick = () => {
@@ -109,18 +128,30 @@ export function useCamera(input: UseCameraInput): CameraHandle {
     };
 
     const start = async () => {
+      if (starting) return;
+      starting = true;
       try {
         const stream = await openCamera();
         if (!alive || document.hidden) { stopCamera(stream); return; }
+        if (streamRef.current) stopCamera(streamRef.current);
         streamRef.current = stream;
+        // another app took the camera, or the system interrupted it: the photo fallback takes over
+        stream.getVideoTracks()[0]?.addEventListener('ended', () => {
+          if (!alive || streamRef.current !== stream) return;
+          stop();
+          setStatus('unavailable');
+        });
         stateRef.current = INITIAL_CAPTURE_STATE;
         inFlight = false;
         setStatus('live');
         attach();
+        cancelAnimationFrame(frame);
         frame = requestAnimationFrame(tick);
       } catch (err) {
         // expected: a refused or missing camera is a status the viewfinder shows, with the photo fallback
         if (alive) setStatus(cameraStatusFor(err));
+      } finally {
+        starting = false;
       }
     };
 
