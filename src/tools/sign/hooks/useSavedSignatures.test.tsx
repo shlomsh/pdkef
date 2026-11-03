@@ -1,6 +1,7 @@
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi, type Mock } from 'vitest';
+import type { SignToolType } from '#editor/model/editorModel.ts';
 import { englishSignMessages } from '#editor/registry/signMessages.ts';
 import { getSavedSignatures } from '#editor/workspace/preferenceStore.ts';
 import { useSavedSignatures } from './useSavedSignatures.ts';
@@ -11,8 +12,8 @@ const storedIds = () => (getSavedSignatures() ?? []).map((s) => s.id);
 
 let host: HTMLDivElement;
 let hook: ReturnType<typeof useSavedSignatures>;
-let setSelectedTool: ReturnType<typeof vi.fn>;
-let setAnnouncement: ReturnType<typeof vi.fn>;
+let setSelectedTool: Mock<(tool: SignToolType | null) => void>;
+let setAnnouncement: Mock<(message: string) => void>;
 
 function Harness({ selectedTool }: { selectedTool: 'signature' | null }) {
   hook = useSavedSignatures({ selectedTool, setSelectedTool, setAnnouncement, messages: englishSignMessages });
@@ -35,8 +36,8 @@ describe('useSavedSignatures', () => {
   beforeEach(() => {
     localStorage.clear();
     sessionStorage.clear();
-    setSelectedTool = vi.fn();
-    setAnnouncement = vi.fn();
+    setSelectedTool = vi.fn<(tool: SignToolType | null) => void>();
+    setAnnouncement = vi.fn<(message: string) => void>();
   });
   afterEach(() => { act(() => { render(null, host); }); host.remove(); });
 
