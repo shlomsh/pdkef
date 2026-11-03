@@ -1,0 +1,78 @@
+---
+id: "SITE-45"
+title: "The /drive/ voice, carried to the other quiet pages: doodle that shows the mechanism, paper stickers for the promises"
+status: "open"
+priority: "P3"
+epic: "polish"
+horizon: "next"
+depends_on: []
+needs: "Pick which pitches below to build (step 1)"
+---
+
+# SITE-45 · The /drive/ voice on other pages
+
+*Drafted 2026-11-03, after Shlomi saw the new `/drive/` on an iPhone and asked for more of it.*
+
+## What the voice is
+
+Three parts, taken from `/drive/` (`src/pages/drive.astro`), so the next page copies a recipe and not a mood:
+
+1. **A hand-drawn picture of the real mechanism**, not decoration: a cloud, a dashed trail, a laptop with a
+   page on it. Wobbly strokes in `--color-text`, fills from the paper and mint tokens, small clay sparkles,
+   the trail moving only when motion is allowed. Pencil, never glow (reader taste, READ-13/14).
+2. **Paper stickers for the promises**: Private, Free, Open source, Local. Slightly tilted, uneven corners,
+   one citron, one mint, two paper. One short sentence each, verified against the code.
+3. **One warm line under the h1**, plain facts: "From Drive to your device, and no further."
+
+## Where it fits, and where it does not
+
+Fits: pages a person reads once and keeps no notes on, where a smile costs nothing.
+
+| Page | The picture | Stickers | Risk |
+| --- | --- | --- | --- |
+| `/open/` | a page arriving at the phone, four tools around it | the four tools are the stickers (Sign, Redact, Highlight, Compress) | none: same sheet and family as `/drive/` |
+| `/404` | a page wandering off with a pencil behind it | the tools grid becomes stickers | none: noindex |
+| `/about` | the pencil, the partner's slides, the consent form: the origin story in one doodle | the four promises | copy stays as written; the picture sits above it |
+| `/privacy` | a file that goes nowhere, a dashed trail that stops at the device edge | "The short version": four stickers above the long text | every sticker line is checked against the page's own text, Drive exception included |
+| `/contact`, `/licenses` | a small doodle in the header only | none | keep them light |
+| `/install-pdf-app/` and the how-to guides | a header figure in place of the lucide icon tile | none | SEO surface: static SVG, no CLS, `test:weight` |
+
+Leaves alone, by decision: the home first screen (one composed unit, nothing inserted), any tool's first screen
+and loaded state, the editor chrome, and `/redact/`'s frozen search surface (its URL, titles and intro copy).
+Tool done-states stay with the cross-tool hand-off work, not here.
+
+## Plan
+
+0. **Step 0, no new look: make `/drive/` a recipe.** Its doodle and stickers are inline in one page's scoped
+   style. Extract `PromiseStickers.astro` (takes the four lines, a tilt seed, a colour order) and
+   `Doodle.astro` (a small set of named figures sharing the stroke rules and the reduced-motion rule), and let
+   `/drive/` use them. Sticker copy lives in one place (`src/data/promises.js`) so "free", "open source" and
+   "local" cannot drift between pages; each page may pick or reword its own four lines from it.
+   List both components in the page family's entry sheet in `src/styles/` (`test:css` names a miss).
+1. **Pitches first, as Shlomi's rule says.** Before drawing anything: one line per page above for the
+   picture, plus the four sticker lines per page. Shlomi picks; unpicked rows drop off the ticket.
+2. **One polished build per picked page**, in this order: `/open/`, `/404`, `/about`, `/privacy`. The first two
+   prove the components on pages with no search or legal weight; the last two carry the copy risk.
+3. **Hebrew last.** `/he/about` and `/he/privacy` are reviewed translations; the sticker lines get a Hebrew
+   draft marked as AI draft in `reviewNotes`, and tilt and sparkles use logical properties so RTL mirrors.
+   Pages with no Hebrew edition get no Hebrew sticker.
+
+## Guardrails
+
+- Static HTML and CSS only: no JS on the SEO surface, no IntersectionObserver reveal, no new script resources.
+- Colours from `:root` tokens only; declare a token before using a utility for it.
+- Pictures are `aria-hidden` SVG; the sentence beside each sticker carries the meaning.
+- `prefers-reduced-motion`: the trail and any wiggle stop; the tilt may stay.
+- Voice: first person is welcome, no em dashes, no competitor names, no "honest" disclaimers. Every claim
+  checked against the code. Only four promises: private, free, open source, local; no new ones.
+- Not every page gets all four stickers: three pages with the same four lines would be a template, not a voice.
+- The ratchets only go down: CSS duplication, dead bytes and size records stay put (the extraction in step 0
+  should lower them, not raise them).
+
+## Acceptance
+
+- `/drive/` renders unchanged to the eye (screenshots at 375, 390, 768 and 1280 before and after step 0).
+- Each picked page: screenshots at those four widths, no horizontal scroll, the first action visible without
+  scrolling on a 375x812 phone, `test:css`, `test:weight`, `test:seo`, `test:csp` green.
+- Sticker lines checked against the code by a fresh reviewer who quotes the line each objection applies to.
+- Shlomi has seen each page on his iPhone before it lands.

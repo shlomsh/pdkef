@@ -2,7 +2,7 @@
 
 # Backlog
 
-The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 111 live: 27 up next, 18 then, 27 waiting, 39 parked.
+The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 112 live: 27 up next, 19 then, 27 waiting, 39 parked.
 
 ## Redact: finish removal
 
@@ -263,6 +263,7 @@ Small, independent, good for a spare hour.
 | GRID-07 | P2 | [GRID-07](backlog/tasks/GRID-07.md) · Page grid rows without gaps, and one rail rhythm across the grid tools |  |
 | GRID-08 | P2 | [GRID-08](backlog/tasks/GRID-08.md) · Compress and Unlock follow the one-file rail rule |  |
 | MERGE-26 | P3 | [MERGE-26](backlog/tasks/MERGE-26.md) · Save to Drive: an optional, explicit copy of a finished PDF into the person's own Drive | Needs Shlomi: Your rewrite of the first CLAUDE.md invariant (saving is the first time bytes leave the device) |
+| SITE-45 | P3 | [SITE-45](backlog/tasks/SITE-45.md) · The /drive/ voice, carried to the other quiet pages: doodle that shows the mechanism, paper stickers for the promises | Needs Shlomi: Pick which pitches below to build (step 1) |
 
 ### Parked
 
