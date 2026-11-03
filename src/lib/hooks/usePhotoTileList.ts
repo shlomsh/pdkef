@@ -6,8 +6,9 @@ export const PHOTO_ACCEPTED_TYPES = ['image/jpeg', 'image/png'];
 export const PHOTO_ACCEPT = PHOTO_ACCEPTED_TYPES.join(',');
 
 interface PhotoTileListOptions {
-  /** Whether the list is on screen: the drag handler is made when it first is. */
-  active: boolean;
+  /** Whether the list is on screen: the drag handler is made when it first is. A tool whose list moves
+   * between elements passes a name for each, so a new value makes the handler on the one now on screen. */
+  active: boolean | string;
   /** The list's items; focus is put back after each change to them. */
   items: unknown;
   /** The CSS Modules class a tile wears while it is dragged over its old place. */

@@ -1,0 +1,143 @@
+/* The pages as a numbered grid of 3:4 tiles, each holding its page on its real paper, ending in Add pages. */
+
+.grid {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--space-2);
+}
+
+@media (min-width: 1024px) {
+  .grid {
+    grid-template-columns: repeat(auto-fill, minmax(9.5rem, 1fr));
+    gap: var(--space-4);
+  }
+}
+
+.cell {
+  min-width: 0;
+}
+
+/* The tile is a mint box so the white paper reads against it. */
+.tile {
+  position: relative;
+  display: grid;
+  place-items: center;
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 44px;
+  aspect-ratio: 3 / 4;
+  overflow: hidden;
+  background: var(--color-surface-sunken);
+  border-radius: 6px;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.tile:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+@media (hover: hover) {
+  .tile:hover {
+    box-shadow: inset 0 0 0 2px var(--color-primary);
+  }
+}
+
+/* The paper: its own shape, white, with a visible edge. The photo is placed inside it in percentages. */
+.paper {
+  position: relative;
+  display: block;
+  box-sizing: border-box;
+  overflow: hidden;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border-strong);
+  pointer-events: none;
+}
+
+.photo {
+  position: absolute;
+  display: block;
+  user-select: none;
+}
+
+.photo[data-stale] {
+  opacity: 0.45;
+}
+
+.pending {
+  padding: 4px;
+  font-size: 0.7rem;
+  text-align: center;
+  color: var(--color-text);
+}
+
+.badge {
+  position: absolute;
+  inset-block-end: 6px;
+  inset-inline-start: 6px;
+  padding: 0 7px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-surface);
+  background: var(--color-text);
+  border-radius: var(--radius-pill);
+  pointer-events: none;
+}
+
+/* The Add pages tile is the grid's last slot, the same 3:4 shape as a page. */
+.add {
+  display: flex;
+  height: 100%;
+}
+
+.add-button {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  box-sizing: border-box;
+  width: 100%;
+  aspect-ratio: 3 / 4;
+  min-height: 44px;
+  padding: 4px;
+  font: inherit;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-align: center;
+  color: var(--color-primary-text);
+  background: transparent;
+  border: 1.5px dashed var(--color-border-strong);
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.add-button:focus-visible {
+  background: var(--color-primary-soft);
+  border-color: var(--color-primary);
+}
+
+@media (hover: hover) {
+  .add-button:hover {
+    background: var(--color-primary-soft);
+    border-color: var(--color-primary);
+  }
+}
+
+/* TakePhotoButton's wrapper is a flex child that fills the tile. */
+.add > :first-child {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+/* A phone adds with the camera, a mouse with the picker. */
+@media (pointer: coarse) {
+  .add-pick {
+    display: none;
+  }
+}

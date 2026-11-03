@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { initialScanState, reduceScan } from './scanState.ts';
+import { initialScanState, pageViewerMode, reduceScan } from './scanState.ts';
 
 type ScanState = Parameters<typeof reduceScan>[0];
 import { FULL_QUAD } from '../lib/quad.ts';
@@ -239,5 +239,21 @@ describe('the camera (SCAN-08)', () => {
       expect(next).toMatchObject({ phase: 'table', camera: { mode: 'one', pageId: 4, thenMany: true } });
       expect(reduceScan(next, { type: 'cameraClosed' }).camera).toEqual({ mode: 'many' });
     });
+  });
+});
+
+describe('pageViewerMode (SCAN-13)', () => {
+  const at = (phase: 'table' | 'result' | 'corners', camera: ScanState['camera'] = null) => ({ ...initialScanState, phase, camera }) as ScanState;
+
+  it('on a phone it follows the page, and the table has none', () => {
+    expect(pageViewerMode(at('table'), false)).toBeNull();
+    expect(pageViewerMode(at('result'), false)).toBe('result');
+    expect(pageViewerMode(at('corners'), false)).toBe('corners');
+  });
+
+  it('on a wide screen only the camera\'s stack opens it: the workspace shows a page itself', () => {
+    expect(pageViewerMode(at('result'), true)).toBeNull();
+    expect(pageViewerMode(at('result', { mode: 'many' }), true)).toBe('result');
+    expect(pageViewerMode(at('result', { mode: 'one', pageId: 1 }), true)).toBeNull();
   });
 });

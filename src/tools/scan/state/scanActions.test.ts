@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { createEditActions, createPageActions } from './scanActions.ts';
+import { createEditActions, createPageActions, pageViewActions } from './scanActions.ts';
 import { ScanWork, type ScanPage } from './scanWork.ts';
 import type { Quad } from '../lib/quad.ts';
 import { newPage } from '../lib/scanPages.ts';
@@ -201,5 +201,26 @@ describe('createEditActions', () => {
     const { ctx, actions } = editSetup([a]);
     actions.adjustCorners();
     expect(ctx.dispatch).toHaveBeenCalledWith({ type: 'cornersOpened', focus: true });
+  });
+});
+
+describe('pageViewActions', () => {
+  const edit = { retakePage: vi.fn() } as unknown as Parameters<typeof pageViewActions>[0]['edit'];
+  const page = { id: 7 } as ScanPage;
+
+  it('Retake works on the shown page, with the camera or a file', () => {
+    const dispatch = vi.fn();
+    const actions = pageViewActions({ edit, findPage: vi.fn(), removePage: vi.fn(), selected: page, dispatch });
+    actions.onRetakeCamera();
+    expect(dispatch).toHaveBeenCalledWith({ type: 'retakeOpened', pageId: 7 });
+    const file = new File(['x'], 'a.jpg');
+    actions.onRetake(file);
+    expect(edit.retakePage).toHaveBeenCalledWith(7, file);
+  });
+
+  it('does nothing without a page', () => {
+    const dispatch = vi.fn();
+    pageViewActions({ edit, findPage: vi.fn(), removePage: vi.fn(), selected: undefined, dispatch }).onRetakeCamera();
+    expect(dispatch).not.toHaveBeenCalled();
   });
 });

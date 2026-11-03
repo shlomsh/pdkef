@@ -18,8 +18,6 @@ export interface ScanMessages extends DownloadMessages {
   cameraDone: string;
   closeCamera: string;
   stackLabel: string;
-  keepPage: string;
-  fixCorners: string;
   addPhotos: string;
   skippedOne: string;
   skippedMany: string;
@@ -130,8 +128,6 @@ export const englishScanMessages: ScanMessages = {
   cameraDone: 'Done',
   closeCamera: 'Close the camera',
   stackLabel: 'The last page taken, {count} so far',
-  keepPage: 'Keep',
-  fixCorners: 'Fix the corners',
   addPhotos: 'Add photos',
   skippedOne: '{name} was skipped: only JPG and PNG photos can be scanned.',
   skippedMany: '{count} files were skipped: only JPG and PNG photos can be scanned.',

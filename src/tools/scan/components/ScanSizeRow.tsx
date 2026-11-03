@@ -2,7 +2,7 @@ import OptionRow from '#shell/pageWorkspace/OptionRow.tsx';
 import { limitOptions } from '../lib/scanOptions.ts';
 import type { SizeLimitId } from '../lib/scanBudget.ts';
 import { englishScanMessages as t } from '../messages.ts';
-import styles from './ScanTable.module.css';
+import styles from './ScanPhoneTable.module.css';
 
 interface ScanSizeRowProps {
   /** The built PDF's size, formatted; null while it builds. */

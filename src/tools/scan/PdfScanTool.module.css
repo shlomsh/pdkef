@@ -463,62 +463,6 @@
   }
 }
 
-/* The phone bar's add button, at its start, opposite the quiet Download: the same quiet bar style. */
-.bar-add {
-  flex: none;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.35rem;
-  min-height: 44px;
-  padding: 0 0.75rem;
-  font: inherit;
-  font-size: 0.85rem;
-  font-weight: 600;
-  color: var(--color-primary-text);
-  background: var(--color-surface);
-  border: 1px solid var(--color-border-strong);
-  border-radius: var(--radius-sm);
-  cursor: pointer;
-}
-
-.bar-add:focus-visible {
-  background: var(--color-primary-soft);
-  border-color: var(--color-primary);
-}
-
-@media (hover: hover) {
-  .bar-add:hover {
-    background: var(--color-primary-soft);
-    border-color: var(--color-primary);
-  }
-}
-
-/* With a mouse the bar offers the picker instead of the camera. */
-.bar-pick {
-  display: none;
-}
-
-@media (pointer: fine) {
-  .bar-pick {
-    display: inline-flex;
-  }
-}
-
-/* Below 1024px the bar carries Take a photo, and with a mouse Add photos too, so the strip's end
-   keeps only what the bar does not: the picker, on a phone. */
-@media (max-width: 1023px) {
-  .add-tile .take-photo {
-    display: none;
-  }
-}
-
-@media (max-width: 1023px) and (pointer: fine) {
-  .add-tile {
-    display: none;
-  }
-}
-
 .rating-slot {
   /* Its own height, never squeezed by the column, with the ask's margin inside it, so
      useFloorHeight measures all of it. */
@@ -531,18 +475,6 @@
    height: the photo above already makes the room. */
 .rating-slot > div {
   height: auto;
-}
-
-.phone-options {
-  display: grid;
-  gap: 14px;
-  margin-top: 18px;
-}
-
-@media (min-width: 1024px) {
-  .phone-options {
-    display: none;
-  }
 }
 
 .is-ghost {

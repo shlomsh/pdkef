@@ -21,7 +21,7 @@ import { cornersHint } from './ScanEditorHead.tsx';
 
 type Placed = Parameters<typeof resultViewFor>[2]['shown'];
 
-export interface ScanPageViewerProps {
+interface ScanPageViewerProps {
   refs: { editor: Ref<HTMLElement>; heading: Ref<HTMLParagraphElement> };
   pages: ScanPage[];
   selected: ScanPage;
