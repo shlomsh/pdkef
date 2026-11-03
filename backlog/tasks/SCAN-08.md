@@ -35,4 +35,6 @@ and the mocks (https://claude.ai/artifact/TRgSt9SUjqyXM5NWGkr83L, screens 1 to 5
 - [ ] Refusing the camera lands on the native input with no dead end.
 - [ ] `test:csp`, `test:weight`, `test:lazy-modules` and the precache budget pass; the page's first load
       carries none of the camera code.
+- [ ] The `@testSeam` tags SCAN-07 put on `detectPage`, `CONFIDENT`, `sharpness`, `quadArea`, `averageHash`,
+      `stepCapture` and `INITIAL_CAPTURE_STATE` are gone, since the camera now imports them.
 - [ ] One e2e drives the viewfinder with a fake camera stream (Chromium `--use-file-for-fake-video-capture`).
