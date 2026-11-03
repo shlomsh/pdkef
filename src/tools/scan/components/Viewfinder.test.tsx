@@ -5,7 +5,8 @@ import { IDLE_VIEW, type CameraHandle } from '../lib/camera/types.ts';
 import Viewfinder from './Viewfinder.tsx';
 
 let handle: CameraHandle;
-vi.mock('../hooks/useCamera.ts', () => ({ useCamera: () => handle }));
+let cameraInput: { onTaken: (page: unknown) => void; paused?: boolean };
+vi.mock('../hooks/useCamera.ts', () => ({ useCamera: (input: typeof cameraInput) => { cameraInput = input; return handle; } }));
 // The model is another file's work; the component only calls it.
 vi.mock('../lib/camera/viewfinderModel.ts', () => ({
   hintText: (hint: string, count: number) => (hint === 'point' ? 'Point at a page' : hint === 'hold' ? 'Hold still' : `Page ${count}. Turn the page.`),
@@ -71,6 +72,45 @@ describe('Viewfinder', () => {
     container.querySelector('dialog')!.dispatchEvent(event);
     expect(event.defaultPrevented).toBe(true);
     expect(props.onClose).toHaveBeenCalled();
+  });
+
+  it('Escape with the review open closes only the sheet', () => {
+    const { container, props } = mount();
+    click(container.querySelector('[data-stack]'));
+    expect(byText('Keep')).toBeDefined();
+    const event = new Event('cancel', { cancelable: true });
+    act(() => { container.querySelector('dialog')!.dispatchEvent(event); });
+    expect(event.defaultPrevented).toBe(true);
+    expect(byText('Keep')).toBeUndefined();
+    expect(props.onClose).not.toHaveBeenCalled();
+  });
+
+  it('auto is paused while the review is open', () => {
+    const { container } = mount();
+    expect(cameraInput.paused).toBe(false);
+    click(container.querySelector('[data-stack]'));
+    expect(cameraInput.paused).toBe(true);
+    click(byText('Keep'));
+    expect(cameraInput.paused).toBe(false);
+  });
+
+  it('a page without a snapshot is still taken', () => {
+    const { props } = mount();
+    const file = new File(['x'], 'p.jpg');
+    expect(() => act(() => cameraInput.onTaken({ file, snapshot: null, quad: null }))).not.toThrow();
+    expect(props.onTaken).toHaveBeenCalledWith(file);
+  });
+
+  it('revokes the snapshot URL on unmount', () => {
+    const create = vi.fn(() => 'blob:snap');
+    const revoke = vi.fn();
+    (HTMLImageElement.prototype as unknown as { decode: () => Promise<void> }).decode = () => new Promise(() => {});
+    Object.assign(URL, { createObjectURL: create, revokeObjectURL: revoke });
+    mount({ lastSrc: null, count: 0 });
+    act(() => cameraInput.onTaken({ file: new File(['x'], 'p.jpg'), snapshot: new Blob(['s']), quad: null }));
+    expect(create).toHaveBeenCalled();
+    act(() => render(null, container!));
+    expect(revoke).toHaveBeenCalledWith('blob:snap');
   });
 
   it('Done and the close button close', () => {
