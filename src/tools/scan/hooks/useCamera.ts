@@ -7,7 +7,7 @@ import { INITIAL_CAPTURE_STATE, markTaken, stepCapture } from '../lib/capture/ca
 import type { CaptureState, FrameObservation } from '../lib/capture/types.ts';
 import { cameraStatusFor } from '../lib/camera/cameraErrors.ts';
 import { openCamera, stopCamera, takePhoto } from '../lib/camera/cameraStream.ts';
-import { grabGray, snapshot } from '../lib/camera/frameGrab.ts';
+import { frameGrabber, snapshot } from '../lib/camera/frameGrab.ts';
 import { IDLE_VIEW, type CameraHandle, type CameraStatus, type TakenPage } from '../lib/camera/types.ts';
 import { liveView } from '../lib/camera/viewfinderModel.ts';
 
@@ -89,7 +89,7 @@ export function useCamera(input: UseCameraInput): CameraHandle {
     let frame = 0;
     let inFlight = false;
     let starting = false;
-    const canvas = document.createElement('canvas');
+    const grabFrame = frameGrabber();
     const worker = new Worker(new URL('../lib/camera/camera.worker.ts', import.meta.url), { type: 'module' });
 
     worker.onmessage = (e: MessageEvent<FrameObservation>) => {
@@ -112,11 +112,10 @@ export function useCamera(input: UseCameraInput): CameraHandle {
       frame = requestAnimationFrame(tick);
       const video = videoEl.current;
       if (inFlight || !video || !streamRef.current || video.readyState < 2) return;
-      const gray = grabGray(video, canvas);
-      if (!gray) return;
+      const grabbed = grabFrame(video, performance.now());
+      if (!grabbed) return;
       inFlight = true;
-      const t = performance.now();
-      worker.postMessage({ t, width: gray.width, height: gray.height, buffer: gray.data.buffer }, [gray.data.buffer]);
+      worker.postMessage(grabbed.message, grabbed.transfer);
     };
 
     const stop = () => {

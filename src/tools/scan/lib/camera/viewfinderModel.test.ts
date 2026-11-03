@@ -6,7 +6,7 @@ import type { Quad } from '../quad.ts';
 const Q: Quad = [{ x: 0.1, y: 0.1 }, { x: 0.9, y: 0.1 }, { x: 0.9, y: 0.9 }, { x: 0.1, y: 0.9 }];
 
 const state = (over: Partial<CaptureState>): CaptureState => ({
-  phase: 'searching', smoothed: null, holdSince: null, lastCaptureHash: null, lastT: null, prevQuad: null, lostSince: null,
+  phase: 'searching', smoothed: null, holdSince: null, lastCaptureHash: null, lastT: null, prevQuad: null, lostSince: null, focusAnchor: null, settledSince: null,
   ...over,
 });
 
@@ -30,7 +30,7 @@ describe('liveView', () => {
   it('holding: clamps to 0 and 1, and uses the given params', () => {
     const s = state({ phase: 'holding', smoothed: Q, holdSince: 1000 });
     expect(liveView(s, 900).hold).toBe(0);
-    expect(liveView(s, 5000).hold).toBe(1);
+    expect(liveView(s, 5000).hold).toBeLessThan(1);
     expect(liveView(s, 1100, { ...DEFAULT_CAPTURE_PARAMS, holdMs: 200 }).hold).toBe(0.5);
   });
 

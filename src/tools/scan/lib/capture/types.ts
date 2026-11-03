@@ -16,6 +16,8 @@ export interface FrameObservation {
   area: number;
   /** 16 hex chars, 64-bit average hash of the frame's page region. */
   hash: string;
+  /** focusMeasure of the centre crop; 0 when there is no crop. */
+  focus: number;
 }
 
 type CapturePhase = 'searching' | 'locked' | 'holding' | 'waitingForChange';
@@ -34,6 +36,10 @@ export interface CaptureState {
   prevQuad: Quad | null;
   /** Since when the page has been missing (waitingForChange only). */
   lostSince: number | null;
+  /** The focus at the start of the settle window; null when not holding. */
+  focusAnchor: number | null;
+  /** Since when focus has been settled in this hold; null when not holding. */
+  settledSince: number | null;
 }
 
 /** First guesses, to be tuned on recorded sequences (SCAN-05). */
@@ -46,6 +52,10 @@ export interface CaptureParams {
   minSharpness: number;
   /** How long the page must stay still and sharp before the shot. */
   holdMs: number;
+  /** A frame's focus must stay within this fraction of the hold's best, and not improve past it, to count as settled. */
+  settleRatio: number;
+  /** How long focus must stay settled before the shot. */
+  settleMs: number;
   /** Largest corner movement (normalized, per frame) that still counts as still. */
   jitterThreshold: number;
   /** A corner farther than this from its smoothed place is a new page position: smoothing and hold restart. */
@@ -64,7 +74,9 @@ export const DEFAULT_CAPTURE_PARAMS: CaptureParams = {
   minConfidence: 0.6,
   minArea: 0.2,
   minSharpness: 100,
-  holdMs: 600,
+  holdMs: 800,
+  settleRatio: 0.8,
+  settleMs: 400,
   jitterThreshold: 0.01,
   jumpThreshold: 0.12,
   smoothingAlpha: 0.5,

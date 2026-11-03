@@ -36,7 +36,8 @@ Files: `lib/capture/` (`types.ts`, `sharpness.ts`, `observe.ts`, `captureMachine
 2. `focusMeasure` is tested: noise alone scores well under the same noise over sharp text, and blurred text scores
    under sharp text at the same noise.
 3. The machine fires only when the hold has lasted `holdMs` and `focus` has been settled for `settleMs`: every frame
-   within `settleRatio` of the hold's best, and none improving on the best by more than that ratio.
+   since the start of the settle window within `settleRatio` of that frame's focus, up or down. Leaving that band
+   starts a new window, so a slow climb keeps waiting and one stray frame costs one window.
 4. Tests on frame sequences: focus still rising does not fire, then fires once it settles; a drop restarts the
    settle; flat focus fires at `holdMs`; a blank page (flat, low focus) still fires; leaving the hold resets it.
 5. `holdMs` is 800. Today's tests keep passing except where they pin 600.

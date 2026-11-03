@@ -14,9 +14,9 @@ const pageQuad = (dx = 0, dy = 0, s = 0.8): Quad => {
 const HASH_A = '0f0f0f0f0f0f0f0f';
 const HASH_B = 'f0f0f0f0f0f0f0f0';
 const page = (t: number, over: Partial<FrameObservation> = {}): FrameObservation => ({
-  t, quad: pageQuad(), confidence: 0.9, sharpness: 500, area: 0.64, hash: HASH_A, ...over,
+  t, quad: pageQuad(), confidence: 0.9, sharpness: 500, area: 0.64, hash: HASH_A, focus: 1000, ...over,
 });
-const none = (t: number): FrameObservation => ({ t, quad: null, confidence: 0, sharpness: 0, area: 0, hash: HASH_A });
+const none = (t: number): FrameObservation => ({ t, quad: null, confidence: 0, sharpness: 0, area: 0, hash: HASH_A, focus: 0 });
 
 /** Runs frames through the machine; returns the times at which a capture fired. */
 function run(frames: FrameObservation[], start: CaptureState = INITIAL_CAPTURE_STATE) {
@@ -36,8 +36,8 @@ describe('stepCapture', () => {
   it('fires exactly once on a steady page, once the hold has lasted holdMs', () => {
     const { fired, state } = run(seq(0, 1500, (t) => page(t)));
     expect(fired).toHaveLength(1);
-    expect(fired[0]).toBeGreaterThanOrEqual(600);
-    expect(fired[0]).toBeLessThan(600 + 2 * FRAME);
+    expect(fired[0]).toBeGreaterThanOrEqual(800);
+    expect(fired[0]).toBeLessThan(800 + 2 * FRAME);
     expect(state.phase).toBe('waitingForChange');
     expect(state.lastCaptureHash).toBe(HASH_A);
   });
@@ -83,7 +83,7 @@ describe('stepCapture', () => {
   it('resets the hold when frames go missing mid-hold', () => {
     const frames = [...seq(0, 400, (t) => page(t)), ...seq(433, 100, none), ...seq(600, 450, (t) => page(t))];
     const { fired } = run(frames);
-    expect(fired.length === 0 || fired[0] >= 600 + 600).toBe(true);
+    expect(fired.length === 0 || fired[0] >= 600 + 800).toBe(true);
   });
   it('treats a gap in t as an interrupted hold', () => {
     const frames = [...seq(0, 400, (t) => page(t)), page(1000), page(1033)];
@@ -99,6 +99,77 @@ describe('stepCapture', () => {
   });
   it('locks on a good page before holding', () => {
     expect(stepCapture(INITIAL_CAPTURE_STATE, page(0)).state.phase).toBe('locked');
+  });
+});
+
+describe('focus settling', () => {
+  // each frame improves on the last by more than the 25% a settleRatio of 0.8 tolerates
+  const rising = (t: number, i: number) => page(t, { focus: 100 * 1.3 ** i });
+  const top = 100 * 1.3 ** Math.floor(2000 / FRAME);
+  it('flat focus fires at holdMs', () => {
+    const { fired } = run(seq(0, 1500, (t) => page(t, { focus: 800 })));
+    expect(fired).toHaveLength(1);
+    expect(fired[0]).toBeGreaterThanOrEqual(800);
+    expect(fired[0]).toBeLessThan(800 + 2 * FRAME);
+  });
+  it('a blank page (flat, low focus) still fires', () => {
+    expect(run(seq(0, 1500, (t) => page(t, { focus: 3 }))).fired).toHaveLength(1);
+  });
+  it('focus still rising does not fire, then fires once it settles', () => {
+    const frames = [...seq(0, 2000, rising), ...seq(2033, 1000, (t) => page(t, { focus: top }))];
+    const { fired } = run(frames);
+    expect(fired).toHaveLength(1);
+    expect(fired[0]).toBeGreaterThanOrEqual(1980 + 400);
+    expect(fired[0]).toBeLessThan(1980 + 400 + 2 * FRAME);
+  });
+  it('rising focus alone never fires', () => {
+    expect(run(seq(0, 2000, rising)).fired).toEqual([]);
+  });
+  it('a slow climb does not fire while it climbs', () => {
+    // 5% a frame is inside what one frame may improve, but not across a whole settle window
+    expect(run(seq(0, 2000, (t, i) => page(t, { focus: 100 * 1.05 ** i }))).fired).toEqual([]);
+  });
+  it('one bright frame does not hold the shot back: focus settling lower still fires', () => {
+    const steady = (t: number) => page(t, { focus: 1000 });
+    const { fired } = run([...seq(0, 300, steady), page(333, { focus: 3000 }), ...seq(366, 1500, steady)]);
+    expect(fired).toHaveLength(1);
+    expect(fired[0]).toBeGreaterThanOrEqual(366 + 400);
+  });
+  it('a drop restarts the settle', () => {
+    const frames = [...seq(0, 700, (t) => page(t, { focus: 1000 })), page(733, { focus: 500 }), ...seq(766, 1000, (t) => page(t, { focus: 1000 }))];
+    const { fired } = run(frames);
+    expect(fired).toHaveLength(1);
+    // the drop is below 0.8 of the anchor, so the settle restarts at 733 and fires no sooner than 400 ms later
+    expect(fired[0]).toBeGreaterThanOrEqual(733 + 400);
+  });
+  it('holds (does not fire) while waiting, the phase stays holding', () => {
+    const { state, fired } = run(seq(0, 1000, rising));
+    expect(fired).toEqual([]);
+    expect(state.phase).toBe('holding');
+    expect(state.focusAnchor).not.toBeNull();
+  });
+  it.each([
+    ['blur', page(500, { sharpness: 5 })],
+    ['jitter', page(500, { quad: pageQuad(0.03) })],
+    ['jump', page(500, { quad: pageQuad(0.1, 0.1, 0.7) })],
+    ['no page', none(500)],
+    ['dropped frame', page(900)],
+  ])('leaving the hold (%s) resets focusAnchor and settledSince', (_name, frame) => {
+    const held = run(seq(0, 400, (t) => page(t))).state;
+    expect(held.focusAnchor).not.toBeNull();
+    const out = stepCapture(held, frame).state;
+    expect(out.focusAnchor).toBeNull();
+    expect(out.settledSince).toBeNull();
+  });
+  it('firing and markTaken reset them', () => {
+    const { state } = run(seq(0, 1000, (t) => page(t)));
+    expect(state.phase).toBe('waitingForChange');
+    expect(state.focusAnchor).toBeNull();
+    expect(state.settledSince).toBeNull();
+    const held = run(seq(0, 400, (t) => page(t))).state;
+    const taken = markTaken(held, HASH_A);
+    expect(taken.focusAnchor).toBeNull();
+    expect(taken.settledSince).toBeNull();
   });
 });
 

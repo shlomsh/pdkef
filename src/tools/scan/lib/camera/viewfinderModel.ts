@@ -4,11 +4,14 @@ import { formatMessage } from '#lib/text/formatMessage.ts';
 import { DEFAULT_CAPTURE_PARAMS, type CaptureParams, type CaptureState } from '../capture/types.ts';
 import type { Hint, LiveView, Rect } from './types.ts';
 
+/** The ring stops short of full while the machine is still holding: full means the shot has been taken. */
+const RING_WHILE_WAITING = 0.95;
+
 /** The outline, hold ring and hint for the capture state at time `now` (ms, the same clock as obs.t). */
 export function liveView(state: CaptureState, now: number, params: CaptureParams = DEFAULT_CAPTURE_PARAMS): LiveView {
   const { phase, smoothed, holdSince } = state;
   const hint: Hint = phase === 'searching' ? 'point' : phase === 'waitingForChange' ? 'turn' : 'hold';
-  const hold = phase === 'holding' && holdSince !== null ? Math.min(1, Math.max(0, (now - holdSince) / params.holdMs)) : 0;
+  const hold = phase === 'holding' && holdSince !== null ? Math.min(RING_WHILE_WAITING, Math.max(0, (now - holdSince) / params.holdMs)) : 0;
   return { quad: smoothed, locked: hint === 'hold', hold, hint };
 }
 

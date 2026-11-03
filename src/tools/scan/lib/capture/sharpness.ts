@@ -26,6 +26,22 @@ export function sharpness(image: GrayImage, quad?: Quad | null): number {
   return Math.max(0, sumSq / n - mean * mean);
 }
 
+/** Focus of a centre crop: 2x2 box bin first, so single-pixel sensor noise averages out and only structure
+ * wider than a pixel (print edges) feeds the Laplacian, then sharpness() of the whole binned image. */
+export function focusMeasure(patch: GrayImage): number {
+  const w = patch.width >> 1;
+  const h = patch.height >> 1;
+  if (w < 3 || h < 3) return 0;
+  const data = new Uint8ClampedArray(w * h);
+  for (let y = 0; y < h; y += 1) {
+    for (let x = 0; x < w; x += 1) {
+      const i = 2 * y * patch.width + 2 * x;
+      data[y * w + x] = (patch.data[i] + patch.data[i + 1] + patch.data[i + patch.width] + patch.data[i + patch.width + 1] + 2) >> 2;
+    }
+  }
+  return sharpness({ width: w, height: h, data });
+}
+
 /** The first and last pixel column of a convex quad on the row at normalized height `ny`; an empty span when it misses. */
 function rowSpan(quad: Quad, ny: number, width: number): [number, number] {
   let lo = Infinity;
