@@ -512,109 +512,67 @@ describe('retired fonts', () => {
 });
 
 /**
- * Noto Sans JP: an upright text face (not handwriting), Regular and Bold
- * only, no italic. Most of the catalogue-wide tests above already exercise
- * it automatically since it's just another TEXT_FONTS entry - these pin the
- * facts specific to it: no real italic face exists (so the toolbar's italic
- * button must disable itself), it isn't tagged as a handwriting font, and
- * kana typed in some other font actually resolves here.
+ * The single-script Noto text faces (Japanese, Bengali): an upright text face
+ * (not handwriting), Regular and Bold only, no italic. Most of the
+ * catalogue-wide tests above already exercise them automatically since each is
+ * just another TEXT_FONTS entry - these pin the facts specific to them: no
+ * real italic face exists (so the toolbar's italic button must disable
+ * itself), they aren't tagged as handwriting fonts, and their script typed in
+ * some other font actually resolves here. The Bengali sample mixes an
+ * independent vowel, a reph cluster (র্ক) and a conjunct (ক্ষ) so a plain
+ * cmap-only stub font would already fail `covers`, not just a font missing
+ * the whole block.
+ *
+ * There is no handwriting-style face for either script in the catalogue (the
+ * same situation Cyrillic is already in - see the Sign Languages card copy),
+ * so a typed signature comes out upright rather than cursive: even starting
+ * from a handwriting font, the text resolves to the one upright face that can
+ * draw it, never to some other handwriting font that can't.
  */
-describe('Noto Sans JP', () => {
-  const kana = 'こんにちは';
-
+describe.each([
+  ['Noto Sans JP', 'kana', 'こんにちは'],
+  ['Noto Sans Bengali', 'Bengali text, including reph and conjunct clusters', 'আমার নাম র্ক ক্ষ'],
+])('%s', (family, script, text) => {
   it('is a text font, not a handwriting font', () => {
-    expect(TEXT_FONTS).toContain('Noto Sans JP');
-    expect(HANDWRITING_FONTS).not.toContain('Noto Sans JP');
-    expect(FONT_STYLE_TAGS['Noto Sans JP']).toBe('sans');
+    expect(TEXT_FONTS).toContain(family);
+    expect(HANDWRITING_FONTS).not.toContain(family);
+    expect(FONT_STYLE_TAGS[family]).toBe('sans');
   });
 
   it('has no real italic face in either weight, so hasRealFace reports false', () => {
-    expect(hasRealFace('Noto Sans JP', 'normal', 'italic')).toBe(false);
-    expect(hasRealFace('Noto Sans JP', 'bold', 'italic')).toBe(false);
+    expect(hasRealFace(family, 'normal', 'italic')).toBe(false);
+    expect(hasRealFace(family, 'bold', 'italic')).toBe(false);
   });
 
   it('has real Regular and Bold faces', () => {
-    expect(hasRealFace('Noto Sans JP', 'normal', 'normal')).toBe(true);
-    expect(hasRealFace('Noto Sans JP', 'bold', 'normal')).toBe(true);
+    expect(hasRealFace(family, 'normal', 'normal')).toBe(true);
+    expect(hasRealFace(family, 'bold', 'normal')).toBe(true);
   });
 
-  it('covers kana', () => {
-    expect(covers('Noto Sans JP', 'normal', 'normal', kana)).toBe(true);
+  it(`covers ${script}`, () => {
+    expect(covers(family, 'normal', 'normal', text)).toBe(true);
   });
 
-  it('is left alone when already picked for kana text', () => {
-    expect(resolveFontFamily('Noto Sans JP', kana)).toBe('Noto Sans JP');
+  it('is left alone when already picked for its script', () => {
+    expect(resolveFontFamily(family, text)).toBe(family);
   });
 
-  it('is what kana resolves to from a font that cannot draw it, and the substitution is explained', () => {
-    const result = resolveFontSubstitution('Arimo', kana);
-    expect(result.family).toBe('Noto Sans JP');
+  it('is what its script resolves to from a font that cannot draw it, and the substitution is explained', () => {
+    const result = resolveFontSubstitution('Arimo', text);
+    expect(result.family).toBe(family);
     expect(result.requested).toBe('Arimo');
     expect(result.missing.length).toBeGreaterThan(0);
   });
 
-  // There is no handwriting-style Japanese face in the catalogue (the same
-  // situation Cyrillic is already in - see the Sign Languages card copy), so
-  // a typed Japanese signature comes out upright rather than cursive: even
-  // starting from a handwriting font, kana resolves to the one upright face
-  // that can draw it, never to some other handwriting font that can't.
-  it('has no handwriting alternative, so kana in a handwriting font also resolves upright', () => {
-    expect(resolveFontFamily('Caveat', kana)).toBe('Noto Sans JP');
-    expect(resolveFontFamily('Gveret Levin', kana)).toBe('Noto Sans JP');
+  it('has no handwriting alternative, so its script in a handwriting font also resolves upright', () => {
+    expect(resolveFontFamily('Caveat', text)).toBe(family);
+    expect(resolveFontFamily('Gveret Levin', text)).toBe(family);
   });
 });
 
-/**
- * Noto Sans Bengali: an upright text face (not handwriting), Regular and
- * Bold only, no italic - the same shape of pin as the Noto Sans JP block
- * above. `bengaliText` mixes an independent vowel, a reph cluster (র্ক) and
- * a conjunct (ক্ষ) so a plain cmap-only stub font would already fail
- * `covers`, not just a font missing the whole block.
- */
 describe('Noto Sans Bengali', () => {
-  const bengaliText = 'আমার নাম র্ক ক্ষ';
-
-  it('is a text font, not a handwriting font', () => {
-    expect(TEXT_FONTS).toContain('Noto Sans Bengali');
-    expect(HANDWRITING_FONTS).not.toContain('Noto Sans Bengali');
-    expect(FONT_STYLE_TAGS['Noto Sans Bengali']).toBe('sans');
-  });
-
-  it('has no real italic face in either weight, so hasRealFace reports false', () => {
-    expect(hasRealFace('Noto Sans Bengali', 'normal', 'italic')).toBe(false);
-    expect(hasRealFace('Noto Sans Bengali', 'bold', 'italic')).toBe(false);
-  });
-
-  it('has real Regular and Bold faces', () => {
-    expect(hasRealFace('Noto Sans Bengali', 'normal', 'normal')).toBe(true);
-    expect(hasRealFace('Noto Sans Bengali', 'bold', 'normal')).toBe(true);
-  });
-
-  it('covers Bengali text, including reph and conjunct clusters', () => {
-    expect(covers('Noto Sans Bengali', 'normal', 'normal', bengaliText)).toBe(true);
-  });
-
   it("covers Assamese's two extra letters, RA (ৰ) and VA (ৱ)", () => {
     expect(covers('Noto Sans Bengali', 'normal', 'normal', 'ৰ ৱ')).toBe(true);
-  });
-
-  it('is left alone when already picked for Bengali text', () => {
-    expect(resolveFontFamily('Noto Sans Bengali', bengaliText)).toBe('Noto Sans Bengali');
-  });
-
-  it('is what Bengali text resolves to from a font that cannot draw it, and the substitution is explained', () => {
-    const result = resolveFontSubstitution('Arimo', bengaliText);
-    expect(result.family).toBe('Noto Sans Bengali');
-    expect(result.requested).toBe('Arimo');
-    expect(result.missing.length).toBeGreaterThan(0);
-  });
-
-  // No handwriting-style Bengali face exists in the catalogue, so a typed
-  // Bengali signature comes out upright - the same admission Cyrillic and
-  // Japanese already make.
-  it('has no handwriting alternative, so Bengali in a handwriting font also resolves upright', () => {
-    expect(resolveFontFamily('Caveat', bengaliText)).toBe('Noto Sans Bengali');
-    expect(resolveFontFamily('Gveret Levin', bengaliText)).toBe('Noto Sans Bengali');
   });
 });
 
