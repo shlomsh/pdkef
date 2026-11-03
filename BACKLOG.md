@@ -2,7 +2,7 @@
 
 # Backlog
 
-The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 102 live: 24 up next, 13 then, 27 waiting, 38 parked.
+The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 103 live: 25 up next, 13 then, 27 waiting, 38 parked.
 
 ## Redact: finish removal
 
@@ -183,6 +183,7 @@ Mostly waiting on dated Search Console reads. Two small things can ship now.
 | SEO-46 | P2 | [SEO-46](backlog/tasks/SEO-46.md) · Real star ratings: ask once when a tool finishes, bake an honest aggregate into each tool page, and win the SERP stars | In progress |
 | SEO-48 | P2 | [SEO-48](backlog/tasks/SEO-48.md) · Ratings carry country and region, and a person may add a comment | In progress |
 | SEO-54 | P2 | [SEO-54](backlog/tasks/SEO-54.md) · Academic paper reader: a visual guide to reading papers in Highlight PDF, and the /highlight-pdf/ audit fixes | In progress |
+| SEO-55 | P2 | [SEO-55](backlog/tasks/SEO-55.md) · Ask for a star rating in a warm dialog after the download, in Redact, Sign, Highlight and Merge | In progress |
 | SCAN-01 | P3 | [SCAN-01](backlog/tasks/SCAN-01.md) · Scan to PDF: its own tool at /scan-to-pdf/, sharing Image to PDF's engine, plus a how-to-scan-to-PDF guide | In progress |
 
 ### Waiting

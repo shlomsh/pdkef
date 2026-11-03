@@ -257,10 +257,10 @@ describe('PdfRedactTool UI flow', () => {
     }
   });
 
-  // RED-66: the done strip (result, hand-offs, the rating ask) hangs under the toolbar after a
-  // toolbar Download. Where it sits on screen is src/tools/redact/e2e/redact-done-strip.spec.js; that a second
-  // Download leaves it, and the one rating ask inside it, in place is state, proved here.
-  it('RED-66: a second toolbar Download keeps the done strip and the rating ask', async () => {
+  // RED-66: the done strip (result, hand-offs) hangs under the toolbar after a toolbar Download. Where it
+  // sits on screen is src/tools/redact/e2e/redact-done-strip.spec.js; that a second Download leaves it in
+  // place, and the one rating dialog (SEO-55) open exactly once, is state, proved here.
+  it('RED-66: a second toolbar Download keeps the done strip and the one rating dialog', async () => {
     resetRatingPromptForTests();
     s.restoreCanvas = installCanvasEdge();
     const originalCreateObjectURL = window.URL.createObjectURL;
@@ -269,7 +269,7 @@ describe('PdfRedactTool UI flow', () => {
     window.URL.revokeObjectURL = vi.fn();
     const revoked = () => (window.URL.revokeObjectURL as Mock).mock.calls.length;
     const strip = () => s.container.querySelector('[data-redact-done-strip]');
-    const asks = () => (s.container.textContent ?? '').split('a rating helps more people find it').length - 1;
+    const asks = () => document.querySelectorAll('dialog[aria-labelledby="rating-modal-title"]').length;
     try {
       const drawArea = await loadFileAndGetDrawArea();
       await drawBox(drawArea, 50, 200, 200, 500);
@@ -285,7 +285,6 @@ describe('PdfRedactTool UI flow', () => {
       await act(async () => { downloadButton().click(); });
       await settleUntil('the second download', () => revoked() >= 2);
       expect(strip()).not.toBeNull();
-      expect(strip()!.textContent).toContain('a rating helps more people find it');
       expect(asks()).toBe(1);
     } finally {
       window.URL.createObjectURL = originalCreateObjectURL;

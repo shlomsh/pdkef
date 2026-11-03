@@ -36,6 +36,7 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 - [SEO-46](backlog/tasks/SEO-46.md) P2 · Real star ratings: ask once when a tool finishes, bake an honest aggregate into each tool page, and win the SERP stars (in progress)
 - [SEO-48](backlog/tasks/SEO-48.md) P2 · Ratings carry country and region, and a person may add a comment (in progress)
 - [SEO-54](backlog/tasks/SEO-54.md) P2 · Academic paper reader: a visual guide to reading papers in Highlight PDF, and the /highlight-pdf/ audit fixes (in progress)
+- [SEO-55](backlog/tasks/SEO-55.md) P2 · Ask for a star rating in a warm dialog after the download, in Redact, Sign, Highlight and Merge (in progress)
 - [SCAN-01](backlog/tasks/SCAN-01.md) P3 · Scan to PDF: its own tool at /scan-to-pdf/, sharing Image to PDF's engine, plus a how-to-scan-to-PDF guide (in progress)
 
 ### Polish

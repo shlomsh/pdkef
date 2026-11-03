@@ -146,6 +146,18 @@ export interface ShellMessages {
   ratingCommentLabel: string;
   ratingCommentSend: string;
   ratingCommentThanks: string;
+  /** The rating dialog that opens after a finished download (src/shell/RatingModal.tsx). */
+  ratingModalTitle: string;
+  ratingModalIntro: string;
+  ratingNotNow: string;
+  ratingExplainTitle: string;
+  ratingExplainBody: string;
+  ratingExplainLabel: string;
+  ratingBack: string;
+  ratingSendFailed: string;
+  ratingThanksTitle: string;
+  ratingThanksLowModal: string;
+  ratingDone: string;
   /** Aria label of one star button, e.g. "3 stars". */
   ratingStarOne: string;
   ratingStarOther: string;
@@ -213,6 +225,17 @@ export const englishShellMessages: ShellMessages = {
   ratingCommentLabel: 'Want to add a few words?',
   ratingCommentSend: 'Send',
   ratingCommentThanks: 'Got it, thank you.',
+  ratingModalTitle: 'How did it go?',
+  ratingModalIntro: "Thanks for using PDkef. It's free and open source, and I'm still learning what works. A few stars would tell me how it was for you.",
+  ratingNotNow: 'Not now',
+  ratingExplainTitle: 'Thank you for being honest',
+  ratingExplainBody: "I'm sorry it wasn't a great time. What happened, and what would have made it better? Only your stars and these words are sent, never your file.",
+  ratingExplainLabel: 'What happened?',
+  ratingBack: 'Back',
+  ratingSendFailed: "That didn't go through just now. Your words are still here, so you can try again.",
+  ratingThanksTitle: 'Thank you',
+  ratingThanksLowModal: "Thank you for telling me. I'll use it to make PDkef better.",
+  ratingDone: 'Done',
   ratingStarOne: '1 star',
   ratingStarOther: '{count} stars',
 };
@@ -278,6 +301,17 @@ export const hebrewShellMessages: ShellMessages = {
   ratingCommentLabel: 'רוצים להוסיף כמה מילים?',
   ratingCommentSend: 'שליחה',
   ratingCommentThanks: 'קיבלתי, תודה.',
+  ratingModalTitle: 'איך היה?',
+  ratingModalIntro: 'תודה שהשתמשתם ב-PDkef. הוא חינמי ובקוד פתוח, ואני עדיין לומד מה עובד. כמה כוכבים יגידו לי איך היה לכם.',
+  ratingNotNow: 'לא עכשיו',
+  ratingExplainTitle: 'תודה על הכנות',
+  ratingExplainBody: 'מצטער שזה לא היה נעים. מה קרה, ומה היה עושה את זה טוב יותר? נשלחים רק הכוכבים והמילים האלה, אף פעם לא הקובץ שלכם.',
+  ratingExplainLabel: 'מה קרה?',
+  ratingBack: 'חזרה',
+  ratingSendFailed: 'זה לא יצא הפעם. המילים שלכם עדיין כאן, אפשר לנסות שוב.',
+  ratingThanksTitle: 'תודה',
+  ratingThanksLowModal: 'תודה ששיתפתם אותי. אשתמש בזה כדי לשפר את PDkef.',
+  ratingDone: 'סיום',
   ratingStarOne: 'כוכב אחד',
   ratingStarOther: '{count} כוכבים',
 };
