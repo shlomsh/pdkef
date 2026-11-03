@@ -13,15 +13,12 @@ status: 'published'
 reviewer: 'Shlomi Shemesh'
 reviewedAt: '2026-09-17'
 reviewNotes: >-
-  09-11/12: approved for publish. 09-13: Hebrew step 3 and drafts FAQ are AI
-  drafts. 09-17: איחוד leads on Shlomi's native read, מיזוג the synonym.
-  09-19: English h1, subhead and FAQ reworded (SEO-36). 10-01: Drive, Dropbox
-  and iCloud FAQ (MERGE-18), Hebrew an AI draft pending review. 10-12: photos
-  in step 1 and a photos FAQ (MERGE-22), Hebrew an AI draft pending review.
-  10-14: English seoTitle and h1 back to their 09-12 wording (SEO-45), Hebrew
-  unchanged. Hash refreshed at each English change.
-  10-15: hash moved only because h1Name was added; translation unchanged.
-sourceHash: 'fnv1a64:af62737f36cc7a55'
+  09-11/12: approved for publish. 09-17: איחוד leads on Shlomi's native read,
+  מיזוג the synonym. 10-01: Drive, Dropbox and iCloud FAQ (MERGE-18); 10-12:
+  photos FAQ (MERGE-22); 11-03: Drive FAQ gains the Open with route
+  (MERGE-27). Those three Hebrew answers are AI drafts pending review. Hash
+  refreshed at each English change.
+sourceHash: 'fnv1a64:a86ca5e5d6b76167'
 seoTitle: 'איחוד ומיזוג קבצי PDF בחינם - ישירות בדפדפן, בלי העלאה | PDkef'
 seoDescription: >-
   אחדו ומזגו קבצי PDF לקובץ אחד, בחינם ובלי הגבלה. גררו לסדר הרצוי, הוסיפו
@@ -74,12 +71,14 @@ faq:
       אותם, ואחדו לקובץ אחד לדוח הוצאות, לתיק עבודות או לספר.
   - question: 'אפשר להוסיף קבצי PDF מ-Google Drive, Dropbox או iCloud?'
     answer: >-
-      כן, דרך בוחר הקבצים של המכשיר עצמו, כך ש-PDkef לא מתחבר לשירותים האלה.
-      באנדרואיד לחצו על בחירת קבצים ובחרו Google Drive מהרשימה, לצד "הורדות".
-      באייפון או באייפד פתחו את בחירת קבצים ואז עיון, וה-Drive, ה-Dropbox או
-      ה-iCloud Drive שלכם יופיעו ברגע שהאפליקציה שלהם מותקנת. במק או במחשב
-      Windows התקינו את אפליקציית Drive, Dropbox או OneDrive לשולחן העבודה, והתיקייה
-      שלה תופיע בבוחר הקבצים כמו כל תיקייה אחרת.
+      כן. הדרך הפשוטה היא בוחר הקבצים של המכשיר עצמו, כך ש-PDkef לא מתחבר
+      לשירותים האלה. באנדרואיד לחצו על בחירת קבצים ובחרו Google Drive מהרשימה,
+      לצד "הורדות". באייפון או באייפד פתחו את בחירת קבצים ואז עיון, וה-Drive,
+      ה-Dropbox או ה-iCloud Drive שלכם יופיעו ברגע שהאפליקציה שלהם מותקנת. במק
+      או במחשב Windows התיקייה של אפליקציית Drive, Dropbox או OneDrive לשולחן
+      העבודה תופיע בבוחר הקבצים כמו כל תיקייה אחרת. ב-Google Drive במחשב אפשר
+      גם ללחוץ קליק ימני על קובץ PDF, לבחור "פתיחה באמצעות" ואז PDkef, והקובץ
+      הזה יגיע למכשיר שלכם.
   - question: 'מה קורה לקבצים שלי אם סוגרים את הלשונית באמצע?'
     answer: >-
       שום דבר לא הולך לאיבוד. תוך כדי הוספת קבצים, שינוי סדר, סיבוב או דילוג
