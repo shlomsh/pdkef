@@ -24,7 +24,7 @@ function flyToStack(dialog: HTMLElement, url: string, quad: Quad | null, videoSi
   // expected: a snapshot that will not decode only skips the flight; the page itself is already taken
   photo.decode().then(() => {
     const target = stackImg();
-    if (!target) return;
+    if (!target || !dialog.isConnected) return;
     stop.current();
     const host = dialog.getBoundingClientRect();
     const cover = coverRect(videoSize, { width: host.width, height: host.height });
@@ -43,14 +43,18 @@ export default function Viewfinder(props: ViewfinderProps) {
   propsRef.current = props;
   const [size, setSize] = useState({ width: 0, height: 0 });
   const [snapUrl, setSnapUrl] = useState<string | null>(null);
-  const [reviewing, setReviewing] = useState(false);
   const stopFlight = useRef<() => void>(() => {});
+  const snapUrlRef = useRef<string | null>(null);
+  const [reviewing, setReviewing] = useState(false);
 
   const camera = useCamera({
+    paused: reviewing,
     onTaken: (page: TakenPage) => {
       const dialog = dialogRef.current;
       propsRef.current.onTaken(page.file);
+      if (!page.snapshot) return;
       const url = URL.createObjectURL(page.snapshot);
+      snapUrlRef.current = url;
       setSnapUrl((old) => { if (old) URL.revokeObjectURL(old); return url; });
       if (dialog) flyToStack(dialog, url, page.quad, camera.videoSize, () => stackImgRef.current, stopFlight);
     },
@@ -74,9 +78,14 @@ export default function Viewfinder(props: ViewfinderProps) {
 
   // The page's own thumbnail takes over from the snapshot once the island has it.
   useEffect(() => {
-    if (props.lastSrc) setSnapUrl((old) => { if (old) URL.revokeObjectURL(old); return null; });
+    if (!props.lastSrc) return;
+    snapUrlRef.current = null;
+    setSnapUrl((old) => { if (old) URL.revokeObjectURL(old); return null; });
   }, [props.lastSrc]);
-  useEffect(() => () => stopFlight.current(), []);
+  useEffect(() => () => {
+    stopFlight.current();
+    if (snapUrlRef.current) URL.revokeObjectURL(snapUrlRef.current);
+  }, []);
 
   const { live } = camera;
   const thumb = snapUrl ?? props.lastSrc;
@@ -86,7 +95,7 @@ export default function Viewfinder(props: ViewfinderProps) {
   const cover = coverRect(camera.videoSize, size);
   const offered = camera.status === 'refused' || camera.status === 'unavailable';
 
-  const onCancel = (event: Event) => { event.preventDefault(); props.onClose(); };
+  const onCancel = (event: Event) => { event.preventDefault(); if (reviewing) setReviewing(false); else props.onClose(); };
 
   return (
     <dialog ref={dialogRef} class={styles.dialog} onCancel={onCancel} aria-label={t.startScanning}>
