@@ -214,6 +214,7 @@ describe('selectUnitTests: each blind-spot widen rule fires', () => {
     // this rule matches" without re-deriving one from a regex/prefix check.
     const candidates = [
       'src/lib/__fixtures__/sample.pdf',
+      'scripts/verify-csp.js',
       'src/tools/sign/lib/fields/__fixtures__/sample.pdf',
       'src/tools/compress/__fixtures__/sample.pdf',
       'public/images/redaction-guide/sample.pdf',
