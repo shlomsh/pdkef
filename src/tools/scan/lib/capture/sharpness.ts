@@ -3,7 +3,9 @@ import type { GrayImage, Quad } from '../quad.ts';
 
 /** Variance of the 4-neighbour Laplacian over the pixels inside the quad (normalized coordinates), or
  * the whole image without one. A blurred page has soft edges, so the second derivative stays small;
- * the number is only comparable between frames of the same size. Pixels on the image border are skipped. */
+ * the number is only comparable between frames of the same size. Pixels on the image border are skipped.
+ * @testSeam Until the camera (SCAN-08) imports it; drop the tag then.
+ */
 export function sharpness(image: GrayImage, quad?: Quad | null): number {
   const { width: w, height: h, data } = image;
   if (w < 3 || h < 3) return 0;
@@ -41,7 +43,10 @@ function rowSpan(quad: Quad, ny: number, width: number): [number, number] {
   return [Math.ceil(lo * width - 0.5), Math.floor(hi * width - 0.5)];
 }
 
-/** Normalized area of a quad, 0..1 for one inside the frame (shoelace, either winding). */
+/**
+ * Normalized area of a quad, 0..1 for one inside the frame (shoelace, either winding).
+ * @testSeam Until the camera (SCAN-08) imports it; drop the tag then.
+ */
 export function quadArea(quad: Quad): number {
   let twice = 0;
   for (let i = 0; i < 4; i += 1) {

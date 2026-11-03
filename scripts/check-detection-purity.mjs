@@ -128,6 +128,18 @@ export const DETECTION_MODULES = [
   'src/tools/sign/lib/fields/corpus/scoring/score.js',
   'src/tools/sign/lib/fields/corpus/scoring/match.js',
   'src/tools/sign/lib/fields/corpus/scoring/candidates.js',
+  // SCAN-07: Scan's page detection and the live camera's capture decision (docs/scan-next.md).
+  'src/tools/scan/lib/quad.ts',
+  'src/tools/scan/lib/edges/index.ts',
+  'src/tools/scan/lib/edges/types.ts',
+  'src/tools/scan/lib/edges/detect.ts',
+  'src/tools/scan/lib/edges/outline.ts',
+  'src/tools/scan/lib/edges/scoredRegions.ts',
+  'src/tools/scan/lib/edges/brightRegion.ts',
+  'src/tools/scan/lib/capture/types.ts',
+  'src/tools/scan/lib/capture/hash.ts',
+  'src/tools/scan/lib/capture/sharpness.ts',
+  'src/tools/scan/lib/capture/captureMachine.ts',
 ];
 
 // ARCH-24's one entry point (`detectFormFields(document, { textRuns, sources? })`).
