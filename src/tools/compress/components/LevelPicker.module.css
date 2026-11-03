@@ -120,9 +120,23 @@
   outline: none;
 }
 
+/* No stepper arrows: they hold their width even when hidden, which pushed the
+   unit away from the number; the shortcuts beside it are the quick changes. */
+.target-input-row input {
+  appearance: textfield;
+}
+
+.target-input-row input::-webkit-inner-spin-button,
+.target-input-row input::-webkit-outer-spin-button {
+  appearance: none;
+  margin: 0;
+}
+
+/* The same small unit the shortcuts carry. */
 .target-unit {
-  font-size: 0.85rem;
+  font-size: 0.7rem;
   font-weight: 500;
+  letter-spacing: 0.02em;
   color: var(--color-muted);
 }
 
@@ -153,6 +167,19 @@
   white-space: nowrap;
   cursor: pointer;
   transition: background-color 120ms ease, color 120ms ease;
+}
+
+.preset-number {
+  font-size: 1rem;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+}
+
+.preset-unit {
+  font-size: 0.7rem;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  color: var(--color-muted);
 }
 
 .target-preset:hover {
