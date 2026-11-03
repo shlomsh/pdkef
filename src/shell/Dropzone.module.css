@@ -204,6 +204,37 @@
   font-size: 1.05rem;
 }
 
+/* Scan's phone layout: the action leads, large and full width; the picker follows as a quiet text button. */
+@media (pointer: coarse) {
+  .pick-row[data-action-leads] {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--space-2);
+  }
+
+  .pick-row[data-action-leads] > :first-child {
+    width: 100%;
+  }
+
+  .pick-row[data-action-leads] .file-picker-button {
+    background: none;
+    border: 0;
+    box-shadow: none;
+    color: var(--color-muted);
+    font-weight: 400;
+    min-height: 44px;
+    padding: 0.4rem 1rem;
+  }
+
+  .pick-row[data-action-leads] .file-picker-button:hover,
+  .pick-row[data-action-leads] .file-picker-button:active {
+    background: none;
+    box-shadow: none;
+    transform: none;
+  }
+}
+
 .file-picker-button {
   position: relative;
   display: inline-flex;
