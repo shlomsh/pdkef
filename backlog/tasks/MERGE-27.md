@@ -1,10 +1,9 @@
 ---
 id: "MERGE-27"
 title: "Explain loading files from Drive where people look for it: a how-to page, the hints, and the Marketplace help link"
-status: "in_progress"
+status: "done"
 priority: "P3"
 epic: "polish"
-horizon: "now"
 depends_on: ["MERGE-25"]
 ---
 
@@ -44,3 +43,13 @@ words in the right places, in the site voice. No new Google surface, so no invar
 - The phone hint appears on each tool's empty state, links to the page, and does not move the loaded
   tool's first screen (check at scroll 0).
 - `/drive/` without a file id points to the how-to page.
+
+## Closed 2026-11-03
+
+Landed on main (db624394), CI green including Playwright. The how-to page is live with its sitemap entry,
+markdown twin and redirect pair; the phone hint is on every tool's empty state and links to it (checked at
+scroll 0 on a 375x812 phone: Choose button and privacy line stay above the fold); `/drive/` without a file id
+points to the page and got a visual pass (hand-drawn picture, private/free/open source/local stickers).
+The FAQ answers on Merge, Sign and Compress name Open with, which is true for other people once the
+Marketplace listing is approved. The Hebrew additions are AI drafts pending Shlomi's read. Left out on
+purpose: the desktop hint (the how-to covers it) and any claim about Drive's phone app (not verifiable here).
