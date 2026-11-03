@@ -133,6 +133,7 @@ export interface CompressMessages {
   batchRowMissed: string;
   batchRowFailed: string;
   batchRowSave: string;
+  batchRowSaveLabel: string;
   batchSharedSuccessfully: string;
   batchSharingCanceled: string;
   batchLeftOutPdfOne: string;
@@ -252,6 +253,7 @@ export const englishCompressMessages: CompressMessages = {
   batchRowMissed: 'Over {target}, the smallest I could make',
   batchRowFailed: "Couldn't read this one",
   batchRowSave: 'Save',
+  batchRowSaveLabel: 'Save {name}',
   batchSharedSuccessfully: 'Compressed photos shared successfully.',
   batchSharingCanceled: 'Sharing canceled. Your compressed photos are still ready.',
   batchLeftOutPdfOne: 'Left out "{name}". Open a PDF on its own to compress it.',
@@ -378,6 +380,7 @@ export const hebrewCompressMessages: CompressMessages = {
   batchRowMissed: 'מעל {target}, הקטנה ביותר שהצלחנו',
   batchRowFailed: 'לא הצלחנו לקרוא את הקובץ הזה',
   batchRowSave: 'שמירה',
+  batchRowSaveLabel: 'שמירת {name}',
   batchSharedSuccessfully: 'התמונות המכווצות שותפו.',
   batchSharingCanceled: 'השיתוף בוטל. התמונות המכווצות עדיין מוכנות.',
   batchLeftOutPdfOne: 'השארנו בחוץ את "{name}". פתחו PDF לבד כדי לכווץ אותו.',

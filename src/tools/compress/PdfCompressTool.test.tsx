@@ -1758,6 +1758,23 @@ describe('PdfCompressTool UI flow', () => {
       expect(toTarget).toHaveBeenCalledTimes(2);
     });
 
+    it('counts the Download tap, not the compression a pick starts', async () => {
+      mount();
+      await pickMany([makeImageFile('a.jpg', 900_000), makeImageFile('b.jpg', 800_000)]);
+      await harness.flush();
+      expect(harness.usageEvents('tool_operation_started')).toHaveLength(0);
+      expect(harness.usageEvents('tool_result_ready')).toHaveLength(0);
+    });
+
+    it('announces the finished set once, and names each Save by its photo', async () => {
+      mount();
+      await pickMany([makeImageFile('a.jpg', 900_000), makeImageFile('b.jpg', 800_000)]);
+      const live = container.querySelector('[data-batch] [role="status"]');
+      expect(live.textContent).toBe(container.querySelector('[data-batch-summary]').textContent);
+      expect(Array.from(container.querySelectorAll('a[data-batch-save]')).map((a) => a.getAttribute('aria-label'))).toEqual(['Save a.jpg', 'Save b.jpg']);
+      expect(container.querySelector('[data-batch] ol').getAttribute('role')).toBe('list');
+    });
+
     it('a single photo after a batch goes back to the single-photo view', async () => {
       mount();
       await pickMany([makeImageFile('a.jpg', 900_000), makeImageFile('b.jpg', 800_000)]);

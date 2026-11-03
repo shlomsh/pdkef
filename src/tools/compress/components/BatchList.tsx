@@ -35,7 +35,10 @@ export default function BatchList({ t, rows, summary, targetKB, arrow, urlFor, o
   return (
     <section class={`${styles.batch} ${layoutStyles.stage}`} data-batch aria-busy={!summary.allFinished || undefined}>
       <p class={styles.heading} data-batch-summary>{heading}</p>
-      <ol class={styles.rows}>
+      {/* Only the finished set is announced: a line per photo would talk over the person. */}
+      <p class="sr-only" role="status">{summary.allFinished ? heading : ''}</p>
+      {/* role="list": Safari drops the list semantics of an unstyled list. */}
+      <ol class={styles.rows} role="list">
         {rows.map((row) => {
           const outcome = row.status !== 'done' ? row.status : row.passthrough ? 'kept' : row.metTarget ? 'met' : 'missed';
           return (
@@ -47,7 +50,7 @@ export default function BatchList({ t, rows, summary, targetKB, arrow, urlFor, o
               </span>
               <span class={styles.status}>{rowStatus(t, row, target)}</span>
               {row.blob && row.filename && (
-                <a class={styles.save} href={urlFor(row.blob)} download={row.filename} onClick={onRowSaved} data-batch-save>
+                <a class={styles.save} href={urlFor(row.blob)} download={row.filename} onClick={onRowSaved} aria-label={formatMessage(t.batchRowSaveLabel, { name: row.file.name })} data-batch-save>
                   {t.batchRowSave}
                 </a>
               )}
