@@ -36,12 +36,13 @@ import BatchWorkspace from './components/BatchWorkspace.tsx';
 import IntakeNotes from './components/IntakeNotes.tsx';
 
 const TARGET_SIZE_PRESETS_KB = [100, 200, 500, 1024];
-// Lower than the PDF presets above: the image half of this tool's demand is
-// the photo half of application portals, which commonly cap a photo at
+// Starts lower than the PDF presets above: the image half of this tool's demand
+// is the photo half of application portals, which commonly cap a photo at
 // 20-50KB, tighter than the document limits the PDF presets target. Four, so
-// they fit one row beside the KB field: 500KB went (Shlomi, 2026-10-15), a PDF
-// cap rather than a photo one; any size can still be typed.
-const IMAGE_TARGET_SIZE_PRESETS_KB = [20, 50, 100, 200];
+// they fit one row beside the KB field. 500KB came back in place of 20KB
+// (Shlomi, 2026-11-03, trying a set of photos and scans for a portal upload);
+// 20KB or any other size can still be typed.
+const IMAGE_TARGET_SIZE_PRESETS_KB = [50, 100, 200, 500];
 
 interface PdfCompressToolProps {
   /** LOC-02: server-rendered by its src/pages/[locale]/<tool>.astro route for a
@@ -234,7 +235,7 @@ export default withIslandBoundary(function PdfCompressTool({
           }}
         />
       ) : batch.active ? (
-        <BatchWorkspace t={t} batch={batch} flow={flow} name={batchName} targetKB={targetKB} presets={IMAGE_TARGET_SIZE_PRESETS_KB} onTargetKBChange={handleTargetKBChange} arrow={arrow} />
+        <BatchWorkspace t={t} batch={batch} compare={compare} flow={flow} name={batchName} targetKB={targetKB} presets={IMAGE_TARGET_SIZE_PRESETS_KB} onTargetKBChange={handleTargetKBChange} arrow={arrow} />
       ) : hasFiles && file ? (
         <div class={layoutStyles['finish-frame']}>
           {/* ARCH-41: the phone's sticky bar spans the whole loaded state (the frame), not one grid cell. */}

@@ -810,14 +810,16 @@ describe('PdfCompressTool UI flow', () => {
     expect(compressImageLib.compressImageToTarget).toHaveBeenCalledTimes(1);
     expect(compressImageLib.compressImageToTarget).toHaveBeenLastCalledWith(file, expect.objectContaining({ targetKB: 100 }));
 
-    // The tighter photo-cap shortcut only the image presets offer.
+    // A photo's shortcuts (Shlomi, 2026-11-03: 500 KB back in place of 20 KB); 50 KB is the tighter
+    // photo-cap one only the image presets offer.
+    expect(Array.from(container.querySelectorAll('[data-controls] button[aria-pressed]'), (b) => b.textContent)).toEqual(['50 KB', '100 KB', '200 KB', '500 KB']);
     await act(async () => {
-      preset('20 KB').dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      preset('50 KB').dispatchEvent(new MouseEvent('click', { bubbles: true }));
     });
     await settled();
-    expect(preset('20 KB').getAttribute('aria-pressed')).toBe('true');
+    expect(preset('50 KB').getAttribute('aria-pressed')).toBe('true');
     expect(compressImageLib.compressImageToTarget).toHaveBeenCalledTimes(2);
-    expect(compressImageLib.compressImageToTarget).toHaveBeenLastCalledWith(file, expect.objectContaining({ targetKB: 20 }));
+    expect(compressImageLib.compressImageToTarget).toHaveBeenLastCalledWith(file, expect.objectContaining({ targetKB: 50 }));
     expect(compressLib.compressPdf).not.toHaveBeenCalled();
     expect(compressLib.compressPdfToTarget).not.toHaveBeenCalled();
 
@@ -1773,6 +1775,42 @@ describe('PdfCompressTool UI flow', () => {
       expect(live.textContent).toBe(container.querySelector('[data-batch-summary]').textContent);
       expect(Array.from(container.querySelectorAll('a[data-batch-save]')).map((a) => a.getAttribute('aria-label'))).toEqual(['Save a.jpg', 'Save b.jpg']);
       expect(container.querySelector('[data-batch] ol').getAttribute('role')).toBe('list');
+    });
+
+    it('a finished row opens its photo in the compare preview with Full screen, and Back returns to the list', async () => {
+      mount();
+      const a = makeImageFile('a.jpg', 900_000);
+      await pickMany([a, makeImageFile('b.jpg', 800_000)]);
+      expect(container.querySelector('[data-result]')).toBeNull();
+      await act(async () => { container.querySelector('[data-batch-open]').click(); });
+      await settled();
+      expect(container.querySelector('[data-batch] ol')).toBeNull();
+      const result = container.querySelector('[data-result]');
+      expect(result.querySelector('[data-compare-panel]')).not.toBeNull();
+      expect(result.textContent).toContain('1600 × 1200');
+      expect(Array.from(result.querySelectorAll('button')).some((b) => b.textContent.includes('Full screen'))).toBe(true);
+      await act(async () => { container.querySelector('[data-batch-back]').click(); });
+      expect(container.querySelector('[data-result]')).toBeNull();
+      expect(rows()).toHaveLength(2);
+    });
+
+    it('the open preview stays on its photo while a new target recompresses it', async () => {
+      mount();
+      const held = deferred();
+      await pickMany([makeImageFile('a.jpg', 900_000), makeImageFile('b.jpg', 800_000)]);
+      await act(async () => { container.querySelector('[data-batch-open]').click(); });
+      await settled();
+      toTarget.mockImplementationOnce(() => held.promise);
+      await act(async () => {
+        preset('200 KB').dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      });
+      // While the photo recompresses the stage still shows it, as a single photo does mid-run.
+      expect(container.querySelector('[data-result]')).not.toBeNull();
+      await act(async () => { held.resolve(makeImageResult()); });
+      await settled();
+      expect(container.querySelector('[data-result] [data-compare-panel]')).not.toBeNull();
+      await act(async () => { container.querySelector('[data-batch-back]').click(); });
+      expect(container.querySelectorAll('[data-batch-open]')).toHaveLength(2);
     });
 
     it('a single photo after a batch goes back to the single-photo view', async () => {

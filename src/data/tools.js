@@ -680,7 +680,7 @@ export const tools = [
     faqIconPos: 'tl',
     steps: [
       { title: 'Add your photo', text: 'Select or drag in the JPG or PNG you want to shrink, or several at once. It stays on your device.' },
-      { title: 'Set a target size', text: 'Enter a limit in KB, or pick a shortcut like 20 KB, 50 KB, or 100 KB for a portal photo cap. The photo is compressed as soon as you pick it, and again whenever you change the target.' },
+      { title: 'Set a target size', text: 'Enter a limit in KB, or pick a shortcut like 50 KB, 100 KB, or 500 KB for a portal\'s cap. The photo is compressed as soon as you pick it, and again whenever you change the target.' },
       { title: 'Compress and download', text: 'Check the actual output size and dimensions, and download your file.' },
     ],
     faq: [
