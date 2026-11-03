@@ -99,12 +99,6 @@ describe('createPageActions', () => {
       expect(ctx.dispatch).toHaveBeenCalledWith({ type: 'cleared' });
       expect(ctx.announce).toHaveBeenLastCalledWith(t.announceCleared);
     });
-    it('from the corners asks for the top first', () => {
-      const [a, b] = [newPage(photo(), 'document'), newPage(photo(), 'document')];
-      const { ctx } = setup([a, b]);
-      createPageActions(ctx).removeFromCorners(a.id);
-      expect(ctx.dispatch.mock.calls[0][0]).toEqual({ type: 'scrollFocusRequested', top: true });
-    });
   });
 
   it('reset frees everything and clears the name, the skipped files and the download', () => {
@@ -202,11 +196,9 @@ describe('createEditActions', () => {
     actions.retakePage(a.id, file);
     expect(retakeFile).toHaveBeenCalledWith(a.id, file);
   });
-  it('finishes the corners on the result and opens them again from the head', () => {
+  it('opens the corners again from the head', () => {
     const a = newPage(photo(), 'document');
-    const { ctx, actions, showResult } = editSetup([a]);
-    actions.finishCorners();
-    expect(showResult).toHaveBeenCalledWith(a);
+    const { ctx, actions } = editSetup([a]);
     actions.adjustCorners();
     expect(ctx.dispatch).toHaveBeenCalledWith({ type: 'cornersOpened', focus: true });
   });
