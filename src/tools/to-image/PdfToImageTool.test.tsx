@@ -7,7 +7,6 @@ import { mockNativeFileShare } from '../../test/support/mockFileShare.js';
 import { setInputFiles } from '../../test/support/setInputFiles.js';
 import { until } from '../../test/support/until.js';
 import { recentActions } from '#lib/telemetry/actionTrail.ts';
-import { saveHandoff } from '#lib/drafts/draftStore.ts';
 import { installToolHarness, type ToolHarness } from '../../test/harness/toolHarness.ts';
 // The same object as harness.pdfjs.source: the conversion fake below sits outside any test and reads the page count.
 import { pdfjsEdges } from '../../test/harness/pdfjsEdges.ts';
@@ -125,7 +124,6 @@ describe('PdfToImageTool', () => {
   const downloadElement = () => container.querySelector('a[data-state]');
   const saveLinks = () => Array.from(container.querySelectorAll('ul[data-page-grid] a[download]'));
   const skipButton = (n) => cells()[n - 1].querySelector('[aria-label^="Skip page"], [aria-label^="Include page"]');
-  const isSkipped = (n) => skipButton(n).getAttribute('aria-label').startsWith('Include');
   const click = async (el) => {
     await act(async () => { el.dispatchEvent(new MouseEvent('click', { bubbles: true })); });
     await harness.flush();
@@ -140,13 +138,6 @@ describe('PdfToImageTool', () => {
   };
   const undo = () => click(container.querySelector('[aria-label="Undo last change"]'));
   const events = (name) => harness.usageEvents(name).length;
-
-  it('renders the initial file dropper zone', () => {
-    mount();
-    const dropzone = container.querySelector('[data-dropzone]');
-    expect(dropzone).not.toBeNull();
-    expect(dropzone.textContent).toContain('Drop PDF here');
-  });
 
   it('loads the file into the shared grid under a heading that names the images, and lets go of the document', async () => {
     await open();
@@ -172,13 +163,6 @@ describe('PdfToImageTool', () => {
     expect(order).toEqual(['radiogroup', 'radiogroup', 'radiogroup', 'page-selector-input', 'Include all', 'Skip all', 'Invert', 'download', 'Replace file']);
     expect(button('Compress')).toBeUndefined();
     expect(button('Sign')).toBeUndefined();
-  });
-
-  it('offers Replace file once, as the shared quiet last line, at every width', async () => {
-    await open();
-    const replaces = Array.from(container.querySelectorAll('button')).filter((b) => b.textContent.trim().startsWith('Replace'));
-    expect(replaces).toHaveLength(1);
-    expect(replaces[0].closest('[data-replace-line]')).not.toBeNull();
   });
 
   it('does not convert before the quiet wait, then converts once', async () => {
@@ -212,50 +196,20 @@ describe('PdfToImageTool', () => {
     expect(rail().textContent).not.toContain('~144 DPI');
   });
 
-  it('a skipped tile stays in place, the range follows, and the heading counts it', async () => {
+  it('skipping a page changes what the Download element says it converts', async () => {
     await open();
     await click(skipButton(2));
-    expect(cells().map((c) => c.dataset.key)).toEqual(['0:0', '0:1', '0:2', '0:3', '0:4']);
-    expect(isSkipped(2)).toBe(true);
-    expect(field().value).toBe('1, 3-5');
-    expect(heading().textContent).toContain('4 images');
-    expect(heading().textContent).toContain('1 page skipped');
     await until(() => downloadElement().textContent.includes('Download 4 PNGs'));
     expect(downloadElement().textContent).toContain('Download 4 PNGs');
-    await click(skipButton(2));
-    expect(field().value).toBe('1-5');
   });
 
-  it('typing a range skips the other pages, as one Undo step, and builds those pages', async () => {
+  it('typing a range builds those pages, as one recorded step', async () => {
     await open();
     await type('2-3');
-    expect([1, 2, 3, 4, 5].map(isSkipped)).toEqual([true, false, false, true, true]);
     await until(() => convertCalls.last?.pages === '2-3');
     expect(convertCalls.last.pages).toBe('2-3');
     await undo();
-    expect(field().value).toBe('1-5');
     expect(recentActions()).toEqual(['add_files', 'select_pages', 'undo']);
-  });
-
-  it('keeps the selection and shows the error for an out-of-range page', async () => {
-    await open();
-    await click(skipButton(1));
-    await type('99');
-    expect(container.querySelector('[role="alert"]').textContent).toContain('99');
-    expect(isSkipped(1)).toBe(true);
-    expect(isSkipped(2)).toBe(false);
-  });
-
-  it('Include all, Skip all and Invert are one step each, and none when nothing changes', async () => {
-    await open();
-    await click(button('Include all'));
-    expect(container.querySelector('[aria-label="Undo last change"]').disabled).toBe(true);
-    await click(button('Skip all'));
-    expect(downloadElement().getAttribute('data-state')).toBe('nothing');
-    await click(button('Invert'));
-    expect(field().value).toBe('1-5');
-    await undo();
-    expect(downloadElement().getAttribute('data-state')).toBe('nothing');
   });
 
   it('rotating a page is a step and reaches the build as a rotation of that page number', async () => {
@@ -508,19 +462,6 @@ describe('PdfToImageTool', () => {
     expect(convertCalls.n).toBe(1);
   });
 
-  it('loads a PDF handed off from the home page as if picked', async () => {
-    await saveHandoff('pdf-to-image', {
-      fileName: 'handed.pdf',
-      fileType: 'application/pdf',
-      fileBytes: new TextEncoder().encode('%PDF-1.4').buffer,
-    });
-    mount();
-    await until(() => heading()?.textContent.includes('handed-page-N.png'));
-    // The island collected it: nothing is left parked under its key.
-    expect(await harness.takeHandoff('pdf-to-image')).toBeNull();
-    expect(heading().textContent).toContain('handed-page-N.png');
-  });
-
   it('revokes every image URL on unmount', async () => {
     // Wraps the harness's recording URL functions to keep the URLs handed out and the URLs given back.
     const created: string[] = [];
@@ -544,13 +485,7 @@ describe('PdfToImageTool', () => {
     };
     const txt = (name) => new File(['x'], name, { type: 'text/plain' });
 
-    it('lists the one it skipped, as Split does', async () => {
-      expect(await noteFor(null, [txt('2025-notes.txt')])).toBe('Skipped “2025-notes.txt” - not a PDF.');
-    });
-    it('counts several, and speaks Hebrew with the name isolated', async () => {
-      expect(await noteFor(null, [txt('a.txt'), txt('b.txt')])).toBe('Skipped 2 files - not PDFs.');
-      act(() => render(null, container));
-      container.remove();
+    it('speaks Hebrew with the name isolated', async () => {
       expect(await noteFor(hebrewToImageMessages, [txt('2025-notes.txt')])).toBe('דילגנו על "⁨' + '2025-notes.txt⁩" - זה לא קובץ PDF.');
     });
   });

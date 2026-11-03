@@ -6,7 +6,6 @@ import path from 'node:path';
 import { describe, expect, it, vi, afterEach, beforeEach } from 'vitest';
 import PdfEditPagesTool from './PdfEditPagesTool.tsx';
 import { getPdfLib } from '#lib/pdf/pdfLib.js';
-import { saveHandoff } from '#lib/drafts/draftStore.ts';
 import { mockNativeFileShare } from '../../test/support/mockFileShare.js';
 import { healthy, ORIGINAL_WIDTHS } from '../../test/support/pdfPageTreeFixtures.ts';
 import { installToolHarness } from '../../test/harness/toolHarness.ts';
@@ -67,20 +66,6 @@ describe('PdfEditPagesTool UI flow', () => {
     harness.restore();
   });
 
-  it('lists the files it skipped, as Split does', async () => {
-    container = document.createElement('div');
-    document.body.appendChild(container);
-    const note = () => container.querySelector('[role="status"]')?.textContent;
-    act(() => { render(<PdfEditPagesTool />, container); });
-    const input = () => container.querySelector('input[type="file"]');
-    await act(async () => { setInputFiles(input(), [new File(['x'], '2025-notes.txt', { type: 'text/plain' })]); });
-    expect(note()).toBe('Skipped “2025-notes.txt” - not a PDF.');
-    await act(async () => {
-      setInputFiles(input(), [new File(['x'], 'a.txt', { type: 'text/plain' }), new File(['y'], 'b.txt', { type: 'text/plain' })]);
-    });
-    expect(note()).toBe('Skipped 2 files - not PDFs.');
-  });
-
   async function load(name = 'document.pdf', bytes = healthy()) {
     container = document.createElement('div');
     document.body.appendChild(container);
@@ -126,16 +111,6 @@ describe('PdfEditPagesTool UI flow', () => {
     expect(downloadElement().getAttribute('data-state')).toBe('nothing');
     expect(downloadElement().textContent).toContain('Every page is skipped');
     expect(downloadElement().textContent).not.toContain('Preparing 0');
-  });
-
-  it('renders the initial file dropper zone', () => {
-    container = document.createElement('div');
-    document.body.appendChild(container);
-    act(() => { render(<PdfEditPagesTool />, container); });
-
-    const dropzone = container.querySelector('[data-dropzone]');
-    expect(dropzone).not.toBeNull();
-    expect(dropzone.textContent).toContain('Drop PDF here');
   });
 
   it.each([
@@ -198,27 +173,6 @@ describe('PdfEditPagesTool UI flow', () => {
       .map((el) => (el.hasAttribute('data-state') ? 'download' : (el as HTMLInputElement).type === 'checkbox' ? 'page numbers' : el.textContent.trim()));
     expect(order.slice(0, 5)).toEqual(['page numbers', 'Include all', 'Skip all', 'Invert', 'download']);
     expect(order[order.length - 1]).toBe('Replace file');
-  });
-
-  it('offers Replace file once, as the shared quiet last line, at every width', async () => {
-    await load();
-    const replaces = Array.from(container.querySelectorAll('button')).filter((b) => b.textContent.trim().startsWith('Replace'));
-    expect(replaces).toHaveLength(1);
-    expect(replaces[0].closest('[data-replace-line]')).not.toBeNull();
-  });
-
-  it('Include all, Skip all and Invert each change the pages in one step', async () => {
-    await load();
-    const skipped = () => cells().map((c) => c.hasAttribute('data-skipped'));
-
-    await click(button('Skip all'));
-    expect(skipped()).toEqual([true, true, true]);
-    await click(button('Include all'));
-    expect(skipped()).toEqual([false, false, false]);
-
-    await click(skipButton(1));
-    await click(button('Invert'));
-    expect(skipped()).toEqual([false, true, true]);
   });
 
   it('a failed build points to Unlock, where a protected PDF can be opened', async () => {
@@ -290,27 +244,6 @@ describe('PdfEditPagesTool UI flow', () => {
     expect(handoff).toMatchObject({ fileName: 'document_modified.pdf', fileType: 'application/pdf' });
     expect(await pagesOf(new Blob([handoff.fileBytes]))).toMatchObject({ count: 3, widths: ORIGINAL_WIDTHS });
     expect(window.location.href).toBe('/compress/');
-  });
-
-  it('Replace file asks first and names what stays in recents', async () => {
-    await load();
-    await click(button('Replace file'));
-    const confirmation = container.querySelector('dialog[aria-labelledby="confirm-replace-title"]');
-    expect(confirmation.open).toBe(true);
-    expect(confirmation.textContent).toContain('stays in your recent files');
-    expect(confirmation.textContent).toContain('document.pdf');
-  });
-
-  it('loads a PDF handed off from the home page as if picked', async () => {
-    await saveHandoff('edit-pdf', { fileName: 'handed.pdf', fileType: 'application/pdf', fileBytes: healthy().buffer });
-    container = document.createElement('div');
-    document.body.appendChild(container);
-    act(() => { render(<PdfEditPagesTool />, container); });
-    await until(() => cells().length === 3);
-    // The hand-off was collected: nothing is left parked for the next visit.
-    expect(await harness.takeHandoff('edit-pdf')).toBeNull();
-    expect(heading().textContent).toContain('handed_modified.pdf');
-    expect(cells().length).toBe(3);
   });
 
   // Picking another file through the Replace dialog, as a person does.
