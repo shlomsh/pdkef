@@ -160,6 +160,12 @@ export const WIDEN_RULES = [
     tests: ['src/tools/sign/lib/fields/corpus/scoring/scoring.test.js'],
   },
   {
+    id: 'scan-real-corpus',
+    reason: 'the labelled photos, labels.json and baseline.json under scan/lib/edges/real/ are read by path from realCorpus.test.ts',
+    match: (f) => f.startsWith('src/tools/scan/lib/edges/real/'),
+    tests: ['src/tools/scan/lib/edges/realCorpus.test.ts'],
+  },
+  {
     id: 'font-binaries',
     reason: 'real font binaries under public/fonts/ are read by name/readdirSync, not imported',
     match: (f) => f.startsWith('public/fonts/'),
