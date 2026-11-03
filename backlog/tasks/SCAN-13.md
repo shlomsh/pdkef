@@ -60,7 +60,11 @@ Done when:
    failed page.
 8. Tiles are `li[data-id]` holding a `div[data-page]` with role button, so hold and drag reorders, and the arrow
    keys move a page.
-9. `ScanWorkspace` has no phone code left: no `ScanPhoneBar`, no `phone-options`, no `.phone` or `.wide` block, and
+9. Each tile shows its page on its real paper, by the viewer's placement rule (a pure `tilePaper` in
+   `lib/resultView.ts`): on A4 a wide or narrow scan shows its margins, on Fit it fills the paper. Changing Page
+   size visibly changes the tiles, and a test proves it. Page size stays in the card, and the viewer gets no
+   control for it: it is the whole document's setting.
+10. `ScanWorkspace` has no phone code left: no `ScanPhoneBar`, no `phone-options`, no `.phone` or `.wide` block, and
    the dead CSS is deleted. Desktop's rail, table and page view render as before; their tests pass unchanged
    except where they asserted phone blocks.
 
@@ -124,4 +128,5 @@ Done when:
 ## Progress
 
 - 2026-11-04: ticket and screen contract written; reducer events for the camera's review landed first. Shlomi
-  asked for a clear definition of done per worker before any implementation; no worker has started.
+  asked for a clear definition of done per worker before any implementation; no worker had started.
+- 2026-11-04: Page size changes how a page looks, so the tiles draw the real paper (Shlomi's catch). Workers started.
