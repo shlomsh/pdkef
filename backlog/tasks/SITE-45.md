@@ -114,4 +114,7 @@ drafts; a fresh reviewer checks every one against the code and the page's own te
   stickers: private, local, open source) built from pitches 3 and 4. A fresh reviewer checked every sticker and
   tagline against `staticPages.js` and the code: no objections; the one wording note was taken ("never sent
   anywhere else", the page's own phrase). No Hebrew edition of either page exists, so step 3 has nothing to do
-  for them. Waiting on Shlomi's look on an iPhone; `/contact`, `/licenses` and the guides stay optional.
+  for them. Shlomi saw both on his iPhone (2026-11-03). The `/privacy` picture was redrawn to show the work on
+  the device with the connection off.
+- 2026-11-03: `/contact` (say-hello: speech bubble to envelope) and `/licenses` (thank-you-cards: a fan of five
+  cards, a heart) got header doodles only, no stickers. The how-to guides stay optional.
