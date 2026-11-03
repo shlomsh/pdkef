@@ -1,7 +1,7 @@
 ---
 id: "QUAL-49"
 title: "Copy-pasted unit suites collapse into one parametrised guard each"
-status: "open"
+status: "in_progress"
 priority: "P3"
 epic: "robustness"
 horizon: "next"
