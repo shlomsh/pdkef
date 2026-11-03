@@ -218,3 +218,26 @@ describe('useElementResize MOBI-31 pinch cancellation', () => {
     expect(onChange).not.toHaveBeenCalled();
   });
 });
+
+describe('useElementResize handle direction', () => {
+  afterEach(() => {
+    document.body.innerHTML = '';
+  });
+
+  const signature = { id: 's1', type: 'signature', pageIndex: 0, left: 30, top: 10, width: 20, height: 10, aspectRatio: 0.5, dataUrl: 'data:image/png;base64,' };
+
+  // Dragging a handle away from the box's centre grows it, whichever side the handle is on.
+  it.each([
+    ['bottom-left', 240, 30],
+    ['bottom-left', 330, 15],
+    ['bottom-right', 360, 30],
+    ['bottom-right', 270, 15],
+  ])('dragging the %s handle from x=300 to x=%i resizes a signature of 20 percent width to %i percent', (handle, toX, width) => {
+    const onChange = vi.fn();
+    const { handleNode } = mount({ element: signature, handle, onChange });
+    dispatchTouchStart(handleNode, [touch(300, 400)]);
+    dispatchTouchMove([touch(toX, 400)]);
+    dispatchTouchEnd(touch(toX, 400));
+    expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ width }));
+  });
+});

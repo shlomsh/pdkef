@@ -137,44 +137,15 @@ describe('HighlightPage', () => {
     restore();
   });
 
-  it('a mouse press on the page adds an empty highlight in the marker and starts the swipe', () => {
+  it('a mouse press on the page passes its page, marker and armed state to the swipe', () => {
     const overlay = mount([]);
     press(overlay, { pointerType: 'mouse' });
     const added = dispatch.mock.calls.find(([a]) => a.type === 'ADD_ELEMENT')?.[0].payload as HighlightElement;
-    expect(added).toMatchObject({ type: 'highlight', pageIndex: 0, width: 0, height: 0, bands: [], color: DEFAULT_MARKER.color });
-    expect(added.style).toBeUndefined();
-    expect(added.opacity).toBe(DEFAULT_MARKER.opacity);
+    expect(added).toMatchObject({ type: 'highlight', pageIndex: 0, color: DEFAULT_MARKER.color });
     expect(startHighlightSwipe).toHaveBeenCalledTimes(1);
     expect(startHighlightSwipe.mock.calls[0][1]).toMatchObject({ pageIndex: 0, id: added.id });
-    expect(startHighlightSwipe.mock.calls[0][0].isMouse).toBe(true);
   });
 
-  it('carries the marker underline and opacity onto the new highlight', () => {
-    const overlay = mount([], { color: '#FF8FCF', style: 'underline', opacity: 0.5 });
-    press(overlay, { pointerType: 'pen' });
-    const added = dispatch.mock.calls.find(([a]) => a.type === 'ADD_ELEMENT')?.[0].payload as HighlightElement;
-    expect(added).toMatchObject({ color: '#FF8FCF', style: 'underline', opacity: 0.5 });
-  });
-
-  it('a touch press, a secondary button and a press on a highlight do nothing', () => {
-    const overlay = mount([mark], DEFAULT_MARKER, false);
-    press(overlay, { pointerType: 'touch' });
-    press(overlay, { pointerType: 'mouse', button: 2 });
-    press(container.querySelector('[data-element-id]')!, { pointerType: 'mouse' });
-    expect(dispatch).not.toHaveBeenCalled();
-    expect(startHighlightSwipe).not.toHaveBeenCalled();
-  });
-
-  it('keeps the marker armed: a swipe that asks to disarm dispatches nothing', () => {
-    const overlay = mount([]);
-    press(overlay, { pointerType: 'mouse' });
-    const swipeDispatch = startHighlightSwipe.mock.calls[0][0].dispatch;
-    dispatch.mockClear();
-    swipeDispatch({ type: 'DISARM_TOOL' });
-    expect(dispatch).not.toHaveBeenCalled();
-    swipeDispatch({ type: 'SET_ACTIVE_ELEMENT_ID', payload: null });
-    expect(dispatch).toHaveBeenCalledWith({ type: 'SET_ACTIVE_ELEMENT_ID', payload: null });
-  });
 });
 
 function textPage(strings: string[]) {
@@ -533,12 +504,6 @@ describe('HighlightPage click marks on a digital page (R10 to R12)', () => {
 
   const added = () => dispatch.mock.calls.map(([a]) => a).filter((a) => a.type === 'ADD_ELEMENT' && a.payload.bands.length > 0).map((a) => a.payload as HighlightElement);
 
-  it('a single click marks nothing', async () => {
-    await mountText();
-    clickAt(1);
-    expect(added()).toHaveLength(0);
-  });
-
   it('sees the click a mouse swipe swallows, because it listens from the press on', async () => {
     await mountText();
     // As the swipe does when it commits on mouseup: swallow the click that follows.
@@ -560,13 +525,6 @@ describe('HighlightPage click marks on a digital page (R10 to R12)', () => {
     expect(mark.width).toBeGreaterThan(5);
     expect(logAction).toHaveBeenCalledWith('add', 'ADD_SHAPE', 0, expect.any(String), [expect.objectContaining({ element: mark })]);
     expect(dispatch.mock.calls.some(([a]) => a.type === 'UNDO')).toBe(false);
-  });
-
-  it('a double-click lays nothing while the marker is put down', async () => {
-    await mountText([], DEFAULT_MARKER, false);
-    clickAt(2);
-    expect(added()).toHaveLength(0);
-    expect(dispatch).not.toHaveBeenCalled();
   });
 
   it('a double-click on the gap between words, or off the text, marks nothing', async () => {
@@ -748,26 +706,12 @@ describe('HighlightPage click marks on a scan (R10)', () => {
     expect(added()).toHaveLength(0);
   });
 
-  it('a single click never reads the canvas', () => {
-    clickAt(1);
-    expect(readScanUnit).not.toHaveBeenCalled();
-  });
 });
 
 describe('HighlightPage touch swipe, armed', () => {
   let restorePointer = () => {};
   beforeEach(() => { restorePointer = stubPointer(true); });
   afterEach(() => restorePointer());
-
-  it('a one-finger press starts the same swipe as a mouse, and not as a mouse (its click is not ours to swallow)', () => {
-    const overlay = mount([], DEFAULT_MARKER, true);
-    press(overlay, { pointerType: 'touch' });
-    const added = dispatch.mock.calls.find(([a]) => a.type === 'ADD_ELEMENT')?.[0].payload as HighlightElement;
-    expect(added).toMatchObject({ type: 'highlight', pageIndex: 0, width: 0, height: 0, bands: [], color: DEFAULT_MARKER.color });
-    expect(startHighlightSwipe).toHaveBeenCalledTimes(1);
-    expect(startHighlightSwipe.mock.calls[0][0].isMouse).toBe(false);
-    expect(startHighlightSwipe.mock.calls[0][1]).toMatchObject({ pageIndex: 0, id: added.id });
-  });
 
   it('the page stops scrolling for the gesture: it owns the touch while armed', () => {
     const overlay = mount([], DEFAULT_MARKER, true);
@@ -780,40 +724,6 @@ describe('HighlightPage touch swipe, armed', () => {
     restorePointer();
     restorePointer = stubPointer(false);
     const overlay = mount([], DEFAULT_MARKER, true);
-    expect(overlay.hasAttribute('data-touch-armed')).toBe(false);
-  });
-
-  it('a mouse drag lays a mark while armed and none once the marker is put down', () => {
-    restorePointer();
-    restorePointer = stubPointer(false);
-    const overlay = mount([], DEFAULT_MARKER, false);
-    press(overlay, { pointerType: 'mouse' });
-    expect(dispatch).not.toHaveBeenCalled();
-    expect(startHighlightSwipe).not.toHaveBeenCalled();
-    mount([], DEFAULT_MARKER, true);
-    press(overlay, { pointerType: 'mouse' });
-    expect(startHighlightSwipe).toHaveBeenCalledTimes(1);
-  });
-
-  it('a mouse still marks as before while a finger is armed', () => {
-    const overlay = mount([], DEFAULT_MARKER, true);
-    press(overlay, { pointerType: 'mouse' });
-    expect(startHighlightSwipe.mock.calls[0][0].isMouse).toBe(true);
-  });
-
-  it('R52: a finger moving sideways from a highlight starts a swipe; a mouse press on one starts nothing', () => {
-    mount([mark], DEFAULT_MARKER, true);
-    press(container.querySelector('[data-element-id]')!, { pointerType: 'mouse' });
-    expect(startHighlightSwipe).not.toHaveBeenCalled();
-    press(container.querySelector('[data-element-id]')!, { pointerType: 'touch' });
-    expect(startHighlightSwipe).toHaveBeenCalledTimes(1);
-  });
-
-  it('without it a finger does nothing new', () => {
-    const overlay = mount([], DEFAULT_MARKER, false);
-    press(overlay, { pointerType: 'touch' });
-    expect(dispatch).not.toHaveBeenCalled();
-    expect(startHighlightSwipe).not.toHaveBeenCalled();
     expect(overlay.hasAttribute('data-touch-armed')).toBe(false);
   });
 

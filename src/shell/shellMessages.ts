@@ -105,6 +105,7 @@ export interface ShellMessages {
   replaceOpening: string;
   replaceChoosing: string;
   theCurrentPdf: string;
+  severalFiles: string;
   clearDialogTitle: string;
   clearConfirm: string;
   clearBody: string;
@@ -208,6 +209,7 @@ export const englishShellMessages: ShellMessages = {
   replaceOpening: "Opening {file} closes {current}. It stays in your recent files with everything you've done, so you can come back to it from the home page.",
   replaceChoosing: "This closes {current}. It stays in your recent files with everything you've done, so you can come back to it from the home page.",
   theCurrentPdf: 'the current PDF',
+  severalFiles: '{count} files',
   clearDialogTitle: 'Clear all files?',
   clearConfirm: 'Clear all',
   clearBody: 'This empties the list{of} and the order you put it in. Nothing is removed from your device.',
@@ -285,6 +287,7 @@ export const hebrewShellMessages: ShellMessages = {
   replaceOpening: 'פתיחת {file} סוגרת את {current}. הוא נשאר ברשימת הקבצים האחרונים עם כל מה שעשיתם, כך שתוכלו לחזור אליו מהדף הבית.',
   replaceChoosing: 'הפעולה הזו סוגרת את {current}. הוא נשאר ברשימת הקבצים האחרונים עם כל מה שעשיתם, כך שתוכלו לחזור אליו מהדף הבית.',
   theCurrentPdf: 'ה-PDF הנוכחי',
+  severalFiles: '{count} קבצים',
   clearDialogTitle: 'לנקות את כל הקבצים?',
   clearConfirm: 'ניקוי הכול',
   clearBody: 'הרשימה{of} והסדר שקבעתם יתרוקנו. שום דבר לא נמחק מהמכשיר שלכם.',

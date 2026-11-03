@@ -345,6 +345,10 @@ describe('useDraggableElement MOBI-21 tap detection (review fixes)', () => {
     dispatchTouchEnd(touch(320, 400));
 
     expect(onChange).toHaveBeenCalledTimes(1);
+    // 20px of a 600px page is 3.33%, added to the element's left of 20%; top is unmoved.
+    const [{ left, top }] = onChange.mock.calls[0];
+    expect(left).toBeCloseTo(20 + (20 / 600) * 100, 5);
+    expect(top).toBe(10);
     expect(onTap).not.toHaveBeenCalled();
   });
 

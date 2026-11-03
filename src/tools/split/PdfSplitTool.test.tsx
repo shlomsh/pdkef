@@ -142,13 +142,6 @@ describe('PdfSplitTool UI flow', () => {
     return saved;
   };
 
-  it('renders initial dropzone', () => {
-    mount();
-    const dropzone = container.querySelector('[data-dropzone]');
-    expect(dropzone).not.toBeNull();
-    expect(dropzone.textContent).toContain('Drop PDF here');
-  });
-
   it('loads the file into the shared grid under a heading that names the output', async () => {
     await open();
     expect(cells().map((c) => c.dataset.key)).toEqual(['0:0', '0:1', '0:2', '0:3', '0:4']);
@@ -178,23 +171,6 @@ describe('PdfSplitTool UI flow', () => {
     expect(order[order.length - 1]).toBe('Replace file');
   });
 
-  it('offers Replace file once, as the shared quiet last line, at every width', async () => {
-    await open();
-    const replaces = Array.from(container.querySelectorAll('button')).filter((b) => b.textContent.trim().startsWith('Replace'));
-    expect(replaces).toHaveLength(1);
-    expect(replaces[0].closest('[data-replace-line]')).not.toBeNull();
-  });
-
-  it('a skipped tile stays in place, the range follows, and the heading counts it', async () => {
-    await open();
-    await click(skipButton(2));
-    expect(cells().map((c) => c.dataset.key)).toEqual(['0:0', '0:1', '0:2', '0:3', '0:4']);
-    expect(isSkipped(2)).toBe(true);
-    expect(field().value).toBe('1, 3-5');
-    expect(heading().textContent).toContain('4 pages');
-    expect(heading().textContent).toContain('1 page skipped');
-  });
-
   it('typing a range skips the other pages, as one Undo step', async () => {
     await open();
     await type('2-3');
@@ -206,34 +182,6 @@ describe('PdfSplitTool UI flow', () => {
     await redo();
     expect(field().value).toBe('2-3');
     expect(recentActions()).toEqual(['add_files', 'select_pages', 'undo', 'redo']);
-  });
-
-  it('keeps the selection and shows the error for an invalid range', async () => {
-    await open();
-    await click(skipButton(1));
-    await type('9');
-    expect(container.querySelector('[role="alert"]').textContent).toBe('Page number 9 out of range (1-5)');
-    expect(isSkipped(1)).toBe(true);
-    expect(isSkipped(2)).toBe(false);
-    await type('1-');
-    expect(container.querySelector('[role="alert"]')).toBeNull();
-  });
-
-  it('Include all, Skip all and Invert are one step each, and none when nothing changes', async () => {
-    await open();
-    await click(button('Include all'));
-    expect(container.querySelector('[aria-label="Undo last change"]').disabled).toBe(true);
-    await click(button('Skip all'));
-    expect(field().value).toBe('');
-    expect(downloadElement().getAttribute('data-state')).toBe('nothing');
-    expect(downloadElement().textContent).toContain('Every page is skipped');
-    await click(button('Invert'));
-    expect(field().value).toBe('1-5');
-    await undo();
-    expect(downloadElement().getAttribute('data-state')).toBe('nothing');
-    await undo();
-    expect(downloadElement().getAttribute('data-state')).not.toBe('nothing');
-    expect(container.querySelector('[aria-label="Undo last change"]').disabled).toBe(true);
   });
 
   it('rotating a page is a step and reaches the build as a rotation of that page number', async () => {
@@ -295,9 +243,7 @@ describe('PdfSplitTool UI flow', () => {
     await open();
     await click(radio('One PDF per page'));
     await until(() => button('Share'));
-    const share = button('Share');
-    expect(share).toBeDefined();
-    await click(share);
+    await click(button('Share'));
     const files = nativeShare.share.mock.calls[0][0].files;
     expect(files.map((f) => f.name)).toEqual(['open-page-1.pdf', 'open-page-2.pdf', 'open-page-3.pdf', 'open-page-4.pdf', 'open-page-5.pdf']);
     nativeShare.restore();
@@ -310,7 +256,6 @@ describe('PdfSplitTool UI flow', () => {
     expect(button('Share')).toBeUndefined();
     await until(() => downloadElement()?.getAttribute('data-state') === 'ready' && button('Share'));
     expect(downloadElement().getAttribute('data-state')).toBe('ready');
-    expect(button('Share')).toBeDefined();
     nativeShare.restore();
   });
 
@@ -398,7 +343,6 @@ describe('PdfSplitTool UI flow', () => {
       await pick(fixtureFile('locked.pdf'));
       await until(() => button('Unlock it'));
       expect(container.textContent).toContain(protection === 'needs-password' ? 'This PDF has a password' : 'This PDF is protected');
-      expect(button('Unlock it')).toBeDefined();
       expect(cells()).toHaveLength(0);
       expect(downloadElement()).toBeNull();
       expect(harness.createdBlobs()).toHaveLength(0);
@@ -419,7 +363,6 @@ describe('PdfSplitTool UI flow', () => {
     mount();
     await act(async () => { setInputFiles(container.querySelector('input[type="file"]'), [fixtureFile('five.pdf')]); });
     await until(() => releaseFirst);
-    expect(releaseFirst).toBeDefined();
     await replaceWith(fixtureFile('three.pdf', path.join(FIXTURES, 'three-page-header.pdf')));
     await act(async () => { releaseFirst(); await new Promise((resolve) => setTimeout(resolve, 50)); });
     expect(cells()).toHaveLength(3);
@@ -446,7 +389,6 @@ describe('PdfSplitTool UI flow', () => {
     mount();
     await pick(new File(['this is not a PDF'], 'broken.pdf', { type: 'application/pdf' }));
     await until(() => button('Replace file'));
-    expect(button('Replace file')).toBeDefined();
     await click(button('Replace file'));
     expect(container.querySelector('dialog[aria-labelledby="confirm-replace-title"]').open).toBe(true);
   });

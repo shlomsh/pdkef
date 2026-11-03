@@ -165,6 +165,7 @@ describe('content block classes', () => {
     expect(CONTENT_FLOW_CLASS).toContain('gap-[var(--space-content-row)]');
   });
 
+  // Kept as source pins (8010e6f5): the gaps are Tailwind classes and margins in .astro files, i.e. computed layout jsdom cannot see.
   it.each(['src/components/ContentPage.astro', 'src/components/ToolAboutCard.astro'])(
     '%s takes its block classes from here and leaves the gaps to the flow',
     (file) => {

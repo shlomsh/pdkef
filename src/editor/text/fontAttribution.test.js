@@ -43,6 +43,7 @@ describe('font attribution surfaces', () => {
   // Non-vacuity: every assertion below is a set difference, so a parse that
   // silently returned nothing would make all of them pass.
   it('parses both surfaces, so the coverage assertions are not comparing empty lists', () => {
+    // Source pin: /licenses/ must stay built from the manifest, not a hand-kept list (the drift this file exists for); Astro pages are not rendered in vitest.
     expect(astro).toContain("import { FONT_MANIFEST } from '#lib/fonts/fontManifest.ts'");
     expect(astro).toContain('FONT_MANIFEST.map');
     expect(FONT_MANIFEST).toHaveLength(CATALOGUE.length);

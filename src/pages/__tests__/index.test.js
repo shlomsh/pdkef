@@ -3,6 +3,7 @@ import path from 'path';
 import { describe, expect, it } from 'vitest';
 
 describe('Homepage Tooltips', () => {
+  // Kept as a source pin (088f9f07): the tooltip offset and arrow are computed layout inside HomeHero.astro's <style>, which jsdom cannot render.
   it('ensures app-tooltip has industry-standard margin and arrow styles', () => {
     // LOC-09: the home page's markup/CSS moved from index.astro into the
     // shared home layout, and with ARCH-56 into its first-screen section, HomeHero.astro,
@@ -23,6 +24,7 @@ describe('Homepage Tooltips', () => {
     expect(css).toMatch(/\.app-tooltip::after\s*{[^}]*border-width:\s*6px/);
     expect(css).toMatch(/\.app-tooltip::after\s*{[^}]*border-color:\s*var\(--color-surface\)\s*transparent\s*transparent\s*transparent/);
   });
+  // Kept as source pins (5b9dc0ea): the dock's dim, ring and edge-fade are CSS rules in HomeHero.astro, which no vitest environment renders.
   describe('SITE-42 woken toolbar', () => {
     const content = fs.readFileSync(path.join(process.cwd(), 'src/components/home/HomeHero.astro'), 'utf8');
     const css = content.match(/<style>([\s\S]*?)<\/style>/)[1];

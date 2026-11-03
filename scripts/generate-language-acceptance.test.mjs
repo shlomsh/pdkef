@@ -13,7 +13,7 @@
  * src/test/cross-tool/languageAcceptance.test.js, importing from src/.
  */
 import { describe, expect, it } from 'vitest';
-import { existsSync } from 'node:fs';
+import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { matrixMarkdown } from './generate-language-acceptance.mjs';
@@ -22,10 +22,8 @@ const repoRoot = join(fileURLToPath(new URL('.', import.meta.url)), '..');
 
 describe('docs/language-font-acceptance-matrix.md is not stale', () => {
   it('keeps the generated documentation current', () => {
-    const documented = join(repoRoot, 'docs', 'language-font-acceptance-matrix.md');
-    expect(existsSync(documented)).toBe(true);
-    // FONT-08b added a row (Neucha, order 9), shifting every row after it by
-    // one - Emoji moved from 20 to 21.
-    expect(matrixMarkdown()).toContain('| 21 | planned | Emoji |');
+    const documented = readFileSync(join(repoRoot, 'docs', 'language-font-acceptance-matrix.md'), 'utf8');
+    // The same comparison `generate-language-acceptance.mjs --check` makes in CI.
+    expect(documented).toBe(matrixMarkdown());
   });
 });

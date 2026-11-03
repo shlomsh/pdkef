@@ -79,6 +79,18 @@
   }
 }
 
+/* COMP-04: several photos. The target comes before the list on a phone, so
+   the one setting that changes every row is never below a long list. */
+@media (max-width: 1023px) {
+  .loaded-layout.batch-layout {
+    grid-template-areas:
+      'strip'
+      'controls'
+      'result'
+      'sheet';
+  }
+}
+
 @media (min-width: 768px) and (max-width: 1023px) {
   .result {
     margin-inline: -1.5rem;
@@ -499,6 +511,11 @@
   flex-direction: column;
 }
 
+/* The page under Full screen stays where it was. */
+:global(html):has(.compare-fullscreen[open]) {
+  overflow: hidden;
+}
+
 .compare-fullscreen-header {
   display: flex;
   align-items: center;
@@ -513,6 +530,24 @@
   min-height: 0;
   overflow-y: auto;
   padding: 1rem;
+}
+
+/* A photo (COMP-04): the pair fits the screen whole and nothing scrolls. The body is a size container that
+   centres the slider, and the slider takes the largest width its height still fits: the photo's own aspect
+   (--preview-aspect, set on the result section) against the body's width and height. */
+.compare-fullscreen[data-fit] .compare-fullscreen-body {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  container-type: size;
+  padding: 8px;
+}
+
+.compare-fullscreen[data-fit] .compare-fullscreen-body > * {
+  flex: none;
+  width: min(100cqw, 100cqh * var(--preview-aspect, 0.75));
+  touch-action: none;
 }
 
 .compare-fullscreen-header .compare-caption {
@@ -539,4 +574,27 @@
   font-size: 0.75rem;
   padding: 2px 8px;
   border-radius: 999px;
+}
+
+/* COMP-04: a set's strip shows its first photo on top of a small stack, so the
+   one picture reads as several. Two offset cards drawn as shadows, nothing in
+   the layout moves; the margin keeps them clear of the name. */
+.batch-layout .strip [data-file-icon][data-loaded] {
+  margin-block-start: 6px;
+  margin-inline-end: 6px;
+  box-shadow:
+    inset 0 0 0 1px var(--color-border),
+    3px -3px 0 -1px var(--color-surface),
+    3px -3px 0 0 var(--color-border-strong),
+    6px -6px 0 -2px var(--color-surface),
+    6px -6px 0 -1px var(--color-border);
+}
+
+.batch-layout .strip [data-file-icon][data-loaded]:dir(rtl) {
+  box-shadow:
+    inset 0 0 0 1px var(--color-border),
+    -3px -3px 0 -1px var(--color-surface),
+    -3px -3px 0 0 var(--color-border-strong),
+    -6px -6px 0 -2px var(--color-surface),
+    -6px -6px 0 -1px var(--color-border);
 }

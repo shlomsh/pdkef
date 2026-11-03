@@ -12,6 +12,8 @@ describe('SavedSignature contract', () => {
     expect(signature.id).toBe('sig-1');
   });
 
+  // Checked by `npm run typecheck` (astro check covers test files): if SavedSignature loosens, the unused
+  // expect-error directives below fail the build. Vitest strips types, so the runtime assertions only read the objects.
   it('rejects incomplete and malformed library entries at compile time', () => {
     // @ts-expect-error a saved signature must retain its stable library id
     const missingId: SavedSignature = {
@@ -26,7 +28,7 @@ describe('SavedSignature contract', () => {
       aspectRatio: '0.4',
     };
 
-    expect(missingId).toBeDefined();
-    expect(invalidRatio).toBeDefined();
+    expect(missingId.dataUrl).toBe('data:image/png;base64,AA==');
+    expect(invalidRatio.id).toBe('sig-2');
   });
 });

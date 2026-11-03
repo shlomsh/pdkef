@@ -1,11 +1,9 @@
 ---
 id: "QUAL-45"
 title: "Every real survivor of the 2026-11-03 mutation probe fails a unit test"
-status: "open"
+status: "done"
 priority: "P1"
 epic: "robustness"
-horizon: "now"
-order: 1
 depends_on: []
 ---
 
@@ -64,9 +62,25 @@ Equivalent, no action: `src/lib/drafts/sha256.ts:115` (differs only for inputs o
 
 ## Acceptance
 
-- [ ] Every survivor above is marked killed (with the test's name) or equivalent (with the reason).
-- [ ] Each new test's red run against its mutant is recorded here.
-- [ ] `npm run check:fast` and `npm run check:push` pass.
+- [x] Every survivor above is marked killed (with the test's name) or equivalent (with the reason).
+- [x] Each new test's red run against its mutant is recorded here.
+- [x] `npm run check:fast` and `npm run check:push` pass.
+
+## Result (2026-11-03)
+
+Every survivor is killed; each new test was seen failing against its mutant and passing on the real code.
+
+- `useSavedFileCheck.ts:97`, `:106`: "does not let a slow check for an old export overwrite the result of the newer export", "shows nothing once the export goes stale…", "says so, and reports it, when even one trace survives the export".
+- `openPdfDoc.ts:81`: '"empty-password" rethrows a real parse error from the retry…'. `:101` is not equivalent: "leaves an encrypted file with a lost page tree to the encryption gate…".
+- `flatten.js:65`, `:63`: "lands an appearance whose BBox starts above the origin on the bottom edge of its /Rect" (real pdf-lib file), "puts a BBox that starts above or right of the origin on the rect corner", "keeps a scale of 1 on an axis where the BBox has no extent".
+- `match.js:69`, `:66`, `:75`: "takes the highest-scoring pair first, not the lowest", "counts a pair exactly at the IoU threshold as a match", "matches a target once even when a second candidate also overlaps it".
+- `signatureImagePolicy.ts:24`, `:40`: "picks the largest font whose canvas still fits 90% of the pixel budget", "treats a string that is not a data URL as over every byte cap".
+- `sampleTaps.js:63`: "also taps just below a rule, 1 to 4 pt under it, and still snaps to it".
+- `formGrid.js:207`: "keeps a neighbouring box that shares a wall but is 4pt off the pitch as its own run" (the FORM-17 postal-code case), plus the positive side.
+- `highlightSwipeGesture.ts:76`: two tests on the real swipe reader, no reader mock.
+- `inkBounds.ts:15`, `:18`: "reads the bounds from exactly three rows", "trims the rounded-down tenth of the rows at each edge…".
+- `maintenanceTelemetry.ts:40`: "buckets an impossible duration (negative, NaN, infinite) as the slowest…". The `!Number.isFinite` clause alone is equivalent: NaN and +Infinity fall through to `30s_or_more` anyway.
+- `draftPolicy.js:7`: "keeps a draft for exactly 28 days". `useElementResize.js:196`: an `it.each` over the bottom handles in the hook's own test.
 
 ## How the probe was run
 

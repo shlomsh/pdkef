@@ -1,0 +1,232 @@
+/* COMP-04: several photos in the result area, shown as the photos themselves:
+   the set's status line, then a square tile per photo with one caption line. */
+.batch {
+  grid-area: result;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: 12px;
+  background: var(--color-surface-sunken);
+  border-radius: 18px;
+}
+
+.batch[hidden] {
+  display: none;
+}
+
+.head {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.heading {
+  margin: 0;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+/* A left-out PDF or an unreadable file: a quiet line under the status, inside the stage. */
+.note {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--color-muted);
+}
+
+.grid {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  align-content: start;
+  gap: 12px;
+}
+
+.grid:focus {
+  outline: none;
+}
+
+.grid:focus-visible {
+  outline: 2px solid var(--color-primary-ring);
+  outline-offset: 2px;
+  border-radius: var(--radius-md);
+}
+
+.tile {
+  min-width: 0;
+  container-type: inline-size;
+}
+
+/* The whole tile is the press: the photo and its caption. */
+.open {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: start;
+}
+
+button.open:enabled {
+  cursor: pointer;
+}
+
+/* A square held before the picture arrives, so the grid never moves as photos draw in. */
+.photo {
+  position: relative;
+  display: block;
+  aspect-ratio: 1;
+  overflow: hidden;
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-xs);
+  transition: transform 160ms ease, box-shadow 160ms ease;
+}
+
+.photo img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  animation: arrive 220ms ease-out;
+  transition: opacity 200ms ease;
+}
+
+/* Still to come: dimmed, so the set's progress reads as it sweeps across. */
+.tile[data-outcome='waiting'] .photo img,
+.tile[data-outcome='working'] .photo img {
+  opacity: 0.45;
+}
+
+.ring {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 28px;
+  height: 28px;
+  margin: -14px 0 0 -14px;
+  border-radius: 50%;
+  border: 3px solid var(--color-white-80);
+  border-top-color: var(--color-primary);
+  animation: spin 900ms linear infinite;
+}
+
+@media (hover: hover) {
+  button.open:enabled:hover .photo {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+  }
+}
+
+button.open:focus-visible {
+  outline: none;
+}
+
+button.open:focus-visible .photo {
+  outline: 2px solid var(--color-primary-ring);
+  outline-offset: 2px;
+}
+
+.caption {
+  display: flex;
+  gap: 0.3em;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  font-size: 0.82rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-muted);
+}
+
+.caption b,
+.caption [aria-hidden] {
+  flex: none;
+}
+
+.caption b {
+  color: var(--color-text);
+}
+
+/* The original size and its arrow: on a narrow tile they step aside, so the new size shows whole. */
+.was {
+  display: flex;
+  flex: none;
+  gap: 0.3em;
+}
+
+/* "12.34 MB → 499.87 KB" needs about 160px. */
+@container (max-width: 159px) {
+  .was {
+    display: none;
+  }
+}
+
+/* The part that gives way on a narrow tile. */
+.fit {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tile[data-outcome='missed'] .caption b,
+.tile[data-outcome='failed'] .caption {
+  color: var(--color-danger-ink);
+}
+
+@keyframes arrive {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .photo,
+  .photo img,
+  .ring {
+    animation: none;
+    transition: none;
+  }
+}
+
+/* The card is one screen tall (data-fills-stage): the status stays put and
+   a long set scrolls inside the stage. The padding keeps a focus ring and a
+   lifted tile inside the scroller's edge. */
+@media (min-width: 1024px) {
+  .batch {
+    padding: 20px;
+  }
+
+  .grid {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding: 4px;
+    margin: -4px;
+  }
+
+  /* As large as the whole set allows on the stage (useFittedColumns). */
+  .grid[data-fitted] {
+    grid-template-columns: repeat(var(--columns), minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 1023px) {
+  .batch {
+    margin-inline: -12px;
+    padding: 10px 8px;
+    border-radius: 0;
+  }
+}

@@ -1,0 +1,136 @@
+/* COMP-04: the bar over one photo of a set. One row from 560px up: back,
+   the photo's name, the stepper, Save. Below, two: back and Save, then the
+   stepper on its own line, the name left out. */
+.bar {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  grid-template-areas: 'back name step save';
+  align-items: center;
+  column-gap: 12px;
+  row-gap: 4px;
+  align-self: stretch;
+  margin-bottom: 4px;
+  /* Brought into view clear of the sticky site header. */
+  scroll-margin-top: 4.5rem;
+}
+
+/* A bordered button with a 36px face and a 44px press, as Replace and the hand-offs are. */
+.pill {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 36px;
+  padding-inline: 12px 14px;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-pill);
+  background: var(--color-surface);
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--color-primary-text);
+  text-decoration: none;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background-color 120ms ease, border-color 120ms ease;
+}
+
+.pill::before {
+  content: '';
+  position: absolute;
+  inset: -5px 0;
+}
+
+.pill:hover {
+  border-color: var(--color-primary);
+  background: var(--color-primary-tint);
+}
+
+.pill:focus-visible,
+.arrow:focus-visible {
+  outline: 2px solid var(--color-primary-ring);
+  outline-offset: 2px;
+}
+
+.back {
+  grid-area: back;
+  justify-self: start;
+}
+
+.save {
+  grid-area: save;
+  justify-self: end;
+}
+
+.name {
+  grid-area: name;
+  justify-self: start;
+  max-width: 100%;
+  min-width: 0;
+  font-size: 0.9rem;
+  color: var(--color-muted);
+}
+
+.step {
+  grid-area: step;
+  display: inline-flex;
+  align-items: center;
+}
+
+.arrow {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: none;
+  color: var(--color-text);
+  cursor: pointer;
+}
+
+.arrow:hover:not([aria-disabled]) {
+  background: var(--color-surface);
+}
+
+.arrow[aria-disabled] {
+  color: var(--color-muted-light);
+  cursor: default;
+}
+
+.position {
+  min-width: 4.5em;
+  text-align: center;
+  font-size: 0.85rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-muted);
+  white-space: nowrap;
+}
+
+@media (max-width: 559px) {
+  .bar {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-areas:
+      'back . save'
+      'step step step';
+  }
+
+  .name {
+    display: none;
+  }
+
+  .step {
+    justify-self: center;
+  }
+}
+
+/* The result column caps its rows at a reading measure and centres them on
+   desktop; the bar spans the stage instead, and what follows sits under it. */
+section > .bar {
+  max-width: none;
+}
+
+section:has(> .bar) {
+  justify-content: flex-start;
+}

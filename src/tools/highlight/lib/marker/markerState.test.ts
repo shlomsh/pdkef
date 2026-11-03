@@ -13,9 +13,9 @@ describe('markerState', () => {
     expect(isTopColor('#FFB15C')).toBe(false);
     expect(isTopColor('#336699')).toBe(false);
   });
-  it('defaults to the first palette color, yellow', () => {
-    expect(HIGHLIGHT_COLORS[0].id).toBe('yellow');
-    expect(DEFAULT_MARKER).toEqual({ color: HIGHLIGHT_COLORS[0].hex, style: 'highlight', opacity: 0.5 });
+  it('starts as a yellow highlight at half strength', () => {
+    const yellow = HIGHLIGHT_COLORS.find((c) => c.id === 'yellow')!;
+    expect(DEFAULT_MARKER).toEqual({ color: yellow.hex, style: 'highlight', opacity: 0.5 });
   });
   it('rearm merges a change', () => {
     expect(rearm(DEFAULT_MARKER, { style: 'underline' })).toEqual({ ...DEFAULT_MARKER, style: 'underline' });

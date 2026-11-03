@@ -43,6 +43,8 @@ interface BasePdfToolProps {
     /** False for a tool that never loads pdf.js (Image to PDF, Scan): the old-browser notice is about pdf.js only. */
     needsPdfjs?: boolean;
     multiple?: boolean;
+    /** The picker selects several files though the tool holds one set at a time: a new pick still replaces it, behind the same question. Off by default. */
+    pickMany?: boolean;
     accept?: string;
     /** A file dropped anywhere on the window is taken (default on), and the card
      * carries `data-dragging` while one is over it. With a single file open, a
@@ -146,7 +148,7 @@ function BasePdfTool({
   owns,
   shellMessages,
 }: BasePdfToolProps) {
-  const { multiple = true, accept = 'application/pdf', dropAnywhere = true, needsPdfjs = true } = intake ?? {};
+  const { multiple = true, pickMany = false, accept = 'application/pdf', dropAnywhere = true, needsPdfjs = true } = intake ?? {};
   const { file = null, label: fileLabel, rename: fileRename, meta: fileMeta, metaExtra: fileMetaExtra, note: fileNote, hidden: hideIdentity = false } = identity ?? {};
   const { message: emptyStateMessage, art: emptyArt, heading: emptyHeading, body: emptyBody, action: emptyAction, actionLeads: emptyActionLeads, pickLabel: emptyPickLabel } = empty ?? {};
   const { iosFilesHint: showIosFilesHint = false, cloudDriveHint: showCloudDriveHint = true } = empty ?? {};
@@ -431,7 +433,7 @@ function BasePdfTool({
           </div>
         ) : (
           <DropzoneEmptyState
-            multiple={multiple}
+            multiple={multiple || pickMany}
             accept={accept}
             message={emptyStateMessage}
             inputRef={fileInputRef}
@@ -452,7 +454,7 @@ function BasePdfTool({
           ref={fileInputRef}
           type="file"
           accept={accept}
-          multiple={multiple}
+          multiple={multiple || pickMany}
           onChange={onInputChange}
           // Dismissing the OS picker has to retract the agreement that opened
           // it, or it would still be standing next time a file arrived by some
@@ -513,7 +515,7 @@ function BasePdfTool({
             file: '\u0000file\u0000',
             current: '\u0000current\u0000',
           }),
-          { file: pendingFiles?.[0]?.name ?? '', current: fileLabel || sm.theCurrentPdf },
+          { file: pendingFiles && pendingFiles.length > 1 ? formatMessage(sm.severalFiles, { count: pendingFiles.length }) : (pendingFiles?.[0]?.name ?? ''), current: fileLabel || sm.theCurrentPdf },
           dialogStyles['confirm-file'],
         )}
       </ConfirmDialog>

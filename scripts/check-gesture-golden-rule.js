@@ -168,29 +168,39 @@ function findComputePatchBodies(source) {
   return bodies;
 }
 
-let violations = [];
-for (const file of collectSourceFiles(srcDir)) {
-  const source = fs.readFileSync(file, 'utf8');
-  if (!source.includes('computePatch')) continue;
-
-  const bodies = findComputePatchBodies(source);
-  for (const body of bodies) {
+// Names of the forbidden state-committing calls found inside any
+// `computePatch` body of one source file (empty when the file is clean).
+export function findForbiddenCalls(source) {
+  const found = [];
+  if (!source.includes('computePatch')) return found;
+  for (const body of findComputePatchBodies(source)) {
     for (const { name, pattern } of FORBIDDEN) {
       pattern.lastIndex = 0;
-      if (pattern.test(body)) {
-        violations.push({ file: path.relative(process.cwd(), file), call: name });
-      }
+      if (pattern.test(body)) found.push(name);
     }
   }
+  return found;
 }
 
-if (violations.length > 0) {
-  console.error('Gesture golden-rule violation: a computePatch body calls state-committing code directly.');
-  console.error('computePatch must only compute and return a patch; commit exactly once via the `commit` callback on release.');
-  for (const { file, call } of violations) {
-    console.error(`  ${file}: found ${call} inside a computePatch body`);
+function main() {
+  const violations = [];
+  for (const file of collectSourceFiles(srcDir)) {
+    for (const call of findForbiddenCalls(fs.readFileSync(file, 'utf8'))) {
+      violations.push({ file: path.relative(process.cwd(), file), call });
+    }
   }
-  process.exit(1);
+
+  if (violations.length > 0) {
+    console.error('Gesture golden-rule violation: a computePatch body calls state-committing code directly.');
+    console.error('computePatch must only compute and return a patch; commit exactly once via the `commit` callback on release.');
+    for (const { file, call } of violations) {
+      console.error(`  ${file}: found ${call} inside a computePatch body`);
+    }
+    process.exit(1);
+  }
+
+  console.log('Gesture golden-rule guard passed: no computePatch body calls onChange/dispatch/setState directly.');
 }
 
-console.log('Gesture golden-rule guard passed: no computePatch body calls onChange/dispatch/setState directly.');
+// Kept last so importing this module for findForbiddenCalls (its unit test) never runs main().
+if (process.argv[1] && path.resolve(process.argv[1]) === __filename) main();
