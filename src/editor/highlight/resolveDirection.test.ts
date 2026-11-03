@@ -47,6 +47,9 @@ describe('directionAtPoint', () => {
     expect(directionAtPoint([run('שלום עולם', 10)], { x: 15, y: 11 })).toBe('rtl');
     expect(directionAtPoint([run('hello world', 10)], { x: 15, y: 11 })).toBe('ltr');
   });
+  it('a press exactly on the bottom edge of a run still reads that run', () => {
+    expect(directionAtPoint([run('שלום עולם', 10, 10, 20, 5)], { x: 15, y: 15 })).toBe('rtl');
+  });
   it('a press between two runs on the row picks the nearer', () => {
     const runs = [run('שלום', 0, 10, 20), run('hello', 60, 10, 20)];
     expect(directionAtPoint(runs, { x: 30, y: 11 })).toBe('rtl');
