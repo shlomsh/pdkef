@@ -45,8 +45,9 @@ PDFs in a mixed drop are skipped and named, as any other unaccepted file is.
 
 ## Done when
 
-- [ ] Unit tests for the batch state (red first) and the intake branch.
-- [ ] One e2e: several photos picked on `/compress-image/` each land at or under the target, with a
+- [x] Unit tests for the batch state (red first), the hook (`hooks/useImageBatch.test.tsx`) and the
+      intake branch (`PdfCompressTool.test.tsx`, "COMP-04 several photos").
+- [x] One e2e (`src/tools/compress/e2e/batch-images.spec.js`): several photos picked on `/compress-image/` each land at or under the target, with a
       row each, and Download saves them all.
-- [ ] English and Hebrew strings; one FAQ entry on `/compress-image/` about several photos.
+- [x] English and Hebrew strings; one FAQ entry on `/compress-image/` about several photos.
 - [ ] Shlomi has tried it and confirmed before it lands.
