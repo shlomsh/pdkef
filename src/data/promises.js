@@ -6,6 +6,7 @@
 /** @testSeam */
 export const PROMISE_KINDS = ['private', 'free', 'open-source', 'local'];
 
+/** @type {Record<string, { title: string; icon: string; tone: string; line: string; href?: string }>} */
 export const promises = {
   private: { title: 'Private', icon: 'ShieldCheck', tone: 'paper', line: 'Your files stay on your device.' },
   free: { title: 'Free', icon: 'Gift', tone: 'citron', line: 'No account, no watermark, no catch.' },
