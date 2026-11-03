@@ -25,7 +25,10 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 
 ### Robustness and debt
 
-- [QUAL-45](backlog/tasks/QUAL-45.md) P1 · Every real survivor of the 2026-11-03 mutation probe fails a unit test
+- [QUAL-45](backlog/tasks/QUAL-45.md) P1 · Every real survivor of the 2026-11-03 mutation probe fails a unit test (in progress)
+- [QUAL-46](backlog/tasks/QUAL-46.md) P1 · The branches that keep a person's work safe have unit tests: drafts across tabs, saved signatures, share, a second finger (in progress)
+- [QUAL-47](backlog/tasks/QUAL-47.md) P2 · Output paths that only mocks reach are tested on real bytes (in progress)
+- [QUAL-48](backlog/tasks/QUAL-48.md) P2 · Every CI guard behind a CLAUDE.md invariant has a red fixture that proves it can fail (in progress)
 - [DEBT-65](backlog/tasks/DEBT-65.md) P2 · Two layout-shift specs failed once each in the 2026-10-27 nightly (in progress)
 - [MEM-24](backlog/tasks/MEM-24.md) P3 · A service worker that cannot install, or never completes its precache, says so (in progress)
 

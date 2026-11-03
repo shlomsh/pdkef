@@ -2,7 +2,7 @@
 
 # Backlog
 
-The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 118 live: 30 up next, 21 then, 27 waiting, 40 parked.
+The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 118 live: 33 up next, 18 then, 27 waiting, 40 parked.
 
 ## Redact: finish removal
 
@@ -131,7 +131,10 @@ Production errors you can see, small tools that clean up after themselves, and d
 
 | ID | P | Task | Note |
 | --- | --- | --- | --- |
-| QUAL-45 | P1 | [QUAL-45](backlog/tasks/QUAL-45.md) · Every real survivor of the 2026-11-03 mutation probe fails a unit test |  |
+| QUAL-45 | P1 | [QUAL-45](backlog/tasks/QUAL-45.md) · Every real survivor of the 2026-11-03 mutation probe fails a unit test | In progress |
+| QUAL-46 | P1 | [QUAL-46](backlog/tasks/QUAL-46.md) · The branches that keep a person's work safe have unit tests: drafts across tabs, saved signatures, share, a second finger | In progress |
+| QUAL-47 | P2 | [QUAL-47](backlog/tasks/QUAL-47.md) · Output paths that only mocks reach are tested on real bytes | In progress |
+| QUAL-48 | P2 | [QUAL-48](backlog/tasks/QUAL-48.md) · Every CI guard behind a CLAUDE.md invariant has a red fixture that proves it can fail | In progress |
 | DEBT-65 | P2 | [DEBT-65](backlog/tasks/DEBT-65.md) · Two layout-shift specs failed once each in the 2026-10-27 nightly | In progress |
 | MEM-24 | P3 | [MEM-24](backlog/tasks/MEM-24.md) · A service worker that cannot install, or never completes its precache, says so | In progress |
 
@@ -139,9 +142,6 @@ Production errors you can see, small tools that clean up after themselves, and d
 
 | ID | P | Task | Note |
 | --- | --- | --- | --- |
-| QUAL-46 | P1 | [QUAL-46](backlog/tasks/QUAL-46.md) · The branches that keep a person's work safe have unit tests: drafts across tabs, saved signatures, share, a second finger |  |
-| QUAL-47 | P2 | [QUAL-47](backlog/tasks/QUAL-47.md) · Output paths that only mocks reach are tested on real bytes |  |
-| QUAL-48 | P2 | [QUAL-48](backlog/tasks/QUAL-48.md) · Every CI guard behind a CLAUDE.md invariant has a red fixture that proves it can fail |  |
 | QUAL-49 | P3 | [QUAL-49](backlog/tasks/QUAL-49.md) · Copy-pasted unit suites collapse into one parametrised guard each |  |
 | DEBT-47 | P2 | [DEBT-47](backlog/tasks/DEBT-47.md) · Sign's funnel has a clean baseline after the dropzone routing fix |  |
 | DEBT-53 | P2 | [DEBT-53](backlog/tasks/DEBT-53.md) · A Download tapped before the build lands still downloads on an iPhone | Needs Shlomi: A check on your iPhone |

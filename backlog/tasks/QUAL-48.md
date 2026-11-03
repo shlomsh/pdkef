@@ -1,7 +1,7 @@
 ---
 id: "QUAL-48"
 title: "Every CI guard behind a CLAUDE.md invariant has a red fixture that proves it can fail"
-status: "open"
+status: "in_progress"
 priority: "P2"
 epic: "robustness"
 horizon: "next"
