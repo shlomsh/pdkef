@@ -8,15 +8,19 @@ interface CompareFullscreenProps {
   t: CompressMessages;
   compare: ReturnType<typeof useComparePreviews>;
   caption: string;
+  /** A photo: the pair fits inside the screen, whole, with nothing to scroll. A PDF page reads at the
+   * screen's full width and scrolls (COMP-01). */
+  fit?: boolean;
 }
 
 /** The before/after pair at full screen, in a top-layer dialog (COMP-01). */
-export default function CompareFullscreen({ t, compare, caption }: CompareFullscreenProps) {
+export default function CompareFullscreen({ t, compare, caption, fit = false }: CompareFullscreenProps) {
   return (
     <dialog
       ref={compare.fullscreen.dialogRef}
       class={styles['compare-fullscreen']}
       aria-label={t.compareFullscreenLabel}
+      data-fit={fit || undefined}
       onClose={compare.fullscreen.onClosed}
     >
       <div class={styles['compare-fullscreen-header']}>
