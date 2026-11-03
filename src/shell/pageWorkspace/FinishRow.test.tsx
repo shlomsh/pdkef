@@ -91,7 +91,7 @@ describe('FinishRow', () => {
       container = document.createElement('div');
       document.body.appendChild(container);
       act(() => render(<FinishRow ready={ready} shareReady onShare={vi.fn()} busy={busy} onHandoff={vi.fn()} onWarm={vi.fn()} labels={labels} />, container));
-      const result = [...container.querySelectorAll('button')].filter((b) => b.textContent !== 'Share').map((b) => b.disabled);
+      const result = [...container.querySelectorAll<HTMLButtonElement>('button')].filter((b) => b.textContent !== 'Share').map((b) => b.disabled);
       render(null, container);
       container.remove();
       return result;
