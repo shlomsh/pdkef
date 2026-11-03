@@ -1,17 +1,20 @@
-// @ts-nocheck - test-only, mirrors the other cross-tool specs' untyped style
-import { render } from 'preact';
+import { render, type ComponentType } from 'preact';
 import { act } from 'preact/test-utils';
 import { describe, expect, it } from 'vitest';
 
 // Every tool's verb stage is aria-hidden decoration: no text, no style attribute (CSP). The glob finds
 // each `src/tools/<tool>/verb/*Verb.tsx`, so a verb added later is held to the same three rules.
-const modules = import.meta.glob('../../tools/*/verb/*Verb.tsx', { eager: true });
-const verbs = Object.entries(modules).map(([path, mod]) => [path.split('/').pop().replace('.tsx', ''), mod.default]);
+type VerbProps = Record<string, unknown>;
+const modules = import.meta.glob<{ default: ComponentType<VerbProps> }>('../../tools/*/verb/*Verb.tsx', { eager: true });
+const verbs: [name: string, Verb: ComponentType<VerbProps>][] = Object.entries(modules).map(([path, mod]) => [
+  path.split('/').pop()!.replace('.tsx', ''),
+  mod.default,
+]);
 
 // A verb that takes props is mounted once per prop value.
-const PROPS = { CompressVerb: [{ subject: 'page' }, { subject: 'photo' }] };
+const PROPS: Record<string, VerbProps[]> = { CompressVerb: [{ subject: 'page' }, { subject: 'photo' }] };
 
-function mountAll(name, Verb) {
+function mountAll(name: string, Verb: ComponentType<VerbProps>): HTMLElement[] {
   return (PROPS[name] ?? [{}]).map((props) => {
     const host = document.createElement('div');
     document.body.appendChild(host);
