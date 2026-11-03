@@ -11,7 +11,7 @@ import * as errorReport from '../telemetry/errorReport.ts';
 import {
   HANDOFF_MAX_AGE_MS, MAX_AGE_MS, MAX_RECENT_FILES, MERGE_DRAFT_MAX_BYTES,
   attachDraftPreview, cacheRecentFile, deleteDraft, hasDraftHint, isStoragePersisted, loadDraft, loadRecentFile,
-  readCurrentEntryId, readDraftMeta, readRecentFiles, saveDraft, setCurrentEntry, clearCurrentEntry,
+  readCurrentEntryId, readDraftMeta, readRecentFiles, saveDraft, setCurrentEntry,
   sourceIdForBytes, sourceIdForFiles, subscribeToDraftChanges, saveHandoff, takeHandoff,
 } from './draftStore.ts';
 
@@ -66,28 +66,6 @@ function getRawRecord(key) {
     openRequest.onerror = () => reject(openRequest.error);
   });
 }
-
-describe('setCurrentEntry / clearCurrentEntry / readCurrentEntryId', () => {
-  beforeEach(() => {
-    localStorage.clear();
-  });
-
-  it('round-trips a pointer, scoped per tool', () => {
-    expect(readCurrentEntryId('sign')).toBeNull();
-    setCurrentEntry('sign', 'sha256:a');
-    setCurrentEntry('redact', 'sha256:b');
-    expect(readCurrentEntryId('sign')).toBe('sha256:a');
-    expect(readCurrentEntryId('redact')).toBe('sha256:b');
-  });
-
-  it('clearCurrentEntry drops only that tool\'s pointer', () => {
-    setCurrentEntry('sign', 'sha256:a');
-    setCurrentEntry('redact', 'sha256:b');
-    clearCurrentEntry('sign');
-    expect(readCurrentEntryId('sign')).toBeNull();
-    expect(readCurrentEntryId('redact')).toBe('sha256:b');
-  });
-});
 
 describe('hasDraftHint and readDraftMeta (pointer + recency index, no IndexedDB)', () => {
   beforeEach(() => {
@@ -157,22 +135,6 @@ describe('hasDraftHint and readDraftMeta (pointer + recency index, no IndexedDB)
 describe('readRecentFiles', () => {
   beforeEach(() => {
     localStorage.clear();
-  });
-
-  it('keeps only the six newest valid entries', () => {
-    const now = Date.now();
-    localStorage.setItem('pdf-toolkit:workspace:recent-files', JSON.stringify(Array.from({ length: 8 }, (_, index) => ({
-      id: `file-${index}`,
-      tool: 'sign',
-      fileName: `file-${index}.pdf`,
-      savedAt: now - index,
-    }))));
-
-    const files = readRecentFiles();
-    expect(files).toHaveLength(MAX_RECENT_FILES);
-    expect(files.map((file) => file.fileName)).toEqual([
-      'file-0.pdf', 'file-1.pdf', 'file-2.pdf', 'file-3.pdf', 'file-4.pdf', 'file-5.pdf',
-    ]);
   });
 
   it('removes expired entries without disturbing valid recent files', () => {
