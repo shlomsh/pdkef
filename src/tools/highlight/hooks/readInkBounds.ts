@@ -9,8 +9,8 @@ const SAMPLE_WIDTH_PX = 800;
 
 /**
  * Where the document's text sits left to right, in fractions of the page width, read from the rendered
- * pages themselves so a scan counts. The first few pages that read upright as shown (the file's own /Rotate plus the
- * person's `pageTurns` is a full turn or none) are sampled, then the canvas is released. A sideways page is skipped
+ * pages themselves so a scan counts. The first few pages whose rows run across as shown (the file's own /Rotate plus the
+ * person's `pageTurns` is none or a half turn) are sampled, then the canvas is released. A sideways page is skipped
  * because its text rows run vertically and the row finder reads horizontal ones.
  */
 export async function readInkBounds(pdfDocument: PDFDocumentProxy, isLive: () => boolean, pageTurns: PageTurns = {}) {
@@ -38,7 +38,7 @@ async function readRows(pdfDocument: PDFDocumentProxy, n: number, isLive: () => 
   const page = await pdfDocument.getPage(n);
   if (!isLive()) return 'stale';
   const rotation = (page.rotate + 90 * turnsOf(pageTurns, n - 1)) % 360;
-  if (rotation !== 0) return 'sideways';
+  if (rotation % 180 !== 0) return 'sideways';
   const canvas = await renderPageToCanvas(page, { scale: SAMPLE_WIDTH_PX / page.getViewport({ scale: 1, rotation }).width, rotation });
   const image = canvas.getContext('2d')?.getImageData(0, 0, canvas.width, canvas.height);
   const width = canvas.width;
