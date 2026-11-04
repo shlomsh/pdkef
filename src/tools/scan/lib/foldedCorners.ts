@@ -13,6 +13,8 @@ const MIN_AREA = 0.00006;
 const MAX_AREA = 0.03;
 /** How near a page edge a mark must come to touch it, as a share of the short side. */
 const REACH = 0.02;
+/** A fold's two legs are within this ratio of each other; longer and thinner is a rule along one edge. */
+const MAX_LEAN = 6;
 /** How much of the corner triangle the mark must fill. */
 const MIN_FILL = 0.8;
 /** How much of the mark may lie outside the triangle: a fold is a clean wedge, a block of print is not. */
@@ -49,6 +51,7 @@ function foldedCorner(pixels: Int32Array, box: Box, width: number, height: numbe
     if (!nearX || !nearY) continue;
     const legX = c.right ? width - box.minX : box.maxX + 1;
     const legY = c.bottom ? height - box.minY : box.maxY + 1;
+    if (Math.max(legX, legY) > MAX_LEAN * Math.min(legX, legY)) continue;
     let inside = 0;
     for (const i of pixels) {
       const x = i % width;

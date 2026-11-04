@@ -79,6 +79,11 @@ describe('fillFoldedCorners', () => {
     expect(grey(out, W - 1, 0)).toBe(230);
   });
 
+  it('keeps a thin rule that starts at a corner and runs along one edge', () => {
+    const src = page(flat(230), (x, y) => y === 0 && x < 50);
+    expect(fillFoldedCorners(src)).toBe(src);
+  });
+
   it('keeps a black triangle in the middle of the page and a black band along one edge', () => {
     const middle = page(flat(230), (x, y) => x >= 150 && y >= 100 && x - 150 + (y - 100) <= 60);
     expect(fillFoldedCorners(middle)).toBe(middle);
