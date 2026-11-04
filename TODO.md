@@ -39,7 +39,7 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 - [SCAN-12](backlog/tasks/SCAN-12.md) P2 · Scan next: a short, very visual video of camera to WhatsApp on /scan-to-pdf/
 - [SCAN-09](backlog/tasks/SCAN-09.md) P2 · Scan next: classical page-detection upgrades, each gated on the real corpus
 - [SCAN-44](backlog/tasks/SCAN-44.md) P2 · A filled A4 form scanned with PDkef (2026-11-04): black edges and ghost text remain; stretch is fixed on main for A4 (in progress)
-- [SCAN-46](backlog/tasks/SCAN-46.md) P2 · A handwritten page's bend is measured right and then thrown away, so its lines stay bent (in progress)
+- [SCAN-46](backlog/tasks/SCAN-46.md) P2 · A filled-in page with no vertical rules stays tilted; level its rows (in progress)
 
 ### Robustness and debt
 
