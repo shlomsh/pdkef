@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { GrayImage } from '../quad.ts';
 import { seededRandom } from '../edges/testImages.ts';
 import { findLineBend, finishBend, fitBend, type Sample } from './lineBend.ts';
-import { bendAt, type LineBend } from './types.ts';
+import { bendAt } from './types.ts';
 
 const W = 1000;
 const H = 1300;
@@ -44,8 +44,8 @@ function page(lineCount: number, bend: (x: number, y: number) => number): GrayIm
   return { width: W, height: H, data };
 }
 
-const truth: LineBend = { c: [-0.08, 0.08, 0, 0.08, -0.08, 0, 0, 0, 0] };
-const curved = (x: number, y: number): number => bendAt(truth, x, y);
+/** A book page: lines bow most at the top, zero mean across each line. */
+const curved = (x: number, y: number): number => 0.08 * (1 - y) * (x * x - x + 1 / 6);
 
 describe('findLineBend', () => {
   it('returns null for straight lines', () => {
@@ -60,7 +60,7 @@ describe('findLineBend', () => {
       for (let j = 0; j < 9; j += 1) {
         const x = 0.1 + (0.8 * i) / 8;
         const y = 0.1 + (0.8 * j) / 8;
-        worst = Math.max(worst, Math.abs(bendAt(found!, x, y) - bendAt(truth, x, y)));
+        worst = Math.max(worst, Math.abs(bendAt(found!, x, y) - curved(x, y)));
       }
     }
     expect(worst).toBeLessThan(0.003);
@@ -108,7 +108,7 @@ describe('findLineBend', () => {
     // What is applied is the bend alone: the 1 degree lean is not taken out of the page.
     for (const y of [0.2, 0.5, 0.8]) {
       const slope = bendAt(found!, 0.9, y) - bendAt(found!, 0.1, y);
-      const want = bendAt(truth, 0.9, y) - bendAt(truth, 0.1, y);
+      const want = curved(0.9, y) - curved(0.1, y);
       expect(Math.abs(slope - want)).toBeLessThan(0.002);
     }
   });
@@ -135,10 +135,27 @@ describe('findLineBend', () => {
       }));
     const fitted = fitBend(lines, 4);
     expect(fitted!.lean).toBeCloseTo(0.002, 3);
-    const bend = finishBend(fitted, 0);
+    const bend = finishBend(fitted, false);
     expect(bend).not.toBeNull();
     // What is applied has no slope left at the middle of the lines.
     const slope = (bendAt(bend!, 0.31, 0.45) - bendAt(bend!, 0.29, 0.45)) / 0.02;
     expect(Math.abs(slope)).toBeLessThan(0.0005);
+  });
+
+  it('follows a crease: lines lifted to a sharp peak where the page was folded', () => {
+    // A fold down the middle of the page: each line rises to a kink at x = 0.5, 1% of the height.
+    const tent = (x: number) => 0.01 * Math.max(0, 1 - Math.abs(x - 0.5) / 0.15);
+    const found = findLineBend(page(18, (x) => tent(x)));
+    expect(found).not.toBeNull();
+    // Compared as shapes: the per-line heights absorb any constant, so each row's mean is set aside.
+    let worst = 0;
+    for (const y of [0.2, 0.5, 0.8]) {
+      const xs = Array.from({ length: 33 }, (_, k) => 0.1 + (0.8 * k) / 32);
+      const got = xs.map((x) => bendAt(found!, x, y));
+      const want = xs.map(tent);
+      const shift = got.reduce((t, v, k) => t + v - want[k], 0) / xs.length;
+      got.forEach((v, k) => { worst = Math.max(worst, Math.abs(v - shift - want[k])); });
+    }
+    expect(worst).toBeLessThan(0.0025);
   });
 });

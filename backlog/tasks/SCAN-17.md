@@ -43,6 +43,17 @@ into one resample of the photo (no second blur), contract in `lib/dewarp/types.t
    1000 and bow under 1.7 px. The rows are now read with the rules taken out (`lib/dewarp/ink.ts`), so a
    form's grid no longer joins every row into one shape.
 
+4. **Creases** (2026-11-04, from the same scan: a fold across the middle kinked the left border about
+   8 px). The rows' and rules' bends were one polynomial over the page, which can follow a curl but not
+   a fold. Following the standard classical recipe for folded pages (text lines and ruled lines as
+   constraints, a mesh instead of one curve), each is now a 16 x 16 grid of displacements read
+   bilinearly, fitted by least squares with a bending-energy penalty: smooth where the page curls, able
+   to turn within a cell where it is creased. Rules are found in fainter ink (a one-pixel line fades
+   when the page is shrunk to be measured) and with a pixel of drift allowed, and a rule that steps
+   sideways across a gap is split (two tables printed a few pixels apart stay as printed). On that scan
+   the left border's travel went from 8 px to 4 (page 1) and 3 (page 2); every other rule is within
+   1.4 px. A learned model for folds the lines cannot show is SCAN-19.
+
 Each stage is gated: a page with straight edges and straight lines is warped exactly as before (the
 plain homography, same bytes), and an implausible fit is dropped rather than applied.
 
