@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { Quad } from '#lib/pageEnhance/quad.ts';
 import { INITIAL_CAPTURE_STATE, markTaken, searchAgain, stepCapture, TAKEN_MEMORY } from './captureMachine.ts';
-import type { CaptureState, FrameObservation } from './types.ts';
+import { DEFAULT_CAPTURE_PARAMS, type CaptureState, type FrameObservation } from './types.ts';
 
 const FRAME = 33;
 const pageQuad = (dx = 0, dy = 0, s = 0.8): Quad => {
@@ -292,5 +292,41 @@ describe('one page, one shot (SCAN-23)', () => {
     const state = markTaken(dup, HASH_A);
     expect(state.phase).toBe('waitingForChange');
     expect(state.takenHashes).toEqual([HASH_A]);
+  });
+
+  describe('a page that is not framed is followed, not held', () => {
+    const onEdge = pageQuad(0.1, 0.1); // right and bottom sides at 0.9 + 0.1 = 1.0: on the frame's edge
+    const framed = pageQuad();
+    it('a corner on the edge, still and sharp for well past holdMs, never fires and stays locked', () => {
+      const { fired, state } = run(seq(0, 3000, (t) => page(t, { quad: onEdge })));
+      expect(fired).toEqual([]);
+      expect(state.phase).toBe('locked');
+      expect(state.holdSince).toBeNull();
+      expect(state.smoothed).not.toBeNull();
+    });
+    it('a page seen under minKeystone never fires and stays locked', () => {
+      const { fired, state } = run(seq(0, 3000, (t) => page(t, { keystone: DEFAULT_CAPTURE_PARAMS.minKeystone - 0.05 })));
+      expect(fired).toEqual([]);
+      expect(state.phase).toBe('locked');
+    });
+    it('once framed it fires only after a full holdMs from that moment', () => {
+      const cut = seq(0, 2000, (t) => page(t, { quad: onEdge }));
+      const start = 2000 + FRAME;
+      const { fired } = run([...cut, ...seq(start, 1500, (t) => page(t, { quad: framed }))]);
+      expect(fired).toHaveLength(1);
+      expect(fired[0] - start).toBeGreaterThanOrEqual(DEFAULT_CAPTURE_PARAMS.holdMs);
+    });
+    it('an observation with no keystone still fires', () => {
+      const plain = (t: number) => { const o = page(t); delete o.keystone; return o; };
+      expect(run(seq(0, 1500, plain)).fired).toHaveLength(1);
+    });
+    it('a page already taken stays duplicate, not locked, when unframed', () => {
+      const dup = run(seq(0, 300, (t) => page(t, { quad: onEdge })), searchAgain(markTaken(INITIAL_CAPTURE_STATE, HASH_A))).state;
+      expect(dup.phase).toBe('duplicate');
+    });
+    it('the hand shutter still takes an unframed page', () => {
+      const state = run(seq(0, 300, (t) => page(t, { quad: onEdge }))).state;
+      expect(markTaken(state, HASH_A).phase).toBe('waitingForChange');
+    });
   });
 });
