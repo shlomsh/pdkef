@@ -4,8 +4,8 @@ title: "Scan next: the camera in the page, pages taken by themselves, Share stra
 status: "in_progress"
 priority: "P1"
 epic: "scan-next"
-horizon: "next"
-order: 2
+horizon: "now"
+order: 9
 depends_on: ["SCAN-04", "SCAN-06", "SCAN-07"]
 ---
 

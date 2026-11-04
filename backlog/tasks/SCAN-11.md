@@ -4,8 +4,8 @@ title: "Scan next: the page copy and the scanning guide follow the new flow"
 status: "open"
 priority: "P2"
 epic: "scan-next"
-horizon: "next"
-order: 3
+horizon: "now"
+order: 10
 depends_on: ["SCAN-06", "SCAN-08"]
 ---
 

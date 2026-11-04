@@ -4,8 +4,8 @@ title: "Scan next: classical page-detection upgrades, each gated on the real cor
 status: "open"
 priority: "P2"
 epic: "scan-next"
-horizon: "next"
-order: 5
+horizon: "now"
+order: 12
 depends_on: ["SCAN-05"]
 ---
 

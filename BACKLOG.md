@@ -2,7 +2,7 @@
 
 # Backlog
 
-The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 129 live: 43 up next, 18 then, 27 waiting, 41 parked.
+The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 129 live: 46 up next, 15 then, 27 waiting, 41 parked.
 
 ## Redact: finish removal
 
@@ -89,7 +89,6 @@ The camera takes pages, the table fixes them, Share sends them. The table first 
 | SCAN-16 | P1 | [SCAN-16](backlog/tasks/SCAN-16.md) · Scan next: the live camera takes the full photo, not a video-sized one | In progress |
 | SCAN-21 | P2 | [SCAN-21](backlog/tasks/SCAN-21.md) · Scan next: measuring a page's bend costs nothing a person can feel | In progress |
 | SCAN-04 | P1 | [SCAN-04](backlog/tasks/SCAN-04.md) · Scan next: the phone measurements that decide the camera build | In progress. Needs Shlomi: Your iPhone, and an Android phone if one is at hand |
-| SCAN-08 | P1 | [SCAN-08](backlog/tasks/SCAN-08.md) · Scan next: the camera in the page, pages taken by themselves, Share straight after | In progress |
 | SCAN-18 | P1 | [SCAN-18](backlog/tasks/SCAN-18.md) · Scan remembers the scan in progress, and it shows in Recents | In progress |
 | SCAN-23 | P1 | [SCAN-23](backlog/tasks/SCAN-23.md) · Scan next: the camera never takes the same page twice | In progress |
 | SCAN-05 | P1 | [SCAN-05](backlog/tasks/SCAN-05.md) · Scan next: a real page-detection corpus with scored KPIs | In progress. Needs Shlomi: Photos and short videos of real pages taken on your phone, ours to check in |
@@ -102,14 +101,15 @@ The camera takes pages, the table fixes them, Share sends them. The table first 
 | SCAN-17 | P2 | [SCAN-17](backlog/tasks/SCAN-17.md) · Scan next: a bent or curled page comes out flat, its edges and text lines straight | In progress |
 | SCAN-35 | P1 | [SCAN-35](backlog/tasks/SCAN-35.md) · Scan next: a flat page's edges are never read as bowed | In progress |
 | SCAN-36 | P2 | [SCAN-36](backlog/tasks/SCAN-36.md) · Straighten a scanned PDF: turn, split a book spread, flatten, clean, then read it |  |
+| SCAN-08 | P1 | [SCAN-08](backlog/tasks/SCAN-08.md) · Scan next: the camera in the page, pages taken by themselves, Share straight after | In progress |
+| SCAN-11 | P2 | [SCAN-11](backlog/tasks/SCAN-11.md) · Scan next: the page copy and the scanning guide follow the new flow |  |
+| SCAN-12 | P2 | [SCAN-12](backlog/tasks/SCAN-12.md) · Scan next: a short, very visual video of camera to WhatsApp on /scan-to-pdf/ |  |
+| SCAN-09 | P2 | [SCAN-09](backlog/tasks/SCAN-09.md) · Scan next: classical page-detection upgrades, each gated on the real corpus |  |
 
 ### Then, in order
 
 | ID | P | Task | Note |
 | --- | --- | --- | --- |
-| SCAN-11 | P2 | [SCAN-11](backlog/tasks/SCAN-11.md) · Scan next: the page copy and the scanning guide follow the new flow |  |
-| SCAN-12 | P2 | [SCAN-12](backlog/tasks/SCAN-12.md) · Scan next: a short, very visual video of camera to WhatsApp on /scan-to-pdf/ |  |
-| SCAN-09 | P2 | [SCAN-09](backlog/tasks/SCAN-09.md) · Scan next: classical page-detection upgrades, each gated on the real corpus |  |
 | SCAN-20 | P2 | [SCAN-20](backlog/tasks/SCAN-20.md) · Scan next: a real-photo dewarp corpus with a straightness score |  |
 | SCAN-22 | P3 | [SCAN-22](backlog/tasks/SCAN-22.md) · Scan next: measure the bend at a higher resolution, so a crease's tip goes too |  |
 
