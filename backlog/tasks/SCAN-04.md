@@ -70,6 +70,11 @@ live lock instead of a video still; that decision is written here too.
 
 Android: not measured yet.
 
+**Camera permission in the shipped camera, 2026-11-04.** Shlomi on the iPhone: it asks on every visit, so once per
+visit and not on every open of the viewfinder. That matches point 3, and it stays a browser decision: a page cannot
+keep the permission itself, so keeping the stream alive between opens is not needed. Still open: Safari itself, next
+day and the home screen.
+
 **Decision: take the still with `ImageCapture.takePhoto`.** The video still loses (point 2), and the native input
 would leave the page for every photo, which ends continuous taking. `takePhoto` on the running track keeps the
 person in the viewfinder at the native photo's quality. Where `ImageCapture` is missing, the native input after
