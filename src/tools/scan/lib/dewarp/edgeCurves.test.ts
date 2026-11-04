@@ -12,7 +12,10 @@ const UNIT: Quad = [{ x: 0, y: 0 }, { x: 1, y: 0 }, { x: 1, y: 1 }, { x: 0, y: 1
 const QUAD: Quad = [{ x: 150, y: 90 }, { x: 760, y: 60 }, { x: 800, y: 620 }, { x: 110, y: 650 }];
 const FLAT: SideCurve = { a: 0, b: 0 };
 
-interface Bows { top: SideCurve; right: SideCurve; bottom: SideCurve; left: SideCurve }
+/** A side as a bow, or as any offset along it (a fold's kink is not a bow). */
+type Side = SideCurve | ((t: number) => number);
+interface Bows { top: Side; right: Side; bottom: Side; left: Side }
+const off = (side: Side, t: number) => (typeof side === 'function' ? side(t) : sideAt(side, t));
 
 function render(quad: Quad, bows: Bows, width = W): GrayImage {
   const inv = homography(quad, UNIT);
@@ -21,7 +24,7 @@ function render(quad: Quad, bows: Bows, width = W): GrayImage {
   for (let y = 0; y < H; y += 1) {
     for (let x = 0; x < width; x += 1) {
       const { x: u, y: v } = applyHomography(inv, { x: x + 0.5, y: y + 0.5 });
-      const page = u >= sideAt(bows.left, v) && u <= 1 + sideAt(bows.right, v) && v >= sideAt(bows.top, u) && v <= 1 + sideAt(bows.bottom, u);
+      const page = u >= off(bows.left, v) && u <= 1 + off(bows.right, v) && v >= off(bows.top, u) && v <= 1 + off(bows.bottom, u);
       data[y * width + x] = (page ? 220 : 40) + (rnd() - 0.5) * 12;
     }
   }
@@ -53,6 +56,17 @@ describe('findEdgeCurves', () => {
     const r = findEdgeCurves(render(QUAD, { top: truth, right: FLAT, bottom: FLAT, left: FLAT }), QUAD);
     expect(r).not.toBeNull();
     for (let t = 0.1; t <= 0.9001; t += 0.1) expect(Math.abs(sideAt(r!.top, t) - sideAt(truth, t))).toBeLessThan(0.004);
+  });
+
+  // SCAN-35: a letter folded in thirds and laid flat. Its top panel sits a little askew, so the left
+  // side runs straight to the fold and turns there, 5 px in at the fold: a kink, not a bow.
+  it('keeps a folded letter flat when its side kinks at a fold', () => {
+    const fold = (t: number) => 0.008 * (t < 1 / 3 ? 3 * t : 1.5 * (1 - t));
+    expect(findEdgeCurves(render(QUAD, { top: FLAT, right: FLAT, bottom: FLAT, left: fold }), QUAD)).toBeNull();
+  });
+
+  it('leaves a side bowing less than a cut edge wanders (2 px) straight', () => {
+    expect(findEdgeCurves(render(QUAD, { top: FLAT, right: FLAT, bottom: FLAT, left: { a: 0.01, b: 0 } }), QUAD)).toBeNull();
   });
 
   it('leaves a side with no edge in the picture at zero', () => {
