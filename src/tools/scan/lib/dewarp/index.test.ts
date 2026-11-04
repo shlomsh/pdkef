@@ -5,7 +5,7 @@ import { seededRandom } from '../edges/testImages.ts';
 import { isFlat, measureBend, pageMap, toGray } from './index.ts';
 import { findLineBend } from './lineBend.ts';
 import { warpAlong } from './meshWarp.ts';
-import { bendAt, sideAt, type LineBend, type SideCurve } from './types.ts';
+import { sideAt, type SideCurve } from './types.ts';
 
 const W = 1500;
 const H = 1150;
@@ -15,7 +15,7 @@ const QUAD: Quad = [{ x: 0.12, y: 0.08 }, { x: 0.86, y: 0.05 }, { x: 0.9, y: 0.9
 const MARGIN = 0.008;
 const FLAT: SideCurve = { a: 0, b: 0 };
 /** A book page: lines bow most at the top, as 0.08 (x - 0.5)^2 (1 - y). */
-const BOOK: LineBend = { c: [-0.08, 0.08, 0, 0.08, -0.08, 0, 0, 0, 0] };
+const BOOK = (x: number, y: number): number => 0.08 * (1 - y) * (x * x - x + 1 / 6);
 
 /** Is there ink at (u, v) of the straight page: 16 rows of words. */
 function straightInk(u: number, v: number): boolean {
@@ -27,7 +27,7 @@ function straightInk(u: number, v: number): boolean {
 }
 
 /** A photo of the page: dark table, light paper with the given top edge and text-line bend. */
-function photo(top: SideCurve, lines: LineBend | null): RgbaImage {
+function photo(top: SideCurve, lines: ((x: number, y: number) => number) | null): RgbaImage {
   const quadPx = QUAD.map((p) => ({ x: p.x * W, y: p.y * H })) as Quad;
   const inv = homography(quadPx, UNIT);
   const rnd = seededRandom(3);
@@ -40,7 +40,7 @@ function photo(top: SideCurve, lines: LineBend | null): RgbaImage {
       const onPage = u >= 0 && u <= 1 && v >= 0 && v <= 1;
       let g = 50;
       if (onPage) {
-        const straightV = lines ? v - bendAt(lines, u, v) : v;
+        const straightV = lines ? v - lines(u, v) : v;
         g = straightInk(u, straightV) ? 45 : 225 - 20 * u;
       }
       g += (rnd() - 0.5) * 8;

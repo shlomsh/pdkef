@@ -2,7 +2,7 @@
 
 # Backlog
 
-The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 116 live: 34 up next, 16 then, 27 waiting, 39 parked.
+The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 117 live: 34 up next, 16 then, 27 waiting, 40 parked.
 
 ## Redact: finish removal
 
@@ -107,6 +107,7 @@ The camera takes pages, the table fixes them, Share sends them. The table first 
 | ID | P | Task | Note |
 | --- | --- | --- | --- |
 | SCAN-10 | P3 | [SCAN-10](backlog/tasks/SCAN-10.md) · Scan next: evaluate a small learned page detector behind the same contract |  |
+| SCAN-19 | P3 | [SCAN-19](backlog/tasks/SCAN-19.md) · Scan next: evaluate a small learned unwarping model (UVDoc) against the classical dewarp |  |
 
 ## Tool pages: show the verb
 

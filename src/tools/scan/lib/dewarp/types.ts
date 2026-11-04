@@ -22,28 +22,25 @@ export interface EdgeCurves { top: SideCurve; right: SideCurve; bottom: SideCurv
 /**
  * The text-line bend of a page already flattened by its corners (and edges): for an output point
  * (x, y), both 0..1 across the page, the point to read is (x, y + bendAt(bend, x, y)), in the same
- * normalized units. `c` holds the nine coefficients of
- *   sum over i = 1..3, j = 0..2 of c[(i - 1) * 3 + j] * (x^i - 1 / (i + 1)) * y^j
- * (each x-term has zero mean across the page's width, so the bend never shifts a whole line up or down).
- * `box` is where the fit saw lines; outside it the bend is held at its nearest edge, never extrapolated
- * into a blank margin. Absent, it is the whole page.
+ * normalized units. It is a grid of `nx` x `ny` displacements over the page (row-major in `d`, node
+ * (i, j) at x = i / (nx - 1), y = j / (ny - 1)), read between nodes bilinearly: smooth where the page
+ * curls, and able to turn within one cell where it is creased. `box` is where the fit saw lines;
+ * outside it the bend is held at its nearest edge, never extrapolated into a blank margin.
  */
-export interface LineBend { c: number[]; box?: { x0: number; x1: number; y0: number; y1: number } }
+export interface LineBend { nx: number; ny: number; d: number[]; box?: { x0: number; x1: number; y0: number; y1: number } }
 
 export const sideAt = (s: SideCurve, t: number): number => t * (1 - t) * (s.a + s.b * t);
 
 const clamp = (v: number, lo: number, hi: number) => (v < lo ? lo : v > hi ? hi : v);
 
 export function bendAt(bend: LineBend, px: number, py: number): number {
-  const box = bend.box;
-  const x = box ? clamp(px, box.x0, box.x1) : px;
-  const y = box ? clamp(py, box.y0, box.y1) : py;
-  let sum = 0;
-  let xi = x;
-  for (let i = 1; i <= 3; i += 1) {
-    const basis = xi - 1 / (i + 1);
-    sum += basis * (bend.c[(i - 1) * 3] + y * (bend.c[(i - 1) * 3 + 1] + y * bend.c[(i - 1) * 3 + 2]));
-    xi *= x;
-  }
-  return sum;
+  const { nx, ny, d, box } = bend;
+  const x = clamp(box ? clamp(px, box.x0, box.x1) : px, 0, 1) * (nx - 1);
+  const y = clamp(box ? clamp(py, box.y0, box.y1) : py, 0, 1) * (ny - 1);
+  const i = Math.min(nx - 2, Math.floor(x));
+  const j = Math.min(ny - 2, Math.floor(y));
+  const tx = x - i;
+  const ty = y - j;
+  const k = j * nx + i;
+  return (d[k] * (1 - tx) + d[k + 1] * tx) * (1 - ty) + (d[k + nx] * (1 - tx) + d[k + nx + 1] * tx) * ty;
 }

@@ -143,6 +143,20 @@ describe('vertical rules', () => {
     expect(Math.abs(leans(flatten(src)).lean - before)).toBeLessThan(0.002);
   });
 
+  it('leave two tables printed a few pixels apart as they are', () => {
+    // Two straight tables, one above the other, the lower one's rules printed 5 px to the right.
+    const data = new Uint8ClampedArray(W * H).fill(228);
+    const table = (y0: number, y1: number, shift: number) => {
+      for (const r of RULES_X) for (let y = y0; y < y1; y += 1) for (let x = 0; x < 2; x += 1) data[y * W + Math.round(r * W) + shift + x] = 40;
+      for (let y = y0; y < y1; y += 70) for (let x = Math.round(0.12 * W) + shift; x < Math.round(0.88 * W) + shift; x += 1) data[y * W + x] = data[(y + 1) * W + x] = 40;
+    };
+    table(Math.round(0.12 * H), Math.round(0.45 * H), 0);
+    table(Math.round(0.55 * H), Math.round(0.9 * H), 5);
+    const rgba = new Uint8ClampedArray(W * H * 4);
+    for (let i = 0; i < data.length; i += 1) rgba.set([data[i], data[i], data[i], 255], i * 4);
+    expect(measureBend({ width: W, height: H, data: rgba }, UNIT, 0, W, H).columns).toBeNull();
+  });
+
   it('find no rules on a page of text', () => {
     const data = new Uint8ClampedArray(W * H).fill(230);
     for (let row = 0; row < 30; row += 1) {
@@ -151,4 +165,46 @@ describe('vertical rules', () => {
     }
     expect(columnFit(pageMasks({ width: W, height: H, data }))).toBeNull();
   });
+
+  it('straighten rules kinked by a fold across the page', () => {
+    // A fold across the middle: every rule steps out to a sharp kink at y = 0.5, 1% of the width.
+    const tent = (y: number) => 0.01 * Math.max(0, 1 - Math.abs(y - 0.5) / 0.15);
+    const src = form((x, y) => ({ x: x / W - tent(y / H), y: y / H }));
+    const before = maxBow(src);
+    expect(before).toBeGreaterThan(6);
+    expect(measureBend(src, UNIT, 0, W, H).columns).not.toBeNull();
+    // Most of the fold goes: what is left is its very tip, rounded by measuring a smaller copy.
+    expect(maxBow(flatten(src))).toBeLessThan(0.5 * before);
+  });
 });
+
+/** The furthest any rule strays from its own straight line, in pixels. */
+function maxBow(image: RgbaImage): number {
+  let worst = 0;
+  for (const r of RULES_X) {
+    let x = r * W;
+    const pts: [number, number][] = [];
+    for (let y0 = Math.round(0.2 * H); y0 < 0.82 * H; y0 += 12) {
+      let sum = 0;
+      let weight = 0;
+      for (let y = y0; y < y0 + 12; y += 1) {
+        for (let xx = Math.round(x) - 14; xx <= Math.round(x) + 14; xx += 1) {
+          const dark = Math.max(0, 200 - image.data[(y * W + xx) * 4]);
+          sum += xx * dark;
+          weight += dark;
+        }
+      }
+      if (weight === 0) continue;
+      x = sum / weight;
+      pts.push([y0 + 6, x]);
+    }
+    const my = pts.reduce((t, p) => t + p[0], 0) / pts.length;
+    const mx = pts.reduce((t, p) => t + p[1], 0) / pts.length;
+    let num = 0;
+    let den = 0;
+    for (const [y, xv] of pts) { num += (y - my) * (xv - mx); den += (y - my) ** 2; }
+    const k = num / den;
+    for (const [y, xv] of pts) worst = Math.max(worst, Math.abs(xv - mx - k * (y - my)));
+  }
+  return worst;
+}

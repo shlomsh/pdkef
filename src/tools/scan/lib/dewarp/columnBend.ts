@@ -6,15 +6,19 @@ import type { PageMasks } from './ink.ts';
 import { fitBend, type FittedBend, type Sample } from './lineBend.ts';
 
 /** A rule's column must hold rule pixels over at least this share of the height. */
-const MIN_RULE = 0.15;
+const MIN_RULE = 0.08;
 /** Two rules closer than this share of the width are one. */
 const RULE_GAP = 0.015;
 /** Each rule is followed down the page in bands of this share of the height... */
 const BAND = 0.02;
 /** ...searching this share of the width either side of where it was. */
 const REACH = 0.006;
-/** A band counts when its best column holds rule pixels over this share of the band. */
+/** A band counts when the columns around the track hold rule pixels over this share of its rows. */
 const BAND_FILL = 0.5;
+/** Samples of a rule further apart than this share of the height, and stepped sideways by more than
+ * this share of the width, are two rules. */
+const SPLIT_GAP = 0.05;
+const SPLIT_STEP = 0.004;
 /** Fewest bands a rule needs. */
 const MIN_SAMPLES = 8;
 /** Fewest rules: a form has its two borders and at least one line between them. */
@@ -48,20 +52,28 @@ function ruleSamples(rule: Uint8Array, w: number, h: number): Sample[][] {
       const y1 = Math.min(h, y0 + band);
       let sum = 0;
       let weight = 0;
-      let best = 0;
       for (let xx = Math.max(0, x - reach); xx <= Math.min(w - 1, x + reach); xx += 1) {
         let n = 0;
         for (let y = y0; y < y1; y += 1) n += rule[y * w + xx];
         sum += xx * n;
         weight += n;
-        if (n > best) best = n;
       }
-      if (best < BAND_FILL * (y1 - y0)) continue;
+      if (weight < BAND_FILL * (y1 - y0)) continue;
       const centre = sum / weight;
       samples.push({ line: 0, x: (y0 + y1) / 2 / h, y: (centre + 0.5) / w });
       x = Math.round(centre);
     }
-    if (samples.length >= MIN_SAMPLES) rules.push(samples);
+    // A gap where the rule also steps sideways ends it: two tables one above the other, printed a few
+    // pixels apart, are two rules, each straight in its own place. A rule that carries on in line
+    // across the gap is one rule, and its two parts keep each other straight.
+    let piece: Sample[] = [];
+    const end = () => { if (piece.length >= MIN_SAMPLES) rules.push(piece); piece = []; };
+    for (const p of samples) {
+      const last = piece[piece.length - 1];
+      if (last && p.x - last.x > SPLIT_GAP && Math.abs(p.y - last.y) > SPLIT_STEP) end();
+      piece.push(p);
+    }
+    end();
   }
   return rules;
 }
