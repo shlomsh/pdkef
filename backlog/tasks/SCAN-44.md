@@ -18,7 +18,7 @@ document, kept out of the repo: only the findings are here). **Track: phone phot
 - **Stretched.** The pages are 3.9% and 10.4% wider than A4 (ratio 0.734 and 0.780, A4 is 0.707); the form's
   own table, compared with the blank copy (IMG_4755), is 3.8% and 11.5% too wide, so the letters themselves are
   wider on page 2. This is SCAN-34's job (`pageAspect`, snapped to paper within 3%, then sized with
-  `warpSizeFor`), which is not yet wired into the page pipeline.
+  `warpSizeFor`), now wired on main.
 - **Black on the edges.** A dark diagonal wedge at the top-right edge on both pages and a black bar on the left
   edge near the middle (218 px and 139 px tall): the corners took in table and shadow, and the Document look
   turned them black. A page edge must never come out black (corner accuracy, a few more pixels of inset where
@@ -37,8 +37,8 @@ Shlomi's four test photos through a faithful copy of the current pipeline (inspe
 | IMG_4758 (a bill, other side of a flyer) | right | 1.507 | none | 1056 x 1592 | +6.6% |
 | IMG_4759 (the flyer) | right | 1.485 | none | 1119 x 1662 | +5.0% |
 
-- **Stretch: gone for A4 sheets.** The form's blank copy and the letter land within 0.05% of A4. The 3.9% and
-  10.4% in the original scan came from before the aspect wiring.
+- **Stretch: gone for A4 sheets.** The form's blank copy and the letter land within 0.05% of A4. Whether the 3.9%
+  and 10.4% in this scan came from before the aspect wiring is inferred, not measured: it needs its source photos.
 - **Not A4:** the two sides of the flyer sheet read 1.507 and 1.485 (1.5% apart, so the measure is stable) and
   fall outside the 3% snap, so they keep their raw ratio: either the sheet is not a standard size, or the
   estimate is off on a wrinkled page. Whether to snap further (more sizes, or leave as measured) is open.
@@ -46,6 +46,15 @@ Shlomi's four test photos through a faithful copy of the current pipeline (inspe
   of 4757 holds a 1.3% black tick that is on the paper). The two source photos of this scan are still needed to
   confirm the wedge and bar are gone on those.
 - **Ghost text:** not re-measured (needs the source photos and the Document look).
+
+## A second real scan (2026-11-04, one page of three)
+
+Shlomi's screenshot of the corner screen: a letter on a dark table, small in the frame, the corners on the whole
+photo. The detector is not the obvious cause: on the photo cut from the screenshot it finds the page in 96 of 96
+runs across small crop and resampling changes. The hint was the plain one, not "No page edges were found", so the
+guess did not return nothing. Left open: Whole photo was tapped, the page was restored with those corners, or the
+full photo behaves differently (SCAN-33 records that kind of sensitivity on IMG_4755). The disabled Whole photo
+button looks enabled, so the screenshot cannot say (SCAN-45). Needs Shlomi's answer or the original photo.
 
 ## Outcome
 

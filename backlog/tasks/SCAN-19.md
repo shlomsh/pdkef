@@ -28,9 +28,10 @@ parameters, a 488 x 712 input, a 45 x 31 unwarping grid out, which fits our sing
   established. PE-13 is retired; reopen it only if a real curled-page photo set shows level 1 failing and the
   weights get a permissive licence. The draft message below is kept, unsent, for that day.
 - **Level 3: nothing to pursue.** No larger or newer model has permissive code and weights.
-- **Creases are a level 1 job**: the fold finder (PE-03) and the lean as a rotation per facet (PE-04). A
-  letter folded in thirds is three facets; on the book, one rotation per half reaches the noise floor.
-  Faint fold shading should be evened out by the Document look's local paper level (reasoned, not measured; PE-15 measures it).
+- **Creases, per track.** On a book scan the fix is the spine split and a rotation per half (PE-03, PE-04), which
+  reaches the noise floor. On a phone photo nothing needs building now: the folds on Shlomi's pages are faint
+  shading lines with a kink of about 0.5 degree, and the Document look already removes them (measured in the
+  follow-up below; PE-16 keeps what is left).
 - PE-12 stays as a small seam but is no longer needed for a model (P3, later); PE-14's copy must not
   promise a learned option.
 
@@ -40,11 +41,11 @@ Models: the official `best_model.pkl` (32 MB), exported to ONNX (legacy exporter
 1 x 3 x 712 x 488 in, 1 x 2 x 45 x 31 grid out) as fp32, fp16 (`onnxconverter-common`), int8 dynamic and
 int8 static QDQ (calibrated on 16 images from the test photos, so its parity is in-sample). Grids applied
 with a bilinear upsample and one remap, checked against the repo's own `bilinear_unwarping` (max 1 grey
-level). Photos: Shlomi's IMG_4757 and IMG_4758 (letters folded in thirds, opened), IMG_4755 and IMG_4759
+level). Photos: Shlomi's IMG_4757 (a letter) and IMG_4758 (a bill), one fold each, IMG_4755 and IMG_4759
 (flat controls), flattened by the product's own corner step (`measureBend` found **no bend on any of the
 four**, creased ones included, so level 1 as built equals the corners-only flat). For IMG_4755 the edge
-guess returned the whole frame (white paper on a white table), so a hand quad was used for it; that is a
-level 1 detection miss worth knowing. Book: the 8-page PDF, 16 halves at 300 dpi after the quarter turn
+guess returned the whole frame (white paper on a white table), so a hand quad was used for it; that was a
+level 1 detection miss, and SCAN-33 has since fixed it on main. Book: the 8-page PDF, 16 halves at 300 dpi after the quarter turn
 and the spine split, scored with the SCAN-36 metric (median per-line RMS about a horizontal line; noise
 floor 1.8-2.0 px). Everything derived from the photos and the PDF stayed in a scratchpad.
 
@@ -185,10 +186,48 @@ Checked 2026-11-04 against the licence rule; none passes.
 
 ## Follow-up 2026-11-04: packages and models for the phone-photo weaknesses
 
-Research (packages and models, licence quoted, nothing assumed): no permissive classical package or model is
-measurably better than the shipped row-and-rule fit on creases, short lines, wrinkles or shadows. Leptonica's
-dewarp asks for at least 10 text lines and 45% page coverage (stricter than ours); `page-dewarp` is a cubic sheet
-from text lines (same family); only Unfolder targets folds and has no code; no permissive deshadow network exists.
+Research first (packages and models, licence quoted): every open dewarper fits one smooth sheet from text lines,
+only Unfolder targets folds and it has no code, and no permissive deshadow network exists. An earlier version of
+this section said none is measurably better than the shipped fit; at that point only UVDoc and DocAligner had been
+run. The four below were then run on the 55-page synthetic corpus and on IMG_4755, 4757, 4758 and 4759.
+
+**On the synthetic corpus two of them straighten creased text far better than the shipped fit; on the real photos
+none of them improves a page.** Median line error in px, 3 degree creases:
+
+| warp | before | shipped | `page-dewarp` | Leptonica |
+|---|---|---|---|---|
+| vertical crease | 8.5 | 7.3 | 1.8 | 1.4 |
+| thirds, horizontal | 9.0 | 9.1 | 2.3 | 1.1 |
+| thirds, vertical | 6.2 | 5.9 | 1.4 | 1.9 |
+| two creases (cross) | 9.1 | 11.2 | 2.8 | 1.8 |
+| horizontal crease | 0.8 | 0.7 | 2.9 | 1.5 |
+| strong wrinkle | 5.1 | 2.6 | 5.1 | 4.5 |
+| control | 0.8 | 0.7 | 0.8 | 0.9 |
+
+Before and shipped are `page-dewarp`'s subset (text, Hebrew text, sparse); Leptonica's medians cover the two text
+pages only, whose before and shipped are within 0.6 px of these on the crease rows. Straightness only: neither
+result is scored on position.
+
+| candidate | licence | real photos | verdict |
+|---|---|---|---|
+| `page-dewarp` 0.3.4 | MIT | 4757 no better (1.84 to 1.95 px) and loses its logo and last lines; 4758 heavily cropped; 4759 tilted 12 degrees and half gone; flat 4755 zoomed and clipped | no: it crops every page, including the control, and outputs grey |
+| Leptonica 1.87.0 `dewarpSinglePage` | BSD-2 | declines all four (10, 1, 2 and 4 usable lines); declines every synthetic page too until we crop to the text rows first, then all tables and sparse pages | no: a text-only tool, nothing on these pages |
+| PP-OCRv6 tiny detector (1.78 MB) | Apache-2.0 card; the ONNX conversion's steps are not documented | finds far more lines (4758: 49 against 1; 4759: 28 against 0), Hebrew and handwriting included | no gain yet: the same fit fed its lines is no better on any synthetic page (noise about 1 px), and splits lines on wrinkles. The one to remember if a fit ever needs lines on sparse pages |
+| M-LSD tiny (2.6 MB) | Apache-2.0 code, weights unstated | finds one of the two clear folds, 12 false folds on the flat control | no: 20 of 32 synthetic folds with 44 false, only where a fold crosses blank paper; no better than Hough on rules |
+
+Why the synthetic gains do not carry over: the corpus's creases are 3 degrees, about six times the 0.5 degree kink
+on Shlomi's folds, and it is all long clean text rows. Three folded pages is a small sample; PE-16 says what would
+reopen this.
+
+**What the folds on these pages actually are** (prototype, thresholds tuned on these pages): one fold on 4757 and
+one on 4758, none on 4759 or 4755. A shading repair takes the dark line from 4.8 to 0.8 and from 6.5 to 0.6 grey
+levels, but the Document look already removes both folds: with the repair applied first, only 0.53% and 0.31% of
+its pixels change. Shading matters only in the Original look. The one geometric defect found is a 5-7 px dent in
+the boxed block's left border at the 4758 fold.
+
+**Corners:** a classical prototype (whitened gradients, inside and outside Lab contrast) found all four photos but
+regressed the corpus, and main no longer needs it: main's corners are within 0.9% of the diagonal of hand-marked
+corners on all four. Worth keeping: paper reads bluer than a white table in Lab b*, which is the cue on IMG_4755.
 
 DocAligner (corner model, Apache-2.0 code; the author wrote in issues 11 and 13 that the weights may be used,
 bundled, converted and redistributed under the same terms; training data disclaimed) was tested on 6 photos
@@ -196,6 +235,5 @@ and 18 synthetic cases, and is **not adopted**: it found IMG_4755's white-on-whi
 shipped 0.18) only in one channel order and failed in the other; it misses the same page as a grayscale input and
 misses the repo's real blank-form-on-white-table photo that the shipped guess finds (0.011); on 18 synthetic gray
 cases 17 are within 0.035 where the shipped guess is within 0.0064. A 256 x 256 heatmap with a weak signal is a
-thin margin; the white-on-white fix is the classical one (SCAN-33's faint-edge path, colour as well as luma).
-Untested leads, only worth it if the classical fix stalls: SlimSAM page mask, PP-OCRv6 tiny text-line detector for
-sparse pages (1.78 MB), M-LSD for fold lines and rules (1.3-3.1 MB).
+thin margin; the white-on-white fix is the classical one (SCAN-33's faint-edge path). The 0.18 shipped figure is
+from before SCAN-33. Still untested: SlimSAM as a page mask, only worth it if the classical path stalls.

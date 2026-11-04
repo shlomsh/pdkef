@@ -111,9 +111,10 @@ the same: predict a matrix (a backward map, an unwarping grid) that our own warp
 fixing creases and curls on both axes.
 
 1. **Local classical** (built, the Scan landing; PE-01..PE-11). Corners, edge curves, row and rule bend,
-   the page's lean as a rotation per half or per fold facet. No model, no download.
-2. **A small model**, UVDoc (MIT code, about 8M parameters), downloaded on request, desktop only.
-3. **A larger model**, same delivery, for what level 2 cannot do.
+   the page's lean as a rotation per half. No model, no download.
+2. **A small model**, UVDoc (MIT code, about 8M parameters), downloaded on request, desktop only. Dropped
+   2026-11-04, measured below.
+3. **A larger model**, same delivery, for what level 2 cannot do. Nothing licence-clean exists.
 
 Anything above level 1 is a download on request and desktop only. The rule for every model: permissive
 licences (MIT, Apache-2.0, ISC, BSD-2/3, Zlib, 0BSD) for code AND weights, and quality compared against
@@ -126,7 +127,7 @@ Numbers and method are in [SCAN-19](../backlog/tasks/SCAN-19.md). Short version:
 - **Level 2 (UVDoc) does not beat level 1.** On the 8-page book PDF, rotating each half by its lean
   reaches the glyph noise floor (median 2.03 px, from 11.62 px); UVDoc alone gives 4.40 px and makes 15 of
   16 halves worse than the lean rotation; fed the already lean-corrected half it still ends 1 to 4 px
-  above it, and it makes level pages wobble. On Shlomi's photographed letters (folded in thirds, opened)
+  above it, and it makes level pages wobble. On Shlomi's photographed pages (a letter and a bill, one fold each)
   the classical dewarp finds no bend and UVDoc did not measurably reduce the crease: its grid is geometric
   only, and a crease on a page lying flat is a faint shading line, not a bend. On flat pages it zooms and
   crops (ink box 14% wider, 6% taller on the flat control).
@@ -145,8 +146,10 @@ Numbers and method are in [SCAN-19](../backlog/tasks/SCAN-19.md). Short version:
   parameters; the earlier "~900 MB" was not reproduced) are MIT code with no weights licence.
 - Watch: AADD (Apache-2.0 badge; weights still unreleased) and SyntheticDoc (MIT code and dataset, a UVDoc
   style network that beats it on DocUNet; no weights yet).
-- The way to repair a crease is level 1: the fold finder (PE-03) and the lean per facet (PE-04). A page
-  folded in thirds is three facets, and the book result shows a rotation per facet reaches the noise floor.
+- Creases, per track. Book scan: the spine split and a rotation per half (PE-03, PE-04) reach the noise floor.
+  Phone photo: the folds on Shlomi's pages are faint lines with a kink of about 0.5 degree, and the Document look
+  already removes them. `page-dewarp`, Leptonica, PP-OCRv6 tiny and M-LSD were all run: two beat the shipped fit on
+  harsh synthetic creases, none improved a real photo (SCAN-19's follow-up; PE-16 says what would reopen it).
 
 ## The academic-paper session brief
 
