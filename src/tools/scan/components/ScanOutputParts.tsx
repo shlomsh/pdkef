@@ -1,5 +1,6 @@
 import { formatMessage } from '#lib/text/formatMessage.ts';
 import DownloadElement from '#shell/DownloadElement.tsx';
+import pdfToolStyles from '#shell/PdfTool.module.css';
 import ErrorMessage from '#shell/ErrorMessage.tsx';
 import OutputName from '#shell/OutputName.tsx';
 import { workspaceStyles } from '#shell/pageWorkspace/PageWorkspace.tsx';
@@ -19,6 +20,21 @@ export function ScanHeading({ pageCount, output }: { pageCount: number; output: 
         <span class={workspaceStyles['doc-heading-count']}>{' · '}{pagesLabel(pageCount, englishShellMessages)}</span>
       </OutputName>
     </h2>
+  );
+}
+
+/** The quiet line saying the scan is kept on this device, or that it could not be (SCAN-18). */
+export function ScanDraftStatus({ output }: { output: ScanOutput }) {
+  const status = output.draftStatus;
+  if (!status) return null;
+  return (
+    <p
+      class={`${pdfToolStyles['hint-message']}${status.failed ? ` ${pdfToolStyles.danger}` : ''}`}
+      data-draft-status={status.failed ? 'error' : 'ok'}
+      role={status.failed ? 'alert' : undefined}
+    >
+      {status.label}
+    </p>
   );
 }
 

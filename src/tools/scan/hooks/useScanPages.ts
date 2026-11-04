@@ -9,6 +9,8 @@ import { useHandoffFilesIntake } from '#lib/handoff/useHandoffIntake.ts';
 import { loadPipeline } from '../lib/loadPipeline.ts';
 import { isCurrentKey, newPage, pageQuad, partitionFiles, replacePage, resultKey, withInspection } from '../lib/scanPages.ts';
 import type { ProcessedPage } from '../lib/scanPipeline.ts';
+import type { ScanDraftRestore } from '../lib/scanDraft.ts';
+import { useScanDraft } from './useScanDraft.ts';
 import type { PageResult, ScanPage, ScanWork } from '../state/scanWork.ts';
 import { dropPageWork } from '../state/scanActions.ts';
 import { englishScanMessages as t } from '../messages.ts';
@@ -27,6 +29,8 @@ interface ScanPagesInput {
   setResults: Dispatch<StateUpdater<Record<number, PageResult>>>;
   turnedPreviews: Record<string, string>;
   forgetTurned: (match: (key: string) => boolean) => void;
+  /** The whole PDF's choices (useScanSettings): a remembered scan keeps them, and brings them back. */
+  settings: Parameters<typeof useScanDraft>[0]['settings'];
 }
 
 type InspectHost = Pick<ScanPagesInput, 'work' | 'unmountedRef' | 'dispatch' | 'setPages'>;
@@ -99,9 +103,25 @@ export function useScanPages(input: ScanPagesInput) {
     inspectPage(fresh, input);
   }, []);
 
+  /** A remembered scan (SCAN-18): its photos as pages again, with the looks, turns and corners they had.
+   * Each photo is inspected again for its preview; the guess never overrides corners the person set. */
+  const restorePages = useCallback(({ files, pages: stored }: ScanDraftRestore): ScanPage[] => {
+    const restored = files.map((file, index) => {
+      const { filter, turns, quad } = stored[index];
+      const page = newPage(file, filter);
+      return { ...page, turns, ...(quad ? { quad, edited: true } : {}) };
+    });
+    setPages(restored);
+    dispatch({ type: 'photosAdded', firstId: restored[0].id });
+    for (const page of restored) inspectPage(page, input);
+    return restored;
+  }, []);
+
   // Photos handed over from Image to PDF ("Clean it up as a scan") arrive like a pick.
   useHandoffFilesIntake('scan-to-pdf', (files) => addFiles(files));
 
   useScanResults({ ...input, processed });
-  return { processed, addFiles, retakeFile };
+  // SCAN-18: the scan is kept on the device as it changes, and comes back on the next visit or from Recents.
+  const draft = useScanDraft({ pages: input.pages, results: input.results, settings: input.settings, restorePages, work });
+  return { processed, addFiles, retakeFile, draft };
 }

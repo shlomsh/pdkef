@@ -596,6 +596,43 @@ describe('saveDraft / loadDraft / deleteDraft / cacheRecentFile (IndexedDB, fake
       nowSpy.mockRestore();
     }
   });
+
+  it('a save that supersedes its previous entry replaces that Recents row (SCAN-18)', async () => {
+    const one = [{ fileName: 'a.jpg', fileType: 'image/jpeg', fileBytes: bytesOf('photo a') }];
+    const two = [...one, { fileName: 'b.jpg', fileType: 'image/jpeg', fileBytes: bytesOf('photo b') }];
+    expect(await saveDraft('scan-to-pdf', { files: one, fileName: 'Scan', pages: [] })).toBe(true);
+    const firstId = readCurrentEntryId('scan-to-pdf');
+    expect(await saveDraft('scan-to-pdf', { files: two, fileName: 'Scan', pages: [] }, { supersedes: firstId })).toBe(true);
+    const secondId = readCurrentEntryId('scan-to-pdf');
+    expect(secondId).not.toBe(firstId);
+    expect(readRecentFiles().map((entry) => entry.id)).toEqual([secondId]);
+    expect(await getRawRecord(`recent:${firstId}`)).toBeUndefined();
+  });
+
+  it('deleteDraft with an entry id clears that entry, and keeps a pointer another tab moved', async () => {
+    const mine = [{ fileName: 'a.jpg', fileBytes: bytesOf('photo a') }];
+    const theirs = [{ fileName: 'b.jpg', fileBytes: bytesOf('photo b') }];
+    await saveDraft('scan-to-pdf', { files: mine, fileName: 'Mine', pages: [] });
+    const mineId = readCurrentEntryId('scan-to-pdf');
+    await saveDraft('scan-to-pdf', { files: theirs, fileName: 'Theirs', pages: [] });
+    const theirsId = readCurrentEntryId('scan-to-pdf');
+    expect(await deleteDraft('scan-to-pdf', mineId)).toBe(true);
+    expect(readCurrentEntryId('scan-to-pdf')).toBe(theirsId);
+    expect((await getRawRecord(`recent:${mineId}`)).work['scan-to-pdf']).toBeUndefined();
+    expect((await getRawRecord(`recent:${theirsId}`)).work['scan-to-pdf']).toBeDefined();
+  });
+
+  it('never supersedes an entry another tool has work on', async () => {
+    const one = [{ fileName: 'a.pdf', fileBytes: bytesOf('%PDF a') }];
+    const two = [...one, { fileName: 'b.pdf', fileBytes: bytesOf('%PDF b') }];
+    await saveDraft('merge', { files: one, fileName: 'merged', plan: [] });
+    const mergeId = readCurrentEntryId('merge');
+    await saveDraft('scan-to-pdf', { files: one, fileName: 'Scan', pages: [] });
+    expect(readCurrentEntryId('scan-to-pdf')).toBe(mergeId);
+    await saveDraft('scan-to-pdf', { files: two, fileName: 'Scan', pages: [] }, { supersedes: mergeId });
+    expect(readRecentFiles().map((entry) => entry.id)).toContain(mergeId);
+    expect((await getRawRecord(`recent:${mergeId}`)).work.merge).toBeDefined();
+  });
 });
 
 // Exercises migrateLegacyDraft (the pre-MEM-01 per-tool record, keyed

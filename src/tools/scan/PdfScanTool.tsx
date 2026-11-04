@@ -53,11 +53,12 @@ export default withIslandBoundary(function PdfScanTool({ quietPolicy, navigate }
   work.defaultFilter = settings.defaultFilter;
   const { rating, wide } = useScanRating();
 
-  const { processed, addFiles, retakeFile } = useScanPages({ pages, setPages, work, unmountedRef, dispatch, ...board });
+  const { processed, addFiles, retakeFile, draft } = useScanPages({ pages, setPages, work, unmountedRef, dispatch, settings, ...board });
 
   const { key, prepared, outputName, fileName, downloadFlow } = useScanExport({
     pages, failedIds, ...settings, work, processed, unmountedRef, ...board, quietPolicy, navigate,
   });
+
 
   const { listRef, focusIdRef } = usePhotoTileList({
     // Each of these is its own list on screen: the phone grid, the desktop table, the strip beside a page.
@@ -95,17 +96,12 @@ export default withIslandBoundary(function PdfScanTool({ quietPolicy, navigate }
     onRename: settings.rename,
     onEditingChange: settings.setIsRenaming,
     onShowFailedPage: edit.showFailedPage,
+    draftStatus: draft.status,
   };
   const options = { pageSize: settings.pageSize, limit: settings.limit, onPageSize: settings.choosePageSize, onLimit: settings.chooseLimit, limitNote };
   /** What the desktop's page view and the phone's viewer both show and do. */
   const onePage = {
-    pages,
-    selectedIndex,
-    results,
-    turnedPreviews,
-    finding,
-    findMissed,
-    pageSize: settings.pageSize,
+    pages, selectedIndex, results, turnedPreviews, finding, findMissed, pageSize: settings.pageSize,
     built: { shown, ready: prepared.status === 'ready', size: prepared.size },
   };
   const pageActions = pageViewActions({ edit, findPage, removePage, selected, dispatch });
@@ -132,6 +128,7 @@ export default withIslandBoundary(function PdfScanTool({ quietPolicy, navigate }
       intake={{ accept: ACCEPT, needsPdfjs: false }}
       identity={{ label: pagesLabel(pages.length, englishShellMessages), hidden: true }}
       empty={{ art: <ScanVerb />, action: <StartScanButton onFiles={addFiles} onStart={openMany} />, actionLeads: true, pickLabel: t.choosePhotos, message: t.dropHere }}
+      draft={{ checking: pages.length === 0 && draft.checking }}
       clearAll={{ onClear: reset, summary: pagesLabel(pages.length, englishShellMessages) }}
       analytics={{ tool: 'scan-to-pdf', status: prepared.status === 'error' ? 'error' : downloadFlow.tap }}
       owns={{ rating: true }}
