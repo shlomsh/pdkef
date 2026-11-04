@@ -1,14 +1,14 @@
 {
   "real": {
-    "n": 1,
+    "n": 2,
     "found": {
       "0.02": 1,
       "0.035": 1,
       "0.08": 1
     },
-    "medianError": 0.009954615429061675,
-    "maxError": 0.009954615429061675,
-    "medianIou": 0.9820219016620199,
+    "medianError": 0.01042556735842131,
+    "maxError": 0.010896519287780945,
+    "medianIou": 0.9762778856450562,
     "confidentlyWrong": 0,
     "nullOnNoPage": null,
     "byCondition": {
