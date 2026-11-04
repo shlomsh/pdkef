@@ -12,6 +12,8 @@ const BLUR_PASSES = 2;
 const NO_PAPER = 0.6;
 /** How far, in blocks, to look for paper around a dark block; wider than the dark areas worth keeping (about 16 blocks across). */
 const PAPER_REACH = 8;
+/** Paper counts for this share less each block away: print is dark at once beside paper, while shade fades in over many blocks and stays paper. */
+const PAPER_FALL = 0.05;
 /** A mark is what is darker than this in the look. */
 const MARK = 250;
 /** A mark with nothing darker than this has no ink in it: show-through from the back of the sheet or the
@@ -53,7 +55,7 @@ function fillNoPaper(grid: Float32Array, gw: number, gh: number): Float32Array {
           const xx = horizontal ? x + d : x;
           const yy = horizontal ? y : y + d;
           if (xx < 0 || yy < 0 || xx >= gw || yy >= gh) continue;
-          const v = src[yy * gw + xx];
+          const v = src[yy * gw + xx] * (1 - PAPER_FALL * Math.abs(d));
           if (v > m) m = v;
         }
         out[y * gw + x] = m;
