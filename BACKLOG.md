@@ -2,7 +2,7 @@
 
 # Backlog
 
-The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 147 live: 47 up next, 21 then, 27 waiting, 52 parked.
+The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 147 live: 49 up next, 19 then, 27 waiting, 52 parked.
 
 ## Redact: finish removal
 
@@ -138,16 +138,16 @@ One shared mechanism that turns, splits and straightens a page, first in Scan, t
 | ID | P | Task | Note |
 | --- | --- | --- | --- |
 | PE-05 | P2 | [PE-05](backlog/tasks/PE-05.md) · assess and planPage | In progress |
+| PE-08 | P2 | [PE-08](backlog/tasks/PE-08.md) · Scan opens a scanned PDF | In progress |
+| PE-11 | P2 | [PE-11](backlog/tasks/PE-11.md) · Found corners square a book page | In progress |
 
 ### Then, in order
 
 | ID | P | Task | Note |
 | --- | --- | --- | --- |
-| PE-07 | P2 | [PE-07](backlog/tasks/PE-07.md) · Highlight: the suggestion line and Not now memory |  |
-| PE-08 | P2 | [PE-08](backlog/tasks/PE-08.md) · Turn-only and vector rebuild, with Undo |  |
-| PE-09 | P2 | [PE-09](backlog/tasks/PE-09.md) · Raster pieces for bent pages |  |
+| PE-07 | P2 | [PE-07](backlog/tasks/PE-07.md) · Highlight: the suggestion line sends the file to Scan |  |
+| PE-09 | P2 | [PE-09](backlog/tasks/PE-09.md) · Scan hands its pages to Highlight |  |
 | PE-10 | P2 | [PE-10](backlog/tasks/PE-10.md) · Cleanup inside the text column |  |
-| PE-11 | P2 | [PE-11](backlog/tasks/PE-11.md) · Unsqueeze toward the spine |  |
 | PE-14 | P2 | [PE-14](backlog/tasks/PE-14.md) · Highlight copy and FAQ for enhancing a scan |  |
 
 ### Parked

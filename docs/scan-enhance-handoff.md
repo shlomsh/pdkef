@@ -71,8 +71,8 @@ SCAN-19). Desktop gate: fine pointer, deviceMemory >= 8 where reported, Save-Dat
 Ticket order after landing: PE-01 pure move; PE-02 contract + applyPiece (Scan switched, flat bytes
 unchanged); PE-03 fold finder; PE-04 lean as a rotation (reuse `rasterInk.estimateSkewDegrees`, range
 up to 6 deg); PE-05 assess + planPage; PE-06 Highlight detection, no UI; PE-07 suggestion line and "Not
-now" memory; PE-08 turn-only and vector rebuild with Undo; PE-09 raster pieces; PE-10 cleanup; PE-11
-unsqueeze; PE-12 strategy seam; PE-13 UVDoc strategy (retired); PE-14 Highlight copy and FAQ; PE-15 shadows and shading.
+now" memory, which sends the file to Scan; PE-08 Scan opens a scanned PDF; PE-09 Scan hands its pages to Highlight; PE-10 cleanup; PE-11
+found corners; PE-12 strategy seam; PE-13 UVDoc strategy (retired); PE-14 Highlight copy and FAQ; PE-15 shadows and shading.
 
 Conflicts to resolve: two `orientation.ts` files; `measureBend` levels rows with a shear (spread halves
 lean up to 4.65 deg: lean must be a quad rotation before the bend); three row/skew finders
