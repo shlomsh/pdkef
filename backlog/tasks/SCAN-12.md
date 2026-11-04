@@ -4,8 +4,8 @@ title: "Scan next: a short, very visual video of camera to WhatsApp on /scan-to-
 status: "open"
 priority: "P2"
 epic: "scan-next"
-horizon: "next"
-order: 4
+horizon: "now"
+order: 11
 depends_on: ["SCAN-08"]
 ---
 

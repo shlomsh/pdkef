@@ -23,7 +23,6 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 - [SCAN-16](backlog/tasks/SCAN-16.md) P1 · Scan next: the live camera takes the full photo, not a video-sized one (in progress)
 - [SCAN-21](backlog/tasks/SCAN-21.md) P2 · Scan next: measuring a page's bend costs nothing a person can feel (in progress)
 - [SCAN-04](backlog/tasks/SCAN-04.md) P1 · Scan next: the phone measurements that decide the camera build (in progress)
-- [SCAN-08](backlog/tasks/SCAN-08.md) P1 · Scan next: the camera in the page, pages taken by themselves, Share straight after (in progress)
 - [SCAN-18](backlog/tasks/SCAN-18.md) P1 · Scan remembers the scan in progress, and it shows in Recents (in progress)
 - [SCAN-23](backlog/tasks/SCAN-23.md) P1 · Scan next: the camera never takes the same page twice (in progress)
 - [SCAN-05](backlog/tasks/SCAN-05.md) P1 · Scan next: a real page-detection corpus with scored KPIs (in progress)
@@ -36,6 +35,10 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 - [SCAN-17](backlog/tasks/SCAN-17.md) P2 · Scan next: a bent or curled page comes out flat, its edges and text lines straight (in progress)
 - [SCAN-35](backlog/tasks/SCAN-35.md) P1 · Scan next: a flat page's edges are never read as bowed (in progress)
 - [SCAN-36](backlog/tasks/SCAN-36.md) P2 · Straighten a scanned PDF: turn, split a book spread, flatten, clean, then read it
+- [SCAN-08](backlog/tasks/SCAN-08.md) P1 · Scan next: the camera in the page, pages taken by themselves, Share straight after (in progress)
+- [SCAN-11](backlog/tasks/SCAN-11.md) P2 · Scan next: the page copy and the scanning guide follow the new flow
+- [SCAN-12](backlog/tasks/SCAN-12.md) P2 · Scan next: a short, very visual video of camera to WhatsApp on /scan-to-pdf/
+- [SCAN-09](backlog/tasks/SCAN-09.md) P2 · Scan next: classical page-detection upgrades, each gated on the real corpus
 
 ### Robustness and debt
 
