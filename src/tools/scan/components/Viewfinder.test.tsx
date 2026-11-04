@@ -43,7 +43,7 @@ afterEach(() => {
 describe('Viewfinder', () => {
   it('says the hint for point, hold and turn', () => {
     mount();
-    const hint = () => container!.querySelector('[data-hint]')?.textContent;
+    const hint = () => container!.querySelector('[data-camera-hint]')?.textContent;
     expect(hint()).toBe('Point at a page');
     handle = { ...handle, live: { ...IDLE_VIEW, hint: 'hold' } };
     act(() => render(null, container!));
@@ -57,8 +57,8 @@ describe('Viewfinder', () => {
   it('a guidance hint shows on the line, on its pill; the plain ones without', () => {
     handle = { ...handle, live: { ...IDLE_VIEW, hint: 'flatter' } };
     mount();
-    const line = container!.querySelector('[data-hint]')!;
-    expect(line.getAttribute('data-hint')).toBe('flatter');
+    const line = container!.querySelector('[data-camera-hint]')!;
+    expect(line.getAttribute('data-camera-hint')).toBe('flatter');
     expect(line.textContent).toBe('hint:flatter');
     expect(line.querySelector('[data-advice]')).not.toBeNull();
     handle = { ...handle, live: { ...IDLE_VIEW, hint: 'hold' } };
@@ -73,7 +73,8 @@ describe('Viewfinder', () => {
     expect(live).toHaveLength(1);
     expect(live[0].getAttribute('aria-live')).toBe('polite');
     expect(live[0].textContent).toBe('Point at a page');
-    expect(container!.querySelector('[data-hint]')!.hasAttribute('aria-live')).toBe(false);
+    expect(container!.querySelector('[data-camera-hint]')!.hasAttribute('aria-live')).toBe(false);
+    expect(container!.querySelector('[data-camera-hint]')!.getAttribute('aria-hidden')).toBe('true');
     handle = { ...handle, live: { ...IDLE_VIEW, hint: 'turn', spoken: 'turn' } };
     act(() => render(<Viewfinder {...baseProps()} count={4} />, container!));
     expect(live[0].textContent).toBe('Page 4. Turn the page.');

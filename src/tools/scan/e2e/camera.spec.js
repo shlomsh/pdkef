@@ -30,7 +30,7 @@ test('the camera takes a page by itself and Done lands on the table', async ({ p
 
   const stack = viewfinder.getByRole('button', { name: /The last page taken, 1 so far/ });
   await expect(stack).toBeVisible({ timeout: 15_000 });
-  await expect(viewfinder.getByText('Page 1. Turn the page.')).toBeVisible();
+  await expect(viewfinder.locator('[data-camera-hint]')).toHaveText('Page 1. Turn the page.');
 
   await viewfinder.getByRole('button', { name: 'Done' }).click();
   await expect(viewfinder).toBeHidden();

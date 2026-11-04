@@ -133,7 +133,7 @@ export const englishScanMessages: ScanMessages = {
   hintPoint: 'Point at a page',
   hintHold: 'Hold still',
   hintTurn: 'Page {count}. Turn the page.',
-  hintDuplicate: 'Already taken. Turn the page.',
+  hintDuplicate: 'Already taken. Turn it.',
   hintFit: 'Fit the whole page in',
   hintCloser: 'Move a little closer',
   hintContrast: 'A darker surface helps',
