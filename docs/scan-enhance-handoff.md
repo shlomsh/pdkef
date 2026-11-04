@@ -27,6 +27,8 @@ a deleted page stays remembered (the shutter still takes it); measuring is still
 
 ## Decisions so far (Shlomi)
 
+- A scan that squeezes two book pages onto one landscape sheet is split at the spine first, and each page is
+  handled as if it were a different page (own lean, own bend, own squeeze). Never one fit across both.
 - Highlight first: when it opens a crooked scan it suggests enhancing the file; accept or dismiss. A learned
   model (levels 2 and 3 below, downloaded on request, desktop only) was the plan; measured 2026-11-04 it
   does not beat the classical level, so it is dropped (SCAN-19, PE-13 retired).
