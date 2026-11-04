@@ -1,7 +1,7 @@
 ---
 id: "SCAN-44"
 title: "A filled A4 form scanned with PDkef (2026-11-04): black edges and ghost text remain; stretch is fixed on main for A4"
-status: "open"
+status: "in_progress"
 priority: "P2"
 epic: "scan-next"
 horizon: "now"

@@ -1,5 +1,6 @@
 // The three looks a scanned page can have. Pure: no DOM, no canvas. Never mutates its input.
 import type { RgbaImage } from '#lib/pageEnhance/quad.ts';
+import { eachMark } from './marks.ts';
 
 export type ScanFilter = 'original' | 'grayscale' | 'document';
 
@@ -11,6 +12,11 @@ const BLUR_PASSES = 2;
 const NO_PAPER = 0.6;
 /** How far, in blocks, to look for paper around a dark block; wider than the dark areas worth keeping (about 16 blocks across). */
 const PAPER_REACH = 8;
+/** A mark is what is darker than this in the look. */
+const MARK = 250;
+/** A mark with nothing darker than this has no ink in it: show-through from the back of the sheet or the
+ * next one. About 82% of the paper level; real ink, faint stamps and small print reach darker (SCAN-44). */
+const FAINT_CORE = 224;
 
 function lumaPlane(image: RgbaImage): Float32Array {
   const n = image.width * image.height;
@@ -61,7 +67,16 @@ function fillNoPaper(grid: Float32Array, gw: number, gh: number): Float32Array {
   return out;
 }
 
-function documentLook(image: RgbaImage): RgbaImage {
+/** White for every mark with no ink in it. Real ink keeps its soft edge: that is part of an inked mark. */
+function clearFaintMarks(grey: Uint8ClampedArray, width: number, height: number): void {
+  eachMark(grey, width, height, MARK, (pixels) => {
+    for (const i of pixels) if (grey[i] < FAINT_CORE) return;
+    for (const i of pixels) grey[i] = 255;
+  });
+}
+
+/** The Document look as one grey value a pixel: the page against the paper around it, show-through gone. */
+export function documentGrey(image: RgbaImage): Uint8ClampedArray {
   const { width, height } = image;
   const luma = lumaPlane(image);
   const bs = Math.max(8, Math.round(Math.max(width, height) / 48));
@@ -79,7 +94,7 @@ function documentLook(image: RgbaImage): RgbaImage {
   grid = fillNoPaper(grid, gw, gh);
   for (let i = 0; i < BLUR_PASSES; i += 1) grid = boxBlur3(grid, gw, gh);
 
-  const out = new Uint8ClampedArray(width * height * 4);
+  const grey = new Uint8ClampedArray(width * height);
   // Bilinear sample positions along x are the same for every row.
   const gx0 = new Int32Array(width);
   const gxf = new Float32Array(width);
@@ -104,10 +119,19 @@ function documentLook(image: RgbaImage): RgbaImage {
       const bottom = grid[r1 + a] * (1 - tx) + grid[r1 + b] * tx;
       const bg = Math.max(1, top * (1 - ty) + bottom * ty);
       const t = Math.min(1, Math.max(0, (luma[y * width + x] / bg - INK) / span));
-      const v = Math.round(255 * t * t * (3 - 2 * t));
-      const p = (y * width + x) * 4;
-      out[p] = v; out[p + 1] = v; out[p + 2] = v; out[p + 3] = 255;
+      grey[y * width + x] = Math.round(255 * t * t * (3 - 2 * t));
     }
+  }
+  clearFaintMarks(grey, width, height);
+  return grey;
+}
+
+function documentLook(image: RgbaImage): RgbaImage {
+  const { width, height } = image;
+  const grey = documentGrey(image);
+  const out = new Uint8ClampedArray(width * height * 4);
+  for (let i = 0, p = 0; i < grey.length; i += 1, p += 4) {
+    out[p] = grey[i]; out[p + 1] = grey[i]; out[p + 2] = grey[i]; out[p + 3] = 255;
   }
   return { width, height, data: out };
 }
