@@ -36,7 +36,7 @@ interface ScanPagesInput {
 type InspectHost = Pick<ScanPagesInput, 'work' | 'unmountedRef' | 'dispatch' | 'setPages'>;
 
 /** One new photo through the queue: its preview and edge guess, or the mark that it could not be read. */
-function inspectPage(page: ScanPage, { work, unmountedRef, dispatch, setPages }: InspectHost, fromCamera = false) {
+function inspectPage(page: ScanPage, { work, unmountedRef, dispatch, setPages }: InspectHost, { fromCamera = false, restored = false } = {}) {
   work.enqueue(async () => (work.removed.has(page.id) ? null : (await loadPipeline()).inspectPhoto(page.file)))
     .then((seen) => seen, (err) => {
       reportError('pdf_tool_run', err, 'scan_inspect_photo');
@@ -49,7 +49,7 @@ function inspectPage(page: ScanPage, { work, unmountedRef, dispatch, setPages }:
       if (!seen) dispatch({ type: 'pageFailed', id: page.id });
       if (seen) work.previewBlobs.set(page.id, seen.preview);
       const preview = seen ? URL.createObjectURL(seen.preview) : null;
-      setPages((current) => withInspection(current, page.id, seen, preview));
+      setPages((current) => withInspection(current, page.id, seen, preview, !restored));
     });
 }
 
@@ -89,7 +89,7 @@ export function useScanPages(input: ScanPagesInput) {
     dispatch({ type: 'photosAdded', firstId: added[0].id });
     announce(added.length === 1 ? t.announceAddedOne : formatMessage(t.announceAddedMany, { count: added.length }));
     recordAction('add_files');
-    for (const page of added) inspectPage(page, input, from?.fromCamera);
+    for (const page of added) inspectPage(page, input, { fromCamera: from?.fromCamera });
   }, []);
 
   /** A retake: the new photo takes the old page's place, with the old page's look and its own id. */
@@ -113,7 +113,7 @@ export function useScanPages(input: ScanPagesInput) {
     });
     setPages(restored);
     dispatch({ type: 'photosAdded', firstId: restored[0].id });
-    for (const page of restored) inspectPage(page, input);
+    for (const page of restored) inspectPage(page, input, { restored: true });
     return restored;
   }, []);
 

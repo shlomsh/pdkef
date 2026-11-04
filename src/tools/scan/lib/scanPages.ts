@@ -38,8 +38,9 @@ interface Seen { quad: Quad | null; width: number; height: number; turns: number
 /** The turns a page has once inspection says `found`: a Rotate the person already made (turns not 0) wins. */
 const inspectedTurns = (current: number, found: number): number => (current === 0 ? found : current);
 
-/** The pages with page `id` marked as inspected. The person's own corners win over the guess. */
-export function withInspection(pages: ScanPage[], id: number, seen: Seen | null, preview: string | null): ScanPage[] {
+/** The pages with page `id` marked as inspected. The person's own corners win over the guess.
+ * `autoTurn` is true for a page added in this visit; a restored page keeps the turns its person left it at. */
+export function withInspection(pages: ScanPage[], id: number, seen: Seen | null, preview: string | null, autoTurn: boolean): ScanPage[] {
   const quad = seen?.quad ?? null;
   return pages.map((p) => (
     p.id !== id ? p : {
@@ -47,7 +48,7 @@ export function withInspection(pages: ScanPage[], id: number, seen: Seen | null,
       guessed: true,
       found: !!quad,
       quad: p.edited || !quad ? p.quad : quad,
-      turns: inspectedTurns(p.turns, seen?.turns ?? 0),
+      turns: autoTurn ? inspectedTurns(p.turns, seen?.turns ?? 0) : p.turns,
       preview,
       aspect: seen ? seen.width / seen.height : null,
     }
