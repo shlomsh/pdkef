@@ -84,6 +84,34 @@ describe('applyFilter', () => {
     });
   });
 
+  describe('document clears show-through', () => {
+    // A plain sheet at grey 200 with one thin stroke (thinner than the paper grid's blocks) at `share` of it.
+    const inStroke = (x: number, y: number) => x >= 100 && x < 140 && y >= 80 && y < 83;
+    const sheet = (share: number) => make(W, H, (x, y) => {
+      const v = inStroke(x, y) ? Math.round(200 * share) : 200;
+      return [v, v, v];
+    });
+    const centre = (image: RgbaImage) => image.data[(81 * W + 120) * 4];
+
+    it('a mark with nothing darker than the lightest greys goes white', () => {
+      expect(centre(applyFilter(sheet(0.85), 'document'))).toBe(255);
+    });
+
+    it('a light mark with a darker core stays', () => {
+      expect(centre(applyFilter(sheet(0.78), 'document'))).toBeLessThan(224);
+    });
+
+    it('the soft edge of real ink stays, grey pixels and all', () => {
+      const out = applyFilter(make(W, H, (x, y) => {
+        const v = inStroke(x, y) ? 40 : y === 83 && x >= 100 && x < 140 ? 170 : 200;
+        return [v, v, v];
+      }), 'document');
+      const edge = out.data[(83 * W + 120) * 4];
+      expect(edge).toBeGreaterThan(200);
+      expect(edge).toBeLessThan(250);
+    });
+  });
+
   it('grayscale of a known colour gives the known luma', () => {
     const out = applyFilter(make(2, 2, () => [200, 100, 50]), 'grayscale');
     const luma = Math.round(0.299 * 200 + 0.587 * 100 + 0.114 * 50);
