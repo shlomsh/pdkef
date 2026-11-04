@@ -33,7 +33,7 @@ async function openPdf(name: string): Promise<void> {
   act(() => render(<PdfHighlightTool />, container!));
   const input = container.querySelector<HTMLInputElement>('input[type="file"]')!;
   await act(async () => { setInputFiles(input, [file]); });
-  await waitUntil(() => container!.textContent!.includes(name));
+  await waitUntil(() => container!.querySelector('[data-lamp-part="cord"]') !== null);
 }
 
 describe('PdfHighlightTool with a PDF open', () => {
