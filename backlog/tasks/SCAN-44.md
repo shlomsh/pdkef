@@ -47,11 +47,11 @@ Shlomi's four test photos through a faithful copy of the current pipeline (inspe
   confirm the wedge and bar are gone on those.
 - **Ghost text:** measured below.
 
-## Ghost text in the Document look (measured 2026-11-04, prototype in the session scratchpad)
+## Ghost text in the Document look (built 2026-11-04, `src/tools/scan/lib/filters.ts`)
 
 The ghost is marks 13-18% lighter than the paper with no darker core: the Document look maps them to the lightest
 greys, under 12%, hard to see until the contrast is stretched. A mark here is a connected group of pixels under grey
-250. The proposal: after the look, a mark whose darkest pixel is 224 or lighter becomes white. Grey 224 is about 82%
+250. After the look, a mark whose darkest pixel is 224 or lighter becomes white. Grey 224 is about 82%
 of the paper level. Real ink has a dark core, so its edges and strokes stay as they are.
 
 | page | faint marks now | with the filter | pixels darker than 224 changed |
@@ -71,8 +71,9 @@ of the paper level. Real ink has a dark core, so its edges and strokes stay as t
   clears the ghost too but changes 39,000 to 86,000 ink pixels a page, thinning all text.
 - **Where the line falls:** on a clean text ladder, text at 80% of the paper level is untouched and text at 82%
   goes. Today that lighter text is at most a 10% grey.
-- **Limits:** a ghost stroke touching a rule or a letter stays, as it joins real ink. Cost is under 30 ms a page on
-  this machine at these sizes.
+- **Limits:** a ghost stroke touching a rule or a letter stays, as it joins real ink.
+- The built filter matches the prototype pixel for pixel on four real pages. Both fixes together add 1,164 bytes
+  brotli to the Scan code, measured on the bundled modules.
 
 ## Fresh scans (2026-11-04: the same form, four pages; a service slip, one page)
 
@@ -93,11 +94,13 @@ their embedded images with a scratchpad copy of `filters.ts`.
   Document look, and two overlapping stamps merge into one black block, so the Original look reads better for it.
   Print runs to the very top edge; whether the 1.6% inset clips it needs the source photo.
 
-## Corner fill (prototype, 2026-11-04, session scratchpad)
+## Corner fill (built 2026-11-04, `src/tools/scan/lib/foldedCorners.ts`)
 
-A dark mark that reaches a page corner along both edges, fills at least 80% of the triangle it spans there and
-covers at most 3% of the page is table, not page. It is painted with the paper's colour, spread in from just
-outside the mark, so both looks are fixed. Run before the look in the product, since the mask comes from it here.
+A dark mark that reaches a page corner along both edges, fills at least 80% of the triangle it spans there, covers
+at most 3% of the page, has legs within 1:6 of each other and is not a large block spilling out of that triangle is
+table, not page. It is painted before any look, from a plane fitted to the paper around it (read past the fold's
+bright rim, and held to that paper's usual values), so every look is fixed. In the Original look the fold's edge
+stays faintly visible; nothing dark does.
 
 - Found: the top-right wedge on pages 2, 3 and 4 (fill 0.99, 1.0, 0.85) and the small bottom-left blocks on pages 3
   and 4 (0.99, 1.0). Nothing on page 1 or on IMG_4755, 4757, 4758 and 4759.
@@ -122,7 +125,6 @@ and no visible ghost text, and the result is added as a private regression check
 - [x] A rescan of the same form replaces the source photos (fresh scan, measured above).
 - [x] Output aspect within 3% of A4 (done on main for A4 sheets, measured above).
 - [ ] Decide what a sheet that is not a standard size does (IMG_4758 and IMG_4759: +6.6% and +5.0%).
-- [ ] No border-touching dark blob larger than a few pixels in the output (the scoring used here: connected
-  components under grey 100 that touch the page edge).
-- [ ] Show-through: ghost text under a set contrast is gone, with handwriting and the stamp kept; measured on a
-  blank cell and a written one.
+- [x] No corner wedge on the fresh scan's pages. Dark slivers along one edge stay on purpose, as real print can touch
+  an edge; the first scan's streaky wedge is not a solid triangle and is not cleared.
+- [x] Show-through: marks with no ink in them are gone, with handwriting and the stamp kept (table above).
