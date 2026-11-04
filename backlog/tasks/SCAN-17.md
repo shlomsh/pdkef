@@ -75,6 +75,8 @@ behind the camera paints white. Each has a test that fails on the first version.
 - Speed: a dense Cholesky over 256 nodes plus up to 60 line offsets runs about 35 ms per fit here, twice
   a page (rows, rules), perhaps 250-350 ms on a phone. The grid block is banded (about 2 x 16 wide):
   eliminating the offsets first (Schur complement) and a banded factorisation would be about 20x cheaper.
+  That, and moving the measuring off the main thread, is SCAN-21; measuring at a higher resolution once
+  it is affordable is SCAN-22; a real-photo corpus to judge both by is SCAN-20.
 - A rule is split at a gap only by its sideways step from its last sample, not from where its lean
   would carry it, so a rule leaning near the squaring limit across a gap over 8% of the height can be
   split for nothing. Predicting from the piece's own slope merged two tables printed apart on the prod
