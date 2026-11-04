@@ -29,7 +29,7 @@ a deleted page stays remembered (the shutter still takes it); measuring is still
 
 - Highlight first: when it opens a crooked scan it suggests enhancing the file; accept or dismiss. A learned
   model (levels 2 and 3 below, downloaded on request, desktop only) was the plan; measured 2026-11-04 it
-  does not beat the classical level, so it is on hold (SCAN-19).
+  does not beat the classical level, so it is dropped (SCAN-19, PE-13 retired).
 - One page-enhancement mechanism common to Scan and Highlight; simple, well bounded, easy to test, low debt.
 - Learned models: permissive licences only (code AND weights); compare quality against size first.
 - Photo 4 (blank form) may live in the repo; photos 1-3 and the academic PDF never.
@@ -52,7 +52,7 @@ Highlight gets an enhance folder in its lib (render for analysis, `enhance.worke
 Contract (pure): `Piece { quad, width, height, bend, mesh, keep }`, `Assessment { turn, turnConfidence,
 leanDeg, spread, bentPx, crooked }`, `PagePlan { pieces }`; `assess(gray)`, `planPage(src, base, a,
 {strategy})`, `applyPiece(src, piece)` (one resample), `isAffine(piece)`, `BendStrategy { id, measure }`
-(`classical` wraps measureBend; a learned strategy is on hold, SCAN-19).
+(`classical` wraps measureBend; no learned strategy: dropped, SCAN-19).
 
 Highlight phase 1 lives in the file line's status slot: silent check (no marks yet), then "This scan is
 sideways, two pages to a sheet · Straighten · Not now", then
@@ -61,7 +61,7 @@ the existing undoable `pageTurns`. Affine pieces embed the original page (`embed
 so the old OCR text moves with it [unverified: needs an e2e]; bent pieces become images with no text
 layer (Highlight reads rasters, READ R30).
 
-If a learned model ever ships: files in a new models folder under public (same-origin), a runtime-only rule in
+If a learned model ever returns: files in a new models folder under public (same-origin), a runtime-only rule in
 `precachePolicy`, their own cache that the SW's activate cleanup skips [unverified], onnxruntime only inside a
 worker started from a same-origin URL and never `wasm-unsafe-eval` on the page (verified 2026-11-04, see
 SCAN-19). Desktop gate: fine pointer, deviceMemory >= 8 where reported, Save-Data off.
@@ -70,7 +70,7 @@ Ticket order after landing: PE-01 pure move; PE-02 contract + applyPiece (Scan s
 unchanged); PE-03 fold finder; PE-04 lean as a rotation (reuse `rasterInk.estimateSkewDegrees`, range
 up to 6 deg); PE-05 assess + planPage; PE-06 Highlight detection, no UI; PE-07 suggestion line and "Not
 now" memory; PE-08 turn-only and vector rebuild with Undo; PE-09 raster pieces; PE-10 cleanup; PE-11
-unsqueeze; PE-12 strategy seam; PE-13 UVDoc strategy (on hold); PE-14 Highlight copy and FAQ; PE-15 shadows and shading.
+unsqueeze; PE-12 strategy seam; PE-13 UVDoc strategy (retired); PE-14 Highlight copy and FAQ; PE-15 shadows and shading.
 
 Conflicts to resolve: two `orientation.ts` files; `measureBend` levels rows with a shear (spread halves
 lean up to 4.65 deg: lean must be a quad rotation before the bend); three row/skew finders
