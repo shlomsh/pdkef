@@ -61,6 +61,11 @@
   },
   {
     "rule": 9,
+    "file": "src/lib/pageEnhance/plan.ts",
+    "reason": "PE-05: shared with Highlight, written in the common layer before its reader imports it; PE-06 is the second consumer, and this entry goes stale (remove it) once Highlight imports the file"
+  },
+  {
+    "rule": 9,
     "file": "src/lib/pageEnhance/lean.ts",
     "reason": "PE-04: shared with Highlight, written in the common layer before its reader imports it; PE-06 is the second consumer, and this entry goes stale (remove it) once Highlight imports the file"
   },

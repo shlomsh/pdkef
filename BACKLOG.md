@@ -2,7 +2,7 @@
 
 # Backlog
 
-The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 150 live: 48 up next, 23 then, 27 waiting, 52 parked.
+The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 148 live: 47 up next, 22 then, 27 waiting, 52 parked.
 
 ## Redact: finish removal
 
@@ -137,14 +137,12 @@ One shared mechanism that turns, splits and straightens a page, first in Scan, t
 
 | ID | P | Task | Note |
 | --- | --- | --- | --- |
-| PE-03 | P2 | [PE-03](backlog/tasks/PE-03.md) · Fold finder for two pages to a sheet | In progress |
-| PE-04 | P2 | [PE-04](backlog/tasks/PE-04.md) · Lean as a rotation before the bend | In progress |
+| PE-05 | P2 | [PE-05](backlog/tasks/PE-05.md) · assess and planPage | In progress |
 
 ### Then, in order
 
 | ID | P | Task | Note |
 | --- | --- | --- | --- |
-| PE-05 | P2 | [PE-05](backlog/tasks/PE-05.md) · assess and planPage |  |
 | PE-06 | P2 | [PE-06](backlog/tasks/PE-06.md) · Highlight: detect a crooked scan, no UI |  |
 | PE-07 | P2 | [PE-07](backlog/tasks/PE-07.md) · Highlight: the suggestion line and Not now memory |  |
 | PE-08 | P2 | [PE-08](backlog/tasks/PE-08.md) · Turn-only and vector rebuild, with Undo |  |
@@ -338,7 +336,7 @@ Done and retired tickets are not listed. Their files stay in [backlog/tasks/](ba
 - Sign: finish fill mode: 3 done, 1 retired
 - Highlight PDF: a tool for reading: 5 done, 1 retired
 - Scan: camera to WhatsApp: 4 done, 0 retired
-- Page enhancement for Scan and Highlight: 2 done, 1 retired
+- Page enhancement for Scan and Highlight: 4 done, 1 retired
 - Tool pages: show the verb: 8 done, 0 retired
 - Form detector accuracy: 19 done, 1 retired
 - Robustness and debt: 88 done, 4 retired

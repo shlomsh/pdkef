@@ -8,17 +8,13 @@ import type { GrayImage, Quad } from './quad.ts';
 /** The most a half of a spread is read to lean, in degrees either way. */
 const LEAN_RANGE_DEGREES = 8;
 
-/**
- * The angle a page's text rows lean by, in degrees, y down; 0 when it cannot tell.
- * @testSeam
- */
+/** The angle a page's text rows lean by, in degrees, y down; 0 when it cannot tell. */
 export function pageLean(gray: GrayImage): number {
   return estimateSkewDegrees(inkMask(gray), gray.width, gray.height, LEAN_RANGE_DEGREES);
 }
 
 /**
  * `quad`, 0..1 of a `width` x `height` source, turned by `degrees` about its centre, so applying it levels rows that lean by `degrees`.
- * @testSeam
  */
 export function levelQuad(quad: Quad, degrees: number, width: number, height: number): Quad {
   const radians = (degrees * Math.PI) / 180;
