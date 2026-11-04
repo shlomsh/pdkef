@@ -89,4 +89,40 @@ describe('findLineBend', () => {
     }
     expect(findLineBend({ width: W, height: H, data })).toBeNull();
   });
+
+  it('leaves a flat form alone, every row a label joined to its underline', () => {
+    // The review's case: a 14px label block, then a 2px rule on its baseline, on twelve rows.
+    const data = new Uint8ClampedArray(W * H).fill(230);
+    for (let r = 0; r < 12; r += 1) {
+      const base = 150 + r * 85;
+      for (let y = base - 14; y < base; y += 1) for (let x = 100; x < 320; x += 1) data[y * W + x] = 40;
+      for (let y = base - 2; y < base; y += 1) for (let x = 330; x < 750; x += 1) data[y * W + x] = 40;
+    }
+    expect(findLineBend({ width: W, height: H, data })).toBeNull();
+  });
+
+  it('keeps the tilt with the corners when the lines both bend and lean', () => {
+    const lean = Math.tan((1 * Math.PI) / 180) * (W / H);
+    const found = findLineBend(page(18, (x, y) => curved(x, y) + lean * (x - 0.5)));
+    expect(found).not.toBeNull();
+    // What is applied is the bend alone: the 1 degree lean is not taken out of the page.
+    for (const y of [0.2, 0.5, 0.8]) {
+      const slope = bendAt(found!, 0.9, y) - bendAt(found!, 0.1, y);
+      const want = bendAt(truth, 0.9, y) - bendAt(truth, 0.1, y);
+      expect(Math.abs(slope - want)).toBeLessThan(0.002);
+    }
+  });
+
+  it('holds the bend at the lines\' edge, not extrapolated into a blank margin', () => {
+    // Text only in the middle: lines from y = 0.35 to 0.65.
+    const middle = (x: number, y: number) => curved(x, y);
+    const img = page(8, middle);
+    const found = findLineBend({ ...img, data: img.data.map((v, i) => {
+      const y = Math.floor(i / W) / H;
+      return y < 0.3 || y > 0.7 ? 230 : v;
+    }) });
+    expect(found).not.toBeNull();
+    expect(found!.box!.y0).toBeGreaterThan(0.25);
+    expect(bendAt(found!, 0.2, 0.02)).toBeCloseTo(bendAt(found!, 0.2, found!.box!.y0), 9);
+  });
 });

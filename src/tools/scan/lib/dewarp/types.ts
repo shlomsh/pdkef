@@ -25,12 +25,19 @@ export interface EdgeCurves { top: SideCurve; right: SideCurve; bottom: SideCurv
  * normalized units. `c` holds the nine coefficients of
  *   sum over i = 1..3, j = 0..2 of c[(i - 1) * 3 + j] * (x^i - 1 / (i + 1)) * y^j
  * (each x-term has zero mean across the page's width, so the bend never shifts a whole line up or down).
+ * `box` is where the fit saw lines; outside it the bend is held at its nearest edge, never extrapolated
+ * into a blank margin. Absent, it is the whole page.
  */
-export interface LineBend { c: number[] }
+export interface LineBend { c: number[]; box?: { x0: number; x1: number; y0: number; y1: number } }
 
 export const sideAt = (s: SideCurve, t: number): number => t * (1 - t) * (s.a + s.b * t);
 
-export function bendAt(bend: LineBend, x: number, y: number): number {
+const clamp = (v: number, lo: number, hi: number) => (v < lo ? lo : v > hi ? hi : v);
+
+export function bendAt(bend: LineBend, px: number, py: number): number {
+  const box = bend.box;
+  const x = box ? clamp(px, box.x0, box.x1) : px;
+  const y = box ? clamp(py, box.y0, box.y1) : py;
   let sum = 0;
   let xi = x;
   for (let i = 1; i <= 3; i += 1) {
