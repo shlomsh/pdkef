@@ -58,4 +58,9 @@ describe('uprightTurns', () => {
   it('leaves a page with too little text alone', () => {
     expect(uprightTurns(page(2, true), FULL_QUAD)).toBe(0);
   });
+
+  it('leaves the page unturned when the corners define no page', () => {
+    const line = [{ x: 0.1, y: 0.1 }, { x: 0.5, y: 0.5 }, { x: 0.9, y: 0.9 }, { x: 0.9, y: 0.9 }] as typeof FULL_QUAD;
+    expect(uprightTurns(page(18, true), line)).toBe(0);
+  });
 });
