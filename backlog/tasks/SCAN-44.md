@@ -106,13 +106,20 @@ stays faintly visible; nothing dark does.
   and 4 (0.99, 1.0). Nothing on page 1 or on IMG_4755, 4757, 4758 and 4759.
 - **Not found:** the first scan's wedge (both pages), at any grey cut-off tried. It reaches the corner as streaks,
   not a solid triangle, so this rule does not clear it.
-- Left alone: dark slivers along one edge only (page 3's left edge), since real print can touch an edge too.
+- **Edge slivers (added after the rescan):** a dark mark that starts within a pixel of one edge, reaches at most 1.5%
+  of the short side into the page, is at least five times longer than deep and at least 2% of that edge long is table
+  past a lifted edge, and is painted the same way. Real print on an edge measured squarish here (40 px or less a side),
+  so it stays, and so does a rule that runs into an edge, which has its length across the page.
+- Cleared on real pages: the rescan's slivers on pages 2 and 4, the first scan's black left bar on both pages, the
+  left edges of the second scan's pages 2 to 4 and a stretch of table under the service slip. Checked by eye on the
+  slip, on rescan page 4 and on page 3: only table went, the slip's printed frame stays. Nothing changes on IMG_4755,
+  4757, 4758, 4759, form page 1 or rescan pages 1 and 3.
 
 ## Rescan on the new version (2026-11-04, the same four pages, phone)
 
 Page 1 in the Original look, pages 2 to 4 in the Document look. All four within 0.05% of A4, no corner wedge, no
 show-through in the empty areas, handwriting and stamp intact. What is left: a thin dark sliver along the left edge
-on page 4 (about 6 px wide, 477 tall) and page 2 (4 px, 203 tall), which the corner fill leaves on purpose; shaded
+on page 4 (about 6 px wide, 477 tall) and page 2 (4 px, 203 tall), now cleared by the edge sliver rule above; shaded
 table cells come out mottled in the Document look, as they did before the ghost filter (it changes under 2% of their
 greys).
 
@@ -133,6 +140,6 @@ and no visible ghost text, and the result is added as a private regression check
 - [x] A rescan of the same form replaces the source photos (fresh scan, measured above).
 - [x] Output aspect within 3% of A4 (done on main for A4 sheets, measured above).
 - [ ] Decide what a sheet that is not a standard size does (IMG_4758 and IMG_4759: +6.6% and +5.0%).
-- [x] No corner wedge on the fresh scan's pages. Dark slivers along one edge stay on purpose, as real print can touch
-  an edge; the first scan's streaky wedge is not a solid triangle and is not cleared.
+- [x] No corner wedge on the fresh scan's pages, and no dark sliver along an edge on any scan so far. The first scan's
+  streaky wedge is not a solid triangle and is not cleared; the rescan replaces that scan.
 - [x] Show-through: marks with no ink in them are gone, with handwriting and the stamp kept (table above).

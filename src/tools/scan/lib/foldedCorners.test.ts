@@ -79,8 +79,32 @@ describe('fillFoldedCorners', () => {
     expect(grey(out, W - 1, 0)).toBe(230);
   });
 
-  it('keeps a thin rule that starts at a corner and runs along one edge', () => {
-    const src = page(flat(230), (x, y) => y === 0 && x < 50);
+  it('keeps a thin rule that runs beside one edge without touching it', () => {
+    const src = page(flat(230), (x, y) => y === 3 && x < 50);
+    expect(fillFoldedCorners(src)).toBe(src);
+  });
+
+  it.each([
+    ['left', (x: number, y: number) => x < 3 && y >= 100 && y < 200, 0, 150],
+    ['right', (x: number, y: number) => x >= W - 3 && y >= 100 && y < 200, W - 1, 150],
+    ['top', (x: number, y: number) => y < 3 && x >= 100 && x < 200, 150, 0],
+    ['bottom', (x: number, y: number) => y >= H - 3 && x >= 100 && x < 200, 150, H - 1],
+  ] as const)('paints a thin dark sliver along the %s edge', (_edge, ink, x, y) => {
+    expect(grey(fillFoldedCorners(page(flat(230), ink)), x, y)).toBe(230);
+  });
+
+  it('keeps a square mark on an edge, as real print is', () => {
+    const src = page(flat(230), (x, y) => x < 20 && y >= 100 && y < 120);
+    expect(fillFoldedCorners(src)).toBe(src);
+  });
+
+  it('keeps a rule that runs into an edge', () => {
+    const src = page(flat(230), (x, y) => x < 120 && y >= 150 && y < 152);
+    expect(fillFoldedCorners(src)).toBe(src);
+  });
+
+  it('keeps a short tick on an edge', () => {
+    const src = page(flat(230), (x, y) => x < 2 && y >= 100 && y < 104);
     expect(fillFoldedCorners(src)).toBe(src);
   });
 
