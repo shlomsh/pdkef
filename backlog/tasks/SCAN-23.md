@@ -31,6 +31,8 @@ in the frame, so one page seen at another angle or distance reads as a different
 
 ## Acceptance
 
-- [ ] Tests: the same page lost for over a second and back is not taken again; the same page at another
-      angle hashes within the change distance; a different page does not.
+- [x] Tests: the same page lost for over a second and back is not taken again; the same page at another
+      angle hashes within the change distance; a different page does not. (`captureMachine.test.ts`
+      "does not take a page removed for over a second and put back again"; `hash.test.ts` "the same page
+      seen another way")
 - [ ] Checked on a phone.

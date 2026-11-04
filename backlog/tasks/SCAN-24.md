@@ -32,5 +32,6 @@ One message at a time, by priority, steady (no flicker between hints), in the vo
 
 ## Acceptance
 
-- [ ] A pure `lib/capture/guidance.ts` choosing the hint, with tests for each condition and for steadiness.
+- [x] A pure `lib/capture/guidance.ts` choosing the hint, with tests for each condition and for steadiness.
+      (`guidance.test.ts`: each condition, priority, steady, hysteresis, screen-reader gap)
 - [ ] The viewfinder shows it on a phone, checked on a real iPhone.
