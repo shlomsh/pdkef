@@ -20,7 +20,8 @@ export interface FrameObservation {
   focus: number;
 }
 
-type CapturePhase = 'searching' | 'locked' | 'holding' | 'waitingForChange';
+/** `duplicate` (SCAN-23): a page that matches one already taken is in view; nothing fires until it changes. */
+export type CapturePhase = 'searching' | 'locked' | 'holding' | 'waitingForChange' | 'duplicate';
 
 export interface CaptureState {
   phase: CapturePhase;
