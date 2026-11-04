@@ -8,6 +8,7 @@ import { playFlatten, relativeBox } from '../lib/flattenAnimation.ts';
 import type { Quad } from '../lib/quad.ts';
 import { englishScanMessages as t } from '../messages.ts';
 import { useCamera } from '../hooks/useCamera.ts';
+import { usePinchZoom } from '../hooks/usePinchZoom.ts';
 import { coverRect, hintText } from '../lib/camera/viewfinderModel.ts';
 import type { TakenPage, ViewfinderProps } from '../lib/camera/types.ts';
 import styles from './Viewfinder.module.css';
@@ -58,6 +59,8 @@ export default function Viewfinder(props: ViewfinderProps) {
       if (dialog) flyToStack(dialog, url, page.quad, camera.videoSize, () => stackImgRef.current, stopFlight);
     },
   });
+
+  usePinchZoom(dialogRef, camera.track);
 
   // The top layer, so it shows in real fullscreen.
   useEffect(() => {

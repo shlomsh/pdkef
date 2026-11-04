@@ -30,7 +30,7 @@ const byText = (text: string) => [...container!.querySelectorAll<HTMLElement>('b
 const click = (el: Element | null | undefined) => act(() => { (el as HTMLElement).click(); });
 
 beforeEach(() => {
-  handle = { status: 'live', live: IDLE_VIEW, videoSize: { width: 1280, height: 720 }, videoRef: () => {}, auto: true, setAuto: vi.fn(), shoot: vi.fn() };
+  handle = { status: 'live', live: IDLE_VIEW, videoSize: { width: 1280, height: 720 }, videoRef: () => {}, auto: true, setAuto: vi.fn(), shoot: vi.fn(), track: () => undefined };
   const proto = HTMLDialogElement.prototype as unknown as { showModal?: () => void };
   proto.showModal = function (this: HTMLDialogElement) { this.setAttribute('open', ''); };
 });

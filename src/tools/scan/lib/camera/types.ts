@@ -44,6 +44,8 @@ export interface CameraHandle {
   setAuto: (on: boolean) => void;
   /** The shutter: takes what is in view now, auto or not. */
   shoot: () => void;
+  /** The live video track, for what acts on the camera itself; undefined while there is none. */
+  track: () => MediaStreamTrack | undefined;
 }
 
 /** The rectangle, in the box's own pixels, that the whole video frame covers under object-fit: cover.
