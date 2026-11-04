@@ -252,14 +252,17 @@ export function fitBend(found: Sample[][], minLines: number): FittedBend | null 
   const centres = lines.map((s) => s.reduce((t, p) => t + p.y, 0) / s.length);
   if (Math.max(...centres) - Math.min(...centres) < MIN_SPAN) return null;
 
+  // Wobble is how far the lines stray from their own straight lines: a tilt is no bend, and on a page
+  // the corners left a little turned, counting it would let the grid's fit to pixel noise pass as one.
   let resid = 0;
   let wobble = 0;
   let count = 0;
   lines.forEach((s, k) => {
+    const straight = ownLine(s);
     for (const p of s) {
       const r = p.y - result!.offsets[k] - bendAt(result!.bend, p.x, p.y);
       resid += r * r;
-      wobble += (p.y - centres[k]) ** 2;
+      wobble += (p.y - straight.at(p.x)) ** 2;
       count += 1;
     }
   });
@@ -280,20 +283,23 @@ export function fitBend(found: Sample[][], minLines: number): FittedBend | null 
  * point swings with noise at the ends of ragged lines; and a form's cell, where a label, a handwritten
  * value and the cell's rule join into one shape, slopes wherever the handwriting goes. */
 function medianSlope(lines: Sample[][]): number | null {
-  const own = lines.map((line) => {
-    const mx = line.reduce((t, p) => t + p.x, 0) / line.length;
-    const my = line.reduce((t, p) => t + p.y, 0) / line.length;
-    let num = 0;
-    let den = 0;
-    for (const p of line) { num += (p.x - mx) * (p.y - my); den += (p.x - mx) ** 2; }
-    const slope = den > 0 ? num / den : 0;
-    let sq = 0;
-    for (const p of line) sq += (p.y - my - slope * (p.x - mx)) ** 2;
-    return { slope, rms: Math.sqrt(sq / line.length), span: line[line.length - 1].x - line[0].x };
-  });
+  const own = lines.map(ownLine);
   const rmsCut = Math.max(LEAN_RMS, median(own.map((l) => l.rms)));
   const clean = own.filter((l) => l.span >= LEAN_SPAN && l.rms <= rmsCut);
   return clean.length ? median(clean.map((l) => l.slope)) : null;
+}
+
+/** A line's own least-squares straight line: its slope, how far it strays from it, how far it runs. */
+function ownLine(line: Sample[]): { slope: number; rms: number; span: number; at: (x: number) => number } {
+  const mx = line.reduce((t, p) => t + p.x, 0) / line.length;
+  const my = line.reduce((t, p) => t + p.y, 0) / line.length;
+  let num = 0;
+  let den = 0;
+  for (const p of line) { num += (p.x - mx) * (p.y - my); den += (p.x - mx) ** 2; }
+  const slope = den > 0 ? num / den : 0;
+  let sq = 0;
+  for (const p of line) sq += (p.y - my - slope * (p.x - mx)) ** 2;
+  return { slope, rms: Math.sqrt(sq / line.length), span: line[line.length - 1].x - line[0].x, at: (x) => my + slope * (x - mx) };
 }
 
 const median = (values: number[]) => [...values].sort((a, b) => a - b)[values.length >> 1];
@@ -317,6 +323,14 @@ function fieldLean(bend: LineBend): number {
   return den > 0 ? num / den : 0;
 }
 
+/** The bend's mean over the box its lines cover. */
+function boxMean(bend: LineBend): number {
+  const { x0, x1, y0, y1 } = bend.box!;
+  let sum = 0;
+  for (let r = 0; r < 9; r += 1) for (let k = 0; k < 17; k += 1) sum += bendAt(bend, x0 + ((x1 - x0) * k) / 16, y0 + ((y1 - y0) * r) / 8);
+  return sum / (9 * 17);
+}
+
 /**
  * The bend to apply. `square`: straighten the lines' shared tilt too (the fit's own, as fitted);
  * otherwise that tilt is taken out and stays as the corners made it. A fit that does not explain its
@@ -337,7 +351,10 @@ export function finishBend(fitted: FittedBend | null, square: boolean): LineBend
     if (!square || fitted.lean === null) return null;
     d = plane(fitted.lean);
   }
-  const bend: LineBend = { nx, ny, d, box };
+  // Nor any shift of the whole box: the lines' own heights carry that, and the grid's gauge holds its
+  // mean over the full page, not over where the lines are.
+  const mean = boxMean({ nx, ny, d, box });
+  const bend: LineBend = { nx, ny, d: d.map((v) => v - mean), box };
   const grid = 17;
   let maxBend = 0;
   for (let gy = 0; gy < grid; gy += 1) {

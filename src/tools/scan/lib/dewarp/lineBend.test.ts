@@ -127,11 +127,11 @@ describe('findLineBend', () => {
   });
 
   it('settles the lean where the lines are, not across a page they only partly cover', () => {
-    // The review's case: six lines over x 0.1..0.5 sharing a bow 0.05 (x - 0.3)^2 and a lean of 0.002.
+    // The review's case: six lines over x 0.1..0.5 sharing a bow 0.15 (x - 0.3)^2 and a lean of 0.002.
     const lines: Sample[][] = [0.2, 0.3, 0.4, 0.5, 0.6, 0.7].map((o) =>
       Array.from({ length: 30 }, (_, k) => {
         const x = 0.1 + (0.4 * k) / 29;
-        return { line: 0, x, y: o + 0.05 * (x - 0.3) ** 2 + 0.002 * (x - 0.3) };
+        return { line: 0, x, y: o + 0.15 * (x - 0.3) ** 2 + 0.002 * (x - 0.3) };
       }));
     const fitted = fitBend(lines, 4);
     expect(fitted!.lean).toBeCloseTo(0.002, 3);
@@ -157,5 +157,36 @@ describe('findLineBend', () => {
       got.forEach((v, k) => { worst = Math.max(worst, Math.abs(v - shift - want[k])); });
     }
     expect(worst).toBeLessThan(0.0025);
+  });
+
+  it('leaves a flat page alone when its lines lean a little and end raggedly (review)', () => {
+    // The corners left the page slightly turned; the lines are straight, pixel-rounded and noisy.
+    const H = 1300;
+    for (const tilt of [0.01, 0.02]) {
+      for (let seed = 1; seed <= 20; seed += 1) {
+        const rnd = seededRandom(seed);
+        const lines: Sample[][] = Array.from({ length: 30 }, (_, k) => {
+          const o = 0.1 + (0.8 * k) / 29;
+          const x1 = 0.4 + rnd() * 0.5;
+          return Array.from({ length: 40 }, (_, i) => {
+            const x = 0.1 + ((x1 - 0.1) * i) / 39;
+            return { line: 0, x, y: Math.round((o + tilt * (x - 0.5) + (rnd() - 0.5) * (2 / H)) * H) / H };
+          });
+        });
+        const fitted = fitBend(lines, 4);
+        expect(finishBend(fitted, false)).toBeNull();
+      }
+    }
+  });
+
+  it('does not shift a page when its lines cover only part of its width (review)', () => {
+    for (const tilt of [0.005, 0.01, 0.02]) {
+      const lines: Sample[][] = Array.from({ length: 20 }, (_, k) =>
+        Array.from({ length: 30 }, (_, i) => {
+          const x = 0.05 + (0.45 * i) / 29;
+          return { line: 0, x, y: 0.1 + (0.8 * k) / 19 + tilt * (x - 0.3) };
+        }));
+      expect(finishBend(fitBend(lines, 4), false)).toBeNull();
+    }
   });
 });

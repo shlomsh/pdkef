@@ -70,6 +70,16 @@ lines are now read at their baseline through a running median. The returned bend
 corners own rotation) and is held constant outside the box its lines cover. A point the bend pushes
 behind the camera paints white. Each has a test that fails on the first version.
 
+## Known, not done (from the grid review, 2026-11-04)
+
+- Speed: a dense Cholesky over 256 nodes plus up to 60 line offsets runs about 35 ms per fit here, twice
+  a page (rows, rules), perhaps 250-350 ms on a phone. The grid block is banded (about 2 x 16 wide):
+  eliminating the offsets first (Schur complement) and a banded factorisation would be about 20x cheaper.
+- A rule is split at a gap only by its sideways step from its last sample, not from where its lean
+  would carry it, so a rule leaning near the squaring limit across a gap over 8% of the height can be
+  split for nothing. Predicting from the piece's own slope merged two tables printed apart on the prod
+  scan (a short top table extrapolates badly), so it waits for a better predictor.
+
 ## Not in this ticket
 
 - Corner-editor handles for the curves (the person cannot yet drag an edge's middle). A follow-up if
