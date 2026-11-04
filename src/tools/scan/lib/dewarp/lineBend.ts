@@ -175,7 +175,7 @@ function bandOf(a: Float64Array, n: number): number {
 }
 
 /** The grid and one height per line, as fitted. */
-export interface Fit { bend: LineBend; offsets: number[] }
+interface Fit { bend: LineBend; offsets: number[] }
 
 /**
  * @testSeam The grid and one height per line that best explain every sample (y observed at x), by least

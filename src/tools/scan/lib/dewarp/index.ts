@@ -40,22 +40,59 @@ function project(h: Matrix3, u: number, v: number): Point {
 }
 
 /**
- * The output (x, y), 0..1 across the page, to photo pixels. `margin` crops that share of the page off
- * every side, along the curved edges; the rows' and the rules' bends apply first, since they were
- * measured on the page as the edges alone flatten it.
+ * The output (x, y), 0..1 across the page, to the homography's unit square. `margin` crops that share
+ * of the page off every side, along the curved edges; the rows' and the rules' bends apply first, since
+ * they were measured on the page as the edges alone flatten it.
  */
-export function pageMap(quadPx: Quad, margin: number, { curves, lines, columns }: PageBend): PageMap {
-  const h = homography([{ x: 0, y: 0 }, { x: 1, y: 0 }, { x: 1, y: 1 }, { x: 0, y: 1 }], quadPx);
+function unitMap(margin: number, { curves, lines, columns }: PageBend): PageMap {
   const span = 1 - 2 * margin;
   return (x, y) => {
     const s = margin + span * (columns ? x + bendAt(columns, y, x) : x);
     const t = margin + span * (lines ? y + bendAt(lines, x, y) : y);
-    if (!curves) return project(h, s, t);
+    if (!curves) return { x: s, y: t };
     // A Coons patch of four curves that each vanish at the corners: the corner terms drop out.
-    const u = s + (1 - s) * sideAt(curves.left, t) + s * sideAt(curves.right, t);
-    const v = t + (1 - t) * sideAt(curves.top, s) + t * sideAt(curves.bottom, s);
-    return project(h, u, v);
+    return {
+      x: s + (1 - s) * sideAt(curves.left, t) + s * sideAt(curves.right, t),
+      y: t + (1 - t) * sideAt(curves.top, s) + t * sideAt(curves.bottom, s),
+    };
   };
+}
+
+/** The output (x, y), 0..1 across the page, to photo pixels (see unitMap for `margin` and the bend). */
+export function pageMap(quadPx: Quad, margin: number, bend: PageBend): PageMap {
+  const h = homography([{ x: 0, y: 0 }, { x: 1, y: 0 }, { x: 1, y: 1 }, { x: 0, y: 1 }], quadPx);
+  const unit = unitMap(margin, bend);
+  return (x, y) => {
+    const p = unit(x, y);
+    return project(h, p.x, p.y);
+  };
+}
+
+/** Output points per side at which bentPx compares the two maps: the bends turn over a sixteenth of the
+ * page at the sharpest, so a 64th finds their largest move to well under a pixel. */
+const EXTENT_GRID = 65;
+
+/**
+ * The largest distance the bend moves any point of a `width` x `height` output, in output pixels, from
+ * where the corners alone (the plain homography) put it; 0 for a flat page. Measured in the unit square,
+ * where the output's pixels are evenly spread, so the perspective does not enter.
+ */
+export function bentPx(bend: PageBend, margin: number, width: number, height: number): number {
+  if (isFlat(bend)) return 0;
+  const unit = unitMap(margin, bend);
+  const span = 1 - 2 * margin;
+  const sx = width / span;
+  const sy = height / span;
+  let most = 0;
+  for (let j = 0; j < EXTENT_GRID; j += 1) {
+    const y = j / (EXTENT_GRID - 1);
+    for (let i = 0; i < EXTENT_GRID; i += 1) {
+      const x = i / (EXTENT_GRID - 1);
+      const p = unit(x, y);
+      most = Math.max(most, Math.hypot((p.x - margin - span * x) * sx, (p.y - margin - span * y) * sy));
+    }
+  }
+  return most;
 }
 
 /** An area-averaged copy no longer than `longEdge` (the image itself when already small enough). */
