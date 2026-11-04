@@ -760,6 +760,28 @@ describe('PdfScanTool', () => {
       expect(viewfinder().getAttribute('data-count')).toBe('1');
     });
 
+    it('binds hold and drag again when the width crosses to the desktop grid', async () => {
+      const changes = new Set();
+      let wide = false;
+      window.matchMedia = (query) => ({
+        get matches() { return query.includes('min-width') ? wide : true; },
+        media: query,
+        addEventListener(_type, listener) { if (query.includes('min-width')) changes.add(listener); },
+        removeEventListener(_type, listener) { changes.delete(listener); },
+      });
+      const create = vi.spyOn(Sortable, 'create');
+      mount();
+      await pick([jpeg('a.jpg'), jpeg('b.jpg')]);
+      await settle();
+      const phoneList = tableTiles()[0].closest('ul');
+      wide = true;
+      act(() => changes.forEach((listener) => listener()));
+      await settle();
+      expect(tableTiles()[0].closest('ul')).not.toBe(phoneList);
+      expect(create.mock.calls.at(-1)?.[0]).toBe(tableTiles()[0].closest('ul'));
+      create.mockRestore();
+    });
+
     it('binds hold and drag to the grid on screen', async () => {
       const create = vi.spyOn(Sortable, 'create');
       mount();

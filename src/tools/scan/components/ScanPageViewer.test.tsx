@@ -9,14 +9,16 @@ import ScanPageViewer from './ScanPageViewer.tsx';
 type ScanPageViewerProps = ComponentProps<typeof ScanPageViewer>;
 
 let container: HTMLElement | null = null;
+let openWidth = 400;
 const showModal = vi.fn(function (this: HTMLDialogElement) { this.setAttribute('open', ''); });
 beforeEach(() => {
   showModal.mockClear();
+  openWidth = 400;
   const proto = HTMLDialogElement.prototype as unknown as { showModal: () => void; close: () => void };
   proto.showModal = showModal;
   proto.close = function (this: HTMLDialogElement) { this.removeAttribute('open'); };
   // A closed dialog is display: none, so nothing inside it has a width until showModal.
-  Object.defineProperty(HTMLElement.prototype, 'clientWidth', { configurable: true, get(this: HTMLElement) { return this.closest('dialog[open]') ? 400 : 0; } });
+  Object.defineProperty(HTMLElement.prototype, 'clientWidth', { configurable: true, get(this: HTMLElement) { return this.closest('dialog[open]') ? openWidth : 0; } });
 });
 afterEach(() => {
   if (container) { act(() => render(null, container!)); container.remove(); container = null; }
@@ -104,6 +106,55 @@ describe('ScanPageViewer', () => {
     act(() => { sc.dispatchEvent(new Event('scroll')); });
     expect(sc.scrollLeft).toBe(390);
     expect(actions.onSelect).not.toHaveBeenCalled();
+  });
+
+  describe('when the width changes under the open viewer', () => {
+    let resized: () => void;
+    beforeEach(() => {
+      vi.stubGlobal('ResizeObserver', class { constructor(cb: () => void) { resized = cb; } observe() {} disconnect() {} });
+    });
+    afterEach(() => vi.unstubAllGlobals());
+
+    it('the current page stays selected when a scroll lands first', () => {
+      const { actions } = mount({}, 2);
+      const sc = q('[data-page-scroller]')!;
+      openWidth = 800;
+      act(() => { sc.dispatchEvent(new Event('scroll')); });
+      expect(actions.onSelect).not.toHaveBeenCalled();
+      expect(sc.scrollLeft).toBe(1600);
+    });
+
+    it('the scroller is pinned back to the current page when no scroll comes', () => {
+      mount({}, 2);
+      openWidth = 800;
+      act(() => resized());
+      expect(q('[data-page-scroller]')!.scrollLeft).toBe(1600);
+    });
+  });
+
+  describe('a close the browser makes on its own', () => {
+    const nativeClose = () => act(() => { q('dialog')!.removeAttribute('open'); q('dialog')!.dispatchEvent(new Event('close')); });
+
+    it('counts as Back', () => {
+      const { actions } = mount();
+      nativeClose();
+      expect(actions.onDone).toHaveBeenCalledTimes(1);
+    });
+
+    it('in corners the viewer stays, open again, on the result', () => {
+      const { actions } = mount({ view: 'corners' });
+      nativeClose();
+      expect(actions.onApprove).toHaveBeenCalledTimes(1);
+      expect(q('dialog')!.hasAttribute('open')).toBe(true);
+    });
+
+    it('closing it ourselves is not a Back', () => {
+      const { actions } = mount();
+      const dialog = q('dialog')!;
+      act(() => render(null, container!));
+      dialog.dispatchEvent(new Event('close'));
+      expect(actions.onDone).not.toHaveBeenCalled();
+    });
   });
 
   it('Back, Escape and Done in result mode are Done', () => {
