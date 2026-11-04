@@ -1,6 +1,6 @@
 import { useState } from 'preact/hooks';
 import type { ComponentChildren, Ref } from 'preact';
-import { ChevronDown, Eraser, FileSignature, Share, Trash2 } from 'lucide-preact';
+import { ChevronDown, Eraser, FileSignature, Highlighter, Share, Trash2 } from 'lucide-preact';
 import QuietDownload from '#shell/pageWorkspace/QuietDownload.tsx';
 import OptionRow from '#shell/pageWorkspace/OptionRow.tsx';
 import pdfToolStyles from '#shell/PdfTool.module.css';
@@ -82,7 +82,7 @@ export default function ScanPhoneTable({ pages, results, resultKeyOf, failedIds,
   // A page that could not be read, or a failed build: there is no PDF to size or share until it is dealt with.
   const held = failedIds.length > 0 || prepared.status === 'error';
   const canShare = flow.canSharePdf && !held;
-  const handoff = (tool: 'sign' | 'redact') => { void flow.requestHandoff(tool); /* reason: requestHandoff catches its own failure */ };
+  const handoff = (tool: 'sign' | 'highlight-pdf' | 'redact') => { void flow.requestHandoff(tool); /* reason: requestHandoff catches its own failure */ };
   return (
     <div class={styles.table} data-scan-ready={ready || undefined}>
       <ScanErrors pages={pages} failedIds={failedIds} buildFailed={prepared.status === 'error'} />
@@ -128,6 +128,10 @@ export default function ScanPhoneTable({ pages, results, resultKeyOf, failedIds,
         <button type="button" disabled={flow.handoffBusy || !ready} onClick={() => handoff('sign')}>
           <FileSignature size={18} aria-hidden="true" />
           {t.handoffSign}
+        </button>
+        <button type="button" disabled={flow.handoffBusy || !ready} onClick={() => handoff('highlight-pdf')}>
+          <Highlighter size={18} aria-hidden="true" />
+          {t.handoffHighlight}
         </button>
         <button type="button" disabled={flow.handoffBusy || !ready} onClick={() => handoff('redact')}>
           <Eraser size={18} aria-hidden="true" />

@@ -1,4 +1,4 @@
-import { Eraser, FileSignature, Merge, Shrink, type LucideIcon } from 'lucide-preact';
+import { Eraser, FileSignature, Highlighter, Merge, Shrink, type LucideIcon } from 'lucide-preact';
 import PdfShareButton from '../PdfShareButton.tsx';
 import type { HandoffTool } from './useDownloadFlow.ts';
 import styles from './PageWorkspace.module.css';
@@ -19,7 +19,7 @@ interface FinishRowProps {
   tools?: HandoffTool[];
 }
 
-const ICONS: Partial<Record<HandoffTool, LucideIcon>> = { compress: Shrink, sign: FileSignature, merge: Merge, redact: Eraser };
+const ICONS: Partial<Record<HandoffTool, LucideIcon>> = { compress: Shrink, sign: FileSignature, merge: Merge, redact: Eraser, 'highlight-pdf': Highlighter };
 const DEFAULT_TOOLS: HandoffTool[] = ['compress', 'sign'];
 
 /** The rail's finish row: Share, then hand-offs (Compress and Sign unless `tools` says otherwise). */

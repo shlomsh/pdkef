@@ -15,7 +15,7 @@ import { ScanDownloadElement, ScanDraftStatus, ScanErrors, ScanHeading } from '.
 import ScanTable from './ScanTable.tsx';
 import ScanWorkbench, { type ScanWorkbenchProps } from './ScanWorkbench.tsx';
 
-const HANDOFF_TOOLS: HandoffTool[] = ['sign', 'redact', 'compress'];
+const HANDOFF_TOOLS: HandoffTool[] = ['sign', 'highlight-pdf', 'redact', 'compress'];
 
 /** The paper and the size limit, in the rail. */
 function ScanOptions({ options }: { options: ScanOptionsProps }) {
@@ -40,7 +40,7 @@ function ScanRailPinned({ pages, failedIds, output }: { pages: ScanPage[]; faile
         busy={flow.handoffBusy}
         onHandoff={(tool) => { void flow.requestHandoff(tool); /* reason: requestHandoff catches its own failure and shows the hand-off error */ }}
         onWarm={prepared.prepareNow}
-        labels={{ share: t.shareLabel, compress: t.handoffCompress, sign: t.handoffSign, redact: t.handoffRedact }}
+        labels={{ share: t.shareLabel, compress: t.handoffCompress, sign: t.handoffSign, 'highlight-pdf': t.handoffHighlight, redact: t.handoffRedact }}
         tools={HANDOFF_TOOLS}
       />
       {flow.handoffFailed && (

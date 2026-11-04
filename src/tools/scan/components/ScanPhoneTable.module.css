@@ -159,6 +159,21 @@
   gap: var(--space-2);
 }
 
+/* Four labels cannot share one line on a phone, so they take two per line. */
+@media (max-width: 480px) {
+  .steps:has(> :nth-child(4)) {
+    grid-auto-flow: row;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* Three on one line at the smallest phones: the labels alone fit, and an icon on only some would look uneven. */
+@media (max-width: 360px) {
+  .steps:not(:has(> :nth-child(4))) svg {
+    display: none;
+  }
+}
+
 .steps > :is(a, button) {
   display: flex;
   align-items: center;

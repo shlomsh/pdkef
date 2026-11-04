@@ -257,16 +257,16 @@ describe('PdfScanTool', () => {
     expect(checked('Page size')).toBe('A4');
   });
 
-  it('offers Sign, Redact, Compress in the rail once the PDF is ready, on the table and beside a page', async () => {
+  it('offers Sign, Highlight, Redact, Compress in the rail once the PDF is ready, on the table and beside a page', async () => {
     mount();
     await pick([jpeg('a.jpg')]);
     await settle(1000);
     expect(container.querySelector('[data-scan-ready]')).not.toBeNull();
     const pinned = () => Array.from(container.querySelectorAll('[data-rail-pinned] button')).map((b) => b.textContent.trim());
-    expect(pinned()).toEqual(expect.arrayContaining(['Sign', 'Redact', 'Compress']));
+    expect(pinned()).toEqual(expect.arrayContaining(['Sign', 'Highlight', 'Redact', 'Compress']));
     await openPage(1);
     await settle();
-    expect(pinned()).toEqual(expect.arrayContaining(['Sign', 'Redact', 'Compress']));
+    expect(pinned()).toEqual(expect.arrayContaining(['Sign', 'Highlight', 'Redact', 'Compress']));
   });
 
   it('says so when a size limit cannot be met', async () => {
