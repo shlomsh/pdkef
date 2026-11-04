@@ -71,6 +71,11 @@
   font-weight: 600;
 }
 
+/* Focus lands here so a screen reader reads where it is: it is not a control, so no ring. */
+.title:focus-visible {
+  outline: none;
+}
+
 .hint {
   margin: 0;
   max-width: 36rem;

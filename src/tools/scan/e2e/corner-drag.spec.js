@@ -59,6 +59,24 @@ test.describe('scan - corner drag', () => {
     expect(workers()).toMatch(/page\.worker/);
   });
 
+  // Focus lands on the title so a screen reader reads where it is; it is not a control, so no ring shows.
+  test('the page title takes focus without a ring', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto('/scan-to-pdf/');
+    await waitForIsland(page);
+    await page.locator('input[type=file]:not([capture])').first().setInputFiles({
+      name: 'page.jpg',
+      mimeType: 'image/jpeg',
+      buffer: await makePhotoBytes(page),
+    });
+    await page.locator('[data-table-page]').first().focus();
+    await page.keyboard.press('Enter');
+    const title = page.locator('[data-page-viewer] [data-page-heading]');
+    await expect(title).toBeFocused({ timeout: 20_000 });
+    expect(await title.evaluate((el) => el.matches(':focus-visible'))).toBe(true);
+    await expect(title).toHaveCSS('outline-style', 'none');
+  });
+
   test('a dragged corner follows the pointer, stays where dropped, reprocesses the page, and a bow tie stops at the last valid shape', async ({ page }) => {
     await page.goto('/scan-to-pdf/');
     await waitForIsland(page);
