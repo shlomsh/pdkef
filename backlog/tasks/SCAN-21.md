@@ -1,11 +1,11 @@
 ---
 id: "SCAN-21"
 title: "Scan next: measuring a page's bend costs nothing a person can feel"
-status: "open"
+status: "in_progress"
 priority: "P2"
 epic: "scan-next"
-horizon: "next"
-order: 7
+horizon: "now"
+order: 1
 depends_on: ["SCAN-17"]
 ---
 
