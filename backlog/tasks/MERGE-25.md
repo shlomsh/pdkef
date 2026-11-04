@@ -1,12 +1,10 @@
 ---
 id: "MERGE-25"
 title: "Open PDFs from Google Drive's Open with menu: a Drive app, which needs the first invariant rewritten"
-status: "in_progress"
+status: "done"
 priority: "P3"
 epic: "polish"
-horizon: "now"
 depends_on: ["MERGE-18"]
-needs: "Your sign-off on the rewritten invariant, then the Google Cloud and Marketplace setup in your account"
 ---
 
 # MERGE-25 · Open PDFs from Google Drive's Open with menu
@@ -56,3 +54,10 @@ the "no accounts" line stop being literally true.
 - Right-click a PDF in Drive, Open with PDkef, and it opens in the Open with chooser on a production
   build, signed in and signed out.
 - The exception exists on `/drive/` only; `test:csp`, `test:seo`, `test:precache-budget` green.
+
+## Result
+
+*2026-11-04.* Google approved the Marketplace listing on the second submission (the first was rejected
+for missing trademark attribution on Google Drive, a thin description and a single screenshot; fixed
+with the trademark notice, a fuller description, five screenshots and the how-to page as Help URL).
+Shlomi confirmed Open with PDkef works from Drive after approval.
