@@ -3,9 +3,9 @@
 // takes a CanvasKit: the page worker's is OffscreenCanvas and createImageBitmap, the main thread's
 // fallback is <img> and <canvas> (scanPipeline.ts). The pixel work in between is pure.
 import { guessCorners } from '../edges/index.ts';
-import { FLAT_PAGE, bentPx, isFlat, measureBend, pageMap, type PageBend } from '#lib/pageEnhance/dewarp/index.ts';
-import { warpAlong } from '#lib/pageEnhance/dewarp/meshWarp.ts';
-import { warpPerspective, warpSizeFor } from '#lib/pageEnhance/warp.ts';
+import { FLAT_PAGE, bentPx, measureBend, type PageBend } from '#lib/pageEnhance/dewarp/index.ts';
+import { applyPiece, pieceMargin, type Piece } from '#lib/pageEnhance/piece.ts';
+import { warpSizeFor } from '#lib/pageEnhance/warp.ts';
 import { pageAspect, snapPaper } from '../aspect.ts';
 import { uprightTurns } from './upright.ts';
 import { applyFilter, type ScanFilter } from '../filters.ts';
@@ -161,11 +161,9 @@ function flattenPixels(src: RgbaImage, quad: Quad, filter: ScanFilter): { image:
   const aspect = pageAspect(quadPx, src.width, src.height);
   const { width, height } = warpSizeFor(quadPx, OUTPUT_LONG_EDGE, aspect === null ? null : snapPaper(aspect));
   const { bend, error } = bendOf(src, quad, width, height);
-  // A flat page keeps the plain homography, exactly as before SCAN-17.
-  const warped = isFlat(bend)
-    ? warpPerspective(src, quadPx, width, height)
-    : warpAlong(src, pageMap(scaleQuad(quad, src.width, src.height), EDGE_INSET / 2, bend), width, height);
-  return { image: applyFilter(warped, filter), bentPx: bentPx(bend, EDGE_INSET / 2, width, height), measureError: error };
+  const piece: Piece = { quad, inset: EDGE_INSET, width, height, bend, mesh: null };
+  const warped = applyPiece(src, piece);
+  return { image: applyFilter(warped, filter), bentPx: bentPx(bend, pieceMargin(piece), width, height), measureError: error };
 }
 
 /** One page: flattened to its corners, given its look, kept as a high-quality JPEG and a thumb. */
