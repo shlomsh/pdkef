@@ -61,6 +61,12 @@ describe('readInkBounds', () => {
     expect(renderPageToCanvas.mock.calls[0][1]).toEqual({ scale: 2, rotation: 0 });
   });
 
+  it('reads an upside-down page, whose rows still run across', async () => {
+    const result = await readInkBounds(fakeDoc([fakePage(180)]), () => true);
+    expect(result).toEqual({ left: 0.125, right: 0.875 });
+    expect(renderPageToCanvas.mock.calls[0][1]).toMatchObject({ rotation: 180 });
+  });
+
   it('skips a page the person turned sideways, and reads one they turned back upright', async () => {
     const doc = fakeDoc([fakePage(0), fakePage(90)]);
     await readInkBounds(doc, () => true, { 0: 1, 1: 3 });
