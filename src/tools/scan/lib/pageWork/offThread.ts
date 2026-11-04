@@ -6,7 +6,7 @@ import type { PageJob, PageJobResult, PageReply } from './protocol.ts';
 /** How long a new worker may take to load and answer its probe before the pages go to the main thread. */
 const PROBE_MS = 15_000;
 
-export const NO_WORKER = Symbol('no page worker');
+export const NO_WORKER = Symbol('NO_WORKER');
 
 interface Waiting { resolve(value: unknown): void; reject(error: unknown): void }
 
