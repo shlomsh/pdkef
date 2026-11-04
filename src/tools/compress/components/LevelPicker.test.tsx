@@ -24,7 +24,7 @@ function mount(props = {}) {
     t: englishCompressMessages,
     targetKB: 200,
     onTargetKBChange: vi.fn(),
-    presets: [100, 200, 500, 1024],
+    presets: [100, 200, 500, 1000],
     ...props,
   };
   act(() => render(<LevelPicker {...p} />, host));

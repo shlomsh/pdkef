@@ -34,9 +34,9 @@ describe('RedactDoneStrip', () => {
     const root = container.querySelector('[data-redact-done-strip]')!;
     expect(root.tagName).toBe('SECTION');
     expect(root.getAttribute('aria-label')).toBe('Your download');
-    expect(root.textContent).toContain('Saved redacted_x.pdf · 2 pages · 3.0 MB');
+    expect(root.textContent).toContain('Saved redacted_x.pdf · 2 pages · 3.1 MB');
     expect(root.textContent).toContain('Every page is saved as a picture, so nothing hides under a box.');
-    expect(byText('Compress it').textContent).toContain('3.0 MB');
+    expect(byText('Compress it').textContent).toContain('3.1 MB');
     expect(byText('Sign it').textContent).not.toContain('MB');
   });
 

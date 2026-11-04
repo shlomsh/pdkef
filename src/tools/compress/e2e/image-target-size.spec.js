@@ -236,7 +236,7 @@ test.describe('compress tool - image target size', () => {
 
     const download = await readDownload(page);
     expect(download.downloadAttr).toBe('photo-compressed.jpg');
-    expect(download.bytes.length).toBeLessThanOrEqual(TARGET_KB * 1024);
+    expect(download.bytes.length).toBeLessThanOrEqual(TARGET_KB * 1000);
     // The magic bytes are the real proof of "a real JPEG" - stronger than a
     // MIME string, and the only one available here (see readDownload's
     // comment on why blob.type isn't reachable via fetch under this app's
@@ -280,7 +280,7 @@ test.describe('compress tool - image target size', () => {
     // download keeps the original basename but the JPEG extension - see
     // deriveDownloadName in PdfCompressTool.tsx.
     expect(download.downloadAttr).toBe('shot-compressed.jpg');
-    expect(download.bytes.length).toBeLessThanOrEqual(TARGET_KB * 1024);
+    expect(download.bytes.length).toBeLessThanOrEqual(TARGET_KB * 1000);
     expect(download.head).toEqual([0xff, 0xd8, 0xff]);
 
     // Decode the downloaded bytes back into an in-page Blob to sample a

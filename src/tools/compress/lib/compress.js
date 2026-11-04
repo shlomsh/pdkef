@@ -5,6 +5,7 @@ import { getPdfLib } from '#lib/pdf/pdfLib.js';
 import { getPdfjs } from '#lib/pdf/loadPdfjs.js';
 import { renderPageToCanvas } from '#lib/pdf/renderPage.js';
 import { toBytes } from '#lib/output/toBytes.js';
+import { kbToBytes } from '#lib/text/format.js';
 
 /**
  * Compresses a PDF file 100% client-side by rasterizing its pages.
@@ -174,7 +175,7 @@ function releaseRenderedCanvases(rendered) {
  *   null when nothing was rasterised (already under target).
  */
 export async function compressPdfToTarget(file, { targetKB, onProgress } = {}) {
-  const targetBytes = Math.max(1, Math.round(targetKB * 1024));
+  const targetBytes = kbToBytes(targetKB);
 
   // Already under target - don't degrade quality for nothing.
   if (file.size <= targetBytes) {

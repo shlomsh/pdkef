@@ -35,7 +35,7 @@ import { useCompressFinish } from './hooks/useCompressFinish.ts';
 import BatchWorkspace from './components/BatchWorkspace.tsx';
 import IntakeNotes from './components/IntakeNotes.tsx';
 
-const TARGET_SIZE_PRESETS_KB = [100, 200, 500, 1024];
+const TARGET_SIZE_PRESETS_KB = [100, 200, 500, 1000];
 // Starts lower than the PDF presets above: the image half of this tool's demand
 // is the photo half of application portals, which commonly cap a photo at
 // 20-50KB, tighter than the document limits the PDF presets target. Four, so

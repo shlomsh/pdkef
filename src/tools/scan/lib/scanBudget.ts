@@ -1,4 +1,5 @@
 import { searchTargetSize, QUALITY_SEARCH_STEPS } from '#lib/images/targetSizeSearch.js';
+import { kbToBytes } from '#lib/text/format.js';
 
 // The size limit for a whole scanned PDF: the same search Compress uses (quality first,
 // then resolution), over every page at once. Pure: the caller injects how pages render
@@ -14,9 +15,9 @@ const SCAN_MIN_QUALITY = 0.3;
 export type SizeLimitId = 'none' | '2mb' | '1mb' | '500kb';
 export const SIZE_LIMITS: { id: SizeLimitId; bytes: number | null }[] = [
   { id: 'none', bytes: null },
-  { id: '2mb', bytes: 2 * 1024 * 1024 },
-  { id: '1mb', bytes: 1024 * 1024 },
-  { id: '500kb', bytes: 500 * 1024 },
+  { id: '2mb', bytes: kbToBytes(2000) },
+  { id: '1mb', bytes: kbToBytes(1000) },
+  { id: '500kb', bytes: kbToBytes(500) },
 ];
 
 export interface FitInput<H> {

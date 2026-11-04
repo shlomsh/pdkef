@@ -24,8 +24,8 @@ const base: Parameters<typeof deriveResultView>[0] = {
 describe('formatBytes', () => {
   it('scales to the unit', () => {
     expect(formatBytes(0)).toBe('0 Bytes');
-    expect(formatBytes(1024)).toBe('1 KB');
-    expect(formatBytes(1536 * 1024)).toBe('1.5 MB');
+    expect(formatBytes(1000)).toBe('1 KB');
+    expect(formatBytes(1_500_000)).toBe('1.5 MB');
   });
 });
 

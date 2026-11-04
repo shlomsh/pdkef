@@ -224,7 +224,7 @@ describe('PdfCompressTool UI flow', () => {
     // The sheet already holds Download in its ready look, with the size it knows: the build is silent.
     const sheet = container.querySelector('[data-result-sheet]');
     expect(sheet.contains(downloadButton())).toBe(true);
-    expect(downloadButton().textContent).toContain('97.66 KB');
+    expect(downloadButton().textContent).toContain('100 KB');
     expect(downloadButton().getAttribute('data-state')).toBe('ready');
     noCompressButton();
 
@@ -402,7 +402,7 @@ describe('PdfCompressTool UI flow', () => {
     await loadPdf('test_doc.pdf', 100000);
 
     // The sizes ride on the strip; no stats card, no success title.
-    expect(container.querySelector('[data-compress-sizes]').textContent).toContain('97.66 KB');
+    expect(container.querySelector('[data-compress-sizes]').textContent).toContain('100 KB');
     expect(container.querySelector('[data-compress-sizes]').textContent).toContain('15 Bytes');
     expect(container.querySelector('[data-compress-sizes]').textContent).toContain('100% smaller');
     expect(result().querySelector('[data-stats-title]')).toBeNull();
@@ -582,7 +582,7 @@ describe('PdfCompressTool UI flow', () => {
       expect(panel.querySelector('[role="slider"]')).not.toBeNull();
       expect(panel.querySelector('img ~ span')).toBeNull();
       expect(labels().textContent).toContain('Compressed · 15 Bytes');
-      expect(labels().textContent).toContain('Original · 97.66 KB');
+      expect(labels().textContent).toContain('Original · 100 KB');
     });
 
     it('the full screen dialog keeps the tags', async () => {
@@ -605,7 +605,7 @@ describe('PdfCompressTool UI flow', () => {
       expect(status()).toBe('processing');
       expect(result().querySelector('img').getAttribute('src')).toBe('data:image/png;base64,before');
       expect(result().querySelector('[data-compare-skeleton]')).toBeNull();
-      expect(labels().textContent).toContain('Original · 97.66 KB');
+      expect(labels().textContent).toContain('Original · 100 KB');
       expect(labels().textContent).toContain('Compressing');
       await act(async () => {
         run.resolve(imagesResult());
@@ -1002,7 +1002,7 @@ describe('PdfCompressTool UI flow', () => {
 
     const text = resultCard().textContent;
     expect(text).toContain('Already as small as it gets');
-    expect(text).toContain('Turned into images, this PDF came to 29.68 KB, more than the 10.74 KB it is now');
+    expect(text).toContain('Turned into images, this PDF came to 30.39 KB, more than the 11 KB it is now');
     expect(text).toContain('As images');
     expect(text).toContain('None, original kept');
     expect(container.querySelector('[data-compress-status="done"]')).not.toBeNull();
@@ -1031,7 +1031,7 @@ describe('PdfCompressTool UI flow', () => {
     await settled();
 
     const text = resultCard().textContent;
-    expect(text).toContain('29.68 KB');
+    expect(text).toContain('30.39 KB');
     expect(text).toContain('100 KB can');
     expect(text).toContain("can't be reached this way");
     expect(text).toContain('As images');
@@ -1536,7 +1536,7 @@ describe('PdfCompressTool UI flow', () => {
       imagesLib.compressPdfImages.mockImplementationOnce(() => new Promise(() => {}));
       await open();
       expect(calls()).toBe(1);
-      expect(downloadButton().textContent).toContain('97.66 KB');
+      expect(downloadButton().textContent).toContain('100 KB');
       expect(busyButton()).toBeNull();
     });
 
@@ -1625,7 +1625,7 @@ describe('PdfCompressTool UI flow', () => {
     const shell = container.querySelector('[data-tool-shell]');
     const sizes = shell.querySelector('[data-compress-sizes]');
     expect(sizes).not.toBeNull();
-    expect(sizes.textContent).toContain('97.66 KB');
+    expect(sizes.textContent).toContain('100 KB');
     expect(sizes.textContent).toContain('→');
     expect(sizes.textContent).toContain('15 Bytes');
     expect(sizes.textContent).toContain('100% smaller');
@@ -1635,7 +1635,7 @@ describe('PdfCompressTool UI flow', () => {
     imagesLib.compressPdfImages.mockImplementationOnce(() => new Promise(() => {}));
     mount({ messages: hebrewCompressMessages });
     await pick(makePdfFile('rtl.pdf', 100000), ran(imagesLib.compressPdfImages, 1));
-    expect(container.querySelector('[data-compress-sizes]').textContent).toBe('97.66 KB');
+    expect(container.querySelector('[data-compress-sizes]').textContent).toBe('100 KB');
     act(() => render(null, container));
     container.remove();
     mount({ messages: hebrewCompressMessages });
@@ -1734,8 +1734,8 @@ describe('PdfCompressTool UI flow', () => {
       const strip = container.querySelector('[data-strip]');
       expect(strip.textContent).toContain('2 photos');
       const sizes = strip.querySelector('[data-compress-sizes]').textContent;
-      expect(sizes).toContain('976.56 KB');
-      expect(sizes).toContain('97.66 KB');
+      expect(sizes).toContain('1 MB');
+      expect(sizes).toContain('100 KB');
       expect(sizes).toContain('90% smaller');
     });
 
@@ -1760,7 +1760,7 @@ describe('PdfCompressTool UI flow', () => {
         .mockImplementationOnce(() => Promise.reject(new Error('unreadable')));
       await pickMany([makeImageFile('a.jpg', 1_000_000), makeImageFile('b.jpg', 1_000_000)]);
       const sizes = container.querySelector('[data-strip] [data-compress-sizes]').textContent;
-      expect(sizes).toContain('976.56 KB');
+      expect(sizes).toContain('1 MB');
       expect(sizes).toContain('90% smaller');
     });
 
