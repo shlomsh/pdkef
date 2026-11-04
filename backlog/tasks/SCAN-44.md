@@ -83,8 +83,8 @@ their embedded images with a scratchpad copy of `filters.ts`.
 - **The wedge is the one defect left.** Pages 2, 3 and 4 each have a dark triangle in the top-right corner (117 x
   244, 133 x 278 and 187 x 309 px, about 1% of the page), solid black in the Document look. The quad is right:
   the top and right edges are straight and meet where the corner should be. The wedge is table showing where the
-  sheet's corner is missing. Inferred, not confirmed: a stapled packet turned over, because it is the same corner on
-  each sheet and the top sheet and the blank copy carry a mark there. Small dark blocks at the bottom-left corner and
+  sheet's corner is folded away: the sheets are held by a paper pin at the top right, which folds them there
+  (confirmed by Shlomi, 2026-11-04). Any pinned or stapled packet will do this. Small dark blocks at the bottom-left corner and
   left edge on pages 3 and 4 are the same kind of thing.
 - **Shadows and show-through:** strong in the Original look on pages 1 and 3 (a cast shadow and a colour split,
   and the next sheet's table showing through). The Document look removes both on those two pages, read by eye.
@@ -92,6 +92,18 @@ their embedded images with a scratchpad copy of `filters.ts`.
 - **The service slip** (ratio 2.19, correctly not snapped): its printed security pattern partly survives the
   Document look, and two overlapping stamps merge into one black block, so the Original look reads better for it.
   Print runs to the very top edge; whether the 1.6% inset clips it needs the source photo.
+
+## Corner fill (prototype, 2026-11-04, session scratchpad)
+
+A dark mark that reaches a page corner along both edges, fills at least 80% of the triangle it spans there and
+covers at most 3% of the page is table, not page. It is painted with the paper's colour, spread in from just
+outside the mark, so both looks are fixed. Run before the look in the product, since the mask comes from it here.
+
+- Found: the top-right wedge on pages 2, 3 and 4 (fill 0.99, 1.0, 0.85) and the small bottom-left blocks on pages 3
+  and 4 (0.99, 1.0). Nothing on page 1 or on IMG_4755, 4757, 4758 and 4759.
+- **Not found:** the first scan's wedge (both pages), at any grey cut-off tried. It reaches the corner as streaks,
+  not a solid triangle, so this rule does not clear it.
+- Left alone: dark slivers along one edge only (page 3's left edge), since real print can touch an edge too.
 
 ## A second real scan (2026-11-04, one page of three)
 
