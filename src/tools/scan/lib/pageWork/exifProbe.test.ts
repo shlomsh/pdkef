@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { withOrientation6 } from './orientation.ts';
+import { withOrientation6 } from './exifProbe.ts';
 
 const SOI = [0xff, 0xd8];
 const JFIF = [0xff, 0xe0, 0x00, 0x06, 0x4a, 0x46, 0x49, 0x46]; // APP0, 6 bytes long (length + "JFIF")
