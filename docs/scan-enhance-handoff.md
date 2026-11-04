@@ -10,7 +10,7 @@ Land in this order: each was checked in its own worktree, not together. Before e
 | Order | Branch | Ticket | State |
 |---|---|---|---|
 | 1 | `scan-35-edge-bows` | SCAN-35 | Done. A flat page's edges no longer read as bowed (pixel wander and a fold's kink); real bows still recovered. |
-| 2 | `scan-21-fast-dewarp` | SCAN-21 | Done except a real-phone timing. Page work in a Web Worker (`src/tools/scan/lib/pageWork/`, main-thread fallback), banded solver ~25x faster, byte-identical output, `ProcessedPage.bentPx`. Rename its `pageWork/orientation.ts` (an EXIF probe) to `exifProbe.ts` before 3 lands. |
+| 2 | `scan-21-fast-dewarp` | SCAN-21 | Done except a real-phone timing. Page work in a Web Worker (a new pageWork folder in Scan's lib, main-thread fallback), banded solver ~25x faster, byte-identical output, `ProcessedPage.bentPx`. Rename its `pageWork/orientation.ts` (an EXIF probe) to `exifProbe.ts` before 3 lands. |
 | 3 | `scan-32-upright` | SCAN-32 | Detector only: `lib/dewarp/orientation.ts` `textTurn` (text across vs down). Rebase its two `lineBend.ts` exports onto 2's banded `lineBend`. Not wired in. |
 | 4 | `scan-34-aspect` | SCAN-34 | `lib/aspect.ts` `pageAspect` (Zhang-He, assumed focal 0.75 x long side when unsolvable), `snapPaper` at **3% (decided)**, `warp.ts` `warpSizeFor`. Not wired in. |
 | 5 | (new) wire 3 and 4 into `pageWork/steps.ts` | SCAN-32/34 | The page's quarter turn must be known **before** the bend is measured (a sideways page's text is never straightened today); output sized with `warpSizeFor(pageAspect)`. Acceptance: Shlomi's photos upright and at 1.41 within 3% (folded bills reach 5-7%). |
@@ -42,10 +42,10 @@ a deleted page stays remembered (the shutter still takes it); measuring is still
 
 ## The shared design (from the planning worker; [unverified] = reasoned, not checked)
 
-New `src/lib/pageEnhance/`: moved from Scan `homography.ts`, `warp.ts`, `dewarp/*` (incl. orientation),
+New shared folder, pageEnhance under src/lib (planned): moved from Scan `homography.ts`, `warp.ts`, `dewarp/*` (incl. orientation),
 the quad core (`Point`, `Quad`, `RgbaImage`, `GrayImage`, scale/inset/rotate/order). Stays in Scan:
 `edges/`, `camera/`, `capture/`, `aspect.ts`, `filters.ts`, `pageWork/`, the corner-editor quad helpers.
-Highlight gets `src/tools/highlight/lib/enhance/` (render for analysis, `enhance.worker.ts`,
+Highlight gets an enhance folder in its lib (render for analysis, `enhance.worker.ts`,
 `enhancedPdf.ts`, the model adapter). Rule 9 bridged by stale-on-use allowlist entries (READ-02 precedent).
 
 Contract (pure): `Piece { quad, width, height, bend, mesh, keep }`, `Assessment { turn, turnConfidence,
