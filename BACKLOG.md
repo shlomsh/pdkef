@@ -104,7 +104,7 @@ The camera takes pages, the table fixes them, Share sends them. The table first 
 | SCAN-11 | P2 | [SCAN-11](backlog/tasks/SCAN-11.md) · Scan next: the page copy and the scanning guide follow the new flow |  |
 | SCAN-12 | P2 | [SCAN-12](backlog/tasks/SCAN-12.md) · Scan next: a short, very visual video of camera to WhatsApp on /scan-to-pdf/ |  |
 | SCAN-09 | P2 | [SCAN-09](backlog/tasks/SCAN-09.md) · Scan next: classical page-detection upgrades, each gated on the real corpus |  |
-| SCAN-44 | P2 | [SCAN-44](backlog/tasks/SCAN-44.md) · A filled A4 form scanned with PDkef (2026-11-04) came out stretched, with black edges and ghost text |  |
+| SCAN-44 | P2 | [SCAN-44](backlog/tasks/SCAN-44.md) · A filled A4 form scanned with PDkef (2026-11-04): black edges and ghost text remain; stretch is fixed on main for A4 |  |
 
 ### Then, in order
 
