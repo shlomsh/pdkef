@@ -105,6 +105,15 @@ type ScanPhotoEdgeBucket = (typeof SCAN_PHOTO_EDGE_BUCKETS)[number];
 
 type ScanCameraPhotoProperties = Readonly<{ outcome: 'taken'; long_edge: ScanPhotoEdgeBucket }>;
 
+/**
+ * What Highlight's on-open scan check made of the file (PE-06): the one reason it is crooked, or that it
+ * is not. A verdict from a closed list, never a page, a count or a name.
+ */
+const SCAN_CHECK_OUTCOMES = ['sideways', 'spread', 'lean', 'bent', 'straight'] as const;
+export type ScanCheckOutcome = (typeof SCAN_CHECK_OUTCOMES)[number];
+
+type HighlightScanCheckProperties = Readonly<{ outcome: ScanCheckOutcome }>;
+
 type SwInstallProperties = Readonly<{
   outcome: 'failure';
   reason: SwInstallReason;
@@ -135,7 +144,8 @@ export type MaintenanceEvent =
   | Readonly<{ name: 'sign_form_detection'; properties: FormDetectionProperties }>
   | Readonly<{ name: 'pdf_page_tree'; properties: PdfPageTreeProperties }>
   | Readonly<{ name: 'sw_install'; properties: SwInstallProperties }>
-  | Readonly<{ name: 'scan_camera_photo'; properties: ScanCameraPhotoProperties }>;
+  | Readonly<{ name: 'scan_camera_photo'; properties: ScanCameraPhotoProperties }>
+  | Readonly<{ name: 'highlight_scan_check'; properties: HighlightScanCheckProperties }>;
 
 const has = (list: readonly string[], value: unknown): value is string =>
   typeof value === 'string' && list.includes(value);
@@ -209,6 +219,11 @@ function parseScanCameraPhoto(p: Record<string, unknown>): ScanCameraPhotoProper
   return Object.freeze({ outcome: 'taken', long_edge: p.long_edge as ScanPhotoEdgeBucket });
 }
 
+function parseHighlightScanCheck(p: Record<string, unknown>): HighlightScanCheckProperties | null {
+  if (!exactKeys(p, ['outcome']) || !has(SCAN_CHECK_OUTCOMES, p.outcome)) return null;
+  return Object.freeze({ outcome: p.outcome as ScanCheckOutcome });
+}
+
 /**
  * Accepts exactly `{name, properties}` with the property set that name and
  * outcome allow, every value off its list, and nothing else. Run on both
@@ -236,6 +251,10 @@ export function parseMaintenanceEvent(value: unknown): MaintenanceEvent | null {
   }
   if (name === 'scan_camera_photo') {
     const parsed = parseScanCameraPhoto(properties);
+    return parsed && Object.freeze({ name, properties: parsed });
+  }
+  if (name === 'highlight_scan_check') {
+    const parsed = parseHighlightScanCheck(properties);
     return parsed && Object.freeze({ name, properties: parsed });
   }
   return null;

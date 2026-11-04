@@ -2,7 +2,7 @@
 
 # Backlog
 
-The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 148 live: 47 up next, 22 then, 27 waiting, 52 parked.
+The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 147 live: 47 up next, 21 then, 27 waiting, 52 parked.
 
 ## Redact: finish removal
 
@@ -143,7 +143,6 @@ One shared mechanism that turns, splits and straightens a page, first in Scan, t
 
 | ID | P | Task | Note |
 | --- | --- | --- | --- |
-| PE-06 | P2 | [PE-06](backlog/tasks/PE-06.md) · Highlight: detect a crooked scan, no UI |  |
 | PE-07 | P2 | [PE-07](backlog/tasks/PE-07.md) · Highlight: the suggestion line and Not now memory |  |
 | PE-08 | P2 | [PE-08](backlog/tasks/PE-08.md) · Turn-only and vector rebuild, with Undo |  |
 | PE-09 | P2 | [PE-09](backlog/tasks/PE-09.md) · Raster pieces for bent pages |  |
@@ -336,7 +335,7 @@ Done and retired tickets are not listed. Their files stay in [backlog/tasks/](ba
 - Sign: finish fill mode: 3 done, 1 retired
 - Highlight PDF: a tool for reading: 5 done, 1 retired
 - Scan: camera to WhatsApp: 4 done, 0 retired
-- Page enhancement for Scan and Highlight: 4 done, 1 retired
+- Page enhancement for Scan and Highlight: 5 done, 1 retired
 - Tool pages: show the verb: 8 done, 0 retired
 - Form detector accuracy: 19 done, 1 retired
 - Robustness and debt: 88 done, 4 retired

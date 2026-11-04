@@ -17,6 +17,7 @@ import {
   pdfPageTreeRepaired,
   pdfPageTreeFailed,
   scanCameraPhoto,
+  highlightScanCheck,
 } from './maintenanceTelemetry.ts';
 
 const sensitiveValues = {
@@ -211,6 +212,14 @@ describe('scanCameraPhoto (SCAN-16)', () => {
   ])('buckets a %ix%i photo by its long edge', (width, height, long_edge) => {
     const event = scanCameraPhoto(width, height);
     expect(event).toEqual({ name: 'scan_camera_photo', properties: { outcome: 'taken', long_edge } });
+    expect(parseMaintenanceEvent(event)).toEqual(event);
+  });
+});
+
+describe('highlightScanCheck (PE-06)', () => {
+  it('carries the verdict and nothing else', () => {
+    const event = highlightScanCheck('lean');
+    expect(event).toEqual({ name: 'highlight_scan_check', properties: { outcome: 'lean' } });
     expect(parseMaintenanceEvent(event)).toEqual(event);
   });
 });

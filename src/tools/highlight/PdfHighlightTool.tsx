@@ -10,11 +10,11 @@ import { readBackAnnotations } from '#editor/comments/readBack.ts';
 import type { EditorElement } from '#editor/model/editorModel.ts';
 import { isEditorElement } from '#editor/registry/draftValidation.ts';
 import { recordAction } from '#lib/telemetry/actionTrail.ts';
-import { usePdfShare } from '#lib/output/usePdfShare.js';
 import { useWorkspaceZoom } from './hooks/useWorkspaceZoom.ts';
 import { useReadingLamp } from './hooks/useReadingLamp.ts';
 import { useHighlightComments } from './hooks/useHighlightComments.ts';
 import { useNoteRoom } from './hooks/useNoteRoom.ts';
+import { useScanCheck } from './hooks/useScanCheck.ts';
 import { useHighlightMarks } from './hooks/useHighlightMarks.ts';
 import { useMarkerMemory } from './hooks/useMarker.ts';
 import { useHistoryShortcuts } from '#lib/history/useHistoryShortcuts.js';
@@ -45,7 +45,6 @@ export default withIslandBoundary(function PdfHighlightTool() {
   const comments = useHighlightComments({ state: marks.state, dispatch: room.dispatch, logAction: marks.logAction, announce: setAnnouncement });
   const zoom = useWorkspaceZoom({ pdfDocument, workspaceRef, columnRef, fullscreen, noted: comments.showRail, pageTurns: marks.pageTurns });
   const markerMemory = useMarkerMemory({ marker: marks.marker, rearm: marks.rearm });
-  const share = usePdfShare();
   // Undo and redo can bring the first note back or take the last one away, so they go through the room too.
   const undo = () => { if (!marks.canUndo) return; room.dispatch({ type: 'UNDO' }); recordAction('undo'); };
   const redo = () => { if (!marks.canRedo) return; room.dispatch({ type: 'REDO' }); recordAction('redo'); };
@@ -82,10 +81,10 @@ export default withIslandBoundary(function PdfHighlightTool() {
     },
   });
 
-  const { parts, identityRename, done } = useHighlightOutput(file, marks.state.documentRevision);
+  const { parts, identityRename, done, save } = useHighlightOutput(file, marks.state.documentRevision);
   const download = downloadHandler({
     outputName: file ? parts.fileName : undefined, bytes: () => session.fileBytesRef.current, elements: marks.state.elements, pageTurns: marks.pageTurns,
-    save: (blob, name) => share.download(blob, name),
+    save,
   });
 
   // The revision is read before the export, so marks made while it runs retire the strip.
@@ -99,6 +98,7 @@ export default withIslandBoundary(function PdfHighlightTool() {
     });
   };
 
+  useScanCheck(pdfDocument);
   const numPages = pdfDocument?.numPages ?? 0;
 
   return (
