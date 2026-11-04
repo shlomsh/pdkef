@@ -10,6 +10,7 @@ export interface ScanMessages extends DownloadMessages {
   choosePhotos: string;
   cameraStarting: string;
   cameraOff: string;
+  cameraSlow: string;
   hintPoint: string;
   hintHold: string;
   hintTurn: string;
@@ -120,6 +121,7 @@ export const englishScanMessages: ScanMessages = {
   choosePhotos: 'Choose photos',
   cameraStarting: 'Opening the camera…',
   cameraOff: "The camera didn't open here, so each page goes in as a photo instead.",
+  cameraSlow: 'Each page goes in as a photo on this phone, which keeps it sharp.',
   hintPoint: 'Point at a page',
   hintHold: 'Hold still',
   hintTurn: 'Page {count}. Turn the page.',

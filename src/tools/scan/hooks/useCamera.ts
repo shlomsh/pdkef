@@ -6,7 +6,7 @@ import type { Quad } from '../lib/quad.ts';
 import { INITIAL_CAPTURE_STATE, markTaken, stepCapture } from '../lib/capture/captureMachine.ts';
 import type { CaptureState, FrameObservation } from '../lib/capture/types.ts';
 import { cameraStatusFor } from '../lib/camera/cameraErrors.ts';
-import { openCamera, stopCamera, takePhoto } from '../lib/camera/cameraStream.ts';
+import { attachStream, cameraPacer, openCamera, stopCamera, takePhoto } from '../lib/camera/cameraStream.ts';
 import { frameGrabber, snapshot } from '../lib/camera/frameGrab.ts';
 import { IDLE_VIEW, type CameraHandle, type CameraStatus, type TakenPage } from '../lib/camera/types.ts';
 import { liveView } from '../lib/camera/viewfinderModel.ts';
@@ -44,17 +44,10 @@ export function useCamera(input: UseCameraInput): CameraHandle {
   const stateRef = useRef<CaptureState>(INITIAL_CAPTURE_STATE);
   const lastObs = useRef<FrameObservation | null>(null);
   const shooting = useRef(false);
+  const pacer = useRef<ReturnType<typeof cameraPacer> | null>(null);
 
-  const attach = useCallback(() => {
-    const el = videoEl.current;
-    const stream = streamRef.current;
-    if (!el || !stream || el.srcObject === stream) return;
-    el.srcObject = stream;
-    el.muted = true;
-    el.playsInline = true;
-    // expected: a muted inline video that will not autoplay still delivers frames to the grab
-    el.play().catch(() => {});
-  }, []);
+  const attach = useCallback(() => attachStream(videoEl.current, streamRef.current), []);
+  const track = useCallback(() => streamRef.current?.getVideoTracks()[0], []);
 
   const videoRef = useCallback((el: HTMLVideoElement | null) => {
     videoEl.current = el;
@@ -68,13 +61,14 @@ export function useCamera(input: UseCameraInput): CameraHandle {
 
   const shoot = useCallback(async (quad?: Quad | null, byShutter = false) => {
     const video = videoEl.current;
-    const track = streamRef.current?.getVideoTracks()[0];
-    if (!video || !track || shooting.current) return;
+    const running = track();
+    if (!video || !running || shooting.current) return;
     shooting.current = true;
+    pacer.current?.stop();
     try {
       const taken = quad === undefined ? stateRef.current.smoothed : quad;
       if (byShutter && lastObs.current) stateRef.current = markTaken(stateRef.current, lastObs.current.hash);
-      onTakenRef.current({ ...(await captureShot(track, video)), quad: taken });
+      onTakenRef.current({ ...(await captureShot(running, video)), quad: taken });
     } catch (err) {
       reportError('pdf_tool_run', err, 'scan_camera_photo');
     } finally {
@@ -99,6 +93,7 @@ export function useCamera(input: UseCameraInput): CameraHandle {
       stateRef.current = step.state;
       lastObs.current = obs;
       setLive(liveView(step.state, obs.t));
+      pacer.current?.check(obs.t);
       if (step.capture && autoRef.current && !pausedRef.current) void shootRef.current(step.capture); // reason: shoot reports its own failure
     };
 
@@ -126,6 +121,12 @@ export function useCamera(input: UseCameraInput): CameraHandle {
       if (videoEl.current) videoEl.current.srcObject = null;
     };
 
+    const handOver = (reason: CameraStatus) => {
+      stop();
+      setStatus(reason);
+    };
+    pacer.current = cameraPacer(track, () => handOver('slow'));
+
     const start = async () => {
       if (starting) return;
       starting = true;
@@ -136,11 +137,10 @@ export function useCamera(input: UseCameraInput): CameraHandle {
         streamRef.current = stream;
         // another app took the camera, or the system interrupted it: the photo fallback takes over
         stream.getVideoTracks()[0]?.addEventListener('ended', () => {
-          if (!alive || streamRef.current !== stream) return;
-          stop();
-          setStatus('unavailable');
+          if (alive && streamRef.current === stream) handOver('unavailable');
         });
         stateRef.current = INITIAL_CAPTURE_STATE;
+        pacer.current?.reset();
         inFlight = false;
         setStatus('live');
         attach();
@@ -167,7 +167,7 @@ export function useCamera(input: UseCameraInput): CameraHandle {
       stop();
       worker.terminate();
     };
-  }, [attach]);
+  }, [attach, track]);
 
   const setAuto = useCallback((on: boolean) => {
     autoRef.current = on;
@@ -175,6 +175,5 @@ export function useCamera(input: UseCameraInput): CameraHandle {
   }, []);
   const shutter = useCallback(() => { void shootRef.current(undefined, true); /* reason: shoot reports its own failure */ }, []);
 
-  const track = useCallback(() => streamRef.current?.getVideoTracks()[0], []);
   return { status, live, videoSize, videoRef, auto, setAuto, shoot: shutter, track };
 }

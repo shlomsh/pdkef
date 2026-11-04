@@ -2,6 +2,7 @@ import { useCallback, type Dispatch, type MutableRef, type StateUpdater } from '
 import { throwIfAborted } from '#lib/output/abort.js';
 import { reportError } from '#lib/telemetry/errorReport.ts';
 import { recordAction } from '#lib/telemetry/actionTrail.ts';
+import { beaconMaintenanceTransport, reportMaintenanceEvent, scanCameraPhoto } from '#lib/telemetry/maintenanceTelemetry.ts';
 import { formatMessage } from '#lib/text/formatMessage.ts';
 import { PHOTO_ACCEPTED_TYPES } from '#lib/hooks/usePhotoTileList.ts';
 import { useHandoffFilesIntake } from '#lib/handoff/useHandoffIntake.ts';
@@ -31,13 +32,14 @@ interface ScanPagesInput {
 type InspectHost = Pick<ScanPagesInput, 'work' | 'unmountedRef' | 'dispatch' | 'setPages'>;
 
 /** One new photo through the queue: its preview and edge guess, or the mark that it could not be read. */
-function inspectPage(page: ScanPage, { work, unmountedRef, dispatch, setPages }: InspectHost) {
+function inspectPage(page: ScanPage, { work, unmountedRef, dispatch, setPages }: InspectHost, fromCamera = false) {
   work.enqueue(async () => (work.removed.has(page.id) ? null : (await loadPipeline()).inspectPhoto(page.file)))
     .then((seen) => seen, (err) => {
       reportError('pdf_tool_run', err, 'scan_inspect_photo');
       return null;
     })
     .then((seen) => {
+      if (seen && fromCamera) reportMaintenanceEvent(scanCameraPhoto(seen.width, seen.height), beaconMaintenanceTransport);
       if (work.removed.has(page.id) || unmountedRef.current) return;
       // A photo that could not be decoded: say so (failedIds), never "finding edges" forever.
       if (!seen) dispatch({ type: 'pageFailed', id: page.id });
@@ -73,7 +75,7 @@ export function useScanPages(input: ScanPagesInput) {
     return run;
   }, []);
 
-  const addFiles = useCallback((fileList: FileList | File[]) => {
+  const addFiles = useCallback((fileList: FileList | File[], from?: { fromCamera: boolean }) => {
     const { accepted, rejectedNames } = partitionFiles(Array.from(fileList), PHOTO_ACCEPTED_TYPES);
     setRejectedFiles(rejectedNames);
     if (accepted.length === 0) return;
@@ -83,7 +85,7 @@ export function useScanPages(input: ScanPagesInput) {
     dispatch({ type: 'photosAdded', firstId: added[0].id });
     announce(added.length === 1 ? t.announceAddedOne : formatMessage(t.announceAddedMany, { count: added.length }));
     recordAction('add_files');
-    for (const page of added) inspectPage(page, input);
+    for (const page of added) inspectPage(page, input, from?.fromCamera);
   }, []);
 
   /** A retake: the new photo takes the old page's place, with the old page's look and its own id. */

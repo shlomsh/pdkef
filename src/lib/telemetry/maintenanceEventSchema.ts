@@ -95,6 +95,16 @@ type SwInstallReason = (typeof SW_INSTALL_REASONS)[number];
 export const SW_INSTALL_MISSED_BUCKETS = ['0', '1', '2-5', '6-20', '21+'] as const;
 type SwInstallMissedBucket = (typeof SW_INSTALL_MISSED_BUCKETS)[number];
 
+/**
+ * How big a photo the live camera took (SCAN-16), by its long edge. On an iPhone the
+ * photo follows the stream, so this says whether phones get a full photo and how often
+ * a slow one stepped down. A size bucket, nothing from the page.
+ */
+const SCAN_PHOTO_EDGE_BUCKETS = ['under_2000', 'under_3000', '3000_or_more'] as const;
+type ScanPhotoEdgeBucket = (typeof SCAN_PHOTO_EDGE_BUCKETS)[number];
+
+type ScanCameraPhotoProperties = Readonly<{ outcome: 'taken'; long_edge: ScanPhotoEdgeBucket }>;
+
 type SwInstallProperties = Readonly<{
   outcome: 'failure';
   reason: SwInstallReason;
@@ -124,7 +134,8 @@ export type MaintenanceEvent =
   | Readonly<{ name: 'sign_export'; properties: SignExportProperties }>
   | Readonly<{ name: 'sign_form_detection'; properties: FormDetectionProperties }>
   | Readonly<{ name: 'pdf_page_tree'; properties: PdfPageTreeProperties }>
-  | Readonly<{ name: 'sw_install'; properties: SwInstallProperties }>;
+  | Readonly<{ name: 'sw_install'; properties: SwInstallProperties }>
+  | Readonly<{ name: 'scan_camera_photo'; properties: ScanCameraPhotoProperties }>;
 
 const has = (list: readonly string[], value: unknown): value is string =>
   typeof value === 'string' && list.includes(value);
@@ -192,6 +203,12 @@ function parseSwInstall(p: Record<string, unknown>): SwInstallProperties | null 
   });
 }
 
+function parseScanCameraPhoto(p: Record<string, unknown>): ScanCameraPhotoProperties | null {
+  if (!exactKeys(p, ['outcome', 'long_edge']) || p.outcome !== 'taken') return null;
+  if (!has(SCAN_PHOTO_EDGE_BUCKETS, p.long_edge)) return null;
+  return Object.freeze({ outcome: 'taken', long_edge: p.long_edge as ScanPhotoEdgeBucket });
+}
+
 /**
  * Accepts exactly `{name, properties}` with the property set that name and
  * outcome allow, every value off its list, and nothing else. Run on both
@@ -217,6 +234,10 @@ export function parseMaintenanceEvent(value: unknown): MaintenanceEvent | null {
     const parsed = parseSwInstall(properties);
     return parsed && Object.freeze({ name, properties: parsed });
   }
+  if (name === 'scan_camera_photo') {
+    const parsed = parseScanCameraPhoto(properties);
+    return parsed && Object.freeze({ name, properties: parsed });
+  }
   return null;
 }
 
@@ -229,6 +250,6 @@ export function parseMaintenanceEvent(value: unknown): MaintenanceEvent | null {
  */
 export function maintenanceEventField(event: MaintenanceEvent, engine: string): string {
   const p = event.properties as Record<string, string>;
-  const detail = [p.field_count_bucket, p.page_kind, p.shape, p.roots, p.duration_bucket, p.error_code, p.reason, p.missed].filter(Boolean);
+  const detail = [p.field_count_bucket, p.page_kind, p.shape, p.roots, p.duration_bucket, p.error_code, p.reason, p.missed, p.long_edge].filter(Boolean);
   return [event.name, p.outcome, ...detail, engine].join('|');
 }

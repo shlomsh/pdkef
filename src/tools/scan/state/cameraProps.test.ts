@@ -37,7 +37,7 @@ describe('cameraProps', () => {
   it('many: each page taken joins the scan, and the camera stays open', () => {
     const { host, props } = setup({ mode: 'many' });
     props?.onTaken(file);
-    expect(host.addFiles).toHaveBeenCalledWith([file]);
+    expect(host.addFiles).toHaveBeenCalledWith([file], { fromCamera: true });
     expect(host.dispatch).not.toHaveBeenCalled();
   });
 

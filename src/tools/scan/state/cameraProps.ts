@@ -11,7 +11,7 @@ interface CameraPropsInput {
   pages: ScanPage[];
   results: Record<number, PageResult>;
   dispatch: ScanDispatch;
-  addFiles: (files: File[]) => void;
+  addFiles: (files: File[], from?: { fromCamera: boolean }) => void;
   retakePage: (id: number, file: File) => void;
   /** The centre view: the viewer (result, corners) over a many-mode camera pauses it. */
   view: 'table' | 'result' | 'corners';
@@ -33,7 +33,7 @@ export function cameraProps({ camera, pages, results, dispatch, addFiles, retake
     mode: camera.mode,
     count: pages.length,
     lastSrc: last ? lastPageSrc(last, results) : null,
-    onTaken: (file) => (camera.mode === 'one' ? retakeWith(camera.pageId, file) : addFiles([file])),
+    onTaken: (file) => (camera.mode === 'one' ? retakeWith(camera.pageId, file) : addFiles([file], { fromCamera: true })),
     onClose: close,
     paused: camera.mode === 'many' && view !== 'table',
     // The last page opens in the viewer, over the running camera.

@@ -214,6 +214,20 @@ describe('pdf_page_tree', () => {
   });
 });
 
+describe('scan_camera_photo', () => {
+  it('takes a bucket off the list and nothing else', () => {
+    const properties = { outcome: 'taken', long_edge: 'under_2000' };
+    expect(parseMaintenanceEvent({ name: 'scan_camera_photo', properties })).toEqual({ name: 'scan_camera_photo', properties });
+    expect(parseMaintenanceEvent({ name: 'scan_camera_photo', properties: { ...properties, long_edge: '1920' } })).toBeNull();
+    expect(parseMaintenanceEvent({ name: 'scan_camera_photo', properties: { ...properties, width: 1 } })).toBeNull();
+  });
+
+  it('is counted per bucket and browser', () => {
+    const e = parseMaintenanceEvent({ name: 'scan_camera_photo', properties: { outcome: 'taken', long_edge: '3000_or_more' } })!;
+    expect(maintenanceEventField(e, 'ios-26')).toBe('scan_camera_photo|taken|3000_or_more|ios-26');
+  });
+});
+
 describe('maintenanceEventField', () => {
   it('page tree', () => {
     const e = parseMaintenanceEvent(pageTree('repaired', 'no_pages_key', 'one'))!;
