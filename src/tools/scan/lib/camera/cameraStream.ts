@@ -1,5 +1,5 @@
 // The camera stream and the photo (SCAN-08). DOM.
-import { CAMERA_SIZES, INITIAL_PACE, stepPace, stopJudging } from './cameraPace.ts';
+import { CAMERA_SIZES, INITIAL_PACE, restartWindow, stepPace, stopJudging } from './cameraPace.ts';
 
 interface ImageCaptureLike { takePhoto(): Promise<Blob> }
 declare const ImageCapture: { new (track: MediaStreamTrack): ImageCaptureLike };
@@ -33,7 +33,8 @@ export function cameraPacer(track: () => MediaStreamTrack | undefined, onTooSlow
   return {
     reset() { state = INITIAL_PACE; },
     stop() { state = stopJudging(state); },
-    check(t: number) {
+    check(t: number, paused = false) {
+      if (paused) { state = restartWindow(state); return; }
       const step = stepPace(state, t);
       state = step.state;
       if (step.verdict === 'tooSlow') onTooSlow();

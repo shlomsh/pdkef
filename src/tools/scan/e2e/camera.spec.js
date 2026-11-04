@@ -68,6 +68,9 @@ test('a pinch on the viewfinder zooms the camera and leaves the page alone', asy
 test('a phone that cannot keep up steps down, then hands over to the native camera', async ({ page }) => {
   await page.addInitScript(() => {
     window.__sizes = [];
+    window.__opens = 0;
+    const realOpen = navigator.mediaDevices.getUserMedia.bind(navigator.mediaDevices);
+    navigator.mediaDevices.getUserMedia = (constraints) => { window.__opens += 1; return realOpen(constraints); };
     const realApply = MediaStreamTrack.prototype.applyConstraints;
     MediaStreamTrack.prototype.applyConstraints = function apply(constraints) {
       window.__sizes.push(constraints.width?.ideal);
@@ -95,4 +98,11 @@ test('a phone that cannot keep up steps down, then hands over to the native came
   await expect(viewfinder.getByText('Each page goes in as a photo on this phone')).toBeVisible({ timeout: 15_000 });
   expect(await page.evaluate(() => window.__sizes)).toEqual([2592]);
   await expect(viewfinder.getByText('Take a photo')).toBeVisible();
+
+  // The native camera leaves the page and comes back: that must not reopen a stream the phone cannot run.
+  await page.evaluate(async () => {
+    document.dispatchEvent(new Event('visibilitychange'));
+    await new Promise((done) => { setTimeout(done, 500); });
+  });
+  expect(await page.evaluate(() => window.__opens)).toBe(1);
 });

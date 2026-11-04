@@ -93,7 +93,7 @@ export function useCamera(input: UseCameraInput): CameraHandle {
       stateRef.current = step.state;
       lastObs.current = obs;
       setLive(liveView(step.state, obs.t));
-      pacer.current?.check(obs.t);
+      pacer.current?.check(obs.t, pausedRef.current);
       if (step.capture && autoRef.current && !pausedRef.current) void shootRef.current(step.capture); // reason: shoot reports its own failure
     };
 
@@ -125,7 +125,8 @@ export function useCamera(input: UseCameraInput): CameraHandle {
       stop();
       setStatus(reason);
     };
-    pacer.current = cameraPacer(track, () => handOver('slow'));
+    let tooSlow = false;
+    pacer.current = cameraPacer(track, () => { tooSlow = true; handOver('slow'); });
 
     const start = async () => {
       if (starting) return;
@@ -156,7 +157,7 @@ export function useCamera(input: UseCameraInput): CameraHandle {
 
     const onVisibility = () => {
       if (document.hidden) stop();
-      else if (!streamRef.current) void start(); // reason: start turns a failure into a status
+      else if (!streamRef.current && !tooSlow) void start(); // reason: start turns a failure into a status
     };
 
     document.addEventListener('visibilitychange', onVisibility);
