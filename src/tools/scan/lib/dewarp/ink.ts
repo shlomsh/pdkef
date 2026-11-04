@@ -4,6 +4,9 @@ import type { GrayImage } from '../quad.ts';
 
 /** A pixel is ink when it is darker than this share of the paper level around it. */
 const INK_RATIO = 0.75;
+/** A rule is looked for in fainter ink: a one-pixel line loses contrast when the page is shrunk to be
+ * measured, where letters keep theirs; its long, thin, vertical run is what tells it from noise. */
+const RULE_INK_RATIO = 0.9;
 /** Share of each dimension ignored along every edge (scanner and corner shadows). */
 const MARGIN = 0.03;
 /** Block size for the local paper level, as a share of the long edge. */
@@ -25,7 +28,7 @@ function mean3x3(grid: Float32Array, gw: number, gh: number, bx: number, by: num
 }
 
 /** @testSeam Read through pageMasks; the test checks the ink on its own. */
-export function inkMask(gray: GrayImage): Uint8Array {
+export function inkMask(gray: GrayImage, ratio = INK_RATIO): Uint8Array {
   const { width: w, height: h, data } = gray;
   const bs = Math.max(8, Math.round(Math.max(w, h) * PAPER_BLOCK));
   const gw = Math.ceil(w / bs);
@@ -48,7 +51,7 @@ export function inkMask(gray: GrayImage): Uint8Array {
   for (let y = my; y < h - my; y += 1) {
     const row = Math.floor(y / bs) * gw;
     for (let x = mx; x < w - mx; x += 1) {
-      if (data[y * w + x] < INK_RATIO * paper[row + Math.floor(x / bs)]) mask[y * w + x] = 1;
+      if (data[y * w + x] < ratio * paper[row + Math.floor(x / bs)]) mask[y * w + x] = 1;
     }
   }
   return mask;
@@ -69,14 +72,17 @@ export function ruleMask(ink: Uint8Array, w: number, h: number): Uint8Array {
       x = end;
     }
   }
+  // A run may drift a pixel either way as it goes down: a rule a crease or a lean has tilted steps
+  // across columns, and read one column at a time it would break into stubs shorter than a letter.
+  const near = (x: number, y: number) => thin[y * w + x] || (x > 0 && thin[y * w + x - 1]) || (x < w - 1 && thin[y * w + x + 1]);
   const rule = new Uint8Array(w * h);
   for (let x = 0; x < w; x += 1) {
     let y = 0;
     while (y < h) {
-      if (!thin[y * w + x]) { y += 1; continue; }
+      if (!near(x, y)) { y += 1; continue; }
       let end = y;
-      while (end < h && thin[end * w + x]) end += 1;
-      if (end - y >= minRun) for (let k = y; k < end; k += 1) rule[k * w + x] = 1;
+      while (end < h && near(x, end)) end += 1;
+      if (end - y >= minRun) for (let k = y; k < end; k += 1) rule[k * w + x] = thin[k * w + x];
       y = end;
     }
   }
@@ -87,6 +93,10 @@ export function ruleMask(ink: Uint8Array, w: number, h: number): Uint8Array {
 export interface PageMasks { width: number; height: number; ink: Uint8Array; rules: Uint8Array }
 
 export function pageMasks(gray: GrayImage): PageMasks {
-  const ink = inkMask(gray);
-  return { width: gray.width, height: gray.height, ink, rules: ruleMask(ink, gray.width, gray.height) };
+  return {
+    width: gray.width,
+    height: gray.height,
+    ink: inkMask(gray),
+    rules: ruleMask(inkMask(gray, RULE_INK_RATIO), gray.width, gray.height),
+  };
 }

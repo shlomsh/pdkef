@@ -23,8 +23,8 @@ const BASELINE_WINDOW = 3;
 const MIN_SAMPLES = 10;
 /** Most lines used in the fit (the widest ones). */
 const MAX_LINES = 60;
-/** Ridge added to the bend coefficients for stability. */
-const RIDGE = 1e-6;
+/** Ridge added to every node, so a grid with no data anywhere near still solves. */
+const RIDGE = 1e-9;
 /** A line is dropped when its residual RMS is over this many times the median line RMS. */
 const OUTLIER_FACTOR = 3;
 /** A line is dropped when its residual RMS (normalized units) is over this. */
@@ -116,66 +116,94 @@ function lineSamples(blob: Uint8Array, w: number, h: number): Sample[][] {
   return found.slice(0, MAX_LINES).map((f) => f.samples);
 }
 
-function basis(x: number, y: number): number[] {
-  const out: number[] = [];
-  let xi = x;
-  for (let i = 1; i <= 3; i += 1) {
-    const b = xi - 1 / (i + 1);
-    out.push(b, b * y, b * y * y);
-    xi *= x;
-  }
-  return out;
-}
+/** Grid nodes along a line and across the lines. A cell is a sixteenth of the page: a curl spans many,
+ * and a crease turns within about one. */
+const ALONG = 16;
+const ACROSS = 16;
+/** How strongly the grid resists bending (its second differences), against how closely it follows the
+ * lines (their mean squared residual). Low enough that a crease's turn is followed, high enough that a
+ * line's ragged ends are not. */
+const STIFFNESS = 2e-4;
+/** Holds each row of nodes to a zero mean: a bend that only shifts whole lines up or down is the lines'
+ * own heights, which the per-line offsets carry. */
+const GAUGE = 1;
 
-/** Gaussian elimination with partial pivoting on an n x n system; returns null when singular. */
-function solve(a: Float64Array, b: Float64Array, n: number): Float64Array | null {
-  for (let col = 0; col < n; col += 1) {
-    let best = col;
-    for (let r = col + 1; r < n; r += 1) if (Math.abs(a[r * n + col]) > Math.abs(a[best * n + col])) best = r;
-    if (Math.abs(a[best * n + col]) < 1e-12) return null;
-    if (best !== col) {
-      for (let k = 0; k < n; k += 1) { const t = a[col * n + k]; a[col * n + k] = a[best * n + k]; a[best * n + k] = t; }
-      const t = b[col]; b[col] = b[best]; b[best] = t;
-    }
-    for (let r = col + 1; r < n; r += 1) {
-      const f = a[r * n + col] / a[col * n + col];
-      if (f === 0) continue;
-      for (let k = col; k < n; k += 1) a[r * n + k] -= f * a[col * n + k];
-      b[r] -= f * b[col];
+/** Cholesky on a symmetric positive definite n x n system, in place; null when it is not one. */
+function solveSpd(a: Float64Array, b: Float64Array, n: number): Float64Array | null {
+  for (let j = 0; j < n; j += 1) {
+    let diag = a[j * n + j];
+    for (let k = 0; k < j; k += 1) diag -= a[j * n + k] ** 2;
+    if (!(diag > 1e-18)) return null;
+    const l = Math.sqrt(diag);
+    a[j * n + j] = l;
+    for (let i = j + 1; i < n; i += 1) {
+      let v = a[i * n + j];
+      for (let k = 0; k < j; k += 1) v -= a[i * n + k] * a[j * n + k];
+      a[i * n + j] = v / l;
     }
   }
   const x = new Float64Array(n);
-  for (let r = n - 1; r >= 0; r -= 1) {
-    let s = b[r];
-    for (let k = r + 1; k < n; k += 1) s -= a[r * n + k] * x[k];
-    x[r] = s / a[r * n + r];
+  for (let i = 0; i < n; i += 1) {
+    let v = b[i];
+    for (let k = 0; k < i; k += 1) v -= a[i * n + k] * x[k];
+    x[i] = v / a[i * n + i];
+  }
+  for (let i = n - 1; i >= 0; i -= 1) {
+    let v = x[i];
+    for (let k = i + 1; k < n; k += 1) v -= a[k * n + i] * x[k];
+    x[i] = v / a[i * n + i];
   }
   return x;
 }
 
 interface Fit { bend: LineBend; offsets: number[] }
 
+/**
+ * The grid and one height per line that best explain every sample (y observed at x), by least squares
+ * with the grid's bending energy as the penalty: each sample reads the grid bilinearly, so it touches
+ * four nodes and its line's offset.
+ */
 function fit(lines: Sample[][]): Fit | null {
-  const n = 9 + lines.length;
+  const nodes = ALONG * ACROSS;
+  const n = nodes + lines.length;
   const a = new Float64Array(n * n);
   const b = new Float64Array(n);
-  lines.forEach((samples, k) => {
-    for (const s of samples) {
-      const phi = basis(s.x, s.y);
-      for (let p = 0; p < 9; p += 1) {
-        for (let q = 0; q < 9; q += 1) a[p * n + q] += phi[p] * phi[q];
-        a[p * n + 9 + k] += phi[p];
-        a[(9 + k) * n + p] += phi[p];
-        b[p] += phi[p] * s.y;
+  const total = lines.reduce((t, l) => t + l.length, 0);
+  const wData = 1 / total;
+  const idx = [0, 0, 0, 0, 0];
+  const w = [0, 0, 0, 0, 1];
+  lines.forEach((samples, line) => {
+    for (const p of samples) {
+      const gx = Math.min(ALONG - 1, Math.max(0, p.x)) * (ALONG - 1);
+      const gy = Math.min(ACROSS - 1, Math.max(0, p.y)) * (ACROSS - 1);
+      const i = Math.min(ALONG - 2, Math.floor(gx));
+      const j = Math.min(ACROSS - 2, Math.floor(gy));
+      const tx = gx - i;
+      const ty = gy - j;
+      const k = j * ALONG + i;
+      idx[0] = k; idx[1] = k + 1; idx[2] = k + ALONG; idx[3] = k + ALONG + 1; idx[4] = nodes + line;
+      w[0] = (1 - tx) * (1 - ty); w[1] = tx * (1 - ty); w[2] = (1 - tx) * ty; w[3] = tx * ty;
+      for (let r = 0; r < 5; r += 1) {
+        for (let c = 0; c < 5; c += 1) a[idx[r] * n + idx[c]] += wData * w[r] * w[c];
+        b[idx[r]] += wData * w[r] * p.y;
       }
-      a[(9 + k) * n + 9 + k] += 1;
-      b[9 + k] += s.y;
     }
   });
-  for (let p = 0; p < 9; p += 1) a[p * n + p] += RIDGE;
-  const x = solve(a, b, n);
+  // Bending energy: every run of three nodes along either direction, (d0 - 2 d1 + d2)^2.
+  const stencil = (k0: number, k1: number, k2: number) => {
+    const ks = [k0, k1, k2];
+    const cs = [1, -2, 1];
+    for (let r = 0; r < 3; r += 1) for (let c = 0; c < 3; c += 1) a[ks[r] * n + ks[c]] += STIFFNESS * cs[r] * cs[c];
+  };
+  for (let j = 0; j < ACROSS; j += 1) for (let i = 1; i < ALONG - 1; i += 1) stencil(j * ALONG + i - 1, j * ALONG + i, j * ALONG + i + 1);
+  for (let i = 0; i < ALONG; i += 1) for (let j = 1; j < ACROSS - 1; j += 1) stencil((j - 1) * ALONG + i, j * ALONG + i, (j + 1) * ALONG + i);
+  for (let j = 0; j < ACROSS; j += 1) {
+    for (let r = 0; r < ALONG; r += 1) for (let c = 0; c < ALONG; c += 1) a[(j * ALONG + r) * n + j * ALONG + c] += GAUGE;
+  }
+  for (let k = 0; k < nodes; k += 1) a[k * n + k] += RIDGE;
+  const x = solveSpd(a, b, n);
   if (!x) return null;
-  return { bend: { c: Array.from(x.subarray(0, 9)) }, offsets: Array.from(x.subarray(9)) };
+  return { bend: { nx: ALONG, ny: ACROSS, d: Array.from(x.subarray(0, nodes)) }, offsets: Array.from(x.subarray(nodes)) };
 }
 
 function lineRms(samples: Sample[], offset: number, bend: LineBend): number {
@@ -186,7 +214,7 @@ function lineRms(samples: Sample[], offset: number, bend: LineBend): number {
 
 /** @testSeam The rows alone, their shared lean left to the corners: what the tests measure a page by. */
 export function findLineBend(gray: GrayImage): LineBend | null {
-  return finishBend(lineFit(pageMasks(gray)), 0);
+  return finishBend(lineFit(pageMasks(gray)), false);
 }
 
 /** The rows' fit before its lean is settled (see finishBend), or null when there are no clear rows.
@@ -199,9 +227,10 @@ export function lineFit({ ink, rules, width: w, height: h }: PageMasks): FittedB
 }
 
 /** A fit through a page's lines, its lean still in it. `lean` is the slope (normalized, y per x) the
- * lines share, the median of their own; the bend's lean that differs down the page is a fan.
- * `explained`: the fit follows the lines' own wobble well enough to be applied as a bend. */
-export interface FittedBend { bend: LineBend; lean: number; explained: boolean }
+ * clean, wide lines share (the median of their own), or null when no line is both: it gates squaring
+ * and stands in for a fit that does not explain its lines, nothing else. `explained`: the fit follows
+ * the lines' own wobble well enough to be applied as a bend. */
+export interface FittedBend { bend: LineBend; lean: number | null; explained: boolean }
 
 /**
  * One shared bend through every line's samples (each `y` observed at `x`), with a free height per
@@ -242,7 +271,7 @@ export function fitBend(found: Sample[][], minLines: number): FittedBend | null 
   for (const line of lines) for (const p of line) {
     x0 = Math.min(x0, p.x); x1 = Math.max(x1, p.x); y0 = Math.min(y0, p.y); y1 = Math.max(y1, p.y);
   }
-  const bend: LineBend = { c: [...result.bend.c], box: { x0, x1, y0, y1 } };
+  const bend: LineBend = { ...result.bend, box: { x0, x1, y0, y1 } };
   return { bend, lean: medianSlope(lines), explained };
 }
 
@@ -250,7 +279,7 @@ export function fitBend(found: Sample[][], minLines: number): FittedBend | null 
  * that are straight on their own and run across a good part of the page. A polynomial's slope at one
  * point swings with noise at the ends of ragged lines; and a form's cell, where a label, a handwritten
  * value and the cell's rule join into one shape, slopes wherever the handwriting goes. */
-function medianSlope(lines: Sample[][]): number {
+function medianSlope(lines: Sample[][]): number | null {
   const own = lines.map((line) => {
     const mx = line.reduce((t, p) => t + p.x, 0) / line.length;
     const my = line.reduce((t, p) => t + p.y, 0) / line.length;
@@ -264,41 +293,52 @@ function medianSlope(lines: Sample[][]): number {
   });
   const rmsCut = Math.max(LEAN_RMS, median(own.map((l) => l.rms)));
   const clean = own.filter((l) => l.span >= LEAN_SPAN && l.rms <= rmsCut);
-  return median((clean.length ? clean : own).map((l) => l.slope));
+  return clean.length ? median(clean.map((l) => l.slope)) : null;
 }
 
 const median = (values: number[]) => [...values].sort((a, b) => a - b)[values.length >> 1];
 
-/** The bend's straight part across where its lines are, at their middle height: the least-squares
- * slope of bendAt over the box's width. Over the box, not 0..1: bendAt holds still outside it. */
-function leanAt(bend: LineBend): number {
+/** The bend's own shared tilt: its least-squares slope across the box, averaged over the box's height.
+ * Bilinear reading reproduces a plane exactly, so taking `slope * (x - mid)` off every node removes
+ * exactly this much tilt and nothing else. */
+function fieldLean(bend: LineBend): number {
   const { x0, x1, y0, y1 } = bend.box!;
-  const y = (y0 + y1) / 2;
-  const n = 17;
   const xm = (x0 + x1) / 2;
   let num = 0;
   let den = 0;
-  for (let k = 0; k < n; k += 1) {
-    const x = x0 + ((x1 - x0) * k) / (n - 1);
-    num += (x - xm) * bendAt(bend, x, y);
-    den += (x - xm) ** 2;
+  for (let r = 0; r < 9; r += 1) {
+    const y = y0 + ((y1 - y0) * r) / 8;
+    for (let k = 0; k < 17; k += 1) {
+      const x = x0 + ((x1 - x0) * k) / 16;
+      num += (x - xm) * bendAt(bend, x, y);
+      den += (x - xm) ** 2;
+    }
   }
   return den > 0 ? num / den : 0;
 }
 
 /**
- * The bend to apply, its lean at the lines' middle set to `keep` (normalized, as `lean`): 0 leaves the
- * lines' lean as the corners made it, `lean` straightens it too. A fit that does not explain the lines'
- * wobble applies its lean alone. Null unless the result clearly moves something, judged as it will be
- * applied, inside the box its lines cover, so a blank margin cannot carry an extrapolated bend.
+ * The bend to apply. `square`: straighten the lines' shared tilt too (the fit's own, as fitted);
+ * otherwise that tilt is taken out and stays as the corners made it. A fit that does not explain its
+ * lines' wobble applies a tilt alone, from the clean lines, and only when squaring. Null unless the
+ * result clearly moves something, judged as it will be applied, inside the box its lines cover.
  */
-export function finishBend(fitted: FittedBend | null, keep: number): LineBend | null {
+export function finishBend(fitted: FittedBend | null, square: boolean): LineBend | null {
   if (!fitted) return null;
-  const c = fitted.explained ? [...fitted.bend.c] : new Array<number>(9).fill(0);
-  // c[0] multiplies (x - 1/2) alone, so this sets the bend's own slope at the lines' middle to `keep`.
-  c[0] += keep - (fitted.explained ? leanAt(fitted.bend) : 0);
-  const bend: LineBend = { c, box: fitted.bend.box };
-  const grid = 9;
+  const { nx, ny, box } = fitted.bend;
+  const xm = (box!.x0 + box!.x1) / 2;
+  const plane = (slope: number) => Array.from({ length: nx * ny }, (_, k) => slope * ((k % nx) / (nx - 1) - xm));
+  let d: number[];
+  if (fitted.explained) {
+    const tilt = square ? 0 : fieldLean(fitted.bend);
+    const off = plane(tilt);
+    d = fitted.bend.d.map((v, k) => v - off[k]);
+  } else {
+    if (!square || fitted.lean === null) return null;
+    d = plane(fitted.lean);
+  }
+  const bend: LineBend = { nx, ny, d, box };
+  const grid = 17;
   let maxBend = 0;
   for (let gy = 0; gy < grid; gy += 1) {
     for (let gx = 0; gx < grid; gx += 1) maxBend = Math.max(maxBend, Math.abs(bendAt(bend, gx / (grid - 1), gy / (grid - 1))));
