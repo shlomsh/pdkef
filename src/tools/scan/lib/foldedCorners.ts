@@ -22,6 +22,10 @@ const SLIVER_DEPTH = 0.015;
 const SLIVER_LEAN = 5;
 /** Shortest sliver, as a share of its edge: shorter is a tick. */
 const SLIVER_LENGTH = 0.02;
+/** Longest sliver, as a share of its edge: a mark that runs further is a printed band. */
+const SLIVER_REACH = 0.5;
+/** A lifted edge tapers, so a sliver fills at most this share of its box; print of even depth fills it. */
+const SLIVER_FILL = 0.8;
 /** How far from an edge, in pixels, a sliver may start. */
 const ON_EDGE = 1;
 /** How much of the corner triangle the mark must fill. */
@@ -74,11 +78,13 @@ function foldedCorner(pixels: Int32Array, box: Box, width: number, height: numbe
   return null;
 }
 
-/** True for a long thin mark lying along one page edge: table past a lifted edge. */
-function edgeSliver(box: Box, width: number, height: number): boolean {
+/** True for a long thin tapering mark lying along one page edge: table past a lifted edge. */
+function edgeSliver(area: number, box: Box, width: number, height: number): boolean {
   const limit = SLIVER_DEPTH * Math.min(width, height);
   const sliver = (depth: number, length: number, edge: number) =>
-    depth <= limit && length >= SLIVER_LEAN * depth && length >= SLIVER_LENGTH * edge;
+    depth <= limit && length >= SLIVER_LEAN * depth &&
+    length >= SLIVER_LENGTH * edge && length <= SLIVER_REACH * edge &&
+    area <= SLIVER_FILL * depth * length;
   const wide = box.maxX - box.minX + 1;
   const tall = box.maxY - box.minY + 1;
   const onSide = box.minX <= ON_EDGE || box.maxX >= width - 1 - ON_EDGE;
@@ -197,7 +203,7 @@ export function fillFoldedCorners(image: RgbaImage): RgbaImage {
     }
     const share = pixels.length / (width * height);
     if (share < MIN_AREA || share > MAX_AREA) return;
-    if (!foldedCorner(pixels, box, width, height) && !edgeSliver(box, width, height)) return;
+    if (!foldedCorner(pixels, box, width, height) && !edgeSliver(pixels.length, box, width, height)) return;
     out ??= image.data.slice();
     paintMark(out, image, grey, pixels, box);
   });
