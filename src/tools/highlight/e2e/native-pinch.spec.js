@@ -1,6 +1,7 @@
 import { test, expect } from '@playwright/test';
 import { openTool } from '../../../../e2e/support/tool.js';
 import { makePdfBuffer } from '../../../../e2e/support/pdf.js';
+import { pullCord } from './lamp.js';
 
 /* R52, R62 outside the lamp: two fingers use the browser's own zoom, and zoomed in, one finger sideways still marks from a
    line of text and pans the page from anywhere else. Only a real browser decides touch-action and claims a pan, so this
@@ -52,7 +53,7 @@ test('outside the lamp two fingers zoom the page, and one finger marks from a li
 test('in the lamp a pinch is the lamp\'s own zoom: the browser stays at 1x', async ({ page }) => {
   const source = await makePdfBuffer(null, { title: false, lines: [{ text: 'A line of text a student would highlight', y: 700 }] });
   await openTool(page, '/highlight-pdf/', { file: { name: 'pinch.pdf', buffer: source }, overlaySelector: '[data-page-overlay]' });
-  await page.getByRole('button', { name: 'Full screen' }).first().tap();
+  await pullCord(page, 'tap');
   await expect(page.locator('[role="toolbar"][data-mode]')).toBeVisible();
   const box = await page.locator('[data-page-overlay]').first().boundingBox();
   const cdp = await page.context().newCDPSession(page);

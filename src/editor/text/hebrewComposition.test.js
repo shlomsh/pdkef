@@ -115,4 +115,12 @@ describe('composeHebrewClusters: the blocking algorithm', () => {
   it('a mark with no base before it is left alone rather than throwing', () => {
     expect(composeHebrewClusters(DAGESH + BET, alwaysHasGlyph)).toBe(DAGESH + BET);
   });
+
+  it('a mark of equal combining class is blocked by the one before it', () => {
+    const QAMATS_QATAN = String.fromCodePoint(0x05c7); // ccc 18, same as qamats
+    const QAMATS = String.fromCodePoint(0x05b8);
+    const aleph = String.fromCodePoint(0x05d0);
+    const input = aleph + QAMATS_QATAN + QAMATS;
+    expect(composeHebrewClusters(input, alwaysHasGlyph)).toBe(input);
+  });
 });
