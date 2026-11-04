@@ -4,7 +4,7 @@
 // @ts-expect-error -- this browser-first project intentionally omits Node ambient types; Vitest provides the runtime.
 import { readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import type { Quad } from '../quad.ts';
+import type { Quad } from '#lib/pageEnhance/quad.ts';
 import { corpus } from './corpus.ts';
 import { guessCorners } from './index.ts';
 import { formatKpiTable, scoreDetector, TOLERANCES, type KpiCase, type KpiResult } from './kpi.ts';

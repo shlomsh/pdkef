@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { FULL_QUAD, type Quad } from './quad.ts';
+import { type Quad } from '#lib/pageEnhance/quad.ts';
+import { FULL_QUAD } from './quad.ts';
 import { parseScanDraft, scanSnapshotKey, SCAN_DRAFT_SCHEMA_VERSION, storedPage } from './scanDraft.ts';
 import { newPage } from './scanPages.ts';
 

@@ -1,13 +1,14 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { FULL_QUAD, type Quad } from '../quad.ts';
+import { type Quad } from '#lib/pageEnhance/quad.ts';
+import { FULL_QUAD } from '../quad.ts';
 import { inspectWith, processWith, type CanvasKit } from './steps.ts';
 
 // The worker's measuring failure travels back with the page, since only the main thread reports.
-vi.mock('../dewarp/index.ts', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('../dewarp/index.ts')>();
+vi.mock('#lib/pageEnhance/dewarp/index.ts', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('#lib/pageEnhance/dewarp/index.ts')>();
   return { ...actual, measureBend: vi.fn(actual.measureBend) };
 });
-const { measureBend } = await import('../dewarp/index.ts');
+const { measureBend } = await import('#lib/pageEnhance/dewarp/index.ts');
 
 // EDGE: node has no canvas. A kit of plain RGBA buffers: drawImage samples nearest-neighbour, and
 // toBlob records what was encoded, as the worker's OffscreenCanvas and the page's <canvas> would.

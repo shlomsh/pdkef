@@ -1,36 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { applyHomography, homography } from './homography.ts';
-import { warpSizeFor } from './warp.ts';
-import { FULL_QUAD, clampPoint, insetQuad, isConvexQuad, orderQuad, quadKey, isPagelike, rotateQuad, scaleQuad, turnedQuad, unturnedQuad, type Point, type Quad } from './quad.ts';
-
-describe('orderQuad', () => {
-  it('orders four points top-left, top-right, bottom-right, bottom-left', () => {
-    const shuffled = [{ x: 0.9, y: 0.85 }, { x: 0.1, y: 0.1 }, { x: 0.15, y: 0.9 }, { x: 0.8, y: 0.05 }];
-    expect(orderQuad(shuffled)).toEqual([{ x: 0.1, y: 0.1 }, { x: 0.8, y: 0.05 }, { x: 0.9, y: 0.85 }, { x: 0.15, y: 0.9 }]);
-  });
-
-  it('orders a page turned close to 45 degrees by angle, not by sums', () => {
-    const [top, right, bottom, left] = [{ x: 0.5, y: 0.05 }, { x: 0.95, y: 0.5 }, { x: 0.5, y: 0.95 }, { x: 0.05, y: 0.5 }];
-    // An exact diamond ties two corners on x+y: the higher one starts.
-    expect(orderQuad([bottom, left, right, top])).toEqual([top, right, bottom, left]);
-    // A square turned clockwise by `deg`, listed as its own TL, TR, BR, BL.
-    const turned = (deg: number) => {
-      const a = (deg * Math.PI) / 180;
-      return [[-1, -1], [1, -1], [1, 1], [-1, 1]].map(([x, y]) => ({
-        x: 0.5 + 0.3 * (x * Math.cos(a) - y * Math.sin(a)),
-        y: 0.5 + 0.3 * (x * Math.sin(a) + y * Math.cos(a)),
-      }));
-    };
-    const indices = (pts: Point[]) => orderQuad([pts[2], pts[0], pts[3], pts[1]]).map((p) => pts.indexOf(p));
-    expect(indices(turned(44))).toEqual([0, 1, 2, 3]);
-    // Past 45 the old left edge is the corner nearest the top-left.
-    expect(indices(turned(46))).toEqual([3, 0, 1, 2]);
-  });
-
-  it('rejects anything but four points', () => {
-    expect(() => orderQuad([{ x: 0, y: 0 }])).toThrow();
-  });
-});
+import type { Quad } from '#lib/pageEnhance/quad.ts';
+import { FULL_QUAD, clampPoint, isConvexQuad, quadKey, isPagelike, turnedQuad, unturnedQuad } from './quad.ts';
 
 describe('isConvexQuad', () => {
   it('accepts the full photo', () => {
@@ -59,12 +29,6 @@ describe('clampPoint', () => {
   });
 });
 
-describe('scaleQuad', () => {
-  it('turns a normalized quad into pixels', () => {
-    expect(scaleQuad(FULL_QUAD, 400, 300)).toEqual([{ x: 0, y: 0 }, { x: 400, y: 0 }, { x: 400, y: 300 }, { x: 0, y: 300 }]);
-  });
-});
-
 describe('quadKey', () => {
   it('is stable under float noise and changes with a real move', () => {
     const a: Quad = [{ x: 0.1, y: 0.1 }, { x: 0.9, y: 0.1 }, { x: 0.9, y: 0.9 }, { x: 0.1, y: 0.9 }];
@@ -72,55 +36,6 @@ describe('quadKey', () => {
     const moved: Quad = [{ x: 0.12, y: 0.1 }, a[1], a[2], a[3]];
     expect(quadKey(noisy)).toBe(quadKey(a));
     expect(quadKey(moved)).not.toBe(quadKey(a));
-  });
-});
-
-describe('insetQuad', () => {
-  it('pulls every corner toward the middle by a fraction of its distance, so the crop starts inside the outline', () => {
-    const square: Quad = [{ x: 0, y: 0 }, { x: 100, y: 0 }, { x: 100, y: 100 }, { x: 0, y: 100 }];
-    const inset = insetQuad(square, 0.1);
-    expect(inset[0].x).toBeCloseTo(5);
-    expect(inset[0].y).toBeCloseTo(5);
-    expect(inset[2].x).toBeCloseTo(95);
-    expect(inset[2].y).toBeCloseTo(95);
-  });
-
-  it('is the same quad at zero', () => {
-    expect(insetQuad(FULL_QUAD, 0)).toEqual(FULL_QUAD);
-  });
-});
-
-describe('rotateQuad', () => {
-  const q: Quad = [{ x: 0.1, y: 0.1 }, { x: 0.8, y: 0.05 }, { x: 0.9, y: 0.85 }, { x: 0.15, y: 0.9 }];
-
-  it('gives the same corners at 0 and 4 turns, without touching the input', () => {
-    const copy = structuredClone(q);
-    expect(rotateQuad(q, 0)).toEqual(q);
-    expect(rotateQuad(q, 4)).toEqual(q);
-    expect(rotateQuad(q, 0)).not.toBe(q);
-    expect(q).toEqual(copy);
-  });
-
-  it('moves each corner one place on per turn, either way round', () => {
-    expect(rotateQuad(q, 1)).toEqual([q[3], q[0], q[1], q[2]]);
-    expect(rotateQuad(q, 2)).toEqual([q[2], q[3], q[0], q[1]]);
-    expect(rotateQuad(q, -1)).toEqual(rotateQuad(q, 3));
-    expect(rotateQuad(rotateQuad(q, 2), 2)).toEqual(q);
-  });
-
-  it('swaps the output width and height in the warp', () => {
-    const px = scaleQuad(FULL_QUAD, 400, 300);
-    const before = warpSizeFor(px, 4000, null);
-    const after = warpSizeFor(rotateQuad(px, 1), 4000, null);
-    expect(before.width).toBeGreaterThan(before.height);
-    expect(after.height).toBeGreaterThan(after.width);
-  });
-
-  it('puts the photo bottom-left corner at the output top-left', () => {
-    const rect = scaleQuad(FULL_QUAD, 300, 400);
-    const p = applyHomography(homography(rotateQuad(q, 1), rect), q[3]);
-    expect(p.x).toBeCloseTo(0, 6);
-    expect(p.y).toBeCloseTo(0, 6);
   });
 });
 

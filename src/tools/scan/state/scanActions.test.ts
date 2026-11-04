@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createEditActions, createPageActions, pageViewActions } from './scanActions.ts';
 import { ScanWork, type ScanPage } from './scanWork.ts';
-import type { Quad } from '../lib/quad.ts';
+import type { Quad } from '#lib/pageEnhance/quad.ts';
 import { newPage } from '../lib/scanPages.ts';
 import { englishScanMessages as t } from '../messages.ts';
 import { recordAction } from '#lib/telemetry/actionTrail.ts';

@@ -1,6 +1,6 @@
 // The magnifier a corner drag shows on touch, so the finger never hides the point it places.
 // Pure: where the loupe goes, and what it draws. CornerEditor writes both to the DOM mid-drag.
-import type { Point } from './quad.ts';
+import type { Point } from '#lib/pageEnhance/quad.ts';
 
 export const LOUPE_SIZE = 112;
 export const LOUPE_ZOOM = 2.5;

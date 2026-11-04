@@ -6,7 +6,7 @@ import { resultViewFor, exactResultDetail } from '../lib/resultView.ts';
 import { looksBent } from '../lib/capture/guidance.ts';
 import type { PageSize } from '../lib/scanPipeline.ts';
 import type { ScanFilter } from '../lib/filters.ts';
-import type { Quad } from '../lib/quad.ts';
+import type { Quad } from '#lib/pageEnhance/quad.ts';
 import { englishScanMessages as t } from '../messages.ts';
 import type { PageResult, ScanPage } from '../state/scanWork.ts';
 import styles from '../PdfScanTool.module.css';

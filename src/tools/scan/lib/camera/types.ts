@@ -1,6 +1,6 @@
 // The camera in the page (SCAN-08, docs/scan-next.md section 2): the contract between the pure model,
 // the camera hook and the viewfinder. Everything here is data; no DOM.
-import type { Quad } from '../quad.ts';
+import type { Quad } from '#lib/pageEnhance/quad.ts';
 import { INITIAL_GUIDANCE, type Guidance, type Hint } from '../capture/guidance.ts';
 
 /** Which line the viewfinder says: "Point at a page", "Hold still", "Page 3. Turn the page." and the guidance

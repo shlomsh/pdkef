@@ -2,7 +2,7 @@
 // machine, and the shot. DOM plumbing around the pure modules in lib/capture and viewfinderModel.ts.
 import { useCallback, useEffect, useRef, useState } from 'preact/hooks';
 import { reportError } from '#lib/telemetry/errorReport.ts';
-import type { Quad } from '../lib/quad.ts';
+import type { Quad } from '#lib/pageEnhance/quad.ts';
 import { INITIAL_CAPTURE_STATE, markTaken, searchAgain, stepCapture } from '../lib/capture/captureMachine.ts';
 import { DEFAULT_CAPTURE_PARAMS, type CaptureState, type FrameObservation } from '../lib/capture/types.ts';
 import { cameraStatusFor } from '../lib/camera/cameraErrors.ts';

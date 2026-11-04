@@ -1,4 +1,5 @@
-import { quadKey, type Quad } from './quad.ts';
+import { type Quad } from '#lib/pageEnhance/quad.ts';
+import { quadKey } from './quad.ts';
 import type { ScanFilter } from './filters.ts';
 import type { PageSize } from './scanPipeline.ts';
 import type { SizeLimitId } from './scanBudget.ts';

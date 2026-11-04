@@ -1,4 +1,4 @@
-import type { Quad } from '../lib/quad.ts';
+import type { Quad } from '#lib/pageEnhance/quad.ts';
 import type { ScanFilter } from '../lib/filters.ts';
 import type { FlattenFrom } from '../lib/flattenAnimation.ts';
 import type { PageSize, Placement, ProcessedPage } from '../lib/scanPipeline.ts';

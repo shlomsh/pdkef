@@ -1,6 +1,6 @@
 // The contract of the live-capture decision logic (docs/scan-next.md, SCAN-07):
 // frame observations in, at most one "capture" event out. Pure: no DOM, no timers.
-import type { Quad } from '../quad.ts';
+import type { Quad } from '#lib/pageEnhance/quad.ts';
 
 /** One analysed camera frame. */
 export interface FrameObservation {

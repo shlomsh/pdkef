@@ -4,9 +4,11 @@
 // by how much strong, aligned edge runs along its sides. A dark band printed on the page is still
 // inside the outline, which brightness alone can never see. A second, faint map of the same gradients
 // finds a white page on a white table by sides far fainter than its print. Pure, typed arrays only.
-import { isConvexQuad, orderQuad } from '../quad.ts';
-import type { GrayImage, Point, Quad } from '../quad.ts';
-import { blur3 } from './brightRegion.ts';
+import { buildEdgeMap, magPercentile, thinEdges } from '#lib/pageEnhance/edgeMap.ts';
+import type { EdgeMap } from '#lib/pageEnhance/edgeMap.ts';
+import { orderQuad } from '#lib/pageEnhance/quad.ts';
+import type { Point, Quad } from '#lib/pageEnhance/quad.ts';
+import { isConvexQuad } from '../quad.ts';
 import { anglesOk } from './scoredRegions.ts';
 import type { EdgeGuesser } from './types.ts';
 
@@ -23,7 +25,6 @@ const FIT_ALIGN = Math.cos((15 * Math.PI) / 180);
 const SUPPORT_ALIGN = Math.cos((25 * Math.PI) / 180);
 const MIN_SIDE_SUPPORT = 0.4;
 const CONTRAST_SPAN = 5; // pixels either side of a side, to compare what is inside with what is outside
-const FULL_CONTRAST = 25; // gray levels of inside-vs-outside difference that count as a real boundary
 const MIN_QUAD_AREA = 0.1;
 const FRAME_MARGIN = 0.02;
 const OUT_MARGIN = 0.03;
@@ -39,91 +40,8 @@ const FAINT_CEILING = 30; // gradient strength of a step of about 15 gray levels
 const OVERSHOOT = 0.12; // of a side's length, the stretch past each corner checked for a continuing edge
 const OVERSHOOT_MIN_PX = 6;
 
-export interface EdgeMap {
-  width: number;
-  height: number;
-  /** The blurred gray values the gradients came from. */
-  gray: Float32Array;
-  /** 1 where the pixel is a thin, strong edge. */
-  edge: Uint8Array;
-  /** Indices of the edge pixels, so line fitting walks thousands of pixels, not the whole image. */
-  list: Int32Array;
-  mag: Float32Array;
-  /** Unit gradient direction per pixel (meaningful where `edge` is 1). */
-  ux: Float32Array;
-  uy: Float32Array;
-  /** Gradient strength below which a pixel is not an edge at all. */
-  floor: number;
-  /** Gradient strength that counts as a strong edge (line votes weigh by it). */
-  ref: number;
-  /** Gradient strength at which an edge fully supports a side: far lower, a faint edge still is one. */
-  supportRef: number;
-  /** Gray levels of inside-vs-outside difference that count as a real boundary. */
-  contrast: number;
-  /** A faint map (faintEdgeMap): a side must also stop at its corners, not run on past them. */
-  faint: boolean;
-}
-
 interface Line { nx: number; ny: number; rho: number; votes: number }
 export interface OutlineGuess { quad: Quad; support: number; score: number }
-
-export function buildEdgeMap(image: GrayImage): EdgeMap {
-  const { width: w, height: h } = image;
-  const g = blur3(blur3(image.data, w, h), w, h);
-  const n = w * h;
-  const mag = new Float32Array(n);
-  const ux = new Float32Array(n);
-  const uy = new Float32Array(n);
-  for (let y = 1; y < h - 1; y += 1) {
-    for (let x = 1; x < w - 1; x += 1) {
-      const i = y * w + x;
-      const gx = g[i - w + 1] + 2 * g[i + 1] + g[i + w + 1] - g[i - w - 1] - 2 * g[i - 1] - g[i + w - 1];
-      const gy = g[i + w - 1] + 2 * g[i + w] + g[i + w + 1] - g[i - w - 1] - 2 * g[i - w] - g[i - w + 1];
-      const m = Math.hypot(gx, gy);
-      mag[i] = m;
-      if (m > 0) { ux[i] = gx / m; uy[i] = gy / m; }
-    }
-  }
-  // p99 of the gradient strength sets the floor for what counts as an edge at all.
-  const floor = Math.max(14, 0.12 * magPercentile(mag, 0.99));
-  const { edge, list, strengths } = thinEdges(mag, ux, uy, w, h, floor);
-  strengths.sort((a, b) => a - b);
-  const top = strengths.length ? strengths[Math.floor(strengths.length * 0.98)] : floor;
-  return { width: w, height: h, gray: g, edge, list, mag, ux, uy, floor, ref: 0.5 * top, supportRef: Math.max(floor, 0.15 * top), contrast: FULL_CONTRAST, faint: false };
-}
-
-function magPercentile(mag: Float32Array, p: number): number {
-  const hist = new Uint32Array(2048);
-  for (let i = 0; i < mag.length; i += 1) hist[Math.min(2047, mag[i] | 0)] += 1;
-  let c = 0;
-  for (let b = 0; b < 2048; b += 1) { c += hist[b]; if (c >= p * mag.length) return b; }
-  return 2047;
-}
-
-/** Non-maximum suppression: the pixels at least `floor` strong that peak across their own edge. */
-function thinEdges(mag: Float32Array, ux: Float32Array, uy: Float32Array, w: number, h: number, floor: number): { edge: Uint8Array; list: Int32Array; strengths: number[] } {
-  const n = w * h;
-  const edge = new Uint8Array(n);
-  const strengths: number[] = [];
-  for (let y = 1; y < h - 1; y += 1) {
-    for (let x = 1; x < w - 1; x += 1) {
-      const i = y * w + x;
-      const m = mag[i];
-      if (m < floor) continue;
-      // Compare along the gradient direction, snapped to one of four neighbour pairs.
-      const ax = Math.abs(ux[i]);
-      const ay = Math.abs(uy[i]);
-      let d: number;
-      if (ay < 0.38) d = 1;
-      else if (ax < 0.38) d = w;
-      else d = (ux[i] > 0) === (uy[i] > 0) ? w + 1 : w - 1;
-      if (m >= mag[i - d] && m > mag[i + d]) { edge[i] = 1; strengths.push(m); }
-    }
-  }
-  const list = new Int32Array(strengths.length);
-  for (let i = 0, k = 0; i < n; i += 1) if (edge[i]) list[k++] = i;
-  return { edge, list, strengths };
-}
 
 /**
  * The same gradients with the bar lowered to just above the photo's own noise, for a white page on a

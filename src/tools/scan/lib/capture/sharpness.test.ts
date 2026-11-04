@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { focusMeasure, quadArea, sharpness } from './sharpness.ts';
 import { addNoise, solid } from '../edges/testImages.ts';
-import type { GrayImage, Quad } from '../quad.ts';
+import type { GrayImage, Quad } from '#lib/pageEnhance/quad.ts';
 
 function checker(size: number, cell: number): GrayImage {
   const img = solid(size, size, 0);

@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { ENVELOPE_ON_LAP_GRAY_B64 } from './fixtures/envelopeOnLap.ts';
 import { guessCorners } from './index.ts';
 import { guessByScoredRegions } from './scoredRegions.ts';
-import type { GrayImage, Quad } from '../quad.ts';
+import type { GrayImage, Quad } from '#lib/pageEnhance/quad.ts';
 
 // A real iPhone photo (2026-10-26) of a printed flyer on a lap: its green and blue print has no
 // brightness boundary with the sheet, so brightness alone ran out to the frame. The fixture is the

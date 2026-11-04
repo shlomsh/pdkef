@@ -4,7 +4,7 @@
 // appears as it lands. A short DOM overlay over the real result (which waits hidden underneath);
 // the geometry and the timeline are flatten.ts.
 import { cornerPin, flattenFrame, lerpQuad, quadPin, rectQuad } from './flatten.ts';
-import { scaleQuad, type Quad } from './quad.ts';
+import { scaleQuad, type Quad } from '#lib/pageEnhance/quad.ts';
 
 const DURATION_MS = 800;
 

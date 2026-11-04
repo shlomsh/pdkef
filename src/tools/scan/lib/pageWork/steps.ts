@@ -3,13 +3,13 @@
 // takes a CanvasKit: the page worker's is OffscreenCanvas and createImageBitmap, the main thread's
 // fallback is <img> and <canvas> (scanPipeline.ts). The pixel work in between is pure.
 import { guessCorners } from '../edges/index.ts';
-import { FLAT_PAGE, bentPx, isFlat, measureBend, pageMap, type PageBend } from '../dewarp/index.ts';
-import { warpAlong } from '../dewarp/meshWarp.ts';
-import { warpPerspective, warpSizeFor } from '../warp.ts';
+import { FLAT_PAGE, bentPx, isFlat, measureBend, pageMap, type PageBend } from '#lib/pageEnhance/dewarp/index.ts';
+import { warpAlong } from '#lib/pageEnhance/dewarp/meshWarp.ts';
+import { warpPerspective, warpSizeFor } from '#lib/pageEnhance/warp.ts';
 import { pageAspect, snapPaper } from '../aspect.ts';
 import { uprightTurns } from './upright.ts';
 import { applyFilter, type ScanFilter } from '../filters.ts';
-import { insetQuad, scaleQuad, type GrayImage, type Quad, type RgbaImage } from '../quad.ts';
+import { insetQuad, scaleQuad, type GrayImage, type Quad, type RgbaImage } from '#lib/pageEnhance/quad.ts';
 
 /** The photo is read at most this big; a 48 MP photo would not fit a phone's canvas budget. */
 const SOURCE_LONG_EDGE = 3200;

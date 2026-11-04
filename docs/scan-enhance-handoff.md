@@ -104,6 +104,6 @@ Paste into a local Claude Code session in this repo, then give it the PDF's path
 > READ-03. Goal: make a badly scanned academic PDF readable in Highlight (phase 1 above). Compare on the
 > PDF: the classical pipeline (branch `scan-36-prototype`), its variations (per-line vs whole-page
 > straightening, cleanup strictness, marginalia kept vs removed) and UVDoc, with one documented
-> straightness metric and side-by-side pages. Do not restructure `src/tools/scan/lib/dewarp/` until
+> straightness metric and side-by-side pages. Do not restructure the dewarp code until
 > PE-01 lands; propose changes to the shared code. Keep the PDF out of the repo; own branch, no push to
 > main without Shlomi's go-ahead.

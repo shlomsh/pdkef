@@ -1,8 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import type { GrayImage, Quad } from '../quad.ts';
+import type { GrayImage, Quad } from '#lib/pageEnhance/quad.ts';
 import { detectPage } from './detect.ts';
 import { guessCorners } from './index.ts';
-import { buildEdgeMap, faintOutline, outlineFromMap } from './outline.ts';
+import { buildEdgeMap } from '#lib/pageEnhance/edgeMap.ts';
+import { faintOutline, outlineFromMap } from './outline.ts';
 import { guessByScoredRegions } from './scoredRegions.ts';
 import { addNoise, fillQuad, fillRect, solid } from './testImages.ts';
 

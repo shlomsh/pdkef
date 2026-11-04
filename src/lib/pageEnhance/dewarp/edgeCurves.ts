@@ -5,8 +5,8 @@
 // (SCAN-35). Pure: typed arrays only.
 import { applyHomography, homography } from '../homography.ts';
 import type { Matrix3 } from '../homography.ts';
-import { buildEdgeMap } from '../edges/outline.ts';
-import type { EdgeMap } from '../edges/outline.ts';
+import { buildEdgeMap } from '../edgeMap.ts';
+import type { EdgeMap } from '../edgeMap.ts';
 import type { GrayImage, Point, Quad } from '../quad.ts';
 import type { EdgeCurves, SideCurve } from './types.ts';
 import { sideAt } from './types.ts';

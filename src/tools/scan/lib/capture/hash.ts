@@ -2,8 +2,9 @@
 // cells, each cell one bit (brighter than the mean or not). Sampling through the perspective means the same
 // page seen at another angle or distance lands a few bits apart; another page lands far away.
 // Pure: no DOM.
-import { applyHomography, homography, type Matrix3 } from '../homography.ts';
-import { FULL_QUAD, type GrayImage, type Quad } from '../quad.ts';
+import { applyHomography, homography, type Matrix3 } from '#lib/pageEnhance/homography.ts';
+import { type GrayImage, type Quad } from '#lib/pageEnhance/quad.ts';
+import { FULL_QUAD } from '../quad.ts';
 
 const GRID = 8;
 /** Samples per cell side: enough to average text into tone rather than alias on it. */

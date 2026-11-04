@@ -1,8 +1,8 @@
 // Whether a photographed page lies on its side (SCAN-32), worked out once when the photo is inspected
 // and kept in the page's `turns`, so the person's Rotate acts on top of it. Pure: no DOM.
-import { textTurn } from '../dewarp/orientation.ts';
-import { scaleQuad, type GrayImage, type Quad, type RgbaImage } from '../quad.ts';
-import { warpPerspective, warpSizeFor } from '../warp.ts';
+import { textTurn } from '#lib/pageEnhance/dewarp/orientation.ts';
+import { scaleQuad, type GrayImage, type Quad, type RgbaImage } from '#lib/pageEnhance/quad.ts';
+import { warpPerspective, warpSizeFor } from '#lib/pageEnhance/warp.ts';
 
 /** The page is flattened to about this long an edge to read its text rows (textTurn's measuring size). */
 const READ_LONG_EDGE = 1000;

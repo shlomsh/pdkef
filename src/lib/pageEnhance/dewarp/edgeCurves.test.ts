@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { applyHomography, homography } from '../homography.ts';
 import type { GrayImage, Quad } from '../quad.ts';
-import { seededRandom } from '../edges/testImages.ts';
+import { seededRandom } from '../seededRandom.test-helper.ts';
 import { findEdgeCurves } from './edgeCurves.ts';
 import { sideAt } from './types.ts';
 import type { SideCurve } from './types.ts';

@@ -11,7 +11,7 @@ import { slideIndexAt, slideWindow } from '../lib/pageSlides.ts';
 import { looksBent } from '../lib/capture/guidance.ts';
 import type { PageSize } from '../lib/scanPipeline.ts';
 import type { ScanFilter } from '../lib/filters.ts';
-import type { Quad } from '../lib/quad.ts';
+import type { Quad } from '#lib/pageEnhance/quad.ts';
 import type { PageResult, ScanPage } from '../state/scanWork.ts';
 import appStyles from '../PdfScanTool.module.css';
 import styles from './ScanPageViewer.module.css';

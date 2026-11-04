@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { GrayImage, Point, Quad } from '../quad.ts';
+import type { GrayImage, Point, Quad } from '#lib/pageEnhance/quad.ts';
 import { guessByBrightRegion } from './brightRegion.ts';
 import { addGradient, addNoise, fillQuad, fillRect, norm, solid } from './testImages.ts';
 

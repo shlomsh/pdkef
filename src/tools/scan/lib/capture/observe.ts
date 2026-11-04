@@ -1,6 +1,6 @@
 // One analysed camera frame for the capture machine (SCAN-08). Pure: gray pixels and a time in, the
 // observation stepCapture reads out. Runs in the camera worker.
-import type { GrayImage } from '../quad.ts';
+import type { GrayImage } from '#lib/pageEnhance/quad.ts';
 import { detectPage } from '../edges/detect.ts';
 import { averageHash } from './hash.ts';
 import { borderContrast, keystone, lightFloor } from './pageSignals.ts';

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { borderContrast, keystone, lightFloor } from './pageSignals.ts';
 import { addNoise, fillQuad, solid } from '../edges/testImages.ts';
-import type { Quad } from '../quad.ts';
+import type { Quad } from '#lib/pageEnhance/quad.ts';
 
 const W = 320;
 const H = 427;

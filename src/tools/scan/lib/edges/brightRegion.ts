@@ -1,30 +1,15 @@
 // Edge guess, strategy one: the page is the largest bright blob. Blur, split bright from dark with
 // Otsu, take the biggest 4-connected bright component and read its four extreme corners. Low
 // precision on purpose (the person's corners always win); when anything looks off it says null.
-import { isConvexQuad, orderQuad } from '../quad.ts';
-import type { GrayImage, Quad } from '../quad.ts';
+import { orderQuad } from '#lib/pageEnhance/quad.ts';
+import { isConvexQuad } from '../quad.ts';
+import type { GrayImage, Quad } from '#lib/pageEnhance/quad.ts';
+import { blur3 } from '#lib/pageEnhance/edgeMap.ts';
 import type { EdgeGuesser } from './types.ts';
 
 const MIN_AREA = 0.15;
 const MIN_FILL = 0.85;
 const FRAME_MARGIN = 0.02;
-
-export function blur3(src: ArrayLike<number>, w: number, h: number): Float32Array {
-  const out = new Float32Array(w * h);
-  for (let y = 0; y < h; y += 1) {
-    const y0 = Math.max(0, y - 1);
-    const y1 = Math.min(h - 1, y + 1);
-    for (let x = 0; x < w; x += 1) {
-      const x0 = Math.max(0, x - 1);
-      const x1 = Math.min(w - 1, x + 1);
-      let sum = 0;
-      let n = 0;
-      for (let yy = y0; yy <= y1; yy += 1) for (let xx = x0; xx <= x1; xx += 1) { sum += src[yy * w + xx]; n += 1; }
-      out[y * w + x] = sum / n;
-    }
-  }
-  return out;
-}
 
 /** Otsu's threshold over a 256-bin histogram, or -1 when the image has a single level. */
 export function otsu(values: Float32Array): number {

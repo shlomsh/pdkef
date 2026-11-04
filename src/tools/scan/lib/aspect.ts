@@ -8,8 +8,8 @@
 // When f cannot be solved reliably (a pair of opposite sides nearly parallel, as when the phone tilts
 // back with the page square to it, or a focal length no phone has) the ratio uses ASSUMED_FOCAL
 // instead. Frontal, both c terms vanish and that is the plain edge-length ratio.
-import type { Quad } from './quad';
-import { homography } from './homography.ts';
+import type { Quad } from '#lib/pageEnhance/quad.ts';
+import { homography } from '#lib/pageEnhance/homography.ts';
 
 /**
  * A vanishing point farther than this many long sides from the centre leaves f to noise. Simulated

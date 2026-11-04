@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { Quad } from '../quad.ts';
+import type { Quad } from '#lib/pageEnhance/quad.ts';
 import { INITIAL_CAPTURE_STATE, markTaken, searchAgain, stepCapture, TAKEN_MEMORY } from './captureMachine.ts';
 import type { CaptureState, FrameObservation } from './types.ts';
 

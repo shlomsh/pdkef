@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { Point, Quad, RgbaImage } from '../quad.ts';
-import { seededRandom } from '../edges/testImages.ts';
+import { seededRandom } from '../seededRandom.test-helper.ts';
 import { columnFit } from './columnBend.ts';
 import { isFlat, measureBend, pageMap } from './index.ts';
 import { pageMasks } from './ink.ts';

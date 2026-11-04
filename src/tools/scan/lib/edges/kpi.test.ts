@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { GrayImage, Quad } from '../quad.ts';
+import type { GrayImage, Quad } from '#lib/pageEnhance/quad.ts';
 import { cornerError, formatKpiTable, quadIou, scoreDetector, type KpiCase } from './kpi.ts';
 
 const sq = (x0: number, y0: number, x1: number, y1: number): Quad => [{ x: x0, y: y0 }, { x: x1, y: y0 }, { x: x1, y: y1 }, { x: x0, y: y1 }];

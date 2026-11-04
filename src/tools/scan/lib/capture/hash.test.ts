@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { applyHomography, homography } from '../homography.ts';
-import { FULL_QUAD, type GrayImage, type Quad } from '../quad.ts';
+import { applyHomography, homography } from '#lib/pageEnhance/homography.ts';
+import { type GrayImage, type Quad } from '#lib/pageEnhance/quad.ts';
+import { FULL_QUAD } from '../quad.ts';
 import { DEFAULT_CAPTURE_PARAMS } from './types.ts';
 import { averageHash, hashDistance } from './hash.ts';
 

@@ -129,6 +129,8 @@ export const DETECTION_MODULES = [
   'src/tools/sign/lib/fields/corpus/scoring/match.js',
   'src/tools/sign/lib/fields/corpus/scoring/candidates.js',
   // SCAN-07: Scan's page detection and the live camera's capture decision (docs/scan-next.md).
+  'src/lib/pageEnhance/quad.ts',
+  'src/lib/pageEnhance/edgeMap.ts',
   'src/tools/scan/lib/quad.ts',
   'src/tools/scan/lib/edges/index.ts',
   'src/tools/scan/lib/edges/types.ts',

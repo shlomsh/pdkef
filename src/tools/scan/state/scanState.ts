@@ -1,4 +1,4 @@
-import type { Quad } from '../lib/quad.ts';
+import type { Quad } from '#lib/pageEnhance/quad.ts';
 
 /**
  * The scan island's lifecycle: which view the centre shows, which page is selected, what is running

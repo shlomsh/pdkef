@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { GrayImage } from '../quad.ts';
-import { seededRandom } from '../edges/testImages.ts';
+import { seededRandom } from '../seededRandom.test-helper.ts';
 import { textTurn } from './orientation.ts';
 
 const W = 800;

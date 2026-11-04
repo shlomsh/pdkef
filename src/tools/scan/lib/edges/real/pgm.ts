@@ -1,5 +1,5 @@
 // Binary PGM (P5, 8-bit): the dependency-free file format for the real page-detection corpus.
-import type { GrayImage } from '../../quad.ts';
+import type { GrayImage } from '#lib/pageEnhance/quad.ts';
 
 const isSpace = (b: number) => b === 32 || (b >= 9 && b <= 13);
 

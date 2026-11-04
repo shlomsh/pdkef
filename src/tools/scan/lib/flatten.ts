@@ -1,7 +1,7 @@
 // The flatten animation's geometry: the processed page drawn over its photo, corner-pinned to the
 // quad the person approved, then carried onto its place on the paper. Pure: CSS strings out, no DOM.
-import { homography, type Matrix3 } from './homography.ts';
-import type { Quad } from './quad.ts';
+import { homography, type Matrix3 } from '#lib/pageEnhance/homography.ts';
+import type { Quad } from '#lib/pageEnhance/quad.ts';
 
 interface Rect { left: number; top: number; width: number; height: number }
 

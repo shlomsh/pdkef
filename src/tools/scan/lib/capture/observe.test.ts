@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { observeFrame } from './observe.ts';
 import { focusMeasure } from './sharpness.ts';
 import { addNoise, fillQuad, fillRect, solid } from '../edges/testImages.ts';
-import type { Quad } from '../quad.ts';
+import type { Quad } from '#lib/pageEnhance/quad.ts';
 
 const PAGE: Quad = [{ x: 60, y: 50 }, { x: 250, y: 60 }, { x: 240, y: 360 }, { x: 55, y: 350 }];
 
