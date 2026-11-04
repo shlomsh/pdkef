@@ -5,6 +5,7 @@ import type { ScanFilter } from '../lib/filters.ts';
 import type { SizeLimitId } from '../lib/scanBudget.ts';
 import type { PageSize } from '../lib/scanPipeline.ts';
 import { defaultScanName } from '../lib/scanName.ts';
+import type { ScanDraftSettings } from '../lib/scanDraft.ts';
 
 /** A change of one setting: remembered, counted, and a no-op when nothing changed. */
 const choose = <T,>(setter: (value: T) => void, current: T) => (next: T) => {
@@ -29,5 +30,13 @@ export function useScanSettings() {
     choosePageSize: choose(setPageSize, pageSize),
     chooseLimit: choose(setLimit, limit),
     rename: (next: string) => setCustomName(next.length > 0 && next !== defaultName ? next : null),
+    /** A remembered scan's settings (SCAN-18): set as they were, not chosen, so nothing is counted. */
+    restoreSettings: (saved: Partial<ScanDraftSettings>) => {
+      if (saved.pageSize) setPageSize(saved.pageSize);
+      if (saved.limit) setLimit(saved.limit);
+      if (saved.defaultFilter) setDefaultFilter(saved.defaultFilter);
+      // A scan named on another day keeps that day's name.
+      if (saved.name) setCustomName(saved.name !== defaultName ? saved.name : null);
+    },
   };
 }

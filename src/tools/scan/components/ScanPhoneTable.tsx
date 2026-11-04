@@ -9,7 +9,7 @@ import { pageSizeQuietLabel, sizeValueText } from '../lib/tableText.ts';
 import { englishScanMessages as t } from '../messages.ts';
 import type { ScanOptionsProps, ScanOutput } from '../state/scanOutput.ts';
 import type { PageResult, ScanPage } from '../state/scanWork.ts';
-import { ScanDownloadElement, ScanErrors, ScanHeading } from './ScanOutputParts.tsx';
+import { ScanDownloadElement, ScanDraftStatus, ScanErrors, ScanHeading } from './ScanOutputParts.tsx';
 import ScanPageGrid from './ScanPageGrid.tsx';
 import ScanSizeRow from './ScanSizeRow.tsx';
 import styles from './ScanPhoneTable.module.css';
@@ -137,6 +137,7 @@ export default function ScanPhoneTable({ pages, results, resultKeyOf, failedIds,
       {flow.handoffFailed && (
         <p class={`${pdfToolStyles['hint-message']} ${pdfToolStyles.danger}`} role="status">{t.handoffFailed}</p>
       )}
+      <ScanDraftStatus output={output} />
       {rating}
     </div>
   );

@@ -10,6 +10,7 @@ import { rotateQuad, turnedQuad } from './lib/quad.ts';
 import { playFlatten } from './lib/flattenAnimation.ts';
 import { canUseCamera } from './lib/camera/canUseCamera.ts';
 import { installToolHarness, type ToolHarness } from '../../test/harness/toolHarness.ts';
+import { loadDraft, readRecentFiles } from '#lib/drafts/draftStore.ts';
 
 // EDGE: the flatten animation paints the photo into a 2d canvas context, which jsdom does not have.
 // Analytics and draftStore run for real over the harness.
@@ -58,7 +59,8 @@ describe('PdfScanTool', () => {
 
   beforeEach(() => {
     harness = installToolHarness();
-    vi.useFakeTimers();
+    // setImmediate stays real: fake-indexeddb answers on it, and the draft store (SCAN-18) runs for real.
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'setInterval', 'clearInterval', 'Date'] });
     vi.mocked(pipeline.guessPage).mockReset().mockImplementation(() => Promise.resolve(GUESS));
     vi.mocked(pipeline.inspectPhoto).mockReset().mockImplementation(() => Promise.resolve(seen(GUESS)));
     vi.mocked(pipeline.processPage).mockReset().mockImplementation(() => Promise.resolve({
@@ -801,5 +803,103 @@ describe('PdfScanTool', () => {
     await openPage(1);
     expect(create.mock.calls.at(-1)?.[0]).toBe(container.querySelector('[data-selected]').closest('ul'));
     create.mockRestore();
+  });
+
+  describe('remembering the scan (SCAN-18)', () => {
+    const photo = (name, body) => new File([body], name, { type: 'image/jpeg' });
+    const remount = async () => {
+      act(() => render(null, container));
+      container.remove();
+      mount();
+      await until(() => container.querySelector('[data-empty-state], [data-table-page]') !== null);
+      await settle(100);
+    };
+    const draftLine = () => container.querySelector('[data-draft-status]')?.textContent;
+    const until = async (cond, timeout = 8000) => {
+      const start = Date.now();
+      while (!cond()) {
+        if (Date.now() - start > timeout) throw new Error(`condition not met within ${timeout}ms: ${cond}`);
+        await act(async () => {
+          await vi.advanceTimersByTimeAsync(10);
+          await new Promise((resolve) => setImmediate(resolve));
+        });
+      }
+    };
+    const saved = () => until(() => draftLine() === 'Draft saved');
+
+    it('saves the pages and settings, and brings them back on the next visit', async () => {
+      mount();
+      await settle(100);
+      await pick([photo('a.jpg', 'photo a'), photo('b.jpg', 'photo b')]);
+      await openPage(2);
+      await act(async () => { byText('Look')[0].click(); });
+      const original = Array.from(radioGroup('Look').querySelectorAll('button')).find((b) => b.textContent === 'Original');
+      await act(async () => { original.click(); });
+      const a4 = Array.from(radioGroup('Page size').querySelectorAll('button')).find((b) => b.textContent === 'A4');
+      await act(async () => { a4.click(); });
+      await saved();
+      const record = await loadDraft('scan-to-pdf');
+      expect(record.files.map((f) => f.fileName)).toEqual(['a.jpg', 'b.jpg']);
+      expect(record.pages.map((p) => p.filter)).toEqual(['document', 'original']);
+      expect(record.pageSize).toBe('a4');
+
+      // The pre-paint script marks a restore that may land; once it has, the mark goes, or the empty
+      // state would stay hidden after a Clear all (Dropzone.module.css).
+      document.documentElement.setAttribute('data-draft-hint', '1');
+      await remount();
+      expect(tableTiles()).toHaveLength(2);
+      expect(document.documentElement.hasAttribute('data-draft-hint')).toBe(false);
+      // Nothing changed since: the restored scan is not written straight back.
+      expect(draftLine()).toBeUndefined();
+      await openPage(2);
+      await act(async () => { byText('Look')[0].click(); });
+      expect(checked('Look')).toBe('Original');
+      expect(checked('Page size')).toBe('A4');
+    });
+
+    it('keeps one Recents row for a scan that grows a page at a time', async () => {
+      mount();
+      await settle(100);
+      await pick([photo('a.jpg', 'photo a')]);
+      await saved();
+      await pick([photo('b.jpg', 'photo b')]);
+      await saved();
+      await pick([photo('c.jpg', 'photo c')]);
+      await saved();
+      const rows = readRecentFiles();
+      expect(rows).toHaveLength(1);
+      expect(rows[0]).toMatchObject({ tool: 'scan-to-pdf', pageCount: 3 });
+    });
+
+    it('lets photos handed over from Image to PDF start a new scan, not join the remembered one', async () => {
+      mount();
+      await settle(100);
+      await pick([photo('a.jpg', 'photo a')]);
+      await saved();
+      act(() => render(null, container));
+      container.remove();
+      document.documentElement.setAttribute('data-handoff-pending', '1');
+      try {
+        mount();
+        await settle(100);
+        await until(() => container.querySelector('[data-empty-state]') !== null);
+        expect(tableTiles()).toHaveLength(0);
+      } finally {
+        document.documentElement.removeAttribute('data-handoff-pending');
+      }
+    });
+
+    it('forgets the scan once the last page is removed', async () => {
+      mount();
+      await settle(100);
+      await pick([photo('a.jpg', 'photo a')]);
+      await saved();
+      await openPage(1);
+      await act(async () => { byText('Remove')[0].click(); });
+      await until(() => !(readRecentFiles()[0]?.hasWork ?? []).includes('scan-to-pdf'));
+      await remount();
+      expect(tableTiles()).toHaveLength(0);
+      expect(container.querySelector('[data-empty-state]')).not.toBeNull();
+    });
   });
 });

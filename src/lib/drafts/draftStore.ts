@@ -493,9 +493,14 @@ function nextDraftRevision(old: Partial<ToolWork> | null | undefined, writerId: 
  * is stored verbatim under `work[tool]` alongside the revision metadata - see
  * this file's header comment.
  *
- * `tool` is 'sign' | 'redact' | 'merge'. Resolves true if written.
+ * `supersedes` (Scan, SCAN-18) names the entry this tool's session saved before, when the content address
+ * moved because the set itself changed (a page added, removed, retaken or moved). That entry is deleted in the
+ * same transaction if it holds no other tool's work, so a scan growing one photo at a time stays one Recents
+ * row instead of pushing the other documents out. Nothing else is ever deleted by a save.
+ *
+ * `tool` is 'sign' | 'redact' | 'merge' | 'scan-to-pdf'. Resolves true if written.
  */
-export async function saveDraft(tool: string, record: DraftSaveRecord): Promise<boolean> {
+export async function saveDraft(tool: string, record: DraftSaveRecord, { supersedes }: { supersedes?: string | null } = {}): Promise<boolean> {
   if (!hasIndexedDB()) return false;
   await ensureMigrated();
   const recordFiles = record.files;
@@ -525,8 +530,19 @@ export async function saveDraft(tool: string, record: DraftSaveRecord): Promise<
   const writerId = getTabWriterId();
   const key = recentFileKey(id);
   let committedEntry: StoredEntry | null = null;
+  let superseded = false;
   try {
     await withStore('readwrite', (store) => {
+      if (supersedes && supersedes !== id) {
+        const supersededKey = recentFileKey(supersedes);
+        const previous = store.get(supersededKey);
+        previous.onsuccess = () => {
+          const entry = parseStoredEntry(previous.result);
+          if (!entry || !Object.keys(entry.work || {}).every((owner) => owner === tool)) return;
+          store.delete(supersededKey);
+          superseded = true;
+        };
+      }
       // One transaction serializes same-user tabs. It reads the committed
       // entry immediately before assigning the next revision, so two tabs
       // that started from revision N become N+1 then N+2 rather than racing
@@ -561,6 +577,7 @@ export async function saveDraft(tool: string, record: DraftSaveRecord): Promise<
   // browser to keep this origin (see requestStoragePersistence's comment).
   requestStoragePersistence();
   const committed = committedEntry as unknown as StoredEntry;
+  if (superseded) removeRecentMeta(supersedes as string);
   const kept = upsertIndexEntry({
     id,
     tool,
@@ -661,11 +678,14 @@ export async function loadDraft(tool: string): Promise<DraftRecord | null> {
  * stay in recents - this no longer removes any file from the memory space,
  * unlike the old per-tool delete it replaces (Replace file used to mean
  * "this file is gone"; now it only ever means "I'm not editing it right now").
+ *
+ * `entryId` (Scan, SCAN-18) names the entry instead of the pointer, for a tool whose pointer another tab
+ * may have moved since: only that entry's work goes, and the pointer is dropped only if it still names it.
  */
-export async function deleteDraft(tool: string): Promise<boolean> {
+export async function deleteDraft(tool: string, entryId?: string): Promise<boolean> {
   if (!hasIndexedDB()) return false;
   await ensureMigrated();
-  const id = readCurrentEntryId(tool);
+  const id = entryId ?? readCurrentEntryId(tool);
   if (!id) {
     clearCurrentEntry(tool);
     return true;
@@ -698,7 +718,7 @@ export async function deleteDraft(tool: string): Promise<boolean> {
     return false;
   }
   if (remainingWorkKeys) updateIndexHasWork(id, remainingWorkKeys);
-  clearCurrentEntry(tool);
+  if (readCurrentEntryId(tool) === id) clearCurrentEntry(tool);
   if (change) notifyDraftChange(tool, change);
   return true;
 }

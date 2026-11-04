@@ -11,7 +11,7 @@ import { englishScanMessages as t } from '../messages.ts';
 import type { ScanOptionsProps, ScanOutput } from '../state/scanOutput.ts';
 import type { PageResult, ScanPage } from '../state/scanWork.ts';
 import styles from '../PdfScanTool.module.css';
-import { ScanDownloadElement, ScanErrors, ScanHeading } from './ScanOutputParts.tsx';
+import { ScanDownloadElement, ScanDraftStatus, ScanErrors, ScanHeading } from './ScanOutputParts.tsx';
 import ScanTable from './ScanTable.tsx';
 import ScanWorkbench, { type ScanWorkbenchProps } from './ScanWorkbench.tsx';
 
@@ -82,6 +82,7 @@ export default function ScanWorkspace({ view, onOpen, results, resultKeyOf, brid
       railContent={(
         <>
           <ScanOptions options={options} />
+          <ScanDraftStatus output={output} />
           <div class={workspaceStyles['quiet-row']}>
             <button type="button" class={workspaceStyles['quiet-button']} onClick={bridge.requestClear}>
               <Trash2 size={16} aria-hidden="true" />

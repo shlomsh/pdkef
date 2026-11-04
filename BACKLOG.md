@@ -2,7 +2,7 @@
 
 # Backlog
 
-The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 116 live: 34 up next, 16 then, 27 waiting, 39 parked.
+The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 117 live: 35 up next, 16 then, 27 waiting, 39 parked.
 
 ## Redact: finish removal
 
@@ -89,6 +89,7 @@ The camera takes pages, the table fixes them, Share sends them. The table first 
 | SCAN-16 | P1 | [SCAN-16](backlog/tasks/SCAN-16.md) · Scan next: the live camera takes the full photo, not a video-sized one | In progress |
 | SCAN-04 | P1 | [SCAN-04](backlog/tasks/SCAN-04.md) · Scan next: the phone measurements that decide the camera build | In progress. Needs Shlomi: Your iPhone, and an Android phone if one is at hand |
 | SCAN-08 | P1 | [SCAN-08](backlog/tasks/SCAN-08.md) · Scan next: the camera in the page, pages taken by themselves, Share straight after | In progress |
+| SCAN-18 | P1 | [SCAN-18](backlog/tasks/SCAN-18.md) · Scan remembers the scan in progress, and it shows in Recents | In progress |
 | SCAN-05 | P1 | [SCAN-05](backlog/tasks/SCAN-05.md) · Scan next: a real page-detection corpus with scored KPIs | In progress. Needs Shlomi: Photos and short videos of real pages taken on your phone, ours to check in |
 | SCAN-14 | P1 | [SCAN-14](backlog/tasks/SCAN-14.md) · Scan next: a page is taken only once it is clear and in focus | In progress |
 | SCAN-15 | P1 | [SCAN-15](backlog/tasks/SCAN-15.md) · Scan next: pinching the camera zooms the picture, not the page | In progress |

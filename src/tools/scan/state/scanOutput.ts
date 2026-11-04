@@ -17,6 +17,8 @@ export interface ScanOutput {
   onRename: (name: string) => void;
   onEditingChange: (editing: boolean) => void;
   onShowFailedPage: () => void;
+  /** The quiet line saying the scan is kept on the device (SCAN-18), or null when there is nothing to say. */
+  draftStatus: { label: string; failed: boolean } | null;
 }
 
 /** The paper and the size limit the person chose. */
