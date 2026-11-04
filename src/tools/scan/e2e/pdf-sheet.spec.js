@@ -27,3 +27,25 @@ test('a PDF sheet with two pages arrives as two pages', async ({ page }) => {
   });
   await expect(page.locator('[data-table-page]')).toHaveCount(2, { timeout: 30_000 });
 });
+
+test('a crooked sheet\'s border carries its paper tone, not white', async ({ page }) => {
+  // Pure white beside shaded paper reads as print to the Document look, which paints the page black there.
+  await page.addInitScript(() => {
+    const toBlob = HTMLCanvasElement.prototype.toBlob;
+    window.sheetCorners = [];
+    HTMLCanvasElement.prototype.toBlob = function capture(callback, type, quality) {
+      if (type === 'image/jpeg' && quality === 0.92) window.sheetCorners.push(this.getContext('2d').getImageData(1, 1, 1, 1).data[0]);
+      return toBlob.call(this, callback, type, quality);
+    };
+  });
+  await page.goto('/scan-to-pdf/');
+  await waitForIsland(page);
+  await page.locator('input[type=file]:not([capture])').first().setInputFiles({
+    name: 'sheet.pdf',
+    mimeType: 'application/pdf',
+    buffer: await twoPageSheetPdf(),
+  });
+  await expect(page.locator('[data-table-page]')).toHaveCount(2, { timeout: 30_000 });
+  const [corner] = await page.evaluate(() => window.sheetCorners);
+  expect(corner).toBeLessThan(245);
+});

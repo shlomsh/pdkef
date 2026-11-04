@@ -59,7 +59,7 @@ describe('readsRightToLeft', () => {
 });
 
 describe('pdfSheets', () => {
-  it('gives a tilted sheet a white border so every corner sits on the picture, where the corner editor can reach it', async () => {
+  it('gives a tilted sheet a border so every corner sits on the picture, where the corner editor can reach it', async () => {
     const r = reader(() => tiltedSpread(1000, 700, 3.5));
     const [sheet] = await collect(pdfSheets(pdf, undefined, r));
     expect(sheet.quads).toHaveLength(2);
@@ -69,6 +69,13 @@ describe('pdfSheets', () => {
     }
     const border = r.calls.jpeg[0][3];
     expect(Math.max(border.left, border.top, border.right, border.bottom)).toBeGreaterThan(0);
+  });
+
+  it('leaves room on every side of a crooked sheet, so flattening a bent page never reaches past the picture', async () => {
+    const r = reader(() => tiltedSpread(1000, 700, 3.5));
+    await collect(pdfSheets(pdf, undefined, r));
+    const { left, top, right, bottom } = r.calls.jpeg[0][3];
+    expect(Math.min(left, top, right, bottom)).toBeGreaterThanOrEqual(0.05);
   });
 
   it('gives a spread two quads, left page first, and names the file by pdf and page', async () => {

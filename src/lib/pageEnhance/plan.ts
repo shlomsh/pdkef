@@ -13,6 +13,8 @@ import { warpSizeFor } from './warp.ts';
 
 /** A lean below this many degrees is below what the eye catches, so leveling it only costs a resample. */
 export const MIN_LEAN_DEGREES = 0.5;
+/** Corners this share of the sheet short of its edge are a trim, not noise; the Adobe Scan book's straight pages read within 2%. */
+const MIN_TRIM = 0.03;
 /** The share of a half's width the gutter takes on a page with too little text to find corners from; the book PDF's text starts about 6% in. */
 const GUTTER_SHARE = 0.03;
 /** A page bent less than this many pixels at the small copy's size is flat to the eye. */
@@ -30,7 +32,7 @@ export interface Assessment {
   spine: Spine | null;
   /** Degrees, one per page: left then right on a spread, one otherwise. */
   leans: number[];
-  /** One per page, in the turned sheet, 0..1: corners that square the page's text block; null where there are too few rows (and always on a single page, so a phone photo's plan is unchanged). */
+  /** One per page, in the turned sheet, 0..1: corners that square the page's text block; null where there are too few rows. */
   corners: (Quad | null)[];
   /** Single page only; 0 on a spread. */
   bentPx: number;
@@ -77,8 +79,7 @@ export function assess(gray: GrayImage): Assessment {
   const spine = findSpine(turned);
   const halves = spine ? spreadHalves(spine) : [];
   const leans = spine ? halves.map((half) => pageLean(flattened(turned, half))) : [pageLean(turned)];
-  // Spreads only: a book page's text block is squared; a single page keeps the level rectangle.
-  const corners = spine ? halves.map((half, i) => foundCorners(turned, half, leans[i], SPINE_SIDES[i])) : [null];
+  const corners = spine ? halves.map((half, i) => foundCorners(turned, half, leans[i], SPINE_SIDES[i])) : [foundCorners(turned, UNIT_QUAD, leans[0], null)];
   const bent = spine ? 0 : bentOf(turned, leans[0]);
   const crooked = !!turn || !!spine || leans.some((l) => Math.abs(l) >= MIN_LEAN_DEGREES) || bent >= MIN_BENT_PX;
   return { turn, turnConfidence: confidence, spine, leans, corners, bentPx: bent, crooked };
@@ -93,11 +94,14 @@ function pageQuads(a: Assessment): Quad[] {
   return a.spine ? spreadHalves(a.spine).map((half, i) => withoutGutter(half, SPINE_SIDES[i])) : [UNIT_QUAD];
 }
 
+/** Whether a page's corners stop short of the sheet by more than a slip of the reading: there is something on it that is no part of the page. */
+const trimsSheet = (corners: Quad | null): boolean => !!corners && corners.some((p, i) => Math.abs(p.x - UNIT_QUAD[i].x) > MIN_TRIM || Math.abs(p.y - UNIT_QUAD[i].y) > MIN_TRIM);
+
 /** One piece per page for `source`, the full-size page in pixels; `gray` and `a` are what assess read. */
 export function planPage(gray: GrayImage, a: Assessment, source: { width: number; height: number }): PagePlan {
   const { width, height } = source;
   const longEdge = Math.max(width, height);
-  if (!a.crooked) return { pieces: [pieceOf(UNIT_QUAD, width, height, longEdge)] };
+  if (!a.crooked && !trimsSheet(a.corners[0])) return { pieces: [pieceOf(UNIT_QUAD, width, height, longEdge)] };
   const turnedSize = a.turn % 2 ? { width: gray.height, height: gray.width } : gray;
   const pieces = pageQuads(a).map((quad, i) => {
     const page = a.corners[i] ?? levelQuad(quad, a.leans[i], turnedSize.width, turnedSize.height);

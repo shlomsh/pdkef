@@ -172,6 +172,27 @@ describe('found corners', () => {
     expect(pieces[1].quad[1].x).toBeCloseTo(level[1].x, 6);
   });
 
+  it('trim a straight page down to its paper when the next sheet shows beside it', () => {
+    const sheet = leaning(560, 700, 0, 40, 440);
+    for (let i = 0; i < sheet.data.length; i += 4) {
+      const v = (i / 4) % 560 < 500 ? Math.min(sheet.data[i], 180) : 245;
+      sheet.data.fill(v, i, i + 3);
+    }
+    const g = gray(sheet);
+    const a = assess(g);
+    expect(a.crooked).toBe(false);
+    expect(planPage(g, a, sheet).pieces[0].quad[1].x).toBeLessThan(0.92);
+  });
+
+  it('square a crooked single page too', () => {
+    const sheet = leaning(500, 700, 3, 40, 460);
+    const g = gray(sheet);
+    const a = assess(g);
+    expect(a.spine).toBeNull();
+    expect(a.corners[0]).not.toBeNull();
+    expect(planPage(g, a, sheet).pieces[0].quad).toEqual(a.corners[0]);
+  });
+
   it('leave the gutter out of both pages', () => {
     const sheet = leaningSpread(3.5);
     const g = gray(sheet);

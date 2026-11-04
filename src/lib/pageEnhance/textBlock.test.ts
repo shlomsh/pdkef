@@ -95,6 +95,33 @@ describe('textBlockCorners', () => {
     expect(Math.abs((c[0].x + c[3].x) / 2)).toBeLessThan(0.02);
   });
 
+  it('stops where the paper ends: what lies beyond the page is no part of it', () => {
+    const g = page();
+    for (let y = 0; y < H; y += 1) g.data.fill(170, y * W + 540, y * W + W);
+    for (let y = 750; y < H; y += 1) g.data.fill(170, y * W, (y + 1) * W);
+    const c = textBlockCorners(g)!;
+    expect((c[1].x + c[2].x) / 2).toBeLessThanOrEqual(0.91);
+    expect((c[1].x + c[2].x) / 2).toBeGreaterThan(0.86);
+    expect((c[2].y + c[3].y) / 2).toBeLessThanOrEqual(0.945);
+    expect((c[2].y + c[3].y) / 2).toBeGreaterThan(0.9);
+  });
+
+  it('stops at the next sheet, which starts brighter than this page\'s shaded edge', () => {
+    const g = page();
+    for (let i = 0; i < g.data.length; i += 1) g.data[i] = Math.min(g.data[i], 180);
+    for (let y = 0; y < H; y += 1) g.data.fill(245, y * W + 540, y * W + W);
+    const c = textBlockCorners(g)!;
+    expect((c[1].x + c[2].x) / 2).toBeLessThanOrEqual(0.91);
+    expect((c[1].x + c[2].x) / 2).toBeGreaterThan(0.86);
+  });
+
+  it('reaches through soft shade: paper that fades is still paper', () => {
+    const g = page();
+    for (let y = 0; y < H; y += 1) for (let x = 500; x < W; x += 1) g.data[y * W + x] = Math.min(g.data[y * W + x], 255 - (x - 500));
+    const c = textBlockCorners(g)!;
+    expect((c[1].x + c[2].x) / 2).toBeGreaterThan(0.97);
+  });
+
   it('is not moved by a tall mark in the margin', () => {
     const plain = textBlockCorners(page())!;
     const marked = textBlockCorners(page(ROWS, true))!;
