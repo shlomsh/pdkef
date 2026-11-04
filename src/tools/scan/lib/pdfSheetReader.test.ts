@@ -20,7 +20,7 @@ describe('openPdfSheetReader', () => {
     const gray = await reader.grayOf(1, 1000, 1);
     expect(render).toHaveBeenLastCalledWith(page, expect.objectContaining({ rotation: 180 }));
     expect(gray.data.length).toBe(gray.width * gray.height);
-    const jpeg = await reader.jpegOf(1, 3200, 0);
+    const jpeg = await reader.jpegOf(1, 3200, 0, { left: 0, top: 0, right: 0, bottom: 0 });
     expect(jpeg.blob.type).toBe('image/jpeg');
     reader.close();
     expect(destroy).toHaveBeenCalled();

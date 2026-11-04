@@ -36,9 +36,8 @@ interface ScanPagesInput {
 
 type InspectHost = Pick<ScanPagesInput, 'work' | 'unmountedRef' | 'dispatch' | 'setPages'>;
 
-/** One new photo through the queue: its preview and edge guess, or the mark that it could not be read.
- * A page of a PDF sheet (`fromPdf`) arrives with its corners found and its sheet upright: only its preview and size are made. */
-function inspectPage(page: ScanPage, { work, unmountedRef, dispatch, setPages }: InspectHost, { fromCamera = false, restored = false, fromPdf = false } = {}) {
+/** One new photo through the queue: its preview and edge guess, or the mark that it could not be read. */
+function inspectPage(page: ScanPage, { work, unmountedRef, dispatch, setPages }: InspectHost, { fromCamera = false, restored = false } = {}) {
   work.enqueue(async () => (work.removed.has(page.id) ? null : (await loadPipeline()).inspectPhoto(page.file)))
     .then((seen) => seen, (err) => {
       reportError('pdf_tool_run', err, 'scan_inspect_photo');
@@ -51,7 +50,7 @@ function inspectPage(page: ScanPage, { work, unmountedRef, dispatch, setPages }:
       if (!seen) dispatch({ type: 'pageFailed', id: page.id });
       if (seen) work.previewBlobs.set(page.id, seen.preview);
       const preview = seen ? URL.createObjectURL(seen.preview) : null;
-      setPages((current) => withInspection(current, page.id, seen, preview, !restored && !fromPdf, fromPdf));
+      setPages((current) => withInspection(current, page.id, seen, preview, !restored));
     });
 }
 
@@ -81,7 +80,7 @@ export function useScanPages(input: ScanPagesInput) {
     return run;
   }, []);
 
-  const addPdfs = useScanPdfPages({ ...input, skipped: setRejectedFiles, inspect: (page) => inspectPage(page, input, { fromPdf: true }) });
+  const addPdfs = useScanPdfPages({ ...input, skipped: setRejectedFiles, inspect: (page) => inspectPage(page, input) });
 
   const addFiles = useCallback((fileList: FileList | File[], from?: { fromCamera: boolean }) => {
     const { accepted: all, rejectedNames } = partitionFiles(Array.from(fileList), SCAN_ACCEPTED_TYPES);
