@@ -1,6 +1,8 @@
 // What the viewfinder's one line says (SCAN-24): the one thing that would make the shot better. Pure: the latest
 // frame observation, the capture machine's phase and the guidance so far in, the guidance for this frame out. It
-// only chooses words; the shutter and the capture machine never wait for it.
+// only chooses words. `fit` and `flatter` also hold the auto shutter: the capture machine waits while a corner is
+// cut off or the page is seen steeply, by the same capture.edgeMargin and capture.minKeystone read here, so a hint
+// and the shutter never disagree on entry.
 //
 // Priority, first wins. Framing comes before steadiness, in the order a person sets up a shot: get the whole page
 // in, close enough, standing out from the table, seen from above, then hold still.
@@ -9,15 +11,15 @@
 //   fit        a corner sits on the frame's edge, or did a moment ago and the page is lost since: it is cut off
 //   closer     the page is under minArea of the frame: the camera will not take it
 //   contrast   the page's border barely steps from the table, or nothing is found against a light view
-//   flatter    the page is seen steeply: it is taken, but its far side keeps less detail
+//   flatter    the page is seen steeply: the auto shutter waits for it to be held flatter
 //   hold       a page is followed but blurred or moving, or all is well and the hold ring is filling
 //              (a blurred page is never told "point", even when the blur lowers its confidence)
 //   point      no page in view
-// fit, closer and contrast stop the shot or make it unreliable; flatter only costs detail; hold resolves itself.
+// fit and flatter hold the auto shutter; closer and contrast stop the shot or make it unreliable; hold resolves itself.
 //
 // Steady: every reading has its own way in and out (hysteresis), and the line changes only once the new hint has
 // been wanted for settleMs AND the shown one has stood for minShowMs. turn alone cuts in at once.
-import type { Quad } from '#lib/pageEnhance/quad.ts';
+import { onEdge } from './framing.ts';
 import { DEFAULT_CAPTURE_PARAMS, type CaptureParams, type CapturePhase, type FrameObservation } from './types.ts';
 
 /** The hints, one per line the viewfinder can say. */
@@ -74,8 +76,7 @@ interface GuidanceParams {
   settleMs: number;
   /** The shortest gap between two announcements, so speech never queues up; turn is always announced. */
   speakGapMs: number;
-  /** A corner this close to the frame's edge (normalized) is on it; the reading clears beyond edgeLeave. */
-  edgeEnter: number;
+  /** The edge reading (entry: capture.edgeMargin) clears beyond edgeLeave. */
   edgeLeave: number;
   /** After the page is lost, how long a corner on the edge still says "fit" (a page too close is not found). */
   edgeMemoryMs: number;
@@ -87,8 +88,7 @@ interface GuidanceParams {
   /** With no page found, a light floor at or over lightEnter is a light view; it clears under lightLeave. */
   lightEnter: number;
   lightLeave: number;
-  /** A keystone under keystoneEnter is steep; it clears at keystoneLeave. */
-  keystoneEnter: number;
+  /** The steep reading (entry: capture.minKeystone) clears at keystoneLeave. */
   keystoneLeave: number;
   /** The blurred reading clears at this many times minSharpness. */
   sharpLeave: number;
@@ -99,9 +99,8 @@ export const DEFAULT_GUIDANCE_PARAMS: GuidanceParams = {
   minShowMs: 1200,
   settleMs: 400,
   speakGapMs: 3000,
-  // 1% is 3 px of the 320 px analysis frame: a page edge that close is the frame's edge, or past it.
-  edgeEnter: 0.01,
-  edgeLeave: 0.025,
+  // Entry is capture.edgeMargin (0.02); the leave sits 1.5% beyond it.
+  edgeLeave: 0.035,
   edgeMemoryMs: 1500,
   areaLeave: 1.15,
   // A white page (225) is found with full confidence down to a border step of about 0.3, with less from 0.29 and
@@ -111,14 +110,10 @@ export const DEFAULT_GUIDANCE_PARAMS: GuidanceParams = {
   // The light floor where that same page stops being found (0.6 to 0.65); a dark desk reads 0.07 to 0.21.
   lightEnter: 0.6,
   lightLeave: 0.55,
-  // Under 0.6 the far side has under 60% of the near side's pixels: about 20 degrees of tilt with the page filling
-  // the frame, 35 with it at half. A slightly tilted phone (0.75 to 0.95) is left alone.
-  keystoneEnter: 0.6,
+  // Entry is capture.minKeystone (0.6).
   keystoneLeave: 0.7,
   sharpLeave: 1.25,
 };
-
-const onEdge = (quad: Quad, margin: number) => quad.some((p) => p.x <= margin || p.y <= margin || p.x >= 1 - margin || p.y >= 1 - margin);
 
 /** A reading with hysteresis: on past `enter`, off only once past `leave`. */
 const latch = (was: boolean, enter: boolean, leave: boolean) => (was ? !leave : enter);
@@ -132,11 +127,11 @@ function read(was: Readings, obs: FrameObservation, params: GuidanceParams, capt
   }
   const { contrast, keystone } = obs;
   return {
-    edge: latch(was.edge, onEdge(quad, params.edgeEnter), !onEdge(quad, params.edgeLeave)),
+    edge: latch(was.edge, onEdge(quad, capture.edgeMargin), !onEdge(quad, params.edgeLeave)),
     small: latch(was.small, obs.area < capture.minArea, obs.area >= capture.minArea * params.areaLeave),
     faint: contrast === undefined ? false : latch(was.faint, contrast < params.contrastEnter, contrast >= params.contrastLeave),
     light: false,
-    steep: keystone === undefined ? false : latch(was.steep, keystone < params.keystoneEnter, keystone >= params.keystoneLeave),
+    steep: keystone === undefined ? false : latch(was.steep, keystone < capture.minKeystone, keystone >= params.keystoneLeave),
     blurred: latch(was.blurred, obs.sharpness < capture.minSharpness, obs.sharpness >= capture.minSharpness * params.sharpLeave),
   };
 }

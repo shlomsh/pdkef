@@ -18,8 +18,9 @@ export interface FrameObservation {
   hash: string;
   /** focusMeasure of the centre crop; 0 when there is no crop. */
   focus: number;
-  // The guidance's signals (SCAN-24, lib/capture/pageSignals.ts). Optional: the capture machine never reads them,
-  // and a recorded sequence without them gets the plain hints.
+  // The guidance's signals (SCAN-24, lib/capture/pageSignals.ts). Optional: a recorded sequence without them gets the
+  // plain hints. The capture machine reads `keystone` (the auto shutter waits for a page seen steeply); an observation
+  // without it counts as not steep.
   /** 0..1, how far the page's border steps in brightness from what it lies on; absent without a page or a view past it. */
   contrast?: number;
   /** 0..1, the shorter over the longer of each pair of opposite sides, the smaller pair; 1 is seen straight on. */
@@ -78,6 +79,10 @@ export interface CaptureParams {
   maxGapMs: number;
   /** The page must be missing this long to re-arm after a shot. */
   leaveMs: number;
+  /** A corner this close to the frame's edge (normalized) is cut off: the auto shutter waits (the hint says fit). */
+  edgeMargin: number;
+  /** A keystone under this is a page seen too steeply: the auto shutter waits (the hint says flatter). */
+  minKeystone: number;
   /** A hash more than this many bits away from every page taken is a different page. */
   changeDistance: number;
 }
@@ -95,6 +100,12 @@ export const DEFAULT_CAPTURE_PARAMS: CaptureParams = {
   maxGapMs: 250,
   leaveMs: 800,
   changeDistance: 12,
+  // 2% is 6 px of the 320 px analysis frame. A found page fully inside at 3% reads 0.028 at the nearest; a cut-off
+  // page is usually not found at all (guidance's edgeMemoryMs covers that).
+  edgeMargin: 0.02,
+  // Under 0.6 the far side has under 60% of the near side's pixels: about 20 degrees of tilt with the page filling
+  // the frame, 35 with it at half. A slightly tilted phone (0.75 to 0.95) is left alone.
+  minKeystone: 0.6,
 };
 
 /** capture = the smoothed quad to take, on the one frame that fires; null otherwise. */

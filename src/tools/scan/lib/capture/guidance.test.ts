@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { BENT_SHARE, DEFAULT_GUIDANCE_PARAMS, INITIAL_GUIDANCE, looksBent, stepGuidance, type Guidance, type Hint } from './guidance.ts';
+import { INITIAL_CAPTURE_STATE, stepCapture } from './captureMachine.ts';
 import { DEFAULT_CAPTURE_PARAMS, type CapturePhase, type FrameObservation } from './types.ts';
 import type { Quad } from '#lib/pageEnhance/quad.ts';
 
@@ -68,6 +69,35 @@ describe('stepGuidance: each condition', () => {
   it('a corner on the frame edge: fit', () => {
     expect(first(page(0, { quad: CUT }), 'searching')).toBe('fit');
     expect(first(page(0, { quad: CUT.map((p) => ({ x: Math.min(p.x, 0.995), y: Math.min(p.y, 0.995) })) as Quad }), 'searching')).toBe('fit');
+  });
+
+  it('the hint and the shutter agree at the margin', () => {
+    const m = DEFAULT_CAPTURE_PARAMS.edgeMargin;
+    const at = (d: number): Quad => [{ x: d, y: 0.15 }, { x: 0.8, y: 0.15 }, { x: 0.8, y: 0.85 }, { x: d, y: 0.85 }];
+    const unframed = (quad: Quad) => {
+      const { fired, state } = (() => {
+        let st = INITIAL_CAPTURE_STATE;
+        let n = 0;
+        for (let t = 0; t <= 3000; t += 33) {
+          const step = stepCapture(st, page(t, { quad, hash: HASH }));
+          st = step.state;
+          if (step.capture) n += 1;
+        }
+        return { fired: n, state: st };
+      })();
+      return { fired, phase: state.phase };
+    };
+    for (const d of [m - 0.005, m + 0.005]) {
+      const hinted = first(page(0, { quad: at(d) }), 'locked') === 'fit';
+      const held = unframed(at(d)).fired === 0;
+      expect(hinted, `margin ${d}`).toBe(held);
+    }
+    expect(first(page(0, { quad: at(m - 0.005) }), 'locked')).toBe('fit');
+    expect(first(page(0, { quad: at(m + 0.005) }), 'locked')).toBe('hold');
+    const steep = (k: number) => first(page(0, { keystone: k }), 'locked') === 'flatter';
+    const k = DEFAULT_CAPTURE_PARAMS.minKeystone;
+    expect(steep(k - 0.02)).toBe(true);
+    expect(steep(k + 0.02)).toBe(false);
   });
 
   it('a page lost just after touching the edge (too close to be found): still fit, then point', () => {
@@ -174,7 +204,7 @@ describe('stepGuidance: hysteresis', () => {
   /** The readings after a run of single frames in one guidance. */
   const readings = (obs: FrameObservation[]) => obs.reduce((g, o) => stepGuidance(g, o, 'locked'), INITIAL_GUIDANCE).readings;
 
-  it('steep from under keystoneEnter, cleared only at keystoneLeave', () => {
+  it('steep from under minKeystone, cleared only at keystoneLeave', () => {
     expect(readings([page(0, { keystone: 0.65 })]).steep).toBe(false);
     expect(readings([page(0, { keystone: 0.58 }), page(80, { keystone: 0.65 })]).steep).toBe(true);
     expect(readings([page(0, { keystone: 0.58 }), page(80, { keystone: 0.72 })]).steep).toBe(false);
@@ -193,11 +223,11 @@ describe('stepGuidance: hysteresis', () => {
     expect(readings([page(0, { contrast: 0.2 }), page(80, { contrast: 0.31 })]).faint).toBe(false);
   });
 
-  it('on the edge within edgeEnter, cleared only past edgeLeave', () => {
+  it('on the edge within edgeMargin, cleared only past edgeLeave', () => {
     const near = (m: number): Quad => [{ x: m, y: 0.15 }, { x: 0.8, y: 0.15 }, { x: 0.8, y: 0.85 }, { x: m, y: 0.85 }];
-    expect(readings([page(0, { quad: near(0.015) })]).edge).toBe(false);
-    expect(readings([page(0, { quad: near(0.005) }), page(80, { quad: near(0.015) })]).edge).toBe(true);
-    expect(readings([page(0, { quad: near(0.005) }), page(80, { quad: near(0.03) })]).edge).toBe(false);
+    expect(readings([page(0, { quad: near(0.025) })]).edge).toBe(false);
+    expect(readings([page(0, { quad: near(0.005) }), page(80, { quad: near(0.025) })]).edge).toBe(true);
+    expect(readings([page(0, { quad: near(0.005) }), page(80, { quad: near(0.04) })]).edge).toBe(false);
   });
 
   it('a light view from lightEnter, cleared only under lightLeave', () => {
