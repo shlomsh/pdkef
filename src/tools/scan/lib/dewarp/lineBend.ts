@@ -4,14 +4,9 @@
 // Pure: no DOM.
 
 import type { GrayImage } from '../quad.ts';
+import { pageMasks, type PageMasks } from './ink.ts';
 import { bendAt, type LineBend } from './types.ts';
 
-/** A pixel is ink when it is darker than this share of the paper level around it. */
-const INK_RATIO = 0.75;
-/** Share of each dimension ignored along every edge (scanner and corner shadows). */
-const MARGIN = 0.03;
-/** Block size for the local paper level, as a share of the long edge. */
-const PAPER_BLOCK = 1 / 40;
 /** Horizontal reach of the smear that joins characters and words into a line, as a share of the width. */
 const SMEAR = 0.012;
 /** A line blob must span at least this share of the image width. */
@@ -42,49 +37,15 @@ const MIN_SPAN = 0.3;
 const MIN_BEND = 0.0015;
 /** Above this the fit is implausible (normalized units). */
 const MAX_BEND = 0.06;
-/** The fit must leave less than this share of the lines' own wobble unexplained. */
+/** A line counts toward the shared lean when it spans at least this share of the width... */
+const LEAN_SPAN = 0.3;
+/** ...and follows its own straight line to within the median line's RMS, or this (normalized). */
+const LEAN_RMS = 0.001;
+/** A bend is applied only when it leaves less than this share of the lines' own wobble unexplained. */
 const MAX_UNEXPLAINED = 0.5;
 
-interface Sample { line: number; x: number; y: number }
-
-/** The mean of a block and its neighbours that exist. */
-function mean3x3(grid: Float32Array, gw: number, gh: number, bx: number, by: number): number {
-  let sum = 0;
-  let n = 0;
-  for (let yy = Math.max(0, by - 1); yy <= Math.min(gh - 1, by + 1); yy += 1) {
-    for (let xx = Math.max(0, bx - 1); xx <= Math.min(gw - 1, bx + 1); xx += 1) { sum += grid[yy * gw + xx]; n += 1; }
-  }
-  return sum / n;
-}
-
-function inkMask(gray: GrayImage): Uint8Array {
-  const { width: w, height: h, data } = gray;
-  const bs = Math.max(8, Math.round(Math.max(w, h) * PAPER_BLOCK));
-  const gw = Math.ceil(w / bs);
-  const gh = Math.ceil(h / bs);
-  const maxes = new Float32Array(gw * gh);
-  for (let y = 0; y < h; y += 1) {
-    const row = Math.floor(y / bs) * gw;
-    for (let x = 0; x < w; x += 1) {
-      const i = row + Math.floor(x / bs);
-      if (data[y * w + x] > maxes[i]) maxes[i] = data[y * w + x];
-    }
-  }
-  const paper = new Float32Array(gw * gh);
-  for (let by = 0; by < gh; by += 1) {
-    for (let bx = 0; bx < gw; bx += 1) paper[by * gw + bx] = mean3x3(maxes, gw, gh, bx, by);
-  }
-  const mask = new Uint8Array(w * h);
-  const mx = Math.ceil(w * MARGIN);
-  const my = Math.ceil(h * MARGIN);
-  for (let y = my; y < h - my; y += 1) {
-    const row = Math.floor(y / bs) * gw;
-    for (let x = mx; x < w - mx; x += 1) {
-      if (data[y * w + x] < INK_RATIO * paper[row + Math.floor(x / bs)]) mask[y * w + x] = 1;
-    }
-  }
-  return mask;
-}
+/** One point on a line: `y` across it, observed at `x` along it, both 0..1. */
+export interface Sample { line: number; x: number; y: number }
 
 /** A pixel is "line" when there is ink within +-reach of it on its row. */
 function smear(mask: Uint8Array, w: number, h: number): Uint8Array {
@@ -223,18 +184,39 @@ function lineRms(samples: Sample[], offset: number, bend: LineBend): number {
   return Math.sqrt(s / samples.length);
 }
 
+/** @testSeam The rows alone, their shared lean left to the corners: what the tests measure a page by. */
 export function findLineBend(gray: GrayImage): LineBend | null {
-  const { width: w, height: h } = gray;
+  return finishBend(lineFit(pageMasks(gray)), 0);
+}
+
+/** The rows' fit before its lean is settled (see finishBend), or null when there are no clear rows.
+ * The vertical rules are left out: a form's grid would otherwise join every row into one shape. */
+export function lineFit({ ink, rules, width: w, height: h }: PageMasks): FittedBend | null {
   if (w < 16 || h < 16) return null;
-  let lines = lineSamples(smear(inkMask(gray), w, h), w, h);
-  if (lines.length < MIN_LINES) return null;
+  const rows = new Uint8Array(ink.length);
+  for (let i = 0; i < ink.length; i += 1) rows[i] = ink[i] & (rules[i] ^ 1);
+  return fitBend(lineSamples(smear(rows, w, h), w, h), MIN_LINES);
+}
+
+/** A fit through a page's lines, its lean still in it. `lean` is the slope (normalized, y per x) the
+ * lines share, the median of their own; the bend's lean that differs down the page is a fan.
+ * `explained`: the fit follows the lines' own wobble well enough to be applied as a bend. */
+export interface FittedBend { bend: LineBend; lean: number; explained: boolean }
+
+/**
+ * One shared bend through every line's samples (each `y` observed at `x`), with a free height per
+ * line, robust to a stray line, and null unless there are enough lines over enough of the page.
+ */
+export function fitBend(found: Sample[][], minLines: number): FittedBend | null {
+  let lines = found;
+  if (lines.length < minLines) return null;
   let result = fit(lines);
   if (!result) return null;
 
   const rms = lines.map((s, k) => lineRms(s, result!.offsets[k], result!.bend));
   const median = [...rms].sort((p, q) => p - q)[Math.floor(rms.length / 2)];
   lines = lines.filter((_, k) => rms[k] <= OUTLIER_FACTOR * median && rms[k] <= OUTLIER_RMS);
-  if (lines.length < MIN_LINES) return null;
+  if (lines.length < minLines) return null;
   result = fit(lines);
   if (!result) return null;
 
@@ -252,11 +234,70 @@ export function findLineBend(gray: GrayImage): LineBend | null {
       count += 1;
     }
   });
-  if (Math.sqrt(resid / count) > MAX_UNEXPLAINED * Math.sqrt(wobble / count)) return null;
+  // A fit that leaves much of the lines' own wobble unexplained is no bend to apply, but its lean still
+  // says how level the lines are (straight rows have no wobble to explain).
+  const explained = Math.sqrt(resid / count) <= MAX_UNEXPLAINED * Math.sqrt(wobble / count);
 
-  // Judged as it will be applied: without its tilt, and only where the lines are (a plain tilt is
-  // then no bend at all, and a blank margin cannot carry an extrapolated one).
-  const bend = withoutTilt(result.bend, lines);
+  let x0 = 1; let x1 = 0; let y0 = 1; let y1 = 0;
+  for (const line of lines) for (const p of line) {
+    x0 = Math.min(x0, p.x); x1 = Math.max(x1, p.x); y0 = Math.min(y0, p.y); y1 = Math.max(y1, p.y);
+  }
+  const bend: LineBend = { c: [...result.bend.c], box: { x0, x1, y0, y1 } };
+  return { bend, lean: medianSlope(lines), explained };
+}
+
+/** The lines' shared lean: the median of each line's own least-squares slope, taken over the lines
+ * that are straight on their own and run across a good part of the page. A polynomial's slope at one
+ * point swings with noise at the ends of ragged lines; and a form's cell, where a label, a handwritten
+ * value and the cell's rule join into one shape, slopes wherever the handwriting goes. */
+function medianSlope(lines: Sample[][]): number {
+  const own = lines.map((line) => {
+    const mx = line.reduce((t, p) => t + p.x, 0) / line.length;
+    const my = line.reduce((t, p) => t + p.y, 0) / line.length;
+    let num = 0;
+    let den = 0;
+    for (const p of line) { num += (p.x - mx) * (p.y - my); den += (p.x - mx) ** 2; }
+    const slope = den > 0 ? num / den : 0;
+    let sq = 0;
+    for (const p of line) sq += (p.y - my - slope * (p.x - mx)) ** 2;
+    return { slope, rms: Math.sqrt(sq / line.length), span: line[line.length - 1].x - line[0].x };
+  });
+  const rmsCut = Math.max(LEAN_RMS, median(own.map((l) => l.rms)));
+  const clean = own.filter((l) => l.span >= LEAN_SPAN && l.rms <= rmsCut);
+  return median((clean.length ? clean : own).map((l) => l.slope));
+}
+
+const median = (values: number[]) => [...values].sort((a, b) => a - b)[values.length >> 1];
+
+/** The bend's straight part across where its lines are, at their middle height: the least-squares
+ * slope of bendAt over the box's width. Over the box, not 0..1: bendAt holds still outside it. */
+function leanAt(bend: LineBend): number {
+  const { x0, x1, y0, y1 } = bend.box!;
+  const y = (y0 + y1) / 2;
+  const n = 17;
+  const xm = (x0 + x1) / 2;
+  let num = 0;
+  let den = 0;
+  for (let k = 0; k < n; k += 1) {
+    const x = x0 + ((x1 - x0) * k) / (n - 1);
+    num += (x - xm) * bendAt(bend, x, y);
+    den += (x - xm) ** 2;
+  }
+  return den > 0 ? num / den : 0;
+}
+
+/**
+ * The bend to apply, its lean at the lines' middle set to `keep` (normalized, as `lean`): 0 leaves the
+ * lines' lean as the corners made it, `lean` straightens it too. A fit that does not explain the lines'
+ * wobble applies its lean alone. Null unless the result clearly moves something, judged as it will be
+ * applied, inside the box its lines cover, so a blank margin cannot carry an extrapolated bend.
+ */
+export function finishBend(fitted: FittedBend | null, keep: number): LineBend | null {
+  if (!fitted) return null;
+  const c = fitted.explained ? [...fitted.bend.c] : new Array<number>(9).fill(0);
+  // c[0] multiplies (x - 1/2) alone, so this sets the bend's own slope at the lines' middle to `keep`.
+  c[0] += keep - (fitted.explained ? leanAt(fitted.bend) : 0);
+  const bend: LineBend = { c, box: fitted.bend.box };
   const grid = 9;
   let maxBend = 0;
   for (let gy = 0; gy < grid; gy += 1) {
@@ -264,20 +305,4 @@ export function findLineBend(gray: GrayImage): LineBend | null {
   }
   if (maxBend < MIN_BEND || maxBend > MAX_BEND) return null;
   return bend;
-}
-
-/**
- * The bend with no straight-in-x part left in it, held inside the box its lines cover. A tilt is the
- * corners' to set: text printed a degree off its paper stays that way, and the page never shears past
- * the corners the person approved. Over 0..1, the straight part of x^i - 1/(i+1) is (x - 1/2) times
- * 1, 1 and 0.9 for i = 1, 2, 3, so the x-term's coefficient takes the rest's negative.
- */
-function withoutTilt(bend: LineBend, lines: Sample[][]): LineBend {
-  const c = [...bend.c];
-  for (let j = 0; j < 3; j += 1) c[j] = -(c[3 + j] + 0.9 * c[6 + j]);
-  let x0 = 1; let x1 = 0; let y0 = 1; let y1 = 0;
-  for (const line of lines) for (const p of line) {
-    x0 = Math.min(x0, p.x); x1 = Math.max(x1, p.x); y0 = Math.min(y0, p.y); y1 = Math.max(y1, p.y);
-  }
-  return { c, box: { x0, x1, y0, y1 } };
 }

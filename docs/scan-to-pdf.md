@@ -46,7 +46,7 @@ The output is built quietly in the background (`usePreparedOutput`), keyed on ev
 | `src/tools/scan/lib/quad.ts` | Scan | `Point`, `Quad`, `RgbaImage`, `GrayImage`, quad helpers |
 | `src/tools/scan/lib/edges/` | Scan | the swappable edge guess |
 | `src/tools/scan/lib/warp.ts` | Scan | homography and perspective warp, pure |
-| `src/tools/scan/lib/dewarp/` | Scan | a bent page's edge curves and text-line bend, folded into one warp, pure (SCAN-17) |
+| `src/tools/scan/lib/dewarp/` | Scan | a bent page's edge curves, text-line and vertical-rule bends, folded into one warp, pure (SCAN-17) |
 | `src/tools/scan/lib/filters.ts` | Scan | the three looks, pure |
 | `src/tools/scan/lib/scanBudget.ts` | Scan | the size-limit search over pages, pure (injected encode and build) |
 | `src/tools/scan/lib/scanPipeline.ts` | Scan | the DOM side: decode, gray thumbnail, process a page, build the PDF. Lazy. |
@@ -121,7 +121,8 @@ export async function fitScanToBudget<H>(input: {
   and no `Date.now()` they were not handed, and run under plain Vitest (node, not jsdom).
 - `warpPerspective` samples bilinearly and paints anything outside the source white.
 - A bent page (SCAN-17) is flattened in the homography's unit square: `dewarp/` fits each side as a curve
-  that vanishes at the person's corners, then the text lines' bend, and `warpAlong` resamples the photo
+  that vanishes at the person's corners, then the text lines' bend and the vertical rules' bend (a form, showing
+  both, is also squared up to 2 degrees; one direction alone keeps its lean), and `warpAlong` resamples the photo
   once along the composed map. A page whose edges and lines are straight takes `warpPerspective` exactly
   as before; a fit that fails its gates is dropped, never applied.
 - The output's long edge is capped at 2400 px (about 200 dpi on A4), which keeps a three-page phone scan
