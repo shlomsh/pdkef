@@ -6,6 +6,7 @@ import { guessCorners } from '../edges/index.ts';
 import { FLAT_PAGE, bentPx, isFlat, measureBend, pageMap, type PageBend } from '../dewarp/index.ts';
 import { warpAlong } from '../dewarp/meshWarp.ts';
 import { warpPerspective, warpSize } from '../warp.ts';
+import { uprightTurns } from './upright.ts';
 import { applyFilter, type ScanFilter } from '../filters.ts';
 import { insetQuad, scaleQuad, type GrayImage, type Quad, type RgbaImage } from '../quad.ts';
 
@@ -40,7 +41,14 @@ export interface ProcessedPage {
   bentPx: number;
 }
 /** What a new photo needs on screen: its corners, its shape, and a preview small enough to decode. */
-export interface InspectedPhoto { quad: Quad | null; width: number; height: number; preview: Blob }
+export interface InspectedPhoto {
+  quad: Quad | null;
+  width: number;
+  height: number;
+  preview: Blob;
+  /** Quarter turns clockwise that stand the page upright (upright.ts); 0 when no corners were found. */
+  turns: number;
+}
 
 /** A processed page, and the error measuring its bend threw, if it did: the page is then flattened by
  * its corners alone, and the caller reports the error (a worker cannot). */
@@ -124,12 +132,15 @@ export async function inspectWith(kit: CanvasKit, photo: Blob): Promise<Inspecte
     decoded.close();
   }
   let preview: Blob;
+  let pixels: ImageData;
   try {
     preview = await surface.toBlob('image/jpeg', PREVIEW_QUALITY);
+    pixels = pixelsOf(surface);
   } finally {
     surface.free();
   }
-  return { quad: await guessWith(kit, preview), width, height, preview };
+  const quad = await guessWith(kit, preview);
+  return { quad, width, height, preview, turns: quad ? uprightTurns(pixels, quad) : 0 };
 }
 
 /** The page's bend beyond its corners; a measuring failure leaves the page flat and is handed back. */
