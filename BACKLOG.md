@@ -2,7 +2,7 @@
 
 # Backlog
 
-The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 150 live: 46 up next, 25 then, 27 waiting, 52 parked.
+The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 150 live: 48 up next, 23 then, 27 waiting, 52 parked.
 
 ## Redact: finish removal
 
@@ -133,12 +133,17 @@ The camera takes pages, the table fixes them, Share sends them. The table first 
 
 One shared mechanism that turns, splits and straightens a page, first in Scan, then offered in Highlight, with an optional learned model on desktop.
 
+### Up next
+
+| ID | P | Task | Note |
+| --- | --- | --- | --- |
+| PE-03 | P2 | [PE-03](backlog/tasks/PE-03.md) · Fold finder for two pages to a sheet | In progress |
+| PE-04 | P2 | [PE-04](backlog/tasks/PE-04.md) · Lean as a rotation before the bend | In progress |
+
 ### Then, in order
 
 | ID | P | Task | Note |
 | --- | --- | --- | --- |
-| PE-03 | P2 | [PE-03](backlog/tasks/PE-03.md) · Fold finder for two pages to a sheet |  |
-| PE-04 | P2 | [PE-04](backlog/tasks/PE-04.md) · Lean as a rotation before the bend |  |
 | PE-05 | P2 | [PE-05](backlog/tasks/PE-05.md) · assess and planPage |  |
 | PE-06 | P2 | [PE-06](backlog/tasks/PE-06.md) · Highlight: detect a crooked scan, no UI |  |
 | PE-07 | P2 | [PE-07](backlog/tasks/PE-07.md) · Highlight: the suggestion line and Not now memory |  |
