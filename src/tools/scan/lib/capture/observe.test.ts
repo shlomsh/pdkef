@@ -18,6 +18,19 @@ describe('observeFrame', () => {
     expect(got.hash).toMatch(/^[0-9a-f]{16}$/);
   });
 
+  it('reads the guidance signals: contrast and keystone of the page found, the light floor of the frame', () => {
+    const img = solid(320, 427, 70);
+    fillQuad(img, PAGE, 220);
+    const got = observeFrame(img, 0, null);
+    expect(got.contrast).toBeCloseTo(150 / 255, 1);
+    expect(got.keystone).toBeGreaterThan(0.9);
+    expect(got.light).toBeCloseTo(70 / 255, 5);
+    const empty = observeFrame(solid(320, 427, 200), 0, null);
+    expect(empty.contrast).toBeUndefined();
+    expect(empty.keystone).toBeUndefined();
+    expect(empty.light).toBeCloseTo(200 / 255, 5);
+  });
+
   it('reads an empty frame: no quad, zero confidence, sharpness and area, a whole-frame hash', () => {
     const got = observeFrame(solid(320, 427, 128), 5, null);
     expect(got.t).toBe(5);

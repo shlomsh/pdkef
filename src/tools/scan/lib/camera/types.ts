@@ -1,9 +1,11 @@
 // The camera in the page (SCAN-08, docs/scan-next.md section 2): the contract between the pure model,
 // the camera hook and the viewfinder. Everything here is data; no DOM.
 import type { Quad } from '../quad.ts';
+import { INITIAL_GUIDANCE, type Guidance, type Hint } from '../capture/guidance.ts';
 
-/** Which line the viewfinder says: "Point at a page", "Hold still", "Page 3. Turn the page." */
-export type Hint = 'point' | 'hold' | 'turn';
+/** Which line the viewfinder says: "Point at a page", "Hold still", "Page 3. Turn the page." and the guidance
+ * hints (SCAN-24, lib/capture/guidance.ts). */
+export type { Hint };
 
 /** What the viewfinder draws for the latest analysed frame, derived from the capture state. */
 export interface LiveView {
@@ -14,9 +16,13 @@ export interface LiveView {
   /** 0..1, how full the shutter's hold ring is. */
   hold: number;
   hint: Hint;
+  /** What screen readers are told: the hint, announced politely and at most every few seconds; null before any. */
+  spoken: Hint | null;
+  /** The guidance that chose the hint, carried to the next frame (stepGuidance's memory). */
+  guidance: Guidance;
 }
 
-export const IDLE_VIEW: LiveView = { quad: null, locked: false, hold: 0, hint: 'point' };
+export const IDLE_VIEW: LiveView = { quad: null, locked: false, hold: 0, hint: 'point', spoken: null, guidance: INITIAL_GUIDANCE };
 
 /** starting: asking for the camera. refused / unavailable / slow: the native photo input takes over. */
 export type CameraStatus = 'starting' | 'live' | 'refused' | 'unavailable' | 'slow';

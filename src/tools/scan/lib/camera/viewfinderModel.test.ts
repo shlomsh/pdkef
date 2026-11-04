@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { coverRect, hintText, liveView } from './viewfinderModel.ts';
+import { coverRect, hintText, liveView, nextView } from './viewfinderModel.ts';
+import { INITIAL_GUIDANCE } from '../capture/guidance.ts';
+import { IDLE_VIEW } from './types.ts';
 import { DEFAULT_CAPTURE_PARAMS, type CaptureState } from '../capture/types.ts';
 import type { Quad } from '../quad.ts';
 
@@ -12,12 +14,12 @@ const state = (over: Partial<CaptureState>): CaptureState => ({
 
 describe('liveView', () => {
   it('searching: dashed outline, point', () => {
-    expect(liveView(state({ smoothed: Q }), 100)).toEqual({ quad: Q, locked: false, hold: 0, hint: 'point' });
+    expect(liveView(state({ smoothed: Q }), 100)).toMatchObject({ quad: Q, locked: false, hold: 0, hint: 'point', spoken: null });
     expect(liveView(state({}), 100).quad).toBeNull();
   });
 
   it('locked: solid, hold', () => {
-    expect(liveView(state({ phase: 'locked', smoothed: Q }), 100)).toEqual({ quad: Q, locked: true, hold: 0, hint: 'hold' });
+    expect(liveView(state({ phase: 'locked', smoothed: Q }), 100)).toMatchObject({ quad: Q, locked: true, hold: 0, hint: 'hold', spoken: null });
   });
 
   it('holding: the ring fills with time', () => {
@@ -40,16 +42,45 @@ describe('liveView', () => {
 
   it('waitingForChange: not locked, turn, no ring', () => {
     const v = liveView(state({ phase: 'waitingForChange', smoothed: Q, holdSince: 1000 }), 1300);
-    expect(v).toEqual({ quad: Q, locked: false, hold: 0, hint: 'turn' });
+    expect(v).toMatchObject({ quad: Q, locked: false, hold: 0, hint: 'turn', spoken: null });
+  });
+
+  it('the guidance, when given, says the hint and what is spoken; the outline still follows the phase', () => {
+    const guidance = { ...INITIAL_GUIDANCE, hint: 'flatter' as const, spoken: 'hold' as const };
+    const v = liveView(state({ phase: 'holding', smoothed: Q, holdSince: 1000 }), 1300, DEFAULT_CAPTURE_PARAMS, guidance);
+    expect(v.hint).toBe('flatter');
+    expect(v.spoken).toBe('hold');
+    expect(v.locked).toBe(true);
+    expect(v.guidance).toBe(guidance);
+    expect(liveView(state({ smoothed: Q }), 100, DEFAULT_CAPTURE_PARAMS, { ...INITIAL_GUIDANCE, hint: 'contrast' }).locked).toBe(false);
+  });
+
+  it('nextView steps the guidance on from the previous view', () => {
+    const obs = (t: number, keystone: number) => ({ t, quad: Q, confidence: 1, sharpness: 500, area: 0.5, hash: '0', focus: 1, contrast: 0.7, keystone });
+    const first = nextView(IDLE_VIEW, state({ phase: 'locked', smoothed: Q }), obs(0, 0.95));
+    expect(first.hint).toBe('hold');
+    expect(first.spoken).toBe('hold');
+    let v = first;
+    for (let t = 80; t <= 2000; t += 80) v = nextView(v, state({ phase: 'holding', smoothed: Q, holdSince: 0 }), obs(t, 0.4));
+    expect(v.hint).toBe('flatter');
+    expect(v.locked).toBe(true);
   });
 });
 
 describe('hintText', () => {
-  const words = { hintPoint: 'Point', hintHold: 'Hold still', hintTurn: 'Page {count}. Turn the page.' };
+  const words = {
+    hintPoint: 'Point', hintHold: 'Hold still', hintTurn: 'Page {count}. Turn the page.',
+    hintDuplicate: 'Taken', hintFit: 'Fit', hintCloser: 'Closer', hintContrast: 'Darker', hintFlatter: 'Flatter',
+  };
   it('picks the words, filling the count for turn', () => {
     expect(hintText('point', 2, words)).toBe('Point');
     expect(hintText('hold', 2, words)).toBe('Hold still');
     expect(hintText('turn', 3, words)).toBe('Page 3. Turn the page.');
+  });
+
+  it('has words for every guidance hint', () => {
+    expect(['duplicate', 'fit', 'closer', 'contrast', 'flatter'].map((h) => hintText(h as Parameters<typeof hintText>[0], 1, words)))
+      .toEqual(['Taken', 'Fit', 'Closer', 'Darker', 'Flatter']);
   });
 });
 

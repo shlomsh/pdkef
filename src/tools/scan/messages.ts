@@ -14,6 +14,14 @@ export interface ScanMessages extends DownloadMessages {
   hintPoint: string;
   hintHold: string;
   hintTurn: string;
+  /** SCAN-24, the one thing that would make the shot better; each fits a phone's one line. */
+  hintDuplicate: string;
+  hintFit: string;
+  hintCloser: string;
+  hintContrast: string;
+  hintFlatter: string;
+  /** Under a page that was strongly bent or creased when it was taken. */
+  bentNote: string;
   shutter: string;
   autoLabel: string;
   cameraDone: string;
@@ -125,6 +133,12 @@ export const englishScanMessages: ScanMessages = {
   hintPoint: 'Point at a page',
   hintHold: 'Hold still',
   hintTurn: 'Page {count}. Turn the page.',
+  hintDuplicate: 'Already taken. Turn the page.',
+  hintFit: 'Fit the whole page in',
+  hintCloser: 'Move a little closer',
+  hintContrast: 'A darker surface helps',
+  hintFlatter: 'Hold the phone flatter',
+  bentNote: 'Laying the page flat gives a cleaner scan.',
   shutter: 'Take this page',
   autoLabel: 'Auto',
   cameraDone: 'Done',

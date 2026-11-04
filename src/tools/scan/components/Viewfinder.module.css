@@ -64,6 +64,17 @@
   font-weight: 600;
 }
 
+.hintText {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 16px;
+}
+
+/* A hint that asks for a change (SCAN-24): the same words on a light pill, so the change is seen from the page. */
+.hintText[data-advice] {
+  background: var(--color-white-20);
+}
+
 .round,
 .auto,
 .done,

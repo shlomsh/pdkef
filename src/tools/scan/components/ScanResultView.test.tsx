@@ -11,13 +11,13 @@ afterEach(() => {
   if (container) { act(() => render(null, container!)); container.remove(); container = null; }
 });
 
-function mount() {
+function mount(bent = false) {
   const fns = { onChooseLook: vi.fn(), onAdjustCorners: vi.fn(), onRotate: vi.fn(), onRetake: vi.fn(), onRemovePage: vi.fn(), onDone: vi.fn() };
   const selected = { id: 7, filter: 'document', found: true, edited: false } as unknown as ScanPage;
   container = document.createElement('div');
   document.body.appendChild(container);
   act(() => render(
-    <ScanResultView selected={selected} lookOptions={lookOptions()} pageProps={{ src: null, place: null, exact: false }} detail={undefined} {...fns} />,
+    <ScanResultView selected={selected} lookOptions={lookOptions()} pageProps={{ src: null, place: null, exact: false }} detail={undefined} bent={bent} {...fns} />,
     container!,
   ));
   return fns;
@@ -25,6 +25,17 @@ function mount() {
 const button = (label: string) => [...container!.querySelectorAll('button')].find((b) => b.textContent?.trim() === label) as HTMLButtonElement | undefined;
 
 describe('ScanResultView', () => {
+  it('a bent page gets the quiet note under it, above the row; a flat one none (SCAN-24)', () => {
+    mount(true);
+    const note = container!.querySelector('[data-bent-note]') as HTMLElement;
+    expect(note.textContent).toBe(t.bentNote);
+    expect(note.compareDocumentPosition(container!.querySelector('[data-page-actions]')!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    act(() => render(null, container!));
+    container!.remove();
+    mount(false);
+    expect(container!.querySelector('[data-bent-note]')).toBeNull();
+  });
+
   it('shows one row of five items and one Done', () => {
     mount();
     const row = container!.querySelector('[data-page-actions]')!;

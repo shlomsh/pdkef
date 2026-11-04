@@ -9,7 +9,9 @@ let cameraInput: { onTaken: (page: unknown) => void; paused?: boolean };
 vi.mock('../hooks/useCamera.ts', () => ({ useCamera: (input: typeof cameraInput) => { cameraInput = input; return handle; } }));
 // The model is another file's work; the component only calls it.
 vi.mock('../lib/camera/viewfinderModel.ts', () => ({
-  hintText: (hint: string, count: number) => (hint === 'point' ? 'Point at a page' : hint === 'hold' ? 'Hold still' : `Page ${count}. Turn the page.`),
+  hintText: (hint: string, count: number) => (
+    hint === 'point' ? 'Point at a page' : hint === 'hold' ? 'Hold still' : hint === 'turn' ? `Page ${count}. Turn the page.` : `hint:${hint}`
+  ),
   coverRect: () => ({ x: 0, y: 0, width: 100, height: 100 }),
 }));
 
@@ -41,7 +43,7 @@ afterEach(() => {
 describe('Viewfinder', () => {
   it('says the hint for point, hold and turn', () => {
     mount();
-    const hint = () => container!.querySelector('[aria-live="polite"]')?.textContent;
+    const hint = () => container!.querySelector('[data-hint]')?.textContent;
     expect(hint()).toBe('Point at a page');
     handle = { ...handle, live: { ...IDLE_VIEW, hint: 'hold' } };
     act(() => render(null, container!));
@@ -50,6 +52,36 @@ describe('Viewfinder', () => {
     handle = { ...handle, live: { ...IDLE_VIEW, hint: 'turn' } };
     act(() => render(<Viewfinder {...baseProps()} count={3} />, container!));
     expect(hint()).toBe('Page 3. Turn the page.');
+  });
+
+  it('a guidance hint shows on the line, on its pill; the plain ones without', () => {
+    handle = { ...handle, live: { ...IDLE_VIEW, hint: 'flatter' } };
+    mount();
+    const line = container!.querySelector('[data-hint]')!;
+    expect(line.getAttribute('data-hint')).toBe('flatter');
+    expect(line.textContent).toBe('hint:flatter');
+    expect(line.querySelector('[data-advice]')).not.toBeNull();
+    handle = { ...handle, live: { ...IDLE_VIEW, hint: 'hold' } };
+    act(() => render(<Viewfinder {...baseProps()} />, container!));
+    expect(line.querySelector('[data-advice]')).toBeNull();
+  });
+
+  it('screen readers hear what was spoken, politely, not the line itself', () => {
+    handle = { ...handle, live: { ...IDLE_VIEW, hint: 'contrast', spoken: 'point' } };
+    mount();
+    const live = container!.querySelectorAll('[aria-live]');
+    expect(live).toHaveLength(1);
+    expect(live[0].getAttribute('aria-live')).toBe('polite');
+    expect(live[0].textContent).toBe('Point at a page');
+    expect(container!.querySelector('[data-hint]')!.hasAttribute('aria-live')).toBe(false);
+    handle = { ...handle, live: { ...IDLE_VIEW, hint: 'turn', spoken: 'turn' } };
+    act(() => render(<Viewfinder {...baseProps()} count={4} />, container!));
+    expect(live[0].textContent).toBe('Page 4. Turn the page.');
+  });
+
+  it('nothing is spoken before the first hint', () => {
+    mount();
+    expect(container!.querySelector('[data-hint-spoken]')!.textContent).toBe('');
   });
 
   it('the shutter takes the shot', () => {

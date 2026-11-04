@@ -9,7 +9,7 @@ import { cameraStatusFor } from '../lib/camera/cameraErrors.ts';
 import { attachStream, cameraPacer, openCamera, stopCamera, takePhoto } from '../lib/camera/cameraStream.ts';
 import { frameGrabber, snapshot } from '../lib/camera/frameGrab.ts';
 import { IDLE_VIEW, type CameraHandle, type CameraStatus, type TakenPage } from '../lib/camera/types.ts';
-import { liveView } from '../lib/camera/viewfinderModel.ts';
+import { nextView } from '../lib/camera/viewfinderModel.ts';
 
 interface UseCameraInput {
   /** Called once per page taken, auto or by the shutter. */
@@ -92,7 +92,7 @@ export function useCamera(input: UseCameraInput): CameraHandle {
       const step = stepCapture(stateRef.current, obs);
       stateRef.current = step.state;
       lastObs.current = obs;
-      setLive(liveView(step.state, obs.t));
+      setLive((view) => nextView(view, step.state, obs));
       pacer.current?.check(obs.t, pausedRef.current);
       if (step.capture && autoRef.current && !pausedRef.current) void shootRef.current(step.capture); // reason: shoot reports its own failure
     };
