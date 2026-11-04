@@ -1,5 +1,6 @@
 import { useReducer, useState } from 'preact/hooks';
-import { PHOTO_ACCEPT as ACCEPT, usePhotoTileList } from '#lib/hooks/usePhotoTileList.ts';
+import { usePhotoTileList } from '#lib/hooks/usePhotoTileList.ts';
+import { SCAN_ACCEPT } from './lib/scanAccept.ts';
 import type { QuietPolicy } from '#lib/output/quietPrepare.ts';
 import { reorderEntries } from '#lib/pages/pageOrder.js';
 import { recordAction } from '#lib/telemetry/actionTrail.ts';
@@ -125,7 +126,7 @@ export default withIslandBoundary(function PdfScanTool({ quietPolicy, navigate }
     <BasePdfTool
       hasFiles={pages.length > 0}
       onFilesAdded={addFiles}
-      intake={{ accept: ACCEPT, needsPdfjs: false }}
+      intake={{ accept: SCAN_ACCEPT, needsPdfjs: false }}
       identity={{ label: pagesLabel(pages.length, englishShellMessages), hidden: true }}
       empty={{ art: <ScanVerb />, action: <StartScanButton onFiles={addFiles} onStart={openMany} />, actionLeads: true, pickLabel: t.choosePhotos, message: t.dropHere }}
       draft={{ checking: pages.length === 0 && draft.checking }}
