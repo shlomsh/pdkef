@@ -42,3 +42,20 @@ The turn is decided once, at inspection, and stored in `turns` (`withInspection`
 
 - A draft autosaved before its inspection finished stays sideways when restored, since restored pages are not turned.
 - Pressing Rotate four times back to 0 before inspection finishes reads as "not turned", so the found turn applies.
+
+## A sideways shot can land upside down (Shlomi's iPhone, 2026-11-04)
+
+The turn is always one quarter clockwise (`SIDEWAYS_TURNS`). "The way the phone is held picks the direction" above was
+never built, so holding the phone the other way lands the page upside down.
+
+**Text cannot pick the direction on a photo, measured 2026-11-04.** Row shape was scored on each page and on the same
+page turned 180 degrees. The best signal, ink above the x-height core minus a quarter of the top-edge sharpness, gets
+47 right, 0 wrong and 3 silent on the Hebrew book and Latin forms it was tuned on, 14 of 14 on Hebrew forms and 8 of 8
+on Thai, but 4 right and 4 wrong on the phone photos: blur and perspective soften the edges it reads, and 4755 and 4758
+score the wrong way even when upright. Hebrew and Latin have opposite signs on top and bottom edge sharpness, so
+neither works alone without knowing the script. Page-level signals (dense rows first, ink mass high) are noise. Not wired in.
+
+`screen.orientation` would not help either [reasoned, not measured]: when iOS rotates the page, the viewfinder and the
+stream rotate with it and the text already reads across, so the sideways case is the one where iOS did not rotate.
+What is left: device motion (exact, costs a permission prompt on iOS), or remembering the person's correction.
+
