@@ -31,7 +31,7 @@ export function useScanPdfPages({ work, unmountedRef, setPages, dispatch, skippe
       try {
         for await (const { file, quads } of pdfSheets(pdf, signal)) {
           if (unmountedRef.current) return;
-          const added = quads.map((quad) => ({ ...newPage(file, work.defaultFilter), quad, guessed: true, found: true, edited: true }));
+          const added = quads.map((quad) => ({ ...newPage(file, work.defaultFilter), quad, guessed: true, found: true, edited: true, sheet: true }));
           setPages((current) => [...current, ...added]);
           if (first) dispatch({ type: 'photosAdded', firstId: added[0].id });
           first = false;

@@ -15,8 +15,9 @@ const settings = { pageSize: 'a4' as const, limit: '1mb' as const, name: 'Lease'
 describe('storedPage', () => {
   it('keeps corners only when the person set them', () => {
     const page = { ...newPage(new File(['x'], 'a.jpg'), 'document'), quad: QUAD, turns: 1 };
-    expect(storedPage(page)).toEqual({ filter: 'document', turns: 1, quad: null });
-    expect(storedPage({ ...page, edited: true })).toEqual({ filter: 'document', turns: 1, quad: QUAD });
+    expect(storedPage(page)).toEqual({ filter: 'document', turns: 1, quad: null, sheet: false });
+    expect(storedPage({ ...page, edited: true })).toEqual({ filter: 'document', turns: 1, quad: QUAD, sheet: false });
+    expect(storedPage({ ...page, sheet: true }).sheet).toBe(true);
   });
 });
 
@@ -37,26 +38,26 @@ describe('parseScanDraft', () => {
   it('restores photos, pages and settings', async () => {
     const restore = parseScanDraft({
       files, schemaVersion: SCAN_DRAFT_SCHEMA_VERSION, ...settings,
-      pages: [{ filter: 'original', turns: 3, quad: QUAD }, { filter: 'document', turns: 0, quad: null }],
+      pages: [{ filter: 'original', turns: 3, quad: QUAD, sheet: true }, { filter: 'document', turns: 0, quad: null }],
     });
     expect(restore?.files.map((f) => [f.name, f.type])).toEqual([['a.jpg', 'image/jpeg'], ['b.png', 'image/png']]);
     expect(await restore?.files[1].text()).toBe('b');
-    expect(restore?.pages).toEqual([{ filter: 'original', turns: 3, quad: QUAD }, { filter: 'document', turns: 0, quad: null }]);
+    expect(restore?.pages).toEqual([{ filter: 'original', turns: 3, quad: QUAD, sheet: true }, { filter: 'document', turns: 0, quad: null, sheet: false }]);
     expect(restore?.settings).toEqual(settings);
   });
 
   it('restores the photos as new pages when the scan work is gone or unreadable', () => {
     const restore = parseScanDraft({ files });
     expect(restore?.pages).toEqual([
-      { filter: 'document', turns: 0, quad: null },
-      { filter: 'document', turns: 0, quad: null },
+      { filter: 'document', turns: 0, quad: null, sheet: false },
+      { filter: 'document', turns: 0, quad: null, sheet: false },
     ]);
     expect(restore?.settings).toEqual({});
     const odd = parseScanDraft({
       files, schemaVersion: SCAN_DRAFT_SCHEMA_VERSION, pageSize: 'huge', limit: 3,
       pages: [{ filter: 'sepia', turns: 9, quad: [...FULL_QUAD.slice(0, 3), { x: 2, y: 0 }] }, null],
     });
-    expect(odd?.pages[0]).toEqual({ filter: 'document', turns: 0, quad: null });
+    expect(odd?.pages[0]).toEqual({ filter: 'document', turns: 0, quad: null, sheet: false });
     expect(odd?.settings).toEqual({});
   });
 

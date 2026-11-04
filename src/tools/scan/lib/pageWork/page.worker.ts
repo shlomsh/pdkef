@@ -53,7 +53,7 @@ async function run(job: PageJob): Promise<unknown> {
   if (job.kind === 'probe') return canWork();
   if (job.kind === 'inspect') return inspectWith(kit, job.photo);
   if (job.kind === 'guess') return guessWith(kit, job.image);
-  const done = await processWith(kit, job.photo, job.quad, job.filter);
+  const done = await processWith(kit, job.photo, job.quad, job.filter, job.paperEdges);
   return { ...done, measureError: done.measureError && cloneable(done.measureError) };
 }
 

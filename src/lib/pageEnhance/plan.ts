@@ -67,9 +67,7 @@ function foundCorners(turned: GrayImage, half: Quad, lean: number, spine: SpineS
 
 function bentOf(turned: GrayImage, lean: number): number {
   const quad = levelQuad(UNIT_QUAD, lean, turned.width, turned.height);
-  // Edge curves misfire on a scanned sheet, whose border is no page edge.
-  const bend = { ...measureBend(rgbaOf(turned), quad, 0, turned.width, turned.height), curves: null };
-  return bentPx(bend, 0, turned.width, turned.height);
+  return bentPx(measureBend(rgbaOf(turned), quad, 0, turned.width, turned.height, false), 0, turned.width, turned.height);
 }
 
 /** What the sheet needs, read from `gray`, the sheet shrunk to about 1000 px on its long edge. */
