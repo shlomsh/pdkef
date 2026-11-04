@@ -23,10 +23,10 @@ parameters, a 488 x 712 input, a 45 x 31 unwarping grid out, which fits our sing
 
 ## Recommendation
 
-- **Level 2 (UVDoc): on hold, not built.** It loses to the classical level on every page where there is
+- **Level 2 (UVDoc): dropped (Shlomi, 2026-11-04), not built.** It loses to the classical level on every page where there is
   something to straighten, harms flat pages, weighs 7.7 MB to download, and its weights licence is not
-  established. PE-13 is blocked on two things: an answer from the authors, and a real curled-page photo
-  set where level 1 fails. Neither exists today.
+  established. PE-13 is retired; reopen it only if a real curled-page photo set shows level 1 failing and the
+  weights get a permissive licence. The draft message below is kept, unsent, for that day.
 - **Level 3: nothing to pursue.** No larger or newer model has permissive code and weights.
 - **Creases are a level 1 job**: the fold finder (PE-03) and the lean as a rotation per facet (PE-04). A
   letter folded in thirds is three facets; on the book, one rotation per half reaches the noise floor.
