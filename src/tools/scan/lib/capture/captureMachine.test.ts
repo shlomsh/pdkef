@@ -274,6 +274,18 @@ describe('one page, one shot (SCAN-23)', () => {
     const again = searchAgain(taken);
     expect(again).toEqual({ ...INITIAL_CAPTURE_STATE, lastCaptureHash: HASH_A, takenHashes: [HASH_A] });
   });
+  it('a fire while auto is off or paused waits for a change but remembers nothing', () => {
+    let state = INITIAL_CAPTURE_STATE;
+    let fired = 0;
+    for (const f of seq(0, 1500, (t) => page(t))) {
+      const step = stepCapture(state, f, undefined, false);
+      state = step.state;
+      if (step.capture) fired += 1;
+    }
+    expect(fired).toBe(1);
+    expect(state.phase).toBe('waitingForChange');
+    expect(state.takenHashes).toEqual([]);
+  });
   it('the shutter still takes a page already taken, and remembers it once', () => {
     const dup = run(seq(0, 300, (t) => page(t)), searchAgain(markTaken(INITIAL_CAPTURE_STATE, HASH_A))).state;
     expect(dup.phase).toBe('duplicate');
