@@ -2,7 +2,7 @@
 
 # Backlog
 
-The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 148 live: 45 up next, 26 then, 27 waiting, 50 parked.
+The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 149 live: 45 up next, 25 then, 27 waiting, 52 parked.
 
 ## Redact: finish removal
 
@@ -124,6 +124,7 @@ The camera takes pages, the table fixes them, Share sends them. The table first 
 | SCAN-41 | P3 | [SCAN-41](backlog/tasks/SCAN-41.md) · A deleted page is forgotten by the duplicate check |  |
 | SCAN-42 | P3 | [SCAN-42](backlog/tasks/SCAN-42.md) · Measuring a page on desktop takes under 150 ms |  |
 | SCAN-43 | P3 | [SCAN-43](backlog/tasks/SCAN-43.md) · encodePages runs off the main thread |  |
+| SCAN-45 | P3 | [SCAN-45](backlog/tasks/SCAN-45.md) · A disabled quiet button looks enabled |  |
 | SCAN-10 | P3 | [SCAN-10](backlog/tasks/SCAN-10.md) · Scan next: evaluate a small learned page detector behind the same contract |  |
 | SCAN-31 | P3 | [SCAN-31](backlog/tasks/SCAN-31.md) · The Scan guide's image generator follows the rewritten phone flow |  |
 
@@ -145,13 +146,13 @@ One shared mechanism that turns, splits and straightens a page, first in Scan, t
 | PE-10 | P2 | [PE-10](backlog/tasks/PE-10.md) · Cleanup inside the text column |  |
 | PE-11 | P2 | [PE-11](backlog/tasks/PE-11.md) · Unsqueeze toward the spine |  |
 | PE-14 | P2 | [PE-14](backlog/tasks/PE-14.md) · Highlight copy and FAQ for enhancing a scan |  |
-| PE-16 | P2 | [PE-16](backlog/tasks/PE-16.md) · Creases and wrinkles in phone photos: find the facets, straighten each |  |
 
 ### Parked
 
 | ID | P | Task | Note |
 | --- | --- | --- | --- |
 | PE-12 | P3 | [PE-12](backlog/tasks/PE-12.md) · BendStrategy seam |  |
+| PE-16 | P3 | [PE-16](backlog/tasks/PE-16.md) · Folds in phone photos: never make a page worse; reopen on a real broken line |  |
 | PE-15 | P3 | [PE-15](backlog/tasks/PE-15.md) · Shadows of the photographer and fold shading: measure the classical fix, ask whether HDR helps |  |
 
 ## Tool pages: show the verb
