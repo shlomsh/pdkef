@@ -227,12 +227,13 @@ export const WIDEN_RULES = [
   {
     id: 'guard-clis-run-by-path',
     reason: 'QUAL-48: these guards are run as a child process on a planted tree, so no import edge reaches their tests',
-    match: (f) => ['scripts/verify-csp.js', 'scripts/check-trailing-slash-redirects.js', 'scripts/generate-precache-manifest.mjs', 'scripts/check-page-weight.js', 'scripts/pageCss.mjs', 'scripts/precacheClosure.mjs'].includes(f),
+    match: (f) => ['scripts/verify-csp.js', 'scripts/check-trailing-slash-redirects.js', 'scripts/generate-precache-manifest.mjs', 'scripts/check-page-weight.js', 'scripts/pageCss.mjs', 'scripts/precacheClosure.mjs', 'scripts/vitest-worker-watchdog.mjs'].includes(f),
     tests: [
       'scripts/verify-csp.test.mjs',
       'scripts/check-trailing-slash-redirects.test.mjs',
       'scripts/generate-precache-manifest.test.mjs',
       'scripts/check-page-weight.test.mjs',
+      'scripts/vitest-worker-watchdog.test.mjs',
     ],
   },
   {

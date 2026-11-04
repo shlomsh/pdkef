@@ -77,6 +77,8 @@ export default defineConfig({
     }
   },
   test: {
+    // QUAL-52: a worker stuck in a loop that never yields would otherwise outlive its parent for good.
+    execArgv: ['--import', new URL('./scripts/vitest-worker-watchdog.mjs', import.meta.url).href],
     setupFiles: ['./src/test/support/setup.js'],
     server: {
       deps: {

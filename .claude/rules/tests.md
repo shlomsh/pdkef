@@ -56,6 +56,13 @@ tool's page belongs under `e2e/` instead, enforced statically by rule 7 in `docs
 (poppler vs Chromium noise measured at 80-88%), and never "is there ink" as a pass condition, since
 `.notdef` often draws more ink than the glyph it replaced.
 
+## A worker stuck in a loop (QUAL-52)
+
+An endless render inside `act()`, or any loop that never yields, reaches no test timeout and cannot see its parent die.
+`scripts/vitest-worker-watchdog.mjs`, preloaded through `execArgv` in `vitest.config.js`, runs on its own thread: it ends
+the worker soon after the parent dies, and after 5 minutes without an event-loop turn, which fails the run and names the
+file. So a mutation that makes a run hang is a finding, not something to wait out: kill the run and read the file named.
+
 ## Rendered text width is per-platform: assert layout properties, not pixels
 
 UI labels use `--font-sans`, the system font stack, so the same label draws at a different width on

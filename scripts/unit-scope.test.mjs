@@ -215,6 +215,7 @@ describe('selectUnitTests: each blind-spot widen rule fires', () => {
     const candidates = [
       'src/lib/__fixtures__/sample.pdf',
       'scripts/verify-csp.js',
+      'scripts/vitest-worker-watchdog.mjs',
       'src/tools/sign/lib/fields/__fixtures__/sample.pdf',
       'src/tools/compress/__fixtures__/sample.pdf',
       'public/images/redaction-guide/sample.pdf',

@@ -285,7 +285,7 @@ Done and retired tickets are not listed. Their files stay in [backlog/tasks/](ba
 - Scan: camera to WhatsApp: 1 done, 0 retired
 - Tool pages: show the verb: 8 done, 0 retired
 - Form detector accuracy: 19 done, 1 retired
-- Robustness and debt: 87 done, 4 retired
+- Robustness and debt: 88 done, 4 retired
 - Unify the tools, narrow the graph: 96 done, 0 retired
 - Search and languages: 12 done, 0 retired
 - Polish: 24 done, 1 retired
