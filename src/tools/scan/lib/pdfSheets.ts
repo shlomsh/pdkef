@@ -10,7 +10,10 @@ import { openPdfSheetReader } from './pdfSheetReader.ts';
 /** What assess is tuned for: a sheet shrunk to about this many pixels on its long edge. */
 const READ_LONG_EDGE = 1000;
 
-/** White added around a sheet, each side a share of the sheet's own width or height. */
+/** How far past a crooked sheet a bent page's flattening reaches, as a share of the sheet: 3% on the worst Adobe Scan pages. */
+const BEND_ROOM = 0.05;
+
+/** Paper tone added around a sheet, each side a share of the sheet's own width or height. */
 export interface SheetBorder { left: number; top: number; right: number; bottom: number }
 
 /** One sheet of the PDF as a picture, and its book pages' corners (0 to 1 of the picture) in reading order. */
@@ -50,12 +53,13 @@ async function quadsOf(reader: SheetReader, pageNumber: number): Promise<{ quads
 
 /** The border that puts every corner on the picture: a levelled page's corners can fall just off a tilted sheet, where the corner editor cannot reach them. */
 function borderFor(quads: Quad[]): SheetBorder {
+  if (quads.length === 1 && quads[0].every((p, i) => p.x === FULL_QUAD[i].x && p.y === FULL_QUAD[i].y)) return { left: 0, top: 0, right: 0, bottom: 0 };
   const points = quads.flat();
   return {
-    left: Math.max(0, ...points.map((p) => -p.x)),
-    top: Math.max(0, ...points.map((p) => -p.y)),
-    right: Math.max(0, ...points.map((p) => p.x - 1)),
-    bottom: Math.max(0, ...points.map((p) => p.y - 1)),
+    left: BEND_ROOM + Math.max(0, ...points.map((p) => -p.x)),
+    top: BEND_ROOM + Math.max(0, ...points.map((p) => -p.y)),
+    right: BEND_ROOM + Math.max(0, ...points.map((p) => p.x - 1)),
+    bottom: BEND_ROOM + Math.max(0, ...points.map((p) => p.y - 1)),
   };
 }
 

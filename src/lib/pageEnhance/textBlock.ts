@@ -17,6 +17,15 @@ const INLIER_TOLERANCE = 0.003;
 const MIN_INLIERS = 4;
 /** The page stops this share of the text's width past the text on the spine side: the book's dark gutter starts further out (5.4% at the nearest on the book PDF), and nobody writes there. */
 const SPINE_MARGIN = 0.04;
+/** The paper ends where a margin turns this much darker than the paper just inside it (a table, a stack of pages), or brighter by the same step (the next sheet, past this page's shaded edge). Shade fades too slowly to do that. */
+const PAPER_END = 0.8;
+/** How many pixels of paper just inside to compare with, and how far back from the end the page stops. */
+const PAPER_WINDOW = 8;
+const PAPER_PAD = 2;
+/** The change must last this share of the image to end the paper: past a streak or a margin note the paper comes back. */
+const PAPER_END_RUN = 0.03;
+/** Lines sampled across the text for a margin's brightness. */
+const PROFILE_SAMPLES = 120;
 /** A gap this many times the page's median word gap sets a run apart from the row. */
 const OUTLIER_GAP_FACTOR = 3;
 
@@ -92,18 +101,60 @@ function fitEdge(points: Array<[number, number]>, tolerance: number): Line | nul
 /** Where the edge x = a + b*y crosses the level row at `y`. */
 const at = ({ a, b }: Line, y: number): Point => ({ x: a + b * y, y });
 
+/** Per column (or per row, `across` false) the median brightness between `from` and `to` on the other axis: print and marks fall out, a page edge stays. */
+function profile({ width, height, data }: GrayImage, across: boolean, from: number, to: number): Uint8Array {
+  const length = across ? width : height;
+  const step = Math.max(1, Math.floor((to - from) / PROFILE_SAMPLES));
+  const out = new Uint8Array(length);
+  for (let i = 0; i < length; i += 1) {
+    const values: number[] = [];
+    for (let j = Math.max(0, Math.floor(from)); j < Math.min(to, across ? height : width); j += step) values.push(data[across ? j * width + i : i * width + j]);
+    out[i] = medianOf(values);
+  }
+  return out;
+}
+
+/** Whether `line` stays outside `low` to `high` for `run` steps from `from`, or to its end. */
+function staysOff(line: Uint8Array, from: number, step: 1 | -1, low: number, high: number, run: number): boolean {
+  for (let i = from, n = 0; n < run && i >= 0 && i < line.length; i += step, n += 1) if (line[i] >= low && line[i] <= high) return false;
+  return true;
+}
+
+/** How far the paper reaches from `start`, walking by `step` (1 or -1) until it changes sharply for good or the image ends. `nextSheet` watches for a step up too: only beside the page, where the next sheet lies and a walk starts on paper, not inside a row of print. */
+function paperReach(line: Uint8Array, start: number, step: 1 | -1, nextSheet: boolean): number {
+  const run = Math.round(PAPER_END_RUN * line.length);
+  const recent: number[] = [];
+  let i = start;
+  for (; i >= 0 && i < line.length; i += step) {
+    const paper = medianOf(recent);
+    const low = PAPER_END * paper;
+    const high = nextSheet ? paper / PAPER_END : 255;
+    if (recent.length === PAPER_WINDOW && (line[i] < low || line[i] > high)) {
+      if (staysOff(line, i, step, low, high, run)) return Math.max(0, Math.abs(i - start) - PAPER_PAD);
+      continue;
+    }
+    recent.push(line[i]);
+    if (recent.length > PAPER_WINDOW) recent.shift();
+  }
+  return Math.abs(i - step - start);
+}
+
 const dist = (p: Point, q: Point) => Math.hypot(p.x - q.x, p.y - q.y);
 
-/** The text quad with each side pushed out to the page's own margin, or just past the text beside the spine, back in pixels: a corner can land a little off the page, which is white. */
-function reachOut(text: Quad, width: number, height: number, spine: SpineSide): Quad {
+/** The text quad with each side pushed out to where its paper ends, or just past the text beside the spine, back in pixels: a corner can land a little off the page, which is white. */
+function reachOut(text: Quad, gray: GrayImage, spine: SpineSide): Quad {
   const w = (dist(text[0], text[1]) + dist(text[3], text[2])) / 2;
   const h = (dist(text[0], text[3]) + dist(text[1], text[2])) / 2;
   const rect: Quad = [{ x: 0, y: 0 }, { x: w, y: 0 }, { x: w, y: h }, { x: 0, y: h }];
   const back = homography(rect, text);
-  const left = spine === 'left' ? SPINE_MARGIN * w : (text[0].x + text[3].x) / 2;
-  const right = spine === 'right' ? SPINE_MARGIN * w : width - (text[1].x + text[2].x) / 2;
-  const top = text[0].y;
-  const bottom = height - text[3].y;
+  const textLeft = (text[0].x + text[3].x) / 2;
+  const textRight = (text[1].x + text[2].x) / 2;
+  const columns = profile(gray, true, text[0].y, text[3].y);
+  const rows = profile(gray, false, textLeft, textRight);
+  const left = spine === 'left' ? SPINE_MARGIN * w : paperReach(columns, Math.round(textLeft), -1, true);
+  const right = spine === 'right' ? SPINE_MARGIN * w : paperReach(columns, Math.round(textRight), 1, true);
+  const top = paperReach(rows, Math.round(text[0].y), -1, false);
+  const bottom = paperReach(rows, Math.round(text[3].y), 1, false);
   const page: Quad = [{ x: -left, y: -top }, { x: w + right, y: -top }, { x: w + right, y: h + bottom }, { x: -left, y: h + bottom }];
   return page.map((p) => applyHomography(back, p)) as Quad;
 }
@@ -123,5 +174,5 @@ export function textBlockCorners(gray: GrayImage, spine: SpineSide = null): Quad
   const top = rows[0].y;
   const bottom = rows[rows.length - 1].y;
   const text: Quad = [at(left, top), at(right, top), at(right, bottom), at(left, bottom)];
-  return reachOut(text, width, height, spine).map((p) => ({ x: p.x / width, y: p.y / height })) as Quad;
+  return reachOut(text, gray, spine).map((p) => ({ x: p.x / width, y: p.y / height })) as Quad;
 }
