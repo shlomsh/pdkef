@@ -72,7 +72,6 @@ function textRows(gray: GrayImage): { across: { rows: number; length: number }; 
  * Whether the page's text rows run across it (turn 0) or down it (turn 1, a quarter turn needed), with
  * how clearly, 0..1; null when the page has too little text to say, or both directions alike. `gray` is
  * the flattened page at its measuring size (about 1000 pixels on the long edge).
- * @testSeam Until SCAN-32 calls it from measureBend; drop this tag then.
  */
 export function textTurn(gray: GrayImage): TextTurn | null {
   if (gray.width < 16 || gray.height < 16) return null;

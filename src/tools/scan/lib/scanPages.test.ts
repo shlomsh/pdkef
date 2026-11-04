@@ -34,16 +34,22 @@ describe('scanPages', () => {
     const guess = [{ x: 0.1, y: 0.1 }, { x: 0.9, y: 0.1 }, { x: 0.9, y: 0.9 }, { x: 0.1, y: 0.9 }] as typeof FULL_QUAD;
     it('adopts the guessed corners and the photo size', () => {
       const page = newPage(photo(), 'document');
-      const [next] = withInspection([page], page.id, { quad: guess, width: 200, height: 100 }, 'blob:p');
+      const [next] = withInspection([page], page.id, { quad: guess, width: 200, height: 100, turns: 0 }, 'blob:p');
       expect(next).toMatchObject({ guessed: true, found: true, quad: guess, preview: 'blob:p', aspect: 2 });
     });
     it('keeps corners the person moved', () => {
       const page = { ...newPage(photo(), 'document'), edited: true };
-      expect(withInspection([page], page.id, { quad: guess, width: 1, height: 1 }, null)[0].quad).toBe(page.quad);
+      expect(withInspection([page], page.id, { quad: guess, width: 1, height: 1, turns: 0 }, null)[0].quad).toBe(page.quad);
     });
     it('marks an unreadable photo guessed with no preview and no aspect', () => {
       const page = newPage(photo(), 'document');
       expect(withInspection([page], page.id, null, null)[0]).toMatchObject({ guessed: true, found: false, preview: null, aspect: null });
+    });
+    it('turns a sideways page, but never over a Rotate the person already made', () => {
+      const page = newPage(photo(), 'document');
+      const seen = { quad: guess, width: 2, height: 1, turns: 1 };
+      expect(withInspection([page], page.id, seen, null)[0].turns).toBe(1);
+      expect(withInspection([{ ...page, turns: 2 }], page.id, seen, null)[0].turns).toBe(2);
     });
     it('leaves other pages alone', () => {
       const [a, b] = [newPage(photo(), 'document'), newPage(photo(), 'document')];
