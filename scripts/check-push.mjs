@@ -225,7 +225,7 @@ export const DOCS_ONLY_STEPS = ['check:backlog', 'check:guidance'];
 // else. CI runs the full Playwright suite either way; locally it is opt-in so
 // a pre-push gate stays short enough for any agent. `perf` is opt-in too: it
 // runs alone on one worker and asserts wall-clock budgets.
-export function planSteps({ docsOnly, everything, e2e_paths, fonts, export_guards, reachesDist: build, touchesAstro: astro }, { mode = 'gate', perf = false } = {}) {
+export function planSteps({ docsOnly, everything, e2e_paths, fonts, export_guards, reachesDist: build, touchesAstro: astro }, { mode = 'gate', perf = false, astroTypesExist = true } = {}) {
   if (docsOnly) return mode === 'gate' ? [...DOCS_ONLY_STEPS] : [];
   const e2eProductSelected = Boolean(everything) || Boolean(e2e_paths && e2e_paths.trim());
   const e2eSelected = e2eProductSelected || Boolean(fonts) || Boolean(export_guards);
@@ -241,6 +241,7 @@ export function planSteps({ docsOnly, everything, e2e_paths, fonts, export_guard
   }
 
   const steps = [...ALWAYS_GUARD_STEPS, 'unit', 'typecheck'];
+  if (!astroTypesExist) steps.unshift('astro-sync');
   if (astro) steps.push('astro-check');
   if (build) steps.push('build', ...DIST_GUARD_STEPS);
   return steps;
@@ -252,11 +253,14 @@ export function planSteps({ docsOnly, everything, e2e_paths, fonts, export_guard
 // preview port and one dist/, so they run one after another. `astro check` and
 // `astro build` both sync and write .astro/, so when planned, astro-check runs
 // alone after that stage and the build moves to its own stage after it.
+// A fresh worktree has no .astro/ types, so `astro sync` is its own first stage
+// (it writes .astro/ too), then everything else runs as usual.
 export function stageSteps(steps) {
   const dist = new Set(DIST_GUARD_STEPS);
   const solo = steps.includes('astro-check');
   const stages = [
-    steps.filter((id) => !dist.has(id) && !id.startsWith('e2e:') && id !== 'astro-check' && !(solo && id === 'build')),
+    steps.filter((id) => id === 'astro-sync'),
+    steps.filter((id) => id !== 'astro-sync' && !dist.has(id) && !id.startsWith('e2e:') && id !== 'astro-check' && !(solo && id === 'build')),
     steps.filter((id) => id === 'astro-check'),
     steps.filter((id) => solo && id === 'build'),
     steps.filter((id) => dist.has(id)),
@@ -290,6 +294,7 @@ function runNpm(script) {
 export const STEP_RUNNERS = {
   'check-orphaned-selectors': () => spawnSync('node', ['scripts/check-orphaned-selectors.mjs'], { stdio: 'inherit', cwd: ROOT }).status ?? 1,
   'check-class-resolution': () => spawnSync('node', ['scripts/check-class-resolution.js'], { stdio: 'inherit', cwd: ROOT }).status ?? 1,
+  'astro-sync': () => runTypecheck('astro-sync'),
   'astro-check': () => runNpm('typecheck'),
   build: () => runNpm('build'),
 };
@@ -346,7 +351,7 @@ function previewOwnerCwd() {
 // without any runner needing an async twin.
 function runStep(id, { scope, unitScope, typecheck }) {
   if (id === 'unit') return runUnitByImpact(unitScope);
-  if (id === 'typecheck') return typecheck.reduce((status, tool) => status || runTypecheck(tool), 0);
+  if (id === 'typecheck') return typecheck.filter((tool) => tool !== 'astro-sync').reduce((status, tool) => status || runTypecheck(tool), 0);
   // Locally Playwright runs chromium only; webkit is CI's.
   if (id === 'e2e:product') return runE2eProduct(scope, ['chromium']);
   if (id === 'e2e:perf') return runE2ePerf(scope);
@@ -429,7 +434,7 @@ async function main() {
   const { base, dirty, scope, unitScope, typecheck } = ctx;
   printScope({ base, dirty, scope, unitScope });
 
-  const steps = planSteps(scope, { mode, perf });
+  const steps = planSteps(scope, { mode, perf, astroTypesExist: !typecheck.includes('astro-sync') });
   const note = steps.includes('astro-check') ? ' + astro check' : ' (CI runs astro check)';
   console.error(`  typecheck:      ${typecheck.join(' + ')}${note}`);
   if (steps.length === 0) {

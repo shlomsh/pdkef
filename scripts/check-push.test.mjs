@@ -317,6 +317,13 @@ describe('check:e2e mode and stages', () => {
     expect(checkAt).toBeLessThan(buildAt);
   });
 
+  it('missing .astro types: astro-sync runs alone before the build and typecheck (both write .astro/)', () => {
+    const stages = stageSteps(planSteps(wideScope, { astroTypesExist: false }));
+    expect(stages[0]).toEqual(['astro-sync']);
+    expect(stages.findIndex((stage) => stage.includes('build'))).toBeGreaterThan(0);
+    expect(stageSteps(planSteps(wideScope, { astroTypesExist: true }))[0]).not.toContain('astro-sync');
+  });
+
   it('stages: independent steps together, dist guards after the build, each Playwright step alone', () => {
     const stages = stageSteps(planSteps(wideScope));
     expect(stages).toEqual([[...ALWAYS_GUARD_STEPS, 'unit', 'typecheck', 'build'], DIST_GUARD_STEPS]);
