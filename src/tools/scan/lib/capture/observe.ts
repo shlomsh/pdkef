@@ -3,14 +3,15 @@
 import type { GrayImage } from '#lib/pageEnhance/quad.ts';
 import { detectPage } from '../edges/detect.ts';
 import { averageHash } from './hash.ts';
-import { borderContrast, keystone, lightFloor } from './pageSignals.ts';
+import { borderContrast, keystone, lightFloor, runsOff } from './pageSignals.ts';
 import { focusMeasure, quadArea, sharpness } from './sharpness.ts';
 import type { FrameObservation } from './types.ts';
 
 /** detectPage, then sharpness, area and hash of what it found. With no page: quad null, confidence 0,
  * sharpness and area 0, and the hash of the whole frame. `focus` is focusMeasure of the centre patch, 0 without one.
  * The guidance signals (SCAN-24): `light` always, `contrast` and `keystone` with a page (contrast left out when no
- * point of the page's border has a view outside it; a page found only by its faint edges reads as zero contrast). */
+ * point of the page's border has a view outside it; a page found only by its faint edges reads as zero contrast), and
+ * `cutOff` (SCAN-24: paper runs on past a side to the frame's edge; false for a faint-edge page, which has no reliable paper step). */
 export function observeFrame(image: GrayImage, t: number, patch: GrayImage | null): FrameObservation {
   const focus = patch ? focusMeasure(patch) : 0;
   const light = lightFloor(image);
@@ -19,6 +20,6 @@ export function observeFrame(image: GrayImage, t: number, patch: GrayImage | nul
   const contrast = lowContrast ? 0 : borderContrast(image, quad) ?? undefined;
   return {
     t, quad, confidence, sharpness: sharpness(image, quad), area: quadArea(quad), hash: averageHash(image, quad), focus,
-    light, contrast, keystone: keystone(quad, image.width, image.height),
+    light, contrast, keystone: keystone(quad, image.width, image.height), cutOff: lowContrast ? false : runsOff(image, quad),
   };
 }

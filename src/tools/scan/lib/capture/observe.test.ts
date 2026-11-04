@@ -28,6 +28,7 @@ describe('observeFrame', () => {
     const faint = observeFrame(whiteOnWhite(), 0, null);
     expect(faint.quad).not.toBeNull();
     expect(faint.contrast).toBe(0);
+    expect(faint.cutOff).toBe(false);
     const desk = solid(320, 427, 70);
     fillQuad(desk, PAGE, 220);
     expect(observeFrame(desk, 0, null).contrast).toBeGreaterThan(0);

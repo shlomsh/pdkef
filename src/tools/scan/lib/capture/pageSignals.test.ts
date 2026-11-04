@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { borderContrast, keystone, lightFloor } from './pageSignals.ts';
-import { addNoise, fillQuad, solid } from '../edges/testImages.ts';
+import { borderContrast, keystone, lightFloor, runsOff } from './pageSignals.ts';
+import { addNoise, fillQuad, fillRect, solid } from '../edges/testImages.ts';
 import type { Quad } from '#lib/pageEnhance/quad.ts';
 
 const W = 320;
@@ -83,5 +83,37 @@ describe('lightFloor', () => {
     expect(lightFloor(img)).toBeCloseTo(40 / 255, 5);
     fillQuad(img, [{ x: 8, y: 11 }, { x: 312, y: 11 }, { x: 312, y: 416 }, { x: 8, y: 416 }], 225);
     expect(lightFloor(img)).toBeCloseTo(225 / 255, 5);
+  });
+});
+
+describe('runsOff', () => {
+  /** A page whose bottom is past the frame: print to y=400 on paper that runs to y=460, on a dark table. */
+  function cutPage() {
+    const img = solid(W, H, 40);
+    fillQuad(img, [{ x: 60, y: 50 }, { x: 260, y: 50 }, { x: 260, y: 460 }, { x: 60, y: 460 }], 225);
+    for (let y = 80; y <= 396; y += 14) fillRect(img, 80, y, 150, 4, 60);
+    addNoise(img, 6, 1);
+    return img;
+  }
+  const falseBottom: Quad = [{ x: 60, y: 50 }, { x: 260, y: 50 }, { x: 260, y: 400 }, { x: 60, y: 400 }];
+
+  it('is true when paper carries on past a side to the frame\'s edge', () => {
+    expect(runsOff(cutPage(), norm(falseBottom))).toBe(true);
+  });
+  it('is false for the same page wholly inside, with its true quad', () => {
+    const img = solid(W, H, 40);
+    const q: Quad = [{ x: 60, y: 50 }, { x: 260, y: 50 }, { x: 260, y: 400 }, { x: 60, y: 400 }];
+    fillQuad(img, q, 225);
+    for (let y = 80; y <= 370; y += 14) fillRect(img, 80, y, 150, 4, 60);
+    addNoise(img, 6, 1);
+    expect(runsOff(img, norm(q))).toBe(false);
+  });
+  it('is false on a dark table with a correct quad', () => {
+    expect(runsOff(scene(40), norm(PX))).toBe(false);
+  });
+  it('is false for a light view with no step around the page: all four sides carry on', () => {
+    const img = solid(W, H, 225);
+    addNoise(img, 6, 1);
+    expect(runsOff(img, norm([{ x: 80, y: 100 }, { x: 240, y: 100 }, { x: 240, y: 320 }, { x: 80, y: 320 }]))).toBe(false);
   });
 });
