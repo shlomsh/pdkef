@@ -85,6 +85,24 @@ describe('processWith', () => {
   });
 });
 
+describe('processWith folded corners', () => {
+  it('paints the dark triangle a pinned sheet leaves in a corner in the paper colour', async () => {
+    const [w, h] = [400, 300];
+    const photo: Source = { width: w, height: h, pixel: (x, y) => (w - 1 - x + y <= 60 ? 20 : 230) };
+    const surfaces: { width: number; pixel(x: number, y: number): number }[] = [];
+    const kit = fakeKit(photo);
+    const surface = kit.surface;
+    kit.surface = (sw, sh) => {
+      const made = surface(sw, sh);
+      surfaces.push(made.canvas as unknown as { width: number; pixel(x: number, y: number): number });
+      return made;
+    };
+    const { page } = await processWith(kit, new Blob(), FULL_QUAD, 'original');
+    const out = surfaces.find((c) => c.width === page.width)!;
+    expect(out.pixel(page.width - 1, 0)).toBe(230);
+  });
+});
+
 describe('processWith sizing', () => {
   it('sizes a strongly tilted A4 page to its true 1.414 proportions, not to its edge lengths', async () => {
     // An A4 page seen by a pinhole camera (focal 0.75 x the long side), tilted 50 degrees, as normalized corners.
