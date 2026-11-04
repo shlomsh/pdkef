@@ -48,7 +48,7 @@ const MAX_UNEXPLAINED = 0.5;
 export interface Sample { line: number; x: number; y: number }
 
 /** A pixel is "line" when there is ink within +-reach of it on its row. */
-function smear(mask: Uint8Array, w: number, h: number): Uint8Array {
+export function smear(mask: Uint8Array, w: number, h: number): Uint8Array {
   const reach = Math.max(1, Math.round(w * SMEAR));
   const out = new Uint8Array(w * h);
   const prefix = new Int32Array(w + 1);
@@ -64,7 +64,7 @@ function smear(mask: Uint8Array, w: number, h: number): Uint8Array {
 }
 
 /** Centre-height samples of every text-line component, widest first, at most MAX_LINES lines. */
-function lineSamples(blob: Uint8Array, w: number, h: number): Sample[][] {
+export function lineSamples(blob: Uint8Array, w: number, h: number): Sample[][] {
   const label = new Uint8Array(w * h);
   const queue = new Int32Array(w * h);
   const step = Math.max(1, Math.round(w * SAMPLE_STEP));
