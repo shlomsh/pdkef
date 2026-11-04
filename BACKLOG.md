@@ -2,7 +2,7 @@
 
 # Backlog
 
-The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 147 live: 44 up next, 27 then, 27 waiting, 49 parked.
+The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 148 live: 45 up next, 26 then, 27 waiting, 50 parked.
 
 ## Redact: finish removal
 
@@ -104,6 +104,7 @@ The camera takes pages, the table fixes them, Share sends them. The table first 
 | SCAN-11 | P2 | [SCAN-11](backlog/tasks/SCAN-11.md) · Scan next: the page copy and the scanning guide follow the new flow |  |
 | SCAN-12 | P2 | [SCAN-12](backlog/tasks/SCAN-12.md) · Scan next: a short, very visual video of camera to WhatsApp on /scan-to-pdf/ |  |
 | SCAN-09 | P2 | [SCAN-09](backlog/tasks/SCAN-09.md) · Scan next: classical page-detection upgrades, each gated on the real corpus |  |
+| SCAN-44 | P2 | [SCAN-44](backlog/tasks/SCAN-44.md) · A filled A4 form scanned with PDkef (2026-11-04) came out stretched, with black edges and ghost text |  |
 
 ### Then, in order
 
@@ -124,7 +125,6 @@ The camera takes pages, the table fixes them, Share sends them. The table first 
 | SCAN-42 | P3 | [SCAN-42](backlog/tasks/SCAN-42.md) · Measuring a page on desktop takes under 150 ms |  |
 | SCAN-43 | P3 | [SCAN-43](backlog/tasks/SCAN-43.md) · encodePages runs off the main thread |  |
 | SCAN-10 | P3 | [SCAN-10](backlog/tasks/SCAN-10.md) · Scan next: evaluate a small learned page detector behind the same contract |  |
-| SCAN-19 | P3 | [SCAN-19](backlog/tasks/SCAN-19.md) · Scan next: evaluate a small learned unwarping model (UVDoc) against the classical dewarp |  |
 | SCAN-31 | P3 | [SCAN-31](backlog/tasks/SCAN-31.md) · The Scan guide's image generator follows the rewritten phone flow |  |
 
 ## Page enhancement for Scan and Highlight
@@ -144,9 +144,15 @@ One shared mechanism that turns, splits and straightens a page, first in Scan, t
 | PE-09 | P2 | [PE-09](backlog/tasks/PE-09.md) · Raster pieces for bent pages |  |
 | PE-10 | P2 | [PE-10](backlog/tasks/PE-10.md) · Cleanup inside the text column |  |
 | PE-11 | P2 | [PE-11](backlog/tasks/PE-11.md) · Unsqueeze toward the spine |  |
-| PE-12 | P2 | [PE-12](backlog/tasks/PE-12.md) · BendStrategy seam |  |
-| PE-13 | P2 | [PE-13](backlog/tasks/PE-13.md) · UVDoc strategy, downloaded on request |  |
 | PE-14 | P2 | [PE-14](backlog/tasks/PE-14.md) · Highlight copy and FAQ for enhancing a scan |  |
+| PE-16 | P2 | [PE-16](backlog/tasks/PE-16.md) · Creases and wrinkles in phone photos: find the facets, straighten each |  |
+
+### Parked
+
+| ID | P | Task | Note |
+| --- | --- | --- | --- |
+| PE-12 | P3 | [PE-12](backlog/tasks/PE-12.md) · BendStrategy seam |  |
+| PE-15 | P3 | [PE-15](backlog/tasks/PE-15.md) · Shadows of the photographer and fold shading: measure the classical fix, ask whether HDR helps |  |
 
 ## Tool pages: show the verb
 
@@ -324,8 +330,8 @@ Done and retired tickets are not listed. Their files stay in [backlog/tasks/](ba
 - Redact: finish removal: 26 done, 1 retired
 - Sign: finish fill mode: 3 done, 1 retired
 - Highlight PDF: a tool for reading: 5 done, 1 retired
-- Scan: camera to WhatsApp: 3 done, 0 retired
-- Page enhancement for Scan and Highlight: 2 done, 0 retired
+- Scan: camera to WhatsApp: 4 done, 0 retired
+- Page enhancement for Scan and Highlight: 2 done, 1 retired
 - Tool pages: show the verb: 8 done, 0 retired
 - Form detector accuracy: 19 done, 1 retired
 - Robustness and debt: 88 done, 4 retired
