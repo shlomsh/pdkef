@@ -1,6 +1,7 @@
 // Folded corners: a pinned sheet curls a corner away, so a flattened page shows a dark triangle of
-// table there, and the Document look turns it solid black. The page's corners are right; the triangle
-// is painted in the paper's colour before any look is applied, so every look is fixed. Pure: no DOM.
+// table there, and the Document look turns it solid black. A lifted edge shows the same table as a thin
+// sliver along that edge. The page's corners are right; both are painted in the paper's colour before
+// any look is applied, so every look is fixed. Pure: no DOM.
 import { type RgbaImage } from '#lib/pageEnhance/quad.ts';
 import { documentGrey } from './filters.ts';
 import { eachMark } from './marks.ts';
@@ -15,6 +16,14 @@ const MAX_AREA = 0.03;
 const REACH = 0.02;
 /** A fold's two legs are within this ratio of each other; longer and thinner is a rule along one edge. */
 const MAX_LEAN = 6;
+/** How far into the page an edge sliver reaches, at most, as a share of the short side. */
+const SLIVER_DEPTH = 0.015;
+/** A sliver is at least this many times longer than it is deep; a squarer mark on an edge is print. */
+const SLIVER_LEAN = 5;
+/** Shortest sliver, as a share of its edge: shorter is a tick. */
+const SLIVER_LENGTH = 0.02;
+/** How far from an edge, in pixels, a sliver may start. */
+const ON_EDGE = 1;
 /** How much of the corner triangle the mark must fill. */
 const MIN_FILL = 0.8;
 /** How much of the mark may lie outside the triangle: a fold is a clean wedge, a block of print is not. */
@@ -43,7 +52,6 @@ const CORNERS: Corner[] = [
 function foldedCorner(pixels: Int32Array, box: Box, width: number, height: number): Corner | null {
   const area = pixels.length;
   const page = width * height;
-  if (area < MIN_AREA * page || area > MAX_AREA * page) return null;
   const reach = REACH * Math.min(width, height);
   for (const c of CORNERS) {
     const nearX = c.right ? box.maxX >= width - 1 - reach : box.minX <= reach;
@@ -64,6 +72,18 @@ function foldedCorner(pixels: Int32Array, box: Box, width: number, height: numbe
     if (fill >= MIN_FILL && (spill <= MAX_SPILL || area <= TINY_AREA * page)) return c;
   }
   return null;
+}
+
+/** True for a long thin mark lying along one page edge: table past a lifted edge. */
+function edgeSliver(box: Box, width: number, height: number): boolean {
+  const limit = SLIVER_DEPTH * Math.min(width, height);
+  const sliver = (depth: number, length: number, edge: number) =>
+    depth <= limit && length >= SLIVER_LEAN * depth && length >= SLIVER_LENGTH * edge;
+  const wide = box.maxX - box.minX + 1;
+  const tall = box.maxY - box.minY + 1;
+  const onSide = box.minX <= ON_EDGE || box.maxX >= width - 1 - ON_EDGE;
+  const onEnd = box.minY <= ON_EDGE || box.maxY >= height - 1 - ON_EDGE;
+  return (onSide && sliver(wide, tall, height)) || (onEnd && sliver(tall, wide, width));
 }
 
 /** `mask` grown by `r` pixels each way, square, one axis at a time. */
@@ -160,7 +180,7 @@ function paintMark(out: Uint8ClampedArray, src: RgbaImage, grey: Uint8ClampedArr
   }
 }
 
-/** The page with every folded corner painted in the paper's colour; the same object when it has none. */
+/** The page with every folded corner and edge sliver painted in the paper's colour; the same object when it has none. */
 export function fillFoldedCorners(image: RgbaImage): RgbaImage {
   const { width, height } = image;
   const grey = documentGrey(image);
@@ -175,7 +195,9 @@ export function fillFoldedCorners(image: RgbaImage): RgbaImage {
       if (y < box.minY) box.minY = y;
       if (y > box.maxY) box.maxY = y;
     }
-    if (!foldedCorner(pixels, box, width, height)) return;
+    const share = pixels.length / (width * height);
+    if (share < MIN_AREA || share > MAX_AREA) return;
+    if (!foldedCorner(pixels, box, width, height) && !edgeSliver(box, width, height)) return;
     out ??= image.data.slice();
     paintMark(out, image, grey, pixels, box);
   });
