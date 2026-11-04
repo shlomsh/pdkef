@@ -1,6 +1,6 @@
 ---
 id: "SCAN-44"
-title: "A filled A4 form scanned with PDkef (2026-11-04) came out stretched, with black edges and ghost text"
+title: "A filled A4 form scanned with PDkef (2026-11-04): black edges and ghost text remain; stretch is fixed on main for A4"
 status: "open"
 priority: "P2"
 epic: "scan-next"
@@ -26,6 +26,27 @@ document, kept out of the repo: only the findings are here). **Track: phone phot
 - **Ghost text.** Show-through from the back of the sheet remains in part of the lower cells.
 - Not defects: the page is straight and the table rules are straight; the handwriting is intact.
 
+## Re-measured on main (dc63a90b, SCAN-34 wired, PE-01 landed; 2026-11-04)
+
+Shlomi's four test photos through a faithful copy of the current pipeline (inspect, turn, flatten; no filter):
+
+| photo | quad | raw long:short | snapped | output | vs A4 |
+|---|---|---|---|---|---|
+| IMG_4755 (blank copy of this form) | right (was the whole frame before) | 1.438 | A4 | 1305 x 1846 | +0.02% |
+| IMG_4757 (a letter) | right | 1.395 | A4 | 1155 x 1634 | +0.04% |
+| IMG_4758 (a bill, other side of a flyer) | right | 1.507 | none | 1056 x 1592 | +6.6% |
+| IMG_4759 (the flyer) | right | 1.485 | none | 1119 x 1662 | +5.0% |
+
+- **Stretch: gone for A4 sheets.** The form's blank copy and the letter land within 0.05% of A4. The 3.9% and
+  10.4% in the original scan came from before the aspect wiring.
+- **Not A4:** the two sides of the flyer sheet read 1.507 and 1.485 (1.5% apart, so the measure is stable) and
+  fall outside the 3% snap, so they keep their raw ratio: either the sheet is not a standard size, or the
+  estimate is off on a wrinkled page. Whether to snap further (more sizes, or leave as measured) is open.
+- **Black edges:** none in the four re-run outputs (outer 12 px dark pixels 0% on three sides; the left edge
+  of 4757 holds a 1.3% black tick that is on the paper). The two source photos of this scan are still needed to
+  confirm the wedge and bar are gone on those.
+- **Ghost text:** not re-measured (needs the source photos and the Document look).
+
 ## Outcome
 
 Rescanning the same photos after SCAN-34's wiring gives pages within 3% of A4, with no black edge wedge or bar
@@ -34,7 +55,8 @@ and no visible ghost text, and the result is added as a private regression check
 ## Acceptance
 
 - [ ] Shlomi supplies the two source photos (private; scratchpad only).
-- [ ] Output aspect within 3% of A4 on both pages.
+- [x] Output aspect within 3% of A4 (done on main for A4 sheets, measured above).
+- [ ] Decide what a sheet that is not a standard size does (IMG_4758 and IMG_4759: +6.6% and +5.0%).
 - [ ] No border-touching dark blob larger than a few pixels in the output (the scoring used here: connected
   components under grey 100 that touch the page edge).
 - [ ] Show-through: ghost text under a set contrast is gone, with handwriting and the stamp kept; measured on a
