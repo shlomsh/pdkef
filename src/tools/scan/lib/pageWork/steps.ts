@@ -8,6 +8,7 @@ import { applyPiece, pieceMargin, type Piece } from '#lib/pageEnhance/piece.ts';
 import { warpSizeFor } from '#lib/pageEnhance/warp.ts';
 import { pageAspect, snapPaper } from '../aspect.ts';
 import { uprightTurns } from './upright.ts';
+import { fillFoldedCorners } from '../foldedCorners.ts';
 import { applyFilter, type ScanFilter } from '../filters.ts';
 import { insetQuad, scaleQuad, type GrayImage, type Quad, type RgbaImage } from '#lib/pageEnhance/quad.ts';
 
@@ -162,7 +163,7 @@ function flattenPixels(src: RgbaImage, quad: Quad, filter: ScanFilter): { image:
   const { width, height } = warpSizeFor(quadPx, OUTPUT_LONG_EDGE, aspect === null ? null : snapPaper(aspect));
   const { bend, error } = bendOf(src, quad, width, height);
   const piece: Piece = { quad, inset: EDGE_INSET, width, height, bend, mesh: null };
-  const warped = applyPiece(src, piece);
+  const warped = fillFoldedCorners(applyPiece(src, piece));
   return { image: applyFilter(warped, filter), bentPx: bentPx(bend, pieceMargin(piece), width, height), measureError: error };
 }
 
