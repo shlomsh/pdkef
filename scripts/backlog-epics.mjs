@@ -16,6 +16,9 @@ export const lanes = [
   // Opened 2026-11-03 (docs/scan-next.md): scanning a page with the camera and sharing it to WhatsApp is
   // the workflow that matters most, so Scan becomes a live camera, one table and Share.
   { key: 'scan-next', label: 'Scan: camera to WhatsApp', why: 'The camera takes pages, the table fixes them, Share sends them. The table first on today\'s camera input, then a real detection corpus, then the live camera.' },
+  // Opened 2026-11-04 (docs/scan-enhance-handoff.md): one page-enhancement mechanism shared by Scan and
+  // Highlight, so a crooked scan can be straightened in the reader.
+  { key: 'page-enhance', label: 'Page enhancement for Scan and Highlight', why: 'One shared mechanism that turns, splits and straightens a page, first in Scan, then offered in Highlight, with an optional learned model on desktop.' },
   // Opened 2026-10-14 from the tool-page review (docs/tool-hero-show-the-verb.md): Shlomi found the
   // shared template good but not crisp, picked "Show the verb" from three sketched directions and
   // added the full-height desktop hero.

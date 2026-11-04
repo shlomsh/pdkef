@@ -2,7 +2,7 @@
 
 # Backlog
 
-The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 128 live: 45 up next, 15 then, 27 waiting, 41 parked.
+The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 150 live: 45 up next, 29 then, 27 waiting, 49 parked.
 
 ## Redact: finish removal
 
@@ -117,9 +117,39 @@ The camera takes pages, the table fixes them, Share sends them. The table first 
 
 | ID | P | Task | Note |
 | --- | --- | --- | --- |
+| SCAN-37 | P3 | [SCAN-37](backlog/tasks/SCAN-37.md) · With Auto off the camera no longer reads "Page 0. Turn the page." before a shot |  |
+| SCAN-38 | P3 | [SCAN-38](backlog/tasks/SCAN-38.md) · The turn line shows the new count as soon as a page is taken |  |
+| SCAN-39 | P3 | [SCAN-39](backlog/tasks/SCAN-39.md) · A page held too close is not told "A darker surface helps" |  |
+| SCAN-40 | P3 | [SCAN-40](backlog/tasks/SCAN-40.md) · Plain-text pages hash further apart than the duplicate threshold |  |
+| SCAN-41 | P3 | [SCAN-41](backlog/tasks/SCAN-41.md) · A deleted page is forgotten by the duplicate check |  |
+| SCAN-42 | P3 | [SCAN-42](backlog/tasks/SCAN-42.md) · Measuring a page on desktop takes under 150 ms |  |
+| SCAN-43 | P3 | [SCAN-43](backlog/tasks/SCAN-43.md) · encodePages runs off the main thread |  |
 | SCAN-10 | P3 | [SCAN-10](backlog/tasks/SCAN-10.md) · Scan next: evaluate a small learned page detector behind the same contract |  |
 | SCAN-19 | P3 | [SCAN-19](backlog/tasks/SCAN-19.md) · Scan next: evaluate a small learned unwarping model (UVDoc) against the classical dewarp |  |
 | SCAN-31 | P3 | [SCAN-31](backlog/tasks/SCAN-31.md) · The Scan guide's image generator follows the rewritten phone flow |  |
+
+## Page enhancement for Scan and Highlight
+
+One shared mechanism that turns, splits and straightens a page, first in Scan, then offered in Highlight, with an optional learned model on desktop.
+
+### Then, in order
+
+| ID | P | Task | Note |
+| --- | --- | --- | --- |
+| PE-01 | P2 | [PE-01](backlog/tasks/PE-01.md) · Move the shared page-geometry code into src/lib/pageEnhance |  |
+| PE-02 | P2 | [PE-02](backlog/tasks/PE-02.md) · Piece, Assessment and PagePlan contract, with applyPiece |  |
+| PE-03 | P2 | [PE-03](backlog/tasks/PE-03.md) · Fold finder for two pages to a sheet |  |
+| PE-04 | P2 | [PE-04](backlog/tasks/PE-04.md) · Lean as a rotation before the bend |  |
+| PE-05 | P2 | [PE-05](backlog/tasks/PE-05.md) · assess and planPage |  |
+| PE-06 | P2 | [PE-06](backlog/tasks/PE-06.md) · Highlight: detect a crooked scan, no UI |  |
+| PE-07 | P2 | [PE-07](backlog/tasks/PE-07.md) · Highlight: the suggestion line and Not now memory |  |
+| PE-08 | P2 | [PE-08](backlog/tasks/PE-08.md) · Turn-only and vector rebuild, with Undo |  |
+| PE-09 | P2 | [PE-09](backlog/tasks/PE-09.md) · Raster pieces for bent pages |  |
+| PE-10 | P2 | [PE-10](backlog/tasks/PE-10.md) · Cleanup inside the text column |  |
+| PE-11 | P2 | [PE-11](backlog/tasks/PE-11.md) · Unsqueeze toward the spine |  |
+| PE-12 | P2 | [PE-12](backlog/tasks/PE-12.md) · BendStrategy seam |  |
+| PE-13 | P2 | [PE-13](backlog/tasks/PE-13.md) · UVDoc strategy, downloaded on request |  |
+| PE-14 | P2 | [PE-14](backlog/tasks/PE-14.md) · Highlight copy and FAQ for enhancing a scan |  |
 
 ## Tool pages: show the verb
 
@@ -180,6 +210,7 @@ Production errors you can see, small tools that clean up after themselves, and d
 | ENC-10 | P3 | [ENC-10](backlog/tasks/ENC-10.md) · The daily read counts protected files as a funnel |  |
 | ENC-14 | P3 | [ENC-14](backlog/tasks/ENC-14.md) · PDF to Image meets a protected PDF at the door and leads back after Unlock |  |
 | ENC-11 | P3 | [ENC-11](backlog/tasks/ENC-11.md) · Every tool's intake is tested against a real protected file in one table |  |
+| DEBT-71 | P3 | [DEBT-71](backlog/tasks/DEBT-71.md) · Three row and skew finders do the work R35 says one should |  |
 | MEM-12 | P3 | [MEM-12](backlog/tasks/MEM-12.md) · An alert when people are stuck on an old build |  |
 | MOBI-08 | P3 | [MOBI-08](backlog/tasks/MOBI-08.md) · Offer install at the moment it pays off, not in a card about working offline |  |
 
@@ -297,6 +328,7 @@ Done and retired tickets are not listed. Their files stay in [backlog/tasks/](ba
 - Sign: finish fill mode: 3 done, 1 retired
 - Highlight PDF: a tool for reading: 5 done, 1 retired
 - Scan: camera to WhatsApp: 2 done, 0 retired
+- Page enhancement for Scan and Highlight: 0 done, 0 retired
 - Tool pages: show the verb: 8 done, 0 retired
 - Form detector accuracy: 19 done, 1 retired
 - Robustness and debt: 88 done, 4 retired
