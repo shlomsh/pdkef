@@ -25,5 +25,12 @@ the camera says a darker surface would help (SCAN-24).
 
 ## Acceptance
 
-- [ ] The white-on-white photo is found within the corpus's corner tolerance.
-- [ ] SCAN-05's KPI table before and after, no row worse; the per-frame time budget holds.
+- [x] The white-on-white photo is found within the corpus's corner tolerance. (`edges/faint.test.ts`; the
+      real photo is `edges/real/blank-form-on-white-table.pgm`, scored in `realCorpus.test.ts`)
+- [x] SCAN-05's KPI table before and after, no row worse. (`edges/real/baseline.json` moved on purpose in
+      7c330635 and `realCorpus.test.ts` guards it; found-rate stays 1 at every tolerance)
+- [ ] The per-frame time budget holds: no test or recorded measurement of `detectPage`'s time exists yet.
+      Measured 2026-11-04 on a desktop in Node, 320x569, 200 runs: faint-outline frame (the blank-form fixture) median 29.4 ms, p95 30.4 ms
+      (54.9 / 56.6 before SCAN-33, where it fell through to brightness); dark-desk page 11.0 / 11.5 ms (10.9 / 11.9 before). No numeric budget is
+      written anywhere, and a phone has not been measured, so the box stays open.
+- [ ] Shlomi glances at the blank form's corners in `edges/real/labels.json` (read by eye).
