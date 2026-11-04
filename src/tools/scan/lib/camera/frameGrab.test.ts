@@ -48,6 +48,27 @@ describe('grabGray', () => {
   });
 });
 
+describe('grabGray with a view', () => {
+  it('draws only that share of the frame, with the short edge of the share at 320', () => {
+    const { canvas, ctx } = fakeCanvas();
+    const got = grabGray(video(640, 480), canvas, 320, { x: 0.25, y: 0, width: 0.5, height: 1 })!;
+    expect(ctx.drawImage).toHaveBeenCalledWith(expect.anything(), 160, 0, 320, 480, 0, 0, got.width, got.height);
+    expect(got.width).toBe(320);
+    expect(got.height).toBe(480);
+  });
+});
+
+describe('frameGrabber view', () => {
+  it('crops to what object-fit: cover shows and returns that share', () => {
+    const { canvas, ctx } = fakeCanvas();
+    vi.stubGlobal('document', { createElement: () => canvas });
+    const grabbed = frameGrabber()({ videoWidth: 640, videoHeight: 480, clientWidth: 390, clientHeight: 844 } as HTMLVideoElement, 0)!;
+    expect(grabbed.view.width).toBeCloseTo(390 / 844 / (640 / 480));
+    expect(grabbed.view.height).toBe(1);
+    expect(ctx.drawImage.mock.calls[0][1]).toBeCloseTo(grabbed.view.x * 640);
+  });
+});
+
 describe('grabFocusPatch', () => {
   it('returns null while the video has no size', () => {
     expect(grabFocusPatch(video(0, 0), fakeCanvas().canvas)).toBeNull();

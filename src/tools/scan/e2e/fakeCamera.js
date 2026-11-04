@@ -8,14 +8,28 @@ import { join } from 'node:path';
 const W = 640;
 const H = 480;
 
-function pageLuma() {
+const ANGLE = (5 * Math.PI) / 180;
+// A stream this size is landscape; in a phone-shaped viewfinder object-fit: cover shows only its middle ~35% of the width.
+// The default page (150 x 200) fills about a third of that visible part.
+const DEFAULT_PAGE = { halfW: 75, halfH: 100 };
+
+/** The page's four corners across the whole frame, 0..1, in no particular order. */
+export function pageCorners({ halfW, halfH } = DEFAULT_PAGE) {
+  const cos = Math.cos(ANGLE);
+  const sin = Math.sin(ANGLE);
+  return [[-1, -1], [1, -1], [1, 1], [-1, 1]].map(([su, sv]) => {
+    const u = su * halfW;
+    const v = sv * halfH;
+    return { x: (W / 2 + u * cos - v * sin) / W, y: (H / 2 + u * sin + v * cos) / H };
+  });
+}
+
+function pageLuma({ halfW, halfH }) {
   const y = new Uint8Array(W * H);
-  const angle = (5 * Math.PI) / 180;
+  const angle = ANGLE;
   const cos = Math.cos(angle);
   const sin = Math.sin(angle);
-  // The page: 300 x 400 px around the centre, in its own turned frame.
-  const halfW = 150;
-  const halfH = 200;
+  // The page around the centre, in its own turned frame.
   for (let row = 0; row < H; row += 1) {
     for (let col = 0; col < W; col += 1) {
       const dx = col - W / 2;
@@ -29,7 +43,7 @@ function pageLuma() {
         value = 225 + grain;
         const line = Math.floor((v + halfH - 40) / 22);
         const inLine = (v + halfH - 40) % 22 < 7;
-        const lineEnd = halfW - 30 - (line % 3) * 40;
+        const lineEnd = halfW - 30 - (line % 3) * 40 * (halfW / 150);
         if (v > -halfH + 40 && v < halfH - 40 && inLine && u > -halfW + 30 && u < lineEnd) value = 50;
       }
       y[row * W + col] = value;
@@ -39,10 +53,10 @@ function pageLuma() {
 }
 
 /** Writes the Y4M to a fresh temp folder and returns its path. */
-export function writeFakeCamera(frames = 3) {
+export function writeFakeCamera(frames = 3, page = DEFAULT_PAGE) {
   const header = Buffer.from(`YUV4MPEG2 W${W} H${H} F10:1 Ip A1:1 C420jpeg\n`);
   const chroma = Buffer.alloc((W / 2) * (H / 2) * 2, 128);
-  const luma = Buffer.from(pageLuma());
+  const luma = Buffer.from(pageLuma(page));
   const parts = [header];
   for (let i = 0; i < frames; i += 1) parts.push(Buffer.from('FRAME\n'), luma, chroma);
   const path = join(mkdtempSync(join(tmpdir(), 'scan-camera-')), 'page.y4m');

@@ -8,8 +8,8 @@ import { DEFAULT_CAPTURE_PARAMS, type CaptureState, type FrameObservation } from
 import { cameraStatusFor } from '../lib/camera/cameraErrors.ts';
 import { attachStream, cameraPacer, openCamera, stopCamera, takePhoto } from '../lib/camera/cameraStream.ts';
 import { frameGrabber, snapshot } from '../lib/camera/frameGrab.ts';
-import { IDLE_VIEW, type CameraHandle, type CameraStatus, type TakenPage } from '../lib/camera/types.ts';
-import { nextView } from '../lib/camera/viewfinderModel.ts';
+import { IDLE_VIEW, type CameraHandle, type Rect, type CameraStatus, type TakenPage } from '../lib/camera/types.ts';
+import { nextView, toFrame, WHOLE_FRAME } from '../lib/camera/viewfinderModel.ts';
 
 interface UseCameraInput {
   /** Called once per page taken, auto or by the shutter. */
@@ -28,6 +28,19 @@ async function captureShot(track: MediaStreamTrack, video: HTMLVideoElement) {
   return { file: new File([photo], `scan-${Date.now()}.jpg`, { type: photo.type || 'image/jpeg' }), snapshot: small };
 }
 
+/** A worker that fails on a frame is reported, not surfaced: the next frame tries again. */
+function reportObserveFailure(event: ErrorEvent) {
+  event.preventDefault();
+  reportError('pdf_tool_run', event.error ?? new Error(event.message), 'scan_camera_observe');
+}
+
+/** Keeps `setSize` on the video's intrinsic size; a rotated phone swaps it without a new loadedmetadata. */
+function watchVideoSize(el: HTMLVideoElement, setSize: (size: { width: number; height: number }) => void) {
+  const measure = () => setSize({ width: el.videoWidth, height: el.videoHeight });
+  el.onloadedmetadata = measure;
+  el.onresize = measure;
+}
+
 export function useCamera(input: UseCameraInput): CameraHandle {
   const [status, setStatus] = useState<CameraStatus>('starting');
   const [live, setLive] = useState(IDLE_VIEW);
@@ -43,6 +56,8 @@ export function useCamera(input: UseCameraInput): CameraHandle {
   const streamRef = useRef<MediaStream | null>(null);
   const stateRef = useRef<CaptureState>(INITIAL_CAPTURE_STATE);
   const lastObs = useRef<FrameObservation | null>(null);
+  // the part of the frame the frame in flight covers (one at a time): stateRef's quad is across it
+  const lastView = useRef<Rect>(WHOLE_FRAME);
   const shooting = useRef(false);
   const pacer = useRef<ReturnType<typeof cameraPacer> | null>(null);
 
@@ -52,10 +67,7 @@ export function useCamera(input: UseCameraInput): CameraHandle {
   const videoRef = useCallback((el: HTMLVideoElement | null) => {
     videoEl.current = el;
     if (!el) return;
-    const measure = () => setVideoSize({ width: el.videoWidth, height: el.videoHeight });
-    el.onloadedmetadata = measure;
-    // a rotated phone swaps the intrinsic size without a new loadedmetadata
-    el.onresize = measure;
+    watchVideoSize(el, setVideoSize);
     attach();
   }, [attach]);
 
@@ -66,7 +78,9 @@ export function useCamera(input: UseCameraInput): CameraHandle {
     shooting.current = true;
     pacer.current?.stop();
     try {
-      const taken = quad === undefined ? stateRef.current.smoothed : quad;
+      // a quad handed in is across the whole frame already; the machine's own is across what was on screen
+      const { smoothed } = stateRef.current;
+      const taken = quad === undefined ? smoothed && toFrame(smoothed, lastView.current) : quad;
       if (byShutter && lastObs.current) stateRef.current = markTaken(stateRef.current, lastObs.current.hash);
       onTakenRef.current({ ...(await captureShot(running, video)), quad: taken });
     } catch (err) {
@@ -92,16 +106,13 @@ export function useCamera(input: UseCameraInput): CameraHandle {
       const step = stepCapture(stateRef.current, obs, DEFAULT_CAPTURE_PARAMS, autoRef.current && !pausedRef.current);
       stateRef.current = step.state;
       lastObs.current = obs;
-      setLive((view) => nextView(view, step.state, obs));
+      const view = lastView.current;
+      setLive((previous) => nextView(previous, step.state, obs, view));
       pacer.current?.check(obs.t, pausedRef.current);
-      if (step.capture && autoRef.current && !pausedRef.current) void shootRef.current(step.capture); // reason: shoot reports its own failure
+      if (step.capture && autoRef.current && !pausedRef.current) void shootRef.current(toFrame(step.capture, view)); // reason: shoot reports its own failure
     };
 
-    worker.onerror = (event) => {
-      event.preventDefault();
-      inFlight = false;
-      reportError('pdf_tool_run', event.error ?? new Error(event.message), 'scan_camera_observe');
-    };
+    worker.onerror = (event) => { inFlight = false; reportObserveFailure(event); };
 
     const tick = () => {
       frame = requestAnimationFrame(tick);
@@ -110,6 +121,7 @@ export function useCamera(input: UseCameraInput): CameraHandle {
       const grabbed = grabFrame(video, performance.now());
       if (!grabbed) return;
       inFlight = true;
+      lastView.current = grabbed.view;
       worker.postMessage(grabbed.message, grabbed.transfer);
     };
 
