@@ -5,6 +5,9 @@
 //   holding/locked --jitter, jump, blur, dropped frame--> locked / searching (hold and settle restart)
 //   holding stays holding while focus is still rising or has dropped: the settle restarts, the hold does not
 //   FIRE --> waitingForChange --page gone leaveMs, or hash differs--> searching
+//   any phase --a page matching one taken this session (SCAN-23)--> duplicate: never fires, hold restarts
+//   duplicate --page gone leaveMs, or hash matches no page taken--> searching
+// The pages taken are remembered through every reset: one page, one shot, whatever happens in between.
 import type { Point, Quad } from '../quad.ts';
 import { hashDistance } from './hash.ts';
 import {
@@ -20,6 +23,7 @@ export const INITIAL_CAPTURE_STATE: CaptureState = {
   smoothed: null,
   holdSince: null,
   lastCaptureHash: null,
+  takenHashes: [],
   lastT: null,
   prevQuad: null,
   lostSince: null,
@@ -32,6 +36,18 @@ const maxCornerDistance = (a: Quad, b: Quad) => Math.max(...a.map((p, i) => dist
 const blend = (old: Quad, next: Quad, alpha: number): Quad =>
   old.map((p, i) => ({ x: p.x + (next[i].x - p.x) * alpha, y: p.y + (next[i].y - p.y) * alpha })) as Quad;
 
+/** How many pages taken in one camera session are remembered; the oldest go first. */
+export const TAKEN_MEMORY = 50;
+const remember = (taken: readonly string[] | undefined, hash: string) =>
+  [...(taken ?? []).filter((h) => h !== hash), hash].slice(-TAKEN_MEMORY);
+const alreadyTaken = (state: CaptureState, hash: string, params: CaptureParams) =>
+  (state.takenHashes ?? []).some((taken) => hashDistance(hash, taken) <= params.changeDistance);
+
+/** A fresh search that keeps the pages taken: after the page has been gone leaveMs, or when the camera restarts. */
+export function searchAgain(state: CaptureState): CaptureState {
+  return { ...INITIAL_CAPTURE_STATE, lastCaptureHash: state.lastCaptureHash, takenHashes: state.takenHashes ?? [] };
+}
+
 export function stepCapture(
   state: CaptureState,
   obs: FrameObservation,
@@ -41,19 +57,17 @@ export function stepCapture(
   const base: CaptureState = { ...state, lastT: obs.t, prevQuad: good ? obs.quad : null };
   let current = state;
 
-  if (state.phase === 'waitingForChange') {
+  if (state.phase === 'waitingForChange' || state.phase === 'duplicate') {
     if (!good) {
       const lostSince = state.lostSince ?? obs.t;
-      if (obs.t - lostSince >= params.leaveMs) {
-        current = { ...INITIAL_CAPTURE_STATE, lastCaptureHash: state.lastCaptureHash };
-        return { state: { ...current, lastT: obs.t }, capture: null };
-      }
+      if (obs.t - lostSince >= params.leaveMs) return { state: { ...searchAgain(state), lastT: obs.t }, capture: null };
       return { state: { ...base, lostSince }, capture: null };
     }
     const differs = state.lastCaptureHash !== null && hashDistance(obs.hash, state.lastCaptureHash) > params.changeDistance;
-    if (!differs) return { state: { ...base, lostSince: null }, capture: null };
-    // A different page in front of the camera: carry on as if searching, with this frame.
-    current = { ...INITIAL_CAPTURE_STATE, lastCaptureHash: state.lastCaptureHash };
+    if (state.phase === 'waitingForChange' && !differs) return { state: { ...base, lostSince: null }, capture: null };
+    // Carry on as if searching, with this frame; a page taken earlier is caught below and stays duplicate.
+    // A duplicate keeps following its corners, so the outline does not snap back when it stays one.
+    current = state.phase === 'duplicate' ? { ...state, phase: 'searching', lostSince: null } : searchAgain(state);
   }
 
   if (!good || !obs.quad) {
@@ -68,6 +82,9 @@ export function stepCapture(
   const sharp = obs.sharpness >= params.minSharpness;
   const next = { ...current, smoothed, lastT: obs.t, prevQuad: obs.quad, lostSince: null };
 
+  if (alreadyTaken(current, obs.hash, params)) {
+    return { state: { ...next, phase: 'duplicate', holdSince: null, focusAnchor: null, settledSince: null }, capture: null };
+  }
   if (!sharp) return { state: { ...next, phase: 'searching', holdSince: null, focusAnchor: null, settledSince: null }, capture: null };
   if (restart || jittery) return { state: { ...next, phase: 'locked', holdSince: null, focusAnchor: null, settledSince: null }, capture: null };
 
@@ -79,12 +96,16 @@ export function stepCapture(
   const focusAnchor = moved ? obs.focus : anchor;
   const settledSince = moved ? obs.t : (current.settledSince as number);
   if (obs.t - holdSince >= params.holdMs && obs.t - settledSince >= params.settleMs) {
-    return { state: { ...next, phase: 'waitingForChange', holdSince: null, focusAnchor: null, settledSince: null, lastCaptureHash: obs.hash }, capture: smoothed };
+    return { state: { ...next, phase: 'waitingForChange', holdSince: null, focusAnchor: null, settledSince: null, lastCaptureHash: obs.hash, takenHashes: remember(current.takenHashes, obs.hash) }, capture: smoothed };
   }
   return { state: { ...next, phase: 'holding', holdSince, focusAnchor, settledSince }, capture: null };
 }
 
-/** A shot the shutter took by hand: wait for the page to change, so auto does not take it again. */
+/** A shot the shutter took by hand, whatever the phase (a duplicate too): remember the page and wait for it to
+ * change, so auto does not take it again. */
 export function markTaken(state: CaptureState, hash: string): CaptureState {
-  return { ...state, phase: 'waitingForChange', lastCaptureHash: hash, holdSince: null, focusAnchor: null, settledSince: null, lostSince: null };
+  return {
+    ...state, phase: 'waitingForChange', lastCaptureHash: hash, takenHashes: remember(state.takenHashes, hash),
+    holdSince: null, focusAnchor: null, settledSince: null, lostSince: null,
+  };
 }

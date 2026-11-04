@@ -14,7 +14,7 @@ export interface FrameObservation {
   sharpness: number;
   /** Normalized quad area, 0..1. */
   area: number;
-  /** 16 hex chars, 64-bit average hash of the frame's page region. */
+  /** 16 hex chars, 64-bit average hash of the page flattened through its quad (the whole frame without one). */
   hash: string;
   /** focusMeasure of the centre crop; 0 when there is no crop. */
   focus: number;
@@ -31,11 +31,14 @@ export interface CaptureState {
   holdSince: number | null;
   /** Hash of the page taken last; the same page is not taken twice. */
   lastCaptureHash: string | null;
+  /** Hashes of every page taken in this camera session, oldest first, bounded (SCAN-23): a frame matching
+   * any of them never fires. Optional so a state written before SCAN-23 still reads; absent = none taken. */
+  takenHashes?: readonly string[];
   /** t of the previous frame, to spot dropped frames. */
   lastT: number | null;
   /** The previous frame's raw quad, to measure jitter. */
   prevQuad: Quad | null;
-  /** Since when the page has been missing (waitingForChange only). */
+  /** Since when the page has been missing (waitingForChange and duplicate only). */
   lostSince: number | null;
   /** The focus at the start of the settle window; null when not holding. */
   focusAnchor: number | null;
@@ -67,7 +70,7 @@ export interface CaptureParams {
   maxGapMs: number;
   /** The page must be missing this long to re-arm after a shot. */
   leaveMs: number;
-  /** A hash this many bits away from the last shot's is a different page. */
+  /** A hash more than this many bits away from every page taken is a different page. */
   changeDistance: number;
 }
 

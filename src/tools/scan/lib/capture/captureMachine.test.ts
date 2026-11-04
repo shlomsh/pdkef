@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { Quad } from '../quad.ts';
-import { INITIAL_CAPTURE_STATE, markTaken, stepCapture } from './captureMachine.ts';
+import { INITIAL_CAPTURE_STATE, markTaken, searchAgain, stepCapture, TAKEN_MEMORY } from './captureMachine.ts';
 import type { CaptureState, FrameObservation } from './types.ts';
 
 const FRAME = 33;
@@ -13,6 +13,9 @@ const pageQuad = (dx = 0, dy = 0, s = 0.8): Quad => {
 };
 const HASH_A = '0f0f0f0f0f0f0f0f';
 const HASH_B = 'f0f0f0f0f0f0f0f0';
+const HASH_C = '00ff00ff00ff00ff';
+/** HASH_A with three bits flipped: the same page, another frame. */
+const HASH_A_NOISY = '0f0f0f0f0f0f0f08';
 const page = (t: number, over: Partial<FrameObservation> = {}): FrameObservation => ({
   t, quad: pageQuad(), confidence: 0.9, sharpness: 500, area: 0.64, hash: HASH_A, focus: 1000, ...over,
 });
@@ -72,8 +75,14 @@ describe('stepCapture', () => {
     const frames = [...seq(0, 1500, (t) => page(t)), ...seq(1500, 2000, (t) => page(t, { hash: HASH_B }))];
     expect(run(frames).fired).toHaveLength(2);
   });
-  it('takes a page removed and put back again', () => {
-    const frames = [...seq(0, 1500, (t) => page(t)), ...seq(1500, 1200, none), ...seq(2700, 1500, (t) => page(t))];
+  it('does not take a page removed for over a second and put back again (SCAN-23)', () => {
+    const frames = [...seq(0, 1500, (t) => page(t)), ...seq(1500, 1200, none), ...seq(2700, 3000, (t) => page(t))];
+    const { fired, state } = run(frames);
+    expect(fired).toHaveLength(1);
+    expect(state.phase).toBe('duplicate');
+  });
+  it('takes a different page put back after a removal', () => {
+    const frames = [...seq(0, 1500, (t) => page(t)), ...seq(1500, 1200, none), ...seq(2700, 1500, (t) => page(t, { hash: HASH_B }))];
     expect(run(frames).fired).toHaveLength(2);
   });
   it('does not re-arm on a short dropout of the same page', () => {
@@ -190,5 +199,86 @@ describe('markTaken', () => {
   it('re-arms on a different page', () => {
     const state = markTaken(INITIAL_CAPTURE_STATE, HASH_A);
     expect(run(seq(0, 1500, (t) => page(t, { hash: HASH_B })), state).fired).toHaveLength(1);
+  });
+});
+
+describe('one page, one shot (SCAN-23)', () => {
+  const away = (from: number) => seq(from, 1200, none);
+  it('remembers every page taken, not only the last', () => {
+    const frames = [
+      ...seq(0, 1500, (t) => page(t)), ...away(1500),
+      ...seq(2700, 1500, (t) => page(t, { hash: HASH_B })), ...away(4200),
+      ...seq(5400, 3000, (t) => page(t, { hash: HASH_A_NOISY })),
+    ];
+    const { fired, state } = run(frames);
+    expect(fired).toHaveLength(2);
+    expect(state.phase).toBe('duplicate');
+    expect(state.takenHashes).toEqual([HASH_A, HASH_B]);
+  });
+  it('an earlier page shown right after a shot, without leaving, is a duplicate', () => {
+    const frames = [...seq(0, 1500, (t) => page(t, { hash: HASH_B })), ...seq(1500, 3000, (t) => page(t, { hash: HASH_A }))];
+    const start = markTaken(INITIAL_CAPTURE_STATE, HASH_A);
+    const { fired, state } = run(frames, start);
+    expect(fired).toHaveLength(1);
+    expect(state.phase).toBe('duplicate');
+  });
+  it('a duplicate never fires, held still for 10 s', () => {
+    const start = searchAgain(markTaken(INITIAL_CAPTURE_STATE, HASH_A));
+    const { fired, state } = run(seq(0, 10000, (t) => page(t)), start);
+    expect(fired).toEqual([]);
+    expect(state.phase).toBe('duplicate');
+    expect(state.holdSince).toBeNull();
+  });
+  it('is reported from the first frame the page is in view, and follows its corners', () => {
+    const start = searchAgain(markTaken(INITIAL_CAPTURE_STATE, HASH_A));
+    const step = stepCapture(start, page(0));
+    expect(step.capture).toBeNull();
+    expect(step.state.phase).toBe('duplicate');
+    expect(step.state.smoothed).toEqual(pageQuad());
+  });
+  it('a duplicate stays duplicate through a short dropout', () => {
+    const start = searchAgain(markTaken(INITIAL_CAPTURE_STATE, HASH_A));
+    const { state } = run([...seq(0, 300, (t) => page(t)), ...seq(333, 200, none)], start);
+    expect(state.phase).toBe('duplicate');
+  });
+  it('a duplicate gone for leaveMs goes back to searching, still remembering it', () => {
+    const start = searchAgain(markTaken(INITIAL_CAPTURE_STATE, HASH_A));
+    const { state } = run([...seq(0, 300, (t) => page(t)), ...seq(333, 900, none)], start);
+    expect(state.phase).toBe('searching');
+    expect(state.takenHashes).toEqual([HASH_A]);
+  });
+  it('a duplicate turned to a new page is taken once', () => {
+    const start = searchAgain(markTaken(INITIAL_CAPTURE_STATE, HASH_A));
+    const { fired } = run([...seq(0, 1000, (t) => page(t)), ...seq(1023, 3000, (t) => page(t, { hash: HASH_C }))], start);
+    expect(fired).toHaveLength(1);
+    // the hold counts from the last duplicate frame, as it counts from a locked one
+    expect(fired[0]).toBeGreaterThanOrEqual(1023 - FRAME + 800);
+  });
+  it('a duplicate frame mid-hold stops the hold, the phase says duplicate', () => {
+    const start = searchAgain(markTaken(INITIAL_CAPTURE_STATE, HASH_A));
+    const held = run(seq(0, 500, (t) => page(t, { hash: HASH_B })), start).state;
+    expect(held.phase).toBe('holding');
+    const step = stepCapture(held, page(533));
+    expect(step.capture).toBeNull();
+    expect(step.state.phase).toBe('duplicate');
+    expect(step.state.holdSince).toBeNull();
+  });
+  it('remembers at most TAKEN_MEMORY pages, dropping the oldest', () => {
+    let state = INITIAL_CAPTURE_STATE;
+    for (let i = 0; i < TAKEN_MEMORY + 5; i += 1) state = markTaken(state, i.toString(16).padStart(16, '0'));
+    expect(state.takenHashes).toHaveLength(TAKEN_MEMORY);
+    expect(state.takenHashes![0]).toBe((5).toString(16).padStart(16, '0'));
+  });
+  it('searchAgain keeps the pages taken and starts the rest afresh', () => {
+    const taken = run(seq(0, 1500, (t) => page(t))).state;
+    const again = searchAgain(taken);
+    expect(again).toEqual({ ...INITIAL_CAPTURE_STATE, lastCaptureHash: HASH_A, takenHashes: [HASH_A] });
+  });
+  it('the shutter still takes a page already taken, and remembers it once', () => {
+    const dup = run(seq(0, 300, (t) => page(t)), searchAgain(markTaken(INITIAL_CAPTURE_STATE, HASH_A))).state;
+    expect(dup.phase).toBe('duplicate');
+    const state = markTaken(dup, HASH_A);
+    expect(state.phase).toBe('waitingForChange');
+    expect(state.takenHashes).toEqual([HASH_A]);
   });
 });
