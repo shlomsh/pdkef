@@ -2,11 +2,14 @@
 // first load carries none of the warp, filter or edge code (docs/scan-to-pdf.md).
 // Everything here is canvas plumbing around the pure modules beside it.
 import { guessCorners } from './edges/index.ts';
+import { isFlat, measureBend, pageMap, type PageBend } from './dewarp/index.ts';
+import { warpAlong } from './dewarp/meshWarp.ts';
 import { warpPerspective, warpSize } from './warp.ts';
 import { applyFilter, type ScanFilter } from './filters.ts';
 import { insetQuad, scaleQuad, type GrayImage, type Quad } from './quad.ts';
 import { fitScanToBudget, type FitResult } from './scanBudget.ts';
 import { canvasToBlob } from '#lib/images/canvasBlob.js';
+import { reportError } from '#lib/telemetry/errorReport.ts';
 import { throwIfAborted } from '#lib/output/abort.js';
 import { imagesToPdf } from '#lib/images/imagesToPdf.js';
 import { placeImage } from '#lib/images/imagePage.js';
@@ -135,6 +138,17 @@ export async function turnImage(image: Blob, turns: number): Promise<Blob> {
   }
 }
 
+/** The page's bend beyond its corners; a measuring failure is ours, reported, and the page is
+ * flattened by its corners alone. */
+function bendOf(src: ImageData, quad: Quad, width: number, height: number): PageBend {
+  try {
+    return measureBend(src, quad, EDGE_INSET / 2, width, height);
+  } catch (err) {
+    reportError('pdf_tool_run', err, 'scan_measure_bend');
+    return { curves: null, lines: null };
+  }
+}
+
 /** One page: flattened to its corners, given its look, kept as a high-quality JPEG. */
 export async function processPage(photo: Blob, quad: Quad, filter: ScanFilter): Promise<ProcessedPage> {
   const source = drawCapped(await loadImage(photo), SOURCE_LONG_EDGE);
@@ -142,7 +156,12 @@ export async function processPage(photo: Blob, quad: Quad, filter: ScanFilter): 
   freeCanvas(source);
   const quadPx = scaleQuad(insetQuad(quad, EDGE_INSET), src.width, src.height);
   const { width, height } = warpSize(quadPx, OUTPUT_LONG_EDGE);
-  const flat = applyFilter(warpPerspective(src, quadPx, width, height), filter);
+  const bend = bendOf(src, quad, width, height);
+  // A flat page keeps the plain homography, exactly as before SCAN-17.
+  const warped = isFlat(bend)
+    ? warpPerspective(src, quadPx, width, height)
+    : warpAlong(src, pageMap(scaleQuad(quad, src.width, src.height), EDGE_INSET / 2, bend), width, height);
+  const flat = applyFilter(warped, filter);
   const out = document.createElement('canvas');
   out.width = width;
   out.height = height;
