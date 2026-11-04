@@ -2,7 +2,7 @@
 // first load carries none of the warp, filter or edge code (docs/scan-to-pdf.md).
 // Everything here is canvas plumbing around the pure modules beside it.
 import { guessCorners } from './edges/index.ts';
-import { isFlat, measureBend, pageMap, type PageBend } from './dewarp/index.ts';
+import { FLAT_PAGE, isFlat, measureBend, pageMap, type PageBend } from './dewarp/index.ts';
 import { warpAlong } from './dewarp/meshWarp.ts';
 import { warpPerspective, warpSize } from './warp.ts';
 import { applyFilter, type ScanFilter } from './filters.ts';
@@ -145,7 +145,7 @@ function bendOf(src: ImageData, quad: Quad, width: number, height: number): Page
     return measureBend(src, quad, EDGE_INSET / 2, width, height);
   } catch (err) {
     reportError('pdf_tool_run', err, 'scan_measure_bend');
-    return { curves: null, lines: null };
+    return FLAT_PAGE;
   }
 }
 

@@ -8,7 +8,7 @@ import { sideAt } from './types.ts';
 
 const UNIT: Quad = [{ x: 0, y: 0 }, { x: 1, y: 0 }, { x: 1, y: 1 }, { x: 0, y: 1 }];
 const QUAD: Quad = [{ x: 30, y: 22 }, { x: 260, y: 40 }, { x: 240, y: 190 }, { x: 18, y: 170 }];
-const FLAT = { curves: null, lines: null };
+const FLAT = { curves: null, lines: null, columns: null };
 
 /** A smooth colour ramp, so bilinear sampling differences stay tiny. */
 function ramp(width: number, height: number): RgbaImage {
@@ -55,7 +55,7 @@ describe('pageMap', () => {
   it('follows a curved side and keeps the corners', () => {
     const top = { a: -0.08, b: 0.02 };
     const zero = { a: 0, b: 0 };
-    const map = pageMap(QUAD, 0, { curves: { top, right: zero, bottom: zero, left: zero }, lines: null });
+    const map = pageMap(QUAD, 0, { curves: { top, right: zero, bottom: zero, left: zero }, lines: null, columns: null });
     for (const t of [0.25, 0.5, 0.8]) {
       const want = applyHomography(h, { x: t, y: sideAt(top, t) });
       const got = map(t, 0);

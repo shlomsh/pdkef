@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { GrayImage } from '../quad.ts';
 import { seededRandom } from '../edges/testImages.ts';
-import { findLineBend } from './lineBend.ts';
+import { findLineBend, finishBend, fitBend, type Sample } from './lineBend.ts';
 import { bendAt, type LineBend } from './types.ts';
 
 const W = 1000;
@@ -124,5 +124,21 @@ describe('findLineBend', () => {
     expect(found).not.toBeNull();
     expect(found!.box!.y0).toBeGreaterThan(0.25);
     expect(bendAt(found!, 0.2, 0.02)).toBeCloseTo(bendAt(found!, 0.2, found!.box!.y0), 9);
+  });
+
+  it('settles the lean where the lines are, not across a page they only partly cover', () => {
+    // The review's case: six lines over x 0.1..0.5 sharing a bow 0.05 (x - 0.3)^2 and a lean of 0.002.
+    const lines: Sample[][] = [0.2, 0.3, 0.4, 0.5, 0.6, 0.7].map((o) =>
+      Array.from({ length: 30 }, (_, k) => {
+        const x = 0.1 + (0.4 * k) / 29;
+        return { line: 0, x, y: o + 0.05 * (x - 0.3) ** 2 + 0.002 * (x - 0.3) };
+      }));
+    const fitted = fitBend(lines, 4);
+    expect(fitted!.lean).toBeCloseTo(0.002, 3);
+    const bend = finishBend(fitted, 0);
+    expect(bend).not.toBeNull();
+    // What is applied has no slope left at the middle of the lines.
+    const slope = (bendAt(bend!, 0.31, 0.45) - bendAt(bend!, 0.29, 0.45)) / 0.02;
+    expect(Math.abs(slope)).toBeLessThan(0.0005);
   });
 });

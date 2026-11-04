@@ -63,7 +63,7 @@ describe('measureBend + pageMap', () => {
     expect(bend.lines).not.toBeNull();
     const quadPx = QUAD.map((p) => ({ x: p.x * W, y: p.y * H })) as Quad;
     // Before: the corners alone leave the lines curved. After: nothing left to straighten.
-    const before = warpAlong(src, pageMap(quadPx, MARGIN, { curves: null, lines: null }), 1000, 1300);
+    const before = warpAlong(src, pageMap(quadPx, MARGIN, { curves: null, lines: null, columns: null }), 1000, 1300);
     const after = warpAlong(src, pageMap(quadPx, MARGIN, bend), 1000, 1300);
     expect(findLineBend(toGray(before))).not.toBeNull();
     expect(findLineBend(toGray(after))).toBeNull();

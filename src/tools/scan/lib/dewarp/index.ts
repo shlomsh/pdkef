@@ -1,10 +1,12 @@
-// Flattening a bent page (SCAN-17): the person's corners give the homography, the page's own edges
-// and text lines give the bend on top of it, and one map carries an output pixel all the way back to
+// Flattening a bent page (SCAN-17): the person's corners give the homography, the page's own edges,
+// text lines and vertical rules give the bend on top of it, and one map carries an output pixel all the way back to
 // the photo, so the photo is resampled once. Pure: no DOM, no canvas.
 import { homography, type Matrix3 } from '../homography.ts';
 import { scaleQuad, type GrayImage, type Point, type Quad, type RgbaImage } from '../quad.ts';
 import { findEdgeCurves } from './edgeCurves.ts';
-import { findLineBend } from './lineBend.ts';
+import { columnFit } from './columnBend.ts';
+import { pageMasks } from './ink.ts';
+import { finishBend, lineFit } from './lineBend.ts';
 import { warpAlong, type PageMap } from './meshWarp.ts';
 import { bendAt, sideAt, type EdgeCurves, type LineBend } from './types.ts';
 
@@ -14,10 +16,18 @@ export type { EdgeCurves, LineBend } from './types.ts';
  * hundreds of its pixels, and the measuring stays well under the warp's own time. */
 const MEASURE_LONG_EDGE = 1000;
 
-/** What the page's shape adds to its corners. Both null: a flat page, warped by its corners alone. */
-export interface PageBend { curves: EdgeCurves | null; lines: LineBend | null }
+/** The most lean squaring takes out (about 2 degrees, in pixels across per pixel along): past it the
+ * corners are what is off, and the person sets those. */
+const MAX_SQUARE = 0.035;
 
-export const isFlat = (bend: PageBend) => !bend.curves && !bend.lines;
+/** What the page's shape adds to its corners: its curved sides, how its rows bend (read y + lines(x, y))
+ * and how its vertical rules bend (read x + columns(y, x)). All null: a flat page, warped by its
+ * corners alone. */
+export interface PageBend { curves: EdgeCurves | null; lines: LineBend | null; columns: LineBend | null }
+
+export const FLAT_PAGE: PageBend = { curves: null, lines: null, columns: null };
+
+export const isFlat = (bend: PageBend) => !bend.curves && !bend.lines && !bend.columns;
 
 /** Not a pixel: the bend can reach a little past the corners, and on a very oblique shot that can cross
  * the horizon, where the homography mirrors points back into the photo. warpAlong paints NaN white. */
@@ -31,14 +41,14 @@ function project(h: Matrix3, u: number, v: number): Point {
 
 /**
  * The output (x, y), 0..1 across the page, to photo pixels. `margin` crops that share of the page off
- * every side, along the curved edges; the text-line bend applies first, since it was measured on the
- * page as the edges alone flatten it.
+ * every side, along the curved edges; the rows' and the rules' bends apply first, since they were
+ * measured on the page as the edges alone flatten it.
  */
-export function pageMap(quadPx: Quad, margin: number, { curves, lines }: PageBend): PageMap {
+export function pageMap(quadPx: Quad, margin: number, { curves, lines, columns }: PageBend): PageMap {
   const h = homography([{ x: 0, y: 0 }, { x: 1, y: 0 }, { x: 1, y: 1 }, { x: 0, y: 1 }], quadPx);
   const span = 1 - 2 * margin;
   return (x, y) => {
-    const s = margin + span * x;
+    const s = margin + span * (columns ? x + bendAt(columns, y, x) : x);
     const t = margin + span * (lines ? y + bendAt(lines, x, y) : y);
     if (!curves) return project(h, s, t);
     // A Coons patch of four curves that each vanish at the corners: the corner terms drop out.
@@ -81,7 +91,7 @@ export function toGray(image: RgbaImage): GrayImage {
 }
 
 /** How the page in `src` bends beyond its corners (`quad` normalized, as the person set it). The
- * output's shape (`width` x `height`) sets the shape of the copy the text lines are read from. */
+ * output's shape (`width` x `height`) sets the shape of the copy the lines and rules are read from. */
 export function measureBend(src: RgbaImage, quad: Quad, margin: number, width: number, height: number): PageBend {
   const small = shrink(src, MEASURE_LONG_EDGE);
   const quadSmall = scaleQuad(quad, small.width, small.height);
@@ -89,6 +99,16 @@ export function measureBend(src: RgbaImage, quad: Quad, margin: number, width: n
   const fit = Math.min(1, MEASURE_LONG_EDGE / Math.max(width, height));
   const w = Math.max(1, Math.round(width * fit));
   const h = Math.max(1, Math.round(height * fit));
-  const page = warpAlong(small, pageMap(quadSmall, margin, { curves, lines: null }), w, h);
-  return { curves, lines: findLineBend(toGray(page)) };
+  const gray = toGray(warpAlong(small, pageMap(quadSmall, margin, { ...FLAT_PAGE, curves }), w, h));
+  const masks = pageMasks(gray);
+  const rows = lineFit(masks);
+  const rules = columnFit(masks);
+  // A form shows both directions at once, so both can be squared: rows level, rules plumb. With one
+  // direction alone a lean could be the page turned as much as skewed, so only bow and fan are taken.
+  const square = !!rows && !!rules && Math.abs((rows.lean * h) / w) <= MAX_SQUARE && Math.abs((rules.lean * w) / h) <= MAX_SQUARE;
+  return {
+    curves,
+    lines: finishBend(rows, square ? rows!.lean : 0),
+    columns: rules && finishBend(rules, square ? rules.lean : 0),
+  };
 }
