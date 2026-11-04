@@ -16,8 +16,9 @@ const REACH = 0.006;
 /** A band counts when the columns around the track hold rule pixels over this share of its rows. */
 const BAND_FILL = 0.5;
 /** Samples of a rule further apart than this share of the height, and stepped sideways by more than
- * this share of the width, are two rules. */
-const SPLIT_GAP = 0.05;
+ * this share of the width, are two rules. Wider than the band or two a crossing rule can hide, so a
+ * crease that steps a rule sideways there is followed, not cut off. */
+const SPLIT_GAP = 0.08;
 const SPLIT_STEP = 0.004;
 /** Fewest bands a rule needs. */
 const MIN_SAMPLES = 8;
