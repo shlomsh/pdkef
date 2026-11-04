@@ -40,6 +40,25 @@ async function waitForScrollToSettle(page) {
 const center = (box) => ({ x: box.x + box.width / 2, y: box.y + box.height / 2 });
 
 test.describe('scan - corner drag', () => {
+  // SCAN-21: a page worker that cannot start falls back to the main thread without a word, so nothing
+  // else notices: only a real browser shows the worker came up and stayed up through a photo.
+  test('a new photo is read in the page worker', async ({ page }) => {
+    await page.goto('/scan-to-pdf/');
+    await waitForIsland(page);
+    await page.locator('input[type=file]:not([capture])').first().setInputFiles({
+      name: 'desk-photo.jpg',
+      mimeType: 'image/jpeg',
+      buffer: await makePhotoBytes(page),
+    });
+    const workers = () => page.workers().map((w) => w.url()).join(' ');
+    await expect.poll(workers, { timeout: 20_000 }).toMatch(/page\.worker/);
+    // A worker that fails its probe is terminated: still here once the corners are up, it did the work.
+    await page.locator('[data-table-page]').first().click();
+    await page.getByRole('button', { name: 'Corners', exact: true }).click();
+    await expect(page.getByRole('button', { name: 'Top-left corner' })).toBeVisible({ timeout: 20_000 });
+    expect(workers()).toMatch(/page\.worker/);
+  });
+
   test('a dragged corner follows the pointer, stays where dropped, reprocesses the page, and a bow tie stops at the last valid shape', async ({ page }) => {
     await page.goto('/scan-to-pdf/');
     await waitForIsland(page);
