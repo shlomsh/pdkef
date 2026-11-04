@@ -5,7 +5,7 @@ status: "open"
 priority: "P3"
 epic: "scan-next"
 horizon: "later"
-depends_on: ["SCAN-17"]
+depends_on: ["SCAN-17", "SCAN-20"]
 ---
 
 # SCAN-19 · A learned unwarp, evaluated, not adopted blind
