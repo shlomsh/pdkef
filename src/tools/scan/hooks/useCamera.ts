@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'preact/hooks';
 import { reportError } from '#lib/telemetry/errorReport.ts';
 import type { Quad } from '../lib/quad.ts';
-import { INITIAL_CAPTURE_STATE, markTaken, stepCapture } from '../lib/capture/captureMachine.ts';
+import { INITIAL_CAPTURE_STATE, markTaken, searchAgain, stepCapture } from '../lib/capture/captureMachine.ts';
 import type { CaptureState, FrameObservation } from '../lib/capture/types.ts';
 import { cameraStatusFor } from '../lib/camera/cameraErrors.ts';
 import { attachStream, cameraPacer, openCamera, stopCamera, takePhoto } from '../lib/camera/cameraStream.ts';
@@ -89,12 +89,15 @@ export function useCamera(input: UseCameraInput): CameraHandle {
     worker.onmessage = (e: MessageEvent<FrameObservation>) => {
       inFlight = false;
       const obs = e.data;
-      const step = stepCapture(stateRef.current, obs);
-      stateRef.current = step.state;
+      const before = stateRef.current;
+      const step = stepCapture(before, obs);
+      const shoots = step.capture !== null && autoRef.current && !pausedRef.current;
+      // a shot auto would have taken while off or paused waits for the page to change, but is not a page taken
+      stateRef.current = step.capture && !shoots ? { ...step.state, takenHashes: before.takenHashes } : step.state;
       lastObs.current = obs;
       setLive(liveView(step.state, obs.t));
       pacer.current?.check(obs.t, pausedRef.current);
-      if (step.capture && autoRef.current && !pausedRef.current) void shootRef.current(step.capture); // reason: shoot reports its own failure
+      if (shoots) void shootRef.current(step.capture); // reason: shoot reports its own failure
     };
 
     worker.onerror = (event) => {
@@ -140,7 +143,8 @@ export function useCamera(input: UseCameraInput): CameraHandle {
         stream.getVideoTracks()[0]?.addEventListener('ended', () => {
           if (alive && streamRef.current === stream) handOver('unavailable');
         });
-        stateRef.current = INITIAL_CAPTURE_STATE;
+        // a restart (the tab hidden and back) keeps the pages taken: the session is the viewfinder being open
+        stateRef.current = searchAgain(stateRef.current);
         pacer.current?.reset();
         inFlight = false;
         setStatus('live');
