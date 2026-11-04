@@ -32,7 +32,10 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 - [SCAN-32](backlog/tasks/SCAN-32.md) P1 · Scan next: a page photographed sideways comes out upright (in progress)
 - [SCAN-15](backlog/tasks/SCAN-15.md) P1 · Scan next: pinching the camera zooms the picture, not the page (in progress)
 - [SCAN-33](backlog/tasks/SCAN-33.md) P1 · Scan next: a white page on a white table is found (in progress)
+- [SCAN-34](backlog/tasks/SCAN-34.md) P1 · Scan next: a page photographed at an angle keeps its true proportions (in progress)
 - [SCAN-17](backlog/tasks/SCAN-17.md) P2 · Scan next: a bent or curled page comes out flat, its edges and text lines straight (in progress)
+- [SCAN-35](backlog/tasks/SCAN-35.md) P1 · Scan next: a flat page's edges are never read as bowed (in progress)
+- [SCAN-36](backlog/tasks/SCAN-36.md) P2 · Straighten a scanned PDF: turn, split a book spread, flatten, clean, then read it
 
 ### Robustness and debt
 

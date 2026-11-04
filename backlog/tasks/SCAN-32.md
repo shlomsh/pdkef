@@ -12,7 +12,10 @@ depends_on: []
 # SCAN-32 · Upright pages, however the phone was held
 
 *Opened 2026-11-04* from Shlomi's iPhone photos: a portrait page photographed with the phone sideways
-(a landscape photo) is flattened correctly but comes out lying on its side.
+(a landscape photo) comes out lying on its side, and, worse, its text lines are never straightened: on
+a sideways page the text runs down the image, and SCAN-17's row finder only looks for rows across it
+(both prod photos measured zero bend). The page's quarter turn must be known before the bend is
+measured, not only applied at the end.
 
 ## Outcome
 
