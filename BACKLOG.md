@@ -2,7 +2,7 @@
 
 # Backlog
 
-The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 149 live: 45 up next, 28 then, 27 waiting, 49 parked.
+The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 147 live: 44 up next, 27 then, 27 waiting, 49 parked.
 
 ## Redact: finish removal
 
@@ -99,7 +99,6 @@ The camera takes pages, the table fixes them, Share sends them. The table first 
 | SCAN-33 | P1 | [SCAN-33](backlog/tasks/SCAN-33.md) · Scan next: a white page on a white table is found | In progress |
 | SCAN-34 | P1 | [SCAN-34](backlog/tasks/SCAN-34.md) · Scan next: a page photographed at an angle keeps its true proportions | In progress |
 | SCAN-17 | P2 | [SCAN-17](backlog/tasks/SCAN-17.md) · Scan next: a bent or curled page comes out flat, its edges and text lines straight | In progress |
-| SCAN-35 | P1 | [SCAN-35](backlog/tasks/SCAN-35.md) · Scan next: a flat page's edges are never read as bowed | In progress |
 | SCAN-36 | P2 | [SCAN-36](backlog/tasks/SCAN-36.md) · Straighten a scanned PDF: turn, split a book spread, flatten, clean, then read it |  |
 | SCAN-08 | P1 | [SCAN-08](backlog/tasks/SCAN-08.md) · Scan next: the camera in the page, pages taken by themselves, Share straight after | In progress |
 | SCAN-11 | P2 | [SCAN-11](backlog/tasks/SCAN-11.md) · Scan next: the page copy and the scanning guide follow the new flow |  |
@@ -136,7 +135,6 @@ One shared mechanism that turns, splits and straightens a page, first in Scan, t
 
 | ID | P | Task | Note |
 | --- | --- | --- | --- |
-| PE-02 | P2 | [PE-02](backlog/tasks/PE-02.md) · Piece, Assessment and PagePlan contract, with applyPiece |  |
 | PE-03 | P2 | [PE-03](backlog/tasks/PE-03.md) · Fold finder for two pages to a sheet |  |
 | PE-04 | P2 | [PE-04](backlog/tasks/PE-04.md) · Lean as a rotation before the bend |  |
 | PE-05 | P2 | [PE-05](backlog/tasks/PE-05.md) · assess and planPage |  |
@@ -326,8 +324,8 @@ Done and retired tickets are not listed. Their files stay in [backlog/tasks/](ba
 - Redact: finish removal: 26 done, 1 retired
 - Sign: finish fill mode: 3 done, 1 retired
 - Highlight PDF: a tool for reading: 5 done, 1 retired
-- Scan: camera to WhatsApp: 2 done, 0 retired
-- Page enhancement for Scan and Highlight: 1 done, 0 retired
+- Scan: camera to WhatsApp: 3 done, 0 retired
+- Page enhancement for Scan and Highlight: 2 done, 0 retired
 - Tool pages: show the verb: 8 done, 0 retired
 - Form detector accuracy: 19 done, 1 retired
 - Robustness and debt: 88 done, 4 retired
