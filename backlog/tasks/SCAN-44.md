@@ -37,8 +37,8 @@ Shlomi's four test photos through a faithful copy of the current pipeline (inspe
 | IMG_4758 (a bill, other side of a flyer) | right | 1.507 | none | 1056 x 1592 | +6.6% |
 | IMG_4759 (the flyer) | right | 1.485 | none | 1119 x 1662 | +5.0% |
 
-- **Stretch: gone for A4 sheets.** The form's blank copy and the letter land within 0.05% of A4. Whether the 3.9%
-  and 10.4% in this scan came from before the aspect wiring is inferred, not measured: it needs its source photos.
+- **Stretch: gone for A4 sheets.** The form's blank copy and the letter land within 0.05% of A4. A fresh scan of this same form lands on A4 on all four
+  pages (below), so the 3.9% and 10.4% are gone.
 - **Not A4:** the two sides of the flyer sheet read 1.507 and 1.485 (1.5% apart, so the measure is stable) and
   fall outside the 3% snap, so they keep their raw ratio: either the sheet is not a standard size, or the
   estimate is off on a wrinkled page. Whether to snap further (more sizes, or leave as measured) is open.
@@ -74,6 +74,25 @@ of the paper level. Real ink has a dark core, so its edges and strokes stay as t
 - **Limits:** a ghost stroke touching a rule or a letter stays, as it joins real ink. Cost is under 30 ms a page on
   this machine at these sizes.
 
+## Fresh scans (2026-11-04: the same form, four pages; a service slip, one page)
+
+Both PDFs are in the Original look, private, and kept out of the repo. The look's results below are simulated on
+their embedded images with a scratchpad copy of `filters.ts`.
+
+- **Stretch: gone.** All four form pages read 0.7069 to 0.7071 (A4 is 0.7071).
+- **The wedge is the one defect left.** Pages 2, 3 and 4 each have a dark triangle in the top-right corner (117 x
+  244, 133 x 278 and 187 x 309 px, about 1% of the page), solid black in the Document look. The quad is right:
+  the top and right edges are straight and meet where the corner should be. The wedge is table showing where the
+  sheet's corner is missing. Inferred, not confirmed: a stapled packet turned over, because it is the same corner on
+  each sheet and the top sheet and the blank copy carry a mark there. Small dark blocks at the bottom-left corner and
+  left edge on pages 3 and 4 are the same kind of thing.
+- **Shadows and show-through:** strong in the Original look on pages 1 and 3 (a cast shadow and a colour split,
+  and the next sheet's table showing through). The Document look removes both on those two pages, read by eye.
+- **Ghost filter on these pages:** no pixel darker than 224 changes.
+- **The service slip** (ratio 2.19, correctly not snapped): its printed security pattern partly survives the
+  Document look, and two overlapping stamps merge into one black block, so the Original look reads better for it.
+  Print runs to the very top edge; whether the 1.6% inset clips it needs the source photo.
+
 ## A second real scan (2026-11-04, one page of three)
 
 Shlomi's screenshot of the corner screen showed a letter on a dark table with the corners on the whole photo. He
@@ -88,7 +107,7 @@ and no visible ghost text, and the result is added as a private regression check
 
 ## Acceptance
 
-- [ ] Shlomi supplies the two source photos (private; scratchpad only).
+- [x] A rescan of the same form replaces the source photos (fresh scan, measured above).
 - [x] Output aspect within 3% of A4 (done on main for A4 sheets, measured above).
 - [ ] Decide what a sheet that is not a standard size does (IMG_4758 and IMG_4759: +6.6% and +5.0%).
 - [ ] No border-touching dark blob larger than a few pixels in the output (the scoring used here: connected
