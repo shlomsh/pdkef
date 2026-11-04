@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { applyHomography, homography } from '../homography.ts';
 import type { Quad, RgbaImage } from '../quad.ts';
 import { seededRandom } from '../edges/testImages.ts';
-import { isFlat, measureBend, pageMap, toGray } from './index.ts';
+import { bentPx, isFlat, measureBend, pageMap, toGray } from './index.ts';
 import { findLineBend } from './lineBend.ts';
 import { warpAlong } from './meshWarp.ts';
 import { sideAt, type SideCurve } from './types.ts';
@@ -67,5 +67,26 @@ describe('measureBend + pageMap', () => {
     const after = warpAlong(src, pageMap(quadPx, MARGIN, bend), 1000, 1300);
     expect(findLineBend(toGray(before))).not.toBeNull();
     expect(findLineBend(toGray(after))).toBeNull();
+  });
+});
+
+describe('bentPx', () => {
+  const lift = (by: number) => ({ nx: 2, ny: 2, d: [by, by, by, by] });
+
+  it('is 0 for a flat page', () => {
+    expect(bentPx({ curves: null, lines: null, columns: null }, MARGIN, 2000, 2400)).toBe(0);
+  });
+
+  it('measures a shift of the rows in output pixels', () => {
+    // Every row read 1% of the page lower: 24 pixels of a 2400 px tall output, whatever the margin.
+    expect(bentPx({ curves: null, lines: lift(0.01), columns: null }, MARGIN, 2000, 2400)).toBeCloseTo(24, 6);
+    expect(bentPx({ curves: null, lines: null, columns: lift(-0.01) }, MARGIN, 2000, 2400)).toBeCloseTo(20, 6);
+  });
+
+  it('finds a bowed top edge at its deepest, near the top centre', () => {
+    const bend = { curves: { top: { a: -0.1, b: 0 }, right: FLAT, bottom: FLAT, left: FLAT }, lines: null, columns: null };
+    // d(1/2) = 0.025 of the unit square at the top edge, (1 - margin) of it at the output's top row.
+    const expected = (0.025 * (1 - MARGIN) * 2400) / (1 - 2 * MARGIN);
+    expect(bentPx(bend, MARGIN, 2000, 2400)).toBeCloseTo(expected, 6);
   });
 });

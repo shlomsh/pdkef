@@ -238,7 +238,7 @@ describe('buildScanPdf: the size limit', () => {
   const PAGE_H = 700;
   const pages = (): ProcessedPage[] => [0, 1].map(() => {
     const blob = photo({ width: PAGE_W, height: PAGE_H });
-    return { blob, width: PAGE_W, height: PAGE_H, thumb: blob };
+    return { blob, width: PAGE_W, height: PAGE_H, thumb: blob, bentPx: 0 };
   });
   const readPdf = async (blob: Blob) => (await getPdfLib()).PDFDocument.load(await blob.arrayBuffer());
   // Whether `part`'s bytes appear, in order and unbroken, inside `pdf`.

@@ -1,7 +1,7 @@
 // The banded grid solve (SCAN-21) against the dense solve it replaced, on random problems.
 import { describe, expect, it } from 'vitest';
 import { seededRandom } from '../edges/testImages.ts';
-import { fit, type Fit, type Sample } from './lineBend.ts';
+import { fit, type Sample } from './lineBend.ts';
 
 // lineBend's grid and weights, as the dense solve used them.
 const ALONG = 16;
@@ -11,7 +11,7 @@ const GAUGE = 1;
 const RIDGE = 1e-9;
 
 /** The pre-SCAN-21 fit, verbatim: grid nodes and line offsets in one dense Cholesky. */
-function denseFit(lines: Sample[][]): Fit | null {
+function denseFit(lines: Sample[][]): ReturnType<typeof fit> {
   const nodes = ALONG * ACROSS;
   const n = nodes + lines.length;
   const a = new Float64Array(n * n);

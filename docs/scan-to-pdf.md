@@ -50,6 +50,7 @@ The output is built quietly in the background (`usePreparedOutput`), keyed on ev
 | `src/tools/scan/lib/filters.ts` | Scan | the three looks, pure |
 | `src/tools/scan/lib/scanBudget.ts` | Scan | the size-limit search over pages, pure (injected encode and build) |
 | `src/tools/scan/lib/scanPipeline.ts` | Scan | the DOM side: decode, gray thumbnail, process a page, build the PDF. Lazy. |
+| `src/tools/scan/lib/pageWork/` | Scan | inspecting a photo and processing a page, one set of steps over a canvas kit, run in `page.worker.ts` (OffscreenCanvas, `createImageBitmap`) and on the main thread where a probe shows the worker cannot decode upright and encode JPEG (SCAN-21) |
 | `src/tools/scan/components/CornerEditor.tsx` | Scan | the photo with four draggable corners |
 | `src/tools/scan/PdfScanTool.tsx` | Scan | the island |
 

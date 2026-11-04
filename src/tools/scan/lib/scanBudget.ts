@@ -20,7 +20,7 @@ export const SIZE_LIMITS: { id: SizeLimitId; bytes: number | null }[] = [
   { id: '500kb', bytes: kbToBytes(500) },
 ];
 
-export interface FitInput<H> {
+interface FitInput<H> {
   budgetBytes: number | null;
   render(scale: number): H | Promise<H>;
   build(handle: H, quality: number): Promise<Blob>;
