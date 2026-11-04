@@ -21,12 +21,14 @@ const MAX_SPILL = 0.1;
 const TINY_AREA = 0.0005;
 /** How far the paint reaches past the mark, as a share of the short side: the mark's soft edge. */
 const GROW = 0.006;
-/** How far the paper is read around the paint, as a share of the short side. */
-const RING = 0.02;
+/** How far the paper is read around the paint, as a share of the short side: past the fold's own bright rim. */
+const RING = 0.06;
 /** Grey a pixel needs to count as clean paper in the ring. */
 const PAPER = 250;
 /** Fewest ring pixels worth fitting a plane to; fewer take the ring's mean colour. */
 const MIN_FIT = 64;
+/** The paint stays between these shares of the ring's values: a bright highlight along the fold is not paper. */
+const RANGE = [0.1, 0.9];
 
 interface Box { minX: number; minY: number; maxX: number; maxY: number }
 type Corner = { right: boolean; bottom: boolean };
@@ -89,22 +91,16 @@ function solve3(m: number[], b: number[]): number[] | null {
   return [0, 1, 2].map((col) => det(m.map((v, i) => (i % 3 === col ? b[Math.floor(i / 3)] : v))) / d);
 }
 
-/** Paint for a mask pixel at (x, y) per channel: the plane through the ring, held inside the ring's range. */
+/** Paint for a mask pixel at (x, y) per channel: the plane through the ring, held inside the ring's usual values. */
 function planePaint(ring: { x: number; y: number; rgb: number[] }[]): (x: number, y: number) => number[] {
   const n = ring.length;
-  const lo = [255, 255, 255];
-  const hi = [0, 0, 0];
   const mean = [0, 0, 0];
   let mx = 0;
   let my = 0;
   for (const p of ring) {
     mx += p.x / n;
     my += p.y / n;
-    for (let k = 0; k < 3; k += 1) {
-      lo[k] = Math.min(lo[k], p.rgb[k]);
-      hi[k] = Math.max(hi[k], p.rgb[k]);
-      mean[k] += p.rgb[k] / n;
-    }
+    for (let k = 0; k < 3; k += 1) mean[k] += p.rgb[k] / n;
   }
   const flat = () => mean.map(Math.round);
   if (n < MIN_FIT) return flat;
@@ -120,6 +116,8 @@ function planePaint(ring: { x: number; y: number; rgb: number[] }[]): (x: number
   const m = [n, sx, sy, sx, sxx, sxy, sy, sxy, syy];
   const fits = [0, 1, 2].map((k) => solve3(m, [sv[k], sxv[k], syv[k]]));
   if (fits.some((f) => f === null)) return flat;
+  const sorted = [0, 1, 2].map((k) => Uint8Array.from(ring, (p) => p.rgb[k]).sort());
+  const [lo, hi] = RANGE.map((share) => sorted.map((values) => values[Math.floor(share * n)]));
   return (x, y) => fits.map((f, k) => Math.round(Math.min(hi[k], Math.max(lo[k], f![0] + f![1] * (x - mx) + f![2] * (y - my)))));
 }
 

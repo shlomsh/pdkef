@@ -56,6 +56,19 @@ describe('fillFoldedCorners', () => {
     }
   });
 
+  it('is not pulled off the paper colour by a bright highlight along the fold', () => {
+    const src = page(flat(200), triangle('tr', 60));
+    for (let y = 0; y < H; y += 1) {
+      for (let x = 0; x < W; x += 1) {
+        const along = W - 1 - x + y;
+        if (along === 64 || along === 65) src.data.set([250, 250, 250, 255], (y * W + x) * 4);
+      }
+    }
+    const out = fillFoldedCorners(src);
+    expect(grey(out, W - 1, 0)).toBeLessThan(210);
+    expect(grey(out, W - 20, 10)).toBeLessThan(210);
+  });
+
   it('keeps a large black rectangle in a corner', () => {
     const src = page(flat(230), (x, y) => x >= W - 60 && y < 50);
     expect(fillFoldedCorners(src)).toBe(src);
