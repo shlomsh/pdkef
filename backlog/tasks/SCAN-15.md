@@ -40,3 +40,8 @@ the finder, and the other paper in view could win. A zoom on the track changes w
   `visualViewport.scale` stays 1, and the buttons still work after it.
 - On the iPhone: Shlomi confirms the picture zooms, and that a page taken zoomed in comes out as that page. Neither
   can be proved here: the fake camera offers no zoom, and whether iOS does was not established from documentation.
+
+## Progress
+
+2026-11-04: built and landing. `camera.spec.js` covers the stubbed pinch on a production build, and fails with
+`touch-action` switched off. Still in progress: the two iPhone checks above.

@@ -50,3 +50,8 @@ Files: `lib/capture/` (`types.ts`, `sharpness.ts`, `observe.ts`, `captureMachine
 
 - Fake-camera e2e still takes a page by itself; matrix green.
 - On the iPhone, in the dark: Shlomi confirms it waits. `settleRatio` and `settleMs` are first guesses until then.
+
+## Progress
+
+2026-11-04: built and landing. The settle window is anchored to its first frame, tightened by the lead after a slow
+climb and one stray frame both proved wrong in tests. Still in progress: Shlomi's run on the iPhone in the dark.
