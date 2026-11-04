@@ -10,14 +10,14 @@ import { findSpine, spreadHalves, type Spine } from './spine.ts';
 import { warpSizeFor } from './warp.ts';
 
 /** A lean below this many degrees is below what the eye catches, so leveling it only costs a resample. */
-const MIN_LEAN_DEGREES = 0.5;
+export const MIN_LEAN_DEGREES = 0.5;
 /** A page bent less than this many pixels at the small copy's size is flat to the eye. */
 const MIN_BENT_PX = 3;
 /** The whole sheet, for a page that is not a half of anything. */
 const UNIT_QUAD: Quad = [{ x: 0, y: 0 }, { x: 1, y: 0 }, { x: 1, y: 1 }, { x: 0, y: 1 }];
 
 /** What a sheet needs, read from a copy shrunk to about 1000 px on its long edge. */
-interface Assessment {
+export interface Assessment {
   /** Clockwise quarter turns that make the sheet's text read across. */
   turn: 0 | 1;
   /** textTurn's confidence, 0 when it says nothing. */
@@ -59,7 +59,7 @@ function bentOf(turned: GrayImage, lean: number): number {
   return bentPx(bend, 0, turned.width, turned.height);
 }
 
-/** @testSeam What the sheet needs, read from `gray`, the sheet shrunk to about 1000 px on its long edge. */
+/** What the sheet needs, read from `gray`, the sheet shrunk to about 1000 px on its long edge. */
 export function assess(gray: GrayImage): Assessment {
   const read = textTurn(gray);
   const turn = read && read.turn === 1 && read.confidence >= MIN_SIDEWAYS_CONFIDENCE ? SIDEWAYS_TURNS : 0;

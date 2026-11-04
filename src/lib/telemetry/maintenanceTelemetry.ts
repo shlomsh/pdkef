@@ -22,6 +22,7 @@ import type {
   PageTreeRoots,
   PageTreeShape,
   MaintenanceEvent,
+  ScanCheckOutcome,
 } from './maintenanceEventSchema';
 
 // The event shapes live in the import-free schema the endpoint shares (DEBT-27).
@@ -163,6 +164,11 @@ export function scanCameraPhoto(width: number, height: number): MaintenanceEvent
   const edge = Math.max(width, height);
   const long_edge = edge < 2000 ? 'under_2000' : edge < 3000 ? 'under_3000' : '3000_or_more';
   return Object.freeze({ name: 'scan_camera_photo', properties: Object.freeze({ outcome: 'taken', long_edge }) });
+}
+
+/** What Highlight's scan check made of an opened file (PE-06): the verdict and nothing from the file. */
+export function highlightScanCheck(outcome: ScanCheckOutcome): MaintenanceEvent {
+  return Object.freeze({ name: 'highlight_scan_check', properties: Object.freeze({ outcome }) });
 }
 
 function browserIsOffline(): boolean {

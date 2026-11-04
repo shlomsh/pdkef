@@ -228,6 +228,20 @@ describe('scan_camera_photo', () => {
   });
 });
 
+describe('highlight_scan_check', () => {
+  it('takes a verdict off the list and nothing else', () => {
+    const properties = { outcome: 'spread' };
+    expect(parseMaintenanceEvent({ name: 'highlight_scan_check', properties })).toEqual({ name: 'highlight_scan_check', properties });
+    expect(parseMaintenanceEvent({ name: 'highlight_scan_check', properties: { outcome: 'crooked' } })).toBeNull();
+    expect(parseMaintenanceEvent({ name: 'highlight_scan_check', properties: { ...properties, pages: 3 } })).toBeNull();
+  });
+
+  it('is counted per verdict and browser', () => {
+    const e = parseMaintenanceEvent({ name: 'highlight_scan_check', properties: { outcome: 'sideways' } })!;
+    expect(maintenanceEventField(e, 'ios-26')).toBe('highlight_scan_check|sideways|ios-26');
+  });
+});
+
 describe('maintenanceEventField', () => {
   it('page tree', () => {
     const e = parseMaintenanceEvent(pageTree('repaired', 'no_pages_key', 'one'))!;
