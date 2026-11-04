@@ -67,6 +67,20 @@ describe('readInkBounds', () => {
     expect(renderPageToCanvas.mock.calls[0][1]).toMatchObject({ rotation: 180 });
   });
 
+  it('gives a page the person turned upside down in the unturned page\'s frame, as turnedPageBox expects', async () => {
+    findTextRows.mockReturnValue(Array.from({ length: 5 }, () => ({ left: 400, right: 720 })));
+    const result = await readInkBounds(fakeDoc([fakePage()]), () => true, { 0: 2 });
+    expect(result?.left).toBeCloseTo(0.1);
+    expect(result?.right).toBeCloseTo(0.5);
+  });
+
+  it('leaves a file\'s own upside-down page as shown, since no person turned it', async () => {
+    findTextRows.mockReturnValue(Array.from({ length: 5 }, () => ({ left: 400, right: 720 })));
+    const result = await readInkBounds(fakeDoc([fakePage(180)]), () => true);
+    expect(result?.left).toBeCloseTo(0.5);
+    expect(result?.right).toBeCloseTo(0.9);
+  });
+
   it('skips a page the person turned sideways, and reads one they turned back upright', async () => {
     const doc = fakeDoc([fakePage(0), fakePage(90)]);
     await readInkBounds(doc, () => true, { 0: 1, 1: 3 });
