@@ -32,6 +32,17 @@ into one resample of the photo (no second blur), contract in `lib/dewarp/types.t
    blobs, each line's baseline is sampled across the page, and one smooth vertical bend (cubic across,
    quadratic down) is fitted to all of them at once, with a free height per line.
 
+3. **Vertical rules** (`lib/dewarp/columnBend.ts`, added 2026-11-04 from Shlomi's first prod scan of a
+   form, where the rows came out straight and the columns did not). A form's table rules are followed
+   down the page and fitted with the same shared bend, turned on its side, so their bow and fan go.
+   When a page shows both rows and rules (a form), both are also squared, rows level and rules plumb,
+   up to 2 degrees; with one direction alone a uniform lean is left to the corners, since it could be
+   the page turned as much as skewed. A line's lean is the median of the clean, wide lines' own slopes
+   (a form's cell, label and handwriting joined, slopes wherever the handwriting goes). On that scan the
+   rules leaned about 6 px per 1000 and bowed up to 4.5 px; re-flattened, they lean about 1.5 px per
+   1000 and bow under 1.7 px. The rows are now read with the rules taken out (`lib/dewarp/ink.ts`), so a
+   form's grid no longer joins every row into one shape.
+
 Each stage is gated: a page with straight edges and straight lines is warped exactly as before (the
 plain homography, same bytes), and an implausible fit is dropped rather than applied.
 
