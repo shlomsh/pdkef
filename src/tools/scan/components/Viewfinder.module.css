@@ -12,6 +12,8 @@
   overflow: hidden;
   color: var(--color-surface);
   background: var(--color-night);
+  /* A pinch here zooms the camera, never the page. */
+  touch-action: none;
 }
 
 .dialog::backdrop {

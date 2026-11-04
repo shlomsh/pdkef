@@ -99,7 +99,7 @@ export function useCamera(input: UseCameraInput): CameraHandle {
       stateRef.current = step.state;
       lastObs.current = obs;
       setLive(liveView(step.state, obs.t));
-      if (step.capture && autoRef.current && !pausedRef.current) void shootRef.current(step.capture);
+      if (step.capture && autoRef.current && !pausedRef.current) void shootRef.current(step.capture); // reason: shoot reports its own failure
     };
 
     worker.onerror = (event) => {
@@ -156,11 +156,11 @@ export function useCamera(input: UseCameraInput): CameraHandle {
 
     const onVisibility = () => {
       if (document.hidden) stop();
-      else if (!streamRef.current) void start();
+      else if (!streamRef.current) void start(); // reason: start turns a failure into a status
     };
 
     document.addEventListener('visibilitychange', onVisibility);
-    void start();
+    void start(); // reason: start turns a failure into a status
     return () => {
       alive = false;
       document.removeEventListener('visibilitychange', onVisibility);
@@ -173,7 +173,8 @@ export function useCamera(input: UseCameraInput): CameraHandle {
     autoRef.current = on;
     setAutoState(on);
   }, []);
-  const shutter = useCallback(() => { void shootRef.current(undefined, true); }, []);
+  const shutter = useCallback(() => { void shootRef.current(undefined, true); /* reason: shoot reports its own failure */ }, []);
 
-  return { status, live, videoSize, videoRef, auto, setAuto, shoot: shutter };
+  const track = useCallback(() => streamRef.current?.getVideoTracks()[0], []);
+  return { status, live, videoSize, videoRef, auto, setAuto, shoot: shutter, track };
 }
