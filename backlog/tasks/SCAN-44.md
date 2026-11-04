@@ -49,12 +49,10 @@ Shlomi's four test photos through a faithful copy of the current pipeline (inspe
 
 ## A second real scan (2026-11-04, one page of three)
 
-Shlomi's screenshot of the corner screen: a letter on a dark table, small in the frame, the corners on the whole
-photo. The detector is not the obvious cause: on the photo cut from the screenshot it finds the page in 96 of 96
-runs across small crop and resampling changes. The hint was the plain one, not "No page edges were found", so the
-guess did not return nothing. Left open: Whole photo was tapped, the page was restored with those corners, or the
-full photo behaves differently (SCAN-33 records that kind of sensitivity on IMG_4755). The disabled Whole photo
-button looks enabled, so the screenshot cannot say (SCAN-45). Needs Shlomi's answer or the original photo.
+Shlomi's screenshot of the corner screen showed a letter on a dark table with the corners on the whole photo. He
+had tapped Whole photo, so nothing is wrong with detection: on the photo cut from the screenshot it finds the page
+in 96 of 96 runs across small crop and resampling changes. The one finding is SCAN-45: once tapped, the button is
+disabled but still looks ready.
 
 ## Outcome
 
