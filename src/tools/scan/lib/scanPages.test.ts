@@ -34,26 +34,33 @@ describe('scanPages', () => {
     const guess = [{ x: 0.1, y: 0.1 }, { x: 0.9, y: 0.1 }, { x: 0.9, y: 0.9 }, { x: 0.1, y: 0.9 }] as typeof FULL_QUAD;
     it('adopts the guessed corners and the photo size', () => {
       const page = newPage(photo(), 'document');
-      const [next] = withInspection([page], page.id, { quad: guess, width: 200, height: 100, turns: 0 }, 'blob:p');
+      const [next] = withInspection([page], page.id, { quad: guess, width: 200, height: 100, turns: 0 }, 'blob:p', true);
       expect(next).toMatchObject({ guessed: true, found: true, quad: guess, preview: 'blob:p', aspect: 2 });
     });
     it('keeps corners the person moved', () => {
       const page = { ...newPage(photo(), 'document'), edited: true };
-      expect(withInspection([page], page.id, { quad: guess, width: 1, height: 1, turns: 0 }, null)[0].quad).toBe(page.quad);
+      expect(withInspection([page], page.id, { quad: guess, width: 1, height: 1, turns: 0 }, null, true)[0].quad).toBe(page.quad);
     });
     it('marks an unreadable photo guessed with no preview and no aspect', () => {
       const page = newPage(photo(), 'document');
-      expect(withInspection([page], page.id, null, null)[0]).toMatchObject({ guessed: true, found: false, preview: null, aspect: null });
+      expect(withInspection([page], page.id, null, null, true)[0]).toMatchObject({ guessed: true, found: false, preview: null, aspect: null });
     });
-    it('turns a sideways page, but never over a Rotate the person already made', () => {
+    const sideways = { quad: guess, width: 2, height: 1, turns: 1 };
+    it('gives a new page the turns found', () => {
       const page = newPage(photo(), 'document');
-      const seen = { quad: guess, width: 2, height: 1, turns: 1 };
-      expect(withInspection([page], page.id, seen, null)[0].turns).toBe(1);
-      expect(withInspection([{ ...page, turns: 2 }], page.id, seen, null)[0].turns).toBe(2);
+      expect(withInspection([page], page.id, sideways, null, true)[0].turns).toBe(1);
+    });
+    it('keeps a Rotate the person made before inspection finished', () => {
+      const page = { ...newPage(photo(), 'document'), turns: 2 };
+      expect(withInspection([page], page.id, sideways, null, true)[0].turns).toBe(2);
+    });
+    it('leaves a restored page at the turns its person left it at, even 0', () => {
+      const page = newPage(photo(), 'document');
+      expect(withInspection([page], page.id, sideways, null, false)[0].turns).toBe(0);
     });
     it('leaves other pages alone', () => {
       const [a, b] = [newPage(photo(), 'document'), newPage(photo(), 'document')];
-      expect(withInspection([a, b], a.id, null, null)[1]).toBe(b);
+      expect(withInspection([a, b], a.id, null, null, true)[1]).toBe(b);
     });
   });
 
