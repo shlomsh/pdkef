@@ -4,7 +4,7 @@ import { newPage } from './scanPages.ts';
 
 const page = newPage(new File(['x'], 'a.jpg', { type: 'image/jpeg' }), 'document');
 const place = { pageWidth: 10, pageHeight: 20, x: 0, y: 0, width: 10, height: 20 };
-const result = { key: 'k', url: 'blob:r', thumbUrl: 'blob:t', page: { blob: new Blob(), thumb: new Blob(), width: 200, height: 400 } };
+const result = { key: 'k', url: 'blob:r', thumbUrl: 'blob:t', page: { blob: new Blob(), thumb: new Blob(), width: 200, height: 400, bentPx: 0 } };
 
 describe('resultViewFor', () => {
   it('shows the built PDF page when it matches what is on screen', () => {
