@@ -1,7 +1,7 @@
 ---
 id: "SCAN-13"
 title: "Scan next: the loaded flow on a phone, rebuilt from the approved screens"
-status: "in_progress"
+status: "done"
 priority: "P1"
 epic: "scan-next"
 horizon: "next"
@@ -132,3 +132,5 @@ Done when:
 - 2026-11-04: ticket and screen contract written; reducer events for the camera's review landed first. Shlomi
   asked for a clear definition of done per worker before any implementation; no worker had started.
 - 2026-11-04: Page size changes how a page looks, so the tiles draw the real paper (Shlomi's catch). Workers started.
+- 2026-11-04: closed. Matrix 68/68 on a production build at both sizes, Shlomi on the iPhone, and a fresh reviewer's
+  three objections fixed test first: reorder across the desktop width, a close the browser makes, rotation in the viewer.
