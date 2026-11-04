@@ -7,7 +7,7 @@ import { formatMessage } from '#lib/text/formatMessage.ts';
 import type { ScanDispatch, SetPages } from '../hooks/scanHost.ts';
 import { loadPipeline } from '../lib/loadPipeline.ts';
 import type { ScanFilter } from '../lib/filters.ts';
-import type { Quad } from '../lib/quad.ts';
+import type { Quad } from '#lib/pageEnhance/quad.ts';
 import { afterRemoval, patchPage, tileDelta, turnPage } from '../lib/scanPages.ts';
 import { englishScanMessages as t } from '../messages.ts';
 import type { PageResult, ScanPage, ScanWork } from './scanWork.ts';

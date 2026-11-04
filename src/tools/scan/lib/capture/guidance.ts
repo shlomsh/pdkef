@@ -17,7 +17,7 @@
 //
 // Steady: every reading has its own way in and out (hysteresis), and the line changes only once the new hint has
 // been wanted for settleMs AND the shown one has stood for minShowMs. turn alone cuts in at once.
-import type { Quad } from '../quad.ts';
+import type { Quad } from '#lib/pageEnhance/quad.ts';
 import { DEFAULT_CAPTURE_PARAMS, type CaptureParams, type CapturePhase, type FrameObservation } from './types.ts';
 
 /** The hints, one per line the viewfinder can say. */

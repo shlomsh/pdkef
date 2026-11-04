@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { applyHomography, homography } from '../homography.ts';
 import type { Quad, RgbaImage } from '../quad.ts';
-import { seededRandom } from '../edges/testImages.ts';
+import { seededRandom } from '../seededRandom.test-helper.ts';
 import { bentPx, isFlat, measureBend, pageMap, toGray } from './index.ts';
 import { findLineBend } from './lineBend.ts';
 import { warpAlong } from './meshWarp.ts';

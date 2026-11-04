@@ -1,7 +1,8 @@
 import { Check, Maximize, Trash2, WandSparkles } from 'lucide-preact';
 import { workspaceStyles } from '#shell/pageWorkspace/PageWorkspace.tsx';
 import { englishScanMessages as t } from '../messages.ts';
-import { FULL_QUAD, quadKey, turnedQuad, unturnedQuad, type Quad } from '../lib/quad.ts';
+import { type Quad } from '#lib/pageEnhance/quad.ts';
+import { FULL_QUAD, quadKey, turnedQuad, unturnedQuad } from '../lib/quad.ts';
 import type { ScanPage } from '../state/scanWork.ts';
 import styles from '../PdfScanTool.module.css';
 import CornerEditor from './CornerEditor.tsx';

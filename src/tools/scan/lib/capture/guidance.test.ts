@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { BENT_SHARE, DEFAULT_GUIDANCE_PARAMS, INITIAL_GUIDANCE, looksBent, stepGuidance, type Guidance, type Hint } from './guidance.ts';
 import { DEFAULT_CAPTURE_PARAMS, type CapturePhase, type FrameObservation } from './types.ts';
-import type { Quad } from '../quad.ts';
+import type { Quad } from '#lib/pageEnhance/quad.ts';
 
 const P = DEFAULT_GUIDANCE_PARAMS;
 const HASH = '0123456789abcdef';

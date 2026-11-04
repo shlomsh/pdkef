@@ -1,4 +1,5 @@
-import { FULL_QUAD, quadKey, rotateQuad, type Quad } from './quad.ts';
+import { rotateQuad, type Quad } from '#lib/pageEnhance/quad.ts';
+import { FULL_QUAD, quadKey } from './quad.ts';
 import type { ScanFilter } from './filters.ts';
 import type { ScanPage } from '../state/scanWork.ts';
 

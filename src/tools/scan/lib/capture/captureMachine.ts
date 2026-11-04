@@ -8,7 +8,7 @@
 //   any phase --a page matching one taken this session (SCAN-23)--> duplicate: never fires, hold restarts
 //   duplicate --page gone leaveMs, or hash matches no page taken--> searching
 // The pages taken are remembered through every reset: one page, one shot, whatever happens in between.
-import type { Point, Quad } from '../quad.ts';
+import type { Point, Quad } from '#lib/pageEnhance/quad.ts';
 import { hashDistance } from './hash.ts';
 import {
   DEFAULT_CAPTURE_PARAMS,

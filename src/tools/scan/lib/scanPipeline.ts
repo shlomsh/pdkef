@@ -11,7 +11,7 @@ import { imagesToPdf } from '#lib/images/imagesToPdf.js';
 import { placeImage } from '#lib/images/imagePage.js';
 import { MAX_SEARCH_MS } from '#lib/images/targetSizeSearch.js';
 import type { ScanFilter } from './filters.ts';
-import type { Quad } from './quad.ts';
+import type { Quad } from '#lib/pageEnhance/quad.ts';
 import { NO_WORKER, offThread } from './pageWork/offThread.ts';
 import type { PageJob, PageJobResult } from './pageWork/protocol.ts';
 import {

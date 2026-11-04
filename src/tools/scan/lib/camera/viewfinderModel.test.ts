@@ -3,7 +3,7 @@ import { coverRect, hintText, liveView, nextView } from './viewfinderModel.ts';
 import { INITIAL_GUIDANCE } from '../capture/guidance.ts';
 import { IDLE_VIEW } from './types.ts';
 import { DEFAULT_CAPTURE_PARAMS, type CaptureState } from '../capture/types.ts';
-import type { Quad } from '../quad.ts';
+import type { Quad } from '#lib/pageEnhance/quad.ts';
 
 const Q: Quad = [{ x: 0.1, y: 0.1 }, { x: 0.9, y: 0.1 }, { x: 0.9, y: 0.9 }, { x: 0.1, y: 0.9 }];
 

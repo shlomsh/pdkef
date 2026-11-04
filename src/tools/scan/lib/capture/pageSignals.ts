@@ -1,7 +1,7 @@
 // Two cheap facts about a page the detector found, for the viewfinder's guidance (SCAN-24): how well the page
 // stands out from what it lies on, and how steeply it is seen. Pure: no DOM. Both run on every camera frame in
 // the worker, so they read a few dozen pixels and four corners, nothing more.
-import type { GrayImage, Quad } from '../quad.ts';
+import type { GrayImage, Quad } from '#lib/pageEnhance/quad.ts';
 
 /** Samples along each side of the page. */
 const SAMPLES_PER_SIDE = 8;

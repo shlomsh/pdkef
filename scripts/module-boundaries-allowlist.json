@@ -48,5 +48,65 @@
     "rule": 9,
     "file": "src/editor-ui/comments/commentNumbersContext.tsx",
     "reason": "READ-02: shared with Highlight PDF, moved out of Sign before its island exists; READ-03 is the second consumer, and this entry goes stale (remove it) once that island imports the file"
+  },
+  {
+    "rule": 9,
+    "file": "src/lib/pageEnhance/dewarp/columnBend.ts",
+    "reason": "PE-01: shared with Highlight, moved out of Scan before its reader imports it; PE-06 is the second consumer, and this entry goes stale (remove it) once Highlight imports the file"
+  },
+  {
+    "rule": 9,
+    "file": "src/lib/pageEnhance/dewarp/edgeCurves.ts",
+    "reason": "PE-01: shared with Highlight, moved out of Scan before its reader imports it; PE-06 is the second consumer, and this entry goes stale (remove it) once Highlight imports the file"
+  },
+  {
+    "rule": 9,
+    "file": "src/lib/pageEnhance/dewarp/index.ts",
+    "reason": "PE-01: shared with Highlight, moved out of Scan before its reader imports it; PE-06 is the second consumer, and this entry goes stale (remove it) once Highlight imports the file"
+  },
+  {
+    "rule": 9,
+    "file": "src/lib/pageEnhance/dewarp/ink.ts",
+    "reason": "PE-01: shared with Highlight, moved out of Scan before its reader imports it; PE-06 is the second consumer, and this entry goes stale (remove it) once Highlight imports the file"
+  },
+  {
+    "rule": 9,
+    "file": "src/lib/pageEnhance/dewarp/lineBend.ts",
+    "reason": "PE-01: shared with Highlight, moved out of Scan before its reader imports it; PE-06 is the second consumer, and this entry goes stale (remove it) once Highlight imports the file"
+  },
+  {
+    "rule": 9,
+    "file": "src/lib/pageEnhance/dewarp/meshWarp.ts",
+    "reason": "PE-01: shared with Highlight, moved out of Scan before its reader imports it; PE-06 is the second consumer, and this entry goes stale (remove it) once Highlight imports the file"
+  },
+  {
+    "rule": 9,
+    "file": "src/lib/pageEnhance/dewarp/orientation.ts",
+    "reason": "PE-01: shared with Highlight, moved out of Scan before its reader imports it; PE-06 is the second consumer, and this entry goes stale (remove it) once Highlight imports the file"
+  },
+  {
+    "rule": 9,
+    "file": "src/lib/pageEnhance/dewarp/types.ts",
+    "reason": "PE-01: shared with Highlight, moved out of Scan before its reader imports it; PE-06 is the second consumer, and this entry goes stale (remove it) once Highlight imports the file"
+  },
+  {
+    "rule": 9,
+    "file": "src/lib/pageEnhance/edgeMap.ts",
+    "reason": "PE-01: shared with Highlight, moved out of Scan before its reader imports it; PE-06 is the second consumer, and this entry goes stale (remove it) once Highlight imports the file"
+  },
+  {
+    "rule": 9,
+    "file": "src/lib/pageEnhance/homography.ts",
+    "reason": "PE-01: shared with Highlight, moved out of Scan before its reader imports it; PE-06 is the second consumer, and this entry goes stale (remove it) once Highlight imports the file"
+  },
+  {
+    "rule": 9,
+    "file": "src/lib/pageEnhance/quad.ts",
+    "reason": "PE-01: shared with Highlight, moved out of Scan before its reader imports it; PE-06 is the second consumer, and this entry goes stale (remove it) once Highlight imports the file"
+  },
+  {
+    "rule": 9,
+    "file": "src/lib/pageEnhance/warp.ts",
+    "reason": "PE-01: shared with Highlight, moved out of Scan before its reader imports it; PE-06 is the second consumer, and this entry goes stale (remove it) once Highlight imports the file"
   }
 ]

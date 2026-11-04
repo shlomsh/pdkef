@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { seededRandom } from '../edges/testImages.ts';
-import { FULL_QUAD, rotateQuad, type RgbaImage } from '../quad.ts';
+import { seededRandom } from '#lib/pageEnhance/seededRandom.test-helper.ts';
+import { rotateQuad, type RgbaImage } from '#lib/pageEnhance/quad.ts';
+import { FULL_QUAD } from '../quad.ts';
 import { uprightTurns } from './upright.ts';
 
 const W = 800;

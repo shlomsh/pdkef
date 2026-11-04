@@ -2,9 +2,11 @@
 // best four-corner shape to each large bright blob and keep the blob that fills its quad best.
 // A white page on a busy floor merges with bright clutter at the Otsu cut but separates at a
 // brighter one; the score picks whichever cut leaves a clean, page-sized quadrilateral. Pure.
-import { isConvexQuad, orderQuad } from '../quad.ts';
-import type { GrayImage, Point, Quad } from '../quad.ts';
-import { blur3, otsu } from './brightRegion.ts';
+import { orderQuad } from '#lib/pageEnhance/quad.ts';
+import { isConvexQuad } from '../quad.ts';
+import type { GrayImage, Point, Quad } from '#lib/pageEnhance/quad.ts';
+import { blur3 } from '#lib/pageEnhance/edgeMap.ts';
+import { otsu } from './brightRegion.ts';
 import type { EdgeGuesser } from './types.ts';
 
 const OFFSETS = [0, 15, 30, 45, 60, 75, -15];

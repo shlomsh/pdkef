@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { detectPage, CONFIDENT } from './detect.ts';
 import { fillQuad, solid } from './testImages.ts';
-import type { Quad } from '../quad.ts';
+import type { Quad } from '#lib/pageEnhance/quad.ts';
 
 const PAGE: Quad = [{ x: 60, y: 50 }, { x: 250, y: 60 }, { x: 240, y: 360 }, { x: 55, y: 350 }];
 

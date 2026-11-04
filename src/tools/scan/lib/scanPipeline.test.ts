@@ -1,14 +1,15 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { getPdfLib } from '#lib/pdf/pdfLib.js';
-import { FULL_QUAD, type Quad } from './quad.ts';
+import { type Quad } from '#lib/pageEnhance/quad.ts';
+import { FULL_QUAD } from './quad.ts';
 import { SCAN_QUALITY } from './scanBudget.ts';
-import { warpPerspective } from './warp.ts';
+import { warpPerspective } from '#lib/pageEnhance/warp.ts';
 import { buildScanPdf, inspectPhoto, processPage, type ProcessedPage } from './scanPipeline.ts';
 
 // The pure collaborators (warp, filters, quad maths, the budget search, imagesToPdf) are the real ones;
 // warpPerspective is wrapped only to read the pixel quad the pipeline hands it.
-vi.mock('./warp.ts', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('./warp.ts')>();
+vi.mock('#lib/pageEnhance/warp.ts', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('#lib/pageEnhance/warp.ts')>();
   return { ...actual, warpPerspective: vi.fn(actual.warpPerspective) };
 });
 

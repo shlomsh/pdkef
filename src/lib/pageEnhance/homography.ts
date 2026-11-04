@@ -1,6 +1,6 @@
 // The projective map between two quads: shared by the warp (in the lazy pipeline chunk) and the
 // flatten animation (on the page from the start), so the animation does not pull the warp in. Pure.
-import type { Point, Quad } from './quad';
+import type { Point, Quad } from './quad.ts';
 
 export type Matrix3 = [number, number, number, number, number, number, number, number, number];
 

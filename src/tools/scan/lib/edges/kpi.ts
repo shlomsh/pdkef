@@ -1,6 +1,6 @@
 // Scored KPIs for a page detector over a labelled corpus. Pure: no DOM, no files.
 // Truth and guesses are normalized, upright, top-left first (docs/scan-to-pdf.md).
-import type { GrayImage, Point, Quad } from '../quad.ts';
+import type { GrayImage, Point, Quad } from '#lib/pageEnhance/quad.ts';
 
 /** @testSeam */
 export const TOLERANCES = [0.02, 0.035, 0.08] as const;

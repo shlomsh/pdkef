@@ -1,5 +1,5 @@
 // The three looks a scanned page can have. Pure: no DOM, no canvas. Never mutates its input.
-import type { RgbaImage } from './quad';
+import type { RgbaImage } from '#lib/pageEnhance/quad.ts';
 
 export type ScanFilter = 'original' | 'grayscale' | 'document';
 

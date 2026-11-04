@@ -43,10 +43,11 @@ The output is built quietly in the background (`usePreparedOutput`), keyed on ev
 | `src/lib/images/canvasBlob.js` | Compress, Scan | `canvasToBlob`, moved out of `compress.js` |
 | `src/shell/pageWorkspace/useDownloadFlow.ts`, `FinishRow.tsx` | all page tools | `HandoffTool` gains `'merge'` |
 | `src/shell/BasePdfTool.tsx`, `DropzoneEmptyState.tsx` | all tools | optional `emptyAction` slot under the picker |
-| `src/tools/scan/lib/quad.ts` | Scan | `Point`, `Quad`, `RgbaImage`, `GrayImage`, quad helpers |
-| `src/tools/scan/lib/edges/` | Scan | the swappable edge guess |
-| `src/tools/scan/lib/warp.ts` | Scan | homography and perspective warp, pure |
-| `src/tools/scan/lib/dewarp/` | Scan | a bent or creased page's edge curves, text-line and vertical-rule bends (bilinear grids), folded into one warp, pure (SCAN-17) |
+| `src/lib/pageEnhance/quad.ts` | Scan (Highlight from PE-06) | `Point`, `Quad`, `RgbaImage`, `GrayImage`, `orderQuad`, `scaleQuad`, `insetQuad`, `rotateQuad` |
+| `src/tools/scan/lib/quad.ts` | Scan | `FULL_QUAD`, `isConvexQuad`, `isPagelike`, `clampPoint`, `quadKey`, `turnedQuad`, `unturnedQuad` |
+| `src/tools/scan/lib/edges/` | Scan | the swappable edge guess (its gradient map, `buildEdgeMap`, is `src/lib/pageEnhance/edgeMap.ts`, which the dewarp also reads) |
+| `src/lib/pageEnhance/warp.ts`, `homography.ts` | Scan (Highlight from PE-06) | homography and perspective warp, pure |
+| `src/lib/pageEnhance/dewarp/` | Scan (Highlight from PE-06) | a bent or creased page's edge curves, text-line and vertical-rule bends (bilinear grids), folded into one warp, pure (SCAN-17) |
 | `src/tools/scan/lib/filters.ts` | Scan | the three looks, pure |
 | `src/tools/scan/lib/scanBudget.ts` | Scan | the size-limit search over pages, pure (injected encode and build) |
 | `src/tools/scan/lib/scanPipeline.ts` | Scan | the DOM side: decode, gray thumbnail, process a page, build the PDF. Lazy. |
@@ -65,7 +66,7 @@ orientation already applied, as `<img>` and `createImageBitmap(..., { imageOrien
 both show it). Pixel quads exist only inside `scanPipeline.ts`.
 
 ```ts
-// src/tools/scan/lib/quad.ts
+// src/lib/pageEnhance/quad.ts (FULL_QUAD, isConvexQuad, clampPoint and quadKey stay in src/tools/scan/lib/quad.ts)
 export interface Point { x: number; y: number }
 /** Top-left, top-right, bottom-right, bottom-left. */
 export type Quad = [Point, Point, Point, Point];
@@ -83,7 +84,7 @@ export function rotateQuad(quad: Quad, turns: number): Quad; // the page turned 
 export type EdgeGuesser = (image: GrayImage) => Quad | null; // normalized; null = no page found
 export const guessCorners: EdgeGuesser; // the current strategy; a better detector replaces this line
 
-// src/tools/scan/lib/warp.ts
+// src/lib/pageEnhance/homography.ts and warp.ts
 export type Matrix3 = [number, number, number, number, number, number, number, number, number];
 export function homography(from: Quad, to: Quad): Matrix3; // maps each from[i] onto to[i]
 export function applyHomography(h: Matrix3, p: Point): Point;

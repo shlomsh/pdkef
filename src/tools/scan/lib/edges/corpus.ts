@@ -1,7 +1,8 @@
 // A deterministic corpus of hard synthetic scenes for the edge guessers, each with known true corners.
 // Test-only (imported by corpus.test.ts and the strategy tests). Truth is normalized (0..1).
-import type { GrayImage, Point, Quad } from '../quad.ts';
-import { addNoise, fillQuad, fillRect, norm, seededRandom, solid } from './testImages.ts';
+import type { GrayImage, Point, Quad } from '#lib/pageEnhance/quad.ts';
+import { seededRandom } from '#lib/pageEnhance/seededRandom.test-helper.ts';
+import { addNoise, fillQuad, fillRect, norm, solid } from './testImages.ts';
 
 export interface CorpusCase {
   name: string;

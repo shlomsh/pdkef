@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { cornerPin, easeOutCubic, flattenFrame, lerpQuad, quadPin, rectQuad } from './flatten.ts';
-import { applyHomography } from './homography.ts';
-import type { Quad } from './quad.ts';
+import { applyHomography } from '#lib/pageEnhance/homography.ts';
+import type { Quad } from '#lib/pageEnhance/quad.ts';
 
 const QUAD: Quad = [{ x: 30, y: 20 }, { x: 250, y: 40 }, { x: 230, y: 300 }, { x: 10, y: 280 }];
 

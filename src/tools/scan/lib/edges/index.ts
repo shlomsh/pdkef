@@ -1,6 +1,7 @@
-import { buildEdgeMap, faintOutline, outlineFromMap, scoreQuad, WEAK_SCORE } from './outline.ts';
+import { buildEdgeMap } from '#lib/pageEnhance/edgeMap.ts';
+import { faintOutline, outlineFromMap, scoreQuad, WEAK_SCORE } from './outline.ts';
 import { guessByScoredRegions } from './scoredRegions.ts';
-import type { GrayImage, Quad } from '../quad.ts';
+import type { GrayImage, Quad } from '#lib/pageEnhance/quad.ts';
 import type { EdgeGuesser } from './types.ts';
 
 export type { EdgeGuesser } from './types.ts';

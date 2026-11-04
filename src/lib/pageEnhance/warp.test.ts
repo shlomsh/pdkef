@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import type { Point, Quad, RgbaImage } from './quad';
-import { applyHomography, homography } from './homography';
-import { warpPerspective, warpSizeFor } from './warp';
+import type { Point, Quad, RgbaImage } from './quad.ts';
+import { applyHomography, homography } from './homography.ts';
+import { warpPerspective, warpSizeFor } from './warp.ts';
 
 const quad = (...c: number[]): Quad => [
   { x: c[0], y: c[1] }, { x: c[2], y: c[3] }, { x: c[4], y: c[5] }, { x: c[6], y: c[7] },

@@ -2,7 +2,8 @@ import { useEffect, useLayoutEffect } from 'preact/hooks';
 import type { RefObject } from 'preact';
 import { recordAction } from '#lib/telemetry/actionTrail.ts';
 import { relativeBox } from '../lib/flattenAnimation.ts';
-import { turnedQuad, type Quad } from '../lib/quad.ts';
+import { type Quad } from '#lib/pageEnhance/quad.ts';
+import { turnedQuad } from '../lib/quad.ts';
 import type { reduceScan } from '../state/scanState.ts';
 import type { ScanPage, ScanWork } from '../state/scanWork.ts';
 

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { applyFilter, type ScanFilter } from './filters';
-import type { RgbaImage } from './quad';
+import type { RgbaImage } from '#lib/pageEnhance/quad.ts';
 
 function make(width: number, height: number, fn: (x: number, y: number) => [number, number, number]): RgbaImage {
   const data = new Uint8ClampedArray(width * height * 4);

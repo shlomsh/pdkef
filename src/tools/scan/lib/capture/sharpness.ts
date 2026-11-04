@@ -1,5 +1,5 @@
 // The live camera's focus and size signals (docs/scan-next.md). Pure: no DOM.
-import type { GrayImage, Quad } from '../quad.ts';
+import type { GrayImage, Quad } from '#lib/pageEnhance/quad.ts';
 
 /** Variance of the 4-neighbour Laplacian over the pixels inside the quad (normalized coordinates), or
  * the whole image without one. A blurred page has soft edges, so the second derivative stays small;

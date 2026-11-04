@@ -1,5 +1,5 @@
 // Perspective warp (docs/scan-to-pdf.md, "Contract"). Pure: no DOM, no canvas.
-import type { Point, Quad, RgbaImage } from './quad';
+import type { Point, Quad, RgbaImage } from './quad.ts';
 import { homography } from './homography.ts';
 
 const dist = (a: Point, b: Point) => Math.hypot(a.x - b.x, a.y - b.y);

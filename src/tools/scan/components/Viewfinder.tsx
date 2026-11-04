@@ -5,7 +5,7 @@ import { X } from 'lucide-preact';
 import { formatMessage } from '#lib/text/formatMessage.ts';
 import TakePhotoButton from './TakePhotoButton.tsx';
 import { playFlatten, relativeBox } from '../lib/flattenAnimation.ts';
-import type { Quad } from '../lib/quad.ts';
+import type { Quad } from '#lib/pageEnhance/quad.ts';
 import { englishScanMessages as t } from '../messages.ts';
 import { useCamera } from '../hooks/useCamera.ts';
 import { usePinchZoom } from '../hooks/usePinchZoom.ts';

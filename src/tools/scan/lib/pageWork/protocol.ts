@@ -1,7 +1,7 @@
 // What the main thread and the page worker say to each other (SCAN-21). Blobs cross by reference, so
 // no pixels are copied between the two.
 import type { ScanFilter } from '../filters.ts';
-import type { Quad } from '../quad.ts';
+import type { Quad } from '#lib/pageEnhance/quad.ts';
 import type { InspectedPhoto, ProcessedWithReport } from './steps.ts';
 
 export type PageJob =

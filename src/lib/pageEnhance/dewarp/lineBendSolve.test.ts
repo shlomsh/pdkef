@@ -1,6 +1,6 @@
 // The banded grid solve (SCAN-21) against the dense solve it replaced, on random problems.
 import { describe, expect, it } from 'vitest';
-import { seededRandom } from '../edges/testImages.ts';
+import { seededRandom } from '../seededRandom.test-helper.ts';
 import { fit, type Sample } from './lineBend.ts';
 
 // lineBend's grid and weights, as the dense solve used them.

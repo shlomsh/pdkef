@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import type { Point, Quad } from './quad';
+import type { Point, Quad } from '#lib/pageEnhance/quad.ts';
 import { pageAspect, snapPaper } from './aspect';
-import { warpSizeFor } from './warp';
+import { warpSizeFor } from '#lib/pageEnhance/warp.ts';
 
 const W = 2000;
 const H = 1500;

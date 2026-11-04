@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { Quad } from '../quad.ts';
+import type { Quad } from '#lib/pageEnhance/quad.ts';
 import { corpus } from './corpus.ts';
 import { anglesOk, convexHull, guessByScoredRegions, maxAreaQuad } from './scoredRegions.ts';
 import { addNoise, solid } from './testImages.ts';
