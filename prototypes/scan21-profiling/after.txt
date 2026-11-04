@@ -1,0 +1,36 @@
+BOOK PAGE {"flat":false,"lines":true,"columns":false,"curves":true,"rows":true,"rules":false}
+decode <img>                         min   126 median   145 ms
+draw 3200 + getImageData             min   196 median   357 ms
+measureBend (total)                  min   719 median  1536 ms
+  shrink to 1000                     min   161 median   226 ms
+  edge curves                        min   159 median   559 ms
+  small warp                         min    53 median    94 ms
+  ink + rule masks                   min    31 median    65 ms
+  lineFit (samples + 2 solves)       min    65 median   128 ms
+  columnFit (samples + 2 solves)     min     1 median     1 ms
+warp 2400                            min   340 median   673 ms
+applyFilter document                 min   157 median   627 ms
+putImageData + JPEG 0.92             min    66 median   304 ms
+thumb + JPEG                         min     8 median    23 ms
+  inspectPhoto 541 processPage 3935 longtasks [] bentPx 48.9800298394893
+  inspectPhoto 720 processPage 3359 longtasks [] bentPx 48.9800298394893
+  inspectPhoto 423 processPage 3093 longtasks [] bentPx 48.9800298394893
+  inspectPhoto 616 processPage 3067 longtasks [] bentPx 48.9800298394893
+FORM PAGE {"flat":false,"lines":false,"columns":false,"curves":true,"rows":false,"rules":false}
+decode <img>                         min    50 median   148 ms
+draw 3200 + getImageData             min   238 median   373 ms
+measureBend (total)                  min   466 median   549 ms
+  shrink to 1000                     min    58 median   183 ms
+  edge curves                        min   170 median   243 ms
+  small warp                         min   128 median   197 ms
+  ink + rule masks                   min    22 median    75 ms
+  lineFit (samples + 2 solves)       min    21 median    88 ms
+  columnFit (samples + 2 solves)     min     1 median     1 ms
+warp 2400                            min   538 median   782 ms
+applyFilter document                 min   269 median   310 ms
+putImageData + JPEG 0.92             min   235 median   396 ms
+thumb + JPEG                         min    13 median    34 ms
+  inspectPhoto 842 processPage 3983 longtasks [] bentPx 39.939681781042374
+  inspectPhoto 540 processPage 2442 longtasks [] bentPx 39.939681781042374
+  inspectPhoto 597 processPage 1807 longtasks [] bentPx 39.939681781042374
+  inspectPhoto 515 processPage 1494 longtasks [] bentPx 39.939681781042374
