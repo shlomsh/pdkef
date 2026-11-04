@@ -56,6 +56,11 @@ describe('measureBend + pageMap', () => {
     expect(isFlat(bend)).toBe(true);
   });
 
+  it('reads no paper edge on a sheet: its frame is the picture\'s, and a slight tilt reads it as a bow', () => {
+    const src = photo({ a: -0.1, b: 0 }, BOOK);
+    expect(measureBend(src, QUAD, MARGIN, 1100, 1400, false).curves).toBeNull();
+  });
+
   it('straightens a page whose top edge and text lines both bow', () => {
     const src = photo({ a: -0.1, b: 0 }, BOOK);
     const bend = measureBend(src, QUAD, MARGIN, 1100, 1400);

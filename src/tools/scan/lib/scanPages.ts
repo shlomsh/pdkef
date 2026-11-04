@@ -29,7 +29,7 @@ export function partitionFiles(files: File[], acceptedTypes: readonly string[]) 
 export function newPage(file: File, filter: ScanFilter): ScanPage {
   return {
     id: nextId++, file, preview: null, aspect: null, filter,
-    quad: FULL_QUAD, turns: 0, guessed: false, edited: false, found: null,
+    quad: FULL_QUAD, turns: 0, guessed: false, edited: false, found: null, sheet: false,
   };
 }
 

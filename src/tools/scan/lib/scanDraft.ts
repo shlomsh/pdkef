@@ -25,6 +25,8 @@ interface StoredScanPage {
   turns: number;
   /** The person's own corners; null while the page has the guess (or the whole photo). */
   quad: Quad | null;
+  /** The picture is a PDF's sheet. */
+  sheet: boolean;
 }
 
 export interface ScanDraftSettings {
@@ -49,14 +51,14 @@ const LIMITS: readonly SizeLimitId[] = ['none', '2mb', '1mb', '500kb'];
 
 /** The page as stored. */
 export const storedPage = (page: ScanPage): StoredScanPage => ({
-  filter: page.filter, turns: page.turns, quad: page.edited ? page.quad : null,
+  filter: page.filter, turns: page.turns, quad: page.edited ? page.quad : null, sheet: page.sheet,
 });
 
 /** One string per snapshot worth saving: changes only when a stored field does. `fileId` tells photos apart. */
 export function scanSnapshotKey(pages: ScanPage[], settings: ScanDraftSettings, fileId: (file: File) => number): string {
   const pagesPart = pages.map((page) => {
-    const { filter, turns, quad } = storedPage(page);
-    return `${fileId(page.file)}:${filter}:${turns}:${quad ? quadKey(quad) : ''}`;
+    const { filter, turns, quad, sheet } = storedPage(page);
+    return `${fileId(page.file)}:${filter}:${turns}:${quad ? quadKey(quad) : ''}:${sheet}`;
   }).join(',');
   return `${pagesPart}|${settings.pageSize}|${settings.limit}|${settings.defaultFilter}|${settings.name}`;
 }
@@ -71,11 +73,12 @@ function parseQuad(value: unknown): Quad | null {
 }
 
 function parsePage(value: unknown, fallbackFilter: ScanFilter): StoredScanPage {
-  const page = (value ?? {}) as { filter?: unknown; turns?: unknown; quad?: unknown };
+  const page = (value ?? {}) as { filter?: unknown; turns?: unknown; quad?: unknown; sheet?: unknown };
   return {
     filter: FILTERS.includes(page.filter as ScanFilter) ? page.filter as ScanFilter : fallbackFilter,
     turns: Number.isInteger(page.turns) && (page.turns as number) >= 0 && (page.turns as number) < 4 ? page.turns as number : 0,
     quad: parseQuad(page.quad),
+    sheet: page.sheet === true,
   };
 }
 

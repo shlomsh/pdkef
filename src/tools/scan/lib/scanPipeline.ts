@@ -112,10 +112,10 @@ export async function turnImage(image: Blob, turns: number): Promise<Blob> {
 
 /** One page: flattened to its corners and its bend, given its look, kept as a high-quality JPEG. A
  * failure to measure the bend is ours, reported, and the page is flattened by its corners alone. */
-export async function processPage(photo: Blob, quad: Quad, filter: ScanFilter): Promise<ProcessedPage> {
+export async function processPage(photo: Blob, quad: Quad, filter: ScanFilter, paperEdges = true): Promise<ProcessedPage> {
   const { page, measureError }: ProcessedWithReport = await offThreadOr(
-    { kind: 'process', photo, quad, filter },
-    () => processWith(pageKit, photo, quad, filter),
+    { kind: 'process', photo, quad, filter, paperEdges },
+    () => processWith(pageKit, photo, quad, filter, paperEdges),
   );
   if (measureError) reportError('pdf_tool_run', measureError, 'scan_measure_bend');
   return page;

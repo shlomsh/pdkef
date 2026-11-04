@@ -8,7 +8,7 @@ export type PageJob =
   | { kind: 'probe' }
   | { kind: 'inspect'; photo: Blob }
   | { kind: 'guess'; image: Blob }
-  | { kind: 'process'; photo: Blob; quad: Quad; filter: ScanFilter };
+  | { kind: 'process'; photo: Blob; quad: Quad; filter: ScanFilter; paperEdges: boolean };
 
 /** What each job answers: the probe whether this worker can do the work as the main thread would. A
  * guess runs where the inspection does, so Auto-detect finds the corners a new photo was given. */

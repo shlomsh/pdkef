@@ -68,6 +68,12 @@ afterEach(() => {
 vi.stubGlobal('ImageData', class { constructor(public data: Uint8ClampedArray, public width: number, public height: number) {} });
 
 describe('processWith', () => {
+  it('reads paper edges on a photo, and none on a PDF sheet', async () => {
+    await processWith(fakeKit(gray(400, 300)), new Blob(), FULL_QUAD, 'original');
+    await processWith(fakeKit(gray(400, 300)), new Blob(), FULL_QUAD, 'original', false);
+    expect(vi.mocked(measureBend).mock.calls.map((call) => call[5])).toEqual([true, false]);
+  });
+
   it('flattens a flat page by its corners alone: no bend, nothing to report, every canvas freed', async () => {
     const { page, measureError } = await processWith(fakeKit(gray(400, 300)), new Blob(), FULL_QUAD, 'original');
     expect(measureError).toBeNull();

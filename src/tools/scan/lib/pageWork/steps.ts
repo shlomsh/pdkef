@@ -147,9 +147,9 @@ export async function inspectWith(kit: CanvasKit, photo: Blob): Promise<Inspecte
 }
 
 /** The page's bend beyond its corners; a measuring failure leaves the page flat and is handed back. */
-function bendOf(src: RgbaImage, quad: Quad, width: number, height: number): { bend: PageBend; error: unknown } {
+function bendOf(src: RgbaImage, quad: Quad, width: number, height: number, paperEdges: boolean): { bend: PageBend; error: unknown } {
   try {
-    return { bend: measureBend(src, quad, EDGE_INSET / 2, width, height), error: null };
+    return { bend: measureBend(src, quad, EDGE_INSET / 2, width, height, paperEdges), error: null };
   } catch (error) {
     // expected: handed back with the page, and reported on the main thread (a worker cannot report)
     return { bend: FLAT_PAGE, error };
@@ -158,18 +158,18 @@ function bendOf(src: RgbaImage, quad: Quad, width: number, height: number): { be
 
 /** The pure middle of processing a page: the photo's pixels flattened to its corners and its bend, then
  * given its look. */
-function flattenPixels(src: RgbaImage, quad: Quad, filter: ScanFilter): { image: RgbaImage; bentPx: number; measureError: unknown } {
+function flattenPixels(src: RgbaImage, quad: Quad, filter: ScanFilter, paperEdges: boolean): { image: RgbaImage; bentPx: number; measureError: unknown } {
   const quadPx = scaleQuad(insetQuad(quad, EDGE_INSET), src.width, src.height);
   const aspect = pageAspect(quadPx, src.width, src.height);
   const { width, height } = warpSizeFor(quadPx, OUTPUT_LONG_EDGE, aspect === null ? null : snapPaper(aspect));
-  const { bend, error } = bendOf(src, quad, width, height);
+  const { bend, error } = bendOf(src, quad, width, height, paperEdges);
   const piece: Piece = { quad, inset: EDGE_INSET, width, height, bend, mesh: null };
   const warped = fillFoldedCorners(applyPiece(src, piece));
   return { image: applyFilter(warped, filter), bentPx: bentPx(bend, pieceMargin(piece), width, height), measureError: error };
 }
 
 /** One page: flattened to its corners, given its look, kept as a high-quality JPEG and a thumb. */
-export async function processWith(kit: CanvasKit, photo: Blob, quad: Quad, filter: ScanFilter): Promise<ProcessedWithReport> {
+export async function processWith(kit: CanvasKit, photo: Blob, quad: Quad, filter: ScanFilter, paperEdges = true): Promise<ProcessedWithReport> {
   const decoded = await kit.decode(photo);
   let source: Surface;
   try {
@@ -183,7 +183,7 @@ export async function processWith(kit: CanvasKit, photo: Blob, quad: Quad, filte
   } finally {
     source.free();
   }
-  const flat = flattenPixels(src, quad, filter);
+  const flat = flattenPixels(src, quad, filter, paperEdges);
   const { width, height } = flat.image;
   const out = kit.surface(width, height);
   const thumbSize = cappedSize(width, height, THUMB_LONG_EDGE);

@@ -128,11 +128,13 @@ export function toGray(image: RgbaImage): GrayImage {
 }
 
 /** How the page in `src` bends beyond its corners (`quad` normalized, as the person set it). The
- * output's shape (`width` x `height`) sets the shape of the copy the lines and rules are read from. */
-export function measureBend(src: RgbaImage, quad: Quad, margin: number, width: number, height: number): PageBend {
+ * output's shape (`width` x `height`) sets the shape of the copy the lines and rules are read from.
+ * `paperEdges` false: `src` is a scanned sheet, with no paper edge to read. Its frame is the picture's,
+ * and a corner a hair off it reads as a bow, which would bend the copy the rows are read from too. */
+export function measureBend(src: RgbaImage, quad: Quad, margin: number, width: number, height: number, paperEdges = true): PageBend {
   const small = shrink(src, MEASURE_LONG_EDGE);
   const quadSmall = scaleQuad(quad, small.width, small.height);
-  const curves = findEdgeCurves(toGray(small), quadSmall);
+  const curves = paperEdges ? findEdgeCurves(toGray(small), quadSmall) : null;
   const fit = Math.min(1, MEASURE_LONG_EDGE / Math.max(width, height));
   const w = Math.max(1, Math.round(width * fit));
   const h = Math.max(1, Math.round(height * fit));

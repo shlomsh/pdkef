@@ -23,6 +23,8 @@ export interface ScanPage {
   edited: boolean;
   /** Whether the edge guess found a page: null until it has run. */
   found: boolean | null;
+  /** The picture is a PDF's sheet, not a photo: its frame is no paper edge, so none is read from it. */
+  sheet: boolean;
 }
 
 export interface PageResult { key: string; url: string; thumbUrl: string; page: ProcessedPage }
