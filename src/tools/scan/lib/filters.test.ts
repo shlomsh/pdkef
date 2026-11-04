@@ -84,6 +84,25 @@ describe('applyFilter', () => {
     });
   });
 
+  describe('document does not take soft shade for print', () => {
+    // As on a photographed book page: paper fades from 250 at the bright edge to 130 over ten blocks, with a line of ink in the shade.
+    const SHADE_FROM = 100;
+    const SHADE_TO = 430;
+    const paperOf = (x: number) => 250 - 120 * Math.min(1, Math.max(0, (x - SHADE_FROM) / (SHADE_TO - SHADE_FROM)));
+    const shaded = () => make(1200, 1600, (x, y) => {
+      const ink = y >= 800 && y < 816 && x >= 440 && x < 560 && x % 40 < 28;
+      const v = Math.round(paperOf(x) * (ink ? 0.3 : 1));
+      return [v, v, v];
+    });
+
+    it('shaded paper goes white and the ink in it stays black', () => {
+      const out = applyFilter(shaded(), 'document');
+      const at = (x: number, y: number) => out.data[(y * out.width + x) * 4];
+      for (const x of [440, 470, 500]) expect(at(x, 400), `paper at ${x}`).toBeGreaterThan(240);
+      expect(at(450, 808)).toBeLessThan(60);
+    });
+  });
+
   describe('document clears show-through', () => {
     // A plain sheet at grey 200 with one thin stroke (thinner than the paper grid's blocks) at `share` of it.
     const inStroke = (x: number, y: number) => x >= 100 && x < 140 && y >= 80 && y < 83;
