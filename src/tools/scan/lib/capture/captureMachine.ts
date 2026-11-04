@@ -3,14 +3,14 @@
 //
 //   searching --good, sharp page--> locked --still--> holding --holdMs AND focus settled settleMs--> FIRE
 //   holding/locked --jitter, jump, blur, dropped frame--> locked / searching (hold and settle restart)
-//   locked --a corner on the frame's edge, or the page seen steeply--> locked (unframed: followed, hold restarts)
+//   locked --a corner on the frame's edge, paper running off a side, or the page seen steeply--> locked (unframed: followed, hold restarts)
 //   holding stays holding while focus is still rising or has dropped: the settle restarts, the hold does not
 //   FIRE --> waitingForChange --page gone leaveMs, or hash differs--> searching
 //   any phase --a page matching one taken this session (SCAN-23)--> duplicate: never fires, hold restarts
 //   duplicate --page gone leaveMs, or hash matches no page taken--> searching
 // The pages taken are remembered through every reset: one page, one shot, whatever happens in between.
 import type { Point, Quad } from '#lib/pageEnhance/quad.ts';
-import { onEdge } from './framing.ts';
+import { isCutOff } from './framing.ts';
 import { hashDistance } from './hash.ts';
 import {
   DEFAULT_CAPTURE_PARAMS,
@@ -93,7 +93,7 @@ export function stepCapture(
   }
   if (!sharp) return { state: { ...next, phase: 'searching', holdSince: null, focusAnchor: null, settledSince: null }, capture: null };
   // Cut off or seen steeply: the outline follows the page but the shot waits, and the hold starts over once framed.
-  const unframed = onEdge(obs.quad, params.edgeMargin) || (obs.keystone !== undefined && obs.keystone < params.minKeystone);
+  const unframed = isCutOff(obs, params.edgeMargin) || (obs.keystone !== undefined && obs.keystone < params.minKeystone);
   if (restart || jittery || unframed) return { state: { ...next, phase: 'locked', holdSince: null, focusAnchor: null, settledSince: null }, capture: null };
 
   const holdSince = current.holdSince ?? current.lastT ?? obs.t;

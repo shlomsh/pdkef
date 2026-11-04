@@ -66,6 +66,9 @@ describe('stepGuidance: each condition', () => {
     expect(first(page(0), 'duplicate')).toBe('duplicate');
   });
 
+  it('a page found cut off (cutOff): fit', () => {
+    expect(first(page(0, { cutOff: true }), 'searching')).toBe('fit');
+  });
   it('a corner on the frame edge: fit', () => {
     expect(first(page(0, { quad: CUT }), 'searching')).toBe('fit');
     expect(first(page(0, { quad: CUT.map((p) => ({ x: Math.min(p.x, 0.995), y: Math.min(p.y, 0.995) })) as Quad }), 'searching')).toBe('fit');

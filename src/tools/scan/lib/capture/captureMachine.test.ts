@@ -309,6 +309,17 @@ describe('one page, one shot (SCAN-23)', () => {
       expect(fired).toEqual([]);
       expect(state.phase).toBe('locked');
     });
+    it('a page found cut off (cutOff) never fires, and fires a full holdMs after it clears', () => {
+      const cut = seq(0, 2000, (t) => page(t, { cutOff: true }));
+      const a = run(cut);
+      expect(a.fired).toEqual([]);
+      expect(a.state.phase).toBe('locked');
+      const start = cut[cut.length - 1].t + FRAME;
+      const { fired } = run([...cut, ...seq(start, 1500, (t) => page(t, { cutOff: false }))]);
+      expect(fired).toHaveLength(1);
+      // The hold counts from the last frame seen (one frame before the first clear one), as for every hold.
+      expect(fired[0] - start).toBeGreaterThanOrEqual(DEFAULT_CAPTURE_PARAMS.holdMs - FRAME);
+    });
     it('once framed it fires only after a full holdMs from that moment', () => {
       const cut = seq(0, 2000, (t) => page(t, { quad: onEdge }));
       const start = 2000 + FRAME;

@@ -28,10 +28,18 @@ the one thing that would help most, from signals the camera already measures or 
   that page that flattening it gives a cleaner scan.
 
 One message at a time, by priority, steady (no flicker between hints), in the voice guide, in
-`messages.ts`, announced politely to screen readers, and never blocking a shot.
+`messages.ts`, announced politely to screen readers. The shutter button is never blocked.
 
 ## Acceptance
 
 - [x] A pure `lib/capture/guidance.ts` choosing the hint, with tests for each condition and for steadiness.
       (`guidance.test.ts`: each condition, priority, steady, hysteresis, screen-reader gap)
 - [ ] The viewfinder shows it on a phone, checked on a real iPhone.
+
+## The auto shutter waits for framing, 2026-11-04
+
+Shlomi's first iPhone run: "Move a little closer" and "Hold still" worked, but the shot fired on a tilted page and on one with its corners cut off, because this ticket first said hints never hold a shot. Now `fit` and `flatter` hold the auto shutter by the same thresholds the hints read (`framing.ts`, `edgeMargin` 0.02, `minKeystone` 0.6). The shutter button still takes anything.
+
+A printed page cut off by the frame is found with high confidence, its bottom side on the last line of print and every corner well inside the frame, so corners alone cannot see it. `runsOff` (`pageSignals.ts`) reads paper carrying on past a side to the frame's edge. Faint-edge pages skip it, since their paper has no step.
+
+Measured on Shlomi's four photos, cropped in memory at 10% and 20% on each side (32 crops): 28 find no page, 2 are held, and 2 would still fire, both 10% crops (IMG_4758 right, IMG_4759 top). Whole pages are never held. To re-check on the phone.

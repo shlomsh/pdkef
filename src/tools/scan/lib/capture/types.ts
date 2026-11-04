@@ -25,6 +25,9 @@ export interface FrameObservation {
   contrast?: number;
   /** 0..1, the shorter over the longer of each pair of opposite sides, the smaller pair; 1 is seen straight on. */
   keystone?: number;
+  /** Paper carries on past a side of the found quad to the frame's edge (runsOff): the page is cut off though no corner is
+   * near the edge. Absent counts as not cut off; false for a page found by faint edges. The shutter waits, the hint says fit. */
+  cutOff?: boolean;
   /** 0..1, the 20th-percentile brightness of the whole frame: high when nothing dark is in view. */
   light?: number;
 }

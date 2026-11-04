@@ -1,14 +1,14 @@
 // What the viewfinder's one line says (SCAN-24): the one thing that would make the shot better. Pure: the latest
 // frame observation, the capture machine's phase and the guidance so far in, the guidance for this frame out. It
 // only chooses words. `fit` and `flatter` also hold the auto shutter: the capture machine waits while a corner is
-// cut off or the page is seen steeply, by the same capture.edgeMargin and capture.minKeystone read here, so a hint
+// cut off (a corner on the edge, or paper running off a side) or the page is seen steeply, by the same capture.edgeMargin and capture.minKeystone read here, so a hint
 // and the shutter never disagree on entry.
 //
 // Priority, first wins. Framing comes before steadiness, in the order a person sets up a shot: get the whole page
 // in, close enough, standing out from the table, seen from above, then hold still.
 //   turn       a page was just taken (waitingForChange): say so at once, it is the answer to the shot
 //   duplicate  this page is taken already (SCAN-23): nothing is taken until the page turns
-//   fit        a corner sits on the frame's edge, or did a moment ago and the page is lost since: it is cut off
+//   fit        a corner sits on the frame's edge or paper runs on past a side (obs.cutOff), or did a moment ago and the page is lost since
 //   closer     the page is under minArea of the frame: the camera will not take it
 //   contrast   the page's border barely steps from the table, or nothing is found against a light view
 //   flatter    the page is seen steeply: the auto shutter waits for it to be held flatter
@@ -19,7 +19,7 @@
 //
 // Steady: every reading has its own way in and out (hysteresis), and the line changes only once the new hint has
 // been wanted for settleMs AND the shown one has stood for minShowMs. turn alone cuts in at once.
-import { onEdge } from './framing.ts';
+import { isCutOff } from './framing.ts';
 import { DEFAULT_CAPTURE_PARAMS, type CaptureParams, type CapturePhase, type FrameObservation } from './types.ts';
 
 /** The hints, one per line the viewfinder can say. */
@@ -27,7 +27,7 @@ export type Hint = 'point' | 'hold' | 'turn' | 'duplicate' | 'fit' | 'closer' | 
 
 /** The readings that hold their state between frames (hysteresis). */
 interface Readings {
-  /** A corner on the frame's edge. */
+  /** A corner on the frame's edge, or paper running off a side. */
   edge: boolean;
   /** The page under minArea. */
   small: boolean;
@@ -127,7 +127,7 @@ function read(was: Readings, obs: FrameObservation, params: GuidanceParams, capt
   }
   const { contrast, keystone } = obs;
   return {
-    edge: latch(was.edge, onEdge(quad, capture.edgeMargin), !onEdge(quad, params.edgeLeave)),
+    edge: latch(was.edge, isCutOff(obs, capture.edgeMargin), !isCutOff(obs, params.edgeLeave)),
     small: latch(was.small, obs.area < capture.minArea, obs.area >= capture.minArea * params.areaLeave),
     faint: contrast === undefined ? false : latch(was.faint, contrast < params.contrastEnter, contrast >= params.contrastLeave),
     light: false,
