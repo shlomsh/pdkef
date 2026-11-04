@@ -3,6 +3,7 @@ import { formatMessage } from '#lib/text/formatMessage.ts';
 import { lookOptions } from '../lib/scanOptions.ts';
 import { shownAspect, shownPhoto } from '../lib/scanPages.ts';
 import { resultViewFor, exactResultDetail } from '../lib/resultView.ts';
+import { looksBent } from '../lib/capture/guidance.ts';
 import type { PageSize } from '../lib/scanPipeline.ts';
 import type { ScanFilter } from '../lib/filters.ts';
 import type { Quad } from '../lib/quad.ts';
@@ -111,6 +112,7 @@ export default function ScanWorkbench({ refs, stageHeight, pages, selected, sele
             onDone={actions.onDone}
             pageProps={resultViewFor(selected, selectedIndex, { shown: built.shown, ready: exact, results, pageSize })}
             detail={exact ? exactResultDetail(built.size, pages.length) : undefined}
+            bent={looksBent(results[selected.id]?.page)}
           />
         )}
       </section>

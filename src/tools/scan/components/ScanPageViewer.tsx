@@ -8,6 +8,7 @@ import { lookOptions } from '../lib/scanOptions.ts';
 import { shownAspect, shownPhoto } from '../lib/scanPages.ts';
 import { exactResultDetail, resultViewFor } from '../lib/resultView.ts';
 import { slideIndexAt, slideWindow } from '../lib/pageSlides.ts';
+import { looksBent } from '../lib/capture/guidance.ts';
 import type { PageSize } from '../lib/scanPipeline.ts';
 import type { ScanFilter } from '../lib/filters.ts';
 import type { Quad } from '../lib/quad.ts';
@@ -178,6 +179,7 @@ export default function ScanPageViewer({ refs, pages, selected, selectedIndex, v
                 </button>
               </p>
             )}
+            {looksBent(results[selected.id]?.page) && <p class={styles.hint} data-bent-note>{t.bentNote}</p>}
             <PageActions
               selected={selected}
               lookOptions={lookOptions()}
