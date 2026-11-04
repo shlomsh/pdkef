@@ -19,7 +19,7 @@ SCAN-17's classical dewarp reads a page's shape from its text rows and table rul
 where the page has neither is invisible to it. UVDoc (Magne et al., 2023, MIT code,
 github.com/tanguymagne/UVDoc) is a small network trained on curved, folded and crumpled paper: 8M
 parameters, a 488 x 712 input, a 45 x 31 unwarping grid out, which fits our single-resample warp
-(`lib/dewarp/meshWarp.ts`) as is.
+(`src/lib/pageEnhance/dewarp/meshWarp.ts`, moved from Scan by PE-01) as is.
 
 ## Recommendation
 
