@@ -84,13 +84,26 @@ describe('fillFoldedCorners', () => {
     expect(fillFoldedCorners(src)).toBe(src);
   });
 
+  /** How deep a lifted edge's sliver is at `t` along its edge: it tapers to nothing both ways from 150. */
+  const taper = (t: number, half = 50) => Math.ceil(4 * (1 - Math.abs(t - 150) / half));
+
   it.each([
-    ['left', (x: number, y: number) => x < 3 && y >= 100 && y < 200, 0, 150],
-    ['right', (x: number, y: number) => x >= W - 3 && y >= 100 && y < 200, W - 1, 150],
-    ['top', (x: number, y: number) => y < 3 && x >= 100 && x < 200, 150, 0],
-    ['bottom', (x: number, y: number) => y >= H - 3 && x >= 100 && x < 200, 150, H - 1],
-  ] as const)('paints a thin dark sliver along the %s edge', (_edge, ink, x, y) => {
+    ['left', (x: number, y: number) => x < taper(y), 0, 150],
+    ['right', (x: number, y: number) => W - 1 - x < taper(y), W - 1, 150],
+    ['top', (x: number, y: number) => y < taper(x), 150, 0],
+    ['bottom', (x: number, y: number) => H - 1 - y < taper(x), 150, H - 1],
+  ] as const)('paints a tapering dark sliver along the %s edge', (_edge, ink, x, y) => {
     expect(grey(fillFoldedCorners(page(flat(230), ink)), x, y)).toBe(230);
+  });
+
+  it('keeps a bar of even depth along an edge, as print is', () => {
+    const src = page(flat(230), (x, y) => x < 3 && y >= 100 && y < 200);
+    expect(fillFoldedCorners(src)).toBe(src);
+  });
+
+  it('keeps a mark that runs most of an edge, as a printed band does', () => {
+    const src = page(flat(230), (x, y) => x < taper(y, 140));
+    expect(fillFoldedCorners(src)).toBe(src);
   });
 
   it('keeps a square mark on an edge, as real print is', () => {

@@ -107,8 +107,10 @@ stays faintly visible; nothing dark does.
 - **Not found:** the first scan's wedge (both pages), at any grey cut-off tried. It reaches the corner as streaks,
   not a solid triangle, so this rule does not clear it.
 - **Edge slivers (added after the rescan):** a dark mark that starts within a pixel of one edge, reaches at most 1.5%
-  of the short side into the page, is at least five times longer than deep and at least 2% of that edge long is table
-  past a lifted edge, and is painted the same way. Real print on an edge measured squarish here (40 px or less a side),
+  of the short side into the page, is at least five times longer than deep, runs 2% to 50% of that edge and tapers
+  (fills at most 80% of its box) is table past a lifted edge, and is painted the same way. The real slivers fill 46%
+  to 74% of their box and run at most 31% of an edge; a printed bar of even depth fills it, and a band runs the whole
+  edge, so both stay (review, 2026-11-04). Real print on an edge measured squarish here (40 px or less a side),
   so it stays, and so does a rule that runs into an edge, which has its length across the page.
 - Cleared on real pages: the rescan's slivers on pages 2 and 4, the first scan's black left bar on both pages, the
   left edges of the second scan's pages 2 to 4 and a stretch of table under the service slip. Checked by eye on the
