@@ -73,39 +73,58 @@ describe('pageAspect', () => {
     expect(pageAspect(quad, W, H)).toBeCloseTo(Math.SQRT2, 3);
   });
 
-  it('returns null for a frontal view, where the edge lengths are already right', () => {
+  it('matches the edge lengths for a frontal view, where they are already right', () => {
     for (const spin of [0, 20]) {
       const quad = photograph(Math.SQRT2, { focal: 1, tilt: 0, spin, shift: { x: 0.2, y: 0.1 } });
-      expect(pageAspect(quad, W, H)).toBeNull();
       const { width, height } = warpSize(quad, 1e6);
-      expect(width / height).toBeCloseTo(Math.SQRT2, 2);
+      expect(pageAspect(quad, W, H)).toBeCloseTo(width / height, 2);
+      expect(pageAspect(quad, W, H)).toBeCloseTo(Math.SQRT2, 2);
     }
   });
 
-  it('returns null or the right ratio for a view a degree or two off frontal', () => {
+  it('stays within 2% for a view a degree or two off frontal', () => {
     for (const tilt of [0.5, 1, 2]) {
       const aspect = pageAspect(photograph(Math.SQRT2, { focal: 1, tilt, spin: 20 }), W, H);
-      if (aspect !== null) expect(Math.abs(aspect / Math.SQRT2 - 1)).toBeLessThan(0.02);
+      expect(Math.abs((aspect as number) / Math.SQRT2 - 1)).toBeLessThan(0.02);
     }
   });
 
-  it('returns null when a pair of sides stays exactly parallel: the focal length is unknowable', () => {
-    // Tilted about the page's own axis: the top and bottom edges stay parallel in the photo.
-    expect(pageAspect(photograph(Math.SQRT2, { focal: 1, tilt: 30 }), W, H)).toBeNull();
+  // Tilted back with the page square to the camera: top and bottom stay parallel, so the focal length
+  // cannot be solved and the assumed phone focal stands in for it.
+  for (const [name, ratio] of Object.entries({ A4: Math.SQRT2, 'A4 portrait': 1 / Math.SQRT2, Letter: 11 / 8.5 })) {
+    for (const focal of [0.65, 0.75, 0.9]) {
+      it(`recovers ${name} within 3% tilted back square to a camera of focal ${focal}`, () => {
+        // Up to 25 degrees; at 40 a 0.65 or 0.9 camera is 6-7% off the assumed 0.75 (still beats edges).
+        for (const tilt of [10, 20, 25]) {
+          const quad = photograph(ratio, { focal, tilt, shift: { x: 0.1, y: 0.05 } });
+          expect(quad[0].y).toBeCloseTo(quad[1].y, 6); // the top edge really is level
+          const { width, height } = warpSize(quad, 1e6);
+          const aspect = pageAspect(quad, W, H) as number;
+          expect(Math.abs(aspect / ratio - 1)).toBeLessThan(0.03);
+          if (tilt >= 25) expect(Math.abs(width / height / ratio - 1)).toBeGreaterThan(0.05);
+        }
+      });
+    }
+  }
+
+  it('falls back to the assumed focal length when the corners imply none a phone has', () => {
+    const cases = {
+      // Both vanishing points on the same side of the centre: an imaginary focal length.
+      imaginary: quadFromVanishing({ x: W / 2 + 3000, y: H / 2 + 400 }, { x: W / 2 + 3000, y: H / 2 - 400 }),
+      telephoto: quadFromVanishing({ x: W / 2 + 6000, y: H / 2 }, { x: W / 2 - 30000, y: H / 2 + 3000 }), // f ~ 6.7
+      fisheye: quadFromVanishing({ x: W / 2 + 1200, y: H / 2 }, { x: W / 2 - 300, y: H / 2 + 1200 }), // f^2 < 0.25
+    };
+    for (const quad of Object.values(cases)) {
+      const aspect = pageAspect(quad, W, H);
+      expect(aspect).not.toBeNull();
+      expect(Number.isFinite(aspect)).toBe(true);
+    }
   });
 
-  it('returns null when the corners imply an imaginary focal length', () => {
-    // Both vanishing points on the same side of the centre: no real camera sees a rectangle so.
-    expect(pageAspect(quadFromVanishing({ x: W / 2 + 3000, y: H / 2 + 400 }, { x: W / 2 + 3000, y: H / 2 - 400 }), W, H)).toBeNull();
-  });
-
-  it('returns null when the focal length is outside any phone camera', () => {
-    const plausible = quadFromVanishing({ x: W / 2 + 2000, y: H / 2 }, { x: W / 2 - 2000, y: H / 2 + 2000 }); // f = 1 x long side
-    expect(pageAspect(plausible, W, H)).not.toBeNull();
-    const telephoto = quadFromVanishing({ x: W / 2 + 6000, y: H / 2 }, { x: W / 2 - 30000, y: H / 2 + 3000 }); // f ~ 6.7
-    expect(pageAspect(telephoto, W, H)).toBeNull();
-    const fisheye = quadFromVanishing({ x: W / 2 + 1200, y: H / 2 }, { x: W / 2 - 300, y: H / 2 + 1200 }); // f^2 < 0.25
-    expect(pageAspect(fisheye, W, H)).toBeNull();
+  it('returns null for a ratio no page has', () => {
+    expect(pageAspect(photograph(12, { focal: 1, tilt: 20, spin: 10 }), W, H)).toBeNull();
+    expect(pageAspect(photograph(1 / 12, { focal: 1, tilt: 0 }), W, H)).toBeNull();
+    expect(pageAspect(photograph(6, { focal: 1, tilt: 20, spin: 10 }), W, H)).toBeCloseTo(6, 2);
   });
 
   it('returns null for corners with no perspective at all', () => {
