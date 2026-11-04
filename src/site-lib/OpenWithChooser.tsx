@@ -13,6 +13,7 @@ const CHOICES = [
   { tool: 'redact', name: 'Redact', label: 'Redact it', note: 'Black out private parts' },
   { tool: 'highlight-pdf', name: 'Highlight', label: 'Highlight it', note: 'Mark what matters' },
   { tool: 'compress', name: 'Compress', label: 'Compress it', note: 'Make the file smaller' },
+  { tool: 'scan-to-pdf', name: 'Scan', label: 'Straighten it', note: 'Clean up a crooked scan' },
 ] as const;
 
 function OpenWithChooser({ initialFile }: { initialFile?: File }) {

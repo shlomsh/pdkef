@@ -8,6 +8,7 @@
 .choices > :nth-child(2) { background: var(--color-primary-soft); }
 .choices > :nth-child(3) { background: var(--color-citron); border-color: var(--color-citron-ink); }
 .choices > :nth-child(3) strong { color: var(--color-citron-ink); }
+.choices > :nth-child(5):last-child { grid-column: 1 / -1; }
 .choice strong { color: var(--color-text); font-size: 1rem; font-weight: 500; }
 .choice span { font-size: 0.8rem; color: var(--color-muted); text-align: center; }
 .choices > .choice:hover:not(:disabled), .choices > .choice:focus-visible:not(:disabled) { border-color: var(--color-primary); transform: translateY(-2px) rotate(0); }

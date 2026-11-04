@@ -110,24 +110,26 @@ describe('ScanPhoneTable', () => {
     expect(pending.flow.handleShare).not.toHaveBeenCalled();
   });
 
-  it('puts Download, Sign and Redact under Share and hands off', () => {
+  it('puts Download, Sign, Highlight and Redact under Share and hands off', () => {
     const { container, flow } = mount();
     const row = container.querySelector('[data-quiet-row]')!;
     expect(row.querySelector('[data-quiet-download]')).not.toBeNull();
     const buttons = [...row.querySelectorAll('button')];
-    expect(buttons.map((b) => b.textContent?.trim())).toEqual(['Sign', 'Redact']);
-    expect(row.children).toHaveLength(3);
+    expect(buttons.map((b) => b.textContent?.trim())).toEqual(['Sign', 'Highlight', 'Redact']);
+    expect(row.children).toHaveLength(4);
     act(() => buttons[1].click());
+    expect(flow.requestHandoff).toHaveBeenCalledWith('highlight-pdf');
+    act(() => buttons[2].click());
     expect(flow.requestHandoff).toHaveBeenCalledWith('redact');
   });
 
-  it('puts the filled Download in Share place where the phone cannot share, with Sign and Redact under it', () => {
+  it('puts the filled Download in Share place where the phone cannot share, with Sign, Highlight and Redact under it', () => {
     const { container } = mount({ flow: { canSharePdf: false, shareReady: false } });
     expect(container.querySelector('[data-share]')).toBeNull();
     expect(container.querySelector('[data-state]')).not.toBeNull();
     const row = container.querySelector('[data-quiet-row]')!;
     expect(row.querySelector('[data-quiet-download]')).toBeNull();
-    expect(row.children).toHaveLength(2);
+    expect(row.children).toHaveLength(3);
   });
 
   it('shows the Download element error for a held back PDF, and its tap goes to the failed page', () => {

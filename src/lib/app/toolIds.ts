@@ -53,7 +53,7 @@ const IMAGE: readonly FileKind[] = ['image'];
 
 export const TOOL_PAGES = [
   { slug: 'sign', href: '/sign/', id: 'sign', folder: 'sign', label: 'Sign & Fill PDF', accepts: { kinds: PDF, several: false }, localizedIsland: true, editorLayout: true, iconTone: 'sign', unlockReturn: true, handoffTarget: true },
-  { slug: 'highlight-pdf', href: '/highlight-pdf/', id: 'highlight-pdf', folder: 'highlight', label: 'Highlight PDF', accepts: { kinds: PDF, several: false }, editorLayout: true, iconTone: 'highlight' },
+  { slug: 'highlight-pdf', href: '/highlight-pdf/', id: 'highlight-pdf', folder: 'highlight', label: 'Highlight PDF', accepts: { kinds: PDF, several: false }, editorLayout: true, iconTone: 'highlight', handoffTarget: true },
   { slug: 'redact', href: '/redact/', id: 'redact', folder: 'redact', label: 'Blur & Redact', accepts: { kinds: PDF, several: false }, editorLayout: true, iconTone: 'redact', unlockReturn: true, handoffTarget: true },
   { slug: 'merge', href: '/merge/', id: 'merge', folder: 'merge', label: 'Merge PDF', accepts: { kinds: ['pdf', 'image'], several: true, needsPdf: true }, localizedIsland: true, restoresFileList: true, unlimitedNote: true, unlockReturn: true, handoffTarget: true },
   { slug: 'pdf-to-image', href: '/pdf-to-image/', id: 'pdf-to-image', folder: 'to-image', label: 'PDF to Image', accepts: { kinds: PDF, several: false }, localizedIsland: true },

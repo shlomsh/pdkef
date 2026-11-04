@@ -38,7 +38,7 @@ describe('OpenWithChooser', () => {
 
   it('shows plain links to both tools until a file arrives', () => {
     const hrefs = [...container!.querySelectorAll('a')].map((a) => a.getAttribute('href'));
-    expect(hrefs).toEqual(expect.arrayContaining(['/sign/', '/redact/', '/highlight-pdf/', '/compress/']));
+    expect(hrefs).toEqual(expect.arrayContaining(['/sign/', '/redact/', '/highlight-pdf/', '/scan-to-pdf/', '/compress/']));
     expect(container!.querySelectorAll('button')).toHaveLength(0);
   });
 
@@ -47,6 +47,13 @@ describe('OpenWithChooser', () => {
     expect(container!.textContent).toContain('lease.pdf');
     expect(button('Sign')).toBeTruthy();
     expect(button('Redact')).toBeTruthy();
+  });
+
+  it('hands the file to Scan under its own key', async () => {
+    await launch(pdf());
+    await act(async () => { button('Straighten').click(); });
+    await flush();
+    expect(vi.mocked(sendHandoff).mock.calls[0][0]).toBe('scan-to-pdf');
   });
 
   it('hands the file to Redact under its own key', async () => {

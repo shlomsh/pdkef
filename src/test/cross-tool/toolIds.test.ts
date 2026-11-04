@@ -50,8 +50,8 @@ describe('toolIds.ts and src/data/tools.js agree', () => {
 // ARCH-64: the tool-keyed unions derive from the registry; these pin them to today's members, so a
 // row added or flagged without meaning to fails typecheck here (tsc covers this file).
 describe('registry-derived tool unions', () => {
-  it('HandoffTool is exactly the five hand-off targets', () => {
-    expectTypeOf<HandoffTool>().toEqualTypeOf<'compress' | 'sign' | 'merge' | 'redact' | 'edit-pdf'>();
+  it('HandoffTool is exactly the six hand-off targets', () => {
+    expectTypeOf<HandoffTool>().toEqualTypeOf<'compress' | 'sign' | 'merge' | 'redact' | 'edit-pdf' | 'highlight-pdf'>();
   });
 
   it('HandoffTargetId is the registry flag and HandoffTool is that type', () => {
