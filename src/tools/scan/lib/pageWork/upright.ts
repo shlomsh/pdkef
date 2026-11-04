@@ -1,6 +1,6 @@
-// Whether a photographed page lies on its side (SCAN-32), worked out once when the photo is inspected
-// and kept in the page's `turns`, so the person's Rotate acts on top of it. Pure: no DOM.
-import { MIN_SIDEWAYS_CONFIDENCE, SIDEWAYS_TURNS, textTurn } from '#lib/pageEnhance/dewarp/orientation.ts';
+// Which way a photographed page lies (SCAN-32, SCAN-48), worked out once when the photo is inspected and
+// kept in the page's `turns`, so the person's Rotate acts on top of it. Pure: no DOM.
+import { pageTurns } from '#lib/pageEnhance/dewarp/orientation.ts';
 import { scaleQuad, type GrayImage, type Quad, type RgbaImage } from '#lib/pageEnhance/quad.ts';
 import { warpPerspective, warpSizeFor } from '#lib/pageEnhance/warp.ts';
 
@@ -14,17 +14,17 @@ function grayOf({ width, height, data }: RgbaImage): GrayImage {
   return { width, height, data: gray };
 }
 
-/** The quarter turns (clockwise) that stand the photographed page upright: 0, or SIDEWAYS_TURNS when
- * its text runs down the flattened page clearly enough. `quad` is the page's corners, normalized. */
+/** The quarter turns (clockwise) that stand the photographed page upright. `quad` is the page's corners,
+ * normalized. */
 export function uprightTurns(src: RgbaImage, quad: Quad): number {
   const quadPx = scaleQuad(quad, src.width, src.height);
   const { width, height } = warpSizeFor(quadPx, READ_LONG_EDGE, null);
-  let read;
+  let flat: RgbaImage;
   try {
-    read = textTurn(grayOf(warpPerspective(src, quadPx, width, height)));
+    flat = warpPerspective(src, quadPx, width, height);
   } catch {
     // expected: degenerate corners define no perspective; a page whose turn cannot be read stays unturned.
     return 0;
   }
-  return read && read.turn === 1 && read.confidence >= MIN_SIDEWAYS_CONFIDENCE ? SIDEWAYS_TURNS : 0;
+  return pageTurns(grayOf(flat)).turns;
 }

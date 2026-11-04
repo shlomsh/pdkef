@@ -9,6 +9,11 @@ vi.mock('#lib/pageEnhance/dewarp/index.ts', async (importOriginal) => {
   return { ...actual, measureBend: vi.fn(actual.measureBend) };
 });
 const { measureBend } = await import('#lib/pageEnhance/dewarp/index.ts');
+vi.mock('./upright.ts', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('./upright.ts')>();
+  return { ...actual, uprightTurns: vi.fn(actual.uprightTurns) };
+});
+const { uprightTurns } = await import('./upright.ts');
 
 // EDGE: node has no canvas. A kit of plain RGBA buffers: drawImage samples nearest-neighbour, and
 // toBlob records what was encoded, as the worker's OffscreenCanvas and the page's <canvas> would.
@@ -124,5 +129,13 @@ describe('inspectWith', () => {
     expect([inspected.width, inspected.height]).toEqual([4000, 3000]);
     expect(encodes[0]).toEqual({ width: 1600, height: 1200, type: 'image/jpeg', quality: 0.85 });
     expect(freed).toBe(made);
+  });
+
+  it('reads the turn of a photo with no corners from its whole frame', async () => {
+    vi.mocked(uprightTurns).mockReturnValueOnce(3);
+    const inspected = await inspectWith(fakeKit(gray(400, 300)), new Blob());
+    expect(inspected.quad).toBeNull();
+    expect(vi.mocked(uprightTurns).mock.lastCall?.[1]).toEqual(FULL_QUAD);
+    expect(inspected.turns).toBe(3);
   });
 });

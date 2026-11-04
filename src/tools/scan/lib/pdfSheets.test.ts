@@ -6,9 +6,10 @@ import { FULL_QUAD } from './quad.ts';
 
 // What textTurn would say about a sideways sheet: the synthetic bars are no text, so a tall picture of a wide
 // sheet is declared sideways here and everything else is the real assess.
+let nextTurn = () => 1;
 vi.mock('#lib/pageEnhance/plan.ts', async (importActual) => {
   const actual = await importActual<typeof import('#lib/pageEnhance/plan.ts')>();
-  return { ...actual, assess: (gray: GrayImage) => ({ ...actual.assess(gray), ...(gray.height === 800 && gray.width === 560 ? { turn: 1 as const } : {}) }) };
+  return { ...actual, assess: (gray: GrayImage) => ({ ...actual.assess(gray), ...(gray.height === 800 && gray.width === 560 ? { turn: nextTurn() } : {}) }) };
 });
 
 // A white sheet with a dark spine down the middle and rows of dark bars either side: a two-page spread.
@@ -98,6 +99,25 @@ describe('pdfSheets', () => {
     await collect(pdfSheets(pdf, undefined, r));
     expect(r.calls.gray).toEqual([[1, 1000, 0]]);
     expect(r.calls.jpeg.map((call) => call.slice(0, 3))).toEqual([[1, 3200, 0]]);
+  });
+
+  it('redraws a sheet by the turns its read asks for, not always the same one', async () => {
+    nextTurn = () => 3;
+    const r = reader((turns) => (turns === 0 ? turnedAside(spread(800, 560)) : spread(800, 560)));
+    const [sheet] = await collect(pdfSheets(pdf, undefined, r));
+    nextTurn = () => 1;
+    expect(r.calls.jpeg[0][2]).toBe(3);
+    expect(sheet.quads).toHaveLength(2);
+  });
+
+  it('keeps a spread split when the read after the first turn says it is upside down', async () => {
+    const asks = [1, 2];
+    nextTurn = () => asks.shift() ?? 0;
+    const r = reader((turns) => (turns === 3 ? spread(800, 560) : turnedAside(spread(800, 560))));
+    const [sheet] = await collect(pdfSheets(pdf, undefined, r));
+    nextTurn = () => 1;
+    expect(r.calls.gray.map((c) => c[2])).toEqual([0, 1, 3]);
+    expect(sheet.quads).toHaveLength(2);
   });
 
   it('redraws a sideways sheet turned, and plans from the upright read', async () => {

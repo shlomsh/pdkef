@@ -5,7 +5,7 @@ import { applyPiece } from './piece.ts';
 import { spreadHalves } from './spine.ts';
 import { levelQuad } from './lean.ts';
 import { assess, planPage } from './plan.ts';
-import type { RgbaImage } from './quad.ts';
+import { rotateQuad, type Quad, type RgbaImage } from './quad.ts';
 
 const W = 800;
 const H = 500;
@@ -180,5 +180,18 @@ describe('found corners', () => {
     const [left, right] = planPage(g, a, sheet).pieces.map((p) => p.quad);
     expect((left[1].x + left[2].x) / 2).toBeLessThan(spineX - 0.01);
     expect((right[0].x + right[3].x) / 2).toBeGreaterThan(spineX + 0.01);
+  });
+});
+
+describe('a sheet that needs turning', () => {
+  it('finds the source corners for every turn, the same as the quad itself turns', () => {
+    const sheet = leaning(600, 800, 0, 0, 600);
+    const g = gray(sheet);
+    const a = assess(g);
+    for (const turn of [1, 2, 3]) {
+      const { pieces } = planPage(g, { ...a, turn, spine: null, leans: [0], corners: [null], crooked: true }, sheet);
+      const unit = [{ x: 0, y: 0 }, { x: 1, y: 0 }, { x: 1, y: 1 }, { x: 0, y: 1 }] as Quad;
+      expect(pieces[0].quad).toEqual(rotateQuad(unit, turn));
+    }
   });
 });

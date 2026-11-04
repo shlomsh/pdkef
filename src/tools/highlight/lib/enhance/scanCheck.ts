@@ -23,7 +23,7 @@ const half = (sheets: Assessment[], test: (a: Assessment) => boolean) => sheets.
 export function scanVerdict(sheets: Assessment[]): ScanVerdict {
   if (!sheets.length || !half(sheets, (a) => a.crooked)) return 'straight';
   if (half(sheets, (a) => !!a.spine)) return 'spread';
-  if (half(sheets, (a) => a.turn === 1)) return 'sideways';
+  if (half(sheets, (a) => a.turn !== 0)) return 'sideways';
   if (half(sheets, (a) => a.leans.some((l) => Math.abs(l) >= MIN_LEAN_DEGREES))) return 'lean';
   return 'bent';
 }

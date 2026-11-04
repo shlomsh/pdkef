@@ -346,7 +346,7 @@ function medianSlope(lines: Sample[][]): number | null {
 }
 
 /** A line's own least-squares straight line: its slope, how far it strays from it, how far it runs. */
-function ownLine(line: Sample[]): { slope: number; rms: number; span: number; at: (x: number) => number } {
+export function ownLine(line: Sample[]): { slope: number; rms: number; span: number; at: (x: number) => number } {
   const mx = line.reduce((t, p) => t + p.x, 0) / line.length;
   const my = line.reduce((t, p) => t + p.y, 0) / line.length;
   let num = 0;

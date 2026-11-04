@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { GrayImage } from '../quad.ts';
 import { seededRandom } from '../seededRandom.test-helper.ts';
-import { textTurn } from './orientation.ts';
+import { textTurn, textUp } from './orientation.ts';
 
 const W = 800;
 const H = 1040;
@@ -23,10 +23,11 @@ function textRows(rows: number, seed: number, x0 = 0.1, x1 = 0.9): Paint {
         for (let k = 0; k < letters && x < end * W; k += 1) {
           const lw = Math.round(W * (0.005 + rnd() * 0.005));
           const top = base - Math.round(H * (rnd() < 0.3 ? 0.016 : 0.011));
-          // A letter is its outline, two strokes down and one across, not a solid block.
+          // A letter is its outline, two strokes down and one across its top, not a solid block: printed
+          // letters, Hebrew and Latin alike, carry more ink in the top half of their row.
           for (let y = top; y < base; y += 1) {
             for (let px = Math.round(x); px < Math.round(x) + lw; px += 1) {
-              const edge = px - Math.round(x) < 2 || Math.round(x) + lw - px <= 2 || base - y <= 2;
+              const edge = px - Math.round(x) < 2 || Math.round(x) + lw - px <= 2 || y - top < 2;
               if (edge) data[y * W + px] = 30;
             }
           }
@@ -133,5 +134,26 @@ describe('textTurn', () => {
     }
     expect(textTurn({ width: W, height: H, data })).toBeNull();
     expect(textTurn(quarter({ width: W, height: H, data }))).toBeNull();
+  });
+});
+
+describe('textUp', () => {
+  const halfTurned = ({ width, height, data }: GrayImage): GrayImage => ({ width, height, data: data.slice().reverse() });
+
+  it('reads an upright page as up and the same page half turned as down', () => {
+    const page = photo(textRows(24, 3));
+    expect(textUp(page)).toBeGreaterThan(0.5);
+    expect(textUp(halfTurned(page))).toBeLessThan(-0.5);
+  });
+
+  it('reads through a form\'s rules', () => {
+    const page = photo(table(9, 5), textRows(24, 3));
+    expect(textUp(page)).toBeGreaterThan(0.5);
+    expect(textUp(halfTurned(page))).toBeLessThan(-0.5);
+  });
+
+  it('says nothing about a page with too little text', () => {
+    expect(textUp(photo())).toBeNull();
+    expect(textUp(photo(textRows(2, 3)))).toBeNull();
   });
 });

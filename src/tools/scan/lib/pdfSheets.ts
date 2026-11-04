@@ -36,13 +36,14 @@ async function quadsOf(reader: SheetReader, pageNumber: number): Promise<{ quads
   let turns = 0;
   let gray = await reader.grayOf(pageNumber, READ_LONG_EDGE, turns);
   let a = assess(gray);
-  if (a.turn !== 0) {
-    turns = 1;
+  // A second turn is for a sheet that only reads as upside down once it is turned the first time.
+  for (let reads = 0; reads < 2 && a.turn !== 0; reads += 1) {
+    turns = (turns + a.turn) % 4;
     gray = await reader.grayOf(pageNumber, READ_LONG_EDGE, turns);
     a = assess(gray);
-    // Still asking for a turn after one: the read is not to be trusted, so the sheet is one page.
-    if (a.turn !== 0) return { quads: [FULL_QUAD], turns };
   }
+  // Still asking for a turn after that: the read is not to be trusted, so the sheet is one page.
+  if (a.turn !== 0) return { quads: [FULL_QUAD], turns };
   // Only the quads are kept, and they are in 0 to 1 of the picture, so the small copy stands for the full one.
   return { quads: planPage(gray, a, gray).pieces.map((p) => p.quad), turns };
 }
