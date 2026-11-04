@@ -128,7 +128,8 @@ export default function Viewfinder(props: ViewfinderProps) {
         <button type="button" class={styles.round} data-close aria-label={t.closeCamera} onClick={props.onClose}>
           <X size={24} aria-hidden="true" />
         </button>
-        <p class={styles.hint} data-hint={camera.status === 'live' ? live.hint : undefined}>
+        {/* aria-hidden: screen readers get the same words from the polite region below, without the repeats. */}
+        <p class={styles.hint} aria-hidden="true" data-camera-hint={camera.status === 'live' ? live.hint : undefined}>
           {camera.status === 'live' && (
             <span class={styles.hintText} data-advice={ADVICE.has(live.hint) || undefined}>{hintText(live.hint, props.count, t)}</span>
           )}
