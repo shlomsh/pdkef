@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest';
 import { gray, leaning } from './leaning.test-helper.ts';
 import { pageLean } from './lean.ts';
 import { applyPiece } from './piece.ts';
+import { spreadHalves } from './spine.ts';
+import { levelQuad } from './lean.ts';
 import { assess, planPage } from './plan.ts';
 import type { RgbaImage } from './quad.ts';
 
@@ -106,5 +108,64 @@ describe('one page', () => {
     expect(big.width / one.width).toBeLessThan(3.1);
     expect(big.height / one.height).toBeGreaterThan(2.9);
     expect(big.height / one.height).toBeLessThan(3.1);
+  });
+});
+
+/** Justified rows from `left` to `right` (the block widening by `drift` at the bottom) and a 3 px spine line down the middle. */
+function bookSheet(rowsLeft: number, rowsRight: number): RgbaImage {
+  const w = 1000;
+  const h = 600;
+  const data = new Uint8ClampedArray(w * h * 4).fill(255);
+  const bar = (x0: number, x1: number, y0: number) => {
+    for (let y = y0; y < y0 + 11; y += 1) for (let x = x0; x < x1; x += 1) data.fill(20, (y * w + x) * 4, (y * w + x) * 4 + 3);
+  };
+  const rows = (count: number, left: number, right: number, drift: number) => {
+    for (let r = 0; r < count; r += 1) {
+      const d = (drift * r) / 17;
+      for (let k = 0; k < 8; k += 1) {
+        const l = left - d;
+        const span = right + d - l;
+        const x0 = Math.round(l + (k * span) / 8);
+        bar(x0, Math.round(x0 + span / 8 - 6), 50 + r * 28);
+      }
+    }
+  };
+  rows(rowsLeft, 70, 440, 12);
+  rows(rowsRight, 560, 930, 0);
+  for (let y = 0; y < h; y += 1) data.fill(0, (y * w + 499) * 4, (y * w + 499) * 4 + 3), data.fill(0, (y * w + 501) * 4, (y * w + 501) * 4 + 3);
+  return { width: w, height: h, data };
+}
+
+/** A two-page sheet whose justified rows lean by `degrees`, far enough that neighbouring rows overlap when read straight across. */
+function leaningSpread(degrees: number): RgbaImage {
+  const width = 1000;
+  const height = 700;
+  const half = leaning(width / 2, height, degrees, 40, width / 2 - 40);
+  const data = new Uint8ClampedArray(width * height * 4).fill(255);
+  for (let y = 0; y < height; y += 1) {
+    for (const start of [0, width / 2]) data.set(half.data.subarray(y * half.width * 4, (y + 1) * half.width * 4), (y * width + start) * 4);
+    for (let x = width / 2 - 2; x < width / 2 + 2; x += 1) data.fill(0, (y * width + x) * 4, (y * width + x) * 4 + 3);
+  }
+  return { width, height, data };
+}
+
+describe('found corners', () => {
+  it('are read after the page is levelled, so rows that lean past each other still count', () => {
+    const a = assess(gray(leaningSpread(3.5)));
+    expect(a.spine).not.toBeNull();
+    expect(a.corners.every(Boolean)).toBe(true);
+  });
+
+  it('square a half with a text block and leave a half with too few rows level', () => {
+    const sheet = bookSheet(18, 4);
+    const g = gray(sheet);
+    const a = assess(g);
+    expect(a.spine).not.toBeNull();
+    expect(a.corners[0]).not.toBeNull();
+    expect(a.corners[1]).toBeNull();
+    const { pieces } = planPage(g, a, sheet);
+    expect(pieces[0].quad).toEqual(a.corners[0]);
+    const half = spreadHalves(a.spine!)[1];
+    expect(pieces[1].quad).toEqual(levelQuad(half, a.leans[1], sheet.width, sheet.height));
   });
 });

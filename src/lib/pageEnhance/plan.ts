@@ -4,9 +4,11 @@
 import { bentPx, FLAT_PAGE, measureBend, toGray } from './dewarp/index.ts';
 import { MIN_SIDEWAYS_CONFIDENCE, SIDEWAYS_TURNS, textTurn } from './dewarp/orientation.ts';
 import { levelQuad, pageLean } from './lean.ts';
+import { applyHomography, homography } from './homography.ts';
 import { applyPiece, type Piece } from './piece.ts';
-import { scaleQuad, type GrayImage, type Point, type Quad, type RgbaImage } from './quad.ts';
+import { scaleQuad, type GrayImage, type Point, type Quad } from './quad.ts';
 import { findSpine, spreadHalves, type Spine } from './spine.ts';
+import { rgbaOf, textBlockCorners } from './textBlock.ts';
 import { warpSizeFor } from './warp.ts';
 
 /** A lean below this many degrees is below what the eye catches, so leveling it only costs a resample. */
@@ -26,6 +28,8 @@ export interface Assessment {
   spine: Spine | null;
   /** Degrees, one per page: left then right on a spread, one otherwise. */
   leans: number[];
+  /** One per page, in the turned sheet, 0..1: corners that square the page's text block; null where there are too few rows (and always on a single page, so a phone photo's plan is unchanged). */
+  corners: (Quad | null)[];
   /** Single page only; 0 on a spread. */
   bentPx: number;
   crooked: boolean;
@@ -33,12 +37,6 @@ export interface Assessment {
 
 /** The pieces that make the sheet's pages, upright and level. */
 interface PagePlan { pieces: Piece[] }
-
-const rgbaOf = ({ width, height, data }: GrayImage): RgbaImage => {
-  const out = new Uint8ClampedArray(width * height * 4);
-  for (let i = 0; i < data.length; i += 1) out.fill(data[i], i * 4, i * 4 + 3).fill(255, i * 4 + 3, i * 4 + 4);
-  return { width, height, data: out };
-};
 
 /** The image turned a quarter clockwise: its left column becomes the top row. */
 function turnedClockwise({ width, height, data }: GrayImage): GrayImage {
@@ -50,6 +48,14 @@ function turnedClockwise({ width, height, data }: GrayImage): GrayImage {
 /** One page's pixels at their own scale (a stretched half would change the angle), so pageLean reads the page and nothing across the spine. */
 function flattened(gray: GrayImage, quad: Quad): GrayImage {
   return toGray(applyPiece(rgbaOf(gray), pieceOf(quad, gray.width, gray.height, Math.max(gray.width, gray.height))));
+}
+
+/** Corners that square `half`'s text block, in the sheet's 0..1, read on the page levelled first. */
+function foundCorners(turned: GrayImage, half: Quad, lean: number): Quad | null {
+  const level = levelQuad(half, lean, turned.width, turned.height);
+  const corners = textBlockCorners(flattened(turned, level));
+  const toSheet = homography(UNIT_QUAD, level);
+  return corners && (corners.map((p) => applyHomography(toSheet, p)) as Quad);
 }
 
 function bentOf(turned: GrayImage, lean: number): number {
@@ -65,10 +71,13 @@ export function assess(gray: GrayImage): Assessment {
   const turn = read && read.turn === 1 && read.confidence >= MIN_SIDEWAYS_CONFIDENCE ? SIDEWAYS_TURNS : 0;
   const turned = turn ? turnedClockwise(gray) : gray;
   const spine = findSpine(turned);
-  const leans = spine ? spreadHalves(spine).map((half) => pageLean(flattened(turned, half))) : [pageLean(turned)];
+  const halves = spine ? spreadHalves(spine) : [];
+  const leans = spine ? halves.map((half) => pageLean(flattened(turned, half))) : [pageLean(turned)];
+  // Spreads only: a book page's text block is squared; a single page keeps the level rectangle.
+  const corners = spine ? halves.map((half, i) => foundCorners(turned, half, leans[i])) : [null];
   const bent = spine ? 0 : bentOf(turned, leans[0]);
   const crooked = !!turn || !!spine || leans.some((l) => Math.abs(l) >= MIN_LEAN_DEGREES) || bent >= MIN_BENT_PX;
-  return { turn, turnConfidence: read?.confidence ?? 0, spine, leans, bentPx: bent, crooked };
+  return { turn, turnConfidence: read?.confidence ?? 0, spine, leans, corners, bentPx: bent, crooked };
 }
 
 /** A point of the clockwise-turned sheet, as the same point of the source. */
@@ -78,15 +87,15 @@ function pageQuads(a: Assessment): Quad[] {
   return a.spine ? spreadHalves(a.spine) : [UNIT_QUAD];
 }
 
-/** @testSeam One piece per page for `source`, the full-size page in pixels; `gray` and `a` are what assess read. */
+/** One piece per page for `source`, the full-size page in pixels; `gray` and `a` are what assess read. */
 export function planPage(gray: GrayImage, a: Assessment, source: { width: number; height: number }): PagePlan {
   const { width, height } = source;
   const longEdge = Math.max(width, height);
   if (!a.crooked) return { pieces: [pieceOf(UNIT_QUAD, width, height, longEdge)] };
   const turnedSize = a.turn ? { width: gray.height, height: gray.width } : gray;
   const pieces = pageQuads(a).map((quad, i) => {
-    const level = levelQuad(quad, a.leans[i], turnedSize.width, turnedSize.height);
-    return pieceOf(a.turn ? (level.map(unturned) as Quad) : level, width, height, longEdge);
+    const page = a.corners[i] ?? levelQuad(quad, a.leans[i], turnedSize.width, turnedSize.height);
+    return pieceOf(a.turn ? (page.map(unturned) as Quad) : page, width, height, longEdge);
   });
   return { pieces };
 }
