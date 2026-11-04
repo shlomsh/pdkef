@@ -6,9 +6,21 @@ const dist = (a: Point, b: Point) => Math.hypot(a.x - b.x, a.y - b.y);
 
 /** Output size for a pixel quad: the longer of each pair of opposite edges, long side capped. */
 export function warpSize(quadPx: Quad, maxLongEdge: number): { width: number; height: number } {
+  return warpSizeFor(quadPx, maxLongEdge, null);
+}
+
+/**
+ * Output size for a pixel quad with the page's true width / height (`pageAspect`, SCAN-34): the long
+ * side `warpSize` would give, the short side from `aspect`. A null aspect is `warpSize` exactly.
+ */
+export function warpSizeFor(quadPx: Quad, maxLongEdge: number, aspect: number | null): { width: number; height: number } {
   let width = Math.max(dist(quadPx[0], quadPx[1]), dist(quadPx[3], quadPx[2]));
   let height = Math.max(dist(quadPx[0], quadPx[3]), dist(quadPx[1], quadPx[2]));
   const long = Math.max(width, height);
+  if (aspect !== null && aspect > 0 && Number.isFinite(aspect)) {
+    width = aspect >= 1 ? long : long * aspect;
+    height = aspect >= 1 ? long / aspect : long;
+  }
   if (long > maxLongEdge) {
     const k = maxLongEdge / long;
     width *= k;
