@@ -128,51 +128,84 @@ const STIFFNESS = 2e-4;
  * own heights, which the per-line offsets carry. */
 const GAUGE = 1;
 
-/** Cholesky on a symmetric positive definite n x n system, in place; null when it is not one. */
-function solveSpd(a: Float64Array, b: Float64Array, n: number): Float64Array | null {
+/**
+ * Cholesky on a symmetric positive definite n x n system held row-major in `a`, every entry of which
+ * further than `band` from the diagonal is zero; in place, null when it is not one. The factor stays
+ * inside the band, so the work is n band^2 rather than n^3 / 6 (SCAN-21); `band` n - 1 is the plain
+ * dense solve.
+ */
+function solveSpd(a: Float64Array, b: Float64Array, n: number, band = n - 1): Float64Array | null {
   for (let j = 0; j < n; j += 1) {
-    let diag = a[j * n + j];
-    for (let k = 0; k < j; k += 1) diag -= a[j * n + k] ** 2;
+    const rj = j * n;
+    let diag = a[rj + j];
+    for (let k = Math.max(0, j - band); k < j; k += 1) diag -= a[rj + k] ** 2;
     if (!(diag > 1e-18)) return null;
     const l = Math.sqrt(diag);
-    a[j * n + j] = l;
-    for (let i = j + 1; i < n; i += 1) {
-      let v = a[i * n + j];
-      for (let k = 0; k < j; k += 1) v -= a[i * n + k] * a[j * n + k];
-      a[i * n + j] = v / l;
+    a[rj + j] = l;
+    for (let i = j + 1, last = Math.min(n - 1, j + band); i <= last; i += 1) {
+      const ri = i * n;
+      let v = a[ri + j];
+      for (let k = Math.max(0, i - band); k < j; k += 1) v -= a[ri + k] * a[rj + k];
+      a[ri + j] = v / l;
     }
   }
   const x = new Float64Array(n);
   for (let i = 0; i < n; i += 1) {
     let v = b[i];
-    for (let k = 0; k < i; k += 1) v -= a[i * n + k] * x[k];
+    for (let k = Math.max(0, i - band); k < i; k += 1) v -= a[i * n + k] * x[k];
     x[i] = v / a[i * n + i];
   }
   for (let i = n - 1; i >= 0; i -= 1) {
     let v = x[i];
-    for (let k = i + 1; k < n; k += 1) v -= a[k * n + i] * x[k];
+    for (let k = i + 1, last = Math.min(n - 1, i + band); k <= last; k += 1) v -= a[k * n + i] * x[k];
     x[i] = v / a[i * n + i];
   }
   return x;
 }
 
-interface Fit { bend: LineBend; offsets: number[] }
+/** How far below the diagonal the lower triangle of a row-major n x n matrix reaches. */
+function bandOf(a: Float64Array, n: number): number {
+  let band = 0;
+  for (let i = 1; i < n; i += 1) {
+    for (let k = 0; k < i - band; k += 1) {
+      if (a[i * n + k] !== 0) { band = i - k; break; }
+    }
+  }
+  return band;
+}
+
+/** The grid and one height per line, as fitted. */
+export interface Fit { bend: LineBend; offsets: number[] }
 
 /**
- * The grid and one height per line that best explain every sample (y observed at x), by least squares
- * with the grid's bending energy as the penalty: each sample reads the grid bilinearly, so it touches
- * four nodes and its line's offset.
+ * @testSeam The grid and one height per line that best explain every sample (y observed at x), by least
+ * squares with the grid's bending energy as the penalty: each sample reads the grid bilinearly, so it
+ * touches four nodes and its line's offset.
+ *
+ * The normal equations are [G B; B' D], grid nodes first, then the line offsets. An offset couples only
+ * to the nodes its own line's samples touch and to no other offset (D is diagonal), so the offsets are
+ * eliminated first, leaving S = G - B D^-1 B' (the Schur complement) on the grid alone. With the nodes
+ * row-major every coupling in S stays within a few rows of the diagonal (the stencils and the gauge reach
+ * two rows, a line the rows it crosses), so S is factored as a band, and each offset follows from the
+ * grid (SCAN-21). The same solution as one dense solve of the whole system, to rounding.
  */
-function fit(lines: Sample[][]): Fit | null {
+export function fit(lines: Sample[][]): Fit | null {
   const nodes = ALONG * ACROSS;
-  const n = nodes + lines.length;
-  const a = new Float64Array(n * n);
-  const b = new Float64Array(n);
+  const count = lines.length;
+  const s = new Float64Array(nodes * nodes);
+  const rhs = new Float64Array(nodes);
+  // Per line: its offset's diagonal and right-hand side, and its column of B (nonzero where `near`).
+  const diag = new Float64Array(count);
+  const own = new Float64Array(count);
+  const columns = lines.map(() => new Float64Array(nodes));
+  const near = lines.map(() => new Uint8Array(nodes));
   const total = lines.reduce((t, l) => t + l.length, 0);
   const wData = 1 / total;
-  const idx = [0, 0, 0, 0, 0];
-  const w = [0, 0, 0, 0, 1];
+  const idx = [0, 0, 0, 0];
+  const w = [0, 0, 0, 0];
   lines.forEach((samples, line) => {
+    const column = columns[line];
+    const touched = near[line];
     for (const p of samples) {
       const gx = Math.min(1, Math.max(0, p.x)) * (ALONG - 1);
       const gy = Math.min(1, Math.max(0, p.y)) * (ACROSS - 1);
@@ -181,29 +214,52 @@ function fit(lines: Sample[][]): Fit | null {
       const tx = gx - i;
       const ty = gy - j;
       const k = j * ALONG + i;
-      idx[0] = k; idx[1] = k + 1; idx[2] = k + ALONG; idx[3] = k + ALONG + 1; idx[4] = nodes + line;
+      idx[0] = k; idx[1] = k + 1; idx[2] = k + ALONG; idx[3] = k + ALONG + 1;
       w[0] = (1 - tx) * (1 - ty); w[1] = tx * (1 - ty); w[2] = (1 - tx) * ty; w[3] = tx * ty;
-      for (let r = 0; r < 5; r += 1) {
-        for (let c = 0; c < 5; c += 1) a[idx[r] * n + idx[c]] += wData * w[r] * w[c];
-        b[idx[r]] += wData * w[r] * p.y;
+      for (let r = 0; r < 4; r += 1) {
+        for (let c = 0; c < 4; c += 1) s[idx[r] * nodes + idx[c]] += wData * w[r] * w[c];
+        rhs[idx[r]] += wData * w[r] * p.y;
+        column[idx[r]] += wData * w[r];
+        touched[idx[r]] = 1;
       }
+      diag[line] += wData;
+      own[line] += wData * p.y;
     }
   });
   // Bending energy: every run of three nodes along either direction, (d0 - 2 d1 + d2)^2.
   const stencil = (k0: number, k1: number, k2: number) => {
     const ks = [k0, k1, k2];
     const cs = [1, -2, 1];
-    for (let r = 0; r < 3; r += 1) for (let c = 0; c < 3; c += 1) a[ks[r] * n + ks[c]] += STIFFNESS * cs[r] * cs[c];
+    for (let r = 0; r < 3; r += 1) for (let c = 0; c < 3; c += 1) s[ks[r] * nodes + ks[c]] += STIFFNESS * cs[r] * cs[c];
   };
   for (let j = 0; j < ACROSS; j += 1) for (let i = 1; i < ALONG - 1; i += 1) stencil(j * ALONG + i - 1, j * ALONG + i, j * ALONG + i + 1);
   for (let i = 0; i < ALONG; i += 1) for (let j = 1; j < ACROSS - 1; j += 1) stencil((j - 1) * ALONG + i, j * ALONG + i, (j + 1) * ALONG + i);
   for (let j = 0; j < ACROSS; j += 1) {
-    for (let r = 0; r < ALONG; r += 1) for (let c = 0; c < ALONG; c += 1) a[(j * ALONG + r) * n + j * ALONG + c] += GAUGE;
+    for (let r = 0; r < ALONG; r += 1) for (let c = 0; c < ALONG; c += 1) s[(j * ALONG + r) * nodes + j * ALONG + c] += GAUGE;
   }
-  for (let k = 0; k < nodes; k += 1) a[k * n + k] += RIDGE;
-  const x = solveSpd(a, b, n);
-  if (!x) return null;
-  return { bend: { nx: ALONG, ny: ACROSS, d: Array.from(x.subarray(0, nodes)) }, offsets: Array.from(x.subarray(nodes)) };
+  for (let k = 0; k < nodes; k += 1) s[k * nodes + k] += RIDGE;
+  // Each line's offset eliminated: b b' / d off the nodes it touches, and b own / d off their right-hand side.
+  const touchedBy = near.map((touched) => {
+    const ks: number[] = [];
+    touched.forEach((t, k) => { if (t) ks.push(k); });
+    return ks;
+  });
+  touchedBy.forEach((ks, line) => {
+    const column = columns[line];
+    for (const r of ks) {
+      const scaled = column[r] / diag[line];
+      rhs[r] -= scaled * own[line];
+      for (const c of ks) s[r * nodes + c] -= scaled * column[c];
+    }
+  });
+  const d = solveSpd(s, rhs, nodes, bandOf(s, nodes));
+  if (!d) return null;
+  const offsets = touchedBy.map((ks, line) => {
+    let v = own[line];
+    for (const k of ks) v -= columns[line][k] * d[k];
+    return v / diag[line];
+  });
+  return { bend: { nx: ALONG, ny: ACROSS, d: Array.from(d) }, offsets };
 }
 
 function lineRms(samples: Sample[], offset: number, bend: LineBend): number {
