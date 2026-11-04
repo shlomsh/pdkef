@@ -1,5 +1,5 @@
 import type { Ref } from 'preact';
-import { useLayoutEffect, useRef } from 'preact/hooks';
+import { useEffect, useLayoutEffect, useRef } from 'preact/hooks';
 import { ChevronLeft, Crop } from 'lucide-preact';
 import { workspaceStyles } from '#shell/pageWorkspace/PageWorkspace.tsx';
 import { formatMessage } from '#lib/text/formatMessage.ts';
@@ -50,10 +50,47 @@ interface ScanPageViewerProps {
   };
 }
 
+/** The swipe: the scroller follows the selected page, and a swipe selects the page it reaches. A rotation does neither. */
+function useSlideScroller(selectedIndex: number, pages: readonly ScanPage[], view: string, onSelect: (id: number) => void) {
+  const scrollerRef = useRef<HTMLDivElement>(null);
+  const widthRef = useRef(0);
+  const pin = () => {
+    const scroller = scrollerRef.current;
+    if (!scroller) return;
+    const width = scroller.clientWidth;
+    widthRef.current = width;
+    if (slideIndexAt(scroller.scrollLeft, width, pages.length) === selectedIndex) return;
+    const sign = getComputedStyle(scroller).direction === 'rtl' ? -1 : 1;
+    scroller.scrollLeft = sign * selectedIndex * width;
+  };
+  const pinRef = useRef(pin);
+  pinRef.current = pin;
+
+  // Page N shows before first paint, and the scroller moves only when it is not already there.
+  useLayoutEffect(pin, [selectedIndex, view, pages.length]);
+
+  useEffect(() => {
+    const scroller = scrollerRef.current;
+    if (!scroller || typeof ResizeObserver === 'undefined') return undefined;
+    const observer = new ResizeObserver(() => pinRef.current());
+    observer.observe(scroller);
+    return () => observer.disconnect();
+  }, [view]);
+
+  const onScroll = () => {
+    const scroller = scrollerRef.current;
+    if (!scroller) return;
+    // An offset from the old width means nothing against the new one: this scroll is the rotation, not a swipe.
+    if (scroller.clientWidth !== widthRef.current) { pin(); return; }
+    const i = slideIndexAt(scroller.scrollLeft, scroller.clientWidth, pages.length);
+    if (i !== selectedIndex) onSelect(pages[i].id);
+  };
+  return { scrollerRef, onScroll };
+}
+
 /** The phone's one-page screen: a full-screen modal over everything, swiping between pages in result mode, the corners in the same dialog. */
 export default function ScanPageViewer({ refs, pages, selected, selectedIndex, view, results, turnedPreviews, finding, findMissed, pageSize, built, actions }: ScanPageViewerProps) {
   const dialogRef = useRef<HTMLDialogElement>(null);
-  const scrollerRef = useRef<HTMLDivElement>(null);
   const unreadable = selected.guessed && selected.preview === null;
   // Back and Escape: Use these corners in corners (an unreadable page has nothing to use, so it closes), Done in result.
   const goBack = view === 'corners' && !unreadable ? actions.onApprove : actions.onDone;
@@ -68,25 +105,18 @@ export default function ScanPageViewer({ refs, pages, selected, selectedIndex, v
     const root = document.documentElement;
     const before = root.style.overflow;
     root.style.overflow = 'hidden';
-    return () => { root.style.overflow = before; if (dialog.open) dialog.close(); };
+    // The browser may close a modal by itself, on a second Back with no tap between. That is a Back too, and if
+    // the viewer stays it has to be open again.
+    const closedByBrowser = () => { backRef.current(); dialog.showModal(); };
+    dialog.addEventListener('close', closedByBrowser);
+    return () => {
+      dialog.removeEventListener('close', closedByBrowser);
+      root.style.overflow = before;
+      if (dialog.open) dialog.close();
+    };
   }, []);
 
-  // Page N shows before first paint, and the scroller moves only when it is not already there.
-  useLayoutEffect(() => {
-    const scroller = scrollerRef.current;
-    if (!scroller) return;
-    const width = scroller.clientWidth;
-    if (slideIndexAt(scroller.scrollLeft, width, pages.length) === selectedIndex) return;
-    const sign = getComputedStyle(scroller).direction === 'rtl' ? -1 : 1;
-    scroller.scrollLeft = sign * selectedIndex * width;
-  }, [selectedIndex, view, pages.length]);
-
-  const onScroll = () => {
-    const scroller = scrollerRef.current;
-    if (!scroller) return;
-    const i = slideIndexAt(scroller.scrollLeft, scroller.clientWidth, pages.length);
-    if (i !== selectedIndex) actions.onSelect(pages[i].id);
-  };
+  const { scrollerRef, onScroll } = useSlideScroller(selectedIndex, pages, view, actions.onSelect);
 
   const exact = built.shown !== undefined && built.ready;
   const { from, to } = slideWindow(selectedIndex, pages.length);

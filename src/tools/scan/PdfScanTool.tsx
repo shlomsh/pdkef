@@ -60,8 +60,8 @@ export default withIslandBoundary(function PdfScanTool({ quietPolicy, navigate }
   });
 
   const { listRef, focusIdRef } = usePhotoTileList({
-    // The list on screen is the grid or, beside a page on desktop, the strip.
-    active: pages.length > 0 && (!wide || view === 'table' ? 'grid' : 'strip'),
+    // Each of these is its own list on screen: the phone grid, the desktop table, the strip beside a page.
+    active: pages.length > 0 && (!wide ? 'phone' : view === 'table' ? 'table' : 'strip'),
     items: pages,
     ghostClass: styles['is-ghost'],
     onReorder: (oldIndex, newIndex) => {
