@@ -60,7 +60,7 @@ the existing undoable `pageTurns`. Affine pieces embed the original page (`embed
 so the old OCR text moves with it [unverified: needs an e2e]; bent pieces become images with no text
 layer (Highlight reads rasters, READ R30).
 
-Model files under `public/models/`, same-origin, a runtime-only rule in `precachePolicy`, their own
+Model files in a new models folder under public (same-origin), a runtime-only rule in `precachePolicy`, their own
 cache that the SW's activate cleanup skips [unverified], onnxruntime only inside the worker and never
 `wasm-unsafe-eval` on the page [unverified; check with build + preview]. Desktop gate: fine pointer,
 deviceMemory >= 8 where reported, Save-Data off.
