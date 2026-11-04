@@ -36,7 +36,8 @@ const maxCornerDistance = (a: Quad, b: Quad) => Math.max(...a.map((p, i) => dist
 const blend = (old: Quad, next: Quad, alpha: number): Quad =>
   old.map((p, i) => ({ x: p.x + (next[i].x - p.x) * alpha, y: p.y + (next[i].y - p.y) * alpha })) as Quad;
 
-/** How many pages taken in one camera session are remembered; the oldest go first. */
+/** How many pages taken in one camera session are remembered; the oldest go first.
+ * @testSeam */
 export const TAKEN_MEMORY = 50;
 const remember = (taken: readonly string[] | undefined, hash: string) =>
   [...(taken ?? []).filter((h) => h !== hash), hash].slice(-TAKEN_MEMORY);
@@ -48,10 +49,13 @@ export function searchAgain(state: CaptureState): CaptureState {
   return { ...INITIAL_CAPTURE_STATE, lastCaptureHash: state.lastCaptureHash, takenHashes: state.takenHashes ?? [] };
 }
 
+/** `shoots` false (auto off or paused): a fire still waits for the page to change, but no page was taken, so
+ * none is remembered. */
 export function stepCapture(
   state: CaptureState,
   obs: FrameObservation,
   params: CaptureParams = DEFAULT_CAPTURE_PARAMS,
+  shoots = true,
 ): CaptureStep {
   const good = obs.quad !== null && obs.confidence >= params.minConfidence && obs.area >= params.minArea;
   const base: CaptureState = { ...state, lastT: obs.t, prevQuad: good ? obs.quad : null };
@@ -96,7 +100,7 @@ export function stepCapture(
   const focusAnchor = moved ? obs.focus : anchor;
   const settledSince = moved ? obs.t : (current.settledSince as number);
   if (obs.t - holdSince >= params.holdMs && obs.t - settledSince >= params.settleMs) {
-    return { state: { ...next, phase: 'waitingForChange', holdSince: null, focusAnchor: null, settledSince: null, lastCaptureHash: obs.hash, takenHashes: remember(current.takenHashes, obs.hash) }, capture: smoothed };
+    return { state: { ...next, phase: 'waitingForChange', holdSince: null, focusAnchor: null, settledSince: null, lastCaptureHash: obs.hash, takenHashes: shoots ? remember(current.takenHashes, obs.hash) : current.takenHashes }, capture: smoothed };
   }
   return { state: { ...next, phase: 'holding', holdSince, focusAnchor, settledSince }, capture: null };
 }
