@@ -62,3 +62,37 @@ test('a pinch on the viewfinder zooms the camera and leaves the page alone', asy
   await viewfinder.getByRole('button', { name: 'Close' }).click();
   await expect(viewfinder).toBeHidden();
 });
+
+// SCAN-16 - a phone too slow for the stream: its checks are held to two a second, so the track steps down once and
+// then the native camera takes over, with a line of its own.
+test('a phone that cannot keep up steps down, then hands over to the native camera', async ({ page }) => {
+  await page.addInitScript(() => {
+    window.__sizes = [];
+    const realApply = MediaStreamTrack.prototype.applyConstraints;
+    MediaStreamTrack.prototype.applyConstraints = function apply(constraints) {
+      window.__sizes.push(constraints.width?.ideal);
+      return realApply.call(this, constraints);
+    };
+    const RealWorker = window.Worker;
+    window.Worker = class extends RealWorker {
+      constructor(url, options) {
+        super(url, options);
+        this.slow = String(url).includes('camera');
+      }
+
+      postMessage(message, transfer) {
+        if (!this.slow) { super.postMessage(message, transfer); return; }
+        const data = { t: message.t, quad: null, confidence: 0, sharpness: 0, area: 0, hash: '0'.repeat(16), focus: 0 };
+        setTimeout(() => this.onmessage?.({ data }), 500);
+      }
+    };
+  });
+  await page.goto('/scan-to-pdf/');
+  await waitForIsland(page);
+  await page.getByText('Start scanning').click();
+  const viewfinder = page.getByRole('dialog');
+
+  await expect(viewfinder.getByText('Each page goes in as a photo on this phone')).toBeVisible({ timeout: 15_000 });
+  expect(await page.evaluate(() => window.__sizes)).toEqual([2592]);
+  await expect(viewfinder.getByText('Take a photo')).toBeVisible();
+});
