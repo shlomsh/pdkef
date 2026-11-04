@@ -189,14 +189,16 @@ describe('FilePreview', () => {
     window.URL.createObjectURL = vi.fn(() => urls.shift()!);
     window.URL.revokeObjectURL = vi.fn();
 
-    mount({ file: makeImageFile('a.jpg') });
-    expect(window.URL.revokeObjectURL).not.toHaveBeenCalled();
-    act(() => render(<FilePreview file={makeImageFile('b.jpg')} />, container!));
-    expect(window.URL.revokeObjectURL).toHaveBeenCalledWith('blob:first');
-    expect(window.URL.revokeObjectURL).not.toHaveBeenCalledWith('blob:second');
-
-    window.URL.createObjectURL = originalCreate;
-    window.URL.revokeObjectURL = originalRevoke;
+    try {
+      mount({ file: makeImageFile('a.jpg') });
+      expect(window.URL.revokeObjectURL).not.toHaveBeenCalled();
+      act(() => render(<FilePreview file={makeImageFile('b.jpg')} />, container!));
+      expect(window.URL.revokeObjectURL).toHaveBeenCalledWith('blob:first');
+      expect(window.URL.revokeObjectURL).not.toHaveBeenCalledWith('blob:second');
+    } finally {
+      window.URL.createObjectURL = originalCreate;
+      window.URL.revokeObjectURL = originalRevoke;
+    }
   });
 
   it('does not call renderThumbnail for a non-PDF, non-image file', () => {

@@ -122,9 +122,10 @@ describe('checking-draft placeholder (avoids the empty-dropzone flicker)', () =>
     // Only the clock is faked: setImmediate stays real so lazy imports can settle between steps.
     vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'setInterval', 'clearInterval', 'Date'] });
     const realTick = (globalThis as unknown as { setImmediate(run: () => void): void }).setImmediate;
-    // Steps the fake clock until the condition holds, bounded so a regression fails instead of hanging.
+    // Steps the fake clock until the condition holds. The bound is real time, since a lazy import takes real time.
     const stepUntil = async (cond: () => boolean) => {
-      for (let i = 0; i < 200 && !cond(); i++) {
+      const deadline = performance.now() + 15_000;
+      while (!cond() && performance.now() < deadline) {
         await act(async () => {
           await vi.advanceTimersByTimeAsync(100);
           await new Promise<void>((resolve) => { realTick(resolve); });
