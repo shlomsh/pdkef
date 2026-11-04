@@ -55,7 +55,7 @@ afterEach(() => {
 describe('page-grid tools pass an emptyArt', () => {
   it.each(WITH_VERB)('%s shows the verb stage, not the file-plus icon', (_name, make) => {
     const sheet = renderEmpty(make);
-    expect(sheet.querySelector(':scope > div[aria-hidden="true"]')).not.toBeNull();
+    expect(sheet.querySelector(':scope > [data-verb-band] > div[aria-hidden="true"]')).not.toBeNull();
     expect(sheet.querySelector('[data-testid="dropzone-icon"]')).toBeNull();
   });
 });

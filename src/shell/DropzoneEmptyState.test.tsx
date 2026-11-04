@@ -204,4 +204,45 @@ describe('DropzoneEmptyState', () => {
       expect(order()).toEqual(['LABEL', 'BUTTON']);
     });
   });
+
+  describe('the cloud drive hint names the button on show', () => {
+    const hint = () => container.querySelector('[data-cloud-drive-hint]');
+    const showHint = async (props) => {
+      vi.stubGlobal('navigator', IPHONE_NAVIGATOR);
+      mount({ showIosFilesHint: false, showCloudDriveHint: true, ...props });
+      await flushMountEffect({ showIosFilesHint: false, showCloudDriveHint: true, ...props });
+    };
+
+    it("says Scan's own button and offers no PDF how-to for photos", async () => {
+      await showHint({ accept: 'image/jpeg,image/png,application/pdf', pickLabel: 'Choose photos' });
+      expect(hint().textContent).toContain('Choose photos can open');
+      expect(hint().textContent).not.toContain('Choose files');
+      expect(hint().querySelector('a')).toBeNull();
+    });
+
+    it('offers no PDF how-to on a picker that only takes images', async () => {
+      await showHint({ accept: 'image/jpeg,image/png' });
+      expect(hint().querySelector('a')).toBeNull();
+    });
+
+    it('says Choose file on a one-file PDF tool and keeps the how-to', async () => {
+      await showHint({ multiple: false });
+      expect(hint().textContent).toContain('Choose file can open');
+      expect(hint().querySelector('a').getAttribute('href')).toBe('/how-to-open-a-pdf-from-google-drive/');
+    });
+  });
+
+  describe('art', () => {
+    it("sits in the sheet's band, first, so a phone can give it the spare height", () => {
+      mount({ showIosFilesHint: false, art: <i data-art /> });
+      const band = container.querySelector('[data-verb-band]');
+      expect(band.firstElementChild.hasAttribute('data-art')).toBe(true);
+      expect(container.querySelector('[data-empty-state]').firstElementChild).toBe(band);
+    });
+
+    it('leaves the default icon out of the band', () => {
+      mount({ showIosFilesHint: false });
+      expect(container.querySelector('[data-verb-band]')).toBeNull();
+    });
+  });
 });

@@ -1,0 +1,146 @@
+/* The phone first screen: at 640px and under, on the page-grid tools' empty state, the tool card is
+   the hero. The tile sits beside the name, one short line follows, and the card fills the rest of the
+   screen. Same gate as the desktop first screen, so a loaded tool, a restore and a hand-off keep their
+   own folded hero. Sign, Redact and Highlight (`data-editor`) keep their own phone hero.
+
+   Rows 1 to 3 are the title, the line and the card, and the hidden spacer spanning them is exactly
+   one screen tall, so the card's 1fr row is whatever the title leaves, on a one-line or a two-line
+   name alike, with no measuring. Content taller than the screen grows the row: it may grow, never
+   squeeze. Row 4 and on are below the fold.
+
+   `display: contents` makes the hero's row, line and subhead items of the stage's grid, which is
+   what lets the subhead sit below the card: it stays in the page, read and indexed, with no second
+   copy. The rest of the h1 is visually hidden, never removed, so the h1 stays the whole keyword
+   title for search and for a screen reader. */
+[data-hero-line] {
+  display: none;
+}
+
+@media (max-width: 640px) {
+  html:not([data-draft-hint], [data-merge-restore], [data-handoff-pending]) .tool-stage[data-layout='hero']:not([data-editor]):not(:has([data-tool-loaded], [data-tool-shell])) {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto auto 1fr;
+  }
+
+  html:not([data-draft-hint], [data-merge-restore], [data-handoff-pending]) .tool-stage[data-layout='hero']:not([data-editor]):not(:has([data-tool-loaded], [data-tool-shell]))::before {
+    content: '';
+    grid-area: 1 / 1 / 4 / 2;
+    height: calc(100svh - 3.5rem - 1px); /* the app bar and its hairline */
+    pointer-events: none;
+  }
+
+  html:not([data-draft-hint], [data-merge-restore], [data-handoff-pending]) .tool-stage[data-layout='hero']:not([data-editor]):not(:has([data-tool-loaded], [data-tool-shell])) .tool-hero {
+    --hero-icon: 1.75rem;
+    display: contents;
+  }
+
+  html:not([data-draft-hint], [data-merge-restore], [data-handoff-pending]) .tool-stage[data-layout='hero']:not([data-editor]):not(:has([data-tool-loaded], [data-tool-shell])) [data-hero-row] {
+    flex-direction: row;
+    align-items: flex-start;
+    gap: 0.5rem;
+    grid-area: 1 / 1;
+    margin-bottom: 0;
+    padding: 0.75rem 1rem 0;
+  }
+
+  html:not([data-draft-hint], [data-merge-restore], [data-handoff-pending]) .tool-stage[data-layout='hero']:not([data-editor]):not(:has([data-tool-loaded], [data-tool-shell])) .tool-hero-icon {
+    border-radius: 0.5rem;
+  }
+
+  html:not([data-draft-hint], [data-merge-restore], [data-handoff-pending]) .tool-stage[data-layout='hero']:not([data-editor]):not(:has([data-tool-loaded], [data-tool-shell])) [data-hero-name] {
+    font-size: clamp(1.75rem, 8vw, 2.25rem);
+  }
+
+  html:not([data-draft-hint], [data-merge-restore], [data-handoff-pending]) .tool-stage[data-layout='hero']:not([data-editor]):not(:has([data-tool-loaded], [data-tool-shell])) [data-hero-rest] {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  html:not([data-draft-hint], [data-merge-restore], [data-handoff-pending]) .tool-stage[data-layout='hero']:not([data-editor]):not(:has([data-tool-loaded], [data-tool-shell])) [data-hero-line] {
+    display: block;
+    grid-area: 2 / 1;
+    margin: 0.25rem 0 0;
+    padding: 0 1rem 0.75rem;
+    color: var(--color-muted);
+  }
+
+  html:not([data-draft-hint], [data-merge-restore], [data-handoff-pending]) .tool-stage[data-layout='hero']:not([data-editor]):not(:has([data-tool-loaded], [data-tool-shell])) > main {
+    grid-area: 3 / 1;
+  }
+
+  html:not([data-draft-hint], [data-merge-restore], [data-handoff-pending]) .tool-stage[data-layout='hero']:not([data-editor]):not(:has([data-tool-loaded], [data-tool-shell])) > main > #app {
+    flex: 1 1 auto;
+  }
+
+  html:not([data-draft-hint], [data-merge-restore], [data-handoff-pending]) .tool-stage[data-layout='hero']:not([data-editor]):not(:has([data-tool-loaded], [data-tool-shell])) [data-tool-card] {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    align-self: stretch;
+    min-width: 0;
+  }
+
+  html:not([data-draft-hint], [data-merge-restore], [data-handoff-pending]) .tool-stage[data-layout='hero']:not([data-editor]):not(:has([data-tool-loaded], [data-tool-shell])) [data-hero-sub] {
+    grid-area: 4 / 1;
+    max-width: none;
+    padding: 0 1rem 1rem;
+  }
+
+  html:not([data-draft-hint], [data-merge-restore], [data-handoff-pending]) .tool-stage[data-layout='hero']:not([data-editor]):not(:has([data-tool-loaded], [data-tool-shell])) > [data-airplane-note] {
+    grid-area: 5 / 1;
+  }
+
+  /* The card fills its row and the band takes what the controls leave, edge to edge. Sizing the band
+     as a container is what lets the verb, whose aspect is fixed, fit both ways. */
+  html:not([data-draft-hint], [data-merge-restore], [data-handoff-pending]) .tool-stage[data-layout='hero']:not([data-editor]):not(:has([data-tool-loaded], [data-tool-shell])) [data-empty-state] {
+    flex: 1 1 auto;
+    justify-content: flex-start;
+    padding: 0 1.25rem 1.25rem;
+    overflow: hidden;
+  }
+
+  html:not([data-draft-hint], [data-merge-restore], [data-handoff-pending]) .tool-stage[data-layout='hero']:not([data-editor]):not(:has([data-tool-loaded], [data-tool-shell])) [data-verb-band] {
+    container-type: size;
+    display: flex;
+    flex: 1 1 0;
+    align-items: center;
+    justify-content: center;
+    box-sizing: content-box;
+    width: 100%;
+    max-width: none;
+    min-height: 8.5rem;
+    margin-inline: -1.25rem;
+    padding-inline: 1.25rem;
+    background: var(--color-primary-soft);
+  }
+
+  /* 130%: the scenes draw in the middle 70% of their box, so on a tall screen the verb outgrows the
+     band's width rather than floating small in it; only the fading floor line reaches the edge. */
+  html:not([data-draft-hint], [data-merge-restore], [data-handoff-pending]) .tool-stage[data-layout='hero']:not([data-editor]):not(:has([data-tool-loaded], [data-tool-shell])) [data-verb-band] > * {
+    flex: none;
+    width: min(130cqw, 100cqh * 420 / 236);
+    max-width: none;
+  }
+
+  /* A lone picker takes the same full-width, full-height shape as Scan's lead button. */
+  html:not([data-draft-hint], [data-merge-restore], [data-handoff-pending]) .tool-stage[data-layout='hero']:not([data-editor]):not(:has([data-tool-loaded], [data-tool-shell])) [data-empty-state] > label {
+    align-self: stretch;
+    justify-content: center;
+    min-height: 3.5rem;
+    font-size: 1.05rem;
+  }
+}
+
+/* Nothing is dragged on a touch screen: on a phone's first screen the verb says what a heading about
+   dropping would. */
+@media (max-width: 640px) and (hover: none) and (pointer: coarse) {
+  html:not([data-draft-hint], [data-merge-restore], [data-handoff-pending]) .tool-stage[data-layout='hero']:not([data-editor]):not(:has([data-tool-loaded], [data-tool-shell])) [data-sheet-heading] {
+    display: none;
+  }
+}

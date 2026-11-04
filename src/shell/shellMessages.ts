@@ -219,7 +219,7 @@ export const englishShellMessages: ShellMessages = {
   pageOf: 'Page {current} of {total}',
   dir: 'ltr',
   iosFilesHint: 'On iPhone or iPad, share the PDF to Files from Mail, WhatsApp, or any other app, then tap Choose file. It opens on Recents, with the file you just saved at the top.',
-  cloudDriveHint: 'On a phone, Choose files can open Google Drive, Dropbox or iCloud too.',
+  cloudDriveHint: 'On a phone, {pick} can open Google Drive, Dropbox or iCloud too.',
   cloudDriveHowTo: 'How to open a PDF from Drive',
   oldBrowserNotice: 'This tool needs {browser} {version} or newer to open PDFs. A quick update, or another browser, will do it.',
   ratingQuestion: "You're one of PDkef's early users. It's new, free and open source, and a rating helps more people find it.",
@@ -297,7 +297,7 @@ export const hebrewShellMessages: ShellMessages = {
   pageOf: 'עמוד {current} מתוך {total}',
   dir: 'rtl',
   iosFilesHint: 'באייפון או אייפד, שתפו את קובץ ה-PDF ל-Files מתוך Mail, WhatsApp או כל אפליקציה אחרת, ואז לחצו על בחירת קובץ. הוא ייפתח בכרטיסיית "אחרונים" ב-Files, עם הקובץ ששמרתם הרגע למעלה.',
-  cloudDriveHint: 'בטלפון, בחירת קבצים יכולה לפתוח גם את Google Drive, Dropbox או iCloud.',
+  cloudDriveHint: 'בטלפון, {pick} יכולה לפתוח גם את Google Drive, Dropbox או iCloud.',
   cloudDriveHowTo: '',
   oldBrowserNotice: 'כדי לפתוח קבצי PDF בכלי הזה צריך {browser} {version} ומעלה. עדכון קצר, או דפדפן אחר, יסדרו את זה.',
   // TODO(SEO-46): AI draft, not reviewed copy - pending Shlomi's read-through.
