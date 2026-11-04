@@ -87,6 +87,7 @@ const LAZY_ONLY = [
     reachableFrom: ['scan-to-pdf'],
   },
   { chunk: /^Viewfinder\./, why: "Scan's live camera (SCAN-08): nothing loads it until Start scanning", reachableFrom: ['scan-to-pdf'] },
+  { chunk: /^page\.worker-/, why: "Scan's page worker (SCAN-21): the pipeline starts it once the first photo is in", reachableFrom: ['scan-to-pdf'] },
   { chunk: /^markOutlinePath\./, why: 'rough.js pencil outline, loaded on the first open mark (READ-13)', reachableFrom: ['highlight-pdf'] },
   { chunk: /^hatchStroke\./, why: 'rough.js pencil hatch, loaded on the first Pencil mark, and by the export that writes one (READ-14)', reachableFrom: ['highlight-pdf', 'sign'] },
   { chunk: /^generator\./, why: 'rough.js itself, shared by the outline and the hatch, never in a first paint (READ-13, READ-14)', reachableFrom: ['highlight-pdf'] },
