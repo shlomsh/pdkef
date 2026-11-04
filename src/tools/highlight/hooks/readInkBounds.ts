@@ -19,10 +19,14 @@ export async function readInkBounds(pdfDocument: PDFDocumentProxy, isLive: () =>
     const read = await readRows(pdfDocument, n, isLive, pageTurns);
     if (read === 'stale') return null;
     if (read === 'sideways') continue;
-    perPage.push(read ? inkTextBounds(read.rows, read.width) : null);
+    const bounds = read ? inkTextBounds(read.rows, read.width) : null;
+    perPage.push(bounds && turnsOf(pageTurns, n - 1) === 2 ? mirrored(bounds) : bounds);
   }
   return medianBounds(perPage);
 }
+
+/** The same span seen from the other side: rows read as shown on a page the person turned upside down come back to the unturned page's frame, which `turnedPageBox` turns again. */
+const mirrored = ({ left, right }: { left: number; right: number }) => ({ left: 1 - right, right: 1 - left });
 
 /**
  * One page's full text extent (every row counted, nothing trimmed), in fractions of its own width, for print.
