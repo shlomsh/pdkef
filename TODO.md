@@ -26,6 +26,7 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 - [SCAN-05](backlog/tasks/SCAN-05.md) P1 · Scan next: a real page-detection corpus with scored KPIs (in progress)
 - [SCAN-14](backlog/tasks/SCAN-14.md) P1 · Scan next: a page is taken only once it is clear and in focus (in progress)
 - [SCAN-15](backlog/tasks/SCAN-15.md) P1 · Scan next: pinching the camera zooms the picture, not the page (in progress)
+- [SCAN-17](backlog/tasks/SCAN-17.md) P2 · Scan next: a bent or curled page comes out flat, its edges and text lines straight (in progress)
 
 ### Robustness and debt
 
