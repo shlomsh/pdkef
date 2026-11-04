@@ -1,8 +1,8 @@
 // Flattening a bent page (SCAN-17): the person's corners give the homography, the page's own edges
 // and text lines give the bend on top of it, and one map carries an output pixel all the way back to
 // the photo, so the photo is resampled once. Pure: no DOM, no canvas.
-import { applyHomography, homography } from '../homography.ts';
-import { scaleQuad, type GrayImage, type Quad, type RgbaImage } from '../quad.ts';
+import { homography, type Matrix3 } from '../homography.ts';
+import { scaleQuad, type GrayImage, type Point, type Quad, type RgbaImage } from '../quad.ts';
 import { findEdgeCurves } from './edgeCurves.ts';
 import { findLineBend } from './lineBend.ts';
 import { warpAlong, type PageMap } from './meshWarp.ts';
@@ -19,6 +19,16 @@ export interface PageBend { curves: EdgeCurves | null; lines: LineBend | null }
 
 export const isFlat = (bend: PageBend) => !bend.curves && !bend.lines;
 
+/** Not a pixel: the bend can reach a little past the corners, and on a very oblique shot that can cross
+ * the horizon, where the homography mirrors points back into the photo. warpAlong paints NaN white. */
+const NOWHERE: Point = { x: NaN, y: NaN };
+
+function project(h: Matrix3, u: number, v: number): Point {
+  const w = h[6] * u + h[7] * v + h[8];
+  if (!(w > 0)) return NOWHERE;
+  return { x: (h[0] * u + h[1] * v + h[2]) / w, y: (h[3] * u + h[4] * v + h[5]) / w };
+}
+
 /**
  * The output (x, y), 0..1 across the page, to photo pixels. `margin` crops that share of the page off
  * every side, along the curved edges; the text-line bend applies first, since it was measured on the
@@ -30,11 +40,11 @@ export function pageMap(quadPx: Quad, margin: number, { curves, lines }: PageBen
   return (x, y) => {
     const s = margin + span * x;
     const t = margin + span * (lines ? y + bendAt(lines, x, y) : y);
-    if (!curves) return applyHomography(h, { x: s, y: t });
+    if (!curves) return project(h, s, t);
     // A Coons patch of four curves that each vanish at the corners: the corner terms drop out.
     const u = s + (1 - s) * sideAt(curves.left, t) + s * sideAt(curves.right, t);
     const v = t + (1 - t) * sideAt(curves.top, s) + t * sideAt(curves.bottom, s);
-    return applyHomography(h, { x: u, y: v });
+    return project(h, u, v);
   };
 }
 

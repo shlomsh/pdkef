@@ -35,6 +35,19 @@ into one resample of the photo (no second blur), contract in `lib/dewarp/types.t
 Each stage is gated: a page with straight edges and straight lines is warped exactly as before (the
 plain homography, same bytes), and an implausible fit is dropped rather than applied.
 
+## Weight and laziness
+
+The code lives only in the lazy `scanPipeline` chunk, which the Scan page imports once the first photo
+is in; no other page loads it. It adds about 3.5 KB brotli to the service worker's whole-app install
+(MEM-15), which measured 2.91 MB of its 5 MB line after this change (2026-11-04).
+
+## Review fixes (2026-11-04)
+
+A cold review found a flat form bent (a label joined to its underline centred differently on every row);
+lines are now read at their baseline through a running median. The returned bend carries no tilt (the
+corners own rotation) and is held constant outside the box its lines cover. A point the bend pushes
+behind the camera paints white. Each has a test that fails on the first version.
+
 ## Not in this ticket
 
 - Corner-editor handles for the curves (the person cannot yet drag an edge's middle). A follow-up if

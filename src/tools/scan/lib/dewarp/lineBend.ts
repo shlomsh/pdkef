@@ -22,6 +22,8 @@ const MIN_ASPECT = 8;
 const MAX_THICKNESS = 0.04;
 /** Columns sampled along a line, as a share of the width. */
 const SAMPLE_STEP = 0.01;
+/** Samples either side in the running median that finds a line's baseline. */
+const BASELINE_WINDOW = 3;
 /** Fewest samples a line needs. */
 const MIN_SAMPLES = 10;
 /** Most lines used in the fit (the widest ones). */
@@ -42,10 +44,18 @@ const MIN_BEND = 0.0015;
 const MAX_BEND = 0.06;
 /** The fit must leave less than this share of the lines' own wobble unexplained. */
 const MAX_UNEXPLAINED = 0.5;
-/** Curvature (bend minus its best straight-in-x part) below this means a plain tilt, which corners own. */
-const MIN_CURVATURE = 0.0015;
 
 interface Sample { line: number; x: number; y: number }
+
+/** The mean of a block and its neighbours that exist. */
+function mean3x3(grid: Float32Array, gw: number, gh: number, bx: number, by: number): number {
+  let sum = 0;
+  let n = 0;
+  for (let yy = Math.max(0, by - 1); yy <= Math.min(gh - 1, by + 1); yy += 1) {
+    for (let xx = Math.max(0, bx - 1); xx <= Math.min(gw - 1, bx + 1); xx += 1) { sum += grid[yy * gw + xx]; n += 1; }
+  }
+  return sum / n;
+}
 
 function inkMask(gray: GrayImage): Uint8Array {
   const { width: w, height: h, data } = gray;
@@ -62,20 +72,7 @@ function inkMask(gray: GrayImage): Uint8Array {
   }
   const paper = new Float32Array(gw * gh);
   for (let by = 0; by < gh; by += 1) {
-    for (let bx = 0; bx < gw; bx += 1) {
-      let sum = 0;
-      let n = 0;
-      for (let dy = -1; dy <= 1; dy += 1) {
-        for (let dx = -1; dx <= 1; dx += 1) {
-          const yy = by + dy;
-          const xx = bx + dx;
-          if (yy < 0 || yy >= gh || xx < 0 || xx >= gw) continue;
-          sum += maxes[yy * gw + xx];
-          n += 1;
-        }
-      }
-      paper[by * gw + bx] = sum / n;
-    }
+    for (let bx = 0; bx < gw; bx += 1) paper[by * gw + bx] = mean3x3(maxes, gw, gh, bx, by);
   }
   const mask = new Uint8Array(w * h);
   const mx = Math.ceil(w * MARGIN);
@@ -111,8 +108,7 @@ function lineSamples(blob: Uint8Array, w: number, h: number): Sample[][] {
   const queue = new Int32Array(w * h);
   const step = Math.max(1, Math.round(w * SAMPLE_STEP));
   const found: { width: number; samples: Sample[] }[] = [];
-  const sum = new Float64Array(w);
-  const cnt = new Int32Array(w);
+  const bottom = new Int32Array(w);
   for (let start = 0; start < blob.length; start += 1) {
     if (!blob[start] || label[start]) continue;
     let head = 0;
@@ -135,17 +131,24 @@ function lineSamples(blob: Uint8Array, w: number, h: number): Sample[][] {
     const width = maxX - minX + 1;
     const thickness = tail / width;
     if (width < MIN_LINE_WIDTH * w || width / thickness < MIN_ASPECT || thickness > MAX_THICKNESS * h) continue;
-    for (let x = minX; x <= maxX; x += 1) { sum[x] = 0; cnt[x] = 0; }
+    // Each sampled column's lowest ink: the baseline. The centre of the column's ink would not do: a
+    // label joined to its underline centres mid-letter over the label and on the rule beyond it, the
+    // same step on every row of a form, which a shared bend fits as a wave across a flat page.
+    for (let x = minX; x <= maxX; x += 1) bottom[x] = -1;
     for (let k = 0; k < tail; k += 1) {
       const x = queue[k] % w;
       if (x % step !== 0) continue;
-      sum[x] += (queue[k] - x) / w;
-      cnt[x] += 1;
+      const y = (queue[k] - x) / w;
+      if (y > bottom[x]) bottom[x] = y;
     }
-    const samples: Sample[] = [];
-    for (let x = minX; x <= maxX; x += 1) {
-      if (cnt[x] > 0) samples.push({ line: 0, x: (x + 0.5) / w, y: (sum[x] / cnt[x] + 0.5) / h });
-    }
+    const raw: number[] = [];
+    const xs: number[] = [];
+    for (let x = minX; x <= maxX; x += 1) if (bottom[x] >= 0) { xs.push(x); raw.push(bottom[x]); }
+    // A running median drops the descenders (g, p, y) that reach below the baseline here and there.
+    const samples: Sample[] = xs.map((x, k) => {
+      const window = raw.slice(Math.max(0, k - BASELINE_WINDOW), k + BASELINE_WINDOW + 1).sort((a, b) => a - b);
+      return { line: 0, x: (x + 0.5) / w, y: (window[window.length >> 1] + 0.5) / h };
+    });
     if (samples.length >= MIN_SAMPLES) found.push({ width, samples });
   }
   found.sort((a, b) => b.width - a.width);
@@ -251,24 +254,30 @@ export function findLineBend(gray: GrayImage): LineBend | null {
   });
   if (Math.sqrt(resid / count) > MAX_UNEXPLAINED * Math.sqrt(wobble / count)) return null;
 
+  // Judged as it will be applied: without its tilt, and only where the lines are (a plain tilt is
+  // then no bend at all, and a blank margin cannot carry an extrapolated one).
+  const bend = withoutTilt(result.bend, lines);
   const grid = 9;
   let maxBend = 0;
-  let maxCurve = 0;
   for (let gy = 0; gy < grid; gy += 1) {
-    const y = gy / (grid - 1);
-    const vals: number[] = [];
-    for (let gx = 0; gx < grid; gx += 1) vals.push(bendAt(result.bend, gx / (grid - 1), y));
-    for (const v of vals) maxBend = Math.max(maxBend, Math.abs(v));
-    // Best straight-in-x part of this row, by least squares.
-    const mx = 0.5;
-    const mv = vals.reduce((t, v) => t + v, 0) / grid;
-    let sxy = 0;
-    let sxx = 0;
-    vals.forEach((v, gx) => { const dx = gx / (grid - 1) - mx; sxy += dx * (v - mv); sxx += dx * dx; });
-    const slope = sxy / sxx;
-    vals.forEach((v, gx) => { maxCurve = Math.max(maxCurve, Math.abs(v - mv - slope * (gx / (grid - 1) - mx))); });
+    for (let gx = 0; gx < grid; gx += 1) maxBend = Math.max(maxBend, Math.abs(bendAt(bend, gx / (grid - 1), gy / (grid - 1))));
   }
   if (maxBend < MIN_BEND || maxBend > MAX_BEND) return null;
-  if (maxCurve < MIN_CURVATURE) return null;
-  return result.bend;
+  return bend;
+}
+
+/**
+ * The bend with no straight-in-x part left in it, held inside the box its lines cover. A tilt is the
+ * corners' to set: text printed a degree off its paper stays that way, and the page never shears past
+ * the corners the person approved. Over 0..1, the straight part of x^i - 1/(i+1) is (x - 1/2) times
+ * 1, 1 and 0.9 for i = 1, 2, 3, so the x-term's coefficient takes the rest's negative.
+ */
+function withoutTilt(bend: LineBend, lines: Sample[][]): LineBend {
+  const c = [...bend.c];
+  for (let j = 0; j < 3; j += 1) c[j] = -(c[3 + j] + 0.9 * c[6 + j]);
+  let x0 = 1; let x1 = 0; let y0 = 1; let y1 = 0;
+  for (const line of lines) for (const p of line) {
+    x0 = Math.min(x0, p.x); x1 = Math.max(x1, p.x); y0 = Math.min(y0, p.y); y1 = Math.max(y1, p.y);
+  }
+  return { c, box: { x0, x1, y0, y1 } };
 }
