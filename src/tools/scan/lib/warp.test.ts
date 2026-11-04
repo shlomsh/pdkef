@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { Point, Quad, RgbaImage } from './quad';
 import { applyHomography, homography } from './homography';
-import { warpPerspective, warpSize } from './warp';
+import { warpPerspective, warpSizeFor } from './warp';
 
 const quad = (...c: number[]): Quad => [
   { x: c[0], y: c[1] }, { x: c[2], y: c[3] }, { x: c[4], y: c[5] }, { x: c[6], y: c[7] },
@@ -38,19 +38,19 @@ describe('homography', () => {
   });
 });
 
-describe('warpSize', () => {
+describe('warpSizeFor without an aspect', () => {
   it('takes the longer of each pair of opposite edges', () => {
     const trapezoid = quad(10, 0, 90, 0, 100, 150, 0, 140);
-    expect(warpSize(trapezoid, 2400)).toEqual({ width: 100, height: 150 });
+    expect(warpSizeFor(trapezoid, 2400, null)).toEqual({ width: 100, height: 150 });
   });
 
   it('scales both sides down proportionally past the cap', () => {
-    expect(warpSize(rect(4800, 2400), 2400)).toEqual({ width: 2400, height: 1200 });
-    expect(warpSize(rect(1000, 3000), 1500)).toEqual({ width: 500, height: 1500 });
+    expect(warpSizeFor(rect(4800, 2400), 2400, null)).toEqual({ width: 2400, height: 1200 });
+    expect(warpSizeFor(rect(1000, 3000), 1500, null)).toEqual({ width: 500, height: 1500 });
   });
 
   it('is never below one pixel', () => {
-    expect(warpSize(rect(0.1, 0.2), 2400)).toEqual({ width: 1, height: 1 });
+    expect(warpSizeFor(rect(0.1, 0.2), 2400, null)).toEqual({ width: 1, height: 1 });
   });
 });
 

@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { FULL_QUAD } from '../quad.ts';
+import { FULL_QUAD, type Quad } from '../quad.ts';
 import { inspectWith, processWith, type CanvasKit } from './steps.ts';
 
 // The worker's measuring failure travels back with the page, since only the main thread reports.
@@ -81,6 +81,21 @@ describe('processWith', () => {
     expect(measureError).toBe(error);
     expect(page.bentPx).toBe(0);
     expect(page.width).toBe(394);
+  });
+});
+
+describe('processWith sizing', () => {
+  it('sizes a strongly tilted A4 page to its true 1.414 proportions, not to its edge lengths', async () => {
+    // An A4 page seen by a pinhole camera (focal 0.75 x the long side), tilted 50 degrees, as normalized corners.
+    const [W, H, f, tilt] = [1600, 1200, 0.75 * 1600, (50 * Math.PI) / 180];
+    const quad = ([[-1, -1], [1, -1], [1, 1], [-1, 1]] as const).map(([sx, sy]) => {
+      const x = (sx * Math.SQRT2) / 2;
+      const y = sy / 2;
+      const z = 2.5 + y * Math.sin(tilt);
+      return { x: (W / 2 + (f * x) / z) / W, y: (H / 2 + (f * y * Math.cos(tilt)) / z) / H };
+    }) as unknown as Quad;
+    const { page } = await processWith(fakeKit(gray(W, H)), new Blob(), quad, 'original');
+    expect(Math.max(page.width, page.height) / Math.min(page.width, page.height)).toBeCloseTo(Math.SQRT2, 2);
   });
 });
 

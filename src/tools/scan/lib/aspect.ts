@@ -30,8 +30,7 @@ const ASSUMED_FOCAL = 0.75;
 /** No page we scan is longer than this to one, receipts included. */
 const MAX_RATIO = 8;
 
-/** The page's width / height (top edge over left edge), or null for corners with no perspective.
- * @testSeam Until SCAN-34 sizes a page's output with it; drop this tag then. */
+/** The page's width / height (top edge over left edge), or null for corners with no perspective. */
 export function pageAspect(quadPx: Quad, imageWidth: number, imageHeight: number): number | null {
   const long = Math.max(imageWidth, imageHeight);
   if (!(long > 0)) return null;
@@ -61,8 +60,7 @@ export function pageAspect(quadPx: Quad, imageWidth: number, imageHeight: number
 const PAPER_RATIOS = [Math.SQRT2, 11 / 8.5, 14 / 8.5];
 const SNAP_TOLERANCE = 0.03;
 
-/** The nearest standard paper ratio (either orientation) when within `tolerance`, else `ratio`.
- * @testSeam Until SCAN-34 sizes a page's output with it; drop this tag then. */
+/** The nearest standard paper ratio (either orientation) when within `tolerance`, else `ratio`. */
 export function snapPaper(ratio: number, tolerance = SNAP_TOLERANCE): number {
   let best = ratio;
   let bestError = tolerance;

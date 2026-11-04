@@ -4,15 +4,9 @@ import { homography } from './homography.ts';
 
 const dist = (a: Point, b: Point) => Math.hypot(a.x - b.x, a.y - b.y);
 
-/** Output size for a pixel quad: the longer of each pair of opposite edges, long side capped. */
-export function warpSize(quadPx: Quad, maxLongEdge: number): { width: number; height: number } {
-  return warpSizeFor(quadPx, maxLongEdge, null);
-}
-
 /**
  * Output size for a pixel quad with the page's true width / height (`pageAspect`, SCAN-34): the long
- * side `warpSize` would give, the short side from `aspect`. A null aspect is `warpSize` exactly.
- * @testSeam Until SCAN-34 sizes a page's output with it; drop this tag then.
+ * side of the quad's longer opposite edges, the short side from `aspect`. A null aspect gives the edge lengths unchanged.
  */
 export function warpSizeFor(quadPx: Quad, maxLongEdge: number, aspect: number | null): { width: number; height: number } {
   let width = Math.max(dist(quadPx[0], quadPx[1]), dist(quadPx[3], quadPx[2]));
