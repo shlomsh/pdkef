@@ -27,10 +27,11 @@ a deleted page stays remembered (the shutter still takes it); measuring is still
 
 ## Decisions so far (Shlomi)
 
-- Highlight first: when it opens a crooked scan it suggests enhancing the file; accept, dismiss, or try
-  an advanced learned model, downloaded on request and on desktop only.
+- Highlight first: when it opens a crooked scan it suggests enhancing the file; accept or dismiss. A learned
+  model (levels 2 and 3 below, downloaded on request, desktop only) was the plan; measured 2026-11-04 it
+  does not beat the classical level, so it is on hold (SCAN-19).
 - One page-enhancement mechanism common to Scan and Highlight; simple, well bounded, easy to test, low debt.
-- Learned models: permissive licences only (code and weights); compare quality against size first.
+- Learned models: permissive licences only (code AND weights); compare quality against size first.
 - Photo 4 (blank form) may live in the repo; photos 1-3 and the academic PDF never.
 - Snap to A4/Letter/Legal within 3%; assumed phone focal length when the perspective cannot give one.
 
@@ -51,25 +52,25 @@ Highlight gets an enhance folder in its lib (render for analysis, `enhance.worke
 Contract (pure): `Piece { quad, width, height, bend, mesh, keep }`, `Assessment { turn, turnConfidence,
 leanDeg, spread, bentPx, crooked }`, `PagePlan { pieces }`; `assess(gray)`, `planPage(src, base, a,
 {strategy})`, `applyPiece(src, piece)` (one resample), `isAffine(piece)`, `BendStrategy { id, measure }`
-(`classical` wraps measureBend; `uvdoc` lazily in the worker after "Try advanced").
+(`classical` wraps measureBend; a learned strategy is on hold, SCAN-19).
 
 Highlight phase 1 lives in the file line's status slot: silent check (no marks yet), then "This scan is
-sideways, two pages to a sheet · Straighten · Not now" (+ "Try advanced (~N MB)" on desktop), then
+sideways, two pages to a sheet · Straighten · Not now", then
 "Straightening page 3 of 8…" with Cancel, then "Straightened into 16 pages · Undo". Turn-only plans use
 the existing undoable `pageTurns`. Affine pieces embed the original page (`embedPage` + matrix + clip),
 so the old OCR text moves with it [unverified: needs an e2e]; bent pieces become images with no text
 layer (Highlight reads rasters, READ R30).
 
-Model files in a new models folder under public (same-origin), a runtime-only rule in `precachePolicy`, their own
-cache that the SW's activate cleanup skips [unverified], onnxruntime only inside the worker and never
-`wasm-unsafe-eval` on the page [unverified; check with build + preview]. Desktop gate: fine pointer,
-deviceMemory >= 8 where reported, Save-Data off.
+If a learned model ever ships: files in a new models folder under public (same-origin), a runtime-only rule in
+`precachePolicy`, their own cache that the SW's activate cleanup skips [unverified], onnxruntime only inside a
+worker started from a same-origin URL and never `wasm-unsafe-eval` on the page (verified 2026-11-04, see
+SCAN-19). Desktop gate: fine pointer, deviceMemory >= 8 where reported, Save-Data off.
 
 Ticket order after landing: PE-01 pure move; PE-02 contract + applyPiece (Scan switched, flat bytes
 unchanged); PE-03 fold finder; PE-04 lean as a rotation (reuse `rasterInk.estimateSkewDegrees`, range
 up to 6 deg); PE-05 assess + planPage; PE-06 Highlight detection, no UI; PE-07 suggestion line and "Not
 now" memory; PE-08 turn-only and vector rebuild with Undo; PE-09 raster pieces; PE-10 cleanup; PE-11
-unsqueeze; PE-12 strategy seam; PE-13 UVDoc strategy; PE-14 Highlight copy and FAQ.
+unsqueeze; PE-12 strategy seam; PE-13 UVDoc strategy (on hold); PE-14 Highlight copy and FAQ; PE-15 shadows and shading.
 
 Conflicts to resolve: two `orientation.ts` files; `measureBend` levels rows with a shear (spread halves
 lean up to 4.65 deg: lean must be a quad rotation before the bend); three row/skew finders
@@ -86,14 +87,49 @@ only forms. Squeeze toward the spine: 5 of 8 right pages narrow 4-10% (horizonta
 Cleanup inside the justified text column removes the fold line and dark edges. Estimate 4-6 days.
 Scripts: branch `scan-36-prototype`.
 
-## Learned models (desk research; nothing run)
+## The three levels of page enhancement
 
-UVDoc is the only candidate clean on code licence, weights licence, size and scores: MIT code and
-weights, ~8M params, ~30 MB ONNX (~8 MB int8), 712x488 in, a 45x31 grid out (our warp can apply it),
-an ONNX export and a browser package exist. Excluded for licence: DocTr, DocTr++, DocGeoNet, DocScanner
-(non-commercial); PaperEdge and DocRes weights carry no licence (DocRes is also ~900 MB). Watch AADD
-(2025, Apache-2.0 code, weights not yet released). No small permissive deshadow model found. Hands-on
-testing needs a session allowed to download and run model code (the cloud session was not).
+Shlomi's plan for turning a photographed or scanned page into a flat document. The goal of every level is
+the same: predict a matrix (a backward map, an unwarping grid) that our own warp applies in one resample,
+fixing creases and curls on both axes.
+
+1. **Local classical** (built, the Scan landing; PE-01..PE-11). Corners, edge curves, row and rule bend,
+   the page's lean as a rotation per half or per fold facet. No model, no download.
+2. **A small model**, UVDoc (MIT code, about 8M parameters), downloaded on request, desktop only.
+3. **A larger model**, same delivery, for what level 2 cannot do.
+
+Anything above level 1 is a download on request and desktop only. The rule for every model: permissive
+licences (MIT, Apache-2.0, ISC, BSD-2/3, Zlib, 0BSD) for code AND weights, and quality compared against
+size first.
+
+## Learned models (measured 2026-11-04, SCAN-19)
+
+Numbers and method are in [SCAN-19](../backlog/tasks/SCAN-19.md). Short version:
+
+- **Level 2 (UVDoc) does not beat level 1.** On the 8-page book PDF, rotating each half by its lean
+  reaches the glyph noise floor (median 2.03 px, from 11.62 px); UVDoc alone gives 4.40 px and makes 15 of
+  16 halves worse than the lean rotation; fed the already lean-corrected half it still ends 1 to 4 px
+  above it, and it makes level pages wobble. On Shlomi's photographed letters (folded in thirds, opened)
+  the classical dewarp finds no bend and UVDoc did not measurably reduce the crease: its grid is geometric
+  only, and a crease on a page lying flat is a faint shading line, not a bend. On flat pages it zooms and
+  crops (ink box 14% wider, 6% taller on the flat control).
+- **Weights licence is not established.** The repository's MIT file covers "the Software"; nothing written
+  says the checkpoint, ONNX re-exports or its training data carry it. See SCAN-19 for the evidence and the
+  draft message to the authors. Earlier text here said "MIT code and weights": that was wrong.
+- **Browser feasibility is fine, the value is not.** onnxruntime-web 1.31.1 runs UVDoc in a worker started
+  from a same-origin URL with no `wasm-unsafe-eval` on the page (Chromium and WebKit); it fails on the main
+  thread and in a blob: worker. About 0.9 s a page single-threaded on an M2 Pro; int8 is 5.4 MB brotli, the
+  runtime 2.3 MB brotli, about 300 MB of memory while it runs.
+- **Level 3: nothing to pursue.** No larger or newer model has permissive code and weights. Everything
+  that beats UVDoc is non-commercial, AGPL, unreleased (AADD, SyntheticDoc) or silent on its weights
+  licence. No licence-clean crease-shading model exists; classical shading correction needs none.
+- Excluded for licence: DocTr, DocTr++, DocGeoNet, DocScanner (contact for commercial use), D2Dewarp (CC
+  BY-NC-ND), DvD (AGPL), yomitoku's UVDoc retrain (CC BY-NC-SA). PaperEdge (139.7 MB) and DocRes (about 15M
+  parameters; the earlier "~900 MB" was not reproduced) are MIT code with no weights licence.
+- Watch: AADD (Apache-2.0 badge; weights still unreleased) and SyntheticDoc (MIT code and dataset, a UVDoc
+  style network that beats it on DocUNet; no weights yet).
+- The way to repair a crease is level 1: the fold finder (PE-03) and the lean per facet (PE-04). A page
+  folded in thirds is three facets, and the book result shows a rotation per facet reaches the noise floor.
 
 ## The academic-paper session brief
 
