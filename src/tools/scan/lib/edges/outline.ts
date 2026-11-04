@@ -2,7 +2,8 @@
 // gradient, non-maximum suppression, a Hough transform for the long straight lines, a total-least-
 // squares refit of each line, then the best four-sided shape among the lines' intersections, scored
 // by how much strong, aligned edge runs along its sides. A dark band printed on the page is still
-// inside the outline, which brightness alone can never see. Pure, typed arrays only.
+// inside the outline, which brightness alone can never see. A second, faint map of the same gradients
+// finds a white page on a white table by sides far fainter than its print. Pure, typed arrays only.
 import { isConvexQuad, orderQuad } from '../quad.ts';
 import type { GrayImage, Point, Quad } from '../quad.ts';
 import { blur3 } from './brightRegion.ts';
@@ -27,6 +28,16 @@ const MIN_QUAD_AREA = 0.1;
 const FRAME_MARGIN = 0.02;
 const OUT_MARGIN = 0.03;
 const RAD = Math.PI / 180;
+// The faint map (faintEdgeMap), for a white page on a white table. Measured on SCAN-33's photo of one:
+// the page's sides are steps of 4 to 6 gray levels (gradient 8 to 10) or a thin shadow line
+// (gradient 15 to 26), the paper's and table's grain under 2.
+const FAINT_MIN_FLOOR = 4;
+const FAINT_NOISE = 2.5; // times the median gradient strength, which is the table's and the paper's grain
+const FAINT_REF = 3; // times the faint floor: an edge this strong votes and supports a side in full
+const FAINT_CONTRAST = 4; // gray levels of inside-vs-outside difference that count as a boundary here
+const FAINT_CEILING = 30; // gradient strength of a step of about 15 gray levels: above it, an edge is ink or a hard edge
+const OVERSHOOT = 0.12; // of a side's length, the stretch past each corner checked for a continuing edge
+const OVERSHOOT_MIN_PX = 6;
 
 export interface EdgeMap {
   width: number;
@@ -41,10 +52,16 @@ export interface EdgeMap {
   /** Unit gradient direction per pixel (meaningful where `edge` is 1). */
   ux: Float32Array;
   uy: Float32Array;
+  /** Gradient strength below which a pixel is not an edge at all. */
+  floor: number;
   /** Gradient strength that counts as a strong edge (line votes weigh by it). */
   ref: number;
   /** Gradient strength at which an edge fully supports a side: far lower, a faint edge still is one. */
   supportRef: number;
+  /** Gray levels of inside-vs-outside difference that count as a real boundary. */
+  contrast: number;
+  /** A faint map (faintEdgeMap): a side must also stop at its corners, not run on past them. */
+  faint: boolean;
 }
 
 interface Line { nx: number; ny: number; rho: number; votes: number }
@@ -68,10 +85,24 @@ export function buildEdgeMap(image: GrayImage): EdgeMap {
     }
   }
   // p99 of the gradient strength sets the floor for what counts as an edge at all.
+  const floor = Math.max(14, 0.12 * magPercentile(mag, 0.99));
+  const { edge, list, strengths } = thinEdges(mag, ux, uy, w, h, floor);
+  strengths.sort((a, b) => a - b);
+  const top = strengths.length ? strengths[Math.floor(strengths.length * 0.98)] : floor;
+  return { width: w, height: h, gray: g, edge, list, mag, ux, uy, floor, ref: 0.5 * top, supportRef: Math.max(floor, 0.15 * top), contrast: FULL_CONTRAST, faint: false };
+}
+
+function magPercentile(mag: Float32Array, p: number): number {
   const hist = new Uint32Array(2048);
-  for (let i = 0; i < n; i += 1) hist[Math.min(2047, mag[i] | 0)] += 1;
-  const pct = (p: number) => { let c = 0; for (let b = 0; b < 2048; b += 1) { c += hist[b]; if (c >= p * n) return b; } return 2047; };
-  const floor = Math.max(14, 0.12 * pct(0.99));
+  for (let i = 0; i < mag.length; i += 1) hist[Math.min(2047, mag[i] | 0)] += 1;
+  let c = 0;
+  for (let b = 0; b < 2048; b += 1) { c += hist[b]; if (c >= p * mag.length) return b; }
+  return 2047;
+}
+
+/** Non-maximum suppression: the pixels at least `floor` strong that peak across their own edge. */
+function thinEdges(mag: Float32Array, ux: Float32Array, uy: Float32Array, w: number, h: number, floor: number): { edge: Uint8Array; list: Int32Array; strengths: number[] } {
+  const n = w * h;
   const edge = new Uint8Array(n);
   const strengths: number[] = [];
   for (let y = 1; y < h - 1; y += 1) {
@@ -91,9 +122,23 @@ export function buildEdgeMap(image: GrayImage): EdgeMap {
   }
   const list = new Int32Array(strengths.length);
   for (let i = 0, k = 0; i < n; i += 1) if (edge[i]) list[k++] = i;
-  strengths.sort((a, b) => a - b);
-  const top = strengths.length ? strengths[Math.floor(strengths.length * 0.98)] : floor;
-  return { width: w, height: h, gray: g, edge, list, mag, ux, uy, ref: 0.5 * top, supportRef: Math.max(floor, 0.15 * top) };
+  return { edge, list, strengths };
+}
+
+/**
+ * The same gradients with the bar lowered to just above the photo's own noise, for a white page on a
+ * white table: its sides are a step of a few gray levels or a thin shadow line, far under the floor
+ * that the print's black ink sets. Strength and contrast are judged against that faint scale.
+ */
+function faintEdgeMap(map: EdgeMap): EdgeMap {
+  const { width: w, height: h, mag, ux, uy } = map;
+  const floor = Math.max(FAINT_MIN_FLOOR, FAINT_NOISE * magPercentile(mag, 0.5));
+  const { edge, list: all } = thinEdges(mag, ux, uy, w, h, floor);
+  // Only the faint edges vote for lines: the print's ink and the table's own hard edges were the
+  // strong map's to find, and here they would crowd the page's faint sides out of the line list.
+  const ceiling = Math.max(map.floor, FAINT_CEILING);
+  const list = all.filter((i) => mag[i] < ceiling);
+  return { ...map, edge, list, floor, ref: FAINT_REF * floor, supportRef: FAINT_REF * floor, contrast: FAINT_CONTRAST, faint: true };
 }
 
 /** The same physical line, whichever way it faces (a thin stripe gives two opposite edges). */
@@ -193,7 +238,7 @@ function intersect(a: Line, b: Line): Point | null {
 
 /** Fraction (0..1) of a side that has a strong edge running along it, strength-weighted. */
 function sideSupport(map: EdgeMap, a: Point, b: Point, centre: Point): number {
-  const { width: w, height: h, edge, mag, ux, uy, gray, supportRef: ref } = map;
+  const { width: w, height: h, edge, mag, ux, uy, gray, supportRef: ref, contrast } = map;
   const len = Math.hypot(b.x - a.x, b.y - a.y);
   if (len < 1) return 0;
   const dx = (b.x - a.x) / len; const dy = (b.y - a.y) / len;
@@ -223,7 +268,27 @@ function sideSupport(map: EdgeMap, a: Point, b: Point, centre: Point): number {
   }
   if (inFrame < steps / 2 || diffN === 0) return 0;
   // A boundary has a different brightness on its two sides on average; a grout line in a floor does not.
-  return (sum / inFrame) * Math.min(1, Math.abs(diff / diffN) / FULL_CONTRAST);
+  return (sum / inFrame) * Math.min(1, Math.abs(diff / diffN) / contrast);
+}
+
+/**
+ * How far (0..1) the quad's sides run on past its corners, averaged over the corners: a page's side
+ * stops at its corner, where a table's edge or a wall's foot that the quad borrowed for a side runs on.
+ * Each corner counts the stronger of its two lines' continuations.
+ */
+function overshoot(map: EdgeMap, c: Point[], centre: Point): number {
+  let sum = 0;
+  for (let k = 0; k < 4; k += 1) {
+    const p = c[k];
+    let worst = 0;
+    for (const q of [c[(k + 1) % 4], c[(k + 3) % 4]]) {
+      const len = Math.hypot(p.x - q.x, p.y - q.y);
+      const ext = Math.max(OVERSHOOT_MIN_PX, OVERSHOOT * len) / len;
+      worst = Math.max(worst, sideSupport(map, p, { x: p.x + (p.x - q.x) * ext, y: p.y + (p.y - q.y) * ext }, centre));
+    }
+    sum += worst;
+  }
+  return sum / 4;
 }
 
 const centroid = (q: Point[]): Point => ({ x: q.reduce((s, p) => s + p.x, 0) / q.length, y: q.reduce((s, p) => s + p.y, 0) / q.length });
@@ -291,7 +356,9 @@ export function outlineFromMap(map: EdgeMap): OutlineGuess | null {
       }
       if (weak) continue;
       const support = sides.reduce((s, v) => s + v, 0) / 4;
-      const score = support ** 2 * Math.sqrt(area / (w * h));
+      let score = support ** 2 * Math.sqrt(area / (w * h));
+      // Only a quad that could still win pays for the overshoot check.
+      if (map.faint && (!best || score > best.score)) score *= 1 - overshoot(map, pts, centre);
       if (!best || score > best.score) {
         const norm = ordered.map((pt) => ({ x: Math.min(1, Math.max(0, pt.x / w)), y: Math.min(1, Math.max(0, pt.y / h)) })) as Quad;
         const frame = [{ x: 0, y: 0 }, { x: 1, y: 0 }, { x: 1, y: 1 }, { x: 0, y: 1 }];
@@ -301,6 +368,15 @@ export function outlineFromMap(map: EdgeMap): OutlineGuess | null {
     }
   }
   return best;
+}
+
+/** Below this edge score a guess is too weak to stand on its own, and a faint outline must reach it to count. */
+export const WEAK_SCORE = 0.3;
+
+/** The outline on the faint map, when it is at least WEAK_SCORE. */
+export function faintOutline(map: EdgeMap): OutlineGuess | null {
+  const guess = outlineFromMap(faintEdgeMap(map));
+  return guess && guess.score >= WEAK_SCORE ? guess : null;
 }
 
 export const guessByOutline: EdgeGuesser = (image) => outlineFromMap(buildEdgeMap(image))?.quad ?? null;

@@ -3,5 +3,10 @@
     "corners": [[0.2889, 0.295], [0.8667, 0.3225], [0.8089, 0.845], [0.096, 0.779]],
     "conditions": ["lap", "low-contrast"],
     "source": "the SCAN-01 real-photo fixture (fixtures/envelopeOnLap.ts); who took it is not recorded there"
+  },
+  "blank-form-on-white-table": {
+    "corners": [[0.155, 0.182], [0.834, 0.178], [0.956, 0.744], [0.087, 0.758]],
+    "conditions": ["low-contrast"],
+    "source": "Shlomi's iPhone photo (2026-11-04, SCAN-33) of a blank form on a white table, added with his consent; corners read by eye off the full photo (1125x2000)"
   }
 }

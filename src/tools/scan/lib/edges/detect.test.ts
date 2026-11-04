@@ -24,6 +24,6 @@ describe('detectPage', () => {
   });
 
   it('returns no quad and zero confidence on an empty frame', () => {
-    expect(detectPage(solid(320, 427, 128))).toEqual({ quad: null, confidence: 0 });
+    expect(detectPage(solid(320, 427, 128))).toEqual({ quad: null, confidence: 0, lowContrast: false });
   });
 });
