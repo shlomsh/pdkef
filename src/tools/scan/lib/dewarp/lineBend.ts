@@ -174,8 +174,8 @@ function fit(lines: Sample[][]): Fit | null {
   const w = [0, 0, 0, 0, 1];
   lines.forEach((samples, line) => {
     for (const p of samples) {
-      const gx = Math.min(ALONG - 1, Math.max(0, p.x)) * (ALONG - 1);
-      const gy = Math.min(ACROSS - 1, Math.max(0, p.y)) * (ACROSS - 1);
+      const gx = Math.min(1, Math.max(0, p.x)) * (ALONG - 1);
+      const gy = Math.min(1, Math.max(0, p.y)) * (ACROSS - 1);
       const i = Math.min(ALONG - 2, Math.floor(gx));
       const j = Math.min(ACROSS - 2, Math.floor(gy));
       const tx = gx - i;
