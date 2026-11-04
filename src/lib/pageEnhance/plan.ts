@@ -2,7 +2,7 @@
 // spine and each page's lean from a small copy, planPage turns that into one Piece per page for the
 // full-size source (PE-05). Pure: pixels in, numbers out.
 import { bentPx, FLAT_PAGE, measureBend, toGray } from './dewarp/index.ts';
-import { MIN_SIDEWAYS_CONFIDENCE, SIDEWAYS_TURNS, textTurn } from './dewarp/orientation.ts';
+import { pageTurns, turnedClockwise } from './dewarp/orientation.ts';
 import { levelQuad, pageLean } from './lean.ts';
 import { applyHomography, homography } from './homography.ts';
 import { applyPiece, type Piece } from './piece.ts';
@@ -22,8 +22,8 @@ const UNIT_QUAD: Quad = [{ x: 0, y: 0 }, { x: 1, y: 0 }, { x: 1, y: 1 }, { x: 0,
 
 /** What a sheet needs, read from a copy shrunk to about 1000 px on its long edge. */
 export interface Assessment {
-  /** Clockwise quarter turns that make the sheet's text read across. */
-  turn: 0 | 1;
+  /** Clockwise quarter turns that stand the sheet's text up. */
+  turn: number;
   /** textTurn's confidence, 0 when it says nothing. */
   turnConfidence: number;
   /** In the turned sheet. */
@@ -39,13 +39,6 @@ export interface Assessment {
 
 /** The pieces that make the sheet's pages, upright and level. */
 interface PagePlan { pieces: Piece[] }
-
-/** The image turned a quarter clockwise: its left column becomes the top row. */
-function turnedClockwise({ width, height, data }: GrayImage): GrayImage {
-  const out = new Uint8ClampedArray(data.length);
-  for (let y = 0; y < height; y += 1) for (let x = 0; x < width; x += 1) out[x * height + (height - 1 - y)] = data[y * width + x];
-  return { width: height, height: width, data: out };
-}
 
 /** One page's pixels at their own scale (a stretched half would change the angle), so pageLean reads the page and nothing across the spine. */
 function flattened(gray: GrayImage, quad: Quad): GrayImage {
@@ -79,9 +72,8 @@ function bentOf(turned: GrayImage, lean: number): number {
 
 /** What the sheet needs, read from `gray`, the sheet shrunk to about 1000 px on its long edge. */
 export function assess(gray: GrayImage): Assessment {
-  const read = textTurn(gray);
-  const turn = read && read.turn === 1 && read.confidence >= MIN_SIDEWAYS_CONFIDENCE ? SIDEWAYS_TURNS : 0;
-  const turned = turn ? turnedClockwise(gray) : gray;
+  const { turns: turn, confidence } = pageTurns(gray);
+  const turned = turnedClockwise(gray, turn);
   const spine = findSpine(turned);
   const halves = spine ? spreadHalves(spine) : [];
   const leans = spine ? halves.map((half) => pageLean(flattened(turned, half))) : [pageLean(turned)];
@@ -89,11 +81,13 @@ export function assess(gray: GrayImage): Assessment {
   const corners = spine ? halves.map((half, i) => foundCorners(turned, half, leans[i], SPINE_SIDES[i])) : [null];
   const bent = spine ? 0 : bentOf(turned, leans[0]);
   const crooked = !!turn || !!spine || leans.some((l) => Math.abs(l) >= MIN_LEAN_DEGREES) || bent >= MIN_BENT_PX;
-  return { turn, turnConfidence: read?.confidence ?? 0, spine, leans, corners, bentPx: bent, crooked };
+  return { turn, turnConfidence: confidence, spine, leans, corners, bentPx: bent, crooked };
 }
 
-/** A point of the clockwise-turned sheet, as the same point of the source. */
-const unturned = (p: Point): Point => ({ x: p.y, y: 1 - p.x });
+/** A point of the sheet turned `turns` quarters clockwise, as the same point of the source. */
+function unturned(p: Point, turns: number): Point {
+  return turns === 0 ? p : unturned({ x: p.y, y: 1 - p.x }, turns - 1);
+}
 
 function pageQuads(a: Assessment): Quad[] {
   return a.spine ? spreadHalves(a.spine).map((half, i) => withoutGutter(half, SPINE_SIDES[i])) : [UNIT_QUAD];
@@ -104,10 +98,10 @@ export function planPage(gray: GrayImage, a: Assessment, source: { width: number
   const { width, height } = source;
   const longEdge = Math.max(width, height);
   if (!a.crooked) return { pieces: [pieceOf(UNIT_QUAD, width, height, longEdge)] };
-  const turnedSize = a.turn ? { width: gray.height, height: gray.width } : gray;
+  const turnedSize = a.turn % 2 ? { width: gray.height, height: gray.width } : gray;
   const pieces = pageQuads(a).map((quad, i) => {
     const page = a.corners[i] ?? levelQuad(quad, a.leans[i], turnedSize.width, turnedSize.height);
-    return pieceOf(a.turn ? (page.map(unturned) as Quad) : page, width, height, longEdge);
+    return pieceOf(page.map((p) => unturned(p, a.turn)) as Quad, width, height, longEdge);
   });
   return { pieces };
 }

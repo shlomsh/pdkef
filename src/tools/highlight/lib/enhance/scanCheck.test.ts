@@ -43,6 +43,7 @@ describe('scanVerdict', () => {
 
   it('names sideways when the spines are too few', () => {
     expect(scanVerdict([crooked({ turn: 1, spine: SPINE }), crooked({ turn: 1, spine: SPINE }), crooked({ turn: 1 }), sheet(), sheet()])).toBe('sideways');
+    expect(scanVerdict([crooked({ turn: 3 }), crooked({ turn: 3 })])).toBe('sideways');
   });
 
   it('names lean past the bar, then bend', () => {

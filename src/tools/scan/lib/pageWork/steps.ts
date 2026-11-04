@@ -7,6 +7,7 @@ import { FLAT_PAGE, bentPx, measureBend, type PageBend } from '#lib/pageEnhance/
 import { applyPiece, pieceMargin, type Piece } from '#lib/pageEnhance/piece.ts';
 import { warpSizeFor } from '#lib/pageEnhance/warp.ts';
 import { pageAspect, snapPaper } from '../aspect.ts';
+import { FULL_QUAD } from '../quad.ts';
 import { uprightTurns } from './upright.ts';
 import { fillFoldedCorners } from '../foldedCorners.ts';
 import { applyFilter, type ScanFilter } from '../filters.ts';
@@ -142,7 +143,7 @@ export async function inspectWith(kit: CanvasKit, photo: Blob): Promise<Inspecte
     surface.free();
   }
   const quad = await guessWith(kit, preview);
-  return { quad, width, height, preview, turns: quad ? uprightTurns(pixels, quad) : 0 };
+  return { quad, width, height, preview, turns: uprightTurns(pixels, quad ?? FULL_QUAD) };
 }
 
 /** The page's bend beyond its corners; a measuring failure leaves the page flat and is handed back. */

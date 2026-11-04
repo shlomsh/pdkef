@@ -26,7 +26,7 @@ measured, not only applied at the end.
 - **The way the phone is held picks the direction.** In the live camera, the device's orientation at
   the shot (screen orientation or device motion, where the browser allows it) tells which quarter turn.
   For a chosen photo, without it, a default turn plus the existing Rotate control.
-- Upside down (a half turn) from text alone is a follow-up, not this ticket.
+- Upside down (a half turn) from text alone is SCAN-48, which also picks the sideways direction.
 - The turn applies as the existing `turns` on the page (the same as pressing Rotate), so it is
   remembered and undoable.
 
