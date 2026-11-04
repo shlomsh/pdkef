@@ -166,6 +166,19 @@ describe('found corners', () => {
     const { pieces } = planPage(g, a, sheet);
     expect(pieces[0].quad).toEqual(a.corners[0]);
     const half = spreadHalves(a.spine!)[1];
-    expect(pieces[1].quad).toEqual(levelQuad(half, a.leans[1], sheet.width, sheet.height));
+    const level = levelQuad(half, a.leans[1], sheet.width, sheet.height);
+    // The level rectangle, with the gutter cut off its spine side only.
+    expect(pieces[1].quad[0].x).toBeGreaterThan(level[0].x);
+    expect(pieces[1].quad[1].x).toBeCloseTo(level[1].x, 6);
+  });
+
+  it('leave the gutter out of both pages', () => {
+    const sheet = leaningSpread(3.5);
+    const g = gray(sheet);
+    const a = assess(g);
+    const spineX = (a.spine!.top + a.spine!.bottom) / 2;
+    const [left, right] = planPage(g, a, sheet).pieces.map((p) => p.quad);
+    expect((left[1].x + left[2].x) / 2).toBeLessThan(spineX - 0.01);
+    expect((right[0].x + right[3].x) / 2).toBeGreaterThan(spineX + 0.01);
   });
 });

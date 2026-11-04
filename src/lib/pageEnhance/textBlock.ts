@@ -15,6 +15,8 @@ const MIN_PAIR_SPAN = 0.1;
 const INLIER_TOLERANCE = 0.003;
 /** An edge held by fewer rows than this is not trusted. */
 const MIN_INLIERS = 4;
+/** The page stops this share of the text's width past the text on the spine side: the book's dark gutter starts further out (5.4% at the nearest on the book PDF), and nobody writes there. */
+const SPINE_MARGIN = 0.04;
 /** A gap this many times the page's median word gap sets a run apart from the row. */
 const OUTLIER_GAP_FACTOR = 3;
 
@@ -24,6 +26,9 @@ export const rgbaOf = ({ width, height, data }: GrayImage): RgbaImage => {
   for (let i = 0; i < data.length; i += 1) out.fill(data[i], i * 4, i * 4 + 3).fill(255, i * 4 + 3, i * 4 + 4);
   return { width, height, data: out };
 };
+
+/** Which side of the page the book's spine is on; null on a page that is no half of a spread. */
+export type SpineSide = 'left' | 'right' | null;
 
 interface Ends { y: number; left: number; right: number }
 
@@ -89,14 +94,14 @@ const at = ({ a, b }: Line, y: number): Point => ({ x: a + b * y, y });
 
 const dist = (p: Point, q: Point) => Math.hypot(p.x - q.x, p.y - q.y);
 
-/** The text quad with each side pushed out to the page's own margin, back in pixels: a corner can land a little off the page, which is white. */
-function reachOut(text: Quad, width: number, height: number): Quad {
+/** The text quad with each side pushed out to the page's own margin, or just past the text beside the spine, back in pixels: a corner can land a little off the page, which is white. */
+function reachOut(text: Quad, width: number, height: number, spine: SpineSide): Quad {
   const w = (dist(text[0], text[1]) + dist(text[3], text[2])) / 2;
   const h = (dist(text[0], text[3]) + dist(text[1], text[2])) / 2;
   const rect: Quad = [{ x: 0, y: 0 }, { x: w, y: 0 }, { x: w, y: h }, { x: 0, y: h }];
   const back = homography(rect, text);
-  const left = (text[0].x + text[3].x) / 2;
-  const right = width - (text[1].x + text[2].x) / 2;
+  const left = spine === 'left' ? SPINE_MARGIN * w : (text[0].x + text[3].x) / 2;
+  const right = spine === 'right' ? SPINE_MARGIN * w : width - (text[1].x + text[2].x) / 2;
   const top = text[0].y;
   const bottom = height - text[3].y;
   const page: Quad = [{ x: -left, y: -top }, { x: w + right, y: -top }, { x: w + right, y: h + bottom }, { x: -left, y: h + bottom }];
@@ -107,7 +112,7 @@ function reachOut(text: Quad, width: number, height: number): Quad {
  * Corners in `gray`'s 0..1 that square the page's text block and reach out to its margins; null with too few rows to fit.
  * `gray` must already be level: rows that lean past each other read as one tall row.
  */
-export function textBlockCorners(gray: GrayImage): Quad | null {
+export function textBlockCorners(gray: GrayImage, spine: SpineSide = null): Quad | null {
   const { width, height } = gray;
   const rows = wideRows(gray);
   if (rows.length < MIN_ROWS) return null;
@@ -118,5 +123,5 @@ export function textBlockCorners(gray: GrayImage): Quad | null {
   const top = rows[0].y;
   const bottom = rows[rows.length - 1].y;
   const text: Quad = [at(left, top), at(right, top), at(right, bottom), at(left, bottom)];
-  return reachOut(text, width, height).map((p) => ({ x: p.x / width, y: p.y / height })) as Quad;
+  return reachOut(text, width, height, spine).map((p) => ({ x: p.x / width, y: p.y / height })) as Quad;
 }
