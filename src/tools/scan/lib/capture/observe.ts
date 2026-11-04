@@ -10,13 +10,13 @@ import type { FrameObservation } from './types.ts';
 /** detectPage, then sharpness, area and hash of what it found. With no page: quad null, confidence 0,
  * sharpness and area 0, and the hash of the whole frame. `focus` is focusMeasure of the centre patch, 0 without one.
  * The guidance signals (SCAN-24): `light` always, `contrast` and `keystone` with a page (contrast left out when no
- * point of the page's border has a view outside it). */
+ * point of the page's border has a view outside it; a page found only by its faint edges reads as zero contrast). */
 export function observeFrame(image: GrayImage, t: number, patch: GrayImage | null): FrameObservation {
   const focus = patch ? focusMeasure(patch) : 0;
   const light = lightFloor(image);
-  const { quad, confidence } = detectPage(image);
+  const { quad, confidence, lowContrast } = detectPage(image);
   if (!quad) return { t, quad: null, confidence: 0, sharpness: 0, area: 0, hash: averageHash(image, null), focus, light };
-  const contrast = borderContrast(image, quad) ?? undefined;
+  const contrast = lowContrast ? 0 : borderContrast(image, quad) ?? undefined;
   return {
     t, quad, confidence, sharpness: sharpness(image, quad), area: quadArea(quad), hash: averageHash(image, quad), focus,
     light, contrast, keystone: keystone(quad, image.width, image.height),
