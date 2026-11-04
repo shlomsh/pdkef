@@ -43,8 +43,7 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 
 ### Page enhancement for Scan and Highlight
 
-- [PE-03](backlog/tasks/PE-03.md) P2 · Fold finder for two pages to a sheet (in progress)
-- [PE-04](backlog/tasks/PE-04.md) P2 · Lean as a rotation before the bend (in progress)
+- [PE-05](backlog/tasks/PE-05.md) P2 · assess and planPage (in progress)
 
 ### Robustness and debt
 

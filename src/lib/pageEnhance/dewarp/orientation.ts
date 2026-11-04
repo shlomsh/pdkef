@@ -20,6 +20,14 @@ const MIN_TEXT = 1.5;
  * twice the other reading's text. Below it the page does not say. */
 const MIN_CONFIDENCE = 1 / 3;
 
+/** A sideways reading must be this clear, (win - lose) / (win + lose): three times the other reading's
+ * text. textTurn itself says nothing below 1/3; turning a page that was fine is worse than leaving one
+ * sideways, which the person can turn with Rotate, so this asks for more. */
+export const MIN_SIDEWAYS_CONFIDENCE = 0.5;
+/** Text cannot tell a quarter turn from three, so a sideways page is turned one quarter clockwise
+ * (turns counts clockwise quarters, quad.ts rotateQuad). */
+export const SIDEWAYS_TURNS = 1;
+
 /** `turn` 1: the text runs down the page, so it needs a quarter turn (either way) to read across. */
 interface TextTurn { turn: 0 | 1; confidence: number }
 

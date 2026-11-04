@@ -2,10 +2,7 @@
 // dark line between them. Ported from the SCAN-36 prototype (find_fold, fold_x, halves). Pure.
 import type { GrayImage, Quad } from './quad';
 
-/**
- * Where the spine crosses the sheet's top and bottom edges, 0..1 across its width.
- * @testSeam
- */
+/** Where the spine crosses the sheet's top and bottom edges, 0..1 across its width. */
 export interface Spine { top: number; bottom: number }
 
 /** Pixels darker than this are ink or shadow. */
@@ -24,7 +21,6 @@ const MIN_SHARPNESS = 0.4;
 interface Fold { sharpness: number; tilt: number; x: number }
 
 /**
- * @testSeam
  * The spine of a two-page sheet, already turned so its text reads across, or null when the sheet is one page. `gray` should be no larger
  * than about 1000 px on its long edge (the surround and tilt step are tuned to that); shrinking
  * is the caller's job.
@@ -39,10 +35,7 @@ export function findSpine(gray: GrayImage): Spine | null {
   return { top: (fold.x - half) / gray.width, bottom: (fold.x + half) / gray.width };
 }
 
-/**
- * The sheet's two halves as corner quads, 0..1, left page first, each ending at the spine.
- * @testSeam
- */
+/** The sheet's two halves as corner quads, 0..1, left page first, each ending at the spine. */
 export function spreadHalves(spine: Spine): [Quad, Quad] {
   return [
     [{ x: 0, y: 0 }, { x: spine.top, y: 0 }, { x: spine.bottom, y: 1 }, { x: 0, y: 1 }],
