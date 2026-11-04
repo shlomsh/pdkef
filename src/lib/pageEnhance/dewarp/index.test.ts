@@ -5,7 +5,7 @@ import { seededRandom } from '../seededRandom.test-helper.ts';
 import { bentPx, isFlat, measureBend, pageMap, toGray } from './index.ts';
 import { findLineBend } from './lineBend.ts';
 import { warpAlong } from './meshWarp.ts';
-import { sideAt, type SideCurve } from './types.ts';
+import { bendAt, sideAt, type SideCurve } from './types.ts';
 
 const W = 1500;
 const H = 1150;
@@ -67,6 +67,23 @@ describe('measureBend + pageMap', () => {
     const after = warpAlong(src, pageMap(quadPx, MARGIN, bend), 1000, 1300);
     expect(findLineBend(toGray(before))).not.toBeNull();
     expect(findLineBend(toGray(after))).toBeNull();
+  });
+
+  /** Rows leaning by `degrees` on a 1100 x 1400 page, around its middle. */
+  const leaning = (degrees: number) => (x: number) => Math.tan((degrees * Math.PI) / 180) * (1100 / 1400) * (x - 0.5);
+
+  it('levels a page of text that leans a degree, with no rules to square it against (SCAN-46)', () => {
+    const src = photo(FLAT, leaning(1));
+    const bend = measureBend(src, QUAD, MARGIN, 1100, 1400);
+    expect(bend.lines).not.toBeNull();
+    expect(bend.columns).toBeNull();
+    const want = leaning(1);
+    const slope = (bendAt(bend.lines!, 0.7, 0.5) - bendAt(bend.lines!, 0.3, 0.5)) / 0.4;
+    expect(slope).toBeCloseTo((want(0.7) - want(0.3)) / 0.4, 3);
+  });
+
+  it('leaves text that leans past two degrees to the corners, which the person sets', () => {
+    expect(measureBend(photo(FLAT, leaning(3)), QUAD, MARGIN, 1100, 1400).lines).toBeNull();
   });
 });
 

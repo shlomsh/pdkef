@@ -140,9 +140,9 @@ export function measureBend(src: RgbaImage, quad: Quad, margin: number, width: n
   const masks = pageMasks(gray);
   const rows = lineFit(masks);
   const rules = columnFit(masks);
-  // A form shows both directions at once, so both can be squared: rows level, rules plumb. With one
-  // direction alone a lean could be the page turned as much as skewed, so only bow and fan are taken.
-  const square = !!rows && !!rules && rows.lean !== null && rules.lean !== null
-    && Math.abs((rows.lean * h) / w) <= MAX_SQUARE && Math.abs((rules.lean * w) / h) <= MAX_SQUARE;
+  // Rows are what a reader sees, so a small lean in them is taken out, and a form's rules are set plumb with
+  // them. Rules alone stay as the corners made them: with no rows to read, a lean could be the page turned.
+  const level = (lean: number | null, across: number) => lean !== null && Math.abs(lean * across) <= MAX_SQUARE;
+  const square = !!rows && level(rows.lean, h / w) && (!rules || level(rules.lean, w / h));
   return { curves, lines: finishBend(rows, square), columns: rules && finishBend(rules, square) };
 }
