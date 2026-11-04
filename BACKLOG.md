@@ -2,7 +2,7 @@
 
 # Backlog
 
-The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 126 live: 40 up next, 18 then, 27 waiting, 41 parked.
+The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 129 live: 43 up next, 18 then, 27 waiting, 41 parked.
 
 ## Redact: finish removal
 
@@ -98,7 +98,10 @@ The camera takes pages, the table fixes them, Share sends them. The table first 
 | SCAN-32 | P1 | [SCAN-32](backlog/tasks/SCAN-32.md) · Scan next: a page photographed sideways comes out upright | In progress |
 | SCAN-15 | P1 | [SCAN-15](backlog/tasks/SCAN-15.md) · Scan next: pinching the camera zooms the picture, not the page | In progress |
 | SCAN-33 | P1 | [SCAN-33](backlog/tasks/SCAN-33.md) · Scan next: a white page on a white table is found | In progress |
+| SCAN-34 | P1 | [SCAN-34](backlog/tasks/SCAN-34.md) · Scan next: a page photographed at an angle keeps its true proportions | In progress |
 | SCAN-17 | P2 | [SCAN-17](backlog/tasks/SCAN-17.md) · Scan next: a bent or curled page comes out flat, its edges and text lines straight | In progress |
+| SCAN-35 | P1 | [SCAN-35](backlog/tasks/SCAN-35.md) · Scan next: a flat page's edges are never read as bowed | In progress |
+| SCAN-36 | P2 | [SCAN-36](backlog/tasks/SCAN-36.md) · Straighten a scanned PDF: turn, split a book spread, flatten, clean, then read it |  |
 
 ### Then, in order
 
