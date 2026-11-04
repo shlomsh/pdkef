@@ -89,6 +89,21 @@ only forms. Squeeze toward the spine: 5 of 8 right pages narrow 4-10% (horizonta
 Cleanup inside the justified text column removes the fold line and dark edges. Estimate 4-6 days.
 Scripts: branch `scan-36-prototype`.
 
+## Two input families, two tracks (Shlomi, 2026-11-04)
+
+They are different problems and are measured on different benchmarks. Do not mix their fixes.
+
+- **Phone photo of a page** (Scan; also a photo opened in Highlight): perspective and corners (white paper on a
+  white table), creases and wrinkles from a folded sheet, shadows of the photographer. Benchmark: Shlomi's photos
+  4755-4759, the detection corpus, and the synthetic warped-page corpus (SCAN-19 follow-up). Tickets: SCAN-33/34/35,
+  PE-15 (shadows), PE-16 (creases).
+- **Flatbed or copier scan of a book** (an academic PDF opened in Highlight): no perspective and no corners; two
+  book pages squeezed onto one landscape sheet, a different lean per half, a squeeze toward the spine, and the black
+  gutter and edge stain where the open book lifts off the glass. Benchmark: the 8-page book PDF, scored per half.
+  Tickets: PE-03 (spine split, then every approach per half), PE-04, PE-10, PE-11, SCAN-36.
+
+The shared mechanism (pieces, one resample) serves both; the finders and the cleanup are per track.
+
 ## The three levels of page enhancement
 
 Shlomi's plan for turning a photographed or scanned page into a flat document. The goal of every level is
