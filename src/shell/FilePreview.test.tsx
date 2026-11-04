@@ -161,6 +161,46 @@ describe('FilePreview', () => {
     expect(icon.querySelector('svg')).not.toBeNull();
   });
 
+  it('ignores a PDF render that resolves after the file changed', async () => {
+    const first = deferred();
+    const second = deferred();
+    vi.mocked(thumbnailsLib.renderThumbnail).mockReturnValueOnce(first.promise).mockReturnValueOnce(second.promise);
+
+    mount({ file: makePdfFile('a.pdf') });
+    act(() => render(<FilePreview file={makePdfFile('b.pdf')} />, container!));
+
+    await act(async () => {
+      first.resolve('data:image/png;base64,old');
+      await first.promise;
+    });
+    expect(container!.querySelector('img')).toBeNull();
+
+    await act(async () => {
+      second.resolve('data:image/png;base64,new');
+      await second.promise;
+    });
+    expect(container!.querySelector('img')!.getAttribute('src')).toBe('data:image/png;base64,new');
+  });
+
+  it('revokes the previous image object URL when the file changes', () => {
+    const originalCreate = window.URL.createObjectURL;
+    const originalRevoke = window.URL.revokeObjectURL;
+    const urls = ['blob:first', 'blob:second'];
+    window.URL.createObjectURL = vi.fn(() => urls.shift()!);
+    window.URL.revokeObjectURL = vi.fn();
+
+    try {
+      mount({ file: makeImageFile('a.jpg') });
+      expect(window.URL.revokeObjectURL).not.toHaveBeenCalled();
+      act(() => render(<FilePreview file={makeImageFile('b.jpg')} />, container!));
+      expect(window.URL.revokeObjectURL).toHaveBeenCalledWith('blob:first');
+      expect(window.URL.revokeObjectURL).not.toHaveBeenCalledWith('blob:second');
+    } finally {
+      window.URL.createObjectURL = originalCreate;
+      window.URL.revokeObjectURL = originalRevoke;
+    }
+  });
+
   it('does not call renderThumbnail for a non-PDF, non-image file', () => {
     const file = new File(['x'], 'notes.txt', { type: 'text/plain' });
     mount({ file });

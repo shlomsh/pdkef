@@ -47,9 +47,20 @@ describe('exifOrientation', () => {
     expect(exifOrientation(new Uint8Array([1, 2, 3]))).toBeNull();
     expect(exifOrientation(splice(base(), exifSegment(9)))).toBeNull();
   });
+  it('is null when the TIFF header lacks the magic 42', () => {
+    const seg = exifSegment(6);
+    seg[4 + 6 + 2] = 43; // low byte of the little-endian magic
+    expect(exifOrientation(splice(base(), seg))).toBeNull();
+  });
 });
 
 describe('stripExif', () => {
+  it('walks past an empty segment (length exactly 2) to strip the EXIF after it', () => {
+    const empty = segment(0xfe, []);
+    const out = stripExif(splice(base(), empty, exifSegment(6)));
+    expect(out).toEqual(splice(base(), empty));
+  });
+
   it('removes the Exif segment, restoring the original bytes', () => {
     const withExif = splice(base(), exifSegment(6));
     const out = stripExif(withExif);

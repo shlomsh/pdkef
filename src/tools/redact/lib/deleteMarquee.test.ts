@@ -38,6 +38,9 @@ describe('objectsInMarquee', () => {
     const far = obj('d', 60, 60);
     expect(objectsInMarquee([inside, half, graze, far], rect).map((o) => o.id)).toEqual(['a', 'b']);
   });
+  it('leaves an object with 45% inside at the default half threshold', () => {
+    expect(objectsInMarquee([obj('e', 25.5, 5)], rect)).toEqual([]);
+  });
   it('skips objects already marked and covers nothing on an empty box', () => {
     const a = obj('a', 5, 5);
     expect(objectsInMarquee([a], rect, 0.5, new Set(['a']))).toEqual([]);

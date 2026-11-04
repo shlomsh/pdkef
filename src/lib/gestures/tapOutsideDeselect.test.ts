@@ -82,6 +82,12 @@ describe('classifyTouchTap', () => {
     expect(classifyTouchTap(start, end)).toBe(true);
   });
 
+  it('rejects a scale drift of a few percent and accepts one just inside the tolerance', () => {
+    const start = sample({ viewportScale: 1 });
+    expect(classifyTouchTap(start, sample({ viewportScale: 1.05 }))).toBe(false);
+    expect(classifyTouchTap(start, sample({ viewportScale: 1.015 }))).toBe(true);
+  });
+
   it('respects a caller-supplied slop and duration', () => {
     const start = sample({ time: 0 });
     const end = sample({ x: 105, time: 50 });

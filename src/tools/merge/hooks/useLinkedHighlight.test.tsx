@@ -95,6 +95,15 @@ describe('useLinkedHighlight', () => {
     expect(linked()).toEqual([]);
   });
 
+  it('clears the link of a source that left the DOM when the next event is ignored', () => {
+    fire('row-a', 'pointerover');
+    fire('page-a1', 'pointerover');
+    act(() => { q('page-a1').remove(); });
+    fire('page-b1', 'pointerover', { pointerType: 'touch' });
+    expect(linked()).toEqual([]);
+    expect(root().dataset.linking).toBeUndefined();
+  });
+
   it('moving between children of the same source keeps the link', () => {
     fire('row-a', 'pointerover');
     fire('row-a', 'pointerout', { relatedTarget: q('row-btn') });

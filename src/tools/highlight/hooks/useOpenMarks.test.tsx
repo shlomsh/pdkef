@@ -73,3 +73,38 @@ describe('useOpenMarks', () => {
     expect(seen.openId).toBe('b');
   });
 });
+
+describe('keyboard focus', () => {
+  it('the mark the keyboard is on is open when none is picked', () => {
+    mount(marks);
+    (root.querySelector('[data-editor-element-id="a"]') as HTMLElement).focus();
+    expect(readOpenMarks(root, null).openId).toBe('a');
+  });
+
+  it('a picked mark stays open while the keyboard is on another one', () => {
+    mount(marks);
+    (root.querySelector('[data-editor-element-id="a"]') as HTMLElement).focus();
+    expect(readOpenMarks(root, 'b').openId).toBe('b');
+  });
+
+  it('moving focus off a mark closes it', async () => {
+    mount(marks);
+    const a = root.querySelector('[data-editor-element-id="a"]') as HTMLElement;
+    act(() => render(<Probe pickedId={null} />, document.createElement('div')));
+    await act(async () => { a.focus(); await Promise.resolve(); });
+    expect(seen.openId).toBe('a');
+    await act(async () => { a.blur(); await Promise.resolve(); });
+    expect(seen.openId).toBeNull();
+  });
+
+  it('stops listening for focus once it unmounts', () => {
+    mount(marks);
+    const removed: string[] = [];
+    const remove = root.removeEventListener.bind(root);
+    root.removeEventListener = ((type: string, ...rest: [EventListenerOrEventListenerObject, ...unknown[]]) => { removed.push(type); remove(type, ...(rest as [EventListenerOrEventListenerObject])); }) as typeof root.removeEventListener;
+    const host = document.createElement('div');
+    act(() => render(<Probe pickedId={null} />, host));
+    act(() => render(null, host));
+    expect(removed).toEqual(expect.arrayContaining(['focusin', 'focusout']));
+  });
+});

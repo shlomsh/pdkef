@@ -22,4 +22,13 @@ describe('PdfHighlightTool', () => {
     expect(container.querySelector('[data-empty-state]')).not.toBeNull();
     expect(container.textContent).toContain(t.emptyMessage);
   });
+
+  it('takes one PDF at a time', () => {
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    act(() => render(<PdfHighlightTool />, container!));
+    const inputs = [...container.querySelectorAll<HTMLInputElement>('input[type="file"]')];
+    expect(inputs.length).toBeGreaterThan(0);
+    for (const input of inputs) expect(input.multiple).toBe(false);
+  });
 });
