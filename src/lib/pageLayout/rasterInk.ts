@@ -285,10 +285,10 @@ function profileSharpness(points: StructurePoints, slope: number, width: number,
  * The angle (degrees, rules' slope in image coordinates with y down) the page is rotated by.
  * Coarse then fine, so the cost is about forty profiles over a capped sample set.
  */
-export function estimateSkewDegrees(mask: Uint8Array, width: number, height: number): number {
+export function estimateSkewDegrees(mask: Uint8Array, width: number, height: number, range = SKEW_RANGE_DEGREES): number {
   const points = horizontalStructurePoints(mask, width, height);
   if (points.xs.length === 0) return 0;
-  const bins = new Float64Array(height + 2 * (Math.ceil(Math.tan((SKEW_RANGE_DEGREES * Math.PI) / 180) * width) + 2) + 2);
+  const bins = new Float64Array(height + 2 * (Math.ceil(Math.tan((range * Math.PI) / 180) * width) + 2) + 2);
   const sharpness = (degrees: number): number => profileSharpness(points, Math.tan((degrees * Math.PI) / 180), width, bins);
   // Rules a few pixels thick score the same across a plateau of angles; the middle of the plateau
   // is the estimate, not whichever end the scan happened to reach first.
@@ -303,7 +303,7 @@ export function estimateSkewDegrees(mask: Uint8Array, width: number, height: num
     const plateau = angles.filter((_, i) => scores[i] >= best * PLATEAU_SHARE);
     return plateau.reduce((sum, degrees) => sum + degrees, 0) / plateau.length;
   };
-  const coarse = search(-SKEW_RANGE_DEGREES, SKEW_RANGE_DEGREES, SKEW_COARSE_STEP);
+  const coarse = search(-range, range, SKEW_COARSE_STEP);
   return search(coarse - SKEW_COARSE_STEP, coarse + SKEW_COARSE_STEP, SKEW_FINE_STEP);
 }
 

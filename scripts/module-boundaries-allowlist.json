@@ -56,6 +56,16 @@
   },
   {
     "rule": 9,
+    "file": "src/lib/pageEnhance/spine.ts",
+    "reason": "PE-03: shared with Highlight, written in the common layer before its reader imports it; PE-06 is the second consumer, and this entry goes stale (remove it) once Highlight imports the file"
+  },
+  {
+    "rule": 9,
+    "file": "src/lib/pageEnhance/lean.ts",
+    "reason": "PE-04: shared with Highlight, written in the common layer before its reader imports it; PE-06 is the second consumer, and this entry goes stale (remove it) once Highlight imports the file"
+  },
+  {
+    "rule": 9,
     "file": "src/lib/pageEnhance/dewarp/columnBend.ts",
     "reason": "PE-01: shared with Highlight, moved out of Scan before its reader imports it; PE-06 is the second consumer, and this entry goes stale (remove it) once Highlight imports the file"
   },

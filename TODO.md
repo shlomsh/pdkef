@@ -41,6 +41,11 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 - [SCAN-44](backlog/tasks/SCAN-44.md) P2 · A filled A4 form scanned with PDkef (2026-11-04): black edges and ghost text remain; stretch is fixed on main for A4 (in progress)
 - [SCAN-46](backlog/tasks/SCAN-46.md) P2 · A filled-in page with no vertical rules stays tilted; level its rows (in progress)
 
+### Page enhancement for Scan and Highlight
+
+- [PE-03](backlog/tasks/PE-03.md) P2 · Fold finder for two pages to a sheet (in progress)
+- [PE-04](backlog/tasks/PE-04.md) P2 · Lean as a rotation before the bend (in progress)
+
 ### Robustness and debt
 
 - [DEBT-65](backlog/tasks/DEBT-65.md) P2 · Two layout-shift specs failed once each in the 2026-10-27 nightly (in progress)
