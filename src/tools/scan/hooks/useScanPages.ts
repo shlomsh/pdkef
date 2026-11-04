@@ -4,8 +4,8 @@ import { reportError } from '#lib/telemetry/errorReport.ts';
 import { recordAction } from '#lib/telemetry/actionTrail.ts';
 import { beaconMaintenanceTransport, reportMaintenanceEvent, scanCameraPhoto } from '#lib/telemetry/maintenanceTelemetry.ts';
 import { formatMessage } from '#lib/text/formatMessage.ts';
-import { PHOTO_ACCEPTED_TYPES } from '#lib/hooks/usePhotoTileList.ts';
 import { useHandoffFilesIntake } from '#lib/handoff/useHandoffIntake.ts';
+import { PDF_TYPE, SCAN_ACCEPTED_TYPES } from '../lib/scanAccept.ts';
 import { loadPipeline } from '../lib/loadPipeline.ts';
 import { isCurrentKey, newPage, pageQuad, partitionFiles, replacePage, resultKey, withInspection } from '../lib/scanPages.ts';
 import type { ProcessedPage } from '../lib/scanPipeline.ts';
@@ -15,6 +15,7 @@ import type { PageResult, ScanPage, ScanWork } from '../state/scanWork.ts';
 import { dropPageWork } from '../state/scanActions.ts';
 import { englishScanMessages as t } from '../messages.ts';
 import type { ScanDispatch, SetPages } from './scanHost.ts';
+import { useScanPdfPages } from './useScanPdfPages.ts';
 import { useScanResults } from './useScanResults.ts';
 
 interface ScanPagesInput {
@@ -35,8 +36,9 @@ interface ScanPagesInput {
 
 type InspectHost = Pick<ScanPagesInput, 'work' | 'unmountedRef' | 'dispatch' | 'setPages'>;
 
-/** One new photo through the queue: its preview and edge guess, or the mark that it could not be read. */
-function inspectPage(page: ScanPage, { work, unmountedRef, dispatch, setPages }: InspectHost, { fromCamera = false, restored = false } = {}) {
+/** One new photo through the queue: its preview and edge guess, or the mark that it could not be read.
+ * A page of a PDF sheet (`fromPdf`) arrives with its corners found and its sheet upright: only its preview and size are made. */
+function inspectPage(page: ScanPage, { work, unmountedRef, dispatch, setPages }: InspectHost, { fromCamera = false, restored = false, fromPdf = false } = {}) {
   work.enqueue(async () => (work.removed.has(page.id) ? null : (await loadPipeline()).inspectPhoto(page.file)))
     .then((seen) => seen, (err) => {
       reportError('pdf_tool_run', err, 'scan_inspect_photo');
@@ -49,7 +51,7 @@ function inspectPage(page: ScanPage, { work, unmountedRef, dispatch, setPages }:
       if (!seen) dispatch({ type: 'pageFailed', id: page.id });
       if (seen) work.previewBlobs.set(page.id, seen.preview);
       const preview = seen ? URL.createObjectURL(seen.preview) : null;
-      setPages((current) => withInspection(current, page.id, seen, preview, !restored));
+      setPages((current) => withInspection(current, page.id, seen, preview, !restored && !fromPdf, fromPdf));
     });
 }
 
@@ -79,9 +81,14 @@ export function useScanPages(input: ScanPagesInput) {
     return run;
   }, []);
 
+  const addPdfs = useScanPdfPages({ ...input, skipped: setRejectedFiles, inspect: (page) => inspectPage(page, input, { fromPdf: true }) });
+
   const addFiles = useCallback((fileList: FileList | File[], from?: { fromCamera: boolean }) => {
-    const { accepted, rejectedNames } = partitionFiles(Array.from(fileList), PHOTO_ACCEPTED_TYPES);
+    const { accepted: all, rejectedNames } = partitionFiles(Array.from(fileList), SCAN_ACCEPTED_TYPES);
     setRejectedFiles(rejectedNames);
+    const accepted = all.filter((f) => f.type !== PDF_TYPE);
+    const pdfs = all.filter((f) => f.type === PDF_TYPE);
+    if (pdfs.length > 0) addPdfs(pdfs);
     if (accepted.length === 0) return;
     const added = accepted.map((file) => newPage(file, work.defaultFilter));
     setPages((current) => [...current, ...added]);

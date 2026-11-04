@@ -48,20 +48,5 @@
     "rule": 9,
     "file": "src/editor-ui/comments/commentNumbersContext.tsx",
     "reason": "READ-02: shared with Highlight PDF, moved out of Sign before its island exists; READ-03 is the second consumer, and this entry goes stale (remove it) once that island imports the file"
-  },
-  {
-    "rule": 9,
-    "file": "src/lib/pageEnhance/spine.ts",
-    "reason": "PE-03: shared with Highlight, written in the common layer before its reader imports it; PE-06 is the second consumer, and this entry goes stale (remove it) once Highlight imports the file"
-  },
-  {
-    "rule": 9,
-    "file": "src/lib/pageEnhance/plan.ts",
-    "reason": "PE-05: shared with Highlight, written in the common layer before its reader imports it; PE-06 is the second consumer, and this entry goes stale (remove it) once Highlight imports the file"
-  },
-  {
-    "rule": 9,
-    "file": "src/lib/pageEnhance/lean.ts",
-    "reason": "PE-04: shared with Highlight, written in the common layer before its reader imports it; PE-06 is the second consumer, and this entry goes stale (remove it) once Highlight imports the file"
   }
 ]

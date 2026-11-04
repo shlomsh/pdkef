@@ -13,7 +13,7 @@ import { applyFilter, type ScanFilter } from '../filters.ts';
 import { insetQuad, scaleQuad, type GrayImage, type Quad, type RgbaImage } from '#lib/pageEnhance/quad.ts';
 
 /** The photo is read at most this big; a 48 MP photo would not fit a phone's canvas budget. */
-const SOURCE_LONG_EDGE = 3200;
+export const SOURCE_LONG_EDGE = 3200;
 /** About 200 dpi on A4: sharp text, and a three-page scan near a megabyte. */
 export const OUTPUT_LONG_EDGE = 2400;
 /** The edge guess looks at a small copy; the page's outline survives, the noise does not. */
