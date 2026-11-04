@@ -29,7 +29,7 @@ into one resample of the photo (no second blur), contract in `lib/dewarp/types.t
    for the strongest aligned edge, and fitted as `d(t) = t(1 - t)(a + b t)`: zero at both corners, so
    the person's corners still win. The four curves bend the unit square as a Coons patch.
 2. **Text lines** (`lib/dewarp/lineBend.ts`). On the page flattened by stage 1, ink is joined into line
-   blobs, each line's centre is sampled across the page, and one smooth vertical bend (cubic across,
+   blobs, each line's baseline is sampled across the page, and one smooth vertical bend (cubic across,
    quadratic down) is fitted to all of them at once, with a free height per line.
 
 Each stage is gated: a page with straight edges and straight lines is warped exactly as before (the
