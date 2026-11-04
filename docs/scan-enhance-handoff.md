@@ -56,12 +56,12 @@ leanDeg, spread, bentPx, crooked }`, `PagePlan { pieces }`; `assess(gray)`, `pla
 {strategy})`, `applyPiece(src, piece)` (one resample), `isAffine(piece)`, `BendStrategy { id, measure }`
 (`classical` wraps measureBend; no learned strategy: dropped, SCAN-19).
 
-Highlight phase 1 lives in the file line's status slot: silent check (no marks yet), then "This scan is
-sideways, two pages to a sheet · Straighten · Not now", then
-"Straightening page 3 of 8…" with Cancel, then "Straightened into 16 pages · Undo". Turn-only plans use
-the existing undoable `pageTurns`. Affine pieces embed the original page (`embedPage` + matrix + clip),
-so the old OCR text moves with it [unverified: needs an e2e]; bent pieces become images with no text
-layer (Highlight reads rasters, READ R30).
+Highlight phase 1 lives in the file line's status slot: silent check (no marks yet), then a line such as
+"This scan is sideways, two pages to a sheet" with Straighten and Not now. Straighten opens the file in
+Scan (decided 2026-11-04): each sheet becomes one Scan page per book page, with found corners the person
+can adjust, and Scan hands the result back to Highlight, which reads rasters (READ R30). The copy has no
+OCR text; the original stays in recents. A vector rebuild in Highlight could not square a page, which is
+not an affine move. A named "Straighten PDF" page over Scan's island waits for search numbers.
 
 If a learned model ever returns: files in a new models folder under public (same-origin), a runtime-only rule in
 `precachePolicy`, their own cache that the SW's activate cleanup skips [unverified], onnxruntime only inside a
