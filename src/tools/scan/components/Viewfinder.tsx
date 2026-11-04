@@ -16,6 +16,8 @@ import styles from './Viewfinder.module.css';
 const RING_RADIUS = 34;
 const RING_LENGTH = 2 * Math.PI * RING_RADIUS;
 const FULL_FRAME: Quad = [{ x: 0, y: 0 }, { x: 1, y: 0 }, { x: 1, y: 1 }, { x: 0, y: 1 }];
+/** The hints that ask for a change (SCAN-24) sit on a light pill, so a new one catches the eye; the rest are plain. */
+const ADVICE = new Set(['duplicate', 'fit', 'closer', 'contrast', 'flatter']);
 
 /** The page taken flies from where it sits in the viewfinder into the stack. The stack's image is read after the
  * decode: by then it shows this page's thumbnail, the first page's too. */
@@ -126,13 +128,22 @@ export default function Viewfinder(props: ViewfinderProps) {
         <button type="button" class={styles.round} data-close aria-label={t.closeCamera} onClick={props.onClose}>
           <X size={24} aria-hidden="true" />
         </button>
-        <p class={styles.hint} aria-live="polite">{camera.status === 'live' ? hintText(live.hint, props.count, t) : ''}</p>
+        <p class={styles.hint} data-hint={camera.status === 'live' ? live.hint : undefined}>
+          {camera.status === 'live' && (
+            <span class={styles.hintText} data-advice={ADVICE.has(live.hint) || undefined}>{hintText(live.hint, props.count, t)}</span>
+          )}
+        </p>
         {camera.status === 'live' ? (
           <button type="button" role="switch" aria-checked={camera.auto} class={styles.auto} onClick={() => camera.setAuto(!camera.auto)}>
             {t.autoLabel}
           </button>
         ) : <span class={styles.spacer} />}
       </div>
+
+      {/* Screen readers hear the hint politely and at most every few seconds (stepGuidance), never frame by frame. */}
+      <p class="sr-only" aria-live="polite" data-hint-spoken>
+        {camera.status === 'live' && live.spoken ? hintText(live.spoken, props.count, t) : ''}
+      </p>
 
       {camera.status === 'starting' && <p class={styles.status}>{t.cameraStarting}</p>}
       {offered && (

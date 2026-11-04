@@ -74,6 +74,21 @@ describe('ScanPageViewer', () => {
     expect(line.compareDocumentPosition(q('[data-page-actions]')!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 
+  it('a page measured as strongly bent gets the quiet note under it (SCAN-24); a flat or unmeasured one none', () => {
+    const result = (bentPx?: number) => ({ key: 'k', url: 'u', thumbUrl: 't', page: { width: 1700, height: 2400, bentPx } });
+    mount({ results: { 1: result(40) } } as unknown as Partial<ScanPageViewerProps>);
+    const note = q('[data-bent-note]')!;
+    expect(note.textContent).toBe(t.bentNote);
+    expect(q('[data-page-scroller]')!.compareDocumentPosition(note) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(note.compareDocumentPosition(q('[data-page-actions]')!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    act(() => render(null, container!));
+    mount({ results: { 1: result(4), 2: result(40) } } as unknown as Partial<ScanPageViewerProps>);
+    expect(q('[data-bent-note]')).toBeNull();
+    act(() => render(null, container!));
+    mount({ results: { 1: result() } } as unknown as Partial<ScanPageViewerProps>);
+    expect(q('[data-bent-note]')).toBeNull();
+  });
+
   it('every page has a slide, only the current page and its neighbours render a paper', () => {
     mount({}, 3);
     const slides = [...container!.querySelectorAll('[data-slide]')];

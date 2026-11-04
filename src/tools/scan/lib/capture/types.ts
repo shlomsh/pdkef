@@ -18,6 +18,14 @@ export interface FrameObservation {
   hash: string;
   /** focusMeasure of the centre crop; 0 when there is no crop. */
   focus: number;
+  // The guidance's signals (SCAN-24, lib/capture/pageSignals.ts). Optional: the capture machine never reads them,
+  // and a recorded sequence without them gets the plain hints.
+  /** 0..1, how far the page's border steps in brightness from what it lies on; absent without a page or a view past it. */
+  contrast?: number;
+  /** 0..1, the shorter over the longer of each pair of opposite sides, the smaller pair; 1 is seen straight on. */
+  keystone?: number;
+  /** 0..1, the 20th-percentile brightness of the whole frame: high when nothing dark is in view. */
+  light?: number;
 }
 
 /** `duplicate` (SCAN-23): a page that matches one already taken is in view; nothing fires until it changes. */
