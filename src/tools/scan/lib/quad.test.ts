@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { applyHomography, homography } from './homography.ts';
-import { warpSize } from './warp.ts';
+import { warpSizeFor } from './warp.ts';
 import { FULL_QUAD, clampPoint, insetQuad, isConvexQuad, orderQuad, quadKey, isPagelike, rotateQuad, scaleQuad, turnedQuad, unturnedQuad, type Point, type Quad } from './quad.ts';
 
 describe('orderQuad', () => {
@@ -110,8 +110,8 @@ describe('rotateQuad', () => {
 
   it('swaps the output width and height in the warp', () => {
     const px = scaleQuad(FULL_QUAD, 400, 300);
-    const before = warpSize(px, 4000);
-    const after = warpSize(rotateQuad(px, 1), 4000);
+    const before = warpSizeFor(px, 4000, null);
+    const after = warpSizeFor(rotateQuad(px, 1), 4000, null);
     expect(before.width).toBeGreaterThan(before.height);
     expect(after.height).toBeGreaterThan(after.width);
   });

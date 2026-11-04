@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { Point, Quad } from './quad';
 import { pageAspect, snapPaper } from './aspect';
-import { warpSize, warpSizeFor } from './warp';
+import { warpSizeFor } from './warp';
 
 const W = 2000;
 const H = 1500;
@@ -68,7 +68,7 @@ describe('pageAspect', () => {
 
   it('beats the edge lengths where they are worst: a strong tilt', () => {
     const quad = photograph(Math.SQRT2, { focal: 1, tilt: 40, spin: 30 });
-    const { width, height } = warpSize(quad, 1e6);
+    const { width, height } = warpSizeFor(quad, 1e6, null);
     expect(Math.abs(width / height / Math.SQRT2 - 1)).toBeGreaterThan(0.1);
     expect(pageAspect(quad, W, H)).toBeCloseTo(Math.SQRT2, 3);
   });
@@ -76,7 +76,7 @@ describe('pageAspect', () => {
   it('matches the edge lengths for a frontal view, where they are already right', () => {
     for (const spin of [0, 20]) {
       const quad = photograph(Math.SQRT2, { focal: 1, tilt: 0, spin, shift: { x: 0.2, y: 0.1 } });
-      const { width, height } = warpSize(quad, 1e6);
+      const { width, height } = warpSizeFor(quad, 1e6, null);
       expect(pageAspect(quad, W, H)).toBeCloseTo(width / height, 2);
       expect(pageAspect(quad, W, H)).toBeCloseTo(Math.SQRT2, 2);
     }
@@ -98,7 +98,7 @@ describe('pageAspect', () => {
         for (const tilt of [10, 20, 25]) {
           const quad = photograph(ratio, { focal, tilt, shift: { x: 0.1, y: 0.05 } });
           expect(quad[0].y).toBeCloseTo(quad[1].y, 6); // the top edge really is level
-          const { width, height } = warpSize(quad, 1e6);
+          const { width, height } = warpSizeFor(quad, 1e6, null);
           const aspect = pageAspect(quad, W, H) as number;
           expect(Math.abs(aspect / ratio - 1)).toBeLessThan(0.03);
           if (tilt >= 25) expect(Math.abs(width / height / ratio - 1)).toBeGreaterThan(0.05);
@@ -159,13 +159,8 @@ describe('snapPaper', () => {
 describe('warpSizeFor', () => {
   const quad = photograph(Math.SQRT2, { focal: 1, tilt: 35, spin: 15 });
 
-  it('is warpSize exactly without an aspect', () => {
-    expect(warpSizeFor(quad, 4000, null)).toEqual(warpSize(quad, 4000));
-    expect(warpSizeFor(quad, 300, null)).toEqual(warpSize(quad, 300));
-  });
-
-  it('keeps the long edge warpSize gives and takes the short one from the aspect', () => {
-    const plain = warpSize(quad, 4000);
+  it('keeps the long edge the quad gives and takes the short one from the aspect', () => {
+    const plain = warpSizeFor(quad, 4000, null);
     const long = Math.max(plain.width, plain.height);
     expect(warpSizeFor(quad, 4000, Math.SQRT2)).toEqual({ width: long, height: Math.round(long / Math.SQRT2) });
     expect(warpSizeFor(quad, 4000, 1 / Math.SQRT2)).toEqual({ width: Math.round(long / Math.SQRT2), height: long });

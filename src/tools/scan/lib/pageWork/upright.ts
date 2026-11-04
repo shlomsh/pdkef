@@ -2,7 +2,7 @@
 // and kept in the page's `turns`, so the person's Rotate acts on top of it. Pure: no DOM.
 import { textTurn } from '../dewarp/orientation.ts';
 import { scaleQuad, type GrayImage, type Quad, type RgbaImage } from '../quad.ts';
-import { warpPerspective, warpSize } from '../warp.ts';
+import { warpPerspective, warpSizeFor } from '../warp.ts';
 
 /** The page is flattened to about this long an edge to read its text rows (textTurn's measuring size). */
 const READ_LONG_EDGE = 1000;
@@ -26,7 +26,7 @@ function grayOf({ width, height, data }: RgbaImage): GrayImage {
  * its text runs down the flattened page clearly enough. `quad` is the page's corners, normalized. */
 export function uprightTurns(src: RgbaImage, quad: Quad): number {
   const quadPx = scaleQuad(quad, src.width, src.height);
-  const { width, height } = warpSize(quadPx, READ_LONG_EDGE);
+  const { width, height } = warpSizeFor(quadPx, READ_LONG_EDGE, null);
   const read = textTurn(grayOf(warpPerspective(src, quadPx, width, height)));
   return read && read.turn === 1 && read.confidence >= MIN_SIDEWAYS_CONFIDENCE ? SIDEWAYS_TURNS : 0;
 }

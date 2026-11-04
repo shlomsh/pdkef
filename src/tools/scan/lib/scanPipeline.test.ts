@@ -180,7 +180,8 @@ describe('processPage: the inset crop', () => {
     });
     expect([width, height]).toEqual([page.width, page.height]);
     // The longer of each pair of opposite edges: top 316.3 / bottom 238.0 wide, left 181.4 / right 239.4 tall.
-    expect([page.width, page.height]).toEqual([316, 239]);
+    // 316/239 = 1.322 is within 3% of US Letter (1.294), so the page snaps to Letter: 316 x 244.
+    expect([page.width, page.height]).toEqual([316, 244]);
   });
 });
 

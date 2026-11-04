@@ -5,7 +5,8 @@
 import { guessCorners } from '../edges/index.ts';
 import { FLAT_PAGE, bentPx, isFlat, measureBend, pageMap, type PageBend } from '../dewarp/index.ts';
 import { warpAlong } from '../dewarp/meshWarp.ts';
-import { warpPerspective, warpSize } from '../warp.ts';
+import { warpPerspective, warpSizeFor } from '../warp.ts';
+import { pageAspect, snapPaper } from '../aspect.ts';
 import { uprightTurns } from './upright.ts';
 import { applyFilter, type ScanFilter } from '../filters.ts';
 import { insetQuad, scaleQuad, type GrayImage, type Quad, type RgbaImage } from '../quad.ts';
@@ -157,7 +158,8 @@ function bendOf(src: RgbaImage, quad: Quad, width: number, height: number): { be
  * given its look. */
 function flattenPixels(src: RgbaImage, quad: Quad, filter: ScanFilter): { image: RgbaImage; bentPx: number; measureError: unknown } {
   const quadPx = scaleQuad(insetQuad(quad, EDGE_INSET), src.width, src.height);
-  const { width, height } = warpSize(quadPx, OUTPUT_LONG_EDGE);
+  const aspect = pageAspect(quadPx, src.width, src.height);
+  const { width, height } = warpSizeFor(quadPx, OUTPUT_LONG_EDGE, aspect === null ? null : snapPaper(aspect));
   const { bend, error } = bendOf(src, quad, width, height);
   // A flat page keeps the plain homography, exactly as before SCAN-17.
   const warped = isFlat(bend)
