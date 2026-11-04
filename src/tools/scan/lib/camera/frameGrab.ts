@@ -1,20 +1,27 @@
 // Pixels out of the playing video (SCAN-08). DOM; no jsdom test.
 import { canvasToBlob } from '#lib/images/canvasBlob.js';
 import type { GrayImage } from '#lib/pageEnhance/quad.ts';
+import type { Rect } from './types.ts';
+import { visibleShare, WHOLE_FRAME } from './viewfinderModel.ts';
 
-/** The current frame as gray pixels with the short edge at `shortEdge`; null until the video has a size.
+/** The part `view` (0..1 of the frame; default all of it) of the current frame as gray pixels with the short edge of
+ * that part at `shortEdge`; null until the video has a size.
  * @testSeam */
-export function grabGray(video: HTMLVideoElement, canvas: HTMLCanvasElement, shortEdge = 320): GrayImage | null {
+export function grabGray(video: HTMLVideoElement, canvas: HTMLCanvasElement, shortEdge = 320, view: Rect = WHOLE_FRAME): GrayImage | null {
   const { videoWidth: vw, videoHeight: vh } = video;
   if (!vw || !vh) return null;
-  const scale = shortEdge / Math.min(vw, vh);
-  const width = Math.max(1, Math.round(vw * scale));
-  const height = Math.max(1, Math.round(vh * scale));
+  const sx = view.x * vw;
+  const sy = view.y * vh;
+  const sw = view.width * vw;
+  const sh = view.height * vh;
+  const scale = shortEdge / Math.min(sw, sh);
+  const width = Math.max(1, Math.round(sw * scale));
+  const height = Math.max(1, Math.round(sh * scale));
   if (canvas.width !== width) canvas.width = width;
   if (canvas.height !== height) canvas.height = height;
   const ctx = canvas.getContext('2d', { willReadFrequently: true });
   if (!ctx) return null;
-  ctx.drawImage(video, 0, 0, width, height);
+  ctx.drawImage(video, sx, sy, sw, sh, 0, 0, width, height);
   const rgba = ctx.getImageData(0, 0, width, height).data;
   const data = new Uint8ClampedArray(width * height);
   for (let i = 0, j = 0; j < data.length; i += 4, j++) data[j] = 0.299 * rgba[i] + 0.587 * rgba[i + 1] + 0.114 * rgba[i + 2];
@@ -57,13 +64,14 @@ export interface FrameMessage {
 export function frameGrabber() {
   const canvas = document.createElement('canvas');
   const patchCanvas = document.createElement('canvas');
-  return (video: HTMLVideoElement, t: number): { message: FrameMessage; transfer: ArrayBuffer[] } | null => {
-    const gray = grabGray(video, canvas);
+  return (video: HTMLVideoElement, t: number): { message: FrameMessage; transfer: ArrayBuffer[]; view: Rect } | null => {
+    const view = visibleShare({ width: video.videoWidth, height: video.videoHeight }, { width: video.clientWidth, height: video.clientHeight });
+    const gray = grabGray(video, canvas, 320, view);
     if (!gray) return null;
     const crop = grabFocusPatch(video, patchCanvas);
     const buffer = gray.data.buffer as ArrayBuffer;
     const patch = crop && { width: crop.width, height: crop.height, buffer: crop.data.buffer as ArrayBuffer };
-    return { message: { t, width: gray.width, height: gray.height, buffer, patch }, transfer: patch ? [buffer, patch.buffer] : [buffer] };
+    return { message: { t, width: gray.width, height: gray.height, buffer, patch }, transfer: patch ? [buffer, patch.buffer] : [buffer], view };
   };
 }
 

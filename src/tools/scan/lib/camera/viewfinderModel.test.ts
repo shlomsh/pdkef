@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { coverRect, hintText, liveView, nextView } from './viewfinderModel.ts';
+import { coverRect, hintText, liveView, nextView, toFrame, visibleShare } from './viewfinderModel.ts';
 import { INITIAL_GUIDANCE } from '../capture/guidance.ts';
 import { IDLE_VIEW } from './types.ts';
 import { DEFAULT_CAPTURE_PARAMS, type CaptureState } from '../capture/types.ts';
@@ -100,5 +100,67 @@ describe('coverRect', () => {
   it('an unplayed video (0 size) takes the whole box', () => {
     expect(coverRect({ width: 0, height: 0 }, { width: 200, height: 100 })).toEqual({ x: 0, y: 0, width: 200, height: 100 });
     expect(coverRect({ width: 100, height: 0 }, { width: 200, height: 100 })).toEqual({ x: 0, y: 0, width: 200, height: 100 });
+  });
+});
+
+describe('visibleShare', () => {
+  const box = { width: 63, height: 100 };
+  it('a 4:3 portrait video in a narrower box loses the sides', () => {
+    const v = visibleShare({ width: 480, height: 640 }, box);
+    expect(v.y).toBe(0);
+    expect(v.height).toBe(1);
+    expect(v.width).toBeCloseTo(0.63 / 0.75);
+    expect(v.x).toBeCloseTo((1 - v.width) / 2);
+  });
+  it('a 4:3 landscape video shows about 0.47 of its width', () => {
+    const v = visibleShare({ width: 640, height: 480 }, box);
+    expect(v.width).toBeCloseTo(0.63 / (4 / 3));
+    expect(v.height).toBe(1);
+  });
+  it('a 16:9 video shows less still', () => {
+    expect(visibleShare({ width: 1920, height: 1080 }, box).width).toBeCloseTo(0.63 / (16 / 9));
+  });
+  it('a box the shape of the video shows the whole frame', () => {
+    expect(visibleShare({ width: 480, height: 640 }, { width: 120, height: 160 })).toEqual({ x: 0, y: 0, width: 1, height: 1 });
+  });
+  it('a box taller than the video crops the top and bottom', () => {
+    const v = visibleShare({ width: 640, height: 480 }, { width: 100, height: 50 });
+    expect(v.x).toBe(0);
+    expect(v.width).toBe(1);
+    expect(v.height).toBeCloseTo(1.3333 / 2, 3);
+  });
+  it('zero sizes give the whole frame', () => {
+    const whole = { x: 0, y: 0, width: 1, height: 1 };
+    expect(visibleShare({ width: 0, height: 0 }, box)).toEqual(whole);
+    expect(visibleShare({ width: 640, height: 480 }, { width: 0, height: 0 })).toEqual(whole);
+  });
+});
+
+describe('toFrame', () => {
+  it('a view corner lands on the screen corner under coverRect', () => {
+    const video = { width: 640, height: 480 };
+    const box = { width: 390, height: 844 };
+    const cover = coverRect(video, box);
+    const view = visibleShare(video, box);
+    const q = toFrame([{ x: 0, y: 0 }, { x: 1, y: 0 }, { x: 1, y: 1 }, { x: 0, y: 1 }], view);
+    const corners = [[0, 0], [box.width, 0], [box.width, box.height], [0, box.height]];
+    q.forEach((p, i) => {
+      expect(cover.x + p.x * cover.width).toBeCloseTo(corners[i][0]);
+      expect(cover.y + p.y * cover.height).toBeCloseTo(corners[i][1]);
+    });
+  });
+  it('the whole view maps to itself', () => {
+    expect(toFrame(Q, { x: 0, y: 0, width: 1, height: 1 })).toEqual(Q);
+  });
+});
+
+describe('nextView with a crop', () => {
+  it('returns the outline across the whole frame', () => {
+    const view = { x: 0.25, y: 0, width: 0.5, height: 1 };
+    const obs = (t: number, keystone: number) => ({ t, quad: Q, confidence: 1, sharpness: 500, area: 0.5, hash: '0', focus: 1, contrast: 0.7, keystone });
+    const v = nextView(IDLE_VIEW, state({ phase: 'locked', smoothed: Q }), obs(0, 0.95), view);
+    expect(v.quad![0].x).toBeCloseTo(0.25 + 0.1 * 0.5);
+    expect(v.quad![2].x).toBeCloseTo(0.25 + 0.9 * 0.5);
+    expect(v.quad![0].y).toBeCloseTo(0.1);
   });
 });

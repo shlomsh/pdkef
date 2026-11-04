@@ -3,6 +3,7 @@
 import { formatMessage } from '#lib/text/formatMessage.ts';
 import { DEFAULT_CAPTURE_PARAMS, type CaptureParams, type CaptureState, type FrameObservation } from '../capture/types.ts';
 import { INITIAL_GUIDANCE, stepGuidance, type Guidance } from '../capture/guidance.ts';
+import type { Quad } from '#lib/pageEnhance/quad.ts';
 import type { Hint, LiveView, Rect } from './types.ts';
 
 /** The ring stops short of full while the machine is still holding: full means the shot has been taken. */
@@ -19,9 +20,29 @@ export function liveView(state: CaptureState, now: number, params: CaptureParams
 }
 
 /** The view after one more frame: the capture state the machine reached on `obs`, and the guidance stepped on from
- * the previous view's. A state updater, so frames never read a stale view. */
-export function nextView(previous: LiveView, state: CaptureState, obs: FrameObservation): LiveView {
-  return liveView(state, obs.t, DEFAULT_CAPTURE_PARAMS, stepGuidance(previous.guidance, obs, state.phase));
+ * the previous view's. A state updater, so frames never read a stale view. `view` is the part of the video frame
+ * `obs` was analysed on (visibleShare); the outline comes back across the whole frame, where the overlay draws it. */
+export function nextView(previous: LiveView, state: CaptureState, obs: FrameObservation, view: Rect = WHOLE_FRAME): LiveView {
+  const next = liveView(state, obs.t, DEFAULT_CAPTURE_PARAMS, stepGuidance(previous.guidance, obs, state.phase));
+  return next.quad ? { ...next, quad: toFrame(next.quad, view) } : next;
+}
+
+/** The whole video frame, 0..1. */
+export const WHOLE_FRAME: Rect = { x: 0, y: 0, width: 1, height: 1 };
+
+/** The part of the video frame that is on screen under object-fit: cover, as 0..1 of the frame. */
+export function visibleShare(video: { width: number; height: number }, box: { width: number; height: number }): Rect {
+  if (!video.width || !video.height || !box.width || !box.height) return WHOLE_FRAME;
+  const cover = coverRect(video, box);
+  const width = Math.min(1, box.width / cover.width);
+  const height = Math.min(1, box.height / cover.height);
+  return { x: Math.max(0, -cover.x / cover.width), y: Math.max(0, -cover.y / cover.height), width, height };
+}
+
+/** A quad across the view (0..1 of what is on screen) as a quad across the whole frame. */
+export function toFrame(quad: Quad, view: Rect): Quad {
+  const [a, b, c, d] = quad.map((p) => ({ x: view.x + p.x * view.width, y: view.y + p.y * view.height }));
+  return [a, b, c, d];
 }
 
 /** The words for each hint, from ScanMessages. */
