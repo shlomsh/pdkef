@@ -28,6 +28,9 @@ export const INITIAL_PACE: PaceState = { size: 0, windowStart: null, checks: 0, 
 /** The first photo ends the judging: from there the main thread is busy with the page, not the camera. */
 export const stopJudging = (state: PaceState): PaceState => ({ ...state, judged: true });
 
+/** The window starts over, the size stays: a pause says nothing about the camera. */
+export const restartWindow = (state: PaceState): PaceState => ({ ...state, windowStart: null, checks: 0 });
+
 /** One finished check at time `t`. */
 export function stepPace(state: PaceState, t: number): { state: PaceState; verdict: PaceVerdict } {
   if (state.judged) return { state, verdict: 'keep' };

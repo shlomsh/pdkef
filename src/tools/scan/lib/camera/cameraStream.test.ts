@@ -76,6 +76,16 @@ describe('cameraPacer', () => {
     await vi.waitFor(() => expect(track.applyConstraints).toHaveBeenCalledTimes(1));
   });
 
+  // The viewer over the camera busies the main thread: those checks say nothing about the camera.
+  it('does not count the time the camera is paused', () => {
+    const track = fakeTrack();
+    const pacer = cameraPacer(() => track, vi.fn());
+    pacer.check(0);
+    for (let t = 500; t < 5000; t += 500) pacer.check(t, true);
+    for (let t = 5000; t < 7000; t += 80) pacer.check(t);
+    expect(track.applyConstraints).not.toHaveBeenCalled();
+  });
+
   it('judges nothing after a photo, and starts over on reset', () => {
     const track = fakeTrack();
     const pacer = cameraPacer(() => track, vi.fn());

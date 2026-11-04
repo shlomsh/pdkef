@@ -34,7 +34,8 @@ native camera. Results hold; the live features give way.
 
 - [ ] The camera opens at the size SCAN-04 measured (`width` 4096, `height` 3072, ideal).
 - [ ] The focus crop covers the same share of the frame at any stream size, so SCAN-14 still reads print.
-- [ ] Every live camera photo reports its long edge as a bucket (`scan_camera_photo`), so the size is measured.
+- [ ] Each page the live camera adds to a scan reports its long edge as a bucket (`scan_camera_photo`), so the size
+      is measured. A one-page retake does not report.
 - [ ] A phone that cannot keep up steps down once, then hands over to the native camera with its own line of copy.
 - [ ] On the iPhone: pages come out at least 1200 px wide from a normal shot, read cleanly, the viewfinder stays
       smooth, and ten pages in a row all land.
