@@ -108,6 +108,14 @@ stays faintly visible; nothing dark does.
   not a solid triangle, so this rule does not clear it.
 - Left alone: dark slivers along one edge only (page 3's left edge), since real print can touch an edge too.
 
+## Rescan on the new version (2026-11-04, the same four pages, phone)
+
+Page 1 in the Original look, pages 2 to 4 in the Document look. All four within 0.05% of A4, no corner wedge, no
+show-through in the empty areas, handwriting and stamp intact. What is left: a thin dark sliver along the left edge
+on page 4 (about 6 px wide, 477 tall) and page 2 (4 px, 203 tall), which the corner fill leaves on purpose; shaded
+table cells come out mottled in the Document look, as they did before the ghost filter (it changes under 2% of their
+greys).
+
 ## A second real scan (2026-11-04, one page of three)
 
 Shlomi's screenshot of the corner screen showed a letter on a dark table with the corners on the whole photo. He
