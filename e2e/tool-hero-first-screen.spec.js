@@ -27,6 +27,8 @@ const SIZES = [
 
 const HYDRATED = 'astro-island:not([ssr]) [data-empty-state]';
 const PICKER = '[data-empty-state] label:has(input[type="file"])';
+// The one on show: Scan's Start scanning leads the sheet in the page and is hidden on a fine pointer.
+const picker = (page) => page.locator(PICKER).filter({ visible: true }).first();
 const PDF = readFileSync(new URL('../src/lib/__fixtures__/num-1.pdf', import.meta.url));
 const JPG = readFileSync(new URL('../src/lib/__fixtures__/photo-1.jpg', import.meta.url));
 
@@ -62,7 +64,7 @@ test.describe('first screen', () => {
         await open(page, route);
         await expectInViewport(page, page.locator('h1').first(), 'h1');
         await expectInViewport(page, page.locator('[data-empty-state]').first(), 'sheet');
-        await expectInViewport(page, page.locator(PICKER).first(), 'Choose files');
+        await expectInViewport(page, picker(page), 'Choose files');
         if (size.belowFold) {
           const top = await page.locator('#how-it-works').evaluate((el) => el.getBoundingClientRect().top);
           expect(top, 'How it works starts at or below the fold').toBeGreaterThanOrEqual(size.height);
@@ -212,7 +214,7 @@ for (const [route, width, height] of [['/merge/', 900, 800], ['/compress/', 900,
     expect(await page.locator('.tool-stage').first().evaluate((el) => getComputedStyle(el).display), 'stage').not.toBe('grid');
     const verb = await page.locator('[data-empty-state] div[aria-hidden="true"]').first().boundingBox();
     expect(verb.height, 'verb box height').toBeLessThanOrEqual(300);
-    await expectInViewport(page, page.locator(PICKER).first(), 'Choose files');
+    await expectInViewport(page, picker(page), 'Choose files');
     // The verb has played to its last frame before overflow is read.
     await page.waitForFunction(() => {
       const anims = document.querySelector('[data-empty-state] div[aria-hidden="true"]')?.getAnimations({ subtree: true }) ?? [];
@@ -263,7 +265,7 @@ for (const route of ['/sign/', '/redact/']) {
 test('/merge/ on a landscape phone keeps Choose files within two screens', async ({ page }) => {
   await page.setViewportSize({ width: 844, height: 390 });
   await open(page, '/merge/');
-  const top = await page.locator(PICKER).first().evaluate((el) => el.getBoundingClientRect().top);
+  const top = await picker(page).evaluate((el) => el.getBoundingClientRect().top);
   const h = await page.evaluate(() => innerHeight);
   expect(top, 'Choose files top').toBeLessThan(2 * h);
 });
