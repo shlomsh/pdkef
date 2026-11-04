@@ -1,13 +1,19 @@
 const UNITS = ['KB', 'MB', 'GB'];
 
+/** A KB is 1,000 bytes, as phones and Macs count it. A portal's "500 KB" may mean 500,000 or 512,000,
+ *  and a file aimed at 500,000 passes under both. */
+export const BYTES_PER_KB = 1000;
+
+export const kbToBytes = (kb) => Math.max(1, Math.round(kb * BYTES_PER_KB));
+
 export function formatFileSize(bytes) {
   if (!Number.isFinite(bytes) || bytes < 0) return '';
-  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < BYTES_PER_KB) return `${bytes} B`;
 
-  let value = bytes / 1024;
+  let value = bytes / BYTES_PER_KB;
   let unitIndex = 0;
-  while (value >= 1024 && unitIndex < UNITS.length - 1) {
-    value /= 1024;
+  while (value >= BYTES_PER_KB && unitIndex < UNITS.length - 1) {
+    value /= BYTES_PER_KB;
     unitIndex += 1;
   }
 

@@ -5,6 +5,7 @@ import { openPdfDoc } from '#lib/pdf/openPdfDoc.ts';
 import { canvasToBlob } from '#lib/images/canvasBlob.js';
 import { permissionsFromP, randomOwnerPassword } from './pdfPermissions.js';
 import { stripExif } from './jpegBytes.js';
+import { kbToBytes } from '#lib/text/format.js';
 
 const MIN_PIXELS = 64 * 64;
 const sameFilters = (filters, name) => filters.length === 1 && filters[0] === name;
@@ -228,7 +229,7 @@ export function lerpRung(a, b, t) {
  */
 export async function compressPdfImagesToTarget(file, { targetKB, onProgress, encodeImage }) {
   const beforeBytes = file.size;
-  const targetBytes = Math.max(1, Math.round(targetKB * 1024));
+  const targetBytes = kbToBytes(targetKB);
   const unchanged = (reason, metTarget) => ({
     blob: file, metTarget, beforeBytes, afterBytes: beforeBytes, rewritten: 0, reason,
   });

@@ -108,7 +108,7 @@ test.describe('compress image - batch', () => {
       const download = await downloadPromise;
       const bytes = fs.readFileSync(await download.path());
       expect(Array.from(bytes.slice(0, 3))).toEqual([0xff, 0xd8, 0xff]);
-      expect(bytes.length).toBeLessThanOrEqual(TARGET_KB * 1024);
+      expect(bytes.length).toBeLessThanOrEqual(TARGET_KB * 1000);
       if (i < 2) await bar.locator('[data-batch-next]').click();
     }
     expect(new Set(names).size).toBe(3);

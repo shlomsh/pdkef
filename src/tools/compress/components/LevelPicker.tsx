@@ -53,8 +53,8 @@ export function TargetSizePanel({ t, targetKB, presets, onChange, inputId, min, 
               onClick={() => onChange(kb, { immediate: true })}
             >
               {/* The number is what tells the shortcuts apart; the unit repeats, so it stays small. */}
-              <span class={styles['preset-number']}>{kb >= 1024 ? kb / 1024 : kb}</span>{' '}
-              <span class={styles['preset-unit']}>{kb >= 1024 ? 'MB' : 'KB'}</span>
+              <span class={styles['preset-number']}>{kb >= 1000 ? kb / 1000 : kb}</span>{' '}
+              <span class={styles['preset-unit']}>{kb >= 1000 ? 'MB' : 'KB'}</span>
             </button>
           ))}
         </div>

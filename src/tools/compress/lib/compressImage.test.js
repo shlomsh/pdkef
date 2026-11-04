@@ -113,7 +113,7 @@ describe('compressImageToTarget', () => {
     expect(result.blob).toBeInstanceOf(Blob);
     expect(result.blob.type).toBe('image/jpeg');
     expect(result.metTarget).toBe(true);
-    expect(result.blob.size).toBeLessThanOrEqual(50 * 1024);
+    expect(result.blob.size).toBeLessThanOrEqual(50 * 1000);
     expect(onProgress).toHaveBeenLastCalledWith(1);
   });
 

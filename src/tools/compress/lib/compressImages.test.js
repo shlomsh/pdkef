@@ -349,7 +349,7 @@ describe('compressPdfImagesToTarget', () => {
     expect(third).toBeLessThan(second);
     const encode = sized();
     const result = await compressPdfImagesToTarget(fixture('mixed.pdf'), {
-      targetKB: third / 1024,
+      targetKB: third / 1000,
       encodeImage: encode,
     });
     expect(result.metTarget).toBe(true);
@@ -405,7 +405,7 @@ describe('compressPdfImagesToTarget bisection between rungs', () => {
   it('uses more of the budget than the lower rung when the target falls between rungs', async () => {
     const { under, targetBytes } = await between();
     const result = await compressPdfImagesToTarget(fixture('mixed.pdf'), {
-      targetKB: targetBytes / 1024,
+      targetKB: targetBytes / 1000,
       encodeImage: sizedQ(),
     });
     expect(result.metTarget).toBe(true);
@@ -418,7 +418,7 @@ describe('compressPdfImagesToTarget bisection between rungs', () => {
     const file = fixture('mixed.pdf');
     const best = await afterBytesAt(TARGET_IMAGE_LADDER[0]);
     const encode = sizedQ();
-    const result = await compressPdfImagesToTarget(file, { targetKB: best / 1024, encodeImage: encode });
+    const result = await compressPdfImagesToTarget(file, { targetKB: best / 1000, encodeImage: encode });
     expect(result.metTarget).toBe(true);
     expect(result.afterBytes).toBe(best);
     const single = sizedQ();
@@ -430,7 +430,7 @@ describe('compressPdfImagesToTarget bisection between rungs', () => {
     const { targetBytes } = await between();
     const seen = [];
     await compressPdfImagesToTarget(fixture('mixed.pdf'), {
-      targetKB: targetBytes / 1024,
+      targetKB: targetBytes / 1000,
       encodeImage: sizedQ(),
       onProgress: (p) => seen.push(p),
     });

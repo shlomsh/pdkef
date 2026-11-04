@@ -249,23 +249,23 @@ describe('compressPdfToTarget meets a target the lowest step can reach', () => {
   const LOWEST_STEP_FLOOR_BYTES = pagesBytes(297, 420, 0.05);
 
   it.each([135, 142, 150])('meets %i KB for a 10-page scan', async (targetKB) => {
-    expect(LOWEST_STEP_FLOOR_BYTES + 8 * 1024).toBeLessThan(targetKB * 1024);
-    expect(pagesBytes(386, 547, 0.05)).toBeGreaterThan(targetKB * 1024);
-    expect(scan.size).toBeGreaterThan(targetKB * 1024);
+    expect(LOWEST_STEP_FLOOR_BYTES + 8 * 1000).toBeLessThan(targetKB * 1000);
+    expect(pagesBytes(386, 547, 0.05)).toBeGreaterThan(targetKB * 1000);
+    expect(scan.size).toBeGreaterThan(targetKB * 1000);
 
     const result = await compressPdfToTarget(scan, { targetKB });
 
-    expect(result.blob.size).toBeLessThanOrEqual(targetKB * 1024);
+    expect(result.blob.size).toBeLessThanOrEqual(targetKB * 1000);
     expect(result.metTarget).toBe(true);
   });
 
   it('reports a miss when even the lowest step cannot fit', async () => {
     const targetKB = 100;
-    expect(LOWEST_STEP_FLOOR_BYTES).toBeGreaterThan(targetKB * 1024);
+    expect(LOWEST_STEP_FLOOR_BYTES).toBeGreaterThan(targetKB * 1000);
 
     const result = await compressPdfToTarget(scan, { targetKB });
 
-    expect(result.blob.size).toBeGreaterThan(targetKB * 1024);
+    expect(result.blob.size).toBeGreaterThan(targetKB * 1000);
     expect(result.metTarget).toBe(false);
   });
 });

@@ -2,7 +2,7 @@
 
 # Backlog
 
-The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 123 live: 38 up next, 18 then, 27 waiting, 40 parked.
+The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 124 live: 38 up next, 18 then, 27 waiting, 41 parked.
 
 ## Redact: finish removal
 
@@ -114,6 +114,7 @@ The camera takes pages, the table fixes them, Share sends them. The table first 
 | --- | --- | --- | --- |
 | SCAN-10 | P3 | [SCAN-10](backlog/tasks/SCAN-10.md) · Scan next: evaluate a small learned page detector behind the same contract |  |
 | SCAN-19 | P3 | [SCAN-19](backlog/tasks/SCAN-19.md) · Scan next: evaluate a small learned unwarping model (UVDoc) against the classical dewarp |  |
+| SCAN-31 | P3 | [SCAN-31](backlog/tasks/SCAN-31.md) · The Scan guide's image generator follows the rewritten phone flow |  |
 
 ## Tool pages: show the verb
 
@@ -291,7 +292,7 @@ Done and retired tickets are not listed. Their files stay in [backlog/tasks/](ba
 - Redact: finish removal: 26 done, 1 retired
 - Sign: finish fill mode: 3 done, 1 retired
 - Highlight PDF: a tool for reading: 5 done, 1 retired
-- Scan: camera to WhatsApp: 1 done, 0 retired
+- Scan: camera to WhatsApp: 2 done, 0 retired
 - Tool pages: show the verb: 8 done, 0 retired
 - Form detector accuracy: 19 done, 1 retired
 - Robustness and debt: 88 done, 4 retired

@@ -85,7 +85,7 @@ describe('fitScanToBudget failure', () => {
 describe('SIZE_LIMITS', () => {
   it('offers no limit, 2 MB, 1 MB and 500 KB, in that order', () => {
     expect(SIZE_LIMITS.map((limit) => [limit.id, limit.bytes])).toEqual([
-      ['none', null], ['2mb', 2 * 1024 * 1024], ['1mb', 1024 * 1024], ['500kb', 500 * 1024],
+      ['none', null], ['2mb', 2_000_000], ['1mb', 1_000_000], ['500kb', 500_000],
     ]);
   });
 });

@@ -1,4 +1,4 @@
-import { isolateLtr } from '#lib/text/format.js';
+import { BYTES_PER_KB, isolateLtr, kbToBytes } from '#lib/text/format.js';
 import { formatMessage } from '#lib/text/formatMessage.ts';
 import type { CompressMessages } from '../messages';
 
@@ -7,7 +7,7 @@ const SLIGHT_GAIN_PERCENT = 5;
 
 export function formatBytes(bytes: number) {
   if (bytes === 0) return '0 Bytes';
-  const k = 1024;
+  const k = BYTES_PER_KB;
   const sizes = ['Bytes', 'KB', 'MB', 'GB'];
   const i = Math.floor(Math.log(bytes) / Math.log(k));
   return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
@@ -77,7 +77,7 @@ export function deriveResultView(input: ResultViewInput): ResultView {
     ? formatMessage(level === 'target' ? t.alreadySmallTargetNotice : t.alreadySmallNotice, {
         raster: sizeText(rasterBytes ?? 0),
         original: sizeText(file.size),
-        target: sizeText(targetKB * 1024),
+        target: sizeText(kbToBytes(targetKB)),
       })
     : '';
 
@@ -125,10 +125,10 @@ export function deriveResultView(input: ResultViewInput): ResultView {
   // The honest-miss line: worded per kind - a photo's target only ever comes from the image panel, a PDF's
   // only from Exact size, so the two conditions never overlap.
   const closestWarning = isDone && imageReason === null && missedTargetSize
-    ? formatMessage(kind === 'image' ? t.imageClosestAchievable : t.closestAchievable, { size: sizeText(targetKB * 1024) })
+    ? formatMessage(kind === 'image' ? t.imageClosestAchievable : t.closestAchievable, { size: sizeText(kbToBytes(targetKB)) })
     : null;
   const targetMissedNotice = isDone && imageReason === 'smaller' && level === 'target' && !metTarget
-    ? formatMessage(t.imagesTargetMissedNotice, { size: sizeText(compressedSize as number), target: sizeText(targetKB * 1024) })
+    ? formatMessage(t.imagesTargetMissedNotice, { size: sizeText(compressedSize as number), target: sizeText(kbToBytes(targetKB)) })
     : null;
 
   return { savingsPercent, downloadDetail, resultNotice, resultTitle, slightGain, showFlatten, closestWarning, targetMissedNotice };
