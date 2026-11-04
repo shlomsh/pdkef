@@ -18,6 +18,8 @@ interface Props {
    * block below for why this is a separate gate from `condensable`. Defaults
    * to false so every tool but merge renders exactly as before. */
   phoneCondensed?: boolean;
+  /** The one line above the card at 640px and under, where the subhead moves below it. See tool-page/phoneFirstScreen.css. */
+  phoneLine?: string;
   /** QUAL-15: the locale's shared closer phrase ("on your device" in
    * English, DocumentationShellMessages.heroAccent) that gets the subhead's
    * citron stroke, when it occurs. Unlike QUAL-13's retired h1Accent this
@@ -33,7 +35,7 @@ interface Props {
    * `data-hero-condense-on-load` block at the end of the style. */
   condenseOnLoad?: boolean;
 }
-const { icon: Icon, title, subhead, slug, condensable, phoneCondensed = false, subheadAccent, titleName, condenseOnLoad = false } = Astro.props;
+const { icon: Icon, title, subhead, slug, condensable, phoneCondensed = false, phoneLine, subheadAccent, titleName, condenseOnLoad = false } = Astro.props;
 
 // Sign and Redact keep the icon-beside-title row: their condensed editor hero
 // is sized for it. The other tools stack the icon above the h1,
@@ -116,6 +118,7 @@ const sentences = subhead.split(/(?<=\. )/);
       <h1 class="mt-0 mb-0 text-start text-[length:var(--hero-title)] leading-[1.1]">{title}</h1>
     )}
   </div>
+  {!isEditor && phoneLine && <p data-hero-line class="type-body">{phoneLine}</p>}
   <p data-hero-sub class="type-lead max-w-[44rem]">
     {sentences.map((sentence) => {
       const accentIndex = subheadAccentCount === 1 ? sentence.indexOf(subheadAccent!) : -1;

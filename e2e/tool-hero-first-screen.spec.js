@@ -87,7 +87,8 @@ test.describe('first screen', () => {
           const R = (e) => e.getBoundingClientRect();
           const sheet = document.querySelector('[data-empty-state]');
           const s = R(sheet);
-          const shown = [...sheet.children].filter((k) => getComputedStyle(k).display !== 'none' && R(k).height > 0);
+          // The verb's band has no box at these widths (display: contents), so the verb counts as the sheet's child.
+          const shown = [...sheet.children].flatMap((k) => (getComputedStyle(k).display === 'contents' ? [...k.children] : [k])).filter((k) => getComputedStyle(k).display !== 'none' && R(k).height > 0);
           const span = (els) => ({ top: Math.min(...els.map((k) => R(k).top)), bottom: Math.max(...els.map((k) => R(k).bottom)) });
           const all = span(shown);
           return { gapAbove: all.top - s.top, gapBelow: s.bottom - all.bottom };
@@ -211,7 +212,8 @@ for (const [route, width, height] of [['/merge/', 900, 800], ['/compress/', 900,
   test(`${route} stacks at ${width}x${height} with a short verb and Choose files in view`, async ({ page }) => {
     await page.setViewportSize({ width, height });
     await open(page, route);
-    expect(await page.locator('.tool-stage').first().evaluate((el) => getComputedStyle(el).display), 'stage').not.toBe('grid');
+    // At 640px and under the stage is a grid too, the phone first screen's: one column, no desktop hero.
+    if (width > 640) expect(await page.locator('.tool-stage').first().evaluate((el) => getComputedStyle(el).display), 'stage').not.toBe('grid');
     const verb = await page.locator('[data-empty-state] div[aria-hidden="true"]').first().boundingBox();
     expect(verb.height, 'verb box height').toBeLessThanOrEqual(300);
     await expectInViewport(page, picker(page), 'Choose files');
@@ -503,4 +505,80 @@ test('/compress-image/ sheet asks for photos, not a PDF', async ({ page }) => {
   const sheet = page.locator('[data-empty-state]').first();
   await expect(sheet).toContainText('Drop photos here');
   await expect(sheet).not.toContainText('PDF');
+});
+
+// At 640px and under the tool card is the first screen: the name, one line, then the card, whose foot
+// sits one gutter above the fold at any height, the verb's band taking what is spare. The description is
+// reordered below it (still in the page, so still read and indexed). Real rects and a real coarse pointer,
+// so not a jsdom matter. 375x560 is an iPhone SE with Safari's toolbars showing.
+const GUTTER = 16;
+const phoneProbe = () => {
+  const R = (e) => e.getBoundingClientRect();
+  const on = [...document.querySelectorAll('[data-empty-state] label')].filter((l) => l.getClientRects().length);
+  const line = document.querySelector('[data-hero-line]');
+  const band = R(document.querySelector('[data-verb-band]'));
+  const verb = R(document.querySelector('[data-verb-band] > *'));
+  const card = R(document.querySelector('[data-empty-state]'));
+  return {
+    labels: on.map((l) => l.textContent.trim()),
+    lowestControl: Math.max(...on.map((l) => R(l).bottom)),
+    lineRows: (() => { const r = document.createRange(); r.selectNodeContents(line); return r.getClientRects().length; })(),
+    lineBottom: R(line).bottom,
+    card: { top: card.top, bottom: card.bottom, left: card.left, right: card.right },
+    band: { left: band.left, right: band.right, top: band.top, height: band.height },
+    // Height-bound, centred both ways. It may be wider than the band: the scene draws in its middle 70%.
+    verbInBand: verb.top >= band.top - 0.5 && verb.bottom <= band.bottom + 0.5 && Math.abs((verb.left + verb.right) - (band.left + band.right)) <= 1,
+    verbHeight: verb.height,
+    subTop: R(document.querySelector('[data-hero-sub]')).top,
+    noteTop: R(document.querySelector('[data-airplane-note]')).top,
+    h1: document.querySelector('h1').textContent,
+    heading: document.querySelector('[data-empty-state] .drag-heading, [data-empty-state] p strong')?.checkVisibility() ?? false,
+    scrollsSideways: document.documentElement.scrollWidth > innerWidth,
+  };
+};
+
+test.describe('phone first screen', () => {
+  test.use({ viewport: { width: 375, height: 560 }, hasTouch: true, isMobile: true });
+
+  for (const [width, height] of [[375, 560], [390, 844]]) {
+    test(`/scan-to-pdf/ fills the screen at ${width}x${height}`, async ({ page }) => {
+      await page.setViewportSize({ width, height });
+      await open(page, '/scan-to-pdf/');
+      const probe = await page.evaluate(phoneProbe);
+      expect(probe.labels).toEqual(['Start scanning', 'Choose photos']);
+      expect(probe.lowestControl, 'both ways in are on screen').toBeLessThanOrEqual(height);
+      expect(Math.abs(probe.card.bottom - (height - GUTTER)), 'the card ends one gutter above the fold').toBeLessThanOrEqual(1);
+      expect(probe.lineRows, 'the hero line is one line').toBe(1);
+      expect(probe.lineBottom, 'the line sits above the card').toBeLessThanOrEqual(probe.card.top);
+      expect(probe.band.top, 'the band starts at the card top').toBe(probe.card.top);
+      expect(probe.band.left, 'the band runs edge to edge').toBe(probe.card.left);
+      expect(probe.band.right, 'the band runs edge to edge').toBe(probe.card.right);
+      expect(probe.verbInBand, 'the verb fits its band').toBe(true);
+      expect(probe.verbHeight, 'the verb stays a hook, not a thumbnail').toBeGreaterThanOrEqual(120);
+      expect(probe.subTop, 'the description sits below the card').toBeGreaterThanOrEqual(probe.card.bottom);
+      expect(probe.noteTop, 'the airplane line follows the description').toBeGreaterThan(probe.subTop);
+      expect(probe.h1, 'the h1 stays whole').toBe('Scan to PDF Online Free: Scan Documents with Your Phone');
+      expect(probe.heading, 'no drop heading on a touch screen').toBe(false);
+      expect(probe.scrollsSideways, 'sideways scroll').toBe(false);
+    });
+  }
+
+  // A two-line name and Merge's own condensed hero are the rows that change the card's height.
+  for (const route of ['/add-page-numbers-to-pdf/', '/merge/']) {
+    test(`${route} fills the screen too`, async ({ page }) => {
+      await open(page, route);
+      const probe = await page.evaluate(phoneProbe);
+      expect(probe.lowestControl).toBeLessThanOrEqual(560);
+      expect(Math.abs(probe.card.bottom - (560 - GUTTER)), 'card foot').toBeLessThanOrEqual(1);
+      expect(probe.scrollsSideways, 'sideways scroll').toBe(false);
+    });
+  }
+
+  test('a loaded tool leaves the phone first screen for its own folded hero', async ({ page }) => {
+    await open(page, '/compress/');
+    await page.locator('[data-empty-state] input[type="file"]').setInputFiles({ name: 'num-1.pdf', mimeType: 'application/pdf', buffer: PDF });
+    await expect(page.locator('[data-tool-shell], [data-tool-loaded]').first()).toBeVisible({ timeout: 20_000 });
+    expect(await page.locator('.tool-hero').evaluate((el) => getComputedStyle(el).display)).not.toBe('contents');
+    await expect(page.locator('[data-hero-line]')).toBeHidden();
+  });
 });

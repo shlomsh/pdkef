@@ -93,9 +93,10 @@ test('top-aligns each tool hero icon with the first line of its title', async ({
         expect(measured.stacked, where).toBe(false);
         expect(measured.tileBottom, where).toBeLessThanOrEqual(measured.h1Top);
         expect(Math.abs(measured.tileStart - measured.h1Start), where).toBeLessThanOrEqual(1);
-      } else if (measured.phoneCondensed && width <= 767) {
+      } else if ((measured.phoneCondensed && width <= 767) || width <= 640) {
         // Merge's condensed phone hero keeps the tile beside the name (ToolHero.astro): stacked,
-        // it pushed the sticky Download sheet below a 659px viewport on Linux fonts.
+        // it pushed the sticky Download sheet below a 659px viewport on Linux fonts. At 640px and
+        // under every page-grid tool's empty hero does the same, so the card is the first screen.
         expect(Math.abs(measured.tileTop - measured.lineTop), where).toBeLessThanOrEqual(4);
       } else {
         // The page-grid tools stack the icon above the title (HERO-02/03):
@@ -338,7 +339,8 @@ test('does not vertically centre a short tool card below the hero on mobile', as
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto('/compress-image/');
 
-  const hero = page.locator('header');
+  // The header has no box of its own on the phone first screen (display: contents); this is its last line above the card.
+  const hero = page.locator('[data-hero-line]');
   const card = page.locator('[class*="tool-card"]').first();
   await expect(card).toBeVisible();
 

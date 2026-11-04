@@ -86,6 +86,8 @@ export default function DropzoneEmptyState({
       </>
     );
 
+  const pickWords = pickLabel ?? (multiple ? messages.chooseFilesMany : messages.chooseFileOne);
+
   const onInputChange = (event: Event) => {
     // Read the list out before resetting the input - `value = ''` empties a
     // live FileList in place in a real browser, so the order here matters
@@ -115,7 +117,7 @@ export default function DropzoneEmptyState({
   // Enter and Space on a focused file input open the picker natively.
   const pickerEl = (
     <label class={styles['file-picker-button']}>
-      {pickLabel ?? (multiple ? messages.chooseFilesMany : messages.chooseFileOne)}
+      {pickWords}
       <input
         ref={inputRef}
         type="file"
@@ -145,24 +147,9 @@ export default function DropzoneEmptyState({
       onDragLeave={() => setIsDragOver(false)}
       onDrop={onDrop}
     >
-      {art ?? (
-        <svg
-          class={styles['dropzone-icon']}
-          data-testid="dropzone-icon"
-          width="48"
-          height="48"
-          viewBox="0 0 48 48"
-          fill="none"
-          aria-hidden="true"
-        >
-          <rect x="9" y="4" width="24" height="32" rx="3" class={styles['dz-page']} />
-          <path d="M27 4v8h8" class={styles['dz-fold']} />
-          <rect x="16" y="26" width="22" height="16" rx="3" class={`${styles['dz-page']} ${styles['dz-page-front']}`} />
-          <path d="M23 30v8M27 34h-8" class={styles['dz-plus']} />
-        </svg>
-      )}
+      {art ? <div class={styles['verb-band']} data-verb-band>{art}</div> : <FilePlusIcon />}
 
-      <p class={styles['dropzone-text']}>
+      <p class={styles['dropzone-text']} data-sheet-heading>
         <strong class={styles['drag-heading']}>{twoWidths(defaultHeading, heading)}</strong>
         {/* Shown instead of the heading while a file is dragged over the page
             (BasePdfTool's `data-dragging`), by CSS alone. */}
@@ -180,7 +167,7 @@ export default function DropzoneEmptyState({
         <p class={styles['ios-files-hint']}>{messages.iosFilesHint}</p>
       )}
 
-      {isPhone && <CloudDriveHint messages={messages} />}
+      {isPhone && <CloudDriveHint messages={messages} pickWords={pickWords} aboutPdfs={!pickLabel && accept.includes('pdf')} />}
 
       {/* The sheet's last child: its presence means the whole sheet has been parsed. */}
       <i class={styles['sheet-end']} data-sheet-end hidden />
@@ -188,12 +175,33 @@ export default function DropzoneEmptyState({
   );
 }
 
-/** MERGE-18, MERGE-27: one muted line on phones, with the how-to link where an edition of that page exists. */
-function CloudDriveHint({ messages }: { messages: ShellMessages }) {
+function FilePlusIcon() {
   return (
-    <p class={styles['ios-files-hint']}>
-      {messages.cloudDriveHint}
-      {messages.cloudDriveHowTo && (
+    <svg
+      class={styles['dropzone-icon']}
+      data-testid="dropzone-icon"
+      width="48"
+      height="48"
+      viewBox="0 0 48 48"
+      fill="none"
+      aria-hidden="true"
+    >
+      <rect x="9" y="4" width="24" height="32" rx="3" class={styles['dz-page']} />
+      <path d="M27 4v8h8" class={styles['dz-fold']} />
+      <rect x="16" y="26" width="22" height="16" rx="3" class={`${styles['dz-page']} ${styles['dz-page-front']}`} />
+      <path d="M23 30v8M27 34h-8" class={styles['dz-plus']} />
+    </svg>
+  );
+}
+
+/** MERGE-18, MERGE-27: one muted line on phones, naming the button on show. The how-to link is about PDFs, so it
+ * appears only where the button is for them (a tool that renames it, like Scan's Choose photos, is not, even when
+ * it also takes a PDF), and only where an edition of that page exists. */
+function CloudDriveHint({ messages, pickWords, aboutPdfs }: { messages: ShellMessages; pickWords: string; aboutPdfs: boolean }) {
+  return (
+    <p class={styles['ios-files-hint']} data-cloud-drive-hint>
+      {messages.cloudDriveHint.replace('{pick}', pickWords)}
+      {aboutPdfs && messages.cloudDriveHowTo && (
         <>
           {' '}
           <a href="/how-to-open-a-pdf-from-google-drive/" class={styles['ios-files-link']}>{messages.cloudDriveHowTo}</a>

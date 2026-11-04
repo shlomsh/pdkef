@@ -71,6 +71,24 @@
   display: none;
 }
 
+/* The tool's verb. Only a box on the phone first screen (tool-page/phoneFirstScreen.css); everywhere else the verb lays out
+   as the sheet's own child. */
+.verb-band {
+  display: contents;
+}
+
+:where(.verb-band) > * {
+  max-width: 100%;
+}
+
+/* Nothing is dragged on a touch screen, so Scan's lead button replaces a heading about dropping, at
+   every width. On a phone's first screen every tool's verb does (tool-page/phoneFirstScreen.css). */
+@media (hover: none) and (pointer: coarse) {
+  .dropzone-text:has(+ .pick-row[data-action-leads]) {
+    display: none;
+  }
+}
+
 @media (min-width: 1024px) {
   .empty-phone {
     display: none;
@@ -103,7 +121,8 @@
     visibility: hidden;
   }
 
-  .dropzone[data-empty-state] > :first-child {
+  .dropzone[data-empty-state] > :first-child,
+  .dropzone[data-empty-state] > .verb-band > * {
     max-width: 42rem;
   }
 

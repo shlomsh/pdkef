@@ -79,6 +79,8 @@ export interface DocumentationShellMessages {
    * erroring - the same "missing accent, unchanged render" contract
    * QUAL-13's h1Accent used. */
   heroAccent?: string;
+  /** The one line above the tool card at 640px and under, where the subhead moves below the card. */
+  heroPhoneLine: string;
 }
 
 export type AppBarMessages = Pick<DocumentationShellMessages, 'homeAriaLabel' | 'homepageAriaLabel' | 'onDevice'>;
@@ -132,6 +134,7 @@ const englishMessages = {
   toolDockAriaLabel: 'PDF tools',
   installGuidesAriaLabel: 'Device installation guides',
   heroAccent: 'on your device',
+  heroPhoneLine: 'Free, private, right in your browser.',
 } satisfies DocumentationShellMessages;
 
 const hebrewMessages = {
@@ -170,6 +173,7 @@ const hebrewMessages = {
   inEnglish: 'באנגלית',
   lastUpdated: 'עודכן לאחרונה',
   airplaneModeNotice: 'הפעילו מצב טיסה ונסו. זה עדיין עובד.',
+  heroPhoneLine: 'חינם, פרטי, ישר בדפדפן.',
   ratingLine: '{count} דירוגים, ממוצע {average}',
   heroAccent: 'אצלכם במכשיר',
   homepageAriaLabel: 'דף הבית של PDkef',
@@ -216,6 +220,7 @@ const indonesianMessages = {
   inEnglish: 'dalam bahasa Inggris',
   lastUpdated: 'Terakhir diperbarui',
   airplaneModeNotice: 'Aktifkan mode pesawat dan coba sendiri. Tetap berfungsi.',
+  heroPhoneLine: 'Gratis, privat, langsung di browser Anda.',
   ratingLine: '{average} dari {count} penilaian',
   homepageAriaLabel: 'Beranda PDkef',
   toolDockAriaLabel: 'Alat PDF',
