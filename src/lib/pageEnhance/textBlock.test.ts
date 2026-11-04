@@ -88,6 +88,13 @@ describe('textBlockCorners', () => {
     expect(Math.abs((c[1].x + c[2].x) / 2 - 1)).toBeLessThan(0.02);
   });
 
+  it('stops just past the text on the spine side: the gutter is no part of the page', () => {
+    const c = textBlockCorners(page(), 'right')!;
+    const textRight = RIGHT0 + GROWTH / 4;
+    expect((c[1].x + c[2].x) / 2 * W).toBeLessThan(textRight + 0.06 * (RIGHT0 - LEFT0));
+    expect(Math.abs((c[0].x + c[3].x) / 2)).toBeLessThan(0.02);
+  });
+
   it('is not moved by a tall mark in the margin', () => {
     const plain = textBlockCorners(page())!;
     const marked = textBlockCorners(page(ROWS, true))!;
