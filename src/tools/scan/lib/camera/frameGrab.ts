@@ -21,18 +21,23 @@ export function grabGray(video: HTMLVideoElement, canvas: HTMLCanvasElement, sho
   return { width, height, data };
 }
 
-/** A square of up to `size` px from the video's centre at its own resolution, as gray pixels (same conversion
- * as grabGray); clamped to the video. Null until the video has a size.
+/** How much of the short edge the focus crop covers: 256 px of a 1080 px frame, enough to land on print. */
+const FOCUS_SHARE = 256 / 1080;
+
+/** A square from the video's centre, FOCUS_SHARE of its short edge and at least `size` px, drawn at up to `size`
+ * px, as gray pixels (same conversion as grabGray); clamped to the video. Null until the video has a size.
  * @testSeam */
 export function grabFocusPatch(video: HTMLVideoElement, canvas: HTMLCanvasElement, size = 256): GrayImage | null {
   const { videoWidth: vw, videoHeight: vh } = video;
   if (!vw || !vh) return null;
-  const side = Math.min(size, vw, vh);
+  const short = Math.min(vw, vh);
+  const from = Math.min(short, Math.max(size, Math.round(short * FOCUS_SHARE)));
+  const side = Math.min(size, from);
   if (canvas.width !== side) canvas.width = side;
   if (canvas.height !== side) canvas.height = side;
   const ctx = canvas.getContext('2d', { willReadFrequently: true });
   if (!ctx) return null;
-  ctx.drawImage(video, Math.floor((vw - side) / 2), Math.floor((vh - side) / 2), side, side, 0, 0, side, side);
+  ctx.drawImage(video, Math.floor((vw - from) / 2), Math.floor((vh - from) / 2), from, from, 0, 0, side, side);
   const rgba = ctx.getImageData(0, 0, side, side).data;
   const data = new Uint8ClampedArray(side * side);
   for (let i = 0, j = 0; j < data.length; i += 4, j++) data[j] = 0.299 * rgba[i] + 0.587 * rgba[i + 1] + 0.114 * rgba[i + 2];

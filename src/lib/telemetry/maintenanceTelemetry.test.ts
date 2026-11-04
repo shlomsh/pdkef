@@ -16,6 +16,7 @@ import {
   signFormDetectionFailed,
   pdfPageTreeRepaired,
   pdfPageTreeFailed,
+  scanCameraPhoto,
 } from './maintenanceTelemetry.ts';
 
 const sensitiveValues = {
@@ -198,6 +199,18 @@ describe('page tree events', () => {
   it('failed carries the roots and survives the parser unchanged', () => {
     const event = pdfPageTreeFailed('no_pages_key', 'several');
     expect(event.properties).toEqual({ outcome: 'failed', shape: 'no_pages_key', roots: 'several' });
+    expect(parseMaintenanceEvent(event)).toEqual(event);
+  });
+});
+
+describe('scanCameraPhoto (SCAN-16)', () => {
+  it.each([
+    [1080, 1920, 'under_2000'],
+    [1944, 2592, 'under_3000'],
+    [3024, 4032, '3000_or_more'],
+  ])('buckets a %ix%i photo by its long edge', (width, height, long_edge) => {
+    const event = scanCameraPhoto(width, height);
+    expect(event).toEqual({ name: 'scan_camera_photo', properties: { outcome: 'taken', long_edge } });
     expect(parseMaintenanceEvent(event)).toEqual(event);
   });
 });

@@ -61,6 +61,15 @@ describe('grabFocusPatch', () => {
     expect(ctx.drawImage).toHaveBeenCalledWith(expect.anything(), (1920 - 256) / 2, (1080 - 256) / 2, 256, 256, 0, 0, 256, 256);
   });
 
+  // SCAN-16: a fixed 256px of a full-size stream is a sliver of the page, often blank paper.
+  it('covers the same share of a full-size video, scaled down to 256px', () => {
+    const { canvas, ctx } = fakeCanvas();
+    const got = grabFocusPatch(video(3024, 4032), canvas)!;
+    expect(got.width).toBe(256);
+    const side = Math.round((3024 * 256) / 1080);
+    expect(ctx.drawImage).toHaveBeenCalledWith(expect.anything(), Math.floor((3024 - side) / 2), Math.floor((4032 - side) / 2), side, side, 0, 0, 256, 256);
+  });
+
   it('clamps the square to a small video', () => {
     const { canvas } = fakeCanvas();
     const got = grabFocusPatch(video(200, 120), canvas)!;

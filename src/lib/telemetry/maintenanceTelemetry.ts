@@ -158,6 +158,13 @@ export function pdfPageTreeFailed(shape: PageTreeShape, roots: PageTreeRoots): M
   });
 }
 
+/** A live camera photo's long edge as a bucket (SCAN-16). The size of the picture, never anything in it. */
+export function scanCameraPhoto(width: number, height: number): MaintenanceEvent {
+  const edge = Math.max(width, height);
+  const long_edge = edge < 2000 ? 'under_2000' : edge < 3000 ? 'under_3000' : '3000_or_more';
+  return Object.freeze({ name: 'scan_camera_photo', properties: Object.freeze({ outcome: 'taken', long_edge }) });
+}
+
 function browserIsOffline(): boolean {
   return typeof navigator !== 'undefined' && navigator.onLine === false;
 }

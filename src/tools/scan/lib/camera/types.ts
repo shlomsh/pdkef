@@ -18,8 +18,8 @@ export interface LiveView {
 
 export const IDLE_VIEW: LiveView = { quad: null, locked: false, hold: 0, hint: 'point' };
 
-/** starting: asking for the camera. refused / unavailable: the native photo input takes over. */
-export type CameraStatus = 'starting' | 'live' | 'refused' | 'unavailable';
+/** starting: asking for the camera. refused / unavailable / slow: the native photo input takes over. */
+export type CameraStatus = 'starting' | 'live' | 'refused' | 'unavailable' | 'slow';
 
 /** One page the camera took. */
 export interface TakenPage {

@@ -95,7 +95,7 @@ export default function Viewfinder(props: ViewfinderProps) {
   // Kept in the layout from the start, hidden until a page is in it, so the first page has somewhere to fly.
   const showStack = many && (props.count > 0 || thumb !== null);
   const cover = coverRect(camera.videoSize, size);
-  const offered = camera.status === 'refused' || camera.status === 'unavailable';
+  const offered = camera.status === 'refused' || camera.status === 'unavailable' || camera.status === 'slow';
 
   const onCancel = (event: Event) => { event.preventDefault(); props.onClose(); };
 
@@ -137,7 +137,7 @@ export default function Viewfinder(props: ViewfinderProps) {
       {camera.status === 'starting' && <p class={styles.status}>{t.cameraStarting}</p>}
       {offered && (
         <div class={styles.status}>
-          <p>{t.cameraOff}</p>
+          <p>{camera.status === 'slow' ? t.cameraSlow : t.cameraOff}</p>
           <TakePhotoButton onFiles={props.onFallbackFiles} buttonClass={styles.fallback} />
         </div>
       )}
