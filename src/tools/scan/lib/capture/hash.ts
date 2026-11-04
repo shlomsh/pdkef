@@ -31,6 +31,7 @@ function pageMap(quad: Quad): Matrix3 | null {
   try {
     return homography(FULL_QUAD, quad);
   } catch {
+    // expected: corners on a line or crossed have no perspective; the whole frame is hashed instead
     return null;
   }
 }
