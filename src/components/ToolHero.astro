@@ -152,6 +152,13 @@ const sentences = subhead.split(/(?<=\. )/);
   .tool-hero-icon[data-tone='sign'] {
     background-image: linear-gradient(150deg, var(--color-primary-hover), var(--color-primary));
   }
+  /* Ink tile, like the home dock's flagship: a light tile vanishes on the pale
+     hero and the yellow marker stroke needs a dark ground to read. */
+  .tool-hero-icon[data-tone='highlight'] {
+    background-image: none;
+    background-color: var(--color-text);
+    color: var(--color-surface);
+  }
   .tool-hero-icon[data-tone='redact'] {
     background-image: linear-gradient(150deg, var(--color-surface), var(--color-success-soft));
     color: var(--color-success);
