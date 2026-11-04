@@ -41,17 +41,15 @@ interface Seen { quad: Quad | null; width: number; height: number; turns: number
 const inspectedTurns = (current: number, found: number): number => (current === 0 ? found : current);
 
 /** The pages with page `id` marked as inspected. The person's own corners win over the guess.
- * `autoTurn` is true for a page added in this visit; a restored page keeps the turns its person left it at.
- * `keepCorners` is for a page that arrived with corners found already (a PDF sheet): inspection then only
- * makes its preview and size, and the guess neither replaces the corners nor changes the found mark. */
-export function withInspection(pages: ScanPage[], id: number, seen: Seen | null, preview: string | null, autoTurn: boolean, keepCorners = false): ScanPage[] {
+ * `autoTurn` is true for a page added in this visit; a restored page keeps the turns its person left it at. */
+export function withInspection(pages: ScanPage[], id: number, seen: Seen | null, preview: string | null, autoTurn: boolean): ScanPage[] {
   const quad = seen?.quad ?? null;
   return pages.map((p) => (
     p.id !== id ? p : {
       ...p,
       guessed: true,
-      found: keepCorners ? p.found : !!quad,
-      quad: keepCorners || p.edited || !quad ? p.quad : quad,
+      found: !!quad,
+      quad: p.edited || !quad ? p.quad : quad,
       turns: autoTurn && !p.edited ? inspectedTurns(p.turns, seen?.turns ?? 0) : p.turns,
       preview,
       aspect: seen ? seen.width / seen.height : null,

@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
+import { gray, leaning } from '#lib/pageEnhance/leaning.test-helper.ts';
 import type { GrayImage } from '#lib/pageEnhance/quad.ts';
-import { pdfSheets, readsRightToLeft, type PdfSheet, type SheetReader } from './pdfSheets.ts';
+import { pdfSheets, readsRightToLeft, type PdfSheet, type SheetBorder, type SheetReader } from './pdfSheets.ts';
 import { FULL_QUAD } from './quad.ts';
 
 // What textTurn would say about a sideways sheet: the synthetic bars are no text, so a tall picture of a wide
@@ -21,7 +22,18 @@ function spread(width: number, height: number): GrayImage {
 }
 const blank = (width: number, height: number): GrayImage => ({ width, height, data: new Uint8ClampedArray(width * height).fill(235) });
 
-interface Calls { gray: [number, number, number][]; jpeg: [number, number, number][]; closed: boolean }
+interface Calls { gray: [number, number, number][]; jpeg: [number, number, number, SheetBorder][]; closed: boolean }
+/** A two-page sheet whose justified rows lean by `degrees`. */
+function tiltedSpread(width: number, height: number, degrees: number): GrayImage {
+  const half = gray(leaning(width / 2, height, degrees, 40, width / 2 - 40));
+  const data = new Uint8ClampedArray(width * height).fill(255);
+  for (let y = 0; y < height; y += 1) {
+    for (const start of [0, width / 2]) data.set(half.data.subarray(y * half.width, (y + 1) * half.width), y * width + start);
+    data.fill(0, y * width + width / 2 - 2, y * width + width / 2 + 2);
+  }
+  return { width, height, data };
+}
+
 function reader(images: (turns: number) => GrayImage, { pages = 1, rtl = false } = {}): SheetReader & { calls: Calls } {
   const calls: Calls = { gray: [], jpeg: [], closed: false };
   return {
@@ -29,7 +41,7 @@ function reader(images: (turns: number) => GrayImage, { pages = 1, rtl = false }
     pageCount: pages,
     rightToLeft: async () => rtl,
     grayOf: async (n, long, turns) => { calls.gray.push([n, long, turns]); return images(turns); },
-    jpegOf: async (n, long, turns) => { calls.jpeg.push([n, long, turns]); const g = images(turns); return { blob: new Blob(['x'], { type: 'image/jpeg' }), width: g.width, height: g.height }; },
+    jpegOf: async (n, long, turns, border) => { calls.jpeg.push([n, long, turns, border]); const g = images(turns); return { blob: new Blob(['x'], { type: 'image/jpeg' }), width: g.width, height: g.height }; },
     close: () => { calls.closed = true; },
   };
 }
@@ -46,6 +58,18 @@ describe('readsRightToLeft', () => {
 });
 
 describe('pdfSheets', () => {
+  it('gives a tilted sheet a white border so every corner sits on the picture, where the corner editor can reach it', async () => {
+    const r = reader(() => tiltedSpread(1000, 700, 3.5));
+    const [sheet] = await collect(pdfSheets(pdf, undefined, r));
+    expect(sheet.quads).toHaveLength(2);
+    for (const { x, y } of sheet.quads.flat()) {
+      expect(Math.min(x, y)).toBeGreaterThanOrEqual(0);
+      expect(Math.max(x, y)).toBeLessThanOrEqual(1);
+    }
+    const border = r.calls.jpeg[0][3];
+    expect(Math.max(border.left, border.top, border.right, border.bottom)).toBeGreaterThan(0);
+  });
+
   it('gives a spread two quads, left page first, and names the file by pdf and page', async () => {
     const r = reader(() => spread(800, 560));
     const [sheet] = await collect(pdfSheets(pdf, undefined, r));
@@ -73,7 +97,7 @@ describe('pdfSheets', () => {
     const r = reader(() => blank(600, 800));
     await collect(pdfSheets(pdf, undefined, r));
     expect(r.calls.gray).toEqual([[1, 1000, 0]]);
-    expect(r.calls.jpeg).toEqual([[1, 3200, 0]]);
+    expect(r.calls.jpeg.map((call) => call.slice(0, 3))).toEqual([[1, 3200, 0]]);
   });
 
   it('redraws a sideways sheet turned, and plans from the upright read', async () => {
@@ -82,7 +106,7 @@ describe('pdfSheets', () => {
     const r = reader(sideways);
     const [sheet] = await collect(pdfSheets(pdf, undefined, r));
     expect(r.calls.gray.map((c) => c[2])).toEqual([0, 1]);
-    expect(r.calls.jpeg).toEqual([[1, 3200, 1]]);
+    expect(r.calls.jpeg.map((call) => call.slice(0, 3))).toEqual([[1, 3200, 1]]);
     expect(sheet.quads).toHaveLength(2);
   });
 

@@ -146,20 +146,13 @@ describe('scanPages', () => {
   });
 });
 
-describe('withInspection for corners that were found already (a PDF sheet)', () => {
+describe('withInspection for corners that were found on a PDF sheet', () => {
   const found = [{ x: 0, y: 0 }, { x: 0.5, y: 0 }, { x: 0.5, y: 1 }, { x: 0, y: 1 }] as typeof FULL_QUAD;
   const guess = [{ x: 0.1, y: 0.1 }, { x: 0.9, y: 0.1 }, { x: 0.9, y: 0.9 }, { x: 0.1, y: 0.9 }] as typeof FULL_QUAD;
-  const base = () => ({ ...newPage(photo(), 'document'), quad: found, guessed: true, found: true });
 
-  it('makes the preview and aspect but keeps the found corners, turns and found mark', () => {
-    const page = base();
-    const [next] = withInspection([page], page.id, { quad: guess, width: 200, height: 100, turns: 1 }, 'blob:p', false, true);
-    expect(next).toMatchObject({ quad: found, found: true, turns: 0, preview: 'blob:p', aspect: 2, edited: false });
-  });
-
-  it('lets a corner the person moved win', () => {
-    const moved = { ...base(), quad: guess, edited: true };
-    const [next] = withInspection([moved], moved.id, { quad: found, width: 200, height: 100, turns: 0 }, 'blob:p', false, true);
-    expect(next.quad).toBe(guess);
+  it('makes the preview and aspect but keeps the corners and turns', () => {
+    const page = { ...newPage(photo(), 'document'), quad: found, guessed: true, found: true, edited: true };
+    const [next] = withInspection([page], page.id, { quad: guess, width: 200, height: 100, turns: 1 }, 'blob:p', true);
+    expect(next).toMatchObject({ quad: found, turns: 0, preview: 'blob:p', aspect: 2 });
   });
 });

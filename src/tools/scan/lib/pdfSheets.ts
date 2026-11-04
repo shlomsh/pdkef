@@ -10,6 +10,9 @@ import { openPdfSheetReader } from './pdfSheetReader.ts';
 /** What assess is tuned for: a sheet shrunk to about this many pixels on its long edge. */
 const READ_LONG_EDGE = 1000;
 
+/** White added around a sheet, each side a share of the sheet's own width or height. */
+export interface SheetBorder { left: number; top: number; right: number; bottom: number }
+
 /** One sheet of the PDF as a picture, and its book pages' corners (0 to 1 of the picture) in reading order. */
 export interface PdfSheet { file: File; quads: Quad[] }
 
@@ -19,7 +22,7 @@ export interface SheetReader {
   /** Whether the page's text is Hebrew or Arabic. */
   rightToLeft(pageNumber: number): Promise<boolean>;
   grayOf(pageNumber: number, longEdge: number, extraTurns: number): Promise<GrayImage>;
-  jpegOf(pageNumber: number, longEdge: number, extraTurns: number): Promise<{ blob: Blob; width: number; height: number }>;
+  jpegOf(pageNumber: number, longEdge: number, extraTurns: number, border: SheetBorder): Promise<{ blob: Blob; width: number; height: number }>;
   close(): void;
 }
 
@@ -44,6 +47,23 @@ async function quadsOf(reader: SheetReader, pageNumber: number): Promise<{ quads
   return { quads: planPage(gray, a, gray).pieces.map((p) => p.quad), turns };
 }
 
+/** The border that puts every corner on the picture: a levelled page's corners can fall just off a tilted sheet, where the corner editor cannot reach them. */
+function borderFor(quads: Quad[]): SheetBorder {
+  const points = quads.flat();
+  return {
+    left: Math.max(0, ...points.map((p) => -p.x)),
+    top: Math.max(0, ...points.map((p) => -p.y)),
+    right: Math.max(0, ...points.map((p) => p.x - 1)),
+    bottom: Math.max(0, ...points.map((p) => p.y - 1)),
+  };
+}
+
+/** The same corners, 0 to 1 of the sheet with its border. */
+const inBorder = (quad: Quad, { left, top, right, bottom }: SheetBorder) => quad.map(({ x, y }) => ({
+  x: (x + left) / (1 + left + right),
+  y: (y + top) / (1 + top + bottom),
+})) as Quad;
+
 const baseName = (file: File) => file.name.replace(/\.pdf$/i, '');
 
 /** The sheets of `pdf`, one at a time. `reader` is for tests; otherwise pdf.js reads the file. */
@@ -58,10 +78,12 @@ export async function* pdfSheets(
       throwIfAborted(signal);
       const { quads, turns } = await quadsOf(sheets, n);
       const rtl = quads.length > 1 && await sheets.rightToLeft(n);
-      const { blob } = await sheets.jpegOf(n, SOURCE_LONG_EDGE, turns);
+      const border = borderFor(quads);
+      const { blob } = await sheets.jpegOf(n, SOURCE_LONG_EDGE, turns, border);
       throwIfAborted(signal);
       const file = new File([blob], `${baseName(pdf)}-${n}.jpg`, { type: 'image/jpeg' });
-      yield { file, quads: rtl ? [...quads].reverse() : quads };
+      const placed = quads.map((quad) => inBorder(quad, border));
+      yield { file, quads: rtl ? placed.reverse() : placed };
     }
   } finally {
     sheets.close();

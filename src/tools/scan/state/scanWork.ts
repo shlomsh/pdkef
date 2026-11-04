@@ -19,7 +19,7 @@ export interface ScanPage {
   turns: number;
   /** The edge guess has run (or failed); until then the corners are the whole photo. */
   guessed: boolean;
-  /** The person moved a corner: their corners win, the guess never overrides them. */
+  /** The corners are settled, moved by the person or found on a PDF sheet: the guess never overrides them, and a remembered scan keeps them. */
   edited: boolean;
   /** Whether the edge guess found a page: null until it has run. */
   found: boolean | null;

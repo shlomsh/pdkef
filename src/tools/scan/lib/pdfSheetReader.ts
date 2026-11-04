@@ -4,7 +4,7 @@ import { renderPageToCanvas } from '#lib/pdf/renderPage.js';
 import { getPdfjs } from '#lib/pdf/loadPdfjs.js';
 import { PDFJS_WASM_URL } from '#lib/pdf/pdfjsWasm.js';
 import { toGray } from '#lib/pageEnhance/dewarp/index.ts';
-import { readsRightToLeft, type SheetReader } from './pdfSheets.ts';
+import { readsRightToLeft, type SheetBorder, type SheetReader } from './pdfSheets.ts';
 
 const JPEG_QUALITY = 0.92;
 
@@ -13,6 +13,20 @@ async function draw(page: PDFPageProxy, longEdge: number, extraTurns: number, si
   const rotation = (page.rotate + 90 * extraTurns) % 360;
   const unit = page.getViewport({ scale: 1, rotation });
   return renderPageToCanvas(page, { scale: longEdge / Math.max(unit.width, unit.height), rotation, signal });
+}
+
+/** `sheet` with white around it; `sheet` itself when there is no border. Releases the canvas it replaces. */
+function withBorder(sheet: HTMLCanvasElement, { left, top, right, bottom }: SheetBorder): HTMLCanvasElement {
+  if (left + top + right + bottom === 0) return sheet;
+  const out = document.createElement('canvas');
+  out.width = Math.round(sheet.width * (1 + left + right));
+  out.height = Math.round(sheet.height * (1 + top + bottom));
+  const context = out.getContext('2d')!;
+  context.fillStyle = '#ffffff';
+  context.fillRect(0, 0, out.width, out.height);
+  context.drawImage(sheet, Math.round(sheet.width * left), Math.round(sheet.height * top));
+  sheet.width = 0;
+  return out;
 }
 
 const toJpeg = (canvas: HTMLCanvasElement) => new Promise<Blob>((resolve, reject) => {
@@ -36,8 +50,8 @@ export async function openPdfSheetReader(pdf: File, signal?: AbortSignal): Promi
       canvas.width = 0;
       return toGray({ width: image.width, height: image.height, data: image.data });
     },
-    async jpegOf(pageNumber, longEdge, extraTurns) {
-      const canvas = await draw(await doc.getPage(pageNumber), longEdge, extraTurns, signal);
+    async jpegOf(pageNumber, longEdge, extraTurns, border) {
+      const canvas = withBorder(await draw(await doc.getPage(pageNumber), longEdge, extraTurns, signal), border);
       const { width, height } = canvas;
       try {
         return { blob: await toJpeg(canvas), width, height };
