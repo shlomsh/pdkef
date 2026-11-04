@@ -27,6 +27,12 @@ function grayOf({ width, height, data }: RgbaImage): GrayImage {
 export function uprightTurns(src: RgbaImage, quad: Quad): number {
   const quadPx = scaleQuad(quad, src.width, src.height);
   const { width, height } = warpSizeFor(quadPx, READ_LONG_EDGE, null);
-  const read = textTurn(grayOf(warpPerspective(src, quadPx, width, height)));
+  let read;
+  try {
+    read = textTurn(grayOf(warpPerspective(src, quadPx, width, height)));
+  } catch {
+    // expected: degenerate corners define no perspective; a page whose turn cannot be read stays unturned.
+    return 0;
+  }
   return read && read.turn === 1 && read.confidence >= MIN_SIDEWAYS_CONFIDENCE ? SIDEWAYS_TURNS : 0;
 }

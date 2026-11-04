@@ -54,6 +54,10 @@ describe('scanPages', () => {
       const page = { ...newPage(photo(), 'document'), turns: 2 };
       expect(withInspection([page], page.id, sideways, null, true)[0].turns).toBe(2);
     });
+    it('leaves the turns of a page whose corners the person set, since they were read from the guess', () => {
+      const page = { ...newPage(photo(), 'document'), edited: true };
+      expect(withInspection([page], page.id, sideways, null, true)[0].turns).toBe(0);
+    });
     it('leaves a restored page at the turns its person left it at, even 0', () => {
       const page = newPage(photo(), 'document');
       expect(withInspection([page], page.id, sideways, null, false)[0].turns).toBe(0);
