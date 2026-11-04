@@ -182,3 +182,20 @@ Checked 2026-11-04 against the licence rule; none passes.
 - [x] Licence verdict and draft message (above). Browser feasibility and CSP measured. Level 3 answered.
 - Method files (scripts, ONNX exports, the browser harness) are in the session scratchpad, not the repo;
   the photos and the PDF never entered the repo.
+
+## Follow-up 2026-11-04: packages and models for the phone-photo weaknesses
+
+Research (packages and models, licence quoted, nothing assumed): no permissive classical package or model is
+measurably better than the shipped row-and-rule fit on creases, short lines, wrinkles or shadows. Leptonica's
+dewarp asks for at least 10 text lines and 45% page coverage (stricter than ours); `page-dewarp` is a cubic sheet
+from text lines (same family); only Unfolder targets folds and has no code; no permissive deshadow network exists.
+
+DocAligner (corner model, Apache-2.0 code; the author wrote in issues 11 and 13 that the weights may be used,
+bundled, converted and redistributed under the same terms; training data disclaimed) was tested on 6 photos
+and 18 synthetic cases, and is **not adopted**: it found IMG_4755's white-on-white page (error 0.018 against the
+shipped 0.18) only in one channel order and failed in the other; it misses the same page as a grayscale input and
+misses the repo's real blank-form-on-white-table photo that the shipped guess finds (0.011); on 18 synthetic gray
+cases 17 are within 0.035 where the shipped guess is within 0.0064. A 256 x 256 heatmap with a weak signal is a
+thin margin; the white-on-white fix is the classical one (SCAN-33's faint-edge path, colour as well as luma).
+Untested leads, only worth it if the classical fix stalls: SlimSAM page mask, PP-OCRv6 tiny text-line detector for
+sparse pages (1.78 MB), M-LSD for fold lines and rules (1.3-3.1 MB).
