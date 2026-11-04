@@ -35,3 +35,10 @@ measured, not only applied at the end.
 - [ ] The detector's tests: rows across, rows down, a form, a page with no text.
 - [ ] Shlomi's two sideways photos come out upright.
 - [ ] Checked holding a phone sideways in the live camera.
+
+## Accepted limits of the automatic turn
+
+The turn is decided once, at inspection, and stored in `turns` (`withInspection`), so Rotate is never undone by it. Two cases follow from that, both accepted on 2026-11-04 and both one Rotate press to put right:
+
+- A draft autosaved before its inspection finished stays sideways when restored, since restored pages are not turned.
+- Pressing Rotate four times back to 0 before inspection finishes reads as "not turned", so the found turn applies.

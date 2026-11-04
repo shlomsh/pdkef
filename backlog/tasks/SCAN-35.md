@@ -1,11 +1,9 @@
 ---
 id: "SCAN-35"
 title: "Scan next: a flat page's edges are never read as bowed"
-status: "in_progress"
+status: "done"
 priority: "P1"
 epic: "scan-next"
-horizon: "now"
-order: 7
 depends_on: ["SCAN-17"]
 ---
 
@@ -22,5 +20,9 @@ picking another edge), and a fix that keeps the real bows SCAN-17's tests recove
 
 ## Acceptance
 
-- [ ] A test reproducing the false bow (from the cause, synthetic) that fails before and passes after.
-- [ ] Shlomi's flat photos read no bow; SCAN-17's edge tests still pass.
+- [x] A test reproducing the false bow (from the cause, synthetic) that fails before and passes after.
+- [x] Shlomi's flat photos read no bow; SCAN-17's edge tests still pass.
+
+## Closed 2026-11-04
+
+Read on main at dc63a90b through the app's route (corners from the preview JPEG): `curves` is null on all four of Shlomi's photos. IMG_4757, 4758 and 4759 are flat by every measure (`bentPx` 0). IMG_4755 reads no edge bow; its 9.6 px comes from the row and column fits, which are not this ticket's mechanism.

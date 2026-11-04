@@ -34,3 +34,7 @@ the camera says a darker surface would help (SCAN-24).
       (54.9 / 56.6 before SCAN-33, where it fell through to brightness); dark-desk page 11.0 / 11.5 ms (10.9 / 11.9 before). No numeric budget is
       written anywhere, and a phone has not been measured, so the box stays open.
 - [ ] Shlomi glances at the blank form's corners in `edges/real/labels.json` (read by eye).
+
+## Note, 2026-11-04
+
+The blank form's corners are sensitive to how the 320 px copy is made. Through the app's route (a 1600 px JPEG preview at 0.85, then 320 px) IMG_4755 finds the page and snaps to 1.4142. Drawn straight from the photo to 320 px it finds the frame instead, (0,0) to (1,0.93). The app always takes the first route, so nothing is wrong today, but a change to the preview's size or quality can flip this page: any such change needs this photo read again.
