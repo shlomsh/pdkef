@@ -43,14 +43,6 @@ const LEAN_SPAN = 0.3;
 const LEAN_RMS = 0.001;
 /** A bend is applied only when it leaves less than this share of the lines' own wobble unexplained. */
 const MAX_UNEXPLAINED = 0.5;
-/** The same, for a fit that also reads lines it never saw. Handwriting wobbles in ways no bend follows: real
- * bent pages with it score up to 0.63, and the same pages once straightened 0.71 and up. */
-const MAX_UNEXPLAINED_TESTED = 0.65;
-/** Fewest lines worth splitting in two to test a fit; a page's few rules are not. */
-const MIN_HELD_OUT = 6;
-/** A fit must read the lines it never saw within this much of their own straight lines. Real bent pages
- * read up to 1.2 and fits that ruined a page 1.5 and up: a bend is shared by neighbouring lines. */
-const MAX_HELD_OUT = 1.3;
 
 /** One point on a line: `y` across it, observed at `x` along it, both 0..1. */
 export interface Sample { line: number; x: number; y: number }
@@ -332,9 +324,7 @@ export function fitBend(found: Sample[][], minLines: number): FittedBend | null 
   });
   // A fit that leaves much of the lines' own wobble unexplained is no bend to apply, but its lean still
   // says how level the lines are (straight rows have no wobble to explain).
-  const testable = lines.length >= MIN_HELD_OUT;
-  const explained = Math.sqrt(resid / count) <= (testable ? MAX_UNEXPLAINED_TESTED : MAX_UNEXPLAINED) * Math.sqrt(wobble / count)
-    && (!testable || heldOutError(lines, centres) <= MAX_HELD_OUT);
+  const explained = Math.sqrt(resid / count) <= MAX_UNEXPLAINED * Math.sqrt(wobble / count);
 
   let x0 = 1; let x1 = 0; let y0 = 1; let y1 = 0;
   for (const line of lines) for (const p of line) {
@@ -342,29 +332,6 @@ export function fitBend(found: Sample[][], minLines: number): FittedBend | null 
   }
   const bend: LineBend = { ...result.bend, box: { x0, x1, y0, y1 } };
   return { bend, lean: medianSlope(lines), explained };
-}
-
-/**
- * How well a bend fitted through every other line reads the lines left out, each way round: their wobble
- * about that bend over their wobble about their own straight lines. Near 1 or under when the lines share a
- * bend; far over when the fit only follows each line's own marks.
- */
-function heldOutError(lines: Sample[][], centres: number[]): number {
-  const order = lines.map((_, k) => k).sort((p, q) => centres[p] - centres[q]).map((k) => lines[k]);
-  let about = 0;
-  let own = 0;
-  for (const side of [0, 1]) {
-    const seen = fit(order.filter((_, k) => k % 2 === side));
-    if (!seen) return Infinity;
-    for (const line of order.filter((_, k) => k % 2 !== side)) {
-      const left = line.map((p) => p.y - bendAt(seen.bend, p.x, p.y));
-      const mean = left.reduce((t, v) => t + v, 0) / left.length;
-      const straight = ownLine(line);
-      about += left.reduce((t, v) => t + (v - mean) ** 2, 0);
-      own += line.reduce((t, p) => t + (p.y - straight.at(p.x)) ** 2, 0);
-    }
-  }
-  return own > 0 ? Math.sqrt(about / own) : 1;
 }
 
 /** The lines' shared lean: the median of each line's own least-squares slope, taken over the lines

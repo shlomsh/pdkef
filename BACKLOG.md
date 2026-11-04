@@ -105,7 +105,7 @@ The camera takes pages, the table fixes them, Share sends them. The table first 
 | SCAN-12 | P2 | [SCAN-12](backlog/tasks/SCAN-12.md) · Scan next: a short, very visual video of camera to WhatsApp on /scan-to-pdf/ |  |
 | SCAN-09 | P2 | [SCAN-09](backlog/tasks/SCAN-09.md) · Scan next: classical page-detection upgrades, each gated on the real corpus |  |
 | SCAN-44 | P2 | [SCAN-44](backlog/tasks/SCAN-44.md) · A filled A4 form scanned with PDkef (2026-11-04): black edges and ghost text remain; stretch is fixed on main for A4 | In progress |
-| SCAN-46 | P2 | [SCAN-46](backlog/tasks/SCAN-46.md) · A handwritten page's bend is measured right and then thrown away, so its lines stay bent | In progress |
+| SCAN-46 | P2 | [SCAN-46](backlog/tasks/SCAN-46.md) · A filled-in page with no vertical rules stays tilted; level its rows | In progress |
 
 ### Then, in order
 

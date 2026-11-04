@@ -179,49 +179,6 @@ describe('findLineBend', () => {
     }
   });
 
-  it('keeps a hinged page\'s bend when handwritten lines add wobble it cannot follow (SCAN-46)', () => {
-    // Printed lines fold at the middle of the page; every fourth line is handwriting, three times as noisy.
-    const hinge = (x: number) => 0.03 * Math.max(0, 0.5 - x);
-    const rnd = seededRandom(5);
-    const lines: Sample[][] = Array.from({ length: 24 }, (_, k) => {
-      const noise = k % 4 === 3 ? 0.0045 : 0.0015;
-      return Array.from({ length: 40 }, (_, i) => {
-        const x = 0.1 + (0.8 * i) / 39;
-        return { line: 0, x, y: 0.1 + (0.8 * k) / 23 + hinge(x) + (rnd() * 2 - 1) * noise };
-      });
-    });
-    const fitted = fitBend(lines, 4);
-    expect(fitted!.explained).toBe(true);
-    const bend = finishBend(fitted, false);
-    expect(bend).not.toBeNull();
-    // The left half lifts off the right, as the lines do.
-    const rise = (bendAt(bend!, 0.15, 0.5) - bendAt(bend!, 0.45, 0.5)) - (bendAt(bend!, 0.55, 0.5) - bendAt(bend!, 0.85, 0.5));
-    expect(rise).toBeGreaterThan(0.006);
-  });
-
-  it('takes no bend from lines that each wander their own way (SCAN-46)', () => {
-    // A poster's slanted shapes: the grid can follow each line, and no line says anything about the next.
-    const rnd = seededRandom(9);
-    const lines: Sample[][] = Array.from({ length: 12 }, (_, k) => {
-      const phase = rnd() * Math.PI * 2;
-      return Array.from({ length: 40 }, (_, i) => {
-        const x = 0.1 + (0.8 * i) / 39;
-        return { line: 0, x, y: 0.1 + (0.8 * k) / 11 + 0.006 * Math.sin(5 * x + phase) };
-      });
-    });
-    expect(fitBend(lines, 4)!.explained).toBe(false);
-  });
-
-  it('holds a fit through too few lines to test to the stricter bar (SCAN-46)', () => {
-    const rnd = seededRandom(5);
-    const lines: Sample[][] = Array.from({ length: 5 }, (_, k) =>
-      Array.from({ length: 40 }, (_, i) => {
-        const x = 0.1 + (0.8 * i) / 39;
-        return { line: 0, x, y: 0.1 + (0.8 * k) / 4 + 0.02 * Math.max(0, 0.5 - x) + (rnd() * 2 - 1) * 0.002 };
-      }));
-    expect(fitBend(lines, 4)!.explained).toBe(false);
-  });
-
   it('does not shift a page when its lines cover only part of its width (review)', () => {
     for (const tilt of [0.005, 0.01, 0.02]) {
       const lines: Sample[][] = Array.from({ length: 20 }, (_, k) =>
