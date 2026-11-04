@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { leaning, gray } from '#lib/pageEnhance/leaning.test-helper.ts';
-import { openAssessor, WorkerLost } from './assessor.ts';
+import { openAssessor, WorkerLostError } from './assessor.ts';
 
 const SHEET = gray(leaning(200, 120, 0));
 
@@ -41,7 +41,7 @@ describe('openAssessor', () => {
     const assessor = openAssessor();
     const asked = assessor.assess({ ...SHEET, data: new Uint8ClampedArray(SHEET.data) });
     FakeWorker.last.onerror?.({ preventDefault() {} });
-    await expect(asked).rejects.toBeInstanceOf(WorkerLost);
+    await expect(asked).rejects.toBeInstanceOf(WorkerLostError);
     expect((await assessor.assess(SHEET)).crooked).toBe(false);
   });
 

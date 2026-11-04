@@ -6,7 +6,7 @@ import { getPdfjs } from '#lib/pdf/loadPdfjs.js';
 import { toGray } from '#lib/pageEnhance/dewarp/index.ts';
 import type { Assessment } from '#lib/pageEnhance/plan.ts';
 import type { GrayImage } from '#lib/pageEnhance/quad.ts';
-import { openAssessor, WorkerLost, type Assessor } from './assessor.ts';
+import { openAssessor, WorkerLostError, type Assessor } from './assessor.ts';
 import { imageCover, MIN_IMAGE_COVER, samplePages, scanVerdict, type ScanVerdict } from './scanCheck.ts';
 
 /** What assess is tuned for: a sheet shrunk to about this many pixels on its long edge. */
@@ -40,7 +40,7 @@ async function assessSheet(page: PDFPageProxy, assessor: Assessor, signal?: Abor
       return await assessor.assess(gray);
     } catch (error) {
       // expected: a lost worker means this page is read again, on the main thread; anything else is the caller's to report
-      if (!(error instanceof WorkerLost)) throw error;
+      if (!(error instanceof WorkerLostError)) throw error;
     }
   }
   return null;

@@ -13,7 +13,7 @@ export interface Assessor {
 }
 
 /** The worker stopped with a sheet's pixels in it: those pixels went with it, so the caller reads that page again. */
-export class WorkerLost extends Error {}
+export class WorkerLostError extends Error {}
 
 function startWorker(): Worker | null {
   if (typeof Worker !== 'function') return null;
@@ -36,7 +36,7 @@ export function openAssessor(): Assessor {
   const retire = () => {
     worker?.terminate();
     worker = null;
-    waiting?.reject(new WorkerLost('The scan check worker stopped'));
+    waiting?.reject(new WorkerLostError('The scan check worker stopped'));
     waiting = null;
   };
   if (worker) {
