@@ -36,3 +36,29 @@ test('the camera takes a page by itself and Done lands on the table', async ({ p
   await expect(viewfinder).toBeHidden();
   await expect(page.locator('[data-table-page]')).toHaveCount(1);
 });
+
+// SCAN-15 - only a browser can say the page stayed put. The fake camera offers no zoom, so the track is given one.
+test('a pinch on the viewfinder zooms the camera and leaves the page alone', async ({ page }) => {
+  await page.addInitScript(() => {
+    window.__zooms = [];
+    MediaStreamTrack.prototype.getCapabilities = () => ({ zoom: { min: 1, max: 10, step: 0.1 } });
+    MediaStreamTrack.prototype.applyConstraints = async (constraints) => { window.__zooms.push(constraints.advanced[0].zoom); };
+  });
+  await page.goto('/scan-to-pdf/');
+  await waitForIsland(page);
+  await page.getByText('Start scanning').click();
+  const viewfinder = page.getByRole('dialog');
+  await expect(viewfinder.getByRole('switch')).toBeVisible();
+
+  const cdp = await page.context().newCDPSession(page);
+  const fingers = (gap) => [{ x: 195 - gap, y: 420, id: 0 }, { x: 195 + gap, y: 420, id: 1 }];
+  await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: fingers(40) });
+  for (const gap of [60, 80, 100, 120]) await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: fingers(gap) });
+  await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+
+  await expect.poll(() => page.evaluate(() => Math.max(0, ...window.__zooms))).toBeGreaterThan(2);
+  expect(await page.evaluate(() => visualViewport.scale)).toBe(1);
+
+  await viewfinder.getByRole('button', { name: 'Close' }).click();
+  await expect(viewfinder).toBeHidden();
+});
