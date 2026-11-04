@@ -23,7 +23,6 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 - [SCAN-04](backlog/tasks/SCAN-04.md) P1 · Scan next: the phone measurements that decide the camera build (in progress)
 - [SCAN-08](backlog/tasks/SCAN-08.md) P1 · Scan next: the camera in the page, pages taken by themselves, Share straight after (in progress)
 - [SCAN-05](backlog/tasks/SCAN-05.md) P1 · Scan next: a real page-detection corpus with scored KPIs (in progress)
-- [SCAN-13](backlog/tasks/SCAN-13.md) P1 · Scan next: the loaded flow on a phone, rebuilt from the approved screens (in progress)
 - [SCAN-14](backlog/tasks/SCAN-14.md) P1 · Scan next: a page is taken only once it is clear and in focus (in progress)
 - [SCAN-15](backlog/tasks/SCAN-15.md) P1 · Scan next: pinching the camera zooms the picture, not the page (in progress)
 

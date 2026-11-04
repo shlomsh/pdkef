@@ -4,7 +4,6 @@ title: "Scan next: the loaded flow on a phone, rebuilt from the approved screens
 status: "done"
 priority: "P1"
 epic: "scan-next"
-horizon: "next"
 order: 3
 depends_on: ["SCAN-06", "SCAN-08"]
 ---

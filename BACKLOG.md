@@ -2,7 +2,7 @@
 
 # Backlog
 
-The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 115 live: 33 up next, 16 then, 27 waiting, 39 parked.
+The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 114 live: 32 up next, 16 then, 27 waiting, 39 parked.
 
 ## Redact: finish removal
 
@@ -89,7 +89,6 @@ The camera takes pages, the table fixes them, Share sends them. The table first 
 | SCAN-04 | P1 | [SCAN-04](backlog/tasks/SCAN-04.md) · Scan next: the phone measurements that decide the camera build | In progress. Needs Shlomi: Your iPhone, and an Android phone if one is at hand |
 | SCAN-08 | P1 | [SCAN-08](backlog/tasks/SCAN-08.md) · Scan next: the camera in the page, pages taken by themselves, Share straight after | In progress |
 | SCAN-05 | P1 | [SCAN-05](backlog/tasks/SCAN-05.md) · Scan next: a real page-detection corpus with scored KPIs | In progress. Needs Shlomi: Photos and short videos of real pages taken on your phone, ours to check in |
-| SCAN-13 | P1 | [SCAN-13](backlog/tasks/SCAN-13.md) · Scan next: the loaded flow on a phone, rebuilt from the approved screens | In progress |
 | SCAN-14 | P1 | [SCAN-14](backlog/tasks/SCAN-14.md) · Scan next: a page is taken only once it is clear and in focus | In progress |
 | SCAN-15 | P1 | [SCAN-15](backlog/tasks/SCAN-15.md) · Scan next: pinching the camera zooms the picture, not the page | In progress |
 
@@ -283,7 +282,7 @@ Done and retired tickets are not listed. Their files stay in [backlog/tasks/](ba
 - Redact: finish removal: 26 done, 1 retired
 - Sign: finish fill mode: 3 done, 1 retired
 - Highlight PDF: a tool for reading: 5 done, 1 retired
-- Scan: camera to WhatsApp: 0 done, 0 retired
+- Scan: camera to WhatsApp: 1 done, 0 retired
 - Tool pages: show the verb: 8 done, 0 retired
 - Form detector accuracy: 19 done, 1 retired
 - Robustness and debt: 87 done, 4 retired
