@@ -45,7 +45,34 @@ Shlomi's four test photos through a faithful copy of the current pipeline (inspe
 - **Black edges:** none in the four re-run outputs (outer 12 px dark pixels 0% on three sides; the left edge
   of 4757 holds a 1.3% black tick that is on the paper). The two source photos of this scan are still needed to
   confirm the wedge and bar are gone on those.
-- **Ghost text:** not re-measured (needs the source photos and the Document look).
+- **Ghost text:** measured below.
+
+## Ghost text in the Document look (measured 2026-11-04, prototype in the session scratchpad)
+
+The ghost is marks 13-18% lighter than the paper with no darker core: the Document look maps them to the lightest
+greys, under 12%, hard to see until the contrast is stretched. A mark here is a connected group of pixels under grey
+250. The proposal: after the look, a mark whose darkest pixel is 224 or lighter becomes white. Grey 224 is about 82%
+of the paper level. Real ink has a dark core, so its edges and strokes stay as they are.
+
+| page | faint marks now | with the filter | pixels darker than 224 changed |
+|---|---|---|---|
+| this scan, page 1 | 2589 | 5 | 0 |
+| this scan, page 2 | 2541 | 11 | 0 |
+| IMG_4755 | 626 | 3 | 0 |
+| IMG_4757 | 107 | 10 | 0 |
+| IMG_4758 | 802 | 200 | 0 |
+| IMG_4759 | 3491 | 104 | 0 |
+
+- Faint marks here are those with no pixel darker than 192. This scan's rows are simulated on the PDF's embedded
+  images, which are already the look's output; the four photos ran through a scratchpad copy of `filters.ts`.
+- **Checked by eye:** the stamp, the handwriting and IMG_4758's blurred fine print keep every glyph (a few single
+  dots go). Hairline paper cracks on the crumpled page fade, which helps.
+- **Rejected:** a cut-off of 192 removes parts of the stamp, fine print and light strokes. Lowering PAPER to 0.84
+  clears the ghost too but changes 39,000 to 86,000 ink pixels a page, thinning all text.
+- **Where the line falls:** on a clean text ladder, text at 80% of the paper level is untouched and text at 82%
+  goes. Today that lighter text is at most a 10% grey.
+- **Limits:** a ghost stroke touching a rule or a letter stays, as it joins real ink. Cost is under 30 ms a page on
+  this machine at these sizes.
 
 ## A second real scan (2026-11-04, one page of three)
 
