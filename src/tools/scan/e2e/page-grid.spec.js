@@ -49,6 +49,8 @@ test('a page is dragged, removed and opened from the grid', async ({ page }) => 
   await expect.poll(() => order(page)).toEqual([before[1], before[2], before[0], before[3]]);
   await expect(page.locator('[data-page-viewer]')).toHaveCount(0);
 
+  // The pages slide into place after a drop, and a slide carries a page out from under a still pointer.
+  for (const cell of await page.locator('li[data-id]').all()) await expect(cell).toHaveCSS('transform', 'none');
   await tiles.nth(1).hover();
   await page.getByRole('button', { name: 'Remove page 2' }).click();
   await expect(tiles).toHaveCount(3);
