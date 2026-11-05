@@ -5,11 +5,15 @@ status: "open"
 priority: "P3"
 epic: "polish"
 horizon: "next"
-depends_on: ["MERGE-25"]
-needs: "Your rewrite of the first CLAUDE.md invariant (saving is the first time bytes leave the device)"
+depends_on: ["MERGE-25", "DRIVE-03"]
 ---
 
 # MERGE-26 · Save to Drive
+
+*Revised 2026-11-05, approved: the invariant wording is in CLAUDE.md. The token is kept on the device
+(`/drive/` only), not in memory, and Save opens `/drive/` in a new tab that closes itself, so the finish
+row can say "Saved to Google Drive". The sections below stand otherwise; "Nothing persists" and the
+confirm step are replaced by that. Fewest taps wins.*
 
 *Drafted 2026-11-03.* MERGE-25 brought a file in from Drive. This is the way back out: a finished PDF
 copied into the person's own Drive, only when they ask. It is a convenience, never a requirement, and
