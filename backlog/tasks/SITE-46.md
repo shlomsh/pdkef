@@ -1,10 +1,9 @@
 ---
 id: "SITE-46"
 title: "A Hebrew file name on an English page ends in .pdf on its right"
-status: "in_progress"
+status: "done"
 priority: "P2"
 epic: "polish"
-horizon: "now"
 depends_on: []
 ---
 
@@ -28,7 +27,7 @@ A wrapped long name on a phone had a second fault, on `/he/` too: head and tail 
 - [x] Unit tests for both components on both page directions.
 - [x] Guideline 9 and the `FileName.tsx` comment state the rule.
 - [x] Measured in Chromium and WebKit at 1440 and 390 on `/scan-to-pdf/` and `/he/merge/`, with Hebrew names, including editing.
-- [ ] Landed on main.
+- [x] Landed on main.
 
 ## Left as it is
 
