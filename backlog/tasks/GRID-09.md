@@ -1,11 +1,9 @@
 ---
 id: "GRID-09"
 title: "One segmented row: hover and dividers in every tool, Compress through OptionRow"
-status: "in_progress"
+status: "done"
 priority: "P2"
 epic: "polish"
-horizon: "now"
-needs: "Your yes on the look, from the screenshots"
 ---
 
 # GRID-09 · One segmented row: hover and dividers in every tool, Compress through OptionRow
@@ -26,10 +24,9 @@ control: the same markup, the same keyboard logic, its own CSS.
 
 ## Why the raised look stays a look
 
-Compress keeps its mint track through `look="raised"`, so nothing changes in a control Shlomi has just
-reviewed. Its cells are 44px tall; the default look's are 36px inside a 44px track, so dropping the
-raised look would also shrink Compress's touch targets. Taking one look everywhere is a choice for
-Shlomi: it deletes the three raised rules and the prop.
+Compress keeps its mint track through `look="raised"`: Shlomi chose this from the screenshots on
+2026-11-05, over taking one look everywhere. Its cells are 44px tall; the default look's are 36px inside
+a 44px track, so dropping the raised look would also have shrunk Compress's touch targets.
 
 A two-option row has no unchosen neighbours, so it never shows a hairline: the chosen option's ring
 divides it. Same for a three-option row with the middle one chosen.
