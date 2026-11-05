@@ -1,10 +1,9 @@
 ---
 id: "MEM-30"
 title: "A person can remove a recent file, and clear them all (GitHub issue 44)"
-status: "in_progress"
+status: "done"
 priority: "P2"
 epic: "robustness"
-horizon: "now"
 depends_on: []
 ---
 
@@ -42,4 +41,4 @@ voice (no security jargon, no em dashes), English and Hebrew.
 - [x] Removing the entry a tool currently points at leaves that tool on a clean empty state, not an error.
 - [x] One Playwright spec: open a file, remove it from its tile, reload, it is gone from recents and its work does
   not come back.
-- [ ] A short reply on GitHub issue 44 once it ships.
+- [x] A short reply on GitHub issue 44 once it ships.
