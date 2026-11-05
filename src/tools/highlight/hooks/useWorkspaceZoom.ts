@@ -2,7 +2,7 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } fr
 import type { PDFDocumentProxy } from 'pdfjs-dist';
 import { clampZoom, NOTES_W, ZOOM_MIN, resolveZoom, stepZoom, type ZoomSetting } from '../lib/zoom/fit.ts';
 import { pageAnchorAt } from '../lib/zoom/pageAnchor.ts';
-import { chromeScale, displayZoom, lampFloor, widestPage } from '../lib/zoom/lamp.ts';
+import { chromeScale, displayZoom, evenPageWidths, lampFloor, widestPage } from '../lib/zoom/lamp.ts';
 import { panScroll } from '../lib/zoom/pan.ts';
 import { commitChanges, zoomCommit } from '../lib/zoom/commit.ts';
 import { useBoardScroll } from './useBoardScroll.ts';
@@ -41,7 +41,8 @@ interface WorkspaceZoomOptions {
  */
 export function useWorkspaceZoom({ pdfDocument, workspaceRef, columnRef, fullscreen, noted = false, pageTurns }: WorkspaceZoomOptions) {
   const [setting, setSetting] = useState<ZoomSetting>('width');
-  const pages = usePageSizes(pdfDocument, pageTurns);
+  const sizes = usePageSizes(pdfDocument, pageTurns);
+  const pages = useMemo(() => evenPageWidths(sizes), [sizes]);
   const [view, setView] = useState({ width: 0, height: 0, inset: 0 });
   const ready = pages.length > 0;
 
