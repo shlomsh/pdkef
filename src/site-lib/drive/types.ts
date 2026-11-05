@@ -22,6 +22,7 @@ export type DriveRoute = 'redirect' | 'popup';
 export type DriveIntent =
   | { kind: 'open-with'; fileId: string; resourceKey?: string }
   | { kind: 'pick'; tool: string | null; returnTo: string }
+  | { kind: 'save'; id: string }
   | { kind: 'none' };
 
 export type SavedDriveToken = { token: string; until: number };
