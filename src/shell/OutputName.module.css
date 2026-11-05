@@ -120,10 +120,13 @@
     max-width: 100%;
   }
 
+  /* Wrapped, nothing is cut, so the halves are one run of text: as two
+     isolates, the tail sat on the wrong side of the head on a Hebrew line. */
   .wrap-on-phone .name-head,
   .wrap-on-phone .name-tail {
     display: inline;
     overflow: visible;
     text-overflow: clip;
+    unicode-bidi: normal;
   }
 }

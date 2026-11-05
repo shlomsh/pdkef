@@ -32,6 +32,20 @@ describe('OutputName', () => {
     expect(nameEl().closest('bdi')).toBe(ext?.closest('bdi'));
   });
 
+  it('on a left-to-right page the unit is left to right and the name keeps its own direction', () => {
+    mount();
+    expect(nameEl().closest('bdi')?.getAttribute('dir')).toBe('ltr');
+    expect(nameEl().getAttribute('dir')).toBe('auto');
+  });
+
+  it('on a right-to-left page the unit takes its direction from the name, which carries no dir', () => {
+    document.documentElement.dir = 'rtl';
+    mount();
+    document.documentElement.removeAttribute('dir');
+    expect(nameEl().closest('bdi')?.hasAttribute('dir')).toBe(false);
+    expect(nameEl().hasAttribute('dir')).toBe(false);
+  });
+
   it('click to edit, Enter commits through onRename', async () => {
     const onRename = mount();
     await begin();

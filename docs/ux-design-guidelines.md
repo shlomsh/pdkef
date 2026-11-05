@@ -171,16 +171,22 @@ and on focus; on touch the word is always there or the control is not an icon.
 
 ## 9. Bidi is part of the design, not a fix
 
-- A file name is laid out in its own direction (`unicode-bidi: plaintext`) with a middle ellipsis
-  that keeps the number and the extension, so "טופס 1301.pdf" keeps its "1301.pdf".
+- A file name's line follows the page. On a left-to-right page the name keeps its own direction and
+  ".pdf" follows it on the right, whatever its script, because the whole line reads left to right:
+  ".pdf" on the left of a Hebrew name read as if it came first (2026-11-05). On a right-to-left page the
+  direction comes from the name, so a Hebrew name ends on the left. Each part is laid out in its own
+  direction (`unicode-bidi: plaintext`) with a middle ellipsis that keeps the number and the extension,
+  so "טופס 1301.pdf" keeps its "1301.pdf". `FileName` and `OutputName` both read `isRtlPage()`.
 - A name composed into a sentence or a template is isolated (`<bdi>` or FSI/PDI), or "+ 7" attaches
   to the Hebrew run and the line reads "signed_7 + … more.pdf". In code: `isolateName(name, t.dir)`
   (`src/lib/text/format.js`) for a name interpolated into a message, so English stays byte-identical.
-- A name and its extension are one unit. Give the unit `<bdi>` (direction from the name's first
-  strong character) and the ".pdf" `dir="ltr"` inside it; a bare ".pdf" beside an isolated name is
-  its own run and laid out as "pdf." on the Hebrew page (the Merge heading read "pdf.merged_x", 2026-10-15).
-  The name inside takes no `dir` of its own, since an element with a `dir` is skipped when `dir=auto`
-  looks for the first strong character. Guard: `merge-rtl-file-name.spec.js` reads the rendered order.
+- A name and its extension are one unit. Give the unit `<bdi>` and the ".pdf" `dir="ltr"` inside it; a
+  bare ".pdf" beside an isolated name is its own run and laid out as "pdf." on the Hebrew page (the Merge
+  heading read "pdf.merged_x", 2026-10-15). On a right-to-left page the unit takes its direction from the
+  name's first strong character, so the name inside takes no `dir` of its own: an element with a `dir` is
+  skipped when `dir=auto` looks for that character. On a left-to-right page the unit is `dir="ltr"` and the
+  name is `dir="auto"`, or a long cut name lays its two halves out backwards. Guard:
+  `merge-rtl-file-name.spec.js` reads the rendered order on both pages.
 - Alignment is `start` and `end`, never left and right, so `/he/` mirrors without overrides.
 - Test with real Hebrew names in every pass; they surface truncation and layout bugs that Latin names
   hide.

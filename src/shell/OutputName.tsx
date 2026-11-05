@@ -3,6 +3,7 @@ import type { ComponentChildren } from 'preact';
 import { sanitizeOutputName } from '#lib/output/sanitizeOutputName.ts';
 import { recordAction } from '#lib/telemetry/actionTrail.ts';
 import { splitOutputName, fullNameOffset } from './outputNameCut.ts';
+import { isRtlPage } from './pageDirection.ts';
 import styles from './OutputName.module.css';
 
 // MERGE-11 (2026-09-13, Shlomi's rejection of the bordered-input look): the
@@ -235,19 +236,24 @@ export default function OutputName({
   // shows the full text as one node so the caret and typing behave natively.
   const { head, tail } = editing ? { head: name, tail: '' } : splitOutputName(name);
   const wrapClass = wrapOnPhone ? ` ${styles['wrap-on-phone']}` : '';
+  const rtlPage = isRtlPage();
 
   return (
     <>
       {/* The prefix, the name and its extension are one file name, so one
-          isolate (UX guideline 9). `<bdi>` takes its direction from the first
-          strong character, which is why the name carries no `dir` of its own;
-          the extension is an LTR run inside it. A prefix outside the isolate
-          landed on the far side of the name on a Hebrew page. */}
-      <bdi class={`${styles['doc-heading-file']}${wrapClass}`}>
+          isolate (UX guideline 9). A prefix outside it landed on the far side
+          of the name on a Hebrew page. The line follows the page: on a
+          left-to-right page the unit runs left to right, so ".pdf" follows any
+          name on the right, and the name resolves its own direction. On a
+          right-to-left page `<bdi>` takes the direction from the first strong
+          character, which is why the name carries no `dir` there: `dir=auto`
+          skips an element with a `dir` when it looks for that character. */}
+      <bdi class={`${styles['doc-heading-file']}${wrapClass}`} dir={rtlPage ? undefined : 'ltr'}>
         {prefix ? <span class={styles.prefix}>{prefix}</span> : null}
         <span
           key={remountKey.current}
           ref={nameRef}
+          dir={rtlPage ? undefined : 'auto'}
           class={`${styles.name}${editing ? ` ${styles.editing}` : ''}${wrapClass}`}
           tabIndex={0}
           role={editing ? 'textbox' : undefined}
