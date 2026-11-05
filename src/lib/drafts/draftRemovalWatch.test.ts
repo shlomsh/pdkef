@@ -9,7 +9,7 @@ const bytesOf = (value: string) => new TextEncoder().encode(value).buffer;
 const record = (name: string) => ({ fileName: `${name}.pdf`, fileType: 'application/pdf', fileBytes: bytesOf(`%PDF-1.4 ${name}`), elements: [] });
 
 // What a peer tab's announcement looks like from here. A storage event never fires in the writer's own tab.
-const peerRemoved = (removed: string[] | 'all') => window.dispatchEvent(new StorageEvent('storage', {
+const peerRemoved = (removed: string[]) => window.dispatchEvent(new StorageEvent('storage', {
   key: ENTRIES_REMOVED_KEY, newValue: JSON.stringify({ removed }),
 }));
 const settled = () => new Promise((resolve) => setTimeout(resolve, 20));
@@ -37,11 +37,11 @@ describe('an open tab whose file was removed', () => {
     expect(await cacheRecentFile('sign', record('gone'))).toBe(false);
   });
 
-  it('reloads for the entry it restored, and on a clear', async () => {
+  it('reloads for the entry it restored', async () => {
     await saveDraft('redact', record('restored'));
     forgetTabEntry();
     await loadDraft('redact');
-    peerRemoved('all');
+    peerRemoved([(await sourceIdForBytes(record('restored').fileBytes))!]);
     await settled();
     expect(reload).toHaveBeenCalledTimes(1);
   });
@@ -88,7 +88,7 @@ describe('an open tab whose file was removed', () => {
 
   it('ignores a corrupt message and a page with no entry', async () => {
     window.dispatchEvent(new StorageEvent('storage', { key: ENTRIES_REMOVED_KEY, newValue: '{not json' }));
-    peerRemoved('all');
+    peerRemoved(['sha256:anything']);
     await settled();
     expect(reload).not.toHaveBeenCalled();
   });

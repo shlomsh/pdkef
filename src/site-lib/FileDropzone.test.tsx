@@ -6,7 +6,7 @@ import { describe, expect, it, vi, afterEach, beforeEach } from 'vitest';
 import FileDropzone, { tileCopy, isolateNames, LAUNCHER_PICK_EVENT } from './FileDropzone.tsx';
 import { englishFileDropzoneMessages as en } from './fileDropzoneMessages';
 import { consumeRecentOpen } from '#lib/handoff/fileArrival.ts';
-import { saveDraft, saveHandoff, setCurrentEntry, readRecentFiles, loadRecentFile, takeHandoff, removeRecentEntry, clearRecentEntries } from '#lib/drafts/draftStore.ts';
+import { saveDraft, saveHandoff, setCurrentEntry, readRecentFiles, loadRecentFile, takeHandoff, removeRecentEntry } from '#lib/drafts/draftStore.ts';
 import { setInputFiles } from '../test/support/setInputFiles.js';
 
 vi.mock('#lib/drafts/draftStore.ts', () => ({
@@ -17,7 +17,6 @@ vi.mock('#lib/drafts/draftStore.ts', () => ({
   loadRecentFile: vi.fn(() => Promise.resolve(null)),
   takeHandoff: vi.fn(() => Promise.resolve(null)),
   removeRecentEntry: vi.fn(() => Promise.resolve(true)),
-  clearRecentEntries: vi.fn(() => Promise.resolve(true)),
   MAX_RECENT_FILES: 6,
 }));
 
@@ -1067,18 +1066,6 @@ describe('FileDropzone', () => {
       await confirm('Remove');
       expect(tiles()).toHaveLength(1);
       expect(container.textContent).not.toContain("That didn't work");
-    });
-
-    it('clears every tile through clearRecentEntries', async () => {
-      readRecentFiles.mockReturnValue(two());
-      clearRecentEntries.mockImplementation(async () => { readRecentFiles.mockReturnValue([]); return true; });
-      mount();
-      await act(async () => { await Promise.resolve(); });
-      const clear = Array.from(container.querySelectorAll('button')).find((x) => x.textContent === 'Clear recent files');
-      await act(async () => { clear.click(); });
-      await confirm('Clear');
-      expect(clearRecentEntries).toHaveBeenCalled();
-      expect(tiles()).toHaveLength(0);
     });
   });
 });
