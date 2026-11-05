@@ -98,8 +98,13 @@ export default function DriveSave({ id, failed }: { id: string; failed: boolean 
     const saved = savedToken();
     if (!saved) return toGoogle('none', location.search);
     token.current = saved;
-    void (async () => {
-      payload.current = await takeRecord(id);
+    void (async () => { // reason: a failure below ends on the 'expired' line, never on a page stuck saving
+      try {
+        payload.current = await takeRecord(id);
+      } catch {
+        // expected: the store's chunk did not load; handled like a record that aged out
+        payload.current = null;
+      }
       if (!payload.current) {
         // Parked hand-offs age out (HANDOFF_MAX_AGE_MS), so a slow sign-in can arrive to nothing. The file is safe in the tool's tab.
         answer(id, 'failed');

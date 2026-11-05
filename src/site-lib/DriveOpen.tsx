@@ -84,7 +84,7 @@ function DriveOpen() {
     }
     if (driveRouteFor(navigator.userAgent) === 'popup') return setPhase({ name: 'pick-ready', pick });
     const token = back.token ?? savedToken();
-    if (token) void pickFrom(token, pick, true);
+    if (token) void pickFrom(token, pick, true); // reason: pickFrom shows every failure through its own fail()
     else toGoogle('none', location.search);
     // eslint-disable-next-line react-hooks/exhaustive-deps -- runs once, on arrival
   }, []);
