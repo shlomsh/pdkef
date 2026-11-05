@@ -6,7 +6,7 @@ import { describe, expect, it, vi, afterEach, beforeEach } from 'vitest';
 import FileDropzone, { tileCopy, isolateNames, LAUNCHER_PICK_EVENT } from './FileDropzone.tsx';
 import { englishFileDropzoneMessages as en } from './fileDropzoneMessages';
 import { consumeRecentOpen } from '#lib/handoff/fileArrival.ts';
-import { saveDraft, saveHandoff, setCurrentEntry, readRecentFiles, loadRecentFile } from '#lib/drafts/draftStore.ts';
+import { saveDraft, saveHandoff, setCurrentEntry, readRecentFiles, loadRecentFile, takeHandoff } from '#lib/drafts/draftStore.ts';
 import { setInputFiles } from '../test/support/setInputFiles.js';
 
 vi.mock('#lib/drafts/draftStore.ts', () => ({
@@ -15,6 +15,7 @@ vi.mock('#lib/drafts/draftStore.ts', () => ({
   setCurrentEntry: vi.fn(),
   readRecentFiles: vi.fn(() => []),
   loadRecentFile: vi.fn(() => Promise.resolve(null)),
+  takeHandoff: vi.fn(() => Promise.resolve(null)),
   MAX_RECENT_FILES: 6,
 }));
 
@@ -36,6 +37,7 @@ describe('FileDropzone', () => {
     readRecentFiles.mockReturnValue([]);
     loadRecentFile.mockResolvedValue(null);
     saveHandoff.mockResolvedValue(true);
+    takeHandoff.mockResolvedValue(null);
   });
 
   afterEach(() => {
@@ -62,6 +64,60 @@ describe('FileDropzone', () => {
     // SITE-42: several files, PDFs and JPEG/PNG photos, routed by routeFiles.
     expect(input.multiple).toBe(true);
     expect(input.accept).toBe('application/pdf,.pdf,image/jpeg,image/png,.jpg,.jpeg,.png');
+  });
+
+
+  describe('open from Google Drive', () => {
+    it('is a plain anchor right after the tile, with the unmodified logo', () => {
+      mount();
+      const link = container.querySelector('a[href^="/drive/"]');
+      expect(link).not.toBeNull();
+      expect(link.textContent).toBe('Open from Google Drive');
+      expect(link.previousElementSibling.tagName).toBe('INPUT');
+      const logo = link.querySelector('img');
+      expect(logo.getAttribute('src')).toBe('/images/brand/google-drive.png');
+      expect(logo.getAttribute('alt')).toBe('');
+      expect(link.hidden).toBe(false);
+    });
+
+    it('is absent from the closing launcher', () => {
+      mount({ final: true });
+      expect(container.querySelector('a[href^="/drive/"]')).toBeNull();
+    });
+
+    it('returns to the page it came from', () => {
+      window.history.pushState({}, '', '/he/');
+      mount();
+      expect(decodeURIComponent(container.querySelector('a[href^="/drive/"]').getAttribute('href'))).toContain('/he/');
+      window.history.pushState({}, '', '/');
+    });
+
+    it('hides while offline and returns when back online', () => {
+      mount();
+      const link = container.querySelector('a[href^="/drive/"]');
+      const onLine = vi.spyOn(navigator, 'onLine', 'get');
+      onLine.mockReturnValue(false);
+      act(() => { window.dispatchEvent(new Event('offline')); });
+      expect(link.hidden).toBe(true);
+      onLine.mockReturnValue(true);
+      act(() => { window.dispatchEvent(new Event('online')); });
+      expect(link.hidden).toBe(false);
+      onLine.mockRestore();
+    });
+
+    it('lights the tile for a file that came back from Drive', async () => {
+      takeHandoff.mockResolvedValue({ fileName: 'from-drive.pdf', fileType: 'application/pdf', fileBytes: new ArrayBuffer(4) });
+      mount();
+      await act(async () => { await new Promise((resolve) => setTimeout(resolve, 20)); });
+      expect(takeHandoff).toHaveBeenCalledWith('drive-home');
+      expect(container.querySelector('[data-home-picker]').textContent).toContain('from-drive.pdf');
+    });
+
+    it('does nothing when no file came back', async () => {
+      mount();
+      await act(async () => { await new Promise((resolve) => setTimeout(resolve, 20)); });
+      expect(container.querySelector('[data-home-picker]').textContent).toContain('Choose files');
+    });
   });
 
   describe('recent-file card', () => {
@@ -280,7 +336,7 @@ describe('FileDropzone', () => {
       }]);
       mount({ toolTarget: 'sign', href: '/sign?action=open' });
 
-      expect(container.querySelector('img')).toBeNull();
+      expect(container.querySelector('img:not([src*="google-drive"])')).toBeNull();
       expect(container.textContent).toContain('pdf1.pdf');
     });
   });

@@ -6,23 +6,28 @@ import Doodle from '../components/Doodle.astro';
 import PromiseStickers from '../components/PromiseStickers.astro';
 import '../styles/openPage.css';
 
-// MERGE-25: where Google Drive's "Open with > PDkef" lands. The approved exception to "no external
-// origins": Google's sign-in script and its Drive API, on this page only. Every other page keeps
-// `connect-src 'self'`; the file still goes straight from Drive to this device.
+// MERGE-25 / DRIVE-01: where Google Drive's "Open with > PDkef" lands and where tools send a person to pick
+// a file. The approved exception to "no external origins": Google's sign-in script, Picker and Drive API,
+// on this page only. Every other page keeps `connect-src 'self'`; the file still goes straight from Drive
+// to this device. These values were proven on a real device; the Picker draws its own frame and styles.
 // Adding a script resource replaces the base script-src source list for this page, so 'self' is restated.
 Astro.csp?.insertScriptResource("'self'");
 Astro.csp?.insertScriptResource('https://accounts.google.com/gsi/client');
-Astro.csp?.insertDirective("connect-src 'self' https://www.googleapis.com https://accounts.google.com");
+Astro.csp?.insertScriptResource('https://apis.google.com');
+Astro.csp?.insertDirective("connect-src 'self' https://www.googleapis.com https://accounts.google.com https://content.googleapis.com https://docs.google.com");
+Astro.csp?.insertDirective('frame-src https://docs.google.com https://drive.google.com https://accounts.google.com https://content.googleapis.com');
+Astro.csp?.insertDirective("style-src-elem 'self' 'unsafe-inline'");
+Astro.csp?.insertDirective("img-src 'self' data: blob: https:");
 
-const title = 'Open a PDF from Google Drive - PDkef';
-const description = 'Open a PDF from Google Drive in PDkef: it goes from Drive to your device, then you choose what to do with it.';
+const title = 'Open a file from Google Drive - PDkef';
+const description = 'Open a file from Google Drive in PDkef: it goes from Google Drive to your device, then you choose what to do with it.';
 ---
 
 <BaseLayout title={title} description={description} noindex={true}>
   <header class="mx-auto max-w-[540px] px-6 pb-4 pt-[3.5rem] text-center">
     <Doodle figure="cloud-to-device" />
-    <h1 class="type-hero space-heading-content mt-3 text-[var(--color-text)]">Open a PDF from Google Drive</h1>
-    <p class="mx-auto mt-3 max-w-[26rem] text-[var(--color-muted)]">From Drive to your device, and no further.</p>
+    <h1 class="type-hero space-heading-content mt-3 text-[var(--color-text)]">Open a file from Google Drive</h1>
+    <p class="mx-auto mt-3 max-w-[26rem] text-[var(--color-muted)]">From Google Drive to your device, and no further.</p>
   </header>
 
   <main class="mx-auto mb-16 max-w-[540px] px-6">
@@ -31,7 +36,7 @@ const description = 'Open a PDF from Google Drive in PDkef: it goes from Drive t
     <PromiseStickers
       label="What to expect"
       items={[
-        { kind: 'private', line: 'Your PDF goes from Drive to this device and nowhere else.' },
+        { kind: 'private', line: 'Your file goes from Google Drive to this device and nowhere else.' },
         { kind: 'free' },
         { kind: 'open-source' },
         { kind: 'local' },

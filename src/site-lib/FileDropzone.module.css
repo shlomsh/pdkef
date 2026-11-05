@@ -52,6 +52,9 @@
    with the sample rendered as prose in a button while the recent documents
    ten screens above were rendered as documents. Both are cards now, and they
    are the same kind of card. */
+.drive { grid-column: 1 / -1; justify-self: center; display: inline-flex; align-items: center; gap: 8px; min-height: 44px; color: var(--color-muted); font-size: 0.85rem; text-decoration: none; }
+.drive:hover { text-decoration: underline; }
+.drive[hidden] { display: inline-flex; visibility: hidden; }
 .final { width: min(720px, 100%); display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: stretch; gap: 20px; }
 .final > .tile,
 .sample {

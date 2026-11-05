@@ -2,8 +2,8 @@ import { DRIVE_CLIENT_ID, DRIVE_SCOPE, GSI_SRC } from './driveConfig.ts';
 import type { DriveTokenResult } from './types.ts';
 
 // The slice of Google Identity Services this app uses; no dependency, the script is loaded on demand.
-type TokenResponse = { access_token?: string; error?: string };
-type TokenClient = { requestAccessToken: () => void };
+type TokenResponse = { access_token?: string; expires_in?: number | string; error?: string };
+type TokenClient = { requestAccessToken: (overrides?: { prompt?: string }) => void };
 type GoogleGlobal = {
   accounts: {
     oauth2: {
@@ -49,11 +49,11 @@ export async function requestDriveToken(): Promise<DriveTokenResult> {
       scope: DRIVE_SCOPE,
       callback: (response) =>
         resolve(response.access_token && !response.error
-          ? { ok: true, token: response.access_token }
+          ? { ok: true, token: response.access_token, expiresInSeconds: Number(response.expires_in) || undefined }
           : { ok: false, error: 'denied' }),
       error_callback: (error) =>
         resolve({ ok: false, error: error.type === 'popup_failed_to_open' ? 'blocked' : 'denied' }),
     });
-    client.requestAccessToken();
+    client.requestAccessToken({ prompt: '' }); // a person Google already knows passes through without a screen
   });
 }

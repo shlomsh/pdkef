@@ -17,7 +17,9 @@ export async function fetchDriveFile(
   fetchFn: typeof fetch,
   token: string,
   ref: { fileId: string; resourceKey?: string },
+  options: { accept?: readonly string[] } = {},
 ): Promise<DriveFileResult> {
+  const accept = options.accept ?? ['application/pdf'];
   const base = `${FILES}${encodeURIComponent(ref.fileId)}`;
   const headers: Record<string, string> = { Authorization: `Bearer ${token}` };
   if (ref.resourceKey) headers['X-Goog-Drive-Resource-Keys'] = `${ref.fileId}/${ref.resourceKey}`;
@@ -26,11 +28,12 @@ export async function fetchDriveFile(
     const meta = await fetchFn(`${base}?fields=name,mimeType&supportsAllDrives=true`, { headers });
     if (!meta.ok) return fail(errorForStatus(meta.status));
     const info = (await meta.json()) as { name?: string; mimeType?: string };
-    if (info.mimeType !== 'application/pdf') return fail('not-pdf');
+    const mimeType = info.mimeType ?? '';
+    if (!accept.includes(mimeType)) return fail('not-pdf');
 
     const media = await fetchFn(`${base}?alt=media&supportsAllDrives=true`, { headers });
     if (!media.ok) return fail(errorForStatus(media.status));
-    return { ok: true, name: info.name ?? '', bytes: await media.arrayBuffer() };
+    return { ok: true, name: info.name ?? '', mimeType, bytes: await media.arrayBuffer() };
   } catch {
     // expected: a dropped connection or unreadable body becomes the 'network' result the page shows
     return fail('network');

@@ -21,7 +21,7 @@ function page({ csp, body = '' }) {
 const goodCsp = (extra = '') =>
   `default-src 'none'; script-src 'self' ${sha(INLINE_JS)}; style-src 'self' ${sha(INLINE_CSS)}; connect-src 'self'${extra}`;
 const goodBody = `<script>${INLINE_JS}</script><style>${INLINE_CSS}</style>`;
-const driveCsp = goodCsp(' https://accounts.google.com https://www.googleapis.com');
+const driveCsp = goodCsp(' https://accounts.google.com https://www.googleapis.com https://apis.google.com https://docs.google.com https://drive.google.com https://content.googleapis.com');
 
 // A clean two-page dist; `overrides` replaces or adds files by dist-relative path.
 function run(overrides = {}) {
@@ -86,6 +86,18 @@ describe('verify-csp CLI', () => {
     const r = run({ 'index.html': page({ csp: driveCsp, body: goodBody }) });
     expect(r.status).toBe(1);
     expect(r.err).toContain('which only dist/drive/index.html may allow');
+  });
+
+  it('reads style-src, not a style-src-elem written before it, for the inline style hashes', () => {
+    const csp = `style-src-elem 'self' 'unsafe-inline'; ${driveCsp}`;
+    const r = run({ 'drive/index.html': page({ csp, body: goodBody }) });
+    expect(r.err).toBe('');
+  });
+
+  it("fails 'unsafe-inline' in style-src-elem on a page other than /drive/", () => {
+    const r = run({ 'index.html': page({ csp: `${goodCsp()}; style-src-elem 'self' 'unsafe-inline'`, body: goodBody }) });
+    expect(r.status).toBe(1);
+    expect(r.err).toContain("'unsafe-inline' in style-src-elem");
   });
 
   it('fails when /drive/ does not allow the Google origins it needs', () => {

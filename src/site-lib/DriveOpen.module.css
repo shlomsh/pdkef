@@ -5,3 +5,8 @@
 .primary:hover { background: var(--color-primary-hover); }
 .primary:active { background: var(--color-primary-active); }
 .error { margin: 0; text-align: center; color: var(--color-danger-ink); font-size: 0.95rem; line-height: 1.5; }
+/* Google's sign-in button guidelines mandate these exact values (white, #747775 border, #1F1F1F text, the unmodified G), so they are literals on purpose. */
+.google { box-sizing: border-box; display: inline-flex; align-items: center; gap: 10px; min-height: 40px; border: 1px solid var(--color-google-button-border); border-radius: 999px; padding: 0 12px; background: var(--color-google-button); color: var(--color-google-button-text); font: inherit; font-size: 14px; font-weight: 500; cursor: pointer; }
+.google:hover { background: var(--color-google-button-hover); }
+.mark { flex: none; }
+.back { color: var(--color-text); font-size: 0.95rem; text-underline-offset: 0.15em; }

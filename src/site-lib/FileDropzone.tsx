@@ -7,6 +7,7 @@ import { useNavigatingAway } from '#lib/hooks/useNavigatingAway.ts';
 import RecentFiles, { type RecentFileItem } from './RecentFiles.tsx';
 import styles from './FileDropzone.module.css';
 import { SAMPLE_FILE_NAME, SAMPLE_PREVIEW_SRC } from './sampleDocument.ts';
+import DriveLink from './DriveLink.tsx';
 import { withFillModeParam } from './withFillModeParam.ts';
 import { tools, pageForToolId } from '../data/tools.js';
 import { englishFileDropzoneMessages, type FileDropzoneMessages } from './fileDropzoneMessages';
@@ -451,7 +452,7 @@ function FileDropzone({
         const files = Array.from(event.currentTarget.files || []);
         event.currentTarget.value = '';
         void handleFiles(files); // reason: readCopies settles every read and handOff catches its own failure
-      }} />
+      }} />{!final && <DriveLink label={messages.openFromDrive} onFiles={handleFiles} />}
       {/* Always present, so a screen reader hears them fill in; visually hidden. Failures interrupt, the rest waits its turn. */}
       <span class="sr-only" aria-live="assertive">{live.alert}</span>
       <span class="sr-only" aria-live="polite">{live.status}</span>

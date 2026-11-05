@@ -38,6 +38,8 @@ export interface FileDropzoneMessages {
    * tool's name is never hardcoded to English ("Sign & Fill") - docs/
    * home-page-localization-plan.md, section 2 row 21. */
   practiceDocumentCaption: string;
+  /** The first-screen link to the Drive app. */
+  openFromDrive: string;
 }
 
 export const englishFileDropzoneMessages: FileDropzoneMessages = {
@@ -55,6 +57,7 @@ export const englishFileDropzoneMessages: FileDropzoneMessages = {
   leftOut: 'Left out: {names}',
   unsupportedFiles: 'Choose PDFs, or JPEG and PNG photos.',
   practiceDocumentCaption: 'Practice document · opens in {tool}',
+  openFromDrive: 'Open from Google Drive',
 };
 
 // LOC-09's launcher strings, drafted with src/content/localized-home/he.yaml and
@@ -75,6 +78,7 @@ const hebrewFileDropzoneMessages: FileDropzoneMessages = {
   leftOut: 'לא נכללו: {names}',
   unsupportedFiles: 'בחרו קבצי PDF, או תמונות JPEG ו-PNG.',
   practiceDocumentCaption: 'מסמך לתרגול · נפתח בכלי {tool}',
+  openFromDrive: 'פתיחה מ-Google Drive',
 };
 
 const fileDropzoneMessages: Partial<Record<DocumentationLocaleId, FileDropzoneMessages>> = {

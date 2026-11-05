@@ -8,10 +8,10 @@ export type DriveState =
 export type DriveFileError = 'unauthorized' | 'not-found' | 'not-pdf' | 'network';
 
 export type DriveFileResult =
-  | { ok: true; name: string; bytes: ArrayBuffer }
+  | { ok: true; name: string; mimeType: string; bytes: ArrayBuffer }
   | { ok: false; error: DriveFileError };
 
-export type DriveTokenResult = { ok: true; token: string } | { ok: false; error: 'denied' | 'blocked' | 'script' };
+export type DriveTokenResult = { ok: true; token: string; expiresInSeconds?: number } | { ok: false; error: 'denied' | 'blocked' | 'script' };
 
 // DRIVE-01: the contract for picking a file on /drive/.
 
