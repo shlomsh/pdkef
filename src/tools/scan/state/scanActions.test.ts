@@ -112,7 +112,7 @@ describe('createPageActions', () => {
     });
     it('holds a read page for Undo with its work intact, then lets it go after five seconds', () => {
       vi.useFakeTimers();
-      const [a, b] = [{ ...newPage(photo(), 'document'), guessed: true }, newPage(photo(), 'document')];
+      const [a, b] = [{ ...newPage(photo(), 'document'), guessed: true, preview: 'blob:p' }, newPage(photo(), 'document')];
       const { ctx, work, pagesNow } = setup([a, b], { failedIds: [a.id] });
       work.results = { [a.id]: { key: 'k', url: 'blob:r', thumbUrl: 'blob:t', page: {} as never } };
       const actions = createPageActions(ctx);
@@ -133,12 +133,31 @@ describe('createPageActions', () => {
       expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:r');
       vi.useRealTimers();
     });
+    it('drops a page still being read at once, and holds it once it failed', () => {
+      const reading = () => ({ ...newPage(photo(), 'document'), guessed: true, preview: null });
+      const [a, b, c] = [reading(), newPage(photo(), 'document'), reading()];
+      const first = setup([a, b]);
+      createPageActions(first.ctx).removePage(a.id);
+      expect(first.work.removal).toBeNull();
+      expect(first.work.removed.has(a.id)).toBe(true);
+      const second = setup([c, b], { failedIds: [c.id] });
+      createPageActions(second.ctx).removePage(c.id);
+      expect(second.work.removal).toEqual({ page: c, index: 0, failed: true });
+    });
     it('starts over when the last page goes', () => {
       const a = newPage(photo(), 'document');
       const { ctx } = setup([a]);
       createPageActions(ctx).removePage(a.id);
       expect(ctx.dispatch).toHaveBeenCalledWith({ type: 'cleared' });
       expect(ctx.announce).toHaveBeenLastCalledWith(t.announceCleared);
+    });
+
+    it('lets a PDF keep coming in when the only page so far goes', () => {
+      const a = newPage(photo(), 'document');
+      const { ctx, work } = setup([a]);
+      const { signal } = work.pdfImport;
+      createPageActions(ctx).removePage(a.id);
+      expect(signal.aborted).toBe(false);
     });
   });
 
@@ -154,6 +173,14 @@ describe('createPageActions', () => {
     expect(ctx.setRejectedFiles).toHaveBeenCalledWith([]);
     expect(work.resetDownloadFlow).toHaveBeenCalled();
     expect(ctx.forgetTurned).toHaveBeenCalled();
+  });
+
+  it('reset ends the PDFs still coming in', () => {
+    const { ctx, work } = setup([newPage(photo(), 'document')]);
+    const { signal } = work.pdfImport;
+    createPageActions(ctx).reset();
+    expect(signal.aborted).toBe(true);
+    expect(work.pdfImport.signal.aborted).toBe(false);
   });
 });
 

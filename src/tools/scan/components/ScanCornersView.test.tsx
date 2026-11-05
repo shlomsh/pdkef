@@ -18,7 +18,7 @@ describe('ScanCornersView', () => {
     container = document.createElement('div');
     document.body.appendChild(container);
     act(() => render(
-      <ScanCornersView selected={selected} photo={null} shownAspect={1} finding={null} onCommit={vi.fn()} onFind={vi.fn()} onApprove={onApprove} onRemove={vi.fn()} />,
+      <ScanCornersView selected={selected} photo={null} shownAspect={1} finding={null} unreadable={false} onCommit={vi.fn()} onFind={vi.fn()} onApprove={onApprove} onRemove={vi.fn()} />,
       container!,
     ));
     const labels = [...container.querySelectorAll('button')].map((b) => b.textContent?.trim());
@@ -26,5 +26,27 @@ describe('ScanCornersView', () => {
     expect(labels).not.toContain(t.pageDone);
     act(() => ([...container!.querySelectorAll('button')].find((b) => b.textContent?.trim() === t.useCorners) as HTMLButtonElement).click());
     expect(onApprove).toHaveBeenCalledTimes(1);
+  });
+
+  const mountView = (selected: ScanPage, unreadable: boolean) => {
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    act(() => render(
+      <ScanCornersView selected={selected} photo={null} shownAspect={1} finding={null} unreadable={unreadable} onCommit={vi.fn()} onFind={vi.fn()} onApprove={vi.fn()} onRemove={vi.fn()} />,
+      container!,
+    ));
+    return [...container.querySelectorAll('button')].map((b) => b.textContent?.trim());
+  };
+  const noPreview = { id: 1, guessed: true, preview: null, quad: FULL_QUAD, turns: 0, aspect: 1 } as unknown as ScanPage;
+
+  it('a page waiting for its preview shows the actions bar, not Remove only', () => {
+    const labels = mountView(noPreview, false);
+    expect(labels).toContain(t.findPage);
+    expect(labels).toContain(t.useCorners);
+    expect(labels).not.toContain(t.removePhoto);
+  });
+
+  it('a failed page shows Remove only', () => {
+    expect(mountView(noPreview, true)).toEqual([t.removePhoto]);
   });
 });

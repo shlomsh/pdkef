@@ -104,7 +104,7 @@ export default withIslandBoundary(function PdfScanTool({ quietPolicy, navigate }
   const options = { pageSize: settings.pageSize, limit: settings.limit, onPageSize: settings.choosePageSize, onLimit: settings.chooseLimit, limitNote };
   /** What the page viewer shows and does. */
   const onePage = {
-    pages, selectedIndex, results, turnedPreviews, finding, findMissed, pageSize: settings.pageSize,
+    pages, selectedIndex, results, turnedPreviews, finding, findMissed, failedIds, pageSize: settings.pageSize,
     built: { shown, ready: prepared.status === 'ready', size: prepared.size },
   };
   const pageActions = pageViewActions({ edit, findPage, removePage, selected, dispatch });

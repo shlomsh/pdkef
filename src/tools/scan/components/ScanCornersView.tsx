@@ -13,6 +13,8 @@ interface ScanCornersViewProps {
   photo: string | null;
   shownAspect: number;
   finding: number | null;
+  /** The photo could not be read (the scan state's failedIds), not merely still waiting for its preview. */
+  unreadable: boolean;
   onCommit: (id: number, quad: Quad) => void;
   onFind: (page: ScanPage) => void;
   /** Use these corners: back to the page. */
@@ -21,8 +23,7 @@ interface ScanCornersViewProps {
 }
 
 /** The corners view under the editor head: the photo with its corners, then the bottom bar of choices. */
-export default function ScanCornersView({ selected, photo, shownAspect, finding, onCommit, onFind, onApprove, onRemove }: ScanCornersViewProps) {
-  const unreadable = selected.guessed && selected.preview === null;
+export default function ScanCornersView({ selected, photo, shownAspect, finding, unreadable, onCommit, onFind, onApprove, onRemove }: ScanCornersViewProps) {
   return (
     <>
       <div class={styles['photo-area']}>
@@ -32,8 +33,8 @@ export default function ScanCornersView({ selected, photo, shownAspect, finding,
             class={styles['corners-wait']}
             style={{ aspectRatio: String(shownAspect), width: `min(100%, calc(var(--scan-view-h) * ${shownAspect}))` }}
           >
-            {/* The head already says a photo could not be read; the box stays quiet. */}
-            {selected.preview !== null || selected.guessed ? '' : t.findingEdges}
+            {/* The head already says a photo could not be read; the box stays quiet. A page still waiting says it is finding. */}
+            {unreadable || selected.preview !== null ? '' : t.findingEdges}
           </div>
         ) : (
           // On a turned page the photo, its shape and its corners are all shown turned (quad.ts).
