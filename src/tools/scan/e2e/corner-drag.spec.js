@@ -3,7 +3,7 @@ import { waitForIsland } from '../../../../e2e/support/tool.js';
 
 // SCAN-01 - what jsdom cannot prove about the corner editor: a real pointer
 // drag moves the handle while it is held, the handle stays where it was dropped,
-// the dropped corners reprocess the page (new strip thumbnail), and a drag
+// the dropped corners reprocess the page (new grid thumbnail), and a drag
 // across the opposite corner (a bow tie) stops the handle at the last valid shape.
 
 // A phone-like photo: dark desk, a lighter page turned about 6 degrees, dark text bars.

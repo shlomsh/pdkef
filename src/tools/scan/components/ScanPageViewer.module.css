@@ -1,4 +1,4 @@
-/* The phone's page viewer (SCAN-13): a modal dialog in the top layer, header included, inside the safe areas. */
+/* The page viewer (SCAN-13, SCAN-51): a modal dialog in the top layer on every width, header included, inside the safe areas. */
 .dialog {
   position: fixed;
   inset: 0;
@@ -59,6 +59,18 @@
   transform: scaleX(-1);
 }
 
+/* The phone's back is the chevron alone; from 1024px it names where it goes. */
+.backWord {
+  display: none;
+}
+
+/* Corners keep Rotate at the head's end from 1024px; the phone's corners head has none. */
+.headEnd {
+  display: none;
+  position: absolute;
+  inset-inline-end: 0;
+}
+
 .back:focus-visible,
 .done:focus-visible {
   outline: 2px solid var(--color-primary);
@@ -94,6 +106,7 @@
   min-height: 0;
   width: 100%;
   container-type: size;
+  position: relative;
   --scan-paper-h: calc(100cqh - 8px);
 }
 
@@ -156,4 +169,74 @@
   font-size: 17px;
   font-weight: 600;
   cursor: pointer;
+}
+
+/* Previous and Next sit at the stage's two sides, on a mouse device only: a finger swipes. */
+.step {
+  position: absolute;
+  top: 50%;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  transform: translateY(-50%);
+  color: var(--color-text);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 50%;
+  box-shadow: var(--shadow-md);
+  cursor: pointer;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .step {
+    display: inline-flex;
+  }
+}
+
+.step:hover:not([aria-disabled='true']) {
+  background: var(--color-primary-soft);
+  border-color: var(--color-primary);
+}
+
+.step:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.step[aria-disabled='true'] {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.stepPrevious {
+  left: 6px;
+}
+
+.stepNext {
+  right: 6px;
+}
+
+/* A wide window: the back control carries the word, Rotate shows, and Esc or the back control leave, so no Done. */
+@media (min-width: 1024px) {
+  .back {
+    width: auto;
+    gap: 2px;
+    padding-inline: 0 8px;
+    font: inherit;
+  }
+
+  .backWord {
+    display: inline;
+  }
+
+  .headEnd {
+    display: flex;
+  }
+
+  .done {
+    display: none;
+  }
 }

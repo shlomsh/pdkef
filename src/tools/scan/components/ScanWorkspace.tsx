@@ -13,7 +13,6 @@ import type { PageResult, ScanPage } from '../state/scanWork.ts';
 import styles from '../PdfScanTool.module.css';
 import { ScanDownloadElement, ScanDraftStatus, ScanErrors, ScanHeading } from './ScanOutputParts.tsx';
 import ScanTable from './ScanTable.tsx';
-import ScanWorkbench, { type ScanWorkbenchProps } from './ScanWorkbench.tsx';
 
 const HANDOFF_TOOLS: HandoffTool[] = ['sign', 'highlight-pdf', 'redact', 'compress'];
 
@@ -51,9 +50,7 @@ function ScanRailPinned({ pages, failedIds, output }: { pages: ScanPage[]; faile
 }
 
 interface ScanWorkspaceProps {
-  /** The table (the loaded state), or the page view (result, corners) beside the page column. */
-  view: 'table' | 'result' | 'corners';
-  /** A tile on the table opens that page. */
+  /** A tile on the table opens that page in the viewer. */
   onOpen: (id: number) => void;
   results: Record<number, PageResult>;
   resultKeyOf: (page: ScanPage) => string;
@@ -70,11 +67,10 @@ interface ScanWorkspaceProps {
   /** The table's reorder: the list the drag binds to, and the arrow keys. */
   listRef: Ref<HTMLUListElement>;
   onTileKeyDown: (event: KeyboardEvent, id: number) => void;
-  workbench: Omit<ScanWorkbenchProps, 'actions'> & { actions: Omit<ScanWorkbenchProps['actions'], 'onPickMore'> };
 }
 
-/** The desktop workspace around the photo and the pages: the heading, the rail and the errors. Phones render ScanPhoneTable. */
-export default function ScanWorkspace({ view, onOpen, results, resultKeyOf, bridge, pages, failedIds, onFiles, onCamera, output, options, rating, listRef, onTileKeyDown, workbench }: ScanWorkspaceProps) {
+/** The desktop workspace around the pages: the heading, the rail and the errors. Phones render ScanPhoneTable. */
+export default function ScanWorkspace({ onOpen, results, resultKeyOf, bridge, pages, failedIds, onFiles, onCamera, output, options, rating, listRef, onTileKeyDown }: ScanWorkspaceProps) {
   return (
     <PageWorkspace
       rootAttrs={{ 'data-scan-ready': output.prepared.status === 'ready' || undefined }}
@@ -94,24 +90,20 @@ export default function ScanWorkspace({ view, onOpen, results, resultKeyOf, brid
       railPinned={<ScanRailPinned pages={pages} failedIds={failedIds} output={output} />}
     >
       <ScanErrors pages={pages} failedIds={failedIds} buildFailed={output.prepared.status === 'error'} />
-      {view === 'table' ? (
-        <ScanTable
-          pages={pages}
-          results={results}
-          resultKeyOf={resultKeyOf}
-          failedIds={failedIds}
-          pageSize={options.pageSize}
-          listRef={listRef}
-          onOpen={onOpen}
-          onTileKeyDown={onTileKeyDown}
-          onFiles={onFiles}
-          onCamera={onCamera}
-          onPickMore={bridge.requestReplace}
-        />
-      ) : (
-        <ScanWorkbench {...workbench} actions={{ ...workbench.actions, onPickMore: bridge.requestReplace }} />
-      )}
-      {/* Under the page, inside the first screen (useFloorHeight leaves it the room). */}
+      <ScanTable
+        pages={pages}
+        results={results}
+        resultKeyOf={resultKeyOf}
+        failedIds={failedIds}
+        pageSize={options.pageSize}
+        listRef={listRef}
+        onOpen={onOpen}
+        onTileKeyDown={onTileKeyDown}
+        onFiles={onFiles}
+        onCamera={onCamera}
+        onPickMore={bridge.requestReplace}
+      />
+      {/* Under the pages. */}
       <div class={styles['rating-slot']}>{rating}</div>
     </PageWorkspace>
   );

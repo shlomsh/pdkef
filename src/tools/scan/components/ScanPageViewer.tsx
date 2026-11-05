@@ -1,11 +1,12 @@
 import type { Ref } from 'preact';
 import { useEffect, useLayoutEffect, useRef } from 'preact/hooks';
-import { ChevronLeft, Crop } from 'lucide-preact';
+import { ChevronLeft, ChevronRight, Crop, RotateCw } from 'lucide-preact';
 import { workspaceStyles } from '#shell/pageWorkspace/PageWorkspace.tsx';
 import { formatMessage } from '#lib/text/formatMessage.ts';
 import { englishScanMessages as t } from '../messages.ts';
 import { lookOptions } from '../lib/scanOptions.ts';
 import { shownAspect, shownPhoto } from '../lib/scanPages.ts';
+import { cornersHint } from '../lib/cornersHint.ts';
 import { exactResultDetail, resultViewFor } from '../lib/resultView.ts';
 import { slideIndexAt, slideWindow } from '../lib/pageSlides.ts';
 import { looksBent } from '../lib/capture/guidance.ts';
@@ -18,7 +19,6 @@ import styles from './ScanPageViewer.module.css';
 import ResultPage from './ResultPage.tsx';
 import PageActions from './PageActions.tsx';
 import ScanCornersView from './ScanCornersView.tsx';
-import { cornersHint } from './ScanEditorHead.tsx';
 
 type Placed = Parameters<typeof resultViewFor>[2]['shown'];
 
@@ -44,6 +44,8 @@ interface ScanPageViewerProps {
     onFind: (page: ScanPage) => void;
     onApprove: () => void;
     onDone: () => void;
+    /** One page back or on (a mouse device's buttons and arrow keys); does nothing at the ends. */
+    onStep: (delta: 1 | -1) => void;
     onRetake: (file: File) => void;
     onRetakeCamera?: () => void;
     onRemovePage: (id: number) => void;
@@ -89,7 +91,26 @@ function useSlideScroller(selectedIndex: number, pages: readonly ScanPage[], vie
   return { scrollerRef, onScroll };
 }
 
-/** The phone's one-page screen: a full-screen modal over everything, swiping between pages in result mode, the corners in the same dialog. */
+/** The arrow keys browse in result view, as in PagePreviewDialog: left is always previous. */
+function useArrowKeys(active: boolean, onStep: (delta: 1 | -1) => void) {
+  const stepRef = useRef(onStep);
+  stepRef.current = onStep;
+  useEffect(() => {
+    if (!active) return undefined;
+    const onKey = (event: KeyboardEvent) => {
+      // Alt+Left is the browser's Back, a key already used is a reorder, and the Look row owns its arrows.
+      if (event.defaultPrevented || event.altKey || event.metaKey || event.ctrlKey || event.shiftKey) return;
+      if ((event.target as Element | null)?.closest?.('[role="radiogroup"]')) return;
+      if (event.key === 'ArrowRight') stepRef.current(1);
+      else if (event.key === 'ArrowLeft') stepRef.current(-1);
+    };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [active]);
+}
+
+/** The one-page screen on every width: a full-screen modal over the grid, swiping (or, on a mouse device,
+ * Previous, Next and the arrow keys) between pages in result mode, the corners in the same dialog. */
 export default function ScanPageViewer({ refs, pages, selected, selectedIndex, view, results, turnedPreviews, finding, findMissed, pageSize, built, actions }: ScanPageViewerProps) {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const unreadable = selected.guessed && selected.preview === null;
@@ -118,6 +139,7 @@ export default function ScanPageViewer({ refs, pages, selected, selectedIndex, v
   }, []);
 
   const { scrollerRef, onScroll } = useSlideScroller(selectedIndex, pages, view, actions.onSelect);
+  useArrowKeys(view === 'result', actions.onStep);
 
   const exact = built.shown !== undefined && built.ready;
   const { from, to } = slideWindow(selectedIndex, pages.length);
@@ -132,10 +154,19 @@ export default function ScanPageViewer({ refs, pages, selected, selectedIndex, v
         <div class={styles.head}>
           <button type="button" class={styles.back} data-back aria-label={t.backToPages} onClick={goBack}>
             <ChevronLeft size={24} aria-hidden="true" />
+            <span class={styles.backWord}>{t.pagesLabel}</span>
           </button>
           <p class={styles.title} ref={refs.heading} tabIndex={-1} data-page-heading>
             {formatMessage(t.pageOf, { position: selectedIndex + 1, total: pages.length })}
           </p>
+          {view === 'corners' && selected.preview !== null && (
+            <div class={styles.headEnd}>
+              <button type="button" class={workspaceStyles['quiet-button']} onClick={actions.onRotate}>
+                <RotateCw size={16} aria-hidden="true" />
+                {t.rotate}
+              </button>
+            </div>
+          )}
         </div>
         {view === 'corners' && <p class={styles.hint} role="status">{cornersHint(selected, finding, findMissed)}</p>}
         {view === 'result' ? (
@@ -153,6 +184,12 @@ export default function ScanPageViewer({ refs, pages, selected, selectedIndex, v
                 </div>
               ))}
             </div>
+            <button type="button" class={`${styles.step} ${styles.stepPrevious}`} aria-label={t.previousPage} title={t.previousPage} aria-disabled={selectedIndex === 0} onClick={() => actions.onStep(-1)}>
+              <ChevronLeft size={22} aria-hidden="true" />
+            </button>
+            <button type="button" class={`${styles.step} ${styles.stepNext}`} aria-label={t.nextPage} title={t.nextPage} aria-disabled={selectedIndex === pages.length - 1} onClick={() => actions.onStep(1)}>
+              <ChevronRight size={22} aria-hidden="true" />
+            </button>
           </div>
         ) : (
           <div class={`${styles.stage} ${styles.cornersStage}`}>

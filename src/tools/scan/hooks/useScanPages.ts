@@ -60,7 +60,7 @@ export function useScanPages(input: ScanPagesInput) {
   const { work, setPages, dispatch, announce, setRejectedFiles } = input;
   const { enqueue } = work;
 
-  /** The processed page for these corners and this look: cached, so the strip and the build share one run. */
+  /** The processed page for these corners and this look: cached, so the grid and the build share one run. */
   const processed = useCallback((page: ScanPage): Promise<ProcessedPage> => {
     const key = resultKey(page);
     const cached = work.processing.get(key);

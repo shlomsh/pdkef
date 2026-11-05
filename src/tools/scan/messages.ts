@@ -27,7 +27,6 @@ export interface ScanMessages extends DownloadMessages {
   cameraDone: string;
   closeCamera: string;
   stackLabel: string;
-  addPhotos: string;
   skippedOne: string;
   skippedMany: string;
   documentHeading: string;
@@ -39,10 +38,8 @@ export interface ScanMessages extends DownloadMessages {
   cornersHint: string;
   wholePhoto: string;
   rotate: string;
-  fullScreen: string;
   previousPage: string;
   nextPage: string;
-  exitFullScreen: string;
   announceRotated: string;
   removePhoto: string;
   adjustCorners: string;
@@ -71,7 +68,6 @@ export interface ScanMessages extends DownloadMessages {
   lookAction: string;
   removeShort: string;
   pageSizeQuiet: string;
-  removeLabel: string;
   processing: string;
   pageFailed: string;
   pagesFailed: string;
@@ -147,7 +143,6 @@ export const englishScanMessages: ScanMessages = {
   cameraDone: 'Done',
   closeCamera: 'Close the camera',
   stackLabel: 'The last page taken, {count} so far',
-  addPhotos: 'Add photos',
   skippedOne: '{name} was skipped: only JPG and PNG photos can be scanned.',
   skippedMany: '{count} files were skipped: only JPG and PNG photos can be scanned.',
   documentHeading: 'Your scan',
@@ -161,10 +156,8 @@ export const englishScanMessages: ScanMessages = {
   removePhoto: 'Remove this photo',
   adjustCorners: 'Adjust corners',
   rotate: 'Rotate',
-  fullScreen: 'Full screen',
   previousPage: 'Previous page',
   nextPage: 'Next page',
-  exitFullScreen: 'Exit full screen',
   announceRotated: 'Page {position} turned a quarter to the right.',
   findPage: 'Auto-detect',
   findMissed: 'No page edges were found here either. Drag the corners onto the corners of the page.',
@@ -191,7 +184,6 @@ export const englishScanMessages: ScanMessages = {
   lookAction: 'Look',
   removeShort: 'Remove',
   pageSizeQuiet: 'Page size: {size}',
-  removeLabel: 'Remove page {position}',
   processing: 'Straightening…',
   pageFailed: 'Could not read this photo',
   pagesFailed: 'Page {pages} could not be read. Remove it, or add the photo again, to make the PDF.',
