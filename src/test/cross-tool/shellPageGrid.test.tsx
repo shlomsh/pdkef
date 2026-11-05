@@ -136,7 +136,7 @@ describe('PageGrid', () => {
 
   const cards = () => Array.from(container.querySelectorAll('[data-key]'));
   const captions = () => Array.from(container.querySelectorAll('[data-caption-for]'));
-  const cellTagName = (card) => card.querySelector('[dir="auto"]');
+  const cellTagName = (card) => card.querySelector('[data-file-name]');
 
   it('renders one card per plan entry in order, in one continuous grid with no row-break items', () => {
     mount();
@@ -188,7 +188,7 @@ describe('PageGrid', () => {
     const plan = [planForFile(1, 2)[0], planForFile(2, 2)[0], planForFile(1, 2)[1], planForFile(2, 2)[1]];
     mount({ plan, grouped: false });
     expect(captions()).toHaveLength(0);
-    expect(container.querySelectorAll('[dir="auto"]')).toHaveLength(0);
+    expect(container.querySelectorAll('[data-file-name]')).toHaveLength(0);
     const grid = container.querySelector('[data-page-grid]');
     expect(grid.hasAttribute('data-grouped')).toBe(false);
   });
@@ -201,7 +201,7 @@ describe('PageGrid', () => {
     mount({ entries, plan: planForFile(1, 6), props: { labelSources: false } });
     expect(container.querySelector('[data-caption-for]')).toBeNull();
     expect(container.querySelector('[data-band]')).toBeNull();
-    expect(container.querySelector('[dir="auto"], [aria-hidden="true"][style]')).toBeNull();
+    expect(container.querySelector('[data-file-name], [aria-hidden="true"][style]')).toBeNull();
     expect(container.querySelector('[data-page-grid]').hasAttribute('data-grouped')).toBe(false);
     expect(cards()).toHaveLength(6);
   });
