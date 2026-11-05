@@ -18,11 +18,14 @@ import appStyles from '../PdfScanTool.module.css';
 import styles from './ScanPageViewer.module.css';
 import ResultPage from './ResultPage.tsx';
 import PageActions from './PageActions.tsx';
+import ScanUndoChip from './ScanUndoChip.tsx';
 import ScanCornersView from './ScanCornersView.tsx';
 
 type Placed = Parameters<typeof resultViewFor>[2]['shown'];
 
 interface ScanPageViewerProps {
+  /** A removal Undo is offered for: the chip lives in the dialog, as the top layer hides anything outside it. */
+  undo?: { position: number; onUndo: () => void } | null;
   refs: { editor: Ref<HTMLElement>; heading: Ref<HTMLParagraphElement> };
   pages: ScanPage[];
   selected: ScanPage;
@@ -111,7 +114,7 @@ function useArrowKeys(active: boolean, onStep: (delta: 1 | -1) => void) {
 
 /** The one-page screen on every width: a full-screen modal over the grid, swiping (or, on a mouse device,
  * Previous, Next and the arrow keys) between pages in result mode, the corners in the same dialog. */
-export default function ScanPageViewer({ refs, pages, selected, selectedIndex, view, results, turnedPreviews, finding, findMissed, pageSize, built, actions }: ScanPageViewerProps) {
+export default function ScanPageViewer({ refs, pages, selected, selectedIndex, view, results, turnedPreviews, finding, findMissed, pageSize, built, actions, undo }: ScanPageViewerProps) {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const unreadable = selected.guessed && selected.preview === null;
   // Back and Escape: Use these corners in corners (an unreadable page has nothing to use, so it closes), Done in result.
@@ -231,6 +234,7 @@ export default function ScanPageViewer({ refs, pages, selected, selectedIndex, v
           </>
         )}
       </section>
+      {undo && <ScanUndoChip viewer position={undo.position} onUndo={undo.onUndo} />}
     </dialog>
   );
 }

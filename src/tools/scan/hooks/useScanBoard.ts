@@ -1,6 +1,6 @@
 import { useCallback, useState } from 'preact/hooks';
 import { partitionTurned } from '../lib/scanPages.ts';
-import type { PageResult } from '../state/scanWork.ts';
+import type { HeldRemoval, PageResult } from '../state/scanWork.ts';
 
 /** What the island shows besides the pages: results, turned previews, skipped files and the live-region text. */
 export function useScanBoard() {
@@ -10,6 +10,8 @@ export function useScanBoard() {
   const [rejectedFiles, setRejectedFiles] = useState<string[]>([]);
   /** Bumped when a build lands, so the per-key maps the work object holds are read again. */
   const [, setBuilt] = useState(0);
+  /** The removal Undo is offered for (state/scanWork.ts holds the page itself). */
+  const [removal, setRemoval] = useState<HeldRemoval | null>(null);
   const [announcement, setAnnouncement] = useState('');
 
   const announce = useCallback((text: string) => {
@@ -24,6 +26,6 @@ export function useScanBoard() {
   };
   return {
     results, setResults, turnedPreviews, setTurnedPreviews, rejectedFiles, setRejectedFiles,
-    announcement, setAnnouncement, announce, forgetTurned, bumpBuilt: () => setBuilt((n) => n + 1),
+    removal, setRemoval, announcement, setAnnouncement, announce, forgetTurned, bumpBuilt: () => setBuilt((n) => n + 1),
   };
 }

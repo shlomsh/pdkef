@@ -24,7 +24,7 @@ function makeFlow(over: Record<string, unknown> = {}) {
 function mount(over: { flow?: Record<string, unknown>; prepared?: Record<string, unknown>; failedIds?: number[]; pageSize?: string; rating?: unknown } = {}) {
   container = document.createElement('div');
   document.body.appendChild(container);
-  const handlers = { onOpen: vi.fn(), onTileKeyDown: vi.fn(), onFiles: vi.fn(), onCamera: vi.fn(), onPickMore: vi.fn(), onClear: vi.fn() };
+  const handlers = { onOpen: vi.fn(), onTileKeyDown: vi.fn(), onRotate: vi.fn(), onRemove: vi.fn(), onFiles: vi.fn(), onCamera: vi.fn(), onPickMore: vi.fn(), onClear: vi.fn() };
   const out = { onShowFailedPage: vi.fn(), onRename: vi.fn(), onEditingChange: vi.fn() };
   const options = { pageSize: over.pageSize ?? 'fit', limit: 'none', onPageSize: vi.fn(), onLimit: vi.fn(), limitNote: 'Full quality.' };
   const flow = makeFlow(over.flow);

@@ -13,7 +13,7 @@ const results = {
 function mount(props: Record<string, unknown> = {}) {
   container = document.createElement('div');
   document.body.appendChild(container);
-  const handlers = { onOpen: vi.fn(), onFiles: vi.fn(), onPickMore: vi.fn(), onTileKeyDown: vi.fn() };
+  const handlers = { onOpen: vi.fn(), onFiles: vi.fn(), onPickMore: vi.fn(), onTileKeyDown: vi.fn(), onRotate: vi.fn(), onRemove: vi.fn() };
   act(() => render(
     <ScanPageGrid pages={pages} results={results} resultKeyOf={(p: { id: number }) => `k${p.id}`} failedIds={[3]} pageSize="fit" {...handlers} {...props} />,
     container!,
@@ -69,5 +69,39 @@ describe('ScanPageGrid', () => {
     const { container, onPickMore } = mount();
     act(() => (container.querySelector('[data-add-pick]') as HTMLElement).click());
     expect(onPickMore).toHaveBeenCalled();
+  });
+
+  describe('the hover cluster (SCAN-51)', () => {
+    const cluster = (root: HTMLElement, index: number) => root.querySelectorAll('li[data-id]')[index].querySelector('button[aria-label^="Rotate"]')!.parentElement as HTMLElement;
+
+    it('sits after the tile, never inside it, with Rotate, Remove and Open named by position', () => {
+      const { container } = mount();
+      const li = container.querySelectorAll('li[data-id]')[1];
+      const tile = li.querySelector('[data-page]')!;
+      const actions = cluster(container, 1);
+      expect(tile.contains(actions)).toBe(false);
+      expect(tile.compareDocumentPosition(actions) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+      expect([...actions.querySelectorAll('button')].map((b) => b.getAttribute('aria-label'))).toEqual(['Rotate page 2', 'Remove page 2', 'Open page 2']);
+      expect([...actions.querySelectorAll('[data-tip]')].map((b) => b.textContent)).toEqual(['Rotate', 'Remove', 'Open']);
+      expect(li.className).toContain('host');
+    });
+
+    it('hands the page id to Rotate, Remove and Open, and a click never also opens through the tile', () => {
+      const { container, onRotate, onRemove, onOpen } = mount();
+      const [rotate, remove, open] = [...cluster(container, 1).querySelectorAll('button')];
+      act(() => rotate.click());
+      act(() => remove.click());
+      expect(onRotate).toHaveBeenCalledWith(2);
+      expect(onRemove).toHaveBeenCalledWith(2);
+      expect(onOpen).not.toHaveBeenCalled();
+      act(() => open.click());
+      expect(onOpen).toHaveBeenCalledTimes(1);
+      expect(onOpen).toHaveBeenCalledWith(2);
+    });
+
+    it('the Add tile has no cluster', () => {
+      const { container } = mount();
+      expect(container.querySelector('li:last-child button[aria-label^="Rotate"]')).toBeNull();
+    });
   });
 });

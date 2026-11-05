@@ -27,6 +27,9 @@ export interface ScanPage {
   sheet: boolean;
 }
 
+/** A page taken out of the list but not yet let go: Undo brings it back whole, the timer ends it. */
+export interface HeldRemoval { page: ScanPage; index: number; failed: boolean }
+
 export interface PageResult { key: string; url: string; thumbUrl: string; page: ProcessedPage }
 /** The pages of the last built PDF, in its order: what Download saves, page for page. */
 interface Shown { key: string; pages: { url: string; place: Placement }[] }
@@ -53,6 +56,9 @@ export class ScanWork {
   watching = new Set<string>();
   /** Pages removed while their edge guess still waited in the queue. */
   removed = new Set<number>();
+  /** The page Remove is holding for Undo, and the timer that lets it go. */
+  removal: HeldRemoval | null = null;
+  removalTimer: ReturnType<typeof setTimeout> | undefined;
   results: Record<number, PageResult> = {};
   hadPages = false;
   resetDownloadFlow: () => void = () => {};

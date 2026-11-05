@@ -117,6 +117,12 @@ export function afterRemoval(pages: ScanPage[], id: number) {
   };
 }
 
+/** `page` back in the list at `index`, or last when the list has become shorter than that. */
+export const restoredPages = (pages: ScanPage[], page: ScanPage, index: number): ScanPage[] => {
+  const at = Math.min(index, pages.length);
+  return [...pages.slice(0, at), page, ...pages.slice(at)];
+};
+
 /** A retake: `fresh` takes the place of page `oldId` in the list, with the look the old page had and no turns.
  * It is a new page with a new id, since a result is keyed by id and must never show the old photo. */
 export function replacePage(pages: ScanPage[], oldId: number, fresh: ScanPage): ScanPage[] {

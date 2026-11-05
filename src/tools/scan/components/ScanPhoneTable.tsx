@@ -22,6 +22,8 @@ interface ScanPhoneTableProps {
   listRef: Ref<HTMLUListElement>;
   onOpen: (id: number) => void;
   onTileKeyDown: (event: KeyboardEvent, id: number) => void;
+  onRotate: (id: number) => void;
+  onRemove: (id: number) => void;
   onFiles: (files: File[]) => void;
   onCamera: () => void;
   onPickMore: () => void;
@@ -76,7 +78,7 @@ function ShareOrDownload({ pages, failedIds, output, canShare }: { pages: ScanPa
 }
 
 /** The loaded state on a phone: the name with a small Clear all beside it, the numbered pages, the size card, Share and the quiet next steps. */
-export default function ScanPhoneTable({ pages, results, resultKeyOf, failedIds, listRef, onOpen, onTileKeyDown, onFiles, onCamera, onPickMore, onClear, output, options, rating }: ScanPhoneTableProps) {
+export default function ScanPhoneTable({ pages, results, resultKeyOf, failedIds, listRef, onOpen, onTileKeyDown, onRotate, onRemove, onFiles, onCamera, onPickMore, onClear, output, options, rating }: ScanPhoneTableProps) {
   const { prepared, flow } = output;
   const ready = prepared.status === 'ready';
   // A page that could not be read, or a failed build: there is no PDF to size or share until it is dealt with.
@@ -102,6 +104,8 @@ export default function ScanPhoneTable({ pages, results, resultKeyOf, failedIds,
         listRef={listRef}
         onOpen={onOpen}
         onTileKeyDown={onTileKeyDown}
+        onRotate={onRotate}
+        onRemove={onRemove}
         onFiles={onFiles}
         onCamera={onCamera}
         onPickMore={onPickMore}

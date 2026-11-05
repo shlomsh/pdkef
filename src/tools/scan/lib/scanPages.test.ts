@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { FULL_QUAD } from './quad.ts';
 import {
   afterRemoval, exportKeyFor, failedPositions, isCurrentKey, newPage, partitionFiles, replacePage, partitionTurned,
-  patchPage, resultKey, shownAspect, shownPhoto, tileDelta, turnKeyOf, turnPage, withInspection,
+  patchPage, restoredPages, resultKey, shownAspect, shownPhoto, tileDelta, turnKeyOf, turnPage, withInspection,
 } from './scanPages.ts';
 
 const photo = (name = 'a.jpg') => new File(['x'], name, { type: 'image/jpeg' });
@@ -115,6 +115,17 @@ describe('scanPages', () => {
     });
     it('finds nothing for an unknown id', () => {
       expect(afterRemoval(pages, -1).removed).toBeUndefined();
+    });
+  });
+
+  describe('restoredPages', () => {
+    const [a, b, c] = [newPage(photo(), 'document'), newPage(photo(), 'document'), newPage(photo(), 'document')];
+    it('puts a page back at the index it left, among the others', () => {
+      expect(restoredPages([a, c], b, 1)).toEqual([a, b, c]);
+      expect(restoredPages([b, c], a, 0)).toEqual([a, b, c]);
+    });
+    it('puts it last when its place is past the end (the pages after it were removed too)', () => {
+      expect(restoredPages([a], c, 5)).toEqual([a, c]);
     });
   });
 

@@ -143,14 +143,29 @@ describe('reduceScan', () => {
     it('another page leaving with nothing failed is a no-op', () => {
       expect(reduceScan(corners, { type: 'pageRemoved', id: 9, neighbourId: 2 })).toBe(corners);
     });
-    it('the open page leaving, from the corners or the result, goes back to the table on the neighbour', () => {
-      expect(reduceScan(corners, { type: 'pageRemoved', id: 1, neighbourId: 2 })).toMatchObject({ phase: 'table', selectedId: 2 });
+    it('the open page leaving, from the corners or the result, stays in the viewer on the neighbour', () => {
+      expect(reduceScan(corners, { type: 'pageRemoved', id: 1, neighbourId: 2 })).toMatchObject({ phase: 'result', selectedId: 2 });
+      const result: ScanState = { ...initialScanState, phase: 'result', selectedId: 1 };
+      expect(reduceScan(result, { type: 'pageRemoved', id: 1, neighbourId: 2 })).toMatchObject({ phase: 'result', selectedId: 2 });
+    });
+    it('the open page leaving with no neighbour goes to the table', () => {
       const result: ScanState = { ...initialScanState, phase: 'result', selectedId: 1 };
       expect(reduceScan(result, { type: 'pageRemoved', id: 1, neighbourId: null })).toMatchObject({ phase: 'table', selectedId: null });
     });
     it('from the table it selects the neighbour and stays', () => {
       const s: ScanState = { ...initialScanState, selectedId: 1 };
       expect(reduceScan(s, { type: 'pageRemoved', id: 1, neighbourId: 2 })).toMatchObject({ phase: 'table', selectedId: 2 });
+    });
+  });
+
+  describe('pageRestored', () => {
+    it('selects the page, keeps the phase, and brings back its failure', () => {
+      const s: ScanState = { ...initialScanState, phase: 'result', selectedId: 2, failedIds: [5] };
+      expect(reduceScan(s, { type: 'pageRestored', id: 1, failed: true })).toMatchObject({ phase: 'result', selectedId: 1, failedIds: [5, 1] });
+      expect(reduceScan(s, { type: 'pageRestored', id: 1, failed: false })).toMatchObject({ phase: 'result', selectedId: 1, failedIds: [5] });
+    });
+    it('keeps the table as the table', () => {
+      expect(reduceScan(initialScanState, { type: 'pageRestored', id: 3, failed: false })).toMatchObject({ phase: 'table', selectedId: 3 });
     });
   });
 

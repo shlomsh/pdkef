@@ -17,6 +17,7 @@
 }
 
 .cell {
+  position: relative;
   min-width: 0;
 }
 
@@ -39,6 +40,13 @@
 .tile:focus-visible {
   outline: 2px solid var(--color-primary);
   outline-offset: 2px;
+}
+
+/* A mouse sees pages can be dragged. */
+@media (hover: hover) and (pointer: fine) {
+  .tile {
+    cursor: grab;
+  }
 }
 
 @media (hover: hover) {

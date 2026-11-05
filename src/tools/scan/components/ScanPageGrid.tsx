@@ -1,5 +1,6 @@
 import type { Ref } from 'preact';
-import { ImagePlus } from 'lucide-preact';
+import { ImagePlus, Maximize2, RotateCw, Trash2 } from 'lucide-preact';
+import { cellActionStyles, PageCellActions, PageCellButton } from '#shell/pageGrid/PageCellActions.tsx';
 import { formatMessage } from '#lib/text/formatMessage.ts';
 import { paperFit, tilePaper } from '../lib/resultView.ts';
 import type { PageSize } from '../lib/scanPipeline.ts';
@@ -19,6 +20,9 @@ interface ScanPageGridProps {
   listRef?: Ref<HTMLUListElement>;
   onOpen: (id: number) => void;
   onTileKeyDown?: (event: KeyboardEvent, id: number) => void;
+  /** The hover cluster: turn a page, take it out. */
+  onRotate: (id: number) => void;
+  onRemove: (id: number) => void;
   onFiles: (files: File[]) => void;
   onCamera?: () => void;
   onPickMore: () => void;
@@ -51,7 +55,7 @@ function PagePaper({ page, results, pageSize, stale }: { page: ScanPage; results
 }
 
 /** The pages as a numbered grid of reorderable tiles ending in Add pages. Shared by the phone's table and the desktop's. */
-export default function ScanPageGrid({ pages, results, resultKeyOf, failedIds, pageSize, listRef, onOpen, onTileKeyDown, onFiles, onCamera, onPickMore }: ScanPageGridProps) {
+export default function ScanPageGrid({ pages, results, resultKeyOf, failedIds, pageSize, listRef, onOpen, onTileKeyDown, onRotate, onRemove, onFiles, onCamera, onPickMore }: ScanPageGridProps) {
   return (
     <>
     <p class="sr-only" id="scan-grid-reorder-hint">{t.reorderHint}</p>
@@ -59,7 +63,7 @@ export default function ScanPageGrid({ pages, results, resultKeyOf, failedIds, p
       {pages.map((page, index) => {
         const result = results[page.id];
         return (
-          <li key={page.id} class={styles.cell} data-id={page.id}>
+          <li key={page.id} class={`${styles.cell} ${cellActionStyles.host}`} data-id={page.id}>
             <div
               class={styles.tile}
               data-page
@@ -78,6 +82,18 @@ export default function ScanPageGrid({ pages, results, resultKeyOf, failedIds, p
                 : <span class={styles.pending}>{failedIds.includes(page.id) ? t.pageFailed : t.processing}</span>}
               <span class={styles.badge} data-badge aria-hidden="true">{index + 1}</span>
             </div>
+            {/* After the tile, never inside it: the tile is a button and clips what overflows. */}
+            <PageCellActions>
+              <PageCellButton label={formatMessage(t.rotatePageLabel, { position: index + 1 })} tip={t.tipRotate} onClick={() => onRotate(page.id)}>
+                <RotateCw size={16} />
+              </PageCellButton>
+              <PageCellButton label={formatMessage(t.removePageLabel, { position: index + 1 })} tip={t.tipRemove} onClick={() => onRemove(page.id)}>
+                <Trash2 size={16} />
+              </PageCellButton>
+              <PageCellButton label={formatMessage(t.openPageLabel, { position: index + 1 })} tip={t.tipOpen} onClick={() => onOpen(page.id)}>
+                <Maximize2 size={16} />
+              </PageCellButton>
+            </PageCellActions>
           </li>
         );
       })}

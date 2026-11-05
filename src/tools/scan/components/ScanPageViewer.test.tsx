@@ -285,4 +285,19 @@ describe('ScanPageViewer', () => {
     const { editor } = mount({}, 1);
     expect(editor.current!.querySelector('[data-current]')).not.toBeNull();
   });
+
+  describe('the Undo chip (SCAN-51)', () => {
+    it('shows inside the dialog, which is the top layer, with the position and an Undo that calls back', () => {
+      const onUndo = vi.fn();
+      mount({ undo: { position: 3, onUndo } } as Partial<ScanPageViewerProps>);
+      const chip = q('dialog [data-undo-chip]')!;
+      expect(chip.textContent).toContain('Page 3 removed');
+      act(() => (chip.querySelector('button') as HTMLElement).click());
+      expect(onUndo).toHaveBeenCalledTimes(1);
+    });
+    it('is absent when nothing is held', () => {
+      mount();
+      expect(q('[data-undo-chip]')).toBeNull();
+    });
+  });
 });
