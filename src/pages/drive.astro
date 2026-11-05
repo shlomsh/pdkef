@@ -16,7 +16,8 @@ Astro.csp?.insertScriptResource('https://accounts.google.com/gsi/client');
 Astro.csp?.insertScriptResource('https://apis.google.com');
 Astro.csp?.insertDirective("connect-src 'self' https://www.googleapis.com https://accounts.google.com https://content.googleapis.com https://docs.google.com");
 Astro.csp?.insertDirective('frame-src https://docs.google.com https://drive.google.com https://accounts.google.com https://content.googleapis.com');
-Astro.csp?.insertDirective("style-src-elem 'self' 'unsafe-inline'");
+// Astro's directive type leaves out style-src-elem; the browser honours it and test:csp pins it on this page alone.
+Astro.csp?.insertDirective("style-src-elem 'self' 'unsafe-inline'" as Parameters<NonNullable<typeof Astro.csp>['insertDirective']>[0]);
 Astro.csp?.insertDirective("img-src 'self' data: blob: https:");
 
 const title = 'Open a file from Google Drive - PDkef';
