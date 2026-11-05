@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { Quad } from '#lib/pageEnhance/quad.ts';
-import { INITIAL_CAPTURE_STATE, markTaken, searchAgain, stepCapture, TAKEN_MEMORY } from './captureMachine.ts';
+import { INITIAL_CAPTURE_STATE, keepTaken, markTaken, searchAgain, stepCapture, TAKEN_MEMORY } from './captureMachine.ts';
 import { DEFAULT_CAPTURE_PARAMS, type CaptureState, type FrameObservation } from './types.ts';
 
 const FRAME = 33;
@@ -339,5 +339,55 @@ describe('one page, one shot (SCAN-23)', () => {
       const state = run(seq(0, 300, (t) => page(t, { quad: onEdge }))).state;
       expect(markTaken(state, HASH_A).phase).toBe('waitingForChange');
     });
+  });
+});
+
+describe('only the pages still in the scan count as taken (SCAN-65)', () => {
+  const holdOn = (start: CaptureState, hash: string) => run(seq(10_000, 1500, (t) => page(t, { hash })), start);
+  const both = markTaken(markTaken(INITIAL_CAPTURE_STATE, HASH_A), HASH_B);
+
+  it('a page removed from the stack is taken again, shown after leaving', () => {
+    const { fired } = holdOn(keepTaken(searchAgain(markTaken(INITIAL_CAPTURE_STATE, HASH_A)), []), HASH_A);
+    expect(fired).toHaveLength(1);
+  });
+
+  it('the page just taken, removed while still in view, is taken again without being turned', () => {
+    const { fired } = holdOn(keepTaken(markTaken(INITIAL_CAPTURE_STATE, HASH_A), []), HASH_A);
+    expect(fired).toHaveLength(1);
+  });
+
+  it('a page shown as a duplicate when it is removed is taken again', () => {
+    const start = run(seq(0, 300, (t) => page(t)), searchAgain(markTaken(INITIAL_CAPTURE_STATE, HASH_A))).state;
+    expect(start.phase).toBe('duplicate');
+    expect(holdOn(keepTaken(start, []), HASH_A).fired).toHaveLength(1);
+  });
+
+  it('the pages that stay are still taken', () => {
+    const state = keepTaken(searchAgain(both), [HASH_B]);
+    expect(holdOn(state, HASH_B).fired).toHaveLength(0);
+    expect(holdOn(state, HASH_A).fired).toHaveLength(1);
+  });
+
+  it('removing an earlier page leaves the wait on the last page alone', () => {
+    const state = keepTaken(both, [HASH_B]);
+    expect(state.phase).toBe('waitingForChange');
+    expect(state.lastCaptureHash).toBe(HASH_B);
+  });
+
+  it('a page brought back by Undo is taken again', () => {
+    const undone = keepTaken(keepTaken(searchAgain(markTaken(INITIAL_CAPTURE_STATE, HASH_A)), []), [HASH_A]);
+    expect(holdOn(undone, HASH_A).fired).toHaveLength(0);
+  });
+
+  it('a page the machine fired on while paused, and never took, is taken when the pause ends', () => {
+    let state = INITIAL_CAPTURE_STATE;
+    for (const f of seq(0, 1500, (t) => page(t))) state = stepCapture(state, f, undefined, false).state;
+    expect(state.phase).toBe('waitingForChange');
+    expect(holdOn(keepTaken(state, []), HASH_A).fired).toHaveLength(1);
+  });
+
+  it('remembers no more than TAKEN_MEMORY', () => {
+    const kept = Array.from({ length: TAKEN_MEMORY + 5 }, (_, i) => i.toString(16).padStart(16, '0'));
+    expect(keepTaken(INITIAL_CAPTURE_STATE, kept).takenHashes).toEqual(kept.slice(5));
   });
 });

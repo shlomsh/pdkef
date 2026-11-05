@@ -43,6 +43,15 @@ export function clearHandoffPending(tool: string): void {
   }
 }
 
+/** Drop every page's marker, for when the hand-offs themselves are gone (draftRemoval.ts). */
+export function clearAllHandoffPending(): void {
+  try {
+    Object.keys(sessionStorage).filter((key) => key.startsWith(PREFIX)).forEach((key) => sessionStorage.removeItem(key));
+  } catch {
+    // expected: storage blocked; nothing was written, so there is nothing to clear.
+  }
+}
+
 /** Drop `html[data-handoff-pending]` at once (nothing to consume: a stale marker). */
 export function releaseHandoffPending(): void {
   document.documentElement.removeAttribute(ATTRIBUTE);

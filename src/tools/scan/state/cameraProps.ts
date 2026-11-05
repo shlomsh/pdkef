@@ -32,6 +32,7 @@ export function cameraProps({ camera, pages, results, dispatch, addFiles, retake
   return {
     mode: camera.mode,
     count: pages.length,
+    scanFiles: pages.filter((page) => camera.mode === 'many' || page.id !== camera.pageId).map((page) => page.file),
     lastSrc: last ? lastPageSrc(last, results) : null,
     onTaken: (file) => (camera.mode === 'one' ? retakeWith(camera.pageId, file) : addFiles([file], { fromCamera: true })),
     onClose: close,

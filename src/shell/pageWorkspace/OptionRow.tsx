@@ -22,11 +22,13 @@ interface OptionRowProps<T extends string | number> {
   note?: string;
   /** The phone bar's version: shares the line with Download, labels may wrap. */
   compact?: boolean;
+  /** `raised` puts the row on a mint track with the chosen option lifted off it, as Compress shows it. */
+  look?: 'raised';
 }
 
 /** A labelled radiogroup shown as one segmented row, 44px tall. Arrows, Home and End move the choice. */
 export default function OptionRow<T extends string | number>({
-  id, label, showLabel = true, options, value, onChange, dir, note, compact = false,
+  id, label, showLabel = true, options, value, onChange, dir, note, compact = false, look,
 }: OptionRowProps<T>) {
   const refs = useRef<Array<HTMLButtonElement | null>>([]);
   const selected = options.find((o) => o.value === value) ?? options[0];
@@ -58,6 +60,7 @@ export default function OptionRow<T extends string | number>({
         {...(showLabel ? { 'aria-labelledby': `${id}-label` } : { 'aria-label': label })}
         aria-describedby={noteText ? `${id}-note` : undefined}
         class={styles.seg}
+        data-look={look}
         onKeyDown={onKeyDown}
       >
         {options.map((option, index) => (

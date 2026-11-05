@@ -23,6 +23,18 @@ export interface RecentFilesMessages {
   expiresInDaysOne: string;
   expiresInDaysOther: string; // '{count}' placeholder
   oldestKeptFile: string; // '{count}' placeholder
+  /** MEM-30: removing one recent file or clearing them all. '{name}' placeholder in the first and removeBody. */
+  removeAriaLabel: string;
+  removeTitle: string;
+  removeBody: string;
+  removeConfirm: string;
+  clearLabel: string;
+  clearTitle: string;
+  clearBody: string;
+  clearConfirm: string;
+  cancel: string;
+  closeDialog: string;
+  removeFailed: string;
 }
 
 export const englishRecentFilesMessages: RecentFilesMessages = {
@@ -35,6 +47,17 @@ export const englishRecentFilesMessages: RecentFilesMessages = {
   expiresInDaysOne: 'Expires in 1 day',
   expiresInDaysOther: 'Expires in {count} days',
   oldestKeptFile: 'Oldest of {count} files',
+  removeAriaLabel: 'Remove {name} from recent files',
+  removeTitle: 'Remove this file?',
+  removeBody: '{name} and any work on it will be gone from this device.',
+  removeConfirm: 'Remove',
+  clearLabel: 'Clear recent files',
+  clearTitle: 'Clear recent files?',
+  clearBody: 'All of these files and any work on them will be gone from this device.',
+  clearConfirm: 'Clear',
+  cancel: 'Cancel',
+  closeDialog: 'Close dialog',
+  removeFailed: "That didn't work. Please try again.",
 };
 
 // LOC-09: reviewed with hebrewFileDropzoneMessages above (LOC-18, 2026-10-22).
@@ -48,6 +71,17 @@ const hebrewRecentFilesMessages: RecentFilesMessages = {
   expiresInDaysOne: 'פג תוקף מחר',
   expiresInDaysOther: 'פג תוקף בעוד {count} ימים',
   oldestKeptFile: 'הישן מבין {count} קבצים',
+  removeAriaLabel: 'הסרת {name} מהקבצים האחרונים',
+  removeTitle: 'להסיר את הקובץ?',
+  removeBody: '{name} וכל מה שעשית עליו יימחקו מהמכשיר הזה.',
+  removeConfirm: 'הסרה',
+  clearLabel: 'ניקוי הקבצים האחרונים',
+  clearTitle: 'לנקות את הקבצים האחרונים?',
+  clearBody: 'כל הקבצים האלה וכל מה שעשית עליהם יימחקו מהמכשיר הזה.',
+  clearConfirm: 'ניקוי',
+  cancel: 'ביטול',
+  closeDialog: 'סגירת החלון',
+  removeFailed: 'זה לא הצליח. אפשר לנסות שוב.',
 };
 
 const recentFilesMessages: Partial<Record<DocumentationLocaleId, RecentFilesMessages>> = {

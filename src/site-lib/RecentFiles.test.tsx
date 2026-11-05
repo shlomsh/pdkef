@@ -94,7 +94,7 @@ describe('RecentFiles', () => {
 
   it('routes the "just now" fallback through the same <bdi> wrapper', () => {
     mount([{ cacheId: 'sha256:x', tool: 'sign', fileName: 'a.pdf', savedAt: Date.now() }],
-      { messages: { heading: 'h', openSampleAriaLabel: 's {name}', openRecentAriaLabel: 'Open recent PDF, {name}', justNow: 'הרגע', pageCountOne: '1', pageCountOther: '{count}' } });
+      { messages: { ...englishRecentFilesMessages, heading: 'h', openSampleAriaLabel: 's {name}', openRecentAriaLabel: 'Open recent PDF, {name}', justNow: 'הרגע', pageCountOne: '1', pageCountOther: '{count}' } });
     const bdi = container!.querySelector('button bdi');
     expect(bdi).not.toBeNull();
     expect(bdi.textContent).toBe('הרגע');
@@ -132,11 +132,77 @@ describe('RecentFiles', () => {
     const soonToExpire = { cacheId: 'sha256:e', tool: 'sign', fileName: 'expiring.pdf', savedAt: now - 26 * DAY_MS };
     const ordinary = { cacheId: 'sha256:f', tool: 'sign', fileName: 'ordinary.pdf', savedAt: now - DAY_MS };
     mount([soonToExpire, ordinary]);
-    const buttons = container!.querySelectorAll('button');
+    const buttons = container!.querySelectorAll('button[aria-label^="Open recent PDF"]');
     expect(buttons).toHaveLength(2);
     const subCounts = Array.from(buttons).map((button) => button.querySelectorAll('[class*="sub"]').length);
     // Both tiles must carry the same sub-line count: the notice replaces text
     // in the existing slot, it never adds a new element.
     expect(subCounts[0]).toBe(subCounts[1]);
+  });
+  describe('removing recents (MEM-30)', () => {
+    const now = Date.now();
+    const a = { cacheId: 'sha256:a', tool: 'sign', fileName: 'a.pdf', savedAt: now };
+    const b = { cacheId: 'sha256:b', tool: 'sign', fileName: 'b.pdf', savedAt: now };
+    const sample = { tool: 'sign', fileName: 'PDkef practice form.pdf', bundledSample: true };
+    const removeButtons = () => Array.from(container!.querySelectorAll<HTMLButtonElement>('button[aria-label^="Remove "]'));
+    const clearButton = () => Array.from(container!.querySelectorAll<HTMLButtonElement>('button')).find((x) => x.textContent === 'Clear recent files');
+    const dialogButton = (label: string) => Array.from(container!.querySelectorAll<HTMLButtonElement>('dialog button')).find((x) => x.textContent === label)!;
+
+    it('puts a remove button beside each real tile, outside the open button, and none on the sample', () => {
+      mount([a, b]);
+      expect(removeButtons()).toHaveLength(2);
+      expect(removeButtons()[0].getAttribute('aria-label')).toBe('Remove a.pdf from recent files');
+      expect(removeButtons().every((x) => !x.closest('button[aria-label^="Open"]'))).toBe(true);
+      expect(removeButtons().every((x) => x.parentElement!.tagName === 'LI')).toBe(true);
+      mount([sample]);
+      expect(removeButtons()).toHaveLength(0);
+    });
+
+    it('renders no dialog until a control is clicked, and the click does not open the file', () => {
+      const onOpenRecent = vi.fn();
+      mount([a, b], { onOpenRecent, onRemoveRecent: vi.fn() });
+      expect(container!.querySelector('dialog')).toBeNull();
+      act(() => removeButtons()[0].click());
+      expect(container!.querySelector('dialog')).not.toBeNull();
+      expect(container!.querySelector('dialog')!.textContent).toContain('a.pdf and any work on it will be gone from this device.');
+      expect(onOpenRecent).not.toHaveBeenCalled();
+    });
+
+    it('Cancel calls nothing and closes the dialog; confirm calls onRemoveRecent with the file', () => {
+      const onRemoveRecent = vi.fn();
+      mount([a, b], { onRemoveRecent });
+      act(() => removeButtons()[1].click());
+      act(() => dialogButton('Cancel').click());
+      expect(onRemoveRecent).not.toHaveBeenCalled();
+      expect(container!.querySelector('dialog')).toBeNull();
+      act(() => removeButtons()[1].click());
+      act(() => dialogButton('Remove').click());
+      expect(onRemoveRecent).toHaveBeenCalledWith(b);
+      expect(container!.querySelector('dialog')).toBeNull();
+    });
+
+    it('offers Clear from two real files up, never for one or for the sample', () => {
+      mount([a, b], { onClearRecents: vi.fn() });
+      expect(clearButton()).toBeDefined();
+      mount([a], { onClearRecents: vi.fn() });
+      expect(clearButton()).toBeUndefined();
+      mount([sample], { onClearRecents: vi.fn() });
+      expect(clearButton()).toBeUndefined();
+    });
+
+    it('confirms Clear before calling onClearRecents', () => {
+      const onClearRecents = vi.fn();
+      mount([a, b], { onClearRecents });
+      act(() => clearButton()!.click());
+      expect(onClearRecents).not.toHaveBeenCalled();
+      act(() => dialogButton('Clear').click());
+      expect(onClearRecents).toHaveBeenCalledTimes(1);
+    });
+
+    it('disables both controls while busy', () => {
+      mount([a, b], { onClearRecents: vi.fn(), busy: true });
+      expect(removeButtons().every((x) => x.disabled)).toBe(true);
+      expect(clearButton()!.disabled).toBe(true);
+    });
   });
 });

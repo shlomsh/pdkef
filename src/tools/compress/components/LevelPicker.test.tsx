@@ -87,9 +87,17 @@ describe('LevelPicker', () => {
 
   it('description follows value', () => {
     mount({ value: 'high' });
-    expect(host.querySelector('#level-picker-desc')!.textContent).toBe(englishCompressMessages.levelHighDesc);
+    expect(host.querySelector('[data-option-note]')!.textContent).toBe(englishCompressMessages.levelHighDesc);
     mount({ value: 'target' });
-    expect(host.querySelector('#level-picker-desc')!.textContent).toBe(englishCompressMessages.targetDesc);
+    expect(host.querySelector('[data-option-note]')!.textContent).toBe(englishCompressMessages.targetDesc);
+  });
+
+  it('is the shared option row, in its raised look, named by its label and described by its note', () => {
+    mount();
+    const group = host.querySelector('[role="radiogroup"]')!;
+    expect(group.getAttribute('data-look')).toBe('raised');
+    expect(host.querySelector(`#${group.getAttribute('aria-labelledby')}`)!.textContent).toBe(englishCompressMessages.levelPickerLabel);
+    expect(host.querySelector(`#${group.getAttribute('aria-describedby')}`)).toBe(host.querySelector('[data-option-note]'));
   });
 
   it('target panel only for target; typing and presets', () => {
@@ -106,5 +114,12 @@ describe('LevelPicker', () => {
     expect(buttons.map((b) => b.textContent)).toEqual(['100 KB', '200 KB', '500 KB', '1 MB']);
     act(() => buttons[2].click());
     expect(p.onTargetKBChange).toHaveBeenLastCalledWith(500, { immediate: true });
+  });
+
+  it('the size shortcuts sit on the same raised track, and a typed size presses none', () => {
+    mount({ value: 'target', targetKB: 250 });
+    const buttons = Array.from(host.querySelectorAll('button[aria-pressed]')) as HTMLElement[];
+    expect(buttons[0].parentElement!.getAttribute('data-look')).toBe('raised');
+    expect(buttons.map((b) => b.getAttribute('aria-pressed'))).toEqual(['false', 'false', 'false', 'false']);
   });
 });

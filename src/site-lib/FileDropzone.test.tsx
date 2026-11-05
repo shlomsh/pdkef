@@ -6,7 +6,7 @@ import { describe, expect, it, vi, afterEach, beforeEach } from 'vitest';
 import FileDropzone, { tileCopy, isolateNames, LAUNCHER_PICK_EVENT } from './FileDropzone.tsx';
 import { englishFileDropzoneMessages as en } from './fileDropzoneMessages';
 import { consumeRecentOpen } from '#lib/handoff/fileArrival.ts';
-import { saveDraft, saveHandoff, setCurrentEntry, readRecentFiles, loadRecentFile, takeHandoff } from '#lib/drafts/draftStore.ts';
+import { saveDraft, saveHandoff, setCurrentEntry, readRecentFiles, loadRecentFile, takeHandoff, removeRecentEntry, clearRecentEntries } from '#lib/drafts/draftStore.ts';
 import { setInputFiles } from '../test/support/setInputFiles.js';
 
 vi.mock('#lib/drafts/draftStore.ts', () => ({
@@ -16,6 +16,8 @@ vi.mock('#lib/drafts/draftStore.ts', () => ({
   readRecentFiles: vi.fn(() => []),
   loadRecentFile: vi.fn(() => Promise.resolve(null)),
   takeHandoff: vi.fn(() => Promise.resolve(null)),
+  removeRecentEntry: vi.fn(() => Promise.resolve(true)),
+  clearRecentEntries: vi.fn(() => Promise.resolve(true)),
   MAX_RECENT_FILES: 6,
 }));
 
@@ -1031,6 +1033,52 @@ describe('FileDropzone', () => {
           expect(click.defaultPrevented).toBe(false);
           expect(saveHandoff).not.toHaveBeenCalled();
         });
+    });
+  });
+  describe('removing recents (MEM-30)', () => {
+    const two = () => [
+      { id: 'sha256:first', tool: 'sign', fileName: 'first.pdf', savedAt: Date.now() },
+      { id: 'sha256:second', tool: 'sign', fileName: 'second.pdf', savedAt: Date.now() },
+    ];
+    const confirm = async (label) => {
+      const button = Array.from(container.querySelectorAll('dialog button')).find((x) => x.textContent === label);
+      await act(async () => { button.click(); });
+    };
+    const tiles = () => container.querySelectorAll('button[aria-label^="Open recent PDF"]');
+
+    it('keeps the tile and shows a message when the removal fails', async () => {
+      readRecentFiles.mockReturnValue(two());
+      removeRecentEntry.mockResolvedValue(false);
+      mount();
+      await act(async () => { await Promise.resolve(); });
+      await act(async () => { container.querySelector('button[aria-label^="Remove first.pdf"]').click(); });
+      await confirm('Remove');
+      expect(removeRecentEntry).toHaveBeenCalledWith('sha256:first');
+      expect(tiles()).toHaveLength(2);
+      expect(container.textContent).toContain("That didn't work. Please try again.");
+    });
+
+    it('drops the tile when the removal succeeds', async () => {
+      readRecentFiles.mockReturnValue(two());
+      removeRecentEntry.mockImplementation(async () => { readRecentFiles.mockReturnValue([two()[1]]); return true; });
+      mount();
+      await act(async () => { await Promise.resolve(); });
+      await act(async () => { container.querySelector('button[aria-label^="Remove first.pdf"]').click(); });
+      await confirm('Remove');
+      expect(tiles()).toHaveLength(1);
+      expect(container.textContent).not.toContain("That didn't work");
+    });
+
+    it('clears every tile through clearRecentEntries', async () => {
+      readRecentFiles.mockReturnValue(two());
+      clearRecentEntries.mockImplementation(async () => { readRecentFiles.mockReturnValue([]); return true; });
+      mount();
+      await act(async () => { await Promise.resolve(); });
+      const clear = Array.from(container.querySelectorAll('button')).find((x) => x.textContent === 'Clear recent files');
+      await act(async () => { clear.click(); });
+      await confirm('Clear');
+      expect(clearRecentEntries).toHaveBeenCalled();
+      expect(tiles()).toHaveLength(0);
     });
   });
 });

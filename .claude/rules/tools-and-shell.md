@@ -46,6 +46,11 @@ Redact share a `loadPdf()` for fresh picks and restore, and call `seedUniqueId()
 restore so new ids don't collide. Nothing is uploaded. It is marketed as crash recovery on the sign,
 redact and home pages, with one FAQ entry each mirrored into `<SeoSchema>`.
 
+**A person can remove a file (MEM-30).** `draftRemoval.ts` deletes the entry, its row and pointers and every
+hand-off; `draftRemovalWatch.ts` refuses further saves of it and reloads any tab that has it open, for every tool at
+once, because the store sees each load and save. New per-file storage must be removed there, and
+`e2e/home/recent-tile-remove.spec.js` fails if browser storage still names the file.
+
 ## Other tools and `src/lib/`
 
 - **Merge flow**: after a merge the "Merge PDFs" button goes grey (`.is-done`) and focus moves to
