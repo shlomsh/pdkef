@@ -53,7 +53,6 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 ### Robustness and debt
 
 - [DEBT-65](backlog/tasks/DEBT-65.md) P2 · Two layout-shift specs failed once each in the 2026-10-27 nightly (in progress)
-- [MEM-30](backlog/tasks/MEM-30.md) P2 · A person can remove a recent file, and clear them all (GitHub issue 44) (in progress)
 - [MEM-24](backlog/tasks/MEM-24.md) P3 · A service worker that cannot install, or never completes its precache, says so (in progress)
 
 ### Unify the tools, narrow the graph
@@ -125,6 +124,8 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 - [MERGE-26](backlog/tasks/MERGE-26.md) · Your rewrite of the first CLAUDE.md invariant (saving is the first time bytes leave the device)
 - [MERGE-28](backlog/tasks/MERGE-28.md) · Evidence that people want it, and your sign-off on a wider Google exception
 - [READ-07](backlog/tasks/READ-07.md) · An iPhone check
+- [SCAN-59](backlog/tasks/SCAN-59.md) · The wording for a password-protected PDF, or a yes to sending it through Unlock
+- [SCAN-64](backlog/tasks/SCAN-64.md) · A decision on each
 - [SITE-45](backlog/tasks/SITE-45.md) · Pick which pitches below to build (step 1)
 
 See [BACKLOG.md](BACKLOG.md) for every lane.
