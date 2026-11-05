@@ -89,4 +89,12 @@ describe('OptionRow', () => {
     mount({ compact: true });
     expect(host!.firstElementChild!.hasAttribute('data-compact')).toBe(true);
   });
+
+  it('carries a chosen look for the stylesheet, and none by default', () => {
+    mount();
+    expect(host!.querySelector('[role="radiogroup"]').hasAttribute('data-look')).toBe(false);
+    act(() => render(null, host!));
+    mount({ look: 'raised' });
+    expect(host!.querySelector('[role="radiogroup"]').getAttribute('data-look')).toBe('raised');
+  });
 });
