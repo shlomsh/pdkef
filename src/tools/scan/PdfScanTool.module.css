@@ -1,5 +1,5 @@
 /* Scan's loaded state, what is left of it in this sheet: the corners view's photo area and actions, the
-   camera button, the rating slot and the drag ghost. The pages are ScanPageGrid's, the page view is
+   camera button, the rating slot, the drag ghost and Clear all. The pages are ScanPageGrid's, the page view is
    ScanPageViewer's (SCAN-51). */
 
 .not-found {
@@ -136,4 +136,33 @@
 
 .is-ghost {
   opacity: 0.35;
+}
+
+/* Small, at the end of the name row: out of the way of everything that moves the scan forward. */
+.clear {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 44px;
+  margin-inline-end: calc(-1 * var(--space-2));
+  padding: 0 var(--space-2);
+  font: inherit;
+  font-size: 0.8125rem;
+  color: var(--color-muted);
+  background: transparent;
+  border: 0;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+@media (hover: hover) {
+  .clear:hover {
+    color: var(--color-text);
+  }
+}
+
+.clear:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
 }

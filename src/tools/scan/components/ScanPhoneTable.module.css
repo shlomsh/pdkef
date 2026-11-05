@@ -109,8 +109,7 @@
 }
 
 .page-size:focus-visible,
-.choose:focus-visible,
-.clear:focus-visible {
+.choose:focus-visible {
   outline: 2px solid var(--color-primary);
   outline-offset: 2px;
 }
@@ -197,22 +196,4 @@
 .steps > :is(a, button):disabled {
   color: var(--color-muted);
   cursor: default;
-}
-
-/* Small, at the end of the name row: out of the way of everything that moves the scan forward. */
-.clear {
-  flex: none;
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  min-height: 44px;
-  margin-inline-end: calc(-1 * var(--space-2));
-  padding: 0 var(--space-2);
-  font: inherit;
-  font-size: 0.8125rem;
-  color: var(--color-muted);
-  background: transparent;
-  border: 0;
-  border-radius: var(--radius-sm);
-  cursor: pointer;
 }

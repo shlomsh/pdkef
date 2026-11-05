@@ -1,3 +1,4 @@
+import { Trash2 } from 'lucide-preact';
 import { formatMessage } from '#lib/text/formatMessage.ts';
 import DownloadElement from '#shell/DownloadElement.tsx';
 import pdfToolStyles from '#shell/PdfTool.module.css';
@@ -10,6 +11,7 @@ import { failedPositions } from '../lib/scanPages.ts';
 import { englishScanMessages as t } from '../messages.ts';
 import type { ScanOutput } from '../state/scanOutput.ts';
 import type { ScanPage } from '../state/scanWork.ts';
+import styles from '../PdfScanTool.module.css';
 
 /** The name (renamable) and the page count: the top of the table and of the desktop page. */
 export function ScanHeading({ pageCount, output }: { pageCount: number; output: ScanOutput }) {
@@ -20,6 +22,16 @@ export function ScanHeading({ pageCount, output }: { pageCount: number; output: 
         <span class={workspaceStyles['doc-heading-count']}>{' · '}{pagesLabel(pageCount, englishShellMessages)}</span>
       </OutputName>
     </h2>
+  );
+}
+
+/** Clear all: small, at the end of the name row on a phone and on desktop, away from everything that moves the scan forward. */
+export function ScanClearAll({ label, onClear }: { label: string; onClear: () => void }) {
+  return (
+    <button type="button" class={styles.clear} data-clear-all onClick={onClear}>
+      <Trash2 size={14} aria-hidden="true" />
+      {label}
+    </button>
   );
 }
 

@@ -1,6 +1,6 @@
 import { useState } from 'preact/hooks';
 import type { ComponentChildren, Ref } from 'preact';
-import { ChevronDown, Eraser, FileSignature, Highlighter, Share, Trash2 } from 'lucide-preact';
+import { ChevronDown, Eraser, FileSignature, Highlighter, Share } from 'lucide-preact';
 import QuietDownload from '#shell/pageWorkspace/QuietDownload.tsx';
 import OptionRow from '#shell/pageWorkspace/OptionRow.tsx';
 import pdfToolStyles from '#shell/PdfTool.module.css';
@@ -9,7 +9,7 @@ import { pageSizeQuietLabel, sizeValueText } from '../lib/tableText.ts';
 import { englishScanMessages as t } from '../messages.ts';
 import type { ScanOptionsProps, ScanOutput } from '../state/scanOutput.ts';
 import type { PageResult, ScanPage } from '../state/scanWork.ts';
-import { ScanDownloadElement, ScanDraftStatus, ScanErrors, ScanHeading } from './ScanOutputParts.tsx';
+import { ScanClearAll, ScanDownloadElement, ScanDraftStatus, ScanErrors, ScanHeading } from './ScanOutputParts.tsx';
 import ScanPageGrid from './ScanPageGrid.tsx';
 import ScanSizeRow from './ScanSizeRow.tsx';
 import styles from './ScanPhoneTable.module.css';
@@ -90,10 +90,7 @@ export default function ScanPhoneTable({ pages, results, resultKeyOf, failedIds,
       <ScanErrors pages={pages} failedIds={failedIds} buildFailed={prepared.status === 'error'} />
       <div class={styles.top}>
         <ScanHeading pageCount={pages.length} output={output} />
-        <button type="button" class={styles.clear} data-clear-all onClick={onClear}>
-          <Trash2 size={14} aria-hidden="true" />
-          {t.clearAll}
-        </button>
+        <ScanClearAll label={t.clearAll} onClear={onClear} />
       </div>
       <ScanPageGrid
         pages={pages}
