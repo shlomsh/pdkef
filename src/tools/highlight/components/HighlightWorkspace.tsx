@@ -18,6 +18,7 @@ import PenHint from './PenHint.tsx';
 import PhoneNotes from './PhoneNotes.tsx';
 import { englishSignMessages } from '#editor/registry/signMessages.ts';
 import DownloadDone from './DownloadDone.tsx';
+import type { useSaveToDrive } from '#shell/pageWorkspace/useSaveToDrive.ts';
 import LampCord from './LampCord.tsx';
 import LampStage from './LampStage.tsx';
 import ToolShell, { FILE_ACTIONS, useToolShell } from '#shell/ToolShell.tsx';
@@ -49,7 +50,7 @@ function emitter<A extends unknown[]>() {
 }
 
 /** The page column: the card at its own width, or in the reading lamp a board the reader pans and zooms. */
-export default function HighlightWorkspace({ pdfDocument, numPages, fileName, zoom, marks, undo, redo, comments, dispatch, setAnnouncement, onDownload, doneName, onCloseDone, workspaceRef, columnRef, fullscreen, pseudoFullscreen, onToggleFullscreen }: {
+export default function HighlightWorkspace({ pdfDocument, numPages, fileName, zoom, marks, undo, redo, comments, dispatch, setAnnouncement, onDownload, doneName, onCloseDone, drive, workspaceRef, columnRef, fullscreen, pseudoFullscreen, onToggleFullscreen }: {
   pdfDocument: PDFDocumentProxy;
   numPages: number;
   fileName: string;
@@ -67,6 +68,7 @@ export default function HighlightWorkspace({ pdfDocument, numPages, fileName, zo
   /** The saved file's name while the done strip stands (normal view only), else null. */
   doneName?: string | null;
   onCloseDone?(): void;
+  drive?: ReturnType<typeof useSaveToDrive>;
   workspaceRef: { current: HTMLDivElement | null };
   columnRef: { current: HTMLDivElement | null };
   fullscreen: boolean;
@@ -150,7 +152,7 @@ export default function HighlightWorkspace({ pdfDocument, numPages, fileName, zo
     <div hidden={fullscreen} style={fullscreen ? undefined : { display: 'contents' }} data-lamp-part="site">
       <TileRow
         marks={marks} undo={undo} redo={redo} touch={touch} mark={fullscreen ? undefined : mark} printMenu={{ ...printMenu, open: printMenu.open && !fullscreen }} withComments={withComments}
-        onPrintOpenChange={setPrintOpen} onToggleView={toggleView} onDownload={onDownload} doneName={doneName} onCloseDone={onCloseDone}
+        onPrintOpenChange={setPrintOpen} onToggleView={toggleView} onDownload={onDownload} doneName={doneName} onCloseDone={onCloseDone} drive={drive}
       />
     </div>
     <div
@@ -199,7 +201,7 @@ export default function HighlightWorkspace({ pdfDocument, numPages, fileName, zo
 }
 
 /** Outside the lamp: the editor card Sign and Redact show, with Highlight's tiles in Sign's grammar. */
-function TileRow({ marks, undo, redo, touch, mark, printMenu, withComments, onPrintOpenChange, onToggleView, onDownload, doneName, onCloseDone }: {
+function TileRow({ marks, undo, redo, touch, mark, printMenu, withComments, onPrintOpenChange, onToggleView, onDownload, doneName, onCloseDone, drive }: {
   marks: ReturnType<typeof useHighlightMarks>;
   undo(): void;
   redo(): void;
@@ -212,6 +214,7 @@ function TileRow({ marks, undo, redo, touch, mark, printMenu, withComments, onPr
   onDownload(): void;
   doneName?: string | null;
   onCloseDone?(): void;
+  drive?: ReturnType<typeof useSaveToDrive>;
 }) {
   const { requestReplace, messages: shellMessages = englishShellMessages } = useToolShell();
   const shortcuts = historyShortcuts(typeof navigator !== 'undefined' && isMacPlatform(navigator.platform));
@@ -239,7 +242,7 @@ function TileRow({ marks, undo, redo, touch, mark, printMenu, withComments, onPr
           downloadLabel={t.capsule.download} keepDownloadOnPhone
         />
       </div>
-      {doneName && <DownloadDone name={doneName} onClose={() => onCloseDone?.()} />}
+      {doneName && <DownloadDone name={doneName} onClose={() => onCloseDone?.()} drive={drive} />}
       <LampCord onPull={onToggleView} />
     </ToolShell>
   );

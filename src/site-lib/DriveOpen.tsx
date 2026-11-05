@@ -1,13 +1,12 @@
 import { useEffect, useState } from 'preact/hooks';
 import { fetchDriveFile } from './drive/driveClient.ts';
 import { requestDriveToken } from './drive/googleToken.ts';
-import { canRetry, driveMessage, type DriveFailure } from './drive/driveMessages.ts';
-import { DRIVE_CLIENT_ID, DRIVE_SCOPE } from './drive/driveConfig.ts';
+import { canRetry, driveMessage, pickerLabels, type DriveFailure } from './drive/driveMessages.ts';
 import { DRIVE_HOME_HANDOFF, parseDriveIntent } from './drive/driveIntent.ts';
 import { driveRouteFor } from './drive/driveRoute.ts';
-import { forgetToken, readSavedToken, saveToken } from './drive/driveSession.ts';
-import { googleSignInUrl, parseRedirectReturn, parseRedirectState } from './drive/driveRedirect.ts';
+import { forgetSaved, remember, savedToken, takeRedirectReturn, toGoogle } from './drive/driveSignIn.ts';
 import { loadPicker, openPicker } from './drive/drivePicker.ts';
+import DriveSave from './DriveSave.tsx';
 import { sendHandoff } from '#lib/handoff/sendHandoff.ts';
 import { withIslandBoundary } from '#lib/telemetry/IslandErrorBoundary.tsx';
 import OpenWithChooser from './OpenWithChooser.tsx';
@@ -18,7 +17,6 @@ import styles from './DriveOpen.module.css';
    then either the same chooser as /open/ takes over (Open with) or the file is parked and the person goes
    back to the tool they came from (pick). The file goes from Drive to this device and nowhere else. */
 const PICK_TYPES = ['application/pdf', 'image/jpeg', 'image/png'] as const;
-const FALLBACK_TOKEN_SECONDS = 3600;
 
 type Pick = { tool: string | null; returnTo: string };
 type Phase =
@@ -30,66 +28,20 @@ type Phase =
   | { name: 'error'; failure: DriveFailure; retry: (() => void) | null; returnTo: string | null }
   | { name: 'chooser'; file: File };
 
-function storage(): Storage | null {
-  try {
-    return localStorage;
-  } catch {
-    // expected: storage is blocked in some private windows; the sign-in then just happens each time
-    return null;
-  }
-}
-
-const savedToken = (): string | null => {
-  const store = storage();
-  return store ? readSavedToken(store, Date.now()) : null;
-};
-
-const remember = (token: string, expiresInSeconds: number | undefined) => {
-  const store = storage();
-  if (store) saveToken(store, token, expiresInSeconds || FALLBACK_TOKEN_SECONDS, Date.now());
-};
-
-const toGoogle = (prompt: 'none' | 'select_account', returnSearch: string) =>
-  location.assign(googleSignInUrl({
-    clientId: DRIVE_CLIENT_ID,
-    scope: DRIVE_SCOPE,
-    redirectUri: `${location.origin}/drive/`,
-    prompt,
-    returnSearch,
-  }));
-
-/** The token Google sent back in the fragment, if any. Strips the fragment and restores the page's own
-    search first, so the rest of the page reads the intent it was sent here with. */
-function takeRedirectReturn(): { token: string | null; handled: boolean; failed: boolean } {
-  const back = parseRedirectReturn(location.hash);
-  if (back.kind === 'none') return { token: null, handled: false, failed: false };
-  const { prompt, search } = parseRedirectState(back.state);
-  history.replaceState(null, '', `/drive/${search}`);
-  if (back.kind === 'token') {
-    remember(back.token, back.expiresInSeconds);
-    return { token: back.token, handled: false, failed: false };
-  }
-  if (prompt === 'none') {
-    toGoogle('select_account', search);
-    return { token: null, handled: true, failed: false };
-  }
-  return { token: null, handled: false, failed: true };
-}
-
 function DriveOpen() {
   const [phase, setPhase] = useState<Phase>({ name: 'loading' });
+  const [save, setSave] = useState<{ id: string; failed: boolean } | null>(null);
 
   const pickFrom = async (token: string, pick: Pick, multi: boolean) => {
     const retry = () => (multi ? void pickFrom(token, pick, multi) : setPhase({ name: 'pick-ready', pick }));
     const fail = (failure: DriveFailure) => {
       if (failure === 'unauthorized') {
-        const store = storage();
-        if (store) forgetToken(store); // the saved token is no longer good
+        forgetSaved(); // the saved token is no longer good
       }
       setPhase({ name: 'error', failure, retry, returnTo: pick.returnTo });
     };
     if (!(await loadPicker())) return fail('script');
-    const picked = await openPicker({ token, multi, mimeTypes: PICK_TYPES });
+    const picked = await openPicker({ token, multi, mimeTypes: PICK_TYPES, ...pickerLabels(pick.returnTo) });
     if (picked.action === 'cancel') return location.assign(pick.returnTo);
     setPhase({ name: 'working' });
     const files = [];
@@ -124,6 +76,7 @@ function DriveOpen() {
     const intent = parseDriveIntent(location.search);
     if (intent.kind === 'open-with') return setPhase({ name: 'ready', fileId: intent.fileId, resourceKey: intent.resourceKey });
     if (intent.kind === 'none') return setPhase({ name: 'no-state' });
+    if (intent.kind === 'save') return setSave({ id: intent.id, failed: back.failed });
     const pick = { tool: intent.tool, returnTo: intent.returnTo };
     if (back.failed) {
       // Google said no after the person was asked; a tap sends them back to choose an account.
@@ -147,6 +100,7 @@ function DriveOpen() {
     setPhase({ name: 'chooser', file: new File([result.bytes], result.name, { type: 'application/pdf' }) });
   };
 
+  if (save) return <DriveSave id={save.id} failed={save.failed} />;
   if (phase.name === 'loading') return null;
   if (phase.name === 'chooser') return <OpenWithChooser initialFile={phase.file} />;
   if (phase.name === 'no-state') {

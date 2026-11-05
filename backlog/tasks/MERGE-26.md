@@ -10,6 +10,13 @@ depends_on: ["MERGE-25", "DRIVE-03"]
 
 # MERGE-26 · Save to Drive
 
+*Pilot, 2026-11-05 (Shlomi): Save ships first in Highlight and Redact only, in their done state after a
+download, and only to someone already connected to Google on this device (a saved sign-in, expired or
+not, since the save tab re-signs in silently). `tool_drive_shown`, `tool_drive_tapped`, `tool_drive_saved`
+and `tool_drive_failed` measure it, read daily under "Save to Google Drive (pilot)" in `errors:read`. The
+other tools wait for those numbers: DRIVE-05. This ticket's outcome is the pilot working end to end. A
+real save was proven on 2026-11-05 on the test site, in Chrome on a Mac, before the pilot was narrowed.*
+
 *Revised 2026-11-05, approved: the invariant wording is in CLAUDE.md. The token is kept on the device
 (`/drive/` only), not in memory, and Save opens `/drive/` in a new tab that closes itself, so the finish
 row can say "Saved to Google Drive". The sections below stand otherwise; "Nothing persists" and the

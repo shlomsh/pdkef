@@ -81,7 +81,7 @@ export default withIslandBoundary(function PdfHighlightTool() {
     },
   });
 
-  const { parts, identityRename, done, save } = useHighlightOutput(file, marks.state.documentRevision);
+  const { parts, identityRename, done, drive, save } = useHighlightOutput(file, marks.state.documentRevision);
   const download = downloadHandler({
     outputName: file ? parts.fileName : undefined, bytes: () => session.fileBytesRef.current, elements: marks.state.elements, pageTurns: marks.pageTurns,
     save,
@@ -121,7 +121,7 @@ export default withIslandBoundary(function PdfHighlightTool() {
       {!needsUnlock && status === 'editing' && pdfDocument && (
         <HighlightWorkspace
           pdfDocument={pdfDocument} numPages={numPages} fileName={file ? parts.fileName : ''} zoom={zoom}
-          marks={marks} undo={undo} redo={redo} comments={comments} dispatch={room.dispatch} setAnnouncement={setAnnouncement} onDownload={handleDownload} doneName={done.name} onCloseDone={done.close}
+          marks={marks} undo={undo} redo={redo} comments={comments} dispatch={room.dispatch} setAnnouncement={setAnnouncement} onDownload={handleDownload} doneName={done.name} onCloseDone={done.close} drive={drive}
           workspaceRef={workspaceRef} columnRef={columnRef} fullscreen={fullscreen} pseudoFullscreen={pseudoFullscreen}
           onToggleFullscreen={toggleLamp}
         />

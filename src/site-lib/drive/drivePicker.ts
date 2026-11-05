@@ -1,5 +1,6 @@
 // DRIVE-01: Google's Picker, the file chooser Drive draws itself. Loaded on demand, only on /drive/.
 import { DRIVE_APP_ID, DRIVE_PICKER_KEY, PICKER_SRC } from './driveConfig.ts';
+import type { PickerLabels } from './driveMessages.ts';
 import type { DrivePickedDoc, DrivePickResult } from './types.ts';
 
 type PickerData = { action: string; docs?: DrivePickedDoc[] };
@@ -7,7 +8,11 @@ type PickerApi = {
   Action: { PICKED: string; CANCEL: string };
   Feature: { MULTISELECT_ENABLED: string };
   DocsViewMode: { LIST: string };
-  DocsView: new () => { setMimeTypes: (t: string) => any; setIncludeFolders: (v: boolean) => any; setMode: (m: string) => any };
+  ViewId: { DOCS: string };
+  DocsView: new (viewId?: string) => {
+    setMimeTypes: (t: string) => any; setIncludeFolders: (v: boolean) => any; setMode: (m: string) => any;
+    setLabel: (l: string) => any; setParent: (p: string) => any; setOwnedByMe: (v: boolean) => any; setStarred: (v: boolean) => any;
+  };
   PickerBuilder: new () => any;
 };
 type Gapi = { load: (name: string, options: { callback: () => void; onerror?: () => void }) => void };
@@ -38,12 +43,29 @@ export function loadPicker(): Promise<boolean> {
 }
 
 /** Shows the Picker and resolves when the person picks or closes it; the frame is disposed either way. */
-export function openPicker(opts: { token: string; multi: boolean; mimeTypes: readonly string[] }): Promise<DrivePickResult> {
+export function openPicker(opts: {
+  token: string;
+  multi: boolean;
+  mimeTypes: readonly string[];
+  labels: PickerLabels;
+  locale?: string;
+}): Promise<DrivePickResult> {
   const { picker } = (window as unknown as { google: { picker: PickerApi } }).google;
   return new Promise((resolve) => {
-    const view = new picker.DocsView().setMimeTypes(opts.mimeTypes.join(',')).setIncludeFolders(true);
-    view.setMode(picker.DocsViewMode.LIST);
-    const builder = new picker.PickerBuilder().addView(view);
+    const mimes = opts.mimeTypes.join(',');
+    const view = (label: string, folders: boolean) => {
+      const v = new picker.DocsView(picker.ViewId.DOCS).setMimeTypes(mimes).setIncludeFolders(folders).setLabel(label);
+      v.setMode(picker.DocsViewMode.LIST);
+      return v;
+    };
+    // Recent first so it opens; then the places a person looks next.
+    const builder = new picker.PickerBuilder()
+      .addView(view(opts.labels.recent, false))
+      .addView(view(opts.labels.myDrive, true).setParent('root'))
+      .addView(view(opts.labels.shared, true).setOwnedByMe(false))
+      .addView(view(opts.labels.starred, true).setStarred(true))
+      .setTitle(opts.labels.title);
+    if (opts.locale) builder.setLocale(opts.locale);
     if (opts.multi) builder.enableFeature(picker.Feature.MULTISELECT_ENABLED);
     let built: { dispose: () => void; setVisible: (v: boolean) => void } | null = null;
     builder

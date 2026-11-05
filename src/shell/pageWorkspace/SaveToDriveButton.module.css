@@ -1,0 +1,39 @@
+/* Sized and drawn like the hand-off chips in ExportHandoffs. */
+.drive-button {
+  align-self: stretch;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.3rem;
+  min-height: 44px;
+  padding: 0.5rem 0.25rem;
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--color-text);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  text-align: center;
+}
+
+.drive-button img {
+  flex-shrink: 0;
+}
+
+.drive-button:hover:not(:disabled) {
+  background: var(--color-primary-soft);
+}
+
+.drive-button:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.drive-note {
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--color-muted);
+  text-align: center;
+}

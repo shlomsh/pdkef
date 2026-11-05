@@ -86,7 +86,7 @@ export const ACTIONS = [
   'add_files', 'replace_file', 'remove_file', 'clear_all', 'open_recent',
   'undo', 'redo', 'reorder', 'sort', 'rotate', 'hide_page', 'delete_page', 'select_pages',
   'change_setting', 'arm_tool', 'place_mark', 'move_mark', 'resize_mark', 'edit_mark', 'delete_mark',
-  'draw', 'detect_fields', 'fill_field', 'zoom', 'fullscreen', 'export', 'download', 'share',
+  'draw', 'detect_fields', 'fill_field', 'zoom', 'fullscreen', 'export', 'download', 'share', 'save_to_drive',
 ] as const;
 export type ActionName = (typeof ACTIONS)[number];
 

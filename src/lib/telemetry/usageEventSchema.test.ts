@@ -240,3 +240,16 @@ describe('usagePageField', () => {
     expect(usagePageField(parseUsageEvent({ name: 'tool_page_viewed', properties: { tool: 'sign', visit: 'new' } })!)).toBeUndefined();
   });
 });
+
+describe('Save to Google Drive events (MERGE-26 pilot)', () => {
+  it.each(['tool_drive_shown', 'tool_drive_tapped', 'tool_drive_saved', 'tool_drive_failed'])('accepts %s with the tool and nothing from the file', (name) => {
+    expect(parseUsageEvent({ name, properties: { tool: 'redact', build: 'abc1234', first: true } })).not.toBeNull();
+    expect(parseUsageEvent({ name, properties: { tool: 'redact', fileName: 'a.pdf' } })).toBeNull();
+    expect(parseUsageEvent({ name, properties: { tool: 'home' } })).toBeNull();
+  });
+
+  it('files them under the same counter shape as a tool event', () => {
+    const event = parseUsageEvent({ name: 'tool_drive_saved', properties: { tool: 'highlight-pdf', build: 'abc1234' } });
+    expect(event && usageEventField(event)).toBe('tool_drive_saved|highlight-pdf|abc1234');
+  });
+});

@@ -1,3 +1,4 @@
+import { useSaveToDrive } from '#shell/pageWorkspace/useSaveToDrive.ts';
 import { useDownloaded } from '#shell/RatingPrompt.tsx';
 import { finishPhaseOf, type RedactState } from '../state/redactState.ts';
 import type { FinishFacts, FinishPhase } from '../lib/finishState.ts';
@@ -37,8 +38,12 @@ export default function useRedactFinish({ state, handleDownloadPdf, outputFileNa
   // SEO-46's ask is mounted once by the island: in the strip while it is open, else last in the
   // bottom row. Two mounted copies would race for the one device-wide ask.
   const downloaded = useDownloaded();
+  const drive = useSaveToDrive({
+    tool: 'redact', blob: exportedForHandoff?.blob ?? null, parts: null, fileName: exportedForHandoff?.name ?? '',
+    generation: exportedForHandoff, ready: finishPhase === 'saved' && !!exportedForHandoff,
+  });
 
-  return { finishFacts, showStrip, downloadConfirmed, closeStrip, handleToolbarDownload, downloaded };
+  return { drive, finishFacts, showStrip, downloadConfirmed, closeStrip, handleToolbarDownload, downloaded };
 }
 
 export type RedactFinishState = ReturnType<typeof useRedactFinish>;

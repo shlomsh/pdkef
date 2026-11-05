@@ -325,7 +325,7 @@ Small, independent, good for a spare hour.
 | QUAL-04 | P3 | [QUAL-04](backlog/tasks/QUAL-04.md) · --color-border-strong is 2.07:1 on white and 1.80:1 on the primary tint, under the 3:1 boundary guideline |  |
 | SIGN-20 | P3 | [SIGN-20](backlog/tasks/SIGN-20.md) · The per-script pixel guards are close to blind to a cluster whose ink is right and whose advance is wrong |  |
 | DRIVE-04 | P2 | [DRIVE-04](backlog/tasks/DRIVE-04.md) · Every tool's empty state opens from Google Drive |  |
-| DRIVE-05 | P2 | [DRIVE-05](backlog/tasks/DRIVE-05.md) · Save to Google Drive reaches the tools that build on tap and the several-file results |  |
+| DRIVE-05 | P2 | [DRIVE-05](backlog/tasks/DRIVE-05.md) · Save to Google Drive reaches the rest of the tools, if the pilot numbers say so |  |
 | DRIVE-06 | P2 | [DRIVE-06](backlog/tasks/DRIVE-06.md) · Add from Google Drive in the tools that take more files |  |
 | DRIVE-07 | P2 | [DRIVE-07](backlog/tasks/DRIVE-07.md) · Google Drive copy: privacy and trust pages, trademark line, branding check |  |
 | GRID-07 | P2 | [GRID-07](backlog/tasks/GRID-07.md) · Page grid rows without gaps, and one rail rhythm across the grid tools |  |
