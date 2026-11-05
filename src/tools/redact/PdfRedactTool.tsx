@@ -73,7 +73,7 @@ export default withIslandBoundary(function PdfRedactTool() {
   const details = useRedactDetails({
     state, dispatch, setAnnouncement, fileBytes: fileBytesRef.current, findKit, handleSavePdf: exp.handleSavePdf,
   });
-  const finish = useRedactFinish({ state, handleDownloadPdf: exp.handleDownloadPdf, outputFileName: exp.outputFileName });
+  const finish = useRedactFinish({ state, handleDownloadPdf: exp.handleDownloadPdf, buildForDrive: exp.buildForDrive, outputFileName: exp.outputFileName });
   // SEO-46's ask, mounted once: in the strip while it is open, else last in the
   // bottom row. Two mounted copies would race for the one device-wide ask.
   const rating = <RatingPrompt tool="redact" downloaded={finish.downloaded} />;

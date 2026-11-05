@@ -1,7 +1,7 @@
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import DownloadDone, { isDownloadDoneVisible, useDownloadDone } from './DownloadDone.tsx';
+import DownloadDone, { isDownloadDoneVisible } from './DownloadDone.tsx';
 
 let container: HTMLElement | null = null;
 afterEach(() => {
@@ -10,7 +10,7 @@ afterEach(() => {
 
 describe('isDownloadDoneVisible', () => {
   const file = {};
-  const saved = { name: 'h_a.pdf', blob: null, file, revision: 3 };
+  const saved = { name: 'h_a.pdf', file, revision: 3 };
   it('is visible after a successful download', () => expect(isDownloadDoneVisible(saved, file, 3)).toBe(true));
   it('is hidden once closed', () => expect(isDownloadDoneVisible(null, file, 3)).toBe(false));
   it('is hidden after the marks change', () => expect(isDownloadDoneVisible(saved, file, 4)).toBe(false));
@@ -27,22 +27,5 @@ describe('DownloadDone', () => {
     expect(strip.textContent).toBe('Saved as highlighted_a.pdf.');
     act(() => (strip.querySelector('button') as HTMLButtonElement).click());
     expect(onClose).toHaveBeenCalledTimes(1);
-  });
-});
-
-describe('useDownloadDone', () => {
-  it('keeps the blob with the record, under the same visibility rule as the name', () => {
-    container = document.createElement('div');
-    let latest!: ReturnType<typeof useDownloadDone>;
-    const Probe = ({ revision }: { revision: number }) => { latest = useDownloadDone(file, revision); return null; };
-    const file = {};
-    const blob = new Blob(['%PDF']);
-    act(() => render(<Probe revision={3} />, container!));
-    expect(latest.blob).toBeNull();
-    act(() => latest.record('h_a.pdf', file, 3, blob));
-    expect(latest.name).toBe('h_a.pdf');
-    expect(latest.blob).toBe(blob);
-    act(() => render(<Probe revision={4} />, container!));
-    expect(latest.blob).toBeNull();
   });
 });

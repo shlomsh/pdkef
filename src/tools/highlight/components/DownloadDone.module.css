@@ -1,15 +1,2 @@
 /* The one line in the done strip, in the muted text colour. */
 .line { margin: 0; font-size: 0.9rem; color: var(--color-muted); }
-
-/* Alone in the strip, the button keeps its own width: a quiet option, not a bar across the page. */
-.drive {
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-  margin-top: 0.5rem;
-}
-
-.drive > button {
-  align-self: flex-start;
-  padding-inline: 1rem;
-}

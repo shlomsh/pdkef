@@ -18,7 +18,6 @@ import { useScanCheck } from './hooks/useScanCheck.ts';
 import { useHighlightMarks } from './hooks/useHighlightMarks.ts';
 import { useMarkerMemory } from './hooks/useMarker.ts';
 import { useHistoryShortcuts } from '#lib/history/useHistoryShortcuts.js';
-import { downloadHandler } from './lib/export/download.ts';
 import { describeFile } from '#lib/text/format.js';
 import HighlightVerb from './verb/HighlightVerb.tsx';
 import HighlightWorkspace from './components/HighlightWorkspace.tsx';
@@ -81,11 +80,9 @@ export default withIslandBoundary(function PdfHighlightTool() {
     },
   });
 
-  const { parts, identityRename, done, drive, save } = useHighlightOutput(file, marks.state.documentRevision);
-  const download = downloadHandler({
-    outputName: file ? parts.fileName : undefined, bytes: () => session.fileBytesRef.current, elements: marks.state.elements, pageTurns: marks.pageTurns,
-    save,
-  });
+  const { parts, identityRename, done, download, shareProps, drive } = useHighlightOutput(file, marks.state.documentRevision, {
+    bytes: () => session.fileBytesRef.current, elements: marks.state.elements, pageTurns: marks.pageTurns,
+  }, setAnnouncement);
 
   // The revision is read before the export, so marks made while it runs retire the strip.
   const handleDownload = () => {
@@ -121,7 +118,7 @@ export default withIslandBoundary(function PdfHighlightTool() {
       {!needsUnlock && status === 'editing' && pdfDocument && (
         <HighlightWorkspace
           pdfDocument={pdfDocument} numPages={numPages} fileName={file ? parts.fileName : ''} zoom={zoom}
-          marks={marks} undo={undo} redo={redo} comments={comments} dispatch={room.dispatch} setAnnouncement={setAnnouncement} onDownload={handleDownload} doneName={done.name} onCloseDone={done.close} drive={drive}
+          marks={marks} undo={undo} redo={redo} comments={comments} dispatch={room.dispatch} setAnnouncement={setAnnouncement} onDownload={handleDownload} doneName={done.name} onCloseDone={done.close} drive={drive} shareProps={shareProps}
           workspaceRef={workspaceRef} columnRef={columnRef} fullscreen={fullscreen} pseudoFullscreen={pseudoFullscreen}
           onToggleFullscreen={toggleLamp}
         />

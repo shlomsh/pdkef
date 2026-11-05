@@ -27,6 +27,7 @@ export interface CapsuleLabels {
   redo: string;
   print: string;
   download: string;
+  share: string;
   more: string;
   /** "Page {n} of {count}" */
   page: string;

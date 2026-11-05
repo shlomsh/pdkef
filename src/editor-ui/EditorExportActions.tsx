@@ -1,3 +1,4 @@
+import type { ComponentChildren } from 'preact';
 import { Check } from 'lucide-preact';
 import styles from './SignToolbar.module.css';
 import workspaceStyles from './Workspace.module.css';
@@ -59,6 +60,8 @@ export interface EditorExportActionsProps {
   /** Toolbar variant: keep Download visible on a phone beside Share instead of
    * dropping it below 920px. Redact opts in; Sign's toolbar is too full. */
   keepDownloadOnPhone?: boolean;
+  /** Toolbar variant: an arrow menu joined to Download (Save to Google Drive). Rendered straight after it, unwrapped. */
+  downloadMenu?: ComponentChildren;
   dir?: 'ltr' | 'rtl';
   lang?: string;
 }
@@ -101,6 +104,7 @@ export default function EditorExportActions({
   confirmed,
   confirmedLabel = 'Saved',
   keepDownloadOnPhone = false,
+  downloadMenu,
   dir = 'ltr',
   lang = 'en',
 }: EditorExportActionsProps) {
@@ -175,7 +179,7 @@ export default function EditorExportActions({
     // `.toolbar`, exactly like every other button. A wrapping element here would count as one child instead
     // of two for the module's `:has(> :nth-child(N of :not(.desktop-download)))`
     // responsive math, and silently mis-measure every wrap threshold it drives.
-    return <>{shareButton}{downloadButton}</>;
+    return <>{shareButton}{downloadButton}{downloadMenu}</>;
   }
 
   return (

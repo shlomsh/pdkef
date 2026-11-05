@@ -1,7 +1,5 @@
 import { FileSignature, Shrink } from 'lucide-preact';
 import ExportHandoffs from '#shell/ExportHandoffs.tsx';
-import SaveToDriveButton from '#shell/pageWorkspace/SaveToDriveButton.tsx';
-import type { useSaveToDrive } from '#shell/pageWorkspace/useSaveToDrive.ts';
 import { formatFileSize } from '#lib/text/format.js';
 import pdfToolStyles from '#shell/PdfTool.module.css';
 import styles from './RedactDone.module.css';
@@ -27,11 +25,10 @@ export interface DoneHandoffsProps {
   busy: boolean;
   failed: boolean;
   onHandoff(tool: RedactHandoffTarget): void;
-  drive?: ReturnType<typeof useSaveToDrive>;
 }
 
 /** Compress it (carrying the size) and Sign it, plus the failure line. */
-export function DoneHandoffs({ fileSize, busy, failed, onHandoff, drive }: DoneHandoffsProps) {
+export function DoneHandoffs({ fileSize, busy, failed, onHandoff }: DoneHandoffsProps) {
   const compress = { tool: 'compress', label: t.compressIt, Icon: Shrink, ...(typeof fileSize === 'number' ? { detail: formatFileSize(fileSize) } : {}) };
   return (
     <>
@@ -40,7 +37,6 @@ export function DoneHandoffs({ fileSize, busy, failed, onHandoff, drive }: DoneH
         busy={busy}
         onHandoff={(tool) => onHandoff(tool as RedactHandoffTarget)}
       />
-      {drive && <SaveToDriveButton drive={drive} />}
       {failed && (
         <p class={`${pdfToolStyles['hint-message']} ${pdfToolStyles.danger}`} role="status">
           {t.handoffFailed}

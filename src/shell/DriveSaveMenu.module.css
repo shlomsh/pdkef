@@ -1,0 +1,56 @@
+/* The small arrow joined to Download; it sits in the toolbar row like any other button. */
+.arrow {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  align-self: stretch;
+  flex: 0 0 auto;
+  width: 1.75rem;
+  min-height: var(--btn-min-size, 2.75rem);
+  margin-inline-start: calc(var(--toolbar-gap, 0.5rem) * -1);
+  padding: 0;
+  color: var(--color-text);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-start-start-radius: 0;
+  border-end-start-radius: 0;
+  border-start-end-radius: var(--radius-sm);
+  border-end-end-radius: var(--radius-sm);
+  box-shadow: var(--shadow-xs);
+  cursor: pointer;
+}
+.arrow:hover { background: var(--color-primary-tint); border-color: var(--color-primary); }
+.arrow[aria-expanded='true'] { background: var(--color-primary-soft); }
+.arrow:focus-visible { outline: 2px solid var(--color-primary); outline-offset: 2px; }
+
+/* The popup: the same surface as the other toolbar menus, in a Popover portal so the toolbar never clips it. */
+.menu {
+  min-width: 14rem;
+  padding: 0.25rem;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  box-shadow: var(--shadow-lg);
+}
+.item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  min-height: 2.25rem;
+  padding: 0.55rem 0.75rem;
+  font: inherit;
+  font-size: 0.875rem;
+  color: var(--color-text);
+  background: transparent;
+  border: none;
+  border-radius: 7px;
+  text-align: start;
+  text-decoration: none;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.item:hover { background: var(--color-surface-sunken); }
+.item img { flex-shrink: 0; }
+.note { margin: 0; padding: 0.55rem 0.75rem; font-size: 0.875rem; color: var(--color-text); }
+.note + .item { margin-top: 0.125rem; }

@@ -1,3 +1,4 @@
+import DriveSaveMenu from '#shell/DriveSaveMenu.tsx';
 import type { ComponentChildren } from 'preact';
 import { recordAction } from '#lib/telemetry/actionTrail.ts';
 import { canRedo as canRedoOf, restoredNoteVisible, type RedactAction, type RedactState } from '../state/redactState.ts';
@@ -43,6 +44,7 @@ export default function RedactWorkspaceToolbar({ state, dispatch, setAnnouncemen
         shareReady: exp.shareReady,
         exporting: state.document.status === 'redacting',
         downloadConfirmed: finish.downloadConfirmed,
+        downloadMenu: <DriveSaveMenu drive={finish.drive} />,
       }}
       history={{ entries: state.edits.history.past, undo: editing.undoLast, redo: editing.redoLast, canRedo: canRedoOf(state) }}
       undoChip={{
@@ -99,7 +101,6 @@ export default function RedactWorkspaceToolbar({ state, dispatch, setAnnouncemen
             facts={finish.finishFacts}
             handoffBusy={exp.handoffBusy}
             handoffFailed={state.finish.handoffFailed}
-            drive={finish.drive}
             onHandoff={(tool) => { void exp.requestHandoff(tool); /* reason: requestHandoff catches its own failure and shows the hand-off error */ }}
             onClose={finish.closeStrip}
           >

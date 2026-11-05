@@ -109,10 +109,10 @@ Only `highlight-pdf` and `redact` send them. They are counted with the lifecycle
 
 | Event | When it fires |
 | --- | --- |
-| `tool_drive_shown` | The save button appeared for someone already connected to Google, with a finished file in front of them |
-| `tool_drive_tapped` | They tapped it |
-| `tool_drive_saved` | The `/drive/` tab answered that the file was saved |
-| `tool_drive_failed` | The `/drive/` tab answered that it could not save |
+| `tool_drive_shown` | The arrow beside Download appeared on a desktop for someone already connected to Google, with work ready to save |
+| `tool_drive_tapped` | They chose Save to Google Drive |
+| `tool_drive_saved` | The `/drive/` tab answered that the file was saved. Also sends `tool_result_ready`, since no download happened |
+| `tool_drive_failed` | The `/drive/` tab answered that it could not save, or the file could not be made |
 
 How to read them: shown says how many people had a finished file while connected. tapped / shown is
 the interest. saved / tapped is whether it works. closed first, tapped minus saved minus failed, is

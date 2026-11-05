@@ -5,7 +5,6 @@ import styles from './RedactFinish.module.css';
 import { englishRedactMessages as t } from '../messages.ts';
 import { DoneHandoffs, DoneResult } from './RedactDone.tsx';
 import type { RedactHandoffTarget } from '#lib/app/toolIds.ts';
-import type { useSaveToDrive } from '#shell/pageWorkspace/useSaveToDrive.ts';
 import { finishCountText, finishStatusText, type FinishFacts } from '../lib/finishState.ts';
 
 export interface RedactFinishProps {
@@ -18,7 +17,6 @@ export interface RedactFinishProps {
   onHandoff(tool: RedactHandoffTarget): void;
   handoffBusy: boolean;
   handoffFailed: boolean;
-  drive?: ReturnType<typeof useSaveToDrive>;
   /** The saved-file check slot, rendered last. */
   children?: ComponentChildren;
   /** The rating ask, rendered after the check. */
@@ -26,7 +24,7 @@ export interface RedactFinishProps {
 }
 
 export default function RedactFinish({
-  facts, canShare, shareReady, onDownload, onPrepareShare, onShare, onHandoff, handoffBusy, handoffFailed, drive, children, rating,
+  facts, canShare, shareReady, onDownload, onPrepareShare, onShare, onHandoff, handoffBusy, handoffFailed, children, rating,
 }: RedactFinishProps) {
   const { phase } = facts;
   const saved = phase === 'saved';
@@ -69,7 +67,7 @@ export default function RedactFinish({
           {phase === 'cancelled' && status && <p class={styles.line} role="status">{status}</p>}
           {/* Everywhere Download is enabled: a tap makes the export first if none matches the document. */}
           {phase !== 'exporting' && (
-            <DoneHandoffs fileSize={facts.fileSize} busy={handoffBusy} failed={handoffFailed} onHandoff={onHandoff} drive={drive} />
+            <DoneHandoffs fileSize={facts.fileSize} busy={handoffBusy} failed={handoffFailed} onHandoff={onHandoff} />
           )}
         </>
       )}

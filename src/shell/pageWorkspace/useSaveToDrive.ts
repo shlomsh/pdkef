@@ -1,18 +1,17 @@
 import { useCallback, useEffect, useRef, useState } from 'preact/hooks';
-import { DRIVE_SAVE_CHANNEL, hasDriveConnection, driveSaveHref, driveSaveKey, type DriveSaveAnswer, type DriveSaveFile, type DriveSavePayload } from '#lib/handoff/driveSaveLink.ts';
+import { DRIVE_SAVE_CHANNEL, hasDriveConnection, driveFileLink, driveSaveHref, driveSaveKey, type DriveSaveAnswer, type DriveSaveCancel, type DriveSaveFile, type DriveSavePayload } from '#lib/handoff/driveSaveLink.ts';
 import { parkHandoff } from '#lib/handoff/sendHandoff.ts';
-import type { OutputPart } from '#lib/output/usePreparedOutput.ts';
 import { recordAction } from '#lib/telemetry/actionTrail.ts';
 import { reportToolLifecycleEvent, type AnalyticsTool } from '#lib/telemetry/productAnalytics.ts';
 
 type SaveToDriveState = 'idle' | 'saving' | 'saved' | 'failed';
+type BuiltFile = { blob: Blob; fileName: string };
 
 interface SaveToDriveInput {
   tool: AnalyticsTool;
-  blob: Blob | null;
-  parts: OutputPart[] | null;
-  fileName: string;
-  /** The identity of the output: a finished save no longer describes a new one. */
+  /** Builds the file when Save is tapped, after the Drive tab is already open; null means nothing to save. */
+  build: () => Promise<BuiltFile | null>;
+  /** The identity of the output: a finished save no longer describes a new one (a change while saving is ignored). */
   generation: unknown;
   ready: boolean;
 }
@@ -23,14 +22,30 @@ const readFile = async (blob: Blob, fileName: string): Promise<DriveSaveFile> =>
   { fileName, fileType: blob.type || 'application/pdf', fileBytes: await blob.arrayBuffer() }
 );
 
-/** Pure shape of what is parked: one file, or several parts in one folder named for the output. @testSeam */
-export async function driveSavePayload(blob: Blob | null, parts: OutputPart[] | null, fileName: string): Promise<DriveSavePayload> {
-  if (parts && parts.length > 1) {
-    const files = await Promise.all(parts.map((part) => readFile(part.blob, part.filename)));
-    return { files, folderName: fileName.replace(/\.[^./]+$/, '') };
+/** Pure shape of what is parked: always one file. @testSeam */
+export async function driveSavePayload(blob: Blob, fileName: string): Promise<DriveSavePayload> {
+  return { files: [await readFile(blob, fileName)] };
+}
+
+const isDesktop = () => {
+  try {
+    return typeof matchMedia === 'function' && matchMedia('(hover: hover) and (pointer: fine)').matches === true;
+  } catch {
+    // expected: no matchMedia, so not a desktop
+    return false;
   }
-  const only = parts?.[0];
-  return { files: [await (only ? readFile(only.blob, only.filename) : readFile(blob as Blob, fileName))] };
+};
+
+/** Tells the waiting /drive/ tab nothing is coming. A fresh channel: the listening one never hears its own post. */
+function postCancel(id: string) {
+  try {
+    if (typeof BroadcastChannel === 'undefined') return;
+    const channel = new BroadcastChannel(DRIVE_SAVE_CHANNEL);
+    channel.postMessage({ id, status: 'cancelled' } satisfies DriveSaveCancel);
+    channel.close();
+  } catch {
+    // expected: no channel in this browser; the tab gives up on its own timer
+  }
 }
 
 const newId = () => {
@@ -40,13 +55,17 @@ const newId = () => {
   return raw.toLowerCase().replace(/[^a-z0-9-]/g, '');
 };
 
-/** MERGE-26: Save to Google Drive. The /drive/ tab alone talks to Google; this parks the file and opens it. */
-export function useSaveToDrive({ tool, blob, parts, fileName, generation, ready }: SaveToDriveInput) {
-  const [state, setState] = useState<SaveToDriveState>('idle');
+/** MERGE-26: Save to Google Drive. The /drive/ tab alone talks to Google; one tap opens it, builds the file here and parks it. */
+export function useSaveToDrive({ tool, build, generation, ready }: SaveToDriveInput) {
+  const [state, setStateRaw] = useState<SaveToDriveState>('idle');
+  const [link, setLink] = useState<string | null>(null);
   const [online, setOnline] = useState(true);
   const [connected, setConnected] = useState(false);
+  const [desktop, setDesktop] = useState(false);
+  const stateRef = useRef<SaveToDriveState>('idle');
   const channelRef = useRef<BroadcastChannel | null>(null);
   const watchRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const setState = (next: SaveToDriveState) => { stateRef.current = next; setStateRaw(next); };
   const stopWatching = () => { if (watchRef.current !== null) clearInterval(watchRef.current); watchRef.current = null; };
   const closeChannel = () => { stopWatching(); channelRef.current?.close(); channelRef.current = null; };
 
@@ -57,6 +76,8 @@ export function useSaveToDrive({ tool, blob, parts, fileName, generation, ready 
     window.addEventListener('offline', sync);
     return () => { window.removeEventListener('online', sync); window.removeEventListener('offline', sync); };
   }, []);
+
+  useEffect(() => setDesktop(isDesktop()), []);
 
   useEffect(() => {
     const read = () => {
@@ -72,17 +93,20 @@ export function useSaveToDrive({ tool, blob, parts, fileName, generation, ready 
     return () => window.removeEventListener('storage', read);
   }, []);
 
-  const available = ready && online && connected;
+  const available = ready && online && connected && desktop;
   useEffect(() => { if (available) reportToolLifecycleEvent('tool_drive_shown', tool); }, [available, generation, tool]);
 
+  // Redact's generation changes when the build finishes, which is mid-save: that one must not reset it.
   useEffect(() => {
+    if (stateRef.current === 'saving') return;
     closeChannel();
     setState('idle');
-    return closeChannel;
+    setLink(null);
   }, [generation]);
+  useEffect(() => closeChannel, []);
 
   const save = useCallback(() => {
-    if (!ready || state === 'saving') return;
+    if (!available || stateRef.current === 'saving') return;
     recordAction('save_to_drive');
     reportToolLifecycleEvent('tool_drive_tapped', tool);
     const id = newId();
@@ -90,14 +114,21 @@ export function useSaveToDrive({ tool, blob, parts, fileName, generation, ready 
     const tab = window.open(driveSaveHref(id));
     if (!tab) { setState('failed'); reportToolLifecycleEvent('tool_drive_failed', tool); return; }
     setState('saving');
+    setLink(null);
     closeChannel();
     if (typeof BroadcastChannel !== 'undefined') {
       const channel = new BroadcastChannel(DRIVE_SAVE_CHANNEL);
       channel.onmessage = (event: MessageEvent<DriveSaveAnswer>) => {
         if (event.data?.id !== id) return;
-        const saved = event.data.status === 'saved';
-        setState(saved ? 'saved' : 'failed');
-        reportToolLifecycleEvent(saved ? 'tool_drive_saved' : 'tool_drive_failed', tool);
+        if (event.data.status === 'saved') {
+          setLink(driveFileLink(event.data.link));
+          setState('saved');
+          reportToolLifecycleEvent('tool_drive_saved', tool);
+          reportToolLifecycleEvent('tool_result_ready', tool); // a save to Drive is a finished result
+        } else {
+          setState('failed');
+          reportToolLifecycleEvent('tool_drive_failed', tool);
+        }
         closeChannel();
       };
       channelRef.current = channel;
@@ -106,21 +137,32 @@ export function useSaveToDrive({ tool, blob, parts, fileName, generation, ready 
     watchRef.current = setInterval(() => {
       if (!tab.closed) return;
       stopWatching();
-      setState((now) => (now === 'saving' ? 'idle' : now));
+      setState(stateRef.current === 'saving' ? 'idle' : stateRef.current);
     }, TAB_CHECK_MS);
     void (async () => { // reason: every failure below ends in the 'failed' state
-      try {
-        const payload = await driveSavePayload(blob, parts, fileName);
-        await parkHandoff(driveSaveKey(id), payload);
-        if (!channelRef.current) setState('idle');
-      } catch {
-        // expected: the file stays here to download
+      const fail = () => {
         closeChannel();
         setState('failed');
         reportToolLifecycleEvent('tool_drive_failed', tool);
+      };
+      let made: BuiltFile | null = null;
+      try {
+        made = await build();
+      } catch {
+        // expected: the build failed; handled like nothing to save
+      }
+      if (!made) { postCancel(id); fail(); return; }
+      if (stateRef.current !== 'saving') return; // the tab was closed while building
+      try {
+        await parkHandoff(driveSaveKey(id), await driveSavePayload(made.blob, made.fileName));
+        if (!channelRef.current) setState('idle');
+      } catch {
+        // expected: the file stays here to download
+        postCancel(id);
+        fail();
       }
     })();
-  }, [ready, state, tool, blob, parts, fileName]);
+  }, [available, tool, build]);
 
-  return { state, available, save };
+  return { state, link, available, save };
 }

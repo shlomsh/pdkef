@@ -26,7 +26,6 @@
   "src/tools/redact/lib/check/placeText.ts",
   "src/tools/redact/lib/check/renderBoxes.ts",
   "src/tools/redact/lib/check/unusedParts.ts",
-  "src/tools/redact/messages.ts",
   "src/tools/security/messages.ts",
   "src/tools/sign/lib/fields/corpus/scoring/candidates.js",
   "src/tools/sign/lib/fields/corpus/snap/prng.js"

@@ -167,7 +167,7 @@ export interface ShellMessages {
   ratingStarOne: string;
   ratingStarOther: string;
   /** MERGE-26: the Save to Google Drive button in a finished output's hand-off row. */
-  saveToDrive: { save: string; saving: string; saved: string; failed: string };
+  saveToDrive: { save: string; saving: string; saved: string; open: string; more: string; failed: string };
 }
 
 export const englishShellMessages: ShellMessages = {
@@ -251,7 +251,9 @@ export const englishShellMessages: ShellMessages = {
   saveToDrive: {
     save: 'Save to Google Drive',
     saving: 'Saving to Google Drive...',
-    saved: 'Saved to Google Drive',
+    saved: 'Saved to My Drive',
+    open: 'Open in Google Drive',
+    more: 'More ways to save',
     failed: 'That did not reach Google Drive. Your file is still here to download.',
   },
 };
@@ -336,7 +338,9 @@ export const hebrewShellMessages: ShellMessages = {
   saveToDrive: {
     save: 'שמירה ב-Google Drive',
     saving: 'שומר ב-Google Drive...',
-    saved: 'נשמר ב-Google Drive',
+    saved: 'נשמר ב"האחסון שלי"',
+    open: 'פתיחה ב-Google Drive',
+    more: 'עוד דרכים לשמור',
     failed: 'הקובץ לא הגיע ל-Google Drive. הוא עדיין כאן להורדה.',
   },
 };

@@ -2,7 +2,6 @@ import type { ComponentChildren } from 'preact';
 import DoneStrip from '#shell/DoneStrip.tsx';
 import { DoneHandoffs, DoneResult } from './RedactDone.tsx';
 import type { RedactHandoffTarget } from '#lib/app/toolIds.ts';
-import type { useSaveToDrive } from '#shell/pageWorkspace/useSaveToDrive.ts';
 import type { FinishFacts } from '../lib/finishState.ts';
 
 export interface RedactDoneStripProps {
@@ -11,17 +10,16 @@ export interface RedactDoneStripProps {
   handoffFailed: boolean;
   onHandoff(tool: RedactHandoffTarget): void;
   onClose(): void;
-  drive?: ReturnType<typeof useSaveToDrive>;
   /** The rating row slot, rendered under the hand-offs. */
   children?: ComponentChildren;
 }
 
 /** The done state pinned under the toolbar: result, next tools, then feedback. */
-export default function RedactDoneStrip({ facts, handoffBusy, handoffFailed, onHandoff, onClose, drive, children }: RedactDoneStripProps) {
+export default function RedactDoneStrip({ facts, handoffBusy, handoffFailed, onHandoff, onClose, children }: RedactDoneStripProps) {
   return (
     <DoneStrip label="Your download" closeLabel="Close" onClose={onClose} data-redact-done-strip>
       <DoneResult facts={facts} live={false} />
-      <DoneHandoffs fileSize={facts.fileSize} busy={handoffBusy} failed={handoffFailed} onHandoff={onHandoff} drive={drive} />
+      <DoneHandoffs fileSize={facts.fileSize} busy={handoffBusy} failed={handoffFailed} onHandoff={onHandoff} />
       {children}
     </DoneStrip>
   );

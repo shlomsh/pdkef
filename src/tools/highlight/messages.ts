@@ -64,6 +64,11 @@ export interface HighlightMessages {
   downloadDone: string;
   downloadDoneLabel: string;
   downloadDoneClose: string;
+  /** Share's announcements (read aloud, not shown). */
+  shared: string;
+  shareCanceled: string;
+  shareError: string;
+  shareReady: string;
   capsule: CapsuleLabels;
   /** The pull cord that opens the Reading lamp: the button's name, and the hint beside its label on a desktop. */
   cord: { label: string; hint: string };
@@ -136,6 +141,10 @@ Please leave out private documents and personal information. GitHub issues are p
   downloadDone: 'Saved as {name}.',
   downloadDoneLabel: 'Your download',
   downloadDoneClose: 'Close',
+  shared: 'Shared.',
+  shareCanceled: 'Sharing canceled. Your highlighted PDF is still ready to share.',
+  shareError: 'Could not open the share sheet. Try again.',
+  shareReady: 'Your highlighted PDF is ready. Tap Share to send it.',
   capsule: {
     toolbar: 'Reading lamp',
     exit: 'Exit full screen',
@@ -143,6 +152,7 @@ Please leave out private documents and personal information. GitHub issues are p
     redo: 'Redo',
     print: 'Print',
     download: 'Download',
+    share: 'Share',
     more: 'More',
     page: 'Page {n} of {count}',
     jump: 'Go to page',
