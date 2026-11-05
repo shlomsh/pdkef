@@ -1,10 +1,12 @@
 import { test, expect } from '@playwright/test';
 import { makePdfBuffer } from '../support/pdf.js';
 import { waitForIsland } from '../support/tool.js';
+import { expectControlsSized } from '../support/layout.js';
 
 // One segmented row serves Scan, Split, PDF to Image and Compress. What it shows under a pointer and how a
 // label fits a narrow phone are rendered facts: jsdom has no hover, no pseudo-elements and no layout.
-// Compress's own check is level-row-fits.spec.js, since a spec here would make Compress a dependency of the folder.
+// Compress's own check is level-row-fits.spec.js and Scan's is its tap-target.spec.js, since a spec here would make
+// either a dependency of the folder.
 
 async function openWithPdf(page, route) {
   await page.goto(route);
@@ -72,3 +74,28 @@ for (const route of ['/pdf-to-image/', '/he/pdf-to-image/']) {
     expect(spills).toEqual([]);
   });
 }
+
+// The cells are 36px inside a 44px track and the look stays that way (ux guidelines §8): a cell takes its taps across
+// the whole track, which only a hit test can see. Split's phone shows the compact bar, PDF to Image's shows both forms.
+for (const route of ['/split/', '/pdf-to-image/']) {
+  test(`every option takes a tap across its 44px track on ${route}`, async ({ page }) => {
+    await page.setViewportSize({ width: 320, height: 640 });
+    await openWithPdf(page, route);
+    for (const width of [320, 390]) {
+      await page.setViewportSize({ width, height: 640 });
+      await expectControlsSized(page.locator('main'), { selector: '[role="radio"]', minWidth: 44, minHeight: 44, hitArea: true });
+    }
+  });
+}
+
+test('a tap on the gutter chooses the option it belongs to', async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 640 });
+  await openWithPdf(page, '/split/');
+  const group = page.getByRole('radiogroup').first();
+  const other = group.getByRole('radio').nth(1);
+  await expect(other).not.toBeChecked();
+  const track = await group.boundingBox();
+  const cell = await other.boundingBox();
+  await page.mouse.click(cell.x + cell.width / 2, track.y + 1);
+  await expect(other).toBeChecked();
+});

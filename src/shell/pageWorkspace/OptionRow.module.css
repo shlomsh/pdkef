@@ -24,7 +24,7 @@
   color: var(--color-muted);
 }
 
-/* The segmented control: every option side by side, at least 44px. A track
+/* The segmented control: every option side by side, a 44px target. A track
    with an inset pill: the segments have their own radius inside a gutter as
    wide as the gap, so the active ring never meets the track's rounded corner. */
 .seg {
@@ -77,6 +77,25 @@
 .option:is([aria-checked='true'], [aria-pressed='true'])::before,
 .option:is([aria-checked='true'], [aria-pressed='true']) + .option::before {
   opacity: 0;
+}
+
+/* The face is 36px and the target is the whole track: over the gutter and the
+   1px border, half the gap either side, out to the track's edge at each end.
+   The raised look's cells are 44px on their own. */
+.seg:not([data-look]) .option::after {
+  --seg-edge: calc(-1px - var(--seg-gap));
+  content: '';
+  position: absolute;
+  inset-block: var(--seg-edge);
+  inset-inline: calc(var(--seg-gap) / -2);
+}
+
+.seg:not([data-look]) .option:first-child::after {
+  inset-inline-start: var(--seg-edge);
+}
+
+.seg:not([data-look]) .option:last-child::after {
+  inset-inline-end: var(--seg-edge);
 }
 
 .option:focus-visible {
