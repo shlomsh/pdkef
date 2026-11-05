@@ -43,6 +43,7 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 - [SCAN-55](backlog/tasks/SCAN-55.md) P1 · Auto-detect goes back to a PDF sheet's own corners (in progress)
 - [SCAN-44](backlog/tasks/SCAN-44.md) P2 · A filled A4 form scanned with PDkef (2026-11-04): black edges and ghost text remain; stretch is fixed on main for A4 (in progress)
 - [SCAN-46](backlog/tasks/SCAN-46.md) P2 · A filled-in page with no vertical rules stays tilted; level its rows (in progress)
+- [SCAN-66](backlog/tasks/SCAN-66.md) P2 · Scan: a scan started from the camera says so in the funnel (in progress)
 
 ### Page enhancement for Scan and Highlight
 
@@ -78,6 +79,7 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 - [DRIVE-01](backlog/tasks/DRIVE-01.md) P2 · /drive/ picks a file: saved token, one tap where it is proven, the popup everywhere else (in progress)
 - [DRIVE-02](backlog/tasks/DRIVE-02.md) P2 · The home dropzone opens from Google Drive (in progress)
 - [DRIVE-03](backlog/tasks/DRIVE-03.md) P2 · iPhone check of the real Google Drive build
+- [COMP-05](backlog/tasks/COMP-05.md) P2 · Compress: a file with no PDF header is skipped at intake (in progress)
 - [QUAL-21](backlog/tasks/QUAL-21.md) P2 · Pages render at the size they are shown, and the practice form's logo is sharp (in progress)
 - [SIGN-44](backlog/tasks/SIGN-44.md) P2 · Sign: a comment on a highlight, kept in the PDF as a standard annotation (in progress)
 - [MERGE-26](backlog/tasks/MERGE-26.md) P3 · Save to Drive: an optional, explicit copy of a finished PDF into the person's own Drive (in progress)
