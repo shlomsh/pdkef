@@ -11,7 +11,7 @@ interface CameraPropsInput {
   pages: ScanPage[];
   results: Record<number, PageResult>;
   dispatch: ScanDispatch;
-  addFiles: (files: File[], from?: { fromCamera: boolean }) => void;
+  addCameraFiles: (files: File[], from?: { fromCamera: boolean }) => void;
   retakePage: (id: number, file: File) => void;
   /** The centre view: the viewer (result, corners) over a many-mode camera pauses it. */
   view: 'table' | 'result' | 'corners';
@@ -24,7 +24,7 @@ function lastPageSrc(page: ScanPage, results: Record<number, PageResult>): strin
 }
 
 /** The viewfinder's props while the camera is open, null otherwise. */
-export function cameraProps({ camera, pages, results, dispatch, addFiles, retakePage, view }: CameraPropsInput): ViewfinderProps | null {
+export function cameraProps({ camera, pages, results, dispatch, addCameraFiles, retakePage, view }: CameraPropsInput): ViewfinderProps | null {
   if (!camera) return null;
   const last = pages[pages.length - 1];
   const close = () => dispatch({ type: 'cameraClosed' });
@@ -34,14 +34,14 @@ export function cameraProps({ camera, pages, results, dispatch, addFiles, retake
     count: pages.length,
     scanFiles: pages.filter((page) => camera.mode === 'many' || page.id !== camera.pageId).map((page) => page.file),
     lastSrc: last ? lastPageSrc(last, results) : null,
-    onTaken: (file) => (camera.mode === 'one' ? retakeWith(camera.pageId, file) : addFiles([file], { fromCamera: true })),
+    onTaken: (file) => (camera.mode === 'one' ? retakeWith(camera.pageId, file) : addCameraFiles([file], { fromCamera: true })),
     onClose: close,
     paused: camera.mode === 'many' && view !== 'table',
     // The last page opens in the viewer, over the running camera.
     onReview: () => { if (last) dispatch({ type: 'pageOpened', id: last.id }); },
     onFallbackFiles: (files) => {
       if (camera.mode === 'one') retakeWith(camera.pageId, files[0]);
-      else { addFiles(files); close(); }
+      else { addCameraFiles(files); close(); }
     },
   };
 }

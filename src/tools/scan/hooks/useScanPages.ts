@@ -5,6 +5,7 @@ import { recordAction } from '#lib/telemetry/actionTrail.ts';
 import { beaconMaintenanceTransport, reportMaintenanceEvent, scanCameraPhoto } from '#lib/telemetry/maintenanceTelemetry.ts';
 import { formatMessage } from '#lib/text/formatMessage.ts';
 import { useHandoffFilesIntake } from '#lib/handoff/useHandoffIntake.ts';
+import { markArrival } from '#lib/handoff/fileArrival.ts';
 import { PDF_TYPE, SCAN_ACCEPTED_TYPES } from '../lib/scanAccept.ts';
 import { loadPipeline } from '../lib/loadPipeline.ts';
 import { isCurrentKey, newPage, pageQuad, partitionFiles, replacePage, resultKey, withInspection } from '../lib/scanPages.ts';
@@ -98,6 +99,12 @@ export function useScanPages(input: ScanPagesInput) {
     for (const page of added) inspectPage(page, input, { fromCamera: from?.fromCamera });
   }, []);
 
+  // The camera does not pass through the shell's handOn, so it says how the scan began; a later photo is work on the scan, and leaves no mark to go stale.
+  const addCameraFiles = useCallback((files: File[], from?: { fromCamera: boolean }) => {
+    if (work.pages.length === 0) markArrival('camera');
+    addFiles(files, from);
+  }, []);
+
   /** A retake: the new photo takes the old page's place, with the old page's look and its own id. */
   const retakeFile = useCallback((id: number, file: File) => {
     const old = work.pages.find((p) => p.id === id);
@@ -129,5 +136,5 @@ export function useScanPages(input: ScanPagesInput) {
   useScanResults({ ...input, processed });
   // SCAN-18: the scan is kept on the device as it changes, and comes back on the next visit or from Recents.
   const draft = useScanDraft({ pages: input.pages, results: input.results, settings: input.settings, restorePages, work });
-  return { processed, addFiles, retakeFile, draft };
+  return { processed, addFiles, addCameraFiles, retakeFile, draft };
 }

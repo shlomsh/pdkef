@@ -56,7 +56,7 @@ export default withIslandBoundary(function PdfScanTool({ quietPolicy, navigate }
   work.defaultFilter = settings.defaultFilter;
   const { rating, wide } = useScanRating();
 
-  const { processed, addFiles, retakeFile, draft } = useScanPages({ pages, setPages, work, unmountedRef, dispatch, settings, ...board });
+  const { processed, addFiles, addCameraFiles, retakeFile, draft } = useScanPages({ pages, setPages, work, unmountedRef, dispatch, settings, ...board });
 
   const { key, prepared, outputName, fileName, downloadFlow } = useScanExport({
     pages, failedIds, ...settings, work, processed, unmountedRef, ...board, quietPolicy, navigate,
@@ -83,7 +83,7 @@ export default withIslandBoundary(function PdfScanTool({ quietPolicy, navigate }
   const { findPage, removePage, undoRemove, reset } = createPageActions({ pages, view, failedIds, setPages, work, unmountedRef, dispatch, focusIdRef, ...board, ...settings });
   const edit = createEditActions({ pages, selected, selectedIndex, failedIds, setPages, dispatch, focusIdRef, showResult, retakeFile, removePage, ...board, ...settings });
 
-  const viewfinder = cameraProps({ camera: state.camera, pages, results, dispatch, addFiles, retakePage: edit.retakePage, view });
+  const viewfinder = cameraProps({ camera: state.camera, pages, results, dispatch, addCameraFiles, retakePage: edit.retakePage, view });
   const openMany = () => dispatch({ type: 'cameraOpened', camera: { mode: 'many' } });
   const viewerMode = view === 'table' ? null : view;
 
@@ -132,7 +132,7 @@ export default withIslandBoundary(function PdfScanTool({ quietPolicy, navigate }
       onFilesAdded={addFiles}
       intake={{ accept: SCAN_ACCEPT, needsPdfjs: false }}
       identity={{ label: pagesLabel(pages.length, englishShellMessages), hidden: true }}
-      empty={{ art: <ScanVerb />, action: <StartScanButton onFiles={addFiles} onStart={openMany} />, actionLeads: true, pickLabel: t.choosePhotos, message: t.dropHere }}
+      empty={{ art: <ScanVerb />, action: <StartScanButton onFiles={addCameraFiles} onStart={openMany} />, actionLeads: true, pickLabel: t.choosePhotos, message: t.dropHere }}
       draft={{ checking: pages.length === 0 && draft.checking }}
       clearAll={{ onClear: reset, summary: pagesLabel(pages.length, englishShellMessages) }}
       analytics={{ tool: 'scan-to-pdf', status: prepared.status === 'error' ? 'error' : downloadFlow.tap }}

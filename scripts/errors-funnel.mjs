@@ -14,7 +14,7 @@ export const EVENTS = [
   'tool_result_ready',
   'tool_operation_failed',
 ];
-export const FRESH_SOURCES = ['pick', 'drop', 'paste', 'replace', 'recent', 'handoff'];
+export const FRESH_SOURCES = ['pick', 'drop', 'paste', 'replace', 'recent', 'handoff', 'camera'];
 export const VISITS = ['new', 'today', 'week', 'month', 'older'];
 const LANES = ['fresh', 'resume', 'unknown'];
 
