@@ -1,10 +1,9 @@
 ---
 id: "COMP-05"
 title: "Compress: a file with no PDF header is skipped at intake"
-status: "in_progress"
+status: "done"
 priority: "P2"
 epic: "polish"
-horizon: "now"
 depends_on: []
 ---
 
@@ -28,3 +27,9 @@ to `qo`) at `compress`, which counted a failed run and showed "PDF compression f
 - A file that has a header and that pdf.js rejects goes on as before and still reports: a valid file the
   library cannot read looks the same as a broken one (tools-and-shell rule, "Catching errors").
 - `docs/error-known-items.json` knows both fingerprints.
+
+## Shipped
+
+`checkEncryption` skips the file when `probeEncryption` says `unreadable` and `hasPdfHeader` finds no
+`%PDF-`. Tests in `PdfCompressTool.protected.test.tsx` cover the skip, the next file loading, and a
+headered file carrying on.
