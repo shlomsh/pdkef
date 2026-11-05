@@ -24,6 +24,8 @@
 
 /* READ-04: the tool row is six controls in one row (Full screen is the cord under the card). Sign's phone label size reads --controls-per-row, which falls back to 4 below nine children. The doubled class with the attribute outranks the :has() count rules. */
 .toolRow.toolRow[data-editor-toolbar] { --controls-per-row: 6; }
+/* Share is a seventh tile where the browser has it, and Download keeps its place beside it. */
+.toolRow.toolRow[data-editor-toolbar]:has(> :nth-child(7)) { --controls-per-row: 7; }
 /* Six controls share one phone row; Sign's formula gives too small a label; 8px fits Download down to 375px.
    The tiles drop their side padding, since Safari sets the label wider than Chromium. A menu's items and the mark panel,
    which sits inside the row on touch, keep their own sizes. */
@@ -34,6 +36,10 @@
    and the row's content box is 333 px. */
 @media (max-width: 400px) {
   .toolRow.toolRow[data-editor-toolbar] { column-gap: 3px; padding-inline: 4px; }
+}
+/* Seven 44 px tiles need 320 px: the 360 px phones' row has 322 once its gaps and sides tighten. */
+@media (max-width: 374px) {
+  .toolRow.toolRow[data-editor-toolbar] { column-gap: 2px; padding-inline: 2px; }
 }
 /* The lamp's board is at least the workspace's content box: a column taller than it starts at the top and scrolls to
    its bottom, a shorter one is centred, with no room to scroll into. */
