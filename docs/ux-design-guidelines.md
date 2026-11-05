@@ -154,7 +154,8 @@ and on focus; on touch the word is always there or the control is not an icon.
 
 ## 8. Touch is not hover with bigger targets
 
-- 44px targets throughout. A 32px glyph may sit inside a 44px hit area.
+- 44px targets throughout. A 32px glyph may sit inside a 44px hit area, and a 36px `OptionRow` cell takes
+  its taps across the whole 44px track, so nothing around the face is a dead spot.
 - No hover-only affordance on touch. Per-item controls do not fit small cells (three 44px buttons
   cannot live on a 72px page cell; they overlapped the neighbours and hid each other). On the phone,
   tap an item to reveal that item's controls, or select it and act from one bar; either way the grid
