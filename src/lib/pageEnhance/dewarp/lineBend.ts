@@ -43,6 +43,9 @@ const LEAN_SPAN = 0.3;
 const LEAN_RMS = 0.001;
 /** A bend is applied only when it leaves less than this share of the lines' own wobble unexplained. */
 const MAX_UNEXPLAINED = 0.5;
+/** Fewest lines running across the page (LEAN_SPAN) that can show a fan: a sparse page's few slopes, or
+ * a table's short labels, only look like one (SCAN-53). */
+const MIN_FAN_LINES = 12;
 
 /** One point on a line: `y` across it, observed at `x` along it, both 0..1. */
 export interface Sample { line: number; x: number; y: number }
@@ -285,8 +288,9 @@ export function lineFit({ ink, rules, width: w, height: h }: PageMasks): FittedB
 /** A fit through a page's lines, its lean still in it. `lean` is the slope (normalized, y per x) the
  * clean, wide lines share (the median of their own), or null when no line is both: it gates squaring
  * and stands in for a fit that does not explain its lines, nothing else. `explained`: the fit follows
- * the lines' own wobble well enough to be applied as a bend. */
-export interface FittedBend { bend: LineBend; lean: number | null; explained: boolean }
+ * the lines' own wobble well enough to be applied as a bend. `fans`: the lines are each straight but
+ * turn from one another down the page, and the fit follows that (see rowsToApply). */
+export interface FittedBend { bend: LineBend; lean: number | null; explained: boolean; fans: boolean }
 
 /**
  * One shared bend through every line's samples (each `y` observed at `x`), with a free height per
@@ -299,8 +303,8 @@ export function fitBend(found: Sample[][], minLines: number): FittedBend | null 
   if (!result) return null;
 
   const rms = lines.map((s, k) => lineRms(s, result!.offsets[k], result!.bend));
-  const median = [...rms].sort((p, q) => p - q)[Math.floor(rms.length / 2)];
-  lines = lines.filter((_, k) => rms[k] <= OUTLIER_FACTOR * median && rms[k] <= OUTLIER_RMS);
+  const typical = median(rms);
+  lines = lines.filter((_, k) => rms[k] <= OUTLIER_FACTOR * typical && rms[k] <= OUTLIER_RMS);
   if (lines.length < minLines) return null;
   result = fit(lines);
   if (!result) return null;
@@ -310,28 +314,33 @@ export function fitBend(found: Sample[][], minLines: number): FittedBend | null 
 
   // Wobble is how far the lines stray from their own straight lines: a tilt is no bend, and on a page
   // the corners left a little turned, counting it would let the grid's fit to pixel noise pass as one.
-  let resid = 0;
-  let wobble = 0;
-  let count = 0;
-  lines.forEach((s, k) => {
-    const straight = ownLine(s);
-    for (const p of s) {
-      const r = p.y - result!.offsets[k] - bendAt(result!.bend, p.x, p.y);
-      resid += r * r;
-      wobble += (p.y - straight.at(p.x)) ** 2;
-      count += 1;
-    }
-  });
-  // A fit that leaves much of the lines' own wobble unexplained is no bend to apply, but its lean still
-  // says how level the lines are (straight rows have no wobble to explain).
-  const explained = Math.sqrt(resid / count) <= MAX_UNEXPLAINED * Math.sqrt(wobble / count);
+  const left = lines.map((s, k) => lineRms(s, result!.offsets[k], result!.bend) ** 2 * s.length);
+  const own = lines.map(ownLine);
+  const explains = (ks: number[], slopeOf: (k: number) => number) => {
+    const sum = (of: (k: number) => number) => ks.reduce((t, k) => t + of(k), 0);
+    return Math.sqrt(sum((k) => left[k])) <= MAX_UNEXPLAINED * Math.sqrt(sum((k) => strayFrom(lines[k], slopeOf(k))));
+  };
+  // A fit that leaves much of that unexplained is no bend to apply, but its lean still says how level
+  // the lines are (straight rows have no wobble to explain).
+  const explained = explains([...lines.keys()], (k) => own[k].slope);
+  // Rows that fan apart have no wobble of their own, so they are measured against one shared direction,
+  // which a tilt still leaves nothing in.
+  const across = [...lines.keys()].filter((k) => own[k].span >= LEAN_SPAN);
+  const shared = median(across.map((k) => own[k].slope));
+  const fans = across.length >= MIN_FAN_LINES && explains(across, () => shared);
 
   let x0 = 1; let x1 = 0; let y0 = 1; let y1 = 0;
   for (const line of lines) for (const p of line) {
     x0 = Math.min(x0, p.x); x1 = Math.max(x1, p.x); y0 = Math.min(y0, p.y); y1 = Math.max(y1, p.y);
   }
   const bend: LineBend = { ...result.bend, box: { x0, x1, y0, y1 } };
-  return { bend, lean: medianSlope(lines), explained };
+  return { bend, lean: medianSlope(lines), explained, fans };
+}
+
+/** The row fit to apply: a fan counts as a bend on a page of text. A table's cells sit at their own
+ * heights, so on a page with rules the same reading would kink it, and the rules have their own fit. */
+export function rowsToApply(rows: FittedBend | null, rules: FittedBend | null): FittedBend | null {
+  return rows && !rules && rows.fans ? { ...rows, explained: true } : rows;
 }
 
 /** The lines' shared lean: the median of each line's own least-squares slope, taken over the lines
@@ -359,6 +368,13 @@ export function ownLine(line: Sample[]): { slope: number; rms: number; span: num
 }
 
 const median = (values: number[]) => [...values].sort((a, b) => a - b)[values.length >> 1];
+
+/** The squares of how far a line strays from `slope` through its own middle. */
+function strayFrom(line: Sample[], slope: number): number {
+  const off = line.map((p) => p.y - slope * p.x);
+  const mid = off.reduce((t, v) => t + v, 0) / off.length;
+  return off.reduce((t, v) => t + (v - mid) ** 2, 0);
+}
 
 /** The bend's own shared tilt: its least-squares slope across the box, averaged over the box's height.
  * Bilinear reading reproduces a plane exactly, so taking `slope * (x - mid)` off every node removes
