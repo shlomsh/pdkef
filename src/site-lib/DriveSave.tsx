@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
 import { DRIVE_SAVE_CHANNEL, driveSaveKey, type DriveSavePayload } from '#lib/handoff/driveSaveLink.ts';
+import { parkHandoff } from '#lib/handoff/sendHandoff.ts';
 import { saveToDrive, type DriveUploadError } from './drive/driveUpload.ts';
 import { forgetSaved, savedToken, toGoogle } from './drive/driveSignIn.ts';
 import styles from './DriveOpen.module.css';
@@ -85,8 +86,12 @@ export default function DriveSave({ id, failed }: { id: string; failed: boolean 
       // The saved token was stale: park the file again (a redirect loses memory) and sign in once more.
       retried.set();
       forgetSaved();
-      const { saveHandoff } = await import('#lib/drafts/draftStore.ts');
-      if (await saveHandoff(driveSaveKey(id), data as Parameters<typeof saveHandoff>[1])) return toGoogle('none', location.search);
+      try {
+        await parkHandoff(driveSaveKey(id), data);
+        return toGoogle('none', location.search);
+      } catch {
+        // expected: the device would not keep the file; the failure below offers it as a download
+      }
     }
     answer(id, 'failed');
     setDownloads(data.files.map((f) => ({ name: f.fileName, href: URL.createObjectURL(new Blob([f.fileBytes], { type: f.fileType })) })));
