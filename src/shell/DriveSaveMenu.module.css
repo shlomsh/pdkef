@@ -1,11 +1,13 @@
-/* The small arrow joined to Download; it sits in the toolbar row like any other button. */
-.arrow {
+/* The small arrow joined to Download; it sits in the toolbar row like any other button. Repeated so it outranks the
+   toolbar's `:has(...) > *` sizing, which would stretch it to a full tile. */
+.arrow.arrow.arrow.arrow {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   align-self: stretch;
-  flex: 0 0 auto;
+  flex: 0 0 1.75rem;
   width: 1.75rem;
+  min-width: 1.75rem;
   min-height: var(--btn-min-size, 2.75rem);
   margin-inline-start: calc(var(--toolbar-gap, 0.5rem) * -1);
   padding: 0;
@@ -19,8 +21,14 @@
   box-shadow: var(--shadow-xs);
   cursor: pointer;
 }
-.arrow:hover { background: var(--color-primary-tint); border-color: var(--color-primary); }
-.arrow[aria-expanded='true'] { background: var(--color-primary-soft); }
+/* Download and the arrow read as one control: Download gives up its end corners and its end border. */
+button:has(+ .arrow) {
+  border-start-end-radius: 0;
+  border-end-end-radius: 0;
+  border-inline-end-width: 0;
+}
+.arrow.arrow.arrow.arrow:hover { background: var(--color-primary-tint); border-color: var(--color-primary); }
+.arrow.arrow.arrow.arrow[aria-expanded='true'] { background: var(--color-primary-soft); }
 .arrow:focus-visible { outline: 2px solid var(--color-primary); outline-offset: 2px; }
 
 /* The popup: the same surface as the other toolbar menus, in a Popover portal so the toolbar never clips it. */
