@@ -10,7 +10,7 @@ const publicFont = (name) => fs.readFileSync(new URL(`../../public/fonts/${name}
  * @param {string | null | undefined} label  Document title when `title` is on.
  * @param {object} [opts]
  * @param {number} [opts.pages=1]       Page count.
- * @param {[number, number]} [opts.size=[612, 792]]  Page size in points.
+ * @param {[number, number] | ((pageIndex: number) => [number, number])} [opts.size=[612, 792]]  Page size in points, or each page's.
  * @param {boolean} [opts.title=true]   Set the PDF title metadata to `label`.
  * @param {Array | ((pageIndex: number, pageCount: number) => Array)} [opts.lines]
  *   Text drawn on every page (Helvetica). A line is
@@ -23,7 +23,7 @@ export async function makePdfBuffer(label, { pages = 1, size = [612, 792], title
   const linesFor = typeof lines === 'function' ? lines : () => lines;
   const font = (typeof lines === 'function' || lines.length > 0) ? await document.embedFont(StandardFonts.Helvetica) : null;
   for (let i = 0; i < pages; i += 1) {
-    const page = document.addPage(size);
+    const page = document.addPage(typeof size === 'function' ? size(i) : size);
     for (const { text, x = 72, y = 720, size: fontSize = 18, gray = 0.1 } of linesFor(i, pages)) {
       const options = { x, y, size: fontSize, font };
       if (gray !== null) options.color = rgb(gray, gray, gray);

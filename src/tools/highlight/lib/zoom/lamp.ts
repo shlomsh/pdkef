@@ -2,9 +2,18 @@ import { ZOOM_MIN, clampZoom, fitScale, resolveZoom, type PageBox, type Viewport
 import { ACTUAL_SIZE } from './percent.ts';
 import type { KeyAction } from '../marker/keys.ts';
 
-/** The page a fit sizes by: the widest, since the column is as wide as the widest page. */
+/** The page a fit sizes by: the widest, since the column is as wide as the widest page; of pages that wide, the tallest, so a whole-page fit shows each one whole. */
 export function widestPage(pages: readonly PageBox[]): PageBox | undefined {
-  return pages.reduce<PageBox | undefined>((w, p) => (!w || p.width > w.width ? p : w), undefined);
+  return pages.reduce<PageBox | undefined>((w, p) => (!w || p.width > w.width || (p.width === w.width && p.height > w.height) ? p : w), undefined);
+}
+
+/** READ-23: every page shown as wide as the document's widest, in its own shape, so a portrait page beside a landscape spread fills the same width and the notes keep one column. */
+export function evenPageWidths(pages: readonly PageBox[]): PageBox[] {
+  const width = pages.reduce((w, p) => Math.max(w, p.width), 0);
+  return pages.map((p) => {
+    const k = width / p.width;
+    return k === 1 ? p : { width, height: p.height * k, textLeft: p.textLeft * k, textRight: p.textRight * k };
+  });
 }
 
 /** The lamp's lowest zoom: the whole-page fit (the widest page with its notes column), whatever ZOOM_MIN says. */

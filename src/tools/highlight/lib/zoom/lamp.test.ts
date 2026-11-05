@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { chromeScale, displayZoom, isZoomInput, lampFloor, widestPage } from './lamp.ts';
+import { chromeScale, displayZoom, evenPageWidths, isZoomInput, lampFloor, widestPage } from './lamp.ts';
 import { NOTES_W, ZOOM_MIN, fitScale } from './fit.ts';
 import { turnedPageBox } from './turnedBox.ts';
 
@@ -71,6 +71,30 @@ describe('isZoomInput', () => {
     expect(isZoomInput({ type: 'key', action: { type: 'zoomActual' } })).toBe(true);
     expect(isZoomInput({ type: 'key', action: { type: 'comment' } })).toBe(false);
     expect(isZoomInput({ type: 'key', action: null })).toBe(false);
+  });
+});
+
+describe('evenPageWidths', () => {
+  const portrait = { width: 612, height: 792, textLeft: 61.2, textRight: 550.8 };
+  const spread = { width: 792, height: 612, textLeft: 0, textRight: 792 };
+
+  it('brings every page to the widest width, keeping its shape and where its text sits', () => {
+    const [even, wide] = evenPageWidths([portrait, spread]);
+    expect(wide).toEqual(spread);
+    expect(even.width).toBe(792);
+    expect(even.height / even.width).toBeCloseTo(792 / 612);
+    expect(even.textLeft / even.width).toBeCloseTo(0.1);
+    expect(even.textRight / even.width).toBeCloseTo(0.9);
+  });
+  it('leaves a document of one page size as it is', () => {
+    expect(evenPageWidths([portrait, portrait])).toEqual([portrait, portrait]);
+  });
+  it('has nothing to do for no pages', () => {
+    expect(evenPageWidths([])).toEqual([]);
+  });
+  it('sizes the whole-page fit by the tallest page once the widths are even', () => {
+    const even = evenPageWidths([spread, portrait]);
+    expect(widestPage(even)).toBe(even[1]);
   });
 });
 
