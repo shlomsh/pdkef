@@ -86,6 +86,36 @@ test('a long note clamps when closed, shows whole when open, and is edited from 
 
 /* On a phone the note sits in the bottom pane, whose cards scroll: the menu must open above every scroll container,
    or Delete is cut off under the card's edge. */
+// Only a real browser resolves dir="auto" and places the top-layer menu.
+test('opening the menu leaves a note in the other direction where it was, and the menu stays on its card', async ({ page }) => {
+  const source = await makePdfBuffer(null, { title: false, lines: LINES });
+  await openTool(page, '/highlight-pdf/', { file: { name: 'notes.pdf', buffer: source }, overlaySelector: '[data-page-overlay]' });
+  await addNote(page, 700, 'בהערה '.repeat(40).trim());
+
+  const card = page.locator('[data-comment-card]').first();
+  await card.click();
+  await expect(card).toHaveAttribute('data-active', /.*/);
+  const text = card.locator('[data-comment-text]');
+  const more = card.locator('[data-comment-more]');
+  const direction = () => text.evaluate((n) => getComputedStyle(n).direction);
+  expect(await direction()).toBe('rtl');
+  const before = await more.boundingBox();
+
+  await more.click();
+  const menu = page.locator('[data-comment-menu]');
+  await expect(menu).toBeVisible();
+  expect(await direction()).toBe('rtl');
+  // The button stays at the note's end; a flip would carry it the card's whole width.
+  expect(Math.abs((await more.boundingBox()).x - before.x)).toBeLessThanOrEqual(6);
+  // The menu speaks the interface's language, whichever way the note runs.
+  expect(await menu.evaluate((n) => getComputedStyle(n).direction)).toBe('ltr');
+
+  const cardBox = await card.boundingBox();
+  const menuBox = await menu.boundingBox();
+  expect(menuBox.x).toBeGreaterThanOrEqual(cardBox.x);
+  expect(menuBox.x + menuBox.width).toBeLessThanOrEqual(cardBox.x + cardBox.width);
+});
+
 test.describe('in the phone note pane', () => {
   test.use({ isMobile: false, hasTouch: true, viewport: { width: 402, height: 874 } });
 
