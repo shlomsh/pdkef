@@ -67,7 +67,8 @@ test.describe('home launcher shell', () => {
     await expect(launcher.getByText('Choose files', { exact: true })).toBeVisible();
     await expect(launcher.getByText('or drop them here, then pick a tool below', { exact: true })).toBeVisible();
     await expect(launcher.getByRole('button', { name: /Open bundled sample PDF/ })).toBeVisible();
-    await expect(launcher.locator('img')).toHaveAttribute('src', '/images/redaction-guide/sample-preview.jpg');
+    await expect(launcher.getByRole('button', { name: /Open bundled sample PDF/ }).locator('img')).toHaveAttribute('src', '/images/redaction-guide/sample-preview.jpg');
+    await expect(launcher.getByRole('link', { name: 'Open from Google Drive' })).toBeVisible();
   });
 });
 

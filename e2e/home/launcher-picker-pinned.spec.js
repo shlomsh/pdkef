@@ -121,7 +121,6 @@ function expectStableBox(settled, first) {
 
 const DESKTOP_VIEWPORTS = [
   { width: 1440, height: 900 },
-  { width: 1280, height: 720 },
 ];
 const RECENT_COUNTS = [1, 6];
 // MOBI-36: tablets reserve the same two rows as desktop, just narrower.
@@ -135,6 +134,8 @@ const TABLET_VIEWPORTS = [
 const SHORT_DESKTOP_VIEWPORTS = [
   { width: 1280, height: 600 },
   { width: 1366, height: 625 },
+  // DRIVE-02: the Drive link takes its row here, so the recents scroll a little sooner.
+  { width: 1280, height: 720 },
 ];
 // 0 = don't seed at all, so the launcher shows only the bundled placeholder
 // tile; 6 is the full recents row. Both must leave the picker on the first
