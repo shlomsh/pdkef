@@ -41,6 +41,7 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 - [SCAN-48](backlog/tasks/SCAN-48.md) P1 · A page's text says which way is up, so a sideways page no longer lands upside down (in progress)
 - [SCAN-44](backlog/tasks/SCAN-44.md) P2 · A filled A4 form scanned with PDkef (2026-11-04): black edges and ghost text remain; stretch is fixed on main for A4 (in progress)
 - [SCAN-46](backlog/tasks/SCAN-46.md) P2 · A filled-in page with no vertical rules stays tilted; level its rows (in progress)
+- [SCAN-51](backlog/tasks/SCAN-51.md) P2 · On desktop the grid is home: delete, reorder and open pages there, one click to the page at full window (in progress)
 
 ### Page enhancement for Scan and Highlight
 
