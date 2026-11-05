@@ -13,7 +13,7 @@ const results = {
 function mount(props: Record<string, unknown> = {}) {
   container = document.createElement('div');
   document.body.appendChild(container);
-  const handlers = { onOpen: vi.fn(), onFiles: vi.fn(), onPickMore: vi.fn() };
+  const handlers = { onOpen: vi.fn(), onRotate: vi.fn(), onRemove: vi.fn(), onFiles: vi.fn(), onPickMore: vi.fn() };
   act(() => render(
     <ScanTable
       pages={pages}

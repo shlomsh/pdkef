@@ -14,6 +14,7 @@ import ScanSkippedNotice from './components/ScanSkippedNotice.tsx';
 import ScanWorkspace from './components/ScanWorkspace.tsx';
 import ScanPhoneTable from './components/ScanPhoneTable.tsx';
 import ScanPageViewer from './components/ScanPageViewer.tsx';
+import ScanUndoChip from './components/ScanUndoChip.tsx';
 import ScanCamera from './components/ScanCamera.tsx';
 import StartScanButton from './components/StartScanButton.tsx';
 import { useScanBoard } from './hooks/useScanBoard.ts';
@@ -79,8 +80,8 @@ export default withIslandBoundary(function PdfScanTool({ quietPolicy, navigate }
     state, dispatch, work, hasPages: pages.length > 0, selected, editorRef, headingRef, listRef, unmountedRef, ...board,
   });
 
-  const { findPage, removePage, reset } = createPageActions({ pages, view, setPages, work, unmountedRef, dispatch, focusIdRef, ...board, ...settings });
-  const edit = createEditActions({ pages, selected, selectedIndex, failedIds, setPages, dispatch, focusIdRef, showResult, retakeFile, ...board, ...settings });
+  const { findPage, removePage, undoRemove, reset } = createPageActions({ pages, view, failedIds, setPages, work, unmountedRef, dispatch, focusIdRef, ...board, ...settings });
+  const edit = createEditActions({ pages, selected, selectedIndex, failedIds, setPages, dispatch, focusIdRef, showResult, retakeFile, removePage, ...board, ...settings });
 
   const viewfinder = cameraProps({ camera: state.camera, pages, results, dispatch, addFiles, retakePage: edit.retakePage, view });
   const openMany = () => dispatch({ type: 'cameraOpened', camera: { mode: 'many' } });
@@ -116,6 +117,8 @@ export default withIslandBoundary(function PdfScanTool({ quietPolicy, navigate }
     listRef,
     onOpen: edit.openPage,
     onTileKeyDown: edit.onTileKeyDown,
+    onRotate: edit.rotatePage,
+    onRemove: removePage,
     onFiles: addFiles,
     onCamera: openMany,
     output,
@@ -154,8 +157,11 @@ export default withIslandBoundary(function PdfScanTool({ quietPolicy, navigate }
           selected={selected}
           view={viewerMode}
           actions={{ ...pageActions, onSelect: edit.selectPage }}
+          undo={board.removal && { position: board.removal.index + 1, onUndo: undoRemove }}
         />
       )}
+
+      {board.removal && !(viewerMode && selected) && <ScanUndoChip position={board.removal.index + 1} onUndo={undoRemove} />}
 
       {viewfinder && <ScanCamera {...viewfinder} />}
 

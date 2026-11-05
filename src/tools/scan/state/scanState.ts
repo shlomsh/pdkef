@@ -45,6 +45,7 @@ type ScanEvent =
   | { type: 'pageFailed'; id: number }
   | { type: 'failureCleared'; id: number }
   | { type: 'pageRemoved'; id: number; neighbourId: number | null }
+  | { type: 'pageRestored'; id: number; failed: boolean }
   | { type: 'cleared' }
   | { type: 'cameraOpened'; camera: CameraMode }
   | { type: 'retakeOpened'; pageId: number }
@@ -115,9 +116,12 @@ export function reduceScan(state: ScanState, event: ScanEvent): ScanState {
     case 'pageRemoved': {
       const failedIds = withoutId(state.failedIds, event.id);
       if (state.selectedId !== event.id) return patch(state, { failedIds });
-      // The open page went: back to the table, on its neighbour.
-      return patch(state, { failedIds, selectedId: event.neighbourId, phase: 'table' });
+      // The open page went: on its neighbour, in the viewer if it was in one; with none left, the table.
+      const inViewer = state.phase !== 'table' && event.neighbourId !== null;
+      return patch(state, { failedIds, selectedId: event.neighbourId, phase: inViewer ? 'result' : 'table' });
     }
+    case 'pageRestored':
+      return patch(state, { selectedId: event.id, failedIds: event.failed ? withId(state.failedIds, event.id) : state.failedIds });
     case 'cleared':
       return patch(state, { phase: 'table', selectedId: null, failedIds: state.failedIds.length > 0 ? [] : state.failedIds });
     case 'cameraOpened':

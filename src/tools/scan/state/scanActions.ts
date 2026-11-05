@@ -8,9 +8,9 @@ import type { ScanDispatch, SetPages } from '../hooks/scanHost.ts';
 import { loadPipeline } from '../lib/loadPipeline.ts';
 import type { ScanFilter } from '../lib/filters.ts';
 import type { Quad } from '#lib/pageEnhance/quad.ts';
-import { afterRemoval, patchPage, tileDelta, turnPage } from '../lib/scanPages.ts';
+import { afterRemoval, patchPage, restoredPages, tileDelta, turnPage } from '../lib/scanPages.ts';
 import { englishScanMessages as t } from '../messages.ts';
-import type { PageResult, ScanPage, ScanWork } from './scanWork.ts';
+import type { HeldRemoval, PageResult, ScanPage, ScanWork } from './scanWork.ts';
 
 interface DropHost {
   work: ScanWork;
@@ -36,11 +36,16 @@ export function dropPageWork({ work, setResults, forgetTurned }: DropHost, page:
   }
 }
 
+/** How long Remove can be taken back (docs/ux-design-guidelines.md, guideline 6). */
+const UNDO_MS = 5000;
+
 interface PageActionsInput {
   pages: ScanPage[];
   view: 'table' | 'corners' | 'result';
   setPages: SetPages;
   setResults: (results: Record<number, PageResult>) => void;
+  setRemoval: (removal: HeldRemoval | null) => void;
+  failedIds: number[];
   setCustomName: (name: string | null) => void;
   setRejectedFiles: (names: string[]) => void;
   forgetTurned: (match: (key: string) => boolean) => void;
@@ -53,7 +58,7 @@ interface PageActionsInput {
 
 /** The actions that find a page again, take a page away, or start over. */
 export function createPageActions(input: PageActionsInput) {
-  const { pages, setPages, setResults, setCustomName, setRejectedFiles, forgetTurned, work, unmountedRef, dispatch, announce, focusIdRef } = input;
+  const { pages, failedIds, setPages, setResults, setRemoval, setCustomName, setRejectedFiles, forgetTurned, work, unmountedRef, dispatch, announce, focusIdRef } = input;
 
   // Find the page again, on request: the person asked, so what it finds becomes their corners.
   const findPage = (page: ScanPage) => {
@@ -66,7 +71,8 @@ export function createPageActions(input: PageActionsInput) {
       .then((quad) => {
         if (unmountedRef.current) return;
         dispatch({ type: 'findEnded' });
-        if (work.removed.has(page.id)) return;
+        // A page taken out (even if Undo could bring it back) has no use for a guess.
+        if (work.removed.has(page.id) || work.removal?.page.id === page.id) return;
         if (!quad) {
           dispatch({ type: 'findMissed', id: page.id });
           announce(t.findMissed);
@@ -79,7 +85,18 @@ export function createPageActions(input: PageActionsInput) {
       });
   };
 
+  // Let the held page go for good. It reads `work`, not this render's values, so a timer from an older render settles right.
+  const settleRemoval = () => {
+    clearTimeout(work.removalTimer);
+    const held = work.removal;
+    if (!held) return;
+    work.removal = null;
+    setRemoval(null);
+    dropPageWork(input, held.page);
+  };
+
   const reset = () => {
+    settleRemoval();
     for (const url of work.urls) URL.revokeObjectURL(url);
     work.processing.clear();
     for (const page of work.pages) work.removed.add(page.id);
@@ -97,18 +114,40 @@ export function createPageActions(input: PageActionsInput) {
   };
 
   const removePage = (id: number) => {
+    settleRemoval();
     const { index, removed, left, neighbour } = afterRemoval(pages, id);
     if (!removed) return;
-    dropPageWork(input, removed);
+    // The last page ends the scan, and a photo still being read has nothing to bring back: both go at once.
+    const held = left.length > 0 && removed.guessed;
+    if (!held) dropPageWork(input, removed);
     setPages(left);
     dispatch({ type: 'pageRemoved', id, neighbourId: neighbour?.id ?? null });
     focusIdRef.current = neighbour?.id ?? null;
     announce(formatMessage(t.announceRemoved, { position: index + 1 }));
     recordAction('remove_file');
-    if (left.length === 0) reset();
+    if (left.length === 0) { reset(); return; }
+    if (!held) return;
+    const removal: HeldRemoval = { page: removed, index, failed: failedIds.includes(id) };
+    work.removal = removal;
+    setRemoval(removal);
+    work.removalTimer = setTimeout(settleRemoval, UNDO_MS);
   };
 
-  return { findPage, removePage, reset };
+  // Everything the page owned was kept, so it comes back whole: corners, look, turns, result and its place.
+  const undoRemove = () => {
+    const held = work.removal;
+    if (!held) return;
+    clearTimeout(work.removalTimer);
+    work.removal = null;
+    setRemoval(null);
+    setPages((current) => restoredPages(current, held.page, held.index));
+    dispatch({ type: 'pageRestored', id: held.page.id, failed: held.failed });
+    focusIdRef.current = held.page.id;
+    announce(formatMessage(t.announceRestored, { position: held.index + 1 }));
+    recordAction('undo');
+  };
+
+  return { findPage, removePage, undoRemove, reset };
 }
 
 interface EditActionsInput {
@@ -122,15 +161,20 @@ interface EditActionsInput {
   announce: (text: string) => void;
   focusIdRef: MutableRef<number | null>;
   showResult: (page: ScanPage) => void;
+  removePage: (id: number) => void;
   /** Swap page `id` for a new photo in the same place (useScanPages). */
   retakeFile: (id: number, file: File) => void;
 }
 
 /** The actions that change a page: its order, corners, look and turns, and moving on from the corners. */
 export function createEditActions(input: EditActionsInput) {
-  const { pages, selected, selectedIndex, failedIds, setPages, setDefaultFilter, dispatch, announce, focusIdRef, showResult, retakeFile } = input;
+  const { pages, selected, selectedIndex, failedIds, setPages, setDefaultFilter, dispatch, announce, focusIdRef, showResult, retakeFile, removePage } = input;
 
   const onTileKeyDown = (event: KeyboardEvent, id: number) => {
+    if (!event.altKey && !event.metaKey && !event.ctrlKey && !event.shiftKey) {
+      if (event.key === 'r' || event.key === 'R') { event.preventDefault(); rotatePage(id); return; }
+      if (event.key === 'Delete' || event.key === 'Backspace') { event.preventDefault(); removePage(id); return; }
+    }
     const delta = tileDelta(event);
     if (delta === 0) return;
     const next = moveEntry(pages, id, delta);
@@ -157,10 +201,11 @@ export function createEditActions(input: EditActionsInput) {
     reportEdit('scan-to-pdf');
   };
 
-  const rotatePage = () => {
-    if (!selected) return;
-    setPages((current) => turnPage(current, selected.id));
-    announce(formatMessage(t.announceRotated, { position: selectedIndex + 1 }));
+  const rotatePage = (id: number) => {
+    const position = pages.findIndex((p) => p.id === id) + 1;
+    if (position === 0) return;
+    setPages((current) => turnPage(current, id));
+    announce(formatMessage(t.announceRotated, { position }));
     recordAction('change_setting');
     reportEdit('scan-to-pdf');
   };
@@ -215,7 +260,7 @@ interface PageViewInput {
 /** What a shown page can do, the same beside the desktop's pages and in the phone's viewer. */
 export function pageViewActions({ edit, findPage, removePage, selected, dispatch }: PageViewInput) {
   return {
-    onRotate: edit.rotatePage,
+    onRotate: () => { if (selected) edit.rotatePage(selected.id); },
     onAdjustCorners: edit.adjustCorners,
     onCommit: edit.commitCorners,
     onFind: findPage,

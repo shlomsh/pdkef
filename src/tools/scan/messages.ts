@@ -118,6 +118,15 @@ export interface ScanMessages extends DownloadMessages {
   announceRemoved: string;
   announceMoved: string;
   announceCleared: string;
+  announceRestored: string;
+  removedChip: string;
+  undo: string;
+  rotatePageLabel: string;
+  removePageLabel: string;
+  openPageLabel: string;
+  tipRotate: string;
+  tipRemove: string;
+  tipOpen: string;
 }
 
 export const englishScanMessages: ScanMessages = {
@@ -172,7 +181,7 @@ export const englishScanMessages: ScanMessages = {
   resultDetail: '{size} for {pages}',
   resultUpdating: 'Updating…',
   pagesLabel: 'Pages',
-  reorderHint: 'Drag a page to move it, or use the arrow keys on a selected page.',
+  reorderHint: 'Drag a page to move it, or use the arrow keys on a selected page. R turns it and Delete removes it.',
   tileLabel: 'Page {position} of {total}, open it to fix its corners, turn it or retake it',
   tableHint: 'Tap a page to fix its corners, turn it or retake it.',
   sizeLabel: 'Size',
@@ -235,4 +244,13 @@ export const englishScanMessages: ScanMessages = {
   announceRemoved: 'Removed page {position}.',
   announceMoved: 'Page moved to position {position} of {total}.',
   announceCleared: 'All pages cleared.',
+  announceRestored: 'Page {position} is back.',
+  removedChip: 'Page {position} removed',
+  undo: 'Undo',
+  rotatePageLabel: 'Rotate page {position}',
+  removePageLabel: 'Remove page {position}',
+  openPageLabel: 'Open page {position}',
+  tipRotate: 'Rotate',
+  tipRemove: 'Remove',
+  tipOpen: 'Open',
 };

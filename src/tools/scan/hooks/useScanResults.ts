@@ -70,7 +70,11 @@ export function useScanResults({ pages, work, processed, unmountedRef, dispatch,
     return () => {
       unmountedRef.current = true;
       // A dev server's hot swap keeps the island's state, photos included: only a real unmount frees them.
-      if (!import.meta.hot) work.urls.forEach((url) => URL.revokeObjectURL(url));
+      if (import.meta.hot) return;
+      work.urls.forEach((url) => URL.revokeObjectURL(url));
+      // A page Remove is holding for Undo is in no list: its timer and its preview go with the island.
+      clearTimeout(work.removalTimer);
+      if (work.removal?.page.preview) URL.revokeObjectURL(work.removal.page.preview);
     };
   }, []);
 }

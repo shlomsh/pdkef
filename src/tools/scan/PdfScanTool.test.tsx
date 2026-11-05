@@ -117,6 +117,8 @@ describe('PdfScanTool', () => {
   const useCorners = () => act(async () => { byText('Use these corners')[0].click(); });
   const done = () => act(async () => { byText('Done')[0].click(); });
   const handles = () => Array.from(container.querySelectorAll('[role="group"] button'));
+  /** A button of the open page viewer: the grid under it has buttons of the same words (its hover cluster). */
+  const inViewer = (text) => Array.from(container.querySelectorAll('[data-page-viewer] button')).filter((b) => b.textContent.trim() === text);
   const byText = (text) => Array.from(container.querySelectorAll('button')).filter((b) => b.textContent.trim() === text);
   const radioGroup = (label) => Array.from(container.querySelectorAll('[role="radiogroup"]'))
     .find((g) => (g.getAttribute('aria-label') ?? container.querySelector(`#${g.getAttribute('aria-labelledby')}`)?.textContent) === label);
@@ -240,14 +242,14 @@ describe('PdfScanTool', () => {
   it('removes pages and returns to the empty state after the last', async () => {
     mount();
     await pick([jpeg('a.jpg'), jpeg('b.jpg')]);
-    // Remove sits in the one-page view and returns to the table.
+    // Remove sits in the one-page view; the viewer stays, on the page that is left.
     await openPage(1);
-    await act(async () => { byText('Remove')[0].click(); });
+    await act(async () => { inViewer('Remove')[0].click(); });
     await settle();
-    expect(onTable()).toBe(true);
+    expect(onTable()).toBe(false);
+    expect(container.querySelector('[data-page-heading]').textContent).toContain('Page 1 of 1');
     expect(tableTiles()).toHaveLength(1);
-    await openPage(1);
-    await act(async () => { byText('Remove')[0].click(); });
+    await act(async () => { inViewer('Remove')[0].click(); });
     await settle();
     expect(tableTiles()).toHaveLength(0);
     expect(container.querySelector('[data-empty-state]')).not.toBeNull();
@@ -305,7 +307,7 @@ describe('PdfScanTool', () => {
     expect(container.textContent).toContain('Remove page 2 to make the PDF');
     expect(container.textContent).not.toMatch(/Preparing \d+ pages/);
     await openPage(2);
-    await act(async () => { byText('Remove')[0].click(); });
+    await act(async () => { inViewer('Remove')[0].click(); });
     await settle(1000);
     expect(container.textContent).not.toContain('could not be read');
     expect(pipeline.buildScanPdf).toHaveBeenCalled();
@@ -509,7 +511,7 @@ describe('PdfScanTool', () => {
     await act(async () => { byText('Auto-detect')[0].click(); });
     // The grid under the viewer has no Remove: the page goes from its own row, after the corners are used.
     await useCorners();
-    await act(async () => { byText('Remove')[0].click(); });
+    await act(async () => { inViewer('Remove')[0].click(); });
     await act(async () => { resolveFind?.(GUESS); });
     await settle();
     expect(container.textContent).not.toContain('Page edges found');
@@ -591,7 +593,7 @@ describe('PdfScanTool', () => {
     it('corners keep Rotate, and approving them returns to the page', async () => {
       await openThree();
       await adjustCorners();
-      expect(byText('Rotate')).toHaveLength(1);
+      expect(inViewer('Rotate')).toHaveLength(1);
       await useCorners();
       await settle();
       expect(heading()).toBe('Page 2 of 3');
@@ -604,7 +606,7 @@ describe('PdfScanTool', () => {
     await pick([jpeg('a.jpg')]);
     await settle();
     await openCorners(1);
-    await act(async () => { byText('Rotate')[0].click(); });
+    await act(async () => { inViewer('Rotate')[0].click(); });
     await settle();
     expect(pipeline.turnImage).toHaveBeenCalledWith(expect.any(Blob), 1);
     // The handles sit on the turned photo, the page's top-left first.
@@ -628,10 +630,10 @@ describe('PdfScanTool', () => {
     await settle();
     await openPage(1);
     const lastQuad = () => vi.mocked(pipeline.processPage).mock.calls.at(-1)?.[1];
-    await act(async () => { byText('Rotate')[0].click(); });
+    await act(async () => { inViewer('Rotate')[0].click(); });
     await settle();
     expect(lastQuad()).toEqual([GUESS[3], GUESS[0], GUESS[1], GUESS[2]]);
-    await act(async () => { byText('Rotate')[0].click(); });
+    await act(async () => { inViewer('Rotate')[0].click(); });
     await settle();
     expect(lastQuad()).toEqual([GUESS[2], GUESS[3], GUESS[0], GUESS[1]]);
     // Adjust corners shows the photo turned with the page, its corners turned with it.
@@ -905,11 +907,144 @@ describe('PdfScanTool', () => {
       await pick([photo('a.jpg', 'photo a')]);
       await saved();
       await openPage(1);
-      await act(async () => { byText('Remove')[0].click(); });
+      await act(async () => { inViewer('Remove')[0].click(); });
       await until(() => !(readRecentFiles()[0]?.hasWork ?? []).includes('scan-to-pdf'));
       await remount();
       expect(tableTiles()).toHaveLength(0);
       expect(container.querySelector('[data-empty-state]')).not.toBeNull();
+    });
+  });
+  describe('Remove and Undo (SCAN-51)', () => {
+    const labelled = (label) => container.querySelector(`button[aria-label="${label}"]`);
+    const clickLabel = (label) => act(async () => { labelled(label).click(); });
+    const chip = () => container.querySelector('[data-undo-chip]');
+    const undo = () => act(async () => { chip().querySelector('button').click(); });
+    const thumbs = () => tableTiles().map((tile) => tile.querySelector('img')?.getAttribute('src'));
+    const keyOn = (el, key) => act(async () => { el.dispatchEvent(new KeyboardEvent('keydown', { key, bubbles: true, cancelable: true })); });
+    let revoked;
+    beforeEach(() => { revoked = vi.fn(); URL.revokeObjectURL = revoked; });
+    const three = async () => {
+      mount();
+      await pick([jpeg('a.jpg'), jpeg('b.jpg'), jpeg('c.jpg')]);
+      await settle(1000);
+    };
+
+    it('Undo on the grid puts the page back in its place with its result, without making it again', async () => {
+      await three();
+      const before = tileLabels();
+      const pictures = thumbs();
+      const runs = vi.mocked(pipeline.processPage).mock.calls.length;
+      await clickLabel('Remove page 2');
+      expect(tableTiles()).toHaveLength(2);
+      expect(chip().textContent).toContain('Page 2 removed');
+      await undo();
+      await settle(100);
+      expect(tileLabels()).toEqual(before);
+      expect(thumbs()).toEqual(pictures);
+      expect(vi.mocked(pipeline.processPage).mock.calls.length).toBe(runs);
+      expect(chip()).toBeNull();
+      await settle(6000);
+      expect(thumbs()).toEqual(pictures);
+    });
+
+    it('Remove keeps the page\'s result URLs until the five seconds pass, then lets them go', async () => {
+      await three();
+      const gone = thumbs()[1];
+      await clickLabel('Remove page 2');
+      await settle(4900);
+      expect(revoked).not.toHaveBeenCalledWith(gone);
+      expect(chip()).not.toBeNull();
+      await settle(200);
+      expect(revoked).toHaveBeenCalledWith(gone);
+      expect(chip()).toBeNull();
+    });
+
+    it('Undo in the viewer shows the restored page, and the chip lives inside the dialog', async () => {
+      await three();
+      await openPage(2);
+      await act(async () => { inViewer('Remove')[0].click(); });
+      await settle();
+      expect(container.querySelector('[data-page-viewer] [data-undo-chip]')).not.toBeNull();
+      expect(container.querySelectorAll('[data-undo-chip]')).toHaveLength(1);
+      expect(container.querySelector('[data-page-heading]').textContent).toBe('Page 2 of 2');
+      await undo();
+      await settle();
+      expect(onTable()).toBe(false);
+      expect(container.querySelector('[data-page-heading]').textContent).toBe('Page 2 of 3');
+      expect(tableTiles()).toHaveLength(3);
+    });
+
+    it('removing the open page stays in the viewer on the next page, and on the previous from the last', async () => {
+      await three();
+      await openPage(1);
+      await act(async () => { inViewer('Remove')[0].click(); });
+      await settle();
+      expect(onTable()).toBe(false);
+      expect(container.querySelector('[data-page-heading]').textContent).toBe('Page 1 of 2');
+      await act(async () => { byText('Next page')[0]?.click(); container.querySelector('button[aria-label="Next page"]').click(); });
+      await settle();
+      expect(container.querySelector('[data-page-heading]').textContent).toBe('Page 2 of 2');
+      await act(async () => { inViewer('Remove')[0].click(); });
+      await settle();
+      expect(onTable()).toBe(false);
+      expect(container.querySelector('[data-page-heading]').textContent).toBe('Page 1 of 1');
+    });
+
+    it('a second Remove lets the first page go for good and holds the new one', async () => {
+      await three();
+      const first = thumbs()[0];
+      await clickLabel('Remove page 1');
+      await clickLabel('Remove page 1');
+      expect(revoked).toHaveBeenCalledWith(first);
+      expect(tableTiles()).toHaveLength(1);
+      expect(chip().textContent).toContain('Page 1 removed');
+      await undo();
+      await settle();
+      expect(tableTiles()).toHaveLength(2);
+    });
+
+    it('Clear all during the window lets the held page go with the rest', async () => {
+      await three();
+      const held = thumbs()[1];
+      await clickLabel('Remove page 2');
+      await act(async () => { byText('Clear all files')[0].click(); });
+      await act(async () => { byText('Clear all')[0].click(); });
+      await settle();
+      expect(revoked).toHaveBeenCalledWith(held);
+      expect(chip()).toBeNull();
+      expect(container.querySelector('[data-empty-state]')).not.toBeNull();
+      await settle(6000);
+    });
+
+    it('the only page goes at once, with no Undo', async () => {
+      mount();
+      await pick([jpeg('a.jpg')]);
+      await settle(1000);
+      await clickLabel('Remove page 1');
+      await settle();
+      expect(chip()).toBeNull();
+      expect(container.querySelector('[data-empty-state]')).not.toBeNull();
+    });
+
+    it('Delete on a tile removes that page, and R turns it', async () => {
+      await three();
+      await keyOn(tableTiles()[1], 'r');
+      expect(container.querySelector('[role="status"]').textContent).toBe('Page 2 turned a quarter to the right.');
+      await keyOn(tableTiles()[1], 'Delete');
+      expect(tableTiles()).toHaveLength(2);
+      expect(chip().textContent).toContain('Page 2 removed');
+      await keyOn(tableTiles()[0], 'Backspace');
+      expect(tableTiles()).toHaveLength(1);
+    });
+
+    it('a click on a cluster button never opens the page', async () => {
+      await three();
+      await clickLabel('Rotate page 1');
+      expect(onTable()).toBe(true);
+      await clickLabel('Remove page 1');
+      expect(onTable()).toBe(true);
+      await clickLabel('Open page 1');
+      expect(onTable()).toBe(false);
     });
   });
 });

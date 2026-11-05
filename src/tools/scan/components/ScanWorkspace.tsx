@@ -67,10 +67,12 @@ interface ScanWorkspaceProps {
   /** The table's reorder: the list the drag binds to, and the arrow keys. */
   listRef: Ref<HTMLUListElement>;
   onTileKeyDown: (event: KeyboardEvent, id: number) => void;
+  onRotate: (id: number) => void;
+  onRemove: (id: number) => void;
 }
 
 /** The desktop workspace around the pages: the heading, the rail and the errors. Phones render ScanPhoneTable. */
-export default function ScanWorkspace({ onOpen, results, resultKeyOf, bridge, pages, failedIds, onFiles, onCamera, output, options, rating, listRef, onTileKeyDown }: ScanWorkspaceProps) {
+export default function ScanWorkspace({ onOpen, results, resultKeyOf, bridge, pages, failedIds, onFiles, onCamera, output, options, rating, listRef, onTileKeyDown, onRotate, onRemove }: ScanWorkspaceProps) {
   return (
     <PageWorkspace
       rootAttrs={{ 'data-scan-ready': output.prepared.status === 'ready' || undefined }}
@@ -99,6 +101,8 @@ export default function ScanWorkspace({ onOpen, results, resultKeyOf, bridge, pa
         listRef={listRef}
         onOpen={onOpen}
         onTileKeyDown={onTileKeyDown}
+        onRotate={onRotate}
+        onRemove={onRemove}
         onFiles={onFiles}
         onCamera={onCamera}
         onPickMore={bridge.requestReplace}

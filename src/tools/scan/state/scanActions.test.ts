@@ -24,7 +24,7 @@ function setup(pages: ScanPage[], extra: Record<string, unknown> = {}) {
   let current = pages;
   const setPages = vi.fn((update) => { current = typeof update === 'function' ? update(current) : update; });
   const ctx = {
-    pages, view: 'result' as const, setPages, setResults: vi.fn(), setCustomName: vi.fn(), setRejectedFiles: vi.fn(),
+    pages, view: 'result' as const, failedIds: [] as number[], setRemoval: vi.fn(), setPages, setResults: vi.fn(), setCustomName: vi.fn(), setRejectedFiles: vi.fn(),
     forgetTurned: vi.fn(), work, unmountedRef: { current: false }, dispatch: vi.fn(), announce: vi.fn(),
     focusIdRef: { current: null as number | null }, ...extra,
   };
@@ -92,6 +92,29 @@ describe('createPageActions', () => {
       expect(ctx.focusIdRef.current).toBe(b.id);
       expect(recordAction).toHaveBeenCalledWith('remove_file');
     });
+    it('holds a read page for Undo with its work intact, then lets it go after five seconds', () => {
+      vi.useFakeTimers();
+      const [a, b] = [{ ...newPage(photo(), 'document'), guessed: true }, newPage(photo(), 'document')];
+      const { ctx, work, pagesNow } = setup([a, b], { failedIds: [a.id] });
+      work.results = { [a.id]: { key: 'k', url: 'blob:r', thumbUrl: 'blob:t', page: {} as never } };
+      const actions = createPageActions(ctx);
+      actions.removePage(a.id);
+      expect(pagesNow()).toEqual([b]);
+      expect(work.removal).toEqual({ page: a, index: 0, failed: true });
+      expect(work.removed.has(a.id)).toBe(false);
+      expect(URL.revokeObjectURL).not.toHaveBeenCalled();
+      actions.undoRemove();
+      expect(pagesNow()).toEqual([a, b]);
+      expect(ctx.dispatch).toHaveBeenCalledWith({ type: 'pageRestored', id: a.id, failed: true });
+      expect(recordAction).toHaveBeenCalledWith('undo');
+      expect(work.removal).toBeNull();
+      actions.removePage(a.id);
+      vi.advanceTimersByTime(5000);
+      expect(work.removal).toBeNull();
+      expect(work.removed.has(a.id)).toBe(true);
+      expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:r');
+      vi.useRealTimers();
+    });
     it('starts over when the last page goes', () => {
       const a = newPage(photo(), 'document');
       const { ctx } = setup([a]);
@@ -121,7 +144,7 @@ describe('createEditActions', () => {
     const { ctx, pagesNow } = setup(pages);
     const showResult = vi.fn();
     const setDefaultFilter = vi.fn();
-    const actions = createEditActions({ ...ctx, selected: pages[selectedIndex], selectedIndex, failedIds, setDefaultFilter, showResult, retakeFile: vi.fn(), ...extra });
+    const actions = createEditActions({ ...ctx, selected: pages[selectedIndex], selectedIndex, failedIds, setDefaultFilter, showResult, retakeFile: vi.fn(), removePage: vi.fn(), ...extra });
     return { ctx, actions, pagesNow, showResult, setDefaultFilter };
   }
   const arrow = (key: string, extra = {}) => ({ key, altKey: false, metaKey: false, ctrlKey: false, shiftKey: false, preventDefault: vi.fn(), ...extra }) as unknown as KeyboardEvent;
@@ -162,7 +185,7 @@ describe('createEditActions', () => {
   it('turns the selected page a quarter and says which', () => {
     const a = newPage(photo(), 'document');
     const { ctx, actions, pagesNow } = editSetup([a]);
-    actions.rotatePage();
+    actions.rotatePage(a.id);
     expect(pagesNow()[0].turns).toBe(1);
     expect(ctx.announce).toHaveBeenCalledTimes(1);
   });
