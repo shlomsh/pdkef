@@ -15,28 +15,79 @@
   border: 1px solid var(--color-border);
 }
 
-.option {
+.option,
+.target-preset {
+  position: relative;
   min-height: 44px;
+  padding: 0 4px;
   border: 0;
   border-radius: 10px;
   background: transparent;
   font: inherit;
   font-size: 0.84rem;
   font-weight: 600;
-  color: var(--color-muted);
-  padding: 0 4px;
   line-height: 1.15;
+  color: var(--color-muted);
   white-space: nowrap;
   cursor: pointer;
+  transition:
+    background-color 140ms var(--ease-out),
+    color 140ms var(--ease-out),
+    box-shadow 140ms var(--ease-out);
 }
 
-.option[aria-checked='true'] {
+/* A hairline in the middle of the row's 4px gap. It steps aside next to the
+   chosen option and the one under the pointer, whose own edge divides them. */
+.option + .option::before,
+.target-preset + .target-preset::before {
+  content: '';
+  position: absolute;
+  inset-block: 12px;
+  inset-inline-start: -2.5px;
+  width: 1px;
+  background: var(--color-border-strong);
+  transition: opacity 140ms var(--ease-out);
+}
+
+.option[aria-checked='true']::before,
+.option[aria-checked='true'] + .option::before,
+.target-preset.is-selected::before,
+.target-preset.is-selected + .target-preset::before {
+  opacity: 0;
+}
+
+/* Only where a pointer hovers: on a phone the tint would stay after the tap. */
+@media (hover: hover) {
+  .option:not([aria-checked='true']):hover,
+  .target-preset:not(.is-selected):hover {
+    background: color-mix(in srgb, var(--color-primary-tint) 55%, transparent);
+    color: var(--color-text);
+  }
+
+  .option:hover::before,
+  .option:hover + .option::before,
+  .target-preset:hover::before,
+  .target-preset:hover + .target-preset::before {
+    opacity: 0;
+  }
+}
+
+.option:not([aria-checked='true']):active,
+.target-preset:not(.is-selected):active {
+  background: var(--color-primary-tint);
+  color: var(--color-text);
+}
+
+.option[aria-checked='true'],
+.target-preset.is-selected {
   background: var(--color-surface);
   color: var(--color-text);
-  box-shadow: var(--shadow-sm);
+  box-shadow: 0 0 0 1px var(--color-border), var(--shadow-sm);
+  cursor: default;
 }
 
-.option:focus-visible {
+.option:focus-visible,
+.target-preset:focus-visible {
   outline: 2px solid var(--color-primary);
   outline-offset: 2px;
 }
@@ -143,21 +194,6 @@
   border: 1px solid var(--color-border);
 }
 
-.target-preset {
-  min-height: 44px;
-  padding: 0 4px;
-  border: 0;
-  border-radius: 10px;
-  background: transparent;
-  font: inherit;
-  font-size: 0.84rem;
-  font-weight: 600;
-  color: var(--color-muted);
-  white-space: nowrap;
-  cursor: pointer;
-  transition: background-color 120ms ease, color 120ms ease;
-}
-
 .preset-number {
   font-size: 1rem;
   font-weight: 650;
@@ -171,23 +207,17 @@
   color: var(--color-muted);
 }
 
-.target-preset:hover {
-  color: var(--color-text);
-}
-
-.target-preset.is-selected {
-  background: var(--color-surface);
-  color: var(--color-text);
-  box-shadow: var(--shadow-sm);
-}
-
-.target-preset:focus-visible {
-  outline: 2px solid var(--color-primary);
-  outline-offset: 2px;
-}
-
 @media (max-width: 400px) {
   .option {
     font-size: 0.8rem;
+  }
+}
+
+/* The narrowest phones: a two-word label wraps inside its cell, not past the track. */
+@media (max-width: 359px) {
+  .option {
+    padding: 0 1px;
+    font-size: 0.76rem;
+    white-space: normal;
   }
 }

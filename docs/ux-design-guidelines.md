@@ -388,8 +388,8 @@ these rules in a64ea0ab, and they are the pattern every tool's loaded state foll
    default exists, the same way Merge has no Merge button. Only the latest request runs, never two in
    parallel, and typing in a free-entry field (Compress's exact size) waits 500ms before rerunning.
 5. **Options are one segmented row:** 44px tall, equal columns, and only the selected option carries a
-   one-line description. The recommended option is marked by a dot, never a ribbon or a badge, and no
-   badge repeats an option's name.
+   one-line description. No option carries a mark of its own, not a dot, a ribbon or a badge: the
+   preselected option and its description say which one suits most files.
 6. **On a phone, Download and Share are pinned at the bottom of the card.**
 7. **A second method is offered only once the first falls short** (§3). Compress's "Turn pages into
    pictures" switch appears only when a result fell short (the images could not be recompressed, gave
