@@ -62,3 +62,8 @@ button:has(+ .arrow) {
 .item img { flex-shrink: 0; }
 .note { margin: 0; padding: 0.55rem 0.75rem; font-size: 0.875rem; color: var(--color-text); }
 .note + .item { margin-top: 0.125rem; }
+/* One line: what happened, then the one thing to do about it. */
+.saved { display: flex; align-items: center; gap: 0.5rem; padding: 0.55rem 0.75rem; font-size: 0.875rem; color: var(--color-text); white-space: nowrap; }
+.saved svg { flex-shrink: 0; color: var(--color-primary); }
+.open { margin-inline-start: auto; padding-inline-start: 0.75rem; color: var(--color-primary); font-weight: 600; text-decoration: underline; text-underline-offset: 2px; }
+.open:focus-visible { outline: 2px solid var(--color-primary); outline-offset: 2px; border-radius: 4px; }

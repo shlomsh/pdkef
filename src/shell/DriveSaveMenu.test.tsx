@@ -49,7 +49,10 @@ describe('DriveSaveMenu', () => {
     mount({ state: 'saved', link: 'https://drive.google.com/file/d/1/view' });
     const a = document.body.querySelector<HTMLAnchorElement>('a');
     expect(document.body.querySelector('[role="status"]')?.textContent).toBe(t.saved);
-    expect(a?.textContent).toBe(t.open);
+    const link = document.body.querySelector<HTMLAnchorElement>('[data-drive-saved] a');
+    expect(link?.textContent).toBe(t.openShort);
+    expect(link?.getAttribute('aria-label')).toBe(t.open);
+    expect(link?.closest('[data-drive-saved]')?.querySelector('[role="status"]')?.textContent).toBe(t.saved);
     expect(a?.getAttribute('href')).toBe('https://drive.google.com/file/d/1/view');
     expect(a?.getAttribute('target')).toBe('_blank');
     expect(a?.getAttribute('rel')).toBe('noopener');
