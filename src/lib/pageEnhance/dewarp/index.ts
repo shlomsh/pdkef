@@ -6,7 +6,7 @@ import { scaleQuad, type GrayImage, type Point, type Quad, type RgbaImage } from
 import { findEdgeCurves } from './edgeCurves.ts';
 import { columnFit } from './columnBend.ts';
 import { pageMasks } from './ink.ts';
-import { finishBend, lineFit } from './lineBend.ts';
+import { finishBend, lineFit, rowsToApply } from './lineBend.ts';
 import { warpAlong, type PageMap } from './meshWarp.ts';
 import { bendAt, sideAt, type EdgeCurves, type LineBend } from './types.ts';
 
@@ -146,5 +146,5 @@ export function measureBend(src: RgbaImage, quad: Quad, margin: number, width: n
   // them. Rules alone stay as the corners made them: with no rows to read, a lean could be the page turned.
   const level = (lean: number | null, across: number) => lean !== null && Math.abs(lean * across) <= MAX_SQUARE;
   const square = !!rows && level(rows.lean, h / w) && (!rules || level(rules.lean, w / h));
-  return { curves, lines: finishBend(rows, square), columns: rules && finishBend(rules, square) };
+  return { curves, lines: finishBend(rowsToApply(rows, rules), square), columns: rules && finishBend(rules, square) };
 }

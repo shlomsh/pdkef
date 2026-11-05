@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { GrayImage } from '../quad.ts';
 import { seededRandom } from '../seededRandom.test-helper.ts';
-import { findLineBend, finishBend, fitBend, type Sample } from './lineBend.ts';
+import { findLineBend, finishBend, fitBend, rowsToApply, type Sample } from './lineBend.ts';
 import { bendAt } from './types.ts';
 
 const W = 1000;
@@ -177,6 +177,61 @@ describe('findLineBend', () => {
         expect(finishBend(fitted, false)).toBeNull();
       }
     }
+  });
+
+  /** `count` straight rows `run` long, leaning `-0.016` at the top of the page and `+0.03` at the bottom. */
+  const fanned = (count: number, run = 0.8): Sample[][] =>
+    Array.from({ length: count }, (_, k) => {
+      const y = 0.1 + (0.8 * k) / (count - 1);
+      return Array.from({ length: 40 }, (__, i) => {
+        const x = 0.5 + run * (i / 39 - 0.5);
+        return { line: 0, x, y: y + (-0.016 + 0.046 * (y - 0.1) / 0.8) * (x - 0.5) };
+      });
+    });
+
+  it('keeps the bend of straight rows that fan apart down the page (SCAN-53)', () => {
+    const bend = finishBend(rowsToApply(fitBend(fanned(24), 4), null), true);
+    expect(bend).not.toBeNull();
+    const lean = (y: number) => (bendAt(bend!, 0.8, y) - bendAt(bend!, 0.2, y)) / 0.6;
+    expect(lean(0.15)).toBeCloseTo(-0.0131, 2);
+    expect(lean(0.85)).toBeCloseTo(0.0272, 2);
+  });
+
+  it('wants a dozen lines before it reads a fan: a sparse page has too few to tell (SCAN-53)', () => {
+    expect(fitBend(fanned(11), 4)!.fans).toBe(false);
+    expect(fitBend(fanned(16), 4)!.fans).toBe(true);
+  });
+
+  it('reads no fan from short cells: a table\'s labels are not rows across the page (SCAN-53)', () => {
+    expect(fitBend(fanned(24, 0.2), 4)!.fans).toBe(false);
+  });
+
+  it('does not let short cells lean a fan onto level rows (review)', () => {
+    const rnd = seededRandom(11);
+    const row = (y: number, run: number, slope: number, jitter: number): Sample[] => Array.from({ length: 40 }, (_, i) => {
+      const x = 0.5 + run * (i / 39 - 0.5);
+      return { line: 0, x, y: y + slope * (x - 0.5) + (rnd() - 0.5) * jitter };
+    });
+    // Level rows across the top half, and below them a table's short cells, all leaning: the fit
+    // follows the cells easily, but it has nothing to say about the rows.
+    const lines = [
+      ...Array.from({ length: 14 }, (_, k) => row(0.1 + 0.03 * k, 0.8, 0, 0.001)),
+      ...Array.from({ length: 14 }, (_, k) => row(0.56 + 0.025 * k, 0.2, 0.03, 0)),
+    ];
+    expect(fitBend(lines, 4)!.fans).toBe(false);
+  });
+
+  it('reads no fan on a page with rules: a table\'s cells sit at their own heights (SCAN-53)', () => {
+    const rows = fitBend(fanned(24), 4);
+    const rules = fitBend(fanned(5), 4);
+    expect(rows!.explained).toBe(false);
+    expect(rowsToApply(rows, rules)!.explained).toBe(false);
+    expect(rowsToApply(rows, null)!.explained).toBe(true);
+  });
+
+  it('keeps a bend the lines\' own wobble explains, however few they are (SCAN-53)', () => {
+    const bowed = fanned(6).map((line) => line.map((p) => ({ ...p, y: p.y + 0.15 * (p.x - 0.5) ** 2 })));
+    expect(fitBend(bowed, 4)!.explained).toBe(true);
   });
 
   it('does not shift a page when its lines cover only part of its width (review)', () => {
