@@ -76,6 +76,7 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 
 ### Polish
 
+- [GRID-09](backlog/tasks/GRID-09.md) P2 · One segmented row: hover and dividers in every tool, Compress through OptionRow (in progress)
 - [QUAL-21](backlog/tasks/QUAL-21.md) P2 · Pages render at the size they are shown, and the practice form's logo is sharp (in progress)
 - [SIGN-44](backlog/tasks/SIGN-44.md) P2 · Sign: a comment on a highlight, kept in the PDF as a standard annotation (in progress)
 - [SITE-45](backlog/tasks/SITE-45.md) P3 · The /drive/ voice, carried to the other quiet pages: doodle that shows the mechanism, paper stickers for the promises (in progress)
@@ -117,6 +118,7 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 - [READ-16](backlog/tasks/READ-16.md) · Pick the stepper's place: the toolbar capsule, the top of the rail, or the page header
 - [MOBI-01](backlog/tasks/MOBI-01.md) · Half an hour with an Android phone
 - [DEBT-53](backlog/tasks/DEBT-53.md) · A check on your iPhone
+- [GRID-09](backlog/tasks/GRID-09.md) · Your yes on the look, from the screenshots
 - [SEO-40](backlog/tasks/SEO-40.md) · The Search Console exports
 - [SEO-42](backlog/tasks/SEO-42.md) · The /compress/ query export (28 days before and after 2026-10-08) and /compress-image/ filtered to queries containing pdf
 - [SEO-44](backlog/tasks/SEO-44.md) · The 2026-11-07 Search Console export: the /split/ and /he/split/ rows

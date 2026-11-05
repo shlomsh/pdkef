@@ -1,104 +1,3 @@
-.label {
-  font-size: 0.82rem;
-  color: var(--color-muted);
-  font-weight: 500;
-  margin: 0 0 0.5rem;
-}
-
-.seg {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 4px;
-  padding: 4px;
-  border-radius: 14px;
-  background: var(--color-primary-soft);
-  border: 1px solid var(--color-border);
-}
-
-.option,
-.target-preset {
-  position: relative;
-  min-height: 44px;
-  padding: 0 4px;
-  border: 0;
-  border-radius: 10px;
-  background: transparent;
-  font: inherit;
-  font-size: 0.84rem;
-  font-weight: 600;
-  line-height: 1.15;
-  color: var(--color-muted);
-  white-space: nowrap;
-  cursor: pointer;
-  transition:
-    background-color 140ms var(--ease-out),
-    color 140ms var(--ease-out),
-    box-shadow 140ms var(--ease-out);
-}
-
-/* A hairline in the middle of the row's 4px gap. It steps aside next to the
-   chosen option and the one under the pointer, whose own edge divides them. */
-.option + .option::before,
-.target-preset + .target-preset::before {
-  content: '';
-  position: absolute;
-  inset-block: 12px;
-  inset-inline-start: -2.5px;
-  width: 1px;
-  background: var(--color-border-strong);
-  transition: opacity 140ms var(--ease-out);
-}
-
-.option[aria-checked='true']::before,
-.option[aria-checked='true'] + .option::before,
-.target-preset.is-selected::before,
-.target-preset.is-selected + .target-preset::before {
-  opacity: 0;
-}
-
-/* Only where a pointer hovers: on a phone the tint would stay after the tap. */
-@media (hover: hover) {
-  .option:not([aria-checked='true']):hover,
-  .target-preset:not(.is-selected):hover {
-    background: color-mix(in srgb, var(--color-primary-tint) 55%, transparent);
-    color: var(--color-text);
-  }
-
-  .option:hover::before,
-  .option:hover + .option::before,
-  .target-preset:hover::before,
-  .target-preset:hover + .target-preset::before {
-    opacity: 0;
-  }
-}
-
-.option:not([aria-checked='true']):active,
-.target-preset:not(.is-selected):active {
-  background: var(--color-primary-tint);
-  color: var(--color-text);
-}
-
-.option[aria-checked='true'],
-.target-preset.is-selected {
-  background: var(--color-surface);
-  color: var(--color-text);
-  box-shadow: 0 0 0 1px var(--color-border), var(--shadow-sm);
-  cursor: default;
-}
-
-.option:focus-visible,
-.target-preset:focus-visible {
-  outline: 2px solid var(--color-primary);
-  outline-offset: 2px;
-}
-
-.desc {
-  margin: 0.6rem 2px 0;
-  font-size: 0.84rem;
-  line-height: 1.45;
-  color: var(--color-muted);
-}
-
 .target-panel {
   margin-top: 0.75rem;
 }
@@ -125,7 +24,7 @@
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  min-height: 52px;
+  min-height: 54px;
   padding: 0 14px;
   background: var(--color-surface);
   border: 1px solid var(--color-border-strong);
@@ -179,19 +78,17 @@
   color: var(--color-muted);
 }
 
-/* The shortcuts are one segmented row, the same control as the level picker
-   above them: equal columns, the chosen one raised. */
+/* The shortcuts are one segmented row, the same track as the level picker
+   above them (OptionRow's raised look): equal columns, the chosen one raised. */
 .target-presets {
   /* Wide enough for four labels; below that the row wraps instead of spilling. */
   flex: 1 1 13.5rem;
-  display: grid;
-  grid-auto-flow: column;
-  grid-auto-columns: minmax(0, 1fr);
-  gap: 4px;
-  padding: 3px;
-  border-radius: 14px;
-  background: var(--color-primary-soft);
-  border: 1px solid var(--color-border);
+}
+
+/* A number and its unit stay on one line, in columns that stay equal. */
+.target-presets > button {
+  min-width: 0;
+  white-space: nowrap;
 }
 
 .preset-number {
@@ -205,19 +102,4 @@
   font-weight: 500;
   letter-spacing: 0.02em;
   color: var(--color-muted);
-}
-
-@media (max-width: 400px) {
-  .option {
-    font-size: 0.8rem;
-  }
-}
-
-/* The narrowest phones: a two-word label wraps inside its cell, not past the track. */
-@media (max-width: 359px) {
-  .option {
-    padding: 0 1px;
-    font-size: 0.76rem;
-    white-space: normal;
-  }
 }
