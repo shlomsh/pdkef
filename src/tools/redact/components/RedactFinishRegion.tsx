@@ -38,6 +38,7 @@ export default function RedactFinishRegion({ state, exp, finish, details, rating
         onHandoff={(tool) => { void exp.requestHandoff(tool); /* reason: requestHandoff catches its own failure and shows the hand-off error */ }}
         handoffBusy={exp.handoffBusy}
         handoffFailed={state.finish.handoffFailed}
+        drive={finish.drive}
         rating={finish.showStrip ? null : rating}
       >
         {/* Export error - recoverable, so it renders alongside the still-mounted

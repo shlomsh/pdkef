@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { funnelLines, parseUsageField, sumUsage } from './errors-funnel.mjs';
+import { DRIVE_EVENTS, driveSaveLines, funnelLines, parseUsageField, sumUsage } from './errors-funnel.mjs';
 
 const flat = (o) => Object.entries(o).flat();
 
@@ -62,5 +62,47 @@ describe('funnelLines', () => {
 
   it('prints nothing when there are no page-load fields', () => {
     expect(funnelLines([flat({ 'tool_file_accepted|merge': 3 })])).toEqual([]);
+  });
+});
+
+describe('driveSaveLines', () => {
+  const day = flat({
+    'tool_drive_shown|redact': 4,
+    'tool_drive_shown|redact|abc1234': 6,
+    'tool_drive_tapped|redact': 5,
+    'tool_drive_saved|redact|abc1234': 3,
+    'tool_drive_failed|redact': 1,
+    'pg:tool_drive_shown|redact|-|-|navigate|-': 7,
+    'pg:tool_drive_saved|redact|-|-|navigate|-': 2,
+    'tool_drive_shown|highlight-pdf': 2,
+    'tool_drive_tapped|highlight-pdf': 3,
+    'tool_drive_saved|highlight-pdf': 1,
+  });
+
+  it('names the four events', () => {
+    expect(DRIVE_EVENTS).toEqual(['tool_drive_shown', 'tool_drive_tapped', 'tool_drive_saved', 'tool_drive_failed']);
+  });
+
+  it('sums runs per tool across builds and days, counts pg: fields as pages, most shown first', () => {
+    expect(driveSaveLines([day, flat({ 'tool_drive_shown|redact': 1 })])).toEqual([
+      'tool | shown | tapped | saved | failed | closed first | pages shown | pages saved',
+      'redact | 11 | 5 | 3 | 1 | 1 | 7 | 2',
+      'highlight-pdf | 2 | 3 | 1 | 0 | 2 | 0 | 0',
+    ]);
+  });
+
+  it('never lets closed first go below zero', () => {
+    expect(driveSaveLines([flat({ 'tool_drive_tapped|redact': 1, 'tool_drive_saved|redact': 2 })])[1]).toBe('redact | 0 | 1 | 2 | 0 | 0 | 0 | 0');
+  });
+
+  it('leaves the funnel and usage table unchanged by drive fields', () => {
+    const base = flat({ 'tool_file_accepted|redact': 3, 'pg:tool_file_accepted|redact|pick|-|-|-': 2 });
+    expect(funnelLines([[...base, ...day]])).toEqual(funnelLines([base]));
+    expect(sumUsage([[...base, ...day]])).toEqual(sumUsage([base]));
+  });
+
+  it('is empty without a drive event', () => {
+    expect(driveSaveLines([flat({ 'tool_file_accepted|redact': 3 })])).toEqual([]);
+    expect(driveSaveLines([])).toEqual([]);
   });
 });

@@ -99,6 +99,7 @@ export default function RedactWorkspaceToolbar({ state, dispatch, setAnnouncemen
             facts={finish.finishFacts}
             handoffBusy={exp.handoffBusy}
             handoffFailed={state.finish.handoffFailed}
+            drive={finish.drive}
             onHandoff={(tool) => { void exp.requestHandoff(tool); /* reason: requestHandoff catches its own failure and shows the hand-off error */ }}
             onClose={finish.closeStrip}
           >

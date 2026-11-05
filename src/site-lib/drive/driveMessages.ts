@@ -19,3 +19,14 @@ export const driveMessage = (failure: DriveFailure): string => MESSAGES[failure]
 
 /** Retrying helps when the cause was passing; a missing or non-PDF file will not change. */
 export const canRetry = (failure: DriveFailure): boolean => failure !== 'not-found' && failure !== 'not-pdf';
+
+export type PickerLabels = { title: string; recent: string; myDrive: string; shared: string; starred: string };
+
+const PICKER_EN: PickerLabels = { title: 'Choose a file', recent: 'Recent', myDrive: 'My Drive', shared: 'Shared with me', starred: 'Starred' };
+const PICKER_HE: PickerLabels = { title: 'בחירת קובץ', recent: 'אחרונים', myDrive: 'האחסון שלי', shared: 'משותף איתי', starred: 'מסומן בכוכב' };
+
+/** The Picker's own words follow the language of the page the person came from. */
+export function pickerLabels(returnTo: string): { labels: PickerLabels; locale: string | undefined } {
+  const hebrew = returnTo === '/he' || returnTo.startsWith('/he/');
+  return hebrew ? { labels: PICKER_HE, locale: 'he' } : { labels: PICKER_EN, locale: undefined };
+}

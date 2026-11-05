@@ -1,6 +1,6 @@
 # PDkef analytics approach
 
-Last updated: 2026-10-21
+Last updated: 2026-11-05
 
 ## Purpose
 
@@ -101,6 +101,23 @@ Sign also retains its existing `sign_export` maintenance event. It is now
 unsampled and uses only the fixed `outcome`, `duration_bucket`, and, on failure,
 `error_code` values defined in `src/lib/telemetry/maintenanceTelemetry.ts`. It is a narrow
 Sign performance/compatibility diagnostic, not a second product-event schema.
+
+The Save to Google Drive pilot (MERGE-26) adds four events, each with `{tool}` and the optional
+`build` and `first` (`nav` on a page load's first), nothing from the file or the Google account.
+Only `highlight-pdf` and `redact` send them. They are counted with the lifecycle events and read with
+`npm run errors:read` under "Save to Google Drive (pilot)".
+
+| Event | When it fires |
+| --- | --- |
+| `tool_drive_shown` | The save button appeared for someone already connected to Google, with a finished file in front of them |
+| `tool_drive_tapped` | They tapped it |
+| `tool_drive_saved` | The `/drive/` tab answered that the file was saved |
+| `tool_drive_failed` | The `/drive/` tab answered that it could not save |
+
+How to read them: shown says how many people had a finished file while connected. tapped / shown is
+the interest. saved / tapped is whether it works. closed first, tapped minus saved minus failed, is
+people who changed their mind or got stuck at sign-in. The pages columns count page loads (the `first`
+event) next to the run counts.
 
 The `tool` values are a closed list: `merge`, `split`, `edit-pdf`, `compress`,
 `pdf-to-image`, `image-to-pdf`, `scan-to-pdf`, `sign`, `redact`, `unlock`, and `protect`.

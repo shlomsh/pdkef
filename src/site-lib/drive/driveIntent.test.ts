@@ -43,3 +43,16 @@ describe('parseDriveIntent', () => {
     expect(parseDriveIntent('?state=nope')).toEqual({ kind: 'none' });
   });
 });
+
+describe('parseDriveIntent save', () => {
+  it('reads ?save=<id>', () => {
+    expect(parseDriveIntent('?save=abc-123')).toEqual({ kind: 'save', id: 'abc-123' });
+  });
+  it('comes before the state parsing', () => {
+    expect(parseDriveIntent('?save=abc&state=%7B%7D')).toEqual({ kind: 'save', id: 'abc' });
+  });
+  it('rejects ids with other characters', () => {
+    expect(parseDriveIntent('?save=A/b')).toEqual({ kind: 'none' });
+    expect(parseDriveIntent('?save=')).toEqual({ kind: 'none' });
+  });
+});

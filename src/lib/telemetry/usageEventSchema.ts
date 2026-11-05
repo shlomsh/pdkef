@@ -44,6 +44,17 @@ export const TOOL_LIFECYCLE_EVENTS = [
 export type ToolLifecycleEvent = (typeof TOOL_LIFECYCLE_EVENTS)[number];
 
 /**
+ * MERGE-26's pilot, counted apart from the funnel so its columns stay as they are. `tool_drive_shown`:
+ * the button appeared for someone already connected to Google. `tool_drive_tapped`: they tapped it.
+ * `tool_drive_saved` / `tool_drive_failed`: what the /drive/ tab answered. Tapped with neither answer
+ * means the tab was closed first. Each carries the tool's name and nothing from the file or the account.
+ */
+const DRIVE_SAVE_EVENTS = ['tool_drive_shown', 'tool_drive_tapped', 'tool_drive_saved', 'tool_drive_failed'] as const;
+type DriveSaveEvent = (typeof DRIVE_SAVE_EVENTS)[number];
+export type UsageEventName = ToolLifecycleEvent | DriveSaveEvent;
+const USAGE_EVENTS: readonly UsageEventName[] = [...TOOL_LIFECYCLE_EVENTS, ...DRIVE_SAVE_EVENTS];
+
+/**
  * `build` (DEBT-44): the 7-character commit the page was built from, as in an error report, so a
  * day's failures can be told apart by release. Optional: a build without the stamp, or a cached
  * older build, sends `{tool}` alone.
@@ -82,7 +93,7 @@ export const VISITS = ['new', 'today', 'week', 'month', 'older'] as const;
 export type Visit = (typeof VISITS)[number];
 
 export type UsageEvent = Readonly<{
-  name: ToolLifecycleEvent;
+  name: UsageEventName;
   properties: Readonly<{
     tool: AnalyticsTool | ViewOnlyPage;
     build?: string;
@@ -119,7 +130,7 @@ const OPTIONAL_KEYS = ['build', 'first', 'nav', 'source', 'from', 'visit'] as co
 export function parseUsageEvent(value: unknown): UsageEvent | null {
   if (!isPlainObject(value) || !exactKeys(value, ['name', 'properties'])) return null;
   const { name, properties } = value;
-  if (!has(TOOL_LIFECYCLE_EVENTS, name)) return null;
+  if (!has(USAGE_EVENTS, name)) return null;
   if (!isPlainObject(properties)) return null;
   const present = OPTIONAL_KEYS.filter((key) => key in properties);
   if (!exactKeys(properties, ['tool', ...present])) return null;
@@ -133,7 +144,7 @@ export function parseUsageEvent(value: unknown): UsageEvent | null {
   if (on('from') && (name !== 'tool_file_accepted' || p.source !== 'handoff' || !has(ANALYTICS_TOOLS, p.from))) return null;
   if (on('visit') && (name !== 'tool_page_viewed' || !has(VISITS, p.visit))) return null;
   return Object.freeze({
-    name: name as ToolLifecycleEvent,
+    name: name as UsageEventName,
     properties: Object.freeze({
       tool: p.tool as AnalyticsTool | ViewOnlyPage,
       ...(on('build') ? { build: p.build as string } : {}),

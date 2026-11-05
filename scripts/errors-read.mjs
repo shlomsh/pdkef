@@ -7,7 +7,7 @@ import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { sampleLines } from './errors-frames.mjs';
-import { funnelLines, sumUsage } from './errors-funnel.mjs';
+import { driveSaveLines, funnelLines, sumUsage } from './errors-funnel.mjs';
 import { addUntraced, failuresByBuild, fingerprintHistory, pageStartsByTool, parseDayReplies, sliceWindow, toolRates, untracedTools } from './errors-insights.mjs';
 import { validateRegistry } from './errors-known.mjs';
 import { renderTriage, triage } from './errors-triage.mjs';
@@ -217,6 +217,11 @@ const funnel = funnelLines(usageReplies.map((r) => r.result));
 if (funnel.length) {
   console.log('\nFunnel (page loads)');
   for (const line of funnel) console.log(line);
+}
+const driveLines = driveSaveLines(usageReplies.map((r) => r.result));
+if (driveLines.length) {
+  console.log('\nSave to Google Drive (pilot)');
+  for (const line of driveLines) console.log(line);
 }
 const startLines = pageStartsByTool(perDay, days);
 if (startLines.length) {

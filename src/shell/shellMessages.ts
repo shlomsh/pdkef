@@ -166,6 +166,8 @@ export interface ShellMessages {
   /** Aria label of one star button, e.g. "3 stars". */
   ratingStarOne: string;
   ratingStarOther: string;
+  /** MERGE-26: the Save to Google Drive button in a finished output's hand-off row. */
+  saveToDrive: { save: string; saving: string; saved: string; failed: string };
 }
 
 export const englishShellMessages: ShellMessages = {
@@ -246,6 +248,12 @@ export const englishShellMessages: ShellMessages = {
   ratingDone: 'Done',
   ratingStarOne: '1 star',
   ratingStarOther: '{count} stars',
+  saveToDrive: {
+    save: 'Save to Google Drive',
+    saving: 'Saving to Google Drive...',
+    saved: 'Saved to Google Drive',
+    failed: 'That did not reach Google Drive. Your file is still here to download.',
+  },
 };
 
 export const hebrewShellMessages: ShellMessages = {
@@ -325,6 +333,12 @@ export const hebrewShellMessages: ShellMessages = {
   ratingDone: 'סיום',
   ratingStarOne: 'כוכב אחד',
   ratingStarOther: '{count} כוכבים',
+  saveToDrive: {
+    save: 'שמירה ב-Google Drive',
+    saving: 'שומר ב-Google Drive...',
+    saved: 'נשמר ב-Google Drive',
+    failed: 'הקובץ לא הגיע ל-Google Drive. הוא עדיין כאן להורדה.',
+  },
 };
 
 const shellMessages: Partial<Record<DocumentationLocaleId, ShellMessages>> = {

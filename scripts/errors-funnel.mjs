@@ -135,3 +135,33 @@ export function funnelLines(results) {
   }
   return lines;
 }
+
+// MERGE-26's Save to Google Drive pilot, read apart from the funnel so its columns stay as they are.
+// Wire shapes: `<event>|<tool>`, `<event>|<tool>|<build>`, and `pg:<event>|<tool>|-|-|<nav>|-` on a page load's first.
+export const DRIVE_EVENTS = ['tool_drive_shown', 'tool_drive_tapped', 'tool_drive_saved', 'tool_drive_failed'];
+
+/** Per tool: run counts for the four events, then page loads that showed it and saved. [] without a drive event. */
+export function driveSaveLines(results) {
+  const byTool = new Map();
+  for (const result of results) {
+    for (let n = 0; n + 1 < (result?.length ?? 0); n += 2) {
+      const count = Number(result[n + 1]) || 0;
+      if (count <= 0) continue;
+      const f = String(result[n]);
+      const isPage = f.startsWith('pg:');
+      const [event, tool] = (isPage ? f.slice(3) : f).split('|');
+      if (!DRIVE_EVENTS.includes(event) || !tool) continue;
+      const row = byTool.get(tool) ?? { runs: DRIVE_EVENTS.map(() => 0), shownPages: 0, savedPages: 0 };
+      if (!isPage) row.runs[DRIVE_EVENTS.indexOf(event)] += count;
+      else if (event === 'tool_drive_shown') row.shownPages += count;
+      else if (event === 'tool_drive_saved') row.savedPages += count;
+      byTool.set(tool, row);
+    }
+  }
+  if (!byTool.size) return [];
+  const rows = [...byTool]
+    .sort((a, b) => b[1].runs[0] - a[1].runs[0] || a[0].localeCompare(b[0]))
+    .map(([tool, { runs: [shown, tapped, saved, failed], shownPages, savedPages }]) =>
+      [tool, shown, tapped, saved, failed, Math.max(0, tapped - saved - failed), shownPages, savedPages].join(' | '));
+  return ['tool | shown | tapped | saved | failed | closed first | pages shown | pages saved', ...rows];
+}

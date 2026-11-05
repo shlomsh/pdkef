@@ -11,7 +11,7 @@
 
 import { readBuildCommit, sendBeacon } from './errorReport.ts';
 import { resetFileArrivalForTests, takeArrival, type Arrival } from '../handoff/fileArrival.ts';
-import { NAVIGATION_TYPES, parseUsageEvent, type AnalyticsTool, type NavigationType, type ToolLifecycleEvent, type ViewOnlyPage, type Visit } from './usageEventSchema';
+import { NAVIGATION_TYPES, parseUsageEvent, type AnalyticsTool, type NavigationType, type UsageEventName, type ViewOnlyPage, type Visit } from './usageEventSchema';
 import { readAndStampVisit } from './visitRecency.ts';
 
 // The event and tool lists live in the import-free schema the endpoint shares (DEBT-28).
@@ -51,7 +51,7 @@ function pageVisit(): Visit | undefined {
   return visit.value;
 }
 
-const SOURCE_EVENTS: readonly ToolLifecycleEvent[] = [
+const SOURCE_EVENTS: readonly UsageEventName[] = [
   'tool_first_edit',
   'tool_operation_started',
   'tool_result_ready',
@@ -59,7 +59,7 @@ const SOURCE_EVENTS: readonly ToolLifecycleEvent[] = [
 ];
 
 /** The arrival properties an event carries: its own for an accepted file, the current one's source after. */
-function arrivalProps(event: ToolLifecycleEvent, arrival: Arrival | undefined): Partial<Arrival> {
+function arrivalProps(event: UsageEventName, arrival: Arrival | undefined): Partial<Arrival> {
   if (!arrival) return {};
   if (event === 'tool_file_accepted') return arrival;
   return SOURCE_EVENTS.includes(event) ? { source: arrival.source } : {};
@@ -77,7 +77,7 @@ function readNavigationType(): NavigationType | undefined {
 }
 
 /** Hands one funnel event to `/api/report` by beacon; capped per page, never throws. */
-export function reportToolLifecycleEvent(event: ToolLifecycleEvent, tool: AnalyticsTool): void {
+export function reportToolLifecycleEvent(event: UsageEventName, tool: AnalyticsTool): void {
   report(event, tool);
 }
 
@@ -89,7 +89,7 @@ export function reportHomePageView(): void {
   report('tool_page_viewed', 'home');
 }
 
-function report(event: ToolLifecycleEvent, tool: AnalyticsTool | ViewOnlyPage): void {
+function report(event: UsageEventName, tool: AnalyticsTool | ViewOnlyPage): void {
   try {
     const build = readBuildCommit();
     const pair = `${event}|${tool}`;

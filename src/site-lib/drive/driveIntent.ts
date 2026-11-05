@@ -27,6 +27,8 @@ export function driveOpenHref(options: { returnTo: string; tool?: string }): str
 /** What a visit to /drive/ is for. Pure: never throws, never touches the DOM. */
 export function parseDriveIntent(search: string): DriveIntent {
   const params = new URLSearchParams(search);
+  const save = params.get('save');
+  if (save !== null && TOOL.test(save)) return { kind: 'save', id: save };
   if (params.get('pick') === '1') {
     const tool = params.get('tool');
     return { kind: 'pick', tool: tool !== null && TOOL.test(tool) ? tool : null, returnTo: safeReturnPath(params.get('return')) };
