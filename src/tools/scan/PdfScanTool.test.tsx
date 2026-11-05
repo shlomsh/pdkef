@@ -516,7 +516,87 @@ describe('PdfScanTool', () => {
     await act(async () => { byText('Full screen')[0].click(); });
     await useCorners();
     expect(editor().hasAttribute('data-full')).toBe(false);
-    expect(byText('Full screen')).toHaveLength(0);
+    expect(byText('Exit full screen')).toHaveLength(0);
+  });
+
+  describe('the page at full screen on desktop (SCAN-50)', () => {
+    const editor = () => container.querySelector('[data-page-heading]').closest('section');
+    const heading = () => container.querySelector('[data-page-heading]').textContent;
+    const press = (key) => act(async () => { document.dispatchEvent(new KeyboardEvent('keydown', { key, bubbles: true })); });
+    const step = (label) => container.querySelector(`button[aria-label="${label}"]`);
+    const openFull = async () => {
+      mount();
+      await pick([jpeg('a.jpg'), jpeg('b.jpg'), jpeg('c.jpg')]);
+      await settle();
+      await openPage(2);
+      await act(async () => { container.querySelector('[data-paper]').click(); });
+    };
+
+    it('a click on the page opens it, with only the page and the way through the scan', async () => {
+      await openFull();
+      expect(editor().hasAttribute('data-full')).toBe(true);
+      expect(heading()).toBe('Page 2 of 3');
+      expect(byText('Done')).toHaveLength(0);
+      expect(byText('Pages')).toHaveLength(0);
+      expect(byText('Exit full screen')).toHaveLength(1);
+    });
+
+    it('the arrow keys browse the pages and stop at the ends', async () => {
+      await openFull();
+      await press('ArrowRight');
+      expect(heading()).toBe('Page 3 of 3');
+      await press('ArrowRight');
+      expect(heading()).toBe('Page 3 of 3');
+      await press('ArrowLeft');
+      await press('ArrowLeft');
+      await press('ArrowLeft');
+      expect(heading()).toBe('Page 1 of 3');
+      expect(editor().hasAttribute('data-full')).toBe(true);
+    });
+
+    it('the arrows leave the browser\'s own shortcuts and a key already handled alone', async () => {
+      await openFull();
+      await act(async () => { document.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowLeft', altKey: true, bubbles: true })); });
+      await act(async () => { document.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', metaKey: true, bubbles: true })); });
+      expect(heading()).toBe('Page 2 of 3');
+      const handled = new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true, cancelable: true });
+      handled.preventDefault();
+      await act(async () => { document.dispatchEvent(handled); });
+      expect(heading()).toBe('Page 2 of 3');
+    });
+
+    it('Previous and Next browse the pages and rest at the ends', async () => {
+      await openFull();
+      await act(async () => { step('Next page').click(); });
+      expect(heading()).toBe('Page 3 of 3');
+      // aria-disabled, not disabled: the button keeps the focus it was just pressed with.
+      expect(step('Next page').getAttribute('aria-disabled')).toBe('true');
+      expect(step('Next page').disabled).toBe(false);
+      await act(async () => { step('Previous page').click(); });
+      await act(async () => { step('Previous page').click(); });
+      expect(heading()).toBe('Page 1 of 3');
+      expect(step('Previous page').getAttribute('aria-disabled')).toBe('true');
+    });
+
+    it('Esc returns to the card on the page last shown, where the arrows are the page\'s own again', async () => {
+      await openFull();
+      await press('ArrowRight');
+      await press('Escape');
+      expect(editor().hasAttribute('data-full')).toBe(false);
+      expect(heading()).toBe('Page 3 of 3');
+      expect(byText('Done')).toHaveLength(1);
+      await press('ArrowLeft');
+      expect(heading()).toBe('Page 3 of 3');
+    });
+
+    it('the head\'s Full screen opens it for the keyboard', async () => {
+      mount();
+      await pick([jpeg('a.jpg')]);
+      await settle();
+      await openPage(1);
+      await act(async () => { byText('Full screen')[0].click(); });
+      expect(editor().hasAttribute('data-full')).toBe(true);
+    });
   });
 
   // The flatten starts from the photo where the card shows it: measured full screen, the page flew

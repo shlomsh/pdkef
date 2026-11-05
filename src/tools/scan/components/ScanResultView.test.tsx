@@ -12,7 +12,7 @@ afterEach(() => {
 });
 
 function mount(bent = false) {
-  const fns = { onChooseLook: vi.fn(), onAdjustCorners: vi.fn(), onRotate: vi.fn(), onRetake: vi.fn(), onRemovePage: vi.fn(), onDone: vi.fn() };
+  const fns = { onChooseLook: vi.fn(), onAdjustCorners: vi.fn(), onRotate: vi.fn(), onRetake: vi.fn(), onRemovePage: vi.fn(), onDone: vi.fn(), onOpen: vi.fn() };
   const selected = { id: 7, filter: 'document', found: true, edited: false } as unknown as ScanPage;
   container = document.createElement('div');
   document.body.appendChild(container);

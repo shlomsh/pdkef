@@ -12,6 +12,7 @@ import type { PageResult, ScanPage } from '../state/scanWork.ts';
 import styles from '../PdfScanTool.module.css';
 import ScanCornersView from './ScanCornersView.tsx';
 import ScanEditorHead from './ScanEditorHead.tsx';
+import ScanFullPage from './ScanFullPage.tsx';
 import ScanPageStrip from './ScanPageStrip.tsx';
 import ScanResultView from './ScanResultView.tsx';
 
@@ -43,6 +44,7 @@ export interface ScanWorkbenchProps {
   actions: {
     onRotate: () => void;
     onToggleFull: () => void;
+    onStep: (delta: 1 | -1) => void;
     onAdjustCorners: () => void;
     onCommit: (id: number, quad: Quad) => void;
     onFind: (page: ScanPage) => void;
@@ -64,6 +66,8 @@ export interface ScanWorkbenchProps {
 export default function ScanWorkbench({ refs, stageHeight, pages, selected, selectedIndex, view, results, turnedPreviews, failedIds, finding, findMissed, full, pageSize, built, resultKeyOf, actions }: ScanWorkbenchProps) {
   /** The built PDF's own pages are what is shown once they match what is on screen. */
   const exact = built.shown !== undefined && built.ready;
+  const pageProps = resultViewFor(selected, selectedIndex, { shown: built.shown, ready: exact, results, pageSize });
+  const detail = exact ? exactResultDetail(built.size, pages.length) : undefined;
   return (
     // From 1024px the pages are a column beside the selected page, so both stay on the first screen.
     <div
@@ -99,7 +103,10 @@ export default function ScanWorkbench({ refs, stageHeight, pages, selected, sele
             onRemove={actions.onRemovePage}
           />
         )}
-        {view === 'result' && (
+        {view === 'result' && full !== null && (
+          <ScanFullPage pageProps={pageProps} detail={detail} atStart={selectedIndex === 0} atEnd={selectedIndex === pages.length - 1} onStep={actions.onStep} />
+        )}
+        {view === 'result' && full === null && (
           <ScanResultView
             selected={selected}
             lookOptions={lookOptions()}
@@ -110,8 +117,9 @@ export default function ScanWorkbench({ refs, stageHeight, pages, selected, sele
             onRetakeCamera={actions.onRetakeCamera}
             onRemovePage={actions.onRemovePage}
             onDone={actions.onDone}
-            pageProps={resultViewFor(selected, selectedIndex, { shown: built.shown, ready: exact, results, pageSize })}
-            detail={exact ? exactResultDetail(built.size, pages.length) : undefined}
+            onOpen={actions.onToggleFull}
+            pageProps={pageProps}
+            detail={detail}
             bent={looksBent(results[selected.id]?.page)}
           />
         )}

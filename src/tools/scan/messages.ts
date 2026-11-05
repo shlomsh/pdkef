@@ -40,6 +40,8 @@ export interface ScanMessages extends DownloadMessages {
   wholePhoto: string;
   rotate: string;
   fullScreen: string;
+  previousPage: string;
+  nextPage: string;
   exitFullScreen: string;
   announceRotated: string;
   removePhoto: string;
@@ -160,6 +162,8 @@ export const englishScanMessages: ScanMessages = {
   adjustCorners: 'Adjust corners',
   rotate: 'Rotate',
   fullScreen: 'Full screen',
+  previousPage: 'Previous page',
+  nextPage: 'Next page',
   exitFullScreen: 'Exit full screen',
   announceRotated: 'Page {position} turned a quarter to the right.',
   findPage: 'Auto-detect',

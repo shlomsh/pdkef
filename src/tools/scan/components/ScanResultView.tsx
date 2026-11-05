@@ -19,6 +19,8 @@ interface ScanResultViewProps {
   onRetakeCamera?: () => void;
   onRemovePage: (id: number) => void;
   onDone: () => void;
+  /** A click on the page: full screen. */
+  onOpen: () => void;
   /** The props ResultPage takes for this page: its src, place and whether the built PDF's own JPEG is showing. */
   pageProps: { src: string | null; place: Placement | null; exact: boolean };
   detail: string | undefined;
@@ -27,7 +29,7 @@ interface ScanResultViewProps {
 }
 
 /** The one-page view under the head: the page as it will download, then one quiet row of five and one Done. */
-export default function ScanResultView({ selected, lookOptions, onChooseLook, onAdjustCorners, onRotate, onRetake, onRetakeCamera, onRemovePage, onDone, pageProps, detail, bent }: ScanResultViewProps) {
+export default function ScanResultView({ selected, lookOptions, onChooseLook, onAdjustCorners, onRotate, onRetake, onRetakeCamera, onRemovePage, onDone, onOpen, pageProps, detail, bent }: ScanResultViewProps) {
   return (
     <>
       {selected.found === false && !selected.edited && (
@@ -40,7 +42,7 @@ export default function ScanResultView({ selected, lookOptions, onChooseLook, on
         </p>
       )}
       <div class={styles['paper-area']}>
-        <ResultPage {...pageProps} labels={{ exact: t.resultExact, updating: t.resultUpdating, making: t.processing }} detail={detail} />
+        <ResultPage {...pageProps} labels={{ exact: t.resultExact, updating: t.resultUpdating, making: t.processing }} detail={detail} onOpen={onOpen} />
       </div>
       {bent && <p class={styles['editor-hint']} data-bent-note>{t.bentNote}</p>}
       <PageActions

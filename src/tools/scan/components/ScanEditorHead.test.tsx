@@ -24,11 +24,11 @@ function mount(view: 'result' | 'corners') {
 }
 
 describe('ScanEditorHead', () => {
-  it('result: Page N of M and a back control to the table, no rotate or full screen', () => {
+  it('result: Page N of M and a back control to the table and Full screen, no rotate', () => {
     const onDone = mount('result');
     expect(container!.textContent).toContain('Page 2 of 3');
     expect(container!.textContent).not.toContain(t.rotate);
-    expect(container!.textContent).not.toContain(t.fullScreen);
+    expect(container!.textContent).toContain(t.fullScreen);
     act(() => (container!.querySelector('[data-back]') as HTMLButtonElement).click());
     expect(onDone).toHaveBeenCalledTimes(1);
   });

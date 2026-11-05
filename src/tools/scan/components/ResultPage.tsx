@@ -9,13 +9,15 @@ interface ResultPageProps {
   exact: boolean;
   labels: { exact: string; updating: string; making: string };
   detail?: string;
+  /** A click on the paper opens it at full screen (desktop's card). The head's button is the keyboard's way there. */
+  onOpen?: () => void;
 }
 
 const A4_W = 595.28;
 const A4_H = 841.89;
 
 /** One PDF page exactly as it will download: the paper, the image placed on it, and a caption. */
-export default function ResultPage({ src, place, exact, labels, detail }: ResultPageProps) {
+export default function ResultPage({ src, place, exact, labels, detail, onOpen }: ResultPageProps) {
   const ready = src !== null && place !== null;
   const w = ready ? place.pageWidth : A4_W;
   const h = ready ? place.pageHeight : A4_H;
@@ -29,6 +31,8 @@ export default function ResultPage({ src, place, exact, labels, detail }: Result
         data-paper
         data-exact={ready && exact ? '' : undefined}
         data-updating={updating ? '' : undefined}
+        data-opens={ready && onOpen ? '' : undefined}
+        onClick={ready ? onOpen : undefined}
         style={{ aspectRatio: `${w} / ${h}`, width: `min(100%, calc(var(--scan-paper-h, 62svh) * ${w} / ${h}))` }}
       >
         {ready ? (
