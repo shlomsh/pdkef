@@ -30,7 +30,7 @@ describe('fetchDriveFile', () => {
     const bytes = new Uint8Array([1, 2, 3]).buffer;
     const f = fakeFetch(json({ name: 'a.pdf', mimeType: 'application/pdf' }), bin(bytes));
     const res = await fetchDriveFile(f as unknown as typeof fetch, 'tok', REF);
-    expect(res).toEqual({ ok: true, name: 'a.pdf', bytes });
+    expect(res).toEqual({ ok: true, name: 'a.pdf', mimeType: 'application/pdf', bytes });
     expect(f).toHaveBeenCalledTimes(2);
     expect(f.mock.calls[0][0]).toBe(META_URL);
     expect(f.mock.calls[1][0]).toBe(MEDIA_URL);
@@ -90,5 +90,16 @@ describe('fetchDriveFile', () => {
     const badBytes = { ok: true, status: 200, arrayBuffer: async () => { throw new Error('bad'); } } as unknown as Response;
     const f = fakeFetch(json({ name: 'a.pdf', mimeType: 'application/pdf' }), badBytes);
     expect(await fetchDriveFile(f as unknown as typeof fetch, 't', REF)).toEqual({ ok: false, error: 'network' });
+  });
+
+  it('accepts the types the caller lists and reports the type back', async () => {
+    const f = fakeFetch(json({ name: 'a.png', mimeType: 'image/png' }), bin(new ArrayBuffer(1)));
+    const res = await fetchDriveFile(f as unknown as typeof fetch, 'tok', REF, { accept: ['application/pdf', 'image/png'] });
+    expect(res).toMatchObject({ ok: true, mimeType: 'image/png' });
+  });
+
+  it('still refuses a type outside the accepted list', async () => {
+    const f = fakeFetch(json({ name: 'a.png', mimeType: 'image/png' }));
+    expect(await fetchDriveFile(f as unknown as typeof fetch, 'tok', REF)).toEqual({ ok: false, error: 'not-pdf' });
   });
 });

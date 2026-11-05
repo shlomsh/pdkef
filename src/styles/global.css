@@ -88,6 +88,11 @@
      in the same beat and its burst when it really is on (TheO.astro).
      Nowhere else. */
   --color-airplane-mode: #ff9500;
+  /* Google's sign-in button guidelines mandate these exact values. Only that button uses them. */
+  --color-google-button: #ffffff;
+  --color-google-button-hover: #f2f2f2;
+  --color-google-button-border: #747775;
+  --color-google-button-text: #1f1f1f;
   --color-muted: #276460;
   --color-muted-light: #8fdccf;
   --color-border: #dfe6e2;

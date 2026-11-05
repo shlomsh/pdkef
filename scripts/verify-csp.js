@@ -63,7 +63,7 @@ for (const file of htmlFiles) {
   const cspDirectives = cspContent.split(';').map(s => s.trim()).filter(Boolean);
 
   const getHashes = (directiveName) => {
-    const directive = cspDirectives.find(d => d.startsWith(directiveName));
+    const directive = cspDirectives.find(d => d.split(/\s+/)[0] === directiveName);
     if (!directive) return [];
     return directive.split(/\s+/).slice(1)
       .filter(token => token.startsWith("'sha256-") && token.endsWith("'"))
@@ -119,7 +119,14 @@ for (const file of htmlFiles) {
 }
 
 // MERGE-25: the Google origins belong to /drive/ alone and must appear in no other page's CSP.
-const GOOGLE_ORIGINS = ['https://accounts.google.com', 'https://www.googleapis.com'];
+const GOOGLE_ORIGINS = [
+  'https://accounts.google.com',
+  'https://www.googleapis.com',
+  'https://apis.google.com',
+  'https://docs.google.com',
+  'https://drive.google.com',
+  'https://content.googleapis.com',
+];
 const drivePage = path.join(distDir, 'drive', 'index.html');
 if (!fs.existsSync(drivePage)) {
   console.error('[ERROR] dist/drive/index.html is missing: the /drive/ page is required.');
@@ -130,6 +137,12 @@ for (const file of htmlFiles) {
   const csp = new JSDOM(fs.readFileSync(file, 'utf-8')).window.document
     .querySelector('meta[http-equiv="Content-Security-Policy"]')?.getAttribute('content') ?? '';
   const relative = path.relative(process.cwd(), file);
+  // DRIVE-01: the Picker's own styles need 'unsafe-inline' for style elements, on /drive/ alone.
+  const styleElem = csp.split(';').map((d) => d.trim()).find((d) => d.startsWith('style-src-elem')) ?? '';
+  if (file !== drivePage && styleElem.includes("'unsafe-inline'")) {
+    console.error(`[ERROR] ${relative}: CSP allows 'unsafe-inline' in style-src-elem, which only dist/drive/index.html may.`);
+    hasError = true;
+  }
   for (const origin of GOOGLE_ORIGINS) {
     const present = csp.includes(origin);
     if (file === drivePage && !present) {
