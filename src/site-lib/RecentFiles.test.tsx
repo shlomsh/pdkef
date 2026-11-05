@@ -145,7 +145,6 @@ describe('RecentFiles', () => {
     const b = { cacheId: 'sha256:b', tool: 'sign', fileName: 'b.pdf', savedAt: now };
     const sample = { tool: 'sign', fileName: 'PDkef practice form.pdf', bundledSample: true };
     const removeButtons = () => Array.from(container!.querySelectorAll<HTMLButtonElement>('button[aria-label^="Remove "]'));
-    const clearButton = () => Array.from(container!.querySelectorAll<HTMLButtonElement>('button')).find((x) => x.textContent === 'Clear recent files');
     const dialogButton = (label: string) => Array.from(container!.querySelectorAll<HTMLButtonElement>('dialog button')).find((x) => x.textContent === label)!;
 
     it('puts a remove button beside each real tile, outside the open button, and none on the sample', () => {
@@ -181,28 +180,14 @@ describe('RecentFiles', () => {
       expect(container!.querySelector('dialog')).toBeNull();
     });
 
-    it('offers Clear from two real files up, never for one or for the sample', () => {
-      mount([a, b], { onClearRecents: vi.fn() });
-      expect(clearButton()).toBeDefined();
-      mount([a], { onClearRecents: vi.fn() });
-      expect(clearButton()).toBeUndefined();
-      mount([sample], { onClearRecents: vi.fn() });
-      expect(clearButton()).toBeUndefined();
+    it('offers no way to clear every file at once', () => {
+      mount([a, b]);
+      expect(container!.textContent).not.toContain('Clear');
     });
 
-    it('confirms Clear before calling onClearRecents', () => {
-      const onClearRecents = vi.fn();
-      mount([a, b], { onClearRecents });
-      act(() => clearButton()!.click());
-      expect(onClearRecents).not.toHaveBeenCalled();
-      act(() => dialogButton('Clear').click());
-      expect(onClearRecents).toHaveBeenCalledTimes(1);
-    });
-
-    it('disables both controls while busy', () => {
-      mount([a, b], { onClearRecents: vi.fn(), busy: true });
+    it('disables remove while busy', () => {
+      mount([a, b], { busy: true });
       expect(removeButtons().every((x) => x.disabled)).toBe(true);
-      expect(clearButton()!.disabled).toBe(true);
     });
   });
 });
