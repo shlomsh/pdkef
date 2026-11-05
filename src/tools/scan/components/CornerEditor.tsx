@@ -67,7 +67,7 @@ export default function CornerEditor({ src, aspect, quad, onCommit, labels }: Co
     dimRef.current?.setAttribute('d', dimPath(q));
   };
 
-  // The loupe, on touch only: a finger covers the very point it places (a mouse pointer does not).
+  // The loupe: a finger or the handle's ring covers the very point it places.
   const paintLoupe = (q: Quad, index: number, client: { x: number; y: number }, rect: DOMRect) => {
     const loupe = loupeRef.current;
     if (!loupe) return;
@@ -98,9 +98,8 @@ export default function CornerEditor({ src, aspect, quad, onCommit, labels }: Co
     cancelRef.current?.();
     const rect = frame.getBoundingClientRect();
     const start = quad;
-    const touch = 'touches' in event && !!event.touches;
     const restore = () => paint(start);
-    if (touch) paintLoupe(start, index, clientPoint(event), rect);
+    paintLoupe(start, index, clientPoint(event), rect);
     // The corner stops where the shape would turn invalid (a bow tie, a dent, a sliver): the outline
     // only ever shows a usable quad, and release commits the last one.
     let lastValid = start;
@@ -119,7 +118,7 @@ export default function CornerEditor({ src, aspect, quad, onCommit, labels }: Co
       },
       writeDOM: (patch) => {
         paint(patch.quad);
-        if (touch) paintLoupe(patch.quad, index, patch.client, rect);
+        paintLoupe(patch.quad, index, patch.client, rect);
       },
       commit: (patch) => {
         cancelRef.current = null;

@@ -53,6 +53,19 @@ describe('CornerEditor', () => {
     expect(next[1]).toEqual(QUAD[1]);
   });
 
+  it('magnifies a corner under a mouse drag too, and hides the magnifier on release', () => {
+    mount(vi.fn());
+    const loupe = container!.querySelector<HTMLElement>('[data-loupe]');
+    expect(loupe.hidden).toBe(true);
+    mouse('mousedown', 70, 40, handle(0));
+    expect(loupe.hidden).toBe(false);
+    mouse('mousemove', 90, 45);
+    expect(loupe.hidden).toBe(false);
+    expect(loupe.style.backgroundSize).toBe('500px 250px');
+    mouse('mouseup', 90, 45);
+    expect(loupe.hidden).toBe(true);
+  });
+
   it('stops the handle at the last valid shape when the drag crosses the opposite corner', () => {
     const onCommit = vi.fn();
     mount(onCommit);

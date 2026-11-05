@@ -75,7 +75,7 @@
   box-shadow: 0 0 0 1px var(--color-night), 0 0 0 4px var(--color-primary-ring);
 }
 
-/* The touch loupe (loupe.ts places it): the photo magnified around the corner being dragged. */
+/* The loupe (loupe.ts places it): the photo magnified around the corner being dragged. */
 .loupe {
   position: fixed;
   z-index: 50;

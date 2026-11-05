@@ -1,8 +1,7 @@
 ---
 id: "SCAN-51"
 title: "On desktop the grid is home: delete, reorder and open pages there, one click to the page at full window"
-status: "in_progress"
-horizon: "now"
+status: "done"
 priority: "P2"
 epic: "scan-next"
 depends_on: []

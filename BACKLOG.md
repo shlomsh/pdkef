@@ -2,7 +2,7 @@
 
 # Backlog
 
-The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 150 live: 51 up next, 19 then, 27 waiting, 53 parked.
+The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 149 live: 50 up next, 19 then, 27 waiting, 53 parked.
 
 ## Redact: finish removal
 
@@ -107,7 +107,6 @@ The camera takes pages, the table fixes them, Share sends them. The table first 
 | SCAN-48 | P1 | [SCAN-48](backlog/tasks/SCAN-48.md) · A page's text says which way is up, so a sideways page no longer lands upside down | In progress |
 | SCAN-44 | P2 | [SCAN-44](backlog/tasks/SCAN-44.md) · A filled A4 form scanned with PDkef (2026-11-04): black edges and ghost text remain; stretch is fixed on main for A4 | In progress |
 | SCAN-46 | P2 | [SCAN-46](backlog/tasks/SCAN-46.md) · A filled-in page with no vertical rules stays tilted; level its rows | In progress |
-| SCAN-51 | P2 | [SCAN-51](backlog/tasks/SCAN-51.md) · On desktop the grid is home: delete, reorder and open pages there, one click to the page at full window | In progress |
 
 ### Then, in order
 
@@ -337,7 +336,7 @@ Done and retired tickets are not listed. Their files stay in [backlog/tasks/](ba
 - Redact: finish removal: 26 done, 1 retired
 - Sign: finish fill mode: 3 done, 1 retired
 - Highlight PDF: a tool for reading: 5 done, 1 retired
-- Scan: camera to WhatsApp: 7 done, 0 retired
+- Scan: camera to WhatsApp: 9 done, 0 retired
 - Page enhancement for Scan and Highlight: 5 done, 1 retired
 - Tool pages: show the verb: 8 done, 0 retired
 - Form detector accuracy: 19 done, 1 retired
