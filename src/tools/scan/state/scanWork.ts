@@ -25,6 +25,8 @@ export interface ScanPage {
   found: boolean | null;
   /** The picture is a PDF's sheet, not a photo: its frame is no paper edge, so none is read from it. */
   sheet: boolean;
+  /** A PDF sheet's corners as it was read, what Auto-detect goes back to; null on a photo, or a sheet saved before they were kept. */
+  opened: Quad | null;
 }
 
 /** A page taken out of the list but not yet let go: Undo brings it back whole, the timer ends it. */

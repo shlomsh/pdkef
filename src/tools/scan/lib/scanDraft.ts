@@ -27,6 +27,8 @@ interface StoredScanPage {
   quad: Quad | null;
   /** The picture is a PDF's sheet. */
   sheet: boolean;
+  /** The corners a PDF sheet opened with. */
+  opened: Quad | null;
 }
 
 export interface ScanDraftSettings {
@@ -51,7 +53,7 @@ const LIMITS: readonly SizeLimitId[] = ['none', '2mb', '1mb', '500kb'];
 
 /** The page as stored. */
 export const storedPage = (page: ScanPage): StoredScanPage => ({
-  filter: page.filter, turns: page.turns, quad: page.edited ? page.quad : null, sheet: page.sheet,
+  filter: page.filter, turns: page.turns, quad: page.edited ? page.quad : null, sheet: page.sheet, opened: page.opened,
 });
 
 /** One string per snapshot worth saving: changes only when a stored field does. `fileId` tells photos apart. */
@@ -73,12 +75,13 @@ function parseQuad(value: unknown): Quad | null {
 }
 
 function parsePage(value: unknown, fallbackFilter: ScanFilter): StoredScanPage {
-  const page = (value ?? {}) as { filter?: unknown; turns?: unknown; quad?: unknown; sheet?: unknown };
+  const page = (value ?? {}) as { filter?: unknown; turns?: unknown; quad?: unknown; sheet?: unknown; opened?: unknown };
   return {
     filter: FILTERS.includes(page.filter as ScanFilter) ? page.filter as ScanFilter : fallbackFilter,
     turns: Number.isInteger(page.turns) && (page.turns as number) >= 0 && (page.turns as number) < 4 ? page.turns as number : 0,
     quad: parseQuad(page.quad),
     sheet: page.sheet === true,
+    opened: parseQuad(page.opened),
   };
 }
 

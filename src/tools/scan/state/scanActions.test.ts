@@ -15,6 +15,7 @@ const guessPage = vi.fn();
 vi.mock('../lib/loadPipeline.ts', () => ({ loadPipeline: () => Promise.resolve({ guessPage }) }));
 
 const QUAD: Quad = [{ x: 0.1, y: 0.1 }, { x: 0.9, y: 0.1 }, { x: 0.9, y: 0.9 }, { x: 0.1, y: 0.9 }];
+const MOVED: Quad = [{ x: 0.2, y: 0.2 }, { x: 0.8, y: 0.2 }, { x: 0.8, y: 0.8 }, { x: 0.2, y: 0.8 }];
 const photo = () => new File(['x'], 'a.jpg', { type: 'image/jpeg' });
 const flush = () => new Promise((resolve) => setTimeout(resolve, 0));
 
@@ -62,6 +63,23 @@ describe('createPageActions', () => {
       expect(ctx.dispatch).toHaveBeenCalledWith({ type: 'findMissed', id: page.id });
       expect(ctx.announce).toHaveBeenCalledWith(t.findMissed);
       expect(reportError).toHaveBeenCalledWith('pdf_tool_run', expect.any(Error), 'scan_find_page');
+    });
+    it('goes back to the corners a PDF sheet opened with, and reads no edges on it (SCAN-55)', async () => {
+      const page = { ...newPage(photo(), 'document'), sheet: true, opened: QUAD, quad: MOVED, edited: true };
+      const { ctx, pagesNow } = setup([page]);
+      createPageActions(ctx).findPage(page);
+      await flush();
+      expect(guessPage).not.toHaveBeenCalled();
+      expect(pagesNow()[0]).toMatchObject({ quad: QUAD, edited: true, found: true });
+    });
+    it('finds nothing on a sheet saved with no opening corners (SCAN-55)', async () => {
+      const page = { ...newPage(photo(), 'document'), sheet: true, quad: MOVED, edited: true };
+      const { ctx, pagesNow } = setup([page]);
+      createPageActions(ctx).findPage(page);
+      await flush();
+      expect(guessPage).not.toHaveBeenCalled();
+      expect(ctx.dispatch).toHaveBeenCalledWith({ type: 'findMissed', id: page.id });
+      expect(pagesNow()[0].quad).toEqual(MOVED);
     });
     it('does nothing once the island is gone', async () => {
       const page = newPage(photo(), 'document');
