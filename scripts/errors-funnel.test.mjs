@@ -60,6 +60,12 @@ describe('funnelLines', () => {
     expect(funnelLines([mixed])).toContain('merge | unknown | - | 5 | 0 | 0 | 0 | 0');
   });
 
+  it('a camera arrival reads in the fresh lane and on the accepted-by-source line', () => {
+    const lines = funnelLines([flat({ 'pg:tool_file_accepted|scan-to-pdf|camera|-|-|-': 3 })]);
+    expect(lines).toContain('scan-to-pdf | fresh | - | 3 | 0 | 0 | 0 | 0');
+    expect(lines).toContain('scan-to-pdf accepted by source: camera 3');
+  });
+
   it('prints nothing when there are no page-load fields', () => {
     expect(funnelLines([flat({ 'tool_file_accepted|merge': 3 })])).toEqual([]);
   });

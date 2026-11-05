@@ -77,10 +77,11 @@ export type NavigationType = (typeof NAVIGATION_TYPES)[number];
  * counts alone. Never on `tool_page_viewed`.
  *   pick / drop / paste - chosen here; replace - chosen over a loaded file;
  *   recent - a recent-file tile on the home page; handoff - another tool's done row;
- *   restore - the tool reopened the work it was on, with nobody asking.
+ *   restore - the tool reopened the work it was on, with nobody asking;
+ *   camera - the first page of a scan came from the camera.
  * @testSeam
  */
-export const FILE_SOURCES = ['pick', 'drop', 'paste', 'replace', 'recent', 'handoff', 'restore'] as const;
+export const FILE_SOURCES = ['pick', 'drop', 'paste', 'replace', 'recent', 'handoff', 'restore', 'camera'] as const;
 export type FileSource = (typeof FILE_SOURCES)[number];
 
 /**

@@ -1,10 +1,9 @@
 ---
 id: "SCAN-66"
 title: "Scan: a scan started from the camera says so in the funnel"
-status: "in_progress"
+status: "done"
 priority: "P2"
 epic: "scan-next"
-horizon: "now"
 depends_on: []
 ---
 
@@ -25,3 +24,8 @@ and finished share cannot be read while that lasts.
   It reads in the fresh lane and on the "accepted by source" line.
 - Only a first page marks. A photo added to a loaded scan is work on it, not an arrival.
 - `ANALYTICS.md` lists the new value, with a row in its change log.
+
+## Shipped
+
+`addCameraFiles` in `useScanPages.ts` marks `camera` on a scan's first page, for the viewfinder, its
+fallback and Start scanning. Read the lane from the first full day after the deploy.

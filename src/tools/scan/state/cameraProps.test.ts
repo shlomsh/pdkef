@@ -8,7 +8,7 @@ const file = new File(['x'], 'a.jpg', { type: 'image/jpeg' });
 const page = (preview: string): ScanPage => ({ ...newPage(file, 'document'), preview });
 
 function setup(camera: CameraMode | null, pages: ScanPage[] = [page('first'), page('last')], view: 'table' | 'result' | 'corners' = 'table') {
-  const host = { dispatch: vi.fn(), addFiles: vi.fn(), retakePage: vi.fn() };
+  const host = { dispatch: vi.fn(), addCameraFiles: vi.fn(), retakePage: vi.fn() };
   const [first, last] = pages;
   return { host, first, last, props: cameraProps({ camera, pages, results: {}, view, ...host }) };
 }
@@ -29,7 +29,7 @@ describe('cameraProps', () => {
     const pages = [page('photo')];
     const [last] = pages;
     const result = (key: string) => ({ [last.id]: { key, url: 'made', thumbUrl: 'thumb', page: null } }) as unknown as Parameters<typeof cameraProps>[0]['results'];
-    const props = (results: ReturnType<typeof result>) => cameraProps({ camera: { mode: 'many' }, pages, results, dispatch: vi.fn(), addFiles: vi.fn(), retakePage: vi.fn(), view: 'table' });
+    const props = (results: ReturnType<typeof result>) => cameraProps({ camera: { mode: 'many' }, pages, results, dispatch: vi.fn(), addCameraFiles: vi.fn(), retakePage: vi.fn(), view: 'table' });
     expect(props(result(resultKey(last)))?.lastSrc).toBe('made');
     expect(props(result('stale'))?.lastSrc).toBe('photo');
   });
@@ -37,7 +37,7 @@ describe('cameraProps', () => {
   it('many: each page taken joins the scan, and the camera stays open', () => {
     const { host, props } = setup({ mode: 'many' });
     props?.onTaken(file);
-    expect(host.addFiles).toHaveBeenCalledWith([file], { fromCamera: true });
+    expect(host.addCameraFiles).toHaveBeenCalledWith([file], { fromCamera: true });
     expect(host.dispatch).not.toHaveBeenCalled();
   });
 
@@ -79,13 +79,13 @@ describe('cameraProps', () => {
     props?.onTaken(file);
     expect(host.retakePage).toHaveBeenCalledWith(pages[0].id, file);
     expect(host.dispatch).toHaveBeenCalledWith({ type: 'cameraClosed' });
-    expect(host.addFiles).not.toHaveBeenCalled();
+    expect(host.addCameraFiles).not.toHaveBeenCalled();
   });
 
   it('the native photos join the scan (many) or replace the page (one), and the camera closes', () => {
     const many = setup({ mode: 'many' });
     many.props?.onFallbackFiles([file, file]);
-    expect(many.host.addFiles).toHaveBeenCalledWith([file, file]);
+    expect(many.host.addCameraFiles).toHaveBeenCalledWith([file, file]);
     expect(many.host.dispatch).toHaveBeenCalledWith({ type: 'cameraClosed' });
     const pages = [page('first')];
     const one = setup({ mode: 'one', pageId: pages[0].id }, pages);

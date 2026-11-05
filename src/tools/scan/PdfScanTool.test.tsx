@@ -11,6 +11,7 @@ import { turnedQuad } from './lib/quad.ts';
 import { playFlatten } from './lib/flattenAnimation.ts';
 import { canUseCamera } from './lib/camera/canUseCamera.ts';
 import { installToolHarness, type ToolHarness } from '../../test/harness/toolHarness.ts';
+import { takeArrival } from '#lib/handoff/fileArrival.ts';
 import { loadDraft, readRecentFiles } from '#lib/drafts/draftStore.ts';
 
 // EDGE: the flatten animation paints the photo into a 2d canvas context, which jsdom does not have.
@@ -157,6 +158,34 @@ describe('PdfScanTool', () => {
       expect(viewfinder().getAttribute('data-mode')).toBe('many');
       expect(viewfinder().getAttribute('data-count')).toBe('0');
       expect(opened).not.toHaveBeenCalled();
+    });
+
+    describe('SCAN-66: the arrival source', () => {
+      const accepted = () => harness.usageEvents('tool_file_accepted').map((e) => e.properties.source);
+
+      it('a first photo from the viewfinder is accepted as camera; a second sends no second acceptance and leaves no mark', async () => {
+        await openCamera();
+        await act(async () => { stub('stub-take').click(); });
+        await settle();
+        expect(accepted()).toEqual(['camera']);
+        await act(async () => { stub('stub-take').click(); });
+        await settle();
+        expect(accepted()).toEqual(['camera']);
+        expect(takeArrival()).toBeUndefined();
+      });
+
+      it('a photo through the Start scanning input is accepted as camera', async () => {
+        mount();
+        await act(async () => { setInputFiles(startScanning().querySelector('input'), [jpeg('c.jpg')]); });
+        await settle();
+        expect(accepted()).toEqual(['camera']);
+      });
+
+      it('a photo picked through the shell picker still reads pick', async () => {
+        mount();
+        await pick([jpeg('p.jpg')]);
+        expect(accepted()).toEqual(['pick']);
+      });
     });
 
     it('adds a page for each photo taken and closes on Done', async () => {
