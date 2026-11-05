@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
-import { ChevronDown } from 'lucide-preact';
+import { Check, ChevronDown } from 'lucide-preact';
 import Popover from './Popover.tsx';
 import { englishShellMessages } from './shellMessages.ts';
 import { useToolShell } from './ToolShell.tsx';
@@ -59,10 +59,11 @@ export default function DriveSaveMenu({ drive }: { drive: Drive }) {
           {state === 'idle' && saveItem}
           {state === 'saving' && <p class={styles.note} role="status">{labels.saving}</p>}
           {state === 'saved' && (
-            <>
-              <p class={styles.note} role="status">{labels.saved}</p>
-              {link && <a class={styles.item} href={link} target="_blank" rel="noopener" role="menuitem">{labels.open}</a>}
-            </>
+            <div class={styles.saved} data-drive-saved>
+              <Check size={16} stroke-width={2.5} aria-hidden="true" />
+              <span role="status">{labels.saved}</span>
+              {link && <a class={styles.open} href={link} target="_blank" rel="noopener" role="menuitem" aria-label={labels.open}>{labels.openShort}</a>}
+            </div>
           )}
           {state === 'failed' && (
             <>
