@@ -21,6 +21,14 @@ function spread(width: number, height: number): GrayImage {
   }
   return { width, height, data };
 }
+// Two blocks of print with a wide empty gap between them and no line: worth asking about, not splitting.
+function gapSheet(width: number, height: number): GrayImage {
+  const data = new Uint8ClampedArray(width * height).fill(235);
+  for (let y = 40; y < height - 40; y += 36) {
+    for (let x = 30; x < width - 30; x += 1) if (Math.abs(x - width / 2) > 50) for (let k = 0; k < 10; k += 1) data[(y + k) * width + x] = 50;
+  }
+  return { width, height, data };
+}
 const blank = (width: number, height: number): GrayImage => ({ width, height, data: new Uint8ClampedArray(width * height).fill(235) });
 
 interface Calls { gray: [number, number, number][]; jpeg: [number, number, number, SheetBorder][]; closed: boolean }
@@ -35,7 +43,7 @@ function tiltedSpread(width: number, height: number, degrees: number): GrayImage
   return { width, height, data };
 }
 
-function reader(images: (turns: number) => GrayImage, { pages = 1, rtl = false } = {}): SheetReader & { calls: Calls } {
+function reader(images: (turns: number) => GrayImage, { pages = 1, rtl = false as boolean | null } = {}): SheetReader & { calls: Calls } {
   const calls: Calls = { gray: [], jpeg: [], closed: false };
   return {
     calls,
@@ -46,8 +54,41 @@ function reader(images: (turns: number) => GrayImage, { pages = 1, rtl = false }
     close: () => { calls.closed = true; },
   };
 }
+/** Two pages of lines either side of a spine, every fourth line short and pushed to `side`. */
+function linedSpread(side: 'left' | 'right'): GrayImage {
+  const width = 1000;
+  const height = 700;
+  const data = new Uint8ClampedArray(width * height).fill(255);
+  for (const [left, right] of [[60, 440], [560, 940]]) {
+    for (let row = 0, y = 40; y < height - 40; row += 1, y += 14) {
+      const short = row % 4 === 3;
+      const from = short && side === 'right' ? right - 150 : left;
+      const to = short && side === 'left' ? left + 150 : right;
+      for (let dy = 0; dy < 7; dy += 1) data.fill(0, (y + dy) * width + from, (y + dy) * width + to);
+    }
+  }
+  for (let y = 0; y < height; y += 1) data.fill(0, y * width + 499, y * width + 502);
+  return { width, height, data };
+}
+
 const collect = async (it: AsyncGenerator<PdfSheet>) => { const out: PdfSheet[] = []; for await (const s of it) out.push(s); return out; };
 const pdf = new File(['%PDF'], 'book.pdf', { type: 'application/pdf' });
+
+describe('a sheet with no text to read', () => {
+  const firstPageIsOnTheRight = (sheet: PdfSheet) => sheet.quads[0][0].x > 0.4;
+
+  it('reads its direction from where its short lines sit', async () => {
+    const [hebrew] = await collect(pdfSheets(pdf, undefined, reader(() => linedSpread('right'), { rtl: null })));
+    const [latin] = await collect(pdfSheets(pdf, undefined, reader(() => linedSpread('left'), { rtl: null })));
+    expect(firstPageIsOnTheRight(hebrew)).toBe(true);
+    expect(firstPageIsOnTheRight(latin)).toBe(false);
+  });
+
+  it('goes by the text when there is text, whatever the lines show', async () => {
+    const [sheet] = await collect(pdfSheets(pdf, undefined, reader(() => linedSpread('right'), { rtl: false })));
+    expect(firstPageIsOnTheRight(sheet)).toBe(false);
+  });
+});
 
 describe('readsRightToLeft', () => {
   it('is true for Hebrew and Arabic, false for Latin and empty text', () => {
@@ -93,6 +134,25 @@ describe('pdfSheets', () => {
   it('reverses a right-to-left sheet so the right page comes first', async () => {
     const [sheet] = await collect(pdfSheets(pdf, undefined, reader(() => spread(800, 560), { rtl: true })));
     expect(sheet.quads[0][0].x).toBeGreaterThan(sheet.quads[1][0].x);
+  });
+
+  it('keeps an unsure sheet whole, with the question and a border for a split to level into', async () => {
+    const r = reader(() => gapSheet(800, 560), { rtl: true });
+    const [sheet] = await collect(pdfSheets(pdf, undefined, r));
+    expect(sheet.quads).toHaveLength(1);
+    expect(sheet.question?.rightToLeft).toBe(true);
+    const { top, bottom } = sheet.question!.spine;
+    expect(top).toBeGreaterThan(0.3);
+    expect(bottom).toBeLessThan(0.7);
+    const border = r.calls.jpeg[0][3];
+    expect(Math.min(border.left, border.top, border.right, border.bottom)).toBeGreaterThanOrEqual(0.05);
+  });
+
+  it('asks nothing of a sure spread, or of a single page', async () => {
+    const [spreadSheet] = await collect(pdfSheets(pdf, undefined, reader(() => spread(800, 560))));
+    expect(spreadSheet.question).toBeNull();
+    const [single] = await collect(pdfSheets(pdf, undefined, reader(() => blank(600, 800))));
+    expect(single.question).toBeNull();
   });
 
   it('gives a single page one quad', async () => {

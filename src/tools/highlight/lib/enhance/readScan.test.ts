@@ -16,8 +16,8 @@ const PAGE = { width: 600, height: 800 };
 
 /** Two pages leaning apart with a spine between them, as RGBA the way a canvas gives it. */
 function spreadPixels(): Uint8ClampedArray {
-  const left = leaning(W, H, -3.5, 0, 400);
-  const right = leaning(W, H, 2.5, 400, W);
+  const left = leaning(W, H, -3.5, 0, 360);
+  const right = leaning(W, H, 2.5, 440, W);
   const data = left.data.map((v, i) => Math.min(v, right.data[i]));
   for (let y = 0; y < H; y += 1) for (let x = 399; x < 402; x += 1) data.fill(0, (y * W + x) * 4, (y * W + x) * 4 + 3);
   return new Uint8ClampedArray(data);

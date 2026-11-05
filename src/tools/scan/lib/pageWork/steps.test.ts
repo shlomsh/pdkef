@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { type Quad } from '#lib/pageEnhance/quad.ts';
 import { FULL_QUAD } from '../quad.ts';
-import { inspectWith, processWith, type CanvasKit } from './steps.ts';
+import { inspectWith, processWith, splitWith, type CanvasKit } from './steps.ts';
 
 // The worker's measuring failure travels back with the page, since only the main thread reports.
 vi.mock('#lib/pageEnhance/dewarp/index.ts', async (importOriginal) => {
@@ -9,6 +9,11 @@ vi.mock('#lib/pageEnhance/dewarp/index.ts', async (importOriginal) => {
   return { ...actual, measureBend: vi.fn(actual.measureBend) };
 });
 const { measureBend } = await import('#lib/pageEnhance/dewarp/index.ts');
+vi.mock('#lib/pageEnhance/plan.ts', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('#lib/pageEnhance/plan.ts')>();
+  return { ...actual, spreadQuads: vi.fn(actual.spreadQuads) };
+});
+const { spreadQuads } = await import('#lib/pageEnhance/plan.ts');
 vi.mock('./upright.ts', async (importOriginal) => {
   const actual = await importOriginal<typeof import('./upright.ts')>();
   return { ...actual, uprightTurns: vi.fn(actual.uprightTurns) };
@@ -133,6 +138,37 @@ describe('processWith sizing', () => {
     }) as unknown as Quad;
     const { page } = await processWith(fakeKit(gray(W, H)), new Blob(), quad, 'original');
     expect(Math.max(page.width, page.height) / Math.min(page.width, page.height)).toBeCloseTo(Math.SQRT2, 2);
+  });
+});
+
+describe('splitWith', () => {
+  const spine = { top: 0.5, bottom: 0.5 };
+
+  it('reads a copy no longer than 1000 px for the spine the person placed', async () => {
+    const sizes: number[] = [];
+    const kit = fakeKit(gray(3000, 2000));
+    const surface = kit.surface;
+    kit.surface = (w, h) => { sizes.push(Math.max(w, h)); return surface(w, h); };
+    const quads = await splitWith(kit, new Blob(), spine);
+    expect(quads).toHaveLength(2);
+    expect(spreadQuads).toHaveBeenLastCalledWith(expect.objectContaining({ width: 1000, height: 667 }), spine);
+    expect(sizes).toEqual([1000]);
+  });
+
+  it('keeps every corner on the picture, where the corner editor can reach it', async () => {
+    const off = [{ x: -0.04, y: 1.03 }, { x: 0.5, y: -0.02 }, { x: 1.06, y: 0.5 }, { x: 0.5, y: 0.5 }] as Quad;
+    vi.mocked(spreadQuads).mockReturnValueOnce([off, off]);
+    const quads = await splitWith(fakeKit(gray(400, 300)), new Blob(), spine);
+    for (const { x, y } of quads.flat()) {
+      expect(Math.min(x, y)).toBeGreaterThanOrEqual(0);
+      expect(Math.max(x, y)).toBeLessThanOrEqual(1);
+    }
+    expect(quads[0][0]).toEqual({ x: 0, y: 1 });
+  });
+
+  it('lets go of the decoded photo and the canvas', async () => {
+    await splitWith(fakeKit(gray(400, 300)), new Blob(), spine);
+    expect(freed).toBe(made);
   });
 });
 

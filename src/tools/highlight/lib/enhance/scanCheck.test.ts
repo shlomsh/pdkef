@@ -6,7 +6,7 @@ import { imageCover, MIN_IMAGE_COVER, samplePages, scanVerdict } from './scanChe
 const OPS = { save: 10, restore: 11, transform: 12, paintImageXObject: 85, paintInlineImageXObject: 86, paintImageMaskXObject: 83, showText: 44 };
 
 const sheet = (over: Partial<Assessment> = {}): Assessment => ({
-  turn: 0, turnConfidence: 0, spine: null, leans: [0], corners: [null], bentPx: 0, crooked: false, ...over,
+  turn: 0, turnConfidence: 0, spine: null, possibleSpine: null, leans: [0], corners: [null], bentPx: 0, crooked: false, ...over,
 });
 const SPINE = { top: 0.5, bottom: 0.5 } as unknown as Assessment['spine'];
 const crooked = (over: Partial<Assessment> = {}) => sheet({ crooked: true, ...over });
@@ -41,6 +41,11 @@ describe('scanVerdict', () => {
     expect(scanVerdict(sheets)).toBe('spread');
   });
 
+  it('names a spread when the line is one Scan would ask about', () => {
+    const maybe = () => sheet({ possibleSpine: { top: 0.5, bottom: 0.5 } });
+    expect(scanVerdict([maybe(), maybe(), sheet(), sheet()])).toBe('spread');
+  });
+
   it('names sideways when the spines are too few', () => {
     expect(scanVerdict([crooked({ turn: 1, spine: SPINE }), crooked({ turn: 1, spine: SPINE }), crooked({ turn: 1 }), sheet(), sheet()])).toBe('sideways');
     expect(scanVerdict([crooked({ turn: 3 }), crooked({ turn: 3 })])).toBe('sideways');
@@ -57,8 +62,8 @@ describe('a synthetic sheet through assess', () => {
   const H = 500;
   /** Two pages on one sheet leaning apart, with a spine between them. */
   function spread() {
-    const left = leaning(W, H, -3.5, 0, 400);
-    const right = leaning(W, H, 2.5, 400, W);
+    const left = leaning(W, H, -3.5, 0, 360);
+    const right = leaning(W, H, 2.5, 440, W);
     const data = left.data.map((v, i) => Math.min(v, right.data[i]));
     for (let y = 0; y < H; y += 1) for (let x = 399; x < 402; x += 1) data.fill(0, (y * W + x) * 4, (y * W + x) * 4 + 3);
     return gray({ width: W, height: H, data });

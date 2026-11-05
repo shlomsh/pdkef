@@ -29,7 +29,7 @@ export function partitionFiles(files: File[], acceptedTypes: readonly string[]) 
 export function newPage(file: File, filter: ScanFilter): ScanPage {
   return {
     id: nextId++, file, preview: null, aspect: null, filter,
-    quad: FULL_QUAD, turns: 0, guessed: false, edited: false, found: null, sheet: false, opened: null,
+    quad: FULL_QUAD, turns: 0, guessed: false, edited: false, found: null, sheet: false, opened: null, question: null,
   };
 }
 
@@ -61,10 +61,16 @@ export const patchPage = (pages: ScanPage[], id: number, changes: Partial<ScanPa
   pages.map((p) => (p.id === id ? { ...p, ...changes } : p))
 );
 
-/** One more quarter turn clockwise for page `id`. */
+/** One more quarter turn clockwise for page `id`. Turning a sheet answers its split question as one page. */
 export const turnPage = (pages: ScanPage[], id: number): ScanPage[] => (
-  pages.map((p) => (p.id === id ? { ...p, turns: (p.turns + 1) % 4 } : p))
+  pages.map((p) => (p.id === id ? { ...p, turns: (p.turns + 1) % 4, question: null } : p))
 );
+
+/** Page `id` replaced, in its place, by `fresh` (a sheet split in two). */
+export function splitPage(pages: ScanPage[], id: number, fresh: ScanPage[]): ScanPage[] {
+  const at = pages.findIndex((p) => p.id === id);
+  return at < 0 ? pages : [...pages.slice(0, at), ...fresh, ...pages.slice(at + 1)];
+}
 
 /** -1 for the previous page, 1 for the next, 0 for any other key or one chosen with a modifier. */
 export function tileDelta(event: { key: string; altKey: boolean; metaKey: boolean; ctrlKey: boolean; shiftKey: boolean }): -1 | 0 | 1 {

@@ -8,7 +8,8 @@ import type { ScanDispatch, SetPages } from '../hooks/scanHost.ts';
 import { loadPipeline } from '../lib/loadPipeline.ts';
 import type { ScanFilter } from '../lib/filters.ts';
 import type { Quad } from '#lib/pageEnhance/quad.ts';
-import { afterRemoval, patchPage, restoredPages, tileDelta, turnPage } from '../lib/scanPages.ts';
+import type { Spine } from '#lib/pageEnhance/spine.ts';
+import { afterRemoval, newPage, patchPage, restoredPages, splitPage, tileDelta, turnPage } from '../lib/scanPages.ts';
 import { englishScanMessages as t } from '../messages.ts';
 import type { HeldRemoval, PageResult, ScanPage, ScanWork } from './scanWork.ts';
 
@@ -41,7 +42,7 @@ const UNDO_MS = 5000;
 
 interface PageActionsInput {
   pages: ScanPage[];
-  view: 'table' | 'corners' | 'result';
+  view: 'table' | 'corners' | 'result' | 'split';
   setPages: SetPages;
   setResults: (results: Record<number, PageResult>) => void;
   setRemoval: (removal: HeldRemoval | null) => void;
@@ -174,11 +175,17 @@ interface EditActionsInput {
   removePage: (id: number) => void;
   /** Swap page `id` for a new photo in the same place (useScanPages). */
   retakeFile: (id: number, file: File) => void;
+  /** A new page through the queue for its preview and size (useScanPages); the corners it arrives with are kept. */
+  inspect: (page: ScanPage) => void;
+  work: ScanWork;
+  setResults: DropHost['setResults'];
+  forgetTurned: DropHost['forgetTurned'];
+  unmountedRef: MutableRef<boolean>;
 }
 
 /** The actions that change a page: its order, corners, look and turns, and moving on from the corners. */
 export function createEditActions(input: EditActionsInput) {
-  const { pages, selected, selectedIndex, failedIds, setPages, setDefaultFilter, dispatch, announce, focusIdRef, showResult, retakeFile, removePage } = input;
+  const { pages, selected, selectedIndex, failedIds, setPages, setDefaultFilter, dispatch, announce, focusIdRef, showResult, retakeFile, removePage, inspect, work, unmountedRef } = input;
 
   const onTileKeyDown = (event: KeyboardEvent, id: number) => {
     if (!event.altKey && !event.metaKey && !event.ctrlKey && !event.shiftKey) {
@@ -198,7 +205,8 @@ export function createEditActions(input: EditActionsInput) {
   };
 
   const commitCorners = (id: number, quad: Quad) => {
-    setPages((current) => patchPage(current, id, { quad, edited: true }));
+    // Moving a corner answers a split question: the sheet is one page.
+    setPages((current) => patchPage(current, id, { quad, edited: true, question: null }));
     recordAction('move_mark');
     reportEdit('scan-to-pdf');
   };
@@ -237,8 +245,8 @@ export function createEditActions(input: EditActionsInput) {
     recordAction('move_mark');
   };
 
-  /** A tap on a page of the table opens its result. */
-  const openPage = (id: number) => dispatch({ type: 'pageOpened', id });
+  /** A tap on a page of the table opens its result, or its question when it still asks one. */
+  const openPage = (id: number) => dispatch(pages.find((p) => p.id === id)?.question ? { type: 'splitAsked', id } : { type: 'pageOpened', id });
   /** A swipe in the viewer, or a step there, reached this page. */
   const selectPage = (id: number) => dispatch({ type: 'pageSelected', id });
   /** One page back or on in the viewer; the ends stay where they are. */
@@ -257,7 +265,51 @@ export function createEditActions(input: EditActionsInput) {
     announce(formatMessage(t.announceCornersOf, { position: selectedIndex + 1 }));
   };
 
-  return { onTileKeyDown, commitCorners, chooseLook, rotatePage, showFailedPage, approveCorners, adjustCorners, openPage, selectPage, stepPage, closePage, retakePage };
+  /** From the page head: the sheet's question again. */
+  const askSplit = () => { if (selected) dispatch({ type: 'splitAsked', id: selected.id }); };
+
+  /** One page: the sheet is as it opened, and its result shows. */
+  const answerOnePage = () => {
+    if (!selected) return;
+    setPages((current) => patchPage(current, selected.id, { question: null }));
+    approveCorners();
+  };
+
+  /** Two pages: the sheet becomes two, each read on its own along the line the person placed. */
+  const answerTwoPages = (spine: Spine) => {
+    const page = selected;
+    if (!page?.question) return;
+    const { rightToLeft } = page.question;
+    dispatch({ type: 'splitStarted', id: page.id });
+    work.enqueue(async () => (await loadPipeline()).splitQuads(work.previewBlobs.get(page.id) ?? page.file, spine))
+      .then((quads) => {
+        if (quads.length < 2) throw new Error('the split gave fewer than two pages');
+        return quads;
+      })
+      .then((quads) => quads, (err) => {
+        reportError('pdf_tool_run', err, 'scan_split_sheet');
+        return null;
+      })
+      .then((quads) => {
+        if (unmountedRef.current) return;
+        dispatch({ type: 'splitEnded', id: page.id, failed: !quads });
+        // Answered another way, or taken out, while this ran: nothing to split any more.
+        if (!quads || !work.pages.some((p) => p.id === page.id && p.question)) return;
+        const fresh = (rightToLeft ? [...quads].reverse() : quads).map((quad): ScanPage => (
+          { ...newPage(page.file, page.filter), quad, guessed: true, found: true, edited: true, sheet: true, opened: quad, question: null }
+        ));
+        setPages((current) => splitPage(current, page.id, fresh));
+        dropPageWork(input, page);
+        dispatch({ type: 'splitMade', oldId: page.id, newId: fresh[0].id });
+        for (const added of fresh) inspect(added);
+        dispatch({ type: 'scrollFocusRequested', top: true, focus: true });
+        announce(formatMessage(t.announceSplit, { position: selectedIndex + 1 }));
+        recordAction('change_setting');
+        reportEdit('scan-to-pdf');
+      });
+  };
+
+  return { onTileKeyDown, commitCorners, chooseLook, rotatePage, showFailedPage, approveCorners, adjustCorners, askSplit, answerOnePage, answerTwoPages, openPage, selectPage, stepPage, closePage, retakePage };
 }
 
 interface PageViewInput {
@@ -276,6 +328,9 @@ export function pageViewActions({ edit, findPage, removePage, selected, dispatch
     onCommit: edit.commitCorners,
     onFind: findPage,
     onApprove: edit.approveCorners,
+    onAskSplit: edit.askSplit,
+    onOnePage: edit.answerOnePage,
+    onTwoPages: edit.answerTwoPages,
     onDone: edit.closePage,
     onStep: edit.stepPage,
     onRetake: (file: File) => { if (selected) edit.retakePage(selected.id, file); },

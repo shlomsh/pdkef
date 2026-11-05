@@ -42,8 +42,8 @@ export interface PdfScanToolProps {
 export default withIslandBoundary(function PdfScanTool({ quietPolicy, navigate }: PdfScanToolProps = {}) {
   const [pages, setPages] = useState<ScanPage[]>([]);
   const [state, dispatch] = useReducer(reduceScan, initialScanState);
-  const { selectedId, finding, findMissed, failedIds } = state;
-  /** The table of all the pages, one page as it will download, or that page's corners. */
+  const { selectedId, finding, findMissed, failedIds, splitting, splitFailed } = state;
+  /** The table of all the pages, one page as it will download, that page's corners, or its split question. */
   const view = state.phase;
   const settings = useScanSettings();
   const board = useScanBoard();
@@ -56,7 +56,7 @@ export default withIslandBoundary(function PdfScanTool({ quietPolicy, navigate }
   work.defaultFilter = settings.defaultFilter;
   const { rating, wide } = useScanRating();
 
-  const { processed, addFiles, addCameraFiles, retakeFile, draft } = useScanPages({ pages, setPages, work, unmountedRef, dispatch, settings, ...board });
+  const { processed, addFiles, addCameraFiles, retakeFile, inspect, draft } = useScanPages({ pages, setPages, work, unmountedRef, dispatch, settings, ...board });
 
   const { key, prepared, outputName, fileName, downloadFlow } = useScanExport({
     pages, failedIds, ...settings, work, processed, unmountedRef, ...board, quietPolicy, navigate,
@@ -81,7 +81,7 @@ export default withIslandBoundary(function PdfScanTool({ quietPolicy, navigate }
   });
 
   const { findPage, removePage, undoRemove, reset } = createPageActions({ pages, view, failedIds, setPages, work, unmountedRef, dispatch, focusIdRef, ...board, ...settings });
-  const edit = createEditActions({ pages, selected, selectedIndex, failedIds, setPages, dispatch, focusIdRef, showResult, retakeFile, removePage, ...board, ...settings });
+  const edit = createEditActions({ pages, selected, selectedIndex, failedIds, setPages, dispatch, focusIdRef, showResult, retakeFile, removePage, inspect, work, unmountedRef, ...board, ...settings });
 
   const viewfinder = cameraProps({ camera: state.camera, pages, results, dispatch, addCameraFiles, retakePage: edit.retakePage, view });
   const openMany = () => dispatch({ type: 'cameraOpened', camera: { mode: 'many' } });
@@ -156,6 +156,8 @@ export default withIslandBoundary(function PdfScanTool({ quietPolicy, navigate }
           refs={{ editor: editorRef, heading: headingRef }}
           selected={selected}
           view={viewerMode}
+          splitting={splitting === selected.id}
+          splitFailed={splitFailed === selected.id}
           actions={{ ...pageActions, onSelect: edit.selectPage }}
           undo={board.removal && { position: board.removal.index + 1, onUndo: undoRemove }}
         />

@@ -1,0 +1,69 @@
+/* The frame is CornerEditor's: the photo's own shape, the overlay in 0..1 photo units. */
+.frame {
+  position: relative;
+  display: inline-block;
+  max-width: 100%;
+  line-height: 0;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.photo {
+  display: block;
+  max-width: 100%;
+  max-height: var(--scan-view-h, 62svh);
+  height: auto;
+  width: auto;
+}
+
+.frame[style] .photo {
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  max-height: none;
+}
+
+.overlay {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.line {
+  stroke: var(--color-text);
+}
+
+/* 44px to grab, a 18px ring to see: a finger can take the end from beside it. */
+.handle {
+  position: absolute;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  transform: translate(-50%, -50%);
+  touch-action: none;
+  cursor: ew-resize;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ring {
+  width: 18px;
+  height: 18px;
+  box-sizing: border-box;
+  border-radius: 50%;
+  border: 2px solid var(--color-text);
+  background: var(--color-surface);
+}
+
+.handle:focus-visible {
+  outline: none;
+}
+
+.handle:focus-visible .ring {
+  border-width: 3px;
+}

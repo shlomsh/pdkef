@@ -120,9 +120,9 @@ export function useScanPages(input: ScanPagesInput) {
    * Each photo is inspected again for its preview; the guess never overrides corners the person set. */
   const restorePages = useCallback(({ files, pages: stored }: ScanDraftRestore): ScanPage[] => {
     const restored = files.map((file, index) => {
-      const { filter, turns, quad, sheet, opened } = stored[index];
+      const { filter, turns, quad, sheet, opened, question } = stored[index];
       const page = newPage(file, filter);
-      return { ...page, turns, sheet, opened, ...(quad ? { quad, edited: true } : {}) };
+      return { ...page, turns, sheet, opened, question, ...(quad ? { quad, edited: true } : {}) };
     });
     setPages(restored);
     dispatch({ type: 'photosAdded', firstId: restored[0].id });
@@ -136,5 +136,7 @@ export function useScanPages(input: ScanPagesInput) {
   useScanResults({ ...input, processed });
   // SCAN-18: the scan is kept on the device as it changes, and comes back on the next visit or from Recents.
   const draft = useScanDraft({ pages: input.pages, results: input.results, settings: input.settings, restorePages, work });
-  return { processed, addFiles, addCameraFiles, retakeFile, draft };
+  /** A page made here (a sheet split in two) through the queue, for its preview and size. */
+  const inspect = useCallback((page: ScanPage) => inspectPage(page, input), []);
+  return { processed, addFiles, addCameraFiles, retakeFile, inspect, draft };
 }

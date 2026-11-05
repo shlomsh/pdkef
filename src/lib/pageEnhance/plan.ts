@@ -7,7 +7,7 @@ import { levelQuad, pageLean } from './lean.ts';
 import { applyHomography, homography } from './homography.ts';
 import { applyPiece, type Piece } from './piece.ts';
 import { scaleQuad, type GrayImage, type Point, type Quad } from './quad.ts';
-import { findSpine, spreadHalves, type Spine } from './spine.ts';
+import { readSpine, spreadHalves, type Spine } from './spine.ts';
 import { rgbaOf, textBlockCorners, type SpineSide } from './textBlock.ts';
 import { warpSizeFor } from './warp.ts';
 
@@ -26,8 +26,10 @@ export interface Assessment {
   turn: number;
   /** textTurn's confidence, 0 when it says nothing. */
   turnConfidence: number;
-  /** In the turned sheet. */
+  /** In the turned sheet: a line sure enough to split on. */
   spine: Spine | null;
+  /** In the turned sheet: where two pages may meet, for a person to say. Null when the sheet is sure either way. */
+  possibleSpine: Spine | null;
   /** Degrees, one per page: left then right on a spread, one otherwise. */
   leans: number[];
   /** One per page, in the turned sheet, 0..1: corners that square the page's text block; null where there are too few rows. */
@@ -72,13 +74,29 @@ function bentOf(turned: GrayImage, lean: number): number {
 export function assess(gray: GrayImage): Assessment {
   const { turns: turn, confidence } = pageTurns(gray);
   const turned = turnedClockwise(gray, turn);
-  const spine = findSpine(turned);
-  const halves = spine ? spreadHalves(spine) : [];
-  const leans = spine ? halves.map((half) => pageLean(flattened(turned, half))) : [pageLean(turned)];
-  const corners = spine ? halves.map((half, i) => foundCorners(turned, half, leans[i], SPINE_SIDES[i])) : [foundCorners(turned, UNIT_QUAD, leans[0], null)];
-  const bent = spine ? 0 : bentOf(turned, leans[0]);
-  const crooked = !!turn || !!spine || leans.some((l) => Math.abs(l) >= MIN_LEAN_DEGREES) || bent >= MIN_BENT_PX;
-  return { turn, turnConfidence: confidence, spine, leans, corners, bentPx: bent, crooked };
+  const read = readSpine(turned);
+  const spine = read?.sure ? read.spine : null;
+  const possibleSpine = read && !read.sure ? read.spine : null;
+  if (spine) return { turn, turnConfidence: confidence, possibleSpine, ...spreadRead(turned, spine) };
+  const leans = [pageLean(turned)];
+  const corners = [foundCorners(turned, UNIT_QUAD, leans[0], null)];
+  const bent = bentOf(turned, leans[0]);
+  const crooked = !!turn || Math.abs(leans[0]) >= MIN_LEAN_DEGREES || bent >= MIN_BENT_PX;
+  return { turn, turnConfidence: confidence, spine, possibleSpine, leans, corners, bentPx: bent, crooked };
+}
+
+/** Each page of a sheet with a line down it, read on its own: its lean, then the corners of its text. */
+function spreadRead(turned: GrayImage, spine: Spine): Pick<Assessment, 'spine' | 'leans' | 'corners' | 'bentPx' | 'crooked'> {
+  const halves = spreadHalves(spine);
+  const leans = halves.map((half) => pageLean(flattened(turned, half)));
+  const corners = halves.map((half, i) => foundCorners(turned, half, leans[i], SPINE_SIDES[i]));
+  return { spine, leans, corners, bentPx: 0, crooked: true };
+}
+
+/** The two pages' corners, left page first, for a line a person placed on `gray`, an upright sheet: the same read as a found line. */
+export function spreadQuads(gray: GrayImage, spine: Spine): Quad[] {
+  const a = { turn: 0, turnConfidence: 0, possibleSpine: null, ...spreadRead(gray, spine) };
+  return planPage(gray, a, gray).pieces.map((piece) => piece.quad);
 }
 
 /** A point of the sheet turned `turns` quarters clockwise, as the same point of the source. */
