@@ -108,6 +108,8 @@
   .launcher { grid-template-rows: 1fr auto auto; }
   /* With Clear recent files between them, the spare height goes above it, not around it. */
   .launcher:has(> [data-recent-clear]) { grid-template-rows: auto 1fr auto auto; }
+  /* Clear adds a row: the link gives back spare touch padding so the dock stays on the first screen. */
+  .launcher:has(> [data-recent-clear]) > .drive { margin-top: -18px; }
 }
 
 /* The picker is always this compact, separate action beneath the recent
