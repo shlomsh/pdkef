@@ -76,6 +76,9 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 
 ### Polish
 
+- [DRIVE-01](backlog/tasks/DRIVE-01.md) P2 · /drive/ picks a file: saved token, one tap where it is proven, the popup everywhere else (in progress)
+- [DRIVE-02](backlog/tasks/DRIVE-02.md) P2 · The home dropzone opens from Google Drive (in progress)
+- [DRIVE-03](backlog/tasks/DRIVE-03.md) P2 · iPhone check of the real Google Drive build
 - [QUAL-21](backlog/tasks/QUAL-21.md) P2 · Pages render at the size they are shown, and the practice form's logo is sharp (in progress)
 - [SIGN-44](backlog/tasks/SIGN-44.md) P2 · Sign: a comment on a highlight, kept in the PDF as a standard annotation (in progress)
 - [SITE-45](backlog/tasks/SITE-45.md) P3 · The /drive/ voice, carried to the other quiet pages: doodle that shows the mechanism, paper stickers for the promises (in progress)
@@ -114,6 +117,7 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 
 - [SCAN-04](backlog/tasks/SCAN-04.md) · Your iPhone, and an Android phone if one is at hand
 - [SCAN-05](backlog/tasks/SCAN-05.md) · Photos and short videos of real pages taken on your phone, ours to check in
+- [DRIVE-03](backlog/tasks/DRIVE-03.md) · A run on your iPhone, Chrome and Safari
 - [READ-16](backlog/tasks/READ-16.md) · Pick the stepper's place: the toolbar capsule, the top of the rail, or the page header
 - [MOBI-01](backlog/tasks/MOBI-01.md) · Half an hour with an Android phone
 - [DEBT-53](backlog/tasks/DEBT-53.md) · A check on your iPhone
@@ -122,7 +126,6 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 - [SEO-44](backlog/tasks/SEO-44.md) · The 2026-11-07 Search Console export: the /split/ and /he/split/ rows
 - [SEO-51](backlog/tasks/SEO-51.md) · Search Console, Performance, page /redact/, query containing "redact", last 3 months: impressions, clicks and position per query, plus the same for "blur"
 - [COMP-03](backlog/tasks/COMP-03.md) · A check on your iPhone
-- [MERGE-26](backlog/tasks/MERGE-26.md) · Your rewrite of the first CLAUDE.md invariant (saving is the first time bytes leave the device)
 - [MERGE-28](backlog/tasks/MERGE-28.md) · Evidence that people want it, and your sign-off on a wider Google exception
 - [READ-07](backlog/tasks/READ-07.md) · An iPhone check
 - [SITE-45](backlog/tasks/SITE-45.md) · Pick which pitches below to build (step 1)

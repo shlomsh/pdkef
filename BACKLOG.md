@@ -2,7 +2,7 @@
 
 # Backlog
 
-The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 152 live: 53 up next, 19 then, 27 waiting, 53 parked.
+The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 159 live: 56 up next, 23 then, 27 waiting, 53 parked.
 
 ## Redact: finish removal
 
@@ -310,6 +310,9 @@ Small, independent, good for a spare hour.
 
 | ID | P | Task | Note |
 | --- | --- | --- | --- |
+| DRIVE-01 | P2 | [DRIVE-01](backlog/tasks/DRIVE-01.md) · /drive/ picks a file: saved token, one tap where it is proven, the popup everywhere else | In progress |
+| DRIVE-02 | P2 | [DRIVE-02](backlog/tasks/DRIVE-02.md) · The home dropzone opens from Google Drive | In progress |
+| DRIVE-03 | P2 | [DRIVE-03](backlog/tasks/DRIVE-03.md) · iPhone check of the real Google Drive build | Needs Shlomi: A run on your iPhone, Chrome and Safari |
 | QUAL-21 | P2 | [QUAL-21](backlog/tasks/QUAL-21.md) · Pages render at the size they are shown, and the practice form's logo is sharp | In progress |
 | SIGN-44 | P2 | [SIGN-44](backlog/tasks/SIGN-44.md) · Sign: a comment on a highlight, kept in the PDF as a standard annotation | In progress |
 | SITE-45 | P3 | [SITE-45](backlog/tasks/SITE-45.md) · The /drive/ voice, carried to the other quiet pages: doodle that shows the mechanism, paper stickers for the promises | In progress. Needs Shlomi: Pick which pitches below to build (step 1) |
@@ -320,9 +323,13 @@ Small, independent, good for a spare hour.
 | --- | --- | --- | --- |
 | QUAL-04 | P3 | [QUAL-04](backlog/tasks/QUAL-04.md) · --color-border-strong is 2.07:1 on white and 1.80:1 on the primary tint, under the 3:1 boundary guideline |  |
 | SIGN-20 | P3 | [SIGN-20](backlog/tasks/SIGN-20.md) · The per-script pixel guards are close to blind to a cluster whose ink is right and whose advance is wrong |  |
+| DRIVE-04 | P2 | [DRIVE-04](backlog/tasks/DRIVE-04.md) · Every tool's empty state opens from Google Drive |  |
+| DRIVE-05 | P2 | [DRIVE-05](backlog/tasks/DRIVE-05.md) · Save to Google Drive reaches the tools that build on tap and the several-file results |  |
+| DRIVE-06 | P2 | [DRIVE-06](backlog/tasks/DRIVE-06.md) · Add from Google Drive in the tools that take more files |  |
+| DRIVE-07 | P2 | [DRIVE-07](backlog/tasks/DRIVE-07.md) · Google Drive copy: privacy and trust pages, trademark line, branding check |  |
 | GRID-07 | P2 | [GRID-07](backlog/tasks/GRID-07.md) · Page grid rows without gaps, and one rail rhythm across the grid tools |  |
 | GRID-08 | P2 | [GRID-08](backlog/tasks/GRID-08.md) · Compress and Unlock follow the one-file rail rule |  |
-| MERGE-26 | P3 | [MERGE-26](backlog/tasks/MERGE-26.md) · Save to Drive: an optional, explicit copy of a finished PDF into the person's own Drive | Needs Shlomi: Your rewrite of the first CLAUDE.md invariant (saving is the first time bytes leave the device) |
+| MERGE-26 | P3 | [MERGE-26](backlog/tasks/MERGE-26.md) · Save to Drive: an optional, explicit copy of a finished PDF into the person's own Drive |  |
 
 ### Parked
 
