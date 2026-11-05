@@ -60,10 +60,14 @@ interface PageActionsInput {
 export function createPageActions(input: PageActionsInput) {
   const { pages, failedIds, setPages, setResults, setRemoval, setCustomName, setRejectedFiles, forgetTurned, work, unmountedRef, dispatch, announce, focusIdRef } = input;
 
-  // Find the page again, on request: the person asked, so what it finds becomes their corners.
+  // Find the page again, on request: the person asked, so what it finds becomes their corners. A PDF sheet
+  // has no paper edge for the guess to read, so it goes back to the corners it opened with.
   const findPage = (page: ScanPage) => {
     dispatch({ type: 'findStarted', id: page.id });
-    work.enqueue(async () => (work.removed.has(page.id) ? null : (await loadPipeline()).guessPage(work.previewBlobs.get(page.id) ?? page.file)))
+    const found = page.sheet
+      ? Promise.resolve(page.opened)
+      : work.enqueue(async () => (work.removed.has(page.id) ? null : (await loadPipeline()).guessPage(work.previewBlobs.get(page.id) ?? page.file)));
+    found
       .then((quad) => quad, (err) => {
         reportError('pdf_tool_run', err, 'scan_find_page');
         return null;

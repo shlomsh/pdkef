@@ -113,9 +113,9 @@ export function useScanPages(input: ScanPagesInput) {
    * Each photo is inspected again for its preview; the guess never overrides corners the person set. */
   const restorePages = useCallback(({ files, pages: stored }: ScanDraftRestore): ScanPage[] => {
     const restored = files.map((file, index) => {
-      const { filter, turns, quad, sheet } = stored[index];
+      const { filter, turns, quad, sheet, opened } = stored[index];
       const page = newPage(file, filter);
-      return { ...page, turns, sheet, ...(quad ? { quad, edited: true } : {}) };
+      return { ...page, turns, sheet, opened, ...(quad ? { quad, edited: true } : {}) };
     });
     setPages(restored);
     dispatch({ type: 'photosAdded', firstId: restored[0].id });
