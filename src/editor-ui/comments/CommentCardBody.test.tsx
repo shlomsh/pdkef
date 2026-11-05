@@ -322,6 +322,14 @@ describe('CommentCardBody', () => {
     expect(onDiscard).toHaveBeenCalledOnce();
   });
 
+  it('Command+Enter saves, as Ctrl+Enter does', () => {
+    const onSave = vi.fn();
+    mount({ card: card({ comment: '', isNew: true }), active: true, onSave });
+    type('Hello');
+    act(() => { q('textarea').dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', metaKey: true, bubbles: true })); });
+    expect(onSave).toHaveBeenLastCalledWith({ comment: 'Hello', commentedAt: expect.any(Number) });
+  });
+
   it('Escape cancels and Ctrl+Enter saves, and keys never travel past the field', () => {
     const [onSave, onDiscard] = [vi.fn(), vi.fn()];
     const outer = vi.fn();

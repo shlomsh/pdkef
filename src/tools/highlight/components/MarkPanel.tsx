@@ -19,6 +19,7 @@ interface MarkPanelProps {
 /**
  * The one panel a picked highlight opens, as one light row: the three top colors and More in one framed track, the Highlight | Underline
  * switch with its setting button, then Comment and Delete. Where the row does not fit, Comment and Delete wrap to a second line.
+ * Comment is the one action that says its name: a highlight's next step is usually a thought about it.
  */
 export default function MarkPanel({ look, onChange, onComment, onDelete, moreOpen, onMoreOpenChange }: MarkPanelProps) {
   return (
@@ -31,8 +32,9 @@ export default function MarkPanel({ look, onChange, onComment, onDelete, moreOpe
       <StyleSetting look={look} onChange={onChange} />
       <span class={styles.acts}>
         <span class={styles.divider} />
-        <button type="button" class={styles.act} aria-label={t.markComment} aria-keyshortcuts="C" title={t.markComment} onClick={onComment}>
+        <button type="button" class={`${styles.act} ${styles.comment}`} aria-label={t.markComment} aria-keyshortcuts="C" title={t.markComment} onClick={onComment}>
           <CommentIcon size={18} />
+          <span class={styles.commentWord}>{t.markComment}</span>
         </button>
         <button type="button" class={`${styles.act} ${styles.danger}`} aria-label={t.markDelete} aria-keyshortcuts="Delete" title={t.markDelete} onClick={onDelete}>
           <TrashIcon />

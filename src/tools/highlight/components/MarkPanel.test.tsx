@@ -52,6 +52,12 @@ describe('MarkPanel', () => {
     expect(order).toEqual(['Yellow', 'Pink', 'Green', 'More colors', 'Highlight', 'Underline', 'Opacity', 'Comment', 'Delete']);
   });
 
+  it('Comment is the one action that says its name; Delete stays an icon', () => {
+    mount();
+    expect(named('Comment').textContent).toBe('Comment');
+    expect(named('Delete').textContent).toBe('');
+  });
+
   describe('the colors', () => {
     const group = () => container!.querySelector<HTMLElement>('[role="radiogroup"][aria-label="Color"]')!;
     const radios = () => [...group().querySelectorAll<HTMLElement>('[role="radio"]')];
