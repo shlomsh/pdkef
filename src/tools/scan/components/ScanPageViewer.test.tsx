@@ -39,7 +39,7 @@ function mount(over: Partial<ScanPageViewerProps> = {}, index = 0) {
   const props = {
     refs: { editor, heading: { current: null } },
     pages: six, selected: six[index], selectedIndex: index, view: 'result', results: {}, turnedPreviews: {},
-    finding: null, findMissed: [], pageSize: 'fit', built: { shown: placed(6), ready: true, size: 1000 },
+    finding: null, findMissed: [], failedIds: [], pageSize: 'fit', built: { shown: placed(6), ready: true, size: 1000 },
     actions, ...over,
   } as unknown as ScanPageViewerProps;
   container = document.createElement('div');
@@ -202,7 +202,7 @@ describe('ScanPageViewer', () => {
     expect(actions.onRotate).toHaveBeenCalledTimes(1);
     act(() => render(null, container!));
     const bad = page(1, { preview: null });
-    mount({ view: 'corners', pages: [bad], selected: bad });
+    mount({ view: 'corners', pages: [bad], selected: bad, failedIds: [1] });
     expect([...container!.querySelectorAll('button')].some((b) => b.textContent === t.rotate)).toBe(false);
   });
 
@@ -275,10 +275,26 @@ describe('ScanPageViewer', () => {
 
   it('corners on an unreadable page close instead', () => {
     const bad = page(1, { preview: null });
-    const { actions } = mount({ view: 'corners', pages: [bad], selected: bad });
+    const { actions } = mount({ view: 'corners', pages: [bad], selected: bad, failedIds: [1] });
     act(() => q('[data-back]')!.click());
     expect(actions.onDone).toHaveBeenCalledTimes(1);
     expect(actions.onApprove).not.toHaveBeenCalled();
+  });
+
+  it('corners on a page still waiting for its preview go back by using the corners', () => {
+    const waiting = page(1, { preview: null });
+    const { actions } = mount({ view: 'corners', pages: [waiting], selected: waiting });
+    act(() => q('[data-back]')!.click());
+    expect(actions.onApprove).toHaveBeenCalledTimes(1);
+    expect(actions.onDone).not.toHaveBeenCalled();
+  });
+
+  it('corners on a page that was read and failed later keep their way out: moving a corner tries it again', () => {
+    const failed = page(1);
+    const { actions } = mount({ view: 'corners', pages: [failed], selected: failed, failedIds: [1] });
+    expect(q('[role="status"]')!.textContent).toBe(t.cornersHint);
+    act(() => q('[data-back]')!.click());
+    expect(actions.onApprove).toHaveBeenCalledTimes(1);
   });
 
   it('the editor ref is on one element in result mode too, holding the current slide', () => {

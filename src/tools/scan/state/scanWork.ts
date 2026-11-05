@@ -61,6 +61,12 @@ export class ScanWork {
   /** The page Remove is holding for Undo, and the timer that lets it go. */
   removal: HeldRemoval | null = null;
   removalTimer: ReturnType<typeof setTimeout> | undefined;
+  /** Ends the PDFs still coming in: Clear all and leaving the page both stop them. */
+  pdfImport = new AbortController();
+  cancelPdfImport(): void {
+    this.pdfImport.abort();
+    this.pdfImport = new AbortController();
+  }
   results: Record<number, PageResult> = {};
   hadPages = false;
   resetDownloadFlow: () => void = () => {};

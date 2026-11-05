@@ -99,7 +99,7 @@ export function createPageActions(input: PageActionsInput) {
     dropPageWork(input, held.page);
   };
 
-  const reset = () => {
+  const clearPages = () => {
     settleRemoval();
     for (const url of work.urls) URL.revokeObjectURL(url);
     work.processing.clear();
@@ -121,15 +121,15 @@ export function createPageActions(input: PageActionsInput) {
     settleRemoval();
     const { index, removed, left, neighbour } = afterRemoval(pages, id);
     if (!removed) return;
-    // The last page ends the scan, and a photo still being read has nothing to bring back: both go at once.
-    const held = left.length > 0 && removed.guessed;
+    // The last page ends the scan, and a page still being read has nothing to bring back: both go at once.
+    const held = left.length > 0 && removed.guessed && (removed.preview !== null || failedIds.includes(id));
     if (!held) dropPageWork(input, removed);
     setPages(left);
     dispatch({ type: 'pageRemoved', id, neighbourId: neighbour?.id ?? null });
     focusIdRef.current = neighbour?.id ?? null;
     announce(formatMessage(t.announceRemoved, { position: index + 1 }));
     recordAction('remove_file');
-    if (left.length === 0) { reset(); return; }
+    if (left.length === 0) { clearPages(); return; }
     if (!held) return;
     const removal: HeldRemoval = { page: removed, index, failed: failedIds.includes(id) };
     work.removal = removal;
@@ -149,6 +149,12 @@ export function createPageActions(input: PageActionsInput) {
     focusIdRef.current = held.page.id;
     announce(formatMessage(t.announceRestored, { position: held.index + 1 }));
     recordAction('undo');
+  };
+
+  // Clear all, the person's own choice: unlike the last page going, it ends a PDF still coming in too.
+  const reset = () => {
+    work.cancelPdfImport();
+    clearPages();
   };
 
   return { findPage, removePage, undoRemove, reset };

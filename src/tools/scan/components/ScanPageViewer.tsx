@@ -35,6 +35,8 @@ interface ScanPageViewerProps {
   turnedPreviews: Record<string, string>;
   finding: number | null;
   findMissed: number[];
+  /** Pages that failed, in reading or later; a page only waiting for its preview is not among them. */
+  failedIds: number[];
   pageSize: PageSize;
   /** The built PDF for what is on screen: its pages (when built), whether it is ready, and its size. */
   built: { shown: Placed | undefined; ready: boolean; size: number };
@@ -114,9 +116,10 @@ function useArrowKeys(active: boolean, onStep: (delta: 1 | -1) => void) {
 
 /** The one-page screen on every width: a full-screen modal over the grid, swiping (or, on a mouse device,
  * Previous, Next and the arrow keys) between pages in result mode, the corners in the same dialog. */
-export default function ScanPageViewer({ refs, pages, selected, selectedIndex, view, results, turnedPreviews, finding, findMissed, pageSize, built, actions, undo }: ScanPageViewerProps) {
+export default function ScanPageViewer({ refs, pages, selected, selectedIndex, view, results, turnedPreviews, finding, findMissed, failedIds, pageSize, built, actions, undo }: ScanPageViewerProps) {
   const dialogRef = useRef<HTMLDialogElement>(null);
-  const unreadable = selected.guessed && selected.preview === null;
+  // failedIds also holds a page that was read and failed later: its photo is there, and moving a corner tries it again.
+  const unreadable = failedIds.includes(selected.id) && selected.preview === null;
   // Back and Escape: Use these corners in corners (an unreadable page has nothing to use, so it closes), Done in result.
   const goBack = view === 'corners' && !unreadable ? actions.onApprove : actions.onDone;
   const backRef = useRef(goBack);
@@ -171,7 +174,7 @@ export default function ScanPageViewer({ refs, pages, selected, selectedIndex, v
             </div>
           )}
         </div>
-        {view === 'corners' && <p class={styles.hint} role="status">{cornersHint(selected, finding, findMissed)}</p>}
+        {view === 'corners' && <p class={styles.hint} role="status">{cornersHint(selected, unreadable, finding, findMissed)}</p>}
         {view === 'result' ? (
           <div class={styles.stage}>
             <div class={styles.scroller} ref={scrollerRef} data-page-scroller onScroll={onScroll}>
@@ -201,6 +204,7 @@ export default function ScanPageViewer({ refs, pages, selected, selectedIndex, v
               photo={shownPhoto(selected, turnedPreviews)}
               shownAspect={shownAspect(selected)}
               finding={finding}
+              unreadable={unreadable}
               onCommit={actions.onCommit}
               onFind={actions.onFind}
               onApprove={actions.onApprove}

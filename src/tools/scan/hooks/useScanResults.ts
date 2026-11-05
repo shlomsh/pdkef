@@ -47,6 +47,8 @@ function watchResult(page: ScanPage, host: ResultHost) {
     // expected: work superseded before its turn is skipped on purpose, not a failure
     if (isAbortError(err)) return;
     reportError('pdf_tool_run', err, 'scan_process_page');
+    // The page went while this ran: a failure with no page to remove would hold the PDF back for good.
+    if (work.removed.has(page.id) || work.removal?.page.id === page.id) return;
     dispatch({ type: 'pageFailed', id: page.id });
   });
 }
