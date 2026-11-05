@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'preact/hooks';
-import { clearRecentEntries, readRecentFiles, removeRecentEntry } from '#lib/drafts/draftStore.ts';
+import { readRecentFiles, removeRecentEntry } from '#lib/drafts/draftStore.ts';
 import type { RecentFileItem } from './RecentFiles.tsx';
 
 /* MEM-03: every entry in the recency index - Sign/Redact source PDFs and a
@@ -16,7 +16,7 @@ function readHomeRecents(): RecentFileItem[] {
 /**
  * The home page's recents: null until mounted (see the note on this state in
  * FileDropzone.tsx), kept current across tabs and back/forward restores, and
- * MEM-30's two ways of removing them. The store resolves false rather than
+ * MEM-30's removal. The store resolves false rather than
  * throwing, so `settled` hears every outcome.
  */
 export function useHomeRecents(settled: (ok: boolean) => void) {
@@ -35,6 +35,5 @@ export function useHomeRecents(settled: (ok: boolean) => void) {
   return {
     recents,
     removeRecent: (file: RecentFileItem) => { if (file.cacheId) void removeRecentEntry(file.cacheId).then(finish); }, // reason: the store resolves false instead of rejecting
-    clearRecents: () => { void clearRecentEntries().then(finish); }, // reason: same as above
   };
 }

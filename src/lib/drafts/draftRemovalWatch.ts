@@ -27,7 +27,7 @@ function heard(event: StorageEvent) {
   if (event.key !== ENTRIES_REMOVED_KEY || !event.newValue || !tabEntry) return;
   try {
     const { removed } = JSON.parse(event.newValue);
-    if (removed === 'all' || (Array.isArray(removed) && removed.includes(tabEntry))) leave(tabEntry);
+    if (Array.isArray(removed) && removed.includes(tabEntry)) leave(tabEntry);
   } catch {
     // expected: a corrupt message says nothing; the store stays authoritative.
   }
@@ -59,7 +59,7 @@ export function noteTabEntry(id: string | null) {
 export const wasRemoved = (id: string) => refused.has(id);
 
 /** Tell every other tab which entries are gone. */
-export function announceRemoved(removed: string[] | 'all') {
+export function announceRemoved(removed: string[]) {
   try {
     localStorage.setItem(ENTRIES_REMOVED_KEY, JSON.stringify({ removed }));
     localStorage.removeItem(ENTRIES_REMOVED_KEY);
