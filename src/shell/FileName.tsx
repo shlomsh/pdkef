@@ -38,7 +38,7 @@ export default function FileName({ name, className, extension = true }: { name: 
   const rtlPage = isRtlPage();
   const inLastRun = rtlPage ? end : '';
   return (
-    <span class={`${styles.name}${className ? ` ${className}` : ''}`} dir={rtlPage ? 'auto' : 'ltr'} title={name}>
+    <span class={`${styles.name}${className ? ` ${className}` : ''}`} dir={rtlPage ? 'auto' : 'ltr'} title={name} data-file-name>
       <span class={styles.stem} dir={rtlPage ? undefined : 'auto'}>
         <span class={styles.head}>{tail ? head : head + inLastRun}</span>
         {tail && <span class={styles.tail}>{tail + inLastRun}</span>}

@@ -222,7 +222,7 @@ describe('PdfMergeTool UI flow', () => {
     });
   }
 
-  const fileNames = () => Array.from(container.querySelectorAll('ul[aria-describedby="reorder-hint"] > li [dir="auto"]')).map((el) => el.textContent);
+  const fileNames = () => Array.from(container.querySelectorAll('ul[aria-describedby="reorder-hint"] > li [data-file-name]')).map((el) => el.textContent);
   const undoButton = () => container.querySelector('button[aria-label="Undo last change"]');
   const redoButton = () => container.querySelector('button[aria-label="Redo last undone change"]');
   const downloadBox = () => container.querySelector('a[data-state]');
@@ -236,7 +236,7 @@ describe('PdfMergeTool UI flow', () => {
   const cells = () => Array.from(container.querySelectorAll('ul[data-page-grid] > li[data-key]'));
   const planOf = () => {
     const names = new Map(Array.from(container.querySelectorAll('ul[aria-describedby="reorder-hint"] > li'))
-      .map((row) => [row.getAttribute('data-file-id'), row.querySelector('[dir="auto"]').textContent]));
+      .map((row) => [row.getAttribute('data-file-id'), row.querySelector('[data-file-name]').textContent]));
     return cells().map((cell) => `${names.get(cell.getAttribute('data-file-id')).replace('.pdf', '')}:${cell.getAttribute('data-key').split(':')[1]}:${cell.getAttribute('data-rotation') ?? 0}:${cell.hasAttribute('data-skipped') ? 's' : '-'}`);
   };
   const clearAll = async () => {
@@ -328,18 +328,13 @@ describe('PdfMergeTool UI flow', () => {
     expect(buttons).not.toContain('Options');
   });
 
-  // Item 2 (Shlomi's follow-up, 2026-09-13): jsdom cannot measure where an
-  // ellipsis actually lands or prove a mixed-direction name renders right to
-  // left correctly - this only asserts the two things that make that
-  // possible: `dir="auto"` (so the browser picks the name's own direction,
-  // not the page's) and the module class carrying `unicode-bidi: plaintext`
-  // (so a Hebrew name's own trailing ".pdf" stays at its logical end under
-  // ellipsis, rather than the Latin suffix flipping to the visual start).
-  it('the rail row\'s file name is bidi plaintext with dir="auto"', async () => {
+  // jsdom cannot measure where an ellipsis lands or prove a mixed-direction name
+  // reads right: FileName.test.tsx pins the markup, merge-rtl-file-name.spec.js the
+  // rendered order. Here: the rail goes through the shared component.
+  it('the rail row\'s file name is the shared FileName, in the rail\'s own class', async () => {
     mount();
     await loadFiles(['one.pdf']);
-    const name = container.querySelector('ul[aria-describedby="reorder-hint"] > li [dir="auto"]');
-    expect(name.getAttribute('dir')).toBe('auto');
+    const name = container.querySelector('ul[aria-describedby="reorder-hint"] > li [data-file-name]');
     expect(name.className).toContain(railStyles['file-name']);
   });
 
@@ -902,7 +897,7 @@ describe('PdfMergeTool UI flow', () => {
     expect(container.textContent).not.toContain("That didn't work");
     expect(container.querySelector('[role="alert"]')).toBeNull();
     const row = container.querySelector('ul[aria-describedby="reorder-hint"] > li[data-locked]');
-    expect(row.querySelector('[dir="auto"]').textContent).toBe('locked.pdf');
+    expect(row.querySelector('[data-file-name]').textContent).toBe('locked.pdf');
     expect(row.hasAttribute('data-error')).toBe(false);
     expect(row.querySelector('[data-testid="file-pages"]').textContent).not.toMatch(/\d/);
     // The lock is read out, not only drawn: true of a password and an owner-only lock alike.
@@ -998,7 +993,7 @@ describe('PdfMergeTool UI flow', () => {
 
     const heading = container.querySelector('#page-grid-heading');
     expect(heading.querySelector('span[contenteditable]').textContent).toBe('merged_אישור שנתי');
-    expect(heading.querySelector('[dir="ltr"]').textContent).toBe('.pdf');
+    expect(heading.querySelector('bdi [dir="ltr"]').textContent).toBe('.pdf');
     // The download attribute is the name the browser saves under, the last thing our code sets.
     expect(downloadLink().getAttribute('download')).toBe('merged_אישור שנתי.pdf');
   });
@@ -1702,18 +1697,25 @@ describe('PdfMergeTool UI flow', () => {
       return { name, ext, unit: name.closest('bdi') };
     };
 
-    it.each([
-      ['Hebrew', { messages: hebrewMergeMessages, shellMessages: hebrewShellMessages }],
-      ['English', {}],
-    ])('wraps the name and the .pdf in one auto-direction isolate in %s', async (_label, props) => {
-      const { name, ext, unit } = await headingUnit(props);
+    it('wraps the name and the .pdf in one auto-direction isolate on a right-to-left page', async () => {
+      document.documentElement.dir = 'rtl';
+      const { name, ext, unit } = await headingUnit({ messages: hebrewMergeMessages, shellMessages: hebrewShellMessages });
+      document.documentElement.removeAttribute('dir');
       expect(ext.parentElement).toBe(unit);
       expect(unit.parentElement.id).toBe('page-grid-heading');
-      expect(unit.tagName === 'BDI' || unit.getAttribute('dir') === 'auto').toBe(true);
-      // The unit takes its direction from the name's own text, so the name carries no dir of
-      // its own (an element with a dir attribute is skipped when `dir=auto` looks for a
-      // first strong character).
+      expect(unit.tagName).toBe('BDI');
+      // The unit takes its direction from the name's own text, so neither carries a dir (an
+      // element with a dir attribute is skipped when `dir=auto` looks for a first strong character).
+      expect(unit.hasAttribute('dir')).toBe(false);
       expect(name.hasAttribute('dir')).toBe(false);
+      expect(name.textContent).toBe('merged_three-page-header');
+    });
+
+    it('keeps the unit left to right on a left-to-right page, the name in its own direction', async () => {
+      const { name, ext, unit } = await headingUnit({});
+      expect(ext.parentElement).toBe(unit);
+      expect(unit.getAttribute('dir')).toBe('ltr');
+      expect(name.getAttribute('dir')).toBe('auto');
       expect(name.textContent).toBe('merged_three-page-header');
     });
 
