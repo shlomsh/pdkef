@@ -39,7 +39,7 @@
       "src/tools/redact/components/RedactBox.tsx#RedactBox": 256,
       "src/tools/redact/components/RedactToolbar.tsx#RedactToolbar": 252,
       "src/tools/redact/components/details/DetailsSheet.tsx#DetailsSheet": 152,
-      "src/tools/redact/hooks/useRedactExport.ts#useRedactExport": 218,
+      "src/tools/redact/hooks/useRedactExport.ts#useRedactExport": 214,
       "src/tools/redact/state/redactState.ts#redactReducer": 244,
       "src/tools/scan/components/CornerEditor.tsx#CornerEditor": 155,
       "src/tools/security/PdfSecurityTool.tsx#PdfSecurityTool": 272,

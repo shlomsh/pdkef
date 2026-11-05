@@ -15,6 +15,7 @@ import type { DetailEdits } from '../lib/detailEdits.js';
 import type { SavedPlace } from '../lib/check/types.ts';
 import { useOutputNameOverride } from '#shell/useOutputNameOverride.ts';
 import { englishRedactMessages as t } from '../messages.ts';
+import { announceShareResult } from '../lib/shareResult.ts';
 import { selectDetailEdits, selectRemovedPlaces, type RedactAction, type RedactState, type SavedExport } from '../state/redactState.ts';
 
 /** A call right after a dispatch passes the fresh values the closure has not seen yet (removedPlaces newest first). */
@@ -204,18 +205,14 @@ export default function useRedactExport({ state, dispatch, setAnnouncement, setN
     void handleSavePdf('download'); // reason: exportRedacted catches and reports its own failure
   };
 
-  const handleSharePdf = async () => {
-    const result = await sharePrepared();
-    if (result.status === 'shared') {
-      setAnnouncement(t.shared);
-      recordAction('share');
-    } else if (result.status === 'canceled') {
-      setAnnouncement(t.shareCanceled);
-    } else if (result.status === 'error') {
-      console.error(result.error);
-      setAnnouncement(t.shareError);
-    }
+  // Save to Drive: the same export Download runs (kept when it still matches the document), delivered nowhere.
+  const buildForDrive = async () => {
+    dispatch({ type: 'EXPORT_ERROR_CLEARED' });
+    const exported = exportedForHandoff ?? await exportRedacted('handoff');
+    return exported ? { blob: exported.blob, fileName: exported.name } : null;
   };
+
+  const handleSharePdf = async () => announceShareResult(await sharePrepared(), setAnnouncement);
 
   // Finding #4: hands the redacted bytes to Compress or Sign without
   // re-picking, the same one-shot baton Merge's own hand-off uses
@@ -241,5 +238,5 @@ export default function useRedactExport({ state, dispatch, setAnnouncement, setN
     }
   };
 
-  return { canSharePdf, shareReady, handoffBusy, handleSavePdf, handleDownloadPdf, handleSharePdf, requestHandoff, outputFileName, identityRename };
+  return { canSharePdf, shareReady, handoffBusy, handleSavePdf, handleDownloadPdf, handleSharePdf, requestHandoff, buildForDrive, outputFileName, identityRename };
 }

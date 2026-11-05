@@ -65,6 +65,7 @@ interface RedactToolbarProps {
     exporting?: boolean;
     /** RED-66: the toolbar Download says "Saved" for a moment after it saved. */
     downloadConfirmed?: boolean;
+    downloadMenu?: ComponentChildren;
   };
   history: {
     /** Newest-first log of the add/delete commands Undo can step back through;
@@ -143,6 +144,7 @@ export default function RedactToolbar({
     shareReady = false,
     exporting = false,
     downloadConfirmed = false,
+    downloadMenu,
   } = output;
   const { entries: actionHistory, undo: onUndo, redo: onRedo, canRedo } = history;
   const { action: undoAction = null, run: onUndoAction } = undoChip;
@@ -352,13 +354,12 @@ export default function RedactToolbar({
         <EditorExportActions
           variant="toolbar"
           keepDownloadOnPhone
-          canShare={canSharePdf}
-          shareReady={shareReady}
+          canShare={canSharePdf} shareReady={shareReady}
           disabled={elementsCount === 0 || exporting}
           onDownload={handleDownloadPdf}
           confirmed={downloadConfirmed}
-          onPrepareShare={handlePrepareShare}
-          onShare={handleSharePdf}
+          downloadMenu={downloadMenu}
+          onPrepareShare={handlePrepareShare} onShare={handleSharePdf}
           downloadTitle={elementsCount === 0 ? 'Draw a box or delete something first' : 'Download the redacted PDF'}
           shareTitle={elementsCount === 0
             ? 'Draw a box or delete something first'

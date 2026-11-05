@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
-import { DRIVE_SAVE_CHANNEL, driveSaveKey, type DriveSavePayload } from '#lib/handoff/driveSaveLink.ts';
+import { DRIVE_SAVE_CHANNEL, driveSaveKey, type DriveSaveCancel, type DriveSavePayload } from '#lib/handoff/driveSaveLink.ts';
 import { parkHandoff } from '#lib/handoff/sendHandoff.ts';
 import { saveToDrive, type DriveUploadError } from './drive/driveUpload.ts';
 import { forgetSaved, savedToken, toGoogle } from './drive/driveSignIn.ts';
@@ -9,7 +9,8 @@ import styles from './DriveOpen.module.css';
    new tab; this page signs in (one redirect, no Picker frame), uploads, answers the tool on a
    BroadcastChannel and closes itself. The file is never lost: a failure offers it as a download. */
 const TAKE_EVERY_MS = 250;
-const TAKE_TRIES = 40;
+// The tool builds its file after this tab opens, so the wait covers a slow build: 2 minutes.
+const TAKE_TRIES = 480;
 const CLOSE_AFTER_MS = 900;
 
 type Phase =
@@ -18,15 +19,16 @@ type Phase =
   | { name: 'saving' }
   | { name: 'saved'; link: string | null }
   | { name: 'expired' }
+  | { name: 'cancelled' }
   | { name: 'failed'; error: DriveUploadError };
 
 const pause = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
-function answer(id: string, status: 'saved' | 'failed') {
+function answer(id: string, status: 'saved' | 'failed', link: string | null = null) {
   try {
     if (typeof BroadcastChannel === 'undefined') return;
     const channel = new BroadcastChannel(DRIVE_SAVE_CHANNEL);
-    channel.postMessage({ id, status });
+    channel.postMessage(status === 'saved' ? { id, status, link } : { id, status });
     channel.close();
   } catch {
     // expected: no channel in this browser; the tool simply is not told
@@ -54,9 +56,9 @@ function retriedFlag(id: string) {
   };
 }
 
-async function takeRecord(id: string): Promise<DriveSavePayload | null> {
+async function takeRecord(id: string, cancelled: () => boolean): Promise<DriveSavePayload | null> {
   const { takeHandoff } = await import('#lib/drafts/draftStore.ts');
-  for (let i = 0; i < TAKE_TRIES; i++) {
+  for (let i = 0; i < TAKE_TRIES && !cancelled(); i++) {
     const record = await takeHandoff(driveSaveKey(id));
     if (record && Array.isArray(record.files) && record.files.length > 0) return record as unknown as DriveSavePayload;
     await pause(TAKE_EVERY_MS);
@@ -66,6 +68,7 @@ async function takeRecord(id: string): Promise<DriveSavePayload | null> {
 
 export default function DriveSave({ id, failed }: { id: string; failed: boolean }) {
   const [phase, setPhase] = useState<Phase>(failed ? { name: 'sign-in-failed' } : { name: 'waiting' });
+  const cancelledRef = useRef(false);
   const payload = useRef<DriveSavePayload | null>(null);
   const token = useRef<string | null>(null);
   const [downloads, setDownloads] = useState<{ name: string; href: string }[]>([]);
@@ -76,7 +79,7 @@ export default function DriveSave({ id, failed }: { id: string; failed: boolean 
     setPhase({ name: 'saving' });
     const result = await saveToDrive(fetch, token.current, data);
     if (result.ok) {
-      answer(id, 'saved');
+      answer(id, 'saved', result.link);
       setPhase({ name: 'saved', link: result.link });
       setTimeout(() => window.close(), CLOSE_AFTER_MS);
       return;
@@ -98,6 +101,19 @@ export default function DriveSave({ id, failed }: { id: string; failed: boolean 
     setPhase({ name: 'failed', error: result.error });
   };
 
+  // The tool could not build the file: stop waiting, close, and say so if the browser keeps the tab open.
+  useEffect(() => {
+    if (typeof BroadcastChannel === 'undefined') return;
+    const channel = new BroadcastChannel(DRIVE_SAVE_CHANNEL);
+    channel.onmessage = (event: MessageEvent<DriveSaveCancel>) => {
+      if (event.data?.id !== id || event.data.status !== 'cancelled') return;
+      cancelledRef.current = true;
+      setPhase({ name: 'cancelled' });
+      window.close();
+    };
+    return () => channel.close();
+  }, [id]);
+
   useEffect(() => {
     if (failed) return;
     const saved = savedToken();
@@ -105,11 +121,12 @@ export default function DriveSave({ id, failed }: { id: string; failed: boolean 
     token.current = saved;
     void (async () => { // reason: a failure below ends on the 'expired' line, never on a page stuck saving
       try {
-        payload.current = await takeRecord(id);
+        payload.current = await takeRecord(id, () => cancelledRef.current);
       } catch {
         // expected: the store's chunk did not load; handled like a record that aged out
         payload.current = null;
       }
+      if (cancelledRef.current) return;
       if (!payload.current) {
         // Parked hand-offs age out (HANDOFF_MAX_AGE_MS), so a slow sign-in can arrive to nothing. The file is safe in the tool's tab.
         answer(id, 'failed');
@@ -135,6 +152,13 @@ export default function DriveSave({ id, failed }: { id: string; failed: boolean 
       </div>
     );
   }
+  if (phase.name === 'cancelled') {
+    return (
+      <div class={styles.panel}>
+        <p class={styles.lead} role="status">Nothing was saved. Your work is still in the tab you came from.</p>
+      </div>
+    );
+  }
   if (phase.name === 'failed') {
     return (
       <div class={styles.panel}>
@@ -153,7 +177,7 @@ export default function DriveSave({ id, failed }: { id: string; failed: boolean 
   if (phase.name === 'saved') {
     return (
       <div class={styles.panel}>
-        <p class={styles.lead} role="status">Saved to Google Drive</p>
+        <p class={styles.lead} role="status">Saved to My Drive</p>
         {phase.link && <a class={styles.back} href={phase.link} target="_blank" rel="noopener">Open in Google Drive</a>}
       </div>
     );

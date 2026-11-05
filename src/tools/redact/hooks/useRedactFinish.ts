@@ -9,10 +9,11 @@ import useFinishStrip from './useFinishStrip.ts';
  * already exists. A page with any box is saved as a picture; a page with only
  * deletions keeps its text (applyPageEdits.js).
  */
-export default function useRedactFinish({ state, handleDownloadPdf, outputFileName }: {
+export default function useRedactFinish({ state, handleDownloadPdf, buildForDrive, outputFileName }: {
   state: RedactState;
   outputFileName: string;
   handleDownloadPdf: () => void;
+  buildForDrive: () => Promise<{ blob: Blob; fileName: string } | null>;
 }) {
   const { elements } = state.edits;
   const { file, numPages, progress } = state.document;
@@ -38,10 +39,7 @@ export default function useRedactFinish({ state, handleDownloadPdf, outputFileNa
   // SEO-46's ask is mounted once by the island: in the strip while it is open, else last in the
   // bottom row. Two mounted copies would race for the one device-wide ask.
   const downloaded = useDownloaded();
-  const drive = useSaveToDrive({
-    tool: 'redact', blob: exportedForHandoff?.blob ?? null, parts: null, fileName: exportedForHandoff?.name ?? '',
-    generation: exportedForHandoff, ready: finishPhase === 'saved' && !!exportedForHandoff,
-  });
+  const drive = useSaveToDrive({ tool: 'redact', build: buildForDrive, generation: state.edits.documentRevision, ready: elements.length > 0 && finishPhase !== 'exporting' });
 
   return { drive, finishFacts, showStrip, downloadConfirmed, closeStrip, handleToolbarDownload, downloaded };
 }

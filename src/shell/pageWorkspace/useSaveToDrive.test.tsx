@@ -15,19 +15,12 @@ const events = () => report.mock.calls.map((call) => call[0]);
 const pdf = new Blob(['%PDF'], { type: 'application/pdf' });
 
 describe('driveSavePayload', () => {
-  it('is one file for a single blob', async () => {
-    const payload = await driveSavePayload(pdf, null, 'a.pdf');
+  it('is always one file', async () => {
+    const payload = await driveSavePayload(pdf, 'a.pdf');
     expect(payload.folderName).toBeUndefined();
     expect(payload.files).toHaveLength(1);
     expect(payload.files[0]).toMatchObject({ fileName: 'a.pdf', fileType: 'application/pdf' });
     expect(payload.files[0].fileBytes.byteLength).toBe(4);
-  });
-
-  it('is a folder named for the file without its extension for several parts', async () => {
-    const parts = [{ blob: pdf, filename: 'p1.pdf' }, { blob: pdf, filename: 'p2.pdf' }];
-    const payload = await driveSavePayload(null, parts, 'split_report.zip');
-    expect(payload.folderName).toBe('split_report');
-    expect(payload.files.map((f) => f.fileName)).toEqual(['p1.pdf', 'p2.pdf']);
   });
 });
 
@@ -36,23 +29,38 @@ describe('useSaveToDrive', () => {
   let latest: ReturnType<typeof useSaveToDrive>;
   const Probe = (props: Parameters<typeof useSaveToDrive>[0]) => { latest = useSaveToDrive(props); return null; };
   const mount = (props: Partial<Parameters<typeof useSaveToDrive>[0]> = {}) => {
-    const full = { tool: 'redact' as const, blob: pdf, parts: null, fileName: 'a.pdf', generation: 1, ready: true, ...props };
+    const full = { tool: 'redact' as const, build, generation: 1, ready: true, ...props };
     act(() => render(<Probe {...full} />, container));
   };
+  const build = vi.fn(async () => ({ blob: pdf, fileName: 'a.pdf' }));
   beforeEach(() => {
+    build.mockClear();
+    vi.stubGlobal('matchMedia', () => ({ matches: true }));
     container = document.createElement('div');
     saveHandoff.mockReset().mockResolvedValue(true);
     report.mockReset();
     localStorage.clear();
     connect();
   });
-  afterEach(() => { render(null, container); vi.restoreAllMocks(); });
+  afterEach(() => { render(null, container); vi.restoreAllMocks(); vi.unstubAllGlobals(); });
 
   it('is available only when ready', () => {
     mount({ ready: false });
     expect(latest.available).toBe(false);
     mount({ ready: true });
     expect(latest.available).toBe(true);
+  });
+
+  it('is available only on a hover and fine pointer device', () => {
+    vi.stubGlobal('matchMedia', () => ({ matches: false }));
+    mount();
+    expect(latest.available).toBe(false);
+    vi.stubGlobal('matchMedia', undefined);
+    mount({ generation: 2 });
+    expect(latest.available).toBe(false);
+    vi.stubGlobal('matchMedia', () => { throw new Error('no'); });
+    mount({ generation: 3 });
+    expect(latest.available).toBe(false);
   });
 
   it('is not available when not connected, and is with an expired record', () => {
@@ -76,8 +84,9 @@ describe('useSaveToDrive', () => {
     expect(events()).toEqual(['tool_drive_shown', 'tool_drive_tapped']);
     await act(async () => { await vi.waitFor(() => expect(saveHandoff).toHaveBeenCalled()); });
     const id = String(saveHandoff.mock.calls[0][0]).replace('drive-save-', '');
-    act(() => channels[0].onmessage?.({ data: { id, status: 'saved' } } as MessageEvent));
-    expect(events().at(-1)).toBe('tool_drive_saved');
+    act(() => channels[0].onmessage?.({ data: { id, status: 'saved', link: null } } as MessageEvent));
+    expect(events()).toContain('tool_drive_saved');
+    expect(events()).toContain('tool_result_ready');
     mount({ generation: 2 });
     expect(events().filter((e) => e === 'tool_drive_shown')).toHaveLength(2);
     vi.unstubAllGlobals();
@@ -148,11 +157,65 @@ describe('useSaveToDrive', () => {
     const send = (data: unknown) => act(() => channels[0].onmessage?.({ data } as MessageEvent));
     send({ id: 'other', status: 'saved' });
     expect(latest.state).toBe('saving');
-    send({ id, status: 'saved' });
+    send({ id, status: 'saved', link: 'https://drive.google.com/file/d/1/view' });
     expect(latest.state).toBe('saved');
+    expect(latest.link).toBe('https://drive.google.com/file/d/1/view');
     mount({ generation: 2 });
     expect(latest.state).toBe('idle');
+    expect(latest.link).toBeNull();
     vi.unstubAllGlobals();
+  });
+
+  it('keeps the link only when it is a Drive link', async () => {
+    vi.spyOn(window, 'open').mockReturnValue({} as Window);
+    const channels: { onmessage: ((e: MessageEvent) => void) | null }[] = [];
+    class FakeChannel { onmessage = null; constructor() { channels.push(this as never); } close() {} postMessage() {} }
+    vi.stubGlobal('BroadcastChannel', FakeChannel);
+    mount();
+    act(() => latest.save());
+    await act(async () => { await vi.waitFor(() => expect(saveHandoff).toHaveBeenCalled()); });
+    const id = String(saveHandoff.mock.calls[0][0]).replace('drive-save-', '');
+    act(() => channels[0].onmessage?.({ data: { id, status: 'saved', link: 'https://evil.example/x' } } as MessageEvent));
+    expect(latest.state).toBe('saved');
+    expect(latest.link).toBeNull();
+  });
+
+  it('builds after the tab is open, and posts cancelled when the build gives nothing or throws', async () => {
+    const open = vi.spyOn(window, 'open').mockReturnValue({} as Window);
+    const posts: unknown[] = [];
+    class FakeChannel { onmessage = null; close() {} postMessage(m: unknown) { posts.push(m); } }
+    vi.stubGlobal('BroadcastChannel', FakeChannel);
+    let release: (v: null) => void = () => {};
+    build.mockImplementationOnce(() => new Promise((resolve) => { release = resolve as never; }));
+    mount();
+    act(() => latest.save());
+    expect(open).toHaveBeenCalledTimes(1);
+    expect(build).toHaveBeenCalledTimes(1);
+    expect(saveHandoff).not.toHaveBeenCalled();
+    await act(async () => { release(null); await vi.waitFor(() => expect(events()).toContain('tool_drive_failed')); });
+    expect(latest.state).toBe('failed');
+    expect(posts).toEqual([expect.objectContaining({ status: 'cancelled' })]);
+    expect(events()).toContain('tool_drive_failed');
+    expect(saveHandoff).not.toHaveBeenCalled();
+    build.mockRejectedValueOnce(new Error('boom'));
+    mount({ generation: 2 });
+    act(() => latest.save());
+    await act(async () => { await vi.waitFor(() => expect(posts).toHaveLength(2)); await vi.waitFor(() => expect(events().filter((e) => e === 'tool_drive_failed')).toHaveLength(2)); });
+    expect(latest.state).toBe('failed');
+  });
+
+  it('ignores a generation change while saving, and resets on one after', async () => {
+    vi.spyOn(window, 'open').mockReturnValue({} as Window);
+    class FakeChannel { onmessage = null; close() {} postMessage() {} }
+    vi.stubGlobal('BroadcastChannel', FakeChannel);
+    let release: (v: { blob: Blob; fileName: string }) => void = () => {};
+    build.mockImplementationOnce(() => new Promise((resolve) => { release = resolve; }));
+    mount();
+    act(() => latest.save());
+    mount({ generation: 2 });
+    expect(latest.state).toBe('saving');
+    await act(async () => { release({ blob: pdf, fileName: 'a.pdf' }); await vi.waitFor(() => expect(saveHandoff).toHaveBeenCalled()); });
+    expect(latest.state).toBe('saving');
   });
 
   it('stops saving when the person closes the Drive tab with no answer', async () => {

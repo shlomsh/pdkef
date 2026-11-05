@@ -14,8 +14,8 @@ depends_on: ["MERGE-26"]
 *Revised 2026-11-05: Save is a pilot in Highlight and Redact (MERGE-26). Whether it goes wider, and
 whether it shows to people not yet connected, is decided from the pilot's numbers. The wiring for the
 shared finish row and phone strip was built and then taken out for the pilot; it is a
-small change: `useSaveToDrive` plus `SaveToDriveButton` in `FinishRow` and `PhoneFinish`. The several-file
-folder path already exists in `driveUpload.ts`.*
+small change: `useSaveToDrive` plus `DriveSaveMenu` beside each tool's Download, desktop only (MERGE-26's
+revision). The several-file folder path already exists in `driveUpload.ts`.*
 
 Sign, Redact and Highlight build on tap (`EditorExportActions`, `RedactDone`), Scan's phone table has no
 `PhoneFinish`, and pdf-to-image and compress-image batches make several files, which go into one new
