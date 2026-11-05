@@ -8,7 +8,7 @@
 //   FIRE --> waitingForChange --page gone leaveMs, or hash differs--> searching
 //   any phase --a page matching one taken this session (SCAN-23)--> duplicate: never fires, hold restarts
 //   duplicate --page gone leaveMs, or hash matches no page taken--> searching
-// The pages taken are remembered through every reset: one page, one shot, whatever happens in between.
+// The pages taken are remembered through every reset: one page, one shot, as long as the page stays in the scan.
 import type { Point, Quad } from '#lib/pageEnhance/quad.ts';
 import { isCutOff } from './framing.ts';
 import { hashDistance } from './hash.ts';
@@ -49,6 +49,15 @@ const alreadyTaken = (state: CaptureState, hash: string, params: CaptureParams) 
 /** A fresh search that keeps the pages taken: after the page has been gone leaveMs, or when the camera restarts. */
 export function searchAgain(state: CaptureState): CaptureState {
   return { ...INITIAL_CAPTURE_STATE, lastCaptureHash: state.lastCaptureHash, takenHashes: state.takenHashes ?? [] };
+}
+
+/** Only the pages still in the scan count as taken: one removed or being retaken can be taken again, and one brought
+ * back by Undo is taken already. `kept` is their hashes. A wait on any other page ends here, even with the page in
+ * view: that page has left the scan, or the machine fired on it while paused and nothing was taken. */
+export function keepTaken(state: CaptureState, kept: readonly string[]): CaptureState {
+  const takenHashes = kept.slice(-TAKEN_MEMORY);
+  const last = state.lastCaptureHash;
+  return last !== null && !kept.includes(last) ? searchAgain({ ...state, lastCaptureHash: null, takenHashes }) : { ...state, takenHashes };
 }
 
 /** `shoots` false (auto off or paused): a fire still waits for the page to change, but no page was taken, so

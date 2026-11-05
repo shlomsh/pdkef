@@ -17,7 +17,7 @@ vi.mock('../lib/camera/viewfinderModel.ts', () => ({
 
 let container: HTMLElement | null = null;
 const baseProps = () => ({
-  mode: 'many' as const, count: 2, lastSrc: 'blob:last',
+  mode: 'many' as const, count: 2, lastSrc: 'blob:last', scanFiles: [],
   onTaken: vi.fn(), onClose: vi.fn(), onReview: vi.fn(), paused: false, onFallbackFiles: vi.fn(),
 });
 function mount(props: Record<string, unknown> = {}) {

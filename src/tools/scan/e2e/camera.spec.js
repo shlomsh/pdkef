@@ -132,6 +132,46 @@ test('a page wider than the screen is not taken, and the hint says so', async ({
   }
 });
 
+// SCAN-65 - the viewer opens over the running camera, so only a real camera shows the page coming back.
+test('a page removed from the stack is taken again by itself', async ({ page }) => {
+  await page.goto('/scan-to-pdf/');
+  await waitForIsland(page);
+  await page.getByText('Start scanning').click();
+  const stack = page.getByRole('button', { name: /The last page taken, 1 so far/ });
+  await expect(stack).toBeVisible({ timeout: 15_000 });
+
+  await stack.click();
+  await page.getByRole('button', { name: 'Remove', exact: true }).click();
+  await expect(stack).toHaveCount(0);
+  await expect(stack).toBeVisible({ timeout: 15_000 });
+});
+
+// The camera keeps running under the viewer, and nothing it does there may count once the viewer closes.
+test('a page whose photo was swapped in the viewer is taken when the viewer closes', async ({ page }) => {
+  await page.goto('/scan-to-pdf/');
+  await waitForIsland(page);
+  await page.getByText('Start scanning').click();
+  const stack = page.getByRole('button', { name: /The last page taken, 1 so far/ });
+  await expect(stack).toBeVisible({ timeout: 15_000 });
+  await stack.click();
+
+  const photo = await page.evaluate(async () => {
+    const canvas = document.createElement('canvas');
+    canvas.width = 600;
+    canvas.height = 800;
+    canvas.getContext('2d').fillRect(100, 100, 400, 600);
+    const blob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/png'));
+    return Array.from(new Uint8Array(await blob.arrayBuffer()));
+  });
+  await page.locator('[data-page-viewer] input[capture]').first().setInputFiles({ name: 'swap.png', mimeType: 'image/png', buffer: Buffer.from(photo) });
+  // The swap frees the page, and the paused camera then fires on it under the viewer.
+  const hint = page.locator('[data-camera-hint]');
+  await expect(hint).not.toHaveText(/Turn the page/);
+  await expect(hint).toHaveText(/Turn the page/);
+  await page.keyboard.press('Escape');
+  await expect(page.getByRole('button', { name: /The last page taken, 2 so far/ })).toBeVisible({ timeout: 15_000 });
+});
+
 // SCAN-15 - only a browser can say the page stayed put. The fake camera offers no zoom, so the track is given one.
 test('a pinch on the viewfinder zooms the camera and leaves the page alone', async ({ page }) => {
   await page.addInitScript(() => {
