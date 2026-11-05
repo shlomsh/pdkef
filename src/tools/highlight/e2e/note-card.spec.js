@@ -116,6 +116,34 @@ test('opening the menu leaves a note in the other direction where it was, and th
   expect(menuBox.x + menuBox.width).toBeLessThanOrEqual(cardBox.x + cardBox.width);
 });
 
+// The menu opens hidden until it is placed, and a real browser will not focus a hidden element; jsdom will.
+test('the menu works from the keyboard: Edit takes focus, arrows move, Escape closes only the menu', async ({ page }) => {
+  const source = await makePdfBuffer(null, { title: false, lines: LINES });
+  await openTool(page, '/highlight-pdf/', { file: { name: 'notes.pdf', buffer: source }, overlaySelector: '[data-page-overlay]' });
+  await addNote(page, 700, 'short note');
+
+  const card = page.locator('[data-comment-card]').first();
+  await card.click();
+  await expect(card).toHaveAttribute('data-active', /.*/);
+  const more = card.locator('[data-comment-more]');
+  const scroll = () => page.evaluate(() => window.scrollY);
+  const before = await scroll();
+
+  await more.click();
+  await expect(page.locator('[data-comment-menu-edit]')).toBeFocused();
+  expect(await scroll()).toBe(before);
+  await page.keyboard.press('ArrowDown');
+  await expect(page.locator('[data-comment-menu-delete]')).toBeFocused();
+
+  await page.keyboard.press('Escape');
+  await expect(page.locator('[data-comment-menu]')).toHaveCount(0);
+  await expect(more).toBeFocused();
+  await expect(card).toHaveAttribute('data-active', /.*/);
+
+  await more.click();
+  await expect(page.locator('[data-comment-menu]')).toBeVisible();
+});
+
 test.describe('in the phone note pane', () => {
   test.use({ isMobile: false, hasTouch: true, viewport: { width: 402, height: 874 } });
 

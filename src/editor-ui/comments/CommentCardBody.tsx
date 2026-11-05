@@ -146,9 +146,10 @@ function selectionInside(el: Element): boolean {
 /** The top layer, where the browser has it; without it the menu stays an absolute box inside the card. */
 const TOP_LAYER = typeof HTMLElement !== 'undefined' && 'showPopover' in HTMLElement.prototype;
 
-/** Show the menu in the top layer, hidden until Floating UI has placed it, and keep it placed. Returns the cleanup. */
+/** Show the menu in the top layer, unseen until Floating UI has placed it, and keep it placed. Returns the cleanup.
+ * Opacity, not visibility: the caller focuses Edit right away, and a browser will not focus a hidden element. */
 function placeInTopLayer(more: HTMLElement, menu: HTMLElement): () => void {
-  menu.style.visibility = 'hidden';
+  menu.style.opacity = '0';
   menu.showPopover();
   const place = () => computePosition(more, menu, {
     strategy: 'fixed',
@@ -158,7 +159,7 @@ function placeInTopLayer(more: HTMLElement, menu: HTMLElement): () => void {
     middleware: [offset(4), flip(), shift({ padding: 8 })],
   }).then(({ x, y }) => {
     Object.assign(menu.style, { left: `${x}px`, top: `${y}px` });
-    menu.style.visibility = '';
+    menu.style.opacity = '';
   });
   return autoUpdate(more, menu, place);
 }
@@ -189,7 +190,7 @@ function MoreMenu({ messages, onEdit, onDelete }: { messages: SignMessages; onEd
     // The menu opens in the top layer: the phone pane's cards scroll, and any scroll container would cut it off.
     // It stays in the card's DOM, so focus and presses on it still count as inside the note.
     const stopPlacing = TOP_LAYER ? placeInTopLayer(more, menu) : () => {};
-    menu.querySelector<HTMLElement>('[data-comment-menu-edit]')?.focus();
+    menu.querySelector<HTMLElement>('[data-comment-menu-edit]')?.focus({ preventScroll: true });
     const stopAway = closeOnPressAway(() => menuRef.current, () => moreRef.current, () => setMenuOpen(false));
     return () => { stopPlacing(); stopAway(); };
   }, [menuOpen]);
