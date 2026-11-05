@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { applyFilter, type ScanFilter } from './filters';
+import { applyFilter, documentGrey, type ScanFilter } from './filters';
 import type { RgbaImage } from '#lib/pageEnhance/quad.ts';
 
 function make(width: number, height: number, fn: (x: number, y: number) => [number, number, number]): RgbaImage {
@@ -156,3 +156,23 @@ describe('applyFilter', () => {
     expect(src.data).toEqual(before);
   });
 });
+
+describe('document keeps a printed box on a shaded photo', () => {
+  it('stays dark, though the paper around it fades', () => {
+    const width = 1200;
+    const height = 1600;
+    const data = new Uint8ClampedArray(width * height * 4).fill(255);
+    for (let y = 0; y < height; y += 1) {
+      for (let x = 0; x < width; x += 1) {
+        const paper = 245 - (x / width) * 70;
+        const box = x >= 400 && x < 800 && y >= 600 && y < 1000;
+        data.fill(box ? 30 : paper, (y * width + x) * 4, (y * width + x) * 4 + 3);
+      }
+    }
+    const grey = documentGrey({ width, height, data });
+    expect(grey[800 * width + 600]).toBeLessThan(60);
+    expect(grey[800 * width + 200]).toBeGreaterThan(240);
+    expect(grey[800 * width + 1100]).toBeGreaterThan(240);
+  });
+});
+
