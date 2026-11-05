@@ -16,7 +16,7 @@ toolbar gains no button, and tapping Download stays one tap. Phones and tablets 
 share sheet already reaches Drive. Tapping it makes the file without downloading it, saves to the top of
 My Drive, and the arrow's popup says "Saved to My Drive" with a link to the file. There is no folder
 choice. `tool_drive_shown` now means the arrow appeared, and a Drive save also counts as
-`tool_result_ready`. This replaces "in their done state after a download" below.*
+`tool_result_ready`. This replaces "in their done state after a download" below. Phones reach Drive through Share, so Highlight gained Share in the same change. Not yet tried on a real iPhone.*
 
 *Pilot, 2026-11-05 (Shlomi): Save ships first in Highlight and Redact only, in their done state after a
 download, and only to someone already connected to Google on this device (a saved sign-in, expired or
