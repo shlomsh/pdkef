@@ -1,9 +1,8 @@
-import { Trash2 } from 'lucide-preact';
 import type { ComponentChildren, Ref } from 'preact';
 import pdfToolStyles from '#shell/PdfTool.module.css';
 import FinishRow from '#shell/pageWorkspace/FinishRow.tsx';
 import OptionRow from '#shell/pageWorkspace/OptionRow.tsx';
-import PageWorkspace, { workspaceStyles } from '#shell/pageWorkspace/PageWorkspace.tsx';
+import PageWorkspace from '#shell/pageWorkspace/PageWorkspace.tsx';
 import type { HandoffTool } from '#shell/pageWorkspace/useDownloadFlow.ts';
 import { englishShellMessages } from '#shell/shellMessages.ts';
 import { limitOptions, sizeOptions } from '../lib/scanOptions.ts';
@@ -11,7 +10,7 @@ import { englishScanMessages as t } from '../messages.ts';
 import type { ScanOptionsProps, ScanOutput } from '../state/scanOutput.ts';
 import type { PageResult, ScanPage } from '../state/scanWork.ts';
 import styles from '../PdfScanTool.module.css';
-import { ScanDownloadElement, ScanDraftStatus, ScanErrors, ScanHeading } from './ScanOutputParts.tsx';
+import { ScanClearAll, ScanDownloadElement, ScanDraftStatus, ScanErrors, ScanHeading } from './ScanOutputParts.tsx';
 import ScanTable from './ScanTable.tsx';
 
 const HANDOFF_TOOLS: HandoffTool[] = ['sign', 'highlight-pdf', 'redact', 'compress'];
@@ -77,16 +76,11 @@ export default function ScanWorkspace({ onOpen, results, resultKeyOf, bridge, pa
     <PageWorkspace
       rootAttrs={{ 'data-scan-ready': output.prepared.status === 'ready' || undefined }}
       heading={<ScanHeading pageCount={pages.length} output={output} />}
+      headerStatus={<ScanClearAll label={englishShellMessages.clearLabel} onClear={bridge.requestClear} />}
       railContent={(
         <>
           <ScanOptions options={options} />
           <ScanDraftStatus output={output} />
-          <div class={workspaceStyles['quiet-row']}>
-            <button type="button" class={workspaceStyles['quiet-button']} onClick={bridge.requestClear}>
-              <Trash2 size={16} aria-hidden="true" />
-              {englishShellMessages.clearLabel ?? t.clearAll}
-            </button>
-          </div>
         </>
       )}
       railPinned={<ScanRailPinned pages={pages} failedIds={failedIds} output={output} />}

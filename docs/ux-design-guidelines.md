@@ -108,6 +108,10 @@ Do not mix a setting into a row of commands: a switch among buttons reads as a b
 like buttons: bordered, no fill, one height (36px face, 44px hit area). Underline is for links that
 navigate.
 
+Scan has no list in its rail, so its Clear all is not a rail command. It sits small and quiet at the
+end of the name row, on a phone and on desktop alike, and nothing that empties the work sits right
+above Download (owner, 2026-11-05).
+
 A quiet secondary link that only restates a control already visible one glance away is chrome, not a
 second entry point. Split's primary control once carried "or save each page as its own PDF" under it
 on the assumption the setting above might have scrolled out of view; once §15's stage actually kept
