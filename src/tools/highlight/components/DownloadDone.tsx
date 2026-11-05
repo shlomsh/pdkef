@@ -31,7 +31,7 @@ export default function DownloadDone({ name, onClose, drive }: { name: string; o
   return (
     <DoneStrip label={t.downloadDoneLabel} closeLabel={t.downloadDoneClose} onClose={onClose} data-download-done>
       <p class={styles.line}>{formatMessage(t.downloadDone, { name })}</p>
-      {drive && <SaveToDriveButton drive={drive} />}
+      {drive && <div class={styles.drive}><SaveToDriveButton drive={drive} /></div>}
     </DoneStrip>
   );
 }
