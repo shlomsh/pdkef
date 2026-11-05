@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'preact/hooks';
 import type { MutableRef, Dispatch, StateUpdater } from 'preact/hooks';
 import { probeEncryption } from '#lib/pdf/pdfEncryption.ts';
+import { hasPdfHeader } from '../lib/pdfHeader.ts';
 import { deriveFileKind } from '#lib/handoff/fileKind.js';
 import { useHandoffIntake } from '#lib/handoff/useHandoffIntake.ts';
 import type { LatestRun } from '#lib/hooks/useLatestRun.ts';
@@ -134,6 +135,15 @@ export function useFileIntake(input: FileIntakeInput) {
       const protection = await probeEncryption(bytes);
       if (!run.isCurrent()) return;
       run.settle();
+      // Neither reader can open a file with no `%PDF-` in it, so a run could only fail: skip it like any
+      // other non-PDF. A file WITH a header that pdf.js rejects carries on and reports, because a valid
+      // file the library cannot read looks like a broken one.
+      if (protection === 'unreadable' && !hasPdfHeader(new Uint8Array(bytes))) {
+        resetSingle(null);
+        setRejectedFiles([pdf.name]);
+        setAnnouncement(formatMessage(t.skippedOne, { name: pdf.name }));
+        return;
+      }
       if (protection !== 'needs-password') {
         compare.loadOriginal(pdf);
         openGate();
