@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'preact/hooks';
 import { DRIVE_SAVE_CHANNEL, hasDriveConnection, driveSaveHref, driveSaveKey, type DriveSaveAnswer, type DriveSaveFile, type DriveSavePayload } from '#lib/handoff/driveSaveLink.ts';
+import { parkHandoff } from '#lib/handoff/sendHandoff.ts';
 import type { OutputPart } from '#lib/output/usePreparedOutput.ts';
 import { recordAction } from '#lib/telemetry/actionTrail.ts';
 import { reportToolLifecycleEvent, type AnalyticsTool } from '#lib/telemetry/productAnalytics.ts';
@@ -110,8 +111,7 @@ export function useSaveToDrive({ tool, blob, parts, fileName, generation, ready 
     void (async () => { // reason: every failure below ends in the 'failed' state
       try {
         const payload = await driveSavePayload(blob, parts, fileName);
-        const { saveHandoff } = await import('#lib/drafts/draftStore.ts');
-        if (!(await saveHandoff(driveSaveKey(id), payload))) throw new Error('park');
+        await parkHandoff(driveSaveKey(id), payload);
         if (!channelRef.current) setState('idle');
       } catch {
         // expected: the file stays here to download

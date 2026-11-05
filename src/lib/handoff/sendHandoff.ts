@@ -13,6 +13,12 @@ interface SendHandoffOptions {
   proceed?: () => boolean;
 }
 
+/** Park without going anywhere, for a receiver that is already open (MERGE-26's Drive tab). Throws when the store would not take the file. */
+export async function parkHandoff(target: string, payload: HandoffPayload): Promise<void> {
+  const { saveHandoff } = await import('../drafts/draftStore.ts');
+  if (!(await saveHandoff(handoffKeyOf(target), payload))) throw new Error('handoff');
+}
+
 /**
  * ARCH-38: the one "park the file for the next tool, then go there" every hand-off runs through.
  * `target` is the receiving tool's id (or page slug). Resolves true once navigation is under way,
@@ -23,9 +29,7 @@ interface SendHandoffOptions {
  * out of the eager graph of every tool.
  */
 export async function sendHandoff(target: string, payload: HandoffPayload, options: SendHandoffOptions = {}): Promise<boolean> {
-  const { saveHandoff } = await import('../drafts/draftStore.ts');
-  const saved = await saveHandoff(handoffKeyOf(target), payload);
-  if (!saved) throw new Error('handoff');
+  await parkHandoff(target, payload);
   if (options.proceed && !options.proceed()) return false;
   const href = options.href ?? handoffHrefOf(target) ?? `/${target}/`;
   (options.navigate ?? ((to: string) => { window.location.href = to; }))(href);
