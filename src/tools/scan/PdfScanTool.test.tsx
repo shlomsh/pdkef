@@ -920,7 +920,7 @@ describe('PdfScanTool', () => {
     const chip = () => container.querySelector('[data-undo-chip]');
     const undo = () => act(async () => { chip().querySelector('button').click(); });
     const thumbs = () => tableTiles().map((tile) => tile.querySelector('img')?.getAttribute('src'));
-    const keyOn = (el, key) => act(async () => { el.dispatchEvent(new KeyboardEvent('keydown', { key, bubbles: true, cancelable: true })); });
+    const keyOn = (el, key, more = {}) => act(async () => { el.dispatchEvent(new KeyboardEvent('keydown', { key, ...more, bubbles: true, cancelable: true })); });
     let revoked;
     beforeEach(() => { revoked = vi.fn(); URL.revokeObjectURL = revoked; });
     const three = async () => {
@@ -1028,13 +1028,26 @@ describe('PdfScanTool', () => {
 
     it('Delete on a tile removes that page, and R turns it', async () => {
       await three();
-      await keyOn(tableTiles()[1], 'r');
+      await keyOn(tableTiles()[1], 'r', { code: 'KeyR' });
       expect(container.querySelector('[role="status"]').textContent).toBe('Page 2 turned a quarter to the right.');
       await keyOn(tableTiles()[1], 'Delete');
       expect(tableTiles()).toHaveLength(2);
       expect(chip().textContent).toContain('Page 2 removed');
       await keyOn(tableTiles()[0], 'Backspace');
       expect(tableTiles()).toHaveLength(1);
+    });
+
+    it('the R key is the same key on a Hebrew keyboard', async () => {
+      await three();
+      await keyOn(tableTiles()[0], '\u05E8', { code: 'KeyR' });
+      expect(container.querySelector('[role="status"]').textContent).toBe('Page 1 turned a quarter to the right.');
+    });
+
+    it('holding Delete takes one page, so Undo can always bring it back', async () => {
+      await three();
+      await keyOn(tableTiles()[0], 'Delete');
+      await keyOn(tableTiles()[0], 'Delete', { repeat: true });
+      expect(tableTiles()).toHaveLength(2);
     });
 
     it('a click on a cluster button never opens the page', async () => {

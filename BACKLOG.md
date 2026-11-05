@@ -2,7 +2,7 @@
 
 # Backlog
 
-The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 149 live: 51 up next, 19 then, 27 waiting, 52 parked.
+The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 150 live: 51 up next, 19 then, 27 waiting, 53 parked.
 
 ## Redact: finish removal
 
@@ -130,6 +130,7 @@ The camera takes pages, the table fixes them, Share sends them. The table first 
 | SCAN-45 | P3 | [SCAN-45](backlog/tasks/SCAN-45.md) · A disabled quiet button looks enabled |  |
 | SCAN-10 | P3 | [SCAN-10](backlog/tasks/SCAN-10.md) · Scan next: evaluate a small learned page detector behind the same contract |  |
 | SCAN-31 | P3 | [SCAN-31](backlog/tasks/SCAN-31.md) · The Scan guide's image generator follows the rewritten phone flow |  |
+| SCAN-52 | P3 | [SCAN-52](backlog/tasks/SCAN-52.md) · Scan's pages use the shared page grid |  |
 
 ## Page enhancement for Scan and Highlight
 

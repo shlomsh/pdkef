@@ -116,9 +116,11 @@ export function reduceScan(state: ScanState, event: ScanEvent): ScanState {
     case 'pageRemoved': {
       const failedIds = withoutId(state.failedIds, event.id);
       if (state.selectedId !== event.id) return patch(state, { failedIds });
-      // The open page went: on its neighbour, in the viewer if it was in one; with none left, the table.
+      // The open page went: on its neighbour, in the viewer if it was in one (on its corners if it could
+      // not be read, as failedPageShown opens it); with none left, the table.
       const inViewer = state.phase !== 'table' && event.neighbourId !== null;
-      return patch(state, { failedIds, selectedId: event.neighbourId, phase: inViewer ? 'result' : 'table' });
+      const onward = failedIds.includes(event.neighbourId as number) ? 'corners' : 'result';
+      return patch(state, { failedIds, selectedId: event.neighbourId, phase: inViewer ? onward : 'table' });
     }
     case 'pageRestored':
       return patch(state, { selectedId: event.id, failedIds: event.failed ? withId(state.failedIds, event.id) : state.failedIds });

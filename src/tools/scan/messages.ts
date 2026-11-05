@@ -59,6 +59,7 @@ export interface ScanMessages extends DownloadMessages {
   reorderHint: string;
   tileLabel: string;
   tableHint: string;
+  tableHintWide: string;
   sizeLabel: string;
   addPages: string;
   retake: string;
@@ -184,6 +185,7 @@ export const englishScanMessages: ScanMessages = {
   reorderHint: 'Drag a page to move it, or use the arrow keys on a selected page. R turns it and Delete removes it.',
   tileLabel: 'Page {position} of {total}, open it to fix its corners, turn it or retake it',
   tableHint: 'Tap a page to fix its corners, turn it or retake it.',
+  tableHintWide: 'Click a page to fix its corners, turn it or retake it. Drag a page to move it.',
   sizeLabel: 'Size',
   addPages: 'Add pages',
   retake: 'Retake',

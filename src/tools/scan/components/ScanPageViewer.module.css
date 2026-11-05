@@ -239,4 +239,9 @@
   .done {
     display: none;
   }
+
+  /* The window is wide: the note keeps to the row of five under it. */
+  .notFound {
+    width: min(100%, 36rem);
+  }
 }
