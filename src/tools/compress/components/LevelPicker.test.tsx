@@ -42,6 +42,11 @@ describe('LevelPicker', () => {
     expect(radios().map((r) => r.textContent)).toEqual(['Smallest', 'Balanced', 'Sharpest', 'Exact size']);
   });
 
+  it('a level is only its name; the line below says which suits most documents', () => {
+    mount();
+    expect(radios().map((r) => r.children.length)).toEqual([0, 0, 0, 0]);
+  });
+
   it('aria-checked follows value, roving tabindex', () => {
     mount({ value: 'low' });
     expect(radios().map((r) => r.getAttribute('aria-checked'))).toEqual(['false', 'false', 'true', 'false']);

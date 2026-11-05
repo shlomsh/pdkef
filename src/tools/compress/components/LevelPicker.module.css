@@ -24,7 +24,6 @@
   font-size: 0.84rem;
   font-weight: 600;
   color: var(--color-muted);
-  position: relative;
   padding: 0 4px;
   line-height: 1.15;
   white-space: nowrap;
@@ -40,16 +39,6 @@
 .option:focus-visible {
   outline: 2px solid var(--color-primary);
   outline-offset: 2px;
-}
-
-.pick {
-  position: absolute;
-  top: 7px;
-  inset-inline-end: 7px;
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: var(--color-success);
 }
 
 .desc {
