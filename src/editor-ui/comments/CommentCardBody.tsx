@@ -152,8 +152,9 @@ function placeInTopLayer(more: HTMLElement, menu: HTMLElement): () => void {
   menu.showPopover();
   const place = () => computePosition(more, menu, {
     strategy: 'fixed',
-    // Floating UI already mirrors the alignment for an RTL floating element.
-    placement: 'bottom-end',
+    // Floating UI already mirrors the alignment for an RTL floating element. The button sits at the note's end, so a
+    // note running against the menu puts it at the menu's start; lining up that edge keeps the menu over the card.
+    placement: getComputedStyle(more).direction === getComputedStyle(menu).direction ? 'bottom-end' : 'bottom-start',
     middleware: [offset(4), flip(), shift({ padding: 8 })],
   }).then(({ x, y }) => {
     Object.assign(menu.style, { left: `${x}px`, top: `${y}px` });
@@ -219,7 +220,8 @@ function MoreMenu({ messages, onEdit, onDelete }: { messages: SignMessages; onEd
         <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="2" /><circle cx="12" cy="12" r="2" /><circle cx="19" cy="12" r="2" /></svg>
       </button>
       {menuOpen && (
-        <div ref={menuRef} role="menu" data-comment-menu popover={TOP_LAYER ? 'manual' : undefined} class={styles.menu} onKeyDown={onMenuKeyDown} onFocusOut={onFocusOut}>
+        // dir takes the menu out of the note's dir="auto": its words would otherwise decide the note's direction.
+        <div ref={menuRef} role="menu" data-comment-menu dir={messages.dir} popover={TOP_LAYER ? 'manual' : undefined} class={styles.menu} onKeyDown={onMenuKeyDown} onFocusOut={onFocusOut}>
           <button type="button" role="menuitem" data-comment-menu-edit class={styles.menuItem} onClick={onEdit}><PencilIcon />{messages.commentEdit}</button>
           <button type="button" role="menuitem" data-comment-menu-delete class={`${styles.menuItem} ${styles.danger}`} onClick={onDelete}><TrashIcon />{messages.commentDelete}</button>
         </div>

@@ -68,6 +68,12 @@ describe('CommentCardBody', () => {
       expect(host!.querySelector('[data-comment-menu]')).toBeNull();
     });
 
+    it('the menu carries the interface direction, so its words never decide the dir="auto" note around it', () => {
+      mount({ card: card({ comment: 'הערה' }), active: true });
+      openMenu();
+      expect(q('[data-comment-menu]').getAttribute('dir')).toBe(englishSignMessages.dir);
+    });
+
     it('the menu holds Edit and Delete, and opening it focuses Edit', () => {
       mount({ card: card(), active: true });
       openMenu();
