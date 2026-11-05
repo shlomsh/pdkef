@@ -33,7 +33,7 @@ const placed = (n: number) => ({ pages: Array.from({ length: n }, (_, i) => ({ u
 function mount(over: Partial<ScanPageViewerProps> = {}, index = 0) {
   const actions = {
     onSelect: vi.fn(), onRotate: vi.fn(), onAdjustCorners: vi.fn(), onCommit: vi.fn(), onFind: vi.fn(), onApprove: vi.fn(),
-    onDone: vi.fn(), onRetake: vi.fn(), onRemovePage: vi.fn(), onChooseLook: vi.fn(),
+    onDone: vi.fn(), onStep: vi.fn(), onRetake: vi.fn(), onRemovePage: vi.fn(), onChooseLook: vi.fn(),
   };
   const editor = { current: null as HTMLElement | null };
   const props = {
@@ -180,12 +180,10 @@ describe('ScanPageViewer', () => {
     expect(actions.onDone).toHaveBeenCalledTimes(3);
   });
 
-  it('corners mode: same dialog, no scroller, no Rotate, Back and Escape use the corners', () => {
+  it('corners mode: same dialog, no scroller, Back and Escape use the corners', () => {
     const { actions, editor } = mount({ view: 'corners' });
     expect(q('[data-page-scroller]')).toBeNull();
     expect(q('[data-page-actions]')).toBeNull();
-    expect(container!.textContent).not.toContain(t.fullScreen);
-    expect(container!.textContent).not.toContain(t.rotate);
     expect(container!.textContent).toContain(t.findPage);
     expect(container!.textContent).toContain(t.wholePhoto);
     expect(editor.current).not.toBeNull();
@@ -195,6 +193,84 @@ describe('ScanPageViewer', () => {
     expect(cancel.defaultPrevented).toBe(true);
     expect(actions.onApprove).toHaveBeenCalledTimes(2);
     expect(actions.onDone).not.toHaveBeenCalled();
+  });
+
+  it('corners keep a Rotate at the head\'s end (shown from 1024px by the sheet), except on an unreadable page', () => {
+    const { actions } = mount({ view: 'corners' });
+    const rotate = [...container!.querySelectorAll('button')].find((b) => b.textContent === t.rotate)!;
+    act(() => rotate.click());
+    expect(actions.onRotate).toHaveBeenCalledTimes(1);
+    act(() => render(null, container!));
+    const bad = page(1, { preview: null });
+    mount({ view: 'corners', pages: [bad], selected: bad });
+    expect([...container!.querySelectorAll('button')].some((b) => b.textContent === t.rotate)).toBe(false);
+  });
+
+  describe('browsing on a mouse device', () => {
+    const step = (label: string) => q(`button[aria-label="${label}"]`)!;
+    const press = (key: string, init: KeyboardEventInit = {}, target: EventTarget = document.body) => act(() => {
+      target.dispatchEvent(new KeyboardEvent('keydown', { key, bubbles: true, cancelable: true, ...init }));
+    });
+
+    it('Previous and Next step, and rest with aria-disabled at the ends', () => {
+      const { actions } = mount({}, 0);
+      expect(step(t.previousPage).getAttribute('aria-disabled')).toBe('true');
+      expect(step(t.nextPage).getAttribute('aria-disabled')).toBe('false');
+      act(() => step(t.nextPage).click());
+      expect(actions.onStep).toHaveBeenCalledWith(1);
+      act(() => step(t.previousPage).click());
+      expect(actions.onStep).toHaveBeenCalledWith(-1);
+    });
+
+    it('the ends: Next is disabled on the last page', () => {
+      mount({}, 5);
+      expect(step(t.nextPage).getAttribute('aria-disabled')).toBe('true');
+      expect(step(t.previousPage).getAttribute('aria-disabled')).toBe('false');
+    });
+
+    it('the arrow keys step, left always previous', () => {
+      const { actions } = mount({}, 2);
+      press('ArrowRight');
+      press('ArrowLeft');
+      expect(actions.onStep.mock.calls).toEqual([[1], [-1]]);
+    });
+
+    it('the arrows leave modifier keys, a handled key and a radio group alone', () => {
+      const { actions } = mount({}, 2);
+      press('ArrowLeft', { altKey: true });
+      press('ArrowRight', { metaKey: true });
+      press('ArrowRight', { ctrlKey: true });
+      press('ArrowRight', { shiftKey: true });
+      const handled = new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true, cancelable: true });
+      handled.preventDefault();
+      act(() => { document.body.dispatchEvent(handled); });
+      const group = document.createElement('div');
+      group.setAttribute('role', 'radiogroup');
+      group.innerHTML = '<button></button>';
+      container!.appendChild(group);
+      press('ArrowRight', {}, group.firstElementChild!);
+      expect(actions.onStep).not.toHaveBeenCalled();
+    });
+
+    it('corners do not browse', () => {
+      const { actions } = mount({ view: 'corners' });
+      press('ArrowRight');
+      expect(actions.onStep).not.toHaveBeenCalled();
+      expect(q(`button[aria-label="${t.nextPage}"]`)).toBeNull();
+    });
+
+    it('the arrows stop listening once the viewer is gone', () => {
+      const { actions } = mount({}, 2);
+      act(() => render(null, container!));
+      press('ArrowRight');
+      expect(actions.onStep).not.toHaveBeenCalled();
+    });
+  });
+
+  it('the back control names where it goes, for the wide head that shows the word', () => {
+    mount();
+    expect(q('[data-back]')!.getAttribute('aria-label')).toBe(t.backToPages);
+    expect(q('[data-back]')!.textContent).toBe(t.pagesLabel);
   });
 
   it('corners on an unreadable page close instead', () => {

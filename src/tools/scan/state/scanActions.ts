@@ -183,9 +183,9 @@ export function createEditActions(input: EditActionsInput) {
 
   /** A tap on a page of the table opens its result. */
   const openPage = (id: number) => dispatch({ type: 'pageOpened', id });
-  /** A swipe in the phone's viewer, or a step at desktop's full screen, reached this page. */
+  /** A swipe in the viewer, or a step there, reached this page. */
   const selectPage = (id: number) => dispatch({ type: 'pageSelected', id });
-  /** One page back or on at desktop's full screen; the ends stay where they are. */
+  /** One page back or on in the viewer; the ends stay where they are. */
   const stepPage = (delta: 1 | -1) => {
     const next = pages[selectedIndex + delta];
     if (next) selectPage(next.id);

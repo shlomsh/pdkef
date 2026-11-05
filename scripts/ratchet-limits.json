@@ -23,8 +23,8 @@
       "src/shell/BasePdfTool.tsx#BasePdfTool": 401,
       "src/shell/DownloadElement.tsx#DownloadElement": 194,
       "src/shell/OutputName.tsx#OutputName": 154,
-      "src/shell/pageGrid/PageGrid.tsx#PageGrid": 693,
-      "src/shell/pageGrid/PageGrid.tsx#PageGrid.(anonymous)~25": 246,
+      "src/shell/pageGrid/PageGrid.tsx#PageGrid": 669,
+      "src/shell/pageGrid/PageGrid.tsx#PageGrid.(anonymous)~25": 222,
       "src/shell/pageWorkspace/useDownloadFlow.ts#useDownloadFlow": 211,
       "src/site-lib/FileDropzone.tsx#FileDropzone": 326,
       "src/site-lib/appUpdate.ts#startAppUpdates": 248,
@@ -147,7 +147,7 @@
   "size": {
     "fileLines": {
       "src/data/tools.js": 930,
-      "src/shell/pageGrid/PageGrid.tsx": 882,
+      "src/shell/pageGrid/PageGrid.tsx": 859,
       "src/tools/sign/components/SignToolbar.tsx": 807
     },
     "fileThreshold": 800

@@ -1,15 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import { initialScanState, pageViewerMode, reduceScan } from './scanState.ts';
+import { initialScanState, reduceScan } from './scanState.ts';
 
 type ScanState = Parameters<typeof reduceScan>[0];
-import { FULL_QUAD } from '../lib/quad.ts';
 
 const corners: ScanState = { ...initialScanState, phase: 'corners', selectedId: 1 };
-const landing = { quad: FULL_QUAD, turns: 1 };
 
 describe('reduceScan', () => {
   it('starts on the table with nothing selected or pending', () => {
-    expect(initialScanState).toMatchObject({ phase: 'table', selectedId: null, full: null, landing: null, topPending: false, focusPending: false });
+    expect(initialScanState).toMatchObject({ phase: 'table', selectedId: null, topPending: false, focusPending: false });
   });
 
   describe('photosAdded', () => {
@@ -158,55 +156,11 @@ describe('reduceScan', () => {
 
   describe('cleared', () => {
     it('empties the selection, the failures and the corners, keeping the rest', () => {
-      const busy: ScanState = { ...corners, failedIds: [1], finding: 1, findMissed: [1], full: 'layer', topPending: true };
+      const busy: ScanState = { ...corners, failedIds: [1], finding: 1, findMissed: [1], topPending: true };
       expect(reduceScan(busy, { type: 'cleared' })).toEqual({ ...busy, phase: 'table', selectedId: null, failedIds: [] });
     });
     it('is a no-op when already empty', () => {
       expect(reduceScan(initialScanState, { type: 'cleared' })).toBe(initialScanState);
-    });
-  });
-
-  describe('full screen', () => {
-    it('the browser entering it is native; leaving it clears native only', () => {
-      const native = reduceScan(corners, { type: 'fullscreenChanged', native: true });
-      expect(native.full).toBe('native');
-      expect(reduceScan(native, { type: 'fullscreenChanged', native: false }).full).toBeNull();
-    });
-    it('the browser leaving full screen keeps the layer, and a change with nothing in it is a no-op', () => {
-      const layer = reduceScan(corners, { type: 'fullLayerEntered' });
-      expect(layer.full).toBe('layer');
-      expect(reduceScan(layer, { type: 'fullscreenChanged', native: false })).toBe(layer);
-      expect(reduceScan(corners, { type: 'fullscreenChanged', native: false })).toBe(corners);
-    });
-    it('the layer replaces native, and entering it twice is a no-op', () => {
-      const native = reduceScan(corners, { type: 'fullscreenChanged', native: true });
-      const layer = reduceScan(native, { type: 'fullLayerEntered' });
-      expect(layer.full).toBe('layer');
-      expect(reduceScan(layer, { type: 'fullLayerEntered' })).toBe(layer);
-    });
-    it('exits from either mode and is a no-op when not in it', () => {
-      const layer = reduceScan(corners, { type: 'fullLayerEntered' });
-      expect(reduceScan(layer, { type: 'fullExited' }).full).toBeNull();
-      expect(reduceScan(corners, { type: 'fullExited' })).toBe(corners);
-    });
-  });
-
-  describe('result after full screen', () => {
-    const waiting: ScanState = { ...corners, full: 'native', landing };
-    it('queues the landing without leaving the corners', () => {
-      expect(reduceScan({ ...corners, full: 'native' }, { type: 'resultAfterFullQueued', landing })).toEqual(waiting);
-    });
-    it('queuing the same landing again is a no-op', () => {
-      expect(reduceScan(waiting, { type: 'resultAfterFullQueued', landing })).toBe(waiting);
-    });
-    it('shows the result once the card is back, consuming the landing', () => {
-      const back = reduceScan(waiting, { type: 'fullscreenChanged', native: false });
-      expect(back.full).toBeNull();
-      expect(reduceScan(back, { type: 'resultAfterFullShown' })).toMatchObject({ phase: 'result', landing: null });
-    });
-    it('does nothing while still full screen or with no landing waiting', () => {
-      expect(reduceScan(waiting, { type: 'resultAfterFullShown' })).toBe(waiting);
-      expect(reduceScan(corners, { type: 'resultAfterFullShown' })).toBe(corners);
     });
   });
 });
@@ -239,21 +193,5 @@ describe('the camera (SCAN-08)', () => {
       expect(next).toMatchObject({ phase: 'table', camera: { mode: 'one', pageId: 4, thenMany: true } });
       expect(reduceScan(next, { type: 'cameraClosed' }).camera).toEqual({ mode: 'many' });
     });
-  });
-});
-
-describe('pageViewerMode (SCAN-13)', () => {
-  const at = (phase: 'table' | 'result' | 'corners', camera: ScanState['camera'] = null) => ({ ...initialScanState, phase, camera }) as ScanState;
-
-  it('on a phone it follows the page, and the table has none', () => {
-    expect(pageViewerMode(at('table'), false)).toBeNull();
-    expect(pageViewerMode(at('result'), false)).toBe('result');
-    expect(pageViewerMode(at('corners'), false)).toBe('corners');
-  });
-
-  it('on a wide screen only the camera\'s stack opens it: the workspace shows a page itself', () => {
-    expect(pageViewerMode(at('result'), true)).toBeNull();
-    expect(pageViewerMode(at('result', { mode: 'many' }), true)).toBe('result');
-    expect(pageViewerMode(at('result', { mode: 'one', pageId: 1 }), true)).toBeNull();
   });
 });

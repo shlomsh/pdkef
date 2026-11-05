@@ -37,7 +37,7 @@ export interface ProcessedPage {
   blob: Blob;
   width: number;
   height: number;
-  /** A small copy for the page strip: phones drop decoded images once their memory budget fills. */
+  /** A small copy for the page grid: phones drop decoded images once their memory budget fills. */
   thumb: Blob;
   /** The largest distance the dewarp moved any point of the page past what its corners alone did, in
    * output pixels; 0 for a page flattened by its corners alone. */

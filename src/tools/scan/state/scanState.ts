@@ -1,13 +1,8 @@
-import type { Quad } from '#lib/pageEnhance/quad.ts';
-
 /**
  * The scan island's lifecycle: which view the centre shows, which page is selected, what is running
- * for a page, full screen, and the scroll and focus the next view change owes the person.
+ * for a page, and the scroll and focus the next view change owes the person.
  * Pages, results and options are data and stay with the island; this is only where the work is.
  */
-type FullMode = 'native' | 'layer' | null;
-/** Approved full screen: the page whose flatten starts once the card is back on screen. */
-interface Landing { quad: Quad; turns: number }
 /** The camera in the page (SCAN-08): taking pages for the scan, or one page's replacement (Retake).
  * `thenMany`: the retake came from the camera's own stack, so closing goes back to taking pages. */
 export type CameraMode = { mode: 'many' } | { mode: 'one'; pageId: number; thenMany?: boolean };
@@ -20,8 +15,6 @@ interface Shared {
   findMissed: number[];
   /** Pages whose photo could not be read or processed. */
   failedIds: number[];
-  full: FullMode;
-  landing: Landing | null;
   /** A view change owes the page's top in view. */
   topPending: boolean;
   /** A view change owes the page heading focus. */
@@ -53,11 +46,6 @@ type ScanEvent =
   | { type: 'failureCleared'; id: number }
   | { type: 'pageRemoved'; id: number; neighbourId: number | null }
   | { type: 'cleared' }
-  | { type: 'fullscreenChanged'; native: boolean }
-  | { type: 'fullLayerEntered' }
-  | { type: 'fullExited' }
-  | { type: 'resultAfterFullQueued'; landing: Landing }
-  | { type: 'resultAfterFullShown' }
   | { type: 'cameraOpened'; camera: CameraMode }
   | { type: 'retakeOpened'; pageId: number }
   | { type: 'cameraClosed' };
@@ -68,19 +56,10 @@ export const initialScanState: ScanState = {
   finding: null,
   findMissed: [],
   failedIds: [],
-  full: null,
-  landing: null,
   topPending: false,
   focusPending: false,
   camera: null,
 };
-
-/** What the full-screen page viewer shows, or null when it is closed. A phone has no other way to show a
- * page; a wide screen has its workspace, so there only the camera's stack opens it (SCAN-13). */
-export function pageViewerMode(state: ScanState, wide: boolean): 'result' | 'corners' | null {
-  if (state.phase === 'table') return null;
-  return !wide || state.camera?.mode === 'many' ? state.phase : null;
-}
 
 /** The same state when the patch changes nothing, so an event that does not apply is a no-op. */
 function patch(state: ScanState, changes: Partial<ScanState>): ScanState {
@@ -94,7 +73,7 @@ const withoutId = (ids: number[], id: number) => (ids.includes(id) ? ids.filter(
 export function reduceScan(state: ScanState, event: ScanEvent): ScanState {
   switch (event.type) {
     case 'photosAdded':
-      // New photos land on the table; the first is selected so the strip and the table show where they went.
+      // New photos land on the table; the first is selected so the table shows where they went.
       return patch(state, { selectedId: event.firstId, phase: 'table', topPending: true });
     case 'pageSelected':
       return patch(state, { selectedId: event.id });
@@ -141,17 +120,6 @@ export function reduceScan(state: ScanState, event: ScanEvent): ScanState {
     }
     case 'cleared':
       return patch(state, { phase: 'table', selectedId: null, failedIds: state.failedIds.length > 0 ? [] : state.failedIds });
-    case 'fullscreenChanged':
-      return patch(state, { full: event.native ? 'native' : state.full === 'native' ? null : state.full });
-    case 'fullLayerEntered':
-      return patch(state, { full: 'layer' });
-    case 'fullExited':
-      return patch(state, { full: null });
-    case 'resultAfterFullQueued':
-      return patch(state, { landing: event.landing });
-    case 'resultAfterFullShown':
-      // Only once the card is back on screen with a page waiting.
-      return state.full === null && state.landing !== null ? patch(state, { landing: null, phase: 'result' }) : state;
     case 'cameraOpened':
       return patch(state, { camera: event.camera });
     case 'retakeOpened':

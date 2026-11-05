@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'preact/hooks';
 import type { RefObject } from 'preact';
 import { fitCellWidth, type FitItem } from './stageFit.ts';
-import { cardFloor } from '../pageWorkspace/useFloorHeight.ts';
+import { cardFloor } from '../pageWorkspace/cardFloor.ts';
 import styles from './PageGrid.module.css';
 
 /* The desktop cell is a 104 x 138 box that may grow; these are its fixed

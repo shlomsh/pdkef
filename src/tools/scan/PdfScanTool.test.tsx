@@ -57,11 +57,18 @@ const heic = (name) => new File(['x'], name, { type: 'image/heic' });
 describe('PdfScanTool', () => {
   let container;
   let harness: ToolHarness;
+  let realShowModal;
+  let realClose;
 
   beforeEach(() => {
     harness = installToolHarness();
     // setImmediate stays real: fake-indexeddb answers on it, and the draft store (SCAN-18) runs for real.
     vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'setInterval', 'clearInterval', 'Date'] });
+    // jsdom has no modal dialog: the page viewer opens one on every width.
+    realShowModal = HTMLDialogElement.prototype.showModal;
+    realClose = HTMLDialogElement.prototype.close;
+    HTMLDialogElement.prototype.showModal = function showModal() { this.setAttribute('open', ''); };
+    HTMLDialogElement.prototype.close = function close() { this.removeAttribute('open'); };
     vi.mocked(pipeline.guessPage).mockReset().mockImplementation(() => Promise.resolve(GUESS));
     vi.mocked(pipeline.inspectPhoto).mockReset().mockImplementation(() => Promise.resolve(seen(GUESS)));
     vi.mocked(pipeline.processPage).mockReset().mockImplementation(() => Promise.resolve({
@@ -81,6 +88,8 @@ describe('PdfScanTool', () => {
       container = null;
     }
     vi.useRealTimers();
+    HTMLDialogElement.prototype.showModal = realShowModal;
+    HTMLDialogElement.prototype.close = realClose;
     harness.restore();
   });
 
@@ -96,10 +105,12 @@ describe('PdfScanTool', () => {
     await act(async () => { setInputFiles(mainInput(), files); });
     await settle();
   }
-  /** The table's page tiles, and the strip's tiles beside the one-page view. */
+  /** The table's page tiles. */
   const tableTiles = () => Array.from(container.querySelectorAll('[data-table-page]'));
   const tileLabels = () => tableTiles().map((el) => el.getAttribute('aria-label'));
-  const onTable = () => container.querySelector('[data-add-pages]') !== null;
+  const onTable = () => container.querySelector('[data-page-viewer]') === null;
+  /** The paper of the page the viewer shows. */
+  const currentPaper = () => container.querySelector('[data-page-viewer] [data-current] [data-paper]');
   const openPage = async (n) => { await act(async () => { tableTiles()[n - 1].click(); }); await settle(); };
   const adjustCorners = async () => { await act(async () => { byText('Corners')[0].click(); }); await settle(); };
   const openCorners = async (n) => { await openPage(n); await adjustCorners(); };
@@ -322,7 +333,7 @@ describe('PdfScanTool', () => {
     await openPage(1);
     expect(handles()).toHaveLength(0);
     await settle(1000);
-    const paper = container.querySelector('[data-paper]');
+    const paper = currentPaper();
     expect(paper.hasAttribute('data-exact')).toBe(true);
     expect(container.textContent).toContain('Exactly as it will download');
     await adjustCorners();
@@ -331,7 +342,7 @@ describe('PdfScanTool', () => {
     expect(handles()).toHaveLength(0);
     // A new choice: the old pages stay on screen, marked as updating, until the new build lands.
     await act(async () => { radioGroup('Page size').querySelectorAll('[role="radio"]')[1].click(); });
-    expect(container.querySelector('[data-paper]').hasAttribute('data-exact')).toBe(false);
+    expect(currentPaper().hasAttribute('data-exact')).toBe(false);
     expect(container.textContent).toContain('Updating');
   });
 
@@ -447,7 +458,7 @@ describe('PdfScanTool', () => {
     await settle();
     await openPage(1);
     await settle(1000);
-    const exact = () => container.querySelector('[data-paper]').hasAttribute('data-exact');
+    const exact = () => currentPaper().hasAttribute('data-exact');
     expect(exact()).toBe(true);
     const size = (label) => Array.from(radioGroup('Page size').querySelectorAll('button')).find((b) => b.textContent === label);
     await act(async () => { size('A4').click(); });
@@ -496,53 +507,39 @@ describe('PdfScanTool', () => {
     await openCorners(1);
     vi.mocked(pipeline.guessPage).mockImplementationOnce(() => new Promise((r) => { resolveFind = r; }));
     await act(async () => { byText('Auto-detect')[0].click(); });
-    await act(async () => { container.querySelector('[aria-label="Remove page 1"]').click(); });
+    // The grid under the viewer has no Remove: the page goes from its own row, after the corners are used.
+    await useCorners();
+    await act(async () => { byText('Remove')[0].click(); });
     await act(async () => { resolveFind?.(GUESS); });
     await settle();
     expect(container.textContent).not.toContain('Page edges found');
   });
 
-  it('opens the corners full screen, as a full-page layer where the browser has no element full screen, and leaves it for the result', async () => {
-    mount();
-    await pick([jpeg('a.jpg')]);
-    await settle();
-    await openCorners(1);
-    const editor = () => container.querySelector('[data-page-heading]').closest('section');
-    // jsdom has no requestFullscreen: the full-page layer.
-    await act(async () => { byText('Full screen')[0].click(); });
-    expect(editor().hasAttribute('data-full')).toBe(true);
-    await act(async () => { byText('Exit full screen')[0].click(); });
-    expect(editor().hasAttribute('data-full')).toBe(false);
-    await act(async () => { byText('Full screen')[0].click(); });
-    await useCorners();
-    expect(editor().hasAttribute('data-full')).toBe(false);
-    expect(byText('Exit full screen')).toHaveLength(0);
-  });
-
-  describe('the page at full screen on desktop (SCAN-50)', () => {
-    const editor = () => container.querySelector('[data-page-heading]').closest('section');
-    const heading = () => container.querySelector('[data-page-heading]').textContent;
-    const press = (key) => act(async () => { document.dispatchEvent(new KeyboardEvent('keydown', { key, bubbles: true })); });
-    const step = (label) => container.querySelector(`button[aria-label="${label}"]`);
-    const openFull = async () => {
+  describe('the page in the viewer on desktop (SCAN-51)', () => {
+    const viewer = () => container.querySelector('[data-page-viewer]');
+    const heading = () => viewer().querySelector('[data-page-heading]').textContent;
+    const press = (key, target = document.body) => act(async () => { target.dispatchEvent(new KeyboardEvent('keydown', { key, bubbles: true, cancelable: true })); });
+    const step = (label) => viewer().querySelector(`button[aria-label="${label}"]`);
+    const escape = () => act(async () => { viewer().dispatchEvent(new Event('cancel', { cancelable: true })); });
+    const openThree = async () => {
       mount();
       await pick([jpeg('a.jpg'), jpeg('b.jpg'), jpeg('c.jpg')]);
       await settle();
       await openPage(2);
-      await act(async () => { container.querySelector('[data-paper]').click(); });
     };
 
-    it('a click on the page opens it, with only the page and the way through the scan', async () => {
-      await openFull();
-      expect(editor().hasAttribute('data-full')).toBe(true);
+    it('a tile opens the page in the dialog over the grid, with no card and no strip', async () => {
+      await openThree();
       expect(heading()).toBe('Page 2 of 3');
-      expect(byText('Done')).toHaveLength(0);
-      expect(byText('Pages')).toHaveLength(0);
-      expect(byText('Exit full screen')).toHaveLength(1);
+      expect(viewer().tagName).toBe('DIALOG');
+      expect(tableTiles()).toHaveLength(3);
+      expect(container.querySelector('[data-fills-stage]')).toBeNull();
+      expect(byText('Full screen')).toHaveLength(0);
+      expect(container.querySelector('[data-selected]')).toBeNull();
     });
 
     it('the arrow keys browse the pages and stop at the ends', async () => {
-      await openFull();
+      await openThree();
       await press('ArrowRight');
       expect(heading()).toBe('Page 3 of 3');
       await press('ArrowRight');
@@ -551,11 +548,11 @@ describe('PdfScanTool', () => {
       await press('ArrowLeft');
       await press('ArrowLeft');
       expect(heading()).toBe('Page 1 of 3');
-      expect(editor().hasAttribute('data-full')).toBe(true);
+      expect(viewer()).not.toBeNull();
     });
 
-    it('the arrows leave the browser\'s own shortcuts and a key already handled alone', async () => {
-      await openFull();
+    it('the arrows leave the browser\'s own shortcuts, a key already handled and the Look row alone', async () => {
+      await openThree();
       await act(async () => { document.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowLeft', altKey: true, bubbles: true })); });
       await act(async () => { document.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', metaKey: true, bubbles: true })); });
       expect(heading()).toBe('Page 2 of 3');
@@ -563,10 +560,13 @@ describe('PdfScanTool', () => {
       handled.preventDefault();
       await act(async () => { document.dispatchEvent(handled); });
       expect(heading()).toBe('Page 2 of 3');
+      await act(async () => { byText('Look')[0].click(); });
+      await press('ArrowRight', radioGroup('Look').querySelector('button'));
+      expect(heading()).toBe('Page 2 of 3');
     });
 
     it('Previous and Next browse the pages and rest at the ends', async () => {
-      await openFull();
+      await openThree();
       await act(async () => { step('Next page').click(); });
       expect(heading()).toBe('Page 3 of 3');
       // aria-disabled, not disabled: the button keeps the focus it was just pressed with.
@@ -578,87 +578,24 @@ describe('PdfScanTool', () => {
       expect(step('Previous page').getAttribute('aria-disabled')).toBe('true');
     });
 
-    it('Esc returns to the card on the page last shown, where the arrows are the page\'s own again', async () => {
-      await openFull();
+    it('Esc returns to the grid on the page last shown, with its tile focused', async () => {
+      await openThree();
       await press('ArrowRight');
-      await press('Escape');
-      expect(editor().hasAttribute('data-full')).toBe(false);
-      expect(heading()).toBe('Page 3 of 3');
-      expect(byText('Done')).toHaveLength(1);
-      await press('ArrowLeft');
-      expect(heading()).toBe('Page 3 of 3');
+      await escape();
+      await settle();
+      expect(viewer()).toBeNull();
+      expect(tableTiles()).toHaveLength(3);
+      expect(document.activeElement?.closest('[data-id]')).toBe(container.querySelectorAll('[data-id]')[2]);
     });
 
-    it('the head\'s Full screen opens it for the keyboard', async () => {
-      mount();
-      await pick([jpeg('a.jpg')]);
-      await settle();
-      await openPage(1);
-      await act(async () => { byText('Full screen')[0].click(); });
-      expect(editor().hasAttribute('data-full')).toBe(true);
-    });
-  });
-
-  // The flatten starts from the photo where the card shows it: measured full screen, the page flew
-  // in from the full-screen coordinates once the card was back (2026-10-27).
-  describe('approved full screen', () => {
-    const CARD = { left: 100, top: 200, width: 300, height: 400 };
-    const FULL = { left: 0, top: 0, width: 2000, height: 1300 };
-    let originalRect;
-    beforeEach(() => {
-      vi.mocked(playFlatten).mockClear();
-      originalRect = Element.prototype.getBoundingClientRect;
-      // The editor fills the screen while full; its photo frame sits inside it at 0,0.
-      Element.prototype.getBoundingClientRect = function () {
-        const editor = this.closest('[data-page-heading]')?.closest('section') ?? this.closest('section');
-        const full = editor?.hasAttribute('data-full') || document.fullscreenElement === editor;
-        if (this.matches('[data-corner-frame]')) return full ? FULL : { ...CARD, left: CARD.left + 20, top: CARD.top + 20 };
-        return full ? FULL : CARD;
-      };
-    });
-    afterEach(() => {
-      Element.prototype.getBoundingClientRect = originalRect;
-      delete HTMLElement.prototype.requestFullscreen;
-      delete document.exitFullscreen;
-      delete document.fullscreenElement;
-    });
-
-    const approveFull = async () => {
-      mount();
-      await pick([jpeg('a.jpg')]);
-      await settle();
-      await openCorners(1);
-      await act(async () => { byText('Full screen')[0].click(); });
-      await settle();
+    it('corners keep Rotate, and approving them returns to the page', async () => {
+      await openThree();
+      await adjustCorners();
+      expect(byText('Rotate')).toHaveLength(1);
       await useCorners();
       await settle();
-    };
-    const fromFrame = () => vi.mocked(playFlatten).mock.calls.at(-1)?.[1].frame;
-
-    it('as the full-page layer', async () => {
-      await approveFull();
-      expect(fromFrame()).toEqual({ left: 20, top: 20, width: 300, height: 400 });
-    });
-
-    it('in the browser\'s own full screen, once the browser has left it', async () => {
-      HTMLElement.prototype.requestFullscreen = function () {
-        Object.defineProperty(document, 'fullscreenElement', { value: this, configurable: true });
-        document.dispatchEvent(new Event('fullscreenchange'));
-        return Promise.resolve();
-      };
-      document.exitFullscreen = () => new Promise((resolve) => {
-        // The browser leaves a moment later, as a real one does.
-        setTimeout(() => {
-          Object.defineProperty(document, 'fullscreenElement', { value: null, configurable: true });
-          document.dispatchEvent(new Event('fullscreenchange'));
-          resolve();
-        }, 50);
-      });
-      await approveFull();
-      expect(playFlatten).not.toHaveBeenCalled();
-      await settle(100);
-      expect(fromFrame()).toEqual({ left: 20, top: 20, width: 300, height: 400 });
-      expect(container.querySelector('[data-paper]')).not.toBeNull();
+      expect(heading()).toBe('Page 2 of 3');
+      expect(viewer().querySelector('[data-paper]')).not.toBeNull();
     });
   });
 
@@ -753,23 +690,15 @@ describe('PdfScanTool', () => {
     const viewer = () => container.querySelector('[data-page-viewer]');
     const viewfinder = () => container.querySelector('[data-viewfinder]');
     let realMatchMedia;
-    let realShowModal;
-    let realClose;
 
     beforeEach(() => {
       realMatchMedia = window.matchMedia;
       window.matchMedia = (query) => ({ matches: !query.includes('min-width'), media: query, addEventListener() {}, removeEventListener() {} });
-      realShowModal = HTMLDialogElement.prototype.showModal;
-      realClose = HTMLDialogElement.prototype.close;
-      HTMLDialogElement.prototype.showModal = function showModal() { this.setAttribute('open', ''); };
-      HTMLDialogElement.prototype.close = function close() { this.removeAttribute('open'); };
     });
     afterEach(() => {
       // Unmounted here: an open viewer closes its dialog on the way out, while the stub is still in place.
       if (container) { act(() => render(null, container)); container.remove(); container = null; }
       window.matchMedia = realMatchMedia;
-      HTMLDialogElement.prototype.showModal = realShowModal;
-      HTMLDialogElement.prototype.close = realClose;
       vi.mocked(canUseCamera).mockReturnValue(false);
     });
 
@@ -875,14 +804,14 @@ describe('PdfScanTool', () => {
     });
   });
 
-  it('binds hold and drag to the table on desktop, and to the strip beside a page', async () => {
+  it('binds hold and drag to the table on desktop, and keeps it there under a page', async () => {
     const create = vi.spyOn(Sortable, 'create');
     mount();
     await pick([jpeg('a.jpg'), jpeg('b.jpg')]);
     await settle();
     expect(create.mock.calls.at(-1)?.[0]).toBe(tableTiles()[0].closest('ul'));
     await openPage(1);
-    expect(create.mock.calls.at(-1)?.[0]).toBe(container.querySelector('[data-selected]').closest('ul'));
+    expect(create.mock.calls.at(-1)?.[0]).toBe(tableTiles()[0].closest('ul'));
     create.mockRestore();
   });
 

@@ -1,4 +1,5 @@
 import { useReducer, useState } from 'preact/hooks';
+import { useHoldUpdate } from '#lib/hooks/useHoldUpdate.ts';
 import { usePhotoTileList } from '#lib/hooks/usePhotoTileList.ts';
 import { SCAN_ACCEPT } from './lib/scanAccept.ts';
 import type { QuietPolicy } from '#lib/output/quietPrepare.ts';
@@ -21,10 +22,9 @@ import { useScanPages } from './hooks/useScanPages.ts';
 import { useScanRefs } from './hooks/useScanRefs.ts';
 import { useScanRating } from './hooks/useScanRating.tsx';
 import { useScanSettings } from './hooks/useScanSettings.ts';
-import { useScanStage } from './hooks/useScanStage.ts';
 import { useScanView } from './hooks/useScanView.ts';
 import { resultKey } from './lib/scanPages.ts';
-import { initialScanState, pageViewerMode, reduceScan } from './state/scanState.ts';
+import { initialScanState, reduceScan } from './state/scanState.ts';
 import { createEditActions, createPageActions, pageViewActions } from './state/scanActions.ts';
 import { cameraProps } from './state/cameraProps.ts';
 import type { ScanPage } from './state/scanWork.ts';
@@ -41,15 +41,16 @@ export interface PdfScanToolProps {
 export default withIslandBoundary(function PdfScanTool({ quietPolicy, navigate }: PdfScanToolProps = {}) {
   const [pages, setPages] = useState<ScanPage[]>([]);
   const [state, dispatch] = useReducer(reduceScan, initialScanState);
-  const { selectedId, finding, findMissed, failedIds, full } = state;
+  const { selectedId, finding, findMissed, failedIds } = state;
   /** The table of all the pages, one page as it will download, or that page's corners. */
   const view = state.phase;
   const settings = useScanSettings();
   const board = useScanBoard();
   const { results, turnedPreviews } = board;
   // The queues, caches and latest-render values async callbacks read (state/scanWork.ts).
-  const { work, editorRef, workbenchRef, headingRef, unmountedRef } = useScanRefs();
-  const stageHeight = useScanStage(workbenchRef, pages.length > 0);
+  const { work, editorRef, headingRef, unmountedRef } = useScanRefs();
+  // A forced update waits while there are photos, as an open document's would.
+  useHoldUpdate(pages.length > 0, 'open');
   work.pages = pages;
   work.defaultFilter = settings.defaultFilter;
   const { rating, wide } = useScanRating();
@@ -62,8 +63,8 @@ export default withIslandBoundary(function PdfScanTool({ quietPolicy, navigate }
 
 
   const { listRef, focusIdRef } = usePhotoTileList({
-    // Each of these is its own list on screen: the phone grid, the desktop table, the strip beside a page.
-    active: pages.length > 0 && (!wide ? 'phone' : view === 'table' ? 'table' : 'strip'),
+    // Each of these is its own list on screen: the phone grid and the desktop table.
+    active: pages.length > 0 && (wide ? 'table' : 'phone'),
     items: pages,
     ghostClass: styles['is-ghost'],
     onReorder: (oldIndex, newIndex) => {
@@ -74,7 +75,7 @@ export default withIslandBoundary(function PdfScanTool({ quietPolicy, navigate }
 
   const selected = pages.find((p) => p.id === selectedId) ?? pages[0];
   const selectedIndex = selected ? pages.indexOf(selected) : -1;
-  const { enterFull, exitFull, showResult } = useScanView({
+  const { showResult } = useScanView({
     state, dispatch, work, hasPages: pages.length > 0, selected, editorRef, headingRef, listRef, unmountedRef, ...board,
   });
 
@@ -83,7 +84,7 @@ export default withIslandBoundary(function PdfScanTool({ quietPolicy, navigate }
 
   const viewfinder = cameraProps({ camera: state.camera, pages, results, dispatch, addFiles, retakePage: edit.retakePage, view });
   const openMany = () => dispatch({ type: 'cameraOpened', camera: { mode: 'many' } });
-  const viewerMode = pageViewerMode(state, wide);
+  const viewerMode = view === 'table' ? null : view;
 
   const shown = key === null ? undefined : work.shown.get(key);
   const limitNote = key !== null && work.missedKeys.has(key) ? t.limitMissed : undefined;
@@ -100,7 +101,7 @@ export default withIslandBoundary(function PdfScanTool({ quietPolicy, navigate }
     draftStatus: draft.status,
   };
   const options = { pageSize: settings.pageSize, limit: settings.limit, onPageSize: settings.choosePageSize, onLimit: settings.chooseLimit, limitNote };
-  /** What the desktop's page view and the phone's viewer both show and do. */
+  /** What the page viewer shows and does. */
   const onePage = {
     pages, selectedIndex, results, turnedPreviews, finding, findMissed, pageSize: settings.pageSize,
     built: { shown, ready: prepared.status === 'ready', size: prepared.size },
@@ -139,30 +140,7 @@ export default withIslandBoundary(function PdfScanTool({ quietPolicy, navigate }
       {pages.length > 0 && selected && (
         <ToolShellBridge>
           {(bridge) => (wide ? (
-            <ScanWorkspace
-              {...loaded}
-              bridge={bridge}
-              // The stack's viewer, over the camera on a large tablet, shows the page itself.
-              view={viewerMode ? 'table' : view}
-              workbench={{
-                ...onePage,
-                refs: { workbench: workbenchRef, editor: editorRef, heading: headingRef, list: listRef },
-                stageHeight,
-                selected,
-                view,
-                failedIds,
-                full,
-                resultKeyOf: resultKey,
-                actions: {
-                  ...pageActions,
-                  onToggleFull: full ? exitFull : enterFull,
-                  onSelect: edit.openPage,
-                  onTileKeyDown: edit.onTileKeyDown,
-                  onRemove: removePage,
-                  onFiles: addFiles,
-                },
-              }}
-            />
+            <ScanWorkspace {...loaded} bridge={bridge} />
           ) : (
             <ScanPhoneTable {...loaded} onPickMore={bridge.requestReplace} onClear={bridge.requestClear} />
           ))}

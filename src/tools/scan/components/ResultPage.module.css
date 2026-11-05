@@ -17,10 +17,6 @@
   box-shadow: var(--shadow-md);
 }
 
-.paper[data-opens] {
-  cursor: zoom-in;
-}
-
 .img {
   position: absolute;
   display: block;

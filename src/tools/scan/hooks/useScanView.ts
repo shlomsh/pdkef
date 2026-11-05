@@ -1,14 +1,14 @@
-import { useEffect, useLayoutEffect, type Dispatch, type MutableRef, type StateUpdater } from 'preact/hooks';
+import { useEffect, useLayoutEffect, useRef, type Dispatch, type MutableRef, type StateUpdater } from 'preact/hooks';
 import type { RefObject } from 'preact';
+import type { Quad } from '#lib/pageEnhance/quad.ts';
 import { reportError } from '#lib/telemetry/errorReport.ts';
-import { playFlatten, type FlattenFrom } from '../lib/flattenAnimation.ts';
+import { playFlatten, relativeBox, type FlattenFrom } from '../lib/flattenAnimation.ts';
 import { loadPipeline } from '../lib/loadPipeline.ts';
+import { turnedQuad } from '../lib/quad.ts';
 import { turnKeyOf } from '../lib/scanPages.ts';
 import type { ScanPage, ScanWork } from '../state/scanWork.ts';
 import type { initialScanState } from '../state/scanState.ts';
 import type { ScanDispatch } from './scanHost.ts';
-import { useKeepSelectedInView } from './useKeepSelectedInView.ts';
-import { useScanFullScreen } from './useScanFullScreen.ts';
 
 interface ScanViewInput {
   state: typeof initialScanState;
@@ -24,14 +24,12 @@ interface ScanViewInput {
   setTurnedPreviews: Dispatch<StateUpdater<Record<string, string>>>;
 }
 
-/** Bring the page's top into view: the first photos replace the tall empty state, and moving on from
- * the corners (whose buttons sit under the photo) would otherwise leave the person under the next view.
- * On desktop the whole card is the first screen (useFloorHeight), so that is the top of the page. */
-function showEditorTop(editor: HTMLElement | null, instant = false) {
+/** Bring the table's top into view when the first photos replace the tall empty state. The viewer is a
+ * fixed dialog over the table, so a page view has nothing to scroll to. */
+function showTableTop() {
+  if (!window.matchMedia?.('(min-width: 1024px)').matches) return;
   const reduce = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
-  const behavior = reduce || instant ? 'auto' : 'smooth';
-  if (window.matchMedia?.('(min-width: 1024px)').matches) window.scrollTo?.({ top: 0, behavior });
-  else editor?.scrollIntoView?.({ block: 'start', behavior });
+  window.scrollTo?.({ top: 0, behavior: reduce ? 'auto' : 'smooth' });
 }
 
 /** A turned page shows its preview turned the same way while its corners are set (scanPipeline's turnImage).
@@ -46,14 +44,14 @@ function makeTurnedPreview(page: ScanPage, turnKey: string, { work, unmountedRef
   }, (err) => reportError('pdf_tool_run', err, 'scan_turn_preview'));
 }
 
-/** What the person sees change with the view: the scroll to the top, the flatten into the result, full
- * screen, the selected tile kept in sight and the turned preview the corner editor needs. */
+/** What the person sees change with the view: the scroll to the top, the flatten into the result, the
+ * last page's tile focused and in view when the viewer closes, and the turned preview the corner editor needs. */
 export function useScanView(input: ScanViewInput) {
   const { state, dispatch, work, hasPages, selected, editorRef, headingRef, listRef, turnedPreviews } = input;
-  const { selectedId, full } = state;
+  const { selectedId } = state;
   const view = state.phase;
   useEffect(() => {
-    if (hasPages && !work.hadPages) showEditorTop(editorRef.current);
+    if (hasPages && !work.hadPages) showTableTop();
     work.hadPages = hasPages;
   }, [hasPages]);
   // Before paint: the result's first frame already has the flatten over it. After paint, the empty paper
@@ -73,22 +71,46 @@ export function useScanView(input: ScanViewInput) {
     const target = host?.querySelector<HTMLImageElement>('[data-current] [data-paper] img') ?? host?.querySelector<HTMLImageElement>('[data-paper] img');
     // Only when the page is already made: an empty paper has nothing to land.
     const flatten = !!(from && view === 'result' && host && target);
-    // One motion at a time: with a flatten to play, the scroll jumps first and the page moves alone.
-    if (topPending) showEditorTop(editorRef.current, flatten);
+    if (topPending && view === 'table') showTableTop();
     if (flatten) {
       work.stopFlatten = playFlatten(host as HTMLElement, from as FlattenFrom, target as HTMLImageElement);
     }
   }, [view, selectedId]);
   useEffect(() => () => work.stopFlatten(), []);
 
-  const fullScreen = useScanFullScreen({ editorRef, work, dispatch, full, view, landing: state.landing });
+  // Back from a page: focus lands on the tile of the page last shown, not the one that opened it, and it
+  // is brought into view (the grid is the window's, so the tile is scrolled to, not the list).
+  const wasPageView = useRef(false);
+  useEffect(() => {
+    if (view === 'table' && wasPageView.current && !state.camera) {
+      const tile = listRef.current?.querySelector<HTMLElement>(`[data-id="${selectedId}"] [data-page]`);
+      tile?.focus({ preventScroll: true });
+      tile?.scrollIntoView?.({ block: 'nearest' });
+    }
+    wasPageView.current = view !== 'table';
+  }, [view]);
 
-  useKeepSelectedInView(listRef, selectedId);
+  /** The corners' own photo, already decoded, is where the flatten starts: the viewer is the same dialog. */
+  const captureFlatten = (page: { quad: Quad; turns: number }) => {
+    const host = editorRef.current;
+    const frame = host?.querySelector('[data-corner-frame]');
+    const photo = frame?.querySelector<HTMLImageElement>('img');
+    if (!host || !frame || !photo) return;
+    work.flattenFrom = {
+      photo,
+      frame: relativeBox(frame.getBoundingClientRect(), host.getBoundingClientRect()),
+      quad: turnedQuad(page.quad, page.turns),
+    };
+  };
+  const showResult = (page: ScanPage) => {
+    captureFlatten(page);
+    dispatch({ type: 'resultShown' });
+  };
 
   const turnKey = turnKeyOf(selected);
   useEffect(() => {
     if (view !== 'corners' || !selected || !turnKey || turnedPreviews[turnKey]) return;
     makeTurnedPreview(selected, turnKey, input);
   }, [view, turnKey, selected?.preview]);
-  return fullScreen;
+  return { showResult };
 }
