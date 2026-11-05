@@ -32,11 +32,11 @@ export function cornersHint(selected: ScanPage, finding: number | null, findMiss
   return t.cornersHint;
 }
 
-/** The editor card's head: the page's title; a back control to the table in the page view, Rotate and Full screen in corners. */
+/** The editor card's head: the page's title; a back control to the table in the page view, Rotate in corners, Full screen in both. */
 export default function ScanEditorHead({ view, selected, selectedIndex, pageCount, finding, findMissed, full, headingRef, onRotate, onToggleFull, onDone }: ScanEditorHeadProps) {
   return (
     <div class={styles['editor-head']}>
-      {view === 'result' && (
+      {view === 'result' && full === null && (
         <button type="button" class={pageView.back} data-back onClick={onDone}>
           <ChevronLeft size={20} aria-hidden="true" />
           {t.pagesLabel}
@@ -48,12 +48,14 @@ export default function ScanEditorHead({ view, selected, selectedIndex, pageCoun
           <span class={styles['editor-hint']} role="status">{cornersHint(selected, finding, findMissed)}</span>
         )}
       </p>
-      {view === 'corners' && selected.preview !== null && (
+      {view !== 'table' && selected.preview !== null && (
         <div class={styles['head-actions']}>
-          <button type="button" class={workspaceStyles['quiet-button']} onClick={onRotate}>
-            <RotateCw size={16} aria-hidden="true" />
-            {t.rotate}
-          </button>
+          {view === 'corners' && (
+            <button type="button" class={workspaceStyles['quiet-button']} onClick={onRotate}>
+              <RotateCw size={16} aria-hidden="true" />
+              {t.rotate}
+            </button>
+          )}
           <FullScreenButton full={full !== null} onToggle={onToggleFull} labels={{ enter: t.fullScreen, exit: t.exitFullScreen }} />
         </div>
       )}

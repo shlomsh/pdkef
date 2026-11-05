@@ -183,8 +183,13 @@ export function createEditActions(input: EditActionsInput) {
 
   /** A tap on a page of the table opens its result. */
   const openPage = (id: number) => dispatch({ type: 'pageOpened', id });
-  /** A swipe in the phone's viewer reached this page. */
+  /** A swipe in the phone's viewer, or a step at desktop's full screen, reached this page. */
   const selectPage = (id: number) => dispatch({ type: 'pageSelected', id });
+  /** One page back or on at desktop's full screen; the ends stay where they are. */
+  const stepPage = (delta: 1 | -1) => {
+    const next = pages[selectedIndex + delta];
+    if (next) selectPage(next.id);
+  };
   /** Back to the table of all the pages. */
   const closePage = () => dispatch({ type: 'tableShown' });
   /** Replace page `id` with a new photo, in place. */
@@ -196,7 +201,7 @@ export function createEditActions(input: EditActionsInput) {
     announce(formatMessage(t.announceCornersOf, { position: selectedIndex + 1 }));
   };
 
-  return { onTileKeyDown, commitCorners, chooseLook, rotatePage, showFailedPage, approveCorners, adjustCorners, openPage, selectPage, closePage, retakePage };
+  return { onTileKeyDown, commitCorners, chooseLook, rotatePage, showFailedPage, approveCorners, adjustCorners, openPage, selectPage, stepPage, closePage, retakePage };
 }
 
 interface PageViewInput {
@@ -216,6 +221,7 @@ export function pageViewActions({ edit, findPage, removePage, selected, dispatch
     onFind: findPage,
     onApprove: edit.approveCorners,
     onDone: edit.closePage,
+    onStep: edit.stepPage,
     onRetake: (file: File) => { if (selected) edit.retakePage(selected.id, file); },
     onRetakeCamera: () => { if (selected) dispatch({ type: 'retakeOpened', pageId: selected.id }); },
     onRemovePage: removePage,

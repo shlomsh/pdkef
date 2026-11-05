@@ -100,3 +100,45 @@
 .cell > .item {
   flex: 1;
 }
+
+/* Previous and Next at full screen: on the screen's two sides, clear of the page wherever it is narrower. */
+.step {
+  position: absolute;
+  top: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  transform: translateY(-50%);
+  color: var(--color-text);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 50%;
+  box-shadow: var(--shadow-md);
+  cursor: pointer;
+}
+
+.step:hover:not([aria-disabled='true']) {
+  background: var(--color-primary-soft);
+  border-color: var(--color-primary);
+}
+
+.step:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.step[aria-disabled='true'] {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.stepPrevious {
+  left: 6px;
+}
+
+.stepNext {
+  right: 6px;
+}
