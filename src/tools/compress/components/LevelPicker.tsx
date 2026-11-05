@@ -136,7 +136,6 @@ export default function LevelPicker({ value, onChange, t, targetKB, onTargetKBCh
             }}
           >
             {labels[level]}
-            {level === 'medium' && <span class={styles.pick} aria-hidden="true" />}
           </button>
         ))}
       </div>
