@@ -9,7 +9,7 @@ export default function ScanTable(props: ComponentProps<typeof ScanPageGrid>) {
   return (
     <div class={styles.table}>
       <ScanPageGrid {...props} />
-      <p class={styles.hint}>{t.tableHint}</p>
+      <p class={styles.hint}>{t.tableHintWide}</p>
     </div>
   );
 }

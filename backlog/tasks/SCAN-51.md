@@ -26,4 +26,6 @@ from written sketches.
 - Remove keeps an Undo chip for five seconds (guideline 6), on the grid and in the viewer. Everything the page owned
   comes back with it.
 - Removing the open page stays in the viewer on the next page, on the phone too. Removing the last page ends the scan.
-- Moving Scan onto the shared `PageGrid` stays out of this ticket: that grid reads PDFs, Scan holds photos on paper sizes.
+- A photo still being read goes at once with no Undo: there is nothing to bring back yet. A held key removes one page.
+- Removing the open page lands on its neighbour's corners if that page could not be read.
+- Moving Scan onto the shared `PageGrid` is SCAN-52.

@@ -136,6 +136,10 @@ describe('reduceScan', () => {
   });
 
   describe('pageRemoved', () => {
+    it('a neighbour that could not be read opens on its corners, where Remove is', () => {
+      const result = { ...initialScanState, phase: 'result', selectedId: 1, failedIds: [2] } as ScanState;
+      expect(reduceScan(result, { type: 'pageRemoved', id: 1, neighbourId: 2 })).toMatchObject({ phase: 'corners', selectedId: 2 });
+    });
     it('another page leaving only forgets its failure', () => {
       const s: ScanState = { ...corners, failedIds: [9] };
       expect(reduceScan(s, { type: 'pageRemoved', id: 9, neighbourId: 2 })).toEqual({ ...s, failedIds: [] });

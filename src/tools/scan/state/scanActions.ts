@@ -172,8 +172,9 @@ export function createEditActions(input: EditActionsInput) {
 
   const onTileKeyDown = (event: KeyboardEvent, id: number) => {
     if (!event.altKey && !event.metaKey && !event.ctrlKey && !event.shiftKey) {
-      if (event.key === 'r' || event.key === 'R') { event.preventDefault(); rotatePage(id); return; }
-      if (event.key === 'Delete' || event.key === 'Backspace') { event.preventDefault(); removePage(id); return; }
+      // By position, so R is the same key on a Hebrew keyboard. A held key acts once: Undo keeps one page.
+      if (event.code === 'KeyR') { event.preventDefault(); if (!event.repeat) rotatePage(id); return; }
+      if (event.key === 'Delete' || event.key === 'Backspace') { event.preventDefault(); if (!event.repeat) removePage(id); return; }
     }
     const delta = tileDelta(event);
     if (delta === 0) return;

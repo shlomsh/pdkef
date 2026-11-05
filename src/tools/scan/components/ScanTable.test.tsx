@@ -37,7 +37,8 @@ describe('ScanTable', () => {
     expect(tiles).toHaveLength(3);
     expect(tiles.map((t) => t.querySelector('[data-badge]')?.textContent)).toEqual(['1', '2', '3']);
     expect(container.querySelector('[data-add-pages]')?.textContent).toContain('Add pages');
-    expect(container.textContent).toContain('Tap a page to fix its corners, turn it or retake it.');
+    expect(container.textContent).toContain('Click a page to fix its corners, turn it or retake it. Drag a page to move it.');
+    expect(container.textContent).not.toContain('Tap a page to fix its corners, turn it or retake it.');
   });
 
   it('opens a page on tap', () => {
