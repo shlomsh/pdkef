@@ -185,6 +185,11 @@
     flex: 0 0 auto;
   }
 }
+/* Tall enough to have a free band under the tile: the link takes no height of its own there (the
+   negative bottom margin cancels it), so the two reserved rows and the tile stay where they are. */
+@media (min-width: 768px) and (min-height: 820px) {
+  .drive { margin-top: -22px; margin-bottom: -50px; }
+}
 
 /* Landscape phone (see the matching block in RecentFiles.module.css): the
    picker keeps its full-width row and its touch target, and gives back the
