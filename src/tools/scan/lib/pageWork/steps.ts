@@ -19,7 +19,7 @@ export const SOURCE_LONG_EDGE = 3200;
 export const OUTPUT_LONG_EDGE = 2400;
 /** The edge guess looks at a small copy; the page's outline survives, the noise does not. */
 const GUESS_LONG_EDGE = 320;
-/** How far inside its corners a page is cropped: about 0.8% from each edge, a margin's worth. The
+/** How far inside its corners a photographed page is cropped (a PDF sheet is not): about 0.8% from each edge, a margin's worth. The
  * edge guess works on a 320px copy, so a corner can sit a pixel of that (0.3%) out on the table, and
  * that sliver turns into a black line under the Document look (QA, 2026-10-26). */
 const EDGE_INSET = 0.016;
@@ -147,9 +147,9 @@ export async function inspectWith(kit: CanvasKit, photo: Blob): Promise<Inspecte
 }
 
 /** The page's bend beyond its corners; a measuring failure leaves the page flat and is handed back. */
-function bendOf(src: RgbaImage, quad: Quad, width: number, height: number, paperEdges: boolean): { bend: PageBend; error: unknown } {
+function bendOf(src: RgbaImage, quad: Quad, inset: number, width: number, height: number, paperEdges: boolean): { bend: PageBend; error: unknown } {
   try {
-    return { bend: measureBend(src, quad, EDGE_INSET / 2, width, height, paperEdges), error: null };
+    return { bend: measureBend(src, quad, inset / 2, width, height, paperEdges), error: null };
   } catch (error) {
     // expected: handed back with the page, and reported on the main thread (a worker cannot report)
     return { bend: FLAT_PAGE, error };
@@ -159,11 +159,12 @@ function bendOf(src: RgbaImage, quad: Quad, width: number, height: number, paper
 /** The pure middle of processing a page: the photo's pixels flattened to its corners and its bend, then
  * given its look. */
 function flattenPixels(src: RgbaImage, quad: Quad, filter: ScanFilter, paperEdges: boolean): { image: RgbaImage; bentPx: number; measureError: unknown } {
-  const quadPx = scaleQuad(insetQuad(quad, EDGE_INSET), src.width, src.height);
+  const inset = paperEdges ? EDGE_INSET : 0;
+  const quadPx = scaleQuad(insetQuad(quad, inset), src.width, src.height);
   const aspect = pageAspect(quadPx, src.width, src.height);
   const { width, height } = warpSizeFor(quadPx, OUTPUT_LONG_EDGE, aspect === null ? null : snapPaper(aspect));
-  const { bend, error } = bendOf(src, quad, width, height, paperEdges);
-  const piece: Piece = { quad, inset: EDGE_INSET, width, height, bend, mesh: null };
+  const { bend, error } = bendOf(src, quad, inset, width, height, paperEdges);
+  const piece: Piece = { quad, inset, width, height, bend, mesh: null };
   const warped = fillFoldedCorners(applyPiece(src, piece));
   return { image: applyFilter(warped, filter), bentPx: bentPx(bend, pieceMargin(piece), width, height), measureError: error };
 }

@@ -68,6 +68,13 @@ afterEach(() => {
 vi.stubGlobal('ImageData', class { constructor(public data: Uint8ClampedArray, public width: number, public height: number) {} });
 
 describe('processWith', () => {
+  it('crops a photo inside its corners, and never a PDF sheet: its corners are exact and its print can run to the edge', async () => {
+    const photo = await processWith(fakeKit(gray(400, 300)), new Blob(), FULL_QUAD, 'original');
+    const sheet = await processWith(fakeKit(gray(400, 300)), new Blob(), FULL_QUAD, 'original', false);
+    expect([photo.page.width, photo.page.height]).toEqual([394, 295]);
+    expect([sheet.page.width, sheet.page.height]).toEqual([400, 300]);
+  });
+
   it('reads paper edges on a photo, and none on a PDF sheet', async () => {
     await processWith(fakeKit(gray(400, 300)), new Blob(), FULL_QUAD, 'original');
     await processWith(fakeKit(gray(400, 300)), new Blob(), FULL_QUAD, 'original', false);
