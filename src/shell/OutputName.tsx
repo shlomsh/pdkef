@@ -117,6 +117,18 @@ export interface OutputNameProps {
   wrapOnPhone?: boolean;
 }
 
+/** At rest a long name is cut in the middle (the tail stays whole); editing shows the full text as one node so the caret and typing behave natively. */
+function NameText({ name, whole }: { name: string; whole: boolean }) {
+  const { head, tail } = whole ? { head: name, tail: '' } : splitOutputName(name);
+  if (!tail) return <>{head}</>;
+  return (
+    <>
+      <span class={styles['name-head']} data-name-head>{head}</span>
+      <span class={styles['name-tail']} data-name-tail>{tail}</span>
+    </>
+  );
+}
+
 /**
  * The output file name as a WYSIWYG heading part: click to edit in place,
  * Enter or blur commits, Escape reverts, paste is plain text. Renders a
@@ -232,9 +244,6 @@ export default function OutputName({
     insertPlainTextAtSelection(event.dataTransfer?.getData('text/plain') ?? '');
   }, []);
 
-  // At rest a long name is cut in the middle (the tail stays whole); editing
-  // shows the full text as one node so the caret and typing behave natively.
-  const { head, tail } = editing ? { head: name, tail: '' } : splitOutputName(name);
   const wrapClass = wrapOnPhone ? ` ${styles['wrap-on-phone']}` : '';
   const rtlPage = isRtlPage();
 
@@ -265,12 +274,7 @@ export default function OutputName({
           onPaste={onPaste}
           onDrop={onDrop}
         >
-          {tail ? (
-            <>
-              <span class={styles['name-head']} data-name-head>{head}</span>
-              <span class={styles['name-tail']} data-name-tail>{tail}</span>
-            </>
-          ) : head}
+          <NameText name={name} whole={editing} />
         </span>
         <span class={styles['doc-heading-ext']} dir="ltr">{extension}</span>
       </bdi>
