@@ -233,3 +233,85 @@ describe('PdfCompressTool with a protected PDF', () => {
     expect(container.textContent).not.toContain('This PDF has a password');
   });
 });
+
+describe('PdfCompressTool with a file that is not a PDF', () => {
+  let container;
+  let harness: ToolHarness;
+  let input;
+  let engineSpies = [];
+
+  beforeEach(async () => {
+    harness = installToolHarness();
+    input = undefined;
+    const realProbe = (await vi.importActual('#lib/pdf/pdfEncryption.ts')).probeEncryption;
+    const legacyPdfjs = () => import('pdfjs-dist/legacy/build/pdf.mjs');
+    harness.pdfjs.probe.mockImplementation((bytes) => realProbe(bytes, legacyPdfjs));
+    engineSpies = [
+      vi.spyOn(compressLib, 'compressPdf'),
+      vi.spyOn(compressLib, 'compressPdfToTarget'),
+      vi.spyOn(imagesLib, 'compressPdfImages'),
+      vi.spyOn(imagesLib, 'compressPdfImagesToTarget'),
+    ];
+  });
+
+  afterEach(() => {
+    engineSpies.forEach((spy) => spy.mockRestore());
+    if (container) {
+      act(() => render(null, container));
+      container.remove();
+      container = null;
+    }
+    vi.unstubAllGlobals();
+    vi.clearAllMocks();
+    harness.restore();
+  });
+
+  const mount = () => {
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    act(() => render(<PdfCompressTool />, container));
+  };
+  const nap = (ms) => act(async () => { await new Promise((resolve) => setTimeout(resolve, ms)); });
+  const pick = async (file) => {
+    input ??= container.querySelector('input[type="file"]');
+    await act(async () => { setInputFiles(input, [file]); });
+    await nap(600);
+  };
+  const loaded = () => container.querySelector('[data-compress-status]') !== null;
+  const textFile = (bytes) => new File([bytes], 'notes.pdf', { type: 'application/pdf' });
+
+  it('skips a file with no PDF header and goes back to the empty state', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    mount();
+    await pick(textFile('just some notes, not a PDF'));
+
+    expect(container.textContent).toContain('Skipped "notes.pdf" - not a PDF, JPG or PNG.');
+    expect(loaded()).toBe(false);
+    expect(container.querySelector('[role="radiogroup"]')).toBeNull();
+    expect(container.textContent).not.toMatch(/Download/);
+    for (const engine of engineSpies) expect(engine).not.toHaveBeenCalled();
+    await harness.flush();
+    expect(harness.reports()).toHaveLength(0);
+    expect(harness.usageEvents('tool_operation_failed')).toHaveLength(0);
+  });
+
+  it('loads a real PDF picked next and drops the skip line', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    mount();
+    await pick(textFile('just some notes, not a PDF'));
+    await pick(fixtureFile('plain'));
+
+    expect(container.textContent).not.toContain('Skipped');
+    expect(loaded()).toBe(true);
+  });
+
+  it('does not skip a file that has a header but unreadable content', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    mount();
+    await pick(textFile('%PDF-1.7\nthis is junk, not objects'));
+
+    expect(container.textContent).not.toContain('Skipped');
+    expect(loaded()).toBe(true);
+  });
+});
+
