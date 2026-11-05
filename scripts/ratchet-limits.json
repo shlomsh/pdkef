@@ -26,7 +26,7 @@
       "src/shell/pageGrid/PageGrid.tsx#PageGrid": 669,
       "src/shell/pageGrid/PageGrid.tsx#PageGrid.(anonymous)~25": 222,
       "src/shell/pageWorkspace/useDownloadFlow.ts#useDownloadFlow": 211,
-      "src/site-lib/FileDropzone.tsx#FileDropzone": 326,
+      "src/site-lib/FileDropzone.tsx#FileDropzone": 325,
       "src/site-lib/appUpdate.ts#startAppUpdates": 248,
       "src/tools/compress/PdfCompressTool.tsx#PdfCompressTool": 266,
       "src/tools/compress/hooks/useComparePreviews.ts#useComparePreviews": 177,

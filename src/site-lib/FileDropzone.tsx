@@ -158,7 +158,7 @@ function FileDropzone({
   // here; the mount effect below is the only thing that may.
   const recentMessages = recentFilesMessages ?? englishRecentFilesMessages;
   // MEM-30: focus goes to the picker, since the control that was pressed left with its tile.
-  const { recents, removeRecent, clearRecents } = useHomeRecents(ok => {
+  const { recents, removeRecent } = useHomeRecents(ok => {
     setError(ok ? '' : recentMessages.removeFailed);
     if (ok) tile.current?.focus({ preventScroll: true });
   });
@@ -396,7 +396,6 @@ function FileDropzone({
         onOpenSample={sample}
         onOpenRecent={openRecent}
         onRemoveRecent={removeRecent}
-        onClearRecents={clearRecents}
         busy={busy}
         messages={recentFilesMessages}
       />}

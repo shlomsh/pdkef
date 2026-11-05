@@ -25,7 +25,6 @@ export default function RecentFiles({
   onOpenSample,
   onOpenRecent,
   onRemoveRecent,
-  onClearRecents,
   busy = false,
   messages = englishRecentFilesMessages,
 }: {
@@ -34,27 +33,21 @@ export default function RecentFiles({
   onOpenRecent?: (file: RecentFileItem) => void;
   /** MEM-30: called once the person has confirmed removing one tile. */
   onRemoveRecent?: (file: RecentFileItem) => void;
-  /** MEM-30: called once the person has confirmed clearing every tile. */
-  onClearRecents?: () => void;
   busy?: boolean;
   messages?: RecentFilesMessages;
 }) {
   // Hooks run before the empty early return. Null on the server and on the
   // first client render, so no dialog is ever part of the hydrated markup.
-  const [confirming, setConfirming] = useState<{ file: RecentFileItem } | 'all' | null>(null);
+  const [confirming, setConfirming] = useState<RecentFileItem | null>(null);
   if (!files.length) return null;
 
-  const realCount = files.filter((file) => file.bundledSample !== true).length;
-  const confirmingOne = confirming && confirming !== 'all' ? confirming.file : null;
   const confirm = () => {
-    const was = confirming;
+    const file = confirming;
     setConfirming(null);
-    if (was === 'all') onClearRecents?.();
-    else if (was) onRemoveRecent?.(was.file);
+    if (file) onRemoveRecent?.(file);
   };
 
   return (
-    <>
     <section data-home-recents class={styles.card} aria-labelledby="recent-files-heading">
       <h2 class="sr-only" id="recent-files-heading">{messages.heading}</h2>
       <ul class={styles.list}>
@@ -130,7 +123,7 @@ export default function RecentFiles({
                 class={styles.remove}
                 aria-label={formatMessage(messages.removeAriaLabel, { name: file.fileName })}
                 disabled={busy}
-                onClick={() => setConfirming({ file })}
+                onClick={() => setConfirming(file)}
               >
                 <svg width="10" height="10" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true">
                   <path d="M4 4l8 8M12 4l-8 8" />
@@ -144,24 +137,17 @@ export default function RecentFiles({
         <ConfirmDialog
           open
           titleId="recent-files-confirm-title"
-          title={confirmingOne ? messages.removeTitle : messages.clearTitle}
-          confirmLabel={confirmingOne ? messages.removeConfirm : messages.clearConfirm}
+          title={messages.removeTitle}
+          confirmLabel={messages.removeConfirm}
           cancelLabel={messages.cancel}
           closeLabel={messages.closeDialog}
           onCancel={() => setConfirming(null)}
           onConfirm={confirm}
         >
-          {confirmingOne ? formatMessage(messages.removeBody, { name: confirmingOne.fileName }) : messages.clearBody}
+          {formatMessage(messages.removeBody, { name: confirming.fileName })}
         </ConfirmDialog>
       )}
     </section>
-    {/* After the section, not in it: the section scrolls on a short window, and its height never depends on this. */}
-    {realCount >= 2 && onClearRecents && (
-        <button type="button" class={styles.clear} data-recent-clear disabled={busy} onClick={() => setConfirming('all')}>
-          {messages.clearLabel}
-        </button>
-    )}
-    </>
   );
 }
 

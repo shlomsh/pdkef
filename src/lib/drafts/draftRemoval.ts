@@ -10,7 +10,6 @@
 // person, not to a file, and stay. e2e/home/recent-tile-remove.spec.js checks
 // that no browser storage still names the file; new per-file storage goes here.
 // A tab with the file open is draftRemovalWatch.ts's part.
-import type { DraftEntry } from './draftRecords.ts';
 import { hasIndexedDB, reportStoreError, withStore } from './draftIdb.ts';
 import { announceRemoved } from './draftRemovalWatch.ts';
 import { clearCurrentEntry, readCurrentPointers, readIndexEntries, recentFileKey, writeRecentFiles } from './draftRecentIndex.ts';
@@ -25,26 +24,6 @@ export function toolsPointingAt(ids: Set<string>, pointers: [string, string][]):
   return pointers.filter(([, id]) => ids.has(id)).map(([tool]) => tool);
 }
 
-function finish(ids: Set<string>, remaining: DraftEntry[], announcement: string[] | 'all') {
-  writeRecentFiles(remaining);
-  toolsPointingAt(ids, readCurrentPointers()).forEach(clearCurrentEntry);
-  clearAllHandoffPending();
-  announceRemoved(announcement);
-}
-
-async function removeFromStore(step: string, work: (store: IDBObjectStore) => void): Promise<boolean> {
-  if (!hasIndexedDB()) return true;
-  try {
-    await ensureMigrated();
-    await withStore('readwrite', work);
-    return true;
-  } catch (e) {
-    reportStoreError('drafts', e, step);
-    console.error(`draftStore.${step} failed:`, e);
-    return false;
-  }
-}
-
 // A hand-off holds a copy of a file's bytes and stays on disk until that tool next opens,
 // however old (takeHandoff). Every one goes rather than a matched one: the promise is that
 // nothing of the file stays, and matching would mean hashing bytes. The cost: a Remove in one
@@ -53,16 +32,19 @@ const handoffs = () => IDBKeyRange.bound('handoff:', 'handoff:\uffff');
 
 /** Remove one recent entry, its work in every tool, any pointer to it and any waiting hand-off. */
 export async function removeRecentEntry(id: string): Promise<boolean> {
-  if (!await removeFromStore('remove_recent_entry', (store) => { store.delete(recentFileKey(id)); store.delete(handoffs()); })) return false;
-  finish(new Set([id]), readIndexEntries().filter((entry) => entry.id !== id), [id]);
-  return true;
-}
-
-/** Remove every recent entry. The store holds only entries, one-shot hand-offs (a copy of a
- * file's bytes, so they go too) and legacy records that migration has just folded in. */
-export async function clearRecentEntries(): Promise<boolean> {
-  if (!await removeFromStore('clear_recent_entries', (store) => { store.clear(); })) return false;
-  const ids = new Set([...readIndexEntries().map((entry) => entry.id), ...readCurrentPointers().map(([, id]) => id)]);
-  finish(ids, [], 'all');
+  if (hasIndexedDB()) {
+    try {
+      await ensureMigrated();
+      await withStore('readwrite', (store) => { store.delete(recentFileKey(id)); store.delete(handoffs()); });
+    } catch (e) {
+      reportStoreError('drafts', e, 'remove_recent_entry');
+      console.error('draftStore.remove_recent_entry failed:', e);
+      return false;
+    }
+  }
+  writeRecentFiles(readIndexEntries().filter((entry) => entry.id !== id));
+  toolsPointingAt(new Set([id]), readCurrentPointers()).forEach(clearCurrentEntry);
+  clearAllHandoffPending();
+  announceRemoved([id]);
   return true;
 }

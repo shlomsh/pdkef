@@ -22,7 +22,7 @@ export { parseDraftRecord, parseHandoff, parseStoredEntry } from './draftRecords
 // Moved out for size (ARCH-107); the public surface of this module is unchanged.
 export { sourceIdForBytes, sourceIdForFiles } from './draftSourceId.ts';
 export { MAX_RECENT_FILES, clearCurrentEntry, readCurrentEntryId, setCurrentEntry } from './draftRecentIndex.ts';
-export { removeRecentEntry, clearRecentEntries } from './draftRemoval.ts';
+export { removeRecentEntry } from './draftRemoval.ts';
 
 type DraftChangeEvent = { revision: number; kind: 'saved' | 'deleted'; conflictPolicy: 'last-writer-wins' };
 

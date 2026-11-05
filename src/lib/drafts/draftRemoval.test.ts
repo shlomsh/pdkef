@@ -4,10 +4,9 @@ import { IDBFactory } from 'fake-indexeddb';
 import * as errorReport from '../telemetry/errorReport.ts';
 import {
   hasDraftHint, loadDraft, loadRecentFile, readCurrentEntryId, readRecentFiles,
-  saveDraft, saveHandoff, setCurrentEntry, takeHandoff,
+  saveDraft, saveHandoff, takeHandoff,
 } from './draftStore.ts';
-import { clearRecentEntries, removeRecentEntry, toolsPointingAt } from './draftRemoval.ts';
-import { readCurrentPointers } from './draftRecentIndex.ts';
+import { removeRecentEntry, toolsPointingAt } from './draftRemoval.ts';
 
 const bytesOf = (value: string) => new TextEncoder().encode(value).buffer;
 const signalOf = (tool: string) => {
@@ -27,7 +26,7 @@ describe('toolsPointingAt (pure)', () => {
   });
 });
 
-describe('removeRecentEntry / clearRecentEntries (fake-indexeddb)', () => {
+describe('removeRecentEntry (fake-indexeddb)', () => {
   beforeEach(() => {
     localStorage.clear();
     sessionStorage.clear();
@@ -104,34 +103,6 @@ describe('removeRecentEntry / clearRecentEntries (fake-indexeddb)', () => {
     expect(readRecentFiles().map((e) => e.id)).toEqual([id]);
     expect(readCurrentEntryId('sign')).toBe(id);
     expect(signalOf('sign')?.kind).toBe('saved');
-    report.mockRestore();
-    quiet.mockRestore();
-  });
-
-  it('clear removes every entry, a pending hand-off and every pointer, even a stray one', async () => {
-    await save('sign', 'one', [{ id: 's1' }]);
-    await save('redact', 'two');
-    await saveHandoff('compress', { fileName: 'h.pdf', fileBytes: bytesOf('%PDF-1.4 h') });
-    setCurrentEntry('merge', 'sha256:missing');
-    const ids = readRecentFiles().map((e) => e.id);
-
-    expect(await clearRecentEntries()).toBe(true);
-
-    expect(readRecentFiles()).toEqual([]);
-    for (const id of ids) expect(await loadRecentFile(id)).toBeNull();
-    expect(await takeHandoff('compress')).toBeNull();
-    expect(readCurrentPointers()).toEqual([]);
-  });
-
-  it('clear changes nothing when the store fails', async () => {
-    await save('sign', 'one');
-    vi.spyOn(indexedDB, 'open').mockImplementation(() => { throw new Error('boom'); });
-    const report = vi.spyOn(errorReport, 'reportError').mockImplementation(() => {});
-    const quiet = vi.spyOn(console, 'error').mockImplementation(() => {});
-    expect(await clearRecentEntries()).toBe(false);
-    expect(report).toHaveBeenCalledWith('drafts', expect.any(Error), 'clear_recent_entries');
-    expect(readRecentFiles()).toHaveLength(1);
-    expect(readCurrentEntryId('sign')).not.toBeNull();
     report.mockRestore();
     quiet.mockRestore();
   });
