@@ -175,3 +175,21 @@ export async function pruneOrphans(keptEntries: DraftEntry[]) {
     console.error('draftStore.pruneOrphans failed:', e);
   }
 }
+
+/** Every `[tool, entry id]` pointer in storage. Removal needs the pointers that
+ * name an entry, including ones the recents index no longer lists. */
+export function readCurrentPointers(): [tool: string, id: string][] {
+  try {
+    const pointers: [string, string][] = [];
+    for (let i = 0; i < localStorage.length; i += 1) {
+      const key = localStorage.key(i);
+      if (!key?.startsWith(CURRENT_ENTRY_PREFIX)) continue;
+      const id = localStorage.getItem(key);
+      if (id) pointers.push([key.slice(CURRENT_ENTRY_PREFIX.length), id]);
+    }
+    return pointers;
+  } catch {
+    // expected: blocked storage, no pointers
+    return [];
+  }
+}

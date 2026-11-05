@@ -190,7 +190,7 @@ Production errors you can see, small tools that clean up after themselves, and d
 | ID | P | Task | Note |
 | --- | --- | --- | --- |
 | DEBT-65 | P2 | [DEBT-65](backlog/tasks/DEBT-65.md) · Two layout-shift specs failed once each in the 2026-10-27 nightly | In progress |
-| MEM-30 | P2 | [MEM-30](backlog/tasks/MEM-30.md) · A person can remove a recent file, and clear them all (GitHub issue 44) |  |
+| MEM-30 | P2 | [MEM-30](backlog/tasks/MEM-30.md) · A person can remove a recent file, and clear them all (GitHub issue 44) | In progress |
 | MEM-24 | P3 | [MEM-24](backlog/tasks/MEM-24.md) · A service worker that cannot install, or never completes its precache, says so | In progress |
 
 ### Then, in order

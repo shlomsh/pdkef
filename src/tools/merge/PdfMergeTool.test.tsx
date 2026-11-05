@@ -11,6 +11,7 @@ import { mergePdfs } from './lib/merge.js';
 import * as mergeLib from './lib/merge.js';
 import { MERGE_DRAFT_SCHEMA_VERSION } from './hooks/useMergeDraft.ts';
 import { saveDraft, saveHandoff } from '#lib/drafts/draftStore.ts';
+import { forgetTabEntry } from '#lib/drafts/draftRemovalWatch.ts';
 import { getPdfLib } from '#lib/pdf/pdfLib.js';
 import railStyles from './components/MergeRail.module.css'; // kept on purpose: the file-name bidi class is the styling under test
 import { mockNativeFileShare } from '../../test/support/mockFileShare.js';
@@ -179,6 +180,8 @@ describe('PdfMergeTool UI flow', () => {
       container = null;
     }
     window.scrollTo = originalScrollTo;
+    // A browser would reload here after a back/forward restore finds the entry gone; jsdom keeps the module.
+    forgetTabEntry();
     harness.restore();
     vi.restoreAllMocks();
     // Safety net: if a fake-timers test above threw before reaching its own

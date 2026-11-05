@@ -103,6 +103,8 @@
   /* Use spare phone height between rows, while short screens keep the
      content's natural height and scroll instead of squeezing the controls. */
   .launcher { align-content: space-between; }
+  /* With Clear recent files between them, the spare height goes above it, not around it. */
+  .launcher:has(> [data-recent-clear]) { grid-template-rows: auto 1fr auto; }
 }
 
 /* The picker is always this compact, separate action beneath the recent

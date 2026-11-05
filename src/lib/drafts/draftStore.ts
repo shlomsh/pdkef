@@ -12,6 +12,7 @@ import type { DraftChange } from './draftChanges.ts';
 import { clearCurrentEntry, pruneOrphans, readCurrentEntryId, readIndexEntries, recentFileKey, removeRecentMeta, setCurrentEntry, upsertIndexEntry, updateIndexHasWork, writeRecentFiles } from './draftRecentIndex.ts';
 import { sourceIdForBytes, sourceIdForFiles } from './draftSourceId.ts';
 import { ensureMigrated } from './draftMigration.ts';
+import { noteTabEntry, wasRemoved } from './draftRemovalWatch.ts';
 
 export type {
   DraftEntry, DraftFile, DraftRecord, DraftSaveRecord, HandoffFile, HandoffRecord, RecentFileRecord,
@@ -21,6 +22,7 @@ export { parseDraftRecord, parseHandoff, parseStoredEntry } from './draftRecords
 // Moved out for size (ARCH-107); the public surface of this module is unchanged.
 export { sourceIdForBytes, sourceIdForFiles } from './draftSourceId.ts';
 export { MAX_RECENT_FILES, clearCurrentEntry, readCurrentEntryId, setCurrentEntry } from './draftRecentIndex.ts';
+export { removeRecentEntry, clearRecentEntries } from './draftRemoval.ts';
 
 type DraftChangeEvent = { revision: number; kind: 'saved' | 'deleted'; conflictPolicy: 'last-writer-wins' };
 
@@ -49,8 +51,9 @@ type DraftChangeEvent = { revision: number; kind: 'saved' | 'deleted'; conflictP
 // one (someone opens a form, goes to fetch what it asks for, comes back), so
 // the store must not rank them. Age expiry stays at 28 days for every entry
 // (`draftPolicy.js`, one `savedAt`, refreshed by opening or saving in any
-// tool, never a frozen `expiresAt`). Those two rules are the only way an
-// entry drops out, and both are deliberate.
+// tool, never a frozen `expiresAt`). Apart from a person removing an entry
+// themselves (draftRemoval.ts), those two rules are the only way an entry drops
+// out, and both are deliberate.
 //
 // A record comes in two shapes for `fileBytes` vs `files`, same distinction
 // as before: Sign and Redact's work is single-file (`fileBytes` on the
@@ -217,7 +220,8 @@ export async function cacheRecentFile(tool: string, record: DraftSaveRecord | nu
   await ensureMigrated();
   // expected: the bytes cannot be hashed, returns false
   const id = await sourceIdForBytes(record.fileBytes).catch(() => null);
-  if (!id) return false;
+  if (!id || wasRemoved(id)) return false;
+  noteTabEntry(id);
   const savedAt = Date.now();
   const key = recentFileKey(id);
   let committedEntry: StoredEntry | null = null;
@@ -513,7 +517,10 @@ export async function saveDraft(tool: string, record: DraftSaveRecord, { superse
     // approach IndexedDB quota far sooner than a single-document entry ever
     // could (MERGE-13's honest limit).
     const totalBytes = recordFiles.reduce((sum, file) => sum + (file?.fileBytes?.byteLength || 0), 0);
-    if (totalBytes > MERGE_DRAFT_MAX_BYTES) return false;
+    if (totalBytes > MERGE_DRAFT_MAX_BYTES) {
+      noteTabEntry(null);
+      return false;
+    }
   }
   // `preview` is display metadata for the home page, not part of an entry's
   // work: it lives in the recency index (see upsertIndexEntry) because it
@@ -525,7 +532,8 @@ export async function saveDraft(tool: string, record: DraftSaveRecord, { superse
     ? await sourceIdForFiles(files as DraftFile[]).catch(() => null)
     // expected: the bytes cannot be hashed, save skipped
     : await sourceIdForBytes(fileBytes).catch(() => null);
-  if (!id) return false;
+  if (!id || wasRemoved(id)) return false;
+  noteTabEntry(id);
   const { savedAt } = createDraftRetention();
   const writerId = getTabWriterId();
   const key = recentFileKey(id);
@@ -661,7 +669,10 @@ export async function loadDraft(tool: string): Promise<DraftRecord | null> {
     // from. Only this tool's pointer is at fault here, not the entry itself (another tool's work on it
     // may be fine), so drop the pointer without touching the stored record.
     const record = parseDraftRecord(entry, tool, id);
-    if (record) return record;
+    if (record) {
+      noteTabEntry(id);
+      return record;
+    }
     clearCurrentEntry(tool);
     return null;
   } catch (e) {
