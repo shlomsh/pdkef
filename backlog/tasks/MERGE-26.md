@@ -1,10 +1,10 @@
 ---
 id: "MERGE-26"
 title: "Save to Drive: an optional, explicit copy of a finished PDF into the person's own Drive"
-status: "open"
+status: "in_progress"
 priority: "P3"
 epic: "polish"
-horizon: "next"
+horizon: "now"
 depends_on: ["MERGE-25", "DRIVE-03"]
 ---
 
