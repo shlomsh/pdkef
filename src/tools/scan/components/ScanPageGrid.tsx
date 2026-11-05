@@ -70,7 +70,7 @@ export default function ScanPageGrid({ pages, results, resultKeyOf, failedIds, p
               data-table-page
               tabIndex={0}
               role="button"
-              aria-label={formatMessage(t.tileLabel, { position: index + 1, total: pages.length })}
+              aria-label={`${formatMessage(t.tileLabel, { position: index + 1, total: pages.length })}${page.question ? `. ${t.splitAsk}` : ''}`}
               onClick={() => onOpen(page.id)}
               onKeyDown={(e) => {
                 if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpen(page.id); return; }
@@ -80,6 +80,7 @@ export default function ScanPageGrid({ pages, results, resultKeyOf, failedIds, p
               {result
                 ? <PagePaper page={page} results={results} pageSize={pageSize} stale={result.key !== resultKeyOf(page)} />
                 : <span class={styles.pending}>{failedIds.includes(page.id) ? t.pageFailed : t.processing}</span>}
+              {page.question && <span class={styles['split-ask']} data-split-ask>{t.splitAsk}</span>}
               <span class={styles.badge} data-badge aria-hidden="true">{index + 1}</span>
             </div>
             {/* After the tile, never inside it: the tile is a button and clips what overflows. */}

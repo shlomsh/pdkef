@@ -50,6 +50,17 @@ export interface ScanMessages extends DownloadMessages {
   announceCornersOf: string;
   notFoundCorners: string;
   notFound: string;
+  splitQuestion: string;
+  splitHint: string;
+  splitFailed: string;
+  splitOne: string;
+  splitTwo: string;
+  splitNote: string;
+  splitAsk: string;
+  splitLineGroup: string;
+  splitLineTop: string;
+  splitLineBottom: string;
+  announceSplit: string;
   cornersDone: string;
   useCorners: string;
   resultExact: string;
@@ -176,6 +187,17 @@ export const englishScanMessages: ScanMessages = {
   announceCornersOf: 'Corners of page {position}.',
   notFoundCorners: 'No page edges were found in this photo. Drag the corners onto the corners of the page, or try Auto-detect.',
   notFound: 'No page edges were found in this photo, so the whole photo is used.',
+  splitQuestion: 'One page or two?',
+  splitHint: 'Drag either end of the line to fit the gap between the pages.',
+  splitFailed: 'That did not work. Move the line a little and try again.',
+  splitOne: 'One page',
+  splitTwo: 'Two pages',
+  splitNote: 'This may be two book pages.',
+  splitAsk: 'One page or two?',
+  splitLineGroup: 'The line between the pages',
+  splitLineTop: 'Top of the line',
+  splitLineBottom: 'Bottom of the line',
+  announceSplit: 'Page {position} is now two pages.',
   cornersDone: 'Done',
   useCorners: 'Use these corners',
   resultExact: 'Exactly as it will download',

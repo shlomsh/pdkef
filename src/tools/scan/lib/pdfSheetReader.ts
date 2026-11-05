@@ -56,7 +56,8 @@ export async function openPdfSheetReader(pdf: File, signal?: AbortSignal): Promi
     pageCount: doc.numPages,
     async rightToLeft(pageNumber) {
       const { items } = await (await doc.getPage(pageNumber)).getTextContent();
-      return readsRightToLeft(items.map((item) => ('str' in item ? item.str : '')).join(' '));
+      const text = items.map((item) => ('str' in item ? item.str : '')).join(' ');
+      return text.trim() ? readsRightToLeft(text) : null;
     },
     async grayOf(pageNumber, longEdge, extraTurns) {
       const canvas = await draw(await doc.getPage(pageNumber), longEdge, extraTurns, signal);

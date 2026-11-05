@@ -12,10 +12,11 @@ import { placeImage } from '#lib/images/imagePage.js';
 import { MAX_SEARCH_MS } from '#lib/images/targetSizeSearch.js';
 import type { ScanFilter } from './filters.ts';
 import type { Quad } from '#lib/pageEnhance/quad.ts';
+import type { Spine } from '#lib/pageEnhance/spine.ts';
 import { NO_WORKER, offThread } from './pageWork/offThread.ts';
 import type { PageJob, PageJobResult } from './pageWork/protocol.ts';
 import {
-  OUTPUT_LONG_EDGE, drawCapped, guessWith, inspectWith, processWith,
+  OUTPUT_LONG_EDGE, drawCapped, guessWith, inspectWith, processWith, splitWith,
   type CanvasKit, type InspectedPhoto, type ProcessedPage, type ProcessedWithReport,
 } from './pageWork/steps.ts';
 
@@ -83,6 +84,11 @@ async function offThreadOr<J extends PageJob>(job: J, here: () => Promise<PageJo
  * corners. */
 export function guessPage(photo: Blob): Promise<Quad | null> {
   return offThreadOr({ kind: 'guess', image: photo }, () => guessWith(pageKit, photo));
+}
+
+/** The two pages' corners for the line a person placed on a sheet, left page first. Off the thread like the guess. */
+export function splitQuads(photo: Blob, spine: Spine): Promise<Quad[]> {
+  return offThreadOr({ kind: 'split', image: photo, spine }, () => splitWith(pageKit, photo, spine));
 }
 
 /** One decode of a new photo: its corners, its upright size, and the preview the screen shows. */

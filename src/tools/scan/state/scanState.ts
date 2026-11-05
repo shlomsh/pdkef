@@ -11,6 +11,10 @@ interface Shared {
   selectedId: number | null;
   /** The page Find the page is running for. Outlives a view change: the run still ends. */
   finding: number | null;
+  /** The page a person's split is running for. Outlives a view change, like finding. */
+  splitting: number | null;
+  /** The sheet whose split just failed, so its question can say so. */
+  splitFailed: number | null;
   /** Pages where Find the page ran on request and found nothing. */
   findMissed: number[];
   /** Pages whose photo could not be read or processed. */
@@ -24,8 +28,8 @@ interface Shared {
 }
 
 /** The centre shows all the pages (`table`); a tapped page opens as it will download (`result`);
- * corners are a mode you step into from there. */
-type ScanState = Shared & ({ phase: 'table' } | { phase: 'result' } | { phase: 'corners' });
+ * corners are a mode you step into from there. A PDF sheet that may be two pages asks in `split`. */
+type ScanState = Shared & ({ phase: 'table' } | { phase: 'result' } | { phase: 'corners' } | { phase: 'split' });
 
 type ScanEvent =
   | { type: 'photosAdded'; firstId: number }
@@ -33,6 +37,10 @@ type ScanEvent =
   | { type: 'cornersOpened'; focus: boolean }
   | { type: 'failedPageShown'; id: number }
   | { type: 'resultShown' }
+  | { type: 'splitAsked'; id: number }
+  | { type: 'splitStarted'; id: number }
+  | { type: 'splitEnded'; id: number; failed: boolean }
+  | { type: 'splitMade'; oldId: number; newId: number }
   | { type: 'pageOpened'; id: number }
   | { type: 'tableShown' }
   | { type: 'pageRetaken'; oldId: number; newId: number }
@@ -55,6 +63,8 @@ export const initialScanState: ScanState = {
   phase: 'table',
   selectedId: null,
   finding: null,
+  splitting: null,
+  splitFailed: null,
   findMissed: [],
   failedIds: [],
   topPending: false,
@@ -84,6 +94,24 @@ export function reduceScan(state: ScanState, event: ScanEvent): ScanState {
       return patch(state, { selectedId: event.id, phase: 'corners', topPending: true, focusPending: true });
     case 'resultShown':
       return patch(state, { phase: 'result' });
+    case 'splitAsked':
+      return patch(state, { selectedId: event.id, phase: 'split', topPending: true, focusPending: true });
+    case 'splitStarted':
+      return patch(state, { splitting: event.id, splitFailed: null });
+    case 'splitEnded':
+      // A sheet's split can end while a later one runs: that one keeps its hold on its buttons.
+      return patch(state, {
+        splitting: state.splitting === event.id ? null : state.splitting,
+        splitFailed: event.failed ? event.id : state.splitFailed,
+      });
+    case 'splitMade':
+      // The two pages take the sheet's place on screen only if the person is still looking at it.
+      return patch(state, {
+        ...(state.selectedId === event.oldId ? { selectedId: event.newId } : {}),
+        ...(state.phase === 'split' && state.selectedId === event.oldId ? { phase: 'result' as const } : {}),
+        failedIds: withoutId(state.failedIds, event.oldId),
+        findMissed: withoutId(state.findMissed, event.oldId),
+      });
     case 'pageOpened':
       return patch(state, { selectedId: event.id, phase: 'result', topPending: true, focusPending: true });
     case 'tableShown':

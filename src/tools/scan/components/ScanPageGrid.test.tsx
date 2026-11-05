@@ -104,4 +104,14 @@ describe('ScanPageGrid', () => {
       expect(container.querySelector('li:last-child button[aria-label^="Rotate"]')).toBeNull();
     });
   });
+
+  it('a tile with a question carries a label and its aria-label gains the text', () => {
+    const asked = [{ id: 1, question: { spine: { top: 0.5, bottom: 0.5 }, rightToLeft: false } }, { id: 2 }] as never[];
+    const { container } = mount({ pages: asked });
+    const tiles = container.querySelectorAll('[data-page]');
+    expect(tiles[0].querySelector('[data-split-ask]')?.textContent).toBe('One page or two?');
+    expect(tiles[0].getAttribute('aria-label')).toContain('One page or two?');
+    expect(tiles[1].querySelector('[data-split-ask]')).toBeNull();
+    expect(tiles[1].getAttribute('aria-label')).not.toContain('One page or two?');
+  });
 });

@@ -29,7 +29,7 @@ describe('openAssessor', () => {
     const asked = assessor.assess({ ...SHEET, data: new Uint8ClampedArray(SHEET.data) });
     const worker = FakeWorker.last;
     expect(worker.transfer).toHaveLength(1);
-    const answer = { turn: 0, turnConfidence: 0, spine: null, leans: [0], bentPx: 0, crooked: false };
+    const answer = { turn: 0, turnConfidence: 0, spine: null, possibleSpine: null, leans: [0], bentPx: 0, crooked: false };
     worker.onmessage?.({ data: { id: worker.sent[0].id, ok: true, value: answer } });
     expect(await asked).toEqual(answer);
     assessor.close();

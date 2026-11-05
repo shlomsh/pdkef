@@ -41,6 +41,7 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 - [SCAN-48](backlog/tasks/SCAN-48.md) P1 · A page's text says which way is up, so a sideways page no longer lands upside down (in progress)
 - [SCAN-53](backlog/tasks/SCAN-53.md) P1 · Rows that fan apart down a page keep their bend (in progress)
 - [SCAN-55](backlog/tasks/SCAN-55.md) P1 · Auto-detect goes back to a PDF sheet's own corners (in progress)
+- [SCAN-67](backlog/tasks/SCAN-67.md) P1 · A two-page sheet splits by itself when sure, and asks on that page when not (in progress)
 - [SCAN-44](backlog/tasks/SCAN-44.md) P2 · A filled A4 form scanned with PDkef (2026-11-04): black edges and ghost text remain; stretch is fixed on main for A4 (in progress)
 - [SCAN-46](backlog/tasks/SCAN-46.md) P2 · A filled-in page with no vertical rules stays tilted; level its rows (in progress)
 

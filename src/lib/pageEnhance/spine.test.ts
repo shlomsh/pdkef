@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { GrayImage } from './quad';
 import { seededRandom } from './seededRandom.test-helper';
-import { findSpine, spreadHalves } from './spine';
+import { readSpine, spineInBorder, spreadHalves } from './spine';
 
 const W = 800;
 const H = 600;
@@ -38,52 +38,115 @@ function line(img: GrayImage, mid: number, deg: number): void {
   }
 }
 
+/** The sheet slid row by row, so everything on it leans `deg` degrees about the middle row. */
+function leaned(img: GrayImage, deg: number): GrayImage {
+  const t = Math.tan((deg * Math.PI) / 180);
+  const out = blank(img.width, img.height);
+  for (let y = 0; y < img.height; y += 1) {
+    const shift = Math.round((y - img.height / 2) * t);
+    for (let x = 0; x < img.width; x += 1) {
+      const from = x - shift;
+      if (from >= 0 && from < img.width) out.data[y * img.width + x] = img.data[y * img.width + from];
+    }
+  }
+  return out;
+}
+
 function truth(mid: number, deg: number): { top: number; bottom: number } {
   const t = Math.tan((deg * Math.PI) / 180);
   return { top: mid - (H / 2) * t / W, bottom: mid + (H / 2) * t / W };
 }
 
-describe('findSpine', () => {
-  for (const deg of [1.2, -1.2, 3.1, -3.1]) {
+describe('readSpine', () => {
+  for (const deg of [1.2, -1.2, 3.1, -3.1, 8, -8]) {
     it(`finds a spine line tilted ${deg} degrees`, () => {
       const img = blank();
-      text(img, 40, 385, 1);
-      text(img, 415, 760, 2);
-      line(img, 0.5, deg);
-      const spine = findSpine(img);
+      text(img, 40, 360, 1);
+      text(img, 440, 760, 2);
+      line(img, 0.5, 0);
+      const read = readSpine(leaned(img, deg));
       const want = truth(0.5, deg);
-      expect(spine).not.toBeNull();
-      expect(Math.abs(spine!.top - want.top)).toBeLessThan(0.01);
-      expect(Math.abs(spine!.bottom - want.bottom)).toBeLessThan(0.01);
+      expect(read?.sure).toBe(true);
+      expect(Math.abs(read!.spine.top - want.top)).toBeLessThan(0.01);
+      expect(Math.abs(read!.spine.bottom - want.bottom)).toBeLessThan(0.01);
     });
   }
 
-  it('returns null for one page of text with no line', () => {
+  it('says nothing for one page of text with no line', () => {
     const img = blank();
     text(img, 60, 740, 3);
-    expect(findSpine(img)).toBeNull();
+    expect(readSpine(img)).toBeNull();
   });
 
-  it('returns null for one page with a justified column gap and no line', () => {
+  it('says nothing for one page with a narrow column gap and no line', () => {
     const img = blank();
     text(img, 60, 390, 4);
     text(img, 410, 740, 5);
-    expect(findSpine(img)).toBeNull();
+    expect(readSpine(img)).toBeNull();
   });
 
-  it('returns null for a table rule off centre at 0.2', () => {
+  it('says nothing for a table rule off centre at 0.2', () => {
     const img = blank();
     text(img, 60, 740, 6);
     line(img, 0.2, 0);
-    expect(findSpine(img)).toBeNull();
+    expect(readSpine(img)).toBeNull();
   });
 
-  it('returns null for an upright page of two columns with a rule between them', () => {
+  it('says nothing for an upright page of two columns with a rule between them', () => {
     const img = blank(600, 800);
     text(img, 40, 285, 7);
     text(img, 315, 560, 8);
     line(img, 0.5, 0);
-    expect(findSpine(img)).toBeNull();
+    expect(readSpine(img)).toBeNull();
+  });
+
+  it('is sure of a thin grey line in clean paper, which a small copy has made faint', () => {
+    const img = blank();
+    text(img, 40, 360, 9);
+    text(img, 440, 760, 10);
+    for (let y = 0; y < H; y += 1) img.data[y * W + W / 2] = 170;
+    expect(readSpine(img)?.sure).toBe(true);
+  });
+
+  it('is not sure of a line with print beside it: a crease or a table rule', () => {
+    const img = blank();
+    text(img, 60, 740, 11);
+    line(img, 0.5, 0);
+    const read = readSpine(img);
+    expect(read?.sure).toBe(false);
+    expect(read!.spine.top).toBeCloseTo(0.5, 2);
+  });
+
+  it('is not sure of a clear gap between two blocks of text with no line, and places the line in it', () => {
+    const img = blank();
+    text(img, 40, 350, 12);
+    text(img, 430, 760, 13);
+    const read = readSpine(img);
+    expect(read?.sure).toBe(false);
+    expect((read!.spine.top + read!.spine.bottom) / 2).toBeCloseTo(390 / W, 1);
+  });
+
+  it('follows a gap that leans', () => {
+    const img = blank();
+    text(img, 40, 340, 14);
+    text(img, 440, 760, 15);
+    const read = readSpine(leaned(img, 4));
+    expect(read?.sure).toBe(false);
+    expect(read!.spine.bottom - read!.spine.top).toBeCloseTo((H * Math.tan((4 * Math.PI) / 180)) / W, 1);
+  });
+
+  it('says nothing for a gap with print on one side only', () => {
+    const img = blank();
+    text(img, 430, 760, 16);
+    expect(readSpine(img)).toBeNull();
+  });
+});
+
+describe('spineInBorder', () => {
+  it('gives the line in the bordered picture, carried out to its top and bottom', () => {
+    const inside = spineInBorder({ top: 0.4, bottom: 0.6 }, { left: 0.1, top: 0.1, right: 0.1, bottom: 0.1 });
+    expect(inside.top).toBeCloseTo((0.38 + 0.1) / 1.2, 5);
+    expect(inside.bottom).toBeCloseTo((0.62 + 0.1) / 1.2, 5);
   });
 });
 

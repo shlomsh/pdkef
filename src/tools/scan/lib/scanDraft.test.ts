@@ -15,14 +15,21 @@ const settings = { pageSize: 'a4' as const, limit: '1mb' as const, name: 'Lease'
 describe('storedPage', () => {
   it('keeps corners only when the person set them', () => {
     const page = { ...newPage(new File(['x'], 'a.jpg'), 'document'), quad: QUAD, turns: 1 };
-    expect(storedPage(page)).toEqual({ filter: 'document', turns: 1, quad: null, sheet: false, opened: null });
-    expect(storedPage({ ...page, edited: true })).toEqual({ filter: 'document', turns: 1, quad: QUAD, sheet: false, opened: null });
+    expect(storedPage(page)).toEqual({ filter: 'document', turns: 1, quad: null, sheet: false, opened: null, question: null });
+    expect(storedPage({ ...page, edited: true })).toEqual({ filter: 'document', turns: 1, quad: QUAD, sheet: false, opened: null, question: null });
     expect(storedPage({ ...page, sheet: true }).sheet).toBe(true);
     expect(storedPage({ ...page, opened: QUAD }).opened).toEqual(QUAD);
+    const question = { spine: { top: 0.4, bottom: 0.6 }, rightToLeft: false };
+    expect(storedPage({ ...page, question }).question).toEqual(question);
   });
 });
 
 describe('scanSnapshotKey', () => {
+  it('changes when a split question is answered', () => {
+    const page = { ...newPage(new File(['x'], 'a.jpg'), 'document'), sheet: true };
+    const asking = { ...page, question: { spine: { top: 0.4, bottom: 0.6 }, rightToLeft: false } };
+    expect(scanSnapshotKey([asking], settings, () => 7)).not.toBe(scanSnapshotKey([page], settings, () => 7));
+  });
   it('ignores the edge guess and changes with anything stored', () => {
     const file = new File(['x'], 'a.jpg');
     const page = newPage(file, 'document');
@@ -43,23 +50,33 @@ describe('parseScanDraft', () => {
     });
     expect(restore?.files.map((f) => [f.name, f.type])).toEqual([['a.jpg', 'image/jpeg'], ['b.png', 'image/png']]);
     expect(await restore?.files[1].text()).toBe('b');
-    expect(restore?.pages).toEqual([{ filter: 'original', turns: 3, quad: QUAD, sheet: true, opened: QUAD }, { filter: 'document', turns: 0, quad: null, sheet: false, opened: null }]);
+    expect(restore?.pages).toEqual([{ filter: 'original', turns: 3, quad: QUAD, sheet: true, opened: QUAD, question: null }, { filter: 'document', turns: 0, quad: null, sheet: false, opened: null, question: null }]);
     expect(restore?.settings).toEqual(settings);
   });
 
   it('restores the photos as new pages when the scan work is gone or unreadable', () => {
     const restore = parseScanDraft({ files });
     expect(restore?.pages).toEqual([
-      { filter: 'document', turns: 0, quad: null, sheet: false, opened: null },
-      { filter: 'document', turns: 0, quad: null, sheet: false, opened: null },
+      { filter: 'document', turns: 0, quad: null, sheet: false, opened: null, question: null },
+      { filter: 'document', turns: 0, quad: null, sheet: false, opened: null, question: null },
     ]);
     expect(restore?.settings).toEqual({});
     const odd = parseScanDraft({
       files, schemaVersion: SCAN_DRAFT_SCHEMA_VERSION, pageSize: 'huge', limit: 3,
       pages: [{ filter: 'sepia', turns: 9, quad: [...FULL_QUAD.slice(0, 3), { x: 2, y: 0 }] }, null],
     });
-    expect(odd?.pages[0]).toEqual({ filter: 'document', turns: 0, quad: null, sheet: false, opened: null });
+    expect(odd?.pages[0]).toEqual({ filter: 'document', turns: 0, quad: null, sheet: false, opened: null, question: null });
     expect(odd?.settings).toEqual({});
+  });
+
+  it('keeps an unanswered split question, and drops one that is malformed', () => {
+    const question = { spine: { top: 0.45, bottom: 0.55 }, rightToLeft: true };
+    const restore = parseScanDraft({
+      files, schemaVersion: SCAN_DRAFT_SCHEMA_VERSION,
+      pages: [{ filter: 'document', turns: 0, quad: null, sheet: true, question }, { filter: 'document', turns: 0, quad: null, sheet: true, question: { spine: { top: 'x', bottom: 2 }, rightToLeft: 1 } }],
+    });
+    expect(restore?.pages[0].question).toEqual(question);
+    expect(restore?.pages[1].question).toBeNull();
   });
 
   it('holds nothing without photos', () => {

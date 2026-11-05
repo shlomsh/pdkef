@@ -12,7 +12,8 @@ vi.mock('#lib/telemetry/productAnalytics.ts', () => ({ reportEdit: vi.fn() }));
 vi.mock('#lib/telemetry/errorReport.ts', () => ({ reportError: vi.fn() }));
 // EDGE: the real pipeline decodes photos on canvases, which node does not have.
 const guessPage = vi.fn();
-vi.mock('../lib/loadPipeline.ts', () => ({ loadPipeline: () => Promise.resolve({ guessPage }) }));
+const splitQuads = vi.fn();
+vi.mock('../lib/loadPipeline.ts', () => ({ loadPipeline: () => Promise.resolve({ guessPage, splitQuads }) }));
 
 const QUAD: Quad = [{ x: 0.1, y: 0.1 }, { x: 0.9, y: 0.1 }, { x: 0.9, y: 0.9 }, { x: 0.1, y: 0.9 }];
 const MOVED: Quad = [{ x: 0.2, y: 0.2 }, { x: 0.8, y: 0.2 }, { x: 0.8, y: 0.8 }, { x: 0.2, y: 0.8 }];
@@ -35,6 +36,7 @@ function setup(pages: ScanPage[], extra: Record<string, unknown> = {}) {
 beforeEach(() => {
   vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => {});
   guessPage.mockReset();
+  splitQuads.mockReset();
   vi.mocked(recordAction).mockClear();
   vi.mocked(reportError).mockClear();
 });
@@ -189,8 +191,9 @@ describe('createEditActions', () => {
     const { ctx, pagesNow } = setup(pages);
     const showResult = vi.fn();
     const setDefaultFilter = vi.fn();
-    const actions = createEditActions({ ...ctx, selected: pages[selectedIndex], selectedIndex, failedIds, setDefaultFilter, showResult, retakeFile: vi.fn(), removePage: vi.fn(), ...extra });
-    return { ctx, actions, pagesNow, showResult, setDefaultFilter };
+    const inspect = vi.fn();
+    const actions = createEditActions({ ...ctx, selected: pages[selectedIndex], selectedIndex, failedIds, setDefaultFilter, showResult, inspect, retakeFile: vi.fn(), removePage: vi.fn(), ...extra });
+    return { ctx, actions, pagesNow, showResult, setDefaultFilter, inspect };
   }
   const arrow = (key: string, extra = {}) => ({ key, altKey: false, metaKey: false, ctrlKey: false, shiftKey: false, preventDefault: vi.fn(), ...extra }) as unknown as KeyboardEvent;
 
@@ -272,6 +275,119 @@ describe('createEditActions', () => {
   });
 });
 
+const SPINE = { top: 0.45, bottom: 0.55 };
+const LEFT: Quad = [{ x: 0, y: 0 }, { x: 0.45, y: 0 }, { x: 0.55, y: 1 }, { x: 0, y: 1 }];
+const RIGHT: Quad = [{ x: 0.45, y: 0 }, { x: 1, y: 0 }, { x: 1, y: 1 }, { x: 0.55, y: 1 }];
+const asking = (rightToLeft = false): ScanPage => ({ ...newPage(photo(), 'grayscale'), sheet: true, edited: true, question: { spine: SPINE, rightToLeft } });
+
+describe('the split question (SCAN-67)', () => {
+  function splitSetup(rightToLeft = false) {
+    const [before, page, after] = [newPage(photo(), 'document'), asking(rightToLeft), newPage(photo(), 'document')];
+    const made = editSetup([before, page, after], 1);
+    made.ctx.work.previewBlobs.set(page.id, new Blob(['p']));
+    return { ...made, before, page, after };
+  }
+  function editSetup(pages: ScanPage[], selectedIndex: number) {
+    const { ctx, pagesNow } = setup(pages);
+    const showResult = vi.fn();
+    const inspect = vi.fn();
+    const actions = createEditActions({ ...ctx, selected: pages[selectedIndex], selectedIndex, failedIds: [], setDefaultFilter: vi.fn(), showResult, inspect, retakeFile: vi.fn(), removePage: vi.fn() });
+    return { ctx, actions, pagesNow, showResult, inspect };
+  }
+
+  it('opens a page that asks on its question, and any other on its result', () => {
+    const [plain, page] = [newPage(photo(), 'document'), asking()];
+    const { ctx, actions } = editSetup([plain, page], 0);
+    actions.openPage(page.id);
+    expect(ctx.dispatch).toHaveBeenLastCalledWith({ type: 'splitAsked', id: page.id });
+    actions.openPage(plain.id);
+    expect(ctx.dispatch).toHaveBeenLastCalledWith({ type: 'pageOpened', id: plain.id });
+  });
+
+  it('asks again for the selected page on request', () => {
+    const { ctx, actions, page } = splitSetup();
+    actions.askSplit();
+    expect(ctx.dispatch).toHaveBeenCalledWith({ type: 'splitAsked', id: page.id });
+  });
+
+  it('One page drops the question and shows the result', () => {
+    const { actions, pagesNow, showResult, page, ctx } = splitSetup();
+    actions.answerOnePage();
+    expect(pagesNow()[1].question).toBeNull();
+    expect(showResult).toHaveBeenCalledWith(page);
+    expect(ctx.dispatch).toHaveBeenCalledWith({ type: 'scrollFocusRequested', top: true, focus: true });
+  });
+
+  it('Two pages puts the pages in the sheet\'s place, left page first, each with its own corners', async () => {
+    const { ctx, actions, pagesNow, before, after, page, inspect } = splitSetup();
+    const preview = ctx.work.previewBlobs.get(page.id);
+    splitQuads.mockResolvedValue([LEFT, RIGHT]);
+    actions.answerTwoPages(SPINE);
+    await flush();
+    const now = pagesNow();
+    expect(now.map((p) => p.id)).toEqual([before.id, now[1].id, now[2].id, after.id]);
+    expect(splitQuads).toHaveBeenCalledWith(preview, SPINE);
+    expect(now.slice(1, 3)).toEqual([
+      expect.objectContaining({ file: page.file, filter: 'grayscale', quad: LEFT, opened: LEFT, sheet: true, edited: true, guessed: true, found: true, question: null }),
+      expect.objectContaining({ file: page.file, quad: RIGHT, opened: RIGHT, question: null }),
+    ]);
+    expect(now[1].id).not.toBe(page.id);
+    expect(inspect).toHaveBeenCalledTimes(2);
+    expect(ctx.work.removed.has(page.id)).toBe(true);
+    expect(ctx.dispatch).toHaveBeenCalledWith({ type: 'splitMade', oldId: page.id, newId: now[1].id });
+    expect(ctx.announce).toHaveBeenCalledWith(t.announceSplit.replace('{position}', '2'));
+    expect(recordAction).toHaveBeenCalledWith('change_setting');
+    expect(ctx.dispatch.mock.calls.map((c) => c[0].type)).toContain('splitStarted');
+    expect(ctx.dispatch.mock.calls.map((c) => c[0].type)).toContain('splitEnded');
+  });
+
+  it('Two pages on a right-to-left sheet reads the right page first', async () => {
+    const { actions, pagesNow } = splitSetup(true);
+    splitQuads.mockResolvedValue([LEFT, RIGHT]);
+    actions.answerTwoPages(SPINE);
+    await flush();
+    expect(pagesNow().slice(1, 3).map((p) => p.quad)).toEqual([RIGHT, LEFT]);
+  });
+
+  it('keeps the sheet and its question when the split fails, and reports it', async () => {
+    const { ctx, actions, pagesNow, page } = splitSetup();
+    splitQuads.mockRejectedValue(new Error('boom'));
+    actions.answerTwoPages(SPINE);
+    await flush();
+    expect(pagesNow()[1]).toBe(page);
+    expect(reportError).toHaveBeenCalledWith('pdf_tool_run', expect.any(Error), 'scan_split_sheet');
+    expect(ctx.work.removed.has(page.id)).toBe(false);
+    expect(ctx.dispatch).toHaveBeenLastCalledWith({ type: 'splitEnded', id: page.id, failed: true });
+  });
+
+  it('does nothing without a selected page or a question', async () => {
+    const plain = newPage(photo(), 'document');
+    const { actions, pagesNow } = editSetup([plain], 0);
+    actions.answerTwoPages(SPINE);
+    await flush();
+    expect(splitQuads).not.toHaveBeenCalled();
+    expect(pagesNow()).toEqual([plain]);
+  });
+
+  it('leaves the list alone when the sheet was answered while the split ran', async () => {
+    const { actions, pagesNow, ctx } = splitSetup();
+    splitQuads.mockResolvedValue([LEFT, RIGHT]);
+    actions.answerTwoPages(SPINE);
+    ctx.work.pages = ctx.work.pages.map((p) => ({ ...p, question: null }));
+    await flush();
+    expect(pagesNow()).toHaveLength(3);
+  });
+
+  it('moving a corner or turning the sheet answers it as one page', () => {
+    const { actions, pagesNow, page } = splitSetup();
+    actions.commitCorners(page.id, QUAD);
+    expect(pagesNow()[1]).toMatchObject({ quad: QUAD, question: null });
+    const again = splitSetup();
+    again.actions.rotatePage(again.page.id);
+    expect(again.pagesNow()[1]).toMatchObject({ turns: 1, question: null });
+  });
+});
+
 describe('pageViewActions', () => {
   const edit = { retakePage: vi.fn() } as unknown as Parameters<typeof pageViewActions>[0]['edit'];
   const page = { id: 7 } as ScanPage;
@@ -284,6 +400,17 @@ describe('pageViewActions', () => {
     const file = new File(['x'], 'a.jpg');
     actions.onRetake(file);
     expect(edit.retakePage).toHaveBeenCalledWith(7, file);
+  });
+
+  it('hands the split answers on from the edit actions', () => {
+    const split = { askSplit: vi.fn(), answerOnePage: vi.fn(), answerTwoPages: vi.fn() };
+    const actions = pageViewActions({ edit: split as never, findPage: vi.fn(), removePage: vi.fn(), selected: page, dispatch: vi.fn() });
+    actions.onAskSplit();
+    actions.onOnePage();
+    actions.onTwoPages(SPINE);
+    expect(split.askSplit).toHaveBeenCalled();
+    expect(split.answerOnePage).toHaveBeenCalled();
+    expect(split.answerTwoPages).toHaveBeenCalledWith(SPINE);
   });
 
   it('does nothing without a page', () => {

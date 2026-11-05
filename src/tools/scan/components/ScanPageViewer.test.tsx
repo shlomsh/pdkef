@@ -34,12 +34,13 @@ function mount(over: Partial<ScanPageViewerProps> = {}, index = 0) {
   const actions = {
     onSelect: vi.fn(), onRotate: vi.fn(), onAdjustCorners: vi.fn(), onCommit: vi.fn(), onFind: vi.fn(), onApprove: vi.fn(),
     onDone: vi.fn(), onStep: vi.fn(), onRetake: vi.fn(), onRemovePage: vi.fn(), onChooseLook: vi.fn(),
+    onAskSplit: vi.fn(), onOnePage: vi.fn(), onTwoPages: vi.fn(),
   };
   const editor = { current: null as HTMLElement | null };
   const props = {
     refs: { editor, heading: { current: null } },
     pages: six, selected: six[index], selectedIndex: index, view: 'result', results: {}, turnedPreviews: {},
-    finding: null, findMissed: [], failedIds: [], pageSize: 'fit', built: { shown: placed(6), ready: true, size: 1000 },
+    finding: null, splitting: false, splitFailed: false, findMissed: [], failedIds: [], pageSize: 'fit', built: { shown: placed(6), ready: true, size: 1000 },
     actions, ...over,
   } as unknown as ScanPageViewerProps;
   container = document.createElement('div');
@@ -314,6 +315,31 @@ describe('ScanPageViewer', () => {
     it('is absent when nothing is held', () => {
       mount();
       expect(q('[data-undo-chip]')).toBeNull();
+    });
+  });
+
+  describe('split question', () => {
+    const asking = page(2, { question: { spine: { top: 0.5, bottom: 0.5 }, rightToLeft: false } } as Partial<ScanPage>);
+    const withQuestion = [six[0], asking, ...six.slice(2)];
+
+    it('result mode shows a note and an ask button only when the page has a question', () => {
+      const { actions } = mount({ pages: withQuestion, selected: asking, selectedIndex: 1 });
+      expect(container!.textContent).toContain('This may be two book pages.');
+      const ask = [...container!.querySelectorAll('button')].find((b) => b.textContent?.trim() === 'One page or two?') as HTMLButtonElement;
+      act(() => ask.click());
+      expect(actions.onAskSplit).toHaveBeenCalledTimes(1);
+    });
+
+    it('result mode of a page with no question has no ask', () => {
+      mount({}, 1);
+      expect(container!.textContent).not.toContain('This may be two book pages.');
+    });
+
+    it('split mode shows the question and Back keeps the page whole (onDone)', () => {
+      const { actions } = mount({ pages: withQuestion, selected: asking, selectedIndex: 1, view: 'split' });
+      expect(container!.textContent).toContain('Drag either end of the line');
+      act(() => (q('[data-back]') as HTMLButtonElement).click());
+      expect(actions.onDone).toHaveBeenCalledTimes(1);
     });
   });
 });

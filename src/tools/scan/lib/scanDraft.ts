@@ -3,7 +3,7 @@ import { quadKey } from './quad.ts';
 import type { ScanFilter } from './filters.ts';
 import type { PageSize } from './scanPipeline.ts';
 import type { SizeLimitId } from './scanBudget.ts';
-import type { ScanPage } from '../state/scanWork.ts';
+import type { ScanPage, SplitQuestion } from '../state/scanWork.ts';
 
 /**
  * SCAN-18: what a scan in progress keeps in the shared on-device memory space (draftStore.ts), and how it
@@ -29,6 +29,8 @@ interface StoredScanPage {
   sheet: boolean;
   /** The corners a PDF sheet opened with. */
   opened: Quad | null;
+  /** The split question a PDF sheet still asks; null once answered. */
+  question: SplitQuestion | null;
 }
 
 export interface ScanDraftSettings {
@@ -53,14 +55,14 @@ const LIMITS: readonly SizeLimitId[] = ['none', '2mb', '1mb', '500kb'];
 
 /** The page as stored. */
 export const storedPage = (page: ScanPage): StoredScanPage => ({
-  filter: page.filter, turns: page.turns, quad: page.edited ? page.quad : null, sheet: page.sheet, opened: page.opened,
+  filter: page.filter, turns: page.turns, quad: page.edited ? page.quad : null, sheet: page.sheet, opened: page.opened, question: page.question,
 });
 
 /** One string per snapshot worth saving: changes only when a stored field does. `fileId` tells photos apart. */
 export function scanSnapshotKey(pages: ScanPage[], settings: ScanDraftSettings, fileId: (file: File) => number): string {
   const pagesPart = pages.map((page) => {
-    const { filter, turns, quad, sheet } = storedPage(page);
-    return `${fileId(page.file)}:${filter}:${turns}:${quad ? quadKey(quad) : ''}:${sheet}`;
+    const { filter, turns, quad, sheet, question } = storedPage(page);
+    return `${fileId(page.file)}:${filter}:${turns}:${quad ? quadKey(quad) : ''}:${sheet}:${question ? 'ask' : ''}`;
   }).join(',');
   return `${pagesPart}|${settings.pageSize}|${settings.limit}|${settings.defaultFilter}|${settings.name}`;
 }
@@ -74,14 +76,22 @@ function parseQuad(value: unknown): Quad | null {
   return valid ? (value.map((point) => ({ x: point.x, y: point.y })) as Quad) : null;
 }
 
+function parseQuestion(value: unknown): SplitQuestion | null {
+  const q = value as { spine?: { top?: unknown; bottom?: unknown }; rightToLeft?: unknown } | null | undefined;
+  const { top, bottom } = q?.spine ?? {};
+  const inside = (n: unknown): n is number => isNumber(n) && n >= 0 && n <= 1;
+  return inside(top) && inside(bottom) && typeof q?.rightToLeft === 'boolean' ? { spine: { top, bottom }, rightToLeft: q.rightToLeft } : null;
+}
+
 function parsePage(value: unknown, fallbackFilter: ScanFilter): StoredScanPage {
-  const page = (value ?? {}) as { filter?: unknown; turns?: unknown; quad?: unknown; sheet?: unknown; opened?: unknown };
+  const page = (value ?? {}) as { filter?: unknown; turns?: unknown; quad?: unknown; sheet?: unknown; opened?: unknown; question?: unknown };
   return {
     filter: FILTERS.includes(page.filter as ScanFilter) ? page.filter as ScanFilter : fallbackFilter,
     turns: Number.isInteger(page.turns) && (page.turns as number) >= 0 && (page.turns as number) < 4 ? page.turns as number : 0,
     quad: parseQuad(page.quad),
     sheet: page.sheet === true,
     opened: parseQuad(page.opened),
+    question: parseQuestion(page.question),
   };
 }
 

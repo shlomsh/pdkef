@@ -2,9 +2,9 @@ import { describe, expect, it } from 'vitest';
 import { gray, leaning } from './leaning.test-helper.ts';
 import { pageLean } from './lean.ts';
 import { applyPiece } from './piece.ts';
-import { spreadHalves } from './spine.ts';
+import { spineInBorder, spreadHalves } from './spine.ts';
 import { levelQuad } from './lean.ts';
-import { assess, planPage } from './plan.ts';
+import { assess, planPage, spreadQuads } from './plan.ts';
 import { rotateQuad, type Quad, type RgbaImage } from './quad.ts';
 
 const W = 800;
@@ -13,8 +13,8 @@ const MARKER = { x0: 50, y0: 50, size: 8 };
 
 /** Two pages drawn on one sheet, leaning apart, with a spine between them and a red marker on the left page. */
 function spread(): RgbaImage {
-  const left = leaning(W, H, -3.5, 0, 400);
-  const right = leaning(W, H, 2.5, 400, W);
+  const left = leaning(W, H, -3.5, 0, 360);
+  const right = leaning(W, H, 2.5, 440, W);
   const data = left.data.map((v, i) => Math.min(v, right.data[i]));
   for (let y = 0; y < H; y += 1) for (let x = 399; x < 402; x += 1) data.fill(0, (y * W + x) * 4, (y * W + x) * 4 + 3);
   for (let y = MARKER.y0; y < MARKER.y0 + MARKER.size; y += 1) {
@@ -148,6 +148,35 @@ function leaningSpread(degrees: number): RgbaImage {
   }
   return { width, height, data };
 }
+
+describe('a line a person placed', () => {
+  it('gives the same two pages as the same line found', () => {
+    const sheet = leaningSpread(3.5);
+    const g = gray(sheet);
+    const a = assess(g);
+    expect(spreadQuads(g, a.spine!)).toEqual(planPage(g, a, g).pieces.map((p) => p.quad));
+  });
+});
+
+describe('a line placed on a sheet with a border', () => {
+  it('gives pages that meet at the line, in the bordered picture', () => {
+    const sheet = gray(leaningSpread(3.5));
+    const line = assess(sheet).spine!;
+    const side = 40;
+    const width = sheet.width + 2 * side;
+    const height = sheet.height + 2 * side;
+    const data = new Uint8ClampedArray(width * height).fill(255);
+    for (let y = 0; y < sheet.height; y += 1) data.set(sheet.data.subarray(y * sheet.width, (y + 1) * sheet.width), (y + side) * width + side);
+    const border = { left: side / sheet.width, right: side / sheet.width, top: side / sheet.height, bottom: side / sheet.height };
+    const inPicture = spineInBorder(line, border);
+    const [left, right] = spreadQuads({ width, height, data }, inPicture);
+    const middle = (inPicture.top + inPicture.bottom) / 2;
+    expect((left[1].x + left[2].x) / 2).toBeLessThan(middle);
+    expect((right[0].x + right[3].x) / 2).toBeGreaterThan(middle);
+    expect(Math.min(left[0].x, left[3].x)).toBeLessThan(0.15);
+    expect(Math.max(right[1].x, right[2].x)).toBeGreaterThan(0.85);
+  });
+});
 
 describe('found corners', () => {
   it('are read after the page is levelled, so rows that lean past each other still count', () => {

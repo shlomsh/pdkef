@@ -19,10 +19,13 @@ export function samplePages(numPages: number): number[] {
 /** Whether at least half of `sheets` pass `test`, so one odd sheet never decides. */
 const half = (sheets: Assessment[], test: (a: Assessment) => boolean) => sheets.filter(test).length * 2 >= sheets.length;
 
+/** A line Scan would split on, or one it would ask about: either way, Scan is where the sheet belongs. */
+const twoPages = (a: Assessment) => !!a.spine || !!a.possibleSpine;
+
 /** What the sampled sheets say about the file. Crooked only when at least half are, by the first reason at least half share. */
 export function scanVerdict(sheets: Assessment[]): ScanVerdict {
-  if (!sheets.length || !half(sheets, (a) => a.crooked)) return 'straight';
-  if (half(sheets, (a) => !!a.spine)) return 'spread';
+  if (!sheets.length || !half(sheets, (a) => a.crooked || twoPages(a))) return 'straight';
+  if (half(sheets, twoPages)) return 'spread';
   if (half(sheets, (a) => a.turn !== 0)) return 'sideways';
   if (half(sheets, (a) => a.leans.some((l) => Math.abs(l) >= MIN_LEAN_DEGREES))) return 'lean';
   return 'bent';

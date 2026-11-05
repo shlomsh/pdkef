@@ -14,7 +14,7 @@ interface CameraPropsInput {
   addCameraFiles: (files: File[], from?: { fromCamera: boolean }) => void;
   retakePage: (id: number, file: File) => void;
   /** The centre view: the viewer (result, corners) over a many-mode camera pauses it. */
-  view: 'table' | 'result' | 'corners';
+  view: 'table' | 'result' | 'corners' | 'split';
 }
 
 /** The page as it will download once its result is current (corners and look), its photo until then. */

@@ -1,8 +1,12 @@
 import type { Quad } from '#lib/pageEnhance/quad.ts';
+import type { Spine } from '#lib/pageEnhance/spine.ts';
 import type { ScanFilter } from '../lib/filters.ts';
 import type { FlattenFrom } from '../lib/flattenAnimation.ts';
 import type { PageSize, Placement, ProcessedPage } from '../lib/scanPipeline.ts';
 import type { SizeLimitId } from '../lib/scanBudget.ts';
+
+/** A PDF sheet that may be two book pages, waiting for a person to say: where the line starts, in the picture, and which page reads first. */
+export interface SplitQuestion { spine: Spine; rightToLeft: boolean }
 
 export interface ScanPage {
   id: number;
@@ -27,6 +31,8 @@ export interface ScanPage {
   sheet: boolean;
   /** A PDF sheet's corners as it was read, what Auto-detect goes back to; null on a photo, or a sheet saved before they were kept. */
   opened: Quad | null;
+  /** The question this sheet still asks; null once answered, and on every sheet that is sure either way. */
+  question: SplitQuestion | null;
 }
 
 /** A page taken out of the list but not yet let go: Undo brings it back whole, the timer ends it. */

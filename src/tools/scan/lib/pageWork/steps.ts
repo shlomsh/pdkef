@@ -4,6 +4,8 @@
 // fallback is <img> and <canvas> (scanPipeline.ts). The pixel work in between is pure.
 import { guessCorners } from '../edges/index.ts';
 import { FLAT_PAGE, bentPx, measureBend, type PageBend } from '#lib/pageEnhance/dewarp/index.ts';
+import { spreadQuads } from '#lib/pageEnhance/plan.ts';
+import type { Spine } from '#lib/pageEnhance/spine.ts';
 import { applyPiece, pieceMargin, type Piece } from '#lib/pageEnhance/piece.ts';
 import { warpSizeFor } from '#lib/pageEnhance/warp.ts';
 import { pageAspect, snapPaper } from '../aspect.ts';
@@ -19,6 +21,8 @@ export const SOURCE_LONG_EDGE = 3200;
 export const OUTPUT_LONG_EDGE = 2400;
 /** The edge guess looks at a small copy; the page's outline survives, the noise does not. */
 const GUESS_LONG_EDGE = 320;
+/** The spread finder and the per-page read are tuned for a sheet about this big on its long edge. */
+const SPLIT_LONG_EDGE = 1000;
 /** How far inside its corners a photographed page is cropped (a PDF sheet is not): about 0.8% from each edge, a margin's worth. The
  * edge guess works on a 320px copy, so a corner can sit a pixel of that (0.3%) out on the table, and
  * that sliver turns into a black line under the Document look (QA, 2026-10-26). */
@@ -94,6 +98,14 @@ export function drawCapped(kit: CanvasKit, image: Decoded, longEdge: number, sca
 
 const pixelsOf = ({ canvas, ctx }: Surface): ImageData => ctx.getImageData(0, 0, canvas.width, canvas.height);
 
+const luma = (data: Uint8ClampedArray, width: number, height: number): GrayImage => {
+  const gray: GrayImage = { width, height, data: new Uint8ClampedArray(width * height) };
+  for (let i = 0, j = 0; j < gray.data.length; i += 4, j += 1) {
+    gray.data[j] = Math.round(0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2]);
+  }
+  return gray;
+};
+
 /** A gray copy no longer than GUESS_LONG_EDGE, for the edge guess. */
 function grayOf(kit: CanvasKit, image: Decoded): GrayImage {
   const { width, height } = cappedSize(image.width, image.height, GUESS_LONG_EDGE);
@@ -105,11 +117,7 @@ function grayOf(kit: CanvasKit, image: Decoded): GrayImage {
   } finally {
     surface.free();
   }
-  const gray: GrayImage = { width, height, data: new Uint8ClampedArray(width * height) };
-  for (let i = 0, j = 0; j < gray.data.length; i += 4, j += 1) {
-    gray.data[j] = Math.round(0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2]);
-  }
-  return gray;
+  return luma(data, width, height);
 }
 
 /** The page's corners as the edge guess sees them in this image, or null when it finds no page. */
@@ -120,6 +128,27 @@ export async function guessWith(kit: CanvasKit, image: Blob): Promise<Quad | nul
   } finally {
     decoded.close();
   }
+}
+
+const clamp01 = (n: number) => Math.min(1, Math.max(0, n));
+
+/** The two pages' corners (left page first, 0 to 1 of the picture) for a line the person placed: each page read on its own,
+ * as a sheet split on its own is. Corners are held on the picture, where the corner editor can reach them. */
+export async function splitWith(kit: CanvasKit, image: Blob, spine: Spine): Promise<Quad[]> {
+  const decoded = await kit.decode(image);
+  let surface: Surface;
+  try {
+    surface = drawCapped(kit, decoded, SPLIT_LONG_EDGE);
+  } finally {
+    decoded.close();
+  }
+  let gray: GrayImage;
+  try {
+    gray = luma(pixelsOf(surface).data, surface.canvas.width, surface.canvas.height);
+  } finally {
+    surface.free();
+  }
+  return spreadQuads(gray, spine).map((quad) => quad.map(({ x, y }) => ({ x: clamp01(x), y: clamp01(y) })) as Quad);
 }
 
 /** One decode of a new photo: its corners, its upright size, and the preview the screen shows. The

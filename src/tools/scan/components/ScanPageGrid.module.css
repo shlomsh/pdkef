@@ -149,3 +149,23 @@
     display: none;
   }
 }
+
+/* A sheet that still asks One page or two?: a quiet strip along the tile's foot, inside it, so the tile keeps its size.
+   The badge sits at the start of the foot, so the strip begins after it. */
+.split-ask {
+  position: absolute;
+  inset-block-end: 6px;
+  inset-inline: 34px 6px;
+  overflow: hidden;
+  padding: 0 6px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  line-height: 1.5;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--color-text);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-pill);
+  pointer-events: none;
+}

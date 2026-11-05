@@ -13,6 +13,7 @@ import { looksBent } from '../lib/capture/guidance.ts';
 import type { PageSize } from '../lib/scanPipeline.ts';
 import type { ScanFilter } from '../lib/filters.ts';
 import type { Quad } from '#lib/pageEnhance/quad.ts';
+import type { Spine } from '#lib/pageEnhance/spine.ts';
 import type { PageResult, ScanPage } from '../state/scanWork.ts';
 import appStyles from '../PdfScanTool.module.css';
 import styles from './ScanPageViewer.module.css';
@@ -20,6 +21,7 @@ import ResultPage from './ResultPage.tsx';
 import PageActions from './PageActions.tsx';
 import ScanUndoChip from './ScanUndoChip.tsx';
 import ScanCornersView from './ScanCornersView.tsx';
+import ScanSplitView from './ScanSplitView.tsx';
 
 type Placed = Parameters<typeof resultViewFor>[2]['shown'];
 
@@ -30,10 +32,14 @@ interface ScanPageViewerProps {
   pages: ScanPage[];
   selected: ScanPage;
   selectedIndex: number;
-  view: 'result' | 'corners';
+  view: 'result' | 'corners' | 'split';
   results: Record<number, PageResult>;
   turnedPreviews: Record<string, string>;
   finding: number | null;
+  /** The split of the selected page is being made. */
+  splitting: boolean;
+  /** The last try at splitting this sheet failed. */
+  splitFailed: boolean;
   findMissed: number[];
   /** Pages that failed, in reading or later; a page only waiting for its preview is not among them. */
   failedIds: number[];
@@ -49,6 +55,10 @@ interface ScanPageViewerProps {
     onFind: (page: ScanPage) => void;
     onApprove: () => void;
     onDone: () => void;
+    /** Open the One page or two question for the selected page. */
+    onAskSplit: () => void;
+    onOnePage: () => void;
+    onTwoPages: (spine: Spine) => void;
     /** One page back or on (a mouse device's buttons and arrow keys); does nothing at the ends. */
     onStep: (delta: 1 | -1) => void;
     onRetake: (file: File) => void;
@@ -116,7 +126,7 @@ function useArrowKeys(active: boolean, onStep: (delta: 1 | -1) => void) {
 
 /** The one-page screen on every width: a full-screen modal over the grid, swiping (or, on a mouse device,
  * Previous, Next and the arrow keys) between pages in result mode, the corners in the same dialog. */
-export default function ScanPageViewer({ refs, pages, selected, selectedIndex, view, results, turnedPreviews, finding, findMissed, failedIds, pageSize, built, actions, undo }: ScanPageViewerProps) {
+export default function ScanPageViewer({ refs, pages, selected, selectedIndex, view, results, turnedPreviews, finding, splitting, splitFailed, findMissed, failedIds, pageSize, built, actions, undo }: ScanPageViewerProps) {
   const dialogRef = useRef<HTMLDialogElement>(null);
   // failedIds also holds a page that was read and failed later: its photo is there, and moving a corner tries it again.
   const unreadable = failedIds.includes(selected.id) && selected.preview === null;
@@ -197,6 +207,19 @@ export default function ScanPageViewer({ refs, pages, selected, selectedIndex, v
               <ChevronRight size={22} aria-hidden="true" />
             </button>
           </div>
+        ) : view === 'split' && selected.question ? (
+          <div class={`${styles.stage} ${styles.cornersStage}`}>
+            <ScanSplitView
+              key={selected.id}
+              selected={selected}
+              photo={shownPhoto(selected, turnedPreviews)}
+              shownAspect={shownAspect(selected)}
+              splitting={splitting}
+              failed={splitFailed}
+              onOnePage={actions.onOnePage}
+              onTwoPages={actions.onTwoPages}
+            />
+          </div>
         ) : (
           <div class={`${styles.stage} ${styles.cornersStage}`}>
             <ScanCornersView
@@ -220,6 +243,14 @@ export default function ScanPageViewer({ refs, pages, selected, selectedIndex, v
                 <button type="button" class={workspaceStyles['quiet-button']} onClick={actions.onAdjustCorners}>
                   <Crop size={16} aria-hidden="true" />
                   {t.adjustCorners}
+                </button>
+              </p>
+            )}
+            {selected.question && (
+              <p class={`${appStyles['not-found']} ${styles.notFound}`} role="status">
+                {t.splitNote}
+                <button type="button" class={workspaceStyles['quiet-button']} onClick={actions.onAskSplit}>
+                  {t.splitAsk}
                 </button>
               </p>
             )}

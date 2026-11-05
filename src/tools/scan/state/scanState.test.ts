@@ -69,6 +69,35 @@ describe('reduceScan', () => {
     });
   });
 
+  describe('a split', () => {
+    const asking = { ...initialScanState, phase: 'split', selectedId: 1 } as ScanState;
+
+    it('leaves a later split running when an earlier one ends', () => {
+      const later = reduceScan(asking, { type: 'splitStarted', id: 2 });
+      expect(reduceScan(later, { type: 'splitEnded', id: 1, failed: false }).splitting).toBe(2);
+    });
+
+    it('remembers which sheet failed, until it is tried again', () => {
+      const failed = reduceScan(reduceScan(asking, { type: 'splitStarted', id: 1 }), { type: 'splitEnded', id: 1, failed: true });
+      expect(failed.splitFailed).toBe(1);
+      expect(reduceScan(failed, { type: 'splitStarted', id: 1 }).splitFailed).toBeNull();
+    });
+
+    it('opens the first new page when the question is still on screen', () => {
+      expect(reduceScan(asking, { type: 'splitMade', oldId: 1, newId: 5 })).toMatchObject({ phase: 'result', selectedId: 5 });
+    });
+
+    it('stays on the table when the person left while it ran', () => {
+      const left = reduceScan(asking, { type: 'tableShown' });
+      expect(reduceScan(left, { type: 'splitMade', oldId: 1, newId: 5 }).phase).toBe('table');
+    });
+
+    it('stays on another page the person moved to', () => {
+      const other = { ...asking, phase: 'result', selectedId: 3 } as ScanState;
+      expect(reduceScan(other, { type: 'splitMade', oldId: 1, newId: 5 })).toMatchObject({ phase: 'result', selectedId: 3 });
+    });
+  });
+
   describe('resultShown', () => {
     it('leaves the corners for the result', () => {
       expect(reduceScan(corners, { type: 'resultShown' }).phase).toBe('result');
@@ -120,6 +149,22 @@ describe('reduceScan', () => {
     });
     it('finding a page that never missed is a no-op', () => {
       expect(reduceScan(initialScanState, { type: 'findFound', id: 2 })).toBe(initialScanState);
+    });
+  });
+
+  describe('the split question (SCAN-67)', () => {
+    it('splitAsked selects the page and enters the question, owing the top and the heading focus', () => {
+      expect(reduceScan(initialScanState, { type: 'splitAsked', id: 5 })).toMatchObject({ phase: 'split', selectedId: 5, topPending: true, focusPending: true });
+      expect(reduceScan(corners, { type: 'splitAsked', id: 5 })).toMatchObject({ phase: 'split', selectedId: 5 });
+    });
+    it('splitting runs for one page and outlives a view change', () => {
+      const running = reduceScan({ ...initialScanState, phase: 'split', selectedId: 1 }, { type: 'splitStarted', id: 1 });
+      expect(running.splitting).toBe(1);
+      expect(reduceScan(running, { type: 'resultShown' }).splitting).toBe(1);
+      expect(reduceScan(running, { type: 'splitEnded', id: 1, failed: false }).splitting).toBeNull();
+    });
+    it('starts with nothing splitting', () => {
+      expect(initialScanState.splitting).toBeNull();
     });
   });
 
