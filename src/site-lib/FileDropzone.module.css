@@ -52,7 +52,7 @@
    with the sample rendered as prose in a button while the recent documents
    ten screens above were rendered as documents. Both are cards now, and they
    are the same kind of card. */
-.drive { grid-column: 1 / -1; justify-self: center; display: inline-flex; align-items: center; gap: 8px; min-height: 44px; color: var(--color-muted); font-size: 0.85rem; text-decoration: none; }
+.drive { grid-column: 1 / -1; justify-self: center; align-self: center; margin-top: -14px; display: inline-flex; align-items: center; gap: 8px; min-height: 44px; color: var(--color-muted); font-size: 0.85rem; text-decoration: none; }
 .drive:hover { text-decoration: underline; }
 .drive[hidden] { display: inline-flex; visibility: hidden; }
 .final { width: min(720px, 100%); display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: stretch; gap: 20px; }
@@ -103,9 +103,9 @@
 
   .launcher > .tile span { font-size: 0.7rem; }
 
-  /* Use spare phone height between rows, while short screens keep the
-     content's natural height and scroll instead of squeezing the controls. */
-  .launcher { align-content: space-between; }
+  /* Spare phone height goes to the recents row, so the tile and the Drive link stay together at the
+     foot; short screens keep the content's natural height and scroll instead of squeezing the controls. */
+  .launcher { grid-template-rows: 1fr auto auto; }
 }
 
 /* The picker is always this compact, separate action beneath the recent
