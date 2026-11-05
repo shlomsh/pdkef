@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
 import { routeFiles, handoffKeyFor, type FileRoute } from './routeFiles.ts';
 import { sendHandoff } from '#lib/handoff/sendHandoff.ts';
-import { setCurrentEntry, readRecentFiles } from '#lib/drafts/draftStore.ts';
+import { setCurrentEntry } from '#lib/drafts/draftStore.ts';
 import { noteRecentOpen } from '#lib/handoff/fileArrival.ts';
 import { useNavigatingAway } from '#lib/hooks/useNavigatingAway.ts';
 import RecentFiles, { type RecentFileItem } from './RecentFiles.tsx';
+import { useHomeRecents } from './useHomeRecents.ts';
 import styles from './FileDropzone.module.css';
 import { SAMPLE_FILE_NAME, SAMPLE_PREVIEW_SRC } from './sampleDocument.ts';
 import { withFillModeParam } from './withFillModeParam.ts';
@@ -12,18 +13,7 @@ import { tools, pageForToolId } from '../data/tools.js';
 import { englishFileDropzoneMessages, type FileDropzoneMessages } from './fileDropzoneMessages';
 import { formatMessage } from '#lib/text/formatMessage.ts';
 import { withIslandBoundary } from '#lib/telemetry/IslandErrorBoundary.tsx';
-import type { RecentFilesMessages } from './recentFilesMessages';
-
-/* MEM-03: every entry in the recency index - Sign/Redact source PDFs and a
-   Merge file set alike - is an ordinary row now that work lives on the entry
-   rather than in a separate per-tool draft slot (draftStore.ts's one memory
-   space). There is no longer a Merge-only row to read separately and dedupe
-   against this list. readRecentFiles() already caps at six itself; the slice
-   here is the same belt-and-suspenders this always had, not new capping
-   logic. */
-function readHomeRecents(): RecentFileItem[] {
-  return readRecentFiles().map((entry: any) => ({ ...entry, cacheId: entry.id })).slice(0, 6);
-}
+import { englishRecentFilesMessages, type RecentFilesMessages } from './recentFilesMessages';
 
 /**
  * The closing launcher cannot light a toolbar it has scrolled away from, so it sends the pick up to the first screen's island.
@@ -165,7 +155,12 @@ function FileDropzone({
   // its own - which is how the duplicate tiles fixed in 203b204 reached
   // production. Never read storage in a render body or a useState initializer
   // here; the mount effect below is the only thing that may.
-  const [recents, setRecents] = useState<RecentFileItem[] | null>(null);
+  const recentMessages = recentFilesMessages ?? englishRecentFilesMessages;
+  // MEM-30: focus goes to the picker, since the control that was pressed left with its tile.
+  const { recents, removeRecent, clearRecents } = useHomeRecents(ok => {
+    setError(ok ? '' : recentMessages.removeFailed);
+    if (ok) tile.current?.focus({ preventScroll: true });
+  });
   const [error, setError] = useState('');
   // Disables every tile, the picker and the drop target while it is set, so it
   // is the hook's flag rather than a plain useState (../lib/useNavigatingAway.ts).
@@ -371,13 +366,6 @@ function FileDropzone({
     if (!final) window.addEventListener(LAUNCHER_PICK_EVENT, picked);
     return () => { window.removeEventListener(LAUNCHER_PICK_EVENT, picked); window.removeEventListener('pageshow', restored); };
   }, [final]);
-  useEffect(() => {
-    const refresh = () => setRecents(readHomeRecents());
-    refresh();
-    window.addEventListener('pageshow', refresh);
-    window.addEventListener('storage', refresh);
-    return () => { window.removeEventListener('pageshow', refresh); window.removeEventListener('storage', refresh); };
-  }, []);
   const sample = async () => {
     try {
       const response = await fetch('/images/redaction-guide/sample.pdf');
@@ -393,7 +381,7 @@ function FileDropzone({
   };
   const resolvedToolDisplayName = toolDisplayName ?? tools.find(t => t.slug === toolTarget)?.gridTitle ?? toolTarget;
   const { title, line, tone, choosing } = tileCopy({ choice, opening, busy: busy || reading, note: error, final }, messages);
-  const failed = [messages.handoffFailed, messages.sampleLoadFailed, messages.unsupportedFiles].includes(error);
+  const failed = [messages.handoffFailed, messages.sampleLoadFailed, messages.unsupportedFiles, recentMessages.removeFailed].includes(error);
   const live = liveMessages({ note: error, failed, waiting: !!choice && !opening }, messages);
   return (
     <div ref={container} class={final ? styles.final : styles.launcher}>
@@ -406,6 +394,8 @@ function FileDropzone({
         }]}
         onOpenSample={sample}
         onOpenRecent={openRecent}
+        onRemoveRecent={removeRecent}
+        onClearRecents={clearRecents}
         busy={busy}
         messages={recentFilesMessages}
       />}
