@@ -37,7 +37,7 @@ test('the Download element keeps the same DOM node across preparing and ready (M
   // cluster only reveals on hover on a mouse-driven project; the webkit
   // project is a real touch device (iPhone 15), where hover never fires, so
   // it taps the cell instead (there is no Edit pages mode any more -
-  // PageGrid.module.css's `[data-selected]` pattern).
+  // PageCellActions.module.css's `[data-selected]` pattern).
   const grid = page.locator('ul[class*="grid"]');
   const firstCard = grid.locator('> li[data-key]').first();
   // The grid stays hidden and re-sizes its cells until the fit settles

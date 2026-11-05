@@ -3,6 +3,7 @@ import type { ComponentType, JSX, RefObject } from 'preact';
 import Sortable from 'sortablejs';
 import { Download } from 'lucide-preact';
 import styles from './PageGrid.module.css';
+import { PageCellActions, PageCellButton, cellActionStyles } from './PageCellActions.tsx';
 import FileName from '../FileName.tsx';
 import { movePlanEntry, outputPageCount, rotateEntry, updateEntry, type PlanEntry } from '#lib/pages/pagePlan.ts';
 import { type PageGridMessages } from '../shellMessages';
@@ -426,7 +427,7 @@ export default function PageGrid({
       animation: 220,
       easing: 'cubic-bezier(0.22, 1, 0.36, 1)',
       draggable: `.${styles.page}`,
-      filter: `.${styles.caption}, .${styles.action}`,
+      filter: `.${styles.caption}, .${cellActionStyles.action}`,
       preventOnFilter: false,
       // Native HTML drag owns the OS cursor and changes it back to an arrow
       // once the drag image leaves the source card. The fallback path keeps
@@ -688,7 +689,7 @@ export default function PageGrid({
     items.push(
       <li
         key={entry.key}
-        class={styles.page}
+        class={`${styles.page} ${cellActionStyles.host}`}
         data-key={entry.key}
         data-file-id={entry.fileId}
         data-rotation={entry.rotation || undefined}
@@ -759,86 +760,62 @@ export default function PageGrid({
         >
           {entry.skipped ? t.skippedBadge.toLowerCase() : '\u00a0'}
         </span>
-        <span class={styles.actions}>
-          <button
-            type="button"
-            class={styles.action}
-            aria-label={formatMessage(t.rotatePage, { number: position })}
+        <PageCellActions>
+          <PageCellButton
+            label={formatMessage(t.rotatePage, { number: position })}
+            tip={t.tipRotate}
             onClick={() => rotate(entry.key, position)}
           >
-            {/* The visual chrome (border, background, shadow) lives on this
-                inner span, not the button: on touch (a selected cell, coarse
-                pointer) the button's own box grows to a real 44x44 - a rect
-                measurement, not only elementFromPoint, must read 44 - while
-                this glyph stays visually 32, centred inside it by padding.
-                Pointer devices are unchanged: the button stays 32x32 and the
-                44x44 hit area is the `::before` below, as before. */}
-            <span class={styles['action-glyph']} aria-hidden="true">
-              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <path d="M13 8a5 5 0 1 1-1.5-3.6" />
-                <path d="M13 2v3h-3" />
-              </svg>
-            </span>
-            {/* Item 6 (Shlomi's follow-up): a `title` attribute is not a
-                visible tooltip. This span carries the short word, hidden
-                until the button is hovered or keyboard-focused; the
-                aria-label above stays the real accessible name so a screen
-                reader is never told the word twice. */}
-            <span class={styles.tip} data-tip aria-hidden="true">{t.tipRotate}</span>
-          </button>
-          <button
-            type="button"
-            class={styles.action}
-            aria-pressed={entry.skipped}
-            aria-label={formatMessage(entry.skipped ? t.includePage : t.skipPage, { number: position })}
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M13 8a5 5 0 1 1-1.5-3.6" />
+              <path d="M13 2v3h-3" />
+            </svg>
+          </PageCellButton>
+          <PageCellButton
+            label={formatMessage(entry.skipped ? t.includePage : t.skipPage, { number: position })}
+            tip={entry.skipped ? t.tipBringBack : t.tipSkip}
+            pressed={entry.skipped}
             onClick={() => toggleSkip(entry.key, position)}
           >
-            <span class={styles['action-glyph']} aria-hidden="true">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                {entry.skipped ? (
-                  <>
-                    <path d="M2.1 12a10.8 10.8 0 0 1 19.8 0 10.8 10.8 0 0 1-19.8 0Z" />
-                    <circle cx="12" cy="12" r="3" />
-                  </>
-                ) : (
-                  <>
-                    <path d="m3 3 18 18" />
-                    <path d="M10.7 5.1A10.7 10.7 0 0 1 12 5c4.2 0 7.8 2.6 9.5 7a11.6 11.6 0 0 1-1.2 2.2" />
-                    <path d="M6.7 6.7A11.4 11.4 0 0 0 2.5 12c1.7 4.4 5.3 7 9.5 7 1.5 0 3-.4 4.3-1" />
-                    <path d="M14.1 14.1a3 3 0 0 1-4.2-4.2" />
-                  </>
-                )}
-              </svg>
-            </span>
-            <span class={styles.tip} data-tip aria-hidden="true">{entry.skipped ? t.tipBringBack : t.tipSkip}</span>
-          </button>
-          <button
-            type="button"
-            class={styles.action}
-            aria-label={formatMessage(t.openPreview, { number: position })}
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              {entry.skipped ? (
+                <>
+                  <path d="M2.1 12a10.8 10.8 0 0 1 19.8 0 10.8 10.8 0 0 1-19.8 0Z" />
+                  <circle cx="12" cy="12" r="3" />
+                </>
+              ) : (
+                <>
+                  <path d="m3 3 18 18" />
+                  <path d="M10.7 5.1A10.7 10.7 0 0 1 12 5c4.2 0 7.8 2.6 9.5 7a11.6 11.6 0 0 1-1.2 2.2" />
+                  <path d="M6.7 6.7A11.4 11.4 0 0 0 2.5 12c1.7 4.4 5.3 7 9.5 7 1.5 0 3-.4 4.3-1" />
+                  <path d="M14.1 14.1a3 3 0 0 1-4.2-4.2" />
+                </>
+              )}
+            </svg>
+          </PageCellButton>
+          <PageCellButton
+            label={formatMessage(t.openPreview, { number: position })}
+            tip={t.tipOpen}
             onClick={() => openPreview(index)}
           >
-            <span class={styles['action-glyph']} aria-hidden="true">
-              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <circle cx="7" cy="7" r="4.5" />
-                <path d="M10.3 10.3L14 14" />
-              </svg>
-            </span>
-            <span class={styles.tip} data-tip aria-hidden="true">{t.tipOpen}</span>
-          </button>
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <circle cx="7" cy="7" r="4.5" />
+              <path d="M10.3 10.3L14 14" />
+            </svg>
+          </PageCellButton>
           {action && (
             <a
-              class={styles.action}
+              class={cellActionStyles.action}
               href={action.href}
               download={action.download}
               aria-label={action.label}
               onClick={(event) => { event.stopPropagation(); action.onActivate?.(); }}
             >
-              <span class={styles['action-glyph']} aria-hidden="true"><Download size={16} strokeWidth={1.8} /></span>
-              <span class={styles.tip} data-tip aria-hidden="true">{action.tip}</span>
+              <span class={cellActionStyles.glyph} aria-hidden="true"><Download size={16} strokeWidth={1.8} /></span>
+              <span class={cellActionStyles.tip} data-tip aria-hidden="true">{action.tip}</span>
             </a>
           )}
-        </span>
+        </PageCellActions>
       </li>,
     );
   });

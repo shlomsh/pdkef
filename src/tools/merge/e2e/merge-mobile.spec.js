@@ -169,13 +169,13 @@ test.describe('Merge on a phone (MERGE-06)', () => {
     await expect(rotateButton).toBeVisible();
     // Only the tapped cell's cluster is displayed - the untapped neighbour's
     // stays hidden, even though the selected cluster may visually overhang
-    // it (PageGrid.module.css, the phone media query).
+    // it (PageCellActions.module.css, the phone media query).
     const secondActions = secondCard.locator('[class*="actions"]');
     await expect(secondActions).toBeHidden();
 
     // Review (2026-09-13): on a coarse pointer the button's own border box
     // IS the 44x44 hit area, with the 32px visual chrome on an inner glyph
-    // span (PageGrid.module.css `@media (pointer: coarse)`), so a plain
+    // span (PageCellActions.module.css `@media (pointer: coarse)`), so a plain
     // rect measurement proves it - no pseudo-element to tap around. A tap
     // 5px inside the button's top edge (outside the 32px glyph) still
     // rotates the page.
