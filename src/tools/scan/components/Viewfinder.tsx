@@ -51,6 +51,7 @@ export default function Viewfinder(props: ViewfinderProps) {
 
   const camera = useCamera({
     paused: props.paused,
+    scanFiles: props.scanFiles,
     onTaken: (page: TakenPage) => {
       const dialog = dialogRef.current;
       propsRef.current.onTaken(page.file);

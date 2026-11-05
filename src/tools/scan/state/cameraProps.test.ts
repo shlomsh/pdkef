@@ -49,6 +49,13 @@ describe('cameraProps', () => {
     expect(host.dispatch).toHaveBeenCalledWith({ type: 'cameraClosed' });
   });
 
+  it('the photos in the scan count as taken, less the one being retaken', () => {
+    const other = new File(['y'], 'b.jpg', { type: 'image/jpeg' });
+    const pages = [page('first'), { ...newPage(other, 'document'), preview: 'last' }];
+    expect(setup({ mode: 'many' }, pages).props?.scanFiles).toEqual([file, other]);
+    expect(setup({ mode: 'one', pageId: pages[0].id }, pages).props?.scanFiles).toEqual([other]);
+  });
+
   it('the stack opens the last page in the viewer', () => {
     const { host, last, props } = setup({ mode: 'many' });
     props?.onReview();

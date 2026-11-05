@@ -8,7 +8,29 @@
   margin: 0;
   padding: 0;
 }
-.list > li { min-width: 0; list-style: none; }
+.list > li { min-width: 0; list-style: none; position: relative; }
+/* MEM-30: removal sits beside the open button (never inside it), in the tile's
+   top corner; inline-end so /he/ mirrors it. Just a small red x: the button is the
+   whole 44px touch target, with nothing drawn around the mark. */
+.remove { position: absolute; inset-block-start: 0; inset-inline-end: 0; display: grid; place-items: start end; box-sizing: border-box; width: 44px; height: 44px; padding: 10px; border: 0; border-radius: 8px; background: transparent; color: var(--color-danger); cursor: pointer; }
+.remove:hover { color: var(--color-danger-ink); }
+.remove:focus-visible { outline: none; box-shadow: var(--shadow-focus); }
+.remove:disabled { cursor: wait; opacity: 0.72; }
+/* Quiet on a pointer device, still focusable (opacity, never display or visibility).
+   It waits a moment on hover, so a pointer passing over the tiles shows nothing;
+   keyboard focus shows it at once. */
+@media (hover: hover) {
+  .remove { opacity: 0; transition: opacity 120ms ease; }
+  .list > li:hover .remove { opacity: 1; transition-delay: 300ms; }
+  .remove:focus-visible { opacity: 1; transition: none; }
+}
+/* A phone's first screen may grow, so here it has a row of its own, end-aligned so
+   it sits on the picker (FileDropzone.module.css gives that row the spare height),
+   its margins pulling it into the launcher's gaps when there is no spare height. */
+.clear { grid-column: 1 / -1; justify-self: end; align-self: end; margin-block: -16px -12px; padding: 4px 6px; border: 0; background: transparent; color: var(--color-muted); font: inherit; font-size: 0.73rem; cursor: pointer; }
+.clear:hover { color: var(--color-danger-ink); text-decoration: underline; }
+.clear:focus-visible { outline: none; box-shadow: var(--shadow-focus); }
+.clear:disabled { cursor: wait; opacity: 0.72; }
 .document { box-sizing: border-box; min-height: 180px; display: flex; width: 100%; flex-direction: column; align-items: center; gap: 6px; padding: 6px; border: 0; border-radius: 8px; background: transparent; cursor: pointer; font: inherit; text-decoration: none; text-align: center; color: var(--color-text); }
 .document:focus-visible, .document:hover { background: var(--color-primary-tint); }
 .document:focus-visible { outline: none; box-shadow: var(--shadow-focus); }
@@ -51,6 +73,10 @@
     container-type: size;
     container-name: home-recent-tile;
   }
+  /* The two rows and the picker are reserved from first paint, so this sits inside
+     the launcher's 28px gap and takes no space: 26px tall, margins cancelling
+     its height and the extra gap it would add. */
+  .clear { align-self: flex-end; box-sizing: border-box; height: 26px; margin-block: -28px -26px; }
   .preview {
     height: clamp(40px, calc(100cqh - 96px), 84px);
     width: auto;

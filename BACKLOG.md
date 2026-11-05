@@ -2,7 +2,7 @@
 
 # Backlog
 
-The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 159 live: 57 up next, 22 then, 27 waiting, 53 parked.
+The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 165 live: 56 up next, 23 then, 27 waiting, 59 parked.
 
 ## Redact: finish removal
 
@@ -116,6 +116,7 @@ The camera takes pages, the table fixes them, Share sends them. The table first 
 | --- | --- | --- | --- |
 | SCAN-20 | P2 | [SCAN-20](backlog/tasks/SCAN-20.md) · Scan next: a real-photo dewarp corpus with a straightness score |  |
 | SCAN-22 | P3 | [SCAN-22](backlog/tasks/SCAN-22.md) · Scan next: measure the bend at a higher resolution, so a crease's tip goes too |  |
+| SCAN-58 | P2 | [SCAN-58](backlog/tasks/SCAN-58.md) · A camera shot that fails is not counted as taken |  |
 
 ### Parked
 
@@ -129,9 +130,15 @@ The camera takes pages, the table fixes them, Share sends them. The table first 
 | SCAN-42 | P3 | [SCAN-42](backlog/tasks/SCAN-42.md) · Measuring a page on desktop takes under 150 ms |  |
 | SCAN-43 | P3 | [SCAN-43](backlog/tasks/SCAN-43.md) · encodePages runs off the main thread |  |
 | SCAN-45 | P3 | [SCAN-45](backlog/tasks/SCAN-45.md) · A disabled quiet button looks enabled |  |
+| SCAN-62 | P2 | [SCAN-62](backlog/tasks/SCAN-62.md) · Measure Scan's memory and main thread on a long job |  |
 | SCAN-10 | P3 | [SCAN-10](backlog/tasks/SCAN-10.md) · Scan next: evaluate a small learned page detector behind the same contract |  |
 | SCAN-31 | P3 | [SCAN-31](backlog/tasks/SCAN-31.md) · The Scan guide's image generator follows the rewritten phone flow |  |
 | SCAN-52 | P3 | [SCAN-52](backlog/tasks/SCAN-52.md) · Scan's pages use the shared page grid |  |
+| SCAN-59 | P3 | [SCAN-59](backlog/tasks/SCAN-59.md) · A PDF Scan cannot read says why, and every such file is named | Needs Shlomi: The wording for a password-protected PDF, or a yes to sending it through Unlock |
+| SCAN-60 | P3 | [SCAN-60](backlog/tasks/SCAN-60.md) · Late work leaves removed pages and moved corners alone |  |
+| SCAN-61 | P3 | [SCAN-61](backlog/tasks/SCAN-61.md) · Scan's specs wait on real conditions |  |
+| SCAN-63 | P3 | [SCAN-63](backlog/tasks/SCAN-63.md) · Scan's pages say where they came from, and its callbacks read live inputs |  |
+| SCAN-64 | P3 | [SCAN-64](backlog/tasks/SCAN-64.md) · Two choices for Scan: the shared Undo stack, and Compress on phones | Needs Shlomi: A decision on each |
 
 ## Page enhancement for Scan and Highlight
 
@@ -190,7 +197,6 @@ Production errors you can see, small tools that clean up after themselves, and d
 | ID | P | Task | Note |
 | --- | --- | --- | --- |
 | DEBT-65 | P2 | [DEBT-65](backlog/tasks/DEBT-65.md) · Two layout-shift specs failed once each in the 2026-10-27 nightly | In progress |
-| MEM-30 | P2 | [MEM-30](backlog/tasks/MEM-30.md) · A person can remove a recent file, and clear them all (GitHub issue 44) |  |
 | MEM-24 | P3 | [MEM-24](backlog/tasks/MEM-24.md) · A service worker that cannot install, or never completes its precache, says so | In progress |
 
 ### Then, in order
@@ -346,14 +352,14 @@ Done and retired tickets are not listed. Their files stay in [backlog/tasks/](ba
 - Redact: finish removal: 26 done, 1 retired
 - Sign: finish fill mode: 3 done, 1 retired
 - Highlight PDF: a tool for reading: 5 done, 1 retired
-- Scan: camera to WhatsApp: 11 done, 0 retired
+- Scan: camera to WhatsApp: 12 done, 0 retired
 - Page enhancement for Scan and Highlight: 5 done, 1 retired
 - Tool pages: show the verb: 8 done, 0 retired
 - Form detector accuracy: 19 done, 1 retired
-- Robustness and debt: 88 done, 4 retired
+- Robustness and debt: 89 done, 4 retired
 - Unify the tools, narrow the graph: 96 done, 0 retired
 - Search and languages: 12 done, 0 retired
-- Polish: 26 done, 1 retired
+- Polish: 27 done, 1 retired
 - Sign tool architecture: 37 done, 1 retired
 - Editor architecture: 14 done, 0 retired
 - Fonts and script support: 6 done, 3 retired

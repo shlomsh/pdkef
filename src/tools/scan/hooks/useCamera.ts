@@ -1,9 +1,9 @@
 // The live camera (SCAN-08): the stream, the frame loop, the worker that observes each frame, the capture
 // machine, and the shot. DOM plumbing around the pure modules in lib/capture and viewfinderModel.ts.
-import { useCallback, useEffect, useRef, useState } from 'preact/hooks';
+import { useCallback, useEffect, useRef, useState, type MutableRef } from 'preact/hooks';
 import { reportError } from '#lib/telemetry/errorReport.ts';
 import type { Quad } from '#lib/pageEnhance/quad.ts';
-import { INITIAL_CAPTURE_STATE, markTaken, searchAgain, stepCapture } from '../lib/capture/captureMachine.ts';
+import { INITIAL_CAPTURE_STATE, keepTaken, markTaken, searchAgain, stepCapture } from '../lib/capture/captureMachine.ts';
 import { DEFAULT_CAPTURE_PARAMS, type CaptureState, type FrameObservation } from '../lib/capture/types.ts';
 import { cameraStatusFor } from '../lib/camera/cameraErrors.ts';
 import { attachStream, cameraPacer, openCamera, stopCamera, takePhoto } from '../lib/camera/cameraStream.ts';
@@ -16,6 +16,8 @@ interface UseCameraInput {
   onTaken: (page: TakenPage) => void;
   /** While true the machine keeps following the page but auto does not shoot; the shutter still works. */
   paused?: boolean;
+  /** The photos that count as taken. */
+  scanFiles: readonly File[];
 }
 
 /** The full photo and its small copy, taken together. */
@@ -41,6 +43,49 @@ function watchVideoSize(el: HTMLVideoElement, setSize: (size: { width: number; h
   el.onresize = measure;
 }
 
+interface ShotInput {
+  videoEl: MutableRef<HTMLVideoElement | null>;
+  track: () => MediaStreamTrack | undefined;
+  stateRef: MutableRef<CaptureState>;
+  lastObs: MutableRef<FrameObservation | null>;
+  lastView: MutableRef<Rect>;
+  pacer: MutableRef<ReturnType<typeof cameraPacer> | null>;
+  onTakenRef: MutableRef<(page: TakenPage) => void>;
+  scanFiles: readonly File[];
+  paused: boolean;
+}
+
+/** The shot, one at a time. It notes which page each photo is of, so a photo leaving the scan frees its page. */
+function useShot({ videoEl, track, stateRef, lastObs, lastView, pacer, onTakenRef, scanFiles, paused }: ShotInput) {
+  const shooting = useRef(false);
+  const shotHashes = useRef(new WeakMap<File, string>());
+  const kept = scanFiles.flatMap((file) => shotHashes.current.get(file) ?? []);
+
+  useEffect(() => { stateRef.current = keepTaken(stateRef.current, kept); }, [kept.join(), paused]);
+
+  return useCallback(async (quad?: Quad | null, byShutter = false) => {
+    const video = videoEl.current;
+    const running = track();
+    if (!video || !running || shooting.current) return;
+    shooting.current = true;
+    pacer.current?.stop();
+    try {
+      // a quad handed in is across the whole frame already; the machine's own is across what was on screen
+      const { smoothed } = stateRef.current;
+      const taken = quad === undefined ? smoothed && toFrame(smoothed, lastView.current) : quad;
+      if (byShutter && lastObs.current) stateRef.current = markTaken(stateRef.current, lastObs.current.hash);
+      const hash = stateRef.current.lastCaptureHash;
+      const shot = await captureShot(running, video);
+      if (hash !== null) shotHashes.current.set(shot.file, hash);
+      onTakenRef.current({ ...shot, quad: taken });
+    } catch (err) {
+      reportError('pdf_tool_run', err, 'scan_camera_photo');
+    } finally {
+      shooting.current = false;
+    }
+  }, []);
+}
+
 export function useCamera(input: UseCameraInput): CameraHandle {
   const [status, setStatus] = useState<CameraStatus>('starting');
   const [live, setLive] = useState(IDLE_VIEW);
@@ -58,7 +103,6 @@ export function useCamera(input: UseCameraInput): CameraHandle {
   const lastObs = useRef<FrameObservation | null>(null);
   // the part of the frame the frame in flight covers (one at a time): stateRef's quad is across it
   const lastView = useRef<Rect>(WHOLE_FRAME);
-  const shooting = useRef(false);
   const pacer = useRef<ReturnType<typeof cameraPacer> | null>(null);
 
   const attach = useCallback(() => attachStream(videoEl.current, streamRef.current), []);
@@ -71,24 +115,7 @@ export function useCamera(input: UseCameraInput): CameraHandle {
     attach();
   }, [attach]);
 
-  const shoot = useCallback(async (quad?: Quad | null, byShutter = false) => {
-    const video = videoEl.current;
-    const running = track();
-    if (!video || !running || shooting.current) return;
-    shooting.current = true;
-    pacer.current?.stop();
-    try {
-      // a quad handed in is across the whole frame already; the machine's own is across what was on screen
-      const { smoothed } = stateRef.current;
-      const taken = quad === undefined ? smoothed && toFrame(smoothed, lastView.current) : quad;
-      if (byShutter && lastObs.current) stateRef.current = markTaken(stateRef.current, lastObs.current.hash);
-      onTakenRef.current({ ...(await captureShot(running, video)), quad: taken });
-    } catch (err) {
-      reportError('pdf_tool_run', err, 'scan_camera_photo');
-    } finally {
-      shooting.current = false;
-    }
-  }, []);
+  const shoot = useShot({ videoEl, track, stateRef, lastObs, lastView, pacer, onTakenRef, scanFiles: input.scanFiles, paused: input.paused ?? false });
   const shootRef = useRef(shoot);
   shootRef.current = shoot;
 
