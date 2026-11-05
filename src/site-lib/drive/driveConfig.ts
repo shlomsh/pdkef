@@ -6,6 +6,8 @@ export const GSI_SRC = 'https://accounts.google.com/gsi/client';
 
 // DRIVE-01: the Picker's developer key and app id are public by design (the key is restricted by
 // referrer in Google Cloud); the Picker library comes from the same Google script host as its frame.
-export const DRIVE_PICKER_KEY = 'AIzaSyArlQGL_zijyJ1Zga9v2kTt_aZNVA3TKOU';
+// The key is read from PUBLIC_DRIVE_PICKER_KEY at build time (set in Vercel, or in .env.local for dev),
+// so it stays out of the repo. It still ships in the built JS, as a Picker key must.
+export const DRIVE_PICKER_KEY: string = import.meta.env?.PUBLIC_DRIVE_PICKER_KEY ?? '';
 export const DRIVE_APP_ID = '527283937873';
 export const PICKER_SRC = 'https://apis.google.com/js/api.js';
