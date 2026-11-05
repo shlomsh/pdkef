@@ -64,6 +64,8 @@ export interface ViewfinderProps {
   mode: 'many' | 'one';
   /** Pages in the scan so far: the stack's count and "Page 3." */
   count: number;
+  /** The photos that count as taken: those in the scan, less the one being retaken. */
+  scanFiles: readonly File[];
   /** The last page as it will download, or its photo while that is being made; null when there is none. */
   lastSrc: string | null;
   /** A page was taken. In mode one the island also closes the viewfinder. */
