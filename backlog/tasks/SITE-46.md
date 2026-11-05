@@ -32,4 +32,4 @@ A wrapped long name on a phone had a second fault, on `/he/` too: head and tail 
 
 ## Left as it is
 
-`FileName` on a `/he/` page draws a Hebrew name's end as `pdf.` with the dot against the name, because its last run mixes Hebrew and `.pdf`. The brief was to keep `/he/` as it is, so this needs its own decision.
+Before this change `FileName` drew a short Hebrew name's end as `pdf.` with the dot against the name, because its last run mixes Hebrew and `.pdf`. That was measured on `/merge/`. `/he/` keeps that markup, so it likely still does this there, though it was not measured on a `/he/` page. The brief was to keep `/he/` as it is, so this needs its own decision.
