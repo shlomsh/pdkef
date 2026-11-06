@@ -42,6 +42,12 @@ export interface HighlightMessages {
   markOpacityMenu: string;
   /** READ-11: the Clean | Sketch choice and its two words. */
   markStroke: string;
+  /** The one button that holds a mark's kind, stroke and strength. */
+  markLook: string;
+  /** The kind inside Look: Highlight | Underline, as a radio group. */
+  markKind: string;
+  /** The chip after Delete, with its Undo (guidelines §6). */
+  markRemoved: string;
   strokeClean: string;
   strokeSketch: string;
   /** R8: shown once, after the first mark. */
@@ -106,9 +112,12 @@ export const englishHighlightMessages: HighlightMessages = {
   markOpacity: 'Opacity',
   markOpacityMenu: 'Opacity',
   markStroke: 'Stroke',
+  markLook: 'Look',
+  markKind: 'Kind',
+  markRemoved: 'Highlight removed',
   strokeClean: 'Clean',
   strokeSketch: 'Sketch',
-  restHint: 'Rest on a highlight to change it',
+  restHint: 'Click a highlight to change it',
   tapHint: 'Tap a highlight to change it',
   marker: 'Marker',
   armedAction: 'Swipe to highlight',
