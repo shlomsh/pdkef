@@ -56,8 +56,8 @@ leanDeg, spread, bentPx, crooked }`, `PagePlan { pieces }`; `assess(gray)`, `pla
 {strategy})`, `applyPiece(src, piece)` (one resample), `isAffine(piece)`, `BendStrategy { id, measure }`
 (`classical` wraps measureBend; no learned strategy: dropped, SCAN-19).
 
-Highlight phase 1 lives in the file line's status slot: silent check (no marks yet), then a line such as
-"This scan is sideways, two pages to a sheet" with Straighten and Not now. Straighten opens the file in
+Highlight phase 1 is a card over page 1: silent check (no marks yet), then what was found, what Scan does
+about it, Straighten and Keep as is, once per file. Straighten opens the file in
 Scan (decided 2026-11-04): each sheet becomes one Scan page per book page, with found corners the person
 can adjust, and Scan hands the result back to Highlight, which reads rasters (READ R30). The copy has no
 OCR text; the original stays in recents. A vector rebuild in Highlight could not square a page, which is

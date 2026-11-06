@@ -12,6 +12,7 @@ export interface HighlightMessages {
   loadErrorTail: string;
   zoom: string;
   fitWidth: string;
+  scanOffer: Record<'sideways' | 'spread' | 'lean' | 'bent', { title: string; detail: string }> & { straighten: string; keepAsIs: string; failed: string };
   fitText: string;
   fitPage: string;
   actualSize: string;
@@ -163,4 +164,13 @@ Please leave out private documents and personal information. GitHub issues are p
     go: 'Go',
   },
   cord: { label: 'Full screen', hint: 'pull or click' },
+  scanOffer: {
+    sideways: { title: 'This scan is lying on its side.', detail: 'Scan can turn it upright before you start.' },
+    spread: { title: 'Two pages on each sheet.', detail: 'Scan can split them into single pages before you start.' },
+    lean: { title: 'This scan leans a little.', detail: 'Scan can square it up before you start.' },
+    bent: { title: 'These pages curve toward the spine.', detail: 'Scan can flatten them before you start.' },
+    straighten: 'Straighten',
+    keepAsIs: 'Keep as is',
+    failed: 'That did not open. Please try again.',
+  },
 };
