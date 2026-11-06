@@ -54,6 +54,7 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 ### Robustness and debt
 
 - [DEBT-65](backlog/tasks/DEBT-65.md) P2 · Two layout-shift specs failed once each in the 2026-10-27 nightly (in progress)
+- [QUAL-53](backlog/tasks/QUAL-53.md) P2 · The nightly flake report counts the nightly (in progress)
 - [MEM-24](backlog/tasks/MEM-24.md) P3 · A service worker that cannot install, or never completes its precache, says so (in progress)
 
 ### Unify the tools, narrow the graph
