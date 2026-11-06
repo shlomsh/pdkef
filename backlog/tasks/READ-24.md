@@ -43,4 +43,4 @@ All paths under `src/tools/highlight/` unless named.
 - `MarkPanel` props: `{ look, onChange, onComment, onDelete, menu, onMenuChange, menuSide? }`, with `type PanelMenu = 'more' | 'look' | null` exported from `MarkPanel.tsx`, `menuSide` `'top' | 'bottom'`, default `'bottom'`. `MoreColors` and `LookMenu` take `{ open, onOpenChange, placement }`.
 - `#shell/UndoChip.tsx`: `{ message, undoLabel, onUndo, class?, style? }`, the look ScanUndoChip had; Scan wraps it.
 - `hooks/useRemovedMark.ts`: `useRemovedMark(elements)` returns `{ removed: { at: { x: number; y: number } | null } | null, show(at), dismiss() }`. Five seconds, and any later change to `elements` dismisses it, so its Undo can only ever undo the delete.
-- `lib/marker/glide.ts`: `glideFor(markTop, coverBottom)`. `hooks/useMarkGlide.ts`: `useMarkGlide(markId, menu, panelRef)` writes `--mark-glide` on `[data-lamp-part="board"]`.
+- `lib/marker/glide.ts`: `glideFor(markTop, coverBottom)`. `hooks/useMarkGlide.ts`: `useMarkGlide(markId, menu, panelRef)` writes `translate` on `[data-lamp-part="board"]`, and clears it, because any standing translate would make the board a containing block.

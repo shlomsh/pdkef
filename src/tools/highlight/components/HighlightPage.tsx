@@ -27,6 +27,7 @@ import { useRestToolbar } from '../hooks/useRestToolbar.ts';
 import { cursorValue } from '../lib/marker/cursor.ts';
 import { inkEnd } from '../lib/marker/inkEnd.ts';
 import { markCommands } from '../lib/marks/markCommands.ts';
+import { clickAnchor } from '../lib/marker/panelAnchor.ts';
 import type { Marker } from '../lib/marker/markerState.ts';
 import { englishHighlightMessages as t } from '../messages.ts';
 import RestToolbar, { MarkHint } from './RestToolbar.tsx';
@@ -40,7 +41,7 @@ const noop = () => {};
  * One page card: its header, the page, and a wrapper per highlight on it. While armed, a press from any pointer on the
  * page starts a swipe that lays the marker's bands; the gesture paints during the swipe and commits once.
  */
-export default function HighlightPage({ pdfDocument, pageIndex, widthPx, chrome = 1, elements, marker, armed = true, pickedId, openMarks, onPickMark, rearm, dispatch, logAction, setAnnouncement, cardRef, rail, pageTurns = {}, onComment, onRotate, onClear }: {
+export default function HighlightPage({ pdfDocument, pageIndex, widthPx, chrome = 1, elements, marker, armed = true, pickedId, openMarks, onPickMark, onRemoved, rearm, dispatch, logAction, setAnnouncement, cardRef, rail, pageTurns = {}, onComment, onRotate, onClear }: {
   pdfDocument: PDFDocumentProxy | null;
   pageIndex: number;
   /** The page's width in CSS px at the current zoom. */
@@ -68,6 +69,8 @@ export default function HighlightPage({ pdfDocument, pageIndex, widthPx, chrome 
   rail?: ComponentChildren;
   /** The quarter turns the person gave each page; this page is drawn, and marked, as turned. */
   pageTurns?: PageTurns;
+  /** READ-24: a mark was deleted from its row; `at` is where the row stood, for its Undo. */
+  onRemoved?: (at: { x: number; y: number }) => void;
   /** READ-19, the workspace's Comment, which opens the phone's writing page on a narrow workspace. */
   onComment?: (mark: HighlightElement) => void;
   /** One quarter turn, handed the page as it is shown now (the turn's starting point). */
@@ -92,6 +95,10 @@ export default function HighlightPage({ pdfDocument, pageIndex, widthPx, chrome 
   const closeRest = rest.close;
   // A toolbar whose highlight is gone (deleted, undone) goes with it.
   useEffect(() => { if (rest.targetId !== null && !target) closeRest(); }, [rest.targetId, target, closeRest]);
+
+  const anchorKey = rest.anchor ? `${rest.anchor.x}:${rest.anchor.y}` : undefined;
+  /** READ-24: the full outline on an open mark or row, the faint pass on a resting pointer or a hovered card. */
+  const outlineOf = (id: string) => (id === target?.id || id === openMarks?.openId ? 'open' : id === rest.restId || id === openMarks?.hoverId ? 'faint' : null);
 
   const commands = markCommands({ elements, dispatch, logAction, rearm, setAnnouncement });
 
@@ -142,11 +149,12 @@ export default function HighlightPage({ pdfDocument, pageIndex, widthPx, chrome 
           ref={overlayRef} data-page-overlay data-touch-armed={touchArmed ? '' : undefined} className={touchArmed ? `${workspaceStyles['page-overlay']} ${styles.touchArmed}` : workspaceStyles['page-overlay']} onPointerDown={onPointerDown}
           onPointerMove={rest.onPointerMove} onPointerLeave={rest.onPointerLeave}
           onClick={(event) => {
-            // R7: a single click or tap opens the highlight under it, unless the press just laid ink (that keeps the rest wait and hint).
-            const id = (event.target as Element | null)?.closest('[data-element-id]')?.getAttribute('data-element-id');
-            if (!id || event.detail > 1 || (lastPointerType.current !== 'touch' && clicks.laidInk())) return;
+            // R2, R7: a single click or tap opens the highlight under it, unless the press just laid ink (that keeps the rest wait and hint).
+            const node = (event.target as Element | null)?.closest('[data-element-id]');
+            const id = node?.getAttribute('data-element-id');
+            if (!node || !id || event.detail > 1 || (lastPointerType.current !== 'touch' && clicks.laidInk())) return;
             rest.clearHint();
-            if (coarse) onPickMark?.(id); else rest.openFor(id);
+            if (coarse) onPickMark?.(id); else rest.openFor(id, clickAnchor(node.getBoundingClientRect(), marks.find((m) => m.id === id)?.bands ?? [], event));
           }}
         >
           {marks.map((mark) => (
@@ -159,20 +167,21 @@ export default function HighlightPage({ pdfDocument, pageIndex, widthPx, chrome 
                 boxPts={geometry ? { width: (mark.width / 100) * geometry.width, height: (mark.height / 100) * geometry.height } : undefined}
                 hatch={geometry && mark.style === 'pencil' ? <MarkHatch mark={mark} boxPts={{ width: (mark.width / 100) * geometry.width, height: (mark.height / 100) * geometry.height }} /> : undefined}
               />
-              {geometry && (mark.id === openMarks?.openId || mark.id === openMarks?.hoverId) && (
+              {geometry && outlineOf(mark.id) && (
                 <MarkOutline
-                  mark={mark} turns={turnsOf(pageTurns, pageIndex)} faint={mark.id !== openMarks?.openId}
+                  mark={mark} turns={turnsOf(pageTurns, pageIndex)} faint={outlineOf(mark.id) === 'faint'}
                   boxPts={{ width: (mark.width / 100) * geometry.width, height: (mark.height / 100) * geometry.height }}
                 />
               )}
+              {mark.id === target?.id && rest.anchor && <span key={anchorKey} data-panel-anchor class={styles.panelAnchor} style={{ left: `${rest.anchor.x}%`, top: `${rest.anchor.y}%` }} />}
             </div>
           ))}
         </div>
         {rest.hint && <MarkHint anchor={rest.hint} text={coarse ? t.tapHint : t.restHint} />}
         {target && !coarse && (
           <RestToolbar
-            key={target.id} mark={target}
-            onChange={(change) => commands.change(target, change)} onDelete={() => { commands.remove(target); rest.close(); }}
+            key={target.id} mark={target} anchorKey={anchorKey}
+            onChange={(change) => commands.change(target, change)} onDelete={(at) => { commands.remove(target); rest.close(); onRemoved?.(at); }}
             onComment={() => { (onComment ?? commands.comment)(target); rest.close(); }} onClose={rest.close}
           />
         )}

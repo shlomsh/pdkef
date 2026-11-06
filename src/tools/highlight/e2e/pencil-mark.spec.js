@@ -33,8 +33,8 @@ async function layMark(page) {
 
 test('Pencil turns the mark into hatching inside its box, with no band under it', async ({ page }) => {
   const mark = await layMark(page);
-  await expect(page.locator('[data-style-toggle] [role="radio"]:visible')).toHaveCount(2);
-  await page.getByRole('button', { name: 'Opacity' }).click();
+  await page.getByRole('button', { name: 'Look' }).click();
+  await expect(page.locator('[role="radiogroup"][aria-label="Kind"]:visible [role="radio"]')).toHaveCount(2);
   const look = page.locator('[role="radiogroup"][aria-label="Stroke"]:visible');
   await expect(look.getByRole('radio')).toHaveCount(3);
   expect(await look.evaluate((group) => group.scrollWidth - group.clientWidth), 'the toggle does not overflow').toBeLessThanOrEqual(0);
@@ -56,6 +56,9 @@ test('Pencil turns the mark into hatching inside its box, with no band under it'
   expect(drawn.y).toBeGreaterThanOrEqual(inner.y - slack);
   expect(drawn.x + drawn.width).toBeLessThanOrEqual(inner.x + inner.width + slack);
   expect(drawn.y + drawn.height).toBeLessThanOrEqual(inner.y + inner.height + slack);
-  // The mark is not open for a note, so it wears no outline.
+  // READ-24: the open row keeps the outline on its mark, and closing it takes the outline away.
+  await expect(page.locator('[data-mark-outline]')).toHaveCount(1);
+  await page.keyboard.press('Escape');
+  await expect(page.locator('[data-rest-toolbar]')).toHaveCount(0);
   await expect(page.locator('[data-mark-outline]')).toHaveCount(0);
 });

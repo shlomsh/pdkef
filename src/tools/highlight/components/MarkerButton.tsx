@@ -9,7 +9,8 @@ import { englishHighlightMessages as t } from '../messages.ts';
 import controls from '#editor-ui/EditorControls.module.css';
 import toolbarStyles from '#editor-ui/SignToolbar.module.css';
 import PencilGlyph from './PencilGlyph.tsx';
-import MarkPanel from './MarkPanel.tsx';
+import { useMarkGlide } from '../hooks/useMarkGlide.ts';
+import MarkPanel, { type PanelMenu } from './MarkPanel.tsx';
 import styles from './MarkerButton.module.css';
 
 interface MarkerButtonProps {
@@ -24,6 +25,7 @@ interface MarkerButtonProps {
   onOpenChange?(open: boolean): void;
   /** A tapped highlight: the panel is open on its look and edits it (Comment and Delete too) until it is released. */
   mark?: {
+    id: string;
     look: Marker;
     onChange(change: Partial<Marker>): void;
     onComment(): void;
@@ -42,19 +44,19 @@ interface MarkerButtonProps {
 export default function MarkerButton({ marker, armed = false, onTap, onDisarm, onOpenChange, mark, buttonClass }: MarkerButtonProps) {
   const open = Boolean(mark);
   const panelId = useId();
-  const [moreOpen, setMoreOpen] = useState(false);
+  const [menu, setMenu] = useState<PanelMenu>(null);
   const badge = markerBadge(marker);
 
   // Closing a mark's panel by any way lets the mark go.
   const close = () => {
-    setMoreOpen(false);
+    setMenu(null);
     mark?.onRelease();
   };
   // A mark's panel keeps the capsule awake, and tells it when the mark goes.
   useEffect(() => {
     if (!open) return;
     onOpenChange?.(true);
-    return () => { setMoreOpen(false); onOpenChange?.(false); };
+    return () => { setMenu(null); onOpenChange?.(false); };
   }, [open]);
 
   // R9: a touch screen with a keyboard answers the desktop keys while the panel is open. The latest mark is read
@@ -89,9 +91,11 @@ export default function MarkerButton({ marker, armed = false, onTap, onDisarm, o
     middleware: [offset(8), flip(), shift({ padding: 16 })],
     whileElementsMounted: autoUpdate,
   });
-  // The More popover is portaled out of the panel: a press in it is not an outside press, and Escape closes it first.
+  // READ-24: the page glides down so the mark stays in view under the panel and its menu.
+  useMarkGlide(mark?.id ?? null, menu, refs.floating);
+  // The panel's menus are portaled out of it: a press in one is not an outside press, and Escape closes it first.
   const dismiss = useDismiss(context, {
-    escapeKey: !moreOpen,
+    escapeKey: menu === null,
     outsidePress: (e) => !(e.target as Element | null)?.closest?.('[data-editor-popover]'),
   });
   const { getReferenceProps, getFloatingProps } = useInteractions([dismiss]);
@@ -100,7 +104,7 @@ export default function MarkerButton({ marker, armed = false, onTap, onDisarm, o
     <span
       class={buttonClass ? `${styles.wrap} ${toolbarStyles.dropdown}` : styles.wrap} data-marker-button data-tile={buttonClass ? '' : undefined}
       onKeyDown={(e) => {
-        if (e.key !== 'Escape' || !open || moreOpen) return;
+        if (e.key !== 'Escape' || !open || menu) return;
         e.stopPropagation();
         close();
         (e.currentTarget as HTMLElement).querySelector<HTMLElement>('button')?.focus();
@@ -136,7 +140,7 @@ export default function MarkerButton({ marker, armed = false, onTap, onDisarm, o
           class={`${styles.menu} ${controls.popover} ${controls['toolbar-menu']}`} role="group" aria-label={t.marker}
         >
           <MarkPanel
-            look={mark.look} onChange={mark.onChange} moreOpen={moreOpen} onMoreOpenChange={setMoreOpen}
+            look={mark.look} onChange={mark.onChange} menu={menu} onMenuChange={setMenu}
             onComment={() => { mark.onComment(); close(); }} onDelete={() => { mark.onDelete(); close(); }}
           />
         </div>

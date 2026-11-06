@@ -5,6 +5,7 @@ import { keyAction, markKeyIntent } from '../lib/marker/keys.ts';
 import type { Marker } from '../lib/marker/markerState.ts';
 import { scrolledPast } from '../lib/marker/toolbarLayers.ts';
 import { HINT_MS, hintSeen, markHintSeen } from '../lib/marker/hint.ts';
+import type { PanelAnchor } from '../lib/marker/panelAnchor.ts';
 import { initialRest, nextTickAt, restReducer, type RestEvent, type RestState } from '../lib/marker/restDetector.ts';
 
 type MoveLike = Pick<PointerEvent, 'clientX' | 'clientY' | 'pointerType' | 'buttons'> & { target: EventTarget | null };
@@ -24,14 +25,18 @@ function storage(): Storage | null {
 let activeClose: (() => void) | null = null;
 
 /**
- * R2, R7, R8 for one page. Pointer moves feed the rest detector through refs and timers, never state;
- * state changes once, when the detector reports a highlight opened (or a tap, or the hint).
+ * R2, R7, R8 for one page. A rest outlines the mark (`restId`); a click or keyboard focus opens its row
+ * (`openFor`). Pointer moves feed the rest detector through refs and timers, never state; state changes
+ * once, when the detector reports a different resting mark (or an open, or the hint).
  */
 export function useRestToolbar() {
   const [targetId, setTargetId] = useState<string | null>(null);
+  const [restId, setRestId] = useState<string | null>(null);
+  const [anchor, setAnchor] = useState<PanelAnchor | null>(null);
   const [hint, setHint] = useState<HintAnchor | null>(null);
   const openRef = useRef<string | null>(null);
   const restRef = useRef<RestState>(initialRest);
+  const restIdRef = useRef<string | null>(null);
   const lastRef = useRef({ x: 0, y: 0 });
   const tickTimer = useRef(0);
   const hintTimer = useRef(0);
@@ -52,10 +57,10 @@ export function useRestToolbar() {
   const feed = useCallback((event: RestEvent) => {
     restRef.current = restReducer(restRef.current, event);
     window.clearTimeout(tickTimer.current);
-    const opened = restRef.current.opened;
-    if (opened !== null && openRef.current === null) {
-      open(opened);
-      return;
+    const rested = restRef.current.rested;
+    if (rested !== restIdRef.current) {
+      restIdRef.current = rested;
+      setRestId(rested);
     }
     const at = nextTickAt(restRef.current);
     if (at !== null) {
@@ -77,14 +82,18 @@ export function useRestToolbar() {
   /** A stroke just ended where the pointer is: no rest counts until it has gone 12 px away (R2). */
   const strokeEnd = useCallback(() => feed({ type: 'strokeEnd', x: lastRef.current.x, y: lastRef.current.y }), [feed]);
 
-  /** R7: a tap opens a highlight at once. */
-  const openFor = useCallback((id: string) => {
+  /** R7: a click or keyboard focus opens a highlight at once; `at` is where it was pressed. */
+  const openFor = useCallback((id: string, at: PanelAnchor | null = null) => {
     window.clearTimeout(tickTimer.current);
     restRef.current = initialRest;
+    restIdRef.current = null;
+    setRestId(null);
+    setAnchor(at);
     open(id);
   }, [open]);
 
   const close = useCallback(() => {
+    setAnchor(null);
     open(null);
     feed({ type: 'closed' });
   }, [open, feed]);
@@ -111,7 +120,7 @@ export function useRestToolbar() {
     window.clearTimeout(hintTimer.current);
   }, []);
 
-  return { targetId, hint, onPointerMove, onPointerLeave, strokeEnd, openFor, close, showHint, clearHint };
+  return { restId, targetId, anchor, hint, onPointerMove, onPointerLeave, strokeEnd, openFor, close, showHint, clearHint };
 }
 
 type ToolbarLive = { current: { mark: HighlightElement; onChange(change: Partial<Marker>): void; onDelete(): void; onComment(): void; onClose(): void; look: Marker } };

@@ -42,7 +42,7 @@ const dispatch = vi.fn();
 const logAction = vi.fn();
 const rearm = vi.fn();
 
-function mount(elements: EditorElement[], marker = DEFAULT_MARKER, armed?: boolean, extra: { chrome?: number; pickedId?: string | null; openMarks?: { openId: string | null; hoverId: string | null }; onPickMark?: (id: string) => void; onComment?: (mark: HighlightElement) => void; rail?: preact.ComponentChildren; pageTurns?: Record<number, 1 | 2 | 3> } = {}) {
+function mount(elements: EditorElement[], marker = DEFAULT_MARKER, armed?: boolean, extra: { chrome?: number; onRemoved?: (at: { x: number; y: number }) => void; pickedId?: string | null; openMarks?: { openId: string | null; hoverId: string | null }; onPickMark?: (id: string) => void; onComment?: (mark: HighlightElement) => void; rail?: preact.ComponentChildren; pageTurns?: Record<number, 1 | 2 | 3> } = {}) {
   act(() => render(
     <HighlightPage
       pdfDocument={null} pageIndex={0} widthPx={600} elements={elements} marker={marker} armed={armed} {...extra}
@@ -220,14 +220,48 @@ describe('HighlightPage rest toolbar', () => {
   beforeEach(() => { vi.useFakeTimers(); restorePointer = stubPointer(false); });
   afterEach(() => restorePointer());
 
-  it('opens on a highlight the pointer rests on, and not before', () => {
+  it('READ-24: a rest draws the faint outline and opens nothing, and leaving the mark takes it away', async () => {
+    vi.useRealTimers();
+    geometryOverride = { width: 600, height: 800 };
     mount([mark]);
     const wrapper = container.querySelector('[data-element-id]')!;
     move(wrapper);
-    act(() => { vi.advanceTimersByTime(600); });
+    await vi.waitFor(() => expect(container.querySelector('svg[data-mark-outline]')).not.toBeNull(), { timeout: 3000 });
     expect(toolbar()).toBeNull();
-    act(() => { vi.advanceTimersByTime(200); });
+    move(container.querySelector('[data-page-overlay]')!);
+    await vi.waitFor(() => expect(container.querySelector('svg[data-mark-outline]')).toBeNull());
+  });
+
+  it('READ-24: a click places the anchor on the line clicked, at the pointer', () => {
+    const passage: EditorElement = { ...mark, bands: [{ left: 0, top: 0, width: 100, height: 40 }, { left: 0, top: 60, width: 100, height: 40 }] };
+    mount([passage]);
+    const wrapper = container.querySelector<HTMLElement>('[data-element-id]')!;
+    vi.spyOn(wrapper, 'getBoundingClientRect').mockReturnValue({ left: 100, top: 200, width: 400, height: 50 } as DOMRect);
+    const down = new MouseEvent('pointerdown', { bubbles: true, button: 0 });
+    Object.defineProperty(down, 'pointerType', { value: 'mouse' });
+    act(() => { wrapper.dispatchEvent(down); wrapper.dispatchEvent(new MouseEvent('click', { bubbles: true, detail: 1, clientX: 400, clientY: 240 })); });
+    const anchor = container.querySelector<HTMLElement>('[data-panel-anchor]')!;
+    expect(anchor.style.left).toBe('75%');
+    expect(anchor.style.top).toBe('60%');
     expect(toolbar()).not.toBeNull();
+  });
+
+  it('READ-24: the open row keeps the full outline on its mark', async () => {
+    vi.useRealTimers();
+    geometryOverride = { width: 600, height: 800 };
+    mount([mark]);
+    mouseClickOn(container.querySelector('[data-element-id]')!, 1);
+    await vi.waitFor(() => expect(container.querySelector('svg[data-mark-outline]')).not.toBeNull(), { timeout: 3000 });
+    expect(container.querySelector('svg[data-mark-outline]')!.getAttribute('class')).not.toContain('faint');
+  });
+
+  it('READ-24: Delete tells the workspace where the row stood', () => {
+    const onRemoved = vi.fn();
+    mount([mark], DEFAULT_MARKER, undefined, { onRemoved });
+    mouseClickOn(container.querySelector('[data-element-id]')!, 1);
+    act(() => { toolbarButton('Delete').click(); });
+    expect(onRemoved).toHaveBeenCalledTimes(1);
+    expect(toolbar()).toBeNull();
   });
 
   it('a tap with a finger opens it at once', () => {
@@ -265,9 +299,9 @@ describe('HighlightPage rest toolbar', () => {
 
   it('a color change updates the highlight, logs one undo step and re-arms the marker', () => {
     mount([mark]);
-    move(container.querySelector('[data-element-id]')!);
-    act(() => { vi.advanceTimersByTime(800); });
-    act(() => { toolbarButton('Underline').click(); });
+    mouseClickOn(container.querySelector('[data-element-id]')!, 1);
+    act(() => { toolbarButton('Look').click(); });
+    act(() => { document.querySelector<HTMLElement>('[data-editor-popover] [aria-label="Underline"]')!.click(); });
     expect(dispatch).toHaveBeenCalledWith({ type: 'UPDATE_ELEMENT', payload: { id: 'h1', changes: { style: 'underline' } } });
     const entry = dispatch.mock.calls.find(([a]) => a.type === 'ADD_ACTION_HISTORY')?.[0].payload;
     expect(entry).toMatchObject({ operation: 'update', updates: [{ id: 'h1', after: { style: 'underline' } }] });
@@ -276,8 +310,7 @@ describe('HighlightPage rest toolbar', () => {
 
   it('Delete removes the highlight, logs it for undo and closes', () => {
     mount([mark]);
-    move(container.querySelector('[data-element-id]')!);
-    act(() => { vi.advanceTimersByTime(800); });
+    mouseClickOn(container.querySelector('[data-element-id]')!, 1);
     act(() => { toolbarButton('Delete').click(); });
     expect(dispatch).toHaveBeenCalledWith({ type: 'DELETE_ELEMENT', payload: 'h1' });
     expect(logAction).toHaveBeenCalledWith('delete', 'DELETE_ELEMENT', 0, expect.stringContaining('Delete'), [{ element: mark, index: 0 }]);
@@ -286,8 +319,7 @@ describe('HighlightPage rest toolbar', () => {
 
   it('R27: Comment on a mark with no comment adds a blank one anchored to it and makes it active', () => {
     mount([mark]);
-    move(container.querySelector('[data-element-id]')!);
-    act(() => { vi.advanceTimersByTime(800); });
+    mouseClickOn(container.querySelector('[data-element-id]')!, 1);
     act(() => { toolbarButton('Comment').click(); });
     const added = dispatch.mock.calls.find(([a]) => a.type === 'ADD_ELEMENT')?.[0].payload;
     expect(added).toMatchObject({ type: 'comment', comment: '', anchor: { kind: 'element', elementId: 'h1' } });
@@ -299,8 +331,7 @@ describe('HighlightPage rest toolbar', () => {
   it('READ-19: with an onComment prop the toolbar hands the mark to it and adds nothing itself', () => {
     const onComment = vi.fn();
     mount([mark], DEFAULT_MARKER, undefined, { onComment });
-    move(container.querySelector('[data-element-id]')!);
-    act(() => { vi.advanceTimersByTime(800); });
+    mouseClickOn(container.querySelector('[data-element-id]')!, 1);
     act(() => { toolbarButton('Comment').click(); });
     expect(onComment).toHaveBeenCalledWith(mark);
     expect(dispatch.mock.calls.some(([a]) => a.type === 'ADD_ELEMENT')).toBe(false);
@@ -309,8 +340,7 @@ describe('HighlightPage rest toolbar', () => {
 
   it('R27: Comment on a mark that has one makes that comment active and adds nothing', () => {
     mount([mark, savedComment]);
-    move(container.querySelector('[data-element-id]')!);
-    act(() => { vi.advanceTimersByTime(800); });
+    mouseClickOn(container.querySelector('[data-element-id]')!, 1);
     act(() => { toolbarButton('Comment').click(); });
     expect(dispatch.mock.calls.some(([a]) => a.type === 'ADD_ELEMENT')).toBe(false);
     expect(dispatch).toHaveBeenCalledWith({ type: 'SET_ACTIVE_ELEMENT_ID', payload: 'c1' });
@@ -318,8 +348,7 @@ describe('HighlightPage rest toolbar', () => {
 
   it('R27: Delete takes the highlight and its comment in one undo entry', () => {
     mount([mark, savedComment]);
-    move(container.querySelector('[data-element-id]')!);
-    act(() => { vi.advanceTimersByTime(800); });
+    mouseClickOn(container.querySelector('[data-element-id]')!, 1);
     act(() => { toolbarButton('Delete').click(); });
     expect(logAction).toHaveBeenCalledTimes(1);
     expect(logAction).toHaveBeenCalledWith('delete', 'DELETE_ELEMENT', 0, expect.any(String), [
@@ -329,8 +358,7 @@ describe('HighlightPage rest toolbar', () => {
 
   it('a press elsewhere closes it', () => {
     mount([mark]);
-    move(container.querySelector('[data-element-id]')!);
-    act(() => { vi.advanceTimersByTime(800); });
+    mouseClickOn(container.querySelector('[data-element-id]')!, 1);
     press(document.body, { pointerType: 'mouse' });
     expect(toolbar()).toBeNull();
   });
@@ -396,7 +424,7 @@ describe('HighlightPage one-time hint', () => {
     const overlay = mount([]);
     finishStroke(overlay);
     const hint = container.querySelector<HTMLElement>('[data-mark-hint]');
-    expect(hint?.textContent).toBe('Rest on a highlight to change it');
+    expect(hint?.textContent).toBe('Click a highlight to change it');
     expect(hint?.style.left).toBe('40%');
     act(() => { vi.advanceTimersByTime(4100); });
     expect(container.querySelector('[data-mark-hint]')).toBeNull();

@@ -34,6 +34,8 @@ import { markOf } from '../lib/marker/markEdit.ts';
 import type { HighlightElement } from '#editor/model/editorModel.ts';
 import { coarsePointer, useMarkerArming } from '../hooks/useMarkerArming.ts';
 import { useMarkPanel } from '../hooks/useMarkPanel.ts';
+import type { Marker } from '../lib/marker/markerState.ts';
+import UndoChip from '#shell/UndoChip.tsx';
 import { markCommands } from '../lib/marks/markCommands.ts';
 import { withPhoneWriting } from '../lib/notes/phoneWriting.ts';
 import { activeAfterPick } from '../lib/notes/notePane.ts';
@@ -139,7 +141,8 @@ export default function HighlightWorkspace({ pdfDocument, numPages, fileName, zo
   const elements = marks.state.elements;
   const panel = useMarkPanel(elements, workspaceRef);
   // READ-13: the open mark wears the pencil outline, and the other marks step back while one is open.
-  const { openMarks } = panel;
+  // READ-24: Delete offers its Undo, where the row stood on a fine pointer, at the foot of the screen on touch.
+  const { openMarks, removal } = panel;
   const pickMark = (id: string) => {
     panel.pick(id);
     const next = activeAfterPick(elements, marks.state.activeElementId, id);
@@ -147,10 +150,7 @@ export default function HighlightWorkspace({ pdfDocument, numPages, fileName, zo
   };
   const picked = panel.markId ? elements.find((el) => el.id === panel.markId) as HighlightElement | undefined : undefined;
   const commands = withPhoneWriting(markCommands({ elements, dispatch, logAction: marks.logAction, rearm: marks.rearm, setAnnouncement }), elements, comments);
-  const mark = picked && {
-    look: markOf(picked), onChange: (change: Partial<typeof marks.marker>) => commands.change(picked, change),
-    onComment: () => commands.comment(picked), onDelete: () => commands.remove(picked), onRelease: panel.release,
-  };
+  const mark = picked && pickedMark(picked, commands, () => removal.show(null), panel.release);
 
   return (
     <>
@@ -193,12 +193,13 @@ export default function HighlightWorkspace({ pdfDocument, numPages, fileName, zo
             key={i} pdfDocument={pdfDocument} pageIndex={i} widthPx={box.width * zoom.zoom}
             elements={marks.state.elements} marker={marks.marker} rearm={marks.rearm} dispatch={dispatch} logAction={marks.logAction}
             setAnnouncement={setAnnouncement} armed={touch.armed} pickedId={panel.markId} openMarks={openMarks} onPickMark={pickMark} cardRef={(el) => { pageRefs.current[i] = el; }} chrome={zoom.chrome} rail={comments.rail(i, (box.height * zoom.zoom) / zoom.chrome)}
-            pageTurns={marks.pageTurns} onComment={commands.comment} onRotate={(geometry) => { dispatch(rotatePageAction(i, geometry)); recordAction('rotate'); }}
+            pageTurns={marks.pageTurns} onComment={commands.comment} onRemoved={removal.show} onRotate={(geometry) => { dispatch(rotatePageAction(i, geometry)); recordAction('rotate'); }}
             onClear={() => { const actions = clearPageActions(marks.state.elements, i); actions.forEach((a) => dispatch(a)); if (actions.length) recordAction('delete_mark'); }}
           />
         ))}
       </div>
       </div>
+      {removal.removed && <UndoChip message={t.markRemoved} undoLabel={t.capsule.undo} onUndo={undo} style={chipAt(removal.removed.at)} />}
       <PhoneNotes wide={comments.wide} elements={marks.state.elements} activeElementId={marks.state.activeElementId} messages={englishSignMessages} labels={t.notes} writer={comments.writer} onEdit={commands.editNote}
           onSelect={(id) => dispatch({ type: 'SET_ACTIVE_ELEMENT_ID', payload: id })} {...comments.actions} onUndo={undo} onReturnFocus={comments.returnFocus} />
     </div>
@@ -207,6 +208,15 @@ export default function HighlightWorkspace({ pdfDocument, numPages, fileName, zo
 }
 
 /** Outside the lamp: the editor card Sign and Redact show, with Highlight's tiles in Sign's grammar. */
+/** What the panel shows and does for the picked mark. */
+const pickedMark = (picked: HighlightElement, commands: ReturnType<typeof markCommands>, onRemoved: () => void, onRelease: () => void) => ({
+  id: picked.id, look: markOf(picked), onChange: (change: Partial<Marker>) => commands.change(picked, change),
+  onComment: () => commands.comment(picked), onDelete: () => { commands.remove(picked); onRemoved(); }, onRelease,
+});
+
+/** The chip stands where the row stood, or keeps its own place at the foot of the screen. */
+const chipAt = (at: { x: number; y: number } | null) => (at ? { left: `${at.x}px`, top: `${at.y}px`, right: 'auto', bottom: 'auto' } : undefined);
+
 function TileRow({ marks, undo, redo, touch, mark, printMenu, withComments, onPrintOpenChange, onToggleView, onDownload, doneName, onCloseDone, drive, shareProps }: {
   marks: ReturnType<typeof useHighlightMarks>;
   undo(): void;
@@ -227,7 +237,7 @@ function TileRow({ marks, undo, redo, touch, mark, printMenu, withComments, onPr
   const shortcuts = historyShortcuts(typeof navigator !== 'undefined' && isMacPlatform(navigator.platform));
   return (
     <ToolShell
-      editor statusBeside status={touch.armed && coarsePointer() ? <PenHint marker={marks.marker} text={t.armedAction} /> : null}
+      editor statusBeside status={touch.armed && !mark && coarsePointer() ? <PenHint marker={marks.marker} text={t.armedAction} /> : null}
       aside={<FeedbackButton tool={{ name: t.feedback.name, body: t.feedback.body }} className={styles.feedback} labelClassName={styles.feedbackLabel} label={t.feedback.label} title={t.feedback.title} />}
     >
       <div className={`${toolbarStyles.toolbar} ${styles.toolRow}`} role="toolbar" aria-label={t.toolbarLabel} data-editor-toolbar>
