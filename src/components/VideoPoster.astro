@@ -22,15 +22,15 @@ const { video, lazy = false } = Astro.props;
     loading={lazy ? 'lazy' : undefined}
   />
   <button
-    class="absolute inset-0 flex h-full w-full cursor-pointer items-end justify-end border-0 bg-transparent p-3"
+    class="absolute inset-0 flex h-full w-full cursor-pointer items-center justify-center border-0 bg-transparent"
     type="button"
     aria-label={`Play: ${video.label}`}
     data-video-play
     data-embed={video.embed}
     data-title={video.label}
   >
-    <span class="flex h-12 w-12 items-center justify-center rounded-full bg-[var(--color-bg)] text-[var(--color-text)]">
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"></path></svg>
+    <span class="flex aspect-square w-[clamp(2.75rem,9%,5rem)] items-center justify-center rounded-full bg-[var(--color-text)] text-[var(--color-bg)]">
+      <svg width="55%" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"></path></svg>
     </span>
   </button>
 </div>
