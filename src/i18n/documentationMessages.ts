@@ -15,6 +15,7 @@ export interface DocumentationShellMessages {
   stalePreviewNotice: string;
   faqTag: string;
   faqHeading: string;
+  toolFaqHeading: string;
   otherDevices: string;
   openSignTool: string;
   relatedHeading: string;
@@ -106,15 +107,16 @@ const englishMessages = {
   previewNotice: 'Preview translation for native review. This page is not indexed.',
   stalePreviewNotice: 'Preview translation needs review after its English source changed. This page is not indexed.',
   faqTag: 'Got questions?',
-  faqHeading: 'Frequently asked questions',
+  faqHeading: 'Questions about these free PDF tools',
+  toolFaqHeading: '{tool} questions',
   otherDevices: 'Signing on a different device?',
   openSignTool: 'Open the Sign & Fill tool',
-  relatedHeading: 'Documentation',
+  relatedHeading: 'Step-by-step guides for this tool',
   crossLinksKicker: 'Same suite',
-  crossLinksHeading: 'More PDF tools',
+  crossLinksHeading: 'More free PDF tools that run in your browser',
   crossLinksSubhead: "Every one of these runs on your device, free, with nothing uploaded.",
   howItWorks: 'How it works',
-  freeForEveryone: 'Free for everyone',
+  freeForEveryone: 'Free, no signup, and your file never leaves your device',
   openSourceNote:
     'It\'s open source under the MIT license, so anyone can read the code, <a class="font-medium text-[var(--color-primary-text)]" href="https://github.com/shlomsh/pdkef" target="_blank" rel="noopener noreferrer">fork it on GitHub</a>, or share it. Simple PDF tools should be free for everyone.',
   socialImageAlt: 'PDkef - free PDF tools that run entirely in your browser.',
@@ -154,15 +156,16 @@ const hebrewMessages = {
   previewNotice: 'תרגום בתצוגה מקדימה לבדיקת דוברי עברית. דף זה אינו מאונדקס.',
   stalePreviewNotice: 'התרגום בתצוגה מקדימה דורש בדיקה לאחר שינוי במקור האנגלי. דף זה אינו מאונדקס.',
   faqTag: 'יש שאלות?',
-  faqHeading: 'שאלות נפוצות',
+  faqHeading: 'שאלות על כלי ה-PDF החינמיים האלה',
+  toolFaqHeading: 'שאלות על {tool}',
   otherDevices: 'חותמים במכשיר אחר?',
   openSignTool: 'פתיחת כלי החתימה והמילוי (באנגלית)',
-  relatedHeading: 'מדריכים',
+  relatedHeading: 'מדריכים צעד אחר צעד לכלי הזה',
   crossLinksKicker: 'מאותו ארגז כלים',
-  crossLinksHeading: 'עוד כלי PDF',
+  crossLinksHeading: 'עוד כלי PDF חינמיים שעובדים בדפדפן',
   crossLinksSubhead: 'כל אחד מהם רץ על המכשיר שלכם, בחינם, בלי להעלות שום דבר.',
   howItWorks: 'איך זה עובד',
-  freeForEveryone: 'בחינם, ללא תנאים',
+  freeForEveryone: 'בחינם, בלי הרשמה, והקובץ לא יוצא מהמכשיר',
   openSourceNote:
     'הקוד פתוח ברישיון MIT, אז כל אחד יכול לקרוא אותו, <a class="font-medium text-[var(--color-primary-text)]" href="https://github.com/shlomsh/pdkef" target="_blank" rel="noopener noreferrer">לעשות לו fork ב-GitHub</a> או לשתף אותו. כלים פשוטים ל-PDF צריכים להיות חינם לכולם.',
   socialImageAlt: 'PDkef - כלים חינמיים ל-PDF שפועלים במלואם בדפדפן שלך.',
@@ -205,15 +208,16 @@ const indonesianMessages = {
   previewNotice: 'Terjemahan pratinjau untuk ditinjau oleh penutur asli. Halaman ini tidak diindeks.',
   stalePreviewNotice: 'Terjemahan pratinjau perlu ditinjau ulang setelah sumber bahasa Inggrisnya berubah. Halaman ini tidak diindeks.',
   faqTag: 'Ada pertanyaan?',
-  faqHeading: 'Pertanyaan yang sering diajukan',
+  faqHeading: 'Pertanyaan tentang alat PDF gratis ini',
+  toolFaqHeading: 'Pertanyaan tentang {tool}',
   otherDevices: 'Menandatangani di perangkat lain?',
   openSignTool: 'Buka alat Tanda Tangan & Isi (berbahasa Inggris)',
-  relatedHeading: 'Dokumentasi',
+  relatedHeading: 'Panduan langkah demi langkah untuk alat ini',
   crossLinksKicker: 'Dari rangkaian yang sama',
-  crossLinksHeading: 'Alat PDF lainnya',
+  crossLinksHeading: 'Alat PDF gratis lainnya yang berjalan di browser',
   crossLinksSubhead: 'Semuanya berjalan di perangkat Anda, gratis, tanpa ada yang diunggah.',
   howItWorks: 'Cara kerjanya',
-  freeForEveryone: 'Gratis untuk semua orang',
+  freeForEveryone: 'Gratis, tanpa daftar, dan file Anda tidak pernah keluar dari perangkat',
   openSourceNote:
     'Kodenya open source dengan lisensi MIT, jadi siapa pun bisa membacanya, <a class="font-medium text-[var(--color-primary-text)]" href="https://github.com/shlomsh/pdkef" target="_blank" rel="noopener noreferrer">melakukan fork di GitHub</a>, atau membagikannya. Alat PDF sederhana seharusnya gratis untuk semua orang.',
   socialImageAlt: 'PDkef - alat PDF gratis yang berjalan sepenuhnya di peramban Anda.',

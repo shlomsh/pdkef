@@ -11,7 +11,7 @@ describe('documentation shell messages', () => {
     expect(getDocumentationLocale('en')?.dir).toBe('ltr');
     expect(messages).toMatchObject({
       language: 'Language',
-      faqHeading: 'Frequently asked questions',
+      faqHeading: 'Questions about these free PDF tools',
       reportBug: 'Report a bug',
     });
   });

@@ -23,6 +23,7 @@ import Footer from '../components/Footer.astro';
 import OfflineProof from '../components/OfflineProof.astro';
 import { documentationShellMessages, type DocumentationShellMessages } from '../i18n/documentationMessages';
 import { getLocalizedToolContext, getPublishedEditionPaths } from '../i18n/localizedTools';
+import { toolFaqHeading } from '../i18n/faqHeading';
 import { EDITOR_LAYOUT_SLUGS, FILE_LIST_RESTORE_SLUGS, layoutOf } from '#lib/app/toolIds.ts';
 import { registerToolPageStyles } from '../components/inlineStyles';
 import { appRating } from '../site-lib/ratingAggregate';
@@ -257,7 +258,7 @@ if (video) Astro.csp?.insertDirective(`frame-src ${new URL(video.embed).origin}`
 
   {showExamples && <ToolExamplesCard examples={tool.examples} sketch={tool.aboutSketch} iconPos={tool.aboutIconPos} icon={tool.icon} />}
 
-  <ToolFaqCard faq={tool.faq} sketch={tool.faqSketch} iconPos={tool.faqIconPos} labels={{ tag: messages.faqTag, heading: messages.faqHeading }} />
+  <ToolFaqCard faq={tool.faq} sketch={tool.faqSketch} iconPos={tool.faqIconPos} labels={{ tag: messages.faqTag, heading: toolFaqHeading(messages, locale, tool.slug) }} />
 
   <RelatedGuides currentSlug={tool.slug} locale={locale} labels={{ relatedHeading: messages.relatedHeading, inEnglish: messages.inEnglish }} editionPaths={editionPaths} />
 

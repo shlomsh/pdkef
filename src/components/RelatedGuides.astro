@@ -42,7 +42,7 @@ interface Props {
 
 const { currentSlug, heading, locale = 'en', labels = {} as Props['labels'], resolveLink, editionPaths = [] } = Astro.props as Props;
 const published = new Set(editionPaths);
-const resolvedHeading = heading ?? labels?.relatedHeading ?? 'Documentation';
+const resolvedHeading = heading ?? labels?.relatedHeading ?? 'Step-by-step guides for this tool';
 const related = contentPagesForTool(currentSlug);
 ---
 
@@ -115,6 +115,7 @@ const related = contentPagesForTool(currentSlug);
     letter-spacing: -0.02em;
     line-height: 1.05;
     color: var(--color-text);
+    text-wrap: balance;
   }
 
   /* flex, not grid: 6 related pages (sign's hub) lay out as two even rows of
@@ -123,36 +124,33 @@ const related = contentPagesForTool(currentSlug);
      trailing row (e.g. 4 columns fit, 6 items -> 4+2) stays left-packed
      against the first columns instead of centring itself - the exact
      asymmetry a flex row's own justify-content avoids, because flex centres
-     each wrapped line independently. */
+     each wrapped line independently. The gap and column widths are
+     ToolCrossLinks' own, so a full row sits on the grid directly below. */
   .related-guides-en { display: inline-block; margin-inline-start: .5rem; vertical-align: middle; font-size: .7rem; font-weight: 600; color: var(--color-muted); }
 
   .related-guides-grid {
     display: flex;
     flex-wrap: wrap;
     justify-content: center;
-    gap: 1rem;
+    gap: var(--space-layout-gap);
     margin: 0;
     padding: 0;
     list-style: none;
   }
 
   .related-guides-grid > li {
-    flex: 0 1 calc(33.333% - 0.667rem);
-    min-width: 240px;
-    max-width: 320px;
-    list-style: none;
+    flex: 0 0 calc((100% - 2 * var(--space-layout-gap)) / 3);
   }
 
   @media (max-width: 768px) {
     .related-guides-grid > li {
-      flex-basis: calc(50% - 0.5rem);
+      flex-basis: calc((100% - var(--space-layout-gap)) / 2);
     }
   }
 
   @media (max-width: 560px) {
     .related-guides-grid > li {
       flex-basis: 100%;
-      max-width: 400px;
     }
   }
 

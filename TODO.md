@@ -76,6 +76,7 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 - [SEO-56](backlog/tasks/SEO-56.md) P2 · The rating dialog points bugs and ideas to GitHub, and five stars may leave words a person agrees to show (in progress)
 - [SEO-57](backlog/tasks/SEO-57.md) P2 · Pinned notes: people's own words on the home page and on Redact (in progress)
 - [SEO-59](backlog/tasks/SEO-59.md) P2 · The blur video sits on Redact, below the tool (in progress)
+- [SEO-60](backlog/tasks/SEO-60.md) P2 · Tool-page section headings say something, and guide cards sit on the page grid (in progress)
 - [SCAN-01](backlog/tasks/SCAN-01.md) P3 · Scan to PDF: its own tool at /scan-to-pdf/, sharing Image to PDF's engine, plus a how-to-scan-to-PDF guide (in progress)
 
 ### Polish
