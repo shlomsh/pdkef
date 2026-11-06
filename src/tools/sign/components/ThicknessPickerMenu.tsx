@@ -1,13 +1,16 @@
 import { useState } from 'preact/hooks';
 import Popover from '#shell/Popover.tsx';
 import styles from '#editor-ui/EditorControls.module.css';
+import { formatMessage } from '#lib/text/formatMessage.ts';
 
 const THICKNESS_OPTIONS: readonly number[] = [1, 2, 3, 5, 8, 12, 16];
 
-export default function ThicknessPickerMenu({ value, onChange, title }: {
+export default function ThicknessPickerMenu({ value, onChange, title, itemTitle }: {
   value?: number;
   onChange: (thickness: number) => void;
   title?: string;
+  /** Names each thickness, with `{n}` for its width. */
+  itemTitle: string;
 }) {
   const [open, setOpen] = useState(false);
   const currentThickness = value || 3;
@@ -46,7 +49,7 @@ export default function ThicknessPickerMenu({ value, onChange, title }: {
                   onChange(thickness);
                   setOpen(false);
                 }}
-                title={`${thickness}px thickness`}
+                title={formatMessage(itemTitle, { n: thickness })}
               >
                 <svg width="100%" height="14" viewBox="0 0 100 14" fill="currentColor">
                   <rect x="10" y={7 - thickness / 2} width="80" height={thickness} rx={thickness > 4 ? 2 : 0} />
