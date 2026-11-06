@@ -12,12 +12,12 @@
 //
 //   node scripts/check-size-ratchet.mjs          check (and lower records outside CI)
 //   node scripts/check-size-ratchet.mjs --init   write the current snapshot
-import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import ts from 'typescript';
 import { readRatchetLimits, writeRatchetLimits } from './ratchet-limits.mjs';
+import { repoFiles } from './repo-files.mjs';
 
 const root = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -221,9 +221,8 @@ function toSections(limits, thresholds, rec) {
 }
 
 function measureTree() {
-  const files = execFileSync('git', ['ls-files', 'src', 'scripts', 'api', 'middleware.ts'], { cwd: root, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 })
-    .split('\n')
-    .filter((f) => f && isSizeScoped(f) && fs.existsSync(path.join(root, f)));
+  const files = [...repoFiles(root, 'src', 'scripts', 'api', 'middleware.ts')]
+    .filter((f) => isSizeScoped(f) && fs.existsSync(path.join(root, f)));
   const measured = {};
   for (const f of files) measured[f] = measureSource(fs.readFileSync(path.join(root, f), 'utf8'), f);
   return measured;

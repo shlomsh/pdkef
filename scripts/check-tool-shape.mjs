@@ -1,6 +1,6 @@
-import { execFileSync } from 'node:child_process';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { repoFiles } from './repo-files.mjs';
 
 // ARCH-45: every src/tools/<tool>/ follows one template (see the "Tool folder
 // template" paragraph in .claude/rules/tools-and-shell.md). Structure only.
@@ -47,11 +47,9 @@ export function findLibShapeViolations(paths) {
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   const repo = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
-  const files = execFileSync('git', ['ls-files', 'src/tools'], { cwd: repo, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 })
-    .split('\n').filter(Boolean);
+  const files = [...repoFiles(repo, 'src/tools')];
   const bad = findShapeViolations(files);
-  const libFiles = execFileSync('git', ['ls-files', 'src/lib'], { cwd: repo, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 })
-    .split('\n').filter(Boolean);
+  const libFiles = [...repoFiles(repo, 'src/lib')];
   const libBad = findLibShapeViolations(libFiles);
   if (process.argv.includes('--list')) {
     const byTool = new Map();

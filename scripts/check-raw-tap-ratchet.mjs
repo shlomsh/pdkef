@@ -4,10 +4,10 @@
 // A higher count fails; a lower one fails too, telling you to lower RECORD.
 //
 //   node scripts/check-raw-tap-ratchet.mjs
-import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { repoFiles } from './repo-files.mjs';
 
 const root = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
 export const RECORD = 0;
@@ -30,8 +30,7 @@ export function compareRawTaps(recorded, current) {
 }
 
 function readSources() {
-  const files = execFileSync('git', ['ls-files', 'src', 'e2e'], { cwd: root, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 })
-    .split('\n')
+  const files = [...repoFiles(root, 'src', 'e2e')]
     .filter((f) => /\.spec\.js$/.test(f) && fs.existsSync(path.join(root, f)));
   const sources = {};
   for (const f of files) sources[f] = fs.readFileSync(path.join(root, f), 'utf8');

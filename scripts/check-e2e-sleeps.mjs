@@ -7,11 +7,11 @@
 //
 //   node scripts/check-e2e-sleeps.mjs          check (and lower the record outside CI)
 //   node scripts/check-e2e-sleeps.mjs --init   write the current count
-import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { readRatchetLimits, writeRatchetLimits } from './ratchet-limits.mjs';
+import { repoFiles } from './repo-files.mjs';
 
 const root = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -39,9 +39,8 @@ export function nextSleepLimit(recorded, current) {
 }
 
 function countTree() {
-  const files = execFileSync('git', ['ls-files', 'e2e', 'src'], { cwd: root, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 })
-    .split('\n')
-    .filter((f) => f && isE2eSpec(f) && fs.existsSync(path.join(root, f)));
+  const files = [...repoFiles(root, 'e2e', 'src')]
+    .filter((f) => isE2eSpec(f) && fs.existsSync(path.join(root, f)));
   return files.reduce((sum, f) => sum + countSleeps(fs.readFileSync(path.join(root, f), 'utf8')), 0);
 }
 
