@@ -14,8 +14,8 @@ type RatingMessages = Pick<
 > &
   RatingModalMessages;
 
-/** The four busiest tools ask in a dialog right after the download; every other tool keeps the quiet inline row. */
-const MODAL_TOOLS: ReadonlySet<RatingTool> = new Set<RatingTool>(['redact', 'sign', 'highlight-pdf', 'merge']);
+/** These tools ask in a dialog right after the download; every other tool keeps the quiet inline row. */
+const MODAL_TOOLS: ReadonlySet<RatingTool> = new Set<RatingTool>(['redact', 'sign', 'highlight-pdf', 'merge', 'scan-to-pdf']);
 
 // Same value as GITHUB_REPO_URL in src/data/organizationSchema.js; src/shell does not import src/data.
 const GITHUB_REPO_URL = 'https://github.com/shlomsh/pdkef';

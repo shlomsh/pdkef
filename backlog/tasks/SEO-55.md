@@ -14,8 +14,8 @@ the 50 a tool needs before its page may carry stars. Shlomi asked for a friendli
 
 ## What
 
-- Redact, Sign, Highlight and Merge open a modal `<dialog>` (showModal, so it also shows over a fullscreen editor)
-  1.5 s after the first download or completed share. Every other tool keeps the inline row.
+- Redact, Sign, Highlight, Merge and Scan (added 2026-11-06) open a modal `<dialog>` (showModal, so it also shows
+  over a fullscreen editor) 1.5 s after the first download or completed share. Every other tool keeps the inline row.
 - Five stars send the rating at once, then a thank-you with Share and Star on GitHub.
 - One to four stars ask what happened first. Send stays off until there is a real reason (20 characters once trimmed), and the rating and the words go
   together; nothing is sent or remembered as rated if the person leaves.
@@ -30,3 +30,6 @@ the 50 a tool needs before its page may carry stars. Shlomi asked for a friendli
 - After landing, `npm run ratings:read` shows votes arriving beyond Redact.
 
 Print is not an action the telemetry trail records, so the ask follows download and share only.
+
+2026-11-06: a Download tapped before the output finished building was delivered without counting as a download, so
+the ask never opened on that path (seen on Scan in a real browser; `useDownloadFlow` now counts both paths).

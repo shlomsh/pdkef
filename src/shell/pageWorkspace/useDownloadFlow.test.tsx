@@ -131,6 +131,16 @@ describe('useDownloadFlow', () => {
     expect(flow.showStrip).toBe(false);
   });
 
+  it('a tap that beats the build counts as a download once the blob is delivered, and not before', () => {
+    resetActionTrailForTests();
+    const waiting = pending();
+    mount(base(waiting));
+    act(() => flow.onRowPreparingTap());
+    expect(recentActions()).not.toContain('download');
+    mount(base(ready()));
+    expect(recentActions()).toContain('download');
+  });
+
   it('opens the strip only for the quiet Download tap on a phone width', () => {
     mount(base(pending()));
     act(() => flow.onQuietPreparingTap());

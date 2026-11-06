@@ -111,6 +111,9 @@ export function useDownloadFlow(input: DownloadFlowInput) {
     else clearPrepared();
   }, [prepared.status, prepared.generation, fileName]);
 
+  // Whichever way the file reached the person, it counts as a download (the rating ask waits on this).
+  const delivered = () => { setDownloadedOnce(true); onDelivered?.(); announce(messages.ready); recordAction('download'); };
+
   // The tap arrived while the background build was still running: deliver the blob
   // (or every part) the moment it exists, through the same download path Share uses.
   useEffect(() => {
@@ -123,9 +126,7 @@ export function useDownloadFlow(input: DownloadFlowInput) {
     if (prepared.parts) void deliverParts(prepared.parts, download); // reason: deliverParts only waits on a timer between plain downloads
     else if (prepared.blob) download(prepared.blob, fileName);
     setTap('done');
-    setDownloadedOnce(true);
-    onDelivered?.();
-    announce(messages.ready);
+    delivered();
   }, [pendingDownload, prepared.status, prepared.generation]);
 
   // A tap goes stale when the plan changes mid-build: the build is aborted and, with
@@ -176,10 +177,7 @@ export function useDownloadFlow(input: DownloadFlowInput) {
 
   const onDownloadTap = useCallback(() => {
     setTap('processing');
-    setDownloadedOnce(true);
-    onDelivered?.();
-    announce(messages.ready);
-    recordAction('download');
+    delivered();
   }, [messages.ready, onDelivered, announce]);
 
   // One page's image saved from its own cell: counted like a Download tap, but
