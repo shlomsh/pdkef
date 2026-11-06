@@ -70,7 +70,9 @@ export function useRestToolbar() {
 
   const onPointerMove = useCallback((e: MoveLike) => {
     lastRef.current = { x: e.clientX, y: e.clientY };
-    if (openRef.current !== null || e.pointerType === 'touch' || e.buttons !== 0) return;
+    if (openRef.current !== null || e.pointerType === 'touch') return;
+    // A press that moves is a stroke: a rest already drawn goes, and one still waiting never lands.
+    if (e.buttons !== 0) { feed({ type: 'leave' }); return; }
     const overId = (e.target as Element | null)?.closest?.('[data-element-id]')?.getAttribute('data-element-id') ?? null;
     feed({ type: 'move', x: e.clientX, y: e.clientY, t: performance.now(), overId });
   }, [feed]);

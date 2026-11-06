@@ -55,6 +55,26 @@ describe('useRestToolbar rest detection', () => {
     expect(api.targetId).toBeNull();
   });
 
+  it('a press that moves is a stroke: the outline goes with it', () => {
+    mount();
+    const over = markNode('a');
+    move(100, 100, over);
+    act(() => { vi.advanceTimersByTime(REST.restMs + 1); });
+    expect(api.restId).toBe('a');
+    move(110, 100, over, { buttons: 1 });
+    expect(api.restId).toBeNull();
+  });
+
+  it('a rest still waiting when a stroke starts never lands on it', () => {
+    mount();
+    const over = markNode('a');
+    move(100, 100, over);
+    act(() => { vi.advanceTimersByTime(REST.restMs - 100); });
+    move(102, 100, over, { buttons: 1 });
+    act(() => { vi.advanceTimersByTime(REST.restMs); });
+    expect(api.restId).toBeNull();
+  });
+
   it('a pointer that keeps moving more than 3 px never rests', () => {
     mount();
     const over = markNode('a');

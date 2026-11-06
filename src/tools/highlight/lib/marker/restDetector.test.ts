@@ -41,6 +41,10 @@ describe('restDetector', () => {
     s = run([mv(13, 0, 3)], s);
     expect(s.blockedFrom).toBeNull();
   });
+  it('strokeEnd takes a rest away', () => {
+    const rested = restReducer(run([mv(1, 1, 100)]), { type: 'tick', t: 400 });
+    expect(restReducer(rested, { type: 'strokeEnd', x: 1, y: 1 }).rested).toBeNull();
+  });
   it('strokeEnd clears the candidate', () => {
     expect(run([mv(1, 1, 1), { type: 'strokeEnd', x: 1, y: 1 }]).candidate).toBeNull();
   });
