@@ -48,7 +48,9 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 ### Page enhancement for Scan and Highlight
 
 - [PE-05](backlog/tasks/PE-05.md) P2 · assess and planPage (in progress)
+- [PE-07](backlog/tasks/PE-07.md) P2 · Highlight: the suggestion line sends the file to Scan (in progress)
 - [PE-08](backlog/tasks/PE-08.md) P2 · Scan opens a scanned PDF (in progress)
+- [PE-09](backlog/tasks/PE-09.md) P2 · Scan hands its pages to Highlight (in progress)
 - [PE-11](backlog/tasks/PE-11.md) P2 · Found corners square a book page (in progress)
 
 ### Robustness and debt

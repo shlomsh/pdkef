@@ -1,4 +1,4 @@
-import type { ComponentProps } from 'preact';
+import type { ComponentChildren, ComponentProps } from 'preact';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'preact/hooks';
 import type { PDFDocumentProxy } from 'pdfjs-dist';
 import FeedbackButton from '#editor-ui/FeedbackButton.tsx';
@@ -56,8 +56,7 @@ function emitter<A extends unknown[]>() {
   };
 }
 
-/** The page column: the card at its own width, or in the reading lamp a board the reader pans and zooms. */
-export default function HighlightWorkspace({ pdfDocument, numPages, fileName, zoom, marks, undo, redo, comments, dispatch, setAnnouncement, onDownload, doneName, onCloseDone, drive, shareProps, workspaceRef, columnRef, fullscreen, pseudoFullscreen, onToggleFullscreen }: {
+interface HighlightWorkspaceProps {
   pdfDocument: PDFDocumentProxy;
   numPages: number;
   fileName: string;
@@ -77,13 +76,18 @@ export default function HighlightWorkspace({ pdfDocument, numPages, fileName, zo
   onCloseDone?(): void;
   drive?: ReturnType<typeof useSaveToDrive>;
   shareProps?: ShareProps;
+  /** The card that floats over page 1 (PE-07); nothing moves when it appears. The lamp has no room for it. */
+  offer?: ComponentChildren;
   workspaceRef: { current: HTMLDivElement | null };
   columnRef: { current: HTMLDivElement | null };
   fullscreen: boolean;
   /** The lamp stands in for fullscreen: iPhone Safari has none, and a wheel or a refused request gets none. */
   pseudoFullscreen: boolean;
   onToggleFullscreen(): void;
-}) {
+}
+
+/** The page column: the card at its own width, or in the reading lamp a board the reader pans and zooms. */
+export default function HighlightWorkspace({ pdfDocument, numPages, fileName, zoom, marks, undo, redo, comments, dispatch, setAnnouncement, onDownload, doneName, onCloseDone, drive, shareProps, workspaceRef, columnRef, fullscreen, pseudoFullscreen, onToggleFullscreen, offer }: HighlightWorkspaceProps) {
   const pageRefs = useRef<(HTMLDivElement | null)[]>([]);
   const { scrollEvents, pagePressEvents } = useMemo(() => ({ scrollEvents: emitter<[number]>(), pagePressEvents: emitter<[]>() }), []);
   const currentPage = useCurrentPage({ active: fullscreen, rootRef: workspaceRef, pageRefs, numPages });
@@ -188,6 +192,7 @@ export default function HighlightWorkspace({ pdfDocument, numPages, fileName, zo
         style={{ width: `${columnW}px`, marginLeft: `${zoom.board.slack}px`, ...(zoom.chrome !== 1 ? { '--chrome': zoom.chrome } : {}) }}
         onPointerDown={() => pagePressEvents.emit()}
       >
+        {!fullscreen && offer}
         {zoom.pages.map((box, i) => (
           <HighlightPage
             key={i} pdfDocument={pdfDocument} pageIndex={i} widthPx={box.width * zoom.zoom}

@@ -14,7 +14,8 @@ import { useWorkspaceZoom } from './hooks/useWorkspaceZoom.ts';
 import { useReadingLamp } from './hooks/useReadingLamp.ts';
 import { useHighlightComments } from './hooks/useHighlightComments.ts';
 import { useNoteRoom } from './hooks/useNoteRoom.ts';
-import { useScanCheck } from './hooks/useScanCheck.ts';
+import { useOpenScanOffer } from './hooks/useScanOffer.ts';
+import ScanOffer from './components/ScanOffer.tsx';
 import { useHighlightMarks } from './hooks/useHighlightMarks.ts';
 import { useMarkerMemory } from './hooks/useMarker.ts';
 import { useHistoryShortcuts } from '#lib/history/useHistoryShortcuts.js';
@@ -95,7 +96,7 @@ export default withIslandBoundary(function PdfHighlightTool() {
     });
   };
 
-  useScanCheck(pdfDocument);
+  const scanOffer = useOpenScanOffer(pdfDocument, { file, bytes: () => session.fileBytesRef.current, hasMarks: marks.state.elements.length > 0, onOffer: (verdict) => setAnnouncement(t.scanOffer[verdict].title) });
   const numPages = pdfDocument?.numPages ?? 0;
 
   return (
@@ -121,6 +122,7 @@ export default withIslandBoundary(function PdfHighlightTool() {
           marks={marks} undo={undo} redo={redo} comments={comments} dispatch={room.dispatch} setAnnouncement={setAnnouncement} onDownload={handleDownload} doneName={done.name} onCloseDone={done.close} drive={drive} shareProps={shareProps}
           workspaceRef={workspaceRef} columnRef={columnRef} fullscreen={fullscreen} pseudoFullscreen={pseudoFullscreen}
           onToggleFullscreen={toggleLamp}
+          offer={scanOffer.verdict && <ScanOffer verdict={scanOffer.verdict} busy={scanOffer.busy} failed={scanOffer.failed} onStraighten={scanOffer.straighten} onKeepAsIs={scanOffer.keepAsIs} />}
         />
       )}
 
