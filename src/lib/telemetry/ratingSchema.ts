@@ -56,20 +56,23 @@ export const REPORT_BYTE_LIMIT = 2048;
 
 export interface RatingCommentEvent {
   readonly name: 'tool_rating_comment';
-  readonly properties: { readonly tool: RatingTool; readonly stars: Stars; readonly comment: string };
+  /** `share` is present, and true, only when the person ticked the box to let the site show these words (SEO-56). */
+  readonly properties: { readonly tool: RatingTool; readonly stars: Stars; readonly comment: string; readonly share?: true };
 }
 
-/** Accepts exactly `{name: 'tool_rating_comment', properties: {tool, stars, comment}}`, the comment trimmed. */
+/** Accepts exactly `{name: 'tool_rating_comment', properties: {tool, stars, comment, share?}}`, the comment trimmed, `share` only ever true. */
 export function parseRatingCommentEvent(value: unknown): RatingCommentEvent | null {
   if (!isObject(value) || !sameKeys(value, ['name', 'properties']) || value.name !== 'tool_rating_comment') return null;
   const p = value.properties;
-  if (!isObject(p) || !sameKeys(p, ['comment', 'stars', 'tool']) || typeof p.comment !== 'string') return null;
+  if (!isObject(p) || typeof p.comment !== 'string') return null;
+  const shared = 'share' in p;
+  if (!sameKeys(p, shared ? ['comment', 'share', 'stars', 'tool'] : ['comment', 'stars', 'tool']) || (shared && p.share !== true)) return null;
   const rating = parseRatingEvent({ name: 'tool_rating', properties: { tool: p.tool, stars: p.stars } });
   const comment = p.comment.trim();
   if (!rating || comment.length === 0 || [...comment].length > MAX_COMMENT_LENGTH) return null;
   const event = Object.freeze({
     name: 'tool_rating_comment' as const,
-    properties: Object.freeze({ ...rating.properties, comment }),
+    properties: Object.freeze({ ...rating.properties, comment, ...(shared ? { share: true as const } : {}) }),
   });
   // A short comment can still encode past the limit (control characters take 6 bytes each); refuse it here,
   // where the browser can still tell, rather than have the endpoint drop it as oversize.

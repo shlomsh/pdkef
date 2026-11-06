@@ -26,6 +26,13 @@ describe('parseRatingEvent', () => {
 const note = { name: 'tool_rating_comment', properties: { tool: 'redact', stars: 5, comment: '  Worked great  ' } };
 
 describe('parseRatingCommentEvent', () => {
+  it('keeps a person\'s OK to show the words, and accepts nothing but true', () => {
+    const shared = { ...note, properties: { ...note.properties, share: true } };
+    expect(parseRatingCommentEvent(shared)?.properties.share).toBe(true);
+    expect(parseRatingCommentEvent(note)?.properties).not.toHaveProperty('share');
+    expect(parseRatingCommentEvent({ ...note, properties: { ...note.properties, share: false } })).toBeNull();
+    expect(parseRatingCommentEvent({ ...note, properties: { ...note.properties, share: 'yes' } })).toBeNull();
+  });
   it('accepts a comment and trims it', () => {
     expect(parseRatingCommentEvent(note)).toEqual({ ...note, properties: { ...note.properties, comment: 'Worked great' } });
   });

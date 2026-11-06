@@ -50,6 +50,7 @@ export function ratingEntryCommands(
     day,
     ...geo,
     ...('comment' in event.properties ? { comment: event.properties.comment } : {}),
+    ...('share' in event.properties ? { share: true } : {}),
   };
   return [
     ['RPUSH', RATING_ENTRIES_KEY, JSON.stringify(entry)],

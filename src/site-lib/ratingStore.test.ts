@@ -70,6 +70,11 @@ describe('ratingStore', () => {
       ]);
     });
 
+    it('records the OK to show a comment beside it', () => {
+      const event = { name: 'tool_rating_comment', properties: { tool: 'sign', stars: 5, comment: 'lovely', share: true } } as const;
+      expect(ratingEntryCommands(event, {}, '2026-11-06')[0][2]).toBe('{"tool":"sign","stars":5,"day":"2026-11-06","comment":"lovely","share":true}');
+    });
+
     it('adds the comment last for a comment event', () => {
       const event = { name: 'tool_rating_comment', properties: { tool: 'sign', stars: 2, comment: 'slow' } } as const;
       expect(ratingEntryCommands(event, {}, '2026-10-26')[0]).toEqual([

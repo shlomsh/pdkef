@@ -31,6 +31,7 @@ describe('RatingPrompt as a modal (merge, sign, highlight-pdf, redact, scan-to-p
     const box = container.querySelector<HTMLTextAreaElement>('textarea')!;
     act(() => { box.value = text; box.dispatchEvent(new Event('input', { bubbles: true })); });
   };
+  const share = () => container.querySelector<HTMLInputElement>('input[type="checkbox"]')!;
   const events = () => vi.mocked(sendBeacon).mock.calls.map(([e]) => e as { name: string; properties: Record<string, unknown> });
 
   it('opens a modal dialog after the download delay, and not before', () => {
@@ -81,9 +82,60 @@ describe('RatingPrompt as a modal (merge, sign, highlight-pdf, redact, scan-to-p
     expect(localStorage.getItem('pdkef:rated:merge')).not.toBeNull();
     expect(container.textContent).toMatch(/Share/);
     expect(container.querySelector('a[href="https://github.com/shlomsh/pdkef"]')).not.toBeNull();
-    expect(container.querySelector('textarea')).toBeNull();
     act(() => button(/^done$/i)!.click());
     expect(dialog()).toBeNull();
+  });
+
+  it('five stars may leave words: Send waits for some, and they stay private unless the box is ticked', () => {
+    show();
+    act(() => star(5).click());
+    expect((button(/^send$/i) as HTMLButtonElement).disabled).toBe(true);
+    type('Saved my afternoon');
+    expect(share().checked).toBe(false);
+    act(() => button(/^send$/i)!.click());
+    expect(events().at(-1)).toEqual({ name: 'tool_rating_comment', properties: { tool: 'merge', stars: 5, comment: 'Saved my afternoon' } });
+    expect(container.querySelector('textarea')).toBeNull();
+    expect(button(/^send$/i)).toBeUndefined();
+    expect(container.textContent).toContain('Got it, thank you.');
+  });
+
+  it('five stars with the box ticked sends the OK to show the words', () => {
+    show();
+    act(() => star(5).click());
+    type('Saved my afternoon');
+    act(() => share().click());
+    act(() => button(/^send$/i)!.click());
+    expect(events().at(-1)).toEqual({ name: 'tool_rating_comment', properties: { tool: 'merge', stars: 5, comment: 'Saved my afternoon', share: true } });
+  });
+
+  it('Done with words typed but not sent sends only the stars', () => {
+    show();
+    act(() => star(5).click());
+    type('Half a thought');
+    act(() => button(/^done$/i)!.click());
+    expect(events().map((e) => e.name)).toEqual(['tool_rating']);
+  });
+
+  it('five stars words that cannot go keep the text and say so', () => {
+    show();
+    act(() => star(5).click());
+    type('Saved my afternoon');
+    vi.mocked(sendBeacon).mockReturnValue(false);
+    act(() => button(/^send$/i)!.click());
+    expect(container.querySelector<HTMLTextAreaElement>('textarea')?.value).toBe('Saved my afternoon');
+    expect(container.querySelector('[role="alert"]')).not.toBeNull();
+    vi.mocked(sendBeacon).mockReturnValue(true);
+  });
+
+  it('a low rating points a bug to GitHub issues and an idea to Discussions, in a new tab', () => {
+    show();
+    act(() => star(2).click());
+    const bug = container.querySelector<HTMLAnchorElement>('a[href="https://github.com/shlomsh/pdkef/issues/new?template=bug_report.md"]');
+    const idea = container.querySelector<HTMLAnchorElement>('a[href="https://github.com/shlomsh/pdkef/discussions/categories/ideas"]');
+    expect(bug?.textContent).toBe('Report a bug');
+    expect(idea?.textContent).toBe('Suggest an idea');
+    expect(bug?.target).toBe('_blank');
+    expect(idea?.target).toBe('_blank');
   });
 
   it.each([1, 2, 3, 4])('%i stars asks what happened and sends nothing until there is a real reason', (n) => {

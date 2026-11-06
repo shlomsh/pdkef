@@ -55,6 +55,12 @@ export function parseEntries(strings) {
 
 const place = (e) => (e.country ? `${e.country}${e.region ? `-${e.region}` : ''}` : 'unknown');
 
+/**
+ * One printed comment; `[may show]` marks the ones a person agreed to have on the site.
+ * @testSeam
+ */
+export const commentLine = (e) => [e.day, e.tool, `${e.stars}★`, place(e), ...(e.share ? ['[may show]'] : []), e.comment].join('  ');
+
 async function main() {
   const env = { ...envFromFile(), ...process.env };
   const url = env.KV_REST_API_URL || env.UPSTASH_REDIS_REST_URL;
@@ -85,7 +91,7 @@ async function main() {
   for (const [p, n] of [...byPlace].sort((a, b) => b[1] - a[1])) console.log(`${n}\t${p}`);
 
   console.log('\nComments');
-  for (const e of entries.filter((x) => 'comment' in x).reverse()) console.log(`${e.day}  ${e.tool}  ${e.stars}★  ${place(e)}  ${e.comment}`);
+  for (const e of entries.filter((x) => 'comment' in x).reverse()) console.log(commentLine(e));
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) await main();

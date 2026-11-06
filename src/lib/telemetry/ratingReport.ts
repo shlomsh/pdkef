@@ -63,10 +63,10 @@ export function reportRating(tool: RatingTool, stars: Stars): boolean {
   }
 }
 
-/** Hands the optional comment to `/api/report` by beacon; false when invalid (empty, too long) or not sent. Never throws. */
-export function reportRatingComment(tool: RatingTool, stars: Stars, comment: string): boolean {
+/** Hands the optional comment to `/api/report` by beacon; false when invalid (empty, too long) or not sent. Never throws. `share` is the person's OK to show it. */
+export function reportRatingComment(tool: RatingTool, stars: Stars, comment: string, share = false): boolean {
   try {
-    const event = parseRatingCommentEvent({ name: 'tool_rating_comment', properties: { tool, stars, comment } });
+    const event = parseRatingCommentEvent({ name: 'tool_rating_comment', properties: { tool, stars, comment, ...(share ? { share } : {}) } });
     return event !== null && sendBeacon(event);
   } catch {
     // expected: a comment must never alter the tool

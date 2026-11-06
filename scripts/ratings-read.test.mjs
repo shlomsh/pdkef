@@ -1,10 +1,18 @@
 import { describe, expect, it } from 'vitest';
 import { RATING_TOOLS as WIRE_TOOLS } from '../src/lib/telemetry/ratingSchema.ts';
-import { parseEntries, RATING_TOOLS, summarizeCounts } from './ratings-read.mjs';
+import { commentLine, parseEntries, RATING_TOOLS, summarizeCounts } from './ratings-read.mjs';
 
 describe('RATING_TOOLS', () => {
   it('names every tool the wire schema accepts, so no tool is missing from the counts', () => {
     expect([...RATING_TOOLS].sort()).toEqual([...WIRE_TOOLS].sort());
+  });
+});
+
+describe('commentLine', () => {
+  it('says which comments a person agreed to show', () => {
+    const entry = { day: '2026-11-06', tool: 'merge', stars: 5, country: 'IL', region: 'TA', comment: 'lovely' };
+    expect(commentLine(entry)).toBe('2026-11-06  merge  5★  IL-TA  lovely');
+    expect(commentLine({ ...entry, share: true })).toBe('2026-11-06  merge  5★  IL-TA  [may show]  lovely');
   });
 });
 
