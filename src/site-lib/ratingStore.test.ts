@@ -10,7 +10,7 @@ import {
   ratingGeo,
   ratingReadCommands,
   ratingTotalKey,
-  notesFromResult,
+  notesFromResults,
   notesReadCommands,
 } from './ratingStore.js';
 
@@ -88,23 +88,78 @@ describe('ratingStore', () => {
   });
 
   describe('notes', () => {
+    const names = (_country: string, region: string) => `Region ${region}`;
     const note = { tool: 'merge', stars: 5, comment: 'Quick and private', place: 'Nakuru, Kenya' };
 
-    it('reads the newest NOTES_MAX from the list', () => {
-      expect(notesReadCommands()).toEqual([['LRANGE', 'rating:notes', -12, -1]]);
+    it('reads the newest approved notes and the recent votes', () => {
+      expect(notesReadCommands()).toEqual([['LRANGE', 'rating:notes', -12, -1], ['LRANGE', 'rating:entries', -200, -1]]);
     });
 
     it('returns valid notes newest first and drops anything else', () => {
       const stored = [{ ...note, comment: 'old' }, 'not json', JSON.stringify({ ...note, stars: 9 }), note].map((v) =>
         typeof v === 'string' ? v : JSON.stringify(v),
       );
-      expect(notesFromResult({ result: stored }).map((n) => n.comment)).toEqual(['Quick and private', 'old']);
+      expect(notesFromResults({ result: stored }, undefined, names).map((n) => n.comment)).toEqual(['Quick and private', 'old']);
     });
 
     it('is empty for a missing or unexpected reply', () => {
-      expect(notesFromResult(undefined)).toEqual([]);
-      expect(notesFromResult({ result: 'x' })).toEqual([]);
-      expect(notesFromResult({ result: [5, null] })).toEqual([]);
+      expect(notesFromResults(undefined, undefined, names)).toEqual([]);
+      expect(notesFromResults({ result: 'x' }, { result: 'x' }, names)).toEqual([]);
+      expect(notesFromResults({ result: [5, null] }, { result: [5, null] }, names)).toEqual([]);
+    });
+
+    const vote = (tool: string, country: string | undefined, extra = {}) =>
+      JSON.stringify({ tool, stars: 5, day: '2026-11-06', ...(country ? { country, region: 'X' } : {}), ...extra });
+
+    it('fills up with recent votes as tool, stars and country, nothing else', () => {
+      const words = JSON.stringify({ tool: 'merge', stars: 5, comment: 'Lovely', place: 'Haifa, Israel' });
+      const notes = notesFromResults({ result: [words] }, { result: [vote('sign', 'KE'), vote('redact', 'AU')] }, names);
+      expect(notes).toEqual([
+        { tool: 'merge', stars: 5, comment: 'Lovely', place: 'Haifa, Israel' },
+        { tool: 'redact', stars: 5, country: 'AU', region: 'Region X' },
+        { tool: 'sign', stars: 5, country: 'KE', region: 'Region X' },
+      ]);
+    });
+
+    it('never turns a comment into a note, and skips a vote with no country', () => {
+      const entries = [vote('sign', 'KE', { comment: 'private words' }), vote('merge', undefined)];
+      expect(notesFromResults(undefined, { result: entries }, names)).toEqual([]);
+    });
+
+    it('keeps variety: one note per tool and country, newest first', () => {
+      const entries = [vote('redact', 'KE', { stars: 4 }), vote('redact', 'AU'), vote('redact', 'KE'), vote('redact', 'KE', { region: 'Y' })];
+      expect(notesFromResults(undefined, { result: entries }, names)).toEqual([
+        { tool: 'redact', stars: 5, country: 'KE', region: 'Region Y' },
+        { tool: 'redact', stars: 5, country: 'AU', region: 'Region X' },
+      ]);
+    });
+
+    it('falls back to the country when a region has no name', () => {
+      const notes = notesFromResults(undefined, { result: [vote('merge', 'TW')] }, () => undefined);
+      expect(notes).toEqual([{ tool: 'merge', stars: 5, country: 'TW' }]);
+    });
+
+    const countries = (n: number) => Array.from({ length: n }, (_, i) => `A${String.fromCharCode(65 + (i % 26))}`);
+
+    it('carries at most four per tool, however many votes there are', () => {
+      const entries = countries(26).map((c) => vote('merge', c));
+      expect(notesFromResults(undefined, { result: entries }, names)).toHaveLength(4);
+    });
+
+    it('leaves a quiet tool its notes when another tool has every recent vote', () => {
+      const entries = [vote('redact', 'KE'), ...countries(26).map((c) => vote('merge', c))];
+      expect(notesFromResults(undefined, { result: entries }, names).filter((n) => n.tool === 'redact')).toHaveLength(1);
+    });
+
+    it('opens with one note from each tool, so a busy tool does not fill the first four', () => {
+      const entries = [vote('sign', 'KE'), vote('redact', 'KE'), ...countries(5).map((c) => vote('merge', c))];
+      expect(notesFromResults(undefined, { result: entries }, names).slice(0, 3).map((n) => n.tool)).toEqual(['merge', 'redact', 'sign']);
+    });
+
+    it('puts every note with words ahead of the votes', () => {
+      const words = JSON.stringify({ tool: 'sign', stars: 5, comment: 'Lovely', place: 'Haifa, Israel' });
+      const notes = notesFromResults({ result: [words] }, { result: [vote('merge', 'KE'), vote('redact', 'AU')] }, names);
+      expect(notes[0]!.comment).toBe('Lovely');
     });
   });
 });

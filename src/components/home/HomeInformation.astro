@@ -7,10 +7,11 @@ import OfflineInstallCard from './OfflineInstallCard.astro';
 import FaqCard from './FaqCard.astro';
 import PrivacyOpenSourceCard from './PrivacyOpenSourceCard.astro';
 import ClosingCard from './ClosingCard.astro';
-import PinnedNotes from '../../site-lib/PinnedNotes.tsx';
+import RatingBoard from '../RatingBoard.astro';
 
 interface Props {
   home: any;
+  rating: { average: number; count: number; countries: number } | null;
   showTheO: boolean;
   dir: 'ltr' | 'rtl';
   locale: string;
@@ -21,7 +22,7 @@ interface Props {
   signToolDisplayName: string;
   toolHrefs?: Record<string, string>;
 }
-const { home, showTheO, dir, locale, messages, variants, dropzoneMessages, recentFilesMessages, signToolDisplayName, toolHrefs } = Astro.props;
+const { home, rating, showTheO, dir, locale, messages, variants, dropzoneMessages, recentFilesMessages, signToolDisplayName, toolHrefs } = Astro.props;
 const { faqKicker, faq, founderStory, draftPersistence, offlineInstall, privacyOpenSource, closing } = home;
 ---
 <div id="home-information">
@@ -44,8 +45,8 @@ const { faqKicker, faq, founderStory, draftPersistence, offlineInstall, privacyO
     </script>
     <FaqCard faqKicker={faqKicker} faq={faq} messages={messages} />
     <PrivacyOpenSourceCard privacyOpenSource={privacyOpenSource} />
-    {/* SEO-57: renders nothing until approved notes arrive. An opaque card that scrolls over the pinned one, never pinned itself. */}
-    <PinnedNotes client:load card heading={messages.notesHeading} intro={messages.notesIntro} byLine={messages.notesBy} />
+    {/* SEO-58: an opaque card that scrolls over the pinned one, never pinned itself. */}
+    <RatingBoard card rating={rating} locale={locale} messages={messages} />
     <ClosingCard closing={closing} dropzoneMessages={dropzoneMessages} recentFilesMessages={recentFilesMessages} signToolDisplayName={signToolDisplayName} toolHrefs={toolHrefs} />
     <Footer variants={variants} locale={locale} labels={messages} />
   </div>

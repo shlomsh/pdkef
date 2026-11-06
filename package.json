@@ -99,6 +99,8 @@
     "@vercel/speed-insights": "^2.0.0",
     "astro": "^7.4.5",
     "bidi-js": "^1.1.0",
+    "country-flag-icons": "1.6.20",
+    "iso-3166-2": "1.0.0",
     "lucide-preact": "^1.67.0",
     "pdfjs-dist": "^6.5.438",
     "preact": "^10.29.8",

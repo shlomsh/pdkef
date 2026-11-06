@@ -1,0 +1,87 @@
+---
+// SEO-58: PDkef's rating as a board, on the home page and Redact. The stars are baked in at build time; beside them
+// pin up approved notes and recent votes, which mostly carry no words.
+import PinnedNotes from '../site-lib/PinnedNotes.tsx';
+import { ratingText } from '../site-lib/ratingAggregate';
+
+interface Props {
+  rating: { average: number; count: number; countries: number } | null;
+  messages: any;
+  tool?: 'redact';
+  locale?: string;
+  /** A card of the home stack: opaque and pinned like its neighbours, so nothing shows around it. */
+  card?: boolean;
+}
+const { rating, messages, tool, locale, card } = Astro.props;
+const STAR = 'M12 3.2l2.7 5.6 6.1.8-4.5 4.2 1.1 6-5.4-3-5.4 3 1.1-6L3.2 9.6l6.1-.8z';
+const FIVE = [0, 1, 2, 3, 4];
+---
+<section class:list={['board', { card, 'card-reveal': card }]} aria-labelledby="rating-board-heading">
+  <div class="panel">
+    <h2 id="rating-board-heading" class="type-section">{messages.notesHeading}</h2>
+    <p class="intro">{messages.notesIntro}</p>
+    {rating && (
+      <div data-rating>
+        <div class="row">
+          <span class="average">{rating.average}</span>
+          <svg class="stars" viewBox="0 0 120 24" role="img" aria-label={`${rating.average} / 5`}>
+            <defs><clipPath id="rating-board-fill"><rect width={(rating.average / 5) * 120} height="24" /></clipPath></defs>
+            <g class="empty">{FIVE.map((s) => <path d={STAR} transform={`translate(${s * 24} 0)`} />)}</g>
+            <g class="full" clip-path="url(#rating-board-fill)">{FIVE.map((s) => <path d={STAR} transform={`translate(${s * 24} 0)`} />)}</g>
+          </svg>
+        </div>
+        <p class="count">{ratingText(messages.ratingBoardCount, rating)}</p>
+      </div>
+    )}
+    <p class="invite">{messages.ratingBoardInvite}</p>
+  </div>
+  <PinnedNotes client:load tool={tool} locale={locale} byLine={messages.notesBy} />
+</section>
+
+<style>
+  .board {
+    box-sizing: border-box;
+    max-width: 1080px;
+    margin: 0 auto;
+    padding: 3.5rem 1rem;
+  }
+  .card {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    width: 100%;
+    padding-inline: 2.5rem;
+    background: var(--color-bg);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+  }
+  @media (max-width: 1080px) { .card { width: auto; margin-inline: 1.5rem; } }
+  @media (max-width: 640px) { .card { padding-inline: 1.5rem; } }
+
+  .panel { max-width: 34rem; margin-inline: auto; text-align: center; }
+  .panel h2 { margin: 0 0 0.75rem; color: var(--color-text); }
+  .intro { margin: 0 0 1.5rem; color: var(--color-muted); }
+  .row { display: flex; align-items: center; justify-content: center; gap: 0.75rem; }
+  .average { font-size: 2.5rem; font-weight: 700; line-height: 1; color: var(--color-text); }
+  .stars { width: 10.5rem; height: 2.1rem; }
+  .stars .empty { fill: none; stroke: var(--color-clay); stroke-width: 1.2; stroke-linejoin: round; }
+  .stars .full { fill: var(--color-comment-anchor); stroke: var(--color-clay); stroke-width: 1.2; stroke-linejoin: round; }
+  .count { margin: 0.75rem 0 0; font-weight: 600; color: var(--color-text); }
+  .invite { margin: 1.25rem 0 0; font-size: 0.95rem; color: var(--color-muted); }
+
+  /* With notes, the sketch's layout: the stars in a column, the papers beside them. */
+  @media (min-width: 60rem) {
+    .board:has(ul) {
+      display: grid;
+      grid-template-columns: 20rem minmax(0, 1fr);
+      gap: 3rem;
+      align-items: start;
+      align-content: center;
+    }
+    .board:has(ul) .panel { margin: 0; text-align: start; }
+    .board:has(ul) .row { justify-content: flex-start; }
+  }
+  @media (max-width: calc(60rem - 1px)) {
+    .board:has(ul) .panel { margin-block-end: 2.5rem; }
+  }
+</style>

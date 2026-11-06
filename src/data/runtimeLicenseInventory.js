@@ -91,6 +91,12 @@ export const RUNTIME_LICENSE_PACKAGES = [
     "url": "https://github.com/lojjic/bidi-js"
   },
   {
+    "name": "country-flag-icons",
+    "version": "1.6.20",
+    "license": "MIT",
+    "url": "https://gitlab.com/catamphetamine/country-flag-icons#readme"
+  },
+  {
     "name": "culori",
     "version": "4.0.2",
     "license": "MIT",
@@ -113,6 +119,12 @@ export const RUNTIME_LICENSE_PACKAGES = [
     "version": "2.6.0",
     "license": "MIT",
     "url": "https://github.com/mdevils/html-entities"
+  },
+  {
+    "name": "iso-3166-2",
+    "version": "1.0.0",
+    "license": "MIT",
+    "url": "http://github.com/olahol/iso-3166-2.js"
   },
   {
     "name": "lucide-preact",

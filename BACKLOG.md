@@ -2,7 +2,7 @@
 
 # Backlog
 
-The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 167 live: 59 up next, 21 then, 27 waiting, 60 parked.
+The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 168 live: 60 up next, 21 then, 27 waiting, 60 parked.
 
 ## Redact: finish removal
 
@@ -273,6 +273,7 @@ Mostly waiting on dated Search Console reads. Two small things can ship now.
 | ID | P | Task | Note |
 | --- | --- | --- | --- |
 | SEO-03 | P1 | [SEO-03](backlog/tasks/SEO-03.md) · External signals: the work that moves the constraint and does not live in this repo |  |
+| SEO-58 | P1 | [SEO-58](backlog/tasks/SEO-58.md) · One rating for the whole app in search results | In progress |
 | LOC-18 | P2 | [LOC-18](backlog/tasks/LOC-18.md) · Hebrew edition sign-off: Israeli portal-limit guides and Shlomi's own /he/ read-through | In progress |
 | SEO-46 | P2 | [SEO-46](backlog/tasks/SEO-46.md) · Real star ratings: ask once when a tool finishes, bake an honest aggregate into each tool page, and win the SERP stars | In progress |
 | SEO-48 | P2 | [SEO-48](backlog/tasks/SEO-48.md) · Ratings carry country and region, and a person may add a comment | In progress |

@@ -5,42 +5,15 @@
   font-display: swap;
 }
 
-.section {
-  max-width: 1080px;
-  margin: 0 auto;
-  padding: 4rem 16px 5rem;
-  text-align: center;
-}
-/* In the home stack the card before this one stays pinned, so this one must be opaque and positioned to pass over it. */
-.card {
-  position: relative;
-  box-sizing: border-box;
-  margin-block-start: 2rem;
-  padding-inline: 2.5rem;
-  background: var(--color-bg);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
-}
-@media (max-width: 1080px) { .card { margin-inline: 1.5rem; } }
-@media (max-width: 640px) { .card { padding-inline: 1.5rem; } }
-
-.heading { margin: 0 0 0.5rem; font-size: 1.75rem; line-height: 1.2; color: var(--color-text); }
-.intro { margin: 0 auto 2.5rem; max-width: 36rem; color: var(--color-muted); }
-
 .list {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
   gap: 2rem;
   align-items: start;
   list-style: none;
   margin: 0;
   padding: 0.5rem 0 0;
 }
-/* Four notes sit two by two, never three and a stray. */
-@media (min-width: 40rem) {
-  .list:has(> :nth-child(4)) { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-}
-
 .note {
   position: relative;
   justify-self: center;
@@ -59,6 +32,12 @@
 .note:nth-child(2) { rotate: 1.8deg; }
 .note:nth-child(3) { rotate: 2.2deg; }
 .note:nth-child(4) { rotate: -1.4deg; }
+
+/* The papers sit a little out of line, as pinned notes do. */
+@media (min-width: 40rem) {
+  .note:nth-child(even) { margin-block-start: 1.75rem; }
+  .note:nth-child(3) { margin-inline-start: 1rem; }
+}
 
 .note::before { content: ''; position: absolute; }
 .note:nth-child(odd)::before {
@@ -84,14 +63,31 @@
 .comment {
   margin: 0 0 0.75rem;
   font-family: 'Caveat Note', cursive;
-  font-size: 1.75rem;
+  font-size: 1.6rem;
   line-height: 1.15;
   overflow-wrap: anywhere;
 }
 .stars { display: block; width: 6rem; height: 1.2rem; margin-bottom: 0.5rem; }
 .on { fill: var(--color-comment-anchor); stroke: var(--color-clay); }
 .off { fill: none; stroke: var(--color-clay); }
+/* The flag is a small sticker on the paper: a white edge, a soft shadow, a little turned. */
+.place { display: flex; align-items: center; gap: 0.7rem; }
+.flag {
+  flex: none;
+  box-sizing: content-box;
+  width: 2.1rem;
+  height: 1.4rem;
+  object-fit: cover;
+  border: 2px solid var(--color-surface);
+  border-radius: 3px;
+  box-shadow: 0 0 0 1px var(--color-border), var(--shadow-sm);
+  rotate: -3deg;
+}
+.note:nth-child(even) .flag { rotate: 2.5deg; }
+
 .by { margin: 0; font-size: 0.875rem; color: var(--color-muted); }
+/* A vote with no words: the line is the whole note, so it takes the handwriting. */
+.byHand { margin: 0; font-family: 'Caveat Note', cursive; font-size: 1.45rem; line-height: 1.15; }
 
 @media (prefers-reduced-motion: no-preference) {
   .note { transition: rotate 0.25s ease; }

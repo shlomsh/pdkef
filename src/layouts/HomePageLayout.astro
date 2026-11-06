@@ -19,6 +19,7 @@ import BaseLayout from './BaseLayout.astro';
 import SeoSchema from '../components/SeoSchema.astro';
 import HomeHero from '../components/home/HomeHero.astro';
 import HomeInformation from '../components/home/HomeInformation.astro';
+import { appRating } from '../site-lib/ratingAggregate';
 import TheO from '../components/TheO.astro';
 import '../styles/homePage.css';
 
@@ -132,11 +133,12 @@ const homeTools = homeToolsOrder.map((tool) => {
 // a localized page needs the table; English keeps FileDropzone's `/${slug}/`
 // default and its serialized island props unchanged.
 const toolHrefs = locale === 'en' ? undefined : Object.fromEntries(homeTools.map((tool) => [tool.slug, tool.href]));
+const rating = await appRating();
 ---
 
 <BaseLayout title={title} description={description} lang={lang} dir={dir} canonical={canonical} alternates={alternates} socialImageAlt={messages.socialImageAlt}>
   <Fragment slot="head">
-    <SeoSchema name="PDkef" description={description} faq={home.faq} />
+    <SeoSchema name="PDkef" description={description} faq={home.faq} rating={rating} />
     {/* The hero demo's handwritten caption ('Caveat Demo', or 'Gveret Levin
         Demo' in Hebrew - see HeroDemo.module.css) sits above the fold only
         on desktop - the mobile layout scrolls the demo past the first
@@ -158,7 +160,7 @@ const toolHrefs = locale === 'en' ? undefined : Object.fromEntries(homeTools.map
   <main id="home-content">
     <HomeHero h1Prefix={h1Prefix} h1Accent={home.h1Accent} subhead={home.subhead} dir={dir} locale={locale} messages={messages} homeTools={homeTools} dropzoneMessages={dropzoneMessages} recentFilesMessages={recentFilesMessages} signToolDisplayName={signToolDisplayName} toolHrefs={toolHrefs} />
     {showTheO && <TheO story={home.theO} />}
-    <HomeInformation home={home} showTheO={showTheO} dir={dir} locale={locale} messages={messages} variants={variants} dropzoneMessages={dropzoneMessages} recentFilesMessages={recentFilesMessages} signToolDisplayName={signToolDisplayName} toolHrefs={toolHrefs} />
+    <HomeInformation home={home} rating={rating} showTheO={showTheO} dir={dir} locale={locale} messages={messages} variants={variants} dropzoneMessages={dropzoneMessages} recentFilesMessages={recentFilesMessages} signToolDisplayName={signToolDisplayName} toolHrefs={toolHrefs} />
   </main>
   <script src="../site-lib/homeWorkspace.ts"></script>
 </BaseLayout>

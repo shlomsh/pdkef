@@ -51,9 +51,15 @@ describe('approvedRows', () => {
 
 describe('noteFrom', () => {
   it('is exactly tool, stars, comment and place, with the place trimmed', () => {
-    const note = noteFrom(entry('lovely', { n: 1, day: 'x' }), '  Nakuru, Kenya ');
+    const note = noteFrom(entry('lovely', { n: 1, day: 'x', country: undefined }), '  Nakuru, Kenya ');
     expect(note).toEqual({ tool: 'merge', stars: 5, comment: 'lovely', place: 'Nakuru, Kenya' });
     expect(Object.keys(note)).toEqual(['tool', 'stars', 'comment', 'place']);
+  });
+
+  it('keeps the country, for the flag, and the site accepts it', () => {
+    const note = noteFrom(entry('lovely'), 'Nakuru, Kenya');
+    expect(note.country).toBe('KE');
+    expect(parseNote(note)).toEqual(note);
   });
 
   it('throws on an empty place or one over 60 characters', () => {

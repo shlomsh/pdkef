@@ -141,13 +141,14 @@ for (const file of htmlFiles) {
     error(`Missing SoftwareApplication JSON-LD`);
   }
 
-  // 5b. SEO-46: aggregateRating is never required, but when a page carries one it must be a real
-  // one: at least 50 votes, a value in 1..5, and the visible badge must show the same numbers.
+  // 5b. SEO-46/58: aggregateRating is never required, but when a page carries one it must be a real
+  // one: PDkef's, at least 10 votes, a value in 1..5, and the visible badge must show the same numbers.
   const agg = softwareAppData && softwareAppData.aggregateRating;
   if (agg) {
     const value = Number(agg.ratingValue);
     const count = Number(agg.ratingCount);
-    if (!(count >= 50)) error(`aggregateRating ratingCount ${agg.ratingCount} is under the 50-vote minimum`);
+    if (softwareAppData.name !== 'PDkef') error(`aggregateRating rates "${softwareAppData.name}", not PDkef`);
+    if (!(count >= 10)) error(`aggregateRating ratingCount ${agg.ratingCount} is under the 10-vote minimum`);
     if (!(value >= 1 && value <= 5)) error(`aggregateRating ratingValue ${agg.ratingValue} is outside 1..5`);
     const badge = document.querySelector('[data-rating]');
     const text = badge ? badge.textContent : '';

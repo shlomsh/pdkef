@@ -6,7 +6,7 @@ import type { PinnedNote } from './pinnedNote';
 
 const note = (tool: string, comment = 'Worked well', stars = 5): PinnedNote =>
   ({ tool, stars, comment, place: 'Nakuru, Kenya' }) as PinnedNote;
-const props = { heading: 'Notes people left', intro: 'Intro text', byLine: '{tool}, someone in {place}' };
+const props = { byLine: '{tool}, someone in {place}' };
 
 let container: HTMLElement | null = null;
 afterEach(() => {
@@ -45,20 +45,33 @@ describe('PinnedNotes', () => {
     await mount(ok([]));
     expect(container!.innerHTML).toBe('');
   });
-  it('renders heading, comment and by-line once fetched', async () => {
+  it('renders the comment and by-line once fetched', async () => {
     await mount(ok([note('redact', 'Very clear')]));
-    expect(container!.querySelector('h2')!.textContent).toBe('Notes people left');
     expect(container!.textContent).toContain('Very clear');
     expect(container!.textContent).toContain('Blur & Redact, someone in Nakuru, Kenya');
     expect(container!.querySelectorAll('li')).toHaveLength(1);
   });
-  it('is a plain section by default and a stack card when asked', async () => {
-    const body = { json: () => Promise.resolve({ notes: [note('merge')] }) };
-    await mount(() => Promise.resolve(body));
-    const plain = container!.querySelector('section')!.className;
+  it('shows a vote with no words as stars, tool and the country in the page language', async () => {
+    const vote = { tool: 'merge', stars: 4, country: 'KE' };
+    await mount(ok([{ ...vote, region: 'Nakuru' }]));
+    expect(container!.textContent).toContain('Merge PDF, someone in Nakuru, Kenya');
     act(() => render(null, container!));
-    await mount(() => Promise.resolve(body), { card: true });
-    expect(container!.querySelector('section')!.className).not.toBe(plain);
+    await mount(ok([vote]));
+    expect(container!.textContent).toContain('Merge PDF, someone in Kenya');
+    expect(container!.querySelector('svg')!.getAttribute('aria-label')).toBe('4 / 5');
+    act(() => render(null, container!));
+    await mount(ok([vote]), { locale: 'he', byLine: '{tool}, מישהו ב{place}' });
+    expect(container!.textContent).toContain('קניה');
+  });
+
+  it('puts the country flag beside the place, and none without a country', async () => {
+    await mount(ok([{ tool: 'merge', stars: 5, country: 'KE' }]));
+    const flag = container!.querySelector('img')!;
+    expect(flag.getAttribute('src')).toBe('/flags/KE.svg');
+    expect(flag.getAttribute('alt')).toBe('');
+    act(() => render(null, container!));
+    await mount(ok([note('merge')]));
+    expect(container!.querySelector('img')).toBeNull();
   });
 
   it('shows markup in a comment as text', async () => {
