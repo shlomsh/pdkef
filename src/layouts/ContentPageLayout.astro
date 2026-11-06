@@ -33,6 +33,7 @@ interface Props {
   subhead: string;
   primaryCta: Cta;
   faq: FaqItem[];
+  faqHeading: string;
   lang?: string;
   dir?: 'ltr' | 'rtl';
   canonical?: string;
@@ -69,6 +70,7 @@ const {
   subhead,
   primaryCta,
   faq,
+  faqHeading,
   lang = 'en', dir = 'ltr', canonical, alternates, noindex = false, locale = 'en', variants = [], preview = false, messages, previewNotice,
   lastModified,
   editionPaths = [],
@@ -140,9 +142,9 @@ const ctaIsEnglishFallback = !isPublishedEditionLink(primaryCta.href, locale, ed
     </a>
   </section>
 
-  <ToolFaqCard faq={faq} labels={{ tag: messages.faqTag, heading: messages.faqHeading }} />
+  <ToolFaqCard faq={faq} labels={{ tag: messages.faqTag, heading: faqHeading }} />
 
-  <ToolCrossLinks currentSlug="" />
+  <ToolCrossLinks currentSlug="" labels={messages} locale={locale} editionPaths={editionPaths} />
 
   <Footer variants={variants} locale={locale} labels={messages} />
 </BaseLayout>

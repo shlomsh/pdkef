@@ -9,6 +9,7 @@ import { CONTENT_ICONS } from '../data/contentIcons';
 import { contentPages } from '../data/contentPages.js';
 import { getDocumentationContext } from '../i18n/documentation';
 import { getDocumentationShellMessages } from '../i18n/documentationMessages';
+import { guideFaqHeading } from '../i18n/faqHeading';
 import { documentationSourceFiles, lastModifiedFor } from '../site-lib/gitLastModified.js';
 import { registerContentPageStyles } from '../components/inlineStyles';
 
@@ -47,6 +48,7 @@ registerContentPageStyles(Astro.csp, entry);
   subhead={page.subhead}
   primaryCta={page.primaryCta}
   faq={page.faq}
+  faqHeading={guideFaqHeading(messages, 'en', pageId)}
   canonical={context.path}
   alternates={context.alternates}
   locale="en"

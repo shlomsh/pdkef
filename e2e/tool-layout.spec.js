@@ -442,3 +442,16 @@ test('gives the Sign and Redact page the full phone width inside the gutter', as
     expect(look.shadow, `${route}: card shadow`).toBe('none');
   }
 });
+
+test('guide cards sit on the same columns as the tool cards below them', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto('/compress/');
+  const columns = await page.evaluate(() => {
+    const row = (selector) => [...document.querySelectorAll(selector)].slice(0, 3).map((card) => {
+      const { left, right } = card.getBoundingClientRect();
+      return [Math.round(left), Math.round(right)];
+    });
+    return { guides: row('.related-guides-grid > li'), tools: row('[aria-labelledby="more-tools-heading"] ul > li') };
+  });
+  expect(columns.guides).toEqual(columns.tools);
+});

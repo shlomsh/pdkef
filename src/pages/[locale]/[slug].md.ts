@@ -13,11 +13,15 @@ import { documentationLocales, type DocumentationLocaleId } from '../../i18n/doc
 import { getDocumentationVariants } from '../../i18n/documentation';
 import { getLocalizedToolVariants, mergeLocalizedTool } from '../../i18n/localizedTools';
 import { getDocumentationShellMessages } from '../../i18n/documentationMessages';
+import { guideFaqHeading, toolFaqHeading } from '../../i18n/faqHeading';
 
 export async function getStaticPaths() {
   const entryData = (variant: { entry?: unknown }) => (variant.entry as { data: Record<string, any> }).data;
   const prefixOf = (localeId: string) => documentationLocales.find((record) => record.id === localeId)!.prefix;
-  const labelsFor = (localeId: DocumentationLocaleId) => markdownLabels(getDocumentationShellMessages(localeId));
+  const labelsFor = (localeId: DocumentationLocaleId, heading: typeof toolFaqHeading, id: string) => {
+    const messages = getDocumentationShellMessages(localeId);
+    return { ...markdownLabels(messages), faq: heading(messages, localeId, id) };
+  };
 
   const toolEntries = (await getLocalizedToolVariants())
     .filter((variant) => variant.locale !== 'en')
@@ -26,7 +30,7 @@ export async function getStaticPaths() {
       props: {
         markdown: toolToMarkdown(mergeLocalizedTool(toolsBySlug[variant.toolSlug], entryData(variant)), {
           path: variant.path,
-          labels: labelsFor(variant.locale),
+          labels: labelsFor(variant.locale, toolFaqHeading, variant.toolSlug),
         }),
       },
     }));
@@ -39,7 +43,7 @@ export async function getStaticPaths() {
         markdown: contentPageToMarkdown(variant.pageId, entryData(variant), {
           lastModified: lastModifiedFor(documentationSourceFiles(variant.pageId, variant.locale)),
           path: variant.path,
-          labels: labelsFor(variant.locale),
+          labels: labelsFor(variant.locale, guideFaqHeading, variant.pageId),
         }),
       },
     }));
