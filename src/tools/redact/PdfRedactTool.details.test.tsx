@@ -30,7 +30,7 @@ vi.mock('#editor-ui/whiteout/pageSampling.ts', async (importOriginal) => {
 });
 
 describe('PdfRedactTool UI flow', () => {
-  const { s, holdNextDocumentRead, failedOperations, loadFileAndGetDrawArea, armTool, drawBox, expectLatestGestureToCommitOnce } = useRedactSuite({ Tool: PdfRedactTool, checking: CHECKING, gestureController, installToolHarness, waitUntil });
+  const { s, holdNextDocumentRead, failedOperations, loadFileAndGetDrawArea, hoverBrushTool, drawBox, expectLatestGestureToCommitOnce } = useRedactSuite({ Tool: PdfRedactTool, checking: CHECKING, gestureController, installToolHarness, waitUntil });
 
   describe('RED-59: the file\'s details', () => {
     const authored = async () => makePdfFile('authored.pdf', await buildPdf(2, { author: 'Ada Lovelace' }));
@@ -318,11 +318,11 @@ describe('PdfRedactTool UI flow', () => {
 
   describe('RED-32 brushes', () => {
     const brushSegment = (label: string) => required(
-      Array.from(s.container.querySelectorAll<HTMLButtonElement>('[data-brush-controls] [role="radio"]')).find((b) => b.textContent === label),
+      Array.from(document.querySelectorAll<HTMLButtonElement>('[data-brush-controls] [role="radio"]')).find((b) => b.textContent === label),
       `${label} segment`,
     );
     async function armBrush(tool: string) {
-      await armTool(tool);
+      await hoverBrushTool(tool);
       await act(async () => { brushSegment('Brush').click(); });
     }
     async function paint(drawArea: HTMLElement, points: [number, number][]) {
@@ -364,7 +364,7 @@ describe('PdfRedactTool UI flow', () => {
     it('remembers the mode and size for the next document', async () => {
       await loadFileAndGetDrawArea();
       await armBrush('Whiteout');
-      const size = query<HTMLInputElement>(s.container, '[data-brush-controls] input[type="range"]');
+      const size = query<HTMLInputElement>(document.body, '[data-brush-controls] input[type="range"]');
       size.value = '30';
       await act(async () => { size.dispatchEvent(new Event('input', { bubbles: true })); });
       expect(getAppStyle()).toMatchObject({ brushMode: 'brush', brushSize: 30 });

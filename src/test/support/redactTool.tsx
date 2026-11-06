@@ -235,6 +235,13 @@ function redactSuiteActions(s: SuiteState, { Tool, waitUntil }: { Tool: Componen
     return drawArea;
   }
 
+  // RED-70: with a mouse, Box / Brush is a submenu that opens on hover.
+  async function hoverBrushTool(label: string): Promise<void> {
+    const button = required(Array.from(s.container.querySelectorAll<HTMLButtonElement>('[role="toolbar"] button'))
+      .find((b) => b.textContent.includes(label)), `${label} tool button`);
+    await act(async () => { button.parentElement!.dispatchEvent(new MouseEvent('mouseenter')); });
+  }
+
   async function armTool(label: string, { lock = false }: { lock?: boolean } = {}): Promise<HTMLButtonElement> {
     const button = required(Array.from(s.container.querySelectorAll<HTMLButtonElement>('[role="toolbar"] button'))
       .find((b) => b.textContent.includes(label)), `${label} tool button`);
@@ -314,5 +321,5 @@ function redactSuiteActions(s: SuiteState, { Tool, waitUntil }: { Tool: Componen
     await act(async () => { await new Promise((resolve) => setTimeout(resolve, 50)); });
   }
 
-  return { loadFileAndGetDrawArea, armTool, drawBox, expectLatestGestureToCommitOnce, loadFileWithoutArming, findToolButton, openSecondFile };
+  return { loadFileAndGetDrawArea, armTool, hoverBrushTool, drawBox, expectLatestGestureToCommitOnce, loadFileWithoutArming, findToolButton, openSecondFile };
 }

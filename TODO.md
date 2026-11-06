@@ -6,10 +6,6 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 
 ## Up next
 
-### Redact: finish removal
-
-- [RED-70](backlog/tasks/RED-70.md) P2 · Arming Blur or Whiteout leaves the page still (in progress)
-
 ### Highlight PDF: a tool for reading
 
 - [READ-03](backlog/tasks/READ-03.md) P2 · Highlight PDF: the tool at /highlight-pdf/, highlights with a comment on each, and its page (in progress)

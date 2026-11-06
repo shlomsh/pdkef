@@ -1,29 +1,37 @@
-/* Hangs below the sticky card the way the done strip does, because it shows
-   only while a tool is armed: in the card's flow, arming pushed the page down
-   and the one-shot disarm pulled it back from under the pointer (RED-70).
-   One line on a phone: it scrolls sideways rather than wrapping. Every target
-   is 44px. */
+/* One line: it scrolls sideways on a phone rather than wrapping. Every target
+   is 44px. With a mouse this sits in BrushToolMenu's submenu. */
 .row {
-  position: absolute;
-  inset-inline-start: 0;
-  top: calc(100% + 0.5rem);
-  z-index: 100;
   box-sizing: border-box;
   display: flex;
   align-items: center;
   gap: 0.75rem;
   flex-wrap: nowrap;
-  width: max-content;
-  max-width: 100%;
   overflow-x: auto;
   padding: 0.25rem 0.5rem;
   scrollbar-width: none;
-  background: color-mix(in srgb, var(--color-surface) 85%, transparent);
-  backdrop-filter: blur(12px) saturate(180%);
-  -webkit-backdrop-filter: blur(12px) saturate(180%);
+  background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
-  box-shadow: var(--shadow-lg), 0 4px 20px var(--color-surface-soft);
+  box-shadow: var(--shadow-lg), var(--shadow-popover-lift);
+}
+
+/* Touch has no hover, so the row stays while a tool is armed. It hangs below the
+   sticky card the way the done strip does: in the card's flow, arming pushed the
+   page down and the one-shot disarm pulled it back (RED-70). */
+.hung {
+  position: absolute;
+  inset-inline-start: 0;
+  top: calc(100% + 0.5rem);
+  z-index: 100;
+  width: max-content;
+  max-width: 100%;
+}
+
+/* What the submenu hangs from: the button's box, taking no clicks. */
+.anchor {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
 }
 
 .segmented {
