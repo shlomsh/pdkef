@@ -169,6 +169,8 @@ Create is a gesture too (click-place or drag-draw), not an exception.
   `.help-reserve-nav`). Touch gets short "Tap"/"Tap and drag" sentences (`ToolCopy.actionTouch`) so the armed
   row stays within two lines beside the switch and arrows. Guard:
   `e2e/tool-toolbars/toolbar-arm-no-shift.spec.js`, every tool, phone and desktop.
+  The page under it holds too (RED-70): Redact's Box / Brush row hangs below the card like the done
+  strip, never in its flow, or a finished box jumps from the pointer. Guard: `arm-page-still.spec.js`.
 - **The "Stop" chip in `EditorToolStatus` is the only exit from a locked tool on touch.** No Escape key
   on a phone, and a double-tap only locks. Never remove it as redundant.
 - **Redact's page `touch-action` is armed with the tool**: `activeStyle && activeStyle !== 'delete' ?

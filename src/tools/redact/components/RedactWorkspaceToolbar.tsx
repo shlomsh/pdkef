@@ -30,6 +30,9 @@ export default function RedactWorkspaceToolbar({ state, dispatch, setAnnouncemen
   const { activeStyle, toolLocked, activeColor, brush, eyedropping } = state.tool;
   const { undoAction } = state.edits;
   const { showStrip } = finish;
+  // RED-70: Box / Brush hangs where the done strip does, so the strip steps
+  // aside while either tool is armed and comes back if nothing was drawn.
+  const brushRow = activeStyle === 'blur' || activeStyle === 'whiteout';
   const { find, redactMatches } = findKit;
   return (
     <RedactToolbar
@@ -85,7 +88,7 @@ export default function RedactWorkspaceToolbar({ state, dispatch, setAnnouncemen
         ),
       }}
       slots={{
-        brushControls: (activeStyle === 'blur' || activeStyle === 'whiteout') && (
+        brushControls: brushRow && (
           <BrushControls
             tool={activeStyle}
             settings={brush}
@@ -96,7 +99,7 @@ export default function RedactWorkspaceToolbar({ state, dispatch, setAnnouncemen
             onToggleEyedropper={() => dispatch({ type: 'EYEDROPPER_TOGGLED', target: 'brush' })}
           />
         ),
-        doneStrip: showStrip && (
+        doneStrip: showStrip && !brushRow && (
           <RedactDoneStrip
             facts={finish.finishFacts}
             handoffBusy={exp.handoffBusy}
