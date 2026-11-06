@@ -34,10 +34,12 @@ The approved runtime licenses are MIT, Apache-2.0, ISC, BSD-2-Clause, BSD-3-Clau
 | [@vercel/speed-insights](https://github.com/vercel/speed-insights) | 2.0.0 | Apache-2.0 |
 | [astro](https://astro.build) | 7.4.5 | MIT |
 | [bidi-js](https://github.com/lojjic/bidi-js) | 1.1.0 | MIT |
+| [country-flag-icons](https://gitlab.com/catamphetamine/country-flag-icons#readme) | 1.6.20 | MIT |
 | [culori](git@github.com:Evercoder/culori) | 4.0.2 | MIT |
 | [fflate](https://101arrowz.github.io/fflate) | 0.8.3 | MIT |
 | [hachure-fill](https://github.com/pshihn/hachure-fill#readme) | 0.5.2 | MIT |
 | [html-entities](https://github.com/mdevils/html-entities) | 2.6.0 | MIT |
+| [iso-3166-2](http://github.com/olahol/iso-3166-2.js) | 1.0.0 | MIT |
 | [lucide-preact](https://lucide.dev) | 1.67.0 | ISC |
 | [node-html-better-parser](https://github.com/Sharcoux/node-html-parser) | 1.5.9 | MIT |
 | [pako](https://github.com/nodeca/pako) | 1.0.11 | (MIT AND Zlib) |
@@ -875,6 +877,35 @@ OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 ```
 
+### country-flag-icons (1.6.20) - MIT
+
+catamphetamine <purecatamphetamine@gmail.com>
+
+```
+(The MIT License)
+
+Copyright (c) 2020 @catamphetamine <purecatamphetamine@gmail.com>
+
+Permission is hereby granted, free of charge, to any person obtaining
+a copy of this software and associated documentation files (the
+'Software'), to deal in the Software without restriction, including
+without limitation the rights to use, copy, modify, merge, publish,
+distribute, sublicense, and/or sell copies of the Software, and to
+permit persons to whom the Software is furnished to do so, subject to
+the following conditions:
+
+The above copyright notice and this permission notice shall be
+included in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED 'AS IS', WITHOUT WARRANTY OF ANY KIND,
+EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+```
+
 ### culori (4.0.2) - MIT
 
 Dan Burzo <dan@danburzo.ro>
@@ -983,6 +1014,34 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
+```
+
+### iso-3166-2 (1.0.0) - MIT
+
+Ola Holmström <olaholmstrom+github@gmail.com>
+
+```
+The MIT License
+
+Copyright (c) 2014 Ola Holmström <olaholmstrom+github@gmail.com>
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of
+this software and associated documentation files (the "Software"), to deal in
+the Software without restriction, including without limitation the rights to
+use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies
+of the Software, and to permit persons to whom the Software is furnished to do
+so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
 ```
 
 ### lucide-preact (1.67.0) - ISC

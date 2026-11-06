@@ -920,7 +920,7 @@ export const toolsBySlug = Object.fromEntries(tools.map((tool) => [tool.slug, to
 // stores drafts, recents, ratings and hand-offs under. `toolId` names that id
 // when it differs from the slug (organize-pdf stores as 'edit-pdf'); a
 // `variantOf` landing page shares its parent's island, so it shares the id.
-export const toolIdOf = (entry) =>
+/** @testSeam */ export const toolIdOf = (entry) =>
   entry.toolId ?? (entry.variantOf ? toolIdOf(toolsBySlug[entry.variantOf]) : entry.slug);
 
 // Lists a person picks from show each tool once; variants are extra doors in.

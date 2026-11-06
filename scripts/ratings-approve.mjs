@@ -40,7 +40,8 @@ export function noteFrom(entry, place) {
   if (![1, 2, 3, 4, 5].includes(entry.stars)) throw new Error(`Stars must be 1 to 5, not ${entry.stars}.`);
   const words = typeof entry.comment === 'string' ? entry.comment : '';
   if (words.trim() === '' || [...words].length > MAX_COMMENT_LENGTH) throw new Error('The comment is empty or too long.');
-  return { tool: entry.tool, stars: entry.stars, comment: words, place: p };
+  const country = /^[A-Z]{2}$/.test(entry.country ?? '') ? { country: entry.country } : {};
+  return { tool: entry.tool, stars: entry.stars, comment: words, place: p, ...country };
 }
 
 const USAGE = 'Usage:\n  npm run ratings:approve\n  npm run ratings:approve -- <n> "Nakuru, Kenya"\n  npm run ratings:approve -- --remove a<number>';

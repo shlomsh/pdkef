@@ -1,9 +1,10 @@
-// Vercel Function: the approved pinned notes (SEO-57), read from Upstash Redis at most once an hour.
-// A note exists only after Shlomi approved a comment a person agreed to show (scripts/ratings-approve.mjs).
+// Vercel Function: the pinned notes (SEO-57), read from Upstash Redis at most once an hour. Words appear only after
+// Shlomi approved a comment a person agreed to show (scripts/ratings-approve.mjs); recent votes fill the rest.
 // Three layers keep the store quiet: the browser cache, the CDN, and a memo in this warm instance, which
 // holds whatever the CDN does. Never throws: a missing or failing store gives an empty list for a short while.
 import { readEnv, type Command } from '../src/site-lib/errorReportStore.js';
-import { notesFromResult, notesReadCommands } from '../src/site-lib/ratingStore.js';
+import { notesFromResults, notesReadCommands } from '../src/site-lib/ratingStore.js';
+import { regionName } from '../src/site-lib/regionName.js';
 import { NOTES_CACHE_SECONDS, NOTES_FAILURE_CACHE_SECONDS, type PinnedNote } from '../src/site-lib/pinnedNote.js';
 
 // No @types/node in this repo; the function runtime provides process.env.
@@ -57,8 +58,8 @@ async function read(): Promise<Memo> {
   try {
     const store = readEnv(process.env);
     if (!store) throw new Error('no store');
-    const [reply] = await pipeline(store, notesReadCommands());
-    lastGood = notesFromResult(reply);
+    const [approved, entries] = await pipeline(store, notesReadCommands());
+    lastGood = notesFromResults(approved, entries, regionName);
     return { expires: now + NOTES_CACHE_SECONDS * 1000, notes: lastGood, ok: true };
   } catch {
     // expected: a store outage serves the last good list, or none, for a short while

@@ -17,7 +17,7 @@ all Redact, all on 2026-10-23, and nothing to say where they came from or what t
 - Keep a rating's country and region (state, province) when the network gives them. Vercel adds both to every
   request as `x-vercel-ip-country` and `x-vercel-ip-country-region`; the browser sends nothing new for it.
 - A person may add a comment after the stars. It is optional and only what they choose to type.
-- The page and search markup still show the aggregate from 50 votes (`RATING_MIN_VOTES` unchanged). The aggregate
+- The page and search markup show the aggregate from `RATING_MIN_VOTES` votes (10 across all tools since SEO-58). The aggregate
   covers every vote, never only the high ones: Google's review snippet policy forbids picking.
 - The 3 existing votes stay without location. Vercel's request logs carry no location or body, and 2026-10-23 is
   already outside the window `vercel logs` serves (checked 2026-10-26).

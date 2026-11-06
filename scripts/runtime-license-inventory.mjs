@@ -43,7 +43,7 @@ export function runtimePackageInventory() {
   return RUNTIME_PACKAGE_NAMES.map((name) => {
     const pkg = readPackage(name);
     return {
-      name, version: pkg.version, license: pkg.license, url: packageUrl(pkg),
+      name, version: pkg.version, license: pkg.license ?? pkg.licenses?.[0]?.type, url: packageUrl(pkg),
       author: typeof pkg.author === 'string' ? pkg.author : pkg.author?.name ?? 'See upstream notice',
       notice: licenseText(name), noticeUrl: LICENSE_URL_OVERRIDES[name] ?? packageUrl(pkg),
     };

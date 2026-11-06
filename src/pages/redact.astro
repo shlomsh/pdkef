@@ -1,11 +1,17 @@
 ---
 import ToolPageLayout from '../layouts/ToolPageLayout.astro';
 import PdfRedactTool from '../tools/redact/PdfRedactTool.tsx';
+import RatingBoard from '../components/RatingBoard.astro';
 import { toolsBySlug } from '../data/tools.js';
+import { documentationShellMessages } from '../i18n/documentationMessages';
+import { appRating } from '../site-lib/ratingAggregate';
 
 const tool = toolsBySlug['redact'];
+const rating = await appRating();
 ---
 
 <ToolPageLayout tool={tool}>
   <PdfRedactTool client:load />
+  {/* SEO-58: through a slot, so the board's CSS ships on this page alone. */}
+  <RatingBoard slot="rating" rating={rating} tool="redact" messages={documentationShellMessages.en!} />
 </ToolPageLayout>

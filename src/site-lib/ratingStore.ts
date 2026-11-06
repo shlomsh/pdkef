@@ -3,7 +3,7 @@
 // `rating:<tool>`, a count per star value, never given an expiry. Only the day's cap total expires.
 import type { RatingCommentEvent, RatingEvent } from '../lib/telemetry/ratingSchema.js';
 import type { Command } from './errorReportStore.js';
-import { NOTES_KEY, NOTES_MAX, parseNote, type PinnedNote } from './pinnedNote.js';
+import { NOTES_KEY, NOTES_MAX, NOTES_PER_TOOL, parseNote, type PinnedNote } from './pinnedNote.js';
 
 /** Ratings counted per UTC day, apart from the other caps. A rating costs 1 command (2 on the day's first). */
 export const RATING_DAILY_CAP = 300;
@@ -64,6 +64,26 @@ export function ratingReadCommands(tools: readonly string[]): Command[] {
   return tools.map((tool) => ['HGETALL', `rating:${tool}`]);
 }
 
+/** Build-time read of the record, for the country count. Bounded by RATING_ENTRIES_KEEP. */
+export function entriesReadCommands(): Command[] {
+  return [['LRANGE', RATING_ENTRIES_KEY, 0, -1]];
+}
+
+/** How many different countries the record names. Only ever published as this one number. */
+export function countriesFromResult(reply: { result?: unknown } | undefined): number {
+  const rows = Array.isArray(reply?.result) ? reply.result : [];
+  const countries = new Set<string>();
+  for (const row of rows) {
+    try {
+      const country = JSON.parse(String(row))?.country;
+      if (typeof country === 'string') countries.add(country);
+    } catch {
+      // expected: an unreadable row counts for nothing
+    }
+  }
+  return countries.size;
+}
+
 type StarCounts = Record<1 | 2 | 3 | 4 | 5, number>;
 
 /** Parses Upstash HGETALL replies (flat [field, value, ...] strings); anything unexpected counts as zero. */
@@ -89,24 +109,66 @@ export function ratingCountsFromResults(
   return out;
 }
 
-/** The newest approved notes, read by `GET /api/notes`. */
+/** How far back to look for votes to show: enough for variety, small enough for one hourly read. */
+const RECENT_VOTES = 200;
+
+/** One read for the approved notes and the recent record. */
 export function notesReadCommands(): Command[] {
-  return [['LRANGE', NOTES_KEY, -NOTES_MAX, -1]];
+  return [['LRANGE', NOTES_KEY, -NOTES_MAX, -1], ['LRANGE', RATING_ENTRIES_KEY, -RECENT_VOTES, -1]];
 }
 
-/** Parses the LRANGE reply (oldest first): each string as JSON through parseNote, invalid ones dropped, newest first. */
-export function notesFromResult(reply: { result?: unknown } | undefined): readonly PinnedNote[] {
-  const list = reply?.result;
-  if (!Array.isArray(list)) return [];
-  const notes: PinnedNote[] = [];
-  for (const raw of list) {
+const jsonRows = (reply: { result?: unknown } | undefined): unknown[] => {
+  const rows: unknown[] = [];
+  for (const raw of Array.isArray(reply?.result) ? reply.result : []) {
     if (typeof raw !== 'string') continue;
     try {
-      const note = parseNote(JSON.parse(raw));
-      if (note) notes.push(note);
+      rows.push(JSON.parse(raw));
     } catch {
-      // expected: a stored entry that is not JSON is dropped
+      // expected: a stored row that is not JSON is dropped
     }
   }
-  return notes.slice(-NOTES_MAX).reverse();
+  return rows;
+};
+
+type RegionName = (country: string, region: string) => string | undefined;
+
+/** Recent votes as notes, newest first: never a comment, and one per tool and country, for variety. */
+function voteNotes(reply: { result?: unknown } | undefined, regionName: RegionName): readonly PinnedNote[] {
+  const seen = new Set<string>();
+  const notes: PinnedNote[] = [];
+  for (const row of jsonRows(reply).reverse()) {
+    const { tool, stars, country, region, comment } = (row ?? {}) as Record<string, unknown>;
+    if (comment !== undefined) continue;
+    const name = typeof country === 'string' && typeof region === 'string' ? regionName(country, region) : undefined;
+    const note = parseNote({ tool, stars, country, ...(name ? { region: name } : {}) });
+    const key = `${tool}:${country}`;
+    if (!note || seen.has(key)) continue;
+    seen.add(key);
+    notes.push(note);
+  }
+  return notes;
+}
+
+/** The first NOTES_PER_TOOL of each tool, words first, then one from each tool in turn, so no tool fills the board. */
+function spread(notes: readonly PinnedNote[]): readonly PinnedNote[] {
+  const seen = new Map<string, number>();
+  const ranked = notes.map((note) => {
+    const rank = seen.get(note.tool) ?? 0;
+    seen.set(note.tool, rank + 1);
+    return { note, rank };
+  });
+  return ranked
+    .filter(({ rank }) => rank < NOTES_PER_TOOL)
+    .sort((a, b) => Number(!a.note.comment) - Number(!b.note.comment) || a.rank - b.rank)
+    .map(({ note }) => note);
+}
+
+/** Approved notes, newest first, then recent votes, spread across the tools. Invalid rows are dropped. */
+export function notesFromResults(
+  approved: { result?: unknown } | undefined,
+  entries: { result?: unknown } | undefined,
+  regionName: RegionName,
+): readonly PinnedNote[] {
+  const words = jsonRows(approved).map(parseNote).filter((n): n is PinnedNote => n !== null);
+  return spread([...words.slice(-NOTES_MAX).reverse(), ...voteNotes(entries, regionName)]);
 }

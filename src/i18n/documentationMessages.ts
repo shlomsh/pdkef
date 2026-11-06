@@ -62,12 +62,15 @@ export interface DocumentationShellMessages {
   lastUpdated: string;
   /** Shown on Sign/Redact tool pages, invites the visitor to test offline. */
   airplaneModeNotice: string;
-  /** SEO-46: the visible rating line on a tool page that has one. `{average}` and `{count}` are filled with the same numbers the JSON-LD carries; the numbers are never translated. */
+  /** SEO-46/58: the visible line for PDkef's one rating, on the home and tool pages. `{average}` and `{count}` are filled with the same numbers the JSON-LD carries; the numbers are never translated. */
   ratingLine: string;
   /** SEO-57: the pinned notes section. `notesBy` takes `{tool}` and `{place}`. */
   notesHeading: string;
   notesIntro: string;
   notesBy: string;
+  /** SEO-58: the rating board. `{count}` and `{countries}` are filled from the build's rating. */
+  ratingBoardCount: string;
+  ratingBoardInvite: string;
   /** The home page's own accessible names: the brand link when it is not a
    * back link (`homeAriaLabel` is the tool-page wording), the tool dock's
    * <nav> and the offline-install tab list. */
@@ -133,10 +136,12 @@ const englishMessages = {
   inEnglish: 'in English',
   lastUpdated: 'Last updated',
   airplaneModeNotice: 'Turn on airplane mode and give it a try. It still works.',
-  ratingLine: '{average} from {count} ratings',
-  notesHeading: 'Notes people left',
-  notesIntro: 'After a download I ask how it went. These are a few of the answers, shared with their OK.',
+  ratingLine: '{average} out of 5 from {count} ratings across all of PDkef',
+  notesHeading: 'How did it go?',
+  notesIntro: 'After a download I ask how it went. This is what people said.',
   notesBy: '{tool}, someone in {place}',
+  ratingBoardCount: '{count} ratings from {countries} countries',
+  ratingBoardInvite: 'Yours could go here after your next download.',
   homepageAriaLabel: 'PDkef homepage',
   toolDockAriaLabel: 'PDF tools',
   installGuidesAriaLabel: 'Device installation guides',
@@ -181,10 +186,12 @@ const hebrewMessages = {
   lastUpdated: 'עודכן לאחרונה',
   airplaneModeNotice: 'הפעילו מצב טיסה ונסו. זה עדיין עובד.',
   heroPhoneLine: 'חינם, פרטי, ישר בדפדפן.',
-  ratingLine: '{count} דירוגים, ממוצע {average}',
-  notesHeading: 'פתקים שאנשים השאירו',
-  notesIntro: 'אחרי הורדה אני שואל איך היה. הנה כמה מהתשובות, בהסכמתם.',
+  ratingLine: 'דירוג {average} מתוך 5, לפי {count} דירוגים בכל הכלים של PDkef',
+  notesHeading: 'איך היה?',
+  notesIntro: 'אחרי הורדה אני שואל איך היה. זה מה שאנשים ענו.',
   notesBy: '{tool}, מישהו ב{place}',
+  ratingBoardCount: '{count} דירוגים מ-{countries} מדינות',
+  ratingBoardInvite: 'גם הדירוג שלך יכול להיות כאן אחרי ההורדה הבאה.',
   heroAccent: 'אצלכם במכשיר',
   homepageAriaLabel: 'דף הבית של PDkef',
   toolDockAriaLabel: 'כלי PDF',
@@ -231,10 +238,12 @@ const indonesianMessages = {
   lastUpdated: 'Terakhir diperbarui',
   airplaneModeNotice: 'Aktifkan mode pesawat dan coba sendiri. Tetap berfungsi.',
   heroPhoneLine: 'Gratis, privat, langsung di browser Anda.',
-  ratingLine: '{average} dari {count} penilaian',
-  notesHeading: 'Notes people left',
-  notesIntro: 'After a download I ask how it went. These are a few of the answers, shared with their OK.',
+  ratingLine: 'Nilai {average} dari 5 berdasarkan {count} penilaian di seluruh PDkef',
+  notesHeading: 'How did it go?',
+  notesIntro: 'After a download I ask how it went. This is what people said.',
   notesBy: '{tool}, someone in {place}',
+  ratingBoardCount: '{count} ratings from {countries} countries',
+  ratingBoardInvite: 'Yours could go here after your next download.',
   homepageAriaLabel: 'Beranda PDkef',
   toolDockAriaLabel: 'Alat PDF',
   installGuidesAriaLabel: 'Panduan instalasi per perangkat',

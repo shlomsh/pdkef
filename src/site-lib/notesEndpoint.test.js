@@ -101,9 +101,9 @@ describe('GET /api/notes', () => {
     expect((await bodyOf(await GET())).map((n) => n.comment)).toEqual(['ok']);
   });
 
-  it('carries at most 12', async () => {
+  it('carries at most four for a tool', async () => {
     const list = Array.from({ length: 20 }, (_, i) => note(`n${i}`));
     vi.spyOn(globalThis, 'fetch').mockImplementation(answer(list));
-    expect(await bodyOf(await GET())).toHaveLength(12);
+    expect(await bodyOf(await GET())).toHaveLength(4);
   });
 });
