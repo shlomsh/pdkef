@@ -27,3 +27,13 @@ test('the Redact video reaches its host only on press, and its frame passes the 
   await expect.poll(() => playerRequests.length).toBe(1);
   expect(await page.evaluate(() => window.__cspViolations)).toEqual([]);
 });
+
+test('the home video is a card after The O, and plays in place', async ({ page }) => {
+  await page.route('https://www.youtube-nocookie.com/**', (route) => route.fulfill({ contentType: 'text/html', body: '<title>player</title>' }));
+  await page.goto('/');
+  const card = page.locator('[data-home-video]');
+  await card.scrollIntoViewIfNeeded();
+  await expect.poll(() => card.locator('img').evaluate((img) => img.naturalWidth)).toBeGreaterThan(0);
+  await card.getByRole('button', { name: /^Play/ }).click();
+  await expect(card.locator('iframe')).toBeVisible();
+});

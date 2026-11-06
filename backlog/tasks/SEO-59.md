@@ -15,10 +15,10 @@ would rather watch than read, so `/redact/` goes tool, video, ratings, then the 
 
 ## Outcome
 
-- `/redact/` plays the video in place, directly below the tool. The file stays out of the repo and lives on YouTube; the
+- `/redact/` plays the video in place, directly below the tool, and the English home page plays it as the first card after The O. The file stays out of the repo and lives on YouTube; the
   page never mentions YouTube, it is Shlomi's video.
 - The page loads no Google code and connects to nothing until a person presses play. Pressing play makes the player frame
-  from `www.youtube-nocookie.com`, the one origin in that page's `frame-src`, and `test:csp` pins it to `/redact/` alone
+  from `www.youtube-nocookie.com`, the one origin in that page's `frame-src`, and `test:csp` pins it to those two pages
   (Shlomi's call, 2026-11-06, a second exception next to `/drive/`).
 - The Blur, Blackout or Delete guide mentions it.
 

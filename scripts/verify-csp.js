@@ -127,9 +127,9 @@ const GOOGLE_ORIGINS = [
   'https://drive.google.com',
   'https://content.googleapis.com',
 ];
-// SEO-59: the Redact video's player, a frame made after a person presses play. /redact/ alone may allow it.
+// SEO-59: the video's player, a frame made after a person presses play. Only the pages with the video may allow it.
 const VIDEO_PLAYER_ORIGIN = 'https://www.youtube-nocookie.com';
-const videoPage = path.join(distDir, 'redact', 'index.html');
+const videoPages = [path.join(distDir, 'index.html'), path.join(distDir, 'redact', 'index.html')];
 const drivePage = path.join(distDir, 'drive', 'index.html');
 if (!fs.existsSync(drivePage)) {
   console.error('[ERROR] dist/drive/index.html is missing: the /drive/ page is required.');
@@ -147,11 +147,11 @@ for (const file of htmlFiles) {
     hasError = true;
   }
   const frameSrc = csp.split(';').map((d) => d.trim()).find((d) => d.startsWith('frame-src')) ?? '';
-  if (file === videoPage && frameSrc !== `frame-src ${VIDEO_PLAYER_ORIGIN}`) {
-    console.error(`[ERROR] ${relative}: CSP frame-src must be exactly ${VIDEO_PLAYER_ORIGIN}, which the Redact video needs.`);
+  if (videoPages.includes(file) && frameSrc !== `frame-src ${VIDEO_PLAYER_ORIGIN}`) {
+    console.error(`[ERROR] ${relative}: CSP frame-src must be exactly ${VIDEO_PLAYER_ORIGIN}, which the video needs.`);
     hasError = true;
-  } else if (file !== videoPage && csp.includes(VIDEO_PLAYER_ORIGIN)) {
-    console.error(`[ERROR] ${relative}: CSP contains ${VIDEO_PLAYER_ORIGIN}, which only dist/redact/index.html may allow.`);
+  } else if (!videoPages.includes(file) && csp.includes(VIDEO_PLAYER_ORIGIN)) {
+    console.error(`[ERROR] ${relative}: CSP contains ${VIDEO_PLAYER_ORIGIN}, which only the pages with the video may allow.`);
     hasError = true;
   }
   for (const origin of GOOGLE_ORIGINS) {

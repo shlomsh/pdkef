@@ -1,0 +1,17 @@
+---
+// The video as a card of the home stack: opaque, pinned and full height like its neighbours.
+// A pinned card has to fit the screen, so a short screen narrows the 16:9 poster.
+import FeatureCard from '../FeatureCard.astro';
+import VideoPoster from '../VideoPoster.astro';
+
+interface Props {
+  video: { label: string; embed: string; poster: string };
+}
+
+const { video } = Astro.props;
+---
+<FeatureCard data-home-video>
+  <div class="mx-auto max-w-[max(20rem,calc((100svh-14rem)*16/9))]">
+    <VideoPoster video={video} lazy />
+  </div>
+</FeatureCard>

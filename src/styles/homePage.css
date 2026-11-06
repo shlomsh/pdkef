@@ -13,6 +13,7 @@
 @source "../components/home";
 @source "../components/OfflineProof.astro";
 @source "../components/SeoSchema.astro";
+@source "../components/VideoPoster.astro";
 @source "../data/tools.js";
 @source "../pages/index.astro";
 @source "../pages/[locale]/index.astro";

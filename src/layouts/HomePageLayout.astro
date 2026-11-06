@@ -20,6 +20,7 @@ import SeoSchema from '../components/SeoSchema.astro';
 import HomeHero from '../components/home/HomeHero.astro';
 import HomeInformation from '../components/home/HomeInformation.astro';
 import { appRating } from '../site-lib/ratingAggregate';
+import { toolVideos } from '../data/toolVideos.js';
 import TheO from '../components/TheO.astro';
 import '../styles/homePage.css';
 
@@ -134,6 +135,9 @@ const homeTools = homeToolsOrder.map((tool) => {
 // default and its serialized island props unchanged.
 const toolHrefs = locale === 'en' ? undefined : Object.fromEntries(homeTools.map((tool) => [tool.slug, tool.href]));
 const rating = await appRating();
+// The video follows The O, so the home page that has the story has the video, and its player's frame.
+const video = showTheO ? toolVideos.redact : undefined;
+if (video) Astro.csp?.insertDirective(`frame-src ${new URL(video.embed).origin}`);
 ---
 
 <BaseLayout title={title} description={description} lang={lang} dir={dir} canonical={canonical} alternates={alternates} socialImageAlt={messages.socialImageAlt}>
@@ -160,7 +164,7 @@ const rating = await appRating();
   <main id="home-content">
     <HomeHero h1Prefix={h1Prefix} h1Accent={home.h1Accent} subhead={home.subhead} dir={dir} locale={locale} messages={messages} homeTools={homeTools} dropzoneMessages={dropzoneMessages} recentFilesMessages={recentFilesMessages} signToolDisplayName={signToolDisplayName} toolHrefs={toolHrefs} />
     {showTheO && <TheO story={home.theO} />}
-    <HomeInformation home={home} rating={rating} showTheO={showTheO} dir={dir} locale={locale} messages={messages} variants={variants} dropzoneMessages={dropzoneMessages} recentFilesMessages={recentFilesMessages} signToolDisplayName={signToolDisplayName} toolHrefs={toolHrefs} />
+    <HomeInformation home={home} rating={rating} showTheO={showTheO} video={video} dir={dir} locale={locale} messages={messages} variants={variants} dropzoneMessages={dropzoneMessages} recentFilesMessages={recentFilesMessages} signToolDisplayName={signToolDisplayName} toolHrefs={toolHrefs} />
   </main>
   <script src="../site-lib/homeWorkspace.ts"></script>
 </BaseLayout>

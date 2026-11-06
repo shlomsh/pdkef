@@ -1,0 +1,50 @@
+---
+// The video's poster and play button. Until someone presses play this is all there is:
+// the page loads nothing from the player's host. Pressing play makes the frame, the one
+// thing the CSP of a page with the video allows from there. `lazy` is for a page where
+// the poster sits far below the first screen; the dark backing covers it until it loads.
+interface Props {
+  video: { label: string; embed: string; poster: string };
+  lazy?: boolean;
+}
+
+const { video, lazy = false } = Astro.props;
+---
+
+<div class="relative rounded-[var(--radius-lg)] bg-[var(--color-text)]">
+  <img
+    class="block h-auto w-full rounded-[var(--radius-lg)]"
+    src={video.poster}
+    alt=""
+    width="1280"
+    height="720"
+    decoding="async"
+    loading={lazy ? 'lazy' : undefined}
+  />
+  <button
+    class="absolute inset-0 flex h-full w-full cursor-pointer items-end justify-end border-0 bg-transparent p-3"
+    type="button"
+    aria-label={`Play: ${video.label}`}
+    data-video-play
+    data-embed={video.embed}
+    data-title={video.label}
+  >
+    <span class="flex h-12 w-12 items-center justify-center rounded-full bg-[var(--color-bg)] text-[var(--color-text)]">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"></path></svg>
+    </span>
+  </button>
+</div>
+
+<script>
+  const button = document.querySelector<HTMLButtonElement>('[data-video-play]');
+  button?.addEventListener('click', () => {
+    const frame = document.createElement('iframe');
+    frame.src = button.dataset.embed ?? '';
+    frame.title = button.dataset.title ?? '';
+    frame.allow = 'autoplay; encrypted-media; picture-in-picture; fullscreen';
+    frame.referrerPolicy = 'strict-origin-when-cross-origin';
+    frame.className = 'absolute inset-0 h-full w-full rounded-[var(--radius-lg)]';
+    button.replaceWith(frame);
+    frame.focus();
+  });
+</script>

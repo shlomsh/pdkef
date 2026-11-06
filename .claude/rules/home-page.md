@@ -156,6 +156,7 @@ conditions for re-opening it are in `backlog/tasks/DEMO-05.md`.
   needs an `is:inline` script that CSP cannot hash. If a conditional is wanted, **collapse rather than
   remove**: a class on `<html>` from the bundled script that registers the service worker, driving a
   CSS `max-height`.
+- **The video (SEO-59) is the stack's first card on the English home page**, right after The O (`VideoCard.astro`). Its poster is lazy: the page's eager-image budget has no room for it this far down.
 - **The rating board (SEO-58) is a card of the stack** (`card` on `RatingBoard.astro`, so `.card-reveal`): opaque, pinned and full height like its neighbours, or the pinned card before it shows around it. Its notes are an island that renders nothing until approved notes arrive, and a tall board unpins through `data-stack-overflow`.
 
 ## Reveal animations (scroll-driven)

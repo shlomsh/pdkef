@@ -8,11 +8,13 @@ import FaqCard from './FaqCard.astro';
 import PrivacyOpenSourceCard from './PrivacyOpenSourceCard.astro';
 import ClosingCard from './ClosingCard.astro';
 import RatingBoard from '../RatingBoard.astro';
+import VideoCard from './VideoCard.astro';
 
 interface Props {
   home: any;
   rating: { average: number; count: number; countries: number } | null;
   showTheO: boolean;
+  video?: { label: string; embed: string; poster: string };
   dir: 'ltr' | 'rtl';
   locale: string;
   messages: any;
@@ -22,7 +24,7 @@ interface Props {
   signToolDisplayName: string;
   toolHrefs?: Record<string, string>;
 }
-const { home, rating, showTheO, dir, locale, messages, variants, dropzoneMessages, recentFilesMessages, signToolDisplayName, toolHrefs } = Astro.props;
+const { home, rating, showTheO, video, dir, locale, messages, variants, dropzoneMessages, recentFilesMessages, signToolDisplayName, toolHrefs } = Astro.props;
 const { faqKicker, faq, founderStory, draftPersistence, offlineInstall, privacyOpenSource, closing } = home;
 ---
 <div id="home-information">
@@ -30,6 +32,7 @@ const { faqKicker, faq, founderStory, draftPersistence, offlineInstall, privacyO
   {!showTheO && <OfflineProof />}
   <div class="card-stack">
     {!showTheO && <FounderStoryCard founderStory={founderStory} dir={dir} />}
+    {video && <VideoCard video={video} />}
     <DraftPersistenceCard draftPersistence={draftPersistence} />
     <OfflineInstallCard offlineInstall={offlineInstall} messages={messages} />
     <script>
