@@ -34,9 +34,6 @@ async function scanPdf(page, degrees, text = '') {
 
 const offer = (page) => page.locator('[data-scan-offer]');
 const CHECK_MS = 20_000;
-/** The hash behind the offer lands just after the check reports, so a test expecting no line gives it this long. */
-const CLAIM_SETTLES_MS = 500;
-
 test.beforeEach(async ({ page }) => {
   await page.addInitScript(() => {
     window.scanChecks = [];
@@ -53,7 +50,6 @@ test.beforeEach(async ({ page }) => {
 /** Waits for the silent check on this page to answer `outcome`, so that "no line" proves something. */
 async function checkAnswers(page, outcome) {
   await expect.poll(() => page.evaluate(() => window.scanChecks.join()), { timeout: CHECK_MS }).toContain(`"outcome":"${outcome}"`);
-  await page.waitForTimeout(CLAIM_SETTLES_MS);
 }
 
 test('a crooked scan is offered Scan once, and Straighten carries the file there', async ({ page }) => {
