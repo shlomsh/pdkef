@@ -9,6 +9,8 @@
 import BaseLayout from './BaseLayout.astro';
 import SeoSchema from '../components/SeoSchema.astro';
 import ToolStage from '../components/tool-page/ToolStage.astro';
+import ToolVideo from '../components/tool-page/ToolVideo.astro';
+import { toolVideos } from '../data/toolVideos.js';
 import AppBar from '../components/AppBar.astro';
 import TrustChips from '../components/TrustChips.astro';
 import ToolLanguagesCard from '../components/ToolLanguagesCard.astro';
@@ -122,6 +124,7 @@ const prePaintScript = `
 // Which other pages exist in this edition, so the two card grids below can
 // link to the localized page where there is one and mark the rest EN.
 const editionPaths = locale === 'en' ? [] : await getPublishedEditionPaths(locale as any);
+const video = toolVideos[tool.slug];
 ---
 
 <BaseLayout
@@ -195,6 +198,8 @@ const editionPaths = locale === 'en' ? [] : await getPublishedEditionPaths(local
   </ToolStage>
 
   <div data-tool-followups>
+  {video && locale === 'en' && <ToolVideo video={video} />}
+
   {/* SEO-10: the no-limit fact, stated where a visitor scanning the SERP
       result actually lands, not buried in the FAQ below the tool. Kept to
       one plain sentence, no badge: state the fact, then the one honest

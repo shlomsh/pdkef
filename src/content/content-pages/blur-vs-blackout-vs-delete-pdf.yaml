@@ -34,7 +34,8 @@ sections:
           There is no single “best” option because these are different jobs. <strong>Delete changes
           the page content.</strong> Whiteout, Blackout and Blur change how an area looks. The
           <a href="/redact/">Redact tool</a> puts all four in one place so you can choose per item,
-          and even combine them on one document.
+          and even combine them on one document. Prefer to watch? There's a one-minute video on the
+          <a href="/redact/">Redact page</a>.
   - sketch: 'arcs'
     icon: 'Trash2'
     iconPos: 'br'
