@@ -23,6 +23,7 @@
 @source "../components/OtherGuides.astro";
 @source "../components/SeoSchema.astro";
 @source "../components/ToolCrossLinks.astro";
+@source "../components/LinkCard.astro";
 @source "../components/ToolFaqCard.astro";
 @source "../data/contentIcons.ts";
 @source "../data/contentPages.js";

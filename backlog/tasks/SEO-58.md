@@ -41,7 +41,8 @@ PDkef is one, but its docs do not address an app rating on a tool's page, so Goo
 ## Done when
 
 - Production `/` and `/redact/` carry `aggregateRating` on PDkef and the matching visible numbers; `/merge/` carries none.
-- Google's Rich Results Test passes on `/redact/` (Shlomi).
+- Google's Rich Results Test passes on `/redact/` (Shlomi). Passed 2026-11-07: Organization, Review snippets and Software
+  Apps are valid, and it reads 4.96 from 23 votes. Indexing was requested for `/` and `/redact/` the same day.
 - A read of the results after a recrawl says whether stars show; if they do not within a month, decide per tool or keep.
 
 ## Notes on the board (2026-11-06)
