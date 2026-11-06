@@ -20,7 +20,7 @@ vi.mock('../hooks/usePageGeometry.ts', async (importOriginal) => {
     return geometryOverride ? { ...real, geometry: geometryOverride as never } : real;
   } };
 });
-vi.mock('../lib/outline/markOutline.ts', () => ({ outlineVertices: () => [[0, 0], [10, 0], [10, 10]] }));
+vi.mock('../lib/outline/markOutline.ts', () => ({ outlineStrokes: () => [[[0, 0], [10, 0]], [[10, 0], [10, 10]]], outlineWobble: () => 1 }));
 vi.mock('#editor/geometry/sketchStroke.ts', () => ({
   strokeSeed: () => 7, sketchBands: vi.fn(() => [['Z']]), sketchUnderline: vi.fn(() => [['Z']]), svgPath: () => 'M0 0Z',
 }));
