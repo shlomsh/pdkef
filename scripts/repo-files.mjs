@@ -4,8 +4,8 @@
 // CI passes without. Same file set as check-js-typed.mjs.
 import { execFileSync } from 'node:child_process';
 
-export function repoFiles(root) {
-  const out = execFileSync('git', ['ls-files', '-co', '--exclude-standard', '-z'], { cwd: root, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 });
+export function repoFiles(root, ...paths) {
+  const out = execFileSync('git', ['ls-files', '-co', '--exclude-standard', '-z', ...paths], { cwd: root, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 });
   return new Set(out.split('\0').filter(Boolean));
 }
 

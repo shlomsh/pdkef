@@ -15,6 +15,7 @@ import { fileURLToPath } from 'node:url';
 import { selectUnitTests } from './unit-scope.mjs';
 import { isDocsOnly } from './change-scope.mjs';
 import { deriveScope, ownerOf, siteE2eProjectList, makeToolOf, toolNameOf } from './affected-scope.mjs';
+import { repoFiles } from './repo-files.mjs';
 
 const ROOT = resolvePath(dirname(fileURLToPath(import.meta.url)), '..');
 const R = '/R'; // virtual repo root while evaluating path expressions
@@ -363,8 +364,8 @@ async function makeDeriveE2e() {
 
 async function main(argv) {
   const started = Date.now();
-  const tracked = execFileSync('git', ['ls-files'], { cwd: ROOT, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 }).split('\n').filter(Boolean);
-  const files = new Set(tracked);
+  const files = repoFiles(ROOT);
+  const tracked = [...files];
   const dirs = new Set();
   for (const f of tracked) {
     for (let d = posix.dirname(f); d !== '.' && !dirs.has(d); d = posix.dirname(d)) dirs.add(d);

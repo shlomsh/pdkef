@@ -5,11 +5,11 @@
 // rewrites the record lower (in CI it only prints).
 //
 //   node scripts/check-ts-nocheck-ratchet.mjs
-import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import ts from 'typescript';
+import { repoFiles } from './repo-files.mjs';
 
 const root = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
 const LIMIT_FILE = path.join(root, 'scripts', 'ts-nocheck-limit.json');
@@ -32,8 +32,7 @@ export function compareNoCheck(recorded, current) {
 }
 
 function readSources() {
-  const files = execFileSync('git', ['ls-files', 'src'], { cwd: root, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 })
-    .split('\n')
+  const files = [...repoFiles(root, 'src')]
     .filter((f) => /\.(js|jsx|mjs|ts|tsx)$/.test(f) && fs.existsSync(path.join(root, f)));
   const sources = {};
   for (const f of files) sources[f] = fs.readFileSync(path.join(root, f), 'utf8');
