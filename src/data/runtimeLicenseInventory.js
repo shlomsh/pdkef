@@ -68,7 +68,7 @@ export const RUNTIME_LICENSE_PACKAGES = [
   },
   {
     "name": "@vercel/functions",
-    "version": "3.10.3",
+    "version": "3.10.6",
     "license": "Apache-2.0",
     "url": "https://vercel.com/docs/functions/functions-api-reference/vercel-functions-package"
   },
@@ -80,7 +80,7 @@ export const RUNTIME_LICENSE_PACKAGES = [
   },
   {
     "name": "astro",
-    "version": "7.4.2",
+    "version": "7.4.5",
     "license": "MIT",
     "url": "https://astro.build"
   },
@@ -116,7 +116,7 @@ export const RUNTIME_LICENSE_PACKAGES = [
   },
   {
     "name": "lucide-preact",
-    "version": "1.61.0",
+    "version": "1.67.0",
     "license": "ISC",
     "url": "https://lucide.dev"
   },
@@ -140,7 +140,7 @@ export const RUNTIME_LICENSE_PACKAGES = [
   },
   {
     "name": "pdfjs-dist",
-    "version": "6.4.299",
+    "version": "6.5.438",
     "license": "Apache-2.0",
     "url": "https://mozilla.github.io/pdf.js/"
   },

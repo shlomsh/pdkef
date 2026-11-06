@@ -30,19 +30,19 @@ The approved runtime licenses are MIT, Apache-2.0, ISC, BSD-2-Clause, BSD-3-Clau
 | [@preact/signals](https://preactjs.com) | 2.11.3 | MIT |
 | [@preact/signals-core](https://preactjs.com) | 1.14.4 | MIT |
 | [@vercel/analytics](https://github.com/vercel/analytics) | 2.0.1 | MIT |
-| [@vercel/functions](https://vercel.com/docs/functions/functions-api-reference/vercel-functions-package) | 3.10.3 | Apache-2.0 |
+| [@vercel/functions](https://vercel.com/docs/functions/functions-api-reference/vercel-functions-package) | 3.10.6 | Apache-2.0 |
 | [@vercel/speed-insights](https://github.com/vercel/speed-insights) | 2.0.0 | Apache-2.0 |
-| [astro](https://astro.build) | 7.4.2 | MIT |
+| [astro](https://astro.build) | 7.4.5 | MIT |
 | [bidi-js](https://github.com/lojjic/bidi-js) | 1.1.0 | MIT |
 | [culori](git@github.com:Evercoder/culori) | 4.0.2 | MIT |
 | [fflate](https://101arrowz.github.io/fflate) | 0.8.3 | MIT |
 | [hachure-fill](https://github.com/pshihn/hachure-fill#readme) | 0.5.2 | MIT |
 | [html-entities](https://github.com/mdevils/html-entities) | 2.6.0 | MIT |
-| [lucide-preact](https://lucide.dev) | 1.61.0 | ISC |
+| [lucide-preact](https://lucide.dev) | 1.67.0 | ISC |
 | [node-html-better-parser](https://github.com/Sharcoux/node-html-parser) | 1.5.9 | MIT |
 | [pako](https://github.com/nodeca/pako) | 1.0.11 | (MIT AND Zlib) |
 | [path-data-parser](https://github.com/pshihn/path-data-parser#readme) | 0.1.0 | MIT |
-| [pdfjs-dist](https://mozilla.github.io/pdf.js/) | 6.4.299 | Apache-2.0 |
+| [pdfjs-dist](https://mozilla.github.io/pdf.js/) | 6.5.438 | Apache-2.0 |
 | [points-on-curve](https://github.com/pshihn/bezier-points#readme) | 0.2.0 | MIT |
 | [points-on-path](https://github.com/pshihn/points-on-path#readme) | 0.2.1 | MIT |
 | [preact](https://preactjs.com) | 10.29.8 | MIT |
@@ -375,7 +375,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-### @vercel/functions (3.10.3) - Apache-2.0
+### @vercel/functions (3.10.6) - Apache-2.0
 
 See upstream notice
 
@@ -780,7 +780,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ```
 
-### astro (7.4.2) - MIT
+### astro (7.4.5) - MIT
 
 withastro
 
@@ -985,7 +985,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 ```
 
-### lucide-preact (1.61.0) - ISC
+### lucide-preact (1.67.0) - ISC
 
 Eric Fennis
 
@@ -1105,7 +1105,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-### pdfjs-dist (6.4.299) - Apache-2.0
+### pdfjs-dist (6.5.438) - Apache-2.0
 
 See upstream notice
 
