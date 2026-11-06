@@ -92,8 +92,9 @@ Marker puts it down and another picks it up again; it stays in the hand between 
 - **There is one panel, and only a click on a highlight opens it.** On a desktop, a rest draws the faint pencil
   outline and opens nothing; a click opens the panel where you clicked, above the line clicked, with the full
   outline on while it is open (R2, R47). This came from READ-24.
-- **Menus open upward from the floating row** so they never cover the mark. On touch they open below the row and
-  the page glides down so the mark stays in view.
+- **Menus open upward from the floating row** so they never cover the mark. Right under the stuck bar, where the row
+  and its tallest menu have no room above the line, the row opens just below the line and its menus open downward. On
+  touch they open below the row and the page glides down so the mark stays in view.
 - **Delete shows "Highlight removed" with Undo for five seconds,** where the row was on a desktop, at the foot
   of the screen on touch.
 - **On touch, tap a highlight to pick it.** The mark gets a ring and the panel opens under the top toolbar

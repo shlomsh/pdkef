@@ -12,8 +12,8 @@ import styles from './RestToolbar.module.css';
 
 /**
  * The panel a click or keyboard focus opens on a fine pointer: MarkPanel, the same row touch shows under the top toolbar.
- * It is placed by Sign's floating hook, above the page's panel anchor (a click) or the mark (focus), its menus open upward
- * so they never cover the mark, and every change is the caller's to apply.
+ * It is placed by Sign's floating hook on the page's panel anchor, above the line or, with no room there, below it. Its
+ * menus open away from the line so they never cover the mark, and every change is the caller's to apply.
  */
 export default function RestToolbar({ mark, anchorKey, onChange, onDelete, onComment, onClose }: {
   mark: HighlightElement;
@@ -41,7 +41,7 @@ export default function RestToolbar({ mark, anchorKey, onChange, onDelete, onCom
   const live = useRef({ mark, onChange, onDelete: remove, onComment, onClose, look });
   live.current = { mark, onChange, onDelete: remove, onComment, onClose, look };
 
-  // Sign's placement: above the anchor or the mark, inside the page wrapper and the visual viewport.
+  // Sign's placement: on the anchor or the mark, inside the page wrapper and the visual viewport.
   const placement = useMarkToolbarPlacement(rootRef, mark.id, rtl, anchorKey);
 
   useToolbarDismissal(rootRef, live);
@@ -62,11 +62,11 @@ export default function RestToolbar({ mark, anchorKey, onChange, onDelete, onCom
   return (
     <div
       ref={placement.setRoot} class={styles.bar} style={placement.style} role="toolbar" aria-label={t.markToolbar}
-      data-rest-toolbar data-side="above" onKeyDown={onArrow}
+      data-rest-toolbar data-side={placement.side === 'top' ? 'above' : 'below'} onKeyDown={onArrow}
     >
       <ToolbarScale.Provider value={true}>
       <MarkPanel
-        look={look} menu={menu} onMenuChange={setMenu} menuSide="top" onChange={(change) => live.current.onChange(change)}
+        look={look} menu={menu} onMenuChange={setMenu} menuSide={placement.side} onChange={(change) => live.current.onChange(change)}
         onComment={() => live.current.onComment()} onDelete={() => live.current.onDelete()}
       />
       </ToolbarScale.Provider>

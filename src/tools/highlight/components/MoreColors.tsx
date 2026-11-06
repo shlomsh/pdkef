@@ -8,6 +8,7 @@ import { englishHighlightMessages as t } from '../messages.ts';
 import { onRadioKeyDown, radioTabIndex } from './radioKeys.ts';
 import MarkerArt from './MarkerArt.tsx';
 import Chevron from './Chevron.tsx';
+import { PANEL_MENU_MIDDLEWARE } from './panelMenuMiddleware.ts';
 import { COUNTER_SCALE, useToolbarScaled } from './toolbarScale.ts';
 import styles from './MoreColors.module.css';
 
@@ -59,6 +60,7 @@ export default function MoreColors({ color, onPick, open, onOpenChange, placemen
       open={open}
       onOpenChange={onOpenChange}
       placement={placement}
+      middleware={PANEL_MENU_MIDDLEWARE}
       trigger={
         <button
           type="button" data-more-colors class={styles.more} aria-label={t.moreColors} title={t.moreColors}

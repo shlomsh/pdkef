@@ -27,7 +27,7 @@ import { useRestToolbar } from '../hooks/useRestToolbar.ts';
 import { cursorValue } from '../lib/marker/cursor.ts';
 import { inkEnd } from '../lib/marker/inkEnd.ts';
 import { markCommands } from '../lib/marks/markCommands.ts';
-import { clickAnchor } from '../lib/marker/panelAnchor.ts';
+import { clickAnchor, focusAnchor } from '../lib/marker/panelAnchor.ts';
 import type { Marker } from '../lib/marker/markerState.ts';
 import { englishHighlightMessages as t } from '../messages.ts';
 import RestToolbar, { MarkHint } from './RestToolbar.tsx';
@@ -89,7 +89,7 @@ export default function HighlightPage({ pdfDocument, pageIndex, widthPx, chrome 
   const overlayRef = useRef<HTMLDivElement | null>(null);
 
   const marks = elements.filter((el): el is HighlightElement => el.type === 'highlight' && el.pageIndex === pageIndex);
-  const markFocus = useMarkFocus({ elements, openFor: (id) => { if (coarse) onPickMark?.(id); else rest.openFor(id); } });
+  const markFocus = useMarkFocus({ elements, openFor: (id) => { if (coarse) onPickMark?.(id); else rest.openFor(id, focusAnchor(marks.find((m) => m.id === id)?.direction === 'rtl')); } });
 
   const target = rest.targetId === null ? undefined : marks.find((m) => m.id === rest.targetId);
   const closeRest = rest.close;
@@ -173,7 +173,7 @@ export default function HighlightPage({ pdfDocument, pageIndex, widthPx, chrome 
                   boxPts={{ width: (mark.width / 100) * geometry.width, height: (mark.height / 100) * geometry.height }}
                 />
               )}
-              {mark.id === target?.id && rest.anchor && <span key={anchorKey} data-panel-anchor class={styles.panelAnchor} style={{ left: `${rest.anchor.x}%`, top: `${rest.anchor.y}%` }} />}
+              {mark.id === target?.id && rest.anchor && <span key={anchorKey} data-panel-anchor class={styles.panelAnchor} style={{ left: `${rest.anchor.x}%`, top: `${rest.anchor.y}%`, height: `${rest.anchor.bottom - rest.anchor.y}%`, translate: `${rest.anchor.pull}% 0` }} />}
             </div>
           ))}
         </div>

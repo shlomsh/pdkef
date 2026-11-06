@@ -65,7 +65,7 @@ The reasons and the rejected alternatives are in "Decisions and why" at the end.
 ### Changing a highlight: the toolbar and the panel (R2 to R4, R7, R47 to R49)
 
 2. On desktop a rest draws the faint outline, a click opens the panel (R47) where the click landed, centred
-   on the pointer, above the line clicked. A rest counts after the pointer has left the spot where the stroke
+   on the pointer, above the line clicked, or just below it where the row and its tallest menu have no room above. A rest counts after the pointer has left the spot where the stroke
    ended (12 px) and then stays under 3 px of movement for 300 ms. Nothing else opens the panel, apart from
    keyboard focus (R39).
 3. (retired: replaced by R4)
