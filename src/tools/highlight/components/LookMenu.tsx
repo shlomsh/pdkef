@@ -6,6 +6,7 @@ import type { Marker } from '../lib/marker/markerState.ts';
 import { englishHighlightMessages as t } from '../messages.ts';
 import Chevron from './Chevron.tsx';
 import OpacitySlider from './OpacitySlider.tsx';
+import { PANEL_MENU_MIDDLEWARE } from './panelMenuMiddleware.ts';
 import { onRadioKeyDown, radioTabIndex } from './radioKeys.ts';
 import StrokeChoice, { KindChoice, StrokeInk } from './StrokeChoice.tsx';
 import { COUNTER_SCALE, useToolbarScaled } from './toolbarScale.ts';
@@ -61,6 +62,7 @@ export default function LookMenu({ look, onChange, open, onOpenChange, placement
       open={open}
       onOpenChange={onOpenChange}
       placement={placement}
+      middleware={PANEL_MENU_MIDDLEWARE}
       trigger={
         <button type="button" class={styles.look} data-look-button title={t.markLook} aria-label={t.markLook} aria-haspopup="true" aria-expanded={open}>
           {underline

@@ -119,9 +119,9 @@ describe('useRestToolbar rest detection', () => {
     move(100, 100, markNode('a'));
     act(() => { vi.advanceTimersByTime(REST.restMs + 1); });
     expect(api.restId).toBe('a');
-    act(() => api.openFor('a', { x: 40, y: 10 }));
+    act(() => api.openFor('a', { x: 40, y: 10, bottom: 30, pull: -50 }));
     expect(api.targetId).toBe('a');
-    expect(api.anchor).toEqual({ x: 40, y: 10 });
+    expect(api.anchor).toEqual({ x: 40, y: 10, bottom: 30, pull: -50 });
     expect(api.restId).toBeNull();
     act(() => api.close());
     expect(api.targetId).toBeNull();

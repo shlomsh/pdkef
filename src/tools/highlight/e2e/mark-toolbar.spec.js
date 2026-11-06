@@ -245,6 +245,25 @@ test.describe('click opens', () => {
     }
   });
 
+  test('right under the stuck bar the row drops below the line and its menus open below it, off the mark', async ({ page }) => {
+    const { mark, band } = await laidMark(page);
+    await page.evaluate((by) => window.scrollBy(0, by), band.y - 126);
+    await expect.poll(async () => Math.round((await mark.boundingBox()).y)).toBeLessThan(140);
+    const line = await mark.boundingBox();
+    await page.mouse.click(line.x + line.width / 2, line.y + line.height / 2);
+    const bar = page.locator('[data-rest-toolbar]');
+    await expect(bar).toBeVisible();
+    await expect.poll(async () => (await bar.boundingBox()).y - (line.y + line.height), 'the row clears the line').toBeGreaterThanOrEqual(0);
+    const row = await bar.boundingBox();
+    for (const name of ['Look', 'More colors']) {
+      await bar.getByRole('button', { name }).click();
+      const menu = await page.locator('[data-editor-popover]').boundingBox();
+      expect(menu.y, `${name} opens below the row`).toBeGreaterThanOrEqual(row.y + row.height);
+      await page.keyboard.press('Escape');
+      await expect(page.locator('[data-editor-popover]')).toHaveCount(0);
+    }
+  });
+
   test('Delete offers Undo where the row stood, and Undo brings the mark back', async ({ page }) => {
     const { mark, band } = await laidMark(page);
     await page.mouse.click(band.x + band.width / 2, band.y + band.height / 2);
@@ -295,8 +314,15 @@ test.describe('touch glide', () => {
       }).toBeGreaterThanOrEqual(0);
     };
     await clearOf('[data-marker-row]:visible');
-    await row.getByRole('button', { name: 'Look' }).tap();
-    await clearOf('[data-editor-popover]');
+    // Each menu opens under the row, never over it, so every control in the row stays reachable.
+    const opensUnderRow = async (name) => {
+      await row.getByRole('button', { name }).tap();
+      await clearOf('[data-editor-popover]');
+      const [r, menu] = await Promise.all([row.boundingBox(), page.locator('[data-editor-popover]').boundingBox()]);
+      expect(menu.y).toBeGreaterThanOrEqual(r.y + r.height);
+    };
+    await opensUnderRow('Look');
+    await opensUnderRow('More colors');
 
     await page.keyboard.press('Escape');
     await page.mouse.click(4, 860);
