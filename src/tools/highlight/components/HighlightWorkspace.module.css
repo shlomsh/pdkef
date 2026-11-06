@@ -10,29 +10,18 @@
 .column { position: relative; display: flex; flex-direction: column; gap: calc(2rem * var(--chrome, 1)); flex: none; touch-action: pan-x pan-y pinch-zoom; }
 .floating { position: fixed; top: 12px; left: 50%; transform: translateX(-50%); z-index: 30; }
 
-/* Feedback (a GitHub issue) at the end of the file line: quiet, out of the tool row, never in the lamp. Its target grows
-   past the line's height without growing the line. */
-.feedback {
-  display: inline-flex; align-items: center; gap: 5px; min-height: 32px; margin-block: -6px; padding: 0 8px;
-  border-radius: var(--radius-sm); color: var(--color-muted); font-size: 0.8rem; font-weight: 500; text-decoration: none;
-}
-.feedback:hover { color: var(--color-text); background: var(--color-primary-tint); }
-.feedback > svg { width: 15px; height: 15px; flex: none; }
-/* A phone's file line keeps the name: the link is its icon, named by its title. */
-@media (max-width: 480px) {
-  .feedbackLabel { display: none; }
-  .feedback { min-width: 32px; justify-content: center; padding: 0; }
-}
-
 /* READ-04: the tool row is six controls in one row (Full screen is the cord under the card). Sign's phone label size reads --controls-per-row, which falls back to 4 below nine children. The doubled class with the attribute outranks the :has() count rules. */
 .toolRow.toolRow[data-editor-toolbar] { --controls-per-row: 6; }
-/* Share is a seventh tile where the browser has it, and Download keeps its place beside it. */
-.toolRow.toolRow[data-editor-toolbar]:has(> :nth-child(7)) { --controls-per-row: 7; }
+/* Share is a seventh tile where the browser has it, and Download keeps its place beside it. Feedback is not counted:
+   the count sizes the phone's labels, and on a phone it stands down. */
+.toolRow.toolRow[data-editor-toolbar]:has(> :nth-child(7 of :not([data-optional-control]))) { --controls-per-row: 7; }
 /* Six controls share one phone row; Sign's formula gives too small a label; 8px fits Download down to 375px.
    The tiles drop their side padding, since Safari sets the label wider than Chromium. A menu's items and the mark panel,
    which sits inside the row on touch, keep their own sizes. */
 @media (max-width: 480px) {
   .toolRow.toolRow[data-editor-toolbar] button:not([role="menuitem"], [data-marker-row] *) { font-size: 0.5rem; padding-inline: 0; }
+  /* READ-27: eight 44 px tiles need 373 px and a 390 px phone's row has about 348. Feedback goes, as in Sign, and the row stays one line. */
+  .toolRow.toolRow[data-editor-toolbar] > [data-optional-control] { display: none; }
 }
 /* A wrapping row breaks at each tile's 44 px floor before it shrinks: at 375 px seven tiles needed 326 px with these gaps,
    and the row's content box is 333 px. */

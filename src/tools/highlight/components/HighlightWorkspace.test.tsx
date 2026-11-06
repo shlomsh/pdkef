@@ -119,13 +119,14 @@ describe('HighlightWorkspace', () => {
     } finally { vi.unstubAllGlobals(); }
   });
 
-  it('the regular view offers a Feedback link on the file line that opens a prefilled Highlight PDF issue; the lamp shows none', () => {
+  it('the regular view offers a Feedback tile in the tool row, after Redo as in Sign, that opens a prefilled Highlight PDF issue; the lamp shows none', () => {
     mount({ fullscreen: false, pseudoFullscreen: false });
     const title = 'Report a bug or suggest a feature for Highlight PDF (opens GitHub)';
-    // At the end of the file line, not a seventh tile: the row's labels hold for six controls.
-    const link = container!.querySelector<HTMLAnchorElement>(`[data-file-identity] [data-shell-aside] a[title="${title}"]`)!;
+    const link = container!.querySelector<HTMLAnchorElement>(`[data-editor-toolbar] > a[title="${title}"]`)!;
     expect(link).not.toBeNull();
-    expect(container!.querySelector('[data-editor-toolbar] a[href*="issues/new"]')).toBeNull();
+    expect(link.previousElementSibling?.textContent).toContain('Redo');
+    expect(link.nextElementSibling?.textContent).toContain('Replace');
+    expect(container!.querySelector('[data-file-identity] a[href*="issues/new"]')).toBeNull();
     expect(link.textContent).toBe('Feedback');
     expect(link.href.startsWith('https://github.com/shlomsh/pdkef/issues/new?')).toBe(true);
     const params = new URL(link.href).searchParams;

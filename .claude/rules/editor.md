@@ -293,6 +293,9 @@ Create is a gesture too (click-place or drag-draw), not an exception.
   where 433px lands, not where 7+6 stops fitting, so iPhones keep 6+6's wider controls. Without Share it stays
   twelve with Feedback, as above. Guard: `src/tools/sign/e2e/sign-toolbar-labels-fit.spec.js`, every
   width 919px to 239px with Share, no lone control.
+  Highlight's row is one line at every width: Marker, Undo, Redo, Feedback, Replace, Print, Share where
+  the browser has it, Download. Feedback stands down at 480px and below, where eight tiles cannot hold
+  the 44px floor. Guard: `src/tools/highlight/e2e/tool-row-phone.spec.js`.
 - **On a phone (480px and down) both toolbars show a word under every control**, Undo, Redo and
   Feedback included, from one shared block at the end of `SignToolbar.module.css`, sized by RED-61's
   formula below; a two-word label wraps between words. Sign's guard is

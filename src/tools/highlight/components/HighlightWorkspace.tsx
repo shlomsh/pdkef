@@ -243,7 +243,6 @@ function TileRow({ marks, undo, redo, touch, mark, printMenu, withComments, onPr
   return (
     <ToolShell
       editor statusBeside status={touch.armed && !mark && coarsePointer() ? <PenHint marker={marks.marker} text={t.armedAction} /> : null}
-      aside={<FeedbackButton tool={{ name: t.feedback.name, body: t.feedback.body }} className={styles.feedback} labelClassName={styles.feedbackLabel} label={t.feedback.label} title={t.feedback.title} />}
     >
       <div className={`${toolbarStyles.toolbar} ${styles.toolRow}`} role="toolbar" aria-label={t.toolbarLabel} data-editor-toolbar>
         <MarkerButton marker={marks.marker} armed={touch.armed} onTap={touch.arm} onDisarm={touch.disarm} mark={mark} buttonClass={toolbarStyles.button} />
@@ -251,6 +250,7 @@ function TileRow({ marks, undo, redo, touch, mark, printMenu, withComments, onPr
           onUndo={undo} onRedo={redo} canUndo={marks.canUndo} canRedo={marks.canRedo}
           labels={{ undoTitle: shortcuts.undo, undoButton: t.capsule.undo, redoTitle: shortcuts.redo, redoButton: t.capsule.redo }}
         />
+        <FeedbackButton tool={{ name: t.feedback.name, body: t.feedback.body }} className={toolbarStyles.button} labelClassName={toolbarStyles.label} label={t.feedback.label} title={t.feedback.title} />
         <button type="button" className={toolbarStyles.button} onClick={requestReplace} title={shellMessages.replaceTitle} aria-label={shellMessages.replaceLabel}>
           <svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
             <path d={FILE_ACTIONS.replace.icon} />
