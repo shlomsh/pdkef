@@ -63,7 +63,6 @@ export interface DocumentationShellMessages {
   /** Shown on Sign/Redact tool pages, invites the visitor to test offline. */
   airplaneModeNotice: string;
   /** SEO-46/58: the visible line for PDkef's one rating, on the home and tool pages. `{average}` and `{count}` are filled with the same numbers the JSON-LD carries; the numbers are never translated. */
-  ratingLine: string;
   /** SEO-57: the pinned notes section. `notesBy` takes `{tool}` and `{place}`. */
   notesHeading: string;
   notesIntro: string;
@@ -136,7 +135,6 @@ const englishMessages = {
   inEnglish: 'in English',
   lastUpdated: 'Last updated',
   airplaneModeNotice: 'Turn on airplane mode and give it a try. It still works.',
-  ratingLine: '{average} out of 5 from {count} ratings across all of PDkef',
   notesHeading: 'How did it go?',
   notesIntro: 'After a download I ask how it went. This is what people said.',
   notesBy: '{tool}, someone in {place}',
@@ -186,7 +184,6 @@ const hebrewMessages = {
   lastUpdated: 'עודכן לאחרונה',
   airplaneModeNotice: 'הפעילו מצב טיסה ונסו. זה עדיין עובד.',
   heroPhoneLine: 'חינם, פרטי, ישר בדפדפן.',
-  ratingLine: 'דירוג {average} מתוך 5, לפי {count} דירוגים בכל הכלים של PDkef',
   notesHeading: 'איך היה?',
   notesIntro: 'אחרי הורדה אני שואל איך היה. זה מה שאנשים ענו.',
   notesBy: '{tool}, מישהו ב{place}',
@@ -238,7 +235,6 @@ const indonesianMessages = {
   lastUpdated: 'Terakhir diperbarui',
   airplaneModeNotice: 'Aktifkan mode pesawat dan coba sendiri. Tetap berfungsi.',
   heroPhoneLine: 'Gratis, privat, langsung di browser Anda.',
-  ratingLine: 'Nilai {average} dari 5 berdasarkan {count} penilaian di seluruh PDkef',
   notesHeading: 'How did it go?',
   notesIntro: 'After a download I ask how it went. This is what people said.',
   notesBy: '{tool}, someone in {place}',

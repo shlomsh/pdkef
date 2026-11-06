@@ -25,7 +25,7 @@ import { documentationShellMessages, type DocumentationShellMessages } from '../
 import { getLocalizedToolContext, getPublishedEditionPaths } from '../i18n/localizedTools';
 import { EDITOR_LAYOUT_SLUGS, FILE_LIST_RESTORE_SLUGS, layoutOf } from '#lib/app/toolIds.ts';
 import { registerToolPageStyles } from '../components/inlineStyles';
-import { appRating, ratingText } from '../site-lib/ratingAggregate';
+import { appRating } from '../site-lib/ratingAggregate';
 import '../styles/toolPage.css';
 
 interface Variant {
@@ -84,7 +84,8 @@ const variants = Astro.props.variants ?? resolved.variants;
 // Sign and Redact are the editors. They share the desktop first screen of the page-grid tools (HERO-05),
 // but only on an empty desktop stage (see `data-editor` below).
 // SEO-46: a real aggregate from the build-time read, or null (offline build, store down, under the minimum).
-const rating = await appRating();
+// SEO-58: only a page that shows the board (Redact) carries the rating.
+const rating = Astro.slots.has('rating') ? await appRating() : null;
 // English-only like the languages card: the figures' captions are English.
 const showExamples = Boolean(tool.examples) && locale === 'en';
 if (showExamples) registerToolPageStyles(Astro.csp, tool);
@@ -239,11 +240,7 @@ const video = toolVideos[tool.slug];
       once the card itself has a reviewed translation. */}
   {tool.languages && locale === 'en' && <ToolLanguagesCard languages={tool.languages} />}
 
-  {Astro.slots.has('rating') ? <slot name="rating" /> : rating && (
-    <p data-rating class="mx-auto mb-4 w-full max-w-[1080px] px-6 text-center text-[0.88rem] leading-[1.5] text-[var(--color-muted)]">
-      {ratingText(messages.ratingLine, rating)}
-    </p>
-  )}
+  <slot name="rating" />
 
   <ToolAboutCard
     icon={tool.icon}
