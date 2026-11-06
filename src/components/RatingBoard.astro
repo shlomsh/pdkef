@@ -41,15 +41,15 @@ const FIVE = [0, 1, 2, 3, 4];
 <style>
   .board {
     box-sizing: border-box;
-    max-width: 1080px;
+    width: min(1080px, 100% - 2rem);
     margin: 0 auto;
-    padding: 3.5rem 1rem;
+    padding-block: clamp(4rem, 8vw, 6.5rem);
   }
   .card {
     display: flex;
     flex-direction: column;
     justify-content: center;
-    width: 100%;
+    width: min(1080px, 100%);
     padding-inline: 2.5rem;
     background: var(--color-bg);
     border: 1px solid var(--color-border);
@@ -59,8 +59,8 @@ const FIVE = [0, 1, 2, 3, 4];
   @media (max-width: 640px) { .card { padding-inline: 1.5rem; } }
 
   .panel { max-width: 34rem; margin-inline: auto; text-align: center; }
-  .panel h2 { margin: 0 0 0.75rem; color: var(--color-text); }
-  .intro { margin: 0 0 1.5rem; color: var(--color-muted); }
+  .panel h2 { margin: 0 0 1rem; color: var(--color-text); text-wrap: balance; }
+  .intro { margin: 0 0 2rem; color: var(--color-muted); }
   .row { display: flex; align-items: center; justify-content: center; gap: 0.75rem; }
   .average { font-size: 2.5rem; font-weight: 700; line-height: 1; color: var(--color-text); }
   .stars { width: 10.5rem; height: 2.1rem; }
@@ -73,12 +73,11 @@ const FIVE = [0, 1, 2, 3, 4];
   @media (min-width: 60rem) {
     .board:has(ul) {
       display: grid;
-      grid-template-columns: 20rem minmax(0, 1fr);
-      gap: 3rem;
-      align-items: start;
+      grid-template-columns: minmax(0, 21rem) minmax(0, 1fr);
+      gap: clamp(3rem, 5vw, 5rem);
       align-content: center;
     }
-    .board:has(ul) .panel { margin: 0; text-align: start; }
+    .board:has(ul) .panel { align-self: center; margin: 0; text-align: start; }
     .board:has(ul) .row { justify-content: flex-start; }
   }
   @media (max-width: calc(60rem - 1px)) {

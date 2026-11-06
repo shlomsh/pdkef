@@ -56,39 +56,44 @@ function PinnedNotes({ tool, byLine, locale = 'en' }: Props) {
 
   const shown = notesToShow(notes, tool);
   if (shown.length === 0) return null;
+  const [before, after = ''] = byLine.split('{place}');
 
   return (
     <ul class={styles.list}>
       {shown.map((n, i) => (
         <li class={styles.note} key={i}>
           {n.comment && <p class={styles.comment}>{n.comment}</p>}
-          <svg class={styles.stars} viewBox="0 0 120 24" role="img" aria-label={`${n.stars} / 5`}>
-            {[0, 1, 2, 3, 4].map((s) => (
-              <path
-                key={s}
-                d={STAR_PATH}
-                transform={`translate(${s * 24} 0)`}
-                class={s < n.stars ? styles.on : styles.off}
-                stroke-width="1.2"
-                stroke-linejoin="round"
-                aria-hidden="true"
-              />
-            ))}
-          </svg>
-          <div class={styles.place}>
-            {n.country && (
-              <img
-                class={styles.flag}
-                src={`/flags/${n.country}.svg`}
-                alt=""
-                width="36"
-                height="24"
-                loading="lazy"
-                onError={(e) => e.currentTarget.remove()}
-              />
-            )}
+          <div class={styles.foot}>
+            <svg class={styles.stars} viewBox="0 0 120 24" role="img" aria-label={`${n.stars} / 5`}>
+              {[0, 1, 2, 3, 4].map((s) => (
+                <path
+                  key={s}
+                  d={STAR_PATH}
+                  transform={`translate(${s * 24} 0)`}
+                  class={s < n.stars ? styles.on : styles.off}
+                  stroke-width="1.2"
+                  stroke-linejoin="round"
+                  aria-hidden="true"
+                />
+              ))}
+            </svg>
             <p class={n.comment ? styles.by : styles.byHand}>
-              {formatMessage(byLine, { tool: toolLabel(n.tool), place: n.place ?? placeOf(n, locale) })}
+              {formatMessage(before, { tool: toolLabel(n.tool) })}
+              <span class={styles.where}>
+                {n.country && (
+                  <img
+                    class={styles.flag}
+                    src={`/flags/${n.country}.svg`}
+                    alt=""
+                    width="36"
+                    height="24"
+                    loading="lazy"
+                    onError={(e) => e.currentTarget.remove()}
+                  />
+                )}
+                {n.place ?? placeOf(n, locale)}
+              </span>
+              {formatMessage(after, { tool: toolLabel(n.tool) })}
             </p>
           </div>
         </li>
