@@ -135,8 +135,8 @@ plus the sheets it links; every CSS guard reads both through `scripts/pageCss.mj
 - **Editor CSS ratchet** (`check-editor-global-css.js`): zero `sign-`/`sig-`/`redact-`/`editor-`/`el-`
   selectors in `global.css`.
 - **CSS duplication** (`check-css-duplication.js`): hard ratchets that only go down. Limits as of
-  2026-09-15 (41 pages; they now live in `scripts/ratchet-limits.json` under `css`, and `npm run test:ratchet-raises` fails a raise): **0.65x** duplication (measured 0.64x), **10,000**
-  worst-page dead bytes (9,802 on `/compress-image/`), **148** single-page utilities (32). Duplication is
+  2026-09-15 (41 pages; they now live in `scripts/ratchet-limits.json` under `css`, and `npm run test:ratchet-raises` fails a raise): **0.65x** duplication (measured 0.64x), **8,500**
+  worst-page dead bytes (7,967 on the tool pages with no guides, 2026-11-07), **148** single-page utilities (32). Duplication is
   the heaviest page family's mean shipped bytes per page over the site's distinct CSS (families are
   pages sharing an entry sheet, grouped by hashing each page's largest CSS block, inline or linked, not a
   hand-maintained map) - `MAX_FAMILY_DUPLICATION`, DEBT-12 - so a new page never moves it. **The fix is to narrow what a

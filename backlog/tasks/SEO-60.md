@@ -23,6 +23,8 @@ tighter than the grid below them.
   say "Questions about these free PDF tools".
 - Guide cards use the same gap and columns as "More PDF tools". A short row stays centred, so a lone card does not pin left.
 - Localized guides pass their locale to the cross-links, which were showing English.
+- Guide cards and tool cards share `LinkCard.astro`, so a tool page with no guides stops carrying about 2 KB of card CSS. The
+  worst page's dead bytes fall from 9,960 to 7,967, and the ratchet goes from 10,000 to 8,500.
 
 ## Done when
 

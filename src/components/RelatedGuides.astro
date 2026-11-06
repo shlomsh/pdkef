@@ -17,13 +17,12 @@
 // only one or two related pages on some tools (redact, edit-pdf) a lone pill
 // in a wide centered container looked broken rather than compact.
 //
-// Styled with scoped CSS rather than utilities, for the same reason as
-// CompareTable.astro: a new utility lands in the one stylesheet all 20 pages
-// inline, and this section only ever renders on the 3 tool pages that have a
-// related guide. `justify-content: center` on the grid (not a fixed column
-// count) is what lets a lone card on /redact/ centre itself instead of
-// pinning to the grid's first column with empty space beside it, while the
-// same rule wraps sign's six cards into balanced rows.
+// The card and section chrome are ToolCrossLinks' own (LinkCard.astro and the
+// same utilities), so a tool page with no guides pays for only the few column
+// rules below. `justify-content: center` on the grid (not a fixed column count)
+// is what lets a lone card on /merge/ centre itself instead of pinning to the
+// grid's first column with empty space beside it.
+import LinkCard from './LinkCard.astro';
 import { contentPagesForTool } from '../data/contentPages.js';
 import type { RelatedGuidesMessages } from '../i18n/documentationMessages';
 import { getGuideCardCopy } from '../i18n/cardMessages';
@@ -47,31 +46,27 @@ const related = contentPagesForTool(currentSlug);
 ---
 
 {related.length > 0 && (
-  <section class="related-guides" aria-labelledby="related-guides-heading">
-    <div class="related-guides-head">
-      <h2 id="related-guides-heading">{resolvedHeading}</h2>
+  <section class="mx-auto mb-16 w-full max-w-[1080px] px-6 min-[768px]:mb-24" aria-labelledby="related-guides-heading">
+    <div class="space-heading-content text-center">
+      <h2 id="related-guides-heading" class="type-section m-0 text-balance text-[var(--color-text)]">{resolvedHeading}</h2>
     </div>
 
-    <ul class="related-guides-grid">
+    <ul class="related-guides-grid space-layout-gap m-0 flex list-none flex-wrap justify-center p-0">
       {related.map((page) => {
         const pageId = page.href.replace(/^\//, '').replace(/\/$/, '');
         const localizedHref = locale === 'en' ? page.href : documentationPath(pageId, locale as any);
         const link = resolveLink?.(pageId, locale) ?? { href: published.has(localizedHref) ? localizedHref : page.href };
         const copy = getGuideCardCopy(locale, pageId);
         const english = locale !== 'en' && link.href === page.href;
-        return <li>
-          <a href={link.href} hreflang={english ? 'en' : undefined} class="related-guides-card">
-            <span class="related-guides-icon">
-              <page.icon strokeWidth={1.5} />
-            </span>
-            <span class="related-guides-text">
-              <span class="related-guides-title">
-                {copy?.title ?? page.label}
-                {english && labels?.inEnglish && <span class="related-guides-en" lang="en" title={labels.inEnglish}>EN</span>}
-              </span>
-              <span class="related-guides-blurb">{copy?.description ?? page.blurb}</span>
-            </span>
-          </a>
+        return <li class="m-0 p-0">
+          <LinkCard
+            href={link.href}
+            hreflang={english ? 'en' : undefined}
+            icon={page.icon}
+            title={copy?.title ?? page.label}
+            description={copy?.description ?? page.blurb}
+            englishLabel={english ? labels?.inEnglish : undefined}
+          />
         </li>;
       })}
     </ul>
@@ -79,65 +74,9 @@ const related = contentPagesForTool(currentSlug);
 )}
 
 <style>
-  .related-guides {
-    box-sizing: border-box;
-    width: 100%;
-    max-width: 1080px;
-    margin: 0 auto 4rem;
-    padding-inline: 1.5rem;
-  }
-
-  @media (min-width: 768px) {
-    .related-guides {
-      margin-bottom: 6rem;
-    }
-  }
-
-  .related-guides-head {
-    /* DEMO-01: same token index.astro/FeatureCard sections use for a
-       heading-to-content gap, so this scoped component doesn't drift from
-       the shared Tailwind surface's rhythm just because it is styled
-       differently underneath. margin-block-end (not margin-bottom), same
-       reasoning as the .space-heading-content utility in global.css. */
-    margin-block-end: var(--space-heading-content);
-    text-align: center;
-  }
-
-  .related-guides-head h2 {
-    margin: 0;
-    /* Same --type-section-size role as every other section h2 on the
-       marketing surface (see .type-section in global.css) - this component
-       is scoped CSS rather than a Tailwind class string, but the token and
-       the role values are global custom properties, so it can share them
-       exactly instead of typing its own close-but-not-quite 1.6rem. */
-    font-size: var(--type-section-size);
-    font-weight: 700;
-    letter-spacing: -0.02em;
-    line-height: 1.05;
-    color: var(--color-text);
-    text-wrap: balance;
-  }
-
-  /* flex, not grid: 6 related pages (sign's hub) lay out as two even rows of
-     three, and a single related page (redact, edit-pdf) centres on its own.
-     A grid's auto-fit centres unused TRACK space as one block, so an uneven
-     trailing row (e.g. 4 columns fit, 6 items -> 4+2) stays left-packed
-     against the first columns instead of centring itself - the exact
-     asymmetry a flex row's own justify-content avoids, because flex centres
-     each wrapped line independently. The gap and column widths are
-     ToolCrossLinks' own, so a full row sits on the grid directly below. */
-  .related-guides-en { display: inline-block; margin-inline-start: .5rem; vertical-align: middle; font-size: .7rem; font-weight: 600; color: var(--color-muted); }
-
-  .related-guides-grid {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
-    gap: var(--space-layout-gap);
-    margin: 0;
-    padding: 0;
-    list-style: none;
-  }
-
+  /* flex, not grid: a short row centres on its own, because flex centres each
+     wrapped line independently. The widths are ToolCrossLinks' columns, so a
+     full row sits on the grid directly below. */
   .related-guides-grid > li {
     flex: 0 0 calc((100% - 2 * var(--space-layout-gap)) / 3);
   }
@@ -152,62 +91,5 @@ const related = contentPagesForTool(currentSlug);
     .related-guides-grid > li {
       flex-basis: 100%;
     }
-  }
-
-  .related-guides-card {
-    display: flex;
-    height: 100%;
-    align-items: flex-start;
-    gap: 0.75rem;
-    border-radius: var(--radius-lg);
-    border: 1px solid var(--color-border);
-    background: var(--color-surface);
-    padding: 1rem;
-    color: inherit;
-    text-decoration: none;
-    transition: transform 150ms ease-out, border-color 150ms ease-out;
-  }
-
-  .related-guides-card:hover,
-  .related-guides-card:focus-visible {
-    transform: translateY(-1px);
-    border-color: var(--color-border-strong);
-  }
-
-  .related-guides-icon {
-    display: flex;
-    flex-shrink: 0;
-    align-items: center;
-    justify-content: center;
-    width: 2.5rem;
-    height: 2.5rem;
-    border-radius: var(--radius-md);
-    background: var(--color-primary-soft);
-    color: var(--color-primary-text);
-  }
-
-  .related-guides-icon :global(svg) {
-    display: block;
-    width: 55%;
-    height: 55%;
-  }
-
-  .related-guides-text {
-    min-width: 0;
-  }
-
-  .related-guides-title {
-    display: block;
-    font-size: 1rem;
-    font-weight: 600;
-    color: var(--color-text);
-  }
-
-  .related-guides-blurb {
-    display: block;
-    margin-top: 0.25rem;
-    font-size: 0.88rem;
-    line-height: 1.45;
-    color: var(--color-muted);
   }
 </style>

@@ -1,0 +1,36 @@
+---
+// The icon, title and one-line description card that ToolCrossLinks and
+// RelatedGuides both render, in utilities both pages' sheets already carry, so
+// a tool page with no guides pays nothing for the guide section.
+interface Props {
+  href: string;
+  /** Set when a localized page links to the English edition. */
+  hreflang?: string;
+  icon: any;
+  title: string;
+  description: string;
+  /** The "in English" label, when the card links to an English page. */
+  englishLabel?: string;
+}
+
+const { href, hreflang, icon: Icon, title, description, englishLabel } = Astro.props;
+---
+
+<a
+  href={href}
+  hreflang={hreflang}
+  class="group flex h-full items-start gap-3 rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-[var(--color-surface)] p-4 text-inherit no-underline transition-[transform,border-color,color] duration-150 ease-out hover:-translate-y-px hover:border-[var(--color-border-strong)] focus-visible:-translate-y-px focus-visible:border-[var(--color-border-strong)]"
+>
+  <span class="flex size-10 shrink-0 items-center justify-center rounded-[var(--radius-md)] bg-[var(--color-primary-soft)] text-[var(--color-primary-text)] [&_svg]:block [&_svg]:size-[55%]">
+    <Icon strokeWidth={1.5} />
+  </span>
+  <span class="min-w-0">
+    <span class="type-card block text-[var(--color-text)]">
+      {title}
+      {englishLabel && (
+        <span class="ms-2 inline-block align-middle text-[0.7rem] font-semibold uppercase text-[var(--color-muted)]" lang="en" title={englishLabel}>EN</span>
+      )}
+    </span>
+    <span class="type-body mt-1 block text-[var(--color-muted)]">{description}</span>
+  </span>
+</a>

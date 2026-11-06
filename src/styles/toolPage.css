@@ -47,6 +47,7 @@
 @source "../components/SeoSchema.astro";
 @source "../components/ToolAboutCard.astro";
 @source "../components/ToolCrossLinks.astro";
+@source "../components/LinkCard.astro";
 @source "../components/ToolFaqCard.astro";
 @source "../components/ToolHero.astro";
 @source "../components/ToolLanguagesCard.astro";
