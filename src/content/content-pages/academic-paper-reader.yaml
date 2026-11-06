@@ -66,15 +66,14 @@ sections:
     blocks:
       - kind: 'image'
         src: '/images/paper-reader-guide/mark-toolbar.webp'
-        alt: 'A sketched yellow highlight with its toolbar open above it, and the stroke setting open below the toolbar with Sketch picked over Clean and an opacity slider'
+        alt: 'A sketched yellow highlight with a pencil outline around it and its toolbar open above it, with the Look menu rising from the toolbar: Highlight, Sketch picked over Clean, and an opacity slider'
         width: 2000
-        height: 802
+        height: 782
         caption: >-
-          <strong>Rest on a highlight for its toolbar:</strong> its colors, highlight or underline,
-          the stroke and opacity, Comment and Delete.
+          <strong>Click a highlight for its toolbar:</strong> Comment, its colors, the look of the mark and Delete.
       - kind: 'prose'
         text: >-
-          Rest the pointer on a highlight, or tap it on an iPad, and its toolbar opens. Whatever you
+          Click a highlight, or tap it on an iPad, and its toolbar opens. Whatever you
           pick becomes your marker for the next lines, so a color can carry a meaning: yellow for
           claims, green for methods, pink for the parts you want to question. Pick
           <strong>Sketch</strong> and every highlight and underline looks drawn by hand, with a chisel
@@ -206,7 +205,7 @@ faq:
       never runs across into the next one.
   - question: 'How do I annotate a PDF paper?'
     answer: >-
-      Highlight or underline the passages that matter, then rest on a highlight and choose Comment to
+      Highlight or underline the passages that matter, then click a highlight and choose Comment to
       write a note beside it. A comment always belongs to a highlight, so every note sits next to the
       words it is about.
   - question: 'Can I highlight a scanned chapter or a photo of a page?'

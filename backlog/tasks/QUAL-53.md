@@ -1,10 +1,9 @@
 ---
 id: "QUAL-53"
 title: "The nightly flake report counts the nightly"
-status: "in_progress"
+status: "done"
 priority: "P2"
 epic: "robustness"
-horizon: "now"
 depends_on: []
 ---
 
@@ -25,5 +24,5 @@ run that repeats every spec reached the report a night late, and `e2e-webkit`'s 
 ## What changed
 
 `flake-report` reads `$GITHUB_RUN_ID` first, then the last `RUNS - 1` completed main runs, and needs `e2e-webkit` too.
-The ticket closes once a nightly's report shows that night's own attempts: `gh run download` on a run still in progress
-has not been seen working yet.
+Seen working on the nightly dispatched 2026-11-06 (run 42217858770): its own report counted its two repeats of the camera
+spec, taking that spec from 11 attempts to 13.

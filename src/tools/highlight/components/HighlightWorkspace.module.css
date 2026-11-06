@@ -3,7 +3,9 @@
 .workspace { overflow-x: clip; touch-action: pan-x pan-y pinch-zoom; scrollbar-width: none; }
 .workspace[data-lamp] { overflow-x: auto; touch-action: pan-x pan-y; }
 .workspace::-webkit-scrollbar:horizontal { display: none; }
-.board { align-self: flex-start; flex: none; }
+/* READ-24: useMarkGlide moves the board down so a picked mark clears the panel and its menu. */
+.board { align-self: flex-start; flex: none; transition: translate 220ms var(--ease-out); }
+@media (prefers-reduced-motion: reduce) { .board { transition: none; } }
 /* The column is as wide as the widest page and sits on the board at a fixed left margin: no auto margins. */
 .column { display: flex; flex-direction: column; gap: calc(2rem * var(--chrome, 1)); flex: none; touch-action: pan-x pan-y pinch-zoom; }
 .floating { position: fixed; top: 12px; left: 50%; transform: translateX(-50%); z-index: 30; }

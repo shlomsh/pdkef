@@ -1,0 +1,59 @@
+/* The Look button (the mark as drawn now on a small paper pill, and a chevron) and the menu behind it. Sizes follow the panel's --cell. */
+.look {
+  appearance: none;
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: var(--cell, 2.25rem);
+  padding: 0 6px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--color-text);
+  cursor: pointer;
+}
+.look:hover,
+.look[aria-expanded='true'] { background: var(--color-primary-tint); }
+
+/* The one box both faces share, so changing kind never moves the row. The svgs are absolute: the box has the size. */
+.face {
+  position: relative;
+  box-sizing: border-box;
+  flex: none;
+  width: 2.75rem;
+  height: 1.25rem;
+  border-radius: 4px;
+  background: var(--color-surface);
+  box-shadow: inset 0 0 0 1px var(--color-border);
+  overflow: hidden;
+}
+.face > svg { position: absolute; inset: 15% 4px; width: calc(100% - 8px); height: 70%; overflow: visible; }
+
+.menu { display: flex; flex-direction: column; gap: .5rem; width: 15rem; max-width: calc(100vw - 1.5rem); padding: .5rem; cursor: default; box-sizing: border-box; }
+
+/* Five equal radios on one line; each holds the line it lays. */
+.thickness { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 2px; }
+.thick {
+  appearance: none;
+  display: grid;
+  place-items: center;
+  min-height: 2.25rem;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--color-text);
+  cursor: pointer;
+}
+.thick:hover { background: var(--color-primary-tint); }
+.thick[aria-checked='true'] { background: var(--color-primary-soft); box-shadow: inset 0 0 0 1px var(--color-primary-text); }
+.line { position: relative; display: block; width: 1.5rem; }
+.line > svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+
+@media (pointer: coarse) {
+  .thick { min-height: 2.75rem; }
+}
+@media (pointer: coarse), (max-width: 480px) {
+  .look { padding: 0 4px; }
+}

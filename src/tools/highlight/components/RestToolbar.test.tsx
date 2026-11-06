@@ -69,23 +69,24 @@ describe('RestToolbar', () => {
     expect(bar.getAttribute('aria-label')).toBe('Change this highlight');
   });
 
-  it('renders the Marker panel: colors, More, the switch, its setting, Comment, Delete', () => {
+  it('renders the Marker panel: Comment, the colors, More, Look, Delete', () => {
     const bar = mount();
     expect(bar.querySelector('[data-marker-row]')).not.toBeNull();
     expect([...bar.querySelectorAll('button')].map((b) => b.getAttribute('aria-label'))).toEqual(
-      ['Yellow', 'Pink', 'Green', 'More colors', 'Highlight', 'Underline', 'Opacity', 'Comment', 'Delete'],
+      ['Comment', 'Yellow', 'Pink', 'Green', 'More colors', 'Look', 'Delete'],
     );
   });
 
-  it('an underline shows the thickness setting', () => {
-    mount({ ...mark, style: 'underline' });
-    expect(button('Underline thickness')).not.toBeNull();
-    expect(button('Opacity')).toBeNull();
+  it('its menus open upward, away from the mark', () => {
+    mount();
+    expect(host.querySelector('[data-look-button] polyline')?.getAttribute('points')).toBe('6 15 12 9 18 15');
+    expect(host.querySelector('[data-more-colors] polyline')?.getAttribute('points')).toBe('6 15 12 9 18 15');
   });
 
   it('the panel\'s changes reach the caller', () => {
     mount();
-    click(button('Underline'));
+    click(button('Look'));
+    click(document.querySelector('[data-editor-popover] [aria-label="Underline"]')!);
     expect(onChange).toHaveBeenLastCalledWith({ style: 'underline' });
     click(host.querySelectorAll('[data-highlight-swatch]')[2]);
     expect(onChange).toHaveBeenLastCalledWith({ color: HIGHLIGHT_COLORS.find((c) => c.id === 'green')!.hex });
@@ -97,10 +98,12 @@ describe('RestToolbar', () => {
     expect(onComment).toHaveBeenCalledTimes(1);
   });
 
-  it('Delete deletes', () => {
-    mount();
+  it('Delete deletes, and says where the row stood so its Undo can stand there too', () => {
+    const bar = mount();
+    vi.spyOn(bar, 'getBoundingClientRect').mockReturnValue({ left: 100, top: 40, width: 300, height: 46 } as DOMRect);
     click(button('Delete'));
     expect(onDelete).toHaveBeenCalledTimes(1);
+    expect(onDelete).toHaveBeenCalledWith({ x: 250, y: 40 });
   });
 
   it('holds no native color input', () => {
@@ -153,14 +156,14 @@ describe('RestToolbar keys', () => {
     more.focus();
     key('ArrowLeft', {}, more);
     expect(document.activeElement).toBe(button('Yellow'));
-    key('ArrowRight', {}, button('Opacity'));
-    expect(document.activeElement).toBe(button('Comment'));
-    key('ArrowLeft', {}, button('Opacity'));
-    expect(document.activeElement).toBe(button('Highlight'));
+    key('ArrowRight', {}, button('Look'));
+    expect(document.activeElement).toBe(button('Delete'));
+    key('ArrowLeft', {}, button('Look'));
+    expect(document.activeElement).toBe(button('More colors'));
     key('End', {}, button('Yellow'));
     expect(document.activeElement).toBe(button('Delete'));
     key('Home', {}, button('Delete'));
-    expect(document.activeElement).toBe(button('Yellow'));
+    expect(document.activeElement).toBe(button('Comment'));
   });
 
   it('inside the colors, arrows check the next color instead of only moving focus', () => {
@@ -186,7 +189,7 @@ describe('RestToolbar follows the interface direction (READ-04)', () => {
     const first = button('More colors');
     first.focus();
     key('ArrowRight', {}, first);
-    expect(document.activeElement).toBe(button('Highlight'));
+    expect(document.activeElement).toBe(button('Look'));
   });
 });
 
@@ -195,7 +198,7 @@ describe('RestToolbar closing', () => {
 
   it('closes on a press elsewhere, not on a press inside it', () => {
     mount();
-    press(button('Underline'));
+    press(button('Look'));
     expect(onClose).not.toHaveBeenCalled();
     press(document.body);
     expect(onClose).toHaveBeenCalledTimes(1);
@@ -243,9 +246,9 @@ describe('MarkHint', () => {
     });
   });
 
-  it('its opacity popover is counter-scaled, as the bar is', () => {
+  it('its Look popover is counter-scaled, as the bar is', () => {
     mount();
-    click(button('Opacity'));
+    click(button('Look'));
     expect(document.querySelector('[data-editor-popover] [data-counter-scaled]')).not.toBeNull();
   });
 });

@@ -2,7 +2,7 @@
 
 # Backlog
 
-The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 167 live: 58 up next, 23 then, 27 waiting, 59 parked.
+The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 167 live: 57 up next, 23 then, 27 waiting, 60 parked.
 
 ## Redact: finish removal
 
@@ -75,6 +75,7 @@ Marking should feel like holding a highlighter, not like operating software. Ske
 | READ-07 | P3 | [READ-07](backlog/tasks/READ-07.md) · Highlight PDF: long-press and drag to highlight on a phone | Needs Shlomi: An iPhone check |
 | READ-08 | P3 | [READ-08](backlog/tasks/READ-08.md) · Highlight PDF: hop between your highlights in reading order |  |
 | READ-09 | P3 | [READ-09](backlog/tasks/READ-09.md) · Highlight PDF: a pen for circles, arrows and margin notes, iPad first |  |
+| READ-25 | P3 | [READ-25](backlog/tasks/READ-25.md) · The mark row's code says what it is now: a click opens it, not a rest |  |
 
 ## Scan: camera to WhatsApp
 
@@ -198,7 +199,6 @@ Production errors you can see, small tools that clean up after themselves, and d
 | ID | P | Task | Note |
 | --- | --- | --- | --- |
 | DEBT-65 | P2 | [DEBT-65](backlog/tasks/DEBT-65.md) · Two layout-shift specs failed once each in the 2026-10-27 nightly | In progress |
-| QUAL-53 | P2 | [QUAL-53](backlog/tasks/QUAL-53.md) · The nightly flake report counts the nightly | In progress |
 | MEM-24 | P3 | [MEM-24](backlog/tasks/MEM-24.md) · A service worker that cannot install, or never completes its precache, says so | In progress |
 
 ### Then, in order
@@ -358,7 +358,7 @@ Done and retired tickets are not listed. Their files stay in [backlog/tasks/](ba
 - Page enhancement for Scan and Highlight: 5 done, 1 retired
 - Tool pages: show the verb: 8 done, 0 retired
 - Form detector accuracy: 19 done, 1 retired
-- Robustness and debt: 89 done, 4 retired
+- Robustness and debt: 90 done, 4 retired
 - Unify the tools, narrow the graph: 96 done, 0 retired
 - Search and languages: 12 done, 0 retired
 - Polish: 29 done, 1 retired

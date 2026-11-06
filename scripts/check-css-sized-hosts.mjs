@@ -9,10 +9,7 @@ import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-export const ALLOWLIST = [
-  { file: 'src/tools/highlight/components/LookControls.module.css', host: 'paper', reason: 'always rendered with .face (width: calc(4ch + 8px)) in LookControls.tsx' },
-  { file: 'src/tools/highlight/components/LookControls.module.css', host: 'faceLine', reason: 'always rendered with .face (width: calc(4ch + 8px)) in LookControls.tsx' },
-];
+export const ALLOWLIST = [];
 
 const SIZING = /(^|;)\s*(width|min-width|inline-size|min-inline-size|flex|flex-grow|flex-basis|aspect-ratio|grid-column|inset)\s*:|(^|;)\s*(justify-self|align-self)\s*:\s*stretch\b/;
 const CHILD = /^\.([\w-]+)\s*>\s*(svg|img|canvas|\*)$/;

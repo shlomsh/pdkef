@@ -89,19 +89,26 @@ Marker puts it down and another picks it up again; it stays in the hand between 
 
 ### Changing a highlight
 
-- **There is one panel, and only a highlight opens it.** On a desktop, rest on a highlight or click it and
-  the panel floats above the mark (R2, R47).
+- **There is one panel, and only a click on a highlight opens it.** On a desktop, a rest draws the faint pencil
+  outline and opens nothing; a click opens the panel where you clicked, above the line clicked, with the full
+  outline on while it is open (R2, R47). This came from READ-24.
+- **Menus open upward from the floating row** so they never cover the mark. Right under the stuck bar, where the row
+  and its tallest menu have no room above the line, the row opens just below the line and its menus open downward. On
+  touch they open below the row and the page glides down so the mark stays in view.
+- **Delete shows "Highlight removed" with Undo for five seconds,** where the row was on a desktop, at the foot
+  of the screen on touch.
 - **On touch, tap a highlight to pick it.** The mark gets a ring and the panel opens under the top toolbar
   (in full screen, under the capsule's Marker) with that mark's look, Comment and Delete. Nothing floats on
   the page. A tap elsewhere or on Marker lets it go (R7).
-- **The panel is one quiet row:** yellow, pink and green, a "more" button for orange, red, blue and the color
-  wheel, a plain Highlight or Underline switch, one setting button beside it for the opacity or the thickness, then
-  Comment and Delete. The least common controls are one click away, never in the way (R4, R47, R48).
+- **The panel is one quiet row:** Comment first, then yellow, pink and green, the "more" button for orange, red,
+  blue and the color wheel, one Look button, Delete. Look holds the kind (Highlight or Underline), the stroke
+  (Clean, Sketch, Pencil) and the strength (opacity, or thickness for an underline). The least common controls
+  are one click away, never in the way (R4, R47, R48).
 - **Each color is a small highlighter.** Every color cell draws a marker in its own plastic, and the picked one
   uncaps while a band of its ink swipes in behind it, so the row shows the ink you get. More wears that band
   when the pen is one of its colors, and the wheel is a blank marker under a rainbow cap until a custom ink
-  fills it. The Highlight | Underline switch keeps its soft tint (chosen 2026-11-02, "Ink swipe").
-- **A stroke can look drawn by hand.** Beside clean, the setting popover offers a sketch: a chisel-nib band with
+  fills it. The ink swipe was chosen 2026-11-02.
+- **A stroke can look drawn by hand.** Beside clean, Look offers a sketch: a chisel-nib band with
   uneven edges and ends that overshoot the line, seeded from the mark so screen, print and the PDF draw the same
   wobble, and drawn as a vector path in the export (READ-11).
 - **Whatever is picked becomes the marker.** Changing one highlight re-arms the pen, so choosing a color
