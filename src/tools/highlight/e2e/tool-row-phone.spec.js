@@ -5,7 +5,8 @@ import { expectControlsSized } from '../../../../e2e/support/layout.js';
 
 /* READ-04: Highlight's six controls sit in one row (Full screen is the cord under the card), but Sign's phone rule
    sizes the label font from --controls-per-row, which defaulted to 4 here: labels wrapped badly and "Download"
-   clipped on a 402px phone. The row declares its own count so the label stays readable and inside its button. */
+   clipped on a 402px phone. The row declares its own count so the label stays readable and inside its button.
+   READ-27: Feedback is a tile above the phone and stands down at 480px and below, where the row has no room for it. */
 
 test.use({ serviceWorkers: 'block', hasTouch: true, isMobile: true });
 
@@ -45,3 +46,17 @@ for (const size of [{ width: 402, height: 874 }, { width: 375, height: 812 }]) {
     await expectControlsSized(bar, { selector: 'svg', minWidth: 8, minHeight: 8 });
   });
 }
+
+test('just above the phone width the row keeps Feedback, one row, every tile at its floor', async ({ page }) => {
+  await page.setViewportSize({ width: 481, height: 874 });
+  const source = await makePdfBuffer(null, { title: false, lines: [{ text: 'A line of text', y: 700 }] });
+  await openTool(page, '/highlight-pdf/', { file: { name: 'row.pdf', buffer: source }, overlaySelector: '[data-page-overlay]' });
+
+  const bar = page.locator('[data-editor-toolbar]');
+  await expect(bar.locator('> [data-optional-control="feedback"]')).toBeVisible();
+  const tops = await bar.evaluate((el) => [...el.children]
+    .filter((b) => b.getClientRects().length)
+    .map((b) => Math.round(b.getBoundingClientRect().top)));
+  expect(new Set(tops).size).toBe(1);
+  await expectControlsSized(bar, { selector: ':scope > *', minWidth: 44, minHeight: 44 });
+});
