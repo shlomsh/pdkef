@@ -10,6 +10,8 @@ import {
   ratingGeo,
   ratingReadCommands,
   ratingTotalKey,
+  notesFromResult,
+  notesReadCommands,
 } from './ratingStore.js';
 
 describe('ratingStore', () => {
@@ -82,6 +84,27 @@ describe('ratingStore', () => {
         'rating:entries',
         '{"tool":"sign","stars":2,"day":"2026-10-26","comment":"slow"}',
       ]);
+    });
+  });
+
+  describe('notes', () => {
+    const note = { tool: 'merge', stars: 5, comment: 'Quick and private', place: 'Nakuru, Kenya' };
+
+    it('reads the newest NOTES_MAX from the list', () => {
+      expect(notesReadCommands()).toEqual([['LRANGE', 'rating:notes', -12, -1]]);
+    });
+
+    it('returns valid notes newest first and drops anything else', () => {
+      const stored = [{ ...note, comment: 'old' }, 'not json', JSON.stringify({ ...note, stars: 9 }), note].map((v) =>
+        typeof v === 'string' ? v : JSON.stringify(v),
+      );
+      expect(notesFromResult({ result: stored }).map((n) => n.comment)).toEqual(['Quick and private', 'old']);
+    });
+
+    it('is empty for a missing or unexpected reply', () => {
+      expect(notesFromResult(undefined)).toEqual([]);
+      expect(notesFromResult({ result: 'x' })).toEqual([]);
+      expect(notesFromResult({ result: [5, null] })).toEqual([]);
     });
   });
 });

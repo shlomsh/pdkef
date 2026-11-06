@@ -19,6 +19,7 @@
     "errors:resolve": "node scripts/errors-resolve.mjs",
     "errors:read": "node scripts/errors-read.mjs",
     "ratings:read": "node scripts/ratings-read.mjs",
+    "ratings:approve": "node scripts/ratings-approve.mjs",
     "deploy:prod": "node scripts/deploy-prod.mjs",
     "build": "node scripts/generate-font-manifest.mjs --check && node scripts/generate-language-acceptance.mjs --check && astro build && node scripts/repoOnlyFiles.mjs && node scripts/generate-precache-manifest.mjs",
     "preview": "astro preview",

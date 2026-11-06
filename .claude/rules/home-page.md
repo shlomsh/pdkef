@@ -156,6 +156,7 @@ conditions for re-opening it are in `backlog/tasks/DEMO-05.md`.
   needs an `is:inline` script that CSP cannot hash. If a conditional is wanted, **collapse rather than
   remove**: a class on `<html>` from the bundled script that registers the service worker, driving a
   CSS `max-height`.
+- **The pinned notes (SEO-57) are an opaque card that is never pinned itself.** The card before them stays stuck to the top, so a transparent section slides under it and the heading is lost. `PinnedNotes` takes `card` on the home page and renders nothing until approved notes arrive.
 
 ## Reveal animations (scroll-driven)
 

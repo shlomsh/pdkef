@@ -101,8 +101,8 @@ npm run test:e2e:fonts    # the 25 font screening guards, unconditionally; CI na
 - Shared tool logic lives in `src/lib/` and `src/editor/`, shared chrome in `src/shell/` and
   `src/editor-ui/`; the rules between them are `docs/module-boundaries.md`, enforced by
   `test:module-boundaries`. `pdfjs-dist`'s worker is bundled as a same-origin asset, never from a CDN.
-- Two request-time exceptions to "no server", neither ever sees a PDF byte: `middleware.ts` negotiates
-  `Accept: text/markdown`; `api/report.ts` receives anonymous error reports.
+- Three request-time exceptions to "no server", none ever sees a PDF byte: `middleware.ts` negotiates
+  `Accept: text/markdown`; `api/report.ts` receives anonymous reports; `api/notes.ts` serves approved notes, hour-cached.
 - Styling is a scoped hybrid: Tailwind utilities for the static `.astro` surface, CSS Modules for the
   editor, inline styles only for per-element runtime geometry. `global.css` holds tokens and element
   defaults only.
@@ -121,7 +121,7 @@ brackets carries the evidence; do not relearn it.
 - **The SEO shell stays static HTML.** Marketing, how-to, FAQ and JSON-LD are never moved into an
   island or injected client-side. One `<h1>` per page; primary keyword in title, h1 and description;
   FAQ JSON-LD must match on-page content. Off the table: SSR, any external `connect-src`, any JS
-  shipped to the SEO surface. [content-and-copy]
+  shipped to the SEO surface but the pinned-notes island (SEO-57). [content-and-copy]
 - **CSP is invisible in `astro dev`.** Any change to scripts, styles, `astro.config.mjs` or
   `vercel.json` is verified only by `npm run build && npm run preview`. Never `is:inline` a script;
   never add `script-src`/`default-src` to the `vercel.json` header. [csp-scripts-pwa]

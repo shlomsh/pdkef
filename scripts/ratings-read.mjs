@@ -10,7 +10,7 @@ import { pathToFileURL } from 'node:url';
  */
 export const RATING_TOOLS = ['merge', 'split', 'edit-pdf', 'compress', 'compress-image', 'pdf-to-image', 'image-to-pdf', 'sign', 'highlight-pdf', 'redact', 'scan-to-pdf', 'unlock', 'protect'];
 
-function envFromFile() {
+export function envFromFile() {
   try {
     const out = {};
     for (const line of readFileSync('.env.local', 'utf8').split('\n')) {

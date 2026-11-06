@@ -18,5 +18,10 @@
     "file": "src/site-lib/ratingAggregate.ts",
     "includes": "await fetchImpl(",
     "reason": "Build-time POST to the rating store of read commands for star counts. Runs in Node during the build, never in the browser; it sends no user data and no file bytes."
+  },
+  {
+    "file": "src/site-lib/PinnedNotes.tsx",
+    "includes": "fetch(NOTES_PATH)",
+    "reason": "GET of the same-origin approved notes (SEO-57). No request body; nothing leaves the device."
   }
 ]

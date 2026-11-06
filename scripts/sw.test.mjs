@@ -179,6 +179,14 @@ async function dispatchFetch(worker, request, ids = {}) {
 }
 
 describe('offline-first service worker', () => {
+  it('never answers an /api/ request, so the cache-first branch cannot keep the first reply', async () => {
+    const worker = createWorker(manifestResponder(['/']));
+    await dispatchInstall(worker);
+    worker.entries.set('https://pdkef.test/api/notes', new Response('{"notes":[]}'));
+    const { response } = await dispatchFetch(worker, new Request('https://pdkef.test/api/notes'));
+    expect(response).toBeUndefined();
+  });
+
   it('precaches the manifest without claiming pages from the previous build', async () => {
     const worker = createWorker(manifestResponder(['/', '/sign/', '/_astro/app.js']));
 
