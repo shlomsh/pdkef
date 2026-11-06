@@ -1,5 +1,6 @@
 // A tool's short video, shown below the tool on its English page. A tool added here
-// also gets the player's origin in its CSP, which test:csp allows on /redact/ alone.
+// also gets the player's origin in its CSP, which test:csp allows only on `/` and /redact/.
+// The English home page shows the Redact video after The O.
 /** @type {Record<string, { label: string; embed: string; poster: string }>} */
 export const toolVideos = {
   redact: {

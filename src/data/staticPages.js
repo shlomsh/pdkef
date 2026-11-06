@@ -99,9 +99,9 @@ export const staticPages = [
         ],
       },
       {
-        heading: 'The video on the Redact page',
+        heading: 'The one-minute video',
         paragraphs: [
-          'The <a href="/redact/">Redact page</a> has a one-minute video. Until you press play it is only a picture, and nothing loads from anywhere else. When you press play, the video streams from YouTube in its privacy-enhanced mode, and YouTube\'s own privacy policy covers that playback. Your files are not part of it and still never leave your device.',
+          'The home page and the <a href="/redact/">Redact page</a> have a one-minute video. Until you press play it is only a picture, and nothing loads from anywhere else. When you press play, the video streams from YouTube in its privacy-enhanced mode, and YouTube\'s own privacy policy covers that playback. Your files are not part of it and still never leave your device.',
         ],
       },
       {
