@@ -51,7 +51,6 @@ Marking should feel like holding a highlighter, not like operating software. Ske
 
 | ID | P | Task | Note |
 | --- | --- | --- | --- |
-| READ-24 | P2 | [READ-24](backlog/tasks/READ-24.md) · A rest only outlines a highlight, a click opens its row where you clicked | In progress |
 | READ-03 | P2 | [READ-03](backlog/tasks/READ-03.md) · Highlight PDF: the tool at /highlight-pdf/, highlights with a comment on each, and its page | In progress |
 | READ-05 | P2 | [READ-05](backlog/tasks/READ-05.md) · The fullscreen capsule in Highlight PDF | In progress |
 | READ-06 | P2 | [READ-06](backlog/tasks/READ-06.md) · Highlight PDF: Print with my notes, comments in the margin beside their passages | In progress |
@@ -355,7 +354,7 @@ Done and retired tickets are not listed. Their files stay in [backlog/tasks/](ba
 
 - Redact: finish removal: 26 done, 1 retired
 - Sign: finish fill mode: 3 done, 1 retired
-- Highlight PDF: a tool for reading: 8 done, 1 retired
+- Highlight PDF: a tool for reading: 9 done, 1 retired
 - Scan: camera to WhatsApp: 14 done, 0 retired
 - Page enhancement for Scan and Highlight: 5 done, 1 retired
 - Tool pages: show the verb: 8 done, 0 retired

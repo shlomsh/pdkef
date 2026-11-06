@@ -1,11 +1,9 @@
 ---
 id: "READ-24"
 title: "A rest only outlines a highlight, a click opens its row where you clicked"
-status: "in_progress"
+status: "done"
 priority: "P2"
 epic: "highlight-pdf"
-horizon: "now"
-order: 1
 depends_on: []
 ---
 
