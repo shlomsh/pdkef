@@ -1,8 +1,9 @@
-import type { ComponentChildren } from 'preact';
+import type { ComponentChildren, ComponentType, VNode } from 'preact';
 import { Search, Eye } from 'lucide-preact';
 import FullscreenButton from '#editor-ui/FullscreenButton.tsx';
 import EditorToolStatus, { type ToolCopy } from '#editor-ui/EditorToolStatus.tsx';
 import ArmHint from '#editor-ui/ArmHint.tsx';
+import useCoarsePointer from '#editor-ui/hooks/useCoarsePointer.ts';
 import EditorExportActions from '#editor-ui/EditorExportActions.tsx';
 import ToolShell, { FILE_ACTIONS, useToolShell } from '#shell/ToolShell.tsx';
 import { useArmTool, useAutoArmHint } from '#editor-ui/hooks/toolArming.js';
@@ -13,6 +14,7 @@ import styles from '#editor-ui/SignToolbar.module.css';
 import UndoRedoButtons from '#editor-ui/UndoRedoButtons.tsx';
 import redactStyles from '../PdfRedactTool.module.css';
 import barStyles from './RedactToolbar.module.css';
+import BrushToolMenu from './BrushToolMenu.tsx';
 import { englishRedactMessages as t } from '../messages.ts';
 import { formatMessage } from '#lib/text/formatMessage.ts';
 
@@ -109,8 +111,9 @@ interface RedactToolbarProps {
     bar?: ComponentChildren;
   };
   slots?: {
-    /** RED-32: the Box / Brush row for Blur and Whiteout, under the buttons. */
-    brushControls?: ComponentChildren;
+    /** RED-32: the Box / Brush row for Blur or Whiteout: the tool's submenu with
+     * a mouse, hung under the card on touch while armed (RED-70). */
+    brushControls?: (tool: 'blur' | 'whiteout', hung: boolean) => ComponentChildren;
     /** RED-66: the done strip, hung under this sticky card so it stays where the person clicked. */
     doneStrip?: ComponentChildren;
   };
@@ -150,7 +153,7 @@ export default function RedactToolbar({
   const { action: undoAction = null, run: onUndoAction } = undoChip;
   const { message: statusMessage, welcomeTip: showWelcomeTip = true, restoredNote = false } = status;
   const { open: findOpen = false, toggle: onToggleFind, bar: findBar = null } = find;
-  const { brushControls = null, doneStrip = null } = slots;
+  const { brushControls, doneStrip = null } = slots;
   const { active: peeking = false, onChange: onPeekChange } = peek;
   const { requestReplace } = useToolShell();
 
@@ -195,11 +198,32 @@ export default function RedactToolbar({
     ? (brushArmed ? BRUSH_COPY[activeStyle] : TOOL_COPY[activeStyle])
     : null;
 
-  const toolProps = (tool: RedactToolType) => ({
-    className: `${styles.button}${activeStyle === tool ? ` ${styles.active}` : ''}${activeStyle === tool && toolLocked ? ` ${styles.locked}` : ''}`,
-    'aria-pressed': activeStyle === tool,
-    'data-locked': (activeStyle === tool && toolLocked) || undefined,
-  });
+  // RED-70: touch has no hover, so there the row stays while the tool is armed,
+  // and the done strip, which hangs in the same place, steps aside for it.
+  const coarsePointer = useCoarsePointer();
+  const hungBrushRow = coarsePointer && (activeStyle === 'blur' || activeStyle === 'whiteout')
+    ? brushControls?.(activeStyle, true)
+    : null;
+  const withBrushMenu = (tool: 'blur' | 'whiteout', button: VNode) => (
+    coarsePointer || !brushControls
+      ? button
+      : <BrushToolMenu controls={() => brushControls(tool, false)}>{button}</BrushToolMenu>
+  );
+
+  const armableTool = (tool: RedactToolType, Icon: ComponentType<{ size?: number }>) => (
+    <ArmHint tool={tool} label={TOOL_COPY[tool].button} action={TOOL_COPY[tool].action} locked={activeStyle === tool && toolLocked} autoShowTool={autoShowTool}>
+      <button
+        type="button"
+        className={`${styles.button}${activeStyle === tool ? ` ${styles.active}` : ''}${activeStyle === tool && toolLocked ? ` ${styles.locked}` : ''}`}
+        aria-pressed={activeStyle === tool}
+        data-locked={(activeStyle === tool && toolLocked) || undefined}
+        onClick={armTool(tool)}
+      >
+        <Icon />
+        <span className={styles.label}>{TOOL_COPY[tool].button}</span>
+      </button>
+    </ArmHint>
+  );
 
   return (
     // No inline margin here any more. This file used to add one and SignToolbar
@@ -243,49 +267,10 @@ export default function RedactToolbar({
       }
     >
       <div className={`${styles.toolbar} ${barStyles.bar}`} role="toolbar" aria-label={t.toolbarLabel} dir="ltr" lang="en" data-editor-toolbar>
-        <ArmHint tool="blur" label={TOOL_COPY.blur.button} action={TOOL_COPY.blur.action} locked={activeStyle === 'blur' && toolLocked} autoShowTool={autoShowTool}>
-          <button
-            type="button"
-            {...toolProps('blur')}
-            onClick={armTool('blur')}
-          >
-            <BlurToolIcon />
-            <span className={styles.label}>{TOOL_COPY.blur.button}</span>
-          </button>
-        </ArmHint>
-
-        <ArmHint tool="blackout" label={TOOL_COPY.blackout.button} action={TOOL_COPY.blackout.action} locked={activeStyle === 'blackout' && toolLocked} autoShowTool={autoShowTool}>
-          <button
-            type="button"
-            {...toolProps('blackout')}
-            onClick={armTool('blackout')}
-          >
-            <BlackoutToolIcon />
-            <span className={styles.label}>{TOOL_COPY.blackout.button}</span>
-          </button>
-        </ArmHint>
-
-        <ArmHint tool="whiteout" label={TOOL_COPY.whiteout.button} action={TOOL_COPY.whiteout.action} locked={activeStyle === 'whiteout' && toolLocked} autoShowTool={autoShowTool}>
-          <button
-            type="button"
-            {...toolProps('whiteout')}
-            onClick={armTool('whiteout')}
-          >
-            <WhiteoutIcon />
-            <span className={styles.label}>{TOOL_COPY.whiteout.button}</span>
-          </button>
-        </ArmHint>
-
-        <ArmHint tool="delete" label={TOOL_COPY.delete.button} action={TOOL_COPY.delete.action} locked={activeStyle === 'delete' && toolLocked} autoShowTool={autoShowTool}>
-          <button
-            type="button"
-            {...toolProps('delete')}
-            onClick={armTool('delete')}
-          >
-            <EraserIcon />
-            <span className={styles.label}>{TOOL_COPY.delete.button}</span>
-          </button>
-        </ArmHint>
+        {withBrushMenu('blur', armableTool('blur', BlurToolIcon))}
+        {armableTool('blackout', BlackoutToolIcon)}
+        {withBrushMenu('whiteout', armableTool('whiteout', WhiteoutIcon))}
+        {armableTool('delete', EraserIcon)}
 
         {/* RED-02: Find is an action, not a tool to arm - it opens a row of
             its own under these buttons and never draws on a page. */}
@@ -367,9 +352,9 @@ export default function RedactToolbar({
         />
 
       </div>
-      {brushControls}
+      {hungBrushRow}
       {findBar}
-      {doneStrip}
+      {!hungBrushRow && doneStrip}
     </ToolShell>
   );
 }

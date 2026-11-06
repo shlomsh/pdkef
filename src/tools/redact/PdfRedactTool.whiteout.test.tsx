@@ -32,7 +32,7 @@ async function seedDraft(work: { elements: unknown[]; extra: Record<string, unkn
 }
 
 describe('PdfRedactTool UI flow', () => {
-  const { s, loadFileAndGetDrawArea, armTool, drawBox } = useRedactSuite({ Tool: PdfRedactTool, checking: CHECKING, gestureController, installToolHarness, waitUntil });
+  const { s, loadFileAndGetDrawArea, armTool, hoverBrushTool, drawBox } = useRedactSuite({ Tool: PdfRedactTool, checking: CHECKING, gestureController, installToolHarness, waitUntil });
 
   it('RED-51: a newly drawn whiteout takes the page colour, not the remembered color', async () => {
     // RED-51: a new whiteout is auto (colorMode 'auto') and takes the page's colour, '#ffffff'
@@ -172,16 +172,16 @@ describe('PdfRedactTool UI flow', () => {
 
     describe('two pipettes', () => {
       const boxPipette = () => query<HTMLButtonElement>(s.container, '[data-editor-actions] [data-whiteout-color-eyedropper]');
-      const brushPipette = () => query<HTMLButtonElement>(s.container, '[data-brush-controls] button[aria-label="Pick a colour from the page"]');
+      const brushPipette = () => query<HTMLButtonElement>(document.body, '[data-brush-controls] button[aria-label="Pick a colour from the page"]');
       const click = async (el: HTMLElement) => { await act(async () => { el.dispatchEvent(new MouseEvent('click', { bubbles: true })); }); };
-      const brushSwatch = () => query<HTMLElement>(s.container, '[aria-label="Whiteout colour"] button[aria-pressed="true"]').style.getPropertyValue('--swatch');
+      const brushSwatch = () => query<HTMLElement>(document.body, '[data-brush-controls] [aria-label="Whiteout colour"] button[aria-pressed="true"]').style.getPropertyValue('--swatch');
       async function selectedBoxAndBrushArmed() {
         await drawWhiteoutAndSelect();
         const canvas = query<HTMLCanvasElement>(s.container, '[data-editor-page-card] canvas');
         canvas.getBoundingClientRect = () => ({ left: 0, top: 0, width: 300, height: 150, right: 300, bottom: 150, x: 0, y: 0, toJSON: () => {} });
         canvas.getContext = (() => ({ getImageData: () => ({ data: new Uint8ClampedArray([10, 20, 30, 255]) }) })) as never;
-        await armTool('Whiteout');
-        const brushSegment = required(Array.from(s.container.querySelectorAll<HTMLButtonElement>('[data-brush-controls] [role="radio"]')).find((b) => b.textContent === 'Brush'), 'Brush segment');
+        await hoverBrushTool('Whiteout');
+        const brushSegment = required(Array.from(document.querySelectorAll<HTMLButtonElement>('[data-brush-controls] [role="radio"]')).find((b) => b.textContent === 'Brush'), 'Brush segment');
         await act(async () => { brushSegment.click(); });
         const before = brushSwatch();
         return { canvas, before };

@@ -30,9 +30,6 @@ export default function RedactWorkspaceToolbar({ state, dispatch, setAnnouncemen
   const { activeStyle, toolLocked, activeColor, brush, eyedropping } = state.tool;
   const { undoAction } = state.edits;
   const { showStrip } = finish;
-  // RED-70: Box / Brush hangs where the done strip does, so the strip steps
-  // aside while either tool is armed and comes back if nothing was drawn.
-  const brushRow = activeStyle === 'blur' || activeStyle === 'whiteout';
   const { find, redactMatches } = findKit;
   return (
     <RedactToolbar
@@ -88,18 +85,24 @@ export default function RedactWorkspaceToolbar({ state, dispatch, setAnnouncemen
         ),
       }}
       slots={{
-        brushControls: brushRow && (
+        brushControls: (tool, hung) => (
           <BrushControls
-            tool={activeStyle}
+            tool={tool}
             settings={brush}
-            onSettings={(next) => { arming.changeBrush(next); recordAction('change_setting'); }}
+            onSettings={(next) => {
+              arming.changeBrush(next);
+              recordAction('change_setting');
+              // RED-70: a pick from the submenu arms its tool in the same step.
+              if (activeStyle !== tool) arming.setTool(tool);
+            }}
             color={activeColor}
             onColor={(color) => { arming.rememberColor(color); recordAction('change_setting'); }}
             eyedropping={eyedropping === 'brush'}
             onToggleEyedropper={() => dispatch({ type: 'EYEDROPPER_TOGGLED', target: 'brush' })}
+            hung={hung}
           />
         ),
-        doneStrip: showStrip && !brushRow && (
+        doneStrip: showStrip && (
           <RedactDoneStrip
             facts={finish.finishFacts}
             handoffBusy={exp.handoffBusy}

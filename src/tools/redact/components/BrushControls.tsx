@@ -7,8 +7,9 @@ import styles from './BrushControls.module.css';
 import { englishRedactMessages as t } from '../messages.ts';
 
 // RED-32: the Box / Brush choice inside Blur and Whiteout, the brush's size,
-// and (whiteout only) its colour. No new top-level tool buttons: this row sits
-// under the toolbar while Blur or Whiteout is armed.
+// and (whiteout only) its colour. No new top-level tool buttons: with a mouse this
+// row is the tool's submenu (BrushToolMenu); on touch it hangs under the toolbar
+// while Blur or Whiteout is armed.
 
 export type BrushMode = 'box' | 'brush';
 export interface BrushSettings { mode: BrushMode; size: number }
@@ -51,6 +52,7 @@ export default function BrushControls({
   onColor,
   eyedropping,
   onToggleEyedropper,
+  hung = false,
 }: {
   tool: 'blur' | 'whiteout';
   settings: BrushSettings;
@@ -59,6 +61,7 @@ export default function BrushControls({
   onColor: (color: string) => void;
   eyedropping: boolean;
   onToggleEyedropper: () => void;
+  hung?: boolean;
 }) {
   const brush = settings.mode === 'brush';
   const modeButton = (mode: BrushMode, label: string) => (
@@ -74,7 +77,7 @@ export default function BrushControls({
   );
 
   return (
-    <div className={styles.row} role="group" aria-label={tool === 'blur' ? t.shapeBlur : t.shapeWhiteout} data-brush-controls>
+    <div className={`${styles.row}${hung ? ` ${styles.hung}` : ''}`} role="group" aria-label={tool === 'blur' ? t.shapeBlur : t.shapeWhiteout} data-brush-controls>
       <div className={styles.segmented} role="radiogroup" aria-label={t.shapeGroup}>
         {modeButton('box', t.modeBox)}
         {modeButton('brush', t.modeBrush)}
