@@ -43,7 +43,7 @@ const { video, lazy = false } = Astro.props;
     frame.title = button.dataset.title ?? '';
     frame.allow = 'autoplay; encrypted-media; picture-in-picture; fullscreen';
     frame.referrerPolicy = 'strict-origin-when-cross-origin';
-    frame.className = 'absolute inset-0 h-full w-full rounded-[var(--radius-lg)]';
+    frame.className = 'absolute inset-0 h-full w-full rounded-[var(--radius-lg)] border-0';
     button.replaceWith(frame);
     frame.focus();
   });
