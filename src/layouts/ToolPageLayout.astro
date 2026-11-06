@@ -125,7 +125,9 @@ const prePaintScript = `
 // Which other pages exist in this edition, so the two card grids below can
 // link to the localized page where there is one and mark the rest EN.
 const editionPaths = locale === 'en' ? [] : await getPublishedEditionPaths(locale as any);
-const video = toolVideos[tool.slug];
+const video = locale === 'en' ? toolVideos[tool.slug] : undefined;
+// The one page-level exception for the player: a frame, made only when a person presses play.
+if (video) Astro.csp?.insertDirective(`frame-src ${new URL(video.embed).origin}`);
 ---
 
 <BaseLayout
@@ -199,7 +201,7 @@ const video = toolVideos[tool.slug];
   </ToolStage>
 
   <div data-tool-followups>
-  {video && locale === 'en' && <ToolVideo video={video} />}
+  {video && <ToolVideo video={video} />}
 
   {/* SEO-10: the no-limit fact, stated where a visitor scanning the SERP
       result actually lands, not buried in the FAQ below the tool. Kept to

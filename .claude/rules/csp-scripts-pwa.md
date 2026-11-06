@@ -45,6 +45,8 @@ The CSP is intentionally split across two layers:
 **This feature is build/preview-only.** Per Astro's own docs, `security.csp` does not apply in `astro dev` — the Vite dev server doesn't support it. This means **the CSP bug class above cannot be reproduced or caught in `npm run dev`** — it only manifests in `npm run build && npm run preview` or the real deployment. Always do a build+preview pass (or check the live Vercel deployment) before considering any change to scripts, `astro.config.mjs`, or `vercel.json` verified.
 
 
+**The Redact video is the second Google exception (SEO-59).** `ToolPageLayout.astro` adds `frame-src https://www.youtube-nocookie.com` to pages with an entry in `src/data/toolVideos.js`, which is `/redact/` alone; `verify-csp.js` fails it anywhere else. `ToolVideo.astro` makes the frame only on press, so a visitor who never plays it never reaches Google. Never preload the frame or load it on scroll.
+
 ## CSP is invisible in dev (design-standard hazard)
 
 - **CSP is invisible in dev.** Astro's `security.csp` (auto-hashing of inline scripts and styles) does

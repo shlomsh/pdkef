@@ -1,34 +1,50 @@
 ---
-// The tool's short video, directly below the tool: its poster, linking to YouTube
-// in a new tab so the tool keeps its work. A link and not a player, because the CSP
-// allows only our own origin and no tool page may connect to Google.
+// The tool's short video, directly below the tool, on the page's 1032px column. The gaps
+// keep the page's rhythm of 64px, 96px from 768px up: the board below brings 56px of its
+// own padding, so the bottom margin is the rest. Until someone presses play this is
+// only a poster and a button: the page loads nothing from the player's host. Pressing
+// play makes the frame, the one thing this page's CSP allows from there.
 interface Props {
-  video: { heading: string; label: string; url: string; poster: string };
+  video: { label: string; embed: string; poster: string };
 }
 
 const { video } = Astro.props;
 ---
 
-<section class="mx-auto mb-2 mt-8 w-full max-w-[860px] px-6" data-tool-video>
-  <h2 class="type-section mb-4 text-center text-[var(--color-text)]">{video.heading}</h2>
-  <a class="block text-center text-[var(--color-text)]" href={video.url} target="_blank" rel="noopener">
-    <span class="relative block">
-      <img
-        class="block h-auto w-full rounded-2xl"
-        src={video.poster}
-        alt={video.label}
-        width="1280"
-        height="720"
-        loading="lazy"
-        decoding="async"
-      />
-      <span
-        class="absolute inset-0 m-auto flex h-16 w-16 items-center justify-center rounded-full bg-[var(--color-text)] text-[var(--color-bg)]"
-        aria-hidden="true"
-      >
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"></path></svg>
+<section class="mx-auto mb-2 mt-16 w-full max-w-[1080px] px-6 min-[768px]:mb-10 min-[768px]:mt-24" data-tool-video>
+  <div class="relative rounded-[var(--radius-lg)] bg-[var(--color-text)]">
+    <img
+      class="block h-auto w-full rounded-[var(--radius-lg)]"
+      src={video.poster}
+      alt=""
+      width="1280"
+      height="720"
+      decoding="async"
+    />
+    <button
+      class="absolute inset-0 flex h-full w-full cursor-pointer items-end justify-end border-0 bg-transparent p-3"
+      type="button"
+      aria-label={`Play: ${video.label}`}
+      data-embed={video.embed}
+      data-title={video.label}
+    >
+      <span class="flex h-12 w-12 items-center justify-center rounded-full bg-[var(--color-bg)] text-[var(--color-text)]">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"></path></svg>
       </span>
-    </span>
-    <span class="mt-3 block underline">Watch on YouTube</span>
-  </a>
+    </button>
+  </div>
 </section>
+
+<script>
+  const button = document.querySelector<HTMLButtonElement>('[data-tool-video] button');
+  button?.addEventListener('click', () => {
+    const frame = document.createElement('iframe');
+    frame.src = button.dataset.embed ?? '';
+    frame.title = button.dataset.title ?? '';
+    frame.allow = 'autoplay; encrypted-media; picture-in-picture; fullscreen';
+    frame.referrerPolicy = 'strict-origin-when-cross-origin';
+    frame.className = 'absolute inset-0 h-full w-full rounded-[var(--radius-lg)]';
+    button.replaceWith(frame);
+    frame.focus();
+  });
+</script>

@@ -100,6 +100,29 @@ describe('verify-csp CLI', () => {
     expect(r.err).toContain("'unsafe-inline' in style-src-elem");
   });
 
+  it('fails the video player origin in the CSP of a page other than /redact/', () => {
+    const r = run({ 'merge/index.html': page({ csp: goodCsp('; frame-src https://www.youtube-nocookie.com'), body: goodBody }) });
+    expect(r.status).toBe(1);
+    expect(r.err).toContain('which only dist/redact/index.html may allow');
+  });
+
+  it('fails when /redact/ does not allow the video player origin', () => {
+    const r = run({ 'redact/index.html': page({ csp: goodCsp(), body: goodBody }) });
+    expect(r.status).toBe(1);
+    expect(r.err).toContain('which the Redact video needs');
+  });
+
+  it('fails /redact/ allowing any frame beyond the video player origin', () => {
+    const r = run({ 'redact/index.html': page({ csp: goodCsp('; frame-src * https://www.youtube-nocookie.com'), body: goodBody }) });
+    expect(r.status).toBe(1);
+    expect(r.err).toContain('which the Redact video needs');
+  });
+
+  it('passes /redact/ allowing the video player origin in frame-src alone', () => {
+    const r = run({ 'redact/index.html': page({ csp: goodCsp('; frame-src https://www.youtube-nocookie.com'), body: goodBody }) });
+    expect(r.status).toBe(0);
+  });
+
   it('fails when /drive/ does not allow the Google origins it needs', () => {
     const r = run({ 'drive/index.html': page({ csp: goodCsp(), body: goodBody }) });
     expect(r.status).toBe(1);
