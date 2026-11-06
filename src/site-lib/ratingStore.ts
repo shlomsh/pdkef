@@ -3,6 +3,7 @@
 // `rating:<tool>`, a count per star value, never given an expiry. Only the day's cap total expires.
 import type { RatingCommentEvent, RatingEvent } from '../lib/telemetry/ratingSchema.js';
 import type { Command } from './errorReportStore.js';
+import { NOTES_KEY, NOTES_MAX, parseNote, type PinnedNote } from './pinnedNote.js';
 
 /** Ratings counted per UTC day, apart from the other caps. A rating costs 1 command (2 on the day's first). */
 export const RATING_DAILY_CAP = 300;
@@ -86,4 +87,26 @@ export function ratingCountsFromResults(
     out[tool] = counts;
   });
   return out;
+}
+
+/** The newest approved notes, read by `GET /api/notes`. */
+export function notesReadCommands(): Command[] {
+  return [['LRANGE', NOTES_KEY, -NOTES_MAX, -1]];
+}
+
+/** Parses the LRANGE reply (oldest first): each string as JSON through parseNote, invalid ones dropped, newest first. */
+export function notesFromResult(reply: { result?: unknown } | undefined): readonly PinnedNote[] {
+  const list = reply?.result;
+  if (!Array.isArray(list)) return [];
+  const notes: PinnedNote[] = [];
+  for (const raw of list) {
+    if (typeof raw !== 'string') continue;
+    try {
+      const note = parseNote(JSON.parse(raw));
+      if (note) notes.push(note);
+    } catch {
+      // expected: a stored entry that is not JSON is dropped
+    }
+  }
+  return notes.slice(-NOTES_MAX).reverse();
 }

@@ -26,6 +26,8 @@ When a file has been downloaded, a tool may ask for a rating with five stars. A 
 
 The server keeps one count per tool and star value, in the same Upstash database, under `rating:<tool>`, and one record per rating or comment, `{tool, stars, day, country, region, comment, share}`, in the list `rating:entries`, trimmed to the latest 10,000. Unlike everything else on this page neither is deleted after 90 days: an average only means something over a long time. `npm run ratings:read` prints both. Ratings from before SEO-48 (2026-10-26) are counts only, with no record. Ratings and comments share their own daily cap of 300; past it a vote or comment is dropped silently, and a body that is not a valid rating is counted as a reject like any other.
 
+Comments a person agreed to show are read by me. The ones I approve, reduced to the tool, the stars, their words and a place I write out by hand, go in the list `rating:notes` and appear on the site through `GET /api/notes`. The answer is cached for an hour in the browser, at the CDN and in the function itself, so the store is never read per visit. A note exists only after I approve it; nothing a person posts is shown on its own.
+
 The limit of one vote per tool per device is a marker kept in the browser's own storage. It stops accidents and casual repeats, not someone who clears it or posts to the address directly, so the tally is not fraud-proof. The aggregate is read from the store at build time and published on a tool's page only from 50 votes, so a handful of ratings never show as a badge or in the page's structured data.
 
 ## Anonymous error reports

@@ -1121,6 +1121,8 @@ self.addEventListener('fetch', (event) => {
   }
 
   if (request.method !== 'GET') return;
+  // Functions are never cached here: without this the cache-first branch would keep the first answer for good.
+  if (url.pathname.startsWith('/api/')) return;
 
   // 1. Navigation requests: use the cached route immediately and refresh it
   // in the background. Query strings intentionally share their page shell -

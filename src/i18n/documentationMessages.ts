@@ -64,6 +64,10 @@ export interface DocumentationShellMessages {
   airplaneModeNotice: string;
   /** SEO-46: the visible rating line on a tool page that has one. `{average}` and `{count}` are filled with the same numbers the JSON-LD carries; the numbers are never translated. */
   ratingLine: string;
+  /** SEO-57: the pinned notes section. `notesBy` takes `{tool}` and `{place}`. */
+  notesHeading: string;
+  notesIntro: string;
+  notesBy: string;
   /** The home page's own accessible names: the brand link when it is not a
    * back link (`homeAriaLabel` is the tool-page wording), the tool dock's
    * <nav> and the offline-install tab list. */
@@ -130,6 +134,9 @@ const englishMessages = {
   lastUpdated: 'Last updated',
   airplaneModeNotice: 'Turn on airplane mode and give it a try. It still works.',
   ratingLine: '{average} from {count} ratings',
+  notesHeading: 'Notes people left',
+  notesIntro: 'After a download I ask how it went. These are a few of the answers, shared with their OK.',
+  notesBy: '{tool}, someone in {place}',
   homepageAriaLabel: 'PDkef homepage',
   toolDockAriaLabel: 'PDF tools',
   installGuidesAriaLabel: 'Device installation guides',
@@ -175,6 +182,9 @@ const hebrewMessages = {
   airplaneModeNotice: 'הפעילו מצב טיסה ונסו. זה עדיין עובד.',
   heroPhoneLine: 'חינם, פרטי, ישר בדפדפן.',
   ratingLine: '{count} דירוגים, ממוצע {average}',
+  notesHeading: 'פתקים שאנשים השאירו',
+  notesIntro: 'אחרי הורדה אני שואל איך היה. הנה כמה מהתשובות, בהסכמתם.',
+  notesBy: '{tool}, מישהו ב{place}',
   heroAccent: 'אצלכם במכשיר',
   homepageAriaLabel: 'דף הבית של PDkef',
   toolDockAriaLabel: 'כלי PDF',
@@ -222,6 +232,9 @@ const indonesianMessages = {
   airplaneModeNotice: 'Aktifkan mode pesawat dan coba sendiri. Tetap berfungsi.',
   heroPhoneLine: 'Gratis, privat, langsung di browser Anda.',
   ratingLine: '{average} dari {count} penilaian',
+  notesHeading: 'Notes people left',
+  notesIntro: 'After a download I ask how it went. These are a few of the answers, shared with their OK.',
+  notesBy: '{tool}, someone in {place}',
   homepageAriaLabel: 'Beranda PDkef',
   toolDockAriaLabel: 'Alat PDF',
   installGuidesAriaLabel: 'Panduan instalasi per perangkat',

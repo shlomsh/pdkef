@@ -7,6 +7,7 @@ import OfflineInstallCard from './OfflineInstallCard.astro';
 import FaqCard from './FaqCard.astro';
 import PrivacyOpenSourceCard from './PrivacyOpenSourceCard.astro';
 import ClosingCard from './ClosingCard.astro';
+import PinnedNotes from '../../site-lib/PinnedNotes.tsx';
 
 interface Props {
   home: any;
@@ -43,6 +44,8 @@ const { faqKicker, faq, founderStory, draftPersistence, offlineInstall, privacyO
     </script>
     <FaqCard faqKicker={faqKicker} faq={faq} messages={messages} />
     <PrivacyOpenSourceCard privacyOpenSource={privacyOpenSource} />
+    {/* SEO-57: renders nothing until approved notes arrive. An opaque card that scrolls over the pinned one, never pinned itself. */}
+    <PinnedNotes client:load card heading={messages.notesHeading} intro={messages.notesIntro} byLine={messages.notesBy} />
     <ClosingCard closing={closing} dropzoneMessages={dropzoneMessages} recentFilesMessages={recentFilesMessages} signToolDisplayName={signToolDisplayName} toolHrefs={toolHrefs} />
     <Footer variants={variants} locale={locale} labels={messages} />
   </div>

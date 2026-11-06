@@ -2,7 +2,7 @@
 
 # Backlog
 
-The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 167 live: 58 up next, 21 then, 27 waiting, 61 parked.
+The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 167 live: 59 up next, 21 then, 27 waiting, 60 parked.
 
 ## Redact: finish removal
 
@@ -279,6 +279,7 @@ Mostly waiting on dated Search Console reads. Two small things can ship now.
 | SEO-54 | P2 | [SEO-54](backlog/tasks/SEO-54.md) · Academic paper reader: a visual guide to reading papers in Highlight PDF, and the /highlight-pdf/ audit fixes | In progress |
 | SEO-55 | P2 | [SEO-55](backlog/tasks/SEO-55.md) · Ask for a star rating in a warm dialog after the download, in Redact, Sign, Highlight and Merge | In progress |
 | SEO-56 | P2 | [SEO-56](backlog/tasks/SEO-56.md) · The rating dialog points bugs and ideas to GitHub, and five stars may leave words a person agrees to show | In progress |
+| SEO-57 | P2 | [SEO-57](backlog/tasks/SEO-57.md) · Pinned notes: people's own words on the home page and on Redact | In progress |
 | SCAN-01 | P3 | [SCAN-01](backlog/tasks/SCAN-01.md) · Scan to PDF: its own tool at /scan-to-pdf/, sharing Image to PDF's engine, plus a how-to-scan-to-PDF guide | In progress |
 
 ### Waiting
@@ -306,7 +307,6 @@ Mostly waiting on dated Search Console reads. Two small things can ship now.
 
 | ID | P | Task | Note |
 | --- | --- | --- | --- |
-| SEO-57 | P2 | [SEO-57](backlog/tasks/SEO-57.md) · Pinned notes: people's own words on the home page and on Redact |  |
 | DEMO-11 | P3 | [DEMO-11](backlog/tasks/DEMO-11.md) · The O on the Hebrew home page |  |
 | SEO-16 | P3 | [SEO-16](backlog/tasks/SEO-16.md) · Positioning review: Merge, Split and Protect & Unlock |  |
 
