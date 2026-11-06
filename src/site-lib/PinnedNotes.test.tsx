@@ -69,6 +69,7 @@ describe('PinnedNotes', () => {
     const flag = container!.querySelector('img')!;
     expect(flag.getAttribute('src')).toBe('/flags/KE.svg');
     expect(flag.getAttribute('alt')).toBe('');
+    expect(flag.parentElement!.textContent).toBe('Kenya');
     act(() => render(null, container!));
     await mount(ok([note('merge')]));
     expect(container!.querySelector('img')).toBeNull();

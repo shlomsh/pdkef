@@ -8,7 +8,7 @@
 .list {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
-  gap: 2rem;
+  gap: 2.5rem;
   align-items: start;
   list-style: none;
   margin: 0;
@@ -18,9 +18,13 @@
   position: relative;
   justify-self: center;
   box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
   width: 100%;
   max-width: 30rem;
-  padding: 2rem 1.25rem 1.25rem;
+  min-height: 10rem;
+  padding: 2.25rem 1.75rem 1.75rem;
   text-align: start;
   background: var(--color-paper);
   border: 1px solid var(--color-paper-edge);
@@ -33,10 +37,13 @@
 .note:nth-child(3) { rotate: 2.2deg; }
 .note:nth-child(4) { rotate: -1.4deg; }
 
-/* The papers sit a little out of line, as pinned notes do. */
+/* Each paper is its own size and sits a little out of line, as pinned notes do. */
 @media (min-width: 40rem) {
-  .note:nth-child(even) { margin-block-start: 1.75rem; }
-  .note:nth-child(3) { margin-inline-start: 1rem; }
+  .list { row-gap: 3rem; }
+  .note:nth-child(1) { min-height: 13rem; }
+  .note:nth-child(2) { min-height: 11.5rem; margin-block-start: 1.5rem; }
+  .note:nth-child(3) { width: 92%; min-height: 12rem; justify-self: end; }
+  .note:nth-child(4) { min-height: 13rem; margin-block-start: 0.75rem; }
 }
 
 .note::before { content: ''; position: absolute; }
@@ -61,22 +68,27 @@
 }
 
 .comment {
-  margin: 0 0 0.75rem;
+  margin: 0;
   font-family: 'Caveat Note', cursive;
   font-size: 1.6rem;
   line-height: 1.15;
   overflow-wrap: anywhere;
 }
-.stars { display: block; width: 6rem; height: 1.2rem; margin-bottom: 0.5rem; }
+/* A note with no words spreads its stars and its line over the paper; with words they sit together at the foot. */
+.foot { flex: 1; display: flex; flex-direction: column; justify-content: space-between; gap: 1.25rem; }
+.comment + .foot { flex: none; justify-content: flex-start; gap: 0.6rem; margin-block-start: auto; }
+.stars { display: block; width: 7.5rem; height: 1.5rem; }
+.comment + .foot .stars { width: 6rem; height: 1.2rem; }
 .on { fill: var(--color-comment-anchor); stroke: var(--color-clay); }
 .off { fill: none; stroke: var(--color-clay); }
-/* The flag is a small sticker on the paper: a white edge, a soft shadow, a little turned. */
-.place { display: flex; align-items: center; gap: 0.7rem; }
+/* The place has its own line, its flag a small sticker on the paper; a long name wraps beside the flag, not under it. */
+.where { display: flex; align-items: flex-start; gap: 0.55rem; }
 .flag {
-  flex: none;
   box-sizing: content-box;
-  width: 2.1rem;
-  height: 1.4rem;
+  width: 1.65rem;
+  height: 1.1rem;
+  flex: none;
+  margin-block-start: 0.28em;
   object-fit: cover;
   border: 2px solid var(--color-surface);
   border-radius: 3px;
@@ -85,9 +97,9 @@
 }
 .note:nth-child(even) .flag { rotate: 2.5deg; }
 
-.by { margin: 0; font-size: 0.875rem; color: var(--color-muted); }
+.by { margin: 0; font-size: 0.875rem; line-height: 1.7; color: var(--color-muted); }
 /* A vote with no words: the line is the whole note, so it takes the handwriting. */
-.byHand { margin: 0; font-family: 'Caveat Note', cursive; font-size: 1.45rem; line-height: 1.15; }
+.byHand { margin: 0; font-family: 'Caveat Note', cursive; font-size: 1.6rem; line-height: 1.3; text-wrap: balance; }
 
 @media (prefers-reduced-motion: no-preference) {
   .note { transition: rotate 0.25s ease; }

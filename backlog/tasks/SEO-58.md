@@ -51,3 +51,8 @@ PDkef is one, but its docs do not address an app rating on a tool's page, so Goo
 - The endpoint reads the newest 12 approved notes and the last 200 votes, once an hour at most, however many exist.
   It keeps one vote per tool and country and four notes per tool, words first, then one from each tool in turn, so a
   busy tool never empties a quiet tool's board. The board shows four.
+- The heading is "Free PDF tools, rated by the people who use them" (Shlomi asked for one that serves search and
+  conversion, 2026-11-06). It names no single tool because the rating is the whole app's. The Rating dialog keeps its own
+  "How did it go?" title.
+- Notes are paper-proportioned and each its own size at desktop width, the place sits on its own line beside the flag, and
+  the board shares the page's 1080px grid.
