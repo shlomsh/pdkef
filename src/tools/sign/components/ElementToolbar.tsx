@@ -334,7 +334,7 @@ export default function ElementToolbar({
           <ThicknessPickerMenu
             value={element.strokeWidth}
             onChange={(strokeWidth: number) => onChange({ strokeWidth })}
-            title={t.lineThicknessTitle}
+            title={t.lineThicknessTitle} itemTitle={t.lineThicknessItemTemplate}
           />
           <ColorPickerMenu
             value={element.color}

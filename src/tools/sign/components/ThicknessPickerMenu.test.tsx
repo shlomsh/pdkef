@@ -9,7 +9,7 @@ describe('ThicknessPickerMenu', () => {
   async function open(props: Record<string, unknown> = {}) {
     const host = document.createElement('div');
     document.body.appendChild(host);
-    act(() => { render(<ThicknessPickerMenu onChange={() => {}} {...props} />, host); });
+    act(() => { render(<ThicknessPickerMenu onChange={() => {}} itemTitle="{n}px thickness" {...props} />, host); });
     await act(async () => { host.querySelector('button')!.click(); });
     return host;
   }

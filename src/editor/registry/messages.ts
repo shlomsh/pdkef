@@ -214,6 +214,7 @@ export interface SignMessages {
   dotMarkTitle: string;
   checkboxColorTitle: string;
   lineThicknessTitle: string;
+  lineThicknessItemTemplate: string;
   shapeColorTitle: string;
   signatureColorTitle: string;
   whiteoutColorTitle: string;
