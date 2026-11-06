@@ -639,7 +639,7 @@ jobs:
   # never fails the run, and nothing needs it.
   flake-report:
     runs-on: ubuntu-latest
-    needs: [scope, e2e]
+    needs: [scope, e2e, e2e-webkit]
     if: always() && (github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.nightly))
     continue-on-error: true
     permissions:
@@ -656,10 +656,12 @@ jobs:
       with:
         node-version: '22.x'
 
-    - name: Download the JSON reports of the last main runs
+    # This run is still in progress, so the completed-runs list cannot hold it,
+    # and it is the one run that repeats every spec. It is read first, by id.
+    - name: Download the JSON reports of this run and the last main runs
       run: |
         mkdir -p flake-reports
-        for id in $(gh run list --repo "${{ github.repository }}" --workflow ci.yml --branch main --status completed --limit "$RUNS" --json databaseId --jq '.[].databaseId'); do
+        for id in "$GITHUB_RUN_ID" $(gh run list --repo "${{ github.repository }}" --workflow ci.yml --branch main --status completed --limit "$((RUNS - 1))" --json databaseId --jq '.[].databaseId'); do
           gh run download "$id" --repo "${{ github.repository }}" --pattern 'playwright-json-*' --dir "flake-reports/$id" || true
         done
 

@@ -2,7 +2,7 @@
 
 # Backlog
 
-The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 166 live: 57 up next, 23 then, 27 waiting, 59 parked.
+The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 167 live: 58 up next, 23 then, 27 waiting, 59 parked.
 
 ## Redact: finish removal
 
@@ -198,6 +198,7 @@ Production errors you can see, small tools that clean up after themselves, and d
 | ID | P | Task | Note |
 | --- | --- | --- | --- |
 | DEBT-65 | P2 | [DEBT-65](backlog/tasks/DEBT-65.md) · Two layout-shift specs failed once each in the 2026-10-27 nightly | In progress |
+| QUAL-53 | P2 | [QUAL-53](backlog/tasks/QUAL-53.md) · The nightly flake report counts the nightly | In progress |
 | MEM-24 | P3 | [MEM-24](backlog/tasks/MEM-24.md) · A service worker that cannot install, or never completes its precache, says so | In progress |
 
 ### Then, in order
@@ -353,7 +354,7 @@ Done and retired tickets are not listed. Their files stay in [backlog/tasks/](ba
 - Redact: finish removal: 26 done, 1 retired
 - Sign: finish fill mode: 3 done, 1 retired
 - Highlight PDF: a tool for reading: 8 done, 1 retired
-- Scan: camera to WhatsApp: 13 done, 0 retired
+- Scan: camera to WhatsApp: 14 done, 0 retired
 - Page enhancement for Scan and Highlight: 5 done, 1 retired
 - Tool pages: show the verb: 8 done, 0 retired
 - Form detector accuracy: 19 done, 1 retired

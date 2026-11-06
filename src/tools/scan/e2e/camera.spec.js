@@ -148,6 +148,11 @@ test('a page removed from the stack is taken again by itself', async ({ page }) 
 
 // The camera keeps running under the viewer, and nothing it does there may count once the viewer closes.
 test('a page whose photo was swapped in the viewer is taken when the viewer closes', async ({ page }) => {
+  // Nothing on screen shows the paused camera firing: the hint can stay on "Turn the page" throughout. The frames can tell.
+  await page.addInitScript(() => {
+    const post = Worker.prototype.postMessage;
+    Worker.prototype.postMessage = function note(...args) { window.__lastFrame = performance.now(); return post.apply(this, args); };
+  });
   await page.goto('/scan-to-pdf/');
   await waitForIsland(page);
   await page.getByText('Start scanning').click();
@@ -164,10 +169,10 @@ test('a page whose photo was swapped in the viewer is taken when the viewer clos
     return Array.from(new Uint8Array(await blob.arrayBuffer()));
   });
   await page.locator('[data-page-viewer] input[capture]').first().setInputFiles({ name: 'swap.png', mimeType: 'image/png', buffer: Buffer.from(photo) });
-  // The swap frees the page, and the paused camera then fires on it under the viewer.
-  const hint = page.locator('[data-camera-hint]');
-  await expect(hint).not.toHaveText(/Turn the page/);
-  await expect(hint).toHaveText(/Turn the page/);
+  // The swap frees the page, and the paused camera then fires on it under the viewer. That takes a hold (800 ms) once
+  // it sees the page again, and two seconds of frames leaves room for the swap itself.
+  const swapped = await page.evaluate(() => performance.now());
+  await expect.poll(() => page.evaluate((since) => window.__lastFrame - since, swapped), { timeout: 15_000 }).toBeGreaterThan(2_000);
   await page.keyboard.press('Escape');
   await expect(page.getByRole('button', { name: /The last page taken, 2 so far/ })).toBeVisible({ timeout: 15_000 });
 });

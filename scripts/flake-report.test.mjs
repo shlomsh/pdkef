@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { aggregate, parseReport, renderFlakeSummary } from './flake-report.mjs';
 
@@ -61,5 +62,22 @@ describe('aggregate and renderFlakeSummary', () => {
   it('says so when nothing is above the line', () => {
     const md = renderFlakeSummary(aggregate([report([{ title: 'fine', attempts: ['passed'] }])]), { threshold: 0.02, runs: 1 });
     expect(md).toContain('No spec is above 2%');
+  });
+});
+
+describe('the nightly counts its own run (QUAL-53)', () => {
+  const yml = readFileSync(new URL('../.github/workflows/ci.yml', import.meta.url), 'utf8');
+  const job = yml.slice(yml.indexOf('\n  flake-report:'), yml.indexOf('\n  narrowing-share:'));
+
+  it('the loop reads this run first', () => {
+    expect(job).toMatch(/for id in "\$GITHUB_RUN_ID" \$\(gh run list/);
+  });
+
+  it('the list asks for one fewer, so the report still covers RUNS runs', () => {
+    expect(job).toContain('--limit "$((RUNS - 1))"');
+  });
+
+  it('the job waits for both jobs that upload a JSON report', () => {
+    expect(job).toMatch(/^ {4}needs: \[scope, e2e, e2e-webkit\]$/m);
   });
 });
