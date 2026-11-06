@@ -41,9 +41,9 @@ test('clicking a highlight shows its toolbar, visible and on screen, and Escape 
   await expect(bar).toBeHidden();
 });
 
-/* READ-11: each thickness in the underline menu draws its line. The line's svg is absolute inside a flex item, so the
-   item must grow: it shipped as five empty rows under Clean and Sketch (2026-11-02), which no unit test sees. */
-test('the underline thickness menu draws a line for every thickness', async ({ page }) => {
+/* READ-11: each thickness in Look draws its line. The line's svg is absolute inside its box, so the box must have a
+   size: it shipped as five empty rows under Clean and Sketch (2026-11-02), which no unit test sees. */
+test('Look draws a line for every thickness of an underline', async ({ page }) => {
   const source = await makePdfBuffer(null, { title: false, lines: [{ text: 'A line of text a student would highlight', y: 700 }] });
   await openTool(page, '/highlight-pdf/', { file: { name: 'thickness.pdf', buffer: source }, overlaySelector: '[data-page-overlay]' });
   const box = await page.locator('[data-page-overlay]').first().boundingBox();
@@ -54,21 +54,21 @@ test('the underline thickness menu draws a line for every thickness', async ({ p
   await page.mouse.up();
   const band = await page.locator('[data-page-overlay] [data-element-id]').boundingBox();
   await page.mouse.click(band.x + band.width / 2, band.y + band.height / 2);
-  await page.locator('[data-style-toggle] [role="radio"]:visible').nth(1).click();
-  await page.locator('[data-setting-line]:visible').click();
+  await page.locator('[data-look-button]:visible').click();
+  await page.locator('[data-editor-popover]').getByRole('radio', { name: 'Underline' }).click();
   await expect(page.locator('[data-editor-thickness] svg')).toHaveCount(5);
-  await expectControlsSized(page.locator('[role="menu"]:has([data-editor-thickness])'), { selector: '[data-editor-thickness] svg', minWidth: 60 });
+  await expectControlsSized(page.locator('[data-editor-popover]'), { selector: '[data-editor-thickness] svg', minWidth: 20, minHeight: 5 });
 });
 
-/* R47, R49: on a phone the picked mark's panel is one row from 393 px up, in the normal view and in full screen, and
-   with a color behind More (which then wears its ink band), with 44 px tall targets and switch halves at least 40 px wide. At 375 px only Comment and Delete may wrap, and the page
+/* R47, R49: on a phone the picked mark's panel is one row from 375 px up, in the normal view and in full screen, and
+   with a color behind More (which then wears its ink band), with 44 px tall targets, Comment keeping its word. The page
    never scrolls sideways. A real finger lays and picks the mark (CDP touch), since touch has its own panel host.
-   READ-14: Pencil is picked from the opacity popover's Clean | Sketch | Pencil toggle, whose three 44 px segments sit on one line inside the popover. */
+   READ-14: Pencil is picked from Look's Clean | Sketch | Pencil toggle, whose three 44 px segments sit on one line inside the popover. */
 test.describe('touch panel', () => {
   test.use({ hasTouch: true, isMobile: true });
 
   for (const [w, h, full] of [[402, 874, false], [402, 874, true], [393, 852, false], [375, 812, false]]) {
-    test(`${w}x${h}${full ? ' full screen' : ''}: one row, 44 px targets, 40 px switch halves, Pencil from the look toggle`, async ({ page }) => {
+    test(`${w}x${h}${full ? ' full screen' : ''}: one row, 44 px targets, Comment's word, Pencil from Look`, async ({ page }) => {
       await page.setViewportSize({ width: w, height: h });
       const source = await makePdfBuffer(null, { title: false, lines: [{ text: 'A line of text a student would highlight', y: 700 }] });
       await openTool(page, '/highlight-pdf/', { file: { name: 'toolbar.pdf', buffer: source }, overlaySelector: '[data-page-overlay]' });
@@ -108,20 +108,19 @@ test.describe('touch panel', () => {
           return { name: e.getAttribute('aria-label'), x: r.x, y: r.y, w: r.width, h: r.height };
         }));
         console.log(w, full ? 'full' : 'normal', pen, JSON.stringify(rects.map((r) => `${r.name}:${Math.round(r.w)}x${Math.round(r.h)}@${Math.round(r.y)}`)));
-        expect(rects).toHaveLength(9);
+        expect(rects).toHaveLength(7);
         for (const r of rects) {
           expect(r.h, `${r.name} height`).toBeGreaterThanOrEqual(44);
           expect(r.x, `${r.name} left`).toBeGreaterThanOrEqual(0);
           expect(r.x + r.w, `${r.name} right`).toBeLessThanOrEqual(w);
         }
-        for (const name of ['Highlight', 'Underline']) expect(rects.find((r) => r.name === name).w, `${name} width`).toBeGreaterThanOrEqual(40);
-        const oneLine = w >= 393 ? rects : rects.filter((r) => r.name !== 'Comment' && r.name !== 'Delete');
-        for (const r of oneLine) expect(Math.abs(r.y - rects[0].y), `${pen}: ${r.name} on the first line`).toBeLessThan(2);
+        for (const r of rects) expect(Math.abs(r.y - rects[0].y), `${pen}: ${r.name} on the first line`).toBeLessThan(2);
+        await expect(row.getByRole('button', { name: 'Comment' })).toHaveText('Comment');
       };
       await fits('yellow');
-      // Color cells, More and the switch halves keep the CSS floor (min-width 1.75rem = 28 px) and a 44 px target; a squeezed cell stayed green once.
+      // Color cells and More keep the CSS floor (min-width 1.75rem = 28 px) and a 44 px target; a squeezed cell stayed green once.
       const sized = async () => {
-        await expectControlsSized(row, { selector: '[data-highlight-swatch], [data-more-colors], [data-style-toggle] [role="radio"]', minWidth: 28, minHeight: 44 });
+        await expectControlsSized(row, { selector: '[data-highlight-swatch], [data-more-colors]', minWidth: 28, minHeight: 44 });
         await expectControlsSized(row, { selector: 'svg', minWidth: 8, minHeight: 8 });
       };
       await sized();
@@ -133,7 +132,7 @@ test.describe('touch panel', () => {
       await sized();
       expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(w);
 
-      await row.getByRole('button', { name: 'Opacity' }).tap();
+      await row.getByRole('button', { name: 'Look' }).tap();
       const look = page.locator('[role="radiogroup"][aria-label="Stroke"]:visible');
       await expect(look.getByRole('radio')).toHaveCount(3);
       const fit = await look.evaluate((group) => {
@@ -160,7 +159,7 @@ test.describe('touch panel', () => {
 
 /* A trackpad pinch (visual viewport scale above 1) leaves the mark toolbar at its physical size; its popovers must stay
    the size they are at 1x too, not grow with the page. */
-test('the opacity popover holds its physical size under zoom, like the toolbar', async ({ page, context }) => {
+test('Look holds its physical size under zoom, like the toolbar', async ({ page, context }) => {
   const source = await makePdfBuffer(null, { title: false, lines: [{ text: 'A line of text a student would highlight', y: 700 }] });
   await openTool(page, '/highlight-pdf/', { file: { name: 'toolbar.pdf', buffer: source }, overlaySelector: '[data-page-overlay]' });
   const box = await page.locator('[data-page-overlay]').first().boundingBox();
@@ -181,7 +180,7 @@ test('the opacity popover holds its physical size under zoom, like the toolbar',
     const w = (el) => el.getBoundingClientRect().width * window.visualViewport.scale;
     return { bar: w(document.querySelector('[data-rest-toolbar]')), menu: w(document.querySelector('[data-editor-popover] > *')) };
   });
-  await bar.getByRole('button', { name: 'Opacity' }).click();
+  await bar.getByRole('button', { name: 'Look' }).click();
   await expect(page.locator('[data-editor-popover]')).toBeVisible();
   const rest = await widths();
 
@@ -191,4 +190,143 @@ test('the opacity popover holds its physical size under zoom, like the toolbar',
   await expect(page.locator('[data-editor-popover]')).toBeVisible();
   await expect.poll(async () => Math.abs((await widths()).menu - rest.menu)).toBeLessThan(2);
   expect(Math.abs((await widths()).bar - rest.bar)).toBeLessThan(2);
+});
+
+/* READ-24: only a browser has rects. A rest outlines, a click opens the row at the pointer, its menus clear the mark, and Delete offers Undo where the row stood. */
+test.describe('click opens', () => {
+  const line = 'A long line of text a student would highlight from one end of the page all the way across to the other';
+  async function laidMark(page) {
+    const source = await makePdfBuffer(null, { title: false, lines: [{ text: line, y: 700, size: 9 }] });
+    await openTool(page, '/highlight-pdf/', { file: { name: 'click.pdf', buffer: source }, overlaySelector: '[data-page-overlay]' });
+    const box = await page.locator('[data-page-overlay]').first().boundingBox();
+    const y = box.y + box.height * ((792 - 697) / 792);
+    await page.mouse.move(box.x + box.width * (72 / 612), y);
+    await page.mouse.down();
+    await page.mouse.move(box.x + box.width * (520 / 612), y, { steps: 8 });
+    await page.mouse.up();
+    const mark = page.locator('[data-page-overlay] [data-element-id]');
+    await expect(mark).toHaveCount(1);
+    return { mark, band: await mark.boundingBox() };
+  }
+
+  test('a rest draws the outline and opens nothing, and leaving the mark takes the outline away', async ({ page }) => {
+    const { band } = await laidMark(page);
+    await page.mouse.move(band.x + 40, band.y + band.height / 2);
+    await page.mouse.move(band.x + 41, band.y + band.height / 2);
+    await expect(page.locator('svg[data-mark-outline]')).toHaveCount(1);
+    await expect(page.locator('[data-rest-toolbar]')).toHaveCount(0);
+    await page.mouse.move(band.x + 40, band.y - 80);
+    await expect(page.locator('svg[data-mark-outline]')).toHaveCount(0);
+  });
+
+  test('a click at the far end of a long mark opens the row over the pointer, above the line', async ({ page }) => {
+    const { band } = await laidMark(page);
+    const x = band.x + band.width - 60;
+    await page.mouse.click(x, band.y + band.height / 2);
+    const bar = page.locator('[data-rest-toolbar]');
+    await expect(bar).toBeVisible();
+    await expect(page.locator('svg[data-mark-outline]')).toHaveCount(1);
+    const rect = await bar.boundingBox();
+    expect(rect.y + rect.height).toBeLessThanOrEqual(band.y + 1);
+    expect(Math.abs(rect.x + rect.width / 2 - x), 'the row centres on the pointer').toBeLessThan(40);
+  });
+
+  test('its menus open above the row, off the mark', async ({ page }) => {
+    const { band } = await laidMark(page);
+    await page.mouse.click(band.x + band.width / 2, band.y + band.height / 2);
+    const bar = page.locator('[data-rest-toolbar]');
+    for (const name of ['Look', 'More colors']) {
+      await bar.getByRole('button', { name }).click();
+      const menu = await page.locator('[data-editor-popover]').boundingBox();
+      expect(menu.y + menu.height, `${name} clears the mark`).toBeLessThanOrEqual(band.y);
+      await page.keyboard.press('Escape');
+      await expect(page.locator('[data-editor-popover]')).toHaveCount(0);
+      await expect(bar).toBeVisible();
+    }
+  });
+
+  test('right under the stuck bar the row drops below the line and its menus open below it, off the mark', async ({ page }) => {
+    const { mark, band } = await laidMark(page);
+    await page.evaluate((by) => window.scrollBy(0, by), band.y - 126);
+    await expect.poll(async () => Math.round((await mark.boundingBox()).y)).toBeLessThan(140);
+    const line = await mark.boundingBox();
+    await page.mouse.click(line.x + line.width / 2, line.y + line.height / 2);
+    const bar = page.locator('[data-rest-toolbar]');
+    await expect(bar).toBeVisible();
+    await expect.poll(async () => (await bar.boundingBox()).y - (line.y + line.height), 'the row clears the line').toBeGreaterThanOrEqual(0);
+    const row = await bar.boundingBox();
+    for (const name of ['Look', 'More colors']) {
+      await bar.getByRole('button', { name }).click();
+      const menu = await page.locator('[data-editor-popover]').boundingBox();
+      expect(menu.y, `${name} opens below the row`).toBeGreaterThanOrEqual(row.y + row.height);
+      await page.keyboard.press('Escape');
+      await expect(page.locator('[data-editor-popover]')).toHaveCount(0);
+    }
+  });
+
+  test('Delete offers Undo where the row stood, and Undo brings the mark back', async ({ page }) => {
+    const { mark, band } = await laidMark(page);
+    await page.mouse.click(band.x + band.width / 2, band.y + band.height / 2);
+    const bar = page.locator('[data-rest-toolbar]');
+    const row = await bar.boundingBox();
+    await bar.getByRole('button', { name: 'Delete' }).click();
+    await expect(mark).toHaveCount(0);
+    const chip = page.locator('[data-undo-chip]');
+    await expect(chip).toContainText('Highlight removed');
+    const at = await chip.boundingBox();
+    expect(Math.abs(at.x + at.width / 2 - (row.x + row.width / 2))).toBeLessThan(2);
+    expect(Math.abs(at.y - row.y)).toBeLessThan(2);
+    await chip.getByRole('button', { name: 'Undo' }).click();
+    await expect(mark).toHaveCount(1);
+    await expect(chip).toHaveCount(0);
+  });
+});
+
+/* READ-24: the row and its menus cover the top of the page on a phone, so the page glides until the mark clears them, and glides back. */
+test.describe('touch glide', () => {
+  test.use({ hasTouch: true, isMobile: true });
+
+  test('a picked mark stays in view under the row and its menu, and the file name is whole', async ({ page }) => {
+    await page.setViewportSize({ width: 402, height: 874 });
+    const source = await makePdfBuffer(null, { title: false, lines: [{ text: 'A line of text a student would highlight', y: 748 }] });
+    await openTool(page, '/highlight-pdf/', { file: { name: 'toolbar.pdf', buffer: source }, overlaySelector: '[data-page-overlay]' });
+    const box = await page.locator('[data-page-overlay]').first().boundingBox();
+    const y = box.y + box.height * ((792 - 744) / 792);
+    const x0 = box.x + box.width * (72 / 612);
+    const x1 = box.x + box.width * (330 / 612);
+    const cdp = await page.context().newCDPSession(page);
+    const touch = (type, x) => cdp.send('Input.dispatchTouchEvent', { type, touchPoints: type === 'touchEnd' ? [] : [{ x, y }] });
+    await touch('touchStart', x0);
+    for (let i = 1; i <= 12; i += 1) await touch('touchMove', x0 + ((x1 - x0) * i) / 12);
+    await touch('touchEnd', x1);
+    const mark = page.locator('[data-page-overlay] [data-element-id]');
+    await expect(mark).toHaveCount(1);
+    await expect(page.locator('[data-pen-hint]')).toHaveCount(1);
+    const band = await mark.boundingBox();
+    const row = page.locator('[data-marker-row]:visible');
+    await tapUntil(page, { x: band.x + band.width / 2, y: band.y + band.height / 2 }, async () => (await row.count()) === 1);
+    await expect(page.locator('[data-pen-hint]')).toHaveCount(0);
+
+    const clearOf = async (selector) => {
+      await expect.poll(async () => {
+        const [m, cover] = await Promise.all([mark.boundingBox(), page.locator(selector).first().boundingBox()]);
+        return m.y - (cover.y + cover.height);
+      }).toBeGreaterThanOrEqual(0);
+    };
+    await clearOf('[data-marker-row]:visible');
+    // Each menu opens under the row, never over it, so every control in the row stays reachable.
+    const opensUnderRow = async (name) => {
+      await row.getByRole('button', { name }).tap();
+      await clearOf('[data-editor-popover]');
+      const [r, menu] = await Promise.all([row.boundingBox(), page.locator('[data-editor-popover]').boundingBox()]);
+      expect(menu.y).toBeGreaterThanOrEqual(r.y + r.height);
+    };
+    await opensUnderRow('Look');
+    await opensUnderRow('More colors');
+
+    await page.keyboard.press('Escape');
+    await page.mouse.click(4, 860);
+    await expect(row).toHaveCount(0);
+    await expect.poll(() => page.locator('[data-lamp-part="board"]').evaluate((el) => getComputedStyle(el).translate)).toBe('none');
+  });
 });

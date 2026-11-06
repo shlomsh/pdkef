@@ -22,9 +22,8 @@ export interface HighlightMessages {
   /** The tile row's label outside the Reading lamp. */
   toolbarLabel: string;
   markToolbar: string;
-  /** The mark panel's color choice and its Highlight | Underline switch, as radio groups. */
+  /** The mark panel's color choice, as a radio group. */
   markColor: string;
-  markStyle: string;
   markHighlight: string;
   markUnderline: string;
   markPencil: string;
@@ -38,10 +37,14 @@ export interface HighlightMessages {
   /** "{n} pt" */
   thicknessItem: string;
   markOpacity: string;
-  /** The caret beside Highlight, which opens the opacity slider. */
-  markOpacityMenu: string;
   /** READ-11: the Clean | Sketch choice and its two words. */
   markStroke: string;
+  /** The one button that holds a mark's kind, stroke and strength. */
+  markLook: string;
+  /** The kind inside Look: Highlight | Underline, as a radio group. */
+  markKind: string;
+  /** The chip after Delete, with its Undo (guidelines §6). */
+  markRemoved: string;
   strokeClean: string;
   strokeSketch: string;
   /** R8: shown once, after the first mark. */
@@ -93,7 +96,6 @@ export const englishHighlightMessages: HighlightMessages = {
   toolbarLabel: 'Highlight tools',
   markToolbar: 'Change this highlight',
   markColor: 'Color',
-  markStyle: 'Style',
   markHighlight: 'Highlight',
   markUnderline: 'Underline',
   markPencil: 'Pencil',
@@ -104,11 +106,13 @@ export const englishHighlightMessages: HighlightMessages = {
   markThickness: 'Underline thickness',
   thicknessItem: '{n} pt',
   markOpacity: 'Opacity',
-  markOpacityMenu: 'Opacity',
   markStroke: 'Stroke',
+  markLook: 'Look',
+  markKind: 'Kind',
+  markRemoved: 'Highlight removed',
   strokeClean: 'Clean',
   strokeSketch: 'Sketch',
-  restHint: 'Rest on a highlight to change it',
+  restHint: 'Click a highlight to change it',
   tapHint: 'Tap a highlight to change it',
   marker: 'Marker',
   armedAction: 'Swipe to highlight',

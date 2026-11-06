@@ -1,11 +1,11 @@
 /** @testSeam */
-export const REST = { awayPx: 12, stillPx: 3, restMs: 700 } as const;
+export const REST = { awayPx: 12, stillPx: 3, restMs: 300 } as const;
 
 interface Point { x: number; y: number }
 export interface RestState {
   blockedFrom: Point | null;
   candidate: { id: string; x: number; y: number; since: number } | null;
-  opened: string | null;
+  rested: string | null;
 }
 export type RestEvent =
   | { type: 'strokeEnd'; x: number; y: number }
@@ -14,16 +14,20 @@ export type RestEvent =
   | { type: 'leave' }
   | { type: 'closed' };
 
-export const initialRest: RestState = { blockedFrom: null, candidate: null, opened: null };
+export const initialRest: RestState = { blockedFrom: null, candidate: null, rested: null };
 
 export function restReducer(s: RestState, e: RestEvent): RestState {
   switch (e.type) {
     case 'strokeEnd':
-      return { ...s, blockedFrom: { x: e.x, y: e.y }, candidate: null };
+      return { ...s, blockedFrom: { x: e.x, y: e.y }, candidate: null, rested: null };
     case 'move': {
       if (s.blockedFrom) {
         if (Math.hypot(e.x - s.blockedFrom.x, e.y - s.blockedFrom.y) <= REST.awayPx) return s;
         s = { ...s, blockedFrom: null };
+      }
+      if (s.rested !== null) {
+        if (s.rested === e.overId) return s;
+        s = { ...s, rested: null };
       }
       if (e.overId === null) return s.candidate ? { ...s, candidate: null } : s;
       const c = s.candidate;
@@ -31,16 +35,16 @@ export function restReducer(s: RestState, e: RestEvent): RestState {
       return { ...s, candidate: { id: e.overId, x: e.x, y: e.y, since: e.t } };
     }
     case 'tick':
-      if (!s.candidate || s.opened !== null || e.t - s.candidate.since < REST.restMs) return s;
-      return { ...s, opened: s.candidate.id };
+      if (!s.candidate || s.rested !== null || e.t - s.candidate.since < REST.restMs) return s;
+      return { ...s, rested: s.candidate.id };
     case 'leave':
-      return { ...s, candidate: null, opened: null };
+      return { ...s, candidate: null, rested: null };
     case 'closed':
-      return { ...s, candidate: null, opened: null };
+      return { ...s, candidate: null, rested: null };
   }
 }
 
 /** When the component should next send a tick, or null when nothing is waiting. */
 export function nextTickAt(s: RestState): number | null {
-  return s.candidate && s.opened === null ? s.candidate.since + REST.restMs : null;
+  return s.candidate && s.rested === null ? s.candidate.since + REST.restMs : null;
 }

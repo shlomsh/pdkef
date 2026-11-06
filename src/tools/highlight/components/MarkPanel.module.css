@@ -1,6 +1,5 @@
-/* The mark panel's row (READ-03, R19): the framed track of the top colors and More, the switch and its setting, a divider, Comment
-   and Delete. The cell is 36 px on a fine pointer and 44 on a coarse one; the Reading lamp's --target wins over both.
-   Where the row does not fit, Comment and Delete wrap to a second line, right aligned. */
+/* The mark panel's row (READ-24): Comment, a divider, the track of the top colors and More, a divider, Look, and Delete at the end. No
+   frames inside the card. The cell is 36 px on a fine pointer and 44 on a coarse one; the Reading lamp's --target wins over both. */
 .bar {
   --cell: var(--target, 2.25rem);
   display: flex;
@@ -10,9 +9,8 @@
   min-height: var(--cell);
   padding-inline: 2px;
 }
-.track { display: inline-flex; flex: none; align-items: center; isolation: isolate; margin-inline-end: 6px; border-radius: var(--radius-sm); box-shadow: inset 0 0 0 1px var(--color-border); }
-.divider { display: block; flex: none; width: 1px; height: 24px; margin: 0 3px; background: var(--color-border); }
-.acts { display: inline-flex; align-items: center; gap: 2px; margin-inline-start: auto; }
+.track { display: inline-flex; flex: none; align-items: center; isolation: isolate; }
+.divider { display: block; flex: none; width: 1px; height: 24px; margin: 0 4px; background: var(--color-border); }
 .act {
   appearance: none;
   flex: none;
@@ -28,8 +26,10 @@
   cursor: pointer;
 }
 .act:hover { background: var(--color-primary-tint); }
+/* Delete sits at the row's end. */
+.danger { margin-inline-start: auto; }
 .danger:hover { background: var(--color-danger-soft); color: var(--color-danger); }
-/* Comment says its name, in the same hairline frame as the colors, so it leads the row without a fill. */
+/* Comment is a plain text button that says its name, so it leads the row without a frame or a fill. */
 .comment {
   display: inline-flex;
   align-items: center;
@@ -38,27 +38,24 @@
   width: auto;
   padding-inline: 10px;
   border-radius: var(--radius-sm);
-  box-shadow: inset 0 0 0 1px var(--color-border);
   color: var(--color-primary-text);
   font: 500 0.8125rem/1 var(--font-sans);
 }
 
-/* Coarse: every target is 44 px tall; colors are 30 wide, More 28, the switch halves 40, Comment and Delete 36, so the whole row fits
-   on one line from a 393 px phone up. The same sizes hold on a narrow screen with a fine pointer. */
+/* Coarse: every target is 44 px tall and the whole row, Comment's word included, fits on one line from a 375 px phone. The same sizes
+   hold on a narrow screen with a fine pointer. */
 @media (pointer: coarse) {
   .bar { --cell: var(--target, 2.75rem); }
 }
 @media (pointer: coarse), (max-width: 480px) {
   .bar { --swatch-w: 1.875rem; gap: 0; padding-inline: 0; }
-  /* Spare width goes between the colors: each cell grows to a full target, More to 40 px (the width it has wearing a
-     hidden color, so picking one never moves the row), and no cell drops under 28 px. */
-  .track { flex: 1 1 auto; max-width: calc(var(--cell) * 3 + 2.5rem); margin-inline-end: 4px; }
+  .divider { margin: 0 1px; }
+  /* Spare width goes between the colors: each cell grows to a full target, More to 40 px (the width it has wearing a hidden color, so
+     picking one never moves the row), and no cell drops under 28 px. */
+  .track { flex: 1 1 auto; max-width: calc(var(--cell) * 3 + 2.5rem); }
   .track > [role='radiogroup'] { flex: 1 1 auto; max-width: calc(var(--cell) * 3); }
   .track [data-highlight-swatch] { flex: 1 1 var(--swatch-w); width: auto; min-width: 1.75rem; max-width: var(--cell); }
   .track [data-more-colors] { flex: 1 0 auto; max-width: 2.5rem; }
-  .acts .divider { display: none; }
-  .act { width: 2.25rem; border-radius: var(--radius-sm); }
-  /* The word does not fit this row, so the frame and the color carry Comment here. */
-  .comment { padding-inline: 0; }
-  .commentWord { display: none; }
+  .act:not(.comment) { width: 2.25rem; border-radius: var(--radius-sm); }
+  .comment { padding-inline: 6px; }
 }

@@ -1,4 +1,0 @@
-/* The popover that holds the opacity slider (and a highlight's look toggle above it); the slider brings its own width and height. */
-.menu { padding: .15rem; cursor: default; }
-/* The look toggle above the slider keeps the slider's side gutters, so the two read as one column. */
-.menu > [role='radiogroup'] { margin: .5rem .5rem 0; }

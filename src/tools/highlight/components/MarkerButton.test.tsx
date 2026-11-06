@@ -11,7 +11,7 @@ afterEach(() => {
   if (container) { act(() => render(null, container!)); container.remove(); container = null; }
 });
 
-const markProps = (look: Marker = { ...DEFAULT_MARKER }) => ({ look, onChange: vi.fn(), onComment: vi.fn(), onDelete: vi.fn(), onRelease: vi.fn() });
+const markProps = (look: Marker = { ...DEFAULT_MARKER }) => ({ id: 'h1', look, onChange: vi.fn(), onComment: vi.fn(), onDelete: vi.fn(), onRelease: vi.fn() });
 
 function mount(over: Partial<Parameters<typeof MarkerButton>[0]> = {}) {
   const props = { marker: DEFAULT_MARKER as Marker, onTap: vi.fn(), ...over };
@@ -89,13 +89,13 @@ describe('MarkerButton', () => {
   });
 
   describe('on a mark', () => {
-    it('opens the panel under the button, with the colors, More, the switch, its setting, Comment and Delete in one row', () => {
+    it('opens the panel under the button, with Comment, the colors, More, Look and Delete in one row', () => {
       const { button } = mount({ mark: markProps() });
       expect(button().getAttribute('aria-expanded')).toBe('true');
       const row = container!.querySelector('[data-marker-row]')!;
       expect(row.querySelectorAll('[data-highlight-swatch]')).toHaveLength(3);
-      expect([...row.querySelectorAll('button')].map((b) => b.getAttribute('aria-label')).slice(3)).toEqual(
-        ['More colors', 'Highlight', 'Underline', 'Opacity', 'Comment', 'Delete'],
+      expect([...row.querySelectorAll('button')].map((b) => b.getAttribute('aria-label'))).toEqual(
+        ['Comment', 'Yellow', 'Pink', 'Green', 'More colors', 'Look', 'Delete'],
       );
     });
 
@@ -123,30 +123,31 @@ describe('MarkerButton', () => {
       expect(m.onRelease).not.toHaveBeenCalled();
     });
 
-    it('Highlight | Underline switches the mark both ways', () => {
+    it('Look switches the mark between Highlight and Underline, both ways', () => {
       const m = markProps();
       const { props } = mount({ mark: m });
-      press(named(t.markUnderline));
+      press(named(t.markLook));
+      press(document.querySelector(`[data-editor-popover] [aria-label="${t.markUnderline}"]`)!);
       expect(m.onChange).toHaveBeenLastCalledWith({ style: 'underline' });
       act(() => render(<MarkerButton {...props} mark={{ ...m, look: { ...DEFAULT_MARKER, style: 'underline' } }} />, container!));
-      press(named(t.markHighlight));
+      press(document.querySelector(`[data-editor-popover] [aria-label="${t.markHighlight}"]`)!);
       expect(m.onChange).toHaveBeenLastCalledWith({ style: 'highlight' });
     });
 
-    it('Pencil is picked in the opacity popover, beside Clean and Sketch', () => {
+    it('Pencil is picked in Look, beside Clean and Sketch', () => {
       const m = markProps();
       mount({ mark: m });
-      expect(named(t.markPencil)).toBeNull();
-      press(named(t.markOpacityMenu));
+      expect(document.querySelector(`[aria-label="${t.markPencil}"]`)).toBeNull();
+      press(named(t.markLook));
       press(document.querySelector('[role="radiogroup"][aria-label="Stroke"] [aria-label="Pencil"]')!);
       expect(m.onChange).toHaveBeenLastCalledWith({ style: 'pencil' });
     });
 
-    it('opacity is one click away on the setting button', () => {
+    it('opacity is one click away in Look', () => {
       const m = markProps();
       mount({ mark: m });
       expect(container!.querySelector('[data-opacity-slider]')).toBeNull();
-      press(named(t.markOpacityMenu));
+      press(named(t.markLook));
       const range = document.querySelector('[data-opacity-slider] input') as HTMLInputElement;
       range.value = '0.7';
       act(() => { range.dispatchEvent(new Event('input', { bubbles: true })); });

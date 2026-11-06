@@ -34,7 +34,7 @@ The reasons and the rejected alternatives are in "Decisions and why" at the end.
    the next marks. On touch this is the only way to change the pen.
 6. Any existing highlight can be changed (colour, underline, comment) or deleted.
 8. After the first mark a once-only hint appears at the end of the ink, never over the line being read, and
-   fades after a few seconds: "Rest on a highlight to change it" on desktop, "Tap a highlight to change it"
+   fades after a few seconds: "Click a highlight to change it" on desktop, "Tap a highlight to change it"
    on touch.
 9. Keys: 1 to 6 pick a colour, U toggles underline, P toggles pencil (READ-14), C comments, Delete deletes, and Esc closes one layer at a
    time (an open menu or caret first, then the toolbar or the picked mark).
@@ -64,9 +64,10 @@ The reasons and the rejected alternatives are in "Decisions and why" at the end.
 
 ### Changing a highlight: the toolbar and the panel (R2 to R4, R7, R47 to R49)
 
-2. On desktop, resting on or clicking a highlight opens the panel (R47) floating above the mark. A rest
-   counts after the pointer has left the spot where the stroke ended (12 px) and then stays under 3 px of
-   movement for 700 ms. Nothing else opens the panel.
+2. On desktop a rest draws the faint outline, a click opens the panel (R47) where the click landed, centred
+   on the pointer, above the line clicked, or just below it where the row and its tallest menu have no room above. A rest counts after the pointer has left the spot where the stroke
+   ended (12 px) and then stays under 3 px of movement for 300 ms. Nothing else opens the panel, apart from
+   keyboard focus (R39).
 3. (retired: replaced by R4)
 4. The panel shows the three most popular highlighter colours (yellow, pink, green) first. A "more" button
    with a chevron opens orange, red, blue and the colour wheel; when the current colour is one of those or a
@@ -76,12 +77,10 @@ The reasons and the rejected alternatives are in "Decisions and why" at the end.
    floats on the page. A tap elsewhere, Esc, or a tap on Marker releases the mark; tapping another mark moves
    the panel to it.
 47. There is one panel, and it belongs to a picked highlight: on desktop it floats above the mark (R2), on
-    touch it sits under the top toolbar (R7). It is one row where it fits: the colours (R4); a plain
-    Highlight | Underline switch with no carets (READ-14: Pencil is a look of a highlight, picked in the opacity popover's Clean | Sketch | Pencil toggle); a separate setting button a gap away that shows the active
-    style's value (the opacity as a dot and a percentage, or the underline's thickness as a line) and opens
-    its control; then Comment and Delete. On the narrowest phones Comment and Delete wrap to a second line
-    instead of shrinking.
-48. The opacity control is Redact's blur-strength slider look: a native range between a faint and a solid
+    touch it sits under the top toolbar (R7). It is one row: Comment, the colours (R4), one Look button, Delete.
+    Look holds the kind, the stroke and the strength. The narrowest phones keep it one row and Comment keeps
+    its word.
+48. The opacity control, inside Look, is Redact's blur-strength slider look: a native range between a faint and a solid
     dot, with no label or readout. Opacity runs from 30% to 100%.
 49. Touch targets are at least 44 px tall; the switch's two halves are at least 40 px wide each. On a fine
     pointer the panel's buttons are 28 to 36 px.
@@ -265,7 +264,7 @@ Shlomi's calls, with the reason, newest group first.
   second toolbar beside the mark's own, and the two looked different. The pen follows the last change (R5).
 - Marker toggles on desktop too and stays armed between marks (R1, R50): one model everywhere; a one-shot
   marker, as Sign's tools are, would cost a click per line read.
-- The switch has no carets; one setting button sits a gap away (R47): a caret inside each half put two
+- (Replaced by READ-24 on 2026-11-06: Look holds both.) The switch has no carets; one setting button sits a gap away (R47): a caret inside each half put two
   intents a finger's width apart.
 - Outside full screen the pinch is the browser's (R62, 2026-11-02): "use the native capabilities as much as
   possible, modern phones are doing a good job." Our own zoom stays in full screen, where the capsule must hold

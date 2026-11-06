@@ -3,56 +3,58 @@ import { useState } from 'preact/hooks';
 import { act } from 'preact/test-utils';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { DEFAULT_MARKER, TOP_COLORS, type Marker } from '../lib/marker/markerState.ts';
-import MarkPanel from './MarkPanel.tsx';
+import MarkPanel, { type PanelMenu } from './MarkPanel.tsx';
 
 let container: HTMLElement | null = null;
 afterEach(() => {
   if (container) { act(() => render(null, container!)); container.remove(); container = null; }
 });
 
-// The host owns More's open state, as MarkerButton and RestToolbar do.
-function Host({ look, spy, ...rest }: { look: Marker; spy(open: boolean): void; onChange(): void; onComment(): void; onDelete(): void }) {
-  const [moreOpen, setMoreOpen] = useState(false);
-  return <MarkPanel look={look} moreOpen={moreOpen} onMoreOpenChange={(open) => { spy(open); setMoreOpen(open); }} {...rest} />;
+// The host owns the open menu, as MarkerButton and RestToolbar do.
+function Host({ look, spy, ...rest }: { look: Marker; spy(menu: PanelMenu): void; onChange(): void; onComment(): void; onDelete(): void }) {
+  const [menu, setMenu] = useState<PanelMenu>(null);
+  return <MarkPanel look={look} menu={menu} onMenuChange={(next) => { spy(next); setMenu(next); }} {...rest} />;
 }
 
 function mount(look: Marker = DEFAULT_MARKER) {
-  const props = { onChange: vi.fn(), onComment: vi.fn(), onDelete: vi.fn(), onMoreOpenChange: vi.fn() };
+  const props = { onChange: vi.fn(), onComment: vi.fn(), onDelete: vi.fn(), onMenuChange: vi.fn() };
   container = document.createElement('div');
   document.body.appendChild(container);
-  const { onMoreOpenChange, ...rest } = props;
-  const draw = (next: Marker) => act(() => render(<Host look={next} spy={onMoreOpenChange} {...rest} />, container!));
+  const { onMenuChange, ...rest } = props;
+  const draw = (next: Marker) => act(() => render(<Host look={next} spy={onMenuChange} {...rest} />, container!));
   draw(look);
   return { ...props, draw };
 }
 const named = (name: string) => container!.querySelector<HTMLElement>(`button[aria-label="${name}"]`)!;
 const press = (el: Element) => act(() => { (el as HTMLElement).click(); });
-const setting = () => container!.querySelector<HTMLElement>('button[aria-haspopup][aria-label="Opacity"], button[aria-haspopup][aria-label="Underline thickness"]')!;
 
 describe('MarkPanel', () => {
-  it('holds no More state: the host\'s moreOpen shows the popover, and the toggle only asks the host', () => {
-    const onMoreOpenChange = vi.fn();
+  it('holds no menu state: the host\'s menu shows the popover, and the toggle only asks the host', () => {
+    const onMenuChange = vi.fn();
     container = document.createElement('div');
     document.body.appendChild(container);
-    const draw = (open: boolean) => act(() => render(
-      <MarkPanel look={DEFAULT_MARKER} moreOpen={open} onMoreOpenChange={onMoreOpenChange} onChange={vi.fn()} onComment={vi.fn()} onDelete={vi.fn()} />, container!));
-    draw(true);
+    const draw = (menu: PanelMenu) => act(() => render(
+      <MarkPanel look={DEFAULT_MARKER} menu={menu} onMenuChange={onMenuChange} onChange={vi.fn()} onComment={vi.fn()} onDelete={vi.fn()} />, container!));
+    draw('more');
     expect(document.querySelector('[data-more-popover]')).not.toBeNull();
     press(named('More colors'));
-    expect(onMoreOpenChange.mock.calls[0][0]).toBe(false);
+    expect(onMenuChange.mock.calls[0][0]).toBe(null);
     expect(document.querySelector('[data-more-popover]')).not.toBeNull();
-    draw(false);
+    draw('look');
     expect(document.querySelector('[data-more-popover]')).toBeNull();
+    expect(document.querySelector('[role="radiogroup"][aria-label="Kind"]')).not.toBeNull();
+    draw(null);
+    expect(document.querySelector('[role="radiogroup"][aria-label="Kind"]')).toBeNull();
   });
 
-  it('is one row: three colors, More, the switch, its setting button, Comment, Delete, in that order', () => {
+  it('is one row: Comment, three colors, More, Look, Delete, in that order', () => {
     mount();
     const row = container!.querySelector('[data-marker-row]')!;
     const order = [...row.querySelectorAll('button')].map((b) => b.getAttribute('aria-label'));
-    expect(order).toEqual(['Yellow', 'Pink', 'Green', 'More colors', 'Highlight', 'Underline', 'Opacity', 'Comment', 'Delete']);
+    expect(order).toEqual(['Comment', 'Yellow', 'Pink', 'Green', 'More colors', 'Look', 'Delete']);
   });
 
-  it('Comment is the one action that says its name; Delete stays an icon', () => {
+  it('Comment always says its name; Delete stays an icon', () => {
     mount();
     expect(named('Comment').textContent).toBe('Comment');
     expect(named('Delete').textContent).toBe('');
@@ -79,7 +81,7 @@ describe('MarkPanel', () => {
       expect(named('More colors').querySelector('[data-more-ink]')).not.toBeNull();
     });
 
-    it('sit in one framed track with More, which stays a plain button outside the group', () => {
+    it('sit in one track with More, which stays a plain button outside the group', () => {
       mount();
       const track = container!.querySelector('[data-color-track]')!;
       expect(track.contains(group())).toBe(true);
@@ -120,74 +122,11 @@ describe('MarkPanel', () => {
     expect(onDelete).toHaveBeenCalledTimes(1);
   });
 
-  describe('the switch', () => {
-    it('is two plain segments with no caret inside', () => {
-      mount();
-      const toggle = container!.querySelector('[data-style-toggle]')!;
-      expect(toggle.querySelectorAll('button')).toHaveLength(2);
-      expect(toggle.querySelector('[aria-haspopup]')).toBeNull();
-      expect(toggle.querySelector('polyline')).toBeNull();
-    });
-
-    it('the inactive segment switches and the active one does nothing', () => {
-      const { onChange } = mount();
-      press(named('Highlight'));
-      expect(onChange).not.toHaveBeenCalled();
-      press(named('Underline'));
-      expect(onChange).toHaveBeenLastCalledWith({ style: 'underline' });
-      expect(named('Pencil')).toBeNull();
-    });
-
-    it('checks the current style', () => {
-      const { draw, onChange } = mount();
-      draw({ ...DEFAULT_MARKER, style: 'underline' });
-      expect(named('Underline').getAttribute('aria-checked')).toBe('true');
-      press(named('Underline'));
-      expect(onChange).not.toHaveBeenCalled();
-      press(named('Highlight'));
-      expect(onChange).toHaveBeenLastCalledWith({ style: 'highlight' });
-    });
-  });
-
-  describe('the setting button', () => {
-    it('sits after the switch, outside it', () => {
-      mount();
-      expect(setting().closest('[data-style-toggle]')).toBeNull();
-    });
-
-    it('on a highlight marks its percent in the color, the opacity and the stroke, and opens the slider', () => {
-      const { onChange, draw } = mount({ ...DEFAULT_MARKER, color: '#FF8FCF', opacity: 0.5 });
-      expect(setting().textContent).toBe('50%');
-      expect(setting().querySelector('[data-setting-dot]')).toBeNull();
-      const clean = setting().querySelector('svg rect')!;
-      expect(clean.getAttribute('fill')).toBe('#FF8FCF');
-      expect(clean.getAttribute('fill-opacity')).toBe('0.5');
-      draw({ ...DEFAULT_MARKER, color: '#FF8FCF', opacity: 0.8, stroke: 'sketch' });
-      expect(setting().textContent).toBe('80%');
-      const sketched = setting().querySelector('svg path')!;
-      expect(sketched.getAttribute('d')).toMatch(/^M.*C.*Z$/);
-      expect(sketched.getAttribute('fill-opacity')).toBe('0.8');
-      expect(setting().querySelector('svg rect')).toBeNull();
-      draw({ ...DEFAULT_MARKER, color: '#FF8FCF', opacity: 0.5 });
-      expect(setting().querySelector('polyline')).not.toBeNull();
-      expect(document.querySelector('[data-opacity-slider]')).toBeNull();
-      press(setting());
-      const range = document.querySelector<HTMLInputElement>('[data-opacity-slider] input')!;
-      expect(range.value).toBe('0.5');
-      act(() => { range.value = '0.8'; range.dispatchEvent(new Event('input', { bubbles: true })); });
-      expect(onChange).toHaveBeenLastCalledWith({ style: 'highlight', opacity: 0.8 });
-    });
-
-    it('on an underline shows a line at the thickness and opens the thickness picker', () => {
-      const { onChange } = mount({ ...DEFAULT_MARKER, style: 'underline', strokeWidth: 2 });
-      expect(setting().getAttribute('aria-label')).toBe('Underline thickness');
-      expect(setting().querySelector('[data-setting-dot]')).toBeNull();
-      expect(setting().querySelector('[data-setting-line] rect')!.getAttribute('height')).toBe('2');
-      expect(setting().querySelector('polyline')).not.toBeNull();
-      press(setting());
-      press(document.querySelector('[data-editor-thickness="3"]')!);
-      expect(onChange).toHaveBeenLastCalledWith({ style: 'underline', strokeWidth: 3 });
-    });
+  it('Look opens the menu through the host', () => {
+    const { onMenuChange } = mount();
+    press(named('Look'));
+    expect(onMenuChange).toHaveBeenLastCalledWith('look');
+    expect(document.querySelector('[role="radiogroup"][aria-label="Kind"]')).not.toBeNull();
   });
 
   describe('More', () => {
