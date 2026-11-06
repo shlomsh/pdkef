@@ -9,7 +9,7 @@ import ElementCommentButton from './ElementCommentButton.tsx';
 import DirectionButton from './DirectionButton.tsx';
 import WhiteoutColorControls from './WhiteoutColorControls.tsx';
 import FontPickerMenu from './FontPickerMenu.tsx';
-import ThicknessPickerMenu from '#editor-ui/ThicknessPickerMenu.tsx';
+import ThicknessPickerMenu from './ThicknessPickerMenu.tsx';
 import { getEffectiveTextDirection } from '#editor/text/textDirection.js';
 import { getTextAlign } from '#editor/text/textLayout.js';
 import { resolveTypography } from '#editor/text/fonts.js';

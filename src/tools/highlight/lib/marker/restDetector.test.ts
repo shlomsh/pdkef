@@ -5,7 +5,7 @@ const run = (events: RestEvent[], s: RestState = initialRest) => events.reduce(r
 const mv = (x: number, y: number, t: number, overId: string | null = 'a'): RestEvent => ({ type: 'move', x, y, t, overId });
 
 describe('restDetector', () => {
-  it('constants', () => expect(REST).toEqual({ awayPx: 12, stillPx: 3, restMs: 700 }));
+  it('constants', () => expect(REST).toEqual({ awayPx: 12, stillPx: 3, restMs: 300 }));
   it('a move over a highlight starts a candidate', () => {
     expect(run([mv(10, 10, 5)]).candidate).toEqual({ id: 'a', x: 10, y: 10, since: 5 });
   });
@@ -19,18 +19,18 @@ describe('restDetector', () => {
   it('overId null clears the candidate', () => {
     expect(run([mv(10, 10, 5), mv(10, 10, 9, null)]).candidate).toBeNull();
   });
-  it('tick opens after 700ms, once', () => {
+  it('tick rests after 300ms, once', () => {
     const s = run([mv(10, 10, 100)]);
-    expect(restReducer(s, { type: 'tick', t: 799 }).opened).toBeNull();
-    const o = restReducer(s, { type: 'tick', t: 800 });
-    expect(o.opened).toBe('a');
-    expect(restReducer(o, { type: 'tick', t: 900 })).toBe(o);
+    expect(restReducer(s, { type: 'tick', t: 399 }).rested).toBeNull();
+    const o = restReducer(s, { type: 'tick', t: 400 });
+    expect(o.rested).toBe('a');
+    expect(restReducer(o, { type: 'tick', t: 500 })).toBe(o);
   });
   it('nextTickAt', () => {
     expect(nextTickAt(initialRest)).toBeNull();
     const s = run([mv(1, 1, 100)]);
-    expect(nextTickAt(s)).toBe(800);
-    expect(nextTickAt(restReducer(s, { type: 'tick', t: 800 }))).toBeNull();
+    expect(nextTickAt(s)).toBe(400);
+    expect(nextTickAt(restReducer(s, { type: 'tick', t: 400 }))).toBeNull();
   });
   it('strokeEnd blocks moves until 12px away', () => {
     let s = run([{ type: 'strokeEnd', x: 0, y: 0 }]);
@@ -44,18 +44,24 @@ describe('restDetector', () => {
   it('strokeEnd clears the candidate', () => {
     expect(run([mv(1, 1, 1), { type: 'strokeEnd', x: 1, y: 1 }]).candidate).toBeNull();
   });
-  it('leave clears candidate and opened; closed clears opened', () => {
-    const o = run([mv(1, 1, 0), { type: 'tick', t: 700 }]);
-    expect(o.opened).toBe('a');
-    expect(restReducer(o, { type: 'closed' })).toMatchObject({ opened: null, candidate: null });
-    expect(restReducer(o, { type: 'leave' })).toMatchObject({ opened: null, candidate: null });
+  it('leave clears candidate and rested; closed clears rested', () => {
+    const o = run([mv(1, 1, 0), { type: 'tick', t: 300 }]);
+    expect(o.rested).toBe('a');
+    expect(restReducer(o, { type: 'closed' })).toMatchObject({ rested: null, candidate: null });
+    expect(restReducer(o, { type: 'leave' })).toMatchObject({ rested: null, candidate: null });
+  });
+  it('small moves inside the rested mark keep it; leaving it clears it', () => {
+    const r = run([mv(1, 1, 0), { type: 'tick', t: 300 }]);
+    expect(run([mv(30, 1, 400)], r).rested).toBe('a');
+    expect(run([mv(30, 1, 400, 'b')], r)).toMatchObject({ rested: null, candidate: { id: 'b' } });
+    expect(run([mv(30, 1, 400, null)], r).rested).toBeNull();
   });
   it('a closed toolbar does not reopen under a resting pointer', () => {
-    const open = run([mv(10, 10, 0), { type: 'tick', t: 700 }]);
+    const open = run([mv(10, 10, 0), { type: 'tick', t: 300 }]);
     const closed = restReducer(open, { type: 'closed' });
-    expect(restReducer(closed, { type: 'tick', t: 2700 }).opened).toBeNull();
+    expect(restReducer(closed, { type: 'tick', t: 2300 }).rested).toBeNull();
     expect(nextTickAt(closed)).toBeNull();
     const again = run([mv(20, 10, 2800)], closed);
-    expect(restReducer(again, { type: 'tick', t: 3500 }).opened).toBe('a');
+    expect(restReducer(again, { type: 'tick', t: 3100 }).rested).toBe('a');
   });
 });

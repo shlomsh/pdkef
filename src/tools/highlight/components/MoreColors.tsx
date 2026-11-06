@@ -41,13 +41,15 @@ interface MoreColorsProps {
   onPick(color: string): void;
   open: boolean;
   onOpenChange(open: boolean): void;
+  /** Where the popover opens. */
+  placement?: 'top' | 'bottom';
 }
 
 /**
  * The colors behind the top three: orange, red, blue and the color wheel, in a popover. The button wears a
  * chevron, with, when the color in force is one of these (or a custom one), that color's ink band before it.
  */
-export default function MoreColors({ color, onPick, open, onOpenChange }: MoreColorsProps) {
+export default function MoreColors({ color, onPick, open, onOpenChange, placement = 'bottom' }: MoreColorsProps) {
   const hidden = !isTopColor(color);
   const customInForce = hidden && !MORE_COLORS.some((c) => c.hex.toLowerCase() === color.toLowerCase());
   const scaled = useToolbarScaled();
@@ -56,14 +58,14 @@ export default function MoreColors({ color, onPick, open, onOpenChange }: MoreCo
     <Popover
       open={open}
       onOpenChange={onOpenChange}
-      placement="bottom"
+      placement={placement}
       trigger={
         <button
           type="button" data-more-colors class={styles.more} aria-label={t.moreColors} title={t.moreColors}
           aria-haspopup="true" aria-expanded={open} aria-pressed={hidden ? true : undefined}
         >
           {hidden && <span class={styles.moreArt} data-more-ink><MarkerArt ink={color} picked /></span>}
-          <Chevron />
+          <Chevron up={placement === 'top'} />
         </button>
       }
       content={

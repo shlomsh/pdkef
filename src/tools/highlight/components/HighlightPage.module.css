@@ -3,6 +3,8 @@
 .mark { position: absolute; }
 /* R40 / READ-13: the open mark (its note open, picked on touch, or keyboard focus) is outlined by MarkOutline, a pencil line around the text, so the box itself carries no CSS outline. Pointer focus shows nothing. */
 .mark:focus, .mark:focus-visible { outline: none; }
+/* READ-24: where a click opened the row. It takes the row's width and centres on the click, so the row does too. */
+.panelAnchor { position: absolute; height: 0; translate: -50% 0; pointer-events: none; }
 /* READ-13: while a note is open or a mark is picked, the other marks step back; the hovered or focused one, and the open one, stay at full. Note markers are not marks and never fade. */
 :global([data-mark-open]) .mark:not(:hover, :focus-visible, [data-comment-focus], [data-picked]) > :global([data-highlight-root]) { opacity: 0.55; }
 .mark > :global([data-highlight-root]) { transition: opacity 150ms var(--ease-out, ease-out); }

@@ -65,18 +65,19 @@ function choices(underline: boolean): Choice[] {
   ];
 }
 
+type Segment = { label: string; mark: { underline: boolean; sketch: boolean; pencil: boolean; opacity: number; width: number }; change: Partial<Marker>; keys?: string };
+
 /** One segmented toggle: a quiet track of equal segments, each word marked in its own look, and a paper thumb that slides under the picked one. */
-export default function StrokeChoice({ look, onChange }: { look: Look; onChange(change: Partial<Marker>): void }) {
-  const underline = look.style === 'underline';
-  const options = choices(underline);
-  const picked = look.style === 'pencil' ? 2 : look.stroke === 'sketch' ? 1 : 0;
+function Segmented({ label, color, segments, picked, onChange }: {
+  label: string; color: string; segments: Segment[]; picked: number; onChange(change: Partial<Marker>): void;
+}) {
   return (
     <span
-      class={styles.group} role="radiogroup" aria-label={t.markStroke} onKeyDown={onRadioKeyDown}
-      style={{ '--picked': String(picked), '--count': String(options.length) }}
+      class={styles.group} role="radiogroup" aria-label={label} onKeyDown={onRadioKeyDown}
+      style={{ '--picked': String(picked), '--count': String(segments.length) }}
     >
       <span class={styles.thumb} aria-hidden="true" />
-      {options.map((o, i) => {
+      {segments.map((o, i) => {
         const checked = i === picked;
         return (
           <button
@@ -85,10 +86,7 @@ export default function StrokeChoice({ look, onChange }: { look: Look; onChange(
             onClick={() => { if (!checked) onChange(o.change); }}
           >
             <span class={styles.word}>
-              <StrokeInk
-                underline={underline} sketch={o.sketch} pencil={o.pencil} color={look.color} opacity={underline || o.pencil ? 0.9 : 0.5}
-                width={2.5} w={48} h={18} mark
-              />
+              <StrokeInk {...o.mark} color={color} w={48} h={18} mark />
               <span class={styles.text}>{o.label}</span>
             </span>
           </button>
@@ -96,4 +94,26 @@ export default function StrokeChoice({ look, onChange }: { look: Look; onChange(
       })}
     </span>
   );
+}
+
+/** Clean | Sketch | Pencil for a highlight, Clean | Sketch for an underline. */
+export default function StrokeChoice({ look, onChange }: { look: Look; onChange(change: Partial<Marker>): void }) {
+  const underline = look.style === 'underline';
+  const segments = choices(underline).map((o): Segment => ({
+    label: o.label, change: o.change, keys: o.keys,
+    mark: { underline, sketch: o.sketch, pencil: o.pencil, opacity: underline || o.pencil ? 0.9 : 0.5, width: 2.5 },
+  }));
+  const picked = look.style === 'pencil' ? 2 : look.stroke === 'sketch' ? 1 : 0;
+  return <Segmented label={t.markStroke} color={look.color} segments={segments} picked={picked} onChange={onChange} />;
+}
+
+/** Highlight | Underline, each word marked in its own look. A pencil mark is a highlight drawn another way, so it counts as Highlight
+ * and clicking Highlight there keeps the pencil. */
+export function KindChoice({ look, onChange }: { look: Look; onChange(change: Partial<Marker>): void }) {
+  const underline = look.style === 'underline';
+  const segments: Segment[] = [
+    { label: t.markHighlight, change: { style: 'highlight' }, mark: { underline: false, sketch: false, pencil: false, opacity: 0.5, width: 2.5 } },
+    { label: t.markUnderline, change: { style: 'underline' }, keys: 'U', mark: { underline: true, sketch: false, pencil: false, opacity: 0.9, width: 2.5 } },
+  ];
+  return <Segmented label={t.markKind} color={look.color} segments={segments} picked={underline ? 1 : 0} onChange={onChange} />;
 }

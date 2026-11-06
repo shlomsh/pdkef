@@ -45,14 +45,14 @@ afterEach(() => {
 });
 
 describe('useRestToolbar rest detection', () => {
-  it('opens the toolbar for the highlight the pointer rested on', () => {
+  it('a rest outlines the mark and opens nothing', () => {
     mount();
-    const over = markNode('a');
-    move(100, 100, over);
+    move(100, 100, markNode('a'));
     act(() => { vi.advanceTimersByTime(REST.restMs - 1); });
-    expect(api.targetId).toBeNull();
+    expect(api.restId).toBeNull();
     act(() => { vi.advanceTimersByTime(2); });
-    expect(api.targetId).toBe('a');
+    expect(api.restId).toBe('a');
+    expect(api.targetId).toBeNull();
   });
 
   it('a pointer that keeps moving more than 3 px never rests', () => {
@@ -60,26 +60,37 @@ describe('useRestToolbar rest detection', () => {
     const over = markNode('a');
     for (let i = 0; i < 10; i += 1) {
       move(100 + i * 5, 100, over);
-      act(() => { vi.advanceTimersByTime(200); });
+      act(() => { vi.advanceTimersByTime(100); });
     }
-    expect(api.targetId).toBeNull();
+    expect(api.restId).toBeNull();
   });
 
-  it('leaving the highlight cancels the rest', () => {
+  it('leaving the mark clears the rest', () => {
     mount();
-    move(100, 100, markNode('a'));
-    act(() => { vi.advanceTimersByTime(300); });
+    const over = markNode('a');
+    move(100, 100, over);
+    act(() => { vi.advanceTimersByTime(REST.restMs + 1); });
+    expect(api.restId).toBe('a');
     move(100, 100, null);
-    act(() => { vi.advanceTimersByTime(1000); });
-    expect(api.targetId).toBeNull();
+    expect(api.restId).toBeNull();
   });
 
-  it('leaving the page cancels the rest', () => {
+  it('small moves inside the mark keep the rest', () => {
+    mount();
+    const over = markNode('a');
+    move(100, 100, over);
+    act(() => { vi.advanceTimersByTime(REST.restMs + 1); });
+    move(140, 104, over);
+    act(() => { vi.advanceTimersByTime(1000); });
+    expect(api.restId).toBe('a');
+  });
+
+  it('leaving the page clears the rest', () => {
     mount();
     move(100, 100, markNode('a'));
+    act(() => { vi.advanceTimersByTime(REST.restMs + 1); });
     act(() => api.onPointerLeave());
-    act(() => { vi.advanceTimersByTime(1000); });
-    expect(api.targetId).toBeNull();
+    expect(api.restId).toBeNull();
   });
 
   it('a finger never rests, and a held button is a stroke, not a rest', () => {
@@ -87,7 +98,7 @@ describe('useRestToolbar rest detection', () => {
     move(100, 100, markNode('a'), { pointerType: 'touch' });
     move(100, 100, markNode('b'), { buttons: 1 });
     act(() => { vi.advanceTimersByTime(1000); });
-    expect(api.targetId).toBeNull();
+    expect(api.restId).toBeNull();
   });
 
   it('the end of a stroke blocks rest until the pointer is 12 px away', () => {
@@ -97,31 +108,36 @@ describe('useRestToolbar rest detection', () => {
     act(() => api.strokeEnd());
     move(105, 100, over);
     act(() => { vi.advanceTimersByTime(1000); });
-    expect(api.targetId).toBeNull();
+    expect(api.restId).toBeNull();
     move(120, 100, over);
     act(() => { vi.advanceTimersByTime(REST.restMs + 1); });
-    expect(api.targetId).toBe('a');
+    expect(api.restId).toBe('a');
   });
 
-  it('while open it ignores moves, and after close it can rest again', () => {
+  it('openFor opens with its anchor and clears the rest; close clears the anchor', () => {
     mount();
-    const over = markNode('a');
-    move(100, 100, over);
+    move(100, 100, markNode('a'));
     act(() => { vi.advanceTimersByTime(REST.restMs + 1); });
-    move(300, 300, markNode('b'));
-    act(() => { vi.advanceTimersByTime(2000); });
+    expect(api.restId).toBe('a');
+    act(() => api.openFor('a', { x: 40, y: 10 }));
     expect(api.targetId).toBe('a');
+    expect(api.anchor).toEqual({ x: 40, y: 10 });
+    expect(api.restId).toBeNull();
     act(() => api.close());
     expect(api.targetId).toBeNull();
-    move(300, 300, markNode('b'));
-    act(() => { vi.advanceTimersByTime(REST.restMs + 1); });
-    expect(api.targetId).toBe('b');
+    expect(api.anchor).toBeNull();
   });
 
-  it('a tap opens a highlight at once', () => {
+  it('while open, moves do not set restId, and after close it can rest again', () => {
     mount();
     act(() => api.openFor('a'));
-    expect(api.targetId).toBe('a');
+    move(300, 300, markNode('b'));
+    act(() => { vi.advanceTimersByTime(2000); });
+    expect(api.restId).toBeNull();
+    act(() => api.close());
+    move(300, 300, markNode('b'));
+    act(() => { vi.advanceTimersByTime(REST.restMs + 1); });
+    expect(api.restId).toBe('b');
   });
 });
 

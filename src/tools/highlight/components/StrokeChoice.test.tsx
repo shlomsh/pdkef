@@ -2,7 +2,7 @@ import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { DEFAULT_MARKER, type Marker } from '../lib/marker/markerState.ts';
-import StrokeChoice, { hatchLines } from './StrokeChoice.tsx';
+import StrokeChoice, { KindChoice, hatchLines } from './StrokeChoice.tsx';
 
 let container: HTMLElement | null = null;
 afterEach(() => {
@@ -92,5 +92,42 @@ describe('hatchLines', () => {
       expect(x2).toBeGreaterThan(x1);
       expect(y2).toBeLessThan(y1);
     }
+  });
+});
+
+describe('KindChoice', () => {
+  const mountKind = (look: Partial<Marker> = {}, onChange = vi.fn()) => {
+    if (container) { act(() => render(null, container!)); container.remove(); }
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    act(() => render(<KindChoice look={{ ...DEFAULT_MARKER, ...look }} onChange={onChange} />, container!));
+    return onChange;
+  };
+
+  it('is a radiogroup named Kind: Highlight, Underline (shortcut U), the current one checked', () => {
+    mountKind();
+    expect(container!.querySelector('[role="radiogroup"]')!.getAttribute('aria-label')).toBe('Kind');
+    expect(names()).toEqual(['Highlight', 'Underline']);
+    expect(radio('Underline').getAttribute('aria-keyshortcuts')).toBe('U');
+    expect(radio('Highlight').getAttribute('aria-checked')).toBe('true');
+    expect(picked()).toBe('0');
+  });
+
+  it('a pencil mark counts as Highlight and clicking it keeps the pencil; Underline switches', () => {
+    const onChange = mountKind({ style: 'pencil' });
+    expect(radio('Highlight').getAttribute('aria-checked')).toBe('true');
+    act(() => radio('Highlight').click());
+    expect(onChange).not.toHaveBeenCalled();
+    act(() => radio('Underline').click());
+    expect(onChange).toHaveBeenLastCalledWith({ style: 'underline' });
+  });
+
+  it('on an underline, Highlight switches back and Underline does nothing', () => {
+    const onChange = mountKind({ style: 'underline' });
+    expect(picked()).toBe('1');
+    act(() => radio('Underline').click());
+    expect(onChange).not.toHaveBeenCalled();
+    act(() => radio('Highlight').click());
+    expect(onChange).toHaveBeenLastCalledWith({ style: 'highlight' });
   });
 });

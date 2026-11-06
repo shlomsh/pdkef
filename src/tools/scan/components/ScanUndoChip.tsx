@@ -1,3 +1,4 @@
+import UndoChip from '#shell/UndoChip.tsx';
 import { formatMessage } from '#lib/text/formatMessage.ts';
 import { englishScanMessages as t } from '../messages.ts';
 import styles from './ScanUndoChip.module.css';
@@ -13,9 +14,11 @@ interface ScanUndoChipProps {
 /** The five seconds in which Remove can be taken back. */
 export default function ScanUndoChip({ position, onUndo, viewer = false }: ScanUndoChipProps) {
   return (
-    <div class={`${styles.chip} ${viewer ? styles.viewer : ''}`} data-undo-chip>
-      <span>{formatMessage(t.removedChip, { position })}</span>
-      <button type="button" class={styles.undo} onClick={onUndo}>{t.undo}</button>
-    </div>
+    <UndoChip
+      message={formatMessage(t.removedChip, { position })}
+      undoLabel={t.undo}
+      onUndo={onUndo}
+      class={viewer ? styles.viewer : undefined}
+    />
   );
 }
