@@ -19,7 +19,7 @@ export const initialRest: RestState = { blockedFrom: null, candidate: null, rest
 export function restReducer(s: RestState, e: RestEvent): RestState {
   switch (e.type) {
     case 'strokeEnd':
-      return { ...s, blockedFrom: { x: e.x, y: e.y }, candidate: null };
+      return { ...s, blockedFrom: { x: e.x, y: e.y }, candidate: null, rested: null };
     case 'move': {
       if (s.blockedFrom) {
         if (Math.hypot(e.x - s.blockedFrom.x, e.y - s.blockedFrom.y) <= REST.awayPx) return s;

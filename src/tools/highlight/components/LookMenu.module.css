@@ -17,15 +17,18 @@
 .look[aria-expanded='true'] { background: var(--color-primary-tint); }
 
 /* The one box both faces share, so changing kind never moves the row. The svgs are absolute: the box has the size. */
-.face { box-sizing: border-box; flex: none; width: 2.75rem; height: 1.25rem; }
-.paper {
+.face {
   position: relative;
+  box-sizing: border-box;
+  flex: none;
+  width: 2.75rem;
+  height: 1.25rem;
   border-radius: 4px;
   background: var(--color-surface);
   box-shadow: inset 0 0 0 1px var(--color-border);
   overflow: hidden;
 }
-.paper > svg { position: absolute; inset: 15% 4px; width: calc(100% - 8px); height: 70%; overflow: visible; }
+.face > svg { position: absolute; inset: 15% 4px; width: calc(100% - 8px); height: 70%; overflow: visible; }
 
 .menu { display: flex; flex-direction: column; gap: .5rem; width: 15rem; max-width: calc(100vw - 1.5rem); padding: .5rem; cursor: default; box-sizing: border-box; }
 

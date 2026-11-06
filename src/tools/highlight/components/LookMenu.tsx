@@ -67,12 +67,12 @@ export default function LookMenu({ look, onChange, open, onOpenChange, placement
         <button type="button" class={styles.look} data-look-button title={t.markLook} aria-label={t.markLook} aria-haspopup="true" aria-expanded={open}>
           {underline
             ? (
-              <span class={`${styles.face} ${styles.paper}`} data-setting-line data-setting-face>
+              <span class={styles.face} data-setting-line data-setting-face>
                 <StrokeInk underline sketch={sketch} color="currentColor" width={look.strokeWidth ?? UNDERLINE_WIDTH.default} w={40} h={14} />
               </span>
             )
             : (
-              <span class={`${styles.face} ${styles.paper}`} data-setting-face>
+              <span class={styles.face} data-setting-face>
                 <StrokeInk underline={false} sketch={sketch} pencil={pencil} color={look.color} opacity={look.opacity} w={40} h={16} mark />
               </span>
             )}
