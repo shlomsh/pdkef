@@ -6,7 +6,7 @@ vi.mock('#lib/telemetry/errorReport.ts', () => ({ sendBeacon: vi.fn(() => true) 
 import { sendBeacon } from '#lib/telemetry/errorReport.ts';
 import RatingPrompt, { resetRatingPromptForTests } from './RatingPrompt.tsx';
 
-describe('RatingPrompt as a modal (merge, sign, highlight-pdf, redact)', () => {
+describe('RatingPrompt as a modal (merge, sign, highlight-pdf, redact, scan-to-pdf)', () => {
   let container: HTMLElement;
   beforeEach(() => {
     vi.useFakeTimers();
@@ -21,7 +21,7 @@ describe('RatingPrompt as a modal (merge, sign, highlight-pdf, redact)', () => {
     render(null, container);
     container.remove();
   });
-  const mount = (tool: 'merge' | 'compress' = 'merge', downloaded = true) =>
+  const mount = (tool: 'merge' | 'compress' | 'scan-to-pdf' = 'merge', downloaded = true) =>
     act(() => render(<RatingPrompt tool={tool} downloaded={downloaded} />, container));
   const show = () => { mount(); act(() => { vi.advanceTimersByTime(1500); }); };
   const dialog = () => container.querySelector<HTMLDialogElement>('dialog');
@@ -42,7 +42,13 @@ describe('RatingPrompt as a modal (merge, sign, highlight-pdf, redact)', () => {
     expect(container.querySelectorAll('button[aria-label$="star"], button[aria-label$="stars"]')).toHaveLength(5);
   });
 
-  it('keeps the quiet inline row for a tool outside the four', () => {
+  it('asks in the dialog on Scan too', () => {
+    mount('scan-to-pdf');
+    act(() => { vi.advanceTimersByTime(1500); });
+    expect(dialog()?.open).toBe(true);
+  });
+
+  it('keeps the quiet inline row for a tool outside the five', () => {
     mount('compress');
     act(() => { vi.advanceTimersByTime(1500); });
     expect(dialog()).toBeNull();

@@ -4,8 +4,11 @@
 import { readFileSync } from 'node:fs';
 import { pathToFileURL } from 'node:url';
 
-// Mirror RATING_TOOLS in src/lib/telemetry/ratingSchema.ts (a script cannot import TS).
-const RATING_TOOLS = ['merge', 'split', 'edit-pdf', 'compress', 'compress-image', 'pdf-to-image', 'image-to-pdf', 'sign', 'redact', 'unlock', 'protect'];
+/**
+ * Mirrors RATING_TOOLS in src/lib/telemetry/ratingSchema.ts (a script cannot import TS; a test keeps them equal).
+ * @testSeam
+ */
+export const RATING_TOOLS = ['merge', 'split', 'edit-pdf', 'compress', 'compress-image', 'pdf-to-image', 'image-to-pdf', 'sign', 'highlight-pdf', 'redact', 'scan-to-pdf', 'unlock', 'protect'];
 
 function envFromFile() {
   try {

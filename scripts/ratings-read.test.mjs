@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { parseEntries, summarizeCounts } from './ratings-read.mjs';
+import { RATING_TOOLS as WIRE_TOOLS } from '../src/lib/telemetry/ratingSchema.ts';
+import { parseEntries, RATING_TOOLS, summarizeCounts } from './ratings-read.mjs';
+
+describe('RATING_TOOLS', () => {
+  it('names every tool the wire schema accepts, so no tool is missing from the counts', () => {
+    expect([...RATING_TOOLS].sort()).toEqual([...WIRE_TOOLS].sort());
+  });
+});
 
 describe('summarizeCounts', () => {
   it('keeps only tools with votes, with average to one decimal and per-star counts', () => {
