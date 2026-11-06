@@ -15,8 +15,11 @@ would rather watch than read, so `/redact/` goes tool, video, ratings, then the 
 
 ## Outcome
 
-- `/redact/` shows the video's poster directly below the tool, linking to YouTube in a new tab. No video file in the
-  repo (Shlomi, 2026-11-06), and no YouTube embed: CSP blocks it and only `/drive/` may connect to Google.
+- `/redact/` plays the video in place, directly below the tool. The file stays out of the repo and lives on YouTube; the
+  page never mentions YouTube, it is Shlomi's video.
+- The page loads no Google code and connects to nothing until a person presses play. Pressing play makes the player frame
+  from `www.youtube-nocookie.com`, the one origin in that page's `frame-src`, and `test:csp` pins it to `/redact/` alone
+  (Shlomi's call, 2026-11-06, a second exception next to `/drive/`).
 - The Blur, Blackout or Delete guide mentions it.
 
 ## Read

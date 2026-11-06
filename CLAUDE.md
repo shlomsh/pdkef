@@ -117,7 +117,7 @@ brackets carries the evidence; do not relearn it.
   the tools. CSP `connect-src 'self'` is the backstop. One exception: `/drive/` alone signs in with
   Google (`drive.file`), keeps its short-lived token on the device, and moves only the files a person
   picks or saves, directly between their device and `www.googleapis.com`. Other pages only link to it
-  and never load a Google script or connect to Google. [csp-scripts-pwa]
+  and never touch Google, except the press-only video frame on `/redact/`. [csp-scripts-pwa]
 - **The SEO shell stays static HTML.** Marketing, how-to, FAQ and JSON-LD are never moved into an
   island or injected client-side. One `<h1>` per page; primary keyword in title, h1 and description;
   FAQ JSON-LD must match on-page content. Off the table: SSR, any external `connect-src`, any JS
