@@ -163,6 +163,12 @@ export interface ShellMessages {
   ratingThanksTitle: string;
   ratingThanksLowModal: string;
   ratingDone: string;
+  ratingWordsLabel: string;
+  ratingWordsPlaceholder: string;
+  ratingWordsShare: string;
+  ratingHelpPrompt: string;
+  ratingReportBug: string;
+  ratingSuggestIdea: string;
   /** Aria label of one star button, e.g. "3 stars". */
   ratingStarOne: string;
   ratingStarOther: string;
@@ -246,6 +252,12 @@ export const englishShellMessages: ShellMessages = {
   ratingThanksTitle: 'Thank you',
   ratingThanksLowModal: "Thank you for telling me. I'll use it to make PDkef better.",
   ratingDone: 'Done',
+  ratingWordsLabel: 'A few words for the next person?',
+  ratingWordsPlaceholder: 'Only if you feel like it',
+  ratingWordsShare: 'PDkef may show these words on the site, with my region and no name.',
+  ratingHelpPrompt: 'Is it a bug, or an idea? On GitHub I can write back to you. Here I can only read it.',
+  ratingReportBug: 'Report a bug',
+  ratingSuggestIdea: 'Suggest an idea',
   ratingStarOne: '1 star',
   ratingStarOther: '{count} stars',
   saveToDrive: {
@@ -334,6 +346,12 @@ export const hebrewShellMessages: ShellMessages = {
   ratingThanksTitle: 'תודה',
   ratingThanksLowModal: 'תודה ששיתפתם אותי. אשתמש בזה כדי לשפר את PDkef.',
   ratingDone: 'סיום',
+  ratingWordsLabel: 'כמה מילים למי שיגיע אחריכם?',
+  ratingWordsPlaceholder: 'רק אם בא לכם',
+  ratingWordsShare: 'PDkef יכול להציג את המילים האלה באתר, עם האזור שלי וללא שם.',
+  ratingHelpPrompt: 'זה באג או רעיון? ב-GitHub אוכל לענות לכם. כאן אני יכול רק לקרוא.',
+  ratingReportBug: 'דיווח על באג',
+  ratingSuggestIdea: 'הצעת רעיון',
   ratingStarOne: 'כוכב אחד',
   ratingStarOther: '{count} כוכבים',
   saveToDrive: {

@@ -5,6 +5,7 @@ import { markRated, reportRating, reportRatingComment, type RatingStorage } from
 import { formatMessage } from '#lib/text/formatMessage.ts';
 import type { ShellMessages } from './shellMessages';
 import { useModalDialog } from './useModalDialog.ts';
+import RatingWords, { type RatingWordsMessages } from './RatingWords.tsx';
 import dialogStyles from './Dialog.module.css';
 import styles from './RatingModal.module.css';
 
@@ -13,15 +14,29 @@ export type RatingModalMessages = Pick<
   | 'ratingModalTitle' | 'ratingModalIntro' | 'ratingNotNow' | 'ratingExplainTitle' | 'ratingExplainBody' | 'ratingExplainLabel' | 'ratingExplainHint'
   | 'ratingBack' | 'ratingSendFailed' | 'ratingThanksTitle' | 'ratingThanksHigh' | 'ratingThanksLowModal' | 'ratingDone'
   | 'ratingShare' | 'ratingShareCopied' | 'ratingStarGithub' | 'ratingCommentSend' | 'ratingStarOne' | 'ratingStarOther'
->;
+  | 'ratingHelpPrompt' | 'ratingReportBug' | 'ratingSuggestIdea'
+> & RatingWordsMessages;
 
 /** A low rating needs a real reason: this many characters once trimmed, about a short sentence. Send stays off below it. */
 const MIN_REASON_LENGTH = 20;
 
 type Step = 'pick' | 'explain' | 'thanks';
 
+/** Beside the reason: a bug or an idea has a place where a person can be answered, which this anonymous box is not. */
+function ReasonHelp({ githubUrl, messages }: { githubUrl: string; messages: RatingModalMessages }) {
+  return (
+    <div class={styles.help}>
+      <p class={styles.helpText}>{messages.ratingHelpPrompt}</p>
+      <div class={styles.helpLinks}>
+        <a class={styles.helpLink} href={`${githubUrl}/issues/new?template=bug_report.md`} target="_blank" rel="noopener noreferrer">{messages.ratingReportBug}</a>
+        <a class={styles.helpLink} href={`${githubUrl}/discussions/categories/ideas`} target="_blank" rel="noopener noreferrer">{messages.ratingSuggestIdea}</a>
+      </div>
+    </div>
+  );
+}
+
 /**
- * The rating ask as a modal, opened by RatingPrompt after a finished download. Five stars send at once;
+ * The rating ask as a modal, opened by RatingPrompt after a finished download. Five stars send at once, then may leave words;
  * one to four stars ask what happened first and send the rating and the words together, so a low vote
  * always arrives with its reason. Not now, Escape and the backdrop all leave without sending anything.
  * `showModal()` through useModalDialog, so it also shows over a fullscreen editor.
@@ -125,6 +140,7 @@ export default function RatingModal({
             {failed && <p class={styles.error} role="alert">{messages.ratingSendFailed}</p>}
           </form>
         )}
+        {step === 'explain' && <ReasonHelp githubUrl={githubUrl} messages={messages} />}
         {step === 'thanks' && (
           <>
             <p class={styles.text} role="status">{stars === 5 ? messages.ratingThanksHigh : messages.ratingThanksLowModal}</p>
@@ -140,6 +156,7 @@ export default function RatingModal({
                 <a class={styles.link} href={githubUrl} target="_blank" rel="noopener noreferrer">{messages.ratingStarGithub}</a>
               </div>
             )}
+            {stars === 5 && <RatingWords tool={tool} stars={stars} messages={messages} />}
           </>
         )}
       </div>

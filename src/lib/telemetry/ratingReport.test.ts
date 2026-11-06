@@ -79,6 +79,13 @@ describe('reportRating', () => {
 });
 
 describe('reportRatingComment', () => {
+  it('sends the OK to show the words only when it was given', () => {
+    reportRatingComment('compress', 5, 'lovely', true);
+    expect(vi.mocked(sendBeacon).mock.lastCall?.[0]).toMatchObject({ properties: { share: true } });
+    reportRatingComment('compress', 5, 'lovely');
+    expect(vi.mocked(sendBeacon).mock.lastCall?.[0]).not.toHaveProperty('properties.share');
+  });
+
   it('sends the trimmed comment and returns true', () => {
     expect(reportRatingComment('compress', 4, '  nice and fast  ')).toBe(true);
     expect(sendBeacon).toHaveBeenCalledWith({ name: 'tool_rating_comment', properties: { tool: 'compress', stars: 4, comment: 'nice and fast' } });
