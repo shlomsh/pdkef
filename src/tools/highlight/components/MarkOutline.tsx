@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'preact/hooks';
 import type { HighlightElement } from '#editor/model/editorModel.ts';
-import { outlineVertices } from '../lib/outline/markOutline.ts';
+import { outlineStrokes, outlineWobble } from '../lib/outline/markOutline.ts';
 import { strokeSeed } from '#editor/geometry/sketchStroke.ts';
 import { bandRectsPts } from '#editor-ui/highlight/HighlightNode.tsx';
 import { reportError } from '#lib/telemetry/errorReport.ts';
@@ -23,8 +23,9 @@ export default function MarkOutline({ mark, boxPts, turns, faint = false }: {
   const [d, setD] = useState<string | null>(null);
   useEffect(() => {
     let current = true;
-    const vertices = outlineVertices(bandRectsPts(mark.bands, boxPts), turns);
-    loadPencil().then((m) => { if (current) setD(m.outlinePath(vertices, strokeSeed(mark.id))); })
+    const bands = bandRectsPts(mark.bands, boxPts);
+    const strokes = outlineStrokes(bands, turns), wobble = outlineWobble(bands, turns);
+    loadPencil().then((m) => { if (current) setD(m.outlinePath(strokes, strokeSeed(mark.id), wobble)); })
       .catch((err) => reportError('pdf_render', err, 'draw_mark_outline'));
     return () => { current = false; };
   }, [mark.id, mark.bands, boxPts.width, boxPts.height, turns]);
