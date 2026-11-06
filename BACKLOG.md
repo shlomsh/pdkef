@@ -2,7 +2,7 @@
 
 # Backlog
 
-The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 167 live: 58 up next, 23 then, 27 waiting, 59 parked.
+The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 168 live: 58 up next, 23 then, 27 waiting, 60 parked.
 
 ## Redact: finish removal
 
@@ -76,6 +76,7 @@ Marking should feel like holding a highlighter, not like operating software. Ske
 | READ-07 | P3 | [READ-07](backlog/tasks/READ-07.md) · Highlight PDF: long-press and drag to highlight on a phone | Needs Shlomi: An iPhone check |
 | READ-08 | P3 | [READ-08](backlog/tasks/READ-08.md) · Highlight PDF: hop between your highlights in reading order |  |
 | READ-09 | P3 | [READ-09](backlog/tasks/READ-09.md) · Highlight PDF: a pen for circles, arrows and margin notes, iPad first |  |
+| READ-25 | P3 | [READ-25](backlog/tasks/READ-25.md) · The mark row's code says what it is now: a click opens it, not a rest |  |
 
 ## Scan: camera to WhatsApp
 

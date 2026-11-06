@@ -66,9 +66,9 @@ sections:
     blocks:
       - kind: 'image'
         src: '/images/paper-reader-guide/mark-toolbar.webp'
-        alt: 'A sketched yellow highlight with its toolbar open above it, and the stroke setting open below the toolbar with Sketch picked over Clean and an opacity slider'
+        alt: 'A sketched yellow highlight with a pencil outline around it and its toolbar open above it, with the Look menu rising from the toolbar: Highlight, Sketch picked over Clean, and an opacity slider'
         width: 2000
-        height: 802
+        height: 782
         caption: >-
           <strong>Click a highlight for its toolbar:</strong> Comment, its colors, the look of the mark and Delete.
       - kind: 'prose'
