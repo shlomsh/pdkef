@@ -24,6 +24,8 @@ test('the Redact video reaches its host only on press, and its frame passes the 
 
   await video.getByRole('button', { name: /^Play/ }).click();
   await expect(video.locator('iframe')).toBeVisible();
+  // A browser draws a border on every iframe, and this site has no reset to take it off.
+  await expect(video.locator('iframe')).toHaveCSS('border-top-width', '0px');
   await expect.poll(() => playerRequests.length).toBe(1);
   expect(await page.evaluate(() => window.__cspViolations)).toEqual([]);
 });
