@@ -455,3 +455,19 @@ test('guide cards sit on the same columns as the tool cards below them', async (
   });
   expect(columns.guides).toEqual(columns.tools);
 });
+
+for (const route of ['/compress/', '/merge/']) {
+  test(`every guide card on ${route} sits on a column of the tool cards below, in every row`, async ({ page }) => {
+    for (const width of [1440, 820]) {
+      await page.setViewportSize({ width, height: 900 });
+      await page.goto(route);
+      const { guides, tools } = await page.evaluate(() => {
+        const lefts = (selector) => [...document.querySelectorAll(selector)].map((card) => Math.round(card.getBoundingClientRect().left));
+        return { guides: lefts('.related-guides-grid > li'), tools: lefts('[aria-labelledby="more-tools-heading"] ul > li') };
+      });
+      const columns = new Set(tools);
+      // A lone card centres, which is the middle column of three.
+      for (const left of guides) expect(columns.has(left), `${route} at ${width}: card at ${left}, columns ${[...columns]}`).toBe(true);
+    }
+  });
+}

@@ -19,9 +19,8 @@
 //
 // The card and section chrome are ToolCrossLinks' own (LinkCard.astro and the
 // same utilities), so a tool page with no guides pays for only the few column
-// rules below. `justify-content: center` on the grid (not a fixed column count)
-// is what lets a lone card on /merge/ centre itself instead of pinning to the
-// grid's first column with empty space beside it.
+// rules below. Rows start at the left like the tool cards' grid, so a short
+// last row sits on the same columns; a lone card (/merge/) centres on its own.
 import LinkCard from './LinkCard.astro';
 import { contentPagesForTool } from '../data/contentPages.js';
 import type { RelatedGuidesMessages } from '../i18n/documentationMessages';
@@ -51,7 +50,7 @@ const related = contentPagesForTool(currentSlug);
       <h2 id="related-guides-heading" class="type-section m-0 text-balance text-[var(--color-text)]">{resolvedHeading}</h2>
     </div>
 
-    <ul class="related-guides-grid space-layout-gap m-0 flex list-none flex-wrap justify-center p-0">
+    <ul class="related-guides-grid space-layout-gap m-0 flex list-none flex-wrap p-0">
       {related.map((page) => {
         const pageId = page.href.replace(/^\//, '').replace(/\/$/, '');
         const localizedHref = locale === 'en' ? page.href : documentationPath(pageId, locale as any);
@@ -74,11 +73,14 @@ const related = contentPagesForTool(currentSlug);
 )}
 
 <style>
-  /* flex, not grid: a short row centres on its own, because flex centres each
-     wrapped line independently. The widths are ToolCrossLinks' columns, so a
-     full row sits on the grid directly below. */
+  /* The widths are ToolCrossLinks' columns and every row starts at the left, so
+     each card sits on a column of the grid directly below. */
   .related-guides-grid > li {
     flex: 0 0 calc((100% - 2 * var(--space-layout-gap)) / 3);
+  }
+
+  .related-guides-grid > li:only-child {
+    margin-inline: auto;
   }
 
   @media (max-width: 768px) {
