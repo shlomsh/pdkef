@@ -4,7 +4,7 @@
   },
   "css": {
     "maxFamilyDuplication": 0.46,
-    "maxPageDeadBytes": 8500,
+    "maxPageDeadBytes": 7600,
     "maxSinglePageUtilities": 148
   },
   "e2eSleeps": {
