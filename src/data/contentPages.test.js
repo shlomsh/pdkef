@@ -22,7 +22,7 @@
  * without a test telling someone they are wrong.
  */
 import { describe, it, expect } from 'vitest';
-import { contentPages, contentPagesForTool } from './contentPages.js';
+import { contentPages, contentPagesForTool, guideShelf } from './contentPages.js';
 import { toolsBySlug } from './tools.js';
 
 const secondaryHubs = [
@@ -74,5 +74,30 @@ describe('contentPagesForTool', () => {
           .not.toBe(page.hub);
       }
     }
+  });
+});
+
+describe('guideShelf', () => {
+  const id = (page) => page.href.replace(/\//g, '');
+
+  it('leads with the tool\'s own guide and picks the two closest to its job', () => {
+    const shelf = guideShelf('compress');
+    expect(id(shelf.lead)).toBe('pdf-wont-compress-to-100kb');
+    expect(shelf.picks.map(id)).toEqual(['photo-and-signature-size-for-forms', 'install-pdf-app']);
+    expect(shelf.also.map(id)).toEqual(['sign-pdf-no-signup', 'how-to-open-a-pdf-from-google-drive']);
+  });
+
+  it('keeps every guide the tool links today, each once', () => {
+    for (const slug of ['sign', 'redact', 'compress', 'merge']) {
+      const shelf = guideShelf(slug);
+      const shown = [shelf.lead, ...shelf.picks, ...shelf.also].map(id);
+      expect(new Set(shown).size, slug).toBe(shown.length);
+      expect([...shown].sort(), slug).toEqual(contentPagesForTool(slug).map(id).sort());
+    }
+  });
+
+  it('shows a single guide alone, and nothing for a tool without guides', () => {
+    expect(guideShelf('merge')).toMatchObject({ picks: [], also: [] });
+    expect(guideShelf('split')).toBeNull();
   });
 });

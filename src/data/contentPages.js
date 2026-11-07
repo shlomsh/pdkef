@@ -225,3 +225,29 @@ export function contentPagesForTool(slug) {
     ...contentPages.filter((page) => page.alsoHub?.includes(slug)),
   ];
 }
+
+// The guides a tool page leads with, in order, where the hub order is not the
+// right one: on /compress/ the size guide ranks above the general ones it also
+// links, and /sign/ has eight guides of its own.
+const FEATURED_GUIDES = {
+  compress: ['pdf-wont-compress-to-100kb', 'photo-and-signature-size-for-forms', 'install-pdf-app'],
+  sign: ['sign-pdf-no-signup', 'sign-pdf-in-your-language', 'offline-pdf-form-filler'],
+};
+
+const guideId = (page) => page.href.replace(/\//g, '');
+
+/**
+ * A tool page's guide shelf: the guide that leads, the two picked to sit beside
+ * it, and the rest, which stay linked on one quiet line. Null without guides.
+ */
+export function guideShelf(slug) {
+  const pages = contentPagesForTool(slug);
+  if (pages.length === 0) return null;
+  const featured = FEATURED_GUIDES[slug] ?? [];
+  const rank = (page) => {
+    const at = featured.indexOf(guideId(page));
+    return at === -1 ? featured.length : at;
+  };
+  const [lead, ...rest] = [...pages].sort((a, b) => rank(a) - rank(b));
+  return { lead, picks: rest.slice(0, 2), also: rest.slice(2) };
+}

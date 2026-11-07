@@ -260,7 +260,7 @@ if (video) Astro.csp?.insertDirective(`frame-src ${new URL(video.embed).origin}`
 
   <ToolFaqCard faq={tool.faq} sketch={tool.faqSketch} iconPos={tool.faqIconPos} labels={{ tag: messages.faqTag, heading: toolFaqHeading(messages, locale, tool.slug) }} />
 
-  <RelatedGuides currentSlug={tool.slug} locale={locale} labels={{ relatedHeading: messages.relatedHeading, inEnglish: messages.inEnglish }} editionPaths={editionPaths} />
+  <RelatedGuides currentSlug={tool.slug} locale={locale} labels={{ relatedHeading: messages.relatedHeading, guideRead: messages.guideRead, guidesAlso: messages.guidesAlso, inEnglish: messages.inEnglish }} editionPaths={editionPaths} />
 
   <ToolCrossLinks currentSlug={tool.slug} labels={messages} locale={locale} editionPaths={editionPaths} />
 

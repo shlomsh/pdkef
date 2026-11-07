@@ -21,13 +21,14 @@ tighter than the grid below them.
 - "Free for everyone" becomes "Free, no signup, and your file never leaves your device".
 - The FAQ heading names the tool, on tool pages and on guides that hang off one. The home page and any guide with no tool
   say "Questions about these free PDF tools".
-- Guide cards use the same gap and columns as "More PDF tools". Rows start at the left, so a short last row sits on the grid's columns; a lone card centres.
+- The guides section is a shelf (2026-11-07, Shlomi picked "V1, side by side"): the tool's own guide leads as a large card with a drawing, the two closest guides sit beside it as picture cards, and the rest stay linked on one "Also:" line. `guideShelf()` in `src/data/contentPages.js` picks them (featured order for Compress and Sign), and `src/data/guideArt.js` holds the 13 drawings. A tool with one guide shows it across the whole row.
 - Localized guides pass their locale to the cross-links, which were showing English.
 - Guide cards and tool cards share `LinkCard.astro`, so a tool page with no guides stops carrying about 2 KB of card CSS. The
   worst page's dead bytes fall from 9,960 to 7,967, and the ratchet goes from 10,000 to 8,500.
+- `toolPage.css` stops generating utilities from words in comments (`transition`, `filter`, `outline`...), so the worst page falls to 7,175 dead bytes with the shelf, and the ratchet goes to 7,600.
 
 ## Done when
 
-- Production `/compress/` shows all four headings, and its first row of guide cards lines up with the cross-link grid.
+- Production `/compress/` shows all four headings, and its guide shelf leads with the 100 KB guide, with two picks beside it.
 - `/he/` tool pages and guides show the Hebrew strings (Shlomi reads them).
 - Whether these move search results is unmeasured; read with the other search numbers.

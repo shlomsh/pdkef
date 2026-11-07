@@ -1,6 +1,6 @@
 ---
 // Inbound links from a tool page to the content pages that hang off it, read
-// from src/data/contentPages.js's `hub` field.
+// from src/data/contentPages.js's `hub` and `alsoHub` fields.
 //
 // Why this exists, and it is not a nice-to-have: before it, all eight content
 // pages were orphans. Every link they had came from inside the cluster itself,
@@ -10,88 +10,120 @@
 // tools, so it leaked internal signal and received none. This is the same
 // diagnosis, and the same fix, as ToolCrossLinks.astro for tool-to-tool links.
 //
-// Card grid, matching ToolCrossLinks.astro's visual language (icon square,
-// title, one-line description) rather than OtherGuides.astro's bare pills,
-// because this section renders directly above ToolCrossLinks' own grid on the
-// same page - a plain pill row next to it read as an afterthought, and with
-// only one or two related pages on some tools (redact, edit-pdf) a lone pill
-// in a wide centered container looked broken rather than compact.
+// A shelf rather than a grid of equal cards: the tool's own guide leads, large,
+// with a drawing; the two closest guides sit beside it as smaller picture
+// cards; any others stay linked on one quiet line, so every guide a tool links
+// keeps its link and the section never reads as a list of texts. Which guides
+// lead and which are picked is `guideShelf()`, pure data with its own tests.
 //
-// The card and section chrome are ToolCrossLinks' own (LinkCard.astro and the
-// same utilities), so a tool page with no guides pays for only the few column
-// rules below. Rows start at the left like the tool cards' grid, so a short
-// last row sits on the same columns; a lone card (/merge/) centres on its own.
-import LinkCard from './LinkCard.astro';
-import { contentPagesForTool } from '../data/contentPages.js';
+// Utilities only, most of them already on every tool page, so a tool with no
+// guides (it renders nothing) pays almost nothing for the section.
+import { guideShelf } from '../data/contentPages.js';
+import { guideArt } from '../data/guideArt.js';
 import type { RelatedGuidesMessages } from '../i18n/documentationMessages';
 import { getGuideCardCopy } from '../i18n/cardMessages';
-import { documentationPath } from '../i18n/documentationLocales';
+import { documentationPath, getDocumentationLocale } from '../i18n/documentationLocales';
 
 interface Props {
   currentSlug: string;
   heading?: string;
   locale?: string;
-  labels?: RelatedGuidesMessages & { inEnglish?: string };
+  labels?: Partial<RelatedGuidesMessages> & { inEnglish?: string };
   resolveLink?: (pageId: string, locale: string) => { href: string; fallback?: boolean };
   /** Site paths of every page published in `locale`; a card links to the
    * localized guide when there is one, else to English with an EN mark. */
   editionPaths?: readonly string[];
 }
 
-const { currentSlug, heading, locale = 'en', labels = {} as Props['labels'], resolveLink, editionPaths = [] } = Astro.props as Props;
+const { currentSlug, heading, locale = 'en', labels = {}, resolveLink, editionPaths = [] } = Astro.props as Props;
 const published = new Set(editionPaths);
-const resolvedHeading = heading ?? labels?.relatedHeading ?? 'Step-by-step guides for this tool';
-const related = contentPagesForTool(currentSlug);
+const resolvedHeading = heading ?? labels.relatedHeading ?? 'Step-by-step guides for this tool';
+const readLabel = labels.guideRead ?? 'Read the guide';
+const alsoLabel = labels.guidesAlso ?? 'Also:';
+const shelf = guideShelf(currentSlug);
+
+const guide = (page: { href: string; label: string; blurb: string }) => {
+  const pageId = page.href.replace(/\//g, '');
+  const localizedHref = locale === 'en' ? page.href : documentationPath(pageId, locale as any);
+  const link = resolveLink?.(pageId, locale) ?? { href: published.has(localizedHref) ? localizedHref : page.href };
+  const copy = getGuideCardCopy(locale, pageId);
+  const english = locale !== 'en' && link.href === page.href;
+  return {
+    href: link.href,
+    hreflang: english ? 'en' : undefined,
+    title: copy?.title ?? page.label,
+    description: copy?.description ?? page.blurb,
+    english,
+    art: guideArt(pageId),
+  };
+};
+
+const lead = shelf && guide(shelf.lead);
+const picks = shelf ? shelf.picks.map(guide) : [];
+const also = shelf ? shelf.also.map(guide) : [];
+const solo = picks.length === 0;
+const pickTints = ['bg-[var(--color-paper)]', 'bg-[var(--color-success-soft)]'];
+
+const card = 'group flex overflow-hidden rounded-2xl border border-[var(--color-border)] text-inherit no-underline transition-[transform,border-color,color] duration-150 ease-out hover:-translate-y-px hover:border-[var(--color-border-strong)] focus-visible:-translate-y-px focus-visible:border-[var(--color-border-strong)]';
+const read = 'mt-3 flex items-center gap-[0.35rem] font-semibold text-[var(--color-primary-text)]';
+// The arrow points the way the page reads; drawn per locale, so it needs no CSS.
+const arrowPath = getDocumentationLocale(locale)?.dir === 'rtl' ? 'M19 12H5M12 5l-7 7 7 7' : 'M5 12h14M12 5l7 7-7 7';
+const arrow = `<svg width="1.1em" height="1.1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${arrowPath}"/></svg>`;
 ---
 
-{related.length > 0 && (
+{lead && (
   <section class="mx-auto mb-16 w-full max-w-[1080px] px-6 min-[768px]:mb-24" aria-labelledby="related-guides-heading">
     <div class="space-heading-content text-center">
       <h2 id="related-guides-heading" class="type-section m-0 text-balance text-[var(--color-text)]">{resolvedHeading}</h2>
     </div>
 
-    <ul class="related-guides-grid space-layout-gap m-0 flex list-none flex-wrap p-0">
-      {related.map((page) => {
-        const pageId = page.href.replace(/^\//, '').replace(/\/$/, '');
-        const localizedHref = locale === 'en' ? page.href : documentationPath(pageId, locale as any);
-        const link = resolveLink?.(pageId, locale) ?? { href: published.has(localizedHref) ? localizedHref : page.href };
-        const copy = getGuideCardCopy(locale, pageId);
-        const english = locale !== 'en' && link.href === page.href;
-        return <li class="m-0 p-0">
-          <LinkCard
-            href={link.href}
-            hreflang={english ? 'en' : undefined}
-            icon={page.icon}
-            title={copy?.title ?? page.label}
-            description={copy?.description ?? page.blurb}
-            englishLabel={english ? labels?.inEnglish : undefined}
-          />
-        </li>;
-      })}
-    </ul>
+    <div class:list={['grid space-layout-gap', !solo && 'min-[900px]:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)]']}>
+      <a
+        href={lead.href}
+        hreflang={lead.hreflang}
+        data-guide="lead"
+        class:list={[card, 'flex-col bg-[var(--color-primary-soft)]', solo && 'min-[768px]:flex-row min-[768px]:items-center']}
+      >
+        <span class:list={['flex flex-col px-6 pb-8 pt-7 min-[1024px]:px-8', solo && 'flex-1']}>
+          <h3 class="type-feature m-0 text-balance text-[var(--color-text)]">
+            {lead.title}
+            {lead.english && <span class="ms-2 inline-block align-middle text-[0.7rem] font-semibold uppercase text-[var(--color-muted)]" lang="en" title={labels.inEnglish}>EN</span>}
+          </h3>
+          <p class="type-body mb-0 mt-3 text-[var(--color-muted)]">{lead.description}</p>
+          <span class={read}>{readLabel}<Fragment set:html={arrow} /></span>
+        </span>
+        {lead.art && <span class="m-auto block w-full max-w-[24rem] px-6 pb-8 min-[1024px]:px-8" set:html={lead.art} />}
+      </a>
+
+      {!solo && (
+        <div class="space-layout-gap flex flex-col">
+          {picks.map((pick, i) => (
+            <a href={pick.href} hreflang={pick.hreflang} data-guide="pick" class:list={[card, 'flex-1 bg-[var(--color-surface)]']}>
+              {pick.art && <span class:list={['flex w-[42%] shrink-0 items-center p-4 max-[640px]:w-[7.5rem]', pickTints[i % pickTints.length]]} set:html={pick.art} />}
+              <span class="flex min-w-0 flex-col justify-center p-4 min-[560px]:px-6">
+                <h3 class="type-card m-0 text-balance text-[var(--color-text)]">
+                  {pick.title}
+                  {pick.english && <span class="ms-2 inline-block align-middle text-[0.7rem] font-semibold uppercase text-[var(--color-muted)]" lang="en" title={labels.inEnglish}>EN</span>}
+                </h3>
+                <p class="type-body mb-0 mt-1 text-[var(--color-muted)]">{pick.description}</p>
+                <span class:list={[read, 'max-[640px]:hidden']}>{readLabel}<Fragment set:html={arrow} /></span>
+              </span>
+            </a>
+          ))}
+        </div>
+      )}
+    </div>
+
+    {also.length > 0 && (
+      <p data-guide="also" class="type-body mb-0 mt-7 text-center text-[var(--color-muted)]">
+        {alsoLabel}{' '}
+        {also.map((page, i) => (
+          <>
+            {i > 0 && ' · '}
+            <a href={page.href} hreflang={page.hreflang} class="whitespace-nowrap font-semibold text-[var(--color-primary-text)] underline">{page.title}</a>
+          </>
+        ))}
+      </p>
+    )}
   </section>
 )}
-
-<style>
-  /* The widths are ToolCrossLinks' columns and every row starts at the left, so
-     each card sits on a column of the grid directly below. */
-  .related-guides-grid > li {
-    flex: 0 0 calc((100% - 2 * var(--space-layout-gap)) / 3);
-  }
-
-  .related-guides-grid > li:only-child {
-    margin-inline: auto;
-  }
-
-  @media (max-width: 768px) {
-    .related-guides-grid > li {
-      flex-basis: calc((100% - var(--space-layout-gap)) / 2);
-    }
-  }
-
-  @media (max-width: 560px) {
-    .related-guides-grid > li {
-      flex-basis: 100%;
-    }
-  }
-</style>

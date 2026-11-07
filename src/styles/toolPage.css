@@ -74,3 +74,10 @@
 /* LOC-02: localized tool pages (src/pages/[locale]/<tool>.astro), same shell components as above. */
 @source "../pages/[locale]/*.astro";
 @source "../site-lib/contentMarkup.ts";
+
+/* Words in the sourced files' comments and prose ("transition", "filter",
+   "outline", "fixed"...) read as bare utility candidates. No tool page's markup
+   uses any of them as a class, and the islands that might are styled by CSS
+   Modules and not scanned, so they only ever shipped as dead bytes. */
+@source not inline("transition transform filter outline collapse visible invisible static fixed");
+

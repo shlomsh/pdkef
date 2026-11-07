@@ -443,31 +443,41 @@ test('gives the Sign and Redact page the full phone width inside the gutter', as
   }
 });
 
-test('guide cards sit on the same columns as the tool cards below them', async ({ page }) => {
-  await page.setViewportSize({ width: 1440, height: 900 });
-  await page.goto('/compress/');
-  const columns = await page.evaluate(() => {
-    const row = (selector) => [...document.querySelectorAll(selector)].slice(0, 3).map((card) => {
-      const { left, right } = card.getBoundingClientRect();
-      return [Math.round(left), Math.round(right)];
-    });
-    return { guides: row('.related-guides-grid > li'), tools: row('[aria-labelledby="more-tools-heading"] ul > li') };
-  });
-  expect(columns.guides).toEqual(columns.tools);
+const boxes = (page) => page.evaluate(() => {
+  const box = (el) => { const r = el.getBoundingClientRect(); return { left: Math.round(r.left), right: Math.round(r.right), top: Math.round(r.top + scrollY), bottom: Math.round(r.bottom + scrollY) }; };
+  const grid = document.querySelector('[aria-labelledby="more-tools-heading"] ul');
+  return {
+    lead: box(document.querySelector('[data-guide="lead"]')),
+    picks: [...document.querySelectorAll('[data-guide="pick"]')].map(box),
+    also: document.querySelectorAll('[data-guide="also"] a').length,
+    grid: box(grid),
+  };
 });
 
-for (const route of ['/compress/', '/merge/']) {
-  test(`every guide card on ${route} sits on a column of the tool cards below, in every row`, async ({ page }) => {
-    for (const width of [1440, 820]) {
-      await page.setViewportSize({ width, height: 900 });
-      await page.goto(route);
-      const { guides, tools } = await page.evaluate(() => {
-        const lefts = (selector) => [...document.querySelectorAll(selector)].map((card) => Math.round(card.getBoundingClientRect().left));
-        return { guides: lefts('.related-guides-grid > li'), tools: lefts('[aria-labelledby="more-tools-heading"] ul > li') };
-      });
-      const columns = new Set(tools);
-      // A lone card centres, which is the middle column of three.
-      for (const left of guides) expect(columns.has(left), `${route} at ${width}: card at ${left}, columns ${[...columns]}`).toBe(true);
-    }
-  });
-}
+test('a tool\'s guide leads, with its two closest guides beside it on desktop and under it on a phone', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto('/compress/');
+  const wide = await boxes(page);
+  expect(wide.picks).toHaveLength(2);
+  expect(wide.also).toBe(2);
+  expect(wide.lead.left).toBe(wide.grid.left);
+  expect(wide.picks[0].right).toBe(wide.grid.right);
+  expect(wide.lead.right).toBeLessThan(wide.picks[0].left);
+  expect(Math.abs(wide.lead.top - wide.picks[0].top)).toBeLessThanOrEqual(1);
+  expect(Math.abs(wide.lead.bottom - wide.picks[1].bottom)).toBeLessThanOrEqual(1);
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  const narrow = await boxes(page);
+  expect(narrow.lead.bottom).toBeLessThan(narrow.picks[0].top);
+  expect(narrow.picks[0].bottom).toBeLessThan(narrow.picks[1].top);
+  for (const pick of narrow.picks) expect([pick.left, pick.right]).toEqual([narrow.lead.left, narrow.lead.right]);
+});
+
+test('a tool with one guide shows it across the whole row', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto('/merge/');
+  const { lead, picks, also, grid } = await boxes(page);
+  expect(picks).toHaveLength(0);
+  expect(also).toBe(0);
+  expect([lead.left, lead.right]).toEqual([grid.left, grid.right]);
+});

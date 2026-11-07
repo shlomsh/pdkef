@@ -19,6 +19,10 @@ export interface DocumentationShellMessages {
   otherDevices: string;
   openSignTool: string;
   relatedHeading: string;
+  /** The read link on a guide card in RelatedGuides' shelf. */
+  guideRead: string;
+  /** Before the line of further guides under the shelf. */
+  guidesAlso: string;
   /** LOC-02: ToolCrossLinks' own chrome (kicker/heading/subhead) - the
    * "everything the crawler reads" list in LOC-02.md names cross-link cards
    * explicitly. The individual tool names/descriptions inside each card stay
@@ -93,7 +97,7 @@ export interface DocumentationShellMessages {
 
 export type AppBarMessages = Pick<DocumentationShellMessages, 'homeAriaLabel' | 'homepageAriaLabel' | 'onDevice'>;
 export type OtherGuidesMessages = Pick<DocumentationShellMessages, 'otherDevices' | 'openSignTool'>;
-export type RelatedGuidesMessages = Pick<DocumentationShellMessages, 'relatedHeading'>;
+export type RelatedGuidesMessages = Pick<DocumentationShellMessages, 'relatedHeading' | 'guideRead' | 'guidesAlso'>;
 export type CrossLinksMessages = Pick<DocumentationShellMessages, 'crossLinksKicker' | 'crossLinksHeading' | 'crossLinksSubhead' | 'crossLinksAlso'>;
 export type AboutCardMessages = Pick<DocumentationShellMessages, 'howItWorks' | 'freeForEveryone' | 'openSourceNote'>;
 export type FooterMessages = Pick<
@@ -113,6 +117,8 @@ const englishMessages = {
   otherDevices: 'Signing on a different device?',
   openSignTool: 'Open the Sign & Fill tool',
   relatedHeading: 'Step-by-step guides for this tool',
+  guideRead: 'Read the guide',
+  guidesAlso: 'Also:',
   crossLinksKicker: 'Same suite',
   crossLinksHeading: 'More free PDF tools that run in your browser',
   crossLinksSubhead: "Every one of these runs on your device, free, with nothing uploaded.",
@@ -163,6 +169,8 @@ const hebrewMessages = {
   otherDevices: 'חותמים במכשיר אחר?',
   openSignTool: 'פתיחת כלי החתימה והמילוי (באנגלית)',
   relatedHeading: 'מדריכים צעד אחר צעד לכלי הזה',
+  guideRead: 'לקריאת המדריך',
+  guidesAlso: 'ועוד:',
   crossLinksKicker: 'מאותו ארגז כלים',
   crossLinksHeading: 'עוד כלי PDF חינמיים שעובדים בדפדפן',
   crossLinksSubhead: 'כל אחד מהם רץ על המכשיר שלכם, בחינם, בלי להעלות שום דבר.',
@@ -216,6 +224,8 @@ const indonesianMessages = {
   otherDevices: 'Menandatangani di perangkat lain?',
   openSignTool: 'Buka alat Tanda Tangan & Isi (berbahasa Inggris)',
   relatedHeading: 'Panduan langkah demi langkah untuk alat ini',
+  guideRead: 'Baca panduannya',
+  guidesAlso: 'Juga:',
   crossLinksKicker: 'Dari rangkaian yang sama',
   crossLinksHeading: 'Alat PDF gratis lainnya yang berjalan di browser',
   crossLinksSubhead: 'Semuanya berjalan di perangkat Anda, gratis, tanpa ada yang diunggah.',
