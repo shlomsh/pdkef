@@ -2,7 +2,7 @@
 
 # Backlog
 
-The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 170 live: 62 up next, 21 then, 27 waiting, 60 parked.
+The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 171 live: 63 up next, 21 then, 27 waiting, 60 parked.
 
 ## Redact: finish removal
 
@@ -173,7 +173,11 @@ One shared mechanism that turns, splits and straightens a page, first in Scan, t
 
 Every tool's first screen becomes one full-height hero where the tool acts out its job, and the same screen becomes the workspace after a drop.
 
-_Nothing live._
+### Up next
+
+| ID | P | Task | Note |
+| --- | --- | --- | --- |
+| SITE-47 | P2 | [SITE-47](backlog/tasks/SITE-47.md) · More tools under a tool page: three doodled stickers, picked for that tool | In progress |
 
 ## Form detector accuracy
 
