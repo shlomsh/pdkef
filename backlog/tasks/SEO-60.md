@@ -21,7 +21,7 @@ tighter than the grid below them.
 - "Free for everyone" becomes "Free, no signup, and your file never leaves your device".
 - The FAQ heading names the tool, on tool pages and on guides that hang off one. The home page and any guide with no tool
   say "Questions about these free PDF tools".
-- Guide cards use the same gap and columns as "More PDF tools". A short row stays centred, so a lone card does not pin left.
+- Guide cards use the same gap and columns as "More PDF tools". Rows start at the left, so a short last row sits on the grid's columns; a lone card centres.
 - Localized guides pass their locale to the cross-links, which were showing English.
 - Guide cards and tool cards share `LinkCard.astro`, so a tool page with no guides stops carrying about 2 KB of card CSS. The
   worst page's dead bytes fall from 9,960 to 7,967, and the ratchet goes from 10,000 to 8,500.
