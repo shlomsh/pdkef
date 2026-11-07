@@ -26,8 +26,8 @@ Telemetry could not rank the pairs: on 2026-11-07 only hand-offs into Unlock car
 
 ## Acceptance
 
-- [ ] `relatedTools.test.js` green: every listed tool has three distinct other listed tools.
-- [ ] Every tool page and a guide page show three stickers and a row linking every other listed tool (and, on English pages, the variant pages).
-- [ ] Measured on a production build at 1440, 768 and 390 on `/compress/`, `/he/` edition of a tool, and a guide page; no sideways scroll.
-- [ ] `tool-layout.spec.js` column guard still green; `test:css`, `test:weight` green.
+- [x] `relatedTools.test.js` green: every listed tool has three distinct other listed tools.
+- [x] Every tool page and a guide page show three stickers and a row linking every other listed tool (and, on English pages, the variant pages).
+- [x] Measured on a production build at 1440, 900, 768, 767 and 390 on `/compress/`, `/redact/`, `/rotate-pdf/`, `/he/compress/` and `/how-to-sign-a-pdf-on-iphone/`; no sideways scroll. Below 768 the stickers stack with half the tilt; 768 to 960 puts the doodle above the words.
+- [x] `tool-layout.spec.js` column guard still green; `test:css`, `test:weight` green.
 - [ ] Landed on main.

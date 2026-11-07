@@ -27,6 +27,7 @@ export interface DocumentationShellMessages {
   crossLinksKicker: string;
   crossLinksHeading: string;
   crossLinksSubhead: string;
+  crossLinksAlso: string;
   /** ToolAboutCard's own chrome around the per-tool steps/lead. The
    * open-source paragraph is the one string here carrying markup: one
    * external `<a>` to the repo, rendered with set:html like its English
@@ -93,7 +94,7 @@ export interface DocumentationShellMessages {
 export type AppBarMessages = Pick<DocumentationShellMessages, 'homeAriaLabel' | 'homepageAriaLabel' | 'onDevice'>;
 export type OtherGuidesMessages = Pick<DocumentationShellMessages, 'otherDevices' | 'openSignTool'>;
 export type RelatedGuidesMessages = Pick<DocumentationShellMessages, 'relatedHeading'>;
-export type CrossLinksMessages = Pick<DocumentationShellMessages, 'crossLinksKicker' | 'crossLinksHeading' | 'crossLinksSubhead'>;
+export type CrossLinksMessages = Pick<DocumentationShellMessages, 'crossLinksKicker' | 'crossLinksHeading' | 'crossLinksSubhead' | 'crossLinksAlso'>;
 export type AboutCardMessages = Pick<DocumentationShellMessages, 'howItWorks' | 'freeForEveryone' | 'openSourceNote'>;
 export type FooterMessages = Pick<
   DocumentationShellMessages,
@@ -115,6 +116,7 @@ const englishMessages = {
   crossLinksKicker: 'Same suite',
   crossLinksHeading: 'More free PDF tools that run in your browser',
   crossLinksSubhead: "Every one of these runs on your device, free, with nothing uploaded.",
+  crossLinksAlso: 'Also:',
   howItWorks: 'How it works',
   freeForEveryone: 'Free, no signup, and your file never leaves your device',
   openSourceNote:
@@ -164,6 +166,7 @@ const hebrewMessages = {
   crossLinksKicker: 'מאותו ארגז כלים',
   crossLinksHeading: 'עוד כלי PDF חינמיים שעובדים בדפדפן',
   crossLinksSubhead: 'כל אחד מהם רץ על המכשיר שלכם, בחינם, בלי להעלות שום דבר.',
+  crossLinksAlso: 'עוד כלים:',
   howItWorks: 'איך זה עובד',
   freeForEveryone: 'בחינם, בלי הרשמה, והקובץ לא יוצא מהמכשיר',
   openSourceNote:
@@ -216,6 +219,7 @@ const indonesianMessages = {
   crossLinksKicker: 'Dari rangkaian yang sama',
   crossLinksHeading: 'Alat PDF gratis lainnya yang berjalan di browser',
   crossLinksSubhead: 'Semuanya berjalan di perangkat Anda, gratis, tanpa ada yang diunggah.',
+  crossLinksAlso: 'Alat lain:',
   howItWorks: 'Cara kerjanya',
   freeForEveryone: 'Gratis, tanpa daftar, dan file Anda tidak pernah keluar dari perangkat',
   openSourceNote:

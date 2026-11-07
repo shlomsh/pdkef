@@ -10,10 +10,14 @@
 // routes had almost no internal signal as a result. Anchor text is the
 // registry's gridTitle, so it stays descriptive rather than "click here".
 //
-// Deliberately not a <FeatureCard>: that lays out at min-h-[calc(100vh-6rem)]
-// on desktop, and a third near-full-viewport panel below the how-it-works and
-// FAQ cards would bury the footer. This is a compact strip.
-import LinkCard from './LinkCard.astro';
+// SITE-47: the section suggests next steps, so only the three tools most relevant to this page
+// (src/data/relatedTools.js) get a sticker. Every other tool keeps a plain link in one quiet row
+// underneath, so the internal links this component exists for stay on every page.
+//
+// Deliberately not a <FeatureCard>: that lays out at min-h-[calc(100vh-6rem)] on desktop, and a
+// third near-full-viewport panel below the how-it-works and FAQ cards would bury the footer.
+import ToolDoodle from './ToolDoodle.astro';
+import { relatedFor } from '../data/relatedTools.js';
 import { listedTools, tools } from '../data/tools.js';
 import type { CrossLinksMessages } from '../i18n/documentationMessages';
 import { getToolCardCopy } from '../i18n/cardMessages';
@@ -43,10 +47,12 @@ const cardFor = (tool: { slug: string; href: string; gridTitle: string; gridDesc
     english: locale !== 'en' && href === tool.href,
   };
 };
-const others = listedTools.filter((tool) => tool.slug !== currentSlug);
-// Variant landing pages (rotate, extract pages, ...) get no card of their own: one quiet text row of
-// plain links, so every indexed tool page hands crawlers and people a path to them. They are English-only pages,
-// so a localized page leaves the row out rather than mixing languages.
+const picked = relatedFor(currentSlug)
+  .map((slug) => listedTools.find((t) => t.slug === slug))
+  .filter(Boolean);
+const rest = listedTools.filter((t) => t.slug !== currentSlug && !picked.includes(t));
+// Variant landing pages (rotate, extract pages, ...) get no sticker of their own: they join the
+// plain-link row. They are English-only pages, so a localized page leaves them out.
 const variants = locale === 'en' ? tools.filter((tool) => 'variantOf' in tool && tool.variantOf && tool.slug !== currentSlug) : [];
 ---
 
@@ -62,33 +68,85 @@ const variants = locale === 'en' ? tools.filter((tool) => 'variantOf' in tool &&
     </p>
   </div>
 
-  <ul class="space-layout-gap m-0 grid list-none grid-cols-3 p-0 max-[768px]:grid-cols-2 max-[560px]:grid-cols-1">
-    {others.map((tool) => {
+  <ul class="space-layout-gap m-0 grid list-none grid-cols-3 p-0 max-[768px]:grid-cols-1">
+    {picked.map((tool) => {
       const card = cardFor(tool);
       return (
       <li class="m-0 p-0">
-        <LinkCard
-          href={card.href}
-          hreflang={card.english ? 'en' : undefined}
-          icon={tool.icon}
-          title={card.title}
-          description={card.description}
-          englishLabel={card.english ? labels?.inEnglish : undefined}
-        />
+        <a href={card.href} hreflang={card.english ? 'en' : undefined} class="sticker flex h-full items-start gap-3 p-4 text-inherit no-underline transition-[transform,border-color,color] duration-150 ease-out hover:-translate-y-px hover:border-[var(--color-border-strong)] focus-visible:-translate-y-px focus-visible:border-[var(--color-border-strong)]">
+          <ToolDoodle tool={tool.slug} />
+          <span class="min-w-0">
+            <span class="type-card block text-[var(--color-text)]">
+              {card.title}
+              {card.english && labels?.inEnglish && (
+                <span class="ms-2 inline-block align-middle text-[0.7rem] font-semibold uppercase text-[var(--color-muted)]" lang="en" title={labels.inEnglish}>EN</span>
+              )}
+            </span>
+            <span class="type-body mt-1 block text-[var(--color-muted)]">{card.description}</span>
+          </span>
+        </a>
       </li>
       );
     })}
   </ul>
 
-  {variants.length > 0 && (
-    <p class="type-body m-0 mt-6 text-center text-[var(--color-muted)]">
-      Also:{' '}
-      {variants.map((tool, index) => (
+  <p class="type-body m-0 mt-6 text-center text-[var(--color-muted)]">
+    {labels?.crossLinksAlso ?? 'Also:'}{' '}
+    {rest.map((tool, index) => {
+      const card = cardFor(tool);
+      return (
         <>
           {index > 0 && ' \u00b7 '}
-          <a href={tool.href} class="whitespace-nowrap font-medium text-[var(--color-primary-text)]">{tool.gridTitle}</a>
+          <a href={card.href} hreflang={card.english ? 'en' : undefined} class="whitespace-nowrap font-medium text-[var(--color-primary-text)]">{card.title}</a>
         </>
-      ))}
-    </p>
-  )}
+      );
+    })}
+    {variants.map((tool) => (
+      <>
+        {' \u00b7 '}
+        <a href={tool.href} class="whitespace-nowrap font-medium text-[var(--color-primary-text)]">{tool.gridTitle}</a>
+      </>
+    ))}
+  </p>
 </section>
+
+<style>
+  /* Layout comes from the same utilities LinkCard uses, so they stay live on every tool page. */
+  .sticker {
+    border: 1.5px solid var(--color-border-strong);
+    border-radius: 1.1rem 1.4rem 1.1rem 1.3rem;
+    background: var(--color-paper);
+    transform: rotate(-1deg);
+  }
+  li:nth-child(2) > .sticker {
+    background: var(--color-citron);
+    border-color: var(--color-citron-ink);
+    transform: rotate(1deg);
+  }
+  li:nth-child(3) > .sticker {
+    background: var(--color-primary-soft);
+    transform: rotate(-0.5deg);
+  }
+  .sticker :global(.tool-doodle) {
+    flex: none;
+    width: 72px;
+    height: auto;
+  }
+  /* As specific as the li:nth-child tones above and later, so every sticker straightens. */
+  li > .sticker:hover,
+  li > .sticker:focus-visible {
+    transform: rotate(0);
+  }
+  /* Three narrow columns (tablet): the doodle sits above the words so the text keeps its width. */
+  @media (min-width: 768px) and (max-width: 960px) {
+    .sticker { flex-direction: column; gap: 0.5rem; }
+    .sticker :global(.tool-doodle) { width: 64px; }
+  }
+  /* One wide column: the same tilt would lift a long sticker's end too far, so it is halved. */
+  @media (max-width: 767px) {
+    li:nth-child(1) > .sticker { transform: rotate(-0.5deg); }
+    li:nth-child(2) > .sticker { transform: rotate(0.5deg); }
+    li:nth-child(3) > .sticker { transform: rotate(-0.25deg); }
+    li > .sticker:hover, li > .sticker:focus-visible { transform: rotate(0); }
+  }
+</style>
