@@ -12,10 +12,8 @@
 // every list valid against the registry.
 import { tools } from './tools.js';
 
-export const RELATED_COUNT = 3;
-
 /** @type {Record<string, readonly string[]>} */
-export const relatedTools = {
+const relatedTools = {
   sign: ['compress', 'merge', 'scan-to-pdf'],
   'highlight-pdf': ['scan-to-pdf', 'split', 'merge'],
   redact: ['unlock', 'compress', 'merge'],
@@ -31,11 +29,15 @@ export const relatedTools = {
 };
 
 /** A page that is no tool (a guide) shows the three most used tools. */
-export const DEFAULT_RELATED = ['redact', 'sign', 'merge'];
+const DEFAULT_RELATED = ['redact', 'sign', 'merge'];
 
-/** The sticker slugs for a page: a variant page (rotate, extract pages, ...) borrows its parent's. */
+/** The sticker slugs for a page: a variant page (rotate, extract pages, ...) borrows its parent's,
+ * a guide (no tool) gets the default three. A listed tool with no list fails the build here. */
 export function relatedFor(slug) {
   const tool = tools.find((t) => t.slug === slug);
-  const key = tool && 'variantOf' in tool && tool.variantOf ? tool.variantOf : slug;
-  return relatedTools[key] ?? DEFAULT_RELATED;
+  if (!tool) return DEFAULT_RELATED;
+  const key = 'variantOf' in tool && tool.variantOf ? tool.variantOf : slug;
+  const related = relatedTools[key];
+  if (!related) throw new Error(`relatedTools.js has no list for "${key}" (SITE-47)`);
+  return related;
 }
