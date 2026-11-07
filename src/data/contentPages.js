@@ -218,7 +218,10 @@ export const contentPages = [...landingPages, ...guides];
  * a flat filter returns registry order, which put the two secondary cards
  * ABOVE `/redact/`'s own two topical guides, so the first thing a redact
  * visitor saw under "Documentation" was a form-filling guide.
+ *
+ * Pages read it through guideShelf(); its tests use it as the full list.
  */
+/** @testSeam */
 export function contentPagesForTool(slug) {
   return [
     ...contentPages.filter((page) => page.hub === slug),
