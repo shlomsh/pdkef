@@ -51,10 +51,6 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 - [PE-08](backlog/tasks/PE-08.md) P2 · Scan opens a scanned PDF (in progress)
 - [PE-11](backlog/tasks/PE-11.md) P2 · Found corners square a book page (in progress)
 
-### Tool pages: show the verb
-
-- [SITE-47](backlog/tasks/SITE-47.md) P2 · More tools under a tool page: three doodled stickers, picked for that tool (in progress)
-
 ### Robustness and debt
 
 - [DEBT-65](backlog/tasks/DEBT-65.md) P2 · Two layout-shift specs failed once each in the 2026-10-27 nightly (in progress)

@@ -47,9 +47,7 @@ const cardFor = (tool: { slug: string; href: string; gridTitle: string; gridDesc
     english: locale !== 'en' && href === tool.href,
   };
 };
-const picked = relatedFor(currentSlug)
-  .map((slug) => listedTools.find((t) => t.slug === slug))
-  .filter(Boolean);
+const picked = relatedFor(currentSlug).flatMap((slug) => listedTools.filter((t) => t.slug === slug));
 const rest = listedTools.filter((t) => t.slug !== currentSlug && !picked.includes(t));
 // Variant landing pages (rotate, extract pages, ...) get no sticker of their own: they join the
 // plain-link row. They are English-only pages, so a localized page leaves them out.

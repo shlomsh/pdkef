@@ -2,7 +2,7 @@
 
 # Backlog
 
-The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 171 live: 63 up next, 21 then, 27 waiting, 60 parked.
+The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 170 live: 62 up next, 21 then, 27 waiting, 60 parked.
 
 ## Redact: finish removal
 
@@ -173,11 +173,7 @@ One shared mechanism that turns, splits and straightens a page, first in Scan, t
 
 Every tool's first screen becomes one full-height hero where the tool acts out its job, and the same screen becomes the workspace after a drop.
 
-### Up next
-
-| ID | P | Task | Note |
-| --- | --- | --- | --- |
-| SITE-47 | P2 | [SITE-47](backlog/tasks/SITE-47.md) · More tools under a tool page: three doodled stickers, picked for that tool | In progress |
+_Nothing live._
 
 ## Form detector accuracy
 
@@ -363,7 +359,7 @@ Done and retired tickets are not listed. Their files stay in [backlog/tasks/](ba
 - Highlight PDF: a tool for reading: 11 done, 1 retired
 - Scan: camera to WhatsApp: 14 done, 0 retired
 - Page enhancement for Scan and Highlight: 7 done, 1 retired
-- Tool pages: show the verb: 8 done, 0 retired
+- Tool pages: show the verb: 9 done, 0 retired
 - Form detector accuracy: 19 done, 1 retired
 - Robustness and debt: 90 done, 4 retired
 - Unify the tools, narrow the graph: 96 done, 0 retired
