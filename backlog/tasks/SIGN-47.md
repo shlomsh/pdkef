@@ -1,10 +1,9 @@
 ---
 id: "SIGN-47"
 title: "Placing a new signature from the dialog keeps a locked Sign tool locked"
-status: "in_progress"
+status: "done"
 priority: "P3"
 epic: "robustness"
-horizon: "next"
 depends_on: []
 ---
 
@@ -27,3 +26,5 @@ and keeps the lock, which is the behaviour `editor.md` describes for every tool.
   still armed and locked. The one-shot (unlocked) case still disarms.
 
 ## Outcome
+
+Done 2026-11-08. `handleAddSignatureElement` dispatches `SET_TOOL` with `{ tool: 'signature', locked: toolLocked }`, reading the lock from `useSignTool()` (the hook runs under the provider in `PdfSignToolInner`). New `useSignaturePlacement.test.tsx`: locked stays locked, unlocked disarms; the locked case fails without the fix.

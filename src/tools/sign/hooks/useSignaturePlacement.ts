@@ -7,7 +7,7 @@ import { uniqueId } from '#editor/model/ids.ts';
 import { DEFAULT_START_WIDTH_PCT } from '#editor/model/signGeometry.js';
 import type { SignMessages } from '#editor/registry/messages.ts';
 import { recordAction } from '#lib/telemetry/actionTrail.ts';
-import type { SignToolAction } from '../components/SignToolContext.tsx';
+import { useSignTool, type SignToolAction } from '../components/SignToolContext.tsx';
 import { buildPlacedSignature } from '../lib/signaturePlacement.ts';
 import type { PendingSignaturePlacement } from './useWorkspaceGestures.ts';
 
@@ -27,6 +27,8 @@ interface SignaturePlacementOptions {
 export function useSignaturePlacement({
   dispatch, elements, style, pageWrapperRefs, logAction, setAnnouncement, saveNewSignature, setActiveSignature, messages: t,
 }: SignaturePlacementOptions) {
+  // Read from context (the hook already runs under the provider) so no caller needs a new prop.
+  const { state: { toolLocked } } = useSignTool();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [tempPlacement, setTempPlacement] = useState<PendingSignaturePlacement | null>(null);
 
@@ -60,7 +62,8 @@ export function useSignaturePlacement({
     const { signature: newSig, persisted } = saveNewSignature(dataUrl, aspectRatio);
     recordAction('draw');
     setActiveSignature(newSig);
-    dispatch({ type: 'SET_TOOL', payload: 'signature' });
+    // A bare 'signature' payload would clear a double-click lock; keep it.
+    dispatch({ type: 'SET_TOOL', payload: { tool: 'signature', locked: toolLocked } });
 
     const placement = tempPlacement || { pageIndex: 0, left: 40, top: 40 };
     recordAction('place_mark');
