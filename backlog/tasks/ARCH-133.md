@@ -1,10 +1,9 @@
 ---
 id: "ARCH-133"
 title: "The page tools' download flow is one state value, not eight"
-status: "in_progress"
+status: "done"
 priority: "P2"
 epic: "unify-and-narrow"
-horizon: "next"
 depends_on: []
 ---
 
@@ -40,3 +39,5 @@ open a follow-up if the reducer makes its double bookkeeping obvious.
 - `e2e/handoff/merge-handoff.spec.js` and `e2e/home/back-navigation.spec.js` stay green.
 
 ## Outcome
+
+Done 2026-11-08. `downloadFlowState.ts` holds `downloadFlowReducer` and its transition table: `tap` is `idle`, `processing` with an optional `waiting { openStrip }` (what `pendingDownload` and `quietPendingRef` were), or `done`, beside `stripOpen`, `downloadedOnce` and `handoffFailed`. `reset()` is one `RESET` dispatch; `handoffBusy` stays on `useNavigatingAway()` and `handoffRunRef` stays a ref (the UI never reads it). The no-deps `prepareNow` effect stays: an existing test remounts a pending output with the same generation, which a dependency list would miss. The returned object is unchanged and no caller moved. 12 reducer tests; the hook's existing tests pass unchanged; `useDownloadFlow` shrank from 209 to 186 lines. Playwright, chromium project, run locally against the container's Chromium 1243 (the pinned 1.64.1 wants 1248): 636 passed; of 14 failures, 10 were specs that launch their own browser build (back-navigation, camera), `mark-outline` fails at aeb5d43 too, and the other three passed on rerun.

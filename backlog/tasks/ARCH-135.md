@@ -1,10 +1,9 @@
 ---
 id: "ARCH-135"
 title: "One five-second Undo window for Redact, Scan and Highlight"
-status: "in_progress"
+status: "done"
 priority: "P3"
 epic: "unify-and-narrow"
-horizon: "next"
 depends_on: ["RED-72"]
 ---
 
@@ -38,3 +37,5 @@ the last file's chip can show on the next file and its Undo is a silent no-op.
 - The stale Merge reference in `useRedactUndo.ts` is gone.
 
 ## Outcome
+
+Done 2026-11-08. `src/shell/useUndoWindow.ts` owns `UNDO_WINDOW_MS` and the timer (5 unit tests). Redact's `useRedactUndo`, Highlight's `useRemovedMark` and `NotePane` run on it; Scan's `scanActions.ts` takes the constant for its own `work.removalTimer`. `UNDO_CHIP_MS` and the stale Merge references are gone. Redact's chip now ends on `FILE_INITIALIZED` (the new file's edits come from `editsForNewFile`) and when an Undo reverts the entry it names (`chipAfterUndo`), with three reducer tests, two red before. `redactReducer` shrank from 240 to 236 lines. NotePane gained an expiry test. Playwright as recorded on ARCH-133.
