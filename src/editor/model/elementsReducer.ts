@@ -144,14 +144,17 @@ export function elementsReducer<S extends ElementsState>(state: S, action: Eleme
         ),
         documentRevision: nextDocumentRevision(state),
       };
-    case 'DELETE_ELEMENT':
+    case 'DELETE_ELEMENT': {
+      // Its anchored comments go too, so a selection on one of them must clear as well.
+      const removed = new Set(state.elements.filter(deletedWith(action.payload)).map(el => el.id));
       return {
         ...state,
-        elements: state.elements.filter(el => !deletedWith(action.payload)(el)), // its comments go too
-        activeElementId: state.activeElementId === action.payload ? null : state.activeElementId,
-        editingElementId: state.editingElementId === action.payload ? null : state.editingElementId,
+        elements: state.elements.filter(el => !removed.has(el.id)),
+        activeElementId: state.activeElementId !== null && removed.has(state.activeElementId) ? null : state.activeElementId,
+        editingElementId: state.editingElementId !== null && removed.has(state.editingElementId) ? null : state.editingElementId,
         documentRevision: nextDocumentRevision(state),
       };
+    }
     case 'SET_ACTIVE_ELEMENT_ID':
       return {
         ...state,
