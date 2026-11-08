@@ -2,7 +2,7 @@
 
 # Backlog
 
-The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 174 live: 65 up next, 21 then, 27 waiting, 61 parked.
+The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 173 live: 64 up next, 21 then, 27 waiting, 61 parked.
 
 ## Redact: finish removal
 
@@ -241,7 +241,6 @@ Every tool on one shell and one set of PDF primitives, and a change reaching onl
 | ID | P | Task | Note |
 | --- | --- | --- | --- |
 | ARCH-85 | P3 | [ARCH-85](backlog/tasks/ARCH-85.md) · Per-spec flake rates are recorded and read nightly | In progress |
-| ARCH-132 | P2 | [ARCH-132](backlog/tasks/ARCH-132.md) · Every handler that awaits and then writes state goes through useLatestRun | In progress |
 | ARCH-133 | P2 | [ARCH-133](backlog/tasks/ARCH-133.md) · The page tools' download flow is one state value, not eight | In progress |
 | QUAL-32 | P2 | [QUAL-32](backlog/tasks/QUAL-32.md) · CI skips Playwright when a push reaches no e2e | In progress |
 | QUAL-33 | P2 | [QUAL-33](backlog/tasks/QUAL-33.md) · A stalled apt install costs at most one retry, not ten minutes | In progress |
@@ -366,7 +365,7 @@ Done and retired tickets are not listed. Their files stay in [backlog/tasks/](ba
 - Tool pages: show the verb: 9 done, 0 retired
 - Form detector accuracy: 19 done, 1 retired
 - Robustness and debt: 96 done, 4 retired
-- Unify the tools, narrow the graph: 96 done, 0 retired
+- Unify the tools, narrow the graph: 97 done, 0 retired
 - Search and languages: 12 done, 0 retired
 - Polish: 29 done, 2 retired
 - Sign tool architecture: 37 done, 1 retired

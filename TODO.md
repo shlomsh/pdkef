@@ -59,7 +59,6 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 ### Unify the tools, narrow the graph
 
 - [ARCH-85](backlog/tasks/ARCH-85.md) P3 · Per-spec flake rates are recorded and read nightly (in progress)
-- [ARCH-132](backlog/tasks/ARCH-132.md) P2 · Every handler that awaits and then writes state goes through useLatestRun (in progress)
 - [ARCH-133](backlog/tasks/ARCH-133.md) P2 · The page tools' download flow is one state value, not eight (in progress)
 - [QUAL-32](backlog/tasks/QUAL-32.md) P2 · CI skips Playwright when a push reaches no e2e (in progress)
 - [QUAL-33](backlog/tasks/QUAL-33.md) P2 · A stalled apt install costs at most one retry, not ten minutes (in progress)
