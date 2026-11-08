@@ -1,10 +1,7 @@
 // @ts-check
 import { useEffect, useRef, useState } from 'preact/hooks';
-import { saveDraft, loadDraft, deleteDraft, hasDraftHint, subscribeToDraftChanges, attachDraftPreview, cacheRecentFile, isStoragePersisted } from './draftStore.ts';
-import { registerBeforeUpdateReload } from '../appUpdate/updateHolds.ts';
-import { useHoldUpdate } from '../hooks/useHoldUpdate.ts';
-import { reportError } from '../telemetry/errorReport.ts';
-import { consumeRecentOpen } from '../handoff/fileArrival.ts';
+import { saveDraft, loadDraft, deleteDraft, attachDraftPreview, cacheRecentFile, isStoragePersisted } from './draftStore.ts';
+import { useDraftRestore, useDraftSave, clearDraftHintAttribute } from './useDraftLifecycle.ts';
 import { DRAFT_SCHEMA_VERSION } from './draftPolicy.js';
 
 // The unpersisted-warning line is scoped to an installed/home-screen app, not
@@ -32,22 +29,7 @@ function isInstalledStandalone() {
   }
 }
 
-// Clears the blocking head script's DOM hint once a real restore check has
-// settled with nothing to restore. Shared by both "no record at all" and
-// "record present but invalid" - see useEditorDraftPersistence's onRestore.
-export function clearDraftHintAttribute() {
-  document.documentElement?.removeAttribute('data-draft-hint');
-  document.documentElement?.removeAttribute('data-editor-restore');
-}
-
-// Upper bound on how long the mount-time restore check may hold the caller in
-// `isRestoring` before giving up. A real IndexedDB open+read is normally
-// single-digit milliseconds; this exists only to protect against a genuinely
-// stuck transaction turning a brief loading state into one that never
-// resolves. It does not cancel the underlying check - a late result still
-// gets applied (see the restore effect below) - it only stops the caller from
-// blocking its empty state on it forever.
-export const RESTORE_TIMEOUT_MS = 4000;
+export { clearDraftHintAttribute } from './useDraftLifecycle.ts';
 
 /**
  * @typedef {object} EditorSnapshot
@@ -111,51 +93,9 @@ export function useDraftPersistence({
   beforeRestore,
   onRestore
 }) {
-  // Restore runs exactly once per mount, before any autosave can fire.
-  const restoreAttempted = useRef(false);
-  // Keep the latest values addressable from event listeners without re-binding them.
+  // Keep the latest values addressable from the save core's build without re-binding anything.
   const latest = useRef(/** @type {EditorSnapshot} */ ({}));
   latest.current = { tool, enabled, file, fileBytes, elements, extra, status, isDirty };
-
-  // Each distinct editor snapshot gets a monotonically increasing revision.
-  // IndexedDB writes cannot be cancelled once started, so completions must prove
-  // they still belong to the live snapshot before changing the visible state.
-  const revisionRef = useRef(0);
-  const sourceRef = useRef(/** @type {EditorSnapshot | null} */ (null));
-  const source = { tool, enabled, file, fileBytes, elements, extra, status, isDirty };
-  const sourceChanged = !sourceRef.current || Object.keys(source).some(
-    (key) => /** @type {EditorSnapshot} */ (sourceRef.current)[/** @type {keyof EditorSnapshot} */ (key)] !== source[/** @type {keyof EditorSnapshot} */ (key)],
-  );
-  if (sourceChanged) {
-    sourceRef.current = source;
-    revisionRef.current += 1;
-  }
-  const currentRevision = revisionRef.current;
-  const [saveState, setSaveState] = useState(/** @type {{ state: 'idle'|'pending'|'saved'|'error'|'conflict', revision: number }} */ ({ state: 'idle', revision: 0 }));
-  // Set at most once per mount, and only once a save has actually succeeded -
-  // see the effect below and isInstalledStandalone's comment for the
-  // anti-noise scoping.
-  const [notPersisted, setNotPersisted] = useState(false);
-  const persistenceCheckedRef = useRef(false);
-  const writePromisesRef = useRef(new Map());
-  // A debounce can still fire after pagehide has flushed that same revision.
-  // Remember successful revisions so one edit produces one write, while a
-  // failed attempt remains eligible for the later debounce/event retry.
-  const savedRevisionsRef = useRef(new Set());
-  const [isRestoring, setIsRestoring] = useState(() => enabled && hasDraftHint(tool));
-
-  // A storage event never fires in the writer tab, only in its peers. Do not
-  // silently replace the document a person is actively editing: surface the
-  // deterministic policy instead. Their next save becomes the newer revision
-  // and wins; replacing the file remains an explicit user action.
-  useEffect(() => {
-    if (!enabled) return;
-    return subscribeToDraftChanges(tool, () => {
-      if (latest.current.status === 'editing' && latest.current.file && latest.current.isDirty) {
-        setSaveState({ state: 'conflict', revision: revisionRef.current });
-      }
-    });
-  }, [enabled, tool]);
 
   // Page-1 preview for the home page's resume card, rendered once per loaded
   // file and reused by every save after it. Autosave fires on a 700ms debounce
@@ -163,7 +103,7 @@ export function useDraftPersistence({
   // PDF page every few keystrokes to produce a byte-identical image.
   const previewRef = useRef(/** @type {string | null} */ (null));
 
-  const buildRecord = (/** @type {EditorSnapshot} */ values = latest.current) => {
+  const buildRecord = (/** @type {EditorSnapshot} */ values) => {
     const { file, fileBytes, elements, extra } = values;
     if (!file || !fileBytes) return null;
     return {
@@ -179,45 +119,54 @@ export function useDraftPersistence({
     };
   };
 
-  const persist = (/** @type {number} */ revision, /** @type {import('./draftRecords.ts').DraftSaveRecord} */ record) => {
-    if (writePromisesRef.current.has(revision)) {
-      return writePromisesRef.current.get(revision);
+  const canSave = enabled && status === 'editing' && !!file && !!fileBytes && isDirty;
+  const save = useDraftSave({
+    tool,
+    enabled,
+    snapshot: [tool, enabled, file, fileBytes, elements, extra, status, isDirty],
+    canSave,
+    build: () => buildRecord(latest.current),
+    write: async (record, isCurrent) => {
+      const saved = (await saveDraft(tool, record)) === true;
+      // A preview that finished after the record was built is reattached once saved,
+      // only while this snapshot is live: a late save must not take another file's preview.
+      if (saved && isCurrent() && previewRef.current) attachDraftPreview(tool, previewRef.current);
+      return saved;
+    },
+    errorStep: 'autosave_draft',
+    watchConflicts: true
+  });
+
+  // Set at most once per mount, and only once a save has actually succeeded -
+  // see the effect below and isInstalledStandalone's comment for the
+  // anti-noise scoping.
+  const [notPersisted, setNotPersisted] = useState(false);
+  const persistenceCheckedRef = useRef(false);
+
+  const { checking: isRestoring } = useDraftRestore({
+    tool,
+    enabled,
+    run: async (source, isCancelled) => {
+      // Sequenced, not raced: whoever resolves first would otherwise claim the
+      // load by timing alone. See useEditorDraftPersistence's beforeRestore.
+      if (beforeRestore && (await beforeRestore())) return true;
+      const record = await loadDraft(tool);
+      if (isCancelled()) return true;
+      if (record && record.fileBytes) {
+        onRestore(record, source);
+        return true;
+      }
+      return false;
     }
-    if (savedRevisionsRef.current.has(revision)) {
-      return Promise.resolve(true);
-    }
-    const write = Promise.resolve()
-      .then(() => saveDraft(tool, record))
-      .then((saved) => saved === true)
-      .catch((e) => { reportError('drafts', e, 'autosave_draft'); return false; })
-      .then((saved) => {
-        // A prior file or edit may have completed after this write started.
-        // It remains stored as a best-effort older revision, but must not make
-        // the newer editor state claim it has been saved.
-        if (revision === revisionRef.current) {
-          // The preview may finish during the debounce, after record was
-          // captured but before its metadata is written. Reattach after the
-          // successful save so that stale snapshot cannot erase the image.
-          if (saved && previewRef.current) attachDraftPreview(tool, previewRef.current);
-          setSaveState({ state: saved ? 'saved' : 'error', revision });
-        }
-        if (saved) savedRevisionsRef.current.add(revision);
-        return saved;
-      })
-      .finally(() => {
-        writePromisesRef.current.delete(revision);
-      });
-    writePromisesRef.current.set(revision, write);
-    return write;
-  };
+  });
 
   // SIGN-06 follow-up: once a save has actually succeeded, ask (once) whether
-  // this origin's storage is really persistent. Gated on `saveState.state ===
+  // this origin's storage is really persistent. Gated on `save.state ===
   // 'saved'` so the check - and therefore the line it can turn on - can never
   // run before a save has succeeded; `draftSaveState`'s own derivation below
   // is a second, independent guard against showing it any earlier.
   useEffect(() => {
-    if (!enabled || persistenceCheckedRef.current || saveState.state !== 'saved') return;
+    if (!enabled || persistenceCheckedRef.current || save.state !== 'saved') return;
     persistenceCheckedRef.current = true;
     if (!isInstalledStandalone()) return;
     let cancelled = false;
@@ -230,55 +179,7 @@ export function useDraftPersistence({
     return () => {
       cancelled = true;
     };
-  }, [enabled, saveState.state]);
-
-  // Restore on mount.
-  useEffect(() => {
-    if (!enabled || restoreAttempted.current) {
-      setIsRestoring(false);
-      return;
-    }
-    restoreAttempted.current = true;
-    // DEBT-58: a recent tile's note is spent on this attempt whatever it finds, so it cannot label a later reopen.
-    const source = consumeRecentOpen(tool) ? 'recent' : 'restore';
-    let cancelled = false;
-    // Only ever moves isRestoring from true to false, so a late timeout firing
-    // after the real check already settled (or vice versa) is a harmless no-op.
-    const stopWaiting = () => {
-      if (!cancelled) setIsRestoring(false);
-    };
-    const timeoutId = setTimeout(stopWaiting, RESTORE_TIMEOUT_MS);
-    (async () => {
-      // Sequenced, not raced: whoever resolves first would otherwise claim the
-      // load by timing alone. See useEditorDraftPersistence's beforeRestore.
-      if (beforeRestore && (await beforeRestore())) {
-        if (cancelled) return;
-        clearTimeout(timeoutId);
-        stopWaiting();
-        return;
-      }
-      if (cancelled) return;
-      const record = await loadDraft(tool);
-      if (cancelled) return;
-      clearTimeout(timeoutId);
-      if (record && record.fileBytes) {
-        onRestore(record, source);
-      } else {
-        // No draft to restore after all. draftStore already clears the
-        // localStorage hint for next time; this clears the *live* DOM
-        // attribute the blocking head script set from that hint before this
-        // component ever mounted, so a stale hint doesn't leave the hero
-        // pre-collapsed above an empty dropzone with nothing to explain it.
-        clearDraftHintAttribute();
-      }
-      stopWaiting();
-    })();
-    return () => {
-      cancelled = true;
-      clearTimeout(timeoutId);
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [enabled, save.state]);
 
   // Render the resume-card preview when the loaded file changes. Deliberately
   // fire-and-forget: it dynamically imports pdf.js, so it must never sit in
@@ -330,58 +231,6 @@ export function useDraftPersistence({
     // costs no extra runs; it is here because cacheRecentFile reads it.
   }, [enabled, file, tool]);
 
-  // Debounced autosave on edit-state changes while editing.
-  useEffect(() => {
-    if (!enabled || status !== 'editing' || !file || !fileBytes || !isDirty) return;
-    const revision = currentRevision;
-    // Capture the rendered values. Reading `latest` when the debounce fires
-    // would let an old timer write a newer edit under the wrong revision.
-    const record = buildRecord(source);
-    if (!record) return;
-    setSaveState({ state: 'pending', revision });
-    const timer = setTimeout(() => {
-      persist(revision, record);
-    }, 700);
-    return () => clearTimeout(timer);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [enabled, tool, status, file, fileBytes, elements, extra, isDirty, currentRevision]);
-
-  // Best-effort immediate flush when the tab is hidden or being unloaded.
-  useEffect(() => {
-    if (!enabled) return;
-    const flush = () => {
-      const { status } = latest.current;
-      if (status !== 'editing' || !latest.current.isDirty) return;
-      const revision = revisionRef.current;
-      // A successful debounce already persisted this exact snapshot. Hiding
-      // or leaving the page must not turn its settled "saved" state back into
-      // a permanent "pending" state just because persist() can dedupe it.
-      if (savedRevisionsRef.current.has(revision)) return;
-      const record = buildRecord();
-      if (record) {
-        setSaveState({ state: 'pending', revision });
-        persist(revision, record);
-      }
-    };
-    const onVisibility = () => {
-      if (document.visibilityState === 'hidden') flush();
-    };
-    document.addEventListener('visibilitychange', onVisibility);
-    window.addEventListener('pagehide', flush);
-    // An update reload (src/lib/appUpdate/updateHolds.ts, MEM-10) must not
-    // outrun the write: flush first, then await every in-flight save.
-    const unregister = registerBeforeUpdateReload(async () => {
-      flush();
-      await Promise.allSettled([...writePromisesRef.current.values()]);
-    });
-    return () => {
-      unregister();
-      document.removeEventListener('visibilitychange', onVisibility);
-      window.removeEventListener('pagehide', flush);
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [enabled, tool]);
-
   // MEM-01/02: `deleteDraft` clears only this tool's work on the entry it is
   // currently pointed at, then drops the pointer - the entry itself, its
   // bytes, and every *other* tool's work on it stay in recents. An ordinary
@@ -395,7 +244,7 @@ export function useDraftPersistence({
     // Invalidate any in-flight completion from the outgoing snapshot
     // immediately, so a save that was already on the wire cannot resurrect
     // what this call just cleared.
-    revisionRef.current += 1;
+    save.invalidate();
     try {
       return await deleteDraft(tool);
     } finally {
@@ -403,25 +252,10 @@ export function useDraftPersistence({
     }
   };
 
-  const canPersist = enabled && status === 'editing' && !!file && !!fileBytes && isDirty;
-  // sourceChanged runs during render, before an old promise can paint its
-  // completion. Derive pending for the new snapshot until its effect records
-  // the same state, so there is no transient stale "Draft saved" chip.
-  // `notPersisted` only ever swaps in for a *current* 'saved' - never for
+  // `notPersisted` only ever swaps in for a 'saved' - never for
   // 'idle'/'pending' (so the warning cannot appear before a save has
-  // succeeded) and never over 'error'/'conflict' (which fall through
-  // untouched, so they keep outranking it as the more urgent state).
-  const draftSaveState = saveState.state === 'conflict'
-    ? 'conflict'
-    : saveState.revision === currentRevision
-    ? (saveState.state === 'saved' && notPersisted ? 'unpersisted' : saveState.state)
-    : (canPersist ? 'pending' : 'idle');
+  // succeeded) and never over 'error'/'conflict' (which keep outranking it).
+  const draftSaveState = save.state === 'saved' && notPersisted ? 'unpersisted' : save.state;
 
-  // Work whose save failed (no IndexedDB, quota) lives only in memory, so
-  // like a tool without drafts it holds an update back (MEM-10).
-  // 'open' holds ordinary updates but not a force: a failed save cannot
-  // resolve within a force's wait.
-  useHoldUpdate(draftSaveState === 'error', 'open');
-
-  return { clearDraft: /** @type {() => Promise<void>} */ (/** @type {unknown} */ (clearDraft)), isRestoring, draftSaveState, draftSaveRevision: currentRevision };
+  return { clearDraft: /** @type {() => Promise<void>} */ (/** @type {unknown} */ (clearDraft)), isRestoring, draftSaveState, draftSaveRevision: save.revision };
 }
