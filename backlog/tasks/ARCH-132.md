@@ -1,7 +1,7 @@
 ---
 id: "ARCH-132"
 title: "Every handler that awaits and then writes state goes through useLatestRun"
-status: "open"
+status: "in_progress"
 priority: "P2"
 epic: "unify-and-narrow"
 horizon: "next"
