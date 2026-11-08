@@ -1,7 +1,7 @@
 ---
 id: "DEBT-73"
 title: "A drag or resize that replaces a live gesture keeps its own started flag"
-status: "open"
+status: "in_progress"
 priority: "P3"
 epic: "robustness"
 horizon: "next"

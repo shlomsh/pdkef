@@ -1,7 +1,7 @@
 ---
 id: "RED-71"
 title: "Delete previews try again after the source document fails to load once"
-status: "open"
+status: "in_progress"
 priority: "P2"
 epic: "redact"
 horizon: "next"

@@ -1,7 +1,7 @@
 ---
 id: "SIGN-47"
 title: "Placing a new signature from the dialog keeps a locked Sign tool locked"
-status: "open"
+status: "in_progress"
 priority: "P3"
 epic: "robustness"
 horizon: "next"

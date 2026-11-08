@@ -1,7 +1,7 @@
 ---
 id: "DRIVE-09"
 title: "Drive open: a second tap on the Google button does not start a second fetch"
-status: "open"
+status: "in_progress"
 priority: "P3"
 epic: "robustness"
 horizon: "next"

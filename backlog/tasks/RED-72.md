@@ -1,7 +1,7 @@
 ---
 id: "RED-72"
 title: "A new file in Redact starts with a clean finish state"
-status: "open"
+status: "in_progress"
 priority: "P2"
 epic: "redact"
 horizon: "next"

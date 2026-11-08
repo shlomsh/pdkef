@@ -1,7 +1,7 @@
 ---
 id: "DEBT-74"
 title: "The 20 second PDF load timeout releases the load it gave up on"
-status: "open"
+status: "in_progress"
 priority: "P3"
 epic: "robustness"
 horizon: "next"
