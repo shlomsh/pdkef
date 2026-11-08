@@ -373,7 +373,7 @@ describe('selection', () => {
 describe('exporting', () => {
   it('EXPORT_STARTED enters the redacting status with a clean slate and announces', () => {
     let s = redactReducer(fresh(), { type: 'EXPORT_FAILED', detail: 'bad', announcement: 'x' });
-    s = run(s, { type: 'EXPORT_CANCELLED', announcement: 'c' }, { type: 'REMOVAL_NOTED', note: 'gone' });
+    s = run(s, { type: 'EXPORT_CANCELLED', announcement: 'c' }, { type: 'REMOVE_STARTED' }, { type: 'REMOVAL_NOTED', note: 'gone' });
     s = redactReducer(s, { type: 'EXPORT_STARTED', announcement: 'Saving…' });
     expect(s.document).toMatchObject({ status: 'redacting', errorDetail: null, exportCancelled: false, progress: 0 });
     expect(s.finish.removedNote).toBeNull();
@@ -457,13 +457,28 @@ describe('the hand-off, Find terms and Remove it', () => {
   });
 
   it('REMOVAL_NOTED shows the note and announces the same words', () => {
-    const s = redactReducer(fresh(), { type: 'REMOVAL_NOTED', note: 'Removed it.' });
+    const s = run(fresh(), { type: 'REMOVE_STARTED' }, { type: 'REMOVAL_NOTED', note: 'Removed it.' });
     expect(s.finish.removedNote).toBe('Removed it.');
     expect(s.view.announcement).toBe('Removed it.');
   });
 
+  it('REMOVAL_NOTED outside a removal is ignored, so a late note from the previous file cannot land (RED-72)', () => {
+    const s = fresh();
+    expect(redactReducer(s, { type: 'REMOVAL_NOTED', note: 'late' })).toBe(s);
+  });
+
+  it('FILE_INITIALIZED resets the finish slice but keeps the saved export for the island to discard (RED-72)', () => {
+    const saved = { blob, name: 'n.pdf' };
+    let s = run(fresh(), { type: 'EXPORT_SAVED', saved }, { type: 'HANDOFF_FAILED' }, { type: 'REMOVE_STARTED' }, { type: 'REMOVAL_NOTED', note: 'x' });
+    expect(s.finish).toMatchObject({ handoffFailed: true, removing: true, removedNote: 'x' });
+    s = load(s);
+    expect(s.finish).toEqual({ exportedForHandoff: saved, handoffFailed: false, removing: false, removedNote: null });
+    expect(redactReducer(s, { type: 'REMOVAL_NOTED', note: 'late' })).toBe(s);
+    expect(redactReducer(s, { type: 'REMOVE_SETTLED' })).toBe(s);
+  });
+
   it('REMOVE_FAILED clears the note and announces why', () => {
-    const s = run(fresh(), { type: 'REMOVAL_NOTED', note: 'x' }, { type: 'REMOVE_FAILED', announcement: "I couldn't remove that." });
+    const s = run(fresh(), { type: 'REMOVE_STARTED' }, { type: 'REMOVAL_NOTED', note: 'x' }, { type: 'REMOVE_FAILED', announcement: "I couldn't remove that." });
     expect(s.finish.removedNote).toBeNull();
     expect(s.view.announcement).toBe("I couldn't remove that.");
   });

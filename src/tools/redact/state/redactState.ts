@@ -161,7 +161,7 @@ export function initialRedactState(init: RedactInitialValues): RedactState {
       drawingState: null,
     },
     selection: { activeBoxId: null, selectedBoxId: null },
-    finish: { exportedForHandoff: null, handoffFailed: false, removing: false, removedNote: null },
+    finish: { exportedForHandoff: null, ...NO_FINISH },
     view: { isFullscreen: false, isPseudoFullscreen: false, announcement: '' },
   };
 }
@@ -338,6 +338,9 @@ function withView(state: RedactState, patch: Partial<RedactState['view']>): Reda
   return { ...state, view: { ...state.view, ...patch } };
 }
 
+/** The finish fields a new file starts with; `exportedForHandoff` is not here, the island's invalidation effect owns it. */
+const NO_FINISH = { handoffFailed: false, removing: false, removedNote: null } as const;
+
 const NO_SELECTION: RedactState['selection'] = { activeBoxId: null, selectedBoxId: null };
 
 /** Disarms; a locked tool is kept by `PLACEMENT_COMMITTED`, not by this. */
@@ -353,13 +356,19 @@ function selectionCleared(state: RedactState): RedactState {
   return { ...state, selection: NO_SELECTION };
 }
 
+/** Ignored outside a removal: a late note from the previous file's removal arrives after FILE_INITIALIZED reset `removing`. */
+function removalNoted(state: RedactState, note: string): RedactState {
+  if (!state.finish.removing) return state;
+  return { ...state, finish: { ...state.finish, removedNote: note }, view: { ...state.view, announcement: note } };
+}
+
 export function redactReducer(state: RedactState, action: RedactAction): RedactState {
   switch (action.type) {
     case 'FILE_INITIALIZED': {
       // A new file starts clean (RED-39): no tool armed, locked or not,
-      // nothing selected, no export in flight, its own style. The last file's
-      // saved export is cleared by the island's invalidation effect
-      // (SAVED_EXPORT_DISCARDED on a file change), not here.
+      // nothing selected, no export in flight, its own style. The finish slice
+      // resets except `exportedForHandoff`: the island's invalidation effect
+      // clears that one (SAVED_EXPORT_DISCARDED on a file change), not here.
       // Before SNG-08 `initialize` called `disarmTool`, which keeps a locked
       // tool, so a tool locked on the last file stayed armed on the next.
       const afterTool = disarmed(state);
@@ -391,7 +400,7 @@ export function redactReducer(state: RedactState, action: RedactAction): RedactS
           activeBlurStrength: action.activeBlurStrength,
         },
         selection: NO_SELECTION,
-        finish: afterTool.finish,
+        finish: { exportedForHandoff: afterTool.finish.exportedForHandoff, ...NO_FINISH },
         view: afterTool.view,
       };
     }
@@ -575,11 +584,7 @@ export function redactReducer(state: RedactState, action: RedactAction): RedactS
     case 'REMOVE_STARTED':
       return withFinish(state, { removing: true });
     case 'REMOVAL_NOTED':
-      return {
-        ...state,
-        finish: { ...state.finish, removedNote: action.note },
-        view: { ...state.view, announcement: action.note },
-      };
+      return removalNoted(state, action.note);
     case 'REMOVE_FAILED':
       return {
         ...state,
