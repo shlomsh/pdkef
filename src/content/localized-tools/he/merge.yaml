@@ -19,7 +19,8 @@ reviewNotes: >-
   (MERGE-27). Those three Hebrew answers are AI drafts pending review. Hash
   refreshed at each English change. 11-08: seoTitle and seoDescription gain
   "לקובץ אחד" and images from the GSC and autocomplete query read (LOC-03),
-  approved by Shlomi.
+  approved by Shlomi. 11-08: h1's second line says אונליין, בחינם וללא הרשמה,
+  Shlomi's words, after he read the first screen.
 sourceHash: 'fnv1a64:a2af572dda1e8a51'
 seoTitle: 'איחוד ומיזוג קבצי PDF לקובץ אחד, בחינם ובלי העלאה | PDkef'
 seoDescription: >-
@@ -28,7 +29,7 @@ seoDescription: >-
   מים.
 schemaName: 'PDkef - איחוד PDF'
 toolName: 'איחוד PDF'
-h1: 'איחוד קבצי PDF בחינם: מיזוג קבצים ישירות בדפדפן'
+h1: 'איחוד קבצי PDF אונליין, בחינם וללא הרשמה'
 h1Name: 'איחוד קבצי PDF'
 subhead: >-
   איחוד או חיבור של כמה קבצי PDF למסמך אחד: גררו כדי לסדר, הוסיפו מספרי
