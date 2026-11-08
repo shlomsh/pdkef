@@ -25,6 +25,7 @@ import { consumeRecentOpen } from '../handoff/fileArrival.ts';
  * Upper bound on how long the mount-time check may hold the caller in "checking". A real IndexedDB
  * open and read is single-digit milliseconds; this only keeps a stuck transaction from turning a
  * brief loading state into one that never ends. It does not cancel the check.
+ * @testSeam
  */
 export const RESTORE_TIMEOUT_MS = 4000;
 const AUTOSAVE_DEBOUNCE_MS = 700;
@@ -35,9 +36,9 @@ export function clearDraftHintAttribute(): void {
   document.documentElement?.removeAttribute('data-editor-restore');
 }
 
-export type DraftSource = 'restore' | 'recent';
+type DraftSource = 'restore' | 'recent';
 
-export interface DraftRestoreInput {
+interface DraftRestoreInput {
   tool: string;
   enabled?: boolean;
   /**
@@ -51,16 +52,20 @@ export interface DraftRestoreInput {
   errorStep?: string;
 }
 
-/** Runs the tool's restore once per mount. `checking` is true until it settles or times out. */
-export function useDraftRestore({ tool, enabled = true, run, clearHint = 'nothing-restored', errorStep = 'restore_draft' }: DraftRestoreInput): { checking: boolean } {
-  const [checking, setChecking] = useState(() => enabled && hasDraftHint(tool));
+/**
+ * Runs the tool's restore once per mount. `checking` (shown) is true while a hinted check runs;
+ * `settled` (for gating saves) turns true once any check ends or times out, hint or not.
+ */
+export function useDraftRestore({ tool, enabled = true, run, clearHint = 'nothing-restored', errorStep = 'restore_draft' }: DraftRestoreInput): { checking: boolean; settled: boolean } {
+  const [hinted] = useState(() => enabled && hasDraftHint(tool));
+  const [settled, setSettled] = useState(!enabled);
   const attempted = useRef(false);
   const latestRun = useRef(run);
   latestRun.current = run;
 
   useEffect(() => {
     if (!enabled || attempted.current) {
-      setChecking(false);
+      setSettled(true);
       return;
     }
     attempted.current = true;
@@ -70,7 +75,7 @@ export function useDraftRestore({ tool, enabled = true, run, clearHint = 'nothin
     const settle = () => {
       if (cancelled) return;
       if (clearHint === 'settled') clearDraftHintAttribute();
-      setChecking(false);
+      setSettled(true);
     };
     const timer = setTimeout(settle, RESTORE_TIMEOUT_MS);
     void (async () => { // reason: every outcome, a throw included, ends in settle()
@@ -92,11 +97,12 @@ export function useDraftRestore({ tool, enabled = true, run, clearHint = 'nothin
     // eslint-disable-next-line react-hooks/exhaustive-deps -- runs once, on mount
   }, []);
 
-  return { checking };
+  return { checking: hinted && !settled, settled };
 }
 
-export type DraftSaveState = 'idle' | 'pending' | 'saved' | 'error' | 'conflict';
+type DraftSaveState = 'idle' | 'pending' | 'saved' | 'error' | 'conflict';
 
+/** @testSeam */
 export interface DraftSaveInput<R> {
   tool: string;
   enabled?: boolean;
@@ -106,8 +112,11 @@ export interface DraftSaveInput<R> {
   canSave: boolean;
   /** Called when a write starts, from the latest render. null means nothing to write. */
   build(): R | null | Promise<R | null>;
-  /** Resolves true once the record is stored. A throw counts as false and is reported. */
-  write(record: R): Promise<boolean>;
+  /**
+   * Resolves true once the record is stored. A throw counts as false and is reported. `isCurrent()`
+   * tells a step after the write (attaching a preview) whether this snapshot is still the live one.
+   */
+  write(record: R, isCurrent: () => boolean): Promise<boolean>;
   /** The step label for reportError('drafts', ...). */
   errorStep: string;
   /** Show another tab's write of this tool's work as 'conflict', until this tab's next save starts. */
@@ -115,6 +124,7 @@ export interface DraftSaveInput<R> {
   debounceMs?: number;
 }
 
+/** @testSeam */
 export interface DraftSave {
   /** The public state: a stale completion never shows for a newer snapshot. */
   state: DraftSaveState;
@@ -156,7 +166,7 @@ export function useDraftSave<R>(input: DraftSaveInput<R>): DraftSave {
         const record = await latest.current.build();
         if (record !== null) {
           wrote = true;
-          ok = await latest.current.write(record);
+          ok = await latest.current.write(record, () => rev === revisionRef.current);
         }
       } catch (err) {
         wrote = true;
