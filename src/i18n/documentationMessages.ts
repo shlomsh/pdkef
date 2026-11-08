@@ -197,7 +197,7 @@ const hebrewMessages = {
   inEnglish: 'באנגלית',
   lastUpdated: 'עודכן לאחרונה',
   airplaneModeNotice: 'הפעילו מצב טיסה ונסו. זה עדיין עובד.',
-  heroPhoneLine: 'חינם, פרטי, ישר בדפדפן.',
+  heroPhoneLine: 'חינם, ללא הרשמה, ישר בדפדפן.',
   notesHeading: 'כלי PDF חינמיים, בדירוג של מי שמשתמש בהם',
   notesIntro: 'אחרי הורדה אני שואל איך היה. זה מה שאנשים ענו.',
   notesBy: '{tool}, {place}',
