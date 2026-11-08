@@ -121,6 +121,10 @@ export interface DraftSaveInput<R> {
   errorStep: string;
   /** Show another tab's write of this tool's work as 'conflict', until this tab's next save starts. */
   watchConflicts?: boolean;
+  /** There is work on screen, saved or not, that a conflict would concern. Defaults to `canSave`. */
+  hasWork?: boolean;
+  /** Work the tool queues outside `write` (a delete), awaited before an update reloads the tab. */
+  drain?(): Promise<unknown>;
   debounceMs?: number;
 }
 
@@ -201,6 +205,7 @@ export function useDraftSave<R>(input: DraftSaveInput<R>): DraftSave {
     const unregister = registerBeforeUpdateReload(async () => {
       await flush();
       await Promise.allSettled([...inflight.current.values()]);
+      await latest.current.drain?.();
     });
     return () => {
       document.removeEventListener('visibilitychange', onVisibility);
@@ -213,7 +218,8 @@ export function useDraftSave<R>(input: DraftSaveInput<R>): DraftSave {
   useEffect(() => {
     if (!enabled || !watchConflicts) return undefined;
     return subscribeToDraftChanges(tool, () => {
-      const onScreen = latest.current.canSave || savedRevision.current === revisionRef.current;
+      const { canSave: can, hasWork = can } = latest.current;
+      const onScreen = hasWork || savedRevision.current === revisionRef.current;
       if (onScreen) setSaveState({ state: 'conflict', revision: revisionRef.current });
     });
   }, [enabled, watchConflicts, tool]);
@@ -231,7 +237,9 @@ export function useDraftSave<R>(input: DraftSaveInput<R>): DraftSave {
   const api = useRef<Pick<DraftSave, 'markSaved' | 'invalidate'>>({
     markSaved() {
       savedRevision.current = revisionRef.current;
-      setSaveState({ state: 'idle', revision: revisionRef.current });
+      const rev = revisionRef.current;
+      // A conflict another tab raised still stands: the stored draft is theirs now.
+      setSaveState((prev) => (prev.state === 'conflict' ? prev : { state: 'idle', revision: rev }));
     },
     invalidate() {
       revisionRef.current += 1;

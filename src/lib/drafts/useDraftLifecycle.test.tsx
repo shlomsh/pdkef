@@ -251,6 +251,38 @@ describe('useDraftSave', () => {
     expect(save.state).toBe('saved');
   });
 
+  it('an update reload also waits for work the tool queued outside write', async () => {
+    let finish!: () => void;
+    const drain = vi.fn(() => new Promise<void>((r) => { finish = r; }));
+    show({ snapshot: ['a'], canSave: false, drain });
+    let done = false;
+    const reload = Promise.all(mocks.flushes.map((f) => f())).then(() => { done = true; });
+    await settle();
+    expect(drain).toHaveBeenCalledTimes(1);
+    expect(done).toBe(false);
+    finish();
+    await act(async () => { await reload; });
+    expect(done).toBe(true);
+  });
+
+  it('markSaved leaves a standing conflict in place', async () => {
+    show({ snapshot: ['restored'], canSave: false, hasWork: true, watchConflicts: true });
+    act(() => { mocks.listeners.forEach((l) => l()); });
+    expect(save.state).toBe('conflict');
+    act(() => { save.markSaved(); });
+    show({ snapshot: ['restored'], canSave: false, hasWork: true, watchConflicts: true });
+    expect(save.state).toBe('conflict');
+  });
+
+  it('a conflict needs work on screen: hasWork, not canSave, decides', () => {
+    show({ snapshot: ['a'], canSave: false, watchConflicts: true });
+    act(() => { mocks.listeners.forEach((l) => l()); });
+    expect(save.state).toBe('idle');
+    show({ snapshot: ['a'], canSave: false, hasWork: true, watchConflicts: true });
+    act(() => { mocks.listeners.forEach((l) => l()); });
+    expect(save.state).toBe('conflict');
+  });
+
   it('invalidate drops an in-flight completion', async () => {
     let release!: (v: boolean) => void;
     write.mockImplementationOnce(() => new Promise<boolean>((r) => { release = r; }));

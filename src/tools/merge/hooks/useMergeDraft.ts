@@ -249,6 +249,8 @@ export function useMergeDraft({
     write: (record) => saveDraft(TOOL, record).then((saved) => saved === true),
     errorStep: 'autosave_merge_draft',
     watchConflicts: true,
+    // A restored set still hydrating is work on screen too: another tab's write concerns it.
+    hasWork: enabled && entries.length > 0,
     debounceMs: autosaveDebounceMs,
   });
 
