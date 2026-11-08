@@ -5,7 +5,7 @@ status: "blocked"
 priority: "P1"
 epic: "search-and-languages"
 depends_on: ["LOC-15"]
-waiting_on: "2026-11-08"
+waiting_on: "2026-11-15"
 ---
 
 # LOC-17 · Read 2026-11-08 · Indonesian pilot: kompres pdf 1 mb / di bawah 1 mb family
@@ -52,3 +52,20 @@ on-device claim natively at position three; full capture and the two decisions (
 this read; any second page is 100 KB) are in LOC-15. Read this ticket against that: page two on
 `kompres pdf 1 mb` / `di bawah 1 mb` is the success bar, and the 100 KB family's impressions are the
 signal for the next page.
+
+*2026-11-08 · read void, the page was never indexed.* Search Console export (3 months, Indonesia
+and site-wide): `/id/kompres-pdf-di-bawah-1-mb/` has no row, so zero impressions. URL Inspection says
+"URL is not on Google, URL is unknown to Google, no referring sitemaps, last crawl N/A". The cause:
+`sitemap.xml` was first submitted in Search Console on 2026-11-02 (read 2026-11-07, success, 51
+pages); in September the page was offered only through two manual indexing requests and one inbound
+link, and neither took. So the 8-week clock never ran. This is not the kill bar, it is a missing test.
+Context for the read: Indonesia is 148 clicks / 2,200 impressions, almost all English "blur pdf" to
+`/redact/`; Indonesian-language queries are about 100 impressions (blur about 48 at positions 4 to 5,
+compress about 29 at 10 to 17, none on the 1 MB family), which is the baseline to beat.
+
+**Restart:** request indexing again (done by Shlomi in Search Console), confirm Inspection shows the
+page indexed with a last-crawl date, then read eight weeks from that date. `waiting_on` is 2026-11-15 to confirm indexing, then the indexed date plus 56 days. Until then no second Indonesian page.
+
+*2026-11-08, evening:* live test passed ("URL is available to Google") and indexing was requested
+(priority crawl queue). The eight-week read is **2027-01-03** if the page shows indexed by 2026-11-15;
+otherwise it moves to the actual indexed date plus 56 days.

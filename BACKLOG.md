@@ -2,7 +2,7 @@
 
 # Backlog
 
-The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 170 live: 62 up next, 21 then, 27 waiting, 60 parked.
+The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 169 live: 61 up next, 21 then, 27 waiting, 60 parked.
 
 ## Redact: finish removal
 
@@ -273,7 +273,6 @@ Mostly waiting on dated Search Console reads. Two small things can ship now.
 | ID | P | Task | Note |
 | --- | --- | --- | --- |
 | SEO-03 | P1 | [SEO-03](backlog/tasks/SEO-03.md) · External signals: the work that moves the constraint and does not live in this repo |  |
-| SEO-58 | P1 | [SEO-58](backlog/tasks/SEO-58.md) · One rating for the whole app in search results | In progress |
 | LOC-18 | P2 | [LOC-18](backlog/tasks/LOC-18.md) · Hebrew edition sign-off: Israeli portal-limit guides and Shlomi's own /he/ read-through | In progress |
 | SEO-46 | P2 | [SEO-46](backlog/tasks/SEO-46.md) · Real star ratings: ask once when a tool finishes, bake an honest aggregate into each tool page, and win the SERP stars | In progress |
 | SEO-48 | P2 | [SEO-48](backlog/tasks/SEO-48.md) · Ratings carry country and region, and a person may add a comment | In progress |
@@ -289,7 +288,7 @@ Mostly waiting on dated Search Console reads. Two small things can ship now.
 
 | ID | P | Task | Note |
 | --- | --- | --- | --- |
-| LOC-17 | P1 | [LOC-17](backlog/tasks/LOC-17.md) · Read 2026-11-08 · Indonesian pilot: kompres pdf 1 mb / di bawah 1 mb family | Waiting on 2026-11-08 |
+| LOC-17 | P1 | [LOC-17](backlog/tasks/LOC-17.md) · Read 2026-11-08 · Indonesian pilot: kompres pdf 1 mb / di bawah 1 mb family | Waiting on 2026-11-15 |
 | SEO-47 | P1 | [SEO-47](backlog/tasks/SEO-47.md) · Page tools get the names people search: Organize, Rotate, Remove pages, Page numbers, Extract pages | Waiting on 2026-11-23 |
 | LOC-03 | P2 | [LOC-03](backlog/tasks/LOC-03.md) · Read 2026-11-06 · Hebrew pilot: three tool pages, phrased the way Israelis actually search, reviewed in-house | Waiting on 2026-11-06 |
 | LOC-13 | P2 | [LOC-13](backlog/tasks/LOC-13.md) · Spanish pilot: one target-size compress page for Mexico, on the niche this domain already wins | Waiting on LOC-17 and SEO-40 |
@@ -363,7 +362,7 @@ Done and retired tickets are not listed. Their files stay in [backlog/tasks/](ba
 - Form detector accuracy: 19 done, 1 retired
 - Robustness and debt: 97 done, 4 retired
 - Unify the tools, narrow the graph: 100 done, 0 retired
-- Search and languages: 12 done, 0 retired
+- Search and languages: 13 done, 0 retired
 - Polish: 29 done, 2 retired
 - Sign tool architecture: 37 done, 1 retired
 - Editor architecture: 14 done, 0 retired

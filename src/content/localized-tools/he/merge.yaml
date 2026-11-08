@@ -17,13 +17,15 @@ reviewNotes: >-
   מיזוג the synonym. 10-01: Drive, Dropbox and iCloud FAQ (MERGE-18); 10-12:
   photos FAQ (MERGE-22); 11-03: Drive FAQ gains the Open with route
   (MERGE-27). Those three Hebrew answers are AI drafts pending review. Hash
-  refreshed at each English change.
+  refreshed at each English change. 11-08: seoTitle and seoDescription gain
+  "לקובץ אחד" and images from the GSC and autocomplete query read (LOC-03),
+  approved by Shlomi.
 sourceHash: 'fnv1a64:a2af572dda1e8a51'
-seoTitle: 'איחוד ומיזוג קבצי PDF בחינם - ישירות בדפדפן, בלי העלאה | PDkef'
+seoTitle: 'איחוד ומיזוג קבצי PDF לקובץ אחד, בחינם ובלי העלאה | PDkef'
 seoDescription: >-
-  אחדו ומזגו קבצי PDF לקובץ אחד, בחינם ובלי הגבלה. גררו לסדר הרצוי, הוסיפו
-  מספרי עמודים והורידו. הכול קורה בדפדפן, הקובץ לא עולה לשום שרת. בלי הרשמה
-  ובלי סימן מים.
+  אחדו קבצי PDF ותמונות לקובץ אחד, בחינם ובלי הגבלה: גררו לסדר הרצוי
+  והורידו. הכול קורה בדפדפן, הקבצים לא עולים לשום שרת. בלי הרשמה ובלי סימן
+  מים.
 schemaName: 'PDkef - איחוד PDF'
 toolName: 'איחוד PDF'
 h1: 'איחוד קבצי PDF בחינם: מיזוג קבצים ישירות בדפדפן'
