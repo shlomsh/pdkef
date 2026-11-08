@@ -219,6 +219,23 @@ describe('useElementResize MOBI-31 pinch cancellation', () => {
   });
 });
 
+describe('useElementResize replacing a live gesture (DEBT-73)', () => {
+  afterEach(() => {
+    document.body.innerHTML = '';
+  });
+
+  it('keeps isSpanResizing true when a second text width resize starts before the first released', () => {
+    const text = { id: 't9', type: 'text', pageIndex: 0, left: 20, top: 10, text: 'Hi', fontSize: 12, textDirection: 'ltr' };
+    const { handleNode, apiRef } = mount({ element: text, handle: 'left' });
+
+    dispatchTouchStart(handleNode, [touch(300, 400)]);
+    expect(apiRef.current!.isSpanResizing).toBe(true);
+
+    dispatchTouchStart(handleNode, [touch(310, 400)]); // first never released
+    expect(apiRef.current!.isSpanResizing).toBe(true);
+  });
+});
+
 describe('useElementResize handle direction', () => {
   afterEach(() => {
     document.body.innerHTML = '';

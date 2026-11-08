@@ -1,10 +1,9 @@
 ---
 id: "DEBT-73"
 title: "A drag or resize that replaces a live gesture keeps its own started flag"
-status: "in_progress"
+status: "done"
 priority: "P3"
 epic: "robustness"
-horizon: "next"
 depends_on: []
 ---
 
@@ -36,3 +35,5 @@ this exact reason; the flag above it was left behind.
 - `npm run test:gesture-golden-rule` stays green.
 
 ## Outcome
+
+Done 2026-11-08. Both hooks cancel the outgoing gesture first: `useDraggableElement.js` before `isDragging.current = true`, and `useElementResize.js` right after the page-wrapper guard, so the old gesture's DOM restore runs before this one measures, flags and snapshots. A new `useDraggableElement.test.tsx` and a new block in `useElementResize.test.tsx` start a second gesture over a live one; both failed (false) before and pass after. `test:gesture-golden-rule` and the size ratchet pass.
