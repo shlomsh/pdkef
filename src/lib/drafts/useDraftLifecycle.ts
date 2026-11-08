@@ -198,7 +198,7 @@ export function useDraftSave<R>(input: DraftSaveInput<R>): DraftSave {
 
   useEffect(() => {
     if (!enabled) return;
-    const onVisibility = () => { if (document.visibilityState === 'hidden') void flush(); };
+    const onVisibility = () => { if (document.visibilityState === 'hidden') void flush(); }; // reason: writeNow reports its own failures
     const onPageHide = () => void flush();
     document.addEventListener('visibilitychange', onVisibility);
     window.addEventListener('pagehide', onPageHide);
