@@ -337,3 +337,17 @@ and SEO-45 records `/merge/` dropping out of results when its title lead changed
 
 For the 11-06 read: sign-family queries count from this change, not from 09-24; the fill-family rows are
 the guard on what the title gave up. Indexing requested for `/he/sign/` on 2026-10-27 after the deploy (Shlomi).
+
+*2026-11-08 · `/he/merge/` title and description, from the query read.* Israel CTR on the page is 0.6%
+at position 7.9 (3 months, 12.1K impressions, 70 clicks), and climbing since mid-September. Hebrew merge
+queries in the site-wide export (163 queries, 7,232 impressions): איחוד 55%, מיזוג 30%, חיבור 7%
+(best CTR of the four verbs), צירוף 5%; "קבצי PDF" 70%; חינם 14% at position 6.0; "לקובץ אחד" 8%,
+offered by Israeli autocomplete under all four verbs, and autocomplete also asks for JPG and image
+merges. The old title had every head term but not "לקובץ אחד", and spent its tail on "ישירות בדפדפן",
+which repeats "בלי העלאה". New, approved by Shlomi: `seoTitle` `איחוד ומיזוג קבצי PDF לקובץ אחד, בחינם
+ובלי העלאה | PDkef` (57 characters, was 62); `seoDescription` leads with "קבצי PDF ותמונות לקובץ אחד"
+(144, was 161). The opening `איחוד ומיזוג קבצי PDF` is unchanged on purpose: SEO-45's `/merge/` fell out
+of the results the day Google read a new title, and this page holds position 6.4 on both head queries.
+Expect a modest gain at most; PDF24's stars and the AI Overview still take the click (SEO-58).
+**After deploy:** request indexing for `/he/merge/`; read CTR four weeks after Search Console shows
+the new title in the SERP, not before.

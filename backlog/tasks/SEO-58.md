@@ -1,10 +1,9 @@
 ---
 id: "SEO-58"
 title: "One rating for the whole app in search results"
-status: "in_progress"
+status: "done"
 priority: "P1"
 epic: "search-and-languages"
-horizon: "now"
 depends_on: ["SEO-46"]
 ---
 
@@ -57,3 +56,12 @@ PDkef is one, but its docs do not address an app rating on a tool's page, so Goo
   "How did it go?" title.
 - Notes are paper-proportioned and each its own size at desktop width, the place sits on its own line beside the flag, and
   the board shares the page's 1080px grid.
+
+## Read 2026-11-08: the stars show
+
+Shlomi's screenshot of Google for `blur pdf`: `/redact/` is the first result with `5.0 ★★★★★ (23) · Free ·
+Utilities/Tools`, one day after the 2026-11-07 indexing request, from the 4.96-from-23 markup. So Google accepts the
+app rating on a tool page, and the last done-when holds. The home page's result on the brand search `pdkef` showed
+no stars that day, which leaves its markup as it is. Whether to put the rating on more pages (first candidate
+`/he/merge/`, 12.1K impressions at 0.6% CTR under PDF24's stars, LOC-03) reverses the 2026-11-06 call and is
+Shlomi's to make; it is not part of this ticket.
