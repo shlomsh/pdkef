@@ -1,10 +1,9 @@
 ---
 id: "ARCH-132"
 title: "Every handler that awaits and then writes state goes through useLatestRun"
-status: "in_progress"
+status: "done"
 priority: "P2"
 epic: "unify-and-narrow"
-horizon: "next"
 depends_on: ["DRIVE-08", "DRIVE-09"]
 ---
 
@@ -35,3 +34,5 @@ sites); this ticket is about handlers, which have no cleanup to hang a flag on.
 - No new hand-rolled `Ref.current++` run counters in `src/shell/` or `src/lib/` (grep in the PR).
 
 ## Outcome
+
+Done 2026-11-08. `useOpenPageDocument` takes a `useLatestRun` ticket in `open()` and settles it on its three final paths; `pickedBefore` keeps the replace_file / add_files trail. Its existing stale-pick and stale-probe tests pass unchanged (a refactor, so no red step). DRIVE-08 moved `useSaveToDrive` onto `useLatestRun`, DRIVE-09 took an in-flight flag, ARCH-133 kept `handoffRunRef`. The rule is the new "Async results that went stale" section of `tools-and-shell.md`. A grep finds no hand-rolled `Ref.current++` run counter left in `src/shell/` or `src/lib/` other than `handoffRunRef`; `useDraftPersistence.js`'s `revisionRef` counts document revisions, not runs.

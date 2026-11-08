@@ -9,6 +9,7 @@
  * `onLoaded`; both run from the latest render, so they may close over fresh state.
  */
 import { useCallback, useRef, useState } from 'preact/hooks';
+import { useLatestRun } from '#lib/hooks/useLatestRun.ts';
 import { probeEncryption } from '#lib/pdf/pdfEncryption.ts';
 import { loadPdfWithPages } from '#lib/pdf/loadPdfPages.ts';
 import { reportError, type ErrorArea } from '#lib/telemetry/errorReport.ts';
@@ -91,15 +92,17 @@ export function useOpenPageDocument(options: OpenPageDocumentOptions): OpenPageD
   const [loadId, setLoadId] = useState(0);
   const [loadStatus, setLoadStatus] = useState<OpenLoadStatus>('idle');
   const [needsUnlock, setNeedsUnlock] = useState<NeedsUnlockState | null>(null);
-  // The file picked last. A load that finishes after a newer pick is stale.
-  const pickedRef = useRef<File | null>(null);
+  // A load that finishes after a newer pick is stale: begin() supersedes the earlier run.
+  const run = useLatestRun();
+  const pickedBefore = useRef(false);
   const optionsRef = useRef(options);
   optionsRef.current = options;
 
   const open = useCallback(async (selected: File) => {
     const { loader, unlockKinds, messages, announce, onPick, onLoaded } = optionsRef.current;
-    recordAction(pickedRef.current ? 'replace_file' : 'add_files');
-    pickedRef.current = selected;
+    const ticket = run.begin();
+    recordAction(pickedBefore.current ? 'replace_file' : 'add_files');
+    pickedBefore.current = true;
     setFile(selected);
     setWorkingFile(selected);
     setLoadId((n) => n + 1);
@@ -117,30 +120,33 @@ export function useOpenPageDocument(options: OpenPageDocumentOptions): OpenPageD
         // The probe itself failing says nothing about the file; load as today.
         reportError('pdf_tool_run', err, 'check_encryption');
       }
-      if (pickedRef.current !== selected) return;
+      if (!ticket.isCurrent()) return;
       if (protection === 'needs-password' || protection === 'owner-restricted') {
         if (unlockKinds.includes(protection)) {
           setNeedsUnlock({ kind: protection, bytes });
           setLoadStatus('idle');
           announce(protection === 'needs-password' ? messages.needsPassword : messages.restricted ?? messages.needsPassword);
+          ticket.settle();
           return;
         }
       }
       const loaded = await loader.run(bytes, selected);
-      if (pickedRef.current !== selected) return;
+      if (!ticket.isCurrent()) return;
       setWorkingFile(loaded.workingFile ?? selected);
       setPageCount(loaded.pageCount);
       setLoadStatus('idle');
       onLoaded({ pageCount: loaded.pageCount, file: selected });
       announce(formatMessage(messages.loaded, { name: selected.name, count: loaded.pageCount }));
+      ticket.settle();
     } catch (err) {
       reportError(optionsRef.current.loader.area, err, 'load_document');
       console.error(err);
-      if (pickedRef.current !== selected) return;
+      if (!ticket.isCurrent()) return;
       setLoadStatus('error');
       announce(messages.loadFailed);
+      ticket.settle();
     }
-  }, []);
+  }, [run]);
 
   return { file, workingFile, pageCount, loadId, loadStatus, needsUnlock, open };
 }
