@@ -1,10 +1,9 @@
 ---
 id: "DEBT-72"
 title: "Deleting an element clears a selection that pointed at one of its comments"
-status: "in_progress"
+status: "done"
 priority: "P2"
 epic: "robustness"
-horizon: "next"
 depends_on: []
 ---
 
@@ -34,3 +33,5 @@ reducer.
 - Undo of that delete restores the element and its comments with nothing selected.
 
 ## Outcome
+
+Done 2026-11-08. `DELETE_ELEMENT` builds the set of ids `deletedWith` removes and clears `activeElementId` / `editingElementId` when either is in it (`elementsReducer.ts:147-157`). Three reducer tests: a selected anchored comment, a selected and editing one, and an unrelated selection that stays; the first two fail without the fix. Undo needs no change: after the delete both ids are null, and `stepHistory` keeps a null selection null.

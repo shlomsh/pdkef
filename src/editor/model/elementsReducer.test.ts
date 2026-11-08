@@ -147,6 +147,29 @@ describe('elementsReducer', () => {
     expect(next.elements.map((el) => el.id)).toEqual(['c-2', 'c-3', 'el-2']);
   });
 
+  describe('DELETE_ELEMENT selection on an anchored comment', () => {
+    const comment = { id: 'c-1', type: 'comment', pageIndex: 0, left: 0, top: 0, width: 1, height: 1, comment: 'x', anchor: { kind: 'element', elementId: 'el-1' } } as unknown as EditorElement;
+    const base: SignToolState = { ...initialState, elements: [textElement('el-1'), comment, rectangleElement('el-2')] };
+
+    it('clears the selection when the selected comment goes with its element', () => {
+      const next = reducer({ ...base, activeElementId: 'c-1' }, { type: 'DELETE_ELEMENT', payload: 'el-1' });
+      expect(next.elements.map((el) => el.id)).toEqual(['el-2']);
+      expect(next.activeElementId).toBeNull();
+    });
+
+    it('clears both ids when the comment was being edited', () => {
+      const next = reducer({ ...base, activeElementId: 'c-1', editingElementId: 'c-1' }, { type: 'DELETE_ELEMENT', payload: 'el-1' });
+      expect(next.elements.map((el) => el.id)).toEqual(['el-2']);
+      expect(next.activeElementId).toBeNull();
+      expect(next.editingElementId).toBeNull();
+    });
+
+    it('keeps an unrelated selection', () => {
+      const next = reducer({ ...base, activeElementId: 'el-2' }, { type: 'DELETE_ELEMENT', payload: 'el-1' });
+      expect(next.activeElementId).toBe('el-2');
+    });
+  });
+
   it('SET_ACTIVE_ELEMENT_ID sets activeElementId', () => {
     const action = { type: 'SET_ACTIVE_ELEMENT_ID', payload: 'el-1' } satisfies SignToolAction;
     const nextState = reducer(initialState, action);
