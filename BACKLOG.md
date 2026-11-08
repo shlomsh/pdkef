@@ -2,18 +2,11 @@
 
 # Backlog
 
-The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 182 live: 71 up next, 23 then, 27 waiting, 61 parked.
+The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 174 live: 63 up next, 23 then, 27 waiting, 61 parked.
 
 ## Redact: finish removal
 
 Find covers exactly what it matched, Delete reaches every object, and the saved-file check can remove what it finds.
-
-### Up next
-
-| ID | P | Task | Note |
-| --- | --- | --- | --- |
-| RED-71 | P2 | [RED-71](backlog/tasks/RED-71.md) · Delete previews try again after the source document fails to load once | In progress |
-| RED-72 | P2 | [RED-72](backlog/tasks/RED-72.md) · A new file in Redact starts with a clean finish state | In progress |
 
 ### Waiting
 
@@ -204,13 +197,7 @@ Production errors you can see, small tools that clean up after themselves, and d
 | ID | P | Task | Note |
 | --- | --- | --- | --- |
 | DEBT-65 | P2 | [DEBT-65](backlog/tasks/DEBT-65.md) · Two layout-shift specs failed once each in the 2026-10-27 nightly | In progress |
-| DEBT-72 | P2 | [DEBT-72](backlog/tasks/DEBT-72.md) · Deleting an element clears a selection that pointed at one of its comments | In progress |
-| DRIVE-08 | P2 | [DRIVE-08](backlog/tasks/DRIVE-08.md) · Save to Drive: a late failure from an earlier tap no longer ends the newer save | In progress |
-| DEBT-73 | P3 | [DEBT-73](backlog/tasks/DEBT-73.md) · A drag or resize that replaces a live gesture keeps its own started flag | In progress |
-| DEBT-74 | P3 | [DEBT-74](backlog/tasks/DEBT-74.md) · The 20 second PDF load timeout releases the load it gave up on | In progress |
-| DRIVE-09 | P3 | [DRIVE-09](backlog/tasks/DRIVE-09.md) · Drive open: a second tap on the Google button does not start a second fetch | In progress |
 | MEM-24 | P3 | [MEM-24](backlog/tasks/MEM-24.md) · A service worker that cannot install, or never completes its precache, says so | In progress |
-| SIGN-47 | P3 | [SIGN-47](backlog/tasks/SIGN-47.md) · Placing a new signature from the dialog keeps a locked Sign tool locked | In progress |
 
 ### Then, in order
 
@@ -376,14 +363,14 @@ Small, independent, good for a spare hour.
 
 Done and retired tickets are not listed. Their files stay in [backlog/tasks/](backlog/tasks/) as the record.
 
-- Redact: finish removal: 27 done, 1 retired
+- Redact: finish removal: 29 done, 1 retired
 - Sign: finish fill mode: 3 done, 1 retired
 - Highlight PDF: a tool for reading: 11 done, 1 retired
 - Scan: camera to WhatsApp: 14 done, 0 retired
 - Page enhancement for Scan and Highlight: 7 done, 1 retired
 - Tool pages: show the verb: 9 done, 0 retired
 - Form detector accuracy: 19 done, 1 retired
-- Robustness and debt: 90 done, 4 retired
+- Robustness and debt: 96 done, 4 retired
 - Unify the tools, narrow the graph: 96 done, 0 retired
 - Search and languages: 12 done, 0 retired
 - Polish: 29 done, 2 retired
