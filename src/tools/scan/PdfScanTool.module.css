@@ -167,15 +167,42 @@
   outline-offset: 2px;
 }
 
-/* Download with the Save to Google Drive arrow joined to its end (desktop). */
+/* Download with the Save to Google Drive arrow joined to its end (desktop): one split button. The arrow takes the
+   Download element's own fill, corners and shadow for its state, divided from it by a thin line. */
 .download-joined {
   --toolbar-gap: 0px;
+  --drive-arrow-width: 3rem;
+  --drive-arrow-icon: 18px;
+  --drive-arrow-radius: var(--radius);
+  --drive-arrow-shadow: none;
   display: flex;
   align-items: stretch;
+  border-radius: var(--radius);
 }
 .download-joined > a {
   flex: 1 1 auto;
   width: auto;
+  min-width: 0;
   border-start-end-radius: 0;
   border-end-end-radius: 0;
+  border-inline-end-width: 0;
+}
+.download-joined:has(> [data-state='ready']) {
+  --drive-arrow-bg: var(--color-primary);
+  --drive-arrow-color: var(--color-surface);
+  --drive-arrow-border: transparent;
+  --drive-arrow-divider: color-mix(in srgb, var(--color-surface) 35%, transparent);
+  --drive-arrow-hover-bg: var(--color-primary-hover);
+  --drive-arrow-hover-border: transparent;
+  --drive-arrow-open-bg: var(--color-primary-hover);
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--color-primary) 26%, transparent);
+}
+.download-joined > [data-state='ready'] { box-shadow: none; }
+.download-joined:has(> [data-state='saved']) {
+  --drive-arrow-bg: var(--color-success-soft);
+  --drive-arrow-border: var(--color-success);
+  --drive-arrow-divider: color-mix(in srgb, var(--color-success) 40%, transparent);
+  --drive-arrow-hover-bg: color-mix(in srgb, var(--color-success) 14%, var(--color-success-soft));
+  --drive-arrow-hover-border: var(--color-success);
+  --drive-arrow-open-bg: color-mix(in srgb, var(--color-success) 14%, var(--color-success-soft));
 }
