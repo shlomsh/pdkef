@@ -268,6 +268,24 @@ describe('the undo chip', () => {
     const s = fresh();
     expect(redactReducer(s, { type: 'UNDO_CHIP_DISMISSED' })).toBe(s);
   });
+
+  it('a new file does not inherit the last file\'s chip', () => {
+    const shown = redactReducer(fresh(), { type: 'UNDO_CHIP_SHOWN', message: 'm', entryId: 'e' });
+    expect(load(shown).edits.undoAction).toBeNull();
+  });
+
+  it('a keyboard Undo of the entry the chip names clears the chip', () => {
+    let s = run(fresh(), addCommit([box('a')]));
+    s = run(s, { type: 'UNDO_CHIP_SHOWN', message: 'm', entryId: s.edits.history.past[0].id }, { type: 'UNDO' });
+    expect(s.edits.undoAction).toBeNull();
+  });
+
+  it('an Undo of a different, newer entry keeps the chip', () => {
+    let s = run(fresh(), addCommit([box('a')]));
+    const chipId = s.edits.history.past[0].id;
+    s = run(s, { type: 'UNDO_CHIP_SHOWN', message: 'm', entryId: chipId }, addCommit([box('b')], 1), { type: 'UNDO' });
+    expect(s.edits.undoAction).toMatchObject({ entryId: chipId });
+  });
 });
 
 describe('the tool', () => {

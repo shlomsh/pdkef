@@ -3,6 +3,7 @@ import { act } from 'preact/test-utils';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { CommentElement, EditorElement, HighlightElement } from '#editor/model/editorModel.ts';
 import { englishSignMessages } from '#editor/registry/signMessages.ts';
+import { UNDO_WINDOW_MS } from '#shell/useUndoWindow.ts';
 import { englishHighlightMessages as t } from '../messages.ts';
 import NotePane from './NotePane.tsx';
 
@@ -73,6 +74,18 @@ describe('NotePane', () => {
     expect(onUndo).toHaveBeenCalledTimes(1);
     expect(onSelect).toHaveBeenLastCalledWith('c2');
     expect(root()?.querySelector('[role="status"]') ?? null).toBeNull();
+  });
+
+  it('drops the Undo chip once the undo window has passed', () => {
+    vi.useFakeTimers();
+    const { root, click } = mount('c2');
+    click(root()!.querySelector('[data-note-card="c2"] [data-comment-more]')!);
+    click(root()!.querySelector('[data-note-card="c2"] [data-comment-menu-delete]')!);
+    expect(root()!.querySelector('[role="status"]')).not.toBeNull();
+    act(() => { vi.advanceTimersByTime(UNDO_WINDOW_MS - 1); });
+    expect(root()!.querySelector('[role="status"]')).not.toBeNull();
+    act(() => { vi.advanceTimersByTime(1); });
+    expect(root()!.querySelector('[role="status"]')).toBeNull();
   });
 
   it('selects the note a sideways scroll rests on', () => {

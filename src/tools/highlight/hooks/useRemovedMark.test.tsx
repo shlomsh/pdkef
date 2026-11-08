@@ -1,7 +1,8 @@
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { UNDO_CHIP_MS, useRemovedMark } from './useRemovedMark.ts';
+import { UNDO_WINDOW_MS } from '#shell/useUndoWindow.ts';
+import { useRemovedMark } from './useRemovedMark.ts';
 
 let container: HTMLElement | null = null;
 let api: ReturnType<typeof useRemovedMark>;
@@ -36,7 +37,7 @@ describe('useRemovedMark', () => {
     mount([1, 2]);
     act(() => api.show({ x: 1, y: 2 }));
     expect(api.removed).toEqual({ at: { x: 1, y: 2 } });
-    act(() => { vi.advanceTimersByTime(UNDO_CHIP_MS - 1); });
+    act(() => { vi.advanceTimersByTime(UNDO_WINDOW_MS - 1); });
     expect(api.removed).not.toBeNull();
     act(() => { vi.advanceTimersByTime(1); });
     expect(api.removed).toBeNull();
@@ -59,9 +60,9 @@ describe('useRemovedMark', () => {
   it('a second show restarts the timer', () => {
     mount([1]);
     act(() => api.show(null));
-    act(() => { vi.advanceTimersByTime(UNDO_CHIP_MS - 1000); });
+    act(() => { vi.advanceTimersByTime(UNDO_WINDOW_MS - 1000); });
     act(() => api.show(null));
-    act(() => { vi.advanceTimersByTime(UNDO_CHIP_MS - 1000); });
+    act(() => { vi.advanceTimersByTime(UNDO_WINDOW_MS - 1000); });
     expect(api.removed).not.toBeNull();
     act(() => { vi.advanceTimersByTime(1000); });
     expect(api.removed).toBeNull();

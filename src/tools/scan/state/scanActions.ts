@@ -5,6 +5,7 @@ import { reportEdit } from '#lib/telemetry/productAnalytics.ts';
 import { recordAction } from '#lib/telemetry/actionTrail.ts';
 import { formatMessage } from '#lib/text/formatMessage.ts';
 import type { ScanDispatch, SetPages } from '../hooks/scanHost.ts';
+import { UNDO_WINDOW_MS } from '#shell/useUndoWindow.ts';
 import { loadPipeline } from '../lib/loadPipeline.ts';
 import type { ScanFilter } from '../lib/filters.ts';
 import type { Quad } from '#lib/pageEnhance/quad.ts';
@@ -36,9 +37,6 @@ export function dropPageWork({ work, setResults, forgetTurned }: DropHost, page:
     setResults(rest);
   }
 }
-
-/** How long Remove can be taken back (docs/ux-design-guidelines.md, guideline 6). */
-const UNDO_MS = 5000;
 
 interface PageActionsInput {
   pages: ScanPage[];
@@ -135,7 +133,7 @@ export function createPageActions(input: PageActionsInput) {
     const removal: HeldRemoval = { page: removed, index, failed: failedIds.includes(id) };
     work.removal = removal;
     setRemoval(removal);
-    work.removalTimer = setTimeout(settleRemoval, UNDO_MS);
+    work.removalTimer = setTimeout(settleRemoval, UNDO_WINDOW_MS);
   };
 
   // Everything the page owned was kept, so it comes back whole: corners, look, turns, result and its place.
