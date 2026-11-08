@@ -103,6 +103,8 @@ export default function useElementResize({
     const pageWrapper = getPageWrapper();
     if (!pageWrapper) return;
 
+    // DEBT-73: cancel first, so the old DOM restore and setIsSpanResizing(false) precede this gesture's.
+    cancelResizeRef.current?.();
     const { x: clientX, y: clientY } = getPointerCoords(e);
     const dragStartX = clientX;
     const dragStartY = clientY;
@@ -285,8 +287,6 @@ export default function useElementResize({
 
     // Grab-time-only, read by `cancel` below - see the function doc above.
     const domSnapshot = snapshotSubtreeAttributes(elementRef.current);
-
-    cancelResizeRef.current?.();
     cancelResizeRef.current = startGesture({
       computePatch: handleResizeMove,
       writeDOM: paintResizePatch,

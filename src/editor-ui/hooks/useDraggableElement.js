@@ -191,14 +191,13 @@ export default function useDraggableElement({
         : (element.height || DEFAULT_FALLBACK_ELEMENT_HEIGHT_PCT);
     const pageRect = pageWrapper.getBoundingClientRect();
 
+    cancelDragRef.current?.();
     isDragging.current = true;
 
-    cancelDragRef.current?.();
-
-    // MOBI-21 review fix. Set only now, after the outgoing gesture's own
-    // cancel() (above) has had its chance to reset this same flag — setting
-    // it any earlier let a still-live previous gesture wipe this new
-    // gesture's tap candidacy the moment pointer-down fired. Three more
+    // DEBT-73 / MOBI-21. Both flags are set only after the outgoing gesture's
+    // cancel() (above) has reset them — setting
+    // either earlier let a still-live previous gesture wipe this new
+    // gesture's drag state and tap candidacy the moment pointer-down fired. Three more
     // conditions besides "onTap was given a touch event":
     //   - exactly one touch at start, so a pinch that begins with one finger
     //     on the box (`e.touches` is a truthy TouchList either way) is never
