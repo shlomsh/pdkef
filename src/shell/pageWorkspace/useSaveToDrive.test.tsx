@@ -234,4 +234,37 @@ describe('useSaveToDrive', () => {
     vi.useRealTimers();
     vi.unstubAllGlobals();
   });
+
+  it('a late failure from an earlier tap does not end the newer save', async () => {
+    vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval'] });
+    const tabA = { closed: false };
+    const tabB = { closed: false };
+    vi.spyOn(window, 'open').mockReturnValueOnce(tabA as Window).mockReturnValueOnce(tabB as Window);
+    const channels: { onmessage: ((e: MessageEvent) => void) | null; closed: boolean }[] = [];
+    class FakeChannel {
+      onmessage: ((e: MessageEvent) => void) | null = null;
+      closed = false;
+      constructor() { channels.push(this); }
+      close() { this.closed = true; }
+      postMessage() {}
+    }
+    vi.stubGlobal('BroadcastChannel', FakeChannel);
+    let failA: (e: Error) => void = () => {};
+    build.mockImplementationOnce(() => new Promise((_, reject) => { failA = reject; }));
+    mount();
+    act(() => latest.save());
+    tabA.closed = true;
+    act(() => { vi.advanceTimersByTime(3000); });
+    expect(latest.state).toBe('idle');
+    act(() => latest.save());
+    expect(latest.state).toBe('saving');
+    await act(async () => { await vi.waitFor(() => expect(saveHandoff).toHaveBeenCalled()); });
+    await act(async () => { failA(new Error('boom')); await Promise.resolve(); await Promise.resolve(); });
+    expect(latest.state).toBe('saving');
+    expect(channels[1].closed).toBe(false);
+    const id = String(saveHandoff.mock.calls[0][0]).replace('drive-save-', '');
+    act(() => channels[1].onmessage?.({ data: { id, status: 'saved', link: null } } as MessageEvent));
+    expect(latest.state).toBe('saved');
+    vi.useRealTimers();
+  });
 });
