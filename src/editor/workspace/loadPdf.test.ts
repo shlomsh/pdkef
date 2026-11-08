@@ -1,8 +1,10 @@
 import { describe, expect, it, vi } from 'vitest';
 import { loadPdf } from './loadPdf.ts';
 import { getPdfjs } from '../adapters/pdf/pdfjsLoader.js';
+import { reportError } from '#lib/telemetry/errorReport.ts';
 
 vi.mock('../adapters/pdf/pdfjsLoader.js', () => ({ getPdfjs: vi.fn() }));
+vi.mock('#lib/telemetry/errorReport.ts', () => ({ reportError: vi.fn() }));
 
 function options(overrides: Record<string, unknown> = {}) {
   return {
@@ -63,6 +65,32 @@ describe('loadPdf lifecycle', () => {
 
     expect(task.destroy).toHaveBeenCalledOnce();
     expect(document.destroy).toHaveBeenCalledOnce();
+  });
+
+  it('a 20s timeout fails the load, destroys the loading task and reports nothing', async () => {
+    vi.useFakeTimers();
+    try {
+      vi.mocked(reportError).mockClear();
+      // Like pdf.js, destroying the task rejects its still-pending promise.
+      let rejectTask: (reason: unknown) => void;
+      const task = {
+        promise: new Promise((_, reject) => { rejectTask = reject; }),
+        destroy: vi.fn(() => rejectTask(new Error('Loading aborted'))),
+      };
+      vi.mocked(getPdfjs).mockResolvedValue({ getDocument: vi.fn(() => task) } as any);
+      const config = options();
+
+      const loading = loadPdf(config);
+      await vi.advanceTimersByTimeAsync(20_001);
+      await loading;
+
+      expect(config.setStatus).toHaveBeenLastCalledWith('error');
+      expect(config.setAnnouncement).toHaveBeenCalledOnce();
+      expect(task.destroy).toHaveBeenCalledOnce();
+      expect(reportError).not.toHaveBeenCalled();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   describe('onNeedsUnlock', () => {
