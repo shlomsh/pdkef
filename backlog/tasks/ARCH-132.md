@@ -18,7 +18,8 @@ own shape, and the two places that skipped it are bugs (DRIVE-08, DRIVE-09):
 - `src/shell/pageWorkspace/useOpenPageDocument.ts`: `pickedRef` identity (`:95`), checked at `:120`,
   `:130`, `:139`.
 - `src/shell/pageWorkspace/useSaveToDrive.ts`: no guard (DRIVE-08 fixes it, through `useLatestRun`).
-- `src/site-lib/DriveOpen.tsx`: no guard (DRIVE-09 fixes it, through `useLatestRun`).
+- `src/site-lib/DriveOpen.tsx`: no guard. DRIVE-09 fixes it with an in-flight flag instead, because a
+  second tap there must be ignored, not supersede the first (`useLatestRun.begin()` supersedes).
 - `src/shell/pageWorkspace/useDownloadFlow.ts`: `handoffRunRef` epoch (`:93`, `:154`). Left to ARCH-133,
   which replaces that hook's state.
 
