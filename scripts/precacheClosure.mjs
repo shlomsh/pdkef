@@ -61,7 +61,8 @@ function resolveExisting(url, paths) {
   return null;
 }
 
-// MEM-25: client code lives in /_astro/ (content-hashed), /site/ (entries) and /shared/ (hot chunks).
+// MEM-25, MEM-31: client code lives in /site/ (entries) and /shared/ (every other chunk); /_astro/ keeps
+// the content-hashed workers and assets.
 const CODE_DIRS = '(?:_astro|site|shared)';
 
 /** Every /_astro/, /site/ or /shared/ .js file URL named anywhere in a page's HTML. */

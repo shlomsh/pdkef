@@ -45,7 +45,8 @@ import { fileURLToPath } from 'node:url';
 import { fullClosure, pageEntries, staticClosure } from './precacheClosure.mjs';
 
 const DIST = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', 'dist');
-const ASSETS = path.join(DIST, '_astro');
+// MEM-31: chunks are dist/shared/<name>.js; only the workers are still content-hashed in dist/_astro.
+const ASSET_DIRS = ['_astro', 'shared'].map((dir) => path.join(DIST, dir));
 
 /**
  * Chunks no page may load eagerly, by the module each is named after.
@@ -128,14 +129,14 @@ function readDist() {
   return { files, paths };
 }
 
-const STRIP = '_astro/';
-const names = (closure) => new Set([...closure].filter((file) => file.startsWith(STRIP)).map((file) => file.slice(STRIP.length)));
+const STRIP = /^(?:_astro|shared)\//;
+const names = (closure) => new Set([...closure].filter((file) => STRIP.test(file)).map((file) => file.replace(STRIP, '')));
 
 const errors = [];
 const notes = [];
 
-if (!fs.existsSync(ASSETS)) {
-  console.error('No dist/_astro. Run `npm run build` first.');
+if (!ASSET_DIRS.every((dir) => fs.existsSync(dir))) {
+  console.error('No dist/_astro or dist/shared. Run `npm run build` first.');
   process.exit(1);
 }
 
@@ -144,7 +145,7 @@ const view = readDist();
 // Non-vacuity, first: a guard that matches nothing passes forever. Every
 // lazy-only module must still exist as a chunk of its own, or the chunk naming
 // changed underneath this check and it is no longer looking at anything.
-const built = fs.readdirSync(ASSETS);
+const built = ASSET_DIRS.flatMap((dir) => fs.readdirSync(dir));
 for (const { chunk, why } of LAZY_ONLY) {
   if (!built.some((file) => chunk.test(file))) {
     errors.push(`No built chunk matches ${chunk} (${why}). Chunk naming changed, so this guard is blind - fix the pattern, do not delete the row.`);

@@ -4,10 +4,10 @@ import { findMissingClassRules, findStableNameProblems, moduleClasses } from './
 import { cssModuleClassName } from './stableNames.mjs';
 
 const page = (body) => `<html><head>${body}</head><body></body></html>`;
-const good = { pages: { 'sign/index.html': page('<script type="module" src="/site/boot.js"></script><astro-island component-url="/site/PdfSignTool.js" renderer-url="/site/client.js"></astro-island>') }, site: ['boot.js', 'PdfSignTool.js', 'client.js'], shared: ['openPdfDoc.js', 'maintenanceTelemetry.js', 'PageGrid.css'], astro: ['pdf-lib.AbCd1234.js', 'logo.AbCd1234.svg'], hot: ['openPdfDoc', 'maintenanceTelemetry'] };
+const good = { pages: { 'sign/index.html': page('<script type="module" src="/site/boot.js"></script><astro-island component-url="/site/PdfSignTool.js" renderer-url="/site/client.js"></astro-island>') }, site: ['boot.js', 'PdfSignTool.js', 'client.js'], shared: ['openPdfDoc.js', 'maintenanceTelemetry.js', 'PageGrid.css'], astro: ['pdf-lib.AbCd1234.js', 'logo.AbCd1234.svg'], code: { 'site/PdfSignTool.js': 'import{t as e}from"../shared/openPdfDoc.js";const n=()=>import("../shared/sign.js");' } };
 
 describe('findStableNameProblems', () => {
-  it('passes a build whose pages name only /site/ entries and whose hot chunks exist', () => {
+  it('passes a build whose pages name only /site/ entries and whose chunks import stable names', () => {
     expect(findStableNameProblems(good)).toEqual([]);
   });
   it('names the page and URL of a hashed script src', () => {
@@ -29,11 +29,14 @@ describe('findStableNameProblems', () => {
     expect(f[0]).toContain('modulepreload /_astro/preact.AbCd1234.js');
     expect(f[1]).toContain('before-hydration-url /_astro/hyd.AbCd1234.js');
   });
-  it('names a hot shared chunk with no dist/shared file', () => {
-    const f = findStableNameProblems({ ...good, shared: ['openPdfDoc.js'] });
-    expect(f).toHaveLength(1);
-    expect(f[0]).toContain('maintenanceTelemetry');
-    expect(f[0]).toContain('dist/shared/maintenanceTelemetry.js');
+  it('names a chunk that imports a hashed /_astro/ file, statically or dynamically', () => {
+    const f = findStableNameProblems({ ...good, code: { 'shared/a.js': 'import{t as e}from"../_astro/b.AbCd1234.js";', 'site/c.js': 'const m=()=>import("../_astro/d.AbCd1234.js");' } });
+    expect(f).toHaveLength(2);
+    expect(f[0]).toContain('shared/a.js');
+    expect(f[1]).toContain('../_astro/d.AbCd1234.js');
+  });
+  it('lets a chunk name a hashed worker without importing it', () => {
+    expect(findStableNameProblems({ ...good, code: { 'shared/a.js': 'new Worker(new URL("../_astro/pdf.worker-AbCd1234.js",import.meta.url))' } })).toEqual([]);
   });
   it('names a content-hashed file in dist/site or dist/shared', () => {
     const f = findStableNameProblems({ ...good, site: [...good.site, 'util.AbCdEf12.js'], shared: [...good.shared, 'x.0123456789.js'] });

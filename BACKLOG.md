@@ -2,7 +2,7 @@
 
 # Backlog
 
-The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 171 live: 62 up next, 22 then, 27 waiting, 60 parked.
+The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 170 live: 62 up next, 21 then, 27 waiting, 60 parked.
 
 ## Redact: finish removal
 
@@ -205,7 +205,6 @@ Production errors you can see, small tools that clean up after themselves, and d
 | --- | --- | --- | --- |
 | DEBT-47 | P2 | [DEBT-47](backlog/tasks/DEBT-47.md) · Sign's funnel has a clean baseline after the dropzone routing fix |  |
 | DEBT-53 | P2 | [DEBT-53](backlog/tasks/DEBT-53.md) · A Download tapped before the build lands still downloads on an iPhone | Needs Shlomi: A check on your iPhone |
-| MEM-31 | P2 | [MEM-31](backlog/tasks/MEM-31.md) · A change in a shared editor or shell module does not rename the 300 KB sign chunk |  |
 | DEBT-55 | P3 | [DEBT-55](backlog/tasks/DEBT-55.md) · Every tool that loads with pdf-lib repairs a lost page list the way Edit Pages does |  |
 
 ### Waiting
@@ -362,7 +361,7 @@ Done and retired tickets are not listed. Their files stay in [backlog/tasks/](ba
 - Page enhancement for Scan and Highlight: 7 done, 1 retired
 - Tool pages: show the verb: 9 done, 0 retired
 - Form detector accuracy: 19 done, 1 retired
-- Robustness and debt: 96 done, 4 retired
+- Robustness and debt: 97 done, 4 retired
 - Unify the tools, narrow the graph: 100 done, 0 retired
 - Search and languages: 12 done, 0 retired
 - Polish: 29 done, 2 retired
