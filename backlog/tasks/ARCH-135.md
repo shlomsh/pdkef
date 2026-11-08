@@ -1,7 +1,7 @@
 ---
 id: "ARCH-135"
 title: "One five-second Undo window for Redact, Scan and Highlight"
-status: "open"
+status: "in_progress"
 priority: "P3"
 epic: "unify-and-narrow"
 horizon: "next"
@@ -29,9 +29,10 @@ the last file's chip can show on the next file and its Undo is a silent no-op.
 
 ## Acceptance
 
-- One hook in `src/shell/` (beside `UndoChip.tsx`) owns the window constant, the timer, replacing a
-  chip, ending it on unmount, and ending it when the caller's "document changed" key changes.
-- The four sites use it. Scan's held removal stays in its own state, and only the timer moves.
+- `src/shell/useUndoWindow.ts` (landed with this ticket's start) owns `UNDO_WINDOW_MS` and the timer:
+  `start()` opens or restarts the window, `stop()` closes it early, an unmount clears it.
+- Redact, `useRemovedMark` and `NotePane` use the hook. Scan's timer lives on its `work` object in
+  `scanActions.ts`, outside any hook, so Scan imports `UNDO_WINDOW_MS` only and keeps its timer.
 - Redact's chip ends on a file change and on a keyboard Undo of the entry it names, each with a unit
   test.
 - The stale Merge reference in `useRedactUndo.ts` is gone.

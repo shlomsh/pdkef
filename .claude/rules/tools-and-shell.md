@@ -92,6 +92,10 @@ Ask what threw. If it is the environment or the person's file (blocked or full s
 
 **Files in the wild are malformed; optional facts never fail the job.** A creation date, a title, a thumbnail or a page label is decoration or a sort hint: read it inside its own `try` and carry on without it (Merge's `inspectPdf` and `/CreationDate ()`, MERGE-23). pdf-lib already survives leading or trailing junk, a wrong or missing `startxref`, a truncated tail and CR-only line endings (fuzzed 2026-10-15 on `num-5.pdf`); only a missing `%PDF-` header and metadata getters throw. A catalog whose `/Pages` is lost loads but throws at `getPageCount()`; pdf.js rejects the same file. When exactly one page-tree root survives, `loadPdfWithPages` (`src/lib/pdf/loadPdfPages.ts`) repoints the catalog at it and hands back repaired bytes for pdf.js too; it never orders loose pages itself, and every lost `/Pages`, repaired or not, sends a `pdf_page_tree` event (DEBT-54; Edit PDF and Split both use it).
 
+## Async results that went stale
+
+A handler that awaits and then writes state takes a `useLatestRun()` ticket (`src/lib/hooks/useLatestRun.ts`) before its first `await` and checks `isCurrent()` after each one, so a newer tap, file or reset drops the older result (DEBT-18, ARCH-132). A run that holds a resource keeps it in its own closure and closes only its own: an older Save to Drive run once closed the newer run's channel (DRIVE-08). Where a second tap must be ignored rather than replace the first, use an in-flight flag set before the first `await` (DRIVE-09). Inside an effect, its own `let cancelled` cleanup flag is the right tool.
+
 ## Cross-tool hand-offs, and the reverse
 
 Merge's done state is the model: quiet secondary verbs next to the result, each with the target
