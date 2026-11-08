@@ -55,3 +55,10 @@ Still to do: the router in `src/editor-ui/`, routing `useDraggableElement` throu
 ## Parked 2026-10-03 (Shlomi)
 Slice 2 stands on its own: the machine is pure and nothing imports it. Picking this up means settling the five calls listed under Slice 2, then the router and routing `useDraggableElement` through the machine behind `?next=1`, with Shlomi on the iPhone for the wiring.
 
+
+## Note, 2026-11-08: evidence from the implicit state machine inventory
+
+The live gesture state in `useDraggableElement.js` and `useElementResize.js` is refs and closure flags,
+and the ordering bug in DEBT-73 (a new gesture's started flag reset by the outgoing gesture's cancel)
+is the kind of combination this ticket's discriminated union makes unbuildable. DEBT-73 fixes the
+ordering in place and does not wire the machine.

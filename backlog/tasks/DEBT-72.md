@@ -1,7 +1,7 @@
 ---
 id: "DEBT-72"
 title: "Deleting an element clears a selection that pointed at one of its comments"
-status: "open"
+status: "in_progress"
 priority: "P2"
 epic: "robustness"
 horizon: "next"

@@ -2,18 +2,18 @@
 
 # Backlog
 
-The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 178 live: 62 up next, 29 then, 27 waiting, 60 parked.
+The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 182 live: 71 up next, 23 then, 27 waiting, 61 parked.
 
 ## Redact: finish removal
 
 Find covers exactly what it matched, Delete reaches every object, and the saved-file check can remove what it finds.
 
-### Then, in order
+### Up next
 
 | ID | P | Task | Note |
 | --- | --- | --- | --- |
-| RED-71 | P2 | [RED-71](backlog/tasks/RED-71.md) · Delete previews try again after the source document fails to load once |  |
-| RED-72 | P2 | [RED-72](backlog/tasks/RED-72.md) · A new file in Redact starts with a clean finish state |  |
+| RED-71 | P2 | [RED-71](backlog/tasks/RED-71.md) · Delete previews try again after the source document fails to load once | In progress |
+| RED-72 | P2 | [RED-72](backlog/tasks/RED-72.md) · A new file in Redact starts with a clean finish state | In progress |
 
 ### Waiting
 
@@ -204,7 +204,13 @@ Production errors you can see, small tools that clean up after themselves, and d
 | ID | P | Task | Note |
 | --- | --- | --- | --- |
 | DEBT-65 | P2 | [DEBT-65](backlog/tasks/DEBT-65.md) · Two layout-shift specs failed once each in the 2026-10-27 nightly | In progress |
+| DEBT-72 | P2 | [DEBT-72](backlog/tasks/DEBT-72.md) · Deleting an element clears a selection that pointed at one of its comments | In progress |
+| DRIVE-08 | P2 | [DRIVE-08](backlog/tasks/DRIVE-08.md) · Save to Drive: a late failure from an earlier tap no longer ends the newer save | In progress |
+| DEBT-73 | P3 | [DEBT-73](backlog/tasks/DEBT-73.md) · A drag or resize that replaces a live gesture keeps its own started flag | In progress |
+| DEBT-74 | P3 | [DEBT-74](backlog/tasks/DEBT-74.md) · The 20 second PDF load timeout releases the load it gave up on | In progress |
+| DRIVE-09 | P3 | [DRIVE-09](backlog/tasks/DRIVE-09.md) · Drive open: a second tap on the Google button does not start a second fetch | In progress |
 | MEM-24 | P3 | [MEM-24](backlog/tasks/MEM-24.md) · A service worker that cannot install, or never completes its precache, says so | In progress |
+| SIGN-47 | P3 | [SIGN-47](backlog/tasks/SIGN-47.md) · Placing a new signature from the dialog keeps a locked Sign tool locked | In progress |
 
 ### Then, in order
 
@@ -212,13 +218,7 @@ Production errors you can see, small tools that clean up after themselves, and d
 | --- | --- | --- | --- |
 | DEBT-47 | P2 | [DEBT-47](backlog/tasks/DEBT-47.md) · Sign's funnel has a clean baseline after the dropzone routing fix |  |
 | DEBT-53 | P2 | [DEBT-53](backlog/tasks/DEBT-53.md) · A Download tapped before the build lands still downloads on an iPhone | Needs Shlomi: A check on your iPhone |
-| DEBT-72 | P2 | [DEBT-72](backlog/tasks/DEBT-72.md) · Deleting an element clears a selection that pointed at one of its comments |  |
-| DRIVE-08 | P2 | [DRIVE-08](backlog/tasks/DRIVE-08.md) · Save to Drive: a late failure from an earlier tap no longer ends the newer save |  |
 | DEBT-55 | P3 | [DEBT-55](backlog/tasks/DEBT-55.md) · Every tool that loads with pdf-lib repairs a lost page list the way Edit Pages does |  |
-| DEBT-73 | P3 | [DEBT-73](backlog/tasks/DEBT-73.md) · A drag or resize that replaces a live gesture keeps its own started flag |  |
-| DEBT-74 | P3 | [DEBT-74](backlog/tasks/DEBT-74.md) · The 20 second PDF load timeout releases the load it gave up on |  |
-| DRIVE-09 | P3 | [DRIVE-09](backlog/tasks/DRIVE-09.md) · Drive open: a second tap on the Google button does not start a second fetch |  |
-| SIGN-47 | P3 | [SIGN-47](backlog/tasks/SIGN-47.md) · Placing a new signature from the dialog keeps a locked Sign tool locked |  |
 
 ### Waiting
 
@@ -254,10 +254,18 @@ Every tool on one shell and one set of PDF primitives, and a change reaching onl
 | ID | P | Task | Note |
 | --- | --- | --- | --- |
 | ARCH-85 | P3 | [ARCH-85](backlog/tasks/ARCH-85.md) · Per-spec flake rates are recorded and read nightly | In progress |
+| ARCH-133 | P2 | [ARCH-133](backlog/tasks/ARCH-133.md) · The page tools' download flow is one state value, not eight | In progress |
 | QUAL-32 | P2 | [QUAL-32](backlog/tasks/QUAL-32.md) · CI skips Playwright when a push reaches no e2e | In progress |
 | QUAL-33 | P2 | [QUAL-33](backlog/tasks/QUAL-33.md) · A stalled apt install costs at most one retry, not ten minutes | In progress |
 | QUAL-39 | P3 | [QUAL-39](backlog/tasks/QUAL-39.md) · Unit tests run in two parallel CI jobs | In progress |
 | QUAL-42 | P3 | [QUAL-42](backlog/tasks/QUAL-42.md) · CI builds once per run, not once per job | In progress |
+
+### Then, in order
+
+| ID | P | Task | Note |
+| --- | --- | --- | --- |
+| ARCH-132 | P2 | [ARCH-132](backlog/tasks/ARCH-132.md) · Every handler that awaits and then writes state goes through useLatestRun |  |
+| ARCH-135 | P3 | [ARCH-135](backlog/tasks/ARCH-135.md) · One five-second Undo window for Redact, Scan and Highlight |  |
 
 ### Parked
 
@@ -274,6 +282,7 @@ Every tool on one shell and one set of PDF primitives, and a change reaching onl
 | ARCH-117 | P3 | [ARCH-117](backlog/tasks/ARCH-117.md) · Shell CSS comments name current files and tool counts |  |
 | ARCH-119 | P3 | [ARCH-119](backlog/tasks/ARCH-119.md) · Draft records enter the code through one parse function per type |  |
 | ARCH-120 | P3 | [ARCH-120](backlog/tasks/ARCH-120.md) · The floating-promise check uses the TypeScript checker |  |
+| ARCH-134 | P3 | [ARCH-134](backlog/tasks/ARCH-134.md) · Decide whether Merge and Scan drafts share a lifecycle core with useDraftPersistence | Needs Shlomi: A call on reopening MERGE-13's sibling-hook decision |
 | QUAL-38 | P3 | [QUAL-38](backlog/tasks/QUAL-38.md) · The four chromium e2e shards finish within 20 s of each other |  |
 | QUAL-40 | P3 | [QUAL-40](backlog/tasks/QUAL-40.md) · A localized content or image change runs only the specs that use it |  |
 

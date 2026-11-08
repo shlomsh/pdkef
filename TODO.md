@@ -6,6 +6,11 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 
 ## Up next
 
+### Redact: finish removal
+
+- [RED-71](backlog/tasks/RED-71.md) P2 · Delete previews try again after the source document fails to load once (in progress)
+- [RED-72](backlog/tasks/RED-72.md) P2 · A new file in Redact starts with a clean finish state (in progress)
+
 ### Highlight PDF: a tool for reading
 
 - [READ-03](backlog/tasks/READ-03.md) P2 · Highlight PDF: the tool at /highlight-pdf/, highlights with a comment on each, and its page (in progress)
@@ -54,11 +59,18 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 ### Robustness and debt
 
 - [DEBT-65](backlog/tasks/DEBT-65.md) P2 · Two layout-shift specs failed once each in the 2026-10-27 nightly (in progress)
+- [DEBT-72](backlog/tasks/DEBT-72.md) P2 · Deleting an element clears a selection that pointed at one of its comments (in progress)
+- [DRIVE-08](backlog/tasks/DRIVE-08.md) P2 · Save to Drive: a late failure from an earlier tap no longer ends the newer save (in progress)
+- [DEBT-73](backlog/tasks/DEBT-73.md) P3 · A drag or resize that replaces a live gesture keeps its own started flag (in progress)
+- [DEBT-74](backlog/tasks/DEBT-74.md) P3 · The 20 second PDF load timeout releases the load it gave up on (in progress)
+- [DRIVE-09](backlog/tasks/DRIVE-09.md) P3 · Drive open: a second tap on the Google button does not start a second fetch (in progress)
 - [MEM-24](backlog/tasks/MEM-24.md) P3 · A service worker that cannot install, or never completes its precache, says so (in progress)
+- [SIGN-47](backlog/tasks/SIGN-47.md) P3 · Placing a new signature from the dialog keeps a locked Sign tool locked (in progress)
 
 ### Unify the tools, narrow the graph
 
 - [ARCH-85](backlog/tasks/ARCH-85.md) P3 · Per-spec flake rates are recorded and read nightly (in progress)
+- [ARCH-133](backlog/tasks/ARCH-133.md) P2 · The page tools' download flow is one state value, not eight (in progress)
 - [QUAL-32](backlog/tasks/QUAL-32.md) P2 · CI skips Playwright when a push reaches no e2e (in progress)
 - [QUAL-33](backlog/tasks/QUAL-33.md) P2 · A stalled apt install costs at most one retry, not ten minutes (in progress)
 - [QUAL-39](backlog/tasks/QUAL-39.md) P3 · Unit tests run in two parallel CI jobs (in progress)
@@ -131,6 +143,7 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 - [SEO-42](backlog/tasks/SEO-42.md) · The /compress/ query export (28 days before and after 2026-10-08) and /compress-image/ filtered to queries containing pdf
 - [SEO-44](backlog/tasks/SEO-44.md) · The 2026-11-07 Search Console export: the /split/ and /he/split/ rows
 - [SEO-51](backlog/tasks/SEO-51.md) · Search Console, Performance, page /redact/, query containing "redact", last 3 months: impressions, clicks and position per query, plus the same for "blur"
+- [ARCH-134](backlog/tasks/ARCH-134.md) · A call on reopening MERGE-13's sibling-hook decision
 - [COMP-03](backlog/tasks/COMP-03.md) · A check on your iPhone
 - [MERGE-28](backlog/tasks/MERGE-28.md) · Evidence that people want it, and your sign-off on a wider Google exception
 - [READ-07](backlog/tasks/READ-07.md) · An iPhone check

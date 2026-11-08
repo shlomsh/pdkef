@@ -1,7 +1,7 @@
 ---
 id: "DRIVE-08"
 title: "Save to Drive: a late failure from an earlier tap no longer ends the newer save"
-status: "open"
+status: "in_progress"
 priority: "P2"
 epic: "robustness"
 horizon: "next"
