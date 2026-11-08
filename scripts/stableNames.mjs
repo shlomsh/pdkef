@@ -1,8 +1,11 @@
-// MEM-25: the few build outputs that keep one URL across deploys, so a change to a shared module
-// renames neither the pages nor the chunks that import it. Every client entry (the scripts and islands
-// a page names) is emitted as /site/<name>.js, and the hot shared modules below as /shared/<name>.js;
-// everything else stays content-hashed in /_astro/. Neither folder is immutable: the worker fetches
-// them fresh at install and checks them against the manifest's hashes (MEM-22).
+// MEM-25, MEM-31: client code keeps one URL across deploys, so a change inside one module renames
+// neither the pages nor the chunks that import it. Every client entry (the scripts and islands a page
+// names) is emitted as /site/<name>.js and every other chunk as /shared/<name>.js. Nothing is
+// content-hashed: a hashed chunk name is written into each importer, so a change to that chunk renamed
+// the importer, and its importers in turn (MEM-25 listed the two hottest chunks by name; MEM-31 measured
+// the 300 KB `sign` chunk renamed by four chunks nobody had listed, 361 KB of a 656 KB update). Neither
+// folder is immutable: the worker fetches them fresh at install and checks them against the manifest's
+// hashes (MEM-22), so what a returning visitor downloads is the files whose bytes changed.
 import { createHash } from 'node:crypto';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -10,15 +13,29 @@ import { fileURLToPath } from 'node:url';
 export const SITE_DIR = 'site';
 export const SHARED_DIR = 'shared';
 
-// Shared chunks imported widely and edited often; measured 2026-10-28, renaming either renamed up to
-// 17 importers. Each name must match a chunk the build emits (test:stable-names checks it).
-export const HOT_SHARED_CHUNKS = ['maintenanceTelemetry', 'openPdfDoc'];
+// Output-name callbacks for the client build (astro.config.mjs). A stable name keeps no inner dot, so
+// test:stable-names can tell any `name.<hash>.js` apart.
+const stem = (chunk) => chunk.name.replace(/[^\w@-]/g, '_');
+export const entryFileName = (chunk) => `${SITE_DIR}/${stem(chunk)}.js`;
+export const chunkFileName = (chunk) => `${SHARED_DIR}/${stem(chunk)}.js`;
 
-// Output-name callbacks for the client build (astro.config.mjs). `entryFileNames` runs for every entry
-// chunk; `chunkFileNames` for the rest, where only the hot shared chunks leave the hashed pattern.
-// A stable name keeps no inner dot, so test:stable-names can tell any `name.<hash>.js` apart.
-export const entryFileName = (chunk) => `${SITE_DIR}/${chunk.name.replace(/[^\w@-]/g, '_')}.js`;
-export const chunkFileName = (chunk) => (HOT_SHARED_CHUNKS.includes(chunk.name) ? `${SHARED_DIR}/${chunk.name}.js` : '_astro/[name].[hash].js');
+// Rolldown numbers a file name two chunks ask for (`index2.js`), and which chunk gets the number follows
+// build order, so it drifts. The bundle's chunks, as {fileName, name, isEntry}, whose file is not the one
+// their name asks for; the plugin below fails the build on any.
+export function findRenamedChunks(chunks) {
+  return chunks.filter((c) => c.fileName !== (c.isEntry ? entryFileName(c) : chunkFileName(c)));
+}
+
+export const stableChunkNames = {
+  name: 'pdkef:stable-chunk-names',
+  generateBundle(_options, bundle) {
+    if (this.environment.name !== 'client') return;
+    const renamed = findRenamedChunks(Object.values(bundle).filter((f) => f.type === 'chunk'));
+    if (renamed.length) {
+      this.error(`MEM-31: ${renamed.map((c) => `${c.fileName} (wanted ${c.isEntry ? entryFileName(c) : chunkFileName(c)})`).join(', ')}: two chunks share a name, so one got a number that drifts between builds and renames its importers. Give one of them another name (a module of its own, or a manualChunks entry in astro.config.mjs).`);
+    }
+  },
+};
 
 // MEM-26: a CSS Module edit used to rename 25 chunks. Vite's default class name hashes the whole
 // module's CSS, so any edit renamed every class and changed the JS chunk holding the class map; and a

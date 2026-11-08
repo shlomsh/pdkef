@@ -255,7 +255,7 @@ function main() {
   });
   writeCache(cache);
 
-  // MEM-25: client code is emitted under _astro (hashed), site (entries) and shared (hot chunks).
+  // MEM-25, MEM-31: client code is emitted under site (entries) and shared (chunks); _astro holds the hashed workers and assets.
   const astroFiles = ['_astro', 'site', 'shared'].flatMap((dir) => {
     const full = path.join(dist, dir);
     return fs.existsSync(full) ? fs.readdirSync(full).map((f) => `${dir}/${f}`) : [];

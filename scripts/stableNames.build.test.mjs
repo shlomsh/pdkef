@@ -4,7 +4,7 @@ import path from 'node:path';
 import { build } from 'vite';
 import { afterAll, describe, expect, it } from 'vitest';
 import astroConfig from '../astro.config.mjs';
-import { assetFileName, cssAssetKeys } from './stableNames.mjs';
+import { assetFileName, cssAssetKeys, stableChunkNames } from './stableNames.mjs';
 
 // MEM-26: a fixture shaped like the production graph, built twice with the client build's real naming
 // and CSS Module options from astro.config.mjs. Two islands import a shared chunk; the shared chunk lazily
@@ -17,6 +17,10 @@ const FIXTURE = {
   'shared.js': "export const load = () => import('./panel.js');\n",
   'panel.js': "import styles from './panel.module.css';\nexport default styles.panel + ' ' + styles.title;\n",
   'panel.module.css': '.panel { padding: 1rem; }\n.title { color: red; }\n',
+  // MEM-31: a three-deep chain of shared chunks, `leaf` the module edited.
+  'islandC.js': "import { mid } from './mid.js';\nimport { leaf } from './leaf.js';\nexport const c = () => mid() + leaf();\n",
+  'mid.js': "import { leaf } from './leaf.js';\nexport const mid = () => leaf() + 1;\n",
+  'leaf.js': 'export const leaf = () => 1;\n',
 };
 const EDITED_CSS = '.panel { padding: 2rem; margin: 0; }\n\n.title { color: blue; }\n';
 
@@ -24,19 +28,19 @@ const root = mkdtempSync(path.join(tmpdir(), 'mem26-'));
 afterAll(() => rmSync(root, { recursive: true, force: true }));
 
 // One client build of the fixture: its emitted files, by name, with their text.
-async function buildFixture(css) {
-  for (const [name, text] of Object.entries({ ...FIXTURE, 'panel.module.css': css })) writeFileSync(path.join(root, name), text);
+async function buildFixture(css, edits = {}) {
+  for (const [name, text] of Object.entries({ ...FIXTURE, 'panel.module.css': css, ...edits })) writeFileSync(path.join(root, name), text);
   const output = astroConfig.vite.environments.client.build.rolldownOptions.output;
   const result = await build({
     root,
     configFile: false,
     logLevel: 'silent',
     css: astroConfig.vite.css,
-    plugins: astroConfig.vite.plugins.filter((plugin) => plugin.name === 'pdkef:css-asset-keys'),
+    plugins: [...astroConfig.vite.plugins.filter((plugin) => plugin.name === 'pdkef:css-asset-keys'), stableChunkNames],
     build: {
       write: false,
       minify: false,
-      rolldownOptions: { input: { islandA: path.join(root, 'islandA.js'), islandB: path.join(root, 'islandB.js') }, output, preserveEntrySignatures: 'exports-only' },
+      rolldownOptions: { input: { islandA: path.join(root, 'islandA.js'), islandB: path.join(root, 'islandB.js'), islandC: path.join(root, 'islandC.js') }, output, preserveEntrySignatures: 'exports-only' },
     },
   });
   const files = (Array.isArray(result) ? result : [result]).flatMap((r) => r.output);
@@ -76,4 +80,17 @@ it('the fixture edit reaches the CSS output', async () => {
   const after = await buildFixture(EDITED_CSS);
   expect([...after.values()].some((text) => text.includes('2rem'))).toBe(true);
   expect(readFileSync(path.join(root, 'panel.module.css'), 'utf8')).toBe(EDITED_CSS);
+});
+
+describe('an edit inside a shared module (MEM-31)', () => {
+  it('changes that module\'s chunk and renames no chunk that imports it', async () => {
+    const before = await buildFixture(FIXTURE['panel.module.css']);
+    const after = await buildFixture(FIXTURE['panel.module.css'], { 'leaf.js': 'export const leaf = () => 2;\n' });
+    const renamed = [...after.keys()].filter((name) => !before.has(name));
+    const changed = [...after.keys()].filter((name) => before.has(name) && before.get(name) !== after.get(name));
+    expect(renamed).toEqual([]);
+    expect(changed).toHaveLength(1);
+    expect(changed[0]).toMatch(/^(?:shared|site)\//);
+    expect([...after.keys()].filter((name) => name.endsWith('.js') && !/^(?:shared|site)\/[\w@-]+\.js$/.test(name))).toEqual([]);
+  });
 });

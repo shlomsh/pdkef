@@ -2,14 +2,14 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { pageClosure } from './precacheClosure.mjs';
-import { CSS_MODULE_CLASS, HOT_SHARED_CHUNKS, cssModuleClassName } from './stableNames.mjs';
+import { CSS_MODULE_CLASS, cssModuleClassName } from './stableNames.mjs';
 
 /*
- * MEM-25: the build gives every client entry one URL (/site/<name>.js) and the hot shared modules
- * another (/shared/<name>.js), so a change to a shared module renames neither the pages nor the chunks
- * that import it. This guard fails the build output when that stops holding: a page naming a hashed
- * /_astro/ script or island, a hot chunk the build no longer emits, or a hashed file name in the stable
- * folders. A hashed name in a page means every shared-module change rewrites every page.
+ * MEM-25, MEM-31: the build gives every client entry one URL (/site/<name>.js) and every other chunk
+ * another (/shared/<name>.js), so a change to a module renames neither the pages nor the chunks that
+ * import it. This guard fails the build output when that stops holding: a page naming a hashed
+ * /_astro/ script or island, a chunk that imports a hashed /_astro/ file, or a hashed file name in the
+ * stable folders. A hashed name in a page means every shared-module change rewrites every page.
  *
  * MEM-26: client CSS keeps one name too (/shared/<name>.css), and so does prerender's, because Astro
  * drops a client stylesheet when a page inlines one of the same name. A name no longer says the two hold
@@ -31,10 +31,10 @@ const HASHED_NAME = /\.[^.]+\.(?:m?js|css)$/;
 
 /**
  * Pure core. `pages` maps a dist-relative html path to its text; `site`, `shared` and `astro` list the
- * file names in dist/site, dist/shared and dist/_astro; `hot` is HOT_SHARED_CHUNKS. Returns the problems,
- * one string each.
+ * file names in dist/site, dist/shared and dist/_astro; `code` maps a dist-relative path under site/ or
+ * shared/ to its JS text. Returns the problems, one string each.
  */
-export function findStableNameProblems({ pages, site, shared, astro = [], hot }) {
+export function findStableNameProblems({ pages, site, shared, astro = [], code = {} }) {
   const problems = [];
   for (const [page, html] of Object.entries(pages)) {
     for (const [what, pattern] of HASHED_ASTRO_URL) {
@@ -43,9 +43,14 @@ export function findStableNameProblems({ pages, site, shared, astro = [], hot })
       }
     }
   }
-  for (const name of hot) {
-    if (!shared.includes(`${name}.js`)) {
-      problems.push(`dist/shared/${name}.js is missing: ${name} is in HOT_SHARED_CHUNKS (scripts/stableNames.mjs) but the build did not emit it under a stable name (MEM-25)`);
+  // A chunk reaches another by an import specifier (`from"./x.js"`, `import("./x.js")`). One naming a
+  // file in /_astro/ is a hashed chunk, so renaming it would rename this importer. Workers are loaded
+  // by `new URL(...)`, not an import, and stay hashed on purpose.
+  for (const [file, text] of Object.entries(code)) {
+    for (const match of text.matchAll(/(?:\bfrom|\bimport)\s*\(?\s*["']([^"']+\.m?js)["']/g)) {
+      if (match[1].includes('/_astro/')) {
+        problems.push(`${file}: imports ${match[1]}, a content-hashed /_astro/ chunk; chunks must be dist/shared/<name>.js (MEM-31: a hashed name inside an importer renames it whenever the chunk changes)`);
+      }
     }
   }
   for (const name of astro.filter((file) => file.endsWith('.css'))) {
@@ -120,11 +125,17 @@ function main() {
   const dist = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'dist');
   const list = (dir) => (fs.existsSync(path.join(dist, dir)) ? fs.readdirSync(path.join(dist, dir)) : []);
   const pages = Object.fromEntries(htmlFiles(dist).map((rel) => [rel, fs.readFileSync(path.join(dist, rel), 'utf8')]));
-  const problems = findStableNameProblems({ pages, site: list('site'), shared: list('shared'), astro: list('_astro'), hot: HOT_SHARED_CHUNKS });
   const root = path.dirname(dist);
   const modules = sourceFiles(path.join(root, 'src'), '.module.css').map((file) => ({ file, css: fs.readFileSync(file, 'utf8') }));
   const code = Object.fromEntries(['_astro', 'site', 'shared'].flatMap((dir) => list(dir).filter((name) => /\.(?:m?js|css)$/.test(name)).map((name) => [`${dir}/${name}`, fs.readFileSync(path.join(dist, dir, name), 'utf8')])));
   const view = { files: new Map([...Object.entries(pages), ...Object.entries(code)]), paths: [...Object.keys(pages), ...Object.keys(code)] };
+  const problems = findStableNameProblems({
+    pages,
+    site: list('site'),
+    shared: list('shared'),
+    astro: list('_astro'),
+    code: Object.fromEntries(Object.entries(code).filter(([name]) => /^(?:site|shared)\/.*\.m?js$/.test(name))),
+  });
   const closures = Object.entries(pages).map(([page, html]) => {
     const files = pageClosure(view, page).slice(1).map((url) => url.slice(1));
     const text = (names) => names.map((name) => view.files.get(name) ?? '').join('\n');
@@ -137,7 +148,7 @@ function main() {
     console.error(`FAIL: ${problems.length} stable-name problem(s)`);
     process.exit(1);
   }
-  console.log(`PASS: ${Object.keys(pages).length} pages name only /site/ entries, ${HOT_SHARED_CHUNKS.length} hot chunks stable, no hashed CSS`);
+  console.log(`PASS: ${Object.keys(pages).length} pages name only /site/ entries, every chunk under /shared/, no hashed CSS`);
 }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) main();

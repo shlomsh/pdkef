@@ -1,7 +1,7 @@
 import { defineConfig } from 'astro/config';
 import preact from '@astrojs/preact';
 import tailwindcss from '@tailwindcss/vite';
-import { entryFileName, chunkFileName, assetFileName, cssAssetKeys, cssModuleClassName } from './scripts/stableNames.mjs';
+import { entryFileName, chunkFileName, assetFileName, cssAssetKeys, cssModuleClassName, stableChunkNames } from './scripts/stableNames.mjs';
 
 // Static output only — no SSR, no adapter. The app is a flat set of
 // files served by Vercel; all PDF processing happens in the browser.
@@ -63,11 +63,11 @@ export default defineConfig({
     // Utilities are available now but nothing in src/**/*.astro consumes
     // them yet — that migration is a separate ticket (E3.2), scoped to the
     // static/marketing surface only, per ARCHITECTURE.md §3.1.
-    plugins: [tailwindcss(), cssAssetKeys],
+    plugins: [tailwindcss(), cssAssetKeys, stableChunkNames],
     // The pdf.js worker wrapper (src/lib/pdf/pdfjsWorker.js) is a module worker with a dynamic
     // import inside pdf.js, which the default iife worker format cannot code-split (DEBT-42).
     worker: { format: 'es' },
-    // MEM-25: client entries and the hot shared chunks keep one URL across deploys. Client environment
+    // MEM-25, MEM-31: client entries and every shared chunk keep one URL across deploys. Client environment
     // only; the server environment (prerender) must keep Astro's own JS naming. MEM-26: CSS Module class
     // names hash the module's path, not its CSS, and CSS files are named by the modules they hold, in
     // prerender too (Astro pairs a client stylesheet with the one it inlined by file name), so a style

@@ -444,9 +444,9 @@ jobs:
     - name: Check precache closures stay within budget
       run: npm run test:precache-budget
 
-    # MEM-25: pages name /site/ entries and the hot chunks keep /shared/ names, so a shared-module
-    # change does not rewrite every page.
-    - name: Check client entries and hot chunks keep stable names
+    # MEM-25, MEM-31: pages name /site/ entries and every chunk keeps a /shared/ name, so a change in
+    # one module renames neither the pages nor the chunks that import it.
+    - name: Check client entries and chunks keep stable names
       run: npm run test:stable-names
 
   # The product e2e suite, a matrix sized by plan from the spec count in scope (QUAL-42; QUAL-05 and
