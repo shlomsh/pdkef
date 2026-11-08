@@ -2,7 +2,7 @@
 
 # Backlog
 
-The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 172 live: 62 up next, 22 then, 27 waiting, 61 parked.
+The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 172 live: 63 up next, 22 then, 27 waiting, 60 parked.
 
 ## Redact: finish removal
 
@@ -244,6 +244,7 @@ Every tool on one shell and one set of PDF primitives, and a change reaching onl
 | ARCH-85 | P3 | [ARCH-85](backlog/tasks/ARCH-85.md) · Per-spec flake rates are recorded and read nightly | In progress |
 | QUAL-32 | P2 | [QUAL-32](backlog/tasks/QUAL-32.md) · CI skips Playwright when a push reaches no e2e | In progress |
 | QUAL-33 | P2 | [QUAL-33](backlog/tasks/QUAL-33.md) · A stalled apt install costs at most one retry, not ten minutes | In progress |
+| ARCH-134 | P3 | [ARCH-134](backlog/tasks/ARCH-134.md) · Decide whether Merge and Scan drafts share a lifecycle core with useDraftPersistence | In progress |
 | QUAL-39 | P3 | [QUAL-39](backlog/tasks/QUAL-39.md) · Unit tests run in two parallel CI jobs | In progress |
 | QUAL-42 | P3 | [QUAL-42](backlog/tasks/QUAL-42.md) · CI builds once per run, not once per job | In progress |
 
@@ -262,7 +263,6 @@ Every tool on one shell and one set of PDF primitives, and a change reaching onl
 | ARCH-117 | P3 | [ARCH-117](backlog/tasks/ARCH-117.md) · Shell CSS comments name current files and tool counts |  |
 | ARCH-119 | P3 | [ARCH-119](backlog/tasks/ARCH-119.md) · Draft records enter the code through one parse function per type |  |
 | ARCH-120 | P3 | [ARCH-120](backlog/tasks/ARCH-120.md) · The floating-promise check uses the TypeScript checker |  |
-| ARCH-134 | P3 | [ARCH-134](backlog/tasks/ARCH-134.md) · Decide whether Merge and Scan drafts share a lifecycle core with useDraftPersistence | Needs Shlomi: A call on reopening MERGE-13's sibling-hook decision |
 | QUAL-38 | P3 | [QUAL-38](backlog/tasks/QUAL-38.md) · The four chromium e2e shards finish within 20 s of each other |  |
 | QUAL-40 | P3 | [QUAL-40](backlog/tasks/QUAL-40.md) · A localized content or image change runs only the specs that use it |  |
 
