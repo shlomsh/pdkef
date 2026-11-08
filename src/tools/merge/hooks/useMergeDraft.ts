@@ -1,28 +1,12 @@
-import { useCallback, useEffect, useRef, useState } from 'preact/hooks';
-import {
-  deleteDraft, hasDraftHint, loadDraft, saveDraft, subscribeToDraftChanges,
-} from '#lib/drafts/draftStore.ts';
-import { clearDraftHintAttribute, RESTORE_TIMEOUT_MS } from '#lib/drafts/useDraftPersistence.js';
-import { registerBeforeUpdateReload } from '#lib/appUpdate/updateHolds.ts';
-import { useHoldUpdate } from '#lib/hooks/useHoldUpdate.ts';
-import { consumeRecentOpen } from '#lib/handoff/fileArrival.ts';
-import { reportError } from '#lib/telemetry/errorReport.ts';
+import { useCallback, useEffect, useRef } from 'preact/hooks';
+import { deleteDraft, loadDraft, saveDraft } from '#lib/drafts/draftStore.ts';
+import { useDraftRestore, useDraftSave } from '#lib/drafts/useDraftLifecycle.ts';
 import { mimeTypeOf } from '#lib/handoff/fileKind.js';
 import { outputPageCount, type PlanEntry } from '#lib/pages/pagePlan.ts';
 
-// MERGE-13: draft persistence for the Merge tool, on the same shared store
-// Sign and Redact already use (draftStore.ts's 'merge' record shape - see its
-// header comment), but shaped around a *list* of files rather than one. This
-// hook is deliberately a sibling of useDraftPersistence.js, not a
-// generalisation of it: the two record shapes, and what counts as "the same
-// snapshot" for revision purposes, differ enough (a list of files instead of
-// one, a plan instead of edit elements) that forcing them through one
-// parameterised hook would read worse than the duplication. Fixed things
-// reused as-is: the revision-guarded write ("a completed save only updates
-// state if it's still current"), the pagehide/visibilitychange flush, the
-// mount-time restore race against beforeRestore-that-never-comes, and
-// RESTORE_TIMEOUT_MS/clearDraftHintAttribute themselves, imported rather than
-// copied.
+// MERGE-13: draft persistence for the Merge tool, on the shared store (draftStore.ts's 'merge'
+// record shape, a list of files). The lifecycle is the shared core (ARCH-134, useDraftLifecycle.ts);
+// this hook keeps the Merge record shape, snapshot key and clean-restore rule.
 export const MERGE_DRAFT_SCHEMA_VERSION = 1;
 
 // Tests shorten the wait; the tool never passes it - same precedent as
@@ -170,62 +154,17 @@ export function useMergeDraft({
   // once saved another file's bytes under a new file's name (2026-09-13).
   const bufferCacheRef = useRef(new WeakMap<File, Promise<ArrayBuffer>>());
 
-  const revisionRef = useRef(0);
-  const snapshotRef = useRef<string | null>(null);
   const key = snapshotKey(entries, plan, options, title, outputName);
-  if (snapshotRef.current !== key) {
-    snapshotRef.current = key;
-    revisionRef.current += 1;
-  }
-  const currentRevision = revisionRef.current;
 
-  const [saveState, setSaveState] = useState<{ state: MergeDraftSaveState; revision: number }>({ state: 'idle', revision: 0 });
-  const writePromisesRef = useRef(new Map<number, Promise<boolean>>());
-  // A pagehide after the debounce has already persisted this exact revision
-  // must not manufacture a second write/revision. Event handlers read this
-  // ref rather than a render's saveState closure, which can be stale at the
-  // moment a tab is being closed.
-  const savedRevisionRef = useRef<number | null>(null);
-
-  const [isRestoring, setIsRestoring] = useState(() => enabled && hasDraftHint(TOOL));
-  // Restoring recreates the live entries from an already-persisted snapshot.
-  // Those state updates must not be mistaken for a person changing the merge:
-  // apart from a needless IndexedDB write it briefly surfaced "Saving draft"
-  // and "Draft saved" on every resumed workspace. The next autosave effect
-  // it is consumed once the parent has finished deriving the restored
-  // workspace. Actual edits after that still take the normal path.
-  // Holds the restored files rather than a bare boolean: the skip only applies
-  // while the live entries are still that restored set. A restore the island
-  // declined (a home-page hand-off won) or a set that replaced it (SITE-42)
-  // is a new snapshot with no stored record, so it must save normally.
+  // Holds the restored files rather than a bare boolean: a restored set is clean (already stored)
+  // only while the live entries are still that set. A restore the island declined or a set that
+  // replaced it is a new snapshot with no stored record, so it must save normally.
   const restoredFilesRef = useRef<File[] | null>(null);
   const isRestoredSet = (list: MergeDraftEntry[]) => (
     restoredFilesRef.current !== null
     && list.length > 0
     && list.every((entry) => restoredFilesRef.current!.includes(entry.file))
   );
-  // The revision the flag above was consumed at. That snapshot is the stored
-  // record itself, so it never gets a write of its own; the derived state
-  // below must keep reading it as idle on every later render, not only on
-  // the one that happened to run before the effect (QUAL-10: a re-render
-  // five seconds later otherwise showed a "Saving draft…" that never ended).
-  const settledRestoredRevisionRef = useRef<number | null>(null);
-  // `pagehide`/`visibilitychange` can land in the tiny interval between
-  // onRestore() updating the parent and the autosave effect above consuming
-  // its flag. Keep that flush from writing the same restored snapshot too.
-  const restoreInProgressRef = useRef(enabled);
-
-  // A storage event never fires in the writer tab, only in its peers - see
-  // draftStore.ts's notifyDraftChange. Surface the conflict rather than
-  // silently replacing an in-progress edit; the next local save deterministically wins.
-  useEffect(() => {
-    if (!enabled) return undefined;
-    return subscribeToDraftChanges(TOOL, () => {
-      if (latest.current.entries.length > 0) {
-        setSaveState({ state: 'conflict', revision: revisionRef.current });
-      }
-    });
-  }, [enabled]);
 
   // Reads (and caches) one entry's source bytes exactly once. Called from
   // buildRecord just before a write, not eagerly on every entries change -
@@ -278,178 +217,61 @@ export function useMergeDraft({
     };
   };
 
-  const persist = (revision: number, record: ReturnType<typeof buildRecord> extends Promise<infer T> ? T : never) => {
-    if (writePromisesRef.current.has(revision)) return writePromisesRef.current.get(revision)!;
-    const write = Promise.resolve()
-      .then(() => saveDraft(TOOL, record))
-      .then((saved) => saved === true)
-      .catch((e) => { reportError('drafts', e, 'save_merge_draft'); return false; })
-      .then((saved) => {
-        // A prior snapshot may finish writing after a newer one has already
-        // started; it stays stored as a best-effort older revision, but must
-        // not make the current one claim a save it never made.
-        if (revision === revisionRef.current) {
-          if (saved) savedRevisionRef.current = revision;
-          setSaveState({ state: saved ? 'saved' : 'error', revision });
-        }
-        return saved;
-      })
-      .finally(() => {
-        writePromisesRef.current.delete(revision);
-      });
-    writePromisesRef.current.set(revision, write);
-    return write;
-  };
-
-  // Restore on mount. Runs exactly once regardless of the synchronous hint,
-  // because the hint is only a pre-paint optimisation - draftStore's
-  // IndexedDB record is the real source of truth (see hasDraftHint's doc
-  // comment), so a hint miss must not skip the real check.
-  const restoreAttempted = useRef(false);
-  useEffect(() => {
-    if (!enabled || restoreAttempted.current) {
-      setIsRestoring(false);
-      return undefined;
-    }
-    restoreAttempted.current = true;
-    let cancelled = false;
-    const stopWaiting = () => {
-      if (!cancelled) {
-        restoreInProgressRef.current = false;
-        setIsRestoring(false);
-      }
-    };
-    const timeoutId = setTimeout(stopWaiting, RESTORE_TIMEOUT_MS);
-    // DEBT-58: the recent tile's note is spent on this attempt whatever it finds.
-    const source = consumeRecentOpen(TOOL) ? 'recent' : 'restore';
-    (async () => {
+  const { checking, settled } = useDraftRestore({
+    tool: TOOL,
+    enabled,
+    run: async (source, isCancelled) => {
       const record = await loadDraft(TOOL);
-      if (cancelled) return;
-      clearTimeout(timeoutId);
+      if (isCancelled()) return true;
       const restore = parseRestorableRecord(record);
       if (restore) {
         restoredFilesRef.current = restore.files;
         latest.current.onRestore(restore, source);
-      } else {
-        // No usable draft: draftStore already cleared the localStorage hint
-        // when `record` came back null; a record that came back non-null but
-        // failed *this* module's validation (an out-of-range fileId, say -
-        // draftStore itself never reads the plan's shape) needs the same
-        // treatment by hand, since only the caller of loadDraft knows the
-        // plan is broken.
-        clearDraftHintAttribute();
-        if (record) await deleteDraft(TOOL);
+        return true;
       }
-      stopWaiting();
-    })();
-    return () => {
-      cancelled = true;
-      clearTimeout(timeoutId);
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+      // A record that loaded but failed this module's validation (an out-of-range fileId, say)
+      // needs deleting by hand: only this module knows the plan is broken.
+      if (record) await deleteDraft(TOOL);
+      return false;
+    },
+  });
 
-  // Debounced autosave: 700ms after any change to entries, plan or options,
-  // same window useDraftPersistence.js uses. The snapshot's revision is
-  // computed during render (see snapshotKey above); this effect only re-fires
-  // when that revision actually moves.
+  const restoredClean = isRestoredSet(entries);
+  const save = useDraftSave({
+    tool: TOOL,
+    enabled,
+    snapshot: [key],
+    canSave: enabled && entries.length > 0 && settled && !restoredClean,
+    build: () => {
+      const { entries: e, plan: p, options: o, title: t, outputName: n } = latest.current;
+      return e.length === 0 ? null : buildRecord(e, p, o, t, n);
+    },
+    write: (record) => saveDraft(TOOL, record).then((saved) => saved === true),
+    errorStep: 'autosave_merge_draft',
+    watchConflicts: true,
+    debounceMs: autosaveDebounceMs,
+  });
+
+  // A restored set is the stored record itself: once the parent has derived its pages, mark it
+  // saved. Any other live set drops the restore note so later edits save normally.
   useEffect(() => {
-    if (!enabled || latest.current.entries.length === 0) return undefined;
-    if (!isRestoredSet(latest.current.entries)) restoredFilesRef.current = null;
-    if (restoredFilesRef.current) {
-      if (!restoreHydrationComplete) return undefined;
+    if (!isRestoredSet(latest.current.entries)) {
       restoredFilesRef.current = null;
-      // The stored record already represents this whole reconstructed
-      // snapshot. Mark its revision settled so a later pagehide/visibility
-      // flush cannot turn reopening a tab into a second write.
-      savedRevisionRef.current = currentRevision;
-      settledRestoredRevisionRef.current = currentRevision;
-      return undefined;
+    } else if (restoreHydrationComplete) {
+      restoredFilesRef.current = null;
+      save.markSaved();
     }
-    const revision = currentRevision;
-    setSaveState({ state: 'pending', revision });
-    const timer = setTimeout(() => {
-      const { entries, plan, options, title, outputName } = latest.current;
-      buildRecord(entries, plan, options, title, outputName).then((record) => persist(revision, record)).catch((err) => reportError('drafts', err, 'autosave_merge_draft'));
-    }, autosaveDebounceMs);
-    return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [enabled, currentRevision, autosaveDebounceMs, restoreHydrationComplete]);
+  }, [key, restoreHydrationComplete]);
 
-  // Best-effort immediate flush when the tab is hidden or being unloaded.
-  // Continuous debounced autosave is what actually survives a crash (a
-  // crashing tab fires no unload event); this is only a catch-up for clean
-  // closes, exactly as useDraftPersistence.js's own flush effect documents.
-  useEffect(() => {
-    if (!enabled) return undefined;
-    const flush = (): Promise<unknown> | undefined => {
-      if (restoreInProgressRef.current || isRestoredSet(latest.current.entries)) return undefined;
-      const { entries, plan, options, title, outputName } = latest.current;
-      if (entries.length === 0) return undefined;
-      const revision = revisionRef.current;
-      if (savedRevisionRef.current === revision) return undefined;
-      setSaveState({ state: 'pending', revision });
-      return buildRecord(entries, plan, options, title, outputName).then((record) => persist(revision, record));
-    };
-    const onVisibility = () => {
-      if (document.visibilityState === 'hidden') flush();
-    };
-    document.addEventListener('visibilitychange', onVisibility);
-    window.addEventListener('pagehide', flush);
-    // An update reload (src/lib/appUpdate/updateHolds.ts, MEM-10) must not
-    // outrun the write: flush (build + persist), then await in-flight saves.
-    const unregister = registerBeforeUpdateReload(async () => {
-      await Promise.allSettled([flush(), ...writePromisesRef.current.values()]);
-      await Promise.allSettled([...writePromisesRef.current.values()]);
-    });
-    return () => {
-      unregister();
-      document.removeEventListener('visibilitychange', onVisibility);
-      window.removeEventListener('pagehide', flush);
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [enabled]);
-
-  // The island calls this from Clear all / Start again; the hook never
-  // clears the record on its own when entries drops to zero (see the module
-  // doc comment on MergeDraftPersistence for why that split is deliberate).
-  //
-  // MEM-01/02: `deleteDraft` clears only Merge's work on the entry it is
-  // currently pointed at (the plan/options for that file set) and drops the
-  // pointer; the entry - its files' bytes, and any other tool's work on the
-  // same content - stays in recents. Clear all is a real "start over", so
-  // this is the one place in Merge that is supposed to discard work, unlike
-  // adding or replacing files (see performHandoff's comment in
-  // PdfMergeTool.tsx for the hand-off case this is not).
+  // The island calls this from Clear all / Start again; the hook never clears the record on its own
+  // when entries drops to zero. MEM-01/02: deleteDraft clears only Merge's work on the entry it points
+  // at and drops the pointer; the entry and other tools' work stay in recents.
   const clearDraft = useCallback(async () => {
-    revisionRef.current += 1;
+    save.invalidate();
     return deleteDraft(TOOL);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const canPersist = enabled && entries.length > 0;
-  // While restored files are being inspected, their synthetic state changes
-  // deliberately have no scheduled write. Expose that honestly as idle too:
-  // the revision mismatch below would otherwise render a misleading
-  // "Saving draft…" chip despite the autosave/flush guards above.
-  const restoredSnapshotIsClean = isRestoredSet(entries)
-    || settledRestoredRevisionRef.current === currentRevision;
-  // sourceChanged (via the revision bump above) runs during render, before an
-  // in-flight write's completion can paint over it - derive pending for the
-  // new snapshot until its own effect records the real state, so there is no
-  // transient stale "Draft saved" chip between an edit and its own autosave.
-  const draftSaveState: MergeDraftSaveState = saveState.state === 'conflict'
-    ? 'conflict'
-    : restoredSnapshotIsClean
-    ? 'idle'
-    : saveState.revision === currentRevision
-    ? saveState.state
-    : (canPersist ? 'pending' : 'idle');
-
-  // A plan whose save failed (over MERGE_DRAFT_MAX_BYTES, no IndexedDB,
-  // quota) lives only in memory, so it holds an update back (MEM-10).
-  // 'open' holds ordinary updates but not a force: a failed save cannot
-  // resolve within a force's wait.
-  useHoldUpdate(draftSaveState === 'error', 'open');
-
-  return { isRestoring, draftSaveState, clearDraft };
+  return { isRestoring: checking, draftSaveState: save.state, clearDraft };
 }
