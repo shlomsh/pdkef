@@ -1,10 +1,9 @@
 ---
 id: "DEBT-74"
 title: "The 20 second PDF load timeout releases the load it gave up on"
-status: "in_progress"
+status: "done"
 priority: "P3"
 epic: "robustness"
-horizon: "next"
 depends_on: []
 ---
 
@@ -26,3 +25,5 @@ the error screen open.
   loading task's `destroy()` was called.
 
 ## Outcome
+
+Done 2026-11-08. The timeout calls `controller.cancel()` after writing the error state; the rejection it causes is dropped by the catch's `isCurrent()` guard. One fake-timer test asserts status 'error', one announcement, `destroy()` once and no `reportError`; before the fix the load never returned.

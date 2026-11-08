@@ -142,6 +142,9 @@ export async function loadPdf({
     if (restored) void clearDraft(); // reason: clearDraft goes through draftStore, which reports its own failure
     setStatus('error');
     setAnnouncement(t.timeout);
+    // Last, so the error state is already written; cancel only releases the task and document, and
+    // the rejection it causes is dropped by the `isCurrent()` guard in the catch below.
+    controller.cancel();
   }, 20_000);
 
   try {
