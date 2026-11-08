@@ -1,6 +1,7 @@
 import { Trash2 } from 'lucide-preact';
 import { formatMessage } from '#lib/text/formatMessage.ts';
 import DownloadElement from '#shell/DownloadElement.tsx';
+import DriveSaveMenu from '#shell/DriveSaveMenu.tsx';
 import pdfToolStyles from '#shell/PdfTool.module.css';
 import ErrorMessage from '#shell/ErrorMessage.tsx';
 import OutputName from '#shell/OutputName.tsx';
@@ -64,10 +65,10 @@ export function ScanErrors({ pages, failedIds, buildFailed }: { pages: ScanPage[
   );
 }
 
-/** The Download element: the rail's primary on desktop, and on a phone that cannot share files, or holds the PDF back, the table's filled button. */
+/** The Download element: the rail's primary on desktop, and on a phone that cannot share files, or holds the PDF back, the table's filled button. On desktop the Save to Google Drive arrow is joined to it. */
 export function ScanDownloadElement({ pages, failedIds, output }: { pages: ScanPage[]; failedIds: number[]; output: ScanOutput }) {
-  const { prepared, flow } = output;
-  return (
+  const { prepared, flow, drive } = output;
+  const element = (
     <DownloadElement
       state={flow.downloadState}
       href={prepared.status === 'ready' ? prepared.url : null}
@@ -85,5 +86,13 @@ export function ScanDownloadElement({ pages, failedIds, output }: { pages: ScanP
       onDownloadClick={flow.onDownloadTap}
       isOutputNameBeingRenamed={output.isRenaming}
     />
+  );
+  // The menu draws nothing until Drive is connected, online, on a desktop and the PDF is ready: then the row is joined.
+  if (!drive.available && drive.state === 'idle') return element;
+  return (
+    <div class={styles['download-joined']}>
+      {element}
+      <DriveSaveMenu drive={drive} />
+    </div>
   );
 }

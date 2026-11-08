@@ -5,7 +5,7 @@ import ScanWorkspace from './ScanWorkspace.tsx';
 
 let container: HTMLElement | null = null;
 
-function mount() {
+function mount(drive: Record<string, unknown> = { available: false }) {
   container = document.createElement('div');
   document.body.appendChild(container);
   const bridge = { requestReplace: vi.fn(), requestClear: vi.fn() };
@@ -24,7 +24,7 @@ function mount() {
       listRef={() => {}}
       output={{
         prepared: { status: 'ready', url: 'blob:x', size: 1024, progress: 1, prepareNow: vi.fn() },
-        flow, fileName: 'Scan.pdf', detail: '1 page · 1 KB', outputName: 'Scan', isRenaming: false,
+        flow, drive: { state: 'idle', link: null, save: vi.fn(), ...drive }, fileName: 'Scan.pdf', detail: '1 page · 1 KB', outputName: 'Scan', isRenaming: false,
         onShowFailedPage: vi.fn(), onRename: vi.fn(), onEditingChange: vi.fn(),
       } as never}
       options={{ pageSize: 'fit', limit: 'none', onPageSize: vi.fn(), onLimit: vi.fn(), limitNote: 'Full quality.' } as never}
@@ -42,6 +42,15 @@ afterEach(() => {
 });
 
 describe('ScanWorkspace', () => {
+  it('joins the Save to Google Drive arrow to Download only when Drive can take the file', () => {
+    expect(mount().container.querySelector('[aria-haspopup="menu"]')).toBeNull();
+    act(() => render(null, container!)); container!.remove(); container = null;
+    const { container: on } = mount({ available: true });
+    const arrow = on.querySelector('[aria-haspopup="menu"]')!;
+    expect(arrow).not.toBeNull();
+    expect(arrow.previousElementSibling?.getAttribute('download')).toBe('Scan.pdf');
+  });
+
   it('puts Clear all on the name row, out of the rail with Download', () => {
     const { container, bridge } = mount();
     const clear = container.querySelector('[data-clear-all]') as HTMLElement;
