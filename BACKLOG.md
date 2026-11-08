@@ -2,11 +2,18 @@
 
 # Backlog
 
-The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 170 live: 62 up next, 21 then, 27 waiting, 60 parked.
+The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 178 live: 62 up next, 29 then, 27 waiting, 60 parked.
 
 ## Redact: finish removal
 
 Find covers exactly what it matched, Delete reaches every object, and the saved-file check can remove what it finds.
+
+### Then, in order
+
+| ID | P | Task | Note |
+| --- | --- | --- | --- |
+| RED-71 | P2 | [RED-71](backlog/tasks/RED-71.md) · Delete previews try again after the source document fails to load once |  |
+| RED-72 | P2 | [RED-72](backlog/tasks/RED-72.md) · A new file in Redact starts with a clean finish state |  |
 
 ### Waiting
 
@@ -205,7 +212,13 @@ Production errors you can see, small tools that clean up after themselves, and d
 | --- | --- | --- | --- |
 | DEBT-47 | P2 | [DEBT-47](backlog/tasks/DEBT-47.md) · Sign's funnel has a clean baseline after the dropzone routing fix |  |
 | DEBT-53 | P2 | [DEBT-53](backlog/tasks/DEBT-53.md) · A Download tapped before the build lands still downloads on an iPhone | Needs Shlomi: A check on your iPhone |
+| DEBT-72 | P2 | [DEBT-72](backlog/tasks/DEBT-72.md) · Deleting an element clears a selection that pointed at one of its comments |  |
+| DRIVE-08 | P2 | [DRIVE-08](backlog/tasks/DRIVE-08.md) · Save to Drive: a late failure from an earlier tap no longer ends the newer save |  |
 | DEBT-55 | P3 | [DEBT-55](backlog/tasks/DEBT-55.md) · Every tool that loads with pdf-lib repairs a lost page list the way Edit Pages does |  |
+| DEBT-73 | P3 | [DEBT-73](backlog/tasks/DEBT-73.md) · A drag or resize that replaces a live gesture keeps its own started flag |  |
+| DEBT-74 | P3 | [DEBT-74](backlog/tasks/DEBT-74.md) · The 20 second PDF load timeout releases the load it gave up on |  |
+| DRIVE-09 | P3 | [DRIVE-09](backlog/tasks/DRIVE-09.md) · Drive open: a second tap on the Google button does not start a second fetch |  |
+| SIGN-47 | P3 | [SIGN-47](backlog/tasks/SIGN-47.md) · Placing a new signature from the dialog keeps a locked Sign tool locked |  |
 
 ### Waiting
 
