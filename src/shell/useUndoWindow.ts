@@ -3,6 +3,7 @@ import { useEffect, useRef } from 'preact/hooks';
 /** How long an Undo chip stays up (docs/ux-design-guidelines.md, 6. Undo over confirm). */
 export const UNDO_WINDOW_MS = 5000;
 
+/** @testSeam */
 export interface UndoWindow {
   /** Opens the window, or restarts it: a second removal replaces the first chip rather than stacking. */
   start(): void;

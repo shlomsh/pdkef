@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
+import { useUndoWindow } from '#shell/useUndoWindow.ts';
 import type { EditorElement } from '#editor/model/editorModel.ts';
 import type { SignMessages } from '#editor/registry/messages.ts';
 import type { CommentPatch } from '#editor/highlight/commentCommit.ts';
@@ -12,7 +13,6 @@ import { paneIndex, paneNotes, snapIndex } from '../lib/notes/notePane.ts';
 import styles from './NotePane.module.css';
 
 const stop = (event: Event) => event.stopPropagation();
-const UNDO_MS = 5000;
 const STEER_MS = 700;
 
 const reducedMotion = () => !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
@@ -49,6 +49,7 @@ export default function NotePane({ elements, activeElementId, messages, labels, 
   const steering = useRef<number | null>(null);
   const wasOpen = useRef(false);
   const [deleted, setDeleted] = useState<string | null>(null);
+  const undoWindow = useUndoWindow(() => setDeleted(null));
   const rtl = messages.dir === 'rtl';
 
   // The pane follows the active note: the track slides to its card and the page brings its passage above the pane.
@@ -76,12 +77,6 @@ export default function NotePane({ elements, activeElementId, messages, labels, 
     return () => document.removeEventListener('keydown', onKey);
   }, [open, onSelect]);
 
-  useEffect(() => {
-    if (!deleted) return;
-    const timer = setTimeout(() => setDeleted(null), UNDO_MS);
-    return () => clearTimeout(timer);
-  }, [deleted]);
-
   if (!open && !deleted) return null;
 
   const onScroll = () => {
@@ -99,14 +94,16 @@ export default function NotePane({ elements, activeElementId, messages, labels, 
     onDelete(notes[i].id);
     onSelect(next?.id ?? null);
     setDeleted(notes[i].id);
+    undoWindow.start();
   };
   const undo = () => {
     const id = deleted!;
     setDeleted(null);
+    undoWindow.stop();
     onUndo();
     onSelect(id);
   };
-  const close = () => { setDeleted(null); onSelect(null); };
+  const close = () => { setDeleted(null); undoWindow.stop(); onSelect(null); };
 
   return (
     <section ref={section} class={styles.pane} data-note-pane aria-label={labels.region} dir={messages.dir}

@@ -1,4 +1,4 @@
-import { useRef, useEffect } from 'preact/hooks';
+import { useUndoWindow } from '#shell/useUndoWindow.ts';
 import { recordAction } from '#lib/telemetry/actionTrail.ts';
 import { useHistoryShortcuts } from '#lib/history/useHistoryShortcuts.js';
 import type { ActionHistoryEntry } from '#editor/model/actionHistory.ts';
@@ -6,11 +6,9 @@ import type { RedactElement } from '../lib/redactElements.ts';
 import { canRedo as canRedoOf, type RedactAction, type RedactState } from '../state/redactState.ts';
 import { englishRedactMessages as t } from '../messages.ts';
 
-// Redact design-review finding #3: one Undo chip, one slot, timed the same as
-// Merge's own (PdfMergeTool.tsx's UNDO_WINDOW_MS/registerUndo) - a second
-// eligible action before this elapses replaces the first's chip rather than
-// stacking a second one.
-const UNDO_WINDOW_MS = 5000;
+// Redact design-review finding #3: one Undo chip, one slot, timed by
+// useUndoWindow - a second eligible action before it elapses replaces the
+// first's chip rather than stacking a second one.
 
 /** The undo chip, undo and redo (keyboard and chip), over the reducer's history. */
 export default function useRedactUndo({ state, dispatch }: {
@@ -47,16 +45,11 @@ export default function useRedactUndo({ state, dispatch }: {
 
   // Redact design-review finding #3: deleteElement and clearPage used to
   // change elements with no announcement and no way back short of the full
-  // history modal or Cmd/Ctrl+Z. This chip mirrors Merge's own
-  // (PdfMergeTool.tsx's undoAction/registerUndo): a short-lived pill in the
-  // toolbar's status slot, naming the entry it can revert by id rather than
-  // "whatever is newest" - correct even if another action lands before it is
-  // clicked (see runUndoChip below).
-  const undoTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  useEffect(() => () => {
-    if (undoTimerRef.current) clearTimeout(undoTimerRef.current);
-  }, []);
+  // history modal or Cmd/Ctrl+Z. This chip is a short-lived pill in the
+  // toolbar's status slot, timed by useUndoWindow, naming the entry it can
+  // revert by id rather than "whatever is newest" - correct even if another
+  // action lands before it is clicked (see runUndoChip below).
+  const undoWindow = useUndoWindow(() => dispatch({ type: 'UNDO_CHIP_DISMISSED' }));
 
   // Registers a short-lived Undo chip for a delete/clear command already
   // pushed onto actionHistory, and announces it through the live region.
@@ -64,14 +57,12 @@ export default function useRedactUndo({ state, dispatch }: {
   // atomic commands by the time this runs, so this only has to surface what
   // already happened, not perform it.
   const registerUndo = (message: string, entry: ActionHistoryEntry<RedactElement>, extra?: { label: string; onSelect: () => void }) => {
-    if (undoTimerRef.current) clearTimeout(undoTimerRef.current);
     dispatch({ type: 'UNDO_CHIP_SHOWN', message, entryId: entry.id, extra });
-    undoTimerRef.current = setTimeout(() => dispatch({ type: 'UNDO_CHIP_DISMISSED' }), UNDO_WINDOW_MS);
+    undoWindow.start();
   };
 
   const clearUndoChip = () => {
-    if (undoTimerRef.current) clearTimeout(undoTimerRef.current);
-    undoTimerRef.current = null;
+    undoWindow.stop();
     dispatch({ type: 'UNDO_CHIP_DISMISSED' });
   };
 

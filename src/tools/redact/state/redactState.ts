@@ -362,6 +362,27 @@ function removalNoted(state: RedactState, note: string): RedactState {
   return { ...state, finish: { ...state.finish, removedNote: note }, view: { ...state.view, announcement: note } };
 }
 
+/** An Undo that reverts the entry the chip names makes the chip stale; a different entry leaves it. */
+function chipAfterUndo(state: RedactState, revertedIds: readonly string[]): RedactState['edits']['undoAction'] {
+  const chip = state.edits.undoAction;
+  return chip && revertedIds.includes(chip.entryId) ? null : chip;
+}
+
+/** A new file's edits: its own elements, history and details, and no Undo chip from the last file. */
+function editsForNewFile(
+  edits: RedactState['edits'],
+  action: Extract<RedactAction, { type: 'FILE_INITIALIZED' }>,
+): RedactState['edits'] {
+  return {
+    ...edits,
+    elements: action.elements,
+    history: { past: action.past, future: [] },
+    details: action.details ?? {},
+    undoAction: null,
+    draftBaselineRevision: edits.documentRevision,
+  };
+}
+
 export function redactReducer(state: RedactState, action: RedactAction): RedactState {
   switch (action.type) {
     case 'FILE_INITIALIZED': {
@@ -385,13 +406,7 @@ export function redactReducer(state: RedactState, action: RedactAction): RedactS
           showWelcomeTip: !action.restored,
           restoredWithWork: action.restored && action.elements.length > 0,
         },
-        edits: {
-          ...afterTool.edits,
-          elements: action.elements,
-          history: { past: action.past, future: [] },
-          details: action.details ?? {},
-          draftBaselineRevision: afterTool.edits.documentRevision,
-        },
+        edits: editsForNewFile(afterTool.edits, action),
         tool: {
           ...afterTool.tool,
           carried: action.carried,
@@ -459,12 +474,14 @@ export function redactReducer(state: RedactState, action: RedactAction): RedactS
         : past.filter((entry) => entry.id === action.entryId);
       if (reverted.length === 0) return state;
       const elements = revertHistoryEntries(state.edits.elements, reverted);
+      const revertedIds = reverted.map((entry) => entry.id);
       return {
         ...state,
         edits: {
           ...state.edits,
           elements,
-          history: revertCommands(past, future, new Set(reverted.map((entry) => entry.id))),
+          history: revertCommands(past, future, new Set(revertedIds)),
+          undoAction: chipAfterUndo(state, revertedIds),
           documentRevision: state.edits.documentRevision + 1,
         },
         selection: selectionSurviving(state, elements),
