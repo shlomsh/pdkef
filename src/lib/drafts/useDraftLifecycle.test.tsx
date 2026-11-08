@@ -34,8 +34,9 @@ const settle = async () => { await act(async () => { await Promise.resolve(); aw
 
 describe('useDraftRestore', () => {
   let checking: boolean;
+  let settled: boolean;
   function Probe(props: Parameters<typeof useDraftRestore>[0]) {
-    ({ checking } = useDraftRestore(props));
+    ({ checking, settled } = useDraftRestore(props));
     return null;
   }
   beforeEach(() => {
@@ -94,18 +95,30 @@ describe('useDraftRestore', () => {
     expect(checking).toBe(false);
   });
 
+  it('without a hint it is never checking, but is not settled until the check ends', async () => {
+    mocks.hint.mockReturnValue(false);
+    let finish!: (v: boolean) => void;
+    act(() => { render(<Probe tool="merge" run={() => new Promise<boolean>((r) => { finish = r; })} />, host); });
+    expect(checking).toBe(false);
+    expect(settled).toBe(false);
+    finish(false);
+    await settle();
+    expect(settled).toBe(true);
+  });
+
   it('does nothing and is not checking when disabled', () => {
     const run = vi.fn(async () => true);
     act(() => { render(<Probe tool="sign" enabled={false} run={run} />, host); });
     expect(run).not.toHaveBeenCalled();
     expect(checking).toBe(false);
+    expect(settled).toBe(true);
   });
 });
 
 describe('useDraftSave', () => {
   let save: DraftSave;
   type Props = Partial<DraftSaveInput<string>> & { snapshot: readonly unknown[] };
-  const write = vi.fn(async (_record: string) => true);
+  const write = vi.fn(async (_record: string, _isCurrent: () => boolean) => true);
   const build = vi.fn((): string | null => 'record');
   function Probe(props: Props) {
     save = useDraftSave<string>({ tool: 'sign', canSave: true, build, write, errorStep: 'autosave_draft', ...props });
@@ -159,7 +172,21 @@ describe('useDraftSave', () => {
     build.mockImplementation(() => 'second');
     act(() => { vi.advanceTimersByTime(700); });
     await settle();
-    expect(write).toHaveBeenCalledWith('second');
+    expect(write).toHaveBeenCalledWith('second', expect.any(Function));
+  });
+
+  it("write's isCurrent turns false once a newer snapshot arrives", async () => {
+    let release!: (v: boolean) => void;
+    let current!: () => boolean;
+    write.mockImplementationOnce((_r: string, isCurrent: () => boolean) => { current = isCurrent; return new Promise<boolean>((r) => { release = r; }); });
+    show({ snapshot: ['a'] });
+    act(() => { vi.advanceTimersByTime(700); });
+    await settle();
+    expect(current()).toBe(true);
+    show({ snapshot: ['b'] });
+    expect(current()).toBe(false);
+    release(true);
+    await settle();
   });
 
   it('a failed or throwing write is an error that holds updates, and is reported', async () => {
