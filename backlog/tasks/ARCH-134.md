@@ -1,12 +1,11 @@
 ---
 id: "ARCH-134"
 title: "Decide whether Merge and Scan drafts share a lifecycle core with useDraftPersistence"
-status: "open"
+status: "in_progress"
 priority: "P3"
 epic: "unify-and-narrow"
-horizon: "later"
+horizon: "now"
 depends_on: []
-needs: "A call on reopening MERGE-13's sibling-hook decision"
 ---
 
 # ARCH-134 · Decide whether Merge and Scan drafts share a lifecycle core with useDraftPersistence

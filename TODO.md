@@ -61,6 +61,7 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 - [ARCH-85](backlog/tasks/ARCH-85.md) P3 · Per-spec flake rates are recorded and read nightly (in progress)
 - [QUAL-32](backlog/tasks/QUAL-32.md) P2 · CI skips Playwright when a push reaches no e2e (in progress)
 - [QUAL-33](backlog/tasks/QUAL-33.md) P2 · A stalled apt install costs at most one retry, not ten minutes (in progress)
+- [ARCH-134](backlog/tasks/ARCH-134.md) P3 · Decide whether Merge and Scan drafts share a lifecycle core with useDraftPersistence (in progress)
 - [QUAL-39](backlog/tasks/QUAL-39.md) P3 · Unit tests run in two parallel CI jobs (in progress)
 - [QUAL-42](backlog/tasks/QUAL-42.md) P3 · CI builds once per run, not once per job (in progress)
 
@@ -131,7 +132,6 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 - [SEO-42](backlog/tasks/SEO-42.md) · The /compress/ query export (28 days before and after 2026-10-08) and /compress-image/ filtered to queries containing pdf
 - [SEO-44](backlog/tasks/SEO-44.md) · The 2026-11-07 Search Console export: the /split/ and /he/split/ rows
 - [SEO-51](backlog/tasks/SEO-51.md) · Search Console, Performance, page /redact/, query containing "redact", last 3 months: impressions, clicks and position per query, plus the same for "blur"
-- [ARCH-134](backlog/tasks/ARCH-134.md) · A call on reopening MERGE-13's sibling-hook decision
 - [COMP-03](backlog/tasks/COMP-03.md) · A check on your iPhone
 - [MERGE-28](backlog/tasks/MERGE-28.md) · Evidence that people want it, and your sign-off on a wider Google exception
 - [READ-07](backlog/tasks/READ-07.md) · An iPhone check
