@@ -3,7 +3,7 @@ import { act } from 'preact/test-utils';
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
 import PdfSignTool from '../../tools/sign/PdfSignTool.tsx';
 import { until } from '../support/until.js';
-import { RESTORE_TIMEOUT_MS } from '#lib/drafts/useDraftPersistence.js';
+import { RESTORE_TIMEOUT_MS } from '#lib/drafts/useDraftLifecycle.ts';
 
 // Coverage for the "checking draft" gate that replaces the flicker of an empty
 // dropzone briefly showing before a saved draft loads over it (see
