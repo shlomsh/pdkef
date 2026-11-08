@@ -113,6 +113,8 @@ export function useScanDraft({ pages, results, settings, restorePages, work }: S
     // session.save reports its own failure and resolves false; the core only reports a throw.
     write: (snapshot) => session.save(snapshot),
     errorStep: 'save_scan_draft',
+    // A forget (Clear all) queues its delete on the session's chain, outside write.
+    drain: () => session.settled(),
   });
 
   // A restored scan is what the store already holds: nothing to write until a stored field changes.
@@ -132,7 +134,9 @@ export function useScanDraft({ pages, results, settings, restorePages, work }: S
 
   useRecentPreview(session, pages, results);
 
-  const state: SaveState = key === null || save.state === 'conflict' ? 'idle' : save.state;
+  // A restored scan reads idle from its first render, before the effect above marks it saved.
+  const stored = key !== null && key === session.savedKey;
+  const state: SaveState = key === null || save.state === 'conflict' || (stored && save.state === 'pending') ? 'idle' : save.state;
 
   return { checking, status: statusLine(state) };
 }
