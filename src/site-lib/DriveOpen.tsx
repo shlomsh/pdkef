@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'preact/hooks';
+import { useEffect, useRef, useState } from 'preact/hooks';
 import { fetchDriveFile } from './drive/driveClient.ts';
 import { requestDriveToken } from './drive/googleToken.ts';
 import { canRetry, driveMessage, pickerLabels, type DriveFailure } from './drive/driveMessages.ts';
@@ -31,6 +31,7 @@ type Phase =
 function DriveOpen() {
   const [phase, setPhase] = useState<Phase>({ name: 'loading' });
   const [save, setSave] = useState<{ id: string; failed: boolean } | null>(null);
+  const starting = useRef(false); // a second tap before the token returns must not start a second fetch
 
   const pickFrom = async (token: string, pick: Pick, multi: boolean) => {
     const retry = () => (multi ? void pickFrom(token, pick, multi) : setPhase({ name: 'pick-ready', pick }));
@@ -90,14 +91,20 @@ function DriveOpen() {
   }, []);
 
   const start = async (fileId: string, resourceKey?: string) => {
-    const fail = (failure: DriveFailure) =>
-      setPhase({ name: 'error', failure, returnTo: null, retry: () => void start(fileId, resourceKey) });
-    const token = await requestDriveToken();
-    if (!token.ok) return fail(token.error);
-    setPhase({ name: 'working' });
-    const result = await fetchDriveFile(fetch, token.token, { fileId, resourceKey });
-    if (!result.ok) return fail(result.error);
-    setPhase({ name: 'chooser', file: new File([result.bytes], result.name, { type: 'application/pdf' }) });
+    if (starting.current) return;
+    starting.current = true; // set before the first await so the token popup still opens inside the tap
+    try {
+      const fail = (failure: DriveFailure) =>
+        setPhase({ name: 'error', failure, returnTo: null, retry: () => void start(fileId, resourceKey) });
+      const token = await requestDriveToken();
+      if (!token.ok) return fail(token.error);
+      setPhase({ name: 'working' });
+      const result = await fetchDriveFile(fetch, token.token, { fileId, resourceKey });
+      if (!result.ok) return fail(result.error);
+      setPhase({ name: 'chooser', file: new File([result.bytes], result.name, { type: 'application/pdf' }) });
+    } finally {
+      starting.current = false;
+    }
   };
 
   if (save) return <DriveSave id={save.id} failed={save.failed} />;

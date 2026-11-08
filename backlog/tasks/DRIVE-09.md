@@ -1,10 +1,9 @@
 ---
 id: "DRIVE-09"
 title: "Drive open: a second tap on the Google button does not start a second fetch"
-status: "in_progress"
+status: "done"
 priority: "P3"
 epic: "robustness"
-horizon: "next"
 depends_on: []
 ---
 
@@ -25,3 +24,5 @@ from either one shows the error even if the other one succeeds.
 - A unit test taps twice before the token resolves and asserts one token request and one fetch.
 
 ## Outcome
+
+Done 2026-11-08. An in-flight ref, set before the first await so the token popup still opens inside the tap and cleared in a `finally`, ignores a second tap. New `DriveOpen.test.tsx`: two taps, one token request, one fetch; red then green.
