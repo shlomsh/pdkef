@@ -1,4 +1,5 @@
 import type { PreparedOutput } from '#lib/output/usePreparedOutput.ts';
+import type { useSaveToDrive } from '#shell/pageWorkspace/useSaveToDrive.ts';
 import type { useDownloadFlow } from '#shell/pageWorkspace/useDownloadFlow.ts';
 import type { SizeLimitId } from '../lib/scanBudget.ts';
 import type { PageSize } from '../lib/scanPipeline.ts';
@@ -9,6 +10,8 @@ type Flow = ReturnType<typeof useDownloadFlow>;
 export interface ScanOutput {
   prepared: PreparedOutput;
   flow: Flow;
+  /** Save to Google Drive: the arrow joined to Download, on desktop once the PDF is ready. */
+  drive: ReturnType<typeof useSaveToDrive>;
   fileName: string;
   /** The size-and-pages line under the Download button. */
   detail: string;

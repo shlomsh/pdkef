@@ -166,3 +166,16 @@
   outline: 2px solid var(--color-primary);
   outline-offset: 2px;
 }
+
+/* Download with the Save to Google Drive arrow joined to its end (desktop). */
+.download-joined {
+  --toolbar-gap: 0px;
+  display: flex;
+  align-items: stretch;
+}
+.download-joined > a {
+  flex: 1 1 auto;
+  width: auto;
+  border-start-end-radius: 0;
+  border-end-end-radius: 0;
+}

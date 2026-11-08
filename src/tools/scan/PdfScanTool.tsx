@@ -58,7 +58,7 @@ export default withIslandBoundary(function PdfScanTool({ quietPolicy, navigate }
 
   const { processed, addFiles, addCameraFiles, retakeFile, inspect, draft } = useScanPages({ pages, setPages, work, unmountedRef, dispatch, settings, ...board });
 
-  const { key, prepared, outputName, fileName, downloadFlow } = useScanExport({
+  const { key, prepared, outputName, fileName, downloadFlow, drive } = useScanExport({
     pages, failedIds, ...settings, work, processed, unmountedRef, ...board, quietPolicy, navigate,
   });
 
@@ -92,6 +92,7 @@ export default withIslandBoundary(function PdfScanTool({ quietPolicy, navigate }
   const output = {
     prepared,
     flow: downloadFlow,
+    drive,
     fileName,
     detail: downloadDetail(prepared, pages.length, englishShellMessages, t.dir),
     outputName,

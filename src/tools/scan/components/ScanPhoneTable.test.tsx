@@ -37,7 +37,7 @@ function mount(over: { flow?: Record<string, unknown>; prepared?: Record<string,
       listRef={() => {}}
       output={{
         prepared: { status: 'ready', url: 'blob:x', size: 1024, progress: 1, prepareNow: vi.fn(), ...over.prepared },
-        flow, fileName: 'Scan.pdf', detail: '3 pages · 1 KB', outputName: 'Scan', isRenaming: false, ...out,
+        flow, drive: { available: false, state: 'idle', link: null, save: vi.fn() }, fileName: 'Scan.pdf', detail: '3 pages · 1 KB', outputName: 'Scan', isRenaming: false, ...out,
       } as never}
       options={options as never}
       rating={over.rating ?? <div data-rating />}

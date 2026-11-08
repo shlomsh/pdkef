@@ -1,8 +1,10 @@
+import { useCallback } from 'preact/hooks';
 import type { MutableRef } from 'preact/hooks';
 import { throwIfAborted } from '#lib/output/abort.js';
 import { reportError } from '#lib/telemetry/errorReport.ts';
 import type { QuietPolicy } from '#lib/output/quietPrepare.ts';
 import { usePreparedOutput } from '#lib/output/usePreparedOutput.ts';
+import { useSaveToDrive } from '#shell/pageWorkspace/useSaveToDrive.ts';
 import { useDownloadFlow } from '#shell/pageWorkspace/useDownloadFlow.ts';
 import { loadPipeline } from '../lib/loadPipeline.ts';
 import { exportKeyFor } from '../lib/scanPages.ts';
@@ -70,5 +72,9 @@ export function useScanExport(input: ScanExportInput) {
     navigate,
   });
   work.resetDownloadFlow = downloadFlow.reset;
-  return { key, prepared, outputName, fileName, downloadFlow };
+  // The PDF is already built once ready, so Save to Drive sends that very blob: what Download gives is what Drive gets.
+  const { blob } = prepared;
+  const buildForDrive = useCallback(async () => (blob ? { blob, fileName } : null), [blob, fileName]);
+  const drive = useSaveToDrive({ tool: 'scan-to-pdf', build: buildForDrive, generation: prepared.generation, ready: prepared.status === 'ready' && failedIds.length === 0 });
+  return { key, prepared, outputName, fileName, downloadFlow, drive };
 }
