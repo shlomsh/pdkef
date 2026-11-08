@@ -166,6 +166,7 @@ export default function useDeletePreviews(
         sourceDocRef.current = { bytes: fileBytes, doc: load };
       }
 
+      const attempted = sourceDocRef.current.doc;
       try {
         const { doc: sourceDoc, buildDeletePreviewPage } = (await sourceDocRef.current.doc) as {
           doc: import('@cantoo/pdf-lib').PDFDocument;
@@ -206,6 +207,9 @@ export default function useDeletePreviews(
         // means that page keeps showing the (still correct, if less exact)
         // original render, not a broken editor.
         console.error('Could not build a delete preview for this PDF', err);
+        // A rejected load must not stay cached for these bytes, or every later
+        // rebuild awaits the same failure. Identity check: never wipe a newer file's entry.
+        if (sourceDocRef.current.doc === attempted) sourceDocRef.current = { bytes: null, doc: null };
       }
     }, REBUILD_DEBOUNCE_MS);
 
