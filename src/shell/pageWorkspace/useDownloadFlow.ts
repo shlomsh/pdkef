@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'preact/hooks';
+import { useCallback, useEffect, useReducer, useRef } from 'preact/hooks';
 import type { OutputPart, PreparedOutput } from '#lib/output/usePreparedOutput.ts';
 import { usePdfShare } from '#lib/output/usePdfShare.js';
 import { useHoldUpdate } from '#lib/hooks/useHoldUpdate.ts';
@@ -7,6 +7,7 @@ import { sendHandoff } from '#lib/handoff/sendHandoff.ts';
 import { recordAction } from '#lib/telemetry/actionTrail.ts';
 import type { HandoffTargetId } from '#lib/app/toolIds.ts';
 import type { DownloadElementState } from '../DownloadElement.tsx';
+import { downloadFlowReducer, initialDownloadFlow } from './downloadFlowState.ts';
 
 /** The tool ids a finished output can be handed to (the ids draftStore keys a hand-off by). */
 export type HandoffTool = HandoffTargetId;
@@ -75,20 +76,17 @@ export function useDownloadFlow(input: DownloadFlowInput) {
   const { navigate } = input;
   /* MERGE-12 analytics: the person's intent is the Download tap; the
      speculative background build is not counted. See ANALYTICS.md. */
-  const [tap, setTap] = useState<'idle' | 'processing' | 'done'>('idle');
-  const [pendingDownload, setPendingDownload] = useState(false);
   // MERGE-24 (2026-10-23): the phone done strip under the sticky bar. Only the
   // quiet Download opens it; a quiet tap that beat the build is remembered in
-  // the ref until the pending download is delivered.
-  const [stripOpen, setStripOpen] = useState(false);
-  const quietPendingRef = useRef(false);
+  // `waiting.openStrip` until the pending download is delivered.
+  const [flow, dispatch] = useReducer(downloadFlowReducer, initialDownloadFlow);
+  const { tap, stripOpen, downloadedOnce, handoffFailed } = flow;
+  const pendingDownload = flow.tap === 'processing' && flow.waiting !== null;
   // Only the person's Download tap, not the speculative background build.
   useHoldUpdate(tap === 'processing');
-  const [downloadedOnce, setDownloadedOnce] = useState(false);
   const { shareReady, canSharePdf, prepare, prepareFiles, clearPrepared, sharePrepared, download } = usePdfShare();
   /* MERGE-14: hand the result to Compress or Sign without re-picking. */
   const [handoffBusy, setHandoffBusy] = useNavigatingAway();
-  const [handoffFailed, setHandoffFailed] = useState(false);
   // DEBT-19: reset() (a new file was picked) bumps this so a hand-off still saving never navigates.
   const handoffRunRef = useRef(0);
 
@@ -97,8 +95,7 @@ export function useDownloadFlow(input: DownloadFlowInput) {
   // "saved" still applies to the new blob.
   useEffect(() => {
     if (prepared.status !== 'ready') {
-      setDownloadedOnce(false);
-      setHandoffFailed(false);
+      dispatch({ type: 'OUTPUT_STALE' });
     }
   }, [prepared.status]);
 
@@ -112,20 +109,15 @@ export function useDownloadFlow(input: DownloadFlowInput) {
   }, [prepared.status, prepared.generation, fileName]);
 
   // Whichever way the file reached the person, it counts as a download (the rating ask waits on this).
-  const delivered = () => { setDownloadedOnce(true); onDelivered?.(); announce(messages.ready); recordAction('download'); };
+  const delivered = () => { onDelivered?.(); announce(messages.ready); recordAction('download'); };
 
   // The tap arrived while the background build was still running: deliver the blob
   // (or every part) the moment it exists, through the same download path Share uses.
   useEffect(() => {
     if (!pendingDownload || prepared.status !== 'ready' || !(prepared.blob || prepared.parts)) return;
-    setPendingDownload(false);
-    if (quietPendingRef.current) {
-      quietPendingRef.current = false;
-      setStripOpen(true);
-    }
+    dispatch({ type: 'OUTPUT_DELIVERED' });
     if (prepared.parts) void deliverParts(prepared.parts, download); // reason: deliverParts only waits on a timer between plain downloads
     else if (prepared.blob) download(prepared.blob, fileName);
-    setTap('done');
     delivered();
   }, [pendingDownload, prepared.status, prepared.generation]);
 
@@ -153,7 +145,7 @@ export function useDownloadFlow(input: DownloadFlowInput) {
     if (!prepared.blob) return;
     const run = ++handoffRunRef.current;
     setHandoffBusy(true);
-    setHandoffFailed(false);
+    dispatch({ type: 'HANDOFF_STARTED' });
     try {
       const sent = await sendHandoff(
         tool,
@@ -164,7 +156,7 @@ export function useDownloadFlow(input: DownloadFlowInput) {
     } catch {
       // expected: saveHandoff reports its own failure, this shows the handoffFailed state
       if (run === handoffRunRef.current) {
-        setHandoffFailed(true);
+        dispatch({ type: 'HANDOFF_FAILED' });
         setHandoffBusy(false);
       }
     }
@@ -175,50 +167,41 @@ export function useDownloadFlow(input: DownloadFlowInput) {
     await performHandoff(tool);
   }, [handoffBusy, prepared.blob, performHandoff]);
 
-  const onDownloadTap = useCallback(() => {
-    setTap('processing');
+  const downloadTapped = useCallback((openStrip: boolean) => {
+    dispatch({ type: 'DOWNLOAD_TAPPED', openStrip });
     delivered();
   }, [messages.ready, onDelivered, announce]);
+  const onDownloadTap = useCallback(() => downloadTapped(false), [downloadTapped]);
 
   // One page's image saved from its own cell: counted like a Download tap, but
   // the Download element stays as it was (it did not save the whole output).
   const onPartSaved = useCallback(() => {
-    setTap('processing');
+    dispatch({ type: 'PART_SAVED' });
     recordAction('download');
   }, []);
 
   // The tap beat the quiet-time build: show 'preparing', build now, deliver on ready.
-  const onPreparingTap = useCallback(() => {
-    setTap('processing');
-    setPendingDownload(true);
+  const onPreparingTap = useCallback((openStrip: boolean) => {
+    dispatch({ type: 'PREPARING_TAPPED', openStrip });
     prepared.prepareNow();
   }, [prepared.prepareNow]);
 
   // The quiet Download's taps, which also open the done strip below 1024px.
-  const onQuietDownloadTap = useCallback(() => {
-    onDownloadTap();
-    if (opensStrip()) setStripOpen(true);
-  }, [onDownloadTap]);
+  const onQuietDownloadTap = useCallback(() => downloadTapped(opensStrip()), [downloadTapped]);
   // The completion row's own preparing tap never opens the strip, whatever an earlier quiet tap left.
-  const onRowPreparingTap = useCallback(() => {
-    quietPendingRef.current = false;
-    onPreparingTap();
-  }, [onPreparingTap]);
-  const onQuietPreparingTap = useCallback(() => {
-    quietPendingRef.current = opensStrip();
-    onPreparingTap();
-  }, [onPreparingTap]);
+  const onRowPreparingTap = useCallback(() => onPreparingTap(false), [onPreparingTap]);
+  const onQuietPreparingTap = useCallback(() => onPreparingTap(opensStrip()), [onPreparingTap]);
 
   // A tap on a ready Download: 'processing' renders once so BasePdfTool reports
   // tool_operation_started, then 'done' reports tool_result_ready.
   useEffect(() => {
-    if (tap === 'processing' && !pendingDownload && prepared.status === 'ready') setTap('done');
+    if (tap === 'processing' && !pendingDownload && prepared.status === 'ready') dispatch({ type: 'SETTLED' });
   }, [tap, pendingDownload, prepared.status]);
 
   const handleShare = async () => {
     const result = await sharePrepared();
     // A completed Share counts like a Download tap (ANALYTICS.md); the effect above settles it to 'done'.
-    if (result.status === 'shared') setTap('processing');
+    if (result.status === 'shared') dispatch({ type: 'SHARED' });
     if (result.status === 'shared') recordAction('share');
     if (result.status === 'shared') announce(messages.shared);
     else if (result.status === 'canceled') announce(messages.canceled);
@@ -232,14 +215,14 @@ export function useDownloadFlow(input: DownloadFlowInput) {
   // that moves 'ready' to 'saved', and that commit must not close it again.
   const prevDownloadStateRef = useRef(downloadState);
   useEffect(() => {
-    if (prevDownloadStateRef.current === 'saved' && downloadState !== 'saved') setStripOpen(false);
+    if (prevDownloadStateRef.current === 'saved' && downloadState !== 'saved') dispatch({ type: 'STRIP_CLOSED' });
     prevDownloadStateRef.current = downloadState;
   }, [downloadState]);
   // The sticky bar (and the strip in it) is hidden from 1024px: close the strip when the window widens past it.
   useEffect(() => {
     if (!showStrip) return;
     const mq = window.matchMedia('(max-width: 1023px)');
-    const onChange = () => { if (!mq.matches) setStripOpen(false); };
+    const onChange = () => { if (!mq.matches) dispatch({ type: 'STRIP_CLOSED' }); };
     mq.addEventListener('change', onChange);
     return () => mq.removeEventListener('change', onChange);
   }, [showStrip]);
@@ -251,12 +234,7 @@ export function useDownloadFlow(input: DownloadFlowInput) {
     clearPrepared();
     handoffRunRef.current += 1;
     setHandoffBusy(false);
-    setTap('idle');
-    setPendingDownload(false);
-    quietPendingRef.current = false;
-    setStripOpen(false);
-    setDownloadedOnce(false);
-    setHandoffFailed(false);
+    dispatch({ type: 'RESET' });
   }, [clearPrepared]);
 
   return {
@@ -275,7 +253,7 @@ export function useDownloadFlow(input: DownloadFlowInput) {
     onQuietPreparingTap,
     onRowPreparingTap,
     handleShare,
-    closeStrip: () => setStripOpen(false),
+    closeStrip: () => dispatch({ type: 'STRIP_CLOSED' }),
     reset,
   };
 }
