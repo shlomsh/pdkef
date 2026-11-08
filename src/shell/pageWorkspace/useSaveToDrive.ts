@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'preact/hooks';
 import { DRIVE_SAVE_CHANNEL, hasDriveConnection, driveFileLink, driveSaveHref, driveSaveKey, type DriveSaveAnswer, type DriveSaveCancel, type DriveSaveFile, type DriveSavePayload } from '#lib/handoff/driveSaveLink.ts';
+import { useLatestRun } from '#lib/hooks/useLatestRun.ts';
 import { parkHandoff } from '#lib/handoff/sendHandoff.ts';
 import { recordAction } from '#lib/telemetry/actionTrail.ts';
 import { reportToolLifecycleEvent, type AnalyticsTool } from '#lib/telemetry/productAnalytics.ts';
@@ -62,6 +63,7 @@ export function useSaveToDrive({ tool, build, generation, ready }: SaveToDriveIn
   const [online, setOnline] = useState(true);
   const [connected, setConnected] = useState(false);
   const [desktop, setDesktop] = useState(false);
+  const run = useLatestRun();
   const stateRef = useRef<SaveToDriveState>('idle');
   const channelRef = useRef<BroadcastChannel | null>(null);
   const watchRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -113,13 +115,28 @@ export function useSaveToDrive({ tool, build, generation, ready }: SaveToDriveIn
     // Synchronously, straight from the tap, and without noopener: the new tab closes itself.
     const tab = window.open(driveSaveHref(id));
     if (!tab) { setState('failed'); reportToolLifecycleEvent('tool_drive_failed', tool); return; }
+    const ticket = run.begin(); // a newer tap supersedes this run: its late steps then do nothing
     setState('saving');
     setLink(null);
     closeChannel();
+    // This run's own channel and interval: a late step can only ever close these, never a newer run's.
+    let channel: BroadcastChannel | null = null;
+    let watch: ReturnType<typeof setInterval> | null = null;
+    const stopOwnWatch = () => {
+      if (watch !== null) clearInterval(watch);
+      if (watchRef.current === watch) watchRef.current = null;
+      watch = null;
+    };
+    const closeOwn = () => {
+      stopOwnWatch();
+      channel?.close();
+      if (channelRef.current === channel) channelRef.current = null;
+      channel = null;
+    };
     if (typeof BroadcastChannel !== 'undefined') {
-      const channel = new BroadcastChannel(DRIVE_SAVE_CHANNEL);
+      channel = new BroadcastChannel(DRIVE_SAVE_CHANNEL);
       channel.onmessage = (event: MessageEvent<DriveSaveAnswer>) => {
-        if (event.data?.id !== id) return;
+        if (!ticket.isCurrent() || event.data?.id !== id) return;
         if (event.data.status === 'saved') {
           setLink(driveFileLink(event.data.link));
           setState('saved');
@@ -129,19 +146,22 @@ export function useSaveToDrive({ tool, build, generation, ready }: SaveToDriveIn
           setState('failed');
           reportToolLifecycleEvent('tool_drive_failed', tool);
         }
-        closeChannel();
+        closeOwn();
       };
       channelRef.current = channel;
     }
     // A tab closed mid-sign-in never answers. The channel stays open: a late answer still lands.
-    watchRef.current = setInterval(() => {
+    watch = setInterval(() => {
+      if (!ticket.isCurrent()) { stopOwnWatch(); return; }
       if (!tab.closed) return;
-      stopWatching();
+      stopOwnWatch();
       setState(stateRef.current === 'saving' ? 'idle' : stateRef.current);
     }, TAB_CHECK_MS);
+    watchRef.current = watch;
     void (async () => { // reason: every failure below ends in the 'failed' state
       const fail = () => {
-        closeChannel();
+        if (!ticket.isCurrent()) return;
+        closeOwn();
         setState('failed');
         reportToolLifecycleEvent('tool_drive_failed', tool);
       };
@@ -152,17 +172,17 @@ export function useSaveToDrive({ tool, build, generation, ready }: SaveToDriveIn
         // expected: the build failed; handled like nothing to save
       }
       if (!made) { postCancel(id); fail(); return; }
-      if (stateRef.current !== 'saving') return; // the tab was closed while building
+      if (!ticket.isCurrent() || stateRef.current !== 'saving') return; // superseded, or the tab was closed while building
       try {
         await parkHandoff(driveSaveKey(id), await driveSavePayload(made.blob, made.fileName));
-        if (!channelRef.current) setState('idle');
+        if (ticket.isCurrent() && !channel) setState('idle');
       } catch {
         // expected: the file stays here to download
         postCancel(id);
         fail();
       }
     })();
-  }, [available, tool, build]);
+  }, [available, tool, build, run]);
 
   return { state, link, available, save };
 }

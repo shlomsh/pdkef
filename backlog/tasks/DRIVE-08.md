@@ -1,10 +1,9 @@
 ---
 id: "DRIVE-08"
 title: "Save to Drive: a late failure from an earlier tap no longer ends the newer save"
-status: "in_progress"
+status: "done"
 priority: "P2"
 epic: "robustness"
-horizon: "next"
 depends_on: []
 ---
 
@@ -36,3 +35,5 @@ setState('idle')`) read B's channel.
   channel answers.
 
 ## Outcome
+
+Done 2026-11-08. Each tap is a `useLatestRun` run that owns its channel and tab-watch interval as locals; every late step returns early once superseded, and a run only ever closes its own channel. One test drives the ticket's sequence, red ("expected 'failed' to be 'saving'") then green.
