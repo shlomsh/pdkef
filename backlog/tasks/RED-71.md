@@ -1,10 +1,9 @@
 ---
 id: "RED-71"
 title: "Delete previews try again after the source document fails to load once"
-status: "in_progress"
+status: "done"
 priority: "P2"
 epic: "redact"
-horizon: "next"
 depends_on: []
 ---
 
@@ -27,3 +26,5 @@ file until a different file is opened.
 - A unit test fails the first load, then lets the second succeed, and asserts previews appear.
 
 ## Outcome
+
+Done 2026-11-08. The catch in `useDeletePreviews.ts` drops `sourceDocRef` when it still holds the load that failed (identity check, so a newer file's entry survives); the existing `reportError` is unchanged. The next rebuild for the same bytes (the next mark, undo or redo) loads again; nothing retries on its own. One test, red then green.

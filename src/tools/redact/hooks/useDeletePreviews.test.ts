@@ -93,6 +93,34 @@ describe('useDeletePreviews', () => {
     expect(proxyB).not.toBe(proxyA);
   });
 
+  it('loads the source document again after a failed load, for the same file bytes', async () => {
+    vi.useFakeTimers();
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    vi.mocked(PDFDocument.load).mockReset();
+    vi.mocked(PDFDocument.load).mockRejectedValueOnce(new Error('load failed'));
+    vi.mocked(PDFDocument.load).mockResolvedValue({} as any);
+    vi.mocked(buildDeletePreviewPage).mockResolvedValue(new Uint8Array([1]));
+    const getDocument = vi.fn(() => ({ promise: Promise.resolve({ destroy: vi.fn() }) }));
+    vi.mocked(getPdfjs).mockResolvedValue({ getDocument } as any);
+
+    let latest: any = null;
+    const onPreviews = (p: unknown) => { latest = p; };
+    const file = new ArrayBuffer(8);
+
+    mount(file, [{ type: 'delete', pageIndex: 0, start: 10, end: 20 }], onPreviews);
+    await act(async () => { await vi.advanceTimersByTimeAsync(REBUILD_DEBOUNCE_MS + 10); });
+    expect(latest.size).toBe(0);
+
+    // A new elements array for the same bytes (the person marks again) rebuilds.
+    act(() => {
+      render(h(Harness, { fileBytes: file, elements: [{ type: 'delete', pageIndex: 0, start: 10, end: 20 }], onPreviews }), container!);
+    });
+    await act(async () => { await vi.advanceTimersByTimeAsync(REBUILD_DEBOUNCE_MS + 10); });
+
+    expect(PDFDocument.load).toHaveBeenCalledTimes(2);
+    expect(latest.size).toBe(1);
+  });
+
   it('destroys the pdf.js handles of a rebuild that was cancelled before it finished', async () => {
     vi.useFakeTimers();
     vi.mocked(PDFDocument.load).mockResolvedValue({} as any);
