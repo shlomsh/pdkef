@@ -10,8 +10,10 @@ interface Props {
   recentFilesMessages: any;
   signToolDisplayName: string;
   toolHrefs?: Record<string, string>;
+  /** English only: the variant landing pages under the tool they open (variantGroups in src/data/homeDock.js). */
+  variantGroups?: { parent: { slug: string; href: string; gridTitle: string }; variants: { slug: string; href: string; gridTitle: string }[] }[];
 }
-const { closing, dropzoneMessages, recentFilesMessages, signToolDisplayName, toolHrefs } = Astro.props;
+const { closing, dropzoneMessages, recentFilesMessages, signToolDisplayName, toolHrefs, variantGroups = [] } = Astro.props;
 
 const closingHeadingStroke = closing.headingStroke;
 const closingHeadingStrokeIndex = closingHeadingStroke ? closing.heading.indexOf(closingHeadingStroke) : -1;
@@ -37,6 +39,17 @@ const closingHeadingTail = closingHeadingHasStop ? closingHeadingAfter.slice(0, 
       heading carries the invitation; the controls carry the choice. */}
   <FileDropzone client:load toolTarget="sign" final messages={dropzoneMessages} recentFilesMessages={recentFilesMessages} toolDisplayName={signToolDisplayName} toolHrefs={toolHrefs} />
   <a href="#home-tour" data-workspace-return>{closing.backLink}</a>
+  {/* Static links to the single-job pages, which have no dock card: each line names the tool it opens. */}
+  {variantGroups.length > 0 && (
+    <nav class="variant-links" aria-label="Pages for one job">
+      {variantGroups.map(({ parent, variants }) => (
+        <p>
+          <a href={parent.href}>{parent.gridTitle}</a>{': '}
+          {variants.map((tool, index) => <>{index > 0 && ' \u00b7 '}<a href={tool.href}>{tool.gridTitle}</a></>)}
+        </p>
+      ))}
+    </nav>
+  )}
 </FeatureCard>
 
 <style>
@@ -138,6 +151,9 @@ const closingHeadingTail = closingHeadingHasStop ? closingHeadingAfter.slice(0, 
     text-align: center;
   }
   .try-workspace h2 { font-size: 2rem; margin: 0 0 16px; }
+  .variant-links { margin-top: 1.5rem; font-size: 0.875rem; line-height: 1.6; color: var(--color-muted); }
+  .variant-links p { margin: 0; }
+  .variant-links a { color: var(--color-primary-text); font-weight: 500; white-space: nowrap; }
   .try-workspace > :global(.w-full) {
     display: flex;
     flex-direction: column;

@@ -9,6 +9,8 @@ import PrivacyOpenSourceCard from './PrivacyOpenSourceCard.astro';
 import ClosingCard from './ClosingCard.astro';
 import RatingBoard from '../RatingBoard.astro';
 import VideoCard from './VideoCard.astro';
+import { tools } from '../../data/tools.js';
+import { variantGroups } from '../../data/homeDock.js';
 
 interface Props {
   home: any;
@@ -26,6 +28,8 @@ interface Props {
 }
 const { home, rating, showTheO, video, dir, locale, messages, variants, dropzoneMessages, recentFilesMessages, signToolDisplayName, toolHrefs } = Astro.props;
 const { faqKicker, faq, founderStory, draftPersistence, offlineInstall, privacyOpenSource, closing } = home;
+// The variant pages are English-only, so a localized home page leaves them out (as ToolCrossLinks.astro does).
+const closingVariantGroups = locale === 'en' ? variantGroups(tools) : [];
 ---
 <div id="home-information">
   {/* The O's window beat says this itself while the visitor is offline. */}
@@ -50,7 +54,7 @@ const { faqKicker, faq, founderStory, draftPersistence, offlineInstall, privacyO
     <PrivacyOpenSourceCard privacyOpenSource={privacyOpenSource} />
     {/* SEO-58: an opaque card that scrolls over the pinned one, never pinned itself. */}
     <RatingBoard card rating={rating} locale={locale} messages={messages} />
-    <ClosingCard closing={closing} dropzoneMessages={dropzoneMessages} recentFilesMessages={recentFilesMessages} signToolDisplayName={signToolDisplayName} toolHrefs={toolHrefs} />
+    <ClosingCard closing={closing} dropzoneMessages={dropzoneMessages} recentFilesMessages={recentFilesMessages} signToolDisplayName={signToolDisplayName} toolHrefs={toolHrefs} variantGroups={closingVariantGroups} />
     <Footer variants={variants} locale={locale} labels={messages} />
   </div>
 </div>
