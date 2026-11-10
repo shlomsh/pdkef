@@ -281,15 +281,21 @@ function isHashedUrl(url) {
 
 // Which manifest URLs install copies out of a previous build's cache and which
 // it fetches. Pure: previouslyCached is the set of pathnames those caches hold.
-// Only a hashed URL already held there is copied; a page or an unhashed asset
-// is always fetched, because the same URL may now name different bytes.
-function planPrecache(urls, previouslyCached) {
+// A hashed URL already held there is copied. An unhashed one held there with a
+// manifest hash is verified (MEM-32): reused only if the old bytes still hash to
+// this build's value, because the same URL may now name different bytes.
+// Everything else is fetched.
+function planPrecache(urls, previouslyCached, hashes = {}) {
   const copy = [];
+  const verify = [];
   const toFetch = [];
   for (const url of urls) {
-    (isHashedUrl(url) && previouslyCached.has(url) ? copy : toFetch).push(url);
+    if (!previouslyCached.has(url)) toFetch.push(url);
+    else if (isHashedUrl(url)) copy.push(url);
+    else if (hashes[url]) verify.push(url);
+    else toFetch.push(url);
   }
-  return { copy, fetch: toFetch };
+  return { copy, verify, fetch: toFetch };
 }
 
 async function previousCacheHandles() {
@@ -310,6 +316,38 @@ async function findInPrevious(previousCaches, url) {
   for (const oldCache of previousCaches) {
     const response = await oldCache.match(resolve(url));
     if (response) return response;
+  }
+  return null;
+}
+
+// MEM-32: the previous caches whose build was served with the same vercel.json
+// response headers as this one (the manifest's `headers` fingerprint). Only these
+// may lend an unhashed file, since a copy keeps the headers it was stored with.
+async function sameHeaderCaches(previousCaches, headers) {
+  if (typeof headers !== 'string') return [];
+  const same = [];
+  for (const oldCache of previousCaches) {
+    try {
+      const stored = await oldCache.match(resolve(MANIFEST_PATH));
+      if (stored && (await stored.json())?.headers === headers) same.push(oldCache);
+    } catch {
+      // An unreadable stored manifest lends nothing.
+    }
+  }
+  return same;
+}
+
+// MEM-32: an unhashed file from a previous cache whose bytes hash to `expected`,
+// rebuilt as a fresh Response, or null. Caches are tried in order, so an older
+// build's copy still counts when a newer one changed the file and changed it back.
+async function findUnchangedInPrevious(previousCaches, url, expected) {
+  for (const oldCache of previousCaches) {
+    const response = await oldCache.match(resolve(url));
+    if (!response) continue;
+    const bytes = await response.arrayBuffer();
+    if (await hashBytes(bytes) === expected) {
+      return new Response(bytes, { status: response.status, statusText: response.statusText, headers: response.headers });
+    }
   }
   return null;
 }
@@ -345,12 +383,12 @@ function appUrls({ shell, pages }) {
 }
 
 function validManifest(manifest) {
-  const { version, build, shell, pages, hashes } = manifest ?? {};
+  const { version, build, shell, pages, hashes, headers } = manifest ?? {};
   if (version !== 2 || !Array.isArray(shell) || shell.length === 0 || !pages || typeof pages !== 'object') {
     throw new Error('Precache manifest has no URLs.');
   }
   if (!hashes || typeof hashes !== 'object') throw new Error('Precache manifest has no hashes.');
-  return { version, build, shell, pages, hashes };
+  return { version, build, shell, pages, hashes, headers: typeof headers === 'string' ? headers : undefined };
 }
 
 // Run task over items with at most `limit` in flight. A rejection propagates and
@@ -373,18 +411,19 @@ async function forEachLimited(items, limit, task) {
 // handler below, so a miss costs nothing but the offline guarantee for that one
 // asset. Only REQUIRED_URL ('/') is load-bearing enough to fail the install
 // over. Resolves to the URLs it did not cache.
-async function precacheUrls(cache, urls, previousCaches, { skipCached = false, hashes = {} } = {}) {
+async function precacheUrls(cache, urls, previousCaches, { skipCached = false, hashes = {}, sameHeaders = [] } = {}) {
   const missed = [];
-  // MEM-16: carry unchanged hashed files over from the previous build's cache
+  // MEM-16, MEM-32: carry unchanged files over from the previous build's cache
   // instead of downloading them again. Activate deletes those caches only
   // after this install, so they are still here to read.
-  let plan = { copy: [], fetch: urls };
+  let plan = { copy: [], verify: [], fetch: urls };
   try {
-    plan = planPrecache(urls, await pathnamesIn(previousCaches));
+    plan = planPrecache(urls, await pathnamesIn(previousCaches), hashes);
   } catch {
     // No readable previous cache: fetch everything, as a first install does.
   }
   const toCopy = new Set(plan.copy);
+  const toVerify = new Set(plan.verify);
   await forEachLimited(urls, PRECACHE_CONCURRENCY, async (url) => {
     if (skipCached && await cache.match(url)) return;
     try {
@@ -392,6 +431,13 @@ async function precacheUrls(cache, urls, previousCaches, { skipCached = false, h
         const kept = await findInPrevious(previousCaches, url).catch(() => null);
         if (kept) {
           await asStorage(() => cache.put(url, kept));
+          return;
+        }
+      }
+      if (toVerify.has(url)) {
+        const unchanged = await findUnchangedInPrevious(sameHeaders, url, hashes[url]).catch(() => null);
+        if (unchanged) {
+          await asStorage(() => cache.put(url, unchanged));
           return;
         }
       }
@@ -436,8 +482,9 @@ async function precacheAppShell({ skipCached = false } = {}) {
   } catch {
     // No readable previous cache.
   }
+  const sameHeaders = await sameHeaderCaches(previousCaches, manifest.headers);
   const urls = appUrls(manifest);
-  const missed = await precacheUrls(cache, urls, previousCaches, { skipCached, hashes: manifest.hashes });
+  const missed = await precacheUrls(cache, urls, previousCaches, { skipCached, hashes: manifest.hashes, sameHeaders });
   if (missed.length > 0) {
     console.warn(`[pdkef] ${missed.length}/${urls.length} assets are not cached for offline use; they will load from the network.`);
   }

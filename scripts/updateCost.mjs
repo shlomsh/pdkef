@@ -4,9 +4,9 @@
  * Pure: nothing here touches the file system. Each argument is one build's
  * install set, a Map of public URL -> { hash, bytes } (bytes = brotli q5 size).
  * public/sw.js copies every /_astro/ URL the previous cache already holds, so a
- * hashed URL costs only when it is new; every other URL is revalidated and
- * costs its bytes when they changed (a 304 otherwise); sw.js and the manifest
- * are always fetched.
+ * hashed URL costs only when it is new; every other URL costs its bytes when
+ * they changed and is copied with no request otherwise, once its old bytes
+ * match the manifest hash (MEM-32); sw.js and the manifest are always fetched.
  *
  * The figure is a ceiling: a hashed URL is charged as new when the previous
  * install set lacks it, but the real previous cache may also hold hashed files
