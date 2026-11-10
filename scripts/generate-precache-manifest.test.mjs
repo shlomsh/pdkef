@@ -33,18 +33,30 @@ let manifest;
 let distDir;
 
 beforeAll(() => {
-  work = fs.mkdtempSync(path.join(os.tmpdir(), 'precache-manifest-'));
+  ({ work, manifest } = generate(VERCEL_HEADERS));
   distDir = path.join(work, 'dist');
-  for (const [file, content] of Object.entries(DIST)) {
-    fs.mkdirSync(path.dirname(path.join(distDir, file)), { recursive: true });
-    fs.writeFileSync(path.join(distDir, file), content);
-  }
-  const run = spawnSync(process.execPath, [script], { cwd: work, encoding: 'utf8' });
-  if (run.status !== 0) throw new Error(`generator failed: ${run.stderr}`);
-  manifest = JSON.parse(fs.readFileSync(path.join(distDir, 'precache-manifest.json'), 'utf8'));
 });
 
-afterAll(() => fs.rmSync(work, { recursive: true, force: true }));
+const VERCEL_HEADERS = [{ source: '/(.*)', headers: [{ key: 'Content-Security-Policy', value: "connect-src 'self'" }] }];
+const extraWorkDirs = [];
+
+// The generator rewrites dist/ in place, so each run gets its own work dir: DIST, plus a
+// vercel.json with `headers` beside it. Returns the dir and the manifest.
+function generate(headers) {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'precache-manifest-'));
+  for (const [file, content] of Object.entries(DIST)) {
+    fs.mkdirSync(path.dirname(path.join(dir, 'dist', file)), { recursive: true });
+    fs.writeFileSync(path.join(dir, 'dist', file), content);
+  }
+  fs.writeFileSync(path.join(dir, 'vercel.json'), JSON.stringify({ headers }));
+  const run = spawnSync(process.execPath, [script], { cwd: dir, encoding: 'utf8' });
+  if (run.status !== 0) throw new Error(`generator failed: ${run.stderr}`);
+  return { work: dir, manifest: JSON.parse(fs.readFileSync(path.join(dir, 'dist', 'precache-manifest.json'), 'utf8')) };
+}
+
+afterAll(() => {
+  for (const dir of [work, ...extraWorkDirs]) fs.rmSync(dir, { recursive: true, force: true });
+});
 
 describe('generate-precache-manifest', () => {
   it('lists the home page, its assets and its icon links in the shell the worker installs', () => {
@@ -81,5 +93,14 @@ describe('generate-precache-manifest', () => {
     expect(about).toContain(manifest.build);
     expect(worker).not.toContain('__BUILD_ID__');
     expect(about).not.toContain('__BUILD_ID__');
+  });
+
+  // MEM-32: the worker reuses a page's unchanged bytes only from a build served with the same headers.
+  it('fingerprints vercel.json\'s response headers in the manifest and the build id', () => {
+    expect(manifest.headers).toMatch(/^[0-9a-f]{16}$/);
+    const { work: dir, manifest: changed } = generate([{ source: '/(.*)', headers: [{ key: 'Content-Security-Policy', value: "connect-src 'self' https://example.test" }] }]);
+    extraWorkDirs.push(dir);
+    expect(changed.headers).not.toBe(manifest.headers);
+    expect(changed.build).not.toBe(manifest.build);
   });
 });

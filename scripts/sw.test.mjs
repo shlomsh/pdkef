@@ -156,10 +156,11 @@ async function dispatchMessage(worker, data) {
 
 // A v2 manifest of this build: `urls` is the shell, `pages` the per-page lists, `hashes` the
 // hashes of every unhashed-URL file (MEM-22). `build` stays the placeholder id the worker carries in tests.
-function manifestResponder(urls, perUrl = () => new Response('asset'), pages = {}, hashes = {}) {
+// `extra` adds fields such as `headers`, the fingerprint of vercel.json's response headers (MEM-32).
+function manifestResponder(urls, perUrl = () => new Response('asset'), pages = {}, hashes = {}, extra = {}) {
   return vi.fn(async (request) => {
     const url = requestUrl(request);
-    if (url.endsWith('/precache-manifest.json')) return new Response(JSON.stringify({ version: 2, build: '__BUILD_ID__', shell: urls, pages, hashes }));
+    if (url.endsWith('/precache-manifest.json')) return new Response(JSON.stringify({ version: 2, build: '__BUILD_ID__', shell: urls, pages, hashes, ...extra }));
     return perUrl(new URL(url).pathname);
   });
 }
@@ -214,6 +215,14 @@ describe('offline-first service worker', () => {
       expect(Array.from(plan.fetch)).toEqual(['/', '/sign/', '/_astro/d.js', '/fonts/x.ttf']);
     });
 
+    it('plans a held unhashed URL with a manifest hash for verification, not fetch (MEM-32)', () => {
+      const { planPrecache } = createWorker().context;
+      const plan = planPrecache(['/', '/sign/', '/new/', '/_astro/a.js'], new Set(['/', '/sign/', '/_astro/a.js']), { '/': 'h1', '/new/': 'h2' });
+      expect(Array.from(plan.copy)).toEqual(['/_astro/a.js']);
+      expect(Array.from(plan.verify)).toEqual(['/']);
+      expect(Array.from(plan.fetch)).toEqual(['/sign/', '/new/']);
+    });
+
     it('copies a hashed file from an old own cache without a network request', async () => {
       const worker = createWorker(manifestResponder(['/', '/_astro/a.js', '/_astro/b.js']), ['pdkef-old']);
       worker.entriesByCache.get('pdkef-old').set('https://pdkef.test/_astro/a.js', new Response('old-a'));
@@ -226,6 +235,58 @@ describe('offline-first service worker', () => {
       expect(await worker.entries.get('https://pdkef.test/_astro/a.js').text()).toBe('old-a');
       expect(worker.entries.has('https://pdkef.test/_astro/b.js')).toBe(true);
       expect(worker.entries.has('https://pdkef.test/')).toBe(true);
+    });
+
+    // MEM-32: each deploy refetched every page and /shared/ chunk from every installed visitor,
+    // which is what spent the CDN request quota. Unchanged bytes now carry over too, but only from
+    // a build served with the same vercel.json response headers, since a copy keeps its old headers.
+    describe('MEM-32: unchanged unhashed files carry over when their bytes and headers still match', () => {
+      const MANIFEST_KEY = 'https://pdkef.test/__pdkef/manifest/';
+      const hashes = { '/': pageHash('home'), '/shared/a.js': pageHash('same a'), '/sign/': pageHash('new sign') };
+      const install = async ({ current = 'h1', previous = 'h1' } = {}) => {
+        const network = { '/': 'home', '/shared/a.js': 'same a', '/sign/': 'new sign' };
+        const worker = createWorker(manifestResponder(['/', '/shared/a.js', '/sign/'], (pathname) => new Response(network[pathname]), {}, hashes, current ? { headers: current } : {}), ['pdkef-old', 'pdkef-older']);
+        const old = worker.entriesByCache.get('pdkef-old');
+        const older = worker.entriesByCache.get('pdkef-older');
+        for (const cache of [old, older]) cache.set(MANIFEST_KEY, new Response(JSON.stringify(previous ? { headers: previous } : {})));
+        old.set('https://pdkef.test/', new Response('stale home'));
+        older.set('https://pdkef.test/', new Response('home', { headers: { 'X-Keep': 'yes' } }));
+        old.set('https://pdkef.test/shared/a.js', new Response('same a'));
+        old.set('https://pdkef.test/sign/', new Response('old sign'));
+        await dispatchInstall(worker);
+        const fetched = worker.fetchImpl.mock.calls.map(([request]) => new URL(requestUrl(request)).pathname);
+        return { worker, fetched };
+      };
+
+      it('copies a file whose old bytes match this build\'s hash, from any previous cache, and fetches one that changed', async () => {
+        const { worker, fetched } = await install();
+        expect(fetched).not.toContain('/');
+        expect(fetched).not.toContain('/shared/a.js');
+        expect(fetched).toContain('/sign/');
+        const home = worker.entries.get('https://pdkef.test/');
+        expect(home.headers.get('X-Keep')).toBe('yes');
+        expect(await home.text()).toBe('home');
+        expect(await worker.entries.get('https://pdkef.test/shared/a.js').text()).toBe('same a');
+        expect(await worker.entries.get('https://pdkef.test/sign/').text()).toBe('new sign');
+      });
+
+      it.each([
+        ['the response headers changed', { previous: 'h0' }],
+        ['the previous build recorded no headers', { previous: null }],
+        ['this build records no headers', { current: null }],
+      ])('fetches every unhashed file when %s', async (_name, options) => {
+        const { fetched } = await install(options);
+        expect(fetched).toEqual(expect.arrayContaining(['/', '/shared/a.js', '/sign/']));
+      });
+
+      it('fetches a held file the manifest lists no hash for', async () => {
+        const worker = createWorker(manifestResponder(['/', '/shared/a.js'], () => new Response('fresh'), {}, {}, { headers: 'h1' }), ['pdkef-old']);
+        worker.entriesByCache.get('pdkef-old').set(MANIFEST_KEY, new Response(JSON.stringify({ headers: 'h1' })));
+        worker.entriesByCache.get('pdkef-old').set('https://pdkef.test/shared/a.js', new Response('fresh'));
+        await dispatchInstall(worker);
+        const fetched = worker.fetchImpl.mock.calls.map(([request]) => new URL(requestUrl(request)).pathname);
+        expect(fetched).toEqual(expect.arrayContaining(['/', '/shared/a.js']));
+      });
     });
 
     it('fetches a hashed file through the HTTP cache and everything else with cache no-cache', async () => {

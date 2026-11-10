@@ -54,12 +54,20 @@ const shell = shellClosure(view, { keep });
 // below, after this), not just the precache lists - see buildId.mjs for why a
 // same-URL asset (fonts, icons, other public/ files) still needs to bust the
 // cache when its content changes.
-const buildId = computeBuildId(
-  allFiles.map((filePath) => ({
+// MEM-32: vercel.json's response headers (the CSP among them) are not in dist/, yet a cached page
+// is served with the headers it was stored with. Their fingerprint joins the build id, so a
+// headers-only deploy still installs, and goes in the manifest, so the worker reuses a page's
+// unchanged bytes only from a build served with the same headers.
+const vercelConfig = JSON.parse(fs.readFileSync(path.join(process.cwd(), 'vercel.json'), 'utf8'));
+const responseHeaders = pageHash(JSON.stringify(vercelConfig.headers ?? []));
+
+const buildId = computeBuildId([
+  ...allFiles.map((filePath) => ({
     relativePath: path.relative(distDir, filePath).split(path.sep).join('/'),
     content: fs.readFileSync(filePath),
   })),
-);
+  { relativePath: '\0vercel.json#headers', content: responseHeaders },
+]);
 
 const workerPath = path.join(distDir, workerName);
 const worker = fs.readFileSync(workerPath, 'utf8');
@@ -100,6 +108,6 @@ for (const url of [...unhashedUrls].sort()) {
   const relative = decodeURIComponent(url.endsWith('/') ? `${url}index.html` : url);
   hashes[url] = pageHash(fs.readFileSync(path.join(distDir, relative)));
 }
-fs.writeFileSync(path.join(distDir, manifestName), `${JSON.stringify({ version: 2, build: buildId, shell, pages, hashes }, null, 2)}\n`);
+fs.writeFileSync(path.join(distDir, manifestName), `${JSON.stringify({ version: 2, build: buildId, headers: responseHeaders, shell, pages, hashes }, null, 2)}\n`);
 
 console.log(`✅ Precache manifest: ${shell.length} shell files and ${Object.keys(pages).length} pages (pdkef-${buildId}).`);
