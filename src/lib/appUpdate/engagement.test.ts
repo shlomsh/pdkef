@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { FILE_OPENED_EVENT, FILE_OPENED_KEY, markFileOpened, whenEngaged } from './engagement.ts';
+import { FILE_OPENED_EVENT, FILE_OPENED_KEY, isInstallPage, markFileOpened, whenEngaged } from './engagement.ts';
 
 function fakeWindow() {
   const listeners = new Map<string, Array<() => void>>();
@@ -18,6 +18,7 @@ function engagedDeps(over: Record<string, unknown> = {}) {
     serviceWorker: { getRegistration: () => Promise.resolve(undefined as unknown) },
     matchMedia: () => ({ matches: false }),
     standalone: undefined as boolean | undefined,
+    pathname: () => '/sign/',
     window: win,
     ...over,
   };
@@ -132,5 +133,25 @@ describe('whenEngaged', () => {
     win.fire(FILE_OPENED_EVENT);
     expect(await t.isDone()).toBe(true);
     resolveReg(undefined);
+  });
+});
+
+describe('the install page', () => {
+  it('isInstallPage matches the page and its localized twin only', () => {
+    expect(isInstallPage('/install-pdf-app/')).toBe(true);
+    expect(isInstallPage('/he/install-pdf-app/')).toBe(true);
+    for (const p of ['/sign/', '/', '/install-pdf-app-extra/', '/install-pdf-app', '/a/b/install-pdf-app/']) {
+      expect(isInstallPage(p)).toBe(false);
+    }
+  });
+
+  it.each(['/install-pdf-app/', '/he/install-pdf-app/'])('resolves at once on %s', async (path) => {
+    const { deps } = engagedDeps({ pathname: () => path });
+    expect(await track(whenEngaged(deps)).isDone()).toBe(true);
+  });
+
+  it.each(['/sign/', '/', '/install-pdf-app-extra/'])('does not resolve on %s', async (path) => {
+    const { deps } = engagedDeps({ pathname: () => path });
+    expect(await track(whenEngaged(deps)).isDone()).toBe(false);
   });
 });

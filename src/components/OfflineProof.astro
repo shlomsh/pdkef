@@ -10,7 +10,7 @@
 // for stacking three statements of the same fact on one screen (DEMO-04
 // direction change). So this component's only remaining job, on every page
 // it appears on, is the part static copy cannot do: say so *while it is
-// actually true*, via navigator.onLine plus the online/offline events. It
+// actually true*, via navigator.onLine plus the online/offline events, and only when a service worker controls the page (MEM-39). It
 // renders nothing until the visitor is genuinely offline, and that is the
 // moment the claim stops being marketing.
 //
@@ -50,10 +50,14 @@
 
   function renderStatus() {
     if (!statusEl) return;
-    statusEl.textContent = navigator.onLine ? '' : "You're offline right now. It still works.";
+    // MEM-39: "it still works" is true only when a worker controls the page; without one the
+    // tool's lazy parts may not be on the device.
+    const worksOffline = !navigator.onLine && !!navigator.serviceWorker?.controller;
+    statusEl.textContent = worksOffline ? "You're offline right now. It still works." : '';
   }
 
   window.addEventListener('online', renderStatus);
   window.addEventListener('offline', renderStatus);
+  navigator.serviceWorker?.addEventListener('controllerchange', renderStatus);
   renderStatus();
 </script>
