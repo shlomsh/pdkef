@@ -6,12 +6,17 @@ import { entryFileName, chunkFileName, assetFileName, cssAssetKeys, cssModuleCla
 // MEM-37: the client bundles. A module goes into the bundle named for the set of entries that load it, so a
 // page fetches a handful of files and never another tool's code. Entries fall in five kinds: a tool island
 // (src/tools/<tool>/), the scripts every page runs (`site`), the home page's islands (`home`), the /open/
-// island (`open`) and the Drive panel (`drive`). A module's kind is the set of entries that reach it,
+// island (`open`) and the Drive panel (`drive`). An entry is `home` only if listed in HOME_ENTRY; any other
+// page script counts as `site`, because it may run on tool pages. A module's kind is the set of entries that reach it,
 // through static or dynamic imports, found by walking importers up to the entries.
 //
 //   site                        reached from the scripts every page runs
 //   home, open                  reached only by those islands (`islands` when by both)
-//   <island>-tools              reached by an island and a tool (`home-tools`, `open-tools`, `islands-tools`)
+//   widgets                     the page scripts that are neither site-wide nor home (OfflineProof, VideoPoster,
+//                               PinnedNotes). Code only they reach has no group: it stays in the script's own
+//                               file, as the Drive panel's does, because a ~1 KB shared bundle would cost every
+//                               page that uses one of them an extra request
+//   <island>-tools              reached by an island and a tool (`home-tools`, `open-tools`, `widgets-tools`, `islands-tools`)
 //   <tool>-tool                 reached by one tool
 //   editor-core                 reached by Sign, Redact and Highlight only
 //   tools-common                reached by several tools
@@ -23,15 +28,20 @@ import { entryFileName, chunkFileName, assetFileName, cssAssetKeys, cssModuleCla
 // from the widest set down: the first group to claim a module is the one holding every entry that loads it.
 // A group named `x` is the file /shared/x.js (MEM-25, MEM-31); check-lazy-modules.js keys on these names.
 const EDITOR_TOOLS = new Set(['sign', 'redact', 'highlight']);
-const ISLAND_KINDS = new Set(['home', 'open']);
+const ISLAND_KINDS = new Set(['home', 'open', 'widgets']);
 const SITE_WIDE_ENTRY = /BaseLayout|DocumentationLanguageSelector|@vercel[\\/]speed-insights|@astrojs[\\/]preact/;
+// The entries linked from `/` and `/he/` and from no other page, read off dist/site/. Every other page script
+// (OfflineProof, VideoPoster, PinnedNotes, the per-page index scripts) also runs on tool pages, so it counts as
+// site-wide: listing it here would hand /sign/ the home bundle.
+const HOME_ENTRY = /FileDropzone|ScrollDriver|TheO\.astro|HomeInformation|HomePageLayout|OfflineInstallCard/;
 
 function entryKind(id) {
   const tool = /[\\/]src[\\/]tools[\\/]([\w-]+)[\\/]/.exec(id)?.[1];
   if (tool) return tool;
   if (SITE_WIDE_ENTRY.test(id)) return 'site';
   if (/DriveOpen/.test(id)) return 'drive';
-  return /OpenWithChooser/.test(id) ? 'open' : 'home';
+  if (/OpenWithChooser/.test(id)) return 'open';
+  return HOME_ENTRY.test(id) ? 'home' : 'widgets';
 }
 
 const kindsOfModule = new Map();
@@ -86,6 +96,7 @@ const clientCodeSplitting = {
     bundle('islands-tools', 9),
     bundle('home-tools', 8.9),
     bundle('open-tools', 8.8),
+    bundle('widgets-tools', 8.7),
     bundle('tools-common', 8),
     bundle('editor-core', 7),
     bundle('islands', 6),
