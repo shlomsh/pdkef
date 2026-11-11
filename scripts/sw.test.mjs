@@ -672,6 +672,43 @@ describe('offline-first service worker', () => {
       });
     });
 
+    describe('MEM-35: a first install caches the pages open when it takes control', () => {
+      // The install already ran: its manifest is stored, and a tab opened while it ran sits at /merge/ uncached.
+      const activating = (cacheKeys) => {
+        const worker = createWorker(manifestResponder(['/'], undefined, PAGES), cacheKeys);
+        worker.entries.set('https://pdkef.test/__pdkef/manifest/', new Response(JSON.stringify({ hashes: {}, pages: PAGES })));
+        open(worker, '/merge/');
+        worker.fetchImpl.mockClear();
+        return worker;
+      };
+
+      it('caches the closure of every open page before claim() runs', async () => {
+        const worker = activating([]);
+        const order = [];
+        worker.self.clients.claim.mockImplementation(async () => { order.push(`claim after ${withoutInternal(worker).length} stored`); });
+        await dispatchActivate(worker);
+        expect(withoutInternal(worker)).toEqual(abs(MERGE).sort());
+        expect(order).toEqual([`claim after ${MERGE.length} stored`]);
+      });
+
+      it('fetches nothing for an open page on an update, where a previous cache exists', async () => {
+        const worker = activating(['pdkef-previous']);
+        await dispatchActivate(worker);
+        expect(fetchedPaths(worker)).toEqual([]);
+        expect(worker.self.clients.claim).toHaveBeenCalled();
+      });
+
+      it('still activates and claims when a closure file fails', async () => {
+        const worker = activating([]);
+        worker.context.fetch = vi.fn(async (request) => {
+          const { pathname } = new URL(requestUrl(request));
+          return pathname === '/_astro/Merge.B1.js' ? new Response('no', { status: 503 }) : new Response('asset');
+        });
+        await expect(dispatchActivate(worker)).resolves.toBeDefined();
+        expect(worker.self.clients.claim).toHaveBeenCalled();
+      });
+    });
+
     describe('the completion pass', () => {
       it('completes exactly the install set: what is missing from it, and nothing of any other page', async () => {
         const failing = ['/_astro/Redact.D1.js'];

@@ -856,6 +856,14 @@ async function cacheRestOfPage(cache, cacheKey) {
   }
 }
 
+// MEM-35: on a first install, a tab opened while the build installed loaded from the
+// network before any worker controlled it, so nothing cached its page, and the install
+// had already listed the open pages. Before taking control, the build caches the closure
+// of every page open now. Pages are not controlled yet, so nothing waits on it.
+async function cacheOpenPages(cache) {
+  for (const path of new Set(await openPagePaths())) await cacheRestOfPage(cache, path);
+}
+
 // Resolves to the network's page and whether it is this build's (and so
 // stored), or null without a network.
 async function refreshNavigation(request, cache, cacheKey) {
@@ -1005,6 +1013,9 @@ self.addEventListener('activate', (event) => {
     const currentCache = await caches.open(CACHE_VERSION);
     await migrateFontPacks(previousCaches, currentCache);
     await Promise.all(previousKeys.map((key) => caches.delete(key)));
+    // Only a first install: an update's open pages were in its install set, and an update's
+    // activation must not be delayed.
+    if (previousKeys.length === 0) await cacheOpenPages(currentCache);
     await self.clients.claim();
   })());
 });
