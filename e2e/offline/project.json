@@ -11,6 +11,12 @@
     "shell",
     "tool-sign",
     "tool-merge",
-    "tool-compress"
+    "tool-compress",
+    "tool-redact",
+    "tool-split",
+    "tool-highlight",
+    "tool-security",
+    "tool-to-image",
+    "tool-edit-pages"
   ]
 }

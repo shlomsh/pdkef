@@ -21,7 +21,9 @@ const { tool, messages, isEditor, toolControlsEnglish } = Astro.props;
     backlog/tasks/SEO-25.md). Nothing else leaned on that height: ToolHero's
     condensing keys off its own data attributes and OfflineProof renders
     after this wrapper closes. e2e/tool-layout.spec.js guards both. */}
-<div class="tool-stage flex flex-col" data-layout="hero" data-tool-slug={tool.slug} data-editor={isEditor || undefined}>
+{/* MEM-43: `data-tool-page` is what the worker's registration reads (engagement.ts): a page that
+    shows a tool, and says the airplane-mode line, installs on its first visit. */}
+<div class="tool-stage flex flex-col" data-layout="hero" data-tool-page data-tool-slug={tool.slug} data-editor={isEditor || undefined}>
   <ToolHero icon={tool.icon} title={tool.h1} titleName={tool.h1Name} subhead={tool.subhead} subheadAccent={messages.heroAccent} slug={tool.slug} condensable={tool.condenseOnLoad !== false} phoneCondensed={tool.heroPhoneCondensed === true} phoneLine={messages.heroPhoneLine} condenseOnLoad />
 
   {/* !max-w-[1280px] overrides global.css's bare `main { max-width: 1400px }`

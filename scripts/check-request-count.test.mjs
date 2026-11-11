@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { pageRefs, pageSet, installSet, countRequests, overBudget } from './check-request-count.mjs';
+import { isToolPage, pageRefs, pageSet, installSet, countRequests, overBudget } from './check-request-count.mjs';
 
 const view = (files) => ({ files: new Map(Object.entries(files)), paths: Object.keys(files) });
 
@@ -72,6 +72,18 @@ describe('installSet and countRequests', () => {
 
   it('counts a first visit as the page files, and after a file is opened as sw.js, the manifest and the install set the page did not load (MEM-34, MEM-39)', () => {
     expect(countRequests(new Set(['/', '/x.js']), new Set(['/', '/a.js', '/b.js']))).toEqual({ firstVisit: 2, afterOpen: 4 });
+  });
+});
+
+describe('tool pages (MEM-43)', () => {
+  it('reads the marker from the HTML, not from a list of paths', () => {
+    expect(isToolPage('<div class="tool-stage" data-layout="hero" data-tool-page data-tool-slug="sign">')).toBe(true);
+    expect(isToolPage('<div data-tool-page="">')).toBe(true);
+    expect(isToolPage('<div data-tool-slug="sign"><p>data-tool-page</p>')).toBe(false);
+  });
+
+  it('puts the install in a tool page first visit and leaves nothing for opening a file', () => {
+    expect(countRequests(new Set(['/', '/x.js']), new Set(['/', '/a.js', '/b.js']), { toolPage: true })).toEqual({ firstVisit: 6, afterOpen: 0 });
   });
 });
 

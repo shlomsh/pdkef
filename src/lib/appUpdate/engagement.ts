@@ -9,6 +9,9 @@
  * - a file was opened on this device before (`FILE_OPENED_KEY`),
  * - the page runs as an installed app,
  * - the page is the install page (a person there asked for offline use),
+ * - the page is a tool page (MEM-43: every tool page says "airplane mode still works", so
+ *   it must be true for a first-time visitor who has not opened a file; the page carries
+ *   a `data-tool-page` marker, no path list lives here),
  * - otherwise it waits for a file to be opened (`markFileOpened`, called by
  *   the tool shell) or for the browser's `appinstalled` event.
  *
@@ -65,6 +68,8 @@ interface EngagedDeps {
   /** iOS `navigator.standalone`. */
   standalone?: boolean;
   pathname?: () => string;
+  /** MEM-43: true on a page that shows a tool. */
+  toolPage?: () => boolean;
   window: {
     addEventListener(type: string, listener: () => void): void;
     removeEventListener(type: string, listener: () => void): void;
@@ -78,6 +83,7 @@ function browserEngagedDeps(): EngagedDeps {
     matchMedia: safely(() => globalThis.matchMedia?.bind(globalThis), undefined),
     standalone: safely(() => (navigator as { standalone?: boolean }).standalone, undefined),
     pathname: () => location.pathname,
+    toolPage: () => document.querySelector('[data-tool-page]') !== null,
     window,
   };
 }
@@ -97,6 +103,7 @@ export function whenEngaged(deps: EngagedDeps = browserEngagedDeps()): Promise<v
       safely(() => deps.storage?.getItem(FILE_OPENED_KEY) != null, false)
       || deps.standalone === true
       || safely(() => isInstallPage(deps.pathname?.() ?? ''), false)
+      || safely(() => deps.toolPage?.() === true, false)
       || safely(() => deps.matchMedia?.('(display-mode: standalone)').matches === true, false);
     if (synchronous) return finish();
 

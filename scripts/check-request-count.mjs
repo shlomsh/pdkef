@@ -13,6 +13,12 @@ import { installPaths } from './check-precache-budget.mjs';
  * Vercel's Hobby plan counts requests, not bytes, so a change that adds files
  * to a closure or to the install is invisible to test:weight and visible here.
  *
+ * MEM-43: a tool page registers the worker on its first visit (it says "airplane mode still works"),
+ * so for a page that carries the `data-tool-page` marker the install belongs to the first visit and
+ * opening a file adds nothing. This is a deliberate rise of the tool pages' first-visit budget, the
+ * owner's decision of 2026-11-12. Before: /redact/ 24 first visit + 33 after a file; /sign/ 23 + 30.
+ * `/` keeps the split.
+ *
  * Not counted: lazy chunks loaded when a file is opened, fonts CSS requests at
  * runtime, telemetry beacons, Vercel Analytics and /api/*.
  */
@@ -22,8 +28,9 @@ const PAGES = ['/', '/redact/', '/sign/'];
 // Set to the measured figures. Budgets only go down.
 export const BUDGETS = {
   '/': { firstVisit: 19, afterOpen: 9 },
-  '/redact/': { firstVisit: 24, afterOpen: 33 },
-  '/sign/': { firstVisit: 23, afterOpen: 30 },
+  // MEM-43 (owner's decision, 2026-11-12): tool pages install on the first visit, so this rise is deliberate.
+  '/redact/': { firstVisit: 57, afterOpen: 0 },
+  '/sign/': { firstVisit: 53, afterOpen: 0 },
 };
 
 const WORKER_REQUESTS = ['/sw.js', '/precache-manifest.json'];
@@ -51,6 +58,9 @@ export function pageRefs(html) {
   return [...new Set(refs.filter(sameOrigin))];
 }
 
+/** MEM-43: the page itself says it shows a tool, by the marker the layout renders. */
+export const isToolPage = (html) => /<[a-z][^>]*\sdata-tool-page[\s>=/]/.test(html);
+
 /** The URLs a page requests on load: itself, its refs and the static-import closure of its scripts. No worker yet (MEM-39). */
 export function pageSet(page, view, htmlRelative) {
   const html = view.files.get(htmlRelative);
@@ -76,9 +86,13 @@ export function installSet(manifest, openPages) {
  * of the install set costs a request: the page's lazy chunks, mostly. Those
  * and the worker's own two files are what opening a file adds (MEM-39).
  */
-export function countRequests(page, install) {
+export function countRequests(page, install, { toolPage = false } = {}) {
   const extra = [...install].filter((url) => !page.has(url)).length;
-  return { firstVisit: page.size, afterOpen: WORKER_REQUESTS.length + extra };
+  const installed = WORKER_REQUESTS.length + extra;
+  // MEM-43: a tool page installs during the first visit, so opening a file adds nothing to it.
+  return toolPage
+    ? { firstVisit: page.size + installed, afterOpen: 0 }
+    : { firstVisit: page.size, afterOpen: installed };
 }
 
 const FIGURES = [['firstVisit', 'first visit'], ['afterOpen', 'after a file is opened']];
@@ -118,7 +132,8 @@ function main() {
   try {
     rows = PAGES.map((page) => {
       const relative = page === '/' ? 'index.html' : `${page.slice(1)}index.html`;
-      return { page, ...countRequests(pageSet(page, view, relative), installSet(manifest, [page])) };
+      const toolPage = isToolPage(view.files.get(relative) ?? '');
+      return { page, toolPage, ...countRequests(pageSet(page, view, relative), installSet(manifest, [page]), { toolPage }) };
     });
   } catch (error) {
     console.error(`Request-count check cannot run: ${error.message}`);
@@ -126,6 +141,7 @@ function main() {
   }
   console.table(rows.map((row) => ({
     page: row.page,
+    'tool page': row.toolPage,
     'first visit': row.firstVisit,
     'budget (first visit)': BUDGETS[row.page].firstVisit,
     'after a file is opened': row.afterOpen,
