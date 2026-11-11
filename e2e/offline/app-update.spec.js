@@ -253,6 +253,36 @@ test('a single tab never sees the line and lands on the new build at its next re
   await expect(tab.locator('[data-editor-text-input]')).toHaveValue('first edit', { timeout: 15_000 });
 });
 
+// MEM-40: every install stores the / document, so the next build used to read it as "the home
+// page was held" and installed the home page's whole closure for a person who only used a tool.
+test('an update carries the tool a tab used, and no file only the home page needs', async () => {
+  const manifest = JSON.parse(readFileSync('dist/precache-manifest.json', 'utf8'));
+  const toolPage = '/sign/';
+  // What the home page loads and the tool page does not (/shared/home.js, its sheets).
+  const homeOnly = manifest.pages['/'].filter((url) => url !== '/' && !manifest.pages[toolPage].includes(url));
+  expect(homeOnly).toContain('/shared/home.js');
+
+  const tab = await context.newPage();
+  await openSignWithFile(tab, await makePdfBuffer('home not carried e2e'));
+  await waitControlled(tab);
+  await waitOldBuildHolds(tab, toolPage);
+
+  server.setPhase('new');
+  await checkForUpdate(tab);
+  await waitForWaitingWorker(tab);
+  await tab.reload();
+  await expect.poll(() => buildOf(tab), { timeout: 15_000 }).toBe('new');
+
+  const held = await tab.evaluate(async ({ urls }) => {
+    const [key] = (await caches.keys()).filter((k) => k.startsWith('pdkef-'));
+    const cache = await caches.open(key);
+    return Promise.all(urls.map(async (url) => [url, !!await cache.match(new URL(url, location.origin).href)]));
+  }, { urls: [...manifest.pages[toolPage], ...homeOnly] });
+  const heldUrls = new Set(held.filter(([, there]) => there).map(([url]) => url));
+  expect(manifest.pages[toolPage].filter((url) => !heldUrls.has(url))).toEqual([]);
+  expect(homeOnly.filter((url) => heldUrls.has(url))).toEqual([]);
+});
+
 // A late request from the document being replaced reaches the old worker as it
 // stops; Chromium restarts it, and the takeover page's refresh must still be answered.
 test('a late request from the page being replaced does not strand the tab on the takeover page', async () => {

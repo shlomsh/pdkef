@@ -569,7 +569,8 @@ describe('offline-first service worker', () => {
       const worker = createWorker(manifestResponder(['/'], undefined, PAGES), ['pdkef-old']);
       open(worker);
       const old = worker.entriesByCache.get('pdkef-old');
-      for (const url of SIGN) old.set(`https://pdkef.test${url}`, new Response('old'));
+      // A real previous cache always lists the / document (every install stores it, MEM-40).
+      for (const url of ['/', ...SIGN]) old.set(`https://pdkef.test${url}`, new Response('old'));
       await dispatchInstall(worker);
       const marker = 'https://pdkef.test/__pdkef/precache-complete/';
       expect(worker.entries.has(marker)).toBe(true);
@@ -619,6 +620,7 @@ describe('offline-first service worker', () => {
       const worker = createWorker(manifestResponder(['/'], undefined, PAGES), ['pdkef-old']);
       open(worker, '/redact/');
       const old = worker.entriesByCache.get('pdkef-old');
+      old.set('https://pdkef.test/', new Response('old home'));
       old.set('https://pdkef.test/sign/', new Response('old sign page'));
       old.set('https://pdkef.test/_astro/Sign.C1.js', new Response('old c1'));
       old.set('https://pdkef.test/_astro/shared.A1.js', new Response('old shared'));
@@ -631,6 +633,70 @@ describe('offline-first service worker', () => {
       expect(fetched).toContain('/sign/');
       expect(fetched).toContain('/_astro/Redact.D1.js');
       expect(fetched.some((path) => MERGE.includes(path) && path !== '/precache-manifest.json')).toBe(false);
+    });
+
+    // MEM-40 (review): every install stores the `/` document for the build check, so a previous
+    // cache always lists `/`. Counting that as "held" carried the home page's whole closure into
+    // the next build for a person who never opened the home page.
+    describe('MEM-40: a / document alone does not make the home page held', () => {
+      const HOME = ['/', '/shared/home.js', '/_astro/home.css'];
+      const OLD_PAGES = { '/': HOME, '/sign/': SIGN };
+      const previousBuild = (worker, urls, { manifest = { hashes: {}, pages: OLD_PAGES } } = {}) => {
+        const old = worker.entriesByCache.get('pdkef-old');
+        for (const url of urls) old.set(`https://pdkef.test${url}`, new Response('old'));
+        if (manifest) old.set('https://pdkef.test/__pdkef/manifest/', new Response(JSON.stringify(manifest)));
+      };
+      const build = () => createWorker(manifestResponder(HOME, undefined, { '/sign/': SIGN }), ['pdkef-old']);
+
+      it('(a) a previous cache with the / document and the whole /sign/ closure installs /sign/ and no home-only file', async () => {
+        const worker = build();
+        open(worker);
+        previousBuild(worker, ['/', ...SIGN]);
+        await dispatchInstall(worker);
+        expect(withoutInternal(worker)).toEqual(abs([...new Set(['/', ...SIGN])]).sort());
+        expect(fetchedPaths(worker)).not.toContain('/shared/home.js');
+      });
+
+      it('(b) a previous cache that holds / with its whole closure carries the home closure into the next build', async () => {
+        const worker = build();
+        open(worker);
+        previousBuild(worker, HOME);
+        await dispatchInstall(worker);
+        expect(withoutInternal(worker)).toEqual(abs(HOME).sort());
+      });
+
+      it('a previous cache missing one file of the home closure, or with no readable manifest, does not hold /', async () => {
+        const cases = [
+          { urls: ['/', '/shared/home.js', ...SIGN], options: {} },
+          { urls: ['/', ...HOME, ...SIGN], options: { manifest: null } },
+          { urls: ['/', ...HOME, ...SIGN], options: { manifest: { hashes: {}, pages: { '/': 'nope' } } } },
+        ];
+        for (const { urls, options } of cases) {
+          const worker = build();
+          open(worker);
+          previousBuild(worker, urls, options);
+          await dispatchInstall(worker);
+          expect(withoutInternal(worker)).toEqual(abs([...new Set(['/', ...SIGN])]).sort());
+        }
+      });
+
+      it('(c) an update is not made to wait for a / document nobody opened', async () => {
+        const worker = build();
+        open(worker);
+        previousBuild(worker, ['/', ...SIGN]);
+        await dispatchInstall(worker);
+        expect(await dispatchMessage(worker, { type: 'pdkef:update-status' })).toMatchObject({ ready: true });
+      });
+
+      it('heldPagePaths drops / unless its whole closure is held, and keeps every other page', () => {
+        const { heldPagePaths, closureHeld } = createWorker().context;
+        const docs = new Set(['/', '/sign/', '/_astro/Sign.C1.js']);
+        expect(Array.from(heldPagePaths(docs, false))).toEqual(['/sign/', '/_astro/Sign.C1.js']);
+        expect(Array.from(heldPagePaths(docs, true))).toEqual(['/', '/sign/', '/_astro/Sign.C1.js']);
+        expect(closureHeld({ pages: OLD_PAGES }, '/', new Set(HOME))).toBe(true);
+        expect(closureHeld({ pages: OLD_PAGES }, '/', new Set(['/']))).toBe(false);
+        expect(closureHeld(null, '/', new Set(HOME))).toBe(false);
+      });
     });
 
     it('a cached page with a closure file missing is not served from cache even with the complete marker', async () => {
