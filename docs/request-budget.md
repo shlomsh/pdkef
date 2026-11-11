@@ -28,7 +28,7 @@ service worker precache the whole app, every page included, on the first visit. 
 - The precache list (251 URLs) holds 56 HTML pages (every guide and every `/he/` page), 4 icon sizes,
   3 pdf.js codec wasm files, `sample.pdf`, a guide video poster, `404.html` and the Google site
   verification file, besides the code.
-- Each page view also costs Vercel Web Analytics (two scripts and an event), and one
+- Each page view also costs Vercel Web Analytics (two scripts and an event), `/api/notes`, and one
   `/api/report` beacon per lifecycle event (a Redact job sends about five).
 - MEM-32 (landed 2026-11-10) stopped deploys from re-downloading unchanged files on returning
   visitors; it does not touch the first visit.
