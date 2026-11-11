@@ -519,11 +519,22 @@ describe('offline-first service worker', () => {
         ]);
       });
 
-      it('always includes the whole closure of /, the offline fallback', () => {
+      // MEM-40 replaces "always includes the whole closure of /, the offline fallback": the home page's
+      // files are installed only when / itself is open or held.
+      it('keeps the / document for the build check, and a tool install holds no file only the home page uses', () => {
         const home = ['/', '/_astro/home.css'];
-        const withHome = createWorker().context.installPaths({ pages: { ...PAGES, '/': home } }, [], []);
-        expect(Array.from(withHome)).toEqual(home);
-        expect(Array.from(createWorker().context.installPaths({ pages: { ...PAGES, '/': home } }, ['/sign/'], []))).toEqual([...home, '/sign/', '/_astro/shared.A1.js', '/_astro/Sign.C1.js']);
+        const pages = { ...PAGES, '/': home };
+        expect(Array.from(createWorker().context.installPaths({ pages }, [], []))).toEqual(['/']);
+        const tool = Array.from(createWorker().context.installPaths({ pages }, ['/sign/'], []));
+        expect(tool).toEqual(['/', '/sign/', '/_astro/shared.A1.js', '/_astro/Sign.C1.js']);
+        expect(tool).not.toContain('/_astro/home.css');
+      });
+
+      it('includes the whole closure of / when / is open or held', () => {
+        const home = ['/', '/_astro/home.css'];
+        const pages = { ...PAGES, '/': home };
+        expect(Array.from(createWorker().context.installPaths({ pages }, ['/'], []))).toEqual(home);
+        expect(Array.from(createWorker().context.installPaths({ pages }, [], ['/', '/sign/']))).toEqual([...home, '/sign/', '/_astro/shared.A1.js', '/_astro/Sign.C1.js']);
       });
 
       it('counts a page that is both open and held once', () => {
@@ -572,12 +583,13 @@ describe('offline-first service worker', () => {
       expect(await dispatchMessage(worker, { type: 'pdkef:update-status' })).toMatchObject({ ready: true });
     });
 
-    it('a first install with only /sign/ open caches every URL of the closure of /', async () => {
+    // MEM-40 rewrites "a first install with only /sign/ open caches every URL of the closure of /".
+    it('a first install with only /sign/ open caches the / document and the closure of /sign/, no other file of /', async () => {
       const HOME = ['/', '/_astro/home.css', '/site/entry.js'];
       const worker = createWorker(manifestResponder(HOME, undefined, { '/sign/': SIGN }), []);
       open(worker, '/sign/');
       await dispatchInstall(worker);
-      expect(withoutInternal(worker)).toEqual(abs([...new Set([...HOME, ...SIGN])]).sort());
+      expect(withoutInternal(worker)).toEqual(abs([...new Set(['/', ...SIGN])]).sort());
     });
 
     it('a fresh install with /redact/ open caches / and the closure of /redact/, and nothing of /merge/', async () => {
@@ -811,9 +823,11 @@ describe('offline-first service worker', () => {
     expect(await worker.entries.get('https://pdkef.test/sign/').text()).toBe('fresh sign page');
   });
 
-  it('falls back to the cached root when an uncached navigation has no network', async () => {
+  // MEM-40: the home page answers only when its whole closure is cached (here the closure is the document alone).
+  it('falls back to a complete cached root when an uncached navigation has no network', async () => {
     const worker = createWorker(vi.fn(async () => { throw new Error('offline'); }));
     worker.entries.set('https://pdkef.test/', new Response('cached home'));
+    worker.entries.set('https://pdkef.test/__pdkef/manifest/', new Response(JSON.stringify({ hashes: {}, pages: { '/': ['/'] } })));
 
     const { response } = await dispatchFetch(worker, {
       method: 'GET',
@@ -1801,7 +1815,7 @@ describe.each([['source', workerSource], ['minified source', minifiedWorkerSourc
   const CSS = '/shared/PdfMergeTool-0da6a7.css';
   const ENTRY = '/site/PdfMergeTool.js';
   const CHUNK = '/_astro/pdf.Ab12Cd.js';
-  const pages = { '/': ['/'], '/merge/': ['/merge/', ENTRY, CHUNK, CSS], '/sign/': ['/sign/'] };
+  const pages = { '/': ['/', CSS], '/merge/': ['/merge/', ENTRY, CHUNK, CSS], '/sign/': ['/sign/'] };
   const THIS = { '/': 'home', '/merge/': 'merge page', '/sign/': 'sign page', [ENTRY]: 'merge entry', [CSS]: 'merge css', [CHUNK]: 'pdf chunk' };
   const hashes = Object.fromEntries(Object.entries(THIS).filter(([url]) => !url.startsWith('/_astro/')).map(([url, bytes]) => [url, pageHash(bytes)]));
   // Installs this build while the network serves `during`, then switches the network to `after`
@@ -1831,9 +1845,17 @@ describe.each([['source', workerSource], ['minified source', minifiedWorkerSourc
     expect(await response.text()).toBe('next merge page');
   });
 
-  it('offline, treats that page as uncached and serves the root fallback', async () => {
+  // MEM-40 rewrites "offline, treats that page as uncached and serves the root fallback": the home page
+  // answers only when it is itself servable, else the browser gets a network error.
+  it('offline, with an uncached page and an incomplete /, answers with a network error', async () => {
     const worker = await installThen(withoutCss, null);
     const { response } = await dispatchFetch(worker, navigate('/merge/'));
+    expect(response.type).toBe('error');
+  });
+
+  it('offline, with an uncached page and a complete /, answers with the home page', async () => {
+    const worker = await installThen(THIS, null, ['/', '/merge/']);
+    const { response } = await dispatchFetch(worker, navigate('/sign/'));
     expect(await response.text()).toBe('home');
   });
 

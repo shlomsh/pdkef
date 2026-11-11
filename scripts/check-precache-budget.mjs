@@ -37,9 +37,9 @@ export const BUDGETS = {
   home: 132_000, // measured 110,968 for / (107,418 /he/), +19%: MEM-35 took the Redact sample PDF out of the list (was 180,000)
   other: 42_000, // measured 35,329 for the heaviest article (/open/), +19%
   // Not headroom: a decision (MEM-15, MEM-35). The worker installs only the tools a person uses, so a first
-  // visit costs `/` plus one page's closure: the heaviest of those (see installPaths) stays under this.
+  // visit costs the `/` document plus one page's closure: the heaviest of those (see installPaths) stays under this.
   // MEM-35 lowered it from the whole-app 5,000,000 (3,203,299 measured, 183 urls) to the single-page line.
-  install: 1_500_000, // measured 1,406,074 for /he/sign/ (`/` plus its closure), +6.7%
+  install: 1_500_000, // measured 1,407,385 for /he/sign/ (the `/` document plus its closure; MEM-40 took the home closure out), +6.6%
 };
 
 // A localized home is `/` or `/<xx>/`.
@@ -70,11 +70,11 @@ export function installUrls({ shell, pages }) {
   return [...new Set([...shell, ...Object.values(pages).flat()])];
 }
 
-// MEM-35: what the worker installs for one page: `/` with its whole closure (the offline fallback) plus
-// that page's closure, each URL once. Mirrors
+// MEM-35, MEM-40: what the worker installs for one page: that page's closure plus the one `/` document
+// (the build check, not a fallback), each URL once; `/` itself keeps its closure. Mirrors
 // installPaths in public/sw.js (a classic script cannot import this); sw.test.mjs asserts they agree.
 export function installPaths(pages, page) {
-  return [...new Set(['/', ...(pages['/'] ?? []), ...(pages[page] ?? [])])];
+  return [...new Set(['/', ...(pages[page] ?? [])])];
 }
 
 // The heaviest single-page install: { page, bytes }, or null for no pages.

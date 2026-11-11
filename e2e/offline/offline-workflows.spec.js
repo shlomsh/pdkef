@@ -191,7 +191,9 @@ test.describe('offline workflows (SIGN-07)', () => {
     }
   });
 
-  test('a tool you opened works offline, and one you never opened is answered with the home page (MEM-35)', async ({ page, context }) => {
+  // MEM-40: "download only what the page asks for": the install carries no home-page files, and an offline
+  // page the worker has no copy of is answered with the home page only when the person opened it.
+  async function openCompressWithFile(page) {
     await page.goto('/compress/');
     await waitForIsland(page);
     // MEM-39: the worker installs once a file is open, not on the visit.
@@ -201,6 +203,10 @@ test.describe('offline workflows (SIGN-07)', () => {
     await waitForServiceWorkerControl(page);
     // The worker installs the pages open at that moment; its marker means that install set is complete.
     await pollInPage(page, async () => !!(await caches.match('/__pdkef/precache-complete/')), null, 60_000);
+  }
+
+  test('a tool you opened works offline, and one you never opened is not answered with the home page (MEM-40)', async ({ page, context }) => {
+    await openCompressWithFile(page);
     expect(await page.evaluate(async () => !!(await caches.match('/merge/')))).toBe(false);
 
     await context.setOffline(true);
@@ -209,7 +215,28 @@ test.describe('offline workflows (SIGN-07)', () => {
       await page.locator('astro-island[client="load"]:not([ssr])').first().waitFor();
       await expect(page.locator('astro-island input[type="file"]')).toBeAttached();
 
-      // Never visited: the worker has no copy, so the offline fallback (the home page) answers.
+      // Never visited, and the home page was never opened: the navigation fails, the browser shows its own offline page.
+      await expect(page.goto('/merge/')).rejects.toThrow(/net::ERR_/);
+    } finally {
+      await context.setOffline(false);
+    }
+  });
+
+  test('once the home page was opened online, an offline page the worker has no copy of is answered with it (MEM-40)', async ({ page, context }) => {
+    await openCompressWithFile(page);
+    await page.goto('/');
+    // The home page's rest-of-closure is cached in the background after the visit.
+    await pollInPage(page, async () => {
+      const stored = await caches.match('/__pdkef/manifest/');
+      if (!stored) return false;
+      const { pages } = await stored.json();
+      const held = await Promise.all((pages['/'] ?? []).map((url) => caches.match(url)));
+      return held.every(Boolean);
+    }, null, 60_000);
+    expect(await page.evaluate(async () => !!(await caches.match('/merge/')))).toBe(false);
+
+    await context.setOffline(true);
+    try {
       await page.goto('/merge/');
       await expect(page).toHaveTitle(/Free PDF Tools Online/);
     } finally {

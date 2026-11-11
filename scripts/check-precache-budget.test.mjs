@@ -84,9 +84,11 @@ describe('install budget (MEM-35: the largest single-page install)', () => {
     expect(installPaths({ '/x/': ['/x/', '/a.js', '/x/'] }, '/x/')).toEqual(['/', '/x/', '/a.js']);
     expect(installPaths({}, '/gone/')).toEqual(['/']);
   });
-  it('installPaths always carries the whole closure of /, the offline fallback', () => {
-    expect(installPaths({ '/': ['/', '/h.css'], '/x/': ['/x/', '/a.js'] }, '/x/')).toEqual(['/', '/h.css', '/x/', '/a.js']);
-    expect(installPaths({ '/': ['/', '/h.css'] }, '/gone/')).toEqual(['/', '/h.css']);
+  // MEM-40 replaces "installPaths always carries the whole closure of /, the offline fallback".
+  it('installPaths holds the / document, and the closure of / only for the page /', () => {
+    expect(installPaths({ '/': ['/', '/h.css'], '/x/': ['/x/', '/a.js'] }, '/x/')).toEqual(['/', '/x/', '/a.js']);
+    expect(installPaths({ '/': ['/', '/h.css'] }, '/gone/')).toEqual(['/']);
+    expect(installPaths({ '/': ['/', '/h.css'] }, '/')).toEqual(['/', '/h.css']);
   });
   it('largestPageInstall names the heaviest page, counting a shared file in each', () => {
     expect(largestPageInstall({ pages: { '/x/': ['/a.js'], '/y/': ['/a.js', '/b.js'] }, sizes })).toEqual({ page: '/y/', bytes: 1100 });
