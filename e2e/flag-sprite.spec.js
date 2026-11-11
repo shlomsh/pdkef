@@ -1,8 +1,8 @@
 import { readFileSync } from 'node:fs';
 import { test, expect } from '@playwright/test';
-import { flagSprite } from '../src/site-lib/flagSprite.ts';
+import { flagSpriteOf } from '../src/site-lib/flagSprite.ts';
 
-// MEM-42: the rating board's flags are one file, /flags/notes.svg, and each flag is picked out of it by
+// MEM-42: the rating board's flags are one file, /flags/notes-<fingerprint>.svg, and each flag is picked out of it by
 // `#CODE` (a <view> in the sprite). Positioned views inside an <img> are the part that differs between
 // engines, so this runs in chromium and webkit. The board itself is real only when the build read notes
 // from the store (KV_REST_API_READ_ONLY_TOKEN), which a local build usually has not; the second test then
@@ -41,29 +41,33 @@ test('the board asks for one flag file, and its flags are different pictures', a
     if (pathname.startsWith('/flags/')) flagRequests.push(pathname);
   });
   await page.goto('/redact/');
-  const imgs = page.locator('img[src^="/flags/notes.svg#"]');
+  const imgs = page.locator('img[src^="/flags/notes-"]');
   const count = await imgs.count();
   test.skip(count < 2, 'this build read no notes from the store, so the board has no flags');
   for (let i = 0; i < count; i++) await imgs.nth(i).scrollIntoViewIfNeeded();
-  await expect.poll(() => loaded(page, 'img[src^="/flags/notes.svg#"]')).toBe(true);
-  expect(flagRequests).toEqual(['/flags/notes.svg']);
+  await expect.poll(() => loaded(page, 'img[src^="/flags/notes-"]')).toBe(true);
+  expect(flagRequests).toHaveLength(1);
+  expect(flagRequests[0]).toMatch(/^\/flags\/notes-[0-9a-f]+\.svg$/);
   const seen = new Map();
   for (let i = 0; i < count; i++) {
     const src = await imgs.nth(i).getAttribute('src');
     if (!seen.has(src)) seen.set(src, await look(page, imgs.nth(i)));
   }
   expect(seen.size).toBeGreaterThan(1);
-  const [first, ...rest] = [...seen.values()];
-  for (const other of rest) expect(differ(first, other)).toBe(true);
+  // Each img's #CODE must name a <view> in the file the board really served: without it the img draws the whole sprite.
+  const served = await (await page.request.get(flagRequests[0])).text();
+  for (const src of seen.keys()) expect(served, `${src} has no <view> in the sprite`).toContain(`<view id="${src.split('#')[1]}" `);
+  const pictures = [...seen.values()];
+  for (let i = 0; i < pictures.length; i++) for (let j = i + 1; j < pictures.length; j++) expect(differ(pictures[i], pictures[j])).toBe(true);
 });
 
 test('a sprite of real flags shows each one in its own cell', async ({ page }) => {
-  const sprite = flagSprite(['IN', 'KE', 'ES', 'BD'].map(flagFile));
-  await page.route('**/flags/notes.svg', (route) => route.fulfill({ contentType: 'image/svg+xml', body: sprite }));
+  const sprite = flagSpriteOf(['IN', 'KE', 'ES', 'BD'].map(flagFile));
+  await page.route(`**${sprite.url}`, (route) => route.fulfill({ contentType: 'image/svg+xml', body: sprite.svg }));
   await page.route('**/flag-sprite-fixture/', (route) =>
     route.fulfill({
       contentType: 'text/html',
-      body: ['IN', 'KE', 'ES', 'BD'].map((c) => `<img class="f" src="/flags/notes.svg#${c}" width="36" height="24" alt="">`).join(''),
+      body: ['IN', 'KE', 'ES', 'BD'].map((c) => `<img class="f" src="${sprite.url}#${c}" width="36" height="24" alt="">`).join(''),
     }),
   );
   await page.goto('/flag-sprite-fixture/');

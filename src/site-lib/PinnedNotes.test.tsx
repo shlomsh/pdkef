@@ -52,9 +52,9 @@ describe('PinnedNotes', () => {
   });
 
   it('puts the country flag beside the place, and none without a country', () => {
-    mount([{ tool: 'merge', stars: 5, country: 'KE' }], { flags: ['KE'] });
+    mount([{ tool: 'merge', stars: 5, country: 'KE' }], { flags: ['KE'], spriteUrl: '/flags/notes-0123456789.svg' });
     const flag = container!.querySelector('img')!;
-    expect(flag.getAttribute('src')).toBe('/flags/notes.svg#KE');
+    expect(flag.getAttribute('src')).toBe('/flags/notes-0123456789.svg#KE');
     expect(flag.getAttribute('width')).toBe('36');
     expect(flag.getAttribute('height')).toBe('24');
     expect(flag.getAttribute('loading')).toBe('lazy');
@@ -66,7 +66,7 @@ describe('PinnedNotes', () => {
   });
 
   it('draws no flag for a country the sprite does not carry, and still names the place', () => {
-    mount([{ tool: 'merge', stars: 5, country: 'KE' }, { tool: 'merge', stars: 5, country: 'XX' }], { flags: ['KE'] });
+    mount([{ tool: 'merge', stars: 5, country: 'KE' }, { tool: 'merge', stars: 5, country: 'XX' }], { flags: ['KE'], spriteUrl: '/flags/notes-0123456789.svg' });
     const [first, second] = [...container!.querySelectorAll('li')];
     expect(first!.querySelector('img')).not.toBeNull();
     expect(second!.querySelector('img')).toBeNull();
@@ -74,6 +74,9 @@ describe('PinnedNotes', () => {
     mount([{ tool: 'merge', stars: 5, country: 'KE' }]);
     expect(container!.querySelector('img')).toBeNull();
     expect(container!.textContent).toContain('Kenya');
+    act(() => render(null, container!));
+    mount([{ tool: 'merge', stars: 5, country: 'KE' }], { flags: ['KE'] });
+    expect(container!.querySelector('img')).toBeNull();
   });
 
   it('dates a note in the page language, and leaves out a date it does not have', () => {
