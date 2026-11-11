@@ -65,8 +65,8 @@ sections:
           No install icon in the address bar? It usually means the page hasn't finished loading yet,
           or you're in a private window, where browsers don't offer it. You don't strictly need to
           install anything either: in an ordinary browser tab, every tool you've opened a file in
-          keeps working offline too. Installing sets that up right away, and makes it easy to find
-          when there's no connection to search with.
+          keeps working offline too. Installing just makes it easy to find when there's no
+          connection to search with.
   - sketch: 'rings'
     icon: 'FileText'
     iconPos: 'tr'
