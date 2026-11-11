@@ -20,8 +20,13 @@
     "reason": "Build-time POST to the rating store of read commands for star counts. Runs in Node during the build, never in the browser; it sends no user data and no file bytes."
   },
   {
-    "file": "src/site-lib/PinnedNotes.tsx",
-    "includes": "fetch(NOTES_PATH)",
-    "reason": "GET of the same-origin approved notes (SEO-57). No request body; nothing leaves the device."
+    "file": "src/site-lib/notesAtBuild.ts",
+    "includes": "fetchImpl: typeof fetch = fetch",
+    "reason": "Default for the injectable fetch of the build-time notes read (Node, during astro build, never in the browser). See the call below."
+  },
+  {
+    "file": "src/site-lib/notesAtBuild.ts",
+    "includes": "await fetchImpl(",
+    "reason": "Build-time POST to the notes store of read commands (MEM-36). Runs in Node during the build, never in the browser; it sends no user data and no file bytes."
   }
 ]
