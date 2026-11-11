@@ -22,8 +22,8 @@ const PAGES = ['/', '/redact/', '/sign/'];
 // Set to the measured figures. Budgets only go down.
 export const BUDGETS = {
   '/': { firstVisit: 19, afterOpen: 9 },
-  '/redact/': { firstVisit: 24, afterOpen: 36 },
-  '/sign/': { firstVisit: 23, afterOpen: 35 },
+  '/redact/': { firstVisit: 24, afterOpen: 33 },
+  '/sign/': { firstVisit: 23, afterOpen: 30 },
 };
 
 const WORKER_REQUESTS = ['/sw.js', '/precache-manifest.json'];
