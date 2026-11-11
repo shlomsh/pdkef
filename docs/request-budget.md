@@ -1,7 +1,8 @@
 # Request budget: delivering PDkef in far fewer requests
 
 *Drafted 2026-11-11, revised the same day after an independent architecture review and Shlomi's calls on
-telemetry and worker timing. Status: accepted 2026-11-11 ("proceed with the plan"), building as MEM-33..37.*
+telemetry and worker timing. Status: accepted 2026-11-11 ("proceed with the plan"), building as MEM-33..38.
+MEM-39 (2026-11-11) then moved the worker's install to after a file is opened, see D2 and D6.*
 
 ## The problem
 
@@ -114,7 +115,7 @@ survived in the HTTP cache.
   Without this, activate's `caches.delete(key)` would drop every runtime-cached page on each deploy.
 - Guides, `/he/` pages a person never opened, extra icon sizes, `sample.pdf`, guide media, `404.html`,
   the verification file and the codec wasm leave the precache list.
-- The worker still registers on page load, after idle, as MEM-17 does: waiting for a file to be opened
+- (Superseded by MEM-39, D6: registration now waits for a file.) The worker still registers on page load, after idle, as MEM-17 does: waiting for a file to be opened
   saves only a few requests once this step lands, and would put the install in the busiest moment, stop
   Android's share target (answered only by the worker) for new visitors, and change the update path.
 
@@ -183,11 +184,11 @@ each assumption against the figure named, and reopen the decision if it no longe
 | # | Decision (2026-11-11) | Assumption it rests on | Check on 2026-12-11 |
 | --- | --- | --- | --- |
 | D1 | Stay on Vercel Hobby and fit the 1M monthly request budget by design | The plan brings usage well under 1M a month with room for growth | Vercel usage page: CDN requests per day after the steps landed, against the ~33K a day the budget allows |
-| D2 | Offline covers the tools a person has used, not every tool (Shlomi, "proceed with the plan") | Most visitors are new, use one tool (a few up to three), and do not come back daily | Share of page loads served by the worker (returning) vs fresh; any report or note about a tool missing offline |
+| D2 | Offline covers the tools a person has opened a file in, not every tool and not every page view (Shlomi, "proceed with the plan"; narrowed by MEM-39, 2026-11-11) | Most first visits never return; a person who opens a file is the one who benefits from offline | Share of page loads served by the worker (returning) vs fresh; returning-visitor share rising, or any report or note about a tool not working offline after only being viewed |
 | D3 | The tool is the unit, over a common layer, in 10-15 bundles | Code churn drops sharply after the November cleanups, so per-tool bundles rarely re-download | Deploys per day (`main` first-parent pushes; 44 a day on 2026-11-01..10) and MEM-21's nightly update cost |
 | D4 | Bundles are cut by the usage table (Redact 68%, Sign 7%, Merge 6%, Compress 5%, the rest light) | Tool shares stay close to the 28-day read of 2026-11-11 | `npm run errors:read -- --days 28`: any light tool above ~5% may earn its own bundle |
 | D5 | Lifecycle beacons stay one per event (Shlomi) | The crash signal (`started` without `ready`) is worth 1-2 requests per job | Whether the funnel still drives fixes; beacon requests as a share of the total |
-| D6 | The worker registers on page load after idle, as MEM-17 does (Shlomi) | Once install holds only the open tool, waiting for a file saves only a few requests | Step 0 guard: install requests for a visitor who leaves without a file |
+| D6 | The worker registers only once a file has been opened in a tool (`pdkef:file-opened`), then at load on later visits; a device that already has the worker keeps it, the installed app registers at launch, and `appinstalled` also triggers it (Shlomi, MEM-39, 2026-11-11; replaces the MEM-17 timing) | The install is about 34-40 of a first visit's requests, and most visitors use one tool once; measured on the bundling branch, `/redact/` first visit 72 requests with the install and about 32 without (about 60 and 26 with the stub-script step) | Step 0 guard: first-visit and after-a-file-opened budgets; returning-visitor share; reports of offline failing after a first view; Android share-target use by new visitors |
 | D7 | Vercel Web Analytics stays for now (open: Shlomi's call) | Referrers and countries are worth 2-3 requests per page view | Whether anyone read Vercel Analytics in the month; its share of requests |
 | D8 | Approved notes are baked in at build, not fetched from `/api/notes` | Deploys are frequent enough that a new note shows within hours | Same deploy rate as D3: if deploys slow to a few a week, notes go stale and this needs a scheduled rebuild or the fetch back |
 | D9 | Precache leaves out guides, unopened `/he/` pages, extra icons, `sample.pdf`, guide media, `404.html`, the verification file and codec wasm | Nobody needs those offline before opening them once | Reports of an offline page falling back to `/` |
@@ -196,7 +197,7 @@ each assumption against the figure named, and reopen the decision if it no longe
 ## Not taken, and why
 
 - **One beacon per page**: loses the crash signal (step 3).
-- **Registering the worker only after a file is opened**: small saving once step 2 lands (step 2).
+- **Registering the worker only after a file is opened**: first set aside as a small saving once step 2 landed, then taken as MEM-39 once the measurement showed the install is still about 34-40 requests of a first visit (D6).
 - **`inlineStylesheets: 'always'`**: already `'auto'`; MEM-27 measured 'always' at 787 KB per CSS edit.
 - **A short `max-age` on `/site/` and `/shared/`**: little gain while the worker answers returning
   visitors, and a version-skew risk (MEM-28).
