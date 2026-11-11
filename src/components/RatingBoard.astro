@@ -3,6 +3,8 @@
 // pin up approved notes and recent votes, which mostly carry no words.
 import PinnedNotes from '../site-lib/PinnedNotes.tsx';
 import { ratingText } from '../site-lib/ratingAggregate';
+import { notesFromEnv } from '../site-lib/notesAtBuild';
+import { notesToShow } from '../site-lib/pinnedNote';
 
 interface Props {
   rating: { average: number; count: number; countries: number } | null;
@@ -13,6 +15,7 @@ interface Props {
   card?: boolean;
 }
 const { rating, messages, tool, locale, card } = Astro.props;
+const notes = notesToShow(await notesFromEnv(), tool);
 const STAR = 'M12 3.2l2.7 5.6 6.1.8-4.5 4.2 1.1 6-5.4-3-5.4 3 1.1-6L3.2 9.6l6.1-.8z';
 const FIVE = [0, 1, 2, 3, 4];
 ---
@@ -35,7 +38,7 @@ const FIVE = [0, 1, 2, 3, 4];
     )}
     <p class="invite">{messages.ratingBoardInvite}</p>
   </div>
-  <PinnedNotes client:load tool={tool} locale={locale} byLine={messages.notesBy} />
+  <PinnedNotes client:load notes={notes} locale={locale} byLine={messages.notesBy} />
 </section>
 
 <style>

@@ -1,8 +1,8 @@
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { describe, expect, it, vi, afterEach } from 'vitest';
-import PinnedNotes, { notesToShow } from './PinnedNotes.tsx';
-import type { PinnedNote } from './pinnedNote';
+import PinnedNotes from './PinnedNotes.tsx';
+import { notesToShow, type PinnedNote } from './pinnedNote';
 
 const note = (tool: string, comment = 'Worked well', stars = 5): PinnedNote =>
   ({ tool, stars, comment, place: 'Nakuru, Kenya' }) as PinnedNote;
@@ -14,69 +14,56 @@ afterEach(() => {
   container?.remove();
   container = null;
   vi.unstubAllGlobals();
+  fetchSpy.mockReset();
 });
 
-async function mount(fetchImpl: () => Promise<unknown>, extra: Record<string, unknown> = {}) {
-  vi.stubGlobal('fetch', vi.fn(fetchImpl));
+const fetchSpy = vi.fn();
+function mount(notes: unknown[], extra: Record<string, unknown> = {}) {
+  vi.stubGlobal('fetch', fetchSpy);
   container = document.createElement('div');
   document.body.appendChild(container);
-  await act(async () => {
-    render(<PinnedNotes {...props} {...extra} />, container!);
-  });
-  await act(async () => {
-    await Promise.resolve();
-  });
+  act(() => render(<PinnedNotes {...props} notes={notes as PinnedNote[]} {...extra} />, container!));
 }
-const ok = (notes: unknown[]) => () => Promise.resolve({ ok: true, json: () => Promise.resolve({ notes }) });
 
 describe('PinnedNotes', () => {
-  it('renders nothing before notes arrive', () => {
-    vi.stubGlobal('fetch', vi.fn(() => new Promise(() => {})));
-    container = document.createElement('div');
-    document.body.appendChild(container);
-    act(() => render(<PinnedNotes {...props} />, container!));
-    expect(container.innerHTML).toBe('');
-  });
-  it('renders nothing after a failed fetch', async () => {
-    await mount(() => Promise.reject(new Error('offline')));
+  it('renders nothing for an empty list, and never fetches', () => {
+    mount([]);
     expect(container!.innerHTML).toBe('');
+    expect(fetchSpy).not.toHaveBeenCalled();
   });
-  it('renders nothing for an empty list', async () => {
-    await mount(ok([]));
-    expect(container!.innerHTML).toBe('');
-  });
-  it('renders the comment and by-line once fetched', async () => {
-    await mount(ok([note('redact', 'Very clear')]));
+  it('renders the comment and by-line from its props', () => {
+    mount([note('redact', 'Very clear')]);
     expect(container!.textContent).toContain('Very clear');
     expect(container!.textContent).toContain('Blur & Redact, someone in Nakuru, Kenya');
     expect(container!.querySelectorAll('li')).toHaveLength(1);
+    expect(fetchSpy).not.toHaveBeenCalled();
   });
-  it('shows a vote with no words as stars, tool and the country in the page language', async () => {
+  it('shows a vote with no words as stars, tool and the country in the page language', () => {
     const vote = { tool: 'merge', stars: 4, country: 'KE' };
-    await mount(ok([{ ...vote, region: 'Nakuru' }]));
+    mount([{ ...vote, region: 'Nakuru' }]);
     expect(container!.textContent).toContain('Merge PDF, someone in Nakuru, Kenya');
     act(() => render(null, container!));
-    await mount(ok([vote]));
+    mount([vote]);
     expect(container!.textContent).toContain('Merge PDF, someone in Kenya');
     expect(container!.querySelector('svg')!.getAttribute('aria-label')).toBe('4 / 5');
     act(() => render(null, container!));
-    await mount(ok([vote]), { locale: 'he', byLine: '{tool}, מישהו ב{place}' });
+    mount([vote], { locale: 'he', byLine: '{tool}, מישהו ב{place}' });
     expect(container!.textContent).toContain('קניה');
   });
 
-  it('puts the country flag beside the place, and none without a country', async () => {
-    await mount(ok([{ tool: 'merge', stars: 5, country: 'KE' }]));
+  it('puts the country flag beside the place, and none without a country', () => {
+    mount([{ tool: 'merge', stars: 5, country: 'KE' }]);
     const flag = container!.querySelector('img')!;
     expect(flag.getAttribute('src')).toBe('/flags/KE.svg');
     expect(flag.getAttribute('alt')).toBe('');
     expect(flag.parentElement!.textContent).toBe('Kenya');
     act(() => render(null, container!));
-    await mount(ok([note('merge')]));
+    mount([note('merge')]);
     expect(container!.querySelector('img')).toBeNull();
   });
 
-  it('shows markup in a comment as text', async () => {
-    await mount(ok([note('redact', 'so <b>good</b>')]));
+  it('shows markup in a comment as text', () => {
+    mount([note('redact', 'so <b>good</b>')]);
     expect(container!.querySelector('li b')).toBeNull();
     expect(container!.textContent).toContain('so <b>good</b>');
   });
