@@ -156,7 +156,6 @@ test.describe('offline workflows (SIGN-07)', () => {
   test('Merge completes fully offline once the page has been visited online', async ({ page, context }) => {
     await page.goto('/merge/');
     await waitForIsland(page);
-    await waitForServiceWorkerControl(page);
 
     // MERGE-12: there is no Merge button any more - the pre-merge runs on
     // idle and the Download link takes its place once ready.
@@ -165,6 +164,8 @@ test.describe('offline workflows (SIGN-07)', () => {
     );
     await page.locator('input[type="file"]').setInputFiles(files);
     await expect(page.getByRole('link', { name: /Download merged PDF/ })).toHaveAttribute('href', /^blob:/, { timeout: 10_000 });
+    // MEM-39: opening the files is what installs the worker.
+    await waitForServiceWorkerControl(page);
     await page.waitForLoadState('networkidle');
 
     await context.setOffline(true);
@@ -188,6 +189,10 @@ test.describe('offline workflows (SIGN-07)', () => {
   test('a tool you opened works offline, and one you never opened is answered with the home page (MEM-35)', async ({ page, context }) => {
     await page.goto('/compress/');
     await waitForIsland(page);
+    // MEM-39: the worker installs once a file is open, not on the visit.
+    await page.locator('astro-island input[type="file"]').setInputFiles({
+      name: 'offline-e2e.pdf', mimeType: 'application/pdf', buffer: await makePdfBuffer('compress offline fixture'),
+    });
     await waitForServiceWorkerControl(page);
     // The worker installs the pages open at that moment; its marker means that install set is complete.
     await page.waitForFunction(async () => !!(await caches.match('/__pdkef/precache-complete/')), null, { timeout: 60_000 });
@@ -297,5 +302,44 @@ test.describe('offline workflows (SIGN-07)', () => {
     await expect(page.locator('[class*="page-wrapper"]')).toBeVisible();
     const restoredText = page.locator('[data-editor-element] textarea[data-editor-text-input]');
     await expect(restoredText).toHaveValue('Upgrade survival check');
+  });
+});
+
+// MEM-39: Vercel bills per request and the worker's install is dozens of them,
+// so it is registered only once a person has opened a file in a tool.
+test.describe('the worker waits for a file (MEM-39)', () => {
+  test('a first visit with no file opened registers no worker and never asks for sw.js', async ({ page, context }) => {
+    const requested = [];
+    // Playwright reports a worker script's own fetch only behind an experimental
+    // flag, so the registration and cache checks below are the real proof; this
+    // list still catches a page that asks for the files itself.
+    context.on('request', (request) => requested.push(new URL(request.url()).pathname));
+    await page.goto('/compress/');
+    await waitForIsland(page);
+    await page.waitForLoadState('networkidle');
+    await page.waitForTimeout(3_000);
+    expect(await page.evaluate(async () => (await navigator.serviceWorker.getRegistrations()).length)).toBe(0);
+    expect(await page.evaluate(async () => (await caches.keys()).filter((key) => key.startsWith('pdkef-')))).toEqual([]);
+    expect(requested).not.toContain('/sw.js');
+    expect(requested).not.toContain('/precache-manifest.json');
+  });
+
+  test('opening a file registers the worker, and a later page load in the same context registers at load', async ({ page }) => {
+    await page.goto('/compress/');
+    await waitForIsland(page);
+    await page.locator('astro-island input[type="file"]').setInputFiles({
+      name: 'engaged.pdf', mimeType: 'application/pdf', buffer: await makePdfBuffer('engaged fixture'),
+    });
+    await waitForServiceWorkerControl(page);
+
+    // Drop the worker but keep the device's memory of a file. A page loaded now,
+    // with no file opened in it, must register again on its own.
+    await page.evaluate(async () => {
+      for (const registration of await navigator.serviceWorker.getRegistrations()) await registration.unregister();
+    });
+    const later = await page.context().newPage();
+    await later.goto('/compress/');
+    await waitForIsland(later);
+    await later.waitForFunction(async () => !!(await navigator.serviceWorker.getRegistration()), null, { timeout: 15_000 });
   });
 });
