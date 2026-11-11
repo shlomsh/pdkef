@@ -108,7 +108,7 @@ const PAGES = [
   'unlock', 'image-to-pdf', 'scan-to-pdf', 'organize-pdf', 'rotate-pdf', 'remove-pages',
   'add-page-numbers-to-pdf', 'extract-pdf-pages', 'pdf-to-image', 'highlight-pdf',
   'he/sign', 'he/merge', 'he/compress',
-  'about',
+  'about', 'blur-vs-blackout-vs-delete-pdf', 'he/photo-and-signature-size-for-forms',
 ];
 
 /**
@@ -116,6 +116,12 @@ const PAGES = [
  * pages (OfflineProof, VideoPoster, PinnedNotes) once counted as "home" and dragged its 121 KB onto /sign/.
  */
 const HOME_ONLY = { chunk: /^home\./, pages: new Set(['', 'he']) };
+
+/**
+ * MEM-37: Preact's runtime (`preact.js`) is for pages that have an island. The island client entry once counted as
+ * site-wide and folded into site.js, which hauled Preact onto every static content page.
+ */
+const ISLAND_RUNTIME = /^preact\./;
 
 /** Dist as the pure closure functions see it: every text file, plus the list of all paths. */
 function readDist() {
@@ -185,6 +191,16 @@ for (const page of PAGES) {
         `/${page}/ loads ${homeChunks.join(', ')} (the home pages' bundle) on first paint.\n`
         + '    A client script that runs on this page is classified as home in astro.config.mjs\n'
         + '    entryKind(). Only entries listed in HOME_ENTRY may be home; the rest are site-wide.',
+      );
+    }
+  }
+  if (!html.includes('<astro-island')) {
+    const runtime = [...eager].filter((file) => ISLAND_RUNTIME.test(file));
+    if (runtime.length > 0) {
+      errors.push(
+        `/${page}/ has no island but loads ${runtime.join(', ')} (Preact's runtime) on first paint.\n`
+        + '    The island client entry is classified as site-wide in astro.config.mjs entryKind().\n'
+        + '    It is its own kind, `client`, so pages without an island never load it.',
       );
     }
   }
