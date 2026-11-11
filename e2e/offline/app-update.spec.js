@@ -43,10 +43,26 @@ test.afterEach(async () => { await context?.close(); });
 
 const makePdfBuffer = (label) => buildPdf(label, { title: false, lines: [{ text: label }] });
 
+// A timeout here has been seen about once in sixty whole-file runs and never reproduced
+// on demand (QUAL-55), so the failure carries what the tab and its registrations looked
+// like: an active worker that never claimed this tab reads differently from no worker.
 async function waitForController(page) {
-  await page.waitForFunction(() => navigator.serviceWorker && navigator.serviceWorker.controller !== null, null, {
-    timeout: 20_000,
-  });
+  try {
+    await page.waitForFunction(() => navigator.serviceWorker && navigator.serviceWorker.controller !== null, null, {
+      timeout: 20_000,
+    });
+  } catch (error) {
+    const state = await page.evaluate(async () => ({
+      url: location.href,
+      controller: navigator.serviceWorker.controller?.state ?? null,
+      fileOpened: localStorage.getItem('pdkef:file-opened'),
+      registrations: (await navigator.serviceWorker.getRegistrations()).map((r) => ({
+        active: r.active?.state ?? null, waiting: r.waiting?.state ?? null, installing: r.installing?.state ?? null,
+      })),
+    })).catch((e) => `unreadable: ${e.message}`);
+    error.message += `\nno controller after 20 s: ${JSON.stringify(state)}`;
+    throw error;
+  }
 }
 
 // Registration happens after load; a first visit is uncontrolled until the
