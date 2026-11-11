@@ -682,13 +682,29 @@ describe('offline-first service worker', () => {
         return worker;
       };
 
-      it('caches the closure of every open page before claim() runs', async () => {
+      it('claims first, then caches the closure of every open page in the background', async () => {
         const worker = activating([]);
         const order = [];
-        worker.self.clients.claim.mockImplementation(async () => { order.push(`claim after ${withoutInternal(worker).length} stored`); });
-        await dispatchActivate(worker);
+        worker.self.clients.claim.mockImplementation(async () => { order.push('claim'); });
+        const realFetch = worker.context.fetch;
+        let release;
+        const held = new Promise((resolveHeld) => { release = resolveHeld; });
+        let holdOne = true;
+        worker.context.fetch = vi.fn(async (request) => {
+          order.push('fetch');
+          if (holdOne) { holdOne = false; await held; }
+          return realFetch(request);
+        });
+        // Activation resolves while a closure fetch is still pending: it does not wait for the caching.
+        let settled = false;
+        const activation = dispatchActivate(worker).then(() => { settled = true; });
+        await activation;
+        expect(settled).toBe(true);
+        expect(order[0]).toBe('claim');
+        expect(withoutInternal(worker).length).toBeLessThan(MERGE.length);
+        release();
+        await new Promise((resolveFlush) => setTimeout(resolveFlush, 20));
         expect(withoutInternal(worker)).toEqual(abs(MERGE).sort());
-        expect(order).toEqual([`claim after ${MERGE.length} stored`]);
       });
 
       it('fetches nothing for an open page on an update, where a previous cache exists', async () => {
