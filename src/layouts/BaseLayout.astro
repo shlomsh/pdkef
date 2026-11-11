@@ -132,7 +132,7 @@ const ogImageURL = new URL(ogImage.src, Astro.site);
       // internal. Dev actively uninstalls it instead of leaving it to rot.
       import { startAppUpdates } from '../site-lib/appUpdate.ts';
       import { whenReadyToRegister } from '../site-lib/registrationReady.ts';
-      import { whenEngaged } from '#lib/appUpdate/engagement.ts';
+      import { cacheHomeInBrowser, whenEngaged } from '#lib/appUpdate/engagement.ts';
       import { installChunkReload } from '../site-lib/chunkReload.ts';
       // MEM-38: after a deploy a failed chunk import reloads the page once, on
       // every page, with or without a worker.
@@ -169,6 +169,8 @@ const ogImageURL = new URL(ogImage.src, Astro.site);
             setInterval: (fn, ms) => window.setInterval(fn, ms),
             now: () => Date.now(),
           });
+          // MEM-40: the installed app starts at `/`, so installing caches the home page.
+          cacheHomeInBrowser();
         } else {
           navigator.serviceWorker.getRegistrations()
             .then((registrations) => Promise.all(registrations.map((registration) => registration.unregister())))

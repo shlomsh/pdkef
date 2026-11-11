@@ -80,6 +80,9 @@ const SKIP_WAITING_MESSAGE = 'pdkef:skip-waiting';
 const UPDATE_STATUS_MESSAGE = 'pdkef:update-status';
 // Asked of every open tab (src/site-lib/appUpdate.ts answers it).
 const BUSY_QUERY_MESSAGE = 'pdkef:busy-query';
+// MEM-40: sent by the installed app (src/lib/appUpdate/engagement.ts): the app starts at `/`,
+// so it asks the active worker to cache the home page's closure.
+const CACHE_HOME_MESSAGE = 'pdkef:cache-home';
 const BUSY_TIMEOUT_MS = 750;
 // MEM-13: a critical build tells every tab (CRITICAL_UPDATE_MESSAGE) and waits
 // for each to reply { ready: true } before it skips waiting. The page holds its
@@ -893,6 +896,19 @@ async function cacheRestOfPage(cache, cacheKey) {
   }
 }
 
+// MEM-40: the installed app starts at `/`, so it must open offline even for a person who only
+// used a tool. The active worker caches the home page's closure into its own build's cache
+// (what is already held is skipped); a waiting worker ignores the message, and a miss is
+// silent, as cacheRestOfPage already is.
+async function cacheHome() {
+  if (isWaitingWorker()) return;
+  try {
+    await cacheRestOfPage(await caches.open(CACHE_VERSION), REQUIRED_URL);
+  } catch {
+    // Silent: the home page stays uncached until the next ask.
+  }
+}
+
 // MEM-35: on a first install, a tab opened while the build installed loaded from the
 // network before any worker controlled it, so nothing cached its page, and the install
 // had already listed the open pages. Right after taking control, in the background, the
@@ -1289,6 +1305,10 @@ self.addEventListener('message', (event) => {
   }
   if (type === UPDATE_STATUS_MESSAGE) {
     event.waitUntil(handleUpdateStatus(event));
+    return;
+  }
+  if (type === CACHE_HOME_MESSAGE) {
+    event.waitUntil(cacheHome());
     return;
   }
   if (![FONT_PACK_MESSAGE.status, FONT_PACK_MESSAGE.provision].includes(type)) return;

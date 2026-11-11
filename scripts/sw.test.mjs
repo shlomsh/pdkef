@@ -699,6 +699,56 @@ describe('offline-first service worker', () => {
       });
     });
 
+    describe('MEM-40: the pdkef:cache-home message', () => {
+      const HOME = ['/', '/shared/home.js', '/_astro/home.css'];
+      const installed = async () => {
+        const worker = createWorker(manifestResponder(HOME, undefined, { '/sign/': SIGN }), []);
+        open(worker, '/sign/');
+        await dispatchInstall(worker);
+        worker.fetchImpl.mockClear();
+        return worker;
+      };
+
+      it('makes the worker cache every URL of the closure of /', async () => {
+        const worker = await installed();
+        expect(withoutInternal(worker)).not.toContain('https://pdkef.test/shared/home.js');
+        await dispatchMessage(worker, { type: 'pdkef:cache-home' });
+        expect(withoutInternal(worker)).toEqual(abs([...new Set([...HOME, ...SIGN])]).sort());
+        expect(fetchedPaths(worker)).not.toContain('/');
+      });
+
+      it('does nothing for an unknown message type', async () => {
+        const worker = await installed();
+        await dispatchMessage(worker, { type: 'pdkef:cache-homes' });
+        expect(fetchedPaths(worker)).toEqual([]);
+        expect(withoutInternal(worker)).toEqual(abs([...new Set(['/', ...SIGN])]).sort());
+      });
+
+      it('is ignored by the waiting worker, which is not the one answering pages', async () => {
+        const worker = await installed();
+        worker.self.registration.waiting = worker.self.serviceWorker = {};
+        await dispatchMessage(worker, { type: 'pdkef:cache-home' });
+        expect(fetchedPaths(worker)).toEqual([]);
+      });
+
+      it('stays silent when a file fails', async () => {
+        const worker = await installed();
+        worker.context.fetch = vi.fn(async () => new Response('no', { status: 503 }));
+        await expect(dispatchMessage(worker, { type: 'pdkef:cache-home' })).resolves.toBeUndefined();
+      });
+
+      it('a / cached whole this way is held by the next build', async () => {
+        const first = await installed();
+        await dispatchMessage(first, { type: 'pdkef:cache-home' });
+        const next = createWorker(manifestResponder(HOME, undefined, { '/sign/': SIGN }), ['pdkef-old']);
+        open(next);
+        const old = next.entriesByCache.get('pdkef-old');
+        for (const [url, response] of first.entries) old.set(url, response.clone());
+        await dispatchInstall(next);
+        expect(withoutInternal(next)).toEqual(abs([...new Set([...HOME, ...SIGN])]).sort());
+      });
+    });
+
     it('a cached page with a closure file missing is not served from cache even with the complete marker', async () => {
       const worker = createWorker(vi.fn(async () => new Response('network merge')), []);
       const store = (url, body) => worker.entries.set(`https://pdkef.test${url}`, new Response(body));

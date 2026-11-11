@@ -108,3 +108,65 @@ export function whenEngaged(deps: EngagedDeps = browserEngagedDeps()): Promise<v
     });
   });
 }
+
+/** MEM-40: the device remembers that the app was installed. @testSeam */
+export const APP_INSTALLED_KEY = 'pdkef:app-installed';
+/** MEM-40: asks the active worker to cache the home page; the worker's own constant is the same string. @testSeam */
+export const CACHE_HOME_MESSAGE = 'pdkef:cache-home';
+
+/**
+ * MEM-40: the installed app starts at `/`, so it must open offline even for a person who only
+ * used a tool. True when this page runs as the installed app or the device remembers an install.
+ * @testSeam
+ */
+export function shouldCacheHome(signals: { standalone?: boolean; displayModeStandalone?: boolean; storedInstalled?: boolean }): boolean {
+  return signals.standalone === true || signals.displayModeStandalone === true || signals.storedInstalled === true;
+}
+
+interface CacheHomeDeps {
+  storage?: { getItem(key: string): string | null; setItem(key: string, value: string): void };
+  matchMedia?: (query: string) => { matches: boolean };
+  standalone?: boolean;
+  /** Resolves to the registration once a worker is active (`navigator.serviceWorker.ready`). */
+  ready: Promise<{ active: { postMessage(message: unknown): void } | null }>;
+  window: { addEventListener(type: string, listener: () => void): void };
+}
+
+/**
+ * Asks the active worker to cache the home page, once per page load: at load when this is the
+ * installed app (or the device remembers an install), and on `appinstalled`, which also stores
+ * the install. The worker skips what it already holds. Never rejects, never blocks the page.
+ * @testSeam
+ */
+export function cacheHomeForInstalledApp(deps: CacheHomeDeps): void {
+  let asked = false;
+  const ask = () => {
+    if (asked) return;
+    asked = true;
+    Promise.resolve(deps.ready)
+      .then((registration) => registration.active?.postMessage({ type: CACHE_HOME_MESSAGE }))
+      .catch(() => {
+        // expected: no worker here; the home page stays uncached
+      });
+  };
+  deps.window.addEventListener(APP_INSTALLED_EVENT, () => {
+    safely(() => deps.storage?.setItem(APP_INSTALLED_KEY, '1'), undefined);
+    ask();
+  });
+  const now = shouldCacheHome({
+    standalone: deps.standalone,
+    displayModeStandalone: safely(() => deps.matchMedia?.('(display-mode: standalone)').matches === true, false),
+    storedInstalled: safely(() => deps.storage?.getItem(APP_INSTALLED_KEY) != null, false),
+  });
+  if (now) ask();
+}
+
+export function cacheHomeInBrowser(): void {
+  cacheHomeForInstalledApp({
+    storage: safely(() => globalThis.localStorage, undefined),
+    matchMedia: safely(() => globalThis.matchMedia?.bind(globalThis), undefined),
+    standalone: safely(() => (navigator as { standalone?: boolean }).standalone, undefined),
+    ready: navigator.serviceWorker.ready as CacheHomeDeps['ready'],
+    window,
+  });
+}
