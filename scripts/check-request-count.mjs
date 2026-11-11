@@ -18,14 +18,15 @@ const PAGES = ['/', '/redact/', '/sign/'];
 
 // One total per page, set to the first build's figure. Budgets only go down as MEM-34..37 land.
 export const BUDGETS = {
-  '/': 270,
-  '/redact/': 272,
-  '/sign/': 272,
+  '/': 292,
+  '/redact/': 316,
+  '/sign/': 312,
 };
 
 const WORKER_REQUESTS = ['/sw.js', '/precache-manifest.json'];
 const LINK_RELS = ['stylesheet', 'modulepreload', 'icon', 'apple-touch-icon', 'manifest'];
-const sameOrigin = (url) => url.startsWith('/') && !url.startsWith('//');
+const ISLAND_URL_ATTRS = ['component-url', 'renderer-url', 'before-hydration-url'];
+const sameOrigin =(url) => url.startsWith('/') && !url.startsWith('//');
 const attr = (tag, name) => new RegExp(`\\s${name}="([^"]*)"`).exec(tag)?.[1];
 
 /** Same-origin URLs one page's HTML asks for on load: module scripts and the links a browser fetches. */
@@ -37,6 +38,12 @@ export function pageRefs(html) {
   for (const tag of html.match(/<link\b[^>]*>/g) ?? []) {
     const rels = (attr(tag, 'rel') ?? '').split(/\s+/);
     if (rels.some((rel) => LINK_RELS.includes(rel)) && attr(tag, 'href')) refs.push(attr(tag, 'href'));
+  }
+  // An island's own scripts are fetched by Astro's inline hydration runtime, not a <script src>, so they
+  // are read from its attributes. Every island counts: client:idle and client:visible ones load during
+  // an ordinary visit too.
+  for (const tag of html.match(/<astro-island\b[^>]*>/g) ?? []) {
+    for (const name of ISLAND_URL_ATTRS) if (attr(tag, name)) refs.push(attr(tag, name).replaceAll('&amp;', '&'));
   }
   return [...new Set(refs.filter(sameOrigin))];
 }
