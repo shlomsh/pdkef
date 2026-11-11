@@ -29,20 +29,27 @@ describe('isChunkLoadFailure', () => {
 
 describe('decideChunkReload', () => {
   const now = 1_000_000;
+  const base = { canRecord: true, online: true };
   it('reports a held tab, whatever else is true', () => {
-    expect(decideChunkReload({ held: true, lastReloadAt: null, now })).toBe('report-held');
-    expect(decideChunkReload({ held: true, lastReloadAt: now - 1, now })).toBe('report-held');
+    expect(decideChunkReload({ ...base, held: true, lastReloadAt: null, now })).toBe('report-held');
+    expect(decideChunkReload({ ...base, held: true, lastReloadAt: now - 1, now })).toBe('report-held');
   });
   it('reloads with no earlier reload', () => {
-    expect(decideChunkReload({ held: false, lastReloadAt: null, now })).toBe('reload');
+    expect(decideChunkReload({ ...base, held: false, lastReloadAt: null, now })).toBe('reload');
   });
   it('reports a repeat inside the window and reloads at its edge', () => {
-    expect(decideChunkReload({ held: false, lastReloadAt: now - (CHUNK_RELOAD_WINDOW_MS - 1), now })).toBe('report-repeat');
-    expect(decideChunkReload({ held: false, lastReloadAt: now - CHUNK_RELOAD_WINDOW_MS, now })).toBe('reload');
+    expect(decideChunkReload({ ...base, held: false, lastReloadAt: now - (CHUNK_RELOAD_WINDOW_MS - 1), now })).toBe('report-repeat');
+    expect(decideChunkReload({ ...base, held: false, lastReloadAt: now - CHUNK_RELOAD_WINDOW_MS, now })).toBe('reload');
+  });
+  it('reports instead of reloading when the record cannot be kept', () => {
+    expect(decideChunkReload({ ...base, canRecord: false, held: false, lastReloadAt: null, now })).toBe('report-unrecorded');
+  });
+  it('reports offline instead of reloading', () => {
+    expect(decideChunkReload({ ...base, online: false, held: false, lastReloadAt: null, now })).toBe('report-offline');
   });
 });
 
-function setup(opts: { held?: boolean; storage?: Storage | null; flush?: () => Promise<void>; store?: Map<string, string> } = {}) {
+function setup(opts: { held?: boolean; online?: boolean; heldAfterFlush?: boolean; storage?: Storage | null; flush?: () => Promise<void>; store?: Map<string, string> } = {}) {
   const listeners = new Map<string, (event: any) => void>();
   const calls: string[] = [];
   const store = opts.store ?? new Map<string, string>();
@@ -50,6 +57,7 @@ function setup(opts: { held?: boolean; storage?: Storage | null; flush?: () => P
     ? ({
         getItem: (k: string) => store.get(k) ?? null,
         setItem: (k: string, v: string) => { store.set(k, v); },
+        removeItem: (k: string) => { store.delete(k); },
       } as unknown as Storage)
     : opts.storage;
   const win = {
@@ -57,7 +65,8 @@ function setup(opts: { held?: boolean; storage?: Storage | null; flush?: () => P
     location: { reload: vi.fn(() => { calls.push('reload'); }) },
   };
   const report = vi.fn((_area: string, _err: unknown, step: string) => { calls.push(`report:${step}`); });
-  const flush = opts.flush ?? (async () => { calls.push('flush'); });
+  let held = !!opts.held;
+  const flush = opts.flush ?? (async () => { calls.push('flush'); if (opts.heldAfterFlush) held = true; });
   let t = 5_000_000;
   installChunkReload({
     win: win as any,
@@ -65,7 +74,8 @@ function setup(opts: { held?: boolean; storage?: Storage | null; flush?: () => P
     now: () => t,
     report: report as any,
     flush,
-    isHeld: () => !!opts.held,
+    isHeld: () => held,
+    isOnline: () => opts.online !== false,
   });
   return { listeners, calls, store, win, report, advance: (ms: number) => { t += ms; } };
 }
@@ -125,22 +135,77 @@ describe('installChunkReload', () => {
     expect(second.report.mock.calls[0][2]).toBe('chunk_failure_repeat');
   });
 
-  it('storage that throws still reloads once', async () => {
-    const storage = {
-      getItem: () => { throw new Error('denied'); },
-      setItem: () => { throw new Error('denied'); },
-    } as unknown as Storage;
-    const s = setup({ storage });
-    s.listeners.get('vite:preloadError')!(preloadEvent());
+  const throwingStorage = () => ({
+    getItem: () => { throw new Error('denied'); },
+    setItem: () => { throw new Error('denied'); },
+    removeItem: () => { throw new Error('denied'); },
+  } as unknown as Storage);
+
+  it('storage that throws reports and does not reload or prevent default', async () => {
+    const s = setup({ storage: throwingStorage() });
+    const event = preloadEvent();
+    s.listeners.get('vite:preloadError')!(event);
     await flushMicrotasks();
-    expect(s.win.location.reload).toHaveBeenCalledTimes(1);
+    expect(s.win.location.reload).not.toHaveBeenCalled();
+    expect(event.preventDefault).not.toHaveBeenCalled();
+    expect(s.report.mock.calls.map((c) => c[2])).toEqual(['chunk_failure_unrecorded']);
   });
 
-  it('no storage at all still reloads once', async () => {
+  it('no storage at all reports and does not reload', async () => {
     const s = setup({ storage: null });
     s.listeners.get('vite:preloadError')!(preloadEvent());
     await flushMicrotasks();
-    expect(s.win.location.reload).toHaveBeenCalledTimes(1);
+    expect(s.win.location.reload).not.toHaveBeenCalled();
+    expect(s.report.mock.calls.map((c) => c[2])).toEqual(['chunk_failure_unrecorded']);
+  });
+
+  it('a write that does not read back reports and does not reload', async () => {
+    const storage = { getItem: () => null, setItem: () => {}, removeItem: () => {} } as unknown as Storage;
+    const s = setup({ storage });
+    s.listeners.get('vite:preloadError')!(preloadEvent());
+    await flushMicrotasks();
+    expect(s.win.location.reload).not.toHaveBeenCalled();
+    expect(s.report.mock.calls[0][2]).toBe('chunk_failure_unrecorded');
+  });
+
+  it('the reloaded page with throwing storage does not loop', async () => {
+    const first = setup({ storage: throwingStorage() });
+    first.listeners.get('vite:preloadError')!(preloadEvent());
+    const second = setup({ storage: throwingStorage() });
+    second.listeners.get('vite:preloadError')!(preloadEvent());
+    await flushMicrotasks();
+    expect(first.win.location.reload).not.toHaveBeenCalled();
+    expect(second.win.location.reload).not.toHaveBeenCalled();
+  });
+
+  it('a held tab reports once even when the failure arrives twice', async () => {
+    const s = setup({ held: true });
+    const error = new TypeError('Failed to fetch dynamically imported module');
+    s.listeners.get('vite:preloadError')!({ payload: error, preventDefault: vi.fn() });
+    s.listeners.get('unhandledrejection')!({ reason: error });
+    await flushMicrotasks();
+    s.listeners.get('unhandledrejection')!({ reason: error });
+    await flushMicrotasks();
+    expect(s.report).toHaveBeenCalledTimes(1);
+    expect(s.win.location.reload).not.toHaveBeenCalled();
+  });
+
+  it('offline reports and does not reload', async () => {
+    const s = setup({ online: false });
+    const event = preloadEvent();
+    s.listeners.get('vite:preloadError')!(event);
+    await flushMicrotasks();
+    expect(s.win.location.reload).not.toHaveBeenCalled();
+    expect(event.preventDefault).not.toHaveBeenCalled();
+    expect(s.report.mock.calls.map((c) => c[2])).toEqual(['chunk_failure_offline']);
+  });
+
+  it('a hold that starts during the flush stops the reload and reports held', async () => {
+    const s = setup({ heldAfterFlush: true });
+    s.listeners.get('vite:preloadError')!(preloadEvent());
+    await flushMicrotasks();
+    expect(s.win.location.reload).not.toHaveBeenCalled();
+    expect(s.report.mock.calls.map((c) => c[2])).toEqual(['chunk_failure_reload', 'chunk_failure_held']);
   });
 
   it('two events in one tick reload once', async () => {
