@@ -8,8 +8,9 @@ kicker: 'Install it, use it anywhere'
 h1: 'Install a PDF App That Works With No Internet'
 subhead: >-
   Add PDkef to your home screen or dock and it becomes a real app, no App Store required: the same
-  tool, filling and signing PDFs exactly the way it does in a browser tab, except it now keeps
-  working with no connection at all, because it never needed the network to begin with.
+  tool, filling and signing PDFs exactly the way it does in a browser tab. Open a tool once while
+  you're online and it keeps working with no connection at all, because it never needed the network
+  to begin with.
 primaryCta:
   href: '/sign/'
   label: 'Open the Sign & Fill tool'
@@ -63,8 +64,8 @@ sections:
         text: >-
           No install icon in the address bar? It usually means the page hasn't finished loading yet,
           or you're in a private window, where browsers don't offer it. You don't strictly need to
-          install anything either: an ordinary browser tab keeps working offline too once you've
-          visited once. Installing just makes it easy to find when there's no connection to search
+          install anything either: in an ordinary browser tab, every tool you've opened once keeps
+          working offline too. Installing just makes it easy to find when there's no connection to search
           with.
   - sketch: 'rings'
     icon: 'FileText'

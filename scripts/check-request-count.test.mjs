@@ -56,13 +56,13 @@ describe('pageSet', () => {
 describe('installSet and countRequests', () => {
   const manifest = { shell: ['/', '/a.js'], pages: { '/': ['/', '/a.js'], '/sign/': ['/sign/', '/a.js', '/s.js'] } };
 
-  it('is the whole app today: the union of shell and every page, whatever is open', () => {
-    expect(installSet(manifest, ['/']).size).toBe(4);
-    expect(installSet(manifest, []).size).toBe(4);
+  it('is / plus the closure of each open page (MEM-35)', () => {
+    expect([...installSet(manifest, ['/sign/'])].sort()).toEqual(['/', '/a.js', '/s.js', '/sign/']);
+    expect([...installSet(manifest, [])]).toEqual(['/']);
   });
 
-  it('adds page and install requests', () => {
-    expect(countRequests(new Set(['/', '/x.js']), new Set(['/', '/a.js', '/b.js']))).toEqual({ requests: 2, install: 3, total: 5 });
+  it('counts only the install requests the page did not already make (MEM-34)', () => {
+    expect(countRequests(new Set(['/', '/x.js']), new Set(['/', '/a.js', '/b.js']))).toEqual({ requests: 2, install: 2, total: 4 });
   });
 });
 
