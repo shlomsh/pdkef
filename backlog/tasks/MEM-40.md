@@ -42,3 +42,13 @@ the person never asked for. Measured after a file is opened: `/redact/` 42 reque
 - An update no longer carries the home page for a person who never opened it: every install stores the `/` document for the build check, which the next build read as "`/` was held". `/` now counts as held only when a previous cache holds its whole closure (by the manifest that cache stored; no readable manifest, not held). Other pages still count by their document.
 - Installing the app caches the home page: the installed app starts at `/`, so on `appinstalled`, or at load for an installed app or a device that remembers an install (`pdkef:app-installed`), the page sends `pdkef:cache-home` and the active worker caches `/`'s closure. A `/` cached whole this way is held, so it carries over at an update.
 
+
+## Still open (2026-11-11)
+
+- A completion pass can still bring the home page in. When an install misses a URL and finishes later
+  (`precacheAppShell({ skipCached: true })`), the current build's own cache is counted by document, `/`
+  included, because a bare `/` document cannot be told apart from "home was open when the install began".
+  The answer is a record of the pages an install planned (a list in the stored manifest copy), read by the
+  completion pass. This ticket stays in progress until that is in.
+- Not yet seen in a real browser: the `appinstalled` event and an installed launch asking for the home page.
+  The tests use the stored key and a simulated event.
