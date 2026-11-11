@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { flagSprite } from './flagSprite';
+import { flagSprite, flagSpriteOf } from './flagSprite';
 
 const flag = (code: string, body: string, viewBox = '0 0 513 342') => ({
   code,
@@ -72,5 +72,23 @@ describe('flagSprite', () => {
   it('refuses a code that could not be an id, and a file that is not an svg', () => {
     expect(() => flagSprite([flag('A"B', rect)])).toThrow(/code/);
     expect(() => flagSprite([{ code: 'IN', svg: '<html></html>' }])).toThrow(/svg/);
+  });
+});
+
+describe('flagSpriteOf', () => {
+  const files = [flag('IN', rect), flag('KE', rect), flag('US', rect)];
+
+  it('gives the sprite, the codes it holds and a url fingerprinted by the sprite itself', () => {
+    const s = flagSpriteOf(files);
+    expect(s.svg).toBe(flagSprite(files));
+    expect(s.codes).toEqual(['IN', 'KE', 'US']);
+    expect(s.url).toMatch(/^\/flags\/notes-[0-9a-f]{10}\.svg$/);
+  });
+
+  it('keeps one url for the same flags in any order and gives another when the flags or their pictures differ', () => {
+    const same = flagSpriteOf([...files].reverse()).url;
+    expect(same).toBe(flagSpriteOf(files).url);
+    expect(flagSpriteOf(files.slice(0, 2)).url).not.toBe(same);
+    expect(flagSpriteOf([flag('IN', rect), flag('KE', rect), flag('US', '<path fill="#00f" d="M0 0h513v342H0z"/>')]).url).not.toBe(same);
   });
 });

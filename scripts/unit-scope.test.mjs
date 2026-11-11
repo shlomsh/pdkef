@@ -244,6 +244,7 @@ describe('selectUnitTests: each blind-spot widen rule fires', () => {
       'src/tools/sign/lib/fields/corpus/scoring/forms/income-tax-101-2024.pdf',
       'src/tools/sign/lib/fields/corpus/scoring/ground-truth/practice-form-page1.json',
       'middleware.ts',
+      'vercel.json',
       'spikes/red-18/corpus/shared-header-image-full.pdf',
       'src/components/ToolHero.astro',
       'src/components/compareFigure.css',

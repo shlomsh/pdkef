@@ -279,6 +279,12 @@ export const WIDEN_RULES = [
     tests: ['src/site-lib/FileDropzone.test.tsx'],
   },
   {
+    id: 'vercel-flags-cache',
+    reason: 'MEM-42: scripts/vercel-flags-cache.test.mjs reads vercel.json as text to guard the /flags/ Cache-Control',
+    match: (f) => f === 'vercel.json',
+    tests: ['scripts/vercel-flags-cache.test.mjs'],
+  },
+  {
     id: 'error-report-schema',
     reason: 'errors-insights.test.mjs reads errorReportSchema.ts as text',
     match: (f) => f === 'src/lib/telemetry/errorReportSchema.ts',

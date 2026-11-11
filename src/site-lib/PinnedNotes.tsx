@@ -46,8 +46,10 @@ interface Props {
   more: string;
   less: string;
   locale?: string;
-  /** The country codes the flag sprite (/flags/notes.svg, MEM-42) carries; a note from any other shows no flag. */
+  /** The country codes the flag sprite carries; a note from any other shows no flag. */
   flags?: readonly string[];
+  /** Where the sprite is served (`/flags/notes-<hash>.svg`, MEM-42); without one no flag is drawn. */
+  spriteUrl?: string;
 }
 
 interface NoteProps {
@@ -57,12 +59,13 @@ interface NoteProps {
   less: string;
   locale: string;
   flags: readonly string[];
+  spriteUrl?: string;
   open: boolean;
   onToggle: () => void;
 }
 
 /** One paper. Words that do not fit are folded; then the whole paper is a button that lifts it over the board, larger. */
-function Note({ note: n, byLine, more, less, locale, flags, open, onToggle }: NoteProps) {
+function Note({ note: n, byLine, more, less, locale, flags, spriteUrl, open, onToggle }: NoteProps) {
   const words = useRef<HTMLParagraphElement>(null);
   const [folds, setFolds] = useState(false);
   useLayoutEffect(() => {
@@ -106,10 +109,10 @@ function Note({ note: n, byLine, more, less, locale, flags, open, onToggle }: No
         <p class={styles.by}>
           {formatMessage(before, { tool: toolLabel(n.tool) })}
           <span class={styles.where}>
-            {n.country && flags.includes(n.country) && (
+            {spriteUrl && n.country && flags.includes(n.country) && (
               <img
                 class={styles.flag}
-                src={`/flags/notes.svg#${n.country}`}
+                src={`${spriteUrl}#${n.country}`}
                 alt=""
                 width="36"
                 height="24"
@@ -127,7 +130,7 @@ function Note({ note: n, byLine, more, less, locale, flags, open, onToggle }: No
   );
 }
 
-function PinnedNotes({ notes, byLine, more, less, locale = 'en', flags = [] }: Props) {
+function PinnedNotes({ notes, byLine, more, less, locale = 'en', flags = [], spriteUrl }: Props) {
   const [openAt, setOpenAt] = useState(-1);
   const list = useRef<HTMLUListElement>(null);
   // One note open at a time; Escape or a press anywhere off it puts it back.
@@ -158,6 +161,7 @@ function PinnedNotes({ notes, byLine, more, less, locale = 'en', flags = [] }: P
           less={less}
           locale={locale}
           flags={flags}
+          spriteUrl={spriteUrl}
           open={openAt === i}
           onToggle={() => setOpenAt(openAt === i ? -1 : i)}
         />
