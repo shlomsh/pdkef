@@ -8,9 +8,9 @@ kicker: 'Install it, use it anywhere'
 h1: 'Install a PDF App That Works With No Internet'
 subhead: >-
   Add PDkef to your home screen or dock and it becomes a real app, no App Store required: the same
-  tool, filling and signing PDFs exactly the way it does in a browser tab. Open a tool once while
-  you're online and it keeps working with no connection at all, because it never needed the network
-  to begin with.
+  tool, filling and signing PDFs exactly the way it does in a browser tab. Open a file in a tool
+  once while you're online and that tool keeps working with no connection at all, because it never
+  needed the network to begin with.
 primaryCta:
   href: '/sign/'
   label: 'Open the Sign & Fill tool'
@@ -64,9 +64,9 @@ sections:
         text: >-
           No install icon in the address bar? It usually means the page hasn't finished loading yet,
           or you're in a private window, where browsers don't offer it. You don't strictly need to
-          install anything either: in an ordinary browser tab, every tool you've opened once keeps
-          working offline too. Installing just makes it easy to find when there's no connection to search
-          with.
+          install anything either: in an ordinary browser tab, every tool you've opened a file in
+          keeps working offline too. Installing sets that up right away, and makes it easy to find
+          when there's no connection to search with.
   - sketch: 'rings'
     icon: 'FileText'
     iconPos: 'tr'
@@ -147,8 +147,8 @@ sections:
 faq:
   - question: 'Do I need an internet connection to fill out a form?'
     answer: >-
-      Only for the very first visit, to fetch the tool itself. Once it is stored on your device, it
-      opens and works with no connection at all, the same way an installed app does.
+      Only the first time you use a tool, to fetch the tool itself. Once you have opened a file in it, it
+      is stored on your device and works with no connection at all, the same way an installed app does.
   - question: 'What happens to my progress if I lose connection partway through?'
     answer: >-
       Nothing, because filling out the form never depended on the connection. Your work is saved to

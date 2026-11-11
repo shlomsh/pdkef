@@ -59,7 +59,7 @@ const landingPages = [
   {
     href: '/install-pdf-app/',
     label: 'Installing it as an app',
-    blurb: 'Install it, and every tool you have opened keeps working with no connection at all.',
+    blurb: 'Install it, and every tool you have opened a file in keeps working with no connection at all.',
     icon: Download,
     hub: 'sign',
     alsoHub: ['compress'],
