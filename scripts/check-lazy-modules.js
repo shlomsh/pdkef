@@ -108,7 +108,14 @@ const PAGES = [
   'unlock', 'image-to-pdf', 'scan-to-pdf', 'organize-pdf', 'rotate-pdf', 'remove-pages',
   'add-page-numbers-to-pdf', 'extract-pdf-pages', 'pdf-to-image', 'highlight-pdf',
   'he/sign', 'he/merge', 'he/compress',
+  'about',
 ];
+
+/**
+ * MEM-37: the home page's bundle (`home.js`) belongs to the home pages alone. A page script that also runs on tool
+ * pages (OfflineProof, VideoPoster, PinnedNotes) once counted as "home" and dragged its 121 KB onto /sign/.
+ */
+const HOME_ONLY = { chunk: /^home\./, pages: new Set(['', 'he']) };
 
 /** Dist as the pure closure functions see it: every text file, plus the list of all paths. */
 function readDist() {
@@ -168,6 +175,16 @@ for (const page of PAGES) {
         + '    Something now imports it statically from a chunk this page already loads.\n'
         + '    Find that import and put it behind a dynamic import() on the path that\n'
         + '    actually needs it. Do not delete the row.',
+      );
+    }
+  }
+  if (!HOME_ONLY.pages.has(page)) {
+    const homeChunks = [...eager].filter((file) => HOME_ONLY.chunk.test(file));
+    if (homeChunks.length > 0) {
+      errors.push(
+        `/${page}/ loads ${homeChunks.join(', ')} (the home pages' bundle) on first paint.\n`
+        + '    A client script that runs on this page is classified as home in astro.config.mjs\n'
+        + '    entryKind(). Only entries listed in HOME_ENTRY may be home; the rest are site-wide.',
       );
     }
   }
