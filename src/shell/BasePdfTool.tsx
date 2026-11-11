@@ -11,7 +11,7 @@ import { withIslandBoundary } from '#lib/telemetry/IslandErrorBoundary.tsx';
 import { reportError } from '#lib/telemetry/errorReport.ts';
 import { reportToolLifecycleEvent, type AnalyticsTool } from '#lib/telemetry/productAnalytics.ts';
 import { markArrival } from '#lib/handoff/fileArrival.ts';
-import { markFileOpened } from '#lib/appUpdate/engagement.ts';
+import { useFileAccepted } from './useFileAccepted.ts';
 import type { FileSource } from '#lib/telemetry/usageEventSchema.ts';
 import { useWindowFileDrop, leftWindow } from './useWindowFileDrop.ts';
 import { acceptsFile } from './acceptsFile.ts';
@@ -182,8 +182,6 @@ function BasePdfTool({
   // being opened on the strength of that agreement, so the file coming back is
   // not put through the gate a second time.
   const agreedRef = useRef(false);
-  const previouslyHadFilesRef = useRef(false);
-  const previousFileRef = useRef<File | null>(null);
   const previousAnalyticsStatusRef = useRef<string | undefined>(undefined);
 
   // Null on the server and on the first client render (no navigator to read),
@@ -205,23 +203,7 @@ function BasePdfTool({
     reportToolLifecycleEvent('tool_page_viewed', viewedTool);
   }, [viewedTool]);
 
-  // MEM-39: a file in front of the person (picked, dropped, handed over, or
-  // restored from a draft) is what starts the offline install.
-  useEffect(() => {
-    if (hasFiles) markFileOpened();
-  }, [hasFiles]);
-
-  useEffect(() => {
-    if (!analyticsTool) return;
-    // A replacement keeps hasFiles true, so a single-file tool's new `file` is the signal.
-    const replaced = hasFiles && previouslyHadFilesRef.current && !multiple
-      && file !== null && previousFileRef.current !== null && file !== previousFileRef.current;
-    if ((hasFiles && !previouslyHadFilesRef.current) || replaced) {
-      reportToolLifecycleEvent('tool_file_accepted', analyticsTool);
-    }
-    previouslyHadFilesRef.current = hasFiles;
-    previousFileRef.current = file;
-  }, [analyticsTool, hasFiles, file, multiple]);
+  useFileAccepted({ analyticsTool, hasFiles, file, multiple });
 
   useEffect(() => {
     if (!analyticsTool || !analyticsStatus) return;

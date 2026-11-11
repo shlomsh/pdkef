@@ -20,7 +20,7 @@
       "src/editor-ui/hooks/useElementResize.js#useElementResize": 263,
       "src/editor-ui/hooks/useElementResize.js#useElementResize.handleResizeStart": 232,
       "src/lib/drafts/useDraftPersistence.js#useDraftPersistence": 178,
-      "src/shell/BasePdfTool.tsx#BasePdfTool": 401,
+      "src/shell/BasePdfTool.tsx#BasePdfTool": 389,
       "src/shell/DownloadElement.tsx#DownloadElement": 194,
       "src/shell/OutputName.tsx#OutputName": 151,
       "src/shell/pageGrid/PageGrid.tsx#PageGrid": 669,
@@ -62,8 +62,8 @@
     "fileThreshold": 10,
     "files": {
       "src/shell/BasePdfTool.tsx": {
-        "effects": 6,
-        "hooks": 22
+        "effects": 5,
+        "hooks": 21
       },
       "src/shell/OutputName.tsx": {
         "effects": 1,
