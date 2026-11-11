@@ -34,6 +34,10 @@ test.afterAll(async () => { await server?.close(); });
 test.beforeEach(async ({ browser }) => {
   server.setPhase('old');
   context = await browser.newContext({ baseURL: server.origin, serviceWorkers: 'allow' });
+  // MEM-39: the worker registers only after a file was opened on the device.
+  // These specs are about update mechanics, not that trigger (offline-workflows
+  // covers it), so every page here starts as a device that has opened a file.
+  await context.addInitScript(() => { try { localStorage.setItem('pdkef:file-opened', '1'); } catch {} });
 });
 test.afterEach(async () => { await context?.close(); });
 
