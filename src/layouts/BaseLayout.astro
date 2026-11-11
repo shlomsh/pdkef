@@ -132,6 +132,10 @@ const ogImageURL = new URL(ogImage.src, Astro.site);
       // internal. Dev actively uninstalls it instead of leaving it to rot.
       import { startAppUpdates } from '../site-lib/appUpdate.ts';
       import { whenReadyToRegister } from '../site-lib/registrationReady.ts';
+      import { installChunkReload } from '../site-lib/chunkReload.ts';
+      // MEM-38: after a deploy a failed chunk import reloads the page once, on
+      // every page, with or without a worker.
+      installChunkReload();
       if ('serviceWorker' in navigator) {
         if (import.meta.env.PROD) {
           // MEM-10: registration (after load, hydration and an idle moment,
