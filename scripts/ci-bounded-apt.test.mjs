@@ -34,13 +34,21 @@ function runBlocks(text) {
   return blocks;
 }
 
-/** A run value that touches apt must START with the bounded wrapper and two integer bounds. */
-const TOUCHES_APT = /apt-get|\bapt\s|dpkg|install-deps/;
+/**
+ * Every line of a run value that reaches an apt server must START with the bounded wrapper and two
+ * integer bounds. QUAL-54: a step may now be a short script (restore cached .deb files, fall back to
+ * apt), so the rule is per line, comments aside. `dpkg -i` of files already on disk asks no server
+ * and is allowed bare; any other dpkg call is not.
+ */
+const TOUCHES_APT = /apt-get|\bapt\s|dpkg(?! -i\b)|install-deps/;
 const BOUNDED = /^bash scripts\/ci-bounded-apt\.sh \d+ \d+ \S/;
 const aptViolation = (block) => {
   if (/--with-deps/.test(block)) return 'uses --with-deps';
-  const b = block.trim();
-  if (TOUCHES_APT.test(b) && !BOUNDED.test(b)) return `unbounded apt step: ${b}`;
+  for (const raw of block.split('\n')) {
+    const line = raw.trim();
+    if (line.startsWith('#')) continue;
+    if (TOUCHES_APT.test(line) && !BOUNDED.test(line)) return `unbounded apt step: ${line}`;
+  }
   return null;
 };
 
@@ -54,6 +62,15 @@ describe('the apt check itself', () => {
   it('rejects a single bound and --with-deps', () => {
     expect(aptViolation('bash scripts/ci-bounded-apt.sh 120 apt-get update')).toMatch(/unbounded/);
     expect(aptViolation('npx playwright install --with-deps chromium')).toMatch(/with-deps/);
+  });
+  it('accepts a script whose apt line is bounded and whose dpkg only installs local files', () => {
+    const script = 'debs="$RUNNER_TEMP/x"\nif [ "$HIT" != "true" ]; then\n  bash scripts/ci-bounded-apt.sh 120 300 bash -c "apt-get update" || true\nfi\nif sudo dpkg -i "$debs"/*.deb; then echo ok; fi';
+    expect(aptViolation(script)).toBeNull();
+  });
+  it('rejects a script with one unbounded apt line, or a dpkg call that is not a local install', () => {
+    expect(aptViolation('bash scripts/ci-bounded-apt.sh 120 300 true\nsudo apt-get install -y x')).toMatch(/unbounded/);
+    expect(aptViolation('if ok; then sudo apt-get update; fi')).toMatch(/unbounded/);
+    expect(aptViolation('sudo dpkg --configure -a')).toMatch(/unbounded/);
   });
   it('accepts a bounded command', () => {
     expect(aptViolation('bash scripts/ci-bounded-apt.sh 120 300 npx playwright install-deps chromium')).toBeNull();

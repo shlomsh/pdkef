@@ -316,7 +316,7 @@ jobs:
           if [ "$CACHE_HIT" = "true" ]; then echo "fresh=false" >> "$GITHUB_OUTPUT"; else echo "fresh=true" >> "$GITHUB_OUTPUT"; fi
         else
           echo "ok=false" >> "$GITHUB_OUTPUT"
-          echo "::warning::QUAL-54: pdftotext is unavailable on this run (cache miss and the apt server was unreachable); the pdftotext half of the W6 extraction guard is SKIPPED, the pdf.js half and every other test still run."
+          echo "::warning::QUAL-54: pdftotext is unavailable on this run (cache miss and the package server was unreachable); the pdftotext half of the W6 extraction guard is SKIPPED, the pdf.js half and every other test still run."
         fi
 
     - name: Save poppler-utils packages
