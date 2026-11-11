@@ -17,9 +17,16 @@ describe('vercel.json /flags/ caching', () => {
     expect(cacheControlOf(path)).toEqual([{ source: '/flags/(.*)', value: WANT }]);
   });
 
+  // The favicon is asked for on every page view; a month without re-checking means a new icon takes up to a
+  // month to reach a returning visitor (owner's call, 2026-11-12). The logo needs no rule: it is a fingerprinted
+  // /_astro/ file, which the host already serves for a year, immutable.
+  it('/favicon.ico is cached for thirty days, immutable, by exactly one rule', () => {
+    expect(cacheControlOf('/favicon.ico')).toEqual([{ source: '/favicon.ico', value: WANT }]);
+  });
+
   it('gives no other path a Cache-Control of its own', () => {
     for (const rule of headers) {
-      if (rule.source === '/flags/(.*)') continue;
+      if (rule.source === '/flags/(.*)' || rule.source === '/favicon.ico') continue;
       expect(rule.headers.map((h) => h.key.toLowerCase())).not.toContain('cache-control');
     }
   });
