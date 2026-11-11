@@ -16,8 +16,11 @@ interface Props {
   card?: boolean;
 }
 const { rating, messages, tool, locale, card } = Astro.props;
-const notes = notesToShow(await notesFromEnv(), tool);
-const sprite = flagSpriteFor(notes);
+const allNotes = await notesFromEnv();
+const notes = notesToShow(allNotes, tool);
+// MEM-42: the sprite is made from every note, not from this board's pick, so every board names the
+// one file the build writes (src/pages/flags/[sprite].svg.ts) and a browser fetches it once.
+const sprite = flagSpriteFor(allNotes);
 const STAR = 'M12 3.2l2.7 5.6 6.1.8-4.5 4.2 1.1 6-5.4-3-5.4 3 1.1-6L3.2 9.6l6.1-.8z';
 const FIVE = [0, 1, 2, 3, 4];
 ---
