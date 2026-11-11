@@ -15,7 +15,9 @@
  * Pure decisions over injected inputs; the default wiring reads the globals.
  */
 
+/** @testSeam */
 export const FILE_OPENED_KEY = 'pdkef:file-opened';
+/** @testSeam */
 export const FILE_OPENED_EVENT = 'pdkef:file-opened';
 const APP_INSTALLED_EVENT = 'appinstalled';
 
@@ -48,7 +50,10 @@ export function markFileOpened(deps: MarkDeps = browserMarkDeps()): void {
 
 const INSTALL_PAGE = /^\/(?:[a-z]{2}\/)?install-pdf-app\/$/;
 
-/** The install page and its localized twin: a person there has asked for the app to work offline. */
+/**
+ * The install page and its localized twin: a person there has asked for the app to work offline.
+ * @testSeam
+ */
 export function isInstallPage(pathname: string): boolean {
   return INSTALL_PAGE.test(pathname);
 }
