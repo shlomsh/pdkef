@@ -8,6 +8,7 @@
  *   its worker and its updates),
  * - a file was opened on this device before (`FILE_OPENED_KEY`),
  * - the page runs as an installed app,
+ * - the page is the install page (a person there asked for offline use),
  * - otherwise it waits for a file to be opened (`markFileOpened`, called by
  *   the tool shell) or for the browser's `appinstalled` event.
  *
@@ -45,12 +46,20 @@ export function markFileOpened(deps: MarkDeps = browserMarkDeps()): void {
   safely(() => deps.dispatch(FILE_OPENED_EVENT), undefined);
 }
 
+const INSTALL_PAGE = /^\/(?:[a-z]{2}\/)?install-pdf-app\/$/;
+
+/** The install page and its localized twin: a person there has asked for the app to work offline. */
+export function isInstallPage(pathname: string): boolean {
+  return INSTALL_PAGE.test(pathname);
+}
+
 interface EngagedDeps {
   storage?: { getItem(key: string): string | null };
   serviceWorker?: { getRegistration?(): Promise<unknown> };
   matchMedia?: (query: string) => { matches: boolean };
   /** iOS `navigator.standalone`. */
   standalone?: boolean;
+  pathname?: () => string;
   window: {
     addEventListener(type: string, listener: () => void): void;
     removeEventListener(type: string, listener: () => void): void;
@@ -63,6 +72,7 @@ function browserEngagedDeps(): EngagedDeps {
     serviceWorker: safely(() => navigator.serviceWorker, undefined),
     matchMedia: safely(() => globalThis.matchMedia?.bind(globalThis), undefined),
     standalone: safely(() => (navigator as { standalone?: boolean }).standalone, undefined),
+    pathname: () => location.pathname,
     window,
   };
 }
@@ -81,6 +91,7 @@ export function whenEngaged(deps: EngagedDeps = browserEngagedDeps()): Promise<v
     const synchronous =
       safely(() => deps.storage?.getItem(FILE_OPENED_KEY) != null, false)
       || deps.standalone === true
+      || safely(() => isInstallPage(deps.pathname?.() ?? ''), false)
       || safely(() => deps.matchMedia?.('(display-mode: standalone)').matches === true, false);
     if (synchronous) return finish();
 

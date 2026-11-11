@@ -342,4 +342,44 @@ test.describe('the worker waits for a file (MEM-39)', () => {
     await waitForIsland(later);
     await later.waitForFunction(async () => !!(await navigator.serviceWorker.getRegistration()), null, { timeout: 15_000 });
   });
+
+  test('a first visit to the install page registers the worker with no file opened', async ({ page }) => {
+    await page.goto('/install-pdf-app/');
+    // waitForFunction would take the async callback's Promise as truthy at once, so poll the answer.
+    await expect.poll(
+      () => page.evaluate(async () => !!(await navigator.serviceWorker.getRegistration())),
+      { timeout: 15_000 },
+    ).toBe(true);
+  });
+});
+
+// MEM-39: "It still works." is only true when a worker has the app on the device.
+test.describe('the offline line on a tool page (MEM-39)', () => {
+  const LINE = '[data-offline-status]';
+
+  test('offline with a worker in control shows the line', async ({ page, context }) => {
+    await page.addInitScript(() => localStorage.setItem('pdkef:file-opened', '1'));
+    await page.goto('/sign/?next=0');
+    await waitForServiceWorkerControl(page);
+    await page.waitForLoadState('networkidle');
+    await context.setOffline(true);
+    try {
+      await expect(page.locator(LINE)).toHaveText("You're offline right now. It still works.");
+    } finally {
+      await context.setOffline(false);
+    }
+  });
+
+  test('a first visit with no worker that goes offline does not show the line', async ({ page, context }) => {
+    await page.goto('/sign/?next=0');
+    await page.waitForLoadState('networkidle');
+    await context.setOffline(true);
+    try {
+      await expect.poll(() => page.evaluate(() => navigator.onLine)).toBe(false);
+      await page.waitForTimeout(500);
+      await expect(page.locator(LINE)).toHaveText('');
+    } finally {
+      await context.setOffline(false);
+    }
+  });
 });
