@@ -101,8 +101,8 @@ npm run test:e2e:fonts    # the 25 font screening guards, unconditionally; CI na
 - Shared tool logic lives in `src/lib/` and `src/editor/`, shared chrome in `src/shell/` and
   `src/editor-ui/`; the rules between them are `docs/module-boundaries.md`, enforced by
   `test:module-boundaries`. `pdfjs-dist`'s worker is bundled as a same-origin asset, never from a CDN.
-- Three request-time exceptions to "no server", none ever sees a PDF byte: `middleware.ts` negotiates
-  `Accept: text/markdown`; `api/report.ts` receives anonymous reports; `api/notes.ts` serves approved notes, hour-cached.
+- Two request-time exceptions to "no server", none ever sees a PDF byte: `middleware.ts` negotiates
+  `Accept: text/markdown`; `api/report.ts` receives anonymous reports.
 - Styling is a scoped hybrid: Tailwind utilities for the static `.astro` surface, CSS Modules for the
   editor, inline styles only for per-element runtime geometry. `global.css` holds tokens and element
   defaults only.

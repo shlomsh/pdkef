@@ -1,5 +1,5 @@
-// The contract for pinned notes (SEO-57): what a note is, where the approved ones live, and how long they are
-// cached. Shared by `api/notes.ts`, the island and `scripts/ratings-approve.mjs`. Words appear only after Shlomi
+// The contract for pinned notes (SEO-57): what a note is and where the approved ones live. Read once per build
+// (`notesAtBuild.ts`), shown by the island, written by `scripts/ratings-approve.mjs`. Words appear only after Shlomi
 // approved a comment a person agreed to show; anyone can post to the rating endpoint. Most ratings have no words,
 // so a recent vote is a note too (SEO-58): its tool, its stars and its place, none of it free text.
 import { RATING_TOOLS, MAX_COMMENT_LENGTH, type RatingTool, type Stars, STARS } from '../lib/telemetry/ratingSchema.js';
@@ -24,11 +24,6 @@ export const NOTES_MAX = 12;
 /** The most a response carries for one tool: what a board shows. */
 export const NOTES_PER_TOOL = 4;
 const MAX_PLACE_LENGTH = 60;
-/** The hour: the most often the store is read, and how long a browser keeps the answer. */
-export const NOTES_CACHE_SECONDS = 3600;
-/** A failed read is kept briefly, so a store outage neither hammers the store nor hides notes for an hour. */
-export const NOTES_FAILURE_CACHE_SECONDS = 300;
-export const NOTES_PATH = '/api/notes';
 
 const isObject = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null && !Array.isArray(v);
 
@@ -53,8 +48,7 @@ export function parseNote(value: unknown): PinnedNote | null {
   return Object.freeze({ tool: tool as RatingTool, stars: stars as Stars, comment, place, ...(hasCountry ? { country: country as string } : {}) });
 }
 
-/** The valid notes in a `{notes: [...]}` body, anything else dropped. [] for anything unexpected. */
-export function parseNotes(body: unknown): readonly PinnedNote[] {
-  if (!isObject(body) || !Array.isArray(body.notes)) return [];
-  return body.notes.map(parseNote).filter((n): n is PinnedNote => n !== null);
+/** The notes for that tool, or all when no tool; they arrive newest first. */
+export function notesToShow(notes: readonly PinnedNote[], tool?: RatingTool): readonly PinnedNote[] {
+  return (tool ? notes.filter((n) => n.tool === tool) : notes).slice(0, NOTES_PER_TOOL);
 }

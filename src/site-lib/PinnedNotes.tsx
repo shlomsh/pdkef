@@ -1,20 +1,13 @@
-// SEO-57: approved notes pinned beside the rating (RatingBoard.astro). Renders nothing, on the server too,
-// until notes arrive, so with none the board is the stars alone. Most notes are a vote with no words.
-import { useEffect, useState } from 'preact/hooks';
+// SEO-57: approved notes pinned beside the rating (RatingBoard.astro). The notes are read once at build and
+// arrive as props, so they are in the page's HTML and nothing is fetched. With none the board is the stars
+// alone. Most notes are a vote with no words.
 import { formatMessage } from '#lib/text/formatMessage.ts';
 import { TOOL_PAGES } from '#lib/app/toolIds.ts';
 import { withIslandBoundary } from '#lib/telemetry/IslandErrorBoundary.tsx';
-import type { RatingTool } from '#lib/telemetry/ratingSchema.ts';
-import { NOTES_PATH, NOTES_PER_TOOL, parseNotes, type PinnedNote } from './pinnedNote';
+import type { PinnedNote } from './pinnedNote';
 import styles from './PinnedNotes.module.css';
 
 const STAR_PATH = 'M12 3.2l2.7 5.6 6.1.8-4.5 4.2 1.1 6-5.4-3-5.4 3 1.1-6L3.2 9.6l6.1-.8z';
-
-/** @testSeam */
-// The notes for that tool, or all when no tool; they arrive newest first.
-export function notesToShow(notes: readonly PinnedNote[], tool?: RatingTool): readonly PinnedNote[] {
-  return (tool ? notes.filter((n) => n.tool === tool) : notes).slice(0, NOTES_PER_TOOL);
-}
 
 const toolLabel = (id: string) => TOOL_PAGES.find((p) => p.id === id)?.label ?? id;
 
@@ -31,36 +24,19 @@ const placeOf = (n: PinnedNote, locale: string) =>
   [n.region, countryName(n.country ?? '', locale)].filter(Boolean).join(', ');
 
 interface Props {
-  tool?: RatingTool;
+  /** Already the notes for this page's tool, newest first. */
+  notes: readonly PinnedNote[];
   byLine: string;
   locale?: string;
 }
 
-function PinnedNotes({ tool, byLine, locale = 'en' }: Props) {
-  const [notes, setNotes] = useState<readonly PinnedNote[]>([]);
-
-  useEffect(() => {
-    let live = true;
-    fetch(NOTES_PATH)
-      .then((r) => r.json())
-      .then((body) => {
-        if (live) setNotes(parseNotes(body));
-      })
-      .catch(() => {
-        // expected: offline, the dev server or no function; the page simply has no notes
-      });
-    return () => {
-      live = false;
-    };
-  }, []);
-
-  const shown = notesToShow(notes, tool);
-  if (shown.length === 0) return null;
+function PinnedNotes({ notes, byLine, locale = 'en' }: Props) {
+  if (notes.length === 0) return null;
   const [before, after = ''] = byLine.split('{place}');
 
   return (
     <ul class={styles.list}>
-      {shown.map((n, i) => (
+      {notes.map((n, i) => (
         <li class={styles.note} key={i}>
           {n.comment && <p class={styles.comment}>{n.comment}</p>}
           <div class={styles.foot}>
