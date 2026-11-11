@@ -201,7 +201,7 @@ Production errors you can see, small tools that clean up after themselves, and d
 | MEM-33 | P1 | [MEM-33](backlog/tasks/MEM-33.md) · A guard counts the requests a new visitor costs, page plus worker install | In progress |
 | MEM-34 | P1 | [MEM-34](backlog/tasks/MEM-34.md) · Worker install reuses what the page just loaded, and a same-build page is not refetched | In progress |
 | MEM-35 | P1 | [MEM-35](backlog/tasks/MEM-35.md) · The worker precaches the tools a person uses, not the whole app |  |
-| MEM-37 | P1 | [MEM-37](backlog/tasks/MEM-37.md) · Chunks are bundled by tool: tiny chunks merged, editor core on its own, PDF engines lazy | In progress |
+| MEM-37 | P1 | [MEM-37](backlog/tasks/MEM-37.md) · Chunks are bundled by tool: tiny chunks merged, editor core on its own, PDF engines lazy |  |
 | MEM-36 | P2 | [MEM-36](backlog/tasks/MEM-36.md) · Pinned notes are baked into the page at build, not fetched per visit | In progress |
 | MEM-24 | P3 | [MEM-24](backlog/tasks/MEM-24.md) · A service worker that cannot install, or never completes its precache, says so | In progress |
 
