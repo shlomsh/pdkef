@@ -29,7 +29,7 @@ image is `<url>#CODE`. A note whose country has no flag file draws no image (the
 sprite carries). `public/flags/` stays as it is.
 
 Because the name changes whenever the content does, `vercel.json` gives `/flags/(.*)` `Cache-Control: public,
-max-age=31536000, immutable`: a browser asks for the sprite once, across every page and visit, instead of
+max-age=2592000, immutable`: a browser asks for the sprite once in thirty days, across every page and visit, instead of
 re-checking it (a billed 304) on each page view. The same rule covers the individual `public/flags/XX.svg` files,
 which never change in place (they come from the pinned `country-flag-icons`); a flag file that is ever replaced
 needs a new name. `scripts/vercel-flags-cache.test.mjs` guards the header.
