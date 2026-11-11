@@ -49,7 +49,7 @@ describe('decideChunkReload', () => {
   });
 });
 
-function setup(opts: { held?: boolean; online?: boolean; heldAfterFlush?: boolean; storage?: Storage | null; flush?: () => Promise<void>; store?: Map<string, string> } = {}) {
+function setup(opts: { held?: boolean; online?: boolean; heldAfterFlush?: boolean; storage?: Storage | null; flush?: () => Promise<void>; store?: Map<string, string>; settle?: () => Promise<void> } = {}) {
   const listeners = new Map<string, (event: any) => void>();
   const calls: string[] = [];
   const store = opts.store ?? new Map<string, string>();
@@ -76,12 +76,51 @@ function setup(opts: { held?: boolean; online?: boolean; heldAfterFlush?: boolea
     flush,
     isHeld: () => held,
     isOnline: () => opts.online !== false,
+    settle: opts.settle ?? (async () => {}),
   });
   return { listeners, calls, store, win, report, advance: (ms: number) => { t += ms; } };
 }
 
 const preloadEvent = () => ({ payload: new TypeError('Failed to fetch dynamically imported module'), preventDefault: vi.fn() });
 const flushMicrotasks = () => new Promise((r) => setTimeout(r, 0));
+
+describe('installChunkReload while the page is leaving', () => {
+  // WebKit rejects module loads a navigation cancels with "Importing a module script failed.":
+  // reloading then would take the person back to the page they were leaving.
+  const gated = () => {
+    let release!: () => void;
+    const settle = () => new Promise<void>((r) => { release = r; });
+    return { settle, release: () => release() };
+  };
+
+  it.each(['pagehide', 'beforeunload'])('a failure followed by %s neither reloads nor reports', async (leaving) => {
+    const gate = gated();
+    const s = setup({ settle: gate.settle });
+    s.listeners.get('unhandledrejection')!({ reason: new TypeError('Importing a module script failed.') });
+    s.listeners.get(leaving)!({ persisted: false });
+    gate.release();
+    await flushMicrotasks();
+    expect(s.win.location.reload).not.toHaveBeenCalled();
+    expect(s.report).not.toHaveBeenCalled();
+    expect(s.store.size).toBe(0);
+  });
+
+  it('a page back from the back-forward cache reloads on a later failure', async () => {
+    const first = gated();
+    let settle = first.settle;
+    const s = setup({ settle: () => settle() });
+    s.listeners.get('vite:preloadError')!(preloadEvent());
+    s.listeners.get('pagehide')!({ persisted: true });
+    first.release();
+    await flushMicrotasks();
+    expect(s.win.location.reload).not.toHaveBeenCalled();
+    s.listeners.get('pageshow')!({ persisted: true });
+    settle = async () => {};
+    s.listeners.get('vite:preloadError')!(preloadEvent());
+    await flushMicrotasks();
+    expect(s.win.location.reload).toHaveBeenCalledTimes(1);
+  });
+});
 
 describe('installChunkReload', () => {
   it('reloads after the flush, records the time and reports once', async () => {

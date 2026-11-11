@@ -20,6 +20,8 @@ import { flushBeforeUpdateReload, isUpdateHeld } from '#lib/appUpdate/updateHold
 /** @testSeam */
 export const CHUNK_RELOAD_WINDOW_MS = 60_000;
 const STORAGE_KEY = 'pdkef:chunk-reload-at';
+// Long enough for a navigation that cancelled module loads to unload this page first.
+const SETTLE_MS = 1500;
 
 // Each browser's own wording of a failed dynamic import.
 const IMPORT_FAILURE = /failed to fetch dynamically imported module|importing a module script failed|error loading dynamically imported module/i;
@@ -65,6 +67,8 @@ interface ChunkReloadDeps {
   flush?: () => Promise<void>;
   isHeld?: () => boolean;
   isOnline?: () => boolean;
+  /** Resolves once a failure has had time to show it was a navigation away (SETTLE_MS by default). */
+  settle?: () => Promise<void>;
 }
 
 function safeSessionStorage(): Pick<Storage, 'getItem' | 'setItem' | 'removeItem'> | null {
@@ -88,10 +92,14 @@ export function installChunkReload(deps: ChunkReloadDeps = {}): void {
   const flush = deps.flush ?? flushBeforeUpdateReload;
   const isHeld = deps.isHeld ?? isUpdateHeld;
   const isOnline = deps.isOnline ?? (() => navigator.onLine !== false);
-  // Set on the first reload decision and never cleared: the page is going away.
+  const settle = deps.settle ?? (() => new Promise<void>((resolve) => { setTimeout(resolve, SETTLE_MS); }));
+  // Set once a reload is under way; the page is going away.
   let reloading = false;
   // Set on the first non-reload outcome: later events on this page do nothing.
   let reported = false;
+  // A failure is waiting for settle(); the page has started navigating away.
+  let pending = false;
+  let leaving = false;
 
   function readLastReload(): number | null {
     try {
@@ -139,10 +147,7 @@ export function installChunkReload(deps: ChunkReloadDeps = {}): void {
     });
   }
 
-  /** Whether the page will reload, so the caller knows to keep the browser's own error handling off. */
-  function handle(error: unknown): boolean {
-    if (reloading) return true;
-    if (reported) return false;
+  function decideNow(): { decision: ChunkReloadDecision; at: number } {
     const at = now();
     const decision = decideChunkReload({
       held: isHeld(),
@@ -151,15 +156,21 @@ export function installChunkReload(deps: ChunkReloadDeps = {}): void {
       lastReloadAt: readLastReload(),
       now: at,
     });
+    return { decision, at };
+  }
+
+  /** Runs once the failure has settled and the page is staying. */
+  function act(error: unknown): void {
+    const { decision, at } = decideNow();
     if (decision !== 'reload') {
       reported = true;
       void send(error, REPORT_STEP[decision]); // reason: send() catches its own rejection; the page carries on
-      return false;
+      return;
     }
     if (!recordReload(at)) {
       reported = true;
       void send(error, REPORT_STEP['report-unrecorded']); // reason: send() catches its own rejection
-      return false;
+      return;
     }
     reloading = true;
     const sent = send(error, 'chunk_failure_reload');
@@ -172,9 +183,31 @@ export function installChunkReload(deps: ChunkReloadDeps = {}): void {
       }
       win.location.reload();
     });
-    return true;
   }
 
+  /**
+   * Whether the page will reload, so the caller knows to keep the browser's own error handling off.
+   * The decision waits for `settle()`: WebKit rejects the module loads a navigation cancels with the
+   * same message as a missing chunk, and reloading then would take the person back to the page they
+   * were leaving. Once the page is gone the timer never fires; if it is still leaving, nothing happens.
+   */
+  function handle(error: unknown): boolean {
+    if (reloading || pending) return true;
+    if (reported) return false;
+    pending = true;
+    leaving = false;
+    const willReload = decideNow().decision === 'reload';
+    void settle().then(() => { // reason: settle() only waits; act() catches its own failures
+      pending = false;
+      if (!leaving) act(error);
+    });
+    return willReload;
+  }
+
+  // A navigation away marks the page as leaving; a return from the back-forward cache clears it.
+  win.addEventListener('beforeunload', () => { leaving = true; });
+  win.addEventListener('pagehide', () => { leaving = true; });
+  win.addEventListener('pageshow', (event: PageTransitionEvent) => { if (event.persisted) leaving = false; });
   win.addEventListener('vite:preloadError', (event: Event) => {
     if (handle((event as Event & { payload?: unknown }).payload)) event.preventDefault();
   });
