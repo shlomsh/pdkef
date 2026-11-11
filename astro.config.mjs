@@ -16,7 +16,9 @@ import { entryFileName, chunkFileName, assetFileName, cssAssetKeys, cssModuleCla
 //                               PinnedNotes). Code only they reach has no group: it stays in the script's own
 //                               file, as the Drive panel's does, because a ~1 KB shared bundle would cost every
 //                               page that uses one of them an extra request
-//   <island>-tools              reached by an island and a tool (`home-tools`, `open-tools`, `widgets-tools`, `islands-tools`)
+//   client                      the island client (@astrojs/preact), loaded by pages with an island only. Like
+//                               `widgets`, it has no group: what only it reaches stays in dist/site/client.js
+//   <island>-tools              reached by an island and a tool (`home-tools`, `open-tools`, `widgets-tools`, `client-tools`, `islands-tools`)
 //   <tool>-tool                 reached by one tool
 //   editor-core                 reached by Sign, Redact and Highlight only
 //   tools-common                reached by several tools
@@ -28,8 +30,9 @@ import { entryFileName, chunkFileName, assetFileName, cssAssetKeys, cssModuleCla
 // from the widest set down: the first group to claim a module is the one holding every entry that loads it.
 // A group named `x` is the file /shared/x.js (MEM-25, MEM-31); check-lazy-modules.js keys on these names.
 const EDITOR_TOOLS = new Set(['sign', 'redact', 'highlight']);
-const ISLAND_KINDS = new Set(['home', 'open', 'widgets']);
-const SITE_WIDE_ENTRY = /BaseLayout|DocumentationLanguageSelector|@vercel[\\/]speed-insights|@astrojs[\\/]preact/;
+const ISLAND_KINDS = new Set(['home', 'open', 'widgets', 'client']);
+const SITE_WIDE_ENTRY = /BaseLayout|DocumentationLanguageSelector|@vercel[\\/]speed-insights/;
+const CLIENT_ENTRY = /@astrojs[\\/]preact/;
 // The entries linked from `/` and `/he/` and from no other page, read off dist/site/. Every other page script
 // (OfflineProof, VideoPoster, PinnedNotes, the per-page index scripts) also runs on tool pages, so it counts as
 // site-wide: listing it here would hand /sign/ the home bundle.
@@ -38,6 +41,7 @@ const HOME_ENTRY = /FileDropzone|ScrollDriver|TheO\.astro|HomeInformation|HomePa
 function entryKind(id) {
   const tool = /[\\/]src[\\/]tools[\\/]([\w-]+)[\\/]/.exec(id)?.[1];
   if (tool) return tool;
+  if (CLIENT_ENTRY.test(id)) return 'client';
   if (SITE_WIDE_ENTRY.test(id)) return 'site';
   if (/DriveOpen/.test(id)) return 'drive';
   if (/OpenWithChooser/.test(id)) return 'open';
@@ -97,6 +101,7 @@ const clientCodeSplitting = {
     bundle('home-tools', 8.9),
     bundle('open-tools', 8.8),
     bundle('widgets-tools', 8.7),
+    bundle('client-tools', 8.65),
     bundle('tools-common', 8),
     bundle('editor-core', 7),
     bundle('islands', 6),
