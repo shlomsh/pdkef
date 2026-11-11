@@ -56,9 +56,11 @@ describe('pageSet', () => {
 describe('installSet and countRequests', () => {
   const manifest = { shell: ['/', '/a.js'], pages: { '/': ['/', '/a.js'], '/sign/': ['/sign/', '/a.js', '/s.js'] } };
 
-  it('is / plus the closure of each open page (MEM-35)', () => {
+  it('is the closure of / plus the closure of each open page (MEM-35)', () => {
+    const withHome = { pages: { '/': ['/', '/h.css'], '/sign/': ['/sign/', '/s.js'] } };
+    expect([...installSet(withHome, ['/sign/'])].sort()).toEqual(['/', '/h.css', '/s.js', '/sign/']);
+    expect([...installSet(withHome, [])].sort()).toEqual(['/', '/h.css']);
     expect([...installSet(manifest, ['/sign/'])].sort()).toEqual(['/', '/a.js', '/s.js', '/sign/']);
-    expect([...installSet(manifest, [])]).toEqual(['/']);
   });
 
   it('counts only the install requests the page did not already make (MEM-34)', () => {

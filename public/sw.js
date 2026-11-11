@@ -378,14 +378,22 @@ async function loadManifest() {
   return manifest;
 }
 
-// MEM-35: what a build installs. The fallback `/`, plus the closure of every page
-// that is open in a tab or that the previous build's cache held, each URL once.
+// MEM-35: what a build installs. The fallback `/` with its whole closure (an offline
+// uncached page is answered with it, so it must render), plus the closure of every
+// page that is open in a tab or that the previous build's cache held, each URL once.
 // A path that is no page of this build (a sitemap, a removed route) adds nothing.
 // Pure: openPaths and heldPaths are pathnames (any iterable), not URLs with queries.
 function installPaths({ pages }, openPaths, heldPaths) {
   const wanted = new Set([...openPaths, ...heldPaths]);
   const closures = Object.keys(pages).filter((page) => wanted.has(page)).map((page) => pages[page]);
-  return [...new Set([REQUIRED_URL, ...closures.flat()])];
+  return [...new Set([REQUIRED_URL, ...(pages[REQUIRED_URL] ?? []), ...closures.flat()])];
+}
+
+// MEM-35: the pages of this build that a previous cache holds and the current one
+// does not. A page opened on the old build after this one installed lives only there,
+// and activation deletes it. Pure: both sets are pathnames.
+function missingHeldPages(manifestPages, previousPaths, currentPaths) {
+  return Object.keys(manifestPages).filter((page) => previousPaths.has(page) && !currentPaths.has(page));
 }
 
 // The manifest's `shell` list is build-time data for the budget guard only; the
@@ -454,7 +462,9 @@ async function precacheUrls(cache, urls, previousCaches, { skipCached = false, h
         // answers from the HTTP cache with no CDN request, and the manifest hash
         // makes a stale entry safe: anything that does not match falls through
         // to the validated fetch below, silently.
-        if (hashes[url] && !isHashedUrl(url)) {
+        // Not for a document (MEM-34, review: a page's headers carry the CSP, and the
+        // HTTP cache may hold an older one): a page goes straight to the validated fetch.
+        if (hashes[url] && !isHashedUrl(url) && !url.endsWith('/') && !url.endsWith('.html')) {
           let held = null;
           try {
             const cached = await fetch(new Request(resolve(url), { cache: 'force-cache', signal }));
@@ -537,14 +547,28 @@ async function precacheAppShell({ skipCached = false } = {}) {
   return missed.length;
 }
 
+// MEM-35: whether a page of this build that an older cache holds is missing from this
+// one (a tool opened after install). Unreadable caches or manifest report none, as
+// before, so a build is never stuck on a cache it cannot read.
+async function holdsMissingPages(cache) {
+  try {
+    const manifest = await manifestOfThisBuild(cache);
+    if (!manifest?.pages) return false;
+    const previous = await pathnamesIn(await previousCacheHandles());
+    return missingHeldPages(manifest.pages, previous, await pathnamesIn([cache])).length > 0;
+  } catch {
+    return false;
+  }
+}
+
 // A build is ready to take over from the previous one only when it is fully
-// precached and the device is online. Offline, a build that is not
-// fully cached would replace one that is, and the offline coverage would be
-// lost for good.
+// precached (and holds every page the previous caches hold, MEM-35) and the
+// device is online. Offline, a build that is not fully cached would replace one
+// that is, and the offline coverage would be lost for good.
 async function readyToTakeOver() {
   const cache = await caches.open(CACHE_VERSION);
   const complete = !!await cache.match(resolve(PRECACHE_COMPLETE_PATH));
-  return complete && self.navigator?.onLine !== false;
+  return complete && self.navigator?.onLine !== false && !await holdsMissingPages(cache);
 }
 
 async function markPrecacheComplete() {

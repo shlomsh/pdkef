@@ -518,6 +518,13 @@ describe('offline-first service worker', () => {
         ]);
       });
 
+      it('always includes the whole closure of /, the offline fallback', () => {
+        const home = ['/', '/_astro/home.css'];
+        const withHome = createWorker().context.installPaths({ pages: { ...PAGES, '/': home } }, [], []);
+        expect(Array.from(withHome)).toEqual(home);
+        expect(Array.from(createWorker().context.installPaths({ pages: { ...PAGES, '/': home } }, ['/sign/'], []))).toEqual([...home, '/sign/', '/_astro/shared.A1.js', '/_astro/Sign.C1.js']);
+      });
+
       it('counts a page that is both open and held once', () => {
         expect(Array.from(paths(['/sign/'], new Set(['/sign/', '/_astro/Sign.C1.js'])))).toEqual(['/', '/sign/', '/_astro/shared.A1.js', '/_astro/Sign.C1.js']);
       });
@@ -531,6 +538,45 @@ describe('offline-first service worker', () => {
       it('ignores a path that is no page of this build', () => {
         expect(Array.from(paths(['/sitemap.xml', '/gone/'], ['/_astro/Sign.C1.js', '/__pdkef/manifest/']))).toEqual(['/']);
       });
+    });
+
+    describe('missingHeldPages', () => {
+      const missing = (...args) => Array.from(createWorker().context.missingHeldPages(...args));
+
+      it('names the pages of this build a previous cache holds and the current one does not', () => {
+        expect(missing(PAGES, new Set(['/sign/', '/merge/', '/gone/', '/_astro/Sign.C1.js']), new Set(['/sign/']))).toEqual(['/merge/']);
+      });
+
+      it('is empty when the current cache holds every such page, or no previous cache holds any', () => {
+        expect(missing(PAGES, new Set(['/sign/']), new Set(['/sign/', '/'])).length).toBe(0);
+        expect(missing(PAGES, new Set(), new Set()).length).toBe(0);
+      });
+    });
+
+    it('an update is not ready, and completes, when a tool was opened on the old build after it installed', async () => {
+      const worker = createWorker(manifestResponder(['/'], undefined, PAGES), ['pdkef-old']);
+      open(worker);
+      const old = worker.entriesByCache.get('pdkef-old');
+      for (const url of SIGN) old.set(`https://pdkef.test${url}`, new Response('old'));
+      await dispatchInstall(worker);
+      const marker = 'https://pdkef.test/__pdkef/precache-complete/';
+      expect(worker.entries.has(marker)).toBe(true);
+      expect(await dispatchMessage(worker, { type: 'pdkef:update-status' })).toMatchObject({ ready: true });
+      // The person opens /merge/ on the old build; only the old cache gets it.
+      for (const url of MERGE) old.set(`https://pdkef.test${url}`, new Response('old merge'));
+      expect(worker.entries.has('https://pdkef.test/merge/')).toBe(false);
+      expect(await dispatchMessage(worker, { type: 'pdkef:update-status' })).toMatchObject({ ready: false });
+      await new Promise((resolveFlush) => setTimeout(resolveFlush, 0));
+      expect(withoutInternal(worker)).toEqual(abs([...new Set(['/', ...SIGN, ...MERGE])]).sort());
+      expect(await dispatchMessage(worker, { type: 'pdkef:update-status' })).toMatchObject({ ready: true });
+    });
+
+    it('a first install with only /sign/ open caches every URL of the closure of /', async () => {
+      const HOME = ['/', '/_astro/home.css', '/site/entry.js'];
+      const worker = createWorker(manifestResponder(HOME, undefined, { '/sign/': SIGN }), []);
+      open(worker, '/sign/');
+      await dispatchInstall(worker);
+      expect(withoutInternal(worker)).toEqual(abs([...new Set([...HOME, ...SIGN])]).sort());
     });
 
     it('a fresh install with /redact/ open caches / and the closure of /redact/, and nothing of /merge/', async () => {
@@ -2034,7 +2080,7 @@ describe.each([['source', workerSource], ['minified source', minifiedWorkerSourc
     const worker = build(fetchImpl);
     await dispatchInstall(worker);
     expect(await worker.entries.get('https://pdkef.test/').text()).toBe('home');
-    expect(fetchImpl.mock.calls.filter(([request]) => new URL(request.url).pathname === '/').map(([request]) => request.cache)).toEqual(['force-cache', 'no-cache', 'reload']);
+    expect(fetchImpl.mock.calls.filter(([request]) => new URL(request.url).pathname === '/').map(([request]) => request.cache)).toEqual(['no-cache', 'reload']);
     expect(worker.self.registration.unregister).not.toHaveBeenCalled();
   });
 
@@ -2137,6 +2183,13 @@ describe('MEM-34: install reuses the HTTP cache, and a same-build page is not re
     await dispatchInstall(worker);
     expect(await worker.entries.get('https://pdkef.test/shared/a.js').text()).toBe('fresh a');
     expect(modesFor(worker, '/shared/a.js')).toEqual(['force-cache', 'no-cache']);
+  });
+
+  it('makes no force-cache request for a page, whose headers carry the CSP (review of MEM-34)', async () => {
+    const worker = installing(() => new Response('fresh a'), ['/', '/shared/a.js'], { '/': pageHash('home'), '/shared/a.js': pageHash('fresh a') });
+    await dispatchInstall(worker);
+    expect(modesFor(worker, '/')).toEqual(['no-cache']);
+    expect(modesFor(worker, '/shared/a.js')).toEqual(['force-cache']);
   });
 
   it('makes no force-cache request for a URL the manifest lists no hash for', async () => {

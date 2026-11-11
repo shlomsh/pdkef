@@ -68,10 +68,11 @@ export function installUrls({ shell, pages }) {
   return [...new Set([...shell, ...Object.values(pages).flat()])];
 }
 
-// MEM-35: what the worker installs for one page: `/` plus that page's closure, each URL once. Mirrors
+// MEM-35: what the worker installs for one page: `/` with its whole closure (the offline fallback) plus
+// that page's closure, each URL once. Mirrors
 // installPaths in public/sw.js (a classic script cannot import this); sw.test.mjs asserts they agree.
 export function installPaths(pages, page) {
-  return [...new Set(['/', ...(pages[page] ?? [])])];
+  return [...new Set(['/', ...(pages['/'] ?? []), ...(pages[page] ?? [])])];
 }
 
 // The heaviest single-page install: { page, bytes }, or null for no pages.
