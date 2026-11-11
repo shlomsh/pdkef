@@ -434,6 +434,9 @@ jobs:
     - name: Check first-load page weight
       run: npm run test:weight
 
+    - name: Check first-load request count
+      run: npm run test:request-count
+
     # Field detection is Sign-only and behind a dynamic import; nothing in the
     # language keeps it there, so this walks the built graph a page at a time.
     - name: Check Sign-only modules stay out of every page's first paint
