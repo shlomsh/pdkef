@@ -237,6 +237,26 @@ test('a single tab never sees the line and lands on the new build at its next re
   await expect(tab.locator('[data-editor-text-input]')).toHaveValue('first edit', { timeout: 15_000 });
 });
 
+// A late request from the document being replaced reaches the old worker as it
+// stops; Chromium restarts it, and the takeover page's refresh must still be answered.
+test('a late request from the page being replaced does not strand the tab on the takeover page', async () => {
+  const tab = await context.newPage();
+  await openSignWithFile(tab, await makePdfBuffer('late request e2e'));
+  await waitControlled(tab);
+
+  server.setPhase('new');
+  await checkForUpdate(tab);
+  await waitForWaitingWorker(tab);
+
+  await tab.evaluate(() => {
+    const poke = () => { for (let i = 0; i < 3; i++) fetch('/robots.txt', { keepalive: true }).catch(() => {}); };
+    addEventListener('beforeunload', poke);
+    addEventListener('pagehide', poke);
+  });
+  await tab.reload();
+  await expect.poll(() => buildOf(tab), { timeout: 15_000 }).toBe('new');
+});
+
 // Offline stays whole: activation deletes the old cache, so a build only takes
 // over online. Offline, the reload keeps the old build working; back online,
 // the next reload switches.

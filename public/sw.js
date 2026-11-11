@@ -1134,14 +1134,24 @@ async function trySilentTakeover() {
 // the old worker busy with navigation after navigation, and activation waited
 // behind them. A refresh that still beats activation gets the old page (the
 // cooldown), and that page reloads itself on controllerchange.
+//
+// The refresh can also be lost: a late request from the page being replaced
+// restarts the old worker, which is then stopped for activation while it holds
+// the refresh navigation, and nothing answers it. So the page carries a script
+// that reloads it every 2 s, until a reload is answered. This is a response the
+// worker builds, not a site page: it is not covered by the site's CSP checks
+// (no script on the site is inline), and its own header allows exactly this
+// script by hash. A unit test recomputes the hash from the script text.
+const TAKEOVER_RETRY_SCRIPT = 'setTimeout(function(){location.reload()},2000)';
+const TAKEOVER_RETRY_SCRIPT_HASH = 'sha256-HEiQ7Na11ph1dWubWn9KnXlYGXaDJAz+k9YEWY05EYY=';
 function takeoverResponse() {
   return new Response(
-    '<!doctype html><meta name="color-scheme" content="light dark"><meta http-equiv="refresh" content="1">',
+    `<!doctype html><meta name="color-scheme" content="light dark"><meta http-equiv="refresh" content="1"><script>${TAKEOVER_RETRY_SCRIPT}</script>`,
     {
       headers: {
         'Content-Type': 'text/html; charset=utf-8',
         'Cache-Control': 'no-store',
-        'Content-Security-Policy': "default-src 'none'",
+        'Content-Security-Policy': `default-src 'none'; script-src '${TAKEOVER_RETRY_SCRIPT_HASH}'`,
       },
     },
   );
