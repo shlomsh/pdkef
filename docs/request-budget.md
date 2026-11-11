@@ -33,6 +33,11 @@ service worker precache the whole app, every page included, on the first visit. 
 - MEM-32 (landed 2026-11-10) stopped deploys from re-downloading unchanged files on returning
   visitors; it does not touch the first visit.
 
+Which project: the team Usage page's CDN Requests by project for the billing period Oct 12 to Nov 11
+(770,689 of 1,000,000) gives pdkef 713,861 (92.6%), a deleted pdkef Drive test deployment 9,069 (1.2%),
+shellysgphyisio 39,058 (5.1%), netta-shemesh 7,424 (1.0%) and the rest about 1,100. The budget is shared by
+every project on the team, and pdkef is the one to fix.
+
 Cross-check: about 280 page loads a day at about 300 requests each is about 84,000 a day, the pace
 Vercel warned about.
 
