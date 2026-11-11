@@ -56,6 +56,12 @@ describe('noteFrom', () => {
     expect(Object.keys(note)).toEqual(['tool', 'stars', 'comment', 'place']);
   });
 
+  it("keeps the vote's day, for the date on the note, and the site accepts it", () => {
+    const note = noteFrom(entry('lovely', { day: '2026-11-11' }), 'Nakuru, Kenya');
+    expect(note.day).toBe('2026-11-11');
+    expect(parseNote(note)).toEqual(note);
+  });
+
   it('keeps the country, for the flag, and the site accepts it', () => {
     const note = noteFrom(entry('lovely'), 'Nakuru, Kenya');
     expect(note.country).toBe('KE');

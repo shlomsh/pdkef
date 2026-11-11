@@ -130,17 +130,19 @@ const jsonRows = (reply: { result?: unknown } | undefined): unknown[] => {
   return rows;
 };
 
+const isDayless = (row: unknown) => typeof row === 'object' && row !== null && !('day' in row);
+
 type RegionName = (country: string, region: string) => string | undefined;
 
 /** Recent votes as notes, newest first: never a comment, and one per tool and country, for variety. */
-function voteNotes(reply: { result?: unknown } | undefined, regionName: RegionName): readonly PinnedNote[] {
-  const seen = new Set<string>();
+function voteNotes(reply: { result?: unknown } | undefined, regionName: RegionName, taken: Iterable<string>): readonly PinnedNote[] {
+  const seen = new Set<string>(taken);
   const notes: PinnedNote[] = [];
   for (const row of jsonRows(reply).reverse()) {
-    const { tool, stars, country, region, comment } = (row ?? {}) as Record<string, unknown>;
+    const { tool, stars, country, region, comment, day } = (row ?? {}) as Record<string, unknown>;
     if (comment !== undefined) continue;
     const name = typeof country === 'string' && typeof region === 'string' ? regionName(country, region) : undefined;
-    const note = parseNote({ tool, stars, country, ...(name ? { region: name } : {}) });
+    const note = parseNote({ tool, stars, country, ...(name ? { region: name } : {}), ...(day === undefined ? {} : { day }) });
     const key = `${tool}:${country}`;
     if (!note || seen.has(key)) continue;
     seen.add(key);
@@ -169,6 +171,19 @@ export function notesFromResults(
   entries: { result?: unknown } | undefined,
   regionName: RegionName,
 ): readonly PinnedNote[] {
-  const words = jsonRows(approved).map(parseNote).filter((n): n is PinnedNote => n !== null);
-  return spread([...words.slice(-NOTES_MAX).reverse(), ...voteNotes(entries, regionName)]);
+  const commentDays = new Map<unknown, unknown>();
+  for (const row of jsonRows(entries)) {
+    const { comment, day } = (row ?? {}) as Record<string, unknown>;
+    if (typeof comment === 'string') commentDays.set(comment, day);
+  }
+  // A note approved before notes carried a day takes its comment's day from the record.
+  const dated = (row: unknown) => {
+    const { comment } = (row ?? {}) as Record<string, unknown>;
+    return isDayless(row) && commentDays.has(comment) ? { ...(row as object), day: commentDays.get(comment) } : row;
+  };
+  const words = jsonRows(approved).map(dated).map(parseNote).filter((n): n is PinnedNote => n !== null);
+  const shown = words.slice(-NOTES_MAX).reverse();
+  // A person whose words are pinned is not pinned again by their vote.
+  const taken = shown.map((n) => `${n.tool}:${n.country}`);
+  return spread([...shown, ...voteNotes(entries, regionName, taken)]);
 }

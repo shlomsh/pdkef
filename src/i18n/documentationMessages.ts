@@ -73,6 +73,9 @@ export interface DocumentationShellMessages {
   notesHeading: string;
   notesIntro: string;
   notesBy: string;
+  /** The fold on a long note: opens it, closes it. */
+  notesMore: string;
+  notesLess: string;
   /** SEO-58: the rating board. `{count}` and `{countries}` are filled from the build's rating. */
   ratingBoardCount: string;
   ratingBoardInvite: string;
@@ -147,7 +150,9 @@ const englishMessages = {
   airplaneModeNotice: 'Turn on airplane mode and give it a try. It still works.',
   notesHeading: 'Free PDF tools, rated by the people who use them',
   notesIntro: 'After a download I ask how it went. This is what people said.',
-  notesBy: '{tool}, someone in {place}',
+  notesBy: '{tool} {place}',
+  notesMore: 'Read more',
+  notesLess: 'Show less',
   ratingBoardCount: '{count} ratings from {countries} countries',
   ratingBoardInvite: 'Yours could go here after your next download.',
   homepageAriaLabel: 'PDkef homepage',
@@ -200,7 +205,9 @@ const hebrewMessages = {
   heroPhoneLine: 'חינם, ללא הרשמה, ישר בדפדפן.',
   notesHeading: 'כלי PDF חינמיים, בדירוג של מי שמשתמש בהם',
   notesIntro: 'אחרי הורדה אני שואל איך היה. זה מה שאנשים ענו.',
-  notesBy: '{tool}, {place}',
+  notesBy: '{tool} {place}',
+  notesMore: 'להמשך',
+  notesLess: 'פחות',
   ratingBoardCount: '{count} דירוגים מ-{countries} מדינות',
   ratingBoardInvite: 'גם הדירוג שלך יכול להיות כאן אחרי ההורדה הבאה.',
   heroAccent: 'אצלכם במכשיר',
@@ -255,7 +262,9 @@ const indonesianMessages = {
   heroPhoneLine: 'Gratis, privat, langsung di browser Anda.',
   notesHeading: 'Free PDF tools, rated by the people who use them',
   notesIntro: 'After a download I ask how it went. This is what people said.',
-  notesBy: '{tool}, someone in {place}',
+  notesBy: '{tool} {place}',
+  notesMore: 'Read more',
+  notesLess: 'Show less',
   ratingBoardCount: '{count} ratings from {countries} countries',
   ratingBoardInvite: 'Yours could go here after your next download.',
   homepageAriaLabel: 'Beranda PDkef',

@@ -65,3 +65,18 @@ app rating on a tool page, and the last done-when holds. The home page's result 
 no stars that day, which leaves its markup as it is. Whether to put the rating on more pages (first candidate
 `/he/merge/`, 12.1K impressions at 0.6% CTR under PDF24's stars, LOC-03) reverses the 2026-11-06 call and is
 Shlomi's to make; it is not part of this ticket.
+
+## The board as a 3x3 (2026-11-11)
+
+Shlomi's changes, tried on a local dev server before landing:
+
+- On the home page the board sits right after the video card.
+- Nine notes in a 3x3 grid on desktop (two columns on phones), beside the stars. The home card is one screen tall and
+  fits a 1280x720 screen without scrolling. The three paper colours are scattered so no row or column shares one.
+- The by-line drops "someone in". Every note carries its UTC day beside the stars; a note approved before notes stored
+  a day takes it from its comment in the record, and `ratings:approve` now stores it.
+- Handwriting is everything a person left: their words, their tool and their place. Stars and the date are print.
+- A person whose words are pinned is not pinned again by their plain vote.
+- Long words fold to a few lines; a press anywhere on a folded note lifts it over the board, larger, with the others
+  dimmed. Escape or a press elsewhere puts it back. The 500-character cap is unchanged.
+- Notes are read at build (MEM-36), so `ratings:approve` now says a note shows on the next deploy, not within the hour.

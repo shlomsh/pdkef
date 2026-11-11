@@ -41,7 +41,8 @@ export function noteFrom(entry, place) {
   const words = typeof entry.comment === 'string' ? entry.comment : '';
   if (words.trim() === '' || [...words].length > MAX_COMMENT_LENGTH) throw new Error('The comment is empty or too long.');
   const country = /^[A-Z]{2}$/.test(entry.country ?? '') ? { country: entry.country } : {};
-  return { tool: entry.tool, stars: entry.stars, comment: words, place: p, ...country };
+  const day = /^\d{4}-\d{2}-\d{2}$/.test(entry.day ?? '') ? { day: entry.day } : {};
+  return { tool: entry.tool, stars: entry.stars, comment: words, place: p, ...country, ...day };
 }
 
 const USAGE = 'Usage:\n  npm run ratings:approve\n  npm run ratings:approve -- <n> "Nakuru, Kenya"\n  npm run ratings:approve -- --remove a<number>';
@@ -85,7 +86,7 @@ async function main() {
       process.exit(1);
     }
     await pipeline([['LREM', NOTES_KEY, 1, target]]);
-    console.log(`Removed ${args[1]}. It leaves the site within the hour.`);
+    console.log(`Removed ${args[1]}. It leaves the site on the next deploy.`);
     return;
   }
 
@@ -104,7 +105,7 @@ async function main() {
       process.exit(1);
     }
     await pipeline([['RPUSH', NOTES_KEY, JSON.stringify(note)]]);
-    console.log(`Approved ${args[0]}. It shows within the hour.`);
+    console.log(`Approved ${args[0]}. It shows on the next deploy.`);
     return;
   }
 

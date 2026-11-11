@@ -6,7 +6,7 @@ import { notesToShow, type PinnedNote } from './pinnedNote';
 
 const note = (tool: string, comment = 'Worked well', stars = 5): PinnedNote =>
   ({ tool, stars, comment, place: 'Nakuru, Kenya' }) as PinnedNote;
-const props = { byLine: '{tool}, someone in {place}' };
+const props = { byLine: '{tool} {place}', more: 'Read more', less: 'Show less' };
 
 let container: HTMLElement | null = null;
 afterEach(() => {
@@ -34,17 +34,17 @@ describe('PinnedNotes', () => {
   it('renders the comment and by-line from its props', () => {
     mount([note('redact', 'Very clear')]);
     expect(container!.textContent).toContain('Very clear');
-    expect(container!.textContent).toContain('Blur & Redact, someone in Nakuru, Kenya');
+    expect(container!.textContent).toContain('Blur & Redact Nakuru, Kenya');
     expect(container!.querySelectorAll('li')).toHaveLength(1);
     expect(fetchSpy).not.toHaveBeenCalled();
   });
   it('shows a vote with no words as stars, tool and the country in the page language', () => {
     const vote = { tool: 'merge', stars: 4, country: 'KE' };
     mount([{ ...vote, region: 'Nakuru' }]);
-    expect(container!.textContent).toContain('Merge PDF, someone in Nakuru, Kenya');
+    expect(container!.textContent).toContain('Merge PDF Nakuru, Kenya');
     act(() => render(null, container!));
     mount([vote]);
-    expect(container!.textContent).toContain('Merge PDF, someone in Kenya');
+    expect(container!.textContent).toContain('Merge PDF Kenya');
     expect(container!.querySelector('svg')!.getAttribute('aria-label')).toBe('4 / 5');
     act(() => render(null, container!));
     mount([vote], { locale: 'he', byLine: '{tool}, מישהו ב{place}' });
@@ -62,6 +62,38 @@ describe('PinnedNotes', () => {
     expect(container!.querySelector('img')).toBeNull();
   });
 
+  it('dates a note in the page language, and leaves out a date it does not have', () => {
+    mount([{ tool: 'merge', stars: 5, country: 'KE', day: '2026-11-11' }]);
+    const time = container!.querySelector('time')!;
+    expect(time.getAttribute('datetime')).toBe('2026-11-11');
+    expect(time.textContent).toBe('Nov 11, 2026');
+    act(() => render(null, container!));
+    mount([note('merge')]);
+    expect(container!.querySelector('time')).toBeNull();
+  });
+
+  it('folds a comment that does not fit and opens the whole note on click, and leaves a short one alone', () => {
+    const tall = vi.spyOn(HTMLElement.prototype, 'scrollHeight', 'get').mockReturnValue(200);
+    vi.spyOn(HTMLElement.prototype, 'clientHeight', 'get').mockReturnValue(60);
+    mount([note('redact', 'a long story '.repeat(30)), note('merge', 'also long '.repeat(30))]);
+    const [first, second] = [...container!.querySelectorAll('li')];
+    const open = first!.querySelector('button')!;
+    expect(open.getAttribute('aria-label')).toBe('Read more');
+    expect(open.getAttribute('aria-expanded')).toBe('false');
+    act(() => open.click());
+    expect(open.getAttribute('aria-expanded')).toBe('true');
+    expect(open.getAttribute('aria-label')).toBe('Show less');
+    act(() => second!.querySelector('button')!.click());
+    expect(open.getAttribute('aria-expanded')).toBe('false');
+    act(() => { document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' })); });
+    expect(second!.querySelector('button')!.getAttribute('aria-expanded')).toBe('false');
+    act(() => render(null, container!));
+    tall.mockReturnValue(60);
+    mount([note('redact', 'Short')]);
+    expect(container!.querySelector('button')).toBeNull();
+    vi.restoreAllMocks();
+  });
+
   it('shows markup in a comment as text', () => {
     mount([note('redact', 'so <b>good</b>')]);
     expect(container!.querySelector('li b')).toBeNull();
@@ -74,8 +106,9 @@ describe('notesToShow', () => {
   it('filters by tool and keeps order', () => {
     expect(notesToShow(all, 'sign' as never).map((n) => n.comment)).toEqual(['a', 'c']);
   });
-  it('caps at 4', () => {
-    expect(notesToShow(all, 'redact' as never).map((n) => n.comment)).toEqual(['b', 'd', 'e', 'f']);
-    expect(notesToShow(all)).toHaveLength(4);
+  it('caps at 9, a three by three board', () => {
+    const many = [...all, ...all];
+    expect(notesToShow(many, 'redact' as never)).toHaveLength(9);
+    expect(notesToShow(many)).toHaveLength(9);
   });
 });
