@@ -2,7 +2,7 @@
 
 # Backlog
 
-The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 181 live: 71 up next, 23 then, 27 waiting, 60 parked.
+The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 182 live: 72 up next, 23 then, 27 waiting, 60 parked.
 
 ## Redact: finish removal
 
@@ -207,6 +207,7 @@ Production errors you can see, small tools that clean up after themselves, and d
 | MEM-40 | P1 | [MEM-40](backlog/tasks/MEM-40.md) · The worker installs only what the page asks for, no home-page fallback | In progress |
 | QUAL-54 | P1 | [QUAL-54](backlog/tasks/QUAL-54.md) · The unit jobs stop failing when the runner cannot reach Ubuntu's package servers | In progress |
 | MEM-36 | P2 | [MEM-36](backlog/tasks/MEM-36.md) · Pinned notes are baked into the page at build, not fetched per visit | In progress |
+| MEM-42 | P2 | [MEM-42](backlog/tasks/MEM-42.md) · The rating board's flags come as one file | In progress |
 | MEM-24 | P3 | [MEM-24](backlog/tasks/MEM-24.md) · A service worker that cannot install, or never completes its precache, says so | In progress |
 
 ### Then, in order
