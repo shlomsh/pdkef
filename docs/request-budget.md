@@ -2,7 +2,7 @@
 
 *Drafted 2026-11-11, revised the same day after an independent architecture review and Shlomi's calls on
 telemetry and worker timing. Status: accepted 2026-11-11 ("proceed with the plan"), building as MEM-33..38.
-MEM-39 (2026-11-11) then moved the worker's install to after a file is opened, see D2 and D6.*
+MEM-39 (2026-11-11) then moved the worker's install to after a file is opened, see D2 and D6; MEM-40 (2026-11-11) stopped it installing the home page as an offline fallback, see D11.*
 
 ## The problem
 
@@ -104,8 +104,8 @@ survived in the HTTP cache.
 
 ### 2. Precache the tools a person uses, not the whole app
 
-- **Install** caches `/` (the offline fallback, `REQUIRED_URL`, which `root_unreachable` and
-  `root_mismatch` rely on), the shell, and the closure of each tool page open at install time. The worker
+- **Install** caches `/` as one document (`REQUIRED_URL`, which `root_unreachable` and
+  `root_mismatch` rely on; MEM-40: kept for the build check, no longer an offline fallback), the shell, and the closure of each tool page open at install time. The worker
   finds those pages itself with `clients.matchAll({ includeUncontrolled: true })`, which `sw.js` already
   uses, so the install needs no new message or per-page script URL.
 - **A tool opened later** is cached as it is used: its page and code go into the current cache on first
@@ -193,6 +193,7 @@ each assumption against the figure named, and reopen the decision if it no longe
 | D8 | Approved notes are baked in at build, not fetched from `/api/notes` | Deploys are frequent enough that a new note shows within hours | Same deploy rate as D3: if deploys slow to a few a week, notes go stale and this needs a scheduled rebuild or the fetch back |
 | D9 | Precache leaves out guides, unopened `/he/` pages, extra icons, `sample.pdf`, guide media, `404.html`, the verification file and codec wasm | Nobody needs those offline before opening them once | Reports of an offline page falling back to `/` |
 | D10 | Traffic baseline: ~280 page loads a day, ~300 requests each before the plan | The 2026-11-11 measurement is representative | Page loads a day from the funnel; step 0 guard's per-page counts |
+| D11 | The install downloads only what the page asks for: `/` is one document kept for the build check, and the home page's other files come only when `/` is itself open or held; an offline, uncached page is answered with the home page only if the person opened it (else the browser's own offline page) (Shlomi, MEM-40, 2026-11-11; replaces MEM-35's always-complete `/` fallback) | Offline matters for tools a person opened, and the home page's 9-12 files per tool visit were bought for a fallback nobody asked for; measured after a file is opened: `/redact/` 42 to 32 requests, `/sign/` 45 to 32 | `test:request-count` after-open budgets; reports of a blank browser offline page where the home page used to appear |
 
 ## Not taken, and why
 

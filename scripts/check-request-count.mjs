@@ -63,11 +63,11 @@ export function pageSet(page, view, htmlRelative) {
 }
 
 /**
- * What the worker install asks for (MEM-35): `/` plus the closure of each page
+ * What the worker install asks for (MEM-35, MEM-40): the `/` document plus the closure of each page
  * open at install, the same rule `installPaths` budgets in bytes.
  */
 export function installSet(manifest, openPages) {
-  return new Set(['/', ...installPaths(manifest.pages, '/'), ...openPages.flatMap((page) => installPaths(manifest.pages, page))]);
+  return new Set(['/', ...openPages.flatMap((page) => installPaths(manifest.pages, page))]);
 }
 
 /**

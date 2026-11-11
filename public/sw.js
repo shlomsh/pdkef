@@ -378,15 +378,17 @@ async function loadManifest() {
   return manifest;
 }
 
-// MEM-35: what a build installs. The fallback `/` with its whole closure (an offline
-// uncached page is answered with it, so it must render), plus the closure of every
-// page that is open in a tab or that the previous build's cache held, each URL once.
+// MEM-35, MEM-40: what a build installs. The closure of every page that is open in a tab
+// or that the previous build's cache held, each URL once, plus the one `/` document,
+// kept for the build check (precacheUrls: root_unreachable, root_mismatch), not as an
+// offline fallback. The rest of the home page's files come only when `/` is itself open
+// or held (it is a key of `pages`, so the filter already includes it).
 // A path that is no page of this build (a sitemap, a removed route) adds nothing.
 // Pure: openPaths and heldPaths are pathnames (any iterable), not URLs with queries.
 function installPaths({ pages }, openPaths, heldPaths) {
   const wanted = new Set([...openPaths, ...heldPaths]);
   const closures = Object.keys(pages).filter((page) => wanted.has(page)).map((page) => pages[page]);
-  return [...new Set([REQUIRED_URL, ...(pages[REQUIRED_URL] ?? []), ...closures.flat()])];
+  return [...new Set([REQUIRED_URL, ...closures.flat()])];
 }
 
 // MEM-35: the pages of this build that a previous cache holds and the current one
@@ -1302,7 +1304,9 @@ self.addEventListener('fetch', (event) => {
           return cached;
         }
         const fresh = await refreshNavigation(request, cache, cacheKey);
-        if (!fresh) return cache.match('/');
+        // MEM-40: offline and uncached. The home page answers only when it is itself servable
+        // (opened, whole closure cached); otherwise the browser shows its own offline page.
+        if (!fresh) return (await servableFromCache(cache, '/')) ?? Response.error();
         if (fresh.ours) event.waitUntil(cacheRestOfPage(cache, cacheKey));
         // Remembered before the page is answered, so its first file request
         // finds it. A redirect is not a page: the browser asks again for its target.
