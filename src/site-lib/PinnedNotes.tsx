@@ -46,6 +46,8 @@ interface Props {
   more: string;
   less: string;
   locale?: string;
+  /** The country codes the flag sprite (/flags/notes.svg, MEM-42) carries; a note from any other shows no flag. */
+  flags?: readonly string[];
 }
 
 interface NoteProps {
@@ -54,12 +56,13 @@ interface NoteProps {
   more: string;
   less: string;
   locale: string;
+  flags: readonly string[];
   open: boolean;
   onToggle: () => void;
 }
 
 /** One paper. Words that do not fit are folded; then the whole paper is a button that lifts it over the board, larger. */
-function Note({ note: n, byLine, more, less, locale, open, onToggle }: NoteProps) {
+function Note({ note: n, byLine, more, less, locale, flags, open, onToggle }: NoteProps) {
   const words = useRef<HTMLParagraphElement>(null);
   const [folds, setFolds] = useState(false);
   useLayoutEffect(() => {
@@ -103,10 +106,10 @@ function Note({ note: n, byLine, more, less, locale, open, onToggle }: NoteProps
         <p class={styles.by}>
           {formatMessage(before, { tool: toolLabel(n.tool) })}
           <span class={styles.where}>
-            {n.country && (
+            {n.country && flags.includes(n.country) && (
               <img
                 class={styles.flag}
-                src={`/flags/${n.country}.svg`}
+                src={`/flags/notes.svg#${n.country}`}
                 alt=""
                 width="36"
                 height="24"
@@ -124,7 +127,7 @@ function Note({ note: n, byLine, more, less, locale, open, onToggle }: NoteProps
   );
 }
 
-function PinnedNotes({ notes, byLine, more, less, locale = 'en' }: Props) {
+function PinnedNotes({ notes, byLine, more, less, locale = 'en', flags = [] }: Props) {
   const [openAt, setOpenAt] = useState(-1);
   const list = useRef<HTMLUListElement>(null);
   // One note open at a time; Escape or a press anywhere off it puts it back.
@@ -154,6 +157,7 @@ function PinnedNotes({ notes, byLine, more, less, locale = 'en' }: Props) {
           more={more}
           less={less}
           locale={locale}
+          flags={flags}
           open={openAt === i}
           onToggle={() => setOpenAt(openAt === i ? -1 : i)}
         />
