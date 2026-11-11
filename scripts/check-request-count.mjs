@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { staticClosure, toPublicUrl } from './precacheClosure.mjs';
+import { installPaths } from './check-precache-budget.mjs';
 
 /*
  * Budgets the requests a new visitor's first load costs, per page: what the
@@ -18,15 +19,15 @@ const PAGES = ['/', '/redact/', '/sign/'];
 
 // One total per page, set to the first build's figure. Budgets only go down as MEM-34..37 land.
 export const BUDGETS = {
-  '/': 292,
-  '/redact/': 316,
-  '/sign/': 312,
+  '/': 50,
+  '/redact/': 97,
+  '/sign/': 93,
 };
 
 const WORKER_REQUESTS = ['/sw.js', '/precache-manifest.json'];
 const LINK_RELS = ['stylesheet', 'modulepreload', 'icon', 'apple-touch-icon', 'manifest'];
 const ISLAND_URL_ATTRS = ['component-url', 'renderer-url', 'before-hydration-url'];
-const sameOrigin =(url) => url.startsWith('/') && !url.startsWith('//');
+const sameOrigin = (url) => url.startsWith('/') && !url.startsWith('//');
 const attr = (tag, name) => new RegExp(`\\s${name}="([^"]*)"`).exec(tag)?.[1];
 
 /** Same-origin URLs one page's HTML asks for on load: module scripts and the links a browser fetches. */
@@ -57,21 +58,21 @@ export function pageSet(page, view, htmlRelative) {
 }
 
 /**
- * What the worker install requests. Today (MEM-15) that is the whole app,
- * whichever pages are open. MEM-35 narrows it to the shell plus the open
- * pages' closures, which is why `openPages` is already a parameter.
+ * What the worker install asks for (MEM-35): `/` plus the closure of each page
+ * open at install, the same rule `installPaths` budgets in bytes.
  */
 export function installSet(manifest, openPages) {
-  return new Set([...manifest.shell, ...Object.values(manifest.pages).flat()]);
+  return new Set(['/', ...openPages.flatMap((page) => installPaths(manifest.pages, page))]);
 }
 
 /**
- * Install fetches every unhashed file with `cache: 'no-cache'`, even one the
- * page just loaded, so each install URL costs a request. MEM-34 subtracts the
- * page set here once install reuses the page's own downloads.
+ * Install reads each file the page already loaded from the HTTP cache first
+ * (MEM-34, `force-cache` checked against the manifest hash), so only the rest
+ * of the install set costs a request: the page's lazy chunks, mostly.
  */
 export function countRequests(page, install) {
-  return { requests: page.size, install: install.size, total: page.size + install.size };
+  const extra = [...install].filter((url) => !page.has(url)).length;
+  return { requests: page.size, install: extra, total: page.size + extra };
 }
 
 /** One message per page whose total exceeds its budget. */
