@@ -858,8 +858,8 @@ async function cacheRestOfPage(cache, cacheKey) {
 
 // MEM-35: on a first install, a tab opened while the build installed loaded from the
 // network before any worker controlled it, so nothing cached its page, and the install
-// had already listed the open pages. Before taking control, the build caches the closure
-// of every page open now. Pages are not controlled yet, so nothing waits on it.
+// had already listed the open pages. Right after taking control, in the background, the
+// build caches the closure of every page open now.
 async function cacheOpenPages(cache) {
   for (const path of new Set(await openPagePaths())) await cacheRestOfPage(cache, path);
 }
@@ -1013,10 +1013,14 @@ self.addEventListener('activate', (event) => {
     const currentCache = await caches.open(CACHE_VERSION);
     await migrateFontPacks(previousCaches, currentCache);
     await Promise.all(previousKeys.map((key) => caches.delete(key)));
-    // Only a first install: an update's open pages were in its install set, and an update's
-    // activation must not be delayed.
-    if (previousKeys.length === 0) await cacheOpenPages(currentCache);
     await self.clients.claim();
+    // MEM-35, first install only: a tab that opened while this build installed loaded before any
+    // worker controlled it, so nothing cached its tool. Started after the claim and not awaited:
+    // before the claim it widened the moment in which a page sees an active worker that does not
+    // control it yet (appUpdate.ts then reloads on the claim), and awaited it would hold activation,
+    // and the claimed pages' requests, behind a tool's download. Best effort: a worker stopped
+    // early leaves the tool to its next visit.
+    if (previousKeys.length === 0) cacheOpenPages(currentCache).catch(() => {});
   })());
 });
 
