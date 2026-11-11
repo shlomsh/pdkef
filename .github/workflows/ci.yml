@@ -282,12 +282,49 @@ jobs:
     - name: Install dependencies
       run: npm ci
 
-    # poppler-utils gives the W6 extraction guard (src/lib/sign.test.js) its
-    # `pdftotext` half. Without it that half self-skips with a warning, which
-    # would leave the one assertion that actually proves /ActualText works
-    # running only on a developer's machine.
+    # QUAL-54: poppler-utils gives the W6 extraction guard (src/tools/sign/lib/sign.test.js) its
+    # `pdftotext` half, and no unit job may depend on an apt server during the run (three main runs on
+    # 2026-11-11 lost both shards to "Temporary failure resolving"). The .deb files are restored from
+    # `actions/cache` (keyed on the runner image and a manual version, the `-v1` below) and installed
+    # with `dpkg -i`. Only on a miss are they downloaded, through the bounded apt script, and then
+    # saved. If neither works the step still passes with `ok=false`: the guard self-skips its
+    # pdftotext half, every other test runs, and a `::warning::` says so.
+    - name: Key the poppler-utils cache on the runner image
+      id: poppler-key
+      run: echo "key=poppler-debs-${ImageOS:-unknown}-${ImageVersion:-unknown}-v1" >> "$GITHUB_OUTPUT"
+
+    - name: Restore poppler-utils packages
+      id: poppler-cache
+      uses: actions/cache/restore@v4
+      with:
+        path: ${{ runner.temp }}/poppler-debs
+        key: ${{ steps.poppler-key.outputs.key }}
+
     - name: Install poppler-utils (pdftotext, for the W6 extraction guard)
-      run: bash scripts/ci-bounded-apt.sh 120 300 bash -c 'apt-get update && apt-get install -y poppler-utils'
+      id: poppler
+      continue-on-error: true
+      env:
+        CACHE_HIT: ${{ steps.poppler-cache.outputs.cache-hit }}
+      run: |
+        debs="$RUNNER_TEMP/poppler-debs"
+        if [ "$CACHE_HIT" != "true" ]; then
+          mkdir -p "$debs"
+          bash scripts/ci-bounded-apt.sh 120 300 bash -c "apt-get update && apt-get install -y --download-only poppler-utils && cp /var/cache/apt/archives/*.deb '$debs'/" || true
+        fi
+        if ls "$debs"/*.deb >/dev/null 2>&1 && sudo dpkg -i "$debs"/*.deb && command -v pdftotext >/dev/null; then
+          echo "ok=true" >> "$GITHUB_OUTPUT"
+          if [ "$CACHE_HIT" = "true" ]; then echo "fresh=false" >> "$GITHUB_OUTPUT"; else echo "fresh=true" >> "$GITHUB_OUTPUT"; fi
+        else
+          echo "ok=false" >> "$GITHUB_OUTPUT"
+          echo "::warning::QUAL-54: pdftotext is unavailable on this run (cache miss and the apt server was unreachable); the pdftotext half of the W6 extraction guard is SKIPPED, the pdf.js half and every other test still run."
+        fi
+
+    - name: Save poppler-utils packages
+      if: steps.poppler.outputs.ok == 'true' && steps.poppler.outputs.fresh == 'true'
+      uses: actions/cache/save@v4
+      with:
+        path: ${{ runner.temp }}/poppler-debs
+        key: ${{ steps.poppler-key.outputs.key }}
 
     # QUAL-24 (2026-10-18) moved unit narrowing to local checks only; CI runs
     # every unit file on every push.
@@ -904,6 +941,8 @@ jobs:
         key: playwright-${{ runner.os }}-${{ steps.playwright.outputs.version }}-chromium
 
     # QUAL-33: apt is bounded at 120 s, retry 300 s; the browser download is separate.
+    # QUAL-54: still apt here, because these jobs must stay on the plain runner (pixel thresholds
+    # measured against its own fonts, see the job comment above).
     - name: Install Playwright system dependencies
       run: bash scripts/ci-bounded-apt.sh 120 300 npx playwright install-deps chromium
 
@@ -972,6 +1011,8 @@ jobs:
         key: playwright-${{ runner.os }}-${{ steps.playwright.outputs.version }}-chromium
 
     # QUAL-33: apt is bounded at 120 s, retry 300 s; the browser download is separate.
+    # QUAL-54: still apt here, because these jobs must stay on the plain runner (pixel thresholds
+    # measured against its own fonts, see the job comment above).
     - name: Install Playwright system dependencies
       run: bash scripts/ci-bounded-apt.sh 120 300 npx playwright install-deps chromium
 

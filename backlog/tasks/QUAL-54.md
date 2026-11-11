@@ -1,7 +1,7 @@
 ---
 id: "QUAL-54"
 title: "The unit jobs stop failing when the runner cannot reach Ubuntu's package servers"
-status: "open"
+status: "in_progress"
 priority: "P1"
 epic: "robustness"
 horizon: "now"
@@ -61,3 +61,17 @@ Not the fix: raising the bounds or adding attempts in `ci-bounded-apt.sh`.
   install source is unreachable or skipped and the unit suite still runs.
 - font-guards and export-guards have the same property, or a note here says why they keep apt.
 - The W6 extraction guard still runs on CI with a real `pdftotext`.
+
+## What was done
+
+- `units` (both shards): the apt step is replaced by an `actions/cache/restore` of the poppler-utils .debs
+  (key: runner image + a manual `-v1`), a `dpkg -i` install, and an `actions/cache/save` after a fresh
+  download. On a miss the download goes through `ci-bounded-apt.sh` with `--download-only`. The install step is
+  `continue-on-error` and emits `ok`; when pdftotext is unavailable it prints a `::warning::` naming QUAL-54.
+- With the apt servers unreachable and a cold cache, the unit jobs run: the W6 guard already self-skips its
+  pdftotext half when `pdftotext` is not on PATH (the pdf.js half and every other test still run). That
+  run loses only the pdftotext half of the W6 `/ActualText` extraction check.
+- `font-guards` and `export-guards` keep apt: ci.yml documents that they must stay off the Playwright image
+  (pixel thresholds measured against the runner's own fonts). Still open for this ticket's second "Done when".
+- Unverified until a CI run: the cache key (`ImageOS`/`ImageVersion` env vars), the first miss populating the
+  cache, a hit installing with `dpkg -i` (all dependencies in the cached set), and the skip path.
