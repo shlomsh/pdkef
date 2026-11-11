@@ -51,7 +51,10 @@ export function pageRefs(html) {
 
 /** The URLs a page requests on load: itself, its refs, the static-import closure of its scripts, and the worker's two files. */
 export function pageSet(page, view, htmlRelative) {
-  const refs = pageRefs(view.files.get(htmlRelative) ?? '').map((url) => url.split(/[?#]/)[0]);
+  const html = view.files.get(htmlRelative);
+  // Without the HTML the refs are empty and the total tiny: a guard that passes on nothing.
+  if (!html) throw new Error(`${page}: no HTML to count at dist/${htmlRelative}`);
+  const refs = pageRefs(html).map((url) => url.split(/[?#]/)[0]);
   const scripts = refs.filter((url) => /\.m?js$/.test(url));
   const closure = [...staticClosure(view, scripts)].map(toPublicUrl);
   return new Set([page, ...refs, ...closure, ...WORKER_REQUESTS]);
@@ -106,10 +109,16 @@ function main() {
   }
   const view = readDist(distDir);
   const manifest = JSON.parse(fs.readFileSync(path.join(distDir, 'precache-manifest.json'), 'utf8'));
-  const rows = PAGES.map((page) => {
-    const relative = page === '/' ? 'index.html' : `${page.slice(1)}index.html`;
-    return { page, ...countRequests(pageSet(page, view, relative), installSet(manifest, [page])), budget: BUDGETS[page] };
-  });
+  let rows;
+  try {
+    rows = PAGES.map((page) => {
+      const relative = page === '/' ? 'index.html' : `${page.slice(1)}index.html`;
+      return { page, ...countRequests(pageSet(page, view, relative), installSet(manifest, [page])), budget: BUDGETS[page] };
+    });
+  } catch (error) {
+    console.error(`Request-count check cannot run: ${error.message}`);
+    process.exit(1);
+  }
   console.table(rows);
   console.log('Not counted: lazy chunks loaded on file open, fonts requested by CSS at runtime, telemetry beacons, Vercel Analytics, /api/*.');
   const failures = overBudget(rows, BUDGETS);

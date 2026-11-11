@@ -53,6 +53,12 @@ describe('pageSet', () => {
   });
 });
 
+describe('pageSet without the page HTML', () => {
+  it.each([['missing', {}], ['empty', { 'sign/index.html': '' }]])('throws naming the page and path when the HTML is %s', (_name, files) => {
+    expect(() => pageSet('/sign/', view(files), 'sign/index.html')).toThrow('/sign/: no HTML to count at dist/sign/index.html');
+  });
+});
+
 describe('installSet and countRequests', () => {
   const manifest = { shell: ['/', '/a.js'], pages: { '/': ['/', '/a.js'], '/sign/': ['/sign/', '/a.js', '/s.js'] } };
 
