@@ -36,3 +36,9 @@ the person never asked for. Measured after a file is opened: `/redact/` 42 reque
 - [ ] The offline e2e pins both cases; the update-protocol specs are unchanged.
 - [ ] Request guard after-open budgets lowered to the measured values.
 - [ ] Docs match: `docs/request-budget.md` (D11) and the PWA rule.
+
+## What changed after review
+
+- An update no longer carries the home page for a person who never opened it: every install stores the `/` document for the build check, which the next build read as "`/` was held". `/` now counts as held only when a previous cache holds its whole closure (by the manifest that cache stored; no readable manifest, not held). Other pages still count by their document.
+- Installing the app caches the home page: the installed app starts at `/`, so on `appinstalled`, or at load for an installed app or a device that remembers an install (`pdkef:app-installed`), the page sends `pdkef:cache-home` and the active worker caches `/`'s closure. A `/` cached whole this way is held, so it carries over at an update.
+

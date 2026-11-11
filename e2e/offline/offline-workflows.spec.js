@@ -222,6 +222,29 @@ test.describe('offline workflows (SIGN-07)', () => {
     }
   });
 
+  // MEM-40: the installed app starts at `/`, so the device that remembers an install caches the home
+  // page without anyone opening it. The test above is the same flow on a device without the key.
+  test('a device that installed the app caches the home page, and an offline page the worker has no copy of is answered with it (MEM-40)', async ({ page, context }) => {
+    await page.addInitScript(() => { try { localStorage.setItem('pdkef:app-installed', '1'); } catch {} });
+    await openCompressWithFile(page);
+    await pollInPage(page, async () => {
+      const stored = await caches.match('/__pdkef/manifest/');
+      if (!stored) return false;
+      const { pages } = await stored.json();
+      const held = await Promise.all((pages['/'] ?? []).map((url) => caches.match(url)));
+      return held.every(Boolean);
+    }, null, 60_000);
+    expect(await page.evaluate(async () => !!(await caches.match('/merge/')))).toBe(false);
+
+    await context.setOffline(true);
+    try {
+      await page.goto('/merge/');
+      await expect(page).toHaveTitle(/Free PDF Tools Online/);
+    } finally {
+      await context.setOffline(false);
+    }
+  });
+
   test('once the home page was opened online, an offline page the worker has no copy of is answered with it (MEM-40)', async ({ page, context }) => {
     await openCompressWithFile(page);
     await page.goto('/');

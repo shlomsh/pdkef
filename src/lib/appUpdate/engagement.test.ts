@@ -1,5 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
-import { FILE_OPENED_EVENT, FILE_OPENED_KEY, isInstallPage, markFileOpened, whenEngaged } from './engagement.ts';
+import {
+  APP_INSTALLED_KEY, CACHE_HOME_MESSAGE, FILE_OPENED_EVENT, FILE_OPENED_KEY, cacheHomeForInstalledApp, isInstallPage, markFileOpened, shouldCacheHome, whenEngaged,
+} from './engagement.ts';
 
 function fakeWindow() {
   const listeners = new Map<string, Array<() => void>>();
@@ -153,5 +155,79 @@ describe('the install page', () => {
   it.each(['/sign/', '/', '/install-pdf-app-extra/'])('does not resolve on %s', async (path) => {
     const { deps } = engagedDeps({ pathname: () => path });
     expect(await track(whenEngaged(deps)).isDone()).toBe(false);
+  });
+});
+
+describe('shouldCacheHome', () => {
+  it('is true for a page running as an installed app, or a device that remembers an install', () => {
+    expect(shouldCacheHome({ standalone: true })).toBe(true);
+    expect(shouldCacheHome({ displayModeStandalone: true })).toBe(true);
+    expect(shouldCacheHome({ storedInstalled: true })).toBe(true);
+  });
+
+  it('is false for an ordinary tab', () => {
+    expect(shouldCacheHome({})).toBe(false);
+    expect(shouldCacheHome({ standalone: false, displayModeStandalone: false, storedInstalled: false })).toBe(false);
+  });
+});
+
+describe('cacheHomeForInstalledApp', () => {
+  const setup = (over: Record<string, unknown> = {}) => {
+    const win = fakeWindow();
+    const active = { postMessage: vi.fn() };
+    const setItem = vi.fn();
+    const deps = {
+      storage: { getItem: (_k: string) => null as string | null, setItem },
+      matchMedia: () => ({ matches: false }),
+      standalone: undefined as boolean | undefined,
+      ready: Promise.resolve({ active }),
+      window: win,
+      ...over,
+    };
+    return { deps, win, active, setItem };
+  };
+
+  it('stores the install and asks the worker to cache the home page on appinstalled', async () => {
+    const { deps, win, active, setItem } = setup();
+    cacheHomeForInstalledApp(deps);
+    await settled();
+    expect(active.postMessage).not.toHaveBeenCalled();
+    win.fire('appinstalled');
+    await settled();
+    expect(setItem).toHaveBeenCalledWith(APP_INSTALLED_KEY, '1');
+    expect(active.postMessage).toHaveBeenCalledWith({ type: CACHE_HOME_MESSAGE });
+  });
+
+  it('asks once per page load for an installed app, a remembered install, or iOS standalone', async () => {
+    for (const over of [
+      { matchMedia: () => ({ matches: true }) },
+      { storage: { getItem: (k: string) => (k === APP_INSTALLED_KEY ? '1' : null), setItem: vi.fn() } },
+      { standalone: true },
+    ]) {
+      const { deps, win, active } = setup(over);
+      cacheHomeForInstalledApp(deps);
+      await settled();
+      win.fire('appinstalled');
+      await settled();
+      expect(active.postMessage).toHaveBeenCalledTimes(1);
+      expect(active.postMessage).toHaveBeenCalledWith({ type: 'pdkef:cache-home' });
+    }
+  });
+
+  it('stays quiet in an ordinary tab, with unreadable storage, and with no active worker', async () => {
+    const plain = setup();
+    cacheHomeForInstalledApp(plain.deps);
+    await settled();
+    expect(plain.active.postMessage).not.toHaveBeenCalled();
+
+    const blocked = setup({ storage: { getItem: () => { throw new Error('blocked'); }, setItem: () => { throw new Error('blocked'); } } });
+    cacheHomeForInstalledApp(blocked.deps);
+    blocked.win.fire('appinstalled');
+    await settled();
+    expect(blocked.active.postMessage).toHaveBeenCalledTimes(1);
+
+    const none = setup({ ready: Promise.resolve({ active: null }), standalone: true });
+    cacheHomeForInstalledApp(none.deps);
+    await expect(settled()).resolves.toBeUndefined();
   });
 });
