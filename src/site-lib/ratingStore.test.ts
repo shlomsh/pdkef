@@ -116,8 +116,8 @@ describe('ratingStore', () => {
       const notes = notesFromResults({ result: [words] }, { result: [vote('sign', 'KE'), vote('redact', 'AU')] }, names);
       expect(notes).toEqual([
         { tool: 'merge', stars: 5, comment: 'Lovely', place: 'Haifa, Israel' },
-        { tool: 'redact', stars: 5, country: 'AU', region: 'Region X' },
-        { tool: 'sign', stars: 5, country: 'KE', region: 'Region X' },
+        { tool: 'redact', stars: 5, country: 'AU', region: 'Region X', day: '2026-11-06' },
+        { tool: 'sign', stars: 5, country: 'KE', region: 'Region X', day: '2026-11-06' },
       ]);
     });
 
@@ -129,21 +129,45 @@ describe('ratingStore', () => {
     it('keeps variety: one note per tool and country, newest first', () => {
       const entries = [vote('redact', 'KE', { stars: 4 }), vote('redact', 'AU'), vote('redact', 'KE'), vote('redact', 'KE', { region: 'Y' })];
       expect(notesFromResults(undefined, { result: entries }, names)).toEqual([
-        { tool: 'redact', stars: 5, country: 'KE', region: 'Region Y' },
-        { tool: 'redact', stars: 5, country: 'AU', region: 'Region X' },
+        { tool: 'redact', stars: 5, country: 'KE', region: 'Region Y', day: '2026-11-06' },
+        { tool: 'redact', stars: 5, country: 'AU', region: 'Region X', day: '2026-11-06' },
       ]);
     });
 
     it('falls back to the country when a region has no name', () => {
       const notes = notesFromResults(undefined, { result: [vote('merge', 'TW')] }, () => undefined);
-      expect(notes).toEqual([{ tool: 'merge', stars: 5, country: 'TW' }]);
+      expect(notes).toEqual([{ tool: 'merge', stars: 5, country: 'TW', day: '2026-11-06' }]);
     });
 
     const countries = (n: number) => Array.from({ length: n }, (_, i) => `A${String.fromCharCode(65 + (i % 26))}`);
 
-    it('carries at most four per tool, however many votes there are', () => {
+    it('carries at most nine per tool, a full board, however many votes there are', () => {
       const entries = countries(26).map((c) => vote('merge', c));
-      expect(notesFromResults(undefined, { result: entries }, names)).toHaveLength(4);
+      expect(notesFromResults(undefined, { result: entries }, names)).toHaveLength(9);
+    });
+
+    it('dates an approved note by its comment when the note was approved without a day', () => {
+      const words = JSON.stringify({ tool: 'redact', stars: 5, comment: 'Lovely', place: 'Jharkhand, India' });
+      const entries = [vote('redact', 'IN', { comment: 'Lovely', day: '2026-11-11' })];
+      expect(notesFromResults({ result: [words] }, { result: entries }, names)[0]).toEqual({
+        tool: 'redact', stars: 5, comment: 'Lovely', place: 'Jharkhand, India', day: '2026-11-11',
+      });
+    });
+
+    it('leaves out the vote of a person whose words are already on the board', () => {
+      const words = JSON.stringify({ tool: 'redact', stars: 5, comment: 'Lovely', place: 'Jharkhand, India', country: 'IN' });
+      const notes = notesFromResults({ result: [words] }, { result: [vote('redact', 'IN'), vote('merge', 'IN')] }, names);
+      expect(notes.map((n) => `${n.tool}:${n.comment ?? ''}`)).toEqual(['redact:Lovely', 'merge:']);
+    });
+
+    it('keeps the day an approved note carries', () => {
+      const words = JSON.stringify({ tool: 'redact', stars: 5, comment: 'Lovely', place: 'Haifa', day: '2026-11-09' });
+      expect(notesFromResults({ result: [words] }, undefined, names)[0]!.day).toBe('2026-11-09');
+    });
+
+    it('drops a note whose day is not a date', () => {
+      const words = JSON.stringify({ tool: 'redact', stars: 5, comment: 'Lovely', place: 'Haifa', day: 'soon' });
+      expect(notesFromResults({ result: [words] }, undefined, names)).toEqual([]);
     });
 
     it('leaves a quiet tool its notes when another tool has every recent vote', () => {

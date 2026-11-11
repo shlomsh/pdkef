@@ -38,7 +38,7 @@ const FIVE = [0, 1, 2, 3, 4];
     )}
     <p class="invite">{messages.ratingBoardInvite}</p>
   </div>
-  <PinnedNotes client:load notes={notes} locale={locale} byLine={messages.notesBy} />
+  <PinnedNotes client:load notes={notes} locale={locale} byLine={messages.notesBy} more={messages.notesMore} less={messages.notesLess} />
 </section>
 
 <style>
@@ -72,18 +72,21 @@ const FIVE = [0, 1, 2, 3, 4];
   .count { margin: 0.75rem 0 0; font-weight: 600; color: var(--color-text); }
   .invite { margin: 1.25rem 0 0; font-size: 0.95rem; color: var(--color-muted); }
 
-  /* With notes, the sketch's layout: the stars in a column, the papers beside them. */
+  /* With notes: the stars head the board on a phone; on a wide screen they sit beside the three by three papers. */
+  .board:has(ul) .panel { margin-block-end: 2rem; }
   @media (min-width: 60rem) {
     .board:has(ul) {
       display: grid;
-      grid-template-columns: minmax(0, 21rem) minmax(0, 1fr);
-      gap: clamp(3rem, 5vw, 5rem);
+      grid-template-columns: minmax(0, 17rem) minmax(0, 1fr);
+      gap: 3rem;
+      align-items: center;
       align-content: center;
     }
-    .board:has(ul) .panel { align-self: center; margin: 0; text-align: start; }
+    .board:has(ul) .panel { margin: 0; text-align: start; }
     .board:has(ul) .row { justify-content: flex-start; }
   }
-  @media (max-width: calc(60rem - 1px)) {
-    .board:has(ul) .panel { margin-block-end: 2.5rem; }
+  /* A card of the home stack is one screen tall on a wide screen, like its neighbours. */
+  @media (min-width: 768px) {
+    .card { min-height: calc(100vh - 6rem); padding-block: 2.5rem; }
   }
 </style>

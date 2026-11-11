@@ -38,10 +38,10 @@ describe('loadNotes', () => {
     warn.mockRestore();
   });
 
-  it('drops malformed entries and keeps at most four for a tool', async () => {
+  it('drops malformed entries and keeps at most nine for a tool', async () => {
     const list = [note('ok'), '{broken', note('bad stars', { stars: 7 }), note('extra', { name: 'x' }), ...Array.from({ length: 10 }, (_, i) => note(`n${i}`))];
     const notes = await loadNotes(env, (async () => ok(reply(list))) as never);
-    expect(notes).toHaveLength(4);
+    expect(notes).toHaveLength(9);
     expect(notes.map((n) => n.comment)).not.toContain('bad stars');
   });
 

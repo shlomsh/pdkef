@@ -37,6 +37,8 @@ const closingVariantGroups = locale === 'en' ? variantGroups(tools) : [];
   <div class="card-stack">
     {!showTheO && <FounderStoryCard founderStory={founderStory} dir={dir} />}
     {video && <VideoCard video={video} />}
+    {/* SEO-58: right after the video; an opaque card that scrolls over the pinned one, never pinned itself. */}
+    <RatingBoard card rating={rating} locale={locale} messages={messages} />
     <DraftPersistenceCard draftPersistence={draftPersistence} />
     <OfflineInstallCard offlineInstall={offlineInstall} messages={messages} />
     <script>
@@ -52,8 +54,6 @@ const closingVariantGroups = locale === 'en' ? variantGroups(tools) : [];
     </script>
     <FaqCard faqKicker={faqKicker} faq={faq} messages={messages} />
     <PrivacyOpenSourceCard privacyOpenSource={privacyOpenSource} />
-    {/* SEO-58: an opaque card that scrolls over the pinned one, never pinned itself. */}
-    <RatingBoard card rating={rating} locale={locale} messages={messages} />
     <ClosingCard closing={closing} dropzoneMessages={dropzoneMessages} recentFilesMessages={recentFilesMessages} signToolDisplayName={signToolDisplayName} toolHrefs={toolHrefs} variantGroups={closingVariantGroups} />
     <Footer variants={variants} locale={locale} labels={messages} />
   </div>

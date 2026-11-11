@@ -1,6 +1,7 @@
 // SEO-57: approved notes pinned beside the rating (RatingBoard.astro). The notes are read once at build and
 // arrive as props, so they are in the page's HTML and nothing is fetched. With none the board is the stars
 // alone. Most notes are a vote with no words.
+import { useEffect, useLayoutEffect, useRef, useState } from 'preact/hooks';
 import { formatMessage } from '#lib/text/formatMessage.ts';
 import { TOOL_PAGES } from '#lib/app/toolIds.ts';
 import { withIslandBoundary } from '#lib/telemetry/IslandErrorBoundary.tsx';
@@ -20,6 +21,20 @@ const countryName = (code: string, locale: string) => {
   }
 };
 
+const dateOf = (day: string, locale: string) => {
+  try {
+    return new Intl.DateTimeFormat(locale, {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+      timeZone: 'UTC',
+    }).format(new Date(`${day}T00:00:00Z`));
+  } catch {
+    // expected: a locale this browser cannot format reads as the stored day
+    return day;
+  }
+};
+
 const placeOf = (n: PinnedNote, locale: string) =>
   [n.region, countryName(n.country ?? '', locale)].filter(Boolean).join(', ');
 
@@ -27,52 +42,121 @@ interface Props {
   /** Already the notes for this page's tool, newest first. */
   notes: readonly PinnedNote[];
   byLine: string;
+  /** The fold's button, closed and open. */
+  more: string;
+  less: string;
   locale?: string;
 }
 
-function PinnedNotes({ notes, byLine, locale = 'en' }: Props) {
-  if (notes.length === 0) return null;
-  const [before, after = ''] = byLine.split('{place}');
+interface NoteProps {
+  note: PinnedNote;
+  byLine: string;
+  more: string;
+  less: string;
+  locale: string;
+  open: boolean;
+  onToggle: () => void;
+}
 
+/** One paper. Words that do not fit are folded; then the whole paper is a button that lifts it over the board, larger. */
+function Note({ note: n, byLine, more, less, locale, open, onToggle }: NoteProps) {
+  const words = useRef<HTMLParagraphElement>(null);
+  const [folds, setFolds] = useState(false);
+  useLayoutEffect(() => {
+    const el = words.current;
+    if (!el || open) return;
+    const measure = () => setFolds(el.scrollHeight > el.clientHeight + 1);
+    measure();
+    window.addEventListener('resize', measure);
+    return () => window.removeEventListener('resize', measure);
+  }, [open]);
+  const [before, after = ''] = byLine.split('{place}');
+  const classes = [styles.note, n.comment ? styles.worded : '', folds ? styles.folds : '', open ? styles.open : ''].filter(Boolean).join(' ');
   return (
-    <ul class={styles.list}>
+    <li class={classes}>
+      {n.comment && (
+        <p ref={words} class={open ? styles.comment : `${styles.comment} ${styles.folded}`}>
+          {n.comment}
+        </p>
+      )}
+      <div class={styles.foot}>
+        <div class={styles.rate}>
+          <svg class={styles.stars} viewBox="0 0 120 24" role="img" aria-label={`${n.stars} / 5`}>
+            {[0, 1, 2, 3, 4].map((s) => (
+              <path
+                key={s}
+                d={STAR_PATH}
+                transform={`translate(${s * 24} 0)`}
+                class={s < n.stars ? styles.on : styles.off}
+                stroke-width="1.2"
+                stroke-linejoin="round"
+                aria-hidden="true"
+              />
+            ))}
+          </svg>
+          {n.day && (
+            <time class={styles.when} dateTime={n.day}>
+              {dateOf(n.day, locale)}
+            </time>
+          )}
+        </div>
+        <p class={styles.by}>
+          {formatMessage(before, { tool: toolLabel(n.tool) })}
+          <span class={styles.where}>
+            {n.country && (
+              <img
+                class={styles.flag}
+                src={`/flags/${n.country}.svg`}
+                alt=""
+                width="36"
+                height="24"
+                loading="lazy"
+                onError={(e) => e.currentTarget.remove()}
+              />
+            )}
+            {n.place ?? placeOf(n, locale)}
+          </span>
+          {formatMessage(after, { tool: toolLabel(n.tool) })}
+        </p>
+      </div>
+      {folds && <button type="button" class={styles.cover} aria-expanded={open} aria-label={open ? less : more} onClick={onToggle} />}
+    </li>
+  );
+}
+
+function PinnedNotes({ notes, byLine, more, less, locale = 'en' }: Props) {
+  const [openAt, setOpenAt] = useState(-1);
+  const list = useRef<HTMLUListElement>(null);
+  // One note open at a time; Escape or a press anywhere off it puts it back.
+  useEffect(() => {
+    if (openAt < 0) return;
+    const close = () => setOpenAt(-1);
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && close();
+    const onPress = (e: PointerEvent) => {
+      const opened = list.current?.children[openAt];
+      if (!opened?.contains(e.target as Node)) close();
+    };
+    document.addEventListener('keydown', onKey);
+    document.addEventListener('pointerdown', onPress);
+    return () => {
+      document.removeEventListener('keydown', onKey);
+      document.removeEventListener('pointerdown', onPress);
+    };
+  }, [openAt]);
+  if (notes.length === 0) return null;
+  return (
+    <ul ref={list} class={openAt < 0 ? styles.list : `${styles.list} ${styles.lifted}`}>
       {notes.map((n, i) => (
-        <li class={styles.note} key={i}>
-          {n.comment && <p class={styles.comment}>{n.comment}</p>}
-          <div class={styles.foot}>
-            <svg class={styles.stars} viewBox="0 0 120 24" role="img" aria-label={`${n.stars} / 5`}>
-              {[0, 1, 2, 3, 4].map((s) => (
-                <path
-                  key={s}
-                  d={STAR_PATH}
-                  transform={`translate(${s * 24} 0)`}
-                  class={s < n.stars ? styles.on : styles.off}
-                  stroke-width="1.2"
-                  stroke-linejoin="round"
-                  aria-hidden="true"
-                />
-              ))}
-            </svg>
-            <p class={n.comment ? styles.by : styles.byHand}>
-              {formatMessage(before, { tool: toolLabel(n.tool) })}
-              <span class={styles.where}>
-                {n.country && (
-                  <img
-                    class={styles.flag}
-                    src={`/flags/${n.country}.svg`}
-                    alt=""
-                    width="36"
-                    height="24"
-                    loading="lazy"
-                    onError={(e) => e.currentTarget.remove()}
-                  />
-                )}
-                {n.place ?? placeOf(n, locale)}
-              </span>
-              {formatMessage(after, { tool: toolLabel(n.tool) })}
-            </p>
-          </div>
-        </li>
+        <Note
+          key={i}
+          note={n}
+          byLine={byLine}
+          more={more}
+          less={less}
+          locale={locale}
+          open={openAt === i}
+          onToggle={() => setOpenAt(openAt === i ? -1 : i)}
+        />
       ))}
     </ul>
   );

@@ -15,21 +15,32 @@ export interface PinnedNote {
   readonly country?: string;
   /** A vote's region, by name, when it has one. */
   readonly region?: string;
+  /** The UTC day of the vote, YYYY-MM-DD, shown as the note's date. */
+  readonly day?: string;
 }
 
 /** Redis list of approved notes, one JSON string each, newest last. */
 export const NOTES_KEY = 'rating:notes';
 /** How many approved notes are read, newest first. */
 export const NOTES_MAX = 12;
-/** The most a response carries for one tool: what a board shows. */
-export const NOTES_PER_TOOL = 4;
+/** What a board shows, three by three, and so the most one tool carries. */
+export const NOTES_PER_TOOL = 9;
+const DAY = /^\d{4}-\d{2}-\d{2}$/;
 const MAX_PLACE_LENGTH = 60;
 
 const isObject = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null && !Array.isArray(v);
 
-/** Exactly an approved note's fields or a vote's, in range, or null. Used on both sides of the wire. */
+/** Exactly an approved note's fields or a vote's, in range, with an optional day, or null. Used on both sides of the wire. */
 export function parseNote(value: unknown): PinnedNote | null {
   if (!isObject(value)) return null;
+  const { day, ...rest } = value;
+  if (!('day' in value)) return parseUndated(rest);
+  if (typeof day !== 'string' || !DAY.test(day)) return null;
+  const note = parseUndated(rest);
+  return note && Object.freeze({ ...note, day });
+}
+
+function parseUndated(value: Record<string, unknown>): PinnedNote | null {
   const { tool, stars, comment, place, country, region } = value;
   if (typeof tool !== 'string' || !(RATING_TOOLS as readonly string[]).includes(tool)) return null;
   if (!(STARS as readonly unknown[]).includes(stars)) return null;
