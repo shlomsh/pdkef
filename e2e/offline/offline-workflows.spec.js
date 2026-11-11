@@ -51,6 +51,11 @@ async function waitForServiceWorkerControl(page) {
   });
 }
 
+// page.waitForFunction treats an async callback's Promise as truthy at once, so poll the answer.
+async function pollInPage(page, fn, arg, timeout = 20_000) {
+  await expect.poll(() => page.evaluate(fn, arg), { timeout }).toBe(true);
+}
+
 async function purgeAppCaches(page) {
   // What activate() does to the previous build's cache on a real deploy -
   // used here to simulate an upgrade without needing a second build.
@@ -112,14 +117,14 @@ async function addTextWithOfflineFont(page, { text, family, xRatio, yRatio }) {
   // longer has a separate "Make offline" control). The worker writes this
   // marker only after every face in the family has reached the app cache, so
   // waiting for it verifies the actual readiness contract before disconnecting.
-  await page.waitForFunction(async (selectedFamily) => {
+  await pollInPage(page, async (selectedFamily) => {
     const marker = `/__pdkef/offline-font-pack/${encodeURIComponent(selectedFamily)}`;
     const cacheNames = await caches.keys();
     const markers = await Promise.all(cacheNames
       .filter((name) => name.startsWith('pdkef-'))
       .map(async (name) => (await caches.open(name)).match(marker)));
     return markers.some(Boolean);
-  }, family, { timeout: 90_000 });
+  }, family, 90_000);
   await page.keyboard.press('Escape');
 }
 
@@ -195,7 +200,7 @@ test.describe('offline workflows (SIGN-07)', () => {
     });
     await waitForServiceWorkerControl(page);
     // The worker installs the pages open at that moment; its marker means that install set is complete.
-    await page.waitForFunction(async () => !!(await caches.match('/__pdkef/precache-complete/')), null, { timeout: 60_000 });
+    await pollInPage(page, async () => !!(await caches.match('/__pdkef/precache-complete/')), null, 60_000);
     expect(await page.evaluate(async () => !!(await caches.match('/merge/')))).toBe(false);
 
     await context.setOffline(true);
@@ -314,10 +319,14 @@ test.describe('the worker waits for a file (MEM-39)', () => {
     // flag, so the registration and cache checks below are the real proof; this
     // list still catches a page that asks for the files itself.
     context.on('request', (request) => requested.push(new URL(request.url()).pathname));
+    // The page's own clock is driven from here: registration waits on load, hydration and
+    // an idle moment (timers), so running the clock well past them is the whole wait a
+    // real visit would give it, with no sleep in the test.
+    await page.clock.install();
     await page.goto('/compress/');
     await waitForIsland(page);
     await page.waitForLoadState('networkidle');
-    await page.waitForTimeout(3_000);
+    await page.clock.runFor(30_000);
     expect(await page.evaluate(async () => (await navigator.serviceWorker.getRegistrations()).length)).toBe(0);
     expect(await page.evaluate(async () => (await caches.keys()).filter((key) => key.startsWith('pdkef-')))).toEqual([]);
     expect(requested).not.toContain('/sw.js');
@@ -340,7 +349,7 @@ test.describe('the worker waits for a file (MEM-39)', () => {
     const later = await page.context().newPage();
     await later.goto('/compress/');
     await waitForIsland(later);
-    await later.waitForFunction(async () => !!(await navigator.serviceWorker.getRegistration()), null, { timeout: 15_000 });
+    await pollInPage(later, async () => !!(await navigator.serviceWorker.getRegistration()), null, 15_000);
   });
 
   test('a first visit to the install page registers the worker with no file opened', async ({ page }) => {
@@ -376,7 +385,8 @@ test.describe('the offline line on a tool page (MEM-39)', () => {
     await context.setOffline(true);
     try {
       await expect.poll(() => page.evaluate(() => navigator.onLine)).toBe(false);
-      await page.waitForTimeout(500);
+      // The line is written in the page's own `offline` handler; two frames later it has run.
+      await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))));
       await expect(page.locator(LINE)).toHaveText('');
     } finally {
       await context.setOffline(false);
