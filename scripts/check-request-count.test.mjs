@@ -40,11 +40,11 @@ describe('pageSet', () => {
     expect(set.has('/shared/lazy.js')).toBe(false);
   });
 
-  it('includes the page itself and the worker own requests', () => {
+  it('includes the page itself but not the worker files (MEM-39: no worker on a first visit)', () => {
     const set = pageSet('/sign/', view(files), 'sign/index.html');
     expect(set.has('/sign/')).toBe(true);
-    expect(set.has('/sw.js')).toBe(true);
-    expect(set.has('/precache-manifest.json')).toBe(true);
+    expect(set.has('/sw.js')).toBe(false);
+    expect(set.has('/precache-manifest.json')).toBe(false);
   });
 
   it('counts a URL referenced twice once', () => {
@@ -69,15 +69,23 @@ describe('installSet and countRequests', () => {
     expect([...installSet(manifest, ['/sign/'])].sort()).toEqual(['/', '/a.js', '/s.js', '/sign/']);
   });
 
-  it('counts only the install requests the page did not already make (MEM-34)', () => {
-    expect(countRequests(new Set(['/', '/x.js']), new Set(['/', '/a.js', '/b.js']))).toEqual({ requests: 2, install: 2, total: 4 });
+  it('counts a first visit as the page files, and after a file is opened as sw.js, the manifest and the install set the page did not load (MEM-34, MEM-39)', () => {
+    expect(countRequests(new Set(['/', '/x.js']), new Set(['/', '/a.js', '/b.js']))).toEqual({ firstVisit: 2, afterOpen: 4 });
   });
 });
 
 describe('overBudget', () => {
-  it('names each page whose total exceeds its budget', () => {
-    const rows = [{ page: '/', total: 10 }, { page: '/sign/', total: 12 }];
-    expect(overBudget(rows, { '/': 10, '/sign/': 11 })).toEqual(['/sign/: 12 requests, budget 11']);
-    expect(overBudget(rows, { '/': 10, '/sign/': 12 })).toEqual([]);
+  const rows = [{ page: '/', firstVisit: 10, afterOpen: 20 }, { page: '/sign/', firstVisit: 12, afterOpen: 30 }];
+
+  it('names each page and figure that exceeds its budget', () => {
+    const budgets = { '/': { firstVisit: 10, afterOpen: 20 }, '/sign/': { firstVisit: 11, afterOpen: 29 } };
+    expect(overBudget(rows, budgets)).toEqual([
+      '/sign/: first visit 12 requests, budget 11',
+      '/sign/: after a file is opened 30 requests, budget 29',
+    ]);
+  });
+
+  it('passes at the budget', () => {
+    expect(overBudget(rows, { '/': { firstVisit: 10, afterOpen: 20 }, '/sign/': { firstVisit: 12, afterOpen: 30 } })).toEqual([]);
   });
 });

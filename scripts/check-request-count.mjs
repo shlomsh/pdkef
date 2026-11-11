@@ -5,11 +5,13 @@ import { staticClosure, toPublicUrl } from './precacheClosure.mjs';
 import { installPaths } from './check-precache-budget.mjs';
 
 /*
- * Budgets the requests a new visitor's first load costs, per page: what the
- * page asks for on load, plus what the service worker install asks for on top
- * (MEM-33, step 0 of docs/request-budget.md). Vercel's Hobby plan counts
- * requests, not bytes, so a change that adds files to a closure or to the
- * install is invisible to test:weight and visible here.
+ * Budgets the requests a new visitor costs, per page, in two numbers (MEM-33,
+ * step 0 of docs/request-budget.md; MEM-39 split them): `first visit` is what
+ * the page asks for on load, and `after a file is opened` is what the service
+ * worker then adds, since it registers only once a person has opened a file
+ * (sw.js, the manifest, and the install set the page did not already load).
+ * Vercel's Hobby plan counts requests, not bytes, so a change that adds files
+ * to a closure or to the install is invisible to test:weight and visible here.
  *
  * Not counted: lazy chunks loaded when a file is opened, fonts CSS requests at
  * runtime, telemetry beacons, Vercel Analytics and /api/*.
@@ -17,11 +19,11 @@ import { installPaths } from './check-precache-budget.mjs';
 
 const PAGES = ['/', '/redact/', '/sign/'];
 
-// One total per page, set to the first build's figure. Budgets only go down as MEM-34..37 land.
+// Set to the measured figures. Budgets only go down.
 export const BUDGETS = {
-  '/': 50,
-  '/redact/': 107,
-  '/sign/': 106,
+  '/': { firstVisit: 41, afterOpen: 9 },
+  '/redact/': { firstVisit: 65, afterOpen: 42 },
+  '/sign/': { firstVisit: 61, afterOpen: 45 },
 };
 
 const WORKER_REQUESTS = ['/sw.js', '/precache-manifest.json'];
@@ -49,7 +51,7 @@ export function pageRefs(html) {
   return [...new Set(refs.filter(sameOrigin))];
 }
 
-/** The URLs a page requests on load: itself, its refs, the static-import closure of its scripts, and the worker's two files. */
+/** The URLs a page requests on load: itself, its refs and the static-import closure of its scripts. No worker yet (MEM-39). */
 export function pageSet(page, view, htmlRelative) {
   const html = view.files.get(htmlRelative);
   // Without the HTML the refs are empty and the total tiny: a guard that passes on nothing.
@@ -57,7 +59,7 @@ export function pageSet(page, view, htmlRelative) {
   const refs = pageRefs(html).map((url) => url.split(/[?#]/)[0]);
   const scripts = refs.filter((url) => /\.m?js$/.test(url));
   const closure = [...staticClosure(view, scripts)].map(toPublicUrl);
-  return new Set([page, ...refs, ...closure, ...WORKER_REQUESTS]);
+  return new Set([page, ...refs, ...closure]);
 }
 
 /**
@@ -71,18 +73,21 @@ export function installSet(manifest, openPages) {
 /**
  * Install reads each file the page already loaded from the HTTP cache first
  * (MEM-34, `force-cache` checked against the manifest hash), so only the rest
- * of the install set costs a request: the page's lazy chunks, mostly.
+ * of the install set costs a request: the page's lazy chunks, mostly. Those
+ * and the worker's own two files are what opening a file adds (MEM-39).
  */
 export function countRequests(page, install) {
   const extra = [...install].filter((url) => !page.has(url)).length;
-  return { requests: page.size, install: extra, total: page.size + extra };
+  return { firstVisit: page.size, afterOpen: WORKER_REQUESTS.length + extra };
 }
 
-/** One message per page whose total exceeds its budget. */
+const FIGURES = [['firstVisit', 'first visit'], ['afterOpen', 'after a file is opened']];
+
+/** One message per page and figure that exceeds its budget. */
 export function overBudget(rows, budgets) {
-  return rows
-    .filter((row) => row.total > budgets[row.page])
-    .map((row) => `${row.page}: ${row.total} requests, budget ${budgets[row.page]}`);
+  return rows.flatMap((row) => FIGURES
+    .filter(([key]) => row[key] > budgets[row.page][key])
+    .map(([key, label]) => `${row.page}: ${label} ${row[key]} requests, budget ${budgets[row.page][key]}`));
 }
 
 function readDist(distDir) {
@@ -113,13 +118,19 @@ function main() {
   try {
     rows = PAGES.map((page) => {
       const relative = page === '/' ? 'index.html' : `${page.slice(1)}index.html`;
-      return { page, ...countRequests(pageSet(page, view, relative), installSet(manifest, [page])), budget: BUDGETS[page] };
+      return { page, ...countRequests(pageSet(page, view, relative), installSet(manifest, [page])) };
     });
   } catch (error) {
     console.error(`Request-count check cannot run: ${error.message}`);
     process.exit(1);
   }
-  console.table(rows);
+  console.table(rows.map((row) => ({
+    page: row.page,
+    'first visit': row.firstVisit,
+    'budget (first visit)': BUDGETS[row.page].firstVisit,
+    'after a file is opened': row.afterOpen,
+    'budget (after)': BUDGETS[row.page].afterOpen,
+  })));
   console.log('Not counted: lazy chunks loaded on file open, fonts requested by CSS at runtime, telemetry beacons, Vercel Analytics, /api/*.');
   const failures = overBudget(rows, BUDGETS);
   if (failures.length > 0) {
