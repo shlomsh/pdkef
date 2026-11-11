@@ -88,16 +88,27 @@ export function moduleClasses(modules) {
 
 const CLASS_TOKEN = new RegExp(CSS_MODULE_CLASS.source, 'g');
 
+const moduleOf = (token) => token.slice(token.lastIndexOf('_') + 1);
+const CLASS_ATTRIBUTE = /\sclass="([^"]*)"/g;
+
 /**
- * Pure core. `pages` lists each page's code (the JS its closure can load) and CSS (inline plus the
+ * Pure core. `pages` lists each page's `html`, code (the JS its closure can load) and CSS (inline plus the
  * stylesheets its closure names); `classes` is moduleClasses(). Returns the problems, one string each.
+ *
+ * MEM-37: grouped bundles carry the class maps of components a page never renders, so a class token in the
+ * closure's JS no longer means it is drawn. A class without a rule counts as missing when (a) its module has
+ * a rule on the page, so the page carries it in part (the MEM-26 partial-sheet case), or (b) the token is in
+ * a class attribute of the page's own HTML, so it is drawn at load whatever the JS grouping. A JS-only class
+ * of a module with no rule on the page is not flagged; e2e/module-class-rules.spec.js covers the rendered DOM.
  */
 export function findMissingClassRules({ pages, classes }) {
   const problems = [];
-  for (const { page, js, css } of pages) {
-    const rendered = new Set(js.match(CLASS_TOKEN));
+  for (const { page, html = '', js, css } of pages) {
     const ruled = new Set(css.match(CLASS_TOKEN));
-    const missing = [...rendered].filter((token) => classes.all.has(token) && !classes.ruleless.has(token) && !ruled.has(token));
+    const ruledModules = new Set([...ruled].map(moduleOf));
+    const inHtml = new Set([...html.matchAll(CLASS_ATTRIBUTE)].flatMap((m) => m[1].match(CLASS_TOKEN) ?? []));
+    const rendered = new Set([...(js.match(CLASS_TOKEN) ?? []), ...inHtml]);
+    const missing = [...rendered].filter((token) => classes.all.has(token) && !classes.ruleless.has(token) && !ruled.has(token) && (ruledModules.has(moduleOf(token)) || inHtml.has(token)));
     if (missing.length) problems.push(`${page}: ${missing.length} CSS Module class(es) its code can render have no rule on the page (${missing.slice(0, 5).join(', ')}); Astro dropped a client stylesheet whose name matched an inlined one but whose rules did not (MEM-26)`);
   }
   return problems;
@@ -140,7 +151,7 @@ function main() {
     const files = pageClosure(view, page).slice(1).map((url) => url.slice(1));
     const text = (names) => names.map((name) => view.files.get(name) ?? '').join('\n');
     const inline = [...html.matchAll(/<style[^>]*>([\s\S]*?)<\/style>/g)].map((m) => m[1]).join('\n');
-    return { page, js: text(files.filter((name) => /\.m?js$/.test(name))), css: `${inline}\n${text(files.filter((name) => name.endsWith('.css')))}` };
+    return { page, html, js: text(files.filter((name) => /\.m?js$/.test(name))), css: `${inline}\n${text(files.filter((name) => name.endsWith('.css')))}` };
   });
   problems.push(...findMissingClassRules({ pages: closures, classes: moduleClasses(modules) }));
   if (problems.length) {
