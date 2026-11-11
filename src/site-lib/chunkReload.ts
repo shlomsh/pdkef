@@ -153,21 +153,21 @@ export function installChunkReload(deps: ChunkReloadDeps = {}): void {
     });
     if (decision !== 'reload') {
       reported = true;
-      void send(error, REPORT_STEP[decision]);
+      void send(error, REPORT_STEP[decision]); // reason: send() catches its own rejection; the page carries on
       return false;
     }
     if (!recordReload(at)) {
       reported = true;
-      void send(error, REPORT_STEP['report-unrecorded']);
+      void send(error, REPORT_STEP['report-unrecorded']); // reason: send() catches its own rejection
       return false;
     }
     reloading = true;
     const sent = send(error, 'chunk_failure_reload');
-    void Promise.allSettled([sent, flush()]).then(() => {
+    void Promise.allSettled([sent, flush()]).then(() => { // reason: allSettled never rejects; the page reloads or stays
       // A hold can start while the flush runs (an export began): leave the page be.
       // A second report is sent here, it says why this reload did not happen.
       if (isHeld()) {
-        void send(error, REPORT_STEP['report-held']);
+        void send(error, REPORT_STEP['report-held']); // reason: send() catches its own rejection
         return;
       }
       win.location.reload();
