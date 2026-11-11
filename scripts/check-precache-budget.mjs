@@ -6,8 +6,9 @@ import { pageHash } from './pageHash.mjs';
 import { findRepoOnlyFiles } from './repoOnlyFiles.mjs';
 
 /*
- * Budgets what the service worker downloads: the shell, and the closure of
- * each page (dist/precache-manifest.json, "pages"), summed in brotli bytes at
+ * Budgets what the service worker downloads: the shell, the closure of
+ * each page (dist/precache-manifest.json, "pages"), and, since MEM-35, the
+ * largest single-page install, summed in brotli bytes at
  * the quality check-page-weight.js uses. Also refuses a page whose closure
  * carries another tool's island entry chunk or lacks its own, and any
  * script, style or wasm file in dist/_astro/ that no list of the install names.
@@ -22,18 +23,22 @@ import { findRepoOnlyFiles } from './repoOnlyFiles.mjs';
  *     / and /he/                     151,553 / 148,841   (carry the Redact sample PDF)
  *     heaviest article (/open/)       35,329
  *
+ * MEM-35 (2026-11-11), after the worker stopped installing the whole app and the policy dropped the
+ * sample PDF, guide media and codec wasm: shell 319,995 (49 urls); whole app, no longer installed at
+ * once, 2,788,676 (245 urls); largest single-page install 1,406,074 (/he/sign/, 86 urls); / 110,968.
+ *
  * Per-page budgets are the heaviest measured closure of their kind plus 15 to
  * 20% headroom (tool pages: 1,700,000, +17%). The install budget is a decision, not headroom (see below).
  */
 export const BUDGETS = {
   shell: 460_000,
   tool: 1_700_000, // measured 1,453,772 for /sign/ (and /he/sign/), +17%
-  home: 180_000, // measured 151,553 for / (148,841 /he/), +19%: the home pages carry the Redact sample PDF on purpose
+  home: 132_000, // measured 110,968 for / (107,418 /he/), +19%: MEM-35 took the Redact sample PDF out of the list (was 180,000)
   other: 42_000, // measured 35,329 for the heaviest article (/open/), +19%
-  // Not headroom: the line Shlomi drew on 2026-10-27 (MEM-15). The whole app is
-  // precached only while it stays under 5 MB (measured 3,203,299, 183 urls);
-  // past it, bring per-tool caching back instead of raising this.
-  install: 5_000_000,
+  // Not headroom: a decision (MEM-15, MEM-35). The worker installs only the tools a person uses, so a first
+  // visit costs `/` plus one page's closure: the heaviest of those (see installPaths) stays under this.
+  // MEM-35 lowered it from the whole-app 5,000,000 (3,203,299 measured, 183 urls) to the single-page line.
+  install: 1_500_000, // measured 1,406,074 for /he/sign/ (`/` plus its closure), +6.7%
 };
 
 // A localized home is `/` or `/<xx>/`.
@@ -57,9 +62,26 @@ export function closureBytes(files, sizes) {
   return total;
 }
 
-// What the worker installs: the shell plus every page closure, each URL once.
+// Every URL some page's install could name: the shell plus every page closure, each URL once. The worker never
+// installs all of them at once (MEM-35); this is what the orphan check measures against.
 export function installUrls({ shell, pages }) {
   return [...new Set([...shell, ...Object.values(pages).flat()])];
+}
+
+// MEM-35: what the worker installs for one page: `/` plus that page's closure, each URL once. Mirrors
+// installPaths in public/sw.js (a classic script cannot import this); sw.test.mjs asserts they agree.
+export function installPaths(pages, page) {
+  return [...new Set(['/', ...(pages[page] ?? [])])];
+}
+
+// The heaviest single-page install: { page, bytes }, or null for no pages.
+export function largestPageInstall({ pages, sizes }) {
+  let largest = null;
+  for (const page of Object.keys(pages)) {
+    const bytes = closureBytes(installPaths(pages, page), sizes);
+    if (!largest || bytes > largest.bytes) largest = { page, bytes };
+  }
+  return largest;
 }
 
 export function findMissingFiles({ shell, pages, sizes }) {
@@ -122,9 +144,9 @@ export function findBudgetFailures({ shell, pages, toolPages, sizes, budgets }) 
       failures.push(`${page}: closure is ${bytes} brotli bytes, budget ${budget} (heaviest asset ${heaviest}, ${sizes[heaviest] ?? 0} bytes)`);
     }
   }
-  const installBytes = closureBytes(installUrls({ shell, pages }), sizes);
-  if (installBytes > budgets.install) {
-    failures.push(`install: ${installBytes} brotli bytes for the whole app, budget ${budgets.install}. Over it, revisit per-tool caching (MEM-15 decision), do not raise the budget`);
+  const largest = largestPageInstall({ pages, sizes });
+  if (largest && largest.bytes > budgets.install) {
+    failures.push(`install: ${largest.bytes} brotli bytes for the largest single-page install (${largest.page}), budget ${budgets.install}. Trim what that page reaches, do not raise the budget`);
   }
   return failures;
 }
@@ -272,7 +294,9 @@ function main() {
     console.log(`shell: ${manifest.shell.length} urls, ${closureBytes(manifest.shell, sizes)} brotli`);
     for (const [b, n, p] of rows) console.log(`${p}\t${n} urls\t${b}`);
     const all = installUrls(manifest);
-    console.log(`install: ${all.length} urls, ${closureBytes(all, sizes)} brotli`);
+    console.log(`whole app (no longer installed at once): ${all.length} urls, ${closureBytes(all, sizes)} brotli`);
+    const largest = largestPageInstall({ pages: manifest.pages, sizes });
+    console.log(`largest single-page install: ${largest.page}, ${installPaths(manifest.pages, largest.page).length} urls, ${largest.bytes} brotli`);
   }
 
   const failures = checkPrecache({ shell: manifest.shell, pages: manifest.pages, islands, sizes, budgets: BUDGETS, astroFiles });
