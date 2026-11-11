@@ -17,6 +17,13 @@ describe('pageRefs', () => {
   });
 });
 
+describe('pageRefs on islands', () => {
+  it('lists the scripts an island loads at hydration', () => {
+    const html = '<astro-island uid="a" component-url="/shared/redact.js" renderer-url="/shared/client.js" before-hydration-url="/site/bh.js" client="load"></astro-island>';
+    expect(pageRefs(html).sort()).toEqual(['/shared/client.js', '/shared/redact.js', '/site/bh.js']);
+  });
+});
+
 describe('pageSet', () => {
   const files = {
     'sign/index.html': HTML,
