@@ -256,6 +256,33 @@ describe('installChunkReload', () => {
     expect(s.report).toHaveBeenCalledTimes(1);
   });
 
+  const twoInOneWindow = async (opts: { held?: boolean; online?: boolean }) => {
+    let release!: () => void;
+    const s = setup({ ...opts, settle: () => new Promise<void>((r) => { release = r; }) });
+    const first = preloadEvent();
+    const second = preloadEvent();
+    s.listeners.get('vite:preloadError')!(first);
+    s.listeners.get('vite:preloadError')!(second);
+    release();
+    await flushMicrotasks();
+    return { s, first, second };
+  };
+
+  it('two failures in one settle window, about to reload, are both default-prevented and reload once', async () => {
+    const { s, first, second } = await twoInOneWindow({});
+    expect(first.preventDefault).toHaveBeenCalledTimes(1);
+    expect(second.preventDefault).toHaveBeenCalledTimes(1);
+    expect(s.win.location.reload).toHaveBeenCalledTimes(1);
+  });
+
+  it.each([['held', { held: true }], ['offline', { online: false }]])('two failures in one settle window while %s are not default-prevented and report once', async (_name, opts) => {
+    const { s, first, second } = await twoInOneWindow(opts);
+    expect(first.preventDefault).not.toHaveBeenCalled();
+    expect(second.preventDefault).not.toHaveBeenCalled();
+    expect(s.report).toHaveBeenCalledTimes(1);
+    expect(s.win.location.reload).not.toHaveBeenCalled();
+  });
+
   it('reloads on an unhandled rejection carrying an import failure', async () => {
     const s = setup();
     s.listeners.get('unhandledrejection')!({ reason: new TypeError('error loading dynamically imported module: x') });
