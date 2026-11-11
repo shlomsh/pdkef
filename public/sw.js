@@ -312,6 +312,39 @@ async function pathnamesIn(previousCaches) {
   return held;
 }
 
+// MEM-40: every install stores the `/` document for the build check, so a cache always lists `/`
+// without a person ever having opened the home page. `/` therefore counts as held only when its
+// whole closure (from the manifest that cache stored) is there; any other page, which is stored
+// only when opened, counts by its document. Pure: `paths` is a set of pathnames.
+function closureHeld(manifest, page, paths) {
+  const closure = manifest?.pages?.[page];
+  return Array.isArray(closure) && closure.every((url) => paths.has(url));
+}
+
+function heldPagePaths(paths, rootWhole) {
+  const held = new Set(paths);
+  if (!rootWhole) held.delete(REQUIRED_URL);
+  return held;
+}
+
+// The pathnames the previous caches hold, with `/` counted only when one of them holds it whole.
+async function heldPathnames(caches) {
+  const paths = new Set();
+  let rootWhole = false;
+  for (const cache of caches) {
+    const own = await pathnamesIn([cache]);
+    for (const path of own) paths.add(path);
+    if (rootWhole || !own.has(REQUIRED_URL)) continue;
+    try {
+      const stored = await cache.match(resolve(MANIFEST_PATH));
+      rootWhole = closureHeld(stored ? await stored.json() : null, REQUIRED_URL, own);
+    } catch {
+      // An unreadable stored manifest cannot vouch for `/`.
+    }
+  }
+  return heldPagePaths(paths, rootWhole);
+}
+
 // The hashed file from the first previous cache that holds it, or null.
 async function findInPrevious(previousCaches, url) {
   for (const oldCache of previousCaches) {
@@ -537,7 +570,9 @@ async function precacheAppShell({ skipCached = false } = {}) {
   const sameHeaders = await sameHeaderCaches(previousCaches, manifest.headers);
   let held = new Set();
   try {
-    held = await pathnamesIn(skipCached ? [...previousCaches, cache] : previousCaches);
+    held = await heldPathnames(previousCaches);
+    // A completion pass also finishes what this build's own install started, `/` included.
+    if (skipCached) for (const path of await pathnamesIn([cache])) held.add(path);
   } catch {
     // No readable cache: only the open pages and `/`.
   }
@@ -556,7 +591,7 @@ async function holdsMissingPages(cache) {
   try {
     const manifest = await manifestOfThisBuild(cache);
     if (!manifest?.pages) return false;
-    const previous = await pathnamesIn(await previousCacheHandles());
+    const previous = await heldPathnames(await previousCacheHandles());
     return missingHeldPages(manifest.pages, previous, await pathnamesIn([cache])).length > 0;
   } catch {
     return false;
