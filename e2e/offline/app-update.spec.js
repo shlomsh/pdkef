@@ -92,6 +92,21 @@ const buildOf = (page) => page.evaluate(() => document.querySelector('meta[name=
 
 const line = (page) => page.locator('[data-app-update]');
 
+// MEM-35: a build caches a page on its first controlled visit, in the background.
+// A deploy before that finishes leaves the page out of the old build, and the old
+// worker can only answer it from the network, which serves the new build. A test
+// that expects the old build to keep a page waits here, before it deploys.
+const waitOldBuildHolds = (page, path) => {
+  const closure = JSON.parse(readFileSync('dist/precache-manifest.json', 'utf8')).pages[path];
+  return expect.poll(() => page.evaluate(async (urls) => {
+    const keys = (await caches.keys()).filter((k) => k.startsWith('pdkef-'));
+    if (keys.length !== 1) return false;
+    const cache = await caches.open(keys[0]);
+    const held = await Promise.all(urls.map((url) => cache.match(new URL(url, location.origin).href)));
+    return held.every(Boolean);
+  }, closure), { timeout: 15_000 }).toBe(true);
+};
+
 // Polled with evaluate: waitForFunction treats an async predicate's promise as
 // truthy and returns at once, mid-install.
 const waitForWaitingWorker = (page) => expect.poll(() => page.evaluate(async () => {
@@ -155,6 +170,7 @@ test('a file open in a tool without drafts holds the update, and only the other 
   await other.goto('/merge/');
   await waitControlled(busy);
   await waitControlled(other);
+  await waitOldBuildHolds(other, '/merge/');
 
   server.setPhase('new');
   await checkForUpdate(other);
@@ -224,6 +240,7 @@ test('offline, a single tab keeps the old build until it is back online', async 
   const tab = await context.newPage();
   await tab.goto('/merge/');
   await waitControlled(tab);
+  await waitOldBuildHolds(tab, '/merge/');
 
   server.setPhase('new');
   await checkForUpdate(tab);
