@@ -1,3 +1,4 @@
+import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 import vm from 'node:vm';
@@ -1247,9 +1248,18 @@ describe.each([['source', workerSource], ['minified source', minifiedWorkerSourc
     expect(postMessage).toHaveBeenCalledWith({ type: 'pdkef:skip-waiting' }, [expect.anything()]);
     const html = await response.text();
     expect(html).toContain('http-equiv="refresh"');
-    expect(html).not.toContain('<script');
-    expect(response.headers.get('Content-Security-Policy')).toBeTruthy();
     expect(response.headers.get('Cache-Control')).toBe('no-store');
+  });
+
+  it('the takeover page retries by itself, under a CSP that allows exactly that script', async () => {
+    const { worker } = build();
+    const { response } = await dispatchFetch(worker, nav);
+    const html = await response.text();
+    const scripts = [...html.matchAll(/<script>([^<]*)<\/script>/g)].map((m) => m[1]);
+    expect(scripts).toHaveLength(1);
+    expect(scripts[0]).toContain('location.reload()');
+    const hash = crypto.createHash('sha256').update(scripts[0]).digest('base64');
+    expect(response.headers.get('Content-Security-Policy')).toBe(`default-src 'none'; script-src 'sha256-${hash}'`);
   });
 
   it('falls through when the waiting worker refuses', async () => {
