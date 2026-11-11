@@ -203,7 +203,7 @@ Production errors you can see, small tools that clean up after themselves, and d
 | MEM-35 | P1 | [MEM-35](backlog/tasks/MEM-35.md) · The worker precaches the tools a person uses, not the whole app |  |
 | MEM-37 | P1 | [MEM-37](backlog/tasks/MEM-37.md) · Chunks are bundled by tool: tiny chunks merged, editor core on its own, PDF engines lazy |  |
 | MEM-38 | P1 | [MEM-38](backlog/tasks/MEM-38.md) · A failed chunk import reloads the page once, after saving drafts | In progress |
-| QUAL-54 | P1 | [QUAL-54](backlog/tasks/QUAL-54.md) · The unit jobs stop failing when the runner cannot reach Ubuntu's package servers |  |
+| QUAL-54 | P1 | [QUAL-54](backlog/tasks/QUAL-54.md) · The unit jobs stop failing when the runner cannot reach Ubuntu's package servers | In progress |
 | MEM-36 | P2 | [MEM-36](backlog/tasks/MEM-36.md) · Pinned notes are baked into the page at build, not fetched per visit | In progress |
 | MEM-24 | P3 | [MEM-24](backlog/tasks/MEM-24.md) · A service worker that cannot install, or never completes its precache, says so | In progress |
 

@@ -9,6 +9,9 @@
 # so apt-get under it dies too. Two bounds, because a mirror that stays slow for
 # both attempts would otherwise turn a slow green job into a red one: the stall that
 # prompted this finished after 371 s, so the retry gets the longer bound.
+# QUAL-54: the unit jobs call this only on a cache miss, to download poppler-utils .debs for
+# actions/cache; a failure there no longer fails the job. font-guards and export-guards still call it
+# for `playwright install-deps chromium`.
 # CI_BOUNDED_APT_PREFIX overrides the sudo prefix
 # (empty in tests, which have no root).
 set -u
