@@ -3,20 +3,21 @@
 // own cache and no two builds ever share one.
 //
 // Strategy:
-//   - Install precaches the whole app, defined by the build manifest (v2) as
-//     the shell (`/`, the offline fallback, and what every page shares) plus
-//     every page's list: that page's HTML and every script, style, worker and
-//     wasm file it reaches, computed at build time and deduped here (appUrls).
-//     Guide photos and files no page reaches are left to runtime caching.
-//     Best-effort per URL except the root fallback (see precacheUrls). A new
-//     build copies its unchanged content-hashed /_astro/ files from the
-//     previous build's cache and fetches only the rest, so a redeploy costs
-//     the diff, not the site.
+//   - MEM-35: install precaches the tools a person uses, not the whole app:
+//     `/` (the offline fallback) plus the closure (the build manifest's
+//     pages[path]: that page's HTML and every script, style, worker and wasm
+//     file it reaches) of each page open in a tab and each page the previous
+//     build's cache held (installPaths). A tool opened later has the rest of
+//     its closure cached when it is first loaded from the network. Best-effort
+//     per URL except the root fallback (see precacheUrls). A new build copies
+//     its unchanged files from the previous build's cache and fetches only the
+//     rest, so a redeploy costs the diff, not the site.
 //   - HTML navigations are cache-first and refresh in the background, so a
 //     returning visitor can reopen the app when the server is unavailable. A
 //     refreshed page is stored only when it belongs to this build: its hash
 //     must match the page's entry in this build's manifest (MEM-22). A page
-//     counts as cached only with its whole closure (MEM-28, servableFromCache).
+//     counts as cached only with its whole closure (MEM-28, servableFromCache);
+//     a page not cached that way is answered by the network, or, offline, by `/`.
 //   - Other same-origin assets are cache-first after precache or first use,
 //     except a non-hashed file asked for by a page that came from another
 //     build on the network: that page gets the network's file (MEM-28).
@@ -57,8 +58,8 @@ const PRECACHE_MANIFEST_URL = '/precache-manifest.json';
 // precache entry with no second chance at runtime.
 const REQUIRED_URL = '/';
 
-// Precaching covers the whole build, which is hundreds of requests. Firing
-// them all at once is what makes a phone on a weak connection drop some of
+// A precache can still be a few hundred requests (a tool and its closure, or a
+// returning visitor's whole previous cache). Firing them all at once is what makes a phone on a weak connection drop some of
 // them, so they go through a small pool instead.
 const PRECACHE_CONCURRENCY = 6;
 
@@ -92,8 +93,8 @@ const CRITICAL_CHECK_MESSAGE = 'pdkef:critical-check';
 // The page's own cap is 60s plus up to 3s of draft flush, so 75s leaves a 12s margin.
 const CRITICAL_TAKEOVER_CAP_MS = 75_000;
 
-// Written into this build's cache once install precached every URL with none
-// missed. A waiting build may take over only when it is present: activation
+// Written into this build's cache once install precached every URL of its install
+// set (MEM-35, installPaths) with none missed. A waiting build may take over only when it is present: activation
 // deletes the old cache, so taking over with a gap would lose offline coverage
 // the old build had. See readyToTakeOver.
 const PRECACHE_COMPLETE_PATH = '/__pdkef/precache-complete/';
@@ -377,18 +378,25 @@ async function loadManifest() {
   return manifest;
 }
 
-// MEM-15: the whole app is the shell plus every page's list, each URL once.
-function appUrls({ shell, pages }) {
-  return [...new Set([...shell, ...Object.values(pages).flat()])];
+// MEM-35: what a build installs. The fallback `/`, plus the closure of every page
+// that is open in a tab or that the previous build's cache held, each URL once.
+// A path that is no page of this build (a sitemap, a removed route) adds nothing.
+// Pure: openPaths and heldPaths are pathnames (any iterable), not URLs with queries.
+function installPaths({ pages }, openPaths, heldPaths) {
+  const wanted = new Set([...openPaths, ...heldPaths]);
+  const closures = Object.keys(pages).filter((page) => wanted.has(page)).map((page) => pages[page]);
+  return [...new Set([REQUIRED_URL, ...closures.flat()])];
 }
 
+// The manifest's `shell` list is build-time data for the budget guard only; the
+// worker no longer installs it (MEM-35), so it is neither required nor kept.
 function validManifest(manifest) {
-  const { version, build, shell, pages, hashes, headers } = manifest ?? {};
-  if (version !== 2 || !Array.isArray(shell) || shell.length === 0 || !pages || typeof pages !== 'object') {
+  const { version, build, pages, hashes, headers } = manifest ?? {};
+  if (version !== 2 || !pages || typeof pages !== 'object') {
     throw new Error('Precache manifest has no URLs.');
   }
   if (!hashes || typeof hashes !== 'object') throw new Error('Precache manifest has no hashes.');
-  return { version, build, shell, pages, hashes, headers: typeof headers === 'string' ? headers : undefined };
+  return { version, build, pages, hashes, headers: typeof headers === 'string' ? headers : undefined };
 }
 
 // Run task over items with at most `limit` in flight. A rejection propagates and
@@ -442,6 +450,26 @@ async function precacheUrls(cache, urls, previousCaches, { skipCached = false, h
         }
       }
       await withPrecacheTimeout(async (signal, touch) => {
+        // MEM-34: the page usually loaded this file seconds ago, so 'force-cache'
+        // answers from the HTTP cache with no CDN request, and the manifest hash
+        // makes a stale entry safe: anything that does not match falls through
+        // to the validated fetch below, silently.
+        if (hashes[url] && !isHashedUrl(url)) {
+          let held = null;
+          try {
+            const cached = await fetch(new Request(resolve(url), { cache: 'force-cache', signal }));
+            if (cached.ok) {
+              const kept = await trackProgress(cached, touch).arrayBuffer();
+              if (await hashBytes(kept) === hashes[url]) held = new Response(kept, { status: cached.status, statusText: cached.statusText, headers: cached.headers });
+            }
+          } catch {
+            // Not in the HTTP cache, or unreadable: the validated fetch below.
+          }
+          if (held) {
+            await asStorage(() => cache.put(url, held));
+            return;
+          }
+        }
         let response = isHashedUrl(url) ? await fetch(new Request(resolve(url), { signal })) : await fetchFresh(url, signal);
         if (!response.ok) throw new Error(`Failed to precache ${url}: ${response.status}`);
         const expected = hashes[url];
@@ -471,7 +499,19 @@ async function precacheUrls(cache, urls, previousCaches, { skipCached = false, h
   return missed;
 }
 
-// MEM-15: the whole app (see appUrls). Resolves to the number of URLs missed.
+// MEM-35: the pathnames of the pages open in a tab now.
+async function openPagePaths() {
+  try {
+    return (await httpWindows()).map((client) => new URL(client.url).pathname);
+  } catch {
+    return [];
+  }
+}
+
+// MEM-35: this build's install set (see installPaths). The pages the previous
+// builds' caches held carry over; a completion pass (skipCached) also counts the
+// pages already in this build's cache, so a waiting build finishes exactly what
+// it started. Resolves to the number of URLs missed.
 async function precacheAppShell({ skipCached = false } = {}) {
   const manifest = await loadManifest();
   const cache = await asStorage(() => caches.open(CACHE_VERSION));
@@ -483,7 +523,13 @@ async function precacheAppShell({ skipCached = false } = {}) {
     // No readable previous cache.
   }
   const sameHeaders = await sameHeaderCaches(previousCaches, manifest.headers);
-  const urls = appUrls(manifest);
+  let held = new Set();
+  try {
+    held = await pathnamesIn(skipCached ? [...previousCaches, cache] : previousCaches);
+  } catch {
+    // No readable cache: only the open pages and `/`.
+  }
+  const urls = installPaths(manifest, await openPagePaths(), held);
   const missed = await precacheUrls(cache, urls, previousCaches, { skipCached, hashes: manifest.hashes, sameHeaders });
   if (missed.length > 0) {
     console.warn(`[pdkef] ${missed.length}/${urls.length} assets are not cached for offline use; they will load from the network.`);
@@ -712,12 +758,13 @@ async function hashesOfThisBuild(cache) {
 // MEM-28: the cached page, but only when every file of its closure (the
 // manifest's pages[key]) is cached too. Install tolerates misses, and the
 // network may since have moved to a build without them, so a page missing one
-// would load half. Such a page counts as uncached. The precache-complete marker
-// answers for every page at once; without a readable manifest nothing can be
-// checked, so nothing is served.
+// would load half. Such a page counts as uncached. MEM-35: always checked, never
+// waved through by the precache-complete marker, which now says only that this
+// build's own install set is complete, not that every page is. Without a
+// readable manifest nothing can be checked, so nothing is served.
 async function servableFromCache(cache, cacheKey) {
   const cached = await cache.match(cacheKey);
-  if (!cached || await cache.match(resolve(PRECACHE_COMPLETE_PATH))) return cached;
+  if (!cached) return cached;
   const manifest = await manifestOfThisBuild(cache);
   if (!manifest) return undefined;
   const closure = manifest.pages?.[cacheKey] ?? [];
@@ -768,6 +815,20 @@ async function mayStore(cache, key, response, { navigation = false } = {}) {
     return expected === await hashBytes(await response.clone().arrayBuffer());
   } catch {
     return false;
+  }
+}
+
+// MEM-35: a page the network just answered with this build's copy gets the rest
+// of its closure cached, so the tool a person opened works offline from then on.
+// MEM-34's force-cache first means the files the page already loaded come from the
+// HTTP cache. Failures are silent: a miss only leaves that page uncached.
+async function cacheRestOfPage(cache, cacheKey) {
+  try {
+    const manifest = await manifestOfThisBuild(cache);
+    const closure = manifest?.pages?.[cacheKey];
+    if (Array.isArray(closure)) await precacheUrls(cache, closure, [], { skipCached: true, hashes: manifest.hashes });
+  } catch {
+    // Silent, as the install's own misses are.
   }
 }
 
@@ -1183,11 +1244,17 @@ self.addEventListener('fetch', (event) => {
         const cacheKey = navigationCacheKey(request);
         const cached = await servableFromCache(cache, cacheKey);
         if (cached) {
-          event.waitUntil(refreshNavigation(request, cache, cacheKey));
+          // MEM-34: the refresh could only ever store the same bytes again (mayStore
+          // admits only this build's bytes), so it cost one CDN request per
+          // navigation for nothing. Without a readable hash it refreshes as before.
+          const expected = (await hashesOfThisBuild(cache))?.[cacheKey];
+          const sameBuild = expected && await hashBytes(await cached.clone().arrayBuffer()) === expected;
+          if (!sameBuild) event.waitUntil(refreshNavigation(request, cache, cacheKey));
           return cached;
         }
         const fresh = await refreshNavigation(request, cache, cacheKey);
         if (!fresh) return cache.match('/');
+        if (fresh.ours) event.waitUntil(cacheRestOfPage(cache, cacheKey));
         // Remembered before the page is answered, so its first file request
         // finds it. A redirect is not a page: the browser asks again for its target.
         if (!fresh.ours && fresh.response.type !== 'opaqueredirect') await rememberNetworkClient(cache, event.resultingClientId);
