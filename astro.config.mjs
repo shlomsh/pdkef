@@ -3,6 +3,99 @@ import preact from '@astrojs/preact';
 import tailwindcss from '@tailwindcss/vite';
 import { entryFileName, chunkFileName, assetFileName, cssAssetKeys, cssModuleClassName, stableChunkNames } from './scripts/stableNames.mjs';
 
+// MEM-37: the client bundles. A module goes into the bundle named for the set of entries that load it, so a
+// page fetches a handful of files and never another tool's code. Entries fall in five kinds: a tool island
+// (src/tools/<tool>/), the scripts every page runs (`site`), the home page's islands (`home`), the /open/
+// island (`open`) and the Drive panel (`drive`). A module's kind is the set of entries that reach it,
+// through static or dynamic imports, found by walking importers up to the entries.
+//
+//   site                        reached from the scripts every page runs
+//   home, open                  reached only by those islands (`islands` when by both)
+//   <island>-tools              reached by an island and a tool (`home-tools`, `open-tools`, `islands-tools`)
+//   <tool>-tool                 reached by one tool
+//   editor-core                 reached by Sign, Redact and Highlight only
+//   tools-common                reached by several tools
+//
+// Only `$initial` modules (statically reachable from some entry) are grouped. A module that is lazy today
+// keeps the chunk Rolldown gave it and never joins one a page loads eagerly: grouping makes a chunk eager as
+// soon as one member is, which once turned all 421 KiB of pdf.js eager (see pdf-lib below). Every group takes
+// its recursive dependencies, and a dependency's kind is a superset of its importer's, so the priorities run
+// from the widest set down: the first group to claim a module is the one holding every entry that loads it.
+// A group named `x` is the file /shared/x.js (MEM-25, MEM-31); check-lazy-modules.js keys on these names.
+const EDITOR_TOOLS = new Set(['sign', 'redact', 'highlight']);
+const ISLAND_KINDS = new Set(['home', 'open']);
+const SITE_WIDE_ENTRY = /BaseLayout|DocumentationLanguageSelector|@vercel[\\/]speed-insights|@astrojs[\\/]preact/;
+
+function entryKind(id) {
+  const tool = /[\\/]src[\\/]tools[\\/]([\w-]+)[\\/]/.exec(id)?.[1];
+  if (tool) return tool;
+  if (SITE_WIDE_ENTRY.test(id)) return 'site';
+  if (/DriveOpen/.test(id)) return 'drive';
+  return /OpenWithChooser/.test(id) ? 'open' : 'home';
+}
+
+const kindsOfModule = new Map();
+function entryKindsReaching(start, ctx) {
+  const known = kindsOfModule.get(start);
+  if (known) return known;
+  const found = new Set();
+  const seen = new Set([start]);
+  const queue = [start];
+  while (queue.length > 0) {
+    const info = ctx.getModuleInfo(queue.pop());
+    if (info?.isEntry) found.add(entryKind(info.id));
+    for (const importer of [...(info?.importers ?? []), ...(info?.dynamicImporters ?? [])]) {
+      if (!seen.has(importer)) { seen.add(importer); queue.push(importer); }
+    }
+  }
+  kindsOfModule.set(start, found);
+  return found;
+}
+
+function bundleOf(id, ctx) {
+  const kinds = [...entryKindsReaching(id, ctx)];
+  if (kinds.length === 0 || kinds.includes('site')) return 'site';
+  const islands = kinds.filter((k) => ISLAND_KINDS.has(k));
+  const tools = kinds.filter((k) => !ISLAND_KINDS.has(k));
+  if (islands.length > 0 && tools.length > 0) return `${islands.length > 1 ? 'islands' : islands[0]}-tools`;
+  if (islands.length > 0) return islands.length > 1 ? 'islands' : islands[0];
+  if (tools.length === 1) return `${tools[0]}-tool`;
+  return tools.every((k) => EDITOR_TOOLS.has(k)) ? 'editor-core' : 'tools-common';
+}
+
+const bundle = (name, priority) => ({ name: (id, ctx) => (bundleOf(id, ctx) === name ? name : null), priority, tags: ['$initial'] });
+// The Drive panel is online-only and outside the install (MERGE-25), so what only it loads stays in its own
+// entry file rather than becoming a chunk the offline closure has no page to name.
+const isToolBundle = (name) => name.endsWith('-tool') && name !== 'drive-tool';
+const toolBundle = { name: (id, ctx) => { const name = bundleOf(id, ctx); return isToolBundle(name) ? name : null; }, priority: 1, tags: ['$initial'] };
+
+const clientCodeSplitting = {
+  groups: [
+    // Preact's runtime is on every page; its hooks and signals are loaded lazily by the site scripts, so
+    // each keeps a file of its own and that lazy import does not pull in a tool bundle.
+    { name: 'preact', test: /node_modules[\\/]preact[\\/](?:dist|src|jsx-runtime)[\\/]/, priority: 12 },
+    { name: 'preact-hooks', test: /node_modules[\\/]preact[\\/]hooks[\\/]/, priority: 12 },
+    { name: 'signals', test: /node_modules[\\/]@preact[\\/]/, priority: 12 },
+    // DEBT-20: pdf-lib is named after itself, not after its entry file (`es`, a name that once hid 628 KiB
+    // behind a neighbouring chunk's name). It is lazy (no `$initial` tag, so it never joins an eager group),
+    // and check-lazy-modules.js keys on the name.
+    // pdf.js is deliberately not a group: naming it once folded Vite's `__vitePreload` helper into it, and
+    // since the island bootstrap imports that statically, all 421 KiB became eager on every page.
+    { name: 'pdf-lib', test: /node_modules[\\/]@cantoo[\\/]pdf-lib[\\/]/, priority: 11 },
+    bundle('site', 10),
+    bundle('islands-tools', 9),
+    bundle('home-tools', 8.9),
+    bundle('open-tools', 8.8),
+    bundle('tools-common', 8),
+    bundle('editor-core', 7),
+    bundle('islands', 6),
+    bundle('home', 5.9),
+    bundle('open', 5.8),
+    // One group per tool, below every shared group.
+    toolBundle,
+  ],
+};
+
 // Static output only — no SSR, no adapter. The app is a flat set of
 // files served by Vercel; all PDF processing happens in the browser.
 //
@@ -73,43 +166,10 @@ export default defineConfig({
     // prerender too (Astro pairs a client stylesheet with the one it inlined by file name), so a style
     // edit changes only the CSS it touches.
     environments: {
-      client: { build: { rolldownOptions: { output: { entryFileNames: entryFileName, chunkFileNames: chunkFileName, assetFileNames: assetFileName('client') } } } },
+      client: { build: { rolldownOptions: { output: { entryFileNames: entryFileName, chunkFileNames: chunkFileName, assetFileNames: assetFileName('client'), codeSplitting: clientCodeSplitting } } } },
       prerender: { build: { rolldownOptions: { output: { assetFileNames: assetFileName('prerender') } } } },
     },
     css: { modules: { generateScopedName: cssModuleClassName } },
-    build: {
-      rollupOptions: {
-        output: {
-          // Name the two PDF libraries after themselves.
-          //
-          // Rollup names a chunk after one of its constituent modules, which for
-          // a package means its entry file. `@cantoo/pdf-lib`'s entry is
-          // `es/index.js`, so 628 KiB of pdf-lib shipped as `es.<hash>.js` - a
-          // name that says nothing. It cost real time: a PageSpeed report was
-          // read as "pdf.js is eager" because a neighbouring chunk happened to
-          // be named after a two-line hook inside it, and the actual culprit
-          // was hiding behind `es.` (DEBT-20).
-          //
-          // These names are also what `scripts/check-lazy-modules.js` keys on.
-          // `/^es\./` would be a guard one unrelated package could collide
-          // with; `/^pdf-lib\./` cannot be anything else.
-          //
-          // This only names chunks. It does not decide what loads eagerly -
-          // that follows the static import graph, and is the guard's business.
-          // pdf-lib only, and pdf.js deliberately not. Naming a manual chunk
-          // for pdfjs-dist was tried and reverted: Rollup then folded Vite's
-          // `__vitePreload` helper into it, and since the island bootstrap
-          // imports that helper statically, all 421 KiB became eager on every
-          // page. `test:lazy-modules` caught it, which is the second time in
-          // this one change that the guard paid for itself. pdf.js already
-          // ships as `pdf.<hash>.js`, which is legible enough.
-          manualChunks(id) {
-            if (id.includes('node_modules/@cantoo/pdf-lib/')) return 'pdf-lib';
-            return undefined;
-          },
-        },
-      },
-    },
     // Every entry below must stay listed. The failure is not "one slow first
     // request" but a cascade: each dep Vite discovers late bumps the optimizer's
     // browserHash, and every module already resolved under the previous hash
