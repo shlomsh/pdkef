@@ -339,6 +339,11 @@ describe('MEM-25: stable-name folders', () => {
     expect(TOOL_ISLAND.test('/site/client.js')).toBe(false);
     expect(TOOL_ISLAND.test('/shared/PdfSignTool.js')).toBe(false);
   });
+  it('MEM-37: leaves a kept entry stub out of the orphans, and still names a real file beside it', () => {
+    const f = findOrphanedAssets({ astroFiles: ['site/stub.js', 'site/lost.js'], shell: [], pages: {}, isKeptStub: (file) => file === 'site/stub.js' });
+    expect(f).toHaveLength(1);
+    expect(f[0]).toContain('site/lost.js');
+  });
   it('names an orphan in dist/site and dist/shared like one in dist/_astro', () => {
     const f = findOrphanedAssets({ astroFiles: ['site/a.js', 'site/lost.js', 'shared/openPdfDoc.js', 'shared/lost.js'], shell: ['/site/a.js'], pages: { '/x/': ['/shared/openPdfDoc.js'] } });
     expect(f).toHaveLength(2);

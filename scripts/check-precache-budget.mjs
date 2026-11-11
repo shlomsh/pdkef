@@ -4,6 +4,7 @@ import zlib from 'node:zlib';
 import { fileURLToPath } from 'node:url';
 import { pageHash } from './pageHash.mjs';
 import { findRepoOnlyFiles } from './repoOnlyFiles.mjs';
+import { isImportStub, isReexportStub } from './dropStubRequests.mjs';
 
 /*
  * Budgets what the service worker downloads: the shell, the closure of
@@ -53,7 +54,8 @@ const HOME_PAGE = /^\/(?:[a-z]{2}\/)?$/;
 
 // Tool islands are the Pdf*Tool entry chunks Astro names in component-url.
 // MEM-25: /site/Pdf<X>Tool.js is the stable name; a hashed /_astro/ name still counts.
-export const TOOL_ISLAND = /^\/(?:(?:_astro|site)\/Pdf\w+Tool(?:\.[\w-]+)?|shared\/[a-z-]+-tool)\.js$/; // spike: dropStubRequests.mjs points component-url at the tool's /shared/<tool>-tool.js
+// MEM-37: dropStubRequests.mjs points component-url at the tool's chunk, /shared/<tool>-tool.js.
+export const TOOL_ISLAND = /^\/(?:(?:_astro|site)\/Pdf\w+Tool(?:\.[\w-]+)?|shared\/[a-z-]+-tool)\.js$/;
 
 // `sizes` holds only files that exist in dist/; a listed URL with no entry is reported by findMissingFiles.
 export function closureBytes(files, sizes) {
@@ -114,10 +116,12 @@ export const KNOWN_ORPHANS = {
 
 const withoutHash = (file) => path.basename(file).replace(/\.[\w-]+(\.[a-z]+)$/i, '$1');
 
-export function findOrphanedAssets({ astroFiles, shell, pages }) {
+// MEM-37: dropStubRequests.mjs leaves the previous build's one-line entry stubs in dist/ for pages cached
+// from that build; no page of this build names them, which is the point. `isKeptStub(file)` says a file is one.
+export function findOrphanedAssets({ astroFiles, shell, pages, isKeptStub = () => false }) {
   const installed = new Set(installUrls({ shell, pages }));
   return astroFiles
-    .filter((f) => CODE_EXTENSIONS.has(path.extname(f).toLowerCase()) && !installed.has(`/${f}`) && !(withoutHash(f) in KNOWN_ORPHANS))
+    .filter((f) => CODE_EXTENSIONS.has(path.extname(f).toLowerCase()) && !installed.has(`/${f}`) && !(withoutHash(f) in KNOWN_ORPHANS) && !isKeptStub(f))
     .map((f) => `${f}: in dist/ (_astro, site or shared) but in no list of the install, so it is never cached for offline use (a closure walker gap; list it in KNOWN_ORPHANS with a reason only if nothing needs it)`);
 }
 
@@ -169,14 +173,14 @@ export function findForeignIslands({ pages, islands, sizes }) {
   return failures;
 }
 
-export function checkPrecache({ shell, pages, islands, sizes, budgets, astroFiles = [] }) {
+export function checkPrecache({ shell, pages, islands, sizes, budgets, astroFiles = [], isKeptStub }) {
   const toolPages = new Set(Object.keys(islands).filter((p) => islands[p].length > 0));
   return [
     ...findMissingFiles({ shell, pages, sizes }),
     ...findBudgetFailures({ shell, pages, toolPages, sizes, budgets }),
     ...findForeignIslands({ pages, islands, sizes }),
     ...findUnhandledAssets(astroFiles),
-    ...findOrphanedAssets({ astroFiles, shell, pages }),
+    ...findOrphanedAssets({ astroFiles, shell, pages, isKeptStub }),
     ...findMissingIslands({ pages, islands }),
   ];
 }
@@ -300,7 +304,11 @@ function main() {
     console.log(`largest single-page install: ${largest.page}, ${installPaths(manifest.pages, largest.page).length} urls, ${largest.bytes} brotli`);
   }
 
-  const failures = checkPrecache({ shell: manifest.shell, pages: manifest.pages, islands, sizes, budgets: BUDGETS, astroFiles });
+  const isKeptStub = (file) => {
+    const code = fs.readFileSync(path.join(dist, file), 'utf8');
+    return isImportStub(code) !== null || isReexportStub(code) !== null;
+  };
+  const failures = checkPrecache({ shell: manifest.shell, pages: manifest.pages, islands, sizes, budgets: BUDGETS, astroFiles, isKeptStub });
   failures.push(...manifestIdentityProblems(manifest, {
     readPage: (url) => fs.readFileSync(path.join(dist, decodeURIComponent(fileOf(url)))),
     workerSource: fs.readFileSync(path.join(dist, 'sw.js'), 'utf8'),
