@@ -62,7 +62,7 @@ export function pageSet(page, view, htmlRelative) {
  * open at install, the same rule `installPaths` budgets in bytes.
  */
 export function installSet(manifest, openPages) {
-  return new Set(['/', ...openPages.flatMap((page) => installPaths(manifest.pages, page))]);
+  return new Set(['/', ...installPaths(manifest.pages, '/'), ...openPages.flatMap((page) => installPaths(manifest.pages, page))]);
 }
 
 /**
