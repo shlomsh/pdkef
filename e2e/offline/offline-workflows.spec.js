@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test';
 import { readFile } from 'node:fs/promises';
 import { getDocument } from 'pdfjs-dist/legacy/build/pdf.mjs';
 import { LANGUAGE_ACCEPTANCE_MATRIX } from '../../src/tools/sign/lib/languageAcceptance.js';
-import { makePdfBuffer as buildPdf } from '../support/pdf.js';
+import { makePdfBuffer as buildPdf, makeEncryptedPdf } from '../support/pdf.js';
 import { waitForIsland } from '../support/tool.js';
 
 const offlineLanguageLayouts = new Map([
@@ -360,30 +360,32 @@ test.describe('offline workflows (SIGN-07)', () => {
   });
 });
 
-// MEM-39: Vercel bills per request and the worker's install is dozens of them,
-// so it is registered only once a person has opened a file in a tool.
-test.describe('the worker waits for a file (MEM-39)', () => {
-  test('a first visit with no file opened registers no worker and never asks for sw.js', async ({ page, context }) => {
-    const requested = [];
-    // Playwright reports a worker script's own fetch only behind an experimental
-    // flag, so the registration and cache checks below are the real proof; this
-    // list still catches a page that asks for the files itself.
-    context.on('request', (request) => requested.push(new URL(request.url()).pathname));
-    // The page's own clock is driven from here: registration waits on load, hydration and
-    // an idle moment (timers), so running the clock well past them is the whole wait a
-    // real visit would give it, with no sleep in the test.
-    await page.clock.install();
-    await page.goto('/compress/');
-    await waitForIsland(page);
-    await page.waitForLoadState('networkidle');
-    await page.clock.runFor(30_000);
-    expect(await page.evaluate(async () => (await navigator.serviceWorker.getRegistrations()).length)).toBe(0);
-    expect(await page.evaluate(async () => (await caches.keys()).filter((key) => key.startsWith('pdkef-')))).toEqual([]);
-    expect(requested).not.toContain('/sw.js');
-    expect(requested).not.toContain('/precache-manifest.json');
-  });
+// MEM-39: Vercel bills per request and the worker's install is dozens of them, so a page that
+// shows no tool registers it only once a person has opened a file in a tool. MEM-43: a tool page
+// registers on its first visit, because it says "airplane mode still works".
+test.describe('the worker waits for a file on pages that show no tool (MEM-39, MEM-43)', () => {
+  for (const route of ['/', '/about/']) {
+    test(`a first visit to ${route} with no file opened registers no worker and never asks for sw.js`, async ({ page, context }) => {
+      const requested = [];
+      // Playwright reports a worker script's own fetch only behind an experimental
+      // flag, so the registration and cache checks below are the real proof; this
+      // list still catches a page that asks for the files itself.
+      context.on('request', (request) => requested.push(new URL(request.url()).pathname));
+      // The page's own clock is driven from here: registration waits on load, hydration and
+      // an idle moment (timers), so running the clock well past them is the whole wait a
+      // real visit would give it, with no sleep in the test.
+      await page.clock.install();
+      await page.goto(route);
+      await page.waitForLoadState('networkidle');
+      await page.clock.runFor(30_000);
+      expect(await page.evaluate(async () => (await navigator.serviceWorker.getRegistrations()).length)).toBe(0);
+      expect(await page.evaluate(async () => (await caches.keys()).filter((key) => key.startsWith('pdkef-')))).toEqual([]);
+      expect(requested).not.toContain('/sw.js');
+      expect(requested).not.toContain('/precache-manifest.json');
+    });
+  }
 
-  test('opening a file registers the worker, and a later page load in the same context registers at load', async ({ page }) => {
+  test('a device that remembers a file registers the worker at load on a page with no tool', async ({ page }) => {
     await page.goto('/compress/');
     await waitForIsland(page);
     await page.locator('astro-island input[type="file"]').setInputFiles({
@@ -397,8 +399,7 @@ test.describe('the worker waits for a file (MEM-39)', () => {
       for (const registration of await navigator.serviceWorker.getRegistrations()) await registration.unregister();
     });
     const later = await page.context().newPage();
-    await later.goto('/compress/');
-    await waitForIsland(later);
+    await later.goto('/about/');
     await pollInPage(later, async () => !!(await navigator.serviceWorker.getRegistration()), null, 15_000);
   });
 
@@ -410,6 +411,52 @@ test.describe('the worker waits for a file (MEM-39)', () => {
       { timeout: 15_000 },
     ).toBe(true);
   });
+});
+
+// MEM-43: "Turn on airplane mode and give it a try. It still works." is on every tool page, so it
+// must hold for a first-time visitor who has not opened a file: the page installs the worker on
+// that first visit, the person goes offline, and only then picks a file. Each case is a fresh
+// context. PDF engine, workers and lazy chunks all have to come from the install.
+const grid = 'ul[data-page-grid]';
+const OFFLINE_FIRST_VISIT = [
+  { route: '/redact/', ready: '.redact-draw-area' },
+  { route: '/sign/?next=0', ready: '[class*="page-overlay"]' },
+  { route: '/merge/', ready: grid },
+  { route: '/compress/', ready: '[data-compress-status="done"]' },
+  { route: '/split/', ready: 'ul[data-page-grid][data-fit-settled]' },
+  { route: '/highlight-pdf/', ready: '[data-page-overlay]' },
+  { route: '/unlock/', encrypted: true },
+  { route: '/pdf-to-image/', ready: grid },
+  { route: '/organize-pdf/', ready: grid },
+  { route: '/extract-pdf-pages/', ready: grid },
+  { route: '/rotate-pdf/', ready: grid },
+  { route: '/remove-pages/', ready: grid },
+];
+
+test.describe('a tool works in airplane mode on its first visit (MEM-43)', () => {
+  for (const { route, ready, encrypted } of OFFLINE_FIRST_VISIT) {
+    test(`${route}: first visit, no file, install completes, offline, then a file opens`, async ({ page, context }) => {
+      test.setTimeout(120_000);
+      await page.goto(route);
+      await waitForIsland(page);
+      await waitForServiceWorkerControl(page);
+      await pollInPage(page, async () => !!(await caches.match('/__pdkef/precache-complete/')), null, 60_000);
+
+      await context.setOffline(true);
+      try {
+        const buffer = encrypted
+          ? await makeEncryptedPdf({ password: 'pw' })
+          : await makePdfBuffer('offline first visit', { pages: 2 });
+        await page.locator('input[type="file"]').first().setInputFiles({ name: 'offline-first.pdf', mimeType: 'application/pdf', buffer });
+        // Unlock's loaded state is its password field, found by label like the unlock spec does.
+        const loaded = encrypted ? page.getByLabel('PDF password') : page.locator(ready).first();
+        await loaded.waitFor({ timeout: 30_000 });
+        await expect(page.getByText(/didn.t open|could not be read|may be damaged/i)).toHaveCount(0);
+      } finally {
+        await context.setOffline(false);
+      }
+    });
+  }
 });
 
 // MEM-39: "It still works." is only true when a worker has the app on the device.
@@ -429,17 +476,21 @@ test.describe('the offline line on a tool page (MEM-39)', () => {
     }
   });
 
-  test('a first visit with no worker that goes offline does not show the line', async ({ page, context }) => {
-    await page.goto('/sign/?next=0');
-    await page.waitForLoadState('networkidle');
-    await context.setOffline(true);
-    try {
-      await expect.poll(() => page.evaluate(() => navigator.onLine)).toBe(false);
-      // The line is written in the page's own `offline` handler; two frames later it has run.
-      await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))));
-      await expect(page.locator(LINE)).toHaveText('');
-    } finally {
-      await context.setOffline(false);
-    }
+  // MEM-43: a tool page installs on its first visit now, so a page with no worker is one whose browser refused it.
+  test.describe('with workers refused', () => {
+  test.use({ serviceWorkers: 'block' });
+    test('a first visit with no worker that goes offline does not show the line', async ({ page, context }) => {
+      await page.goto('/sign/?next=0');
+      await page.waitForLoadState('networkidle');
+      await context.setOffline(true);
+      try {
+        await expect.poll(() => page.evaluate(() => navigator.onLine)).toBe(false);
+        // The line is written in the page's own `offline` handler; two frames later it has run.
+        await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+        await expect(page.locator(LINE)).toHaveText('');
+      } finally {
+        await context.setOffline(false);
+      }
+    });
   });
 });

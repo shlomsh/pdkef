@@ -89,6 +89,16 @@ describe('whenEngaged', () => {
     expect(await track(whenEngaged(deps)).isDone()).toBe(true);
   });
 
+  it('resolves on a tool page (MEM-43: a tool must work in airplane mode on its first visit)', async () => {
+    const { deps } = engagedDeps({ toolPage: () => true });
+    expect(await track(whenEngaged(deps)).isDone()).toBe(true);
+  });
+
+  it('does not resolve for a page that is not a tool page, or when the marker check throws', async () => {
+    expect(await track(whenEngaged(engagedDeps({ toolPage: () => false }).deps)).isDone()).toBe(false);
+    expect(await track(whenEngaged(engagedDeps({ toolPage: () => { throw new Error('no document'); } }).deps)).isDone()).toBe(false);
+  });
+
   it('waits when nothing says the person is engaged', async () => {
     const { deps } = engagedDeps();
     expect(await track(whenEngaged(deps)).isDone()).toBe(false);
