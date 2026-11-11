@@ -1910,7 +1910,7 @@ describe.each([['source', workerSource], ['minified source', minifiedWorkerSourc
     const worker = build(fetchImpl);
     await dispatchInstall(worker);
     expect(await worker.entries.get('https://pdkef.test/').text()).toBe('home');
-    expect(fetchImpl.mock.calls.filter(([request]) => new URL(request.url).pathname === '/').map(([request]) => request.cache)).toEqual(['no-cache', 'reload']);
+    expect(fetchImpl.mock.calls.filter(([request]) => new URL(request.url).pathname === '/').map(([request]) => request.cache)).toEqual(['force-cache', 'no-cache', 'reload']);
     expect(worker.self.registration.unregister).not.toHaveBeenCalled();
   });
 
@@ -1972,5 +1972,77 @@ describe.each([['source', workerSource], ['minified source', minifiedWorkerSourc
     const worker = build(serving(() => new Response('stale home')), [`pdkef-c${SHIPPED_CRITICAL}-same`]);
     await expect(dispatchInstall(worker)).rejects.toThrow(/is not this build's file/);
     expect(worker.self.registration.unregister).not.toHaveBeenCalled();
+  });
+});
+
+// MEM-34: install reused nothing the page had just loaded (every unhashed file asked the CDN again),
+// and every cached navigation refetched a page that already was this build's.
+describe('MEM-34: install reuses the HTTP cache, and a same-build page is not refetched', () => {
+  const hashes = { '/': pageHash('home'), '/shared/a.js': pageHash('fresh a') };
+  const modesFor = (worker, pathname) => worker.fetchImpl.mock.calls
+    .filter(([request]) => new URL(requestUrl(request)).pathname === pathname)
+    .map(([request]) => request.cache);
+  const installing = (shared, urls = ['/', '/shared/a.js'], manifestHashes = hashes) => {
+    const base = manifestResponder(urls, (pathname) => new Response(pathname === '/' ? 'home' : 'fresh a'), {}, manifestHashes);
+    const fetchImpl = vi.fn(async (request) => {
+      if (request.cache === 'force-cache' && new URL(request.url).pathname === '/shared/a.js') return shared(request);
+      return base(request);
+    });
+    return createWorker(fetchImpl, []);
+  };
+
+  it('stores a file whose force-cache answer matches the hash, with no no-cache request for it', async () => {
+    const worker = installing(() => new Response('fresh a'));
+    await dispatchInstall(worker);
+    expect(await worker.entries.get('https://pdkef.test/shared/a.js').text()).toBe('fresh a');
+    expect(modesFor(worker, '/shared/a.js')).toEqual(['force-cache']);
+  });
+
+  it('falls through to no-cache and stores the fresh bytes when the force-cache answer is stale', async () => {
+    const worker = installing(() => new Response('stale a'));
+    await dispatchInstall(worker);
+    expect(await worker.entries.get('https://pdkef.test/shared/a.js').text()).toBe('fresh a');
+    expect(modesFor(worker, '/shared/a.js')).toEqual(['force-cache', 'no-cache']);
+  });
+
+  it.each([
+    ['a network error', () => { throw new TypeError('Failed to fetch'); }],
+    ['a non-ok status', () => new Response('nope', { status: 504 })],
+  ])('falls through to no-cache after %s from force-cache', async (_name, shared) => {
+    const worker = installing(shared);
+    await dispatchInstall(worker);
+    expect(await worker.entries.get('https://pdkef.test/shared/a.js').text()).toBe('fresh a');
+    expect(modesFor(worker, '/shared/a.js')).toEqual(['force-cache', 'no-cache']);
+  });
+
+  it('makes no force-cache request for a URL the manifest lists no hash for', async () => {
+    const worker = installing(() => new Response('fresh a'), ['/', '/shared/a.js'], { '/': pageHash('home') });
+    await dispatchInstall(worker);
+    expect(modesFor(worker, '/shared/a.js')).toEqual(['no-cache']);
+  });
+
+  const navigate = { method: 'GET', mode: 'navigate', url: 'https://pdkef.test/sign/' };
+  const installed = async (signHashes) => {
+    const worker = createWorker(manifestResponder(['/'], (pathname) => new Response(pathname === '/' ? 'home' : 'fresh sign page'), {}, { '/': pageHash('home'), ...signHashes }), []);
+    await dispatchInstall(worker);
+    worker.entries.set('https://pdkef.test/sign/', new Response('cached sign page'));
+    worker.fetchImpl.mockClear();
+    return worker;
+  };
+
+  it('serves a cached page that matches the manifest hash with no network request for it', async () => {
+    const worker = await installed({ '/sign/': pageHash('cached sign page') });
+    const { response, background } = await dispatchFetch(worker, navigate);
+    await Promise.all(background);
+    expect(await response.text()).toBe('cached sign page');
+    expect(worker.fetchImpl).not.toHaveBeenCalledWith(navigate);
+  });
+
+  it('still refreshes a cached page the manifest lists no hash for', async () => {
+    const worker = await installed({});
+    const { response, background } = await dispatchFetch(worker, navigate);
+    await Promise.all(background);
+    expect(await response.text()).toBe('cached sign page');
+    expect(worker.fetchImpl).toHaveBeenCalledWith(navigate);
   });
 });

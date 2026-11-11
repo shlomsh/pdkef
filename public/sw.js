@@ -442,6 +442,26 @@ async function precacheUrls(cache, urls, previousCaches, { skipCached = false, h
         }
       }
       await withPrecacheTimeout(async (signal, touch) => {
+        // MEM-34: the page usually loaded this file seconds ago, so 'force-cache'
+        // answers from the HTTP cache with no CDN request, and the manifest hash
+        // makes a stale entry safe: anything that does not match falls through
+        // to the validated fetch below, silently.
+        if (hashes[url] && !isHashedUrl(url)) {
+          let held = null;
+          try {
+            const cached = await fetch(new Request(resolve(url), { cache: 'force-cache', signal }));
+            if (cached.ok) {
+              const kept = await trackProgress(cached, touch).arrayBuffer();
+              if (await hashBytes(kept) === hashes[url]) held = new Response(kept, { status: cached.status, statusText: cached.statusText, headers: cached.headers });
+            }
+          } catch {
+            // Not in the HTTP cache, or unreadable: the validated fetch below.
+          }
+          if (held) {
+            await asStorage(() => cache.put(url, held));
+            return;
+          }
+        }
         let response = isHashedUrl(url) ? await fetch(new Request(resolve(url), { signal })) : await fetchFresh(url, signal);
         if (!response.ok) throw new Error(`Failed to precache ${url}: ${response.status}`);
         const expected = hashes[url];
@@ -1183,7 +1203,12 @@ self.addEventListener('fetch', (event) => {
         const cacheKey = navigationCacheKey(request);
         const cached = await servableFromCache(cache, cacheKey);
         if (cached) {
-          event.waitUntil(refreshNavigation(request, cache, cacheKey));
+          // MEM-34: the refresh could only ever store the same bytes again (mayStore
+          // admits only this build's bytes), so it cost one CDN request per
+          // navigation for nothing. Without a readable hash it refreshes as before.
+          const expected = (await hashesOfThisBuild(cache))?.[cacheKey];
+          const sameBuild = expected && await hashBytes(await cached.clone().arrayBuffer()) === expected;
+          if (!sameBuild) event.waitUntil(refreshNavigation(request, cache, cacheKey));
           return cached;
         }
         const fresh = await refreshNavigation(request, cache, cacheKey);
