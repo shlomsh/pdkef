@@ -941,10 +941,53 @@ jobs:
         key: playwright-${{ runner.os }}-${{ steps.playwright.outputs.version }}-chromium
 
     # QUAL-33: apt is bounded at 120 s, retry 300 s; the browser download is separate.
-    # QUAL-54: still apt here, because these jobs must stay on the plain runner (pixel thresholds
-    # measured against its own fonts, see the job comment above).
+    # QUAL-54: these jobs must stay on the plain runner (pixel thresholds measured against its own
+    # fonts, see the job comment above), so the libraries come from .deb files kept in `actions/cache`
+    # and installed with `dpkg -i`. Apt runs only on a miss or a failed dpkg, then the packages are
+    # saved. Unlike the units job this step fails the job: the guards cannot run without them.
+    - name: Key the Playwright system dependencies cache on the runner image
+      id: deps-key
+      env:
+        PLAYWRIGHT_VERSION: ${{ steps.playwright.outputs.version }}
+      run: echo "key=playwright-deps-debs-${ImageOS:-unknown}-${ImageVersion:-unknown}-${PLAYWRIGHT_VERSION}-v1" >> "$GITHUB_OUTPUT"
+
+    - name: Restore Playwright system dependency packages
+      id: deps-cache
+      uses: actions/cache/restore@v4
+      with:
+        path: ${{ runner.temp }}/playwright-deps-debs
+        key: ${{ steps.deps-key.outputs.key }}
+
     - name: Install Playwright system dependencies
-      run: bash scripts/ci-bounded-apt.sh 120 300 npx playwright install-deps chromium
+      id: deps
+      env:
+        CACHE_HIT: ${{ steps.deps-cache.outputs.cache-hit }}
+      run: |
+        debs="$RUNNER_TEMP/playwright-deps-debs"
+        if [ "$CACHE_HIT" = "true" ] && ls "$debs"/*.deb >/dev/null 2>&1 && sudo dpkg -i "$debs"/*.deb; then
+          echo "fresh=false" >> "$GITHUB_OUTPUT"
+          exit 0
+        fi
+        if [ "$CACHE_HIT" != "true" ]; then
+          sudo rm -f /var/cache/apt/archives/*.deb
+          sudo rm -f /etc/apt/apt.conf.d/docker-clean
+          echo 'Binary::apt::APT::Keep-Downloaded-Packages "true";' | sudo tee /etc/apt/apt.conf.d/99keep-debs
+        fi
+        bash scripts/ci-bounded-apt.sh 120 300 npx playwright install-deps chromium
+        mkdir -p "$debs"
+        rm -f "$debs"/*.deb
+        if ls /var/cache/apt/archives/*.deb >/dev/null 2>&1 && cp /var/cache/apt/archives/*.deb "$debs"/; then
+          echo "fresh=true" >> "$GITHUB_OUTPUT"
+        else
+          echo "fresh=false" >> "$GITHUB_OUTPUT"
+        fi
+
+    - name: Save Playwright system dependency packages
+      if: steps.deps.outputs.fresh == 'true'
+      uses: actions/cache/save@v4
+      with:
+        path: ${{ runner.temp }}/playwright-deps-debs
+        key: ${{ steps.deps-key.outputs.key }}
 
     - name: Install Playwright browsers
       if: steps.playwright-cache.outputs.cache-hit != 'true'
@@ -1011,10 +1054,53 @@ jobs:
         key: playwright-${{ runner.os }}-${{ steps.playwright.outputs.version }}-chromium
 
     # QUAL-33: apt is bounded at 120 s, retry 300 s; the browser download is separate.
-    # QUAL-54: still apt here, because these jobs must stay on the plain runner (pixel thresholds
-    # measured against its own fonts, see the job comment above).
+    # QUAL-54: these jobs must stay on the plain runner (pixel thresholds measured against its own
+    # fonts, see the job comment above), so the libraries come from .deb files kept in `actions/cache`
+    # and installed with `dpkg -i`. Apt runs only on a miss or a failed dpkg, then the packages are
+    # saved. Unlike the units job this step fails the job: the guards cannot run without them.
+    - name: Key the Playwright system dependencies cache on the runner image
+      id: deps-key
+      env:
+        PLAYWRIGHT_VERSION: ${{ steps.playwright.outputs.version }}
+      run: echo "key=playwright-deps-debs-${ImageOS:-unknown}-${ImageVersion:-unknown}-${PLAYWRIGHT_VERSION}-v1" >> "$GITHUB_OUTPUT"
+
+    - name: Restore Playwright system dependency packages
+      id: deps-cache
+      uses: actions/cache/restore@v4
+      with:
+        path: ${{ runner.temp }}/playwright-deps-debs
+        key: ${{ steps.deps-key.outputs.key }}
+
     - name: Install Playwright system dependencies
-      run: bash scripts/ci-bounded-apt.sh 120 300 npx playwright install-deps chromium
+      id: deps
+      env:
+        CACHE_HIT: ${{ steps.deps-cache.outputs.cache-hit }}
+      run: |
+        debs="$RUNNER_TEMP/playwright-deps-debs"
+        if [ "$CACHE_HIT" = "true" ] && ls "$debs"/*.deb >/dev/null 2>&1 && sudo dpkg -i "$debs"/*.deb; then
+          echo "fresh=false" >> "$GITHUB_OUTPUT"
+          exit 0
+        fi
+        if [ "$CACHE_HIT" != "true" ]; then
+          sudo rm -f /var/cache/apt/archives/*.deb
+          sudo rm -f /etc/apt/apt.conf.d/docker-clean
+          echo 'Binary::apt::APT::Keep-Downloaded-Packages "true";' | sudo tee /etc/apt/apt.conf.d/99keep-debs
+        fi
+        bash scripts/ci-bounded-apt.sh 120 300 npx playwright install-deps chromium
+        mkdir -p "$debs"
+        rm -f "$debs"/*.deb
+        if ls /var/cache/apt/archives/*.deb >/dev/null 2>&1 && cp /var/cache/apt/archives/*.deb "$debs"/; then
+          echo "fresh=true" >> "$GITHUB_OUTPUT"
+        else
+          echo "fresh=false" >> "$GITHUB_OUTPUT"
+        fi
+
+    - name: Save Playwright system dependency packages
+      if: steps.deps.outputs.fresh == 'true'
+      uses: actions/cache/save@v4
+      with:
+        path: ${{ runner.temp }}/playwright-deps-debs
+        key: ${{ steps.deps-key.outputs.key }}
 
     - name: Install Playwright browsers
       if: steps.playwright-cache.outputs.cache-hit != 'true'

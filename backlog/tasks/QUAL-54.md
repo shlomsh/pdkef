@@ -71,7 +71,9 @@ Not the fix: raising the bounds or adding attempts in `ci-bounded-apt.sh`.
 - With the apt servers unreachable and a cold cache, the unit jobs run: the W6 guard already self-skips its
   pdftotext half when `pdftotext` is not on PATH (the pdf.js half and every other test still run). That
   run loses only the pdftotext half of the W6 `/ActualText` extraction check.
-- `font-guards` and `export-guards` keep apt: ci.yml documents that they must stay off the Playwright image
-  (pixel thresholds measured against the runner's own fonts). Still open for this ticket's second "Done when".
+- `font-guards` and `export-guards` stay on the plain runner (pixel thresholds measured against its own fonts), so
+  they got the same shape: the Playwright system libraries are restored from cached .debs (key: runner image,
+  Playwright version, `-v1`) and installed with `dpkg -i`; apt (`install-deps`, bounded) runs only on a miss or a
+  failed dpkg, then the fresh .debs are saved. The step still fails the job loudly if neither route works.
 - Unverified until a CI run: the cache key (`ImageOS`/`ImageVersion` env vars), the first miss populating the
   cache, a hit installing with `dpkg -i` (all dependencies in the cached set), and the skip path.
