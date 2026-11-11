@@ -14,11 +14,16 @@ import { DEFAULT_FONT_FAMILY, FONT_MANIFEST } from '#lib/fonts/fontManifest.ts';
  * Which built assets the service worker downloads before anyone asks for
  * them. Everything omitted here still enters the runtime cache on first use.
  *
- * MEM-15/MEM-18: the install caches the whole app, as the union of the build's
- * closures: a shell (`/` and what every page shares) plus the closure of each
- * HTML page (scripts/precacheClosure.mjs, listed in the manifest). Files no
- * page reaches are not installed. This filter decides which files may appear
- * in any of those lists, so a tool works offline after one visit.
+ * MEM-35 (after MEM-15/MEM-18): the build lists the closure of each HTML page
+ * (scripts/precacheClosure.mjs, in the manifest's `pages`), but the worker
+ * installs only `/` and the closures of the pages a person has open or already
+ * holds from the previous build; a tool opened later is cached when it is first
+ * loaded. So a tool works offline once it has been used, not after one visit to
+ * any page. The manifest's `shell` list is kept for the budget guard only. This
+ * filter decides which files may appear in any page's list. Because a page is
+ * installed only when it is open or held, nothing needs excluding for guides,
+ * unopened localized pages, `404.html` or the verification file: they are in no
+ * install until a person opens them.
  *
  * Fonts are mostly excluded. Declared with `@font-face`
  * (src/styles/editorFonts.css), a browser fetches a TTF only when a rule
@@ -43,15 +48,17 @@ import { DEFAULT_FONT_FAMILY, FONT_MANIFEST } from '#lib/fonts/fontManifest.ts';
  * and why it's read off `faces.normal` rather than every entry the
  * manifest's (currently unused) `precache` flag would pull in.
  *
- * Localized pages (`/he/...`, `/id/...`) are part of the whole-app install
- * like any other page: each is cached with its own closure.
+ * Localized pages (`/he/...`, `/id/...`) are pages like any other: each has its
+ * own closure and is installed only once opened.
  */
 const defaultFontEntry = FONT_MANIFEST.find((font) => font.family === DEFAULT_FONT_FAMILY);
 /** @testSeam */
 export const PRECACHED_FONTS = [`fonts/${defaultFontEntry.faces.normal}`];
 
 // The Scan guide's photos (about 750 KB) are shown only on a controlled page and cached then, at runtime.
-const RUNTIME_ONLY_IMAGE_DIRS = ['/images/scan-guide/'];
+// MEM-35: the redaction guide's sample PDF, its preview and the guide video poster are shown on demand and
+// cached then too; and the pdf.js codec wasm (`/pdfjs-dist-wasm/`) is fetched only when a file needs a codec.
+const RUNTIME_ONLY_IMAGE_DIRS = ['/images/scan-guide/', '/images/redaction-guide/', '/pdfjs-dist-wasm/'];
 
 // MERGE-25: /drive/ is an optional, online-only Google route. Its page, and so the chunks only it
 // reaches, stay out of the manifest; the Google script is never cached at install.

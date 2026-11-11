@@ -2,9 +2,9 @@ import { describe, expect, it } from 'vitest';
 import { NEVER_PRECACHED_PAGES, PRECACHED_FONTS, shouldPrecache } from './precachePolicy.js';
 
 /**
- * SIGN-07: installation precaches the whole app (every page and script,
- * every font except the default) so any advertised workflow can be opened
- * and used offline after a single visit. See this policy's own doc comment
+ * SIGN-07, narrowed by MEM-35: which files may appear in a page's precache list
+ * (every script a page reaches, every font except the default), so a tool a person
+ * has used can be opened and used offline. See this policy's own doc comment
  * (precachePolicy.js) for the full reasoning and the pre-2026-08-27
  * precedent this restores.
  *
@@ -63,9 +63,12 @@ describe('precache manifest delivery policy', () => {
     expect(shouldPrecache('sw.js', names)).toBe(false);
   });
 
-  it('keeps the offline sample PDF but leaves the Scan guide photos to the runtime cache', () => {
-    expect(shouldPrecache('images/redaction-guide/sample.pdf', names)).toBe(true);
-    expect(shouldPrecache('images/redaction-guide/sample-preview.jpg', names)).toBe(true);
+  it('leaves the sample PDF, the guide media, the Scan guide photos and the codec wasm to the runtime cache (MEM-35)', () => {
+    expect(shouldPrecache('images/redaction-guide/sample.pdf', names)).toBe(false);
+    expect(shouldPrecache('images/redaction-guide/sample-preview.jpg', names)).toBe(false);
+    expect(shouldPrecache('images/redaction-guide/how-to-blur-text-in-pdf-video.webp', names)).toBe(false);
     expect(shouldPrecache('images/scan-guide/step-1.jpg', names)).toBe(false);
+    expect(shouldPrecache('pdfjs-dist-wasm/openjpeg.wasm', names)).toBe(false);
+    expect(shouldPrecache('images/brand/google-drive.png', names)).toBe(true);
   });
 });

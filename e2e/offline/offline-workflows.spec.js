@@ -185,25 +185,23 @@ test.describe('offline workflows (SIGN-07)', () => {
     }
   });
 
-  test('a fresh visit to the home page alone makes a tool and a localized tool open offline', async ({ page, context }) => {
-    await page.goto('/');
+  test('a tool you opened works offline, and one you never opened is answered with the home page (MEM-35)', async ({ page, context }) => {
+    await page.goto('/compress/');
+    await waitForIsland(page);
     await waitForServiceWorkerControl(page);
-    // The worker installs the whole app after it takes control; offline starts once the last page is cached.
-    const offlinePages = ['/compress/', '/he/merge/'];
-    await page.waitForFunction(
-      async (urls) => (await Promise.all(urls.map((url) => caches.match(url)))).every(Boolean),
-      offlinePages,
-      { timeout: 60_000 },
-    );
+    // The worker installs the pages open at that moment; its marker means that install set is complete.
+    await page.waitForFunction(async () => !!(await caches.match('/__pdkef/precache-complete/')), null, { timeout: 60_000 });
+    expect(await page.evaluate(async () => !!(await caches.match('/merge/')))).toBe(false);
 
     await context.setOffline(true);
     try {
-      for (const url of offlinePages) {
-        await page.goto(url);
-        await page.locator('astro-island[client="load"]:not([ssr])').first().waitFor();
-        // The empty state is the file picker; its label is localized, the input is not.
-        await expect(page.locator('astro-island input[type="file"]')).toBeAttached();
-      }
+      await page.goto('/compress/');
+      await page.locator('astro-island[client="load"]:not([ssr])').first().waitFor();
+      await expect(page.locator('astro-island input[type="file"]')).toBeAttached();
+
+      // Never visited: the worker has no copy, so the offline fallback (the home page) answers.
+      await page.goto('/merge/');
+      await expect(page).toHaveTitle(/Free PDF Tools Online/);
     } finally {
       await context.setOffline(false);
     }
