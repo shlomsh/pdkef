@@ -53,7 +53,7 @@ const HOME_PAGE = /^\/(?:[a-z]{2}\/)?$/;
 
 // Tool islands are the Pdf*Tool entry chunks Astro names in component-url.
 // MEM-25: /site/Pdf<X>Tool.js is the stable name; a hashed /_astro/ name still counts.
-export const TOOL_ISLAND = /^\/(?:_astro|site)\/Pdf\w+Tool(?:\.[\w-]+)?\.js$/;
+export const TOOL_ISLAND = /^\/(?:(?:_astro|site)\/Pdf\w+Tool(?:\.[\w-]+)?|shared\/[a-z-]+-tool)\.js$/; // spike: dropStubRequests.mjs points component-url at the tool's /shared/<tool>-tool.js
 
 // `sizes` holds only files that exist in dist/; a listed URL with no entry is reported by findMissingFiles.
 export function closureBytes(files, sizes) {
