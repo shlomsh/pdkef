@@ -97,8 +97,8 @@ export function installChunkReload(deps: ChunkReloadDeps = {}): void {
   let reloading = false;
   // Set on the first non-reload outcome: later events on this page do nothing.
   let reported = false;
-  // A failure is waiting for settle(); the page has started navigating away.
-  let pending = false;
+  // A failure is waiting for settle(); holds what its decision said, so a second failure gets the same answer.
+  let pendingWillReload: boolean | null = null;
   let leaving = false;
 
   function readLastReload(): number | null {
@@ -192,13 +192,14 @@ export function installChunkReload(deps: ChunkReloadDeps = {}): void {
    * were leaving. Once the page is gone the timer never fires; if it is still leaving, nothing happens.
    */
   function handle(error: unknown): boolean {
-    if (reloading || pending) return true;
+    if (reloading) return true;
+    if (pendingWillReload !== null) return pendingWillReload;
     if (reported) return false;
-    pending = true;
     leaving = false;
     const willReload = decideNow().decision === 'reload';
+    pendingWillReload = willReload;
     void settle().then(() => { // reason: settle() only waits; act() catches its own failures
-      pending = false;
+      pendingWillReload = null;
       if (!leaving) act(error);
     });
     return willReload;
