@@ -24,6 +24,10 @@
       "headers": [{ "key": "Cache-Control", "value": "public, max-age=2592000, immutable" }]
     },
     {
+      "source": "/favicon.ico",
+      "headers": [{ "key": "Cache-Control", "value": "public, max-age=2592000, immutable" }]
+    },
+    {
       "source": "/sitemap.xml",
       "headers": [{ "key": "X-Robots-Tag", "value": "noindex" }]
     }
