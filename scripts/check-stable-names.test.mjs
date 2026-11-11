@@ -79,4 +79,18 @@ describe('moduleClasses and findMissingClassRules (MEM-26)', () => {
     expect(f[0]).toContain('a/index.html');
     expect(f[0]).toContain(token('panel-wide'));
   });
+  // MEM-37: grouped bundles carry class maps of components a page never renders.
+  it('flags a class of a module the page carries only in part', () => {
+    const f = findMissingClassRules({ pages: [{ page: 'a/index.html', html: '', js: `"${token('panel-wide')}"`, css: `.${token('panel')}{padding:1rem}` }], classes });
+    expect(f).toHaveLength(1);
+    expect(f[0]).toContain(token('panel-wide'));
+  });
+  it('flags a class in the page HTML that has no rule, whatever the page CSS holds', () => {
+    const f = findMissingClassRules({ pages: [{ page: 'a/index.html', html: `<div class="x ${token('panel')}"></div>`, js: '', css: '' }], classes });
+    expect(f).toHaveLength(1);
+    expect(f[0]).toContain(token('panel'));
+  });
+  it('does not flag a JS-only class of a module with no rule on the page', () => {
+    expect(findMissingClassRules({ pages: [{ page: 'a/index.html', html: '<p class="plain"></p>', js: `"${token('panel')} ${token('panel-wide')}"`, css: '.other{color:red}' }], classes })).toEqual([]);
+  });
 });
