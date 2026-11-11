@@ -11,6 +11,7 @@ import { withIslandBoundary } from '#lib/telemetry/IslandErrorBoundary.tsx';
 import { reportError } from '#lib/telemetry/errorReport.ts';
 import { reportToolLifecycleEvent, type AnalyticsTool } from '#lib/telemetry/productAnalytics.ts';
 import { markArrival } from '#lib/handoff/fileArrival.ts';
+import { markFileOpened } from '#lib/appUpdate/engagement.ts';
 import type { FileSource } from '#lib/telemetry/usageEventSchema.ts';
 import { useWindowFileDrop, leftWindow } from './useWindowFileDrop.ts';
 import { acceptsFile } from './acceptsFile.ts';
@@ -203,6 +204,12 @@ function BasePdfTool({
     pageViewedRef.current = true;
     reportToolLifecycleEvent('tool_page_viewed', viewedTool);
   }, [viewedTool]);
+
+  // MEM-39: a file in front of the person (picked, dropped, handed over, or
+  // restored from a draft) is what starts the offline install.
+  useEffect(() => {
+    if (hasFiles) markFileOpened();
+  }, [hasFiles]);
 
   useEffect(() => {
     if (!analyticsTool) return;

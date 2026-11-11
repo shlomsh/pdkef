@@ -132,6 +132,7 @@ const ogImageURL = new URL(ogImage.src, Astro.site);
       // internal. Dev actively uninstalls it instead of leaving it to rot.
       import { startAppUpdates } from '../site-lib/appUpdate.ts';
       import { whenReadyToRegister } from '../site-lib/registrationReady.ts';
+      import { whenEngaged } from '#lib/appUpdate/engagement.ts';
       import { installChunkReload } from '../site-lib/chunkReload.ts';
       // MEM-38: after a deploy a failed chunk import reloads the page once, on
       // every page, with or without a worker.
@@ -142,8 +143,11 @@ const ogImageURL = new URL(ogImage.src, Astro.site);
           // MEM-17), the answer to the worker's busy query (from the start),
           // and the update line, which shows only when another tab holds an
           // update back.
+          // MEM-39: and only for a person who has opened a file (or already has
+          // a worker, or runs the installed app): the install is dozens of
+          // requests that a first-time visitor who leaves never needs.
           startAppUpdates({
-            ready: whenReadyToRegister({
+            ready: Promise.all([whenReadyToRegister({
               loaded: new Promise((resolve) => {
                 if (document.readyState === 'complete') resolve();
                 else window.addEventListener('load', () => resolve(), { once: true });
@@ -153,7 +157,7 @@ const ogImageURL = new URL(ogImage.src, Astro.site);
               setTimeout: (fn, ms) => setTimeout(fn, ms),
               clearTimeout: (id) => clearTimeout(id as number),
               MutationObserver: window.MutationObserver,
-            }),
+            }), whenEngaged()]).then(() => {}),
             serviceWorker: navigator.serviceWorker,
             line: document.querySelector('[data-app-update]'),
             createChannel: (name) => ('BroadcastChannel' in window ? new BroadcastChannel(name) : null),
