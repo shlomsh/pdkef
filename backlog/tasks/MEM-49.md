@@ -1,10 +1,9 @@
 ---
 id: "MEM-49"
 title: "A hand-off outlives its read: the file reaches recents before the record is deleted"
-status: "in_progress"
+status: "done"
 priority: "P1"
 epic: "robustness"
-horizon: "now"
 depends_on: []
 ---
 
