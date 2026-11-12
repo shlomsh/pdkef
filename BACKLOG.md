@@ -2,7 +2,7 @@
 
 # Backlog
 
-The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 184 live: 73 up next, 24 then, 27 waiting, 60 parked.
+The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 185 live: 74 up next, 24 then, 27 waiting, 60 parked.
 
 ## Redact: finish removal
 
@@ -217,6 +217,7 @@ Production errors you can see, small tools that clean up after themselves, and d
 | MEM-38 | P1 | [MEM-38](backlog/tasks/MEM-38.md) · A failed chunk import reloads the page once, after saving drafts | In progress |
 | MEM-39 | P1 | [MEM-39](backlog/tasks/MEM-39.md) · The worker installs once a file is opened, not on a first page view | In progress |
 | MEM-40 | P1 | [MEM-40](backlog/tasks/MEM-40.md) · The worker installs only what the page asks for, no home-page fallback | In progress |
+| MEM-45 | P1 | [MEM-45](backlog/tasks/MEM-45.md) · We see how the site performs for real visitors without spending server requests on it |  |
 | QUAL-54 | P1 | [QUAL-54](backlog/tasks/QUAL-54.md) · The unit jobs stop failing when the runner cannot reach Ubuntu's package servers | In progress |
 | MEM-36 | P2 | [MEM-36](backlog/tasks/MEM-36.md) · Pinned notes are baked into the page at build, not fetched per visit | In progress |
 | MEM-42 | P2 | [MEM-42](backlog/tasks/MEM-42.md) · The rating board's flags come as one file | In progress |

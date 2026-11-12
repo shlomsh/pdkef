@@ -1,6 +1,5 @@
 ---
 import { getImage } from 'astro:assets';
-import SpeedInsights from '@vercel/speed-insights/astro';
 import OrganizationSchema from '../components/OrganizationSchema.astro';
 import AppUpdateLine from '../components/AppUpdateLine.astro';
 import ogImageSrc from '../assets/og-image.jpg';
@@ -104,7 +103,6 @@ const ogImageURL = new URL(ogImage.src, Astro.site);
       import { startWebMcp } from '../site-lib/webMcp.ts';
       startWebMcp();
     </script>
-    {import.meta.env.PROD && <SpeedInsights />}
     <script>
       import { inject } from '@vercel/analytics';
       import { sanitizeAnalyticsEvent } from '#lib/telemetry/maintenanceTelemetry.ts';
