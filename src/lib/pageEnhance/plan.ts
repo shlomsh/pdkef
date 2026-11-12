@@ -86,7 +86,8 @@ export function assess(gray: GrayImage, book: Book = NEW_BOOK): Assessment {
   // A photo's lines are traced along their own curve and lean, and levelling it first would bring white corners in where
   // the table was (SCAN-69).
   const photo = readPhoto(turned, book);
-  const corners = [photo.photo ? photo.corners : foundCorners(turned, UNIT_QUAD, leans[0], null)];
+  // A photo whose text gives no block is read like a scan, which may still find one.
+  const corners = [photo.corners ?? foundCorners(turned, UNIT_QUAD, leans[0], null)];
   const bent = bentOf(turned, leans[0]);
   // A photo's page is only part of the sheet, so it is cut out however level it stands.
   const crooked = !!turn || Math.abs(leans[0]) >= MIN_LEAN_DEGREES || bent >= MIN_BENT_PX || !!(photo.photo && photo.corners);

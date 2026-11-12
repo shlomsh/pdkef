@@ -32,8 +32,11 @@ const PRINT_GAP = { up: 0.25, down: 0.12 };
 const MAX_SKEW = 0.08;
 /** A side held by this many lines, on a page where the two agree, is sure enough to tell the book its width. */
 const SURE_SUPPORT = 8;
-/** The book's width is trusted once this many pages agree on it. */
+/** The book's width is trusted once this many pages agree on it, and a book is one of photos once this many sheets were. */
 const BOOK_PAGES = 2;
+/** A book is one of photos when its photos outnumber its scans this many times over: a dark cover or a scanner's black
+ * edge on one sheet does not turn a scanned book into photos. */
+const PHOTO_MAJORITY = 2;
 /** A block narrower than this share of the book's width is a column beside a figure. A wider one is left as it is: the
  * list of sources is set smaller, so its lines are closer and the book's width in line pitches is too narrow for it. */
 const BOOK_NARROW = 0.85;
@@ -60,21 +63,26 @@ interface PhotoRead { photo: boolean; corners: Quad | null; book: Book }
 /** A photo's page: book margins around its print, shares of the text's width. */
 const PHOTO_MARGIN = { side: 0.08, top: 0.07, bottom: 0.07 };
 
-const median = (values: number[]): number => [...values].sort((a, b) => a - b)[Math.floor(values.length / 2)];
+const median = (values: number[]): number => {
+  const sorted = [...values].sort((a, b) => a - b);
+  const mid = sorted.length / 2;
+  return Number.isInteger(mid) ? (sorted[mid - 1] + sorted[mid]) / 2 : sorted[Math.floor(mid)];
+};
 
 /** The book's text width in line pitches, once enough pages agree; null before. */
 const bookWidth = (book: Book): number | null => (book.widths.length >= BOOK_PAGES ? median(book.widths) : null);
 
 /**
- * Reads `gray`, an upright sheet, as a photo of a page when its own border is not paper or when most of `book`'s sheets
- * so far were photos. The corners are the page's in 0..1; null when its text gives no block.
+ * Reads `gray`, an upright sheet, as a photo of a page when its own border is not paper or when `book`'s sheets so far
+ * were mostly photos. The corners are the page's in 0..1; null when its text gives no block.
  */
 export function readPhoto(gray: GrayImage, book: Book = NEW_BOOK): PhotoRead {
   const paper = paperLevel(gray);
   const around = surroundings(gray);
   const own = isPhotoSheet(gray, around, paper);
   const counted = { ...book, photos: book.photos + (own ? 1 : 0), scans: book.scans + (own ? 0 : 1) };
-  if (!own && book.photos <= book.scans) return { photo: false, corners: null, book: counted };
+  const photoBook = book.photos >= BOOK_PAGES && book.photos >= PHOTO_MAJORITY * book.scans;
+  if (!own && !photoBook) return { photo: false, corners: null, book: counted };
   const block = photoBlock(paperOnly(gray, around, paper), bookWidth(book));
   if (!block) return { photo: true, corners: null, book: counted };
   const { width, height } = gray;
@@ -122,19 +130,25 @@ function linePitch(rows: PhotoRow[]): number | null {
   return gaps.length >= MIN_ROWS - 1 ? gaps[Math.floor(PITCH_PERCENTILE * gaps.length)] : null;
 }
 
-/** How much print lies between the side `edge` and the same side moved `shift` pixels across; -1 when that leaves the sheet. */
+/** How much print lies between the side `edge` and the same side moved `shift` pixels across, as a share of that strip;
+ * 0 below PRINT_ROW, where it is only the tips of the text's own lines; -1 when the strip leaves the sheet. */
 function printBeside(gray: GrayImage, edge: Line, shift: number, top: number, bottom: number): number {
   const { width: w, data } = gray;
   const mid = xAt(edge, (top + bottom) / 2) + shift;
   if (mid < 0 || mid > w) return -1;
   const limit = PRINT * paperLevel(gray);
   let ink = 0;
+  let area = 0;
   for (let y = Math.max(0, Math.round(top)); y < Math.min(gray.height, Math.round(bottom)); y += 1) {
     const from = xAt(edge, y);
     const [x0, x1] = shift < 0 ? [from + shift, from] : [from, from + shift];
-    for (let x = Math.max(0, Math.round(x0)); x < Math.min(w, Math.round(x1)); x += 1) if (data[y * w + x] < limit) ink += 1;
+    for (let x = Math.max(0, Math.round(x0)); x < Math.min(w, Math.round(x1)); x += 1) {
+      area += 1;
+      if (data[y * w + x] < limit) ink += 1;
+    }
   }
-  return ink;
+  const share = area ? ink / area : 0;
+  return share >= PRINT_ROW ? share : 0;
 }
 
 /** A column beside a figure, widened to the book's width toward the print: a drawing or a caption sits on one side of it,
@@ -145,7 +159,8 @@ function toBookWidth(gray: GrayImage, left: Edge, right: Edge, want: number, top
   if (extra <= (1 - BOOK_NARROW) * want) return { left, right, moved: false };
   const before = printBeside(gray, left.line, -extra, top, bottom);
   const after = printBeside(gray, right.line, extra, top, bottom);
-  if (before < 0 && after < 0) return { left, right, moved: false };
+  // Neither side has room, or neither holds more print than the other: nothing says which way the page runs.
+  if (before === after || (before < 0 && after < 0)) return { left, right, moved: false };
   const moved = (edge: Edge, by: number): Edge => ({ line: { a: edge.line.a + by, b: edge.line.b }, support: 0 });
   return after >= before ? { left, right: moved(right, extra), moved: true } : { left: moved(left, -extra), right, moved: true };
 }

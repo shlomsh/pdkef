@@ -80,4 +80,23 @@ describe('readPhoto', () => {
     for (const c of [tr, br]) expect(c.x).toBeGreaterThan(RIGHT0);
     for (const c of [tl, bl]) expect(c.x).toBeGreaterThan(LEFT0);
   });
+
+  it('keeps a scanned book scanned after one dark cover', () => {
+    expect(readPhoto(textPage(), { photos: 1, scans: 0, widths: [] }).photo).toBe(false);
+  });
+
+  it('leaves a column where it is when both sides have room and neither holds print', () => {
+    const page = onTable(textPage({ column: [LEFT0 + 80, LEFT0 + 380] }));
+    const [tl, tr] = cornersOf(page, PHOTOS);
+    expect(tl.x).toBeGreaterThan(LEFT0 + 80 - 0.15 * TEXT_WIDTH);
+    expect(tr.x).toBeLessThan(LEFT0 + 380 + 0.15 * TEXT_WIDTH);
+  });
+
+  it('learns the book\'s width from the pages it reads, then widens a column by it', () => {
+    let { book } = readPhoto(onTable(textPage()));
+    ({ book } = readPhoto(onTable(textPage()), book));
+    const column = onTable(withFigure(textPage({ column: [LEFT0 + 50, LEFT0 + 330] }), LEFT0 + 345, RIGHT0, 150, 500));
+    const [, tr, br] = cornersOf(column, book);
+    for (const c of [tr, br]) expect(c.x).toBeGreaterThan(RIGHT0);
+  });
 });
