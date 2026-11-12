@@ -38,7 +38,7 @@ safe folds only.
 - [x] Guards green: `test:lazy-modules`, `test:request-count`, `test:precache-budget`, `test:weight`,
       `test:stable-names`, `test:css`, `test:csp`; pdf.js and pdf-lib still absent from every first paint.
 - [x] Offline specs and the Chromium suite pass.
-- [ ] Measured live after landing: requests on a first visit to `/redact/` and `/sign/`.
+- [x] Measured live after landing (2026-11-12): `/redact/` 40 (was 43). `/sign/` was not read at that step; the later MEM-48 reading is 32.
 
 ## Result (build, 2026-11-12)
 

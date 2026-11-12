@@ -30,7 +30,7 @@ store before landing.
 
 - [x] Guards re-keyed and green; request budgets lowered to the measured figures.
 - [x] Unit suite, offline specs and the Chromium suite pass; a build against the real notes store renders the board.
-- [ ] Measured live after landing.
+- [x] Measured live after landing (2026-11-12, x-vercel-id count): `/redact/` 33 (was 43 that morning), `/sign/` 32 (was 44), `/` 15 (was 19). Merge 4 (MEM-45) left them unchanged.
 
 ## Result (build, 2026-11-12)
 
