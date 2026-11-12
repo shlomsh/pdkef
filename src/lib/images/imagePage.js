@@ -1,8 +1,19 @@
+import { redrawPng } from './pngRedraw.ts';
+
 export class UnsupportedImageError extends Error {
   constructor(fileName) {
     super(`Unsupported image type: ${fileName}`);
     this.name = 'UnsupportedImageError';
     this.fileName = fileName;
+  }
+}
+
+// A picture of a supported type that neither pdf-lib nor the browser can decode (a file cut short
+// that the browser cannot show either). A kind of UnsupportedImageError: callers leave it out.
+export class UnreadableImageError extends UnsupportedImageError {
+  constructor(fileName) {
+    super(fileName);
+    this.name = 'UnreadableImageError';
   }
 }
 
@@ -89,6 +100,24 @@ export function placeImage(imageWidth, imageHeight, pageSize = 'fit', pointsPerP
   return { pageWidth, pageHeight, x: (pageWidth - width) / 2, y: (pageHeight - height) / 2, width, height };
 }
 
+// pdf-lib's PNG decoder throws on a file the browser still shows (one whose compressed data ends
+// early, DEBT-75). Such a file is redrawn through the browser and embedded from that; when the
+// browser cannot decode it either, the file is unreadable. Files in the wild are malformed, so
+// neither throw is reported.
+async function embedPngOrRedraw(pdfDoc, bytes, label) {
+  try {
+    return await pdfDoc.embedPng(bytes);
+  } catch {
+    // expected: the person's file, which the browser may still decode; redrawn below
+  }
+  try {
+    return await pdfDoc.embedPng(await redrawPng(bytes));
+  } catch {
+    // expected: neither decoder can read the person's file; the caller leaves it out
+    throw new UnreadableImageError(label);
+  }
+}
+
 // The one rule for turning a photo into a PDF page, shared by Image to PDF
 // and Merge: the page is exactly the image's pixel size (1 image pixel = 1 PDF
 // point) and the image fills it edge to edge, no distortion or letterboxing.
@@ -99,7 +128,7 @@ export function placeImage(imageWidth, imageHeight, pageSize = 'fit', pointsPerP
 export async function addImagePage(pdfDoc, bytes, mimeType, label = mimeType, { pageSize = 'fit', pointsPerPixel = 1 } = {}) {
   let image;
   if (mimeType === 'image/png') {
-    image = await pdfDoc.embedPng(bytes);
+    image = await embedPngOrRedraw(pdfDoc, bytes, label);
   } else if (mimeType === 'image/jpeg') {
     image = await pdfDoc.embedJpg(bytes);
   } else {

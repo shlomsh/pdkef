@@ -1,8 +1,12 @@
 import fs from 'fs';
 import path from 'path';
-import { describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { PDFDocument } from '@cantoo/pdf-lib';
-import { addImagePage, jpegOrientation, placeImage, PAGE_SIZES, UnsupportedImageError } from './imagePage.js';
+import { addImagePage, jpegOrientation, placeImage, PAGE_SIZES, UnreadableImageError, UnsupportedImageError } from './imagePage.js';
+import { redrawPng } from './pngRedraw.ts';
+
+// jsdom has no image decoder: the browser's redraw is stood in for here, and proved in a real browser.
+vi.mock('./pngRedraw.ts', () => ({ redrawPng: vi.fn() }));
 
 const fixture = (name) => new Uint8Array(fs.readFileSync(path.resolve(__dirname, '../__fixtures__', name)));
 
@@ -18,6 +22,39 @@ describe('addImagePage', () => {
     const doc = await PDFDocument.create();
     const page = await addImagePage(doc, fixture('photo-2.png'), 'image/png');
     expect(page.getSize()).toEqual({ width: 40, height: 80 });
+  });
+
+  describe('a PNG pdf-lib cannot decode (DEBT-75)', () => {
+    beforeEach(() => { vi.mocked(redrawPng).mockReset(); });
+
+    it('is redrawn through the browser and embedded from that', async () => {
+      vi.mocked(redrawPng).mockResolvedValue(fixture('photo-2.png'));
+      const doc = await PDFDocument.create();
+      const page = await addImagePage(doc, fixture('photo-truncated.png'), 'image/png', 'cut.png');
+      expect(redrawPng).toHaveBeenCalledTimes(1);
+      expect(page.getSize()).toEqual({ width: 40, height: 80 });
+      expect(doc.getPageCount()).toBe(1);
+    });
+
+    it('leaves a good PNG alone', async () => {
+      const doc = await PDFDocument.create();
+      await addImagePage(doc, fixture('photo-2.png'), 'image/png');
+      expect(redrawPng).not.toHaveBeenCalled();
+    });
+
+    it('throws UnreadableImageError naming the file when the browser cannot decode it either', async () => {
+      vi.mocked(redrawPng).mockImplementation(async () => { throw new Error('The source image could not be decoded.'); });
+      const doc = await PDFDocument.create();
+      await expect(addImagePage(doc, fixture('photo-truncated.png'), 'image/png', 'cut.png')).rejects.toMatchObject({
+        name: 'UnreadableImageError',
+        fileName: 'cut.png',
+      });
+      expect(doc.getPageCount()).toBe(0);
+    });
+
+    it('is a kind of UnsupportedImageError, so a caller that skips unsupported files skips it too', () => {
+      expect(new UnreadableImageError('x.png')).toBeInstanceOf(UnsupportedImageError);
+    });
   });
 
   it('throws UnsupportedImageError for any other type', async () => {

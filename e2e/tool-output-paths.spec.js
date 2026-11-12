@@ -2,6 +2,7 @@ import { test, expect } from '@playwright/test';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { PDFDocument } from '@cantoo/pdf-lib';
 import { makePdfBuffer as buildPdf } from './support/pdf.js';
 import { waitForIsland } from './support/tool.js';
 
@@ -127,4 +128,33 @@ test.describe('uncovered tools produce a real downloadable file', () => {
       }
     });
   }
+});
+
+// DEBT-75: pdf-lib cannot decode a PNG whose data ends early, the browser's own decoder can. Only a
+// real browser proves the redraw (jsdom has no image decoder), and that a picture nothing can read
+// is named and left out while the PDF still builds from the rest.
+test.describe('Image to PDF with a damaged PNG', () => {
+  const cutShort = pngBuffer.subarray(0, Math.floor(pngBuffer.length * 0.6));
+  const notAPicture = Buffer.concat([pngBuffer.subarray(0, 8), Buffer.from('this is not png data')]);
+
+  async function buildFrom(page, files) {
+    await page.goto('/image-to-pdf');
+    await waitForIsland(page);
+    await page.locator('input[type="file"]').setInputFiles(files.map(([name, buffer]) => ({ name, mimeType: 'image/png', buffer })));
+    const download = page.getByRole('link', { name: /^Download\b/ });
+    await expect(download).toHaveAttribute('href', /^blob:/, { timeout: 30_000 });
+    const [saved] = await Promise.all([page.waitForEvent('download'), download.click()]);
+    const bytes = fs.readFileSync(await saved.path());
+    return (await PDFDocument.load(bytes)).getPageCount();
+  }
+
+  test('a PNG cut short is redrawn through the browser and keeps its page', async ({ page }) => {
+    expect(await buildFrom(page, [['good.png', pngBuffer], ['cut.png', cutShort]])).toBe(2);
+    await expect(page.getByText(/^Skipped/)).toHaveCount(0);
+  });
+
+  test('a PNG nothing can read is named and left out, and the rest still builds', async ({ page }) => {
+    expect(await buildFrom(page, [['good.png', pngBuffer], ['bad.png', notAPicture]])).toBe(1);
+    await expect(page.getByText('Skipped \u201cbad.png\u201d', { exact: false })).toBeVisible();
+  });
 });

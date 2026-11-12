@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'preact/hooks';
 import { defaultOutputName, moveEntry, orderKey, reorderEntries, sortEntries } from '#lib/pages/pageOrder.js';
-import { imagesToPdf } from '#lib/images/imagesToPdf.js';
-import { reportError } from '#lib/telemetry/errorReport.ts';
+import { buildImagesPdf, reportBuildError, skippedNames } from './lib/buildImagesPdf.ts';
 import { usePreparedOutput } from '#lib/output/usePreparedOutput.ts';
 import { useDownloadFlow } from '#shell/pageWorkspace/useDownloadFlow.ts';
 import { downloadDetail } from '#shell/pageWorkspace/pageCounts.ts';
@@ -73,6 +72,8 @@ export default withIslandBoundary(function PdfImageToPdfTool({ quietPolicy, mess
   const [sortMode, setSortMode] = useState('custom');
   const [customName, setCustomName] = useState<string | null>(null);
   const [rejectedFiles, setRejectedFiles] = useState<string[]>([]);
+  const [unreadableFiles, setUnreadableFiles] = useState<string[]>([]);
+  const skipped = skippedNames(rejectedFiles, unreadableFiles, entries);
   const [announcement, setAnnouncement] = useState('');
   // Repeats of the same sentence must still be announced: alternate a trailing no-break space.
   const announce = useCallback((text: string) => {
@@ -88,11 +89,8 @@ export default withIslandBoundary(function PdfImageToPdfTool({ quietPolicy, mess
   const prepared = usePreparedOutput({
     key: key === '' ? null : key,
     quietPolicy,
-    build: async (signal, onProgress) => {
-      const files = entriesRef.current.map((entry) => entry.file);
-      return { blob: await imagesToPdf(files, onProgress, signal), pageCount: files.length };
-    },
-    onBuildError: (err) => reportError('pdf_tool_run', err, 'build_pdf_from_images'),
+    build: (signal, onProgress) => buildImagesPdf(entriesRef.current.map((entry) => entry.file), onProgress, signal, setUnreadableFiles),
+    onBuildError: reportBuildError,
   });
   const fresh = prepared.status === 'ready';
   const failed = prepared.status === 'error';
@@ -155,7 +153,7 @@ export default withIslandBoundary(function PdfImageToPdfTool({ quietPolicy, mess
     const imageFiles = incoming.filter((f) => PHOTO_ACCEPTED_TYPES.includes(f.type));
     const rejected = incoming.filter((f) => !PHOTO_ACCEPTED_TYPES.includes(f.type));
 
-    setRejectedFiles(rejected.length > 0 ? rejected.map((f) => f.name) : []);
+    setRejectedFiles(rejected.map((f) => f.name));
     if (imageFiles.length === 0) return;
 
     const newEntries = imageFiles.map(toEntry);
@@ -204,6 +202,7 @@ export default withIslandBoundary(function PdfImageToPdfTool({ quietPolicy, mess
     setCustomName(null);
     resetTap();
     setRejectedFiles([]);
+    setUnreadableFiles([]);
     announce(t.announceCleared);
     recordAction('clear_all');
   }, []);
@@ -286,11 +285,11 @@ export default withIslandBoundary(function PdfImageToPdfTool({ quietPolicy, mess
       analytics={{ tool: 'image-to-pdf', status }}
       shellMessages={shellMessages}
     >
-      {rejectedFiles.length > 0 && (
+      {skipped.length > 0 && (
         <p class={pdfToolStyles['hint-message']} role="status">
-          {rejectedFiles.length === 1
-            ? formatMessage(t.skippedOne, { name: rejectedFiles[0] })
-            : formatMessage(t.skippedMany, { count: rejectedFiles.length })}
+          {skipped.length === 1
+            ? formatMessage(t.skippedOne, { name: skipped[0] })
+            : formatMessage(t.skippedMany, { count: skipped.length })}
         </p>
       )}
 
