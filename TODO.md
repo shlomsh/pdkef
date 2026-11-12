@@ -145,7 +145,6 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 - [SCAN-05](backlog/tasks/SCAN-05.md) · Photos and short videos of real pages taken on your phone, ours to check in
 - [DRIVE-03](backlog/tasks/DRIVE-03.md) · A run on your iPhone, Chrome and Safari
 - [READ-16](backlog/tasks/READ-16.md) · Pick the stepper's place: the toolbar capsule, the top of the rail, or the page header
-- [MEM-45](backlog/tasks/MEM-45.md) · A analytics-service EU project with cookieless tracking switched on, and its public project key
 - [MOBI-01](backlog/tasks/MOBI-01.md) · Half an hour with an Android phone
 - [DEBT-53](backlog/tasks/DEBT-53.md) · A check on your iPhone
 - [SEO-40](backlog/tasks/SEO-40.md) · The Search Console exports

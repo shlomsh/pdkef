@@ -213,7 +213,7 @@ Production errors you can see, small tools that clean up after themselves, and d
 | MEM-40 | P1 | [MEM-40](backlog/tasks/MEM-40.md) · The worker installs only what the page asks for, no home-page fallback | In progress |
 | MEM-43 | P1 | [MEM-43](backlog/tasks/MEM-43.md) · A tool works in airplane mode on its first visit | In progress |
 | MEM-44 | P1 | [MEM-44](backlog/tasks/MEM-44.md) · A tool's late code comes as one file | In progress |
-| MEM-45 | P1 | [MEM-45](backlog/tasks/MEM-45.md) · We see how the site performs for real visitors without spending server requests on it | In progress. Needs Shlomi: A analytics-service EU project with cookieless tracking switched on, and its public project key |
+| MEM-45 | P1 | [MEM-45](backlog/tasks/MEM-45.md) · We see how the site performs for real visitors without spending server requests on it | In progress |
 | MEM-46 | P1 | [MEM-46](backlog/tasks/MEM-46.md) · Shared late code that never touches the PDF writer rides in the first-paint files | In progress |
 | MEM-47 | P1 | [MEM-47](backlog/tasks/MEM-47.md) · A tool page never fetches a stylesheet whose rules it already has |  |
 | MEM-48 | P1 | [MEM-48](backlog/tasks/MEM-48.md) · Pages with an interactive part load their UI glue as one file | In progress |
