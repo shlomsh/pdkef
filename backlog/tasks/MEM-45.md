@@ -27,7 +27,9 @@ depends_on: []
   functions in `src/lib/telemetry/clientBuckets.ts`: device (phone, tablet, desktop), browser family,
   operating system and kind of referrer (direct, internal, search, ai, social, other). Only the bucket is
   sent, never the user agent string or the referrer address.
-- Error reports, drop records and ratings go to `/api/report` only.
+- Error reports and drop records go to `/api/report` in full. The second destination gets a count for each
+  (`error_reported`, `error_dropped`) carrying only area, step, the error's type name, the drop reason and the
+  build: no stack, no text. Ratings go to `/api/report` only.
 
 ## Constraints that stand
 

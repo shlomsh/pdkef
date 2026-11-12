@@ -1,7 +1,8 @@
 /**
  * MEM-45: an optional second destination for usage and maintenance events, an analytics host named
- * by build-time variables. With either unset nothing is sent. Error reports, drop records and
- * ratings never come here. The capture carries the event, a random id that lives only in this page
+ * by build-time variables. With either unset nothing is sent. Error reports and drop records come
+ * here only as counts (area, step, type name, drop reason, build), never their stack or text;
+ * ratings never do. The capture carries the event, a random id that lives only in this page
  * load's memory, the page's origin and path, and four coarse buckets (device class, browser family,
  * operating system, kind of referrer): no query, fragment, referrer address or user agent string.
  */

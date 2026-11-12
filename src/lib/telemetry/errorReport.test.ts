@@ -16,6 +16,8 @@ import {
   toDropRecord,
   dropCause,
   toErrorReport,
+  toErrorCount,
+  toDropCount,
   type PageContext,
 } from './errorReport.ts';
 import { recordAction, resetActionTrailForTests } from './actionTrail.ts';
@@ -509,8 +511,44 @@ describe('reportError drop records (DEBT-44)', () => {
   });
 });
 
-describe('error reports and drop records never reach the analytics sink (MEM-45)', () => {
+describe('toErrorCount and toDropCount (MEM-45)', () => {
+  const STACK_LINE = 'SecretFrame.Zz9.js:77:13';
+  it('toErrorCount carries only area, step, error and build, never the stack', () => {
+    const report = toErrorReport('sign_export', errorAt(STACK_LINE), 'export', { ...CTX, build: 'abc1234' });
+    const count = toErrorCount(report!);
+    expect(count.name).toBe('error_reported');
+    expect(Object.keys(count.properties).sort()).toEqual(['area', 'build', 'error', 'step']);
+    expect(count.properties).toEqual({ area: 'sign_export', step: 'export', error: 'TypeError', build: 'abc1234' });
+    expect(JSON.stringify(count)).not.toContain('SecretFrame');
+  });
+  it('toErrorCount leaves build out when the report has none', () => {
+    const count = toErrorCount(toErrorReport('drafts', errorAt('A.js:1:2'), 'save_draft', CTX)!);
+    expect(Object.keys(count.properties).sort()).toEqual(['area', 'error', 'step']);
+  });
+  it('an error name with spaces, punctuation or over 40 characters becomes other', () => {
+    for (const bad of ['Type Error', 'Type-Error', 'a.b', '9Error', 'A'.repeat(41)]) {
+      const report = { ...toErrorReport('drafts', errorAt('A.js:1:2'), 'save_draft', CTX)!, name: bad };
+      expect(toErrorCount(report).properties.error).toBe('other');
+    }
+    const ok = { ...toErrorReport('drafts', errorAt('A.js:1:2'), 'save_draft', CTX)!, name: 'A'.repeat(40) };
+    expect(toErrorCount(ok).properties.error).toBe('A'.repeat(40));
+  });
+  it('toDropCount carries area, step, reason, the sanitised error name and build', () => {
+    const record = toDropRecord('redact', new RangeError('x'), 'export', 'abc1234')!;
+    const count = toDropCount({ ...record, name: 'Bad Name' });
+    expect(count.name).toBe('error_dropped');
+    expect(count.properties).toEqual({ area: 'redact', step: 'export', reason: record.reason, error: 'other', build: 'abc1234' });
+    const plain = toDropCount(toDropRecord('redact', 'boom', 'export')!);
+    expect(Object.keys(plain.properties).sort()).toEqual(['area', 'reason', 'step']);
+  });
+});
+
+describe('error and drop counts go to the analytics sink only after the /api/report beacon (MEM-45)', () => {
   const beacon = vi.fn((..._args: unknown[]) => true);
+  const sinkBodies = () =>
+    beacon.mock.calls
+      .filter(([url]) => String(url).startsWith('https://e.example.test'))
+      .map(([, blob]) => blob as Blob);
   beforeEach(() => {
     beacon.mockReset();
     beacon.mockReturnValue(true);
@@ -526,13 +564,39 @@ describe('error reports and drop records never reach the analytics sink (MEM-45)
     vi.unstubAllGlobals();
   });
 
-  it('an error report is one beacon, to /api/report', () => {
+  it('an error report is one beacon to /api/report and one count to the sink, with no stack', async () => {
+    reportError('drafts', errorAt('SecretFrame.Zz9.js:1:2'), 'save_draft');
+    expect(beacon.mock.calls.map(([url]) => url)).toEqual(['/api/report', 'https://e.example.test/i/v0/e/']);
+    const text = await sinkBodies()[0]!.text();
+    expect(JSON.parse(text)).toMatchObject({ event: 'error_reported', properties: { area: 'drafts', step: 'save_draft', error: 'TypeError' } });
+    expect(text).not.toContain('SecretFrame');
+  });
+  it('no count when the /api/report beacon returns false', () => {
+    beacon.mockReturnValue(false);
     reportError('drafts', errorAt('A.js:1:2'), 'save_draft');
     expect(beacon.mock.calls.map(([url]) => url)).toEqual(['/api/report']);
   });
-
-  it('a drop record is one beacon, to /api/report', () => {
+  it('a drop record sends one error_dropped', async () => {
     reportError('redact', 'boom', 'export');
-    expect(beacon.mock.calls.map(([url]) => url)).toEqual(['/api/report']);
+    expect(beacon.mock.calls.map(([url]) => url)).toEqual(['/api/report', 'https://e.example.test/i/v0/e/']);
+    expect(JSON.parse(await sinkBodies()[0]!.text())).toMatchObject({ event: 'error_dropped', properties: { area: 'redact', step: 'export', reason: 'non_error' } });
+  });
+  it('no drop count when the /api/report beacon returns false', () => {
+    beacon.mockReturnValue(false);
+    reportError('redact', 'boom', 'export');
+    expect(sinkBodies()).toHaveLength(0);
+  });
+  it('a repeated error sends no second count: the page\'s de-duplication bounds the sink too', () => {
+    const error = errorAt('A.js:1:2');
+    reportError('drafts', error, 'save_draft');
+    reportError('drafts', error, 'save_draft');
+    expect(sinkBodies()).toHaveLength(1);
+  });
+  it('with the build variables unset nothing goes to the sink', () => {
+    vi.stubEnv('PUBLIC_ANALYTICS_HOST', '');
+    vi.stubEnv('PUBLIC_ANALYTICS_KEY', '');
+    reportError('drafts', errorAt('A.js:1:2'), 'save_draft');
+    reportError('redact', 'boom', 'export');
+    expect(beacon.mock.calls.map(([url]) => url)).toEqual(['/api/report', '/api/report']);
   });
 });

@@ -24,6 +24,7 @@ import {
 
 export * from './errorReportSchema.ts';
 import { recentActions } from './actionTrail.ts';
+import { sendToSink } from './analyticsSink.ts';
 
 /** @testSeam */
 export const IGNORED_ERROR_NAMES: ReadonlySet<string> = new Set<string>(IGNORED_NAMES);
@@ -54,6 +55,29 @@ export function toErrorReport(
   const stack = stackFrames(error, MAX_FRAMES);
   if (stack.length === 0) return null;
   return parseErrorReport({ area, name, stack, step, ...context });
+}
+
+const SAFE_NAME = /^[A-Za-z][A-Za-z0-9]{0,39}$/;
+const safeName = (name?: string): string => (name && SAFE_NAME.test(name) ? name : 'other');
+
+/**
+ * The count the analytics host gets for an accepted error report: area, step, a safe type name and build,
+ * never the stack or any text (MEM-45). Pure.
+ * @testSeam
+ */
+export function toErrorCount({ area, step, name, build }: ErrorReport) {
+  return { name: 'error_reported', properties: { area, step, error: safeName(name), ...(build ? { build } : {}) } };
+}
+
+/**
+ * The count for an accepted drop record: area, step, reason, a safe type name when it has one, and build. Pure.
+ * @testSeam
+ */
+export function toDropCount({ area, step, reason, name, build }: DropRecord) {
+  return {
+    name: 'error_dropped',
+    properties: { area, step, reason, ...(name ? { error: safeName(name) } : {}), ...(build ? { build } : {}) },
+  };
 }
 
 const DROP_NAME_SET: ReadonlySet<string> = new Set(DROP_NAMES);
@@ -196,7 +220,7 @@ export function reportError(area: ErrorArea, error: unknown, step: string): void
     if (sent.has(key) || (report.area === 'uncaught' && sentSites.has(site))) return;
     sent.add(key);
     sentSites.add(site);
-    sendBeacon(report);
+    if (sendBeacon(report)) sendToSink(toErrorCount(report));
   } catch {
     // expected: Reporting must never change what the caller does next.
   }
@@ -208,7 +232,7 @@ function sendDrop(record: DropRecord | null): void {
   const key = dropRecordField(record, '');
   if (drops.has(key)) return;
   drops.add(key);
-  sendBeacon(record);
+  if (sendBeacon(record)) sendToSink(toDropCount(record));
 }
 
 /** Whether a beacon may go out now: production build, online, and the browser has `sendBeacon`. */
