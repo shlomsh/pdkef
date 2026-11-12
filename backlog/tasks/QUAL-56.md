@@ -31,6 +31,23 @@ create gesture, or the bounding box read before layout settles) or in Sign (an a
 ignores the first press). The second would be a product bug a person could hit, so find out which before
 adding a wait.
 
+## Diagnosis so far (2026-11-12)
+
+850 instrumented repeats (12 to 16 workers, some with eight busy loops on top) logged the wrapper's box,
+`scrollY`, `document.elementFromPoint` at the press point and the mark count before the press, mid-drag and
+after release. None reproduced the line 79 failure; an earlier plain run failed once in 120.
+
+- **Not a layout shift**: the wrapper's box was identical in every run and the page never scrolled.
+- **Not a covering element**: the press always hit the page overlay.
+- **A second flake in the same test**: one run under CPU stress timed out at line 120, waiting for the
+  download in the export step. Count it separately.
+- **The remaining suspect, from reading only**: `handleOverlayPointerDown` in
+  `src/tools/sign/hooks/useWorkspaceGestures.ts` starts with `if (!selectedTool) return;`. If the toolbar
+  button gains its `active` class one render before that handler sees the tool, a press in the gap is ignored
+  in silence, which matches the failure snapshot (tool armed, Undo disabled, nothing created). Not measured.
+
+Next step: log `selectedTool` inside that handler and run under a throttled CPU, to confirm or clear it.
+
 ## Done when
 
 - The cause is named, with a run that reproduces the failure on demand (for example `--repeat-each`).
