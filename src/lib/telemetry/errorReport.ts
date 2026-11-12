@@ -57,28 +57,25 @@ export function toErrorReport(
   return parseErrorReport({ area, name, stack, step, ...context });
 }
 
-const SAFE_NAME = /^[A-Za-z][A-Za-z0-9]{0,39}$/;
-const safeName = (name?: string): string => (name && SAFE_NAME.test(name) ? name : 'other');
+const safeName = (name?: string) => name && (/^[A-Za-z][A-Za-z0-9]{0,39}$/.test(name) ? name : 'other');
+// An absent value is left out when the count is serialised, so one shape serves both counts.
+const toCount = (name: string, r: { area: string; step: string; reason?: string; name?: string; build?: string }) => ({
+  name,
+  properties: { area: r.area, step: r.step, reason: r.reason, error: safeName(r.name), build: r.build },
+});
 
 /**
  * The count the analytics host gets for an accepted error report: area, step, a safe type name and build,
  * never the stack or any text (MEM-45). Pure.
  * @testSeam
  */
-export function toErrorCount({ area, step, name, build }: ErrorReport) {
-  return { name: 'error_reported', properties: { area, step, error: safeName(name), ...(build ? { build } : {}) } };
-}
+export const toErrorCount = (report: ErrorReport) => toCount('error_reported', report);
 
 /**
  * The count for an accepted drop record: area, step, reason, a safe type name when it has one, and build. Pure.
  * @testSeam
  */
-export function toDropCount({ area, step, reason, name, build }: DropRecord) {
-  return {
-    name: 'error_dropped',
-    properties: { area, step, reason, ...(name ? { error: safeName(name) } : {}), ...(build ? { build } : {}) },
-  };
-}
+export const toDropCount = (record: DropRecord) => toCount('error_dropped', record);
 
 const DROP_NAME_SET: ReadonlySet<string> = new Set(DROP_NAMES);
 

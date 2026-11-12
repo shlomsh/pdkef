@@ -512,17 +512,19 @@ describe('reportError drop records (DEBT-44)', () => {
 });
 
 describe('toErrorCount and toDropCount (MEM-45)', () => {
+  // What is sent: the count as serialised, where an absent value leaves no key.
+  const sent = <T,>(value: T): T => JSON.parse(JSON.stringify(value));
   const STACK_LINE = 'SecretFrame.Zz9.js:77:13';
   it('toErrorCount carries only area, step, error and build, never the stack', () => {
     const report = toErrorReport('sign_export', errorAt(STACK_LINE), 'export', { ...CTX, build: 'abc1234' });
-    const count = toErrorCount(report!);
+    const count = sent(toErrorCount(report!));
     expect(count.name).toBe('error_reported');
     expect(Object.keys(count.properties).sort()).toEqual(['area', 'build', 'error', 'step']);
     expect(count.properties).toEqual({ area: 'sign_export', step: 'export', error: 'TypeError', build: 'abc1234' });
     expect(JSON.stringify(count)).not.toContain('SecretFrame');
   });
   it('toErrorCount leaves build out when the report has none', () => {
-    const count = toErrorCount(toErrorReport('drafts', errorAt('A.js:1:2'), 'save_draft', CTX)!);
+    const count = sent(toErrorCount(toErrorReport('drafts', errorAt('A.js:1:2'), 'save_draft', CTX)!));
     expect(Object.keys(count.properties).sort()).toEqual(['area', 'error', 'step']);
   });
   it('an error name with spaces, punctuation or over 40 characters becomes other', () => {
@@ -535,10 +537,10 @@ describe('toErrorCount and toDropCount (MEM-45)', () => {
   });
   it('toDropCount carries area, step, reason, the sanitised error name and build', () => {
     const record = toDropRecord('redact', new RangeError('x'), 'export', 'abc1234')!;
-    const count = toDropCount({ ...record, name: 'Bad Name' });
+    const count = sent(toDropCount({ ...record, name: 'Bad Name' }));
     expect(count.name).toBe('error_dropped');
     expect(count.properties).toEqual({ area: 'redact', step: 'export', reason: record.reason, error: 'other', build: 'abc1234' });
-    const plain = toDropCount(toDropRecord('redact', 'boom', 'export')!);
+    const plain = sent(toDropCount(toDropRecord('redact', 'boom', 'export')!));
     expect(Object.keys(plain.properties).sort()).toEqual(['area', 'reason', 'step']);
   });
 });
