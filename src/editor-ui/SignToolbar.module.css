@@ -852,6 +852,7 @@
     .toolbar[data-finish="strip"][data-labels="stack"] .button { flex-direction: column; gap: 3px; min-height: 54px; height: 54px; padding: 0 6px; font-size: 12px; line-height: 1.1; }
     .toolbar[data-finish="strip"][data-labels="stack"] .button[data-icon-only] { width: 40px; padding: 0; }
     .toolbar[data-finish="strip"][data-labels="stack"] .button.download { min-height: 54px; height: 54px; padding: 0 12px; }
+    .toolbar.toolbar[data-finish="strip"][data-labels="stack"] > [data-drive-arrow][data-drive-arrow] { min-height: 54px; height: 54px; }
   }
   @container toolbar (min-width: 1160px) {
     .toolbar[data-finish="strip"][data-labels="stack"]:has(> [data-drive-arrow]) > :has(+ [data-replace]) { width: 40px; padding: 0; }

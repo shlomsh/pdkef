@@ -129,6 +129,14 @@ test('Redact: Find open and Peek held are not the armed teal fill', async ({ pag
   await blackout.click();
   await expect(blackout).toHaveAttribute('aria-pressed', 'true');
   const armed = await fill(blackout);
+  const soft = await page.evaluate(() => {
+    const probe = document.createElement('div');
+    probe.style.background = 'var(--color-primary-soft)';
+    document.body.append(probe);
+    const colour = getComputedStyle(probe).backgroundColor;
+    probe.remove();
+    return colour;
+  });
   await page.keyboard.press('Escape');
   await page.mouse.move(0, 0);
 
@@ -136,13 +144,44 @@ test('Redact: Find open and Peek held are not the armed teal fill', async ({ pag
   await find.click();
   await expect(find).toHaveAttribute('aria-pressed', 'true');
   await page.mouse.move(0, 0);
-  expect(await fill(find), 'Find open is not the armed fill').not.toBe(armed);
+  const findFill = await fill(find);
+  expect(findFill, 'Find open is not the armed fill').not.toBe(armed);
+  expect(findFill, 'Find open takes the tinted ground').toBe(soft);
 
   const peek = toolbar.locator('[data-redact-peek]');
   const box = await peek.boundingBox();
   await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
   await page.mouse.down();
   await expect(peek).toHaveAttribute('aria-pressed', 'true');
-  expect(await fill(peek), 'Peek held is not the armed fill').not.toBe(armed);
+  const peekFill = await fill(peek);
+  expect(peekFill, 'Peek held is not the armed fill').not.toBe(armed);
+  expect(peekFill, 'Peek held takes the tinted ground').toBe(soft);
   await page.mouse.up();
 });
+
+/* With Drive connected, Download and its arrow read as one outlined control in both
+   label states. Signing in to Drive is not possible here, so a stand-in arrow with the
+   hook the finish styles (`data-drive-arrow`) goes right after Download. */
+for (const viewport of VIEWPORTS) {
+  test(`Redact at ${viewport.width}px: the Drive arrow joins Download at its full height`, async ({ page }) => {
+    await stubSharePresent(page);
+    await page.setViewportSize(viewport);
+    await openTool(page, '/redact', 'redact-groups-drive.pdf');
+    const join = await page.evaluate(() => {
+      const toolbar = document.querySelector('[data-editor-toolbar]');
+      const download = [...toolbar.children].find((el) => /download/i.test(el.textContent ?? ''));
+      const arrow = document.createElement('button');
+      arrow.type = 'button';
+      arrow.setAttribute('data-drive-arrow', '');
+      arrow.setAttribute('aria-label', 'Save to Google Drive');
+      download.after(arrow);
+      const d = download.getBoundingClientRect();
+      const a = arrow.getBoundingClientRect();
+      return { top: Math.abs(a.top - d.top), bottom: Math.abs(a.bottom - d.bottom), gap: a.left - d.right };
+    });
+    expect(join.top, JSON.stringify(join)).toBeLessThanOrEqual(1);
+    expect(join.bottom, JSON.stringify(join)).toBeLessThanOrEqual(1);
+    expect(Math.abs(join.gap), JSON.stringify(join)).toBeLessThanOrEqual(2);
+    expect(await oneLine(page), 'control centres within 1px').toBeLessThanOrEqual(1);
+  });
+}

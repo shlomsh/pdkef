@@ -304,7 +304,7 @@ Create is a gesture too (click-place or drag-draw), not an exception.
   because its tripled `.bar` rule would otherwise outrank the shared size.
 - Redact's eleven counted controls stay two rows on a phone (the card-height guard, `toolbar-phone-row.spec.js`), so at 390px a control is 44.9px wide; Redact's phone label size is `min(0.66rem, (control width - 8px) / 5.2)` (RedactToolbar.module.css, RED-61, Shlomi's call 2026-10-08), 7.1px at 390px, guarded by `redact-toolbar-labels-fit.spec.js` at 360 to 430px. A four-per-row step was tried and broke the card guard, and its `:nth-child(11 of ...)` selector also caught Sign's eleven or twelve.
 - **Redact keeps the file's details unless the person changes them (RED-59).** The engine's `applyDetailEdits` (`src/tools/redact/lib/documentTraces.js`) takes per-id edits (`title`, `author`, `made`, `attachment:<page>:<name>`, `scripts`, `hidden`...), always drops `/Thumb`, XMP thumbnails and `/PieceInfo` (each can show what a mark covers), and on the flattened path never copies a value that reaches a page (`reachesPage`); the footer line and Review sheet live in `src/tools/redact/components/details/`. Copy that says a download "leaves out" details is wrong; `docs/redact-content-removal.md` has the per-id table.
-- Two anchors, desktop and iPhone, one step between (SIGN-29, 2026-09-18). Redact and Highlight: from
+- Two anchors, desktop and iPhone, one step between (SIGN-29, 2026-09-18). Highlight: from
   1300px the row is one line with labels, set 4px apart; the toolbar box plateaus at 1172px of content
   (a 1280px window), so a classic scrollbar at 1300px no longer eats into it. Below 1300px every
   control is icon-only on one line, until the row's 44px targets stop fitting, and from there down the
@@ -321,6 +321,13 @@ Create is a gesture too (click-place or drag-draw), not an exception.
   tiers (keyed on `data-label-priority`) were tried twice and drifted twice, because each carried
   hand-measured per-label thresholds; this one tier has one measured number with stated headroom, and
   `toolbar-desktop-one-line.spec.js` pins it at 1280 and 1100.
+  **Redact takes the same finish and keeps its words (RED-73, `data-labels="stack"`)**: Blur, Blackout
+  and Whiteout share one shape of icon, so the word is what tells them apart (RED-34). Beside the icon
+  in the same 1160px tier, under it below (54px controls, 12px words); Undo and Redo are arrows above the
+  phone, as in Sign. Measured on macOS Chromium 2026-11-12 the labelled row needs 1115px with Share
+  (57px headroom) and all 1172px with the Drive arrow too, so with Drive connected Full screen gives up
+  its word; stacked, Share and the arrow need 761px against 796px at a 920px window. Guard:
+  `e2e/tool-toolbars/toolbar-finish-groups.spec.js` (dividers, words beside at 1280 and under at 1100).
 - Sign's own toolbar order reads in the order a form gets done: the filling vocabulary first (Text,
   Date, Mark, Whiteout), then Sign as the last thing you do to a filled form (it is the tool the page
   is named for, but it led the row for one day under SIGN-29 and read as the wrong first step), then
@@ -328,11 +335,13 @@ Create is a gesture too (click-place or drag-draw), not an exception.
   tool, word and icon, at the same width), then the history group beside the work it acts on (Undo, Redo
   - the same pair, in the same order, as Redact), then the chrome group (Full screen, Replace, both
   labelled), then export at the far edge (Share, Download). Groups are divided by a `::before` on the
-  group's first control, never a toolbar child. Redact's own order is unchanged: it already led with
-  Blur, its named tool, since f48fcbd8.
-- **The row is quiet**: tools, Replace and Share are ghost controls (Sign) or the plain button (Redact),
-  and Download is the one outlined control. Teal fill on a toolbar button means one thing, an armed
-  tool. Export is never filled in the toolbar (QUAL-27, Shlomi 2026-10-20): the completion row under
+  group's first control (`data-group-start`: More's root, Undo), never a toolbar child. Redact's
+  groups: Blur, Blackout, Whiteout, Delete | Find, Peek (they look, they mark nothing) | Undo, Redo ...
+  Full screen, Replace | Share, Download; its order is unchanged, led by Blur since f48fcbd8.
+- **The row is quiet**: tools, Replace and Share are ghost controls (Sign, Redact; Highlight, a reading
+  tool, keeps its tiles), and Download is the one outlined control, joined in one outline with the
+  Drive arrow when Drive is connected. Teal fill on a toolbar button means one thing, an armed tool:
+  Redact's open Find and held Peek take the tinted ground instead. Export is never filled in the toolbar (QUAL-27, Shlomi 2026-10-20): the completion row under
   the document is the call to action, and a restored draft once lit Share and Download up with nobody
   asking. Disabled Download/Share keep their quiet style with a muted label. Guard:
   `e2e/tool-toolbars/toolbar-export-quiet.spec.js`, Sign, `/he/sign/` and Redact, phone and desktop,

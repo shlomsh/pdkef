@@ -142,6 +142,7 @@ describe('RedactToolbar returning-work status', () => {
     const peek = container.querySelector<HTMLElement>('[data-redact-peek]')!;
     expect(find.getAttribute('aria-pressed')).toBe('true');
     expect(peek.getAttribute('aria-pressed')).toBe('true');
+    expect(signStyles.active).toBeTruthy();
     expect(find.classList.contains(signStyles.active)).toBe(false);
     expect(peek.classList.contains(signStyles.active)).toBe(false);
   });
