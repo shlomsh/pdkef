@@ -241,10 +241,10 @@ describe('usage measures (MEM-45)', () => {
   const day = '2026-10-01';
   const ttl = 90 * 24 * 60 * 60;
   it('a page view with measures adds one perf field before the expiry', () => {
-    const event = { name: 'tool_page_viewed', properties: { tool: 'merge', net: '0', local: '16-30', lcp: 'le2.5s', ready: 'le1s' } } as const;
+    const event = { name: 'tool_page_viewed', properties: { tool: 'merge', visit: 'week', net: '1', local: '16-30', lcp: 'le2.5s', ready: 'le1s' } } as const;
     expect(usageCommands(event, day)).toEqual([
       ['HINCRBY', `usage:${day}`, 'tool_page_viewed|merge', 1],
-      ['HINCRBY', `usage:${day}`, 'perf:merge:0:16-30:le2.5s:le1s', 1],
+      ['HINCRBY', `usage:${day}`, 'perf:merge:week:1:16-30:le2.5s:le1s', 1],
       ['EXPIRE', `usage:${day}`, ttl],
     ]);
   });

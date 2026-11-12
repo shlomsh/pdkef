@@ -262,7 +262,7 @@ describe('performance measures (MEM-45)', () => {
   const on = (name: string, p: Record<string, unknown>) => parseUsageEvent({ name, properties: { tool: 'merge', ...p } });
 
   it('lists the buckets', () => {
-    expect(COUNT_BUCKETS).toEqual(['0', '1-5', '6-15', '16-30', '31-50', '51+']);
+    expect(COUNT_BUCKETS).toEqual(['0', '1', '2-5', '6-15', '16-30', '31-50', '51+']);
     expect(TIME_BUCKETS).toEqual(['le1s', 'le2.5s', 'le4s', 'gt4s']);
   });
 
@@ -273,7 +273,7 @@ describe('performance measures (MEM-45)', () => {
   });
 
   it('home takes net, local and lcp but not ready', () => {
-    expect(view({ net: '1-5', local: '6-15', lcp: 'le1s' }, 'home')).not.toBeNull();
+    expect(view({ net: '2-5', local: '6-15', lcp: 'le1s' }, 'home')).not.toBeNull();
     expect(view({ ready: 'le1s' }, 'home')).toBeNull();
   });
 
@@ -300,14 +300,14 @@ describe('performance measures (MEM-45)', () => {
   });
 
   it('names the counter field: perf for views, ms for the two timings, dashes for the absent', () => {
-    expect(usageMeasureField(view({ net: '0', local: '16-30', lcp: 'le2.5s', ready: 'le1s' })!)).toBe('perf:sign:0:16-30:le2.5s:le1s');
-    expect(usageMeasureField(view({ lcp: 'gt4s' })!)).toBe('perf:sign:-:-:gt4s:-');
+    expect(usageMeasureField(view({ visit: 'week', net: '1', local: '16-30', lcp: 'le2.5s', ready: 'le1s' })!)).toBe('perf:sign:week:1:16-30:le2.5s:le1s');
+    expect(usageMeasureField(view({ lcp: 'gt4s' })!)).toBe('perf:sign:-:-:-:gt4s:-');
     expect(usageMeasureField(on('tool_file_accepted', { ms: 'le4s' })!)).toBe('ms:tool_file_accepted:merge:le4s');
     expect(usageMeasureField(on('tool_result_ready', { ms: 'gt4s' })!)).toBe('ms:tool_result_ready:merge:gt4s');
   });
 
   it('names no field when an event carries no measure', () => {
-    expect(usageMeasureField(view({ visit: 'new' })!)).toBeUndefined();
+    expect(usageMeasureField(view({ visit: 'new' })!)).toBeUndefined(); // a visit alone is not a measure
     expect(usageMeasureField(on('tool_result_ready', {})!)).toBeUndefined();
   });
 

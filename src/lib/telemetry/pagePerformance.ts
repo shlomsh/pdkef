@@ -7,12 +7,12 @@
 import { COUNT_BUCKETS, TIME_BUCKETS, type CountBucket, type TimeBucket } from './usageEventSchema';
 
 /**
- * `0`, `1-5`, `6-15`, `16-30`, `31-50`, `51+`; undefined for anything that is not a whole count.
+ * `0`, `1`, `2-5`, `6-15`, `16-30`, `31-50`, `51+`; undefined for anything that is not a whole count.
  * @testSeam
  */
 export function countBucket(n: number): CountBucket | undefined {
   if (!Number.isInteger(n) || n < 0) return undefined;
-  const upper = [0, 5, 15, 30, 50];
+  const upper = [0, 1, 5, 15, 30, 50];
   const at = upper.findIndex((max) => n <= max);
   return COUNT_BUCKETS[at === -1 ? upper.length : at];
 }

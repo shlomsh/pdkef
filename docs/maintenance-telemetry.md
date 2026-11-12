@@ -26,16 +26,16 @@ The page-view ping and two lifecycle events carry a few bucketed measures, so a 
 
 | Field | On | What it is | Buckets | Fix this when (75th percentile per tool) |
 | --- | --- | --- | --- | --- |
-| `net` | `tool_page_viewed` | this page's own requests that reached the network (Resource Timing `navigation` + `resource`, `transferSize > 0`) | `0`, `1-5`, `6-15`, `16-30`, `31-50`, `51+` | a returning view above 1; the read flags `6-15` and up, and `1-5` is a look at the count by hand |
+| `net` | `tool_page_viewed` | this page's own requests that reached the network (Resource Timing `navigation` + `resource`, `transferSize > 0`) | `0`, `1`, `2-5`, `6-15`, `16-30`, `31-50`, `51+` | a returning view above 1 (a visit other than `new`); the read flags it, and shows new views apart, unflagged |
 | `local` | `tool_page_viewed` | requests answered on the device (no transfer but a body, or a `cache` delivery: the worker's cache or the browser's) | same | context only |
 | `lcp` | `tool_page_viewed` | the latest `largest-contentful-paint` seen when the view is sent | `le1s`, `le2.5s`, `le4s`, `gt4s` | above 2.5 s |
 | `ready` | `tool_page_viewed`, tool pages | navigation start to the tool island's first mount effect | same | above 2.5 s |
 | `ms` | `tool_file_accepted` | the file being picked, dropped, pasted or handed over to being accepted | same | above 2.5 s |
 | `ms` | `tool_result_ready` | `tool_operation_started` to ready | same | above 4 s |
 
-The view is sent once the window `load` event has fired (the home page already did), so the counts cover the page's own load; a worker's install runs in the worker and is not in them. Net also counts first visits, whose requests are all real, so read it against the `visit` lines. Interaction to next paint and layout shift are not carried yet: they are only final when a person leaves, which needs the ping sent on hide, and some phones drop it.
+The view is sent once the window `load` event has fired (the home page already did), so the counts cover the page's own load; a worker's install runs in the worker and is not in them. A first visit's requests are all real, so the read keeps `net` for new views apart and flags only returning ones. Interaction to next paint and layout shift are not carried yet: they are only final when a person leaves, which needs the ping sent on hide, and some phones drop it.
 
-Each event with measures adds one counter to the day's `usage:` hash, beside the counters it already had: `perf:<tool>:<net>:<local>:<lcp>:<ready>` for a view (`-` for one that is absent) and `ms:<event>:<tool>:<bucket>` for a timing. `npm run errors:read` prints "How it feels (MEM-45)": per tool the 75th-percentile bucket of each, today against yesterday, with `!` where the list above says to fix it. Vercel's 30-day CDN request total still comes from its usage page, by hand.
+Each event with measures adds one counter to the day's `usage:` hash, beside the counters it already had: `perf:<tool>:<visit>:<net>:<local>:<lcp>:<ready>` for a view (`-` for one that is absent; the view's `visit` rides along) and `ms:<event>:<tool>:<bucket>` for a timing. `npm run errors:read` prints "How it feels (MEM-45)": per tool the 75th-percentile bucket of each (`net` for returning and new views apart), today against yesterday, with `!` where the list above says to fix it. Vercel's 30-day CDN request total still comes from its usage page, by hand.
 
 ## Star ratings
 

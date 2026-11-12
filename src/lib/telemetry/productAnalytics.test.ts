@@ -258,11 +258,11 @@ describe('performance measures (MEM-45)', () => {
   });
 
   it('the home page view carries net, local and lcp and never ready', async () => {
-    vi.mocked(pagePerformance.collectPageMeasures).mockResolvedValueOnce({ net: '1-5', local: '6-15', lcp: 'le1s' });
+    vi.mocked(pagePerformance.collectPageMeasures).mockResolvedValueOnce({ net: '2-5', local: '6-15', lcp: 'le1s' });
     clock(500);
     reportHomePageView();
     await settle();
-    expect((await sent())[0].properties).toEqual({ tool: 'home', first: true, net: '1-5', local: '6-15', lcp: 'le1s' });
+    expect((await sent())[0].properties).toEqual({ tool: 'home', first: true, net: '2-5', local: '6-15', lcp: 'le1s' });
   });
 
   it('leaves out what the browser could not measure', async () => {

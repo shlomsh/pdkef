@@ -16,8 +16,8 @@ afterEach(() => {
 
 describe('countBucket', () => {
   it('buckets at the edges', () => {
-    const at = [0, 1, 5, 6, 15, 16, 30, 31, 50, 51, 400].map(countBucket);
-    expect(at).toEqual(['0', '1-5', '1-5', '6-15', '6-15', '16-30', '16-30', '31-50', '31-50', '51+', '51+']);
+    const at = [0, 1, 2, 5, 6, 15, 16, 30, 31, 50, 51, 400].map(countBucket);
+    expect(at).toEqual(['0', '1', '2-5', '2-5', '6-15', '6-15', '16-30', '16-30', '31-50', '31-50', '51+', '51+']);
   });
   it('is undefined for a number that is not a count', () => {
     expect([-1, NaN, Infinity, 1.5].map(countBucket)).toEqual([undefined, undefined, undefined, undefined]);
@@ -95,7 +95,7 @@ describe('collectPageMeasures', () => {
       takeRecords() { return []; }
     }
     vi.stubGlobal('PerformanceObserver', FakeObserver);
-    expect(await collectPageMeasures()).toEqual({ net: '1-5', local: '1-5', lcp: 'le2.5s' });
+    expect(await collectPageMeasures()).toEqual({ net: '1', local: '2-5', lcp: 'le2.5s' });
   });
 
   it('leaves out what the browser does not support, never guessing', async () => {
@@ -107,6 +107,6 @@ describe('collectPageMeasures', () => {
   it('leaves lcp out, without waiting, when the browser does not list the largest-contentful-paint entry type', async () => {
     stubPerformance([{ t: 'navigation', ...resource(500, 500) }]);
     vi.stubGlobal('PerformanceObserver', class { static supportedEntryTypes = ['event']; observe() { throw new TypeError('unsupported'); } takeRecords() { return []; } });
-    expect(await collectPageMeasures()).toEqual({ net: '1-5', local: '0' });
+    expect(await collectPageMeasures()).toEqual({ net: '1', local: '0' });
   });
 });

@@ -4,7 +4,7 @@
 //   once:   the same behind `once:`, counted on a page load's first event of its kind
 //   pg:     `pg:<event>|<tool>|<source>|<from>|<nav>|<visit>`, `-` for absent, first events only
 //   nav:    DEBT-57's older page-load field, not read here
-//   perf:   MEM-45 `perf:<tool>:<net>:<local>:<lcp>:<ready>`, `-` for absent, one per page view that carried a measure
+//   perf:   MEM-45 `perf:<tool>:<visit>:<net>:<local>:<lcp>:<ready>`, `-` for absent, one per page view that carried a measure
 //   ms:     MEM-45 `ms:<event>:<tool>:<bucket>`, the time to open a file / to a result
 // Nothing here does I/O; errors-read.mjs prints what these return.
 
@@ -169,11 +169,13 @@ export function driveSaveLines(results) {
 }
 
 // MEM-45: the experience measures, per tool. Bucket lists mirror COUNT_BUCKETS and TIME_BUCKETS in the schema.
-const COUNTS = ['0', '1-5', '6-15', '16-30', '31-50', '51+'];
+const COUNTS = ['0', '1', '2-5', '6-15', '16-30', '31-50', '51+'];
 const TIMES = ['le1s', 'le2.5s', 'le4s', 'gt4s'];
-// The first bucket that means "fix this" (MEM-45's list); a returning view above 1 request is read from `1-5` up by hand.
-const FIX_FROM = { lcp: 'le4s', ready: 'le4s', open: 'le4s', export: 'gt4s', net: '6-15', local: undefined };
-const MEASURES = [['lcp', TIMES], ['ready', TIMES], ['open', TIMES], ['export', TIMES], ['net', COUNTS], ['local', COUNTS]];
+// The first bucket that means "fix this" (MEM-45's list). `net` is read for returning views only (a visit that
+// is neither `new` nor absent); new views' net is shown with no flag.
+const FIX_FROM = { lcp: 'le4s', ready: 'le4s', open: 'le4s', export: 'gt4s', netReturning: '2-5', netNew: undefined, local: undefined };
+const MEASURES = [['lcp', TIMES], ['ready', TIMES], ['open', TIMES], ['export', TIMES], ['netReturning', COUNTS], ['netNew', COUNTS], ['local', COUNTS]];
+const COLUMNS = ['lcp', 'ready', 'open', 'export', 'net returning', 'net new', 'local'];
 
 /** The smallest bucket that holds at least three quarters of the counts; undefined with none. */
 export function percentileBucket(counts, order) {
@@ -201,8 +203,10 @@ function measuresByTool(result) {
       tools.set(tool, m);
     };
     if (f.startsWith('perf:')) {
-      const [tool, net, local, lcp, ready] = f.slice(5).split(':');
-      put(tool, 'net', net); put(tool, 'local', local); put(tool, 'lcp', lcp); put(tool, 'ready', ready);
+      const [tool, visit, net, local, lcp, ready] = f.slice(5).split(':');
+      if (visit === 'new') put(tool, 'netNew', net);
+      else if (visit !== '-') put(tool, 'netReturning', net);
+      put(tool, 'local', local); put(tool, 'lcp', lcp); put(tool, 'ready', ready);
     } else if (f.startsWith('ms:')) {
       const [event, tool, bucket] = f.slice(3).split(':');
       if (event === 'tool_file_accepted') put(tool, 'open', bucket);
@@ -230,5 +234,5 @@ export function perfLines(today, yesterday) {
     return `${tool} | ${cells.join(' | ')}`;
   });
   if (!rows.length) return [];
-  return ['tool | lcp | ready | open | export | net | local   (75th percentile, today / yesterday; ! = fix this)', ...rows];
+  return [`tool | ${COLUMNS.join(' | ')}   (75th percentile, today / yesterday; ! = fix this)`, ...rows];
 }

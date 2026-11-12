@@ -101,7 +101,7 @@ export type Visit = (typeof VISITS)[number];
  * the time an operation took. A measure the browser cannot give is left out, never guessed.
  * @testSeam
  */
-export const COUNT_BUCKETS = ['0', '1-5', '6-15', '16-30', '31-50', '51+'] as const;
+export const COUNT_BUCKETS = ['0', '1', '2-5', '6-15', '16-30', '31-50', '51+'] as const;
 export type CountBucket = (typeof COUNT_BUCKETS)[number];
 export const TIME_BUCKETS = ['le1s', 'le2.5s', 'le4s', 'gt4s'] as const;
 export type TimeBucket = (typeof TIME_BUCKETS)[number];
@@ -213,13 +213,14 @@ export const usagePageField = (event: UsageEvent): string | undefined => {
 
 /**
  * MEM-45: the one counter an event's measures go under, so they cost one command: a page view's
- * `perf:<tool>:<net>:<local>:<lcp>:<ready>` (`-` for each one absent) and a timing's
+ * `perf:<tool>:<visit>:<net>:<local>:<lcp>:<ready>` (`-` for each one absent; the view's visit rides along so a
+ * returning view's requests can be read apart from a new one's) and a timing's
  * `ms:<event>:<tool>:<bucket>`. Undefined when the event carries no measure.
  */
 export const usageMeasureField = (event: UsageEvent): string | undefined => {
-  const { tool, net, local, lcp, ready, ms } = event.properties;
+  const { tool, visit, net, local, lcp, ready, ms } = event.properties;
   if (event.name === 'tool_page_viewed') {
-    return net || local || lcp || ready ? `perf:${tool}:${net ?? '-'}:${local ?? '-'}:${lcp ?? '-'}:${ready ?? '-'}` : undefined;
+    return net || local || lcp || ready ? `perf:${tool}:${visit ?? '-'}:${net ?? '-'}:${local ?? '-'}:${lcp ?? '-'}:${ready ?? '-'}` : undefined;
   }
   return ms ? `ms:${event.name}:${tool}:${ms}` : undefined;
 };

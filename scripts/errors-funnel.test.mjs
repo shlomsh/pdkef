@@ -122,21 +122,28 @@ describe('MEM-45 performance fields', () => {
     expect(percentileBucket({}, TIME)).toBeUndefined();
   });
   it('the old readers skip perf: and ms: fields', () => {
-    expect(parseUsageField('perf:merge:0:16-30:le1s:le1s')).toBeNull();
+    expect(parseUsageField('perf:merge:week:0:16-30:le1s:le1s')).toBeNull();
     expect(parseUsageField('ms:tool_result_ready:merge:le4s')).toBeNull();
   });
   const today = flat({
-    'perf:merge:0:16-30:le1s:le1s': 5, 'perf:merge:1-5:16-30:le2.5s:le4s': 3, 'perf:merge:-:-:gt4s:-': 2,
+    'perf:merge:week:0:16-30:le1s:le1s': 5, 'perf:merge:month:2-5:16-30:le2.5s:le4s': 3, 'perf:merge:new:31-50:-:gt4s:-': 2,
     'ms:tool_file_accepted:merge:le1s': 4, 'ms:tool_result_ready:merge:gt4s': 3, 'ms:tool_result_ready:merge:le1s': 1,
-    'perf:sign:6-15:0:le1s:le1s': 1, 'tool_page_viewed|merge': 9,
+    'perf:sign:today:6-15:0:le1s:le1s': 1, 'tool_page_viewed|merge': 9,
   });
-  const yesterday = flat({ 'perf:merge:0:16-30:le1s:le1s': 4, 'ms:tool_result_ready:merge:le4s': 2 });
-  it('prints, per tool, the p75 bucket today against yesterday, flagging what needs a fix', () => {
+  const yesterday = flat({ 'perf:merge:week:0:16-30:le1s:le1s': 4, 'ms:tool_result_ready:merge:le4s': 2 });
+  it('prints, per tool, the p75 bucket today against yesterday, net apart for returning and new views, flagging what needs a fix', () => {
     expect(perfLines(today, yesterday)).toEqual([
-      'tool | lcp | ready | open | export | net | local   (75th percentile, today / yesterday; ! = fix this)',
-      'merge | le2.5s / le1s | le4s! / le1s | le1s / - | gt4s! / le4s | 1-5 / 0 | 16-30 / 16-30',
-      'sign | le1s / - | le1s / - | - / - | - / - | 6-15! / - | 0 / -',
+      'tool | lcp | ready | open | export | net returning | net new | local   (75th percentile, today / yesterday; ! = fix this)',
+      'merge | le2.5s / le1s | le4s! / le1s | le1s / - | gt4s! / le4s | 2-5! / 0 | 31-50 / - | 16-30 / 16-30',
+      'sign | le1s / - | le1s / - | - / - | - / - | 6-15! / - | - / - | 0 / -',
     ]);
+  });
+  it('flags a returning view at one request no more than at none, and never flags new views', () => {
+    const one = perfLines(flat({ 'perf:merge:week:1:0:le1s:le1s': 4, 'perf:merge:new:51+:0:le1s:le1s': 9 }), undefined);
+    expect(one[1]).toContain('| 1 / - | 51+ / - |');
+  });
+  it('a view with no visit counts toward the other measures but toward neither net column', () => {
+    expect(perfLines(flat({ 'perf:merge:-:51+:0:le1s:le1s': 4 }), undefined)[1]).toBe('merge | le1s / - | le1s / - | - / - | - / - | - / - | - / - | 0 / -');
   });
   it('is empty when no day holds a measure', () => {
     expect(perfLines(flat({ 'tool_page_viewed|merge': 3 }), undefined)).toEqual([]);
