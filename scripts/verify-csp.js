@@ -2,6 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import crypto from 'crypto';
 import { JSDOM } from 'jsdom';
+import { analyticsOrigin } from './analyticsOrigin.mjs';
 
 const distDir = path.join(process.cwd(), 'dist');
 
@@ -135,6 +136,9 @@ if (!fs.existsSync(drivePage)) {
   console.error('[ERROR] dist/drive/index.html is missing: the /drive/ page is required.');
   hasError = true;
 }
+// MEM-45: connect-src is 'self' everywhere, plus the one analytics origin when the build set PUBLIC_ANALYTICS_HOST.
+// analyticsOrigin() throws on a mistyped variable, which fails this script loudly.
+const analytics = analyticsOrigin();
 for (const file of htmlFiles) {
   if (isGoogleVerificationFile(file, fs.readFileSync(file, 'utf-8'))) continue;
   const csp = new JSDOM(fs.readFileSync(file, 'utf-8')).window.document
@@ -153,6 +157,25 @@ for (const file of htmlFiles) {
   } else if (!videoPages.includes(file) && csp.includes(VIDEO_PLAYER_ORIGIN)) {
     console.error(`[ERROR] ${relative}: CSP contains ${VIDEO_PLAYER_ORIGIN}, which only the pages with the video may allow.`);
     hasError = true;
+  }
+  const connectSrc = csp.split(';').map((d) => d.trim()).find((d) => d.split(/\s+/)[0] === 'connect-src');
+  if (connectSrc === undefined) {
+    console.error(`[ERROR] ${relative}: CSP has no connect-src directive.`);
+    hasError = true;
+  } else if (file === drivePage) {
+    const tokens = connectSrc.split(/\s+/).slice(1);
+    const allowed = new Set(["'self'", ...GOOGLE_ORIGINS, ...(analytics ? [analytics] : [])]);
+    const stray = tokens.filter((t) => !allowed.has(t));
+    if (!tokens.includes("'self'") || stray.length > 0 || (analytics && !tokens.includes(analytics))) {
+      console.error(`[ERROR] ${relative}: CSP connect-src must be 'self', the Google origins${analytics ? ` and ${analytics}` : ''} only, got: ${connectSrc}`);
+      hasError = true;
+    }
+  } else {
+    const expected = analytics ? `connect-src 'self' ${analytics}` : "connect-src 'self'";
+    if (connectSrc !== expected) {
+      console.error(`[ERROR] ${relative}: CSP connect-src must be exactly ${expected}, got: ${connectSrc}`);
+      hasError = true;
+    }
   }
   for (const origin of GOOGLE_ORIGINS) {
     const present = csp.includes(origin);

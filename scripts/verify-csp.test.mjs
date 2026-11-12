@@ -25,8 +25,11 @@ const driveCsp = goodCsp(' https://accounts.google.com https://www.googleapis.co
 
 const videoFrame = '; frame-src https://www.youtube-nocookie.com';
 
+// A developer's shell must not change the result, so the default env never carries the analytics variable.
+const { PUBLIC_ANALYTICS_HOST: _ignored, ...baseEnv } = process.env;
+
 // A clean two-page dist; `overrides` replaces or adds files by dist-relative path.
-function run(overrides = {}) {
+function run(overrides = {}, env = baseEnv) {
   const cwd = fs.mkdtempSync(path.join(os.tmpdir(), 'verify-csp-'));
   const files = {
     'index.html': page({ csp: goodCsp(videoFrame), body: goodBody }),
@@ -37,7 +40,7 @@ function run(overrides = {}) {
     fs.mkdirSync(path.dirname(path.join(cwd, 'dist', rel)), { recursive: true });
     fs.writeFileSync(path.join(cwd, 'dist', rel), html);
   }
-  const r = spawnSync(process.execPath, [script], { cwd, encoding: 'utf8' });
+  const r = spawnSync(process.execPath, [script], { cwd, encoding: 'utf8', env });
   return { status: r.status, err: r.stderr };
 }
 
@@ -135,5 +138,48 @@ describe('verify-csp CLI', () => {
     const r = run({ 'drive/index.html': page({ csp: goodCsp(), body: goodBody }) });
     expect(r.status).toBe(1);
     expect(r.err).toContain('which the Drive page needs');
+  });
+
+  describe('connect-src pin', () => {
+    const HOST = 'https://e.example.test';
+    const withHost = { ...baseEnv, PUBLIC_ANALYTICS_HOST: HOST };
+    const videoWith = goodCsp(` ${HOST}${videoFrame}`);
+
+    it('unset: fails a page whose connect-src carries another origin, naming the page', () => {
+      const r = run({ 'merge/index.html': page({ csp: goodCsp().replace("connect-src 'self'", "connect-src 'self' https://evil.example"), body: goodBody }) });
+      expect(r.status).toBe(1);
+      expect(r.err).toContain('merge');
+      expect(r.err).toContain('connect-src');
+    });
+
+    it('unset: the good fixtures still pass', () => {
+      expect(run().status).toBe(0);
+    });
+
+    it('set: pages carrying the origin pass, drive included', () => {
+      const r = run({
+        'index.html': page({ csp: videoWith, body: goodBody }),
+        'drive/index.html': page({ csp: `${driveCsp} ${HOST}`, body: goodBody }),
+        'merge/index.html': page({ csp: goodCsp(` ${HOST}`), body: goodBody }),
+      }, withHost);
+      expect(r.err).toBe('');
+      expect(r.status).toBe(0);
+    });
+
+    it('set: a page still at plain connect-src \'self\' fails', () => {
+      const r = run({
+        'index.html': page({ csp: videoWith, body: goodBody }),
+        'drive/index.html': page({ csp: `${driveCsp} ${HOST}`, body: goodBody }),
+        'merge/index.html': page({ csp: goodCsp(), body: goodBody }),
+      }, withHost);
+      expect(r.status).toBe(1);
+      expect(r.err).toContain('merge');
+    });
+
+    it('set to http: exits non-zero naming the variable', () => {
+      const r = run({}, { ...baseEnv, PUBLIC_ANALYTICS_HOST: 'http://x' });
+      expect(r.status).not.toBe(0);
+      expect(r.err).toContain('PUBLIC_ANALYTICS_HOST');
+    });
   });
 });

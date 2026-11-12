@@ -8,13 +8,17 @@ import '../styles/openPage.css';
 
 // MERGE-25 / DRIVE-01: where Google Drive's "Open with > PDkef" lands and where tools send a person to pick
 // a file. The approved exception to "no external origins": Google's sign-in script, Picker and Drive API,
-// on this page only. Every other page keeps `connect-src 'self'`; the file still goes straight from Drive
+// on this page only. Every other page keeps `connect-src 'self'`, plus the one analytics address when the build sets it; the file still goes straight from Drive
 // to this device. These values were proven on a real device; the Picker draws its own frame and styles.
 // Adding a script resource replaces the base script-src source list for this page, so 'self' is restated.
 Astro.csp?.insertScriptResource("'self'");
 Astro.csp?.insertScriptResource('https://accounts.google.com/gsi/client');
 Astro.csp?.insertScriptResource('https://apis.google.com');
-Astro.csp?.insertDirective("connect-src 'self' https://www.googleapis.com https://accounts.google.com https://content.googleapis.com https://docs.google.com");
+// MEM-45: this literal replaces the base connect-src, so the optional analytics origin is restated here.
+const analyticsHost = import.meta.env.PUBLIC_ANALYTICS_HOST;
+const analyticsUrl = typeof analyticsHost === 'string' && analyticsHost.startsWith('https://') ? new URL(analyticsHost) : null;
+const analyticsOrigin = analyticsUrl ? ` ${analyticsUrl.origin}` : '';
+Astro.csp?.insertDirective(`connect-src 'self' https://www.googleapis.com https://accounts.google.com https://content.googleapis.com https://docs.google.com${analyticsOrigin}`);
 Astro.csp?.insertDirective('frame-src https://docs.google.com https://drive.google.com https://accounts.google.com https://content.googleapis.com');
 // Astro's directive type leaves out style-src-elem; the browser honours it and test:csp pins it on this page alone.
 Astro.csp?.insertDirective("style-src-elem 'self' 'unsafe-inline'" as Parameters<NonNullable<typeof Astro.csp>['insertDirective']>[0]);
