@@ -236,3 +236,28 @@ describe('reject commands', () => {
     ]);
   });
 });
+
+describe('usage measures (MEM-45)', () => {
+  const day = '2026-10-01';
+  const ttl = 90 * 24 * 60 * 60;
+  it('a page view with measures adds one perf field before the expiry', () => {
+    const event = { name: 'tool_page_viewed', properties: { tool: 'merge', net: '0', local: '16-30', lcp: 'le2.5s', ready: 'le1s' } } as const;
+    expect(usageCommands(event, day)).toEqual([
+      ['HINCRBY', `usage:${day}`, 'tool_page_viewed|merge', 1],
+      ['HINCRBY', `usage:${day}`, 'perf:merge:0:16-30:le2.5s:le1s', 1],
+      ['EXPIRE', `usage:${day}`, ttl],
+    ]);
+  });
+  it('a timing adds one ms field, after the first-event pg field', () => {
+    const event = { name: 'tool_result_ready', properties: { tool: 'merge', first: true, ms: 'le4s' } } as const;
+    expect(usageCommands(event, day).map((c) => (c[0] === 'EXPIRE' ? 'EXPIRE' : c[2]))).toEqual([
+      'tool_result_ready|merge',
+      'pg:tool_result_ready|merge|-|-|-|-',
+      'ms:tool_result_ready:merge:le4s',
+      'EXPIRE',
+    ]);
+  });
+  it('an event with no measure costs what it did', () => {
+    expect(usageCommands({ name: 'tool_page_viewed', properties: { tool: 'merge' } }, day)).toHaveLength(2);
+  });
+});

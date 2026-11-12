@@ -107,7 +107,7 @@ describe('PdfSecurityTool', () => {
 
   it('sends the page view on load, before any file says unlock or protect, and only once (DEBT-58)', async () => {
     mount({ intent: 'unlock' });
-    const views = async () => { await harness.flush(); return harness.usageEvents('tool_page_viewed'); };
+    const views = async () => { await new Promise((r) => setTimeout(r, 0)); await harness.flush(); return harness.usageEvents('tool_page_viewed'); };
     expect(await views()).toMatchObject([{ name: 'tool_page_viewed', properties: { tool: 'unlock' } }]);
     await loadFile();
     expect(await views()).toHaveLength(1);

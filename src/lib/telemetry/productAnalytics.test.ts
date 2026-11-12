@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { markArrival } from '../handoff/fileArrival.ts';
+import * as pagePerformance from './pagePerformance.ts';
 import { setReportingEnabledForTests } from './errorReport.ts';
 import {
   MAX_USAGE_EVENTS_PER_PAGE,
@@ -11,7 +12,15 @@ import {
   type ToolLifecycleEvent,
 } from './productAnalytics.ts';
 
+vi.mock('./pagePerformance.ts', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('./pagePerformance.ts')>()),
+  pageLoaded: vi.fn(async () => {}),
+  collectPageMeasures: vi.fn(async () => ({})),
+}));
+
 let beacon: ReturnType<typeof vi.fn>;
+// One page view goes out after the load event and the measures settle, a few microtasks on.
+const settle = () => new Promise((resolve) => setTimeout(resolve, 0));
 
 beforeEach(() => {
   beacon = vi.fn(() => true);
@@ -126,13 +135,17 @@ describe('the funnel (DEBT-58)', () => {
       setItem: (k: string, v: string) => void m.set(k, v),
     };
   };
+  // Page views carry `ready` off the real clock; these tests are about visit, so the clock reads nothing.
+  beforeEach(() => void vi.spyOn(performance, 'now').mockReturnValue(Number.NaN));
   const props = async () => Promise.all(beacon.mock.calls.map(async ([, b]) => JSON.parse(await (b as Blob).text()).properties));
 
   it('DEBT-61: the home page view carries the visit, and a tool page opened later that day reads today', async () => {
     vi.stubGlobal('localStorage', store());
     reportHomePageView();
+    await settle();
     resetUsageEventsForTests(); // the next page load
     reportToolLifecycleEvent('tool_page_viewed', 'sign');
+    await settle();
     expect(await props()).toEqual([
       { tool: 'home', first: true, visit: 'new' },
       { tool: 'sign', first: true, visit: 'today' },
@@ -144,6 +157,7 @@ describe('the funnel (DEBT-58)', () => {
     vi.stubGlobal('localStorage', ls);
     reportToolLifecycleEvent('tool_page_viewed', 'sign');
     reportToolLifecycleEvent('tool_page_viewed', 'sign');
+    await settle();
     const [a, b] = await props();
     expect(a).toEqual({ tool: 'sign', first: true, visit: 'new' });
     expect(b.visit).toBe('new');
@@ -153,6 +167,7 @@ describe('the funnel (DEBT-58)', () => {
   it('omits visit without storage', async () => {
     vi.stubGlobal('localStorage', store(true));
     reportToolLifecycleEvent('tool_page_viewed', 'sign');
+    await settle();
     expect((await props())[0]).toEqual({ tool: 'sign', first: true });
   });
 
@@ -220,5 +235,66 @@ describe('reportEdit', () => {
     reportEdit('sign');
     reportEdit('sign');
     expect(await names()).toEqual(['tool_file_accepted', 'tool_first_edit', 'tool_file_accepted', 'tool_first_edit']);
+  });
+});
+
+describe('performance measures (MEM-45)', () => {
+  const sent = async () => Promise.all(beacon.mock.calls.map(async ([, b]) => JSON.parse(await (b as Blob).text())));
+  const clock = (ms: number) => vi.spyOn(performance, 'now').mockReturnValue(ms);
+
+  it('a tool page view waits for the window load, then sends once with the measures and ready', async () => {
+    let load!: () => void;
+    vi.mocked(pagePerformance.pageLoaded).mockReturnValueOnce(new Promise<void>((resolve) => (load = resolve)));
+    vi.mocked(pagePerformance.collectPageMeasures).mockResolvedValueOnce({ net: '0', local: '16-30', lcp: 'le2.5s' });
+    clock(1800);
+    reportToolLifecycleEvent('tool_page_viewed', 'sign');
+    await settle();
+    expect(beacon).not.toHaveBeenCalled();
+    clock(9000); // ready was taken at the call, not at the send
+    load();
+    await settle();
+    expect(beacon).toHaveBeenCalledTimes(1);
+    expect((await sent())[0].properties).toEqual({ tool: 'sign', first: true, net: '0', local: '16-30', lcp: 'le2.5s', ready: 'le2.5s' });
+  });
+
+  it('the home page view carries net, local and lcp and never ready', async () => {
+    vi.mocked(pagePerformance.collectPageMeasures).mockResolvedValueOnce({ net: '1-5', local: '6-15', lcp: 'le1s' });
+    clock(500);
+    reportHomePageView();
+    await settle();
+    expect((await sent())[0].properties).toEqual({ tool: 'home', first: true, net: '1-5', local: '6-15', lcp: 'le1s' });
+  });
+
+  it('leaves out what the browser could not measure', async () => {
+    clock(Number.NaN);
+    reportToolLifecycleEvent('tool_page_viewed', 'merge');
+    await settle();
+    expect((await sent())[0].properties).toEqual({ tool: 'merge', first: true });
+  });
+
+  it('tool_file_accepted carries the time since the arrival was marked', async () => {
+    clock(10_000);
+    markArrival('pick');
+    clock(12_100);
+    reportToolLifecycleEvent('tool_file_accepted', 'sign');
+    expect((await sent())[0].properties).toMatchObject({ source: 'pick', ms: 'le2.5s' });
+    expect((await sent())[0].properties).not.toHaveProperty('at');
+  });
+
+  it('an acceptance nobody marked has no ms', async () => {
+    reportToolLifecycleEvent('tool_file_accepted', 'sign');
+    expect((await sent())[0].properties).not.toHaveProperty('ms');
+  });
+
+  it('tool_result_ready carries the time since tool_operation_started, once', async () => {
+    clock(1000);
+    reportToolLifecycleEvent('tool_operation_started', 'compress');
+    clock(6200);
+    reportToolLifecycleEvent('tool_result_ready', 'compress');
+    reportToolLifecycleEvent('tool_result_ready', 'compress');
+    const [started, ready, again] = await sent();
+    expect(started.properties).not.toHaveProperty('ms');
+    expect(ready.properties.ms).toBe('gt4s');
+    expect(again.properties).not.toHaveProperty('ms');
   });
 });

@@ -10,8 +10,9 @@
  */
 
 import { readBuildCommit, sendBeacon } from './errorReport.ts';
-import { resetFileArrivalForTests, takeArrival, type Arrival } from '../handoff/fileArrival.ts';
-import { NAVIGATION_TYPES, parseUsageEvent, type AnalyticsTool, type NavigationType, type UsageEventName, type ViewOnlyPage, type Visit } from './usageEventSchema';
+import { resetFileArrivalForTests, takeArrival, takeArrivalTime, type Arrival } from '../handoff/fileArrival.ts';
+import { collectPageMeasures, pageLoaded, timeBucket } from './pagePerformance.ts';
+import { NAVIGATION_TYPES, parseUsageEvent, type AnalyticsTool, type NavigationType, type UsageEvent, type UsageEventName, type ViewOnlyPage, type Visit } from './usageEventSchema';
 import { readAndStampVisit } from './visitRecency.ts';
 
 // The event and tool lists live in the import-free schema the endpoint shares (DEBT-28).
@@ -33,6 +34,8 @@ const seen = new Set<string>();
 let current: Arrival | undefined;
 let accepted = false;
 let editSent = false;
+// MEM-45: when the operation in progress started (performance.now), for `tool_result_ready`'s ms.
+let startedAt: number | undefined;
 // The visit bucket, read and stamped once per page load.
 let visit: { value: Visit | undefined } | null = null;
 
@@ -42,6 +45,7 @@ export function resetUsageEventsForTests(): void {
   current = undefined;
   accepted = false;
   editSent = false;
+  startedAt = undefined;
   visit = null;
   resetFileArrivalForTests();
 }
@@ -76,9 +80,44 @@ function readNavigationType(): NavigationType | undefined {
   }
 }
 
+/** MEM-45: a file's time to be accepted (from its arrival mark) or an operation's time to be ready (from its start). */
+function timingBucket(event: UsageEventName, arrivedAt: number | undefined) {
+  if (event === 'tool_operation_started') startedAt = now();
+  if (event === 'tool_file_accepted') return sinceBucket(arrivedAt);
+  if (event !== 'tool_result_ready') return undefined;
+  const bucket = sinceBucket(startedAt);
+  startedAt = undefined;
+  return bucket;
+}
+
 /** Hands one funnel event to `/api/report` by beacon; capped per page, never throws. */
 export function reportToolLifecycleEvent(event: UsageEventName, tool: AnalyticsTool): void {
-  report(event, tool);
+  if (event === 'tool_page_viewed') void reportPageView(tool, now()); // reason: reportPageView catches everything itself
+  else report(event, tool);
+}
+
+const now = (): number | undefined => (typeof performance?.now === 'function' ? performance.now() : undefined);
+
+/** Milliseconds since `from`, as a bucket; undefined when either end is unknown. */
+const sinceBucket = (from: number | undefined) => {
+  const end = now();
+  return from === undefined || end === undefined ? undefined : timeBucket(end - from);
+};
+
+/**
+ * MEM-45: the page view goes out once the window has loaded, so its request counts cover the page's own
+ * load, carrying the measures the browser can give. `ready` is the time from navigation start to this
+ * call, which the tool island makes from its first mount effect; the home page has none.
+ */
+async function reportPageView(tool: AnalyticsTool | ViewOnlyPage, mountedAt?: number): Promise<void> {
+  try {
+    await pageLoaded();
+    const measures = await collectPageMeasures();
+    const ready = tool === 'home' ? undefined : timeBucket(mountedAt);
+    report('tool_page_viewed', tool, { ...measures, ...(ready ? { ready } : {}) });
+  } catch {
+    // expected: a measure that cannot be taken never stops the view from counting
+  }
 }
 
 /**
@@ -86,16 +125,19 @@ export function reportToolLifecycleEvent(event: UsageEventName, tool: AnalyticsT
  * the tool pages, so a person is counted once a day on the first PDkef page they see.
  */
 export function reportHomePageView(): void {
-  report('tool_page_viewed', 'home');
+  void reportPageView('home'); // reason: reportPageView catches everything itself
 }
 
-function report(event: UsageEventName, tool: AnalyticsTool | ViewOnlyPage): void {
+type Measures = Partial<Pick<UsageEvent['properties'], 'net' | 'local' | 'lcp' | 'ready' | 'ms'>>;
+
+function report(event: UsageEventName, tool: AnalyticsTool | ViewOnlyPage, measures: Measures = {}): void {
   try {
     const build = readBuildCommit();
     const pair = `${event}|${tool}`;
     const first = !seen.has(pair);
     const nav = first ? readNavigationType() : undefined;
     const arrival = event === 'tool_file_accepted' ? takeArrival() : current;
+    const ms = timingBucket(event, event === 'tool_file_accepted' ? takeArrivalTime() : undefined);
     const visitProp = event === 'tool_page_viewed' ? pageVisit() : undefined;
     const parsed = parseUsageEvent({
       name: event,
@@ -106,6 +148,8 @@ function report(event: UsageEventName, tool: AnalyticsTool | ViewOnlyPage): void
         ...(nav ? { nav } : {}),
         ...arrivalProps(event, arrival),
         ...(visitProp ? { visit: visitProp } : {}),
+        ...measures,
+        ...(ms ? { ms } : {}),
       },
     });
     // An acceptance nobody marked after a first one (Merge's Undo bringing back the last file it

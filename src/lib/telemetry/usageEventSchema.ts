@@ -93,6 +93,19 @@ export type FileSource = (typeof FILE_SOURCES)[number];
 export const VISITS = ['new', 'today', 'week', 'month', 'older'] as const;
 export type Visit = (typeof VISITS)[number];
 
+/**
+ * MEM-45: how the site performs for a real visitor, as buckets and never raw values. On
+ * `tool_page_viewed`: `net` and `local` count this page's own requests (reached the network / answered
+ * on the device), `lcp` is the largest contentful paint and `ready` (tool pages only) is the time to the
+ * tool island's mount. On `tool_file_accepted` and `tool_result_ready`: `ms`, the time to open a file and
+ * the time an operation took. A measure the browser cannot give is left out, never guessed.
+ * @testSeam
+ */
+export const COUNT_BUCKETS = ['0', '1-5', '6-15', '16-30', '31-50', '51+'] as const;
+export type CountBucket = (typeof COUNT_BUCKETS)[number];
+export const TIME_BUCKETS = ['le1s', 'le2.5s', 'le4s', 'gt4s'] as const;
+export type TimeBucket = (typeof TIME_BUCKETS)[number];
+
 export type UsageEvent = Readonly<{
   name: UsageEventName;
   properties: Readonly<{
@@ -104,6 +117,11 @@ export type UsageEvent = Readonly<{
     /** With `source: 'handoff'` on `tool_file_accepted` only: the tool that handed the file on. */
     from?: AnalyticsTool;
     visit?: Visit;
+    net?: CountBucket;
+    local?: CountBucket;
+    lcp?: TimeBucket;
+    ready?: TimeBucket;
+    ms?: TimeBucket;
   }>;
 }>;
 
@@ -121,7 +139,7 @@ function exactKeys(value: object, keys: readonly string[]): boolean {
   return actual.length === keys.length && [...keys].sort().every((key, i) => key === actual[i]);
 }
 
-const OPTIONAL_KEYS = ['build', 'first', 'nav', 'source', 'from', 'visit'] as const;
+const OPTIONAL_KEYS = ['build', 'first', 'nav', 'source', 'from', 'visit', 'net', 'local', 'lcp', 'ready', 'ms'] as const;
 
 /**
  * Accepts exactly `{name, properties: {tool}}` plus any of the optional properties above, each value
@@ -144,6 +162,12 @@ export function parseUsageEvent(value: unknown): UsageEvent | null {
   if (on('source') && (name === 'tool_page_viewed' || !has(FILE_SOURCES, p.source))) return null;
   if (on('from') && (name !== 'tool_file_accepted' || p.source !== 'handoff' || !has(ANALYTICS_TOOLS, p.from))) return null;
   if (on('visit') && (name !== 'tool_page_viewed' || !has(VISITS, p.visit))) return null;
+  const viewed = name === 'tool_page_viewed';
+  if (on('net') && (!viewed || !has(COUNT_BUCKETS, p.net))) return null;
+  if (on('local') && (!viewed || !has(COUNT_BUCKETS, p.local))) return null;
+  if (on('lcp') && (!viewed || !has(TIME_BUCKETS, p.lcp))) return null;
+  if (on('ready') && (!viewed || p.tool === 'home' || !has(TIME_BUCKETS, p.ready))) return null;
+  if (on('ms') && ((name !== 'tool_file_accepted' && name !== 'tool_result_ready') || !has(TIME_BUCKETS, p.ms))) return null;
   return Object.freeze({
     name: name as UsageEventName,
     properties: Object.freeze({
@@ -154,6 +178,11 @@ export function parseUsageEvent(value: unknown): UsageEvent | null {
       ...(on('source') ? { source: p.source as FileSource } : {}),
       ...(on('from') ? { from: p.from as AnalyticsTool } : {}),
       ...(on('visit') ? { visit: p.visit as Visit } : {}),
+      ...(on('net') ? { net: p.net as CountBucket } : {}),
+      ...(on('local') ? { local: p.local as CountBucket } : {}),
+      ...(on('lcp') ? { lcp: p.lcp as TimeBucket } : {}),
+      ...(on('ready') ? { ready: p.ready as TimeBucket } : {}),
+      ...(on('ms') ? { ms: p.ms as TimeBucket } : {}),
     }),
   });
 }
@@ -179,4 +208,18 @@ export const usagePageField = (event: UsageEvent): string | undefined => {
   const { tool, first, source, from, nav, visit } = event.properties;
   if (!first) return undefined;
   return `pg:${event.name}|${tool}|${source ?? '-'}|${from ?? '-'}|${nav ?? '-'}|${visit ?? '-'}`;
+};
+
+
+/**
+ * MEM-45: the one counter an event's measures go under, so they cost one command: a page view's
+ * `perf:<tool>:<net>:<local>:<lcp>:<ready>` (`-` for each one absent) and a timing's
+ * `ms:<event>:<tool>:<bucket>`. Undefined when the event carries no measure.
+ */
+export const usageMeasureField = (event: UsageEvent): string | undefined => {
+  const { tool, net, local, lcp, ready, ms } = event.properties;
+  if (event.name === 'tool_page_viewed') {
+    return net || local || lcp || ready ? `perf:${tool}:${net ?? '-'}:${local ?? '-'}:${lcp ?? '-'}:${ready ?? '-'}` : undefined;
+  }
+  return ms ? `ms:${event.name}:${tool}:${ms}` : undefined;
 };

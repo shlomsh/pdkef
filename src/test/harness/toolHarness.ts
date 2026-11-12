@@ -110,6 +110,8 @@ export function installToolHarness({ trackIndexedDb = false }: { trackIndexedDb?
   sessionStorage.clear();
 
   const originalBeacon = Object.getOwnPropertyDescriptor(navigator, 'sendBeacon');
+  // MEM-45: a page view waits for the window load event; a test's page has already loaded.
+  Object.defineProperty(document, 'readyState', { configurable: true, value: 'complete' });
   const originalCreate = URL.createObjectURL;
   const originalRevoke = URL.revokeObjectURL;
 
@@ -170,6 +172,7 @@ export function installToolHarness({ trackIndexedDb = false }: { trackIndexedDb?
     },
     restore: () => {
       setReportingEnabledForTests(false);
+      delete (document as { readyState?: unknown }).readyState;
       if (originalBeacon) Object.defineProperty(navigator, 'sendBeacon', originalBeacon);
       else delete (navigator as { sendBeacon?: unknown }).sendBeacon;
       URL.createObjectURL = originalCreate;

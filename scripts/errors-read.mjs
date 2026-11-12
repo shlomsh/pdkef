@@ -7,7 +7,7 @@ import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { sampleLines } from './errors-frames.mjs';
-import { driveSaveLines, funnelLines, sumUsage } from './errors-funnel.mjs';
+import { driveSaveLines, funnelLines, perfLines, sumUsage } from './errors-funnel.mjs';
 import { addUntraced, failuresByBuild, fingerprintHistory, pageStartsByTool, parseDayReplies, sliceWindow, toolRates, untracedTools } from './errors-insights.mjs';
 import { validateRegistry } from './errors-known.mjs';
 import { renderTriage, triage } from './errors-triage.mjs';
@@ -217,6 +217,12 @@ const funnel = funnelLines(usageReplies.map((r) => r.result));
 if (funnel.length) {
   console.log('\nFunnel (page loads)');
   for (const line of funnel) console.log(line);
+}
+// MEM-45: today against yesterday, whatever --days says; days 0 and 1 of the history are always read.
+const perf = perfLines(fetched[allKeys.length * 3]?.result, fetched[allKeys.length * 3 + 1]?.result);
+if (perf.length) {
+  console.log('\nHow it feels (MEM-45)');
+  for (const line of perf) console.log(line);
 }
 const driveLines = driveSaveLines(usageReplies.map((r) => r.result));
 if (driveLines.length) {

@@ -20,6 +20,23 @@ Vercel Web Analytics is the reviewed transport for page views only. Its analytic
 
 The Save to Google Drive pilot (MERGE-26) adds four more events of the same kind: `tool_drive_shown` (the arrow beside Download appeared on a desktop for someone already connected to Google, with work ready to save), `tool_drive_tapped` (they chose Save to Google Drive), `tool_drive_saved` and `tool_drive_failed` (what the `/drive/` tab answered, or the file could not be made). A save to Drive makes the file without a download, so `tool_drive_saved` also sends `tool_result_ready`, which keeps it in the tool's funnel. Only the pilot tools, `highlight-pdf` and `redact`, send them. They carry only the tool's name plus the optional `build` and `first` flags, and nothing from the file or the Google account. They are counted with the lifecycle events, as `<event>|<tool>`, `<event>|<tool>|<build>` and, on a page load's first of its kind, `pg:<event>|<tool>|-|-|<nav>|-`, under the same daily cap of 3,000. `npm run errors:read` prints them under "Save to Google Drive (pilot)".
 
+## How the site feels (MEM-45)
+
+The page-view ping and two lifecycle events carry a few bucketed measures, so a problem real visitors hit shows up in the daily read with no extra request. Nothing raw leaves the device: no URL, file name, size or time, only a bucket from a fixed list, and a measure the browser cannot give is left out, never guessed. The code is `src/lib/telemetry/pagePerformance.ts`; the schema is `usageEventSchema.ts`.
+
+| Field | On | What it is | Buckets | Fix this when (75th percentile per tool) |
+| --- | --- | --- | --- | --- |
+| `net` | `tool_page_viewed` | this page's own requests that reached the network (Resource Timing `navigation` + `resource`, `transferSize > 0`) | `0`, `1-5`, `6-15`, `16-30`, `31-50`, `51+` | a returning view above 1; the read flags `6-15` and up, and `1-5` is a look at the count by hand |
+| `local` | `tool_page_viewed` | requests answered on the device (no transfer but a body, or a `cache` delivery: the worker's cache or the browser's) | same | context only |
+| `lcp` | `tool_page_viewed` | the latest `largest-contentful-paint` seen when the view is sent | `le1s`, `le2.5s`, `le4s`, `gt4s` | above 2.5 s |
+| `ready` | `tool_page_viewed`, tool pages | navigation start to the tool island's first mount effect | same | above 2.5 s |
+| `ms` | `tool_file_accepted` | the file being picked, dropped, pasted or handed over to being accepted | same | above 2.5 s |
+| `ms` | `tool_result_ready` | `tool_operation_started` to ready | same | above 4 s |
+
+The view is sent once the window `load` event has fired (the home page already did), so the counts cover the page's own load; a worker's install runs in the worker and is not in them. Net also counts first visits, whose requests are all real, so read it against the `visit` lines. Interaction to next paint and layout shift are not carried yet: they are only final when a person leaves, which needs the ping sent on hide, and some phones drop it.
+
+Each event with measures adds one counter to the day's `usage:` hash, beside the counters it already had: `perf:<tool>:<net>:<local>:<lcp>:<ready>` for a view (`-` for one that is absent) and `ms:<event>:<tool>:<bucket>` for a timing. `npm run errors:read` prints "How it feels (MEM-45)": per tool the 75th-percentile bucket of each, today against yesterday, with `!` where the list above says to fix it. Vercel's 30-day CDN request total still comes from its usage page, by hand.
+
 ## Star ratings
 
 When a file has been downloaded, a tool may ask for a rating with five stars. A tap sends one event, `tool_rating`, carrying only `{tool, stars}`: the tool's name from the same closed list as the lifecycle events and a whole number from 1 to 5. After the stars a person may add a few words; if they send them, a second event, `tool_rating_comment`, carries `{tool, stars, comment}`, the comment as typed, trimmed, up to 500 characters. After five stars the words come with a box a person may tick to let the site show them with their region and no name; only a tick adds `share: true` to the event, and an unticked comment is read by me and never shown. Since SEO-48 the server also keeps, with each rating and comment, the country and region (a state or province) that Vercel reports for the request, and the day. No IP address, city, browser family, user agent, identifier or finer time is stored. The schema is `src/lib/telemetry/ratingSchema.ts` and the store is `src/site-lib/ratingStore.ts`.

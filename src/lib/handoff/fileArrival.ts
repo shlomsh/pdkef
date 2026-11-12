@@ -13,10 +13,20 @@ import type { AnalyticsTool, FileSource } from '../telemetry/usageEventSchema';
 export type Arrival = Readonly<{ source: FileSource; from?: AnalyticsTool }>;
 
 let pending: Arrival | null = null;
+// MEM-45: when the mark was made (performance.now), for the time a file took to be accepted. Never sent raw.
+let pendingAt: number | undefined;
 
 /** The next file a tool accepts on this page arrived this way. `from` only for a hand-off. */
 export function markArrival(source: FileSource, from?: AnalyticsTool): void {
   pending = source === 'handoff' && from ? { source, from } : { source };
+  pendingAt = typeof performance?.now === 'function' ? performance.now() : undefined;
+}
+
+/** When the mark just taken was made, in `performance.now()` ms; consumed with it. */
+export function takeArrivalTime(): number | undefined {
+  const at = pendingAt;
+  pendingAt = undefined;
+  return at;
 }
 
 /** The mark for the file being accepted now, consumed; undefined when no code path marked it. */
@@ -53,4 +63,5 @@ export function consumeRecentOpen(tool: string): boolean {
 
 export function resetFileArrivalForTests(): void {
   pending = null;
+  pendingAt = undefined;
 }

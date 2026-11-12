@@ -10,6 +10,9 @@ import {
   usagePageField,
   FILE_SOURCES,
   VISITS,
+  COUNT_BUCKETS,
+  TIME_BUCKETS,
+  usageMeasureField,
 } from './usageEventSchema.ts';
 
 const ev = (name: unknown, tool: unknown) => ({ name, properties: { tool } });
@@ -251,5 +254,66 @@ describe('Save to Google Drive events (MERGE-26 pilot)', () => {
   it('files them under the same counter shape as a tool event', () => {
     const event = parseUsageEvent({ name: 'tool_drive_saved', properties: { tool: 'highlight-pdf', build: 'abc1234' } });
     expect(event && usageEventField(event)).toBe('tool_drive_saved|highlight-pdf|abc1234');
+  });
+});
+
+describe('performance measures (MEM-45)', () => {
+  const view = (p: Record<string, unknown>, tool = 'sign') => parseUsageEvent({ name: 'tool_page_viewed', properties: { tool, ...p } });
+  const on = (name: string, p: Record<string, unknown>) => parseUsageEvent({ name, properties: { tool: 'merge', ...p } });
+
+  it('lists the buckets', () => {
+    expect(COUNT_BUCKETS).toEqual(['0', '1-5', '6-15', '16-30', '31-50', '51+']);
+    expect(TIME_BUCKETS).toEqual(['le1s', 'le2.5s', 'le4s', 'gt4s']);
+  });
+
+  it('accepts net, local, lcp and ready on a page view, in any combination', () => {
+    expect(view({ net: '0', local: '16-30', lcp: 'le2.5s', ready: 'le1s' })?.properties).toMatchObject({ net: '0', local: '16-30', lcp: 'le2.5s', ready: 'le1s' });
+    expect(view({ lcp: 'gt4s' })?.properties.lcp).toBe('gt4s');
+    expect(view({ net: '51+' })).not.toBeNull();
+  });
+
+  it('home takes net, local and lcp but not ready', () => {
+    expect(view({ net: '1-5', local: '6-15', lcp: 'le1s' }, 'home')).not.toBeNull();
+    expect(view({ ready: 'le1s' }, 'home')).toBeNull();
+  });
+
+  it('accepts ms on file_accepted and result_ready only', () => {
+    expect(on('tool_file_accepted', { ms: 'le4s' })?.properties.ms).toBe('le4s');
+    expect(on('tool_result_ready', { ms: 'gt4s' })).not.toBeNull();
+    expect(on('tool_operation_started', { ms: 'le1s' })).toBeNull();
+    expect(on('tool_page_viewed', { ms: 'le1s' })).toBeNull();
+  });
+
+  it('keeps each measure on its own event', () => {
+    for (const k of ['net', 'local']) expect(on('tool_result_ready', { [k]: '0' })).toBeNull();
+    expect(on('tool_file_accepted', { lcp: 'le1s' })).toBeNull();
+    expect(on('tool_file_accepted', { ready: 'le1s' })).toBeNull();
+  });
+
+  it('rejects a value off its list, a raw number, or the other list', () => {
+    expect(view({ net: '7' })).toBeNull();
+    expect(view({ net: 3 })).toBeNull();
+    expect(view({ net: 'le1s' })).toBeNull();
+    expect(view({ lcp: '0' })).toBeNull();
+    expect(view({ lcp: 1234 })).toBeNull();
+    expect(on('tool_result_ready', { ms: '1-5' })).toBeNull();
+  });
+
+  it('names the counter field: perf for views, ms for the two timings, dashes for the absent', () => {
+    expect(usageMeasureField(view({ net: '0', local: '16-30', lcp: 'le2.5s', ready: 'le1s' })!)).toBe('perf:sign:0:16-30:le2.5s:le1s');
+    expect(usageMeasureField(view({ lcp: 'gt4s' })!)).toBe('perf:sign:-:-:gt4s:-');
+    expect(usageMeasureField(on('tool_file_accepted', { ms: 'le4s' })!)).toBe('ms:tool_file_accepted:merge:le4s');
+    expect(usageMeasureField(on('tool_result_ready', { ms: 'gt4s' })!)).toBe('ms:tool_result_ready:merge:gt4s');
+  });
+
+  it('names no field when an event carries no measure', () => {
+    expect(usageMeasureField(view({ visit: 'new' })!)).toBeUndefined();
+    expect(usageMeasureField(on('tool_result_ready', {})!)).toBeUndefined();
+  });
+
+  it('a full page view fits the 2048-byte cap with room to spare', () => {
+    const body = JSON.stringify({ name: 'tool_page_viewed', properties: { tool: 'highlight-pdf', build: '08e10cf', first: true, nav: 'back_forward', visit: 'month', net: '31-50', local: '16-30', lcp: 'le2.5s', ready: 'le2.5s' } });
+    expect(body.length).toBeLessThan(400);
+    expect(parseUsageEvent(JSON.parse(body))).not.toBeNull();
   });
 });
