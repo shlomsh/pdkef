@@ -82,7 +82,7 @@ export const staticPages = [
         heading: 'What is measured, and what is not',
         paragraphs: [
           'PDkef uses same-origin Vercel Web Analytics for basic, aggregate page views, the same category of measurement a paper counter at a doorway would give you: how many visits a page got, not who made them.',
-          'Separately, PDkef sends anonymous, sanitized maintenance telemetry, things like which tool ran, whether it succeeded, and a coded error category, so bugs can be found and fixed. That allowlist explicitly excludes anything that could identify you or your document: no filenames, no text you typed, no signatures, no document or user IDs, and no raw error payloads. This telemetry exists purely to keep the tools working; it is never used to build a profile of you, and it never blocks a tool from working offline. All of it goes to PDkef\'s own address, like the error notes below, and we keep it only as daily totals per tool for 90 days (Sign\'s also by browser family and version).',
+          'Separately, PDkef sends anonymous, sanitized maintenance telemetry, things like which tool ran, whether it succeeded, and a coded error category, so bugs can be found and fixed. That allowlist explicitly excludes anything that could identify you or your document: no filenames, no text you typed, no signatures, no document or user IDs, and no raw error payloads. This telemetry exists purely to keep the tools working; it is never used to build a profile of you, and it never blocks a tool from working offline. All of it goes to PDkef\'s own addresses, like the error notes below, and we keep it as anonymous counts, with no way to tie one to a person, for a limited time.',
           'When something in our own code breaks, your browser may also send PDkef\'s own address one small anonymous note: which part of PDkef failed, the error\'s name, the lines in our code that led there, a few facts about the page, like whether you installed it, and anonymous crash data to fix unreported runtime errors. It never carries the error\'s message or anything from your document, and we keep daily counts and the latest example of each error, by browser family and version, for 90 days.',
         ],
       },
@@ -107,7 +107,7 @@ export const staticPages = [
       {
         heading: 'A technical backstop, not just a promise',
         paragraphs: [
-          "These are not just policy statements: PDkef ships a strict Content-Security-Policy that locks connect-src down to the site's own origin (the Drive page above adds Google's, and only there), so the browser itself blocks any script from sending data to a third-party server, even if a future bug tried to add one by accident.",
+          "These are not just policy statements: PDkef ships a strict Content-Security-Policy that locks connect-src down to PDkef's own addresses (the Drive page above adds Google's, and only there), so the browser itself blocks any script from sending data to a third-party server, even if a future bug tried to add one by accident.",
           'Because PDkef is <a href="https://github.com/shlomsh/pdkef" target="_blank" rel="noopener noreferrer">open source</a>, none of this has to be taken on trust: you can read the exact code that runs on your device, including this policy, for yourself. Questions about any of this are welcome on the <a href="/contact/">contact page</a>.',
         ],
       },

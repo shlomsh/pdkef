@@ -33,7 +33,7 @@ Not a fit: batch or headless PDF processing with no browser involved, or server-
 
 ## Architecture & Security
 - **Built with**: Astro (static build mode) + Preact (for the client-side interactive island).
-- **Security**: Content-Security-Policy (CSP) is strictly configured to prevent execution of unbundled scripts and locks down `connect-src 'self'`, including a backstop against third-party connections. PDF content must never be sent in telemetry.
+- **Security**: Content-Security-Policy (CSP) is strictly configured to prevent execution of unbundled scripts and locks connections down to PDkef's own addresses, including a backstop against third-party connections. PDF content must never be sent in telemetry.
 - **Privacy**: The hosted site uses limited anonymous aggregate maintenance analytics, separate from PDF processing. It does not use accounts or cookies, and document content, filenames, typed text, signatures, and user or document IDs are excluded. Full detail: https://pdkef.com/privacy/
 - **Dependencies**: Browser runtime code uses a reviewed permissive allowlist: MIT, Apache-2.0, ISC, BSD-2-Clause, BSD-3-Clause, Zlib, and 0BSD. The exact inventory and notices are checked in CI.
 
