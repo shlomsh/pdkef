@@ -67,6 +67,7 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 - [MEM-39](backlog/tasks/MEM-39.md) P1 · The worker installs once a file is opened, not on a first page view (in progress)
 - [MEM-40](backlog/tasks/MEM-40.md) P1 · The worker installs only what the page asks for, no home-page fallback (in progress)
 - [MEM-43](backlog/tasks/MEM-43.md) P1 · A tool works in airplane mode on its first visit (in progress)
+- [MEM-44](backlog/tasks/MEM-44.md) P1 · A tool's late code comes as one file (in progress)
 - [MEM-45](backlog/tasks/MEM-45.md) P1 · We see how the site performs for real visitors without spending server requests on it
 - [QUAL-54](backlog/tasks/QUAL-54.md) P1 · The unit jobs stop failing when the runner cannot reach Ubuntu's package servers (in progress)
 - [MEM-36](backlog/tasks/MEM-36.md) P2 · Pinned notes are baked into the page at build, not fetched per visit (in progress)

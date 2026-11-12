@@ -22,6 +22,9 @@ import { entryFileName, chunkFileName, assetFileName, cssAssetKeys, cssModuleCla
 //   <tool>-tool                 reached by one tool
 //   editor-core                 reached by Sign, Redact and Highlight only
 //   tools-common                reached by several tools
+//   <tool>-late                 (MEM-44) late code, no entry reaches it statically, reached by one tool
+//   editor-late                 late code reached by Sign, Redact and Highlight only
+//   tools-late                  late code reached by other sets of tools
 //
 // Only `$initial` modules (statically reachable from some entry) are grouped. A module that is lazy today
 // keeps the chunk Rolldown gave it and never joins one a page loads eagerly: grouping makes a chunk eager as
@@ -83,6 +86,47 @@ const bundle = (name, priority) => ({ name: (id, ctx) => (bundleOf(id, ctx) === 
 const isToolBundle = (name) => name.endsWith('-tool') && name !== 'drive-tool';
 const toolBundle = { name: (id, ctx) => { const name = bundleOf(id, ctx); return isToolBundle(name) ? name : null; }, priority: 1, tags: ['$initial'] };
 
+// MEM-44: the code a tool loads only when a file is opened ("late") is grouped by the same rule, so a tool's
+// worker install fetches a few files of its own instead of a dozen small ones. A late module is one no entry
+// reaches statically; it is named for the tools that reach it (by import() or import), `<tool>-late` for one,
+// `editor-late` for Sign, Redact and Highlight only, `tools-late` for any other set. A module the home page,
+// /open/, the widgets, the island client, the Drive panel or the site scripts also reach stays ungrouped as
+// before. These groups carry no `$initial` tag, so this walks static importers to the entries itself and
+// returns no name for a module an entry reaches statically (the preload helper, once, made 421 KiB eager that
+// way). They also take no recursive dependencies, so a late group never drags the PDF engine in. Not grouped
+// at all: pdf.js and pdf-lib (their own files), the two vendor groups above and virtual modules.
+const initialOfModule = new Map();
+function isReachedStatically(start, ctx) {
+  const known = initialOfModule.get(start);
+  if (known !== undefined) return known;
+  const seen = new Set([start]);
+  const queue = [start];
+  let initial = false;
+  while (queue.length > 0 && !initial) {
+    const info = ctx.getModuleInfo(queue.pop());
+    if (info?.isEntry) initial = true;
+    for (const importer of info?.importers ?? []) {
+      if (!seen.has(importer)) { seen.add(importer); queue.push(importer); }
+    }
+  }
+  initialOfModule.set(start, initial);
+  return initial;
+}
+
+const LATE_EXCLUDED = /^\0|node_modules[\\/](?:pdfjs-dist|@cantoo|@preact|preact)[\\/]|\?(?:worker|url|raw)\b|\.(?:wasm|ttf|otf|woff2?|json|css)(?:$|\?)/;
+
+function lateBundleOf(id, ctx) {
+  if (LATE_EXCLUDED.test(id) || isReachedStatically(id, ctx)) return null;
+  const kinds = [...entryKindsReaching(id, ctx)];
+  if (kinds.length === 0 || kinds.some((k) => k === 'site' || k === 'drive' || ISLAND_KINDS.has(k))) return null;
+  if (kinds.length === 1) return `${kinds[0]}-late`;
+  return kinds.every((k) => EDITOR_TOOLS.has(k)) ? 'editor-late' : 'tools-late';
+}
+
+const lateBundle = (name, priority) => ({ name: (id, ctx) => (lateBundleOf(id, ctx) === name ? name : null), priority });
+// One group per tool folder, below tools-late and editor-late.
+const lateToolBundle = { name: (id, ctx) => { const name = lateBundleOf(id, ctx); return name && name !== 'tools-late' && name !== 'editor-late' ? name : null; }, priority: 0.5 };
+
 const clientCodeSplitting = {
   groups: [
     // Preact's runtime is on every page; its hooks and signals are loaded lazily by the site scripts, so
@@ -109,6 +153,9 @@ const clientCodeSplitting = {
     bundle('open', 5.8),
     // One group per tool, below every shared group.
     toolBundle,
+    lateBundle('tools-late', 0.7),
+    lateBundle('editor-late', 0.6),
+    lateToolBundle,
   ],
 };
 
