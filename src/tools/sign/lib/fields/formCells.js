@@ -221,6 +221,9 @@ const MAX_LABEL_CHARS = 25;
 /** How far above a lone box (points) its caption may sit and still be its caption (SNG-10). */
 const LONE_CAPTION_GAP = 12;
 
+/** Cells side by side before a row reads as a table row, not a captioned line (FORM-40 vs FORM-14's two-cell lines). */
+const MIN_TABLE_COLUMNS = 3;
+
 /** Closed cells a column must hold before a far header still names its empty ones (FORM-34). */
 const MIN_REPEATING_COLUMN_ROWS = 4;
 /**
@@ -585,6 +588,36 @@ export function detectCellCandidates(ink, geometry, pageIndex, textItems) {
     && (Math.abs(other.top - cell.bottom) <= POS_TOLERANCE || Math.abs(other.bottom - cell.top) <= POS_TOLERANCE)
     && Math.min(other.height, cell.height) / Math.max(other.height, cell.height) >= STACKED_ROW_HEIGHT_RATIO);
 
+  // FORM-40: in a table, a cell's own text is its content (a column header, a
+  // filled value, a row label), not a caption beside a blank, once a blank
+  // cell answers it: one in its own row (the row's answers go there), or, in
+  // a row of several cells, one further down its own column stack (the
+  // column's answers go there). Only one-line content beside the blank,
+  // never a band caption, and only in a row of `MIN_TABLE_COLUMNS` cells or
+  // more: FORM-14's two-cell address lines keep their captioned fields.
+  // Printed separators are part of the answer's shape and never content.
+  const ownTextOf = (/** @type {ClosedCell} */ cell) => textInsideCell(cell, textItemsPoints).filter((t) => t.str.trim());
+  const blankCells = closedCells.filter((cell) => ownTextOf(cell).length === 0);
+  const inStackBelow = (/** @type {ClosedCell} */ cell, /** @type {ClosedCell} */ other) => {
+    let floor = cell.bottom;
+    for (;;) {
+      const next = closedCells.find((c) => columnKey(c) === columnKey(cell) && Math.abs(c.top - floor) <= POS_TOLERANCE);
+      if (!next) return false;
+      if (next === other) return true;
+      floor = next.bottom;
+    }
+  };
+  const isTableContent = (/** @type {ClosedCell} */ cell) => {
+    const ownText = ownTextOf(cell);
+    if (ownText.length === 0 || cell.floorTicked) return false;
+    if (isPrintedSeparators(ownText.map((t) => t.str).join(' ').trim())) return false;
+    // A caption in the top corner over a writing strip is a form box's own
+    // label, whatever sits beside it (the 1040's name row).
+    if (writableArea(cell, ownText)?.carve === 'band') return false;
+    if (closedCells.filter((other) => sameBand(other, cell)).length < MIN_TABLE_COLUMNS) return false;
+    return blankCells.some((blank) => blank !== cell && (sameBand(blank, cell) || inStackBelow(cell, blank)));
+  };
+
   // First pass classifies each cell; the table-cell count needs the whole population.
   /** @type {ResolvedCell[]} */
   const resolved = [];
@@ -619,6 +652,8 @@ export function detectCellCandidates(ink, geometry, pageIndex, textItems) {
   const candidates = [];
   let index = 0;
   for (const r of fields) {
+    // Counted above with the table's content in, so a column keeps its kind.
+    if (isTableContent(r.cell)) continue;
     const kind = r.kind === 'text' && (columnCounts.get(columnKey(r.cell)) ?? 0) >= 3 ? 'table-cell' : r.kind;
 
     candidates.push({

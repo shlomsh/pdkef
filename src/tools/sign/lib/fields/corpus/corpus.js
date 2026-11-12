@@ -154,6 +154,13 @@ const LIVE_FORM = [
 
 /** Printed ink: what a flat form has instead, and all the ink walk can see. */
 const PRINTED = [
+  { // FORM-40. Rows top down: header, filled, blank, a row label beside two blanks, blank. 12pt runs 4pt under each top rule.
+    name: "a table's header row, a filled row and a row label", why: 'they are content, not captions, beside blank cells',
+    doc: { size: [600, 400], ink: [{ ink: 'tableRules', columns: [50, 150, 300, 550], rows: [300, 280, 260, 240, 220, 200] }] },
+    expect: { ...none, cells: 8 },
+    text: [['שם המעסיק', 470, 300], ['חודשי העבודה', 210, 300], ['כמות', 110, 300], ['דורלופ', 440, 280], ['יולי', 250, 280], ['שש', 126, 280], ['ביטוח לאומי', 450, 240]]
+      .map(([str, x0, top]) => ({ str, left: x0 / 6, width: ((x0 < 150 ? 146 : x0 < 300 ? 296 : 546) - x0) / 6, top: (404 - top) / 4, height: 3 })),
+  },
   {
     name: 'comb teeth on a writing line',
     why: 'an open comb - ticks at a constant pitch, no boxes (income tax form 101 draws them this way)',
