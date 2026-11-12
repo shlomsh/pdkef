@@ -68,7 +68,7 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 - [MEM-40](backlog/tasks/MEM-40.md) P1 · The worker installs only what the page asks for, no home-page fallback (in progress)
 - [MEM-43](backlog/tasks/MEM-43.md) P1 · A tool works in airplane mode on its first visit (in progress)
 - [MEM-44](backlog/tasks/MEM-44.md) P1 · A tool's late code comes as one file (in progress)
-- [MEM-45](backlog/tasks/MEM-45.md) P1 · We see how the site performs for real visitors without spending server requests on it
+- [MEM-45](backlog/tasks/MEM-45.md) P1 · We see how the site performs for real visitors without spending server requests on it (in progress)
 - [MEM-46](backlog/tasks/MEM-46.md) P1 · Shared late code that never touches the PDF writer rides in the first-paint files (in progress)
 - [MEM-47](backlog/tasks/MEM-47.md) P1 · A tool page never fetches a stylesheet whose rules it already has
 - [MEM-48](backlog/tasks/MEM-48.md) P1 · Pages with an interactive part load their UI glue as one file (in progress)
@@ -145,6 +145,7 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 - [SCAN-05](backlog/tasks/SCAN-05.md) · Photos and short videos of real pages taken on your phone, ours to check in
 - [DRIVE-03](backlog/tasks/DRIVE-03.md) · A run on your iPhone, Chrome and Safari
 - [READ-16](backlog/tasks/READ-16.md) · Pick the stepper's place: the toolbar capsule, the top of the rail, or the page header
+- [MEM-45](backlog/tasks/MEM-45.md) · A analytics-service EU project with cookieless tracking switched on, and its public project key
 - [MOBI-01](backlog/tasks/MOBI-01.md) · Half an hour with an Android phone
 - [DEBT-53](backlog/tasks/DEBT-53.md) · A check on your iPhone
 - [SEO-40](backlog/tasks/SEO-40.md) · The Search Console exports
