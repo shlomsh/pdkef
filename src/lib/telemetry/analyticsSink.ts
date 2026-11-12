@@ -25,10 +25,9 @@ interface SinkContext {
  * @testSeam
  */
 export function readSinkConfig(
-  env: Record<string, unknown> | undefined = import.meta.env,
+  host: unknown = import.meta.env?.PUBLIC_ANALYTICS_HOST,
+  key: unknown = import.meta.env?.PUBLIC_ANALYTICS_KEY,
 ): { host: string; key: string } | null {
-  const host = env?.PUBLIC_ANALYTICS_HOST;
-  const key = env?.PUBLIC_ANALYTICS_KEY;
   if (typeof host !== 'string' || typeof key !== 'string' || !host || !key) return null;
   try {
     const url = new URL(host);

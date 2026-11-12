@@ -173,8 +173,8 @@ function report(event: UsageEventName, tool: AnalyticsTool | ViewOnlyPage, measu
     if (sendBeacon(parsed)) {
       handedOff += 1;
       seen.add(pair);
+      sendToSink(parsed);
     }
-    sendToSink(parsed);
   } catch {
     // expected: Analytics must never alter an offline or local document workflow.
   }

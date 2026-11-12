@@ -1,9 +1,22 @@
-// MEM-45: the one optional analytics address, supplied only as the build-time variable PUBLIC_ANALYTICS_HOST.
-// Unset or empty means no analytics and a connect-src of 'self'. A mistyped value fails the build loudly
-// rather than silently widening or dropping the policy.
+import { loadEnv } from 'vite';
+
+// MEM-45: the optional second analytics destination is configured by two build-time variables, set together or
+// not at all: PUBLIC_ANALYTICS_HOST (an https address) and PUBLIC_ANALYTICS_KEY. Both unset or empty means no
+// analytics and a connect-src of 'self'. Exactly one set, or a mistyped host, fails the build loudly rather than
+// silently widening the policy while nothing is sent.
+
+/** The variables as the build sees them: a local .env.local works like the Drive key, and the process env wins. */
+export function analyticsEnv(cwd = process.cwd(), env = process.env) {
+  return { ...loadEnv(env.NODE_ENV ?? 'production', cwd, 'PUBLIC_'), ...env };
+}
+
 export function analyticsOrigin(env = process.env) {
-  const value = env.PUBLIC_ANALYTICS_HOST;
-  if (value === undefined || value === '') return null;
+  const value = env.PUBLIC_ANALYTICS_HOST ?? '';
+  const key = env.PUBLIC_ANALYTICS_KEY ?? '';
+  if (value === '' && key === '') return null;
+  if (value === '' || key === '') {
+    throw new Error('PUBLIC_ANALYTICS_HOST and PUBLIC_ANALYTICS_KEY must be set together: set both or neither.');
+  }
   let url;
   try {
     url = new URL(value);

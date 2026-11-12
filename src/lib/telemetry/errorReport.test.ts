@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   ACTIONS,
   MAX_ACTIONS,
@@ -506,5 +506,33 @@ describe('reportError drop records (DEBT-44)', () => {
     reportError('drafts', e, 'save_draft');
     reportError('drafts', e, 'save_draft');
     expect(beacon).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('error reports and drop records never reach the analytics sink (MEM-45)', () => {
+  const beacon = vi.fn((..._args: unknown[]) => true);
+  beforeEach(() => {
+    beacon.mockReset();
+    beacon.mockReturnValue(true);
+    vi.stubEnv('PUBLIC_ANALYTICS_HOST', 'https://e.example.test');
+    vi.stubEnv('PUBLIC_ANALYTICS_KEY', 'k');
+    vi.stubGlobal('location', { origin: 'https://pdkef.com', pathname: '/sign/' });
+    vi.stubGlobal('navigator', { onLine: true, sendBeacon: beacon });
+    setReportingEnabledForTests(true);
+    resetErrorReportingForTests();
+  });
+  afterEach(() => {
+    vi.unstubAllEnvs();
+    vi.unstubAllGlobals();
+  });
+
+  it('an error report is one beacon, to /api/report', () => {
+    reportError('drafts', errorAt('A.js:1:2'), 'save_draft');
+    expect(beacon.mock.calls.map(([url]) => url)).toEqual(['/api/report']);
+  });
+
+  it('a drop record is one beacon, to /api/report', () => {
+    reportError('redact', 'boom', 'export');
+    expect(beacon.mock.calls.map(([url]) => url)).toEqual(['/api/report']);
   });
 });

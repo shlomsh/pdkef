@@ -16,8 +16,14 @@ Astro.csp?.insertScriptResource('https://accounts.google.com/gsi/client');
 Astro.csp?.insertScriptResource('https://apis.google.com');
 // MEM-45: this literal replaces the base connect-src, so the optional analytics origin is restated here.
 const analyticsHost = import.meta.env.PUBLIC_ANALYTICS_HOST;
-const analyticsUrl = typeof analyticsHost === 'string' && analyticsHost.startsWith('https://') ? new URL(analyticsHost) : null;
-const analyticsOrigin = analyticsUrl ? ` ${analyticsUrl.origin}` : '';
+const analyticsKey = import.meta.env.PUBLIC_ANALYTICS_KEY;
+let analyticsOrigin = '';
+try {
+  const url = typeof analyticsKey === 'string' && analyticsKey !== '' ? new URL(analyticsHost) : null;
+  if (url?.protocol === 'https:') analyticsOrigin = ` ${url.origin}`;
+} catch {
+  // expected: a malformed host means no analytics origin
+}
 Astro.csp?.insertDirective(`connect-src 'self' https://www.googleapis.com https://accounts.google.com https://content.googleapis.com https://docs.google.com${analyticsOrigin}`);
 Astro.csp?.insertDirective('frame-src https://docs.google.com https://drive.google.com https://accounts.google.com https://content.googleapis.com');
 // Astro's directive type leaves out style-src-elem; the browser honours it and test:csp pins it on this page alone.

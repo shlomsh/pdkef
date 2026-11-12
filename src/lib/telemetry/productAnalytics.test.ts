@@ -49,6 +49,28 @@ describe('analytics sink', () => {
   });
 });
 
+describe('analytics sink follows the first beacon', () => {
+  const SINK = 'https://e.example.test/i/v0/e/';
+  beforeEach(() => {
+    vi.stubEnv('PUBLIC_ANALYTICS_HOST', 'https://e.example.test');
+    vi.stubEnv('PUBLIC_ANALYTICS_KEY', 'k');
+    vi.stubGlobal('location', { origin: 'https://pdkef.com', pathname: '/merge/' });
+  });
+
+  it('makes no second call when the first beacon is refused', () => {
+    beacon.mockReturnValue(false);
+    reportToolLifecycleEvent('tool_result_ready', 'merge');
+    expect(beacon).toHaveBeenCalledTimes(1);
+  });
+
+  it('sends nothing to the sink past the per-page cap', () => {
+    for (let i = 0; i < MAX_USAGE_EVENTS_PER_PAGE + 3; i++) reportToolLifecycleEvent('tool_file_accepted', 'split');
+    const urls = beacon.mock.calls.map(([url]) => url);
+    expect(urls.filter((u) => u === SINK)).toHaveLength(MAX_USAGE_EVENTS_PER_PAGE);
+    expect(urls.filter((u) => u === '/api/report')).toHaveLength(MAX_USAGE_EVENTS_PER_PAGE);
+  });
+});
+
 describe('reportToolLifecycleEvent', () => {
   it('posts one JSON blob to /api/report', async () => {
     reportToolLifecycleEvent('tool_result_ready', 'merge');

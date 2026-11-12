@@ -26,10 +26,10 @@ const driveCsp = goodCsp(' https://accounts.google.com https://www.googleapis.co
 const videoFrame = '; frame-src https://www.youtube-nocookie.com';
 
 // A developer's shell must not change the result, so the default env never carries the analytics variable.
-const { PUBLIC_ANALYTICS_HOST: _ignored, ...baseEnv } = process.env;
+const { PUBLIC_ANALYTICS_HOST: _host, PUBLIC_ANALYTICS_KEY: _key, ...baseEnv } = process.env;
 
 // A clean two-page dist; `overrides` replaces or adds files by dist-relative path.
-function run(overrides = {}, env = baseEnv) {
+function run(overrides = {}, env = baseEnv, extraFiles = {}) {
   const cwd = fs.mkdtempSync(path.join(os.tmpdir(), 'verify-csp-'));
   const files = {
     'index.html': page({ csp: goodCsp(videoFrame), body: goodBody }),
@@ -40,6 +40,7 @@ function run(overrides = {}, env = baseEnv) {
     fs.mkdirSync(path.dirname(path.join(cwd, 'dist', rel)), { recursive: true });
     fs.writeFileSync(path.join(cwd, 'dist', rel), html);
   }
+  for (const [rel, text] of Object.entries(extraFiles)) fs.writeFileSync(path.join(cwd, rel), text);
   const r = spawnSync(process.execPath, [script], { cwd, encoding: 'utf8', env });
   return { status: r.status, err: r.stderr };
 }
@@ -142,7 +143,7 @@ describe('verify-csp CLI', () => {
 
   describe('connect-src pin', () => {
     const HOST = 'https://e.example.test';
-    const withHost = { ...baseEnv, PUBLIC_ANALYTICS_HOST: HOST };
+    const withHost = { ...baseEnv, PUBLIC_ANALYTICS_HOST: HOST, PUBLIC_ANALYTICS_KEY: 'k' };
     const videoWith = goodCsp(` ${HOST}${videoFrame}`);
 
     it('unset: fails a page whose connect-src carries another origin, naming the page', () => {
@@ -177,9 +178,28 @@ describe('verify-csp CLI', () => {
     });
 
     it('set to http: exits non-zero naming the variable', () => {
-      const r = run({}, { ...baseEnv, PUBLIC_ANALYTICS_HOST: 'http://x' });
+      const r = run({}, { ...baseEnv, PUBLIC_ANALYTICS_HOST: 'http://x', PUBLIC_ANALYTICS_KEY: 'k' });
       expect(r.status).not.toBe(0);
       expect(r.err).toContain('PUBLIC_ANALYTICS_HOST');
+    });
+
+    const dotEnvLocal = { '.env.local': `PUBLIC_ANALYTICS_HOST=${HOST}\nPUBLIC_ANALYTICS_KEY=dummy\n` };
+    const allPages = (merge) => ({
+      'index.html': page({ csp: videoWith, body: goodBody }),
+      'drive/index.html': page({ csp: `${driveCsp} ${HOST}`, body: goodBody }),
+      'merge/index.html': page({ csp: merge, body: goodBody }),
+    });
+
+    it('set only in .env.local: pages carrying the origin pass', () => {
+      const r = run(allPages(goodCsp(` ${HOST}`)), baseEnv, dotEnvLocal);
+      expect(r.err).toBe('');
+      expect(r.status).toBe(0);
+    });
+
+    it('set only in .env.local: a page at plain connect-src \'self\' fails', () => {
+      const r = run(allPages(goodCsp()), baseEnv, dotEnvLocal);
+      expect(r.status).toBe(1);
+      expect(r.err).toContain('merge');
     });
   });
 });

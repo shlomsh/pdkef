@@ -1,8 +1,7 @@
 import { defineConfig } from 'astro/config';
 import preact from '@astrojs/preact';
 import tailwindcss from '@tailwindcss/vite';
-import { loadEnv } from 'vite';
-import { analyticsOrigin } from './scripts/analyticsOrigin.mjs';
+import { analyticsEnv, analyticsOrigin } from './scripts/analyticsOrigin.mjs';
 import { entryFileName, chunkFileName, assetFileName, cssAssetKeys, cssModuleClassName, stableChunkNames } from './scripts/stableNames.mjs';
 
 // MEM-37: the client bundles. A module goes into the bundle named for the set of entries that load it, so a
@@ -197,7 +196,7 @@ const clientCodeSplitting = {
 // certify Astro 7. Instead, public/sw.js is a small hand-written service
 // worker (see CLAUDE.md) — fully auditable, zero extra build dependencies.
 // MEM-45: the optional analytics origin (build-time PUBLIC_ANALYTICS_HOST; a local .env.local works like the Drive key).
-const analytics = analyticsOrigin({ ...loadEnv(process.env.NODE_ENV ?? 'production', process.cwd(), 'PUBLIC_'), ...process.env });
+const analytics = analyticsOrigin(analyticsEnv());
 
 export default defineConfig({
   site: 'https://pdkef.com',

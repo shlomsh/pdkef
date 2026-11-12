@@ -214,8 +214,10 @@ export function resetMaintenanceEventsForTests(): void {
 export const beaconMaintenanceTransport: MaintenanceTransport = (event) => {
   const parsed = parseMaintenanceEvent(event);
   if (!parsed || eventsSent >= MAX_EVENTS_PER_PAGE) return;
-  if (sendBeacon(parsed)) eventsSent++;
-  sendToSink(parsed);
+  if (sendBeacon(parsed)) {
+    eventsSent++;
+    sendToSink(parsed);
+  }
 };
 
 interface AnalyticsBeforeSendEvent {

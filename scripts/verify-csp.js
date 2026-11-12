@@ -2,7 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import crypto from 'crypto';
 import { JSDOM } from 'jsdom';
-import { analyticsOrigin } from './analyticsOrigin.mjs';
+import { analyticsEnv, analyticsOrigin } from './analyticsOrigin.mjs';
 
 const distDir = path.join(process.cwd(), 'dist');
 
@@ -138,7 +138,7 @@ if (!fs.existsSync(drivePage)) {
 }
 // MEM-45: connect-src is 'self' everywhere, plus the one analytics origin when the build set PUBLIC_ANALYTICS_HOST.
 // analyticsOrigin() throws on a mistyped variable, which fails this script loudly.
-const analytics = analyticsOrigin();
+const analytics = analyticsOrigin(analyticsEnv());
 for (const file of htmlFiles) {
   if (isGoogleVerificationFile(file, fs.readFileSync(file, 'utf-8'))) continue;
   const csp = new JSDOM(fs.readFileSync(file, 'utf-8')).window.document

@@ -6,17 +6,15 @@ const EVENT = { name: 'tool_page_viewed', properties: { tool: 'merge', visit: 'n
 
 describe('readSinkConfig', () => {
   it('is null unless both values are set and the host is https', () => {
-    expect(readSinkConfig({})).toBeNull();
-    expect(readSinkConfig({ PUBLIC_ANALYTICS_HOST: 'https://e.example.test' })).toBeNull();
-    expect(readSinkConfig({ PUBLIC_ANALYTICS_KEY: 'k' })).toBeNull();
-    expect(readSinkConfig({ PUBLIC_ANALYTICS_HOST: 'http://e.example.test', PUBLIC_ANALYTICS_KEY: 'k' })).toBeNull();
-    expect(readSinkConfig({ PUBLIC_ANALYTICS_HOST: 'not a url', PUBLIC_ANALYTICS_KEY: 'k' })).toBeNull();
+    expect(readSinkConfig(undefined, undefined)).toBeNull();
+    expect(readSinkConfig('https://e.example.test', undefined)).toBeNull();
+    expect(readSinkConfig(undefined, 'k')).toBeNull();
+    expect(readSinkConfig('http://e.example.test', 'k')).toBeNull();
+    expect(readSinkConfig('not a url', 'k')).toBeNull();
   });
 
   it('keeps only the origin of the host', () => {
-    expect(
-      readSinkConfig({ PUBLIC_ANALYTICS_HOST: 'https://e.example.test/some/path', PUBLIC_ANALYTICS_KEY: 'k' }),
-    ).toEqual({ host: 'https://e.example.test', key: 'k' });
+    expect(readSinkConfig('https://e.example.test/some/path', 'k')).toEqual({ host: 'https://e.example.test', key: 'k' });
   });
 });
 
