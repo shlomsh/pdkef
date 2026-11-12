@@ -51,7 +51,7 @@ deliberate rise).
 ### Still open
 
 - No `saveData`/metered-connection gate on the first-visit install (about 1-1.5 MB per tool).
-- The airplane line is untrue until the install completes; going offline in that window shows the misleading "may be damaged" error.
+- Going offline before the install completes shows the misleading "may be damaged" error. (The airplane line itself being untrue in those seconds is accepted, owner 2026-11-12: nobody reads it that fast.)
 - The offline e2e covers 12 routes, not Scan, the image tools, Add Page Numbers or the `/he/` pages, and stops at the loaded state without exporting.
 - `tools-late` carries Scan/Highlight-only page-straightening code to every tool.
-- The home page's airplane line has no worker behind it on a first visit.
+- ~~The home page's airplane line has no worker behind it on a first visit.~~ Accepted by the owner on 2026-11-12: the home page is a hub with no tool intent, so it installs nothing on a first visit (docs/offline-and-requests.md).
