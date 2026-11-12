@@ -1,10 +1,9 @@
 ---
 id: "DEBT-75"
 title: "A damaged PNG fails the whole PDF in Image to PDF"
-status: "open"
+status: "done"
 priority: "P2"
 epic: "robustness"
-horizon: "next"
 depends_on: []
 ---
 
@@ -36,3 +35,7 @@ It did not count in Image to PDF's `failed`: the build ran in the background bef
   (and in Merge's photo path), seen red before the fix.
 - `docs/error-known-items.json` gains the entry for this fingerprint (area `pdf_tool_run`, step
   `build_pdf_from_images`, slug `image-to-pdf`, module pdf-lib) with the fix commit.
+
+## Outcome
+
+Done 2026-11-12 in 1f68cb7b. `addImagePage` embeds a PNG through pdf-lib first; when that throws, `pngRedraw.ts` decodes the bytes in the browser, redraws them on a canvas and embeds the result, and when the browser cannot read the file either it throws `UnreadableImageError` (a kind of `UnsupportedImageError`). `imagesToPdf` leaves that picture out, names it to `onSkip`, and Image to PDF shows it with the existing skipped note and does not report it; Merge gets the redraw through the same function. The decoder is an `<img>`, not `createImageBitmap` as the ticket suggested: measured in Chromium on 2026-11-12, `createImageBitmap` rejects a truncated PNG while `<img>.decode()` accepts it. A build where every picture is unreadable throws instead of saving a PDF with no pages. Failing tests first (`imagePage`, `imagesToPdf`, Merge's photo path) were red before the fix; `e2e/tool-output-paths.spec.js` proves both paths in a real browser. The skipped note's wording ("not a JPG or PNG") is the existing string and is not exact for a damaged PNG.

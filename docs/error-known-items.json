@@ -237,5 +237,18 @@
     "fixedIn": "cbbede6e",
     "ticket": "COMP-05",
     "note": "the person's file: a file with no %PDF- that pdf.js also rejects is skipped at intake; one with a header still reports"
+  },
+  {
+    "id": "DEBT-75",
+    "title": "Image to PDF: a PNG pdf-lib could not decode failed the whole build",
+    "match": {
+      "area": "pdf_tool_run",
+      "step": "build_pdf_from_images",
+      "slug": "image-to-pdf",
+      "module": "pdf-lib"
+    },
+    "fixedIn": "1f68cb7b",
+    "ticket": "DEBT-75",
+    "note": "the person's file: a PNG whose data ends early is redrawn through the browser; one neither can read is left out and named, and is not reported"
   }
 ]
