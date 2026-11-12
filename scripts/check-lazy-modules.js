@@ -65,7 +65,9 @@ const ASSET_DIRS = ['_astro', 'shared'].map((dir) => path.join(DIST, dir));
  * touches it.
  */
 const LAZY_ONLY = [
-  { chunk: /^detectFormFields\./, why: 'field detection - the one entry point (ARCH-24)', reachableFrom: ['sign'] },
+  // MEM-44: the code a tool loads late is grouped per tool (`<tool>-late`), so these rows name the bundle that
+  // now holds each module. Each keeps its meaning: never in a first paint, reachable from the pages listed.
+  { chunk: /^sign-late\./, why: "Sign's late code, field detection among it - the one entry point (ARCH-24, MEM-44)", reachableFrom: ['sign'] },
   {
     chunk: /^pdf-lib\./,
     why: 'pdf-lib, 628 KiB: nothing needs it until a file is opened',
@@ -83,15 +85,13 @@ const LAZY_ONLY = [
     reachableFrom: ['sign', 'redact', 'compress', 'split', 'pdf-to-image'],
   },
   {
-    chunk: /^scanPipeline\./,
-    why: 'Scan\'s warp, filters and edge guess (SCAN-01): nothing needs them until a photo is in',
+    chunk: /^scan-late\./,
+    why: 'Scan\'s warp, filters, edge guess (SCAN-01) and live camera (SCAN-08): nothing loads them until a photo is in or Start scanning (MEM-44)',
     reachableFrom: ['scan-to-pdf'],
   },
-  { chunk: /^Viewfinder\./, why: "Scan's live camera (SCAN-08): nothing loads it until Start scanning", reachableFrom: ['scan-to-pdf'] },
   { chunk: /^page\.worker-/, why: "Scan's page worker (SCAN-21): the pipeline starts it once the first photo is in", reachableFrom: ['scan-to-pdf'] },
-  { chunk: /^markOutlinePath\./, why: 'rough.js pencil outline, loaded on the first open mark (READ-13)', reachableFrom: ['highlight-pdf'] },
-  { chunk: /^hatchStroke\./, why: 'rough.js pencil hatch, loaded on the first Pencil mark, and by the export that writes one (READ-14)', reachableFrom: ['highlight-pdf', 'sign'] },
-  { chunk: /^generator\./, why: 'rough.js itself, shared by the outline and the hatch, never in a first paint (READ-13, READ-14)', reachableFrom: ['highlight-pdf'] },
+  { chunk: /^highlight-late\./, why: "Highlight's late code, the rough.js pencil outline loaded on the first open mark among it (READ-13, MEM-44)", reachableFrom: ['highlight-pdf'] },
+  { chunk: /^editor-late\./, why: 'the editors\' late code: rough.js and its pencil hatch (READ-13, READ-14), the PDF writers (MEM-44)', reachableFrom: ['highlight-pdf', 'sign', 'redact'] },
 ];
 
 /**
@@ -216,6 +216,50 @@ for (const page of PAGES) {
       errors.push(`/${page}/ cannot reach ${unreachable.join('; ')} even lazily - that work could never run.`);
     } else {
       notes.push(`/${page}/ reaches ${owed.length} lazy-only chunk(s), none on first paint`);
+    }
+  }
+}
+
+
+/**
+ * MEM-44: a tool's late code comes as `<tool>-late.js`, code several editors share as `editor-late.js` and code
+ * other tools share as `tools-late.js`. Three promises, read off every built page (not only PAGES):
+ *   1. no page loads a `*-late.js` on first paint (a late group that became eager costs every visit);
+ *   2. `<tool>-late.js` is in the closure of that tool's pages only, the ones that load `<tool>-tool.js` eagerly,
+ *      so no tool carries another tool's code; `editor-late.js` only in Sign, Redact and Highlight;
+ *   3. a page's lazy JS file count stays at its measured figure, the files a worker install fetches beyond what
+ *      the page loaded (pdf.js, pdf-lib and the workers are the engine and not counted).
+ */
+const LATE = /^(?:[\w-]+)-late\.js$/;
+const EDITOR_TOOL_BUNDLES = ['sign-tool.js', 'redact-tool.js', 'highlight-tool.js'];
+const ENGINE = /^(?:pdf|pdf-lib)\.js$|[Ww]orker/;
+// Set to the measured counts. Budgets only go down. A page with no entry is not an island page and has 1.
+const LAZY_FILE_BUDGET = { '': 3, he: 3, sign: 6, 'he/sign': 6, redact: 6, 'highlight-pdf': 6, merge: 5, 'he/merge': 5, compress: 5, 'he/compress': 5, 'compress-image': 5, 'scan-to-pdf': 5, split: 4, unlock: 4, 'image-to-pdf': 4, 'organize-pdf': 4, 'rotate-pdf': 4, 'remove-pages': 4, 'add-page-numbers-to-pdf': 4, 'extract-pdf-pages': 4, 'pdf-to-image': 4 };
+
+const lateBuilt = built.filter((file) => LATE.test(file));
+if (lateBuilt.length === 0) errors.push('No dist/shared/*-late.js: the late bundles of astro.config.mjs (MEM-44) are not built, so every small lazy module is its own file again.');
+for (const [relative, html] of view.files) {
+  if (!relative.endsWith('index.html') && !relative.endsWith('.html')) continue;
+  const page = relative === 'index.html' ? '' : relative.replace(/\/?index\.html$/, '').replace(/\.html$/, '');
+  const entries = pageEntries(html);
+  const eager = names(staticClosure(view, entries));
+  const reach = names(fullClosure(view, entries));
+  for (const file of eager) {
+    if (LATE.test(file)) errors.push(`/${page}/ loads ${file} on first paint. A late bundle holds only modules no entry reaches statically (astro.config.mjs lateBundleOf).`);
+  }
+  for (const file of reach) {
+    if (!LATE.test(file)) continue;
+    const owner = file.replace(/-late\.js$/, '');
+    if (owner === 'tools') continue;
+    const allowed = owner === 'editor' ? EDITOR_TOOL_BUNDLES.some((bundle) => eager.has(bundle)) : eager.has(`${owner}-tool.js`);
+    if (!allowed) errors.push(`/${page}/ lists ${file} but does not run the ${owner === 'editor' ? 'Sign, Redact or Highlight' : owner} tool: a tool's late bundle may be reached by its own pages only.`);
+  }
+  if (page in LAZY_FILE_BUDGET) {
+    const lazy = [...reach].filter((file) => /\.js$/.test(file) && !eager.has(file) && !ENGINE.test(file));
+    if (lazy.length > LAZY_FILE_BUDGET[page]) {
+      errors.push(`/${page}/ has ${lazy.length} lazy JS files (${lazy.join(', ')}), budget ${LAZY_FILE_BUDGET[page]}. Each is a request on a first visit (MEM-44).`);
+    } else {
+      notes.push(`/${page}/ lazy JS files: ${lazy.length} of ${LAZY_FILE_BUDGET[page]}`);
     }
   }
 }

@@ -28,9 +28,10 @@ const PAGES = ['/', '/redact/', '/sign/'];
 // Set to the measured figures. Budgets only go down.
 export const BUDGETS = {
   '/': { firstVisit: 19, afterOpen: 9 },
-  // MEM-43 (owner's decision, 2026-11-12): tool pages install on the first visit, so this rise is deliberate.
-  '/redact/': { firstVisit: 57, afterOpen: 0 },
-  '/sign/': { firstVisit: 53, afterOpen: 0 },
+  // MEM-43 (owner's decision, 2026-11-12): tool pages install on the first visit, so this rise is deliberate
+  // (57 and 53). MEM-44 groups a tool's late code into a few files: 43 and 43.
+  '/redact/': { firstVisit: 43, afterOpen: 0 },
+  '/sign/': { firstVisit: 43, afterOpen: 0 },
 };
 
 const WORKER_REQUESTS = ['/sw.js', '/precache-manifest.json'];
