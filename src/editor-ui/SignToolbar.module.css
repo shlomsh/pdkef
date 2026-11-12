@@ -820,29 +820,37 @@
   .toolbar[data-finish="strip"] { --toolbar-gap: 2px; }
   /* Natural widths: the free room is the flexible space before Full screen. */
   .toolbar[data-finish="strip"] > * { flex: 0 0 auto; }
-  .toolbar[data-finish="strip"] .button { gap: 7px; min-height: 44px; height: 44px; padding: 0 11px; font-size: 14px; overflow: visible; }
+  .toolbar[data-finish="strip"] .button { gap: 7px; min-height: 44px; height: 44px; padding: 0 10px; font-size: 14px; overflow: visible; }
   .toolbar[data-finish="strip"] .button[data-icon-only] { width: 40px; padding: 0; }
   /* Full screen, Replace and Share sit a step smaller, as in the design. */
   .toolbar[data-finish="strip"] > :has(+ [data-replace]), .toolbar[data-finish="strip"] > [data-replace], .toolbar[data-finish="strip"] > .share { min-height: 40px; height: 40px; padding: 0 10px; }
   .toolbar[data-finish="strip"] > :has(+ [data-replace]) { margin-inline-start: auto; }
-  .toolbar[data-finish="strip"] .button.download { min-height: 42px; height: 42px; padding: 0 16px; border: 1.5px solid var(--color-border-strong); box-shadow: none; margin-inline-start: 4px; }
+  .toolbar[data-finish="strip"] .button.download { min-height: 42px; height: 42px; padding: 0 16px; border: 1.5px solid var(--color-border-strong); box-shadow: none; }
   .toolbar[data-finish="strip"] .button.download:hover:not(:disabled) { background: var(--color-primary-soft); border-color: var(--color-border-strong); }
   .toolbar[data-finish="strip"] .button.download:disabled, .toolbar[data-finish="strip"] .button.download:disabled:hover { border: 1.5px solid var(--color-border); box-shadow: none; background: var(--color-surface); }
   .toolbar[data-finish="strip"] .dropdown > .button { width: 100%; }
   /* Dividers: 1px x 24px, 8px each side of the 2px gap. The group's first control
      takes the extra start margin and draws the line in it. */
-  .toolbar[data-finish="strip"] > .dropdown + .dropdown, .toolbar[data-finish="strip"] > .dropdown + .dropdown + .button, .toolbar[data-finish="strip"] > .share, .toolbar[data-finish="strip"] > .download:not(.share + .download) { position: relative; margin-inline-start: 19px; }
-  .toolbar[data-finish="strip"] > .dropdown + .dropdown::before, .toolbar[data-finish="strip"] > .dropdown + .dropdown + .button::before, .toolbar[data-finish="strip"] > .share::before, .toolbar[data-finish="strip"] > .download:not(.share + .download)::before { content: ''; position: absolute; inset-block-start: 50%; inset-inline-start: -11px; width: 1px; height: 24px; margin-block-start: -12px; background: var(--color-border); }
+  .toolbar[data-finish="strip"] > .dropdown + .dropdown, .toolbar[data-finish="strip"] > .dropdown + .dropdown + .button, .toolbar[data-finish="strip"] > .share, .toolbar[data-finish="strip"] > .download:not(.share + .download) { position: relative; margin-inline-start: 15px; }
+  .toolbar[data-finish="strip"] > .dropdown + .dropdown::before, .toolbar[data-finish="strip"] > .dropdown + .dropdown + .button::before, .toolbar[data-finish="strip"] > .share::before, .toolbar[data-finish="strip"] > .download:not(.share + .download)::before { content: ''; position: absolute; inset-block-start: 50%; inset-inline-start: -9px; width: 1px; height: 24px; margin-block-start: -12px; background: var(--color-border); }
 }
 
-/* SIGN-49: re-measure. Sign's copy of the 1300px label step. The generic 1299px
-   block above still takes the words off every toolbar (this one included) below
-   1300px; More is a fixed 134px only where its word shows, with the icon, the word
-   and the chevron sitting together in the middle. Only the active word takes room
-   (the stacked-words trick is not needed once the width is fixed). */
-@media (min-width: 1300px) {
-  .toolbar[data-finish="strip"] > .dropdown + .dropdown { width: 134px; }
-  .toolbar[data-finish="strip"] .dropdown > .button { justify-content: center; }
-  .toolbar[data-finish="strip"] .dropdown .label-swap-word[data-inactive] { display: none; }
-  .toolbar[data-finish="strip"] .dropdown > .button .chevron { width: 11px; height: 11px; margin-inline-start: -2px; }
+/* Sign's labels follow the toolbar's own width, not the window's (SIGN-49): the
+   ghost row is narrower than the tiled one, so the words fit wherever the box has
+   room for them, which the generic 1299px block above cannot know. Measured on
+   macOS Chromium 2026-11-12: the labelled row with Share needs 1136px of content,
+   the toolbar box tops out at 1196px (1172px inside its padding). The ~36px left is
+   the headroom for Linux's wider system-font stack (DejaVu set the old row ~3.3%
+   wider than macOS), which is what the 1160px step keeps. More is a fixed 134px
+   wherever its word shows: the icon, the word and the chevron sit together in the
+   middle, and only the active word takes room. */
+@media (min-width: 920px) {
+  @container toolbar (min-width: 1160px) {
+    .toolbar[data-finish="strip"] .label { position: static; width: auto; height: auto; margin: 0; overflow: visible; clip: auto; }
+    .toolbar[data-finish="strip"] .button[data-icon-only] .label { position: absolute; width: 1px; height: 1px; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); }
+    .toolbar[data-finish="strip"] > .dropdown + .dropdown { width: 134px; }
+    .toolbar[data-finish="strip"] .dropdown > .button { justify-content: center; }
+    .toolbar[data-finish="strip"] .dropdown .label-swap-word[data-inactive] { display: none; }
+    .toolbar[data-finish="strip"] .dropdown > .button .chevron { width: 11px; height: 11px; margin-inline-start: -2px; }
+  }
 }
