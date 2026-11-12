@@ -151,14 +151,15 @@ Create is a gesture too (click-place or drag-draw), not an exception.
 - **The Blur and Whiteout brushes are the one exception** (RED-32): armed in brush mode, they stay armed after each stroke until Stop or Esc, because painting takes several strokes. One stroke is still one committed element.
 - **Repeat placement is opt-in by double-click** (`SET_TOOL` with `{ tool, locked: true }` in Sign;
   `setTool(tool, true)` in Redact). Toggle buttons read `e.detail >= 2` off `onClick`, not
-  `ondblclick`, because the second click of a real dblclick would disarm before the lock landed. Shapes
-  locks from its own button with a real `ondblclick`, since a menu item unmounts on first click.
+  `ondblclick`, because the second click of a real dblclick would disarm before the lock landed. More
+  locks from a real `dblclick` on its wrapper div (the armed, or last picked, More tool), since a menu
+  item unmounts on first click.
 - **A double-tap locks too, by time, not by `detail`** (SIGN-30). iOS Safari reports every tap as
   `detail: 1` (and the click as `pointerType: "mouse"`), so on a coarse pointer a second tap on the
   tool the first tap armed, within `DOUBLE_TAP_MS`, locks it; `touch-action: manipulation` on
   `.toolbar` keeps Safari from reading the two taps as zoom. Chromium's touch emulation counts taps
   as `detail: 2`, so no Playwright spec can reproduce the iOS failure: `toolArming.test.js` is the
-  guard. The menu tools (Shapes, Sign) lock on touch through `useDoubleTap`, only while the menu the
+  guard. The menu tools (More, Sign) lock on touch through `useDoubleTap` (key `'more'` for More), only while the menu the
   first tap opened is still open, and on touch their menus open by tap alone, never by the emulated
   hover (it opened and shut the menu on one tap) (SIGN-31). The shortcut is taught once: a floating
   bubble on first arm, once per session with a mouse and once per device on touch
@@ -277,65 +278,66 @@ Create is a gesture too (click-place or drag-draw), not an exception.
   because greedy flex fills each line to the cap: ten lands 4+4+2 or 3+3+3+1 and thirteen lands
   6+6+1 or 4+4+4+1, while nine, eleven and twelve all land evenly. That is what decides when an
   optional control stands down, not taste. The counted set is
-  `:nth-child(N of :not(.desktop-download):not([role="radiogroup"]))`: Sign counts **twelve** (with
-  Share or without), Redact **nine** (ten once a redacted export exists and "Compress" appears).
-  Both are counts that balance, so neither needs a stand-down until the very bottom. Measured
-  2026-09-20, every integer viewport from 919px to 220px in headless Chromium: Sign holds one line
-  to 694px, wraps 6+6 to 385px, 4+4+4 to 336px, 4+4+3 to 288px and 3+3+3+2 to 239px; **Feedback -
-  now the only `[data-optional-control]` on either toolbar, since History and its dialog came out -
-  stands down at 335px** (239px of content box), and nothing else does. Redact holds one line to
-  544px, wraps 5+4 to 348px and 3+3+3 from 347px, and stands nothing down. Redact's tenth control
-  (the "Compress" hand-off, which only exists once a redacted export does) puts it on the one
-  count that cannot balance: measured one line to 608px, 5+5 to 336px, then 4+4+2 from 335px down.
-  That is the shape the file tolerates for ten - a full short row, never a lone control - and no cap
-  improves it (three gives 3+3+3+1). It was an eleven, and balanced, until History left.
-  Thirteen balances only as 7+6, which needs 336.8px of content. Since 2026-10-20 Sign keeps
-  Download beside Share below 920px (`keepDownloadOnPhone`, like Redact), so with Share it counts
-  **thirteen**: one line to 693px, 7+6 from 692px, and at 387px of content and below (a 433px window,
-  every current iPhone) Feedback stands down so twelve render 6+6, 4+4+4, 3+3+3+3. The query sits
-  where 433px lands, not where 7+6 stops fitting, so iPhones keep 6+6's wider controls. Without Share it stays
-  twelve with Feedback, as above. Guard: `src/tools/sign/e2e/sign-toolbar-labels-fit.spec.js`, every
-  width 919px to 239px with Share, no lone control.
+  `:nth-child(N of :not(.desktop-download):not([role="radiogroup"]))`: Sign counts **twelve** with Share
+  and **eleven** without (SIGN-49: Highlight, Comment and the three shapes live in the More menu, and
+  Feedback is not a Sign control, so nothing on Sign carries `data-optional-control` and nothing stands
+  down), Redact **nine** (ten once a redacted export exists and "Compress" appears). Twelve, eleven and
+  nine balance, so no stand-down is needed. Measured 2026-11-12: Sign with Share is one line from a
+  648px window, wraps 6+6 below it (4+4+4 from 288px, 3+3+3+3 from 239px) and 6+5 without Share; every
+  control is >= 44px from 360px. The eleven-control rule fires at 532px, not 531px: the box is
+  fractional (531.2px at a 594px window) and 531 stranded 10+1. Redact holds one line to 544px, wraps
+  5+4 to 348px and 3+3+3 from 347px. Redact's tenth control (the "Compress" hand-off, which only exists
+  once a redacted export does) puts it on the one count that cannot balance: one line to 608px, 5+5 to
+  336px, then 4+4+2 from 335px down. That is the shape the file tolerates for ten - a full short row,
+  never a lone control - and no cap improves it (three gives 3+3+3+1). The 13-of to 15-of rules and the
+  337px/387px queries in `SignToolbar.module.css` served the thirteen-to-fifteen Sign of SIGN-44/46 and
+  are inert now; keep them as the ladder for a toolbar that grows. Guard:
+  `src/tools/sign/e2e/sign-toolbar-labels-fit.spec.js`, every width 919px to 239px with Share, no lone
+  control.
   Highlight's row is one line at every width: Marker, Undo, Redo, Feedback, Replace, Print, Share where
-  the browser has it, Download. Feedback stands down at 480px and below, where eight tiles cannot hold
+  the browser has it, Download. Feedback (Highlight's own control, unlike Sign) stands down at 480px and below, where eight tiles cannot hold
   the 44px floor. Guard: `src/tools/highlight/e2e/tool-row-phone.spec.js`.
-- **On a phone (480px and down) both toolbars show a word under every control**, Undo, Redo and
-  Feedback included, from one shared block at the end of `SignToolbar.module.css`, sized by RED-61's
+- **On a phone (480px and down) both toolbars show a word under every control**, Undo and Redo
+  included (and Feedback on Redact and Highlight), from one shared block at the end of `SignToolbar.module.css`, sized by RED-61's
   formula below; a two-word label wraps between words. Sign's guard is
   `sign-toolbar-labels-fit.spec.js` (360-430px and `/he/sign/`). Redact keeps its own 480px block,
   because its tripled `.bar` rule would otherwise outrank the shared size.
-- Redact's eleven counted controls stay two rows on a phone (the card-height guard, `toolbar-phone-row.spec.js`), so at 390px a control is 44.9px wide; Redact's phone label size is `min(0.66rem, (control width - 8px) / 5.2)` (RedactToolbar.module.css, RED-61, Shlomi's call 2026-10-08), 7.1px at 390px, guarded by `redact-toolbar-labels-fit.spec.js` at 360 to 430px. A four-per-row step was tried and broke the card guard, and its `:nth-child(11 of ...)` selector also caught Sign's twelve.
+- Redact's eleven counted controls stay two rows on a phone (the card-height guard, `toolbar-phone-row.spec.js`), so at 390px a control is 44.9px wide; Redact's phone label size is `min(0.66rem, (control width - 8px) / 5.2)` (RedactToolbar.module.css, RED-61, Shlomi's call 2026-10-08), 7.1px at 390px, guarded by `redact-toolbar-labels-fit.spec.js` at 360 to 430px. A four-per-row step was tried and broke the card guard, and its `:nth-child(11 of ...)` selector also caught Sign's eleven or twelve.
 - **Redact keeps the file's details unless the person changes them (RED-59).** The engine's `applyDetailEdits` (`src/tools/redact/lib/documentTraces.js`) takes per-id edits (`title`, `author`, `made`, `attachment:<page>:<name>`, `scripts`, `hidden`...), always drops `/Thumb`, XMP thumbnails and `/PieceInfo` (each can show what a mark covers), and on the flattened path never copies a value that reaches a page (`reachesPage`); the footer line and Review sheet live in `src/tools/redact/components/details/`. Copy that says a download "leaves out" details is wrong; `docs/redact-content-removal.md` has the per-id table.
-- Two anchors, desktop and iPhone, one step between (SIGN-29, 2026-09-18). From 1300px the row is
-  one line with labels, set 4px apart; the toolbar box plateaus at 1172px of content (it reaches
-  that plateau at a 1280px window, so a classic scrollbar at 1300px no longer eats into it).
-  Measured 2026-09-20 in headless Chromium on Linux, the wide DejaVu face CI lands on, with Share
-  stubbed present: Sign's labelled row is **1139.7px against the 1172px box, 32.3px spare**. Spend
-  that on a thirteenth control and the next label to go is Replace's (62.7px of label); Date's is
-  not - it was icon-only for one day, and History leaving is what paid it back. Keep the gap at 4px
-  while the margin is this thin: the twelve gaps between the thirteen rendered controls would cost
-  24px of the 32.3px at 6px. Undo, Redo and Feedback stay `data-icon-only` at every width above the phone:
-  an arrow is a convention, and none of them is a tool. Below 1300px every control is icon-only on
-  one line, until the row's 44px targets stop fitting, and from there down the phone grid above. No
-  label may ever
-  truncate: `flex-shrink: 0`, and if the labelled row ever outgrows the box it wraps whole, which
-  `e2e/tool-toolbars/toolbar-desktop-one-line.spec.js` catches. Container-query label tiers were
-  tried twice and drifted twice; do not bring them back.
+- Two anchors, desktop and iPhone, one step between (SIGN-29, 2026-09-18). Redact and Highlight: from
+  1300px the row is one line with labels, set 4px apart; the toolbar box plateaus at 1172px of content
+  (a 1280px window), so a classic scrollbar at 1300px no longer eats into it. Below 1300px every
+  control is icon-only on one line, until the row's 44px targets stop fitting, and from there down the
+  phone grid above. Measured 2026-09-20 in headless Chromium on Linux (the wide DejaVu face CI lands
+  on), the old twelve-control Sign row was 1139.7px against the 1172px box; keep the gap at 4px while a
+  margin is that thin. No label may ever truncate: `flex-shrink: 0`, and if the labelled row ever
+  outgrows the box it wraps whole, which `e2e/tool-toolbars/toolbar-desktop-one-line.spec.js` catches.
+  **Sign's labels follow the toolbar's own width instead**: one container tier,
+  `@container toolbar (min-width: 1160px)` inside `@media (min-width: 920px)` (the finish block in
+  `SignToolbar.module.css`, scoped by `data-finish="strip"`). Measured on macOS Chromium 2026-11-12 the
+  labelled row with Share needs 1136px of content and the box tops out at 1172px inside its padding,
+  about 36px of headroom for Linux's wider system fonts. Undo and Redo stay `data-icon-only` at every
+  width above the phone: an arrow is a convention, and neither is a tool. Earlier container-query label
+  tiers (keyed on `data-label-priority`) were tried twice and drifted twice, because each carried
+  hand-measured per-label thresholds; this one tier has one measured number with stated headroom, and
+  `toolbar-desktop-one-line.spec.js` pins it at 1280 and 1100.
 - Sign's own toolbar order reads in the order a form gets done: the filling vocabulary first (Text,
-  Date, Mark, Shapes, Whiteout), then Sign as the last thing you do to a filled form (it is the
-  tool the page is named for, but it led the row for one day under SIGN-29 and read as the wrong
-  first step), then the history group beside the work it acts on (Undo, Redo - the same
-  pair, in the same order, as Redact), then the chrome group (full screen,
-  Feedback), then Replace with the other finishing action, then export at the far edge - one kind of
-  thing per group. Redact's own order is unchanged: it already led with Blur, its named tool, since
-  f48fcbd8.
-- **The row is quiet**: tools, Replace, Share and Download are all the plain button. Teal fill on a
-  toolbar button means one thing, an armed tool. Export is never filled in the toolbar (QUAL-27,
-  Shlomi 2026-10-20): the completion row under the document is the call to action, and a restored
-  draft once lit Share and Download up with nobody asking. Disabled Download/Share keep the plain
-  button with a muted label. Guard: `e2e/tool-toolbars/toolbar-export-quiet.spec.js`, Sign, `/he/sign/`
-  and Redact, phone and desktop, after a draft restore. Replace's lime highlight lives only in the
-  shell file banner, where it is the row's one control.
+  Date, Mark, Whiteout), then Sign as the last thing you do to a filled form (it is the tool the page
+  is named for, but it led the row for one day under SIGN-29 and read as the wrong first step), then
+  More (Highlight, Comment, the three shapes: the tools used less often; the button becomes the armed
+  tool, word and icon, at the same width), then the history group beside the work it acts on (Undo, Redo
+  - the same pair, in the same order, as Redact), then the chrome group (Full screen, Replace, both
+  labelled), then export at the far edge (Share, Download). Groups are divided by a `::before` on the
+  group's first control, never a toolbar child. Redact's own order is unchanged: it already led with
+  Blur, its named tool, since f48fcbd8.
+- **The row is quiet**: tools, Replace and Share are ghost controls (Sign) or the plain button (Redact),
+  and Download is the one outlined control. Teal fill on a toolbar button means one thing, an armed
+  tool. Export is never filled in the toolbar (QUAL-27, Shlomi 2026-10-20): the completion row under
+  the document is the call to action, and a restored draft once lit Share and Download up with nobody
+  asking. Disabled Download/Share keep their quiet style with a muted label. Guard:
+  `e2e/tool-toolbars/toolbar-export-quiet.spec.js`, Sign, `/he/sign/` and Redact, phone and desktop,
+  after a draft restore. Replace's lime highlight lives only in the shell file banner, where it is the
+  row's one control.
 
 ## pdf.js render direction
 

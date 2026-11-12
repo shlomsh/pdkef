@@ -34,36 +34,35 @@
    while the first line still stretches edge to edge.
    The count comes from the markup itself: `:has(> :nth-child(9))` reads as "has
    at least a ninth child", and each larger threshold overrides the smaller one
-   above it. Sign has thirteen counted children (fourteen with Share, since the
-   Highlight button, SIGN-46) and Redact nine or ten (the
-   desktop-only Download is excluded). Recount by rendering, not by eye,
+   above it. Sign has eleven counted children, twelve with Share (SIGN-49:
+   Highlight, Comment and the three shapes live in the More menu, Feedback is
+   not a Sign control) and Redact nine or ten (the desktop-only Download is
+   excluded). Recount by rendering, not by eye,
    whenever a slot's own component changes shape: an unwrapped fragment
    contributes each of its nodes as a child, not one.
    Every real toolbar today has at least nine counted children: Redact nine
-   and Sign twelve, so five per row is Redact's even split and six is Sign's. */
+   and Sign eleven or twelve, so five per row is Redact's even split and six
+   is Sign's. */
 .toolbar { --controls-per-row: 4; }
 .toolbar:has(> :nth-child(9 of :not(.desktop-download))) { --controls-per-row: 5; }
 /* The Date tool (SignToolbar.tsx) added an 11th real child to Sign - half of
    11 rounded up is 6, not 5, so this needs its own override, later in source
    order than the 9-of rule above so it wins the cascade on a toolbar matched
    by both (every true-11 toolbar also has a 9th child). This is the tier for
-   eleven or twelve counted children, and Sign is on it: twelve counted since
-   the History control and its dialog came out (2026-09-20), with Share
-   (thirteen children, less the desktop-only Download) and
-   without it (twelve - Download carries no
-   .desktop-download class when there is no Share to swap in, and stays visible
-   on a phone). Six per row is Sign's even split from the moment it wraps down
-   to the 288px rule at the end of this file, which takes it to four. Redact
-   counts nine and stops at the 9-of rule above. `:nth-child(n of ...)` counts
-   DOM children whatever their rendering, so Sign counts twelve at every width,
-   including below 239px where only eleven render. */
+   eleven or twelve counted children, and Sign is on it: twelve with Share
+   (Download stays on a phone, keepDownloadOnPhone, so it is counted there and
+   hidden only from 920px) and eleven without it. Six per row is Sign's even
+   split, 6+6 with Share and 6+5 without, until the 288px rule at the end of
+   this group takes it to four. Redact counts nine and stops at the 9-of rule
+   above. `:nth-child(n of ...)` counts DOM children whatever their rendering,
+   so Sign counts the same at every width. */
 .toolbar:has(> :nth-child(11 of :not(.desktop-download))) { --controls-per-row: 6; }
-/* Thirteen or fourteen: Sign without and with Share (Download stays on the
-   phone, keepDownloadOnPhone, 2026-10-20; Highlight added the extra one,
-   SIGN-46). Seven per row is both even splits, 7+6 and 7+7. */
+/* Thirteen and up: no toolbar reaches these counts since SIGN-49 (Sign is
+   eleven or twelve). The 13-of and 15-of overrides, and the 630px, 679px and
+   728px queries below, are kept as the ladder for a toolbar that grows to
+   that many controls; Redact tops out at ten and Highlight sets its own row.
+   Seven per row is the even split for thirteen or fourteen, eight for fifteen. */
 .toolbar:has(> :nth-child(13 of :not(.desktop-download))) { --controls-per-row: 7; }
-/* SIGN-44: the Comment tool makes Sign fourteen counted children, fifteen with
-   Share. Fourteen keeps the cap of seven (7+7); fifteen is 8+7. */
 .toolbar:has(> :nth-child(15 of :not(.desktop-download))) { --controls-per-row: 8; }
 
 .dropdown { position: relative; display: flex; }
@@ -122,8 +121,9 @@
 .label-swap { display: inline-grid; justify-items: center; }
 .label-swap-word { grid-area: 1 / 1; }
 .label-swap-word[data-inactive] { visibility: hidden; }
-/* The Shapes trigger's menu chevron, a sibling of the label rather than inside it, so
-   it stays visible where the label is hidden (the 1299px block). */
+/* The More button's menu chevron (Sign), a sibling of the label rather than inside it, so
+   it stays visible where the label is hidden (the 1299px block, Redact and
+   Highlight; Sign's finish block below sets its own). */
 .chevron { flex-shrink: 0; margin-inline-start: -2px; }
 .help { margin: 0; color: var(--color-muted); font-size: .83rem; display: flex; align-items: center; }
 /* The idle tip and every tool's armed row (icon+sentence+pill+hint) are all
@@ -353,7 +353,7 @@
 /* Below 920px every control is the same icon-only square, so they all carry identical content and
    any difference in rendered width is a bug rather than a design choice. The row
    mixes two kinds of item though - bare `<button>`s and the `<div class=dropdown>`
-   wrappers around the Shapes/Sign popovers - and under the old `flex: 1 1 0` a
+   wrappers around the More/Sign popovers - and under the old `flex: 1 1 0` a
    border-box button could never shrink below its own padding+border while a
    padding-less wrapper div floored at 0. The leftover space was then split evenly
    on top of those unequal bases, so the dropdowns rendered ~13px wide beside ~31px
@@ -402,8 +402,9 @@
      them past nine children without anyone adding the ten threshold, so Sign
      wrapped uncapped between roughly 448px and 496px of container width.
      N here means controls actually rendered, not raw DOM position: Sign with
-     share support counts thirteen children (see the recount note above) but
-     only ever shows twelve here, since Download hides itself below 920px.
+     share support counts twelve children (see the recount note above), all of
+     them shown on a phone: Download stays beside Share below 920px and hides
+     itself only from 920px up.
      `:nth-child(10 of
      :not(.desktop-download))` reads as "the tenth child once you skip anything
      wearing that hidden-below-920px class", so it counts what a phone user
@@ -456,24 +457,24 @@
   }
 
   /* SIGN-44: 727.2px is where fifteen controls stop fitting one line
-     (15 * 44 + 14 * 4.8), one tier up from fourteen's 678.4px. Fifteen is Sign
-     with Share since the Comment button. Rounded up to 728px for the same
+     (15 * 44 + 14 * 4.8), one tier up from fourteen's 678.4px. Fifteen was Sign
+     with Share before SIGN-49 moved Comment into More. Rounded up to 728px for the same
      reason as the 679px rule below. */
   @container toolbar (max-width: 728px) {
     .toolbar:has(> :nth-child(15 of :not(.desktop-download))) > * { flex-grow: 0; flex-basis: max(var(--btn-min-size), (100% - (var(--controls-per-row) - 1) * var(--toolbar-gap)) / var(--controls-per-row)); }
   }
 
   /* SIGN-46: 678.4px is where fourteen controls stop fitting one line
-     (14 * 44 + 13 * 4.8), one tier up from thirteen's 629.6px. Fourteen is Sign
-     with Share since the Highlight button. Rounded up to 679px for the same
+     (14 * 44 + 13 * 4.8), one tier up from thirteen's 629.6px. Fourteen was Sign
+     with Share before SIGN-49 moved Highlight into More. Rounded up to 679px for the same
      reason as the 630px rule below: the content box lands on x.2. */
   @container toolbar (max-width: 679px) {
     .toolbar:has(> :nth-child(14 of :not(.desktop-download))) > * { flex-grow: 0; flex-basis: max(var(--btn-min-size), (100% - (var(--controls-per-row) - 1) * var(--toolbar-gap)) / var(--controls-per-row)); }
   }
 
   /* 2026-10-20: 629.6px is where thirteen controls stop fitting one line
-     (13 * 44 + 12 * 4.8), one tier up from twelve's 580.8px. Thirteen is Sign
-     with Share, now that Download stays on the phone. Rounded up to 630px, not
+     (13 * 44 + 12 * 4.8), one tier up from twelve's 580.8px. Thirteen was Sign
+     with Share before SIGN-49. Rounded up to 630px, not
      floored, for the reason the 581px rule below gives: the content box lands
      on x.2 and a floor would leave a band where the cap has not engaged. */
   @container toolbar (max-width: 630px) {
@@ -481,9 +482,8 @@
   }
 
   /* 580.8px is where twelve controls stop fitting one line at the touch floor
-     (12 * 44 + 11 * 4.8), one tier up from eleven's 532.0px. Sign is the
-     twelve, with Share and without it alike (see the 11-of rule's comment for
-     that count).
+     (12 * 44 + 11 * 4.8), one tier up from eleven's 532.0px. Sign with
+     Share is the twelve (without Share it is eleven, the 532px tier above).
      Skip this tier and the band between 531px and 580.8px has no cap engaged
      at all, so twelve packs greedily: measured 2026-09-20 in headless Chromium
      at a 693px viewport (580.2px of content), 11+1 with the twelfth control
@@ -544,70 +544,41 @@
      The counts use `:not(.desktop-download)`, matching the --controls-per-row: 5
      trigger above, so a toolbar that never shows ten visible controls is not
      counted as ten and wrapped 4+4+1. */
-  /* 2026-10-20: thirteen (Sign with Share) balances only as 7+6, and seven
-     stop fitting at 336.8px of content. Below that, thirteen strands 6+6+1,
-     so Feedback stands down and the twelve left render 6+6, 4+4+4 and
-     3+3+3+3, which balance everywhere below. 2026-10-28: the loaded card
-     dropped its frame on phones, so a 433px window now gives 386.2px of
-     content, where 7+6 would still fit at 44.9-51px a control. The query
-     moved to 387px so every current iPhone (433px and narrower) keeps the
-     6+6 it had, with 48-60px controls instead; 434px and up is 7+6, as
-     before. Guard: sign-toolbar-labels-fit.spec.js, 6+6 at 360-430px. Feedback stays in the site footer. This is why
-     the "do not strip Feedback from every phone" note further down no longer
-     applies to Sign with Share: here the strand is real at every phone width.
-     Sits after the 581px rule and before the 288px one, so the 288px cap of
-     four still wins below it by source order. */
-  /* SIGN-46: Highlight made Sign thirteen counted children, fourteen with
-     Share. With Feedback stood down, Sign with Share shows thirteen and splits
-     7+6 (cap of seven, left alone here); Sign without Share shows twelve and
-     splits 6+6 (cap of six, set below). The 13-of/14-of pair keeps the two
-     apart. Seven fit above the 44px floor only from 336.8px of content, so
-     under 337px (a 360px or 375px phone) Sign's thirteen let the floor give
-     way, see the 337px rule after the 288px one (decided 2026-10-31). */
-  /* SIGN-44: the Comment tool moved every count up one. Feedback stands down
-     from fourteen counted (Sign without Share, thirteen left: 7+6) and from
-     fifteen (with Share, fourteen left: 7+7, cap of seven instead of the
-     eight fifteen takes above this width). Below 337px the rule after the
-     288px one gives the floor way for both. */
+  /* SIGN-49: Feedback is no longer a Sign control (the failed field check links
+     "Send me the details" from its own status line), so Sign has nothing to
+     stand down. Sign with Share is twelve and balances as 6+6 at every phone
+     width (4+4+4 from 288px, 3+3+3+3 from 239px); without Share it is eleven
+     and wraps 6+5. The 14-of and 15-of rules below, and the 337px rule after
+     the 288px one, served the thirteen-to-fifteen Sign of SIGN-44 and SIGN-46
+     (where Feedback stood down at 387px, so every iPhone kept 6+6); no toolbar
+     counts that many now and they are kept inert, as the ladder for one that
+     does. Sits after the 581px rule and before the 288px one. */
   @container toolbar (max-width: 387px) {
     .toolbar:has(> :nth-child(14 of :not(.desktop-download))) > [data-optional-control] { display: none; }
     .toolbar:has(> :nth-child(15 of :not(.desktop-download))) > * { --controls-per-row: 7; }
   }
 
-  /* Feedback does not act on the document, so at the narrowest widths it
-     stands down and lets the controls that do take the split above. Nothing of
-     Sign's goes at 251px, though: Sign shows twelve here and splits 4+4+4 (the
-     288px rule's cap of four). Feedback - its only `[data-optional-control]`
-     - already stood down below 337px when Sign has Share (thirteen, see the
-     337px rule above), so twelve render; without Share it holds its place
-     until the 239px step below, where eleven render and split 4+4+3. Twelve and eleven both balance, which is why Sign
-     needs no stand-down earlier than that one. Ten cannot be balanced here
-     at all: the 44px touch floor caps the line at four regardless of
-     --controls-per-row, and greedy flex turns ten into 4+4+2 at a cap of four
-     or five and 3+3+3+1 at three, while the balanced 4+3+3 is unreachable at
-     every cap. Thirteen was the other unbalanceable count (6+6+1 at a cap of
-     six, 4+4+4+1 at four), and standing Feedback down at 344px to get back to
-     twelve was the whole reason this file once carried a second, earlier
-     stand-down step; twelve took that ladder away with it.
+  /* A control that does not act on the document may carry
+     `[data-optional-control]` and stand down at the narrowest widths, so the
+     controls that do take the split. Nothing carries it today: Sign dropped
+     Feedback in SIGN-49 (it stays in the site footer, "Report a bug" and
+     "Feedback & ideas", and in the failed-field status line) and Redact has no
+     such control. Sign shows twelve here and splits 4+4+4 (the 288px rule's cap
+     of four); eleven without Share. Twelve and eleven both balance. Ten cannot
+     be balanced here at all: the 44px touch floor caps the line at four
+     regardless of --controls-per-row, and greedy flex turns ten into 4+4+2 at
+     a cap of four or five and 3+3+3+1 at three, while the balanced 4+3+3 is
+     unreachable at every cap. Thirteen was the other unbalanceable count.
      Nine, by contrast, lands exactly - 3 * 71.2 + 2 * 4.8 = 223.2px at a 320px
      viewport, the full content box, with a 71.2px target instead of 44px - and
      it was Redact's count here until RED-02's Find made it ten, which packs
      4+4+2 at this width (accepted, and pinned in toolbar-touch-targets.spec.js).
-     Date is not one of these. It is a document-editing control, which this
-     pattern is never applied to, and it no longer pays for its place with its
-     label either: the label came back when History left (see the 1300px block
-     at the end of this file for what that cost).
      `[data-optional-control]` rather than a class because CSS Modules hash
      `styles.*`, so this has to be nameable from the counting selectors below
-     too. Feedback is not lost, it stays in the site footer on every
-     page ("Report a bug", "Feedback & ideas"), which is what makes hiding it
-     acceptable here - this band is not only 320px-class hardware, it is also
-     where a current phone lands at 115-125% browser zoom and where WCAG
-     1.4.10's 320px reflow case sits, so the control has to remain reachable
-     somewhere. Do not extend this to a control that edits the document, and
-     do not reach for `.desktop-download`'s 920px media query instead: that
-     would strip Feedback from every phone and tablet to fix a band none of
-     them are in.
+     too. Do not extend this to a control that edits the document, and do not
+     reach for `.desktop-download`'s 920px media query instead: that would
+     strip a control from every phone and tablet to fix a band none of them
+     are in.
      The `display: none` is necessary but NOT sufficient. `:nth-child(n of ...)`
      counts DOM children whatever their rendering, so a hidden tenth control
      still reads as ten and keeps the cap at five - which is the whole shape of
@@ -628,10 +599,9 @@
      own 3+3+3): four holds above the 44px floor throughout this whole band,
      from 240px (56.4px each) up to 288px (68.4px each), so unlike nine's
      case this needs only one value, not a further three-way step at some
-     narrower width. Sign, at twelve, takes this rule too, and four holds for
-     it the same way: 4+4+4 above 239px (measured at a 380px viewport, 283.2px
-     of content) and 4+4+3 below it, where Feedback stands down and eleven
-     render (measured at a 320px viewport, 223.2px of content). Scoped the same
+     narrower width. Sign takes this rule too (eleven or twelve), and four holds for
+     it the same way: with Share 4+4+4 (measured at a 380px viewport, 283.2px
+     of content), without it 4+4+3. Scoped the same
      way as nine's rule (has an 11th, which matches Sign with Share and without
      it; there is no true-ten case per the comment above the 251px rule, so no
      `:not(:has(nth-child(12...)))` guard is needed the way nine's rule needs
@@ -648,8 +618,8 @@
     .toolbar:has(> :nth-child(11 of :not(.desktop-download))):not(:has(> :nth-child(14 of :not(.desktop-download)))) > * { --controls-per-row: 4; }
   }
 
-  /* SIGN-46, decided 2026-10-31: Sign with Share (fourteen, thirteen once
-     Feedback stands down) holds 7+6 at every phone width. Below 337px of
+  /* SIGN-46, decided 2026-10-31, inert since SIGN-49 (no toolbar counts
+     fourteen): Sign with Share, then fourteen, held 7+6 at every phone width. Below 337px of
      content seven no longer fit at the 44px touch floor (336.8px, 7 * 44 +
      6 * 4.8), and no other cap balances thirteen (6+6+1, 5+5+3, 4+4+4+1), so
      the floor gives way here: a flex-basis of one seventh of the line with no
@@ -679,8 +649,8 @@
      as ten and keeps the five-per-row share while only nine render.
      `display: none` alone never changes `:nth-child(n of ...)`, which counts
      DOM children whatever their rendering. No toolbar is in that exact case
-     today - Sign counts twelve here and eleven once Feedback hides, both
-     balanced at the 288px cap of four - but this is the half that re-arms the
+     today - Sign counts twelve here, eleven without Share, both balanced at
+     the 288px cap of four, and carries no optional control - but this is the half that re-arms the
      nine-control rule for a toolbar that does reach it, and an optional
      control is only safe to add while it is here. */
   @container toolbar (max-width: 239px) {
@@ -695,6 +665,13 @@
 
 /* Two anchors, desktop and iPhone, and one honest step between (Shlomi, 2026-09-18,
    after two rounds of drifting label thresholds).
+
+   Which toolbar this serves: Redact and Highlight, which keep the 1300px
+   viewport step below. Sign overrides it with its own finish block near the
+   end of this file (`data-finish="strip"`, labels at a 1160px toolbar width,
+   inside 920px and up); the 2026 measurements below were taken on Sign's
+   earlier twelve-to-thirteen-control row and stay as the record of why the
+   gap is 4px and nothing shrinks.
 
    Desktop, 1300px and up: one line, labels on. `main` caps the toolbar's box at
    1172px from a ~1280px viewport up (ToolPageLayout.astro's `!max-w-[1280px]`), so
@@ -720,11 +697,11 @@
    twelve counted controls measured 1139.7px against the 1172px box - 32.3px spare, one line
    at every width from 1300px up. The box reaches that 1172px plateau at a
    1280px window, so even a classic 15px scrollbar at a 1300px window leaves it
-   whole. That 1139.7px predates 2026-10-31 (SIGN-42), when the three-segment
-   view control became the 44px icon-only Full screen button, which frees about
-   55px. Spend the spare room on a thirteenth control and the next label to go is
-   Replace's (62.7px of label on a 105.1px control); Date's is the one that
-   just came back, so it is not the one to take again.
+   whole. That figure predates 2026-10-31 (SIGN-42, Full screen became a 44px
+   icon-only button) and SIGN-49 (the row is now Text, Date, Mark, Whiteout,
+   Sign, More, Undo, Redo, Full screen, Replace, Share, Download, labelled
+   at 1136px of content on macOS, ~36px of headroom inside the box; see the
+   finish block near the end of this file).
 
    Two rules keep this honest:
 
@@ -739,10 +716,10 @@
      is not firing today.
 
    Between, up to 1299px: the same one line, every control icon-only with its
-   tooltip, 44px targets, growing to share the row (twelve of them are 580.8px,
+   tooltip, 44px targets, growing to share the row (Sign's twelve are 580.8px,
    so the row fits down to the 920px floor's 796px box and on down through the
-   tablet band, until those twelve no longer fit one line at a 644px viewport -
-   measured: one line at 660px, a balanced 6+6 from 643px down).
+   tablet band; measured 2026-11-12 with SIGN-49's row, one line from a 648px
+   window with Share, and a balanced 6+6 below it).
 
    iPhone, and any window narrower than that: the centred, evenly split two-row
    icon grid in the phone block above, unchanged.
@@ -764,9 +741,9 @@
    full 1172px even with a scrollbar (the `main` cap is reached at a 1280px
    window), so a wide font still has room to spare. The gap went 6px -> 4px on
    2026-09-20 to pay for Redo and History, and it stays at 4px now that History
-   has gone: the twelve gaps between the thirteen rendered controls would cost
-   24px of the 32.3px the labelled row leaves spare (see the block above for
-   the measurements), which is not a margin to spend on spacing. */
+   has gone: Redact's and Highlight's gaps stay at 4px for the same margin
+   reason (see the block above for the measurements); Sign's own labelled row
+   is the finish block's, not this one's. */
 @media (min-width: 1300px) {
   .toolbar { --toolbar-gap: .25rem; --btn-padding: .6rem .5rem; }
 }
@@ -785,7 +762,7 @@
    data-icon-only one) at equal specificity. The font-size is RED-61's: the
    control's width less 8px over 5.2, never above 0.66rem, 100cqi being the
    toolbar's content box. Wrapping is allowed so "Full screen" breaks between
-   its words rather than overflowing. The Shapes chevron leaves the flow and
+   its words rather than overflowing. More's chevron leaves the flow and
    sits in the corner, so it does not stack as a third line under the word. */
 @media (max-width: 480px) {
   .toolbar .button { position: relative; flex-direction: column; gap: 2px; line-height: 1.1; padding-inline: 0.125rem; font-size: min(0.66rem, calc(((100cqi - (var(--controls-per-row, 6) - 1) * var(--toolbar-gap)) / var(--controls-per-row, 6) - 8px) / 5.2)); }
