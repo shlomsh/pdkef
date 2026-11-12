@@ -129,7 +129,7 @@ Estimated to take Redact from about 46 files to about 23, with the same bytes:
 
 | Merge | Files saved | Cost | Unknown |
 | --- | --- | --- | --- |
-| All of a tool's styles into one sheet (MEM-47 built a narrower version: a page links the browser build's sheet in place of the page sheets it holds whole, `scripts/linkClientSheets.mjs`; Redact 2 fewer, Sign 3) | 9 | a second-tool visitor re-downloads about 46 KB | Whether the build can do it inside the styling rules (`.claude/rules/styling.md`). Not checked. |
+| All of a tool's styles into one sheet (MEM-47 built a narrower version: a page links the browser build's sheet in place of the page sheets it holds whole, `scripts/linkClientSheets.mjs`; Redact 2 fewer, Sign 3; live on 2026-11-12: /redact/ 31 requests, /sign/ 29) | 9 | a second-tool visitor re-downloads about 46 KB | Whether the build can do it inside the styling rules (`.claude/rules/styling.md`). Not checked. |
 | A tool's late code into one file, including the shared late files | 5 | a second-tool visitor re-downloads about 45 KB | |
 | The small UI glue scripts into one | 6 | about 14 KB of partly unused code | It must not put the UI library on article pages again |
 | One usage ping, no Vercel analytics script | 3 | Vercel's analytics dashboard | MEM-45 decides this |

@@ -2,7 +2,7 @@
 
 # Backlog
 
-The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 190 live: 80 up next, 23 then, 27 waiting, 60 parked.
+The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 189 live: 79 up next, 23 then, 27 waiting, 60 parked.
 
 ## Redact: finish removal
 
@@ -215,7 +215,6 @@ Production errors you can see, small tools that clean up after themselves, and d
 | MEM-44 | P1 | [MEM-44](backlog/tasks/MEM-44.md) · A tool's late code comes as one file | In progress |
 | MEM-45 | P1 | [MEM-45](backlog/tasks/MEM-45.md) · We see how the site performs for real visitors without spending server requests on it | In progress |
 | MEM-46 | P1 | [MEM-46](backlog/tasks/MEM-46.md) · Shared late code that never touches the PDF writer rides in the first-paint files | In progress |
-| MEM-47 | P1 | [MEM-47](backlog/tasks/MEM-47.md) · A tool page never fetches a stylesheet whose rules it already has | In progress |
 | MEM-48 | P1 | [MEM-48](backlog/tasks/MEM-48.md) · Pages with an interactive part load their UI glue as one file | In progress |
 | QUAL-54 | P1 | [QUAL-54](backlog/tasks/QUAL-54.md) · The unit jobs stop failing when the runner cannot reach Ubuntu's package servers | In progress |
 | MEM-36 | P2 | [MEM-36](backlog/tasks/MEM-36.md) · Pinned notes are baked into the page at build, not fetched per visit | In progress |
@@ -386,7 +385,7 @@ Done and retired tickets are not listed. Their files stay in [backlog/tasks/](ba
 - Page enhancement for Scan and Highlight: 7 done, 1 retired
 - Tool pages: show the verb: 9 done, 0 retired
 - Form detector accuracy: 20 done, 1 retired
-- Robustness and debt: 98 done, 4 retired
+- Robustness and debt: 99 done, 4 retired
 - Unify the tools, narrow the graph: 100 done, 0 retired
 - Search and languages: 13 done, 0 retired
 - Polish: 32 done, 2 retired
