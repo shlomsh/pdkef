@@ -29,6 +29,10 @@ what the service worker caches. The headline is in CLAUDE.md: **CSP is invisible
 change here is verified only by `npm run build && npm run preview`.** This file is the mechanism and
 the incidents.
 
+Before changing what a page loads, what the worker installs, how client code is bundled or a caching
+header, read [docs/offline-and-requests.md](../../docs/offline-and-requests.md): the offline-first stance, the
+per-request bill, the bundling rule and the assumptions each decision rests on, with how to re-measure them.
+
 ## Content-Security-Policy
 
 The CSP is intentionally split across two layers:

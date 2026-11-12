@@ -1,5 +1,9 @@
 # Request budget: delivering PDkef in far fewer requests
 
+> The reasoning behind what was built, the assumptions it rests on and how to re-measure them are in
+> [offline-and-requests.md](./offline-and-requests.md). Start there; this file is the original plan and its
+> dated decision table.
+
 *Drafted 2026-11-11, revised the same day after an independent architecture review and Shlomi's calls on
 telemetry and worker timing. Status: accepted 2026-11-11 ("proceed with the plan"), building as MEM-33..38.
 MEM-39 (2026-11-11) then moved the worker's install to after a file is opened, see D2 and D6; MEM-40 (2026-11-11) stopped it installing the home page as an offline fallback, see D11; MEM-43 (2026-11-12) made tool pages register on their first visit, see D2 and D6.*
