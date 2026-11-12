@@ -8,6 +8,6 @@
 # list it in a follow-up commit once it is on main.
 
 # ARCH-101: src/lib groups its modules by domain
-0e5a801331fbbd9d9d7f5232a836091dcf907009
+b7be9e605cba3f7d63b9ed3fade911855e6d6f58
 # ARCH-44 (rewrite): cross-layer imports use layer aliases
-4df014c31bc9f3990fe0da1bbc07b373aa1e3ea5
+f57f9d0bb21c13e6e9dac3be5ac7cc3c70703368
