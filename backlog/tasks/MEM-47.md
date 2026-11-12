@@ -1,7 +1,7 @@
 ---
 id: "MEM-47"
 title: "A tool page never fetches a stylesheet whose rules it already has"
-status: "open"
+status: "in_progress"
 priority: "P1"
 epic: "robustness"
 horizon: "now"
@@ -34,6 +34,6 @@ carries, so no tool page fetches a sheet twice. Spike first; no hand-merging aft
 
 ## Done when
 
-- [ ] No tool page's install fetches a client sheet whose rules its linked sheets already hold, guarded.
-- [ ] CSS ratchets unchanged or lower; request budgets lowered to the measured figures.
+- [x] No tool page's install fetches a client sheet whose rules its linked sheets already hold, guarded (`scripts/linkClientSheets.mjs` swaps a page sheet for the client sheet that holds it whole, and fails the build on any left).
+- [x] CSS ratchets unchanged or lower; request budgets lowered to the measured figures (/redact/ 33 to 31, /sign/ 35 to 32).
 - [ ] Measured live.

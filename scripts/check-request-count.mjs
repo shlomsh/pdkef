@@ -33,10 +33,12 @@ export const BUDGETS = {
   // MEM-43 (owner's decision, 2026-11-12): tool pages install on the first visit, so this rise is deliberate
   // (57 and 53). MEM-44 groups a tool's late code into a few files: 43 and 43.
   // MEM-48: 7 fewer: 5 page files become 1 (-4; the island client stays its own file), signals and sha256 leave the install's extras (-2), and home-tools' stylesheet is inlined (-1). 40 to 33.
-  '/redact/': { firstVisit: 33, afterOpen: 0 },
+  // MEM-47: 2 fewer: the page links editor-core's sheet in place of the two page sheets it holds whole (pdfTextItems, encryptedPdfError). 33 to 31.
+  '/redact/': { firstVisit: 31, afterOpen: 0 },
   // MEM-44: Sign's third-party late code is its own file (sign-vendor.js), so one more request (44) buys a ~11 KB re-download, not ~279 KB, when Sign's code changes. Deliberate rise, owner's balance.
   // MEM-48: 6 fewer: 4 page files become 1 (-3, no PinnedNotes here; the island client stays its own file), signals and sha256 leave the install's extras (-2), and home-tools' stylesheet is inlined (-1). 41 to 35.
-  '/sign/': { firstVisit: 35, afterOpen: 0 },
+  // MEM-47: 3 fewer, the same swap. 35 to 32.
+  '/sign/': { firstVisit: 32, afterOpen: 0 },
 };
 
 const WORKER_REQUESTS = ['/sw.js', '/precache-manifest.json'];

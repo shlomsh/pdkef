@@ -5,6 +5,7 @@ import { fileURLToPath } from 'node:url';
 import { pageHash } from './pageHash.mjs';
 import { findRepoOnlyFiles } from './repoOnlyFiles.mjs';
 import { isImportStub, isReexportStub } from './dropStubRequests.mjs';
+import { ruleKeys } from './linkClientSheets.mjs';
 
 /*
  * Budgets what the service worker downloads: the shell, the closure of
@@ -308,8 +309,12 @@ function main() {
     console.log(`largest single-page install: ${largest.page}, ${installPaths(manifest.pages, largest.page).length} urls, ${largest.bytes} brotli`);
   }
 
+  // MEM-47: linkClientSheets.mjs drops a page sheet the browser build's sheet holds whole, and the file stays
+  // for a tab still holding the previous build's page. Kept like a stub: every rule is in an installed sheet.
+  const installedRules = new Set(installUrls(manifest).filter((u) => u.endsWith('.css')).flatMap((u) => [...ruleKeys(fs.readFileSync(path.join(dist, u), 'utf8'))]));
   const isKeptStub = (file) => {
     const code = fs.readFileSync(path.join(dist, file), 'utf8');
+    if (file.endsWith('.css')) return [...ruleKeys(code)].every((rule) => installedRules.has(rule));
     return isImportStub(code) !== null || isReexportStub(code) !== null;
   };
   const failures = checkPrecache({ shell: manifest.shell, pages: manifest.pages, islands, sizes, budgets: BUDGETS, astroFiles, isKeptStub });
