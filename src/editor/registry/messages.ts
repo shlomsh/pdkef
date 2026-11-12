@@ -28,6 +28,12 @@ export interface SignMessages {
   dateButton: string;
   markButton: string;
   shapesButton: string;
+  // SIGN-49: the More menu (Highlight, Comment, Shapes, Feedback) and its one-line descriptions.
+  moreButton: string;
+  moreTitle: string;
+  highlightDescription: string;
+  commentDescription: string;
+  feedbackDescription: string;
   whiteoutButton: string;
   signButton: string;
   newSignatureButton: string;
@@ -127,6 +133,8 @@ export interface SignMessages {
   /** The check never started: its inputs were not all there when it ran.
    * Nothing throws on that path, so this line is the only thing that exists. */
   fieldsCheckNotStarted: string;
+  /** SIGN-49: the link a failed field check carries to the prefilled report. */
+  fieldsCheckDetailsLink: string;
   /** Not yet wired into SignToolbar.tsx's setAnnouncement() calls - see this
    * catalogue's header comment. */
   toolActive: string;

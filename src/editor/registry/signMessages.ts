@@ -21,6 +21,11 @@ export const englishSignMessages: SignMessages = {
   dateButton: 'Date',
   markButton: 'Mark',
   shapesButton: 'Shapes',
+  moreButton: 'More',
+  moreTitle: 'More tools: Highlight, Comment, Shapes and Feedback',
+  highlightDescription: 'Color over a line of text',
+  commentDescription: 'Leave a note on the page',
+  feedbackDescription: "Tell me what's not working, on GitHub",
   whiteoutButton: 'Whiteout',
   signButton: 'Sign',
   newSignatureButton: 'New Signature',
@@ -66,17 +71,18 @@ export const englishSignMessages: SignMessages = {
   // the check did not finish rather than blaming the document - the detector
   // reaches ~85% recall on a real form, so "none" and "we could not look" are
   // genuinely different answers and the copy keeps them different.
-  // The failure line names the Feedback button on purpose: the report that
-  // prompted this came from a device nobody here can reproduce, and that
-  // button is where the sanitised error is waiting to be relayed. No alarm,
+  // The failure line carries a "Send me the details" link on purpose (SIGN-49 moved
+  // Feedback into More): the report that prompted this came from a device nobody
+  // here can reproduce, and the link is where the sanitised error waits to be relayed. No alarm,
   // no blame on the file, and nothing a person has to understand to help.
   // The unavailable line is the one a person can act on themselves (a shell
   // cached before a deploy, asking for chunks that deploy replaced), so it
   // spends its second sentence on the fix instead - no cache vocabulary, no
   // instruction to clear anything, just the thing that usually works.
-  fieldsCheckFailed: 'Could not check this PDF for form fields. The Feedback button has the details.',
+  fieldsCheckFailed: 'Could not check this PDF for form fields.',
   fieldsCheckUnavailable: 'Could not load the form field check. Reopening this page usually fixes it.',
-  fieldsCheckNotStarted: 'The form field check did not start on this file. The Feedback button has the details.',
+  fieldsCheckNotStarted: 'The form field check did not start on this file.',
+  fieldsCheckDetailsLink: 'Send me the details',
   toolActive: '{button} tool active. {action}',
   signToolActive: 'Sign tool active. {action}',
   toolLocked: '{button} stays on after each one. Switch it off, or press Escape, when you are done.',
@@ -314,6 +320,11 @@ export const hebrewSignMessages: SignMessages = {
   dateButton: 'תאריך',
   markButton: 'סימון',
   shapesButton: 'צורות',
+  moreButton: 'עוד',
+  moreTitle: 'כלים נוספים: הדגשה, הערה, צורות ומשוב',
+  highlightDescription: 'צביעה מעל שורת טקסט',
+  commentDescription: 'השארת הערה על הדף',
+  feedbackDescription: 'לספר לי מה לא עובד, ב-GitHub',
   whiteoutButton: 'טיפקס',
   signButton: 'חתימה',
   newSignatureButton: 'חתימה חדשה',
@@ -353,9 +364,10 @@ export const hebrewSignMessages: SignMessages = {
   nextFieldLabel: 'שדה הבא',
   previousFieldLabel: 'שדה קודם',
   formattingOptionsTitle: 'אפשרויות עיצוב',
-  fieldsCheckFailed: 'לא ניתן היה לבדוק שדות טופס בקובץ הזה. הפרטים מחכים בכפתור המשוב.',
+  fieldsCheckFailed: 'לא ניתן היה לבדוק שדות טופס בקובץ הזה.',
   fieldsCheckUnavailable: 'בדיקת שדות הטופס לא נטענה. פתיחה מחדש של הדף בדרך כלל פותרת את זה.',
-  fieldsCheckNotStarted: 'בדיקת שדות הטופס לא התחילה בקובץ הזה. הפרטים מחכים בכפתור המשוב.',
+  fieldsCheckNotStarted: 'בדיקת שדות הטופס לא התחילה בקובץ הזה.',
+  fieldsCheckDetailsLink: 'שלחו לי את הפרטים',
   toolActive: 'הכלי {button} פעיל. {action}',
   signToolActive: 'כלי החתימה פעיל. {action}',
   toolLocked: '{button} יישאר פעיל אחרי כל שימוש. כבו אותו, או לחצו Escape, כשתסיימו.',
