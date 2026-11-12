@@ -23,6 +23,7 @@ import { entryFileName, chunkFileName, assetFileName, cssAssetKeys, cssModuleCla
 //   editor-core                 reached by Sign, Redact and Highlight only
 //   tools-common                reached by several tools
 //   <tool>-late                 (MEM-44) late code, no entry reaches it statically, reached by one tool
+//   sign-vendor                 (MEM-44) the third-party half of Sign's late code (the font library and what it pulls in), its own file so an edit to Sign's code does not re-download it
 //   editor-late                 late code reached by Sign, Redact and Highlight only
 //   tools-late                  late code reached by other sets of tools
 //
@@ -127,6 +128,11 @@ const lateBundle = (name, priority) => ({ name: (id, ctx) => (lateBundleOf(id, c
 // One group per tool folder, below tools-late and editor-late.
 const lateToolBundle = { name: (id, ctx) => { const name = lateBundleOf(id, ctx); return name && name !== 'tools-late' && name !== 'editor-late' ? name : null; }, priority: 0.5 };
 
+// MEM-44: late modules under node_modules that would land in sign-late (the font library, pako, encoding and
+// shaping tables: about 250 KB brotli of its 279) get a file of their own. Sign's file names carry no content hash,
+// so an edit to Sign's own late code re-downloads that whole file; this keeps it to Sign's ~20 KB.
+const signVendorBundle = { name: (id, ctx) => (id.includes('node_modules') && lateBundleOf(id, ctx) === 'sign-late' ? 'sign-vendor' : null), priority: 0.55 };
+
 const clientCodeSplitting = {
   groups: [
     // Preact's runtime is on every page; its hooks and signals are loaded lazily by the site scripts, so
@@ -155,6 +161,7 @@ const clientCodeSplitting = {
     toolBundle,
     lateBundle('tools-late', 0.7),
     lateBundle('editor-late', 0.6),
+    signVendorBundle,
     lateToolBundle,
   ],
 };

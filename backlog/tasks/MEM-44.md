@@ -37,3 +37,21 @@ Request budgets lowered to 43 and 43.
       `test:weight` (first-paint JS did not grow), `test:css`, `test:csp`.
 - [ ] Offline specs pass for all twelve tools; time to open a file on `/sign/` and `/redact/` within 150 ms of before.
 - [ ] Measured live: a first visit to `/redact/` and `/sign/` makes 43 requests or fewer, and a tool works offline.
+
+## After review (2026-11-12)
+
+`sign-late.js` was 790 KB raw / 279 KB brotli, of which only about 11 KB brotli is Sign's own code; the rest is
+the font library (`@pdf-lib/fontkit`) and its tables. Third-party late modules that would land in `sign-late` now
+go to `sign-vendor` (unhashed names, so an edit to Sign's code used to re-download all of it). Now `sign-late.js`
+is 33 KB raw / 11 KB brotli and `sign-vendor.js` 756 KB raw / 268 KB brotli. `sign-late.js` imports `sign-vendor.js`
+statically, so opening a file on `/sign/` fetches both; what changes is the update cost: an edit to Sign's late code
+re-downloads about 11 KB instead of 279 KB. `/sign/` and `/he/sign/` gain one lazy file (first visit 43 to 44, a
+deliberate rise).
+
+### Still open
+
+- No `saveData`/metered-connection gate on the first-visit install (about 1-1.5 MB per tool).
+- The airplane line is untrue until the install completes; going offline in that window shows the misleading "may be damaged" error.
+- The offline e2e covers 12 routes, not Scan, the image tools, Add Page Numbers or the `/he/` pages, and stops at the loaded state without exporting.
+- `tools-late` carries Scan/Highlight-only page-straightening code to every tool.
+- The home page's airplane line has no worker behind it on a first visit.

@@ -141,9 +141,10 @@ const ogImageURL = new URL(ogImage.src, Astro.site);
           // MEM-17), the answer to the worker's busy query (from the start),
           // and the update line, which shows only when another tab holds an
           // update back.
-          // MEM-39: and only for a person who has opened a file (or already has
-          // a worker, or runs the installed app): the install is dozens of
-          // requests that a first-time visitor who leaves never needs.
+          // MEM-39, MEM-43: a tool page registers at once (a person who opened
+          // a file, already has a worker, or runs the installed app does too);
+          // a non-tool page waits until a worker is wanted, since the install
+          // is dozens of requests a first-time visitor who leaves never needs.
           startAppUpdates({
             ready: Promise.all([whenReadyToRegister({
               loaded: new Promise((resolve) => {
