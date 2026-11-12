@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { boxOf, documentFillItems, fillItemIndex, fillItemsByPage, fillReachTargets } from './fillWorkspace.ts';
+import { boxOf, documentFillItems, fillItemIndex, fillItemsByPage, fillReachTargets, slotFramesShown } from './fillWorkspace.ts';
 import { freeSlotKey, slotKey } from './fillSlots.ts';
 import { boxKey } from './fillDom.ts';
 import type { FieldRegion, PercentBox, TypableField } from '../combPlacement.ts';
@@ -302,5 +302,18 @@ describe('fillItemsByPage', () => {
     const a = slotItem({ key: 'a', pageIndex: 0 });
     const stray = slotItem({ key: 'stray', pageIndex: 5 });
     expect(fillItemsByPage([a, stray], 2)).toEqual([[a], []]);
+  });
+});
+
+describe('slotFramesShown (SNG-25)', () => {
+  it('shows empty slot frames only while Text or Date is armed', () => {
+    expect(slotFramesShown('text')).toBe(true);
+    expect(slotFramesShown('date')).toBe(true);
+  });
+
+  it('hides them with nothing armed, and for a tool that never lands in a field', () => {
+    expect(slotFramesShown('none')).toBe(false);
+    expect(slotFramesShown('mark')).toBe(false);
+    expect(slotFramesShown('other')).toBe(false);
   });
 });

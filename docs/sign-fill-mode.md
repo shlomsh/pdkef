@@ -81,7 +81,12 @@ contract; change them first, then the pieces.
   takes clicks (`.slot:not(:focus)`), so the caret moves instead of typing being dismissed. Text places
   once: committing a slot with Text armed disarms it (a double-click lock stays), and the Enter hop to
   the next field is keyboard focus, so it still works.
-- **Hints.** A slot shows a faint frame at rest. The target a tap would reach for the armed tool
+- **Hints.** A slot shows a faint frame at rest only while the armed tool can land in it: Text or Date
+  (SNG-25, `slotFramesShown`). With nothing armed, or Symbols, Sign, Shapes, Whiteout or Highlight, the
+  slots stay in reading order with no frame (`.slots-quiet` on the pages container), so a first look at
+  an opened file is the clean page. While any fill input has focus every frame shows again, so a typing
+  session that disarmed Text, or a keyboard Tab, still sees its fields. Tick box hints show only with
+  Symbols armed. The target a tap would reach for the armed tool
   (`FillTool`) gets a distinct "droppable" look (never with nothing armed: no text target is droppable then) while the mouse hovers or a finger is down near it.
   With nothing in reach there is no preview.
 - **Keys.**
