@@ -106,6 +106,7 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 - [QUAL-21](backlog/tasks/QUAL-21.md) P2 · Pages render at the size they are shown, and the practice form's logo is sharp (in progress)
 - [SIGN-44](backlog/tasks/SIGN-44.md) P2 · Sign: a comment on a highlight, kept in the PDF as a standard annotation (in progress)
 - [MERGE-26](backlog/tasks/MERGE-26.md) P3 · Save to Drive: an optional, explicit copy of a finished PDF into the person's own Drive (in progress)
+- [SIGN-51](backlog/tasks/SIGN-51.md) P3 · Sign's and Redact's desktop Download draws its real 1.5px frame in Chromium (in progress)
 - [SITE-45](backlog/tasks/SITE-45.md) P3 · The /drive/ voice, carried to the other quiet pages: doodle that shows the mechanism, paper stickers for the promises (in progress)
 
 ## Waiting, by date

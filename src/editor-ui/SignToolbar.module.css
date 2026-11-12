@@ -790,7 +790,7 @@
 /* More, open: the tinted ground with a hairline, not the armed fill. */
 .toolbar[data-finish="strip"] .button[aria-expanded="true"]:not(.active) { background: var(--color-primary-soft); box-shadow: inset 0 0 0 1px var(--color-primary-tint); }
 /* Download: the one outlined control. Below 920px it is a ring inside the tile so
-   the tile keeps its size; on desktop it is a real 1.5px border (rule further down). */
+   the tile keeps its size; on desktop it is a border plus a ring (rules further down). */
 .toolbar[data-finish="strip"] .button.download { background: var(--color-surface); border-color: transparent; box-shadow: inset 0 0 0 1.5px var(--color-border-strong); font-weight: 700; }
 .toolbar[data-finish="strip"] .button.download:disabled { color: var(--color-muted); border-color: transparent; box-shadow: inset 0 0 0 1.5px var(--color-border); }
 .toolbar[data-finish="strip"] .button.download:disabled:hover { background: var(--color-surface); border-color: transparent; box-shadow: inset 0 0 0 1.5px var(--color-border); }
@@ -822,16 +822,23 @@
   /* Full screen, Replace and Share sit a step smaller, as in the design. */
   .toolbar[data-finish="strip"] > :has(+ [data-replace]), .toolbar[data-finish="strip"] > [data-replace], .toolbar[data-finish="strip"] > .share { min-height: 40px; height: 40px; padding: 0 10px; }
   .toolbar[data-finish="strip"] > :has(+ [data-replace]) { margin-inline-start: auto; }
-  .toolbar[data-finish="strip"] .button.download { min-height: 42px; height: 42px; padding: 0 16px; border: 1.5px solid var(--color-border-strong); box-shadow: none; }
-  .toolbar[data-finish="strip"] .button.download:hover:not(:disabled) { background: var(--color-primary-soft); border-color: var(--color-border-strong); }
-  .toolbar[data-finish="strip"] .button.download:disabled, .toolbar[data-finish="strip"] .button.download:disabled:hover { border: 1.5px solid var(--color-border); box-shadow: none; background: var(--color-surface); }
+  /* Download's 1.5px frame is a 1px border plus a 0.5px inset ring (SIGN-51): Chromium
+     floors a border's width to whole CSS pixels at any zoom, a shadow it does not, so a
+     1.5px border drew 1px. --ring is the frame's colour, --ring-edges the sides it rings.
+     The disabled rule restates the shadow because the rules above it outrank this one. */
+  .toolbar[data-finish="strip"] .button.download { --ring: var(--color-border-strong); min-height: 42px; height: 42px; padding: 0 16px; border: 1px solid var(--ring); box-shadow: var(--ring-edges, inset 0 0 0 0.5px var(--ring)); }
+  .toolbar[data-finish="strip"] .button.download:hover:not(:disabled) { background: var(--color-primary-soft); border-color: var(--ring); }
+  .toolbar[data-finish="strip"] .button.download:disabled, .toolbar[data-finish="strip"] .button.download:disabled:hover { --ring: var(--color-border); border: 1px solid var(--ring); box-shadow: var(--ring-edges, inset 0 0 0 0.5px var(--ring)); background: var(--color-surface); }
   .toolbar[data-finish="strip"] .dropdown > .button { width: 100%; }
   /* Download and the Drive arrow are one outlined control: Download gives up its end
-     border and corners, the arrow takes them, with a 1px divider between. */
-  .toolbar[data-finish="strip"] .button.download:has(+ [data-drive-arrow]) { border-inline-end-width: 0; border-start-end-radius: 0; border-end-end-radius: 0; }
-  .toolbar.toolbar[data-finish="strip"] > [data-drive-arrow][data-drive-arrow] { width: 34px; min-width: 34px; flex: 0 0 34px; height: 42px; min-height: 42px; background: var(--color-surface); border: 1.5px solid var(--color-border-strong); border-inline-start: 1px solid var(--color-border); border-start-start-radius: 0; border-end-start-radius: 0; border-start-end-radius: 10px; border-end-end-radius: 10px; box-shadow: none; }
-  .toolbar.toolbar[data-finish="strip"] > [data-drive-arrow][data-drive-arrow]:hover { background: var(--color-primary-soft); }
-  .toolbar.toolbar[data-finish="strip"] > .download:disabled + [data-drive-arrow][data-drive-arrow] { border-color: var(--color-border); }
+     border and corners, the arrow takes them, with a 1px divider between. Each half rings
+     its outer sides only, so the seam stays the quiet divider; right to left mirrors it. */
+  .toolbar[data-finish="strip"] .button.download:has(+ [data-drive-arrow]) { --ring-edges: inset 0 0.5px var(--ring), inset 0 -0.5px var(--ring), inset 0.5px 0 var(--ring); border-inline-end-width: 0; border-start-end-radius: 0; border-end-end-radius: 0; }
+  .toolbar[data-finish="strip"] .button.download:has(+ [data-drive-arrow]):dir(rtl) { --ring-edges: inset 0 0.5px var(--ring), inset 0 -0.5px var(--ring), inset -0.5px 0 var(--ring); }
+  .toolbar.toolbar[data-finish="strip"] > [data-drive-arrow][data-drive-arrow] { --ring: var(--color-border-strong); width: 34px; min-width: 34px; flex: 0 0 34px; height: 42px; min-height: 42px; background: var(--color-surface); border: 1px solid var(--ring); border-inline-start-color: var(--color-border); border-start-start-radius: 0; border-end-start-radius: 0; border-start-end-radius: 10px; border-end-end-radius: 10px; box-shadow: inset 0 0.5px var(--ring), inset 0 -0.5px var(--ring), inset -0.5px 0 var(--ring); }
+  .toolbar.toolbar[data-finish="strip"] > [data-drive-arrow][data-drive-arrow]:dir(rtl) { box-shadow: inset 0 0.5px var(--ring), inset 0 -0.5px var(--ring), inset 0.5px 0 var(--ring); }
+  .toolbar.toolbar[data-finish="strip"] > [data-drive-arrow][data-drive-arrow]:hover { background: var(--color-primary-soft); border-color: var(--ring); border-inline-start-color: var(--color-border); }
+  .toolbar.toolbar[data-finish="strip"] > .download:disabled + [data-drive-arrow][data-drive-arrow] { --ring: var(--color-border); }
   /* Dividers: 1px x 24px, 8px each side of the 2px gap. The group's first control
      takes the extra start margin and draws the line in it. */
   .toolbar[data-finish="strip"] > [data-group-start], .toolbar[data-finish="strip"] > .share, .toolbar[data-finish="strip"] > .download:not(.share + .download) { position: relative; margin-inline-start: 15px; }

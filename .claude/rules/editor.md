@@ -341,7 +341,9 @@ Create is a gesture too (click-place or drag-draw), not an exception.
 - **The row is quiet**: tools, Replace and Share are ghost controls (Sign, Redact; Highlight, a reading
   tool, keeps its framed tiles under `data-finish="tile"` and takes only the strip's soft hover and
   outlined Download, READ-28), and Download is the one outlined control, joined in one outline with the
-  Drive arrow when Drive is connected. Teal fill on a toolbar button means one thing, an armed tool:
+  Drive arrow when Drive is connected. Its 1.5px frame is a 1px border plus a 0.5px inset ring, each
+  half of the Download/arrow pair ringing only its outer sides: Chromium floors a border's width to whole
+  CSS pixels (SIGN-51, READ-28; guard `e2e/tool-toolbars/toolbar-finish-groups.spec.js`). Teal fill on a toolbar button means one thing, an armed tool:
   Redact's open Find and held Peek take the tinted ground instead. Export is never filled in the toolbar (QUAL-27, Shlomi 2026-10-20): the completion row under
   the document is the call to action, and a restored draft once lit Share and Download up with nobody
   asking. Disabled Download/Share keep their quiet style with a muted label. Guard:

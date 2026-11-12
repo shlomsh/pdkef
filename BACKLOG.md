@@ -2,7 +2,7 @@
 
 # Backlog
 
-The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 188 live: 78 up next, 23 then, 27 waiting, 60 parked.
+The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 189 live: 79 up next, 23 then, 27 waiting, 60 parked.
 
 ## Redact: finish removal
 
@@ -350,6 +350,7 @@ Small, independent, good for a spare hour.
 | QUAL-21 | P2 | [QUAL-21](backlog/tasks/QUAL-21.md) · Pages render at the size they are shown, and the practice form's logo is sharp | In progress |
 | SIGN-44 | P2 | [SIGN-44](backlog/tasks/SIGN-44.md) · Sign: a comment on a highlight, kept in the PDF as a standard annotation | In progress |
 | MERGE-26 | P3 | [MERGE-26](backlog/tasks/MERGE-26.md) · Save to Drive: an optional, explicit copy of a finished PDF into the person's own Drive | In progress |
+| SIGN-51 | P3 | [SIGN-51](backlog/tasks/SIGN-51.md) · Sign's and Redact's desktop Download draws its real 1.5px frame in Chromium | In progress |
 | SITE-45 | P3 | [SITE-45](backlog/tasks/SITE-45.md) · The /drive/ voice, carried to the other quiet pages: doodle that shows the mechanism, paper stickers for the promises | In progress. Needs Shlomi: Pick which pitches below to build (step 1) |
 
 ### Then, in order
