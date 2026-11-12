@@ -8,7 +8,8 @@ import { applyHomography, homography } from './homography.ts';
 import { applyPiece, type Piece } from './piece.ts';
 import { scaleQuad, type GrayImage, type Point, type Quad } from './quad.ts';
 import { readSpine, spreadHalves, type Spine } from './spine.ts';
-import { isPhoto, rgbaOf, textBlockCorners, type SpineSide } from './textBlock.ts';
+import { NEW_BOOK, readPhoto, type Book } from './photoPage.ts';
+import { rgbaOf, textBlockCorners, type SpineSide } from './textBlock.ts';
 import { warpSizeFor } from './warp.ts';
 
 /** A lean below this many degrees is below what the eye catches, so leveling it only costs a resample. */
@@ -37,6 +38,8 @@ export interface Assessment {
   /** Single page only; 0 on a spread. */
   bentPx: number;
   crooked: boolean;
+  /** The book read so far with this sheet counted: whether its sheets are photos, and its text width (SCAN-69). */
+  book: Book;
 }
 
 /** The pieces that make the sheet's pages, upright and level. */
@@ -59,9 +62,6 @@ function withoutGutter(half: Quad, spine: SpineSide): Quad {
 
 /** Corners that square `half`'s text block, in the sheet's 0..1, read on the page levelled first. */
 function foundCorners(turned: GrayImage, half: Quad, lean: number, spine: SpineSide): Quad | null {
-  // A photo's lines are traced along their own curve and lean, and levelling it first would bring white corners in where
-  // the table was (SCAN-69).
-  if (!spine && isPhoto(turned)) return textBlockCorners(turned, null);
   const level = levelQuad(half, lean, turned.width, turned.height);
   const corners = textBlockCorners(flattened(turned, level), spine);
   const toSheet = homography(UNIT_QUAD, level);
@@ -73,19 +73,24 @@ function bentOf(turned: GrayImage, lean: number): number {
   return bentPx(measureBend(rgbaOf(turned), quad, 0, turned.width, turned.height, false), 0, turned.width, turned.height);
 }
 
-/** What the sheet needs, read from `gray`, the sheet shrunk to about 1000 px on its long edge. */
-export function assess(gray: GrayImage): Assessment {
+/** What the sheet needs, read from `gray`, the sheet shrunk to about 1000 px on its long edge. `book` is what the
+ * same PDF's sheets before it said; a sheet on its own is a book of one. */
+export function assess(gray: GrayImage, book: Book = NEW_BOOK): Assessment {
   const { turns: turn, confidence } = pageTurns(gray);
   const turned = turnedClockwise(gray, turn);
   const read = readSpine(turned);
   const spine = read?.sure ? read.spine : null;
   const possibleSpine = read && !read.sure ? read.spine : null;
-  if (spine) return { turn, turnConfidence: confidence, possibleSpine, ...spreadRead(turned, spine) };
+  if (spine) return { turn, turnConfidence: confidence, possibleSpine, ...spreadRead(turned, spine), book };
   const leans = [pageLean(turned)];
-  const corners = [foundCorners(turned, UNIT_QUAD, leans[0], null)];
+  // A photo's lines are traced along their own curve and lean, and levelling it first would bring white corners in where
+  // the table was (SCAN-69).
+  const photo = readPhoto(turned, book);
+  const corners = [photo.photo ? photo.corners : foundCorners(turned, UNIT_QUAD, leans[0], null)];
   const bent = bentOf(turned, leans[0]);
-  const crooked = !!turn || Math.abs(leans[0]) >= MIN_LEAN_DEGREES || bent >= MIN_BENT_PX;
-  return { turn, turnConfidence: confidence, spine, possibleSpine, leans, corners, bentPx: bent, crooked };
+  // A photo's page is only part of the sheet, so it is cut out however level it stands.
+  const crooked = !!turn || Math.abs(leans[0]) >= MIN_LEAN_DEGREES || bent >= MIN_BENT_PX || !!(photo.photo && photo.corners);
+  return { turn, turnConfidence: confidence, spine, possibleSpine, leans, corners, bentPx: bent, crooked, book: photo.book };
 }
 
 /** Each page of a sheet with a line down it, read on its own: its lean, then the corners of its text. */
@@ -98,7 +103,7 @@ function spreadRead(turned: GrayImage, spine: Spine): Pick<Assessment, 'spine' |
 
 /** The two pages' corners, left page first, for a line a person placed on `gray`, an upright sheet: the same read as a found line. */
 export function spreadQuads(gray: GrayImage, spine: Spine): Quad[] {
-  const a = { turn: 0, turnConfidence: 0, possibleSpine: null, ...spreadRead(gray, spine) };
+  const a = { turn: 0, turnConfidence: 0, possibleSpine: null, ...spreadRead(gray, spine), book: NEW_BOOK };
   return planPage(gray, a, gray).pieces.map((piece) => piece.quad);
 }
 

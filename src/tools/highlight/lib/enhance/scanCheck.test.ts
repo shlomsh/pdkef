@@ -1,12 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import { gray, leaning } from '#lib/pageEnhance/leaning.test-helper.ts';
+import { NEW_BOOK } from '#lib/pageEnhance/photoPage.ts';
 import { assess, type Assessment } from '#lib/pageEnhance/plan.ts';
 import { imageCover, MIN_IMAGE_COVER, samplePages, scanVerdict } from './scanCheck.ts';
 
 const OPS = { save: 10, restore: 11, transform: 12, paintImageXObject: 85, paintInlineImageXObject: 86, paintImageMaskXObject: 83, showText: 44 };
 
 const sheet = (over: Partial<Assessment> = {}): Assessment => ({
-  turn: 0, turnConfidence: 0, spine: null, possibleSpine: null, leans: [0], corners: [null], bentPx: 0, crooked: false, ...over,
+  turn: 0, turnConfidence: 0, spine: null, possibleSpine: null, leans: [0], corners: [null], bentPx: 0, crooked: false, book: NEW_BOOK, ...over,
 });
 const SPINE = { top: 0.5, bottom: 0.5 } as unknown as Assessment['spine'];
 const crooked = (over: Partial<Assessment> = {}) => sheet({ crooked: true, ...over });

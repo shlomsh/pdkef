@@ -1,6 +1,8 @@
 import { describe, expect, it, vi } from 'vitest';
 import { gray, leaning } from '#lib/pageEnhance/leaning.test-helper.ts';
+import type { Book } from '#lib/pageEnhance/photoPage.ts';
 import type { GrayImage } from '#lib/pageEnhance/quad.ts';
+import { onTable, textPage } from '#lib/pageEnhance/textPage.test-helper.ts';
 import { pdfSheets, readsRightToLeft, type PdfSheet, type SheetBorder, type SheetReader } from './pdfSheets.ts';
 import { FULL_QUAD } from './quad.ts';
 
@@ -9,7 +11,7 @@ import { FULL_QUAD } from './quad.ts';
 let nextTurn = () => 1;
 vi.mock('#lib/pageEnhance/plan.ts', async (importActual) => {
   const actual = await importActual<typeof import('#lib/pageEnhance/plan.ts')>();
-  return { ...actual, assess: (gray: GrayImage) => ({ ...actual.assess(gray), ...(gray.height === 800 && gray.width === 560 ? { turn: nextTurn() } : {}) }) };
+  return { ...actual, assess: (gray: GrayImage, book?: Book) => ({ ...actual.assess(gray, book), ...(gray.height === 800 && gray.width === 560 ? { turn: nextTurn() } : {}) }) };
 });
 
 // A white sheet with a dark spine down the middle and rows of dark bars either side: a two-page spread.
@@ -195,6 +197,17 @@ describe('pdfSheets', () => {
     expect(r.calls.gray.map((c) => c[2])).toEqual([0, 1]);
     expect(r.calls.jpeg.map((call) => call.slice(0, 3))).toEqual([[1, 3200, 1]]);
     expect(sheet.quads).toHaveLength(2);
+  });
+
+  // SCAN-69: a book is photographed or scanned as a whole, so a sheet whose own border is paper reads as a photo too.
+  it('reads each sheet with the book of the sheets before it', async () => {
+    const sheets = [onTable(textPage()), onTable(textPage()), textPage()];
+    const r = reader(() => textPage(), { pages: 3 });
+    r.grayOf = async (n) => sheets[n - 1];
+    const [, , inBook] = await collect(pdfSheets(pdf, undefined, r));
+    const [alone] = await collect(pdfSheets(pdf, undefined, reader(() => textPage())));
+    expect(alone.quads[0][0].x).toBeLessThan(0.05);
+    expect(inBook.quads[0][0].x).toBeGreaterThan(0.05);
   });
 
   it('stops when the signal is aborted', async () => {

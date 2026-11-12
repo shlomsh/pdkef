@@ -1,6 +1,7 @@
 // A scanned PDF as Scan's input (PE-08): each sheet drawn as an upright picture, with one quad per book page
 // found by planPage. One sheet at a time, so a phone holds one picture. The reader is the only door to pdf.js.
 import { assess, planPage } from '#lib/pageEnhance/plan.ts';
+import { NEW_BOOK, type Book } from '#lib/pageEnhance/photoPage.ts';
 import type { GrayImage, Quad } from '#lib/pageEnhance/quad.ts';
 import { spineInBorder, type Spine } from '#lib/pageEnhance/spine.ts';
 import { throwIfAborted } from '#lib/output/abort.js';
@@ -48,28 +49,31 @@ interface SheetRead {
   possibleSpine: Spine | null;
   /** Short lines by the side they sit against, on a sheet of two pages: what says which page comes first when the PDF has no text. */
   lines: { left: number; right: number };
+  /** The book with this sheet counted. */
+  book: Book;
 }
 
 const NO_LINES = { left: 0, right: 0 };
 
 /** The corners of page `pageNumber`: read from a small copy, redrawn turned when the text runs down it.
- * `possibleSpine` is a line worth asking about, in the turned sheet; null when the sheet is sure either way. */
-async function quadsOf(reader: SheetReader, pageNumber: number): Promise<SheetRead> {
+ * `possibleSpine` is a line worth asking about, in the turned sheet; null when the sheet is sure either way.
+ * `book` is what the sheets before it said. */
+async function quadsOf(reader: SheetReader, pageNumber: number, book: Book): Promise<SheetRead> {
   let turns = 0;
   let gray = await reader.grayOf(pageNumber, READ_LONG_EDGE, turns);
-  let a = assess(gray);
+  let a = assess(gray, book);
   // A second turn is for a sheet that only reads as upside down once it is turned the first time.
   for (let reads = 0; reads < 2 && a.turn !== 0; reads += 1) {
     turns = (turns + a.turn) % 4;
     gray = await reader.grayOf(pageNumber, READ_LONG_EDGE, turns);
-    a = assess(gray);
+    a = assess(gray, book);
   }
   // Still asking for a turn after that: the read is not to be trusted, so the sheet is one page.
-  if (a.turn !== 0) return { quads: [FULL_QUAD], turns, possibleSpine: null, lines: NO_LINES };
+  if (a.turn !== 0) return { quads: [FULL_QUAD], turns, possibleSpine: null, lines: NO_LINES, book };
   const line = a.spine ?? a.possibleSpine;
   const lines = line ? shortLineCounts(gray, (line.top + line.bottom) / 2) : NO_LINES;
   // Only the quads are kept, and they are in 0 to 1 of the picture, so the small copy stands for the full one.
-  return { quads: planPage(gray, a, gray).pieces.map((p) => p.quad), turns, possibleSpine: a.possibleSpine, lines };
+  return { quads: planPage(gray, a, gray).pieces.map((p) => p.quad), turns, possibleSpine: a.possibleSpine, lines, book: a.book };
 }
 
 /** The border that puts every corner on the picture: a levelled page's corners can fall just off a tilted sheet, where the corner editor cannot reach them. */
@@ -102,10 +106,13 @@ export async function* pdfSheets(
   const sheets = reader ?? await openPdfSheetReader(pdf, signal);
   // Over the whole file so far, as one sheet says too little, and a book's list of English sources says the wrong thing.
   const seen = { ...NO_LINES };
+  // A book is photographed or scanned as a whole, and its pages share one text width: each sheet tells the next.
+  let book = NEW_BOOK;
   try {
     for (let n = 1; n <= sheets.pageCount; n += 1) {
       throwIfAborted(signal);
-      const { quads, turns, possibleSpine, lines } = await quadsOf(sheets, n);
+      const { quads, turns, possibleSpine, lines, book: read } = await quadsOf(sheets, n, book);
+      book = read;
       seen.left += lines.left;
       seen.right += lines.right;
       const rtl = (quads.length > 1 || !!possibleSpine) && (await sheets.rightToLeft(n) ?? seen.right > seen.left);

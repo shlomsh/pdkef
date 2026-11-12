@@ -2,44 +2,14 @@ import { describe, expect, it } from 'vitest';
 import { findTextRows } from '../pageLayout/textRows.ts';
 import { FLAT_PAGE } from './dewarp/index.ts';
 import { applyPiece } from './piece.ts';
-import type { GrayImage, Quad, RgbaImage } from './quad.ts';
+import type { Quad, RgbaImage } from './quad.ts';
 import { rgbaOf, textBlockCorners } from './textBlock.ts';
 import { warpSizeFor } from './warp.ts';
+import { PAGE, textPage } from './textPage.test-helper.ts';
 
-const W = 600;
-const H = 800;
-const FIRST_Y = 60;
-const PITCH = 22;
-const BAR = 10;
-const ROWS = 30;
-const LEFT0 = 70;
-const RIGHT0 = 470;
-/** The block is this many pixels wider at the bottom, split across both edges. */
-const GROWTH = 20;
-const SLOPE = GROWTH / 2 / ((ROWS - 1) * PITCH);
-const SHORT_LAST = [9, 19];
-const INDENTED = [0, 12];
+const { GROWTH, H, LEFT0, RIGHT0, ROWS, SLOPE, W } = PAGE;
 
-/** Justified rows as dark bars of words, the block a trapezoid; short last lines and indents break the edges. */
-function page(rows = ROWS, margin = false): GrayImage {
-  const data = new Uint8ClampedArray(W * H).fill(255);
-  for (let r = 0; r < rows; r += 1) {
-    const y0 = FIRST_Y + r * PITCH;
-    const drift = (r * PITCH) * SLOPE;
-    const left = LEFT0 - drift + (INDENTED.includes(r) ? 40 : 0);
-    const right = RIGHT0 + drift - (SHORT_LAST.includes(r) ? 160 : 0);
-    const words = 8;
-    const gap = 6;
-    const word = (right - left - (words - 1) * gap) / words;
-    for (let w = 0; w < words; w += 1) {
-      const x0 = Math.round(left + w * (word + gap));
-      const x1 = Math.round(x0 + word);
-      for (let y = y0; y < y0 + BAR; y += 1) data.fill(20, y * W + x0, y * W + x1);
-    }
-  }
-  if (margin) for (let y = 40; y < H - 40; y += 1) data.fill(20, y * W + 20, y * W + 28);
-  return { width: W, height: H, data };
-}
+const page = (rows = ROWS, margin = false) => textPage({ rows, margin });
 
 const px = (c: Quad[number]) => ({ x: c.x * W, y: c.y * H });
 
@@ -106,32 +76,5 @@ describe('textBlockCorners', () => {
 
   it('has nothing to fit with fewer than 6 rows', () => {
     expect(textBlockCorners(page(5))).toBeNull();
-  });
-
-  // A phone photo of a book page (SCAN-69): the sheet's edge is the table, so the page stops at margins of its own.
-  it('on a photo, stops at book margins around the text instead of the table at the sheet\'s edge', () => {
-    const photo = page();
-    // The table shows down both sides of the photo.
-    for (let y = 0; y < H; y += 1) for (let x = 0; x < W; x += 1) if (x < 20 || x >= W - 20) photo.data[y * W + x] = 70;
-    const [tl, tr, br, bl] = textBlockCorners(photo)!.map(px);
-    const textWidth = RIGHT0 - LEFT0;
-    for (const c of [tl, bl]) {
-      expect(c.x).toBeGreaterThan(LEFT0 - GROWTH - 0.15 * textWidth);
-      expect(c.x).toBeLessThan(LEFT0 - GROWTH / 2);
-    }
-    for (const c of [tr, br]) {
-      expect(c.x).toBeLessThan(RIGHT0 + GROWTH + 0.15 * textWidth);
-      expect(c.x).toBeGreaterThan(RIGHT0 + GROWTH / 2);
-    }
-    // Top and bottom leave room for a running head and a page number, not the photo's full height.
-    expect(tl.y).toBeGreaterThan(FIRST_Y - 0.2 * textWidth);
-    expect(bl.y).toBeLessThan(FIRST_Y + (ROWS - 1) * PITCH + BAR + 0.2 * textWidth);
-    expect(bl.y).toBeLessThan(H - 0.02 * H);
-  });
-
-  it('on a clean scan with paper to its edges, still reaches out to the sheet\'s edges', () => {
-    const [tl, tr] = textBlockCorners(page())!.map(px);
-    expect(tl.x).toBeLessThan(0.02 * W);
-    expect(tr.x).toBeGreaterThan(0.98 * W);
   });
 });

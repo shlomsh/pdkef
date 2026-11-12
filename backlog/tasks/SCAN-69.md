@@ -62,6 +62,17 @@ Shlomi's call (2026-11-12): build the page from its text.
    edges keeps today's reach, so a clean scan comes through as before.
 3. The bend Scan already measures inside the corners straightens the lines.
 
+Then, after Shlomi saw 16 of 22 right through the tool, two lessons from cleaning the book by hand (2026-11-12):
+
+4. **A book is consistent page to page.** A PDF is photographed or scanned as a whole: a sheet is read as a photo
+   when most sheets before it were, so a photo with paper to its edges (book pages 5, 7 and 9) is no longer read as a
+   scan. And the text block's width in line pitches is a book constant: 19.8 to 21.4 on the 14 pages sure enough to
+   say. A column beside a figure (book pages 4 to 8) widens to that width toward the print. A block wider than the
+   book's is left alone: the list of sources is set smaller, its lines closer, and narrowing it cut the page.
+5. **A text block's two sides are nearly parallel.** Perspective tilts them apart by up to 0.056 (x per y) on the
+   measured photos; a side fitted through lines wrapping round a figure leaned 0.17 and 0.25. A side leaning more
+   than 0.08 from the other is fitted again at the better-held side's slope.
+
 ## Done when
 
 - [x] Book page 50 comes out upright; the other measured photos turn as before.
