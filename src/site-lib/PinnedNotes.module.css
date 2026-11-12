@@ -7,7 +7,7 @@
 
 .list {
   /* A row's height on a wide screen: three rows and the board's heading fit one screen. */
-  --note-h: clamp(8.5rem, calc((100vh - 13rem) / 3), 11rem);
+  --note-h: var(--board-note-h, clamp(8.5rem, calc((100vh - 13rem) / 3), 11rem));
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   gap: 1.25rem;

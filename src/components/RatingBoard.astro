@@ -94,4 +94,11 @@ const FIVE = [0, 1, 2, 3, 4];
   @media (min-width: 768px) {
     .card { min-height: calc(100vh - 6rem); padding-block: 2.5rem; }
   }
+  /* On the laptop stack the card is the band between the home bar and the footer, so the three rows of papers
+     share what is left of it after the card's own padding, border and row gaps (about 7.5rem). */
+  @media (min-width: 1024px) {
+    .card {
+      --board-note-h: clamp(8.5rem, calc((100svh - var(--home-nav-height, 3.5rem) - var(--home-footer-height, 4rem) - 2rem - 7.5rem) / 3), 11rem);
+    }
+  }
 </style>
