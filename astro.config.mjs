@@ -12,13 +12,20 @@ import { entryFileName, chunkFileName, assetFileName, cssAssetKeys, cssModuleCla
 //
 //   site                        reached from the scripts every page runs
 //   home, open                  reached only by those islands (`islands` when by both)
-//   widgets                     the page scripts that are neither site-wide nor home (OfflineProof, VideoPoster,
-//                               PinnedNotes). Code only they reach has no group: it stays in the script's own
-//                               file, as the Drive panel's does, because a ~1 KB shared bundle would cost every
-//                               page that uses one of them an extra request
-//   client                      the island client (@astrojs/preact), loaded by pages with an island only. Like
-//                               `widgets`, it has no group: what only it reaches stays in dist/site/client.js
-//   <island>-tools              reached by an island and a tool (`home-tools`, `open-tools`, `widgets-tools`, `client-tools`, `islands-tools`)
+//   widgets                     the page scripts that are neither site-wide nor home (today only PinnedNotes); code
+//                               only they reach is in `ui` (MEM-48)
+//   client                      the island client (@astrojs/preact), loaded by pages with an island only. It has no
+//                               group: what only it reaches stays in dist/site/client.js (0.7 KB). Folding it into `ui`
+//                               would need a default export appended to ui.js after the build, which the owner declined
+//                               (2026-11-12): one request is the price of not editing built output
+//   ui (MEM-48)                 the glue every page with an island loads, in one file, /shared/ui.js: Preact, its hooks
+//                               and signals, the code only `widgets` reach (the pinned notes widget), `home-tools` and
+//                               `islands-tools` (what the home page's or any island and a tool share) and
+//                               src/lib/drafts/sha256.ts, a lazy import the glue now loads eagerly. It was seven files,
+//                               each a billed request. Pages with no island load none of it (check-lazy-modules.js).
+//                               site/PinnedNotes.js is a re-export stub of it; scripts/dropStubRequests.mjs points
+//                               the pages past it
+//   <island>-tools              reached by an island and a tool (`open-tools`, `widgets-tools`, `client-tools`)
 //   <tool>-tool                 reached by one tool
 //   editor-core                 reached by Sign, Redact and Highlight only
 //   tools-common                reached by several tools
@@ -143,13 +150,17 @@ const foldedBundle = (name, priority, fold) => ({
   priority,
 });
 
+// MEM-48: the UI glue is one group, `ui`: Preact's runtime, hooks and signals, the draft hash, and the modules only
+// the page widgets reach (not the island client, see the header) or that `islands-tools` and `home-tools` would hold. It has no `$initial`
+// tag, so it recognises an initial module itself (isReachedStatically); only the libraries and the hash join lazy.
+const UI_BUNDLES = new Set(['widgets', 'islands-tools', 'home-tools']);
+const UI_LIBRARIES = /node_modules[\\/](?:preact[\\/](?:dist|src|jsx-runtime|hooks)|@preact)[\\/]/;
+const UI_DRAFT_HASH = /[\\/]src[\\/]lib[\\/]drafts[\\/]sha256\.ts$/;
+const inUi = (id, ctx) => UI_LIBRARIES.test(id) || UI_DRAFT_HASH.test(id) || (UI_BUNDLES.has(bundleOf(id, ctx)) && isReachedStatically(id, ctx));
+
 const clientCodeSplitting = {
   groups: [
-    // Preact's runtime is on every page; its hooks and signals are loaded lazily by the site scripts, so
-    // each keeps a file of its own and that lazy import does not pull in a tool bundle.
-    { name: 'preact', test: /node_modules[\\/]preact[\\/](?:dist|src|jsx-runtime)[\\/]/, priority: 12 },
-    { name: 'preact-hooks', test: /node_modules[\\/]preact[\\/]hooks[\\/]/, priority: 12 },
-    { name: 'signals', test: /node_modules[\\/]@preact[\\/]/, priority: 12 },
+    { name: (id, ctx) => (inUi(id, ctx) ? 'ui' : null), priority: 9 },
     // DEBT-20: pdf-lib is named after itself, not after its entry file (`es`, a name that once hid 628 KiB
     // behind a neighbouring chunk's name). It is lazy (no `$initial` tag, so it never joins an eager group),
     // and check-lazy-modules.js keys on the name.
@@ -159,8 +170,6 @@ const clientCodeSplitting = {
     // MEM-46: a same-named second group makes a second chunk, so `site` and `tools-common` are single untagged groups
     // that test `$initial` themselves (isReachedStatically) and also take the late modules folded into them.
     foldedBundle('site', 10, (id) => /[\\/]src[\\/]site-lib[\\/]swInstallReport\.ts$/.test(id)),
-    bundle('islands-tools', 9),
-    bundle('home-tools', 8.9),
     bundle('open-tools', 8.8),
     bundle('widgets-tools', 8.7),
     bundle('client-tools', 8.65),
