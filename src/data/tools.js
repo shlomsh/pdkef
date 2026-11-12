@@ -221,7 +221,7 @@ export const tools = [
     },
     steps: [
       { title: 'Open your form', text: 'Save the PDF from WhatsApp or email to your device, then choose it here or drag it into the tool. It is not uploaded.' },
-      { title: 'Add text & signatures', text: 'Click to place text blocks, symbols, or signatures on the pages. If the form has a printed row of boxes, one per letter, tap it and your text lands one character per box.' },
+      { title: 'Add text & signatures', text: 'Click to place text blocks, marks, or signatures on the pages. If the form has a printed row of boxes, one per letter, tap it and your text lands one character per box.' },
       { title: 'Sign with ease', text: 'Draw your signature on screen, type it out using a cursive font, or upload a signature image.' },
       { title: 'Position & resize', text: 'Drag items to place them exactly where they belong in the agreement.' },
       { title: 'Download and send', text: 'Choose Download, review the completed PDF, then attach the new file to your reply. On supported phones, tapping Share prepares a copy, and tapping it again opens your share sheet.' },
@@ -245,7 +245,7 @@ export const tools = [
       },
       {
         question: 'The form has a row of little boxes, one per letter. How do I fill those in?',
-        answer: "Pick the Text tool and the tool faintly outlines the printed box rows it found on the page. Tap one and your text lands one character per box, centred in each box, instead of running across them as ordinary text. That is how a date, an ID number, or a reference code on a pre-printed form is meant to be filled in. If it guessed the number of boxes wrong you can add or remove them from the toolbar, and the Symbols tool gets the same treatment for printed checkboxes, so a tick lands inside the square rather than near it. The boxes are found in the PDF already open in your browser; nothing about the page is uploaded to detect them.",
+        answer: "Pick the Text tool and the tool faintly outlines the printed box rows it found on the page. Tap one and your text lands one character per box, centred in each box, instead of running across them as ordinary text. That is how a date, an ID number, or a reference code on a pre-printed form is meant to be filled in. If it guessed the number of boxes wrong you can add or remove them from the toolbar, and the Mark tool gets the same treatment for printed checkboxes, so a check lands inside the square rather than near it. The boxes are found in the PDF already open in your browser; nothing about the page is uploaded to detect them.",
       },
       {
         question: 'Is my signature safe here?',
@@ -257,7 +257,7 @@ export const tools = [
       },
       {
         question: 'What happens if my browser crashes while filling out a form?',
-        answer: "Your work is not lost. As you add text, symbols, and signatures, the tool auto-saves your progress to local storage in your own browser, and restores it automatically the next time you open the tool on the same device. Because this happens on your device, your file is still never uploaded. Opening a different file doesn't erase this one either: it stays in your recent files on the home page, ready to pick up again, for up to 28 days.",
+        answer: "Your work is not lost. As you add text, marks, and signatures, the tool auto-saves your progress to local storage in your own browser, and restores it automatically the next time you open the tool on the same device. Because this happens on your device, your file is still never uploaded. Opening a different file doesn't erase this one either: it stays in your recent files on the home page, ready to pick up again, for up to 28 days.",
       },
       {
         question: 'Will my language come out right in the downloaded PDF, or turn into empty boxes?',

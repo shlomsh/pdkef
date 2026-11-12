@@ -118,7 +118,7 @@ async function elementAndToolbarBoxes(element) {
 async function addSymbol(page, xRatio, yRatio) {
   const symbolTool = page
     .getByRole('toolbar', { name: 'PDF annotations' })
-    .getByRole('button', { name: 'Symbols', exact: true });
+    .getByRole('button', { name: 'Mark', exact: true });
   if ((await symbolTool.getAttribute('aria-pressed')) !== 'true') {
     await symbolTool.click();
   }

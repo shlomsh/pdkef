@@ -47,7 +47,7 @@ test('nudging a checkbox smaller than the resize floor does not snap it up to th
 
   const symbolTool = page
     .getByRole('toolbar', { name: 'PDF annotations' })
-    .getByRole('button', { name: 'Symbols', exact: true });
+    .getByRole('button', { name: 'Mark', exact: true });
   if ((await symbolTool.getAttribute('aria-pressed')) !== 'true') await symbolTool.click();
 
   // A real detected checkbox, sized to the print itself - the case that

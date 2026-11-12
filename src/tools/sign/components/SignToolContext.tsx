@@ -267,11 +267,14 @@ export function useSignTool() {
  * SIGN-35: the document's resolved style - its own `carried` keys over the
  * app-wide style, with no defaults layered in (callers keep their own
  * fallbacks, same as `resolveDocumentStyle`'s two-argument overload).
+ * `documentStyleOf` is the pure read, for a component that already holds
+ * `state` and has no reason to add a hook.
  */
+export function documentStyleOf(state: SignToolState): Partial<DocumentStyle> {
+  return resolveDocumentStyle(state.carried, state.appStyle);
+}
+
 export function useDocumentStyle(): Partial<DocumentStyle> {
   const { state } = useSignTool();
-  return useMemo(
-    () => resolveDocumentStyle(state.carried, state.appStyle),
-    [state.carried, state.appStyle],
-  );
+  return useMemo(() => documentStyleOf(state), [state.carried, state.appStyle]);
 }

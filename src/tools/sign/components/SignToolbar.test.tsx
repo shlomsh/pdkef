@@ -88,6 +88,32 @@ describe('SignToolbar Component', () => {
     expect(button!.className.split(/\s+/).filter(Boolean)).toEqual([styles.button]);
   });
 
+  it('the Mark button draws the mark the next placement will use', () => {
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    let dispatch!: SignDispatch;
+    const TestConsumer = () => {
+      dispatch = useSignTool().dispatch;
+      return null;
+    };
+    act(() => {
+      render(
+        <SignToolProvider>
+          <SignToolbar />
+          <TestConsumer />
+        </SignToolProvider>,
+        container
+      );
+    });
+    const marks = () => Array.from(container.querySelectorAll('[data-mark]'), (el) => el.getAttribute('data-mark'));
+    expect(marks()).toEqual(['check']);
+    // Switching a placed mark carries it (carriedPatch.ts), and the button follows.
+    act(() => { dispatch({ type: 'SET_CARRIED', payload: { symbolMark: 'x' } }); });
+    expect(marks()).toEqual(['x']);
+    act(() => { dispatch({ type: 'SET_CARRIED', payload: { symbolMark: 'dot' } }); });
+    expect(marks()).toEqual(['dot']);
+  });
+
   it('renders all tool buttons and propagates selection via context', async () => {
     container = document.createElement('div');
     document.body.appendChild(container);
@@ -128,7 +154,7 @@ describe('SignToolbar Component', () => {
     // (Full screen here, Feedback next - see
     // SignToolbar.tsx's own ordering comment for the rest).
     const labels = Array.from(buttons, button => query(button, `.${styles.label}`).textContent.trim());
-    expect(labels.slice(0, 12)).toEqual(['Text', 'Date', 'Symbols', 'Shapes', 'Whiteout', 'Sign', 'Highlight', 'Comment', 'Undo', 'Redo', 'Full screen', 'Feedback']);
+    expect(labels.slice(0, 12)).toEqual(['Text', 'Date', 'Mark', 'Shapes', 'Whiteout', 'Sign', 'Highlight', 'Comment', 'Undo', 'Redo', 'Full screen', 'Feedback']);
     expect(labels.at(-1)).toBe('Download');
 
     // Exact-label match, not "contains Text or has an svg": every button here

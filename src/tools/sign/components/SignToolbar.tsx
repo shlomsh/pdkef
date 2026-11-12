@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'preact/hooks';
-import { useSignTool } from './SignToolContext.tsx';
+import { documentStyleOf, useSignTool } from './SignToolContext.tsx';
 import { useSavedSignatures } from './SavedSignaturesContext.tsx';
 import SignFeedbackButton from './SignFeedbackButton.tsx';
 import FullscreenButton from '#editor-ui/FullscreenButton.tsx';
@@ -12,6 +12,7 @@ import EditorExportActions from '#editor-ui/EditorExportActions.tsx';
 import ToolShell, { FILE_ACTIONS, useToolShell } from '#shell/ToolShell.tsx';
 import { useArmTool, useAutoArmHint, useDoubleTap } from '#editor-ui/hooks/toolArming.js';
 import IconToolButton from './IconToolButton.tsx';
+import MarkIcon from './MarkIcon.tsx';
 import { CommentIcon, HighlightIcon, WhiteoutIcon } from '#editor-ui/toolIcons.tsx';
 import useCoarsePointer from '#editor-ui/hooks/useCoarsePointer.ts';
 import { useFill } from './fill/FillContext.tsx';
@@ -134,6 +135,7 @@ export default function SignToolbar({
   messages?: Partial<SignMessages>;
 }) {
   const { state, dispatch } = useSignTool();
+  const nextMark = documentStyleOf(state).symbolMark ?? 'check'; // what the next placement draws
   const selectedTool = state.selectedTool;
   const toolLocked = state.toolLocked;
   const { requestReplace, messages: shellMessages = englishShellMessages } = useToolShell();
@@ -440,7 +442,7 @@ export default function SignToolbar({
           data-editor-toolbar
         >
           {/* Order (2026-09-18, revised the same day as SIGN-29): the row
-              reads in the order a form gets done. Text, Date, Symbols, Shapes
+              reads in the order a form gets done. Text, Date, Mark, Shapes
               and Whiteout come first - you fill the fields, tick the boxes,
               cover what is wrong - and Sign comes after them, the last thing
               you do to a filled form, even though it is the tool the page is
@@ -500,9 +502,7 @@ export default function SignToolbar({
               onClick={armTool('symbol')}
               aria-pressed={selectedTool === 'symbol'}
             >
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                <polyline points="20 6 9 17 4 12" />
-              </svg>
+              <MarkIcon mark={nextMark} size={18} strokeWidth={2.5} />
               <span className={styles.label}>{t.symbolsButton}</span>
             </button>
           </ArmHint>

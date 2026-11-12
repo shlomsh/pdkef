@@ -80,12 +80,12 @@ async function distanceFrom(page, id, rect) {
   );
 }
 
-/** Places a Symbols-tool element (no textarea involved, so focus never lands
+/** Places a Mark-tool element (no textarea involved, so focus never lands
  * on an INPUT/TEXTAREA and the undo/redo shortcut listener stays live). */
 async function addSymbol(page, xRatio, yRatio) {
   const symbolTool = page
     .getByRole('toolbar', { name: 'PDF annotations' })
-    .getByRole('button', { name: 'Symbols', exact: true });
+    .getByRole('button', { name: 'Mark', exact: true });
   if ((await symbolTool.getAttribute('aria-pressed')) !== 'true') {
     await symbolTool.click();
   }
@@ -170,7 +170,7 @@ test.describe('Sign editor keyboard undo/redo', () => {
     expect(Math.abs(moved.top - placed.rect.top)).toBeGreaterThan(40);
     await expect(page.locator('[data-editor-element-id]')).toHaveCount(1);
 
-    // Nothing here ever focuses a textarea (Symbols has none), so the mouse
+    // Nothing here ever focuses a textarea (Mark has none), so the mouse
     // drag above leaves focus on the page and the keyboard shortcut listener
     // stays live for this real Cmd/Ctrl+Z.
     await page.keyboard.press(`${MODIFIER}+z`);

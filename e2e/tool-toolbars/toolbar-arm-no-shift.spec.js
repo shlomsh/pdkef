@@ -90,7 +90,7 @@ async function expectNoShiftOnArm(page, toolbar, name, isPhone) {
   }).toPass();
 }
 
-const SIGN_TOOLS = ['Text', 'Date', 'Symbols', 'Whiteout', 'Shapes', 'Sign'];
+const SIGN_TOOLS = ['Text', 'Date', 'Mark', 'Whiteout', 'Shapes', 'Sign'];
 const REDACT_TOOLS = ['Blur', 'Blackout', 'Whiteout'];
 
 const VIEWPORTS = [

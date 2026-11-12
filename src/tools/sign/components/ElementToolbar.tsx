@@ -1,4 +1,5 @@
 import { useId } from 'preact/hooks';
+import MarkIcon from './MarkIcon.tsx';
 import { offsetClone } from '../lib/elementClipboard.ts';
 import { TextAlignCenter, TextAlignEnd, TextAlignStart } from 'lucide-preact';
 import { TrashIcon } from '#editor-ui/toolIcons.tsx';
@@ -247,9 +248,7 @@ export default function ElementToolbar({
             onClick={() => onChange({ mark: 'check' })}
             title={t.checkMarkTitle}
           >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
-              <polyline points="20 6 9 17 4 12" />
-            </svg>
+            <MarkIcon mark="check" />
           </button>
           <button
             type="button"
@@ -257,10 +256,7 @@ export default function ElementToolbar({
             onClick={() => onChange({ mark: 'x' })}
             title={t.xMarkTitle}
           >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round">
-              <line x1="5" y1="5" x2="19" y2="19" />
-              <line x1="19" y1="5" x2="5" y2="19" />
-            </svg>
+            <MarkIcon mark="x" />
           </button>
           <button
             type="button"
@@ -268,9 +264,7 @@ export default function ElementToolbar({
             onClick={() => onChange({ mark: 'dot' })}
             title={t.dotMarkTitle}
           >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" stroke="none">
-              <circle cx="12" cy="12" r="7" />
-            </svg>
+            <MarkIcon mark="dot" />
           </button>
           <div className={styles.divider} />
           <ColorPickerMenu
