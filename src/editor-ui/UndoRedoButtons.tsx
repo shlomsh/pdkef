@@ -14,8 +14,10 @@ const ENGLISH: UndoRedoLabels = { undoTitle: 'Undo', undoButton: 'Undo', redoTit
  * shortcuts (src/lib/history/useHistoryShortcuts.js). Folding them into one button once left a phone
  * unable to redo at all - keep them as two.
  *
- * `iconOnly` is Sign's `data-icon-only`: an arrow is a convention and its labelled desktop row has no
- * width to spare. Redact keeps the label. `labels` defaults to English; Sign passes its catalogue's.
+ * `iconOnly` is `data-icon-only`: an arrow is a convention and the labelled desktop row has no width to
+ * spare. Sign and Redact both pass it. `groupStart` marks Undo as the first control of a divided group
+ * (`data-group-start`, read by the finish block in SignToolbar.module.css). `labels` defaults to English;
+ * Sign passes its catalogue's.
  */
 export default function UndoRedoButtons({
   onUndo,
@@ -23,6 +25,7 @@ export default function UndoRedoButtons({
   canUndo,
   canRedo,
   iconOnly = false,
+  groupStart = false,
   labels = ENGLISH,
 }: {
   onUndo: () => void;
@@ -30,12 +33,14 @@ export default function UndoRedoButtons({
   canUndo: boolean;
   canRedo: boolean;
   iconOnly?: boolean;
+  groupStart?: boolean;
   labels?: UndoRedoLabels;
 }) {
   const iconOnlyAttr = iconOnly ? { 'data-icon-only': true } : {};
+  const groupStartAttr = groupStart ? { 'data-group-start': true } : {};
   return (
     <>
-      <button type="button" className={styles.button} onClick={onUndo} title={labels.undoTitle} disabled={!canUndo} {...iconOnlyAttr}>
+      <button type="button" className={styles.button} onClick={onUndo} title={labels.undoTitle} disabled={!canUndo} {...iconOnlyAttr} {...groupStartAttr}>
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
           <path d="M3 7v6h6" />
           <path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13" />

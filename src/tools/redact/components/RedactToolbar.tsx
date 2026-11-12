@@ -266,7 +266,7 @@ export default function RedactToolbar({
         />
       }
     >
-      <div className={`${styles.toolbar} ${barStyles.bar}`} role="toolbar" aria-label={t.toolbarLabel} dir="ltr" lang="en" data-editor-toolbar>
+      <div className={`${styles.toolbar} ${barStyles.bar}`} role="toolbar" aria-label={t.toolbarLabel} dir="ltr" lang="en" data-editor-toolbar data-finish="strip" data-labels="stack">
         {withBrushMenu('blur', armableTool('blur', BlurToolIcon))}
         {armableTool('blackout', BlackoutToolIcon)}
         {withBrushMenu('whiteout', armableTool('whiteout', WhiteoutIcon))}
@@ -277,11 +277,11 @@ export default function RedactToolbar({
         {onToggleFind && (
           <button
             type="button"
-            className={`${styles.button}${findOpen ? ` ${styles.active}` : ''}`}
+            className={styles.button}
             onClick={onToggleFind}
             aria-pressed={findOpen}
             title={t.findTitle}
-            data-redact-find-toggle
+            data-redact-find-toggle data-group-start
           >
             <Search size={18} aria-hidden="true" />
             <span className={styles.label}>{t.find}</span>
@@ -292,7 +292,7 @@ export default function RedactToolbar({
         {onPeekChange && (
           <button
             type="button"
-            className={`${styles.button} ${redactStyles['peek-button']}${peeking ? ` ${styles.active}` : ''}`}
+            className={`${styles.button} ${redactStyles['peek-button']}`}
             onPointerDown={(e) => { e.preventDefault(); onPeekChange(true); }}
             onPointerUp={() => onPeekChange(false)}
             onPointerCancel={() => onPeekChange(false)}
@@ -317,7 +317,7 @@ export default function RedactToolbar({
             timeline redundant and its selective revert fought linear redo. Do
             not bring it back. Folding undo and redo into one button is what
             once left a phone unable to redo at all - keep them as two. */}
-        <UndoRedoButtons onUndo={onUndo} onRedo={onRedo} canUndo={actionHistory.length > 0} canRedo={canRedo} />
+        <UndoRedoButtons onUndo={onUndo} onRedo={onRedo} canUndo={actionHistory.length > 0} canRedo={canRedo} iconOnly groupStart />
 
         <FullscreenButton isFullscreen={isFullscreen} toggleFullscreen={toggleFullscreen} />
 
@@ -325,7 +325,7 @@ export default function RedactToolbar({
             Both meant "I want a different file"; this one says it once. */}
         <button
           type="button"
-          className={styles.button}
+          className={styles.button} data-replace
           onClick={requestReplace}
           title={FILE_ACTIONS.replace.title}
           aria-label={FILE_ACTIONS.replace.label}

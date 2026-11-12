@@ -1,22 +1,23 @@
 /* Redact keeps a visible word on every toolbar control at every width
-   (RED-34). SignToolbar.module.css hides `.toolbar .label` below 1300px and
-   for [data-icon-only]; this sheet overrides that for Redact's toolbar only.
-   The tripled class outranks those rules whatever order the sheets load in. */
-.bar.bar.bar button > span:last-child {
-  position: static;
-  width: auto;
-  height: auto;
-  margin: 0;
-  padding: 0;
-  overflow: hidden;
-  clip: auto;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  border-width: 0;
-}
+   (RED-34). SignToolbar.module.css hides `.toolbar .label` and [data-icon-only]
+   labels below its tiers; below 920px this sheet shows them again, under the icon.
+   From 920px the strip finish (data-finish="strip", data-labels="stack") owns the
+   labels and the sizes. The tripled class outranks those rules whatever order the
+   sheets load in. */
+@media (max-width: 919px) {
+  .bar.bar.bar button > span:last-child {
+    position: static;
+    width: auto;
+    height: auto;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    clip: auto;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    border-width: 0;
+  }
 
-/* Under the icon where the row is tight: below 1300px and on the phone grid. */
-@media (max-width: 1299px) {
   .bar.bar.bar button {
     flex-direction: column;
     gap: 2px;
@@ -26,17 +27,15 @@
   }
 }
 
-/* Where the labels sit beside the icon (1300px and up), Redact's twelve
-   labelled controls (Share present) are 1177.6px wide in the wide DejaVu face CI
-   lands on, against the toolbar's 1172px content box: the twelfth wrapped, 5.6px
-   short (e2e/tool-toolbars/toolbar-desktop-one-line.spec.js). Redact is the only
-   toolbar that labels Undo, Redo and Peek at this width (RED-34), so rather than
-   take a word off one of them, the shared .5rem side padding comes in to .4rem:
-   3.2px a button over eleven buttons is 35.2px back, 29.6px spare. SignToolbar's
-   own spare is 32.3px; keep this one near it. The doubled class outranks the
-   shared `.toolbar { --btn-padding }` whatever order the sheets load in. */
-@media (min-width: 1300px) {
-  .bar.bar { --btn-padding: .6rem .4rem; }
+/* Find open and Peek held look, they arm nothing, so never the armed teal: the tinted
+   ground of an open menu, and a firmer ring while Peek is held. */
+.bar.bar[data-finish="strip"] button[data-redact-find-toggle][aria-pressed="true"],
+.bar.bar[data-finish="strip"] button[data-redact-peek][aria-pressed="true"] {
+  background: var(--color-primary-soft);
+  box-shadow: inset 0 0 0 1px var(--color-primary-tint);
+}
+.bar.bar[data-finish="strip"] button[data-redact-peek][aria-pressed="true"] {
+  box-shadow: inset 0 0 0 1.5px var(--color-border-strong);
 }
 
 /* The undo chip's Undo: a 44px hit area that does not grow the row. */
@@ -47,17 +46,6 @@
   min-height: 44px;
   min-width: 44px;
   margin-block: -14px;
-}
-
-/* One shared top: the column-labelled buttons are taller than the row-labelled
-   ones, and the shared toolbar centres, so the shorter controls sat a few px
-   lower. Stretch every control to the tallest, and let wrapped controls
-   (hint wrappers, dropdowns) stretch their button too. */
-@media (min-width: 920px) {
-  .bar.bar.bar { align-items: stretch; }
-  /* Only the wrappers (ArmHint's span, dropdowns). */
-  .bar.bar.bar > :not(button) { display: flex; flex-direction: column; }
-  .bar.bar.bar > :not(button) > button { flex: 1 1 auto; }
 }
 
 /* On a phone the grid stays two rows (the editor card's height guard), so a

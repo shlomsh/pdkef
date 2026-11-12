@@ -50,7 +50,7 @@ export default function DriveSaveMenu({ drive }: { drive: Drive }) {
       onOpenChange={onOpenChange}
       placement="bottom-end"
       trigger={
-        <button type="button" class={styles.arrow} aria-haspopup="menu" aria-expanded={open} aria-label={labels.more}>
+        <button type="button" class={styles.arrow} data-drive-arrow aria-haspopup="menu" aria-expanded={open} aria-label={labels.more}>
           <ChevronDown size={14} stroke-width={2.5} aria-hidden="true" />
         </button>
       }

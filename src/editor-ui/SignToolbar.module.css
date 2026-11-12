@@ -770,17 +770,18 @@
   .toolbar .chevron { position: absolute; inset-block-start: 3px; inset-inline-end: 3px; margin: 0; }
 }
 
-/* Sign's finish (data-finish="strip", set on its toolbar root only, so Redact and
-   Highlight, which share this module, are untouched). Borderless "ghost" controls
+/* The finish (data-finish="strip", set on the Sign and Redact toolbar roots; Highlight,
+   which shares this module, does not take it). Borderless "ghost" controls
    on the card's own white, thin dividers between groups, Download the one outlined
    control and never filled (QUAL-27). Every rule is under the attribute; sizes and
    the order of the row are the rules above, this is finish only. The armed (.active)
    and kept-on (.locked) looks are production's and are excluded from the ghost.
-   Groups: [Text Date Mark Whiteout Sign] | [More] | [Undo Redo] ... [Full screen
-   Replace] | [Share Download]. A divider is a ::before on the group's first control,
-   never a toolbar child (specs count the children): More is the dropdown right after
-   Sign's dropdown, Undo the control after it, Share (or Download when there is no Share) is
-   picked by class. */
+   Sign's groups: [Text Date Mark Whiteout Sign] | [More] | [Undo Redo] ... [Full screen
+   Replace] | [Share Download]. Redact's: [Blur Blackout Whiteout Delete] | [Find Peek] |
+   [Undo Redo] ... [Full screen Replace] | [Share Download]. A divider is a ::before on the
+   group's first control, never a toolbar child (specs count the children): the control
+   carrying `data-group-start` (More's root, Find, Undo) draws it, and Share (or Download
+   when there is no Share) is picked by class. */
 .toolbar[data-finish="strip"] .button:not(.active) { background: transparent; border-color: transparent; box-shadow: none; border-radius: 10px; }
 .toolbar[data-finish="strip"] .button { border-radius: 10px; }
 .toolbar[data-finish="strip"] .button:not(.active):hover:not(:disabled) { background: var(--color-primary-soft); border-color: transparent; }
@@ -807,10 +808,16 @@
   .toolbar[data-finish="strip"] .button.download:hover:not(:disabled) { background: var(--color-primary-soft); border-color: var(--color-border-strong); }
   .toolbar[data-finish="strip"] .button.download:disabled, .toolbar[data-finish="strip"] .button.download:disabled:hover { border: 1.5px solid var(--color-border); box-shadow: none; background: var(--color-surface); }
   .toolbar[data-finish="strip"] .dropdown > .button { width: 100%; }
+  /* Download and the Drive arrow are one outlined control: Download gives up its end
+     border and corners, the arrow takes them, with a 1px divider between. */
+  .toolbar[data-finish="strip"] .button.download:has(+ [data-drive-arrow]) { border-inline-end-width: 0; border-start-end-radius: 0; border-end-end-radius: 0; }
+  .toolbar.toolbar[data-finish="strip"] > [data-drive-arrow][data-drive-arrow] { width: 34px; min-width: 34px; flex: 0 0 34px; height: 42px; min-height: 42px; background: var(--color-surface); border: 1.5px solid var(--color-border-strong); border-inline-start: 1px solid var(--color-border); border-start-start-radius: 0; border-end-start-radius: 0; border-start-end-radius: 10px; border-end-end-radius: 10px; box-shadow: none; }
+  .toolbar.toolbar[data-finish="strip"] > [data-drive-arrow][data-drive-arrow]:hover { background: var(--color-primary-soft); }
+  .toolbar.toolbar[data-finish="strip"] > .download:disabled + [data-drive-arrow][data-drive-arrow] { border-color: var(--color-border); }
   /* Dividers: 1px x 24px, 8px each side of the 2px gap. The group's first control
      takes the extra start margin and draws the line in it. */
-  .toolbar[data-finish="strip"] > .dropdown + .dropdown, .toolbar[data-finish="strip"] > .dropdown + .dropdown + .button, .toolbar[data-finish="strip"] > .share, .toolbar[data-finish="strip"] > .download:not(.share + .download) { position: relative; margin-inline-start: 15px; }
-  .toolbar[data-finish="strip"] > .dropdown + .dropdown::before, .toolbar[data-finish="strip"] > .dropdown + .dropdown + .button::before, .toolbar[data-finish="strip"] > .share::before, .toolbar[data-finish="strip"] > .download:not(.share + .download)::before { content: ''; position: absolute; inset-block-start: 50%; inset-inline-start: -9px; width: 1px; height: 24px; margin-block-start: -12px; background: var(--color-border); }
+  .toolbar[data-finish="strip"] > [data-group-start], .toolbar[data-finish="strip"] > .share, .toolbar[data-finish="strip"] > .download:not(.share + .download) { position: relative; margin-inline-start: 15px; }
+  .toolbar[data-finish="strip"] > [data-group-start]::before, .toolbar[data-finish="strip"] > .share::before, .toolbar[data-finish="strip"] > .download:not(.share + .download)::before { content: ''; position: absolute; inset-block-start: 50%; inset-inline-start: -9px; width: 1px; height: 24px; margin-block-start: -12px; background: var(--color-border); }
 }
 
 /* Sign's labels follow the toolbar's own width, not the window's (SIGN-49): the
@@ -830,5 +837,24 @@
     .toolbar[data-finish="strip"] .dropdown > .button { justify-content: center; }
     .toolbar[data-finish="strip"] .dropdown .label-swap-word[data-inactive] { display: none; }
     .toolbar[data-finish="strip"] .dropdown > .button .chevron { width: 11px; height: 11px; margin-inline-start: -2px; }
+  }
+}
+
+/* data-labels="stack" (Redact, RED-73): the word stays on every tool. It sits beside the
+   icon in the same 1160px tier as Sign's labels and under it below that. Measured on macOS
+   Chromium 2026-11-12, the labelled row needs 1115px with Share inside the 1172px box,
+   about 57px for Linux's wider fonts. With the Drive arrow it needs all 1172px, so there
+   Full screen gives up its word. Stacked, the row with Share and the arrow needs 760px
+   against 796px at a 920px window. */
+@media (min-width: 920px) {
+  .toolbar[data-finish="strip"][data-labels="stack"] .button:not([data-icon-only]) .label { position: static; width: auto; height: auto; margin: 0; overflow: visible; clip: auto; }
+  @container toolbar (width < 1160px) {
+    .toolbar[data-finish="strip"][data-labels="stack"] .button { flex-direction: column; gap: 3px; min-height: 54px; height: 54px; padding: 0 6px; font-size: 12px; line-height: 1.1; }
+    .toolbar[data-finish="strip"][data-labels="stack"] .button[data-icon-only] { width: 40px; padding: 0; }
+    .toolbar[data-finish="strip"][data-labels="stack"] .button.download { min-height: 54px; height: 54px; padding: 0 12px; }
+  }
+  @container toolbar (min-width: 1160px) {
+    .toolbar[data-finish="strip"][data-labels="stack"]:has(> [data-drive-arrow]) > :has(+ [data-replace]) { width: 40px; padding: 0; }
+    .toolbar[data-finish="strip"][data-labels="stack"]:has(> [data-drive-arrow]) > :has(+ [data-replace]) .label { position: absolute; width: 1px; height: 1px; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); }
   }
 }

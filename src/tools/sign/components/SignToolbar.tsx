@@ -601,7 +601,7 @@ export default function SignToolbar({
             onRedo={onRedo}
             canUndo={actionHistory.length > 0}
             canRedo={canRedo}
-            iconOnly
+            iconOnly groupStart
             labels={{ undoTitle: t.undoTitle, undoButton: t.undoButton, redoTitle: t.redoTitle, redoButton: t.redoButton }}
           />
 

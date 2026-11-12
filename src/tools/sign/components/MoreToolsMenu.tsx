@@ -121,7 +121,7 @@ function MoreToolsMenu({ t, selectedTool, toolLocked, onPick, onLock, feedbackHr
   ];
 
   return (
-    <div {...rootProps} ref={ref} className={styles.dropdown} onDblClick={lock}>
+    <div {...rootProps} ref={ref} className={styles.dropdown} onDblClick={lock} data-group-start>
       <Popover
         open={open}
         onOpenChange={setOpen}
