@@ -34,6 +34,7 @@ import {
   onExportInFlightChange,
   onUpdateHoldChange,
 } from '#lib/appUpdate/updateHolds.ts';
+import { beaconMaintenanceTransport, reportMaintenanceEvent } from '#lib/telemetry/maintenanceTelemetry.ts';
 
 const CHANNEL_NAME = 'pdkef:app-update';
 /** @testSeam */
@@ -192,8 +193,8 @@ interface AppUpdateDeps {
 function reportRecordedWorkerFailure(injected: AppUpdateDeps['caches']): void {
   const cacheStorage = injected ?? globalThis.caches;
   if (!cacheStorage) return;
-  void Promise.all([import('./swInstallReport.ts'), import('#lib/telemetry/maintenanceTelemetry.ts')])
-    .then(([r, t]) => r.reportSwInstallFailures({ caches: cacheStorage, send: (e) => t.reportMaintenanceEvent(e, t.beaconMaintenanceTransport) }))
+  void import('./swInstallReport.ts')
+    .then((r) => r.reportSwInstallFailures({ caches: cacheStorage, send: (e) => reportMaintenanceEvent(e, beaconMaintenanceTransport) }))
     .catch(() => {
       // expected: best effort, never reaches the page
     });
