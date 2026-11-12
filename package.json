@@ -124,7 +124,7 @@
     "patch-package": "^8.0.1",
     "tailwindcss": "^4.3.2",
     "typescript": "^6.0.3",
-    "vitest": "^5.0.5"
+    "vitest": "^5.1.0"
   },
   "overrides": {
     "browserslist": "4.28.7",
