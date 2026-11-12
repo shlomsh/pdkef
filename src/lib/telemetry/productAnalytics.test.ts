@@ -32,7 +32,21 @@ beforeEach(() => {
 afterEach(() => {
   setReportingEnabledForTests(false);
   vi.unstubAllGlobals();
+  vi.unstubAllEnvs();
   vi.restoreAllMocks();
+});
+
+describe('analytics sink', () => {
+  it('sends a page view to /api/report, then to the sink address when one is configured', async () => {
+    vi.stubEnv('PUBLIC_ANALYTICS_HOST', 'https://e.example.test');
+    vi.stubEnv('PUBLIC_ANALYTICS_KEY', 'k');
+    vi.stubGlobal('location', { origin: 'https://pdkef.com', pathname: '/merge/' }); // plain node has none
+    reportToolLifecycleEvent('tool_page_viewed', 'merge');
+    await settleTick();
+    expect(beacon).toHaveBeenCalledTimes(2);
+    expect(beacon.mock.calls[0][0]).toBe('/api/report');
+    expect(beacon.mock.calls[1][0]).toBe('https://e.example.test/i/v0/e/');
+  });
 });
 
 describe('reportToolLifecycleEvent', () => {

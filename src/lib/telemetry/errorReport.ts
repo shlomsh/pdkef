@@ -211,7 +211,8 @@ function sendDrop(record: DropRecord | null): void {
   sendBeacon(record);
 }
 
-function canSend(): boolean {
+/** Whether a beacon may go out now: production build, online, and the browser has `sendBeacon`. */
+export function canSend(): boolean {
   return enabled && navigator.onLine !== false && typeof navigator.sendBeacon === 'function';
 }
 

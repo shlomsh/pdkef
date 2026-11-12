@@ -9,6 +9,7 @@
  * Hobby did not record them as Vercel custom events.
  */
 
+import { sendToSink } from './analyticsSink.ts';
 import { readBuildCommit, sendBeacon } from './errorReport.ts';
 import { resetFileArrivalForTests, takeArrival, takeArrivalTime, type Arrival } from '../handoff/fileArrival.ts';
 import { collectPageMeasures, pageSettled, timeBucket } from './pagePerformance.ts';
@@ -173,6 +174,7 @@ function report(event: UsageEventName, tool: AnalyticsTool | ViewOnlyPage, measu
       handedOff += 1;
       seen.add(pair);
     }
+    sendToSink(parsed);
   } catch {
     // expected: Analytics must never alter an offline or local document workflow.
   }

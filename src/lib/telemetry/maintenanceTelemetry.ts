@@ -9,6 +9,7 @@
  * to our own `/api/report`, never to a third party.
  */
 
+import { sendToSink } from './analyticsSink.ts';
 import { sendBeacon } from './errorReport';
 import { isAbortError } from '../output/abort.js';
 import {
@@ -214,6 +215,7 @@ export const beaconMaintenanceTransport: MaintenanceTransport = (event) => {
   const parsed = parseMaintenanceEvent(event);
   if (!parsed || eventsSent >= MAX_EVENTS_PER_PAGE) return;
   if (sendBeacon(parsed)) eventsSent++;
+  sendToSink(parsed);
 };
 
 interface AnalyticsBeforeSendEvent {
