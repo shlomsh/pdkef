@@ -596,26 +596,31 @@ export function detectCellCandidates(ink, geometry, pageIndex, textItems) {
   // never a band caption, and only in a row of `MIN_TABLE_COLUMNS` cells or
   // more: FORM-14's two-cell address lines keep their captioned fields.
   // Printed separators are part of the answer's shape and never content.
-  const ownTextOf = (/** @type {ClosedCell} */ cell) => textInsideCell(cell, textItemsPoints).filter((t) => t.str.trim());
-  const blankCells = closedCells.filter((cell) => ownTextOf(cell).length === 0);
-  const inStackBelow = (/** @type {ClosedCell} */ cell, /** @type {ClosedCell} */ other) => {
-    let floor = cell.bottom;
-    for (;;) {
-      const next = closedCells.find((c) => columnKey(c) === columnKey(cell) && Math.abs(c.top - floor) <= POS_TOLERANCE);
-      if (!next) return false;
-      if (next === other) return true;
-      floor = next.bottom;
+  // Each cell's own text, and each column's cells, read once for the page.
+  /** @type {Map<ClosedCell, TextPoints[]>} */
+  const ownTextByCell = new Map(closedCells.map((cell) => [cell, textInsideCell(cell, textItemsPoints).filter((t) => t.str.trim())]));
+  const isBlank = (/** @type {ClosedCell} */ cell) => ownTextByCell.get(cell)?.length === 0;
+  /** @type {Map<string, ClosedCell[]>} */
+  const columns = new Map();
+  for (const cell of closedCells) columns.set(columnKey(cell), [...(columns.get(columnKey(cell)) ?? []), cell]);
+  /** Whether a blank cell stands anywhere in the stack of abutting cells below `cell`, walked once. */
+  const blankBelow = (/** @type {ClosedCell} */ cell) => {
+    const column = columns.get(columnKey(cell)) ?? [];
+    for (let floor = cell.bottom, next; (next = column.find((c) => Math.abs(c.top - floor) <= POS_TOLERANCE)); floor = next.bottom) {
+      if (isBlank(next)) return true;
     }
+    return false;
   };
   const isTableContent = (/** @type {ClosedCell} */ cell) => {
-    const ownText = ownTextOf(cell);
+    const ownText = ownTextByCell.get(cell) ?? [];
     if (ownText.length === 0 || cell.floorTicked) return false;
     if (isPrintedSeparators(ownText.map((t) => t.str).join(' ').trim())) return false;
     // A caption in the top corner over a writing strip is a form box's own
     // label, whatever sits beside it (the 1040's name row).
     if (writableArea(cell, ownText)?.carve === 'band') return false;
-    if (closedCells.filter((other) => sameBand(other, cell)).length < MIN_TABLE_COLUMNS) return false;
-    return blankCells.some((blank) => blank !== cell && (sameBand(blank, cell) || inStackBelow(cell, blank)));
+    const row = closedCells.filter((other) => sameBand(other, cell));
+    if (row.length < MIN_TABLE_COLUMNS) return false;
+    return row.some(isBlank) || blankBelow(cell);
   };
 
   // First pass classifies each cell; the table-cell count needs the whole population.
