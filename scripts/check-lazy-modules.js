@@ -119,10 +119,15 @@ const PAGES = [
 const HOME_ONLY = { chunk: /^home\./, pages: new Set(['', 'he']) };
 
 /**
- * MEM-37: Preact's runtime (`preact.js`) is for pages that have an island. The island client entry once counted as
- * site-wide and folded into site.js, which hauled Preact onto every static content page.
+ * MEM-37, MEM-48: the UI glue (`ui.js`: Preact, its hooks and signals, the code the home page, /open/
+ * and the tools share, the draft hash, the pinned-notes widget) is for pages that have an island. The island client entry
+ * once counted as site-wide and folded into site.js, which hauled Preact onto every static content page.
  */
-const ISLAND_RUNTIME = /^preact\./;
+const ISLAND_RUNTIME = /^ui\./;
+// MEM-48: the files `ui.js` replaced. One built again means a regrouping split the glue back into requests.
+const MERGED_INTO_UI = ['preact', 'preact-hooks', 'signals', 'islands-tools', 'home-tools', 'sha256'];
+// Pages that must carry `ui.js` on first paint, the proof that the merge landed where the island pages load it.
+const UI_PAGES = ['', 'redact', 'sign'];
 
 /** Dist as the pure closure functions see it: every text file, plus the list of all paths. */
 function readDist() {
@@ -237,7 +242,8 @@ const EXPECTED_LATE = ['sign-late', 'sign-vendor', 'redact-late', 'scan-late', '
 const EDITOR_TOOL_BUNDLES = ['sign-tool.js', 'redact-tool.js', 'highlight-tool.js'];
 const ENGINE = /^(?:pdf|pdf-lib)\.js$|[Ww]orker/;
 // Set to the measured counts. Budgets only go down. A page with no entry is not an island page and has 1.
-const LAZY_FILE_BUDGET = { '': 2, he: 2, sign: 5, 'he/sign': 5, redact: 4, 'highlight-pdf': 4, merge: 3, 'he/merge': 3, compress: 3, 'he/compress': 3, 'compress-image': 3, 'scan-to-pdf': 3, split: 2, unlock: 2, 'image-to-pdf': 2, 'organize-pdf': 2, 'rotate-pdf': 2, 'remove-pages': 2, 'add-page-numbers-to-pdf': 2, 'extract-pdf-pages': 2, 'pdf-to-image': 2, 'he/split': 2, 'he/image-to-pdf': 2, 'he/pdf-to-image': 2 };
+// MEM-48: signals and sha256 are in ui.js, eager, so each page lost those two.
+const LAZY_FILE_BUDGET = { '': 0, he: 0, sign: 3, 'he/sign': 3, redact: 2, 'highlight-pdf': 2, merge: 1, 'he/merge': 1, compress: 1, 'he/compress': 1, 'compress-image': 1, 'scan-to-pdf': 1, split: 0, unlock: 0, 'image-to-pdf': 0, 'organize-pdf': 0, 'rotate-pdf': 0, 'remove-pages': 0, 'add-page-numbers-to-pdf': 0, 'extract-pdf-pages': 0, 'pdf-to-image': 0, 'he/split': 0, 'he/image-to-pdf': 0, 'he/pdf-to-image': 0 };
 
 // MEM-46: tools-late was folded into tools-common and swInstallReport into site; a regrouping that builds either
 // file again undoes it (two more requests on every first visit).
@@ -248,6 +254,15 @@ for (const folded of [['tools-late', 'tools-common'], ['swInstallReport', 'site'
 // exported function is named in site.js.
 if (!fs.readFileSync(path.join(DIST, 'shared', 'site.js'), 'utf8').includes('reportSwInstallFailures')) {
   errors.push('dist/shared/site.js does not carry reportSwInstallFailures: src/site-lib/swInstallReport.ts left the site bundle (MEM-46).');
+}
+// MEM-48: one file holds the UI glue. It exists, the files it replaced do not, and the island pages load it on first paint.
+if (!built.includes('ui.js')) errors.push('No dist/shared/ui.js: the UI glue group of astro.config.mjs (MEM-48) is not built.');
+for (const name of MERGED_INTO_UI) {
+  if (built.includes(`${name}.js`)) errors.push(`dist/shared/${name}.js exists: merged into ui.js by MEM-48, a regrouping undid it.`);
+}
+for (const page of UI_PAGES) {
+  const html = view.files.get(path.posix.join(page, 'index.html'));
+  if (html !== undefined && !names(staticClosure(view, pageEntries(html))).has('ui.js')) errors.push(`/${page}/ does not load ui.js on first paint: the island pages carry the UI glue in that one file (MEM-48).`);
 }
 const lateBuilt = built.filter((file) => LATE.test(file));
 for (const name of EXPECTED_LATE) {

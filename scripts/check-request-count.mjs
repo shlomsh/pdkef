@@ -28,12 +28,15 @@ const PAGES = ['/', '/redact/', '/sign/'];
 // Set to the measured figures. Budgets only go down.
 export const BUDGETS = {
   // MEM-46 (2026-11-12): tools-late folded into tools-common and swInstallReport into site: 3 fewer requests on tool pages (43 to 40, 44 to 41: the two scripts and tools-late's stylesheet), 1 fewer after open on `/` (9 to 8).
-  '/': { firstVisit: 19, afterOpen: 8 },
+  // MEM-48 (2026-11-12): the UI glue is one file (ui.js): 5 page files become 1 (preact, hooks, islands-tools, home-tools, PinnedNotes; the island client stays its own file, owner's call), 4 fewer; after open 3 fewer: signals and sha256 sit in it, and so does the stylesheet home-tools carried (its 0.9 KB is inlined into the pages now). 19 to 15, 8 to 5.
+  '/': { firstVisit: 15, afterOpen: 5 },
   // MEM-43 (owner's decision, 2026-11-12): tool pages install on the first visit, so this rise is deliberate
   // (57 and 53). MEM-44 groups a tool's late code into a few files: 43 and 43.
-  '/redact/': { firstVisit: 40, afterOpen: 0 },
+  // MEM-48: 7 fewer: 5 page files become 1 (-4; the island client stays its own file), signals and sha256 leave the install's extras (-2), and home-tools' stylesheet is inlined (-1). 40 to 33.
+  '/redact/': { firstVisit: 33, afterOpen: 0 },
   // MEM-44: Sign's third-party late code is its own file (sign-vendor.js), so one more request (44) buys a ~11 KB re-download, not ~279 KB, when Sign's code changes. Deliberate rise, owner's balance.
-  '/sign/': { firstVisit: 41, afterOpen: 0 },
+  // MEM-48: 6 fewer: 4 page files become 1 (-3, no PinnedNotes here; the island client stays its own file), signals and sha256 leave the install's extras (-2), and home-tools' stylesheet is inlined (-1). 41 to 35.
+  '/sign/': { firstVisit: 35, afterOpen: 0 },
 };
 
 const WORKER_REQUESTS = ['/sw.js', '/precache-manifest.json'];
