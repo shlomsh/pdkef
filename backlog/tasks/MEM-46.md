@@ -35,7 +35,16 @@ safe folds only.
 
 ## Done when
 
-- [ ] Guards green: `test:lazy-modules`, `test:request-count`, `test:precache-budget`, `test:weight`,
+- [x] Guards green: `test:lazy-modules`, `test:request-count`, `test:precache-budget`, `test:weight`,
       `test:stable-names`, `test:css`, `test:csp`; pdf.js and pdf-lib still absent from every first paint.
-- [ ] Offline specs and the Chromium suite pass.
+- [x] Offline specs and the Chromium suite pass.
 - [ ] Measured live after landing: requests on a first visit to `/redact/` and `/sign/`.
+
+## Result (build, 2026-11-12)
+
+`npm run test:request-count`: `/redact/` 43 to 40, `/sign/` 44 to 41, `/` after a file is opened 9 to 8. The tool
+pages lose three requests, not two: `tools-late`'s stylesheet went with it into `tools-common`'s. Bytes a first
+visit to /redact/ downloads: 1,139 to 1,137 KB brotli. `tools-common.js` 59 to 73 KB brotli (also on `/drive/`,
+which loads it), `site.js` +0.3 KB. A second tool after Redact costs the same as before. A returning visitor
+re-downloads, once, every file whose import list changed: about 240 KB brotli for a Redact visitor. Unit suite,
+offline specs (34) and the Chromium suite pass; first-paint weight stayed inside its budgets, so no budget rose.
