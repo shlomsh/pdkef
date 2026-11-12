@@ -114,14 +114,13 @@ test('Redact: Find open and Peek held are not the armed teal fill', async ({ pag
   const toolbar = page.locator('[data-editor-toolbar]');
   // A fill transitions in, so read it once two reads 150ms apart agree.
   const fill = async (locator) => {
-    const read = () => locator.evaluate((el) => getComputedStyle(el).backgroundColor);
-    let last = await read();
-    for (let i = 0; i < 20; i += 1) {
-      await page.waitForTimeout(150);
-      const next = await read();
-      if (next === last) return next;
+    let last = null;
+    await expect.poll(async () => {
+      const next = await locator.evaluate((el) => getComputedStyle(el).backgroundColor);
+      const settled = next === last;
       last = next;
-    }
+      return settled;
+    }, { intervals: [150], timeout: 3000 }).toBe(true);
     return last;
   };
 
