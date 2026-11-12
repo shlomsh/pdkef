@@ -41,4 +41,11 @@ describe('UndoRedoButtons', () => {
     expect(buttons.map((b) => b.textContent)).toEqual(['b', 'd']);
     expect(buttons.every((b) => b.hasAttribute('data-icon-only'))).toBe(true);
   });
+
+  it('RED-73: groupStart marks Undo only, and is absent by default', () => {
+    expect(mount().buttons.some((b) => b.hasAttribute('data-group-start'))).toBe(false);
+    document.body.innerHTML = '';
+    const { buttons } = mount({ groupStart: true });
+    expect(buttons.map((b) => b.hasAttribute('data-group-start'))).toEqual([true, false]);
+  });
 });

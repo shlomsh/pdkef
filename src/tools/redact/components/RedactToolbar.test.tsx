@@ -3,6 +3,7 @@ import { act } from 'preact/test-utils';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import RedactToolbar from './RedactToolbar.tsx';
 import { FILE_ACTIONS } from '#shell/ToolShell.tsx';
+import signStyles from '#editor-ui/SignToolbar.module.css';
 // Asserts the editor toolbar button base class, a styling contract.
 
 describe('RedactToolbar returning-work status', () => {
@@ -14,7 +15,9 @@ describe('RedactToolbar returning-work status', () => {
     container = document.createElement('div');
   });
 
-  function mount({ activeStyle = null, brushMode = false, restoredNote = false, showWelcomeTip = true, undoAction = null, statusMessage }: {
+  function mount({ activeStyle = null, brushMode = false, restoredNote = false, showWelcomeTip = true, undoAction = null, statusMessage, findOpen = false, peeking = false }: {
+    findOpen?: boolean;
+    peeking?: boolean;
     activeStyle?: 'delete' | 'blackout' | 'whiteout' | 'blur' | null;
     brushMode?: boolean;
     restoredNote?: boolean;
@@ -34,6 +37,8 @@ describe('RedactToolbar returning-work status', () => {
           undoChip={{ action: undoAction }}
           elementsCount={0}
           status={{ message: statusMessage, welcomeTip: showWelcomeTip, restoredNote }}
+          find={{ open: findOpen, toggle: vi.fn() }}
+          peek={{ active: peeking, onChange: vi.fn() }}
         />,
         container,
       );
@@ -103,8 +108,42 @@ describe('RedactToolbar returning-work status', () => {
     for (const word of ['Blur', 'Blackout', 'Whiteout', 'Delete', 'Undo', 'Redo']) {
       expect(labels.some((t) => t?.includes(word))).toBe(true);
     }
-    expect(container.querySelector('[data-icon-only]')).toBeNull();
     expect(container.textContent).not.toContain('Compress');
+  });
+
+  it('RED-73: Undo and Redo are icon-only, no tool button is', () => {
+    mount();
+    const iconOnly = Array.from(container.querySelectorAll('[data-icon-only]')).map((b) => b.textContent);
+    expect(iconOnly).toEqual(['Undo', 'Redo']);
+    for (const word of ['Blur', 'Blackout', 'Whiteout', 'Delete', 'Find', 'Peek']) {
+      expect(Array.from(container.querySelectorAll('button')).some((b) => b.textContent?.includes(word))).toBe(true);
+    }
+  });
+
+  it('RED-73: the root takes the strip finish with stacked words', () => {
+    mount();
+    const root = container.querySelector('[data-editor-toolbar]')!;
+    expect(root.getAttribute('data-finish')).toBe('strip');
+    expect(root.getAttribute('data-labels')).toBe('stack');
+  });
+
+  it('RED-73: Find and Undo start a group, nothing else does; Replace is marked', () => {
+    mount();
+    const root = container.querySelector('[data-editor-toolbar]')!;
+    const starts = Array.from(root.children).filter((c) => c.hasAttribute('data-group-start')).map((c) => c.textContent?.trim());
+    expect(starts).toEqual(['Find', 'Undo']);
+    expect(container.querySelector('[data-redact-find-toggle]')!.hasAttribute('data-group-start')).toBe(true);
+    expect(container.querySelector(`button[aria-label="${FILE_ACTIONS.replace.label}"]`)!.hasAttribute('data-replace')).toBe(true);
+  });
+
+  it('RED-73: Find open and Peek held never wear the armed class', () => {
+    mount({ findOpen: true, peeking: true });
+    const find = container.querySelector<HTMLElement>('[data-redact-find-toggle]')!;
+    const peek = container.querySelector<HTMLElement>('[data-redact-peek]')!;
+    expect(find.getAttribute('aria-pressed')).toBe('true');
+    expect(peek.getAttribute('aria-pressed')).toBe('true');
+    expect(find.classList.contains(signStyles.active)).toBe(false);
+    expect(peek.classList.contains(signStyles.active)).toBe(false);
   });
 
   it('shows the island status message in the slot', () => {

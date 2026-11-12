@@ -16,6 +16,11 @@ describe('DriveSaveMenu', () => {
   beforeEach(() => { container = document.createElement('div'); document.body.append(container); save.mockReset(); });
   afterEach(() => { render(null, container); container.remove(); });
 
+  it('RED-73: the arrow carries data-drive-arrow for the strip finish', () => {
+    mount({});
+    expect(arrow()?.hasAttribute('data-drive-arrow')).toBe(true);
+  });
+
   it('renders nothing when unavailable and idle', () => {
     mount({ available: false });
     expect(container.innerHTML).toBe('');

@@ -88,6 +88,20 @@ describe('SignToolbar Component', () => {
     expect(button!.className.split(/\s+/).filter(Boolean)).toEqual([styles.button]);
   });
 
+  it('RED-73: More\'s root and Undo start a group, no other toolbar child does', () => {
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    act(() => {
+      render(<SignToolProvider><SignToolbar /></SignToolProvider>, container);
+    });
+    const root = query(container, '[data-editor-toolbar]');
+    const starts = Array.from(root.children).filter((c) => c.hasAttribute('data-group-start'));
+    expect(starts).toHaveLength(2);
+    const more = required(Array.from(root.children).find((c) => c.classList.contains(styles.dropdown) && c.textContent?.includes('More')), 'More root');
+    expect(starts[0]).toBe(more);
+    expect(starts[1]).toBe(findExactButton(root, 'Undo'));
+  });
+
   it('the Mark button draws the mark the next placement will use', () => {
     container = document.createElement('div');
     document.body.appendChild(container);
