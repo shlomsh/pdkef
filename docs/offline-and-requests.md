@@ -30,6 +30,14 @@ The site is on Vercel's Hobby plan: 1,000,000 CDN requests per rolling 30 days, 
 that is exceeded. There is no monthly reset: each day the day from 30 days ago drops out and today is added.
 On 2026-11-12 the count was 774,836, about 93% of it PDkef.
 
+| Read on | Window | 30-day total | Newest whole day | Days about to drop out |
+| --- | --- | --- | --- | --- |
+| 2026-11-12 | Oct 13 to Nov 12, 3am | 775,714 | Nov 11: 32,395 (Nov 10: 32,758, Nov 9: 29,401) | Oct 13: 7,836, Oct 14: 20,140, Oct 15: 21,667, Oct 16: 9,847 |
+
+Not yet turning down: the days leaving the window are smaller than the days entering it, so the total rises
+until a day costs less than the one it replaces. MEM-43/44 landed on 2026-11-12, so Nov 11 is before them.
+Read it the same way (Usage, CDN Requests, Last 30 Days, hover a bar for its day) and add a row.
+
 The bill is per request, not per byte. That is why this work counts files, and why a 300 KB file and a 26
 byte file cost the same.
 
@@ -212,17 +220,26 @@ Each of these cost hours on 2026-11-11 and 12.
   truthy. Poll with `expect.poll(() => page.evaluate(...))`.
 - **A guard that models the build can drift from what is billed.** Re-measure live after every landing.
 
+## Owner decisions on the airplane lines (2026-11-12)
+
+- **The home page installs nothing on a first visit, and stays that way.** A first visit to the home page
+  carries no intent to use a tool: people who want a tool search for it or go to it directly, and the home
+  page is a hub and an introduction. So its line "Turn on airplane mode and give it a try right now." having
+  no worker behind it on a first visit is accepted, not a gap.
+- **The airplane line on a tool page is true by the time anyone reads it.** The install finishes about 2 s
+  after arrival (measured live), and the line sits far enough down that a person scrolling to it gets there
+  later; most never scroll to it. Not a gap either.
+
 ## Still open
+
 
 - The four merges above.
 - MEM-45: see real-visitor performance without spending requests on it; one usage ping, not two.
 - MEM-44's "Still open" list: no allowance for slow or metered connections on the first-visit install; the
-  airplane line is untrue for the first seconds, until the install finishes, and going offline in that window
-  shows an error that blames the file; the offline test opens a file but does not export.
+  going offline in the seconds before the install finishes shows an error that blames the file; the offline
+  test opens a file but does not export.
 - MEM-41: guards that could pass on a half-working build.
 - MEM-40: a completion pass can still bring the home page in.
 - QUAL-55: a tab that finishes loading just after the worker takes control stays outside it until its next
   navigation.
-- The home page's own line, "Turn on airplane mode and give it a try right now.", has no worker behind it on
-  a first visit.
 - Re-read this file and the decision table in [request-budget.md](./request-budget.md) on 2026-12-11.
