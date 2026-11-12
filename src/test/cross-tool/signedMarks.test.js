@@ -25,7 +25,7 @@ const tick = { id: 's', type: 'symbol', pageIndex: 0, left: 20, top: 20, width: 
 const signature = { id: 'g', type: 'signature', pageIndex: 0, left: 40, top: 40, width: 20, height: 8, dataUrl: PNG };
 
 describe('what Sign bakes is one mark each (RED-55)', () => {
-  it('reports a check symbol as exactly one mark covering the tick', async () => {
+  it('reports a check mark as exactly one mark covering the tick', async () => {
     const { objects } = extractPageObjects(await pageOf(await signPdf(await sourcePdf(), [tick])), 0);
     expect(objects.map((o) => o.kind)).toEqual(['mark']);
     // 8% of 400pt wide, left at 20%: the tick's ink lies inside that box, top 20% of 500pt down.
@@ -37,7 +37,7 @@ describe('what Sign bakes is one mark each (RED-55)', () => {
     expect(bbox.height).toBeGreaterThan(5);
   });
 
-  it('gives a symbol and a signature one mark each and no separate image unit', async () => {
+  it('gives a mark and a signature one mark each and no separate image unit', async () => {
     const { objects } = extractPageObjects(await pageOf(await signPdf(await sourcePdf(), [tick, signature])), 0);
     expect(objects.map((o) => o.kind)).toEqual(['mark', 'mark']);
   });

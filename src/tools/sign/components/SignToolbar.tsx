@@ -495,7 +495,7 @@ export default function SignToolbar({
             </button>
           </ArmHint>
 
-          <ArmHint tool="symbol" label={t.symbolsButton} action={TOOL_COPY.symbol.action} locked={selectedTool === 'symbol' && toolLocked} autoShowTool={autoShowTool} hintTemplate={t.armHint} touchHintTemplate={t.armHintTouch}>
+          <ArmHint tool="symbol" label={t.markButton} action={TOOL_COPY.symbol.action} locked={selectedTool === 'symbol' && toolLocked} autoShowTool={autoShowTool} hintTemplate={t.armHint} touchHintTemplate={t.armHintTouch}>
             <button
               type="button"
               {...toolButtonProps(selectedTool === 'symbol', toolLocked)}
@@ -503,7 +503,7 @@ export default function SignToolbar({
               aria-pressed={selectedTool === 'symbol'}
             >
               <MarkIcon mark={nextMark} size={18} strokeWidth={2.5} />
-              <span className={styles.label}>{t.symbolsButton}</span>
+              <span className={styles.label}>{t.markButton}</span>
             </button>
           </ArmHint>
 

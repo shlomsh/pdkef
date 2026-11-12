@@ -15,7 +15,7 @@
 // truth instead of a second copy living in the model layer.
 import type { DocumentStyle } from '#editor/model/documentStyle.ts';
 import { DEFAULT_HIGHLIGHT_COLOR } from '#editor/model/highlightColors.ts';
-import type { EditorElement, SymbolMark, TextAlign, TextDirection } from '#editor/model/editorModel.ts';
+import type { EditorElement, MarkGlyph, TextAlign, TextDirection } from '#editor/model/editorModel.ts';
 
 /** The creation-default fields for a freshly placed element, keyed by the
  * element-model field name each one lands on (not by `DocumentStyle`'s own
@@ -35,7 +35,7 @@ export interface ElementCreationDefaults {
    * defaults for the caller that is about to prefill a date box; an ordinary
    * text placement simply never reads it. */
   dateFormatId?: string;
-  mark?: SymbolMark;
+  mark?: MarkGlyph;
   width?: number;
   strokeWidth?: number;
 }

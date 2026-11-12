@@ -104,7 +104,7 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
   const preparedExportRef = useRef<SignedExport | null>(null);
 
   // Every setting a person chooses while filling (colour, font, size,
-  // direction, alignment, bold, italic, date format, symbol mark and size,
+  // direction, alignment, bold, italic, date format, mark and size,
   // line thickness, whiteout colour, signature width) is this document's
   // carried style (SIGN-33): `carried` in the SignTool reducer, round-tripped
   // through the draft's `extra.carried`, never a browser-wide preference.

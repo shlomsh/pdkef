@@ -8,7 +8,7 @@ import { lineDefinition } from './line.ts';
 import { rectangleDefinition } from './rectangle.ts';
 import { signatureDefinition } from './signature.ts';
 import { blurStrokeDefinition, whiteoutStrokeDefinition } from './stroke.ts';
-import { symbolDefinition } from './symbol.ts';
+import { markDefinition } from './mark.ts';
 import { textDefinition } from './text.ts';
 import type { ElementDefinition, ElementForType } from './types.ts';
 import { whiteoutDefinition } from './whiteout.ts';
@@ -17,7 +17,7 @@ export type { BoxResizeInput, BoxResizePatch, CenteredResizeInput, CenteredResiz
 
 const definitions: { [K in ElementType]: ElementDefinition<ElementForType<K>> } = {
   text: textDefinition, rectangle: rectangleDefinition, ellipse: ellipseDefinition,
-  line: lineDefinition, symbol: symbolDefinition, signature: signatureDefinition, whiteout: whiteoutDefinition,
+  line: lineDefinition, symbol: markDefinition, signature: signatureDefinition, whiteout: whiteoutDefinition,
   blackout: blackoutDefinition, blur: blurDefinition,
   blurStroke: blurStrokeDefinition, whiteoutStroke: whiteoutStrokeDefinition, highlight: highlightDefinition, comment: commentDefinition,
 };

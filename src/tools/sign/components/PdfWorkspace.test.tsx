@@ -10,7 +10,7 @@ import { samplePageColor } from '../lib/whiteoutPageColor.ts';
 import { createPageGeometry } from '#editor/geometry/coords.ts';
 import { turnGeometry } from '#editor/geometry/pageTurn.ts';
 import { topKeepingInkCentre } from '../lib/combPlacement.ts';
-import type { RectangleElement, SymbolElement, TextElement } from '#editor/model/editorModel.ts';
+import type { RectangleElement, MarkElement, TextElement } from '#editor/model/editorModel.ts';
 import { SignToolContext, reducer, useSignTool, type SignToolAction, type SignToolState } from './SignToolContext.tsx';
 import { useTurnedPages } from '../hooks/useTurnedPages.ts';
 import { englishSignMessages } from '../messages';
@@ -32,7 +32,7 @@ function textElement(id: string, overrides: Partial<TextElement> = {}): TextElem
   return { id, type: 'text', pageIndex: 0, left: 0, top: 0, text: '', ...overrides };
 }
 
-function symbolElement(id: string, overrides: Partial<SymbolElement> = {}): SymbolElement {
+function markElement(id: string, overrides: Partial<MarkElement> = {}): MarkElement {
   return { id, type: 'symbol', pageIndex: 0, left: 0, top: 0, width: 5, height: 5, ...overrides };
 }
 
@@ -384,29 +384,29 @@ describe('PdfWorkspace Component', () => {
     expect(move.defaultPrevented).toBe(true);
   });
 
-  it('renders a selected symbol with its chosen mark and color in the editor', () => {
+  it('renders a selected mark with its chosen mark and color in the editor', () => {
     const dispatch = vi.fn<(action: SignToolAction) => void>();
     const state = testState({
-      elements: [symbolElement('symbol-1', { left: 20, top: 20, width: 8, height: 6, mark: 'x', color: '#000000' })],
+      elements: [markElement('symbol-1', { left: 20, top: 20, width: 8, height: 6, mark: 'x', color: '#000000' })],
       activeElementId: 'symbol-1',
     });
 
     host = mountWorkspace({ state, dispatch });
 
-    const symbol = required(host.querySelector('[data-editor-element]'), 'symbol element');
-    const colorHost = required(symbol.querySelector<HTMLElement>('div[style*="color"]'), 'symbol color host');
-    // The cross's editor path now matches the exporter's (symbolMarks.ts).
-    const path = symbol.querySelector('path[d*="M4 4L20 20"]');
+    const markEl = required(host.querySelector('[data-editor-element]'), 'mark element');
+    const colorHost = required(markEl.querySelector<HTMLElement>('div[style*="color"]'), 'mark color host');
+    // The cross's editor path now matches the exporter's (markGlyphs.ts).
+    const path = markEl.querySelector('path[d*="M4 4L20 20"]');
 
-    expect(symbol.hasAttribute('data-editor-active')).toBe(true);
+    expect(markEl.hasAttribute('data-editor-active')).toBe(true);
     expect(colorHost.style.color).toBe('rgb(0, 0, 0)');
     expect(path).not.toBeNull();
   });
 
-  it('remembers a resized symbol size for the next placed symbol', () => {
+  it('remembers a resized mark size for the next placed mark', () => {
     const dispatch = vi.fn<(action: SignToolAction) => void>();
     const state = testState({
-      elements: [symbolElement('symbol-1', { left: 20, top: 20, mark: 'check', color: '#000000' })],
+      elements: [markElement('symbol-1', { left: 20, top: 20, mark: 'check', color: '#000000' })],
       activeElementId: 'symbol-1',
     });
 
@@ -428,14 +428,14 @@ describe('PdfWorkspace Component', () => {
       window.dispatchEvent(new MouseEvent('mouseup', { bubbles: true, clientX: 400, clientY: 300 }));
     });
 
-    // Bug: a resized symbol must set the size for the next one placed, so
+    // Bug: a resized mark must set the size for the next one placed, so
     // repeated check marks don't each need re-sizing by hand.
     expect(dispatch).toHaveBeenCalledWith({ type: 'SET_CARRIED', payload: expect.objectContaining({ symbolWidth: 15 }) });
   });
 
-  it('remembers a switched symbol mark for the next placed symbol', () => {
+  it('remembers a switched mark for the next placed mark', () => {
     const dispatch = vi.fn<(action: SignToolAction) => void>();
-    const state = testState({ elements: [symbolElement('symbol-1', { left: 20, top: 20, mark: 'check', color: '#000000' })], activeElementId: 'symbol-1' });
+    const state = testState({ elements: [markElement('symbol-1', { left: 20, top: 20, mark: 'check', color: '#000000' })], activeElementId: 'symbol-1' });
 
     host = mountWorkspace({ state, dispatch });
 
@@ -445,12 +445,12 @@ describe('PdfWorkspace Component', () => {
       xButton.dispatchEvent(new MouseEvent('click', { bubbles: true }));
     });
 
-    // Bug: switching a placed symbol from check to X must set the mark for the
+    // Bug: switching a placed mark from check to X must set the mark for the
     // next one placed, so it doesn't silently reset to check.
     expect(dispatch).toHaveBeenCalledWith({ type: 'SET_CARRIED', payload: expect.objectContaining({ symbolMark: 'x' }) });
   });
 
-  it('places a new symbol with the last remembered mark, not always a check mark', () => {
+  it('places a new mark with the last remembered mark, not always a check mark', () => {
     const dispatch = vi.fn<(action: SignToolAction) => void>();
     const state = testState({ selectedTool: 'symbol', carried: { symbolMark: 'x' } });
 

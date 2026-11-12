@@ -6,7 +6,7 @@ import { getEffectiveTextDirection } from '#editor/text/textDirection.js';
 import {
   DEFAULT_START_WIDTH_PCT,
   DEFAULT_FONT_SIZE_PT,
-  ASPECT_RATIO_SYMBOL,
+  ASPECT_RATIO_MARK,
   ASPECT_RATIO_TEXT,
   MIN_COMB_WIDTH_PCT
 } from '#editor/model/signGeometry.js';
@@ -116,7 +116,7 @@ export default function useElementResize({
     const startY1 = element.y1;
     const startX2 = element.x2;
     const startY2 = element.y2;
-    const defaultRatio = element.type === 'symbol' ? ASPECT_RATIO_SYMBOL : ASPECT_RATIO_TEXT;
+    const defaultRatio = element.type === 'symbol' ? ASPECT_RATIO_MARK : ASPECT_RATIO_TEXT;
     const ratioAtStart = element.aspectRatio || defaultRatio;
     const startHeight = element.height || getWidthPercentToHeightPercent(startWidth, ratioAtStart, pageWrapper);
     // Fixed for the gesture's whole duration, same as isWidthHandle below.

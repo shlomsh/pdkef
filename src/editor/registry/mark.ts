@@ -1,27 +1,27 @@
-import { MAX_SYMBOL_WIDTH_PCT, MIN_SYMBOL_WIDTH_PX } from '../model/signGeometry.js';
+import { MAX_MARK_WIDTH_PCT, MIN_MARK_WIDTH_PX } from '../model/signGeometry.js';
 import { LINE_CAP_ROUND, rgb } from '#lib/pdf/pdfLiterals.ts';
 import { hasBoxGeometry, hasNumber, hasString, isRecord } from './schema.ts';
 import { hexToRgbFractions } from '../text/imageTint.js';
 import { percentToPoints } from '../geometry/coords.js';
 import type { CenteredResizeInput, CenteredResizePatch, ElementDefinition } from './types.ts';
-import type { SymbolElement, SymbolMark } from '../model/editorModel.ts';
-import { DESIGN_BOX, markGeometry, markInkExtent } from './symbolMarks.ts';
+import type { MarkElement, MarkGlyph } from '../model/editorModel.ts';
+import { DESIGN_BOX, markGeometry, markInkExtent } from './markGlyphs.ts';
 
 /** @testSeam */
-export function applySymbolResize({ deltaWidth, minWidth, aspectRatio, page, start }: CenteredResizeInput): CenteredResizePatch {
-  // The floor is meant to stop a resize shrinking a symbol past a legible
-  // size, not to grow one - but `placeSymbolOnRegion` fits a symbol to a
+export function applyMarkResize({ deltaWidth, minWidth, aspectRatio, page, start }: CenteredResizeInput): CenteredResizePatch {
+  // The floor is meant to stop a resize shrinking a mark past a legible
+  // size, not to grow one - but `placeMarkOnRegion` fits a mark to a
   // detected printed checkbox exactly, and that box is routinely smaller
   // than this floor (a real one measured 4.28px). Clamping to `minWidth`
   // outright made the very first pixel of any resize gesture snap such a
-  // symbol up to the floor - reported live on income tax form 101, where a
+  // mark up to the floor - reported live on income tax form 101, where a
   // checkbox sized to its tiny printed square jumped to ~14px and no longer
   // fit the box the moment its handle was touched. A floor already below the
-  // symbol's own committed size is never raised - it holds the symbol at
+  // mark's own committed size is never raised - it holds the mark at
   // that size instead, so the gesture still has a floor to bound growth
-  // against, just not one that jumps the symbol on its very first pixel.
+  // against, just not one that jumps the mark on its very first pixel.
   const effectiveMinWidth = Math.min(minWidth, start.width);
-  const width = Math.max(effectiveMinWidth, Math.min(MAX_SYMBOL_WIDTH_PCT, start.width + deltaWidth));
+  const width = Math.max(effectiveMinWidth, Math.min(MAX_MARK_WIDTH_PCT, start.width + deltaWidth));
   const height = width * aspectRatio * (page.width / page.height);
   return {
     width,
@@ -32,7 +32,7 @@ export function applySymbolResize({ deltaWidth, minWidth, aspectRatio, page, sta
 }
 
 /**
- * A symbol sized and placed so its *ink* fills a detected checkbox.
+ * A mark sized and placed so its *ink* fills a detected checkbox.
  *
  * The size question a person otherwise answers by placing a mark and dragging
  * it until it looks right is answered by the paper. Two things make this more
@@ -47,9 +47,9 @@ export function applySymbolResize({ deltaWidth, minWidth, aspectRatio, page, sta
  * The mark scales uniformly, by whichever axis runs out first, so a check
  * (naturally wider than it is tall) is never stretched square to fill one.
  */
-export function placeSymbolOnRegion(
+export function placeMarkOnRegion(
   region: { left: number; top: number; width: number; height: number },
-  mark: SymbolMark | undefined,
+  mark: MarkGlyph | undefined,
   { pageWidthPoints, pageHeightPoints }: { pageWidthPoints: number; pageHeightPoints: number },
 ): { left: number; top: number; width: number; height: number } {
   const ink = markInkExtent(mark);
@@ -69,15 +69,15 @@ export function placeSymbolOnRegion(
   };
 }
 
-export const symbolDefinition: ElementDefinition<SymbolElement> = {
+export const markDefinition: ElementDefinition<MarkElement> = {
   type: 'symbol',
-  schema: (value): value is SymbolElement => isRecord(value) && value.type === 'symbol' && hasString(value, 'id')
+  schema: (value): value is MarkElement => isRecord(value) && value.type === 'symbol' && hasString(value, 'id')
     && hasNumber(value, 'pageIndex') && hasBoxGeometry(value),
   creation: {
     mode: 'point',
-    create: ({ id, pageIndex, point, color, symbolWidth = 0, symbolHeight = 0, symbolMark = 'check' }) => ({
-      id, type: 'symbol', pageIndex, left: point.left - symbolWidth / 2, top: point.top - symbolHeight / 2,
-      width: symbolWidth, height: symbolHeight, mark: symbolMark, color,
+    create: ({ id, pageIndex, point, color, markWidth = 0, markHeight = 0, markGlyph = 'check' }) => ({
+      id, type: 'symbol', pageIndex, left: point.left - markWidth / 2, top: point.top - markHeight / 2,
+      width: markWidth, height: markHeight, mark: markGlyph, color,
     }),
   },
   serialize: (element, { page, pdfWidth, pdfHeight, pdfX, pdfY }) => {
@@ -85,7 +85,7 @@ export const symbolDefinition: ElementDefinition<SymbolElement> = {
     const widthPoints = percentToPoints(width, pdfWidth);
     const heightPoints = percentToPoints(height, pdfHeight);
     const { r, g, b } = hexToRgbFractions(color, '#1463ff');
-    const symbolColor = rgb(r, g, b);
+    const markColor = rgb(r, g, b);
     // Design units to page points. y counts downwards in the design box, which
     // is why it is subtracted from pdfY.
     const at = (x: number, y: number) => ({
@@ -101,7 +101,7 @@ export const symbolDefinition: ElementDefinition<SymbolElement> = {
         y: center.y,
         xScale: widthPoints * (radius / DESIGN_BOX),
         yScale: heightPoints * (radius / DESIGN_BOX),
-        color: symbolColor,
+        color: markColor,
         borderWidth: 0,
       });
       return;
@@ -113,12 +113,12 @@ export const symbolDefinition: ElementDefinition<SymbolElement> = {
           start: at(line[i - 1][0], line[i - 1][1]),
           end: at(line[i][0], line[i][1]),
           thickness,
-          color: symbolColor,
+          color: markColor,
           lineCap: LINE_CAP_ROUND,
         });
       }
     }
   },
-  view: { isSymbol: true },
-  resizeBehavior: { handles: ['top-left', 'top-right', 'bottom-left', 'bottom-right'], applyCenteredResize: applySymbolResize, minimumWidth: { unit: 'pixels', value: MIN_SYMBOL_WIDTH_PX } },
+  view: { isMark: true },
+  resizeBehavior: { handles: ['top-left', 'top-right', 'bottom-left', 'bottom-right'], applyCenteredResize: applyMarkResize, minimumWidth: { unit: 'pixels', value: MIN_MARK_WIDTH_PX } },
 };

@@ -12,7 +12,7 @@ import { makePdfBuffer } from '../../../../e2e/support/pdf.js';
  * document is its own, and going back to a document, through recents or after a
  * reload, brings its own settings back. SIGN-35 is the refinement on top: the
  * same explicit choice ALSO becomes the app-wide default for a new document's
- * unset keys (colour, alignment, bold, italic, date format, symbol mark and
+ * unset keys (colour, alignment, bold, italic, date format, mark and
  * size, line thickness, whiteout colour, signature width, and a font only when
  * picked from the font menu), resolved document -> app-wide -> shipped default.
  * Only the direction never goes app-wide; it stays document-only.
@@ -174,7 +174,7 @@ async function addDateAt(page, xRatio, yRatio) {
   return element;
 }
 
-async function addSymbolAt(page, xRatio, yRatio) {
+async function addMarkAt(page, xRatio, yRatio) {
   await armTool(page, 'Mark');
   await clickOverlayAt(page, xRatio, yRatio);
   const element = activeElement(page);
@@ -281,10 +281,10 @@ test('every setting a person chooses is remembered per document, and going back 
   await cycleDateFormat(dateA, 2); // locale -> iso -> dmy
   expect(await currentDateText(dateA)).toBe(dmy);
 
-  const symbolA = await addSymbolAt(page, 0.78, 0.2);
-  await expect(symbolA.getByTitle('Check mark', { exact: true })).toHaveClass(/active/);
-  await symbolA.getByTitle('X mark', { exact: true }).click();
-  await expect(symbolA.getByTitle('X mark', { exact: true })).toHaveClass(/active/);
+  const markA = await addMarkAt(page, 0.78, 0.2);
+  await expect(markA.getByTitle('Check mark', { exact: true })).toHaveClass(/active/);
+  await markA.getByTitle('X mark', { exact: true }).click();
+  await expect(markA.getByTitle('X mark', { exact: true })).toHaveClass(/active/);
   // The toolbar's Mark button now draws the mark the next placement will use.
   await expect(page.getByRole('toolbar', { name: 'PDF annotations' }).getByRole('button', { name: 'Mark', exact: true }).locator('svg[data-mark]')).toHaveAttribute('data-mark', 'x');
 
@@ -356,8 +356,8 @@ test('every setting a person chooses is remembered per document, and going back 
   const dateA2 = await addDateAt(page, 0.78, 0.5);
   expect(await currentDateText(dateA2)).toBe(dmy);
 
-  const symbolA2 = await addSymbolAt(page, 0.78, 0.58);
-  await expect(symbolA2.getByTitle('X mark', { exact: true })).toHaveClass(/active/);
+  const markA2 = await addMarkAt(page, 0.78, 0.58);
+  await expect(markA2.getByTitle('X mark', { exact: true })).toHaveClass(/active/);
 
 
   await openRecent(page, 'sign-doc-b.pdf');

@@ -4,7 +4,7 @@ import type { DocumentStyle } from '#editor/model/documentStyle.ts';
 
 // Mirrors today's constants.js/SignDefaultsContext fallbacks (DEFAULT_FONT_FAMILY,
 // DEFAULT_FONT_SIZE_PT, DEFAULT_COLOR_BLUE, DEFAULT_STROKE_WIDTH,
-// DEFAULT_SYMBOL_WIDTH_PCT, DEFAULT_START_WIDTH_PCT, DEFAULT_WHITEOUT_COLOR,
+// DEFAULT_MARK_WIDTH_PCT, DEFAULT_START_WIDTH_PCT, DEFAULT_WHITEOUT_COLOR,
 // the 'locale'/'check' initial values useWorkspaceGestures.ts defaults to) -
 // this file cannot import src/editor/model/signGeometry.js itself
 // (test:editor-dependency-directions), so the values are copied once, here,
@@ -83,7 +83,7 @@ describe('elementDefaultsFor', () => {
     });
   });
 
-  it('symbol: {} returns today\'s defaults exactly', () => {
+  it('mark: {} returns today\'s defaults exactly', () => {
     expect(elementDefaultsFor({}, 'symbol', DEFAULTS)).toEqual({
       mark: 'check',
       width: 5,
@@ -91,7 +91,7 @@ describe('elementDefaultsFor', () => {
     });
   });
 
-  it('symbol: carried keys override', () => {
+  it('mark: carried keys override', () => {
     const carried: Partial<DocumentStyle> = { symbolMark: 'dot', symbolWidth: 8, color: '#ff0000' };
     expect(elementDefaultsFor(carried, 'symbol', DEFAULTS)).toEqual({
       mark: 'dot',
@@ -100,7 +100,7 @@ describe('elementDefaultsFor', () => {
     });
   });
 
-  it('symbol: unrelated carried keys are ignored', () => {
+  it('mark: unrelated carried keys are ignored', () => {
     const carried: Partial<DocumentStyle> = { fontSize: 30, whiteoutColor: '#000000', signatureWidth: 40 };
     expect(elementDefaultsFor(carried, 'symbol', DEFAULTS)).toEqual({
       mark: 'check',

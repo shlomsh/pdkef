@@ -75,7 +75,7 @@ export interface HeroDemoMessages {
   signDateLabel: string;
   signDateValue: string;
   signToolChipText: string;
-  signToolChipSymbols: string;
+  signToolChipMark: string;
   signToolChipSign: string;
   signToolChipShare: string;
   /** The share sheet's file row, once signed. */
@@ -174,7 +174,7 @@ export const englishHeroDemoMessages: HeroDemoMessages = {
   signDateLabel: 'Date',
   signDateValue: '05/14',
   signToolChipText: 'Text',
-  signToolChipSymbols: 'Mark',
+  signToolChipMark: 'Mark',
   signToolChipSign: 'Sign',
   signToolChipShare: 'Share',
   signFileSizeSigned: 'Signed - 248 KB',
@@ -273,7 +273,7 @@ export const hebrewHeroDemoMessages: HeroDemoMessages = {
   signDateLabel: 'תאריך',
   signDateValue: '14/05',
   signToolChipText: 'טקסט',
-  signToolChipSymbols: 'סימון',
+  signToolChipMark: 'סימון',
   signToolChipSign: 'חתימה',
   signToolChipShare: 'שיתוף',
   signFileSizeSigned: 'חתום - 248 ק״ב',

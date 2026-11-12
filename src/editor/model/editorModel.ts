@@ -7,7 +7,7 @@ import type { BlurStrength } from './blurStrength.ts';
 // the plain objects the editors already produce and consume.
 //
 // Field shapes are read from reality, not invented:
-//   - creation:  src/tools/sign/hooks/useWorkspaceGestures.ts (text/symbol/line/shape/whiteout
+//   - creation:  src/tools/sign/hooks/useWorkspaceGestures.ts (text/mark/line/shape/whiteout
 //                factories) and PdfSignTool.tsx `placeSignatureAt` (signature).
 //   - rendering: Sign's node components (passed to registry/renderers.ts's
 //                createElementRenderers; see its own header comment).
@@ -28,6 +28,7 @@ export type ElementType =
   | 'rectangle'
   | 'ellipse'
   | 'line'
+  // Stored name: drafts and app style keep 'symbol' so a draft from any version still loads (SIGN-50).
   | 'symbol'
   | 'signature'
   | 'whiteout'
@@ -50,8 +51,8 @@ export type SignToolType = Exclude<ElementType, 'blackout' | 'blur' | 'blurStrok
 /** Tool identifiers exposed by the destructive Redact workspace. */
 export type RedactToolType = 'delete' | 'blackout' | 'blur' | 'whiteout';
 
-/** Symbol glyphs (SymbolNode.tsx). `symbolType` is a legacy alias still tolerated. */
-export type SymbolMark = 'check' | 'x' | 'dot';
+/** Mark glyphs (MarkNode.tsx). `symbolType` is a legacy alias still tolerated. */
+export type MarkGlyph = 'check' | 'x' | 'dot';
 
 /** Text flow direction; `null`/absent means "auto-detect from content" (sign.js). */
 export type TextDirection = 'ltr' | 'rtl';
@@ -220,11 +221,11 @@ export interface LineElement extends ElementBase {
 }
 
 /** A check / cross / dot glyph placed as a square-ish box. */
-export interface SymbolElement extends ElementBase, BoxGeometry {
+export interface MarkElement extends ElementBase, BoxGeometry {
   type: 'symbol';
   /** Preferred glyph field. */
-  mark?: SymbolMark;
-  /** Legacy glyph field still read by SymbolNode.tsx (`cross` -> `x`). */
+  mark?: MarkGlyph;
+  /** Legacy glyph field still read by MarkNode.tsx (`cross` -> `x`). */
   symbolType?: string;
   aspectRatio?: number;
 }
@@ -287,7 +288,7 @@ export type EditorElement =
   | RectangleElement
   | EllipseElement
   | LineElement
-  | SymbolElement
+  | MarkElement
   | SignatureElement
   | WhiteoutElement
   | BlackoutElement

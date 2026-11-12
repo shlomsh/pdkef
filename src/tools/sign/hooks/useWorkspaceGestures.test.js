@@ -13,7 +13,7 @@
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import useWorkspaceGestures from './useWorkspaceGestures.js';
-import { DEFAULT_SYMBOL_WIDTH_PCT } from '#editor/model/signGeometry.js';
+import { DEFAULT_MARK_WIDTH_PCT } from '#editor/model/signGeometry.js';
 import { formatDate, toIsoDateString } from '#editor/text/dateFormat.ts';
 import { startGesture } from '#lib/gestures/controller.ts';
 import { samplePageColor } from '../lib/whiteoutPageColor.ts';
@@ -242,13 +242,13 @@ describe('useWorkspaceGestures – text element remembered settings', () => {
 });
 
 // ---------------------------------------------------------------------------
-// Symbol element — click-placement
+// Mark element — click-placement
 // ---------------------------------------------------------------------------
 
-describe('useWorkspaceGestures – symbol remembered settings', () => {
+describe('useWorkspaceGestures – mark remembered settings', () => {
   const overlay = makeOverlay();
 
-  it('applies the current remembered color and default check mark to new symbols', () => {
+  it('applies the current remembered color and default check mark to new marks', () => {
     const { dispatch, handlePageClick } = makeHook({
       selectedTool: 'symbol',
       initialColor: '#111111',
@@ -261,10 +261,10 @@ describe('useWorkspaceGestures – symbol remembered settings', () => {
     });
   });
 
-  it('sizes a new symbol from the last remembered symbol width, centered on the click', () => {
+  it('sizes a new mark from the last remembered mark width, centered on the click', () => {
     const { dispatch, handlePageClick } = makeHook({
       selectedTool: 'symbol',
-      initialSymbolWidth: 12,
+      initialMarkWidth: 12,
     });
     handlePageClick(makeClickEvent(500, 500, overlay), 0);
     const el = firstAddElement(dispatch);
@@ -275,16 +275,16 @@ describe('useWorkspaceGestures – symbol remembered settings', () => {
     expect(el.top).toBeCloseTo(50 - 6, 5);
   });
 
-  it('falls back to the default symbol width when nothing has been remembered yet', () => {
+  it('falls back to the default mark width when nothing has been remembered yet', () => {
     const { dispatch, handlePageClick } = makeHook({ selectedTool: 'symbol' });
     handlePageClick(makeClickEvent(500, 500, overlay), 0);
-    expect(firstAddElement(dispatch).width).toBe(DEFAULT_SYMBOL_WIDTH_PCT);
+    expect(firstAddElement(dispatch).width).toBe(DEFAULT_MARK_WIDTH_PCT);
   });
 
-  it('applies the last remembered mark to a new symbol, not always a check mark', () => {
+  it('applies the last remembered mark to a new mark, not always a check mark', () => {
     const { dispatch, handlePageClick } = makeHook({
       selectedTool: 'symbol',
-      initialSymbolMark: 'x',
+      initialMarkGlyph: 'x',
     });
     handlePageClick(makeClickEvent(500, 500, overlay), 0);
     expect(firstAddElement(dispatch)).toMatchObject({ type: 'symbol', mark: 'x' });
@@ -322,7 +322,7 @@ describe('useWorkspaceGestures – symbol remembered settings', () => {
 
   // Fill mode (SNG-15): nothing armed, a tap on a detected box runs this same
   // path through toolOverride, at the box's centre.
-  it('places a mark in an empty detected box through the symbol override with nothing armed', () => {
+  it('places a mark in an empty detected box through the mark override with nothing armed', () => {
     const checkbox = { pageIndex: 0, left: 49, top: 49, width: 2, height: 2 };
     const { dispatch, handlePageClick } = makeHook({
       selectedTool: null,
@@ -531,13 +531,13 @@ describe('useWorkspaceGestures – detected free-text cell snapping', () => {
     expect(firstAddElement(dispatch).left).toBeCloseTo(50, 5);
   });
 
-  it('ignores a detected cell while the symbol tool is armed', () => {
+  it('ignores a detected cell while the mark tool is armed', () => {
     const { dispatch, handlePageClick } = makeHook({
       selectedTool: 'symbol',
       formRegions: { combs: [], checkboxes: [], cells: [nameCell] },
     });
     handlePageClick(makeClickEvent(500, 500, overlay), 0);
-    // Not snapped to the cell's left edge (44): the symbol tool has its own
+    // Not snapped to the cell's left edge (44): the mark tool has its own
     // region (formRegions.checkboxes), and a detected free-text cell is never
     // a match for it.
     expect(firstAddElement(dispatch).left).not.toBeCloseTo(nameCell.left, 5);
@@ -890,7 +890,7 @@ describe('useWorkspaceGestures – carried font/size (SIGN-32)', () => {
     expect(dispatch.mock.calls.some(([action]) => action.type === 'SET_CARRIED' && 'fontSize' in action.payload)).toBe(false);
   });
 
-  it('never seeds the carried font/size from a symbol placement', () => {
+  it('never seeds the carried font/size from a mark placement', () => {
     const { dispatch, handlePageClick } = makeHook({ selectedTool: 'symbol' });
     handlePageClick(makeClickEvent(500, 500, overlay), 0);
     expect(dispatch.mock.calls.some(([action]) => action.type === 'SET_CARRIED')).toBe(false);

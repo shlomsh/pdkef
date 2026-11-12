@@ -205,7 +205,7 @@ describe('useFillTap', () => {
     expect(delegate).toHaveBeenCalledWith(event, 0, undefined, undefined);
   });
 
-  it('a tap on an existing element still toggles a box in reach: nothing armed, symbol tool', () => {
+  it('a tap on an existing element still toggles a box in reach: nothing armed, mark tool', () => {
     const { handlers, overlay, delegate } = setup({ tool: 'none', targetsOf: () => [target('box', 'box:1')] });
     const element = document.createElement('div');
     element.setAttribute('data-editor-element', '');
@@ -298,7 +298,7 @@ describe('useFillTap', () => {
     expect(delegate).toHaveBeenCalledTimes(1);
   });
 
-  it("forwards the decision's tool to delegate: nothing armed, a tick box in reach, runs as the symbol tool", () => {
+  it("forwards the decision's tool to delegate: nothing armed, a tick box in reach, runs as the mark tool", () => {
     const { handlers, overlay, delegate } = setup({ tool: 'none', targetsOf: () => [target('box', 'box:1')] });
 
     const event = mouseEvent(overlay, overlay, 500, 500);

@@ -9,7 +9,7 @@ import TextNode from './nodes/TextNode.tsx';
 import ShapeNode from './nodes/ShapeNode.tsx';
 import LineNode from './nodes/LineNode.tsx';
 import SignatureNode from './nodes/SignatureNode.tsx';
-import SymbolNode from './nodes/SymbolNode.tsx';
+import MarkNode from './nodes/MarkNode.tsx';
 import WhiteoutNode from './nodes/WhiteoutNode.tsx';
 import HighlightNode from '#editor-ui/highlight/HighlightNode.tsx';
 import CommentNode from './CommentNode.tsx';
@@ -97,7 +97,7 @@ const ELEMENT_RENDERERS = createElementRenderers({
   rectangle: ShapeNode,
   ellipse: ShapeNode,
   line: LineNode,
-  symbol: SymbolNode,
+  symbol: MarkNode,
   signature: SignatureNode,
   whiteout: WhiteoutNode,
   highlight: HighlightNode,
@@ -201,8 +201,8 @@ export default function PdfWorkspace({
     // key follows.
     carried: style,
     initialDateFormat: style.dateFormat,
-    initialSymbolWidth: style.symbolWidth,
-    initialSymbolMark: style.symbolMark,
+    initialMarkWidth: style.symbolWidth,
+    initialMarkGlyph: style.symbolMark,
     pageSizes,
     nextElementIndex: elements.length,
     gestureCancelRef: placementGestureRef,
@@ -354,7 +354,7 @@ export default function PdfWorkspace({
       : fields;
     updateElement(id, patch);
     // SIGN-33: whatever the person sets on an element (colour, font, A-/A+ or
-    // a resize drag, direction, alignment, bold, italic, date format, symbol
+    // a resize drag, direction, alignment, bold, italic, date format, mark
     // mark and size, line thickness, whiteout colour, signature width) becomes
     // this document's carried style, so the next element starts in it. A
     // placement's own fit-shrink never comes through here, so it never

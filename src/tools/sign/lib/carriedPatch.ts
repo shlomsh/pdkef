@@ -44,7 +44,7 @@ export function carriedPatchFor(
   if ('strokeWidth' in patch && patch.strokeWidth) {
     carried.strokeWidth = patch.strokeWidth;
   }
-  // A resized symbol/signature sets the size for the next one placed.
+  // A resized mark/signature sets the size for the next one placed.
   if (element.type === 'symbol' && 'width' in patch && patch.width !== undefined) {
     carried.symbolWidth = patch.width;
   }

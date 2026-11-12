@@ -185,7 +185,7 @@ describe('useFormFieldRegions detection state', () => {
  * async iteration of a native ReadableStream (WebKit bug 194379).
  *
  * The stream here is deliberately hostile in the way iOS is: it has a working
- * `getReader()` and NO `Symbol.asyncIterator`. Anything that reaches for async
+ * `getReader()` and NO `Mark.asyncIterator`. Anything that reaches for async
  * iteration throws `undefined is not a function` against it, exactly as the
  * device did; reading it with a reader works. Every engine available to CI has
  * the feature (measured: Playwright's Linux WebKit and Chromium both report
@@ -198,7 +198,7 @@ describe('reading a page\'s text on an engine without ReadableStream async itera
       getReader: () => ({
         read: async () => (i < chunks.length ? { done: false, value: chunks[i++] } : { done: true, value: undefined }),
       }),
-      // Symbol.asyncIterator deliberately absent, as on iOS WebKit.
+      // Mark.asyncIterator deliberately absent, as on iOS WebKit.
     };
   }
 

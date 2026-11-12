@@ -1,10 +1,10 @@
 ---
 id: "SIGN-49"
 title: "Sign's toolbar leads with the form: five tools, More, and the file's actions at the end"
-status: "open"
+status: "in_progress"
 priority: "P2"
 epic: "polish"
-horizon: "next"
+horizon: "now"
 depends_on: ["SIGN-48"]
 ---
 

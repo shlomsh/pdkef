@@ -26,7 +26,7 @@ const whiteoutElement: EditorElement = {
   height: 10,
 };
 
-const symbolElement: EditorElement = {
+const markElement: EditorElement = {
   id: 'el-3',
   type: 'symbol',
   pageIndex: 0,
@@ -70,15 +70,15 @@ describe('carriedPatchFor', () => {
   });
 
   it('carries strokeWidth to strokeWidth', () => {
-    expect(carriedPatchFor(symbolElement, { strokeWidth: 3 }, noDetect)).toEqual({ strokeWidth: 3 });
+    expect(carriedPatchFor(markElement, { strokeWidth: 3 }, noDetect)).toEqual({ strokeWidth: 3 });
   });
 
-  it('carries a resized symbol width to symbolWidth', () => {
-    expect(carriedPatchFor(symbolElement, { width: 25 }, noDetect)).toEqual({ symbolWidth: 25 });
+  it('carries a resized mark width to symbolWidth', () => {
+    expect(carriedPatchFor(markElement, { width: 25 }, noDetect)).toEqual({ symbolWidth: 25 });
   });
 
-  it('carries a symbol mark change to symbolMark', () => {
-    expect(carriedPatchFor(symbolElement, { mark: 'x' }, noDetect)).toEqual({ symbolMark: 'x' });
+  it('carries a mark change to symbolMark', () => {
+    expect(carriedPatchFor(markElement, { mark: 'x' }, noDetect)).toEqual({ symbolMark: 'x' });
   });
 
   it('carries a resized signature width to signatureWidth', () => {
@@ -147,11 +147,11 @@ describe('appStylePatchFor', () => {
     expect(appPatch(whiteoutElement, { color: '#f5f0dc' })).toEqual({ whiteoutColor: '#f5f0dc' });
   });
 
-  it('alignment, bold, italic, date format, symbol mark and size, thickness and signature width go app-wide', () => {
+  it('alignment, bold, italic, date format, mark and size, thickness and signature width go app-wide', () => {
     expect(appPatch(textElement, { textAlign: 'right', fontWeight: 'bold', fontStyle: 'italic', dateFormatId: 'mdy' }))
       .toEqual({ textAlign: 'right', bold: true, italic: true, dateFormat: 'mdy' });
-    expect(appPatch(symbolElement, { mark: 'x', width: 8 })).toEqual({ symbolMark: 'x', symbolWidth: 8 });
-    expect(appPatch(symbolElement, { strokeWidth: 4 })).toEqual({ strokeWidth: 4 });
+    expect(appPatch(markElement, { mark: 'x', width: 8 })).toEqual({ symbolMark: 'x', symbolWidth: 8 });
+    expect(appPatch(markElement, { strokeWidth: 4 })).toEqual({ strokeWidth: 4 });
     expect(appPatch(signatureElement, { width: 40 })).toEqual({ signatureWidth: 40 });
   });
 

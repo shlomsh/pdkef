@@ -1,22 +1,22 @@
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import SymbolNode from './SymbolNode.tsx';
-import type { SymbolElement } from '#editor/model/editorModel.ts';
+import MarkNode from './MarkNode.tsx';
+import type { MarkElement } from '#editor/model/editorModel.ts';
 import type { NodeResizeStart } from '#editor-ui/nodeProps.ts';
 
 const onResizeStart: NodeResizeStart = () => {};
 
-function symbolElement(overrides: Partial<SymbolElement> = {}): SymbolElement {
+function markElement(overrides: Partial<MarkElement> = {}): MarkElement {
   return { id: 'symbol-1', type: 'symbol', pageIndex: 0, left: 0, top: 0, width: 10, height: 10, ...overrides };
 }
 
-function mount(element: SymbolElement): HTMLDivElement {
+function mount(element: MarkElement): HTMLDivElement {
   const host = document.createElement('div');
   document.body.appendChild(host);
   act(() => {
     render(
-      <SymbolNode
+      <MarkNode
         element={element}
         isActive={false}
         onResizeStart={onResizeStart}
@@ -33,7 +33,7 @@ function requireElement<T extends Element>(parent: ParentNode, selector: string)
   return element;
 }
 
-describe('SymbolNode', () => {
+describe('MarkNode', () => {
   let host = document.createElement('div');
 
   afterEach(() => {
@@ -44,25 +44,25 @@ describe('SymbolNode', () => {
   });
 
   it('renders the selected X mark using the element color', () => {
-    host = mount(symbolElement({ mark: 'x', color: '#000000' }));
+    host = mount(markElement({ mark: 'x', color: '#000000' }));
     const colorHost = requireElement<HTMLDivElement>(host, 'div');
     const path = requireElement<SVGPathElement>(host, 'path');
 
     expect(colorHost.style.color).toBe('rgb(0, 0, 0)');
     expect(path).not.toBeNull();
-    // The exporter's geometry, which the editor now shares (symbolMarks.ts).
+    // The exporter's geometry, which the editor now shares (markGlyphs.ts).
     // This used to be `M18 6L6 18`, a third smaller than the cross the same
     // element exported - the drift that module exists to prevent.
     expect(path.getAttribute('d')).toBe('M4 4L20 20M20 4L4 20');
   });
 
   it('draws a cross for the legacy symbolType when no mark is set', () => {
-    host = mount(symbolElement({ symbolType: 'cross' }));
+    host = mount(markElement({ symbolType: 'cross' }));
     expect(requireElement<SVGPathElement>(host, 'path').getAttribute('d')).toBe('M4 4L20 20M20 4L4 20');
   });
 
   it('draws a check when neither mark nor symbolType is set', () => {
-    host = mount(symbolElement());
+    host = mount(markElement());
     expect(requireElement<SVGPathElement>(host, 'path').getAttribute('d')).toBe('M4 12L9 17L20 6');
   });
 
@@ -76,7 +76,7 @@ describe('SymbolNode', () => {
       disconnect() { disconnected.push(...observed); }
     } as unknown as typeof ResizeObserver;
     try {
-      host = mount(symbolElement({ mark: 'x' }));
+      host = mount(markElement({ mark: 'x' }));
       expect(observed).toHaveLength(1);
       expect(disconnected).toHaveLength(0);
       act(() => render(null, host));
@@ -87,22 +87,22 @@ describe('SymbolNode', () => {
   });
 
   it('renders dot marks from the same mark field used by toolbar and export', () => {
-    host = mount(symbolElement({ mark: 'dot', color: '#ff3300' }));
+    host = mount(markElement({ mark: 'dot', color: '#ff3300' }));
     const dot = requireElement<SVGCircleElement>(host, 'circle');
 
     expect(dot).not.toBeNull();
     expect(dot.getAttribute('fill')).toBe('currentColor');
   });
 
-  // MOBI-19 follow-up: a symbol tapped onto a detected printed checkbox is
+  // MOBI-19 follow-up: a mark tapped onto a detected printed checkbox is
   // sized to match the print - a few px on a phone - and its four fixed-10px
   // corner handles rendered as one solid blob (reported live; a real
   // checkbox measured 4.28x4.28px put every handle pair at roughly -7px of
-  // overlap). SymbolNode's own job is only the measurement - it hands
-  // `.symbol .resizer` in EditorElement.module.css one raw value per axis,
+  // overlap). MarkNode's own job is only the measurement - it hands
+  // `.mark .resizer` in EditorElement.module.css one raw value per axis,
   // `--half-width`/`--half-height`, and that CSS does the actual
   // shrink-and-separate arithmetic (`clamp()`/`max()`) that guarantees the
-  // handles never overlap, however small the symbol gets. jsdom has no CSS
+  // handles never overlap, however small the mark gets. jsdom has no CSS
   // engine to evaluate that arithmetic (editor.md: "these need a real
   // browser... jsdom can only assert middleware config and committed
   // state") - the two raw values reaching the DOM correctly is what a unit
@@ -116,7 +116,7 @@ describe('SymbolNode', () => {
     beforeEach(() => {
       originalGetBoundingClientRect = Element.prototype.getBoundingClientRect;
       Element.prototype.getBoundingClientRect = function (this: Element) {
-        if (this.hasAttribute('data-editor-symbol-visual')) return new DOMRect(0, 0, mockWidth, mockHeight);
+        if (this.hasAttribute('data-editor-mark-visual')) return new DOMRect(0, 0, mockWidth, mockHeight);
         return originalGetBoundingClientRect.call(this);
       };
     });
@@ -130,24 +130,24 @@ describe('SymbolNode', () => {
       return { width: resizer.style.getPropertyValue('--half-width'), height: resizer.style.getPropertyValue('--half-height') };
     };
 
-    it('halves the measured size for a symbol sized to a detected printed checkbox', () => {
+    it('halves the measured size for a mark sized to a detected printed checkbox', () => {
       mockWidth = 4.28;
       mockHeight = 4.28;
       host = document.createElement('div');
       document.body.appendChild(host);
       act(() => {
-        render(<SymbolNode element={symbolElement()} isActive onResizeStart={onResizeStart} />, host);
+        render(<MarkNode element={markElement()} isActive onResizeStart={onResizeStart} />, host);
       });
       expect(halfSizeOf(host)).toEqual({ width: '2.14px', height: '2.14px' });
     });
 
-    it('halves the measured size for a normally sized symbol too', () => {
+    it('halves the measured size for a normally sized mark too', () => {
       mockWidth = 20;
       mockHeight = 20;
       host = document.createElement('div');
       document.body.appendChild(host);
       act(() => {
-        render(<SymbolNode element={symbolElement()} isActive onResizeStart={onResizeStart} />, host);
+        render(<MarkNode element={markElement()} isActive onResizeStart={onResizeStart} />, host);
       });
       expect(halfSizeOf(host)).toEqual({ width: '10px', height: '10px' });
     });
@@ -158,7 +158,7 @@ describe('SymbolNode', () => {
       host = document.createElement('div');
       document.body.appendChild(host);
       act(() => {
-        render(<SymbolNode element={symbolElement()} isActive onResizeStart={onResizeStart} />, host);
+        render(<MarkNode element={markElement()} isActive onResizeStart={onResizeStart} />, host);
       });
       const handles = [...host.querySelectorAll<HTMLElement>('[data-editor-resizer]')];
       expect(handles.length).toBe(4);

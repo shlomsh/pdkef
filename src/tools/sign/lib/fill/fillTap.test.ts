@@ -116,7 +116,7 @@ describe('fillTapDecision', () => {
     expect(fillTapDecision(input)).toEqual({ type: 'delegate' });
   });
 
-  it("delegates a tick box as the symbol tool when nothing is armed ('none')", () => {
+  it("delegates a tick box as the mark tool when nothing is armed ('none')", () => {
     const input: FillTapInput = { ...base, tool: 'none', reach: reachOf('box', 'box-2') };
     expect(fillTapDecision(input)).toEqual({ type: 'delegate', at: { pageIndex: 0, x: 20, y: 15 }, tool: 'symbol' });
   });
@@ -131,7 +131,7 @@ describe('fillTapDecision', () => {
     expect(fillTapDecision(input)).toEqual({ type: 'delegate' });
   });
 
-  it("does not delegate as the symbol tool for a tick box when Text is explicitly armed", () => {
+  it("does not delegate as the mark tool for a tick box when Text is explicitly armed", () => {
     const input: FillTapInput = { ...base, tool: 'text', reach: reachOf('box', 'box-3') };
     const decision = fillTapDecision(input);
     expect(decision).toEqual({ type: 'delegate' });
@@ -251,7 +251,7 @@ describe('fillToolOf', () => {
     expect(fillToolOf('text')).toBe('text');
   });
 
-  it('maps Date and the symbol tool to their own fill tools', () => {
+  it('maps Date and the mark tool to their own fill tools', () => {
     expect(fillToolOf('date')).toBe('date');
     expect(fillToolOf('symbol')).toBe('mark');
   });

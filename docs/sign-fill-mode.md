@@ -70,7 +70,7 @@ contract; change them first, then the pieces.
   8. Text armed, nothing in reach: open a free slot there. With nothing armed (SIGN-45) a click makes
      no text: it falls through to step 9, which only selects or deselects.
   9. Everything else: production's `handlePageClick`.
-  With nothing armed, a tap on a detected tick box toggles it through production's own symbol path,
+  With nothing armed, a tap on a detected tick box toggles it through production's own mark path,
   even though no tool is armed.
 - **What each tool reaches** (`fillReachTargets`): Text, every fill input; nothing armed ('none'), only
   the detected tick boxes (no fill input, so no text); Date, the empty detected slots; a mark, the detected tick boxes; any
@@ -82,11 +82,11 @@ contract; change them first, then the pieces.
   once: committing a slot with Text armed disarms it (a double-click lock stays), and the Enter hop to
   the next field is keyboard focus, so it still works.
 - **Hints.** A slot shows a faint frame at rest only while the armed tool can land in it: Text or Date
-  (SNG-25, `slotFramesShown`). With nothing armed, or Symbols, Sign, Shapes, Whiteout or Highlight, the
+  (SNG-25, `slotFramesShown`). With nothing armed, or Marks, Sign, Shapes, Whiteout or Highlight, the
   slots stay in reading order with no frame (`.slots-quiet` on the pages container), so a first look at
   an opened file is the clean page. While any fill input has focus every frame shows again, so a typing
   session that disarmed Text, or a keyboard Tab, still sees its fields. Tick box hints show only with
-  Symbols armed. The target a tap would reach for the armed tool
+  Marks armed. The target a tap would reach for the armed tool
   (`FillTool`) gets a distinct "droppable" look (never with nothing armed: no text target is droppable then) while the mouse hovers or a finger is down near it.
   With nothing in reach there is no preview.
 - **Keys.**
@@ -215,7 +215,7 @@ These are the only places the pieces meet. Each is written down in code: `fillTy
     `finishTyping` delegate (nothing armed, a box toggle while typing) calls `dismiss()` first, so the
     fill input does not keep focus once the reducer ends its editing state.
 - **The armed tool, as `FillTool`** (`fillToolOf`): no tool is `'none'` (SIGN-45: makes no text, reaching only
-  the detected tick boxes, where a tap runs production's own symbol toggle), Text is `'text'`, Date is `'date'`, the symbol tool is `'mark'`,
+  the detected tick boxes, where a tap runs production's own mark toggle), Text is `'text'`, Date is `'date'`, the mark tool is `'mark'`,
   anything else is `'other'`.
 - **The aim.** A mouse hovering with no button down (pointer events, so iOS's synthesized mouse events
   never count), or a finger down, sets the aimed key from `reachTarget`. It clears when the touch ends

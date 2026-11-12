@@ -90,7 +90,7 @@ re-deriving them.
   (`test:detection-purity`). How the UI draws, walks or offers a found spot never feeds back into it.
 - **Document memory** lives only in `src/editor/model/`:
   - `documentStyle.ts` holds the style: font, size, direction, colour, alignment, bold, italic, date
-    format, symbol mark and size, line thickness, whiteout colour, signature width.
+    format, mark and size, line thickness, whiteout colour, signature width.
   - `carriedPatch.ts` decides what an explicit change carries.
   - `elementDefaults.ts` decides what a new element starts from. `resolveDocumentStyle` resolves the
     three layers key by key: the document's own style, the app-wide style, the shipped defaults.
@@ -112,7 +112,7 @@ re-deriving them.
     document's. Never add a separate browser-wide "last used" preference for a form setting: it is a key
     of `DocumentStyle`, and the app-wide layer comes with it.
   - What the person sets explicitly carries forward: A-/A+, a resize drag, a font or colour pick,
-    alignment, bold, italic, a date format, a symbol mark. What the app computes does not: a field's
+    alignment, bold, italic, a date format, a mark. What the app computes does not: a field's
     fit-shrink, a date's generated text.
   - With no size chosen anywhere, the first field's computed size, uncorrected, is the document's size.
     `fieldFontSize` is the one sizing function, and a field only ever shrinks the carried size to fit

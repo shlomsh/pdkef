@@ -73,7 +73,7 @@ function turnBands(from: PercentBox, turned: PercentBox, bands: readonly Percent
 /**
  * An element after its page turns `quarterTurns` from `from`. Elements that cover
  * content (rectangle, ellipse, whiteout, line, highlight, and a passage or pin comment) turn with it. Marks written on the
- * page (text, signature, symbol and the rest) stay upright and keep their size in
+ * page (text, signature, mark and the rest) stay upright and keep their size in
  * points; their anchor follows the content. `textWidth` is a point-anchored
  * text's rendered width in page-width percent of `from`: with it the text's box
  * turns by its real extent, so a half turn lands it on what it covered.

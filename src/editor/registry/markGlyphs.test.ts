@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import type { SymbolMark } from '../model/editorModel.ts';
-import { DESIGN_BOX, markGeometry, markInkExtent, markPathData } from './symbolMarks.ts';
-import { placeSymbolOnRegion } from './symbol.ts';
+import type { MarkGlyph } from '../model/editorModel.ts';
+import { DESIGN_BOX, markGeometry, markInkExtent, markPathData } from './markGlyphs.ts';
+import { placeMarkOnRegion } from './mark.ts';
 
 const PAGE_WIDTH = 595.32;
 const PAGE_HEIGHT = 841.92;
@@ -49,8 +49,8 @@ describe('markPathData', () => {
   });
 });
 
-describe('placeSymbolOnRegion', () => {
-  const place = (mark: SymbolMark | undefined) => placeSymbolOnRegion(CHECKBOX, mark, {
+describe('placeMarkOnRegion', () => {
+  const place = (mark: MarkGlyph | undefined) => placeMarkOnRegion(CHECKBOX, mark, {
     pageWidthPoints: PAGE_WIDTH, pageHeightPoints: PAGE_HEIGHT,
   });
 
@@ -100,7 +100,7 @@ describe('placeSymbolOnRegion', () => {
   });
 
   it('returns the region unchanged rather than dividing by zero', () => {
-    expect(placeSymbolOnRegion({ ...CHECKBOX, width: 0 }, 'x', {
+    expect(placeMarkOnRegion({ ...CHECKBOX, width: 0 }, 'x', {
       pageWidthPoints: PAGE_WIDTH, pageHeightPoints: PAGE_HEIGHT,
     })).toMatchObject({ left: CHECKBOX.left, top: CHECKBOX.top });
   });

@@ -150,7 +150,7 @@ export default function useFillTap(options: UseFillTapOptions): FillTapHandlers 
       onElementBar: onElementBar(target),
       onElement: ownedByElement(target),
       elementFillKey: elementFillKeyOf(target),
-      onMark: target?.closest('[data-editor-symbol]') != null,
+      onMark: target?.closest('[data-editor-mark]') != null,
       typing: engagedAtPress.current,
       tool,
       reach: reachAt(at, overlay),

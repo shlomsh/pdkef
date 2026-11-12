@@ -1,20 +1,20 @@
 import { useLayoutEffect, useRef, useState } from 'preact/hooks';
 import ElementResizers from '#editor-ui/ElementResizers.tsx';
 import { DEFAULT_COLOR_BLUE } from '#editor/model/signGeometry.js';
-import { DESIGN_BOX, markGeometry, markPathData } from '#editor/registry/symbolMarks.ts';
-import type { SymbolElement, SymbolMark } from '#editor/model/editorModel.ts';
+import { DESIGN_BOX, markGeometry, markPathData } from '#editor/registry/markGlyphs.ts';
+import type { MarkElement, MarkGlyph } from '#editor/model/editorModel.ts';
 import type { ElementNodeProps } from '#editor-ui/nodeProps.ts';
 
-export default function SymbolNode({ element, isActive, onResizeStart, messages }: ElementNodeProps<SymbolElement>) {
-  // Geometry comes from symbolMarks.ts, which the exporter draws from too. The
+export default function MarkNode({ element, isActive, onResizeStart, messages }: ElementNodeProps<MarkElement>) {
+  // Geometry comes from markGlyphs.ts, which the exporter draws from too. The
   // two used to carry their own copies and had drifted: this cross was a third
   // smaller on screen than the one in the downloaded file.
   const mark = (element.mark
     || (element.symbolType === 'cross' ? 'x' : element.symbolType)
-    || 'check') as SymbolMark;
+    || 'check') as MarkGlyph;
   const geometry = markGeometry(mark);
 
-  // Reported live: a symbol tapped onto a detected printed checkbox (as
+  // Reported live: a mark tapped onto a detected printed checkbox (as
   // opposed to one freshly placed from the toolbar, which defaults to a
   // usable size) is sized to match the print - a few px on a phone - and its
   // four corner handles, fixed at 10px each, rendered as one solid blob (the
@@ -22,16 +22,16 @@ export default function SymbolNode({ element, isActive, onResizeStart, messages 
   // rendered measurements: a real checkbox at 4.28x4.28px put every handle
   // pair at roughly -7px of overlap). `[data-editor-text] .resizer`'s
   // shrink-and-separate formula in EditorElement.module.css does the same
-  // job here under `.symbol .resizer`, fed by this element's own measured
-  // size instead of a single box height, since a symbol resizes in both
+  // job here under `.mark .resizer`, fed by this element's own measured
+  // size instead of a single box height, since a mark resizes in both
   // directions rather than growing one line at a time. Same ResizeObserver
   // pattern as TextNode.tsx's own measurement effects - ordinary layout
   // measurement, not the golden-rule gesture path (editor.md), since nothing
   // here writes back to `onChange`/state.
-  const symbolRef = useRef<HTMLDivElement | null>(null);
+  const markRef = useRef<HTMLDivElement | null>(null);
   const [halfSize, setHalfSize] = useState({ width: 0, height: 0 });
   useLayoutEffect(() => {
-    const node = symbolRef.current;
+    const node = markRef.current;
     if (!node) return;
     const updateSize = () => {
       const rect = node.getBoundingClientRect();
@@ -43,7 +43,7 @@ export default function SymbolNode({ element, isActive, onResizeStart, messages 
     return () => observer.disconnect();
   }, []);
 
-  const renderSymbol = () => {
+  const renderMark = () => {
     if (geometry.disc) {
       return <circle cx={geometry.disc.cx} cy={geometry.disc.cy} r={geometry.disc.r} fill="currentColor" />;
     }
@@ -61,9 +61,9 @@ export default function SymbolNode({ element, isActive, onResizeStart, messages 
 
   return (
     <>
-      <div ref={symbolRef} data-editor-symbol-visual style={{ width: '100%', height: '100%', color: element.color || DEFAULT_COLOR_BLUE }}>
+      <div ref={markRef} data-editor-mark-visual style={{ width: '100%', height: '100%', color: element.color || DEFAULT_COLOR_BLUE }}>
         <svg viewBox={`0 0 ${DESIGN_BOX} ${DESIGN_BOX}`} style={{ width: '100%', height: '100%', display: 'block' }}>
-          {renderSymbol()}
+          {renderMark()}
         </svg>
       </div>
       <ElementResizers

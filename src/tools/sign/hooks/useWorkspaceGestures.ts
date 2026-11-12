@@ -11,7 +11,7 @@ import {
 import type {
   EditorElement,
   SignToolType,
-  SymbolMark,
+  MarkGlyph,
 } from '#editor/model/editorModel.ts';
 import type { DocumentStyle } from '#editor/model/documentStyle.ts';
 import { deletedWith } from '#editor/model/elementsReducer.ts';
@@ -34,8 +34,8 @@ import {
   type FieldRegion,
   type TypableField,
 } from '../lib/combPlacement.ts';
-import { placeSymbolOnRegion } from '#editor/registry/symbol.ts';
-import { DESIGN_BOX, markInkExtent } from '#editor/registry/symbolMarks.ts';
+import { placeMarkOnRegion } from '#editor/registry/mark.ts';
+import { DESIGN_BOX, markInkExtent } from '#editor/registry/markGlyphs.ts';
 import { dateFormatForComb, formatDate, isDateFormatId, toIsoDateString } from '#editor/text/dateFormat.ts';
 import type { FormFieldRegions } from './useFormFieldRegions.ts';
 import { englishSignMessages } from '../messages';
@@ -47,8 +47,8 @@ import {
   DEFAULT_STROKE_WIDTH,
   DEFAULT_FONT_FAMILY,
   DEFAULT_FONT_SIZE_PT,
-  DEFAULT_SYMBOL_WIDTH_PCT,
-  ASPECT_RATIO_SYMBOL,
+  DEFAULT_MARK_WIDTH_PCT,
+  ASPECT_RATIO_MARK,
   TEXT_BOX_LINE_HEIGHT_EM,
   PAGE_HEIGHT_DEFAULT_PTS,
   PAGE_WIDTH_DEFAULT_PTS
@@ -114,8 +114,8 @@ export interface WorkspaceGestureOptions {
   carried?: Partial<DocumentStyle>;
   /** Remembered `dateFormat.ts` `DateFormatId`; the 'date' tool only. */
   initialDateFormat?: string;
-  initialSymbolWidth?: number;
-  initialSymbolMark?: SymbolMark;
+  initialMarkWidth?: number;
+  initialMarkGlyph?: MarkGlyph;
   pageSizes?: PageGeometry[];
   /** Printed grids and free-text cells recovered from the page's own vector
    * content and text (MOBI-03, MOBI-11). */
@@ -155,7 +155,7 @@ type PlacementPatch = BoxPlacementPatch | LinePlacementPatch;
  * snapped x deliberately makes its box larger than the printed square. This
  * also makes a mark that was gently nudged but remains in its box removable.
  */
-function symbolIsInCheckbox(element: EditorElement, region: FieldRegion): boolean {
+function markIsInCheckbox(element: EditorElement, region: FieldRegion): boolean {
   if (element.type !== 'symbol') return false;
   const ink = markInkExtent(element.mark);
   const x = element.left + (ink.centerX / DESIGN_BOX) * element.width;
@@ -189,8 +189,8 @@ export default function useWorkspaceGestures({
   initialStrokeWidth = DEFAULT_STROKE_WIDTH,
   carried = {},
   initialDateFormat = 'locale',
-  initialSymbolWidth = DEFAULT_SYMBOL_WIDTH_PCT,
-  initialSymbolMark = 'check',
+  initialMarkWidth = DEFAULT_MARK_WIDTH_PCT,
+  initialMarkGlyph = 'check',
   pageSizes = [],
   formRegions = { detection: 'pending', combs: [], checkboxes: [], cells: [], pageDirections: [] },
   elements = [],
@@ -218,14 +218,14 @@ export default function useWorkspaceGestures({
 
   /**
    * Handles a click on a page overlay for point-placement tools
-   * (text, symbol, signature). No-ops for drag-drawn tools.
+   * (text, mark, signature). No-ops for drag-drawn tools.
    *
    * `at` (page percent) places at that point instead of the click's own: fill
    * mode (SNG-15) passes a detected field's or tick box's centre when its reach
    * found one near the tap, so the snap below lands where its droppable look
    * promised. `toolOverride` lets fill mode run this as if a different tool
    * were armed: a tap on a detected tick box with nothing armed passes
-   * 'symbol', so it runs production's own checkbox toggle rather than opening
+   * the mark tool, so it runs production's own checkbox toggle rather than opening
    * a text slot. Production itself never passes either.
    */
   const handlePageClick = (
@@ -314,7 +314,7 @@ export default function useWorkspaceGestures({
     const resolvedFontSize = fieldPlacement ? fieldPlacement.fontSize : fieldFontSize(carriedFontSize, {});
 
     const id = createElementId();
-    const symbolWidth = initialSymbolWidth;
+    const markWidth = initialMarkWidth;
     const textHeight = (resolvedFontSize * TEXT_BOX_LINE_HEIGHT_EM / pageHeightPoints) * 100;
     if (!definition.creation.create) return;
     const newEl = definition.creation.create({
@@ -327,9 +327,9 @@ export default function useWorkspaceGestures({
       font: resolvedFont,
       fontSize: resolvedFontSize,
       direction: carriedDirection,
-      symbolWidth,
-      symbolHeight: getWidthPercentToHeightPercent(symbolWidth, ASPECT_RATIO_SYMBOL, container),
-      symbolMark: initialSymbolMark,
+      markWidth,
+      markHeight: getWidthPercentToHeightPercent(markWidth, ASPECT_RATIO_MARK, container),
+      markGlyph: initialMarkGlyph,
       textHeight,
     });
     // A date on an 8-cell comb starts digits-only so the printed dividers do
@@ -369,7 +369,7 @@ export default function useWorkspaceGestures({
     // Do this before creating the candidate element so the second tap remains
     // a single reversible delete action, including after a draft restore.
     const existingCheckboxMark = checkboxRegion
-      ? elements.find((element) => symbolIsInCheckbox(element, checkboxRegion))
+      ? elements.find((element) => markIsInCheckbox(element, checkboxRegion))
       : null;
     if (existingCheckboxMark) {
       stopUnlessTouchEnd();
@@ -382,10 +382,10 @@ export default function useWorkspaceGestures({
         'delete',
         'DELETE_ELEMENT',
         existingCheckboxMark.pageIndex,
-        t.removedSymbolFromBoxDescription,
+        t.removedMarkFromBoxDescription,
         snapshots,
       );
-      setAnnouncement(t.removedSymbolFromBoxAnnouncement);
+      setAnnouncement(t.removedMarkFromBoxAnnouncement);
       return;
     }
 
@@ -406,7 +406,7 @@ export default function useWorkspaceGestures({
     // needs `direction` any more, since neither has an anchored edge left to
     // flip (see its own docstring).
     const snapped = fieldPlacement
-      ?? (checkboxRegion && placeSymbolOnRegion(checkboxRegion, initialSymbolMark, {
+      ?? (checkboxRegion && placeMarkOnRegion(checkboxRegion, initialMarkGlyph, {
         pageWidthPoints,
         pageHeightPoints,
       }));
@@ -451,8 +451,8 @@ export default function useWorkspaceGestures({
       logAction('add', 'ADD_TEXT', pageIndex, t.addedDateBoxDescription, [captureAddedElement(placed, nextElementIndex)]);
       setAnnouncement(t.addedDateBoxAnnouncement);
     } else {
-      logAction('add', 'ADD_SYMBOL', pageIndex, t.addedSymbolDescription, [captureAddedElement(placed, nextElementIndex)]);
-      setAnnouncement(checkboxRegion ? t.addedSymbolInBoxAnnouncement : t.addedSymbolAnnouncement);
+      logAction('add', 'ADD_SYMBOL', pageIndex, t.addedMarkDescription, [captureAddedElement(placed, nextElementIndex)]);
+      setAnnouncement(checkboxRegion ? t.addedMarkInBoxAnnouncement : t.addedMarkAnnouncement);
     }
   };
 

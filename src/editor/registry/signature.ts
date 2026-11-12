@@ -9,7 +9,7 @@ import type { SignatureElement } from '../model/editorModel.ts';
 export function applySignatureResize({ deltaWidth, minWidth, aspectRatio, page, start }: CenteredResizeInput): CenteredResizePatch {
   // Signatures are freeform ink, not a small checkbox-sized mark, so they
   // share their ceiling with shapes/whiteouts (MAX_SHAPE_SIZE_PCT) rather
-  // than with symbols — see the comment on MAX_SYMBOL_WIDTH_PCT.
+  // than with marks — see the comment on MAX_MARK_WIDTH_PCT.
   const width = Math.max(minWidth, Math.min(MAX_SHAPE_SIZE_PCT, start.width + deltaWidth));
   const height = width * aspectRatio * (page.width / page.height);
   return {

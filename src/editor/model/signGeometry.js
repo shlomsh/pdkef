@@ -13,22 +13,22 @@ export const DEFAULT_START_WIDTH_PCT = 20;            // Default width percentag
 export const DEFAULT_FONT_SIZE_PT = 12;               // Default font size in points (pt)
 export const MIN_FONT_SIZE_PT = 6;                    // Minimum font size in points (pt)
 export const MAX_FONT_SIZE_PT = 72;                   // Maximum font size in points (pt)
-export const MIN_SYMBOL_WIDTH_PX = 14;                // Minimum symbol size in pixels (px)
+export const MIN_MARK_WIDTH_PX = 14;                // Minimum mark size in pixels (px)
 export const MIN_STANDARD_WIDTH_PCT = 3;              // Minimum width for standard elements (signature, shape) (%)
-// Symbols are small tick/check/cross marks meant to fill a checkbox, so a
+// Marks are small tick/check/cross marks meant to fill a checkbox, so a
 // generous-but-bounded cap keeps a placed mark from growing past what a
 // checkbox-sized region ever needs. Signatures are freeform ink, closer in
-// kind to a shape than to a symbol, and use MAX_SHAPE_SIZE_PCT instead (see
+// kind to a shape than to a mark, and use MAX_SHAPE_SIZE_PCT instead (see
 // signature.ts) so a signature can span the page as wide as a shape can.
-export const MAX_SYMBOL_WIDTH_PCT = 60;               // Max drag/resize width limit for symbol marks (%)
+export const MAX_MARK_WIDTH_PCT = 60;               // Max drag/resize width limit for marks (%)
 export const MIN_SHAPE_SIZE_PCT = 1;                  // Minimum size for shapes and whiteouts (%)
 export const MAX_SHAPE_SIZE_PCT = 90;                 // Maximum size for shapes, whiteouts, and signatures (%)
 export const DEFAULT_FALLBACK_ELEMENT_WIDTH_PCT = 4;  // Default fallback element width (%)
 export const DEFAULT_FALLBACK_ELEMENT_HEIGHT_PCT = 2; // Default fallback element height (%)
-export const DEFAULT_SYMBOL_WIDTH_PCT = 5;            // Default symbol placement width (%)
+export const DEFAULT_MARK_WIDTH_PCT = 5;            // Default mark placement width (%)
 
 // Aspect Ratios
-export const ASPECT_RATIO_SYMBOL = 1;                 // Aspect ratio for symbol nodes (width/height = 1)
+export const ASPECT_RATIO_MARK = 1;                 // Aspect ratio for mark nodes (width/height = 1)
 export const ASPECT_RATIO_TEXT = 0.4;                 // Default aspect ratio fallback for text/other nodes
 
 // Minimum Threshold Adjustments

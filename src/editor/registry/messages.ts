@@ -26,7 +26,7 @@ export interface SignMessages {
   toolbarLabel: string;
   textButton: string;
   dateButton: string;
-  symbolsButton: string;
+  markButton: string;
   shapesButton: string;
   whiteoutButton: string;
   signButton: string;
@@ -41,7 +41,7 @@ export interface SignMessages {
   downloadButton: string;
   textAction: string;
   dateAction: string;
-  symbolAction: string;
+  markAction: string;
   signatureAction: string;
   whiteoutAction: string;
   ellipseAction: string;
@@ -89,7 +89,7 @@ export interface SignMessages {
    * and short enough for two lines beside the keep-on switch and the field arrows on a phone. */
   textActionTouch: string;
   dateActionTouch: string;
-  symbolActionTouch: string;
+  markActionTouch: string;
   signatureActionTouch: string;
   whiteoutActionTouch: string;
   ellipseActionTouch: string;
@@ -347,8 +347,8 @@ export interface SignMessages {
    * `addedShapeDescriptionTemplate`/`addedShapeAnnouncementTemplate` fix the
    * raw-tool-id interpolation bug this ticket calls out, via
    * `signElementTypeLabel` above. */
-  removedSymbolFromBoxAnnouncement: string;
-  removedSymbolFromBoxDescription: string;
+  removedMarkFromBoxAnnouncement: string;
+  removedMarkFromBoxDescription: string;
   addedTextBoxDescription: string;
   addedTextBoxCombAnnouncementTemplate: string;
   addedTextBoxAnnouncement: string;
@@ -359,9 +359,9 @@ export interface SignMessages {
   movedToPreviousFieldAnnouncement: string;
   addedDateBoxDescription: string;
   addedDateBoxAnnouncement: string;
-  addedSymbolDescription: string;
-  addedSymbolInBoxAnnouncement: string;
-  addedSymbolAnnouncement: string;
+  addedMarkDescription: string;
+  addedMarkInBoxAnnouncement: string;
+  addedMarkAnnouncement: string;
   addedWhiteoutDescription: string;
   addedWhiteoutAnnouncement: string;
   addedShapeDescriptionTemplate: string;

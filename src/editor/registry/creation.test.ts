@@ -4,11 +4,11 @@ import { getElementDefinition } from './index.ts';
 const context = {
   id: 'el-1', pageIndex: 2, point: { left: 25, top: 40 }, color: '#1463ff',
   whiteoutColor: '#ffffff', strokeWidth: 3, font: 'Arimo', fontSize: 12,
-  direction: 'rtl' as const, symbolWidth: 5, symbolHeight: 4,
+  direction: 'rtl' as const, markWidth: 5, markHeight: 4,
 };
 
 describe('element registry creation factories', () => {
-  it('creates point-placed text and symbols from their own modules', () => {
+  it('creates point-placed text and marks from their own modules', () => {
     expect(getElementDefinition('text').creation.create!(context)).toMatchObject({
       type: 'text', left: 25, top: 40, fontFamily: 'Arimo', fontFamilyExplicit: false, textDirection: 'rtl',
     });

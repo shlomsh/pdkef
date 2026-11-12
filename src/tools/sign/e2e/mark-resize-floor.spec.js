@@ -7,11 +7,11 @@ import { waitForIsland } from '../../../../e2e/support/tool.js';
 /**
  * Reported live on a real Hebrew tax form (income tax form 101): a checkbox
  * placed on a detected printed square is sized to match the print exactly
- * (`placeSymbolOnRegion`), routinely a few px - well under `MIN_SYMBOL_WIDTH_PX`
- * (14px), the floor `applySymbolResize` otherwise holds a resize to so a
- * freely-placed symbol from the toolbar never shrinks into illegibility.
+ * (`placeMarkOnRegion`), routinely a few px - well under `MIN_MARK_WIDTH_PX`
+ * (14px), the floor `applyMarkResize` otherwise holds a resize to so a
+ * freely-placed mark from the toolbar never shrinks into illegibility.
  * That floor used to apply unconditionally: the very first pixel of any
- * resize gesture on an already-below-floor symbol - even one nudged, even
+ * resize gesture on an already-below-floor mark - even one nudged, even
  * one meant to shrink it further - snapped its width straight up to 14px,
  * so a checkbox sized to a tiny printed square no longer fit it the moment
  * its handle was touched. `centeredResize.test.ts` proves the arithmetic in
@@ -45,10 +45,10 @@ test('nudging a checkbox smaller than the resize floor does not snap it up to th
   });
   await expect(page.locator('[class*="page-overlay"]').first()).toBeVisible();
 
-  const symbolTool = page
+  const markTool = page
     .getByRole('toolbar', { name: 'PDF annotations' })
     .getByRole('button', { name: 'Mark', exact: true });
-  if ((await symbolTool.getAttribute('aria-pressed')) !== 'true') await symbolTool.click();
+  if ((await markTool.getAttribute('aria-pressed')) !== 'true') await markTool.click();
 
   // A real detected checkbox, sized to the print itself - the case that
   // used to jump. Measured on this form at this viewport: under 10px, well

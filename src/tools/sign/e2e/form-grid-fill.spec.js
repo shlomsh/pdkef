@@ -62,7 +62,7 @@ async function openWithHealthFixture(page) {
     buffer: fs.readFileSync(HEALTH_FIXTURE),
   });
   await expect(page.locator('[class*="page-overlay"]')).toBeVisible();
-  await armSymbols(page);
+  await armMark(page);
   await expect(page.locator('[class*="field-hint-checkbox"]').first()).toBeVisible();
 }
 
@@ -73,11 +73,11 @@ async function armText(page) {
   if ((await textTool.getAttribute('aria-pressed')) !== 'true') await textTool.click();
 }
 
-async function armSymbols(page) {
-  const symbolTool = page
+async function armMark(page) {
+  const markTool = page
     .getByRole('toolbar', { name: 'PDF annotations' })
     .getByRole('button', { name: 'Mark', exact: true });
-  if ((await symbolTool.getAttribute('aria-pressed')) !== 'true') await symbolTool.click();
+  if ((await markTool.getAttribute('aria-pressed')) !== 'true') await markTool.click();
 }
 
 /** Taps the middle of a run, in the page's own percentage coordinates. */
@@ -209,17 +209,17 @@ test.describe('tapping a detected checkbox', () => {
 
     await expect(page.locator('[data-editor-element]')).toHaveCount(1);
     await expect(page.locator('[data-editor-element][data-editor-active]')).toHaveCount(1);
-    const symbolTool = page
+    const markTool = page
       .getByRole('toolbar', { name: 'PDF annotations' })
       .getByRole('button', { name: 'Mark', exact: true });
-    await expect(symbolTool).toHaveAttribute('aria-pressed', 'false');
+    await expect(markTool).toHaveAttribute('aria-pressed', 'false');
 
     // The one-shot arming model still applies. Re-arm, then the same real
     // target acts as a toggle instead of layering a second check over it.
-    await armSymbols(page);
+    await armMark(page);
     await tapFirstCheckbox(page);
     await expect(page.locator('[data-editor-element]')).toHaveCount(0);
-    await expect(symbolTool).toHaveAttribute('aria-pressed', 'false');
+    await expect(markTool).toHaveAttribute('aria-pressed', 'false');
 
     // Clearing is a delete command, not an untracked visual toggle: two entries
     // in the history, and one tap of Undo brings the mark back rather than

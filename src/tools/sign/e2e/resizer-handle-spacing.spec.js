@@ -18,20 +18,20 @@ import { waitForIsland } from '../../../../e2e/support/tool.js';
  * the handles actually stay apart on screen is exactly what this needs a
  * real browser to prove.
  *
- * MOBI-19 follow-up: the same blob happens on a symbol (a checkbox mark)
+ * MOBI-19 follow-up: the same blob happens on a mark (a checkbox mark)
  * tapped onto a detected printed checkbox - sized to match the print, a
  * few px on a phone, with the same fixed 10px corner handles. `--half-width`/
- * `--half-height` and `.symbol .resizer`'s own `clamp()`/`max()` arithmetic
- * fix it the same way, generalised to both axes since a symbol resizes in
+ * `--half-height` and `.mark .resizer`'s own `clamp()`/`max()` arithmetic
+ * fix it the same way, generalised to both axes since a mark resizes in
  * width and height together rather than growing one line at a time.
  *
  * MOBI-28 follow-up: fixing the blob overshot on a real form dense with tiny
  * checkboxes - reported live, again: "the handles are too far away from the
  * element now." The first fix borrowed text's `handle-size + 3px` floor
- * unchanged, but a symbol's two opposing corners each push out by that floor
+ * unchanged, but a mark's two opposing corners each push out by that floor
  * from centre, doubling it into the *gap between them* where text has only
  * one corner to clear a fixed side handle at centre. Halving the floor keeps
- * the same non-overlap guarantee while pulling a below-floor symbol's
+ * the same non-overlap guarantee while pulling a below-floor mark's
  * handles back to within a couple of px of its own edge instead of five-plus
  * - `expectHandlesNearBox` below is what would have caught the overshoot.
  */
@@ -146,17 +146,17 @@ test('a text box\'s resize handles never overlap, however short the field is', a
   expectNoOverlap(handles);
 });
 
-test('a symbol\'s resize handles never overlap, however small the checkbox is', async ({ page }) => {
+test('a mark\'s resize handles never overlap, however small the checkbox is', async ({ page }) => {
   await openWithFixture(page);
-  const symbolTool = page
+  const markTool = page
     .getByRole('toolbar', { name: 'PDF annotations' })
     .getByRole('button', { name: 'Mark', exact: true });
-  if ((await symbolTool.getAttribute('aria-pressed')) !== 'true') await symbolTool.click();
+  if ((await markTool.getAttribute('aria-pressed')) !== 'true') await markTool.click();
   await expect(page.locator('[class*="field-hint-checkbox"]').first()).toBeVisible();
 
-  // A real detected checkbox, not a freshly placed symbol from the toolbar
+  // A real detected checkbox, not a freshly placed mark from the toolbar
   // (which defaults to a comfortably usable size) - tapping the hint sizes
-  // the placed symbol to the print itself, the case that overlapped.
+  // the placed mark to the print itself, the case that overlapped.
   const hint = page.locator('[class*="field-hint-checkbox"]').first();
   const hintBox = await hint.boundingBox();
   await hint.click({ position: { x: hintBox.width / 2, y: hintBox.height / 2 }, force: true });

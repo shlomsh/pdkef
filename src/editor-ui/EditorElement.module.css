@@ -33,7 +33,7 @@
 .element[data-editor-highlight], .element.active[data-editor-highlight] { z-index: auto; }
 .element.active[data-editor-highlight] .actions { z-index: 50; }
 .element.active { z-index: 50; outline-color: var(--color-primary); box-shadow: 0 0 0 1px var(--color-primary-ring); background: var(--color-element-active-fill); }
-.symbol { padding: 0; }
+.mark { padding: 0; }
 .element:hover { outline-color: var(--color-muted-light); }
 .element.line.active, .element.line:hover { outline-color: transparent; box-shadow: none; background: transparent; }
 /* No hit area above the element. There used to be an invisible 44px strip here
@@ -233,18 +233,18 @@
 .resizer.top-right { top: -4px; right: -4px; left: auto; cursor: nesw-resize; }
 .resizer.bottom-left { bottom: -4px; top: auto; left: -4px; cursor: nesw-resize; }
 .resizer.bottom-right { bottom: -4px; top: auto; right: -4px; left: auto; cursor: nwse-resize; }
-/* A symbol tapped onto a detected printed checkbox is sized to match the
+/* A mark tapped onto a detected printed checkbox is sized to match the
    print - a few px on a phone - and its four corner handles, fixed at 10px
    each, rendered as one solid blob (reported live; a real checkbox measured
    4.28x4.28px put every handle pair at roughly -7px of overlap - the same
    class of bug `[data-editor-text] .resizer` above already fixed for text,
-   generalised to both axes since a symbol resizes in width and height
+   generalised to both axes since a mark resizes in width and height
    together rather than growing one line at a time). `--half-width`/
-   `--half-height` are set inline per element by SymbolNode.tsx from its own
+   `--half-height` are set inline per element by MarkNode.tsx from its own
    measured size (`ResizeObserver`, same pattern as TextNode.tsx's own
    measurement effects). `--handle-size` shrinks toward the same 5px floor,
    using whichever half-dimension is smaller so a thin rectangle is covered
-   too; 10px stays the ceiling, so a normal-size symbol is pixel-identical to
+   too; 10px stays the ceiling, so a normal-size mark is pixel-identical to
    before. The spread/offset pair repeats per axis - `--h-spread`/`left`/
    `right` for the horizontal neighbours (top-left vs top-right, and their
    bottom pair), `--v-spread`/`top`/`bottom` for the vertical ones (top-left
@@ -256,38 +256,38 @@
    dense enough that a stray dot several px off its corner reads as wrong.
    Text's floor guards a corner handle against a *side* handle sitting at the
    box's own centre, so the full `handle-size + 3px` is the real distance
-   between them; a symbol has no side handles, only its own diagonal
+   between them; a mark has no side handles, only its own diagonal
    neighbour, which sits the *same* distance out on the opposite side of
    centre - so the two corners' combined spread only needs to clear that gap
    once between them, not once each. Halving it keeps the identical
    guarantee (still >=3px of true edge-to-edge clearance between adjacent
    corners - `resizer-handle-spacing.spec.js` proves it in a real browser)
-   while pulling every below-floor symbol's handles back to within ~2px of
-   its own edge instead of ~5px past it. A normal-size symbol is still
+   while pulling every below-floor mark's handles back to within ~2px of
+   its own edge instead of ~5px past it. A normal-size mark is still
    unaffected: the natural `half-dimension - 1px` branch already exceeds
    either floor there, so nothing here changes above roughly a 30px box (the
    same crossover text and the pre-MOBI-19 fixed design both used). The
    diagonal pair (e.g. top-left vs bottom-right) needs no formula of its
    own: its distance is the hypotenuse of the other two, always at least as
    large as either leg. */
-.symbol .resizer {
+.mark .resizer {
   --handle-size: clamp(5px, calc(min(var(--half-width, 10px), var(--half-height, 10px)) - 2px), 10px);
   width: var(--handle-size, 10px);
   height: var(--handle-size, 10px);
 }
-.symbol .resizer.top-left, .symbol .resizer.bottom-left {
+.mark .resizer.top-left, .mark .resizer.bottom-left {
   --h-spread: max(calc((var(--handle-size, 10px) + 3px) / 2), calc(var(--half-width, 10px) - 1px));
   left: calc(var(--half-width, 10px) - var(--h-spread) - var(--handle-size, 10px) / 2);
 }
-.symbol .resizer.top-right, .symbol .resizer.bottom-right {
+.mark .resizer.top-right, .mark .resizer.bottom-right {
   --h-spread: max(calc((var(--handle-size, 10px) + 3px) / 2), calc(var(--half-width, 10px) - 1px));
   right: calc(var(--half-width, 10px) - var(--h-spread) - var(--handle-size, 10px) / 2);
 }
-.symbol .resizer.top-left, .symbol .resizer.top-right {
+.mark .resizer.top-left, .mark .resizer.top-right {
   --v-spread: max(calc((var(--handle-size, 10px) + 3px) / 2), calc(var(--half-height, 10px) - 1px));
   top: calc(var(--half-height, 10px) - var(--v-spread) - var(--handle-size, 10px) / 2);
 }
-.symbol .resizer.bottom-left, .symbol .resizer.bottom-right {
+.mark .resizer.bottom-left, .mark .resizer.bottom-right {
   --v-spread: max(calc((var(--handle-size, 10px) + 3px) / 2), calc(var(--half-height, 10px) - 1px));
   bottom: calc(var(--half-height, 10px) - var(--v-spread) - var(--handle-size, 10px) / 2);
 }
@@ -310,5 +310,5 @@
   .element::after { inset: -8px; }
   .element.active::after { inset: -16px; }
   .resizer::before { content: ''; position: absolute; inset: -18px; }
-  [data-editor-text] .resizer::before, .symbol .resizer::before { inset: calc((var(--handle-size, 10px) - 44px) / 2); }
+  [data-editor-text] .resizer::before, .mark .resizer::before { inset: calc((var(--handle-size, 10px) - 44px) / 2); }
 }

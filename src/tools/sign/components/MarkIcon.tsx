@@ -1,6 +1,6 @@
-import type { SymbolMark } from '#editor/model/editorModel.ts';
+import type { MarkGlyph } from '#editor/model/editorModel.ts';
 
-/** The glyph for one symbol mark. Drawn by the placed mark's own switch and by
+/** The glyph for one mark. Drawn by the placed mark's own switch and by
  * the toolbar's Mark button, so both always show the same shapes. Kebab-case
  * attributes: raw Preact ignores camelCase SVG ones. */
 export default function MarkIcon({
@@ -8,7 +8,7 @@ export default function MarkIcon({
   size = 14,
   strokeWidth = 3,
 }: {
-  mark: SymbolMark;
+  mark: MarkGlyph;
   size?: number;
   strokeWidth?: number;
 }) {

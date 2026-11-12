@@ -1,4 +1,4 @@
-import type { SymbolMark, TextAlign, TextDirection } from './editorModel.ts';
+import type { MarkGlyph, TextAlign, TextDirection } from './editorModel.ts';
 
 // SIGN-33: the one style a person dials in while filling a document, carried
 // from field to field and round-tripped with the document's draft - exactly
@@ -26,7 +26,8 @@ export interface DocumentStyle {
   italic: boolean;
   /** A `DateFormatId` (`editor/text/dateFormat.ts`), kept as a plain string - see header comment. */
   dateFormat: string;
-  symbolMark: SymbolMark;
+  // Stored name: app style keeps symbolMark/symbolWidth so a style from any version still loads (SIGN-50).
+  symbolMark: MarkGlyph;
   symbolWidth: number;
   strokeWidth: number;
   whiteoutColor: string;

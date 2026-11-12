@@ -68,9 +68,9 @@ interface CreateContext {
   font: string;
   fontSize: number;
   direction: 'ltr' | 'rtl' | null;
-  symbolWidth?: number;
-  symbolHeight?: number;
-  symbolMark?: 'check' | 'x' | 'dot';
+  markWidth?: number;
+  markHeight?: number;
+  markGlyph?: 'check' | 'x' | 'dot';
   /** Height of an empty one-line text box, as a % of page height. */
   textHeight?: number;
 }
@@ -197,8 +197,8 @@ export interface ViewFlags {
   isLine?: boolean;
   /** Box-style CSS Module modifier (4/8-handle resize chrome) - rectangle/ellipse/whiteout. */
   isShape?: boolean;
-  /** Aspect-locked symbol CSS Module modifier. */
-  isSymbol?: boolean;
+  /** Aspect-locked mark CSS Module modifier. */
+  isMark?: boolean;
   /** RTL text anchors its right edge (`right` instead of `left`) as it grows. */
   usesRtlAnchoring?: boolean;
   /** Width/height come from CSS intrinsic sizing (`auto`), not `element.width`/`height` (text). */

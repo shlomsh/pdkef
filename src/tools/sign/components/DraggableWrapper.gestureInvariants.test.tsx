@@ -8,7 +8,7 @@ import DraggableWrapper from './DraggableWrapper.tsx';
 import ShapeNode from './nodes/ShapeNode.tsx';
 import LineNode from './nodes/LineNode.tsx';
 import TextNode from './nodes/TextNode.tsx';
-import SymbolNode from './nodes/SymbolNode.tsx';
+import MarkNode from './nodes/MarkNode.tsx';
 import SignatureNode from './nodes/SignatureNode.tsx';
 import type {
   EditorElement,
@@ -17,7 +17,7 @@ import type {
   LineElement,
   RectangleElement,
   SignatureElement,
-  SymbolElement,
+  MarkElement,
   TextElement,
 } from '#editor/model/editorModel.ts';
 
@@ -56,8 +56,8 @@ function textNode(element: TextElement) {
   return <TextNode element={element} isActive={false} isEditing={false} onChange={() => {}} onSelect={() => {}} onBeginEdit={() => {}} onResizeStart={() => {}} pageWidthPoints={600} />;
 }
 
-function symbolNode(element: SymbolElement) {
-  return <SymbolNode element={element} isActive={false} onResizeStart={() => {}} />;
+function markNode(element: MarkElement) {
+  return <MarkNode element={element} isActive={false} onResizeStart={() => {}} />;
 }
 
 function signatureNode(element: SignatureElement) {
@@ -80,7 +80,7 @@ function text(overrides: Omit<TextElement, 'pageIndex' | 'type'>): TextElement {
   return { pageIndex: 0, type: 'text', ...overrides };
 }
 
-function symbol(overrides: Omit<SymbolElement, 'pageIndex' | 'type'>): SymbolElement {
+function markEl(overrides: Omit<MarkElement, 'pageIndex' | 'type'>): MarkElement {
   return { pageIndex: 0, type: 'symbol', ...overrides };
 }
 
@@ -95,7 +95,7 @@ function signature(overrides: Omit<SignatureElement, 'pageIndex' | 'type'>): Sig
 // — (1) move changes only position, (2) resize preserves the un-dragged
 // anchor edge/endpoint/center, (3) a zero-delta resize is a no-op — to every
 // OTHER resizable element type: rectangle/ellipse ("shape"), text, line,
-// symbol, signature.
+// mark, signature.
 //
 // Every test below mounts inside a page wrapper with a MOCKED, non-degenerate
 // 600x800 `getBoundingClientRect` (matching the 600x800 / 500x1000 mocks
@@ -450,18 +450,18 @@ describe('DraggableWrapper gesture invariants (E1.5)', () => {
   });
 
   // ===========================================================================
-  // 4/5. SYMBOL & SIGNATURE — the one type family that legitimately does NOT
+  // 4/5. MARK & SIGNATURE — the one type family that legitimately does NOT
   //    preserve an edge on resize: DraggableWrapper.tsx:289-301 grows/shrinks
   //    these around their CENTER on purpose (both edges move symmetrically).
   //    Their "anchor" invariant is therefore center-preservation, not
   //    edge-preservation — asserted as tight equality on the midpoint, away
   //    from the page-edge clamp so the center math itself is exercised.
   // ===========================================================================
-  describe('symbol (center-anchored resize)', () => {
+  describe('mark (center-anchored resize)', () => {
     it('move: drag commits exactly the delta and leaves width/height untouched', () => {
       const onChange = vi.fn();
-      const element = symbol({ id: 'sym-move', symbolType: 'check', left: 40, top: 40, width: 20, height: 15, aspectRatio: 1 });
-      const { wrapper, box } = mountInPageWrapper(element, symbolNode(element), { onChange });
+      const element = markEl({ id: 'sym-move', symbolType: 'check', left: 40, top: 40, width: 20, height: 15, aspectRatio: 1 });
+      const { wrapper, box } = mountInPageWrapper(element, markNode(element), { onChange });
 
       act(() => {
         box.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, clientX: 100, clientY: 100 }));
@@ -484,8 +484,8 @@ describe('DraggableWrapper gesture invariants (E1.5)', () => {
       // resize is genuinely a no-op below, and this test's growth starts
       // from a self-consistent box rather than one the code would "correct"
       // regardless of drag input.
-      const element = symbol({ id: 'sym-anchor', symbolType: 'check', left: 40, top: 40, width: 20, height: 15, aspectRatio: 1 });
-      const { wrapper, box } = mountInPageWrapper(element, symbolNode(element), { onChange });
+      const element = markEl({ id: 'sym-anchor', symbolType: 'check', left: 40, top: 40, width: 20, height: 15, aspectRatio: 1 });
+      const { wrapper, box } = mountInPageWrapper(element, markNode(element), { onChange });
       const corner = box.querySelector('[data-editor-resizer="bottom-right"]');
 
       const startCenterX = element.left + element.width / 2; // 50
@@ -509,8 +509,8 @@ describe('DraggableWrapper gesture invariants (E1.5)', () => {
 
     it('zero-delta resize is a no-op', () => {
       const onChange = vi.fn();
-      const element = symbol({ id: 'sym-zero', symbolType: 'check', left: 40, top: 40, width: 20, height: 15, aspectRatio: 1 });
-      const { wrapper, box } = mountInPageWrapper(element, symbolNode(element), { onChange });
+      const element = markEl({ id: 'sym-zero', symbolType: 'check', left: 40, top: 40, width: 20, height: 15, aspectRatio: 1 });
+      const { wrapper, box } = mountInPageWrapper(element, markNode(element), { onChange });
       const corner = box.querySelector('[data-editor-resizer="top-left"]');
 
       act(() => {
@@ -528,7 +528,7 @@ describe('DraggableWrapper gesture invariants (E1.5)', () => {
     });
   });
 
-  describe('signature (center-anchored resize, same branch as symbol)', () => {
+  describe('signature (center-anchored resize, same branch as mark)', () => {
     it('move: drag commits exactly the delta and leaves width/height untouched', () => {
       const onChange = vi.fn();
       const element = signature({ id: 'sig-move', dataUrl: 'data:image/png;base64,x', left: 30, top: 30, width: 24, height: 18, aspectRatio: 1 });

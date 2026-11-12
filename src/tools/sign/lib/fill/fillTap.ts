@@ -49,7 +49,7 @@ export interface FillTapInput {
    * from under another field's keyboard.
    */
   elementFillKey: string | null;
-  /** The tap landed on an existing mark (`[data-editor-symbol]`, e.g. a placed ✓). */
+  /** The tap landed on an existing mark (`[data-editor-mark]`, e.g. a placed ✓). */
   onMark: boolean;
   /** A text session is open somewhere on the page. */
   typing: boolean;

@@ -1187,7 +1187,7 @@
   opacity: calc(var(--p-fill-name, 1) - var(--p-check-1, 1));
 }
 
-.tool-chip-symbols {
+.tool-chip-mark {
   opacity: calc(var(--p-check-1, 1) - var(--p-sign, 1));
 }
 

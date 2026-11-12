@@ -276,7 +276,7 @@ export default function DraggableWrapper<T extends EditorElement>({
   // textAnchorsRightEdge is the one answer to "which edge is `left`".
   const isLine = !!view.isLine;
   const isShape = !!view.isShape;
-  const isSymbol = !!view.isSymbol;
+  const isMark = !!view.isMark;
   const style = element.type === 'line' ? {
     left: 0,
     top: 0,
@@ -307,12 +307,12 @@ export default function DraggableWrapper<T extends EditorElement>({
         elementRef.current = node;
         if (node) toolbar.setReference(node);
       }}
-      className={[elementStyles.element, isActive && elementStyles.active, isSymbol && elementStyles.symbol, isShape && elementStyles.shape, isLine && elementStyles.line].filter(Boolean).join(' ')}
+      className={[elementStyles.element, isActive && elementStyles.active, isMark && elementStyles.mark, isShape && elementStyles.shape, isLine && elementStyles.line].filter(Boolean).join(' ')}
       data-editor-element-id={element.id}
       data-editor-element
       data-editor-active={isActive || undefined}
       data-editor-shape={isShape || undefined}
-      data-editor-symbol={isSymbol || undefined} data-editor-highlight={element.type === 'highlight' || undefined}
+      data-editor-mark={isMark || undefined} data-editor-highlight={element.type === 'highlight' || undefined}
       // Text's side resize handles are mid-edge (unlike the box types' bottom-
       // corner default), and are always present now - see EditorElement's
       // `[data-editor-text] .resizer.left/.right`.

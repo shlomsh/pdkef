@@ -102,7 +102,7 @@ describe('useEditorDraftPersistence - restore migrates and validates', () => {
     expect(restored).toBe(true);
   });
 
-  it('restores a checkbox-sized symbol mark with its snapped geometry intact', async () => {
+  it('restores a checkbox-sized mark with its snapped geometry intact', async () => {
     const fileBytes = new TextEncoder().encode('%PDF-1.4').buffer;
     const checkboxMark = {
       id: 'health-checkbox-1', type: 'symbol', pageIndex: 0,

@@ -680,7 +680,7 @@ describe('PdfSignTool UI flow', () => {
     expect(elements.length).toBe(2);
   });
 
-  it('supports placing a symbol element', async () => {
+  it('supports placing a mark element', async () => {
     container = document.createElement('div');
     document.body.appendChild(container);
     act(() => {
@@ -697,15 +697,15 @@ describe('PdfSignTool UI flow', () => {
       await new Promise((resolve) => setTimeout(resolve, 50));
     });
 
-    // Select symbol tool
+    // Select mark tool
     const toolbarButtons = container.querySelectorAll<HTMLButtonElement>('[role="toolbar"] button');
     
     await act(async () => {
-      // Index 0 is Text, Index 1 is Symbol
+      // Index 0 is Text, Index 1 is Mark
       toolbarButtons[1].click();
     });
 
-    // Click on page overlay to place symbol element
+    // Click on page overlay to place mark element
     const overlay = query<HTMLElement>(container, '[data-page-overlay]');
     await act(async () => {
       overlay.dispatchEvent(new MouseEvent('click', { clientX: 200, clientY: 200, bubbles: true }));
@@ -715,7 +715,7 @@ describe('PdfSignTool UI flow', () => {
     const elements = container.querySelectorAll('[data-editor-element]');
     expect(elements.length).toBe(1);
     
-    // Check if it's a symbol (contains an SVG or symbol character)
+    // Check if it's a mark (contains an SVG or mark character)
     expect(elements[0].innerHTML).toContain('svg');
   });
 

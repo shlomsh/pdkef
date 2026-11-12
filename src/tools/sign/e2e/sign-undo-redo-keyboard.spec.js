@@ -83,11 +83,11 @@ async function distanceFrom(page, id, rect) {
 /** Places a Mark-tool element (no textarea involved, so focus never lands
  * on an INPUT/TEXTAREA and the undo/redo shortcut listener stays live). */
 async function addSymbol(page, xRatio, yRatio) {
-  const symbolTool = page
+  const markTool = page
     .getByRole('toolbar', { name: 'PDF annotations' })
     .getByRole('button', { name: 'Mark', exact: true });
-  if ((await symbolTool.getAttribute('aria-pressed')) !== 'true') {
-    await symbolTool.click();
+  if ((await markTool.getAttribute('aria-pressed')) !== 'true') {
+    await markTool.click();
   }
   await clickOverlayAt(page, xRatio, yRatio);
   const placed = page.locator('[data-editor-element][data-editor-active]');

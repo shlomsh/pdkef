@@ -69,7 +69,7 @@ The `type === 'line'` / `!isLine` / `isShape` / `symbol||signature` branching in
 | `text` | 4 corners | Scale `fontSize` by drag projected on box diagonal; adjust `left`/`top` to hold the anchor edge; RTL anchors via CSS `right`. `MIN/MAX_FONT_SIZE_PT`. | Click-place; `autoFocus`; inherits last text size/color/font/direction |
 | `rectangle` / `ellipse` | 4 edges + 4 corners | Per-handle dimension cap vs anchor edge; `MIN/MAX_SHAPE_SIZE_PCT`; derives `left`/`top` from new dim on left/top handles | Drag-drawn; `ENSURE_MINIMUM_SIZE` on release |
 | `whiteout` | 4 edges + 4 corners | **Same** as rectangle/ellipse (shared branch today) | Drag-drawn; own default color, **not** shape/text color |
-| `symbol` | 4 corners | Center-anchored, aspect-ratio-locked; min **pixel** floor (`MIN_SYMBOL_WIDTH_PX`), `MAX_SYMBOL_WIDTH_PCT` | Click-place; square-ish via `ASPECT_RATIO_SYMBOL` |
+| `mark` | 4 corners | Center-anchored, aspect-ratio-locked; min **pixel** floor (`MIN_MARK_WIDTH_PX`), `MAX_MARK_WIDTH_PCT` | Click-place; square-ish via `ASPECT_RATIO_MARK` |
 | `signature` | 4 corners | Center-anchored, aspect-ratio-locked; `MAX_SHAPE_SIZE_PCT` ceiling (freeform ink, not a checkbox-sized mark) | Click-place (or dialog if none active) |
 | `line` | `line-start` / `line-end` endpoint handles | Move the dragged endpoint only (no bbox); `MIN_LINE_LENGTH_PCT` reset on release | Drag-drawn from a point |
 
@@ -139,7 +139,7 @@ src/editor/
     pointer.ts          # getPointerCoords + mouse/touch listener attach/detach (from usePdfCoordinates)
   registry/
     index.ts            # ElementTypeRegistry: type -> ElementModule (E4.3)
-    text.ts  shape.ts  symbol.ts  signature.ts  line.ts  whiteout.ts  blackout.ts  blur.ts
+    text.ts  shape.ts  mark.ts  signature.ts  line.ts  whiteout.ts  blackout.ts  blur.ts
   workspace/
     loadPdf.ts          # race-guarded loader + timeout (E4.4)
     substrate.ts        # shared load/render/draft orchestration seam (E4.4)
@@ -277,8 +277,8 @@ components), `serialize` (the existing `sign.js` bake behavior), and `schema`. `
   from a measured rect, and RTL anchors via CSS `right`. Its `resizeBehavior.apply` needs the measured
   start size + direction in its context, not just numeric geometry. Keep that measurement read-only at
   pointer-down (CLAUDE.md Part II §5 "measure-then-mutate drift").
-- **Symbol's min-size floor is in *pixels*, not %** — the module must receive the page-wrapper rect to
-  convert, exactly as `getWidthPercent(MIN_SYMBOL_WIDTH_PX, …)` does today.
+- **Mark's min-size floor is in *pixels*, not %** — the module must receive the page-wrapper rect to
+  convert, exactly as `getWidthPercent(MIN_MARK_WIDTH_PX, …)` does today.
 - **`symbolType` legacy alias** (`cross` → `x`) and the `mark` field: keep the module tolerant of both
   when reading, emit only `mark` when writing.
 

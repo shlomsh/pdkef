@@ -116,11 +116,11 @@ async function elementAndToolbarBoxes(element) {
 }
 
 async function addSymbol(page, xRatio, yRatio) {
-  const symbolTool = page
+  const markTool = page
     .getByRole('toolbar', { name: 'PDF annotations' })
     .getByRole('button', { name: 'Mark', exact: true });
-  if ((await symbolTool.getAttribute('aria-pressed')) !== 'true') {
-    await symbolTool.click();
+  if ((await markTool.getAttribute('aria-pressed')) !== 'true') {
+    await markTool.click();
   }
   await clickOverlayAt(page, xRatio, yRatio);
   const placed = page.locator('[data-editor-element][data-editor-active]');
@@ -143,18 +143,18 @@ test.describe('Sign editor browser guardrails', () => {
 
     const upperId = await addSymbol(page, 0.5, 0.4);
     // Placed second (so it paints above) and below the first, close enough that
-    // the old strip above it covered the upper symbol.
+    // the old strip above it covered the upper mark.
     const lowerId = await addSymbol(page, 0.5, 0.44);
     expect(upperId).not.toBe(lowerId);
 
-    // Escape clears both the tool and the selection, so the lower symbol's own
+    // Escape clears both the tool and the selection, so the lower mark's own
     // (visible, legitimately clickable) toolbar isn't what's under the pointer.
     await page.keyboard.press('Escape');
     await expect(page.locator('[data-editor-element][data-editor-active]')).toHaveCount(0);
 
     const upper = page.locator(`[data-editor-element-id="${upperId}"]`);
     const box = await upper.boundingBox();
-    if (!box) throw new Error('Upper symbol has no bounding box');
+    if (!box) throw new Error('Upper mark has no bounding box');
     await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
 
     await expect(upper).toHaveAttribute('data-editor-active', 'true');

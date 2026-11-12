@@ -1,9 +1,9 @@
-import type { SymbolMark } from '../model/editorModel.ts';
+import type { MarkGlyph } from '../model/editorModel.ts';
 
 /**
  * The geometry of the check, cross and dot marks, in one place.
  *
- * It used to be in two: `SymbolNode.tsx` drew an SVG path and `symbol.ts` drew
+ * It used to be in two: `MarkNode.tsx` drew an SVG path and `mark.ts` drew
  * pdf-lib lines, and the two had drifted. The editor's cross ran 6 to 18 of the
  * design box at stroke 2.5 while the exported one ran 4 to 20 at thickness 3 -
  * so the mark you placed was a third smaller than the mark you downloaded, on
@@ -29,14 +29,14 @@ interface MarkGeometry {
   disc?: { cx: number; cy: number; r: number };
 }
 
-const SYMBOL_MARKS: Record<SymbolMark, MarkGeometry> = Object.freeze({
+const MARK_GLYPHS: Record<MarkGlyph, MarkGeometry> = Object.freeze({
   check: { strokes: [[[4, 12], [9, 17], [20, 6]]], thickness: 3 },
   x: { strokes: [[[4, 4], [20, 20]], [[20, 4], [4, 20]]], thickness: 3 },
   dot: { strokes: [], thickness: 0, disc: { cx: 12, cy: 12, r: 8 } },
 });
 
-export function markGeometry(mark: SymbolMark | undefined): MarkGeometry {
-  return SYMBOL_MARKS[mark as SymbolMark] || SYMBOL_MARKS.check;
+export function markGeometry(mark: MarkGlyph | undefined): MarkGeometry {
+  return MARK_GLYPHS[mark as MarkGlyph] || MARK_GLYPHS.check;
 }
 
 interface InkExtent {
@@ -56,7 +56,7 @@ interface InkExtent {
  * the check is not centred in its own box - its ink sits half a unit high -
  * which no amount of centring the *box* will fix.
  */
-export function markInkExtent(mark: SymbolMark | undefined): InkExtent {
+export function markInkExtent(mark: MarkGlyph | undefined): InkExtent {
   const geometry = markGeometry(mark);
   if (geometry.disc) {
     const { cx, cy, r } = geometry.disc;
@@ -81,7 +81,7 @@ export function markInkExtent(mark: SymbolMark | undefined): InkExtent {
 }
 
 /** An SVG path `d` for the mark's strokes, for the editor's renderer. */
-export function markPathData(mark: SymbolMark | undefined): string {
+export function markPathData(mark: MarkGlyph | undefined): string {
   return markGeometry(mark).strokes
     .map((line) => line
       .map(([x, y], index) => `${index === 0 ? 'M' : 'L'}${x} ${y}`)

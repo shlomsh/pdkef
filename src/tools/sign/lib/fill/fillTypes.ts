@@ -62,11 +62,11 @@ export interface ReachTarget {
  * The armed tool as fill mode sees it (fillToolOf in fillTap.ts):
  * - 'none': nothing armed (SIGN-45). Makes no text: no fill input is reached and a tap on
  *   nothing opens no slot. It reaches only the detected tick boxes, where a tap runs
- *   production's own symbol path (the toggle).
+ *   production's own mark path (the toggle).
  * - 'text': Text explicitly armed. Reaches every fill input; a tap on nothing opens a
  *   free slot.
  * - 'date': reaches the empty detected slots only; production places the date at the slot's centre.
- * - 'mark': the symbol tool. Reaches the detected tick boxes; production places it at the box's centre.
+ * - 'mark': the mark tool. Reaches the detected tick boxes; production places it at the box's centre.
  * - 'other': everything else, which production handles itself.
  */
 export type FillTool = 'none' | 'text' | 'date' | 'mark' | 'other';

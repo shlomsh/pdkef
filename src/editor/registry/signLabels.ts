@@ -28,7 +28,7 @@ export function whiteoutColorLabels(t: SignMessages) {
 export function signElementTypeLabel(t: SignMessages, type: string): string {
   switch (type) {
     case 'text': return t.textButton;
-    case 'symbol': return t.symbolsButton;
+    case 'symbol': return t.markButton;
     case 'signature': return t.signButton;
     case 'whiteout': return t.whiteoutButton;
     case 'ellipse': return t.ellipseLabel;
