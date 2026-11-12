@@ -49,6 +49,11 @@ They also go to `/api/report`, like error reports, and are kept
 as daily counts by browser family and version for 90 days. The product does not depend on
 event delivery.
 
+Events sent to the optional second analytics destination (`analyticsSink`) also carry four coarse
+buckets: `device` (phone, tablet, desktop), `browser` (chrome, edge, firefox, safari, samsung, other),
+`os` (ios, android, windows, mac, linux, other) and `ref` (direct, internal, search, ai, social, other).
+Only the bucket is sent, never the user agent string or the referrer address.
+
 The first event of each kind a tool sends on a page also carries `first: true`, which counts
 page loads next to runs. It marks nothing about the person or the file.
 

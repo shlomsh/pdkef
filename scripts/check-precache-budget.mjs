@@ -42,7 +42,10 @@ export const BUDGETS = {
   // adds ~850 B to /shared/ui.js; measured 45,146 for /open/ with the real notes (45,200 approved).
   // MEM-45: owner-approved rise (2026-11-12): the first-view cohort (`since`) and the second-destination sender
   // add ~360 B; measured 45,504 for /open/ (45,600 approved).
-  other: 45_600, // was 45,200, 44,200, 42,000 before MEM-48 (measured 35,329 for /open/, +19%)
+  // MEM-45: owner-approved rise (2026-11-12): device, browser, operating system and referrer buckets on the
+  // second destination add ~610 B; measured 46,114 for /open/ (46,200 approved). MEM-50 looks at why every
+  // telemetry change lands on this page.
+  other: 46_200, // was 45,600, 45,200, 44,200, 42,000 before MEM-48 (measured 35,329 for /open/, +19%)
   // Not headroom: a decision (MEM-15, MEM-35). The worker installs only the tools a person uses, so a first
   // visit costs the `/` document plus one page's closure: the heaviest of those (see installPaths) stays under this.
   // MEM-35 lowered it from the whole-app 5,000,000 (3,203,299 measured, 183 urls) to the single-page line.

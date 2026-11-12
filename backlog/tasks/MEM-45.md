@@ -23,6 +23,10 @@ depends_on: []
   alone fails the build). The address is a PDkef address and is not in the repo. A build without the
   variables sends nothing and keeps `connect-src 'self'`, so forks and CI send nothing. The CSP origin comes
   from `scripts/analyticsOrigin.mjs`, and `verify-csp.js` pins the exact `connect-src` list.
+- Events to the second destination also carry four coarse buckets, computed once per page load by pure
+  functions in `src/lib/telemetry/clientBuckets.ts`: device (phone, tablet, desktop), browser family,
+  operating system and kind of referrer (direct, internal, search, ai, social, other). Only the bucket is
+  sent, never the user agent string or the referrer address.
 - Error reports, drop records and ratings go to `/api/report` only.
 
 ## Constraints that stand

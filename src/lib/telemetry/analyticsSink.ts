@@ -2,9 +2,11 @@
  * MEM-45: an optional second destination for usage and maintenance events, an analytics host named
  * by build-time variables. With either unset nothing is sent. Error reports, drop records and
  * ratings never come here. The capture carries the event, a random id that lives only in this page
- * load's memory, and the page's origin and path: no query, fragment, referrer or user agent.
+ * load's memory, the page's origin and path, and four coarse buckets (device class, browser family,
+ * operating system, kind of referrer): no query, fragment, referrer address or user agent string.
  */
 
+import { type ClientBuckets, clientBuckets } from './clientBuckets.ts';
 import { canSend } from './errorReport.ts';
 
 interface SinkEvent {
@@ -18,6 +20,7 @@ interface SinkContext {
   now: Date;
   origin: string;
   pathname: string;
+  client: ClientBuckets;
 }
 
 /**
@@ -50,6 +53,7 @@ export function toCapture(event: SinkEvent, ctx: SinkContext): object {
     timestamp: ctx.now.toISOString(),
     properties: {
       ...event.properties,
+      ...ctx.client,
       $process_person_profile: false,
       $current_url: ctx.origin + ctx.pathname,
       $pathname: ctx.pathname,
@@ -59,6 +63,7 @@ export function toCapture(event: SinkEvent, ctx: SinkContext): object {
 
 // One id per page load, in memory only: never written to any storage.
 let pageLoadId: string | null | undefined;
+let buckets: ClientBuckets | undefined;
 
 function makeId(): string | null {
   if (typeof crypto?.randomUUID === 'function') return crypto.randomUUID();
@@ -71,6 +76,7 @@ function makeId(): string | null {
 /** @testSeam */
 export function resetSinkForTests(): void {
   pageLoadId = undefined;
+  buckets = undefined;
 }
 
 /** Hands one event to the analytics host by beacon. False when unconfigured or not sendable; never throws. */
@@ -80,12 +86,20 @@ export function sendToSink(event: SinkEvent): boolean {
     if (!config || !canSend()) return false;
     pageLoadId ??= makeId();
     if (!pageLoadId) return false;
+    buckets ??= clientBuckets({
+      ua: navigator.userAgent ?? '',
+      width: typeof screen === 'object' ? Math.min(screen.width, screen.height) : 0,
+      coarse: typeof matchMedia === 'function' && matchMedia('(pointer: coarse)').matches,
+      referrer: typeof document === 'object' ? document.referrer : '',
+      host: location.hostname,
+    });
     const capture = toCapture(event, {
       key: config.key,
       id: pageLoadId,
       now: new Date(),
       origin: location.origin,
       pathname: location.pathname,
+      client: buckets,
     });
     return navigator.sendBeacon(`${config.host}/i/v0/e/`, new Blob([JSON.stringify(capture)], { type: 'text/plain' }));
   } catch {

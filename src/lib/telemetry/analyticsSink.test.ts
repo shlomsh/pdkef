@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { setReportingEnabledForTests } from './errorReport.ts';
 import { readSinkConfig, resetSinkForTests, sendToSink, toCapture } from './analyticsSink.ts';
 
+const CLIENT = { device: 'phone', browser: 'safari', os: 'ios', ref: 'search' } as const;
 const EVENT = { name: 'tool_page_viewed', properties: { tool: 'merge', visit: 'new', since: 'first' } };
 
 describe('readSinkConfig', () => {
@@ -21,7 +22,7 @@ describe('readSinkConfig', () => {
 describe('toCapture', () => {
   it('carries the event, a page-load id and the path, nothing else', () => {
     const now = new Date('2026-11-12T10:00:00.000Z');
-    expect(toCapture(EVENT, { key: 'k', id: 'abc', now, origin: 'https://pdkef.com', pathname: '/merge/' })).toEqual({
+    expect(toCapture(EVENT, { key: 'k', id: 'abc', now, origin: 'https://pdkef.com', pathname: '/merge/', client: CLIENT })).toEqual({
       api_key: 'k',
       event: 'tool_page_viewed',
       distinct_id: 'abc',
@@ -30,11 +31,23 @@ describe('toCapture', () => {
         tool: 'merge',
         visit: 'new',
         since: 'first',
+        ...CLIENT,
         $process_person_profile: false,
         $current_url: 'https://pdkef.com/merge/',
         $pathname: '/merge/',
       },
     });
+  });
+});
+
+describe('toCapture client buckets', () => {
+  it('lets the context win over event properties', () => {
+    const now = new Date('2026-11-12T10:00:00.000Z');
+    const ctx = { key: 'k', id: 'abc', now, origin: 'https://pdkef.com', pathname: '/merge/', client: CLIENT };
+    const capture = toCapture({ name: 'x', properties: { device: 'desktop', ref: 'direct', tool: 'merge' } }, ctx) as {
+      properties: Record<string, unknown>;
+    };
+    expect(capture.properties).toMatchObject({ ...CLIENT, tool: 'merge' });
   });
 });
 
@@ -44,7 +57,11 @@ describe('sendToSink', () => {
     beacon = vi.fn(() => true);
     Object.defineProperty(navigator, 'sendBeacon', { value: beacon, configurable: true, writable: true });
     setReportingEnabledForTests(true);
-    vi.stubGlobal('location', { origin: 'https://pdkef.com', pathname: '/merge/' });
+    vi.stubGlobal('location', { origin: 'https://pdkef.com', pathname: '/merge/', hostname: 'pdkef.com' });
+    vi.stubGlobal('screen', { width: 390, height: 844 });
+    vi.stubGlobal('matchMedia', () => ({ matches: true }));
+    vi.stubGlobal('document', { referrer: 'https://www.google.com/' });
+    vi.stubGlobal('navigator', { userAgent: 'Mozilla/5.0 (iPhone) Safari/604', sendBeacon: beacon });
     resetSinkForTests();
   });
   afterEach(() => {
@@ -71,7 +88,7 @@ describe('sendToSink', () => {
     expect(beacon.mock.calls[0][0]).toBe('https://e.example.test/i/v0/e/');
     expect((beacon.mock.calls[0][1] as Blob).type).toBe('text/plain');
     const first = await body(0);
-    expect(first).toMatchObject({ event: 'tool_page_viewed', api_key: 'k', properties: { $process_person_profile: false } });
+    expect(first).toMatchObject({ event: 'tool_page_viewed', api_key: 'k', properties: { $process_person_profile: false, device: 'phone', browser: 'safari', os: 'ios', ref: 'search' } });
     expect(first.distinct_id).toBeTruthy();
     expect((await body(1)).distinct_id).toBe(first.distinct_id);
     resetSinkForTests();
@@ -92,5 +109,29 @@ describe('sendToSink', () => {
       throw new Error('boom');
     });
     expect(sendToSink(EVENT)).toBe(false);
+  });
+
+  it('still sends when matchMedia, screen and document are missing', async () => {
+    configure();
+    vi.stubGlobal('matchMedia', undefined);
+    vi.stubGlobal('screen', undefined);
+    vi.stubGlobal('document', undefined);
+    expect(sendToSink(EVENT)).toBe(true);
+    expect(await body(0)).toMatchObject({ properties: { device: 'desktop', ref: 'direct' } });
+  });
+
+  it('computes the buckets once per page load', async () => {
+    configure();
+    sendToSink(EVENT);
+    vi.stubGlobal('navigator', { userAgent: 'Mozilla/5.0 Firefox/121.0', sendBeacon: beacon });
+    sendToSink(EVENT);
+    expect((await body(1)).properties.browser).toBe('safari');
+  });
+
+  it('reads nothing from the browser while unconfigured', () => {
+    const ua = vi.fn(() => 'x');
+    vi.stubGlobal('navigator', { get userAgent() { return ua(); }, sendBeacon: beacon });
+    expect(sendToSink(EVENT)).toBe(false);
+    expect(ua).not.toHaveBeenCalled();
   });
 });

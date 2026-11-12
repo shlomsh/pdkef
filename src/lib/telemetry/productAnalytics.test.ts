@@ -22,6 +22,13 @@ let beacon: ReturnType<typeof vi.fn>;
 // One page view goes out after the load event and the measures settle, a few microtasks on.
 const settleTick = () => new Promise((resolve) => setTimeout(resolve, 0));
 
+function stubBrowser() {
+  vi.stubGlobal('location', { origin: 'https://pdkef.com', pathname: '/merge/', hostname: 'pdkef.com' });
+  vi.stubGlobal('screen', { width: 1280, height: 800 });
+  vi.stubGlobal('matchMedia', () => ({ matches: false }));
+  vi.stubGlobal('document', { referrer: '' });
+}
+
 beforeEach(() => {
   beacon = vi.fn(() => true);
   Object.defineProperty(navigator, 'sendBeacon', { value: beacon, configurable: true, writable: true });
@@ -40,7 +47,7 @@ describe('analytics sink', () => {
   it('sends a page view to /api/report, then to the sink address when one is configured', async () => {
     vi.stubEnv('PUBLIC_ANALYTICS_HOST', 'https://e.example.test');
     vi.stubEnv('PUBLIC_ANALYTICS_KEY', 'k');
-    vi.stubGlobal('location', { origin: 'https://pdkef.com', pathname: '/merge/' }); // plain node has none
+    stubBrowser(); // plain node has none
     reportToolLifecycleEvent('tool_page_viewed', 'merge');
     await settleTick();
     expect(beacon).toHaveBeenCalledTimes(2);
@@ -54,7 +61,7 @@ describe('analytics sink follows the first beacon', () => {
   beforeEach(() => {
     vi.stubEnv('PUBLIC_ANALYTICS_HOST', 'https://e.example.test');
     vi.stubEnv('PUBLIC_ANALYTICS_KEY', 'k');
-    vi.stubGlobal('location', { origin: 'https://pdkef.com', pathname: '/merge/' });
+    stubBrowser();
   });
 
   it('makes no second call when the first beacon is refused', () => {
