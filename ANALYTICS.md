@@ -189,7 +189,7 @@ additions if their question remains unanswered:
 
 | Date | Decision | Reason |
 | --- | --- | --- |
-| 2026-09-09 | Use Vercel Analytics and Speed Insights; do not add analytics-service/replay. | PDKef handles sensitive documents locally and needs aggregate product-health signals, not behavioural surveillance. |
+| 2026-09-09 | Use Vercel Analytics and Speed Insights; do not add a product analytics suite or session replay. | PDKef handles sensitive documents locally and needs aggregate product-health signals, not behavioural surveillance. |
 | 2026-09-09 | Remove the 10% sampling rate for approved maintenance events. | Traffic is low enough that complete aggregate counts are more useful and remain within the privacy boundary. |
 | 2026-09-09 | Start with four lifecycle events and one closed `tool` property. | This supports tool usage, aggregate funnel stages, success, and failure while minimising collection and keeping Vercel breakdowns usable. |
 | 2026-09-13 | Merge (MERGE-12) counts `tool_operation_started` on the Download tap, `tool_result_ready` when that tapped download is delivered, and `tool_operation_failed` on each entry into its error state; pre-merges on idle are not counted. | The explicit Merge step was removed, so the person's intent now lives in the Download tap, which is what `tool_operation_started` measured before. Counting every idle pre-merge would inflate "started" with work nobody asked for (each list change restarts one) and make the accepted to started to ready funnel in MERGE-16 incomparable with the pre-change baseline. Flagged for Shlomi. |
