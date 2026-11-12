@@ -73,12 +73,6 @@ export const RUNTIME_LICENSE_PACKAGES = [
     "url": "https://vercel.com/docs/functions/functions-api-reference/vercel-functions-package"
   },
   {
-    "name": "@vercel/speed-insights",
-    "version": "2.0.0",
-    "license": "Apache-2.0",
-    "url": "https://github.com/vercel/speed-insights"
-  },
-  {
     "name": "astro",
     "version": "7.4.5",
     "license": "MIT",

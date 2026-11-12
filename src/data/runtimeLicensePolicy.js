@@ -27,7 +27,7 @@ export const APPROVED_RUNTIME_LICENSES = new Set([
 // inventory is scoped to.
 export const RUNTIME_ROOT_PACKAGES = [
   '@astrojs/preact', '@cantoo/pdf-lib', '@floating-ui/dom', '@floating-ui/react', '@pdf-lib/fontkit',
-  '@vercel/analytics', '@vercel/functions', '@vercel/speed-insights', 'astro', 'bidi-js', 'lucide-preact',
+  '@vercel/analytics', '@vercel/functions', 'astro', 'bidi-js', 'lucide-preact',
   'country-flag-icons', 'iso-3166-2',
   'pdfjs-dist', 'preact', 'regenerator-runtime', 'roughjs', 'signature_pad', 'sortablejs',
 ];

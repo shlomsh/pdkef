@@ -45,7 +45,7 @@ import { entryFileName, chunkFileName, assetFileName, cssAssetKeys, cssModuleCla
 // A group named `x` is the file /shared/x.js (MEM-25, MEM-31); check-lazy-modules.js keys on these names.
 const EDITOR_TOOLS = new Set(['sign', 'redact', 'highlight']);
 const ISLAND_KINDS = new Set(['home', 'open', 'widgets', 'client']);
-const SITE_WIDE_ENTRY = /BaseLayout|DocumentationLanguageSelector|@vercel[\\/]speed-insights/;
+const SITE_WIDE_ENTRY = /BaseLayout|DocumentationLanguageSelector/;
 const CLIENT_ENTRY = /@astrojs[\\/]preact/;
 // The entries linked from `/` and `/he/` and from no other page, read off dist/site/. Every other page script
 // (OfflineProof, VideoPoster, PinnedNotes, the per-page index scripts) also runs on tool pages, so it counts as
