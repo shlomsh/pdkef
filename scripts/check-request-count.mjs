@@ -27,12 +27,13 @@ const PAGES = ['/', '/redact/', '/sign/'];
 
 // Set to the measured figures. Budgets only go down.
 export const BUDGETS = {
-  '/': { firstVisit: 19, afterOpen: 9 },
+  // MEM-46 (2026-11-12): tools-late folded into tools-common and swInstallReport into site: 3 fewer requests on tool pages (43 to 40, 44 to 41: the two scripts and tools-late's stylesheet), 1 fewer after open on `/` (9 to 8).
+  '/': { firstVisit: 19, afterOpen: 8 },
   // MEM-43 (owner's decision, 2026-11-12): tool pages install on the first visit, so this rise is deliberate
   // (57 and 53). MEM-44 groups a tool's late code into a few files: 43 and 43.
-  '/redact/': { firstVisit: 43, afterOpen: 0 },
+  '/redact/': { firstVisit: 40, afterOpen: 0 },
   // MEM-44: Sign's third-party late code is its own file (sign-vendor.js), so one more request (44) buys a ~11 KB re-download, not ~279 KB, when Sign's code changes. Deliberate rise, owner's balance.
-  '/sign/': { firstVisit: 44, afterOpen: 0 },
+  '/sign/': { firstVisit: 41, afterOpen: 0 },
 };
 
 const WORKER_REQUESTS = ['/sw.js', '/precache-manifest.json'];

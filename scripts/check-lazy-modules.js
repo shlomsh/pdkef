@@ -233,12 +233,17 @@ for (const page of PAGES) {
  */
 const LATE = /^(?:[\w-]+-late|sign-vendor)\.js$/;
 // Every late bundle expected today. One going missing means a grouping rule broke, not that the code is gone.
-const EXPECTED_LATE = ['sign-late', 'sign-vendor', 'redact-late', 'scan-late', 'compress-late', 'merge-late', 'highlight-late', 'editor-late', 'tools-late'];
+const EXPECTED_LATE = ['sign-late', 'sign-vendor', 'redact-late', 'scan-late', 'compress-late', 'merge-late', 'highlight-late', 'editor-late'];
 const EDITOR_TOOL_BUNDLES = ['sign-tool.js', 'redact-tool.js', 'highlight-tool.js'];
 const ENGINE = /^(?:pdf|pdf-lib)\.js$|[Ww]orker/;
 // Set to the measured counts. Budgets only go down. A page with no entry is not an island page and has 1.
-const LAZY_FILE_BUDGET = { '': 3, he: 3, sign: 7, 'he/sign': 7, redact: 6, 'highlight-pdf': 6, merge: 5, 'he/merge': 5, compress: 5, 'he/compress': 5, 'compress-image': 5, 'scan-to-pdf': 5, split: 4, unlock: 4, 'image-to-pdf': 4, 'organize-pdf': 4, 'rotate-pdf': 4, 'remove-pages': 4, 'add-page-numbers-to-pdf': 4, 'extract-pdf-pages': 4, 'pdf-to-image': 4, 'he/split': 4, 'he/image-to-pdf': 4, 'he/pdf-to-image': 4 };
+const LAZY_FILE_BUDGET = { '': 2, he: 2, sign: 5, 'he/sign': 5, redact: 4, 'highlight-pdf': 4, merge: 3, 'he/merge': 3, compress: 3, 'he/compress': 3, 'compress-image': 3, 'scan-to-pdf': 3, split: 2, unlock: 2, 'image-to-pdf': 2, 'organize-pdf': 2, 'rotate-pdf': 2, 'remove-pages': 2, 'add-page-numbers-to-pdf': 2, 'extract-pdf-pages': 2, 'pdf-to-image': 2, 'he/split': 2, 'he/image-to-pdf': 2, 'he/pdf-to-image': 2 };
 
+// MEM-46: tools-late was folded into tools-common and swInstallReport into site; a regrouping that builds either
+// file again undoes it (two more requests on every first visit).
+for (const folded of [['tools-late', 'tools-common'], ['swInstallReport', 'site']]) {
+  if (built.includes(`${folded[0]}.js`)) errors.push(`dist/shared/${folded[0]}.js exists: folded into ${folded[1]} by MEM-46, a regrouping undid it.`);
+}
 const lateBuilt = built.filter((file) => LATE.test(file));
 for (const name of EXPECTED_LATE) {
   if (!lateBuilt.includes(`${name}.js`)) errors.push(`No dist/shared/${name}.js: a late bundle of astro.config.mjs (MEM-44) is not built, so its modules are loose files again.`);

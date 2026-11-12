@@ -25,7 +25,10 @@ import { entryFileName, chunkFileName, assetFileName, cssAssetKeys, cssModuleCla
 //   <tool>-late                 (MEM-44) late code, no entry reaches it statically, reached by one tool
 //   sign-vendor                 (MEM-44) the third-party half of Sign's late code (the font library and what it pulls in), its own file so an edit to Sign's code does not re-download it
 //   editor-late                 late code reached by Sign, Redact and Highlight only
-//   tools-late                  late code reached by other sets of tools
+//   (tools-late, MEM-46)        late code reached by other sets of tools is no group of its own: it is folded into
+//                               tools-common, and src/site-lib/swInstallReport.ts into site, so a tool page's install
+//                               fetches two files fewer (neither imports the PDF engine; check-lazy-modules.js
+//                               fails if either file is built again)
 //
 // Only `$initial` modules (statically reachable from some entry) are grouped. A module that is lazy today
 // keeps the chunk Rolldown gave it and never joins one a page loads eagerly: grouping makes a chunk eager as
@@ -90,7 +93,7 @@ const toolBundle = { name: (id, ctx) => { const name = bundleOf(id, ctx); return
 // MEM-44: the code a tool loads only when a file is opened ("late") is grouped by the same rule, so a tool's
 // worker install fetches a few files of its own instead of a dozen small ones. A late module is one no entry
 // reaches statically; it is named for the tools that reach it (by import() or import), `<tool>-late` for one,
-// `editor-late` for Sign, Redact and Highlight only, `tools-late` for any other set. A module the home page,
+// `editor-late` for Sign, Redact and Highlight only, `tools-late` for any other set (MEM-46: that one is built into tools-common). A module the home page,
 // /open/, the widgets, the island client, the Drive panel or the site scripts also reach stays ungrouped as
 // before. These groups carry no `$initial` tag, so this walks static importers to the entries itself and
 // returns no name for a module an entry reaches statically (the preload helper, once, made 421 KiB eager that
@@ -133,6 +136,13 @@ const lateToolBundle = { name: (id, ctx) => { const name = lateBundleOf(id, ctx)
 // so an edit to Sign's own late code re-downloads that whole file; this keeps it to Sign's ~20 KB.
 const signVendorBundle = { name: (id, ctx) => (id.includes('node_modules') && lateBundleOf(id, ctx) === 'sign-late' ? 'sign-vendor' : null), priority: 0.55 };
 
+// MEM-46: `bundle` plus the lazy modules `fold` names. The group has no `$initial` tag, so an initial module is
+// recognised here, the same way lateBundleOf does it.
+const foldedBundle = (name, priority, fold) => ({
+  name: (id, ctx) => ((bundleOf(id, ctx) === name && isReachedStatically(id, ctx)) || fold(id, ctx) ? name : null),
+  priority,
+});
+
 const clientCodeSplitting = {
   groups: [
     // Preact's runtime is on every page; its hooks and signals are loaded lazily by the site scripts, so
@@ -146,20 +156,21 @@ const clientCodeSplitting = {
     // pdf.js is deliberately not a group: naming it once folded Vite's `__vitePreload` helper into it, and
     // since the island bootstrap imports that statically, all 421 KiB became eager on every page.
     { name: 'pdf-lib', test: /node_modules[\\/]@cantoo[\\/]pdf-lib[\\/]/, priority: 11 },
-    bundle('site', 10),
+    // MEM-46: a same-named second group makes a second chunk, so `site` and `tools-common` are single untagged groups
+    // that test `$initial` themselves (isReachedStatically) and also take the late modules folded into them.
+    foldedBundle('site', 10, (id) => /[\\/]src[\\/]site-lib[\\/]swInstallReport\.ts$/.test(id)),
     bundle('islands-tools', 9),
     bundle('home-tools', 8.9),
     bundle('open-tools', 8.8),
     bundle('widgets-tools', 8.7),
     bundle('client-tools', 8.65),
-    bundle('tools-common', 8),
+    foldedBundle('tools-common', 8, (id, ctx) => lateBundleOf(id, ctx) === 'tools-late'),
     bundle('editor-core', 7),
     bundle('islands', 6),
     bundle('home', 5.9),
     bundle('open', 5.8),
     // One group per tool, below every shared group.
     toolBundle,
-    lateBundle('tools-late', 0.7),
     lateBundle('editor-late', 0.6),
     signVendorBundle,
     lateToolBundle,
