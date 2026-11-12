@@ -3,7 +3,7 @@ import {
   classifyRequests,
   collectPageMeasures,
   countBucket,
-  pageLoaded,
+  pageSettled,
   resetPagePerformanceForTests,
   timeBucket,
 } from './pagePerformance.ts';
@@ -63,21 +63,60 @@ describe('classifyRequests', () => {
   });
 });
 
-describe('pageLoaded', () => {
-  it('is ready at once when the document is complete, else waits for the load event', async () => {
-    vi.stubGlobal('document', { readyState: 'complete' });
-    await expect(pageLoaded()).resolves.toBeUndefined();
+describe('pageSettled', () => {
+  // A page and its window, as far as the function reads them: listeners it adds can be fired by name.
+  const page = (readyState: string, visibilityState = 'visible') => {
+    const listeners: Record<string, Array<() => void>> = {};
+    const on = (type: string, cb: () => void) => void (listeners[type] ??= []).push(cb);
+    const off = (type: string, cb: () => void) => void (listeners[type] = (listeners[type] ?? []).filter((l) => l !== cb));
+    const doc = { readyState, visibilityState, addEventListener: on, removeEventListener: off };
+    vi.stubGlobal('document', doc);
+    vi.stubGlobal('window', { addEventListener: on, removeEventListener: off });
+    return { doc, fire: (type: string) => (listeners[type] ?? []).slice().forEach((cb) => cb()), count: () => Object.values(listeners).flat().length };
+  };
 
-    let fire!: () => void;
-    vi.stubGlobal('document', { readyState: 'interactive' });
-    vi.stubGlobal('window', { addEventListener: (_: string, cb: () => void) => (fire = cb) });
-    let done = false;
-    const waiting = pageLoaded().then(() => { done = true; });
-    await Promise.resolve();
-    expect(done).toBe(false);
-    fire();
-    await waiting;
-    expect(done).toBe(true);
+  it('is loaded at once when the document is complete', async () => {
+    page('complete');
+    await expect(pageSettled()).resolves.toBe('loaded');
+  });
+
+  it('waits for the load event, then says loaded', async () => {
+    const p = page('interactive');
+    const settled = pageSettled();
+    p.fire('load');
+    await expect(settled).resolves.toBe('loaded');
+  });
+
+  it('says hidden when the page is hidden before load, by pagehide or by visibilitychange', async () => {
+    for (const type of ['pagehide', 'visibilitychange']) {
+      const p = page('interactive');
+      const settled = pageSettled();
+      p.doc.visibilityState = 'hidden';
+      p.fire(type);
+      await expect(settled).resolves.toBe('hidden');
+    }
+  });
+
+  it('does not call a visibilitychange to visible hidden', async () => {
+    const p = page('interactive', 'visible');
+    const settled = pageSettled();
+    p.fire('visibilitychange');
+    p.fire('load');
+    await expect(settled).resolves.toBe('loaded');
+  });
+
+  it('settles once: the other order and every listener are gone after the first', async () => {
+    const p = page('interactive');
+    const settled = pageSettled();
+    p.fire('pagehide');
+    p.fire('load');
+    await expect(settled).resolves.toBe('hidden');
+    expect(p.count()).toBe(0);
+  });
+
+  it('says hidden at once for a page already hidden and still loading', async () => {
+    page('loading', 'hidden');
+    await expect(pageSettled()).resolves.toBe('hidden');
   });
 });
 

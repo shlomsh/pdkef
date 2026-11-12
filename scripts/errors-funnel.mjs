@@ -172,10 +172,10 @@ export function driveSaveLines(results) {
 const COUNTS = ['0', '1', '2-5', '6-15', '16-30', '31-50', '51+'];
 const TIMES = ['le1s', 'le2.5s', 'le4s', 'gt4s'];
 // The first bucket that means "fix this" (MEM-45's list). `net` is read for returning views only (a visit that
-// is neither `new` nor absent); new views' net is shown with no flag.
-const FIX_FROM = { lcp: 'le4s', ready: 'le4s', open: 'le4s', export: 'gt4s', netReturning: '2-5', netNew: undefined, local: undefined };
-const MEASURES = [['lcp', TIMES], ['ready', TIMES], ['open', TIMES], ['export', TIMES], ['netReturning', COUNTS], ['netNew', COUNTS], ['local', COUNTS]];
-const COLUMNS = ['lcp', 'ready', 'open', 'export', 'net returning', 'net new', 'local'];
+// is neither `new` nor absent); new views' and visit-unknown views' net are shown with no flag.
+const FIX_FROM = { lcp: 'le4s', ready: 'le4s', open: 'le4s', export: 'gt4s', netReturning: '2-5', netNew: undefined, netUnknown: undefined, local: undefined };
+const MEASURES = [['lcp', TIMES], ['ready', TIMES], ['open', TIMES], ['export', TIMES], ['netReturning', COUNTS], ['netNew', COUNTS], ['netUnknown', COUNTS], ['local', COUNTS]];
+const COLUMNS = ['lcp', 'ready', 'open', 'export', 'net returning', 'net new', 'net, visit unknown', 'local'];
 
 /** The smallest bucket that holds at least three quarters of the counts; undefined with none. */
 export function percentileBucket(counts, order) {
@@ -205,7 +205,8 @@ function measuresByTool(result) {
     if (f.startsWith('perf:')) {
       const [tool, visit, net, local, lcp, ready] = f.slice(5).split(':');
       if (visit === 'new') put(tool, 'netNew', net);
-      else if (visit !== '-') put(tool, 'netReturning', net);
+      else if (visit === '-') put(tool, 'netUnknown', net);
+      else put(tool, 'netReturning', net);
       put(tool, 'local', local); put(tool, 'lcp', lcp); put(tool, 'ready', ready);
     } else if (f.startsWith('ms:')) {
       const [event, tool, bucket] = f.slice(3).split(':');

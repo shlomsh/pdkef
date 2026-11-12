@@ -27,6 +27,7 @@ const file = new File(['x'], 'form.pdf');
 // handleDownloadPdf does not await the export it starts, so let it finish before asserting.
 const settle = () => act(() => new Promise<void>((resolve) => setTimeout(resolve, 20)));
 const events = () => vi.mocked(reportToolLifecycleEvent).mock.calls.map(([name]) => name);
+const untimedFlags = () => vi.mocked(reportToolLifecycleEvent).mock.calls.map(([, , options]) => options);
 
 function Harness({ apiRef, share, preparedExportRef }: {
   apiRef: { current: SignExportApi };
@@ -79,6 +80,8 @@ describe('Sign export funnel events', () => {
     await act(() => api.current.handleDownloadPdf());
     expect(share.downloadPrepared).toHaveBeenCalled();
     expect(events()).toEqual(['tool_operation_started', 'tool_result_ready']);
+    // MEM-45: the pair is reported back to back, so it carries no time.
+    expect(untimedFlags()).toEqual([{ untimed: true }, { untimed: true }]);
   });
 
   it('counts a share of the file the background run prepared', async () => {

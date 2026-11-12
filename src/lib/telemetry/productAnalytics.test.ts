@@ -14,13 +14,13 @@ import {
 
 vi.mock('./pagePerformance.ts', async (importOriginal) => ({
   ...(await importOriginal<typeof import('./pagePerformance.ts')>()),
-  pageLoaded: vi.fn(async () => {}),
+  pageSettled: vi.fn(async () => 'loaded' as const),
   collectPageMeasures: vi.fn(async () => ({})),
 }));
 
 let beacon: ReturnType<typeof vi.fn>;
 // One page view goes out after the load event and the measures settle, a few microtasks on.
-const settle = () => new Promise((resolve) => setTimeout(resolve, 0));
+const settleTick = () => new Promise((resolve) => setTimeout(resolve, 0));
 
 beforeEach(() => {
   beacon = vi.fn(() => true);
@@ -142,10 +142,10 @@ describe('the funnel (DEBT-58)', () => {
   it('DEBT-61: the home page view carries the visit, and a tool page opened later that day reads today', async () => {
     vi.stubGlobal('localStorage', store());
     reportHomePageView();
-    await settle();
+    await settleTick();
     resetUsageEventsForTests(); // the next page load
     reportToolLifecycleEvent('tool_page_viewed', 'sign');
-    await settle();
+    await settleTick();
     expect(await props()).toEqual([
       { tool: 'home', first: true, visit: 'new' },
       { tool: 'sign', first: true, visit: 'today' },
@@ -157,7 +157,7 @@ describe('the funnel (DEBT-58)', () => {
     vi.stubGlobal('localStorage', ls);
     reportToolLifecycleEvent('tool_page_viewed', 'sign');
     reportToolLifecycleEvent('tool_page_viewed', 'sign');
-    await settle();
+    await settleTick();
     const [a, b] = await props();
     expect(a).toEqual({ tool: 'sign', first: true, visit: 'new' });
     expect(b.visit).toBe('new');
@@ -167,7 +167,7 @@ describe('the funnel (DEBT-58)', () => {
   it('omits visit without storage', async () => {
     vi.stubGlobal('localStorage', store(true));
     reportToolLifecycleEvent('tool_page_viewed', 'sign');
-    await settle();
+    await settleTick();
     expect((await props())[0]).toEqual({ tool: 'sign', first: true });
   });
 
@@ -244,15 +244,15 @@ describe('performance measures (MEM-45)', () => {
 
   it('a tool page view waits for the window load, then sends once with the measures and ready', async () => {
     let load!: () => void;
-    vi.mocked(pagePerformance.pageLoaded).mockReturnValueOnce(new Promise<void>((resolve) => (load = resolve)));
+    vi.mocked(pagePerformance.pageSettled).mockReturnValueOnce(new Promise<'loaded'>((resolve) => (load = () => resolve('loaded'))));
     vi.mocked(pagePerformance.collectPageMeasures).mockResolvedValueOnce({ net: '0', local: '16-30', lcp: 'le2.5s' });
     clock(1800);
     reportToolLifecycleEvent('tool_page_viewed', 'sign');
-    await settle();
+    await settleTick();
     expect(beacon).not.toHaveBeenCalled();
     clock(9000); // ready was taken at the call, not at the send
     load();
-    await settle();
+    await settleTick();
     expect(beacon).toHaveBeenCalledTimes(1);
     expect((await sent())[0].properties).toEqual({ tool: 'sign', first: true, net: '0', local: '16-30', lcp: 'le2.5s', ready: 'le2.5s' });
   });
@@ -261,14 +261,14 @@ describe('performance measures (MEM-45)', () => {
     vi.mocked(pagePerformance.collectPageMeasures).mockResolvedValueOnce({ net: '2-5', local: '6-15', lcp: 'le1s' });
     clock(500);
     reportHomePageView();
-    await settle();
+    await settleTick();
     expect((await sent())[0].properties).toEqual({ tool: 'home', first: true, net: '2-5', local: '6-15', lcp: 'le1s' });
   });
 
   it('leaves out what the browser could not measure', async () => {
     clock(Number.NaN);
     reportToolLifecycleEvent('tool_page_viewed', 'merge');
-    await settle();
+    await settleTick();
     expect((await sent())[0].properties).toEqual({ tool: 'merge', first: true });
   });
 
@@ -296,5 +296,70 @@ describe('performance measures (MEM-45)', () => {
     expect(started.properties).not.toHaveProperty('ms');
     expect(ready.properties.ms).toBe('gt4s');
     expect(again.properties).not.toHaveProperty('ms');
+  });
+
+  it('a page hidden before load sends the view at once with ready and no measures, and only once', async () => {
+    let settle!: (how: 'loaded' | 'hidden') => void;
+    vi.mocked(pagePerformance.pageSettled).mockReturnValueOnce(new Promise((resolve) => (settle = resolve)));
+    vi.mocked(pagePerformance.collectPageMeasures).mockClear();
+    clock(900);
+    reportToolLifecycleEvent('tool_page_viewed', 'sign');
+    settle('hidden');
+    settle('loaded'); // a late load changes nothing
+    await settleTick();
+    expect(beacon).toHaveBeenCalledTimes(1);
+    expect((await sent())[0].properties).toEqual({ tool: 'sign', first: true, ready: 'le1s' });
+    expect(pagePerformance.collectPageMeasures).not.toHaveBeenCalled();
+  });
+
+  it('a hidden home view sends with no measures at all', async () => {
+    vi.mocked(pagePerformance.pageSettled).mockResolvedValueOnce('hidden');
+    reportHomePageView();
+    await settleTick();
+    expect((await sent())[0].properties).toEqual({ tool: 'home', first: true });
+  });
+
+  it('a back-to-back started and ready marked untimed carry no ms, and leave an earlier timing alone', async () => {
+    clock(1000);
+    reportToolLifecycleEvent('tool_operation_started', 'sign', { untimed: true });
+    clock(1001);
+    reportToolLifecycleEvent('tool_result_ready', 'sign', { untimed: true });
+    reportToolLifecycleEvent('tool_result_ready', 'sign');
+    const bodies = await sent();
+    for (const b of bodies) expect(b.properties).not.toHaveProperty('ms');
+  });
+
+  it('ms on tool_file_accepted only for a fresh pick, drop, paste or replace', async () => {
+    for (const source of ['pick', 'drop', 'paste', 'replace'] as const) {
+      clock(1000);
+      markArrival(source);
+      clock(1500);
+      reportToolLifecycleEvent('tool_file_accepted', 'sign');
+    }
+    for (const source of ['restore', 'recent', 'camera'] as const) {
+      clock(1000);
+      markArrival(source);
+      clock(1500);
+      reportToolLifecycleEvent('tool_file_accepted', 'sign');
+    }
+    clock(1000);
+    markArrival('handoff', 'merge');
+    clock(1500);
+    reportToolLifecycleEvent('tool_file_accepted', 'sign');
+    const withMs = (await sent()).map((e) => 'ms' in e.properties);
+    expect(withMs).toEqual([true, true, true, true, false, false, false, false]);
+  });
+
+  it('a mark older than 60 s leaves no ms: a rejected file does not lend its time to a later acceptance', async () => {
+    clock(1000);
+    markArrival('pick');
+    clock(1000 + 60_000);
+    reportToolLifecycleEvent('tool_file_accepted', 'sign');
+    markArrival('pick');
+    clock(1000 + 60_001 + 60_001);
+    reportToolLifecycleEvent('tool_file_accepted', 'sign');
+    const [fresh, stale] = await sent();
+    expect(fresh.properties.ms).toBe('gt4s');
+    expect(stale.properties).not.toHaveProperty('ms');
   });
 });

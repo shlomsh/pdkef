@@ -11,7 +11,7 @@
 
 import { readBuildCommit, sendBeacon } from './errorReport.ts';
 import { resetFileArrivalForTests, takeArrival, takeArrivalTime, type Arrival } from '../handoff/fileArrival.ts';
-import { collectPageMeasures, pageLoaded, timeBucket } from './pagePerformance.ts';
+import { collectPageMeasures, pageSettled, timeBucket } from './pagePerformance.ts';
 import { NAVIGATION_TYPES, parseUsageEvent, type AnalyticsTool, type NavigationType, type UsageEvent, type UsageEventName, type ViewOnlyPage, type Visit } from './usageEventSchema';
 import { readAndStampVisit } from './visitRecency.ts';
 
@@ -80,10 +80,19 @@ function readNavigationType(): NavigationType | undefined {
   }
 }
 
-/** MEM-45: a file's time to be accepted (from its arrival mark) or an operation's time to be ready (from its start). */
-function timingBucket(event: UsageEventName, arrivedAt: number | undefined) {
+// MEM-45: only a person's own pick, drop, paste or replace is timed, and only while its mark is fresh: an
+// older one belongs to a file that was turned away, not to the one being accepted now.
+const TIMED_SOURCES: readonly string[] = ['pick', 'drop', 'paste', 'replace'];
+const MAX_MARK_AGE_MS = 60_000;
+
+/** A file's time to be accepted (from its arrival mark) or an operation's time to be ready (from its start). */
+function timingBucket(event: UsageEventName, arrival?: { source?: string; at?: number }) {
   if (event === 'tool_operation_started') startedAt = now();
-  if (event === 'tool_file_accepted') return sinceBucket(arrivedAt);
+  if (event === 'tool_file_accepted') {
+    const end = now();
+    if (!arrival?.source || !TIMED_SOURCES.includes(arrival.source) || arrival.at === undefined || end === undefined) return undefined;
+    return end - arrival.at > MAX_MARK_AGE_MS ? undefined : timeBucket(end - arrival.at);
+  }
   if (event !== 'tool_result_ready') return undefined;
   const bucket = sinceBucket(startedAt);
   startedAt = undefined;
@@ -91,9 +100,9 @@ function timingBucket(event: UsageEventName, arrivedAt: number | undefined) {
 }
 
 /** Hands one funnel event to `/api/report` by beacon; capped per page, never throws. */
-export function reportToolLifecycleEvent(event: UsageEventName, tool: AnalyticsTool): void {
+export function reportToolLifecycleEvent(event: UsageEventName, tool: AnalyticsTool, options: { untimed?: true } = {}): void {
   if (event === 'tool_page_viewed') void reportPageView(tool, now()); // reason: reportPageView catches everything itself
-  else report(event, tool);
+  else report(event, tool, {}, options.untimed);
 }
 
 const now = (): number | undefined => (typeof performance?.now === 'function' ? performance.now() : undefined);
@@ -111,8 +120,8 @@ const sinceBucket = (from: number | undefined) => {
  */
 async function reportPageView(tool: AnalyticsTool | ViewOnlyPage, mountedAt?: number): Promise<void> {
   try {
-    await pageLoaded();
-    const measures = await collectPageMeasures();
+    // A page hidden before it loaded still counts: the view goes out at once, with no measures.
+    const measures = (await pageSettled()) === 'loaded' ? await collectPageMeasures() : {};
     const ready = tool === 'home' ? undefined : timeBucket(mountedAt);
     report('tool_page_viewed', tool, { ...measures, ...(ready ? { ready } : {}) });
   } catch {
@@ -130,14 +139,14 @@ export function reportHomePageView(): void {
 
 type Measures = Partial<Pick<UsageEvent['properties'], 'net' | 'local' | 'lcp' | 'ready' | 'ms'>>;
 
-function report(event: UsageEventName, tool: AnalyticsTool | ViewOnlyPage, measures: Measures = {}): void {
+function report(event: UsageEventName, tool: AnalyticsTool | ViewOnlyPage, measures: Measures = {}, untimed = false): void {
   try {
     const build = readBuildCommit();
     const pair = `${event}|${tool}`;
     const first = !seen.has(pair);
     const nav = first ? readNavigationType() : undefined;
     const arrival = event === 'tool_file_accepted' ? takeArrival() : current;
-    const ms = timingBucket(event, event === 'tool_file_accepted' ? takeArrivalTime() : undefined);
+    const ms = untimed ? undefined : timingBucket(event, event === 'tool_file_accepted' ? { source: arrival?.source, at: takeArrivalTime() } : undefined);
     const visitProp = event === 'tool_page_viewed' ? pageVisit() : undefined;
     const parsed = parseUsageEvent({
       name: event,

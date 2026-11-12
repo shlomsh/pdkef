@@ -43,10 +43,28 @@ export function classifyRequests(entries: readonly PerformanceResourceTiming[]):
   return { net, local };
 }
 
-/** Resolves once the window `load` event has fired (at once if it already has). */
-export function pageLoaded(): Promise<void> {
-  if (typeof document === 'undefined' || document.readyState === 'complete') return Promise.resolve();
-  return new Promise((resolve) => window.addEventListener('load', () => resolve(), { once: true }));
+/**
+ * How the page's own load ended: `loaded` when the window `load` event fired (or already had), `hidden`
+ * when the page was hidden first (`pagehide`, or `visibilitychange` to hidden), so a view is never lost
+ * to a load that does not come. Settles once; every listener is removed with it.
+ */
+export function pageSettled(): Promise<'loaded' | 'hidden'> {
+  if (typeof document === 'undefined' || document.readyState === 'complete') return Promise.resolve('loaded');
+  if (document.visibilityState === 'hidden') return Promise.resolve('hidden');
+  return new Promise((resolve) => {
+    const done = (how: 'loaded' | 'hidden') => {
+      window.removeEventListener('load', onLoad);
+      window.removeEventListener('pagehide', onHide);
+      document.removeEventListener('visibilitychange', onVisibility);
+      resolve(how);
+    };
+    const onLoad = () => done('loaded');
+    const onHide = () => done('hidden');
+    const onVisibility = () => { if (document.visibilityState === 'hidden') done('hidden'); };
+    window.addEventListener('load', onLoad);
+    window.addEventListener('pagehide', onHide);
+    document.addEventListener('visibilitychange', onVisibility);
+  });
 }
 
 let lcp: number | undefined;

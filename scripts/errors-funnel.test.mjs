@@ -133,17 +133,17 @@ describe('MEM-45 performance fields', () => {
   const yesterday = flat({ 'perf:merge:week:0:16-30:le1s:le1s': 4, 'ms:tool_result_ready:merge:le4s': 2 });
   it('prints, per tool, the p75 bucket today against yesterday, net apart for returning and new views, flagging what needs a fix', () => {
     expect(perfLines(today, yesterday)).toEqual([
-      'tool | lcp | ready | open | export | net returning | net new | local   (75th percentile, today / yesterday; ! = fix this)',
-      'merge | le2.5s / le1s | le4s! / le1s | le1s / - | gt4s! / le4s | 2-5! / 0 | 31-50 / - | 16-30 / 16-30',
-      'sign | le1s / - | le1s / - | - / - | - / - | 6-15! / - | - / - | 0 / -',
+      'tool | lcp | ready | open | export | net returning | net new | net, visit unknown | local   (75th percentile, today / yesterday; ! = fix this)',
+      'merge | le2.5s / le1s | le4s! / le1s | le1s / - | gt4s! / le4s | 2-5! / 0 | 31-50 / - | - / - | 16-30 / 16-30',
+      'sign | le1s / - | le1s / - | - / - | - / - | 6-15! / - | - / - | - / - | 0 / -',
     ]);
   });
   it('flags a returning view at one request no more than at none, and never flags new views', () => {
     const one = perfLines(flat({ 'perf:merge:week:1:0:le1s:le1s': 4, 'perf:merge:new:51+:0:le1s:le1s': 9 }), undefined);
-    expect(one[1]).toContain('| 1 / - | 51+ / - |');
+    expect(one[1]).toContain('| 1 / - | 51+ / - | - / - |');
   });
-  it('a view with no visit counts toward the other measures but toward neither net column', () => {
-    expect(perfLines(flat({ 'perf:merge:-:51+:0:le1s:le1s': 4 }), undefined)[1]).toBe('merge | le1s / - | le1s / - | - / - | - / - | - / - | - / - | 0 / -');
+  it('a view with no visit has its own net column, unflagged, and counts toward neither of the others', () => {
+    expect(perfLines(flat({ 'perf:merge:-:51+:0:le1s:le1s': 4 }), undefined)[1]).toBe('merge | le1s / - | le1s / - | - / - | - / - | - / - | - / - | 51+ / - | 0 / -');
   });
   it('is empty when no day holds a measure', () => {
     expect(perfLines(flat({ 'tool_page_viewed|merge': 3 }), undefined)).toEqual([]);

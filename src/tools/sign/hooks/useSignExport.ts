@@ -47,11 +47,12 @@ export function useSignExport({
   const [handoffBusy, setHandoffBusy] = useNavigatingAway();
 
   // The background run reports nothing, so a download or share of the file it prepared is the
-  // started-and-ready pair; a file made on request reported both when it was made.
+  // started-and-ready pair; a file made on request reported both when it was made. Reported back to back,
+  // the pair has no duration to measure (MEM-45), so it says so.
   const reportPreparedDelivery = (prepared: SignedExport | null) => {
     if (!prepared?.speculative) return;
-    reportToolLifecycleEvent('tool_operation_started', 'sign');
-    reportToolLifecycleEvent('tool_result_ready', 'sign');
+    reportToolLifecycleEvent('tool_operation_started', 'sign', { untimed: true });
+    reportToolLifecycleEvent('tool_result_ready', 'sign', { untimed: true });
   };
 
   const runExport = async (
