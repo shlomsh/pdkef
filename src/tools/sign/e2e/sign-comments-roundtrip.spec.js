@@ -30,8 +30,13 @@ async function lineY(page, baseline) {
   return { box, y: box.y + box.height * ((792 - baseline + 6) / 792) };
 }
 
+async function armFromMore(page, name) {
+  await toolbar(page).getByRole('button', { name: 'More', exact: true }).click();
+  await page.getByRole('menuitem', { name, exact: true }).click();
+}
+
 async function swipe(page, tool, baseline) {
-  await toolbar(page).getByRole('button', { name: tool, exact: true }).click();
+  await armFromMore(page, tool);
   const { box, y } = await lineY(page, baseline);
   await page.mouse.move(box.x + box.width * (72 / 612), y);
   await page.mouse.down();
@@ -94,7 +99,7 @@ test('a document with comments exports to standard annotations and opens back lo
   await swipe(page, 'Comment', 640);
   await save(page, 'on the passage');
 
-  await toolbar(page).getByRole('button', { name: 'Comment', exact: true }).click();
+  await armFromMore(page, 'Comment');
   const box = await overlay(page).boundingBox();
   await page.mouse.click(box.x + box.width * 0.6, box.y + 300);
   await save(page, 'a pin');

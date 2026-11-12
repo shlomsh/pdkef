@@ -38,8 +38,13 @@ async function openSign(page, { highlighted = false } = {}) {
   return PDFDocument.load(source).then((doc) => doc.getPageCount());
 }
 
+async function armFromMore(page, name) {
+  await toolbar(page).getByRole('button', { name: 'More', exact: true }).click();
+  await page.getByRole('menuitem', { name, exact: true }).click();
+}
+
 async function swipeTheLine(page, tool) {
-  await toolbar(page).getByRole('button', { name: tool, exact: true }).click();
+  await armFromMore(page, tool);
   const box = await overlay(page).boundingBox();
   // Letter page, baseline y=700 of 792 with an 18pt font: the line centre sits near 693pt.
   const y = box.y + box.height * ((792 - 694) / 792);
@@ -147,7 +152,7 @@ test('the Comment tool comments on a passage or pins a note, neither printed', a
   await expect(passage).toHaveCSS('outline-color', 'rgba(0, 0, 0, 0)');
   await expect(passage.locator('[data-editor-actions]')).toBeHidden();
 
-  await toolbar(page).getByRole('button', { name: 'Comment', exact: true }).click();
+  await armFromMore(page, 'Comment');
   const box = await overlay(page).boundingBox();
   // Blank page well below the text, still inside the 900px viewport (60% down would be off-screen).
   await page.mouse.click(box.x + box.width * 0.5, box.y + 300);

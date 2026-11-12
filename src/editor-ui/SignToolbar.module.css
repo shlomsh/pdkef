@@ -149,6 +149,7 @@
    muted weight as the idle tip whose turn it takes - it is a fact about the
    document, not a notice, and a count that shouts is worse than no count. */
 .help-fields { color: var(--color-muted); }
+.help-fields-link { color: inherit; text-decoration: underline; }
 /* The phone label of the keep-on switch, swapped in by width below; on a wider
    screen it is the long one that shows. Both are always in the DOM. */
 .keep-short { display: none; }

@@ -74,11 +74,11 @@ const tools = [
   // the two on purpose - it is the width that proves the threshold rounds UP
   // past 580.8px rather than down to 580px, which is the whole reason that one
   // query breaks the file's floor() convention. One line returns at 644px.
-  // 320 is the other end: Feedback, now Sign's only optional control, stands
-  // down at 239px of toolbar, so the counts this walks are twelve and eleven -
+  // 320 is the other end: the More menu now holds Feedback, so Sign's row has no
+  // optional control left; it stood down at 239px of toolbar, so the counts this walks are twelve and eleven -
   // never ten or thirteen, the two counts that cannot be balanced at the 44px
   // floor.
-  { name: 'Sign', path: '/sign/?next=0', fixture: 'sign-toolbar-e2e.pdf', wrapWidths: [320, 360, 390, 430, 500, 610, 643] },
+  { name: 'Sign', path: '/sign/?next=0', fixture: 'sign-toolbar-e2e.pdf', wrapWidths: [320, 360, 390, 430, 500, 610, 643] /* SIGN-49: re-measure */ },
   // RED-31 made it eleven (Peek joined), so 300-320px packs 4+4+3.
   // RED-02 made Redact ten controls (Find joined). At 300-320px the 44px touch
   // floor caps a line at four, and ten can only pack 4+4+2 there (the comment

@@ -151,10 +151,13 @@ describe('SignToolbar Component', () => {
     // first, Sign after it as the last thing you do to a filled form, then
     // the history group beside the work it acts on (Undo, Redo - the same
     // pair, in the same order, as RedactToolbar), then the chrome group
-    // (Full screen here, Feedback next - see
+    // (More, then Full screen - see
     // SignToolbar.tsx's own ordering comment for the rest).
-    const labels = Array.from(buttons, button => query(button, `.${styles.label}`).textContent.trim());
-    expect(labels.slice(0, 12)).toEqual(['Text', 'Date', 'Mark', 'Shapes', 'Whiteout', 'Sign', 'Highlight', 'Comment', 'Undo', 'Redo', 'Full screen', 'Feedback']);
+    // More shows its armed tool's word, so read the one word that is showing.
+    const labels = Array.from(buttons, button => (button.querySelector('[data-more-word]:not([data-inactive])') ?? query(button, `.${styles.label}`)).textContent.trim());
+    expect(labels.slice(0, 9)).toEqual(['Text', 'Date', 'Mark', 'Whiteout', 'Sign', 'More', 'Undo', 'Redo', 'Full screen']);
+    // Feedback left the row for the More menu (SIGN-49).
+    expect(container.querySelector('[role="toolbar"] a[data-optional-control="feedback"]')).toBeNull();
     expect(labels.at(-1)).toBe('Download');
 
     // Exact-label match, not "contains Text or has an svg": every button here
@@ -246,9 +249,9 @@ describe('SignToolbar Component', () => {
   });
 
   // Every tool arms for one placement; double-clicking its button keeps it on.
-  // Shapes is the awkward one, because its tool lives behind a dropdown and a
+  // More is the awkward one, because its tools live behind a dropdown and a
   // menu item cannot be double-clicked (the first click unmounts it), so the
-  // lock has to come off the Shapes button itself.
+  // lock has to come off the More button itself.
   describe('locking a tool on for repeat placements', () => {
     const renderToolbar = (onState: StateObserver) => {
       container = document.createElement('div');
@@ -282,6 +285,21 @@ describe('SignToolbar Component', () => {
       `${label} button`,
     );
 
+    // The More button's own words all live in it, so match it by its marker.
+    const moreButton = (): HTMLButtonElement => required(
+      container.querySelector<HTMLElement>('[role="toolbar"] [data-more-word]')?.closest('button'),
+      'More button',
+    );
+    const pickFromMore = async (name: string) => {
+      await act(async () => { moreButton().click(); });
+      // Highlight and Comment carry a description line, so match the item by its name.
+      const item = required(
+        Array.from(document.body.querySelectorAll<HTMLElement>('[role="menuitem"]')).find((el) => el.textContent?.trim().startsWith(name)),
+        `${name} menu item`,
+      );
+      await act(async () => { item.click(); });
+    };
+
     it('arms a tool for one placement on a single click', async () => {
       let state!: SignToolState;
       renderToolbar((s) => { state = s; });
@@ -311,35 +329,40 @@ describe('SignToolbar Component', () => {
       expect(textBtn.hasAttribute('data-locked')).toBe(true);
     });
 
-    it('arms Highlight and locks it on double-click', async () => {
+    it('arms Highlight through More and locks it on double-click of the More button', async () => {
       let state!: SignToolState;
       renderToolbar((s) => { state = s; });
+      expect(moreButton().getAttribute('aria-label')).toBe('More');
 
-      const btn = findButton('Highlight');
-      await act(async () => {
-        btn.dispatchEvent(new MouseEvent('click', { bubbles: true, detail: 1 }));
-      });
+      await pickFromMore('Highlight');
       expect(state.selectedTool).toBe('highlight');
       expect(state.toolLocked).toBe(false);
+      const btn = moreButton();
+      expect(btn.getAttribute('aria-label')).toBe('Highlight');
+      expect(btn.getAttribute('aria-pressed')).toBe('true');
+
       await act(async () => {
-        btn.dispatchEvent(new MouseEvent('click', { bubbles: true, detail: 2 }));
+        btn.dispatchEvent(new MouseEvent('dblclick', { bubbles: true }));
       });
+      expect(state.selectedTool).toBe('highlight');
       expect(state.toolLocked).toBe(true);
       expect(btn.hasAttribute('data-locked')).toBe(true);
     });
 
-    it('arms Comment right after Highlight and locks it on double-click', async () => {
+    it('arms Comment through More right after Highlight and locks it on double-click', async () => {
       let state!: SignToolState;
       renderToolbar((s) => { state = s; });
 
-      const btn = findButton('Comment');
-      await act(async () => {
-        btn.dispatchEvent(new MouseEvent('click', { bubbles: true, detail: 1 }));
-      });
+      await pickFromMore('Highlight');
+      await pickFromMore('Comment');
       expect(state.selectedTool).toBe('comment');
       expect(state.toolLocked).toBe(false);
+      const btn = moreButton();
+      expect(btn.getAttribute('aria-label')).toBe('Comment');
+      expect(btn.getAttribute('aria-pressed')).toBe('true');
+
       await act(async () => {
-        btn.dispatchEvent(new MouseEvent('click', { bubbles: true, detail: 2 }));
+        btn.dispatchEvent(new MouseEvent('dblclick', { bubbles: true }));
       });
       expect(state.toolLocked).toBe(true);
       expect(btn.hasAttribute('data-locked')).toBe(true);
@@ -399,90 +422,67 @@ describe('SignToolbar Component', () => {
       expect(document.getElementById(describedBy)).toBeNull();
     });
 
-    // Shapes gets the same black tooltip as every plain tool button, with no
+    // More gets the same black tooltip as every plain tool button, with no
     // special case. Its menu opens downward while the tooltip opens upward, so
-    // the two never contend and neither has to yield. An earlier version had
-    // both opening downward and suppressed the tooltip whenever the menu was
-    // open, which silently cost this button its tooltip entirely - the menu
-    // opens on the very hover the tooltip waits on.
+    // the two never contend and neither has to yield.
     //
     // Driven through the once-per-session auto-show rather than a hover, which
-    // would need fake timers for the 1s delay: choosing a shape calls
-    // noteArmed('shapes'), so this exercises the real path a first-time user
+    // would need fake timers for the 1s delay: picking a tool from More calls
+    // noteArmed('more'), so this exercises the real path a first-time user
     // takes and asserts the bubble that appears is the shared one.
-    it('gives Shapes the same tooltip every plain tool button gets', async () => {
+    it('gives More the armed tool tooltip every plain tool button gets', async () => {
       renderToolbar(() => {});
 
-      await act(async () => {
-        findButton('Shapes').click();
-      });
-      const ellipse = findExactButton(document.body, 'Ellipse');
-      await act(async () => {
-        ellipse.click();
-      });
+      await pickFromMore('Ellipse');
 
       const bubble = query(document, '[data-arm-hint]');
       expect(bubble).not.toBeNull();
-      expect(bubble.textContent).toContain('Double-click to keep Shapes on');
+      expect(bubble.textContent).toContain('Double-click to keep Ellipse on');
     });
 
-    it('locks the chosen shape when the Shapes button is double-clicked', async () => {
+    it('locks the chosen shape when the More button is double-clicked', async () => {
       let state!: SignToolState;
       renderToolbar((s) => { state = s; });
 
-      const shapesBtn = findButton('Shapes');
-      await act(async () => {
-        shapesBtn.click();
-      });
-
-      const ellipse = findExactButton(document.body, 'Ellipse');
-      expect(ellipse).not.toBeUndefined();
-      await act(async () => {
-        ellipse.click();
-      });
+      await pickFromMore('Ellipse');
       expect(state.selectedTool).toBe('ellipse');
       expect(state.toolLocked).toBe(false);
 
+      const btn = moreButton();
       await act(async () => {
-        shapesBtn.dispatchEvent(new MouseEvent('dblclick', { bubbles: true }));
+        btn.dispatchEvent(new MouseEvent('dblclick', { bubbles: true }));
       });
 
       expect(state.selectedTool).toBe('ellipse');
       expect(state.toolLocked).toBe(true);
-      expect(shapesBtn.hasAttribute('data-locked')).toBe(true);
+      expect(btn.hasAttribute('data-locked')).toBe(true);
     });
 
     // SIGN-30: picking a different shape from the menu is re-arming the same
-    // Shapes family, not switching tools - a locked Shapes must stay locked
-    // when the person then picks Rectangle instead of Ellipse. It used to
+    // shapes family, not switching tools - a locked shape must stay locked
+    // when the person then picks Ellipse instead of Rectangle. It used to
     // drop the lock: chooseShape dispatched a bare SET_TOOL, which always
     // clears `toolLocked` (SignToolContext.tsx).
     it('stays locked when a different shape is picked from the menu after locking', async () => {
       let state!: SignToolState;
       renderToolbar((s) => { state = s; });
 
-      const shapesBtn = findButton('Shapes');
+      await pickFromMore('Rectangle');
       await act(async () => {
-        shapesBtn.dispatchEvent(new MouseEvent('dblclick', { bubbles: true }));
+        moreButton().dispatchEvent(new MouseEvent('dblclick', { bubbles: true }));
       });
       expect(state.selectedTool).toBe('rectangle');
       expect(state.toolLocked).toBe(true);
 
-      await act(async () => {
-        shapesBtn.click();
-      });
-      const ellipse = findExactButton(document.body, 'Ellipse');
-      await act(async () => {
-        ellipse.click();
-      });
+      await pickFromMore('Ellipse');
 
       expect(state.selectedTool).toBe('ellipse');
       expect(state.toolLocked).toBe(true);
     });
 
     // The lock-leak case a reviewer caught: `toolLocked` describes whichever
-    // tool is CURRENTLY locked, not "Shapes" specifically. If Text was the
-    // locked tool when the Shapes menu happened to be opened, picking Ellipse
+    // tool is CURRENTLY locked, not "More" specifically. If Text was the
+    // locked tool when the More menu happened to be opened, picking Ellipse
     // must arm it unlocked - carrying Text's lock over would lock a tool
     // nobody double-clicked.
     it('does not carry another tool\'s lock onto a shape picked from the menu', async () => {
@@ -499,20 +499,29 @@ describe('SignToolbar Component', () => {
       expect(state.selectedTool).toBe('text');
       expect(state.toolLocked).toBe(true);
 
-      const shapesBtn = findButton('Shapes');
-      await act(async () => {
-        shapesBtn.click();
-      });
-      const ellipse = findExactButton(document.body, 'Ellipse');
-      await act(async () => {
-        ellipse.click();
-      });
+      await pickFromMore('Ellipse');
 
       expect(state.selectedTool).toBe('ellipse');
       expect(state.toolLocked).toBe(false);
     });
 
-    it('locks the last shape picked even after its one placement disarmed the tool', async () => {
+    it('does not carry a shape\'s lock onto Highlight picked from the menu', async () => {
+      let state!: SignToolState;
+      renderToolbar((s) => { state = s; });
+
+      await pickFromMore('Ellipse');
+      await act(async () => {
+        moreButton().dispatchEvent(new MouseEvent('dblclick', { bubbles: true }));
+      });
+      expect(state.toolLocked).toBe(true);
+
+      await pickFromMore('Highlight');
+
+      expect(state.selectedTool).toBe('highlight');
+      expect(state.toolLocked).toBe(false);
+    });
+
+    it('locks the last tool picked even after its one placement disarmed the tool', async () => {
       let state!: SignToolState;
       let dispatch!: SignDispatch;
       const TestConsumer = () => {
@@ -541,14 +550,7 @@ describe('SignToolbar Component', () => {
         );
       });
 
-      const shapesBtn = findButton('Shapes');
-      await act(async () => {
-        shapesBtn.click();
-      });
-      const line = findExactButton(document.body, 'Line');
-      await act(async () => {
-        line.click();
-      });
+      await pickFromMore('Line');
 
       // The placement disarms the tool, so nothing is selected when the user
       // reaches for the lock - the button still has to know it means Line.
@@ -558,39 +560,40 @@ describe('SignToolbar Component', () => {
       expect(state.selectedTool).toBeNull();
 
       await act(async () => {
-        shapesBtn.dispatchEvent(new MouseEvent('dblclick', { bubbles: true }));
+        moreButton().dispatchEvent(new MouseEvent('dblclick', { bubbles: true }));
       });
 
       expect(state.selectedTool).toBe('line');
       expect(state.toolLocked).toBe(true);
     });
 
-    it('locks the default shape (rectangle) on a double-click before any shape has been chosen', async () => {
+    it('locks nothing on a double-click before any tool has been picked from More', async () => {
       let state!: SignToolState;
       renderToolbar((s) => { state = s; });
 
       await act(async () => {
-        findButton('Shapes').dispatchEvent(new MouseEvent('dblclick', { bubbles: true }));
+        moreButton().dispatchEvent(new MouseEvent('dblclick', { bubbles: true }));
       });
 
-      expect(state.selectedTool).toBe('rectangle');
-      expect(state.toolLocked).toBe(true);
+      expect(state.selectedTool).toBeNull();
+      expect(state.toolLocked).toBe(false);
     });
 
     // SIGN-31: on touch (the test setup's matchMedia reports a coarse pointer)
     // a phone sends no dependable dblclick, so two quick taps lock instead.
     // `click()` is a tap here: the clicks land well inside DOUBLE_TAP_MS.
-    it('on touch, one tap opens the Shapes menu and a second quick tap locks the last shape', async () => {
+    it('on touch, one tap opens the More menu and a second quick tap locks the last pick', async () => {
       let state!: SignToolState;
       renderToolbar((s) => { state = s; });
-      const shapesBtn = findButton('Shapes');
 
-      await act(async () => { shapesBtn.click(); });
+      await pickFromMore('Ellipse');
+      const btn = moreButton();
+      await act(async () => { btn.click(); });
       expect(document.body.querySelector('[role="menu"]')).not.toBeNull();
       expect(state.toolLocked).toBe(false);
 
-      await act(async () => { shapesBtn.click(); });
-      expect(state.selectedTool).toBe('rectangle');
+      await act(async () => { btn.click(); });
+      expect(state.selectedTool).toBe('ellipse');
       expect(state.toolLocked).toBe(true);
       expect(document.body.querySelector('[role="menu"]')).toBeNull();
     });
@@ -598,11 +601,9 @@ describe('SignToolbar Component', () => {
     it('on touch, tap, pick a shape, tap again reopens the menu without locking', async () => {
       let state!: SignToolState;
       renderToolbar((s) => { state = s; });
-      const shapesBtn = findButton('Shapes');
 
-      await act(async () => { shapesBtn.click(); });
-      await act(async () => { findExactButton(document.body, 'Ellipse').click(); });
-      await act(async () => { shapesBtn.click(); });
+      await pickFromMore('Ellipse');
+      await act(async () => { moreButton().click(); });
 
       expect(state.selectedTool).toBe('ellipse');
       expect(state.toolLocked).toBe(false);
@@ -858,8 +859,8 @@ describe('SignToolbar Component', () => {
       return query(container, '[data-help-row][data-shown]').textContent;
     };
 
-    // The status line's one control: a toggle reading "Keep Shapes on" while the
-    // tool is one-shot and "Turn Shapes off" once it is locked. It exists
+    // The status line's one control: a toggle reading "Keep Ellipse on" while the
+    // tool is one-shot and "Turn Ellipse off" once it is locked. It exists
     // because Escape and double-click, the two shortcuts that used to be the
     // only way in and out of a locked tool, are both keyboard/pointer gestures
     // a phone does not have.
@@ -889,10 +890,10 @@ describe('SignToolbar Component', () => {
       // Naming the button is the contract: "keep adding" says nothing about
       // which of the eight tools it means, and on Redact's Delete tool the bare
       // verb was outright wrong - it removes a run rather than adding one.
-      expect(statusChip().textContent).toContain('Keep Shapes on');
+      expect(statusChip().textContent).toContain('Keep Ellipse on');
       expect(statusChip().getAttribute('role')).toBe('switch');
       expect(statusChip().getAttribute('aria-checked')).toBe('false');
-      expect(statusChip().title).toContain('Double-clicking Shapes does the same');
+      expect(statusChip().title).toContain('Double-clicking Ellipse does the same');
 
       armAndRead('text');
       expect(statusChip().textContent).toContain('Keep Text on');
@@ -980,11 +981,11 @@ describe('SignToolbar Component', () => {
       armAndRead('ellipse', true);
       // A switch names its setting, not the next press, so the same label reads
       // correctly in both states and aria-checked carries the difference. The
-      // label used to flip to "Turn Shapes off", which made one control look
+      // label used to flip to "Turn Ellipse off", which made one control look
       // like two swapping places - and hid that pressing it did not undo.
-      expect(statusChip().textContent).toContain('Keep Shapes on');
+      expect(statusChip().textContent).toContain('Keep Ellipse on');
       expect(statusChip().getAttribute('aria-checked')).toBe('true');
-      expect(statusChip().title).toContain('Shapes stays selected either way');
+      expect(statusChip().title).toContain('Ellipse stays selected either way');
     });
 
     it('stops a locked tool repeating when the status switch is pressed', () => {
@@ -1433,6 +1434,7 @@ describe('SignToolbar Component', () => {
 
     const textBtn = findExactButton(toolbar, hebrewSignMessages.textButton);
     expect(textBtn).not.toBeUndefined();
+    expect(query<HTMLElement>(toolbar, '[data-more-word]').closest('button')!.getAttribute('aria-label')).toBe('עוד');
 
     const tip = query(container, '[data-help-row][data-shown]');
     expect(tip.textContent).toBe(hebrewSignMessages.tipIdle);
@@ -1611,6 +1613,19 @@ describe('SignToolbar Component', () => {
       return query(container, '[data-help-row="fields"]');
     };
 
+    // Feedback lives in the More menu (SIGN-49): open it and read the report
+    // address its menu item points at.
+    const moreFeedbackBody = async () => {
+      await act(async () => {
+        query<HTMLElement>(container, '[role="toolbar"] [data-more-word]').closest('button')!.click();
+      });
+      const link = required(
+        Array.from(document.body.querySelectorAll<HTMLAnchorElement>('a[role="menuitem"]')).find((a) => a.textContent?.includes('Feedback')),
+        'Feedback menu item',
+      );
+      return new URL(link.href).searchParams.get('body')!;
+    };
+
     it('says nothing at all until the one walk for this file has finished', () => {
       expect(mountToolbar().textContent).toBe('');
       expect(mountToolbar({ formDetection: { state: 'pending', count: 9, detail: null } }).textContent).toBe('');
@@ -1633,11 +1648,25 @@ describe('SignToolbar Component', () => {
       expect(mountToolbar({ formDetection: { state: 'done', count: 0, detail: null } }).textContent).toBe('');
 
       const failed = mountToolbar({ formDetection: { state: 'failed', count: 0, detail: 'TypeError: x is not a function' } });
-      expect(failed.textContent).toBe('Could not check this PDF for form fields. The Feedback button has the details.');
+      expect(failed.textContent).toBe('Could not check this PDF for form fields.Send me the details');
       expect(failed.hasAttribute('data-problem')).toBe(true);
       // Never the error itself: what is on screen is copy, and the detail
       // rides in the Feedback report where it is introduced.
       expect(failed.textContent).not.toContain('TypeError');
+    });
+
+    // The report link lives in the status row now, not as a Feedback button in
+    // the toolbar (SIGN-49), and it carries the same sanitised detail.
+    it('ends a failed or not-started check in a link that carries the detail', () => {
+      const detail = 'TypeError: x is not a function';
+      for (const state of ['failed', 'not-started'] as const) {
+        const row = mountToolbar({ formDetection: { state, count: 0, detail } });
+        const link = query<HTMLAnchorElement>(row, 'a');
+        expect(link.textContent).toBe('Send me the details');
+        expect(new URL(link.href).searchParams.get('body')).toContain(detail);
+      }
+      // "Unavailable" is fixed by reopening the page, so it offers no link.
+      expect(mountToolbar({ formDetection: { state: 'unavailable', count: 0, detail } }).querySelector('a')).toBeNull();
     });
 
     // The leading theory for a live report nobody could reproduce: the shell
@@ -1645,7 +1674,7 @@ describe('SignToolbar Component', () => {
     // names that deploy replaced, the detector's dynamic import rejects, and
     // every document silently has no fields. It is the one state the person
     // can clear themselves, so it is the one whose copy tells them how.
-    it('tells a detector that never loaded apart from one that ran and threw', () => {
+    it('tells a detector that never loaded apart from one that ran and threw', async () => {
       const unavailable = mountToolbar({ formDetection: { state: 'unavailable', count: 0, detail: 'TypeError: Importing a module script failed.' } });
       expect(unavailable.textContent).toBe('Could not load the form field check. Reopening this page usually fixes it.');
       expect(unavailable.hasAttribute('data-problem')).toBe(true);
@@ -1655,19 +1684,18 @@ describe('SignToolbar Component', () => {
 
       // Both are worth reporting, so both carry their detail into Feedback.
       mountToolbar({ formDetection: { state: 'unavailable', count: 0, detail: 'TypeError: Importing a module script failed.' } });
-      const body = new URL(query<HTMLAnchorElement>(container, 'a[data-optional-control="feedback"]').href)
-        .searchParams.get('body')!;
+      const body = await moreFeedbackBody();
       expect(body).toContain('TypeError: Importing a module script failed.');
     });
 
     // The prime suspect for the live report, and the only path to "no fields"
     // with no exception behind it anywhere: the effect's precondition bail.
-    it('says so when the check never started, distinctly from every other outcome', () => {
+    it('says so when the check never started, distinctly from every other outcome', async () => {
       const notStarted = mountToolbar({
         formDetection: { state: 'not-started', count: 0, detail: 'Detection did not start: no pdf.js document. bytes=4096, pages=3, document=no' },
       });
       expect(notStarted.textContent)
-        .toBe('The form field check did not start on this file. The Feedback button has the details.');
+        .toBe('The form field check did not start on this file.Send me the details');
       expect(notStarted.hasAttribute('data-problem')).toBe(true);
 
       const wordings = new Set((['done', 'failed', 'unavailable', 'not-started'] as const).map((state) => (
@@ -1679,8 +1707,7 @@ describe('SignToolbar Component', () => {
       mountToolbar({
         formDetection: { state: 'not-started', count: 0, detail: 'Detection did not start: no pdf.js document. bytes=4096, pages=3, document=no' },
       });
-      const body = new URL(query<HTMLAnchorElement>(container, 'a[data-optional-control="feedback"]').href)
-        .searchParams.get('body')!;
+      const body = await moreFeedbackBody();
       expect(body).toContain('bytes=4096, pages=3, document=no');
     });
 
@@ -1688,21 +1715,21 @@ describe('SignToolbar Component', () => {
       expect(mountToolbar({ formDetection: { state: 'done', count: 3, detail: null }, messages: hebrewSignMessages }).textContent)
         .toBe('');
       expect(mountToolbar({ formDetection: { state: 'failed', count: 0, detail: null }, messages: hebrewSignMessages }).textContent)
-        .toBe(hebrewSignMessages.fieldsCheckFailed);
+        .toBe(hebrewSignMessages.fieldsCheckFailed + hebrewSignMessages.fieldsCheckDetailsLink);
     });
 
     // The report is the only way a device we cannot reproduce ever tells us
     // what it threw, and the only automatic content it has ever carried.
-    it('hands a failure detail to the Feedback report, and nothing otherwise', () => {
+    it('hands a failure detail to the Feedback report, and nothing otherwise', async () => {
       mountToolbar({ formDetection: { state: 'failed', count: 0, detail: 'TypeError: p.findLast is not a function' } });
-      const failedBody = new URL(query<HTMLAnchorElement>(container, 'a[data-optional-control="feedback"]').href)
-        .searchParams.get('body')!;
+      const failedBody = await moreFeedbackBody();
       expect(failedBody).toContain('TypeError: p.findLast is not a function');
       expect(failedBody).toContain('nothing from your document in it');
 
+      expect(query(container, '[role="toolbar"]').querySelector('a[data-optional-control="feedback"]')).toBeNull();
+      await act(async () => { render(null, container); });
       mountToolbar({ formDetection: { state: 'done', count: 7, detail: null } });
-      const okBody = new URL(query<HTMLAnchorElement>(container, 'a[data-optional-control="feedback"]').href)
-        .searchParams.get('body')!;
+      const okBody = await moreFeedbackBody();
       expect(okBody).not.toContain('Added automatically');
     });
   });

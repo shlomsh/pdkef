@@ -9,6 +9,29 @@ import { formatMessage } from '#lib/text/formatMessage.ts';
  * whichever one this device actually shows. */
 export type ToolCopy = { action: string; actionTouch: string; button: string };
 
+type FieldSummary = { text: string | null; problem: boolean; action?: { label: string; href: string } };
+
+/** The detector's row of the status stack; see the long comment where it is placed. */
+function FieldsRow({ summary, shown }: { summary: FieldSummary; shown: boolean }) {
+  const { text, problem, action } = summary;
+  return (
+    <div
+      className={`${styles['help-row']} ${styles['help-fields']}${problem ? ` ${styles['help-fields-problem']}` : ''} ${shown ? styles['help-shown'] : styles['help-spare']}`}
+      data-help-row="fields"
+      data-shown={shown ? true : undefined}
+      data-problem={problem ? true : undefined}
+      role="status"
+    >
+      <span>{text}</span>
+      {action && (
+        <a className={styles['help-fields-link']} href={action.href} target="_blank" rel="noopener noreferrer" tabIndex={shown ? undefined : -1}>
+          {action.label}
+        </a>
+      )}
+    </div>
+  );
+}
+
 /**
  * The editor hint line, shared by the Sign and Redact toolbars: what the armed
  * tool is waiting for, and the one control that turns repeat placement on and
@@ -64,7 +87,7 @@ export type ToolCopy = { action: string; actionTouch: string; button: string };
  *   than in place of this component: a chip mounted instead of the stack was a row of its own
  *   height, so the toolbar under it moved when the chip appeared and again, 5s later with no
  *   input to excuse it, when the chip went.
- * @param {object} [props.fieldSummary] - `{ text, problem }`: what the form-field detector
+ * @param {object} [props.fieldSummary] - `{ text, problem, action? }`: what the form-field detector
  *   found in this document, already worded by the caller (Sign), and whether what it found is a
  *   result or a failure. Undefined for a toolbar with no detector at all (Redact), which renders
  *   nothing; `text` null while the walk is still running. It is one of the stack's rows, and
@@ -73,6 +96,8 @@ export type ToolCopy = { action: string; actionTouch: string; button: string };
  *   separate times (FORM-11). `problem` is not a colour - it is whether this is a result or a
  *   failure, which decides whether the phone's one shared row is worth spending on it and
  *   whether the slot counts as live (see `.help-fields` and the row itself).
+ *   `action` is an optional link after the text ({ label, href }, opens in a new tab); it is
+ *   not tabbable while the row is only holding space for the stack's height.
  * @param {object|null} [props.fieldNav] - Sign's Next/Previous across detected fields
  *   (MOBI-06), null for Redact. Unlike `override` it is not part of the stack at all: it sits
  *   beside whichever row the stack is showing. When it mounts is entirely the caller's policy -
@@ -136,7 +161,7 @@ export default function EditorToolStatus({
    * `undefined` (Redact) renders nothing; a null `text` renders the empty live
    * region, which has to be in the DOM *before* the text arrives for a screen
    * reader to announce the arrival rather than a node appearing from nowhere. */
-  fieldSummary?: { text: string | null; problem: boolean };
+  fieldSummary?: FieldSummary;
   /** MOBI-06: Next/Previous across the document's own detected fields - Sign's
    * only caller, so Redact gets its current behaviour by leaving this null.
    * Mounted only while somebody is filling fields; see the prop doc above. */
@@ -289,17 +314,7 @@ export default function EditorToolStatus({
             this the detector's result reached the eye only. Rendered empty
             from the start rather than mounted when the walk finishes, because
             a live region that arrives already full is announced unreliably. */}
-        {fieldSummary !== undefined && (
-          <div
-            className={`${styles['help-row']} ${styles['help-fields']}${fieldSummary.problem ? ` ${styles['help-fields-problem']}` : ''} ${fieldsShown ? styles['help-shown'] : styles['help-spare']}`}
-            data-help-row="fields"
-            data-shown={fieldsShown ? true : undefined}
-            data-problem={fieldSummary.problem ? true : undefined}
-            role="status"
-          >
-            <span>{fieldSummary.text}</span>
-          </div>
-        )}
+        {fieldSummary !== undefined && <FieldsRow summary={fieldSummary} shown={fieldsShown} />}
         {override ? (
           <div className={`${styles['help-row']} ${styles['help-shown']}`} data-help-row="armed" data-shown role="status">
             {override}

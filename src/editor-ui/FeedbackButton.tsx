@@ -28,7 +28,7 @@ interface FeedbackTool {
  * English, like the rest of this template, in every locale: it is the language
  * the repository's issues are written in.
  */
-function feedbackUrl(tool: FeedbackTool, detectionFailure: string | null): string {
+export function feedbackUrl(tool: FeedbackTool, detectionFailure: string | null): string {
   const body = detectionFailure
     ? `${tool.body}
 ## Added automatically

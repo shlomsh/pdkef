@@ -10,9 +10,9 @@ export const buildToolCopy = (t: SignMessages): Record<SignToolType, ToolCopy> =
   symbol:    { action: t.markAction,    actionTouch: t.markActionTouch,    button: t.markButton },
   signature: { action: t.signatureAction, actionTouch: t.signatureActionTouch, button: t.signButton },
   whiteout:  { action: t.whiteoutAction,  actionTouch: t.whiteoutActionTouch,  button: t.whiteoutButton },
-  ellipse:   { action: t.ellipseAction,   actionTouch: t.ellipseActionTouch,   button: t.shapesButton },
-  rectangle: { action: t.rectangleAction, actionTouch: t.rectangleActionTouch, button: t.shapesButton },
-  line:      { action: t.lineAction,      actionTouch: t.lineActionTouch,      button: t.shapesButton },
+  ellipse:   { action: t.ellipseAction,   actionTouch: t.ellipseActionTouch,   button: t.ellipseLabel },
+  rectangle: { action: t.rectangleAction, actionTouch: t.rectangleActionTouch, button: t.rectangleLabel },
+  line:      { action: t.lineAction,      actionTouch: t.lineActionTouch,      button: t.lineLabel },
   highlight: { action: t.highlightAction, actionTouch: t.highlightActionTouch, button: t.highlightLabel },
   comment:   { action: t.commentAction,   actionTouch: t.commentActionTouch,   button: t.commentToolLabel },
 });

@@ -17,7 +17,6 @@
 .element-button:disabled:hover { background: transparent; }
 .element-button-danger:hover { background: var(--color-danger); }
 .color-menu, .font-menu { min-width: 0; width: max-content; padding: .5rem; }
-.shapes-menu { min-width: 140px; border-radius: 12px; padding: .25rem; }
 .signature-menu { border-radius: 12px; padding: .25rem; }
 .thickness-menu { min-width: 100px; padding: .15rem; cursor: default; }
 .thickness-menu-list { display: flex; flex-direction: column; gap: .05rem; }
@@ -68,3 +67,12 @@
 .dropdown-item-delete:hover { background: var(--color-danger); color: var(--color-surface); border-color: var(--color-danger); }
 .dropdown-add-button { display: inline-flex; align-items: center; justify-content: center; gap: .4rem; padding: .5rem 1rem; width: 100%; font-family: inherit; font-size: .88rem; font-weight: 600; color: var(--color-primary-text); background: transparent; border: 1.5px dashed var(--color-primary-soft); border-radius: var(--radius-pill); cursor: pointer; transition: all .15s ease; }
 .dropdown-add-button:hover { background: var(--color-primary); color: var(--color-surface); border-color: var(--color-primary); border-style: solid; }
+/* MoreToolsMenu.tsx (SIGN-49): a menu item with a one-line description under its name,
+   the three shapes sharing one row, and the rule above Feedback. */
+.menu-item-text { display: flex; flex-direction: column; min-width: 0; text-align: start; }
+.menu-item-desc { font-size: .75rem; font-weight: 400; color: var(--color-muted); }
+.menu-shapes-row { display: flex; gap: 2px; }
+.menu-shapes-row .menu-item { flex: 1 1 0; justify-content: center; gap: .35rem; }
+.menu-separator { height: 1px; margin: 3px .25rem; background: var(--color-border); }
+.toolbar-menu .menu-item[data-active] { background: var(--color-primary-soft); color: var(--color-primary-text); }
+.toolbar-menu a.menu-item { text-decoration: none; }

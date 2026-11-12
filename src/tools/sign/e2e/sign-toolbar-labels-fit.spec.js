@@ -63,12 +63,14 @@ const rowCounts = (controls) => {
 };
 
 const WIDTHS = [360, 375, 390, 402, 414, 430];
+// More is 'More' / 'עוד' (Hebrew, SIGN-49).
+const MORE = { en: 'More', he: 'עוד' };
 const CASES = [
-  ...WIDTHS.map((width) => ({ width, path: '/sign/?next=0', share: 'Share', download: 'Download' })),
-  { width: 390, path: '/he/sign/?next=0', share: 'שיתוף', download: 'הורדה' },
+  ...WIDTHS.map((width) => ({ width, path: '/sign/?next=0', share: 'Share', download: 'Download', more: MORE.en })),
+  { width: 390, path: '/he/sign/?next=0', share: 'שיתוף', download: 'הורדה', more: MORE.he },
 ];
 
-for (const { width, path, share, download } of CASES) {
+for (const { width, path, share, download, more } of CASES) {
   test.describe(`${path} at ${width}px`, () => {
     test.use({ viewport: { width, height: 844 }, hasTouch: true, isMobile: true });
 
@@ -87,20 +89,20 @@ for (const { width, path, share, download } of CASES) {
         }
       }
       const names = controls.map((c) => c.name);
-      const missing = [share, download].filter((n) => !names.includes(n));
+      const missing = [share, download, more].filter((n) => !names.includes(n));
       const split = rowCounts(controls);
       console.log(`${path} WIDTH ${width}: rows ${split.join('+')}, narrowest ${Math.min(...controls.map((c) => c.width)).toFixed(1)}px`);
 
       const balanced = split.every((n) => n >= 2) && Math.max(...split) - Math.min(...split) <= 1;
       expect.soft(noWord, `controls with no visible word at ${width}px`).toEqual([]);
       expect.soft(overhang, `labels that overflow their button at ${width}px`).toEqual([]);
-      expect.soft(missing, `Share and Download both rendered at ${width}px`).toEqual([]);
+      expect.soft(missing, `Share, Download and More all rendered at ${width}px`).toEqual([]);
       expect.soft(balanced, `rows balanced (>=2 each, differ by <=1), got ${split.join('+')}`).toBe(true);
       // Every current iPhone (433px and narrower) stands Feedback down, so Sign's
       // fourteen with Share (Comment, SIGN-44) split 7+7 (SignToolbar.module.css,
       // the 387px rule). At 360px and 375px the controls shrink below the 44px
       // floor to keep it (decided 2026-10-31).
-      expect.soft(split.join('+'), `7+7 on a phone at ${width}px`).toBe('7+7');
+      expect.soft(split.join('+'), `7+7 on a phone at ${width}px`).toBe('7+7'); // SIGN-49: re-measure
     });
   });
 }
@@ -127,6 +129,7 @@ test.describe('Sign row, 919px down to 239px', () => {
       // give way (SignToolbar.module.css, decided 2026-10-31). 40.5px is what a
       // 360px phone needs (40.6px); narrower windows are not phones, so only the
       // balance is held there.
+      // SIGN-49: re-measure the 40.5px floor
       const narrow = width < 360 ? [] : controls.filter((c) => c.width < 40.5).map((c) => `${c.name} ${c.width.toFixed(1)}px`);
       if (narrow.length) problems.push(`narrower than 40.5px: ${narrow.join(', ')}`);
       if (problems.length) failures.push(`${width}px [${split.join('+')}] ${problems.join('; ')}`);

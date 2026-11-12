@@ -1,7 +1,6 @@
-import FeedbackButton from '#editor-ui/FeedbackButton.tsx';
-import type { ComponentProps } from 'preact';
+import { feedbackUrl } from '#editor-ui/FeedbackButton.tsx';
 
-/** Sign's issue template for the shared Feedback button. Static prompts only (see FeedbackButton). */
+/** Sign's issue template for the Feedback link. Static prompts only (see FeedbackButton). */
 const SIGN_FEEDBACK = {
   name: 'Sign & Fill PDF',
   body: `## What would you like to report or suggest?
@@ -22,7 +21,7 @@ Please leave out private documents, signatures, and personal information. GitHub
 `,
 };
 
-/** The shared Feedback button, with Sign's name and issue template. */
-export default function SignFeedbackButton(props: Omit<ComponentProps<typeof FeedbackButton>, 'tool'>) {
-  return <FeedbackButton tool={SIGN_FEEDBACK} {...props} />;
+/** The prefilled GitHub issue address, for a link that is not the button (the form-field status line). */
+export function signFeedbackUrl(detectionFailure: string | null): string {
+  return feedbackUrl(SIGN_FEEDBACK, detectionFailure);
 }

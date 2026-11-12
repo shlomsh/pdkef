@@ -14,7 +14,7 @@ import { makePdfBuffer } from '../support/pdf.js';
  *
  * Measured directly: the toolbar's top edge before and after arming, under
  * 1px, for every tool that can arm, on both viewports, in Sign (a form with
- * detected fields and a plain PDF) and in Redact. Shapes and Sign arm from
+ * detected fields and a plain PDF) and in Redact. Sign and the More tools arm from
  * their menus, opened with Enter rather than a click: a click also fires the
  * hover opener, so it can open and re-close the popover in one go.
  * Cross-tool, so it lives under `e2e/` (docs/module-boundaries.md rule 7).
@@ -59,7 +59,6 @@ async function saveTypedSignature(page, toolbar) {
 }
 
 const MENU_ITEM = {
-  Shapes: (page) => page.locator('[role="menu"] button', { hasText: /^Ellipse$/ }),
   Sign: (page) => page.locator('[data-editor-signature-item]').first(),
 };
 
@@ -90,7 +89,34 @@ async function expectNoShiftOnArm(page, toolbar, name, isPhone) {
   }).toPass();
 }
 
-const SIGN_TOOLS = ['Text', 'Date', 'Mark', 'Whiteout', 'Shapes', 'Sign'];
+// Sign's toolbar buttons; Highlight, Comment and the shapes arm from the More menu (SIGN-49).
+// Arms a tool through the More menu: the toolbar must not move, and the More
+// button itself must keep its width when its name becomes the armed tool's.
+async function expectNoShiftOnArmFromMore(page, toolbar, name) {
+  await page.mouse.move(0, 0);
+  const more = toolbar.getByRole('button', { name: 'More', exact: true });
+  const before = await toolbarTop(toolbar);
+  const widthBefore = (await more.boundingBox()).width;
+  await more.focus();
+  await page.keyboard.press('Enter');
+  const item = page.getByRole('menuitem', { name, exact: true });
+  await expect(item).toBeVisible();
+  await item.click();
+  await expect(page.getByRole('switch')).toBeVisible();
+  const armed = toolbar.getByRole('button', { name, exact: true });
+  await expect(armed).toHaveAttribute('aria-pressed', 'true');
+  const after = await toolbarTop(toolbar);
+  expect(Math.abs(after - before), `${name}: toolbar top moved ${after - before}px on arm`).toBeLessThan(1);
+  const widthAfter = (await armed.boundingBox()).width;
+  expect(Math.abs(widthAfter - widthBefore), `${name}: the More button changed width by ${widthAfter - widthBefore}px`).toBeLessThan(1);
+  await expect(async () => {
+    await page.keyboard.press('Escape');
+    await expect(page.getByRole('switch')).toHaveCount(0, { timeout: 500 });
+  }).toPass();
+}
+
+const SIGN_TOOLS = ['Text', 'Date', 'Mark', 'Whiteout', 'Sign'];
+const SIGN_MORE_TOOLS = ['Highlight', 'Comment', 'Ellipse'];
 const REDACT_TOOLS = ['Blur', 'Blackout', 'Whiteout'];
 
 const VIEWPORTS = [
@@ -110,6 +136,7 @@ for (const vp of VIEWPORTS) {
         if (hasFields) await settleFieldDetection(page, toolbar);
         await saveTypedSignature(page, toolbar);
         for (const name of SIGN_TOOLS) await expectNoShiftOnArm(page, toolbar, name, vp.isPhone);
+        for (const name of SIGN_MORE_TOOLS) await expectNoShiftOnArmFromMore(page, toolbar, name);
       });
     }
 

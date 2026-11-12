@@ -14,7 +14,7 @@
     "functions": {
       "scripts/seo-refresh.mjs#main": 151,
       "scripts/serve-backlog-board.mjs#client": 260,
-      "src/editor-ui/EditorToolStatus.tsx#EditorToolStatus": 242,
+      "src/editor-ui/EditorToolStatus.tsx#EditorToolStatus": 232,
       "src/editor-ui/hooks/useDraggableElement.js#useDraggableElement": 263,
       "src/editor-ui/hooks/useDraggableElement.js#useDraggableElement.handlePointerDown": 224,
       "src/editor-ui/hooks/useElementResize.js#useElementResize": 263,
@@ -46,7 +46,7 @@
       "src/tools/sign/components/DraggableWrapper.tsx#DraggableWrapper": 412,
       "src/tools/sign/components/ElementToolbar.tsx#ElementToolbar": 360,
       "src/tools/sign/components/PdfWorkspace.tsx#PdfWorkspace": 548,
-      "src/tools/sign/components/SignToolbar.tsx#SignToolbar": 734,
+      "src/tools/sign/components/SignToolbar.tsx#SignToolbar": 579,
       "src/tools/sign/components/SignatureDialog.tsx#SignatureDialog": 537,
       "src/tools/sign/components/fill/FieldSlot.tsx#FieldSlot": 249,
       "src/tools/sign/components/nodes/TextNode.tsx#TextNode": 378,
@@ -101,10 +101,6 @@
         "effects": 1,
         "hooks": 27
       },
-      "src/tools/sign/components/SignToolbar.tsx": {
-        "effects": 1,
-        "hooks": 11
-      },
       "src/tools/sign/components/SignatureDialog.tsx": {
         "effects": 5,
         "hooks": 14
@@ -146,8 +142,7 @@
   "size": {
     "fileLines": {
       "src/data/tools.js": 930,
-      "src/shell/pageGrid/PageGrid.tsx": 859,
-      "src/tools/sign/components/SignToolbar.tsx": 807
+      "src/shell/pageGrid/PageGrid.tsx": 859
     },
     "fileThreshold": 800
   },

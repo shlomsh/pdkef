@@ -1,7 +1,7 @@
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { afterEach, describe, expect, it } from 'vitest';
-import FeedbackButton from './FeedbackButton.tsx';
+import FeedbackButton, { feedbackUrl } from './FeedbackButton.tsx';
 
 const tool = {
   name: 'Sign & Fill PDF',
@@ -97,5 +97,17 @@ describe('FeedbackButton', () => {
     expect(body).toContain('nothing from your document in it');
     // Everything the template already said is still said.
     expect(body).toContain('GitHub issues are public.');
+  });
+});
+
+describe('feedbackUrl', () => {
+  it('puts the detection line in the body when there is one', () => {
+    const body = new URL(feedbackUrl({ name: 'T', body: 'Hello' }, 'TypeError: x')).searchParams.get('body')!;
+    expect(body).toContain('TypeError: x');
+  });
+
+  it('leaves the body as the template when there is none', () => {
+    const body = new URL(feedbackUrl({ name: 'T', body: 'Hello' }, null)).searchParams.get('body');
+    expect(body).toBe('Hello');
   });
 });

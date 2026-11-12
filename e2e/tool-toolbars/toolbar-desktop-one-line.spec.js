@@ -83,7 +83,7 @@ const WIDTHS = [768, 920, 1000, 1100, 1200, 1299, 1300, 1440, 1600];
 const MAX_DOWNLOAD_SHARE = 0.4;
 
 const tools = [
-  { name: 'Sign', path: '/sign/?next=0', fixture: 'sign-desktop-one-line.pdf', floor: 841 },
+  { name: 'Sign', path: '/sign/?next=0', fixture: 'sign-desktop-one-line.pdf', floor: 841 /* SIGN-49: re-measure */ },
   { name: 'Redact', path: '/redact', fixture: 'redact-desktop-one-line.pdf', floor: 700 },
 ];
 
@@ -133,9 +133,9 @@ test('Text leads and Sign follows the filling tools, labels show at the desktop 
     const toolbar = document.querySelector('[role="toolbar"]');
     return [...toolbar.children].slice(0, 6).map((el) => el.querySelector('.label, span')?.textContent?.trim());
   });
-  expect(leadingLabels, 'the filling tools lead and Sign follows them').toEqual(['Text', 'Date', 'Mark', 'Shapes', 'Whiteout', 'Sign']);
+  expect(leadingLabels, 'the filling tools lead and Sign follows them').toEqual(['Text', 'Date', 'Mark', 'Whiteout', 'Sign', 'More']);
 
-  for (const label of ['Sign', 'Text', 'Date', 'Mark', 'Whiteout', 'Highlight', 'Share', 'Download']) {
+  for (const label of ['Sign', 'Text', 'Date', 'Mark', 'Whiteout', 'Full screen', 'More', 'Share', 'Download']) {
     const width = await labelWidth(page, label);
     expect(width, `${label} label should exist`).not.toBeNull();
     expect(width, `${label} should be labelled at 1440px`).toBeGreaterThan(5);
@@ -148,13 +148,13 @@ test('Text leads and Sign follows the filling tools, labels show at the desktop 
   // Comment tool and Replace join them: fifteen labelled controls are about
   // 115px wider than the 1172px box, and a speech bubble and the file icon
   // (with its tooltip) are the two that read without a word.
-  for (const label of ['Undo', 'Redo', 'Feedback', 'Comment', 'Replace']) {
+  for (const label of ['Undo', 'Redo', 'Replace']) {
     const width = await labelWidth(page, label);
     expect(width, `${label} label should exist for screen readers`).not.toBeNull();
     expect(width, `${label} is icon-only at every width`).toBeLessThanOrEqual(2);
   }
 
-  await page.setViewportSize({ width: 1200, height: 1000 });
+  await page.setViewportSize({ width: 1200, height: 1000 }); // SIGN-49: re-measure
   for (const label of ['Sign', 'Whiteout', 'Highlight', 'Download']) {
     const width = await labelWidth(page, label);
     expect(width, `${label} is icon-only below 1300px`).toBeLessThanOrEqual(2);

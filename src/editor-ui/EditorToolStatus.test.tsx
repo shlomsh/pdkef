@@ -141,6 +141,30 @@ describe('EditorToolStatus', () => {
       expect(rows()).toHaveLength(2 + TOOLS.length);
     });
 
+    describe('action link', () => {
+      const action = { label: 'Send me the details', href: 'https://example.test/issue' };
+      const link = () => summary()!.querySelector<HTMLAnchorElement>('a');
+
+      it('renders a new-tab link after the text when the row is shown', () => {
+        mount({ fieldSummary: { text: 'Could not check this PDF.', problem: true, action } });
+        expect(link()!.getAttribute('href')).toBe(action.href);
+        expect(link()!.target).toBe('_blank');
+        expect(link()!.rel).toBe('noopener noreferrer');
+        expect(link()!.textContent).toBe(action.label);
+        expect(link()!.hasAttribute('tabindex')).toBe(false);
+      });
+
+      it('renders no link without an action', () => {
+        mount({ fieldSummary: { text: 'Could not check this PDF.', problem: true } });
+        expect(link()).toBeNull();
+      });
+
+      it('is not tabbable while the row is only holding space', () => {
+        mount({ copy: TOOLS[0], fieldSummary: { text: 'Could not check this PDF.', problem: true, action } });
+        expect(link()!.getAttribute('tabindex')).toBe('-1');
+      });
+    });
+
     // The armed row carries the keep-on switch, which on a phone is the only
     // way out of a locked tool. Nothing here may take its turn.
     it('yields to an armed tool and to an override, leaving one row shown', () => {

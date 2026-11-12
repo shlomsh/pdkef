@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef } from 'preact/hooks';
 import { documentStyleOf, useSignTool } from './SignToolContext.tsx';
 import { useSavedSignatures } from './SavedSignaturesContext.tsx';
-import SignFeedbackButton from './SignFeedbackButton.tsx';
+import { signFeedbackUrl } from './SignFeedbackButton.tsx';
+import MoreToolsMenu, { isMoreTool, moreLabelFor } from './MoreToolsMenu.tsx';
 import FullscreenButton from '#editor-ui/FullscreenButton.tsx';
 import Popover from '#shell/Popover.tsx';
 import { buildToolCopy } from './toolCopy.ts';
@@ -13,7 +14,7 @@ import ToolShell, { FILE_ACTIONS, useToolShell } from '#shell/ToolShell.tsx';
 import { useArmTool, useAutoArmHint, useDoubleTap } from '#editor-ui/hooks/toolArming.js';
 import IconToolButton from './IconToolButton.tsx';
 import MarkIcon from './MarkIcon.tsx';
-import { CommentIcon, HighlightIcon, WhiteoutIcon } from '#editor-ui/toolIcons.tsx';
+import { WhiteoutIcon } from '#editor-ui/toolIcons.tsx';
 import useCoarsePointer from '#editor-ui/hooks/useCoarsePointer.ts';
 import { useFill } from './fill/FillContext.tsx';
 import { englishSignMessages } from '../messages';
@@ -165,25 +166,6 @@ export default function SignToolbar({
   // the usual arming toggle.
   const textChosen = selectedTool === 'text';
   const [showSigDropdown, setShowSigDropdown] = useState(false);
-  const [showShapesDropdown, setShowShapesDropdown] = useState(false);
-  // Which shape the Shapes button stands for once its menu has closed. The
-  // button is the shape tool's button, so locking has to know what to lock
-  // even after the one-shot placement has already disarmed the tool. Defaults
-  // to Rectangle (the conventional default shape tool) so double-clicking
-  // Shapes locks something even before the dropdown has ever been opened,
-  // rather than silently doing nothing on a fresh page.
-  const [lastShape, setLastShape] = useState<ShapeTool>('rectangle');
-
-  const shapesCloseTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
-  const openShapes = () => {
-    clearTimeout(shapesCloseTimer.current);
-    setShowShapesDropdown(true);
-  };
-  const scheduleCloseShapes = () => {
-    clearTimeout(shapesCloseTimer.current);
-    shapesCloseTimer.current = setTimeout(() => setShowShapesDropdown(false), 180);
-  };
-
   const sigCloseTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const openSig = () => {
     clearTimeout(sigCloseTimer.current);
@@ -198,7 +180,6 @@ export default function SignToolbar({
 
   useEffect(() => {
     return () => {
-      clearTimeout(shapesCloseTimer.current);
       clearTimeout(sigCloseTimer.current);
     };
   }, []);
@@ -251,7 +232,8 @@ export default function SignToolbar({
       setSelectedTool(next);
       if (next) {
         setAnnouncement(formatMessage(t.toolActive, { button: TOOL_COPY[next].button, action: TOOL_COPY[next].action }));
-        noteArmed(next);
+        // One hint for the More button, whichever of its tools was armed.
+        noteArmed(isMoreTool(next) ? 'more' : next);
         recordAction('arm_tool');
       }
     },
@@ -275,60 +257,33 @@ export default function SignToolbar({
   };
 
   const chooseShape = (tool: ShapeTool) => {
-    // Preserve the lock only if Shapes itself was already the locked tool:
-    // picking a different shape from the menu re-arms the Shapes family, not
-    // a tool switch, so a Shapes double-clicked locked before opening the
-    // menu must stay locked on the newly chosen shape. But if some OTHER
-    // tool was locked (Text, say) when this menu happened to be opened,
-    // `toolLocked` describes THAT tool, not Shapes - carrying it over would
-    // lock the newly chosen shape nobody asked to lock. Same reasoning as
-    // handleSelectSavedSignature, and SIGN-30.
+    // The lock carries only across shapes: picking another shape re-arms the
+    // same family, but another tool's lock (Text, say) must not leak onto the
+    // shape picked - SIGN-30. A bare SET_TOOL always clears `toolLocked`.
     dispatch({ type: 'SET_TOOL', payload: { tool, locked: toolLocked && isShapeTool(selectedTool) } });
-    setLastShape(tool);
-    setShowShapesDropdown(false);
     setAnnouncement(formatMessage(t.toolActive, { button: TOOL_COPY[tool].button, action: TOOL_COPY[tool].action }));
-    // Shapes is one button standing for three tools, so the hint that follows
-    // has to key off the button ("shapes"), not whichever shape happens to be
-    // chosen - see the Shapes button's ArmHint below.
-    noteArmed('shapes');
+    noteArmed('more');
     recordAction('arm_tool');
   };
 
-  // Shapes locks from its own button rather than from a menu item, because a
-  // menu item cannot be double-clicked: the first click closes the popover and
-  // unmounts it, so the second click would land on whatever is underneath -
-  // possibly the page, placing an element nobody asked for. The button is the
-  // shape tool's button, so double-clicking it is the same gesture as on Text.
-  // A real dblclick handler is safe here (unlike the toggle buttons, where the
-  // second click would disarm before the lock landed): the two clicks only
-  // toggle the popover, never the tool. `lastShape` always has a value (it
-  // defaults to Rectangle), so this locks something even on a fresh page
-  // where no shape has been chosen yet.
-  const lockShape = () => {
-    const shape = isShapeTool(selectedTool) ? selectedTool : lastShape;
-    lockTool(shape);
-    setShowShapesDropdown(false);
-  };
-
-  // Same reasoning as lockShape: Sign is also a dropdown-trigger button, so a
+  // Sign is a dropdown-trigger button, so a
   // real dblclick handler on the wrapping div is what has to lock it - counting
   // e.detail on the button itself would be fighting floating-ui's own click
   // handler, which toggles the popover on every click including both of a
   // double-click. Locking only makes sense once a signature exists to place;
   // activeSignature outlives a one-shot placement's disarm, so double-clicking
-  // right after placing one still re-arms and locks it, same as lastShape does
-  // for shapes.
+  // right after placing one still re-arms and locks it, same as More's last pick
+  // does.
   const lockSignature = () => {
     if (!activeSignature) return;
     lockTool('signature');
     setShowSigDropdown(false);
   };
 
-  // A phone sends no dependable dblclick, so on touch the same two buttons
-  // lock on two quick taps instead (SIGN-31, toolArming.js's useDoubleTap),
+  // A phone sends no dependable dblclick, so on touch Sign locks on two quick taps instead (SIGN-31, toolArming.js's useDoubleTap),
   // and only while the menu the first tap opened is still open: a pick from
   // the menu closes it, so "tap, pick, tap to reopen" can never lock.
-  // Their menus open by tap alone there: the hover opener below would fire on
+  // Sign's menu opens by tap alone there: the hover opener below would fire on
   // the same tap as the click that toggles the menu, opening and shutting it
   // at once, so the first tap looked like it did nothing.
   const isDoubleTap = useDoubleTap();
@@ -394,6 +349,10 @@ export default function SignToolbar({
     problem: formDetection.state === 'failed'
       || formDetection.state === 'unavailable'
       || formDetection.state === 'not-started',
+    // A failed or unstarted check ends in a link to the prefilled report.
+    action: formDetection.state === 'failed' || formDetection.state === 'not-started'
+      ? { label: t.fieldsCheckDetailsLink, href: signFeedbackUrl(formDetection.detail ?? null) }
+      : undefined,
     text: (() => {
       if (formDetection.state === 'pending') return null;
       if (formDetection.state === 'not-started') return t.fieldsCheckNotStarted;
@@ -442,14 +401,14 @@ export default function SignToolbar({
           data-editor-toolbar
         >
           {/* Order (2026-09-18, revised the same day as SIGN-29): the row
-              reads in the order a form gets done. Text, Date, Mark, Shapes
+              reads in the order a form gets done. Text, Date, Mark
               and Whiteout come first - you fill the fields, tick the boxes,
               cover what is wrong - and Sign comes after them, the last thing
               you do to a filled form, even though it is the tool the page is
               named for (Redact's own order still leads with Blur, its named
               tool, since f48fcbd8). Undo and Redo sit beside the work they
               act on; the
-              chrome - view density, full screen, Feedback - groups together
+              chrome - More, full screen - groups together
               next; Replace sits with the other finishing action; export
               (Share/Download) stays at the far edge. One kind of thing per
               group; the two-anchor comment at the end of
@@ -507,112 +466,11 @@ export default function SignToolbar({
             </button>
           </ArmHint>
 
-          {/* placement="bottom-start". A dropdown drops down - and it is the
-              only surface here that does, which is what lets it coexist with
-              ArmHint's tooltip rather than take turns with it: the tooltip
-              opens upward, this opens downward, so both can be on screen at
-              once and neither has to be suppressed. (Suppressing was tried,
-              and it silently cost these two buttons their tooltip altogether,
-              because the menu opens on the very hover the tooltip waits on.)
-
-              Start-aligned, not centered. Centering was the old behaviour, on
-              the argument that these buttons stretch to fill the row (`.toolbar
-              > * { flex: 1 1 auto }`) while their icon and label stay centered
-              inside, so start-aligning anchored the menu to an empty left edge
-              rather than to visible content. That held while the menu was the
-              narrower of the two, and stopped holding once the menu grew wider
-              than the button: centering a wider box on a narrower one makes it
-              overhang on both sides and line up with nothing. A shared edge is
-              legible at any relative width; a shared centre is not. */}
-          {/* ArmHint wraps this outer div, not the button Popover clones below:
-              Popover already clones that button to attach its own Floating UI
-              reference (for the Shapes menu itself), and a second, independent
-              clone-and-ref from ArmHint needs a DOM node of its own to attach
-              to - the div is already position:relative and already sized to
-              match the button exactly (`.toolbar .dropdown > .button { width:
-              100% }`), so anchoring here costs nothing visually. */}
-          <ArmHint tool="shapes" label={t.shapesButton} action={t.shapesHintAction} locked={isShapeTool(selectedTool) && toolLocked} autoShowTool={autoShowTool} hintTemplate={t.armHint} touchHintTemplate={t.armHintTouch}>
-            <div
-              className={styles.dropdown}
-              onMouseEnter={hoverMenu(openShapes)}
-              onMouseLeave={hoverMenu(scheduleCloseShapes)}
-              onDblClick={lockShape}
-            >
-              <Popover
-                open={showShapesDropdown}
-                onOpenChange={setShowShapesDropdown}
-                placement="bottom-start"
-                trigger={
-                  <button
-                    type="button"
-                    {...toolButtonProps(isShapeTool(selectedTool), toolLocked)}
-                    onClick={(e: MouseEvent) => { if (isDoubleTap('shapes', e, showShapesDropdown)) lockShape(); }}
-                    aria-pressed={isShapeTool(selectedTool)}
-                  >
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                      <path d="M12 3l4 7H8z" />
-                      <circle cx="7" cy="17" r="4" />
-                      <rect x="13" y="13" width="8" height="8" rx="1" />
-                    </svg>
-                    <span className={styles.label}>{t.shapesButton}</span>
-                    {/* The chevron sits outside the label so it survives the
-                        icon-only band (SignToolbar.module.css's 1279px block
-                        hides every .label): a menu still has to look like one. */}
-                    <svg className={styles.chevron} width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                      <polyline points="6 9 12 15 18 9" />
-                    </svg>
-                  </button>
-                }
-                content={
-                <div 
-                  className={`${controlStyles.popover} ${controlStyles['shapes-menu']}`}
-                  role="menu"
-                  onMouseEnter={openShapes}
-                  onMouseLeave={scheduleCloseShapes}
-                >
-                  <div className={`${controlStyles['dropdown-list']} ${controlStyles.clean}`}>
-                    <button
-                      type="button"
-                      className={controlStyles['menu-item']}
-                      onClick={() => chooseShape('ellipse')}
-                    >
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                        <ellipse cx="12" cy="12" rx="10" ry="7" />
-                      </svg>
-                      {t.ellipseLabel}
-                    </button>
-                    <button
-                      type="button"
-                      className={controlStyles['menu-item']}
-                      onClick={() => chooseShape('rectangle')}
-                    >
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                        <rect x="3" y="6" width="18" height="12" rx="2" />
-                      </svg>
-                      {t.rectangleLabel}
-                    </button>
-                    <button
-                      type="button"
-                      className={controlStyles['menu-item']}
-                      onClick={() => chooseShape('line')}
-                    >
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
-                        <line x1="4" y1="20" x2="20" y2="4" />
-                      </svg>
-                      {t.lineLabel}
-                    </button>
-                  </div>
-                </div>
-              }
-            />
-            </div>
-          </ArmHint>
-
           <IconToolButton tool="whiteout" label={t.whiteoutButton} action={TOOL_COPY.whiteout.action} selectedTool={selectedTool} toolLocked={toolLocked} autoShowTool={autoShowTool} hintTemplate={t.armHint} touchHintTemplate={t.armHintTouch} onArm={armTool('whiteout')}>
             <WhiteoutIcon strokeWidth={2.5} />
           </IconToolButton>
 
-          {/* Same wrapping reasoning as the Shapes button above: ArmHint anchors to
+          {/* ArmHint anchors to
               the dropdown div, not the button Popover clones. `locked` doubles
               as "nothing to teach yet" here - before a signature exists, this
               button's click opens the create dialog rather than arming
@@ -712,13 +570,19 @@ export default function SignToolbar({
             </div>
           </ArmHint>
 
-          <IconToolButton tool="highlight" label={t.highlightLabel} action={TOOL_COPY.highlight.action} selectedTool={selectedTool} toolLocked={toolLocked} autoShowTool={autoShowTool} hintTemplate={t.armHint} touchHintTemplate={t.armHintTouch} onArm={armTool('highlight')}>
-            <HighlightIcon strokeWidth={2.5} />
-          </IconToolButton>
-
-          <IconToolButton tool="comment" label={t.commentToolLabel} action={TOOL_COPY.comment.action} selectedTool={selectedTool} toolLocked={toolLocked} autoShowTool={autoShowTool} hintTemplate={t.armHint} touchHintTemplate={t.armHintTouch} onArm={armTool('comment')} iconOnly>
-            <CommentIcon />
-          </IconToolButton>
+          {/* More holds what is used less often: Highlight, Comment, the shapes
+              and Feedback (SIGN-49). ArmHint wraps the dropdown div, as with
+              Sign above, so its tooltip and the menu open opposite ways. */}
+          <ArmHint tool="more" label={moreLabelFor(isMoreTool(selectedTool) ? selectedTool : null, t)} action={isMoreTool(selectedTool) ? TOOL_COPY[selectedTool].action : t.moreTitle} locked={isMoreTool(selectedTool) && toolLocked} autoShowTool={autoShowTool} hintTemplate={t.armHint} touchHintTemplate={t.armHintTouch}>
+            <MoreToolsMenu
+              t={t}
+              selectedTool={selectedTool}
+              toolLocked={toolLocked}
+              onPick={(tool, event) => (isShapeTool(tool) ? chooseShape(tool) : armTool(tool)(event))}
+              onLock={lockTool}
+              feedbackHref={signFeedbackUrl(formDetection.detail ?? null)}
+            />
+          </ArmHint>
 
           {/* Undo and Redo are the whole history model, the same pair
               RedactToolbar.tsx carries and in the same order: one tap each,
@@ -740,25 +604,7 @@ export default function SignToolbar({
             labels={{ undoTitle: t.undoTitle, undoButton: t.undoButton, redoTitle: t.redoTitle, redoButton: t.redoButton }}
           />
 
-          <FullscreenButton isFullscreen={isFullscreen} toggleFullscreen={toggleFullscreen} label={t.viewFullscreen} exitLabel={t.viewExitFullscreen} iconOnly />
-
-          {/* Full screen and Feedback are the chrome group, one
-              kind of thing (about the workspace, not the document) beside each
-              other. */}
-          <SignFeedbackButton
-            className={styles.button}
-            labelClassName={styles.label}
-            label={t.feedbackButton}
-            title={t.feedbackTitle}
-            lang={t.lang}
-            dir={t.dir}
-            /* FORM-11: the one thing this report ever fills in by itself, and
-               only when the field walk threw. A failure a person cannot
-               describe is a failure nobody can fix - an iPhone seeing no
-               outlines and no snapping, on a document that works everywhere we
-               can test, is a report we have had and could do nothing with. */
-            detectionFailure={formDetection.detail ?? null}
-          />
+          <FullscreenButton isFullscreen={isFullscreen} toggleFullscreen={toggleFullscreen} label={t.viewFullscreen} exitLabel={t.viewExitFullscreen} />
 
           {/* The united file action, in the exact slot Start over used to hold.
               Both meant "I want a different file"; this one says it once and

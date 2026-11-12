@@ -110,7 +110,8 @@ async function swipe(page, touch, from, to) {
 }
 
 async function armHighlight(page) {
-  await page.getByRole('toolbar', { name: 'PDF annotations' }).getByRole('button', { name: 'Highlight' }).click();
+  await page.getByRole('toolbar', { name: 'PDF annotations' }).getByRole('button', { name: 'More', exact: true }).click();
+  await page.getByRole('menuitem', { name: 'Highlight', exact: true }).click();
 }
 
 const bandRects = (page) => page.locator('[data-editor-highlight] [data-highlight-band]')
