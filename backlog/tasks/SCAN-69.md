@@ -1,10 +1,9 @@
 ---
 id: "SCAN-69"
 title: "A PDF of phone photos is read like photos: its page found, the next page left out, upright"
-status: "in_progress"
+status: "done"
 priority: "P1"
 epic: "scan-next"
-horizon: "now"
 depends_on: []
 ---
 
@@ -76,6 +75,16 @@ Then, after Shlomi saw 16 of 22 right through the tool, two lessons from cleanin
 ## Done when
 
 - [x] Book page 50 comes out upright; the other measured photos turn as before.
-- [ ] On the 22 photos, no page keeps the table, the next page's sliver or a finger beyond its margins, run through the
-  real tool and looked at by Shlomi before landing.
-- [ ] A clean scanned PDF's pages come out as before (unit test on a sheet with paper to its edges).
+- [x] On the 22 photos, no page keeps the table or the next page's sliver, run through the real tool and looked at by
+  Shlomi before landing (2026-11-12). A fingertip still shows at the bottom edge of three pages, inside the page's
+  margin; Shlomi closed the ticket with it.
+- [x] A clean scanned PDF's pages come out as before: a sheet with paper to its edges keeps today's reach, and a scanned
+  book stays scanned after one dark cover (unit tests in `photoPage.test.ts`).
+
+## What changed
+
+Landed on main 2026-11-12, `b14df2f9f` to `3d325d7c2`. `photoPage.ts` reads a photo's page from its text: lines traced
+along their curves, sides fitted through their ends and kept nearly parallel, book margins around the block.
+`pdfSheets` hands each sheet the book read so far: whether its sheets are photos, and its text width in line pitches,
+which widens a column beside a figure. `textBlock.ts` keeps the scan path. Run through the tool, 16 of 22 pages came out
+right after the first change and all 22 after the book and the parallel sides.
