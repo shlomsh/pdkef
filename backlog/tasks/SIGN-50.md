@@ -1,10 +1,9 @@
 ---
 id: "SIGN-50"
 title: "Sign's code calls the Mark tool a mark; the stored names stay 'symbol'"
-status: "in_progress"
+status: "done"
 priority: "P3"
 epic: "polish"
-horizon: "now"
 depends_on: ["SIGN-48"]
 ---
 
@@ -28,3 +27,10 @@ stored type would lose marks in that window. A comment at each stored name says 
 - Drafts and app style written before the change load unchanged (existing draft-restore tests pass
   untouched).
 - Ratchet entries move with renamed files at the same limits.
+
+## Outcome
+
+Done 2026-11-12. Files, components, types, constants, message keys, CSS classes and data attributes
+say mark (`MarkNode`, `MarkElement`, `MarkGlyph`, `registry/mark.ts`, `registry/markGlyphs.ts`,
+`markButton`, `data-editor-mark`, `.mark`). The stored names stay, each with a comment saying why;
+draft-restore tests pass unchanged apart from renamed locals.

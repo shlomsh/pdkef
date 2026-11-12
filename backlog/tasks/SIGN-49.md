@@ -1,10 +1,9 @@
 ---
 id: "SIGN-49"
 title: "Sign's toolbar leads with the form: five tools, More, and the file's actions at the end"
-status: "in_progress"
+status: "done"
 priority: "P2"
 epic: "polish"
-horizon: "now"
 depends_on: ["SIGN-48"]
 ---
 
@@ -32,6 +31,20 @@ form (text, marks, date), signing it and sending it; the toolbar should say so.
 
 ## Acceptance
 
-To be written when it is picked up: the `--controls-per-row` thresholds and the 1300px label step are
-re-measured for the new control count, and the arm-no-shift, touch-target, one-line, labels-fit and
-export-quiet guards hold on `/sign/` and `/he/sign/`.
+- The row, More menu, status-line link and phone rows above, on `/sign/` and `/he/sign/`.
+- The design's finish (ghost controls, group dividers, outlined Download, centred fixed-width More).
+- The arm-no-shift, touch-target, one-line, labels-fit and export-quiet guards hold with re-measured
+  numbers.
+
+## Outcome
+
+Done 2026-11-12. `MoreToolsMenu` holds Highlight, Comment, Ellipse, Rectangle, Line and Feedback; armed
+from it, the button takes the tool's word and icon at the same width, a double-click (or double-tap)
+locks the armed or last-picked tool, and the shapes are named for themselves in the status copy. A
+failed or unstarted field check ends on a "Send me the details" link (`signFeedbackUrl`). Sign's
+finish is scoped by `data-finish="strip"`, so Redact and Highlight are unchanged; its labels follow
+the toolbar's own width (`@container toolbar (min-width: 1160px)`), so they show at a 1280px window.
+Guards: one line from 648px with Share (compared by centre), 6+6 on phones, every control 44px from
+360px, labels at 1280 and icon-only at 1100, Download outlined but never filled. The shared
+eleven-control rule moved from 531px to 532px after a 594px window stranded one control (red first).
+Every number was measured on macOS Chromium; CI's Linux fonts are the check on the ~36px headroom.

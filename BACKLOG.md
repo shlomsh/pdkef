@@ -2,7 +2,7 @@
 
 # Backlog
 
-The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 191 live: 81 up next, 23 then, 27 waiting, 60 parked.
+The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 190 live: 80 up next, 23 then, 27 waiting, 60 parked.
 
 ## Redact: finish removal
 
@@ -349,10 +349,9 @@ Small, independent, good for a spare hour.
 | DRIVE-02 | P2 | [DRIVE-02](backlog/tasks/DRIVE-02.md) · The home dropzone opens from Google Drive | In progress |
 | DRIVE-03 | P2 | [DRIVE-03](backlog/tasks/DRIVE-03.md) · iPhone check of the real Google Drive build | Needs Shlomi: A run on your iPhone, Chrome and Safari |
 | QUAL-21 | P2 | [QUAL-21](backlog/tasks/QUAL-21.md) · Pages render at the size they are shown, and the practice form's logo is sharp | In progress |
+| RED-73 | P2 | [RED-73](backlog/tasks/RED-73.md) · Redact and Highlight toolbars wear the finish Sign's has, so the tools read as one app |  |
 | SIGN-44 | P2 | [SIGN-44](backlog/tasks/SIGN-44.md) · Sign: a comment on a highlight, kept in the PDF as a standard annotation | In progress |
-| SIGN-49 | P2 | [SIGN-49](backlog/tasks/SIGN-49.md) · Sign's toolbar leads with the form: five tools, More, and the file's actions at the end | In progress |
 | MERGE-26 | P3 | [MERGE-26](backlog/tasks/MERGE-26.md) · Save to Drive: an optional, explicit copy of a finished PDF into the person's own Drive | In progress |
-| SIGN-50 | P3 | [SIGN-50](backlog/tasks/SIGN-50.md) · Sign's code calls the Mark tool a mark; the stored names stay 'symbol' | In progress |
 | SITE-45 | P3 | [SITE-45](backlog/tasks/SITE-45.md) · The /drive/ voice, carried to the other quiet pages: doodle that shows the mechanism, paper stickers for the promises | In progress. Needs Shlomi: Pick which pitches below to build (step 1) |
 
 ### Then, in order
@@ -390,7 +389,7 @@ Done and retired tickets are not listed. Their files stay in [backlog/tasks/](ba
 - Robustness and debt: 97 done, 4 retired
 - Unify the tools, narrow the graph: 100 done, 0 retired
 - Search and languages: 13 done, 0 retired
-- Polish: 30 done, 2 retired
+- Polish: 32 done, 2 retired
 - Sign tool architecture: 37 done, 1 retired
 - Editor architecture: 14 done, 0 retired
 - Fonts and script support: 6 done, 3 retired
