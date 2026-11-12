@@ -65,8 +65,18 @@ for (const tool of tools) {
       await page.mouse.move(0, 0);
 
       const plain = await colours(restored.getByRole('button', { name: tool.whiteout, exact: true }));
-      expect({ share: await colours(share), download: await colours(restoredDownload) }, 'toolbar export controls wear the plain button')
-        .toEqual({ share: plain, download: plain });
+      const shareColours = await colours(share);
+      const downloadColours = await colours(restoredDownload);
+      if (tool.name.startsWith('Sign')) {
+        // SIGN-49: Download is the one outlined control (its border or ring differs
+        // from plain Whiteout), so it is held to "never filled" and the same text colour.
+        expect(shareColours, 'Share wears the plain button').toEqual(plain);
+        expect(['rgba(0, 0, 0, 0)', 'rgb(255, 255, 255)'], 'Download is never filled').toContain(downloadColours.background);
+        expect(downloadColours.color, 'Download text matches the plain button').toBe(plain.color);
+      } else {
+        expect({ share: shareColours, download: downloadColours }, 'toolbar export controls wear the plain button')
+          .toEqual({ share: plain, download: plain });
+      }
     });
   }
 }

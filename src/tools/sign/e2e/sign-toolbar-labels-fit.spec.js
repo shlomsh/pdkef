@@ -98,11 +98,8 @@ for (const { width, path, share, download, more } of CASES) {
       expect.soft(overhang, `labels that overflow their button at ${width}px`).toEqual([]);
       expect.soft(missing, `Share, Download and More all rendered at ${width}px`).toEqual([]);
       expect.soft(balanced, `rows balanced (>=2 each, differ by <=1), got ${split.join('+')}`).toBe(true);
-      // Every current iPhone (433px and narrower) stands Feedback down, so Sign's
-      // fourteen with Share (Comment, SIGN-44) split 7+7 (SignToolbar.module.css,
-      // the 387px rule). At 360px and 375px the controls shrink below the 44px
-      // floor to keep it (decided 2026-10-31).
-      expect.soft(split.join('+'), `7+7 on a phone at ${width}px`).toBe('7+7'); // SIGN-49: re-measure
+      // SIGN-49: Sign's twelve controls with Share split 6+6 on every phone width.
+      expect.soft(split.join('+'), `6+6 on a phone at ${width}px`).toBe('6+6');
     });
   });
 }
@@ -125,13 +122,11 @@ test.describe('Sign row, 919px down to 239px', () => {
       if (Math.max(...split) - Math.min(...split) > 1) problems.push('rows differ by more than 1');
       if (!names.includes('Share')) problems.push('no Share');
       if (!names.includes('Download')) problems.push('no Download');
-      // Sign's fourteen hold 7+7 below 337px of content by letting the 44px floor
-      // give way (SignToolbar.module.css, decided 2026-10-31). 40.5px is what a
-      // 360px phone needs (40.6px); narrower windows are not phones, so only the
-      // balance is held there.
-      // SIGN-49: re-measure the 40.5px floor
-      const narrow = width < 360 ? [] : controls.filter((c) => c.width < 40.5).map((c) => `${c.name} ${c.width.toFixed(1)}px`);
-      if (narrow.length) problems.push(`narrower than 40.5px: ${narrow.join(', ')}`);
+      // SIGN-49: the twelve controls hold 6+6 and the 44px touch floor from 360px
+      // up (narrowest measured 2026-11-12 from 360px to 700px: 44.0px, at 644px
+      // and 335px); narrower windows are not phones, so only the balance is held.
+      const narrow = width < 360 ? [] : controls.filter((c) => c.width < 44).map((c) => `${c.name} ${c.width.toFixed(1)}px`);
+      if (narrow.length) problems.push(`narrower than 44px: ${narrow.join(', ')}`);
       if (problems.length) failures.push(`${width}px [${split.join('+')}] ${problems.join('; ')}`);
     }
     expect(failures, 'widths where the row strands, unbalances or drops a control').toEqual([]);

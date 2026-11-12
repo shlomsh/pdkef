@@ -445,12 +445,13 @@
 
   /* 532.0px is where eleven controls stop fitting one line at the touch floor
      (11 * 44 + 10 * 4.8), the same "N * --btn-min-size + (N-1) gaps"
-     arithmetic as the two thresholds above. Fires one pixel below, same
-     convention as 495px's whole-number case just above. Overlapping queries
-     are harmless here: every threshold in this group computes the same
+     arithmetic as the two thresholds above. Fires at 532px itself, not one pixel
+     below: the box is fractional (531.2px at a 594px window), and between 531
+     and 532 it stranded one control on a row of its own, 10+1 (SIGN-49).
+     Overlapping queries are harmless here: every threshold in this group computes the same
      flex-basis from the toolbar's own --controls-per-row, so a toolbar matched
      by several of them gets one answer. */
-  @container toolbar (max-width: 531px) {
+  @container toolbar (max-width: 532px) {
     .toolbar:has(> :nth-child(11 of :not(.desktop-download))) > * { flex-grow: 0; flex-basis: max(var(--btn-min-size), (100% - (var(--controls-per-row) - 1) * var(--toolbar-gap)) / var(--controls-per-row)); }
   }
 

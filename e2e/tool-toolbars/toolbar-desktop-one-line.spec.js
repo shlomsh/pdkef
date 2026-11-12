@@ -7,7 +7,7 @@ import { openTool as openSharedTool } from '../support/tool.js';
    label-drop thresholds. The toolbar now has two anchors, desktop (1300px and
    up, labels on) and iPhone (the phone grid), with one icon-only line between;
    see SignToolbar.module.css's closing comment. jsdom cannot see rendered rects,
-   so this needs a real browser: every visible direct child sharing one `top`
+   so this needs a real browser: every visible direct child sharing one vertical centre (within 1px)
    at a spread of real widths, and Download never ballooning even if a future
    control tips the row over again. Share is stubbed present throughout - the
    wider, real case the bug was found in (twelve controls then; thirteen
@@ -15,7 +15,7 @@ import { openTool as openSharedTool } from '../support/tool.js';
 
    Re-measured 2026-09-20 in headless Chromium on Linux (the wide DejaVu face,
    Share stubbed present) after the History control and the change-history
-   dialog came out: Sign's labelled row is 1139.7px against a 1172px content
+   dialog came out: Sign's labelled row (before SIGN-49's ghost row) was 1139.7px against a 1172px content
    box, 32.3px spare, and Date is labelled again. SignToolbar.module.css's
    closing comment carries the rest of those numbers. */
 
@@ -44,11 +44,13 @@ async function readToolbarLine(page) {
       const style = getComputedStyle(el);
       return style.display !== 'none' && style.visibility !== 'hidden';
     });
-    const tops = children.map((el) => Math.round(el.getBoundingClientRect().top));
+    // Controls differ in height by design (40, 42 and 44px) and are centred in
+    // the line, so one line is judged on each control's vertical centre.
+    const centres = children.map((el) => { const r = el.getBoundingClientRect(); return r.top + r.height / 2; });
     const downloadEl = children.find((el) => /download/i.test(el.className));
     return {
       childCount: children.length,
-      tops,
+      centres,
       downloadWidth: downloadEl ? downloadEl.getBoundingClientRect().width : null,
       toolbarWidth,
     };
@@ -61,16 +63,12 @@ async function readToolbarLine(page) {
 // N * 44px + (N-1) * 4.8px of gap inside the toolbar's content box, which is
 // the viewport less 112.8px of page gutters and toolbar padding from 768px
 // (62.8px below it, where the loaded card has no frame since 2026-10-28).
-// Sign's twelve need 580.8px and hold one line down to a 644px viewport;
-// Redact's nine need 434.4px and hold down to 544px (measured, both, after
-// History came out on 2026-09-20). Since 2026-10-20 Sign keeps Download beside
-// Share below 920px (keepDownloadOnPhone), so with Share it counts thirteen,
-// which need 629.6px and hold one line down to a 693px window (630.2px of
-// content); from 692px it is a balanced 7+6. Since 2026-10-31 the Highlight button
-// (SIGN-46) makes fourteen, which need 678.4px and hold one line down to a 792px
-// window; below it the row is a balanced 7+7. Since 2026-10-31 the Comment button
-// (SIGN-44) makes fifteen, which need 727.2px and hold one line down to an 841px
-// window; below it the row is a balanced 8+7. Redact's floor is still 700px.
+// Redact's nine need 434.4px and hold down to 544px (measured after History
+// came out on 2026-09-20); its floor is still 700px. Sign's floor is 648px:
+// SIGN-49's ghost row (twelve controls with Share, Share split 6+6 below) holds
+// one line with Share present down to a 644px window and wraps 6+6 at 643px
+// (stepped down from 1000px in 1px steps, macOS Chromium, 2026-11-12), plus a
+// 4px margin.
 // Below its own floor a toolbar is the wrapped grid, whose balance is
 // toolbar-touch-targets.spec.js's and sign-toolbar-labels-fit.spec.js's job.
 const WIDTHS = [768, 920, 1000, 1100, 1200, 1299, 1300, 1440, 1600];
@@ -83,7 +81,7 @@ const WIDTHS = [768, 920, 1000, 1100, 1200, 1299, 1300, 1440, 1600];
 const MAX_DOWNLOAD_SHARE = 0.4;
 
 const tools = [
-  { name: 'Sign', path: '/sign/?next=0', fixture: 'sign-desktop-one-line.pdf', floor: 841 /* SIGN-49: re-measure */ },
+  { name: 'Sign', path: '/sign/?next=0', fixture: 'sign-desktop-one-line.pdf', floor: 648 },
   { name: 'Redact', path: '/redact', fixture: 'redact-desktop-one-line.pdf', floor: 700 },
 ];
 
@@ -95,11 +93,11 @@ for (const tool of tools) {
 
     for (const width of [tool.floor, ...WIDTHS.filter((w) => w > tool.floor)]) {
       await page.setViewportSize({ width, height: 1000 });
-      const { childCount, tops, downloadWidth, toolbarWidth } = await readToolbarLine(page);
+      const { childCount, centres, downloadWidth, toolbarWidth } = await readToolbarLine(page);
       expect(childCount, `${tool.name} at ${width}px: expected several visible controls`).toBeGreaterThan(5);
       expect(
-        tops.every((top) => top === tops[0]),
-        `${tool.name} toolbar wrapped at ${width}px: control tops are ${JSON.stringify(tops)}`,
+        Math.max(...centres) - Math.min(...centres) <= 1,
+        `${tool.name} toolbar wrapped at ${width}px: control centres are ${JSON.stringify(centres)}`,
       ).toBe(true);
       expect(
         downloadWidth / toolbarWidth,
@@ -123,7 +121,7 @@ async function labelWidth(page, text) {
   }, text);
 }
 
-test('Text leads and Sign follows the filling tools, labels show at the desktop anchor except the icon-only five, and none show below 1300px', async ({ page }) => {
+test('Text leads and Sign follows the filling tools, labels show from a 1280px window except icon-only Undo and Redo, and none show at 1100px', async ({ page }) => {
   await stubSharePresent(page);
   await page.setViewportSize({ width: 1600, height: 1000 });
   await openTool(page, '/sign/?next=0', 'sign-desktop-one-line-order.pdf');
@@ -137,28 +135,29 @@ test('Text leads and Sign follows the filling tools, labels show at the desktop 
   });
   expect(leadingLabels, 'the filling tools lead and Sign follows them').toEqual(['Text', 'Date', 'Mark', 'Whiteout', 'Sign', 'More']);
 
-  for (const label of ['Sign', 'Text', 'Date', 'Mark', 'Whiteout', 'Full screen', 'More', 'Share', 'Download']) {
+  for (const label of ['Sign', 'Text', 'Date', 'Mark', 'Whiteout', 'Full screen', 'Replace', 'More', 'Share', 'Download']) {
     const width = await labelWidth(page, label);
     expect(width, `${label} label should exist`).not.toBeNull();
     expect(width, `${label} should be labelled at 1440px`).toBeGreaterThan(5);
   }
-  // Date is labelled again: it was icon-only for the day Undo, Redo and
-  // History were three controls, and History leaving paid its label back
-  // (SignToolbar.module.css's 1300px block carries the measurements). Undo,
-  // Redo and Feedback stay icon-only at every width - an arrow is a
-  // convention, and none of the three is a tool. Since 2026-10-31 (SIGN-44) the
-  // Comment tool and Replace join them: fifteen labelled controls are about
-  // 115px wider than the 1172px box, and a speech bubble and the file icon
-  // (with its tooltip) are the two that read without a word.
-  for (const label of ['Undo', 'Redo', 'Replace']) {
+  // Undo and Redo stay icon-only at every width - an arrow is a convention,
+  // and neither is a tool. Since SIGN-49 Replace is labelled with the rest.
+  for (const label of ['Undo', 'Redo']) {
     const width = await labelWidth(page, label);
     expect(width, `${label} label should exist for screen readers`).not.toBeNull();
     expect(width, `${label} is icon-only at every width`).toBeLessThanOrEqual(2);
   }
 
-  await page.setViewportSize({ width: 1200, height: 1000 }); // SIGN-49: re-measure
-  for (const label of ['Sign', 'Whiteout', 'Highlight', 'Download']) {
+  // SIGN-49: Sign's labels follow the toolbar's own width (>= 1160px), so they
+  // show at a 1280px window and are icon-only at 1100px.
+  await page.setViewportSize({ width: 1280, height: 1000 });
+  for (const label of ['Sign', 'Whiteout', 'Replace', 'Download']) {
     const width = await labelWidth(page, label);
-    expect(width, `${label} is icon-only below 1300px`).toBeLessThanOrEqual(2);
+    expect(width, `${label} is labelled at 1280px`).toBeGreaterThan(5);
+  }
+  await page.setViewportSize({ width: 1100, height: 1000 });
+  for (const label of ['Sign', 'Whiteout', 'Replace', 'Download']) {
+    const width = await labelWidth(page, label);
+    expect(width, `${label} is icon-only at 1100px`).toBeLessThanOrEqual(2);
   }
 });
