@@ -1,6 +1,7 @@
 /* The O. Geometry and design notes live in TheO.astro's frontmatter. */
-/* The scroll cues: the beat whose words are lit, and whether the paper plane has landed. */
+/* The scroll cues: the beat whose words are lit, whether the plane has taken off, and whether the paper plane has landed. */
 @property --o-lit { syntax: '<integer>'; inherits: true; initial-value: 0; }
+@property --o-off { syntax: '<integer>'; inherits: true; initial-value: 0; }
 @property --o-landed { syntax: '<integer>'; inherits: true; initial-value: 0; }
 
 .the-o { --dir: 1; --sky: var(--color-primary-tint); --cloud: var(--color-surface); --cloud-alpha: 1; position: relative; width: 100vw; margin-inline: calc(50% - 50vw); }
@@ -29,11 +30,16 @@
   --fs: var(--fw);
   --f4: min(var(--fw), var(--wc) / 5.6);
   --f5: min(var(--fw), (var(--wc) - var(--R) * 1.04 - var(--G)) / 5.75);
-  --f6: min(var(--R) * 0.4, (var(--wc) - var(--R) * 1.04 - var(--G)) / 6.9);
+  /* The last card's phrase, one line, in the size of the other cards' words. */
+  --f6: min(var(--fw), var(--wc) / 7.5);
   --yb: calc(var(--cy) + var(--R) * 0.4833);
   --yw: var(--yb);
   --y4: var(--yb);
-  --yf: max(var(--yb), var(--f6) * 2.6 + 8rem + 2cqh);
+  /* The runway's surface, near the foot of the card, and its depth; the last
+     card's phrase and line sit above it, clear of the plane's final. */
+  --yr: calc(100cqh - 4rem);
+  --yf: calc(var(--yr) - var(--f6) * 0.79 - var(--es) * 2.8 - 1rem);
+  --rh: max(0.625rem, var(--pw) * 0.26);
   /* f4 / R. iOS WebKit returned ~5x the real ratio from tan(atan2()) here
      (the O printed at nearly the zero's size), so TheO.astro's script
      measures it from layout and sets --o-k4; the trig is the no-JS fallback. */
@@ -54,21 +60,23 @@
   --sx: calc(var(--tx5) + var(--es) * 1.45);
   --sy: calc(var(--yw5) + var(--f5) * 0.3996 + var(--es) * 1.45);
   --pw: calc(var(--f6) * 0.62);
-  --lxp: calc(var(--lx) + var(--wc) - var(--pw) / 2);
-  --lyp: calc(var(--yf) - var(--pw) * 0.3125);
+  --lxp: calc(var(--lx) + var(--wc) - var(--pw) * 1.1);
+  --lyp: calc(var(--yr) - var(--pw) * 0.3125);
+  /* The flight's ceiling, and where the roll ends and the last card opens. */
+  --ft-ty: calc(10cqh - var(--sy));
+  /* The room the flight has to the left of the toggle it took off from. */
+  --f-left: max(0px, var(--sx) - var(--lx) - var(--pw));
+  --fy2: calc(10cqh + (var(--lyp) - 10cqh) * 0.3);
   --fdx: calc(var(--lxp) - var(--sx));
-  --f1-tx: calc(var(--fdx) * 0.08 * var(--dir));
-  --f1-ty: calc(var(--B) * -0.9);
-  --f2-tx: calc(var(--fdx) * 0.34 * var(--dir));
-  --f2-ty: calc(30cqh - var(--sy));
-  --f3-tx: calc(var(--fdx) * 0.7 * var(--dir));
-  --f3-ty: calc(12cqh - var(--sy));
-  --f4-tx: calc(var(--fdx) * 0.95 * var(--dir));
-  --f4-ty: calc(var(--lyp) - var(--sy) - var(--pw) * 1.8);
+  --f0-tx: calc(var(--B) * 0.45 * var(--dir));
+  --f0-ty: calc(var(--B) * -0.7);
+  --f1-tx: calc(var(--fdx) * 0.12 * var(--dir));
+  --f1-ty: calc((var(--fy2) - var(--sy)) * 0.5);
   --l-tx: calc(var(--fdx) * var(--dir));
   --l-ty: calc(var(--lyp) - var(--sy));
   --f-land: var(--o-f-land, tan(atan2(var(--pw), var(--B))));
-  --f-big: calc(var(--f-land) * 1.5);
+  /* The plane at its biggest, mid-roll: never small, even on a phone. */
+  --f-big: max(var(--f-land) * 1.6, 2.6);
   /* Where this beat's colour opens from. */
   --wxl: var(--cx);
   --wy: var(--cy);
@@ -89,10 +97,12 @@
     --yw: calc(var(--cy) + var(--R) * 0.64 + var(--fs) * 0.705);
     --yw5: calc(var(--cy) + var(--R) * 0.64 + var(--f5) * 0.705);
     --y4: calc(var(--cy) + var(--R) * 0.64 + var(--f4) * 0.705);
-    --yf: calc(var(--cy) + var(--R) * 0.64 + var(--fw) * 0.705);
     --f5: min(var(--fw), var(--wc) / 5.75);
-    --f6: calc(var(--wc) / 7);
+    /* The last phrase takes two lines here, so it can be as large as the others. */
+    --f6: min(var(--fw), var(--wc) / 4.7);
+    --yr: 78cqh;
   }
+  .o-fin .o-w { display: block; }
 }
 
 .b1 > .o-art { --bg: var(--color-text); --ring: var(--color-citron); --ink: var(--color-bg); --ink2: var(--color-primary-tint); }
@@ -100,7 +110,7 @@
 .b3 > .o-art { --bg: var(--color-bg); --ring: var(--color-primary); --ink: var(--color-text); --ink2: var(--color-muted); }
 .b4 > .o-art { --bg: var(--color-primary); --ring: var(--color-bg); --ink: var(--color-bg); --ink2: var(--color-bg); --fs: var(--f4); --tx: var(--lx); }
 .b5 > .o-art { --bg: var(--color-night); --ring: var(--color-bg); --ink: var(--color-bg); --ink2: var(--color-primary-tint); --fs: var(--f5); --tx: var(--tx5); --wxl: calc(var(--lx) + var(--f4) * 0.34); --wy: calc(var(--y4) - var(--f4) * 0.3523); }
-.b6 > .o-art { --bg: var(--color-text); --ink: var(--color-bg); --ink2: var(--color-primary-tint); --wxl: calc(var(--sx) + var(--fdx) * 0.34); --wy: 30cqh; }
+.b6 > .o-art { --fs: var(--f6); --bg: var(--color-text); --ink: var(--color-bg); --ink2: var(--color-primary-tint); --wxl: calc(var(--sx) + var(--fdx) * 0.34); --wy: var(--fy2); }
 /* The flight's own layer, above every beat: it only ever holds the plane. */
 .bf { display: none; pointer-events: none; }
 .bf > .o-art { --bg: transparent; }
@@ -134,6 +144,11 @@
    back face here and showed both planes at once). */
 .o-flight { position: absolute; inset-inline-start: calc(var(--sx) - var(--B) / 2); top: calc(var(--sy) - var(--B) / 2); width: var(--B); height: var(--B); color: var(--color-surface); }
 .o-touch { position: absolute; inset: 0; transform-origin: 28% 78%; }
+/* Three dashes kicked back along the runway at touchdown. */
+.o-dust { position: absolute; inset: 0; pointer-events: none; }
+.o-dust > span { position: absolute; inset-inline-start: 0; top: 74%; width: 26%; height: 5%; border-radius: var(--radius-pill); background: var(--color-primary-tint); opacity: 0; }
+.o-dust > span:nth-child(2) { top: 58%; width: 16%; }
+.o-dust > span:nth-child(3) { top: 88%; width: 12%; }
 .o-roll, .o-face { position: absolute; inset: 0; }
 .o-face > svg { display: block; width: 100%; height: 100%; }
 .o-face-plane { rotate: 45deg; }
@@ -167,6 +182,8 @@
 .o-mode { position: relative; flex: none; width: 2.9em; aspect-ratio: 1; border-radius: 50%; background: color-mix(in srgb, var(--color-bg) 16%, transparent); color: var(--color-surface); }
 .o-mode-on { position: absolute; inset: 0; border-radius: 50%; background: var(--color-airplane-mode); clip-path: circle(71% at 50% 50%); }
 .o-plane { position: absolute; inset: 0; margin: auto; width: 55%; height: 55%; rotate: 45deg; }
+/* The ring the toggle sends out as its plane takes off. */
+.o-wake { position: absolute; inset: 0; border-radius: 50%; border: 0.14em solid var(--color-surface); opacity: 0; pointer-events: none; }
 /* While the visitor really is offline, the line says so (TheO.astro's script)
    and the toggle wears it like a badge: a citron ring and three sparks, with
    "It still works." as the line the page celebrates. */
@@ -202,7 +219,7 @@
 
 /* The words. Each big line sits on the zero's baseline. */
 .o-text { position: absolute; inset-inline: var(--tx) var(--lx); top: calc(var(--yw) - var(--fs) * 0.705); }
-.o-word, .o-sub, .o-lead, .o-last { margin: 0; }
+.o-word, .o-sub { margin: 0; }
 .o-word { font-size: var(--fs); font-weight: 700; line-height: 1; letter-spacing: -0.035em; text-wrap: balance; }
 .o-rise { display: block; }
 .o-word > .o-rise { text-box: trim-both cap alphabetic; }
@@ -227,34 +244,42 @@
   .b4 .o-more { margin-top: calc(var(--fs) * 0.4); }
 }
 
-/* The last sentence is set against the paper plane: it ends a small gap
-   before the plane, and its last baseline is the plane's runway. */
-.o-fin { --fin-end: calc(100cqw - var(--lx) - var(--wc) + var(--pw) + var(--f6) * 0.12); position: absolute; inset-inline-end: var(--fin-end); bottom: calc(100cqh - var(--yf)); width: calc(var(--f6) * 6.9); max-width: calc(100cqw - var(--tx5) - var(--fin-end)); }
-.o-lead { margin-block: 0 calc(var(--f6) * 0.32); max-width: 78%; font-size: clamp(1rem, 0.85rem + 0.6cqw, 1.375rem); line-height: 1.45; color: var(--ink2); text-wrap: pretty; }
-.o-last { font-size: var(--f6); font-weight: 700; line-height: 1.04; letter-spacing: -0.035em; }
-.o-l1, .o-l2 { display: block; white-space: nowrap; }
-.o-l2 { text-align: end; }
-.o-last > .o-rise { text-box: trim-end cap alphabetic; }
+/* The last card has the others' shape, one phrase and one line, set over
+   the runway: the phrase's baseline is --yf and its line hangs under it. */
+.o-fin { position: absolute; inset-inline: var(--lx); bottom: calc(100cqh - var(--yf)); }
+.o-fin .o-word { white-space: nowrap; }
+.o-fin .o-sub { position: absolute; inset-inline-start: 0; top: 100%; }
+/* The runway, seen from above under the words: a strip the width of the
+   content with a dashed centre line and threshold bars at each end. The
+   plane touches down on it and rolls out to park at its far end. */
+.o-runway { position: absolute; inset-inline: var(--lx); top: calc(var(--yr) - var(--rh) * 0.5); height: var(--rh); border-radius: calc(var(--rh) * 0.2); background: color-mix(in srgb, var(--ink) 13%, transparent); }
+.o-runway::before { content: ''; position: absolute; inset: 44% calc(var(--rh) * 2.6); background: repeating-linear-gradient(90deg, var(--color-citron) 0 calc(var(--rh) * 1.6), transparent 0 calc(var(--rh) * 3.2)); }
+.o-runway::after { content: ''; position: absolute; inset: 18% calc(var(--rh) * 0.5); background: linear-gradient(90deg, var(--ink) 0 calc(var(--rh) * 1.2), transparent 0 calc(100% - var(--rh) * 1.2), var(--ink) 0); mask: repeating-linear-gradient(0deg, var(--ink) 0 14%, transparent 0 28.6%); opacity: 0.75; }
 @supports not (text-box: trim-both cap alphabetic) {
   .o-word > .o-rise { margin-block: -0.151em -0.145em; }
-  .o-last > .o-rise { margin-block-end: -0.165em; }
 }
 
 /* Motion. When each thing happens lives in src/site-lib/theOTimeline.ts,
    which TheO.astro appends to this sheet: the pin's height, the keyframes whose
    stops are moments in the story (o-path, o-shape, o-fly, o-cues) and every
-   animation range. Each change (a colour wipe, the ring changing shape) takes
-   a screen or more, then the card's words fade in and it rests for a screen
-   and a half before the next change starts; the flight takes about two and a
-   half screens, and the landed plane rests before the page moves on.
+   animation range. Counted in wheel ticks, and scroll is the only
+   clock: a card opens, holds a tick, lights its words and stalls, and the few
+   timed effects (a word's fade, take-off, touchdown) finish inside one scroll
+   gesture.
    Every copy of the ring runs the same path over the whole pin, so the ring
    is one continuous shape; each beat's colour opens as a circle from it. */
-@keyframes o-roll { from { scale: 1 1; } to { scale: 1 -1; } }
+/* A roll and a half; the faces swap at the middle one, edge-on. */
+@keyframes o-roll { from { scale: 1 1; } 33.3% { scale: 1 -1; } 66.7% { scale: 1 1; } to { scale: 1 -1; } }
 @keyframes o-show { from { opacity: 0; } to { opacity: 1; } }
 @keyframes o-hide { from { opacity: 1; } to { opacity: 0; } }
 @keyframes o-switch { from { clip-path: circle(0 at 50% 50%); } to { clip-path: circle(71% at 50% 50%); } }
-/* Touchdown: the nose is still up from the flare, then it settles. */
-@keyframes o-touch { from { rotate: -9deg; translate: calc(var(--B) * -0.12) 0; } }
+/* Touchdown: nose up from the flare, down, one small hop, settled; the
+   rollout itself is scrolled. */
+@keyframes o-touch { from { rotate: -11deg; translate: 0 calc(var(--B) * -0.1); } 40% { rotate: 4deg; translate: 0 0; } 68% { rotate: -3deg; translate: 0 calc(var(--B) * -0.06); } }
+@keyframes o-runway { from { clip-path: inset(0 100% 0 0); } to { clip-path: inset(0); } }
+@keyframes o-dust { from { opacity: 0.9; translate: 0 0; scale: 1 1; } to { opacity: 0; translate: calc(-160% * var(--dir)) 0; scale: 0.4 1; } }
+@keyframes o-wake { from { opacity: 0.9; scale: 1; } to { opacity: 0; scale: 1.8; } }
+@keyframes o-kick { 35% { scale: 1.22; } }
 @keyframes o-wipe { from { clip-path: circle(0 at var(--wx) var(--wy)); } to { clip-path: circle(var(--wr) at var(--wx) var(--wy)); } }
 @keyframes o-shade { from { translate: 0 0; } }
 @keyframes o-drift { from { translate: calc(var(--R) * var(--drift) * -1 * var(--dir)) 0; } to { translate: calc(var(--R) * var(--drift) * var(--dir)) 0; } }
@@ -276,7 +301,7 @@
     /* The beats are stacked layers; only the link in the lit card takes a click. */
     .o-beat { pointer-events: none; }
     .o-more { pointer-events: auto; }
-    .o-stage, .o-art, .o-ring, .o-shade, .o-cloud, .o-mode-on, .o-plane, .o-flight, .o-roll, .o-face { animation-duration: auto; animation-timing-function: linear; animation-fill-mode: both; animation-timeline: --the-o; }
+    .o-stage, .o-art, .o-ring, .o-shade, .o-cloud, .o-mode-on, .o-plane, .o-flight, .o-roll, .o-face, .o-runway { animation-duration: auto; animation-timing-function: linear; animation-fill-mode: both; animation-timeline: --the-o; }
 
     .o-beat:not(.b1, .bf) > .o-art { animation-name: o-wipe; animation-timing-function: var(--ease-in-out); }
 
@@ -289,31 +314,34 @@
     /* Airplane mode turns on, and then its plane takes off. */
     .o-mode-on { animation-name: o-switch; animation-timing-function: var(--ease-in-out); }
     .o-mode .o-plane { animation-name: o-hide; animation-timing-function: step-start; }
-    .o-flight { animation-name: o-fly, o-show; animation-timing-function: var(--ease-in-out), step-start; }
+    /* The route keeps one speed (linear); its keyframes ease the take-off
+       and the rollout themselves. A narrow card flies its own route. */
+    .o-flight { animation-name: o-fly, o-show; animation-timing-function: linear, step-start; }
+    @container (aspect-ratio <= 1) { .o-flight { animation-name: o-fly-tall, o-show; } }
+    .o-runway { animation-name: o-runway; animation-timing-function: var(--ease-in-out); }
     .o-roll { animation-name: o-roll; animation-timing-function: var(--ease-in-out); }
     .o-face-plane { animation-name: o-hide; animation-timing-function: step-start; }
     .o-face-paper { animation-name: o-show; animation-timing-function: step-start; }
     .o-stage { animation-name: o-cues; animation-timing-function: step-end; animation-range: contain 0% contain 100%; }
 
-    /* Once each ring settles, a held beat, then its words fade in, as in the
-       original sketch. The scroll sets the cue; the pause and the fade run in
-       time, so they always complete. The finale's sentence waits less: it has
-       to be there before the paper plane lands on it. Browsers without style
-       queries keep the words shown. */
-    .o-word, .o-sub, .o-lead, .o-last { transition: opacity 0.8s cubic-bezier(0.37, 0, 0.63, 1) 0.45s; }
-    .o-more { transition: opacity 0.8s cubic-bezier(0.37, 0, 0.63, 1) 0.9s, visibility 0.8s 0.9s; }
-    .o-sub { transition-delay: 0.65s; }
-    .o-lead { transition-delay: 0.15s; }
-    .o-last { transition-delay: 0.45s; }
-    @container not style(--o-lit: 1) { .b1 :is(.o-word, .o-sub) { opacity: 0; transition: opacity 0.25s ease; } }
-    @container not style(--o-lit: 2) { .b2 :is(.o-word, .o-sub) { opacity: 0; transition: opacity 0.25s ease; } }
-    @container not style(--o-lit: 3) { .b3 :is(.o-word, .o-sub) { opacity: 0; transition: opacity 0.25s ease; } }
+    /* Once each ring settles, a held tick of scrolling, then its words light.
+       The scroll sets the cue and keeps the pause (theOTimeline.ts's `beat`),
+       so the pause follows the finger at any speed; only the fade runs in
+       time, short enough to finish inside one scroll gesture, so it always
+       completes and never trails the shapes. The small line follows the big
+       one by a breath. Browsers without style queries keep the words shown. */
+    .o-word, .o-sub { transition: opacity 0.3s var(--ease-out); }
+    .o-more { transition: opacity 0.3s var(--ease-out) 0.2s, visibility 0.3s 0.2s; }
+    .o-sub { transition-delay: 0.1s; }
+    @container not style(--o-lit: 1) { .b1 :is(.o-word, .o-sub) { opacity: 0; transition: opacity 0.12s ease; } }
+    @container not style(--o-lit: 2) { .b2 :is(.o-word, .o-sub) { opacity: 0; transition: opacity 0.12s ease; } }
+    @container not style(--o-lit: 3) { .b3 :is(.o-word, .o-sub) { opacity: 0; transition: opacity 0.12s ease; } }
     /* The link also leaves the tab order while its card is not lit, so focus
        never lands on a link nobody can see (the page's own open source section
        links to the same code). */
-    @container not style(--o-lit: 4) { .b4 :is(.o-word, .o-sub) { opacity: 0; transition: opacity 0.25s ease; } .o-more { opacity: 0; visibility: hidden; transition: opacity 0.25s ease, visibility 0.25s; } }
-    @container not style(--o-lit: 5) { .b5 :is(.o-word, .o-sub) { opacity: 0; transition: opacity 0.25s ease; } }
-    @container not style(--o-lit: 6) { .b6 :is(.o-lead, .o-last) { opacity: 0; transition: opacity 0.25s ease; } }
+    @container not style(--o-lit: 4) { .b4 :is(.o-word, .o-sub) { opacity: 0; transition: opacity 0.12s ease; } .o-more { opacity: 0; visibility: hidden; transition: opacity 0.12s ease, visibility 0.12s; } }
+    @container not style(--o-lit: 5) { .b5 :is(.o-word, .o-sub) { opacity: 0; transition: opacity 0.12s ease; } }
+    @container not style(--o-lit: 6) { .b6 :is(.o-word, .o-sub) { opacity: 0; transition: opacity 0.12s ease; } }
 
     /* Really offline, airplane mode is simply on. */
     .the-o[data-offline] .o-mode-on { animation-name: none; }
@@ -321,7 +349,7 @@
     /* It plays when both are true: the window beat is lit and the visitor is
        offline. Arriving offline, it waits for the line to fade in first; going
        offline with the page open ("now"), it plays at once. */
-    .the-o { --win-delay: 1.3s; }
+    .the-o { --win-delay: 0.5s; }
     .the-o[data-offline='now'] { --win-delay: 0s; }
     @container style(--o-lit: 5) {
       .the-o[data-offline] .o-mode { animation: o-pop 0.5s var(--ease-out) var(--win-delay) both, o-badge 0.5s var(--ease-out) var(--win-delay) both; }
@@ -330,8 +358,19 @@
       .the-o[data-offline] .o-win { animation: o-win 0.55s var(--ease-out) calc(var(--win-delay) + 0.15s) both; }
     }
 
-    /* The paper plane touches down, in time: nose up from the flare, a short
-       skid, settled. */
-    @container style(--o-landed: 1) { .o-touch { animation: o-touch 0.55s var(--ease-out); } }
+    /* The paper plane touches down, in time: nose up from the flare, a skid
+       that kicks up three dashes, one small hop, settled. */
+    @container style(--o-landed: 1) {
+      .o-touch { animation: o-touch 0.8s var(--ease-out); }
+      .o-dust > span { animation: o-dust 0.6s var(--ease-out) both; }
+      .o-dust > span:nth-child(2) { animation-delay: 0.08s; }
+      .o-dust > span:nth-child(3) { animation-delay: 0.16s; }
+    }
+    /* Take-off, in time: the toggle kicks and sends out a ring as its plane
+       leaves. */
+    @container style(--o-off: 1) {
+      .o-mode { animation: o-kick 0.45s var(--ease-out); }
+      .o-wake { animation: o-wake 0.7s var(--ease-out) both; }
+    }
   }
 }

@@ -71,9 +71,9 @@ export const homeContent = {
   // HOME_SOURCE_FIELDS (src/i18n/localizedHome.ts): the Hebrew edition needs
   // its own fourth beat, because the ring is the O of "Open source".
   // The ring draws each zero and the O (openSource.word must start with it).
-  // The paper plane lands where the last sentence's full stop would be, so
-  // `last` ends with a period the page never prints; it is set as two
-  // staggered lines, which leaves the plane a clear lane to come down.
+  // The last card has the shape of the others, one big phrase and one small
+  // line, over the runway the paper plane comes down on. `word` is two parts
+  // so a narrow screen can set it on two lines, larger.
   theO: {
     heading: 'Simple PDF tools, made to share',
     zeros: [
@@ -95,8 +95,7 @@ export const homeContent = {
       live: "You're offline right now. It still works.",
       liveStress: 'It still works.',
     },
-    lead: 'So I built PDkef. I wanted everyday PDF tools to be free and available to everyone, on any device.',
-    last: ['Then I wanted', 'to share them.'],
+    closing: { word: ['Free for', 'everyone'], line: 'Everyday PDF tools, on any device. So I built PDkef.' },
   },
   draftPersistence: {
     kicker: 'Privacy & Convenience',

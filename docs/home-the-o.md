@@ -13,7 +13,7 @@ history; the production build has moved well past it.
 One ring carries the story. It is the zero in "0 accounts", "0 uploads" and "0 paywalls": plain facts,
 not claims. Then it rounds into the O of "Open source" and opens into a plane window for "Works
 offline". There the airplane in the airplane-mode toggle takes off, rolls over into a paper plane, the
-plane that shares, and lands at the end of the founder's sentence: "Then I wanted to share them." Each
+plane that shares, and lands on a runway under where the story does: "Free for everyone". Each
 card opens as a circle in a new colour, so the section reads as six posters joined by one shape. The
 page's closing heading, "Give it a try.", ends the same way: its stroke is swiped on and its full stop
 drops in.
@@ -27,7 +27,7 @@ drops in.
 | 3 | the zero | paywalls | Free. No caps, no watermark, no catch. |
 | 4 | the O of the word | Open source | Audit the code yourself. Then a link to the code: "Read the code on GitHub". |
 | 5 | a plane window in the visitor's own sky | Works offline | Turn on airplane mode and give it a try right now. |
-| 6 | (the paper plane lands here) | Then I wanted / to share them. | So I built PDkef. I wanted everyday PDF tools to be free and available to everyone, on any device. |
+| 6 | (the paper plane lands on the runway under it) | Free for everyone | Everyday PDF tools, on any device. So I built PDkef. |
 
 All copy is `homeContent.theO` in `src/data/homeContent.js`, server-rendered. The ring is the zero
 visually; an `sr-only` "0" gives assistive tech the same phrase. Beat 5's line is a call to action: while
@@ -41,33 +41,55 @@ prototypes and nine sketched directions.
 
 ## How it moves
 
-- **The pacing is one table.** [`src/site-lib/theOTimeline.ts`](../src/site-lib/theOTimeline.ts)
-  holds every scroll-driven moment in svh (`PACE`) and writes the scroll-timed CSS that TheO.astro
+- **The pacing is one table, counted in ticks.** [`src/site-lib/theOTimeline.ts`](../src/site-lib/theOTimeline.ts)
+  holds every scroll-driven moment (`PACE`) and writes the scroll-timed CSS that TheO.astro
   appends to `theO.css`: the pin's height, the keyframes whose stops are moments in the story, and
-  every animation range. Its unit test holds the story's promises: each change into a card takes at
-  least a screen, every card rests a screen and a half with its words lit before the next change,
-  and the last sentence is up a screen before the plane lands on it.
-- **The stage pins for about eighteen screens.** Each change (a colour wipe, a full screen; the ring
-  changing shape, 1.2 screens) runs, then the card's words fade in and it rests. The flight takes about two
-  and a half screens, and the landed plane rests before the page moves on.
+  every animation range. A tick (`TICK`, 12svh) is one notch of a mouse wheel, so the table reads as
+  the number of notches each moment costs. Its unit test holds the story's promises.
+- **Scroll is the only clock.** A pause is a distance the reader chooses to cross, so it feels the
+  same at any scroll speed. The first build paused and faded the words on a timer (up to 1.45s) while
+  the shapes followed the finger: on a flick the next card was already opening over half-faded words,
+  and on a slow scroll a screen and a half went by with nothing answering (2026-11-12).
+- **A card costs about ten ticks, one swipe on a phone.** Five ticks open it, one is held with the
+  ring settled, then its words light and it stalls with nothing moving: four ticks on the zeros
+  (five on the third, the breath before the turn), six on Open source, which has a link to read.
+  The whole story is 100 ticks, about twelve screens.
+- **The window is three acts, each alone on the stage.** It forms with its shade down and its
+  words light. Two ticks of stillness, then the shade rises over seven ticks, the only thing moving.
+  Two more, airplane mode fills over two ticks, two more, and the plane takes off.
+- **The flight is the payoff, twenty-five ticks.** The toggle kicks and sends out a ring (a timed
+  cue, `--o-off`) as its plane lifts off, growing. It climbs over the heading and rolls a turn and a
+  half into paper at its biggest; the last card opens from it as the roll finishes. Then it flies a
+  route at one steady speed: over the top of the card, down the far side, round onto a long low
+  final, and it touches down on the runway and rolls out, slowing, to park at the far end. The
+  parked plane rests seven ticks.
+- **The route is a curve through a few points.** `FLIGHT_ROUTES` in `theOTimeline.ts` lists the
+  points for a wide card and a narrow one; `flightRoute()` draws a smooth curve through them, times
+  it by distance flown and works out the heading, and `theOTimelineCss()` writes one `o-fly` per
+  route. Reshaping the approach is moving a point. Left of the toggle the route is measured against
+  the room there is (`--f-left`), so the plane stays on the card at any size.
 - **The O is kept, then becomes the window.** The night card opens around the O of "Open source",
   which stays the same size and weight inside it. Only once the card is fully open does the O grow
   into the window (its frame thinning as it goes), covered by a night-coloured shade with a pull at
-  its foot. The shade rises over a screen as the window finishes, and "Works offline" fades in while
-  it rises, as in the first prototype. Airplane mode switches on once the shade is up.
+  its foot. "Works offline" lights over the closed window, and the shade rises after it, by itself
+  (the first build raised it while the window was still forming, and it passed unnoticed).
 - **Geometry is scrubbed, words are timed.** Every copy of the ring runs the same path keyframes over
   the whole pin (one continuous shape), and each card is a full layer revealed by a `clip-path` circle,
-  all driven by scroll position. The words are not scrubbed: once a ring settles, a held beat, then
-  its words fade in, as in the original sketch. The scroll sets a cue (`--o-lit`, a registered integer
-  animated on the stage with `step-end`) and style queries on the words turn it into a timed
-  transition, so a fade always completes. Moving the ring itself on timed cues was tried and dropped:
+  all driven by scroll position. The words are not scrubbed, or they would park half-faded whenever
+  scrolling stops: the scroll sets a cue (`--o-lit`, a registered integer animated on the stage with
+  `step-end`) one held tick after a ring settles, and style queries on the words turn it into a
+  0.3s transition, short enough to finish inside one scroll gesture, so a fade always completes. Moving the ring itself on timed cues was tried and dropped:
   a fast scroll stacked the moves up and skipped beats.
-- **The finale is a flight.** Once airplane mode has turned on (by scroll), the toggle's own plane,
-  the same glyph at the same size and place, takes off on its own layer above the cards, climbs over
-  the heading and rolls into a paper plane. The last card opens from that point, the paper plane
-  glides over the top, comes down the clear lane at the end of the staggered last sentence and
-  touches down on its baseline after "them", with a short flare (a timed cue, `--o-landed`). The
-  sentence is always visible before the landing.
+- **The last card is empty sky until the plane is down low.** It opens from the paper plane, the
+  runway draws in along the bottom, and the plane comes down through the empty card. The words light
+  only once it is low on final, clear of them, two ticks before it touches down (`--o-landed`: nose
+  up, three dashes kicked back, one small hop).
+- **The last card has the shape of the others: one phrase, one line.** "Free for everyone" in the
+  size of the other cards' words, "Everyday PDF tools, on any device. So I built PDkef." under it,
+  and the runway along the foot of the card, a strip the width of the content with a dashed citron
+  centre line and threshold bars. A narrow screen sets the phrase on two lines so it stays as large
+  as the others. Three longer layouts were dropped on 2026-11-12: every one carried the founder's
+  sentences in full (five or six lines), which read as a paragraph beside five posters.
 
 The Open source card's link is the one interactive thing in the story. The beats are stacked layers,
 so in the scroll version only the link takes a click, and it leaves the tab order (`visibility`)

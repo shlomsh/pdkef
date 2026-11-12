@@ -16,27 +16,27 @@
 // - The finale: once airplane mode is on, the toggle's own plane takes off
 //   (its flight starts as the same glyph, size and place), climbs over the
 //   heading, rolls over and comes out a paper plane, the plane that shares.
-//   The last card opens from there, and the paper plane glides over the top
-//   and comes down the clear lane at the end of the staggered last sentence
-//   (end-aligned and trimmed to its baseline with text-box), touching down on
-//   its baseline after "them". The flight is its own layer above the beats.
-// - Motion: the stage pins for about eighteen screens, about two and a half
-//   per card (the change into it, its words, then a rest of a screen and a half,
-//   so every card pauses before the next change starts) and two and a half for
-//   the plane's flight. The pacing is one table, src/site-lib/theOTimeline.ts,
+//   The last card opens from there, empty at first: the paper plane flies
+//   over the top and down the far side, the runway draws in, the words light
+//   once the plane is low on final, and it touches down on the runway under
+//   them and rolls out. The flight is its own layer above the beats.
+// - Motion: the stage pins for about ten screens, counted in wheel ticks:
+//   about ten per card (five to open it, one held, its words, then a stall of
+//   four to six with nothing moving) and twenty-five for the plane's flight.
+//   Scroll is the only clock. The pacing is one table, src/site-lib/theOTimeline.ts,
 //   which writes the scroll-timed CSS appended to theO.css.
 //   The ring and the colour changes are scrubbed by scroll position: every
 //   beat's copy of the ring runs the same path keyframes over the whole pin, so
 //   the ring is one continuous shape, and each beat is a full layer in its own
 //   colours, revealed by a circle opening from the ring. The words are not
-//   scrubbed: once the ring has settled, they fade in as in the original
-//   sketch. The scroll position sets the cue (--o-lit, the beat whose words
-//   are lit) and the fade runs in time, so it always completes. (Moving the
+//   scrubbed: one held tick after the ring has settled, the scroll position
+//   sets the cue (--o-lit, the beat whose words are lit) and a 0.3s fade runs
+//   in time, so it always completes and never trails the shapes. (Moving the
 //   ring itself on timed cues was tried and dropped: a fast scroll stacked the
 //   moves up and skipped the window and the landing.)
 // - The night card opens around the O, which stays the O until the card is
-//   open, then grows into the window under a closed shade that rises as the
-//   window finishes; the words fade in while it rises.
+//   open, then grows into the window under a closed shade. Its words light,
+//   and then the shade rises by itself.
 // - The window beat enacts its own line: flat vector clouds drift across the
 //   visitor's own sky (day, golden or night by their clock, theOSky.ts), and
 //   the airplane-mode toggle beside the line switches on, drawn the way a
@@ -71,8 +71,7 @@ interface Props {
     zeros: Line[];
     openSource: Line & { link: string };
     offline: Line & { stress?: string; live: string; liveStress?: string };
-    lead: string;
-    last: [string, string];
+    closing: { word: [string, string]; line: string };
   };
 }
 
@@ -81,12 +80,9 @@ const { story } = Astro.props;
 // <head> (components/inlineStyles.ts says why).
 const css = theOStyle;
 
-// The ring draws the O of "Open source", and the paper plane lands where the
-// sentence's full stop would be, so the visible text leaves them out; screen
-// readers get the whole words.
+// The ring draws the O of "Open source", so the visible text leaves it out;
+// screen readers get the whole word.
 const openSourceTail = story.openSource.word.slice(1);
-const [lastLineOne, lastLineTwo] = story.last;
-const lastLineTwoWithoutStop = lastLineTwo.replace(/\.$/, '');
 // Each sentence of a small line starts on its own line ("Free." / "No caps, no
 // watermark, no catch."), so no line breaks mid-thought at any width.
 const sentences = (text: string) => text.split(/(?<=[.!?])\s+/);
@@ -165,6 +161,7 @@ const stars = [
               <span class="o-rise">
                 <span class="o-mode" aria-hidden="true">
                   <span class="o-mode-on"></span>
+                  <span class="o-wake"></span>
                   <Plane class="o-plane" fill="currentColor" strokeWidth={1.25} />
                   <span class="o-burst">{Array.from({ length: 10 }, () => <span></span>)}</span>
                   <span class="o-sparks"><span></span><span></span><span></span></span>
@@ -179,9 +176,10 @@ const stars = [
       <div class="o-beat b6">
         <div class="o-art">
           <svg class="o-paper-rest" viewBox="0 0 32 20" aria-hidden="true" focusable="false" set:html={paperPlane}></svg>
+          <span class="o-runway" aria-hidden="true"></span>
           <div class="o-fin">
-            <p class="o-lead"><span class="o-rise">{sentences(story.lead).map((sentence, i) => <>{i > 0 && ' '}<span class="o-s">{sentence}</span></>)}</span></p>
-            <p class="o-last"><span class="o-rise"><span class="o-l1">{lastLineOne}</span> <span class="o-l2">{lastLineTwoWithoutStop}<span class="sr-only">.</span></span></span></p>
+            <p class="o-word"><span class="o-rise"><span class="o-w">{story.closing.word[0]}</span> <span class="o-w">{story.closing.word[1]}</span></span></p>
+            <p class="o-sub"><span class="o-rise">{sentences(story.closing.line).map((sentence, i) => <>{i > 0 && ' '}<span class="o-s">{sentence}</span></>)}</span></p>
           </div>
         </div>
       </div>
@@ -194,6 +192,7 @@ const stars = [
                 <span class="o-face o-face-paper"><svg viewBox="0 0 32 20" focusable="false" set:html={paperPlane}></svg></span>
               </span>
             </span>
+            <span class="o-dust"><span></span><span></span><span></span></span>
           </span>
         </div>
       </div>
@@ -228,11 +227,11 @@ const stars = [
   // The two length ratios theO.css takes with tan(atan2()) (--k4, the O's
   // scale; --f-land, the landed plane's), measured from layout instead: iOS
   // WebKit returned ~5x the real --k4 there. The ring's box is --R wide, the
-  // Open source word is set in --f4, the last line in --f6 and the flight
+  // Open source word is set in --f4, the last phrase in --f6 and the flight
   // box is --B wide, and none of those depend on either ratio.
   const ring = theO?.querySelector<HTMLElement>('.o-ring');
   const word = theO?.querySelector<HTMLElement>('.b4 .o-word');
-  const last = theO?.querySelector<HTMLElement>('.o-last');
+  const last = theO?.querySelector<HTMLElement>('.b6 .o-word');
   const flight = theO?.querySelector<HTMLElement>('.o-flight');
   if (theO && ring && word && last && flight) {
     const px = (el: Element) => parseFloat(getComputedStyle(el).fontSize);
