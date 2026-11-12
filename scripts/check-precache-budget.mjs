@@ -37,7 +37,9 @@ export const BUDGETS = {
   home: 132_000, // measured 110,968 for / (107,418 /he/), +19%: MEM-35 took the Redact sample PDF out of the list (was 180,000)
   // MEM-48: owner-approved rise (2026-11-12): /open/ and /drive/ now load the one UI file, which carries ~8 KB of
   // home and tool glue they do not use; measured 44,156 for /open/ in a build with the real notes.
-  other: 44_200, // was 42,000 (measured 35,329 for /open/, +19%)
+  // MEM-45: owner-approved rise (2026-11-12): the page-measure code (request counts, LCP, open and export time)
+  // adds ~850 B to /shared/ui.js; measured 45,049 for /open/ with the real notes.
+  other: 45_100, // was 44,200, 42,000 before MEM-48 (measured 35,329 for /open/, +19%)
   // Not headroom: a decision (MEM-15, MEM-35). The worker installs only the tools a person uses, so a first
   // visit costs the `/` document plus one page's closure: the heaviest of those (see installPaths) stays under this.
   // MEM-35 lowered it from the whole-app 5,000,000 (3,203,299 measured, 183 urls) to the single-page line.
