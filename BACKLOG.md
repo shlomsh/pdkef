@@ -2,7 +2,7 @@
 
 # Backlog
 
-The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 186 live: 76 up next, 23 then, 27 waiting, 60 parked.
+The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 187 live: 77 up next, 23 then, 27 waiting, 60 parked.
 
 ## Redact: finish removal
 
@@ -214,6 +214,7 @@ Production errors you can see, small tools that clean up after themselves, and d
 | MEM-43 | P1 | [MEM-43](backlog/tasks/MEM-43.md) · A tool works in airplane mode on its first visit | In progress |
 | MEM-44 | P1 | [MEM-44](backlog/tasks/MEM-44.md) · A tool's late code comes as one file | In progress |
 | MEM-45 | P1 | [MEM-45](backlog/tasks/MEM-45.md) · We see how the site performs for real visitors without spending server requests on it |  |
+| MEM-46 | P1 | [MEM-46](backlog/tasks/MEM-46.md) · Shared late code that never touches the PDF writer rides in the first-paint files | In progress |
 | QUAL-54 | P1 | [QUAL-54](backlog/tasks/QUAL-54.md) · The unit jobs stop failing when the runner cannot reach Ubuntu's package servers | In progress |
 | MEM-36 | P2 | [MEM-36](backlog/tasks/MEM-36.md) · Pinned notes are baked into the page at build, not fetched per visit | In progress |
 | MEM-42 | P2 | [MEM-42](backlog/tasks/MEM-42.md) · The rating board's flags come as one file | In progress |
