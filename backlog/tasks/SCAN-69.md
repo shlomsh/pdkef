@@ -47,10 +47,24 @@ the corner distance as a share of the photo's width; IoU is the overlap of the t
 - Upright book page 50: `assess` asks for a half turn on the first read and none on the turned copy, so the page ends
   up upside down. The text says the wrong way is up.
 
+- Why the whole photo comes through: `textBlockCorners` finds the text block on about half the photos, then `reachOut`
+  pushes every side out to the sheet's own edge. That is right for a scan already cropped to its paper. On a photo, the
+  sheet's edge is the table. Where no block is found, the whole sheet is used.
+
 ## What changes
 
-(to fill after measuring)
+Shlomi's call (2026-11-12): build the page from its text.
+
+1. **Turn:** a page is turned upside down only when its half-turned copy reads up as well (`readsUpsideDown`). Book
+   page 50 read -0.53 and -0.26 the two ways and was flipped; it now stays.
+2. **A sheet whose border is not paper** (table, fingers, the next page) is a photo. Its page is the text block with
+   book margins of its own around it, in the block's frame, not out to the sheet's edge. A sheet with paper to its
+   edges keeps today's reach, so a clean scan comes through as before.
+3. The bend Scan already measures inside the corners straightens the lines.
 
 ## Done when
 
-(to fill)
+- [x] Book page 50 comes out upright; the other measured photos turn as before.
+- [ ] On the 22 photos, no page keeps the table, the next page's sliver or a finger beyond its margins, run through the
+  real tool and looked at by Shlomi before landing.
+- [ ] A clean scanned PDF's pages come out as before (unit test on a sheet with paper to its edges).

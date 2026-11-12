@@ -107,4 +107,31 @@ describe('textBlockCorners', () => {
   it('has nothing to fit with fewer than 6 rows', () => {
     expect(textBlockCorners(page(5))).toBeNull();
   });
+
+  // A phone photo of a book page (SCAN-69): the sheet's edge is the table, so the page stops at margins of its own.
+  it('on a photo, stops at book margins around the text instead of the table at the sheet\'s edge', () => {
+    const photo = page();
+    // The table shows down both sides of the photo.
+    for (let y = 0; y < H; y += 1) for (let x = 0; x < W; x += 1) if (x < 20 || x >= W - 20) photo.data[y * W + x] = 70;
+    const [tl, tr, br, bl] = textBlockCorners(photo)!.map(px);
+    const textWidth = RIGHT0 - LEFT0;
+    for (const c of [tl, bl]) {
+      expect(c.x).toBeGreaterThan(LEFT0 - GROWTH - 0.15 * textWidth);
+      expect(c.x).toBeLessThan(LEFT0 - GROWTH / 2);
+    }
+    for (const c of [tr, br]) {
+      expect(c.x).toBeLessThan(RIGHT0 + GROWTH + 0.15 * textWidth);
+      expect(c.x).toBeGreaterThan(RIGHT0 + GROWTH / 2);
+    }
+    // Top and bottom leave room for a running head and a page number, not the photo's full height.
+    expect(tl.y).toBeGreaterThan(FIRST_Y - 0.2 * textWidth);
+    expect(bl.y).toBeLessThan(FIRST_Y + (ROWS - 1) * PITCH + BAR + 0.2 * textWidth);
+    expect(bl.y).toBeLessThan(H - 0.02 * H);
+  });
+
+  it('on a clean scan with paper to its edges, still reaches out to the sheet\'s edges', () => {
+    const [tl, tr] = textBlockCorners(page())!.map(px);
+    expect(tl.x).toBeLessThan(0.02 * W);
+    expect(tr.x).toBeGreaterThan(0.98 * W);
+  });
 });

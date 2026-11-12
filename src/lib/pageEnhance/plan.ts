@@ -8,7 +8,7 @@ import { applyHomography, homography } from './homography.ts';
 import { applyPiece, type Piece } from './piece.ts';
 import { scaleQuad, type GrayImage, type Point, type Quad } from './quad.ts';
 import { readSpine, spreadHalves, type Spine } from './spine.ts';
-import { rgbaOf, textBlockCorners, type SpineSide } from './textBlock.ts';
+import { isPhoto, rgbaOf, textBlockCorners, type SpineSide } from './textBlock.ts';
 import { warpSizeFor } from './warp.ts';
 
 /** A lean below this many degrees is below what the eye catches, so leveling it only costs a resample. */
@@ -59,6 +59,9 @@ function withoutGutter(half: Quad, spine: SpineSide): Quad {
 
 /** Corners that square `half`'s text block, in the sheet's 0..1, read on the page levelled first. */
 function foundCorners(turned: GrayImage, half: Quad, lean: number, spine: SpineSide): Quad | null {
+  // A photo's lines are traced along their own curve and lean, and levelling it first would bring white corners in where
+  // the table was (SCAN-69).
+  if (!spine && isPhoto(turned)) return textBlockCorners(turned, null);
   const level = levelQuad(half, lean, turned.width, turned.height);
   const corners = textBlockCorners(flattened(turned, level), spine);
   const toSheet = homography(UNIT_QUAD, level);
