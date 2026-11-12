@@ -30,6 +30,9 @@ const SIDEWAYS_TURNS = 1;
 /** The rows must vote this clearly, three quarters of their length to one, to call a page upside down:
  * on 51 measured pages (SCAN-48) none read past it the wrong way, the worst being -0.31. */
 const MIN_UPSIDE_DOWN = 0.5;
+/** How clearly the half-turned copy must read up before a page is turned: a page whose rows read down both ways (curved
+ * italic lines, SCAN-69) says nothing about which way is up. */
+const MIN_UP_WHEN_TURNED = 0.2;
 const HALF_TURN = 2;
 
 /** How far a row is looked at above and below its baseline, as shares of the page's long edge: past a
@@ -201,5 +204,15 @@ export function pageTurns(gray: GrayImage): { turns: number; confidence: number 
   const turns = sideways ? SIDEWAYS_TURNS : 0;
   // Only rows known to run across can say which way is up.
   const up = read && (sideways || read.turn === 0) ? textUp(turnedClockwise(gray, turns)) : null;
-  return { turns: up !== null && up <= -MIN_UPSIDE_DOWN ? turns + HALF_TURN : turns, confidence: read?.confidence ?? 0 };
+  // The half-turned copy is read only when the page seems upside down, so an upright page costs nothing more.
+  const flip = up !== null && up <= -MIN_UPSIDE_DOWN && readsUpsideDown(up, textUp(turnedClockwise(gray, turns + HALF_TURN)));
+  return { turns: flip ? turns + HALF_TURN : turns, confidence: read?.confidence ?? 0 };
+}
+
+/**
+ * Whether a page reading `up` is upside down: only when its half-turned copy, reading `turned`, reads up.
+ * @testSeam Read through pageTurns.
+ */
+export function readsUpsideDown(up: number | null, turned: number | null): boolean {
+  return up !== null && turned !== null && up <= -MIN_UPSIDE_DOWN && turned >= MIN_UP_WHEN_TURNED;
 }

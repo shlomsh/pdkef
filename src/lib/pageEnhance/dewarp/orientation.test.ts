@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { GrayImage } from '../quad.ts';
 import { seededRandom } from '../seededRandom.test-helper.ts';
-import { textTurn, textUp } from './orientation.ts';
+import { readsUpsideDown, textTurn, textUp } from './orientation.ts';
 
 const W = 800;
 const H = 1040;
@@ -155,5 +155,22 @@ describe('textUp', () => {
   it('says nothing about a page with too little text', () => {
     expect(textUp(photo())).toBeNull();
     expect(textUp(photo(textRows(2, 3)))).toBeNull();
+  });
+});
+
+describe('readsUpsideDown', () => {
+  it('turns a page only when its text reads down and the half-turned copy reads up', () => {
+    expect(readsUpsideDown(-0.92, 0.69)).toBe(true);
+    expect(readsUpsideDown(-0.84, 1)).toBe(true);
+  });
+
+  it('leaves a page whose half-turned copy reads down too (curved italic references, SCAN-69)', () => {
+    expect(readsUpsideDown(-0.53, -0.26)).toBe(false);
+  });
+
+  it('leaves a page that reads up, or whose turned copy says nothing', () => {
+    expect(readsUpsideDown(0.69, -0.92)).toBe(false);
+    expect(readsUpsideDown(-0.92, null)).toBe(false);
+    expect(readsUpsideDown(null, 0.69)).toBe(false);
   });
 });
