@@ -2,7 +2,7 @@
 
 # Backlog
 
-The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 185 live: 74 up next, 24 then, 27 waiting, 60 parked.
+The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 184 live: 74 up next, 23 then, 27 waiting, 60 parked.
 
 ## Redact: finish removal
 
@@ -184,12 +184,6 @@ _Nothing live._
 ## Form detector accuracy
 
 Every detected spot is a stop in fill mode, so false positives reach people directly. One fix at a time, since each re-records the baselines.
-
-### Then, in order
-
-| ID | P | Task | Note |
-| --- | --- | --- | --- |
-| FORM-40 | P2 | [FORM-40](backlog/tasks/FORM-40.md) · Cells: a table's header row and its row-label cells are not writing spots |  |
 
 ### Parked
 
@@ -385,7 +379,7 @@ Done and retired tickets are not listed. Their files stay in [backlog/tasks/](ba
 - Scan: camera to WhatsApp: 14 done, 0 retired
 - Page enhancement for Scan and Highlight: 7 done, 1 retired
 - Tool pages: show the verb: 9 done, 0 retired
-- Form detector accuracy: 19 done, 1 retired
+- Form detector accuracy: 20 done, 1 retired
 - Robustness and debt: 97 done, 4 retired
 - Unify the tools, narrow the graph: 100 done, 0 retired
 - Search and languages: 13 done, 0 retired

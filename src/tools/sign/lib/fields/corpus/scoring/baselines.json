@@ -552,13 +552,13 @@
       "pdf": "src/tools/sign/lib/fields/corpus/scoring/forms/btl-bl211-2015.pdf",
       "truth": "src/tools/sign/lib/fields/corpus/scoring/ground-truth/btl-bl211-2015-page2.json",
       "pageIndex": 1,
-      "note": "Israel National Insurance form BL/211 (work-injury claim), 05.2015 edition, supplied by Shlomi; issuer https://www.btl.gov.il, exact file URL unknown. The first Microsoft Word export in the corpus (FORM-30): flat, no AcroForm, a text layer, Wingdings checkbox glyphs, open-top tick combs, and underline leaders typed as '_' characters rather than drawn rules. PDF page 2, printed 'עמוד 1 מתוך 8' (claimant and workplace details). Measured 2026-10-04 on a reviewed overlay, the misses are three detector gaps, not truth artifacts: (1) a ruled cell about 23pt tall is found but reported as an 11.5pt strip at its top, so IoU with the whole cell is 0.36-0.48 (registered address row, email, employer name, both employer address rows: 13 misses); the mailing-address row, about 15pt tall, matches because a one-line strip covers most of it; (2) the six underscore-character leaders (both header lines, 'מחלת מקצוע, פרט', 'מס' פקס', both 'כן, פרט') get no candidate at all; (3) the self-employed address row (t058-t061) gets nothing although the identical employer row above it is found. Precision is low because every open-top tick comb surfaces as two or three stacked comb candidates plus small checkbox-kind squares at its end ticks (37 extra combs, 29 extra checkboxes), and the office-use box and the 'שכיר/מתנדב' sub-heading bar are reported. Every real comb, date comb and checkbox is found. FORM-31 (2026-10-04): the checkbox truth boxes were measured from the raster with the glyph's drop shadow (10.1pt) and are now the printed square, the glyph's inner contour (7.4pt) placed by pdf.js's text layer, as form 101's and Thai SSO's are, because the detector now reports that square and a shadowed truth would match it only at IoU 0.54. Sizes and positions only. FORM-34 (2026-10-08): underscore-character blanks are leaders now: recall 64.5 -> 74.2 (+6), precision 30.1 -> 33.1, labels 87.5 -> 89.1; no previously correct label changed. Labels 89.1 -> 93.5 on 2026-10-08: FORM-38 glues letters pdf.js splits into abutting items, strips blank and dash filler at a label's edges, decides RTL paren mirroring by a per-page vote, and skips a bare list number when words follow it; a per-target comparison shows no label that was right before is wrong now.",
+      "note": "Israel National Insurance form BL/211 (work-injury claim), 05.2015 edition, supplied by Shlomi; issuer https://www.btl.gov.il, exact file URL unknown. The first Microsoft Word export in the corpus (FORM-30): flat, no AcroForm, a text layer, Wingdings checkbox glyphs, open-top tick combs, and underline leaders typed as '_' characters rather than drawn rules. PDF page 2, printed 'עמוד 1 מתוך 8' (claimant and workplace details). Measured 2026-10-04 on a reviewed overlay, the misses are three detector gaps, not truth artifacts: (1) a ruled cell about 23pt tall is found but reported as an 11.5pt strip at its top, so IoU with the whole cell is 0.36-0.48 (registered address row, email, employer name, both employer address rows: 13 misses); the mailing-address row, about 15pt tall, matches because a one-line strip covers most of it; (2) the six underscore-character leaders (both header lines, 'מחלת מקצוע, פרט', 'מס' פקס', both 'כן, פרט') get no candidate at all; (3) the self-employed address row (t058-t061) gets nothing although the identical employer row above it is found. Precision is low because every open-top tick comb surfaces as two or three stacked comb candidates plus small checkbox-kind squares at its end ticks (37 extra combs, 29 extra checkboxes), and the office-use box and the 'שכיר/מתנדב' sub-heading bar are reported. Every real comb, date comb and checkbox is found. FORM-31 (2026-10-04): the checkbox truth boxes were measured from the raster with the glyph's drop shadow (10.1pt) and are now the printed square, the glyph's inner contour (7.4pt) placed by pdf.js's text layer, as form 101's and Thai SSO's are, because the detector now reports that square and a shadowed truth would match it only at IoU 0.54. Sizes and positions only. FORM-34 (2026-10-08): underscore-character blanks are leaders now: recall 64.5 -> 74.2 (+6), precision 30.1 -> 33.1, labels 87.5 -> 89.1; no previously correct label changed. Labels 89.1 -> 93.5 on 2026-10-08: FORM-38 glues letters pdf.js splits into abutting items, strips blank and dash filler at a label's edges, decides RTL paren mirroring by a per-page vote, and skips a bare list number when words follow it; a per-target comparison shows no label that was right before is wrong now. FORM-40 (2026-11-12): a table row's own text is its content, not a caption, once a blank cell shares its row or (in a row of 3+ cells) sits below it in its column, and only for one-line text beside the blank, never a top-corner caption: one false table-cell gone, candidates 139 -> 138; recall and every label unchanged.",
       "sha256": "f8ed49edef699cfdb10ca7695d4fb30084941c157d3c22d473a98bf8a0cfea3e",
       "targets": 62,
-      "candidates": 139,
+      "candidates": 138,
       "matched": 46,
       "recall": 74.2,
-      "precision": 33.1,
+      "precision": 33.3,
       "labels": {
         "rate": 93.5,
         "evaluated": 46,
@@ -601,8 +601,8 @@
           "recall": null,
           "targets": 0,
           "found": 0,
-          "precision": 14.3,
-          "candidates": 14,
+          "precision": 15.4,
+          "candidates": 13,
           "matchedCandidates": 2
         }
       }
@@ -906,13 +906,13 @@
       "pdf": "src/tools/sign/lib/fields/corpus/scoring/forms/btl-1500-2026.pdf",
       "truth": "src/tools/sign/lib/fields/corpus/scoring/ground-truth/btl-1500-2026-page6.json",
       "pageIndex": 5,
-      "note": "Israel National Insurance form BL/1500 (unemployment claim), 05.2026 edition, supplied by Shlomi on 2026-10-08 as T1500.pdf; issuer https://www.btl.gov.il, exact file URL unknown. Flat Word export (no AcroForm), a text layer, '❑' checkboxes in Wingdings (0x71), typed-underscore blanks, tick combs. Published after CommonForms, so a held-out form (FORM-36); truth annotated from the page, never from our output, overlays checked by Shlomi. Recorded 2026-10-08 with FORM-34 in. PDF page 6 (printed 'עמוד 5 מתוך 6'). Re-recorded 2026-10-08 with FORM-37: the '❑' now resolves to FORM-31's printed square, because BL/1500's two-byte Wingdings maps it to U+2751 rather than the private-use U+F071, so checkbox recall is 100. Several of the new ones take the item number (\". 1\") or a reversed parenthesis as their label, a label-association gap of its own (FORM-38). Labels 81.4 -> 91.5 on 2026-10-08: FORM-38 glues letters pdf.js splits into abutting items, strips blank and dash filler at a label's edges, decides RTL paren mirroring by a per-page vote, and skips a bare list number when words follow it; a per-target comparison shows no label that was right before is wrong now.",
+      "note": "Israel National Insurance form BL/1500 (unemployment claim), 05.2026 edition, supplied by Shlomi on 2026-10-08 as T1500.pdf; issuer https://www.btl.gov.il, exact file URL unknown. Flat Word export (no AcroForm), a text layer, '❑' checkboxes in Wingdings (0x71), typed-underscore blanks, tick combs. Published after CommonForms, so a held-out form (FORM-36); truth annotated from the page, never from our output, overlays checked by Shlomi. Recorded 2026-10-08 with FORM-34 in. PDF page 6 (printed 'עמוד 5 מתוך 6'). Re-recorded 2026-10-08 with FORM-37: the '❑' now resolves to FORM-31's printed square, because BL/1500's two-byte Wingdings maps it to U+2751 rather than the private-use U+F071, so checkbox recall is 100. Several of the new ones take the item number (\". 1\") or a reversed parenthesis as their label, a label-association gap of its own (FORM-38). Labels 81.4 -> 91.5 on 2026-10-08: FORM-38 glues letters pdf.js splits into abutting items, strips blank and dash filler at a label's edges, decides RTL paren mirroring by a per-page vote, and skips a bare list number when words follow it; a per-target comparison shows no label that was right before is wrong now. FORM-40 (2026-11-12): the table-content rule removes four false cells (two text, two date) from this page's tables; candidates 113 -> 109, recall and every label unchanged.",
       "sha256": "bcf2e881669517d2ce5c60cc84ab3728c0c66c554f8228b49c818612447c4ae3",
       "targets": 67,
-      "candidates": 113,
+      "candidates": 109,
       "matched": 59,
       "recall": 88.1,
-      "precision": 52.2,
+      "precision": 54.1,
       "labels": {
         "rate": 91.5,
         "evaluated": 59,
@@ -923,8 +923,8 @@
           "recall": 78.6,
           "targets": 28,
           "found": 22,
-          "precision": 52.1,
-          "candidates": 48,
+          "precision": 54.3,
+          "candidates": 46,
           "matchedCandidates": 25
         },
         "comb": {
@@ -940,7 +940,7 @@
           "targets": 7,
           "found": 7,
           "precision": 0,
-          "candidates": 5,
+          "candidates": 3,
           "matchedCandidates": 0
         },
         "checkbox": {

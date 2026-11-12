@@ -58,7 +58,7 @@ const ANNOTATION_FLAGS = { hidden: 0b10, print: 0b100, noView: 0b100000 };
  * instead of widgets, and the only thing `pageInk.js` can see.
  *
  * @typedef {object} InkSpec
- * @property {'rect'|'paintedRect'|'line'|'combTeeth'|'boxedComb'|'cellRow'|'clipRect'} ink
+ * @property {'rect'|'paintedRect'|'line'|'combTeeth'|'boxedComb'|'cellRow'|'clipRect'|'tableRules'} ink
  */
 
 const DEFAULT_SIZE = [400, 300];
@@ -240,6 +240,14 @@ function drawInk(page, spec) {
     case 'combTeeth': return drawCombTeeth(page, spec);
     case 'boxedComb': return drawBoxedComb(page, spec);
     case 'cellRow': return drawCellRow(page, spec);
+    // A word processor's table: a full-width rule at each `rows` y, a full-height one at each `columns` x.
+    case 'tableRules': {
+      const [left, right] = [spec.columns[0], spec.columns.at(-1)];
+      const [top, bottom] = [spec.rows[0], spec.rows.at(-1)];
+      spec.rows.forEach((y) => page.drawLine({ start: { x: left, y }, end: { x: right, y }, thickness: 0.8 }));
+      spec.columns.forEach((x) => page.drawLine({ start: { x, y: bottom }, end: { x, y: top }, thickness: 0.8 }));
+      return undefined;
+    }
     case 'paintedRect': return drawPaintedRect(page, spec);
     case 'clipRect': return drawClipRect(page, spec);
     default:
