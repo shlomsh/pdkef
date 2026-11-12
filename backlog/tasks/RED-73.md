@@ -1,7 +1,7 @@
 ---
 id: "RED-73"
 title: "Redact and Highlight toolbars wear the finish Sign's has, so the tools read as one app"
-status: "open"
+status: "in_progress"
 priority: "P2"
 epic: "polish"
 horizon: "now"
