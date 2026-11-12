@@ -72,6 +72,7 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 - [MEM-46](backlog/tasks/MEM-46.md) P1 · Shared late code that never touches the PDF writer rides in the first-paint files (in progress)
 - [MEM-47](backlog/tasks/MEM-47.md) P1 · A tool page never fetches a stylesheet whose rules it already has
 - [MEM-48](backlog/tasks/MEM-48.md) P1 · Pages with an interactive part load their UI glue as one file (in progress)
+- [MEM-49](backlog/tasks/MEM-49.md) P1 · A hand-off outlives its read: the file reaches recents before the record is deleted (in progress)
 - [QUAL-54](backlog/tasks/QUAL-54.md) P1 · The unit jobs stop failing when the runner cannot reach Ubuntu's package servers (in progress)
 - [MEM-36](backlog/tasks/MEM-36.md) P2 · Pinned notes are baked into the page at build, not fetched per visit (in progress)
 - [MEM-42](backlog/tasks/MEM-42.md) P2 · The rating board's flags come as one file (in progress)

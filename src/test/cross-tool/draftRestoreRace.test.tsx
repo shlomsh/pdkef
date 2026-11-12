@@ -3,7 +3,7 @@ import { act } from 'preact/test-utils';
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
 import PdfSignTool from '../../tools/sign/PdfSignTool.tsx';
 import PdfRedactTool from '../../tools/redact/PdfRedactTool.tsx';
-import { takeHandoff } from '#lib/drafts/draftStore.ts';
+import { peekHandoff } from '#lib/drafts/draftStore.ts';
 import { setInputFiles } from '../support/setInputFiles.js';
 
 
@@ -53,7 +53,8 @@ vi.mock('#lib/drafts/draftStore.ts', () => ({
   loadDraft: vi.fn(() => loadDraftDeferred.promise),
   // No pending home-page handoff in these cases; the tools resolve one before
   // touching the draft, so it has to be present in the mock.
-  takeHandoff: vi.fn(() => Promise.resolve(null)),
+  peekHandoff: vi.fn(() => Promise.resolve(null)),
+  commitHandoff: vi.fn(() => Promise.resolve()),
   cacheRecentFile: vi.fn(() => Promise.resolve(true)),
   subscribeToDraftChanges: vi.fn(() => () => {}),
   // These races care about which file wins, not the checking placeholder
@@ -218,7 +219,7 @@ describe('draft-restore vs. manual file pick race', () => {
   // it *before* loadDraft rather than racing it, so which document opens is decided
   // by intent and not by which IndexedDB read happened to settle first.
   it('PdfSignTool: a pending home-page handoff opens ahead of the saved draft', async () => {
-    vi.mocked(takeHandoff).mockResolvedValueOnce({
+    vi.mocked(peekHandoff).mockResolvedValueOnce({
       fileName: 'dropped-on-home.pdf',
       fileType: 'application/pdf',
       fileBytes: new TextEncoder().encode('%PDF-1.4').buffer
@@ -254,7 +255,7 @@ describe('draft-restore vs. manual file pick race', () => {
     });
     await waitAsync();
 
-    expect(takeHandoff).toHaveBeenCalledWith('sign');
+    expect(peekHandoff).toHaveBeenCalledWith('sign');
     const announcement = container.querySelector('p.sr-only[role="status"]');
     expect(announcement.textContent).toContain('Restored your last draft of "draft-old.pdf"');
   });

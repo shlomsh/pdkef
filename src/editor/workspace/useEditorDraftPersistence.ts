@@ -5,9 +5,10 @@ import type { ActionHistoryEntry, HistoryElement } from '../model/actionHistory.
 import type { DetailEdits } from '../registry/draftValidation.ts';
 import type { PageTurns } from '../geometry/pageTurn.ts';
 import type { DocumentStyle } from '../model/documentStyle.ts';
-import { deleteDraft, takeHandoff, type HandoffRecord } from '#lib/drafts/draftStore.ts';
+import { deleteDraft, peekHandoff, type HandoffRecord } from '#lib/drafts/draftStore.ts';
 import { markHandoffArrival } from '#lib/handoff/useHandoffIntake.ts';
 import { markArrival } from '#lib/handoff/fileArrival.ts';
+import { settleHandoff } from '#lib/handoff/settleHandoff.ts';
 import { clearHandoffPending, releaseHandoffPending, releaseHandoffPendingWhenLoaded } from '#lib/handoff/handoffPending.ts';
 
 export interface UseEditorDraftPersistenceOptions<TElement extends HistoryElement> {
@@ -81,7 +82,7 @@ export function useEditorDraftPersistence<TElement extends HistoryElement>({
     [],
   );
 
-  // takeHandoff only returns a valid record, and an editor tool is only handed a single-file one.
+  // peekHandoff only returns a valid record, and an editor tool is only handed a single-file one.
   const fileFrom = (record: HandoffRecord) =>
     new File([record.fileBytes as ArrayBuffer], record.fileName as string, { type: record.fileType || 'application/pdf' });
 
@@ -116,9 +117,15 @@ export function useEditorDraftPersistence<TElement extends HistoryElement>({
     // home page never asks any more, MEM-03: opening a file overwrites nothing,
     // the previous file keeps its work on its own recents entry).
     beforeRestore: async () => {
-      const handoff = await takeHandoff(tool);
-      clearHandoffPending(tool);
+      const handoff = await peekHandoff(tool);
       if (!handoff || loadStartedRef.current) {
+        clearHandoffPending(tool);
+        releaseHandoffPending();
+        return false;
+      }
+      // The record stays until the PDF is in recents: a reload before that re-opens it.
+      await settleHandoff(tool, handoff);
+      if (loadStartedRef.current) {
         releaseHandoffPending();
         return false;
       }

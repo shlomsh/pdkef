@@ -8,7 +8,8 @@ vi.mock('#lib/drafts/draftStore.ts', () => ({
   deleteDraft: vi.fn(() => Promise.resolve(true)),
   hasDraftHint: vi.fn(() => false),
   subscribeToDraftChanges: vi.fn(() => () => {}),
-  takeHandoff: vi.fn(() => Promise.resolve(null)),
+  peekHandoff: vi.fn(() => Promise.resolve(null)),
+  commitHandoff: vi.fn(() => Promise.resolve()),
   cacheRecentFile: vi.fn(() => Promise.resolve(true)),
 }));
 
@@ -16,7 +17,7 @@ vi.mock('#lib/pdf/thumbnails.js', () => ({
   renderDraftPreview: vi.fn(() => Promise.resolve(null)),
 }));
 
-import { deleteDraft, loadDraft, takeHandoff } from '#lib/drafts/draftStore.ts';
+import { cacheRecentFile, commitHandoff, deleteDraft, loadDraft, peekHandoff } from '#lib/drafts/draftStore.ts';
 import { takeArrival, noteRecentOpen, resetFileArrivalForTests } from '#lib/handoff/fileArrival.ts';
 import { useEditorDraftPersistence } from './useEditorDraftPersistence.ts';
 import { DRAFT_SCHEMA_VERSION, isDraftElement, isEditorElement } from '../registry/draftValidation.ts';
@@ -254,7 +255,7 @@ describe('useEditorDraftPersistence - HERO-02 hand-off marker', () => {
     document.body.appendChild(container);
     (loadDraft as any).mockReset();
     (loadDraft as any).mockResolvedValue(null);
-    (takeHandoff as any).mockReset();
+    (peekHandoff as any).mockReset();
     root.setAttribute('data-handoff-pending', '1');
     sessionStorage.setItem('pdkef:handoff-pending:sign', '1');
   });
@@ -268,7 +269,7 @@ describe('useEditorDraftPersistence - HERO-02 hand-off marker', () => {
   });
 
   it('holds the marker until the editor shows the handed-over document, then releases it', async () => {
-    (takeHandoff as any).mockResolvedValue(record());
+    (peekHandoff as any).mockResolvedValue(record());
     const props = baseProps({ tool: 'sign' });
     act(() => {
       render(<Harness apiRef={{ current: null }} props={props} />, container);
@@ -285,7 +286,7 @@ describe('useEditorDraftPersistence - HERO-02 hand-off marker', () => {
   });
 
   it('releases at once when there is nothing to take', async () => {
-    (takeHandoff as any).mockResolvedValue(null);
+    (peekHandoff as any).mockResolvedValue(null);
     const props = baseProps({ tool: 'sign' });
     act(() => {
       render(<Harness apiRef={{ current: null }} props={props} />, container);
@@ -295,8 +296,29 @@ describe('useEditorDraftPersistence - HERO-02 hand-off marker', () => {
     expect(sessionStorage.getItem('pdkef:handoff-pending:sign')).toBeNull();
   });
 
+  it('keeps the record and the marker until the PDF is in recents (reload-safe, 2026-11-12)', async () => {
+    (peekHandoff as any).mockResolvedValue(record());
+    (commitHandoff as any).mockClear();
+    let stored: (v: boolean) => void = () => {};
+    (cacheRecentFile as any).mockReturnValueOnce(new Promise<boolean>((r) => { stored = r; }));
+    const props = baseProps({ tool: 'sign' });
+    act(() => {
+      render(<Harness apiRef={{ current: null }} props={props} />, container);
+    });
+    await waitAsync();
+    // A reload here must find the record and the marker still in place.
+    expect(cacheRecentFile).toHaveBeenCalled();
+    expect(commitHandoff).not.toHaveBeenCalled();
+    expect(sessionStorage.getItem('pdkef:handoff-pending:sign')).toBe('1');
+    await act(async () => { stored(true); });
+    await waitAsync();
+    expect(commitHandoff).toHaveBeenCalledWith('sign');
+    expect(sessionStorage.getItem('pdkef:handoff-pending:sign')).toBeNull();
+    expect(props.loadPdf).toHaveBeenCalledTimes(1);
+  });
+
   it('releases on unmount before the read settles', async () => {
-    (takeHandoff as any).mockReturnValue(new Promise(() => {}));
+    (peekHandoff as any).mockReturnValue(new Promise(() => {}));
     const props = baseProps({ tool: 'sign' });
     act(() => {
       render(<Harness apiRef={{ current: null }} props={props} />, container);
@@ -322,7 +344,7 @@ describe('useEditorDraftPersistence - arrival mark (DEBT-58)', () => {
     resetFileArrivalForTests();
     (loadDraft as any).mockReset();
     (loadDraft as any).mockResolvedValue(null);
-    (takeHandoff as any).mockReset();
+    (peekHandoff as any).mockReset();
   });
   afterEach(() => {
     act(() => render(null, container));
@@ -330,7 +352,7 @@ describe('useEditorDraftPersistence - arrival mark (DEBT-58)', () => {
   });
 
   it('marks a hand-off as handoff with the sending tool, right before loadPdf', async () => {
-    (takeHandoff as any).mockResolvedValue(record('merge'));
+    (peekHandoff as any).mockResolvedValue(record('merge'));
     let seen: unknown;
     const props = baseProps({ tool: 'sign', loadPdf: vi.fn(() => { seen = takeArrival(); }) });
     act(() => {
@@ -341,7 +363,7 @@ describe('useEditorDraftPersistence - arrival mark (DEBT-58)', () => {
   });
 
   it('marks a restore with the source the draft hook gives, right before loadPdf', async () => {
-    (takeHandoff as any).mockResolvedValue(null);
+    (peekHandoff as any).mockResolvedValue(null);
     (loadDraft as any).mockResolvedValue(record());
     noteRecentOpen('sign');
     let seen: unknown;

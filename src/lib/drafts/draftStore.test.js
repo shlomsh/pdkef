@@ -12,7 +12,7 @@ import {
   HANDOFF_MAX_AGE_MS, MAX_AGE_MS, MAX_RECENT_FILES, MERGE_DRAFT_MAX_BYTES,
   attachDraftPreview, cacheRecentFile, deleteDraft, hasDraftHint, isStoragePersisted, loadDraft, loadRecentFile,
   readCurrentEntryId, readDraftMeta, readRecentFiles, saveDraft, setCurrentEntry,
-  sourceIdForBytes, sourceIdForFiles, subscribeToDraftChanges, saveHandoff, takeHandoff,
+  sourceIdForBytes, sourceIdForFiles, subscribeToDraftChanges, saveHandoff, takeHandoff, peekHandoff, commitHandoff,
 } from './draftStore.ts';
 
 // Structured clone (what a real IndexedDB put/get round-trips through, and
@@ -947,6 +947,35 @@ describe('draft-change signal and concurrent saves (IndexedDB, fake-indexeddb)',
     expect((await loadDraft('redact')).elements).toEqual([{ id: 'redaction' }]);
     expect((await loadDraft('sign')).revision).toBe(1);
     expect((await loadDraft('redact')).revision).toBe(1);
+  });
+});
+
+describe('peekHandoff / commitHandoff (a hand-off outlives its read)', () => {
+  beforeEach(() => {
+    localStorage.clear();
+    sessionStorage.clear();
+    vi.stubGlobal('crypto', webcrypto);
+    indexedDB = new IDBFactory();
+  });
+
+  it('peek leaves the record in place, so a reload reads the same one again', async () => {
+    await saveHandoff('sign', { fileName: 'p.pdf', fileBytes: bytesOf('pdf') });
+    expect((await peekHandoff('sign')).fileName).toBe('p.pdf');
+    expect((await peekHandoff('sign')).fileName).toBe('p.pdf');
+  });
+
+  it('commit deletes it, and only the named key', async () => {
+    await saveHandoff('sign', { fileName: 'p.pdf', fileBytes: bytesOf('pdf') });
+    await saveHandoff('merge', { fileName: 'm.pdf', fileBytes: bytesOf('m') });
+    await commitHandoff('sign');
+    expect(await peekHandoff('sign')).toBeNull();
+    expect((await peekHandoff('merge')).fileName).toBe('m.pdf');
+  });
+
+  it('an invalid record is discarded by the peek that finds it', async () => {
+    await saveHandoff('merge', { files: [] });
+    expect(await peekHandoff('merge')).toBeNull();
+    expect(await peekHandoff('merge')).toBeNull();
   });
 });
 

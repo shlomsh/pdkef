@@ -1,8 +1,9 @@
 import { useEffect, useRef } from 'preact/hooks';
-import { takeHandoff } from '../drafts/draftStore.ts';
+import { peekHandoff } from '../drafts/draftStore.ts';
 import { handoffFitsPage, handoffKindsForPage } from './handoffKinds.ts';
 import { markArrival } from './fileArrival.ts';
 import { ANALYTICS_TOOLS, type AnalyticsTool } from '../telemetry/usageEventSchema.ts';
+import { settleHandoff } from './settleHandoff.ts';
 import { clearHandoffPending, releaseHandoffPending, releaseHandoffPendingWhenLoaded } from './handoffPending.ts';
 
 type HandoffFile = { fileName: string; fileType?: string; fileBytes: ArrayBuffer };
@@ -39,9 +40,9 @@ export function markHandoffArrival(from: unknown): void {
  * race against, so mount is enough: nothing else is competing to load a file
  * first.
  *
- * `takeHandoff` is read-and-delete (a hand-off is a one-shot baton - see
- * draftStore.js), and already returns null when IndexedDB is unavailable, so
- * there is nothing to special-case here for that.
+ * `peekHandoff` reads without deleting; `settleHandoff` stores the PDF in recents and only then
+ * deletes the record, so a reload mid-arrival re-opens it (the intake is idempotent). It already
+ * returns null when IndexedDB is unavailable, so there is nothing to special-case here for that.
  *
  * `from` is the sending tool, when its record names one (Redact does, so Unlock can lead the person
  * back once the file is open). A receiver that has no use for it ignores the second argument.
@@ -72,22 +73,23 @@ export function useHandoffFilesIntake(tool: string, onFiles: (files: File[], fro
     let cancelRelease = () => {};
 
     // The pre-paint script held the page back for a hand-off (HERO-02, handoffPending.ts). The
-    // storage key is a one-shot and goes as soon as the hand-off is read; the page is released when
+    // storage key and record go once the file is in recents (settleHandoff); the page is released when
     // the tool shows its file, or at once when there is nothing to consume (a stale marker).
     // One key can open two pages (compress: Compress and Compress Image): take only what this page
     // does, and leave the rest for the page it was meant for (handoffKinds.ts).
     const kinds = handoffKindsForPage(tool, location.pathname);
-    const taken = kinds ? takeHandoff(tool, (r: HandoffRecord) => handoffFitsPage(r, kinds)) : takeHandoff(tool);
-    void taken.then((value) => { // reason: takeHandoff reports its own failure and resolves null
-      clearHandoffPending(tool);
+    const taken = kinds ? peekHandoff(tool, (r: HandoffRecord) => handoffFitsPage(r, kinds)) : peekHandoff(tool);
+    void taken.then(async (value) => { // reason: peekHandoff reports its own failure and resolves null
+      const record = value as HandoffRecord | null;
+      const files = record ? filesFromHandoff(record) : [];
+      if (record && files.length > 0) await settleHandoff(tool, record);
+      else clearHandoffPending(tool);
       if (cancelled) {
         // The hook went away before the read settled: nobody is left to show the file, so
         // the held-back page must not stay hidden.
         releaseHandoffPending();
         return;
       }
-      const record = value as HandoffRecord | null;
-      const files = record ? filesFromHandoff(record) : [];
       if (files.length === 0) {
         releaseHandoffPending();
         return;

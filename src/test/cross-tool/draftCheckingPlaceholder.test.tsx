@@ -40,7 +40,8 @@ vi.mock('#lib/drafts/draftStore.ts', () => ({
   saveDraft: vi.fn(() => Promise.resolve(true)),
   deleteDraft: vi.fn(() => Promise.resolve(true)),
   loadDraft: vi.fn(() => loadDraftDeferred.promise),
-  takeHandoff: vi.fn(() => Promise.resolve(null)),
+  peekHandoff: vi.fn(() => Promise.resolve(null)),
+  commitHandoff: vi.fn(() => Promise.resolve()),
   cacheRecentFile: vi.fn(() => Promise.resolve(true)),
   hasDraftHint: vi.fn(() => hint),
   subscribeToDraftChanges: vi.fn(() => () => {})

@@ -163,44 +163,61 @@ export async function saveHandoff(
 }
 
 /**
- * Collect and consume a tool's pending handoff, or null if there is none.
+ * Read a tool's pending handoff WITHOUT consuming it, or null if there is none.
  *
- * Read-and-delete in one call, deliberately: a handoff is a one-shot baton, so
- * leaving it behind would re-open the same file on every later visit to the tool,
- * and would do it over whatever the user had since started.
+ * A hand-off is a one-shot baton, but it must outlive the read: deleting it before the file is
+ * stored anywhere durable loses the PDF to any reload in between (service-worker update, refresh,
+ * iOS discarding the tab). So a receiver peeks, stores the file (recents), and only then calls
+ * `commitHandoff`; a reload in between peeks the same record again. `HANDOFF_MAX_AGE_MS` bounds a
+ * record nobody ever commits.
  *
  * Returns the record only if it is a valid single record (has `fileBytes`) or a valid
- * multi record (a non-empty `files` list, every entry with `fileBytes`). A multi record
- * reaches only tools that take several files (Merge, Image to PDF) or the hooks in
- * useHandoffIntake.ts.
+ * multi record (a non-empty `files` list, every entry with `fileBytes`). A stale or invalid record
+ * is deleted here and reads as null. A multi record reaches only tools that take several files
+ * (Merge, Image to PDF) or the hooks in useHandoffIntake.ts.
  *
  * `tool` is the target tool's own key, e.g. 'sign' when Merge (MERGE-14) hands its output there.
  * `accept`, when given, leaves a valid record it returns false for in place, not consumed
  * (src/lib/handoff/handoffKinds.ts: one key, two pages).
  */
-export async function takeHandoff(tool: string, accept?: (record: HandoffRecord) => boolean): Promise<HandoffRecord | null> {
+export async function peekHandoff(tool: string, accept?: (record: HandoffRecord) => boolean): Promise<HandoffRecord | null> {
   if (!hasIndexedDB()) return null;
   const key = handoffKey(tool);
   try {
     const stored = await withStore('readonly', (store) => reqToPromise(store.get(key)));
     if (!stored) return null;
-    // Stored but not an object: an invalid record, consumed below like any other.
+    // Stored but not an object: an invalid record, discarded below like any other.
     const record = parseHandoff(stored) ?? {};
     const fresh = !(typeof record.savedAt === 'number' && Date.now() - record.savedAt > HANDOFF_MAX_AGE_MS);
     // A valid record the asker does not take stays for the page it is meant for (one key can open
     // two pages, e.g. Compress and Compress Image); it still ages out through the check above.
-    if (fresh && isValidHandoff(record) && accept && !accept(record)) return null;
-    await withStore('readwrite', (store) => {
-      store.delete(key);
-    });
-    return fresh && isValidHandoff(record) ? record : null;
+    if (fresh && isValidHandoff(record)) return accept?.(record) === false ? null : record;
+    await commitHandoff(tool);
+    return null;
   } catch (e) {
-    reportStoreError('handoff', e, 'take_handoff');
-    console.error('draftStore.takeHandoff failed:', e);
+    reportStoreError('handoff', e, 'peek_handoff');
     return null;
   }
 }
 
+/** Delete a tool's hand-off record once its file is durably stored (see `peekHandoff`). Never throws. */
+export async function commitHandoff(tool: string): Promise<void> {
+  if (!hasIndexedDB()) return;
+  try {
+    await withStore('readwrite', (store) => {
+      store.delete(handoffKey(tool));
+    });
+  } catch (e) {
+    reportStoreError('handoff', e, 'commit_handoff');
+  }
+}
+
+/** Peek and delete in one call, for a caller with nowhere to store the file first (it is already in hand). */
+export async function takeHandoff(tool: string, accept?: (record: HandoffRecord) => boolean): Promise<HandoffRecord | null> {
+  const record = await peekHandoff(tool, accept);
+  if (record) await commitHandoff(tool);
+  return record;
+}
 
 /** Synchronous metadata read for the home page. File bytes are never copied
  * into localStorage; they are loaded only after a person chooses an entry. */
