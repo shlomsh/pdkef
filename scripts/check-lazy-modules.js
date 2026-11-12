@@ -262,7 +262,8 @@ for (const name of MERGED_INTO_UI) {
 }
 for (const page of UI_PAGES) {
   const html = view.files.get(path.posix.join(page, 'index.html'));
-  if (html !== undefined && !names(staticClosure(view, pageEntries(html))).has('ui.js')) errors.push(`/${page}/ does not load ui.js on first paint: the island pages carry the UI glue in that one file (MEM-48).`);
+  if (html === undefined) errors.push(`dist/${page}/index.html is missing - UI_PAGES is stale.`);
+  else if (!names(staticClosure(view, pageEntries(html))).has('ui.js')) errors.push(`/${page}/ does not load ui.js on first paint: the island pages carry the UI glue in that one file (MEM-48).`);
 }
 const lateBuilt = built.filter((file) => LATE.test(file));
 for (const name of EXPECTED_LATE) {

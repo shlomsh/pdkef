@@ -12,14 +12,14 @@ import { entryFileName, chunkFileName, assetFileName, cssAssetKeys, cssModuleCla
 //
 //   site                        reached from the scripts every page runs
 //   home, open                  reached only by those islands (`islands` when by both)
-//   widgets                     the page scripts that are neither site-wide nor home (today only PinnedNotes); code
-//                               only they reach is in `ui` (MEM-48)
+//   widgets                     the page scripts that are neither site-wide nor home (PinnedNotes, OfflineProof,
+//                               VideoPoster); code only they reach is in `ui` (MEM-48)
 //   client                      the island client (@astrojs/preact), loaded by pages with an island only. It has no
 //                               group: what only it reaches stays in dist/site/client.js (0.7 KB). Folding it into `ui`
 //                               would need a default export appended to ui.js after the build, which the owner declined
 //                               (2026-11-12): one request is the price of not editing built output
 //   ui (MEM-48)                 the glue every page with an island loads, in one file, /shared/ui.js: Preact, its hooks
-//                               and signals, the code only `widgets` reach (the pinned notes widget), `home-tools` and
+//                               and signals, the code only `widgets` reach (the pinned notes, offline proof and video poster scripts), `home-tools` and
 //                               `islands-tools` (what the home page's or any island and a tool share) and
 //                               src/lib/drafts/sha256.ts, a lazy import the glue now loads eagerly. It was seven files,
 //                               each a billed request. Pages with no island load none of it (check-lazy-modules.js).
