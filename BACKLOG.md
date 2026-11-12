@@ -2,7 +2,7 @@
 
 # Backlog
 
-The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 188 live: 78 up next, 23 then, 27 waiting, 60 parked.
+The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 189 live: 78 up next, 24 then, 27 waiting, 60 parked.
 
 ## Redact: finish removal
 
@@ -229,6 +229,7 @@ Production errors you can see, small tools that clean up after themselves, and d
 | DEBT-53 | P2 | [DEBT-53](backlog/tasks/DEBT-53.md) · A Download tapped before the build lands still downloads on an iPhone | Needs Shlomi: A check on your iPhone |
 | MEM-41 | P2 | [MEM-41](backlog/tasks/MEM-41.md) · The bundling and stub guards cannot pass on a half-working build |  |
 | QUAL-55 | P2 | [QUAL-55](backlog/tasks/QUAL-55.md) · The update tests' setup stops timing out waiting for a worker to take a tab |  |
+| QUAL-56 | P2 | [QUAL-56](backlog/tasks/QUAL-56.md) · Sign's rotate-page test passes every time, not most times |  |
 | DEBT-55 | P3 | [DEBT-55](backlog/tasks/DEBT-55.md) · Every tool that loads with pdf-lib repairs a lost page list the way Edit Pages does |  |
 
 ### Waiting
