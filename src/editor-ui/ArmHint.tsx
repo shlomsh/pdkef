@@ -39,7 +39,7 @@ const DEFAULT_TOUCH_HINT_TEMPLATE = 'Double-tap to keep {label} on';
  * the button's native `title` entirely rather than living alongside it. The
  * name leads because below 920px every button is an icon-only square: the
  * tooltip is the only place its name appears, and someone hovering an
- * unfamiliar icon wants "Symbols" before they want how to place one. The two used to be separate: the
+ * unfamiliar icon wants "Mark" before they want how to place one. The two used to be separate: the
  * browser's own `title` bubble carried the action line, this carried the
  * shortcut, and because neither knows about the other, hovering could show
  * both at once, stacked, one delayed relative to the other.

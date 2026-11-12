@@ -114,7 +114,7 @@ for (const tool of tools) {
 // (the plateau) every label shows except Undo, Redo and Feedback, which are
 // icon-only at every width (`data-icon-only`); at 1200px everything is
 // icon-only. And the row reads in the order a form gets done: Text first,
-// Sign after the filling vocabulary (Text, Date, Symbols, Shapes, Whiteout).
+// Sign after the filling vocabulary (Text, Date, Mark, Shapes, Whiteout).
 async function labelWidth(page, text) {
   return page.evaluate((label) => {
     const spans = [...document.querySelectorAll('[role="toolbar"] .label, [role="toolbar"] span')];
@@ -133,9 +133,9 @@ test('Text leads and Sign follows the filling tools, labels show at the desktop 
     const toolbar = document.querySelector('[role="toolbar"]');
     return [...toolbar.children].slice(0, 6).map((el) => el.querySelector('.label, span')?.textContent?.trim());
   });
-  expect(leadingLabels, 'the filling tools lead and Sign follows them').toEqual(['Text', 'Date', 'Symbols', 'Shapes', 'Whiteout', 'Sign']);
+  expect(leadingLabels, 'the filling tools lead and Sign follows them').toEqual(['Text', 'Date', 'Mark', 'Shapes', 'Whiteout', 'Sign']);
 
-  for (const label of ['Sign', 'Text', 'Date', 'Symbols', 'Whiteout', 'Highlight', 'Share', 'Download']) {
+  for (const label of ['Sign', 'Text', 'Date', 'Mark', 'Whiteout', 'Highlight', 'Share', 'Download']) {
     const width = await labelWidth(page, label);
     expect(width, `${label} label should exist`).not.toBeNull();
     expect(width, `${label} should be labelled at 1440px`).toBeGreaterThan(5);

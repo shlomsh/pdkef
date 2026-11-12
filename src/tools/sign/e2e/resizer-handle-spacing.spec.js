@@ -150,7 +150,7 @@ test('a symbol\'s resize handles never overlap, however small the checkbox is', 
   await openWithFixture(page);
   const symbolTool = page
     .getByRole('toolbar', { name: 'PDF annotations' })
-    .getByRole('button', { name: 'Symbols', exact: true });
+    .getByRole('button', { name: 'Mark', exact: true });
   if ((await symbolTool.getAttribute('aria-pressed')) !== 'true') await symbolTool.click();
   await expect(page.locator('[class*="field-hint-checkbox"]').first()).toBeVisible();
 

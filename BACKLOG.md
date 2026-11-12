@@ -2,7 +2,7 @@
 
 # Backlog
 
-The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 187 live: 77 up next, 23 then, 27 waiting, 60 parked.
+The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 188 live: 77 up next, 24 then, 27 waiting, 60 parked.
 
 ## Redact: finish removal
 
@@ -363,6 +363,7 @@ Small, independent, good for a spare hour.
 | DRIVE-07 | P2 | [DRIVE-07](backlog/tasks/DRIVE-07.md) · Google Drive copy: privacy and trust pages, trademark line, branding check |  |
 | GRID-07 | P2 | [GRID-07](backlog/tasks/GRID-07.md) · Page grid rows without gaps, and one rail rhythm across the grid tools |  |
 | GRID-08 | P2 | [GRID-08](backlog/tasks/GRID-08.md) · Compress and Unlock follow the one-file rail rule |  |
+| SIGN-49 | P2 | [SIGN-49](backlog/tasks/SIGN-49.md) · Sign's toolbar leads with the form: five tools, More, and the file's actions at the end |  |
 
 ### Parked
 
@@ -386,7 +387,7 @@ Done and retired tickets are not listed. Their files stay in [backlog/tasks/](ba
 - Robustness and debt: 97 done, 4 retired
 - Unify the tools, narrow the graph: 100 done, 0 retired
 - Search and languages: 13 done, 0 retired
-- Polish: 29 done, 2 retired
+- Polish: 30 done, 2 retired
 - Sign tool architecture: 37 done, 1 retired
 - Editor architecture: 14 done, 0 retired
 - Fonts and script support: 6 done, 3 retired

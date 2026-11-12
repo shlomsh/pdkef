@@ -68,7 +68,7 @@ async function expectLocked(page, btn, hasAriaPressed) {
 }
 
 test.describe('Sign toolbar double-click locks every tool (SIGN-30)', () => {
-  for (const [name, hasAriaPressed] of [['Text', true], ['Date', true], ['Symbols', true], ['Whiteout', false]]) {
+  for (const [name, hasAriaPressed] of [['Text', true], ['Date', true], ['Mark', true], ['Whiteout', false]]) {
     test(`double-clicking ${name} locks it across two real placements`, async ({ page }) => {
       await openSignTool(page);
       const btn = toolButton(page, name);

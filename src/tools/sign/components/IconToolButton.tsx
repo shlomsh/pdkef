@@ -6,7 +6,7 @@ import { toolButtonProps } from './toolButtonProps.ts';
 /** One plain arm-a-tool button of Sign's toolbar: an icon, a label, the ArmHint
  * bubble that teaches the double-click lock. Whiteout, Highlight and Comment
  * are exactly this; the tools with a menu or a custom trigger (Shapes,
- * Signature, Symbols) stay inline in SignToolbar.tsx. */
+ * Signature, Mark) stay inline in SignToolbar.tsx. */
 export default function IconToolButton({ tool, label, action, selectedTool, toolLocked, autoShowTool, hintTemplate, touchHintTemplate, onArm, iconOnly = false, children }: {
   tool: string;
   label: string;

@@ -1133,7 +1133,7 @@
    Reserving the row's height even while every chip is opacity 0 (the
    resting/no-JS state - see each .tool-chip-* formula) avoids a layout jump
    when the first one fades in. Shared by both stories: the bill's four
-   redaction tools below, and story one's Text/Symbols/Sign/Share row (see
+   redaction tools below, and story one's Text/Mark/Sign/Share row (see
    the form-fields section above and .share-sheet below), naming the app's
    real toolbar vocabulary as each one is used - the same component so the
    two stories visibly read as one product. */

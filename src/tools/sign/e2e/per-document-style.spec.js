@@ -175,7 +175,7 @@ async function addDateAt(page, xRatio, yRatio) {
 }
 
 async function addSymbolAt(page, xRatio, yRatio) {
-  await armTool(page, 'Symbols');
+  await armTool(page, 'Mark');
   await clickOverlayAt(page, xRatio, yRatio);
   const element = activeElement(page);
   await expect(element).toBeVisible();
@@ -285,6 +285,8 @@ test('every setting a person chooses is remembered per document, and going back 
   await expect(symbolA.getByTitle('Check mark', { exact: true })).toHaveClass(/active/);
   await symbolA.getByTitle('X mark', { exact: true }).click();
   await expect(symbolA.getByTitle('X mark', { exact: true })).toHaveClass(/active/);
+  // The toolbar's Mark button now draws the mark the next placement will use.
+  await expect(page.getByRole('toolbar', { name: 'PDF annotations' }).getByRole('button', { name: 'Mark', exact: true }).locator('svg[data-mark]')).toHaveAttribute('data-mark', 'x');
 
 
   await expect(page.locator('[data-tool-shell]').getByText('Draft saved')).toBeVisible({ timeout: 10_000 });

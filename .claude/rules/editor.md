@@ -322,7 +322,7 @@ Create is a gesture too (click-place or drag-draw), not an exception.
   `e2e/tool-toolbars/toolbar-desktop-one-line.spec.js` catches. Container-query label tiers were
   tried twice and drifted twice; do not bring them back.
 - Sign's own toolbar order reads in the order a form gets done: the filling vocabulary first (Text,
-  Date, Symbols, Shapes, Whiteout), then Sign as the last thing you do to a filled form (it is the
+  Date, Mark, Shapes, Whiteout), then Sign as the last thing you do to a filled form (it is the
   tool the page is named for, but it led the row for one day under SIGN-29 and read as the wrong
   first step), then the history group beside the work it acts on (Undo, Redo - the same
   pair, in the same order, as Redact), then the chrome group (full screen,

@@ -76,7 +76,7 @@ async function armText(page) {
 async function armSymbols(page) {
   const symbolTool = page
     .getByRole('toolbar', { name: 'PDF annotations' })
-    .getByRole('button', { name: 'Symbols', exact: true });
+    .getByRole('button', { name: 'Mark', exact: true });
   if ((await symbolTool.getAttribute('aria-pressed')) !== 'true') await symbolTool.click();
 }
 
@@ -211,7 +211,7 @@ test.describe('tapping a detected checkbox', () => {
     await expect(page.locator('[data-editor-element][data-editor-active]')).toHaveCount(1);
     const symbolTool = page
       .getByRole('toolbar', { name: 'PDF annotations' })
-      .getByRole('button', { name: 'Symbols', exact: true });
+      .getByRole('button', { name: 'Mark', exact: true });
     await expect(symbolTool).toHaveAttribute('aria-pressed', 'false');
 
     // The one-shot arming model still applies. Re-arm, then the same real

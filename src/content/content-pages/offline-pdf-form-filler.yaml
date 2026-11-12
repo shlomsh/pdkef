@@ -48,9 +48,9 @@ sections:
             <strong>Open the <a href="/sign/">Sign &amp; Fill tool</a></strong> and choose or drag in
             your PDF. Once the page itself has loaded once, this step works with no connection too.
           - >-
-            <strong>Pick Text, click where an answer belongs, and type.</strong> Use Symbols for a
-            checkmark on a checkbox, or the Signature tool for your name. Drag anything afterward to
-            nudge it into place.
+            <strong>Pick Text, click where an answer belongs, and type.</strong> Use Mark for a
+            check, an X or a dot on a checkbox, or the Signature tool for your name. Drag anything
+            afterward to nudge it into place.
           - >-
             <strong>Download the finished PDF.</strong> Nothing is sent anywhere to produce it; your
             device builds the file and hands it straight to you.
@@ -139,9 +139,9 @@ faq:
       rather than its page content, will not find anything there.
   - question: 'Can I check boxes on a form, not just type text?'
     answer: >-
-      Yes. The Symbols tool includes a checkmark you can place over any checkbox, alongside plain
-      text and your signature, so a form with tick boxes and written answers can be finished in one
-      pass.
+      Yes. The Mark tool places a check over any checkbox, and turns it into an X or a dot in place
+      if the form asks for one. Along with plain text and your signature, that finishes a form with
+      tick boxes and written answers in one pass.
   - question: 'Is my PDF uploaded anywhere while I fill it out?'
     answer: >-
       No. The file never leaves your device at any point, online or offline. Everything from opening

@@ -314,10 +314,10 @@ describe('useWorkspaceGestures – symbol remembered settings', () => {
     expect(dispatch).toHaveBeenCalledWith({ type: 'DELETE_ELEMENT', payload: existing.id });
     expect(dispatch.mock.calls.some(([action]) => action.type === 'ADD_ELEMENT')).toBe(false);
     expect(logAction).toHaveBeenCalledWith(
-      'delete', 'DELETE_ELEMENT', 0, 'Removed symbol from printed box',
+      'delete', 'DELETE_ELEMENT', 0, 'Removed mark from printed box',
       [{ element: existing, index: 0 }],
     );
-    expect(setAnnouncement).toHaveBeenCalledWith('Removed symbol from the printed box.');
+    expect(setAnnouncement).toHaveBeenCalledWith('Removed mark from the printed box.');
   });
 
   // Fill mode (SNG-15): nothing armed, a tap on a detected box runs this same
