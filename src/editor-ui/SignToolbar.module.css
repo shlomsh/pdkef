@@ -791,3 +791,58 @@
   .toolbar .label, .toolbar .button[data-icon-only] .label { position: static; width: auto; height: auto; margin: 0; padding: 0; overflow: visible; clip: auto; white-space: normal; text-align: center; border-width: 0; }
   .toolbar .chevron { position: absolute; inset-block-start: 3px; inset-inline-end: 3px; margin: 0; }
 }
+
+/* Sign's finish (data-finish="strip", set on its toolbar root only, so Redact and
+   Highlight, which share this module, are untouched). Borderless "ghost" controls
+   on the card's own white, thin dividers between groups, Download the one outlined
+   control and never filled (QUAL-27). Every rule is under the attribute; sizes and
+   the order of the row are the rules above, this is finish only. The armed (.active)
+   and kept-on (.locked) looks are production's and are excluded from the ghost.
+   Groups: [Text Date Mark Whiteout Sign] | [More] | [Undo Redo] ... [Full screen
+   Replace] | [Share Download]. A divider is a ::before on the group's first control,
+   never a toolbar child (specs count the children): More is the dropdown right after
+   Sign's dropdown, Undo the control after it, Share (or Download when there is no Share) is
+   picked by class. */
+.toolbar[data-finish="strip"] .button:not(.active) { background: transparent; border-color: transparent; box-shadow: none; border-radius: 10px; }
+.toolbar[data-finish="strip"] .button { border-radius: 10px; }
+.toolbar[data-finish="strip"] .button:not(.active):hover:not(:disabled) { background: var(--color-primary-soft); border-color: transparent; }
+.toolbar[data-finish="strip"] .button:disabled { color: var(--color-muted); }
+.toolbar[data-finish="strip"] .button:disabled:not(.download):not(.share):hover { color: var(--color-muted); background: transparent; border-color: transparent; }
+/* More, open: the tinted ground with a hairline, not the armed fill. */
+.toolbar[data-finish="strip"] .button[aria-expanded="true"]:not(.active) { background: var(--color-primary-soft); box-shadow: inset 0 0 0 1px var(--color-primary-tint); }
+/* Download: the one outlined control. Below 920px it is a ring inside the tile so
+   the tile keeps its size; on desktop it is a real 1.5px border (rule further down). */
+.toolbar[data-finish="strip"] .button.download { background: var(--color-surface); border-color: transparent; box-shadow: inset 0 0 0 1.5px var(--color-border-strong); font-weight: 700; }
+.toolbar[data-finish="strip"] .button.download:disabled { color: var(--color-muted); border-color: transparent; box-shadow: inset 0 0 0 1.5px var(--color-border); }
+.toolbar[data-finish="strip"] .button.download:disabled:hover { background: var(--color-surface); border-color: transparent; box-shadow: inset 0 0 0 1.5px var(--color-border); }
+
+@media (min-width: 920px) {
+  .toolbar[data-finish="strip"] { --toolbar-gap: 2px; }
+  /* Natural widths: the free room is the flexible space before Full screen. */
+  .toolbar[data-finish="strip"] > * { flex: 0 0 auto; }
+  .toolbar[data-finish="strip"] .button { gap: 7px; min-height: 44px; height: 44px; padding: 0 11px; font-size: 14px; overflow: visible; }
+  .toolbar[data-finish="strip"] .button[data-icon-only] { width: 40px; padding: 0; }
+  /* Full screen, Replace and Share sit a step smaller, as in the design. */
+  .toolbar[data-finish="strip"] > :has(+ [data-replace]), .toolbar[data-finish="strip"] > [data-replace], .toolbar[data-finish="strip"] > .share { min-height: 40px; height: 40px; padding: 0 10px; }
+  .toolbar[data-finish="strip"] > :has(+ [data-replace]) { margin-inline-start: auto; }
+  .toolbar[data-finish="strip"] .button.download { min-height: 42px; height: 42px; padding: 0 16px; border: 1.5px solid var(--color-border-strong); box-shadow: none; margin-inline-start: 4px; }
+  .toolbar[data-finish="strip"] .button.download:hover:not(:disabled) { background: var(--color-primary-soft); border-color: var(--color-border-strong); }
+  .toolbar[data-finish="strip"] .button.download:disabled, .toolbar[data-finish="strip"] .button.download:disabled:hover { border: 1.5px solid var(--color-border); box-shadow: none; background: var(--color-surface); }
+  .toolbar[data-finish="strip"] .dropdown > .button { width: 100%; }
+  /* Dividers: 1px x 24px, 8px each side of the 2px gap. The group's first control
+     takes the extra start margin and draws the line in it. */
+  .toolbar[data-finish="strip"] > .dropdown + .dropdown, .toolbar[data-finish="strip"] > .dropdown + .dropdown + .button, .toolbar[data-finish="strip"] > .share, .toolbar[data-finish="strip"] > .download:not(.share + .download) { position: relative; margin-inline-start: 19px; }
+  .toolbar[data-finish="strip"] > .dropdown + .dropdown::before, .toolbar[data-finish="strip"] > .dropdown + .dropdown + .button::before, .toolbar[data-finish="strip"] > .share::before, .toolbar[data-finish="strip"] > .download:not(.share + .download)::before { content: ''; position: absolute; inset-block-start: 50%; inset-inline-start: -11px; width: 1px; height: 24px; margin-block-start: -12px; background: var(--color-border); }
+}
+
+/* SIGN-49: re-measure. Sign's copy of the 1300px label step. The generic 1299px
+   block above still takes the words off every toolbar (this one included) below
+   1300px; More is a fixed 134px only where its word shows, with the icon, the word
+   and the chevron sitting together in the middle. Only the active word takes room
+   (the stacked-words trick is not needed once the width is fixed). */
+@media (min-width: 1300px) {
+  .toolbar[data-finish="strip"] > .dropdown + .dropdown { width: 134px; }
+  .toolbar[data-finish="strip"] .dropdown > .button { justify-content: center; }
+  .toolbar[data-finish="strip"] .dropdown .label-swap-word[data-inactive] { display: none; }
+  .toolbar[data-finish="strip"] .dropdown > .button .chevron { width: 11px; height: 11px; margin-inline-start: -2px; }
+}

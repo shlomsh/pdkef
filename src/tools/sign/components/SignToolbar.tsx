@@ -399,6 +399,7 @@ export default function SignToolbar({
           lang={t.lang}
           // ToolHero.astro folds the hero on desktop while this exists.
           data-editor-toolbar
+          data-finish="strip"
         >
           {/* Order (2026-09-18, revised the same day as SIGN-29): the row
               reads in the order a form gets done. Text, Date, Mark
@@ -613,14 +614,13 @@ export default function SignToolbar({
               reads from the shell's own catalogue (fix from LOC-09 stage 1's
               inventory), the same way ToolShell.tsx's own FileActions() does -
               only the icon stays FILE_ACTIONS.replace's, since that is not text.
-              Sits with export as the other finishing action, one step before
-              Share/Download at the far edge. */}
+              Sits with export, labelled on desktop (data-replace: the finish's hook). */}
           <button
             type="button"
             className={styles.button}
             onClick={requestReplace}
             title={shellMessages.replaceTitle}
-            aria-label={shellMessages.replaceLabel} data-icon-only
+            aria-label={shellMessages.replaceLabel} data-replace
           >
             <svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
               <path d={FILE_ACTIONS.replace.icon} />
