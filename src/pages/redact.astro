@@ -10,7 +10,7 @@ const tool = toolsBySlug['redact'];
 const rating = await appRating();
 ---
 
-<ToolPageLayout tool={tool}>
+<ToolPageLayout tool={tool} rated>
   <PdfRedactTool client:load />
   {/* SEO-58: through a slot, so the board's CSS ships on this page alone. */}
   <RatingBoard slot="rating" rating={rating} tool="redact" messages={documentationShellMessages.en!} />

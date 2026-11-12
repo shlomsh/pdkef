@@ -58,6 +58,8 @@ interface Props {
    * catalogue yet (see LOCALIZED_TOOL_ISLANDS in src/i18n/localizedTools.ts) -
    * the Sign/Redact "editor stays English" pilot decision, generalized. */
   toolControlsEnglish?: boolean;
+  /** SEO-58/61: the page fills the `rating` slot with the board, so it carries the rating markup too. */
+  rated?: boolean;
 }
 
 const {
@@ -71,6 +73,7 @@ const {
   messages = documentationShellMessages.en!,
   previewNotice,
   toolControlsEnglish = false,
+  rated = false,
 }: Props = Astro.props;
 
 // The nine English pages pass neither `alternates` nor `variants`, and they
@@ -85,8 +88,9 @@ const variants = Astro.props.variants ?? resolved.variants;
 // Sign and Redact are the editors. They share the desktop first screen of the page-grid tools (HERO-05),
 // but only on an empty desktop stage (see `data-editor` below).
 // SEO-46: a real aggregate from the build-time read, or null (offline build, store down, under the minimum).
-// SEO-58: only a page that shows the board (Redact) carries the rating.
-const rating = Astro.slots.has('rating') ? await appRating() : null;
+// SEO-58/61: only a page that shows the board (Redact, Merge) carries the rating.
+// A prop and not `Astro.slots.has`: a slot forwarded by LocalizedToolLayout counts as filled on every localized page.
+const rating = rated ? await appRating() : null;
 // English-only like the languages card: the figures' captions are English.
 const showExamples = Boolean(tool.examples) && locale === 'en';
 if (showExamples) registerToolPageStyles(Astro.csp, tool);

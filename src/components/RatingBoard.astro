@@ -6,11 +6,12 @@ import { ratingText } from '../site-lib/ratingAggregate';
 import { notesFromEnv } from '../site-lib/notesAtBuild';
 import { notesToShow } from '../site-lib/pinnedNote';
 import { flagSpriteFor } from '../site-lib/flagFiles';
+import type { RatingTool } from '#lib/telemetry/ratingSchema.ts';
 
 interface Props {
   rating: { average: number; count: number; countries: number } | null;
   messages: any;
-  tool?: 'redact';
+  tool?: RatingTool;
   locale?: string;
   /** A card of the home stack: opaque and pinned like its neighbours, so nothing shows around it. */
   card?: boolean;

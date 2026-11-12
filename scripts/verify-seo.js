@@ -41,8 +41,8 @@ const contentPageSlugs = new Set(
     .map((file) => file.replace(/\.yaml$/, '')),
 );
 
-/** SEO-58: the rating sits on the home page, in any language, and on Redact, and nowhere else. */
-const RATED_PAGE = /(^|\/)dist\/((?:[a-z]{2}\/)?index|redact\/index)\.html$/;
+/** SEO-58/61: the rating sits on the home page, Redact and Merge, in any language, and nowhere else. */
+const RATED_PAGE = /(^|\/)dist\/((?:[a-z]{2}\/)?(?:index|merge\/index)|redact\/index)\.html$/;
 
 for (const file of htmlFiles) {
   const relPath = path.relative(process.cwd(), file);
@@ -148,7 +148,7 @@ for (const file of htmlFiles) {
   // one: PDkef's, at least 10 votes, a value in 1..5, and the visible badge must show the same numbers.
   const agg = softwareAppData && softwareAppData.aggregateRating;
   if (agg) {
-    if (!RATED_PAGE.test(relPath)) error('aggregateRating on a page other than home or Redact');
+    if (!RATED_PAGE.test(relPath)) error('aggregateRating on a page other than home, Redact or Merge');
     const value = Number(agg.ratingValue);
     const count = Number(agg.ratingCount);
     if (softwareAppData.name !== 'PDkef') error(`aggregateRating rates "${softwareAppData.name}", not PDkef`);

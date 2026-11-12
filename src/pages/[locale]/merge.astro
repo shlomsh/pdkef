@@ -2,14 +2,19 @@
 import LocalizedToolLayout from '../../layouts/LocalizedToolLayout.astro';
 import { localizedToolPaths, loadLocalizedToolPage } from '../../site-lib/localizedToolPage';
 import PdfMergeTool from '../../tools/merge/PdfMergeTool.tsx';
+import RatingBoard from '../../components/RatingBoard.astro';
+import { appRating } from '../../site-lib/ratingAggregate';
 
 export function getStaticPaths() {
   return localizedToolPaths('merge');
 }
 
 const page = await loadLocalizedToolPage('merge', Astro.props.localeId, Astro.params.locale ?? '');
+const rating = await appRating();
 ---
 
-<LocalizedToolLayout page={page}>
+<LocalizedToolLayout page={page} rated>
   <PdfMergeTool client:load messages={page.toolMessages} shellMessages={page.shellMessages} />
+  {/* SEO-61: the board speaks the page's language; the layout passes the slot on to the tool page. */}
+  <RatingBoard slot="rating" rating={rating} tool="merge" locale={page.context.effectiveLocale} messages={page.messages} />
 </LocalizedToolLayout>

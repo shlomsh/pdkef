@@ -1,11 +1,17 @@
 ---
 import ToolPageLayout from '../layouts/ToolPageLayout.astro';
 import PdfMergeTool from '../tools/merge/PdfMergeTool.tsx';
+import RatingBoard from '../components/RatingBoard.astro';
 import { toolsBySlug } from '../data/tools.js';
+import { documentationShellMessages } from '../i18n/documentationMessages';
+import { appRating } from '../site-lib/ratingAggregate';
 
 const tool = toolsBySlug['merge'];
+const rating = await appRating();
 ---
 
-<ToolPageLayout tool={tool}>
+<ToolPageLayout tool={tool} rated>
   <PdfMergeTool client:load />
+  {/* SEO-61: through a slot, so the board's CSS ships on the pages that show it. */}
+  <RatingBoard slot="rating" rating={rating} tool="merge" messages={documentationShellMessages.en!} />
 </ToolPageLayout>

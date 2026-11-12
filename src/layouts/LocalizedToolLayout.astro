@@ -7,9 +7,11 @@ import type { LocalizedToolPage } from '../site-lib/localizedToolPage';
 
 interface Props {
   page: LocalizedToolPage;
+  /** SEO-61: the route fills the `rating` slot, so the page carries the rating markup. */
+  rated?: boolean;
 }
 
-const { page } = Astro.props;
+const { page, rated } = Astro.props;
 const { context, tool, messages, stale, islandLocalized } = page;
 ---
 
@@ -26,6 +28,8 @@ const { context, tool, messages, stale, islandLocalized } = page;
   messages={messages}
   previewNotice={stale ? messages.stalePreviewNotice : messages.previewNotice}
   toolControlsEnglish={context.effectiveLocale !== 'en' && !islandLocalized}
+  rated={rated}
 >
   <slot />
+  <slot name="rating" slot="rating" />
 </ToolPageLayout>
