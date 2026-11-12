@@ -2,7 +2,7 @@
 
 # Backlog
 
-The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 182 live: 72 up next, 23 then, 27 waiting, 60 parked.
+The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 184 live: 73 up next, 24 then, 27 waiting, 60 parked.
 
 ## Redact: finish removal
 
@@ -25,6 +25,12 @@ Find covers exactly what it matched, Delete reaches every object, and the saved-
 ## Sign: finish fill mode
 
 Fill mode is the default since SNG-19. Close the test gaps, then desktop parity, then retire the old editor.
+
+### Up next
+
+| ID | P | Task | Note |
+| --- | --- | --- | --- |
+| SNG-25 | P2 | [SNG-25](backlog/tasks/SNG-25.md) · Sign: empty field frames show only while the armed tool can land in them | In progress |
 
 ### Then, in order
 
@@ -178,6 +184,12 @@ _Nothing live._
 ## Form detector accuracy
 
 Every detected spot is a stop in fill mode, so false positives reach people directly. One fix at a time, since each re-records the baselines.
+
+### Then, in order
+
+| ID | P | Task | Note |
+| --- | --- | --- | --- |
+| FORM-40 | P2 | [FORM-40](backlog/tasks/FORM-40.md) · Cells: a table's header row and its row-label cells are not writing spots |  |
 
 ### Parked
 

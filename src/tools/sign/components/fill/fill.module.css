@@ -166,6 +166,16 @@
   box-shadow: inset 0 0 0 1.5px var(--color-primary);
 }
 
+/* SNG-25 (docs/sign-fill-mode.md, "Hints"): on the pages container while the
+   armed tool cannot land in an empty slot (nothing armed, Sign, Shapes...),
+   the slots keep their place in reading order but drop their at-rest frame.
+   While any fill input has focus the frames come back on every page, so a
+   typing session that disarmed Text, or a keyboard Tab, still sees its fields. */
+.slots-quiet:not(:has([data-fill-input]:focus)) :is(.field-frame, .slot) {
+  background: transparent;
+  box-shadow: none;
+}
+
 /* FocusProxy.tsx: focused inside the touch handler so iOS raises the keyboard
    before the real slot exists (MOBI-24). 16px so iOS never zooms the page to
    focus it; fixed position, 1px and fully transparent so it is never seen. */

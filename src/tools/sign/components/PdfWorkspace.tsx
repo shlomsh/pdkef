@@ -59,7 +59,7 @@ import FocusProxy from './fill/FocusProxy.tsx';
 import useFillTap from '../hooks/fill/useFillTap.ts';
 import { fillToolOf } from '../lib/fill/fillTap.ts';
 import { enterKeyHint } from '../lib/fill/fillOrder.ts';
-import { boxOf, documentFillItems, fillItemIndex, fillItemsByPage, fillReachTargets } from '../lib/fill/fillWorkspace.ts';
+import { boxOf, documentFillItems, fillItemIndex, fillItemsByPage, fillReachTargets, slotFramesShown } from '../lib/fill/fillWorkspace.ts';
 import { elementForSlot, type SlotElementBase } from '../lib/fill/slotElement.ts';
 import { fillKeyOf, focusNextFillInput } from '../lib/fill/fillDom.ts';
 import type { FillItem, FillSlot, ReachTarget } from '../lib/fill/fillTypes.ts';
@@ -525,7 +525,7 @@ export default function PdfWorkspace({
           {/* PDF Pages rendering container */}
           <div
             ref={comments.containerRef}
-            className={workspaceStyles['pages-container']}
+            className={`${workspaceStyles['pages-container']}${fill.enabled && !slotFramesShown(fillTool) ? ` ${fillStyles['slots-quiet']}` : ''}`}
             onClick={(e) => {
               // Fill mode: a click on a fill input is that input's own focus.
               if (fillKeyOf(e.target as Element | null) !== null) return;

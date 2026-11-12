@@ -160,3 +160,14 @@ export function fillItemsByPage(items: FillItem[], numPages: number): FillItem[]
   }
   return pages;
 }
+
+/**
+ * SNG-25 (docs/sign-fill-mode.md, "Hints"): whether empty slots draw their
+ * at-rest frame for the armed tool - only where that tool can land in one,
+ * the same tools `fillReachTargets` gives fill targets to. With nothing armed
+ * a slot takes no tap (SIGN-45), so a frame there is noise that reads as a
+ * rendering fault. A focused fill input overrides this in CSS (`.slots-quiet`).
+ */
+export function slotFramesShown(tool: FillTool): boolean {
+  return tool === 'text' || tool === 'date';
+}
