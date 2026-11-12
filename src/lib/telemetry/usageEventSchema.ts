@@ -94,6 +94,15 @@ export const VISITS = ['new', 'today', 'week', 'month', 'older'] as const;
 export type Visit = (typeof VISITS)[number];
 
 /**
+ * `since` (MEM-45): on `tool_page_viewed` only, how long since this browser's first view of a PDkef
+ * page, worked out on the device from a day it keeps for itself; only the bucket travels.
+ * `first`, or: `day` (the same day), `week` (1-7 days), `month` (8-30), `quarter` (31-90), `older`.
+ * @testSeam
+ */
+export const SINCES = ['first', 'day', 'week', 'month', 'quarter', 'older'] as const;
+export type Since = (typeof SINCES)[number];
+
+/**
  * MEM-45: how the site performs for a real visitor, as buckets and never raw values. On
  * `tool_page_viewed`: `net` and `local` count this page's own requests (reached the network / answered
  * on the device), `lcp` is the largest contentful paint and `ready` (tool pages only) is the time to the
@@ -117,6 +126,7 @@ export type UsageEvent = Readonly<{
     /** With `source: 'handoff'` on `tool_file_accepted` only: the tool that handed the file on. */
     from?: AnalyticsTool;
     visit?: Visit;
+    since?: Since;
     net?: CountBucket;
     local?: CountBucket;
     lcp?: TimeBucket;
@@ -139,7 +149,7 @@ function exactKeys(value: object, keys: readonly string[]): boolean {
   return actual.length === keys.length && [...keys].sort().every((key, i) => key === actual[i]);
 }
 
-const OPTIONAL_KEYS = ['build', 'first', 'nav', 'source', 'from', 'visit', 'net', 'local', 'lcp', 'ready', 'ms'] as const;
+const OPTIONAL_KEYS = ['build', 'first', 'nav', 'source', 'from', 'visit', 'since', 'net', 'local', 'lcp', 'ready', 'ms'] as const;
 
 /**
  * Accepts exactly `{name, properties: {tool}}` plus any of the optional properties above, each value
@@ -162,6 +172,7 @@ export function parseUsageEvent(value: unknown): UsageEvent | null {
   if (on('source') && (name === 'tool_page_viewed' || !has(FILE_SOURCES, p.source))) return null;
   if (on('from') && (name !== 'tool_file_accepted' || p.source !== 'handoff' || !has(ANALYTICS_TOOLS, p.from))) return null;
   if (on('visit') && (name !== 'tool_page_viewed' || !has(VISITS, p.visit))) return null;
+  if (on('since') && (name !== 'tool_page_viewed' || !has(SINCES, p.since))) return null;
   const viewed = name === 'tool_page_viewed';
   if (on('net') && (!viewed || !has(COUNT_BUCKETS, p.net))) return null;
   if (on('local') && (!viewed || !has(COUNT_BUCKETS, p.local))) return null;
@@ -178,6 +189,7 @@ export function parseUsageEvent(value: unknown): UsageEvent | null {
       ...(on('source') ? { source: p.source as FileSource } : {}),
       ...(on('from') ? { from: p.from as AnalyticsTool } : {}),
       ...(on('visit') ? { visit: p.visit as Visit } : {}),
+      ...(on('since') ? { since: p.since as Since } : {}),
       ...(on('net') ? { net: p.net as CountBucket } : {}),
       ...(on('local') ? { local: p.local as CountBucket } : {}),
       ...(on('lcp') ? { lcp: p.lcp as TimeBucket } : {}),
@@ -202,12 +214,12 @@ export function usageEventField(event: UsageEvent): string {
 /**
  * Everything about a page load's first event of its kind, in one counter so it costs one command
  * (DEBT-58, replacing DEBT-48's `once:` and DEBT-57's `nav:` fields, which older days still hold): `pg:<event>|<tool>|<source>|<from>|<nav>|<visit>`,
- * `-` for each one absent. Undefined on an event that is not `first`.
+ * `-` for each one absent, and MEM-45's `|<since>` appended only when the view carries one. Undefined on an event that is not `first`.
  */
 export const usagePageField = (event: UsageEvent): string | undefined => {
-  const { tool, first, source, from, nav, visit } = event.properties;
+  const { tool, first, source, from, nav, visit, since } = event.properties;
   if (!first) return undefined;
-  return `pg:${event.name}|${tool}|${source ?? '-'}|${from ?? '-'}|${nav ?? '-'}|${visit ?? '-'}`;
+  return `pg:${event.name}|${tool}|${source ?? '-'}|${from ?? '-'}|${nav ?? '-'}|${visit ?? '-'}${since ? `|${since}` : ''}`;
 };
 
 

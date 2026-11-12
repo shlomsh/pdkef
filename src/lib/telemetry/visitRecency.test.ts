@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { lastDayFromRecents, localDay, readAndStampVisit, visitFor } from './visitRecency.ts';
+import { lastDayFromRecents, localDay, readAndStampVisits, sinceFor, visitFor } from './visitRecency.ts';
 import { RECENT_FILES_META_KEY } from '../drafts/recentFilesKey.js';
 
 describe('lastDayFromRecents (DEBT-61)', () => {
@@ -49,32 +49,76 @@ describe('localDay', () => {
   });
 });
 
-describe('readAndStampVisit', () => {
+describe('readAndStampVisits (visit)', () => {
   beforeEach(() => vi.stubGlobal('localStorage', fakeStorage()));
   afterEach(() => vi.unstubAllGlobals());
   it('is new the first time, then today, and stamps the day', () => {
     const now = new Date(2026, 9, 21, 12);
-    expect(readAndStampVisit(now)).toBe('new');
+    expect(readAndStampVisits(now)?.visit).toBe('new');
     expect(localStorage.getItem('pdkef:last-tool-visit')).toBe('2026-10-21');
-    expect(readAndStampVisit(now)).toBe('today');
-    expect(readAndStampVisit(new Date(2026, 9, 25))).toBe('week');
+    expect(readAndStampVisits(now)?.visit).toBe('today');
+    expect(readAndStampVisits(new Date(2026, 9, 25))?.visit).toBe('week');
   });
   it('DEBT-61: a browser with no visit day but recent files from before is returning, aged by its newest file', () => {
     localStorage.setItem(RECENT_FILES_META_KEY, JSON.stringify([{ id: 'a', savedAt: new Date(2026, 9, 18, 9).getTime() }]));
-    expect(readAndStampVisit(new Date(2026, 9, 22, 12))).toBe('week');
+    expect(readAndStampVisits(new Date(2026, 9, 22, 12))?.visit).toBe('week');
     expect(localStorage.getItem('pdkef:last-tool-visit')).toBe('2026-10-22');
   });
   it('DEBT-61: a recent file 8 to 30 days old reads as month', () => {
     localStorage.setItem(RECENT_FILES_META_KEY, JSON.stringify([{ id: 'a', savedAt: new Date(2026, 9, 2, 9).getTime() }]));
-    expect(readAndStampVisit(new Date(2026, 9, 22, 12))).toBe('month');
+    expect(readAndStampVisits(new Date(2026, 9, 22, 12))?.visit).toBe('month');
   });
   it('DEBT-61: the visit day wins over recent files', () => {
     localStorage.setItem('pdkef:last-tool-visit', '2026-10-21');
     localStorage.setItem(RECENT_FILES_META_KEY, JSON.stringify([{ id: 'a', savedAt: new Date(2026, 9, 2, 9).getTime() }]));
-    expect(readAndStampVisit(new Date(2026, 9, 22, 12))).toBe('week');
+    expect(readAndStampVisits(new Date(2026, 9, 22, 12))?.visit).toBe('week');
   });
   it('is undefined when storage throws', () => {
     vi.stubGlobal('localStorage', fakeStorage(true));
-    expect(readAndStampVisit()).toBeUndefined();
+    expect(readAndStampVisits()).toBeUndefined();
+  });
+});
+
+describe('sinceFor (MEM-45)', () => {
+  const today = '2026-11-12';
+  it.each([
+    [null, 'first'], ['2026-11-12', 'day'], ['2026-11-11', 'week'], ['2026-11-05', 'week'], ['2026-11-04', 'month'],
+    ['2026-10-13', 'month'], ['2026-10-12', 'quarter'], ['2026-08-14', 'quarter'], ['2026-08-13', 'older'],
+    ['2026-11-13', 'first'], ['garbage', 'first'], ['2026-13-45', 'first'],
+  ])('%s is %s', (first, since) => {
+    expect(sinceFor(first as string | null, today)).toBe(since);
+  });
+});
+
+describe('readAndStampVisits (since)', () => {
+  beforeEach(() => vi.stubGlobal('localStorage', fakeStorage()));
+  afterEach(() => vi.unstubAllGlobals());
+  const now = new Date(2026, 10, 12, 12);
+  it('a first-ever view writes the first day and reads first; the same day after reads day, untouched', () => {
+    expect(readAndStampVisits(now)).toEqual({ visit: 'new', since: 'first' });
+    expect(localStorage.getItem('pdkef:first-visit')).toBe('2026-11-12');
+    const set = vi.spyOn(localStorage, 'setItem');
+    expect(readAndStampVisits(now)).toEqual({ visit: 'today', since: 'day' });
+    expect(set).not.toHaveBeenCalledWith('pdkef:first-visit', expect.anything());
+  });
+  it('a browser with only a last visit 10 days ago is seeded from it and reads month', () => {
+    localStorage.setItem('pdkef:last-tool-visit', '2026-11-02');
+    expect(readAndStampVisits(now)).toEqual({ visit: 'month', since: 'month' });
+    expect(localStorage.getItem('pdkef:first-visit')).toBe('2026-11-02');
+  });
+  it('a seeded same-day result is day', () => {
+    localStorage.setItem('pdkef:last-tool-visit', '2026-11-12');
+    expect(readAndStampVisits(now)).toEqual({ visit: 'today', since: 'day' });
+    expect(localStorage.getItem('pdkef:first-visit')).toBe('2026-11-12');
+  });
+  it('an existing first day 40 days ago stays untouched and reads quarter, even with a visit yesterday', () => {
+    localStorage.setItem('pdkef:first-visit', '2026-10-03');
+    localStorage.setItem('pdkef:last-tool-visit', '2026-11-11');
+    expect(readAndStampVisits(now)).toEqual({ visit: 'week', since: 'quarter' });
+    expect(localStorage.getItem('pdkef:first-visit')).toBe('2026-10-03');
+  });
+  it('is undefined without storage', () => {
+    vi.stubGlobal('localStorage', fakeStorage(true));
+    expect(readAndStampVisits(now)).toBeUndefined();
   });
 });

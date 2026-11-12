@@ -2,7 +2,7 @@
 // Wire shapes live in src/lib/telemetry/usageEventSchema.ts (a script cannot import TS; errors-funnel.test.mjs pins them):
 //   run     `<event>|<tool>`, `<event>|<tool>|<build>`, `<event>|<tool>|<build or ->|<source>`
 //   once:   the same behind `once:`, counted on a page load's first event of its kind
-//   pg:     `pg:<event>|<tool>|<source>|<from>|<nav>|<visit>`, `-` for absent, first events only
+//   pg:     `pg:<event>|<tool>|<source>|<from>|<nav>|<visit>[|<since>]`, `-` for absent, first events only
 //   nav:    DEBT-57's older page-load field, not read here
 //   perf:   MEM-45 `perf:<tool>:<visit>:<net>:<local>:<lcp>:<ready>`, `-` for absent, one per page view that carried a measure
 //   ms:     MEM-45 `ms:<event>:<tool>:<bucket>`, the time to open a file / to a result
@@ -18,6 +18,7 @@ export const EVENTS = [
 ];
 export const FRESH_SOURCES = ['pick', 'drop', 'paste', 'replace', 'recent', 'handoff', 'camera'];
 export const VISITS = ['new', 'today', 'week', 'month', 'older'];
+export const SINCES = ['first', 'day', 'week', 'month', 'quarter', 'older'];
 const LANES = ['fresh', 'resume', 'unknown'];
 
 const dash = (v) => (v === undefined || v === '-' || v === '' ? undefined : v);
@@ -26,9 +27,9 @@ const dash = (v) => (v === undefined || v === '-' || v === '' ? undefined : v);
 export function parseUsageField(field) {
   const f = String(field);
   if (f.startsWith('pg:')) {
-    const [event, tool, source, from, nav, visit] = f.slice(3).split('|');
+    const [event, tool, source, from, nav, visit, since] = f.slice(3).split('|');
     if (!EVENTS.includes(event) || !tool) return null;
-    return { kind: 'pg', event, tool, source: dash(source), from: dash(from), nav: dash(nav), visit: dash(visit) };
+    return { kind: 'pg', event, tool, source: dash(source), from: dash(from), nav: dash(nav), visit: dash(visit), since: dash(since) };
   }
   const once = f.startsWith('once:');
   const parts = (once ? f.slice(5) : f).split('|');
@@ -79,7 +80,7 @@ const laneOf = (source) => (!source ? 'unknown' : source === 'restore' ? 'resume
 export function funnelByTool(results) {
   const tools = new Map();
   const get = (tool) => {
-    if (!tools.has(tool)) tools.set(tool, { lanes: Object.fromEntries(LANES.map((l) => [l, Object.fromEntries(EVENTS.map((e) => [e, 0]))])), viewed: 0, visits: {}, sources: {} });
+    if (!tools.has(tool)) tools.set(tool, { lanes: Object.fromEntries(LANES.map((l) => [l, Object.fromEntries(EVENTS.map((e) => [e, 0]))])), viewed: 0, visits: {}, sinces: {}, sources: {} });
     return tools.get(tool);
   };
   const add = (map, key, n) => { map[key] = (map[key] ?? 0) + n; };
@@ -93,6 +94,7 @@ export function funnelByTool(results) {
       if (p.event === 'tool_page_viewed') {
         t.viewed += count;
         if (p.visit) add(t.visits, p.visit, count);
+        if (p.since) add(t.sinces, p.since, count);
       } else {
         t.lanes[laneOf(p.source)][p.event] += count;
         if (p.event === 'tool_file_accepted') add(t.sources, p.source ?? 'unknown', count);
@@ -133,6 +135,7 @@ export function funnelLines(results) {
   const lines = ['tool | lane | visited | file in front | first edit | asked | got it | failed', ...out];
   for (const [tool, t] of tools) {
     if (Object.keys(t.visits).length) lines.push(`${tool} visits: ${list(t.visits, VISITS)}`);
+    if (Object.keys(t.sinces).length) lines.push(`${tool} first view: ${list(t.sinces, SINCES)}`);
     if (Object.keys(t.sources).length) lines.push(`${tool} accepted by source: ${list(t.sources, FRESH_SOURCES)}`);
   }
   return lines;

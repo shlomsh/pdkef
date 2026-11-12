@@ -31,6 +31,18 @@ describe('sumUsage', () => {
   });
 });
 
+describe('since (MEM-45)', () => {
+  it('reads the seventh part, and an old six-part field gives none', () => {
+    expect(parseUsageField('pg:tool_page_viewed|sign|-|-|navigate|week|month')).toMatchObject({ visit: 'week', since: 'month' });
+    expect(parseUsageField('pg:tool_page_viewed|sign|-|-|navigate|week')).toMatchObject({ visit: 'week', since: undefined });
+  });
+  it('prints a first view line after the visits line', () => {
+    const lines = funnelLines([flat({ 'pg:tool_page_viewed|sign|-|-|-|new|first': 3, 'pg:tool_page_viewed|sign|-|-|-|week|quarter': 1, 'pg:tool_page_viewed|sign|-|-|-|week': 2 })]);
+    expect(lines).toContain('sign visits: new 3, week 3');
+    expect(lines[lines.indexOf('sign visits: new 3, week 3') + 1]).toBe('sign first view: first 3, quarter 1');
+  });
+});
+
 describe('funnelLines', () => {
   const day1 = flat({
     'pg:tool_page_viewed|sign|-|-|navigate|new': 6, 'pg:tool_page_viewed|sign|-|-|navigate|week': 4,

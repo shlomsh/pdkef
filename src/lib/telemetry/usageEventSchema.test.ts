@@ -8,6 +8,7 @@ import {
   NAVIGATION_TYPES,
   usageEventField,
   usagePageField,
+  SINCES,
   FILE_SOURCES,
   VISITS,
   COUNT_BUCKETS,
@@ -216,6 +217,23 @@ describe('source, from and visit (DEBT-58)', () => {
     expect(parseUsageEvent(props('tool_page_viewed', { nav: 'reload' }))).toBeNull();
     const e = props('tool_page_viewed', { first: true, nav: 'reload' });
     expect(parseUsageEvent(e)).toEqual(e);
+  });
+});
+
+describe('since (MEM-45)', () => {
+  const props = (name: string, p: Record<string, unknown>) => ({ name, properties: { tool: 'sign', ...p } });
+  it.each(SINCES.map((v) => [v]))('accepts since %s on tool_page_viewed only', (since) => {
+    const e = props('tool_page_viewed', { since });
+    expect(parseUsageEvent(e)).toEqual(e);
+    expect(parseUsageEvent(props('tool_file_accepted', { since }))).toBeNull();
+  });
+  it.each([['unknown', 'yesterday'], ['number', 1]])('rejects since as %s', (_w, since) => {
+    expect(parseUsageEvent(props('tool_page_viewed', { since }))).toBeNull();
+  });
+  it('appends since to the page field only when present', () => {
+    const v = (p: Record<string, unknown>) => usagePageField(parseUsageEvent({ name: 'tool_page_viewed', properties: { tool: 'sign', first: true, ...p } })!);
+    expect(v({ visit: 'week', since: 'month' })).toBe('pg:tool_page_viewed|sign|-|-|-|week|month');
+    expect(v({ visit: 'week' })).toBe('pg:tool_page_viewed|sign|-|-|-|week');
   });
 });
 

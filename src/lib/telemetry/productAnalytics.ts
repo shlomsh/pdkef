@@ -12,8 +12,8 @@
 import { readBuildCommit, sendBeacon } from './errorReport.ts';
 import { resetFileArrivalForTests, takeArrival, takeArrivalTime, type Arrival } from '../handoff/fileArrival.ts';
 import { collectPageMeasures, pageSettled, timeBucket } from './pagePerformance.ts';
-import { NAVIGATION_TYPES, parseUsageEvent, type AnalyticsTool, type NavigationType, type UsageEvent, type UsageEventName, type ViewOnlyPage, type Visit } from './usageEventSchema';
-import { readAndStampVisit } from './visitRecency.ts';
+import { NAVIGATION_TYPES, parseUsageEvent, type AnalyticsTool, type NavigationType, type UsageEvent, type UsageEventName, type Since, type ViewOnlyPage, type Visit } from './usageEventSchema';
+import { readAndStampVisits } from './visitRecency.ts';
 
 // The event and tool lists live in the import-free schema the endpoint shares (DEBT-28).
 export {
@@ -36,8 +36,8 @@ let accepted = false;
 let editSent = false;
 // MEM-45: when the operation in progress started (performance.now), for `tool_result_ready`'s ms.
 let startedAt: number | undefined;
-// The visit bucket, read and stamped once per page load.
-let visit: { value: Visit | undefined } | null = null;
+// The visit and since buckets, read and stamped once per page load.
+let visit: { value: { visit: Visit; since: Since } | undefined } | null = null;
 
 export function resetUsageEventsForTests(): void {
   handedOff = 0;
@@ -50,8 +50,8 @@ export function resetUsageEventsForTests(): void {
   resetFileArrivalForTests();
 }
 
-function pageVisit(): Visit | undefined {
-  visit ??= { value: readAndStampVisit() };
+function pageVisit(): { visit: Visit; since: Since } | undefined {
+  visit ??= { value: readAndStampVisits() };
   return visit.value;
 }
 
@@ -147,7 +147,7 @@ function report(event: UsageEventName, tool: AnalyticsTool | ViewOnlyPage, measu
     const nav = first ? readNavigationType() : undefined;
     const arrival = event === 'tool_file_accepted' ? takeArrival() : current;
     const ms = untimed ? undefined : timingBucket(event, event === 'tool_file_accepted' ? { source: arrival?.source, at: takeArrivalTime() } : undefined);
-    const visitProp = event === 'tool_page_viewed' ? pageVisit() : undefined;
+    const visits = event === 'tool_page_viewed' ? pageVisit() : undefined;
     const parsed = parseUsageEvent({
       name: event,
       properties: {
@@ -156,7 +156,7 @@ function report(event: UsageEventName, tool: AnalyticsTool | ViewOnlyPage, measu
         ...(first ? { first } : {}),
         ...(nav ? { nav } : {}),
         ...arrivalProps(event, arrival),
-        ...(visitProp ? { visit: visitProp } : {}),
+        ...(visits ?? {}),
         ...measures,
         ...(ms ? { ms } : {}),
       },

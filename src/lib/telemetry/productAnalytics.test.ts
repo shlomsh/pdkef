@@ -147,8 +147,8 @@ describe('the funnel (DEBT-58)', () => {
     reportToolLifecycleEvent('tool_page_viewed', 'sign');
     await settleTick();
     expect(await props()).toEqual([
-      { tool: 'home', first: true, visit: 'new' },
-      { tool: 'sign', first: true, visit: 'today' },
+      { tool: 'home', first: true, visit: 'new', since: 'first' },
+      { tool: 'sign', first: true, visit: 'today', since: 'day' },
     ]);
   });
 
@@ -159,8 +159,9 @@ describe('the funnel (DEBT-58)', () => {
     reportToolLifecycleEvent('tool_page_viewed', 'sign');
     await settleTick();
     const [a, b] = await props();
-    expect(a).toEqual({ tool: 'sign', first: true, visit: 'new' });
+    expect(a).toEqual({ tool: 'sign', first: true, visit: 'new', since: 'first' });
     expect(b.visit).toBe('new');
+    expect(b.since).toBe('first');
     expect(ls.getItem('pdkef:last-tool-visit')).not.toBeNull();
   });
 

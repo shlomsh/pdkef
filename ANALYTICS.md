@@ -80,6 +80,11 @@ Properties, each from a closed list and only where it says:
   30) or `older`. The browser keeps the day it last opened a tool page in its own storage and works
   the bucket out on the device; the day and the key never leave it, and no two events can be tied
   together by it.
+- `since`, on the page view only: `first`, or `day` (the same day as the first view), `week` (1 to 7
+  days), `month` (8 to 30), `quarter` (31 to 90) or `older`. The browser keeps the day of its first
+  view in its own storage, written once, and works the bucket out on the device; the day and the key
+  never leave it, and no two events can be tied together by it. It rides in the page counter as a
+  seventh part, after `visit`.
 - `first`, `nav` and `build` as before.
 
 Sign also emits `sign_form_detection` once per opened document, when the
@@ -198,3 +203,4 @@ additions if their question remains unanswered:
 | 2026-10-21 | Background builds no longer count as started or ready in Compress and Compress Image (DEBT-59). Split already counted taps only since DEBT-46 (its 11 Oct numbers predate that deploy); PDF to Image, Image to PDF, Unlock and Protect were audited and already count taps only. | Days with more results ready than files opened (Compress 8 Oct: 3 opened, 16 ready) were background builds after each option change; read per page load the funnel was sound every day. Same model as Merge and Split. |
 | 2026-10-25 | Merge, Edit PDF and Split share one finish flow (GRID-05), and a completed Share counts as `tool_operation_started` then `tool_result_ready`, like a Download tap, in all three. A Download and a Share of the same output count as two. | Split already counted a completed Share (DEBT-46); Merge and Edit PDF counted only the Download tap. One flow now serves all three, and a Share is as much an explicit request for the result as a Download, so from this date Merge's and Edit PDF's started and ready counts include Shares and are slightly higher than before for the same use. |
 | 2026-11-05 | `camera` joins the `source` list (SCAN-66): the first page of a scan taken with the camera, live or the phone's own. | Scan's main way in had no mark, so those page loads read as unknown. Only a first page marks; a photo added to a loaded scan is work on it. |
+| 2026-11-12 | MEM-45: `since` says how long since the first view; `visit` said only how recent the last one was. Browsers seen before this date are seeded from their last visit, so they read younger than they are, never new. | The owner asked for time since the first view; a person back after three months and again yesterday read like two days ago. |
