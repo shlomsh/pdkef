@@ -128,7 +128,7 @@ function lateBundleOf(id, ctx) {
 }
 
 const lateBundle = (name, priority) => ({ name: (id, ctx) => (lateBundleOf(id, ctx) === name ? name : null), priority });
-// One group per tool folder, below tools-late and editor-late.
+// One group per tool folder, below editor-late. (`tools-late` modules are taken by tools-common first, MEM-46.)
 const lateToolBundle = { name: (id, ctx) => { const name = lateBundleOf(id, ctx); return name && name !== 'tools-late' && name !== 'editor-late' ? name : null; }, priority: 0.5 };
 
 // MEM-44: late modules under node_modules that would land in sign-late (the font library, pako, encoding and
