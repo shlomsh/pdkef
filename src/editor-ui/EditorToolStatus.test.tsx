@@ -154,6 +154,12 @@ describe('EditorToolStatus', () => {
         expect(link()!.hasAttribute('tabindex')).toBe(false);
       });
 
+      it('puts the link inside the row\'s text span, one wrapping run', () => {
+        mount({ fieldSummary: { text: 'Could not check this PDF.', problem: true, action } });
+        expect(link()!.parentElement!.tagName).toBe('SPAN');
+        expect(link()!.parentElement!.textContent).toBe(`Could not check this PDF. ${action.label}`);
+      });
+
       it('renders no link without an action', () => {
         mount({ fieldSummary: { text: 'Could not check this PDF.', problem: true } });
         expect(link()).toBeNull();

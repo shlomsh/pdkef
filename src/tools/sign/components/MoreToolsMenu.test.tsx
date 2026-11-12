@@ -107,6 +107,22 @@ describe('MoreToolsMenu', () => {
     expect(onLock).toHaveBeenCalledWith('highlight');
   });
 
+  it('a double-click after a pick locks it, though the one-shot placement disarmed the tool', async () => {
+    const { open, items, trigger, onPick, onLock } = setup();
+    await open();
+    const ellipse = items().find((el) => el.textContent?.includes(t.ellipseLabel))!;
+    await act(async () => { ellipse.click(); });
+    expect(onPick.mock.calls[0][0]).toBe('ellipse');
+    act(() => {
+      render(
+        <MoreToolsMenu t={t} selectedTool={null} toolLocked={false} onPick={onPick} onLock={onLock} feedbackHref={HREF} />,
+        container,
+      );
+    });
+    act(() => { trigger().dispatchEvent(new MouseEvent('dblclick', { bubbles: true })); });
+    expect(onLock).toHaveBeenCalledWith('ellipse');
+  });
+
   it('a double-click with nothing armed or picked locks nothing', () => {
     const { trigger, onLock } = setup();
     act(() => { trigger().dispatchEvent(new MouseEvent('dblclick', { bubbles: true })); });

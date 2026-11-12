@@ -22,12 +22,17 @@ function FieldsRow({ summary, shown }: { summary: FieldSummary; shown: boolean }
       data-problem={problem ? true : undefined}
       role="status"
     >
-      <span>{text}</span>
-      {action && (
-        <a className={styles['help-fields-link']} href={action.href} target="_blank" rel="noopener noreferrer" tabIndex={shown ? undefined : -1}>
-          {action.label}
-        </a>
-      )}
+      <span>
+        {text}
+        {action && (
+          <>
+            {' '}
+            <a className={styles['help-fields-link']} href={action.href} target="_blank" rel="noopener noreferrer" tabIndex={shown ? undefined : -1}>
+              {action.label}
+            </a>
+          </>
+        )}
+      </span>
     </div>
   );
 }

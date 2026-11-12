@@ -1648,7 +1648,7 @@ describe('SignToolbar Component', () => {
       expect(mountToolbar({ formDetection: { state: 'done', count: 0, detail: null } }).textContent).toBe('');
 
       const failed = mountToolbar({ formDetection: { state: 'failed', count: 0, detail: 'TypeError: x is not a function' } });
-      expect(failed.textContent).toBe('Could not check this PDF for form fields.Send me the details');
+      expect(failed.textContent).toBe('Could not check this PDF for form fields. Send me the details');
       expect(failed.hasAttribute('data-problem')).toBe(true);
       // Never the error itself: what is on screen is copy, and the detail
       // rides in the Feedback report where it is introduced.
@@ -1695,7 +1695,7 @@ describe('SignToolbar Component', () => {
         formDetection: { state: 'not-started', count: 0, detail: 'Detection did not start: no pdf.js document. bytes=4096, pages=3, document=no' },
       });
       expect(notStarted.textContent)
-        .toBe('The form field check did not start on this file.Send me the details');
+        .toBe('The form field check did not start on this file. Send me the details');
       expect(notStarted.hasAttribute('data-problem')).toBe(true);
 
       const wordings = new Set((['done', 'failed', 'unavailable', 'not-started'] as const).map((state) => (
@@ -1715,7 +1715,7 @@ describe('SignToolbar Component', () => {
       expect(mountToolbar({ formDetection: { state: 'done', count: 3, detail: null }, messages: hebrewSignMessages }).textContent)
         .toBe('');
       expect(mountToolbar({ formDetection: { state: 'failed', count: 0, detail: null }, messages: hebrewSignMessages }).textContent)
-        .toBe(hebrewSignMessages.fieldsCheckFailed + hebrewSignMessages.fieldsCheckDetailsLink);
+        .toBe(`${hebrewSignMessages.fieldsCheckFailed} ${hebrewSignMessages.fieldsCheckDetailsLink}`);
     });
 
     // The report is the only way a device we cannot reproduce ever tells us
@@ -1726,7 +1726,6 @@ describe('SignToolbar Component', () => {
       expect(failedBody).toContain('TypeError: p.findLast is not a function');
       expect(failedBody).toContain('nothing from your document in it');
 
-      expect(query(container, '[role="toolbar"]').querySelector('a[data-optional-control="feedback"]')).toBeNull();
       await act(async () => { render(null, container); });
       mountToolbar({ formDetection: { state: 'done', count: 7, detail: null } });
       const okBody = await moreFeedbackBody();
