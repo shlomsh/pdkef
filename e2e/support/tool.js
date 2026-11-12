@@ -5,12 +5,9 @@ import { expect } from '@playwright/test';
  * Waits for the first `client:load` island on the page (or in a scope such as
  * a second tab's page) to hydrate.
  * @param {import('@playwright/test').Page} page
- * @param {object} [opts]
- * @param {boolean} [opts.single=false]  Fail (Playwright strict mode) if the page has more than one such island.
  */
-export async function waitForIsland(page, { single = false } = {}) {
-  const islands = page.locator('astro-island[client="load"]:not([ssr])');
-  await (single ? islands : islands.first()).waitFor();
+export async function waitForIsland(page) {
+  await page.locator('astro-island[client="load"]:not([ssr])').first().waitFor();
 }
 
 /**

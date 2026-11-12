@@ -19,7 +19,7 @@ import { waitForIsland } from '../support/tool.js';
 
 test('Compress hands the merged file to Compress with the identity row naming it', async ({ page }) => {
   await page.goto('/merge/');
-  await waitForIsland(page, { single: true });
+  await waitForIsland(page);
 
   const files = await Promise.all(['first.pdf', 'second.pdf', 'third.pdf'].map(async (name) => ({
     name,
