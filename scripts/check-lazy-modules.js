@@ -67,6 +67,7 @@ const ASSET_DIRS = ['_astro', 'shared'].map((dir) => path.join(DIST, dir));
 const LAZY_ONLY = [
   // MEM-44: the code a tool loads late is grouped per tool (`<tool>-late`), so these rows name the bundle that
   // now holds each module. Each keeps its meaning: never in a first paint, reachable from the pages listed.
+  { chunk: /^sign-vendor\./, why: "Sign's font library and what it pulls in (MEM-44): the third-party half of Sign's late code, a file of its own so an edit to Sign does not re-download it", reachableFrom: ['sign', 'he/sign'] },
   { chunk: /^sign-late\./, why: "Sign's late code, field detection among it - the one entry point (ARCH-24, MEM-44)", reachableFrom: ['sign'] },
   {
     chunk: /^pdf-lib\./,
@@ -230,14 +231,18 @@ for (const page of PAGES) {
  *   3. a page's lazy JS file count stays at its measured figure, the files a worker install fetches beyond what
  *      the page loaded (pdf.js, pdf-lib and the workers are the engine and not counted).
  */
-const LATE = /^(?:[\w-]+)-late\.js$/;
+const LATE = /^(?:[\w-]+-late|sign-vendor)\.js$/;
+// Every late bundle expected today. One going missing means a grouping rule broke, not that the code is gone.
+const EXPECTED_LATE = ['sign-late', 'sign-vendor', 'redact-late', 'scan-late', 'compress-late', 'merge-late', 'highlight-late', 'editor-late', 'tools-late'];
 const EDITOR_TOOL_BUNDLES = ['sign-tool.js', 'redact-tool.js', 'highlight-tool.js'];
 const ENGINE = /^(?:pdf|pdf-lib)\.js$|[Ww]orker/;
 // Set to the measured counts. Budgets only go down. A page with no entry is not an island page and has 1.
-const LAZY_FILE_BUDGET = { '': 3, he: 3, sign: 6, 'he/sign': 6, redact: 6, 'highlight-pdf': 6, merge: 5, 'he/merge': 5, compress: 5, 'he/compress': 5, 'compress-image': 5, 'scan-to-pdf': 5, split: 4, unlock: 4, 'image-to-pdf': 4, 'organize-pdf': 4, 'rotate-pdf': 4, 'remove-pages': 4, 'add-page-numbers-to-pdf': 4, 'extract-pdf-pages': 4, 'pdf-to-image': 4 };
+const LAZY_FILE_BUDGET = { '': 3, he: 3, sign: 7, 'he/sign': 7, redact: 6, 'highlight-pdf': 6, merge: 5, 'he/merge': 5, compress: 5, 'he/compress': 5, 'compress-image': 5, 'scan-to-pdf': 5, split: 4, unlock: 4, 'image-to-pdf': 4, 'organize-pdf': 4, 'rotate-pdf': 4, 'remove-pages': 4, 'add-page-numbers-to-pdf': 4, 'extract-pdf-pages': 4, 'pdf-to-image': 4, 'he/split': 4, 'he/image-to-pdf': 4, 'he/pdf-to-image': 4 };
 
 const lateBuilt = built.filter((file) => LATE.test(file));
-if (lateBuilt.length === 0) errors.push('No dist/shared/*-late.js: the late bundles of astro.config.mjs (MEM-44) are not built, so every small lazy module is its own file again.');
+for (const name of EXPECTED_LATE) {
+  if (!lateBuilt.includes(`${name}.js`)) errors.push(`No dist/shared/${name}.js: a late bundle of astro.config.mjs (MEM-44) is not built, so its modules are loose files again.`);
+}
 for (const [relative, html] of view.files) {
   if (!relative.endsWith('index.html') && !relative.endsWith('.html')) continue;
   const page = relative === 'index.html' ? '' : relative.replace(/\/?index\.html$/, '').replace(/\.html$/, '');
@@ -249,7 +254,7 @@ for (const [relative, html] of view.files) {
   }
   for (const file of reach) {
     if (!LATE.test(file)) continue;
-    const owner = file.replace(/-late\.js$/, '');
+    const owner = file.replace(/-(?:late|vendor)\.js$/, '');
     if (owner === 'tools') continue;
     const allowed = owner === 'editor' ? EDITOR_TOOL_BUNDLES.some((bundle) => eager.has(bundle)) : eager.has(`${owner}-tool.js`);
     if (!allowed) errors.push(`/${page}/ lists ${file} but does not run the ${owner === 'editor' ? 'Sign, Redact or Highlight' : owner} tool: a tool's late bundle may be reached by its own pages only.`);

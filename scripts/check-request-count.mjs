@@ -31,7 +31,8 @@ export const BUDGETS = {
   // MEM-43 (owner's decision, 2026-11-12): tool pages install on the first visit, so this rise is deliberate
   // (57 and 53). MEM-44 groups a tool's late code into a few files: 43 and 43.
   '/redact/': { firstVisit: 43, afterOpen: 0 },
-  '/sign/': { firstVisit: 43, afterOpen: 0 },
+  // MEM-44: Sign's third-party late code is its own file (sign-vendor.js), so one more request (44) buys a ~11 KB re-download, not ~279 KB, when Sign's code changes. Deliberate rise, owner's balance.
+  '/sign/': { firstVisit: 44, afterOpen: 0 },
 };
 
 const WORKER_REQUESTS = ['/sw.js', '/precache-manifest.json'];
