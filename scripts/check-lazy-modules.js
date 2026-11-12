@@ -224,7 +224,7 @@ for (const page of PAGES) {
 
 /**
  * MEM-44: a tool's late code comes as `<tool>-late.js`, code several editors share as `editor-late.js` and code
- * other tools share as `tools-late.js`. Three promises, read off every built page (not only PAGES):
+ * other tools share rides in `tools-common.js` (MEM-46). Three promises, read off every built page (not only PAGES):
  *   1. no page loads a `*-late.js` on first paint (a late group that became eager costs every visit);
  *   2. `<tool>-late.js` is in the closure of that tool's pages only, the ones that load `<tool>-tool.js` eagerly,
  *      so no tool carries another tool's code; `editor-late.js` only in Sign, Redact and Highlight;
@@ -244,6 +244,11 @@ const LAZY_FILE_BUDGET = { '': 2, he: 2, sign: 5, 'he/sign': 5, redact: 4, 'high
 for (const folded of [['tools-late', 'tools-common'], ['swInstallReport', 'site']]) {
   if (built.includes(`${folded[0]}.js`)) errors.push(`dist/shared/${folded[0]}.js exists: folded into ${folded[1]} by MEM-46, a regrouping undid it.`);
 }
+// And proof the folded code landed where it was meant to, not in some other eager file: the install report's
+// exported function is named in site.js.
+if (!fs.readFileSync(path.join(DIST, 'shared', 'site.js'), 'utf8').includes('reportSwInstallFailures')) {
+  errors.push('dist/shared/site.js does not carry reportSwInstallFailures: src/site-lib/swInstallReport.ts left the site bundle (MEM-46).');
+}
 const lateBuilt = built.filter((file) => LATE.test(file));
 for (const name of EXPECTED_LATE) {
   if (!lateBuilt.includes(`${name}.js`)) errors.push(`No dist/shared/${name}.js: a late bundle of astro.config.mjs (MEM-44) is not built, so its modules are loose files again.`);
@@ -260,7 +265,6 @@ for (const [relative, html] of view.files) {
   for (const file of reach) {
     if (!LATE.test(file)) continue;
     const owner = file.replace(/-(?:late|vendor)\.js$/, '');
-    if (owner === 'tools') continue;
     const allowed = owner === 'editor' ? EDITOR_TOOL_BUNDLES.some((bundle) => eager.has(bundle)) : eager.has(`${owner}-tool.js`);
     if (!allowed) errors.push(`/${page}/ lists ${file} but does not run the ${owner === 'editor' ? 'Sign, Redact or Highlight' : owner} tool: a tool's late bundle may be reached by its own pages only.`);
   }
