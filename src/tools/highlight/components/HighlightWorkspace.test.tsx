@@ -92,6 +92,13 @@ describe('HighlightWorkspace', () => {
     expect(hiddenBar.closest('[hidden]')).not.toBeNull();
   });
 
+  it('outside the lamp the toolbar wears the tile finish (READ-28)', () => {
+    mount({ fullscreen: false, pseudoFullscreen: false });
+    const bar = container!.querySelector('[data-editor-toolbar][role="toolbar"]')!;
+    expect(bar.getAttribute('data-finish')).toBe('tile');
+    act(() => render(null, container!));
+  });
+
   it('on touch, a file opens armed with the hint in the card\'s identity row, Marker toggles arming, and the lamp shows no hint', () => {
     vi.stubGlobal('matchMedia', (q: string) => ({ matches: q.includes('coarse'), media: q, addEventListener() {}, removeEventListener() {} }));
     try {

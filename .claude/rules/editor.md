@@ -339,7 +339,8 @@ Create is a gesture too (click-place or drag-draw), not an exception.
   groups: Blur, Blackout, Whiteout, Delete | Find, Peek (they look, they mark nothing) | Undo, Redo ...
   Full screen, Replace | Share, Download; its order is unchanged, led by Blur since f48fcbd8.
 - **The row is quiet**: tools, Replace and Share are ghost controls (Sign, Redact; Highlight, a reading
-  tool, keeps its tiles), and Download is the one outlined control, joined in one outline with the
+  tool, keeps its framed tiles under `data-finish="tile"` and takes only the strip's soft hover and
+  outlined Download, READ-28), and Download is the one outlined control, joined in one outline with the
   Drive arrow when Drive is connected. Teal fill on a toolbar button means one thing, an armed tool:
   Redact's open Find and held Peek take the tinted ground instead. Export is never filled in the toolbar (QUAL-27, Shlomi 2026-10-20): the completion row under
   the document is the call to action, and a restored draft once lit Share and Download up with nobody

@@ -771,7 +771,7 @@
 }
 
 /* The finish (data-finish="strip", set on the Sign and Redact toolbar roots; Highlight,
-   which shares this module, does not take it). Borderless "ghost" controls
+   which shares this module, takes the tile finish below instead). Borderless "ghost" controls
    on the card's own white, thin dividers between groups, Download the one outlined
    control and never filled (QUAL-27). Every rule is under the attribute; sizes and
    the order of the row are the rules above, this is finish only. The armed (.active)
@@ -794,6 +794,24 @@
 .toolbar[data-finish="strip"] .button.download { background: var(--color-surface); border-color: transparent; box-shadow: inset 0 0 0 1.5px var(--color-border-strong); font-weight: 700; }
 .toolbar[data-finish="strip"] .button.download:disabled { color: var(--color-muted); border-color: transparent; box-shadow: inset 0 0 0 1.5px var(--color-border); }
 .toolbar[data-finish="strip"] .button.download:disabled:hover { background: var(--color-surface); border-color: transparent; box-shadow: inset 0 0 0 1.5px var(--color-border); }
+
+/* READ-28: Highlight's tiles (data-finish="tile" on its toolbar root). Highlight keeps its
+   framed, stretched tiles, calm targets for a reading tool, and takes two of the strip's
+   signals so the family reads as one: the soft hover, which keeps the tile's own frame, and
+   Download outlined and never filled (QUAL-27). The armed Marker (data-armed) keeps its fill.
+   The 1.5px frame is a 1px border plus a 0.5px inset ring: Chromium floors a border's width
+   to whole CSS pixels at any zoom, a shadow it does not. A Drive arrow joins Download inside
+   the same frame, the ring drawn on the pair's outer sides only (left to right: Highlight has
+   no right-to-left page, and its Download is stamped dir="ltr"). Keep the Download hover
+   rule after the general one: they tie, and order keeps its strong frame. Guard:
+   src/tools/highlight/e2e/toolbar-tile-finish.spec.js. */
+.toolbar[data-finish="tile"] > .button:not([data-armed]):hover:not(:disabled),
+.toolbar[data-finish="tile"] > .dropdown > .button:not([data-armed]):hover:not(:disabled) { background: var(--color-primary-soft); border-color: var(--color-border); }
+.toolbar[data-finish="tile"] > .button.download { --ring: var(--color-border-strong); border-color: var(--ring); box-shadow: inset 0 0 0 0.5px var(--ring); font-weight: 700; }
+.toolbar[data-finish="tile"] > .button.download:hover:not(:disabled) { border-color: var(--ring); }
+.toolbar[data-finish="tile"] > .button.download:has(+ [data-drive-arrow]) { border-inline-end-width: 0; box-shadow: inset 0 0.5px var(--ring), inset 0 -0.5px var(--ring), inset 0.5px 0 var(--ring); }
+.toolbar.toolbar[data-finish="tile"] > [data-drive-arrow][data-drive-arrow] { --ring: var(--color-border-strong); border-color: var(--ring); border-inline-start-color: var(--color-border); box-shadow: inset 0 0.5px var(--ring), inset 0 -0.5px var(--ring), inset -0.5px 0 var(--ring); }
+.toolbar.toolbar[data-finish="tile"] > [data-drive-arrow][data-drive-arrow]:hover { background: var(--color-primary-soft); border-color: var(--ring); border-inline-start-color: var(--color-border); }
 
 @media (min-width: 920px) {
   .toolbar[data-finish="strip"] { --toolbar-gap: 2px; }

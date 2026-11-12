@@ -244,7 +244,7 @@ function TileRow({ marks, undo, redo, touch, mark, printMenu, withComments, onPr
     <ToolShell
       editor statusBeside status={touch.armed && !mark && coarsePointer() ? <PenHint marker={marks.marker} text={t.armedAction} /> : null}
     >
-      <div className={`${toolbarStyles.toolbar} ${styles.toolRow}`} role="toolbar" aria-label={t.toolbarLabel} data-editor-toolbar>
+      <div className={`${toolbarStyles.toolbar} ${styles.toolRow}`} role="toolbar" aria-label={t.toolbarLabel} data-editor-toolbar data-finish="tile">
         <MarkerButton marker={marks.marker} armed={touch.armed} onTap={touch.arm} onDisarm={touch.disarm} mark={mark} buttonClass={toolbarStyles.button} />
         <UndoRedoButtons
           onUndo={undo} onRedo={redo} canUndo={marks.canUndo} canRedo={marks.canRedo}

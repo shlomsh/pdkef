@@ -379,7 +379,7 @@ Done and retired tickets are not listed. Their files stay in [backlog/tasks/](ba
 
 - Redact: finish removal: 29 done, 1 retired
 - Sign: finish fill mode: 3 done, 1 retired
-- Highlight PDF: a tool for reading: 11 done, 1 retired
+- Highlight PDF: a tool for reading: 12 done, 1 retired
 - Scan: camera to WhatsApp: 14 done, 0 retired
 - Page enhancement for Scan and Highlight: 7 done, 1 retired
 - Tool pages: show the verb: 9 done, 0 retired
