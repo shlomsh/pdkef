@@ -53,6 +53,17 @@ export function sinceFor(firstDay: string | null, today: string): Since {
 }
 
 /**
+ * Pure (MEM-45): whether a stored first-view day can be trusted: YYYY-MM-DD, a real date, not after
+ * today. Anything else is treated as absent and reseeded.
+ * @testSeam
+ */
+export function usableDay(day: string | null, today: string): boolean {
+  if (!day || !/^\d{4}-\d{2}-\d{2}$/.test(day)) return false;
+  const ms = Date.parse(day);
+  return Number.isFinite(ms) && ms <= Date.parse(today);
+}
+
+/**
  * Pure (DEBT-61): the local day of the newest file in the recent-files index, or null. The visit day
  * only exists since 21 Oct 2026, so a browser that used PDkef before has none; its recent files (kept
  * 28 days) still say it was here and when.
@@ -84,16 +95,17 @@ export function readAndStampVisits(now: Date = new Date()): { visit: Visit; sinc
     const today = localDay(now);
     const last = localStorage.getItem(LAST_VISIT_KEY) ?? lastDayFromRecents(localStorage.getItem(RECENT_FILES_META_KEY));
     const visit = visitFor(last, today);
-    let first = localStorage.getItem(FIRST_VISIT_KEY);
+    const stored = localStorage.getItem(FIRST_VISIT_KEY);
     let since: Since;
-    if (first) since = sinceFor(first, today);
-    else if (visit === 'new') {
-      localStorage.setItem(FIRST_VISIT_KEY, today);
-      since = 'first';
-    } else {
-      first = last as string; // a returning visit means `last` is a valid past-or-today day
-      localStorage.setItem(FIRST_VISIT_KEY, first);
-      since = sinceFor(first, today);
+    if (usableDay(stored, today)) since = sinceFor(stored, today);
+    else {
+      const first = visit === 'new' ? today : (last as string); // a returning visit means `last` is a valid past-or-today day
+      since = visit === 'new' ? 'first' : sinceFor(first, today);
+      try {
+        localStorage.setItem(FIRST_VISIT_KEY, first);
+      } catch {
+        // expected: storage full; the bucket still travels, the day is retried next view
+      }
     }
     localStorage.setItem(LAST_VISIT_KEY, today);
     return { visit, since };

@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { lastDayFromRecents, localDay, readAndStampVisits, sinceFor, visitFor } from './visitRecency.ts';
+import { lastDayFromRecents, localDay, readAndStampVisits, sinceFor, usableDay, visitFor } from './visitRecency.ts';
 import { RECENT_FILES_META_KEY } from '../drafts/recentFilesKey.js';
 
 describe('lastDayFromRecents (DEBT-61)', () => {
@@ -120,5 +120,62 @@ describe('readAndStampVisits (since)', () => {
   it('is undefined without storage', () => {
     vi.stubGlobal('localStorage', fakeStorage(true));
     expect(readAndStampVisits(now)).toBeUndefined();
+  });
+  it('an unreadable first day is reseeded from the last visit', () => {
+    localStorage.setItem('pdkef:first-visit', 'abc');
+    localStorage.setItem('pdkef:last-tool-visit', '2026-11-02');
+    expect(readAndStampVisits(now)).toEqual({ visit: 'month', since: 'month' });
+    expect(localStorage.getItem('pdkef:first-visit')).toBe('2026-11-02');
+  });
+  it('an impossible first day with nothing else reads first and is rewritten as today', () => {
+    localStorage.setItem('pdkef:first-visit', '2026-13-45');
+    expect(readAndStampVisits(now)).toEqual({ visit: 'new', since: 'first' });
+    expect(localStorage.getItem('pdkef:first-visit')).toBe('2026-11-12');
+  });
+  it('a first day in the future (clock moved back) is reseeded from the last visit', () => {
+    localStorage.setItem('pdkef:first-visit', '2026-11-15');
+    localStorage.setItem('pdkef:last-tool-visit', '2026-11-11');
+    expect(readAndStampVisits(now)).toEqual({ visit: 'week', since: 'week' });
+    expect(localStorage.getItem('pdkef:first-visit')).toBe('2026-11-11');
+  });
+  it('no first day and a garbage last day reads new and first', () => {
+    localStorage.setItem('pdkef:last-tool-visit', 'garbage');
+    expect(readAndStampVisits(now)).toEqual({ visit: 'new', since: 'first' });
+    expect(localStorage.getItem('pdkef:first-visit')).toBe('2026-11-12');
+  });
+  it('no first or last day, recents from 5 days ago: seeded from that day', () => {
+    localStorage.setItem(RECENT_FILES_META_KEY, JSON.stringify([{ id: 'a', savedAt: new Date(2026, 10, 7, 9).getTime() }]));
+    expect(readAndStampVisits(now)).toEqual({ visit: 'week', since: 'week' });
+    expect(localStorage.getItem('pdkef:first-visit')).toBe('2026-11-07');
+  });
+  describe('when the first day cannot be written (storage full)', () => {
+    beforeEach(() => {
+      const base = fakeStorage();
+      vi.stubGlobal('localStorage', {
+        ...base,
+        setItem: (k: string, v: string) => {
+          if (k === 'pdkef:first-visit') throw new Error('quota');
+          base.setItem(k, v);
+        },
+      });
+    });
+    it('a returning browser keeps visit and the last-visit stamp', () => {
+      localStorage.setItem('pdkef:last-tool-visit', '2026-11-02');
+      expect(readAndStampVisits(now)).toEqual({ visit: 'month', since: 'month' });
+      expect(localStorage.getItem('pdkef:last-tool-visit')).toBe('2026-11-12');
+    });
+    it('a brand-new browser still reads new and first, and stamps the last visit', () => {
+      expect(readAndStampVisits(now)).toEqual({ visit: 'new', since: 'first' });
+      expect(localStorage.getItem('pdkef:last-tool-visit')).toBe('2026-11-12');
+    });
+  });
+});
+
+describe('usableDay (MEM-45)', () => {
+  it.each([
+    [null, false], ['abc', false], ['2026-13-45', false], ['2026-11-13', false],
+    ['2026-11-12', true], ['2026-10-01', true],
+  ])('%s is %s', (day, ok) => {
+    expect(usableDay(day, '2026-11-12')).toBe(ok);
   });
 });
