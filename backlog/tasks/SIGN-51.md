@@ -1,10 +1,9 @@
 ---
 id: "SIGN-51"
 title: "Sign's and Redact's desktop Download draws its real 1.5px frame in Chromium"
-status: "in_progress"
+status: "done"
 priority: "P3"
 epic: "polish"
-horizon: "now"
 depends_on: ["RED-73"]
 ---
 
