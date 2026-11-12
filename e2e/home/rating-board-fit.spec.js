@@ -17,14 +17,13 @@ const notes = Array.from({ length: 9 }, (_, i) => [0, {
 async function withNineNotes(page) {
   await page.route('**/', async (route) => {
     const res = await route.fetch();
-    const html = (await res.text()).replace(
-      /(<astro-island[^>]*PinnedNotes[^>]*props=")([^"]*)(")/,
-      (_, a, props, z) => {
-        const parsed = JSON.parse(props.replaceAll('&quot;', '"'));
-        parsed.notes = [1, notes];
-        return a + JSON.stringify(parsed).replaceAll('"', '&quot;') + z;
-      },
-    );
+    // The island is found by its props, not its file: a build may bundle it into a shared chunk.
+    const html = (await res.text()).replace(/(<astro-island[^>]*?props=")([^"]*)(")/g, (whole, a, props, z) => {
+      const parsed = JSON.parse(props.replaceAll('&quot;', '"'));
+      if (!('notes' in parsed && 'byLine' in parsed)) return whole;
+      parsed.notes = [1, notes];
+      return a + JSON.stringify(parsed).replaceAll('"', '&quot;') + z;
+    });
     await route.fulfill({ response: res, body: html });
   });
 }
