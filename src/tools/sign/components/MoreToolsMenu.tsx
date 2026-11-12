@@ -1,4 +1,4 @@
-import { useState } from 'preact/hooks';
+import { useId, useState } from 'preact/hooks';
 import type { ComponentChildren, JSX, Ref } from 'preact';
 import { forwardRef } from 'preact/compat';
 import { Bug, Ellipsis } from 'lucide-preact';
@@ -80,6 +80,9 @@ function MoreToolsMenu({ t, selectedTool, toolLocked, onPick, onLock, feedbackHr
   const [open, setOpen] = useState(false);
   const [lastPicked, setLastPicked] = useState<MoreTool | null>(null);
   const isDoubleTap = useDoubleTap();
+  // A described item is named by its label alone and described by its line, so "Highlight"
+  // finds it by name and a screen reader still hears what it does.
+  const descId = useId();
 
   const armed = isMoreTool(selectedTool) ? selectedTool : null;
   const label = moreLabelFor(armed, t);
@@ -103,11 +106,11 @@ function MoreToolsMenu({ t, selectedTool, toolLocked, onPick, onLock, feedbackHr
     </button>
   );
   const describedItem = (tool: MoreTool, text: string, description: string) => (
-    <button type="button" role="menuitem" className={controlStyles['menu-item']} data-active={armed === tool ? '' : undefined} onClick={pick(tool)}>
+    <button type="button" role="menuitem" aria-label={text} aria-describedby={`${descId}-${tool}`} className={controlStyles['menu-item']} data-active={armed === tool ? '' : undefined} onClick={pick(tool)}>
       {iconFor(tool, 16)}
       <span className={controlStyles['menu-item-text']}>
         <span>{text}</span>
-        <span className={controlStyles['menu-item-desc']}>{description}</span>
+        <span className={controlStyles['menu-item-desc']} id={`${descId}-${tool}`}>{description}</span>
       </span>
     </button>
   );
@@ -173,6 +176,8 @@ function MoreToolsMenu({ t, selectedTool, toolLocked, onPick, onLock, feedbackHr
             <div role="separator" className={controlStyles['menu-separator']} />
             <a
               role="menuitem"
+              aria-label={t.feedbackButton}
+              aria-describedby={`${descId}-feedback`}
               className={controlStyles['menu-item']}
               href={feedbackHref}
               target="_blank"
@@ -183,7 +188,7 @@ function MoreToolsMenu({ t, selectedTool, toolLocked, onPick, onLock, feedbackHr
               <Bug size={16} aria-hidden="true" />
               <span className={controlStyles['menu-item-text']}>
                 <span>{t.feedbackButton}</span>
-                <span className={controlStyles['menu-item-desc']}>{t.feedbackDescription}</span>
+                <span className={controlStyles['menu-item-desc']} id={`${descId}-feedback`}>{t.feedbackDescription}</span>
               </span>
             </a>
           </div>

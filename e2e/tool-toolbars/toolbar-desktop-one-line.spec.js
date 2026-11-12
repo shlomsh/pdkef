@@ -131,7 +131,9 @@ test('Text leads and Sign follows the filling tools, labels show at the desktop 
 
   const leadingLabels = await page.evaluate(() => {
     const toolbar = document.querySelector('[role="toolbar"]');
-    return [...toolbar.children].slice(0, 6).map((el) => el.querySelector('.label, span')?.textContent?.trim());
+    // The word a person sees: More stacks its swap words in one cell and hides all but one.
+    const shown = (label) => [...label.querySelectorAll('[aria-hidden="true"]')].reduce((text, hidden) => text.replace(hidden.textContent, ''), label.textContent).trim();
+    return [...toolbar.children].slice(0, 6).map((el) => { const label = el.querySelector('.label, span'); return label ? shown(label) : undefined; });
   });
   expect(leadingLabels, 'the filling tools lead and Sign follows them').toEqual(['Text', 'Date', 'Mark', 'Whiteout', 'Sign', 'More']);
 
