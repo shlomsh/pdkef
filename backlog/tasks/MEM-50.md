@@ -23,6 +23,7 @@ time with the owner's approval:
 | 44,200 to 45,100 and 45,200 | 45,146 | MEM-45 page measures (request counts, LCP, open and export time) |
 | 45,200 to 45,600 | 45,504 | MEM-45 first-view cohort and the second destination's sender |
 | 45,600 to 46,200 | 46,114 | MEM-45 device, browser, operating system and referrer buckets |
+| 46,200 to 46,300 (2026-11-13) | 46,269 | MEM-45 page view's mount time, result helpers for hand-offs and Drive saves |
 
 A budget that every change in one area breaks is not telling us about that change. It is telling us the page
 carries that area's code.
