@@ -63,5 +63,8 @@ showed no stars on the brand search. Watch for stars appearing and then dropping
 - Shlomi said yes on 2026-11-14 to the rating on Merge. It had already landed on 2026-11-12 (45c4f5b07) and is live.
 - Production: `/merge/` and `/he/merge/` carry `aggregateRating` on PDkef (4.98 from 41) with the matching visible
   numbers; `/compress/` carries none.
-- Left, Shlomi's: the Rich Results Test on both pages and the indexing requests. Then the Search Console read around
-  2026-12-10, four weeks after it went live, against the four weeks before 2026-11-12.
+- 2026-11-14: Google's Rich Results Test passes on both pages (Organization, Review snippets and Software Apps, all
+  valid), and indexing was requested for both in Search Console (both were already indexed).
+- Left: the Search Console read around 2026-12-10, four weeks after it went live, against the four weeks before
+  2026-11-12. A one-time reminder fires that day (`pdkef-seo61-merge-stars-read-2026-12-10`).
+- Changing a vote stays out (Shlomi, 2026-11-14): skipped for now, revisit if low votes start coming in.
