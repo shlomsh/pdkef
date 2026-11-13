@@ -1,10 +1,9 @@
 ---
 id: "SEO-57"
 title: "Pinned notes: people's own words on the home page and on Redact"
-status: "in_progress"
+status: "done"
 priority: "P2"
 epic: "search-and-languages"
-horizon: "now"
 depends_on: ["SEO-56"]
 ---
 
@@ -28,3 +27,7 @@ paper notes pinned to a board, each with the tool and the person's region. Redac
 ## Done when
 
 - `x-vercel-cache: HIT` on `/api/notes` in production, and a first approved note shows on the home page within the hour.
+
+## Outcome
+
+Approved notes show on the home page and on Redact as handwritten notes pinned to a board, each with its tool and region and no name. MEM-36 replaced the hour-cached `/api/notes` endpoint with a read at build time, so a new approval appears after the next deploy, not within the hour. Confirmed in production on 2026-11-14: the first approved note, from Jharkhand, shows on both pages.

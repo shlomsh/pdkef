@@ -1,10 +1,9 @@
 ---
 id: "SEO-55"
 title: "Ask for a star rating in a warm dialog after the download, in Redact, Sign, Highlight and Merge"
-status: "in_progress"
+status: "done"
 priority: "P2"
 epic: "search-and-languages"
-horizon: "next"
 ---
 
 # SEO-55 · Rating dialog for the four busiest tools
@@ -33,3 +32,7 @@ Print is not an action the telemetry trail records, so the ask follows download 
 
 2026-11-06: a Download tapped before the output finished building was delivered without counting as a download, so
 the ask never opened on that path (seen on Scan in a real browser; `useDownloadFlow` now counts both paths).
+
+## Outcome
+
+The rating dialog opens after the first download or share in Redact, Sign, Highlight, Merge and Scan. Five stars send at once; one to four stars need a reason of at least 20 characters; leaving sends nothing. By 2026-11-14 votes had come in for Redact, Merge and Sign. Checked on a production build at phone and desktop width on 2026-11-13 (SEO-62); the app has no dark theme, so there is no dark look to check. Since SEO-62 a device that has rated anywhere is never asked again, which replaces the 14-day marker.

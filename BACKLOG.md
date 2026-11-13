@@ -2,7 +2,7 @@
 
 # Backlog
 
-The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 191 live: 80 up next, 24 then, 27 waiting, 60 parked.
+The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 187 live: 76 up next, 24 then, 27 waiting, 60 parked.
 
 ## Redact: finish removal
 
@@ -301,11 +301,7 @@ Mostly waiting on dated Search Console reads. Two small things can ship now.
 | SEO-03 | P1 | [SEO-03](backlog/tasks/SEO-03.md) · External signals: the work that moves the constraint and does not live in this repo |  |
 | LOC-18 | P2 | [LOC-18](backlog/tasks/LOC-18.md) · Hebrew edition sign-off: Israeli portal-limit guides and Shlomi's own /he/ read-through | In progress |
 | SEO-46 | P2 | [SEO-46](backlog/tasks/SEO-46.md) · Real star ratings: ask once when a tool finishes, bake an honest aggregate into each tool page, and win the SERP stars | In progress |
-| SEO-48 | P2 | [SEO-48](backlog/tasks/SEO-48.md) · Ratings carry country and region, and a person may add a comment | In progress |
 | SEO-54 | P2 | [SEO-54](backlog/tasks/SEO-54.md) · Academic paper reader: a visual guide to reading papers in Highlight PDF, and the /highlight-pdf/ audit fixes | In progress |
-| SEO-55 | P2 | [SEO-55](backlog/tasks/SEO-55.md) · Ask for a star rating in a warm dialog after the download, in Redact, Sign, Highlight and Merge | In progress |
-| SEO-56 | P2 | [SEO-56](backlog/tasks/SEO-56.md) · The rating dialog points bugs and ideas to GitHub, and five stars may leave words a person agrees to show | In progress |
-| SEO-57 | P2 | [SEO-57](backlog/tasks/SEO-57.md) · Pinned notes: people's own words on the home page and on Redact | In progress |
 | SEO-59 | P2 | [SEO-59](backlog/tasks/SEO-59.md) · The blur video sits on Redact, below the tool | In progress |
 | SEO-60 | P2 | [SEO-60](backlog/tasks/SEO-60.md) · Tool-page section headings say something, and guide cards sit on the page grid | In progress |
 | SEO-61 | P2 | [SEO-61](backlog/tasks/SEO-61.md) · Put the app rating on Merge, English and Hebrew, and read whether stars lift clicks | In progress. Needs Shlomi: Your yes to reverse the 2026-11-06 rule that the rating sits on / and /redact/ only |
@@ -389,7 +385,7 @@ Done and retired tickets are not listed. Their files stay in [backlog/tasks/](ba
 - Form detector accuracy: 20 done, 1 retired
 - Robustness and debt: 100 done, 4 retired
 - Unify the tools, narrow the graph: 100 done, 0 retired
-- Search and languages: 14 done, 0 retired
+- Search and languages: 18 done, 0 retired
 - Polish: 34 done, 2 retired
 - Sign tool architecture: 37 done, 1 retired
 - Editor architecture: 14 done, 0 retired

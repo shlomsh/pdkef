@@ -1,10 +1,9 @@
 ---
 id: "SEO-48"
 title: "Ratings carry country and region, and a person may add a comment"
-status: "in_progress"
+status: "done"
 priority: "P2"
 epic: "search-and-languages"
-horizon: "later"
 ---
 
 # SEO-48 · Ratings carry country and region, and a person may add a comment
@@ -36,3 +35,7 @@ all Redact, all on 2026-10-23, and nothing to say where they came from or what t
 
 - A vote from production lands in `rating:entries` with its country and region, and a comment lands beside it.
 - The disclosure in `docs/maintenance-telemetry.md` says what is kept, in plain words.
+
+## Outcome
+
+Ratings now keep the country and region Vercel reports, and an optional comment lands in `rating:entries` beside them. Checked in production on 2026-11-14: 38 of 41 votes carry a place (the 3 older ones were left without, as decided), and comments carry theirs. docs/maintenance-telemetry.md says what is kept.
