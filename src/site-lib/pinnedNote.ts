@@ -59,7 +59,18 @@ function parseUndated(value: Record<string, unknown>): PinnedNote | null {
   return Object.freeze({ tool: tool as RatingTool, stars: stars as Stars, comment, place, ...(hasCountry ? { country: country as string } : {}) });
 }
 
-/** The notes for that tool, or all when no tool; they arrive newest first. */
-export function notesToShow(notes: readonly PinnedNote[], tool?: RatingTool): readonly PinnedNote[] {
-  return (tool ? notes.filter((n) => n.tool === tool) : notes).slice(0, NOTES_PER_TOOL);
+/**
+ * Whether a tool page's board shows only that tool's notes. Off for now (Shlomi): a tool with a single note
+ * (Merge) looked bare, so every board shows the notes of any tool until each tool has enough to be proud of.
+ * Turn it back on then; the filter below is kept and tested.
+ */
+const FILTER_NOTES_BY_TOOL = false;
+
+/** The notes for that tool when filtering is on, otherwise all; they arrive newest first. */
+export function notesToShow(
+  notes: readonly PinnedNote[],
+  tool?: RatingTool,
+  filterByTool: boolean = FILTER_NOTES_BY_TOOL,
+): readonly PinnedNote[] {
+  return (tool && filterByTool ? notes.filter((n) => n.tool === tool) : notes).slice(0, NOTES_PER_TOOL);
 }

@@ -120,11 +120,15 @@ describe('PinnedNotes', () => {
 
 describe('notesToShow', () => {
   const all = [note('sign', 'a'), note('redact', 'b'), note('sign', 'c'), note('redact', 'd'), note('redact', 'e'), note('redact', 'f'), note('redact', 'g')];
-  it('filters by tool and keeps order', () => {
-    expect(notesToShow(all, 'sign' as never).map((n) => n.comment)).toEqual(['a', 'c']);
+  it('shows every tool\'s notes on a tool page while the filter is off', () => {
+    expect(notesToShow(all, 'sign' as never).map((n) => n.comment)).toEqual(['a', 'b', 'c', 'd', 'e', 'f', 'g']);
+  });
+  it('filters by tool and keeps order when the filter is on', () => {
+    expect(notesToShow(all, 'sign' as never, true).map((n) => n.comment)).toEqual(['a', 'c']);
   });
   it('caps at 9, a three by three board', () => {
     const many = [...all, ...all];
+    expect(notesToShow(many, 'redact' as never, true)).toHaveLength(9);
     expect(notesToShow(many, 'redact' as never)).toHaveLength(9);
     expect(notesToShow(many)).toHaveLength(9);
   });
