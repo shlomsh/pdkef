@@ -16,7 +16,9 @@
   margin: 0;
   padding: 0.5rem 0 0;
 }
-/* A board of nine: three across on a wide screen, two on a narrow one. */
+/* A board of nine: three across on a wide screen. On a narrow one it is two across by four down, so the ninth
+   paper, which would sit alone in a fifth row, stays off (it is still in the page's HTML). */
+@media (min-width: 20rem) and (max-width: 47.99rem) { .list > .note:nth-child(n + 9) { display: none; } }
 @media (min-width: 20rem) { .list { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (min-width: 48rem) {
   .list { grid-template-columns: repeat(3, minmax(0, 1fr)); grid-auto-rows: var(--note-h); gap: 1.25rem 1.5rem; }
