@@ -3,6 +3,7 @@ import { Search, Eye } from 'lucide-preact';
 import FullscreenButton from '#editor-ui/FullscreenButton.tsx';
 import EditorToolStatus, { type ToolCopy } from '#editor-ui/EditorToolStatus.tsx';
 import ArmHint from '#editor-ui/ArmHint.tsx';
+import useBrushRowFade from '../hooks/useBrushRowFade.ts';
 import useCoarsePointer from '#editor-ui/hooks/useCoarsePointer.ts';
 import EditorExportActions from '#editor-ui/EditorExportActions.tsx';
 import ToolShell, { FILE_ACTIONS, useToolShell } from '#shell/ToolShell.tsx';
@@ -113,7 +114,7 @@ interface RedactToolbarProps {
   slots?: {
     /** RED-32: the Box / Brush row for Blur or Whiteout: the tool's submenu with
      * a mouse, hung under the card on touch while armed (RED-70). */
-    brushControls?: (tool: 'blur' | 'whiteout', hung: boolean) => ComponentChildren;
+    brushControls?: (tool: 'blur' | 'whiteout', hung: boolean, faded?: boolean) => ComponentChildren;
     /** RED-66: the done strip, hung under this sticky card so it stays where the person clicked. */
     doneStrip?: ComponentChildren;
   };
@@ -201,9 +202,9 @@ export default function RedactToolbar({
   // RED-70: touch has no hover, so there the row stays while the tool is armed,
   // and the done strip, which hangs in the same place, steps aside for it.
   const coarsePointer = useCoarsePointer();
-  const hungBrushRow = coarsePointer && (activeStyle === 'blur' || activeStyle === 'whiteout')
-    ? brushControls?.(activeStyle, true)
-    : null;
+  const rowShown = coarsePointer && (activeStyle === 'blur' || activeStyle === 'whiteout');
+  const rowFaded = useBrushRowFade(rowShown, activeStyle);
+  const hungBrushRow = rowShown ? brushControls?.(activeStyle as 'blur' | 'whiteout', true, rowFaded) : null;
   const withBrushMenu = (tool: 'blur' | 'whiteout', button: VNode) => (
     coarsePointer || !brushControls
       ? button

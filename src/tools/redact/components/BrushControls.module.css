@@ -27,6 +27,20 @@
   max-width: 100%;
 }
 
+/* Drawing has started: the row steps out of the way and takes no touches. */
+.hung {
+  transition: opacity 0.25s ease;
+}
+
+.faded {
+  opacity: 0;
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hung { transition: none; }
+}
+
 /* What the submenu hangs from: the button's box, taking no clicks. */
 .anchor {
   position: absolute;

@@ -53,6 +53,7 @@ export default function BrushControls({
   eyedropping,
   onToggleEyedropper,
   hung = false,
+  faded = false,
 }: {
   tool: 'blur' | 'whiteout';
   settings: BrushSettings;
@@ -62,6 +63,7 @@ export default function BrushControls({
   eyedropping: boolean;
   onToggleEyedropper: () => void;
   hung?: boolean;
+  faded?: boolean;
 }) {
   const brush = settings.mode === 'brush';
   const modeButton = (mode: BrushMode, label: string) => (
@@ -77,7 +79,7 @@ export default function BrushControls({
   );
 
   return (
-    <div className={`${styles.row}${hung ? ` ${styles.hung}` : ''}`} role="group" aria-label={tool === 'blur' ? t.shapeBlur : t.shapeWhiteout} data-brush-controls>
+    <div className={`${styles.row}${hung ? ` ${styles.hung}` : ''}${faded ? ` ${styles.faded}` : ''}`} role="group" aria-label={tool === 'blur' ? t.shapeBlur : t.shapeWhiteout} data-brush-controls>
       <div className={styles.segmented} role="radiogroup" aria-label={t.shapeGroup}>
         {modeButton('box', t.modeBox)}
         {modeButton('brush', t.modeBrush)}

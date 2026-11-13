@@ -85,7 +85,7 @@ export default function RedactWorkspaceToolbar({ state, dispatch, setAnnouncemen
         ),
       }}
       slots={{
-        brushControls: (tool, hung) => (
+        brushControls: (tool, hung, faded) => (
           <BrushControls
             tool={tool}
             settings={brush}
@@ -100,6 +100,7 @@ export default function RedactWorkspaceToolbar({ state, dispatch, setAnnouncemen
             eyedropping={eyedropping === 'brush'}
             onToggleEyedropper={() => dispatch({ type: 'EYEDROPPER_TOGGLED', target: 'brush' })}
             hung={hung}
+            faded={faded}
           />
         ),
         doneStrip: showStrip && (
