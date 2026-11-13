@@ -304,7 +304,7 @@ Mostly waiting on dated Search Console reads. Two small things can ship now.
 | SEO-54 | P2 | [SEO-54](backlog/tasks/SEO-54.md) · Academic paper reader: a visual guide to reading papers in Highlight PDF, and the /highlight-pdf/ audit fixes | In progress |
 | SEO-59 | P2 | [SEO-59](backlog/tasks/SEO-59.md) · The blur video sits on Redact, below the tool | In progress |
 | SEO-60 | P2 | [SEO-60](backlog/tasks/SEO-60.md) · Tool-page section headings say something, and guide cards sit on the page grid | In progress |
-| SEO-61 | P2 | [SEO-61](backlog/tasks/SEO-61.md) · Put the app rating on Merge, English and Hebrew, and read whether stars lift clicks | In progress. Needs Shlomi: Your yes to reverse the 2026-11-06 rule that the rating sits on / and /redact/ only |
+| SEO-61 | P2 | [SEO-61](backlog/tasks/SEO-61.md) · Put the app rating on Merge, English and Hebrew, and read whether stars lift clicks | In progress |
 | SCAN-01 | P3 | [SCAN-01](backlog/tasks/SCAN-01.md) · Scan to PDF: its own tool at /scan-to-pdf/, sharing Image to PDF's engine, plus a how-to-scan-to-PDF guide | In progress |
 
 ### Waiting

@@ -148,7 +148,6 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 - [SEO-42](backlog/tasks/SEO-42.md) · The /compress/ query export (28 days before and after 2026-10-08) and /compress-image/ filtered to queries containing pdf
 - [SEO-44](backlog/tasks/SEO-44.md) · The 2026-11-07 Search Console export: the /split/ and /he/split/ rows
 - [SEO-51](backlog/tasks/SEO-51.md) · Search Console, Performance, page /redact/, query containing "redact", last 3 months: impressions, clicks and position per query, plus the same for "blur"
-- [SEO-61](backlog/tasks/SEO-61.md) · Your yes to reverse the 2026-11-06 rule that the rating sits on / and /redact/ only
 - [COMP-03](backlog/tasks/COMP-03.md) · A check on your iPhone
 - [MERGE-28](backlog/tasks/MERGE-28.md) · Evidence that people want it, and your sign-off on a wider Google exception
 - [READ-07](backlog/tasks/READ-07.md) · An iPhone check

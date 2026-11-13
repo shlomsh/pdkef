@@ -6,7 +6,6 @@ priority: "P2"
 epic: "search-and-languages"
 horizon: "now"
 depends_on: ["SEO-58"]
-needs: "Your yes to reverse the 2026-11-06 rule that the rating sits on / and /redact/ only"
 ---
 
 # SEO-61 · The app rating on Merge
@@ -58,3 +57,11 @@ showed no stars on the brand search. Watch for stars appearing and then dropping
 - Merge has one pinned note so far (its own); the board shows it beside the stars. The place in the Hebrew by-line
   is still English, as SEO-58 noted.
 - Left to do: deploy, the Rich Results Test on both pages, indexing requests (Shlomi), the Search Console read.
+
+## Live (checked 2026-11-14)
+
+- Shlomi said yes on 2026-11-14 to the rating on Merge. It had already landed on 2026-11-12 (45c4f5b07) and is live.
+- Production: `/merge/` and `/he/merge/` carry `aggregateRating` on PDkef (4.98 from 41) with the matching visible
+  numbers; `/compress/` carries none.
+- Left, Shlomi's: the Rich Results Test on both pages and the indexing requests. Then the Search Console read around
+  2026-12-10, four weeks after it went live, against the four weeks before 2026-11-12.
