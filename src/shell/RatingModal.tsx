@@ -12,7 +12,7 @@ import styles from './RatingModal.module.css';
 export type RatingModalMessages = Pick<
   ShellMessages,
   | 'ratingModalTitle' | 'ratingModalIntro' | 'ratingNotNow' | 'ratingExplainTitle' | 'ratingExplainBody' | 'ratingExplainLabel' | 'ratingExplainHint'
-  | 'ratingBack' | 'ratingSendFailed' | 'ratingThanksTitle' | 'ratingThanksHigh' | 'ratingThanksLowModal' | 'ratingDone'
+  | 'ratingBack' | 'ratingSendFailed' | 'ratingThanksTitle' | 'ratingThanksHighModal' | 'ratingShareLead' | 'ratingThanksLowModal' | 'ratingDone'
   | 'ratingShare' | 'ratingShareCopied' | 'ratingStarGithub' | 'ratingCommentSend' | 'ratingStarOne' | 'ratingStarOther'
   | 'ratingHelpPrompt' | 'ratingReportBug' | 'ratingSuggestIdea'
 > & RatingWordsMessages;
@@ -71,7 +71,7 @@ export default function RatingModal({
     setStars(n);
     if (n === 5) {
       reportRating(tool, n);
-      markRated(storage, tool);
+      markRated(storage, tool, n);
       setStep('thanks');
     } else {
       setStep('explain');
@@ -88,7 +88,7 @@ export default function RatingModal({
       return;
     }
     reportRating(tool, stars);
-    markRated(storage, tool);
+    markRated(storage, tool, stars);
     setFailed(false);
     setStep('thanks');
   };
@@ -141,22 +141,29 @@ export default function RatingModal({
           </form>
         )}
         {step === 'explain' && <ReasonHelp githubUrl={githubUrl} messages={messages} />}
-        {step === 'thanks' && (
+        {step === 'thanks' && stars !== 5 && <p class={styles.text} role="status">{messages.ratingThanksLowModal}</p>}
+        {step === 'thanks' && stars === 5 && (
           <>
-            <p class={styles.text} role="status">{stars === 5 ? messages.ratingThanksHigh : messages.ratingThanksLowModal}</p>
-            {stars === 5 && (
-              <div class={styles.actions}>
-                {shareState === 'link' ? (
-                  <a class={styles.link} href={shareLink}>{messages.ratingShare}</a>
-                ) : (
-                  <button type="button" class={styles.link} onClick={onShare}>
-                    {shareState === 'copied' ? messages.ratingShareCopied : messages.ratingShare}
-                  </button>
-                )}
-                <a class={styles.link} href={githubUrl} target="_blank" rel="noopener noreferrer">{messages.ratingStarGithub}</a>
-              </div>
-            )}
-            {stars === 5 && <RatingWords tool={tool} stars={stars} messages={messages} />}
+            <div class={styles.given} role="img" aria-label={starLabel(5)}>
+              {STARS.map((n) => (
+                <svg key={n} width="30" height="30" viewBox="0 0 24 24" stroke-width="1.8" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M12 3.2l2.7 5.6 6.1.8-4.5 4.2 1.1 6-5.4-3-5.4 3 1.1-6L3.2 9.6l6.1-.8z" />
+                </svg>
+              ))}
+            </div>
+            <p class={styles.text} role="status">{messages.ratingThanksHighModal}</p>
+            <RatingWords tool={tool} stars={stars} messages={messages} />
+            <div class={styles.quiet}>
+              {messages.ratingShareLead}
+              {shareState === 'link' ? (
+                <a class={styles.link} href={shareLink}>{messages.ratingShare}</a>
+              ) : (
+                <button type="button" class={styles.link} onClick={onShare}>
+                  {shareState === 'copied' ? messages.ratingShareCopied : messages.ratingShare}
+                </button>
+              )}
+              <a class={styles.link} href={githubUrl} target="_blank" rel="noopener noreferrer">{messages.ratingStarGithub}</a>
+            </div>
           </>
         )}
       </div>

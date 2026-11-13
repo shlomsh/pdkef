@@ -43,6 +43,50 @@ describe('RatingPrompt', () => {
     expect(Number(localStorage.getItem('pdkef:rating-asked-at'))).toBeGreaterThan(0);
   });
 
+  describe('already rated on this device', () => {
+    const askedAt = () => localStorage.getItem('pdkef:rating-asked-at');
+    const voted = () => container.querySelector('p[role="note"]') as HTMLElement | null;
+    const filled = () => [...voted()!.querySelectorAll('svg[data-filled]')];
+
+    it('stars 5: a quiet line with five stars, five filled, and no ask', () => {
+      localStorage.setItem('pdkef:my-stars', '5');
+      showAfterDelay();
+      expect(voted()).not.toBeNull();
+      expect(voted()!.textContent).toBe('You gave PDkef . Thank you.');
+      expect(voted()!.querySelector('[role="img"]')!.getAttribute('aria-label')).toBe('5 stars');
+      expect(voted()!.querySelectorAll('svg')).toHaveLength(5);
+      expect(filled()).toHaveLength(5);
+      expect(stars()).toHaveLength(0);
+      expect(container.querySelector('dialog, [role="group"]')).toBeNull();
+      expect(askedAt()).toBeNull();
+    });
+
+    it('stars 3: the lower tail, three filled', () => {
+      localStorage.setItem('pdkef:my-stars', '3');
+      showAfterDelay();
+      expect(voted()!.textContent).toBe('You gave PDkef . Thank you for telling me.');
+      expect(voted()!.querySelector('[role="img"]')!.getAttribute('aria-label')).toBe('3 stars');
+      expect(filled()).toHaveLength(3);
+    });
+
+    it('a legacy marker only: the plain thanks', () => {
+      localStorage.setItem('pdkef:rated:split', '1');
+      showAfterDelay();
+      expect(voted()!.textContent).toBe('Thank you for rating PDkef.');
+      expect(voted()!.querySelector('svg')).toBeNull();
+      expect(askedAt()).toBeNull();
+    });
+
+    it('a modal tool gets the same line and no dialog', () => {
+      localStorage.setItem('pdkef:my-stars', '5');
+      act(() => render(<RatingPrompt tool="sign" downloaded={true} />, container));
+      act(() => { vi.advanceTimersByTime(1500); });
+      expect(voted()).not.toBeNull();
+      expect(container.querySelector('dialog')).toBeNull();
+      expect(askedAt()).toBeNull();
+    });
+  });
+
   describe('remount on the same page', () => {
     it('shows the ask at once, without asking again', () => {
       mount(false);
@@ -93,6 +137,7 @@ describe('RatingPrompt', () => {
     act(() => stars()[3].click());
     expect(sendBeacon).toHaveBeenCalledWith({ name: 'tool_rating', properties: { tool: 'compress', stars: 4 } });
     expect(localStorage.getItem('pdkef:rated:compress')).toBe('1');
+    expect(localStorage.getItem('pdkef:my-stars')).toBe('4');
     expect(container.textContent).toContain("Thank you, that really helps. Know someone who'd use it?");
     expect(stars()).toHaveLength(0);
     expect(buttons().map((b) => b.textContent)).toEqual(['Share', 'Send']);

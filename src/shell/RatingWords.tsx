@@ -7,7 +7,7 @@ import styles from './RatingModal.module.css';
 
 export type RatingWordsMessages = Pick<
   ShellMessages,
-  'ratingWordsLabel' | 'ratingWordsPlaceholder' | 'ratingWordsShare' | 'ratingCommentSend' | 'ratingCommentThanks' | 'ratingSendFailed'
+  'ratingWordsLabel' | 'ratingWordsHint' | 'ratingWordsSignature' | 'ratingWordsSigner' | 'ratingWordsPlaceholder' | 'ratingWordsShare' | 'ratingCommentSend' | 'ratingCommentThanks' | 'ratingSendFailed'
 >;
 
 /**
@@ -33,16 +33,18 @@ export default function RatingWords({ tool, stars, messages }: { tool: RatingToo
     <form class={styles.form} onSubmit={send}>
       <label class={styles.label}>
         {messages.ratingWordsLabel}
+        <span class={styles.sub}>{messages.ratingWordsHint}</span>
         <textarea
           class={styles.words}
           name="words"
-          rows={3}
+          rows={2}
           maxLength={500}
           value={words}
           placeholder={messages.ratingWordsPlaceholder}
           onInput={(event) => { setWords((event.currentTarget as HTMLTextAreaElement).value); setFailed(false); }}
         />
       </label>
+      <p class={styles.sign}>{messages.ratingWordsSignature} <b>{messages.ratingWordsSigner}</b></p>
       <label class={styles.consent}>
         <input type="checkbox" name="share" checked={share} onChange={(event) => setShare((event.currentTarget as HTMLInputElement).checked)} />
         <span>{messages.ratingWordsShare}</span>

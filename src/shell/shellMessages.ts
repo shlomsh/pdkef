@@ -164,6 +164,18 @@ export interface ShellMessages {
   ratingThanksLowModal: string;
   ratingDone: string;
   ratingWordsLabel: string;
+  /** SEO-62: the modal's own five-star thanks (the share line follows it as its own sentence). */
+  ratingThanksHighModal: string;
+  ratingShareLead: string;
+  /** Under the words question, and the signature after it. */
+  ratingWordsHint: string;
+  ratingWordsSignature: string;
+  ratingWordsSigner: string;
+  /** The quiet line for a device that already rated: lead, a row of stars, then a tail by how many. */
+  ratingVotedLead: string;
+  ratingVotedTailHigh: string;
+  ratingVotedTailLow: string;
+  ratingVotedUnknown: string;
   ratingWordsPlaceholder: string;
   ratingWordsShare: string;
   ratingHelpPrompt: string;
@@ -252,7 +264,16 @@ export const englishShellMessages: ShellMessages = {
   ratingThanksTitle: 'Thank you',
   ratingThanksLowModal: "Thank you for telling me. I'll use it to make PDkef better.",
   ratingDone: 'Done',
-  ratingWordsLabel: 'A few words for the next person?',
+  ratingWordsLabel: 'What would you tell a friend about it?',
+  ratingThanksHighModal: 'Thank you, that really helps.',
+  ratingShareLead: "Know someone who'd use it?",
+  ratingWordsHint: "One line is plenty. It helps the next person know what it's like.",
+  ratingWordsSignature: 'I read every one.',
+  ratingWordsSigner: 'Shlomi',
+  ratingVotedLead: 'You gave PDkef',
+  ratingVotedTailHigh: '. Thank you.',
+  ratingVotedTailLow: '. Thank you for telling me.',
+  ratingVotedUnknown: 'Thank you for rating PDkef.',
   ratingWordsPlaceholder: 'Only if you feel like it',
   ratingWordsShare: 'PDkef may show these words on the site, with my region and no name.',
   ratingHelpPrompt: 'Is it a bug, or an idea? On GitHub I can write back to you. Here I can only read it.',
@@ -346,7 +367,16 @@ export const hebrewShellMessages: ShellMessages = {
   ratingThanksTitle: 'תודה',
   ratingThanksLowModal: 'תודה ששיתפתם אותי. אשתמש בזה כדי לשפר את PDkef.',
   ratingDone: 'סיום',
-  ratingWordsLabel: 'כמה מילים למי שיגיע אחריכם?',
+  ratingWordsLabel: 'מה הייתם מספרים עליו לחבר?',
+  ratingThanksHighModal: 'תודה רבה, זה עוזר מאוד.',
+  ratingShareLead: 'מכירים מישהו שיוכל להשתמש בזה?',
+  ratingWordsHint: 'שורה אחת מספיקה. היא עוזרת למי שיגיע אחריכם לדעת איך זה.',
+  ratingWordsSignature: 'אני קורא כל אחת.',
+  ratingWordsSigner: 'שלומי',
+  ratingVotedLead: 'נתתם ל-PDkef',
+  ratingVotedTailHigh: '. תודה.',
+  ratingVotedTailLow: '. תודה ששיתפתם אותי.',
+  ratingVotedUnknown: 'תודה שדירגתם את PDkef.',
   ratingWordsPlaceholder: 'רק אם בא לכם',
   ratingWordsShare: 'PDkef יכול להציג את המילים האלה באתר, עם האזור שלי וללא שם.',
   ratingHelpPrompt: 'זה באג או רעיון? ב-GitHub אוכל לענות לכם. כאן אני יכול רק לקרוא.',

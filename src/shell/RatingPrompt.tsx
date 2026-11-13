@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
 import styles from './RatingPrompt.module.css';
 import { onAction } from '#lib/telemetry/actionTrail.ts';
-import { markAsked, markRated, reportRating, reportRatingComment, shouldAsk, type RatingStorage } from '#lib/telemetry/ratingReport.ts';
+import { hasRated, markAsked, markRated, ownStars, reportRating, reportRatingComment, shouldAsk, type RatingStorage } from '#lib/telemetry/ratingReport.ts';
 import type { RatingTool, Stars } from '#lib/telemetry/ratingSchema.ts';
 import { STARS } from '#lib/telemetry/ratingSchema.ts';
 import { englishShellMessages, type ShellMessages } from './shellMessages';
@@ -10,7 +10,7 @@ import RatingModal, { type RatingModalMessages } from './RatingModal.tsx';
 
 type RatingMessages = Pick<
   ShellMessages,
-  'ratingQuestion' | 'ratingThanksHigh' | 'ratingShare' | 'ratingShareCopied' | 'ratingStarGithub' | 'ratingThanksLow' | 'ratingTellMe' | 'ratingStarOne' | 'ratingStarOther' | 'ratingCommentLabel' | 'ratingCommentSend' | 'ratingCommentThanks'
+  'ratingQuestion' | 'ratingThanksHigh' | 'ratingShare' | 'ratingShareCopied' | 'ratingStarGithub' | 'ratingThanksLow' | 'ratingTellMe' | 'ratingStarOne' | 'ratingStarOther' | 'ratingCommentLabel' | 'ratingCommentSend' | 'ratingCommentThanks' | 'ratingVotedLead' | 'ratingVotedTailHigh' | 'ratingVotedTailLow' | 'ratingVotedUnknown'
 > &
   RatingModalMessages;
 
@@ -47,7 +47,7 @@ function pageUrl(): string {
   return canonical || location.origin + location.pathname;
 }
 
-type Phase = 'hidden' | 'asking' | 'high' | 'low' | 'closed';
+type Phase = 'hidden' | 'asking' | 'high' | 'low' | 'voted' | 'closed';
 type ShareState = 'idle' | 'copied' | 'link';
 
 // The live phase per tool for this page load. A host may move one <RatingPrompt> between tree positions
@@ -60,6 +60,27 @@ export function resetRatingPromptForTests(): void {
   livePhase.clear();
   liveStars.clear();
   liveCommented.clear();
+}
+
+const STAR_PATH = 'M12 3.2l2.7 5.6 6.1.8-4.5 4.2 1.1 6-5.4-3-5.4 3 1.1-6L3.2 9.6l6.1-.8z';
+
+/** One quiet line for a device that already rated: its own stars, thanked. Never asks again. */
+function VotedLine({ messages, stars }: { messages: RatingMessages; stars: Stars | null }) {
+  if (stars === null) return <p class={styles.voted} role="note">{messages.ratingVotedUnknown}</p>;
+  const label = stars === 1 ? messages.ratingStarOne : formatMessage(messages.ratingStarOther, { count: String(stars) });
+  return (
+    <p class={styles.voted} role="note">
+      {messages.ratingVotedLead}{' '}
+      <span class={styles.mini} role="img" aria-label={label}>
+        {STARS.map((n) => (
+          <svg key={n} data-filled={n <= stars ? 'true' : undefined} width="15" height="15" viewBox="0 0 24 24" stroke-linejoin="round" aria-hidden="true">
+            <path d={STAR_PATH} />
+          </svg>
+        ))}
+      </span>
+      {stars === 5 ? messages.ratingVotedTailHigh : messages.ratingVotedTailLow}
+    </p>
+  );
 }
 
 /**
@@ -89,6 +110,10 @@ export default function RatingPrompt({ tool, downloaded, messages = englishShell
     const timer = setTimeout(() => {
       const store = localStore();
       const now = Date.now();
+      if (hasRated(store)) {
+        setPhase('voted');
+        return;
+      }
       if (!shouldAsk(store, tool, now)) return;
       markAsked(store, now);
       setPhase('asking');
@@ -100,7 +125,7 @@ export default function RatingPrompt({ tool, downloaded, messages = englishShell
 
   const rate = (stars: Stars) => {
     reportRating(tool, stars);
-    markRated(localStore(), tool);
+    markRated(localStore(), tool, stars);
     swappedAt.current = Date.now();
     liveStars.set(tool, stars);
     setStars(stars);
@@ -123,6 +148,8 @@ export default function RatingPrompt({ tool, downloaded, messages = englishShell
       if (typeof navigator.share !== 'function') setShare('link');
     }
   };
+
+  if (phase === 'voted') return <VotedLine messages={messages} stars={ownStars(localStore())} />;
 
   if (MODAL_TOOLS.has(tool)) {
     return (
@@ -173,7 +200,7 @@ export default function RatingPrompt({ tool, downloaded, messages = englishShell
                 onClick={() => rate(n)}
               >
                 <svg width="22" height="22" viewBox="0 0 24 24" stroke-width="1.8" stroke-linejoin="round" aria-hidden="true">
-                  <path d="M12 3.2l2.7 5.6 6.1.8-4.5 4.2 1.1 6-5.4-3-5.4 3 1.1-6L3.2 9.6l6.1-.8z" />
+                  <path d={STAR_PATH} />
                 </svg>
               </button>
             ))}

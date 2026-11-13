@@ -4,7 +4,7 @@
  * Payload is `{tool, stars}` and nothing else, plus an optional short `comment` sent as its own event (see ratingSchema.ts).
  */
 import { sendBeacon } from './errorReport.ts';
-import { parseRatingCommentEvent, parseRatingEvent, type RatingTool, type Stars } from './ratingSchema.ts';
+import { parseRatingCommentEvent, parseRatingEvent, RATING_TOOLS, type RatingTool, type Stars } from './ratingSchema.ts';
 
 export type RatingStorage = Pick<Storage, 'getItem' | 'setItem'>;
 
@@ -20,12 +20,40 @@ export const ASKED_AT_KEY = 'pdkef:rating-asked-at';
 export const RATING_ASK_GAP_MS = 14 * 24 * 60 * 60 * 1000;
 
 /**
- * True only on a device that can remember the answer, has not rated this tool, and has not been
+ * The stars this device gave, app-wide (one rating, not one per tool).
+ * @testSeam
+ */
+export const MY_STARS_KEY = 'pdkef:my-stars';
+
+/** True once this device rated anything: the stars key, or a legacy per-tool marker. Blocked storage is false. */
+export function hasRated(storage: RatingStorage | null): boolean {
+  try {
+    if (storage === null) return false;
+    return storage.getItem(MY_STARS_KEY) !== null || RATING_TOOLS.some((t) => storage.getItem(ratedKey(t)) !== null);
+  } catch {
+    // expected: blocked storage has nothing to read
+    return false;
+  }
+}
+
+/** The stars this device gave, or null when unknown (legacy marker only, garbage, blocked storage). */
+export function ownStars(storage: RatingStorage | null): Stars | null {
+  try {
+    const n = Number(storage?.getItem(MY_STARS_KEY));
+    return Number.isInteger(n) && n >= 1 && n <= 5 ? (n as Stars) : null;
+  } catch {
+    // expected: blocked storage has nothing to read
+    return null;
+  }
+}
+
+/**
+ * True only on a device that can remember the answer, has never rated (any tool), and has not been
  * shown any rating prompt in the last 14 days. A garbage asked-at value counts as absent.
  */
-export function shouldAsk(storage: RatingStorage | null, tool: RatingTool, now: number): boolean {
+export function shouldAsk(storage: RatingStorage | null, _tool: RatingTool, now: number): boolean {
   try {
-    if (storage === null || storage.getItem(ratedKey(tool)) !== null) return false;
+    if (storage === null || hasRated(storage)) return false;
     const askedAt = Number(storage.getItem(ASKED_AT_KEY));
     const valid = storage.getItem(ASKED_AT_KEY) !== null && Number.isFinite(askedAt);
     return !valid || now - askedAt >= RATING_ASK_GAP_MS;
@@ -44,9 +72,10 @@ export function markAsked(storage: RatingStorage | null, now: number): void {
   }
 }
 
-export function markRated(storage: RatingStorage | null, tool: RatingTool): void {
+export function markRated(storage: RatingStorage | null, tool: RatingTool, stars: Stars): void {
   try {
     storage?.setItem(ratedKey(tool), '1');
+    storage?.setItem(MY_STARS_KEY, String(stars));
   } catch {
     // expected: blocked storage only means the question can come back on a later visit
   }

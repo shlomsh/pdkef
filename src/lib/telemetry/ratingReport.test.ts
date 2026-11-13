@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('./errorReport.ts', () => ({ sendBeacon: vi.fn(() => true) }));
 import { sendBeacon } from './errorReport.ts';
-import { markAsked, markRated, ratedKey, RATING_ASK_GAP_MS, ASKED_AT_KEY, reportRating, reportRatingComment, shouldAsk } from './ratingReport.ts';
+import { hasRated, markAsked, markRated, MY_STARS_KEY, ownStars, ratedKey, RATING_ASK_GAP_MS, ASKED_AT_KEY, reportRating, reportRatingComment, shouldAsk } from './ratingReport.ts';
 
 function memoryStorage(initial: Record<string, string> = {}) {
   const data = new Map(Object.entries(initial));
@@ -21,19 +21,47 @@ const NOW = 1_800_000_000_000;
 afterEach(() => vi.mocked(sendBeacon).mockClear());
 
 describe('shouldAsk / markRated', () => {
-  it('asks on a fresh device, once per tool', () => {
+  it('asks on a fresh device, and never again once rated anywhere', () => {
     const s = memoryStorage();
     expect(shouldAsk(s, 'compress', NOW)).toBe(true);
-    markRated(s, 'compress');
+    markRated(s, 'compress', 4);
     expect(shouldAsk(s, 'compress', NOW)).toBe(false);
-    expect(shouldAsk(s, 'split', NOW)).toBe(true);
+    expect(shouldAsk(s, 'split', NOW)).toBe(false);
     expect(ratedKey('compress')).toBe('pdkef:rated:compress');
+  });
+  it('markRated writes the legacy marker and the stars', () => {
+    const s = memoryStorage();
+    markRated(s, 'merge', 3);
+    expect(s.getItem(ratedKey('merge'))).toBe('1');
+    expect(s.getItem(MY_STARS_KEY)).toBe('3');
+    expect(MY_STARS_KEY).toBe('pdkef:my-stars');
   });
   it('treats blocked or missing storage as already rated', () => {
     expect(shouldAsk(blocked, 'compress', NOW)).toBe(false);
     expect(shouldAsk(null, 'compress', NOW)).toBe(false);
-    expect(() => markRated(blocked, 'compress')).not.toThrow();
-    expect(() => markRated(null, 'compress')).not.toThrow();
+    expect(() => markRated(blocked, 'compress', 5)).not.toThrow();
+    expect(() => markRated(null, 'compress', 5)).not.toThrow();
+  });
+});
+
+describe('hasRated / ownStars', () => {
+  it('sees the new key, a legacy marker of any tool, and nothing on an empty device', () => {
+    expect(hasRated(memoryStorage({ [MY_STARS_KEY]: '5' }))).toBe(true);
+    expect(hasRated(memoryStorage({ [ratedKey('split')]: '1' }))).toBe(true);
+    expect(hasRated(memoryStorage())).toBe(false);
+  });
+  it('is false for blocked or missing storage', () => {
+    expect(hasRated(blocked)).toBe(false);
+    expect(hasRated(null)).toBe(false);
+  });
+  it('ownStars parses 1 to 5 and nothing else', () => {
+    expect(ownStars(memoryStorage({ [MY_STARS_KEY]: '4' }))).toBe(4);
+    expect(ownStars(memoryStorage({ [MY_STARS_KEY]: 'banana' }))).toBeNull();
+    expect(ownStars(memoryStorage({ [MY_STARS_KEY]: '0' }))).toBeNull();
+    expect(ownStars(memoryStorage({ [MY_STARS_KEY]: '6' }))).toBeNull();
+    expect(ownStars(memoryStorage())).toBeNull();
+    expect(ownStars(blocked)).toBeNull();
+    expect(ownStars(null)).toBeNull();
   });
 });
 

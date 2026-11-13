@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 vi.mock('#lib/telemetry/errorReport.ts', () => ({ sendBeacon: vi.fn(() => true) }));
 import { sendBeacon } from '#lib/telemetry/errorReport.ts';
 import RatingPrompt, { resetRatingPromptForTests } from './RatingPrompt.tsx';
+import { hebrewShellMessages } from './shellMessages';
 
 describe('RatingPrompt as a modal (merge, sign, highlight-pdf, redact, scan-to-pdf)', () => {
   let container: HTMLElement;
@@ -84,6 +85,54 @@ describe('RatingPrompt as a modal (merge, sign, highlight-pdf, redact, scan-to-p
     expect(container.querySelector('a[href="https://github.com/shlomsh/pdkef"]')).not.toBeNull();
     act(() => button(/^done$/i)!.click());
     expect(dialog()).toBeNull();
+  });
+
+  it('five stars thanks, in order: filled stars, thanks, the words question with hint and signature, then the quiet share line', () => {
+    show();
+    act(() => star(5).click());
+    const body = container.querySelector('dialog')!;
+    const given = body.querySelector('[role="img"]')!;
+    expect(given.getAttribute('aria-label')).toBe('5 stars');
+    expect(given.querySelectorAll('svg')).toHaveLength(5);
+    const thanks = body.querySelector('[role="status"]')!;
+    expect(thanks.textContent).toBe('Thank you, that really helps.');
+    const words = body.querySelector('form')!;
+    expect(words.textContent).toContain('What would you tell a friend about it?');
+    expect(words.textContent).toContain("One line is plenty. It helps the next person know what it's like.");
+    expect(words.querySelector('textarea')!.getAttribute('rows')).toBe('2');
+    const sign = [...body.querySelectorAll('p')].find((p) => p.textContent?.includes('I read every one.'))!;
+    expect(sign.querySelector('b')!.textContent).toBe('Shlomi');
+    const quiet = [...body.querySelectorAll('div')].find((d) => d.textContent?.startsWith("Know someone who'd use it?"))!;
+    expect(quiet.querySelector('a[href="https://github.com/shlomsh/pdkef"]')).not.toBeNull();
+    const before = (a: Node, b: Node) => Boolean(a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING);
+    expect(before(given, thanks)).toBe(true);
+    expect(before(thanks, words)).toBe(true);
+    expect(before(words, sign)).toBe(true);
+    expect(before(sign, quiet)).toBe(true);
+  });
+
+  it('five stars thanks reads in Hebrew with the Hebrew strings', () => {
+    act(() => render(<RatingPrompt tool="merge" downloaded messages={hebrewShellMessages} />, container));
+    act(() => { vi.advanceTimersByTime(1500); });
+    act(() => [...container.querySelectorAll('button')].find((b) => b.getAttribute('aria-label') === hebrewShellMessages.ratingStarOther.replace('{count}', '5'))!.click());
+    const text = container.textContent ?? '';
+    expect(text).toContain('תודה רבה, זה עוזר מאוד.');
+    expect(text).toContain('מה הייתם מספרים עליו לחבר?');
+    expect(text).toContain('שורה אחת מספיקה. היא עוזרת למי שיגיע אחריכם לדעת איך זה.');
+    expect(text).toContain('אני קורא כל אחת.');
+    expect(text).toContain('שלומי');
+    expect(text).toContain('מכירים מישהו שיוכל להשתמש בזה?');
+  });
+
+  it('a low rating thanks has no stars group, words box or share line', () => {
+    show();
+    act(() => star(2).click());
+    type('The page order came out wrong');
+    act(() => button(/^send$/i)!.click());
+    expect(container.textContent).toContain("Thank you for telling me. I'll use it to make PDkef better.");
+    expect(container.querySelector('dialog [role="img"]')).toBeNull();
+    expect(container.textContent).not.toContain("Know someone who'd use it?");
+    expect(container.textContent).not.toContain('What would you tell a friend');
   });
 
   it('five stars may leave words: Send waits for some, and they stay private unless the box is ticked', () => {

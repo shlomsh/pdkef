@@ -169,3 +169,36 @@
     height: 2.75rem;
   }
 }
+
+/* A device that already rated: one short line in the inline row's place, no fixed box. */
+.voted {
+  margin: 1rem 0 0;
+  color: var(--color-muted);
+  font-size: 0.9375rem;
+  text-align: center;
+  opacity: 0;
+  animation: ratingFadeIn 0.4s var(--ease-out) forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .voted {
+    opacity: 1;
+    animation: none;
+  }
+}
+
+.mini {
+  display: inline-flex;
+  gap: 1px;
+  vertical-align: -2px;
+}
+
+.mini svg {
+  fill: none;
+  stroke: var(--color-primary);
+  stroke-width: 1.8;
+}
+
+.mini svg[data-filled] {
+  fill: var(--color-primary);
+}

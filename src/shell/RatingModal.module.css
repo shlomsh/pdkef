@@ -79,10 +79,16 @@
   font-size: 0.9rem;
 }
 
-.actions {
+/* Five filled stars kept in view on the thanks step (SEO-62). */
+.given {
   display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem 1.25rem;
+  justify-content: center;
+  gap: 0.1rem;
+}
+
+.given svg {
+  fill: var(--color-primary);
+  stroke: var(--color-primary);
 }
 
 .link {
@@ -188,4 +194,38 @@
 .helpLink:focus-visible {
   outline: 2px solid var(--color-primary);
   outline-offset: 2px;
+}
+
+/* --- Words question's hint and signature, and the quiet share line (SEO-62) --- */
+.sub {
+  display: block;
+  margin-top: 0.15rem;
+  font-weight: 400;
+  color: var(--color-muted);
+  font-size: 0.9375rem;
+  line-height: 1.45;
+}
+
+.sign {
+  margin: 0;
+  color: var(--color-muted);
+  font-size: 0.9375rem;
+  font-style: italic;
+}
+
+.sign b {
+  font-style: normal;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.quiet {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.25rem 0.9rem;
+  padding-top: 0.9rem;
+  border-top: 1px solid var(--color-border);
+  color: var(--color-muted);
+  font-size: 0.9375rem;
 }
