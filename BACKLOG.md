@@ -2,7 +2,7 @@
 
 # Backlog
 
-The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 187 live: 76 up next, 24 then, 27 waiting, 60 parked.
+The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 186 live: 75 up next, 24 then, 27 waiting, 60 parked.
 
 ## Redact: finish removal
 
@@ -25,12 +25,6 @@ Find covers exactly what it matched, Delete reaches every object, and the saved-
 ## Sign: finish fill mode
 
 Fill mode is the default since SNG-19. Close the test gaps, then desktop parity, then retire the old editor.
-
-### Up next
-
-| ID | P | Task | Note |
-| --- | --- | --- | --- |
-| SNG-25 | P2 | [SNG-25](backlog/tasks/SNG-25.md) · Sign: empty field frames show only while the armed tool can land in them | In progress |
 
 ### Then, in order
 
@@ -377,7 +371,7 @@ Small, independent, good for a spare hour.
 Done and retired tickets are not listed. Their files stay in [backlog/tasks/](backlog/tasks/) as the record.
 
 - Redact: finish removal: 29 done, 1 retired
-- Sign: finish fill mode: 3 done, 1 retired
+- Sign: finish fill mode: 4 done, 1 retired
 - Highlight PDF: a tool for reading: 12 done, 1 retired
 - Scan: camera to WhatsApp: 15 done, 0 retired
 - Page enhancement for Scan and Highlight: 7 done, 1 retired

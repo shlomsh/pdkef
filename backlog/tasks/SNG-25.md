@@ -1,10 +1,9 @@
 ---
 id: "SNG-25"
 title: "Sign: empty field frames show only while the armed tool can land in them"
-status: "in_progress"
+status: "done"
 priority: "P2"
 epic: "sign-fill-mode"
-horizon: "now"
 depends_on: []
 ---
 
@@ -49,3 +48,14 @@ A frame shows only where the armed tool can land, the same set `fillReachTargets
   typing then Enter keeps them; Sign shows none.
 
 Detection's own wrong frames on that form (the header row, label cells) are FORM-40.
+
+## Outcome
+
+Done 2026-11-14. Checked in a real browser (astro dev, one worktree server) on the BTL 1500 form, page 6, a
+table-heavy page with 438 fill slots, at 390px wide and at a desktop width. Nothing armed: no tinted frames
+(0 of 438 visible). Text: all frames show. Typing then Enter to hop: the frames stay while a field has focus.
+Date: frames show. Symbols: frames hidden, tick-box hints shown. Whiteout, Rectangle, Highlight, and Sign
+(a signature placed with a typed name): no frames. Tab with nothing armed reaches a field and its frames show
+for that keyboard session. Desktop: clean at rest, frames with Text armed. Raw screenshots were kept
+in the session scratchpad. The kibbutz work-months declaration itself was not to hand; the BTL table form
+stood in for it. Detection's own wrong frames on that page stay with FORM-40.

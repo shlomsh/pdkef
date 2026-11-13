@@ -6,10 +6,6 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 
 ## Up next
 
-### Sign: finish fill mode
-
-- [SNG-25](backlog/tasks/SNG-25.md) P2 · Sign: empty field frames show only while the armed tool can land in them (in progress)
-
 ### Highlight PDF: a tool for reading
 
 - [READ-03](backlog/tasks/READ-03.md) P2 · Highlight PDF: the tool at /highlight-pdf/, highlights with a comment on each, and its page (in progress)
