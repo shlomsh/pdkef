@@ -5,7 +5,7 @@ import { useHoldUpdate } from '#lib/hooks/useHoldUpdate.ts';
 import { useNavigatingAway } from '#lib/hooks/useNavigatingAway.ts';
 import { sendHandoff } from '#lib/handoff/sendHandoff.ts';
 import { recordAction } from '#lib/telemetry/actionTrail.ts';
-import type { HandoffTargetId } from '#lib/app/toolIds.ts';
+import type { HandoffTargetId, ToolId } from '#lib/app/toolIds.ts';
 import type { DownloadElementState } from '../DownloadElement.tsx';
 import { downloadFlowReducer, initialDownloadFlow } from './downloadFlowState.ts';
 
@@ -16,6 +16,8 @@ export type HandoffHrefs = Partial<Record<HandoffTool, string>>;
 
 /** @testSeam */
 export interface DownloadFlowInput {
+  /** The tool that owns this flow; rides on a hand-off so the receiver can say where its file came from. */
+  from: ToolId;
   prepared: Pick<PreparedOutput, 'status' | 'blob' | 'url' | 'parts' | 'generation' | 'prepareNow'>;
   fileName: string;
   /** Overrides the registry page of a hand-off target (src/lib/app/toolIds.ts), e.g. the locale's own edition. */
@@ -72,7 +74,7 @@ const opensStrip = () => window.matchMedia('(max-width: 1023px)').matches;
 /** The finish flow both page tools share: Download (prepared in the
  * background), the phone's done strip, hand-offs to Compress/Sign, Share. */
 export function useDownloadFlow(input: DownloadFlowInput) {
-  const { prepared, fileName, hrefs, blocked, nothing, announce, messages, onDelivered } = input;
+  const { prepared, from, fileName, hrefs, blocked, nothing, announce, messages, onDelivered } = input;
   const { navigate } = input;
   /* MERGE-12 analytics: the person's intent is the Download tap; the
      speculative background build is not counted. See ANALYTICS.md. */
@@ -149,7 +151,7 @@ export function useDownloadFlow(input: DownloadFlowInput) {
     try {
       const sent = await sendHandoff(
         tool,
-        { fileName, fileType: 'application/pdf', fileBytes: await prepared.blob.arrayBuffer() },
+        { fileName, fileType: 'application/pdf', fileBytes: await prepared.blob.arrayBuffer(), from },
         { href: hrefs?.[tool], navigate, proceed: () => run === handoffRunRef.current },
       );
       if (!sent && run === handoffRunRef.current) setHandoffBusy(false);
@@ -160,7 +162,7 @@ export function useDownloadFlow(input: DownloadFlowInput) {
         setHandoffBusy(false);
       }
     }
-  }, [prepared.blob, fileName, hrefs, navigate]);
+  }, [prepared.blob, fileName, from, hrefs, navigate]);
 
   const requestHandoff = useCallback(async (tool: HandoffTool) => {
     if (handoffBusy || !prepared.blob) return;

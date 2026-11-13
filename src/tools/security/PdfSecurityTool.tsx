@@ -64,7 +64,7 @@ export default withIslandBoundary(function PdfSecurityTool({ intent = 'unlock', 
   const prepared = { status: outputBlob && status === 'done' ? 'ready' as const : 'idle' as const, blob: outputBlob, url: downloadUrl, parts: null, generation: outputGenerationRef.current, prepareNow: () => {} };
   const fileName = file && mode ? outputFileName(file.name, mode) : '';
   const downloadFlow = useDownloadFlow({
-    prepared,
+    prepared, from: mode === 'protect' ? 'protect' : 'unlock',
     fileName,
     blocked: null,
     announce: setAnnouncement,

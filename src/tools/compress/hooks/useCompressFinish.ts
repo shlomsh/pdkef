@@ -21,6 +21,7 @@ export function useCompressFinish({ t, kind, prepared, fileName, setAnnouncement
   const batch = useImageBatch();
   const batchName = formatMessage(t.batchLabel, { count: batch.summary.total });
   const flow = useDownloadFlow({
+    from: 'compress',
     prepared: batch.active ? batch.prepared : { status: prepared.status, blob: prepared.passthrough ? null : prepared.blob, url: prepared.url, parts: null, generation: prepared.generation, prepareNow: prepared.prepareNow },
     fileName: batch.active ? batchName : fileName,
     blocked: (batch.active ? batch.prepared.status : prepared.status) === 'error' ? 'error' : null,

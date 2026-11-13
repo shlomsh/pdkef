@@ -109,7 +109,7 @@ export default withIslandBoundary(function PdfImageToPdfTool({ quietPolicy, mess
   const fileName = `${outputName}.pdf`;
 
   const downloadFlow = useDownloadFlow({
-    prepared,
+    prepared, from: 'image-to-pdf',
     fileName,
     blocked: failed ? 'error' : null,
     // A Download tap on a ready link announces the ready message each time; the live region says it once.
@@ -257,7 +257,7 @@ export default withIslandBoundary(function PdfImageToPdfTool({ quietPolicy, mess
     setScanFailed(false);
     try {
       const files = await toHandoffFiles(entriesRef.current.map(({ file }) => file));
-      await sendHandoff('scan-to-pdf', { files }, { navigate });
+      await sendHandoff('scan-to-pdf', { files, from: 'image-to-pdf' }, { navigate });
     } catch {
       // expected: saveHandoff reports its own failure; this shows the status line
       setScanFailed(true);

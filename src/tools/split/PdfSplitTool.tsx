@@ -133,7 +133,7 @@ export default withIslandBoundary(function PdfSplitTool({
   });
 
   const downloadFlow = useDownloadFlow({
-    prepared,
+    prepared, from: 'split',
     fileName,
     blocked: prepared.status === 'error' ? 'error' : null,
     nothing: plan.length > 0 && outputCount === 0,

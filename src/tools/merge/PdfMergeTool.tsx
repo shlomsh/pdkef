@@ -154,7 +154,7 @@ export default withIslandBoundary(function PdfMergeTool({
   const { needsUnlock, probeSettled, lockedView } = useLockedProbe(entries, state.lockedProbe, dispatch);
 
   const downloadFlow = useDownloadFlow({
-    prepared,
+    prepared, from: 'merge',
     fileName,
     hrefs: handoffHrefs,
     blocked: entries.length < 2 ? 'one-file' : (failedEntry || otherError) ? 'error' : null,

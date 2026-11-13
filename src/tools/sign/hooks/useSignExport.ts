@@ -132,7 +132,7 @@ export function useSignExport({
     try {
       await sendHandoff(
         tool,
-        { fileName: current.name, fileType: 'application/pdf', fileBytes: await current.blob.arrayBuffer() },
+        { fileName: current.name, fileType: 'application/pdf', fileBytes: await current.blob.arrayBuffer(), from: 'sign' },
         { href: handoffHref(tool, window.location.pathname) },
       );
     } catch (err) {

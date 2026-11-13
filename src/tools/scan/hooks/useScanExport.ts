@@ -63,6 +63,7 @@ export function useScanExport(input: ScanExportInput) {
   const outputName = customName ?? defaultName;
   const fileName = `${outputName}.pdf`;
   const downloadFlow = useDownloadFlow({
+    from: 'scan-to-pdf',
     prepared,
     fileName,
     // A photo that could not be read holds the PDF back: Download says so instead of preparing for good.

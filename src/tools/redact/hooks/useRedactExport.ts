@@ -229,7 +229,7 @@ export default function useRedactExport({ state, dispatch, setAnnouncement, setN
     try {
       const exported = exportedForHandoff ?? await exportRedacted('handoff');
       if (!exported) throw new Error('export');
-      await sendHandoff(tool, { fileName: exported.name, fileType: 'application/pdf', fileBytes: await exported.blob.arrayBuffer() });
+      await sendHandoff(tool, { fileName: exported.name, fileType: 'application/pdf', fileBytes: await exported.blob.arrayBuffer(), from: 'redact' });
     } catch (err) {
       // expected: saveHandoff reports its own failure, this shows the handoff-failed state
       console.error(err);

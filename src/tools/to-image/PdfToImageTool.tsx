@@ -125,7 +125,7 @@ export default withIslandBoundary(function PdfToImageTool({ messages: messagesPr
   });
 
   const downloadFlow = useDownloadFlow({
-    prepared,
+    prepared, from: 'pdf-to-image',
     fileName,
     blocked: prepared.status === 'error' ? 'error' : null,
     nothing: plan.length > 0 && includedCount === 0,

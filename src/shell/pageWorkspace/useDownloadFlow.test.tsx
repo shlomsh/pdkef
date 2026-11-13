@@ -67,6 +67,7 @@ describe('useDownloadFlow', () => {
   const onDelivered = vi.fn();
   const base = (prepared: Prepared, blocked: DownloadFlowInput['blocked'] = null): DownloadFlowInput => ({
     prepared,
+    from: 'split',
     fileName: 'out.pdf',
     blocked,
     announce,
@@ -273,6 +274,13 @@ describe('useDownloadFlow', () => {
     await act(async () => { await flow.requestHandoff('merge'); });
     expect(store.saveHandoff.mock.calls.at(-1)[0]).toBe('merge');
     expect(navigate).toHaveBeenCalledWith('/merge/');
+  });
+
+  it('a hand-off names the sending tool in its payload', async () => {
+    store.saveHandoff.mockResolvedValue(true);
+    mount({ ...base(ready()), from: 'merge', navigate: vi.fn() });
+    await act(async () => { await flow.requestHandoff('compress'); });
+    expect(store.saveHandoff.mock.calls.at(-1)[1].from).toBe('merge');
   });
 
   it.each([['redact', '/redact/'], ['edit-pdf', '/organize-pdf/']] as const)(

@@ -108,7 +108,7 @@ export default withIslandBoundary(function PdfEditPagesTool({ job = 'organize' }
   });
 
   const downloadFlow = useDownloadFlow({
-    prepared,
+    prepared, from: 'edit-pdf',
     fileName,
     blocked: prepared.status === 'error' ? 'error' : null,
     nothing: plan.length > 0 && outputCount === 0,
