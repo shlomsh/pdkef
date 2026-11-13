@@ -3,12 +3,13 @@ import { act } from 'preact/test-utils';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { englishSignMessages } from '../messages';
 import { useLatestRun } from '#lib/hooks/useLatestRun.ts';
-import { reportToolLifecycleEvent } from '#lib/telemetry/productAnalytics.ts';
+import { reportHandedOn, reportToolLifecycleEvent } from '#lib/telemetry/productAnalytics.ts';
+import { sendHandoff } from '#lib/handoff/sendHandoff.ts';
 import type { SignedExport } from '../lib/exportHandoff.ts';
 import { useSignExport } from './useSignExport.ts';
 import { useSpeculativeExport } from './useSpeculativeExport.ts';
 
-vi.mock('#lib/telemetry/productAnalytics.ts', () => ({ reportToolLifecycleEvent: vi.fn() }));
+vi.mock('#lib/telemetry/productAnalytics.ts', () => ({ reportToolLifecycleEvent: vi.fn(), reportHandedOn: vi.fn() }));
 vi.mock('#lib/telemetry/errorReport.ts', () => ({ reportError: vi.fn() }));
 vi.mock('#lib/telemetry/actionTrail.ts', () => ({ recordAction: vi.fn() }));
 vi.mock('#lib/telemetry/maintenanceTelemetry.ts', () => ({
@@ -104,6 +105,16 @@ describe('Sign export funnel events', () => {
     await act(() => api.current.handleDownloadPdf());
     await settle();
     expect(events()).toEqual(['tool_operation_started', 'tool_result_ready', 'tool_operation_started', 'tool_result_ready']);
+  });
+
+  it('a hand-off reports the file handed on only when sendHandoff reaches its proceed step', async () => {
+    preparedExportRef.current = prepared();
+    vi.mocked(reportHandedOn).mockClear();
+    await act(() => api.current.requestHandoff('compress'));
+    const options = vi.mocked(sendHandoff).mock.calls.at(-1)?.[2];
+    expect(reportHandedOn).not.toHaveBeenCalled();
+    expect(options?.proceed?.()).toBe(true);
+    expect(reportHandedOn).toHaveBeenCalledWith('sign');
   });
 });
 

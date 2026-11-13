@@ -8,6 +8,8 @@ const share = vi.hoisted(() => ({ download: vi.fn(), prepare: vi.fn(), prepareFi
 vi.mock('#lib/output/usePdfShare.js', () => ({
   usePdfShare: () => ({ shareReady: false, ...share }),
 }));
+const reportHandedOn = vi.hoisted(() => vi.fn());
+vi.mock('#lib/telemetry/productAnalytics.ts', () => ({ reportHandedOn }));
 const store = vi.hoisted(() => ({ saveHandoff: vi.fn() }));
 vi.mock('#lib/drafts/draftStore.ts', () => store);
 
@@ -274,6 +276,23 @@ describe('useDownloadFlow', () => {
     await act(async () => { await flow.requestHandoff('merge'); });
     expect(store.saveHandoff.mock.calls.at(-1)[0]).toBe('merge');
     expect(navigate).toHaveBeenCalledWith('/merge/');
+  });
+
+  it('a hand-off that proceeds reports the file handed on once, under the sending tool', async () => {
+    store.saveHandoff.mockResolvedValue(true);
+    reportHandedOn.mockClear();
+    mount({ ...base(ready()), from: 'merge', navigate: vi.fn() });
+    await act(async () => { await flow.requestHandoff('compress'); });
+    expect(reportHandedOn).toHaveBeenCalledTimes(1);
+    expect(reportHandedOn).toHaveBeenCalledWith('merge');
+  });
+
+  it('a hand-off whose save throws reports nothing', async () => {
+    store.saveHandoff.mockRejectedValue(new Error('save'));
+    reportHandedOn.mockClear();
+    mount({ ...base(ready()), navigate: vi.fn() });
+    await act(async () => { await flow.requestHandoff('compress'); });
+    expect(reportHandedOn).not.toHaveBeenCalled();
   });
 
   it('a hand-off names the sending tool in its payload', async () => {

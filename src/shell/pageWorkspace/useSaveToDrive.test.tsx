@@ -8,7 +8,8 @@ const saveHandoff = vi.hoisted(() => vi.fn());
 vi.mock('#lib/drafts/draftStore.ts', () => ({ saveHandoff }));
 vi.mock('#lib/telemetry/actionTrail.ts', () => ({ recordAction: vi.fn() }));
 const report = vi.hoisted(() => vi.fn());
-vi.mock('#lib/telemetry/productAnalytics.ts', () => ({ reportToolLifecycleEvent: report }));
+const reportResult = vi.hoisted(() => vi.fn());
+vi.mock('#lib/telemetry/productAnalytics.ts', () => ({ reportToolLifecycleEvent: report, reportResult }));
 const connect = (until = Date.now() + 3_600_000) => localStorage.setItem(DRIVE_TOKEN_KEY, JSON.stringify({ token: 't', until }));
 const events = () => report.mock.calls.map((call) => call[0]);
 
@@ -86,7 +87,8 @@ describe('useSaveToDrive', () => {
     const id = String(saveHandoff.mock.calls[0][0]).replace('drive-save-', '');
     act(() => channels[0].onmessage?.({ data: { id, status: 'saved', link: null } } as MessageEvent));
     expect(events()).toContain('tool_drive_saved');
-    expect(events()).toContain('tool_result_ready');
+    expect(reportResult).toHaveBeenCalledWith('redact');
+    expect(events()).not.toContain('tool_result_ready');
     mount({ generation: 2 });
     expect(events().filter((e) => e === 'tool_drive_shown')).toHaveLength(2);
     vi.unstubAllGlobals();

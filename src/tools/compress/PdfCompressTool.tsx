@@ -151,7 +151,7 @@ export default withIslandBoundary(function PdfCompressTool({
 
   // COMP-04: `batch` is two or more photos, compressed one after another to one target.
   const { flow, batch, batchName } = useCompressFinish({
-    t, kind, prepared: { ...prepared, passthrough: !!prepared.meta?.passthrough }, fileName: meta?.filename ?? '', setAnnouncement,
+    t, kind, prepared: { ...prepared, passthrough: !!prepared.meta?.passthrough }, fileName: meta?.filename ?? '', setAnnouncement, analyticsTool,
   });
 
   const { handleFilesAdded } = useFileIntake({

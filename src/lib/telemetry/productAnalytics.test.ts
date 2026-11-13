@@ -1,11 +1,14 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { markArrival } from '../handoff/fileArrival.ts';
+import { sendToSink } from './analyticsSink.ts';
 import * as pagePerformance from './pagePerformance.ts';
 import { setReportingEnabledForTests } from './errorReport.ts';
 import {
   MAX_USAGE_EVENTS_PER_PAGE,
   reportEdit,
+  reportHandedOn,
   reportHomePageView,
+  reportResult,
   reportToolLifecycleEvent,
   resetUsageEventsForTests,
   type AnalyticsTool,
@@ -17,6 +20,11 @@ vi.mock('./pagePerformance.ts', async (importOriginal) => ({
   pageSettled: vi.fn(async () => 'loaded' as const),
   collectPageMeasures: vi.fn(async () => ({})),
 }));
+
+vi.mock('./analyticsSink.ts', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('./analyticsSink.ts')>();
+  return { ...actual, sendToSink: vi.fn(actual.sendToSink) };
+});
 
 let beacon: ReturnType<typeof vi.fn>;
 // One page view goes out after the load event and the measures settle, a few microtasks on.
@@ -405,5 +413,74 @@ describe('performance measures (MEM-45)', () => {
     const [fresh, stale] = await sent();
     expect(fresh.properties.ms).toBe('gt4s');
     expect(stale.properties).not.toHaveProperty('ms');
+  });
+});
+
+describe('the page view timestamp', () => {
+  it('is taken when the page asked for the view, not when it was sent', async () => {
+    vi.useFakeTimers();
+    try {
+      vi.setSystemTime(new Date('2026-01-01T00:00:00.000Z'));
+      let settle!: (v: 'loaded') => void;
+      vi.mocked(pagePerformance.pageSettled).mockReturnValueOnce(new Promise((resolve) => { settle = resolve; }));
+      vi.mocked(sendToSink).mockClear();
+      reportToolLifecycleEvent('tool_page_viewed', 'merge');
+      vi.setSystemTime(new Date('2026-01-01T00:00:05.000Z'));
+      settle('loaded');
+      await vi.advanceTimersByTimeAsync(0);
+      expect(sendToSink).toHaveBeenCalledTimes(1);
+      const at = vi.mocked(sendToSink).mock.calls[0][1];
+      expect(at?.toISOString()).toBe('2026-01-01T00:00:00.000Z');
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('is not passed for any other event', () => {
+    vi.mocked(sendToSink).mockClear();
+    reportToolLifecycleEvent('tool_result_ready', 'merge');
+    expect(sendToSink).toHaveBeenCalledTimes(1);
+    expect(vi.mocked(sendToSink).mock.calls[0][1]).toBeUndefined();
+  });
+});
+
+describe('reportResult and reportHandedOn', () => {
+  const names = async () =>
+    (await Promise.all(beacon.mock.calls.map(([, blob]) => (blob as Blob).text()))).map((t) => JSON.parse(t) as { name: string; properties: { ms?: string } });
+  const arrive = () => {
+    markArrival('pick');
+    reportToolLifecycleEvent('tool_file_accepted', 'merge');
+    beacon.mockClear();
+  };
+
+  it('sends the started-and-ready pair, untimed, when nothing is open', async () => {
+    reportResult('merge');
+    const sent = await names();
+    expect(sent.map((e) => e.name)).toEqual(['tool_operation_started', 'tool_result_ready']);
+    expect(sent.every((e) => e.properties.ms === undefined)).toBe(true);
+  });
+
+  it('sends only the ready event after a start', async () => {
+    reportToolLifecycleEvent('tool_operation_started', 'merge');
+    beacon.mockClear();
+    reportResult('merge');
+    expect((await names()).map((e) => e.name)).toEqual(['tool_result_ready']);
+  });
+
+  it('hands on nothing when the file already had a result', () => {
+    arrive();
+    reportToolLifecycleEvent('tool_result_ready', 'merge');
+    beacon.mockClear();
+    reportHandedOn('merge');
+    expect(beacon).not.toHaveBeenCalled();
+  });
+
+  it('counts a first hand-on as the result, once', async () => {
+    arrive();
+    reportHandedOn('merge');
+    expect((await names()).map((e) => e.name)).toEqual(['tool_operation_started', 'tool_result_ready']);
+    beacon.mockClear();
+    reportHandedOn('merge');
+    expect(beacon).not.toHaveBeenCalled();
   });
 });

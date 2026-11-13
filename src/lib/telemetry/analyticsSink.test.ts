@@ -96,6 +96,14 @@ describe('sendToSink', () => {
     expect((await body(2)).distinct_id).not.toBe(first.distinct_id);
   });
 
+  it('stamps the capture with the given time, else the send time', async () => {
+    configure();
+    sendToSink(EVENT, new Date('2026-01-02T03:04:05.000Z'));
+    sendToSink(EVENT);
+    expect((await body(0)).timestamp).toBe('2026-01-02T03:04:05.000Z');
+    expect((await body(1)).timestamp).not.toBe('2026-01-02T03:04:05.000Z');
+  });
+
   it('does nothing while reporting is disabled', () => {
     configure();
     setReportingEnabledForTests(false);

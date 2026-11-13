@@ -1,5 +1,6 @@
 import type { PreparedOutput } from '#lib/output/usePreparedOutput.ts';
 import { useDownloadFlow } from '#shell/pageWorkspace/useDownloadFlow.ts';
+import type { AnalyticsTool } from '#lib/telemetry/productAnalytics.ts';
 import { formatMessage } from '#lib/text/formatMessage.ts';
 import type { CompressMessages } from '../messages';
 import { useImageBatch } from './useImageBatch.ts';
@@ -11,17 +12,19 @@ interface CompressFinishInput {
   prepared: Pick<PreparedOutput, 'status' | 'blob' | 'url' | 'generation' | 'prepareNow'> & { passthrough: boolean };
   fileName: string;
   setAnnouncement: (message: string) => void;
+  /** The page this flow belongs to, 'compress' or 'compress-image': the name its hand-offs and events carry. */
+  analyticsTool: AnalyticsTool;
 }
 
 /**
  * The one Download, Share and phone bar both halves of the tool deliver through: the single file's build,
  * or (COMP-04) a set of photos compressed one after another to one target, delivered as parts.
  */
-export function useCompressFinish({ t, kind, prepared, fileName, setAnnouncement }: CompressFinishInput) {
+export function useCompressFinish({ t, kind, prepared, fileName, setAnnouncement, analyticsTool }: CompressFinishInput) {
   const batch = useImageBatch();
   const batchName = formatMessage(t.batchLabel, { count: batch.summary.total });
   const flow = useDownloadFlow({
-    from: 'compress',
+    from: analyticsTool,
     prepared: batch.active ? batch.prepared : { status: prepared.status, blob: prepared.passthrough ? null : prepared.blob, url: prepared.url, parts: null, generation: prepared.generation, prepareNow: prepared.prepareNow },
     fileName: batch.active ? batchName : fileName,
     blocked: (batch.active ? batch.prepared.status : prepared.status) === 'error' ? 'error' : null,

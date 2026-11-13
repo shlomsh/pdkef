@@ -3,7 +3,7 @@ import { DRIVE_SAVE_CHANNEL, hasDriveConnection, driveFileLink, driveSaveHref, d
 import { useLatestRun } from '#lib/hooks/useLatestRun.ts';
 import { parkHandoff } from '#lib/handoff/sendHandoff.ts';
 import { recordAction } from '#lib/telemetry/actionTrail.ts';
-import { reportToolLifecycleEvent, type AnalyticsTool } from '#lib/telemetry/productAnalytics.ts';
+import { reportResult, reportToolLifecycleEvent, type AnalyticsTool } from '#lib/telemetry/productAnalytics.ts';
 
 type SaveToDriveState = 'idle' | 'saving' | 'saved' | 'failed';
 type BuiltFile = { blob: Blob; fileName: string };
@@ -141,7 +141,7 @@ export function useSaveToDrive({ tool, build, generation, ready }: SaveToDriveIn
           setLink(driveFileLink(event.data.link));
           setState('saved');
           reportToolLifecycleEvent('tool_drive_saved', tool);
-          reportToolLifecycleEvent('tool_result_ready', tool); // a save to Drive is a finished result
+          reportResult(tool); // a save to Drive is a finished result
         } else {
           setState('failed');
           reportToolLifecycleEvent('tool_drive_failed', tool);

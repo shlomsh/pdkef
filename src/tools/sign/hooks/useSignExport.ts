@@ -8,7 +8,7 @@ import { useNavigatingAway } from '#lib/hooks/useNavigatingAway.ts';
 import type { LatestRun } from '#lib/hooks/useLatestRun.ts';
 import type { usePdfShare } from '#lib/output/usePdfShare.js';
 import { exportAtRevision, exportToHandOff, handoffHref, type SignedExport } from '../lib/exportHandoff.ts';
-import { reportToolLifecycleEvent } from '#lib/telemetry/productAnalytics.ts';
+import { reportHandedOn, reportToolLifecycleEvent } from '#lib/telemetry/productAnalytics.ts';
 import { useOutputNameOverride } from '#shell/useOutputNameOverride.ts';
 import { runSignExport } from '../lib/runSignExport.ts';
 import type { SignLifecycleAction } from '../state/signState.ts';
@@ -133,7 +133,7 @@ export function useSignExport({
       await sendHandoff(
         tool,
         { fileName: current.name, fileType: 'application/pdf', fileBytes: await current.blob.arrayBuffer(), from: 'sign' },
-        { href: handoffHref(tool, window.location.pathname) },
+        { href: handoffHref(tool, window.location.pathname), proceed: () => { reportHandedOn('sign'); return true; } },
       );
     } catch (err) {
       // expected: saveHandoff reports its own failure, this shows the quiet line

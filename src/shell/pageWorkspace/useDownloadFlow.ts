@@ -5,6 +5,7 @@ import { useHoldUpdate } from '#lib/hooks/useHoldUpdate.ts';
 import { useNavigatingAway } from '#lib/hooks/useNavigatingAway.ts';
 import { sendHandoff } from '#lib/handoff/sendHandoff.ts';
 import { recordAction } from '#lib/telemetry/actionTrail.ts';
+import { reportHandedOn } from '#lib/telemetry/productAnalytics.ts';
 import type { HandoffTargetId, ToolId } from '#lib/app/toolIds.ts';
 import type { DownloadElementState } from '../DownloadElement.tsx';
 import { downloadFlowReducer, initialDownloadFlow } from './downloadFlowState.ts';
@@ -152,7 +153,7 @@ export function useDownloadFlow(input: DownloadFlowInput) {
       const sent = await sendHandoff(
         tool,
         { fileName, fileType: 'application/pdf', fileBytes: await prepared.blob.arrayBuffer(), from },
-        { href: hrefs?.[tool], navigate, proceed: () => run === handoffRunRef.current },
+        { href: hrefs?.[tool], navigate, proceed: () => run === handoffRunRef.current && (reportHandedOn(from), true) },
       );
       if (!sent && run === handoffRunRef.current) setHandoffBusy(false);
     } catch {

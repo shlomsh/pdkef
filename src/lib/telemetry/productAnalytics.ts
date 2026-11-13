@@ -120,11 +120,13 @@ const sinceBucket = (from: number | undefined) => {
  * call, which the tool island makes from its first mount effect; the home page has none.
  */
 async function reportPageView(tool: AnalyticsTool | ViewOnlyPage, mountedAt?: number): Promise<void> {
+  // The view carries the time the page asked for it, before the settle wait, so it sorts ahead of later events.
+  const at = new Date();
   try {
     // A page hidden before it loaded still counts: the view goes out at once, with no measures.
     const measures = (await pageSettled()) === 'loaded' ? await collectPageMeasures() : {};
     const ready = tool === 'home' ? undefined : timeBucket(mountedAt);
-    report('tool_page_viewed', tool, { ...measures, ...(ready ? { ready } : {}) });
+    report('tool_page_viewed', tool, { ...measures, ...(ready ? { ready } : {}) }, false, at);
   } catch {
     // expected: a measure that cannot be taken never stops the view from counting
   }
@@ -140,7 +142,7 @@ export function reportHomePageView(): void {
 
 type Measures = Partial<Pick<UsageEvent['properties'], 'net' | 'local' | 'lcp' | 'ready' | 'ms'>>;
 
-function report(event: UsageEventName, tool: AnalyticsTool | ViewOnlyPage, measures: Measures = {}, untimed = false): void {
+function report(event: UsageEventName, tool: AnalyticsTool | ViewOnlyPage, measures: Measures = {}, untimed = false, at?: Date): void {
   try {
     const build = readBuildCommit();
     const pair = `${event}|${tool}`;
@@ -173,7 +175,7 @@ function report(event: UsageEventName, tool: AnalyticsTool | ViewOnlyPage, measu
     if (sendBeacon(parsed)) {
       handedOff += 1;
       seen.add(pair);
-      sendToSink(parsed);
+      sendToSink(parsed, at);
     }
   } catch {
     // expected: Analytics must never alter an offline or local document workflow.
@@ -190,4 +192,15 @@ export function reportEdit(tool: AnalyticsTool): void {
   if (!accepted || editSent) return;
   editSent = true;
   reportToolLifecycleEvent('tool_first_edit', tool);
+}
+
+/** A finished result. Sends `tool_result_ready`; when no operation is open, sends the started-and-ready pair back to back, untimed. */
+export function reportResult(tool: AnalyticsTool): void {
+  // With no timed start waiting for its result, the start goes out first and the pair is untimed.
+  report('tool_result_ready', tool, {}, startedAt === undefined && (report('tool_operation_started', tool, {}, true), true));
+}
+
+/** A result handed to another tool. Counts as a result when this page load has reported none for the tool yet; a no-op after. */
+export function reportHandedOn(tool: AnalyticsTool): void {
+  if (!seen.has(`tool_result_ready|${tool}`)) reportResult(tool);
 }

@@ -3,7 +3,7 @@ import { recordAction } from '#lib/telemetry/actionTrail.ts';
 import { dropCause, reportError } from '#lib/telemetry/errorReport.ts';
 import { isEncryptedPdfError } from '#lib/pdf/encryptedPdfError.ts';
 import { sendHandoff } from '#lib/handoff/sendHandoff.ts';
-import { reportToolLifecycleEvent } from '#lib/telemetry/productAnalytics.ts';
+import { reportHandedOn, reportToolLifecycleEvent } from '#lib/telemetry/productAnalytics.ts';
 import { formatMessage } from '#lib/text/formatMessage.ts';
 import { usePdfShare } from '#lib/output/usePdfShare.js';
 import { useLatestRun } from '#lib/hooks/useLatestRun.ts';
@@ -229,7 +229,7 @@ export default function useRedactExport({ state, dispatch, setAnnouncement, setN
     try {
       const exported = exportedForHandoff ?? await exportRedacted('handoff');
       if (!exported) throw new Error('export');
-      await sendHandoff(tool, { fileName: exported.name, fileType: 'application/pdf', fileBytes: await exported.blob.arrayBuffer(), from: 'redact' });
+      await sendHandoff(tool, { fileName: exported.name, fileType: 'application/pdf', fileBytes: await exported.blob.arrayBuffer(), from: 'redact' }, { proceed: () => { reportHandedOn('redact'); return true; } });
     } catch (err) {
       // expected: saveHandoff reports its own failure, this shows the handoff-failed state
       console.error(err);

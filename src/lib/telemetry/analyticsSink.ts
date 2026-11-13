@@ -80,8 +80,8 @@ export function resetSinkForTests(): void {
   buckets = undefined;
 }
 
-/** Hands one event to the analytics host by beacon. False when unconfigured or not sendable; never throws. */
-export function sendToSink(event: SinkEvent): boolean {
+/** Hands one event to the analytics host by beacon, stamped `at` when given, else now. False when unconfigured or not sendable; never throws. */
+export function sendToSink(event: SinkEvent, at?: Date): boolean {
   try {
     const config = readSinkConfig();
     if (!config || !canSend()) return false;
@@ -97,7 +97,7 @@ export function sendToSink(event: SinkEvent): boolean {
     const capture = toCapture(event, {
       key: config.key,
       id: pageLoadId,
-      now: new Date(),
+      now: at ?? new Date(),
       origin: location.origin,
       pathname: location.pathname,
       client: buckets,
