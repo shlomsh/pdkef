@@ -61,37 +61,48 @@ function useShot({ videoEl, track, stateRef, lastObs, lastView, pacer, onTakenRe
   const shotHashes = useRef(new WeakMap<File, string>());
   const kept = scanFiles.flatMap((file) => shotHashes.current.get(file) ?? []);
 
-  useEffect(() => { stateRef.current = keepTaken(stateRef.current, kept); }, [kept.join(), paused]);
-
   const keptRef = useRef(kept);
   keptRef.current = kept;
+  /** The page of the shot under way, until its photo is among the kept ones (or the shot fails). */
+  const pending = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (pending.current !== null && kept.includes(pending.current)) pending.current = null;
+    restoreUntaken(stateRef, keptRef, pending);
+  }, [kept.join(), paused]);
 
   return useCallback(async (quad?: Quad | null, byShutter = false) => {
     const video = videoEl.current;
     const running = track();
     if (!video || !running || shooting.current) {
-      // the machine fired for this frame and remembered its page, but no photo is coming: offer it again
-      if (quad !== undefined) restoreUntaken(stateRef, keptRef);
+      // the machine fired for this frame and remembered its page, but no photo is coming: offer it again,
+      // unless it is the page of the shot already under way
+      if (quad !== undefined) restoreUntaken(stateRef, keptRef, pending);
       return;
     }
     shooting.current = true;
     pacer.current?.stop();
     try {
-      await attemptShot({ stateRef, keptRef, lastObs, lastView, shotHashes: shotHashes.current, onTaken: onTakenRef.current, capture: () => captureShot(running, video), quad, byShutter });
+      await attemptShot({ stateRef, keptRef, pending, lastObs, lastView, shotHashes: shotHashes.current, onTaken: onTakenRef.current, capture: () => captureShot(running, video), quad, byShutter });
     } finally {
       shooting.current = false;
     }
   }, []);
 }
 
-/** A page is remembered as taken only once its photo is kept: put the machine back to the pages actually kept. */
-function restoreUntaken(stateRef: MutableRef<CaptureState>, keptRef: MutableRef<readonly string[]>) {
-  stateRef.current = keepTaken(stateRef.current, keptRef.current);
+/** A page is remembered as taken once its photo is kept or while its shot is under way: put the machine back to
+ * those pages.
+ * @testSeam */
+export function restoreUntaken(stateRef: MutableRef<CaptureState>, keptRef: MutableRef<readonly string[]>, pending: MutableRef<string | null>) {
+  const kept = keptRef.current;
+  const inFlight = pending.current;
+  stateRef.current = keepTaken(stateRef.current, inFlight !== null && !kept.includes(inFlight) ? [...kept, inFlight] : kept);
 }
 
 interface AttemptInput {
   stateRef: MutableRef<CaptureState>;
   keptRef: MutableRef<readonly string[]>;
+  pending: MutableRef<string | null>;
   lastObs: MutableRef<FrameObservation | null>;
   lastView: MutableRef<Rect>;
   shotHashes: WeakMap<File, string>;
@@ -103,18 +114,20 @@ interface AttemptInput {
 
 /** One shot: mark the page, take the photo, hand it on. A shot that fails leaves its page on offer, not taken.
  * @testSeam */
-export async function attemptShot({ stateRef, keptRef, lastObs, lastView, shotHashes, onTaken, capture, quad, byShutter }: AttemptInput) {
+export async function attemptShot({ stateRef, keptRef, pending, lastObs, lastView, shotHashes, onTaken, capture, quad, byShutter }: AttemptInput) {
   try {
     // a quad handed in is across the whole frame already; the machine's own is across what was on screen
     const { smoothed } = stateRef.current;
     const taken = quad === undefined ? smoothed && toFrame(smoothed, lastView.current) : quad;
     if (byShutter && lastObs.current) stateRef.current = markTaken(stateRef.current, lastObs.current.hash);
     const hash = stateRef.current.lastCaptureHash;
+    pending.current = hash;
     const shot = await capture();
     if (hash !== null) shotHashes.set(shot.file, hash);
     onTaken({ ...shot, quad: taken });
   } catch (err) {
-    restoreUntaken(stateRef, keptRef);
+    pending.current = null;
+    restoreUntaken(stateRef, keptRef, pending);
     reportError('pdf_tool_run', err, 'scan_camera_photo');
   }
 }
