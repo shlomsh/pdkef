@@ -55,6 +55,8 @@ interface PageActionsInput {
   focusIdRef: MutableRef<number | null>;
 }
 
+const sameQuad = (a: Quad, b: Quad) => a.every((pt, i) => pt.x === b[i].x && pt.y === b[i].y);
+
 /** The actions that find a page again, take a page away, or start over. */
 export function createPageActions(input: PageActionsInput) {
   const { pages, failedIds, setPages, setResults, setRemoval, setCustomName, setRejectedFiles, forgetTurned, work, unmountedRef, dispatch, announce, focusIdRef } = input;
@@ -82,7 +84,10 @@ export function createPageActions(input: PageActionsInput) {
           return;
         }
         dispatch({ type: 'findFound', id: page.id });
-        setPages((current) => patchPage(current, page.id, { quad, edited: true, found: true }));
+        // Corners the person moved while the guess waited in the queue are theirs, not the guess's to replace.
+        setPages((current) => (current.find((p) => p.id === page.id && sameQuad(p.quad, page.quad))
+          ? patchPage(current, page.id, { quad, edited: true, found: true })
+          : current));
         announce(t.pageFoundAnnounce);
         recordAction('change_setting');
       });

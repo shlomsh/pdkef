@@ -22,7 +22,7 @@ type ResultHost = Pick<ScanResultsInput, 'work' | 'processed' | 'unmountedRef' |
 /** A finished run becomes the page's result, unless the page moved on while it ran. */
 function adoptResult(page: ScanPage, key: string, result: ProcessedPage, { work, unmountedRef, dispatch, setResults }: ResultHost) {
   work.watching.delete(key);
-  if (unmountedRef.current || !isCurrentKey(work.pages, key) || work.results[page.id]?.key === key) return;
+  if (unmountedRef.current || work.removed.has(page.id) || !isCurrentKey(work.pages, key) || work.results[page.id]?.key === key) return;
   const previous = work.results[page.id];
   if (previous) {
     URL.revokeObjectURL(previous.url);

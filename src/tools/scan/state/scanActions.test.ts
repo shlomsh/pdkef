@@ -83,6 +83,15 @@ describe('createPageActions', () => {
       expect(ctx.dispatch).toHaveBeenCalledWith({ type: 'findMissed', id: page.id });
       expect(pagesNow()[0].quad).toEqual(MOVED);
     });
+    it('keeps corners the person moved while the guess waited', async () => {
+      const page = newPage(photo(), 'document');
+      const { ctx, pagesNow } = setup([page]);
+      guessPage.mockResolvedValue(QUAD);
+      createPageActions(ctx).findPage(page);
+      ctx.setPages((current: ScanPage[]) => current.map((p) => ({ ...p, quad: MOVED, edited: true })));
+      await flush();
+      expect(pagesNow()[0].quad).toEqual(MOVED);
+    });
     it('does nothing once the island is gone', async () => {
       const page = newPage(photo(), 'document');
       const { ctx } = setup([page], { unmountedRef: { current: true } });

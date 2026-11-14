@@ -41,7 +41,13 @@ function makeTurnedPreview(page: ScanPage, turnKey: string, { work, unmountedRef
   loadPipeline().then((pipeline) => pipeline.turnImage(blob, turns)).then((turned) => {
     if (unmountedRef.current || work.removed.has(id)) return;
     setTurnedPreviews((map) => (map[turnKey] ? map : { ...map, [turnKey]: URL.createObjectURL(turned) }));
-  }, (err) => reportError('pdf_tool_run', err, 'scan_turn_preview'));
+  }, (err) => {
+    reportError('pdf_tool_run', err, 'scan_turn_preview');
+    // Blank is a dead end: the unturned photo keeps the corners box usable, and the person can still go on.
+    if (unmountedRef.current || work.removed.has(id) || !page.preview) return;
+    const fallback = page.preview;
+    setTurnedPreviews((map) => (map[turnKey] ? map : { ...map, [turnKey]: fallback }));
+  });
 }
 
 /** What the person sees change with the view: the scroll to the top, the flatten into the result, the
