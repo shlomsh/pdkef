@@ -73,3 +73,28 @@ What is left for the outcome:
   gutter; that needs a gutter finder (dark crease line), not a brightness step.
 - **p-014, p-019** keep their tops on the border (no step found within 30%); **p-021** got worse, 0.500 to 0.585.
 - The first acceptance box (shareable failing cases in the SCAN-05 corpus) is still open.
+
+## Progress, 2026-11-14: the live camera and a score for every path
+
+The private scorer now runs all three finders. `detectPage` (the live camera) used to return no page on 14 of the 22
+photos and a wrong one on 6: its brightness guess ran to the photo border, where there is no edge, so `scoreQuad` gave
+it 0. It now fits the brightness guess before scoring it and fits a winning outline after; the faint find stays
+unfitted (a light page on a light table has no brightness step to fit to, and fitting it made the corpus's
+low-contrast photo worse). `guessCorners` makes the same decision. The real corpus now scores the camera too
+(`cameraReal`, `cameraSynthetic` in `baseline.json`); nothing moved there. Cost: 30.1 to 30.2 ms median per frame
+in node.
+
+| book benchmark | found@0.02 | found@0.035 | found@0.08 | median err | median IoU | confidently wrong |
+| --- | --- | --- | --- | --- | --- | --- |
+| camera, before | 1 of 22 | 3 of 22 | 4 of 22 | 1.000 (14 none) | 0.00 | 6 |
+| camera, now | 1 of 22 | 4 of 22 | 8 of 22 | 1.000 (14 none) | 0.00 | 2 |
+| photo inspection, now | 1 of 22 | 4 of 22 | 8 of 22 | 0.143 | 0.81 | 14 |
+| PDF path (`assess` + `planPage`, 1000 px) | 0 of 22 | 0 of 22 | 2 of 22 | 0.120 | 0.77 | 20 |
+
+The camera's 14 with no outline are the 14 that photo inspection gets wrong (error 0.13 to 0.59): it declines
+rather than shows a wrong outline, which is the outcome's second line. Finding those pages is the gutter: an open
+book's side runs into the facing page with no step in brightness.
+
+The PDF path is a different finder: it reaches out from the text block by a margin (`photoPage.ts` `readPhoto`), so
+it is never far off (max 0.185) and never on the edge. Fitting it to the paper is its own design, left for after the
+gutter finder.
