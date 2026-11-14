@@ -62,3 +62,8 @@
 .cell > .item {
   flex: 1;
 }
+
+/* Left's icon: the clockwise arrow mirrored. */
+.mirrored {
+  transform: scaleX(-1);
+}

@@ -1,5 +1,5 @@
 import { useState } from 'preact/hooks';
-import { Crop, RotateCcw, RotateCw, SlidersHorizontal, Trash2 } from 'lucide-preact';
+import { Crop, RotateCw, SlidersHorizontal, Trash2 } from 'lucide-preact';
 import OptionRow, { type Option } from '#shell/pageWorkspace/OptionRow.tsx';
 import { englishScanMessages as t } from '../messages.ts';
 import type { ScanFilter } from '../lib/filters.ts';
@@ -37,7 +37,8 @@ export default function PageActions({ selected, lookOptions, onChooseLook, onAdj
           <span>{t.cornersAction}</span>
         </button>
         <button type="button" class={pageView.item} data-rotate="left" aria-label={t.rotateLeft} onClick={onRotateLeft}>
-          <RotateCcw size={20} aria-hidden="true" />
+          {/* The clockwise icon mirrored: a second icon would join the shared icon chunk every page loads. */}
+          <RotateCw size={20} aria-hidden="true" class={pageView.mirrored} />
           <span aria-hidden="true">{t.rotateLeftShort}</span>
         </button>
         <button type="button" class={pageView.item} data-rotate="right" aria-label={t.rotateRight} onClick={onRotate}>
