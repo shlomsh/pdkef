@@ -2,7 +2,7 @@
 
 # Backlog
 
-The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 184 live: 75 up next, 25 then, 27 waiting, 57 parked.
+The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 187 live: 75 up next, 27 then, 27 waiting, 58 parked.
 
 ## Redact: finish removal
 
@@ -118,7 +118,9 @@ The camera takes pages, the table fixes them, Share sends them. The table first 
 | --- | --- | --- | --- |
 | SCAN-20 | P2 | [SCAN-20](backlog/tasks/SCAN-20.md) · Scan next: a real-photo dewarp corpus with a straightness score |  |
 | SCAN-22 | P3 | [SCAN-22](backlog/tasks/SCAN-22.md) · Scan next: measure the bend at a higher resolution, so a crease's tip goes too |  |
+| SCAN-71 | P1 | [SCAN-71](backlog/tasks/SCAN-71.md) · The corners stop at the page's own edge, not at a table edge or the facing page |  |
 | SCAN-70 | P2 | [SCAN-70](backlog/tasks/SCAN-70.md) · A colour flyer is found by its edges, not by the photo printed inside it |  |
+| SCAN-72 | P2 | [SCAN-72](backlog/tasks/SCAN-72.md) · An open book in front of the camera comes out as two pages, not one spread |  |
 
 ### Parked
 
@@ -132,6 +134,7 @@ The camera takes pages, the table fixes them, Share sends them. The table first 
 | SCAN-42 | P3 | [SCAN-42](backlog/tasks/SCAN-42.md) · Measuring a page on desktop takes under 150 ms |  |
 | SCAN-43 | P3 | [SCAN-43](backlog/tasks/SCAN-43.md) · encodePages runs off the main thread |  |
 | SCAN-62 | P2 | [SCAN-62](backlog/tasks/SCAN-62.md) · Measure Scan's memory and main thread on a long job |  |
+| SCAN-73 | P2 | [SCAN-73](backlog/tasks/SCAN-73.md) · A thumb holding the page down is cleaned out of the result |  |
 | SCAN-10 | P3 | [SCAN-10](backlog/tasks/SCAN-10.md) · Scan next: evaluate a small learned page detector behind the same contract |  |
 | SCAN-31 | P3 | [SCAN-31](backlog/tasks/SCAN-31.md) · The Scan guide's image generator follows the rewritten phone flow |  |
 | SCAN-52 | P3 | [SCAN-52](backlog/tasks/SCAN-52.md) · Scan's pages use the shared page grid |  |

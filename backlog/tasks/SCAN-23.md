@@ -42,3 +42,15 @@ in the frame, so one page seen at another angle or distance reads as a different
 Nine shots, none taken twice while a page stayed in view (the duplicate hint showed for 19 s). Retaking the same page
 from a new angle or turned (the letter twice, the bill five times) was accepted every time: the page hash does not
 match across angle or rotation, as SCAN-40 says of plain text. Left as is; a retake is easy to delete.
+
+## Phone check, 2026-11-14, second session
+
+Twelve shots; the same blank A4 grid form was taken five times without being moved off the table:
+
+- Two shots 1.0 s apart (123.9 s and 124.9 s). Cause: SCAN-58's restore, when the machine fired while a shot was
+  still under way, put the machine back to the kept pages, which did not yet hold the shot under way, so the same
+  page was offered again after one hold. Fixed the same day: the page of the shot under way stays remembered until
+  its photo is kept (`restoreUntaken` with `pending`, `useCamera.test.ts` "a shot under way").
+- Three more, 3 to 25 s apart, each after a run of fit and contrast hints: the lock was lost and found again and the
+  page was not matched as already taken. The duplicate hint first showed after the fifth copy. A plain grid form
+  hashes like plain text (SCAN-40), so this box stays open until the same form, lost for a moment, is not retaken.
