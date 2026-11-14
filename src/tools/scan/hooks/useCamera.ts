@@ -85,7 +85,7 @@ function useShot({ videoEl, track, stateRef, lastObs, lastView, pacer, onTakenRe
 }
 
 /** A page is remembered as taken only once its photo is kept: put the machine back to the pages actually kept. */
-export function restoreUntaken(stateRef: MutableRef<CaptureState>, keptRef: MutableRef<readonly string[]>) {
+function restoreUntaken(stateRef: MutableRef<CaptureState>, keptRef: MutableRef<readonly string[]>) {
   stateRef.current = keepTaken(stateRef.current, keptRef.current);
 }
 
