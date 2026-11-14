@@ -1,5 +1,6 @@
 import { buildEdgeMap } from '#lib/pageEnhance/edgeMap.ts';
 import { faintOutline, outlineFromMap, scoreQuad, WEAK_SCORE } from './outline.ts';
+import { fitToPaper } from './grow.ts';
 import { guessByScoredRegions } from './scoredRegions.ts';
 import type { GrayImage, Quad } from '#lib/pageEnhance/quad.ts';
 import type { EdgeGuesser } from './types.ts';
@@ -24,7 +25,6 @@ export const guessCorners: EdgeGuesser = (image: GrayImage): Quad | null => {
     if (faint) return faint.quad;
   }
   const bright = guessByScoredRegions(image);
-  if (!outline) return bright;
-  if (!bright) return outline.quad;
-  return outline.score > OUTLINE_MARGIN * scoreQuad(map, bright) ? outline.quad : bright;
+  const found = !outline ? bright : !bright ? outline.quad : outline.score > OUTLINE_MARGIN * scoreQuad(map, bright) ? outline.quad : bright;
+  return found && fitToPaper(image, found);
 };
