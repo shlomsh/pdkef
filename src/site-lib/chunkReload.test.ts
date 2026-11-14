@@ -15,6 +15,17 @@ describe('isChunkLoadFailure', () => {
     expect(isChunkLoadFailure(new TypeError(message))).toBe(true);
   });
 
+  // MEM-51: the guard's own error, and what each browser says when the old shared chunk has no guard export yet.
+  it.each([
+    'pdkef:chunk-interface-mismatch scan-late',
+    "The requested module './tools-common.js' does not provide an export named 'pdkefIface'",
+    "import not found: pdkefIface",
+    "Importing binding name 'pdkefIface' is not found.",
+  ])('recognises the interface guard failure %s', (message) => {
+    expect(isChunkLoadFailure(new Error(message))).toBe(true);
+    expect(isChunkLoadFailure(new SyntaxError(message))).toBe(true);
+  });
+
   it('matches case-insensitively', () => {
     expect(isChunkLoadFailure(new Error('IMPORTING A MODULE SCRIPT FAILED'))).toBe(true);
   });
@@ -288,6 +299,57 @@ describe('installChunkReload', () => {
     s.listeners.get('unhandledrejection')!({ reason: new TypeError('error loading dynamically imported module: x') });
     await flushMicrotasks();
     expect(s.win.location.reload).toHaveBeenCalledTimes(1);
+  });
+
+  // MEM-51: the same rules for the guard's failure, which also arrives as a preload error (a wrapped import) or a bare rejection.
+  describe('an interface guard failure (MEM-51)', () => {
+    const mismatch = () => new Error('pdkef:chunk-interface-mismatch scan-late');
+
+    it('reloads once after the flush, from a preload error', async () => {
+      const s = setup();
+      const event = { payload: mismatch(), preventDefault: vi.fn() };
+      s.listeners.get('vite:preloadError')!(event);
+      await flushMicrotasks();
+      expect(event.preventDefault).toHaveBeenCalledTimes(1);
+      expect(s.calls.indexOf('flush')).toBeLessThan(s.calls.indexOf('reload'));
+      expect(s.win.location.reload).toHaveBeenCalledTimes(1);
+    });
+
+    it('reloads once from an unhandled rejection, even when it arrives twice', async () => {
+      const s = setup();
+      s.listeners.get('unhandledrejection')!({ reason: mismatch() });
+      s.listeners.get('unhandledrejection')!({ reason: new SyntaxError("The requested module './x.js' does not provide an export named 'pdkefIface'") });
+      await flushMicrotasks();
+      expect(s.win.location.reload).toHaveBeenCalledTimes(1);
+    });
+
+    it('never reloads while an update hold is set', async () => {
+      const s = setup({ held: true });
+      s.listeners.get('unhandledrejection')!({ reason: mismatch() });
+      await flushMicrotasks();
+      expect(s.win.location.reload).not.toHaveBeenCalled();
+      expect(s.report.mock.calls[0][2]).toBe('chunk_failure_held');
+    });
+
+    it('does not reload when a hold starts during the flush', async () => {
+      const s = setup({ heldAfterFlush: true });
+      s.listeners.get('unhandledrejection')!({ reason: mismatch() });
+      await flushMicrotasks();
+      expect(s.win.location.reload).not.toHaveBeenCalled();
+    });
+
+    it('reloads at most once per window: the reloaded page that fails again reports a repeat', async () => {
+      const store = new Map<string, string>();
+      const first = setup({ store });
+      first.listeners.get('unhandledrejection')!({ reason: mismatch() });
+      await flushMicrotasks();
+      expect(first.win.location.reload).toHaveBeenCalledTimes(1);
+      const reloaded = setup({ store });
+      reloaded.listeners.get('unhandledrejection')!({ reason: mismatch() });
+      await flushMicrotasks();
+      expect(reloaded.win.location.reload).not.toHaveBeenCalled();
+      expect(reloaded.report.mock.calls.map((c) => c[2])).toEqual(['chunk_failure_repeat']);
+    });
   });
 
   it('ignores an unrelated unhandled rejection', async () => {

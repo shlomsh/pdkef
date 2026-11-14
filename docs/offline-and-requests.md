@@ -170,7 +170,25 @@ change.
 | A5 | Entering a tool means intending to use it | The first-visit install on tool pages (about 20 extra requests) | Share of tool page views that open a file (the page-load funnel, by lane) | If most people leave without opening a file, install on file open instead (MEM-39's rule) and change the airplane line |
 | A6 | Offline is a reason people choose PDkef | The whole stance | Installs, offline sessions, what people write in the rating notes | Then the install is cost without benefit; revisit from the top |
 | A7 | We stay on the Hobby plan | Treating 1,000,000 as a hard wall | The plan | A paid plan turns this into a money question, not a survival one |
-| A8 | Deploys happen several times a day | No long cache on stable-named scripts | `git log` on main | With rare deploys, fingerprinted names and long caches may beat stable names |
+| A8 | Deploys happen several times a day | No long cache on stable-named scripts, and the interface guard below instead of fingerprinted names | `git log` on main | With rare deploys, fingerprinted names and long caches may beat stable names, and the guard can go |
+
+**A8 and a tab left open across a deploy (MEM-51).** Stable names mean a lazy chunk fetched after a deploy
+(`scan-late.js`, any `*-late.js`) is the new build's, while the shared chunks it imports (`tools-common.js`,
+`site.js`) resolve by URL to the copies the page already evaluated. The minifier renumbers a shared chunk's
+export letters whenever it changes, so every imported name still exists and means another function: no link
+error, no rejected import, wrong code running (29 of 29 names differed between two builds 25 commits apart).
+`scripts/chunkInterfaceGuard.mjs` closes it without a fingerprint in any URL: each shared chunk a lazy chunk
+imports from exports `pdkefIface`, a short hash of its export table (each exported name with the binding behind
+it), and the lazy chunk starts by importing that constant from each such chunk and throwing on a difference, before any
+of its code runs. The hash is a function of the interface only, so a chunk's bytes still change only when its
+export table does; never put a per-deploy value in it. `src/site-lib/chunkReload.ts` treats the throw, and the
+link error from an older shared chunk that has no guard yet, like a missing chunk: one reload after the draft
+flush, never while an update hold is set, at most once a minute. Cost: about 70 bytes per guarded import in
+each lazy chunk and one line in each guarded shared chunk. Proofs: `scripts/chunkInterfaceGuard.test.mjs` (two
+builds of one shared chunk, a late chunk beside the other build's fails to evaluate, and without the guard it
+runs the wrong function), `src/site-lib/chunkReload.test.ts`, and
+`src/tools/scan/e2e/lazy-chunk-skew.spec.js` (a later build's chunk served for Start scanning, the page reloads
+onto the current one). A deploy that changes nothing in a shared chunk's export table changes no lazy chunk.
 
 ## How to measure
 

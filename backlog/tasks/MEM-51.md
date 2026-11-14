@@ -1,7 +1,7 @@
 ---
 id: "MEM-51"
 title: "A tab left open across a deploy loads a lazy chunk from the new build beside shared chunks from the old one"
-status: "open"
+status: "in_progress"
 priority: "P1"
 epic: "robustness"
 horizon: "next"
@@ -70,8 +70,8 @@ production path by itself (must-revalidate), but the same mix.
 
 ## Done when
 
-- [ ] A unit or build test that builds two variants of one shared chunk (a changed export count) and shows a
+- [x] A unit or build test that builds two variants of one shared chunk (a changed export count) and shows a
       late chunk from one beside the other fails to evaluate rather than binding wrong names.
-- [ ] `chunkReload` reloads once on that failure and not while an update hold is set (MEM-38 tests extended).
-- [ ] A Playwright spec: page loaded, a later build's lazy chunk served for one import, the page reloads onto it.
-- [ ] `docs/offline-and-requests.md` A8 notes the guard next to "no long cache on stable-named scripts".
+- [x] `chunkReload` reloads once on that failure and not while an update hold is set (MEM-38 tests extended).
+- [x] A Playwright spec: page loaded, a later build's lazy chunk served for one import, the page reloads onto it.
+- [x] `docs/offline-and-requests.md` A8 notes the guard next to "no long cache on stable-named scripts".

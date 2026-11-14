@@ -2,7 +2,7 @@
 
 # Backlog
 
-The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 187 live: 75 up next, 27 then, 27 waiting, 58 parked.
+The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 187 live: 76 up next, 26 then, 27 waiting, 58 parked.
 
 ## Redact: finish removal
 
@@ -211,6 +211,7 @@ Production errors you can see, small tools that clean up after themselves, and d
 | MEM-46 | P1 | [MEM-46](backlog/tasks/MEM-46.md) · Shared late code that never touches the PDF writer rides in the first-paint files | In progress |
 | MEM-48 | P1 | [MEM-48](backlog/tasks/MEM-48.md) · Pages with an interactive part load their UI glue as one file | In progress |
 | MEM-50 | P1 | [MEM-50](backlog/tasks/MEM-50.md) · A telemetry change no longer needs a rise in the /open/ page budget |  |
+| MEM-51 | P1 | [MEM-51](backlog/tasks/MEM-51.md) · A tab left open across a deploy loads a lazy chunk from the new build beside shared chunks from the old one | In progress |
 | QUAL-54 | P1 | [QUAL-54](backlog/tasks/QUAL-54.md) · The unit jobs stop failing when the runner cannot reach Ubuntu's package servers | In progress |
 | MEM-36 | P2 | [MEM-36](backlog/tasks/MEM-36.md) · Pinned notes are baked into the page at build, not fetched per visit | In progress |
 | MEM-42 | P2 | [MEM-42](backlog/tasks/MEM-42.md) · The rating board's flags come as one file | In progress |
@@ -220,7 +221,6 @@ Production errors you can see, small tools that clean up after themselves, and d
 
 | ID | P | Task | Note |
 | --- | --- | --- | --- |
-| MEM-51 | P1 | [MEM-51](backlog/tasks/MEM-51.md) · A tab left open across a deploy loads a lazy chunk from the new build beside shared chunks from the old one |  |
 | DEBT-47 | P2 | [DEBT-47](backlog/tasks/DEBT-47.md) · Sign's funnel has a clean baseline after the dropzone routing fix |  |
 | DEBT-53 | P2 | [DEBT-53](backlog/tasks/DEBT-53.md) · A Download tapped before the build lands still downloads on an iPhone | Needs Shlomi: A check on your iPhone |
 | MEM-41 | P2 | [MEM-41](backlog/tasks/MEM-41.md) · The bundling and stub guards cannot pass on a half-working build |  |

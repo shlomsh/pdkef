@@ -2,6 +2,7 @@ import { defineConfig } from 'astro/config';
 import preact from '@astrojs/preact';
 import tailwindcss from '@tailwindcss/vite';
 import { analyticsEnv, analyticsOrigin } from './scripts/analyticsOrigin.mjs';
+import { chunkInterfaceGuard } from './scripts/chunkInterfaceGuard.mjs';
 import { entryFileName, chunkFileName, assetFileName, cssAssetKeys, cssModuleClassName, stableChunkNames } from './scripts/stableNames.mjs';
 
 // MEM-37: the client bundles. A module goes into the bundle named for the set of entries that load it, so a
@@ -250,7 +251,7 @@ export default defineConfig({
     // Utilities are available now but nothing in src/**/*.astro consumes
     // them yet — that migration is a separate ticket (E3.2), scoped to the
     // static/marketing surface only, per ARCHITECTURE.md §3.1.
-    plugins: [tailwindcss(), cssAssetKeys, stableChunkNames],
+    plugins: [tailwindcss(), cssAssetKeys, stableChunkNames, chunkInterfaceGuard],
     // The pdf.js worker wrapper (src/lib/pdf/pdfjsWorker.js) is a module worker with a dynamic
     // import inside pdf.js, which the default iife worker format cannot code-split (DEBT-42).
     worker: { format: 'es' },

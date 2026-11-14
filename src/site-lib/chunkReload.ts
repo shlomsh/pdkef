@@ -11,6 +11,13 @@
  * offline is not a deploy, so it does not reload either. A page reports one
  * non-reload outcome and then stays quiet.
  *
+ * MEM-51: a lazy chunk from a newer build can also bind to the shared chunks an
+ * older build already evaluated, because chunk names are stable and only the
+ * export letters differ. scripts/chunkInterfaceGuard.mjs makes the lazy chunk
+ * throw while it evaluates (or fail to link, when the old shared chunk predates
+ * the guard), and that failure is treated like a missing chunk: one reload onto
+ * one build.
+ *
  * Decisions are small pure functions; `installChunkReload` is thin wiring over
  * injected dependencies so it runs against fakes. The reporter loads on demand
  * (appUpdate.ts does the same): every page carries this file, few ever need it.
@@ -23,8 +30,9 @@ const STORAGE_KEY = 'pdkef:chunk-reload-at';
 // Long enough for a navigation that cancelled module loads to unload this page first.
 const SETTLE_MS = 1500;
 
-// Each browser's own wording of a failed dynamic import.
-const IMPORT_FAILURE = /failed to fetch dynamically imported module|importing a module script failed|error loading dynamically imported module/i;
+// Each browser's own wording of a failed dynamic import, then (MEM-51) the guard's own error and the link errors
+// of a shared chunk that has no guard export yet; scripts/chunkInterfaceGuard.mjs owns both names.
+const IMPORT_FAILURE = /failed to fetch dynamically imported module|importing a module script failed|error loading dynamically imported module|pdkef:chunk-interface-mismatch|\bpdkefIface\b/i;
 
 /** @testSeam */
 export function isChunkLoadFailure(reason: unknown): boolean {
