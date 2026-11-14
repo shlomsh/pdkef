@@ -1,10 +1,9 @@
 ---
 id: "MEM-51"
 title: "A tab left open across a deploy loads a lazy chunk from the new build beside shared chunks from the old one"
-status: "in_progress"
+status: "done"
 priority: "P1"
 epic: "robustness"
-horizon: "next"
 depends_on: []
 ---
 
