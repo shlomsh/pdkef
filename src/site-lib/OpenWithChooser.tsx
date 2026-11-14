@@ -42,7 +42,7 @@ function OpenWithChooser({ file: given, arriving = false }: { file?: File; arriv
   useEffect(() => {
     if (!chosen || !file || sending.current) return;
     sending.current = true;
-    void (async () => {
+    const handOver = async () => {
       try {
         const fileBytes = await file.arrayBuffer();
         await sendHandoff(chosen, { fileName: file.name, fileType: 'application/pdf', fileBytes });
@@ -52,7 +52,8 @@ function OpenWithChooser({ file: given, arriving = false }: { file?: File; arriv
         setFailed(true);
         setChosen(null);
       }
-    })();
+    };
+    void handOver(); // reason: handOver catches its own failure and shows the retry line
   }, [chosen, file]);
 
   const choose = (tool: string) => {
