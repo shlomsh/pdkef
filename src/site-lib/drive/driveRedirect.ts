@@ -1,4 +1,11 @@
+import { parseDriveState } from './driveState.ts';
 import type { DriveRedirectReturn } from './types.ts';
+
+/** The Google account an Open with search names, if any: the login hint, and the owner of the token that comes back. */
+function openWithUser(search: string): string | undefined {
+  const state = parseDriveState(search);
+  return state.ok ? state.userId : undefined;
+}
 
 /** The Google sign-in URL for the redirect route. `state` carries the prompt and the search to come back to. */
 export function googleSignInUrl(options: {
@@ -17,6 +24,9 @@ export function googleSignInUrl(options: {
     prompt: options.prompt,
     state: `${options.prompt}|${options.returnSearch}`,
   });
+  // DRIVE-10: an Open with names its account, so a browser signed in to several skips Google's chooser.
+  const user = openWithUser(options.returnSearch);
+  if (user) params.set('login_hint', user);
   return `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`;
 }
 
@@ -31,7 +41,10 @@ export function parseRedirectReturn(hash: string): DriveRedirectReturn {
   return { kind: 'none' };
 }
 
-export function parseRedirectState(state: string): { prompt: string; search: string } {
+export function parseRedirectState(state: string): { prompt: string; search: string; user?: string } {
   const at = state.indexOf('|');
-  return at === -1 ? { prompt: state, search: '' } : { prompt: state.slice(0, at), search: state.slice(at + 1) };
+  if (at === -1) return { prompt: state, search: '' };
+  const search = state.slice(at + 1);
+  const user = openWithUser(search);
+  return { prompt: state.slice(0, at), search, ...(user && { user }) };
 }

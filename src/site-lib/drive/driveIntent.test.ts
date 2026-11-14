@@ -34,6 +34,10 @@ describe('parseDriveIntent', () => {
   it('pick with bad tool and bad return', () => {
     expect(parseDriveIntent('?pick=1&return=//x&tool=Bad_Tool')).toEqual({ kind: 'pick', tool: null, returnTo: '/' });
   });
+  it('open-with carries the Drive userId', () => {
+    const state = JSON.stringify({ ids: ['abcdefghij1'], action: 'open', userId: '42' });
+    expect(parseDriveIntent(`?state=${encodeURIComponent(state)}`)).toEqual({ kind: 'open-with', fileId: 'abcdefghij1', userId: '42' });
+  });
   it('open-with from state', () => {
     const state = JSON.stringify({ ids: ['abcdefghij1'], action: 'open' });
     expect(parseDriveIntent(`?state=${encodeURIComponent(state)}`)).toEqual({ kind: 'open-with', fileId: 'abcdefghij1' });

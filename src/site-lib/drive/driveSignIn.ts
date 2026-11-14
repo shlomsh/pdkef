@@ -14,14 +14,15 @@ function storage(): Storage | null {
   }
 }
 
-export const savedToken = (): string | null => {
+/** `user` is the Drive account an Open with names; a token saved for another account is not handed out. */
+export const savedToken = (user?: string): string | null => {
   const store = storage();
-  return store ? readSavedToken(store, Date.now()) : null;
+  return store ? readSavedToken(store, Date.now(), user) : null;
 };
 
-export const remember = (token: string, expiresInSeconds: number | undefined) => {
+export const remember = (token: string, expiresInSeconds: number | undefined, user?: string) => {
   const store = storage();
-  if (store) saveToken(store, token, expiresInSeconds || FALLBACK_TOKEN_SECONDS, Date.now());
+  if (store) saveToken(store, token, expiresInSeconds || FALLBACK_TOKEN_SECONDS, Date.now(), user);
 };
 
 export const toGoogle = (prompt: 'none' | 'select_account', returnSearch: string) =>
@@ -38,10 +39,10 @@ export const toGoogle = (prompt: 'none' | 'select_account', returnSearch: string
 export function takeRedirectReturn(): { token: string | null; handled: boolean; failed: boolean } {
   const back = parseRedirectReturn(location.hash);
   if (back.kind === 'none') return { token: null, handled: false, failed: false };
-  const { prompt, search } = parseRedirectState(back.state);
+  const { prompt, search, user } = parseRedirectState(back.state);
   history.replaceState(null, '', `/drive/${search}`);
   if (back.kind === 'token') {
-    remember(back.token, back.expiresInSeconds);
+    remember(back.token, back.expiresInSeconds, user);
     return { token: back.token, handled: false, failed: false };
   }
   if (prompt === 'none') {

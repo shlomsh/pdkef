@@ -6,9 +6,12 @@ const search = (state: unknown) => `?state=${encodeURIComponent(typeof state ===
 
 describe('parseDriveState', () => {
   it('reads the file id from an open action', () => {
-    expect(parseDriveState(search({ ids: [ID], action: 'open', userId: '123' }))).toEqual({ ok: true, fileId: ID });
+    expect(parseDriveState(search({ ids: [ID], action: 'open', userId: '123' }))).toEqual({ ok: true, fileId: ID, userId: '123' });
   });
 
+  it('leaves out a userId that is not a string', () => {
+    expect(parseDriveState(search({ ids: [ID], userId: 123 }))).toEqual({ ok: true, fileId: ID });
+  });
   it('accepts a search string without the leading question mark', () => {
     expect(parseDriveState(search({ ids: [ID], action: 'open' }).slice(1))).toEqual({ ok: true, fileId: ID });
   });

@@ -31,3 +31,10 @@ token is remembered too, so the next Open with within the hour needs no tap. Sev
 `DriveOpen.test.tsx`, five red before the fix. The Google button moved to `GoogleSignInButton.tsx` to
 keep `DriveOpen` under its size record. Not yet checked against real Google: whether a token saved on
 one file reads a second file granted later through Open with (expected under `drive.file`).
+
+Second pass, same day: Drive's `userId` now goes to Google as `login_hint` (redirect and popup), so a
+browser signed in to several Google accounts skips the chooser, and a saved token is handed to an Open
+with only for the account it was saved for. The pick and save routes name no account and reuse any
+token as before. A token is labelled with the hinted account; if Google ever authorised another one,
+the first fetch fails, the token is forgotten and the button shows, so a wrong label heals itself.
+

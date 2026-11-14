@@ -10,6 +10,7 @@ type GoogleGlobal = {
       initTokenClient: (config: {
         client_id: string;
         scope: string;
+        login_hint?: string;
         callback: (response: TokenResponse) => void;
         error_callback: (error: { type?: string }) => void;
       }) => TokenClient;
@@ -38,8 +39,9 @@ function loadGsi(): Promise<boolean> {
 }
 
 /** Asks Google for a one-file Drive token. Call it straight from a click: popup blockers and mobile Safari
-    only allow the sign-in window as the direct result of a tap. */
-export async function requestDriveToken(): Promise<DriveTokenResult> {
+    only allow the sign-in window as the direct result of a tap. `loginHint` names the Google account to use,
+    as Drive's Open with does, so a browser signed in to several skips the chooser. */
+export async function requestDriveToken(loginHint?: string): Promise<DriveTokenResult> {
   if (!(await loadGsi())) return { ok: false, error: 'script' };
   const google = (window as unknown as { google?: GoogleGlobal }).google;
   if (!google) return { ok: false, error: 'script' };
@@ -47,6 +49,7 @@ export async function requestDriveToken(): Promise<DriveTokenResult> {
     const client = google.accounts.oauth2.initTokenClient({
       client_id: DRIVE_CLIENT_ID,
       scope: DRIVE_SCOPE,
+      ...(loginHint && { login_hint: loginHint }),
       callback: (response) =>
         resolve(response.access_token && !response.error
           ? { ok: true, token: response.access_token, expiresInSeconds: Number(response.expires_in) || undefined }

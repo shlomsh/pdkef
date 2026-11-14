@@ -35,7 +35,6 @@ export function parseDriveIntent(search: string): DriveIntent {
   }
   const state = parseDriveState(search);
   if (!state.ok) return { kind: 'none' };
-  return state.resourceKey === undefined
-    ? { kind: 'open-with', fileId: state.fileId }
-    : { kind: 'open-with', fileId: state.fileId, resourceKey: state.resourceKey };
+  const { ok: _ok, ...file } = state;
+  return { kind: 'open-with', ...file };
 }

@@ -18,7 +18,7 @@ export function parseDriveState(search: string): DriveState {
   }
   if (typeof state !== 'object' || state === null) return malformed;
 
-  const { ids, action, resourceKeys } = state as Record<string, unknown>;
+  const { ids, action, resourceKeys, userId } = state as Record<string, unknown>;
   if (!Array.isArray(ids) || ids.length === 0 || !ids.every((id) => typeof id === 'string')) return malformed;
   if (action !== undefined && action !== 'open') return { ok: false, reason: 'not-open' };
 
@@ -26,5 +26,10 @@ export function parseDriveState(search: string): DriveState {
   if (!FILE_ID.test(fileId)) return malformed;
 
   const key = typeof resourceKeys === 'object' && resourceKeys !== null ? (resourceKeys as Record<string, unknown>)[fileId] : undefined;
-  return typeof key === 'string' ? { ok: true, fileId, resourceKey: key } : { ok: true, fileId };
+  return {
+    ok: true,
+    fileId,
+    ...(typeof key === 'string' && { resourceKey: key }),
+    ...(typeof userId === 'string' && userId && { userId }),
+  };
 }

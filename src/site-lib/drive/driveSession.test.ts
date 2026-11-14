@@ -42,6 +42,19 @@ describe('driveSession', () => {
     s.setItem('pdkef-drive-token', JSON.stringify({ token: 1, until: 'x' }));
     expect(readSavedToken(s, 0)).toBeNull();
   });
+  it('gives a token only to the account it was saved for, when an account is asked for', () => {
+    const s = memory();
+    saveToken(s, 'tok', 3600, 0, 'a');
+    expect(readSavedToken(s, 0, 'a')).toBe('tok');
+    expect(readSavedToken(s, 0, 'b')).toBeNull();
+    expect(readSavedToken(s, 0)).toBe('tok');
+  });
+  it('does not give a token saved without an account to a named account', () => {
+    const s = memory();
+    saveToken(s, 'tok', 3600, 0);
+    expect(readSavedToken(s, 0, 'a')).toBeNull();
+    expect(readSavedToken(s, 0)).toBe('tok');
+  });
   it('forgets', () => {
     const s = memory();
     saveToken(s, 'tok', 3600, 0);

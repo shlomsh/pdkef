@@ -1,8 +1,8 @@
 // MERGE-25: the contract between the pieces of the Drive app. Pure types, no behaviour.
 
-/** What Drive puts in `?state=` when someone picks "Open with > PDkef". */
+/** What Drive puts in `?state=` when someone picks "Open with > PDkef". `userId` is the Google account that opened it. */
 export type DriveState =
-  | { ok: true; fileId: string; resourceKey?: string }
+  | { ok: true; fileId: string; resourceKey?: string; userId?: string }
   | { ok: false; reason: 'missing' | 'malformed' | 'not-open' };
 
 export type DriveFileError = 'unauthorized' | 'not-found' | 'not-pdf' | 'network';
@@ -20,12 +20,16 @@ export type DriveRoute = 'redirect' | 'popup';
 
 /** What a visit to /drive/ is for. `returnTo` is always a same-origin path; `tool` is null for the home page. */
 export type DriveIntent =
-  | { kind: 'open-with'; fileId: string; resourceKey?: string }
+  | ({ kind: 'open-with' } & DriveOpenWithFile)
   | { kind: 'pick'; tool: string | null; returnTo: string }
   | { kind: 'save'; id: string }
   | { kind: 'none' };
 
-export type SavedDriveToken = { token: string; until: number };
+/** The file an Open with names, and the Google account that opened it. */
+export type DriveOpenWithFile = { fileId: string; resourceKey?: string; userId?: string };
+
+/** `user` is the Drive account the token was asked for, when one was named. */
+export type SavedDriveToken = { token: string; until: number; user?: string };
 
 /** What Google put in the fragment when it sent the person back. `state` is the string we gave it. */
 export type DriveRedirectReturn =

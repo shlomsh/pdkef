@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { googleSignInUrl, parseRedirectReturn, parseRedirectState } from './driveRedirect.ts';
 
+const OPEN_WITH = `?state=${encodeURIComponent(JSON.stringify({ ids: ['abcdefghij1'], action: 'open', userId: '42' }))}`;
+
 describe('googleSignInUrl', () => {
   it('builds the auth url', () => {
     const url = new URL(
@@ -15,6 +17,13 @@ describe('googleSignInUrl', () => {
     expect(p.get('include_granted_scopes')).toBe('true');
     expect(p.get('prompt')).toBe('none');
     expect(p.get('state')).toBe('none|?pick=1');
+    expect(p.has('login_hint')).toBe(false);
+  });
+  it('names the Open with account as the login hint', () => {
+    const url = new URL(
+      googleSignInUrl({ clientId: 'cid', scope: 's', redirectUri: 'https://x.test/drive/', prompt: 'none', returnSearch: OPEN_WITH }),
+    );
+    expect(url.searchParams.get('login_hint')).toBe('42');
   });
 });
 
@@ -49,5 +58,11 @@ describe('parseRedirectState', () => {
   });
   it('handles no bar', () => {
     expect(parseRedirectState('none')).toEqual({ prompt: 'none', search: '' });
+  });
+  it('names the account of an Open with search, so its token is saved for that account', () => {
+    expect(parseRedirectState(`none|${OPEN_WITH}`)).toEqual({ prompt: 'none', search: OPEN_WITH, user: '42' });
+  });
+  it('names no account for a pick', () => {
+    expect(parseRedirectState('none|?pick=1')).toEqual({ prompt: 'none', search: '?pick=1' });
   });
 });

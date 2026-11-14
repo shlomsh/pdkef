@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'preact/hooks';
 import { fetchDriveFile } from './drive/driveClient.ts';
 import { requestDriveToken } from './drive/googleToken.ts';
 import { canRetry, driveMessage, pickerLabels, type DriveFailure } from './drive/driveMessages.ts';
+import type { DriveOpenWithFile } from './drive/types.ts';
 import { DRIVE_HOME_HANDOFF, parseDriveIntent } from './drive/driveIntent.ts';
 import { driveRouteFor } from './drive/driveRoute.ts';
 import { forgetSaved, remember, savedToken, takeRedirectReturn, toGoogle } from './drive/driveSignIn.ts';
@@ -23,7 +24,7 @@ type Pick = { tool: string | null; returnTo: string };
 type Phase =
   | { name: 'loading' }
   | { name: 'no-state' }
-  | { name: 'ready'; fileId: string; resourceKey?: string }
+  | { name: 'ready'; file: DriveOpenWithFile }
   | { name: 'pick-ready'; pick: Pick }
   | { name: 'working' }
   | { name: 'error'; failure: DriveFailure; retry: (() => void) | null; returnTo: string | null }
@@ -78,11 +79,11 @@ function DriveOpen() {
     const intent = parseDriveIntent(location.search);
     if (intent.kind === 'open-with') {
       // DRIVE-10: a token in hand opens the file with no screen; desktop Chrome gets one quietly by redirect.
-      const { fileId, resourceKey } = intent;
-      const token = back.token ?? savedToken();
-      if (token) return void openWith(token, fileId, resourceKey, false);
+      const { kind: _kind, ...file } = intent;
+      const token = back.token ?? savedToken(file.userId);
+      if (token) return void openWith(token, file, false);
       if (!back.failed && driveRouteFor(navigator.userAgent) === 'redirect') return toGoogle('none', location.search);
-      return setPhase({ name: 'ready', fileId, resourceKey });
+      return setPhase({ name: 'ready', file });
     }
     if (intent.kind === 'none') return setPhase({ name: 'no-state' });
     if (intent.kind === 'save') return setSave({ id: intent.id, failed: back.failed });
@@ -100,23 +101,23 @@ function DriveOpen() {
 
   // A token that was saved or came back from the redirect falls back to the button when Google refuses it,
   // never to another redirect, so a bad token cannot loop. A token from a tap shows the failure instead.
-  const openWith = async (token: string, fileId: string, resourceKey: string | undefined, fromTap: boolean) => {
+  const openWith = async (token: string, file: DriveOpenWithFile, fromTap: boolean) => {
     setPhase({ name: 'working' });
-    const result = await fetchDriveFile(fetch, token, { fileId, resourceKey });
+    const result = await fetchDriveFile(fetch, token, { fileId: file.fileId, resourceKey: file.resourceKey });
     if (result.ok) return setPhase({ name: 'chooser', file: new File([result.bytes], result.name, { type: 'application/pdf' }) });
     if (result.error === 'unauthorized') forgetSaved();
-    if (!fromTap && (result.error === 'unauthorized' || result.error === 'not-found')) return setPhase({ name: 'ready', fileId, resourceKey });
-    setPhase({ name: 'error', failure: result.error, returnTo: null, retry: () => void start(fileId, resourceKey) });
+    if (!fromTap && (result.error === 'unauthorized' || result.error === 'not-found')) return setPhase({ name: 'ready', file });
+    setPhase({ name: 'error', failure: result.error, returnTo: null, retry: () => void start(file) });
   };
 
-  const start = async (fileId: string, resourceKey?: string) => {
+  const start = async (file: DriveOpenWithFile) => {
     if (starting.current) return;
     starting.current = true; // set before the first await so the token popup still opens inside the tap
     try {
-      const token = await requestDriveToken();
-      if (!token.ok) return setPhase({ name: 'error', failure: token.error, returnTo: null, retry: () => void start(fileId, resourceKey) });
-      remember(token.token, token.expiresInSeconds); // the next Open with, within the hour, needs no tap
-      await openWith(token.token, fileId, resourceKey, true);
+      const token = await requestDriveToken(file.userId);
+      if (!token.ok) return setPhase({ name: 'error', failure: token.error, returnTo: null, retry: () => void start(file) });
+      remember(token.token, token.expiresInSeconds, file.userId); // the next Open with, within the hour, needs no tap
+      await openWith(token.token, file, true);
     } finally {
       starting.current = false;
     }
@@ -164,11 +165,10 @@ function DriveOpen() {
       </div>
     );
   }
-  const { fileId, resourceKey } = phase;
   return (
     <div class={styles.panel}>
       <p class={styles.lead}>PDkef asks Google for access to this one file. It goes from Google Drive to this device and nowhere else.</p>
-      <GoogleSignInButton onClick={() => void start(fileId, resourceKey)} />
+      <GoogleSignInButton onClick={() => void start(phase.file)} />
     </div>
   );
 }

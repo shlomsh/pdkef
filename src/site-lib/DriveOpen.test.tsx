@@ -11,7 +11,7 @@ vi.mock('./drive/googleToken.ts', () => ({ requestDriveToken: vi.fn() }));
 vi.mock('./drive/driveClient.ts', () => ({ fetchDriveFile: vi.fn() }));
 vi.mock('./drive/driveIntent.ts', () => ({
   DRIVE_HOME_HANDOFF: 'drive-home',
-  parseDriveIntent: () => ({ kind: 'open-with', fileId: 'abc123' }),
+  parseDriveIntent: () => ({ kind: 'open-with', fileId: 'abc123', userId: 'u1' }),
 }));
 vi.mock('./drive/driveSignIn.ts', () => ({
   savedToken: vi.fn(),
@@ -127,7 +127,27 @@ describe('DriveOpen', () => {
     await flush();
     act(() => { button(container)!.click(); });
     await flush();
-    expect(remember).toHaveBeenCalledWith('popped', 3599);
+    expect(remember).toHaveBeenCalledWith('popped', 3599, 'u1');
     expect(container.textContent).toContain('chooser');
+  });
+
+  // DRIVE-10: the account Drive names is the one every sign-in asks for, and the only one a saved token serves.
+  it('looks up only the Drive account\'s saved token before the quiet redirect', async () => {
+    vi.mocked(driveRouteFor).mockReturnValue('redirect');
+    act(() => render(<DriveOpen />, container));
+    await flush();
+    expect(savedToken).toHaveBeenCalledWith('u1');
+    expect(toGoogle).toHaveBeenCalledWith('none', location.search); // the hint is read from this search, see driveRedirect.test.ts
+  });
+
+  it('hints the Drive account to the popup and remembers its token for that account', async () => {
+    vi.mocked(requestDriveToken).mockResolvedValue({ ok: true, token: 'popped', expiresInSeconds: 3599 });
+    vi.mocked(fetchDriveFile).mockResolvedValue(PDF);
+    act(() => render(<DriveOpen />, container));
+    await flush();
+    act(() => { button(container)!.click(); });
+    await flush();
+    expect(requestDriveToken).toHaveBeenCalledWith('u1');
+    expect(remember).toHaveBeenCalledWith('popped', 3599, 'u1');
   });
 });
