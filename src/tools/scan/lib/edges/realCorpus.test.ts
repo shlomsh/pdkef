@@ -6,6 +6,7 @@ import { readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import type { Quad } from '#lib/pageEnhance/quad.ts';
 import { corpus } from './corpus.ts';
+import { detectPage } from './detect.ts';
 import { guessCorners } from './index.ts';
 import { formatKpiTable, scoreDetector, TOLERANCES, type KpiCase, type KpiResult } from './kpi.ts';
 import { parsePgm } from './real/pgm.ts';
@@ -20,7 +21,7 @@ const RATE_SLACK = 0.005;
 const ERROR_SLACK = 0.002;
 
 interface Label { corners: number[][] | null; conditions: string[]; source: string }
-interface Baseline { real: KpiResult; synthetic: KpiResult }
+interface Baseline { real: KpiResult; synthetic: KpiResult; cameraReal: KpiResult; cameraSynthetic: KpiResult }
 
 function loadReal(): { cases: KpiCase[]; problems: string[] } {
   const labels = JSON.parse(readFileSync(new URL('labels.json', dir), 'utf8')) as Record<string, Label>;
@@ -61,6 +62,8 @@ function regressions(got: KpiResult, base: KpiResult): string[] {
 }
 
 const score = (cases: KpiCase[]) => scoreDetector(cases, (img) => guessCorners(img));
+/** The live camera's finder, scored on the same cases. */
+const scoreCamera = (cases: KpiCase[]) => scoreDetector(cases, (img) => detectPage(img).quad);
 // @ts-expect-error -- no Node ambient types here (see the fs import).
 const update = process.env.UPDATE_BASELINE === '1';
 const measured: Partial<Baseline> = {};
@@ -78,6 +81,13 @@ describe('page detection KPIs, real photos', () => {
     console.log(`\nReal photos\n${formatKpiTable(result)}`);
     if (!update) expect(regressions(result, (JSON.parse(readFileSync(BASELINE, 'utf8')) as Baseline).real)).toEqual([]);
   });
+
+  it('does not regress against the baseline, camera finder', () => {
+    const result = scoreCamera(cases);
+    measured.cameraReal = result;
+    console.log(`\nReal photos, camera detectPage\n${formatKpiTable(result)}`);
+    if (!update) expect(regressions(result, (JSON.parse(readFileSync(BASELINE, 'utf8')) as Baseline).cameraReal)).toEqual([]);
+  });
 });
 
 describe('page detection KPIs, synthetic corpus', () => {
@@ -85,7 +95,14 @@ describe('page detection KPIs, synthetic corpus', () => {
     const result = score(syntheticCases());
     measured.synthetic = result;
     console.log(`\nSynthetic scenes\n${formatKpiTable(result)}`);
+    if (!update) expect(regressions(result, (JSON.parse(readFileSync(BASELINE, 'utf8')) as Baseline).synthetic)).toEqual([]);
+  }, 30_000);
+
+  it('does not regress against the baseline, camera finder', () => {
+    const result = scoreCamera(syntheticCases());
+    measured.cameraSynthetic = result;
+    console.log(`\nSynthetic scenes, camera detectPage\n${formatKpiTable(result)}`);
     if (update) writeFileSync(BASELINE, `${JSON.stringify(measured, null, 2)}\n`);
-    else expect(regressions(result, (JSON.parse(readFileSync(BASELINE, 'utf8')) as Baseline).synthetic)).toEqual([]);
+    else expect(regressions(result, (JSON.parse(readFileSync(BASELINE, 'utf8')) as Baseline).cameraSynthetic)).toEqual([]);
   }, 30_000);
 });

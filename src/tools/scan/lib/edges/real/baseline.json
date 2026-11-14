@@ -16,7 +16,38 @@
       "low-contrast": 1
     }
   },
+  "cameraReal": {
+    "n": 2,
+    "found": {
+      "0.02": 1,
+      "0.035": 1,
+      "0.08": 1
+    },
+    "medianError": 0.01042556735842131,
+    "maxError": 0.010896519287780945,
+    "medianIou": 0.9762778856450562,
+    "confidentlyWrong": 0,
+    "nullOnNoPage": null,
+    "byCondition": {
+      "lap": 1,
+      "low-contrast": 1
+    }
+  },
   "synthetic": {
+    "n": 18,
+    "found": {
+      "0.02": 1,
+      "0.035": 1,
+      "0.08": 1
+    },
+    "medianError": 0.001945506044623617,
+    "maxError": 0.006387345091978525,
+    "medianIou": 0.9913826685127065,
+    "confidentlyWrong": 0,
+    "nullOnNoPage": null,
+    "byCondition": {}
+  },
+  "cameraSynthetic": {
     "n": 18,
     "found": {
       "0.02": 1,
