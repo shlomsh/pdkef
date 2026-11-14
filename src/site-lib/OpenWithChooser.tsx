@@ -16,11 +16,15 @@ const CHOICES = [
   { tool: 'scan-to-pdf', name: 'Scan', label: 'Straighten it', note: 'Clean up a crooked scan' },
 ] as const;
 
-function OpenWithChooser({ initialFile }: { initialFile?: File }) {
-  const [file, setFile] = useState<File | null>(initialFile ?? null);
-  const [busy, setBusy] = useState(false);
+/* `file` and `arriving` are /drive/'s way in (DRIVE-11): the choice shows while the file is still downloading,
+   and a tool picked early opens the moment the file lands. The installed app passes neither and uses launchQueue. */
+function OpenWithChooser({ file: given, arriving = false }: { file?: File; arriving?: boolean }) {
+  const [launched, setLaunched] = useState<File | null>(null);
+  const [chosen, setChosen] = useState<string | null>(null);
   const [failed, setFailed] = useState(false);
   const latestLaunch = useRef(0);
+  const sending = useRef(false); // a second file launching mid-hand-off must not send a second one
+  const file = given ?? launched;
 
   useEffect(() => {
     const launchQueue = (window as any).launchQueue;
@@ -30,25 +34,34 @@ function OpenWithChooser({ initialFile }: { initialFile?: File }) {
       const pdf = await pdfFromLaunch(params);
       if (launch !== latestLaunch.current || !pdf) return;
       setFailed(false);
-      setFile(pdf);
+      setLaunched(pdf);
     });
   }, []);
 
-  const choose = async (tool: string) => {
-    if (!file || busy) return;
-    setBusy(true);
+  // The hand-off needs both a choice and the file; either may come first.
+  useEffect(() => {
+    if (!chosen || !file || sending.current) return;
+    sending.current = true;
+    void (async () => {
+      try {
+        const fileBytes = await file.arrayBuffer();
+        await sendHandoff(chosen, { fileName: file.name, fileType: 'application/pdf', fileBytes });
+      } catch {
+        // expected: saveHandoff reports its own failure; the person gets a line and can try again
+        sending.current = false;
+        setFailed(true);
+        setChosen(null);
+      }
+    })();
+  }, [chosen, file]);
+
+  const choose = (tool: string) => {
+    if (chosen) return;
     setFailed(false);
-    try {
-      const fileBytes = await file.arrayBuffer();
-      await sendHandoff(tool, { fileName: file.name, fileType: 'application/pdf', fileBytes });
-    } catch {
-      // expected: saveHandoff reports its own failure; the person gets a line and can try again
-      setFailed(true);
-      setBusy(false);
-    }
+    setChosen(tool);
   };
 
-  if (!file) {
+  if (!file && !arriving) {
     return (
       <div class={styles.chooser}>
         <p class={styles.lead}>Pick a tool, then add your PDF there.</p>
@@ -64,16 +77,18 @@ function OpenWithChooser({ initialFile }: { initialFile?: File }) {
   return (
     <div class={styles.chooser}>
       <p class={styles.lead}>
-        <span class={styles.fileName} dir="ltr">{file.name}</span> is ready. What would you like to do with it?
+        {file ? <><span class={styles.fileName} dir="ltr">{file.name}</span> is ready.</> : 'Your file is on its way.'}
+        {' '}What would you like to do with it?
       </p>
       <div class={styles.choices}>
         {CHOICES.map(({ tool, label, note }) => (
-          <button type="button" class={styles.choice} disabled={busy} onClick={() => choose(tool)}>
+          <button type="button" class={styles.choice} disabled={chosen !== null} data-chosen={chosen === tool || undefined} onClick={() => choose(tool)}>
             <strong>{label}</strong>
             <span>{note}</span>
           </button>
         ))}
       </div>
+      {chosen && !file && <p class={styles.lead} role="status">It opens as soon as it arrives.</p>}
       {failed && <p class={styles.error} role="alert">That did not open. Please try again.</p>}
     </div>
   );

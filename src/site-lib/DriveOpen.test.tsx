@@ -21,7 +21,9 @@ vi.mock('./drive/driveSignIn.ts', () => ({
   takeRedirectReturn: vi.fn(),
 }));
 vi.mock('./drive/driveRoute.ts', () => ({ driveRouteFor: vi.fn() }));
-vi.mock('./OpenWithChooser.tsx', () => ({ default: () => <p>chooser</p> }));
+vi.mock('./OpenWithChooser.tsx', () => ({
+  default: ({ file, arriving }: { file?: File; arriving?: boolean }) => <p>chooser {file ? `has ${file.name}` : arriving ? 'arriving' : 'empty'}</p>,
+}));
 
 const PDF = { ok: true, name: 'a.pdf', mimeType: 'application/pdf', bytes: new ArrayBuffer(4) } as never;
 const NO_RETURN = { token: null, handled: false, failed: false };
@@ -149,5 +151,33 @@ describe('DriveOpen', () => {
     await flush();
     expect(requestDriveToken).toHaveBeenCalledWith('u1');
     expect(remember).toHaveBeenCalledWith('popped', 3599, 'u1');
+  });
+
+  // DRIVE-11: the choice does not wait for the download.
+  it('shows the tool choice while the file is still downloading, then gives it the file', async () => {
+    vi.mocked(savedToken).mockReturnValue('saved');
+    let arrive!: (value: never) => void;
+    vi.mocked(fetchDriveFile).mockReturnValue(new Promise((resolve) => { arrive = resolve; }));
+    act(() => render(<DriveOpen />, container));
+    await flush();
+    expect(container.textContent).toContain('chooser arriving');
+
+    arrive(PDF);
+    await flush();
+    expect(container.textContent).toContain('chooser has a.pdf');
+  });
+
+  it('leaves the choice for the button when the download is refused', async () => {
+    vi.mocked(savedToken).mockReturnValue('stale');
+    let arrive!: (value: { ok: false; error: 'unauthorized' }) => void;
+    vi.mocked(fetchDriveFile).mockReturnValue(new Promise((resolve) => { arrive = resolve; }));
+    act(() => render(<DriveOpen />, container));
+    await flush();
+    expect(container.textContent).toContain('chooser arriving');
+
+    arrive({ ok: false, error: 'unauthorized' });
+    await flush();
+    expect(container.textContent).not.toContain('chooser');
+    expect(button(container)?.textContent).toContain('Sign in with Google');
   });
 });

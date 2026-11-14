@@ -28,7 +28,7 @@ type Phase =
   | { name: 'pick-ready'; pick: Pick }
   | { name: 'working' }
   | { name: 'error'; failure: DriveFailure; retry: (() => void) | null; returnTo: string | null }
-  | { name: 'chooser'; file: File };
+  | { name: 'chooser'; file: File | null }; // null while the Open with file is still downloading (DRIVE-11)
 
 function DriveOpen() {
   const [phase, setPhase] = useState<Phase>({ name: 'loading' });
@@ -102,7 +102,7 @@ function DriveOpen() {
   // A token that was saved or came back from the redirect falls back to the button when Google refuses it,
   // never to another redirect, so a bad token cannot loop. A token from a tap shows the failure instead.
   const openWith = async (token: string, file: DriveOpenWithFile, fromTap: boolean) => {
-    setPhase({ name: 'working' });
+    setPhase({ name: 'chooser', file: null }); // DRIVE-11: the choice does not wait for the download
     const result = await fetchDriveFile(fetch, token, { fileId: file.fileId, resourceKey: file.resourceKey });
     if (result.ok) return setPhase({ name: 'chooser', file: new File([result.bytes], result.name, { type: 'application/pdf' }) });
     if (result.error === 'unauthorized') forgetSaved();
@@ -125,7 +125,7 @@ function DriveOpen() {
 
   if (save) return <DriveSave id={save.id} failed={save.failed} />;
   if (phase.name === 'loading') return null;
-  if (phase.name === 'chooser') return <OpenWithChooser initialFile={phase.file} />;
+  if (phase.name === 'chooser') return <OpenWithChooser file={phase.file ?? undefined} arriving={!phase.file} />;
   if (phase.name === 'no-state') {
     return (
       <div class={styles.panel}>

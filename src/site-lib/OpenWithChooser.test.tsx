@@ -101,4 +101,50 @@ describe('OpenWithChooser', () => {
     expect(container!.querySelector('[role="alert"]')).toBeTruthy();
     expect(button('Sign').disabled).toBe(false);
   });
+
+  it('sends one hand-off when a second file launches while the first is being handed over', async () => {
+    vi.mocked(sendHandoff).mockReturnValueOnce(new Promise(() => {}));
+    await launch(pdf('first.pdf'));
+    await act(async () => { button('Sign').click(); });
+    await flush();
+    await launch(pdf('second.pdf'));
+    await flush();
+    expect(sendHandoff).toHaveBeenCalledTimes(1);
+  });
+
+  // DRIVE-11: /drive/ shows the choice while the file is still downloading.
+  describe('with a file on its way', () => {
+    const show = (file?: File) => act(() => render(<OpenWithChooser file={file} arriving={!file} />, container!));
+
+    it('offers every tool at once, before the file has arrived', () => {
+      show();
+      expect(container!.querySelectorAll('button')).toHaveLength(5);
+      expect(button('Sign').disabled).toBe(false);
+      expect(container!.querySelectorAll('a')).toHaveLength(0);
+    });
+
+    it('holds an early choice, then hands the file over the moment it arrives', async () => {
+      show();
+      await act(async () => { button('Redact').click(); });
+      await flush();
+      expect(sendHandoff).not.toHaveBeenCalled();
+      expect(container!.querySelector('[role="status"]')).toBeTruthy();
+      expect(button('Sign').disabled).toBe(true);
+
+      show(pdf('late.pdf'));
+      await flush();
+      expect(sendHandoff).toHaveBeenCalledTimes(1);
+      const [target, payload] = vi.mocked(sendHandoff).mock.calls[0];
+      expect(target).toBe('redact');
+      expect(payload).toMatchObject({ fileName: 'late.pdf' });
+    });
+
+    it('names the file once it arrives and waits for a choice', async () => {
+      show();
+      show(pdf('late.pdf'));
+      await flush();
+      expect(container!.textContent).toContain('late.pdf');
+      expect(sendHandoff).not.toHaveBeenCalled();
+    });
+  });
 });

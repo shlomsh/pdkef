@@ -13,5 +13,6 @@
 .choice span { font-size: 0.8rem; color: var(--color-muted); text-align: center; }
 .choices > .choice:hover:not(:disabled), .choices > .choice:focus-visible:not(:disabled) { border-color: var(--color-primary); transform: translateY(-2px) rotate(0); }
 .choice:disabled { opacity: 0.6; cursor: default; }
+.choice[data-chosen] { opacity: 1; border-color: var(--color-primary); }
 .error { margin: 0; color: var(--color-danger-ink); font-size: 0.9rem; }
 @media (max-width: 380px) { .choices { grid-template-columns: 1fr; } }
