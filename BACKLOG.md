@@ -2,7 +2,7 @@
 
 # Backlog
 
-The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 183 live: 75 up next, 24 then, 27 waiting, 57 parked.
+The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 184 live: 75 up next, 25 then, 27 waiting, 57 parked.
 
 ## Redact: finish removal
 
@@ -217,6 +217,7 @@ Production errors you can see, small tools that clean up after themselves, and d
 
 | ID | P | Task | Note |
 | --- | --- | --- | --- |
+| MEM-51 | P1 | [MEM-51](backlog/tasks/MEM-51.md) · A tab left open across a deploy loads a lazy chunk from the new build beside shared chunks from the old one |  |
 | DEBT-47 | P2 | [DEBT-47](backlog/tasks/DEBT-47.md) · Sign's funnel has a clean baseline after the dropzone routing fix |  |
 | DEBT-53 | P2 | [DEBT-53](backlog/tasks/DEBT-53.md) · A Download tapped before the build lands still downloads on an iPhone | Needs Shlomi: A check on your iPhone |
 | MEM-41 | P2 | [MEM-41](backlog/tasks/MEM-41.md) · The bundling and stub guards cannot pass on a half-working build |  |
