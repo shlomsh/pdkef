@@ -119,7 +119,7 @@
     "appium": "3.9.0",
     "esbuild": "^0.28.2",
     "fake-indexeddb": "^6.2.7",
-    "jsdom": "^30.1.3",
+    "jsdom": "^31.0.0",
     "nx": "24.0.2",
     "patch-package": "^8.0.1",
     "tailwindcss": "^4.3.2",
