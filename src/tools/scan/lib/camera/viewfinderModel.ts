@@ -68,9 +68,12 @@ const HINT_KEYS: Record<Hint, keyof HintWords> = {
   flatter: 'hintFlatter',
 };
 
-/** The hint's words, with the page count filled in where they take one ("Page {count}. Turn the page."). */
+/** The hint's words, with the page count filled in where they take one ("Page {count}. Turn the page.").
+ * With no page taken yet (auto off, the machine waiting on a page nobody took) there is nothing to turn: it reads as
+ * pointing at one (SCAN-37). */
 export function hintText(hint: Hint, count: number, words: HintWords): string {
-  return formatMessage(words[HINT_KEYS[hint]], { count });
+  const shown = hint === 'turn' && count < 1 ? 'point' : hint;
+  return formatMessage(words[HINT_KEYS[shown]], { count });
 }
 
 /** Where the whole video frame lands in a box under object-fit: cover. */

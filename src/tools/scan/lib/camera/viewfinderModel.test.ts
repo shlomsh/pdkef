@@ -78,6 +78,10 @@ describe('hintText', () => {
     expect(hintText('turn', 3, words)).toBe('Page 3. Turn the page.');
   });
 
+  it('SCAN-37: with no page taken yet there is nothing to turn, so the turn hint reads as pointing', () => {
+    expect(hintText('turn', 0, words)).toBe('Point');
+  });
+
   it('has words for every guidance hint', () => {
     expect(['duplicate', 'fit', 'closer', 'contrast', 'flatter'].map((h) => hintText(h as Parameters<typeof hintText>[0], 1, words)))
       .toEqual(['Taken', 'Fit', 'Closer', 'Darker', 'Flatter']);
