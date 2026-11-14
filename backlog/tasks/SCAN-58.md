@@ -1,10 +1,9 @@
 ---
 id: "SCAN-58"
 title: "A camera shot that fails is not counted as taken"
-status: "open"
+status: "done"
 priority: "P2"
 epic: "scan-next"
-horizon: "next"
 depends_on: []
 ---
 
@@ -23,3 +22,9 @@ depends_on: []
 `captureMachine.ts` writes `takenHashes` when the machine fires, before the shot resolves. When the shot fails,
 `useCamera` only calls `reportError`. The hint says to turn the page, the stack count stays put, and showing the
 page again says it is already taken. Only the manual shutter gets out of it.
+
+## Done, 2026-11-14
+
+`attemptShot` in `useCamera.ts` puts the machine back to the pages actually kept when a shot fails, and a frame the
+machine fired on while a shot was under way does the same. `useCamera.test.ts` covers a failed shutter shot, a failed
+auto shot, and a kept shot staying remembered; the first two were seen failing first.

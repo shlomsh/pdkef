@@ -147,7 +147,6 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 - [COMP-03](backlog/tasks/COMP-03.md) · A check on your iPhone
 - [MERGE-28](backlog/tasks/MERGE-28.md) · Evidence that people want it, and your sign-off on a wider Google exception
 - [READ-07](backlog/tasks/READ-07.md) · An iPhone check
-- [SCAN-59](backlog/tasks/SCAN-59.md) · The wording for a password-protected PDF, or a yes to sending it through Unlock
 - [SCAN-64](backlog/tasks/SCAN-64.md) · A decision on each
 - [SITE-45](backlog/tasks/SITE-45.md) · Pick which pitches below to build (step 1)
 

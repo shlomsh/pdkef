@@ -1,10 +1,9 @@
 ---
 id: "SCAN-60"
 title: "Late work leaves removed pages and moved corners alone"
-status: "open"
+status: "done"
 priority: "P3"
 epic: "scan-next"
-horizon: "later"
 depends_on: []
 ---
 
@@ -19,3 +18,9 @@ test seen failing, and drop any that cannot be made to fail.
   worker message landing before the next render writes `work.results` and two object URLs for a removed page.
 - Find the page does not replace corners the person moved while it waited in the queue.
 - A turned preview that fails to draw leaves a way forward. `useScanView` only reports the error, and the corners box stays blank.
+
+## Done, 2026-11-14
+
+All three were made to fail first: `adoptResult` skips removed pages, Find the page only applies its guess while the
+corners are still the ones it started from, and a turned preview that fails falls back to the unturned photo so the
+corners box is never blank.

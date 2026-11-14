@@ -2,7 +2,7 @@
 
 # Backlog
 
-The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 187 live: 75 up next, 25 then, 27 waiting, 60 parked.
+The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 184 live: 75 up next, 24 then, 27 waiting, 58 parked.
 
 ## Redact: finish removal
 
@@ -118,7 +118,6 @@ The camera takes pages, the table fixes them, Share sends them. The table first 
 | --- | --- | --- | --- |
 | SCAN-20 | P2 | [SCAN-20](backlog/tasks/SCAN-20.md) · Scan next: a real-photo dewarp corpus with a straightness score |  |
 | SCAN-22 | P3 | [SCAN-22](backlog/tasks/SCAN-22.md) · Scan next: measure the bend at a higher resolution, so a crease's tip goes too |  |
-| SCAN-58 | P2 | [SCAN-58](backlog/tasks/SCAN-58.md) · A camera shot that fails is not counted as taken |  |
 | SCAN-70 | P2 | [SCAN-70](backlog/tasks/SCAN-70.md) · A colour flyer is found by its edges, not by the photo printed inside it |  |
 
 ### Parked
@@ -137,8 +136,6 @@ The camera takes pages, the table fixes them, Share sends them. The table first 
 | SCAN-10 | P3 | [SCAN-10](backlog/tasks/SCAN-10.md) · Scan next: evaluate a small learned page detector behind the same contract |  |
 | SCAN-31 | P3 | [SCAN-31](backlog/tasks/SCAN-31.md) · The Scan guide's image generator follows the rewritten phone flow |  |
 | SCAN-52 | P3 | [SCAN-52](backlog/tasks/SCAN-52.md) · Scan's pages use the shared page grid |  |
-| SCAN-59 | P3 | [SCAN-59](backlog/tasks/SCAN-59.md) · A PDF Scan cannot read says why, and every such file is named | Needs Shlomi: The wording for a password-protected PDF, or a yes to sending it through Unlock |
-| SCAN-60 | P3 | [SCAN-60](backlog/tasks/SCAN-60.md) · Late work leaves removed pages and moved corners alone |  |
 | SCAN-61 | P3 | [SCAN-61](backlog/tasks/SCAN-61.md) · Scan's specs wait on real conditions |  |
 | SCAN-63 | P3 | [SCAN-63](backlog/tasks/SCAN-63.md) · Scan's pages say where they came from, and its callbacks read live inputs |  |
 | SCAN-64 | P3 | [SCAN-64](backlog/tasks/SCAN-64.md) · Two choices for Scan: the shared Undo stack, and Compress on phones | Needs Shlomi: A decision on each |
@@ -374,7 +371,7 @@ Done and retired tickets are not listed. Their files stay in [backlog/tasks/](ba
 - Redact: finish removal: 29 done, 1 retired
 - Sign: finish fill mode: 4 done, 1 retired
 - Highlight PDF: a tool for reading: 12 done, 1 retired
-- Scan: camera to WhatsApp: 15 done, 0 retired
+- Scan: camera to WhatsApp: 18 done, 0 retired
 - Page enhancement for Scan and Highlight: 7 done, 1 retired
 - Tool pages: show the verb: 9 done, 0 retired
 - Form detector accuracy: 20 done, 1 retired
