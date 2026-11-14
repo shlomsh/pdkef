@@ -24,7 +24,7 @@ import { isCutOff } from './framing.ts';
 import { DEFAULT_CAPTURE_PARAMS, type CaptureParams, type CapturePhase, type FrameObservation } from './types.ts';
 
 /** The hints, one per line the viewfinder can say. */
-export type Hint = 'point' | 'hold' | 'turn' | 'duplicate' | 'fit' | 'closer' | 'contrast' | 'flatter';
+export type Hint = 'point' | 'hold' | 'turn' | 'duplicate' | 'fit' | 'closer' | 'contrast' | 'flatter' | 'tap';
 
 /** The readings that hold their state between frames (hysteresis). */
 interface Readings {

@@ -10,13 +10,18 @@ import type { Hint, LiveView, Rect } from './types.ts';
 const RING_WHILE_WAITING = 0.95;
 
 /** The outline, hold ring and hint for the capture state at time `now` (ms, the same clock as obs.t). The hint is
- * the guidance's when there is one (SCAN-24), else the phase's own: point, hold or turn.
+ * the guidance's when there is one (SCAN-24), else the phase's own: point, hold or turn. A page held long enough but
+ * not taken (auto off or paused) has nothing to turn: it says tap, on screen and to screen readers.
  * @testSeam The camera calls nextView; the tests read the phase's own view through this. */
 export function liveView(state: CaptureState, now: number, params: CaptureParams = DEFAULT_CAPTURE_PARAMS, guidance: Guidance | null = null): LiveView {
   const { phase, smoothed, holdSince } = state;
   const own: Hint = phase === 'searching' ? 'point' : phase === 'waitingForChange' ? 'turn' : 'hold';
   const hold = phase === 'holding' && holdSince !== null ? Math.min(RING_WHILE_WAITING, Math.max(0, (now - holdSince) / params.holdMs)) : 0;
-  return { quad: smoothed, locked: own === 'hold', hold, hint: guidance?.hint ?? own, spoken: guidance?.spoken ?? null, guidance: guidance ?? INITIAL_GUIDANCE };
+  const last = state.lastCaptureHash;
+  const untaken = phase === 'waitingForChange' && last !== null && !(state.takenHashes ?? []).includes(last);
+  const shown = (hint: Hint): Hint => (hint === 'turn' && untaken ? 'tap' : hint);
+  const spoken = guidance?.spoken ?? null;
+  return { quad: smoothed, locked: own === 'hold', hold, hint: shown(guidance?.hint ?? own), spoken: spoken && shown(spoken), guidance: guidance ?? INITIAL_GUIDANCE };
 }
 
 /** The view after one more frame: the capture state the machine reached on `obs`, and the guidance stepped on from
@@ -55,6 +60,7 @@ interface HintWords {
   hintCloser: string;
   hintContrast: string;
   hintFlatter: string;
+  hintTap: string;
 }
 
 const HINT_KEYS: Record<Hint, keyof HintWords> = {
@@ -66,6 +72,7 @@ const HINT_KEYS: Record<Hint, keyof HintWords> = {
   closer: 'hintCloser',
   contrast: 'hintContrast',
   flatter: 'hintFlatter',
+  tap: 'hintTap',
 };
 
 /** The hint's words, with the page count filled in where they take one ("Page {count}. Turn the page.").

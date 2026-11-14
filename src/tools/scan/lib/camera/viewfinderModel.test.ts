@@ -45,6 +45,14 @@ describe('liveView', () => {
     expect(v).toMatchObject({ quad: Q, locked: false, hold: 0, hint: 'turn', spoken: null });
   });
 
+  it('a page held still that was not taken (auto off) says tap, not turn, on screen and spoken', () => {
+    const turning = { ...INITIAL_GUIDANCE, hint: 'turn' as const, spoken: 'turn' as const };
+    const untaken = liveView(state({ phase: 'waitingForChange', smoothed: Q, lastCaptureHash: 'a', takenHashes: ['b'] }), 100, DEFAULT_CAPTURE_PARAMS, turning);
+    expect(untaken).toMatchObject({ hint: 'tap', spoken: 'tap' });
+    const taken = liveView(state({ phase: 'waitingForChange', smoothed: Q, lastCaptureHash: 'a', takenHashes: ['b', 'a'] }), 100, DEFAULT_CAPTURE_PARAMS, turning);
+    expect(taken).toMatchObject({ hint: 'turn', spoken: 'turn' });
+  });
+
   it('the guidance, when given, says the hint and what is spoken; the outline still follows the phase', () => {
     const guidance = { ...INITIAL_GUIDANCE, hint: 'flatter' as const, spoken: 'hold' as const };
     const v = liveView(state({ phase: 'holding', smoothed: Q, holdSince: 1000 }), 1300, DEFAULT_CAPTURE_PARAMS, guidance);
@@ -70,7 +78,7 @@ describe('liveView', () => {
 describe('hintText', () => {
   const words = {
     hintPoint: 'Point', hintHold: 'Hold still', hintTurn: 'Page {count}. Turn the page.',
-    hintDuplicate: 'Taken', hintFit: 'Fit', hintCloser: 'Closer', hintContrast: 'Darker', hintFlatter: 'Flatter',
+    hintDuplicate: 'Taken', hintFit: 'Fit', hintCloser: 'Closer', hintContrast: 'Darker', hintFlatter: 'Flatter', hintTap: 'Tap to take it',
   };
   it('picks the words, filling the count for turn', () => {
     expect(hintText('point', 2, words)).toBe('Point');
@@ -83,8 +91,8 @@ describe('hintText', () => {
   });
 
   it('has words for every guidance hint', () => {
-    expect(['duplicate', 'fit', 'closer', 'contrast', 'flatter'].map((h) => hintText(h as Parameters<typeof hintText>[0], 1, words)))
-      .toEqual(['Taken', 'Fit', 'Closer', 'Darker', 'Flatter']);
+    expect(['duplicate', 'fit', 'closer', 'contrast', 'flatter', 'tap'].map((h) => hintText(h as Parameters<typeof hintText>[0], 1, words)))
+      .toEqual(['Taken', 'Fit', 'Closer', 'Darker', 'Flatter', 'Tap to take it']);
   });
 });
 

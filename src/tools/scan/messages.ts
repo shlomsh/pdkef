@@ -20,6 +20,8 @@ export interface ScanMessages extends DownloadMessages {
   hintCloser: string;
   hintContrast: string;
   hintFlatter: string;
+  /** A page held still with Auto off: the shutter takes it. */
+  hintTap: string;
   /** Under a page that was strongly bent or creased when it was taken. */
   bentNote: string;
   shutter: string;
@@ -165,6 +167,7 @@ export const englishScanMessages: ScanMessages = {
   hintCloser: 'Move a little closer',
   hintContrast: 'A darker surface helps',
   hintFlatter: 'Hold the phone flatter',
+  hintTap: 'Tap to take it',
   bentNote: 'Laying the page flat gives a cleaner scan.',
   shutter: 'Take this page',
   autoLabel: 'Auto',
