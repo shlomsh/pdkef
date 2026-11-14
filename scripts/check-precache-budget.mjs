@@ -50,7 +50,9 @@ export const BUDGETS = {
   // DRIVE-11: owner-approved rise (2026-11-14): the shared Open with chooser shows while a Drive file is still
   // downloading and holds a tool picked early, ~100 B; measured 46,373 for /open/ in a local build, which has
   // no notes store (46,400 approved).
-  other: 46_400, // was 46,300, 46,200, 45,600, 45,200, 44,200, 42,000 before MEM-48 (measured 35,329 for /open/, +19%)
+  // SCAN-58/59/60: owner-approved rise (2026-11-14): no /open/ file grew; the island uid Astro writes into
+  // /open/index.html changed with the build and compresses 24 B worse; measured 46,413 (46,500 approved).
+  other: 46_500, // was 46,400, 46,300, 46,200, 45,600, 45,200, 44,200, 42,000 before MEM-48 (measured 35,329 for /open/, +19%)
   // Not headroom: a decision (MEM-15, MEM-35). The worker installs only the tools a person uses, so a first
   // visit costs the `/` document plus one page's closure: the heaviest of those (see installPaths) stays under this.
   // MEM-35 lowered it from the whole-app 5,000,000 (3,203,299 measured, 183 urls) to the single-page line.
