@@ -11,6 +11,7 @@
 //   fit        a corner sits on the frame's edge or paper runs on past a side (obs.cutOff), or did a moment ago and the page is lost since
 //   closer     the page is under minArea of the frame: the camera will not take it
 //   contrast   the page's border barely steps from the table, or nothing is found against a light view
+//              (a faint border on a page filling fillArea of the frame is held too close: fit, SCAN-39)
 //   flatter    the page is seen steeply: the auto shutter waits for it to be held flatter
 //   hold       a page is followed but blurred or moving, or all is well and the hold ring is filling
 //              (a blurred page is never told "point", even when the blur lowers its confidence)
@@ -80,6 +81,8 @@ interface GuidanceParams {
   edgeLeave: number;
   /** After the page is lost, how long a corner on the edge still says "fit" (a page too close is not found). */
   edgeMemoryMs: number;
+  /** A page whose quad fills this share of the frame is held too close: a faint border there says fit, not contrast (SCAN-39). */
+  fillArea: number;
   /** The small reading clears once the area is this many times minArea. */
   areaLeave: number;
   /** Border contrast under contrastEnter is faint; it clears at contrastLeave. */
@@ -102,6 +105,7 @@ export const DEFAULT_GUIDANCE_PARAMS: GuidanceParams = {
   // Entry is capture.edgeMargin (0.02); the leave sits 1.5% beyond it.
   edgeLeave: 0.035,
   edgeMemoryMs: 1500,
+  fillArea: 0.8,
   areaLeave: 1.15,
   // A white page (225) is found with full confidence down to a border step of about 0.3, with less from 0.29 and
   // not at all under 0.21 (bg 170): hint before the outline starts to slip, stop once it is safely back.
@@ -137,7 +141,7 @@ function read(was: Readings, obs: FrameObservation, params: GuidanceParams, capt
 }
 
 /** The hint this frame wants, by the priority at the top of this file. */
-function want(phase: CapturePhase, obs: FrameObservation, r: Readings, edgeRecent: boolean, capture: CaptureParams): Hint {
+function want(phase: CapturePhase, obs: FrameObservation, r: Readings, edgeRecent: boolean, capture: CaptureParams, params: GuidanceParams): Hint {
   if (phase === 'waitingForChange') return 'turn';
   if (phase === 'duplicate') return 'duplicate';
   if (!obs.quad) {
@@ -146,7 +150,8 @@ function want(phase: CapturePhase, obs: FrameObservation, r: Readings, edgeRecen
   }
   if (r.edge) return 'fit';
   if (r.small) return 'closer';
-  if (r.faint) return 'contrast';
+  // A page held too close has no table around it to step from: its border reads faint, but the cure is distance.
+  if (r.faint) return obs.area >= params.fillArea ? 'fit' : 'contrast';
   // Found, but not like a page and not for blur: no advice to give beyond pointing at one.
   if (obs.confidence < capture.minConfidence && !r.blurred) return 'point';
   if (r.steep) return 'flatter';
@@ -166,7 +171,7 @@ export function stepGuidance(
   const readings = read(g.readings, obs, params, capture);
   const edgeSeenAt = readings.edge ? t : g.edgeSeenAt;
   const edgeRecent = edgeSeenAt !== null && t - edgeSeenAt <= params.edgeMemoryMs;
-  const wanted = want(phase, obs, readings, edgeRecent, capture);
+  const wanted = want(phase, obs, readings, edgeRecent, capture, params);
   const wantedSince = wanted === g.wanted && g.wantedSince !== null ? g.wantedSince : t;
 
   let { hint, since } = g;

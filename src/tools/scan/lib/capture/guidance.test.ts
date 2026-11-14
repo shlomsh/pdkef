@@ -119,6 +119,11 @@ describe('stepGuidance: each condition', () => {
     expect(first(page(0, { contrast: 0.15 }), 'locked')).toBe('contrast');
   });
 
+  it('SCAN-39: a page held too close (its quad fills the frame, border faint): fit, not contrast', () => {
+    expect(first(page(0, { contrast: 0.15, area: 0.9 }), 'locked')).toBe('fit');
+    expect(first(page(0, { contrast: 0.15, area: 0.42 }), 'locked')).toBe('contrast');
+  });
+
   it('no page found against a light view: contrast; against a dark one: point', () => {
     expect(first(none(0, { light: 0.8 }), 'searching')).toBe('contrast');
     expect(first(none(0, { light: 0.3 }), 'searching')).toBe('point');
