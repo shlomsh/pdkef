@@ -35,7 +35,7 @@ Different from SCAN-70, where an edge *inside* the page (a printed photo) wins.
 ## Book benchmark baseline, 2026-11-14
 
 The 22 photos are marked by hand (TL TR BR BL, normalized, read on a 2% grid, about 0.02 accurate) and kept
-outside the repo with a scorer that runs the repo's own `kpi.ts` on `guessCorners` (the camera detector), at the
+outside the repo with a scorer that runs the repo's own `kpi.ts` on `guessCorners` (the detector that inspects a photo), at the
 corpus size (gray, 320 px long edge): `node --experimental-strip-types ~/.pdkef-phone-check/benchmarks/tipul/score.mts <worktree>`.
 
 | found@0.02 | found@0.035 | found@0.08 | median err | max err | median IoU | confidently wrong |
@@ -51,3 +51,25 @@ Two failures account for almost all of it:
 
 The 4 found are pages whose four edges all show against the table. The earlier "10 of 22" in this ticket came
 from the PDF path's page planner, a different detector, read by eye.
+
+## Progress, 2026-11-14: fit the guess to the paper
+
+`edges/grow.ts` `fitToPaper` runs last in `guessCorners`. A side whose two corners sit on the same frame border is
+pulled in to the first step up in paper brightness (the page's own edge, up to 30% in); every other side is pushed out
+a strip at a time while the strip beyond is still paper, which mends the half pages. Pure; two synthetic tests in
+`grow.test.ts`, seen failing first. The SCAN-05 corpus and its `baseline.json` are unchanged.
+
+| | found@0.02 | found@0.035 | found@0.08 | median err | max err | median IoU | confidently wrong |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| baseline | 1 of 22 | 3 of 22 | 4 of 22 | 0.225 | 0.686 | 0.62 | 18 |
+| `fitToPaper` | 1 of 22 | 4 of 22 | 8 of 22 | 0.143 | 0.585 | 0.81 | 14 |
+
+What is left for the outcome:
+
+- **Only photo inspection gets it.** `guessCorners` is called from `pageWork/steps.ts` `guessWith`. The live camera's
+  outline comes from `detectPage` (`capture/observe.ts`) and a PDF's sheets from `planPage` (`pdfSheets.ts`); neither
+  has the fit yet, so the phone check's three misses would look the same today.
+- **Facing pages.** An open book's left or right edge runs into the facing page with no step in brightness at the
+  gutter; that needs a gutter finder (dark crease line), not a brightness step.
+- **p-014, p-019** keep their tops on the border (no step found within 30%); **p-021** got worse, 0.500 to 0.585.
+- The first acceptance box (shareable failing cases in the SCAN-05 corpus) is still open.

@@ -35,9 +35,7 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 - [SCAN-17](backlog/tasks/SCAN-17.md) P2 · Scan next: a bent or curled page comes out flat, its edges and text lines straight (in progress)
 - [SCAN-36](backlog/tasks/SCAN-36.md) P2 · Straighten a scanned PDF: turn, split a book spread, flatten, clean, then read it
 - [SCAN-08](backlog/tasks/SCAN-08.md) P1 · Scan next: the camera in the page, pages taken by themselves, Share straight after (in progress)
-- [SCAN-37](backlog/tasks/SCAN-37.md) P3 · With Auto off the camera no longer reads "Page 0. Turn the page." before a shot (in progress)
 - [SCAN-11](backlog/tasks/SCAN-11.md) P2 · Scan next: the page copy and the scanning guide follow the new flow
-- [SCAN-38](backlog/tasks/SCAN-38.md) P3 · The turn line shows the new count as soon as a page is taken (in progress)
 - [SCAN-12](backlog/tasks/SCAN-12.md) P2 · Scan next: a short, very visual video of camera to WhatsApp on /scan-to-pdf/
 - [SCAN-39](backlog/tasks/SCAN-39.md) P3 · A page held too close is not told "A darker surface helps" (in progress)
 - [SCAN-09](backlog/tasks/SCAN-09.md) P2 · Scan next: classical page-detection upgrades, each gated on the real corpus
@@ -48,7 +46,6 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 - [SCAN-71](backlog/tasks/SCAN-71.md) P1 · The corners stop at the page's own edge, not at a table edge or the facing page (in progress)
 - [SCAN-44](backlog/tasks/SCAN-44.md) P2 · A filled A4 form scanned with PDkef (2026-11-04): black edges and ghost text remain; stretch is fixed on main for A4 (in progress)
 - [SCAN-46](backlog/tasks/SCAN-46.md) P2 · A filled-in page with no vertical rules stays tilted; level its rows (in progress)
-- [SCAN-61](backlog/tasks/SCAN-61.md) P3 · Scan's specs wait on real conditions (in progress)
 
 ### Page enhancement for Scan and Highlight
 

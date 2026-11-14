@@ -2,7 +2,7 @@
 
 # Backlog
 
-The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 185 live: 80 up next, 25 then, 27 waiting, 53 parked.
+The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 182 live: 77 up next, 25 then, 27 waiting, 53 parked.
 
 ## Redact: finish removal
 
@@ -102,9 +102,7 @@ The camera takes pages, the table fixes them, Share sends them. The table first 
 | SCAN-17 | P2 | [SCAN-17](backlog/tasks/SCAN-17.md) · Scan next: a bent or curled page comes out flat, its edges and text lines straight | In progress |
 | SCAN-36 | P2 | [SCAN-36](backlog/tasks/SCAN-36.md) · Straighten a scanned PDF: turn, split a book spread, flatten, clean, then read it |  |
 | SCAN-08 | P1 | [SCAN-08](backlog/tasks/SCAN-08.md) · Scan next: the camera in the page, pages taken by themselves, Share straight after | In progress |
-| SCAN-37 | P3 | [SCAN-37](backlog/tasks/SCAN-37.md) · With Auto off the camera no longer reads "Page 0. Turn the page." before a shot | In progress |
 | SCAN-11 | P2 | [SCAN-11](backlog/tasks/SCAN-11.md) · Scan next: the page copy and the scanning guide follow the new flow |  |
-| SCAN-38 | P3 | [SCAN-38](backlog/tasks/SCAN-38.md) · The turn line shows the new count as soon as a page is taken | In progress |
 | SCAN-12 | P2 | [SCAN-12](backlog/tasks/SCAN-12.md) · Scan next: a short, very visual video of camera to WhatsApp on /scan-to-pdf/ |  |
 | SCAN-39 | P3 | [SCAN-39](backlog/tasks/SCAN-39.md) · A page held too close is not told "A darker surface helps" | In progress |
 | SCAN-09 | P2 | [SCAN-09](backlog/tasks/SCAN-09.md) · Scan next: classical page-detection upgrades, each gated on the real corpus |  |
@@ -115,7 +113,6 @@ The camera takes pages, the table fixes them, Share sends them. The table first 
 | SCAN-71 | P1 | [SCAN-71](backlog/tasks/SCAN-71.md) · The corners stop at the page's own edge, not at a table edge or the facing page | In progress |
 | SCAN-44 | P2 | [SCAN-44](backlog/tasks/SCAN-44.md) · A filled A4 form scanned with PDkef (2026-11-04): black edges and ghost text remain; stretch is fixed on main for A4 | In progress |
 | SCAN-46 | P2 | [SCAN-46](backlog/tasks/SCAN-46.md) · A filled-in page with no vertical rules stays tilted; level its rows | In progress |
-| SCAN-61 | P3 | [SCAN-61](backlog/tasks/SCAN-61.md) · Scan's specs wait on real conditions | In progress |
 
 ### Then, in order
 
@@ -372,7 +369,7 @@ Done and retired tickets are not listed. Their files stay in [backlog/tasks/](ba
 - Redact: finish removal: 29 done, 1 retired
 - Sign: finish fill mode: 4 done, 1 retired
 - Highlight PDF: a tool for reading: 12 done, 1 retired
-- Scan: camera to WhatsApp: 20 done, 0 retired
+- Scan: camera to WhatsApp: 23 done, 0 retired
 - Page enhancement for Scan and Highlight: 7 done, 1 retired
 - Tool pages: show the verb: 9 done, 0 retired
 - Form detector accuracy: 20 done, 1 retired
