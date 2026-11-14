@@ -659,10 +659,10 @@ describe('PdfScanTool', () => {
     await settle();
     await openPage(1);
     const lastQuad = () => vi.mocked(pipeline.processPage).mock.calls.at(-1)?.[1];
-    await act(async () => { inViewer('Rotate')[0].click(); });
+    await act(async () => { inViewer('Right')[0].click(); });
     await settle();
     expect(lastQuad()).toEqual([GUESS[3], GUESS[0], GUESS[1], GUESS[2]]);
-    await act(async () => { inViewer('Rotate')[0].click(); });
+    await act(async () => { inViewer('Right')[0].click(); });
     await settle();
     expect(lastQuad()).toEqual([GUESS[2], GUESS[3], GUESS[0], GUESS[1]]);
     // Adjust corners shows the photo turned with the page, its corners turned with it.

@@ -240,7 +240,7 @@
     display: none;
   }
 
-  /* The window is wide: the note keeps to the row of five under it. */
+  /* The window is wide: the note keeps to the row of six under it. */
   .notFound {
     width: min(100%, 36rem);
   }

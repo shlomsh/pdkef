@@ -41,6 +41,11 @@ export interface ScanMessages extends DownloadMessages {
   previousPage: string;
   nextPage: string;
   announceRotated: string;
+  announceRotatedLeft: string;
+  rotateLeft: string;
+  rotateRight: string;
+  rotateLeftShort: string;
+  rotateRightShort: string;
   removePhoto: string;
   adjustCorners: string;
   findPage: string;
@@ -180,6 +185,11 @@ export const englishScanMessages: ScanMessages = {
   previousPage: 'Previous page',
   nextPage: 'Next page',
   announceRotated: 'Page {position} turned a quarter to the right.',
+  announceRotatedLeft: 'Page {position} turned a quarter to the left.',
+  rotateLeft: 'Rotate left',
+  rotateRight: 'Rotate right',
+  rotateLeftShort: 'Left',
+  rotateRightShort: 'Right',
   findPage: 'Auto-detect',
   findMissed: 'No page edges were found here either. Drag the corners onto the corners of the page.',
   pageFoundAnnounce: 'Page edges found.',

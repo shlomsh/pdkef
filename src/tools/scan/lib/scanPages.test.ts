@@ -30,6 +30,13 @@ describe('scanPages', () => {
     expect(partitionFiles([photo('a.jpg'), text], ['image/jpeg'])).toEqual({ accepted: [expect.any(File)], rejectedNames: ['notes.txt'] });
   });
 
+  it('turns a page a quarter either way: left from upright is three quarters clockwise', () => {
+    const page = newPage(photo(), 'document');
+    expect(turnPage([page], page.id, -1)[0].turns).toBe(3);
+    expect(turnPage([{ ...page, turns: 3 }], page.id, 1)[0].turns).toBe(0);
+    expect(turnPage([page], page.id)[0].turns).toBe(1);
+  });
+
   describe('withInspection', () => {
     const guess = [{ x: 0.1, y: 0.1 }, { x: 0.9, y: 0.1 }, { x: 0.9, y: 0.9 }, { x: 0.1, y: 0.9 }] as typeof FULL_QUAD;
     it('adopts the guessed corners and the photo size', () => {

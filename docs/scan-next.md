@@ -82,7 +82,8 @@ under it one quiet row:
 
 - **Corners** steps into today's corner editor inside the same screen: drag with the loupe, Auto-detect,
   Whole photo, "Use these corners".
-- **Rotate** a quarter turn per press. Available, never in focus.
+- **Left** and **Right** turn the page a quarter either way, so any page is at most two taps from upright
+  (2026-11-14, after a phone check where a page needing a turn the other way cost three taps). Available, never in focus.
 - **Look**: Document, Grayscale, Original for this page.
 - **Retake** opens the camera for this page only and puts the new photo in its place.
 - **Remove.**

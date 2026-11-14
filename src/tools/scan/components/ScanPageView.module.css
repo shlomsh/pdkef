@@ -1,4 +1,4 @@
-/* The one-page view's row of five under the page (PageActions, RetakeButton). */
+/* The one-page view's row of six under the page (PageActions, RetakeButton). */
 
 .item:focus-visible {
   outline: 2px solid var(--color-primary);
@@ -10,10 +10,10 @@
   max-width: 32rem;
 }
 
-/* Five equal items, icon above label. Each is a 44px target at least; the input of Retake is out of flow. */
+/* Six equal items, icon above label. Each is a 44px target at least; the input of Retake is out of flow. */
 .actions {
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(6, minmax(0, 1fr));
   gap: 4px;
   width: min(100%, 36rem);
 }

@@ -61,9 +61,9 @@ export const patchPage = (pages: ScanPage[], id: number, changes: Partial<ScanPa
   pages.map((p) => (p.id === id ? { ...p, ...changes } : p))
 );
 
-/** One more quarter turn clockwise for page `id`. Turning a sheet answers its split question as one page. */
-export const turnPage = (pages: ScanPage[], id: number): ScanPage[] => (
-  pages.map((p) => (p.id === id ? { ...p, turns: (p.turns + 1) % 4, question: null } : p))
+/** One more quarter turn for page `id`: clockwise by default, `by` -1 the other way. Turning a sheet answers its split question as one page. */
+export const turnPage = (pages: ScanPage[], id: number, by: 1 | -1 = 1): ScanPage[] => (
+  pages.map((p) => (p.id === id ? { ...p, turns: (p.turns + by + 4) % 4, question: null } : p))
 );
 
 /** Page `id` replaced, in its place, by `fresh` (a sheet split in two). */

@@ -50,6 +50,7 @@ interface ScanPageViewerProps {
     /** A swipe reached this page: selection only. */
     onSelect: (id: number) => void;
     onRotate: () => void;
+    onRotateLeft: () => void;
     onAdjustCorners: () => void;
     onCommit: (id: number, quad: Quad) => void;
     onFind: (page: ScanPage) => void;
@@ -261,6 +262,7 @@ export default function ScanPageViewer({ refs, pages, selected, selectedIndex, v
               onChooseLook={actions.onChooseLook}
               onAdjustCorners={actions.onAdjustCorners}
               onRotate={actions.onRotate}
+              onRotateLeft={actions.onRotateLeft}
               onRetake={actions.onRetake}
               onRetakeCamera={actions.onRetakeCamera}
               onRemovePage={actions.onRemovePage}

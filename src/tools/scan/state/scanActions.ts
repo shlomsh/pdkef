@@ -218,11 +218,11 @@ export function createEditActions(input: EditActionsInput) {
     reportEdit('scan-to-pdf');
   };
 
-  const rotatePage = (id: number) => {
+  const rotatePage = (id: number, by: 1 | -1 = 1) => {
     const position = pages.findIndex((p) => p.id === id) + 1;
     if (position === 0) return;
-    setPages((current) => turnPage(current, id));
-    announce(formatMessage(t.announceRotated, { position }));
+    setPages((current) => turnPage(current, id, by));
+    announce(formatMessage(by === 1 ? t.announceRotated : t.announceRotatedLeft, { position }));
     recordAction('change_setting');
     reportEdit('scan-to-pdf');
   };
@@ -322,6 +322,7 @@ interface PageViewInput {
 export function pageViewActions({ edit, findPage, removePage, selected, dispatch }: PageViewInput) {
   return {
     onRotate: () => { if (selected) edit.rotatePage(selected.id); },
+    onRotateLeft: () => { if (selected) edit.rotatePage(selected.id, -1); },
     onAdjustCorners: edit.adjustCorners,
     onCommit: edit.commitCorners,
     onFind: findPage,

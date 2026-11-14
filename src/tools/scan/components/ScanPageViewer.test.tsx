@@ -32,7 +32,7 @@ const placed = (n: number) => ({ pages: Array.from({ length: n }, (_, i) => ({ u
 
 function mount(over: Partial<ScanPageViewerProps> = {}, index = 0) {
   const actions = {
-    onSelect: vi.fn(), onRotate: vi.fn(), onAdjustCorners: vi.fn(), onCommit: vi.fn(), onFind: vi.fn(), onApprove: vi.fn(),
+    onSelect: vi.fn(), onRotate: vi.fn(), onRotateLeft: vi.fn(), onAdjustCorners: vi.fn(), onCommit: vi.fn(), onFind: vi.fn(), onApprove: vi.fn(),
     onDone: vi.fn(), onStep: vi.fn(), onRetake: vi.fn(), onRemovePage: vi.fn(), onChooseLook: vi.fn(),
     onAskSplit: vi.fn(), onOnePage: vi.fn(), onTwoPages: vi.fn(),
   };
@@ -146,6 +146,19 @@ describe('ScanPageViewer', () => {
       act(() => resized());
       expect(q('[data-page-scroller]')!.scrollLeft).toBe(1600);
     });
+  });
+
+  it('the row turns the page either way: one tap left, one tap right', () => {
+    const { actions } = mount();
+    const left = q('[data-page-actions] [data-rotate="left"]') as HTMLButtonElement;
+    const right = q('[data-page-actions] [data-rotate="right"]') as HTMLButtonElement;
+    expect(left.getAttribute('aria-label')).toBe('Rotate left');
+    expect(right.getAttribute('aria-label')).toBe('Rotate right');
+    act(() => left.click());
+    expect(actions.onRotateLeft).toHaveBeenCalledTimes(1);
+    expect(actions.onRotate).not.toHaveBeenCalled();
+    act(() => right.click());
+    expect(actions.onRotate).toHaveBeenCalledTimes(1);
   });
 
   describe('a close the browser makes on its own', () => {
