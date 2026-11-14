@@ -10,6 +10,7 @@ import DriveSave from './DriveSave.tsx';
 import { sendHandoff } from '#lib/handoff/sendHandoff.ts';
 import { withIslandBoundary } from '#lib/telemetry/IslandErrorBoundary.tsx';
 import OpenWithChooser from './OpenWithChooser.tsx';
+import GoogleSignInButton from './GoogleSignInButton.tsx';
 import styles from './DriveOpen.module.css';
 
 /* MERGE-25 / DRIVE-01: where Drive's "Open with > PDkef" lands, and where a tool sends a person to pick a
@@ -75,7 +76,14 @@ function DriveOpen() {
     const back = takeRedirectReturn();
     if (back.handled) return;
     const intent = parseDriveIntent(location.search);
-    if (intent.kind === 'open-with') return setPhase({ name: 'ready', fileId: intent.fileId, resourceKey: intent.resourceKey });
+    if (intent.kind === 'open-with') {
+      // DRIVE-10: a token in hand opens the file with no screen; desktop Chrome gets one quietly by redirect.
+      const { fileId, resourceKey } = intent;
+      const token = back.token ?? savedToken();
+      if (token) return void openWith(token, fileId, resourceKey, false);
+      if (!back.failed && driveRouteFor(navigator.userAgent) === 'redirect') return toGoogle('none', location.search);
+      return setPhase({ name: 'ready', fileId, resourceKey });
+    }
     if (intent.kind === 'none') return setPhase({ name: 'no-state' });
     if (intent.kind === 'save') return setSave({ id: intent.id, failed: back.failed });
     const pick = { tool: intent.tool, returnTo: intent.returnTo };
@@ -90,18 +98,25 @@ function DriveOpen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps -- runs once, on arrival
   }, []);
 
+  // A token that was saved or came back from the redirect falls back to the button when Google refuses it,
+  // never to another redirect, so a bad token cannot loop. A token from a tap shows the failure instead.
+  const openWith = async (token: string, fileId: string, resourceKey: string | undefined, fromTap: boolean) => {
+    setPhase({ name: 'working' });
+    const result = await fetchDriveFile(fetch, token, { fileId, resourceKey });
+    if (result.ok) return setPhase({ name: 'chooser', file: new File([result.bytes], result.name, { type: 'application/pdf' }) });
+    if (result.error === 'unauthorized') forgetSaved();
+    if (!fromTap && (result.error === 'unauthorized' || result.error === 'not-found')) return setPhase({ name: 'ready', fileId, resourceKey });
+    setPhase({ name: 'error', failure: result.error, returnTo: null, retry: () => void start(fileId, resourceKey) });
+  };
+
   const start = async (fileId: string, resourceKey?: string) => {
     if (starting.current) return;
     starting.current = true; // set before the first await so the token popup still opens inside the tap
     try {
-      const fail = (failure: DriveFailure) =>
-        setPhase({ name: 'error', failure, returnTo: null, retry: () => void start(fileId, resourceKey) });
       const token = await requestDriveToken();
-      if (!token.ok) return fail(token.error);
-      setPhase({ name: 'working' });
-      const result = await fetchDriveFile(fetch, token.token, { fileId, resourceKey });
-      if (!result.ok) return fail(result.error);
-      setPhase({ name: 'chooser', file: new File([result.bytes], result.name, { type: 'application/pdf' }) });
+      if (!token.ok) return setPhase({ name: 'error', failure: token.error, returnTo: null, retry: () => void start(fileId, resourceKey) });
+      remember(token.token, token.expiresInSeconds); // the next Open with, within the hour, needs no tap
+      await openWith(token.token, fileId, resourceKey, true);
     } finally {
       starting.current = false;
     }
@@ -153,15 +168,7 @@ function DriveOpen() {
   return (
     <div class={styles.panel}>
       <p class={styles.lead}>PDkef asks Google for access to this one file. It goes from Google Drive to this device and nowhere else.</p>
-      <button type="button" class={styles.google} onClick={() => void start(fileId, resourceKey)}>
-        <svg class={styles.mark} width="18" height="18" viewBox="0 0 48 48" aria-hidden="true">
-          <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z" />
-          <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z" />
-          <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z" />
-          <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z" />
-        </svg>
-        Sign in with Google
-      </button>
+      <GoogleSignInButton onClick={() => void start(fileId, resourceKey)} />
     </div>
   );
 }
