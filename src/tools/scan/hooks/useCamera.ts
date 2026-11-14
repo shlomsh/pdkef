@@ -63,27 +63,60 @@ function useShot({ videoEl, track, stateRef, lastObs, lastView, pacer, onTakenRe
 
   useEffect(() => { stateRef.current = keepTaken(stateRef.current, kept); }, [kept.join(), paused]);
 
+  const keptRef = useRef(kept);
+  keptRef.current = kept;
+
   return useCallback(async (quad?: Quad | null, byShutter = false) => {
     const video = videoEl.current;
     const running = track();
-    if (!video || !running || shooting.current) return;
+    if (!video || !running || shooting.current) {
+      // the machine fired for this frame and remembered its page, but no photo is coming: offer it again
+      if (quad !== undefined) restoreUntaken(stateRef, keptRef);
+      return;
+    }
     shooting.current = true;
     pacer.current?.stop();
     try {
-      // a quad handed in is across the whole frame already; the machine's own is across what was on screen
-      const { smoothed } = stateRef.current;
-      const taken = quad === undefined ? smoothed && toFrame(smoothed, lastView.current) : quad;
-      if (byShutter && lastObs.current) stateRef.current = markTaken(stateRef.current, lastObs.current.hash);
-      const hash = stateRef.current.lastCaptureHash;
-      const shot = await captureShot(running, video);
-      if (hash !== null) shotHashes.current.set(shot.file, hash);
-      onTakenRef.current({ ...shot, quad: taken });
-    } catch (err) {
-      reportError('pdf_tool_run', err, 'scan_camera_photo');
+      await attemptShot({ stateRef, keptRef, lastObs, lastView, shotHashes: shotHashes.current, onTaken: onTakenRef.current, capture: () => captureShot(running, video), quad, byShutter });
     } finally {
       shooting.current = false;
     }
   }, []);
+}
+
+/** A page is remembered as taken only once its photo is kept: put the machine back to the pages actually kept. */
+export function restoreUntaken(stateRef: MutableRef<CaptureState>, keptRef: MutableRef<readonly string[]>) {
+  stateRef.current = keepTaken(stateRef.current, keptRef.current);
+}
+
+interface AttemptInput {
+  stateRef: MutableRef<CaptureState>;
+  keptRef: MutableRef<readonly string[]>;
+  lastObs: MutableRef<FrameObservation | null>;
+  lastView: MutableRef<Rect>;
+  shotHashes: WeakMap<File, string>;
+  onTaken: (page: TakenPage) => void;
+  capture: () => Promise<Omit<TakenPage, 'quad'>>;
+  quad?: Quad | null;
+  byShutter: boolean;
+}
+
+/** One shot: mark the page, take the photo, hand it on. A shot that fails leaves its page on offer, not taken.
+ * @testSeam */
+export async function attemptShot({ stateRef, keptRef, lastObs, lastView, shotHashes, onTaken, capture, quad, byShutter }: AttemptInput) {
+  try {
+    // a quad handed in is across the whole frame already; the machine's own is across what was on screen
+    const { smoothed } = stateRef.current;
+    const taken = quad === undefined ? smoothed && toFrame(smoothed, lastView.current) : quad;
+    if (byShutter && lastObs.current) stateRef.current = markTaken(stateRef.current, lastObs.current.hash);
+    const hash = stateRef.current.lastCaptureHash;
+    const shot = await capture();
+    if (hash !== null) shotHashes.set(shot.file, hash);
+    onTaken({ ...shot, quad: taken });
+  } catch (err) {
+    restoreUntaken(stateRef, keptRef);
+    reportError('pdf_tool_run', err, 'scan_camera_photo');
+  }
 }
 
 export function useCamera(input: UseCameraInput): CameraHandle {
