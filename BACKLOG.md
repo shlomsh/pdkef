@@ -2,7 +2,7 @@
 
 # Backlog
 
-The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 186 live: 75 up next, 26 then, 27 waiting, 58 parked.
+The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 185 live: 80 up next, 25 then, 27 waiting, 53 parked.
 
 ## Redact: finish removal
 
@@ -102,15 +102,20 @@ The camera takes pages, the table fixes them, Share sends them. The table first 
 | SCAN-17 | P2 | [SCAN-17](backlog/tasks/SCAN-17.md) · Scan next: a bent or curled page comes out flat, its edges and text lines straight | In progress |
 | SCAN-36 | P2 | [SCAN-36](backlog/tasks/SCAN-36.md) · Straighten a scanned PDF: turn, split a book spread, flatten, clean, then read it |  |
 | SCAN-08 | P1 | [SCAN-08](backlog/tasks/SCAN-08.md) · Scan next: the camera in the page, pages taken by themselves, Share straight after | In progress |
+| SCAN-37 | P3 | [SCAN-37](backlog/tasks/SCAN-37.md) · With Auto off the camera no longer reads "Page 0. Turn the page." before a shot | In progress |
 | SCAN-11 | P2 | [SCAN-11](backlog/tasks/SCAN-11.md) · Scan next: the page copy and the scanning guide follow the new flow |  |
+| SCAN-38 | P3 | [SCAN-38](backlog/tasks/SCAN-38.md) · The turn line shows the new count as soon as a page is taken | In progress |
 | SCAN-12 | P2 | [SCAN-12](backlog/tasks/SCAN-12.md) · Scan next: a short, very visual video of camera to WhatsApp on /scan-to-pdf/ |  |
+| SCAN-39 | P3 | [SCAN-39](backlog/tasks/SCAN-39.md) · A page held too close is not told "A darker surface helps" | In progress |
 | SCAN-09 | P2 | [SCAN-09](backlog/tasks/SCAN-09.md) · Scan next: classical page-detection upgrades, each gated on the real corpus |  |
 | SCAN-48 | P1 | [SCAN-48](backlog/tasks/SCAN-48.md) · A page's text says which way is up, so a sideways page no longer lands upside down | In progress |
 | SCAN-53 | P1 | [SCAN-53](backlog/tasks/SCAN-53.md) · Rows that fan apart down a page keep their bend | In progress |
 | SCAN-55 | P1 | [SCAN-55](backlog/tasks/SCAN-55.md) · Auto-detect goes back to a PDF sheet's own corners | In progress |
 | SCAN-67 | P1 | [SCAN-67](backlog/tasks/SCAN-67.md) · A two-page sheet splits by itself when sure, and asks on that page when not | In progress |
+| SCAN-71 | P1 | [SCAN-71](backlog/tasks/SCAN-71.md) · The corners stop at the page's own edge, not at a table edge or the facing page | In progress |
 | SCAN-44 | P2 | [SCAN-44](backlog/tasks/SCAN-44.md) · A filled A4 form scanned with PDkef (2026-11-04): black edges and ghost text remain; stretch is fixed on main for A4 | In progress |
 | SCAN-46 | P2 | [SCAN-46](backlog/tasks/SCAN-46.md) · A filled-in page with no vertical rules stays tilted; level its rows | In progress |
+| SCAN-61 | P3 | [SCAN-61](backlog/tasks/SCAN-61.md) · Scan's specs wait on real conditions | In progress |
 
 ### Then, in order
 
@@ -118,7 +123,6 @@ The camera takes pages, the table fixes them, Share sends them. The table first 
 | --- | --- | --- | --- |
 | SCAN-20 | P2 | [SCAN-20](backlog/tasks/SCAN-20.md) · Scan next: a real-photo dewarp corpus with a straightness score |  |
 | SCAN-22 | P3 | [SCAN-22](backlog/tasks/SCAN-22.md) · Scan next: measure the bend at a higher resolution, so a crease's tip goes too |  |
-| SCAN-71 | P1 | [SCAN-71](backlog/tasks/SCAN-71.md) · The corners stop at the page's own edge, not at a table edge or the facing page |  |
 | SCAN-70 | P2 | [SCAN-70](backlog/tasks/SCAN-70.md) · A colour flyer is found by its edges, not by the photo printed inside it |  |
 | SCAN-72 | P2 | [SCAN-72](backlog/tasks/SCAN-72.md) · An open book in front of the camera comes out as two pages, not one spread |  |
 
@@ -126,11 +130,7 @@ The camera takes pages, the table fixes them, Share sends them. The table first 
 
 | ID | P | Task | Note |
 | --- | --- | --- | --- |
-| SCAN-37 | P3 | [SCAN-37](backlog/tasks/SCAN-37.md) · With Auto off the camera no longer reads "Page 0. Turn the page." before a shot |  |
-| SCAN-38 | P3 | [SCAN-38](backlog/tasks/SCAN-38.md) · The turn line shows the new count as soon as a page is taken |  |
-| SCAN-39 | P3 | [SCAN-39](backlog/tasks/SCAN-39.md) · A page held too close is not told "A darker surface helps" |  |
 | SCAN-40 | P3 | [SCAN-40](backlog/tasks/SCAN-40.md) · Plain-text pages hash further apart than the duplicate threshold |  |
-| SCAN-41 | P3 | [SCAN-41](backlog/tasks/SCAN-41.md) · A deleted page is forgotten by the duplicate check |  |
 | SCAN-42 | P3 | [SCAN-42](backlog/tasks/SCAN-42.md) · Measuring a page on desktop takes under 150 ms |  |
 | SCAN-43 | P3 | [SCAN-43](backlog/tasks/SCAN-43.md) · encodePages runs off the main thread |  |
 | SCAN-62 | P2 | [SCAN-62](backlog/tasks/SCAN-62.md) · Measure Scan's memory and main thread on a long job |  |
@@ -138,7 +138,6 @@ The camera takes pages, the table fixes them, Share sends them. The table first 
 | SCAN-10 | P3 | [SCAN-10](backlog/tasks/SCAN-10.md) · Scan next: evaluate a small learned page detector behind the same contract |  |
 | SCAN-31 | P3 | [SCAN-31](backlog/tasks/SCAN-31.md) · The Scan guide's image generator follows the rewritten phone flow |  |
 | SCAN-52 | P3 | [SCAN-52](backlog/tasks/SCAN-52.md) · Scan's pages use the shared page grid |  |
-| SCAN-61 | P3 | [SCAN-61](backlog/tasks/SCAN-61.md) · Scan's specs wait on real conditions |  |
 | SCAN-63 | P3 | [SCAN-63](backlog/tasks/SCAN-63.md) · Scan's pages say where they came from, and its callbacks read live inputs |  |
 | SCAN-64 | P3 | [SCAN-64](backlog/tasks/SCAN-64.md) · Two choices for Scan: the shared Undo stack, and Compress on phones | Needs Shlomi: A decision on each |
 
@@ -373,7 +372,7 @@ Done and retired tickets are not listed. Their files stay in [backlog/tasks/](ba
 - Redact: finish removal: 29 done, 1 retired
 - Sign: finish fill mode: 4 done, 1 retired
 - Highlight PDF: a tool for reading: 12 done, 1 retired
-- Scan: camera to WhatsApp: 19 done, 0 retired
+- Scan: camera to WhatsApp: 20 done, 0 retired
 - Page enhancement for Scan and Highlight: 7 done, 1 retired
 - Tool pages: show the verb: 9 done, 0 retired
 - Form detector accuracy: 20 done, 1 retired

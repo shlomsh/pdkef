@@ -1,7 +1,7 @@
 ---
 id: "SCAN-37"
 title: "With Auto off the camera no longer reads \"Page 0. Turn the page.\" before a shot"
-status: "open"
+status: "in_progress"
 priority: "P3"
 epic: "scan-next"
 horizon: "later"

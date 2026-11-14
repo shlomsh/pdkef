@@ -1,7 +1,7 @@
 ---
 id: "SCAN-71"
 title: "The corners stop at the page's own edge, not at a table edge or the facing page"
-status: "open"
+status: "in_progress"
 priority: "P1"
 epic: "scan-next"
 horizon: "next"

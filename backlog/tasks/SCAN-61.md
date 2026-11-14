@@ -1,7 +1,7 @@
 ---
 id: "SCAN-61"
 title: "Scan's specs wait on real conditions"
-status: "open"
+status: "in_progress"
 priority: "P3"
 epic: "scan-next"
 horizon: "later"

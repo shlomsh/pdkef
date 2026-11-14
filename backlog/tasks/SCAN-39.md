@@ -1,7 +1,7 @@
 ---
 id: "SCAN-39"
 title: "A page held too close is not told \"A darker surface helps\""
-status: "open"
+status: "in_progress"
 priority: "P3"
 epic: "scan-next"
 horizon: "later"

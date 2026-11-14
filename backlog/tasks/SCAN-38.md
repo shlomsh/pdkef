@@ -1,7 +1,7 @@
 ---
 id: "SCAN-38"
 title: "The turn line shows the new count as soon as a page is taken"
-status: "open"
+status: "in_progress"
 priority: "P3"
 epic: "scan-next"
 horizon: "later"
