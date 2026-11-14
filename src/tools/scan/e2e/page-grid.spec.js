@@ -64,8 +64,12 @@ test('a page is dragged, removed and opened from the grid', async ({ page }) => 
   const shown = await viewer.boundingBox();
   expect(shown.width).toBe(1440);
   expect(shown.height).toBe(900);
-  await page.keyboard.press('ArrowRight');
-  await expect(page.locator('[data-page-heading]')).toHaveText('Page 2 of 4');
+  // The viewer's key listener is added in an effect after paint, and a key sent before it is lost: press
+  // until the page turns. A press that lands turns the page and the heading says so inside the attempt.
+  await expect(async () => {
+    await page.keyboard.press('ArrowRight');
+    await expect(page.locator('[data-page-heading]')).toHaveText('Page 2 of 4', { timeout: 500 });
+  }).toPass({ timeout: 10_000 });
   await page.keyboard.press('Escape');
   await expect(viewer).toHaveCount(0);
   await expect(tiles.nth(1)).toBeFocused();

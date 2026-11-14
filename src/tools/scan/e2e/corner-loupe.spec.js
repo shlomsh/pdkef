@@ -25,16 +25,6 @@ async function makePhotoBytes(page) {
   return Buffer.from(bytes);
 }
 
-// The first photos scroll the result into view (smoothly): a drag measured mid-scroll is off by the scroll.
-async function waitForScrollToSettle(page) {
-  await expect.poll(async () => {
-    const a = await page.evaluate(() => window.scrollY);
-    // Time on purpose: the sampling interval between two scroll reads.
-    await page.waitForTimeout(120);
-    return a === await page.evaluate(() => window.scrollY);
-  }, { timeout: 5_000 }).toBe(true);
-}
-
 const center = (box) => ({ x: box.x + box.width / 2, y: box.y + box.height / 2 });
 
 test('a touch drag on a corner shows a loupe away from the finger, gone on release', async ({ page, browserName }) => {
@@ -47,7 +37,6 @@ test('a touch drag on a corner shows a loupe away from the finger, gone on relea
   // New photos land on the table: tap the page, then Corners.
   await page.locator('[data-table-page]').first().click();
   await page.getByRole('button', { name: 'Corners', exact: true }).click();
-  await waitForScrollToSettle(page);
   const handle = page.getByRole('button', { name: 'Top-left corner' });
   await expect(handle).toBeVisible({ timeout: 20_000 });
   await handle.scrollIntoViewIfNeeded();

@@ -5,6 +5,10 @@ import { FULL_QUAD } from './quad.ts';
 import { SCAN_QUALITY } from './scanBudget.ts';
 import { warpPerspective } from '#lib/pageEnhance/warp.ts';
 import { buildScanPdf, inspectPhoto, processPage, type ProcessedPage } from './scanPipeline.ts';
+import { resetPageWorker } from './pageWork/offThread.ts';
+import { reportError } from '#lib/telemetry/errorReport.ts';
+
+vi.mock('#lib/telemetry/errorReport.ts', () => ({ reportError: vi.fn() }));
 
 // The pure collaborators (warp, filters, quad maths, the budget search, imagesToPdf) are the real ones;
 // warpPerspective is wrapped only to read the pixel quad the pipeline hands it.
@@ -232,6 +236,38 @@ describe('the EXIF-aligned load', () => {
     expect(urlsRevoked).toBe(1);
     await expect(processPage(photo({ width: 400, height: 300, undecodable: true }), FULL_QUAD, 'original')).rejects.toThrow('EncodingError');
     expect(urlsRevoked).toBe(urlsMade);
+  });
+});
+
+describe('a page worker that dies mid-job', () => {
+  // The worker answers its probe, then dies on the first real job: the job finishes on the main thread.
+  class DyingWorker {
+    onmessage: ((e: { data: unknown }) => void) | null = null;
+    onerror: ((e: { preventDefault(): void }) => void) | null = null;
+    terminate() {}
+    postMessage(request: { id: number; job: { kind: string } }) {
+      setTimeout(() => {
+        if (request.job.kind === 'probe') this.onmessage?.({ data: { id: request.id, ok: true, value: true } });
+        else this.onerror?.({ preventDefault: () => {} });
+      });
+    }
+  }
+
+  afterEach(() => resetPageWorker());
+
+  it('finishes the job on the real main-thread path, and reports the worker failure once', async () => {
+    resetPageWorker();
+    vi.mocked(reportError).mockClear();
+    vi.stubGlobal('Worker', DyingWorker);
+    vi.stubGlobal('OffscreenCanvas', class {});
+    const inspected = await inspectPhoto(photo({ width: 300, height: 400 }));
+    expect([inspected.width, inspected.height]).toEqual([300, 400]);
+    expect(specs.get(inspected.preview)).toMatchObject({ width: 300, height: 400 });
+    expect(urlsMade).toBeGreaterThan(0);
+    expect(reportError).toHaveBeenCalledTimes(1);
+    // Later pages go straight to the main thread.
+    await expect(inspectPhoto(photo({ width: 200, height: 100 }))).resolves.toMatchObject({ width: 200, height: 100 });
+    expect(reportError).toHaveBeenCalledTimes(1);
   });
 });
 

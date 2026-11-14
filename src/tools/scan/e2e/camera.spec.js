@@ -113,18 +113,18 @@ test('a page wider than the screen is not taken, and the hint says so', async ({
   const browser = await playwright.chromium.launch(launchOptions);
   try {
     const page = await (await browser.newContext({ ...contextOptions, baseURL })).newPage();
-    // A shot that never comes has nothing to wait on, so count frames: 60 analysed are several holds' worth.
-    await page.addInitScript(() => {
-      window.__frames = 0;
-      const post = Worker.prototype.postMessage;
-      Worker.prototype.postMessage = function count(...args) { window.__frames += 1; return post.apply(this, args); };
-    });
     await page.goto('/scan-to-pdf/');
     await waitForIsland(page);
     await page.getByText('Start scanning').click();
     const viewfinder = page.getByRole('dialog');
     const hint = viewfinder.locator('[data-camera-hint]');
-    await expect.poll(() => page.evaluate(() => window.__frames), { timeout: 20_000 }).toBeGreaterThan(60);
+    // A shot that never comes has nothing to wait on. The camera is live once the hint carries a phase; a page
+    // that would be taken is taken within holdMs + settleMs (800 + 400) of being framed, so hold the
+    // camera for several times that, with the hint still saying the page does not fit.
+    await expect(hint).toHaveAttribute('data-camera-hint', /.+/, { timeout: 20_000 });
+    await expect(hint).toHaveText(/Fit the whole page in|Point at a page/);
+    const live = await page.evaluate(() => performance.now());
+    await expect.poll(() => page.evaluate((t) => performance.now() - t, live), { timeout: 10_000 }).toBeGreaterThan(4_000);
     await expect(viewfinder.getByRole('button', { name: /The last page taken/ })).toHaveCount(0);
     await expect(hint).toHaveText(/Fit the whole page in|Point at a page/);
   } finally {
