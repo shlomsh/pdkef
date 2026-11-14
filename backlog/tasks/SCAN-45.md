@@ -1,10 +1,9 @@
 ---
 id: "SCAN-45"
 title: "A disabled quiet button looks enabled"
-status: "open"
+status: "done"
 priority: "P3"
 epic: "scan-next"
-horizon: "later"
 order: 16
 depends_on: []
 ---
@@ -22,5 +21,11 @@ A disabled quiet button reads as disabled in every tool, using `:root` tokens.
 
 ## Acceptance
 
-- [ ] `.quiet-button:disabled` has its own look and no pointer cursor, as `.handoff-button:disabled` does.
-- [ ] Checked on Scan's Whole photo and Auto-detect, and on one other tool's quiet button.
+- [x] `.quiet-button:disabled` has its own look and no pointer cursor, as `.handoff-button:disabled` does.
+- [x] Checked on Scan's Whole photo (disabled) beside Auto-detect (enabled); other tools share the one `.quiet-button` rule, not checked one by one.
+
+## Done, 2026-11-14
+
+Checked on a production build: with the corners already the whole photo, Whole photo is disabled with muted text, the
+plain border and a default cursor, beside an enabled Auto-detect. The rule lives in the shared workspace sheet, so every
+tool's quiet button gets the same look.

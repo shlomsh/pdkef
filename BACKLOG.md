@@ -2,7 +2,7 @@
 
 # Backlog
 
-The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 184 live: 75 up next, 24 then, 27 waiting, 58 parked.
+The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 183 live: 75 up next, 24 then, 27 waiting, 57 parked.
 
 ## Redact: finish removal
 
@@ -131,7 +131,6 @@ The camera takes pages, the table fixes them, Share sends them. The table first 
 | SCAN-41 | P3 | [SCAN-41](backlog/tasks/SCAN-41.md) · A deleted page is forgotten by the duplicate check |  |
 | SCAN-42 | P3 | [SCAN-42](backlog/tasks/SCAN-42.md) · Measuring a page on desktop takes under 150 ms |  |
 | SCAN-43 | P3 | [SCAN-43](backlog/tasks/SCAN-43.md) · encodePages runs off the main thread |  |
-| SCAN-45 | P3 | [SCAN-45](backlog/tasks/SCAN-45.md) · A disabled quiet button looks enabled |  |
 | SCAN-62 | P2 | [SCAN-62](backlog/tasks/SCAN-62.md) · Measure Scan's memory and main thread on a long job |  |
 | SCAN-10 | P3 | [SCAN-10](backlog/tasks/SCAN-10.md) · Scan next: evaluate a small learned page detector behind the same contract |  |
 | SCAN-31 | P3 | [SCAN-31](backlog/tasks/SCAN-31.md) · The Scan guide's image generator follows the rewritten phone flow |  |
@@ -371,7 +370,7 @@ Done and retired tickets are not listed. Their files stay in [backlog/tasks/](ba
 - Redact: finish removal: 29 done, 1 retired
 - Sign: finish fill mode: 4 done, 1 retired
 - Highlight PDF: a tool for reading: 12 done, 1 retired
-- Scan: camera to WhatsApp: 18 done, 0 retired
+- Scan: camera to WhatsApp: 19 done, 0 retired
 - Page enhancement for Scan and Highlight: 7 done, 1 retired
 - Tool pages: show the verb: 9 done, 0 retired
 - Form detector accuracy: 20 done, 1 retired
