@@ -56,3 +56,18 @@ Every page read at Scan's 1000 px size, in all four rotations, through the shipp
 - [x] Shlomi's second scanned PDF reads the right way on all three pages.
 - [ ] Shlomi's slip and book pages come out upright on his phone.
 - [ ] A real Latin scan read upright both ways round.
+
+## Phone check, 2026-11-14 (iPhone, Chrome)
+
+Nine pages taken by the live camera, the same bill in five of them (sideways both ways, upside down, upright), through
+the shipped code on a production build. The pages are private and stay off the repo; these are the numbers.
+
+- Eight of nine came out upright, four of them sideways or upside down in the photo. One sideways bill came out upside
+  down: its text reads 0.60 down after the sideways turn, but its half-turned copy reads 0.26 down too, so
+  `readsUpsideDown` leaves it at one turn. The test for SCAN-69 pins the near-identical pair (-0.53, -0.26) to
+  "leave it", so the two numbers cannot tell this page from that one and a threshold change is not the fix.
+- A landscape envelope (text running down the page, 0.81 sideways) was read as sideways but has no row vote, so it keeps
+  the one clockwise turn; checked by eye on the output page only.
+- Decided the same day: no "is it upside down?" prompt. The page view's one Rotate became Left and Right, so a page
+  the text read gets wrong is one or two taps from upright whichever way it lies (checked on the iPhone, "much much
+  better"). A second signal for which half-turn is up stays open here.

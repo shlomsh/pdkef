@@ -34,7 +34,7 @@ One message at a time, by priority, steady (no flicker between hints), in the vo
 
 - [x] A pure `lib/capture/guidance.ts` choosing the hint, with tests for each condition and for steadiness.
       (`guidance.test.ts`: each condition, priority, steady, hysteresis, screen-reader gap)
-- [ ] The viewfinder shows it on a phone, checked on a real iPhone.
+- [x] The viewfinder shows it on a phone, checked on a real iPhone.
 
 ## The auto shutter waits for framing, 2026-11-04
 
@@ -49,3 +49,8 @@ Measured on Shlomi's four photos, cropped in memory at 10% and 20% on each side 
 The viewfinder shows the video under `object-fit: cover`, but every frame was analysed whole. So a page with corners off screen read as whole and the shot fired, and with the phone held sideways (the stream goes landscape, the screen shows about half its width) a page filling a third of the view was under `minArea` of the frame: "Move a little closer", no outline. On Shlomi's screenshot of that moment the detector itself found the slip at confidence 0.96.
 
 `frameGrabber` now crops each frame to `visibleShare`, so the capture machine and the hints work on what the person sees, and quads go back through `toFrame` for the outline and the shot; `takePhoto` keeps the whole frame. With the crop switched off, `camera.spec.js` fails 4 of 6, the sideways and off-screen cases among them. That the stream goes landscape on Shlomi's iPhone is inferred from the screenshot and the `onresize` comment: to confirm on the phone.
+
+## Phone check, 2026-11-14 (iPhone, Chrome)
+
+Fit, closer, flatter and duplicate each showed on the viewfinder at sensible moments. There is no hint for a dark room
+or a covered lens, and a page held too close shows "fit".

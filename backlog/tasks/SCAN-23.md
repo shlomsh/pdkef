@@ -36,3 +36,9 @@ in the frame, so one page seen at another angle or distance reads as a different
       "does not take a page removed for over a second and put back again"; `hash.test.ts` "the same page
       seen another way")
 - [ ] Checked on a phone.
+
+## Phone check, 2026-11-14 (iPhone, Chrome)
+
+Nine shots, none taken twice while a page stayed in view (the duplicate hint showed for 19 s). Retaking the same page
+from a new angle or turned (the letter twice, the bill five times) was accepted every time: the page hash does not
+match across angle or rotation, as SCAN-40 says of plain text. Left as is; a retake is easy to delete.

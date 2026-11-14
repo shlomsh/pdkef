@@ -39,3 +39,14 @@ native camera. Results hold; the live features give way.
 - [ ] A phone that cannot keep up steps down once, then hands over to the native camera with its own line of copy.
 - [ ] On the iPhone: pages come out at least 1200 px wide from a normal shot, read cleanly, the viewfinder stays
       smooth, and ten pages in a row all land.
+
+## Phone check, 2026-11-14 (iPhone, Chrome)
+
+- Nine live-camera photos, every one 4032x3024 from `takePhoto`, 351 to 1126 ms each (the first is the slow one); the
+  pages land at 6.6 to 7.3 MB each.
+- The pages came out 961 to 1157 px wide, under the 1200 px this ticket asks for: the phone was held high, so the page
+  filled about a quarter of the frame. The sharpness of the output pages is alike (edge variance 3010 to 3428), so the
+  blur Shlomi saw on the last page is most likely too few pixels on the paper, not focus. The shutter fires at
+  `minArea` 0.2 of the frame; a larger floor, or an earlier "closer" hint, is the lever.
+- Not captured: the stream's own size (the camera's `getUserMedia` call did not report), and ten pages in a row.
+- Second pass the same day, holding the phone lower: four pages came out 1083 to 1358 px wide, two of them over 1200.

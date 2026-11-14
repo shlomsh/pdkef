@@ -59,3 +59,7 @@ neither works alone without knowing the script. Page-level signals (dense rows f
 stream rotate with it and the text already reads across, so the sideways case is the one where iOS did not rotate.
 What is left: device motion (exact, costs a permission prompt on iOS), or remembering the person's correction.
 
+## Phone check, 2026-11-14 (iPhone, Chrome)
+
+Of the three bill shots taken sideways or upside down in the live camera, two came out upright and one came out upside
+down (see SCAN-48).

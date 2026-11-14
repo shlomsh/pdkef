@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Phone check</title>
+<style>
+  :root{color-scheme:light dark;--bg:#fff;--fg:#111;--mut:#666;--card:#f3f3f3}
+  @media (prefers-color-scheme:dark){:root{--bg:#111;--fg:#eee;--mut:#999;--card:#1c1c1c}}
+  body{margin:0;font:16px/1.45 system-ui,sans-serif;background:var(--bg);color:var(--fg);padding:16px}
+  h1{font-size:20px;margin:0 0 4px} .mut{color:var(--mut);font-size:13px}
+  a.go{display:block;margin:16px 0;padding:16px;border-radius:12px;background:#2457d6;color:#fff;text-align:center;font-weight:600;text-decoration:none}
+  .card{background:var(--card);border-radius:12px;padding:12px 14px;margin:12px 0} ol{padding-left:20px;margin:6px 0} li{margin:6px 0}
+  #n{font-size:28px;font-weight:700}
+</style></head><body>
+<h1>Phone check</h1>
+<div class="mut" id="dev"></div>
+<a class="go" href="/scan-to-pdf/">Open Scan</a>
+<div class="card"><div id="n">0</div><div class="mut">files the tool produced and I received</div></div>
+<div class="card"><b>Just use the tool. Nothing to answer.</b> I look at what it made.<ol id="shots"></ol></div>
+<script>
+const ua = navigator.userAgent;
+document.getElementById('dev').textContent = (/iphone|ipad/i.test(ua) ? 'iPhone' : /android/i.test(ua) ? 'Android' : 'other') + ' · ' + screen.width + 'x' + screen.height + '@' + devicePixelRatio + (window.isSecureContext ? ' · https ok' : ' · NOT a secure context, the camera will not open');
+fetch('/__check/shots.json').then((r) => r.json()).then((s) => { for (const t of s) { const li = document.createElement('li'); li.textContent = t; document.getElementById('shots').append(li); } });
+const poll = () => fetch('/__check/status').then((r) => r.json()).then((s) => { document.getElementById('n').textContent = s.reduce((a, x) => a + x.files, 0); }).catch(() => {});
+poll(); setInterval(poll, 2000);
+</script></body></html>

@@ -65,3 +65,8 @@ Built and checked on a production build; the phone run is open.
 - `@testSeam` tags are gone except `CONFIDENT`'s: the camera reads `confidence`, never the threshold, so only
   its test imports it.
 - Not done: focus does not return to Retake after a one-page retake.
+
+## Phone check, 2026-11-14 (iPhone, Chrome)
+
+Nine pages turned in front of the camera were taken with no tap, then Done. iPhone only: Android was not measured. The
+Share step was not part of this pass.

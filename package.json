@@ -16,6 +16,7 @@
     "prepare": "git config core.hooksPath .githooks || true",
     "postinstall": "patch-package && node scripts/sync-pdfjs-wasm.mjs",
     "dev": "astro dev",
+    "phone-check": "node scripts/phone-check/server.mjs",
     "errors:resolve": "node scripts/errors-resolve.mjs",
     "errors:read": "node scripts/errors-read.mjs",
     "ratings:read": "node scripts/ratings-read.mjs",
