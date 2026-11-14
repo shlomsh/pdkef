@@ -25,6 +25,7 @@ export const guessCorners: EdgeGuesser = (image: GrayImage): Quad | null => {
     if (faint) return faint.quad;
   }
   const bright = guessByScoredRegions(image);
-  const found = !outline ? bright : !bright ? outline.quad : outline.score > OUTLINE_MARGIN * scoreQuad(map, bright) ? outline.quad : bright;
-  return found && fitToPaper(image, found);
+  const fitted = bright && fitToPaper(image, bright);
+  if (outline && (!fitted || outline.score > OUTLINE_MARGIN * scoreQuad(map, fitted))) return fitToPaper(image, outline.quad);
+  return fitted;
 };

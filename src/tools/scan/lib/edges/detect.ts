@@ -1,4 +1,5 @@
 import { buildEdgeMap } from '#lib/pageEnhance/edgeMap.ts';
+import { fitToPaper } from './grow.ts';
 import { faintOutline, outlineFromMap, scoreQuad, WEAK_SCORE } from './outline.ts';
 import { guessByScoredRegions } from './scoredRegions.ts';
 import type { GrayImage, Quad } from '#lib/pageEnhance/quad.ts';
@@ -30,19 +31,24 @@ const NONE: Detection = { quad: null, confidence: 0, lowContrast: false };
 /** guessCorners (index.ts) for a video frame: the outline strategy first (about 16 ms of the 42 ms),
  * the faint outline when the outline is weak or finds nothing, and the brightness strategy only when
  * neither found a page with confidence. The confidence is the winning quad's edge score over FULL_SCORE,
- * capped at 1. A guess with no edge support at all is no page: null, not a quad with confidence 0.
+ * capped at 1. A confident or winning outline is fitted to the paper (grow.ts) after it is scored, as is
+ * the brightness guess before it is scored: a guess whose side lies on the frame border has no edge there,
+ * and fitted, the side sits on the page's own edge. The faint find stays unfitted: a light page on a light
+ * table has no brightness step to fit to. A guess with no edge support at all is no page: null, not a quad with confidence 0.
  */
 export function detectPage(image: GrayImage): Detection {
   const map = buildEdgeMap(image);
   const outline = outlineFromMap(map);
-  if (outline && confidenceOf(outline.score) >= CONFIDENT) return { quad: outline.quad, confidence: confidenceOf(outline.score), lowContrast: false };
+  const fittedOutline = (): Detection => ({ quad: fitToPaper(image, outline!.quad), confidence: confidenceOf(outline!.score), lowContrast: false });
+  if (outline && confidenceOf(outline.score) >= CONFIDENT) return fittedOutline();
   if (!outline || outline.score < WEAK_SCORE) {
     const faint = faintOutline(map);
     if (faint) return { quad: faint.quad, confidence: confidenceOf(faint.score), lowContrast: true };
   }
-  const bright = guessByScoredRegions(image);
+  const raw = guessByScoredRegions(image);
+  const bright = raw && fitToPaper(image, raw);
   const brightScore = bright ? scoreQuad(map, bright) : 0;
-  if (outline && outline.score > OUTLINE_MARGIN * brightScore) return { quad: outline.quad, confidence: confidenceOf(outline.score), lowContrast: false };
+  if (outline && outline.score > OUTLINE_MARGIN * brightScore) return fittedOutline();
   if (bright && brightScore > 0) return { quad: bright, confidence: confidenceOf(brightScore), lowContrast: false };
   return NONE;
 }
