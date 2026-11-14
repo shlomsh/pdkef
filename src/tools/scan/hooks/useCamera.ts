@@ -53,10 +53,11 @@ interface ShotInput {
   onTakenRef: MutableRef<(page: TakenPage) => void>;
   scanFiles: readonly File[];
   paused: boolean;
+  setShooting: (on: boolean) => void;
 }
 
 /** The shot, one at a time. It notes which page each photo is of, so a photo leaving the scan frees its page. */
-function useShot({ videoEl, track, stateRef, lastObs, lastView, pacer, onTakenRef, scanFiles, paused }: ShotInput) {
+function useShot({ videoEl, track, stateRef, lastObs, lastView, pacer, onTakenRef, scanFiles, paused, setShooting }: ShotInput) {
   const shooting = useRef(false);
   const shotHashes = useRef(new WeakMap<File, string>());
   const kept = scanFiles.flatMap((file) => shotHashes.current.get(file) ?? []);
@@ -81,11 +82,13 @@ function useShot({ videoEl, track, stateRef, lastObs, lastView, pacer, onTakenRe
       return;
     }
     shooting.current = true;
+    setShooting(true);
     pacer.current?.stop();
     try {
       await attemptShot({ stateRef, keptRef, pending, lastObs, lastView, shotHashes: shotHashes.current, onTaken: onTakenRef.current, capture: () => captureShot(running, video), quad, byShutter });
     } finally {
       shooting.current = false;
+      setShooting(false);
     }
   }, []);
 }
@@ -132,11 +135,13 @@ export async function attemptShot({ stateRef, keptRef, pending, lastObs, lastVie
   }
 }
 
-export function useCamera(input: UseCameraInput): CameraHandle {
+/** The camera handle, and whether a shot is under way: the page is taken but its photo is not in the scan yet (SCAN-38). */
+export function useCamera(input: UseCameraInput): CameraHandle & { shooting: boolean } {
   const [status, setStatus] = useState<CameraStatus>('starting');
   const [live, setLive] = useState(IDLE_VIEW);
   const [videoSize, setVideoSize] = useState({ width: 0, height: 0 });
   const [auto, setAutoState] = useState(true);
+  const [shooting, setShooting] = useState(false);
 
   const onTakenRef = useRef(input.onTaken);
   onTakenRef.current = input.onTaken;
@@ -161,7 +166,7 @@ export function useCamera(input: UseCameraInput): CameraHandle {
     attach();
   }, [attach]);
 
-  const shoot = useShot({ videoEl, track, stateRef, lastObs, lastView, pacer, onTakenRef, scanFiles: input.scanFiles, paused: input.paused ?? false });
+  const shoot = useShot({ videoEl, track, stateRef, lastObs, lastView, pacer, onTakenRef, scanFiles: input.scanFiles, paused: input.paused ?? false, setShooting });
   const shootRef = useRef(shoot);
   shootRef.current = shoot;
 
@@ -261,5 +266,5 @@ export function useCamera(input: UseCameraInput): CameraHandle {
   }, []);
   const shutter = useCallback(() => { void shootRef.current(undefined, true); /* reason: shoot reports its own failure */ }, []);
 
-  return { status, live, videoSize, videoRef, auto, setAuto, shoot: shutter, track };
+  return { status, live, videoSize, videoRef, auto, setAuto, shoot: shutter, track, shooting };
 }

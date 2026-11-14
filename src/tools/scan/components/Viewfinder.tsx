@@ -95,6 +95,8 @@ export default function Viewfinder(props: ViewfinderProps) {
   const { live } = camera;
   const thumb = snapUrl ?? props.lastSrc;
   const many = props.mode === 'many';
+  // The page being taken counts at once, not when its photo reaches the scan (SCAN-38).
+  const shownCount = props.count + (camera.shooting ? 1 : 0);
   // Kept in the layout from the start, hidden until a page is in it, so the first page has somewhere to fly.
   const showStack = many && (props.count > 0 || thumb !== null);
   const cover = coverRect(camera.videoSize, size);
@@ -132,7 +134,7 @@ export default function Viewfinder(props: ViewfinderProps) {
         {/* aria-hidden: screen readers get the same words from the polite region below, without the repeats. */}
         <p class={styles.hint} aria-hidden="true" data-camera-hint={camera.status === 'live' ? live.hint : undefined}>
           {camera.status === 'live' && (
-            <span class={styles.hintText} data-advice={ADVICE.has(live.hint) || undefined}>{hintText(live.hint, props.count, t)}</span>
+            <span class={styles.hintText} data-advice={ADVICE.has(live.hint) || undefined}>{hintText(live.hint, shownCount, t)}</span>
           )}
         </p>
         {camera.status === 'live' ? (
@@ -144,7 +146,7 @@ export default function Viewfinder(props: ViewfinderProps) {
 
       {/* Screen readers hear the hint politely and at most every few seconds (stepGuidance), never frame by frame. */}
       <p class="sr-only" aria-live="polite" data-hint-spoken>
-        {camera.status === 'live' && live.spoken ? hintText(live.spoken, props.count, t) : ''}
+        {camera.status === 'live' && live.spoken ? hintText(live.spoken, shownCount, t) : ''}
       </p>
 
       {camera.status === 'starting' && <p class={styles.status}>{t.cameraStarting}</p>}

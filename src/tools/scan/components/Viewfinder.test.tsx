@@ -4,7 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { IDLE_VIEW, type CameraHandle } from '../lib/camera/types.ts';
 import Viewfinder from './Viewfinder.tsx';
 
-let handle: CameraHandle;
+let handle: CameraHandle & { shooting?: boolean };
 let cameraInput: { onTaken: (page: unknown) => void; paused?: boolean };
 vi.mock('../hooks/useCamera.ts', () => ({ useCamera: (input: typeof cameraInput) => { cameraInput = input; return handle; } }));
 // The model is another file's work; the component only calls it.
@@ -78,6 +78,15 @@ describe('Viewfinder', () => {
     handle = { ...handle, live: { ...IDLE_VIEW, hint: 'turn', spoken: 'turn' } };
     act(() => render(<Viewfinder {...baseProps()} count={4} />, container!));
     expect(live[0].textContent).toBe('Page 4. Turn the page.');
+  });
+
+  it('SCAN-38: the turn line counts the page being taken as soon as the shot starts', () => {
+    handle = { ...handle, live: { ...IDLE_VIEW, hint: 'turn' }, shooting: true };
+    mount({ count: 2 });
+    expect(container!.querySelector('[data-camera-hint]')?.textContent).toBe('Page 3. Turn the page.');
+    handle = { ...handle, shooting: false };
+    act(() => render(<Viewfinder {...baseProps()} count={3} />, container!));
+    expect(container!.querySelector('[data-camera-hint]')?.textContent).toBe('Page 3. Turn the page.');
   });
 
   it('nothing is spoken before the first hint', () => {
