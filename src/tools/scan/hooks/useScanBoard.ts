@@ -1,4 +1,5 @@
 import { useCallback, useState } from 'preact/hooks';
+import type { SkippedFile } from '../components/ScanSkippedNotice.tsx';
 import { partitionTurned } from '../lib/scanPages.ts';
 import type { HeldRemoval, PageResult } from '../state/scanWork.ts';
 
@@ -7,7 +8,7 @@ export function useScanBoard() {
   const [results, setResults] = useState<Record<number, PageResult>>({});
   /** Each turned page's preview, turned the same way for the corner editor, by `${id}|${turns}`. */
   const [turnedPreviews, setTurnedPreviews] = useState<Record<string, string>>({});
-  const [rejectedFiles, setRejectedFiles] = useState<string[]>([]);
+  const [rejectedFiles, setRejectedFiles] = useState<SkippedFile[]>([]);
   /** Bumped when a build lands, so the per-key maps the work object holds are read again. */
   const [, setBuilt] = useState(0);
   /** The removal Undo is offered for (state/scanWork.ts holds the page itself). */

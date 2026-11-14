@@ -1,6 +1,7 @@
 import { useCallback, useEffect } from 'preact/hooks';
 import { isAbortError } from '#lib/output/abort.js';
 import { reportError } from '#lib/telemetry/errorReport.ts';
+import type { SkippedFile } from '../components/ScanSkippedNotice.tsx';
 import { newPage } from '../lib/scanPages.ts';
 import type { ScanPage } from '../state/scanWork.ts';
 import type { ScanDispatch, SetPages } from './scanHost.ts';
@@ -12,7 +13,7 @@ interface PdfPagesInput {
   setPages: SetPages;
   dispatch: ScanDispatch;
   /** A PDF that could not be read (protected, damaged): its name goes where a skipped file's does. */
-  skipped: (names: string[]) => void;
+  skipped: (files: SkippedFile[]) => void;
   /** The new page through the queue, for its preview and size; the corners it arrives with are kept. */
   inspect: (page: ScanPage) => void;
 }
@@ -39,7 +40,7 @@ export function useScanPdfPages({ work, unmountedRef, setPages, dispatch, skippe
       } catch (err) {
         if (isAbortError(err) || signal.aborted || unmountedRef.current) return;
         reportError('pdf_tool_run', err, 'scan_open_pdf');
-        skipped([pdf.name]);
+        skipped([{ name: pdf.name, reason: 'pdf' }]);
       }
     }
   }, []);

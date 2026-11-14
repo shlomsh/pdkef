@@ -29,6 +29,8 @@ export interface ScanMessages extends DownloadMessages {
   stackLabel: string;
   skippedOne: string;
   skippedMany: string;
+  skippedPdfOne: string;
+  skippedPdfMany: string;
   documentHeading: string;
   fileNameLabel: string;
   pageOf: string;
@@ -171,6 +173,8 @@ export const englishScanMessages: ScanMessages = {
   stackLabel: 'The last page taken, {count} so far',
   skippedOne: '{name} was skipped: only JPG and PNG photos can be scanned.',
   skippedMany: '{count} files were skipped: only JPG and PNG photos can be scanned.',
+  skippedPdfOne: '{name} could not be opened, so it was skipped.',
+  skippedPdfMany: '{names} could not be opened, so they were skipped.',
   documentHeading: 'Your scan',
   fileNameLabel: 'File name, select to rename',
   pageOf: 'Page {position} of {total}',

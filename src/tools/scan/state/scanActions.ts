@@ -5,6 +5,7 @@ import { reportEdit } from '#lib/telemetry/productAnalytics.ts';
 import { recordAction } from '#lib/telemetry/actionTrail.ts';
 import { formatMessage } from '#lib/text/formatMessage.ts';
 import type { ScanDispatch, SetPages } from '../hooks/scanHost.ts';
+import type { SkippedFile } from '../components/ScanSkippedNotice.tsx';
 import { UNDO_WINDOW_MS } from '#shell/useUndoWindow.ts';
 import { loadPipeline } from '../lib/loadPipeline.ts';
 import type { ScanFilter } from '../lib/filters.ts';
@@ -46,7 +47,7 @@ interface PageActionsInput {
   setRemoval: (removal: HeldRemoval | null) => void;
   failedIds: number[];
   setCustomName: (name: string | null) => void;
-  setRejectedFiles: (names: string[]) => void;
+  setRejectedFiles: (files: SkippedFile[]) => void;
   forgetTurned: (match: (key: string) => boolean) => void;
   work: ScanWork;
   unmountedRef: MutableRef<boolean>;

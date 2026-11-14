@@ -6,6 +6,7 @@ import { beaconMaintenanceTransport, reportMaintenanceEvent, scanCameraPhoto } f
 import { formatMessage } from '#lib/text/formatMessage.ts';
 import { useHandoffFilesIntake } from '#lib/handoff/useHandoffIntake.ts';
 import { markArrival } from '#lib/handoff/fileArrival.ts';
+import { addSkipped, type SkippedFile } from '../components/ScanSkippedNotice.tsx';
 import { PDF_TYPE, SCAN_ACCEPTED_TYPES } from '../lib/scanAccept.ts';
 import { loadPipeline } from '../lib/loadPipeline.ts';
 import { isCurrentKey, newPage, pageQuad, partitionFiles, replacePage, resultKey, withInspection } from '../lib/scanPages.ts';
@@ -26,7 +27,7 @@ interface ScanPagesInput {
   unmountedRef: MutableRef<boolean>;
   dispatch: ScanDispatch;
   announce: (text: string) => void;
-  setRejectedFiles: (names: string[]) => void;
+  setRejectedFiles: Dispatch<StateUpdater<SkippedFile[]>>;
   results: Record<number, PageResult>;
   setResults: Dispatch<StateUpdater<Record<number, PageResult>>>;
   turnedPreviews: Record<string, string>;
@@ -81,11 +82,11 @@ export function useScanPages(input: ScanPagesInput) {
     return run;
   }, []);
 
-  const addPdfs = useScanPdfPages({ ...input, skipped: setRejectedFiles, inspect: (page) => inspectPage(page, input) });
+  const addPdfs = useScanPdfPages({ ...input, skipped: (files) => setRejectedFiles((current) => addSkipped(current, files)), inspect: (page) => inspectPage(page, input) });
 
   const addFiles = useCallback((fileList: FileList | File[], from?: { fromCamera: boolean }) => {
     const { accepted: all, rejectedNames } = partitionFiles(Array.from(fileList), SCAN_ACCEPTED_TYPES);
-    setRejectedFiles(rejectedNames);
+    setRejectedFiles(rejectedNames.map((name): SkippedFile => ({ name, reason: 'type' })));
     const accepted = all.filter((f) => f.type !== PDF_TYPE);
     const pdfs = all.filter((f) => f.type === PDF_TYPE);
     if (pdfs.length > 0) addPdfs(pdfs);
