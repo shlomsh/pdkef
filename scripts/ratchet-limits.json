@@ -8,7 +8,7 @@
     "maxSinglePageUtilities": 148
   },
   "e2eSleeps": {
-    "waitForTimeout": 42
+    "waitForTimeout": 40
   },
   "functionSize": {
     "functions": {
