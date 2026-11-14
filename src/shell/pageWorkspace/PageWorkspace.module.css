@@ -464,10 +464,18 @@
 }
 
 @media (hover: hover) {
-  .quiet-button:hover {
+  .quiet-button:not(:disabled):hover {
     background: var(--color-primary-soft);
     border-color: var(--color-primary);
   }
+}
+
+/* A disabled quiet button reads as unavailable: muted text and border, no
+   hover response, no pointer. */
+.quiet-button:disabled {
+  color: var(--color-muted);
+  border-color: var(--color-border);
+  cursor: default;
 }
 
 .quiet-button:focus-visible {
