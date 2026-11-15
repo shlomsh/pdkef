@@ -66,9 +66,9 @@ const MAX_TOP_UP = 0.06;
 
 /** One side of the text block, read where its rows' middle is, as a share of the page's width: `outer`, the outermost edge
  * its rows hold; `held`, the edge most of them hold; `past`, the share of the rows that run past `outer`. */
-export interface SideRead { outer: number; held: number; past: number }
+interface SideRead { outer: number; held: number; past: number }
 /** The text block's two sides. */
-export interface BlockSides { left: SideRead; right: SideRead }
+interface BlockSides { left: SideRead; right: SideRead }
 
 const median = (values: number[]) => [...values].sort((a, b) => a - b)[values.length >> 1];
 
@@ -109,8 +109,8 @@ function readSide(ends: Array<[number, number]>, outward: number): SideRead | nu
   return { outer: outer.at, held: held.at, past };
 }
 
-/** @testSeam The text block's sides from its full rows, or null when the rows hold no block with two clean edges. */
-export function blockSides(gray: GrayImage): BlockSides | null {
+/** The text block's sides from its full rows, or null when the rows hold no block with two clean edges. */
+function blockSides(gray: GrayImage): BlockSides | null {
   const { ink, rules, width: w, height: h } = pageMasks(gray);
   const rows = new Uint8Array(w * h);
   for (let i = 0; i < rows.length; i += 1) rows[i] = ink[i] & (rules[i] ^ 1);
@@ -151,6 +151,15 @@ function planFor(sides: BlockSides): Reshape | null {
   return { thin, trim, pad: uneven + trim };
 }
 
+/** The pixels of rows `y0` to `y1` inside `spans` that the Document look reads as clean paper. */
+function cleanPaper(grey: Uint8ClampedArray, w: number, y0: number, y1: number, spans: number[][]): number[] {
+  const found: number[] = [];
+  for (let y = y0; y < y1; y += 1) {
+    for (const [x0, x1] of spans) for (let x = x0; x < x1; x += 1) if (grey[y * w + x] >= PAPER) found.push(y * w + x);
+  }
+  return found;
+}
+
 /** Per band down `small`: the clean paper's colour in the margins (its brighter half, so a shadow does not tint
  * it), and the page's own colour where the padding meets it. Null when the margins show no clean paper at all. */
 function bandTones(small: RgbaImage, sides: { left: number; right: number }, plan: Reshape): { paper: Rgb[]; seam: Rgb[] } | null {
@@ -167,12 +176,9 @@ function bandTones(small: RgbaImage, sides: { left: number; right: number }, pla
   for (let b = 0; b < BANDS; b += 1) {
     const y0 = Math.floor((b * h) / BANDS);
     const y1 = Math.max(y0 + 1, Math.floor(((b + 1) * h) / BANDS));
-    const found: number[] = [];
+    const found = cleanPaper(grey, w, y0, y1, spans);
     const column: number[][] = [[], [], []];
     for (let y = y0; y < y1; y += 1) {
-      for (const [x0, x1] of spans) {
-        for (let x = x0; x < x1; x += 1) if (grey[y * w + x] >= PAPER) found.push(y * w + x);
-      }
       for (const x of seamXs) for (let k = 0; k < 3; k += 1) column[k].push(data[(y * w + x) * 4 + k]);
     }
     seam.push(column.map(median) as Rgb);
