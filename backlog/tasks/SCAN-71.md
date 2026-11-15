@@ -131,3 +131,22 @@ What is left for the outcome:
   guess is elsewhere (p-014).
 - found@0.035 is still 4 of 22, the second acceptance line.
 - The PDF path is untouched.
+
+## Measured, 2026-11-15: no camera rule for books is worth shipping
+
+Five acceptance rules were run on the camera's path with the fold cut and snap added (script kept outside the repo).
+The camera draws an outline, and may take the photo by itself, only at confidence 0.6 (`captureMachine.ts:71`,
+`minConfidence` in `capture/types.ts`). An open book's page has two sides with no edge (off the frame, onto the page
+stack), so its score stays at 0.27 to 0.41 of that bar however the side rule is loosened.
+
+| rule | shown | found@0.035 | found@0.08 | confidently wrong |
+| --- | --- | --- | --- | --- |
+| today (every side 0.4) | 10 of 22 | 4 | 8 | 2 |
+| frame-border side exempt | 10 | 5 | 8 | 2 (p-008 drops under the 0.6 bar: lost on screen) |
+| fold and opposite 0.4, top and bottom 0.2 | 11 | 4 | 9 | 2 (adds p-003 at 0.603) |
+| every side 0.2 | 13 | 4 | 10 | 3 (adds p-005, wrong, under the bar) |
+| any three sides 0.4 | 12 | 5 | 9 | 3 (adds p-021, 0.51 off, under the bar) |
+
+The fold and snap cost 8.5 ms a frame (30 to 38). The SCAN-05 corpus gives the same result under every rule. A
+camera outline for open books needs a detector that sees the book as a whole: [SCAN-10](SCAN-10.md), a learned page
+detector behind the same contract, parked 2026-11-15 until Scan's use justifies a trained model.
