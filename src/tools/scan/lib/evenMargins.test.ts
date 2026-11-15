@@ -28,10 +28,12 @@ interface Shape {
   rightAt?: (r: number) => number;
   /** A dark line this many pixels wide down the very left edge: the page's own edge, seen past the curl. */
   edgeLine?: number;
+  /** Only rows from..to are drawn. */
+  rows?: [number, number];
 }
 
 /** A photographed book page, flattened: justified rows of word bars on tinted paper. */
-function bookPage({ text: [left, right], paper = () => PAPER, rightCut = () => 0, figure, shadow = 0, leftAt = () => left, rightAt = () => right, edgeLine = 0 }: Shape): RgbaImage {
+function bookPage({ text: [left, right], paper = () => PAPER, rightCut = () => 0, figure, shadow = 0, leftAt = () => left, rightAt = () => right, edgeLine = 0, rows = [0, ROWS] }: Shape): RgbaImage {
   const data = new Uint8ClampedArray(W * H * 4);
   for (let y = 0; y < H; y += 1) {
     const tone = paper(y);
@@ -43,7 +45,7 @@ function bookPage({ text: [left, right], paper = () => PAPER, rightCut = () => 0
   const ink = (x0: number, x1: number, y0: number, y1: number) => {
     for (let y = y0; y < y1; y += 1) for (let x = x0; x < x1; x += 1) data.set([25, 25, 25, 255], (y * W + x) * 4);
   };
-  for (let r = 0; r < ROWS; r += 1) {
+  for (let r = rows[0]; r < rows[1]; r += 1) {
     const y0 = FIRST_Y + r * PITCH;
     const start = leftAt(r);
     const end = rightAt(r) - rightCut(r);
@@ -55,7 +57,7 @@ function bookPage({ text: [left, right], paper = () => PAPER, rightCut = () => 0
       ink(x0, Math.round(x0 + word), y0, y0 + BAR);
     }
   }
-  if (figure) ink(figure[0], figure[1], 200, 520);
+  if (figure) ink(figure[0], figure[1], 520, 700);
   if (edgeLine) ink(0, edgeLine, 0, H);
   return { width: W, height: H, data };
 }
@@ -122,6 +124,15 @@ describe('evenMargins', () => {
     expect(near(rgb(out, 0, 400), PAPER, 6)).toBe(true);
   });
 
+  it('lifts the gutter shadow in the thin margin to the paper, so no dark band stands between the text and the padding', () => {
+    const out = evenMargins(bookPage({ text: [60, 490], shadow: 50 }));
+    const pad = out.width - W;
+    expect(pad).toBeGreaterThan(40);
+    for (const x of [5, 15, 30, 45]) expect(near(rgb(out, pad + x, 400), PAPER, 12)).toBe(true);
+    // the text itself is left as it was
+    expect(rgb(out, pad + 62, FIRST_Y + 5)[0]).toBeLessThan(60);
+  });
+
   it('centres a block whose spine-side edge leans', () => {
     const out = evenMargins(bookPage({ text: [45, 490], leftAt: (r) => 30 + r }));
     expect(out.width).toBeGreaterThan(W + 40);
@@ -147,29 +158,46 @@ describe('evenMargins', () => {
     for (let x = 0; x < pad + 10; x += 1) expect(rgb(out, x, 400)[0]).toBeGreaterThan(150);
   });
 
+  it('leaves a page as it is when full rows run past the edge it holds: that edge is an indent, not the block\'s side', () => {
+    const src = bookPage({ text: [40, 490], rightAt: (r) => (r % 5 === 0 ? 560 : 490) });
+    expect(evenMargins(src) === src).toBe(true);
+  });
+
+  it('centres a page whose spine-side edge still curves out at its top and bottom rows', () => {
+    const out = evenMargins(bookPage({ text: [50, 490], leftAt: (r) => Math.round(50 - 40 * ((r - 14.5) / 14.5) ** 4) }));
+    expect(out.width).toBeGreaterThan(W + 40);
+    const [left, right] = rowEnds(out, 15);
+    expect(Math.abs(left - (out.width - 1 - right))).toBeLessThanOrEqual(0.02 * out.width);
+  });
+
+  it('leaves a page as it is when its even rows sit together in one short stretch: a table, not a text block', () => {
+    const src = bookPage({ text: [40, 490], rows: [20, 27] });
+    expect(evenMargins(src) === src).toBe(true);
+  });
+
   it('returns a centred page as the very same image', () => {
     const src = bookPage({ text: [75, 525] });
-    expect(evenMargins(src)).toBe(src);
+    expect(evenMargins(src) === src).toBe(true);
   });
 
   it('leaves a page only a little uneven as it is', () => {
     const src = bookPage({ text: [70, 520] });
-    expect(evenMargins(src)).toBe(src);
+    expect(evenMargins(src) === src).toBe(true);
   });
 
   it('leaves a ragged page as it is: its rows hold no edge to centre on', () => {
     const cuts = [0, 140, 60, 200, 20, 110, 170, 40, 90, 230];
     const src = bookPage({ text: [40, 490], rightCut: (r) => cuts[r % cuts.length] });
-    expect(evenMargins(src)).toBe(src);
+    expect(evenMargins(src) === src).toBe(true);
   });
 
   it('leaves a narrow column beside a figure as it is', () => {
     const src = bookPage({ text: [60, 330], figure: [380, 560] });
-    expect(evenMargins(src)).toBe(src);
+    expect(evenMargins(src) === src).toBe(true);
   });
 
   it('leaves a page with no text as it is', () => {
     const blank: RgbaImage = { width: W, height: H, data: new Uint8ClampedArray(W * H * 4).fill(230) };
-    expect(evenMargins(blank)).toBe(blank);
+    expect(evenMargins(blank) === blank).toBe(true);
   });
 });

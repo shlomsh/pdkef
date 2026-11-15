@@ -23,6 +23,12 @@ const MIN_EDGE_ROWS = 6;
 /** ...and this share of them: a ragged side holds none, and the block's edge is the outermost one that is held, so rows that
  * flow round a figure below the block do not move it. */
 const MIN_HELD = 0.25;
+/** At most this share of the full rows may run past a side's edge... */
+const MAX_PAST = 0.1;
+/** ...by more than this share of the width: a curl the flattening left bends the spine side's edge by less. */
+const PAST_BY = 0.03;
+/** The rows holding an edge reach at least this share of the page's height: a table's rules, or a few lines of a form, sit together in less. */
+const MIN_EDGE_SPAN = 0.3;
 /** Rows this far apart (share of the rows' height) propose an edge. */
 const MIN_PAIR_SPAN = 0.1;
 /** An edge leans at most this much (width per height): the spine side's text edge leans where the curl was not all taken out. */
@@ -47,23 +53,34 @@ const SEAM = 0.005;
 const TRIM = 0.015;
 /** ...and never nearer the text than this. */
 const TEXT_CLEAR = 0.03;
-/** The second look adds at most this share of the width: the band along the edge the line reader leaves out. */
-const MAX_TOP_UP = 0.04;
+/** The thin margin is lifted from this share of the width past the text... */
+const LIFT_CLEAR = 0.005;
+/** ...fully so this much further out. */
+const LIFT_BLEND = 0.015;
+/** A column's paper is its values at this share up, in a band: print and specks sit below it. */
+const BRIGHT = 0.9;
+/** A shadow is lifted at most this many times. */
+const MAX_LIFT = 3;
+/** The second look moves the padding by at most this share of the width: the band along the edge the line reader leaves out, and its smear. */
+const MAX_TOP_UP = 0.06;
 
-/** The text block's left and right sides, as shares of the page's width. */
-export interface BlockSides { left: number; right: number }
+/** One side of the text block, read where its rows' middle is, as a share of the page's width: `outer`, the outermost edge
+ * its rows hold; `held`, the edge most of them hold; `past`, the share of the rows that run past `outer`. */
+export interface SideRead { outer: number; held: number; past: number }
+/** The text block's two sides. */
+export interface BlockSides { left: SideRead; right: SideRead }
 
 const median = (values: number[]) => [...values].sort((a, b) => a - b)[values.length >> 1];
 
-/** Where the outermost held edge through the row ends (`y`, `x`) crosses the rows' middle, or null when no edge is held.
- * `outward` is -1 for the left side, 1 for the right. */
-function heldEdge(ends: Array<[number, number]>, outward: number): number | null {
+/** One side of the block through the row ends (`y`, `x`), or null when no edge is held. `outward` is -1 for the left side, 1 for the right. */
+function readSide(ends: Array<[number, number]>, outward: number): SideRead | null {
   const ys = ends.map(([y]) => y);
   const top = Math.min(...ys);
   const span = Math.max(...ys) - top;
   const middle = top + span / 2;
   const need = Math.max(MIN_EDGE_ROWS, MIN_HELD * ends.length);
-  let best: number | null = null;
+  let outer: { at: number; line: (y: number) => number } | null = null;
+  let held: { at: number; support: number } | null = null;
   for (let i = 0; i < ends.length; i += 1) {
     for (let j = 0; j < ends.length; j += 1) {
       const dy = ends[j][0] - ends[i][0];
@@ -72,17 +89,24 @@ function heldEdge(ends: Array<[number, number]>, outward: number): number | null
       if (Math.abs(lean) > MAX_LEAN) continue;
       const on = ends.filter(([y, x]) => Math.abs(ends[i][1] + lean * (y - ends[i][0]) - x) <= END_TOLERANCE);
       if (on.length < need) continue;
-      // The held rows' own line, read at the middle.
+      const reach = on.reduce((most, [y]) => Math.max(most, y), 0) - on.reduce((least, [y]) => Math.min(least, y), 1);
+      if (reach < MIN_EDGE_SPAN) continue;
+      // The held rows' own line.
       const my = on.reduce((sum, [y]) => sum + y, 0) / on.length;
       const mx = on.reduce((sum, [, x]) => sum + x, 0) / on.length;
       let num = 0;
       let den = 0;
       for (const [y, x] of on) { num += (y - my) * (x - mx); den += (y - my) ** 2; }
-      const at = mx + (den ? num / den : 0) * (middle - my);
-      if (best === null || (at - best) * outward > 0) best = at;
+      const slope = den ? num / den : 0;
+      const at = mx + slope * (middle - my);
+      if (!outer || (at - outer.at) * outward > 0) outer = { at, line: (y) => mx + slope * (y - my) };
+      if (!held || on.length > held.support) held = { at, support: on.length };
     }
   }
-  return best;
+  if (!outer || !held) return null;
+  const line = outer.line;
+  const past = ends.filter(([y, x]) => (x - line(y)) * outward > PAST_BY).length / ends.length;
+  return { outer: outer.at, held: held.at, past };
 }
 
 /** @testSeam The text block's sides from its full rows, or null when the rows hold no block with two clean edges. */
@@ -93,9 +117,20 @@ export function blockSides(gray: GrayImage): BlockSides | null {
   const full = lineSamples(smear(rows, w, h), w, h).filter((line) => line[line.length - 1].x - line[0].x >= MIN_ROW_SPAN);
   if (full.length < MIN_ROWS) return null;
   const middle = (line: typeof full[number]) => median(line.map((s) => s.y));
-  const left = heldEdge(full.map((line) => [middle(line), line[0].x]), -1);
-  const right = heldEdge(full.map((line) => [middle(line), line[line.length - 1].x]), 1);
-  return left !== null && right !== null && right - left >= MIN_BLOCK ? { left, right } : null;
+  const left = readSide(full.map((line) => [middle(line), line[0].x]), -1);
+  const right = readSide(full.map((line) => [middle(line), line[line.length - 1].x]), 1);
+  return left && right && right.outer - left.outer >= MIN_BLOCK ? { left, right } : null;
+}
+
+/** The text's outer edges, as shares of the width: nothing of the block reaches past them. */
+const outerEdges = ({ left, right }: BlockSides) => ({ left: left.outer, right: right.outer });
+
+/** The thin side's margin and the wide side's. The wide side is the page's flat outer side, so its outermost edge is its
+ * margin; the thin side runs into the spine, whose edge may still curve at the top and bottom rows, so the edge most rows hold is its. */
+function marginsOf(sides: BlockSides, thin: Side): { thin: number; wide: number; widePast: number } {
+  return thin === 'left'
+    ? { thin: sides.left.held, wide: 1 - sides.right.outer, widePast: sides.right.past }
+    : { thin: 1 - sides.right.held, wide: sides.left.outer, widePast: sides.left.past };
 }
 
 type Rgb = [number, number, number];
@@ -105,19 +140,20 @@ type Side = 'left' | 'right';
 /** How the thin side is reshaped, in shares of the page's width: `trim` cut off its edge, then `pad` of paper added past it. */
 interface Reshape { thin: Side; trim: number; pad: number }
 
-/** The plan for a page whose block sits at `sides`, or null when its margins are even already or too far apart to be a squeeze. */
+/** The plan for a page whose block sits at `sides`, or null when its margins are even already or too far apart to be a
+ * squeeze, or when full rows run past its wide side's edge: that edge is then an indent, not the block's side. */
 function planFor(sides: BlockSides): Reshape | null {
-  const left = sides.left;
-  const right = 1 - sides.right;
-  const uneven = Math.abs(left - right);
-  if (uneven < MIN_UNEVEN || uneven > MAX_PAD) return null;
-  const trim = Math.min(TRIM, Math.max(0, Math.min(left, right) - TEXT_CLEAR));
-  return { thin: left < right ? 'left' : 'right', trim, pad: uneven + trim };
+  const thin: Side = sides.left.outer < 1 - sides.right.outer ? 'left' : 'right';
+  const margins = marginsOf(sides, thin);
+  const uneven = margins.wide - margins.thin;
+  if (uneven < MIN_UNEVEN || uneven > MAX_PAD || margins.widePast > MAX_PAST) return null;
+  const trim = Math.min(TRIM, Math.max(0, margins.thin - TEXT_CLEAR));
+  return { thin, trim, pad: uneven + trim };
 }
 
 /** Per band down `small`: the clean paper's colour in the margins (its brighter half, so a shadow does not tint
  * it), and the page's own colour where the padding meets it. Null when the margins show no clean paper at all. */
-function bandTones(small: RgbaImage, sides: BlockSides, plan: Reshape): { paper: Rgb[]; seam: Rgb[] } | null {
+function bandTones(small: RgbaImage, sides: { left: number; right: number }, plan: Reshape): { paper: Rgb[]; seam: Rgb[] } | null {
   const { width: w, height: h, data } = small;
   const grey = documentGrey(small);
   const clear = Math.ceil(CLEAR * w);
@@ -186,15 +222,57 @@ function reshape(image: RgbaImage, plan: Reshape, tones: { paper: Rgb[]; seam: R
   return { width: outWidth, height, data: out };
 }
 
-/** The plan, topped up by a second look at the reshaped copy: rows that run into the page's edge band, where the line
- * reader does not look, show their real ends once the padding has moved them in. It only ever adds, and only that band's worth. */
+/** The plan, settled by a second look at the reshaped copy: rows that run into the page's edge band, where the line reader
+ * does not look, show their real ends once the padding has moved them in. It moves the padding by that band's worth at most. */
 function settled(small: RgbaImage, plan: Reshape, tones: { paper: Rgb[]; seam: Rgb[] }): Reshape {
   const trial = reshape(small, plan, tones);
   const again = blockSides(toGray(trial));
   if (!again) return plan;
-  const [thinMargin, wideMargin] = plan.thin === 'left' ? [again.left, 1 - again.right] : [1 - again.right, again.left];
-  const more = ((wideMargin - thinMargin) * trial.width) / small.width;
-  return more > 0 && more <= MAX_TOP_UP && plan.pad - plan.trim + more <= MAX_PAD ? { ...plan, pad: plan.pad + more } : plan;
+  const margins = marginsOf(again, plan.thin);
+  const more = ((margins.wide - margins.thin) * trial.width) / small.width;
+  const pad = plan.pad + more;
+  return Math.abs(more) <= MAX_TOP_UP && pad > plan.trim && pad - plan.trim <= MAX_PAD ? { ...plan, pad } : plan;
+}
+
+/** The thin margin's shadow lifted: past the text, each column's paper, band by band, is scaled up to the page's paper tone,
+ * so a gutter shadow or the page's dark edge fades into the paper, and print there keeps its contrast. */
+function relight(image: RgbaImage, sides: { left: number; right: number }, thin: Side, paper: Rgb[]): RgbaImage {
+  const { width: w, height: h, data } = image;
+  const edge = thin === 'left' ? Math.floor(sides.left * w) : Math.ceil(sides.right * w);
+  const clear = Math.round(LIFT_CLEAR * w);
+  const blend = Math.max(1, Math.round(LIFT_BLEND * w));
+  const xs = thin === 'left'
+    ? Array.from({ length: Math.max(0, edge - clear) }, (_, i) => i)
+    : Array.from({ length: Math.max(0, w - edge - clear) }, (_, i) => edge + clear + i);
+  if (xs.length === 0) return image;
+  // gains[band][column][channel]: the paper's tone over that column's bright level in the band.
+  const gains: number[][][] = [];
+  for (let b = 0; b < BANDS; b += 1) {
+    const y0 = Math.floor((b * h) / BANDS);
+    const y1 = Math.max(y0 + 1, Math.floor(((b + 1) * h) / BANDS));
+    gains.push(xs.map((x) => [0, 1, 2].map((k) => {
+      const values: number[] = [];
+      for (let y = y0; y < y1; y += 1) values.push(data[(y * w + x) * 4 + k]);
+      values.sort((p, q) => p - q);
+      const bright = values[Math.floor(BRIGHT * (values.length - 1))];
+      return Math.min(MAX_LIFT, Math.max(1, paper[b][k] / Math.max(1, bright)));
+    })));
+  }
+  const out = new Uint8ClampedArray(data);
+  for (let y = 0; y < h; y += 1) {
+    const f = Math.min(BANDS - 1, Math.max(0, ((y + 0.5) * BANDS) / h - 0.5));
+    const b = Math.min(BANDS - 2, Math.floor(f));
+    const t = f - b;
+    xs.forEach((x, i) => {
+      const weight = Math.min(1, (Math.abs(x - edge) - clear) / blend);
+      const o = (y * w + x) * 4;
+      for (let k = 0; k < 3; k += 1) {
+        const gain = gains[b][i][k] * (1 - t) + gains[b + 1][i][k] * t;
+        out[o + k] = Math.round(data[o + k] * (1 + (gain - 1) * weight));
+      }
+    });
+  }
+  return { width: w, height: h, data: out };
 }
 
 /** The page with its text block centred between even side margins, the thin side padded in the paper's tone; the same object when it needs nothing. */
@@ -202,7 +280,12 @@ export function evenMargins(image: RgbaImage): RgbaImage {
   const small = shrink(image, MEASURE_LONG_EDGE);
   const sides = blockSides(toGray(small));
   const plan = sides && planFor(sides);
-  const tones = plan && bandTones(small, sides!, plan);
-  if (!plan || !tones) return image;
-  return reshape(image, settled(small, plan, tones), tones);
+  if (!sides || !plan) return image;
+  const edges = outerEdges(sides);
+  const measured = bandTones(small, edges, plan);
+  if (!measured) return image;
+  // The seam is read once the thin margin is lifted, so the padding starts from the lifted paper.
+  const lit = relight(small, edges, plan.thin, measured.paper);
+  const tones = { paper: measured.paper, seam: bandTones(lit, edges, plan)!.seam };
+  return reshape(relight(image, edges, plan.thin, measured.paper), settled(lit, plan, tones), tones);
 }
