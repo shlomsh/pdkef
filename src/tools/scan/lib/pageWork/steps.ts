@@ -15,6 +15,7 @@ import { FULL_QUAD } from '../quad.ts';
 import { uprightTurns } from './upright.ts';
 import { curvesFromSides } from './tracedCurves.ts';
 import { fillFoldedCorners } from '../foldedCorners.ts';
+import { evenMargins } from '../evenMargins.ts';
 import { applyFilter, type ScanFilter } from '../filters.ts';
 import { insetQuad, scaleQuad, type GrayImage, type Quad, type RgbaImage } from '#lib/pageEnhance/quad.ts';
 
@@ -217,7 +218,9 @@ export function flattenPixels(src: RgbaImage, quad: Quad, filter: ScanFilter, pa
   const { bend, error } = bendOf(src, quad, inset, width, height, paperEdges, traced);
   const piece: Piece = { quad, inset, width, height, bend, mesh: null };
   const warped = fillFoldedCorners(applyPiece(src, piece));
-  return { image: applyFilter(warped, filter), bentPx: bentPx(bend, pieceMargin(piece), width, height), measureError: error };
+  // A photographed page's text is centred between even margins (SCAN-76); a scanned sheet is left as it was scanned.
+  const page = paperEdges ? evenMargins(warped) : warped;
+  return { image: applyFilter(page, filter), bentPx: bentPx(bend, pieceMargin(piece), width, height), measureError: error };
 }
 
 /** True when every corner is a corner of the picture, in any order: such a page has no border to trace. */

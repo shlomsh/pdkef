@@ -101,7 +101,7 @@ export function bentPx(bend: PageBend, margin: number, width: number, height: nu
 }
 
 /** An area-averaged copy no longer than `longEdge` (the image itself when already small enough). */
-function shrink(src: RgbaImage, longEdge: number): RgbaImage {
+export function shrink(src: RgbaImage, longEdge: number): RgbaImage {
   const k = Math.ceil(Math.max(src.width, src.height) / longEdge);
   if (k <= 1) return src;
   const width = Math.floor(src.width / k);
