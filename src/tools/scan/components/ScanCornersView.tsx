@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
-import { Check, Maximize, Minimize2, RotateCw, Trash2, WandSparkles } from 'lucide-preact';
-import { Redo2, Spline, Undo2 } from './scanIcons.tsx';
+import { Check, Maximize, Minimize2, Redo2, RotateCw, Spline, Trash2, Undo2, WandSparkles } from 'lucide-preact';
 import { workspaceStyles } from '#shell/pageWorkspace/PageWorkspace.tsx';
 import { englishScanMessages as t } from '../messages.ts';
 import { useHistoryShortcuts } from '#lib/history/useHistoryShortcuts.js';

@@ -2,7 +2,7 @@
 
 # Backlog
 
-The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 183 live: 77 up next, 26 then, 27 waiting, 53 parked.
+The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 182 live: 77 up next, 25 then, 27 waiting, 53 parked.
 
 ## Redact: finish removal
 
@@ -218,7 +218,6 @@ Production errors you can see, small tools that clean up after themselves, and d
 | --- | --- | --- | --- |
 | DEBT-47 | P2 | [DEBT-47](backlog/tasks/DEBT-47.md) · Sign's funnel has a clean baseline after the dropzone routing fix |  |
 | DEBT-53 | P2 | [DEBT-53](backlog/tasks/DEBT-53.md) · A Download tapped before the build lands still downloads on an iPhone | Needs Shlomi: A check on your iPhone |
-| DEBT-76 | P2 | [DEBT-76](backlog/tasks/DEBT-76.md) · A tool's icons ride in its own bundle, so /open/ does not carry every tool's lucide icons |  |
 | MEM-41 | P2 | [MEM-41](backlog/tasks/MEM-41.md) · The bundling and stub guards cannot pass on a half-working build |  |
 | QUAL-55 | P2 | [QUAL-55](backlog/tasks/QUAL-55.md) · The update tests' setup stops timing out waiting for a worker to take a tab |  |
 | QUAL-56 | P2 | [QUAL-56](backlog/tasks/QUAL-56.md) · Sign's rotate-page test passes every time, not most times |  |
@@ -374,7 +373,7 @@ Done and retired tickets are not listed. Their files stay in [backlog/tasks/](ba
 - Page enhancement for Scan and Highlight: 7 done, 1 retired
 - Tool pages: show the verb: 9 done, 0 retired
 - Form detector accuracy: 20 done, 1 retired
-- Robustness and debt: 101 done, 4 retired
+- Robustness and debt: 102 done, 4 retired
 - Unify the tools, narrow the graph: 100 done, 0 retired
 - Search and languages: 18 done, 0 retired
 - Polish: 36 done, 2 retired

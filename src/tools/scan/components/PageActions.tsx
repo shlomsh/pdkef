@@ -1,6 +1,5 @@
 import { useState } from 'preact/hooks';
-import { RotateCw, SlidersHorizontal, Trash2 } from 'lucide-preact';
-import { VectorSquare } from './scanIcons.tsx';
+import { RotateCw, SlidersHorizontal, Trash2, VectorSquare } from 'lucide-preact';
 import OptionRow, { type Option } from '#shell/pageWorkspace/OptionRow.tsx';
 import { englishScanMessages as t } from '../messages.ts';
 import type { ScanFilter } from '../lib/filters.ts';

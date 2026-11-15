@@ -1,10 +1,9 @@
 ---
 id: "DEBT-76"
 title: "A tool's icons ride in its own bundle, so /open/ does not carry every tool's lucide icons"
-status: "open"
+status: "done"
 priority: "P2"
 epic: "robustness"
-horizon: "next"
 depends_on: []
 ---
 
@@ -35,3 +34,24 @@ That fixes one tool, not the cause, and /open/ still has almost no headroom: mai
 - Adding an icon to one tool's island leaves /open/'s precache bytes unchanged (a unit or build check proves it).
 - No tool page gets heavier than it is today (`test:weight`).
 - The budget is not raised.
+
+## Outcome
+
+Done 2026-11-16. The cause was the barrel itself: every island imported `lucide-preact`, whose `icons` namespace
+imports all of its roughly 2,000 icon files, so the split rules saw every icon as reached by every entry and put each used icon in
+`ui`. `scripts/lucideDeepImports.mjs`, a build-only Vite plugin, rewrites each named import from the barrel into a
+default import of that icon's own file (`createLucideIcon` and `Icon` too, since one importer left on the barrel
+undoes it). The module graph then shows who uses which icon, and the existing `clientCodeSplitting` rules place it
+with no new group. I chose this over per-tool local icon modules without building that alternative to measure it: no hand-copied paths, one way to add an icon (import it
+from `lucide-preact`), and it fixed every tool at once. Scan's `scanIcons.tsx` copies are gone.
+
+`ui` now holds only the six icons shared code imports (the tool launcher in `src/data/tools.js` and the finish
+row). Measured against an origin/main build (8fb4c3490), brotli bytes: /open/ 46,499 to 43,540; / 111,767 to
+109,604; /sign/ 1,416,670 to 1,415,207; /scan-to-pdf/ 864,072 to 859,588; every tool page lighter, worst
+`test:weight` /he/sign/ 263,733 to 262,278. /about/ moved +2 (no island, build noise). Budget unchanged.
+
+`test:precache-budget` now fails when `ui.js` carries an icon that only one tool imports (`scripts/uiIcons.mjs`),
+which is the build check that adding an icon to one tool leaves /open/ alone; and when a page that loads `ui.js`
+is over budget it lists every icon in `ui` with the files importing it. It also refuses a `lucide-preact` import the plugin cannot rewrite (`import * as`, a re-export, `import()`), since one
+such import would pull every icon back into `ui` with no importer to name. Both checks were seen red on a build with the
+plugin taken out (29 single-tool icons named, 56 listed). The CI half of the first acceptance line is met when this lands.

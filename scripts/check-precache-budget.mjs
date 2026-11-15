@@ -6,6 +6,7 @@ import { pageHash } from './pageHash.mjs';
 import { findRepoOnlyFiles } from './repoOnlyFiles.mjs';
 import { isImportStub, isReexportStub } from './dropStubRequests.mjs';
 import { ruleKeys } from './linkClientSheets.mjs';
+import { describeUiIcons, misplacedUiIcons, readUiIcons } from './uiIcons.mjs';
 
 /*
  * Budgets what the service worker downloads: the shell, the closure of
@@ -338,6 +339,13 @@ function main() {
     distFonts: distFontUrls(dist),
   }));
   failures.push(...repoOnlyProblems(dist));
+  // DEBT-76: an icon one tool alone imports must not ride in the ui chunk every island page loads; and when a page
+  // that loads ui.js is over budget, name the icons in it and who imports each.
+  const uiIcons = readUiIcons(path.join(dist, '..'));
+  failures.push(...uiIcons.problems, ...misplacedUiIcons(uiIcons.icons, uiIcons.users));
+  if (failures.some((f) => / budget \d+ \(heaviest asset /.test(f) && manifest.pages[f.split(':')[0]]?.includes('/shared/ui.js'))) {
+    failures.push(`/shared/ui.js carries ${uiIcons.icons.length} lucide icons:`, ...describeUiIcons(uiIcons.icons, uiIcons.users));
+  }
   if (failures.length) {
     console.error(failures.join('\n'));
     console.error(`FAIL: ${failures.length} precache budget problem(s)`);
