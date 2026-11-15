@@ -3,8 +3,9 @@ import type { Ref } from 'preact';
 import { startGesture, type GestureEvent } from '#lib/gestures/controller.ts';
 import type { Point } from '#lib/pageEnhance/quad.ts';
 import { clampPoint } from '../lib/quad.ts';
+import { PIN_PULL } from '../lib/edges/pinPull.ts';
 import { clientPoint, showLoupe } from './cornerLoupe.ts';
-import { dimPath, dotsPath, tracePath } from './cornerTrace.tsx';
+import { Lines, paintDim, paintSegments } from './cornerTrace.tsx';
 import styles from './CornerEditor.module.css';
 
 /** The keyboard steps, as a share of the photo: shared by the corner handles and the pin dots. */
@@ -23,7 +24,23 @@ const SLOP = 4;
 
 const pct = (v: number) => `${v * 100}%`;
 const isCorner = (index: number) => index % SIDE === 0;
-const withPoint = (trace: Point[], index: number, at: Point) => trace.map((p, i) => (i === index ? at : p));
+/**
+ * The trace with point `index` moved to `at` and its unpinned neighbours on the same side pulled along by `PIN_PULL`,
+ * as the re-trace will place them, so nothing jumps on release. Corners, pins and points past a pin stay. @testSeam
+ */
+export function pulledTrace(trace: Point[], index: number, at: Point, pinned: readonly number[]): Point[] {
+  const dx = at.x - trace[index].x;
+  const dy = at.y - trace[index].y;
+  const out = trace.map((p, i) => (i === index ? at : p));
+  for (const dir of [-1, 1]) {
+    for (let d = 1; d <= PIN_PULL.length; d += 1) {
+      const j = index + dir * d;
+      if (j < 0 || j >= trace.length || isCorner(j) || pinned.includes(j)) break;
+      out[j] = { x: trace[j].x + dx * PIN_PULL[d - 1], y: trace[j].y + dy * PIN_PULL[d - 1] };
+    }
+  }
+  return out;
+}
 
 /**
  * The trace point nearest a press, in screen pixels (the frame is not square). A corner is never
@@ -42,13 +59,14 @@ export function nearestPinIndex(trace: Point[], client: { x: number; y: number }
 interface PinGestureArgs {
   trace: Point[] | null | undefined;
   frameRef: { current: HTMLDivElement | null };
-  traceRef: { current: SVGPathElement | null };
-  dotsRef: { current: SVGPathElement | null };
-  dimRef: { current: SVGPathElement | null };
-  pinned: readonly number[];
+  traceRef: { current: SVGGElement | null };
+  dotsRef: { current: HTMLDivElement | null };
+  dimRef: { current: HTMLElement | null };
   loupeRef: { current: HTMLDivElement | null };
   loupeEdgeRefs: { current: (SVGLineElement | null)[] };
   cancelRef: { current: (() => void) | null };
+  /** Indexes into `trace` a person pinned: a drag never pulls them along. */
+  pinned: readonly number[];
   onPin?(index: number, at: Point): void;
   onUnpin?(index: number): void;
 }
@@ -63,8 +81,8 @@ interface PinPatch { at: Point; client: { x: number; y: number }; dragged: boole
  * rewrites the paths and the dot through refs, and onPin is called once, on release. A press that
  * never moves is a tap: on a dot it unpins, on the border it does nothing.
  */
-export function usePinGesture({ trace, frameRef, traceRef, dotsRef, dimRef, pinned, loupeRef, loupeEdgeRefs, cancelRef, onPin, onUnpin }: PinGestureArgs) {
-  const hitRef = useRef<SVGPathElement | null>(null);
+export function usePinGesture({ trace, frameRef, traceRef, dotsRef, dimRef, loupeRef, loupeEdgeRefs, cancelRef, pinned, onPin, onUnpin }: PinGestureArgs) {
+  const hitRef = useRef<SVGGElement | null>(null);
   const pinRefs = useRef(new Map<number, HTMLButtonElement>());
   const enabled = !!onPin && !!trace && trace.length > 0;
   // A touch is followed by emulated mouse events with no mouseleave: they must not leave a loupe up.
@@ -98,11 +116,14 @@ export function usePinGesture({ trace, frameRef, traceRef, dotsRef, dimRef, pinn
     const at0 = index ?? nearestPinIndex(trace, startClient, rect);
     const home = trace[at0];
     const paint = (points: Point[]) => {
-      const d = tracePath(points);
-      traceRef.current?.setAttribute('d', d);
-      hitRef.current?.setAttribute('d', d);
-      dotsRef.current?.setAttribute('d', dotsPath(points, pinned));
-      dimRef.current?.setAttribute('d', dimPath(points));
+      paintSegments(traceRef.current, points);
+      paintSegments(hitRef.current, points);
+      for (const child of Array.from(dotsRef.current?.children ?? []) as HTMLElement[]) {
+        const p = points[Number(child.dataset.dot)];
+        child.style.left = pct(p.x);
+        child.style.top = pct(p.y);
+      }
+      paintDim(dimRef.current, points);
       const dot = pinRefs.current.get(at0);
       if (dot) {
         dot.style.left = pct(points[at0].x);
@@ -129,7 +150,7 @@ export function usePinGesture({ trace, frameRef, traceRef, dotsRef, dimRef, pinn
         return { at, client: c, dragged, rect: now };
       },
       writeDOM: (patch) => {
-        const points = withPoint(trace, at0, patch.at);
+        const points = pulledTrace(trace, at0, patch.at, pinned);
         paint(points);
         showLoupe(loupeRef.current, loupeEdgeRefs.current, patch.at, undefined, patch.client, patch.rect);
       },
@@ -153,21 +174,21 @@ export function usePinGesture({ trace, frameRef, traceRef, dotsRef, dimRef, pinn
 }
 
 /** The invisible, wide stroke along the trace that takes a press anywhere on the border. */
-export function CornerHitPath({ hitRef, points, onStart, hover }: { hitRef: Ref<SVGPathElement>; points: Point[]; onStart(event: GestureEvent): void; hover: Hover }) {
+export function CornerHitPath({ hitRef, points, onStart, hover }: { hitRef: Ref<SVGGElement>; points: Point[]; onStart(event: GestureEvent): void; hover: Hover }) {
   return (
-    <path
+    <g
       ref={hitRef}
       class={styles['hit']}
       data-hit
-      d={tracePath(points)}
       fill="none"
       stroke-width="28"
-      vector-effect="non-scaling-stroke"
       onMouseDown={onStart}
       onTouchStart={onStart}
       onMouseMove={hover.onMouseMove}
       onMouseLeave={hover.onMouseLeave}
-    />
+    >
+      <Lines points={points} width={28} />
+    </g>
   );
 }
 

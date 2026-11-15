@@ -17,6 +17,11 @@
   height: auto;
   width: auto;
   touch-action: pan-x pan-y;
+  /* The photo takes no touches: no image menu on a long press, and presses land on the frame. */
+  pointer-events: none;
+  -webkit-touch-callout: none;
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 /* A frame given its shape (aspect) holds it whatever the image is doing; the photo fills it. */
@@ -37,8 +42,11 @@
 }
 
 .dim {
-  fill: var(--color-night);
-  fill-opacity: 0.45;
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: var(--color-night);
+  opacity: 0.45;
 }
 
 .outline {
@@ -57,8 +65,18 @@
 
 /* The drag dots: same colour as the line, no pointer input (the wide hit path covers the line). */
 .trace-dots {
-  stroke: var(--color-surface);
+  position: absolute;
+  inset: 0;
   pointer-events: none;
+}
+
+.trace-dot {
+  position: absolute;
+  width: 6px;
+  height: 6px;
+  margin: -3px 0 0 -3px;
+  border-radius: 50%;
+  background: var(--color-surface);
 }
 
 /* 52px to grab, a 20px ring to see: a finger can take the corner from beside it. */
@@ -132,6 +150,12 @@
 /* The wide, invisible stroke along the traced border: a press anywhere on the line pins a point. */
 .hit {
   stroke: transparent;
+  pointer-events: none;
+  touch-action: none;
+  cursor: copy;
+}
+
+.hit line {
   pointer-events: stroke;
   touch-action: none;
   cursor: copy;

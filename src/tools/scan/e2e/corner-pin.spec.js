@@ -27,8 +27,9 @@ async function makePhotoBytes(page) {
   return Buffer.from(bytes);
 }
 
-/** The trace's points as shares of the photo, read from the path's `d` ("M x y L x y ... Z"). */
-const tracePoints = (d) => [...d.matchAll(/(-?[\d.e-]+) (-?[\d.e-]+)/g)].map((m) => ({ x: Number(m[1]), y: Number(m[2]) }));
+/** The trace's points as shares of the photo, read from the start of each line of the trace group (x1/y1, in percent). */
+const tracePoints = (lines) => lines.map(([x, y]) => ({ x: parseFloat(x) / 100, y: parseFloat(y) / 100 }));
+const readTrace = (trace) => trace.locator('line').evaluateAll((ls) => ls.map((l) => [l.getAttribute('x1'), l.getAttribute('y1'), l.getAttribute('x2'), l.getAttribute('y2')]));
 
 async function openEdges(page) {
   await page.goto('/scan-to-pdf/');
@@ -41,7 +42,7 @@ async function openEdges(page) {
   await page.locator('[data-table-page]').first().click();
   await page.getByRole('button', { name: 'Edges', exact: true }).click();
   await expect(page.getByRole('button', { name: 'Top-left corner' })).toBeVisible({ timeout: 20_000 });
-  const trace = page.locator('path[data-trace]');
+  const trace = page.locator('g[data-trace]');
   // By default the editor draws straight lines between the corners: no traced border until Fine-tune edges is on.
   await expect(trace).toHaveCount(0);
   const fine = page.getByRole('button', { name: 'Fine-tune edges', exact: true });
@@ -55,7 +56,7 @@ async function openEdges(page) {
 test.describe('scan - corner pin', () => {
   test("the page's border is traced", async ({ page }) => {
     const { trace } = await openEdges(page);
-    const points = tracePoints(await trace.getAttribute('d'));
+    const points = tracePoints(await readTrace(trace));
     expect(points).toHaveLength(64);
     for (const p of points) {
       expect(p.x).toBeGreaterThanOrEqual(0);
@@ -70,11 +71,11 @@ test.describe('scan - corner pin', () => {
     const pin = page.getByRole('button', { name: "Pinned point of the page's edge" });
     await expect(pin).toHaveCount(0);
 
-    const d0 = await trace.getAttribute('d');
+    const d0 = JSON.stringify(await readTrace(trace));
     const f = await frame.boundingBox();
     const screen = (p) => ({ x: f.x + p.x * f.width, y: f.y + p.y * f.height });
     // A mid-side point of the first side (a side is its corner then 15 traced points).
-    const start = screen(tracePoints(d0)[8]);
+    const start = screen(tracePoints(JSON.parse(d0))[8]);
     // Inward: toward the middle of the frame, 60 px, further than the trace reaches by itself: a pin stays where it is dropped.
     const mid = { x: f.x + f.width / 2, y: f.y + f.height / 2 };
     const len = Math.hypot(mid.x - start.x, mid.y - start.y);
@@ -86,14 +87,14 @@ test.describe('scan - corner pin', () => {
       await page.mouse.move(start.x + ((drop.x - start.x) * i) / 5, start.y + ((drop.y - start.y) * i) / 5);
     }
     // Still held: the gesture has already rewritten the trace, and no pin exists yet.
-    expect(await trace.getAttribute('d')).not.toBe(d0);
+    expect(JSON.stringify(await readTrace(trace))).not.toBe(d0);
     await expect(pin).toHaveCount(0);
     await page.mouse.up();
 
     await expect(pin).toHaveCount(1);
     // The settled trace passes through the drop point.
     await expect.poll(async () => {
-      const pts = tracePoints(await trace.getAttribute('d')).map(screen);
+      const pts = tracePoints(await readTrace(trace)).map(screen);
       return Math.min(...pts.map((p) => Math.hypot(p.x - drop.x, p.y - drop.y)));
     }).toBeLessThan(2);
 

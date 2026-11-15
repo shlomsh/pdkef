@@ -124,7 +124,7 @@ test.describe('scan - corner zoom', () => {
     await page.mouse.move(target.x, target.y, { steps: 5 });
     const f = await frame.boundingBox();
     const index = 2; // bottom right
-    const points = (await frame.locator('polygon').getAttribute('points')).trim().split(/\s+/).map((p) => p.split(',').map(Number));
+    const points = (await frame.locator('[data-outline] line').evaluateAll((ls) => ls.map((l) => [l.getAttribute('x1'), l.getAttribute('y1')]))).map((p) => p.map((v) => parseFloat(v) / 100));
     const at = { x: f.x + points[index][0] * f.width, y: f.y + points[index][1] * f.height };
     expect(Math.hypot(at.x - target.x, at.y - target.y)).toBeLessThan(2);
     await page.mouse.up();

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { Quad } from '#lib/pageEnhance/quad.ts';
 import { farIsBetter, followEdges, traceSides, type Pins } from './follow.ts';
+import { PIN_PULL } from './pinPull.ts';
 import { addNoise, fillQuad, fillRect, norm, solid } from './testImages.ts';
 
 const W = 600;
@@ -320,6 +321,76 @@ describe('traceSides', () => {
     const pins: Pins = [[], [], [{ k: 7, at: { x: 300 / W, y: 1150 / H } }], []];
     const bottom = traceSides(pageImage(), quad, pins)[2].map(px);
     expect(Math.abs(bottom[7].y - H)).toBeLessThanOrEqual(1);
+  });
+});
+
+describe('traceSides pin pull', () => {
+  // A 1536 px wide picture (the trace's working size) with a straight bright/dark edge: the page's bottom side lies on y = 1000.
+  const FW = 1536;
+  const FH = 1152;
+  const FLAT_PX: Quad = [{ x: 200, y: 150 }, { x: 1336, y: 150 }, { x: 1336, y: 1000 }, { x: 200, y: 1000 }];
+  const flatPage = () => {
+    const image = solid(FW, FH, 60);
+    fillQuad(image, FLAT_PX, 200);
+    return image;
+  };
+  const quad = FLAT_PX.map((p) => norm(p, FW, FH)) as Quad;
+  // The bottom side runs from the right corner to the left one: point k sits at x = 1336 - 1136 * (k + 1) / 16.
+  const pinAt = (k: number, y: number): Pins[number][number] => ({ k, at: { x: (1336 - 1136 * (k + 1) / 16) / FW, y: y / FH } });
+  const bottomY = (pins: Pins | null) => traceSides(flatPage(), quad, pins)[2].map((p) => p.y * FH);
+
+  // Protects the smooth line through a pin: neighbours follow the pin with a falloff, not stay on the edge (a 5 px spike on a phone).
+  it('pulls the points near a pin toward it by 0.85, 0.5 and 0.15 of its offset, and leaves points 4 away', () => {
+    const plain = bottomY(null);
+    const pinned = bottomY([[], [], [pinAt(7, 1004)], []]);
+    expect(pinned[7]).toBeCloseTo(1004, 0);
+    PIN_PULL.forEach((share, i) => {
+      for (const k of [7 - (i + 1), 7 + (i + 1)]) expect(Math.abs(pinned[k] - plain[k] - 4 * share)).toBeLessThanOrEqual(0.5);
+    });
+    for (const k of [3, 11, 0, 14]) expect(Math.abs(pinned[k] - plain[k])).toBeLessThanOrEqual(0.5);
+  });
+
+  // Protects a pin blocking another: the point between two pins is moved, and no point is pulled past a pin.
+  it('moves the point between two pins two apart and pulls no point past a pin', () => {
+    const plain = bottomY(null);
+    const pinned = bottomY([[], [], [pinAt(6, 1004), pinAt(8, 1002)], []]);
+    expect(pinned[7] - plain[7]).toBeGreaterThan(1.5);
+    expect(pinned[7] - plain[7]).toBeLessThan(3.5);
+    expect(pinned[5] - plain[5]).toBeGreaterThan(2);
+    expect(pinned[5] - plain[5]).toBeLessThanOrEqual(1004 - plain[5] + 0.5);
+    expect(pinned[9] - plain[9]).toBeGreaterThan(1);
+    expect(pinned[9] - plain[9]).toBeLessThanOrEqual(1002 - plain[9] + 0.5);
+  });
+
+  // Protects a curved edge: a pin placed on the edge moves nothing else (the pull is by the pin's move, not toward its offset).
+  it('leaves the neighbours on a bowed edge where they were when the pin sits on that edge', () => {
+    const bow = (x: number) => 1000 + 20 * Math.sin((Math.PI * (x - 200)) / 1136);
+    const bowed = () => {
+      const image = solid(FW, FH, 60);
+      for (let x = 200; x <= 1336; x += 1) for (let y = 150; y <= Math.round(bow(x)); y += 1) image.data[y * FW + x] = 200;
+      return image;
+    };
+    const plain = traceSides(bowed(), quad)[2].map((p) => p.y * FH);
+    const pinned = traceSides(bowed(), quad, [[], [], [pinAt(3, plain[3])], []])[2].map((p) => p.y * FH);
+    for (const k of [0, 1, 2, 4, 5, 6]) expect(Math.abs(pinned[k] - plain[k])).toBeLessThanOrEqual(0.5);
+  });
+
+  // Protects a pin on a parallel edge 30 px out: its neighbours go there with it and none overshoots.
+  it('takes the neighbours of a pin on a parallel edge along to it, none past it', () => {
+    const twoEdges = () => {
+      const image = flatPage();
+      fillRect(image, 200, 1000, 1137, 30, 130);
+      return image;
+    };
+    const pinned = traceSides(twoEdges(), quad, [[], [], [pinAt(7, 1030)], []])[2].map((p) => p.y * FH);
+    for (const k of [6, 8]) expect(pinned[k]).toBeGreaterThan(1024);
+    for (const y of pinned) expect(y).toBeLessThan(1031.5);
+  });
+
+  // Protects the no-pin result: every point lies on the edge, and an empty pin list traces exactly the same.
+  it('without pins every point lies on the edge, the same as with an empty pin list', () => {
+    for (const y of bottomY(null)) expect(Math.abs(y - 1000)).toBeLessThan(1.5);
+    expect(traceSides(flatPage(), quad, [[], [], [], []])).toEqual(traceSides(flatPage(), quad));
   });
 });
 

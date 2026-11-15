@@ -131,7 +131,7 @@ test.describe('scan - corner drag', () => {
     expect(Math.hypot(stopped.x - drop.x, stopped.y - drop.y)).toBeGreaterThan(8);
     expect(Math.hypot(stopped.x - settled.x, stopped.y - settled.y)).toBeGreaterThan(3);
     // The outline never shows an invalid shape: every turn of the polygon goes the same way.
-    const points = (await frame.locator('polygon').getAttribute('points')).trim().split(/\s+/).map((p) => p.split(',').map(Number));
+    const points = (await frame.locator('[data-outline] line').evaluateAll((ls) => ls.map((l) => [l.getAttribute('x1'), l.getAttribute('y1')]))).map((p) => p.map((v) => parseFloat(v) / 100));
     const turns = points.map((p, i) => {
       const q = points[(i + 1) % 4];
       const r = points[(i + 2) % 4];

@@ -8,6 +8,7 @@
 // book pages: 14 within 3.5% and 19 within 8% of hand-traced corners, against 12 and 14 for the near reach alone (SCAN-75).
 // Pure: no DOM, no globals, the input is not modified.
 import type { GrayImage, Point, Quad } from '#lib/pageEnhance/quad.ts';
+import { PIN_PULL } from './pinPull.ts';
 
 interface Followed {
   /** The corners on the paper, 0 to 1 of the picture, top left, top right, bottom right, bottom left; never outside the picture. */
@@ -342,7 +343,39 @@ function stepAcross(gray: Gray, t: Pt, n: Pt, sc: Scale): (x: number, y: number)
   };
 }
 
-/** The best smooth path of offsets along one side from a to b, pinned at offset 0 at both corners, as px points. */
+/**
+ * The pinned path `pinnedOffs` with each unpinned point within 3 of a pin moved along by that pin's move: the pin's
+ * offset less where the unpinned path `freeOffs` had it, times `PIN_PULL`. A pin on the edge moves nothing else; pins
+ * stay; the nearest pin wins (a tie averages); no pull crosses a pin.
+ */
+function pullTowardPins(pinnedOffs: number[], freeOffs: number[], pinned: Set<number>): number[] {
+  if (pinned.size === 0) return pinnedOffs;
+  const nearest = (j: number, dir: number): number => {
+    for (let d = 1; d <= PIN_PULL.length; d += 1) {
+      const k = j + dir * d;
+      if (k < 0 || k >= pinnedOffs.length) return 0;
+      if (pinned.has(k)) return d;
+    }
+    return 0;
+  };
+  // Where point j goes when pulled by the pin d away in direction dir.
+  const toward = (j: number, d: number, dir: number): number => {
+    const k = j + dir * d;
+    const w = PIN_PULL[d - 1];
+    return (1 - w) * pinnedOffs[j] + w * (freeOffs[j] + pinnedOffs[k] - freeOffs[k]);
+  };
+  return pinnedOffs.map((o, j) => {
+    if (pinned.has(j)) return o;
+    const dl = nearest(j, -1);
+    const dr = nearest(j, 1);
+    const moved: number[] = [];
+    if (dl && (!dr || dl <= dr)) moved.push(toward(j, dl, -1));
+    if (dr && (!dl || dr <= dl)) moved.push(toward(j, dr, 1));
+    return moved.length ? moved.reduce((a, b) => a + b, 0) / moved.length : o;
+  });
+}
+
+/** The best smooth path of offsets along one side from a to b, pinned at offset 0 at both corners, as px points; unpinned points within three of a pin then move by a share of that pin's move. */
 function traceSide(gain: (x: number, y: number) => number, a: Pt, b: Pt, sc: Scale, pins: Pin[], W: number, H: number): Pt[] {
   const len = Math.hypot(b[0] - a[0], b[1] - a[1]) || 1;
   const t: Pt = [(b[0] - a[0]) / len, (b[1] - a[1]) / len];
@@ -373,47 +406,56 @@ function traceSide(gain: (x: number, y: number) => number, a: Pt, b: Pt, sc: Sca
   const free = sc.px(TRACE_STEP_FREE);
   /** The cost of a jump of `j` px across the side between neighbouring points (a corner counts as a point at offset 0). */
   const step = (j: number): number => SMOOTH * j + (j > free ? TRACE_STEEP * (j - free) : 0);
-  /** The best smooth path pinned at offset 0 at both corners. */
-  let cost = Float64Array.from(rows[0], (g, o) => (pinned.has(0) && pinned.get(0) !== o ? Infinity : step(Math.abs(o - reach)) - g));
-  const back: Int32Array[] = [];
-  for (let k = 1; k < TRACE_POINTS; k += 1) {
-    const g = rows[k];
-    const next = new Float64Array(O);
-    const from = new Int32Array(O);
-    const pin = pinned.get(k);
-    for (let o = 0; o < O; o += 1) {
-      if (pin !== undefined && pin !== o) { next[o] = Infinity; continue; } // a pinned point has only its own offset
-      let m = Infinity; let arg = 0;
-      for (let p = 0; p < O; p += 1) {
-        const c = cost[p] + step(Math.abs(o - p));
-        if (c < m) { m = c; arg = p; }
+  /** The best smooth path pinned at offset 0 at both corners and at `fixed`, as offsets. */
+  const bestPath = (fixed: Map<number, number>): number[] => {
+    let cost = Float64Array.from(rows[0], (g, o) => (fixed.has(0) && fixed.get(0) !== o ? Infinity : step(Math.abs(o - reach)) - g));
+    const back: Int32Array[] = [];
+    for (let k = 1; k < TRACE_POINTS; k += 1) {
+      const g = rows[k];
+      const next = new Float64Array(O);
+      const from = new Int32Array(O);
+      const pin = fixed.get(k);
+      for (let o = 0; o < O; o += 1) {
+        if (pin !== undefined && pin !== o) { next[o] = Infinity; continue; } // a pinned point has only its own offset
+        let m = Infinity; let arg = 0;
+        for (let p = 0; p < O; p += 1) {
+          const c = cost[p] + step(Math.abs(o - p));
+          if (c < m) { m = c; arg = p; }
+        }
+        next[o] = m - g[o];
+        from[o] = arg;
       }
-      next[o] = m - g[o];
-      from[o] = arg;
+      cost = next;
+      back.push(from);
     }
-    cost = next;
-    back.push(from);
-  }
-  let o = 0;
-  let bestCost = Infinity;
-  for (let i = 0; i < O; i += 1) {
-    const c = cost[i] + step(Math.abs(i - reach));
-    if (c < bestCost) { bestCost = c; o = i; }
-  }
-  const pts: Pt[] = new Array(TRACE_POINTS);
-  for (let k = TRACE_POINTS - 1; k >= 0; k -= 1) {
+    let o = 0;
+    let bestCost = Infinity;
+    for (let i = 0; i < O; i += 1) {
+      const c = cost[i] + step(Math.abs(i - reach));
+      if (c < bestCost) { bestCost = c; o = i; }
+    }
+    const offs: number[] = new Array(TRACE_POINTS);
+    for (let k = TRACE_POINTS - 1; k >= 0; k -= 1) {
+      offs[k] = o - reach;
+      if (k > 0) o = back[k - 1][o];
+    }
+    return offs;
+  };
+  const offs = bestPath(pinned);
+  // With pins, the path without them says how far each pin moved the line; its neighbours move by a share of that.
+  const pulled = pinned.size ? pullTowardPins(offs, bestPath(new Map()), new Set(offsets.keys())) : offs;
+  return pulled.map((off, k): Pt => {
     const [bx, by] = base(k);
-    pts[k] = [bx + n[0] * (o - reach), by + n[1] * (o - reach)];
-    if (k > 0) o = back[k - 1][o];
-  }
-  return pts;
+    return [bx + n[0] * off, by + n[1] * off];
+  });
 }
 
 /** The paper's edge along each side of `quad`, whose corners stay exactly where they are: what the corner editor
  * draws so a person sees the page's real, possibly curved, border. Each side follows the strongest edge near the
  * straight line between its corners, leaving and arriving at the corners, with a steep charge for a jump of more than
  * a few px between neighbouring points so it cannot hop to a parallel edge; where there is no edge it is the straight
- * line. A pinned point stays where the person put it and the rest of its side follows the edge through it. Pure. */
+ * line. A pinned point stays where the person put it, and the unpinned points within three of it move by a share of
+ * how far it moved the line (`PIN_PULL`), so the line bends smoothly through it and a pin on the edge moves nothing else. Pure. */
 export function traceSides(image: GrayImage, quad: Quad, pins: Pins | null = null): Sides {
   const { width: W, height: H } = image;
   const sc = scaleFor(image);

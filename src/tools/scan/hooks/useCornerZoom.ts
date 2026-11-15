@@ -96,7 +96,7 @@ function attachGestures(area: HTMLElement, zoomRef: { current: number }, commit:
   let drag: { x: number; y: number; left: number; top: number } | null = null;
   const onMouseDown = (event: MouseEvent) => {
     const target = event.target as HTMLElement | null;
-    if (event.button !== 0 || zoomRef.current <= ZOOM_FIT || !target || !(target === area || target.tagName === 'IMG')) return;
+    if (event.button !== 0 || zoomRef.current <= ZOOM_FIT || !target || !(target === area || target.hasAttribute('data-corner-frame'))) return;
     drag = { x: event.clientX, y: event.clientY, left: area.scrollLeft, top: area.scrollTop };
   };
   const onMouseMove = (event: MouseEvent) => {

@@ -171,7 +171,8 @@ describe('ScanCornersView', () => {
       document.body.appendChild(container);
       act(() => render(view(selected, onTrace), container!));
     };
-    const traceD = () => container!.querySelector('path[data-trace]')?.getAttribute('d') ?? null;
+    const traceLines = () => container!.querySelectorAll('g[data-trace] line');
+    const traceD = () => (traceLines().length ? Array.from(traceLines()).map((l) => `${l.getAttribute('x1')} ${l.getAttribute('y1')}`) : null);
     const flush = () => act(async () => { await Promise.resolve(); await Promise.resolve(); });
 
     // Protects: with Fine-tune edges off the border is neither requested nor drawn, so the editor shows plain straight lines.
@@ -200,14 +201,14 @@ describe('ScanCornersView', () => {
       mount(page(Q1), onTrace);
       expect(onTrace).toHaveBeenCalledWith(1, Q1, null);
       await flush();
-      expect(traceD()!.split('L').length).toBe(64);
+      expect(traceD()!.length).toBe(64);
     });
 
     it('draws the first point turned with the page', async () => {
       mount(page(Q1, 1), vi.fn().mockResolvedValue(SIDES));
       await flush();
       const p = turnedPoint(Q1[0], 1);
-      expect(traceD()!.startsWith(`M${p.x} ${p.y} L`)).toBe(true);
+      expect(traceD()![0]).toBe(`${p.x * 100}% ${p.y * 100}%`);
     });
 
     it('drops an answer for an older quad that arrives after the quad changed', async () => {

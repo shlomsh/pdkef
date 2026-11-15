@@ -2,7 +2,7 @@ import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import CornerEditor from './CornerEditor.tsx';
-import { nearestPinIndex } from './cornerPins.tsx';
+import { nearestPinIndex, pulledTrace } from './cornerPins.tsx';
 import { type Point, type Quad } from '#lib/pageEnhance/quad.ts';
 
 const QUAD: Quad = [{ x: 0.1, y: 0.1 }, { x: 0.9, y: 0.1 }, { x: 0.9, y: 0.9 }, { x: 0.1, y: 0.9 }];
@@ -29,8 +29,9 @@ function mount({ trace = TRACE, pinned, withPin = true }: Props = {}) {
   container.querySelector('[data-corner-frame]')!.getBoundingClientRect = () => RECT as DOMRect;
   return { onPin, onUnpin };
 }
-const hit = () => container!.querySelector<SVGPathElement>('path[data-hit]')!;
-const trace = () => container!.querySelector<SVGPathElement>('path[data-trace]')!;
+const hit = () => container!.querySelector<SVGGElement>('g[data-hit]')!;
+const trace = () => container!.querySelector<SVGGElement>('g[data-trace]')!;
+const lineAttrs = (g: Element) => Array.from(g.querySelectorAll('line')).map((l) => ['x1', 'y1', 'x2', 'y2'].map((a) => l.getAttribute(a)).join(' ')).join('|');
 const pin = (i: number) => container!.querySelector<HTMLButtonElement>(`button[data-pin="${i}"]`)!;
 const mouse = (type: string, x: number, y: number, target: EventTarget = window) =>
   act(() => { target.dispatchEvent(new MouseEvent(type, { clientX: x, clientY: y, bubbles: true, cancelable: true })); });
@@ -48,14 +49,36 @@ describe('nearestPinIndex', () => {
   });
 });
 
+describe('pulledTrace', () => {
+  const at = { x: 0.45, y: 0.14 }; // index 7 moved 0.04 down
+  const dy = (points: Point[], i: number) => points[i].y - TRACE[i].y;
+
+  it('moves the dragged point and pulls its three neighbours each way by 0.85, 0.5 and 0.15 of the move', () => {
+    const out = pulledTrace(TRACE, 7, at, []);
+    expect(out[7]).toEqual(at);
+    [[6, 0.85], [8, 0.85], [5, 0.5], [9, 0.5], [4, 0.15], [10, 0.15]].forEach(([i, w]) => expect(dy(out, i)).toBeCloseTo(0.04 * w));
+    [3, 11, 0, 16].forEach((i) => expect(out[i]).toEqual(TRACE[i]));
+  });
+
+  it('never moves a corner, a pinned point, or a point past a pin', () => {
+    const out = pulledTrace(TRACE, 2, { x: 0.15, y: 0.14 }, [4]);
+    expect(out[0]).toEqual(TRACE[0]);
+    expect(dy(out, 1)).toBeCloseTo(0.04 * 0.85);
+    expect(dy(out, 3)).toBeCloseTo(0.04 * 0.85);
+    expect(out[4]).toEqual(TRACE[4]);
+    expect(out[5]).toEqual(TRACE[5]);
+  });
+});
+
 describe('CornerEditor pins', () => {
   it('pins the point nearest the press at the released place, once, and shows the move during the drag', () => {
     const { onPin } = mount();
-    const before = trace().getAttribute('d');
+    const before = lineAttrs(trace());
     mouse('mousedown', 143, 30, hit());
     mouse('mousemove', 143, 45);
     mouse('mousemove', 143, 60);
-    expect(trace().getAttribute('d')).not.toBe(before);
+    expect(lineAttrs(trace())).not.toBe(before);
+    expect(lineAttrs(hit())).toBe(lineAttrs(trace()));
     expect(onPin).not.toHaveBeenCalled();
     mouse('mouseup', 143, 60);
     expect(onPin).toHaveBeenCalledTimes(1);
@@ -173,21 +196,20 @@ describe('CornerEditor pins', () => {
     expect(onCommit).toHaveBeenCalledTimes(1);
   });
 
-  const dots = () => container!.querySelector<SVGPathElement>('path[data-trace-dots]');
-  const dotCount = (d: string) => (d.match(/M/g) ?? []).length;
+  const dots = () => container!.querySelector<HTMLElement>('[data-trace-dots]');
+  const dotEls = () => Array.from(container!.querySelectorAll<HTMLElement>('[data-dot]'));
+  const dotAt = (i: number) => container!.querySelector<HTMLElement>(`[data-dot="${i}"]`);
 
   it('draws one dot per traced point, none at the four corners', () => {
     mount();
-    const d = dots()!.getAttribute('d')!;
-    expect(dotCount(d)).toBe(60);
-    for (const c of [0, 16, 32, 48]) expect(d).not.toContain(`M${TRACE[c].x} ${TRACE[c].y}h0`);
+    expect(dotEls()).toHaveLength(60);
+    for (const c of [0, 16, 32, 48]) expect(dotAt(c)).toBeNull();
   });
 
   it('leaves out a pinned point, which has its own button', () => {
     mount({ pinned: [7] });
-    const d = dots()!.getAttribute('d')!;
-    expect(dotCount(d)).toBe(59);
-    expect(d).not.toContain(`M${TRACE[7].x} ${TRACE[7].y}h0`);
+    expect(dotEls()).toHaveLength(59);
+    expect(dotAt(7)).toBeNull();
   });
 
   it('draws no dots without onPin or without a trace', () => {
@@ -211,17 +233,26 @@ describe('CornerEditor pins', () => {
 
   it('moves the dot with its point while a pin is dragged', () => {
     mount();
-    const before = dots()!.getAttribute('d');
+    const dot = dotAt(5)!;
+    const before = `${dot.style.left} ${dot.style.top}`;
     mouse('mousedown', 143, 30, hit());
     mouse('mousemove', 143, 60);
-    expect(dots()!.getAttribute('d')).not.toBe(before);
+    const moved = dotEls().some((d) => `${d.style.left} ${d.style.top}` !== `${TRACE[Number(d.dataset.dot)].x * 100}% ${TRACE[Number(d.dataset.dot)].y * 100}%`);
+    expect(moved || `${dot.style.left} ${dot.style.top}` !== before).toBe(true);
     expect(dots()!.style.display).toBe('');
     mouse('mouseup', 143, 60);
   });
 
+  // Protects: the hit lines are real pixels now, 28 wide, and take the press from the lines.
+  it('draws the hit area as one wide line per segment of the trace', () => {
+    mount();
+    expect(hit().querySelectorAll('line')).toHaveLength(TRACE.length);
+    expect(hit().getAttribute('stroke-width')).toBe('28');
+  });
+
   describe('the magnifier on hover', () => {
     const loupe = () => container!.querySelector<HTMLElement>('[data-loupe]')!;
-    const dim = () => container!.querySelector<SVGPathElement>('path[class*="dim"]')!.getAttribute('d')!;
+    const dim = () => container!.querySelector<HTMLElement>('[data-dim]')!.getAttribute('style')!;
     const touch = (type: string, target: EventTarget) =>
       act(() => {
         const e = new Event(type, { bubbles: true, cancelable: true });

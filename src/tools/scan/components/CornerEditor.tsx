@@ -5,7 +5,7 @@ import { clampPoint, isPagelike } from '../lib/quad.ts';
 import { LOUPE_SIZE } from '../lib/loupe.ts';
 import { clientPoint, showLoupe } from './cornerLoupe.ts';
 import { CornerHitPath, CornerPins, STEP, STEP_SHIFT, usePinGesture } from './cornerPins.tsx';
-import { CornerTraceDots, CornerTracePath, dimPath, useCornerTrace } from './cornerTrace.tsx';
+import { CornerTraceDots, CornerTracePath, Lines, dimClip, paintDim, paintSegments, useCornerTrace } from './cornerTrace.tsx';
 import styles from './CornerEditor.module.css';
 
 interface CornerEditorProps {
@@ -34,6 +34,7 @@ const ARROWS: Record<string, [number, number]> = {
 };
 
 const pct = (v: number) => `${v * 100}%`;
+const dimStyle = (points: Point[]) => ({ clipPath: dimClip(points), WebkitClipPath: dimClip(points) });
 /** A quad a page could be: every corner a real page's (isPagelike), and not a sliver (1% of the
  * photo), which would warp to a line. */
 const usable = (q: Quad) => {
@@ -41,7 +42,6 @@ const usable = (q: Quad) => {
   for (let i = 0; i < 4; i += 1) twice += q[i].x * q[(i + 1) % 4].y - q[(i + 1) % 4].x * q[i].y;
   return isPagelike(q) && Math.abs(twice) / 2 >= 0.01;
 };
-const outlinePoints = (q: Quad) => q.map((p) => `${p.x},${p.y}`).join(' ');
 
 // The photo with four draggable corners. Gesture golden rule: a drag moves the
 // handle and rewrites the outline straight through refs, and the final quad goes
@@ -49,8 +49,8 @@ const outlinePoints = (q: Quad) => q.map((p) => `${p.x},${p.y}`).join(' ');
 export default function CornerEditor({ src, aspect, quad, trace, pinned, onPin, onUnpin, onCommit, labels }: CornerEditorProps) {
   const frameRef = useRef<HTMLDivElement | null>(null);
   const handleRefs = useRef<(HTMLButtonElement | null)[]>([null, null, null, null]);
-  const outlineRef = useRef<SVGPolygonElement | null>(null);
-  const dimRef = useRef<SVGPathElement | null>(null);
+  const outlineRef = useRef<SVGGElement | null>(null);
+  const dimRef = useRef<HTMLDivElement | null>(null);
   const cancelRef = useRef<(() => void) | null>(null);
   const loupeRef = useRef<HTMLDivElement | null>(null);
   const loupeEdgeRefs = useRef<(SVGLineElement | null)[]>([null, null]);
@@ -65,11 +65,11 @@ export default function CornerEditor({ src, aspect, quad, trace, pinned, onPin, 
         el.style.top = pct(p.y);
       }
     });
-    outlineRef.current?.setAttribute('points', outlinePoints(q));
-    dimRef.current?.setAttribute('d', dimPath(q));
+    paintSegments(outlineRef.current, q);
+    paintDim(dimRef.current, q);
   };
 
-  const pins = usePinGesture({ trace, frameRef, traceRef, dotsRef, dimRef, pinned: pinned ?? [], loupeRef, loupeEdgeRefs, cancelRef, onPin, onUnpin });
+  const pins = usePinGesture({ trace, frameRef, traceRef, dotsRef, dimRef, loupeRef, loupeEdgeRefs, cancelRef, pinned: pinned ?? [], onPin, onUnpin });
   const paintLoupe = (q: Quad, index: number, client: { x: number; y: number }, rect: DOMRect) =>
     showLoupe(loupeRef.current, loupeEdgeRefs.current, q[index], [q[(index + 1) % 4], q[(index + 3) % 4]], client, rect);
   // A drag is over, committed or not: the loupe goes and the trace is the props' to show again.
@@ -141,20 +141,15 @@ export default function CornerEditor({ src, aspect, quad, trace, pinned, onPin, 
       style={aspect ? { aspectRatio: String(aspect), width: `calc(min(100%, calc(var(--scan-view-h, 62svh) * ${aspect})) * var(--corner-zoom, 1))` } : undefined}
     >
       <img class={styles['photo']} src={src} alt="" draggable={false} />
-      <svg class={styles['overlay']} viewBox="0 0 1 1" preserveAspectRatio="none" aria-hidden="true">
-        <path ref={dimRef} class={styles['dim']} d={dimPath(hasTrace ? trace! : quad)} fill-rule="evenodd" />
-        <polygon
-          ref={outlineRef}
-          class={hasTrace ? `${styles['outline']} ${styles['outline-faint']}` : styles['outline']}
-          points={outlinePoints(quad)}
-          fill="none"
-          stroke-width="2"
-          vector-effect="non-scaling-stroke"
-        />
+      <div ref={dimRef} class={styles['dim']} data-dim aria-hidden="true" style={dimStyle(hasTrace ? trace! : quad)} />
+      <svg class={styles['overlay']} aria-hidden="true">
+        <g ref={outlineRef} class={hasTrace ? `${styles['outline']} ${styles['outline-faint']}` : styles['outline']} data-outline fill="none">
+          <Lines points={quad} width={2} round />
+        </g>
         {hasTrace && <CornerTracePath traceRef={traceRef} points={trace!} />}
-        {hasTrace && pins.enabled && <CornerTraceDots dotsRef={dotsRef} points={trace!} pinned={pinned ?? []} />}
         {hasTrace && pins.enabled && <CornerHitPath hitRef={pins.hitRef} points={trace!} onStart={(e) => pins.begin(e)} hover={pins.hover} />}
       </svg>
+      {hasTrace && pins.enabled && <CornerTraceDots dotsRef={dotsRef} points={trace!} pinned={pinned ?? []} />}
       {/* Fixed to the viewport, so a phone's edges, not the frame's, decide where it fits (loupe.ts). */}
       <div
         ref={loupeRef}

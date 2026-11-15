@@ -212,7 +212,7 @@ describe('useCornerZoom', () => {
     act(() => { api.zoomIn(); api.zoomIn(); });
     const left = area.scrollLeft;
     const top = area.scrollTop;
-    mouse('mousedown', area.querySelector('[data-photo]')!, 200, 150);
+    mouse('mousedown', area.querySelector('[data-corner-frame]')!, 200, 150);
     mouse('mousemove', window, 170, 120);
     expect(area.scrollLeft).toBe(left + 30);
     expect(area.scrollTop).toBe(top + 30);
@@ -221,9 +221,20 @@ describe('useCornerZoom', () => {
     expect(area.scrollLeft).toBe(left + 30);
   });
 
+  // The photo takes no pointer input (no image menu on a long press), so the press lands on the frame.
+  it('a press on the frame starts a pan while zoomed', () => {
+    mount();
+    act(() => { api.zoomIn(); api.zoomIn(); });
+    const left = area.scrollLeft;
+    mouse('mousedown', area.querySelector('[data-corner-frame]')!, 200, 150);
+    mouse('mousemove', window, 190, 150);
+    expect(area.scrollLeft).toBe(left + 10);
+    mouse('mouseup', window, 190, 150);
+  });
+
   it('a drag at Fit or from a button does nothing, so a click on a control is never a pan', () => {
     mount();
-    mouse('mousedown', area.querySelector('[data-photo]')!, 200, 150);
+    mouse('mousedown', area.querySelector('[data-corner-frame]')!, 200, 150);
     mouse('mousemove', window, 100, 100);
     expect(area.scrollLeft).toBe(0);
     act(() => { api.zoomIn(); api.zoomIn(); });

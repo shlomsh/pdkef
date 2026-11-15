@@ -18,6 +18,8 @@ function mount(onCommit: (quad: Quad) => void, quad: Quad = QUAD, trace?: { x: n
   container.querySelector('[data-corner-frame]').getBoundingClientRect = () => RECT;
   return container;
 }
+const TRACE_FOR_MARKUP = [{ x: 0.1, y: 0.1 }, { x: 0.9, y: 0.1 }, { x: 0.9, y: 0.9 }, { x: 0.1, y: 0.9 }];
+const lines = (g: Element) => Array.from(g.querySelectorAll('line')).map((l) => ['x1', 'y1', 'x2', 'y2'].map((a) => l.getAttribute(a)));
 const handle = (i: number) => container!.querySelectorAll('button')[i];
 const mouse = (type: string, x: number, y: number, target: EventTarget = window) =>
   act(() => { target.dispatchEvent(new MouseEvent(type, { clientX: x, clientY: y, bubbles: true, cancelable: true })); });
@@ -33,7 +35,44 @@ describe('CornerEditor', () => {
     expect(handle(0).getAttribute('aria-label')).toBe('Top-left corner');
     expect(handle(0).style.left).toBe('10%');
     expect(handle(0).style.top).toBe('10%');
-    expect(container!.querySelector('polygon').getAttribute('vector-effect')).toBe('non-scaling-stroke');
+  });
+
+  // Protects: a stretched viewBox painted at a stale size on iOS after a pinch zoom; nothing may depend on one.
+  it('has an overlay svg with no viewBox, and no element with a vector-effect', () => {
+    mount(vi.fn(), QUAD, TRACE_FOR_MARKUP);
+    expect(container!.querySelector('svg[class*="overlay"]')!.hasAttribute('viewBox')).toBe(false);
+    expect(container!.querySelector('[vector-effect]')).toBeNull();
+  });
+
+  it('draws the outline as four percent lines', () => {
+    mount(vi.fn());
+    const ls = lines(container!.querySelector('[data-outline]')!);
+    expect(ls).toHaveLength(4);
+    expect(ls[0]).toEqual(['10%', '10%', '90%', '10%']);
+    expect(ls[3]).toEqual(['10%', '90%', '10%', '10%']);
+  });
+
+  it('draws the dim as an HTML element after the photo, cut out evenodd', () => {
+    mount(vi.fn());
+    const dim = container!.querySelector<HTMLElement>('[data-dim]')!;
+    expect(dim.tagName).toBe('DIV');
+    expect(dim.previousElementSibling!.tagName).toBe('IMG');
+    expect(dim.closest('svg')).toBeNull();
+    expect(dim.getAttribute('style')).toContain('evenodd');
+  });
+
+  it('rewrites the outline lines and the dim during a corner drag', () => {
+    mount(vi.fn());
+    const outline = () => lines(container!.querySelector('[data-outline]')!);
+    const dimStyle = () => container!.querySelector<HTMLElement>('[data-dim]')!.getAttribute('style')!;
+    const before = dimStyle();
+    mouse('mousedown', 70, 40, handle(0));
+    mouse('mousemove', 90, 45); // (0.2, 0.25)
+    expect(outline()[0]).toEqual(['20%', '25%', '90%', '10%']);
+    expect(outline()[3]).toEqual(['10%', '90%', '20%', '25%']);
+    expect(dimStyle()).not.toBe(before);
+    expect(dimStyle()).toContain('20% 25%');
+    mouse('mouseup', 90, 45);
   });
 
   it('sizes the frame by --corner-zoom, and the same as before otherwise', () => {
@@ -102,7 +141,7 @@ describe('CornerEditor', () => {
     mouse('mousemove', 90, 45);
     edges().forEach((l) => expect(l.style.display).toBe(''));
     mouse('mouseup', 90, 45);
-    mouse('mousedown', 143, 40, container.querySelector('path[data-hit]')!);
+    mouse('mousedown', 143, 40, container.querySelector('g[data-hit]')!);
     mouse('mousemove', 143, 55);
     expect(edges()).toHaveLength(2);
     edges().forEach((l) => expect(l.style.display).toBe('none'));
@@ -151,59 +190,58 @@ describe('CornerEditor', () => {
 
   const TRACE = [{ x: 0.1, y: 0.1 }, { x: 0.5, y: 0.08 }, { x: 0.9, y: 0.1 }, { x: 0.92, y: 0.5 }, { x: 0.9, y: 0.9 }, { x: 0.1, y: 0.9 }];
 
-  it('draws the trace as one closed path and fades the straight polygon', () => {
+  it('draws the trace as one closed ring of lines and fades the straight outline', () => {
     mount(vi.fn(), QUAD, TRACE);
-    const path = container!.querySelector('path[data-trace]')!;
-    const d = path.getAttribute('d')!;
-    expect(d.startsWith('M')).toBe(true);
-    expect(d.endsWith('Z')).toBe(true);
-    expect(d.split('L').length - 1).toBe(TRACE.length - 1);
-    expect(path.getAttribute('vector-effect')).toBe('non-scaling-stroke');
-    expect(container!.querySelector('polygon')!.getAttribute('class')).toMatch(/outline-faint/);
+    const ls = lines(container!.querySelector('[data-trace]')!);
+    expect(ls).toHaveLength(TRACE.length);
+    expect(ls[0]).toEqual(['10%', '10%', '50%', '8%']);
+    expect(ls[TRACE.length - 1]).toEqual(['10%', '90%', '10%', '10%']);
+    expect(container!.querySelector('[data-outline]')!.getAttribute('class')).toMatch(/outline-faint/);
   });
 
   it('draws nothing new without a trace', () => {
     mount(vi.fn(), QUAD, null);
-    expect(container!.querySelector('path[data-trace]')).toBeNull();
-    expect(container!.querySelector('polygon')!.getAttribute('class')).not.toMatch(/outline-faint/);
+    expect(container!.querySelector('[data-trace]')).toBeNull();
+    expect(container!.querySelector('[data-outline]')!.getAttribute('class')).not.toMatch(/outline-faint/);
   });
 
   it('hides the trace during a drag and shows it again once props are back in control', () => {
     mount(vi.fn(), QUAD, TRACE);
-    const path = () => container!.querySelector<SVGPathElement>('path[data-trace]')!;
+    const path = () => container!.querySelector<SVGGElement>('g[data-trace]')!;
     mouse('mousedown', 70, 40, handle(0));
     mouse('mousemove', 90, 45);
     expect(path().style.display).toBe('none');
-    expect(container!.querySelector('polygon')!.getAttribute('class')).not.toMatch(/outline-faint/);
+    expect(container!.querySelector('[data-outline]')!.getAttribute('class')).not.toMatch(/outline-faint/);
     mouse('mouseup', 90, 45);
     act(() => render(<CornerEditor src="x.jpg" quad={QUAD} trace={[...TRACE]} onCommit={vi.fn()} labels={LABELS} />, container!));
     expect(path().style.display).toBe('');
-    expect(container!.querySelector('polygon')!.getAttribute('class')).toMatch(/outline-faint/);
+    expect(container!.querySelector('[data-outline]')!.getAttribute('class')).toMatch(/outline-faint/);
   });
 
   describe('the dark area', () => {
-    const dim = () => container!.querySelector<SVGPathElement>('path[class*="dim"]')!.getAttribute('d')!;
-    const quadD = 'M0 0H1V1H0Z M0.1 0.1 L0.9 0.1 L0.9 0.9 L0.1 0.9 Z';
-    const traceD = `M0 0H1V1H0Z M${TRACE.map((p) => `${p.x} ${p.y}`).join(' L')} Z`;
+    const dim = () => container!.querySelector<HTMLElement>('[data-dim]')!.getAttribute('style')!;
+    const ring = (ps: { x: number; y: number }[]) => [...ps, ps[0]].map((p) => `${p.x * 100}% ${p.y * 100}%`).join(', ');
+    const quadD = ring([{ x: 0.1, y: 0.1 }, { x: 0.9, y: 0.1 }, { x: 0.9, y: 0.9 }, { x: 0.1, y: 0.9 }]);
+    const traceD = ring(TRACE);
 
     it('is cut out along the trace when one shows, and along the quad when none does', () => {
       mount(vi.fn(), QUAD, TRACE);
-      expect(dim()).toBe(traceD);
+      expect(dim()).toContain(traceD);
       act(() => render(null, container!));
       container!.remove();
       container = null;
       mount(vi.fn(), QUAD, null);
-      expect(dim()).toBe(quadD);
+      expect(dim()).toContain(quadD);
     });
 
     it('follows the dragged quad during a corner drag and is the trace again once props are back', () => {
       mount(vi.fn(), QUAD, TRACE);
       mouse('mousedown', 70, 40, handle(0));
       mouse('mousemove', 90, 45); // (0.2, 0.25)
-      expect(dim()).toBe('M0 0H1V1H0Z M0.2 0.25 L0.9 0.1 L0.9 0.9 L0.1 0.9 Z');
+      expect(dim()).toContain(ring([{ x: 0.2, y: 0.25 }, { x: 0.9, y: 0.1 }, { x: 0.9, y: 0.9 }, { x: 0.1, y: 0.9 }]));
       mouse('mouseup', 90, 45);
       act(() => render(<CornerEditor src="x.jpg" quad={QUAD} trace={[...TRACE]} onCommit={vi.fn()} labels={LABELS} />, container!));
-      expect(dim()).toBe(traceD);
+      expect(dim()).toContain(traceD);
     });
   });
 });
