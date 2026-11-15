@@ -52,6 +52,7 @@ The output is built quietly in the background (`usePreparedOutput`), keyed on ev
 | `src/lib/pageEnhance/warp.ts`, `homography.ts` | Scan (Highlight from PE-06) | homography and perspective warp, pure |
 | `src/lib/pageEnhance/dewarp/` | Scan (Highlight from PE-06) | a bent or creased page's edge curves, text-line and vertical-rule bends (bilinear grids), folded into one warp, pure (SCAN-17) |
 | `src/tools/scan/lib/filters.ts` | Scan | the three looks, pure |
+| `src/tools/scan/lib/evenMargins.ts` | Scan | a photographed page's text block centred between even side margins (SCAN-76), pure |
 | `src/tools/scan/lib/scanBudget.ts` | Scan | the size-limit search over pages, pure (injected encode and build) |
 | `src/tools/scan/lib/scanPipeline.ts` | Scan | the DOM side: decode, gray thumbnail, process a page, build the PDF. Lazy. |
 | `src/tools/scan/lib/pageWork/` | Scan | inspecting a photo and processing a page, one set of steps over a canvas kit, run in `page.worker.ts` (OffscreenCanvas, `createImageBitmap`) and on the main thread where a probe shows the worker cannot decode upright and encode JPEG (SCAN-21) |
@@ -130,6 +131,14 @@ export async function fitScanToBudget<H>(input: {
   both, is also squared up to 2 degrees; one direction alone keeps its lean), and `warpAlong` resamples the photo
   once along the composed map. A page whose edges and lines are straight takes `warpPerspective` exactly
   as before; a fit that fails its gates is dropped, never applied.
+- A photographed page's text block is centred between even side margins (SCAN-76), after the flattening and
+  before the look. Its sides are read from its full text rows with the flattening's own line reader, never from
+  all ink, so a gutter shadow, the facing page or a figure does not count. The wide side is the page's flat outer
+  side and gives the margin by its outermost held edge; the thin side runs into the spine and gives its margin by the
+  edge most rows hold, since that edge can still curve. The thin side's own edge is cut back a little, its shadow
+  lifted to the paper, and the page padded out in the paper's tone, read band by band from its margins. A page whose
+  rows hold no such block (a letter, a form, handwriting, a column beside a figure) or whose margins are within 3%
+  of the width comes back as the same object, and so does a page already centred: a second pass changes nothing.
 - The output's long edge is capped at 2400 px (about 200 dpi on A4), which keeps a three-page phone scan
   around a megabyte before any limit.
 - Corner drags follow the gesture golden rule: `startGesture` from `src/lib/gestures/controller.ts`
