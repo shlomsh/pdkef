@@ -1,6 +1,7 @@
 import type { Ref } from 'preact';
 import { useEffect, useLayoutEffect, useRef } from 'preact/hooks';
-import { ChevronLeft, ChevronRight, VectorSquare } from 'lucide-preact';
+import { ChevronLeft, ChevronRight } from 'lucide-preact';
+import { VectorSquare } from './scanIcons.tsx';
 import { workspaceStyles } from '#shell/pageWorkspace/PageWorkspace.tsx';
 import { formatMessage } from '#lib/text/formatMessage.ts';
 import { englishScanMessages as t } from '../messages.ts';
