@@ -2,7 +2,7 @@
 
 # Backlog
 
-The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 183 live: 78 up next, 25 then, 27 waiting, 53 parked.
+The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 183 live: 77 up next, 26 then, 27 waiting, 53 parked.
 
 ## Redact: finish removal
 
@@ -111,7 +111,6 @@ The camera takes pages, the table fixes them, Share sends them. The table first 
 | SCAN-55 | P1 | [SCAN-55](backlog/tasks/SCAN-55.md) · Auto-detect goes back to a PDF sheet's own corners | In progress |
 | SCAN-67 | P1 | [SCAN-67](backlog/tasks/SCAN-67.md) · A two-page sheet splits by itself when sure, and asks on that page when not | In progress |
 | SCAN-71 | P1 | [SCAN-71](backlog/tasks/SCAN-71.md) · The corners stop at the page's own edge, not at a table edge or the facing page | In progress |
-| SCAN-75 | P1 | [SCAN-75](backlog/tasks/SCAN-75.md) · Corners sit on the paper: edge following for the first guess and for the person's fix | In progress |
 | SCAN-44 | P2 | [SCAN-44](backlog/tasks/SCAN-44.md) · A filled A4 form scanned with PDkef (2026-11-04): black edges and ghost text remain; stretch is fixed on main for A4 | In progress |
 | SCAN-46 | P2 | [SCAN-46](backlog/tasks/SCAN-46.md) · A filled-in page with no vertical rules stays tilted; level its rows | In progress |
 
@@ -123,6 +122,7 @@ The camera takes pages, the table fixes them, Share sends them. The table first 
 | SCAN-22 | P3 | [SCAN-22](backlog/tasks/SCAN-22.md) · Scan next: measure the bend at a higher resolution, so a crease's tip goes too |  |
 | SCAN-70 | P2 | [SCAN-70](backlog/tasks/SCAN-70.md) · A colour flyer is found by its edges, not by the photo printed inside it |  |
 | SCAN-72 | P2 | [SCAN-72](backlog/tasks/SCAN-72.md) · An open book in front of the camera comes out as two pages, not one spread |  |
+| SCAN-76 | P2 | [SCAN-76](backlog/tasks/SCAN-76.md) · A book page's text sits centred: even margins from its text rows, padded in the paper's own tone |  |
 
 ### Parked
 
@@ -370,7 +370,7 @@ Done and retired tickets are not listed. Their files stay in [backlog/tasks/](ba
 - Redact: finish removal: 29 done, 1 retired
 - Sign: finish fill mode: 4 done, 1 retired
 - Highlight PDF: a tool for reading: 12 done, 1 retired
-- Scan: camera to WhatsApp: 24 done, 0 retired
+- Scan: camera to WhatsApp: 25 done, 0 retired
 - Page enhancement for Scan and Highlight: 7 done, 1 retired
 - Tool pages: show the verb: 9 done, 0 retired
 - Form detector accuracy: 20 done, 1 retired

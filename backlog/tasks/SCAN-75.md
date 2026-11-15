@@ -1,10 +1,9 @@
 ---
 id: "SCAN-75"
 title: "Corners sit on the paper: edge following for the first guess and for the person's fix"
-status: "in_progress"
+status: "done"
 priority: "P1"
 epic: "scan-next"
-horizon: "now"
 depends_on: ["SCAN-71"]
 ---
 
@@ -38,7 +37,7 @@ it so a side follows the paper when a person moves a corner. The person's manual
       on-device draft and is part of the processed-page key.
 - [x] Zoom in the corner editor.
 - [x] E2E for the trace and a pin drag in a real browser (`e2e/corner-pin.spec.js`).
-- [ ] Checked on a real phone.
+- [x] Checked on a real phone.
 
 ## Built, 2026-11-15
 
@@ -188,3 +187,13 @@ Curved sides and flattening, same day, all from the hand-traced corners: feeding
 makes the flattened border about twice as square (mean distance from a rectangle 7.4 px to 3.5 px on all 22 pages)
 and does not change how straight the text rows come out (the row fit does that work). Three pages came out tilted by
 about 2 degrees because the lean exceeded `MAX_SQUARE` and squaring was skipped; not tested with a looser gate.
+
+## Phone check, 2026-11-15
+
+Shlomi's retest in Chrome on an iPhone (iOS 26.7) found three things, all fixed in 96b1e05f5 and then confirmed on the
+phone: the photo went white with Fine-tune edges on (zero-length round-cap SVG dots under a stretched viewBox), a long
+press opened the phone's image menu, and after a pinch the outline and dim sat off the photo while the HTML handles
+stayed right. The overlay is now % lines in an unscaled SVG with a CSS-clipped dim and HTML dots; a pin pulls its three
+neighbours each way (`PIN_PULL`). Still open elsewhere: a folded sheet's traced side bows across its fold and leans text
+beside it by about 0.6 degrees (its own ticket), and even margins around a book page's text (SCAN-76).
+
