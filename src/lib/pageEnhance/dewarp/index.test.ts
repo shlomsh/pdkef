@@ -144,3 +144,12 @@ describe('bentPx', () => {
     expect(bentPx(bend, MARGIN, 2000, 2400)).toBeCloseTo(expected, 6);
   });
 });
+
+describe('pageMap with a straight edge off the corners', () => {
+  it('flattens a left line side straight: output (0, y) reads photo x = e * width', () => {
+    const quad: Quad = [{ x: 0, y: 0 }, { x: 1000, y: 0 }, { x: 1000, y: 1000 }, { x: 0, y: 1000 }];
+    const curves: EdgeCurves = { top: FLAT, right: FLAT, bottom: FLAT, left: { a: 0, b: 0, line: { e: 0.01, f: 0 } } };
+    const map = pageMap(quad, 0, { ...{ curves: null, lines: null, columns: null }, curves });
+    for (const y of [0.1, 0.3, 0.5, 0.9]) expect(map(0, y).x).toBeCloseTo(10, 6);
+  });
+});

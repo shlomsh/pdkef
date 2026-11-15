@@ -133,3 +133,40 @@ describe('curvesFromSides', () => {
     });
   });
 });
+
+describe('curvesFromSides with a fold and a straight edge off the corners', () => {
+  const profile = (c: SideCurve | undefined, ts: number[]) => ts.map((t) => sideAt(c!, t));
+  const range = (from: number, to: number) => Array.from({ length: 17 }, (_, i) => from + ((to - from) * i) / 16);
+  const close = (c: SideCurve | undefined, want: SideCurve, from: number, to: number, tol = 0.0005) => {
+    expect(c).toBeDefined();
+    range(from, to).forEach((t) => expect(Math.abs(sideAt(c!, t) - sideAt(want, t))).toBeLessThan(tol));
+  };
+
+  it.each(QUADS)('recovers a fold (%s)', (_n, quad) => {
+    const want: SideCurve = { a: 0, b: 0, kink: { at: 0.47, by: 0.01 } };
+    const got = fit(quad, curves({ left: want }));
+    close(got?.left, want, 0.05, 0.95);
+    expect(Math.abs(got!.left.kink!.at - 0.47)).toBeLessThan(0.02);
+  });
+
+  it.each(QUADS)('recovers a straight edge off the chord as flat in the middle (%s)', (_n, quad) => {
+    const want: SideCurve = { a: 0, b: 0, line: { e: 0.006, f: 0 } };
+    close(fit(quad, curves({ left: want }))?.left, want, 0.1, 0.9);
+  });
+
+  it.each(QUADS)('recovers a tilted straight edge (%s)', (_n, quad) => {
+    const want: SideCurve = { a: 0, b: 0, line: { e: 0.002, f: 0.006 } };
+    close(fit(quad, curves({ left: want }))?.left, want, 0.1, 0.9);
+  });
+
+  it.each(QUADS)('keeps a curl a curl (%s), compared by sideAt profile', (_n, quad) => {
+    const want: SideCurve = { a: 0.06, b: 0.03 };
+    const got = fit(quad, curves({ left: want }))?.left;
+    expect(profile(got, range(0, 1))).toEqual(profile(want, range(0, 1)).map((v) => expect.closeTo(v, 3)));
+  });
+
+  it.each(QUADS)('round-trips a curl plus an offset (%s)', (_n, quad) => {
+    const want: SideCurve = { a: 0.05, b: 0, line: { e: 0.004, f: 0 } };
+    close(fit(quad, curves({ left: want }))?.left, want, 0.1, 0.9);
+  });
+});

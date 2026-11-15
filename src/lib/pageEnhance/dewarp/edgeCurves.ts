@@ -10,6 +10,7 @@ import type { EdgeMap } from '../edgeMap.ts';
 import type { GrayImage, Point, Quad } from '../quad.ts';
 import type { EdgeCurves, SideCurve } from './types.ts';
 import { sideAt } from './types.ts';
+import { leastSquares } from './leastSquares.ts';
 
 const SAMPLES = 15; // interior points tried along each side
 const SEARCH = 0.06; // how far either way of the straight side to look, in unit-square units
@@ -96,30 +97,8 @@ function sampleSide(map: EdgeMap, h: Matrix3, point: (t: number) => Point, n: Po
   return { samples: found.filter((f) => f.peak >= floor).map(({ t, s }) => ({ t, s })), px: px / found.length };
 }
 
-/** Least squares of s over the given basis functions of t: their weights, or null when degenerate. */
-function solve(samples: Sample[], basis: (t: number) => number[]): number[] | null {
-  const n = basis(0).length;
-  const m = Array.from({ length: n }, () => new Array<number>(n + 1).fill(0));
-  for (const { t, s } of samples) {
-    const f = basis(t);
-    for (let r = 0; r < n; r += 1) {
-      for (let c = 0; c < n; c += 1) m[r][c] += f[r] * f[c];
-      m[r][n] += f[r] * s;
-    }
-  }
-  for (let col = 0; col < n; col += 1) {
-    let pivot = col;
-    for (let r = col + 1; r < n; r += 1) if (Math.abs(m[r][col]) > Math.abs(m[pivot][col])) pivot = r;
-    if (Math.abs(m[pivot][col]) < 1e-12) return null;
-    [m[col], m[pivot]] = [m[pivot], m[col]];
-    for (let r = 0; r < n; r += 1) {
-      if (r === col) continue;
-      const k = m[r][col] / m[col][col];
-      for (let c = col; c < n + 1; c += 1) m[r][c] -= k * m[col][c];
-    }
-  }
-  return m.map((row, i) => row[n] / row[i]);
-}
+const solve = (samples: Sample[], basis: (t: number) => number[]): number[] | null =>
+  leastSquares(samples.map((p) => p.t), samples.map((p) => p.s), basis);
 
 const rms = (samples: Sample[], at: (t: number) => number) =>
   Math.sqrt(samples.reduce((sum, p) => sum + (p.s - at(p.t)) ** 2, 0) / samples.length);
