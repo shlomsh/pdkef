@@ -1,7 +1,7 @@
 ---
 id: "SCAN-76"
 title: "A book page's text sits centred: even margins from its text rows, padded in the paper's own tone"
-status: "open"
+status: "in_progress"
 priority: "P2"
 epic: "scan-next"
 horizon: "next"
