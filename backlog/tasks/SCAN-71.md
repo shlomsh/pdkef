@@ -98,3 +98,36 @@ book's side runs into the facing page with no step in brightness.
 The PDF path is a different finder: it reaches out from the text block by a margin (`photoPage.ts` `readPhoto`), so
 it is never far off (max 0.185) and never on the edge. Fitting it to the paper is its own design, left for after the
 gutter finder.
+
+## Progress, 2026-11-15: the fold between two facing pages
+
+Photo inspection (`guessCorners`) now finds an open book's fold. `edges/fold.ts` `cutAtFold` looks at a left or
+right side lying within 20% of its frame edge and moves it in to the fold: a long, nearly vertical line darker than
+the paper on both sides (a crease or a shadow valley), scored by a low percentile of its darkness so text cannot fake
+it, with text beyond it (a printed box rule on a single sheet has blank margin beyond, and stays), and no darker
+than shading gets (a printed rule is ink: real folds score 0.12 to 0.28 of the paper level and the cap is 0.45, so a
+form's full-height gridline with text on both sides stays too). `edges/snap.ts`
+`snapSides` then moves the other three sides onto the nearest real page edge, either end free by 6%, so a tilted page
+is followed. `scoreQuad` judges a fold side by its edges alone (both sides of a fold are the same paper). All pure,
+synthetic tests seen failing first, the SCAN-05 corpus and its `baseline.json` unchanged.
+
+| book benchmark, photo inspection | found@0.02 | found@0.035 | found@0.08 | median err | max err | median IoU | confidently wrong |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| before | 1 of 22 | 4 of 22 | 8 of 22 | 0.143 | 0.585 | 0.81 | 14 |
+| fold + snap | 1 of 22 | 4 of 22 | 10 of 22 | 0.086 | 0.507 | 0.88 | 12 |
+
+Seven photos moved, none got worse: p-001 0.142 to 0.070, p-003 0.219 to 0.070, p-005 0.210 to 0.084, p-011 0.179
+to 0.146, p-015 0.215 to 0.174, p-017 0.198 to 0.136, p-021 0.585 to 0.507. On all seven the fold side now sits on
+the page's own edge; what is left is a far side (the bottom on p-011, the right on p-015 and p-021) that runs off the
+frame or onto the page stack.
+
+What is left for the outcome:
+
+- **The live camera is unchanged.** Wired into `detectPage`, the fold and snap found no page on any of the 12 books:
+  after the snap at least one side stays under `MIN_SIDE_SUPPORT` on every one (a side running off the frame or onto
+  the page stack has no edge to score), and it cost 8 ms a frame (31 to 39). So the camera does not run it. Showing
+  an outline for a book needs a different acceptance for a side that leaves the frame, not more of this finder.
+- **No fold found** on p-002, p-007, p-009, p-014, p-019: too faint (p-007, p-019 score 0.012 against 0.08) or the
+  guess is elsewhere (p-014).
+- found@0.035 is still 4 of 22, the second acceptance line.
+- The PDF path is untouched.

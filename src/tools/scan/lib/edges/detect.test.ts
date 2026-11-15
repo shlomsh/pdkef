@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { detectPage, CONFIDENT } from './detect.ts';
+import { guessCorners } from './index.ts';
 import { cornerError } from './kpi.ts';
-import { addNoise, fillQuad, fillRect, norm, solid } from './testImages.ts';
+import { addNoise, fillQuad, fillRect, griddedSheet, norm, ruledSheet, solid, tiltedSpread, TWO_PAGES_CREASE, twoPages } from './testImages.ts';
 import type { Quad } from '#lib/pageEnhance/quad.ts';
 
 const PAGE: Quad = [{ x: 60, y: 50 }, { x: 250, y: 60 }, { x: 240, y: 360 }, { x: 55, y: 350 }];
@@ -12,7 +13,24 @@ function pageOnTable() {
   return img;
 }
 
+const RULED_TRUTH: Quad = [{ x: 16, y: 20 }, { x: 304, y: 20 }, { x: 304, y: 380 }, { x: 16, y: 380 }].map((p) => norm(p, 320, 400)) as Quad;
+
 describe('detectPage', () => {
+  it('does not cut a single sheet at its printed box rule', () => {
+    const got = detectPage(ruledSheet());
+    expect(got.quad).not.toBeNull();
+    expect(cornerError(got.quad!, RULED_TRUTH)).toBeLessThan(0.02);
+    const guess = guessCorners(ruledSheet());
+    expect(guess).not.toBeNull();
+    expect(cornerError(guess!, RULED_TRUTH)).toBeLessThan(0.02);
+  });
+
+  it('does not cut a single sheet at a printed vertical rule with text on both sides', () => {
+    const guess = guessCorners(griddedSheet());
+    expect(guess).not.toBeNull();
+    expect(cornerError(guess!, RULED_TRUTH)).toBeLessThan(0.02);
+  });
+
   it('finds a clear page with a confident score', () => {
     const got = detectPage(pageOnTable());
     expect(got.quad).not.toBeNull();
@@ -58,5 +76,26 @@ describe('detectPage', () => {
     const got = detectPage(img);
     expect(got.quad).not.toBeNull();
     expect(cornerError(got.quad!, truth)).toBeLessThan(0.05);
+  });
+});
+
+// The camera does not cut at the fold yet: on real books a side that runs off the frame still has no edge to
+// score (SCAN-71). Photo inspection does.
+describe('guessCorners on two facing pages', () => {
+  it('finds the page up to the crease, not both pages to the frame border', () => {
+    const W = 320;
+    const crease = TWO_PAGES_CREASE;
+    const img = twoPages();
+    const got = guessCorners(img);
+    expect(got).not.toBeNull();
+    expect(Math.abs(got![1].x - crease / W)).toBeLessThan(0.02);
+    expect(Math.abs(got![2].x - crease / W)).toBeLessThan(0.02);
+  });
+
+  it('finds the tilted page of an open book, its sides following the real edges', () => {
+    const { image, truth } = tiltedSpread();
+    const got = guessCorners(image);
+    expect(got).not.toBeNull();
+    expect(cornerError(got!, truth)).toBeLessThan(0.02);
   });
 });

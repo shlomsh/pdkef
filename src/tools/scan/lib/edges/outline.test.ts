@@ -1,8 +1,12 @@
 import { describe, expect, it } from 'vitest';
+import type { Quad } from '#lib/pageEnhance/quad.ts';
 import { corpus } from './corpus.ts';
-import { guessByOutline } from './outline.ts';
+import { buildEdgeMap } from '#lib/pageEnhance/edgeMap.ts';
+import { cutAtFold } from './fold.ts';
+import { fitToPaper } from './grow.ts';
+import { guessByOutline, scoreQuad } from './outline.ts';
 import { guessByScoredRegions } from './scoredRegions.ts';
-import { addNoise, solid } from './testImages.ts';
+import { addNoise, solid, twoPages } from './testImages.ts';
 
 const err = (got: { x: number; y: number }[], truth: { x: number; y: number }[]) =>
   Math.max(...got.map((p, i) => Math.max(Math.abs(p.x - truth[i].x), Math.abs(p.y - truth[i].y))));
@@ -42,5 +46,19 @@ describe('outline strategy', () => {
     }
     console.log(`outline guess: ${best.toFixed(1)}ms (fastest of 5)`);
     expect(quad).not.toBeNull();
+  });
+});
+
+describe('scoreQuad with a fold side', () => {
+  it('scores a fold side by its edges alone, since both pages there are equally bright', () => {
+    const W = 320;
+    const H = 427;
+    const img = twoPages();
+    const raw: Quad = [{ x: 30, y: 40 }, { x: W - 1, y: 40 }, { x: W - 1, y: 390 }, { x: 30, y: 390 }].map((p) => ({ x: p.x / W, y: p.y / H })) as Quad;
+    const cut = cutAtFold(img, fitToPaper(img, raw));
+    expect(cut.folds).toEqual([1]);
+    const map = buildEdgeMap(img);
+    expect(scoreQuad(map, cut.quad, cut.folds)).toBeGreaterThan(0);
+    expect(scoreQuad(map, cut.quad)).toBe(0);
   });
 });

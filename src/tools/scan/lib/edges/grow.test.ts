@@ -39,8 +39,10 @@ describe('a page under a strip of grayer table that reaches the frame top', () =
     fillRect(img, 0, 40, W, 350, 225);
     fillRect(img, 56, 40, 4, 350, 150); // the gutter between the two pages
     for (let y = 60; y < 360; y += 12) fillRect(img, 80, y, 160, 4, 60);
+    for (let y = 60; y < 360; y += 12) fillRect(img, 8, y, 40, 4, 60); // the facing page carries text too
     addNoise(img, 5, 9);
-    const truth: Quad = [{ x: 0, y: 40 }, { x: W, y: 40 }, { x: W, y: 390 }, { x: 0, y: 390 }].map((p) => norm(p, W, H)) as Quad;
+    // the page ends at the gutter: the facing-page strip to its left is not part of it
+    const truth: Quad = [{ x: 60, y: 40 }, { x: W, y: 40 }, { x: W, y: 390 }, { x: 60, y: 390 }].map((p) => norm(p, W, H)) as Quad;
     const guess = guessCorners(img);
     expect(guess).not.toBeNull();
     expect(cornerError(guess!, truth)).toBeLessThan(0.05);

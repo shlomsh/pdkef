@@ -155,7 +155,7 @@ function intersect(a: Line, b: Line): Point | null {
 }
 
 /** Fraction (0..1) of a side that has a strong edge running along it, strength-weighted. */
-function sideSupport(map: EdgeMap, a: Point, b: Point, centre: Point): number {
+export function sideSupport(map: EdgeMap, a: Point, b: Point, centre: Point, twoSided = true): number {
   const { width: w, height: h, edge, mag, ux, uy, gray, supportRef: ref, contrast } = map;
   const len = Math.hypot(b.x - a.x, b.y - a.y);
   if (len < 1) return 0;
@@ -186,7 +186,8 @@ function sideSupport(map: EdgeMap, a: Point, b: Point, centre: Point): number {
   }
   if (inFrame < steps / 2 || diffN === 0) return 0;
   // A boundary has a different brightness on its two sides on average; a grout line in a floor does not.
-  return (sum / inFrame) * Math.min(1, Math.abs(diff / diffN) / contrast);
+  // A fold between two facing pages has the same brightness on both sides, so it is scored by its edges alone.
+  return (sum / inFrame) * (twoSided ? Math.min(1, Math.abs(diff / diffN) / contrast) : 1);
 }
 
 /**
@@ -218,16 +219,16 @@ function polygonArea(q: Point[]): number {
 }
 
 /** Support (min and mean over the four sides) of a normalized quad, for comparing guesses. */
-export function quadSupport(map: EdgeMap, quad: Quad): { min: number; mean: number } {
+export function quadSupport(map: EdgeMap, quad: Quad, folds: readonly number[] = []): { min: number; mean: number } {
   const px = quad.map((p) => ({ x: p.x * map.width, y: p.y * map.height }));
   const centre = centroid(px);
-  const sides = px.map((p, i) => sideSupport(map, p, px[(i + 1) % 4], centre));
+  const sides = px.map((p, i) => sideSupport(map, p, px[(i + 1) % 4], centre, !folds.includes(i)));
   return { min: Math.min(...sides), mean: sides.reduce((s, v) => s + v, 0) / 4 };
 }
 
 /** The score `outlineFromMap` ranks quads by, so any guess can be weighed on the same scale. */
-export function scoreQuad(map: EdgeMap, quad: Quad): number {
-  const { min, mean } = quadSupport(map, quad);
+export function scoreQuad(map: EdgeMap, quad: Quad, folds: readonly number[] = []): number {
+  const { min, mean } = quadSupport(map, quad, folds);
   if (min < MIN_SIDE_SUPPORT) return 0;
   return mean ** 2 * Math.sqrt(quadAreaFraction(quad, map));
 }
