@@ -25,6 +25,11 @@ vi.mock('../edges/follow.ts', () => ({ traceSides: vi.fn(() => null) }));
 const { traceSides } = await import('../edges/follow.ts');
 vi.mock('./tracedCurves.ts', () => ({ curvesFromSides: vi.fn(() => null) }));
 const { curvesFromSides } = await import('./tracedCurves.ts');
+vi.mock('../evenMargins.ts', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../evenMargins.ts')>();
+  return { ...actual, evenMargins: vi.fn(actual.evenMargins) };
+});
+const { evenMargins } = await import('../evenMargins.ts');
 
 // EDGE: node has no canvas. A kit of plain RGBA buffers: drawImage samples nearest-neighbour, and
 // toBlob records what was encoded, as the worker's OffscreenCanvas and the page's <canvas> would.
@@ -203,6 +208,35 @@ describe('processWith folded corners', () => {
     const { page } = await processWith(kit, new Blob(), FULL_QUAD, 'original');
     const out = surfaces.find((c) => c.width === page.width)!;
     expect(out.pixel(page.width - 1, 0)).toBe(230);
+  });
+});
+
+describe('processWith even margins', () => {
+  // A book page whose text block runs close to its left edge: 30 rows of bars from x 40 to 490 on a 600 px page.
+  const squeezed: Source = {
+    width: 600,
+    height: 800,
+    pixel: (x, y) => {
+      const r = Math.floor((y - 60) / 22);
+      const inRow = r >= 0 && r < 30 && (y - 60) % 22 < 10;
+      const word = (x - 40) % 57;
+      return inRow && x >= 40 && x < 490 && word < 51 ? 25 : 230;
+    },
+  };
+
+  it('centres a photographed page\'s text between even margins, padding the thin side', async () => {
+    vi.mocked(evenMargins).mockClear();
+    const { page } = await processWith(fakeKit(squeezed), new Blob(), FULL_QUAD, 'original');
+    const [call] = vi.mocked(evenMargins).mock.calls;
+    const { width, height } = call[0];
+    expect(page.height).toBe(height);
+    expect(page.width).toBeGreaterThan(width + 50);
+  });
+
+  it('leaves a PDF sheet as it was printed, margins and all', async () => {
+    vi.mocked(evenMargins).mockClear();
+    await processWith(fakeKit(squeezed), new Blob(), FULL_QUAD, 'original', false);
+    expect(evenMargins).not.toHaveBeenCalled();
   });
 });
 

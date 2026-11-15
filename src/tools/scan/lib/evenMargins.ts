@@ -240,6 +240,19 @@ function settled(small: RgbaImage, plan: Reshape, tones: { paper: Rgb[]; seam: R
   return Math.abs(more) <= MAX_TOP_UP && pad > plan.trim && pad - plan.trim <= MAX_PAD ? { ...plan, pad } : plan;
 }
 
+/** Channel k's BRIGHT-quantile level down column x over rows y0..y1, counted rather than sorted. */
+function brightLevel(data: Uint8ClampedArray, w: number, x: number, k: number, y0: number, y1: number): number {
+  const counts = new Uint32Array(256);
+  for (let y = y0; y < y1; y += 1) counts[data[(y * w + x) * 4 + k]] += 1;
+  const rank = Math.floor(BRIGHT * (y1 - y0 - 1));
+  let seen = 0;
+  for (let v = 0; v < 256; v += 1) {
+    seen += counts[v];
+    if (seen > rank) return v;
+  }
+  return 255;
+}
+
 /** The thin margin's shadow lifted: past the text, each column's paper, band by band, is scaled up to the page's paper tone,
  * so a gutter shadow or the page's dark edge fades into the paper, and print there keeps its contrast. */
 function relight(image: RgbaImage, sides: { left: number; right: number }, thin: Side, paper: Rgb[]): RgbaImage {
@@ -257,10 +270,7 @@ function relight(image: RgbaImage, sides: { left: number; right: number }, thin:
     const y0 = Math.floor((b * h) / BANDS);
     const y1 = Math.max(y0 + 1, Math.floor(((b + 1) * h) / BANDS));
     gains.push(xs.map((x) => [0, 1, 2].map((k) => {
-      const values: number[] = [];
-      for (let y = y0; y < y1; y += 1) values.push(data[(y * w + x) * 4 + k]);
-      values.sort((p, q) => p - q);
-      const bright = values[Math.floor(BRIGHT * (values.length - 1))];
+      const bright = brightLevel(data, w, x, k, y0, y1);
       return Math.min(MAX_LIFT, Math.max(1, paper[b][k] / Math.max(1, bright)));
     })));
   }

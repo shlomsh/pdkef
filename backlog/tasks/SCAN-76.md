@@ -63,7 +63,14 @@ independent column-ink reading of the output (the Document grey, no edge band le
 | left as they were | 8 | p-004 to p-007, both paths: a narrow column of text beside figures, so no full-width block |
 
 No output got worse. The padding widens a centred page by a median 10% of its width (at most 15%). A second pass over
-all 44 outputs changes none of them. It costs about 16 ms a page.
+all 44 outputs changes none of them. On a laptop it costs about 60 ms on a page it pads (median, at most 135 ms at
+2000 px) and about 15 ms on a page it leaves alone.
+
+With Scan's own corners (the 320 px guess repaired at 1000 px, as on the phone) in place of the traced ones, 10 of
+the 22 pages are padded, none gets worse, and the 12 others come back as they were.
+
+The ticket's capture 034: its page in that session's last PDF (after the look, so a proxy) reads 0.04 left and 0.17
+right, and is padded by 13% on the left.
 
 Must not fire: 30 phone captures from five sessions (by their inspected corners). Two book pages are centred; the 28
 others (letters, forms, a bill with a table, flyers, handwriting, grid paper) come back as the same object.
@@ -71,3 +78,5 @@ others (letters, forms, a bill with a table, flyers, handwriting, grid paper) co
 Not centred: p-004 to p-007 keep their spine-side squeeze (their text is a column beside figures, which the rows cannot
 tell from a layout choice). On the spine-right pages a faint
 trace of the gutter shadow stays within about 2% of the text in the Original look (the Document look clears it).
+On p-001 and p-015 the white gap a photo leaves at a cut corner (pre-existing) now sits a padding's width in from the
+edge in the Original look.
