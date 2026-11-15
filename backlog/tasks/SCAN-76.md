@@ -1,10 +1,9 @@
 ---
 id: "SCAN-76"
 title: "A book page's text sits centred: even margins from its text rows, padded in the paper's own tone"
-status: "in_progress"
+status: "done"
 priority: "P2"
 epic: "scan-next"
-horizon: "next"
 depends_on: ["SCAN-75"]
 ---
 
@@ -32,7 +31,7 @@ paper. A page that needs nothing comes through unchanged.
       squeeze get even margins.
 - [x] A clean, already centred page is unchanged.
 - [x] Unit tests first, on synthetic pages.
-- [ ] Checked on a real phone.
+- [x] Checked on a real phone (Shlomi, 2026-11-16).
 
 ## What was built (2026-11-15)
 

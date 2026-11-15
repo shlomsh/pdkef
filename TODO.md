@@ -46,7 +46,6 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 - [SCAN-71](backlog/tasks/SCAN-71.md) P1 · The corners stop at the page's own edge, not at a table edge or the facing page (in progress)
 - [SCAN-44](backlog/tasks/SCAN-44.md) P2 · A filled A4 form scanned with PDkef (2026-11-04): black edges and ghost text remain; stretch is fixed on main for A4 (in progress)
 - [SCAN-46](backlog/tasks/SCAN-46.md) P2 · A filled-in page with no vertical rules stays tilted; level its rows (in progress)
-- [SCAN-76](backlog/tasks/SCAN-76.md) P2 · A book page's text sits centred: even margins from its text rows, padded in the paper's own tone (in progress)
 
 ### Page enhancement for Scan and Highlight
 
