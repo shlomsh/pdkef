@@ -24,6 +24,7 @@ time with the owner's approval:
 | 45,200 to 45,600 | 45,504 | MEM-45 first-view cohort and the second destination's sender |
 | 45,600 to 46,200 | 46,114 | MEM-45 device, browser, operating system and referrer buckets |
 | 46,200 to 46,300 (2026-11-13) | 46,269 | MEM-45 page view's mount time, result helpers for hand-offs and Drive saves |
+| 46,500 to 46,600 (2026-11-15) | 46,506 local | MEM-45 the home page, /open/ and /drive/ name themselves on a hand-off |
 
 A budget that every change in one area breaks is not telling us about that change. It is telling us the page
 carries that area's code.

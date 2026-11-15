@@ -52,7 +52,9 @@ export const BUDGETS = {
   // no notes store (46,400 approved).
   // SCAN-58/59/60: owner-approved rise (2026-11-14): no /open/ file grew; the island uid Astro writes into
   // /open/index.html changed with the build and compresses 24 B worse; measured 46,413 (46,500 approved).
-  other: 46_500, // was 46,400, 46,300, 46,200, 45,600, 45,200, 44,200, 42,000 before MEM-48 (measured 35,329 for /open/, +19%)
+  // MEM-45 owner-approved rise (2026-11-15): the home page, /open/ and /drive/ name themselves on a hand-off;
+  // measured 46,506 locally, CI's build with notes runs about 55 B larger (46,600 approved).
+  other: 46_600, // was 46,500, 46,400, 46,300, 46,200, 45,600, 45,200, 44,200, 42,000 before MEM-48 (measured 35,329 for /open/, +19%)
   // Not headroom: a decision (MEM-15, MEM-35). The worker installs only the tools a person uses, so a first
   // visit costs the `/` document plus one page's closure: the heaviest of those (see installPaths) stays under this.
   // MEM-35 lowered it from the whole-app 5,000,000 (3,203,299 measured, 183 urls) to the single-page line.
