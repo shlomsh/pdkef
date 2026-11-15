@@ -74,7 +74,7 @@ export default function ScanCornersView({ selected, photo, shownAspect, hint, fi
     let live = true;
     const quad = selected.quad;
     const pins = selected.pins;
-    // onTrace never rejects: a trace that fails is reported where it ran and resolves null.
+    // reason: onTrace never rejects; a trace that fails is reported where it ran and resolves null.
     void onTrace(selected.id, quad, pins).then((sides) => {
       if (live && sides) setTraced({ id: selected.id, key: `${quadKey(quad)}#${pinsKey(pins)}`, sides });
     });
