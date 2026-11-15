@@ -28,6 +28,10 @@ export type AnalyticsTool = ToolId;
 const VIEW_ONLY_PAGES = ['home'] as const;
 export type ViewOnlyPage = (typeof VIEW_ONLY_PAGES)[number];
 
+/** Pages that hand a file to a tool without being one: the home page's drop area, /open/ and /drive/. */
+const SENDER_PAGES = ['home', 'open', 'drive'] as const;
+export type HandoffSender = AnalyticsTool | (typeof SENDER_PAGES)[number];
+
 /**
  * In funnel order: `errors:read` prints the columns in this order (DEBT-58).
  * `tool_page_viewed`: the tool page loaded. `tool_first_edit`: the first deliberate change to the
@@ -123,8 +127,8 @@ export type UsageEvent = Readonly<{
     first?: true;
     nav?: NavigationType;
     source?: FileSource;
-    /** With `source: 'handoff'` on `tool_file_accepted` only: the tool that handed the file on. */
-    from?: AnalyticsTool;
+    /** With `source: 'handoff'` on `tool_file_accepted` only: the tool or page that handed the file on. */
+    from?: HandoffSender;
     visit?: Visit;
     since?: Since;
     net?: CountBucket;
@@ -139,6 +143,10 @@ const BUILD = /^[0-9a-f]{7}$/;
 
 const has = (list: readonly string[], value: unknown): boolean =>
   typeof value === 'string' && list.includes(value);
+
+/** True for a tool or page that may be named as a hand-off's sender. */
+export const isHandoffSender = (value: unknown): value is HandoffSender =>
+  has(ANALYTICS_TOOLS, value) || has(SENDER_PAGES, value);
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -170,7 +178,7 @@ export function parseUsageEvent(value: unknown): UsageEvent | null {
   if (on('first') && p.first !== true) return null;
   if (on('nav') && (!on('first') || !has(NAVIGATION_TYPES, p.nav))) return null;
   if (on('source') && (name === 'tool_page_viewed' || !has(FILE_SOURCES, p.source))) return null;
-  if (on('from') && (name !== 'tool_file_accepted' || p.source !== 'handoff' || !has(ANALYTICS_TOOLS, p.from))) return null;
+  if (on('from') && (name !== 'tool_file_accepted' || p.source !== 'handoff' || !isHandoffSender(p.from))) return null;
   if (on('visit') && (name !== 'tool_page_viewed' || !has(VISITS, p.visit))) return null;
   if (on('since') && (name !== 'tool_page_viewed' || !has(SINCES, p.since))) return null;
   const viewed = name === 'tool_page_viewed';
@@ -187,7 +195,7 @@ export function parseUsageEvent(value: unknown): UsageEvent | null {
       ...(on('first') ? { first: true as const } : {}),
       ...(on('nav') ? { nav: p.nav as NavigationType } : {}),
       ...(on('source') ? { source: p.source as FileSource } : {}),
-      ...(on('from') ? { from: p.from as AnalyticsTool } : {}),
+      ...(on('from') ? { from: p.from as HandoffSender } : {}),
       ...(on('visit') ? { visit: p.visit as Visit } : {}),
       ...(on('since') ? { since: p.since as Since } : {}),
       ...(on('net') ? { net: p.net as CountBucket } : {}),

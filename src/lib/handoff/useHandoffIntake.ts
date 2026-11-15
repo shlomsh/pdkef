@@ -2,7 +2,7 @@ import { useEffect, useRef } from 'preact/hooks';
 import { peekHandoff } from '../drafts/draftStore.ts';
 import { handoffFitsPage, handoffKindsForPage } from './handoffKinds.ts';
 import { markArrival } from './fileArrival.ts';
-import { ANALYTICS_TOOLS, type AnalyticsTool } from '../telemetry/usageEventSchema.ts';
+import { isHandoffSender } from '../telemetry/usageEventSchema.ts';
 import { settleHandoff } from './settleHandoff.ts';
 import { clearHandoffPending, releaseHandoffPending, releaseHandoffPendingWhenLoaded } from './handoffPending.ts';
 
@@ -23,10 +23,9 @@ export function filesFromHandoff(record: HandoffRecord | null | undefined): File
   );
 }
 
-/** DEBT-58: say the file about to open came by hand-off; `from` only when the sender is an analytics tool. */
+/** DEBT-58: say the file about to open came by hand-off; `from` only when the sender is a known tool or page. */
 export function markHandoffArrival(from: unknown): void {
-  const known = (ANALYTICS_TOOLS as readonly unknown[]).includes(from);
-  markArrival('handoff', known ? (from as AnalyticsTool) : undefined);
+  markArrival('handoff', isHandoffSender(from) ? from : undefined);
 }
 
 /**

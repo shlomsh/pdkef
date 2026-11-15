@@ -6,13 +6,18 @@ import { fetchDriveFile } from './drive/driveClient.ts';
 import { requestDriveToken } from './drive/googleToken.ts';
 import { forgetSaved, remember, savedToken, takeRedirectReturn, toGoogle } from './drive/driveSignIn.ts';
 import { driveRouteFor } from './drive/driveRoute.ts';
+import { parseDriveIntent } from './drive/driveIntent.ts';
+import { loadPicker, openPicker } from './drive/drivePicker.ts';
+import { sendHandoff } from '#lib/handoff/sendHandoff.ts';
 
 vi.mock('./drive/googleToken.ts', () => ({ requestDriveToken: vi.fn() }));
 vi.mock('./drive/driveClient.ts', () => ({ fetchDriveFile: vi.fn() }));
 vi.mock('./drive/driveIntent.ts', () => ({
   DRIVE_HOME_HANDOFF: 'drive-home',
-  parseDriveIntent: () => ({ kind: 'open-with', fileId: 'abc123', userId: 'u1' }),
+  parseDriveIntent: vi.fn(),
 }));
+vi.mock('./drive/drivePicker.ts', () => ({ loadPicker: vi.fn(), openPicker: vi.fn() }));
+vi.mock('#lib/handoff/sendHandoff.ts', () => ({ sendHandoff: vi.fn(() => Promise.resolve(true)) }));
 vi.mock('./drive/driveSignIn.ts', () => ({
   savedToken: vi.fn(),
   remember: vi.fn(),
@@ -22,7 +27,9 @@ vi.mock('./drive/driveSignIn.ts', () => ({
 }));
 vi.mock('./drive/driveRoute.ts', () => ({ driveRouteFor: vi.fn() }));
 vi.mock('./OpenWithChooser.tsx', () => ({
-  default: ({ file, arriving }: { file?: File; arriving?: boolean }) => <p>chooser {file ? `has ${file.name}` : arriving ? 'arriving' : 'empty'}</p>,
+  default: ({ file, arriving, from }: { file?: File; arriving?: boolean; from?: string }) => (
+    <p>chooser {file ? `has ${file.name}` : arriving ? 'arriving' : 'empty'} from {from}</p>
+  ),
 }));
 
 const PDF = { ok: true, name: 'a.pdf', mimeType: 'application/pdf', bytes: new ArrayBuffer(4) } as never;
@@ -39,6 +46,7 @@ describe('DriveOpen', () => {
     vi.mocked(savedToken).mockReturnValue(null);
     vi.mocked(takeRedirectReturn).mockReturnValue(NO_RETURN);
     vi.mocked(driveRouteFor).mockReturnValue('popup');
+    vi.mocked(parseDriveIntent).mockReturnValue({ kind: 'open-with', fileId: 'abc123', userId: 'u1' } as never);
     container = document.createElement('div');
     document.body.appendChild(container);
   });
@@ -164,7 +172,20 @@ describe('DriveOpen', () => {
 
     arrive(PDF);
     await flush();
-    expect(container.textContent).toContain('chooser has a.pdf');
+    expect(container.textContent).toContain('chooser has a.pdf from drive');
+  });
+
+  it('names Drive as the sender of a picked file', async () => {
+    vi.mocked(parseDriveIntent).mockReturnValue({ kind: 'pick', tool: 'sign', returnTo: '/sign/' } as never);
+    vi.mocked(driveRouteFor).mockReturnValue('redirect');
+    vi.mocked(savedToken).mockReturnValue('saved');
+    vi.mocked(loadPicker).mockResolvedValue(true);
+    vi.mocked(openPicker).mockResolvedValue({ action: 'picked', docs: [{ id: 'f1' }] } as never);
+    vi.mocked(fetchDriveFile).mockResolvedValue(PDF);
+    act(() => render(<DriveOpen />, container));
+    await flush();
+    await flush();
+    expect(vi.mocked(sendHandoff).mock.calls[0][1]).toMatchObject({ fileName: 'a.pdf', from: 'drive' });
   });
 
   it('leaves the choice for the button when the download is refused', async () => {

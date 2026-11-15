@@ -195,6 +195,10 @@ describe('source, from and visit (DEBT-58)', () => {
     expect(parseUsageEvent(props('tool_file_accepted', { from: 'merge' }))).toBeNull();
     expect(parseUsageEvent(props('tool_file_accepted', { source: 'handoff', from: 'ocr' }))).toBeNull();
   });
+  it.each([['home'], ['open'], ['drive']])('accepts the %s page as the sender of a hand-off', (from) => {
+    const ok = props('tool_file_accepted', { source: 'handoff', from });
+    expect(parseUsageEvent(ok)).toEqual(ok);
+  });
   it.each(VISITS.map((v) => [v]))('accepts visit %s on tool_page_viewed only', (visit) => {
     const e = props('tool_page_viewed', { visit });
     expect(parseUsageEvent(e)).toEqual(e);
@@ -207,7 +211,6 @@ describe('source, from and visit (DEBT-58)', () => {
     for (const name of TOOL_LIFECYCLE_EVENTS.filter((n) => n !== 'tool_page_viewed')) {
       expect(parseUsageEvent(ev(name, 'home'))).toBeNull();
     }
-    expect(parseUsageEvent(props('tool_file_accepted', { source: 'handoff', from: 'home' }))).toBeNull();
     expect(ANALYTICS_TOOLS).not.toContain('home');
   });
   it.each([['unknown', 'yesterday'], ['number', 1]])('rejects visit as %s', (_w, visit) => {

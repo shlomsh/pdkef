@@ -8,16 +8,16 @@
  *
  * No imports beyond the schema's types: draft code imports this without pulling in analytics.
  */
-import type { AnalyticsTool, FileSource } from '../telemetry/usageEventSchema';
+import type { FileSource, HandoffSender } from '../telemetry/usageEventSchema';
 
-export type Arrival = Readonly<{ source: FileSource; from?: AnalyticsTool }>;
+export type Arrival = Readonly<{ source: FileSource; from?: HandoffSender }>;
 
 let pending: Arrival | null = null;
 // MEM-45: when the mark was made (performance.now), for the time a file took to be accepted. Never sent raw.
 let pendingAt: number | undefined;
 
 /** The next file a tool accepts on this page arrived this way. `from` only for a hand-off. */
-export function markArrival(source: FileSource, from?: AnalyticsTool): void {
+export function markArrival(source: FileSource, from?: HandoffSender): void {
   pending = source === 'handoff' && from ? { source, from } : { source };
   pendingAt = typeof performance?.now === 'function' ? performance.now() : undefined;
 }

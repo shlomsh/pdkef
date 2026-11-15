@@ -54,7 +54,7 @@ function DriveOpen() {
       files.push({ fileName: result.name, fileType: result.mimeType, fileBytes: result.bytes });
     }
     try {
-      const payload = files.length === 1 ? files[0] : { files };
+      const payload = files.length === 1 ? { ...files[0], from: 'drive' } : { files, from: 'drive' };
       await sendHandoff(pick.tool ?? DRIVE_HOME_HANDOFF, payload, { href: pick.returnTo });
     } catch {
       // expected: the device would not keep the file; the person sees the same line as a dropped connection
@@ -125,7 +125,7 @@ function DriveOpen() {
 
   if (save) return <DriveSave id={save.id} failed={save.failed} />;
   if (phase.name === 'loading') return null;
-  if (phase.name === 'chooser') return <OpenWithChooser file={phase.file ?? undefined} arriving={!phase.file} />;
+  if (phase.name === 'chooser') return <OpenWithChooser file={phase.file ?? undefined} arriving={!phase.file} from="drive" />;
   if (phase.name === 'no-state') {
     return (
       <div class={styles.panel}>

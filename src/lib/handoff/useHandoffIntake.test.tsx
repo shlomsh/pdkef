@@ -3,7 +3,7 @@ import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { describe, expect, it, vi, afterEach, beforeEach } from 'vitest';
 import { takeArrival, resetFileArrivalForTests } from './fileArrival.ts';
-import { filesFromHandoff, useHandoffFilesIntake, useHandoffIntake } from './useHandoffIntake.ts';
+import { filesFromHandoff, markHandoffArrival, useHandoffFilesIntake, useHandoffIntake } from './useHandoffIntake.ts';
 
 const { takeHandoffMock, commitHandoffMock, cacheRecentFileMock } = vi.hoisted(() => ({
   takeHandoffMock: vi.fn(),
@@ -223,6 +223,18 @@ describe('useHandoffIntake', () => {
     expect(onFile.mock.calls[0][1]).toBe('redact');
   });
 
+  it.each([['home'], ['open'], ['drive']])('marks the %s page as the sender', (from) => {
+    resetFileArrivalForTests();
+    markHandoffArrival(from);
+    expect(takeArrival()).toEqual({ source: 'handoff', from });
+  });
+
+  it('marks no sender it does not know', () => {
+    resetFileArrivalForTests();
+    markHandoffArrival('elsewhere');
+    expect(takeArrival()).toEqual({ source: 'handoff' });
+  });
+
   it('defaults to application/pdf when the record carries no fileType', async () => {
     const bytes = new Uint8Array([1, 2]).buffer;
     takeHandoffMock.mockResolvedValueOnce({ fileName: 'merged.pdf', fileBytes: bytes });
@@ -353,8 +365,8 @@ describe('hand-off arrival mark (DEBT-58)', () => {
     expect(seen).toEqual({ source: 'handoff', from: 'redact' });
   });
 
-  it('marks a hand-off from something that is not an analytics tool without a from', async () => {
-    takeHandoffMock.mockResolvedValueOnce({ from: 'home', files: [{ fileName: 'a.pdf', fileBytes: buf(1) }] });
+  it('marks a hand-off from an unknown sender without a from', async () => {
+    takeHandoffMock.mockResolvedValueOnce({ from: 'elsewhere', files: [{ fileName: 'a.pdf', fileBytes: buf(1) }] });
     let seen;
     await run(<FilesHarness tool="merge" onFiles={() => { seen = takeArrival(); }} />);
     expect(seen).toEqual({ source: 'handoff' });

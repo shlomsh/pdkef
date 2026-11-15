@@ -63,7 +63,7 @@ describe('OpenWithChooser', () => {
     expect(sendHandoff).toHaveBeenCalledTimes(1);
     const [target, payload] = vi.mocked(sendHandoff).mock.calls[0];
     expect(target).toBe('redact');
-    expect(payload).toMatchObject({ fileName: 'lease.pdf', fileType: 'application/pdf' });
+    expect(payload).toMatchObject({ fileName: 'lease.pdf', fileType: 'application/pdf', from: 'open' });
     expect('fileBytes' in payload && payload.fileBytes.byteLength).toBe(8);
   });
 
@@ -137,6 +137,13 @@ describe('OpenWithChooser', () => {
       const [target, payload] = vi.mocked(sendHandoff).mock.calls[0];
       expect(target).toBe('redact');
       expect(payload).toMatchObject({ fileName: 'late.pdf' });
+    });
+
+    it('names Drive as the sender when the file came from Drive', async () => {
+      act(() => render(<OpenWithChooser file={pdf('late.pdf')} from="drive" />, container!));
+      await act(async () => { button('Redact').click(); });
+      await flush();
+      expect(vi.mocked(sendHandoff).mock.calls[0][1]).toMatchObject({ from: 'drive' });
     });
 
     it('names the file once it arrives and waits for a choice', async () => {

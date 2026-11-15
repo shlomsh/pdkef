@@ -18,7 +18,7 @@ const CHOICES = [
 
 /* `file` and `arriving` are /drive/'s way in (DRIVE-11): the choice shows while the file is still downloading,
    and a tool picked early opens the moment the file lands. The installed app passes neither and uses launchQueue. */
-function OpenWithChooser({ file: given, arriving = false }: { file?: File; arriving?: boolean }) {
+function OpenWithChooser({ file: given, arriving = false, from = 'open' }: { file?: File; arriving?: boolean; from?: 'open' | 'drive' }) {
   const [launched, setLaunched] = useState<File | null>(null);
   const [chosen, setChosen] = useState<string | null>(null);
   const [failed, setFailed] = useState(false);
@@ -45,7 +45,7 @@ function OpenWithChooser({ file: given, arriving = false }: { file?: File; arriv
     const handOver = async () => {
       try {
         const fileBytes = await file.arrayBuffer();
-        await sendHandoff(chosen, { fileName: file.name, fileType: 'application/pdf', fileBytes });
+        await sendHandoff(chosen, { fileName: file.name, fileType: 'application/pdf', fileBytes, from });
       } catch {
         // expected: saveHandoff reports its own failure; the person gets a line and can try again
         sending.current = false;

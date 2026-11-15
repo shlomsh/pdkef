@@ -392,6 +392,7 @@ describe('FileDropzone', () => {
       expect(record.fileName).toBe('contract.pdf');
       expect(record.fileType).toBe('application/pdf');
       expect(record.fileBytes.byteLength).toBeGreaterThan(0);
+      expect(record.from).toBe('home');
 
       // The bug this replaces: writing the drop into the draft key destroyed
       // whatever was saved there. Nothing here may touch a draft.
@@ -982,6 +983,7 @@ describe('FileDropzone', () => {
         await pick([pdf('g1.pdf'), pdf('g2.pdf'), unreadable('bad.pdf')]);
         expect(saveHandoff.mock.calls[0][0]).toBe('merge');
         expect(saveHandoff.mock.calls[0][1].files.map((f) => f.fileName)).toEqual(['g1.pdf', 'g2.pdf']);
+        expect(saveHandoff.mock.calls[0][1].from).toBe('home');
       });
 
       it('shows only the left-out note when nothing can be read', async () => {

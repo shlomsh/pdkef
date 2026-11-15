@@ -194,7 +194,7 @@ function FileDropzone({
       const records = await Promise.all(files.map(async file => ({
         fileName: file.name, fileType: fileTypeOf(file), fileBytes: await file.arrayBuffer(),
       })));
-      await sendHandoff(handoffKeyFor(tool), records.length === 1 ? records[0] : { files: records }, { href: withFillModeParam(href, window.location.search) });
+      await sendHandoff(handoffKeyFor(tool), records.length === 1 ? { ...records[0], from: 'home' } : { files: records, from: 'home' }, { href: withFillModeParam(href, window.location.search) });
       return true;
     } catch {
       // expected: the user sees handoffFailed, and saveHandoff reports its own failure
