@@ -3,20 +3,23 @@
 import type { ScanFilter } from '../filters.ts';
 import type { Quad } from '#lib/pageEnhance/quad.ts';
 import type { Spine } from '#lib/pageEnhance/spine.ts';
+import type { Pins, Sides } from '../edges/follow.ts';
 import type { InspectedPhoto, ProcessedWithReport } from './steps.ts';
 
 export type PageJob =
   | { kind: 'probe' }
   | { kind: 'inspect'; photo: Blob }
   | { kind: 'guess'; image: Blob }
+  | { kind: 'trace'; image: Blob; quad: Quad; pins: Pins | null }
   | { kind: 'split'; image: Blob; spine: Spine }
-  | { kind: 'process'; photo: Blob; quad: Quad; filter: ScanFilter; paperEdges: boolean };
+  | { kind: 'process'; photo: Blob; quad: Quad; filter: ScanFilter; paperEdges: boolean; pins: Pins | null; fine: boolean };
 
 /** What each job answers: the probe whether this worker can do the work as the main thread would. A
  * guess runs where the inspection does, so Auto-detect finds the corners a new photo was given. */
 export type PageJobResult<J extends PageJob> = J extends { kind: 'probe' } ? boolean
   : J extends { kind: 'inspect' } ? InspectedPhoto
   : J extends { kind: 'guess' } ? Quad | null
+  : J extends { kind: 'trace' } ? Sides | null
   : J extends { kind: 'split' } ? Quad[]
   : ProcessedWithReport;
 

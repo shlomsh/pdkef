@@ -6,6 +6,7 @@ import { SCAN_QUALITY } from './scanBudget.ts';
 import { warpPerspective } from '#lib/pageEnhance/warp.ts';
 import { buildScanPdf, inspectPhoto, processPage, type ProcessedPage } from './scanPipeline.ts';
 import { resetPageWorker } from './pageWork/offThread.ts';
+import type { Pins } from './edges/follow.ts';
 import { reportError } from '#lib/telemetry/errorReport.ts';
 
 vi.mock('#lib/telemetry/errorReport.ts', () => ({ reportError: vi.fn() }));
@@ -268,6 +269,46 @@ describe('a page worker that dies mid-job', () => {
     // Later pages go straight to the main thread.
     await expect(inspectPhoto(photo({ width: 200, height: 100 }))).resolves.toMatchObject({ width: 200, height: 100 });
     expect(reportError).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('a page worker that is sent a process job', () => {
+  const jobs: { kind: string; pins?: unknown; fine?: unknown }[] = [];
+  class RecordingWorker {
+    onmessage: ((e: { data: unknown }) => void) | null = null;
+    onerror = null;
+    terminate() {}
+    postMessage(request: { id: number; job: { kind: string; pins?: unknown; fine?: unknown } }) {
+      jobs.push(request.job);
+      setTimeout(() => {
+        const value = request.job.kind === 'probe' ? true : { page: { blob: new Blob(), width: 1, height: 1, thumb: new Blob(), bentPx: 0 }, measureError: null };
+        this.onmessage?.({ data: { id: request.id, ok: true, value } });
+      });
+    }
+  }
+
+  afterEach(() => resetPageWorker());
+
+  it('carries the page\'s pins in the job, and none when it has none', async () => {
+    resetPageWorker();
+    vi.stubGlobal('Worker', RecordingWorker);
+    vi.stubGlobal('OffscreenCanvas', class {});
+    const pins = [[{ k: 7, at: { x: 0.5, y: 0.1 } }], [], [], []] as Pins;
+    await processPage(photo({ width: 400, height: 300 }), q(0.1, 0.1, 0.9, 0.1, 0.9, 0.9, 0.1, 0.9), 'original', true, pins);
+    await processPage(photo({ width: 400, height: 300 }), FULL_QUAD, 'original');
+    const sent = jobs.filter((job) => job.kind === 'process');
+    expect(sent.map((job) => job.pins)).toEqual([pins, null]);
+  });
+
+  // Protects: the worker is told whether the person turned Fine-tune edges on, and it is off unless said.
+  it('carries fine in the job, off unless told otherwise', async () => {
+    resetPageWorker();
+    vi.stubGlobal('Worker', RecordingWorker);
+    vi.stubGlobal('OffscreenCanvas', class {});
+    await processPage(photo({ width: 400, height: 300 }), FULL_QUAD, 'original', false, null, true);
+    await processPage(photo({ width: 400, height: 300 }), FULL_QUAD, 'original');
+    const sent = jobs.filter((job) => job.kind === 'process');
+    expect(sent.slice(-2).map((job) => job.fine)).toEqual([true, false]);
   });
 });
 

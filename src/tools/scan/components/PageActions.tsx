@@ -1,5 +1,5 @@
 import { useState } from 'preact/hooks';
-import { Crop, RotateCw, SlidersHorizontal, Trash2 } from 'lucide-preact';
+import { RotateCw, SlidersHorizontal, Trash2, VectorSquare } from 'lucide-preact';
 import OptionRow, { type Option } from '#shell/pageWorkspace/OptionRow.tsx';
 import { englishScanMessages as t } from '../messages.ts';
 import type { ScanFilter } from '../lib/filters.ts';
@@ -33,7 +33,7 @@ export default function PageActions({ selected, lookOptions, onChooseLook, onAdj
       )}
       <div class={pageView.actions} data-page-actions>
         <button type="button" class={pageView.item} onClick={onAdjustCorners}>
-          <Crop size={20} aria-hidden="true" />
+          <VectorSquare size={20} aria-hidden="true" />
           <span>{t.cornersAction}</span>
         </button>
         <button type="button" class={pageView.item} data-rotate="left" aria-label={t.rotateLeft} onClick={onRotateLeft}>

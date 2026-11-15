@@ -5,7 +5,7 @@ import { seededRandom } from '../seededRandom.test-helper.ts';
 import { bentPx, isFlat, measureBend, pageMap, toGray } from './index.ts';
 import { findLineBend } from './lineBend.ts';
 import { warpAlong } from './meshWarp.ts';
-import { bendAt, sideAt, type SideCurve } from './types.ts';
+import { bendAt, sideAt, type EdgeCurves, type SideCurve } from './types.ts';
 
 const W = 1500;
 const H = 1150;
@@ -89,6 +89,38 @@ describe('measureBend + pageMap', () => {
 
   it('leaves text that leans past two degrees to the corners, which the person sets', () => {
     expect(measureBend(photo(FLAT, leaning(3)), QUAD, MARGIN, 1100, 1400).lines).toBeNull();
+  });
+
+  const slopeOf = (lines: NonNullable<ReturnType<typeof measureBend>['lines']>) => (bendAt(lines, 0.7, 0.5) - bendAt(lines, 0.3, 0.5)) / 0.4;
+
+  it('uses traced side curves as given and ignores the page\'s own edges (null means straight sides)', () => {
+    const src = photo({ a: -0.1, b: 0 }, BOOK);
+    expect(measureBend(src, QUAD, MARGIN, 1100, 1400, true, null).curves).toBeNull();
+    const known: EdgeCurves = { top: { a: 0.01, b: 0 }, bottom: FLAT, left: FLAT, right: FLAT };
+    expect(measureBend(src, QUAD, MARGIN, 1100, 1400, true, known).curves).toBe(known);
+  });
+
+  it('keeps the default path as it was when traced is omitted', () => {
+    const src = photo({ a: -0.1, b: 0 }, BOOK);
+    expect(measureBend(src, QUAD, MARGIN, 1100, 1400, true, undefined)).toEqual(measureBend(src, QUAD, MARGIN, 1100, 1400));
+  });
+
+  it('uses traced even when paperEdges is false', () => {
+    const known: EdgeCurves = { top: { a: 0.01, b: 0 }, bottom: FLAT, left: FLAT, right: FLAT };
+    expect(measureBend(photo(FLAT, null), QUAD, MARGIN, 1100, 1400, false, known).curves).toBe(known);
+  });
+
+  it('levels a 3 degree lean with a traced border, where the corners alone would leave it', () => {
+    const src = photo(FLAT, leaning(3));
+    expect(measureBend(src, QUAD, MARGIN, 1100, 1400).lines).toBeNull();
+    const bend = measureBend(src, QUAD, MARGIN, 1100, 1400, true, null);
+    expect(bend.lines).not.toBeNull();
+    const want = leaning(3);
+    expect(slopeOf(bend.lines!)).toBeCloseTo((want(0.7) - want(0.3)) / 0.4, 3);
+  });
+
+  it('still leaves a 6 degree lean to the corners with a traced border', () => {
+    expect(measureBend(photo(FLAT, leaning(6)), QUAD, MARGIN, 1100, 1400, true, null).lines).toBeNull();
   });
 });
 

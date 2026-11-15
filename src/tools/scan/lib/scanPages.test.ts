@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { FULL_QUAD } from './quad.ts';
+import type { ScanPage } from '../state/scanWork.ts';
 import {
   afterRemoval, exportKeyFor, failedPositions, isCurrentKey, newPage, partitionFiles, replacePage, partitionTurned,
   patchPage, restoredPages, resultKey, shownAspect, shownPhoto, tileDelta, turnKeyOf, turnPage, withInspection,
@@ -13,7 +14,14 @@ describe('scanPages', () => {
     const a = newPage(photo(), 'grayscale');
     const b = newPage(photo(), 'document');
     expect(b.id).toBe(a.id + 1);
-    expect(a).toMatchObject({ filter: 'grayscale', quad: FULL_QUAD, turns: 0, guessed: false, edited: false, found: null, preview: null });
+    expect(a).toMatchObject({ filter: 'grayscale', quad: FULL_QUAD, turns: 0, guessed: false, edited: false, found: null, preview: null, pins: null });
+    expect(a.fine).toBe(false);
+  });
+
+  it('keys a result differently once fine is on', () => {
+    // Protects: toggling Fine-tune edges reprocesses the page.
+    const page = newPage(photo(), 'document');
+    expect(resultKey({ ...page, fine: true })).not.toBe(resultKey({ ...page, fine: false }));
   });
 
   it('keys a result by id, corners, look and turns, and knows when a key is still current', () => {
@@ -23,6 +31,22 @@ describe('scanPages', () => {
     expect(isCurrentKey([page], k)).toBe(true);
     expect(isCurrentKey([turnPage([page], page.id)[0]], k)).toBe(false);
     expect(isCurrentKey([], k)).toBe(false);
+  });
+
+  it('keys a result by its pins too: other pins are another result, equal pins the same one', () => {
+    const page = newPage(photo(), 'document');
+    const pinned = (k: number) => ({ ...page, pins: [[{ k, at: { x: 0.5, y: 0.1 } }], [], [], []] as ScanPage['pins'] });
+    expect(resultKey(pinned(0.5))).not.toBe(resultKey(page));
+    expect(resultKey(pinned(0.5))).not.toBe(resultKey(pinned(0.6)));
+    expect(resultKey(pinned(0.5))).toBe(resultKey(pinned(0.5)));
+  });
+
+  it('still reads the id and recognises a page with pins, the id being first in the key', () => {
+    const page = { ...newPage(photo(), 'document'), pins: [[{ k: 0.5, at: { x: 0.5, y: 0.1 } }], [], [], []] as ScanPage['pins'] };
+    const k = resultKey(page);
+    expect(k.startsWith(`${page.id}|`)).toBe(true);
+    expect(isCurrentKey([page], k)).toBe(true);
+    expect(isCurrentKey([{ ...page, pins: null }], k)).toBe(false);
   });
 
   it('splits a pick into photos and the names of what is skipped', () => {
@@ -43,6 +67,13 @@ describe('scanPages', () => {
       const page = newPage(photo(), 'document');
       const [next] = withInspection([page], page.id, { quad: guess, width: 200, height: 100, turns: 0 }, 'blob:p', true);
       expect(next).toMatchObject({ guessed: true, found: true, quad: guess, preview: 'blob:p', aspect: 2 });
+    });
+    it('clears pins when the guess replaces the corners, and keeps them on corners the person set', () => {
+      const pins = [[{ k: 0.5, at: { x: 0.5, y: 0.1 } }], [], [], []] as ScanPage['pins'];
+      const page = { ...newPage(photo(), 'document'), pins };
+      expect(withInspection([page], page.id, { quad: guess, width: 1, height: 1, turns: 0 }, null, true)[0].pins).toBeNull();
+      const mine = { ...page, edited: true };
+      expect(withInspection([mine], mine.id, { quad: guess, width: 1, height: 1, turns: 0 }, null, true)[0].pins).toBe(pins);
     });
     it('keeps corners the person moved', () => {
       const page = { ...newPage(photo(), 'document'), edited: true };

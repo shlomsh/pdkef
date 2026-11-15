@@ -38,6 +38,8 @@ export interface Assessment {
   /** Single page only; 0 on a spread. */
   bentPx: number;
   crooked: boolean;
+  /** The sheet is a photograph of one page and that page was found: its quad is paper lying on something, whose edge can be followed. False for a scanner's sheet and for a spread. */
+  photo: boolean;
   /** The book read so far with this sheet counted: whether its sheets are photos, and its text width (SCAN-69). */
   book: Book;
 }
@@ -81,7 +83,7 @@ export function assess(gray: GrayImage, book: Book = NEW_BOOK): Assessment {
   const read = readSpine(turned);
   const spine = read?.sure ? read.spine : null;
   const possibleSpine = read && !read.sure ? read.spine : null;
-  if (spine) return { turn, turnConfidence: confidence, possibleSpine, ...spreadRead(turned, spine), book };
+  if (spine) return { turn, turnConfidence: confidence, possibleSpine, ...spreadRead(turned, spine), photo: false, book };
   const leans = [pageLean(turned)];
   // A photo's lines are traced along their own curve and lean, and levelling it first would bring white corners in where
   // the table was (SCAN-69).
@@ -90,8 +92,9 @@ export function assess(gray: GrayImage, book: Book = NEW_BOOK): Assessment {
   const corners = [photo.corners ?? foundCorners(turned, UNIT_QUAD, leans[0], null)];
   const bent = bentOf(turned, leans[0]);
   // A photo's page is only part of the sheet, so it is cut out however level it stands.
-  const crooked = !!turn || Math.abs(leans[0]) >= MIN_LEAN_DEGREES || bent >= MIN_BENT_PX || !!(photo.photo && photo.corners);
-  return { turn, turnConfidence: confidence, spine, possibleSpine, leans, corners, bentPx: bent, crooked, book: photo.book };
+  const onPaper = !!(photo.photo && photo.corners);
+  const crooked = !!turn || Math.abs(leans[0]) >= MIN_LEAN_DEGREES || bent >= MIN_BENT_PX || onPaper;
+  return { turn, turnConfidence: confidence, spine, possibleSpine, leans, corners, bentPx: bent, crooked, photo: onPaper, book: photo.book };
 }
 
 /** Each page of a sheet with a line down it, read on its own: its lean, then the corners of its text. */
@@ -104,7 +107,7 @@ function spreadRead(turned: GrayImage, spine: Spine): Pick<Assessment, 'spine' |
 
 /** The two pages' corners, left page first, for a line a person placed on `gray`, an upright sheet: the same read as a found line. */
 export function spreadQuads(gray: GrayImage, spine: Spine): Quad[] {
-  const a = { turn: 0, turnConfidence: 0, possibleSpine: null, ...spreadRead(gray, spine), book: NEW_BOOK };
+  const a = { turn: 0, turnConfidence: 0, possibleSpine: null, ...spreadRead(gray, spine), photo: false, book: NEW_BOOK };
   return planPage(gray, a, gray).pieces.map((piece) => piece.quad);
 }
 

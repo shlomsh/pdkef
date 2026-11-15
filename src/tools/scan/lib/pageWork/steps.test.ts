@@ -1,7 +1,9 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { type Quad } from '#lib/pageEnhance/quad.ts';
+import { FLAT_PAGE, type EdgeCurves } from '#lib/pageEnhance/dewarp/index.ts';
+import type { Pins, Sides } from '../edges/follow.ts';
 import { FULL_QUAD } from '../quad.ts';
-import { inspectWith, processWith, splitWith, type CanvasKit } from './steps.ts';
+import { inspectWith, processWith, splitWith, traceWith, type CanvasKit } from './steps.ts';
 
 // The worker's measuring failure travels back with the page, since only the main thread reports.
 vi.mock('#lib/pageEnhance/dewarp/index.ts', async (importOriginal) => {
@@ -19,6 +21,10 @@ vi.mock('./upright.ts', async (importOriginal) => {
   return { ...actual, uprightTurns: vi.fn(actual.uprightTurns) };
 });
 const { uprightTurns } = await import('./upright.ts');
+vi.mock('../edges/follow.ts', () => ({ traceSides: vi.fn(() => null) }));
+const { traceSides } = await import('../edges/follow.ts');
+vi.mock('./tracedCurves.ts', () => ({ curvesFromSides: vi.fn(() => null) }));
+const { curvesFromSides } = await import('./tracedCurves.ts');
 
 // EDGE: node has no canvas. A kit of plain RGBA buffers: drawImage samples nearest-neighbour, and
 // toBlob records what was encoded, as the worker's OffscreenCanvas and the page's <canvas> would.
@@ -68,6 +74,8 @@ afterEach(() => {
   freed = 0;
   made = 0;
   vi.mocked(measureBend).mockClear();
+  vi.mocked(traceSides).mockClear();
+  vi.mocked(curvesFromSides).mockClear();
 });
 
 vi.stubGlobal('ImageData', class { constructor(public data: Uint8ClampedArray, public width: number, public height: number) {} });
@@ -105,6 +113,78 @@ describe('processWith', () => {
     expect(measureError).toBe(error);
     expect(page.bentPx).toBe(0);
     expect(page.width).toBe(394);
+  });
+});
+
+describe('processWith traced border', () => {
+  const INNER: Quad = [{ x: 0.1, y: 0.1 }, { x: 0.9, y: 0.1 }, { x: 0.9, y: 0.9 }, { x: 0.1, y: 0.9 }];
+  const SIDES = [[{ x: 0.5, y: 0.1 }], [], [], []] as unknown as Sides;
+  const PINS: Pins = [[{ k: 0.5, at: { x: 0.5, y: 0.12 } }], [], [], []];
+  const CURVES = { traced: true } as unknown as EdgeCurves;
+  const lastBendArgs = () => vi.mocked(measureBend).mock.calls.at(-1)!;
+
+  it('hands the bend measure the curves traced from the sides the editor draws, so the flattening follows the drawn border', async () => {
+    vi.mocked(traceSides).mockReturnValueOnce(SIDES);
+    vi.mocked(curvesFromSides).mockReturnValueOnce(CURVES);
+    vi.mocked(measureBend).mockImplementationOnce(() => FLAT_PAGE);
+    await processWith(fakeKit(gray(400, 300)), new Blob(), INNER, 'original', true, PINS, true);
+    expect(lastBendArgs()[6]).toBe(CURVES);
+    expect(curvesFromSides).toHaveBeenCalledWith(INNER, SIDES, 400, 300);
+  });
+
+  it('traces on the gray copy at the trace size, with the page quad and its pins', async () => {
+    await processWith(fakeKit(gray(3000, 2000)), new Blob(), INNER, 'original', true, PINS, true);
+    const [image, quad, pins] = vi.mocked(traceSides).mock.calls[0];
+    expect([image.width, image.height]).toEqual([1536, 1024]);
+    expect(quad).toBe(INNER);
+    expect(pins).toBe(PINS);
+  });
+
+  it('gives the bend measure no traced border for the whole picture, in any corner order, and never traces it', async () => {
+    const [tl, tr, br, bl] = FULL_QUAD;
+    for (const quad of [FULL_QUAD, [bl, tl, tr, br], [br, bl, tl, tr]] as Quad[]) {
+      await processWith(fakeKit(gray(400, 300)), new Blob(), quad, 'original');
+    }
+    expect(traceSides).not.toHaveBeenCalled();
+    expect(vi.mocked(measureBend).mock.calls.every((call) => call.length === 6)).toBe(true);
+  });
+
+  it('traces a fine PDF sheet with an inner quad too: paperEdges only means the inset crop', async () => {
+    await processWith(fakeKit(gray(400, 300)), new Blob(), INNER, 'original', false, null, true);
+    expect(traceSides).toHaveBeenCalledTimes(1);
+    expect(lastBendArgs()[5]).toBe(false);
+    expect(lastBendArgs()).toHaveLength(7);
+  });
+
+  it('does not trace a page that is not fine, with or without pins: the straight lines stand, and the bend is measured as before', async () => {
+    // Protects: the traced border is used only once the person turned Fine-tune edges on; pins alone do not trace.
+    await processWith(fakeKit(gray(400, 300)), new Blob(), INNER, 'original', false, null, false);
+    await processWith(fakeKit(gray(400, 300)), new Blob(), INNER, 'original', false, PINS, false);
+    expect(traceSides).not.toHaveBeenCalled();
+    expect(vi.mocked(measureBend).mock.calls.every((call) => call.length === 6)).toBe(true);
+  });
+
+  it('traces a fine page with its pins', async () => {
+    // Protects: Fine-tune edges on follows the pinned border.
+    await processWith(fakeKit(gray(400, 300)), new Blob(), INNER, 'original', false, PINS, true);
+    expect(traceSides).toHaveBeenCalledTimes(1);
+    expect(lastBendArgs()).toHaveLength(7);
+  });
+
+  it('traces a fine page, and still never the whole picture, whatever fine says', async () => {
+    await processWith(fakeKit(gray(400, 300)), new Blob(), INNER, 'original', true, null, true);
+    expect(traceSides).toHaveBeenCalledTimes(1);
+    await processWith(fakeKit(gray(400, 300)), new Blob(), FULL_QUAD, 'original', true, PINS, true);
+    expect(traceSides).toHaveBeenCalledTimes(1);
+  });
+
+  it('still produces the page when tracing throws, measures it as before, and hands the error back to be reported', async () => {
+    const error = new Error('trace failed');
+    vi.mocked(traceSides).mockImplementationOnce(() => { throw error; });
+    const { page, measureError } = await processWith(fakeKit(gray(400, 300)), new Blob(), INNER, 'original', true, null, true);
+    expect(measureError).toBe(error);
+    expect(lastBendArgs()).toHaveLength(6);
+    expect(page.width).toBeGreaterThan(0);
   });
 });
 
@@ -186,5 +266,36 @@ describe('inspectWith', () => {
     expect(inspected.quad).toBeNull();
     expect(vi.mocked(uprightTurns).mock.lastCall?.[1]).toEqual(FULL_QUAD);
     expect(inspected.turns).toBe(3);
+  });
+});
+
+describe('traceWith', () => {
+  const quad = [{ x: 0.1, y: 0.1 }, { x: 0.9, y: 0.1 }, { x: 0.9, y: 0.9 }, { x: 0.1, y: 0.9 }] as Quad;
+
+  it('hands traceSides a gray copy 1536 px on its long edge, and the quad as it came', async () => {
+    const sides = [[], [], [], []];
+    vi.mocked(traceSides).mockReturnValueOnce(sides as never);
+    expect(await traceWith(fakeKit(gray(4000, 3000)), new Blob(), quad)).toBe(sides);
+    const [image, passed] = vi.mocked(traceSides).mock.lastCall!;
+    expect([image.width, image.height, image.data.length]).toEqual([1536, 1152, 1536 * 1152]);
+    expect(passed).toBe(quad);
+  });
+
+  it('passes null pins when none are given, and the pins it was given unchanged', async () => {
+    await traceWith(fakeKit(gray(400, 300)), new Blob(), quad);
+    expect(vi.mocked(traceSides).mock.lastCall![2]).toBeNull();
+    const pins = [[{ k: 0.5, at: { x: 0.2, y: 0.3 } }], [], [], []] as never;
+    await traceWith(fakeKit(gray(400, 300)), new Blob(), quad, pins);
+    expect(vi.mocked(traceSides).mock.lastCall![2]).toBe(pins);
+  });
+
+  it('keeps a picture smaller than that at its own size', async () => {
+    await traceWith(fakeKit(gray(400, 300)), new Blob(), quad);
+    expect(vi.mocked(traceSides).mock.lastCall![0]).toMatchObject({ width: 400, height: 300 });
+  });
+
+  it('lets go of the decoded photo and the canvas', async () => {
+    await traceWith(fakeKit(gray(400, 300)), new Blob(), quad);
+    expect(freed).toBe(made);
   });
 });

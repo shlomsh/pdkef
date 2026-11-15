@@ -10,6 +10,7 @@ import { UNDO_WINDOW_MS } from '#shell/useUndoWindow.ts';
 import { loadPipeline } from '../lib/loadPipeline.ts';
 import type { ScanFilter } from '../lib/filters.ts';
 import type { Quad } from '#lib/pageEnhance/quad.ts';
+import type { Pins, Sides } from '../lib/edges/follow.ts';
 import type { Spine } from '#lib/pageEnhance/spine.ts';
 import { afterRemoval, newPage, patchPage, restoredPages, splitPage, tileDelta, turnPage } from '../lib/scanPages.ts';
 import { englishScanMessages as t } from '../messages.ts';
@@ -87,11 +88,23 @@ export function createPageActions(input: PageActionsInput) {
         dispatch({ type: 'findFound', id: page.id });
         // Corners the person moved while the guess waited in the queue are theirs, not the guess's to replace.
         setPages((current) => (current.find((p) => p.id === page.id && sameQuad(p.quad, page.quad))
-          ? patchPage(current, page.id, { quad, edited: true, found: true })
+          ? patchPage(current, page.id, { quad, pins: null, edited: true, found: true })
           : current));
         announce(t.pageFoundAnnounce);
         recordAction('change_setting');
       });
+  };
+
+  // The page's real border for the corner editor's outline: read-only, it changes no state and records nothing.
+  const traceCorners = async (id: number, quad: Quad, pins: Pins | null = null): Promise<Sides | null> => {
+    const page = pages.find((p) => p.id === id);
+    if (!page || work.removed.has(id)) return null;
+    try {
+      return await (await loadPipeline()).tracePage(work.previewBlobs.get(id) ?? page.file, quad, pins);
+    } catch (err) {
+      reportError('pdf_tool_run', err, 'scan_trace_page');
+      return null;
+    }
   };
 
   // Let the held page go for good. It reads `work`, not this render's values, so a timer from an older render settles right.
@@ -162,7 +175,7 @@ export function createPageActions(input: PageActionsInput) {
     clearPages();
   };
 
-  return { findPage, removePage, undoRemove, reset };
+  return { findPage, traceCorners, removePage, undoRemove, reset };
 }
 
 interface EditActionsInput {
@@ -208,9 +221,9 @@ export function createEditActions(input: EditActionsInput) {
     recordAction('reorder');
   };
 
-  const commitCorners = (id: number, quad: Quad) => {
-    // Moving a corner answers a split question: the sheet is one page.
-    setPages((current) => patchPage(current, id, { quad, edited: true, question: null }));
+  const commitCorners = (id: number, quad: Quad, pins: Pins | null = null, fine?: boolean) => {
+    // Moving a corner answers a split question: the sheet is one page. `fine` is patched only when given.
+    setPages((current) => patchPage(current, id, { quad, pins, edited: true, question: null, ...(fine === undefined ? {} : { fine }) }));
     recordAction('move_mark');
     reportEdit('scan-to-pdf');
   };
@@ -300,7 +313,7 @@ export function createEditActions(input: EditActionsInput) {
         // Answered another way, or taken out, while this ran: nothing to split any more.
         if (!quads || !work.pages.some((p) => p.id === page.id && p.question)) return;
         const fresh = (rightToLeft ? [...quads].reverse() : quads).map((quad): ScanPage => (
-          { ...newPage(page.file, page.filter), quad, guessed: true, found: true, edited: true, sheet: true, opened: quad, question: null }
+          { ...newPage(page.file, page.filter), quad, pins: null, guessed: true, found: true, edited: true, sheet: true, fine: false, opened: quad, question: null }
         ));
         setPages((current) => splitPage(current, page.id, fresh));
         dropPageWork(input, page);
@@ -319,19 +332,21 @@ export function createEditActions(input: EditActionsInput) {
 interface PageViewInput {
   edit: ReturnType<typeof createEditActions>;
   findPage: (page: ScanPage) => void;
+  traceCorners: (id: number, quad: Quad, pins?: Pins | null) => Promise<Sides | null>;
   removePage: (id: number) => void;
   selected: ScanPage | undefined;
   dispatch: ScanDispatch;
 }
 
 /** What a shown page can do, the same beside the desktop's pages and in the phone's viewer. */
-export function pageViewActions({ edit, findPage, removePage, selected, dispatch }: PageViewInput) {
+export function pageViewActions({ edit, findPage, traceCorners, removePage, selected, dispatch }: PageViewInput) {
   return {
     onRotate: () => { if (selected) edit.rotatePage(selected.id); },
     onRotateLeft: () => { if (selected) edit.rotatePage(selected.id, -1); },
     onAdjustCorners: edit.adjustCorners,
     onCommit: edit.commitCorners,
     onFind: findPage,
+    onTrace: traceCorners,
     onApprove: edit.approveCorners,
     onAskSplit: edit.askSplit,
     onOnePage: edit.answerOnePage,

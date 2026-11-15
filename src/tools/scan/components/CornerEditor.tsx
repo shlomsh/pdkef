@@ -1,8 +1,11 @@
 import { useEffect, useRef } from 'preact/hooks';
 import { startGesture, type GestureEvent } from '#lib/gestures/controller.ts';
-import { type Quad } from '#lib/pageEnhance/quad.ts';
+import { type Point, type Quad } from '#lib/pageEnhance/quad.ts';
 import { clampPoint, isPagelike } from '../lib/quad.ts';
-import { LOUPE_SIZE, loupeView, placeLoupe } from '../lib/loupe.ts';
+import { LOUPE_SIZE } from '../lib/loupe.ts';
+import { clientPoint, showLoupe } from './cornerLoupe.ts';
+import { CornerHitPath, CornerPins, STEP, STEP_SHIFT, usePinGesture } from './cornerPins.tsx';
+import { CornerTraceDots, CornerTracePath, dimPath, useCornerTrace } from './cornerTrace.tsx';
 import styles from './CornerEditor.module.css';
 
 interface CornerEditorProps {
@@ -10,13 +13,19 @@ interface CornerEditorProps {
   /** The photo's width over height: the frame takes this shape before the image decodes. */
   aspect?: number;
   quad: Quad;
+  /** The page's real border, closed, in this frame; the straight polygon goes faint while it shows. */
+  trace?: Point[] | null;
+  /** Indexes into `trace` that are points a person pinned. */
+  pinned?: readonly number[];
+  /** A border point dragged to `at` (0 to 1 of the shown photo), once, on release. Never called for a corner (an index that is a multiple of 16). */
+  onPin?(index: number, at: Point): void;
+  /** A pin tapped, or removed with Delete or Backspace. */
+  onUnpin?(index: number): void;
   onCommit(quad: Quad): void;
-  /** Already localized, e.g. corners[0] = 'Top-left corner'. */
-  labels: { group: string; corners: [string, string, string, string] };
+  /** Already localized, e.g. corners[0] = 'Top-left corner'; `pin` names a pinned point. */
+  labels: { group: string; corners: [string, string, string, string]; pin?: string };
 }
 
-const STEP = 0.005;
-const STEP_SHIFT = 0.02;
 const ARROWS: Record<string, [number, number]> = {
   ArrowLeft: [-1, 0],
   ArrowRight: [1, 0],
@@ -33,18 +42,11 @@ const usable = (q: Quad) => {
   return isPagelike(q) && Math.abs(twice) / 2 >= 0.01;
 };
 const outlinePoints = (q: Quad) => q.map((p) => `${p.x},${p.y}`).join(' ');
-// The whole photo plus the quad, filled evenodd: dims everything outside the quad.
-const dimPath = (q: Quad) => `M0 0H1V1H0Z M${q.map((p) => `${p.x} ${p.y}`).join(' L')} Z`;
-
-function clientPoint(event: GestureEvent): { x: number; y: number } {
-  const t = ('touches' in event ? (event.touches?.[0] ?? event.changedTouches?.[0]) : undefined) ?? (event as MouseEvent);
-  return { x: t.clientX, y: t.clientY };
-}
 
 // The photo with four draggable corners. Gesture golden rule: a drag moves the
 // handle and rewrites the outline straight through refs, and the final quad goes
 // to onCommit once, on release. Render always derives from the `quad` prop.
-export default function CornerEditor({ src, aspect, quad, onCommit, labels }: CornerEditorProps) {
+export default function CornerEditor({ src, aspect, quad, trace, pinned, onPin, onUnpin, onCommit, labels }: CornerEditorProps) {
   const frameRef = useRef<HTMLDivElement | null>(null);
   const handleRefs = useRef<(HTMLButtonElement | null)[]>([null, null, null, null]);
   const outlineRef = useRef<SVGPolygonElement | null>(null);
@@ -54,7 +56,7 @@ export default function CornerEditor({ src, aspect, quad, onCommit, labels }: Co
   const loupeEdgeRefs = useRef<(SVGLineElement | null)[]>([null, null]);
 
   useEffect(() => () => cancelRef.current?.(), []);
-
+  const { traceRef, dotsRef, showTrace, hasTrace } = useCornerTrace(trace, outlineRef, dimRef, cancelRef);
   const paint = (q: Quad) => {
     q.forEach((p, i) => {
       const el = handleRefs.current[i];
@@ -67,28 +69,14 @@ export default function CornerEditor({ src, aspect, quad, onCommit, labels }: Co
     dimRef.current?.setAttribute('d', dimPath(q));
   };
 
-  // The loupe: a finger or the handle's ring covers the very point it places.
-  const paintLoupe = (q: Quad, index: number, client: { x: number; y: number }, rect: DOMRect) => {
-    const loupe = loupeRef.current;
-    if (!loupe) return;
-    const at = placeLoupe(client, { width: window.innerWidth, height: window.innerHeight });
-    const view = loupeView(q[index], [q[(index + 1) % 4], q[(index + 3) % 4]], rect);
-    loupe.style.left = `${at.left}px`;
-    loupe.style.top = `${at.top}px`;
-    loupe.style.backgroundSize = view.backgroundSize;
-    loupe.style.backgroundPosition = view.backgroundPosition;
-    view.edges.forEach((edge, i) => {
-      const line = loupeEdgeRefs.current[i];
-      if (!line) return;
-      line.setAttribute('x1', String(edge.x1));
-      line.setAttribute('y1', String(edge.y1));
-      line.setAttribute('x2', String(edge.x2));
-      line.setAttribute('y2', String(edge.y2));
-    });
-    loupe.hidden = false;
-  };
-  const hideLoupe = () => {
+  const pins = usePinGesture({ trace, frameRef, traceRef, dotsRef, dimRef, pinned: pinned ?? [], loupeRef, loupeEdgeRefs, cancelRef, onPin, onUnpin });
+  const paintLoupe = (q: Quad, index: number, client: { x: number; y: number }, rect: DOMRect) =>
+    showLoupe(loupeRef.current, loupeEdgeRefs.current, q[index], [q[(index + 1) % 4], q[(index + 3) % 4]], client, rect);
+  // A drag is over, committed or not: the loupe goes and the trace is the props' to show again.
+  const endDrag = () => {
+    cancelRef.current = null;
     if (loupeRef.current) loupeRef.current.hidden = true;
+    showTrace(true);
   };
 
   const handleStart = (index: number) => (event: GestureEvent) => {
@@ -104,32 +92,32 @@ export default function CornerEditor({ src, aspect, quad, onCommit, labels }: Co
     // only ever shows a usable quad, and release commits the last one.
     let lastValid = start;
 
-    cancelRef.current = startGesture<{ quad: Quad; client: { x: number; y: number } }>({
+    cancelRef.current = startGesture<{ quad: Quad; client: { x: number; y: number }; rect: DOMRect }>({
       computePatch: (moveEvent) => {
         if ('touches' in moveEvent && moveEvent.touches && moveEvent.cancelable) moveEvent.preventDefault();
         const c = clientPoint(moveEvent);
+        const now = frame.getBoundingClientRect(); // every move: the photo area may scroll or zoom under a held pointer
         const point = clampPoint({
-          x: rect.width ? (c.x - rect.left) / rect.width : start[index].x,
-          y: rect.height ? (c.y - rect.top) / rect.height : start[index].y,
+          x: now.width ? (c.x - now.left) / now.width : start[index].x,
+          y: now.height ? (c.y - now.top) / now.height : start[index].y,
         });
         const candidate = start.map((p, i) => (i === index ? point : p)) as Quad;
         if (usable(candidate)) lastValid = candidate;
-        return { quad: lastValid, client: c };
+        return { quad: lastValid, client: c, rect: now };
       },
       writeDOM: (patch) => {
         paint(patch.quad);
-        paintLoupe(patch.quad, index, patch.client, rect);
+        showTrace(false);
+        paintLoupe(patch.quad, index, patch.client, patch.rect);
       },
       commit: (patch) => {
-        cancelRef.current = null;
-        hideLoupe();
+        endDrag();
         if (!patch) return;
         if (patch.quad !== start) onCommit(patch.quad);
         else restore();
       },
       cancel: () => {
-        cancelRef.current = null;
-        hideLoupe();
+        endDrag();
         restore();
       },
     });
@@ -150,19 +138,22 @@ export default function CornerEditor({ src, aspect, quad, onCommit, labels }: Co
       class={styles['frame']}
       ref={frameRef}
       data-corner-frame
-      style={aspect ? { aspectRatio: String(aspect), width: `min(100%, calc(var(--scan-view-h, 62svh) * ${aspect}))` } : undefined}
+      style={aspect ? { aspectRatio: String(aspect), width: `calc(min(100%, calc(var(--scan-view-h, 62svh) * ${aspect})) * var(--corner-zoom, 1))` } : undefined}
     >
       <img class={styles['photo']} src={src} alt="" draggable={false} />
       <svg class={styles['overlay']} viewBox="0 0 1 1" preserveAspectRatio="none" aria-hidden="true">
-        <path ref={dimRef} class={styles['dim']} d={dimPath(quad)} fill-rule="evenodd" />
+        <path ref={dimRef} class={styles['dim']} d={dimPath(hasTrace ? trace! : quad)} fill-rule="evenodd" />
         <polygon
           ref={outlineRef}
-          class={styles['outline']}
+          class={hasTrace ? `${styles['outline']} ${styles['outline-faint']}` : styles['outline']}
           points={outlinePoints(quad)}
           fill="none"
           stroke-width="2"
           vector-effect="non-scaling-stroke"
         />
+        {hasTrace && <CornerTracePath traceRef={traceRef} points={trace!} />}
+        {hasTrace && pins.enabled && <CornerTraceDots dotsRef={dotsRef} points={trace!} pinned={pinned ?? []} />}
+        {hasTrace && pins.enabled && <CornerHitPath hitRef={pins.hitRef} points={trace!} onStart={(e) => pins.begin(e)} hover={pins.hover} />}
       </svg>
       {/* Fixed to the viewport, so a phone's edges, not the frame's, decide where it fits (loupe.ts). */}
       <div
@@ -179,6 +170,9 @@ export default function CornerEditor({ src, aspect, quad, onCommit, labels }: Co
           <path class={styles['loupe-cross']} d={`M${LOUPE_SIZE / 2 - 12} ${LOUPE_SIZE / 2}H${LOUPE_SIZE / 2 + 12}M${LOUPE_SIZE / 2} ${LOUPE_SIZE / 2 - 12}V${LOUPE_SIZE / 2 + 12}`} stroke-width="1.5" />
         </svg>
       </div>
+      {hasTrace && pins.enabled && (
+        <CornerPins trace={trace!} pinned={pinned ?? []} label={labels.pin ?? ''} pinRefs={pins.pinRefs} onStart={pins.begin} onPin={onPin} onUnpin={onUnpin} hover={pins.hover} />
+      )}
       <div role="group" aria-label={labels.group}>
         {quad.map((p, i) => (
           <button

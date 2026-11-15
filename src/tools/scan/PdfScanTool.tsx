@@ -80,7 +80,7 @@ export default withIslandBoundary(function PdfScanTool({ quietPolicy, navigate }
     state, dispatch, work, hasPages: pages.length > 0, selected, editorRef, headingRef, listRef, unmountedRef, ...board,
   });
 
-  const { findPage, removePage, undoRemove, reset } = createPageActions({ pages, view, failedIds, setPages, work, unmountedRef, dispatch, focusIdRef, ...board, ...settings });
+  const { findPage, traceCorners, removePage, undoRemove, reset } = createPageActions({ pages, view, failedIds, setPages, work, unmountedRef, dispatch, focusIdRef, ...board, ...settings });
   const edit = createEditActions({ pages, selected, selectedIndex, failedIds, setPages, dispatch, focusIdRef, showResult, retakeFile, removePage, inspect, work, unmountedRef, ...board, ...settings });
 
   const viewfinder = cameraProps({ camera: state.camera, pages, results, dispatch, addCameraFiles, retakePage: edit.retakePage, view });
@@ -108,7 +108,7 @@ export default withIslandBoundary(function PdfScanTool({ quietPolicy, navigate }
     pages, selectedIndex, results, turnedPreviews, finding, findMissed, failedIds, pageSize: settings.pageSize,
     built: { shown, ready: prepared.status === 'ready', size: prepared.size },
   };
-  const pageActions = pageViewActions({ edit, findPage, removePage, selected, dispatch });
+  const pageActions = pageViewActions({ edit, findPage, traceCorners, removePage, selected, dispatch });
   /** What the desktop workspace and the phone's table both read. */
   const loaded = {
     pages,

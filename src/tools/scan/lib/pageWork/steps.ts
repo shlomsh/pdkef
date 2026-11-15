@@ -3,7 +3,9 @@
 // takes a CanvasKit: the page worker's is OffscreenCanvas and createImageBitmap, the main thread's
 // fallback is <img> and <canvas> (scanPipeline.ts). The pixel work in between is pure.
 import { guessCorners } from '../edges/index.ts';
-import { FLAT_PAGE, bentPx, measureBend, type PageBend } from '#lib/pageEnhance/dewarp/index.ts';
+import { repairGuess } from '../edges/repair.ts';
+import { traceSides, type Pins, type Sides } from '../edges/follow.ts';
+import { FLAT_PAGE, bentPx, measureBend, type EdgeCurves, type PageBend } from '#lib/pageEnhance/dewarp/index.ts';
 import { spreadQuads } from '#lib/pageEnhance/plan.ts';
 import type { Spine } from '#lib/pageEnhance/spine.ts';
 import { applyPiece, pieceMargin, type Piece } from '#lib/pageEnhance/piece.ts';
@@ -11,6 +13,7 @@ import { warpSizeFor } from '#lib/pageEnhance/warp.ts';
 import { pageAspect, snapPaper } from '../aspect.ts';
 import { FULL_QUAD } from '../quad.ts';
 import { uprightTurns } from './upright.ts';
+import { curvesFromSides } from './tracedCurves.ts';
 import { fillFoldedCorners } from '../foldedCorners.ts';
 import { applyFilter, type ScanFilter } from '../filters.ts';
 import { insetQuad, scaleQuad, type GrayImage, type Quad, type RgbaImage } from '#lib/pageEnhance/quad.ts';
@@ -21,6 +24,10 @@ export const SOURCE_LONG_EDGE = 3200;
 export const OUTPUT_LONG_EDGE = 2400;
 /** The edge guess looks at a small copy; the page's outline survives, the noise does not. */
 const GUESS_LONG_EDGE = 320;
+const FOLLOW_LONG_EDGE = 1000; // the size edge following was measured at on photos (SCAN-75)
+/** The long edge of the gray copy the corner editor's trace reads: the size the edge following was tuned at, where it
+ * reproduces the hand-traced borders (at 1000 px two of 22 pages drift by 5 to 7 px; SCAN-75). */
+const TRACE_LONG_EDGE = 1536;
 /** The spread finder and the per-page read are tuned for a sheet about this big on its long edge. */
 const SPLIT_LONG_EDGE = 1000;
 /** How far inside its corners a photographed page is cropped (a PDF sheet is not): about 0.8% from each edge, a margin's worth. The
@@ -106,9 +113,9 @@ const luma = (data: Uint8ClampedArray, width: number, height: number): GrayImage
   return gray;
 };
 
-/** A gray copy no longer than GUESS_LONG_EDGE, for the edge guess. */
-function grayOf(kit: CanvasKit, image: Decoded): GrayImage {
-  const { width, height } = cappedSize(image.width, image.height, GUESS_LONG_EDGE);
+/** A gray copy no longer than `longEdge`, for the edge guess and the edge trace. */
+function grayOf(kit: CanvasKit, image: Decoded, longEdge: number): GrayImage {
+  const { width, height } = cappedSize(image.width, image.height, longEdge);
   const surface = kit.surface(width, height);
   let data: Uint8ClampedArray;
   try {
@@ -124,7 +131,18 @@ function grayOf(kit: CanvasKit, image: Decoded): GrayImage {
 export async function guessWith(kit: CanvasKit, image: Blob): Promise<Quad | null> {
   const decoded = await kit.decode(image);
   try {
-    return guessCorners(grayOf(kit, decoded));
+    const guess = guessCorners(grayOf(kit, decoded, GUESS_LONG_EDGE));
+    return guess && repairGuess(guess, grayOf(kit, decoded, FOLLOW_LONG_EDGE));
+  } finally {
+    decoded.close();
+  }
+}
+
+/** The paper's edge along each side of `quad` (0 to 1 of the photo); throws when the photo cannot be decoded, as guessWith does. */
+export async function traceWith(kit: CanvasKit, image: Blob, quad: Quad, pins: Pins | null = null): Promise<Sides | null> {
+  const decoded = await kit.decode(image);
+  try {
+    return traceSides(grayOf(kit, decoded, TRACE_LONG_EDGE), quad, pins);
   } finally {
     decoded.close();
   }
@@ -175,10 +193,14 @@ export async function inspectWith(kit: CanvasKit, photo: Blob): Promise<Inspecte
   return { quad, width, height, preview, turns: uprightTurns(pixels, quad ?? FULL_QUAD) };
 }
 
-/** The page's bend beyond its corners; a measuring failure leaves the page flat and is handed back. */
-function bendOf(src: RgbaImage, quad: Quad, inset: number, width: number, height: number, paperEdges: boolean): { bend: PageBend; error: unknown } {
+/** The page's bend beyond its corners; a measuring failure leaves the page flat and is handed back. `traced`, when given
+ * (an object or null), is the page's border the editor drew: the page's own edges are then not searched. */
+function bendOf(src: RgbaImage, quad: Quad, inset: number, width: number, height: number, paperEdges: boolean, traced?: EdgeCurves | null): { bend: PageBend; error: unknown } {
   try {
-    return { bend: measureBend(src, quad, inset / 2, width, height, paperEdges), error: null };
+    const bend = traced === undefined
+      ? measureBend(src, quad, inset / 2, width, height, paperEdges)
+      : measureBend(src, quad, inset / 2, width, height, paperEdges, traced);
+    return { bend, error: null };
   } catch (error) {
     // expected: handed back with the page, and reported on the main thread (a worker cannot report)
     return { bend: FLAT_PAGE, error };
@@ -187,22 +209,42 @@ function bendOf(src: RgbaImage, quad: Quad, inset: number, width: number, height
 
 /** The pure middle of processing a page: the photo's pixels flattened to its corners and its bend, then
  * given its look. */
-function flattenPixels(src: RgbaImage, quad: Quad, filter: ScanFilter, paperEdges: boolean): { image: RgbaImage; bentPx: number; measureError: unknown } {
+function flattenPixels(src: RgbaImage, quad: Quad, filter: ScanFilter, paperEdges: boolean, traced?: EdgeCurves | null): { image: RgbaImage; bentPx: number; measureError: unknown } {
   const inset = paperEdges ? EDGE_INSET : 0;
   const quadPx = scaleQuad(insetQuad(quad, inset), src.width, src.height);
   const aspect = pageAspect(quadPx, src.width, src.height);
   const { width, height } = warpSizeFor(quadPx, OUTPUT_LONG_EDGE, aspect === null ? null : snapPaper(aspect));
-  const { bend, error } = bendOf(src, quad, inset, width, height, paperEdges);
+  const { bend, error } = bendOf(src, quad, inset, width, height, paperEdges, traced);
   const piece: Piece = { quad, inset, width, height, bend, mesh: null };
   const warped = fillFoldedCorners(applyPiece(src, piece));
   return { image: applyFilter(warped, filter), bentPx: bentPx(bend, pieceMargin(piece), width, height), measureError: error };
 }
 
+/** True when every corner is a corner of the picture, in any order: such a page has no border to trace. */
+const isWholePicture = (quad: Quad): boolean => quad.every(({ x, y }) => (x === 0 || x === 1) && (y === 0 || y === 1));
+
+/** The page's traced border as the editor draws it (the same gray copy and trace), as the side curves the bend measure
+ * reads; `curves` undefined for a whole-picture page, which has none, and for a page whose person has not turned Fine-tune edges on
+ * (`fine`); pins on such a page are ignored. A failure is handed back, and the page is then
+ * measured as before. */
+function tracedFor(kit: CanvasKit, decoded: Decoded, quad: Quad, pins: Pins | null, fine: boolean): { curves: EdgeCurves | null | undefined; error: unknown } {
+  if (!fine || isWholePicture(quad)) return { curves: undefined, error: null };
+  try {
+    const gray = grayOf(kit, decoded, TRACE_LONG_EDGE);
+    return { curves: curvesFromSides(quad, traceSides(gray, quad, pins), gray.width, gray.height), error: null };
+  } catch (error) {
+    // expected: handed back with the page, which is then flattened as it was before the trace
+    return { curves: undefined, error };
+  }
+}
+
 /** One page: flattened to its corners, given its look, kept as a high-quality JPEG and a thumb. */
-export async function processWith(kit: CanvasKit, photo: Blob, quad: Quad, filter: ScanFilter, paperEdges = true): Promise<ProcessedWithReport> {
+export async function processWith(kit: CanvasKit, photo: Blob, quad: Quad, filter: ScanFilter, paperEdges = true, pins: Pins | null = null, fine = false): Promise<ProcessedWithReport> {
   const decoded = await kit.decode(photo);
   let source: Surface;
+  let traced: ReturnType<typeof tracedFor>;
   try {
+    traced = tracedFor(kit, decoded, quad, pins, fine);
     source = drawCapped(kit, decoded, SOURCE_LONG_EDGE);
   } finally {
     decoded.close();
@@ -213,7 +255,7 @@ export async function processWith(kit: CanvasKit, photo: Blob, quad: Quad, filte
   } finally {
     source.free();
   }
-  const flat = flattenPixels(src, quad, filter, paperEdges);
+  const flat = flattenPixels(src, quad, filter, paperEdges, traced.curves);
   const { width, height } = flat.image;
   const out = kit.surface(width, height);
   const thumbSize = cappedSize(width, height, THUMB_LONG_EDGE);
@@ -228,7 +270,7 @@ export async function processWith(kit: CanvasKit, photo: Blob, quad: Quad, filte
       thumb: await small.toBlob('image/jpeg', THUMB_QUALITY),
       bentPx: flat.bentPx,
     };
-    return { page, measureError: flat.measureError };
+    return { page, measureError: flat.measureError ?? traced.error };
   } finally {
     out.free();
     small.free();

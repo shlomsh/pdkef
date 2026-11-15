@@ -1,6 +1,6 @@
 import type { Ref } from 'preact';
 import { useEffect, useLayoutEffect, useRef } from 'preact/hooks';
-import { ChevronLeft, ChevronRight, Crop, RotateCw } from 'lucide-preact';
+import { ChevronLeft, ChevronRight, VectorSquare } from 'lucide-preact';
 import { workspaceStyles } from '#shell/pageWorkspace/PageWorkspace.tsx';
 import { formatMessage } from '#lib/text/formatMessage.ts';
 import { englishScanMessages as t } from '../messages.ts';
@@ -13,6 +13,7 @@ import { looksBent } from '../lib/capture/guidance.ts';
 import type { PageSize } from '../lib/scanPipeline.ts';
 import type { ScanFilter } from '../lib/filters.ts';
 import type { Quad } from '#lib/pageEnhance/quad.ts';
+import type { Pins, Sides } from '../lib/edges/follow.ts';
 import type { Spine } from '#lib/pageEnhance/spine.ts';
 import type { PageResult, ScanPage } from '../state/scanWork.ts';
 import appStyles from '../PdfScanTool.module.css';
@@ -52,8 +53,9 @@ interface ScanPageViewerProps {
     onRotate: () => void;
     onRotateLeft: () => void;
     onAdjustCorners: () => void;
-    onCommit: (id: number, quad: Quad) => void;
+    onCommit: (id: number, quad: Quad, pins?: Pins | null, fine?: boolean) => void;
     onFind: (page: ScanPage) => void;
+    onTrace?: (id: number, quad: Quad, pins?: Pins | null) => Promise<Sides | null>;
     onApprove: () => void;
     onDone: () => void;
     /** Open the One page or two question for the selected page. */
@@ -176,16 +178,7 @@ export default function ScanPageViewer({ refs, pages, selected, selectedIndex, v
           <p class={styles.title} ref={refs.heading} tabIndex={-1} data-page-heading>
             {formatMessage(t.pageOf, { position: selectedIndex + 1, total: pages.length })}
           </p>
-          {view === 'corners' && selected.preview !== null && (
-            <div class={styles.headEnd}>
-              <button type="button" class={workspaceStyles['quiet-button']} onClick={actions.onRotate}>
-                <RotateCw size={16} aria-hidden="true" />
-                {t.rotate}
-              </button>
-            </div>
-          )}
         </div>
-        {view === 'corners' && <p class={styles.hint} role="status">{cornersHint(selected, unreadable, finding, findMissed)}</p>}
         {view === 'result' ? (
           <div class={styles.stage}>
             <div class={styles.scroller} ref={scrollerRef} data-page-scroller onScroll={onScroll}>
@@ -227,10 +220,13 @@ export default function ScanPageViewer({ refs, pages, selected, selectedIndex, v
               selected={selected}
               photo={shownPhoto(selected, turnedPreviews)}
               shownAspect={shownAspect(selected)}
+              hint={cornersHint(selected, unreadable, finding, findMissed)}
               finding={finding}
               unreadable={unreadable}
               onCommit={actions.onCommit}
               onFind={actions.onFind}
+              onRotate={actions.onRotate}
+              onTrace={actions.onTrace}
               onApprove={actions.onApprove}
               onRemove={actions.onRemovePage}
             />
@@ -242,7 +238,7 @@ export default function ScanPageViewer({ refs, pages, selected, selectedIndex, v
               <p class={`${appStyles['not-found']} ${styles.notFound}`} role="status">
                 {t.notFound}
                 <button type="button" class={workspaceStyles['quiet-button']} onClick={actions.onAdjustCorners}>
-                  <Crop size={16} aria-hidden="true" />
+                  <VectorSquare size={16} aria-hidden="true" />
                   {t.adjustCorners}
                 </button>
               </p>

@@ -2,6 +2,7 @@
 // views. The shapes and the pure corner moves are in src/lib/pageEnhance/quad.ts.
 import { rotateQuad } from '#lib/pageEnhance/quad.ts';
 import type { Point, Quad } from '#lib/pageEnhance/quad.ts';
+import type { Pins } from './edges/follow.ts';
 
 export const FULL_QUAD: Quad = [{ x: 0, y: 0 }, { x: 1, y: 0 }, { x: 1, y: 1 }, { x: 0, y: 1 }];
 
@@ -57,6 +58,16 @@ const repeat = (p: Point, step: (p: Point) => Point, n: number) => {
   return out;
 };
 
+/** One photo point as the corner editor shows it on the photo turned `turns` quarters clockwise (no reordering). */
+export function turnedPoint(p: Point, turns: number): Point {
+  return repeat(p, turnOnce, quarters(turns));
+}
+
+/** Back from the turned photo: the inverse of turnedPoint. */
+export function unturnedPoint(p: Point, turns: number): Point {
+  return repeat(p, unturnOnce, quarters(turns));
+}
+
 /** The page's corners as the corner editor shows them on the photo turned `turns` quarters clockwise:
  * normalized in the turned photo, the page's top-left first, so its handles read the right way up. */
 export function turnedQuad(quad: Quad, turns: number): Quad {
@@ -68,4 +79,17 @@ export function turnedQuad(quad: Quad, turns: number): Quad {
 export function unturnedQuad(shown: Quad, turns: number): Quad {
   const n = quarters(turns);
   return rotateQuad(shown.map((p) => repeat(p, unturnOnce, n)) as Quad, -n);
+}
+
+/** A stable string of a page's pins ('' for none): a different pin set is a different border. */
+export function pinsKey(pins: Pins | null): string {
+  return pins ? pins.map((side) => side.map((p) => `${p.k}@${p.at.x.toFixed(4)},${p.at.y.toFixed(4)}`).join(',')).join('|') : '';
+}
+
+/** A page's pins in the side order of its quad turned `turns` quarters (`rotateQuad(quad, turns)`): side i of the turned
+ * quad is side i - turns of the photo's. The pinned points themselves stay where they are in the photo. */
+export function turnedPins(pins: Pins | null, turns: number): Pins | null {
+  if (!pins) return null;
+  const n = quarters(turns);
+  return [0, 1, 2, 3].map((i) => pins[(i - n + 4) % 4]) as Pins;
 }

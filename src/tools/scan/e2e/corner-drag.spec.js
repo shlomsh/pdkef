@@ -44,7 +44,7 @@ test.describe('scan - corner drag', () => {
     await expect.poll(workers, { timeout: 20_000 }).toMatch(/page\.worker/);
     // A worker that fails its probe is terminated: still here once the corners are up, it did the work.
     await page.locator('[data-table-page]').first().click();
-    await page.getByRole('button', { name: 'Corners', exact: true }).click();
+    await page.getByRole('button', { name: 'Edges', exact: true }).click();
     await expect(page.getByRole('button', { name: 'Top-left corner' })).toBeVisible({ timeout: 20_000 });
     expect(workers()).toMatch(/page\.worker/);
   });
@@ -79,7 +79,7 @@ test.describe('scan - corner drag', () => {
 
     // New photos land on the table: tap the page, then Corners.
     await page.locator('[data-table-page]').first().click();
-    await page.getByRole('button', { name: 'Corners', exact: true }).click();
+    await page.getByRole('button', { name: 'Edges', exact: true }).click();
     const group = page.getByRole('group', { name: 'Page corners' });
     // The group div has no box of its own (its handles are absolutely placed), so wait on a handle.
     const handle = group.getByRole('button', { name: 'Top-left corner' });

@@ -2,7 +2,7 @@
 // smooth while a 12 MP photo is decoded, measured, flattened and encoded. Started by offThread.ts.
 import { withOrientation6 } from './exifProbe.ts';
 import type { PageJob, PageReply, PageRequest } from './protocol.ts';
-import { guessWith, inspectWith, processWith, splitWith, type CanvasKit } from './steps.ts';
+import { guessWith, inspectWith, processWith, splitWith, traceWith, type CanvasKit } from './steps.ts';
 
 const kit: CanvasKit = {
   surface(width, height) {
@@ -53,8 +53,9 @@ async function run(job: PageJob): Promise<unknown> {
   if (job.kind === 'probe') return canWork();
   if (job.kind === 'inspect') return inspectWith(kit, job.photo);
   if (job.kind === 'guess') return guessWith(kit, job.image);
+  if (job.kind === 'trace') return traceWith(kit, job.image, job.quad, job.pins);
   if (job.kind === 'split') return splitWith(kit, job.image, job.spine);
-  const done = await processWith(kit, job.photo, job.quad, job.filter, job.paperEdges);
+  const done = await processWith(kit, job.photo, job.quad, job.filter, job.paperEdges, job.pins, job.fine);
   return { ...done, measureError: done.measureError && cloneable(done.measureError) };
 }
 

@@ -57,6 +57,16 @@ describe('useScanPdfPages', () => {
     expect(skipped).not.toHaveBeenCalled();
   });
 
+  // Protects: a PDF sheet never opens with Fine-tune edges on, whatever the sheet looked like.
+  it('opens every PDF sheet with fine off', async () => {
+    const { added, open } = mount(new ScanWork());
+    const done = open(pdf());
+    await tick();
+    gates[0]();
+    await done;
+    expect(added.flat().map((page) => (page as { fine: boolean }).fine)).toEqual([false, false]);
+  });
+
   it('names each PDF it could not open, as a PDF that could not be opened', async () => {
     failing = true;
     const { skipped, open } = mount(new ScanWork());

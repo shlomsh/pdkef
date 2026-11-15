@@ -65,11 +65,6 @@
 }
 
 /* Corners keep Rotate at the head's end from 1024px; the phone's corners head has none. */
-.headEnd {
-  display: none;
-  position: absolute;
-  inset-inline-end: 0;
-}
 
 .back:focus-visible,
 .done:focus-visible {
@@ -232,9 +227,6 @@
     display: inline;
   }
 
-  .headEnd {
-    display: flex;
-  }
 
   .done {
     display: none;

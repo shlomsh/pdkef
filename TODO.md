@@ -44,6 +44,7 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 - [SCAN-55](backlog/tasks/SCAN-55.md) P1 · Auto-detect goes back to a PDF sheet's own corners (in progress)
 - [SCAN-67](backlog/tasks/SCAN-67.md) P1 · A two-page sheet splits by itself when sure, and asks on that page when not (in progress)
 - [SCAN-71](backlog/tasks/SCAN-71.md) P1 · The corners stop at the page's own edge, not at a table edge or the facing page (in progress)
+- [SCAN-75](backlog/tasks/SCAN-75.md) P1 · Corners sit on the paper: edge following for the first guess and for the person's fix (in progress)
 - [SCAN-44](backlog/tasks/SCAN-44.md) P2 · A filled A4 form scanned with PDkef (2026-11-04): black edges and ghost text remain; stretch is fixed on main for A4 (in progress)
 - [SCAN-46](backlog/tasks/SCAN-46.md) P2 · A filled-in page with no vertical rules stays tilted; level its rows (in progress)
 

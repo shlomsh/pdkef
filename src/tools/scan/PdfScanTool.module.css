@@ -27,14 +27,66 @@
   font-size: 0.9rem;
 }
 
-/* Where the photo sits in the viewer's corners view: it takes what the rows around it leave, and the
-   photo is sized to that room (container units). Room above and below for the corner rings: at the
-   photo's edge (Whole photo) they touched the head and the row of controls. */
+/* The corners view: the photo's panel takes the room and one bar of choices sits under it, both one
+   column wide, so the bar lines up with the panel on every screen. */
+.corners-view {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  flex: 1 1 0;
+  min-height: 0;
+  width: min(100%, 56rem);
+}
+
+/* The panel bounds the photo: a photo of a pale desk no longer runs into the page around it. */
+.photo-panel {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 0;
+  min-height: 0;
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  background: var(--color-primary-soft);
+}
+
+/* Over the photo: what to do, in one line, and the two history buttons at the end. */
+.panel-strip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding-block: 6px 0;
+  padding-inline: 14px 6px;
+}
+
+.panel-hint {
+  flex: 1 1 0;
+  margin: 0;
+  color: var(--color-muted);
+  font-size: 0.875rem;
+  line-height: 1.3;
+  text-wrap: balance;
+}
+
+.panel-history {
+  display: flex;
+  flex: none;
+  gap: 6px;
+}
+
+.panel-history > button {
+  width: 38px;
+  min-height: 38px;
+  padding: 0;
+}
+
+/* Where the photo sits (the corners view's panel, and the One page or two view): it takes what the
+   rows around it leave, and the photo is sized to that room (container units). Room above and below
+   for the corner rings, which hang past the photo's edge on Whole photo. */
 .photo-area {
   box-sizing: border-box;
-  display: grid;
-  justify-items: center;
-  align-items: center;
+  display: flex;
   flex: 1 1 0;
   width: 100%;
   min-width: 0;
@@ -42,10 +94,114 @@
   padding-block: 12px;
   container-type: size;
   --scan-view-h: 100cqh;
+  overscroll-behavior: contain;
+  touch-action: pan-x pan-y;
 }
 
-/* Auto-detect, Whole photo, then Use these corners: one row where all three fit, and where they
-   do not, the one that moves on takes the full width under the other two. */
+/* Inside the panel the rings need room at the sides too, and the strip is already above. */
+.photo-panel > .photo-area {
+  padding: 8px 14px 14px;
+}
+
+/* Centred while it fits, reachable by scrolling when larger: auto margins (not align/justify centring,
+   which strands the overflowing left and top) turn to 0 on overflow in every engine. A shape-giving
+   inline style (the sized frame or wait box) must not be shrunk by the flex row. */
+.photo-area > * {
+  margin: auto;
+}
+
+.photo-area > [style] {
+  flex: none;
+}
+
+/* Zoomed: the photo area scrolls. At Fit it does not, so the corner rings hanging past the photo's
+   edge never make a scrollbar. */
+.photo-area[data-zoomed] {
+  overflow: auto;
+}
+
+/* Shown only while zoomed in, over the bottom of the photo: the way back to the whole photo. (The
+   parent in the selector outranks the quiet button's own position.) */
+.photo-panel > .fit-chip {
+  position: absolute;
+  bottom: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  border-radius: 999px;
+  padding-inline: 0.9rem;
+}
+
+/* One bar under the panel: the quiet tools, then the one that moves on at the far end. */
+.corners-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.corners-tools {
+  display: flex;
+  gap: 8px;
+  min-width: 0;
+}
+
+.corners-tools > button {
+  min-height: 44px;
+  padding-inline: 0.75rem;
+  white-space: nowrap;
+}
+
+.corners-tools svg,
+.corners-bar > .done-button svg {
+  flex-shrink: 0;
+}
+
+/* Fine-tune edges, on: tinted like a selected option (OptionRow). */
+.corners-tools > button[aria-pressed='true'] {
+  background: var(--color-primary-soft);
+  color: var(--color-primary-text);
+  border-color: var(--color-primary);
+}
+
+.corners-bar > .done-button {
+  flex: none;
+  min-height: 44px;
+  margin-inline-start: auto;
+  padding-inline: 1.25rem;
+}
+
+/* Where the four tools and the one that moves on no longer fit one row (the stage is the container;
+   the row needs about 44rem): the tools are a row of four, icon over word, and the one that moves on
+   takes the full width under them, where a thumb reaches. */
+@container (max-width: 46rem) {
+  .corners-bar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .corners-tools {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 6px;
+  }
+
+  .corners-tools > button {
+    flex-direction: column;
+    gap: 3px;
+    min-height: 54px;
+    padding: 6px 2px;
+    font-size: 0.75rem;
+    line-height: 1.15;
+    text-align: center;
+    white-space: normal;
+  }
+
+  .corners-bar > .done-button {
+    min-height: 48px;
+    margin-inline-start: 0;
+  }
+}
+
+/* One page or two (ScanSplitView): the two answers in a row. */
 .corners-actions {
   display: flex;
   flex-wrap: wrap;
@@ -63,17 +219,22 @@
   flex-shrink: 0;
 }
 
-/* Use these corners (or Done): the one primary control in corners mode. */
+/* Use these edges (or the answer that moves on): the one primary control of its view. */
+.corners-bar > .done-button,
 .corners-actions .done-button {
-  flex: 1 1 11rem;
   font-size: 1rem;
   color: var(--color-surface);
   background: var(--color-primary);
   border-color: var(--color-primary);
 }
 
+.corners-actions .done-button {
+  flex: 1 1 11rem;
+}
+
 @media (hover: hover) {
-  .corners-actions .done-button:hover {
+  .corners-bar > .done-button:not(:disabled):hover,
+  .corners-actions .done-button:not(:disabled):hover {
     background: var(--color-primary-hover);
     border-color: var(--color-primary-hover);
   }

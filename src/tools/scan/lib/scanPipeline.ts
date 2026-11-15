@@ -13,10 +13,11 @@ import { MAX_SEARCH_MS } from '#lib/images/targetSizeSearch.js';
 import type { ScanFilter } from './filters.ts';
 import type { Quad } from '#lib/pageEnhance/quad.ts';
 import type { Spine } from '#lib/pageEnhance/spine.ts';
+import type { Pins, Sides } from './edges/follow.ts';
 import { NO_WORKER, offThread } from './pageWork/offThread.ts';
 import type { PageJob, PageJobResult } from './pageWork/protocol.ts';
 import {
-  OUTPUT_LONG_EDGE, drawCapped, guessWith, inspectWith, processWith, splitWith,
+  OUTPUT_LONG_EDGE, drawCapped, guessWith, inspectWith, processWith, splitWith, traceWith,
   type CanvasKit, type InspectedPhoto, type ProcessedPage, type ProcessedWithReport,
 } from './pageWork/steps.ts';
 
@@ -86,6 +87,12 @@ export function guessPage(photo: Blob): Promise<Quad | null> {
   return offThreadOr({ kind: 'guess', image: photo }, () => guessWith(pageKit, photo));
 }
 
+/** The paper's edge along each side of the corners a page has, for the corner editor to draw. `quad` and the sides are
+ * 0 to 1 of the photo as photographed. Rejects when the photo cannot be read. Off the thread like the guess. `pins` are the points a person placed, in the same 0 to 1 of the photo. */
+export function tracePage(photo: Blob, quad: Quad, pins: Pins | null = null): Promise<Sides | null> {
+  return offThreadOr({ kind: 'trace', image: photo, quad, pins }, () => traceWith(pageKit, photo, quad, pins));
+}
+
 /** The two pages' corners for the line a person placed on a sheet, left page first. Off the thread like the guess. */
 export function splitQuads(photo: Blob, spine: Spine): Promise<Quad[]> {
   return offThreadOr({ kind: 'split', image: photo, spine }, () => splitWith(pageKit, photo, spine));
@@ -118,10 +125,10 @@ export async function turnImage(image: Blob, turns: number): Promise<Blob> {
 
 /** One page: flattened to its corners and its bend, given its look, kept as a high-quality JPEG. A
  * failure to measure the bend is ours, reported, and the page is flattened by its corners alone. */
-export async function processPage(photo: Blob, quad: Quad, filter: ScanFilter, paperEdges = true): Promise<ProcessedPage> {
+export async function processPage(photo: Blob, quad: Quad, filter: ScanFilter, paperEdges = true, pins: Pins | null = null, fine = false): Promise<ProcessedPage> {
   const { page, measureError }: ProcessedWithReport = await offThreadOr(
-    { kind: 'process', photo, quad, filter, paperEdges },
-    () => processWith(pageKit, photo, quad, filter, paperEdges),
+    { kind: 'process', photo, quad, filter, paperEdges, pins, fine },
+    () => processWith(pageKit, photo, quad, filter, paperEdges, pins, fine),
   );
   if (measureError) reportError('pdf_tool_run', measureError, 'scan_measure_bend');
   return page;

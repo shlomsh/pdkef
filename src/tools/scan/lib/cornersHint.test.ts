@@ -24,4 +24,12 @@ describe('cornersHint', () => {
   it('otherwise asks for the corners', () => {
     expect(cornersHint(page(), false, null, [])).toBe(t.cornersHint);
   });
+  // Protects: the hint is one sentence at a time, the dots sentence only while the page is in Fine-tune edges.
+  it('says the dots sentence alone in Fine-tune edges, and the corners sentence otherwise', () => {
+    expect(cornersHint(page({ fine: true }), false, null, [])).toBe(t.cornersTracedHint);
+    expect(cornersHint(page({ fine: false }), false, null, [])).toBe(t.cornersHint);
+  });
+  it('leaves every other hint as it was in Fine-tune edges', () => {
+    expect(cornersHint(page({ found: false, fine: true }), false, null, [])).toBe(t.notFoundCorners);
+  });
 });

@@ -2,7 +2,7 @@
 
 # Backlog
 
-The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 182 live: 77 up next, 25 then, 27 waiting, 53 parked.
+The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 183 live: 78 up next, 25 then, 27 waiting, 53 parked.
 
 ## Redact: finish removal
 
@@ -111,6 +111,7 @@ The camera takes pages, the table fixes them, Share sends them. The table first 
 | SCAN-55 | P1 | [SCAN-55](backlog/tasks/SCAN-55.md) · Auto-detect goes back to a PDF sheet's own corners | In progress |
 | SCAN-67 | P1 | [SCAN-67](backlog/tasks/SCAN-67.md) · A two-page sheet splits by itself when sure, and asks on that page when not | In progress |
 | SCAN-71 | P1 | [SCAN-71](backlog/tasks/SCAN-71.md) · The corners stop at the page's own edge, not at a table edge or the facing page | In progress |
+| SCAN-75 | P1 | [SCAN-75](backlog/tasks/SCAN-75.md) · Corners sit on the paper: edge following for the first guess and for the person's fix | In progress |
 | SCAN-44 | P2 | [SCAN-44](backlog/tasks/SCAN-44.md) · A filled A4 form scanned with PDkef (2026-11-04): black edges and ghost text remain; stretch is fixed on main for A4 | In progress |
 | SCAN-46 | P2 | [SCAN-46](backlog/tasks/SCAN-46.md) · A filled-in page with no vertical rules stays tilted; level its rows | In progress |
 

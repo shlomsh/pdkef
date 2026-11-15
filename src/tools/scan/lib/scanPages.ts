@@ -1,12 +1,12 @@
 import { rotateQuad, type Quad } from '#lib/pageEnhance/quad.ts';
-import { FULL_QUAD, quadKey } from './quad.ts';
+import { FULL_QUAD, pinsKey, quadKey } from './quad.ts';
 import type { ScanFilter } from './filters.ts';
 import type { ScanPage } from '../state/scanWork.ts';
 
 let nextId = 0;
 
-/** What a page's result must carry to be current: the page, its corners, its look and its turns. */
-export const resultKey = (page: ScanPage) => `${page.id}|${quadKey(page.quad)}|${page.filter}|${page.turns}`;
+/** What a page's result must carry to be current: the page, its corners, its look, its turns and its pins. */
+export const resultKey = (page: ScanPage) => `${page.id}|${quadKey(page.quad)}|${page.filter}|${page.turns}|${pinsKey(page.pins)}|${page.fine ? 'fine' : 'plain'}`;
 /** The corners the warp gets: the photo's own, one place on per quarter turn (quad.ts). */
 export const pageQuad = (page: ScanPage) => rotateQuad(page.quad, page.turns);
 
@@ -29,7 +29,7 @@ export function partitionFiles(files: File[], acceptedTypes: readonly string[]) 
 export function newPage(file: File, filter: ScanFilter): ScanPage {
   return {
     id: nextId++, file, preview: null, aspect: null, filter,
-    quad: FULL_QUAD, turns: 0, guessed: false, edited: false, found: null, sheet: false, opened: null, question: null,
+    quad: FULL_QUAD, turns: 0, guessed: false, edited: false, found: null, sheet: false, fine: false, opened: null, question: null, pins: null,
   };
 }
 
@@ -49,7 +49,8 @@ export function withInspection(pages: ScanPage[], id: number, seen: Seen | null,
       ...p,
       guessed: true,
       found: !!quad,
-      quad: p.edited || !quad ? p.quad : quad,
+      // New corners leave the old pins behind: they belonged to the corners they were placed with.
+      ...(p.edited || !quad ? {} : { quad, pins: null }),
       turns: autoTurn && !p.edited ? inspectedTurns(p.turns, seen?.turns ?? 0) : p.turns,
       preview,
       aspect: seen ? seen.width / seen.height : null,

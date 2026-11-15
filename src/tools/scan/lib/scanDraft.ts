@@ -1,5 +1,6 @@
 import { type Quad } from '#lib/pageEnhance/quad.ts';
-import { quadKey } from './quad.ts';
+import { pinsKey, quadKey } from './quad.ts';
+import type { Pins } from './edges/follow.ts';
 import type { ScanFilter } from './filters.ts';
 import type { PageSize } from './scanPipeline.ts';
 import type { SizeLimitId } from './scanBudget.ts';
@@ -25,8 +26,12 @@ interface StoredScanPage {
   turns: number;
   /** The person's own corners; null while the page has the guess (or the whole photo). */
   quad: Quad | null;
+  /** The points of the traced border the person placed by hand; kept only together with `quad`, null when there are none. */
+  pins: Pins | null;
   /** The picture is a PDF's sheet. */
   sheet: boolean;
+  /** Fine-tune edges is on; a save from before this field reads as on exactly when it holds a pin. */
+  fine: boolean;
   /** The corners a PDF sheet opened with. */
   opened: Quad | null;
   /** The split question a PDF sheet still asks; null once answered. */
@@ -55,14 +60,16 @@ const LIMITS: readonly SizeLimitId[] = ['none', '2mb', '1mb', '500kb'];
 
 /** The page as stored. */
 export const storedPage = (page: ScanPage): StoredScanPage => ({
-  filter: page.filter, turns: page.turns, quad: page.edited ? page.quad : null, sheet: page.sheet, opened: page.opened, question: page.question,
+  filter: page.filter, turns: page.turns, quad: page.edited ? page.quad : null,
+  pins: page.edited && page.pins && page.pins.some((side) => side.length > 0) ? page.pins : null,
+  sheet: page.sheet, fine: page.fine, opened: page.opened, question: page.question,
 });
 
 /** One string per snapshot worth saving: changes only when a stored field does. `fileId` tells photos apart. */
 export function scanSnapshotKey(pages: ScanPage[], settings: ScanDraftSettings, fileId: (file: File) => number): string {
   const pagesPart = pages.map((page) => {
-    const { filter, turns, quad, sheet, question } = storedPage(page);
-    return `${fileId(page.file)}:${filter}:${turns}:${quad ? quadKey(quad) : ''}:${sheet}:${question ? 'ask' : ''}`;
+    const { filter, turns, quad, pins, sheet, fine, question } = storedPage(page);
+    return `${fileId(page.file)}:${filter}:${turns}:${quad ? quadKey(quad) : ''}:${pinsKey(pins)}:${sheet}:${fine}:${question ? 'ask' : ''}`;
   }).join(',');
   return `${pagesPart}|${settings.pageSize}|${settings.limit}|${settings.defaultFilter}|${settings.name}`;
 }
@@ -76,6 +83,19 @@ function parseQuad(value: unknown): Quad | null {
   return valid ? (value.map((point) => ({ x: point.x, y: point.y })) as Quad) : null;
 }
 
+function parsePins(value: unknown): Pins | null {
+  if (!Array.isArray(value) || value.length !== 4 || !value.every(Array.isArray)) return null;
+  const inside = (n: unknown): n is number => isNumber(n) && n >= 0 && n <= 1;
+  const valid = (value as unknown[][]).every((side) => side.every((pin) => {
+    const { k, at } = (pin ?? {}) as { k?: unknown; at?: { x?: unknown; y?: unknown } | null };
+    return Number.isInteger(k) && (k as number) >= 0 && (k as number) <= 14 && inside(at?.x) && inside(at?.y);
+  }));
+  if (!valid) return null;
+  return (value as { k: number; at: { x: number; y: number } }[][]).map(
+    (side) => side.map((pin) => ({ k: pin.k, at: { x: pin.at.x, y: pin.at.y } })),
+  ) as Pins;
+}
+
 function parseQuestion(value: unknown): SplitQuestion | null {
   const q = value as { spine?: { top?: unknown; bottom?: unknown }; rightToLeft?: unknown } | null | undefined;
   const { top, bottom } = q?.spine ?? {};
@@ -84,12 +104,16 @@ function parseQuestion(value: unknown): SplitQuestion | null {
 }
 
 function parsePage(value: unknown, fallbackFilter: ScanFilter): StoredScanPage {
-  const page = (value ?? {}) as { filter?: unknown; turns?: unknown; quad?: unknown; sheet?: unknown; opened?: unknown; question?: unknown };
+  const page = (value ?? {}) as { filter?: unknown; turns?: unknown; quad?: unknown; pins?: unknown; sheet?: unknown; fine?: unknown; opened?: unknown; question?: unknown };
+  const quad = parseQuad(page.quad);
+  const pins = quad ? parsePins(page.pins) : null;
   return {
     filter: FILTERS.includes(page.filter as ScanFilter) ? page.filter as ScanFilter : fallbackFilter,
     turns: Number.isInteger(page.turns) && (page.turns as number) >= 0 && (page.turns as number) < 4 ? page.turns as number : 0,
-    quad: parseQuad(page.quad),
+    quad,
+    pins,
     sheet: page.sheet === true,
+    fine: typeof page.fine === 'boolean' ? page.fine : !!pins?.some((side) => side.length > 0),
     opened: parseQuad(page.opened),
     question: parseQuestion(page.question),
   };

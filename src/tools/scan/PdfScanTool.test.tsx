@@ -7,12 +7,12 @@ import PdfScanTool from './PdfScanTool.tsx';
 import * as pipeline from './lib/scanPipeline.ts';
 import { setInputFiles } from '../../test/support/setInputFiles.js';
 import { rotateQuad } from '#lib/pageEnhance/quad.ts';
-import { turnedQuad } from './lib/quad.ts';
+import { turnedPins, turnedQuad } from './lib/quad.ts';
 import { playFlatten } from './lib/flattenAnimation.ts';
 import { canUseCamera } from './lib/camera/canUseCamera.ts';
 import { installToolHarness, type ToolHarness } from '../../test/harness/toolHarness.ts';
 import { takeArrival } from '#lib/handoff/fileArrival.ts';
-import { loadDraft, readRecentFiles } from '#lib/drafts/draftStore.ts';
+import { loadDraft, readRecentFiles, saveDraft } from '#lib/drafts/draftStore.ts';
 
 // EDGE: the flatten animation paints the photo into a 2d canvas context, which jsdom does not have.
 // Analytics and draftStore run for real over the harness.
@@ -113,9 +113,9 @@ describe('PdfScanTool', () => {
   /** The paper of the page the viewer shows. */
   const currentPaper = () => container.querySelector('[data-page-viewer] [data-current] [data-paper]');
   const openPage = async (n) => { await act(async () => { tableTiles()[n - 1].click(); }); await settle(); };
-  const adjustCorners = async () => { await act(async () => { byText('Corners')[0].click(); }); await settle(); };
+  const adjustCorners = async () => { await act(async () => { byText('Edges')[0].click(); }); await settle(); };
   const openCorners = async (n) => { await openPage(n); await adjustCorners(); };
-  const useCorners = () => act(async () => { byText('Use these corners')[0].click(); });
+  const useCorners = () => act(async () => { byText('Use these edges')[0].click(); });
   const done = () => act(async () => { byText('Done')[0].click(); });
   const handles = () => Array.from(container.querySelectorAll('[role="group"] button'));
   /** A button of the open page viewer: the grid under it has buttons of the same words (its hover cluster). */
@@ -514,7 +514,7 @@ describe('PdfScanTool', () => {
     expect(container.textContent).not.toContain('Finding the page edges');
     expect(container.textContent).toContain('Could not read this photo');
     // Nothing to straighten: the one thing offered is taking it out.
-    expect(byText('Use these corners')).toHaveLength(0);
+    expect(byText('Use these edges')).toHaveLength(0);
     expect(byText('Auto-detect')).toHaveLength(0);
     await act(async () => { byText('Remove this photo')[0].click(); });
     await settle();
@@ -653,6 +653,14 @@ describe('PdfScanTool', () => {
     });
   });
 
+  // Protects: a new photo is processed with fine off, so its page is flattened by its four corners.
+  it('processes a photo with fine off, so no traced border is used for the flattening', async () => {
+    mount();
+    await pick([jpeg('a.jpg')]);
+    await settle();
+    expect(vi.mocked(pipeline.processPage).mock.calls.at(-1)?.[5]).toBe(false);
+  });
+
   it('turns a page a quarter clockwise with Rotate, by handing the warp its corners one place on', async () => {
     mount();
     await pick([jpeg('a.jpg')]);
@@ -665,7 +673,7 @@ describe('PdfScanTool', () => {
     await act(async () => { inViewer('Right')[0].click(); });
     await settle();
     expect(lastQuad()).toEqual([GUESS[2], GUESS[3], GUESS[0], GUESS[1]]);
-    // Adjust corners shows the photo turned with the page, its corners turned with it.
+    // Adjust edges shows the photo turned with the page, its corners turned with it.
     await adjustCorners();
     await settle();
     expect(handles()[0].style.left).toBe(`${turnedQuad(GUESS, 2)[0].x * 100}%`);
@@ -754,7 +762,7 @@ describe('PdfScanTool', () => {
       expect(viewer()).toBeNull();
     });
 
-    it('Use these corners lands the flatten on the current page, not its neighbour', async () => {
+    it('Use these edges lands the flatten on the current page, not its neighbour', async () => {
       mount();
       await pick([jpeg('a.jpg'), jpeg('b.jpg')]);
       await settle(400);
@@ -896,6 +904,41 @@ describe('PdfScanTool', () => {
       await act(async () => { byText('Look')[0].click(); });
       expect(checked('Look')).toBe('Original');
       expect(checked('Page size')).toBe('A4');
+    });
+
+    describe('pins', () => {
+      const QUAD = [{ x: 0.1, y: 0.1 }, { x: 0.9, y: 0.1 }, { x: 0.9, y: 0.9 }, { x: 0.1, y: 0.9 }];
+      const PINS = [[{ k: 7, at: { x: 0.5, y: 0.12 } }], [], [], []];
+      /** A scan kept with the corners and pins of its page, as an earlier visit left it, then opened again. */
+      const reopenWith = async (turns) => {
+        mount();
+        await settle(100);
+        await pick([photo('a.jpg', 'photo a')]);
+        await saved();
+        const record = await loadDraft('scan-to-pdf');
+        await saveDraft('scan-to-pdf', {
+          files: record.files, fileName: record.fileName, pageSize: record.pageSize, limit: record.limit, name: record.name,
+          defaultFilter: record.defaultFilter, pageCount: 1, schemaVersion: record.schemaVersion,
+          pages: [{ ...record.pages[0], turns, quad: QUAD, pins: PINS }],
+        });
+        vi.mocked(pipeline.processPage).mockClear();
+        await remount();
+        await settle(1000);
+      };
+
+      it('brings a page\'s pins back with its corners, and the warp is handed them', async () => {
+        await reopenWith(0);
+        const call = vi.mocked(pipeline.processPage).mock.calls.at(-1);
+        expect(call?.[1]).toEqual(QUAD);
+        expect(call?.[4]).toEqual(PINS);
+      });
+
+      it('hands the warp the pins turned with the page, in the side order of its turned corners', async () => {
+        await reopenWith(1);
+        const call = vi.mocked(pipeline.processPage).mock.calls.at(-1);
+        expect(call?.[1]).toEqual(rotateQuad(QUAD, 1));
+        expect(call?.[4]).toEqual(turnedPins(PINS, 1));
+      });
     });
 
     it('keeps one Recents row for a scan that grows a page at a time', async () => {

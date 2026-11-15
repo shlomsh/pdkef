@@ -1,5 +1,6 @@
 import type { Quad } from '#lib/pageEnhance/quad.ts';
 import type { Spine } from '#lib/pageEnhance/spine.ts';
+import type { Pins } from '../lib/edges/follow.ts';
 import type { ScanFilter } from '../lib/filters.ts';
 import type { FlattenFrom } from '../lib/flattenAnimation.ts';
 import type { PageSize, Placement, ProcessedPage } from '../lib/scanPipeline.ts';
@@ -19,6 +20,8 @@ export interface ScanPage {
   filter: ScanFilter;
   /** The page's corners in the photo, as photographed: rotating never moves them. */
   quad: Quad;
+  /** The points of the page's traced border a person placed by hand, in the photo as photographed; null when there are none. They belong to the corners they were placed with. They are saved in the draft with those corners, and they shape the flattened page's border. */
+  pins: Pins | null;
   /** Quarter turns clockwise for the page as it downloads (0 to 3): a page shot sideways stands up. */
   turns: number;
   /** The edge guess has run (or failed); until then the corners are the whole photo. */
@@ -29,6 +32,8 @@ export interface ScanPage {
   found: boolean | null;
   /** The picture is a PDF's sheet, not a photo: its frame is no paper edge, so none is read from it. */
   sheet: boolean;
+  /** The person turned Fine-tune edges on: the page's traced border and its pins are shown, and the flattening follows them. False for every new page (camera, library, PDF sheet, the two halves of a split spread). */
+  fine: boolean;
   /** A PDF sheet's corners as it was read, what Auto-detect goes back to; null on a photo, or a sheet saved before they were kept. */
   opened: Quad | null;
   /** The question this sheet still asks; null once answered, and on every sheet that is sure either way. */

@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createEditActions, createPageActions, pageViewActions } from './scanActions.ts';
 import { ScanWork, type ScanPage } from './scanWork.ts';
 import type { Quad } from '#lib/pageEnhance/quad.ts';
+import type { Pins } from '../lib/edges/follow.ts';
 import { newPage } from '../lib/scanPages.ts';
 import { englishScanMessages as t } from '../messages.ts';
 import { recordAction } from '#lib/telemetry/actionTrail.ts';
@@ -13,11 +14,13 @@ vi.mock('#lib/telemetry/errorReport.ts', () => ({ reportError: vi.fn() }));
 // EDGE: the real pipeline decodes photos on canvases, which node does not have.
 const guessPage = vi.fn();
 const splitQuads = vi.fn();
-vi.mock('../lib/loadPipeline.ts', () => ({ loadPipeline: () => Promise.resolve({ guessPage, splitQuads }) }));
+const tracePage = vi.fn();
+vi.mock('../lib/loadPipeline.ts', () => ({ loadPipeline: () => Promise.resolve({ guessPage, splitQuads, tracePage }) }));
 
 const QUAD: Quad = [{ x: 0.1, y: 0.1 }, { x: 0.9, y: 0.1 }, { x: 0.9, y: 0.9 }, { x: 0.1, y: 0.9 }];
 const MOVED: Quad = [{ x: 0.2, y: 0.2 }, { x: 0.8, y: 0.2 }, { x: 0.8, y: 0.8 }, { x: 0.2, y: 0.8 }];
 const photo = () => new File(['x'], 'a.jpg', { type: 'image/jpeg' });
+const PINS: Pins = [[{ k: 0.5, at: { x: 0.5, y: 0.1 } }], [], [], []];
 const flush = () => new Promise((resolve) => setTimeout(resolve, 0));
 
 function setup(pages: ScanPage[], extra: Record<string, unknown> = {}) {
@@ -37,6 +40,7 @@ beforeEach(() => {
   vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => {});
   guessPage.mockReset();
   splitQuads.mockReset();
+  tracePage.mockReset();
   vi.mocked(recordAction).mockClear();
   vi.mocked(reportError).mockClear();
 });
@@ -53,6 +57,14 @@ describe('createPageActions', () => {
       expect(ctx.dispatch.mock.calls.map((c) => c[0].type)).toEqual(['findStarted', 'findEnded', 'findFound']);
       expect(pagesNow()[0]).toMatchObject({ quad: QUAD, edited: true, found: true });
       expect(ctx.announce).toHaveBeenCalledWith(t.pageFoundAnnounce);
+    });
+    it('clears pins placed with the old corners', async () => {
+      const page = { ...newPage(photo(), 'document'), pins: PINS };
+      const { ctx, pagesNow } = setup([page]);
+      guessPage.mockResolvedValue(QUAD);
+      createPageActions(ctx).findPage(page);
+      await flush();
+      expect(pagesNow()[0]).toMatchObject({ quad: QUAD, pins: null });
     });
     it('says so when nothing is found, and when the search fails', async () => {
       const page = newPage(photo(), 'document');
@@ -99,6 +111,58 @@ describe('createPageActions', () => {
       createPageActions(ctx).findPage(page);
       await flush();
       expect(ctx.dispatch).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('traceCorners', () => {
+    const SIDES = { top: [], right: [], bottom: [], left: [] };
+    it('traces the preview when there is one, and hands back what the pipeline reads', async () => {
+      const page = newPage(photo(), 'document');
+      const { ctx, work } = setup([page]);
+      const preview = new Blob(['p']);
+      work.previewBlobs.set(page.id, preview);
+      tracePage.mockResolvedValue(SIDES);
+      await expect(createPageActions(ctx).traceCorners(page.id, QUAD)).resolves.toBe(SIDES);
+      expect(tracePage).toHaveBeenCalledWith(preview, QUAD, null);
+    });
+    it('passes the pins it is given on to the pipeline', async () => {
+      const page = newPage(photo(), 'document');
+      const { ctx } = setup([page]);
+      tracePage.mockResolvedValue(SIDES);
+      await createPageActions(ctx).traceCorners(page.id, QUAD, PINS);
+      expect(tracePage).toHaveBeenCalledWith(page.file, QUAD, PINS);
+    });
+    it('traces the page\'s own file when no preview exists', async () => {
+      const page = newPage(photo(), 'document');
+      const { ctx } = setup([page]);
+      tracePage.mockResolvedValue(SIDES);
+      await createPageActions(ctx).traceCorners(page.id, MOVED);
+      expect(tracePage).toHaveBeenCalledWith(page.file, MOVED, null);
+    });
+    it('gives null without reading anything for an unknown or removed page', async () => {
+      const page = newPage(photo(), 'document');
+      const { ctx, work } = setup([page]);
+      await expect(createPageActions(ctx).traceCorners(page.id + 99, QUAD)).resolves.toBeNull();
+      work.removed.add(page.id);
+      await expect(createPageActions(ctx).traceCorners(page.id, QUAD)).resolves.toBeNull();
+      expect(tracePage).not.toHaveBeenCalled();
+    });
+    it('gives null and reports once when the pipeline fails', async () => {
+      const page = newPage(photo(), 'document');
+      const { ctx } = setup([page]);
+      tracePage.mockRejectedValue(new Error('boom'));
+      await expect(createPageActions(ctx).traceCorners(page.id, QUAD)).resolves.toBeNull();
+      expect(reportError).toHaveBeenCalledTimes(1);
+      expect(reportError).toHaveBeenCalledWith('pdf_tool_run', expect.any(Error), 'scan_trace_page');
+    });
+    it('is read-only: no state change, dispatch or recorded action', async () => {
+      const page = newPage(photo(), 'document');
+      const { ctx } = setup([page]);
+      tracePage.mockResolvedValue(SIDES);
+      await createPageActions(ctx).traceCorners(page.id, QUAD);
+      expect(ctx.setPages).not.toHaveBeenCalled();
+      expect(ctx.dispatch).not.toHaveBeenCalled();
+      expect(recordAction).not.toHaveBeenCalled();
     });
   });
 
@@ -230,6 +294,29 @@ describe('createEditActions', () => {
     actions.commitCorners(a.id, QUAD);
     expect(pagesNow()[0]).toMatchObject({ quad: QUAD, edited: true });
   });
+  it('stores the pins placed with the corners', () => {
+    const a = newPage(photo(), 'document');
+    const { actions, pagesNow } = editSetup([a]);
+    actions.commitCorners(a.id, QUAD, PINS);
+    expect(pagesNow()[0]).toMatchObject({ quad: QUAD, pins: PINS, edited: true });
+  });
+  it('clears pins that were there when corners are committed without any', () => {
+    const a = { ...newPage(photo(), 'document'), pins: PINS };
+    const { actions, pagesNow } = editSetup([a]);
+    actions.commitCorners(a.id, MOVED);
+    expect(pagesNow()[0]).toMatchObject({ quad: MOVED, pins: null });
+  });
+  it('sets fine when commitCorners is given it, and leaves it alone when not', () => {
+    // Protects: Fine-tune edges is the person's per-page choice; a plain corner drag must not flip it.
+    const a = newPage(photo(), 'document');
+    const { actions, pagesNow } = editSetup([a]);
+    actions.commitCorners(a.id, QUAD, null, true);
+    expect(pagesNow()[0].fine).toBe(true);
+    actions.commitCorners(a.id, MOVED);
+    expect(pagesNow()[0].fine).toBe(true);
+    actions.commitCorners(a.id, QUAD, null, false);
+    expect(pagesNow()[0].fine).toBe(false);
+  });
   it('makes a chosen look the page\'s and the next photo\'s, and ignores the look it already has', () => {
     const a = newPage(photo(), 'document');
     const { actions, pagesNow, setDefaultFilter } = editSetup([a]);
@@ -340,6 +427,7 @@ describe('the split question (SCAN-67)', () => {
       expect.objectContaining({ file: page.file, filter: 'grayscale', quad: LEFT, opened: LEFT, sheet: true, edited: true, guessed: true, found: true, question: null }),
       expect.objectContaining({ file: page.file, quad: RIGHT, opened: RIGHT, question: null }),
     ]);
+    expect(now.slice(1, 3).map((p) => p.pins)).toEqual([null, null]);
     expect(now[1].id).not.toBe(page.id);
     expect(inspect).toHaveBeenCalledTimes(2);
     expect(ctx.work.removed.has(page.id)).toBe(true);
@@ -403,7 +491,9 @@ describe('pageViewActions', () => {
 
   it('Retake works on the shown page, with the camera or a file', () => {
     const dispatch = vi.fn();
-    const actions = pageViewActions({ edit, findPage: vi.fn(), removePage: vi.fn(), selected: page, dispatch });
+    const traceCorners = vi.fn();
+    const actions = pageViewActions({ edit, findPage: vi.fn(), traceCorners, removePage: vi.fn(), selected: page, dispatch });
+    expect(actions.onTrace).toBe(traceCorners);
     actions.onRetakeCamera();
     expect(dispatch).toHaveBeenCalledWith({ type: 'retakeOpened', pageId: 7 });
     const file = new File(['x'], 'a.jpg');
@@ -413,7 +503,7 @@ describe('pageViewActions', () => {
 
   it('hands the split answers on from the edit actions', () => {
     const split = { askSplit: vi.fn(), answerOnePage: vi.fn(), answerTwoPages: vi.fn() };
-    const actions = pageViewActions({ edit: split as never, findPage: vi.fn(), removePage: vi.fn(), selected: page, dispatch: vi.fn() });
+    const actions = pageViewActions({ edit: split as never, findPage: vi.fn(), traceCorners: vi.fn(), removePage: vi.fn(), selected: page, dispatch: vi.fn() });
     actions.onAskSplit();
     actions.onOnePage();
     actions.onTwoPages(SPINE);
@@ -424,7 +514,7 @@ describe('pageViewActions', () => {
 
   it('does nothing without a page', () => {
     const dispatch = vi.fn();
-    pageViewActions({ edit, findPage: vi.fn(), removePage: vi.fn(), selected: undefined, dispatch }).onRetakeCamera();
+    pageViewActions({ edit, findPage: vi.fn(), traceCorners: vi.fn(), removePage: vi.fn(), selected: undefined, dispatch }).onRetakeCamera();
     expect(dispatch).not.toHaveBeenCalled();
   });
 });

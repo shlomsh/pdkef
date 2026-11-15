@@ -8,6 +8,7 @@ import { throwIfAborted } from '#lib/output/abort.js';
 import { FULL_QUAD } from './quad.ts';
 import { SOURCE_LONG_EDGE } from './pageWork/steps.ts';
 import { shortLineCounts } from './lineEnds.ts';
+import { isFullQuad, onThePaper } from './sheetCorners.ts';
 import { openPdfSheetReader } from './pdfSheetReader.ts';
 import type { SplitQuestion } from '../state/scanWork.ts';
 
@@ -73,13 +74,19 @@ async function quadsOf(reader: SheetReader, pageNumber: number, book: Book): Pro
   const line = a.spine ?? a.possibleSpine;
   const lines = line ? shortLineCounts(gray, (line.top + line.bottom) / 2) : NO_LINES;
   // Only the quads are kept, and they are in 0 to 1 of the picture, so the small copy stands for the full one.
-  return { quads: planPage(gray, a, gray).pieces.map((p) => p.quad), turns, possibleSpine: a.possibleSpine, lines, book: a.book };
+  const planned = planPage(gray, a, gray).pieces.map((p) => p.quad);
+  // A photographed page: its sides slide onto the paper's edge. A scanner's sheet has no paper edge (the only one is the
+  // picture's own frame, which would drag back the corners that level its text), so it keeps its planned quad; a clean
+  // sheet stays the whole picture and a split spread keeps its pieces as planned.
+  const onPaper = a.photo && planned.length === 1 && !isFullQuad(planned[0]);
+  const quads = onPaper ? [onThePaper(planned[0], gray)] : planned;
+  return { quads, turns, possibleSpine: a.possibleSpine, lines, book: a.book };
 }
 
 /** The border that puts every corner on the picture: a levelled page's corners can fall just off a tilted sheet, where the corner editor cannot reach them. */
 function borderFor(quads: Quad[], force: boolean): SheetBorder {
   // A sheet that asks gets the room too: a person's split levels its corners past the sheet's edge.
-  if (!force && quads.length === 1 && quads[0].every((p, i) => p.x === FULL_QUAD[i].x && p.y === FULL_QUAD[i].y)) return { left: 0, top: 0, right: 0, bottom: 0 };
+  if (!force && quads.length === 1 && isFullQuad(quads[0])) return { left: 0, top: 0, right: 0, bottom: 0 };
   const points = quads.flat();
   return {
     left: BEND_ROOM + Math.max(0, ...points.map((p) => -p.x)),

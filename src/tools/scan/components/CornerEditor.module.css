@@ -1,8 +1,10 @@
 .frame {
   position: relative;
   display: inline-block;
-  max-width: 100%;
+  /* The cap grows with the zoom (the hook writes --corner-zoom on the photo area); at Fit it is 100%, as before. */
+  max-width: calc(100% * var(--corner-zoom, 1));
   line-height: 0;
+  touch-action: pan-x pan-y;
   user-select: none;
   -webkit-user-select: none;
 }
@@ -14,6 +16,7 @@
   max-height: var(--scan-view-h, 62svh);
   height: auto;
   width: auto;
+  touch-action: pan-x pan-y;
 }
 
 /* A frame given its shape (aspect) holds it whatever the image is doing; the photo fills it. */
@@ -30,6 +33,7 @@
   width: 100%;
   height: 100%;
   pointer-events: none;
+  touch-action: pan-x pan-y;
 }
 
 .dim {
@@ -39,6 +43,22 @@
 
 .outline {
   stroke: var(--color-surface);
+}
+
+/* With the page's real border drawn, the straight polygon is not shown: it comes back only while a corner is dragged,
+   when the border is briefly gone. */
+.outline-faint {
+  opacity: 0;
+}
+
+.trace {
+  stroke: var(--color-surface);
+}
+
+/* The drag dots: same colour as the line, no pointer input (the wide hit path covers the line). */
+.trace-dots {
+  stroke: var(--color-surface);
+  pointer-events: none;
 }
 
 /* 52px to grab, a 20px ring to see: a finger can take the corner from beside it. */
@@ -107,4 +127,46 @@
 .loupe-cross {
   stroke: var(--color-surface);
   fill: none;
+}
+
+/* The wide, invisible stroke along the traced border: a press anywhere on the line pins a point. */
+.hit {
+  stroke: transparent;
+  pointer-events: stroke;
+  touch-action: none;
+  cursor: copy;
+}
+
+/* A pinned point: 44px to grab, a 12px dot to see. The reverse of a corner ring. */
+.pin {
+  position: absolute;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  transform: translate(-50%, -50%);
+  touch-action: none;
+  cursor: grab;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.pin-dot {
+  width: 12px;
+  height: 12px;
+  box-sizing: border-box;
+  border-radius: 50%;
+  border: 2px solid var(--color-primary);
+  background: var(--color-surface);
+  box-shadow: 0 0 0 1px var(--color-night);
+}
+
+.pin:focus-visible {
+  outline: none;
+}
+
+.pin:focus-visible .pin-dot {
+  box-shadow: 0 0 0 1px var(--color-night), 0 0 0 4px var(--color-primary-ring);
 }

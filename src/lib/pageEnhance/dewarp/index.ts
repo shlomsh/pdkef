@@ -20,6 +20,11 @@ const MEASURE_LONG_EDGE = 1000;
  * corners are what is off, and the person sets those. */
 const MAX_SQUARE = 0.035;
 
+/** The same limit for a page whose border was traced (about 4 degrees): the traced border's side curves
+ * shear the measuring copy a little, so the rows read a degree or so more lean than the corners gave
+ * them (measured on 22 book pages, SCAN-75). It applies only to a traced border. */
+const MAX_SQUARE_TRACED = 0.07;
+
 /** What the page's shape adds to its corners: its curved sides, how its rows bend (read y + lines(x, y))
  * and how its vertical rules bend (read x + columns(y, x)). All null: a flat page, warped by its
  * corners alone. */
@@ -130,11 +135,14 @@ export function toGray(image: RgbaImage): GrayImage {
 /** How the page in `src` bends beyond its corners (`quad` normalized, as the person set it). The
  * output's shape (`width` x `height`) sets the shape of the copy the lines and rules are read from.
  * `paperEdges` false: `src` is a scanned sheet, with no paper edge to read. Its frame is the picture's,
- * and a corner a hair off it reads as a bow, which would bend the copy the rows are read from too. */
-export function measureBend(src: RgbaImage, quad: Quad, margin: number, width: number, height: number, paperEdges = true): PageBend {
+ * and a corner a hair off it reads as a bow, which would bend the copy the rows are read from too.
+ * `traced`: the page's side curves from a traced border (`null`: straight sides). Given, even as `null`,
+ * they are used as they are, `paperEdges` is ignored, and squaring allows `MAX_SQUARE_TRACED`. */
+export function measureBend(src: RgbaImage, quad: Quad, margin: number, width: number, height: number, paperEdges = true, traced?: EdgeCurves | null): PageBend {
   const small = shrink(src, MEASURE_LONG_EDGE);
   const quadSmall = scaleQuad(quad, small.width, small.height);
-  const curves = paperEdges ? findEdgeCurves(toGray(small), quadSmall) : null;
+  const curves = traced !== undefined ? traced : paperEdges ? findEdgeCurves(toGray(small), quadSmall) : null;
+  const maxSquare = traced !== undefined ? MAX_SQUARE_TRACED : MAX_SQUARE;
   const fit = Math.min(1, MEASURE_LONG_EDGE / Math.max(width, height));
   const w = Math.max(1, Math.round(width * fit));
   const h = Math.max(1, Math.round(height * fit));
@@ -144,7 +152,7 @@ export function measureBend(src: RgbaImage, quad: Quad, margin: number, width: n
   const rules = columnFit(masks);
   // Rows are what a reader sees, so a small lean in them is taken out, and a form's rules are set plumb with
   // them. Rules alone stay as the corners made them: with no rows to read, a lean could be the page turned.
-  const level = (lean: number | null, across: number) => lean !== null && Math.abs(lean * across) <= MAX_SQUARE;
+  const level = (lean: number | null, across: number) => lean !== null && Math.abs(lean * across) <= maxSquare;
   const square = !!rows && level(rows.lean, h / w) && (!rules || level(rules.lean, w / h));
   return { curves, lines: finishBend(rowsToApply(rows, rules), square), columns: rules && finishBend(rules, square) };
 }

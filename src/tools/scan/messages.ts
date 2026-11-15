@@ -40,6 +40,7 @@ export interface ScanMessages extends DownloadMessages {
   cornersGroup: string;
   corners: [string, string, string, string];
   cornersHint: string;
+  cornersTracedHint: string;
   wholePhoto: string;
   rotate: string;
   previousPage: string;
@@ -142,6 +143,10 @@ export interface ScanMessages extends DownloadMessages {
   announceRestored: string;
   removedChip: string;
   undo: string;
+  redo: string;
+  fineTune: string;
+  fitPage: string;
+  pinLabel: string;
   rotatePageLabel: string;
   removePageLabel: string;
   openPageLabel: string;
@@ -185,9 +190,10 @@ export const englishScanMessages: ScanMessages = {
   cornersGroup: 'Page corners',
   corners: ['Top-left corner', 'Top-right corner', 'Bottom-right corner', 'Bottom-left corner'],
   cornersHint: 'Drag each corner onto a corner of the page.',
+  cornersTracedHint: 'Drag a dot onto the page\'s edge where the line leaves it.',
   wholePhoto: 'Whole photo',
   removePhoto: 'Remove this photo',
-  adjustCorners: 'Adjust corners',
+  adjustCorners: 'Adjust edges',
   rotate: 'Rotate',
   previousPage: 'Previous page',
   nextPage: 'Next page',
@@ -216,7 +222,7 @@ export const englishScanMessages: ScanMessages = {
   splitLineBottom: 'Bottom of the line',
   announceSplit: 'Page {position} is now two pages.',
   cornersDone: 'Done',
-  useCorners: 'Use these corners',
+  useCorners: 'Use these edges',
   resultExact: 'Exactly as it will download',
   resultDetail: '{size} for {pages}',
   resultUpdating: 'Updating…',
@@ -230,7 +236,7 @@ export const englishScanMessages: ScanMessages = {
   retake: 'Retake',
   pageDone: 'Done',
   backToPages: 'Back to all pages',
-  cornersAction: 'Corners',
+  cornersAction: 'Edges',
   lookAction: 'Look',
   removeShort: 'Remove',
   pageSizeQuiet: 'Page size: {size}',
@@ -288,6 +294,10 @@ export const englishScanMessages: ScanMessages = {
   announceRestored: 'Page {position} is back.',
   removedChip: 'Page {position} removed',
   undo: 'Undo',
+  redo: 'Redo',
+  fineTune: 'Fine-tune edges',
+  fitPage: 'Fit page',
+  pinLabel: "Pinned point of the page's edge",
   rotatePageLabel: 'Rotate page {position}',
   removePageLabel: 'Remove page {position}',
   openPageLabel: 'Open page {position}',

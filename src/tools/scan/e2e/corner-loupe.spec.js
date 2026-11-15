@@ -36,7 +36,7 @@ test('a touch drag on a corner shows a loupe away from the finger, gone on relea
   });
   // New photos land on the table: tap the page, then Corners.
   await page.locator('[data-table-page]').first().click();
-  await page.getByRole('button', { name: 'Corners', exact: true }).click();
+  await page.getByRole('button', { name: 'Edges', exact: true }).click();
   const handle = page.getByRole('button', { name: 'Top-left corner' });
   await expect(handle).toBeVisible({ timeout: 20_000 });
   await handle.scrollIntoViewIfNeeded();

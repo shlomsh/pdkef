@@ -194,6 +194,17 @@ describe('ScanPageViewer', () => {
     expect(actions.onDone).toHaveBeenCalledTimes(3);
   });
 
+  // Protects: the hint is one sentence, about the dots when the page is in Fine-tune edges and about the corners otherwise.
+  it('corners hint is the corners sentence by default, and the dots sentence when the page is in Fine-tune edges', () => {
+    const hint = () => q('[role="status"]')?.textContent ?? '';
+    mount({ view: 'corners' });
+    expect(hint()).toBe(t.cornersHint);
+    act(() => render(null, container!));
+    container!.remove(); container = null;
+    mount({ view: 'corners', selected: page(1, { fine: true } as Partial<ScanPage>) });
+    expect(hint()).toBe(t.cornersTracedHint);
+  });
+
   it('corners mode: same dialog, no scroller, Back and Escape use the corners', () => {
     const { actions, editor } = mount({ view: 'corners' });
     expect(q('[data-page-scroller]')).toBeNull();
@@ -209,7 +220,7 @@ describe('ScanPageViewer', () => {
     expect(actions.onDone).not.toHaveBeenCalled();
   });
 
-  it('corners keep a Rotate at the head\'s end (shown from 1024px by the sheet), except on an unreadable page', () => {
+  it('corners keep a Rotate in the bottom bar, except on an unreadable page', () => {
     const { actions } = mount({ view: 'corners' });
     const rotate = [...container!.querySelectorAll('button')].find((b) => b.textContent === t.rotate)!;
     act(() => rotate.click());

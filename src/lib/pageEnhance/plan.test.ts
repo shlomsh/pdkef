@@ -5,7 +5,9 @@ import { applyPiece } from './piece.ts';
 import { spineInBorder, spreadHalves } from './spine.ts';
 import { levelQuad } from './lean.ts';
 import { assess, planPage, spreadQuads } from './plan.ts';
+import { readPhoto } from './photoPage.ts';
 import { rotateQuad, type Quad, type RgbaImage } from './quad.ts';
+import { onTable, textPage } from './textPage.test-helper.ts';
 
 const W = 800;
 const H = 500;
@@ -69,6 +71,30 @@ describe('a spread with two leans', () => {
       expect(markerAt(pages[1])).toBeNull();
     });
   }
+});
+
+describe('photo', () => {
+  it('is true for a photographed page that was found, so its quad is paper whose edge can be followed', () => {
+    expect(assess(onTable(textPage())).photo).toBe(true);
+  });
+
+  it('is false for a scanner sheet, so its frame is never taken for a paper edge', () => {
+    expect(assess(textPage()).photo).toBe(false);
+    expect(assess(gray(leaning(600, 800, 3))).photo).toBe(false);
+  });
+
+  it('is false for a photo whose page was not found', () => {
+    const table = onTable(textPage({ rows: 2 }));
+    // The sheet is read as a photo, with too little text to find its page: there is no paper quad to follow.
+    expect(readPhoto(table)).toMatchObject({ photo: true, corners: null });
+    expect(assess(table).photo).toBe(false);
+  });
+
+  it('is false for a spread', () => {
+    const g = gray(spread());
+    expect(assess(g).spine).not.toBeNull();
+    expect(assess(g).photo).toBe(false);
+  });
 });
 
 describe('one page', () => {

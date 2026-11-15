@@ -13,12 +13,14 @@ demand data and acceptance are in `backlog/tasks/SCAN-01.md`; this record says h
    the real size of the PDF and one filled button, Share (Download where the browser cannot share
    files). The button is chosen by capability, not by whether the file is built yet, so it does not
    change while the PDF is made.
-3. **One page.** Tapping a page shows it alone, as it will download, with Corners, Rotate, Look,
+3. **One page.** Tapping a page shows it alone, as it will download, with Edges, Rotate, Look,
    Retake and Remove, and one Done that returns to the table. Retake puts the new photo in the same
    place; Remove returns to the table.
-4. **Corners.** Each page gets four corners, prefilled by `guessCorners` (below) when it finds a page and
-   the whole photo when it does not. Corners opens from the page and returns to it. A corner the person
-   moved is never re-guessed: their corners always win.
+4. **Edges.** Each page gets four corners, prefilled by `guessCorners` (below) when it finds a page and
+   the whole photo when it does not. A guess that is not page-shaped is slid onto the paper's edges when
+   that makes it so (`repairGuess`, SCAN-75); a page-shaped guess is left as it is. Edges opens from the page and returns to it. A corner the person
+   moved is never re-guessed: their corners always win. The lines between the corners are straight; with
+   Fine-tune edges on, the page's traced border is drawn, its dots can be pinned, and the flattening follows it.
 5. **Look.** Three filters for every page: Original, Grayscale, Document (even out the lighting, then a
    clean black on white). Default: Document, since that is what a scan looks like.
 6. **Page size.** Fit (the page is the scan's own size, as Image to PDF does it), A4 or Letter, the same

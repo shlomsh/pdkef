@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import type { Quad } from '#lib/pageEnhance/quad.ts';
-import { FULL_QUAD, clampPoint, isConvexQuad, quadKey, isPagelike, turnedQuad, unturnedQuad } from './quad.ts';
+import { rotateQuad } from '#lib/pageEnhance/quad.ts';
+import type { Pins } from './edges/follow.ts';
+import { FULL_QUAD, clampPoint, isConvexQuad, pinsKey, quadKey, isPagelike, turnedPins, turnedPoint, turnedQuad, unturnedPoint, unturnedQuad } from './quad.ts';
 
 describe('isConvexQuad', () => {
   it('accepts the full photo', () => {
@@ -85,5 +87,70 @@ describe('isPagelike', () => {
   it('refuses a bow tie and a dent, as isConvexQuad does', () => {
     expect(isPagelike([{ x: 0.1, y: 0.1 }, { x: 0.9, y: 0.1 }, { x: 0.1, y: 0.9 }, { x: 0.9, y: 0.9 }])).toBe(false);
     expect(isPagelike([{ x: 0.6, y: 0.6 }, { x: 0.9, y: 0.1 }, { x: 0.9, y: 0.9 }, { x: 0.1, y: 0.9 }])).toBe(false);
+  });
+});
+
+describe('turnedPoint', () => {
+  it('is the point map turnedQuad applies to each corner', () => {
+    const q: Quad = [{ x: 0.1, y: 0.2 }, { x: 0.8, y: 0.15 }, { x: 0.9, y: 0.85 }, { x: 0.05, y: 0.9 }];
+    for (const t of [0, 1, 2, 3]) {
+      const turned = turnedQuad(q, t).map((p) => quadKey([p, p, p, p]));
+      const mapped = q.map((p) => turnedPoint(p, t)).map((p) => quadKey([p, p, p, p]));
+      expect([...turned].sort()).toEqual([...mapped].sort());
+    }
+  });
+});
+
+describe('unturnedPoint', () => {
+  it('undoes turnedPoint for every quarter turn, so a point shown turned goes back to the photo as photographed', () => {
+    const p = { x: 0.3, y: 0.7 };
+    for (const t of [0, 1, 2, 3]) {
+      const back = unturnedPoint(turnedPoint(p, t), t);
+      expect(back.x).toBeCloseTo(p.x, 12);
+      expect(back.y).toBeCloseTo(p.y, 12);
+    }
+  });
+});
+
+describe('turnedPins', () => {
+  const side = (i: number) => [{ k: 0.5, at: { x: i / 10, y: i / 10 } }];
+  const PINS = [side(1), side(2), side(3), side(4)] as Pins;
+  // Four distinguishable corners: side s of a quad runs from corner s to corner s + 1.
+  const QUAD: Quad = [{ x: 0.1, y: 0.1 }, { x: 0.9, y: 0.2 }, { x: 0.8, y: 0.9 }, { x: 0.2, y: 0.8 }];
+
+  it('puts side i of the turned quad on side i - turns of the photo, for every quarter turn', () => {
+    for (const turns of [0, 1, 2, 3]) {
+      const turned = turnedPins(PINS, turns)!;
+      for (let i = 0; i < 4; i += 1) expect(turned[i]).toBe(PINS[(i - turns + 4) % 4]);
+    }
+  });
+
+  it('keeps each pin on the side its corners still bound, as rotateQuad reorders them', () => {
+    for (const turns of [0, 1, 2, 3]) {
+      const turned = rotateQuad(QUAD, turns);
+      const pins = turnedPins(PINS, turns)!;
+      PINS.forEach((photoSide, s) => {
+        const at = pins.indexOf(photoSide);
+        // Photo side s runs from corner s to corner s + 1, which the turned quad holds at indices at and at + 1.
+        expect(turned[at]).toEqual(QUAD[s]);
+        expect(turned[(at + 1) % 4]).toEqual(QUAD[(s + 1) % 4]);
+      });
+    }
+  });
+
+  it('gives null for no pins and moves no point', () => {
+    expect(turnedPins(null, 2)).toBeNull();
+    const copy = structuredClone(PINS);
+    turnedPins(PINS, 3);
+    expect(PINS).toEqual(copy);
+  });
+});
+
+describe('pinsKey', () => {
+  it('is empty for no pins and the same for equal pins, different for moved ones', () => {
+    const pins = (x: number) => [[{ k: 0.5, at: { x, y: 0.2 } }], [], [], []] as Pins;
+    expect(pinsKey(null)).toBe('');
+    expect(pinsKey(pins(0.3))).toBe(pinsKey(pins(0.3)));
+    expect(pinsKey(pins(0.3))).not.toBe(pinsKey(pins(0.31)));
   });
 });
