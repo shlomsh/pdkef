@@ -184,7 +184,9 @@ function report(event: UsageEventName, tool: AnalyticsTool | ViewOnlyPage, measu
       editSent = false;
     }
     if (!parsed || handedOff >= MAX_USAGE_EVENTS_PER_PAGE) return;
-    if (sendBeacon(parsed)) {
+    // The tools-opened values go to the analytics address only, never in the /api/report beacon.
+    const { tools: _t, newtool: _n, firsttool: _f, ...beaconed } = parsed.properties;
+    if (sendBeacon({ ...parsed, properties: beaconed })) {
       handedOff += 1;
       seen.add(pair);
       toolHistory?.commit();

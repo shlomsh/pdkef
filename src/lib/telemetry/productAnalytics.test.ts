@@ -195,6 +195,8 @@ describe('the funnel (DEBT-58)', () => {
   });
   afterEach(() => void vi.useRealTimers());
   const props = async () => Promise.all(beacon.mock.calls.map(async ([, b]) => JSON.parse(await (b as Blob).text()).properties));
+  // What went to the analytics address, which alone carries the tools-opened values.
+  const sinkProps = () => vi.mocked(sendToSink).mock.calls.map(([e]) => (e as { properties: Record<string, unknown> }).properties);
 
   it('DEBT-61: the home page view carries the visit, and a tool page opened later that day reads today', async () => {
     vi.stubGlobal('localStorage', store());
@@ -205,7 +207,7 @@ describe('the funnel (DEBT-58)', () => {
     await settleTick();
     expect(await props()).toEqual([
       { tool: 'home', first: true, visit: 'new', since: 'first' },
-      { tool: 'sign', first: true, visit: 'today', since: 'day', tools: '1', newtool: true, firsttool: 'sign' },
+      { tool: 'sign', first: true, visit: 'today', since: 'day' },
     ]);
   });
 
@@ -216,7 +218,8 @@ describe('the funnel (DEBT-58)', () => {
     reportToolLifecycleEvent('tool_page_viewed', 'sign');
     await settleTick();
     const [a, b] = await props();
-    expect(a).toEqual({ tool: 'sign', first: true, visit: 'new', since: 'first', tools: '1', newtool: true, firsttool: 'sign' });
+    expect(a).toEqual({ tool: 'sign', first: true, visit: 'new', since: 'first' });
+    expect(sinkProps()[0]).toMatchObject({ tools: '1', newtool: true, firsttool: 'sign' });
     expect(b.visit).toBe('new');
     expect(b.since).toBe('first');
     expect(ls.getItem('pdkef:last-tool-visit')).not.toBeNull();
@@ -228,7 +231,7 @@ describe('the funnel (DEBT-58)', () => {
       if (tool === 'home') reportHomePageView();
       else reportToolLifecycleEvent('tool_page_viewed', tool);
       await settleTick();
-      const all = await props();
+      const all = sinkProps();
       return all[all.length - 1];
     };
     const history = (p: Record<string, unknown>) => ({ tools: p.tools, newtool: p.newtool, firsttool: p.firsttool });
@@ -274,9 +277,17 @@ describe('the funnel (DEBT-58)', () => {
       await settleTick();
       reportToolLifecycleEvent('tool_page_viewed', 'sign');
       await settleTick();
-      const [a, b] = await props();
+      const [a, b] = sinkProps();
       expect(history(a)).toEqual({ tools: '1', newtool: true, firsttool: 'sign' });
       expect(history(b)).toEqual({ tools: '1', newtool: undefined, firsttool: 'sign' });
+    });
+    it('sends the tools-opened values only to the analytics address, never in the /api/report beacon', async () => {
+      vi.stubGlobal('localStorage', store());
+      const sent = await load('sign');
+      expect(history(sent)).toEqual({ tools: '1', newtool: true, firsttool: 'sign' });
+      const [beaconed] = await props();
+      expect(history(beaconed)).toEqual(none);
+      expect(beaconed.visit).toBe('new');
     });
     it('puts nothing on the home page view', async () => {
       vi.stubGlobal('localStorage', store());
