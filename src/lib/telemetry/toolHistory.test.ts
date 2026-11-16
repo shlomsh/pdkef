@@ -5,13 +5,13 @@ const list = (...tools: string[]) => JSON.stringify({ v: 1, tools });
 const TODAY = '2026-11-20';
 
 describe('nextToolHistory (MEM-45)', () => {
-  it.each([['2026-11-16'], [TODAY]])('starts the list for a browser first seen on %s, when the list already existed', (first) => {
+  it.each([['2026-11-17'], [TODAY]])('starts the list for a browser first seen on %s, when the list already existed', (first) => {
     expect(nextToolHistory(null, 'sign', first)).toEqual({ write: list('sign'), props: { tools: '1', newtool: true, firsttool: 'sign' } });
   });
   it.each([[null], ['not json'], ['{"v":2}'], ['[]'], ['{"v":1,"partial":true}']])('treats %s as no list', (stored) => {
     expect(nextToolHistory(stored, 'sign', TODAY).props?.tools).toBe('1');
   });
-  it.each([['2026-11-15'], ['2025-01-01'], [null], ['garbage']])('sends nothing and writes nothing for a browser first seen on %s with no list', (first) => {
+  it.each([['2026-11-16'], ['2025-01-01'], [null], ['garbage']])('sends nothing and writes nothing for a browser first seen on %s with no list', (first) => {
     expect(nextToolHistory(null, 'sign', first)).toEqual({});
   });
   it('keeps counting a list started earlier, whatever the first day says', () => {

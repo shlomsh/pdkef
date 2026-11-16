@@ -188,6 +188,12 @@ describe('the funnel (DEBT-58)', () => {
   };
   // Page views carry `ready` off the real clock; these tests are about visit, so the clock reads nothing.
   beforeEach(() => void vi.spyOn(performance, 'now').mockReturnValue(Number.NaN));
+  // A fixed day after the tools list started, so these tests do not depend on today's date.
+  beforeEach(() => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date('2026-11-20T12:00:00'));
+  });
+  afterEach(() => void vi.useRealTimers());
   const props = async () => Promise.all(beacon.mock.calls.map(async ([, b]) => JSON.parse(await (b as Blob).text()).properties));
 
   it('DEBT-61: the home page view carries the visit, and a tool page opened later that day reads today', async () => {
@@ -256,8 +262,8 @@ describe('the funnel (DEBT-58)', () => {
     });
     it('starts the list for a browser that saw the home page on an earlier day', async () => {
       const ls = store();
-      ls.setItem('pdkef:first-visit', '2026-11-16');
-      ls.setItem('pdkef:last-tool-visit', '2026-11-16');
+      ls.setItem('pdkef:first-visit', '2026-11-18');
+      ls.setItem('pdkef:last-tool-visit', '2026-11-18');
       vi.stubGlobal('localStorage', ls);
       expect(history(await load('redact'))).toEqual({ tools: '1', newtool: true, firsttool: 'redact' });
     });

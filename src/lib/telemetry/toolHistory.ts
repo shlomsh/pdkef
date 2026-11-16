@@ -11,7 +11,7 @@ import { FIRST_VISIT_KEY } from './visitRecency.ts';
 
 const KEY = 'pdkef:tools-opened';
 /** The local day the list was first kept. */
-const LIST_START = '2026-11-16';
+const LIST_START = '2026-11-17';
 
 type ToolHistoryProps = { tools: ToolCount; firsttool: AnalyticsTool; newtool?: true };
 
