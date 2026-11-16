@@ -357,6 +357,13 @@ describe('/api/report stays silent', () => {
       expect(JSON.stringify(commands)).not.toContain('errors:total');
     });
 
+    it('does not count usage sent to a deploy address (*.vercel.app), where Vercel checks the build', async () => {
+      const fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation(answer(1));
+      const request = new Request('https://pdkef-g86om7tjf-team.vercel.app/api/report', { method: 'POST', body: JSON.stringify(usage) });
+      expect((await POST(request)).status).toBe(204);
+      expect(fetchSpy).not.toHaveBeenCalled();
+    });
+
     // The caps are per warm instance; a fresh module is a fresh instance.
     const freshPost = async () => {
       vi.resetModules();

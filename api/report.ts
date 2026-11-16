@@ -130,6 +130,8 @@ export async function POST(request: Request): Promise<Response> {
 
     const day = dayKey(new Date());
     if (usage) {
+      // A deploy's own *.vercel.app address is Vercel checking the build, not a person.
+      if (new URL(request.url).hostname.endsWith('.vercel.app')) return NO_CONTENT();
       if (day === cappedUsageDay) return NO_CONTENT();
       const [total] = await pipeline(store, usageCapCommands(day));
       if (typeof total?.result === 'number' && total.result > USAGE_DAILY_CAP) cappedUsageDay = day;
