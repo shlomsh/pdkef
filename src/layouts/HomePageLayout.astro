@@ -140,7 +140,7 @@ const video = showTheO ? toolVideos.redact : undefined;
 if (video) Astro.csp?.insertDirective(`frame-src ${new URL(video.embed).origin}`);
 ---
 
-<BaseLayout title={title} description={description} lang={lang} dir={dir} canonical={canonical} alternates={alternates} socialImageAlt={messages.socialImageAlt}>
+<BaseLayout pageView={false} title={title} description={description} lang={lang} dir={dir} canonical={canonical} alternates={alternates} socialImageAlt={messages.socialImageAlt}>
   <Fragment slot="head">
     <SeoSchema name="PDkef" description={description} faq={home.faq} rating={rating} />
     {/* The hero demo's handwritten caption ('Caveat Demo', or 'Gveret Levin

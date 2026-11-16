@@ -135,7 +135,7 @@ const video = locale === 'en' ? toolVideos[tool.slug] : undefined;
 if (video) Astro.csp?.insertDirective(`frame-src ${new URL(video.embed).origin}`);
 ---
 
-<BaseLayout
+<BaseLayout pageView={false}
   title={tool.seoTitle}
   description={tool.seoDescription}
   lang={lang}
