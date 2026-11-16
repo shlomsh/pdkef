@@ -84,7 +84,7 @@ export default function FindBar({
   const hasMatches = summary.total > 0;
 
   const onKeyDown = (event: KeyboardEvent) => {
-    if (event.key === 'Enter') {
+    if (event.key === 'Enter' && !event.isComposing) {
       event.preventDefault();
       if (event.shiftKey) onPrev(); else onNext();
     } else if (event.key === 'Escape') {

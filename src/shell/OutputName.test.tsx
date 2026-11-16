@@ -23,6 +23,18 @@ describe('OutputName', () => {
     nameEl().dispatchEvent(new KeyboardEvent('keydown', { key: k, bubbles: true, cancelable: true }));
   });
 
+  it('an Enter that confirms an IME composition does not commit the name', async () => {
+    const onRename = mount();
+    await begin();
+    await type('merged_b');
+    await act(async () => {
+      nameEl().dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', isComposing: true, bubbles: true, cancelable: true }));
+    });
+    expect(onRename).not.toHaveBeenCalled();
+    await key('Enter');
+    expect(onRename).toHaveBeenCalledWith('merged_b');
+  });
+
   it('keeps ".pdf" outside the editable span, inside one bdi', () => {
     mount();
     expect(nameEl().getAttribute('contenteditable')).toBe('false');

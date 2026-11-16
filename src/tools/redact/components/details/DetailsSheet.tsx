@@ -143,7 +143,7 @@ export function DetailsSheet({ open, rows, edits, onEdit, onRestore, onClose }: 
                     aria-label={row.label}
                     dir="auto"
                     onInput={(event) => setDraft((event.target as HTMLInputElement).value)}
-                    onKeyDown={(event) => { if (event.key === 'Enter') { event.preventDefault(); commit(row); } }}
+                    onKeyDown={(event) => { if (event.key === 'Enter' && !event.isComposing) { event.preventDefault(); commit(row); } }}
                   />
                   <span class={styles.actions}>
                     <button type="button" class={styles.action} data-action="done" aria-label={`${DETAIL_DONE} ${nameOf(row)}`} onClick={() => commit(row)}>{DETAIL_DONE}</button>

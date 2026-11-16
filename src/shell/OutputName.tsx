@@ -222,7 +222,7 @@ export default function OutputName({
       }
       return;
     }
-    if (event.key === 'Enter') {
+    if (event.key === 'Enter' && !event.isComposing) {
       event.preventDefault();
       (event.currentTarget as HTMLElement).blur();
     } else if (event.key === 'Escape') {

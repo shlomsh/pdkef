@@ -169,6 +169,15 @@ describe('DetailsSheet actions', () => {
     expect(onEdit).toHaveBeenCalledWith('title', { action: 'alter', value: 'X' });
   });
 
+  it('an Enter that confirms an IME composition does not commit', () => {
+    const { el, onEdit } = mount();
+    click(byText(row(el, 'title'), DETAIL_EDIT));
+    const input = row(el, 'title').querySelector('input') as HTMLInputElement;
+    type(input, 'X');
+    act(() => { input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', isComposing: true, bubbles: true })); });
+    expect(onEdit).not.toHaveBeenCalled();
+  });
+
   it('an unchanged or empty value restores the row', () => {
     const { el, onEdit, onRestore } = mount();
     click(byText(row(el, 'title'), DETAIL_EDIT));

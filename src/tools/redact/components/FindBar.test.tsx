@@ -10,11 +10,11 @@ describe('FindBar Cover all', () => {
   document.body.appendChild(container);
   afterEach(() => act(() => render(null, container)));
 
-  const mount = (summary: FindSummary, extra: { onRedactAll?: () => void; onClose?: () => void } = {}) => {
+  const mount = (summary: FindSummary, extra: { onRedactAll?: () => void; onClose?: () => void; onNext?: () => void } = {}) => {
     act(() => render(
       <FindBar
         term="jane" preset={null} onTermChange={() => {}} onPresetChange={() => {}} summary={summary}
-        onPrev={() => {}} onNext={() => {}} redactStyle="blackout" onRedactStyleChange={() => {}}
+        onPrev={() => {}} onNext={extra.onNext ?? (() => {})} redactStyle="blackout" onRedactStyleChange={() => {}}
         onRedactCurrent={() => {}} onRedactAll={extra.onRedactAll ?? (() => {})} onClose={extra.onClose ?? (() => {})}
       />,
       container,
@@ -55,6 +55,16 @@ describe('FindBar Cover all', () => {
     expect(onClose).toHaveBeenCalledTimes(1);
     mount({ ...base, reading: null, open: 20 }, { onRedactAll, onClose });
     expect(onRedactAll).not.toHaveBeenCalled();
+  });
+
+  it('an Enter that confirms an IME composition does not step to the next match', () => {
+    const onNext = vi.fn();
+    mount(base, { onNext });
+    const input = container.querySelector('[data-redact-find-input]')!;
+    act(() => { input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', isComposing: true, bubbles: true, cancelable: true })); });
+    expect(onNext).not.toHaveBeenCalled();
+    act(() => { input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true })); });
+    expect(onNext).toHaveBeenCalledTimes(1);
   });
 
   it('keeps Escape from reaching window listeners', () => {
