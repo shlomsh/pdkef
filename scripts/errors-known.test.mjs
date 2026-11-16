@@ -182,6 +182,13 @@ describe('the real registry against real fingerprints', () => {
     expect(findEntry(REGISTRY, f).id).toBe('ENC-02');
   });
   it.each([
+    ['shared/redact-tool.js:2:85863', 'list_objects'],
+    ['shared/redact-tool.js:4:4661', 'details_read'],
+  ])('reads a Redact %s TypeError at %s (a lazy chunk that did not load) as RED-74, not ENC-02', (frame, step) => {
+    const f = fp(`redact|TypeError|${frame}|${step}|chromium-157`, '/redact/');
+    expect(findEntry(REGISTRY, f)?.id).toBe('RED-74');
+  });
+  it.each([
     ['load_document', 'ReferenceError', 'DEBT-38', 'chromium-109', '/redact/'],
     ['load_document', 'ReferenceError', 'DEBT-38', 'chromium-109', '/compress/'],
     ['render_page', 'TypeError', 'DEBT-42', 'chromium-141', '/redact/'],

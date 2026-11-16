@@ -264,5 +264,22 @@
     },
     "fixedIn": "1595e5c0",
     "note": "a lost /Pages with one surviving page tree is repaired by loadPdfWithPages; a file with none or several roots still reports"
+  },
+  {
+    "id": "RED-74",
+    "title": "Redact: a tab left open across a deploy cannot load its object list or document details",
+    "match": {
+      "area": "redact",
+      "name": "TypeError",
+      "step": [
+        "list_objects",
+        "details_read"
+      ],
+      "slug": "redact",
+      "module": "redact-tool"
+    },
+    "open": true,
+    "ticket": "RED-74",
+    "note": "the environment, not a defect, as RED-67 and RED-69: both frames are lazy imports (useDeletableObjects.js, readDetails.ts) of chunks the new deploy no longer serves; the drop records say module_load"
   }
 ]

@@ -1,11 +1,10 @@
 ---
 id: "RED-64"
 title: "Redact details reader waits for the document to open, so a protected PDF never reaches pdf-lib"
-status: "blocked"
+status: "done"
 priority: "P2"
 epic: "redact"
 depends_on: []
-waiting_on: "A day of production reads after the fix with no details_read EncryptedPDFError"
 ---
 
 # RED-64 · Redact details reader waits for the document to open, so a protected PDF never reaches pdf-lib
@@ -32,7 +31,11 @@ The ticket as first asked ("don't report encrypted PDFs") would hide the miss; E
 ## Progress
 
 The gate landed in `795b0cd1` (`useDocumentDetails` waits for pdf.js to open the file; island test extended),
-with `cdd8dc77` holding the details line steady while the details are read. Only the production day is open.
+with `cdd8dc77` holding the details line steady while the details are read.
+
+Closed 2026-11-16 from the daily error read: no `details_read` `EncryptedPDFError` from 2026-10-11 to
+2026-11-16. The only `details_read` reports since (13 Nov) were a lazy chunk that did not load, now
+[RED-74](RED-74.md).
 
 ## Acceptance
 - Island test with an owner-only fixture: no `details_read` report, no pdf-lib load of the protected bytes; seen failing first.

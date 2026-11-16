@@ -2,7 +2,7 @@
 
 # Backlog
 
-The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 182 live: 78 up next, 24 then, 27 waiting, 53 parked.
+The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 181 live: 78 up next, 24 then, 26 waiting, 53 parked.
 
 ## Redact: finish removal
 
@@ -14,7 +14,6 @@ Find covers exactly what it matched, Delete reaches every object, and the saved-
 | --- | --- | --- | --- |
 | RED-57 | P1 | [RED-57](backlog/tasks/RED-57.md) · Redact export never embeds an empty page picture on a large page | Waiting on A full UTC day of production reads on a build with the fix |
 | RED-63 | P2 | [RED-63](backlog/tasks/RED-63.md) · Redact: saved-file check should fall back quietly when the saved file is unreadable on iOS | Waiting on An iPhone check, and a day of production reads with no check_saved_file NotReadableError |
-| RED-64 | P2 | [RED-64](backlog/tasks/RED-64.md) · Redact details reader waits for the document to open, so a protected PDF never reaches pdf-lib | Waiting on A day of production reads after the fix with no details_read EncryptedPDFError |
 
 ### Parked
 
@@ -366,7 +365,7 @@ Small, independent, good for a spare hour.
 
 Done and retired tickets are not listed. Their files stay in [backlog/tasks/](backlog/tasks/) as the record.
 
-- Redact: finish removal: 29 done, 1 retired
+- Redact: finish removal: 31 done, 1 retired
 - Sign: finish fill mode: 4 done, 1 retired
 - Highlight PDF: a tool for reading: 12 done, 1 retired
 - Scan: camera to WhatsApp: 27 done, 0 retired
