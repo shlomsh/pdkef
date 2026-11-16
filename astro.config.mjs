@@ -261,8 +261,9 @@ export default defineConfig({
     // names hash the module's path, not its CSS, and CSS files are named by the modules they hold, in
     // prerender too (Astro pairs a client stylesheet with the one it inlined by file name), so a style
     // edit changes only the CSS it touches.
+    // minifyInternalExports: false keeps shared chunks' export names the same from one build to the next.
     environments: {
-      client: { build: { rolldownOptions: { output: { entryFileNames: entryFileName, chunkFileNames: chunkFileName, assetFileNames: assetFileName('client'), codeSplitting: clientCodeSplitting } } } },
+      client: { build: { rolldownOptions: { output: { entryFileNames: entryFileName, chunkFileNames: chunkFileName, assetFileNames: assetFileName('client'), codeSplitting: clientCodeSplitting, minifyInternalExports: false } } } },
       prerender: { build: { rolldownOptions: { output: { assetFileNames: assetFileName('prerender') } } } },
     },
     css: { modules: { generateScopedName: cssModuleClassName } },
