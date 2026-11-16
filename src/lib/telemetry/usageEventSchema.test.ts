@@ -240,6 +240,35 @@ describe('since (MEM-45)', () => {
   });
 });
 
+describe('tools, newtool and firsttool (MEM-45)', () => {
+  const props = (name: string, p: Record<string, unknown>, tool = 'sign') => ({ name, properties: { tool, ...p } });
+  const ok = { tools: '2', newtool: true, firsttool: 'merge' };
+  it('accepts all three on a tool page view', () => {
+    const e = props('tool_page_viewed', ok);
+    expect(parseUsageEvent(e)).toEqual(e);
+    const e2 = props('tool_page_viewed', { tools: '4+', firsttool: 'sign' });
+    expect(parseUsageEvent(e2)).toEqual(e2);
+  });
+  it.each([
+    ['home', props('tool_page_viewed', ok, 'home')],
+    ['another event', props('tool_file_accepted', ok)],
+    ['a bad bucket', props('tool_page_viewed', { ...ok, tools: '5' })],
+    ['newtool not true', props('tool_page_viewed', { ...ok, newtool: false })],
+    ['an unknown firsttool', props('tool_page_viewed', { ...ok, firsttool: 'nope' })],
+    ['newtool without tools', props('tool_page_viewed', { newtool: true })],
+    ['firsttool without tools', props('tool_page_viewed', { firsttool: 'sign' })],
+    ['tools without firsttool', props('tool_page_viewed', { tools: '1' })],
+  ])('rejects %s', (_w, e) => {
+    expect(parseUsageEvent(e)).toBeNull();
+  });
+  it('leaves the counter fields as they were', () => {
+    const e = parseUsageEvent({ name: 'tool_page_viewed', properties: { tool: 'sign', first: true, visit: 'week', since: 'month', net: '1', ...ok } })!;
+    expect(usageEventField(e)).toBe('tool_page_viewed|sign');
+    expect(usagePageField(e)).toBe('pg:tool_page_viewed|sign|-|-|-|week|month');
+    expect(usageMeasureField(e)).toBe('perf:sign:week:1:-:-:-');
+  });
+});
+
 describe('usageEventField shapes', () => {
   const f = (p: Record<string, unknown>) => usageEventField(parseUsageEvent({ name: 'tool_result_ready', properties: { tool: 'merge', ...p } })!);
   it('has four shapes', () => {

@@ -14,6 +14,7 @@ import { readBuildCommit, sendBeacon } from './errorReport.ts';
 import { resetFileArrivalForTests, takeArrival, takeArrivalTime, type Arrival } from '../handoff/fileArrival.ts';
 import { collectPageMeasures, pageSettled, timeBucket } from './pagePerformance.ts';
 import { NAVIGATION_TYPES, parseUsageEvent, type AnalyticsTool, type NavigationType, type UsageEvent, type UsageEventName, type Since, type ViewOnlyPage, type Visit } from './usageEventSchema';
+import { prepareToolHistory } from './toolHistory.ts';
 import { readAndStampVisits } from './visitRecency.ts';
 
 // The event and tool lists live in the import-free schema the endpoint shares (DEBT-28).
@@ -39,6 +40,8 @@ let editSent = false;
 let startedAt: number | undefined;
 // The visit and since buckets, read and stamped once per page load.
 let visit: { value: { visit: Visit; since: Since } | undefined } | null = null;
+// MEM-45: the tools-opened props for this page load's tool, prepared once and stamped when the view is handed off.
+let history: { tool: string; value: ReturnType<typeof prepareToolHistory> } | null = null;
 
 export function resetUsageEventsForTests(): void {
   handedOff = 0;
@@ -48,12 +51,19 @@ export function resetUsageEventsForTests(): void {
   editSent = false;
   startedAt = undefined;
   visit = null;
+  history = null;
   resetFileArrivalForTests();
 }
 
 function pageVisit(): { visit: Visit; since: Since } | undefined {
   visit ??= { value: readAndStampVisits() };
   return visit.value;
+}
+
+function pageHistory(tool: AnalyticsTool | ViewOnlyPage, visits: unknown): ReturnType<typeof prepareToolHistory> {
+  if (!visits || tool === 'home') return undefined;
+  if (history?.tool !== tool) history = { tool, value: prepareToolHistory(tool) };
+  return history.value;
 }
 
 const SOURCE_EVENTS: readonly UsageEventName[] = [
@@ -151,6 +161,7 @@ function report(event: UsageEventName, tool: AnalyticsTool | ViewOnlyPage, measu
     const arrival = event === 'tool_file_accepted' ? takeArrival() : current;
     const ms = untimed ? undefined : timingBucket(event, event === 'tool_file_accepted' ? { source: arrival?.source, at: takeArrivalTime() } : undefined);
     const visits = event === 'tool_page_viewed' ? pageVisit() : undefined;
+    const toolHistory = event === 'tool_page_viewed' ? pageHistory(tool, visits) : undefined;
     const parsed = parseUsageEvent({
       name: event,
       properties: {
@@ -160,6 +171,7 @@ function report(event: UsageEventName, tool: AnalyticsTool | ViewOnlyPage, measu
         ...(nav ? { nav } : {}),
         ...arrivalProps(event, arrival),
         ...(visits ?? {}),
+        ...(toolHistory?.props ?? {}),
         ...measures,
         ...(ms ? { ms } : {}),
       },
@@ -175,6 +187,8 @@ function report(event: UsageEventName, tool: AnalyticsTool | ViewOnlyPage, measu
     if (sendBeacon(parsed)) {
       handedOff += 1;
       seen.add(pair);
+      toolHistory?.commit();
+      if (toolHistory) history = null; // a second view of this page load reads the stamped list
       sendToSink(parsed, at);
     }
   } catch {

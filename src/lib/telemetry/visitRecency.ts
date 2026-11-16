@@ -10,7 +10,7 @@ import type { Since, Visit } from './usageEventSchema';
 import { RECENT_FILES_META_KEY } from '../drafts/recentFilesKey.js';
 
 const LAST_VISIT_KEY = 'pdkef:last-tool-visit';
-const FIRST_VISIT_KEY = 'pdkef:first-visit';
+export const FIRST_VISIT_KEY = 'pdkef:first-visit';
 const DAY_MS = 864e5;
 
 /**

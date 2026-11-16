@@ -107,6 +107,17 @@ export const SINCES = ['first', 'day', 'week', 'month', 'quarter', 'older'] as c
 export type Since = (typeof SINCES)[number];
 
 /**
+ * `tools`, `newtool`, `firsttool` (MEM-45): on a tool page's `tool_page_viewed` only, decided on the
+ * device from the list of tools this browser has opened, which it keeps for itself and never sends:
+ * how many tools it has opened (this one included), whether this page view is its first of this tool,
+ * and the first tool it opened. Left out when the browser was first seen before the list existed. It
+ * links nothing.
+ * @testSeam
+ */
+const TOOL_COUNTS = ['1', '2', '3', '4+'] as const;
+export type ToolCount = (typeof TOOL_COUNTS)[number];
+
+/**
  * MEM-45: how the site performs for a real visitor, as buckets and never raw values. On
  * `tool_page_viewed`: `net` and `local` count this page's own requests (reached the network / answered
  * on the device), `lcp` is the largest contentful paint and `ready` (tool pages only) is the time to the
@@ -131,6 +142,9 @@ export type UsageEvent = Readonly<{
     from?: HandoffSender;
     visit?: Visit;
     since?: Since;
+    tools?: ToolCount;
+    newtool?: true;
+    firsttool?: AnalyticsTool;
     net?: CountBucket;
     local?: CountBucket;
     lcp?: TimeBucket;
@@ -157,7 +171,7 @@ function exactKeys(value: object, keys: readonly string[]): boolean {
   return actual.length === keys.length && [...keys].sort().every((key, i) => key === actual[i]);
 }
 
-const OPTIONAL_KEYS = ['build', 'first', 'nav', 'source', 'from', 'visit', 'since', 'net', 'local', 'lcp', 'ready', 'ms'] as const;
+const OPTIONAL_KEYS = ['build', 'first', 'nav', 'source', 'from', 'visit', 'since', 'tools', 'newtool', 'firsttool', 'net', 'local', 'lcp', 'ready', 'ms'] as const;
 
 /**
  * Accepts exactly `{name, properties: {tool}}` plus any of the optional properties above, each value
@@ -182,6 +196,10 @@ export function parseUsageEvent(value: unknown): UsageEvent | null {
   if (on('visit') && (name !== 'tool_page_viewed' || !has(VISITS, p.visit))) return null;
   if (on('since') && (name !== 'tool_page_viewed' || !has(SINCES, p.since))) return null;
   const viewed = name === 'tool_page_viewed';
+  const toolPage = viewed && p.tool !== 'home';
+  if (on('tools') && (!toolPage || !has(TOOL_COUNTS, p.tools) || !on('firsttool'))) return null;
+  if (on('newtool') && (!toolPage || p.newtool !== true || !on('tools'))) return null;
+  if (on('firsttool') && (!toolPage || !has(ANALYTICS_TOOLS, p.firsttool) || !on('tools'))) return null;
   if (on('net') && (!viewed || !has(COUNT_BUCKETS, p.net))) return null;
   if (on('local') && (!viewed || !has(COUNT_BUCKETS, p.local))) return null;
   if (on('lcp') && (!viewed || !has(TIME_BUCKETS, p.lcp))) return null;
@@ -198,6 +216,9 @@ export function parseUsageEvent(value: unknown): UsageEvent | null {
       ...(on('from') ? { from: p.from as HandoffSender } : {}),
       ...(on('visit') ? { visit: p.visit as Visit } : {}),
       ...(on('since') ? { since: p.since as Since } : {}),
+      ...(on('tools') ? { tools: p.tools as ToolCount } : {}),
+      ...(on('newtool') ? { newtool: true as const } : {}),
+      ...(on('firsttool') ? { firsttool: p.firsttool as AnalyticsTool } : {}),
       ...(on('net') ? { net: p.net as CountBucket } : {}),
       ...(on('local') ? { local: p.local as CountBucket } : {}),
       ...(on('lcp') ? { lcp: p.lcp as TimeBucket } : {}),

@@ -199,7 +199,7 @@ describe('the funnel (DEBT-58)', () => {
     await settleTick();
     expect(await props()).toEqual([
       { tool: 'home', first: true, visit: 'new', since: 'first' },
-      { tool: 'sign', first: true, visit: 'today', since: 'day' },
+      { tool: 'sign', first: true, visit: 'today', since: 'day', tools: '1', newtool: true, firsttool: 'sign' },
     ]);
   });
 
@@ -210,10 +210,72 @@ describe('the funnel (DEBT-58)', () => {
     reportToolLifecycleEvent('tool_page_viewed', 'sign');
     await settleTick();
     const [a, b] = await props();
-    expect(a).toEqual({ tool: 'sign', first: true, visit: 'new', since: 'first' });
+    expect(a).toEqual({ tool: 'sign', first: true, visit: 'new', since: 'first', tools: '1', newtool: true, firsttool: 'sign' });
     expect(b.visit).toBe('new');
     expect(b.since).toBe('first');
     expect(ls.getItem('pdkef:last-tool-visit')).not.toBeNull();
+  });
+
+  describe('the tools this browser has opened (MEM-45)', () => {
+    const load = async (tool: AnalyticsTool | 'home') => {
+      resetUsageEventsForTests(); // a new page load
+      if (tool === 'home') reportHomePageView();
+      else reportToolLifecycleEvent('tool_page_viewed', tool);
+      await settleTick();
+      const all = await props();
+      return all[all.length - 1];
+    };
+    const history = (p: Record<string, unknown>) => ({ tools: p.tools, newtool: p.newtool, firsttool: p.firsttool });
+    const none = { tools: undefined, newtool: undefined, firsttool: undefined };
+
+    it('counts a fresh browser, then a second tool, then a repeat', async () => {
+      vi.stubGlobal('localStorage', store());
+      expect(history(await load('sign'))).toEqual({ tools: '1', newtool: true, firsttool: 'sign' });
+      expect(history(await load('merge'))).toEqual({ tools: '2', newtool: true, firsttool: 'sign' });
+      expect(history(await load('merge'))).toEqual({ tools: '2', newtool: undefined, firsttool: 'sign' });
+    });
+    it('sends nothing for a returning browser that has no list, now or later', async () => {
+      const ls = store();
+      ls.setItem('pdkef:last-tool-visit', '2020-01-01');
+      vi.stubGlobal('localStorage', ls);
+      expect(history(await load('sign'))).toEqual(none);
+      expect(history(await load('merge'))).toEqual(none);
+    });
+    it('does not stamp the list when the beacon refuses the view', async () => {
+      const ls = store();
+      vi.stubGlobal('localStorage', ls);
+      beacon.mockReturnValueOnce(false);
+      await load('sign');
+      expect(ls.getItem('pdkef:tools-opened')).toBeNull();
+      expect(history(await load('sign'))).toEqual({ tools: '1', newtool: true, firsttool: 'sign' });
+    });
+    it('starts the list for a new browser that saw the home page first', async () => {
+      vi.stubGlobal('localStorage', store());
+      await load('home');
+      expect(history(await load('redact'))).toEqual({ tools: '1', newtool: true, firsttool: 'redact' });
+    });
+    it('starts the list for a browser that saw the home page on an earlier day', async () => {
+      const ls = store();
+      ls.setItem('pdkef:first-visit', '2026-11-16');
+      ls.setItem('pdkef:last-tool-visit', '2026-11-16');
+      vi.stubGlobal('localStorage', ls);
+      expect(history(await load('redact'))).toEqual({ tools: '1', newtool: true, firsttool: 'redact' });
+    });
+    it('sends newtool once when the same page reports its view twice', async () => {
+      vi.stubGlobal('localStorage', store());
+      resetUsageEventsForTests();
+      reportToolLifecycleEvent('tool_page_viewed', 'sign');
+      await settleTick();
+      reportToolLifecycleEvent('tool_page_viewed', 'sign');
+      await settleTick();
+      const [a, b] = await props();
+      expect(history(a)).toEqual({ tools: '1', newtool: true, firsttool: 'sign' });
+      expect(history(b)).toEqual({ tools: '1', newtool: undefined, firsttool: 'sign' });
+    });
+    it('puts nothing on the home page view', async () => {
+      vi.stubGlobal('localStorage', store());
+      expect(history(await load('home'))).toEqual(none);
+    });
   });
 
   it('omits visit without storage', async () => {
