@@ -69,6 +69,8 @@ function deployed(source, critical) {
 
 export async function startTwoBuildServer() {
   let phase = 'old';
+  // Every request the server received, in order, for specs that count them.
+  let requests = [];
 
   const send = (res, status, body, type, extra = {}) => {
     res.writeHead(status, { 'Content-Type': type, 'Cache-Control': 'no-cache', ...extra });
@@ -99,6 +101,7 @@ export async function startTwoBuildServer() {
 
   const server = createServer(async (req, res) => {
     try {
+      requests.push({ path: req.url, headers: req.headers });
       const url = new URL(req.url, 'http://localhost');
       const pathname = decodeURIComponent(url.pathname);
       const target = normalize(join(DIST, pathname));
@@ -131,6 +134,8 @@ export async function startTwoBuildServer() {
   return {
     origin: `http://127.0.0.1:${port}`,
     setPhase(next) { phase = next; },
+    requests: () => requests,
+    resetRequests() { requests = []; },
     close: () => new Promise((done) => { server.closeAllConnections?.(); server.close(done); }),
   };
 }

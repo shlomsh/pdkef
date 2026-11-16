@@ -61,7 +61,7 @@ function homeWindow() {
   return { id: 'home', url: 'https://pdkef.test/', postMessage: (_message, [port]) => port.postMessage({ busy: false }) };
 }
 
-function createWorker(fetchImpl = vi.fn(), cacheKeys = ['pdkef-previous'], indexedDBImpl = createFakeIndexedDB(), source = workerSource, criticalVersion = SHIPPED_CRITICAL) {
+function createWorker(fetchImpl = vi.fn(), cacheKeys = ['pdkef-previous'], indexedDBImpl = createFakeIndexedDB(), source = workerSource, criticalVersion = SHIPPED_CRITICAL, extraContext = {}) {
   const listeners = new Map();
   const currentCacheKey = `pdkef-c${criticalVersion}-__BUILD_ID__`;
   const cacheNames = new Set(cacheKeys);
@@ -123,6 +123,9 @@ function createWorker(fetchImpl = vi.fn(), cacheKeys = ['pdkef-previous'], index
     MessageChannel,
     setTimeout: (...args) => setTimeout(...args),
     clearTimeout: (...args) => clearTimeout(...args),
+    // A resource observer that sees nothing, so a worker counts no downloads unless a test says so.
+    PerformanceObserver: class { static supportedEntryTypes = ['resource']; observe() {} },
+    ...extraContext,
   };
   vm.runInNewContext(source, context);
 
@@ -2422,5 +2425,196 @@ describe('MEM-34: install reuses the HTTP cache, and a same-build page is not re
     await Promise.all(background);
     expect(await response.text()).toBe('cached sign page');
     expect(worker.fetchImpl).toHaveBeenCalledWith(navigate);
+  });
+});
+
+// MEM-45: the worker counts the requests that reached the server, by what asked for them.
+describe.each([['source', workerSource], ['minified source', minifiedWorkerSource]])('download tally (%s)', (_label, source) => {
+  const MAINT = 'maint-sw-v1';
+  const TAKE = { type: 'pdkef:take-downloads' };
+  const flushed = () => new Promise((resolveFlush) => setTimeout(resolveFlush, 0));
+  // A resource timeline stand-in: every fetch the worker makes lands in `pending`, as `size` bytes
+  // over the wire, until the worker takes the records or the test emits them.
+  function timeline(size = 100) {
+    // `null` leaves the transfer size off the entry.
+    const po = { pending: [], callback: null };
+    class FakeObserver {
+      static supportedEntryTypes = ['resource'];
+      constructor(callback) { po.callback = callback; }
+      observe(options) { po.options = options; }
+      takeRecords() { return po.pending.splice(0); }
+    }
+    po.Observer = FakeObserver;
+    po.emit = (...entries) => po.callback({ getEntries: () => entries });
+    po.wrap = (inner) => vi.fn(async (request) => {
+      const entry = { name: requestUrl(request) };
+      if (size !== null) entry.transferSize = size;
+      po.pending.push(entry);
+      return inner(request);
+    });
+    return po;
+  }
+  const make = (po, inner, keys) => createWorker(po.wrap(inner), keys, createFakeIndexedDB(), source, SHIPPED_CRITICAL, { PerformanceObserver: po.Observer });
+  const home = (urls = ['/', '/a.js'], pages = {}, hashes = {}) => manifestResponder(urls, (pathname) => new Response(pathname === '/' ? 'home' : 'asset'), pages, hashes);
+  const recordsOf = async (worker) => {
+    const entries = worker.entriesByCache.get(MAINT) ?? new Map();
+    return Promise.all([...entries].filter(([key]) => key.includes('/__maint/downloads/')).map(async ([, value]) => JSON.parse(await value.clone().text())));
+  };
+  const hint = (worker) => {
+    const postMessage = vi.fn();
+    worker.self.clients.matchAll = vi.fn(async () => [{ postMessage }]);
+    return postMessage;
+  };
+  const navigate = { method: 'GET', mode: 'navigate', url: 'https://pdkef.test/sign/' };
+
+  it('observes resource entries with the buffered ones', async () => {
+    const po = timeline();
+    make(po, home(), []);
+    expect(po.options).toEqual({ type: 'resource', buffered: true });
+  });
+
+  it('counts a first install as install, and the manifest it asked for as forwarded', async () => {
+    const po = timeline();
+    const worker = make(po, home(), []);
+    await dispatchInstall(worker);
+    expect(await dispatchMessage(worker, TAKE)).toEqual({ install: 2, forwarded: 1 });
+  });
+
+  it('counts both fetches of one file under the pass reason', async () => {
+    const po = timeline();
+    const base = home(['/', '/a.js'], {}, { '/a.js': pageHash('asset') });
+    const worker = make(po, (request) => (request.cache === 'force-cache' ? new Response('stale') : base(request)), []);
+    await dispatchInstall(worker);
+    expect(await dispatchMessage(worker, TAKE)).toEqual({ install: 3, forwarded: 1 });
+  });
+
+  it('counts an install over a previous build as update', async () => {
+    const po = timeline();
+    const worker = make(po, home(), ['pdkef-previous']);
+    await dispatchInstall(worker);
+    expect(await dispatchMessage(worker, TAKE)).toEqual({ update: 2, forwarded: 1 });
+  });
+
+  it('counts the closure of a page the network answered as addtool', async () => {
+    const po = timeline();
+    const worker = make(po, home(['/'], { '/sign/': ['/sign/', '/sign.js'] }, { '/': pageHash('home'), '/sign/': pageHash('sign page') }), []);
+    await dispatchInstall(worker);
+    await dispatchMessage(worker, TAKE);
+    worker.context.fetch = po.wrap((request) => new Response(requestUrl(request).endsWith('/sign/') ? 'sign page' : 'asset'));
+    const { response, background } = await dispatchFetch(worker, navigate);
+    await response.text();
+    await awaitAll(background);
+    expect(await dispatchMessage(worker, TAKE)).toEqual({ addtool: 1, forwarded: 1 });
+  });
+
+  it('counts the background refresh of a page answered from cache as refresh', async () => {
+    const po = timeline();
+    const worker = make(po, home(['/']), []);
+    await dispatchInstall(worker);
+    await dispatchMessage(worker, TAKE);
+    worker.entries.set('https://pdkef.test/sign/', new Response('cached sign page'));
+    const { background } = await dispatchFetch(worker, navigate);
+    await awaitAll(background);
+    expect(await dispatchMessage(worker, TAKE)).toEqual({ refresh: 1 });
+  });
+
+  it('counts the pages open after the first activation as install', async () => {
+    const po = timeline();
+    const worker = make(po, home(['/'], { '/': ['/', '/home.js'] }), []);
+    await dispatchInstall(worker);
+    await dispatchMessage(worker, TAKE);
+    worker.entries.delete('https://pdkef.test/home.js');
+    await dispatchActivate(worker);
+    await flushed();
+    await flushed();
+    expect(await dispatchMessage(worker, TAKE)).toEqual({ install: 1 });
+  });
+
+  it('counts a request the worker passes through as forwarded', async () => {
+    const po = timeline();
+    const worker = make(po, home(['/']), []);
+    await dispatchInstall(worker);
+    await dispatchMessage(worker, TAKE);
+    const { response } = await dispatchFetch(worker, new Request('https://pdkef.test/other.js'));
+    await response.text();
+    expect(await dispatchMessage(worker, TAKE)).toEqual({ forwarded: 1 });
+  });
+
+  it('counts nothing for an entry served from the HTTP cache, and writes no record', async () => {
+    const po = timeline(0);
+    const worker = make(po, home(), []);
+    await dispatchInstall(worker);
+    expect(await recordsOf(worker)).toEqual([]);
+    expect(await dispatchMessage(worker, TAKE)).toEqual({});
+  });
+
+  it('marks the tally unmeasured for an entry without a transfer size', async () => {
+    const po = timeline(null);
+    const worker = make(po, home(), []);
+    await dispatchInstall(worker);
+    expect(await dispatchMessage(worker, TAKE)).toEqual({ unmeasured: true });
+  });
+
+  it('is unmeasured from the start without a resource observer, never reading as zero downloads', async () => {
+    const worker = createWorker(home(), [], createFakeIndexedDB(), source, SHIPPED_CRITICAL, { PerformanceObserver: undefined });
+    await dispatchInstall(worker);
+    expect(await dispatchMessage(worker, TAKE)).toEqual({ unmeasured: true });
+  });
+
+  it('writes one record per flush and posts the hint to every window', async () => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+    try {
+      const po = timeline();
+      const worker = make(po, home(['/']), []);
+      const posted = hint(worker);
+      po.emit({ name: 'https://pdkef.test/x.js', transferSize: 5 }, { name: 'https://pdkef.test/y.js', transferSize: 5 });
+      await vi.advanceTimersByTimeAsync(1999);
+      expect(await recordsOf(worker)).toEqual([]);
+      await vi.advanceTimersByTimeAsync(1);
+      expect(await recordsOf(worker)).toEqual([{ v: 1, forwarded: 2 }]);
+      expect(posted).toHaveBeenCalledWith({ type: 'pdkef:downloads-recorded' });
+      const [key] = [...worker.entriesByCache.get(MAINT).keys()];
+      expect(key).toMatch(/^https:\/\/pdkef\.test\/__maint\/downloads\/__BUILD_ID__-\d+-/);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('sums and deletes every record on a take, and a second take gets nothing', async () => {
+    const po = timeline();
+    const worker = make(po, home(['/']), []);
+    const maint = await worker.caches.open(MAINT);
+    await maint.put('https://pdkef.test/__maint/downloads/a', new Response(JSON.stringify({ v: 1, install: 2, forwarded: 1 })));
+    await maint.put('https://pdkef.test/__maint/downloads/b', new Response(JSON.stringify({ v: 1, install: 1, refresh: 4, unmeasured: true })));
+    await maint.put('https://pdkef.test/__maint/sw-install/other', new Response('{}'));
+    po.emit({ name: 'https://pdkef.test/x.js', transferSize: 5 });
+    expect(await dispatchMessage(worker, TAKE)).toEqual({ install: 3, forwarded: 2, refresh: 4, unmeasured: true });
+    expect([...worker.entriesByCache.get(MAINT).keys()]).toEqual(['https://pdkef.test/__maint/sw-install/other']);
+    expect(await dispatchMessage(worker, TAKE)).toEqual({});
+  });
+
+  it('gives two takes at once the records only once', async () => {
+    const po = timeline();
+    const worker = make(po, home(['/']), []);
+    po.emit({ name: 'https://pdkef.test/x.js', transferSize: 5 });
+    const [first, second] = await Promise.all([dispatchMessage(worker, TAKE), dispatchMessage(worker, TAKE)]);
+    expect([first, second]).toEqual([{ forwarded: 1 }, {}]);
+  });
+
+  it('drops the counts when 50 records are already held', async () => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+    try {
+      const po = timeline();
+      const worker = make(po, home(['/']), []);
+      const maint = await worker.caches.open(MAINT);
+      for (let n = 0; n < 50; n += 1) await maint.put(`https://pdkef.test/__maint/downloads/old-${n}`, new Response('{"v":1,"install":1}'));
+      const posted = hint(worker);
+      po.emit({ name: 'https://pdkef.test/x.js', transferSize: 5 });
+      await vi.advanceTimersByTimeAsync(2000);
+      expect(await recordsOf(worker)).toHaveLength(50);
+      expect(posted).not.toHaveBeenCalled();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

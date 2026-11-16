@@ -14,6 +14,7 @@ import {
   COUNT_BUCKETS,
   TIME_BUCKETS,
   usageMeasureField,
+  DOWNLOAD_BUCKETS,
 } from './usageEventSchema.ts';
 
 const ev = (name: unknown, tool: unknown) => ({ name, properties: { tool } });
@@ -365,5 +366,51 @@ describe('performance measures (MEM-45)', () => {
     const body = JSON.stringify({ name: 'tool_page_viewed', properties: { tool: 'highlight-pdf', build: '08e10cf', first: true, nav: 'back_forward', visit: 'month', net: '31-50', local: '16-30', lcp: 'le2.5s', ready: 'le2.5s' } });
     expect(body.length).toBeLessThan(400);
     expect(parseUsageEvent(JSON.parse(body))).not.toBeNull();
+  });
+});
+
+describe('worker_downloads (MEM-45)', () => {
+  const w = (p: Record<string, unknown>, tool: unknown = 'sign') => ({ name: 'worker_downloads', properties: { tool, ...p } });
+  it.each([
+    ['one kind', { install: '2-5' }],
+    ['every kind', { install: '1', update: '2-5', addtool: '6-10', refresh: '11-20', forwarded: '81+' }],
+    ['unmeasured alone', { unmeasured: true }],
+    ['counts with unmeasured', { refresh: '1', unmeasured: true }],
+  ])('accepts %s', (_l, p) => {
+    expect(parseUsageEvent(w(p))).toEqual(w(p));
+  });
+  it.each(DOWNLOAD_BUCKETS.map((b) => [b]))('accepts bucket %s', (b) => {
+    expect(parseUsageEvent(w({ update: b }))).not.toBeNull();
+  });
+  it('accepts the home page as the tool', () => {
+    expect(parseUsageEvent(w({ install: '1' }, 'home'))).not.toBeNull();
+  });
+  it.each([
+    ['no count and no unmeasured', {}],
+    ['a bucket off the list', { install: '3' }],
+    ['a number', { install: 3 }],
+    ['an unknown kind', { other: '1' }],
+    ['unmeasured false', { unmeasured: false }],
+    ['a source', { install: '1', source: 'pick' }],
+    ['first', { install: '1', first: true }],
+    ['a build', { install: '1', build: 'abcdef1' }],
+    ['a visit', { install: '1', visit: 'new' }],
+  ])('rejects %s', (_l, p) => {
+    expect(parseUsageEvent(w(p))).toBeNull();
+  });
+  it('rejects an unknown tool', () => {
+    expect(parseUsageEvent(w({ install: '1' }, 'nope'))).toBeNull();
+  });
+  it.each(['tool_page_viewed', 'tool_file_accepted'])('keeps the properties off %s', (name) => {
+    expect(parseUsageEvent({ name, properties: { tool: 'sign', install: '1' } })).toBeNull();
+    expect(parseUsageEvent({ name, properties: { tool: 'sign', unmeasured: true } })).toBeNull();
+  });
+  it('does not make home a tool for other events', () => {
+    expect(parseUsageEvent({ name: 'tool_file_accepted', properties: { tool: 'home' } })).toBeNull();
+  });
+  it('files under no page or measure counter', () => {
+    const e = parseUsageEvent(w({ install: '1' }))!;
+    expect(usagePageField(e)).toBeUndefined();
+    expect(usageMeasureField(e)).toBeUndefined();
   });
 });

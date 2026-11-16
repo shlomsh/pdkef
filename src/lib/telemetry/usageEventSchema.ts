@@ -55,8 +55,21 @@ export type ToolLifecycleEvent = (typeof TOOL_LIFECYCLE_EVENTS)[number];
  */
 const DRIVE_SAVE_EVENTS = ['tool_drive_shown', 'tool_drive_tapped', 'tool_drive_saved', 'tool_drive_failed'] as const;
 type DriveSaveEvent = (typeof DRIVE_SAVE_EVENTS)[number];
-export type UsageEventName = ToolLifecycleEvent | DriveSaveEvent;
-const USAGE_EVENTS: readonly UsageEventName[] = [...TOOL_LIFECYCLE_EVENTS, ...DRIVE_SAVE_EVENTS];
+
+/**
+ * `worker_downloads` (MEM-45): requests this browser's offline-copy worker sent to the server since the
+ * last report, by kind: installing the offline copy (`install`), updating it after a deploy (`update`),
+ * adding a tool to it (`addtool`), refreshing a page in it (`refresh`), and passing a page's request on
+ * (`forwarded`). Counts as buckets. `unmeasured` when the browser cannot tell. At least one of the six is present.
+ * @testSeam
+ */
+export const DOWNLOAD_BUCKETS = ['1', '2-5', '6-10', '11-20', '21-40', '41-80', '81+'] as const;
+export type DownloadBucket = (typeof DOWNLOAD_BUCKETS)[number];
+export const DOWNLOAD_KINDS = ['install', 'update', 'addtool', 'refresh', 'forwarded'] as const;
+export type DownloadKind = (typeof DOWNLOAD_KINDS)[number];
+
+export type UsageEventName = ToolLifecycleEvent | DriveSaveEvent | 'worker_downloads';
+const USAGE_EVENTS: readonly UsageEventName[] = [...TOOL_LIFECYCLE_EVENTS, ...DRIVE_SAVE_EVENTS, 'worker_downloads'];
 
 /**
  * `build` (DEBT-44): the 7-character commit the page was built from, as in an error report, so a
@@ -150,6 +163,12 @@ export type UsageEvent = Readonly<{
     lcp?: TimeBucket;
     ready?: TimeBucket;
     ms?: TimeBucket;
+    install?: DownloadBucket;
+    update?: DownloadBucket;
+    addtool?: DownloadBucket;
+    refresh?: DownloadBucket;
+    forwarded?: DownloadBucket;
+    unmeasured?: true;
   }>;
 }>;
 
@@ -171,7 +190,7 @@ function exactKeys(value: object, keys: readonly string[]): boolean {
   return actual.length === keys.length && [...keys].sort().every((key, i) => key === actual[i]);
 }
 
-const OPTIONAL_KEYS = ['build', 'first', 'nav', 'source', 'from', 'visit', 'since', 'tools', 'newtool', 'firsttool', 'net', 'local', 'lcp', 'ready', 'ms'] as const;
+const OPTIONAL_KEYS = ['build', 'first', 'nav', 'source', 'from', 'visit', 'since', 'tools', 'newtool', 'firsttool', 'net', 'local', 'lcp', 'ready', 'ms', ...DOWNLOAD_KINDS, 'unmeasured'] as const;
 
 /**
  * Accepts exactly `{name, properties: {tool}}` plus any of the optional properties above, each value
@@ -187,7 +206,12 @@ export function parseUsageEvent(value: unknown): UsageEvent | null {
   if (!exactKeys(properties, ['tool', ...present])) return null;
   const p = properties as Record<string, unknown>;
   const on = (key: (typeof OPTIONAL_KEYS)[number]) => present.includes(key);
-  if (!has(ANALYTICS_TOOLS, p.tool) && !(name === 'tool_page_viewed' && has(VIEW_ONLY_PAGES, p.tool))) return null;
+  const worker = name === 'worker_downloads';
+  if (!has(ANALYTICS_TOOLS, p.tool) && !((name === 'tool_page_viewed' || worker) && has(VIEW_ONLY_PAGES, p.tool))) return null;
+  const counted = DOWNLOAD_KINDS.filter(on);
+  if (worker && present.some((key) => key !== 'unmeasured' && !(DOWNLOAD_KINDS as readonly string[]).includes(key))) return null;
+  if (worker ? !counted.length && !on('unmeasured') : counted.length || on('unmeasured')) return null;
+  if (counted.some((kind) => !has(DOWNLOAD_BUCKETS, p[kind])) || (on('unmeasured') && p.unmeasured !== true)) return null;
   if (on('build') && (typeof p.build !== 'string' || !BUILD.test(p.build))) return null;
   if (on('first') && p.first !== true) return null;
   if (on('nav') && (!on('first') || !has(NAVIGATION_TYPES, p.nav))) return null;
@@ -224,6 +248,8 @@ export function parseUsageEvent(value: unknown): UsageEvent | null {
       ...(on('lcp') ? { lcp: p.lcp as TimeBucket } : {}),
       ...(on('ready') ? { ready: p.ready as TimeBucket } : {}),
       ...(on('ms') ? { ms: p.ms as TimeBucket } : {}),
+      ...Object.fromEntries(counted.map((kind) => [kind, p[kind]])),
+      ...(on('unmeasured') ? { unmeasured: true as const } : {}),
     }),
   });
 }

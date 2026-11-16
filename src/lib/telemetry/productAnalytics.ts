@@ -9,13 +9,14 @@
  * Hobby did not record them as Vercel custom events.
  */
 
-import { sendToSink } from './analyticsSink.ts';
+import { readSinkConfig, sendToSink } from './analyticsSink.ts';
 import { readBuildCommit, sendBeacon } from './errorReport.ts';
 import { resetFileArrivalForTests, takeArrival, takeArrivalTime, type Arrival } from '../handoff/fileArrival.ts';
 import { collectPageMeasures, pageSettled, timeBucket } from './pagePerformance.ts';
 import { NAVIGATION_TYPES, parseUsageEvent, type AnalyticsTool, type NavigationType, type UsageEvent, type UsageEventName, type Since, type ViewOnlyPage, type Visit } from './usageEventSchema';
 import { prepareToolHistory } from './toolHistory.ts';
 import { readAndStampVisits } from './visitRecency.ts';
+import { watchWorkerDownloads } from './workerDownloads.ts';
 
 // The event and tool lists live in the import-free schema the endpoint shares (DEBT-28).
 export {
@@ -42,6 +43,8 @@ let startedAt: number | undefined;
 let visit: { value: { visit: Visit; since: Since } | undefined } | null = null;
 // MEM-45: the tools-opened props for this page load's tool, prepared once and stamped when the view is handed off.
 let history: { tool: string; value: ReturnType<typeof prepareToolHistory> } | null = null;
+// MEM-45: whether this page load already asked the offline-copy worker for its download counts.
+let watching = false;
 
 export function resetUsageEventsForTests(): void {
   handedOff = 0;
@@ -52,6 +55,7 @@ export function resetUsageEventsForTests(): void {
   startedAt = undefined;
   visit = null;
   history = null;
+  watching = false;
   resetFileArrivalForTests();
 }
 
@@ -192,10 +196,24 @@ function report(event: UsageEventName, tool: AnalyticsTool | ViewOnlyPage, measu
       toolHistory?.commit();
       if (toolHistory) history = null; // a second view of this page load reads the stamped list
       sendToSink(parsed, at);
+      if (event === 'tool_page_viewed') watchDownloads(tool);
     }
   } catch {
     // expected: Analytics must never alter an offline or local document workflow.
   }
+}
+
+/** MEM-45: once per page load, after its view went out: the worker's download counts go to the analytics address only, never to /api/report. */
+function watchDownloads(tool: AnalyticsTool | ViewOnlyPage): void {
+  if (watching || !readSinkConfig()) return;
+  watching = true;
+  watchWorkerDownloads((props) => {
+    const parsed = parseUsageEvent({ name: 'worker_downloads', properties: { tool, ...props } });
+    if (parsed && handedOff < MAX_USAGE_EVENTS_PER_PAGE) {
+      handedOff += 1;
+      sendToSink(parsed);
+    }
+  });
 }
 
 /**

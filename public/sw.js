@@ -83,6 +83,8 @@ const BUSY_QUERY_MESSAGE = 'pdkef:busy-query';
 // MEM-40: sent by the installed app (src/lib/appUpdate/engagement.ts): the app starts at `/`,
 // so it asks the active worker to cache the home page's closure.
 const CACHE_HOME_MESSAGE = 'pdkef:cache-home';
+const TAKE_DOWNLOADS_MESSAGE = 'pdkef:take-downloads';
+const DOWNLOADS_RECORDED_MESSAGE = 'pdkef:downloads-recorded';
 const BUSY_TIMEOUT_MS = 750;
 // MEM-13: a critical build tells every tab (CRITICAL_UPDATE_MESSAGE) and waits
 // for each to reply { ready: true } before it skips waiting. The page holds its
@@ -187,6 +189,121 @@ async function recordBounded(reason, bucket) {
   const bound = new Promise((resolveBound) => { timer = setTimeout(resolveBound, MAINT_RECORD_BOUND_MS); });
   await Promise.race([recordInstallFailure(reason, bucket), bound]);
   clearTimeout(timer);
+}
+
+// MEM-45: requests that reached the server, counted per reason from the worker's own
+// resource timeline (a transferSize above 0 is one request the server received).
+// `reasons` maps an absolute URL to the reasons the worker registered right before
+// each fetch of it, oldest first; any other entry is `forwarded`. `tally` holds the counts not yet
+// written; `unmeasured` stays set once a count could not be read. Records are one
+// key per flush under DOWNLOADS_PREFIX; one chain serialises flushes and takes.
+const DOWNLOADS_PREFIX = '/__maint/downloads/';
+const DOWNLOAD_RECORDS_MAX = 50;
+const DOWNLOAD_FLUSH_MS = 2000;
+const DOWNLOAD_REASONS = ['install', 'update', 'addtool', 'refresh', 'forwarded'];
+const reasons = new Map();
+let tally = {};
+let unmeasured = false;
+let downloadObserver = null;
+let downloadTimer = 0;
+let downloadChain = Promise.resolve();
+
+function addReason(url, reason) {
+  const queue = reasons.get(url);
+  if (queue) queue.push(reason);
+  else reasons.set(url, [reason]);
+}
+
+function countDownloads(entries) {
+  let changed = false;
+  for (const entry of entries) {
+    const queue = reasons.get(entry.name);
+    const reason = queue?.shift() ?? 'forwarded';
+    if (queue && !queue.length) reasons.delete(entry.name);
+    if (typeof entry.transferSize !== 'number') {
+      unmeasured = true;
+      changed = true;
+    } else if (entry.transferSize > 0) {
+      tally[reason] = (tally[reason] ?? 0) + 1;
+      changed = true;
+    }
+  }
+  if (changed && !downloadTimer) downloadTimer = setTimeout(flushDownloads, DOWNLOAD_FLUSH_MS);
+}
+
+try {
+  if (typeof PerformanceObserver === 'function' && PerformanceObserver.supportedEntryTypes?.includes('resource')) {
+    downloadObserver = new PerformanceObserver((list) => countDownloads(list.getEntries()));
+    downloadObserver.observe({ type: 'resource', buffered: true });
+  } else {
+    unmeasured = true;
+  }
+} catch {
+  unmeasured = true;
+}
+
+function inDownloadChain(task) {
+  const run = downloadChain.then(task);
+  downloadChain = run.catch(() => {});
+  return run;
+}
+
+// Never throws. Writes the tally as a new record unless 50 are already held, then hints the windows.
+async function writeDownloads() {
+  try {
+    clearTimeout(downloadTimer);
+    downloadTimer = 0;
+    countDownloads(downloadObserver?.takeRecords?.() ?? []);
+    clearTimeout(downloadTimer);
+    downloadTimer = 0;
+    const counts = tally;
+    tally = {};
+    if (!unmeasured && !DOWNLOAD_REASONS.some((reason) => counts[reason] > 0)) return;
+    const maint = await caches.open(MAINT_CACHE);
+    const held = (await maint.keys()).filter((request) => request.url.startsWith(resolve(DOWNLOADS_PREFIX)));
+    if (held.length >= DOWNLOAD_RECORDS_MAX) return;
+    const record = { v: 1 };
+    for (const reason of DOWNLOAD_REASONS) if (counts[reason] > 0) record[reason] = counts[reason];
+    if (unmeasured) record.unmeasured = true;
+    await maint.put(
+      resolve(`${DOWNLOADS_PREFIX}${BUILD_ID}-${Date.now()}-${Math.random().toString(36).slice(2)}`),
+      new Response(JSON.stringify(record)),
+    );
+    for (const client of await self.clients.matchAll({ type: 'window', includeUncontrolled: true })) {
+      client.postMessage({ type: DOWNLOADS_RECORDED_MESSAGE });
+    }
+  } catch {
+    // Counting is best effort; it must not change how anything else ends.
+  }
+}
+
+function flushDownloads() {
+  return inDownloadChain(writeDownloads);
+}
+
+// Flushes, then reads, deletes and sums every record. Resolves to the summed counts.
+function takeDownloads() {
+  return inDownloadChain(async () => {
+    const sum = {};
+    await writeDownloads();
+    try {
+      const maint = await caches.open(MAINT_CACHE);
+      for (const request of await maint.keys()) {
+        if (!request.url.startsWith(resolve(DOWNLOADS_PREFIX))) continue;
+        try {
+          const record = await (await maint.match(request)).json();
+          for (const reason of DOWNLOAD_REASONS) if (record[reason] > 0) sum[reason] = (sum[reason] ?? 0) + record[reason];
+          if (record.unmeasured) sum.unmeasured = true;
+        } catch {
+          // An unreadable record is dropped with the rest.
+        }
+        await maint.delete(request);
+      }
+    } catch {
+      // Whatever was read is still reported.
+    }
+    return sum;
+  });
 }
 
 // A real ServiceWorkerGlobalScope resolves a bare '/path' Request against the
@@ -465,7 +582,7 @@ async function forEachLimited(items, limit, task) {
 // handler below, so a miss costs nothing but the offline guarantee for that one
 // asset. Only REQUIRED_URL ('/') is load-bearing enough to fail the install
 // over. Resolves to the URLs it did not cache.
-async function precacheUrls(cache, urls, previousCaches, { skipCached = false, hashes = {}, sameHeaders = [] } = {}) {
+async function precacheUrls(cache, urls, previousCaches, { skipCached = false, hashes = {}, sameHeaders = [], reason = 'update' } = {}) {
   const missed = [];
   // MEM-16, MEM-32: carry unchanged files over from the previous build's cache
   // instead of downloading them again. Activate deletes those caches only
@@ -478,6 +595,7 @@ async function precacheUrls(cache, urls, previousCaches, { skipCached = false, h
   }
   const toCopy = new Set(plan.copy);
   const toVerify = new Set(plan.verify);
+  try {
   await forEachLimited(urls, PRECACHE_CONCURRENCY, async (url) => {
     if (skipCached && await cache.match(url)) return;
     try {
@@ -505,6 +623,7 @@ async function precacheUrls(cache, urls, previousCaches, { skipCached = false, h
         if (hashes[url] && !isHashedUrl(url) && !url.endsWith('/') && !url.endsWith('.html')) {
           let held = null;
           try {
+            addReason(resolve(url), reason);
             const cached = await fetch(new Request(resolve(url), { cache: 'force-cache', signal }));
             if (cached.ok) {
               const kept = await trackProgress(cached, touch).arrayBuffer();
@@ -518,6 +637,7 @@ async function precacheUrls(cache, urls, previousCaches, { skipCached = false, h
             return;
           }
         }
+        addReason(resolve(url), reason);
         let response = isHashedUrl(url) ? await fetch(new Request(resolve(url), { signal })) : await fetchFresh(url, signal);
         if (!response.ok) throw new Error(`Failed to precache ${url}: ${response.status}`);
         const expected = hashes[url];
@@ -532,6 +652,7 @@ async function precacheUrls(cache, urls, previousCaches, { skipCached = false, h
         if (await hashBytes(bytes) !== expected) {
           // MEM-29: ask once more, past the HTTP cache, before calling the file
           // another build's: a phone failed every install of a fix on `/` alone.
+          addReason(resolve(url), reason);
           response = await fetch(new Request(resolve(url), { cache: 'reload', signal }));
           if (!response.ok) throw new Error(`Failed to precache ${url}: ${response.status}`);
           bytes = await trackProgress(response, touch).arrayBuffer();
@@ -544,6 +665,9 @@ async function precacheUrls(cache, urls, previousCaches, { skipCached = false, h
       missed.push(url);
     }
   });
+  } finally {
+    await flushDownloads();
+  }
   return missed;
 }
 
@@ -580,7 +704,7 @@ async function precacheAppShell({ skipCached = false } = {}) {
     // No readable cache: only the open pages and `/`.
   }
   const urls = installPaths(manifest, await openPagePaths(), held);
-  const missed = await precacheUrls(cache, urls, previousCaches, { skipCached, hashes: manifest.hashes, sameHeaders });
+  const missed = await precacheUrls(cache, urls, previousCaches, { skipCached, hashes: manifest.hashes, sameHeaders, reason: skipCached || previousCaches.length > 0 ? 'update' : 'install' });
   if (missed.length > 0) {
     console.warn(`[pdkef] ${missed.length}/${urls.length} assets are not cached for offline use; they will load from the network.`);
   }
@@ -886,14 +1010,15 @@ async function mayStore(cache, key, response, { navigation = false } = {}) {
 // of its closure cached, so the tool a person opened works offline from then on.
 // MEM-34's force-cache first means the files the page already loaded come from the
 // HTTP cache. Failures are silent: a miss only leaves that page uncached.
-async function cacheRestOfPage(cache, cacheKey) {
+async function cacheRestOfPage(cache, cacheKey, reason = 'addtool') {
   try {
     const manifest = await manifestOfThisBuild(cache);
     const closure = manifest?.pages?.[cacheKey];
-    if (Array.isArray(closure)) await precacheUrls(cache, closure, [], { skipCached: true, hashes: manifest.hashes });
+    if (Array.isArray(closure)) await precacheUrls(cache, closure, [], { skipCached: true, hashes: manifest.hashes, reason });
   } catch {
     // Silent, as the install's own misses are.
   }
+  await flushDownloads();
 }
 
 // MEM-40: the installed app starts at `/`, so it must open offline even for a person who only
@@ -907,6 +1032,7 @@ async function cacheHome() {
   } catch {
     // Silent: the home page stays uncached until the next ask.
   }
+  await flushDownloads();
 }
 
 // MEM-35: on a first install, a tab opened while the build installed loaded from the
@@ -914,13 +1040,15 @@ async function cacheHome() {
 // had already listed the open pages. Right after taking control, in the background, the
 // build caches the closure of every page open now.
 async function cacheOpenPages(cache) {
-  for (const path of new Set(await openPagePaths())) await cacheRestOfPage(cache, path);
+  for (const path of new Set(await openPagePaths())) await cacheRestOfPage(cache, path, 'install');
+  await flushDownloads();
 }
 
 // Resolves to the network's page and whether it is this build's (and so
 // stored), or null without a network.
-async function refreshNavigation(request, cache, cacheKey) {
+async function refreshNavigation(request, cache, cacheKey, reason = 'forwarded') {
   try {
+    addReason(request.url, reason);
     const response = await fetch(request);
     const ours = response.ok && await mayStore(cache, cacheKey, response, { navigation: true });
     if (ours) await cache.put(cacheKey, response.clone());
@@ -1311,6 +1439,11 @@ self.addEventListener('message', (event) => {
     event.waitUntil(cacheHome());
     return;
   }
+  if (type === TAKE_DOWNLOADS_MESSAGE) {
+    const reply = event.ports?.[0];
+    if (reply) event.waitUntil(takeDownloads().then((sum) => reply.postMessage(sum)).catch(() => {}));
+    return;
+  }
   if (![FONT_PACK_MESSAGE.status, FONT_PACK_MESSAGE.provision].includes(type)) return;
   const reply = event.ports?.[0];
   if (!reply) return;
@@ -1355,7 +1488,7 @@ self.addEventListener('fetch', (event) => {
           // navigation for nothing. Without a readable hash it refreshes as before.
           const expected = (await hashesOfThisBuild(cache))?.[cacheKey];
           const sameBuild = expected && await hashBytes(await cached.clone().arrayBuffer()) === expected;
-          if (!sameBuild) event.waitUntil(refreshNavigation(request, cache, cacheKey));
+          if (!sameBuild) event.waitUntil(refreshNavigation(request, cache, cacheKey, 'refresh'));
           return cached;
         }
         const fresh = await refreshNavigation(request, cache, cacheKey);

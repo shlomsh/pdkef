@@ -3,6 +3,7 @@ import { markArrival } from '../handoff/fileArrival.ts';
 import { sendToSink } from './analyticsSink.ts';
 import * as pagePerformance from './pagePerformance.ts';
 import { setReportingEnabledForTests } from './errorReport.ts';
+import { watchWorkerDownloads } from './workerDownloads.ts';
 import {
   MAX_USAGE_EVENTS_PER_PAGE,
   reportEdit,
@@ -20,6 +21,8 @@ vi.mock('./pagePerformance.ts', async (importOriginal) => ({
   pageSettled: vi.fn(async () => 'loaded' as const),
   collectPageMeasures: vi.fn(async () => ({})),
 }));
+
+vi.mock('./workerDownloads.ts', () => ({ watchWorkerDownloads: vi.fn() }));
 
 vi.mock('./analyticsSink.ts', async (importOriginal) => {
   const actual = await importOriginal<typeof import('./analyticsSink.ts')>();
@@ -561,5 +564,79 @@ describe('reportResult and reportHandedOn', () => {
     beacon.mockClear();
     reportHandedOn('merge');
     expect(beacon).not.toHaveBeenCalled();
+  });
+});
+
+describe('worker downloads (MEM-45)', () => {
+  const sunk = () => vi.mocked(sendToSink).mock.calls.map(([e]) => e as { name: string; properties: Record<string, unknown> });
+  const onReport = () => vi.mocked(watchWorkerDownloads).mock.calls[0][0];
+  beforeEach(() => {
+    vi.stubEnv('PUBLIC_ANALYTICS_HOST', 'https://e.example.test');
+    vi.stubEnv('PUBLIC_ANALYTICS_KEY', 'k');
+    vi.mocked(watchWorkerDownloads).mockClear();
+    vi.mocked(sendToSink).mockClear();
+    stubBrowser();
+  });
+
+  it('starts watching once per page load, after the page view went out', async () => {
+    reportToolLifecycleEvent('tool_page_viewed', 'merge');
+    expect(watchWorkerDownloads).not.toHaveBeenCalled();
+    await settleTick();
+    expect(watchWorkerDownloads).toHaveBeenCalledOnce();
+    reportToolLifecycleEvent('tool_page_viewed', 'merge');
+    await settleTick();
+    expect(watchWorkerDownloads).toHaveBeenCalledOnce();
+  });
+
+  it('does not ask the worker at all without an analytics address', async () => {
+    vi.unstubAllEnvs();
+    reportToolLifecycleEvent('tool_page_viewed', 'merge');
+    await settleTick();
+    expect(watchWorkerDownloads).not.toHaveBeenCalled();
+  });
+
+  it('starts on the home page too, and not on other events', async () => {
+    reportToolLifecycleEvent('tool_file_accepted', 'merge');
+    expect(watchWorkerDownloads).not.toHaveBeenCalled();
+    reportHomePageView();
+    await settleTick();
+    expect(watchWorkerDownloads).toHaveBeenCalledOnce();
+  });
+
+  it('sends the report to the analytics address only, with the page tool, never to /api/report', async () => {
+    reportToolLifecycleEvent('tool_page_viewed', 'sign');
+    await settleTick();
+    beacon.mockClear();
+    vi.mocked(sendToSink).mockClear();
+    onReport()({ install: '2-5', unmeasured: true });
+    expect(sunk()).toEqual([{ name: 'worker_downloads', properties: { tool: 'sign', install: '2-5', unmeasured: true } }]);
+    expect(beacon.mock.calls.filter(([url]) => url === '/api/report')).toEqual([]);
+    expect(beacon).toHaveBeenCalledOnce();
+    expect(beacon.mock.calls[0][0]).toBe('https://e.example.test/i/v0/e/');
+  });
+
+  it('names the home page as the tool', async () => {
+    reportHomePageView();
+    await settleTick();
+    vi.mocked(sendToSink).mockClear();
+    onReport()({ refresh: '1' });
+    expect(sunk()[0].properties).toEqual({ tool: 'home', refresh: '1' });
+  });
+
+  it('counts against the per-page cap', async () => {
+    reportToolLifecycleEvent('tool_page_viewed', 'sign');
+    await settleTick();
+    for (let i = 0; i < MAX_USAGE_EVENTS_PER_PAGE; i++) reportToolLifecycleEvent('tool_operation_started', 'sign');
+    vi.mocked(sendToSink).mockClear();
+    onReport()({ install: '1' });
+    expect(sunk()).toEqual([]);
+  });
+
+  it('drops a report the schema does not accept', async () => {
+    reportToolLifecycleEvent('tool_page_viewed', 'sign');
+    await settleTick();
+    vi.mocked(sendToSink).mockClear();
+    onReport()({} as never);
+    expect(sunk()).toEqual([]);
   });
 });
