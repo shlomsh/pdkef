@@ -262,5 +262,8 @@ Read: 2026-12-01, against the baseline above, logged in [findings doc section 8]
   priority). Free, open source (MIT), Online; English and Hebrew; tags pdf-editor, merge-pdf, split-pdf,
   compress-pdf, sign-pdf, pdf-redaction, privacy-focused, offline-access; "No Tracking" left unticked
   (anonymous usage counts); release date July 2026; reviewer note discloses authorship. Links are nofollow.
+  Seven alternatives suggested the same night: Smallpdf, iLovePDF, Stirling PDF, PDF24 Tools, Sejda,
+  BentoPDF, PaperKnife. The $15 priority review was declined; the listing page is visible only to Shlomi
+  until reviewed, so don't share its link yet.
 - LinkedIn (Hebrew, origin story): posted about four months before the pilot, about 5,200 impressions; its
   first comment links `pdkef.vercel.app`, which redirects to pdkef.com.
