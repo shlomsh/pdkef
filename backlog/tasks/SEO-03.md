@@ -201,3 +201,53 @@ Table and counts: [findings doc section 8](../../docs/seo-competitive-findings.m
   qualify is a waste of time.
 - [Withdrawal posted on the PR](https://github.com/pluja/awesome-privacy/pull/1103#issuecomment-6618100165)
   on 2026-11-04 with that reason.
+
+## 2026-11-17: community pilot, plan and baseline
+
+Shlomi asked for a pilot that earns brand mentions and links by giving real value, with the name and link
+alongside. Research by three agents and checks in his Chrome, same day.
+
+**What shapes it**
+
+- Accounts with history: LinkedIn and Product Hunt. X is dormant. No Reddit, Hacker News or Stack Exchange
+  history, and those sites quietly filter new accounts, so they wait for a warm-up.
+- Hacker News: "Don't post generated text or AI-edited text"
+  ([guidelines](https://news.ycombinator.com/newsguidelines.html), read 2026-11-17). A Show HN is Shlomi's
+  own words; the agent prepares facts only. Treat any venue whose AI rule is unknown the same way.
+- Quora allows answers about one's own product with the affiliation disclosed
+  ([policy](https://help.quora.com/hc/en-us/articles/360055133711-What-is-Quora-s-policy-on-disclosing-affiliations-in-answers)).
+- Reddit, Stack Exchange and Quora block scripted research; their rules and live threads are read in
+  Shlomi's Chrome.
+- Wikipedia is out: a tool maker's own pages fail its reliable-source and external-links rules.
+- What each action can produce, stated up front: AlternativeTo links are nofollow (brand and discovery);
+  LinkedIn and X bring traffic and stars, not links Google counts; outreach to a page that keeps a resource
+  list is the one route to a counted link.
+- Never ask anyone to vote, anywhere.
+
+**Baseline, 2026-11-17**
+
+- Repo: 9 stars (openalternative.co opens at 10).
+- GitHub code search for `pdkef.com` outside the repo: withastro/astro.build only (three unrelated junk hits).
+- abhi18av/awesome-pdf#68 and OneOffTech/awesome-pdf#81: open, no comments.
+- AlternativeTo: not listed. findPWA: live but its database section errors; low priority.
+- LinkedIn: Shlomi posted before the pilot started.
+- Still needed: a Search Console Links export and the `pdkef` brand-query impressions, from Shlomi.
+
+**The pilot (two weeks from 2026-11-17)**
+
+1. AlternativeTo listing, then suggest PDkef on the pages of the tools people compare it with. Shlomi creates
+   the account; the agent fills the forms, Shlomi approves each submit.
+2. Two outreach emails, drafted by the agent, sent by Shlomi: The Eclectic Light Company (it tested Preview's
+   redaction in 2020; invite a test of Redact, pointing at the blur vs blackout guide) and SIUE ITS
+   ("Free PDF Tools", 2023; suggest PDkef for a future ITSpotlight post rather than an edit of a dated post).
+3. Keyword alerts (F5Bot) on the strongest tools' questions; Reddit warm-up by answering without links for
+   two to three weeks before PDkef is ever mentioned.
+4. Show HN in week two, in Shlomi's own words, from a fact sheet.
+5. Hebrew: communities Shlomi is already a member of (to be named by him).
+
+Claims checked before any redaction post: Blackout, Whiteout and Blur flatten the marked page into one image
+(the guide says so and `applyPageEdits.js` does it), and every export drops `/Thumb`, `/PieceInfo` and XMP
+thumbnails (`documentTraces.js`). Whether a weak blur can be read back from its pixels is untested; no post
+claims it cannot.
+
+Read: 2026-12-01, against the baseline above, logged in [findings doc section 8](../../docs/seo-competitive-findings.md#8-reference-seo-03-venue-list-and-outreach-log).
