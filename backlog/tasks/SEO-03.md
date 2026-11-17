@@ -265,5 +265,9 @@ Read: 2026-12-01, against the baseline above, logged in [findings doc section 8]
   Seven alternatives suggested the same night: Smallpdf, iLovePDF, Stirling PDF, PDF24 Tools, Sejda,
   BentoPDF, PaperKnife. The $15 priority review was declined; the listing page is visible only to Shlomi
   until reviewed, so don't share its link yet.
+- 2026-11-17, F5Bot (Reddit, Hacker News, Lobsters listening, emails Shlomi within 2 hours): five alerts, the
+  free plan's cap, whole words: redact pdf, blur pdf, compress pdf to 100kb, reduce pdf size for upload, sign
+  pdf in hebrew. "merge pdf without uploading" left out for the cap. Phrases match literally, so the long ones
+  may stay quiet; swap them for shorter ones if they show no hits by the 2026-12-01 read.
 - LinkedIn (Hebrew, origin story): posted about four months before the pilot, about 5,200 impressions; its
   first comment links `pdkef.vercel.app`, which redirects to pdkef.com.
