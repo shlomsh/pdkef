@@ -242,7 +242,8 @@ alongside. Research by three agents and checks in his Chrome, same day.
    ("Free PDF Tools", 2023; suggest PDkef for a future ITSpotlight post rather than an edit of a dated post).
 3. Keyword alerts (F5Bot) on the strongest tools' questions; Reddit warm-up by answering without links for
    two to three weeks before PDkef is ever mentioned.
-4. Show HN in week two, in Shlomi's own words, from a fact sheet.
+4. Show HN in week two, in Shlomi's own words, from a fact sheet
+   ([docs/show-hn-fact-sheet.md](../../docs/show-hn-fact-sheet.md), checked against the code 2026-11-17).
 5. Hebrew: communities Shlomi is already a member of (to be named by him).
 
 Claims checked before any redaction post: Blackout, Whiteout and Blur flatten the marked page into one image

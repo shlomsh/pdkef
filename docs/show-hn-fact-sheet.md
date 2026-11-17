@@ -1,0 +1,121 @@
+# Show HN fact sheet (SEO-03, 2026-11-17)
+
+Raw material for Shlomi's Show HN post and for answering its comments. Hacker News does not allow
+generated or AI-edited posts or comments, so nothing here is meant to be pasted: Shlomi writes the post
+and the replies himself, and this sheet only holds the facts. Each one was checked against the code on
+2026-11-17 and carries its evidence. If the code changes before the post goes up, check the line again.
+
+## Links
+
+- Site: https://pdkef.com/
+- Source: https://github.com/shlomsh/pdkef (MIT)
+- Redaction guide: https://pdkef.com/blur-vs-blackout-vs-delete-pdf/
+
+## The post
+
+- Title idea (Shlomi's words win): `Show HN: PDkef - free, open-source PDF tools that run in your browser`.
+  HN titles take a plain hyphen. Don't use "first", "best" or a superlative.
+- Show HN asks for something people can try right away with no sign-up. PDkef has no accounts at all.
+- Never ask anyone for an upvote, and don't link the post in places where people would come just to vote.
+- The story is Shlomi's: a software engineer who thinks that now that code is quick to write, the PDF
+  tools the web is full of should be free, light and private for everyone. CLAUDE.md asks that PDkef is
+  never framed around how little time it took to build, so tell the "why", not the hours.
+- Be around for the first few hours to answer comments.
+
+## What it is
+
+- 12 tools: Sign, Highlight, Redact, Merge, PDF to Image, Image to PDF, Scan to PDF, Split, Compress,
+  Compress Image, Unlock/Protect, Organize (`src/data/tools.js`, the `listedTools` filter on entries
+  without `variantOf`). Rotate, Remove pages, Add page numbers and Extract pages are their own pages
+  over the Organize and Split tools.
+- A static Astro site with Preact islands. Every page is plain HTML built ahead of time.
+- 18 runtime dependencies, all on a permissive-license allowlist (MIT, Apache-2.0, ISC, BSD-2/3, Zlib,
+  0BSD) that CI enforces (`scripts/runtime-license-inventory.mjs:67`).
+- PDF work is done by `@cantoo/pdf-lib` 2.11.1 (MIT, a pdf-lib fork) for building, editing and
+  encryption, and `pdfjs-dist` 6.5.438 (Apache-2.0) for rendering and reading text. Everything else
+  (Scan's corner finding and perspective fix, Highlight's line finding) is PDkef's own classical image
+  code. No OCR, no ML models, no LLM calls anywhere in the product. Pages do list the tools for AI agents
+  through WebMCP (`navigator.modelContext` in `BaseLayout.astro`), which is a description, not a call.
+- First commit 2026-06-30; 4,970 commits on main; 967 unit test files and 176 Playwright specs
+  (`git ls-files`, 2026-11-17). 9 GitHub stars on 2026-11-17.
+- Installable as a PWA (`public/manifest.webmanifest`, with a share target).
+
+## Where your files go
+
+- **Nowhere.** No code path sends file content off the device, except `/drive/` (below). Every `fetch`
+  in `src` is a same-origin GET (fonts, a sample PDF) or a Drive call; every `sendBeacon` sends a small
+  JSON event: to `api/report.ts` (which rejects anything over 2 KB) or to the usage-count endpoint below.
+- The CSP backs it up. The live production `connect-src` on pdkef.com is `'self' https://e.pdkef.com`
+  (the site and its own usage-count subdomain; read with curl, 2026-11-17; `astro.config.mjs:314` adds
+  that host only when the build sets it, and `/drive/` adds Google's hosts). The pdf.js worker is served from the same
+  origin, and there are no third-party scripts except Google's sign-in script on `/drive/`.
+- Anyone can check it: open the network tab, or load a tool, go offline, and use it.
+- **Offline:** a hand-written service worker caches a tool the first time it is opened, then that tool
+  works with no connection (`public/sw.js`). It is per tool, not the whole app at once.
+- **On the device:** opened PDFs and the work on them are kept in IndexedDB so a closed tab loses
+  nothing: at most 6 recent files, each dropped after 28 days unused, and removable by hand
+  (`draftRecentIndex.ts:55`, `draftPolicy.js:7`). Saved signatures, small preferences and two visit
+  dates for the usage counts (below) live in localStorage. PDkef sets no cookies (no `document.cookie`
+  anywhere in `src`); Google's sign-in on `/drive/` and the pressed video frame are Google's own code.
+- **Server code** is two pieces and neither sees a PDF: `middleware.ts` (serves Markdown to clients that
+  ask for it) and `api/report.ts` (anonymous counts, error reports and star ratings).
+- **Google Drive** is opt-in on `/drive/` only: `drive.file` scope, the token stays on the device, and
+  files go straight between the browser and `www.googleapis.com`. No other page calls Google.
+
+## Usage counting (expect this question)
+
+- Anonymous, cookie-less, production only. Events carry a tool name and closed-list properties, a random
+  id made per page load and kept only in memory, the page URL without query or fragment, and four coarse
+  buckets (device, browser, OS, referrer kind). Tool page views also carry how recently this browser last
+  visited (new, today, week, month, older), from two dates kept in localStorage
+  (`src/lib/telemetry/visitRecency.ts`, `usageEventSchema.ts:115`). No file names or contents; the only
+  size-like values are coarse buckets such as a camera photo's long edge (`maintenanceEventSchema.ts:103`).
+  The sender is `src/lib/telemetry/analyticsSink.ts`.
+- Vercel's page-view analytics also runs, same-origin, with queries and fragments stripped
+  (`BaseLayout.astro:108-125`).
+- Error reports carry the error name and PDkef's own stack frames, never the message.
+- There is no opt-out, and Do Not Track / Global Privacy Control are not read. If someone asks, that is
+  the true answer today.
+- The home page and `/redact/` have a short video in a `youtube-nocookie.com` frame that loads only when
+  pressed.
+
+## Per tool, as the code does it
+
+- **Redact.** Blackout, Whiteout and Blur turn each marked page into a single image, so the covered text
+  is gone from the file, not hidden under a box (`src/tools/redact/lib/applyPageEdits.js:11-13`,
+  `redact.js:182-194`). Unmarked pages are copied as they are and keep selectable text. Delete removes the
+  object itself and keeps the page as vector. Every export drops page thumbnails (`/Thumb`), `/PieceInfo`
+  and XMP thumbnails (`documentTraces.js`). Other metadata (Title, Author, XMP) is shown and each item can
+  be edited or removed, but it is kept unless the person changes it. Don't say "strips all metadata".
+  Whether a weak blur can be read back from its pixels is untested, so don't claim it can't; Blackout is
+  the safe answer for anything sensitive.
+- **Sign.** Type, draw or upload a signature; typed text in 20 language and script entries, including
+  Hebrew and Arabic written right to left, with every font embedded so the export matches the screen
+  (`tools.js:105-212`, `src/tools/sign/lib/sign.js:82`). It is a visual signature, not a certificate-based
+  digital signature (no PKCS/PAdES code). Say so if asked.
+- **Compress.** By default it re-encodes the images inside the PDF and leaves text, fonts and links as
+  they are, so text stays selectable (`compressImages.js:1-3`). An optional flatten mode renders pages to
+  images for bigger savings and says that text stops being selectable. A target size ("to 100 KB") is
+  real and tries to hit it, reporting when it can't (`metTarget`). When nothing can shrink, the file comes
+  back unchanged and the tool says so (`messages.ts:196`).
+- **Protect / Unlock.** Protect encrypts with AES-256 (the pdf-lib fork's default,
+  `node_modules/@cantoo/pdf-lib/cjs/core/security/PDFSecurity.js:42`; PDkef passes no algorithm,
+  `src/tools/security/lib/security.js:65`), one password for opening and permissions.
+  Unlock needs the password; there is no cracking. Owner-password-only files open without one.
+- **Scan to PDF.** Finds the page corners in the browser, straightens the perspective, and the person
+  can drag any corner. Document, Original and Grayscale looks.
+- **Highlight.** Marker-style highlights and comments saved as standard PDF annotations; it reads line
+  positions from the page image, so scanned pages work too.
+
+## Size
+
+- First load is small because the PDF libraries load only when a tool is used. From the 2026-11-09
+  build (brotli, document + CSS + eager JS): home about 100 KB, `/compress/` about 112 KB, `/merge/`
+  about 137 KB; the heaviest, `/sign/`, ships 170 KB of eager JS. CI caps every page's first load at
+  400 KB brotli (`scripts/check-page-weight.js:183`).
+
+## Languages
+
+- Site pages and documentation in 13 locales, including Hebrew and Arabic
+  (`src/i18n/documentationLocales.ts`). Not every locale has every tool page, so say "13 languages of
+  help pages", not "translated into 13 languages".
