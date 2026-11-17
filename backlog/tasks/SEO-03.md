@@ -258,5 +258,9 @@ Read: 2026-12-01, against the baseline above, logged in [findings doc section 8]
   test of Redact's export; links `/redact/` and the repo. His contact page says he does not answer paid or
   commercial promotion. Waiting for a reply.
 - SIUE ITS: dropped 2026-11-17 (Shlomi). The only route is the campus help desk queue.
+- 2026-11-17, AlternativeTo: PDkef listing submitted from Shlomi's account to the free review queue (no paid
+  priority). Free, open source (MIT), Online; English and Hebrew; tags pdf-editor, merge-pdf, split-pdf,
+  compress-pdf, sign-pdf, pdf-redaction, privacy-focused, offline-access; "No Tracking" left unticked
+  (anonymous usage counts); release date July 2026; reviewer note discloses authorship. Links are nofollow.
 - LinkedIn (Hebrew, origin story): posted about four months before the pilot, about 5,200 impressions; its
   first comment links `pdkef.vercel.app`, which redirects to pdkef.com.
