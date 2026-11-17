@@ -259,6 +259,10 @@ Read: 2026-12-01, against the baseline above, logged in [findings doc section 8]
   test of Redact's export; links `/redact/` and the repo. His contact page says he does not answer paid or
   commercial promotion. Waiting for a reply.
 - SIUE ITS: dropped 2026-11-17 (Shlomi). The only route is the campus help desk queue.
+- 2026-11-17, Reddit: Shlomi's existing account (3 years old, 1 karma, no posts or comments) set up for
+  the warm-up: display name, a bio that names pdkef.com (so later mentions are disclosed), a PDkef link,
+  history visible. Joined r/pdf, r/software, r/privacy, r/opensource. Answers carry no PDkef link until
+  about 2026-12-08. The Chrome extension blocks reddit.com, so Shlomi pastes threads in and posts himself.
 - Hebrew communities (pilot step 5): dropped 2026-11-17. Shlomi is not a member of any Israeli group, and
   joining one cold to post a link reads as spam.
 - 2026-11-17, AlternativeTo: PDkef listing submitted from Shlomi's account to the free review queue (no paid
