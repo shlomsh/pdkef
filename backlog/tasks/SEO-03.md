@@ -263,6 +263,10 @@ Read: 2026-12-01, against the baseline above, logged in [findings doc section 8]
   the warm-up: display name, a bio that names pdkef.com (so later mentions are disclosed), a PDkef link,
   history visible. Joined r/pdf, r/software, r/privacy, r/opensource. Answers carry no PDkef link until
   about 2026-12-08. The Chrome extension blocks reddit.com, so Shlomi pastes threads in and posts himself.
+  First comment the same day, on an r/pdf launch post for a free mobile PDF app: congratulations, and a
+  question on whether its Redact removes the text under the box or only covers it. No link, no PDkef.
+- 2026-11-17, Hacker News: Shlomi created an account for the Show HN; a comment or two on other stories
+  before 2026-11-24 so it is not brand new on the day.
 - Hebrew communities (pilot step 5): dropped 2026-11-17. Shlomi is not a member of any Israeli group, and
   joining one cold to post a link reads as spam.
 - 2026-11-17, AlternativeTo: PDkef listing submitted from Shlomi's account to the free review queue (no paid
