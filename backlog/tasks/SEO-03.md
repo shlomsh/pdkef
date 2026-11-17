@@ -257,6 +257,6 @@ Read: 2026-12-01, against the baseline above, logged in [findings doc section 8]
 - 2026-11-17 22:12, The Eclectic Light Company (Howard Oakley): email from Shlomi's Gmail, in his voice, inviting a
   test of Redact's export; links `/redact/` and the repo. His contact page says he does not answer paid or
   commercial promotion. Waiting for a reply.
-- SIUE ITS: drafted; the only route is the campus help desk queue, so it waits for Shlomi's call.
+- SIUE ITS: dropped 2026-11-17 (Shlomi). The only route is the campus help desk queue.
 - LinkedIn (Hebrew, origin story): posted about four months before the pilot, about 5,200 impressions; its
   first comment links `pdkef.vercel.app`, which redirects to pdkef.com.
