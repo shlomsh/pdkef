@@ -249,17 +249,22 @@ export default function useFormFieldRegions(
       let detectorLoaded = false;
       try {
         const [
-          { PDFDocument },
+          { getPdfLib },
+          { loadPdfWithPages },
           { detectFormFields, firstPageKind, pageGeometry, toPageTextRuns },
         ] = await Promise.all([
-          import('@cantoo/pdf-lib'),
+          import('#lib/pdf/pdfLib.js'),
+          import('#lib/pdf/loadPdfPages.ts'),
           import('../lib/fields/detectFormFields.ts'),
         ]);
+        // pdf-lib's own chunk is part of "the detector loaded": a stale shell
+        // that cannot fetch it stays 'unavailable', not a failed walk.
+        await getPdfLib();
         detectorLoaded = true;
-        const document = await PDFDocument.load(sourceBytes.slice(0), {
-          ignoreEncryption: true,
-          updateMetadata: false,
-        });
+        // The shared loader (DEBT-55) repairs a catalog that lost its /Pages
+        // when one page tree survives; pdf.js reads such files on its own, so
+        // only pdf-lib's view needed the repair. Encryption is ignored as before.
+        const { doc: document } = await loadPdfWithPages(sourceBytes.slice(0));
         if (!current) return;
 
         // The pdf.js text pass stays here, not in the detector

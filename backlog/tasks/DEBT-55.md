@@ -1,10 +1,10 @@
 ---
 id: "DEBT-55"
 title: "Every tool that loads with pdf-lib repairs a lost page list the way Edit Pages does"
-status: "open"
+status: "in_progress"
 priority: "P3"
 epic: "robustness"
-horizon: "next"
+horizon: "now"
 depends_on: ["DEBT-54"]
 ---
 
@@ -22,3 +22,8 @@ spending the work.
 
 Progress (2026-10-25, GRID-05): `loadPdfWithPages` and `pdfPageTree` now live in `src/lib/`; Edit PDF and
 Split load through them. Merge, Compress, Sign and the rest still have their own pdf-lib loads.
+
+Progress (2026-11-17): Sign's form-field detection (`useFormFieldRegions.ts`, through `loadPdfWithPages`) and Sign's export
+(`sign.js`, `openPdfDoc` with `repair`) now repair a lost page list. Production had shown it the same day: two
+`sign_form_detection` reports on build bef6c54, `TypeError` at pdf-lib's `catalog.Pages().traverse`, on a file pdf.js
+displayed. Merge, Compress, Unlock/Protect, Redact and the `tool` property on `pdf_page_tree` remain.

@@ -2,7 +2,7 @@
 
 # Backlog
 
-The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 182 live: 77 up next, 25 then, 27 waiting, 53 parked.
+The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 182 live: 78 up next, 24 then, 27 waiting, 53 parked.
 
 ## Redact: finish removal
 
@@ -210,6 +210,7 @@ Production errors you can see, small tools that clean up after themselves, and d
 | QUAL-54 | P1 | [QUAL-54](backlog/tasks/QUAL-54.md) · The unit jobs stop failing when the runner cannot reach Ubuntu's package servers | In progress |
 | MEM-36 | P2 | [MEM-36](backlog/tasks/MEM-36.md) · Pinned notes are baked into the page at build, not fetched per visit | In progress |
 | MEM-42 | P2 | [MEM-42](backlog/tasks/MEM-42.md) · The rating board's flags come as one file | In progress |
+| DEBT-55 | P3 | [DEBT-55](backlog/tasks/DEBT-55.md) · Every tool that loads with pdf-lib repairs a lost page list the way Edit Pages does | In progress |
 | MEM-24 | P3 | [MEM-24](backlog/tasks/MEM-24.md) · A service worker that cannot install, or never completes its precache, says so | In progress |
 
 ### Then, in order
@@ -221,7 +222,6 @@ Production errors you can see, small tools that clean up after themselves, and d
 | MEM-41 | P2 | [MEM-41](backlog/tasks/MEM-41.md) · The bundling and stub guards cannot pass on a half-working build |  |
 | QUAL-55 | P2 | [QUAL-55](backlog/tasks/QUAL-55.md) · The update tests' setup stops timing out waiting for a worker to take a tab |  |
 | QUAL-56 | P2 | [QUAL-56](backlog/tasks/QUAL-56.md) · Sign's rotate-page test passes every time, not most times |  |
-| DEBT-55 | P3 | [DEBT-55](backlog/tasks/DEBT-55.md) · Every tool that loads with pdf-lib repairs a lost page list the way Edit Pages does |  |
 
 ### Waiting
 

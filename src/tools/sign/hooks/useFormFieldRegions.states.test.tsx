@@ -164,6 +164,22 @@ describe('useFormFieldRegions detection state', () => {
     expect(warn).not.toHaveBeenCalled();
   });
 
+  // DEBT-55: a catalog that lost its /Pages loads in pdf-lib and throws at
+  // getPageCount(). Production saw it on 2026-11-17 as a failed detection on a
+  // file pdf.js was showing fine. With one page-tree root left, the shared
+  // loader repairs it, so the walk finishes like on any other file.
+  it('finishes the walk on a file whose page list was lost but one page tree survives', async () => {
+    vi.resetModules();
+    const { noPagesKey } = await import('../../../test/support/pdfPageTreeFixtures');
+    const bytes = noPagesKey();
+    // Pages that really get walked, so they need the text stream readTextItems drains.
+    const emptyStream = { getReader: () => ({ read: async () => ({ done: true, value: undefined }) }) };
+    const pagesWithoutText = { getPage: async () => ({ streamTextContent: () => emptyStream }) };
+    const regions = await detect([bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer, 3, pagesWithoutText]);
+    expect(regions.detection).toBe('done');
+    expect(regions.detectionError).toBeUndefined();
+  });
+
   // FORM-35: a finished run says what page 1 is made of. A document with no
   // pages has nothing on it, which is the 'none' answer rather than a gap.
   it('carries a page kind once the walk is done', async () => {

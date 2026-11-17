@@ -87,6 +87,15 @@ describe('sign.js signPdf', () => {
       expect(await rotationsOf(blob)).toEqual([90, 0, 270]);
     });
 
+    // DEBT-55: a catalog that lost its /Pages loads but throws at the page
+    // count; the export repairs it through openPdfDoc's page-tree repair.
+    it('exports a file whose page list was lost but one page tree survives', async () => {
+      const { noPagesKey, ORIGINAL_WIDTHS } = await import('../../../test/support/pdfPageTreeFixtures');
+      const file = new File([noPagesKey()], 'lost-pages.pdf', { type: 'application/pdf' });
+      const out = await PDFDocument.load(await (await signPdf(file, [])).arrayBuffer());
+      expect(out.getPages().map((p) => p.getSize().width)).toEqual(ORIGINAL_WIDTHS);
+    });
+
     it('leaves /Rotate untouched without turns', async () => {
       const file = await buildPages([0, 90]);
       expect(await rotationsOf(await signPdf(file, []))).toEqual([0, 90]);

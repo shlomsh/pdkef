@@ -70,7 +70,8 @@ export { FormFlattenError } from './flatten.js';
  * @param {{ pageTurns?: Readonly<Record<number, 1 | 2 | 3>> }} [options]
  */
 export async function signPdf(file, sourceElements, onProgress, { pageTurns = {} } = {}) {
-  const { doc: pdfDoc } = await openPdfDoc(file);
+  // `repair`: a catalog that lost its /Pages is repointed at its one surviving page tree (DEBT-55).
+  const { doc: pdfDoc } = await openPdfDoc(file, { repair: true });
   pdfDoc.registerFontkit(fontkit);
   const loadedFonts = {};
 
