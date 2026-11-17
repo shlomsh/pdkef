@@ -355,18 +355,27 @@ United States 34 / 2,157 at 12.55 (1.6%). Israel 33 / 1,476 at 20.88. Pakistan 1
 (7.6%), then the Philippines. Desktop 430 / 11,251 at 11.32 (3.8%); mobile 129 / 3,827 at 10.85
 (3.4%). Search appearance "Translated results": 8 clicks / 322 impressions at 10.52.
 
-### 3.4 Indexing and crawl state (captured 2026-10-08)
+### 3.4 Indexing and crawl state (export 2026-10-08, Discovered drilldown 2026-11-17)
 
 Coverage export (data to 10-04): 21 indexed, 23 not indexed (Discovered - currently not indexed 15,
-Crawled - currently not indexed 2, Page with redirect 4, noindex 2). The Discovered drilldown
-(Shlomi's screenshot, 2026-10-08) is the same fifteen as on 10-02, every one with `Last crawled` N/A:
-`/blur-vs-blackout-vs-delete-pdf/`, `/edit-pdf/`, `/image-to-pdf/`, `/install-pdf-app/`,
-`/offline-pdf-form-filler/`, `/open-source-pdf-editor/`, `/pdf-to-image/`,
-`/permanently-delete-text-from-pdf/`, `/sign-pdf-no-signup/`, `/pdf-wont-compress-to-100kb/`,
-`/sign-pdf-in-your-language/`, `/id/kompres-pdf-di-bawah-1-mb/`, and the `/he/` editions of
-`install-pdf-app`, `open-source-pdf-editor` and `sign-pdf-no-signup`. **The Week 4 gate failed: none of
-the nine has been crawled** (SEO-06). `/remove-camscanner-watermark-from-pdf/` (live 09-28) is in
-neither list yet.
+Crawled - currently not indexed 2, Page with redirect 4, noindex 2).
+
+**Discovered drilldown 2026-11-17 (Shlomi's paste): 26 URLs, every one `Last crawled` N/A**, of the
+sitemap's 51, up from 15 on 10-08. All fifteen from 10-08 are still there: `/blur-vs-blackout-vs-delete-pdf/`,
+`/edit-pdf/`, `/image-to-pdf/`, `/install-pdf-app/`, `/offline-pdf-form-filler/`,
+`/open-source-pdf-editor/`, `/pdf-to-image/`, `/permanently-delete-text-from-pdf/`,
+`/sign-pdf-no-signup/`, `/pdf-wont-compress-to-100kb/`, `/sign-pdf-in-your-language/`,
+`/id/kompres-pdf-di-bawah-1-mb/`, and the `/he/` editions of `install-pdf-app`,
+`open-source-pdf-editor` and `sign-pdf-no-signup`. New since: `/academic-paper-reader/`,
+`/extract-pdf-pages/`, `/how-to-open-a-pdf-from-google-drive/`, `/how-to-scan-a-document-to-pdf/`,
+`/organize-pdf/`, `/remove-camscanner-watermark-from-pdf/`, `/rotate-pdf/`, `/scan-to-pdf/`, and the
+`/he/` editions of `image-to-pdf`, `photo-and-signature-size-for-forms` and `split`. All 26 re-checked
+live the same day: 200, self canonical, in the sitemap, no `noindex`, robots.txt allows all, `lastmod`
+from git; `/edit-pdf/` is the 308 to `/organize-pdf/` and leaves the list once Google sees it. Of
+SEO-47's five, requested 10-26, `/add-page-numbers-to-pdf/` and `/remove-pages/` were crawled that
+night and are indexed (URL Inspection, 11-17); `/organize-pdf/`, `/rotate-pdf/` and `/extract-pdf-pages/`
+are in the 26. Same request, same night, two of five: a request buys a crawl only for some URLs. **The Week 4 gate failed on 10-08** (SEO-06),
+and nothing has been crawled from that list since.
 
 **`/he/sign/` dropped out and came back.** Indexed 09-11, missing from the Valid export (indexed count 22
 to 21 on 09-22), and indexed again per URL Inspection on 10-08: last crawled 10-05, after the export's

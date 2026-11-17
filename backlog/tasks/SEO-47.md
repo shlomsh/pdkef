@@ -100,6 +100,19 @@ Exported helpers next to `tools`: `toolIdOf(entry)`, `listedTools` (entries with
   back for a while: the two `vercel.json` entries (308 to `/organize-pdf/`) are restored. Drop them again once
   the visits fade.
 
+## Interim 2026-11-17
+
+- `/add-page-numbers-to-pdf/`: indexed. Crawled 2026-10-26 23:56 (the request's night), Googlebot
+  smartphone, Google-selected canonical is the URL itself, referring page the sitemap (Shlomi's URL
+  Inspection screenshot).
+- `/organize-pdf/`, `/rotate-pdf/`, `/extract-pdf-pages/`: still "Discovered - currently not indexed", never
+  crawled, three weeks after the request (Shlomi's Discovered export; the full list of 26 is in the findings
+  doc, section 3.4). All three serve 200, self canonical, in the sitemap, no `noindex` (checked live).
+- `/remove-pages/`: indexed. Crawled 2026-10-26 23:11, Googlebot smartphone, self canonical (Shlomi's URL
+  Inspection screenshot; its Sitemaps row reads "Temporary processing error", referring page the sitemap).
+- `/edit-pdf/` is still listed as Discovered; it is the 308 and should move to "Page with redirect" once
+  crawled.
+
 ## Acceptance
 
 - [x] Five pages live with distinct copy; `/edit-pdf/` 308s to `/organize-pdf/` in one hop, `/remove-pages/` is a page again
