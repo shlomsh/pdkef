@@ -259,6 +259,8 @@ Read: 2026-12-01, against the baseline above, logged in [findings doc section 8]
   test of Redact's export; links `/redact/` and the repo. His contact page says he does not answer paid or
   commercial promotion. Waiting for a reply.
 - SIUE ITS: dropped 2026-11-17 (Shlomi). The only route is the campus help desk queue.
+- Hebrew communities (pilot step 5): dropped 2026-11-17. Shlomi is not a member of any Israeli group, and
+  joining one cold to post a link reads as spam.
 - 2026-11-17, AlternativeTo: PDkef listing submitted from Shlomi's account to the free review queue (no paid
   priority). Free, open source (MIT), Online; English and Hebrew; tags pdf-editor, merge-pdf, split-pdf,
   compress-pdf, sign-pdf, pdf-redaction, privacy-focused, offline-access; "No Tracking" left unticked
