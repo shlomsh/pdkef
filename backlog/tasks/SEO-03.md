@@ -265,6 +265,10 @@ Read: 2026-12-01, against the baseline above, logged in [findings doc section 8]
   about 2026-12-08. The Chrome extension blocks reddit.com, so Shlomi pastes threads in and posts himself.
   First comment the same day, on an r/pdf launch post for a free mobile PDF app: congratulations, and a
   question on whether its Redact removes the text under the box or only covers it. No link, no PDkef.
+- 2026-11-17, Reddit drafting automated: a desktop scheduled task (`reddit-reply-drafts`, daily 09:09, Auto
+  mode) reads new F5Bot alerts in Gmail through Chrome, keeps real questions, and drafts replies in Shlomi's
+  voice from the fact sheet; Shlomi approves and posts. HN and Lobsters matches are only listed, never
+  drafted (HN bans AI-written comments). Test run the same night reached Gmail unattended (no alerts yet).
 - 2026-11-17, Hacker News: Shlomi created an account for the Show HN; a comment or two on other stories
   before 2026-11-24 so it is not brand new on the day.
 - Hebrew communities (pilot step 5): dropped 2026-11-17. Shlomi is not a member of any Israeli group, and
