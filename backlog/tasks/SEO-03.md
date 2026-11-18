@@ -269,6 +269,16 @@ Read: 2026-12-01, against the baseline above, logged in [findings doc section 8]
   mode) reads new F5Bot alerts in Gmail through Chrome, keeps real questions, and drafts replies in Shlomi's
   voice from the fact sheet; Shlomi approves and posts. HN and Lobsters matches are only listed, never
   drafted (HN bans AI-written comments). Test run the same night reached Gmail unattended (no alerts yet).
+- 2026-11-18, GitHub topics: added pdf-redaction, pdf-compression, rtl, hebrew (19 of 20).
+- 2026-11-18, PWA Store (pwastore.io): listed after its install check passed; details taken from the manifest.
+- 2026-11-18, awesome lists, authorship disclosed in both PRs:
+  [hemanth/awesome-pwa#640](https://github.com/hemanth/awesome-pwa/pull/640) (Tools and Utilities) and
+  [diegoleme/awesome-open-source-alternatives#99](https://github.com/diegoleme/awesome-open-source-alternatives/pull/99)
+  (Adobe Acrobat). Its rules warn that very new projects may be asked to come back later.
+- Later, around 2026-12-30: pluja/awesome-privacy (6 months, monthly review) and Lissy93/awesome-privacy
+  (human-written PR text, rules on AI-generated projects), both Shlomi's to write. SaaSHub asks for a human
+  submitter, also Shlomi's. Skipped: Privacy Guides (community proposals only), py-pdf/awesome-pdf (50 stars,
+  5 contributors).
 - 2026-11-17, Hacker News: Shlomi created an account for the Show HN; a comment or two on other stories
   before 2026-11-24 so it is not brand new on the day.
 - Hebrew communities (pilot step 5): dropped 2026-11-17. Shlomi is not a member of any Israeli group, and
