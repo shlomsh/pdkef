@@ -13,6 +13,9 @@ import { englishMergeMessages } from '../../tools/merge/messages';
 import * as thumbnailsLib from '#lib/pdf/thumbnails.js';
 import { drainPromises } from '../support/drainPromises.ts';
 import { waitUntil } from '../support/waitUntil.ts';
+// PageGrid opens its preview dialog through a lazy import; loading it here makes that import
+// settle in one turn, so a "no dialog" check after drainPromises() sees a wrongly opened one.
+import '#shell/PagePreviewDialog.tsx';
 
 const sources = [];
 // What each mocked file reports for its page sizes; null = the source cannot say (the thumbnail's own size is used).
