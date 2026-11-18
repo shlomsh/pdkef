@@ -30,6 +30,9 @@ export const lanes = [
   // and a loop between the core projects sends a third of commits wide.
   { key: 'unify-and-narrow', label: 'Unify the tools, narrow the graph', why: 'Every tool on one shell and one set of PDF primitives, and a change reaching only the projects that use it.' },
   { key: 'search-and-languages', label: 'Search and languages', why: 'Mostly waiting on dated Search Console reads. Two small things can ship now.' },
+  // Opened 2026-11-18 (docs/landmines-adoption.md): tests that pass without proving anything, caught by
+  // the open-source landmines Oxlint rules as they ship; misses are fixed upstream, not locally.
+  { key: 'honest-tests', label: 'Honest tests: adopt landmines', why: 'One landmines rule at a time: fix its sites, turn it on in CI. Where a rule misses our patterns, fix it upstream.' },
   { key: 'polish', label: 'Polish', why: 'Small, independent, good for a spare hour.' },
 ];
 

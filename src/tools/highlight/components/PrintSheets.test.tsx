@@ -35,13 +35,26 @@ afterEach(() => {
   readPageInk.mockResolvedValue(null);
 });
 
+// Resolves once renderPageToCanvas has been called `count` times, with the same canvas each call.
+function renderedPages(count: number) {
+  const done = Promise.withResolvers<void>();
+  let calls = 0;
+  renderPageToCanvas.mockImplementation(async () => {
+    calls += 1;
+    if (calls >= count) done.resolve();
+    return { toDataURL: () => 'data:image/png;base64,AAAA' };
+  });
+  return done.promise;
+}
+
 async function mount(notes: boolean | 'end', pageTurns?: PageTurns, doc: PDFDocumentProxy = pdfDocument, els: EditorElement[] = elements) {
-  renderPageToCanvas.mockResolvedValue({ toDataURL: () => 'data:image/png;base64,AAAA' });
+  const rendered = renderedPages(2);
   const onReady = vi.fn();
   container = document.createElement('div');
   document.body.appendChild(container);
   await act(async () => { render(<PrintSheets pdfDocument={doc} elements={els} notes={notes === 'end' ? 'end' : notes ? 'beside' : 'none'} pageTurns={pageTurns} onReady={onReady} />, container!); });
-  await vi.waitFor(() => expect(renderPageToCanvas).toHaveBeenCalledTimes(2));
+  await rendered;
+  expect(renderPageToCanvas).toHaveBeenCalledTimes(2);
   await act(async () => { await new Promise((r) => setTimeout(r, 20)); });
   return { onReady };
 }
@@ -109,11 +122,12 @@ describe('PrintSheets', () => {
       { id: 'h', type: 'highlight', pageIndex: 1, color: '#fde047', left: 10, top: 20, width: 50, height: 5, bands: [band] },
       { id: 'c', type: 'comment', pageIndex: 1, left: 0, top: 0, width: 0, height: 0, comment: 'only', anchor: { kind: 'element', elementId: 'h' } },
     ] as EditorElement[];
-    renderPageToCanvas.mockResolvedValue({ toDataURL: () => 'data:image/png;base64,AAAA' });
+    const rendered = renderedPages(3);
     container = document.createElement('div');
     document.body.appendChild(container);
     await act(async () => { render(<PrintSheets pdfDocument={doc} elements={els} notes="beside" onReady={vi.fn()} />, container!); });
-    await vi.waitFor(() => expect(renderPageToCanvas).toHaveBeenCalledTimes(3));
+    await rendered;
+    expect(renderPageToCanvas).toHaveBeenCalledTimes(3);
     expect(readPageInk).toHaveBeenCalledTimes(1);
     expect(readPageInk.mock.calls[0][1]).toBe(1);
   });

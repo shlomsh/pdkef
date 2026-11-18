@@ -70,10 +70,13 @@ describe('cameraPacer', () => {
   });
 
   it('keeps the size it has when the track refuses the change', async () => {
-    const track = fakeTrack(vi.fn().mockRejectedValue(new Error('no')));
+    const called = Promise.withResolvers<void>();
+    const track = fakeTrack(vi.fn(() => { called.resolve(); return Promise.reject(new Error('no')); }));
     slowChecks(cameraPacer(() => track, vi.fn()), 0, 5);
     // vitest fails the run on an unhandled rejection, so settling here is the assertion
-    await vi.waitFor(() => expect(track.applyConstraints).toHaveBeenCalledTimes(1));
+    await called.promise;
+    await Promise.resolve();
+    expect(track.applyConstraints).toHaveBeenCalledTimes(1);
   });
 
   // The viewer over the camera busies the main thread: those checks say nothing about the camera.

@@ -46,6 +46,7 @@
     "test:hook-ratchet": "node scripts/check-hook-ratchet.mjs",
     "test:any-ratchet": "node scripts/check-any-ratchet.mjs",
     "test:ts-nocheck-ratchet": "node scripts/check-ts-nocheck-ratchet.mjs",
+    "lint:landmines": "oxlint",
     "test:e2e-sleeps": "node scripts/check-e2e-sleeps.mjs",
     "test:floating-promises": "node scripts/check-floating-promises.mjs",
     "test:reveal-observers": "node scripts/check-reveal-observers.mjs",
@@ -112,6 +113,7 @@
   },
   "devDependencies": {
     "@astrojs/check": "^0.9.12",
+    "@interfere/landmines": "^0.1.0",
     "@nx/js": "24.0.2",
     "@playwright/test": "^1.64.1",
     "@preact/preset-vite": "^2.10.6",
@@ -122,6 +124,7 @@
     "fake-indexeddb": "^6.2.7",
     "jsdom": "^30.1.3",
     "nx": "24.0.2",
+    "oxlint": "^1.94.0",
     "patch-package": "^8.0.1",
     "tailwindcss": "^4.3.2",
     "typescript": "^6.0.3",

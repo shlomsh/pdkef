@@ -2,7 +2,7 @@
 
 # Backlog
 
-The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 181 live: 78 up next, 24 then, 26 waiting, 53 parked.
+The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 184 live: 78 up next, 25 then, 27 waiting, 54 parked.
 
 ## Redact: finish removal
 
@@ -324,6 +324,28 @@ Mostly waiting on dated Search Console reads. Two small things can ship now.
 | DEMO-11 | P3 | [DEMO-11](backlog/tasks/DEMO-11.md) · The O on the Hebrew home page |  |
 | SEO-16 | P3 | [SEO-16](backlog/tasks/SEO-16.md) · Positioning review: Merge, Split and Protect & Unlock |  |
 
+## Honest tests: adopt landmines
+
+One landmines rule at a time: fix its sites, turn it on in CI. Where a rule misses our patterns, fix it upstream.
+
+### Then, in order
+
+| ID | P | Task | Note |
+| --- | --- | --- | --- |
+| LAND-03 | P3 | [LAND-03](backlog/tasks/LAND-03.md) · Raised test timeouts only shrink | Needs Shlomi: Your OK to post the upstream issue or PR |
+
+### Waiting
+
+| ID | P | Task | Note |
+| --- | --- | --- | --- |
+| LAND-02 | P2 | [LAND-02](backlog/tasks/LAND-02.md) · landmines sees a sleep inside act(), then guards our unit tests | Waiting on Maintainers' answer on interfere-inc/landmines#11 |
+
+### Parked
+
+| ID | P | Task | Note |
+| --- | --- | --- | --- |
+| LAND-04 | P3 | [LAND-04](backlog/tasks/LAND-04.md) · Fewer replaced dependencies in unit tests |  |
+
 ## Polish
 
 Small, independent, good for a spare hour.
@@ -375,6 +397,7 @@ Done and retired tickets are not listed. Their files stay in [backlog/tasks/](ba
 - Robustness and debt: 102 done, 4 retired
 - Unify the tools, narrow the graph: 100 done, 0 retired
 - Search and languages: 18 done, 0 retired
+- Honest tests: adopt landmines: 1 done, 0 retired
 - Polish: 36 done, 2 retired
 - Sign tool architecture: 37 done, 1 retired
 - Editor architecture: 14 done, 0 retired

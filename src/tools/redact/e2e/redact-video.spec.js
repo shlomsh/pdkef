@@ -22,11 +22,13 @@ test('the Redact video reaches its host only on press, and its frame passes the 
   // The button lies over the whole poster, so any background of its own hides the picture.
   await expect(video.getByRole('button', { name: /^Play/ })).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
 
+  const playerResponded = page.waitForResponse('https://www.youtube-nocookie.com/**');
   await video.getByRole('button', { name: /^Play/ }).click();
   await expect(video.locator('iframe')).toBeVisible();
   // A browser draws a border on every iframe, and this site has no reset to take it off.
   await expect(video.locator('iframe')).toHaveCSS('border-top-width', '0px');
-  await expect.poll(() => playerRequests.length).toBe(1);
+  await playerResponded;
+  expect(playerRequests).toHaveLength(1);
   expect(await page.evaluate(() => window.__cspViolations)).toEqual([]);
 });
 

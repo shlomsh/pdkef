@@ -116,9 +116,14 @@ test.describe('compress image - batch', () => {
     await expect(tiles).toHaveCount(3);
 
     const suggested = [];
-    page.on('download', (d) => suggested.push(d.suggestedFilename()));
+    const allThree = new Promise((resolve) => {
+      page.on('download', (d) => {
+        suggested.push(d.suggestedFilename());
+        if (suggested.length === 3) resolve();
+      });
+    });
     await page.getByRole('button', { name: /^Download\b/ }).click();
-    await expect.poll(() => suggested.length, { timeout: 10_000 }).toBe(3);
+    await test.step('all three downloads arrive', async () => { await allThree; });
     expect([...suggested].sort()).toEqual([...names].sort());
   });
 

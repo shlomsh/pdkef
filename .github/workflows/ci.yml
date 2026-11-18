@@ -172,6 +172,10 @@ jobs:
     - name: Verify e2e sleep ratchet
       run: npm run test:e2e-sleeps
 
+    # landmines rules adopted so far (docs/landmines-adoption.md): tests await signals, not deadlines.
+    - name: Lint tests with landmines
+      run: npm run lint:landmines
+
     - name: Verify floating promises are handled
       run: npm run test:floating-promises
 

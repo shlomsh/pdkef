@@ -1,0 +1,12 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "categories": { "correctness": "off" },
+  "plugins": [],
+  "jsPlugins": [
+    { "name": "landmines-testing", "specifier": "@interfere/landmines/testing" }
+  ],
+  "rules": {
+    "landmines-testing/no-unsignaled-poll": "error"
+  },
+  "ignorePatterns": ["dist/**", ".astro/**", "public/**", "test-results/**", "playwright-report/**", "**/*.astro"]
+}

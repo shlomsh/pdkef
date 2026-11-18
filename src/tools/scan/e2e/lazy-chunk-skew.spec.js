@@ -43,10 +43,12 @@ test('a lazy chunk from a later build beside the older shared chunks reloads the
   await waitForIsland(page);
   expect(reloads).toHaveLength(1);
 
+  const reloaded = page.waitForEvent('framenavigated', { predicate: (frame) => frame === page.mainFrame(), timeout: 15_000 });
   await page.getByText('Start scanning').click();
 
   // chunkReload waits a moment to be sure the page is not leaving, then reloads once; the second request gets the real chunk.
-  await expect.poll(() => reloads.length, { timeout: 15_000 }).toBe(2);
+  await reloaded;
+  expect(reloads).toHaveLength(2);
   await waitForIsland(page);
   await page.getByText('Start scanning').click();
   await expect(page.getByRole('dialog')).toBeVisible();

@@ -30,8 +30,9 @@ describe('loadPdf lifecycle', () => {
     };
     const secondDocument = { numPages: 1, destroy: vi.fn() };
     const secondTask = { promise: Promise.resolve(secondDocument), destroy: vi.fn() };
+    const firstRequested = Promise.withResolvers<void>();
     const getDocument = vi.fn()
-      .mockReturnValueOnce(firstTask)
+      .mockImplementationOnce(() => { firstRequested.resolve(); return firstTask; })
       .mockReturnValueOnce(secondTask);
     vi.mocked(getPdfjs).mockResolvedValue({
       getDocument,
@@ -39,7 +40,8 @@ describe('loadPdf lifecycle', () => {
 
     const shared = options();
     const first = loadPdf(shared);
-    await vi.waitFor(() => expect(getDocument).toHaveBeenCalledOnce());
+    await firstRequested.promise;
+    expect(getDocument).toHaveBeenCalledOnce();
     const second = loadPdf({ ...shared, file: new File(['%PDF-1.4'], 'replacement.pdf', { type: 'application/pdf' }) });
     await second;
 

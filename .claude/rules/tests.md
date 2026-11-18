@@ -29,6 +29,14 @@ the fix.
 
 Test seams (ARCH-61): an export that only tests import carries a `/** @testSeam */` JSDoc tag; untagged, `scripts/check-unused-exports.mjs` counts it as test-only against the ratchet.
 
+## Tests await signals (`npm run lint:landmines`, LAND-*)
+
+The open-source landmines Oxlint rules run as they ship, one rule at a time
+([docs/landmines-adoption.md](../../docs/landmines-adoption.md)). `no-unsignaled-poll` is on: never
+`vi.waitFor` / `expect.poll` on a spy or a recorder; resolve a deferred from the mock or listener, or
+`page.waitForEvent` set up before the action. A rule that misses or misfires on our code is fixed
+upstream, never with a local guard or an `oxlint-disable`.
+
 ## Test environments and E2E scope
 
 Unit tests run under `node` (no jsdom) unless they match `DOM_TESTS` in `vitest.config.js`: any

@@ -48,6 +48,7 @@ export const GUARD_STEPS = [
   'test:any-ratchet',
   'test:ts-nocheck-ratchet',
   'test:e2e-sleeps',
+  'lint:landmines',
   'test:tool-shape',
   'test:js-typed',
   'test:unused-exports',

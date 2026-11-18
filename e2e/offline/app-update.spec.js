@@ -335,8 +335,8 @@ test('offline, a single tab keeps the old build until it is back online', async 
 // Records, from outside the page, every moment the line is shown in its critical
 // state. The binding survives the reload that follows, which a page-side flag
 // would not, and the reload lands too soon after the line to poll for it.
-async function watchCriticalLine(page, seen) {
-  await page.exposeFunction('__pdkefCriticalSeen', () => { seen.add(page); });
+async function watchCriticalLine(page, seen, onSeen) {
+  await page.exposeFunction('__pdkefCriticalSeen', () => { seen.add(page); onSeen?.(); });
   await page.evaluate(() => {
     const el = document.querySelector('[data-app-update]');
     const report = () => {
@@ -368,7 +368,10 @@ async function twoTabsOneHoldingCompress() {
 test('a critical build reaches two tabs with no navigation, even past a file open in Compress', async () => {
   const [busy, other] = await twoTabsOneHoldingCompress();
   const seen = new Set();
-  for (const tab of [busy, other]) await watchCriticalLine(tab, seen);
+  let bothSeenNow;
+  const bothSeen = new Promise((resolve) => { bothSeenNow = resolve; });
+  const onSeen = () => { if (seen.size === 2) bothSeenNow(); };
+  for (const tab of [busy, other]) await watchCriticalLine(tab, seen, onSeen);
   const navigations = [navigationsOf(busy), navigationsOf(other)];
 
   server.setPhase('critical');
@@ -376,7 +379,7 @@ test('a critical build reaches two tabs with no navigation, even past a file ope
 
   // The ordinary build above would leave the busy tab silent and untouched;
   // the critical one shows the force line in both.
-  await expect.poll(() => seen.size, { timeout: 20_000 }).toBe(2);
+  await test.step('both tabs show the critical line', async () => { await bothSeen; });
 
   // Both reload on the worker's controllerchange; nobody navigated them.
   for (const tab of [busy, other]) {

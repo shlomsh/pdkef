@@ -12,6 +12,25 @@ import { widthPercentToHeightPercent, pxToPercent, pxDeltaToPercent } from '#edi
 import { setInputFiles } from '../../test/support/setInputFiles.js';
 import { recentActions } from '#lib/telemetry/actionTrail.ts';
 
+// Spies signPdf and exposes calledTimes(n): a promise that resolves from inside the spy once it has
+// run n times, so tests wait on the call itself instead of polling the spy against a deadline.
+// `impl` receives the 1-based call number and the original arguments.
+type SignArgs = Parameters<typeof signModule.signPdf>;
+function spySignPdf(impl: (call: number, ...args: SignArgs) => Promise<Blob>) {
+  let calls = 0;
+  const waiters: { n: number; resolve: () => void }[] = [];
+  const sign = vi.spyOn(signModule, 'signPdf').mockImplementation(((...args: SignArgs) => {
+    calls += 1;
+    for (const w of waiters) if (w.n <= calls) w.resolve();
+    return impl(calls, ...args);
+  }) as typeof signModule.signPdf);
+  const calledTimes = (n: number) => new Promise<void>((resolve) => {
+    if (calls >= n) resolve();
+    else waiters.push({ n, resolve });
+  });
+  return { sign, calledTimes };
+}
+
 declare const __dirname: string;
 
 // FORM-35: lets one test hand the tool a finished walk with a chosen page kind (kept as an override of the
@@ -296,9 +315,10 @@ describe('PdfSignTool UI flow', () => {
     Object.defineProperty(navigator, 'share', { configurable: true, value: vi.fn(async () => {}) });
     Object.defineProperty(navigator, 'canShare', { configurable: true, value: () => true });
     const signedBlob = new Blob(['signed test result'], { type: 'application/pdf' });
-    const sign = vi.spyOn(signModule, 'signPdf')
-      .mockRejectedValueOnce(makeError())
-      .mockResolvedValueOnce(signedBlob);
+    const { sign, calledTimes } = spySignPdf(async (call) => {
+      if (call === 1) throw makeError();
+      return signedBlob;
+    });
     vi.spyOn(console, 'error').mockImplementation(() => {});
     vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
     const createUrl = vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:signed-test');
@@ -334,7 +354,8 @@ describe('PdfSignTool UI flow', () => {
 
       // Export code is loaded on demand, so the click starts an async module
       // fetch before it reaches the mocked serializer.
-      await vi.waitFor(() => expect(sign).toHaveBeenCalledTimes(1));
+      await act(async () => { await calledTimes(1); });
+      expect(sign).toHaveBeenCalledTimes(1);
       expect(container.querySelector('[data-sign-page-surface]')).toBe(wrapper);
       expect(container.querySelector('[data-editor-text-input]')).toBe(textInput);
       expect(textInput.value).toBe(initialText);
@@ -347,7 +368,8 @@ describe('PdfSignTool UI flow', () => {
         textInput.dispatchEvent(new Event('input', { bubbles: true }));
       });
       await act(async () => { query<HTMLButtonElement>(container, `button[title="${title}"]`).click(); });
-      await vi.waitFor(() => expect(sign).toHaveBeenCalledTimes(2));
+      await act(async () => { await calledTimes(2); });
+      expect(sign).toHaveBeenCalledTimes(2);
       expect(sign.mock.calls[1][1][0].text).toBe('Corrected text');
       expect(container.querySelector('[role="alert"]')).toBeNull();
       expect(query<HTMLTextAreaElement>(container, '[data-editor-text-input]').value).toBe('Corrected text');
@@ -363,7 +385,7 @@ describe('PdfSignTool UI flow', () => {
 
   it('discards an export that finishes after the document changes', async () => {
     let resolveExport!: (value: Blob) => void;
-    const sign = vi.spyOn(signModule, 'signPdf').mockImplementation(() => new Promise((resolve) => {
+    const { sign, calledTimes } = spySignPdf(() => new Promise<Blob>((resolve) => {
       resolveExport = resolve;
     }));
     const createUrl = vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:stale-export');
@@ -392,7 +414,8 @@ describe('PdfSignTool UI flow', () => {
     });
 
     await act(async () => { query<HTMLButtonElement>(container, 'button[title="Save your changes and download the signed PDF"]').click(); });
-    await vi.waitFor(() => expect(sign).toHaveBeenCalledOnce());
+    await act(async () => { await calledTimes(1); });
+    expect(sign).toHaveBeenCalledOnce();
 
     await act(async () => {
       textInput.value = 'Newer text';
@@ -408,7 +431,7 @@ describe('PdfSignTool UI flow', () => {
     const signedBlob = new Blob(['signed result'], { type: 'application/pdf' });
     const sources: unknown[] = [];
     // The real signPdf reads a File with arrayBuffer(); this stand-in does the same.
-    const sign = vi.spyOn(signModule, 'signPdf').mockImplementation(async (source: unknown) => {
+    const { sign, calledTimes } = spySignPdf(async (_call, source: unknown) => {
       sources.push(source);
       if (!(source instanceof ArrayBuffer)) await (source as File).arrayBuffer();
       return signedBlob;
@@ -440,9 +463,11 @@ describe('PdfSignTool UI flow', () => {
     });
     const title = 'Save your changes and download the signed PDF';
     await act(async () => { query<HTMLButtonElement>(container, `button[title="${title}"]`).click(); });
-    await vi.waitFor(() => expect(sign).toHaveBeenCalled());
+    await act(async () => { await calledTimes(1); });
+    expect(sign).toHaveBeenCalled();
     await act(async () => { query<HTMLButtonElement>(container, `button[title="${title}"]`).click(); });
-    await vi.waitFor(() => expect(sign.mock.calls.length).toBeGreaterThanOrEqual(2));
+    await act(async () => { await calledTimes(2); });
+    expect(sign.mock.calls.length).toBeGreaterThanOrEqual(2);
 
     expect(sources.every((source) => source instanceof ArrayBuffer)).toBe(true);
     expect(new Set(sources).size).toBe(1);
@@ -456,7 +481,7 @@ describe('PdfSignTool UI flow', () => {
     Object.defineProperty(navigator, 'canShare', { configurable: true, value: () => true });
 
     const signedBlob = new Blob(['signed result'], { type: 'application/pdf' });
-    const sign = vi.spyOn(signModule, 'signPdf').mockResolvedValue(signedBlob);
+    const { sign, calledTimes } = spySignPdf(async () => signedBlob);
 
     try {
       container = document.createElement('div');
@@ -484,7 +509,8 @@ describe('PdfSignTool UI flow', () => {
 
       // No click on Share/Download anywhere in this test - the export must
       // start on its own once the debounce elapses.
-      await vi.waitFor(() => expect(sign).toHaveBeenCalledTimes(1), { timeout: 3000, interval: 50 });
+      await act(async () => { await calledTimes(1); });
+      expect(sign).toHaveBeenCalledTimes(1);
 
       // A background pre-generation must never show the "signing" UI, which
       // replaces the whole workspace with a spinner - that would read as the
@@ -511,7 +537,8 @@ describe('PdfSignTool UI flow', () => {
       });
       expect(container.querySelector('button[title="Save your changes to share the signed PDF"]')).not.toBeNull();
 
-      await vi.waitFor(() => expect(sign).toHaveBeenCalledTimes(2), { timeout: 3000, interval: 50 });
+      await act(async () => { await calledTimes(2); });
+      expect(sign).toHaveBeenCalledTimes(2);
       await vi.waitFor(() => {
         expect(container.querySelector('button[title="Share the signed PDF"]')).not.toBeNull();
       }, { timeout: 3000, interval: 50 });

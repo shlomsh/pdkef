@@ -1,0 +1,119 @@
+From a55dbf4992eeb490001812a86b4f69c6494ac488 Mon Sep 17 00:00:00 2001
+From: shlomsh <shlomsh@gmail.com>
+Date: Wed, 18 Nov 2026 14:20:09 +0200
+Subject: [PATCH] fix(no-fixed-sleep): report sleeps in callbacks a test awaits
+
+---
+ .changeset/nested-sleep-callbacks.md          |  5 ++
+ .../src/rules/no-fixed-sleep.test.ts          |  5 ++
+ .../landmines/src/rules/no-fixed-sleep.ts     | 52 +++++++++++++++----
+ 3 files changed, 51 insertions(+), 11 deletions(-)
+ create mode 100644 .changeset/nested-sleep-callbacks.md
+
+diff --git a/.changeset/nested-sleep-callbacks.md b/.changeset/nested-sleep-callbacks.md
+new file mode 100644
+index 0000000..ac18a26
+--- /dev/null
++++ b/.changeset/nested-sleep-callbacks.md
+@@ -0,0 +1,5 @@
++---
++"@interfere/landmines": patch
++---
++
++`no-fixed-sleep` now reports a fixed sleep inside a callback that a test or hook awaits or returns, such as `await act(async () => { ... })` or `.then(...)`.
+diff --git a/packages/landmines/src/rules/no-fixed-sleep.test.ts b/packages/landmines/src/rules/no-fixed-sleep.test.ts
+index 22593c0..04199ee 100644
+--- a/packages/landmines/src/rules/no-fixed-sleep.test.ts
++++ b/packages/landmines/src/rules/no-fixed-sleep.test.ts
+@@ -29,6 +29,10 @@ const sleeps = [
+   "test.each([1])('x %s', async () => { await scheduler.wait(1); });",
+   "test.concurrent('x', async () => { await scheduler.wait(1); });",
+   "it.skipIf(ci)('x', async function () { await scheduler.wait(1); });",
++  "it('x', async () => { await act(async () => { release(); await new Promise((resolve) => setTimeout(resolve, 50)); }); });",
++  "beforeEach(async () => { await run(async () => { await scheduler.wait(10); }); });",
++  "test('x', async () => { await work().then(async () => { await Bun.sleep(5); }); });",
++  "it('x', () => act(async () => { await scheduler.wait(10); }));",
+ ];
+ 
+ const signals = [
+@@ -36,6 +40,7 @@ const signals = [
+   "test('x', async () => { const ready = Promise.withResolvers(); await ready.promise; });",
+   "test('x', async () => { vi.useFakeTimers(); await new Promise((resolve) => { setTimeout(resolve, 250); }); });",
+   "test('x', async () => { serve(async () => { await scheduler.wait(10); return new Response(); }); });",
++  "async function settle() { await act(async () => { await scheduler.wait(10); }); } test('x', async () => { await settle(); });",
+   "async function backoff(attempt) { await scheduler.wait(2 ** attempt); } test('x', async () => { await backoff(1); });",
+   "test('x', async () => { await Promise.race([work, new Promise((resolve) => { setTimeout(() => resolve('pending'), 0); })]); });",
+   "test('x', async () => { await new Promise((resolve) => { setTimeout(resolve, 10); queueMicrotask(resolve); }); });",
+diff --git a/packages/landmines/src/rules/no-fixed-sleep.ts b/packages/landmines/src/rules/no-fixed-sleep.ts
+index 97b4ad6..4b767f6 100644
+--- a/packages/landmines/src/rules/no-fixed-sleep.ts
++++ b/packages/landmines/src/rules/no-fixed-sleep.ts
+@@ -49,24 +49,54 @@ const calleeRoot: (node: ESTree.Node) => string | undefined = (node) => {
+   return node.type === "Identifier" ? node.name : undefined;
+ };
+ 
++function isFunction(node: ESTree.Node) {
++  return (
++    node.type === "ArrowFunctionExpression" ||
++    node.type === "FunctionExpression" ||
++    node.type === "FunctionDeclaration"
++  );
++}
++
++function isAwaitedOrReturned(node: ESTree.Node) {
++  const { parent } = node;
++
++  return (
++    parent?.type === "AwaitExpression" ||
++    parent?.type === "ReturnStatement" ||
++    (parent?.type === "ArrowFunctionExpression" && parent.body === node)
++  );
++}
++
+ function inTestBody(node: ESTree.Node) {
+   let current: ESTree.Node | null = node.parent;
+ 
+-  while (
+-    current &&
+-    current.type !== "ArrowFunctionExpression" &&
+-    current.type !== "FunctionExpression" &&
+-    current.type !== "FunctionDeclaration"
+-  ) {
++  while (current && !isFunction(current)) {
+     current = current.parent;
+   }
+ 
+-  const call = current?.parent;
++  while (current) {
++    const call = current.parent;
+ 
+-  return (
+-    call?.type === "CallExpression" &&
+-    testCallees.has(calleeRoot(call.callee) ?? "")
+-  );
++    if (call?.type !== "CallExpression") {
++      return false;
++    }
++
++    if (testCallees.has(calleeRoot(call.callee) ?? "")) {
++      return true;
++    }
++
++    if (!isAwaitedOrReturned(call)) {
++      return false;
++    }
++
++    current = call.parent;
++
++    while (current && !isFunction(current)) {
++      current = current.parent;
++    }
++  }
++
++  return false;
+ }
+ 
+ function scheduled(body: ESTree.Node | null) {
+-- 
+2.54.0 (Apple Git-157)
+

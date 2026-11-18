@@ -13,6 +13,17 @@ vi.mock('#lib/telemetry/productAnalytics.ts', () => ({ reportToolLifecycleEvent:
 const connect = (until = Date.now() + 3_600_000) => localStorage.setItem(DRIVE_TOKEN_KEY, JSON.stringify({ token: 't', until }));
 const events = () => report.mock.calls.map((call) => call[0]);
 
+/** Resolves on the next call to the saveHandoff mock; keeps its resolved value (true). */
+function nextSaveHandoff(): Promise<unknown[]> {
+  return new Promise((resolve) => { saveHandoff.mockImplementationOnce((...args: unknown[]) => { resolve(args); return Promise.resolve(true); }); });
+}
+
+/** Resolves when the report mock next receives `name`; keeps whatever implementation the mock already has. */
+function nextEvent(name: string): Promise<void> {
+  const prev = report.getMockImplementation();
+  return new Promise((resolve) => { report.mockImplementation((...args: unknown[]) => { prev?.(...args); if (args[0] === name) resolve(); }); });
+}
+
 const pdf = new Blob(['%PDF'], { type: 'application/pdf' });
 
 describe('driveSavePayload', () => {
@@ -81,9 +92,10 @@ describe('useSaveToDrive', () => {
     mount();
     expect(report).toHaveBeenCalledWith('tool_drive_shown', 'redact');
     expect(events()).toEqual(['tool_drive_shown']);
+    const called = nextSaveHandoff();
     act(() => latest.save());
     expect(events()).toEqual(['tool_drive_shown', 'tool_drive_tapped']);
-    await act(async () => { await vi.waitFor(() => expect(saveHandoff).toHaveBeenCalled()); });
+    await act(async () => { await called; });
     const id = String(saveHandoff.mock.calls[0][0]).replace('drive-save-', '');
     act(() => channels[0].onmessage?.({ data: { id, status: 'saved', link: null } } as MessageEvent));
     expect(events()).toContain('tool_drive_saved');
@@ -104,8 +116,10 @@ describe('useSaveToDrive', () => {
     saveHandoff.mockResolvedValue(false);
     mount({ generation: 2 });
     report.mockReset();
+    const failed = nextEvent('tool_drive_failed');
     act(() => latest.save());
-    await act(async () => { await vi.waitFor(() => expect(events()).toContain('tool_drive_failed')); });
+    await act(async () => { await failed; });
+    expect(events()).toContain('tool_drive_failed');
   });
 
   it('sends nothing for a closed tab', () => {
@@ -126,11 +140,12 @@ describe('useSaveToDrive', () => {
   it('opens the Drive tab synchronously, then parks the file', async () => {
     const open = vi.spyOn(window, 'open').mockReturnValue({} as Window);
     mount();
+    const called = nextSaveHandoff();
     act(() => latest.save());
     expect(open).toHaveBeenCalledTimes(1);
     expect(String(open.mock.calls[0][0])).toMatch(/^\/drive\/\?save=[a-z0-9-]+$/);
     expect(open.mock.calls[0][2]).toBeUndefined();
-    await act(async () => { await vi.waitFor(() => expect(saveHandoff).toHaveBeenCalled()); });
+    await act(async () => { await called; });
     expect(saveHandoff.mock.calls[0][0]).toMatch(/^drive-save-/);
   });
 
@@ -152,8 +167,9 @@ describe('useSaveToDrive', () => {
     }
     vi.stubGlobal('BroadcastChannel', FakeChannel);
     mount();
+    const called = nextSaveHandoff();
     act(() => latest.save());
-    await act(async () => { await vi.waitFor(() => expect(saveHandoff).toHaveBeenCalled()); });
+    await act(async () => { await called; });
     const id = String(saveHandoff.mock.calls[0][0]).replace('drive-save-', '');
     expect((channels[0] as never as { name: string }).name).toBe(DRIVE_SAVE_CHANNEL);
     const send = (data: unknown) => act(() => channels[0].onmessage?.({ data } as MessageEvent));
@@ -174,8 +190,9 @@ describe('useSaveToDrive', () => {
     class FakeChannel { onmessage = null; constructor() { channels.push(this as never); } close() {} postMessage() {} }
     vi.stubGlobal('BroadcastChannel', FakeChannel);
     mount();
+    const called = nextSaveHandoff();
     act(() => latest.save());
-    await act(async () => { await vi.waitFor(() => expect(saveHandoff).toHaveBeenCalled()); });
+    await act(async () => { await called; });
     const id = String(saveHandoff.mock.calls[0][0]).replace('drive-save-', '');
     act(() => channels[0].onmessage?.({ data: { id, status: 'saved', link: 'https://evil.example/x' } } as MessageEvent));
     expect(latest.state).toBe('saved');
@@ -185,16 +202,21 @@ describe('useSaveToDrive', () => {
   it('builds after the tab is open, and posts cancelled when the build gives nothing or throws', async () => {
     const open = vi.spyOn(window, 'open').mockReturnValue({} as Window);
     const posts: unknown[] = [];
-    class FakeChannel { onmessage = null; close() {} postMessage(m: unknown) { posts.push(m); } }
+    let settled = () => {};
+    const bothSettled = new Promise<void>((resolve) => { settled = resolve; });
+    const checkSettled = () => { if (posts.length >= 2 && events().filter((e) => e === 'tool_drive_failed').length >= 2) settled(); };
+    report.mockImplementation(checkSettled);
+    class FakeChannel { onmessage = null; close() {} postMessage(m: unknown) { posts.push(m); checkSettled(); } }
     vi.stubGlobal('BroadcastChannel', FakeChannel);
     let release: (v: null) => void = () => {};
     build.mockImplementationOnce(() => new Promise((resolve) => { release = resolve as never; }));
+    const failed = nextEvent('tool_drive_failed');
     mount();
     act(() => latest.save());
     expect(open).toHaveBeenCalledTimes(1);
     expect(build).toHaveBeenCalledTimes(1);
     expect(saveHandoff).not.toHaveBeenCalled();
-    await act(async () => { release(null); await vi.waitFor(() => expect(events()).toContain('tool_drive_failed')); });
+    await act(async () => { release(null); await failed; });
     expect(latest.state).toBe('failed');
     expect(posts).toEqual([expect.objectContaining({ status: 'cancelled' })]);
     expect(events()).toContain('tool_drive_failed');
@@ -202,7 +224,7 @@ describe('useSaveToDrive', () => {
     build.mockRejectedValueOnce(new Error('boom'));
     mount({ generation: 2 });
     act(() => latest.save());
-    await act(async () => { await vi.waitFor(() => expect(posts).toHaveLength(2)); await vi.waitFor(() => expect(events().filter((e) => e === 'tool_drive_failed')).toHaveLength(2)); });
+    await act(async () => { await bothSettled; });
     expect(latest.state).toBe('failed');
   });
 
@@ -212,11 +234,12 @@ describe('useSaveToDrive', () => {
     vi.stubGlobal('BroadcastChannel', FakeChannel);
     let release: (v: { blob: Blob; fileName: string }) => void = () => {};
     build.mockImplementationOnce(() => new Promise((resolve) => { release = resolve; }));
+    const called = nextSaveHandoff();
     mount();
     act(() => latest.save());
     mount({ generation: 2 });
     expect(latest.state).toBe('saving');
-    await act(async () => { release({ blob: pdf, fileName: 'a.pdf' }); await vi.waitFor(() => expect(saveHandoff).toHaveBeenCalled()); });
+    await act(async () => { release({ blob: pdf, fileName: 'a.pdf' }); await called; });
     expect(latest.state).toBe('saving');
   });
 
@@ -258,9 +281,10 @@ describe('useSaveToDrive', () => {
     tabA.closed = true;
     act(() => { vi.advanceTimersByTime(3000); });
     expect(latest.state).toBe('idle');
+    const called = nextSaveHandoff();
     act(() => latest.save());
     expect(latest.state).toBe('saving');
-    await act(async () => { await vi.waitFor(() => expect(saveHandoff).toHaveBeenCalled()); });
+    await act(async () => { await called; });
     await act(async () => { failA(new Error('boom')); await Promise.resolve(); await Promise.resolve(); });
     expect(latest.state).toBe('saving');
     expect(channels[1].closed).toBe(false);
