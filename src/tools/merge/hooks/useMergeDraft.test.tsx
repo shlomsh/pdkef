@@ -90,9 +90,14 @@ function baseOptions(overrides = {}) {
 const drain = (turns = 1) => act(async () => { for (let turn = 0; turn < turns; turn += 1) await drainPromises(); });
 
 // A mount's restore effect kicks off an async IIFE that reads through fake-indexeddb. A read of the same
-// store issued after it queues behind it, so awaiting `loadDraft` here lets the restore's own read finish;
-// drained turns carry its result into the hook (onRestore, the settled flag, the delete of a record it rejects).
-const restoreSettled = () => act(async () => { await loadDraft('merge'); for (let turn = 0; turn < 10; turn += 1) await drainPromises(); });
+// store issued after it queues behind it, so awaiting `loadDraft` here lets the restore's own read finish, and
+// one more turn carries its result into the hook (onRestore, the settled flag). A restore with more async work
+// after that read (deleting a record it rejects) passes `done`: an observable that only holds once that work ended.
+const restoreSettled = async (done?: () => unknown) => {
+  await act(async () => { await loadDraft('merge'); });
+  if (done) await waitUntil(done);
+  await drain();
+};
 
 // The apiRef of the latest mount(): flushDebounce waits on its save state.
 let mounted = null;
@@ -109,12 +114,12 @@ async function flushDebounce(debounceMs = 700, apiRef = mounted) {
 // Two separate `act()` calls, deliberately: an async callback only flushes effects once the callback itself
 // resolves (see preact/test-utils' `act`), so awaiting inside the same call as `render()` would delay the mount
 // effect - the one that starts the restore IIFE - rather than give it time to finish.
-async function mount(apiRef, options) {
+async function mount(apiRef, options, done?: () => unknown) {
   mounted = apiRef;
   act(() => {
     render(<Harness apiRef={apiRef} options={options} />, container);
   });
-  await restoreSettled();
+  await restoreSettled(done);
 }
 
 let container;
@@ -334,7 +339,8 @@ describe('useMergeDraft', () => {
 
     const onRestore = vi.fn();
     const apiRef = { current: null };
-    await mount(apiRef, baseOptions({ onRestore }));
+    // The restore clears the hint attribute only after it has deleted the record it rejected.
+    await mount(apiRef, baseOptions({ onRestore }), () => !document.documentElement.hasAttribute('data-draft-hint'));
 
     expect(onRestore).not.toHaveBeenCalled();
     expect(await loadDraft('merge')).toBeNull();
@@ -486,8 +492,14 @@ describe('useMergeDraft', () => {
       resolveStaleRead(new TextEncoder().encode('A').buffer);
       await drainPromises();
     });
-    // The stale write goes through fake-indexeddb a step per turn: let it end.
-    await drain(20);
+    // The stale write still lands in the store (IndexedDB writes cannot be cancelled): a stored 'a.pdf' means
+    // it is done, so its completion has had its chance to repaint the state. One more turn runs its tail.
+    let staleStored = false;
+    await waitUntil(() => {
+      void loadDraft('merge').then((record) => { staleStored = record?.files[0]?.fileName === 'a.pdf'; });
+      return staleStored;
+    });
+    await drain();
     expect(apiRef.current.draftSaveState).toBe('saved');
   });
 

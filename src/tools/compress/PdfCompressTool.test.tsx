@@ -17,6 +17,14 @@ import { waitUntil } from '../../test/support/waitUntil.ts';
 import { drainPromises } from '../../test/support/drainPromises.ts';
 import { ANALYSIS_SHAPES, buildAnalysisPdf } from '../../test/support/analysisPdfFixtures.ts';
 
+// The analysis of the picked PDF runs for real; this only reports each finished one to `onAnalyzed` (a test sets it
+// to learn that a stale analysis is done), after which the hook has either applied the result or dropped it.
+const analysisProbe = vi.hoisted(() => ({ onAnalyzed: null as null | (() => void) }));
+vi.mock('./lib/analyzePdf.js', async (importOriginal) => {
+  const original = await importOriginal<typeof import('./lib/analyzePdf.js')>();
+  return { ...original, analyzePdf: (...args) => { const result = original.analyzePdf(...args); analysisProbe.onAnalyzed?.(); return result; } };
+});
+
 // Tests that are not about timing build 5ms after the last change instead of 1.5s.
 const FAST_QUIET = { baseMs: 5, stepMs: 0, maxMs: 5, burstWindowMs: 1 };
 
@@ -83,6 +91,7 @@ describe('PdfCompressTool UI flow', () => {
   beforeEach(() => {
     harness = installToolHarness();
     vi.clearAllMocks();
+    for (const mock of [imagesLib.compressPdfImages, imagesLib.compressPdfImagesToTarget, compressImageLib.compressImageToTarget, harness.pdfjs.thumbnails.renderComparePreview]) watch(mock);
     compressImageLib.compressImageToTarget.mockImplementation(() => Promise.resolve(makeImageResult()));
     imagesLib.compressPdfImages.mockImplementation(() => Promise.resolve(imagesResult()));
     imagesLib.compressPdfImagesToTarget.mockImplementation(() => Promise.resolve(imagesResult({ metTarget: true })));
@@ -98,6 +107,8 @@ describe('PdfCompressTool UI flow', () => {
 
   afterEach(() => {
     vi.useRealTimers();
+    for (const { unwatch } of watched.values()) unwatch();
+    watched.clear();
     if (container) {
       act(() => render(null, container));
       container.remove();
@@ -124,18 +135,29 @@ describe('PdfCompressTool UI flow', () => {
 
   const statusOf = () => container.querySelector('[data-compress-status]')?.getAttribute('data-compress-status');
   const settled = () => waitUntil(() => ['done', 'error'].includes(statusOf()));
-  // A signal that `mock` has been called `n` times in all, resolved from inside the call itself (the mock's
-  // calls array reports each push), so it also sees a call served by a mockImplementationOnce.
-  const ran = (mock, n) => {
-    const reached = Promise.withResolvers<void>();
-    const calls = mock.mock.calls;
-    if (calls.length >= n) { reached.resolve(); return reached.promise; }
-    const push = calls.push;
-    calls.push = function pushAndSignal(...args) {
-      const length = push.apply(this, args);
-      if (length >= n) reached.resolve();
-      return length;
+  // A signal that `mock` has been called `n` times in all, counted from inside the call itself: `watch` taps
+  // every implementation given to the mock (default or once), so a call served by a mockImplementationOnce
+  // counts too. Nothing here reads the spy's calls, and mockClear/mockReset cannot unhook it.
+  const watched = new Map();
+  const watch = (mock) => {
+    const state = { count: 0, waiting: [] };
+    const tap = (impl) => (...args) => {
+      state.count += 1;
+      state.waiting = state.waiting.filter((w) => state.count < w.n || (w.resolve(), false));
+      return impl?.(...args);
     };
+    const { mockImplementation, mockImplementationOnce } = mock;
+    const current = mock.getMockImplementation();
+    mock.mockImplementation = (impl) => mockImplementation.call(mock, tap(impl));
+    mock.mockImplementationOnce = (impl) => mockImplementationOnce.call(mock, tap(impl));
+    if (current) mockImplementation.call(mock, tap(current));
+    watched.set(mock, { state, unwatch: () => { mock.mockImplementation = mockImplementation; mock.mockImplementationOnce = mockImplementationOnce; } });
+  };
+  const ran = (mock, n) => {
+    const { state } = watched.get(mock);
+    if (state.count >= n) return Promise.resolve();
+    const reached = Promise.withResolvers<void>();
+    state.waiting.push({ n, resolve: reached.resolve });
     return reached.promise;
   };
   // Under the faked setTimeout: waits for a `ran(...)` signal, running the 0 ms timers already due
@@ -1162,11 +1184,15 @@ describe('PdfCompressTool UI flow', () => {
       await act(async () => { await held.promise; });
       // A's analysis is still pending; B arrives and is analysed (images present).
       await pick(makePdfFile('b.pdf', 5000));
+      // A's analysis is the next one to finish: the probe says so, whether the hook then applies or drops it.
+      const analyzedA = Promise.withResolvers<void>();
+      analysisProbe.onAnalyzed = () => analyzedA.resolve();
       await act(async () => {
         releaseA();
-        // A's analysis can hop through a macrotask or two after its bytes are read: drain a few turns.
-        for (let turn = 0; turn < 10; turn += 1) await drainPromises();
+        await analyzedA.promise;
+        await drainPromises();
       });
+      analysisProbe.onAnalyzed = null;
 
       // B has an image, A's (image-free) result must not leak onto it.
       expect(stripNote()).not.toContain(NOTE);

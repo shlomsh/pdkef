@@ -1326,8 +1326,14 @@ describe('PdfMergeTool UI flow', () => {
       expect(await saveHandoff('merge', handoffOf('new1.pdf', 'new2.pdf'))).toBe(true);
       mount();
       await until(() => fileNames().length === 2 && rowsRead());
-      // The restore reads the stored draft through fake-indexeddb, which advances one step per turn.
-      await drain(20);
+      // Saves are gated on the restore check settling, so the hand-off set's "Saving draft…" row (the debounce
+      // has not fired yet, the stored set is still untouched) means the restore has run and declined. A restore
+      // that wrongly applied shows the old files instead; either way the check below then reads the outcome.
+      await waitUntil(() => (
+        container.querySelector('[data-testid="draft-status-row"]')?.textContent?.startsWith('Saving draft…') === true
+        || fileNames()[0] === 'old1.pdf'
+      ));
+      await drain();
       expect(fileNames()).toEqual(['new1.pdf', 'new2.pdf']);
       // The saved set is still stored, with its work, in the recents.
       expect(harness.recents().filter((entry) => entry.hasWork.includes('merge')).map((entry) => entry.fileName)).toContain('merged_old1');
