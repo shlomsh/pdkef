@@ -56,6 +56,12 @@ was rewritten and proven; two page-grid tests passed alone with a wrongly opened
 dialog up front. Moving `waitUntil` and `drainPromises` to `src/test/support/` cleared a project cycle,
 and `draftRestoreRace` now waits for its pending work in `afterEach`, which fixes CI's teardown flake.
 
+A fresh review found nothing blocking; its follow-ups replaced the last fixed turn counts before
+absence checks (Compress's stale analysis and call counting, Merge's late restore and stale draft write)
+with signals, each proven. OpenWithChooser and chunkReload: 8 of 8 proven. Two absences cannot fail by
+themselves: the locked single-file state's "That didn't work" (one file never builds) and the rail
+Sortable re-creation, whose mutations fail only by timeout.
+
 Found while proving, true before this work too (the old tests also pass with the guard removed): weak
 tests in draft validation (`useEditorDraftPersistence`, its record has no bytes, so validation is never
 reached), Redact previews (`useObjectPreviews`, an error is swallowed either way) and Compress's run
