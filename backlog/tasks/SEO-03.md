@@ -290,6 +290,12 @@ Read: 2026-12-01, against the baseline above, logged in [findings doc section 8]
   5 contributors).
 - 2026-11-17, Hacker News: Shlomi created an account for the Show HN; a comment or two on other stories
   before 2026-11-24 so it is not brand new on the day.
+- 2026-11-18, first HN comment: on [Show HN: Lex Cloak](https://news.ycombinator.com/item?id=50548242)
+  (local PII redaction), asking how OCR-vs-text-layer mismatches are redacted and what a redacted page
+  becomes, and pointing at page thumbnails as a leak. No PDkef mention or link.
+- HN Show HN lesson, from [Pdfwithlove](https://news.ycombinator.com/item?id=46675231) (2026-01, 177
+  points): HN reads client-side PDF toolkits as "the new hello world" and asks for Stirling PDF / PDF24
+  comparisons, proof it runs locally, source, and offline. Lead PDkef's post with what only it does.
 - Hebrew communities (pilot step 5): dropped 2026-11-17. Shlomi is not a member of any Israeli group, and
   joining one cold to post a link reads as spam.
 - 2026-11-17, AlternativeTo: PDkef listing submitted from Shlomi's account to the free review queue (no paid
