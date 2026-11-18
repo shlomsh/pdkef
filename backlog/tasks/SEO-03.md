@@ -293,6 +293,10 @@ Read: 2026-12-01, against the baseline above, logged in [findings doc section 8]
 - 2026-11-18, first HN comment: on [Show HN: Lex Cloak](https://news.ycombinator.com/item?id=50548242)
   (local PII redaction), asking how OCR-vs-text-layer mismatches are redacted and what a redacted page
   becomes, and pointing at page thumbnails as a leak. No PDkef mention or link.
+- 2026-11-18, second HN comment: a reply to the author on
+  [Show HN: Lampka](https://news.ycombinator.com/item?id=50497141) (Windows PDF reader), asking whether
+  picture regions inside full-page scans could keep their colour in dark mode, from finding text lines in
+  scan pixels. No PDkef mention or link.
 - HN Show HN lesson, from [Pdfwithlove](https://news.ycombinator.com/item?id=46675231) (2026-01, 177
   points): HN reads client-side PDF toolkits as "the new hello world" and asks for Stirling PDF / PDF24
   comparisons, proof it runs locally, source, and offline. Lead PDkef's post with what only it does.
