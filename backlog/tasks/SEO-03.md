@@ -300,6 +300,11 @@ Read: 2026-12-01, against the baseline above, logged in [findings doc section 8]
 - HN Show HN lesson, from [Pdfwithlove](https://news.ycombinator.com/item?id=46675231) (2026-01, 177
   points): HN reads client-side PDF toolkits as "the new hello world" and asks for Stirling PDF / PDF24
   comparisons, proof it runs locally, source, and offline. Lead PDkef's post with what only it does.
+- 2026-11-18, AlternativeTo: the listing was approved and is live (their "PDkef is live" email, 12:45).
+- 2026-11-18, Help Desk Geek: email sent from Shlomi's Gmail to Aseem Kishore about
+  [How to Redact Sensitive Information in Word and PDF Documents on Mac](https://helpdeskgeek.com/redact-sensitive-information-word-pdf-mac/):
+  PDkef's origin story and why it has no servers, Redact as a no-install free option, and the
+  blur-vs-blackout guide as a reference. No reply yet.
 - Hebrew communities (pilot step 5): dropped 2026-11-17. Shlomi is not a member of any Israeli group, and
   joining one cold to post a link reads as spam.
 - 2026-11-17, AlternativeTo: PDkef listing submitted from Shlomi's account to the free review queue (no paid
