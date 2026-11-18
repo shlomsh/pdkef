@@ -6,6 +6,7 @@ import type { PageGlyph } from '../lib/pageGlyphs.ts';
 import type { DeletablePdfObject } from '../components/DeletableObjectOverlay.tsx';
 import * as errorReport from '#lib/telemetry/errorReport.ts';
 import useObjectPreviews from './useObjectPreviews.ts';
+import { drainPromises } from '../../../test/support/drainPromises.ts';
 
 const readGlyphsMock = vi.fn<(pdfjs: unknown, page: { pageNumber: number }) => Promise<PageGlyph[] | null>>();
 vi.mock('#editor/adapters/pdf/pdfjsLoader.js', () => ({ getPdfjs: async () => ({}) }));
@@ -23,7 +24,8 @@ const pdfDocument = {
   getPage: async (pageNumber: number) => ({ pageNumber, view: [0, 0, 600, 800], rotate: 0, userUnit: 1 }),
 } as unknown as PDFDocumentProxy;
 
-const settle = () => act(async () => { await new Promise((resolve) => setTimeout(resolve, 0)); });
+// The mocks resolve at once, so the read is a chain of settled promises: one event-loop turn ends it.
+const settle = () => act(async () => { await drainPromises(); });
 
 describe('useObjectPreviews', () => {
   let container: HTMLDivElement;

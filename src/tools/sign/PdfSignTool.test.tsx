@@ -10,7 +10,7 @@ import { resetMaintenanceEventsForTests } from '#lib/telemetry/maintenanceTeleme
 import { installToolHarness, type ToolHarness } from '../../test/harness/toolHarness.ts';
 import { widthPercentToHeightPercent, pxToPercent, pxDeltaToPercent } from '#editor/geometry/coords.ts';
 import { setInputFiles } from '../../test/support/setInputFiles.js';
-import { waitUntil } from '../../test/harness/waitUntil.ts';
+import { waitUntil } from '../../test/support/waitUntil.ts';
 import { recentActions } from '#lib/telemetry/actionTrail.ts';
 
 // Spies signPdf and exposes calledTimes(n): a promise that resolves from inside the spy once it has

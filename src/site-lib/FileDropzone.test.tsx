@@ -2,14 +2,14 @@
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { readFileSync } from 'node:fs';
-import { drainPromises } from '../test/harness/drainPromises.ts';
+import { drainPromises } from '../test/support/drainPromises.ts';
 import { describe, expect, it, vi, afterEach, beforeEach } from 'vitest';
 import FileDropzone, { tileCopy, isolateNames, LAUNCHER_PICK_EVENT } from './FileDropzone.tsx';
 import { englishFileDropzoneMessages as en } from './fileDropzoneMessages';
 import { consumeRecentOpen } from '#lib/handoff/fileArrival.ts';
 import { saveDraft, saveHandoff, setCurrentEntry, readRecentFiles, loadRecentFile, takeHandoff, removeRecentEntry } from '#lib/drafts/draftStore.ts';
 import { setInputFiles } from '../test/support/setInputFiles.js';
-import { waitUntil } from '../test/harness/waitUntil';
+import { waitUntil } from '../test/support/waitUntil.ts';
 
 vi.mock('#lib/drafts/draftStore.ts', () => ({
   saveDraft: vi.fn(() => Promise.resolve(true)),
@@ -28,7 +28,7 @@ function dropOn(dropzone, files) {
   return act(async () => {
     dropzone.dispatchEvent(event);
     // The handoff path is async (file.arrayBuffer(), then saveHandoff) before it commits.
-    await new Promise((resolve) => setTimeout(resolve, 0));
+    await drainPromises();
   });
 }
 
@@ -380,7 +380,7 @@ describe('FileDropzone', () => {
     afterEach(() => hero.remove());
     const chooseSign = () => act(async () => {
       hero.querySelector('a').dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
-      await new Promise((resolve) => setTimeout(resolve, 0));
+      await drainPromises();
     });
 
     function mountTarget() {
@@ -509,11 +509,11 @@ describe('FileDropzone', () => {
     let hero, dock, back, realLocation, scrollIntoView;
     const link = (tool) => dock.querySelector(`[data-tool="${tool}"]`);
     const picker = () => container.querySelector('[data-home-picker]');
-    const flush = () => act(async () => { await new Promise((r) => setTimeout(r, 0)); });
+    const flush = () => act(async () => { await drainPromises(); });
     const pick = async (files, root = container) => {
       await act(async () => {
         setInputFiles(root.querySelector('input[type="file"]'), files);
-        await new Promise((r) => setTimeout(r, 0));
+        await drainPromises();
       });
     };
     const lit = () => [...dock.querySelectorAll('[data-fits]')].map((a) => a.dataset.tool);

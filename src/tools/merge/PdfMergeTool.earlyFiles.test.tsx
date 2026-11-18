@@ -6,7 +6,7 @@ import { renderToString } from 'preact-render-to-string';
 import { describe, expect, it, afterEach, beforeEach } from 'vitest';
 import PdfMergeTool from './PdfMergeTool.tsx';
 import { setInputFiles } from '../../test/support/setInputFiles.js';
-import { waitUntil } from '../../test/harness/waitUntil.ts';
+import { waitUntil } from '../../test/support/waitUntil.ts';
 import { installToolHarness, type ToolHarness } from '../../test/harness/toolHarness.ts';
 
 const FIXTURE = readFileSync('src/lib/__fixtures__/num-2.pdf');

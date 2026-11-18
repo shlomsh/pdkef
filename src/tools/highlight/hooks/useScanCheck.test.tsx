@@ -13,6 +13,7 @@ vi.mock('#lib/telemetry/maintenanceTelemetry.ts', async (original) => ({
   reportMaintenanceEvent: (...a: unknown[]) => reportMaintenanceEvent(...a),
 }));
 
+import { drainPromises } from '../../../test/support/drainPromises.ts';
 import { useScanCheck } from './useScanCheck.ts';
 
 let idle: Array<() => void> = [];
@@ -25,7 +26,7 @@ function Probe({ doc }: { doc: PDFDocumentProxy | null }) {
 }
 const mount = (doc: PDFDocumentProxy | null) => act(() => { render(<Probe doc={doc} />, container); });
 /** Lets the page paint: runs what the hook queued for idle time, then the promises it started. */
-const runIdle = async () => { await act(async () => { idle.splice(0).forEach((run) => run()); await new Promise((r) => setTimeout(r, 0)); }); };
+const runIdle = async () => { await act(async () => { idle.splice(0).forEach((run) => run()); await drainPromises(); }); };
 const DOC = { numPages: 3 } as unknown as PDFDocumentProxy;
 
 beforeEach(() => {
@@ -74,7 +75,7 @@ describe('useScanCheck', () => {
     mount(DOC);
     await runIdle();
     mount(null);
-    await act(async () => { finish('spread'); await new Promise((r) => setTimeout(r, 0)); });
+    await act(async () => { finish('spread'); await drainPromises(); });
     expect(shown).toBeNull();
     expect(reportMaintenanceEvent).not.toHaveBeenCalled();
     expect(readScan.mock.calls[0][1]()).toBe(false);

@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
+import { drainPromises } from '../test/support/drainPromises.ts';
 import {
   CHUNK_RELOAD_WINDOW_MS,
   decideChunkReload,
@@ -93,7 +94,7 @@ function setup(opts: { held?: boolean; online?: boolean; heldAfterFlush?: boolea
 }
 
 const preloadEvent = () => ({ payload: new TypeError('Failed to fetch dynamically imported module'), preventDefault: vi.fn() });
-const flushMicrotasks = () => new Promise((r) => setTimeout(r, 0));
+const flushMicrotasks = () => drainPromises();
 
 describe('installChunkReload while the page is leaving', () => {
   // WebKit rejects module loads a navigation cancels with "Importing a module script failed.":

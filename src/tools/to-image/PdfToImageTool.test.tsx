@@ -2,11 +2,12 @@
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { describe, expect, it, vi, afterEach, beforeEach } from 'vitest';
-import { drainPromises } from '../../test/harness/drainPromises.ts';
+import { drainPromises } from '../../test/support/drainPromises.ts';
 import PdfToImageTool from './PdfToImageTool.tsx';
 import { mockNativeFileShare } from '../../test/support/mockFileShare.js';
 import { setInputFiles } from '../../test/support/setInputFiles.js';
 import { until } from '../../test/support/until.js';
+import { waitUntil } from '../../test/support/waitUntil.ts';
 import { recentActions } from '#lib/telemetry/actionTrail.ts';
 import { installToolHarness, type ToolHarness } from '../../test/harness/toolHarness.ts';
 // The same object as harness.pdfjs.source: the conversion fake below sits outside any test and reads the page count.
@@ -51,7 +52,8 @@ async function defaultConvert(file: File, opts: any) {
 // Tests that are not about timing build after 5ms instead of the real 1500ms.
 const FAST_QUIET = { baseMs: 5, stepMs: 0, maxMs: 5, burstWindowMs: 1 };
 const SLOW_QUIET = { baseMs: 400, stepMs: 0, maxMs: 400, burstWindowMs: 1 };
-const wait = (ms) => act(async () => { await new Promise((resolve) => setTimeout(resolve, ms)); });
+// Lets the promise work already queued reach the component, before an assertion that something did NOT happen.
+const drain = () => act(async () => { await drainPromises(); });
 const makePdfFile = (name = 'report.pdf') => new File(['%PDF-1.4'], name, { type: 'application/pdf' });
 
 describe('PdfToImageTool', () => {
@@ -95,7 +97,7 @@ describe('PdfToImageTool', () => {
   }
   const pick = async (file) => {
     await act(async () => { setInputFiles(container.querySelector('input[type="file"]'), [file]); });
-    await wait(50);
+    await waitUntil(() => container.querySelector('ul[data-page-grid]') || container.querySelector('[role="alert"]') || container.querySelector('[data-needs-unlock]'));
     await harness.flush();
   };
   const replaceWith = async (file) => {
@@ -168,13 +170,14 @@ describe('PdfToImageTool', () => {
 
   it('does not convert before the quiet wait, then converts once', async () => {
     await open(5, { quietPolicy: SLOW_QUIET });
-    await wait(150);
+    await drain();
     expect(convertCalls.n).toBe(0);
     expect(downloadElement().getAttribute('data-state')).toBe('ready');
     expect(downloadElement().getAttribute('aria-busy')).toBeNull();
     await until(() => convertCalls.n === 1);
     expect(convertCalls.n).toBe(1);
-    await wait(600);
+    await until(() => /\d(\.\d)? KB/.test(downloadElement().textContent));
+    await drain();
     expect(convertCalls.n).toBe(1);
   });
 
@@ -233,14 +236,14 @@ describe('PdfToImageTool', () => {
     await click(radio('PNG'));
     expect(downloadElement().textContent).toContain('Download 5 PNGs');
     expect(downloadElement().textContent).toMatch(/\d(\.\d)? KB/);
-    await wait(150);
+    await drain();
     expect(convertCalls.n).toBe(2);
     expect(harness.usageEvents('tool_first_edit').map((event) => event.properties.tool)).toEqual(['pdf-to-image']);
   });
 
   it('never auto-builds above 30 pages, says it is made on tap, and builds when Download is approached', async () => {
     await open(31);
-    await wait(200);
+    await drain();
     expect(convertCalls.n).toBe(0);
     expect(downloadElement().getAttribute('data-state')).toBe('ready');
     expect(downloadElement().textContent).toContain('Made when you tap');

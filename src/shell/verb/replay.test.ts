@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { createReplayer, isHover, type AnimationLike } from './replay';
+import { drainPromises } from '../../test/support/drainPromises.ts';
 
 // jsdom has no Web Animations, so these are fakes that log what the helper asks of them.
 function fake(log: string[], name: string) {
@@ -26,7 +27,7 @@ function fake(log: string[], name: string) {
   };
   return { a: a as AnimationLike, end: () => finish() };
 }
-const tick = () => new Promise((r) => setTimeout(r, 0));
+const tick = () => drainPromises();
 
 describe('createReplayer', () => {
   it('rewinds every animation at a negative rate and plays forward only after all finished', async () => {

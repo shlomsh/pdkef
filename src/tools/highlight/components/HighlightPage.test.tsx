@@ -1,4 +1,5 @@
 import { render } from 'preact';
+import { drainPromises } from '../../../test/support/drainPromises.ts';
 import type * as preact from 'preact';
 import { act } from 'preact/test-utils';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -192,7 +193,7 @@ describe('HighlightPage swipe direction', () => {
         container,
       );
     });
-    await act(async () => { await new Promise((resolve) => setTimeout(resolve, 0)); });
+    await act(async () => { await drainPromises(); });
     press(container.querySelector<HTMLElement>('[data-page-overlay]')!, { pointerType: 'mouse' });
     return startHighlightSwipe.mock.calls[0][0].direction;
   };
@@ -509,7 +510,7 @@ describe('HighlightPage click marks on a digital page (R10 to R12)', () => {
   async function mountText(elements: EditorElement[] = [], marker = DEFAULT_MARKER, armed?: boolean) {
     doc = textPage(['hello world']);
     await act(async () => { renderPage(elements, marker, armed); });
-    await act(async () => { await new Promise((resolve) => setTimeout(resolve, 0)); });
+    await act(async () => { await drainPromises(); });
     overlay = container.querySelector<HTMLElement>('[data-page-overlay]')!;
     overlay.getBoundingClientRect = () => ({ left: 0, top: 0, right: 200, bottom: 400, width: 200, height: 400, x: 0, y: 0, toJSON: () => ({}) });
   }
@@ -628,7 +629,7 @@ describe('HighlightPage sweep (R13)', () => {
   async function laidByDoubleClick(strings: string[], reduced = false) {
     const { draw } = markByClick(strings, reduced);
     await act(async () => { draw([]); });
-    await act(async () => { await new Promise((resolve) => setTimeout(resolve, 0)); });
+    await act(async () => { await drainPromises(); });
     const overlay = container.querySelector<HTMLElement>('[data-page-overlay]')!;
     overlay.getBoundingClientRect = () => ({ left: 0, top: 0, right: 200, bottom: 400, width: 200, height: 400, x: 0, y: 0, toJSON: () => ({}) });
     const down = new MouseEvent('pointerdown', { bubbles: true, cancelable: true, button: 0, clientX: 20, clientY: 92 });

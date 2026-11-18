@@ -4,6 +4,8 @@ import { IDBFactory } from 'fake-indexeddb';
 import { MERGE_DRAFT_MAX_BYTES, cacheRecentFile, loadDraft, readRecentFiles, saveDraft, sourceIdForBytes } from './draftStore.ts';
 import { ENTRIES_REMOVED_KEY, forgetTabEntry } from './draftRemovalWatch.ts';
 import { removeRecentEntry } from './draftRemoval.ts';
+import { reqToPromise, withStore } from './draftIdb.ts';
+import { drainPromises } from '../../test/support/drainPromises.ts';
 
 const bytesOf = (value: string) => new TextEncoder().encode(value).buffer;
 const record = (name: string) => ({ fileName: `${name}.pdf`, fileType: 'application/pdf', fileBytes: bytesOf(`%PDF-1.4 ${name}`), elements: [] });
@@ -12,7 +14,12 @@ const record = (name: string) => ({ fileName: `${name}.pdf`, fileType: 'applicat
 const peerRemoved = (removed: string[]) => window.dispatchEvent(new StorageEvent('storage', {
   key: ENTRIES_REMOVED_KEY, newValue: JSON.stringify({ removed }),
 }));
-const settled = () => new Promise((resolve) => setTimeout(resolve, 20));
+// pageshow reads the store before deciding. A read of ours queues behind it, so once ours answers the
+// handler's read has too; draining then carries its result (reload or not) to the assertions.
+const afterPageshowRead = async () => {
+  await withStore('readonly', (store) => reqToPromise(store.getKey('nothing')));
+  await drainPromises();
+};
 
 describe('an open tab whose file was removed', () => {
   const reload = vi.fn();
@@ -30,7 +37,6 @@ describe('an open tab whose file was removed', () => {
     await saveDraft('sign', record('gone'));
     const id = await sourceIdForBytes(record('gone').fileBytes);
     peerRemoved([id!]);
-    await settled();
     expect(reload).toHaveBeenCalledTimes(1);
     // The pagehide flush of the reload itself.
     expect(await saveDraft('sign', record('gone'))).toBe(false);
@@ -42,7 +48,6 @@ describe('an open tab whose file was removed', () => {
     forgetTabEntry();
     await loadDraft('redact');
     peerRemoved([(await sourceIdForBytes(record('restored').fileBytes))!]);
-    await settled();
     expect(reload).toHaveBeenCalledTimes(1);
   });
 
@@ -51,7 +56,6 @@ describe('an open tab whose file was removed', () => {
     await saveDraft('sign', record('mine'));
     const other = await sourceIdForBytes(record('other').fileBytes);
     peerRemoved([other!]);
-    await settled();
     expect(reload).not.toHaveBeenCalled();
     expect(await saveDraft('sign', record('mine'))).toBe(true);
   });
@@ -61,7 +65,6 @@ describe('an open tab whose file was removed', () => {
     await cacheRecentFile('sign', record('now'));
     const left = await sourceIdForBytes(record('left').fileBytes);
     peerRemoved([left!]);
-    await settled();
     expect(reload).not.toHaveBeenCalled();
   });
 
@@ -71,7 +74,6 @@ describe('an open tab whose file was removed', () => {
     const tooBig = [{ fileName: 'huge.pdf', fileBytes: { byteLength: MERGE_DRAFT_MAX_BYTES + 1 } as ArrayBuffer }];
     expect(await saveDraft('merge', { files: tooBig, fileName: 'huge.pdf' })).toBe(false);
     peerRemoved([old!]);
-    await settled();
     expect(reload).not.toHaveBeenCalled();
   });
 
@@ -82,14 +84,12 @@ describe('an open tab whose file was removed', () => {
     put.mockRestore();
     const id = await sourceIdForBytes(record('unsaved').fileBytes);
     peerRemoved([id!]);
-    await settled();
     expect(reload).toHaveBeenCalledTimes(1);
   });
 
   it('ignores a corrupt message and a page with no entry', async () => {
     window.dispatchEvent(new StorageEvent('storage', { key: ENTRIES_REMOVED_KEY, newValue: '{not json' }));
     peerRemoved(['sha256:anything']);
-    await settled();
     expect(reload).not.toHaveBeenCalled();
   });
 
@@ -99,7 +99,7 @@ describe('an open tab whose file was removed', () => {
     await removeRecentEntry(entry.id);
     expect(reload).not.toHaveBeenCalled();
     window.dispatchEvent(new PageTransitionEvent('pageshow', { persisted: true }));
-    await settled();
+    await afterPageshowRead();
     expect(reload).toHaveBeenCalledTimes(1);
     expect(await saveDraft('sign', record('gone'))).toBe(false);
   });
@@ -107,7 +107,7 @@ describe('an open tab whose file was removed', () => {
   it('stays put on a back/forward restore when the entry is still there', async () => {
     await saveDraft('sign', record('kept'));
     window.dispatchEvent(new PageTransitionEvent('pageshow', { persisted: true }));
-    await settled();
+    await afterPageshowRead();
     expect(reload).not.toHaveBeenCalled();
   });
 });

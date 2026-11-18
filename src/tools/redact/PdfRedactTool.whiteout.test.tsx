@@ -7,7 +7,7 @@ import { DEFAULT_BLUR_STRENGTH } from '#editor/model/blurStrength.ts';
 import { rememberAppStyle, getRecentWhiteoutColors, rememberRecentWhiteoutColor } from '#editor/workspace/preferenceStore.ts';
 import { saveDraft } from '#lib/drafts/draftStore.ts';
 import * as gestureController from '#lib/gestures/controller.ts';
-import { waitUntil } from '../../test/harness/waitUntil.ts';
+import { waitUntil } from '../../test/support/waitUntil.ts';
 import { installToolHarness } from '../../test/harness/toolHarness.ts';
 import { useRedactSuite, buildPdf, required, query, settleUntil, dragBlurSlider, setSelectedBoxColor, pageSampler } from '../../test/support/redactTool.tsx';
 

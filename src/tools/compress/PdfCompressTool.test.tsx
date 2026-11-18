@@ -13,7 +13,8 @@ import { mockNativeFileShare } from '../../test/support/mockFileShare.js';
 import { setInputFiles } from '../../test/support/setInputFiles.js';
 import { recentActions } from '#lib/telemetry/actionTrail.ts';
 import { installToolHarness } from '../../test/harness/toolHarness.ts';
-import { waitUntil } from '../../test/harness/waitUntil.ts';
+import { waitUntil } from '../../test/support/waitUntil.ts';
+import { drainPromises } from '../../test/support/drainPromises.ts';
 import { ANALYSIS_SHAPES, buildAnalysisPdf } from '../../test/support/analysisPdfFixtures.ts';
 
 // Tests that are not about timing build 5ms after the last change instead of 1.5s.
@@ -118,20 +119,41 @@ describe('PdfCompressTool UI flow', () => {
     fileInput = container.querySelector('input[type="file"]');
   };
 
-  const wait = (ms = 50) =>
-    act(async () => {
-      await new Promise((resolve) => setTimeout(resolve, ms));
-    });
+  // Lets the promise work already queued run, then renders what it set (a held result landing, a stale one).
+  const drain = () => act(async () => { await drainPromises(); });
 
-  // Polls until `cond` holds (jsdom reads a File's bytes on a later tick, so a fixed sleep is a guess).
-  const waitFor = async (cond, timeout = 2000) => {
-    const end = Date.now() + timeout;
-    while (!cond() && Date.now() < end) await wait(10);
-    expect(cond()).toBe(true);
-  };
   const statusOf = () => container.querySelector('[data-compress-status]')?.getAttribute('data-compress-status');
-  const settled = () => waitFor(() => ['done', 'error'].includes(statusOf()));
-  const ran = (mock, n) => () => mock.mock.calls.length >= n;
+  const settled = () => waitUntil(() => ['done', 'error'].includes(statusOf()));
+  // A signal that `mock` has been called `n` times in all, resolved from inside the call itself (the mock's
+  // calls array reports each push), so it also sees a call served by a mockImplementationOnce.
+  const ran = (mock, n) => {
+    const reached = Promise.withResolvers<void>();
+    const calls = mock.mock.calls;
+    if (calls.length >= n) { reached.resolve(); return reached.promise; }
+    const push = calls.push;
+    calls.push = function pushAndSignal(...args) {
+      const length = push.apply(this, args);
+      if (length >= n) reached.resolve();
+      return length;
+    };
+    return reached.promise;
+  };
+  // Under the faked setTimeout: waits for a `ran(...)` signal, running the 0 ms timers already due
+  // (the build yields through one) without moving the clock.
+  const arrived = async (signal) => {
+    let reached = false;
+    signal.then(() => { reached = true; });
+    await waitUntil(() => reached, { dueFakeTimers: true });
+  };
+  // What a pick or a pickMany ends on: the result, a DOM condition, or a signal such as `ran(...)`.
+  const settleOn = async (until) => {
+    if (!until) await settled();
+    else if (typeof until === 'function') await waitUntil(until);
+    else {
+      await act(async () => { await until; });
+      await drain();
+    }
+  };
 
   // A pick starts the run on its own: by default this waits for the result, or
   // for whatever `until` says (a run held open by a deferred).
@@ -139,7 +161,7 @@ describe('PdfCompressTool UI flow', () => {
     await act(async () => {
       setInputFiles(fileInput, [file]);
     });
-    await (until ? waitFor(until) : settled());
+    await settleOn(until);
     return file;
   };
 
@@ -294,8 +316,8 @@ describe('PdfCompressTool UI flow', () => {
     // The superseded first run finally ends; it lands nothing.
     await act(async () => {
       first.resolve(imagesResult({ blob: new Blob(['stale-first-run-bytes-bytes']) }));
+      await drainPromises();
     });
-    await wait(60);
     expect(imagesLib.compressPdfImages).toHaveBeenCalledTimes(2);
     expect(downloadButton().textContent).toContain('15 Bytes');
   });
@@ -327,8 +349,8 @@ describe('PdfCompressTool UI flow', () => {
     await act(async () => {
       quiet.dispatchEvent(new Event('pointerenter'));
       quiet.dispatchEvent(new Event('focus'));
+      await drainPromises();
     });
-    await wait(60);
     expect(imagesLib.compressPdfImages).toHaveBeenCalledTimes(1);
   });
 
@@ -344,8 +366,8 @@ describe('PdfCompressTool UI flow', () => {
     await pick(makePdfFile('locked.pdf', 40000), () => container.querySelector('[data-needs-unlock]') !== null);
     await act(async () => {
       runA.resolve(imagesResult());
+      await drainPromises();
     });
-    await wait(80);
 
     expect(imagesLib.compressPdfImages).toHaveBeenCalledTimes(1);
     expect(container.querySelector('[data-needs-unlock]')).not.toBeNull();
@@ -357,10 +379,13 @@ describe('PdfCompressTool UI flow', () => {
     const probing = harness.pdfjs.holdNextProbe();
     mount();
     await pick(makePdfFile('probing.pdf', 100000), () => container.querySelector('[data-tool-shell]') !== null);
+    // The quiet timer (FAST_QUIET.baseMs, 5) is the product timer that would build after the click: fake only
+    // setTimeout from here, so one advance reaches it (afterEach restores the real ones).
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
     await act(async () => {
       radio('Smallest').click();
     });
-    await wait(60);
+    await act(async () => { await vi.advanceTimersByTimeAsync(FAST_QUIET.baseMs + 1); await drainPromises(); });
     expect(imagesLib.compressPdfImages).not.toHaveBeenCalled();
     expect(status()).not.toBe('processing');
 
@@ -368,7 +393,7 @@ describe('PdfCompressTool UI flow', () => {
       probing.release('open');
     });
     await settled();
-    await wait(60);
+    await act(async () => { await vi.advanceTimersByTimeAsync(FAST_QUIET.baseMs + 1); await drainPromises(); });
     expect(imagesLib.compressPdfImages).toHaveBeenCalledTimes(1);
     expect(imagesLib.compressPdfImages.mock.calls[0][1]).toEqual(expect.objectContaining({ maxLongSidePx: 1000, quality: 0.4 }));
   });
@@ -496,8 +521,8 @@ describe('PdfCompressTool UI flow', () => {
 
     await act(async () => {
       runA.resolve(imagesResult({ blob: new Blob(['a-stale-7']) }));
+      await drainPromises();
     });
-    await wait(60);
 
     expect(imagesLib.compressPdfImages).toHaveBeenCalledTimes(2);
     expect(imagesLib.compressPdfImages.mock.calls[1][0].name).toBe('run_b.pdf');
@@ -555,7 +580,7 @@ describe('PdfCompressTool UI flow', () => {
     await act(async () => {
       beforeResolvers[0]();
       afterResolvers[0]();
-      await new Promise((resolve) => setTimeout(resolve, 10));
+      await drainPromises();
     });
 
     panel = container.querySelector('[data-compare-panel]');
@@ -647,7 +672,7 @@ describe('PdfCompressTool UI flow', () => {
         await act(async () => {
           decode.resolve();
         });
-        await waitFor(() => result().querySelector('img') !== null);
+        await waitUntil(() => result().querySelector('img') !== null);
         expect(harness.blobForUrl(result().querySelector('img').getAttribute('src'))).toBe(photo);
         expect(result().querySelector('[data-compare-skeleton]')).toBeNull();
         await act(async () => {
@@ -676,7 +701,7 @@ describe('PdfCompressTool UI flow', () => {
         await act(async () => {
           decode.resolve();
         });
-        await waitFor(() => result().querySelector('img') !== null);
+        await waitUntil(() => result().querySelector('img') !== null);
         expect(result().querySelector('[data-compare-skeleton]')).toBeNull();
       } finally {
         delete HTMLImageElement.prototype.decode;
@@ -686,8 +711,8 @@ describe('PdfCompressTool UI flow', () => {
     it('renders the original once per file: one render at pick, one for the compressed page after the run', async () => {
       const file = await loadPdf('once.pdf', 100000);
       await waitUntil(() => expect(harness.pdfjs.thumbnails.renderComparePreview.mock.calls.length).toBeGreaterThanOrEqual(2));
-      // The count is exact: a short settle so a third render would show.
-      await wait(20);
+      // The count is exact: drain, so a third render would show.
+      await drain();
       const calls = harness.pdfjs.thumbnails.renderComparePreview.mock.calls;
       expect(calls).toHaveLength(2);
       expect(calls.filter(([f]) => f === file)).toHaveLength(1);
@@ -713,7 +738,7 @@ describe('PdfCompressTool UI flow', () => {
       expect(result().querySelector('img').getAttribute('src')).toBe('data:image/png;base64,orig-b.pdf');
       await act(async () => {
         resolvers[0]();
-        await new Promise((r) => setTimeout(r, 10));
+        await drainPromises();
       });
       expect(result().querySelector('img').getAttribute('src')).toBe('data:image/png;base64,orig-b.pdf');
       await act(async () => {
@@ -751,6 +776,10 @@ describe('PdfCompressTool UI flow', () => {
     expect(calls()).toBe(1);
 
     const input = container.querySelector('#target-size-input');
+    // The quiet timer (FAST_QUIET.baseMs, 5) is the debounce under test: fake only setTimeout from here, so the
+    // advances below are the pause (afterEach restores the real ones).
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+    const second = ran(imagesLib.compressPdfImagesToTarget, 2);
     await act(async () => {
       input.value = '250';
       input.dispatchEvent(new Event('input', { bubbles: true }));
@@ -759,15 +788,19 @@ describe('PdfCompressTool UI flow', () => {
       input.value = '2500';
       input.dispatchEvent(new Event('input', { bubbles: true }));
     });
-    await waitFor(() => calls() >= 2);
-    await wait(60);
+    await act(async () => { await vi.advanceTimersByTimeAsync(FAST_QUIET.baseMs + 1); });
+    await arrived(second);
+    // Past the pause again: a build per keystroke would have a third call by now.
+    await act(async () => { await vi.advanceTimersByTimeAsync(FAST_QUIET.baseMs + 1); await drainPromises(); });
     expect(calls()).toBe(2);
     expect(imagesLib.compressPdfImagesToTarget).toHaveBeenLastCalledWith(expect.anything(), expect.objectContaining({ targetKB: 2500 }));
 
+    const third = ran(imagesLib.compressPdfImagesToTarget, 3);
     await act(async () => {
       preset('200 KB').dispatchEvent(new MouseEvent('click', { bubbles: true }));
     });
-    await waitFor(() => calls() >= 3);
+    await act(async () => { await vi.advanceTimersByTimeAsync(FAST_QUIET.baseMs + 1); });
+    await arrived(third);
     expect(calls()).toBe(3);
     expect(imagesLib.compressPdfImagesToTarget).toHaveBeenLastCalledWith(expect.anything(), expect.objectContaining({ targetKB: 200 }));
   });
@@ -778,6 +811,7 @@ describe('PdfCompressTool UI flow', () => {
     const calls = () => imagesLib.compressPdfImagesToTarget.mock.calls.length;
     const before = calls();
     const input = container.querySelector('#target-size-input');
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
     await act(async () => {
       input.value = '300';
       input.dispatchEvent(new Event('input', { bubbles: true }));
@@ -787,7 +821,8 @@ describe('PdfCompressTool UI flow', () => {
     await act(async () => {
       setInputFiles(fileInput, [makePdfFile('second.pdf', 5_000_000)]);
     });
-    await wait(150);
+    // The pending change's quiet timer (FAST_QUIET.baseMs, 5) passes while the new file waits on its check.
+    await act(async () => { await vi.advanceTimersByTimeAsync(FAST_QUIET.baseMs + 1); await drainPromises(); });
     expect(calls()).toBe(before);
     await act(async () => {
       probe.release('open');
@@ -1120,15 +1155,17 @@ describe('PdfCompressTool UI flow', () => {
       const read = a.arrayBuffer.bind(a);
       let reads = 0;
       let releaseA;
-      a.arrayBuffer = () => (++reads === 2 ? new Promise((resolve) => { releaseA = () => resolve(read()); }) : read());
+      const held = Promise.withResolvers<void>();
+      a.arrayBuffer = () => (++reads === 2 ? new Promise((resolve) => { releaseA = () => resolve(read()); held.resolve(); }) : read());
       mount();
       await act(async () => { setInputFiles(fileInput, [a]); });
-      await waitFor(() => releaseA !== undefined);
+      await act(async () => { await held.promise; });
       // A's analysis is still pending; B arrives and is analysed (images present).
       await pick(makePdfFile('b.pdf', 5000));
       await act(async () => {
         releaseA();
-        await new Promise((resolve) => setTimeout(resolve, 50));
+        // A's analysis can hop through a macrotask or two after its bytes are read: drain a few turns.
+        for (let turn = 0; turn < 10; turn += 1) await drainPromises();
       });
 
       // B has an image, A's (image-free) result must not leak onto it.
@@ -1374,7 +1411,7 @@ describe('PdfCompressTool UI flow', () => {
       });
       expect(status()).toBe('done');
       expect(flattenSwitch().checked).toBe(false);
-      await wait(60);
+      await drain();
       expect(imagesLib.compressPdfImages).toHaveBeenCalledTimes(1);
       expect(compressLib.compressPdf).toHaveBeenCalledTimes(1);
     });
@@ -1673,7 +1710,8 @@ describe('PdfCompressTool UI flow', () => {
     const held = deferred();
     imagesLib.compressPdfImagesToTarget.mockImplementationOnce(() => held.promise);
     await act(async () => { preset('200 KB').dispatchEvent(new MouseEvent('click', { bubbles: true })); });
-    await waitFor(ran(imagesLib.compressPdfImagesToTarget, 2));
+    await ran(imagesLib.compressPdfImagesToTarget, 2);
+    await drain();
     await act(async () => { preset('200 KB').dispatchEvent(new MouseEvent('click', { bubbles: true })); });
     await act(async () => { held.resolve(imagesResult()); });
     await waitUntil(() => expect(statusOf()).toBe('done'));
@@ -1686,7 +1724,7 @@ describe('PdfCompressTool UI flow', () => {
       await act(async () => {
         setInputFiles(fileInput, files);
       });
-      await (until ? waitFor(until) : settled());
+      await settleOn(until);
     };
     const toTarget = compressImageLib.compressImageToTarget;
 
@@ -1719,7 +1757,8 @@ describe('PdfCompressTool UI flow', () => {
       await waitUntil(() => expect(rows().map((r) => r.querySelector('img')?.getAttribute('src'))).toEqual(['data:image/jpeg;base64,a.jpg', 'data:image/jpeg;base64,b.jpg']));
       expect(thumbnails.mock.calls.map((c) => c[0])).toEqual([a, b]);
       await act(async () => { preset('50 KB').dispatchEvent(new MouseEvent('click', { bubbles: true })); });
-      await waitFor(ran(toTarget, 4));
+      await ran(toTarget, 4);
+      await drain();
       await settled();
       expect(thumbnails).toHaveBeenCalledTimes(2);
       expect(rows()[0].querySelector('img').getAttribute('src')).toBe('data:image/jpeg;base64,a.jpg');
@@ -1744,11 +1783,12 @@ describe('PdfCompressTool UI flow', () => {
       const first = deferred();
       toTarget.mockImplementationOnce(() => first.promise);
       await pickMany([makeImageFile('a.jpg', 900_000), makeImageFile('b.jpg', 800_000)], ran(toTarget, 1));
-      await wait(50);
+      await drain();
       expect(toTarget).toHaveBeenCalledTimes(1);
       expect(statusOf()).toBe('processing');
       await act(async () => { first.resolve(makeImageResult()); });
-      await waitFor(ran(toTarget, 2));
+      await ran(toTarget, 2);
+      await drain();
       await settled();
       expect(toTarget).toHaveBeenCalledTimes(2);
     });
@@ -1769,7 +1809,7 @@ describe('PdfCompressTool UI flow', () => {
       const first = deferred();
       toTarget.mockImplementationOnce(() => first.promise);
       await pickMany([makeImageFile('a.jpg', 900_000), makeImageFile('b.jpg', 800_000)], ran(toTarget, 1));
-      await wait(30);
+      await drain();
       expect(harness.pdfjs.thumbnails.renderThumbnail).not.toHaveBeenCalled();
       await act(async () => { first.resolve(makeImageResult()); });
       await settled();
@@ -1809,7 +1849,8 @@ describe('PdfCompressTool UI flow', () => {
       await act(async () => {
         preset('50 KB').dispatchEvent(new MouseEvent('click', { bubbles: true }));
       });
-      await waitFor(ran(toTarget, 4));
+      await ran(toTarget, 4);
+      await drain();
       await settled();
       expect(toTarget.mock.calls[2][1]).toEqual(expect.objectContaining({ targetKB: 50 }));
       expect(toTarget.mock.calls[3][1]).toEqual(expect.objectContaining({ targetKB: 50 }));

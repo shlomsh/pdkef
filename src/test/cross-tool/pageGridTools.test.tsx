@@ -32,7 +32,6 @@ vi.mock('../../tools/to-image/lib/toImage.js', async (importOriginal) => ({
 const FAST_QUIET: QuietPolicy = { baseMs: 5, stepMs: 0, maxMs: 5, burstWindowMs: 1 };
 declare const __dirname: string;
 const FIVE_PAGES: Uint8Array = readFileSync(path.resolve(__dirname, '../../lib/__fixtures__/num-5.pdf'));
-const wait = (ms: number) => act(async () => { await new Promise((resolve) => setTimeout(resolve, ms)); });
 const txt = (name: string) => new File(['x'], name, { type: 'text/plain' });
 
 // `field`: the tool has the page-range field. `noun`: what its heading counts. Five pages each.
@@ -103,7 +102,6 @@ describe.each(TOOLS)('$name on the shared page workspace', ({ element, handoff, 
   async function open() {
     mount();
     await act(async () => { setInputFiles(input(), [pdf()]); });
-    await wait(50);
     await harness.flush();
     await until(() => cells().length === 5 && downloadElement());
   }

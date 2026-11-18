@@ -10,6 +10,8 @@ vi.mock('../lib/check/runCheck.ts', () => ({ runSavedFileCheck: (...args: unknow
 import useSavedFileCheck from './useSavedFileCheck.ts';
 import type { SavedFileCheckState } from './useSavedFileCheck.ts';
 import { DETAILS_SURVIVED_ANNOUNCEMENT } from '../lib/check/checkCopy.ts';
+import { waitUntil } from '../../../test/support/waitUntil.ts';
+import { drainPromises } from '../../../test/support/drainPromises.ts';
 
 const bytes = () => Promise.resolve(new ArrayBuffer(4));
 const unreadable = () => Object.assign(new Error('The requested file could not be read'), { name: 'NotReadableError' });
@@ -27,8 +29,10 @@ async function run(saved: Blob, heldBytes: ArrayBuffer | null = new ArrayBuffer(
   }
   const container = document.createElement('div');
   act(() => render(<Probe />, container));
-  // The effect awaits two reads and a dynamic import before it settles.
-  await act(() => new Promise((r) => setTimeout(r, 300)));
+  // The effect awaits two reads and a dynamic import before it leaves 'checking' for its final state.
+  await waitUntil(() => latest.status !== 'checking');
+  // Then the promise work still queued behind that state (a report, an announcement) runs.
+  await act(async () => { await drainPromises(); });
   return latest;
 }
 
@@ -84,7 +88,8 @@ describe('useSavedFileCheck read errors', () => {
 describe('useSavedFileCheck results', () => {
   const blob = () => Object.assign(new Blob(['x']), { arrayBuffer: bytes });
   const outcomeOf = (traces: object) => ({ traces: { saved: { thumbnails: [], pieceInfo: null, ...traces } }, context: {} });
-  const settle = () => act(() => new Promise((r) => setTimeout(r, 50)));
+  // Everything after the hook's first await is settled promises, so one event-loop turn runs it out.
+  const settle = () => act(async () => { await drainPromises(); });
   const deferred = () => {
     let resolve!: (value: unknown) => void;
     const promise = new Promise((r) => { resolve = r; });
@@ -121,11 +126,12 @@ describe('useSavedFileCheck results', () => {
     const announce = vi.fn();
     const older = deferred();
     const newer = outcomeOf({});
-    runSavedFileCheck.mockReturnValueOnce(older.promise).mockResolvedValueOnce(newer);
+    const olderStarted = Promise.withResolvers<void>();
+    runSavedFileCheck.mockImplementationOnce(() => { olderStarted.resolve(); return older.promise; }).mockResolvedValueOnce(newer);
     const { seen, exportAgain } = mount(blob(), announce);
-    await settle();
+    await act(async () => { await olderStarted.promise; });
     await exportAgain(blob());
-    await settle();
+    await waitUntil(() => seen.state.status === 'done');
     expect(seen.state).toEqual({ status: 'done', outcome: newer, typed: [] });
 
     older.resolve(outcomeOf({ thumbnails: [{}], pieceInfo: {} }));
@@ -138,9 +144,10 @@ describe('useSavedFileCheck results', () => {
   it('shows nothing once the export goes stale, even when its check finishes afterwards', async () => {
     const announce = vi.fn();
     const pending = deferred();
-    runSavedFileCheck.mockReturnValueOnce(pending.promise);
+    const started = Promise.withResolvers<void>();
+    runSavedFileCheck.mockImplementationOnce(() => { started.resolve(); return pending.promise; });
     const { seen, exportAgain } = mount(blob(), announce);
-    await settle();
+    await act(async () => { await started.promise; });
     expect(seen.state.status).toBe('checking');
     await exportAgain(null);
     expect(seen.state.status).toBe('idle');
@@ -156,7 +163,7 @@ describe('useSavedFileCheck results', () => {
     const announce = vi.fn();
     runSavedFileCheck.mockResolvedValue(outcomeOf({ thumbnails: [{}] }));
     const { seen } = mount(blob(), announce);
-    await settle();
+    await waitUntil(() => seen.detailsSurvived.length > 0);
     expect(seen.detailsSurvived).toEqual(['Page pictures']);
     expect(announce).toHaveBeenCalledWith(DETAILS_SURVIVED_ANNOUNCEMENT('Page pictures'));
     expect(reportError).toHaveBeenCalledWith('redact', expect.any(Error), 'export_trace_survived');
@@ -166,6 +173,7 @@ describe('useSavedFileCheck results', () => {
     const announce = vi.fn();
     runSavedFileCheck.mockResolvedValue(outcomeOf({}));
     const { seen } = mount(blob(), announce);
+    await waitUntil(() => seen.state.status === 'done');
     await settle();
     expect(seen.state.status).toBe('done');
     expect(announce).not.toHaveBeenCalled();

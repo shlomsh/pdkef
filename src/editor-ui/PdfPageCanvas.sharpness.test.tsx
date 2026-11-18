@@ -8,10 +8,11 @@ vi.mock('#lib/pdf/pdfRender.js', () => ({ getPdfRenderContext: () => ({ drawImag
 
 import type { PDFDocumentProxy } from 'pdfjs-dist';
 import { fakePdfDocument } from '../test/support/fakePdfJs.ts';
+import { drainPromises } from '../test/support/drainPromises.ts';
 import PdfPageCanvas from './PdfPageCanvas.tsx';
 import { pageRenderScale, bucketWidth } from '#editor/adapters/pdf/pageRenderScale.js';
 
-const flush = () => new Promise<void>((r) => setTimeout(r, 0));
+const flush = () => drainPromises();
 const UNIT = { width: 595, height: 842 };
 
 describe('PdfPageCanvas renders at the size the page is shown', () => {

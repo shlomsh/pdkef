@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { drainPromises } from '../../../test/support/drainPromises.ts';
 import { createEditActions, createPageActions, pageViewActions } from './scanActions.ts';
 import { ScanWork, type ScanPage } from './scanWork.ts';
 import type { Quad } from '#lib/pageEnhance/quad.ts';
@@ -21,7 +22,7 @@ const QUAD: Quad = [{ x: 0.1, y: 0.1 }, { x: 0.9, y: 0.1 }, { x: 0.9, y: 0.9 }, 
 const MOVED: Quad = [{ x: 0.2, y: 0.2 }, { x: 0.8, y: 0.2 }, { x: 0.8, y: 0.8 }, { x: 0.2, y: 0.8 }];
 const photo = () => new File(['x'], 'a.jpg', { type: 'image/jpeg' });
 const PINS: Pins = [[{ k: 0.5, at: { x: 0.5, y: 0.1 } }], [], [], []];
-const flush = () => new Promise((resolve) => setTimeout(resolve, 0));
+const flush = drainPromises;
 
 function setup(pages: ScanPage[], extra: Record<string, unknown> = {}) {
   const work = new ScanWork();

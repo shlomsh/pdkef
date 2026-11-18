@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from 'vitest';
 import PdfRedactTool from './PdfRedactTool.tsx';
 import { CHECKING } from './lib/check/checkCopy.ts';
 import * as gestureController from '#lib/gestures/controller.ts';
-import { waitUntil } from '../../test/harness/waitUntil.ts';
+import { waitUntil } from '../../test/support/waitUntil.ts';
 import { installToolHarness } from '../../test/harness/toolHarness.ts';
 import { useRedactSuite, required, query, setSelectedBoxColor } from '../../test/support/redactTool.tsx';
 

@@ -6,7 +6,7 @@ import {
   releaseHandoffPending,
   releaseHandoffPendingWhenLoaded,
 } from './handoffPending.ts';
-import { waitUntil } from '../../test/harness/waitUntil.ts';
+import { waitUntil } from '../../test/support/waitUntil.ts';
 
 const KEY = 'pdkef:handoff-pending:';
 const root = document.documentElement;

@@ -4,7 +4,7 @@ import { act } from 'preact/test-utils';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { describe, expect, it, vi, afterEach, beforeEach } from 'vitest';
-import { drainPromises } from '../../test/harness/drainPromises.ts';
+import { drainPromises } from '../../test/support/drainPromises.ts';
 import PdfEditPagesTool from './PdfEditPagesTool.tsx';
 import * as editPagesLib from './lib/editPages.js';
 import { getPdfLib } from '#lib/pdf/pdfLib.js';
@@ -13,7 +13,7 @@ import { healthy, ORIGINAL_WIDTHS } from '../../test/support/pdfPageTreeFixtures
 import { installToolHarness } from '../../test/harness/toolHarness.ts';
 import { setInputFiles } from '../../test/support/setInputFiles.js';
 import { until } from '../../test/support/until.js';
-import { waitUntil } from '../../test/harness/waitUntil.ts';
+import { waitUntil } from '../../test/support/waitUntil.ts';
 
 // The pdf.js edge (the encryption probe, the thumbnail source) is the harness's: harness.pdfjs.
 // Everything else (errorReport, draftStore, loadPdfWithPages, editPages) runs for real over it.
@@ -35,7 +35,6 @@ const pagesOf = async (blob) => {
   };
 };
 
-const flush = (ms = 50) => act(async () => { await new Promise((resolve) => setTimeout(resolve, ms)); });
 const click = (el) => act(async () => { el.dispatchEvent(new MouseEvent('click', { bubbles: true })); });
 
 describe('PdfEditPagesTool UI flow', () => {

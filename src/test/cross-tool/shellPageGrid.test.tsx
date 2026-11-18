@@ -11,6 +11,8 @@ import PageGrid, { cellEdge } from '#shell/pageGrid/PageGrid.tsx';
 import { planForFile } from '#lib/pages/pagePlan.ts';
 import { englishMergeMessages } from '../../tools/merge/messages';
 import * as thumbnailsLib from '#lib/pdf/thumbnails.js';
+import { drainPromises } from '../support/drainPromises.ts';
+import { waitUntil } from '../support/waitUntil.ts';
 
 const sources = [];
 // What each mocked file reports for its page sizes; null = the source cannot say (the thumbnail's own size is used).
@@ -58,18 +60,8 @@ function makeFile(name) {
   return new File(['%PDF-1.4'], name, { type: 'application/pdf' });
 }
 
-const flush = (ms = 10) => new Promise((resolve) => setTimeout(resolve, ms));
-
-// Polls instead of sleeping a fixed time: under a loaded machine (the full
-// suite in parallel) a fixed 20ms wait once let this file flake.
-async function waitFor(predicate, timeoutMs = 2000) {
-  const start = Date.now();
-  while (!predicate()) {
-    if (Date.now() - start > timeoutMs) throw new Error('waitFor: condition not met in time');
-    // Each poll is its own act(): renders are held back inside one.
-    await act(async () => { await flush(5); });
-  }
-}
+// Waits on the DOM outcome (a fixed wait once let this file flake on a loaded machine).
+const waitFor = (predicate, timeoutMs = 2000) => waitUntil(() => Boolean(predicate()), { timeout: timeoutMs });
 
 // Whether every file's pages sit in one contiguous run (Merge's isGrouped,
 // restated here so the shell test does not reach into a tool).
@@ -427,7 +419,7 @@ describe('PageGrid', () => {
     await act(async () => rotate.click());
     expect(onPlanChange).toHaveBeenCalledTimes(1);
     expect(onPlanChange.mock.results[0].value[0]).toMatchObject({ key: '1:0', rotation: 90 });
-    await act(async () => { await flush(30); });
+    await act(async () => { await drainPromises(); });
     expect(container.querySelector('dialog')).toBeNull();
   });
 
@@ -661,7 +653,7 @@ describe('PageGrid', () => {
       const enter = new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true });
       await act(async () => link.dispatchEvent(enter));
       expect(enter.defaultPrevented).toBe(false);
-      await act(async () => { await flush(30); });
+      await act(async () => { await drainPromises(); });
       expect(container.querySelector('dialog')).toBeNull();
     });
 

@@ -8,9 +8,9 @@ import { saveHandoff } from '#lib/drafts/draftStore.ts';
 import { mockNativeFileShare } from '../../test/support/mockFileShare.js';
 import { setInputFiles } from '../../test/support/setInputFiles.js';
 import { installToolHarness, type ToolHarness } from '../../test/harness/toolHarness.ts';
-import { waitUntil } from '../../test/harness/waitUntil.ts';
+import { waitUntil } from '../../test/support/waitUntil.ts';
 import { readFileSync } from 'node:fs';
-import { drainPromises } from '../../test/harness/drainPromises.ts';
+import { drainPromises } from '../../test/support/drainPromises.ts';
 import path from 'node:path';
 
 const fixtureBytes = (name: string) => new Uint8Array(readFileSync(path.resolve(__dirname, `../../lib/__fixtures__/encrypted/${name}.pdf`)));
@@ -89,14 +89,13 @@ describe('PdfSecurityTool', () => {
     harness.restore();
   });
 
-  const flush = () => act(async () => { await new Promise((resolve) => setTimeout(resolve, 20)); });
+  // Lets the promise work already queued run, then renders what it set.
+  const drain = () => act(async () => { await drainPromises(); });
   // The bytes behind the Download link.
   const outputBlob = () => harness.blobForUrl(container.querySelector('a[download]').getAttribute('href'));
   // Unlock and protect now run for real (pdf-lib), so wait for the run to finish instead of a fixed sleep.
   const settle = async () => {
-    for (let waited = 0; waited < 5000 && container.querySelector('[data-processing]'); waited += 25) {
-      await act(() => new Promise((resolve) => setTimeout(resolve, 25)));
-    }
+    await waitUntil(() => container.querySelector('[data-processing]') === null);
     await harness.flush();
   };
 
@@ -113,13 +112,13 @@ describe('PdfSecurityTool', () => {
     
     await act(async () => {
       setInputFiles(input, [file]);
-      await new Promise(resolve => setTimeout(resolve, 10)); // wait for async checks
+      await drainPromises(); // the async checks
     });
   }
 
   it('sends the page view on load, before any file says unlock or protect, and only once (DEBT-58)', async () => {
     mount({ intent: 'unlock' });
-    const views = async () => { await new Promise((r) => setTimeout(r, 0)); await harness.flush(); return harness.usageEvents('tool_page_viewed'); };
+    const views = async () => { await drain(); await harness.flush(); return harness.usageEvents('tool_page_viewed'); };
     expect(await views()).toMatchObject([{ name: 'tool_page_viewed', properties: { tool: 'unlock' } }]);
     await loadFile();
     expect(await views()).toHaveLength(1);
@@ -919,7 +918,7 @@ describe('PdfSecurityTool', () => {
       mount();
       await loadFile();
       await waitUntil(() => expect(tagOf()).toBe('Not protected'));
-      await flush(); // settle window for the exact render count
+      await drain(); // so a second render would show
       expect(harness.pdfjs.thumbnails.renderComparePreview).toHaveBeenCalledTimes(1);
       expect(harness.pdfjs.thumbnails.renderComparePreview.mock.calls[0][0]).toBeInstanceOf(File);
       expect(container.querySelector('[data-security-preview] img').getAttribute('src')).toBe('data:image/png;base64,AAAA');
@@ -988,12 +987,14 @@ describe('PdfSecurityTool', () => {
     it('does not report the preview when the tool run already failed for the same file', async () => {
       vi.spyOn(console, 'error').mockImplementation(() => {});
       probeAs('owner-restricted');
-      harness.pdfjs.thumbnails.renderComparePreview.mockImplementation(() => new Promise((_, reject) => setTimeout(() => reject(new Error('render failed')), 5)));
+      const renderFailed = Promise.withResolvers<void>();
+      harness.pdfjs.thumbnails.renderComparePreview.mockImplementation(() => new Promise((_, reject) => setTimeout(() => { reject(new Error('render failed')); renderFailed.resolve(); }, 5)));
       mount();
       // The unlock reads damaged bytes and fails; the preview render failing for the same file adds no second report.
       await loadFile('test.pdf', realFile('test.pdf', 'unreadable'));
       await waitUntil(() => expect(harness.reports()).toHaveLength(1));
-      await flush(); // window: the failing preview render must add no second report
+      await renderFailed.promise; // the failing preview render has run: it must add no second report
+      await drain();
       await settle();
       expect(harness.reports()).toHaveLength(1);
       expect(harness.reports()[0]).toMatchObject({ area: 'pdf_tool_run', step: 'unlock' });

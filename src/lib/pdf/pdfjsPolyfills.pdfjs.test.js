@@ -4,6 +4,7 @@ import { createRequire } from 'node:module';
 import { pathToFileURL } from 'node:url';
 import { afterEach, describe, expect, it } from 'vitest';
 import { installPdfjsPolyfills } from './pdfjsPolyfills.js';
+import { drainPromises } from '../../test/support/drainPromises.ts';
 
 // DEBT-42: delete a built-in pdf.js 6.3 calls on the way to a rendered page, then prove pdf.js cannot open and render
 // a page without the polyfill and can with it. Node runs pdf.js's worker in-process (the
@@ -94,7 +95,8 @@ async function failureOf(run) {
   try {
     const timeout = new Promise((_, reject) => setTimeout(() => reject(new Error(HUNG)), HANG_MS));
     const error = await Promise.race([run(), timeout]).then(() => null, (e) => e);
-    await new Promise((r) => setTimeout(r, 50));
+    // Node reports an unhandled rejection once the microtask queue drains, before the next check phase.
+    await drainPromises();
     // A stray rejection is the real cause when the open itself only timed out.
     return stray[0] ?? error;
   } finally {

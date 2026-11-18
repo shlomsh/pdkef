@@ -3,7 +3,8 @@ import { act } from 'preact/test-utils';
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
 import { isUpdateHeld } from '#lib/appUpdate/updateHolds.ts';
 import { compressImageToTarget } from '../lib/compressImage.js';
-import { waitUntil } from '../../../test/harness/waitUntil.ts';
+import { waitUntil } from '../../../test/support/waitUntil.ts';
+import { drainPromises } from '../../../test/support/drainPromises.ts';
 import { useImageBatch } from './useImageBatch.ts';
 
 vi.mock('../lib/compressImage.js', () => ({ compressImageToTarget: vi.fn() }));
@@ -25,7 +26,8 @@ function Harness({ apiRef }: { apiRef: { current: Api | null } }) {
   return null;
 }
 
-const flush = () => act(async () => { await new Promise((r) => setTimeout(r, 0)); });
+// The mocked compressor is promises only: one drained turn runs everything queued.
+const flush = () => act(async () => { await drainPromises(); });
 
 describe('useImageBatch', () => {
   let root: HTMLElement;

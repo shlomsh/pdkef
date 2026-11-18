@@ -4,9 +4,10 @@ import { act } from 'preact/test-utils';
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
 import { usePreparedOutput } from './usePreparedOutput.ts';
 
-// Real timers with a 1ms quiet wait, the same approach as useMergeDraft.test.tsx.
+// The quiet wait is the product's timer (FAST: 1 ms), so it runs on fake timers and settle() moves the
+// clock past it; the awaited builds are plain promises, which advanceTimersByTimeAsync flushes.
 const FAST = { baseMs: 1, stepMs: 0, maxMs: 1, burstWindowMs: 1 };
-const settle = () => act(() => new Promise((resolve) => setTimeout(resolve, 30)));
+const settle = () => act(() => vi.advanceTimersByTimeAsync(FAST.maxMs + 1));
 
 function Harness({ apiRef, input }) {
   apiRef.current = usePreparedOutput(input);
@@ -17,12 +18,16 @@ describe('usePreparedOutput', () => {
   let root;
   let api;
   beforeEach(() => {
+    vi.useFakeTimers();
     root = document.createElement('div');
     api = { current: null };
     URL.createObjectURL = vi.fn(() => `blob:fake-${Math.random()}`);
     URL.revokeObjectURL = vi.fn();
   });
-  afterEach(() => render(null, root));
+  afterEach(() => {
+    render(null, root);
+    vi.useRealTimers();
+  });
 
   const mount = (input) => act(() => render(<Harness apiRef={api} input={{ quietPolicy: FAST, ...input }} />, root));
   const built = (n = 2) => ({ blob: new Blob(['x'.repeat(n)]), pageCount: n });

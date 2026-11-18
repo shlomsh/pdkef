@@ -1,9 +1,9 @@
 // @ts-nocheck - test harness, same convention as PdfCompressTool.test.tsx
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
-import { drainPromises } from '../../test/harness/drainPromises.ts';
+import { drainPromises } from '../../test/support/drainPromises.ts';
 import { describe, expect, it, vi, afterEach, beforeEach } from 'vitest';
-import { waitUntil } from '../../test/harness/waitUntil.ts';
+import { waitUntil } from '../../test/support/waitUntil.ts';
 import { takeArrival, resetFileArrivalForTests } from './fileArrival.ts';
 import { filesFromHandoff, markHandoffArrival, useHandoffFilesIntake, useHandoffIntake } from './useHandoffIntake.ts';
 

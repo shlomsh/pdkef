@@ -4,23 +4,20 @@ import { act } from 'preact/test-utils';
 import { useState } from 'preact/hooks';
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
 import { webcrypto } from 'node:crypto';
+import { drainPromises } from '../../../test/support/drainPromises.ts';
+import { waitUntil } from '../../../test/support/waitUntil.ts';
 // fake-indexeddb, not a mock of draftStore.js: MERGE-13's own draftStore.test.js
 // already covers the multi-file record shape against a real (in-memory)
 // IndexedDB, and this file leans on that same backing so the restore and
 // autosave tests below exercise the real saveDraft/loadDraft round-trip
 // rather than an assumption about what they do.
 //
-// Real timers throughout, deliberately, rather than vi.useFakeTimers(): the
-// fake-indexeddb polyfill schedules its own callbacks through
-// setImmediate/setTimeout (see its lib/scheduling.js), which vitest's fake
-// timers would also freeze, and every save/load/delete in this file goes
-// through it - a fake clock would need advancing after every single
-// IndexedDB call, not just the 700ms debounce. A short real wait is simpler
-// and exactly what the MERGE-13 lane brief allows. Most tests below shorten
-// the debounce itself through the hook's `autosaveDebounceMs` option (the
-// same precedent as usePreparedMerge.ts's `debounceMs`) rather than the
-// clock, so the real wait after it can stay short too; exactly one test
-// keeps the production 700ms default, to still assert that number.
+// Only setTimeout and clearTimeout are faked (beforeEach): that is the hook's debounce, a product timer
+// the tests advance by hand. fake-indexeddb schedules its callbacks through setImmediate (see its
+// lib/scheduling.js), which stays real, so every save/load/delete in this file runs on the real event loop and
+// a test waits for its outcome (a saved state, a stored record) instead of a clock. Most tests below shorten
+// the debounce through the hook's `autosaveDebounceMs` option (the same precedent as usePreparedMerge.ts's
+// `debounceMs`); exactly one test keeps the production 700ms default, to still assert that number.
 import 'fake-indexeddb/auto';
 import { IDBFactory } from 'fake-indexeddb';
 import {
@@ -89,31 +86,35 @@ function baseOptions(overrides = {}) {
   };
 }
 
-const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+// Lets the promise work already queued run, `turns` event-loop turns for work that hops (fake-indexeddb steps).
+const drain = (turns = 1) => act(async () => { for (let turn = 0; turn < turns; turn += 1) await drainPromises(); });
 
-// The debounced autosave is a setTimeout (700ms by default, shortened via
-// `autosaveDebounceMs` in most tests below) followed by an async buildRecord
-// (reads File bytes) / persist (writes through IndexedDB) chain; the default
-// 850ms real wait comfortably clears both at the production 700ms debounce.
-// Tests that shorten the debounce to 40ms pass a matching short `ms` here
-// (150ms - comfortably past 40ms plus fake-indexeddb's async round trip).
-async function flushDebounce(ms = 850) {
-  await act(async () => { await wait(ms); });
+// A mount's restore effect kicks off an async IIFE that reads through fake-indexeddb. A read of the same
+// store issued after it queues behind it, so awaiting `loadDraft` here lets the restore's own read finish;
+// drained turns carry its result into the hook (onRestore, the settled flag, the delete of a record it rejects).
+const restoreSettled = () => act(async () => { await loadDraft('merge'); for (let turn = 0; turn < 10; turn += 1) await drainPromises(); });
+
+// The apiRef of the latest mount(): flushDebounce waits on its save state.
+let mounted = null;
+
+// The debounced autosave is a setTimeout (700ms by default, `autosaveDebounceMs` in most tests below) followed by
+// an async buildRecord (reads File bytes) / persist (writes through IndexedDB) chain. Advance the debounce on
+// the faked clock, then wait for the chain to end: a save state that is no longer 'pending'.
+async function flushDebounce(debounceMs = 700, apiRef = mounted) {
+  await act(async () => { await vi.advanceTimersByTimeAsync(debounceMs + 1); });
+  if (apiRef) await waitUntil(() => (apiRef.current?.draftSaveState ?? apiRef.current?.draft?.draftSaveState) !== 'pending');
+  await drain(5);
 }
 
-// A mount's restore effect kicks off an async IIFE that reads through real
-// (fake-indexeddb) IndexedDB; a couple of real ticks let it settle before
-// assertions run, the same reason FileDropzone.test.tsx's dropOn() waits
-// after dispatching a drop. Two separate `act()` calls, deliberately: an
-// async callback only flushes effects once the callback itself resolves (see
-// preact/test-utils' `act`), so a `wait()` placed inside the same call as
-// `render()` would delay the mount effect - the one that starts the restore
-// IIFE - rather than give it time to finish.
+// Two separate `act()` calls, deliberately: an async callback only flushes effects once the callback itself
+// resolves (see preact/test-utils' `act`), so awaiting inside the same call as `render()` would delay the mount
+// effect - the one that starts the restore IIFE - rather than give it time to finish.
 async function mount(apiRef, options) {
+  mounted = apiRef;
   act(() => {
     render(<Harness apiRef={apiRef} options={options} />, container);
   });
-  await act(async () => { await wait(50); });
+  await restoreSettled();
 }
 
 let container;
@@ -128,11 +129,14 @@ describe('useMergeDraft', () => {
     // upgrade path by design, so a record left behind by an earlier test
     // would otherwise leak into the next one's "fresh database" assumptions.
     indexedDB = new IDBFactory();
+    mounted = null;
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
     container = document.createElement('div');
     document.body.appendChild(container);
   });
 
   afterEach(() => {
+    vi.useRealTimers();
     act(() => render(null, container));
     container.remove();
     document.documentElement.removeAttribute('data-draft-hint');
@@ -231,21 +235,21 @@ describe('useMergeDraft', () => {
     const before = await loadDraft('merge');
     const apiRef = { current: null };
     act(() => render(<RestoredWorkspaceHarness apiRef={apiRef} />, container));
-    await act(async () => { await wait(80); });
+    await restoreSettled();
     expect(apiRef.current.draftSaveState).toBe('idle');
-    await flushDebounce(150);
+    await flushDebounce(40, apiRef);
     expect((await loadDraft('merge')).revision).toBe(before.revision);
 
     // The delayed inspect/thumbnail completion itself is still clean.
     act(() => apiRef.current.setRestoreHydrationComplete(true));
-    await flushDebounce(150);
+    await flushDebounce(40, apiRef);
     expect(apiRef.current.draftSaveState).toBe('idle');
     expect((await loadDraft('merge')).revision).toBe(before.revision);
     // ...and stays idle on a later render with nothing changed: the settled
     // restored snapshot has no write of its own to be pending for.
     act(() => apiRef.current.rerender());
     expect(apiRef.current.draftSaveState).toBe('idle');
-    await flushDebounce(150);
+    await flushDebounce(40, apiRef);
     expect(apiRef.current.draftSaveState).toBe('idle');
     expect((await loadDraft('merge')).revision).toBe(before.revision);
 
@@ -253,7 +257,7 @@ describe('useMergeDraft', () => {
     // lifecycle, proving the quiet baseline did not disable persistence.
     act(() => apiRef.current.setAddPageNumbers(true));
     expect(apiRef.current.draftSaveState).toBe('pending');
-    await flushDebounce(150);
+    await flushDebounce(40, apiRef);
     expect(apiRef.current.draftSaveState).toBe('saved');
     const afterEdit = await loadDraft('merge');
     expect(afterEdit.revision).toBe(before.revision + 1);
@@ -261,7 +265,7 @@ describe('useMergeDraft', () => {
     // A late pagehide after the debounce is a flush only when there is work
     // it has not already persisted; this settled edit must stay one write.
     act(() => window.dispatchEvent(new Event('pagehide')));
-    await flushDebounce(100);
+    await flushDebounce(40, apiRef);
     expect((await loadDraft('merge')).revision).toBe(afterEdit.revision);
   });
 
@@ -288,7 +292,7 @@ describe('useMergeDraft', () => {
         plan: [{ key: '0:0', fileId: 0, pageIndex: 0, rotation: 0, skipped: false }],
       })} />, container);
     });
-    await flushDebounce(150);
+    await flushDebounce(40);
     expect((await loadDraft('merge')).files.map((f) => f.fileName)).toEqual(['new.pdf']);
   });
 
@@ -298,20 +302,20 @@ describe('useMergeDraft', () => {
     function ReplacedHarness() {
       const [files, setFiles] = useState([]);
       const [hydrated, setHydrated] = useState(false);
-      apiRef.current = { replace: (file) => { setFiles([file]); setHydrated(true); } };
-      useMergeDraft(baseOptions({
+      const draft = useMergeDraft(baseOptions({
         autosaveDebounceMs: 40,
         restoreHydrationComplete: hydrated,
         entries: files.map((file, id) => ({ id, file, pageCount: 1, thumbnail: null, error: null })),
         plan: files.map((_, id) => ({ key: `${id}:0`, fileId: id, pageIndex: 0, rotation: 0, skipped: false })),
         onRestore: (restored) => setFiles(restored.files),
       }));
+      apiRef.current = { replace: (file) => { setFiles([file]); setHydrated(true); }, draft };
       return null;
     }
     act(() => render(<ReplacedHarness />, container));
-    await act(async () => { await wait(80); });
+    await restoreSettled();
     act(() => apiRef.current.replace(makeFile('new.pdf')));
-    await flushDebounce(150);
+    await flushDebounce(40, apiRef);
     expect((await loadDraft('merge')).files.map((f) => f.fileName)).toEqual(['new.pdf']);
   });
 
@@ -393,7 +397,7 @@ describe('useMergeDraft', () => {
       entries, plan, title: 'My renamed file', outputName: 'My renamed file', autosaveDebounceMs: 40,
     }));
 
-    await flushDebounce(150);
+    await flushDebounce(40);
 
     const record = await loadDraft('merge');
     expect(record.outputName).toBe('My renamed file');
@@ -417,7 +421,7 @@ describe('useMergeDraft', () => {
     const apiRef = { current: null };
     await mount(apiRef, baseOptions({ entries: [entry], plan: planForFile(1, 1), autosaveDebounceMs: 40 }));
 
-    await flushDebounce(150);
+    await flushDebounce(40);
 
     expect(apiRef.current.draftSaveState).toBe('error');
     expect(await loadDraft('merge')).toBeNull();
@@ -428,7 +432,7 @@ describe('useMergeDraft', () => {
     vi.spyOn(huge.file, 'arrayBuffer').mockResolvedValue({ byteLength: MERGE_DRAFT_MAX_BYTES + 1 });
     const apiRef = { current: null };
     await mount(apiRef, baseOptions({ entries: [huge], plan: planForFile(1, 1), autosaveDebounceMs: 40 }));
-    await flushDebounce(150);
+    await flushDebounce(40);
     expect(apiRef.current.draftSaveState).toBe('error');
     expect(isUpdateHeld()).toBe(true);
 
@@ -436,7 +440,7 @@ describe('useMergeDraft', () => {
     act(() => {
       render(<Harness apiRef={apiRef} options={baseOptions({ entries: [small], plan: planForFile(2, 1), autosaveDebounceMs: 40 })} />, container);
     });
-    await flushDebounce(150);
+    await flushDebounce(40);
     expect(apiRef.current.draftSaveState).toBe('saved');
     expect(isUpdateHeld()).toBe(false);
   });
@@ -444,21 +448,22 @@ describe('useMergeDraft', () => {
   it('does not hold an update while saves succeed (MEM-10)', async () => {
     const apiRef = { current: null };
     await mount(apiRef, baseOptions({ entries: [baseEntry(1, 'a.pdf', 1)], plan: planForFile(1, 1), autosaveDebounceMs: 40 }));
-    await flushDebounce(150);
+    await flushDebounce(40);
     expect(apiRef.current.draftSaveState).toBe('saved');
     expect(isUpdateHeld()).toBe(false);
   });
 
   it('keeps a new revision "pending" while an older write is still resolving, and the stale completion cannot regress it', async () => {
     let resolveStaleRead;
+    const staleReading = Promise.withResolvers<void>();
     const entryA = baseEntry(1, 'a.pdf', 1);
     vi.spyOn(entryA.file, 'arrayBuffer').mockImplementation(
-      () => new Promise((resolve) => { resolveStaleRead = resolve; }),
+      () => new Promise((resolve) => { resolveStaleRead = resolve; staleReading.resolve(); }),
     );
     const apiRef = { current: null };
 
     await mount(apiRef, baseOptions({ entries: [entryA], plan: planForFile(1, 1), autosaveDebounceMs: 40 }));
-    await act(async () => { await wait(150); });
+    await act(async () => { await vi.advanceTimersByTimeAsync(40 + 1); await staleReading.promise; });
     // entryA's buildRecord is now stuck awaiting arrayBuffer(); nothing has
     // reached saveDraft yet for this revision.
     expect(apiRef.current.draftSaveState).toBe('pending');
@@ -472,15 +477,17 @@ describe('useMergeDraft', () => {
     // (which was also "pending", but for a write that will never resolve).
     expect(apiRef.current.draftSaveState).toBe('pending');
 
-    await flushDebounce(150);
+    await flushDebounce(40);
     expect(apiRef.current.draftSaveState).toBe('saved');
 
     // The stale write now finishes. Its completion is for a revision that is
     // no longer current, so it must not be allowed to change the state.
     await act(async () => {
       resolveStaleRead(new TextEncoder().encode('A').buffer);
-      await wait(50);
+      await drainPromises();
     });
+    // The stale write goes through fake-indexeddb a step per turn: let it end.
+    await drain(20);
     expect(apiRef.current.draftSaveState).toBe('saved');
   });
 
@@ -488,7 +495,7 @@ describe('useMergeDraft', () => {
     const entry = baseEntry(1, 'a.pdf', 1);
     const apiRef = { current: null };
     await mount(apiRef, baseOptions({ entries: [entry], plan: planForFile(1, 1), autosaveDebounceMs: 40 }));
-    await flushDebounce(150);
+    await flushDebounce(40);
     expect(await loadDraft('merge')).not.toBeNull();
 
     await act(async () => {
@@ -512,7 +519,7 @@ describe('useMergeDraft', () => {
     const entry = baseEntry(1, 'a.pdf', 1);
     const apiRef = { current: null };
     await mount(apiRef, baseOptions({ entries: [entry], plan: planForFile(1, 1), autosaveDebounceMs: 40 }));
-    await flushDebounce(150);
+    await flushDebounce(40);
     const id = await sourceIdForFiles([{ fileBytes: await entry.file.arrayBuffer() }]);
 
     await act(async () => {
@@ -578,7 +585,7 @@ describe('useMergeDraft', () => {
     const apiRef = { current: null };
 
     await mount(apiRef, baseOptions({ entries: [entryA], plan: planForFile(1, 1), autosaveDebounceMs: 40 }));
-    await flushDebounce(150);
+    await flushDebounce(40);
     expect(spy).toHaveBeenCalledTimes(1);
 
     // Only the remembered option changes; entryA's bytes must not be re-read.
@@ -587,7 +594,7 @@ describe('useMergeDraft', () => {
         entries: [entryA], plan: planForFile(1, 1), options: { addPageNumbers: true }, autosaveDebounceMs: 40,
       })} />, container);
     });
-    await flushDebounce(150);
+    await flushDebounce(40);
     expect(spy).toHaveBeenCalledTimes(1);
 
     // A second file arrives: only its own bytes are newly read.
@@ -599,7 +606,7 @@ describe('useMergeDraft', () => {
         autosaveDebounceMs: 40,
       })} />, container);
     });
-    await flushDebounce(150);
+    await flushDebounce(40);
     expect(spy).toHaveBeenCalledTimes(2);
 
     spy.mockRestore();
@@ -608,9 +615,10 @@ describe('useMergeDraft', () => {
   it('flushBeforeUpdateReload writes the pending edit before the debounce and waits for the write', async () => {
     const entry = baseEntry(1, 'a.pdf', 1);
     let releaseRead;
+    const reading = Promise.withResolvers<void>();
     const realRead = entry.file.arrayBuffer.bind(entry.file);
     vi.spyOn(entry.file, 'arrayBuffer').mockImplementation(
-      () => new Promise((resolve) => { releaseRead = () => resolve(realRead()); }),
+      () => new Promise((resolve) => { releaseRead = () => resolve(realRead()); reading.resolve(); }),
     );
     const apiRef = { current: null };
     // A debounce far longer than the test: only the reload flush can write.
@@ -621,7 +629,7 @@ describe('useMergeDraft', () => {
 
     let done = false;
     const reload = flushBeforeUpdateReload().then(() => { done = true; });
-    await act(async () => { await wait(50); });
+    await act(async () => { await reading.promise; await drainPromises(); });
     expect(done).toBe(false);
 
     await act(async () => { releaseRead(); await reload; });

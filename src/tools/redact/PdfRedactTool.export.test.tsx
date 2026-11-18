@@ -1,5 +1,5 @@
 import { render } from 'preact';
-import { drainPromises } from '../../test/harness/drainPromises.ts';
+import { drainPromises } from '../../test/support/drainPromises.ts';
 import { act } from 'preact/test-utils';
 import { describe, expect, it, vi, type Mock } from 'vitest';
 import PdfRedactTool from './PdfRedactTool.tsx';
@@ -7,7 +7,7 @@ import { CHECKING } from './lib/check/checkCopy.ts';
 import { englishRedactMessages } from './messages.ts';
 import { recentActions } from '#lib/telemetry/actionTrail.ts';
 import { PDFDocument } from '@cantoo/pdf-lib';
-import { waitUntil } from '../../test/harness/waitUntil.ts';
+import { waitUntil } from '../../test/support/waitUntil.ts';
 import { setInputFiles } from '../../test/support/setInputFiles.js';
 // @ts-expect-error -- this browser-first project intentionally omits Node ambient types; Vitest provides the runtime.
 import fs from 'node:fs';

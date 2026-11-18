@@ -3,6 +3,7 @@ import { act } from 'preact/test-utils';
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
 import { useComparePreviews } from './useComparePreviews.ts';
 import * as thumbnails from '#lib/pdf/thumbnails.js';
+import { drainPromises } from '../../../test/support/drainPromises.ts';
 
 vi.mock('#lib/pdf/thumbnails.js', () => ({
   renderComparePreview: vi.fn((fileOrBlob) => Promise.resolve(`data:${fileOrBlob instanceof File ? 'before' : 'after'}`)),
@@ -38,7 +39,8 @@ describe('useComparePreviews', () => {
   });
   afterEach(() => act(() => render(null, root)));
 
-  const settle = () => act(() => new Promise((resolve) => setTimeout(resolve, 20)));
+  // The mocked renders are promises only: one drained turn lands everything they carry into the hook.
+  const settle = () => act(async () => { await drainPromises(); });
 
   it('renders a PDF pair from the already rendered original and the result', async () => {
     await act(async () => api.current!.loadOriginal(pdf()));

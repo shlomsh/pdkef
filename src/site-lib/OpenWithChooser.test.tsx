@@ -3,13 +3,14 @@ import { act } from 'preact/test-utils';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import OpenWithChooser from './OpenWithChooser.tsx';
 import { sendHandoff } from '#lib/handoff/sendHandoff.ts';
+import { drainPromises } from '../test/support/drainPromises.ts';
 
 vi.mock('#lib/handoff/sendHandoff.ts', () => ({ sendHandoff: vi.fn(() => Promise.resolve(true)) }));
 
 type Consumer = (params: { files: { getFile: () => Promise<File> }[] }) => void | Promise<void>;
 const launchHost = window as Window & { launchQueue?: { setConsumer: (fn: Consumer) => void } };
 
-const flush = () => act(async () => { await new Promise((resolve) => setTimeout(resolve, 0)); });
+const flush = () => act(async () => { await drainPromises(); });
 
 describe('OpenWithChooser', () => {
   let container: HTMLElement | null = null;

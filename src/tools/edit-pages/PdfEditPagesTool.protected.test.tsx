@@ -9,7 +9,8 @@ import type { probeEncryption } from '#lib/pdf/pdfEncryption.ts';
 import PdfEditPagesTool from './PdfEditPagesTool.tsx';
 import * as editPagesLib from './lib/editPages.js';
 import { installToolHarness, type ToolHarness } from '../../test/harness/toolHarness.ts';
-import { waitUntil } from '../../test/harness/waitUntil.ts';
+import { drainPromises } from '../../test/support/drainPromises.ts';
+import { waitUntil } from '../../test/support/waitUntil.ts';
 import { setInputFiles } from '../../test/support/setInputFiles.js';
 
 // A protected PDF is a precondition, not a failure: Edit Pages shows NeedsUnlock (src/shell/NeedsUnlock.tsx)
@@ -55,8 +56,8 @@ describe('PdfEditPagesTool with a protected PDF', () => {
     harness.restore();
   });
 
-  const nap = (ms: number) => act(async () => { await new Promise((resolve) => setTimeout(resolve, ms)); });
-  const pick = async (file: File) => {
+  // `ready` is the outcome the test reads; the default is the unlock state or the grid of the first file.
+  const pick = async (file: File, ready: () => unknown = () => container!.querySelector('[data-needs-unlock]') ?? container!.querySelector('ul[data-page-grid]') ?? false) => {
     container ??= Object.assign(document.createElement('div'));
     if (!container!.isConnected) {
       document.body.appendChild(container!);
@@ -64,12 +65,8 @@ describe('PdfEditPagesTool with a protected PDF', () => {
     }
     input ??= container!.querySelector<HTMLInputElement>('input[type="file"]')!;
     await act(async () => { setInputFiles(input, [file]); });
-    const end = Date.now() + 4000;
-    while (
-      !container!.querySelector('[data-needs-unlock]') && !container!.querySelector('ul[data-page-grid]')
-      && Date.now() < end
-    ) await nap(20);
-    await nap(50);
+    await waitUntil(ready);
+    await act(async () => { await drainPromises(); });
   };
   const buttons = () => Array.from(container!.querySelectorAll('button')).map((b) => b.textContent!.trim());
 
@@ -95,7 +92,7 @@ describe('PdfEditPagesTool with a protected PDF', () => {
   it('records the kind each protected fixture gets', async () => {
     await pick(fixtureFile('needs-password'));
     expect(container!.querySelector('[data-needs-unlock]')!.getAttribute('data-needs-unlock')).toBe('needs-password');
-    await pick(fixtureFile('owner-only'));
+    await pick(fixtureFile('owner-only'), () => container!.querySelector('[data-needs-unlock="owner-restricted"]') ?? false);
     expect(container!.querySelector('[data-needs-unlock]')!.getAttribute('data-needs-unlock')).toBe('owner-restricted');
   });
 
@@ -114,7 +111,7 @@ describe('PdfEditPagesTool with a protected PDF', () => {
 
   it('a normal file picked after a protected one shows the grid', async () => {
     await pick(fixtureFile('needs-password'));
-    await pick(fixtureFile('plain'));
+    await pick(fixtureFile('plain'), () => (container!.querySelector('ul[data-page-grid]') && !container!.querySelector('[data-needs-unlock]')) || false);
 
     expect(container!.querySelector('[data-needs-unlock]')).toBeNull();
     expect(container!.querySelector('ul[data-page-grid]')).not.toBeNull();

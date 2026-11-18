@@ -19,6 +19,7 @@ vi.mock('#lib/pdf/thumbnails.js', () => ({
 
 import { cacheRecentFile, commitHandoff, deleteDraft, loadDraft, peekHandoff } from '#lib/drafts/draftStore.ts';
 import { takeArrival, noteRecentOpen, resetFileArrivalForTests } from '#lib/handoff/fileArrival.ts';
+import { drainPromises } from '../../test/support/drainPromises.ts';
 import { useEditorDraftPersistence } from './useEditorDraftPersistence.ts';
 import { DRAFT_SCHEMA_VERSION, isDraftElement, isEditorElement } from '../registry/draftValidation.ts';
 
@@ -37,10 +38,9 @@ function Harness({ apiRef, props }: any) {
   return null;
 }
 
-async function waitAsync(ms = 10) {
-  await act(async () => {
-    await new Promise((resolve) => setTimeout(resolve, ms));
-  });
+// Every store call here is a mocked promise, so one drained event-loop turn carries the whole restore chain.
+async function waitAsync() {
+  await act(async () => { await drainPromises(); });
 }
 
 function baseProps(overrides: any = {}) {

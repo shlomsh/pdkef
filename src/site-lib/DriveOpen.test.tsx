@@ -8,6 +8,7 @@ import { forgetSaved, remember, savedToken, takeRedirectReturn, toGoogle } from 
 import { driveRouteFor } from './drive/driveRoute.ts';
 import { parseDriveIntent } from './drive/driveIntent.ts';
 import { loadPicker, openPicker } from './drive/drivePicker.ts';
+import { drainPromises } from '../test/support/drainPromises.ts';
 import { sendHandoff } from '#lib/handoff/sendHandoff.ts';
 
 vi.mock('./drive/googleToken.ts', () => ({ requestDriveToken: vi.fn() }));
@@ -36,7 +37,7 @@ const PDF = { ok: true, name: 'a.pdf', mimeType: 'application/pdf', bytes: new A
 const NO_RETURN = { token: null, handled: false, failed: false };
 const button = (container: HTMLElement) => container.querySelector<HTMLButtonElement>('button');
 
-const flush = () => act(async () => { await new Promise((resolve) => setTimeout(resolve, 0)); });
+const flush = () => act(async () => { await drainPromises(); });
 
 describe('DriveOpen', () => {
   let container: HTMLElement;

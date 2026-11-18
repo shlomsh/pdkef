@@ -4,14 +4,14 @@ import { act } from 'preact/test-utils';
 import { describe, expect, it, vi, afterEach, beforeEach } from 'vitest';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
-import { drainPromises } from '../../test/harness/drainPromises.ts';
+import { drainPromises } from '../../test/support/drainPromises.ts';
 import PdfCompressTool from './PdfCompressTool.tsx';
 import * as compressLib from './lib/compress.js';
 import * as imagesLib from './lib/compressImages.js';
 import { hebrewCompressMessages } from './messages';
 import { setInputFiles } from '../../test/support/setInputFiles.js';
 import { installToolHarness, type ToolHarness } from '../../test/harness/toolHarness.ts';
-import { waitUntil } from '../../test/harness/waitUntil.ts';
+import { waitUntil } from '../../test/support/waitUntil.ts';
 
 // ENC-08: a PDF that needs a password is a precondition, not a failure. Compress shows one quiet state
 // (src/shell/NeedsUnlock.tsx) in place of the level picker and the result. The real classifier runs
@@ -75,7 +75,7 @@ describe('PdfCompressTool with a protected PDF', () => {
   let input;
   // The real classifier runs under pdf.js, which is slow to start, so wait for the state the pick ends in:
   // the password state, or a finished run. `settle` false is a plain short wait, for a pick held open on purpose.
-  const nap = (ms) => act(async () => { await new Promise((resolve) => setTimeout(resolve, ms)); });
+  const drain = () => act(async () => { await drainPromises(); });
   const pick = async (file, settle = true) => {
     input ??= container.querySelector('input[type="file"]');
     await act(async () => { setInputFiles(input, [file]); });
@@ -83,7 +83,7 @@ describe('PdfCompressTool with a protected PDF', () => {
       container.querySelector('[data-needs-unlock]') !== null
       || ['done', 'error'].includes(container.querySelector('[data-compress-status]')?.getAttribute('data-compress-status'));
     if (settle) await waitUntil(done, { timeout: 4000 }).catch(() => {});
-    await nap(settle ? 20 : 200);
+    await drain();
   };
   const buttons = () => Array.from(container.querySelectorAll('button')).map((b) => b.textContent.trim());
   // The loaded state compresses on its own: it is "normal" once its layout is up and the run was made.
@@ -155,10 +155,14 @@ describe('PdfCompressTool with a protected PDF', () => {
 
   it('does not run until the password check has answered, then runs once', async () => {
     let release;
-    harness.pdfjs.probe.mockImplementationOnce(() => new Promise((resolve) => { release = resolve; }));
+    const probed = Promise.withResolvers<void>();
+    harness.pdfjs.probe.mockImplementationOnce(() => new Promise((resolve) => { release = resolve; probed.resolve(); }));
     const [, , compressImagesSpy] = spyEngines();
     mount();
     await pick(fixtureFile('plain'), false);
+    // The check is out (the mock was reached): the pick is held open on purpose.
+    await probed.promise;
+    await drain();
 
     // The strip is up while the check is out, but no build has started.
     expect(compressImagesSpy).not.toHaveBeenCalled();
@@ -166,8 +170,8 @@ describe('PdfCompressTool with a protected PDF', () => {
     expect(statusNow()).not.toMatch(/^(processing|done)$/);
     await act(async () => { release('open'); });
     await waitUntil(() => expect(statusNow()).toBe('done'));
-    // The count is exact: a short settle so a second build would show.
-    await nap(100);
+    // The count is exact: drain so a second build would show.
+    await drain();
     expect(compressImagesSpy).toHaveBeenCalledTimes(1);
     expect(runs()).toBe('1');
   });
@@ -278,13 +282,15 @@ describe('PdfCompressTool with a file that is not a PDF', () => {
     document.body.appendChild(container);
     act(() => render(<PdfCompressTool />, container));
   };
-  const nap = (ms) => act(async () => { await new Promise((resolve) => setTimeout(resolve, ms)); });
-  const pick = async (file) => {
+  const loaded = () => container.querySelector('[data-compress-status]') !== null;
+  const skipped = () => container.textContent.includes('Skipped');
+  // Waits for the state the pick ends in: the skip line or the loaded layout (or `done`, for a second pick).
+  const pick = async (file, done = () => skipped() || loaded()) => {
     input ??= container.querySelector('input[type="file"]');
     await act(async () => { setInputFiles(input, [file]); });
-    await nap(600);
+    await waitUntil(done);
+    await act(async () => { await drainPromises(); });
   };
-  const loaded = () => container.querySelector('[data-compress-status]') !== null;
   const textFile = (bytes) => new File([bytes], 'notes.pdf', { type: 'application/pdf' });
 
   it('skips a file with no PDF header and goes back to the empty state', async () => {
@@ -306,7 +312,7 @@ describe('PdfCompressTool with a file that is not a PDF', () => {
     vi.spyOn(console, 'error').mockImplementation(() => {});
     mount();
     await pick(textFile('just some notes, not a PDF'));
-    await pick(fixtureFile('plain'));
+    await pick(fixtureFile('plain'), loaded);
 
     expect(container.textContent).not.toContain('Skipped');
     expect(loaded()).toBe(true);
@@ -315,7 +321,7 @@ describe('PdfCompressTool with a file that is not a PDF', () => {
   it('does not skip a file that has a header but unreadable content', async () => {
     vi.spyOn(console, 'error').mockImplementation(() => {});
     mount();
-    await pick(textFile('%PDF-1.7\nthis is junk, not objects'));
+    await pick(textFile('%PDF-1.7\nthis is junk, not objects'), loaded);
 
     expect(container.textContent).not.toContain('Skipped');
     expect(loaded()).toBe(true);

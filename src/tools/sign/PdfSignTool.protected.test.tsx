@@ -9,7 +9,7 @@ import { hebrewSignMessages } from './messages';
 import type { SignMessages } from '#editor/registry/messages.ts';
 import { installToolHarness, type ToolHarness } from '../../test/harness/toolHarness.ts';
 import { setInputFiles } from '../../test/support/setInputFiles.js';
-import { waitUntil } from '../../test/harness/waitUntil.ts';
+import { waitUntil } from '../../test/support/waitUntil.ts';
 
 declare const __dirname: string;
 
@@ -43,13 +43,6 @@ function required<T>(value: T | null | undefined, description: string): T {
   return value;
 }
 
-async function settleUntil(description: string, ready: () => boolean, limit = 50): Promise<void> {
-  for (let i = 0; i < limit && !ready(); i++) {
-    await act(async () => { await new Promise((resolve) => setTimeout(resolve, 10)); });
-  }
-  if (!ready()) throw new Error(`Timed out waiting for ${description}`);
-}
-
 describe('a protected PDF in Sign (ENC-07)', () => {
   let container = document.createElement('div');
   let harness: ToolHarness;
@@ -79,10 +72,11 @@ describe('a protected PDF in Sign (ENC-07)', () => {
     document.body.appendChild(container);
     act(() => { render(<PdfSignTool messages={messages} />, container); });
     await act(async () => { setInputFiles(required(container.querySelector<HTMLInputElement>('input[type="file"]'), 'file input'), [file]); });
-    await act(async () => { await new Promise((resolve) => setTimeout(resolve, 50)); });
   }
 
   const state = () => container.querySelector<HTMLElement>('[data-needs-unlock]');
+  // A protected file ends in the needs-unlock state (a lazy parser chunk and pdf.js run before it shows).
+  const stateShown = () => waitUntil(() => state() !== null);
   const unlockButton = () => required(
     Array.from(container.querySelectorAll<HTMLButtonElement>('button')).find((b) => b.textContent?.includes('Unlock it')),
     'the Unlock it button',
@@ -113,6 +107,7 @@ describe('a protected PDF in Sign (ENC-07)', () => {
   ] as const)('%s shows the state and never reaches the editor or the failure count', async (name, kind, title, body) => {
     mockProtection(kind);
     await pick(fixture(name));
+    await stateShown();
 
     const shown = required(state(), 'the needs-unlock state');
     expect(shown.querySelector('h2')?.textContent).toBe(title);
@@ -126,10 +121,11 @@ describe('a protected PDF in Sign (ENC-07)', () => {
   it('Unlock it parks the file for Unlock, then navigates there', async () => {
     mockProtection('owner-restricted');
     await pick(fixture('owner-only.pdf'));
+    await stateShown();
     const location = { href: '/sign/' };
     vi.stubGlobal('location', location);
     await act(async () => { unlockButton().click(); });
-    await settleUntil('the hand-off to Unlock', () => location.href === '/unlock/');
+    await waitUntil(() => location.href === '/unlock/');
     const parked = await harness.takeHandoff('unlock');
     expect(parked).toEqual(expect.objectContaining({ fileName: 'owner-only.pdf', fileType: 'application/pdf', from: 'sign' }));
     // The bytes are the file's own (read back from IndexedDB, so a different realm's ArrayBuffer).
@@ -140,10 +136,11 @@ describe('a protected PDF in Sign (ENC-07)', () => {
     mockProtection('needs-password');
     vi.spyOn(console, 'error').mockImplementation(() => {});
     await pick(fixture('needs-password.pdf'));
+    await stateShown();
     // A browser with no usable IndexedDB (a locked-down window) cannot park the file.
     vi.stubGlobal('indexedDB', undefined);
     await act(async () => { unlockButton().click(); });
-    await settleUntil('the failure line', () => (state()?.textContent ?? '').includes("Couldn't open Unlock with this file. Open Unlock and choose it there."));
+    await waitUntil(() => (state()?.textContent ?? '').includes("Couldn't open Unlock with this file. Open Unlock and choose it there."));
     expect(unlockButton().disabled).toBe(false);
     expect(await signFailures()).toEqual([]);
   });
@@ -151,6 +148,7 @@ describe('a protected PDF in Sign (ENC-07)', () => {
   it('choosing another file clears the state', async () => {
     mockProtection('needs-password');
     await pick(fixture('needs-password.pdf'));
+    await stateShown();
     expect(state()).not.toBeNull();
     await act(async () => { setInputFiles(required(container.querySelector<HTMLInputElement>('input[type="file"]'), 'file input'), [fixture('plain.pdf')]); });
     // Replacing a loaded file is confirmed first (MEM-03, BasePdfTool).
@@ -164,11 +162,13 @@ describe('a protected PDF in Sign (ENC-07)', () => {
   it('shows the Hebrew title on the Hebrew page', async () => {
     mockProtection('needs-password');
     await pick(fixture('needs-password.pdf'), hebrewSignMessages);
+    await stateShown();
     expect(state()?.querySelector('h2')?.textContent).toBe(hebrewSignMessages.protectedNeedsPasswordTitle);
   });
 
   it('a plain file opens the editor as before', async () => {
     await pick(fixture('plain.pdf'));
+    await waitUntil(() => container.querySelector('[aria-busy]') !== null);
     expect(state()).toBeNull();
     expect(container.querySelector('[aria-busy]')).not.toBeNull();
   });

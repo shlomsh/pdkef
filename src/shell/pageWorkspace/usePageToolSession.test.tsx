@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi, type Mock } from 'vite
 import { recentActions, resetActionTrailForTests } from '#lib/telemetry/actionTrail.ts';
 import { repairedPdfLoader } from './useOpenPageDocument.ts';
 import { usePageToolSession, type PageToolSession } from './usePageToolSession.ts';
+import { drainPromises } from '../../test/support/drainPromises.ts';
 
 const mocks = vi.hoisted(() => ({ probe: vi.fn(), load: vi.fn(), take: vi.fn() }));
 vi.mock('#lib/pdf/pdfEncryption.ts', () => ({ probeEncryption: mocks.probe }));
@@ -33,7 +34,7 @@ function mount() {
   }
   act(() => render(<Probe />, host));
 }
-const flush = () => act(async () => { await new Promise((r) => setTimeout(r, 0)); });
+const flush = () => act(async () => { await drainPromises(); });
 async function openThree() {
   await act(async () => { current.handleFilesAdded([pdf('a.pdf')]); });
   await flush();

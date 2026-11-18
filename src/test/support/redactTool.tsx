@@ -3,6 +3,7 @@ import { act } from 'preact/test-utils';
 import { expect, vi, afterEach, beforeAll, beforeEach } from 'vitest';
 import { PDFDocument } from '@cantoo/pdf-lib';
 import { setInputFiles } from './setInputFiles.js';
+import { drainPromises } from './drainPromises.ts';
 
 // Shared fixtures and the suite setup for the PdfRedactTool.*.test.tsx files. vi.mock is hoisted per
 // file, so each of those files repeats the pageSampling mock and steers `pageSampler` from here.
@@ -163,8 +164,23 @@ export function useRedactSuite<H extends SuiteHarness>({ Tool, checking, gesture
       ...held,
       /** Releases the read and lets the export run to its end, whatever the tool then does with the result. */
       async runToEnd() {
-        held.release();
-        await act(async () => { await held.finished; await new Promise((resolve) => setTimeout(resolve, 100)); });
+        // The export's last step is building the PDF Blob (redactPdf), which only then travels back
+        // through the promise chain to the tool. Seeing that Blob made is the signal the export
+        // finished; draining promises then lets the tool's own continuation (current or stale) run.
+        const OriginalBlob = globalThis.Blob;
+        const built = Promise.withResolvers<void>();
+        globalThis.Blob = class extends OriginalBlob {
+          constructor(parts?: BlobPart[], options?: BlobPropertyBag) {
+            super(parts, options);
+            if (options?.type === 'application/pdf') built.resolve();
+          }
+        };
+        try {
+          held.release();
+          await act(async () => { await built.promise; await held.finished; await drainPromises(); });
+        } finally {
+          globalThis.Blob = OriginalBlob;
+        }
       },
     };
   }
@@ -318,7 +334,8 @@ function redactSuiteActions(s: SuiteState, { Tool, waitUntil }: { Tool: Componen
     const confirmReplace = required(Array.from(s.container.querySelectorAll<HTMLButtonElement>('dialog button'))
       .find((button) => button.textContent.trim() === 'Replace file'), 'Replace file button');
     await act(async () => { confirmReplace.click(); });
-    await act(async () => { await new Promise((resolve) => setTimeout(resolve, 50)); });
+    // The tool announces the file once its editor is up; the old draw area is on screen until then.
+    await waitUntil(() => s.container.textContent.includes(`Loaded PDF "${name}"`) && s.container.querySelector('.redact-draw-area') !== null);
   }
 
   return { loadFileAndGetDrawArea, armTool, hoverBrushTool, drawBox, expectLatestGestureToCommitOnce, loadFileWithoutArming, findToolButton, openSecondFile };

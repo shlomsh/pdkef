@@ -11,9 +11,9 @@ import { mockNativeFileShare } from '../../test/support/mockFileShare.js';
 import { noPagesKey } from '../../test/support/pdfPageTreeFixtures.ts';
 import { installToolHarness, type ToolHarness } from '../../test/harness/toolHarness.ts';
 import { setInputFiles } from '../../test/support/setInputFiles.js';
-import { drainPromises } from '../../test/harness/drainPromises.ts';
+import { drainPromises } from '../../test/support/drainPromises.ts';
 import { until } from '../../test/support/until.js';
-import { waitUntil } from '../../test/harness/waitUntil.ts';
+import { waitUntil } from '../../test/support/waitUntil.ts';
 import { hebrewSplitMessages } from './messages';
 import { hebrewShellMessages } from '#shell/shellMessages.ts';
 
@@ -45,7 +45,6 @@ vi.mock('#lib/pdf/loadPdfPages.ts', async (importOriginal) => {
 const FAST_QUIET = { baseMs: 5, stepMs: 0, maxMs: 5, burstWindowMs: 1 };
 const FIXTURES = path.resolve(__dirname, '../../lib/__fixtures__');
 const FIXTURE = path.join(FIXTURES, 'num-5.pdf');
-const wait = (ms) => act(async () => { await new Promise((resolve) => setTimeout(resolve, ms)); });
 
 function fixtureFile(name = 'open.pdf', fixture = FIXTURE) {
   return new File([fs.readFileSync(fixture)], name, { type: 'application/pdf' });
@@ -91,7 +90,8 @@ describe('PdfSplitTool UI flow', () => {
   }
   const pick = async (file) => {
     await act(async () => { setInputFiles(container.querySelector('input[type="file"]'), [file]); });
-    await wait(50);
+    // The file has been read and shown: the grid, the unlock state or the load error.
+    await waitUntil(() => cells().length > 0 || button('Unlock it') || container.querySelector('[role="alert"]') || container.textContent.includes(hebrewSplitMessages.protectedUnlockIt));
     await harness.flush();
   };
   // A second file asks first (ConfirmDialog); the answer is Replace.

@@ -5,7 +5,7 @@ import { CHECKING } from './lib/check/checkCopy.ts';
 // @ts-expect-error -- this browser-first project intentionally omits Node ambient types; Vitest provides the runtime.
 import fs from 'node:fs';
 import * as gestureController from '#lib/gestures/controller.ts';
-import { waitUntil } from '../../test/harness/waitUntil.ts';
+import { waitUntil } from '../../test/support/waitUntil.ts';
 import { installToolHarness } from '../../test/harness/toolHarness.ts';
 import { useRedactSuite, required, query } from '../../test/support/redactTool.tsx';
 

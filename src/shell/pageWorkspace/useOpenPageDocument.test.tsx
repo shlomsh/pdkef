@@ -3,6 +3,7 @@ import { act } from 'preact/test-utils';
 import { afterEach, beforeEach, describe, expect, it, vi, type Mock } from 'vitest';
 import { recentActions, resetActionTrailForTests } from '#lib/telemetry/actionTrail.ts';
 import { repairedPdfLoader, useOpenPageDocument, type OpenPageDocument, type OpenPageDocumentOptions } from './useOpenPageDocument.ts';
+import { drainPromises } from '../../test/support/drainPromises.ts';
 
 const mocks = vi.hoisted(() => ({ probe: vi.fn(), load: vi.fn(), report: vi.fn() }));
 vi.mock('#lib/pdf/pdfEncryption.ts', () => ({ probeEncryption: mocks.probe }));
@@ -25,7 +26,7 @@ function mount(extra: Partial<OpenPageDocumentOptions> = {}) {
   }
   act(() => render(<Probe />, host));
 }
-const flush = () => act(async () => { await new Promise((r) => setTimeout(r, 0)); });
+const flush = () => act(async () => { await drainPromises(); });
 
 beforeEach(() => {
   host = document.createElement('div');

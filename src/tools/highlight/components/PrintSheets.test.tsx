@@ -1,4 +1,5 @@
 import { render } from 'preact';
+import { drainPromises } from '../../../test/support/drainPromises.ts';
 import { act } from 'preact/test-utils';
 import type { PDFDocumentProxy } from 'pdfjs-dist';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -55,7 +56,7 @@ async function mount(notes: boolean | 'end', pageTurns?: PageTurns, doc: PDFDocu
   await act(async () => { render(<PrintSheets pdfDocument={doc} elements={els} notes={notes === 'end' ? 'end' : notes ? 'beside' : 'none'} pageTurns={pageTurns} onReady={onReady} />, container!); });
   await rendered;
   expect(renderPageToCanvas).toHaveBeenCalledTimes(2);
-  await act(async () => { await new Promise((r) => setTimeout(r, 20)); });
+  await act(async () => { await drainPromises(); });
   return { onReady };
 }
 const root = () => document.body.querySelector('[data-print-root]') as HTMLElement;

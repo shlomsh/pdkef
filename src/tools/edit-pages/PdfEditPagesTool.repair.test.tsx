@@ -2,7 +2,7 @@
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { describe, expect, it, vi, afterEach, beforeEach } from 'vitest';
-import { drainPromises } from '../../test/harness/drainPromises.ts';
+import { drainPromises } from '../../test/support/drainPromises.ts';
 import PdfEditPagesTool from './PdfEditPagesTool.tsx';
 import * as editPagesLib from './lib/editPages.js';
 import { getPdfLib } from '#lib/pdf/pdfLib.js';
@@ -10,7 +10,7 @@ import { buildPdf, healthy, noPagesKey, ORIGINAL_WIDTHS } from '../../test/suppo
 import { installToolHarness } from '../../test/harness/toolHarness.ts';
 import { setInputFiles } from '../../test/support/setInputFiles.js';
 import { until } from '../../test/support/until.js';
-import { waitUntil } from '../../test/harness/waitUntil.ts';
+import { waitUntil } from '../../test/support/waitUntil.ts';
 
 // DEBT-54: a file whose page list was lost is repaired once on open; the
 // grid (pdf.js) and the export must both read the repaired bytes while the
@@ -85,7 +85,7 @@ describe('PdfEditPagesTool working file after a repair', () => {
     await until(() => container.querySelector('ul[data-page-grid]') || container.querySelector('[role="alert"]'));
     // The grid's own observer is the last one made.
     await act(async () => { observers.at(-1)?.intersectAll(); });
-    await act(async () => { await new Promise((resolve) => setTimeout(resolve, 20)); });
+    await act(async () => { await drainPromises(); });
   }
 
   async function build() {
@@ -93,8 +93,8 @@ describe('PdfEditPagesTool working file after a repair', () => {
       container.querySelector('a[data-state]').dispatchEvent(new Event('pointerdown', { bubbles: true }));
     });
     await waitUntil(() => expect(harness.createdBlobs().length).toBeGreaterThan(0));
-    // The tests assert exactly one export: a short settle so a second one would show.
-    await act(async () => { await new Promise((resolve) => setTimeout(resolve, 20)); });
+    // The tests assert exactly one export: drain so a second one would show.
+    await act(async () => { await drainPromises(); });
   }
 
   it('hands the repaired bytes, under the original name, to the grid and the export', async () => {

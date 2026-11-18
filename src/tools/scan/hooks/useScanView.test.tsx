@@ -5,6 +5,7 @@ import { reportError } from '#lib/telemetry/errorReport.ts';
 import { newPage } from '../lib/scanPages.ts';
 import { ScanWork, type ScanPage } from '../state/scanWork.ts';
 import { initialScanState } from '../state/scanState.ts';
+import { drainPromises } from '../../../test/support/drainPromises.ts';
 import { useScanView } from './useScanView.ts';
 
 vi.mock('#lib/telemetry/errorReport.ts', () => ({ reportError: vi.fn() }));
@@ -32,7 +33,7 @@ async function mount(page: ScanPage) {
   }
   container = document.createElement('div');
   await act(async () => { render(<Host />, container!); });
-  await act(async () => { await new Promise((resolve) => setTimeout(resolve, 0)); });
+  await act(async () => { await drainPromises(); });
   return () => map;
 }
 

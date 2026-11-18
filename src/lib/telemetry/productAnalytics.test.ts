@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { drainPromises } from '../../test/support/drainPromises.ts';
 import { markArrival } from '../handoff/fileArrival.ts';
 import { sendToSink } from './analyticsSink.ts';
 import * as pagePerformance from './pagePerformance.ts';
@@ -31,7 +32,7 @@ vi.mock('./analyticsSink.ts', async (importOriginal) => {
 
 let beacon: ReturnType<typeof vi.fn>;
 // One page view goes out after the load event and the measures settle, a few microtasks on.
-const settleTick = () => new Promise((resolve) => setTimeout(resolve, 0));
+const settleTick = () => drainPromises();
 
 function stubBrowser() {
   vi.stubGlobal('location', { origin: 'https://pdkef.com', pathname: '/merge/', hostname: 'pdkef.com' });

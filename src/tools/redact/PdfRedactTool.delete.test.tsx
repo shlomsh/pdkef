@@ -1,12 +1,12 @@
 import { act } from 'preact/test-utils';
-import { drainPromises } from '../../test/harness/drainPromises.ts';
+import { drainPromises } from '../../test/support/drainPromises.ts';
 import { describe, expect, it, vi } from 'vitest';
 import PdfRedactTool from './PdfRedactTool.tsx';
 import { CHECKING } from './lib/check/checkCopy.ts';
 // @ts-expect-error -- this browser-first project intentionally omits Node ambient types; Vitest provides the runtime.
 import fs from 'node:fs';
 import * as gestureController from '#lib/gestures/controller.ts';
-import { waitUntil } from '../../test/harness/waitUntil.ts';
+import { waitUntil } from '../../test/support/waitUntil.ts';
 import { installToolHarness } from '../../test/harness/toolHarness.ts';
 import { useRedactSuite, required, query, settleUntil, canvasEdge } from '../../test/support/redactTool.tsx';
 
@@ -92,8 +92,8 @@ describe('PdfRedactTool UI flow', () => {
       await act(async () => { pointer(drawArea, 'pointerdown', ...from); });
       await act(async () => { pointer(window, 'pointermove', ...to); });
       await act(async () => { pointer(window, 'pointerup', ...to); });
-      // The release's own click is swallowed until the next task.
-      await act(async () => { await new Promise((resolve) => setTimeout(resolve, 5)); });
+      // The release's commit finishes through settled promises.
+      await act(async () => { await drainPromises(); });
     }
     const candidates = () => s.container.querySelectorAll('[data-delete-id]');
     const toolbarBtn = (title: string) => required(

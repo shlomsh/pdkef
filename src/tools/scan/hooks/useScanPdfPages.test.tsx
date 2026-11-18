@@ -6,6 +6,7 @@ import { useScanPdfPages } from './useScanPdfPages.ts';
 
 vi.mock('#lib/telemetry/errorReport.ts', () => ({ reportError: vi.fn() }));
 const gates: Array<() => void> = [];
+let gateReached = Promise.withResolvers<void>();
 let failing = false;
 const sheetFile = () => new File(['x'], 's.png', { type: 'image/png' });
 const QUAD = [{ x: 0, y: 0 }, { x: 1, y: 0 }, { x: 1, y: 1 }, { x: 0, y: 1 }];
@@ -14,7 +15,7 @@ vi.mock('../lib/pdfSheets.ts', () => ({
   pdfSheets: async function* () {
     if (failing) throw new Error('cannot open');
     yield { file: sheetFile(), quads: [QUAD] };
-    await new Promise<void>((resolve) => gates.push(resolve));
+    await new Promise<void>((resolve) => { gates.push(resolve); gateReached.resolve(); });
     yield { file: sheetFile(), quads: [QUAD] };
   },
 }));
@@ -23,6 +24,7 @@ let container: HTMLElement | null = null;
 afterEach(() => {
   if (container) { act(() => render(null, container!)); container.remove(); container = null; }
   gates.length = 0;
+  gateReached = Promise.withResolvers<void>();
   failing = false;
 });
 
@@ -41,14 +43,13 @@ function mount(work: ScanWork) {
   return { added, skipped, open: (pdf: File) => open([pdf]) };
 }
 const pdf = () => new File(['x'], 'a.pdf', { type: 'application/pdf' });
-const tick = () => new Promise((resolve) => setTimeout(resolve, 0));
 
 describe('useScanPdfPages', () => {
   it('adds no sheet that arrives after the import was cancelled, and reports no failure', async () => {
     const work = new ScanWork();
     const { added, skipped, open } = mount(work);
     const done = open(pdf());
-    await tick();
+    await gateReached.promise;
     expect(added).toHaveLength(1);
     work.cancelPdfImport();
     gates[0]();
@@ -61,7 +62,7 @@ describe('useScanPdfPages', () => {
   it('opens every PDF sheet with fine off', async () => {
     const { added, open } = mount(new ScanWork());
     const done = open(pdf());
-    await tick();
+    await gateReached.promise;
     gates[0]();
     await done;
     expect(added.flat().map((page) => (page as { fine: boolean }).fine)).toEqual([false, false]);
@@ -80,7 +81,7 @@ describe('useScanPdfPages', () => {
     const { added, open } = mount(work);
     work.cancelPdfImport();
     const done = open(pdf());
-    await tick();
+    await gateReached.promise;
     gates[0]();
     await done;
     expect(added).toHaveLength(2);

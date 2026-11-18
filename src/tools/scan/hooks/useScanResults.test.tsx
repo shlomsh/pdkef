@@ -1,5 +1,5 @@
 import { render } from 'preact';
-import { drainPromises } from '../../../test/harness/drainPromises.ts';
+import { drainPromises } from '../../../test/support/drainPromises.ts';
 import { act } from 'preact/test-utils';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { reportError } from '#lib/telemetry/errorReport.ts';

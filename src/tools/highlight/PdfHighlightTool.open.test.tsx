@@ -4,7 +4,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { PDFDocument } from '@cantoo/pdf-lib';
 import PdfHighlightTool from './PdfHighlightTool.tsx';
 import { installToolHarness, type ToolHarness } from '../../test/harness/toolHarness.ts';
-import { waitUntil } from '../../test/harness/waitUntil.ts';
+import { waitUntil } from '../../test/support/waitUntil.ts';
 import { setInputFiles } from '../../test/support/setInputFiles.js';
 import { onAction, resetActionTrailForTests } from '#lib/telemetry/actionTrail.ts';
 import type { ActionName } from '#lib/telemetry/errorReportSchema.ts';

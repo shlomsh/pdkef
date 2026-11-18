@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { PDFDocumentProxy } from 'pdfjs-dist';
 import type { DeletablePdfObject } from '../components/DeletableObjectOverlay.tsx';
 import { fakePdfDocument } from '../../../test/support/fakePdfJs.ts';
+import { drainPromises } from '../../../test/support/drainPromises.ts';
 
 // The project carries no Node ambient types; Vitest provides this at runtime.
 declare const process: { on(event: string, handler: (reason: unknown) => void): void; off(event: string, handler: (reason: unknown) => void): void };
@@ -16,7 +17,8 @@ vi.mock('#editor/adapters/pdf/pdfjsLoader.js', () => ({
 
 import useObjectPreviews from './useObjectPreviews.ts';
 
-const flush = () => new Promise<void>((r) => setTimeout(r, 0));
+// Everything here is a chain of already-settled promises, so one event-loop turn carries it to its end.
+const flush = () => drainPromises();
 
 // pdf.js reads `this._intentStates` on a page whose document was destroyed.
 const anObject = (): DeletablePdfObject => ({ id: 'a', kind: 'text', pageIndex: 0, rect: { left: 0, top: 0, width: 1, height: 1 }, start: 0, end: 1 });

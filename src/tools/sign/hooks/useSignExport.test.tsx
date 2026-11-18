@@ -25,8 +25,12 @@ type SignExportApi = ReturnType<typeof useSignExport>;
 type ShareFake = Parameters<typeof useSignExport>[0]['share'];
 
 const file = new File(['x'], 'form.pdf');
-// handleDownloadPdf does not await the export it starts, so let it finish before asserting.
-const settle = () => act(() => new Promise<void>((resolve) => setTimeout(resolve, 20)));
+// handleDownloadPdf does not await the export it starts; its last report ('tool_result_ready') says it finished.
+function nextResultReady(): Promise<void> {
+  const ready = Promise.withResolvers<void>();
+  vi.mocked(reportToolLifecycleEvent).mockImplementation((name) => { if (name === 'tool_result_ready') ready.resolve(); });
+  return ready.promise;
+}
 const events = () => vi.mocked(reportToolLifecycleEvent).mock.calls.map(([name]) => name);
 const untimedFlags = () => vi.mocked(reportToolLifecycleEvent).mock.calls.map(([, , options]) => options);
 
@@ -59,7 +63,7 @@ describe('Sign export funnel events', () => {
   let share: ShareFake & { downloadPrepared: ReturnType<typeof vi.fn> };
   let preparedExportRef: { current: SignedExport | null };
   beforeEach(() => {
-    vi.mocked(reportToolLifecycleEvent).mockClear();
+    vi.mocked(reportToolLifecycleEvent).mockReset();
     root = document.createElement('div');
     api = { current: null as unknown as SignExportApi };
     preparedExportRef = { current: null };
@@ -100,10 +104,12 @@ describe('Sign export funnel events', () => {
 
   it('counts a download made on the spot once, and each repeat download again', async () => {
     share.downloadPrepared.mockReturnValue(false);
+    const first = nextResultReady();
     await act(() => api.current.handleDownloadPdf());
-    await settle();
+    await act(async () => { await first; });
+    const second = nextResultReady();
     await act(() => api.current.handleDownloadPdf());
-    await settle();
+    await act(async () => { await second; });
     expect(events()).toEqual(['tool_operation_started', 'tool_result_ready', 'tool_operation_started', 'tool_result_ready']);
   });
 

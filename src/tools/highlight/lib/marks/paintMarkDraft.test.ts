@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi } from 'vitest';
-import { drainPromises } from '../../../../test/harness/drainPromises.ts';
+import { drainPromises } from '../../../../test/support/drainPromises.ts';
 import { paintMarkDraft } from './paintMarkDraft.ts';
 import { hatchIfLoaded, loadHatch } from '../outline/hatchLoader.ts';
 import { sketchMark, bandRectsPts } from '#editor-ui/highlight/HighlightNode.tsx';

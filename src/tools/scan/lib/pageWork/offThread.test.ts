@@ -7,6 +7,7 @@ import type { PageRequest } from './protocol.ts';
 type Answer = (request: PageRequest) => { ok: true; value: unknown } | { ok: false; error: unknown } | null;
 let answer: Answer;
 let workers: FakeWorker[] = [];
+let jobPosted = Promise.withResolvers<void>();
 
 class FakeWorker {
   onmessage: ((e: { data: unknown }) => void) | null = null;
@@ -31,6 +32,7 @@ const inspected = { quad: null, width: 4, height: 3, preview: photo };
 beforeEach(() => {
   resetPageWorker();
   workers = [];
+  jobPosted = Promise.withResolvers<void>();
   answer = (request) => ({ ok: true, value: request.job.kind === 'probe' ? true : inspected });
   vi.stubGlobal('Worker', FakeWorker);
   vi.stubGlobal('OffscreenCanvas', class {});
@@ -85,9 +87,13 @@ describe('offThread', () => {
 
   it('hands back the jobs waiting on a worker that dies', async () => {
     // The worker answers its probe, then never the job.
-    answer = (request) => (request.job.kind === 'probe' ? { ok: true, value: true } : null);
+    answer = (request) => {
+      if (request.job.kind === 'probe') return { ok: true, value: true };
+      jobPosted.resolve();
+      return null;
+    };
     const job = offThread({ kind: 'inspect', photo });
-    await new Promise((r) => setTimeout(r, 5));
+    await jobPosted.promise;
     workers[0].onerror?.({ preventDefault: () => {}, message: 'crashed' });
     await expect(job).rejects.toThrow('stopped');
     expect(await offThread({ kind: 'inspect', photo })).toBe(NO_WORKER);

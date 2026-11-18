@@ -8,9 +8,10 @@ vi.mock('#lib/telemetry/errorReport.ts', () => ({ reportError: (...a: unknown[])
 vi.mock('#lib/pdf/pdfRender.js', () => ({ getPdfRenderContext: () => ({ drawImage: vi.fn() }) }));
 
 import { fakePdfDocument } from '../test/support/fakePdfJs.ts';
+import { drainPromises } from '../test/support/drainPromises.ts';
 import PdfPageCanvas from './PdfPageCanvas.tsx';
 
-const flush = () => new Promise<void>((r) => setTimeout(r, 0));
+const flush = () => drainPromises();
 
 describe('PdfPageCanvas when the document is destroyed between getPage and render', () => {
   let host: HTMLElement | null = null;

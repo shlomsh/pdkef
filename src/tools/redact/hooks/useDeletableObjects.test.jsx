@@ -3,6 +3,8 @@ import { act } from 'preact/test-utils';
 import { describe, expect, it, vi, afterEach } from 'vitest';
 import { PDFDocument, StandardFonts } from '@cantoo/pdf-lib';
 import useDeletableObjects from './useDeletableObjects.js';
+import { waitUntil } from '../../../test/support/waitUntil.ts';
+import { drainPromises } from '../../../test/support/drainPromises.ts';
 
 function Harness({ apiRef, file, bytes }) {
   apiRef.current = useDeletableObjects(file, bytes);
@@ -16,14 +18,6 @@ async function buildSample() {
   page.drawText('HELLO', { x: 20, y: 160, size: 12, font });
   return new Uint8Array(await doc.save());
 }
-
-// The hook reaches the scanner through a dynamic import (DEBT-20), so one tick
-// is no longer enough: wait for that module to land before letting the effect's
-// own promise chain settle.
-const flush = () => act(async () => {
-  await import('../lib/deleteObjects.js');
-  await new Promise((resolve) => setTimeout(resolve, 0));
-});
 
 describe('useDeletableObjects', () => {
   let container;
@@ -58,7 +52,7 @@ describe('useDeletableObjects', () => {
     act(() => {
       render(<Harness apiRef={apiRef} file={file} bytes={bytes} />, container);
     });
-    await flush();
+    await waitUntil(() => apiRef.current.length > 0);
 
     expect(apiRef.current.length).toBeGreaterThan(0);
     // The scan finds the run and its box; what it says is read separately (RED-16).
@@ -77,7 +71,9 @@ describe('useDeletableObjects', () => {
   });
 
   it('falls back to an empty list when the file cannot be parsed at all', async () => {
-    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    // The hook logs the failure just before it settles its state: that is the signal the scan ended.
+    const logged = Promise.withResolvers();
+    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => { logged.resolve(); });
     const file = { name: 'not-a-pdf.pdf' };
     const bytes = new Uint8Array([1, 2, 3]);
     container = document.createElement('div');
@@ -87,7 +83,7 @@ describe('useDeletableObjects', () => {
     act(() => {
       render(<Harness apiRef={apiRef} file={file} bytes={bytes} />, container);
     });
-    await flush();
+    await act(async () => { await logged.promise; await drainPromises(); });
 
     expect(apiRef.current).toEqual([]);
     expect(consoleSpy).toHaveBeenCalled();
@@ -110,13 +106,11 @@ describe('useDeletableObjects', () => {
     act(() => {
       render(<Harness apiRef={apiRef} file={fileA} bytes={bytesA} />, container);
     });
-    await flush();
-    expect(apiRef.current[0].bbox.width).toBeCloseTo(3.279 * 12, 5);
+    await waitUntil(() => expect(apiRef.current[0].bbox.width).toBeCloseTo(3.279 * 12, 5));
 
     act(() => {
       render(<Harness apiRef={apiRef} file={fileB} bytes={bytesB} />, container);
     });
-    await flush();
-    expect(apiRef.current[0].bbox.width).toBeCloseTo(4.278 * 12, 5);
+    await waitUntil(() => expect(apiRef.current[0].bbox.width).toBeCloseTo(4.278 * 12, 5));
   });
 });

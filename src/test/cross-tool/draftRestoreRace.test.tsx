@@ -4,6 +4,8 @@ import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
 import PdfSignTool from '../../tools/sign/PdfSignTool.tsx';
 import PdfRedactTool from '../../tools/redact/PdfRedactTool.tsx';
 import { peekHandoff } from '#lib/drafts/draftStore.ts';
+import { drainPromises } from '../support/drainPromises.ts';
+import { waitUntil } from '../support/waitUntil.ts';
 import { setInputFiles } from '../support/setInputFiles.js';
 
 
@@ -86,9 +88,17 @@ vi.mock('#editor/comments/readBack.ts', () => ({
   readBackAnnotations: vi.fn(async (bytes: ArrayBuffer) => ({ bytes, elements: [] }))
 }));
 
-async function waitAsync(ms = 30) {
+const announced = (container: HTMLElement, tag: 'p' | 'div') =>
+  container.querySelector(`${tag}.sr-only[role="status"]`)?.textContent ?? '';
+
+// The product awaits loadDraft() and then checks whether the restore was superseded. Our await on the
+// same promise runs after its continuation (same promise, reactions in order), so by then the stale
+// restore has either been dropped or has started applying; the drain carries the rest into the render.
+async function resolveRestore(record: unknown) {
   await act(async () => {
-    await new Promise((resolve) => setTimeout(resolve, ms));
+    loadDraftDeferred.resolve(record);
+    await loadDraftDeferred.promise;
+    await drainPromises();
   });
 }
 
@@ -106,12 +116,14 @@ describe('draft-restore vs. manual file pick race', () => {
     loadDraftDeferred = deferred();
   });
 
-  afterEach(() => {
+  afterEach(async () => {
     if (container) {
       act(() => render(null, container!));
       container.remove();
       container = null;
     }
+    // Work still in flight when the last assertion passed may log after the file is torn down.
+    await act(async () => { await drainPromises(); });
     vi.clearAllMocks();
   });
 
@@ -125,21 +137,18 @@ describe('draft-restore vs. manual file pick race', () => {
     // Restore's loadDraft() is now in flight and unresolved.
 
     await pickFile(container, makePdfFile('fresh-user-pick.pdf'));
-    await waitAsync();
+    await waitUntil(() => announced(container!, 'p').includes('fresh-user-pick.pdf'));
 
     let announcement = container.querySelector('p.sr-only[role="status"]');
     expect(announcement.textContent).toContain('fresh-user-pick.pdf');
     expect(container.querySelectorAll('[data-editor-element]').length).toBe(0);
 
     // The stale restore resolves well after the fresh pick already finished loading.
-    await act(async () => {
-      loadDraftDeferred.resolve(
-        staleDraftRecord('draft-old.pdf', [
-          { id: 'stale-1', pageIndex: 0, x: 10, y: 10, type: 'text', text: 'stale' }
-        ])
-      );
-    });
-    await waitAsync();
+    await resolveRestore(
+      staleDraftRecord('draft-old.pdf', [
+        { id: 'stale-1', pageIndex: 0, x: 10, y: 10, type: 'text', text: 'stale' }
+      ])
+    );
 
     announcement = container.querySelector('p.sr-only[role="status"]');
     expect(announcement.textContent).toContain('fresh-user-pick.pdf');
@@ -158,7 +167,7 @@ describe('draft-restore vs. manual file pick race', () => {
     await act(async () => {
       loadDraftDeferred.resolve(staleDraftRecord('draft-old.pdf', []));
     });
-    await waitAsync();
+    await waitUntil(() => announced(container!, 'p').includes('Restored your last draft of "draft-old.pdf"'));
 
     const announcement = container.querySelector('p.sr-only[role="status"]');
     expect(announcement.textContent).toContain('Restored your last draft of "draft-old.pdf"');
@@ -172,20 +181,17 @@ describe('draft-restore vs. manual file pick race', () => {
     });
 
     await pickFile(container, makePdfFile('fresh-user-pick.pdf'));
-    await waitAsync();
+    await waitUntil(() => announced(container!, 'div').includes('fresh-user-pick.pdf'));
 
     let announcement = container.querySelector('div.sr-only[role="status"]');
     expect(announcement.textContent).toContain('fresh-user-pick.pdf');
     expect(container.querySelectorAll('[data-redact-box-id]').length).toBe(0);
 
-    await act(async () => {
-      loadDraftDeferred.resolve(
-        staleDraftRecord('draft-old.pdf', [
-          { id: 'stale-1', pageIndex: 0, left: 5, top: 5, width: 10, height: 10, style: 'blackout' }
-        ])
-      );
-    });
-    await waitAsync();
+    await resolveRestore(
+      staleDraftRecord('draft-old.pdf', [
+        { id: 'stale-1', pageIndex: 0, left: 5, top: 5, width: 10, height: 10, style: 'blackout' }
+      ])
+    );
 
     announcement = container.querySelector('div.sr-only[role="status"]');
     expect(announcement.textContent).toContain('fresh-user-pick.pdf');
@@ -207,7 +213,8 @@ describe('draft-restore vs. manual file pick race', () => {
         ])
       );
     });
-    await waitAsync();
+    await waitUntil(() => announced(container!, 'div').includes('Restored your last draft of "draft-old.pdf"')
+      && container!.querySelectorAll('[data-redact-box-id]').length === 1);
 
     const announcement = container.querySelector('div.sr-only[role="status"]');
     expect(announcement.textContent).toContain('Restored your last draft of "draft-old.pdf"');
@@ -233,10 +240,9 @@ describe('draft-restore vs. manual file pick race', () => {
 
     // Let the draft resolve too: it must lose, and it must lose deterministically
     // rather than because the handoff happened to be quicker.
-    await act(async () => {
-      loadDraftDeferred.resolve(staleDraftRecord('draft-old.pdf', []));
-    });
-    await waitAsync();
+    await resolveRestore(staleDraftRecord('draft-old.pdf', []));
+    await waitUntil(() => announced(container!, 'p').includes('dropped-on-home.pdf'));
+    await resolveRestore(staleDraftRecord('draft-old.pdf', []));
 
     const announcement = container.querySelector('p.sr-only[role="status"]');
     expect(announcement.textContent).toContain('dropped-on-home.pdf');
@@ -253,7 +259,7 @@ describe('draft-restore vs. manual file pick race', () => {
     await act(async () => {
       loadDraftDeferred.resolve(staleDraftRecord('draft-old.pdf', []));
     });
-    await waitAsync();
+    await waitUntil(() => announced(container!, 'p').includes('Restored your last draft of "draft-old.pdf"'));
 
     expect(peekHandoff).toHaveBeenCalledWith('sign');
     const announcement = container.querySelector('p.sr-only[role="status"]');

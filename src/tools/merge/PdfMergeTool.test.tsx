@@ -19,7 +19,8 @@ import { buildPdf, noPagesKey } from '../../test/support/pdfPageTreeFixtures.ts'
 import { installToolHarness, type ToolHarness } from '../../test/harness/toolHarness.ts';
 import { setInputFiles } from '../../test/support/setInputFiles.js';
 import { until } from '../../test/support/until.js';
-import { waitUntil } from '../../test/harness/waitUntil.ts';
+import { waitUntil } from '../../test/support/waitUntil.ts';
+import { drainPromises } from '../../test/support/drainPromises.ts';
 import { hebrewMergeMessages } from './messages';
 import { hebrewShellMessages } from '#shell/shellMessages.ts';
 import { recentActions } from '#lib/telemetry/actionTrail.ts';
@@ -158,7 +159,9 @@ async function pageTexts(blob) {
 
 // Tests that are not about timing build after 5ms instead of the real 1500ms.
 const FAST_QUIET = { baseMs: 5, stepMs: 0, maxMs: 5, burstWindowMs: 1 };
-const flush = (ms = 10) => new Promise((resolve) => setTimeout(resolve, ms));
+// Lets the promise work already queued run (`turns` event-loop turns, for work that hops: fake-indexeddb steps),
+// then renders what it set. Callers that wait for a thing to appear use `until`/`waitUntil` instead.
+const drain = (turns = 1) => act(async () => { for (let turn = 0; turn < turns; turn += 1) await drainPromises(); });
 
 describe('PdfMergeTool UI flow', () => {
   let container;
@@ -206,7 +209,7 @@ describe('PdfMergeTool UI flow', () => {
     const input = container.querySelector('input[type="file"]');
     await act(async () => {
       setInputFiles(input, files.map((f) => (typeof f === 'string' ? makePdfFile(f) : f)));
-      await flush(10);
+      await drainPromises();
     });
     if (wait) await until(rowsRead); // inspection is real work now
   }
@@ -214,9 +217,6 @@ describe('PdfMergeTool UI flow', () => {
   // Waits out the pre-merge debounce (5ms in tests) and the merge itself: until the Download element
   // is ready with its link, or has settled into a state with nothing to build.
   async function settle() {
-    await act(async () => {
-      await flush(30);
-    });
     await until(() => {
       const box = downloadBox();
       if (!box) return true;
@@ -257,7 +257,7 @@ describe('PdfMergeTool UI flow', () => {
       const value = await read();
       if (value) return value;
       if (Date.now() - start > timeout) throw new Error('condition not met');
-      await act(async () => { await flush(20); });
+      await drain();
     }
   };
 
@@ -486,14 +486,15 @@ describe('PdfMergeTool UI flow', () => {
   });
 
   it('a thumbnail that arrives after the pre-merge started does not restart it', async () => {
+    const late = Promise.withResolvers<void>();
     harness.pdfjs.thumbnails.renderThumbnail.mockImplementationOnce(
-      () => new Promise((resolve) => setTimeout(() => resolve('data:image/png;base64,late'), 25)),
+      () => new Promise((resolve) => setTimeout(() => { resolve('data:image/png;base64,late'); late.resolve(); }, 25)),
     );
     mount();
     await loadFiles(['a.pdf', 'b.pdf']);
     await settle();
     expect(harness.createdBlobs()).toHaveLength(1);
-    await act(async () => { await flush(60); });
+    await act(async () => { await late.promise; await drainPromises(); });
     // The late thumbnail resolves (renderThumbnail is used for the rail's
     // internal entry state) without ever restarting the pre-merge.
     expect(harness.createdBlobs()).toHaveLength(1);
@@ -645,10 +646,10 @@ describe('PdfMergeTool UI flow', () => {
         container.querySelector('ul[aria-describedby="reorder-hint"] > li button[aria-label]').dispatchEvent(new MouseEvent('click', { bubbles: true }));
       });
       expect(fileNames()).toEqual(['b.pdf']);
-      if (!afterUndo) await act(async () => { finish(); await flush(10); });
+      if (!afterUndo) await act(async () => { finish(); await drainPromises(); });
       await act(async () => undoButton().click());
       expect(fileNames()).toEqual(['slow.pdf', 'b.pdf']);
-      if (afterUndo) await act(async () => { finish(); await flush(10); });
+      if (afterUndo) await act(async () => { finish(); await drainPromises(); });
       await until(() => planOf().filter((p) => p.startsWith('slow:')).length === 3);
       expect(planOf().filter((p) => p.startsWith('slow:'))).toHaveLength(3);
     });
@@ -929,7 +930,8 @@ describe('PdfMergeTool UI flow', () => {
     mount();
     await loadFiles([new File([bytes], fixture, { type: 'application/pdf' })]);
     await settle();
-    await act(async () => { await flush(20); });
+    await waitUntil(() => expect(container.querySelector('[data-needs-unlock]')).not.toBeNull());
+    await drain();
 
     expect(container.querySelector('[data-needs-unlock]').getAttribute('data-needs-unlock')).toBe(kind);
     expect(container.textContent).not.toContain("That didn't work");
@@ -946,7 +948,7 @@ describe('PdfMergeTool UI flow', () => {
     mount();
     await loadFiles(['locked.pdf']);
     await settle();
-    await act(async () => { await flush(20); });
+    await drain();
 
     expect(container.textContent).not.toContain("That didn't work");
     expect(container.querySelector('[role="alert"]')).toBeNull();
@@ -1008,7 +1010,7 @@ describe('PdfMergeTool UI flow', () => {
     await loadFiles(['locked.pdf']);
     await settle();
     await waitUntil(() => expect(container.querySelector('[data-needs-unlock]')).not.toBeNull());
-    await act(async () => { await flush(20); }); // the absence below keeps its window
+    await drain(); // the absence below
     expect(container.querySelector('[data-state="one-file"]')).toBeNull();
   });
 
@@ -1317,7 +1319,8 @@ describe('PdfMergeTool UI flow', () => {
       expect(await saveHandoff('merge', handoffOf('new1.pdf', 'new2.pdf'))).toBe(true);
       mount();
       await until(() => fileNames().length === 2 && rowsRead());
-      await act(async () => { await flush(60); });
+      // The restore reads the stored draft through fake-indexeddb, which advances one step per turn.
+      await drain(20);
       expect(fileNames()).toEqual(['new1.pdf', 'new2.pdf']);
       // The saved set is still stored, with its work, in the recents.
       expect(harness.recents().filter((entry) => entry.hasWork.includes('merge')).map((entry) => entry.fileName)).toContain('merged_old1');
@@ -1455,7 +1458,7 @@ describe('PdfMergeTool UI flow', () => {
         expect(Sortable.get(listOf())).toBeDefined();
         expect(Sortable.get(chipRowOf())).toBeDefined();
       });
-      await flush(10); // the error checks below are absences: keep a window
+      await drain(); // the error checks below are absences
       const list = listOf();
       const chipRow = chipRowOf();
       expect(list).not.toBeNull();
@@ -1500,7 +1503,7 @@ describe('PdfMergeTool UI flow', () => {
 
     await act(async () => {
       railOptions.onEnd({ oldIndex: 0, newIndex: 1 });
-      await flush(0);
+      await drainPromises();
     });
     expect(fileNames()).toEqual(['b.pdf', 'a.pdf']);
     expect(container.textContent).not.toContain('Pages moved across files');
