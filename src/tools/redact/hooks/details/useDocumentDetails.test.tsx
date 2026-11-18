@@ -1,5 +1,5 @@
 import { render } from 'preact';
-import { setImmediate } from 'node:timers/promises';
+import { drainPromises } from '../../../../test/harness/drainPromises.ts';
 import { act } from 'preact/test-utils';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
@@ -27,7 +27,7 @@ describe('useDocumentDetails', () => {
     host = document.createElement('div');
     const file = new ArrayBuffer(4);
     await act(async () => { render(<Probe file={file} seen={seen} />, host!); });
-    await act(async () => { await setImmediate(); });
+    await act(async () => { await drainPromises(); });
     expect(seen[0]).toBeNull();
     expect(seen[seen.length - 1]).toBe(traces);
     expect(readDetails).toHaveBeenCalledWith(file);
@@ -46,12 +46,12 @@ describe('useDocumentDetails', () => {
     host = document.createElement('div');
     const file = new ArrayBuffer(4);
     await act(async () => { render(<Probe file={file} opened={false} seen={seen} />, host!); });
-    await act(async () => { await setImmediate(); });
+    await act(async () => { await drainPromises(); });
     expect(readDetails).not.toHaveBeenCalled();
     expect(reportError).not.toHaveBeenCalled();
     expect(seen.every((value) => value === null)).toBe(true);
     await act(async () => { render(<Probe file={file} opened seen={seen} />, host!); });
-    await act(async () => { await setImmediate(); });
+    await act(async () => { await drainPromises(); });
     expect(readDetails).toHaveBeenCalledWith(file);
   });
 });

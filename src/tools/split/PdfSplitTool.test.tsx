@@ -11,7 +11,7 @@ import { mockNativeFileShare } from '../../test/support/mockFileShare.js';
 import { noPagesKey } from '../../test/support/pdfPageTreeFixtures.ts';
 import { installToolHarness, type ToolHarness } from '../../test/harness/toolHarness.ts';
 import { setInputFiles } from '../../test/support/setInputFiles.js';
-import { setImmediate } from 'node:timers/promises';
+import { drainPromises } from '../../test/harness/drainPromises.ts';
 import { until } from '../../test/support/until.js';
 import { waitUntil } from '../../test/harness/waitUntil.ts';
 import { hebrewSplitMessages } from './messages';
@@ -380,7 +380,7 @@ describe('PdfSplitTool UI flow', () => {
     await act(async () => {
       releaseFirst();
       await firstFinished.promise;
-      await setImmediate();
+      await drainPromises();
     });
     expect(cells()).toHaveLength(3);
     expect(field().value).toBe('1-3');

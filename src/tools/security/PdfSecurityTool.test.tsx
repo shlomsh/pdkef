@@ -10,7 +10,7 @@ import { setInputFiles } from '../../test/support/setInputFiles.js';
 import { installToolHarness, type ToolHarness } from '../../test/harness/toolHarness.ts';
 import { waitUntil } from '../../test/harness/waitUntil.ts';
 import { readFileSync } from 'node:fs';
-import { setImmediate } from 'node:timers/promises';
+import { drainPromises } from '../../test/harness/drainPromises.ts';
 import path from 'node:path';
 
 const fixtureBytes = (name: string) => new Uint8Array(readFileSync(path.resolve(__dirname, `../../lib/__fixtures__/encrypted/${name}.pdf`)));
@@ -186,7 +186,7 @@ describe('PdfSecurityTool', () => {
     await act(async () => {
       firstProbe.reject(new Error('probe died'));
       await firstProbe.settled;
-      await setImmediate();
+      await drainPromises();
     });
 
     expect(container.querySelector('[role="alert"]')).toBeNull();
@@ -824,7 +824,7 @@ describe('PdfSecurityTool', () => {
       await act(async () => {
         firstCheck.release('needs-password');
         await firstCheck.settled;
-        await setImmediate();
+        await drainPromises();
       });
 
       expect(container.querySelector('button[type="submit"]').textContent).toContain('Protect PDF');
@@ -862,7 +862,7 @@ describe('PdfSecurityTool', () => {
       await act(async () => {
         gate.release();
         await protectDone.promise;
-        await setImmediate(); // the tool's continuation after the protect: the replaced file's output must not land
+        await drainPromises(); // the tool's continuation after the protect: the replaced file's output must not land
       });
       await settle();
 

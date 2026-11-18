@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi } from 'vitest';
-import { setImmediate } from 'node:timers/promises';
+import { drainPromises } from '../../../../test/harness/drainPromises.ts';
 import { paintMarkDraft } from './paintMarkDraft.ts';
 import { hatchIfLoaded, loadHatch } from '../outline/hatchLoader.ts';
 import { sketchMark, bandRectsPts } from '#editor-ui/highlight/HighlightNode.tsx';
@@ -80,7 +80,7 @@ describe('paintMarkDraft', () => {
       paintMarkDraft(node, pencil, bands, box, 0);
       paintMarkDraft(node, pencil, [], box, 0);
       await loadHatch();
-      await setImmediate();
+      await drainPromises();
       expect(draft.children).toHaveLength(0);
     });
   });

@@ -1,5 +1,5 @@
 import { render } from 'preact';
-import { setImmediate } from 'node:timers/promises';
+import { drainPromises } from '../../test/harness/drainPromises.ts';
 import { act } from 'preact/test-utils';
 import { describe, expect, it, vi, type Mock } from 'vitest';
 import PdfRedactTool from './PdfRedactTool.tsx';
@@ -146,7 +146,7 @@ describe('PdfRedactTool UI flow', () => {
       await waitUntil(() => expect(s.container.textContent).toContain("This PDF didn't open"));
       await s.harness.flush();
       // Drain the rejected load's promise chain: the exact trail below proves nothing else was recorded after the failure.
-      await act(async () => { await setImmediate(); });
+      await act(async () => { await drainPromises(); });
       expect(recentActions()).toEqual(['add_files']);
     } finally {
       errorSpy.mockRestore();
@@ -484,7 +484,7 @@ describe('PdfRedactTool UI flow', () => {
         });
         await act(async () => {
           await replacementRead.promise;
-          await setImmediate();
+          await drainPromises();
         });
 
         // The new file is still being read: no editor, and nothing claiming

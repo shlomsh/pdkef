@@ -2,7 +2,7 @@
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { readFileSync } from 'node:fs';
-import { setImmediate } from 'node:timers/promises';
+import { drainPromises } from '../test/harness/drainPromises.ts';
 import { describe, expect, it, vi, afterEach, beforeEach } from 'vitest';
 import FileDropzone, { tileCopy, isolateNames, LAUNCHER_PICK_EVENT } from './FileDropzone.tsx';
 import { englishFileDropzoneMessages as en } from './fileDropzoneMessages';
@@ -122,7 +122,7 @@ describe('FileDropzone', () => {
       mount();
       await act(async () => {
         await asked.promise;
-        await setImmediate();
+        await drainPromises();
       });
       expect(container.querySelector('[data-home-picker]').textContent).toContain('Choose files');
     });
@@ -247,7 +247,7 @@ describe('FileDropzone', () => {
 
       await act(async () => {
         container.querySelector('button[aria-label^="Open recent PDF"]').click();
-        await setImmediate();
+        await drainPromises();
       });
 
       expect(container.querySelector('dialog')).toBeNull();
@@ -330,7 +330,7 @@ describe('FileDropzone', () => {
 
       await act(async () => {
         container.querySelector('button[aria-label^="Open recent PDF"]').click();
-        await setImmediate();
+        await drainPromises();
       });
 
       expect(setCurrentEntry).toHaveBeenCalledWith('merge', 'sha256:merge-set');
@@ -623,7 +623,7 @@ describe('FileDropzone', () => {
       await act(async () => {
         link('compress-image').dispatchEvent(click);
         await saved.promise;
-        await setImmediate();
+        await drainPromises();
       });
       expect(click.defaultPrevented).toBe(true);
       const [key, record] = saveHandoff.mock.calls[0];
@@ -718,7 +718,7 @@ describe('FileDropzone', () => {
       await act(async () => {
         container.querySelector('button[aria-label^="Open bundled sample PDF"]').click();
         await saved.promise;
-        await setImmediate();
+        await drainPromises();
       });
       vi.unstubAllGlobals();
       expect(saveHandoff.mock.calls[0][0]).toBe('sign');

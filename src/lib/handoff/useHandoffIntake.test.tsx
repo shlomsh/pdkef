@@ -1,7 +1,7 @@
 // @ts-nocheck - test harness, same convention as PdfCompressTool.test.tsx
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
-import { setImmediate } from 'node:timers/promises';
+import { drainPromises } from '../../test/harness/drainPromises.ts';
 import { describe, expect, it, vi, afterEach, beforeEach } from 'vitest';
 import { waitUntil } from '../../test/harness/waitUntil.ts';
 import { takeArrival, resetFileArrivalForTests } from './fileArrival.ts';
@@ -45,7 +45,7 @@ function arrivalSpy(impl = () => {}) {
 }
 
 // Lets the promise chain peek -> settleHandoff -> release finish when nothing is handed over.
-const drain = () => act(async () => { await setImmediate(); });
+const drain = () => act(async () => { await drainPromises(); });
 
 // The store commit is the last awaited step before the hook checks `cancelled`: a signal that the
 // chain reached it. The test then drains the few promise hops that carry its result on.

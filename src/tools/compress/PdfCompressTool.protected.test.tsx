@@ -4,7 +4,7 @@ import { act } from 'preact/test-utils';
 import { describe, expect, it, vi, afterEach, beforeEach } from 'vitest';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
-import { setImmediate } from 'node:timers/promises';
+import { drainPromises } from '../../test/harness/drainPromises.ts';
 import PdfCompressTool from './PdfCompressTool.tsx';
 import * as compressLib from './lib/compress.js';
 import * as imagesLib from './lib/compressImages.js';
@@ -192,7 +192,7 @@ describe('PdfCompressTool with a protected PDF', () => {
     await pick(fixtureFile('needs-password'));
     // A newer pick (a plain file, real probe) lands while the first probe is still out.
     await pick(fixtureFile('plain'));
-    await act(async () => { release('needs-password'); await handedOver; await setImmediate(); });
+    await act(async () => { release('needs-password'); await handedOver; await drainPromises(); });
 
     expect(container.querySelector('[data-needs-unlock]')).toBeNull();
     expect(loaded()).toBe(true);
@@ -211,7 +211,7 @@ describe('PdfCompressTool with a protected PDF', () => {
     await pick(fixtureFile('needs-password'));
     // An image is never probed, so it starts no run of its own; the pick itself has to drop the old one.
     await pick(new File(['fake-image-bytes'], 'photo.jpg', { type: 'image/jpeg' }));
-    await act(async () => { release('needs-password'); await handedOver; await setImmediate(); });
+    await act(async () => { release('needs-password'); await handedOver; await drainPromises(); });
 
     expect(container.querySelector('[data-needs-unlock]')).toBeNull();
     // Only the image's own build ran: a PDF build from the dropped probe would have made the counter 2.

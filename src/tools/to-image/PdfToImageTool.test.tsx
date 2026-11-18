@@ -2,7 +2,7 @@
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { describe, expect, it, vi, afterEach, beforeEach } from 'vitest';
-import { setImmediate } from 'node:timers/promises';
+import { drainPromises } from '../../test/harness/drainPromises.ts';
 import PdfToImageTool from './PdfToImageTool.tsx';
 import { mockNativeFileShare } from '../../test/support/mockFileShare.js';
 import { setInputFiles } from '../../test/support/setInputFiles.js';
@@ -418,7 +418,7 @@ describe('PdfToImageTool', () => {
     await act(async () => {
       first();
       await converted.promise;
-      await setImmediate(); // the tool's continuation after the replaced file's conversion
+      await drainPromises(); // the tool's continuation after the replaced file's conversion
     });
     // The second file's own build has landed: its size is on the element.
     await until(() => /KB/.test(downloadElement().textContent));

@@ -4,7 +4,7 @@ import { act } from 'preact/test-utils';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { describe, expect, it, vi, afterEach, beforeEach } from 'vitest';
-import { setImmediate } from 'node:timers/promises';
+import { drainPromises } from '../../test/harness/drainPromises.ts';
 import PdfEditPagesTool from './PdfEditPagesTool.tsx';
 import * as editPagesLib from './lib/editPages.js';
 import { getPdfLib } from '#lib/pdf/pdfLib.js';
@@ -325,7 +325,7 @@ describe('PdfEditPagesTool UI flow', () => {
     await act(async () => {
       first.release();
       await firstRunEnded.promise;
-      await setImmediate();
+      await drainPromises();
     });
     expect(saves).toHaveBeenCalledTimes(1);
     expect(await pagesOf(shownOutput())).toMatchObject({ count: 2 });
