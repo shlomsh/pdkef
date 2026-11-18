@@ -35,7 +35,12 @@ short-circuit expressions). The ones opened were style, not bugs; they are switc
 `npm run lint:landmines` (in `check:fast`, `check:push` and `ci.yml`). `.oxlintrc.json` turns off
 Oxlint's built-in categories and enables only the landmines rules adopted so far. A rule is enabled at
 `error` once its sites are fixed, or with its `allow` map (exact per-file counts that only shrink) where
-the rule supports one.
+the rule supports one. `scripts/check-ratchet-raises.mjs` treats each rule's `allow` map like
+`scripts/ratchet-limits.json`: a raised count or a new file fails, a lower one passes.
+
+Adopted so far: `no-unsignaled-poll` (LAND-01) and `no-flake-masking` with today's 25 timeouts in 13
+files (LAND-03). The `src/tools/sign/lib/flatten.js` entry is the rule's false positive on a local
+`describe` helper; once the upstream fix ships, the rule reports that entry as stale and it is removed.
 
 ## Upstream
 

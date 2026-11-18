@@ -95,6 +95,10 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 - [SEO-61](backlog/tasks/SEO-61.md) P2 · Put the app rating on Merge, English and Hebrew, and read whether stars lift clicks (in progress)
 - [SCAN-01](backlog/tasks/SCAN-01.md) P3 · Scan to PDF: its own tool at /scan-to-pdf/, sharing Image to PDF's engine, plus a how-to-scan-to-PDF guide (in progress)
 
+### Honest tests: adopt landmines
+
+- [LAND-03](backlog/tasks/LAND-03.md) P3 · Raised test timeouts only shrink (in progress)
+
 ### Polish
 
 - [DRIVE-01](backlog/tasks/DRIVE-01.md) P2 · /drive/ picks a file: saved token, one tap where it is proven, the popup everywhere else (in progress)
@@ -119,7 +123,7 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 - A full UTC day of production reads on a build with the fix: [RED-57](backlog/tasks/RED-57.md) · Redact export never embeds an empty page picture on a large page
 - A full UTC day of production reads on a stamped build with the fix: [DEBT-42](backlog/tasks/DEBT-42.md) · pdf.js runs on browsers that lack the built-ins it calls
 - A full UTC day of production reads on a stamped build with the fix: [DEBT-51](backlog/tasks/DEBT-51.md) · Redact and Sign export from the bytes they hold, so a file gone from disk still exports
-- Maintainers' answer on interfere-inc/landmines#11: [LAND-02](backlog/tasks/LAND-02.md) · landmines sees a sleep inside act(), then guards our unit tests
+- A landmines release with interfere-inc/landmines#19 (release PR #20): [LAND-02](backlog/tasks/LAND-02.md) · landmines sees a sleep inside act(), then guards our unit tests
 - LOC-17 and SEO-40: [LOC-13](backlog/tasks/LOC-13.md) · Spanish pilot: one target-size compress page for Mexico, on the niche this domain already wins
 - An iPhone check, and a day of production reads with no check_saved_file NotReadableError: [RED-63](backlog/tasks/RED-63.md) · Redact: saved-file check should fall back quietly when the saved file is unreadable on iOS
 - SEO-06 crawl gate and a volume check: [SEO-20](backlog/tasks/SEO-20.md) · New tool: crop a PDF, the only one of these with nothing to apologise for
@@ -140,7 +144,7 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 - [SCAN-04](backlog/tasks/SCAN-04.md) · Your iPhone, and an Android phone if one is at hand
 - [SCAN-05](backlog/tasks/SCAN-05.md) · Photos and short videos of real pages taken on your phone, ours to check in
 - [DRIVE-03](backlog/tasks/DRIVE-03.md) · A run on your iPhone, Chrome and Safari
-- [LAND-03](backlog/tasks/LAND-03.md) · Your OK to post the upstream issue or PR
+- [LAND-03](backlog/tasks/LAND-03.md) · Your OK on the revised upstream PR
 - [READ-16](backlog/tasks/READ-16.md) · Pick the stepper's place: the toolbar capsule, the top of the rail, or the page header
 - [MOBI-01](backlog/tasks/MOBI-01.md) · Half an hour with an Android phone
 - [DEBT-53](backlog/tasks/DEBT-53.md) · A check on your iPhone

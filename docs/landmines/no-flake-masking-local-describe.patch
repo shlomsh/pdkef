@@ -1,0 +1,124 @@
+From 1d40817871a6c8466e614f825962d3a397b2045d Mon Sep 17 00:00:00 2001
+From: shlomsh <shlomsh@gmail.com>
+Date: Wed, 18 Nov 2026 15:38:51 +0200
+Subject: [PATCH] fix(no-flake-masking): ignore test-named functions that are
+ not from a test framework
+
+---
+ .changeset/local-describe-flake-masking.md    |  5 +++
+ .../src/rules/no-flake-masking.test.ts        |  8 ++++
+ .../landmines/src/rules/no-flake-masking.ts   | 38 +++++++++++++++----
+ 3 files changed, 44 insertions(+), 7 deletions(-)
+ create mode 100644 .changeset/local-describe-flake-masking.md
+
+diff --git a/.changeset/local-describe-flake-masking.md b/.changeset/local-describe-flake-masking.md
+new file mode 100644
+index 0000000..bc27a87
+--- /dev/null
++++ b/.changeset/local-describe-flake-masking.md
+@@ -0,0 +1,5 @@
++---
++"@interfere/landmines": patch
++---
++
++`no-flake-masking` no longer reports calls to a local function or parameter named `test`, `it`, `describe`, or `suite` as test timeouts.
+diff --git a/packages/landmines/src/rules/no-flake-masking.test.ts b/packages/landmines/src/rules/no-flake-masking.test.ts
+index 615eb8a..a28a6e8 100644
+--- a/packages/landmines/src/rules/no-flake-masking.test.ts
++++ b/packages/landmines/src/rules/no-flake-masking.test.ts
+@@ -68,6 +68,10 @@ const timeouts = [
+   'test.each([1])("loads %i", async () => {}, 20_000);',
+   'test.skipIf(ci)("loads", async () => {}, 20_000);',
+   'describe("loader", { timeout: 60_000 }, () => {});',
++  'describe("x", () => {}, 5000);',
++  'import { describe } from "vitest";\ndescribe("x", () => {}, 5000);',
++  'import { test as base } from "vitest";\nconst test = base.extend({});\ntest("x", async () => {}, 5000);',
++  'import { test } from "./fixtures";\ntest("x", async () => {}, 5000);',
+   "vi.setConfig({ testTimeout: 45_000 });",
+   "vi.setConfig({ hookTimeout: 45_000 });",
+   "export default defineConfig({ test: { testTimeout: 30_000, hookTimeout: 60_000 } });",
+@@ -88,6 +92,10 @@ const valid = [
+   "queue.retry({ delaySeconds: 30 });",
+   "const policy = { retry: { maxAttempts: 1 } };",
+   "vi.setConfig({ fakeTimers: { now: 0 } });",
++  "function describe(a, b, c) {}\ndescribe(1, 2, 3);",
++  "const describe = (a, b, c) => {};\ndescribe(1, 2, 3);",
++  "const collect = (page) => items.map((item, i) => describe(page, item, annots.get(i)));\nconst describe = (a, b, c) => {};",
++  "function run(it) { it(1, 2, 3); }",
+ ];
+ 
+ test.each(lintBatch(retries, false, "testing", config))(
+diff --git a/packages/landmines/src/rules/no-flake-masking.ts b/packages/landmines/src/rules/no-flake-masking.ts
+index 22ebac3..efb245a 100644
+--- a/packages/landmines/src/rules/no-flake-masking.ts
++++ b/packages/landmines/src/rules/no-flake-masking.ts
+@@ -1,5 +1,5 @@
+ import { defineRule } from "@oxlint/plugins";
+-import type { ESTree } from "@oxlint/plugins";
++import type { ESTree, Scope, SourceCode } from "@oxlint/plugins";
+ 
+ import { allowlistSchema, reportAllowed } from "../lib/allowlist.ts";
+ 
+@@ -26,7 +26,30 @@ function rootName(initial: ESTree.Node) {
+     node = node.type === "MemberExpression" ? node.object : node.callee;
+   }
+ 
+-  return node.type === "Identifier" ? node.name : null;
++  return node.type === "Identifier" ? node : null;
++}
++
++function plainFunction(source: SourceCode, node: ESTree.Node, name: string) {
++  for (
++    let scope: Scope | null = source.getScope(node);
++    scope !== null;
++    scope = scope.upper
++  ) {
++    const variable = scope.set.get(name);
++
++    if (variable) {
++      return variable.defs.every(
++        ({ type, node: definition }) =>
++          type === "FunctionName" ||
++          type === "Parameter" ||
++          (definition.type === "VariableDeclarator" &&
++            (definition.init?.type === "ArrowFunctionExpression" ||
++              definition.init?.type === "FunctionExpression")),
++      );
++    }
++  }
++
++  return false;
+ }
+ 
+ function memberName(node: ESTree.Node) {
+@@ -37,13 +60,14 @@ function memberName(node: ESTree.Node) {
+     : null;
+ }
+ 
+-function testCall(node: ESTree.CallExpression) {
+-  const name = rootName(node.callee);
++function testCall(source: SourceCode, node: ESTree.CallExpression) {
++  const root = rootName(node.callee);
+   const member = memberName(node.callee);
+ 
+   return (
+-    name !== null &&
+-    testFunctions.has(name) &&
++    root !== null &&
++    testFunctions.has(root.name) &&
++    !plainFunction(source, root, root.name) &&
+     member !== "each" &&
+     member !== "for" &&
+     member !== "extend" &&
+@@ -105,7 +129,7 @@ export const noFlakeMasking = defineRule({
+           return;
+         }
+ 
+-        if (!testCall(node)) {
++        if (!testCall(context.sourceCode, node)) {
+           return;
+         }
+ 
+-- 
+2.54.0 (Apple Git-157)
+

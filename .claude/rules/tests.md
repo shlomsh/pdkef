@@ -34,7 +34,9 @@ Test seams (ARCH-61): an export that only tests import carries a `/** @testSeam 
 The open-source landmines Oxlint rules run as they ship, one rule at a time
 ([docs/landmines-adoption.md](../../docs/landmines-adoption.md)). `no-unsignaled-poll` is on: never
 `vi.waitFor` / `expect.poll` on a spy or a recorder; resolve a deferred from the mock or listener, or
-`page.waitForEvent` set up before the action. A rule that misses or misfires on our code is fixed
+`page.waitForEvent` set up before the action. `no-flake-masking` is on with an `allow` map in
+`.oxlintrc.json`: the 25 raised test timeouts at adoption stay, a new one fails, and
+`test:ratchet-raises` refuses any raised or added entry. A rule that misses or misfires on our code is fixed
 upstream, never with a local guard or an `oxlint-disable`.
 
 ## Test environments and E2E scope
