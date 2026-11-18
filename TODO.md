@@ -95,10 +95,6 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 - [SEO-61](backlog/tasks/SEO-61.md) P2 · Put the app rating on Merge, English and Hebrew, and read whether stars lift clicks (in progress)
 - [SCAN-01](backlog/tasks/SCAN-01.md) P3 · Scan to PDF: its own tool at /scan-to-pdf/, sharing Image to PDF's engine, plus a how-to-scan-to-PDF guide (in progress)
 
-### Honest tests: adopt landmines
-
-- [LAND-03](backlog/tasks/LAND-03.md) P3 · Raised test timeouts only shrink (in progress)
-
 ### Polish
 
 - [DRIVE-01](backlog/tasks/DRIVE-01.md) P2 · /drive/ picks a file: saved token, one tap where it is proven, the popup everywhere else (in progress)
@@ -144,7 +140,6 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 - [SCAN-04](backlog/tasks/SCAN-04.md) · Your iPhone, and an Android phone if one is at hand
 - [SCAN-05](backlog/tasks/SCAN-05.md) · Photos and short videos of real pages taken on your phone, ours to check in
 - [DRIVE-03](backlog/tasks/DRIVE-03.md) · A run on your iPhone, Chrome and Safari
-- [LAND-03](backlog/tasks/LAND-03.md) · Your OK on the revised upstream PR
 - [READ-16](backlog/tasks/READ-16.md) · Pick the stepper's place: the toolbar capsule, the top of the rail, or the page header
 - [MOBI-01](backlog/tasks/MOBI-01.md) · Half an hour with an Android phone
 - [DEBT-53](backlog/tasks/DEBT-53.md) · A check on your iPhone

@@ -1,13 +1,10 @@
 ---
 id: "LAND-03"
 title: "Raised test timeouts only shrink"
-status: "in_progress"
+status: "done"
 priority: "P3"
 epic: "honest-tests"
-horizon: "now"
-order: 3
 depends_on: ["LAND-01"]
-needs: "Your OK on the revised upstream PR"
 ---
 
 # LAND-03 · Raised test timeouts only shrink
@@ -34,4 +31,5 @@ landmines `2536897`). It resolves the callee with scope analysis and skips the c
 is plainly an ordinary function (a function declaration, a parameter, or a variable holding an arrow or
 function expression). Fixture tests (`const test = base.extend(...)`, `import { test } from
 "./fixtures"`) are still checked. Against pdkef it drops the flatten.js report and keeps the other 24
-timeouts. The ticket closes when the PR is posted.
+timeouts. Posted as https://github.com/interfere-inc/landmines/pull/21. Once it ships, the
+flatten.js entry turns stale and is deleted with the landmines bump (LAND-02).
