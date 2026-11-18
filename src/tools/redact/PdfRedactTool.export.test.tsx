@@ -4,6 +4,7 @@ import { act } from 'preact/test-utils';
 import { describe, expect, it, vi, type Mock } from 'vitest';
 import PdfRedactTool from './PdfRedactTool.tsx';
 import { CHECKING } from './lib/check/checkCopy.ts';
+import { englishRedactMessages } from './messages.ts';
 import { recentActions } from '#lib/telemetry/actionTrail.ts';
 import { PDFDocument } from '@cantoo/pdf-lib';
 import { waitUntil } from '../../test/harness/waitUntil.ts';
@@ -498,7 +499,7 @@ describe('PdfRedactTool UI flow', () => {
         expect(resolveReplacementDocument).toBeDefined();
         expect(s.container.querySelector('[data-workspace]')).toBeNull();
         expect(query(s.container, '[role="status"][aria-live="polite"]').textContent)
-          .not.toContain('Your edits changed while the PDF was being prepared');
+          .not.toContain(englishRedactMessages.exportSuperseded);
 
         // The replacement finishes loading and gets a clean editor of its own.
         await act(async () => {
