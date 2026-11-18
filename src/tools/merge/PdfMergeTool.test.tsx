@@ -486,19 +486,26 @@ describe('PdfMergeTool UI flow', () => {
   });
 
   it('a thumbnail that arrives after the pre-merge started does not restart it', async () => {
-    const late = Promise.withResolvers<void>();
-    harness.pdfjs.thumbnails.renderThumbnail.mockImplementationOnce(
-      () => new Promise((resolve) => setTimeout(() => { resolve('data:image/png;base64,late'); late.resolve(); }, 25)),
-    );
+    const late = Promise.withResolvers<string>();
+    harness.pdfjs.thumbnails.renderThumbnail.mockImplementationOnce(() => late.promise);
     mount();
     await loadFiles(['a.pdf', 'b.pdf']);
     await settle();
     expect(harness.createdBlobs()).toHaveLength(1);
-    await act(async () => { await late.promise; await drainPromises(); });
+    const href = downloadLink().getAttribute('href');
+    // A restart would wait out the quiet delay (FAST_QUIET, 5ms) and take the ready link down.
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+    try {
+      await act(async () => { late.resolve('data:image/png;base64,late'); await drainPromises(); });
+      await act(async () => { await vi.advanceTimersByTimeAsync(FAST_QUIET.maxMs + 1); });
+      expect(downloadLink()?.getAttribute('href')).toBe(href);
+    } finally {
+      vi.useRealTimers();
+    }
     // The late thumbnail resolves (renderThumbnail is used for the rail's
     // internal entry state) without ever restarting the pre-merge.
     expect(harness.createdBlobs()).toHaveLength(1);
-    expect(downloadLink()).not.toBeNull();
+    expect(downloadLink().getAttribute('href')).toBe(href);
   });
 
   it('accepts a .pdf and photos with an empty MIME type and still skips a real non-photo (MERGE-02, MERGE-22)', async () => {
