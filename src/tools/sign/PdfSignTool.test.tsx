@@ -10,6 +10,7 @@ import { resetMaintenanceEventsForTests } from '#lib/telemetry/maintenanceTeleme
 import { installToolHarness, type ToolHarness } from '../../test/harness/toolHarness.ts';
 import { widthPercentToHeightPercent, pxToPercent, pxDeltaToPercent } from '#editor/geometry/coords.ts';
 import { setInputFiles } from '../../test/support/setInputFiles.js';
+import { waitUntil } from '../../test/harness/waitUntil.ts';
 import { recentActions } from '#lib/telemetry/actionTrail.ts';
 
 // Spies signPdf and exposes calledTimes(n): a promise that resolves from inside the spy once it has
@@ -55,6 +56,11 @@ function required<T>(value: T | null | undefined, description: string): T {
 
 function query<T extends Element = HTMLElement>(root: ParentNode, selector: string): T {
   return required(root.querySelector<T>(selector), selector);
+}
+
+// A picked file has loaded once the toolbar shows its identity line.
+async function loaded(root: ParentNode): Promise<void> {
+  await waitUntil(() => query(root, '[data-file-identity]'));
 }
 
 function findButton(root: ParentNode, label: string): HTMLButtonElement {
@@ -184,8 +190,8 @@ describe('PdfSignTool UI flow', () => {
       act(() => { render(<PdfSignTool />, container); });
       await act(async () => {
         setInputFiles(query<HTMLInputElement>(container, 'input[type="file"]'), [makePdfFile('turned.pdf')]);
-        await new Promise((resolve) => setTimeout(resolve, 50));
       });
+      await loaded(container);
       await act(async () => { findButton(container, 'Rotate').click(); });
       // Select something so Tab has a place to move from, then hop to the field.
       const overlay = query<HTMLElement>(container, '[data-page-overlay]');
@@ -207,8 +213,8 @@ describe('PdfSignTool UI flow', () => {
     act(() => { render(<PdfSignTool />, container); });
     await act(async () => {
       setInputFiles(query<HTMLInputElement>(container, 'input[type="file"]'), [makePdfFile('onlyturned.pdf')]);
-      await new Promise((resolve) => setTimeout(resolve, 50));
     });
+    await loaded(container);
     // The hand-off row (Compress it / Redact it) appears exactly when there is a signed export to carry on.
     expect(container.textContent).not.toContain('Compress it');
     await act(async () => { findButton(container, 'Rotate').click(); });

@@ -8,6 +8,18 @@
     {
       "name": "landmines-testing",
       "specifier": "@interfere/landmines/testing"
+    },
+    {
+      "name": "landmines-style",
+      "specifier": "@interfere/landmines/style"
+    },
+    {
+      "name": "landmines-structure",
+      "specifier": "@interfere/landmines/structure"
+    },
+    {
+      "name": "landmines-types",
+      "specifier": "@interfere/landmines/types"
     }
   ],
   "rules": {
@@ -31,7 +43,15 @@
           "src/tools/sign/lib/flatten.js": 1
         }
       }
-    ]
+    ],
+    "landmines-testing/no-fixed-sleep": "error",
+    "landmines-testing/no-test-doubles": "error",
+    "landmines-testing/strict-msw": "error",
+    "landmines-structure/colocated-tests": "error",
+    "landmines-structure/test-file-names": "error",
+    "landmines-structure/package-exports": "error",
+    "landmines-types/no-explicit-return-types": "error",
+    "landmines-style/no-comments": "error"
   },
   "ignorePatterns": [
     "dist/**",

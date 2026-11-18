@@ -11,6 +11,7 @@ import { mockNativeFileShare } from '../../test/support/mockFileShare.js';
 import { noPagesKey } from '../../test/support/pdfPageTreeFixtures.ts';
 import { installToolHarness, type ToolHarness } from '../../test/harness/toolHarness.ts';
 import { setInputFiles } from '../../test/support/setInputFiles.js';
+import { setImmediate } from 'node:timers/promises';
 import { until } from '../../test/support/until.js';
 import { waitUntil } from '../../test/harness/waitUntil.ts';
 import { hebrewSplitMessages } from './messages';
@@ -21,14 +22,21 @@ import { hebrewShellMessages } from '#shell/shellMessages.ts';
 
 // Not a fake: loadPdfWithPages still runs for real. The gate only lets one test hold a load open
 // between the pick and the page count, which a real pdf-lib parse gives no way to pause (DEBT-18).
-const { loadGate } = vi.hoisted(() => ({ loadGate: { before: null as null | ((bytes: ArrayBuffer) => Promise<void>) } }));
+const { loadGate } = vi.hoisted(() => ({ loadGate: {
+  before: null as null | ((bytes: ArrayBuffer) => Promise<void>),
+  after: null as null | (() => void),
+} }));
 vi.mock('#lib/pdf/loadPdfPages.ts', async (importOriginal) => {
   const actual: any = await importOriginal();
   return {
     ...actual,
     loadPdfWithPages: async (bytes: ArrayBuffer) => {
       await loadGate.before?.(bytes);
-      return actual.loadPdfWithPages(bytes);
+      try {
+        return await actual.loadPdfWithPages(bytes);
+      } finally {
+        loadGate.after?.();
+      }
     },
   };
 });
@@ -50,6 +58,7 @@ describe('PdfSplitTool UI flow', () => {
   beforeEach(() => {
     harness = installToolHarness();
     loadGate.before = null;
+    loadGate.after = null;
     // jsdom's Blob has no arrayBuffer().
     if (!Blob.prototype.arrayBuffer) {
       Blob.prototype.arrayBuffer = function arrayBuffer() {
@@ -364,7 +373,15 @@ describe('PdfSplitTool UI flow', () => {
     await act(async () => { setInputFiles(container.querySelector('input[type="file"]'), [fixtureFile('five.pdf')]); });
     await until(() => releaseFirst);
     await replaceWith(fixtureFile('three.pdf', path.join(FIXTURES, 'three-page-header.pdf')));
-    await act(async () => { releaseFirst(); await new Promise((resolve) => setTimeout(resolve, 50)); });
+    // The replacement has loaded; let the stale first load finish, then drain the promise work that
+    // carries its result into the component before checking it was ignored.
+    const firstFinished = Promise.withResolvers<void>();
+    loadGate.after = firstFinished.resolve;
+    await act(async () => {
+      releaseFirst();
+      await firstFinished.promise;
+      await setImmediate();
+    });
     expect(cells()).toHaveLength(3);
     expect(field().value).toBe('1-3');
     expect(heading().textContent).toContain('extracted_three.pdf');
