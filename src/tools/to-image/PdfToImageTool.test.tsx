@@ -169,16 +169,26 @@ describe('PdfToImageTool', () => {
   });
 
   it('does not convert before the quiet wait, then converts once', async () => {
-    await open(5, { quietPolicy: SLOW_QUIET });
-    await drain();
-    expect(convertCalls.n).toBe(0);
-    expect(downloadElement().getAttribute('data-state')).toBe('ready');
-    expect(downloadElement().getAttribute('aria-busy')).toBeNull();
-    await until(() => convertCalls.n === 1);
-    expect(convertCalls.n).toBe(1);
-    await until(() => /\d(\.\d)? KB/.test(downloadElement().textContent));
-    await drain();
-    expect(convertCalls.n).toBe(1);
+    // SLOW_QUIET waits 400 ms. The clock only moves when the test moves it; the waits below run
+    // timers already due (pdf-lib's 0 ms yields) without moving it.
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+    try {
+      harness.pdfjs.source.pageCount = 5;
+      mount({ quietPolicy: SLOW_QUIET });
+      await act(async () => { setInputFiles(container.querySelector('input[type="file"]'), [makePdfFile()]); });
+      await waitUntil(() => cells().length > 0 && downloadElement(), { dueFakeTimers: true });
+      await act(async () => { await vi.advanceTimersByTimeAsync(399); });
+      expect(convertCalls.n).toBe(0);
+      expect(downloadElement().getAttribute('data-state')).toBe('ready');
+      expect(downloadElement().getAttribute('aria-busy')).toBeNull();
+      await act(async () => { await vi.advanceTimersByTimeAsync(1); });
+      await waitUntil(() => /\d(\.\d)? KB/.test(downloadElement().textContent), { dueFakeTimers: true });
+      expect(convertCalls.n).toBe(1);
+      await act(async () => { await vi.advanceTimersByTimeAsync(1000); });
+      expect(convertCalls.n).toBe(1);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('keeps the ready look with no size, and the size joins when the build lands', async () => {
