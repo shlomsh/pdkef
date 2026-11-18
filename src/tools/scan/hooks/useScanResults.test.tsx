@@ -1,4 +1,5 @@
 import { render } from 'preact';
+import { setImmediate } from 'node:timers/promises';
 import { act } from 'preact/test-utils';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { reportError } from '#lib/telemetry/errorReport.ts';
@@ -28,7 +29,7 @@ async function fail(page: ScanPage, before: (work: ScanWork) => void) {
   }
   container = document.createElement('div');
   await act(async () => { render(<Host />, container!); });
-  await act(async () => { await new Promise((resolve) => setTimeout(resolve, 0)); });
+  await act(async () => { await setImmediate(); });
   return dispatch;
 }
 
@@ -68,7 +69,7 @@ describe('useScanResults adoptResult', () => {
     await act(async () => { render(<Host />, container!); });
     work.removed.add(page.id);
     finish({ blob: new Blob(['b']), thumb: new Blob(['t']) } as never);
-    await act(async () => { await new Promise((resolve) => setTimeout(resolve, 0)); });
+    await act(async () => { await setImmediate(); });
     expect(work.results[page.id]).toBeUndefined();
     expect(create).not.toHaveBeenCalled();
     expect(setResults).not.toHaveBeenCalled();

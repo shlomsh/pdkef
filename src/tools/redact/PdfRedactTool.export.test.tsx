@@ -1,4 +1,5 @@
 import { render } from 'preact';
+import { setImmediate } from 'node:timers/promises';
 import { act } from 'preact/test-utils';
 import { describe, expect, it, vi, type Mock } from 'vitest';
 import PdfRedactTool from './PdfRedactTool.tsx';
@@ -144,8 +145,8 @@ describe('PdfRedactTool UI flow', () => {
       await act(async () => { setInputFiles(input, [makePdfFile('broken.pdf')]); });
       await waitUntil(() => expect(s.container.textContent).toContain("This PDF didn't open"));
       await s.harness.flush();
-      // Short settle: the exact trail below also proves nothing else was recorded after the failure.
-      await act(async () => { await new Promise((resolve) => setTimeout(resolve, 50)); });
+      // Drain the rejected load's promise chain: the exact trail below proves nothing else was recorded after the failure.
+      await act(async () => { await setImmediate(); });
       expect(recentActions()).toEqual(['add_files']);
     } finally {
       errorSpy.mockRestore();
@@ -463,9 +464,13 @@ describe('PdfRedactTool UI flow', () => {
         // Hold the replacement's document open, so the assertions below land
         // in the window where the new file is still being read.
         let resolveReplacementDocument!: (document: unknown) => void;
-        s.harness.pdfjs.getDocument.mockImplementationOnce(() => ({
-          promise: new Promise<unknown>((resolve) => { resolveReplacementDocument = resolve; }),
-        }) as never);
+        const replacementRead = Promise.withResolvers<void>();
+        s.harness.pdfjs.getDocument.mockImplementationOnce(() => {
+          replacementRead.resolve();
+          return {
+            promise: new Promise<unknown>((resolve) => { resolveReplacementDocument = resolve; }),
+          } as never;
+        });
 
         const input = query<HTMLInputElement>(s.container, 'input[type="file"]');
         await act(async () => {
@@ -478,7 +483,8 @@ describe('PdfRedactTool UI flow', () => {
           confirmReplace.click();
         });
         await act(async () => {
-          await new Promise((resolve) => setTimeout(resolve, 0));
+          await replacementRead.promise;
+          await setImmediate();
         });
 
         // The new file is still being read: no editor, and nothing claiming

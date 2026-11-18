@@ -9,6 +9,7 @@ import { hebrewSignMessages } from './messages';
 import type { SignMessages } from '#editor/registry/messages.ts';
 import { installToolHarness, type ToolHarness } from '../../test/harness/toolHarness.ts';
 import { setInputFiles } from '../../test/support/setInputFiles.js';
+import { waitUntil } from '../../test/harness/waitUntil.ts';
 
 declare const __dirname: string;
 
@@ -156,7 +157,7 @@ describe('a protected PDF in Sign (ENC-07)', () => {
     const confirmReplace = required(Array.from(container.querySelectorAll<HTMLButtonElement>('dialog button'))
       .find((button) => button.textContent?.trim() === 'Replace file'), 'Replace file button');
     await act(async () => { confirmReplace.click(); });
-    await act(async () => { await new Promise((resolve) => setTimeout(resolve, 50)); });
+    await waitUntil(() => state() === null);
     expect(state()).toBeNull();
   });
 

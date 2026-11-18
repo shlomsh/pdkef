@@ -239,9 +239,7 @@ describe('PdfSignTool UI flow', () => {
         setInputFiles(input, [file]);
       });
 
-      await act(async () => {
-        await new Promise((resolve) => setTimeout(resolve, 50));
-      });
+      await loaded(container);
 
       const fullscreenButton = required(
         container.querySelector<HTMLButtonElement>('button[title="Full screen"]'),
@@ -273,12 +271,12 @@ describe('PdfSignTool UI flow', () => {
 
     await act(async () => {
       setInputFiles(query<HTMLInputElement>(container, 'input[type="file"]'), [makePdfFile('form.pdf')]);
-      await new Promise((resolve) => setTimeout(resolve, 50));
     });
+    await loaded(container);
 
     // The walk is asynchronous (pdf-lib and the five detectors arrive by
     // dynamic import), so the event lands after the file does.
-    await vi.waitFor(async () => expect(await maintenanceEvents('sign_form_detection')).toHaveLength(1), { timeout: 3000, interval: 50 });
+    await waitUntil(() => query(container, '[data-file-identity]') && container.textContent?.includes('Could not check this PDF for form fields'));
     const detection = await maintenanceEvents('sign_form_detection');
     expect(Object.keys(detection[0].properties)).toEqual(['outcome', 'error_code']);
     // Nothing about the document travels, the filename included.
@@ -300,9 +298,8 @@ describe('PdfSignTool UI flow', () => {
       act(() => { render(<PdfSignTool />, container); });
       await act(async () => {
         setInputFiles(query<HTMLInputElement>(container, 'input[type="file"]'), [makePdfFile('kind.pdf')]);
-        await new Promise((resolve) => setTimeout(resolve, 50));
       });
-      await vi.waitFor(async () => expect((await maintenanceEvents('sign_form_detection')).length).toBeGreaterThan(0), { timeout: 3000, interval: 50 });
+      await loaded(container);
       const success = (await maintenanceEvents('sign_form_detection')).find((event) => event.properties.outcome === 'success');
       expect(Object.keys(required(success, 'a success event').properties)).toEqual(keys);
       if (pageKind) expect(success?.properties).toMatchObject({ page_kind: pageKind });
@@ -335,8 +332,8 @@ describe('PdfSignTool UI flow', () => {
       await act(async () => { render(<PdfSignTool />, container); });
       await act(async () => {
         setInputFiles(query<HTMLInputElement>(container, 'input[type="file"]'), [makePdfFile('retry.pdf')]);
-        await new Promise(resolve => setTimeout(resolve, 50));
       });
+      await loaded(container);
       const pageRect = { left: 0, top: 0, width: 600, height: 800, right: 600, bottom: 800, x: 0, y: 0, toJSON() {} };
       const wrapper = query<HTMLElement>(container, '[data-sign-page-surface]');
       const overlay = query<HTMLElement>(container, '[data-page-overlay]');
@@ -401,8 +398,8 @@ describe('PdfSignTool UI flow', () => {
     await act(async () => { render(<PdfSignTool />, container); });
     await act(async () => {
       setInputFiles(query<HTMLInputElement>(container, 'input[type="file"]'), [makePdfFile('stale.pdf')]);
-      await new Promise(resolve => setTimeout(resolve, 50));
     });
+    await loaded(container);
 
     const overlay = query<HTMLElement>(container, '[data-page-overlay]');
     const pageRect = { left: 0, top: 0, width: 600, height: 800, right: 600, bottom: 800, x: 0, y: 0, toJSON() {} };
@@ -451,8 +448,8 @@ describe('PdfSignTool UI flow', () => {
     const picked = makePdfFile('gone.pdf');
     await act(async () => {
       setInputFiles(query<HTMLInputElement>(container, 'input[type="file"]'), [picked]);
-      await new Promise(resolve => setTimeout(resolve, 50));
     });
+    await loaded(container);
     // Moved or deleted on disk after picking: Chromium rejects the re-read.
     picked.arrayBuffer = () => Promise.reject(new DOMException('gone', 'NotFoundError'));
     const overlay = query<HTMLElement>(container, '[data-page-overlay]');
@@ -495,8 +492,8 @@ describe('PdfSignTool UI flow', () => {
       await act(async () => { render(<PdfSignTool />, container); });
       await act(async () => {
         setInputFiles(query<HTMLInputElement>(container, 'input[type="file"]'), [makePdfFile('mobi07.pdf')]);
-        await new Promise((resolve) => setTimeout(resolve, 50));
       });
+      await loaded(container);
 
       const overlay = query<HTMLElement>(container, '[data-page-overlay]');
       const pageRect = { left: 0, top: 0, width: 600, height: 800, right: 600, bottom: 800, x: 0, y: 0, toJSON() {} };
@@ -577,9 +574,7 @@ describe('PdfSignTool UI flow', () => {
       setInputFiles(input, [file]);
     });
 
-    await act(async () => {
-      await new Promise((resolve) => setTimeout(resolve, 50));
-    });
+    await loaded(container);
 
     // Locate the signature tool button in the toolbar
     const toolbarButtons = container.querySelectorAll<HTMLButtonElement>('[role="toolbar"] button');
@@ -619,9 +614,7 @@ describe('PdfSignTool UI flow', () => {
       setInputFiles(input, [file]);
     });
 
-    await act(async () => {
-      await new Promise((resolve) => setTimeout(resolve, 50));
-    });
+    await loaded(container);
 
     // Clicking Signature when local storage is empty opens the dialog directly
     localStorage.removeItem('pdf-toolkit:signatures');
@@ -669,9 +662,7 @@ describe('PdfSignTool UI flow', () => {
       setInputFiles(input, [file]);
     });
 
-    await act(async () => {
-      await new Promise((resolve) => setTimeout(resolve, 50));
-    });
+    await loaded(container);
 
     // Select text tool
     const textBtn = findButton(container, 'Text');
@@ -726,9 +717,7 @@ describe('PdfSignTool UI flow', () => {
       setInputFiles(input, [file]);
     });
 
-    await act(async () => {
-      await new Promise((resolve) => setTimeout(resolve, 50));
-    });
+    await loaded(container);
 
     // Select mark tool
     const toolbarButtons = container.querySelectorAll<HTMLButtonElement>('[role="toolbar"] button');
@@ -765,9 +754,7 @@ describe('PdfSignTool UI flow', () => {
       setInputFiles(input, [file]);
     });
 
-    await act(async () => {
-      await new Promise((resolve) => setTimeout(resolve, 50));
-    });
+    await loaded(container);
 
     // Select text tool
     const textBtn = findButton(container, 'Text');
@@ -811,9 +798,7 @@ describe('PdfSignTool UI flow', () => {
     await act(async () => {
       setInputFiles(input, [makePdfFile('test.pdf')]);
     });
-    await act(async () => {
-      await new Promise((resolve) => setTimeout(resolve, 50));
-    });
+    await loaded(container);
     expect(recentActions()).toContain('add_files');
 
     await act(async () => {
@@ -843,9 +828,11 @@ describe('PdfSignTool UI flow', () => {
   it('applies text annotations to num-1.pdf and exports a valid signed PDF', { timeout: 20_000 }, async () => {
     // Stub URL methods
     let savedBlob: Blob | null = null;
+    const blobSaved = Promise.withResolvers<void>();
     const originalCreateObjectURL = window.URL.createObjectURL;
     window.URL.createObjectURL = vi.fn((blob) => {
       savedBlob = blob;
+      blobSaved.resolve();
       return 'blob:signed-pdf-url';
     });
     
@@ -865,9 +852,7 @@ describe('PdfSignTool UI flow', () => {
       setInputFiles(input, [file]);
     });
     
-    await act(async () => {
-      await new Promise((resolve) => setTimeout(resolve, 50));
-    });
+    await loaded(container);
     
     // Select text tool
     const textBtn = findButton(container, 'Text');
@@ -900,12 +885,8 @@ describe('PdfSignTool UI flow', () => {
     
     await act(async () => {
       saveButton.click();
-      // Poll instead of a fixed delay: signPdf's duration isn't bounded, and a
-      // fixed 100ms wait flaked under CI's slower/contended runners.
-      const deadline = Date.now() + 5000;
-      while (savedBlob === null && Date.now() < deadline) {
-        await new Promise((resolve) => setTimeout(resolve, 20));
-      }
+      // signPdf's duration isn't bounded: wait for the signed blob to reach createObjectURL.
+      await blobSaved.promise;
     });
     
     expect(savedBlob).not.toBeNull();
@@ -958,15 +939,15 @@ describe('PdfSignTool UI flow', () => {
       const input = query<HTMLInputElement>(container, 'input[type="file"]');
       await act(async () => {
         setInputFiles(input, [file]);
-        await new Promise(resolve => setTimeout(resolve, 50));
       });
+      await loaded(container);
 
       const prepareButton = query<HTMLButtonElement>(container, 'button[title="Save your changes to share the signed PDF"]');
       expect(prepareButton).not.toBeNull();
       await act(async () => {
         prepareButton.click();
-        await new Promise(resolve => setTimeout(resolve, 100));
       });
+      await waitUntil(() => query(container, 'button[title="Share the signed PDF"]'));
 
       const shareButton = query<HTMLButtonElement>(container, 'button[title="Share the signed PDF"]');
       expect(shareButton).not.toBeNull();
@@ -1012,9 +993,7 @@ describe('PdfSignTool UI flow', () => {
       setInputFiles(input, [file]);
     });
 
-    await act(async () => {
-      await new Promise((resolve) => setTimeout(resolve, 50));
-    });
+    await loaded(container);
 
     // Select text tool and place an element
     const textBtn = findButton(container, 'Text');
@@ -1066,9 +1045,7 @@ describe('PdfSignTool UI flow', () => {
       setInputFiles(input, [file]);
     });
 
-    await act(async () => {
-      await new Promise((resolve) => setTimeout(resolve, 50));
-    });
+    await loaded(container);
 
     const wrapper = query<HTMLElement>(container, '[data-sign-page-surface]');
     const overlay = query<HTMLElement>(container, '[data-page-overlay]');
@@ -1176,9 +1153,7 @@ describe('PdfSignTool UI flow', () => {
     await act(async () => {
       setInputFiles(input, [file]);
     });
-    await act(async () => {
-      await new Promise((resolve) => setTimeout(resolve, 50));
-    });
+    await loaded(container);
 
     const wrapper = query<HTMLElement>(container, '[data-sign-page-surface]');
     const overlay = query<HTMLElement>(container, '[data-page-overlay]');
@@ -1233,9 +1208,7 @@ describe('PdfSignTool UI flow', () => {
     await act(async () => {
       setInputFiles(input, [file]);
     });
-    await act(async () => {
-      await new Promise((resolve) => setTimeout(resolve, 50));
-    });
+    await loaded(container);
 
     const wrapper = query<HTMLElement>(container, '[data-sign-page-surface]');
     const overlay = query<HTMLElement>(container, '[data-page-overlay]');
@@ -1291,9 +1264,7 @@ describe('PdfSignTool UI flow', () => {
         setInputFiles(input, [file]);
       });
 
-      await act(async () => {
-        await new Promise((resolve) => setTimeout(resolve, 50));
-      });
+      await loaded(container);
 
       localStorage.removeItem('pdf-toolkit:signatures');
       const toolbarButtons = container.querySelectorAll<HTMLButtonElement>('[role="toolbar"] button');
@@ -1367,9 +1338,7 @@ describe('PdfSignTool UI flow', () => {
     await act(async () => {
       setInputFiles(input, [file]);
     });
-    await act(async () => {
-      await new Promise((resolve) => setTimeout(resolve, 50));
-    });
+    await loaded(container);
 
     // Select the saved signature from the dropdown, arming `activeSignature`.
     const toolbarButtons = container.querySelectorAll<HTMLButtonElement>('[role="toolbar"] button');
@@ -1424,9 +1393,7 @@ describe('PdfSignTool UI flow', () => {
     await act(async () => {
       setInputFiles(input, [file]);
     });
-    await act(async () => {
-      await new Promise((resolve) => setTimeout(resolve, 50));
-    });
+    await loaded(container);
 
     const whiteoutBtn = findButton(container, 'Whiteout');
     await act(async () => { whiteoutBtn.click(); });

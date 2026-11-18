@@ -6,6 +6,7 @@ import {
   releaseHandoffPending,
   releaseHandoffPendingWhenLoaded,
 } from './handoffPending.ts';
+import { waitUntil } from '../../test/harness/waitUntil.ts';
 
 const KEY = 'pdkef:handoff-pending:';
 const root = document.documentElement;
@@ -61,8 +62,7 @@ describe('handoff pending marker', () => {
     const card = document.createElement('div');
     card.setAttribute('data-tool-loaded', '');
     document.body.append(card);
-    await Promise.resolve();
-    await new Promise((r) => setTimeout(r, 0));
+    await waitUntil(() => !root.hasAttribute('data-handoff-pending'));
     expect(root.hasAttribute('data-handoff-pending')).toBe(false);
   });
 

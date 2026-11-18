@@ -98,8 +98,14 @@ describe('useFormFieldRegions detection state', () => {
       latest = useFormFieldRegions(null, 0, null);
       return null;
     }
-    await act(async () => { render(<Probe />, container); });
-    await new Promise((resolve) => setTimeout(resolve, 2_000));
+    // Fake timers, scoped to this test: the bail path would warn when PRECONDITION_GRACE_MS (1500) lapses.
+    vi.useFakeTimers();
+    try {
+      await act(async () => { render(<Probe />, container); });
+      await act(async () => { await vi.advanceTimersByTimeAsync(1_501); });
+    } finally {
+      vi.useRealTimers();
+    }
     expect(latest.detection).toBe('pending');
     expect(warn).not.toHaveBeenCalled();
   });

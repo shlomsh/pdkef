@@ -2,6 +2,7 @@
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { describe, expect, it, vi, afterEach, beforeEach } from 'vitest';
+import { setImmediate } from 'node:timers/promises';
 import PdfEditPagesTool from './PdfEditPagesTool.tsx';
 import * as editPagesLib from './lib/editPages.js';
 import { getPdfLib } from '#lib/pdf/pdfLib.js';
@@ -144,11 +145,17 @@ describe('PdfEditPagesTool working file after a repair', () => {
     const { PDFDocument } = await getPdfLib();
     const realLoad = PDFDocument.load;
     let finishFirst;
+    const firstLoadEnded = Promise.withResolvers<void>();
     let loads = 0;
     vi.spyOn(PDFDocument, 'load').mockImplementation(async (...args) => {
       loads += 1;
-      if (loads === 1) await new Promise((resolve) => { finishFirst = resolve; });
-      return realLoad.apply(PDFDocument, args);
+      if (loads !== 1) return realLoad.apply(PDFDocument, args);
+      try {
+        await new Promise((resolve) => { finishFirst = resolve; });
+        return await realLoad.apply(PDFDocument, args);
+      } finally {
+        firstLoadEnded.resolve();
+      }
     });
     container = document.createElement('div');
     document.body.appendChild(container);
@@ -163,10 +170,13 @@ describe('PdfEditPagesTool working file after a repair', () => {
     await until(() => container.querySelectorAll('ul[data-page-grid] > li[data-key]').length === 2);
     await act(async () => {
       finishFirst();
-      await new Promise((resolve) => setTimeout(resolve, 50));
+      await firstLoadEnded.promise;
+      await setImmediate(); // the stale load's result reaches the tool, which must drop it
     });
-    await act(async () => { observers.at(-1)?.intersectAll(); });
-    await act(async () => { await new Promise((resolve) => setTimeout(resolve, 20)); });
+    await act(async () => {
+      observers.at(-1)?.intersectAll();
+      await setImmediate(); // the thumbnail work the observers start
+    });
 
     expect(container.querySelector('#page-grid-heading').textContent).toContain('second_modified.pdf');
     expect(container.querySelectorAll('ul[data-page-grid] > li[data-key]').length).toBe(2);

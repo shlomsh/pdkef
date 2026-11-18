@@ -78,7 +78,7 @@ describe('document retirement (RED-56)', () => {
       expect(a.doc.destroyed).toBe(false);
       await second;
     });
-    await act(async () => { await new Promise((r) => setTimeout(r, 10)); });
+    await act(async () => {});
 
     expect(a.doc.destroyed).toBe(true);
     expect(b.doc.destroyed).toBe(false);
@@ -149,7 +149,7 @@ describe('document retirement (RED-56)', () => {
     await act(async () => { render(<Tool />, root!); });
     // Both loads run inside one act(): A is published and replaced before Preact commits it.
     await act(async () => { await api.load(); await api.load(); });
-    await act(async () => { await new Promise((r) => setTimeout(r, 10)); });
+    await act(async () => {});
     expect(a.doc.destroyed).toBe(true);
     expect(b.doc.destroyed).toBe(false);
   });

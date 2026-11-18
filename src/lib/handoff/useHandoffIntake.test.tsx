@@ -1,7 +1,9 @@
 // @ts-nocheck - test harness, same convention as PdfCompressTool.test.tsx
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
+import { setImmediate } from 'node:timers/promises';
 import { describe, expect, it, vi, afterEach, beforeEach } from 'vitest';
+import { waitUntil } from '../../test/harness/waitUntil.ts';
 import { takeArrival, resetFileArrivalForTests } from './fileArrival.ts';
 import { filesFromHandoff, markHandoffArrival, useHandoffFilesIntake, useHandoffIntake } from './useHandoffIntake.ts';
 
@@ -31,6 +33,30 @@ function FilesHarness({ tool, onFiles }) {
 }
 
 const buf = (n) => new Uint8Array(n).buffer;
+
+// A spy that also resolves a promise when the hook hands it the file: tests await that, not a timer.
+function arrivalSpy(impl = () => {}) {
+  const arrived = Promise.withResolvers();
+  const spy = vi.fn((...args) => {
+    impl(...args);
+    arrived.resolve();
+  });
+  return [spy, arrived.promise];
+}
+
+// Lets the promise chain peek -> settleHandoff -> release finish when nothing is handed over.
+const drain = () => act(async () => { await setImmediate(); });
+
+// The store commit is the last awaited step before the hook checks `cancelled`: a signal that the
+// chain reached it. The test then drains the few promise hops that carry its result on.
+function nextCommit() {
+  const committed = Promise.withResolvers();
+  commitHandoffMock.mockImplementationOnce(() => {
+    committed.resolve();
+    return Promise.resolve();
+  });
+  return committed.promise;
+}
 
 describe('filesFromHandoff', () => {
   it.each([
@@ -75,11 +101,13 @@ describe('useHandoffFilesIntake', () => {
     container.remove();
   });
 
-  const settle = async (ui) => {
+  // `arrived` (from arrivalSpy) is awaited when the test expects the callback; without it the chain is drained.
+  const settle = async (ui, arrived) => {
     await act(async () => {
       render(ui, container);
     });
-    await act(async () => { await new Promise((r) => setTimeout(r, 0)); });
+    if (arrived) await act(async () => { await arrived; });
+    else await drain();
   };
 
   it('hands onFiles every file of a multi record in order, with from', async () => {
@@ -87,8 +115,8 @@ describe('useHandoffFilesIntake', () => {
       from: 'home',
       files: [{ fileName: 'a.pdf', fileBytes: buf(1) }, { fileName: 'b.pdf', fileBytes: buf(2) }],
     });
-    const onFiles = vi.fn();
-    await settle(<FilesHarness tool="merge" onFiles={onFiles} />);
+    const [onFiles, arrived] = arrivalSpy();
+    await settle(<FilesHarness tool="merge" onFiles={onFiles} />, arrived);
     expect(onFiles).toHaveBeenCalledTimes(1);
     expect(onFiles.mock.calls[0][0].map((f) => f.name)).toEqual(['a.pdf', 'b.pdf']);
     expect(onFiles.mock.calls[0][1]).toBe('home');
@@ -96,8 +124,8 @@ describe('useHandoffFilesIntake', () => {
 
   it('hands onFiles [file] for a single record', async () => {
     takeHandoffMock.mockResolvedValueOnce({ fileName: 'a.pdf', fileBytes: buf(1) });
-    const onFiles = vi.fn();
-    await settle(<FilesHarness tool="merge" onFiles={onFiles} />);
+    const [onFiles, arrived] = arrivalSpy();
+    await settle(<FilesHarness tool="merge" onFiles={onFiles} />, arrived);
     expect(onFiles.mock.calls[0][0].map((f) => f.name)).toEqual(['a.pdf']);
   });
 
@@ -121,15 +149,15 @@ describe('useHandoffFilesIntake', () => {
     sessionStorage.setItem('pdkef:handoff-pending:merge', '1');
     document.documentElement.setAttribute('data-handoff-pending', '1');
     takeHandoffMock.mockResolvedValueOnce({ fileName: 'a.pdf', fileBytes: buf(1) });
-    const onFiles = vi.fn();
-    await settle(<FilesHarness tool="merge" onFiles={onFiles} />);
+    const [onFiles, arrived] = arrivalSpy();
+    await settle(<FilesHarness tool="merge" onFiles={onFiles} />, arrived);
     expect(onFiles).toHaveBeenCalledTimes(1);
     expect(sessionStorage.getItem('pdkef:handoff-pending:merge')).toBeNull();
     expect(document.documentElement.hasAttribute('data-handoff-pending')).toBe(true);
     const card = document.createElement('div');
     card.setAttribute('data-tool-loaded', '');
     document.body.append(card);
-    await act(async () => { await new Promise((r) => setTimeout(r, 0)); });
+    await waitUntil(() => !document.documentElement.hasAttribute('data-handoff-pending'));
     expect(document.documentElement.hasAttribute('data-handoff-pending')).toBe(false);
     card.remove();
   });
@@ -143,7 +171,7 @@ describe('useHandoffFilesIntake', () => {
     await act(async () => {
       resolveHandoff({ files: [{ fileName: 'late.pdf', fileBytes: buf(1) }] });
     });
-    await act(async () => { await new Promise((r) => setTimeout(r, 0)); });
+    await waitUntil(() => !document.documentElement.hasAttribute('data-handoff-pending'));
     expect(document.documentElement.hasAttribute('data-handoff-pending')).toBe(false);
   });
 
@@ -151,12 +179,14 @@ describe('useHandoffFilesIntake', () => {
     let resolveHandoff;
     takeHandoffMock.mockReturnValueOnce(new Promise((r) => { resolveHandoff = r; }));
     const onFiles = vi.fn();
+    const committed = nextCommit();
     act(() => { render(<FilesHarness tool="merge" onFiles={onFiles} />, container); });
     act(() => { render(null, container); });
     await act(async () => {
       resolveHandoff({ files: [{ fileName: 'late.pdf', fileBytes: buf(1) }] });
+      await committed;
     });
-    await act(async () => { await new Promise((r) => setTimeout(r, 0)); });
+    await drain();
     expect(onFiles).not.toHaveBeenCalled();
   });
 });
@@ -184,11 +214,11 @@ describe('useHandoffIntake', () => {
       fileBytes: bytes,
     });
 
-    const onFile = vi.fn();
+    const [onFile, arrived] = arrivalSpy();
     await act(async () => {
       render(<Harness tool="compress" onFile={onFile} />, container);
     });
-    await act(async () => { await new Promise((r) => setTimeout(r, 0)); });
+    await act(async () => { await arrived; });
 
     expect(onFile).toHaveBeenCalledTimes(1);
     const file = onFile.mock.calls[0][0];
@@ -203,11 +233,11 @@ describe('useHandoffIntake', () => {
       from: 'home',
       files: [{ fileName: 'first.pdf', fileBytes: buf(1) }, { fileName: 'second.pdf', fileBytes: buf(2) }],
     });
-    const onFile = vi.fn();
+    const [onFile, arrived] = arrivalSpy();
     await act(async () => {
       render(<Harness tool="merge" onFile={onFile} />, container);
     });
-    await act(async () => { await new Promise((r) => setTimeout(r, 0)); });
+    await act(async () => { await arrived; });
     expect(onFile).toHaveBeenCalledTimes(1);
     expect(onFile.mock.calls[0][0].name).toBe('first.pdf');
     expect(onFile.mock.calls[0][1]).toBe('home');
@@ -215,11 +245,11 @@ describe('useHandoffIntake', () => {
 
   it('passes on which tool sent the file, when the record says', async () => {
     takeHandoffMock.mockResolvedValueOnce({ fileName: 'a.pdf', fileBytes: new Uint8Array([1]).buffer, from: 'redact' });
-    const onFile = vi.fn();
+    const [onFile, arrived] = arrivalSpy();
     await act(async () => {
       render(<Harness tool="unlock" onFile={onFile} />, container);
     });
-    await act(async () => { await new Promise((r) => setTimeout(r, 0)); });
+    await act(async () => { await arrived; });
     expect(onFile.mock.calls[0][1]).toBe('redact');
   });
 
@@ -239,11 +269,11 @@ describe('useHandoffIntake', () => {
     const bytes = new Uint8Array([1, 2]).buffer;
     takeHandoffMock.mockResolvedValueOnce({ fileName: 'merged.pdf', fileBytes: bytes });
 
-    const onFile = vi.fn();
+    const [onFile, arrived] = arrivalSpy();
     await act(async () => {
       render(<Harness tool="split" onFile={onFile} />, container);
     });
-    await act(async () => { await new Promise((r) => setTimeout(r, 0)); });
+    await act(async () => { await arrived; });
 
     expect(onFile.mock.calls[0][0].type).toBe('application/pdf');
   });
@@ -255,7 +285,7 @@ describe('useHandoffIntake', () => {
     await act(async () => {
       render(<Harness tool="compress" onFile={onFile} />, container);
     });
-    await act(async () => { await new Promise((r) => setTimeout(r, 0)); });
+    await drain();
 
     expect(onFile).not.toHaveBeenCalled();
   });
@@ -269,6 +299,7 @@ describe('useHandoffIntake', () => {
     );
 
     const onFile = vi.fn();
+    const committed = nextCommit();
     act(() => {
       render(<Harness tool="compress" onFile={onFile} />, container);
     });
@@ -280,8 +311,9 @@ describe('useHandoffIntake', () => {
 
     await act(async () => {
       resolveHandoff({ fileName: 'late.pdf', fileType: 'application/pdf', fileBytes: new ArrayBuffer(1) });
+      await committed;
     });
-    await act(async () => { await new Promise((r) => setTimeout(r, 0)); });
+    await drain();
 
     expect(onFile).not.toHaveBeenCalled();
   });
@@ -293,7 +325,7 @@ describe('useHandoffIntake', () => {
     await act(async () => {
       render(<Harness tool="split" onFile={onFileA} />, container);
     });
-    await act(async () => { await new Promise((r) => setTimeout(r, 0)); });
+    await drain();
 
     // Re-render with a new onFile identity (as a component whose
     // handleFilesAdded closes over per-render state would pass) - the [tool]
@@ -303,7 +335,7 @@ describe('useHandoffIntake', () => {
     await act(async () => {
       render(<Harness tool="split" onFile={onFileB} />, container);
     });
-    await act(async () => { await new Promise((r) => setTimeout(r, 0)); });
+    await drain();
 
     expect(takeHandoffMock).toHaveBeenCalledTimes(1);
     expect(takeHandoffMock).toHaveBeenCalledWith('split');
@@ -333,7 +365,7 @@ describe('useHandoffIntake', () => {
     await act(async () => {
       render(<Harness tool="sign" onFile={vi.fn()} />, container);
     });
-    await act(async () => { await new Promise((r) => setTimeout(r, 0)); });
+    await drain();
     expect(takeHandoffMock).toHaveBeenCalledWith('sign');
     history.pushState({}, '', '/');
   });
@@ -351,24 +383,26 @@ describe('hand-off arrival mark (DEBT-58)', () => {
     act(() => render(null, container));
     container.remove();
   });
-  const run = async (ui) => {
+  const run = async (ui, arrived) => {
     await act(async () => {
       render(ui, container);
     });
-    await act(async () => { await new Promise((r) => setTimeout(r, 0)); });
+    await act(async () => { await arrived; });
   };
 
   it('marks a hand-off from an analytics tool with that tool, before the callback runs', async () => {
     takeHandoffMock.mockResolvedValueOnce({ from: 'redact', fileName: 'a.pdf', fileBytes: buf(1) });
     let seen;
-    await run(<Harness tool="unlock" onFile={() => { seen = takeArrival(); }} />);
+    const [onFile, arrived] = arrivalSpy(() => { seen = takeArrival(); });
+    await run(<Harness tool="unlock" onFile={onFile} />, arrived);
     expect(seen).toEqual({ source: 'handoff', from: 'redact' });
   });
 
   it('marks a hand-off from an unknown sender without a from', async () => {
     takeHandoffMock.mockResolvedValueOnce({ from: 'elsewhere', files: [{ fileName: 'a.pdf', fileBytes: buf(1) }] });
     let seen;
-    await run(<FilesHarness tool="merge" onFiles={() => { seen = takeArrival(); }} />);
+    const [onFiles, arrived] = arrivalSpy(() => { seen = takeArrival(); });
+    await run(<FilesHarness tool="merge" onFiles={onFiles} />, arrived);
     expect(seen).toEqual({ source: 'handoff' });
   });
 });
@@ -386,22 +420,26 @@ describe('hand-off survives a reload before it is stored (2026-11-12)', () => {
     act(() => render(null, container));
     container.remove();
   });
-  const flush = () => act(async () => { await new Promise((r) => setTimeout(r, 0)); });
-
   it('keeps the record until the PDF is in recents, then deletes it', async () => {
     sessionStorage.setItem('pdkef:handoff-pending:sign', '1');
     let stored;
-    cacheRecentFileMock.mockReturnValueOnce(new Promise((r) => { stored = r; }));
     takeHandoffMock.mockResolvedValueOnce({ fileName: 'a.pdf', fileBytes: buf(1) });
-    const onFiles = vi.fn();
-    await act(async () => { render(<FilesHarness tool="sign" onFiles={onFiles} />, container); });
-    await flush();
+    const [onFiles, arrived] = arrivalSpy();
+    const cacheStarted = Promise.withResolvers();
+    cacheRecentFileMock.mockImplementationOnce(() => {
+      cacheStarted.resolve();
+      return new Promise((r) => { stored = r; });
+    });
+    await act(async () => {
+      render(<FilesHarness tool="sign" onFiles={onFiles} />, container);
+    });
+    await act(async () => { await cacheStarted.promise; });
     // The write has started but not finished: this is the window a reload lands in.
     expect(cacheRecentFileMock).toHaveBeenCalledTimes(1);
     expect(cacheRecentFileMock.mock.calls[0][0]).toBe('sign');
     expect(commitHandoffMock).not.toHaveBeenCalled();
     expect(sessionStorage.getItem('pdkef:handoff-pending:sign')).toBe('1');
-    await act(async () => { stored(true); await new Promise((r) => setTimeout(r, 0)); });
+    await act(async () => { stored(true); await arrived; });
     expect(commitHandoffMock).toHaveBeenCalledWith('sign');
     expect(sessionStorage.getItem('pdkef:handoff-pending:sign')).toBeNull();
     expect(onFiles).toHaveBeenCalledTimes(1);
@@ -410,9 +448,11 @@ describe('hand-off survives a reload before it is stored (2026-11-12)', () => {
   it('still commits when the recents write fails, so a stale record is not re-opened every visit', async () => {
     cacheRecentFileMock.mockRejectedValueOnce(new Error('quota'));
     takeHandoffMock.mockResolvedValueOnce({ fileName: 'a.pdf', fileBytes: buf(1) });
-    const onFiles = vi.fn();
-    await act(async () => { render(<FilesHarness tool="sign" onFiles={onFiles} />, container); });
-    await flush();
+    const [onFiles, arrived] = arrivalSpy();
+    await act(async () => {
+      render(<FilesHarness tool="sign" onFiles={onFiles} />, container);
+    });
+    await act(async () => { await arrived; });
     expect(commitHandoffMock).toHaveBeenCalledTimes(1);
     expect(onFiles).toHaveBeenCalledTimes(1);
   });

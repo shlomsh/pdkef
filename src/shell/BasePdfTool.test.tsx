@@ -269,7 +269,8 @@ describe('BasePdfTool', () => {
   });
 
   it('walks a dropped folder before handing its files on (MERGE-10)', async () => {
-    const onFilesAddedSpy = vi.fn();
+    const added = Promise.withResolvers<void>();
+    const onFilesAddedSpy = vi.fn(() => { added.resolve(); });
     mount({ hasFiles: true, onFilesAdded: onFilesAddedSpy, multiple: true });
     const inside = ['b 2.pdf', 'a 10.pdf'].map((name) => new File([''], name, { type: 'application/pdf' }));
     let served = false;
@@ -283,7 +284,7 @@ describe('BasePdfTool', () => {
     Object.defineProperty(event, 'dataTransfer', { value: { types: ['Files'], files: [], items: [{ webkitGetAsEntry: () => folder }] } });
     await act(async () => {
       card.dispatchEvent(event);
-      await new Promise((resolve) => setTimeout(resolve, 5));
+      await added.promise;
     });
     expect(onFilesAddedSpy).toHaveBeenCalledTimes(1);
     expect(onFilesAddedSpy.mock.calls[0][0].map((f) => f.name)).toEqual(['a 10.pdf', 'b 2.pdf']);

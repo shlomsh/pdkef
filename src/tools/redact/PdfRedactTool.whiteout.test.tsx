@@ -140,14 +140,20 @@ describe('PdfRedactTool UI flow', () => {
       await drawWhiteoutAndSelect();
       await setSelectedBoxColor('#123456');
       // Style edits within half a second fold into one step (and a custom-then-Auto fold is no change at all).
-      await act(async () => { await new Promise((resolve) => setTimeout(resolve, 550)); });
-      await pressAuto();
-      expect(surfaceColor()).toBe(rgb(CREAM));
-      expect(autoPressed()).toBe('true');
+      // COALESCE_WINDOW_MS is 500, stamped with Date.now() in actionHistory.ts: move the clock past it.
+      vi.useFakeTimers({ toFake: ['Date'] });
+      try {
+        vi.setSystemTime(Date.now() + 550);
+        await pressAuto();
+        expect(surfaceColor()).toBe(rgb(CREAM));
+        expect(autoPressed()).toBe('true');
 
-      await undo();
-      expect(surfaceColor()).toBe(rgb('#123456'));
-      expect(autoPressed()).toBe('false');
+        await undo();
+        expect(surfaceColor()).toBe(rgb('#123456'));
+        expect(autoPressed()).toBe('false');
+      } finally {
+        vi.useRealTimers();
+      }
     });
 
     it('the eyedropper on a selected whiteout takes a page pixel as a custom colour, keeps the box selected and disarms', async () => {

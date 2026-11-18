@@ -14,13 +14,18 @@ describe('swallowNextClick', () => {
   });
 
   it('a press that never clicks does not eat a later click', async () => {
+    vi.useFakeTimers();
     const seen = vi.fn();
-    document.body.addEventListener('click', seen);
-    swallowNextClick();
-    window.dispatchEvent(new MouseEvent('mouseup'));
-    await new Promise((r) => setTimeout(r, 5));
-    document.body.click();
-    expect(seen).toHaveBeenCalledTimes(1);
-    document.body.removeEventListener('click', seen);
+    try {
+      document.body.addEventListener('click', seen);
+      swallowNextClick();
+      window.dispatchEvent(new MouseEvent('mouseup'));
+      await vi.advanceTimersByTimeAsync(1); // the product's setTimeout(cleanup, 0) after mouseup
+      document.body.click();
+      expect(seen).toHaveBeenCalledTimes(1);
+    } finally {
+      document.body.removeEventListener('click', seen);
+      vi.useRealTimers();
+    }
   });
 });

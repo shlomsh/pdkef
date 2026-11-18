@@ -255,9 +255,16 @@ describe('PageGrid', () => {
   it('holds the grid back while a file is still being read, then shows it once the sizes are in', async () => {
     probe.aspects = [1.5, 0.77];
     const entries = [{ id: 1, file: makeFile('a.pdf'), pageCount: null, error: null }];
-    const { rerender } = mount({ entries, plan: planForFile(1, 2) });
-    await act(async () => { await new Promise((resolve) => setTimeout(resolve, 20)); });
-    expect(container.querySelector('[data-fit-settled]')).toBeNull();
+    vi.useFakeTimers();
+    let rerender;
+    try {
+      ({ rerender } = mount({ entries, plan: planForFile(1, 2) }));
+      // Just short of the product's patience timer (FIT_PATIENCE_MS, 3000 in PageGrid.tsx).
+      await vi.advanceTimersByTimeAsync(2999);
+      expect(container.querySelector('[data-fit-settled]')).toBeNull();
+    } finally {
+      vi.useRealTimers();
+    }
 
     rerender({ sources: [{ ...entries[0], pageCount: 2 }], plan: planForFile(1, 2) });
     await waitFor(() => container.querySelector('[data-fit-settled]') != null);

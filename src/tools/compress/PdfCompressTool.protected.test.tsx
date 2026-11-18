@@ -4,6 +4,7 @@ import { act } from 'preact/test-utils';
 import { describe, expect, it, vi, afterEach, beforeEach } from 'vitest';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
+import { setImmediate } from 'node:timers/promises';
 import PdfCompressTool from './PdfCompressTool.tsx';
 import * as compressLib from './lib/compress.js';
 import * as imagesLib from './lib/compressImages.js';
@@ -183,12 +184,15 @@ describe('PdfCompressTool with a protected PDF', () => {
 
   it('drops a probe result that lands after a newer pick', async () => {
     let release;
-    harness.pdfjs.probe.mockImplementationOnce(() => new Promise((resolve) => { release = resolve; }));
+    const answer = new Promise((resolve) => { release = resolve; });
+    harness.pdfjs.probe.mockImplementationOnce(() => answer);
+    // The tool awaited `answer` first, so this runs after the tool has been handed the result.
+    const handedOver = answer.then(() => {});
     mount();
     await pick(fixtureFile('needs-password'));
     // A newer pick (a plain file, real probe) lands while the first probe is still out.
     await pick(fixtureFile('plain'));
-    await act(async () => { release('needs-password'); await new Promise((resolve) => setTimeout(resolve, 50)); });
+    await act(async () => { release('needs-password'); await handedOver; await setImmediate(); });
 
     expect(container.querySelector('[data-needs-unlock]')).toBeNull();
     expect(loaded()).toBe(true);
@@ -198,13 +202,16 @@ describe('PdfCompressTool with a protected PDF', () => {
 
   it('drops a probe result that lands after a newer image pick', async () => {
     let release;
-    harness.pdfjs.probe.mockImplementationOnce(() => new Promise((resolve) => { release = resolve; }));
+    const answer = new Promise((resolve) => { release = resolve; });
+    harness.pdfjs.probe.mockImplementationOnce(() => answer);
+    // The tool awaited `answer` first, so this runs after the tool has been handed the result.
+    const handedOver = answer.then(() => {});
     const [, , compressImagesSpy] = spyEngines();
     mount();
     await pick(fixtureFile('needs-password'));
     // An image is never probed, so it starts no run of its own; the pick itself has to drop the old one.
     await pick(new File(['fake-image-bytes'], 'photo.jpg', { type: 'image/jpeg' }));
-    await act(async () => { release('needs-password'); await new Promise((resolve) => setTimeout(resolve, 50)); });
+    await act(async () => { release('needs-password'); await handedOver; await setImmediate(); });
 
     expect(container.querySelector('[data-needs-unlock]')).toBeNull();
     // Only the image's own build ran: a PDF build from the dropped probe would have made the counter 2.

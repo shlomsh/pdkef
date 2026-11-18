@@ -4,7 +4,9 @@ import { act } from 'preact/test-utils';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { describe, expect, it, vi, afterEach, beforeEach } from 'vitest';
+import { setImmediate } from 'node:timers/promises';
 import PdfEditPagesTool from './PdfEditPagesTool.tsx';
+import * as editPagesLib from './lib/editPages.js';
 import { getPdfLib } from '#lib/pdf/pdfLib.js';
 import { mockNativeFileShare } from '../../test/support/mockFileShare.js';
 import { healthy, ORIGINAL_WIDTHS } from '../../test/support/pdfPageTreeFixtures.ts';
@@ -304,6 +306,15 @@ describe('PdfEditPagesTool UI flow', () => {
     const { PDFDocument } = await getPdfLib();
     const saves = vi.spyOn(PDFDocument.prototype, 'save');
     await load();
+    // Settles when the first (held, then superseded) editPages run has ended, by saving or by stopping early.
+    const firstRunEnded = Promise.withResolvers<void>();
+    const realEditPages = editPagesLib.editPages;
+    let runs = 0;
+    vi.spyOn(editPagesLib, 'editPages').mockImplementation(async (...args) => {
+      runs += 1;
+      if (runs !== 1) return realEditPages(...args);
+      try { return await realEditPages(...args); } finally { firstRunEnded.resolve(); }
+    });
     const first = await holdNextBuild();
     await prepareNow(false, first);
     // Changing the plan supersedes the build that is in flight; the new one runs to the end.
@@ -311,8 +322,11 @@ describe('PdfEditPagesTool UI flow', () => {
     await prepareNow();
     expect(saves).toHaveBeenCalledTimes(1);
     // The superseded build wakes up, sees its aborted signal and stops before saving.
-    first.release();
-    await act(async () => { await new Promise((resolve) => setTimeout(resolve, 100)); });
+    await act(async () => {
+      first.release();
+      await firstRunEnded.promise;
+      await setImmediate();
+    });
     expect(saves).toHaveBeenCalledTimes(1);
     expect(await pagesOf(shownOutput())).toMatchObject({ count: 2 });
   });

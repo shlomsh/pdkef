@@ -2,6 +2,7 @@
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { describe, expect, it, vi, afterEach, beforeEach } from 'vitest';
+import { setImmediate } from 'node:timers/promises';
 import PdfToImageTool from './PdfToImageTool.tsx';
 import { mockNativeFileShare } from '../../test/support/mockFileShare.js';
 import { setInputFiles } from '../../test/support/setInputFiles.js';
@@ -380,7 +381,15 @@ describe('PdfToImageTool', () => {
     vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
     await open(3);
     const quiet = () => container.querySelector('[data-quiet-download]');
-    await click(quiet());
+    // Three images are saved PART_GAP_MS (200) apart in useDownloadFlow.ts: run those gaps here so they
+    // cannot fire inside a later test.
+    vi.useFakeTimers({ toFake: ['setTimeout'] });
+    try {
+      await click(quiet());
+      await vi.advanceTimersByTimeAsync(2 * 200 + 1);
+    } finally {
+      vi.useRealTimers();
+    }
     await until(() => stripName().includes('report-page-N.png'));
     expect(stripName()).toContain('report-page-N.png');
     await click(radio('One tall image'));
@@ -394,12 +403,25 @@ describe('PdfToImageTool', () => {
 
   it('drops a conversion whose file was replaced while it ran', async () => {
     let finish;
-    convertOverride.fn = (file, opts) => new Promise((resolve) => { finish = async () => resolve(await defaultConvert(file, opts)); });
+    const converted = Promise.withResolvers<void>();
+    convertOverride.fn = (file, opts) => new Promise((resolve) => {
+      finish = async () => {
+        const result = await defaultConvert(file, opts);
+        converted.resolve();
+        resolve(result);
+      };
+    });
     await open(2);
     const first = finish;
     convertOverride.fn = null;
     await replaceWith(makePdfFile('second.pdf'));
-    await act(async () => { first(); await new Promise((resolve) => setTimeout(resolve, 50)); });
+    await act(async () => {
+      first();
+      await converted.promise;
+      await setImmediate(); // the tool's continuation after the replaced file's conversion
+    });
+    // The second file's own build has landed: its size is on the element.
+    await until(() => /KB/.test(downloadElement().textContent));
     expect(heading().textContent).toContain('second-page-N.png');
     expect(saveLinks().every((a) => a.getAttribute('download').startsWith('report-page'))).toBe(true);
     expect(downloadElement().getAttribute('data-state')).toBe('ready');

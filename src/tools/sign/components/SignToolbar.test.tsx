@@ -1815,16 +1815,21 @@ describe('SignToolbar Component', () => {
       return { host, textButton, getState: () => state };
     };
 
-    it('is not pressed with nothing armed, is pressed once armed, and a second press disarms it', async () => {
+    it('is not pressed with nothing armed, is pressed once armed, and a second press disarms it', () => {
       const { host, textButton, getState } = renderFilling();
       expect(getState().selectedTool).toBeNull();
       expect(textButton().getAttribute('aria-pressed')).toBe('false');
-      act(() => { textButton().click(); });
+      // The product compares event.timeStamp (DOUBLE_TAP_MS 400), so each press carries a chosen one.
+      const press = (timeStamp: number) => {
+        const event = new MouseEvent('click', { bubbles: true, cancelable: true });
+        Object.defineProperty(event, 'timeStamp', { value: timeStamp });
+        act(() => { textButton().dispatchEvent(event); });
+      };
+      press(1_000);
       expect(getState().selectedTool).toBe('text');
       expect(textButton().getAttribute('aria-pressed')).toBe('true');
       // Past the double-tap window, so the second press is a plain toggle, not a lock.
-      await new Promise((resolve) => setTimeout(resolve, 450));
-      act(() => { textButton().click(); });
+      press(1_450);
       expect(getState().selectedTool).toBeNull();
       expect(textButton().getAttribute('aria-pressed')).toBe('false');
       document.body.removeChild(host);

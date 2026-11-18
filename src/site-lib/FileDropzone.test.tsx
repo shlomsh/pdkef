@@ -2,12 +2,14 @@
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { readFileSync } from 'node:fs';
+import { setImmediate } from 'node:timers/promises';
 import { describe, expect, it, vi, afterEach, beforeEach } from 'vitest';
 import FileDropzone, { tileCopy, isolateNames, LAUNCHER_PICK_EVENT } from './FileDropzone.tsx';
 import { englishFileDropzoneMessages as en } from './fileDropzoneMessages';
 import { consumeRecentOpen } from '#lib/handoff/fileArrival.ts';
 import { saveDraft, saveHandoff, setCurrentEntry, readRecentFiles, loadRecentFile, takeHandoff, removeRecentEntry } from '#lib/drafts/draftStore.ts';
 import { setInputFiles } from '../test/support/setInputFiles.js';
+import { waitUntil } from '../test/harness/waitUntil';
 
 vi.mock('#lib/drafts/draftStore.ts', () => ({
   saveDraft: vi.fn(() => Promise.resolve(true)),
@@ -109,14 +111,19 @@ describe('FileDropzone', () => {
     it('lights the tile for a file that came back from Drive', async () => {
       takeHandoff.mockResolvedValue({ fileName: 'from-drive.pdf', fileType: 'application/pdf', fileBytes: new ArrayBuffer(4) });
       mount();
-      await act(async () => { await new Promise((resolve) => setTimeout(resolve, 20)); });
+      await waitUntil(() => container.querySelector('[data-home-picker]').textContent.includes('from-drive.pdf'));
       expect(takeHandoff).toHaveBeenCalledWith('drive-home');
       expect(container.querySelector('[data-home-picker]').textContent).toContain('from-drive.pdf');
     });
 
     it('does nothing when no file came back', async () => {
+      const asked = Promise.withResolvers<void>();
+      takeHandoff.mockImplementation(() => { asked.resolve(); return Promise.resolve(null); });
       mount();
-      await act(async () => { await new Promise((resolve) => setTimeout(resolve, 20)); });
+      await act(async () => {
+        await asked.promise;
+        await setImmediate();
+      });
       expect(container.querySelector('[data-home-picker]').textContent).toContain('Choose files');
     });
   });
@@ -240,7 +247,7 @@ describe('FileDropzone', () => {
 
       await act(async () => {
         container.querySelector('button[aria-label^="Open recent PDF"]').click();
-        await new Promise((resolve) => setTimeout(resolve, 0));
+        await setImmediate();
       });
 
       expect(container.querySelector('dialog')).toBeNull();
@@ -323,7 +330,7 @@ describe('FileDropzone', () => {
 
       await act(async () => {
         container.querySelector('button[aria-label^="Open recent PDF"]').click();
-        await new Promise((resolve) => setTimeout(resolve, 0));
+        await setImmediate();
       });
 
       expect(setCurrentEntry).toHaveBeenCalledWith('merge', 'sha256:merge-set');
@@ -410,8 +417,8 @@ describe('FileDropzone', () => {
 
       await act(async () => {
         setInputFiles(input, [pdf()]);
-        await new Promise((resolve) => setTimeout(resolve, 0));
       });
+      await waitUntil(() => container.querySelector('[data-home-picker]').textContent.includes('contract.pdf'));
       await chooseSign();
 
       expect(saveHandoff).toHaveBeenCalledTimes(1);
@@ -611,7 +618,13 @@ describe('FileDropzone', () => {
       mount();
       await pick([photo('p.jpg')]);
       const click = new MouseEvent('click', { bubbles: true, cancelable: true });
-      await act(async () => { link('compress-image').dispatchEvent(click); await new Promise((r) => setTimeout(r, 0)); });
+      const saved = Promise.withResolvers<void>();
+      saveHandoff.mockImplementation(() => { saved.resolve(); return Promise.resolve(true); });
+      await act(async () => {
+        link('compress-image').dispatchEvent(click);
+        await saved.promise;
+        await setImmediate();
+      });
       expect(click.defaultPrevented).toBe(true);
       const [key, record] = saveHandoff.mock.calls[0];
       expect(key).toBe('compress');
@@ -698,11 +711,14 @@ describe('FileDropzone', () => {
 
     it('still opens the practice document in Sign directly', async () => {
       vi.stubGlobal('fetch', vi.fn(() => Promise.resolve({ ok: true, blob: () => Promise.resolve(new Blob(['%PDF'])) })));
+      const saved = Promise.withResolvers<void>();
+      saveHandoff.mockImplementation(() => { saved.resolve(); return Promise.resolve(true); });
       mount();
       await act(async () => { await Promise.resolve(); });
       await act(async () => {
         container.querySelector('button[aria-label^="Open bundled sample PDF"]').click();
-        await new Promise((r) => setTimeout(r, 10));
+        await saved.promise;
+        await setImmediate();
       });
       vi.unstubAllGlobals();
       expect(saveHandoff.mock.calls[0][0]).toBe('sign');
@@ -740,7 +756,6 @@ describe('FileDropzone', () => {
       mount();
       await act(async () => {
         window.dispatchEvent(new CustomEvent(LAUNCHER_PICK_EVENT, { detail: { files: [pdf('far.pdf')] } }));
-        await new Promise((r) => setTimeout(r, 0));
       });
       expect(picker().textContent).toContain('far.pdf');
       expect(lit()).toHaveLength(8);

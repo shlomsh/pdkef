@@ -1,4 +1,5 @@
 import { act } from 'preact/test-utils';
+import { setImmediate } from 'node:timers/promises';
 import { describe, expect, it, vi } from 'vitest';
 import PdfRedactTool from './PdfRedactTool.tsx';
 import { CHECKING } from './lib/check/checkCopy.ts';
@@ -345,9 +346,7 @@ describe('PdfRedactTool UI flow', () => {
         // The island starts reading page sizes when the first box appears, and
         // the mocked pdf.js answers with settled promises: one task later the
         // read has landed, as it has long before a person reaches for a key.
-        await act(async () => {
-          await new Promise((resolve) => setTimeout(resolve, 0));
-        });
+        await act(async () => { await setImmediate(); });
         // Reach it the way a keyboard user does: focus, then Enter selects.
         await act(async () => {
           findBox().focus();

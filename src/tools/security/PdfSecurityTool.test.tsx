@@ -10,6 +10,7 @@ import { setInputFiles } from '../../test/support/setInputFiles.js';
 import { installToolHarness, type ToolHarness } from '../../test/harness/toolHarness.ts';
 import { waitUntil } from '../../test/harness/waitUntil.ts';
 import { readFileSync } from 'node:fs';
+import { setImmediate } from 'node:timers/promises';
 import path from 'node:path';
 
 const fixtureBytes = (name: string) => new Uint8Array(readFileSync(path.resolve(__dirname, `../../lib/__fixtures__/encrypted/${name}.pdf`)));
@@ -59,6 +60,17 @@ describe('PdfSecurityTool', () => {
       return new Promise((resolve) => { gate.release = () => resolve(original()); });
     };
     return { file, gate };
+  }
+
+  // The next probe waits on a promise the test owns. The tool awaits it first (at load), so a `.then` the
+  // test adds runs after the tool's own, and `settled` says the tool has been handed the answer.
+  function holdProbe() {
+    let release!: (protection: Protection) => void;
+    let reject!: (error: unknown) => void;
+    const answer = new Promise<Protection>((resolve, rej) => { release = resolve; reject = rej; });
+    harness.pdfjs.probe.mockImplementationOnce(() => answer);
+    const settled = answer.then(() => {}, () => {});
+    return { release, reject, settled };
   }
 
   beforeEach(() => {
@@ -161,7 +173,7 @@ describe('PdfSecurityTool', () => {
 
   it('ignores a stale read failure after the file was replaced', async () => {
     vi.spyOn(console, 'error').mockImplementation(() => {});
-    const firstProbe = harness.pdfjs.holdNextProbe();
+    const firstProbe = holdProbe();
     mount();
 
     await loadFile('slow-broken.pdf');
@@ -173,7 +185,8 @@ describe('PdfSecurityTool', () => {
 
     await act(async () => {
       firstProbe.reject(new Error('probe died'));
-      await new Promise((r) => setTimeout(r, 10));
+      await firstProbe.settled;
+      await setImmediate();
     });
 
     expect(container.querySelector('[role="alert"]')).toBeNull();
@@ -796,7 +809,7 @@ describe('PdfSecurityTool', () => {
     }
 
     it('keeps the mode of the file that is actually loaded', async () => {
-      const firstCheck = harness.pdfjs.holdNextProbe();
+      const firstCheck = holdProbe();
       mount();
 
       await loadFile('big-encrypted.pdf');
@@ -810,7 +823,8 @@ describe('PdfSecurityTool', () => {
       // Only now does the replaced file's check answer, with the other answer.
       await act(async () => {
         firstCheck.release('needs-password');
-        await new Promise((resolve) => setTimeout(resolve, 10));
+        await firstCheck.settled;
+        await setImmediate();
       });
 
       expect(container.querySelector('button[type="submit"]').textContent).toContain('Protect PDF');
@@ -819,6 +833,12 @@ describe('PdfSecurityTool', () => {
 
     it('never writes the replaced file\'s bytes under the new file\'s name', async () => {
       probeAs('open');
+      // Resolves when the (real) protect run for the replaced file has produced its output.
+      const protectDone = Promise.withResolvers<void>();
+      const realProtect = securityLib.protectPdf;
+      vi.spyOn(securityLib, 'protectPdf').mockImplementation(async (...args) => {
+        try { return await realProtect(...args); } finally { protectDone.resolve(); }
+      });
       // The first file's protect is held open at the read it makes, after the file is loaded.
       const { file: firstFile, gate } = gated(realFile('first.pdf'));
       mount();
@@ -839,9 +859,12 @@ describe('PdfSecurityTool', () => {
       await loadFile('second.pdf');
       await confirmReplace();
 
-      await act(async () => { gate.release(); });
+      await act(async () => {
+        gate.release();
+        await protectDone.promise;
+        await setImmediate(); // the tool's continuation after the protect: the replaced file's output must not land
+      });
       await settle();
-      await act(async () => { await new Promise((resolve) => setTimeout(resolve, 10)); }); // window: the replaced file's output must not land
 
       expect(container.textContent).toContain('second.pdf');
       expect(container.querySelector('a[download]')).toBeNull();

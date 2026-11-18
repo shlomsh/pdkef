@@ -46,7 +46,6 @@ describe('IslandErrorBoundary', () => {
     document.body.appendChild(second);
     render(<Boundary><p>one</p></Boundary>, container!);
     render(<Boundary><p>two</p></Boundary>, second);
-    await new Promise((r) => setTimeout(r, 0)); // componentDidMount-time work has run
     const count = (type: string) => add.mock.calls.filter(([t]) => t === type).length;
     expect(count('error')).toBe(1);
     expect(count('unhandledrejection')).toBe(1);
