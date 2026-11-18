@@ -1182,14 +1182,15 @@ describe('PdfCompressTool UI flow', () => {
       mount();
       await act(async () => { setInputFiles(fileInput, [a]); });
       await act(async () => { await held.promise; });
-      // A's analysis is still pending; B arrives and is analysed (images present).
+      // A's analysis is still pending; B arrives and is analysed (images present). A cannot finish before it is
+      // released, so the second analysis from here on is A's, whether the hook then applies or drops it.
+      const bothAnalyzed = Promise.withResolvers<void>();
+      let analyses = 0;
+      analysisProbe.onAnalyzed = () => { if (++analyses === 2) bothAnalyzed.resolve(); };
       await pick(makePdfFile('b.pdf', 5000));
-      // A's analysis is the next one to finish: the probe says so, whether the hook then applies or drops it.
-      const analyzedA = Promise.withResolvers<void>();
-      analysisProbe.onAnalyzed = () => analyzedA.resolve();
       await act(async () => {
         releaseA();
-        await analyzedA.promise;
+        await bothAnalyzed.promise;
         await drainPromises();
       });
       analysisProbe.onAnalyzed = null;
