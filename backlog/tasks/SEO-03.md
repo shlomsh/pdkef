@@ -277,6 +277,13 @@ Read: 2026-12-01, against the baseline above, logged in [findings doc section 8]
   (Adobe Acrobat). Its rules warn that very new projects may be asked to come back later.
 - OpenAlternative: not submitted 2026-11-18. Its guidelines ask for 250+ stars under 6 months old, 50+
   after (PDkef: 9). Shlomi has an account; submit once the repo is past 6 months and 50 stars.
+- 2026-11-18, Bing Webmaster Tools: pdkef.com imported from Search Console (Shlomi signed in with Google
+  and granted read-only access; only pdkef.com was imported). The import carried no sitemap because
+  Google holds it on the domain property, so `https://pdkef.com/sitemap.xml` was submitted to Bing by
+  hand. Bing's index also serves DuckDuckGo and others. Check its Sitemaps and Search Performance pages
+  at the 2026-12-01 read.
+- 2026-11-18, GitHub social preview: a 1280x640 card (logo, the home H1, "Nothing is uploaded. No
+  account. Open source.", pdkef.com) uploaded in the repo settings, so shared repo links show it.
 - Later, around 2026-12-30: Lissy93/awesome-privacy (human-written PR text, rules on AI-generated
   projects), Shlomi's to write. Not pluja/awesome-privacy: withdrawn with no resubmit on 2026-11-04. SaaSHub asks for a human
   submitter, also Shlomi's. Skipped: Privacy Guides (community proposals only), py-pdf/awesome-pdf (50 stars,
