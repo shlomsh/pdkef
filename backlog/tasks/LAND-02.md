@@ -47,6 +47,20 @@ wall-clock tests in `scripts/vitest-worker-watchdog.test.mjs`, which come to Shl
 18 mutation proofs: every rewritten "must not happen" test fails when its product guard is deleted,
 and one Redact test that never could fail (it checked for Sign's message) now does.
 
-Left in this ticket: sleeps the rule cannot see, inside test helpers (`wait(ms)`, `flush()`,
-`settle()`, about 15 files); 154 literal sleeps in test code before, 74 after wave 1. Landing waits for
-the npm release with #19.
+Wave 2 took the sleeps the rule cannot see, inside test helpers (`wait(ms)`, `flush()`, `settle()`):
+41 more files, and 154 literal sleeps in test code became 12, each kept on purpose (two e2e waits under
+`check-e2e-sleeps`, the watchdog's wall-clock tests, condition-wait ticks in `until`/`settle`/
+`settleUntil`, simulated latency in a mock). About 60 mutation proofs across the "must not happen"
+tests: one Merge test had lost its proof (its 25 ms thumbnail now landed before the merge started) and
+was rewritten and proven; two page-grid tests passed alone with a wrongly opened dialog and now load the
+dialog up front. Moving `waitUntil` and `drainPromises` to `src/test/support/` cleared a project cycle,
+and `draftRestoreRace` now waits for its pending work in `afterEach`, which fixes CI's teardown flake.
+
+Found while proving, true before this work too (the old tests also pass with the guard removed): weak
+tests in draft validation (`useEditorDraftPersistence`, its record has no bytes, so validation is never
+reached), Redact previews (`useObjectPreviews`, an error is swallowed either way) and Compress's run
+callbacks; and overlapping guards where removing one changes nothing (draft restore race, home-page
+hand-off ordering, the replay trigger, Split's protected build, `useImageBatch` after unmount).
+
+Left in this ticket: the watchdog's wall-clock tests (Shlomi's call), then landing, which waits for the
+npm release with #19.
