@@ -2,7 +2,7 @@
 
 # Backlog
 
-The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 183 live: 78 up next, 24 then, 27 waiting, 54 parked.
+The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 183 live: 79 up next, 24 then, 26 waiting, 54 parked.
 
 ## Redact: finish removal
 
@@ -328,11 +328,11 @@ Mostly waiting on dated Search Console reads. Two small things can ship now.
 
 One landmines rule at a time: fix its sites, turn it on in CI. Where a rule misses our patterns, fix it upstream.
 
-### Waiting
+### Up next
 
 | ID | P | Task | Note |
 | --- | --- | --- | --- |
-| LAND-02 | P2 | [LAND-02](backlog/tasks/LAND-02.md) · landmines sees a sleep inside act(), then guards our unit tests | Waiting on A landmines release with interfere-inc/landmines#19 (release PR #20) |
+| LAND-02 | P2 | [LAND-02](backlog/tasks/LAND-02.md) · landmines sees a sleep inside act(), then guards our unit tests | In progress |
 
 ### Parked
 

@@ -118,7 +118,7 @@ describe('FileDropzone', () => {
 
     it('does nothing when no file came back', async () => {
       const asked = Promise.withResolvers<void>();
-      takeHandoff.mockImplementation(() => { asked.resolve(); return Promise.resolve(null); });
+      takeHandoff.mockImplementationOnce(() => { asked.resolve(); return Promise.resolve(null); });
       mount();
       await act(async () => {
         await asked.promise;
@@ -619,7 +619,7 @@ describe('FileDropzone', () => {
       await pick([photo('p.jpg')]);
       const click = new MouseEvent('click', { bubbles: true, cancelable: true });
       const saved = Promise.withResolvers<void>();
-      saveHandoff.mockImplementation(() => { saved.resolve(); return Promise.resolve(true); });
+      saveHandoff.mockImplementationOnce(() => { saved.resolve(); return Promise.resolve(true); });
       await act(async () => {
         link('compress-image').dispatchEvent(click);
         await saved.promise;
@@ -712,7 +712,7 @@ describe('FileDropzone', () => {
     it('still opens the practice document in Sign directly', async () => {
       vi.stubGlobal('fetch', vi.fn(() => Promise.resolve({ ok: true, blob: () => Promise.resolve(new Blob(['%PDF'])) })));
       const saved = Promise.withResolvers<void>();
-      saveHandoff.mockImplementation(() => { saved.resolve(); return Promise.resolve(true); });
+      saveHandoff.mockImplementationOnce(() => { saved.resolve(); return Promise.resolve(true); });
       mount();
       await act(async () => { await Promise.resolve(); });
       await act(async () => {

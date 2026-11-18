@@ -95,6 +95,10 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 - [SEO-61](backlog/tasks/SEO-61.md) P2 · Put the app rating on Merge, English and Hebrew, and read whether stars lift clicks (in progress)
 - [SCAN-01](backlog/tasks/SCAN-01.md) P3 · Scan to PDF: its own tool at /scan-to-pdf/, sharing Image to PDF's engine, plus a how-to-scan-to-PDF guide (in progress)
 
+### Honest tests: adopt landmines
+
+- [LAND-02](backlog/tasks/LAND-02.md) P2 · landmines sees a sleep inside act(), then guards our unit tests (in progress)
+
 ### Polish
 
 - [DRIVE-01](backlog/tasks/DRIVE-01.md) P2 · /drive/ picks a file: saved token, one tap where it is proven, the popup everywhere else (in progress)
@@ -119,7 +123,6 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 - A full UTC day of production reads on a build with the fix: [RED-57](backlog/tasks/RED-57.md) · Redact export never embeds an empty page picture on a large page
 - A full UTC day of production reads on a stamped build with the fix: [DEBT-42](backlog/tasks/DEBT-42.md) · pdf.js runs on browsers that lack the built-ins it calls
 - A full UTC day of production reads on a stamped build with the fix: [DEBT-51](backlog/tasks/DEBT-51.md) · Redact and Sign export from the bytes they hold, so a file gone from disk still exports
-- A landmines release with interfere-inc/landmines#19 (release PR #20): [LAND-02](backlog/tasks/LAND-02.md) · landmines sees a sleep inside act(), then guards our unit tests
 - LOC-17 and SEO-40: [LOC-13](backlog/tasks/LOC-13.md) · Spanish pilot: one target-size compress page for Mexico, on the niche this domain already wins
 - An iPhone check, and a day of production reads with no check_saved_file NotReadableError: [RED-63](backlog/tasks/RED-63.md) · Redact: saved-file check should fall back quietly when the saved file is unreadable on iOS
 - SEO-06 crawl gate and a volume check: [SEO-20](backlog/tasks/SEO-20.md) · New tool: crop a PDF, the only one of these with nothing to apologise for

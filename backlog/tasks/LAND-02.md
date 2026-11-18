@@ -1,11 +1,11 @@
 ---
 id: "LAND-02"
 title: "landmines sees a sleep inside act(), then guards our unit tests"
-status: "blocked"
+status: "in_progress"
 priority: "P2"
 epic: "honest-tests"
+horizon: "now"
 depends_on: ["LAND-01"]
-waiting_on: "A landmines release with interfere-inc/landmines#19 (release PR #20)"
 ---
 
 # LAND-02 · landmines sees a sleep inside act(), then guards our unit tests
@@ -37,3 +37,16 @@ the rule climbs through callbacks passed to `act`, `waitFor`, `then`, `catch`, `
 and a `runNow` option replaces the list. Awaited registrations such as `page.route` handlers stay
 unreported. Our local patch for the other design is dropped. Waiting for it to reach npm (0.1.0 is
 the latest; release PR #20 is open).
+
+## Progress (2026-11-18, branch `landmines-all`)
+
+Work happens on `landmines-all`, which turns on every landmines rule and stays red until all are
+handled (Shlomi's call: everything lands together). Measured with upstream main's build (2536897),
+the rule reported 78 sleeps; 75 now await their signal (23 files), the other 3 are the watchdog's
+wall-clock tests in `scripts/vitest-worker-watchdog.test.mjs`, which come to Shlomi by name.
+18 mutation proofs: every rewritten "must not happen" test fails when its product guard is deleted,
+and one Redact test that never could fail (it checked for Sign's message) now does.
+
+Left in this ticket: sleeps the rule cannot see, inside test helpers (`wait(ms)`, `flush()`,
+`settle()`, about 15 files); 154 literal sleeps in test code before, 74 after wave 1. Landing waits for
+the npm release with #19.

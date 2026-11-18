@@ -39,6 +39,13 @@ The open-source landmines Oxlint rules run as they ship, one rule at a time
 `test:ratchet-raises` refuses any raised or added entry. A rule that misses or misfires on our code is fixed
 upstream, never with a local guard or an `oxlint-disable`.
 
+No fixed sleeps (`no-fixed-sleep`, LAND-02). Wait for what the next assertion reads: `waitUntil` on the
+DOM, or a deferred the mock resolves. A "must not happen" check first waits for the stale operation to
+finish (a deferred in its mock), then `await drainPromises()` (`src/test/harness/drainPromises.ts`)
+inside the same `act`, because the stale result reaches the component a few promise hops later. Prove
+such a rewrite by deleting the product guard: the test must fail. Example: DEBT-18 in
+`src/tools/split/PdfSplitTool.test.tsx`. A product timer gets fake timers scoped to that one test.
+
 ## Test environments and E2E scope
 
 Unit tests run under `node` (no jsdom) unless they match `DOM_TESTS` in `vitest.config.js`: any
