@@ -1,13 +1,10 @@
 import { render } from 'preact';
 import { useState } from 'preact/hooks';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi, type MockInstance } from 'vitest';
 
-const reportError = vi.fn();
-
-vi.mock('./errorReport.ts', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('./errorReport.ts')>();
-  return { ...actual, reportError: (...args: Parameters<typeof actual.reportError>) => { reportError(...args); return actual.reportError(...args); } };
-});
+// The real reporter runs; the spy only watches which errors reach it.
+vi.mock('./errorReport.ts', { spy: true });
+let reportError: MockInstance;
 
 function Boom({ error }: { error: unknown }): null {
   throw error;
@@ -16,7 +13,6 @@ function Boom({ error }: { error: unknown }): null {
 let container: HTMLElement | null = null;
 beforeEach(() => {
   vi.resetModules();
-  reportError.mockClear();
   container = document.createElement('div');
   document.body.appendChild(container);
 });
@@ -26,13 +22,16 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
+// Each test gets fresh modules, so the boundary and the spied reporter it calls come from one import.
 async function load() {
-  return (await import('./IslandErrorBoundary.tsx')).default;
+  const mod = await import('./IslandErrorBoundary.tsx');
+  reportError = vi.mocked((await import('./errorReport.ts')).reportError);
+  return mod;
 }
 
 describe('IslandErrorBoundary', () => {
   it('reports a render error once and lets it propagate', async () => {
-    const Boundary = await load();
+    const Boundary = (await load()).default;
     const error = new Error('render failed');
     expect(() => render(<Boundary><Boom error={error} /></Boundary>, container!)).toThrow(error);
     expect(reportError).toHaveBeenCalledTimes(1);
@@ -40,7 +39,7 @@ describe('IslandErrorBoundary', () => {
   });
 
   it('installs the window handlers once however many boundaries mount', async () => {
-    const Boundary = await load();
+    const Boundary = (await load()).default;
     const add = vi.spyOn(window, 'addEventListener');
     const second = document.createElement('div');
     document.body.appendChild(second);
@@ -54,14 +53,14 @@ describe('IslandErrorBoundary', () => {
   });
 
   it('reports once when boundaries nest', async () => {
-    const Boundary = await load();
+    const Boundary = (await load()).default;
     const error = new Error('render failed');
     expect(() => render(<Boundary><Boundary><Boom error={error} /></Boundary></Boundary>, container!)).toThrow(error);
     expect(reportError).toHaveBeenCalledTimes(1);
   });
 
   it('does not report again when the same error reaches the window handler', async () => {
-    const Boundary = await load();
+    const Boundary = (await load()).default;
     const error = new Error('render failed');
     expect(() => render(<Boundary><Boom error={error} /></Boundary>, container!)).toThrow(error);
     expect(reportError).toHaveBeenCalledTimes(1);
@@ -70,7 +69,7 @@ describe('IslandErrorBoundary', () => {
   });
 
   it('reports once for a throwing hook in a wrapped island, even inside another boundary', async () => {
-    const mod = await import('./IslandErrorBoundary.tsx');
+    const mod = await load();
     const Boundary = mod.default;
     const error = new Error('hook failed');
     function Island() {
