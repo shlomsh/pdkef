@@ -5,31 +5,20 @@ import type { Pins, Sides } from '../edges/follow.ts';
 import { FULL_QUAD } from '../quad.ts';
 import { inspectWith, processWith, splitWith, traceWith, type CanvasKit } from './steps.ts';
 
-// The worker's measuring failure travels back with the page, since only the main thread reports.
-vi.mock('#lib/pageEnhance/dewarp/index.ts', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('#lib/pageEnhance/dewarp/index.ts')>();
-  return { ...actual, measureBend: vi.fn(actual.measureBend) };
-});
-const { measureBend } = await import('#lib/pageEnhance/dewarp/index.ts');
-vi.mock('#lib/pageEnhance/plan.ts', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('#lib/pageEnhance/plan.ts')>();
-  return { ...actual, spreadQuads: vi.fn(actual.spreadQuads) };
-});
-const { spreadQuads } = await import('#lib/pageEnhance/plan.ts');
-vi.mock('./upright.ts', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('./upright.ts')>();
-  return { ...actual, uprightTurns: vi.fn(actual.uprightTurns) };
-});
-const { uprightTurns } = await import('./upright.ts');
-vi.mock('../edges/follow.ts', () => ({ traceSides: vi.fn(() => null) }));
-const { traceSides } = await import('../edges/follow.ts');
-vi.mock('./tracedCurves.ts', () => ({ curvesFromSides: vi.fn(() => null) }));
-const { curvesFromSides } = await import('./tracedCurves.ts');
-vi.mock('../evenMargins.ts', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('../evenMargins.ts')>();
-  return { ...actual, evenMargins: vi.fn(actual.evenMargins) };
-});
-const { evenMargins } = await import('../evenMargins.ts');
+// The real modules run; the spies show what they were handed. A test that forces a failure or a trace the
+// gray fixtures cannot give does so on one call with mock*Once.
+vi.mock('#lib/pageEnhance/dewarp/index.ts', { spy: true });
+vi.mock('#lib/pageEnhance/plan.ts', { spy: true });
+vi.mock('./upright.ts', { spy: true });
+vi.mock('../edges/follow.ts', { spy: true });
+vi.mock('./tracedCurves.ts', { spy: true });
+vi.mock('../evenMargins.ts', { spy: true });
+import { measureBend } from '#lib/pageEnhance/dewarp/index.ts';
+import { spreadQuads } from '#lib/pageEnhance/plan.ts';
+import { uprightTurns } from './upright.ts';
+import { traceSides } from '../edges/follow.ts';
+import { curvesFromSides } from './tracedCurves.ts';
+import { evenMargins } from '../evenMargins.ts';
 
 // EDGE: node has no canvas. A kit of plain RGBA buffers: drawImage samples nearest-neighbour, and
 // toBlob records what was encoded, as the worker's OffscreenCanvas and the page's <canvas> would.

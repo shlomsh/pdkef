@@ -3,61 +3,68 @@ import { h, render } from 'preact';
 import { act } from 'preact/test-utils';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import useDeleteTool, { type UseDeleteToolResult } from './useDeleteTool.ts';
-import type { DeletablePdfObject } from '../components/DeletableObjectOverlay.tsx';
+import { PDFDocument } from '@cantoo/pdf-lib';
+import { waitUntil } from '../../../test/support/waitUntil.ts';
 
-const logo = (id: string, pageIndex: number): DeletablePdfObject =>
-  ({ id, pageIndex, kind: 'image', imageRef: '5 0 R', rect: { left: 1, top: 2, width: 3, height: 4 }, start: 0, end: 1 });
-const objects = [0, 1, 2, 3, 4].map((p) => logo(`logo-${p}`, p));
-
-vi.mock('./useDeletableObjects.js', () => ({ default: () => objects }));
-vi.mock('./useDeletePreviews.ts', () => ({ default: () => new Map() }));
+// A real five-page PDF that draws one embedded picture on every page: the logo the hook finds for itself.
+const PNG_1X1_BASE64 =
+  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=';
+async function logoOnEveryPage(): Promise<ArrayBuffer> {
+  const doc = await PDFDocument.create();
+  const png = await doc.embedPng(Uint8Array.from(atob(PNG_1X1_BASE64), (c) => c.charCodeAt(0)));
+  for (let i = 0; i < 5; i += 1) doc.addPage([200, 200]).drawImage(png, { x: 10, y: 10, width: 20, height: 20 });
+  const saved = await doc.save();
+  return saved.buffer.slice(saved.byteOffset, saved.byteOffset + saved.byteLength) as ArrayBuffer;
+}
 
 describe('useDeleteTool: the same image on other pages', () => {
   let container: HTMLDivElement;
   afterEach(() => { act(() => { render(null, container); }); container.remove(); });
 
-  it('offers Every page, which adds one entry for pages 2-5', () => {
+  // Mounts the hook on the real file; resolves once it has found the logo on all five pages.
+  async function mountOnLogoPdf() {
     container = document.createElement('div');
+    const fileBytes = await logoOnEveryPage();
+    const file = new File([fileBytes], 'logo.pdf', { type: 'application/pdf' });
+    const pdfDocument = {} as never; // identity only: the logo is a picture, so no page text is read from it
     let tool!: UseDeleteToolResult;
     const add = vi.fn();
     function Harness() {
       tool = useDeleteTool({
-        elements: [], file: null, fileBytes: null, pdfDocument: null,
+        elements: [], file, fileBytes, pdfDocument,
         pageWrapperRefs: { current: [] }, add, announce: () => {}, disarmTool: () => {},
       });
       return null;
     }
     act(() => { render(h(Harness, {}), container); });
+    await waitUntil(() => tool.deletableObjects.length === 5);
+    return { get tool() { return tool; }, add };
+  }
 
-    act(() => { tool.markObject(objects[0]); });
-    expect(add).toHaveBeenCalledTimes(1);
-    const [first, firstOptions] = add.mock.calls[0];
+  it('offers Every page, which adds one entry for pages 2-5', async () => {
+    const mounted = await mountOnLogoPdf();
+    const logo = mounted.tool.deletableObjects.find((o) => o.pageIndex === 0)!;
+
+    act(() => { mounted.tool.markObject(logo); });
+    expect(mounted.add).toHaveBeenCalledTimes(1);
+    const [first, firstOptions] = mounted.add.mock.calls[0];
     expect(first).toHaveLength(1);
     expect(firstOptions.description).toBe('Deleted an image');
     expect(firstOptions.chipMessage).toBe('Deleted an image, also on 4 other pages');
     expect(firstOptions.undoExtra.label).toBe('Every page');
 
     act(() => { firstOptions.undoExtra.onSelect(); });
-    expect(add).toHaveBeenCalledTimes(2);
-    const [rest, restOptions] = add.mock.calls[1];
+    expect(mounted.add).toHaveBeenCalledTimes(2);
+    const [rest, restOptions] = mounted.add.mock.calls[1];
     expect(rest.map((e: { pageIndex: number }) => e.pageIndex)).toEqual([1, 2, 3, 4]);
     expect(restOptions.description).toBe('Deleted the image on every page');
     expect(restOptions.undoExtra).toBeUndefined();
   });
 
-  it('offers nothing for a drag over several objects', () => {
-    container = document.createElement('div');
-    let tool!: UseDeleteToolResult;
-    const add = vi.fn();
-    function Harness() {
-      tool = useDeleteTool({
-        elements: [], file: null, fileBytes: null, pdfDocument: null,
-        pageWrapperRefs: { current: [] }, add, announce: () => {}, disarmTool: () => {},
-      });
-      return null;
-    }
-    act(() => { render(h(Harness, {}), container); });
-    act(() => { tool.markObjects([objects[0], objects[1]]); });
-    expect(add.mock.calls[0][1].undoExtra).toBeUndefined();
+  it('offers nothing for a drag over several objects', async () => {
+    const mounted = await mountOnLogoPdf();
+    const [a, b] = mounted.tool.deletableObjects;
+    act(() => { mounted.tool.markObjects([a, b]); });
+    expect(mounted.add.mock.calls[0][1].undoExtra).toBeUndefined();
   });
 });

@@ -25,3 +25,14 @@ count). The rule is off on `landmines-all` meanwhile.
 - Upstream: the rule accepts the same per-file `allow` map as `no-fixed-sleep`. Opened only after our
   PRs #21 and #33 are resolved, with Shlomi's OK.
 - pdkef then turns the rule on with the count left as an allow list that only shrinks.
+
+## Status
+
+- Pilots (2026-11-19): `settleHandoff` on the real draft store, `IslandErrorBoundary` spy-through.
+- Wave 1, round 1 (Redact, Scan; 2026-11-19): 1,877 sites down to 1,719 on the branch. Every test
+  name kept; 40-odd mutation proofs. Kept as forced lines, for the browser-mode wave: the ring sampler
+  (page pixels), camera modules, the Scan pipeline's canvas steps, sheet rendering, and pdf.js's
+  worker loader (the legacy build stands in). `useScanView`'s turning failure stays forced: the real
+  `turnImage` fails in jsdom only because jsdom cannot decode, not by design.
+- Found on the way: RED-75 (preview documents never freed on pdf.js 6.5), RED-76 (one very long line
+  overflows the text preview).

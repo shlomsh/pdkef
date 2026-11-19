@@ -2,34 +2,54 @@ import { h, render } from 'preact';
 import { act } from 'preact/test-utils';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { PDFDocumentProxy } from 'pdfjs-dist';
+import * as pdfjs from 'pdfjs-dist/legacy/build/pdf.mjs';
 import type { PageGlyph } from '../lib/pageGlyphs.ts';
 import type { DeletablePdfObject } from '../components/DeletableObjectOverlay.tsx';
 import * as errorReport from '#lib/telemetry/errorReport.ts';
+import { PDFJS_WASM_URL } from '#lib/pdf/pdfjsWasm.js';
+import { GLYPH_BUDGET } from '../lib/find/itemGlyphs.ts';
+import { listDeletableObjects } from '../lib/deleteObjects.js';
+import { readGlyphs } from '../lib/readGlyphs.js';
 import useObjectPreviews from './useObjectPreviews.ts';
+import { buildPdf, openOriginal } from '../../../test/support/redactCheckPdfs.test-helper.ts';
+import type { PageSpec } from '../../../test/support/redactCheckPdfs.test-helper.ts';
+import { waitUntil } from '../../../test/support/waitUntil.ts';
 import { drainPromises } from '../../../test/support/drainPromises.ts';
 
-const readGlyphsMock = vi.fn<(pdfjs: unknown, page: { pageNumber: number }) => Promise<PageGlyph[] | null>>();
-vi.mock('#editor/adapters/pdf/pdfjsLoader.js', () => ({ getPdfjs: async () => ({}) }));
-vi.mock('../lib/readGlyphs.js', () => ({ readGlyphs: (pdfjs: unknown, page: { pageNumber: number }) => readGlyphsMock(pdfjs, page) }));
+declare const process: { cwd(): string };
 
-const line = (chars: string): PageGlyph[] =>
-  [...chars].map((ch, i) => ({ unicode: ch, isSpace: ch === ' ', matrix: [10, 0, 0, 10, i * 5, 400], width: 0.5 }));
+// The one edge: getPdfjs() is the vite worker import, which node cannot run; the legacy build stands in.
+vi.mock('#editor/adapters/pdf/pdfjsLoader.js', async () => {
+  const { legacyPdfjs: stand } = await import('../../../test/support/redactCheckPdfs.test-helper.ts');
+  return { getPdfjs: async () => stand() };
+});
+// Spy-through: the real glyph reader runs on real pages; the spy shows which pages were read.
+vi.mock('../lib/readGlyphs.js', { spy: true });
 
-const run = (id: string, pageIndex: number): DeletablePdfObject => ({
-  id, pageIndex, kind: 'text', rect: { left: 0, top: 0, width: 1, height: 1 }, start: 0, end: 1,
-  bbox: { x: 0, y: 395, width: 60, height: 15 },
-} as DeletablePdfObject);
+// jsdom resolves the helper's worker URL to http; point pdf.js at the legacy build's own file.
+const workerUrl = `file://${process.cwd()}/node_modules/pdfjs-dist/legacy/build/pdf.worker.mjs`;
+Object.defineProperty(pdfjs.GlobalWorkerOptions, 'workerSrc', { get: () => workerUrl, set() {}, configurable: true });
 
-const pdfDocument = {
-  getPage: async (pageNumber: number) => ({ pageNumber, view: [0, 0, 600, 800], rotate: 0, userUnit: 1 }),
-} as unknown as PDFDocumentProxy;
+/** A real file, opened in pdf.js, and the text objects Delete itself finds in it. */
+async function openFile(pages: PageSpec[]) {
+  const bytes = await buildPdf(pages);
+  const opened = await openOriginal(bytes, PDFJS_WASM_URL);
+  return { ...opened, objects: (await listDeletableObjects(bytes)) as DeletablePdfObject[] };
+}
 
-// The mocks resolve at once, so the read is a chain of settled promises: one event-loop turn ends it.
+// Real pages are read one after another through pdf.js, so waits are on the previews, never a fixed turn.
 const settle = () => act(async () => { await drainPromises(); });
 
 describe('useObjectPreviews', () => {
   let container: HTMLDivElement;
-  afterEach(() => { act(() => { render(null, container); }); container.remove(); readGlyphsMock.mockReset(); });
+  const closers: Array<() => Promise<void>> = [];
+  afterEach(async () => {
+    act(() => { render(null, container); });
+    container.remove();
+    vi.mocked(readGlyphs).mockClear();
+    vi.restoreAllMocks();
+    await Promise.all(closers.splice(0).map((close) => close()));
+  });
 
   function mount(doc: PDFDocumentProxy | null, objects: DeletablePdfObject[], enabled = true) {
     container = document.createElement('div');
@@ -43,49 +63,72 @@ describe('useObjectPreviews', () => {
   }
 
   it('gives each text object the words its page shows there', async () => {
-    readGlyphsMock.mockResolvedValue(line('Hello world'));
-    const objects = [run('a', 0), { ...run('img', 0), kind: 'image' as const }];
-    const seen = mount(pdfDocument, objects);
-    await settle();
-    expect(seen.current.find((o) => o.id === 'a')?.preview).toBe('Hello world');
+    const file = await openFile([{ lines: ['Hello world'] }]);
+    closers.push(file.close);
+    expect(file.objects.map((o) => o.kind)).toEqual(['text']);
+    const objects = [file.objects[0], { ...file.objects[0], id: 'img', kind: 'image' as const }];
+    const seen = mount(file.doc, objects);
+    await waitUntil(() => seen.current.find((o) => o.id === file.objects[0].id)?.preview !== undefined);
+    expect(seen.current.find((o) => o.id === file.objects[0].id)?.preview).toBe('Hello world');
     expect(seen.current.find((o) => o.id === 'img')?.preview).toBeUndefined();
   });
 
   it('leaves the objects as they are while nothing is read, without a document, or when switched off', async () => {
-    const objects = [run('a', 0)];
+    const file = await openFile([{ lines: ['Hello world'] }]);
+    closers.push(file.close);
+    const objects = file.objects;
     expect(mount(null, objects).current).toBe(objects);
     await settle();
-    const off = mount(pdfDocument, objects, false);
+    const off = mount(file.doc, objects, false);
     await settle();
     expect(off.current).toBe(objects);
-    expect(readGlyphsMock).not.toHaveBeenCalled();
+    expect(readGlyphs).not.toHaveBeenCalled();
   });
 
   it('gives no preview on a page whose text cannot be read', async () => {
-    readGlyphsMock.mockResolvedValue(null);
-    const objects = [run('a', 0)];
-    const seen = mount(pdfDocument, objects);
+    const file = await openFile([{ lines: ['Hello world'] }]);
+    closers.push(file.close);
+    // A broken content stream: pdf.js cannot list the page's operators.
+    (await file.doc.getPage(1)).getOperatorList = () => Promise.reject(new Error('broken content stream'));
+    vi.spyOn(errorReport, 'reportError').mockImplementation(() => {});
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    const seen = mount(file.doc, file.objects);
+    await waitUntil(() => expect(readGlyphs).toHaveBeenCalledTimes(1));
+    await vi.mocked(readGlyphs).mock.results[0].value;
     await settle();
     expect(seen.current[0].preview).toBeUndefined();
   });
 
   it('stops reading pages past the glyph cap', async () => {
-    const big = Array.from({ length: 400_001 }, () => ({ unicode: 'x', isSpace: false, matrix: [10, 0, 0, 10, 900, 100], width: 0.5 }) as PageGlyph);
-    readGlyphsMock.mockImplementation(async (_pdfjs, page) => (page.pageNumber === 1 ? big : line('later')));
-    const seen = mount(pdfDocument, [run('first', 0), run('second', 1)]);
+    const file = await openFile([{ lines: ['first page'] }, { lines: ['later'] }]);
+    closers.push(file.close);
+    const second = file.objects.find((o) => o.pageIndex === 1)!;
+    // Forced state: page 1 yields the whole cap in glyphs, over many short lines.
+    const glyphs: PageGlyph[] = Array.from({ length: GLYPH_BUDGET }, (_, i) => ({
+      unicode: 'x', isSpace: false, matrix: [10, 0, 0, 10, (i % 100) * 5, 400 + Math.floor(i / 100) * 12], width: 0.5,
+    }));
+    vi.mocked(readGlyphs).mockResolvedValueOnce(glyphs);
+    const getPage = vi.spyOn(file.doc, 'getPage');
+    const seen = mount(file.doc, file.objects);
+    await waitUntil(() => expect(readGlyphs).toHaveBeenCalled());
+    // The hook's own continuation of that read runs before this one: by now it has either asked pdf.js
+    // for page 2 or stopped.
+    await vi.mocked(readGlyphs).mock.results[0].value;
+    expect(getPage).toHaveBeenCalledTimes(1);
     await settle();
-    expect(readGlyphsMock).toHaveBeenCalledTimes(1);
-    expect(seen.current.find((o) => o.id === 'second')?.preview).toBeUndefined();
+    expect(readGlyphs).toHaveBeenCalledTimes(1);
+    expect(seen.current.find((o) => o.id === second.id)?.preview).toBeUndefined();
   });
 
   it('reports a page that throws while it is read', async () => {
+    const file = await openFile([{ lines: ['Hello world'] }]);
+    closers.push(file.close);
     const report = vi.spyOn(errorReport, 'reportError').mockImplementation(() => {});
     vi.spyOn(console, 'error').mockImplementation(() => {});
+    // Forced: pdf.js refuses the page itself.
     const boom = new Error('boom');
-    readGlyphsMock.mockRejectedValue(boom);
-    mount(pdfDocument, [run('a', 0)]);
-    await settle();
-    expect(report).toHaveBeenCalledWith('redact', boom, 'read_object_previews');
-    vi.restoreAllMocks();
+    vi.spyOn(file.doc, 'getPage').mockRejectedValue(boom);
+    mount(file.doc, file.objects);
+    await waitUntil(() => expect(report).toHaveBeenCalledWith('redact', boom, 'read_object_previews'));
   });
 });

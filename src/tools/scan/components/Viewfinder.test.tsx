@@ -2,18 +2,12 @@ import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { IDLE_VIEW, type CameraHandle } from '../lib/camera/types.ts';
+import { englishScanMessages as t } from '../messages.ts';
 import Viewfinder from './Viewfinder.tsx';
 
 let handle: CameraHandle & { shooting?: boolean };
 let cameraInput: { onTaken: (page: unknown) => void; paused?: boolean };
 vi.mock('../hooks/useCamera.ts', () => ({ useCamera: (input: typeof cameraInput) => { cameraInput = input; return handle; } }));
-// The model is another file's work; the component only calls it.
-vi.mock('../lib/camera/viewfinderModel.ts', () => ({
-  hintText: (hint: string, count: number) => (
-    hint === 'point' ? 'Point at a page' : hint === 'hold' ? 'Hold still' : hint === 'turn' ? `Page ${count}. Turn the page.` : `hint:${hint}`
-  ),
-  coverRect: () => ({ x: 0, y: 0, width: 100, height: 100 }),
-}));
 
 let container: HTMLElement | null = null;
 const baseProps = () => ({
@@ -59,7 +53,7 @@ describe('Viewfinder', () => {
     mount();
     const line = container!.querySelector('[data-camera-hint]')!;
     expect(line.getAttribute('data-camera-hint')).toBe('flatter');
-    expect(line.textContent).toBe('hint:flatter');
+    expect(line.textContent).toBe(t.hintFlatter);
     expect(line.querySelector('[data-advice]')).not.toBeNull();
     handle = { ...handle, live: { ...IDLE_VIEW, hint: 'hold' } };
     act(() => render(<Viewfinder {...baseProps()} />, container!));

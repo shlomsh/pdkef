@@ -1,13 +1,12 @@
 import { describe, expect, it, vi } from 'vitest';
 
-vi.mock('../../components/Viewfinder.tsx', () => ({ default: 'Viewfinder' }));
-
+import Viewfinder from '../../components/Viewfinder.tsx';
 import { loadViewfinder, onceUntilFailed } from './loadCamera.ts';
 
 describe('loadViewfinder', () => {
   it('resolves to the viewfinder module', async () => {
     const mod = await loadViewfinder();
-    expect(mod.default).toBe('Viewfinder');
+    expect(mod.default).toBe(Viewfinder);
   });
 
   it('is memoised: the second call returns the same promise', () => {

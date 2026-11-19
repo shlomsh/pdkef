@@ -1,29 +1,18 @@
+import 'fake-indexeddb/auto';
+import { IDBFactory } from 'fake-indexeddb';
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-const mocks = vi.hoisted(() => ({
-  hint: vi.fn(() => false),
-  load: vi.fn(),
-  clearEntry: vi.fn(),
-  save: vi.fn(async () => true),
-  deleteDraft: vi.fn(async () => undefined),
-  report: vi.fn(),
-}));
-vi.mock('#lib/drafts/draftStore.ts', () => ({
-  hasDraftHint: mocks.hint,
-  loadDraft: mocks.load,
-  clearCurrentEntry: mocks.clearEntry,
-  saveDraft: mocks.save,
-  deleteDraft: mocks.deleteDraft,
-  sourceIdForFiles: async () => 'entry-1',
-  readCurrentEntryId: () => null,
-  attachDraftPreview: vi.fn(),
-  subscribeToDraftChanges: () => () => {},
-}));
-vi.mock('#lib/handoff/fileArrival.ts', () => ({ consumeRecentOpen: () => false, markArrival: vi.fn() }));
+const mocks = vi.hoisted(() => ({ report: vi.fn() }));
+// The real draft store runs on fake-indexeddb; the spy only lets a test see which calls happened and await their results.
+vi.mock('#lib/drafts/draftStore.ts', { spy: true });
 vi.mock('#lib/telemetry/errorReport.ts', () => ({ reportError: mocks.report }));
 
+import { clearCurrentEntry, deleteDraft, loadDraft, readCurrentEntryId, saveDraft } from '#lib/drafts/draftStore.ts';
+import { englishShellMessages as sm } from '#shell/shellMessages.ts';
+import { drainPromises } from '../../../test/support/drainPromises.ts';
+import { waitUntil } from '../../../test/support/waitUntil.ts';
 import { useScanDraft } from './useScanDraft.ts';
 import { newPage } from '../lib/scanPages.ts';
 import type { ScanDraftRestore } from '../lib/scanDraft.ts';
@@ -31,13 +20,19 @@ import type { ScanPage, ScanWork } from '../state/scanWork.ts';
 
 const photo = (name: string) => new File([`photo ${name}`], name, { type: 'image/jpeg' });
 const page = (name: string) => newPage(photo(name), 'document');
-const record = () => ({
-  files: [{ fileName: 'r.jpg', fileType: 'image/jpeg', fileBytes: new ArrayBuffer(4) }],
-  schemaVersion: 1,
-  pages: [{ filter: 'document', turns: 0, quad: null, sheet: false, opened: null, question: null }],
-  sourceId: 'entry-0',
-});
-
+// A scan the real store holds, as an earlier session left it: one photo, then the pointer and hint a reload finds.
+const seedScan = async () => {
+  const saved = await saveDraft('scan-to-pdf', {
+    files: [{ fileName: 'r.jpg', fileType: 'image/jpeg', fileBytes: new TextEncoder().encode('seeded photo').buffer }],
+    fileName: 'r.jpg',
+    schemaVersion: 1,
+    pages: [{ filter: 'document', turns: 0, quad: null, sheet: false, fine: false, opened: null, question: null }],
+    pageCount: 1,
+  });
+  expect(saved).toBe(true);
+  vi.mocked(saveDraft).mockClear();
+  vi.mocked(loadDraft).mockClear();
+};
 let host: HTMLDivElement;
 let out: ReturnType<typeof useScanDraft>;
 let restoredPages: ScanPage[];
@@ -57,22 +52,35 @@ function Probe({ pages }: { pages: ScanPage[] }) {
     restorePages,
     work: work as unknown as ScanWork,
   });
-  return null;
+  return <p data-draft-line>{out.status?.label ?? ''}</p>;
 }
 const show = async (pages: ScanPage[]) => { await act(async () => { render(<Probe pages={pages} />, host); }); };
+// The restore check is done once the hint is gone (it goes when the check settles); the store's reads run on the real scheduler.
+const restoreChecked = () => waitUntil(() => !document.documentElement.hasAttribute('data-draft-hint'));
+// A save is done once the quiet line says so.
+const savedLine = () => waitUntil(() => expect(host.querySelector('[data-draft-line]')?.textContent).toBe(sm.draftSaved));
+// What proves a "must not happen" check: the only thing that starts a save is the debounce timer, so while it is
+// still pending (fake clock) no save has started, and the quiet line says nothing until one does.
+const noSaveStarted = async () => {
+  expect(host.querySelector('[data-draft-line]')?.textContent).toBe('');
+  await act(async () => { await drainPromises(); });
+};
+const debouncePending = () => expect(vi.getTimerCount()).toBeGreaterThan(0);
 const advance = async (ms: number) => { await act(async () => { await vi.advanceTimersByTimeAsync(ms); }); };
+// The debounce and the other timers are fake; the store's own IO stays on the real scheduler.
+const timers = () => vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'Date'] });
 
 describe('useScanDraft', () => {
   beforeEach(() => {
-    vi.useFakeTimers();
+    timers();
+    indexedDB = new IDBFactory();
+    localStorage.clear();
     host = document.createElement('div');
     document.documentElement.setAttribute('data-draft-hint', '');
-    mocks.hint.mockReturnValue(false);
-    mocks.load.mockReset();
-    mocks.load.mockResolvedValue(null);
-    mocks.save.mockClear();
-    mocks.save.mockResolvedValue(true);
-    mocks.clearEntry.mockClear();
+    vi.mocked(saveDraft).mockClear();
+    vi.mocked(loadDraft).mockClear();
+    vi.mocked(deleteDraft).mockClear();
+    vi.mocked(clearCurrentEntry).mockClear();
     mocks.report.mockClear();
     restorePages.mockClear();
     work = { pages: [] };
@@ -85,100 +93,120 @@ describe('useScanDraft', () => {
   });
 
   it('restores a valid draft when no pages exist, then clears the hint', async () => {
-    mocks.hint.mockReturnValue(true);
-    mocks.load.mockResolvedValue(record());
+    await seedScan();
     await show([]);
-    await advance(0);
-    await advance(50);
+    await restoreChecked();
     expect(restorePages).toHaveBeenCalledTimes(1);
+    expect(await restoredPages[0].file.text()).toBe('seeded photo');
     expect(out.checking).toBe(false);
     expect(document.documentElement.hasAttribute('data-draft-hint')).toBe(false);
   });
 
   it('ignores the record when a pick landed before the load resolved', async () => {
-    let resolve: (value: unknown) => void = () => {};
-    mocks.load.mockReturnValue(new Promise((r) => { resolve = r; }));
+    await seedScan();
     await show([]);
+    // The store's read is still in flight: nothing has resolved yet when the pick lands.
     work.pages = [page('picked.jpg')];
-    resolve(record());
-    await advance(0);
+    await restoreChecked();
     expect(restorePages).not.toHaveBeenCalled();
   });
 
   it('lets go of a pointer at an entry with no photos', async () => {
-    mocks.load.mockResolvedValue({ files: [] });
+    await seedScan();
+    expect(readCurrentEntryId('scan-to-pdf')).not.toBeNull();
+    // The real store never hands back an entry without photos; this one line forces it.
+    vi.mocked(loadDraft).mockResolvedValueOnce({ files: [] } as never);
     await show([]);
-    await advance(0);
-    expect(mocks.clearEntry).toHaveBeenCalledWith('scan-to-pdf');
+    await restoreChecked();
+    expect(clearCurrentEntry).toHaveBeenCalledWith('scan-to-pdf');
+    expect(readCurrentEntryId('scan-to-pdf')).toBeNull();
     expect(restorePages).not.toHaveBeenCalled();
   });
 
   it('skips the load while a hand-off is pending', async () => {
+    await seedScan();
     document.documentElement.setAttribute('data-handoff-pending', '');
-    mocks.hint.mockReturnValue(true);
     await show([]);
-    await advance(0);
-    await advance(50);
-    expect(mocks.load).not.toHaveBeenCalled();
+    await restoreChecked();
+    expect(loadDraft).not.toHaveBeenCalled();
     expect(out.checking).toBe(false);
     expect(document.documentElement.hasAttribute('data-draft-hint')).toBe(false);
   });
 
   it('autosaves a page change after 700ms and the status goes saving then saved', async () => {
     await show([]);
-    await advance(0);
+    await restoreChecked();
     const pages = [page('a.jpg')];
     await show(pages);
     const saving = out.status?.label;
     await advance(699);
-    expect(mocks.save).not.toHaveBeenCalled();
+    debouncePending();
+    expect(host.querySelector('[data-draft-line]')?.textContent).toBe(saving);
+    await act(async () => { await drainPromises(); });
+    expect(saveDraft).not.toHaveBeenCalled();
     await advance(1);
-    expect(mocks.save).toHaveBeenCalledTimes(1);
+    await savedLine();
+    expect(saveDraft).toHaveBeenCalledTimes(1);
     expect(out.status).not.toBeNull();
     expect(out.status?.label).not.toBe(saving);
     expect(out.status?.failed).toBe(false);
+    const stored = await loadDraft('scan-to-pdf');
+    expect(stored?.files).toHaveLength(1);
+    expect(stored?.files?.[0].fileName).toBe('a.jpg');
   });
 
   it('does not save before the restore check settles', async () => {
-    mocks.hint.mockReturnValue(true);
-    mocks.load.mockReturnValue(new Promise(() => {}));
+    await seedScan();
+    // A read that never answers is a state the real store does not produce; this one line forces it.
+    vi.mocked(loadDraft).mockReturnValueOnce(new Promise(() => {}));
     await show([page('a.jpg')]);
     await advance(1000);
-    expect(mocks.save).not.toHaveBeenCalled();
+    await noSaveStarted();
+    expect(saveDraft).not.toHaveBeenCalled();
   });
 
   it('does not rewrite a restored draft until something changes', async () => {
-    mocks.load.mockResolvedValue(record());
+    await seedScan();
     await show([]);
-    await advance(0);
+    await restoreChecked();
     await show(restoredPages);
     await advance(2000);
-    expect(mocks.save).not.toHaveBeenCalled();
+    expect(vi.getTimerCount()).toBe(0);
+    await noSaveStarted();
+    expect(saveDraft).not.toHaveBeenCalled();
     expect(out.status).toBeNull();
     await show([{ ...restoredPages[0], turns: 1 }]);
     await advance(700);
-    expect(mocks.save).toHaveBeenCalledTimes(1);
+    await savedLine();
+    expect(saveDraft).toHaveBeenCalledTimes(1);
   });
 
   it('flushes on pagehide without waiting for the debounce', async () => {
     await show([]);
-    await advance(0);
+    await restoreChecked();
     await show([page('a.jpg')]);
     await advance(100);
-    expect(mocks.save).not.toHaveBeenCalled();
+    debouncePending();
+    await act(async () => { await drainPromises(); });
+    expect(saveDraft).not.toHaveBeenCalled();
     await act(async () => { window.dispatchEvent(new Event('pagehide')); await vi.advanceTimersByTimeAsync(0); });
-    expect(mocks.save).toHaveBeenCalledTimes(1);
+    await savedLine();
+    expect(saveDraft).toHaveBeenCalledTimes(1);
   });
 
   it('forgets the draft when the pages are emptied', async () => {
     await show([]);
-    await advance(0);
+    await restoreChecked();
     await show([page('a.jpg')]);
     await advance(700);
-    expect(mocks.save).toHaveBeenCalledTimes(1);
+    await savedLine();
+    expect(saveDraft).toHaveBeenCalledTimes(1);
+    const savedId = readCurrentEntryId('scan-to-pdf');
+    expect(savedId).not.toBeNull();
     await show([]);
-    await advance(0);
-    expect(mocks.deleteDraft).toHaveBeenCalledWith('scan-to-pdf', 'entry-1');
+    await waitUntil(() => expect(readCurrentEntryId('scan-to-pdf')).toBeNull());
+    expect(deleteDraft).toHaveBeenCalledWith('scan-to-pdf', savedId);
+    expect(readCurrentEntryId('scan-to-pdf')).toBeNull();
     expect(out.status).toBeNull();
   });
 });

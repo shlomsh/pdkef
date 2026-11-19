@@ -7,23 +7,14 @@ import type { Pins, Sides } from '../lib/edges/follow.ts';
 import { englishScanMessages as t } from '../messages.ts';
 import type { ScanPage } from '../state/scanWork.ts';
 import ScanCornersView from './ScanCornersView.tsx';
+import CornerEditor from './CornerEditor.tsx';
+import { useCornerZoom } from '../hooks/useCornerZoom.ts';
 
-// The real editor, wrapped so a test can read the props the view gives it and call its callbacks.
-const editorProps = vi.hoisted(() => ({ last: null as null | Record<string, any> }));
-vi.mock('./CornerEditor.tsx', async () => {
-  const actual = await vi.importActual<{ default: (p: any) => any }>('./CornerEditor.tsx');
-  return { default: (p: any) => { editorProps.last = p; return actual.default(p); } };
-});
-
-// The zoom hook is mocked: the view's job is the ref and key it hands over, and having no zoom buttons.
-const zoomMock = vi.hoisted(() => ({
-  state: { zoom: 1, zoomIn: () => {}, zoomOut: () => {}, fit: () => {}, canZoomIn: true, canZoomOut: false } as Record<string, any>,
-  calls: [] as { area: { current: HTMLElement | null }; key: unknown }[],
-}));
-vi.mock('../hooks/useCornerZoom.ts', () => ({
-  CORNER_ZOOM_VAR: '--corner-zoom',
-  useCornerZoom: (area: { current: HTMLElement | null }, key: unknown) => { zoomMock.calls.push({ area, key }); return zoomMock.state; },
-}));
+// Both modules run for real; the spies only let a test read the props the view gives the editor and the hook, and call the editor's callbacks.
+vi.mock('./CornerEditor.tsx', { spy: true });
+vi.mock('../hooks/useCornerZoom.ts', { spy: true });
+const editorProps = { get last(): Record<string, any> | null { return (vi.mocked(CornerEditor).mock.lastCall?.[0] as Record<string, any> | undefined) ?? null; } };
+const zoomCalls = () => vi.mocked(useCornerZoom).mock.calls.map(([area, key]) => ({ area, key }));
 
 let container: HTMLElement | null = null;
 afterEach(() => {
@@ -120,14 +111,9 @@ describe('ScanCornersView', () => {
     };
     const names = () => [...container!.querySelectorAll('button')].map((b) => b.getAttribute('aria-label'));
     const button = (name: string) => [...container!.querySelectorAll('button')].find((b) => b.getAttribute('aria-label') === name || b.textContent?.trim() === name) as HTMLButtonElement;
-    const set = (patch: Record<string, unknown>) => {
-      zoomMock.state = { zoom: 1, zoomIn: vi.fn(), zoomOut: vi.fn(), fit: vi.fn(), canZoomIn: true, canZoomOut: true, ...patch };
-      zoomMock.calls.length = 0;
-    };
 
     // Protects: zoom is wheel, pinch and keys only; the tools row has undo, redo and Fine-tune edges, no zoom buttons.
     it('renders no zoom buttons, only undo, redo and the Fine-tune toggle in the tools row', () => {
-      set({});
       mount(page(1));
       expect(names().filter(Boolean)).toEqual([t.undo, t.redo]);
       expect(container!.textContent).not.toMatch(/Zoom|Fit the page/);
@@ -135,23 +121,21 @@ describe('ScanCornersView', () => {
     });
 
     it('hands the hook the photo area and a key that changes with the page and its turns', () => {
-      set({ zoom: 1.5 });
       mount(page(1));
-      const first = zoomMock.calls[0];
+      const first = zoomCalls()[0];
       expect(first.area.current).toBe(container!.querySelector('[data-photo-area]'));
       expect(first.area.current).not.toBeNull();
-      zoomMock.calls.length = 0;
+      vi.mocked(useCornerZoom).mockClear();
       act(() => render(view(page(2)), container!));
       act(() => render(view(page(2, 1)), container!));
-      const keys = zoomMock.calls.map((c) => c.key);
+      const keys = zoomCalls().map((c) => c.key);
       expect(keys.at(-1)).not.toBe(keys[0]);
       expect(new Set(['1|0', '2|0', '2|1']).size).toBe(3);
-      expect(zoomMock.calls.some((c) => c.key === '2|0')).toBe(true);
-      expect(zoomMock.calls.some((c) => c.key === '2|1')).toBe(true);
+      expect(zoomCalls().some((c) => c.key === '2|0')).toBe(true);
+      expect(zoomCalls().some((c) => c.key === '2|1')).toBe(true);
     });
 
     it('shows none of them on an unreadable photo', () => {
-      set({});
       mount(page(1), true);
       expect(names().filter(Boolean)).toEqual([]);
     });

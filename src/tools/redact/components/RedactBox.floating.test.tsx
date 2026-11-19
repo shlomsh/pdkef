@@ -3,16 +3,9 @@ import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { describe, expect, it, vi } from 'vitest';
 
-const clampSpy = vi.hoisted(() => vi.fn());
 const flipSpy = vi.hoisted(() => vi.fn());
 
-vi.mock('#editor-ui/hooks/visualViewportClamp.ts', async (importOriginal) => ({
-  ...(await importOriginal<any>()),
-  default: (opts: unknown) => {
-    clampSpy(opts);
-    return { name: 'visualViewportClamp', fn: () => ({}) };
-  },
-}));
+vi.mock('#editor-ui/hooks/visualViewportClamp.ts', { spy: true });
 
 vi.mock('@floating-ui/react', async (importOriginal) => {
   const actual = await importOriginal<any>();
@@ -25,6 +18,7 @@ vi.mock('@floating-ui/react', async (importOriginal) => {
   };
 });
 
+import visualViewportClamp from '#editor-ui/hooks/visualViewportClamp.ts';
 import RedactBox, { BOX_TOOLBAR_GAP } from './RedactBox.tsx';
 
 const EL: RedactBoxElement = { id: 'a', type: 'blackout', left: 10, top: 10, width: 30, height: 10, pageIndex: 0 };
@@ -43,7 +37,7 @@ describe('RedactBox floating middleware options (RED-53)', () => {
         color={{ onPick: () => {}, onMatchPage: () => {}, eyedropping: false, onToggleEyedropper: () => {} }} />,
       container,
     ));
-    expect(clampSpy).toHaveBeenCalledWith(expect.objectContaining({ mainAxisGap: BOX_TOOLBAR_GAP }));
+    expect(visualViewportClamp).toHaveBeenCalledWith(expect.objectContaining({ mainAxisGap: BOX_TOOLBAR_GAP }));
     const flipOpts = flipSpy.mock.calls[0][0];
     expect(flipOpts.padding).toEqual({ top: BOX_TOOLBAR_GAP, bottom: BOX_TOOLBAR_GAP });
     expect(flipOpts.padding).not.toHaveProperty('left');

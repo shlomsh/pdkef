@@ -14,12 +14,8 @@ import { installToolHarness, type ToolHarness } from '../../test/harness/toolHar
 import { takeArrival } from '#lib/handoff/fileArrival.ts';
 import { loadDraft, readRecentFiles, saveDraft } from '#lib/drafts/draftStore.ts';
 
-// EDGE: the flatten animation paints the photo into a 2d canvas context, which jsdom does not have.
-// Analytics and draftStore run for real over the harness.
-vi.mock('./lib/flattenAnimation.ts', async (importOriginal) => ({
-  ...(await importOriginal()),
-  playFlatten: vi.fn(() => () => {}),
-}));
+// The flatten animation runs for real; jsdom has no layout, so it lands on its zero-size early return. The spy only reads its calls.
+vi.mock('./lib/flattenAnimation.ts', { spy: true });
 
 // EDGE: the pipeline decodes photos and draws and encodes canvases (createImageBitmap, 2d context, toBlob), none of which jsdom has.
 vi.mock('./lib/scanPipeline.ts', () => ({

@@ -1,25 +1,11 @@
 import { act } from 'preact/test-utils';
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import PdfRedactTool from './PdfRedactTool.tsx';
 import { CHECKING } from './lib/check/checkCopy.ts';
 import * as gestureController from '#lib/gestures/controller.ts';
 import { waitUntil } from '../../test/support/waitUntil.ts';
 import { installToolHarness } from '../../test/harness/toolHarness.ts';
 import { useRedactSuite, required, query, setSelectedBoxColor } from '../../test/support/redactTool.tsx';
-
-// pdf.js and the canvas are faked by the shared suite (src/test/support/redactTool.tsx); only the ring
-// sampler is steered per test, through `pageSampler`.
-vi.mock('#editor-ui/whiteout/pageSampling.ts', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('#editor-ui/whiteout/pageSampling.ts')>();
-  const { pageSampler } = await import('../../test/support/redactTool.tsx');
-  return {
-    ...actual,
-    sampleRingColor: (canvas: HTMLCanvasElement | null | undefined, box: { left: number; top: number; width: number; height: number }) => {
-      pageSampler.calls.push({ canvas, box });
-      return pageSampler.impl(canvas, box);
-    },
-  };
-});
 
 describe('PdfRedactTool UI flow', () => {
   const { s, loadFileAndGetDrawArea, armTool, drawBox } = useRedactSuite({ Tool: PdfRedactTool, checking: CHECKING, gestureController, installToolHarness, waitUntil });

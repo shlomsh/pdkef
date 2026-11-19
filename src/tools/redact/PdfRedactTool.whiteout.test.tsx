@@ -5,25 +5,16 @@ import PdfRedactTool from './PdfRedactTool.tsx';
 import { CHECKING } from './lib/check/checkCopy.ts';
 import { DEFAULT_BLUR_STRENGTH } from '#editor/model/blurStrength.ts';
 import { rememberAppStyle, getRecentWhiteoutColors, rememberRecentWhiteoutColor } from '#editor/workspace/preferenceStore.ts';
+import { sampleRingColor } from '#editor-ui/whiteout/pageSampling.ts';
 import { saveDraft } from '#lib/drafts/draftStore.ts';
 import * as gestureController from '#lib/gestures/controller.ts';
 import { waitUntil } from '../../test/support/waitUntil.ts';
 import { installToolHarness } from '../../test/harness/toolHarness.ts';
-import { useRedactSuite, buildPdf, required, query, settleUntil, dragBlurSlider, setSelectedBoxColor, pageSampler } from '../../test/support/redactTool.tsx';
+import { useRedactSuite, buildPdf, required, query, settleUntil, dragBlurSlider, setSelectedBoxColor } from '../../test/support/redactTool.tsx';
 
-// pdf.js and the canvas are faked by the shared suite (src/test/support/redactTool.tsx); only the ring
-// sampler is steered per test, through `pageSampler`.
-vi.mock('#editor-ui/whiteout/pageSampling.ts', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('#editor-ui/whiteout/pageSampling.ts')>();
-  const { pageSampler } = await import('../../test/support/redactTool.tsx');
-  return {
-    ...actual,
-    sampleRingColor: (canvas: HTMLCanvasElement | null | undefined, box: { left: number; top: number; width: number; height: number }) => {
-      pageSampler.calls.push({ canvas, box });
-      return pageSampler.impl(canvas, box);
-    },
-  };
-});
+// jsdom cannot read a page's pixels, so the real ring sampler stays in place and only its answer is
+// forced per test (`vi.mocked(sampleRingColor).mockImplementation`), where a test needs a page colour.
+vi.mock('#editor-ui/whiteout/pageSampling.ts', { spy: true });
 
 /** An earlier visit's saved work, written through the real saveDraft into the harness's IndexedDB. */
 async function seedDraft(work: { elements: unknown[]; extra: Record<string, unknown> }): Promise<void> {
@@ -60,12 +51,11 @@ describe('PdfRedactTool UI flow', () => {
     const byGeometry = (_canvas: unknown, box: { top: number }) => (box.top < 20.5 ? CREAM : BLUE);
 
     beforeEach(() => {
-      pageSampler.calls.length = 0;
-      pageSampler.impl = byGeometry;
+      vi.mocked(sampleRingColor).mockReset();
+      vi.mocked(sampleRingColor).mockImplementation(byGeometry);
     });
     afterEach(() => {
-      pageSampler.impl = () => null;
-      pageSampler.calls.length = 0;
+      vi.mocked(sampleRingColor).mockReset();
     });
 
     const surfaces = () => Array.from(s.container.querySelectorAll<HTMLElement>('.redact-surface--whiteout'));
@@ -104,10 +94,10 @@ describe('PdfRedactTool UI flow', () => {
       expect(surfaceColor()).toBe(rgb(CREAM));
       expect(autoPressed()).toBe('true');
       const pageCanvas = query<HTMLCanvasElement>(s.container, '[data-editor-page-card] canvas');
-      const drawCall = required(pageSampler.calls[0], 'the draw-time sample');
-      expect(drawCall.canvas).toBe(pageCanvas);
-      expect(drawCall.box.left).toBeCloseTo(10);
-      expect(drawCall.box.top).toBeCloseTo(20);
+      const drawCall = required(vi.mocked(sampleRingColor).mock.calls[0], 'the draw-time sample');
+      expect(drawCall[0]).toBe(pageCanvas);
+      expect(drawCall[1].left).toBeCloseTo(10);
+      expect(drawCall[1].top).toBeCloseTo(20);
     });
 
     it('moving an auto whiteout re-samples it, and one Undo restores the position and the colour together', async () => {
@@ -130,10 +120,10 @@ describe('PdfRedactTool UI flow', () => {
       expect(surfaceColor()).toBe(rgb('#123456'));
       expect(autoPressed()).toBe('false');
 
-      pageSampler.calls.length = 0;
+      vi.mocked(sampleRingColor).mockClear();
       await nudgeDown();
       expect(surfaceColor()).toBe(rgb('#123456'));
-      expect(pageSampler.calls).toHaveLength(0);
+      expect(sampleRingColor).not.toHaveBeenCalled();
     });
 
     it('Auto after a custom colour follows the page again, and one Undo brings the custom colour back', async () => {
@@ -251,16 +241,16 @@ describe('PdfRedactTool UI flow', () => {
       await selectBox(query<HTMLElement>(s.container, '[data-redact-box-id]'));
       expect(surfaceColor()).toBe(rgb('#abcdef'));
 
-      pageSampler.calls.length = 0;
+      vi.mocked(sampleRingColor).mockClear();
       await nudgeDown();
       expect(surfaceColor()).toBe(rgb('#abcdef'));
-      expect(pageSampler.calls).toHaveLength(0);
+      expect(sampleRingColor).not.toHaveBeenCalled();
     });
 
     it('a duplicate of an auto whiteout is sampled at its own position', async () => {
       await drawWhiteoutAndSelect();
       // Only the original's exact spot reads cream; anywhere else reads blue.
-      pageSampler.impl = (_canvas, box) => (Math.abs(box.top - 20) < 0.01 && Math.abs(box.left - 10) < 0.01 ? CREAM : BLUE);
+      vi.mocked(sampleRingColor).mockImplementation((_canvas, box) => (Math.abs(box.top - 20) < 0.01 && Math.abs(box.left - 10) < 0.01 ? CREAM : BLUE));
       const duplicate = query<HTMLButtonElement>(s.container, '[data-editor-actions] button[title="Duplicate"]');
       await act(async () => { duplicate.dispatchEvent(new MouseEvent('click', { bubbles: true })); });
 
@@ -274,7 +264,7 @@ describe('PdfRedactTool UI flow', () => {
       const pageColors = [CREAM, BLUE, '#e0f0e0'];
       const canvases = Array.from(s.container.querySelectorAll<HTMLCanvasElement>('[data-editor-page-card] canvas'));
       expect(canvases).toHaveLength(3);
-      pageSampler.impl = (canvas) => pageColors[canvases.indexOf(canvas as HTMLCanvasElement)] ?? null;
+      vi.mocked(sampleRingColor).mockImplementation((canvas) => pageColors[canvases.indexOf(canvas as HTMLCanvasElement)] ?? null);
 
       const repeat = query<HTMLButtonElement>(s.container, '[data-editor-actions] [data-editor-repeat-every-page]');
       await act(async () => { repeat.dispatchEvent(new MouseEvent('click', { bubbles: true })); });

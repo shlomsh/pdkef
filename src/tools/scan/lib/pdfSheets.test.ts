@@ -1,24 +1,28 @@
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { gray, leaning } from '#lib/pageEnhance/leaning.test-helper.ts';
 import type { Book } from '#lib/pageEnhance/photoPage.ts';
 import type { GrayImage, Quad } from '#lib/pageEnhance/quad.ts';
 import { onTable, textPage } from '#lib/pageEnhance/textPage.test-helper.ts';
 import { pdfSheets, readsRightToLeft, type PdfSheet, type SheetBorder, type SheetReader } from './pdfSheets.ts';
 import { FULL_QUAD } from './quad.ts';
+import { assess } from '#lib/pageEnhance/plan.ts';
+import { onThePaper } from './sheetCorners.ts';
 
 // What textTurn would say about a sideways sheet: the synthetic bars are no text, so a tall picture of a wide
-// sheet is declared sideways here and everything else is the real assess.
+// sheet is declared sideways here (a forced state the real read cannot give) and everything else is the real assess.
 let nextTurn = () => 1;
-vi.mock('#lib/pageEnhance/plan.ts', async (importActual) => {
-  const actual = await importActual<typeof import('#lib/pageEnhance/plan.ts')>();
-  return { ...actual, assess: (gray: GrayImage, book?: Book) => ({ ...actual.assess(gray, book), ...(gray.height === 800 && gray.width === 560 ? { turn: nextTurn() } : {}) }) };
-});
+vi.mock('#lib/pageEnhance/plan.ts', { spy: true });
+vi.mock('./sheetCorners.ts', { spy: true });
+const actualPlan = await vi.importActual<typeof import('#lib/pageEnhance/plan.ts')>('#lib/pageEnhance/plan.ts');
 
-// Edge following is the real one unless a test names what it does to the planned corners, so the wiring can be seen without a photo it agrees with.
-let followed: ((planned: Quad) => Quad) | undefined;
-vi.mock('./sheetCorners.ts', async (importActual) => {
-  const actual = await importActual<typeof import('./sheetCorners.ts')>();
-  return { ...actual, onThePaper: (planned: Quad, g: GrayImage) => (followed ? followed(planned) : actual.onThePaper(planned, g)) };
+// Edge following is the real one; the spy shows whether it ran, and a test that names what it does to the planned corners forces just that.
+beforeEach(() => {
+  vi.mocked(assess).mockImplementation((gray: GrayImage, book?: Book) => ({ ...actualPlan.assess(gray, book), ...(gray.height === 800 && gray.width === 560 ? { turn: nextTurn() } : {}) }));
+  vi.mocked(onThePaper).mockClear();
+});
+afterEach(() => {
+  vi.mocked(assess).mockReset();
+  vi.mocked(onThePaper).mockReset();
 });
 
 // A white sheet with a dark spine down the middle and rows of dark bars either side: a two-page spread.
@@ -166,43 +170,37 @@ describe('pdfSheets', () => {
   });
 
   it('leaves a clean sheet whole, with no border, however the paper edge is followed', async () => {
-    followed = () => { throw new Error('a whole-picture plan is not followed'); };
-    try {
-      const r = reader(() => blank(600, 800));
-      const [sheet] = await collect(pdfSheets(pdf, undefined, r));
-      expect(sheet.quads).toEqual([FULL_QUAD]);
-      expect(r.calls.jpeg[0][3]).toEqual({ left: 0, top: 0, right: 0, bottom: 0 });
-    } finally { followed = undefined; }
+    const r = reader(() => blank(600, 800));
+    const [sheet] = await collect(pdfSheets(pdf, undefined, r));
+    expect(onThePaper).not.toHaveBeenCalled();
+    expect(sheet.quads).toEqual([FULL_QUAD]);
+    expect(r.calls.jpeg[0][3]).toEqual({ left: 0, top: 0, right: 0, bottom: 0 });
   });
 
   it('keeps a crooked scanner sheet\'s planned quad exactly, and never follows an edge on it: its only edge is the picture\'s own frame', async () => {
     const crooked = () => gray(leaning(600, 800, 3.5, 40, 560));
-    followed = () => { throw new Error('a scanner sheet has no paper edge to follow'); };
-    try {
-      const [sheet] = await collect(pdfSheets(pdf, undefined, reader(crooked)));
-      expect(sheet.quads).toHaveLength(1);
-      expect(sheet.quads[0]).not.toEqual(FULL_QUAD);
-    } finally { followed = undefined; }
+    const [sheet] = await collect(pdfSheets(pdf, undefined, reader(crooked)));
+    expect(onThePaper).not.toHaveBeenCalled();
+    expect(sheet.quads).toHaveLength(1);
+    expect(sheet.quads[0]).not.toEqual(FULL_QUAD);
   });
 
   it('moves a photographed page\'s corners onto the followed edge', async () => {
     const photo = () => onTable(textPage());
-    try {
-      followed = (planned) => planned;
-      const [plain] = await collect(pdfSheets(pdf, undefined, reader(photo)));
-      expect(plain.quads).toHaveLength(1);
-      // The followed edge sits a little outside each planned corner, in the picture's own 0 to 1.
-      const outward = (planned: Quad) => planned.map((p) => ({ x: p.x + (p.x < 0.5 ? -0.02 : 0.02), y: p.y + (p.y < 0.5 ? -0.02 : 0.02) })) as Quad;
-      let planned: Quad | undefined;
-      followed = (q) => { planned = q; return outward(q); };
-      const r = reader(photo);
-      const [moved] = await collect(pdfSheets(pdf, undefined, r));
-      expect(moved.quads[0]).not.toEqual(plain.quads[0]);
-      const expected = outward(planned!);
-      const border = r.calls.jpeg[0][3];
-      const back = moved.quads[0].map(({ x, y }) => ({ x: x * (1 + border.left + border.right) - border.left, y: y * (1 + border.top + border.bottom) - border.top }));
-      back.forEach((p, i) => { expect(p.x).toBeCloseTo(expected[i].x, 6); expect(p.y).toBeCloseTo(expected[i].y, 6); });
-    } finally { followed = undefined; }
+    const [plain] = await collect(pdfSheets(pdf, undefined, reader(photo)));
+    expect(plain.quads).toHaveLength(1);
+    expect(onThePaper).toHaveBeenCalledTimes(1);
+    // Forced: the followed edge sits a little outside each planned corner, in the picture's own 0 to 1.
+    const outward = (planned: Quad) => planned.map((p) => ({ x: p.x + (p.x < 0.5 ? -0.02 : 0.02), y: p.y + (p.y < 0.5 ? -0.02 : 0.02) })) as Quad;
+    let planned: Quad | undefined;
+    vi.mocked(onThePaper).mockImplementation((q) => { planned = q; return outward(q); });
+    const r = reader(photo);
+    const [moved] = await collect(pdfSheets(pdf, undefined, r));
+    expect(moved.quads[0]).not.toEqual(plain.quads[0]);
+    const expected = outward(planned!);
+    const border = r.calls.jpeg[0][3];
+    const back = moved.quads[0].map(({ x, y }) => ({ x: x * (1 + border.left + border.right) - border.left, y: y * (1 + border.top + border.bottom) - border.top }));
+    back.forEach((p, i) => { expect(p.x).toBeCloseTo(expected[i].x, 6); expect(p.y).toBeCloseTo(expected[i].y, 6); });
   });
 
   it('yields a spread as pieces and the whole-sheet fallback as one page', async () => {
@@ -216,14 +214,12 @@ describe('pdfSheets', () => {
   });
 
   it('keeps a split spread\'s pieces exactly as planned, whatever edge following would say', async () => {
-    try {
-      followed = (planned) => planned;
-      const [plain] = await collect(pdfSheets(pdf, undefined, reader(() => spread(800, 560))));
-      followed = () => quad01;
-      const [guessed] = await collect(pdfSheets(pdf, undefined, reader(() => spread(800, 560))));
-      expect(plain.quads).toHaveLength(2);
-      expect(guessed.quads).toEqual(plain.quads);
-    } finally { followed = undefined; }
+    const [plain] = await collect(pdfSheets(pdf, undefined, reader(() => spread(800, 560))));
+    expect(onThePaper).not.toHaveBeenCalled();
+    vi.mocked(onThePaper).mockImplementation(() => quad01); // forced: what following would say
+    const [guessed] = await collect(pdfSheets(pdf, undefined, reader(() => spread(800, 560))));
+    expect(plain.quads).toHaveLength(2);
+    expect(guessed.quads).toEqual(plain.quads);
   });
 
   it('gives a single page one quad', async () => {

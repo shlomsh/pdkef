@@ -2,7 +2,7 @@
 
 # Backlog
 
-The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 184 live: 81 up next, 24 then, 26 waiting, 53 parked.
+The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 186 live: 81 up next, 24 then, 26 waiting, 55 parked.
 
 ## Redact: finish removal
 
@@ -20,6 +20,8 @@ Find covers exactly what it matched, Delete reaches every object, and the saved-
 | ID | P | Task | Note |
 | --- | --- | --- | --- |
 | RED-58 | P3 | [RED-58](backlog/tasks/RED-58.md) · The two redaction guides speak the tool's words, as the Redact page now does |  |
+| RED-75 | P3 | [RED-75](backlog/tasks/RED-75.md) · Delete's page previews free their pdf.js documents |  |
+| RED-76 | P3 | [RED-76](backlog/tasks/RED-76.md) · Delete's text preview reads a page with one very long line |  |
 
 ## Sign: finish fill mode
 

@@ -2,30 +2,30 @@ import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ScanWork } from '../state/scanWork.ts';
+import type { Quad } from '#lib/pageEnhance/quad.ts';
+import { pdfSheets } from '../lib/pdfSheets.ts';
 import { useScanPdfPages } from './useScanPdfPages.ts';
 
 vi.mock('#lib/telemetry/errorReport.ts', () => ({ reportError: vi.fn() }));
 const gates: Array<() => void> = [];
 let gateReached = Promise.withResolvers<void>();
-let failing = false;
 const sheetFile = () => new File(['x'], 's.png', { type: 'image/png' });
-const QUAD = [{ x: 0, y: 0 }, { x: 1, y: 0 }, { x: 1, y: 1 }, { x: 0, y: 1 }];
+const QUAD: Quad = [{ x: 0, y: 0 }, { x: 1, y: 0 }, { x: 1, y: 1 }, { x: 0, y: 1 }];
+// The real sheet reader runs for a PDF it cannot open. Rendering a real sheet needs pdf.js on a canvas, which
+// jsdom lacks, so the tests that need sheets to arrive one by one force them here (browser-mode wave).
+vi.mock('../lib/pdfSheets.ts', { spy: true });
 // Each sheet after the first waits for the test to let it through.
-vi.mock('../lib/pdfSheets.ts', () => ({
-  pdfSheets: async function* () {
-    if (failing) throw new Error('cannot open');
-    yield { file: sheetFile(), quads: [QUAD] };
-    await new Promise<void>((resolve) => { gates.push(resolve); gateReached.resolve(); });
-    yield { file: sheetFile(), quads: [QUAD] };
-  },
-}));
+const gatedSheets = () => vi.mocked(pdfSheets).mockImplementationOnce(async function* () {
+  yield { file: sheetFile(), quads: [QUAD], question: null };
+  await new Promise<void>((resolve) => { gates.push(resolve); gateReached.resolve(); });
+  yield { file: sheetFile(), quads: [QUAD], question: null };
+});
 
 let container: HTMLElement | null = null;
 afterEach(() => {
   if (container) { act(() => render(null, container!)); container.remove(); container = null; }
   gates.length = 0;
   gateReached = Promise.withResolvers<void>();
-  failing = false;
 });
 
 function mount(work: ScanWork) {
@@ -46,6 +46,7 @@ const pdf = () => new File(['x'], 'a.pdf', { type: 'application/pdf' });
 
 describe('useScanPdfPages', () => {
   it('adds no sheet that arrives after the import was cancelled, and reports no failure', async () => {
+    gatedSheets();
     const work = new ScanWork();
     const { added, skipped, open } = mount(work);
     const done = open(pdf());
@@ -60,6 +61,7 @@ describe('useScanPdfPages', () => {
 
   // Protects: a PDF sheet never opens with Fine-tune edges on, whatever the sheet looked like.
   it('opens every PDF sheet with fine off', async () => {
+    gatedSheets();
     const { added, open } = mount(new ScanWork());
     const done = open(pdf());
     await gateReached.promise;
@@ -69,7 +71,6 @@ describe('useScanPdfPages', () => {
   });
 
   it('names each PDF it could not open, as a PDF that could not be opened', async () => {
-    failing = true;
     const { skipped, open } = mount(new ScanWork());
     await open(new File(['x'], 'a.pdf', { type: 'application/pdf' }));
     await open(new File(['x'], 'b.pdf', { type: 'application/pdf' }));
@@ -77,6 +78,7 @@ describe('useScanPdfPages', () => {
   });
 
   it('still imports after a cancel', async () => {
+    gatedSheets();
     const work = new ScanWork();
     const { added, open } = mount(work);
     work.cancelPdfImport();

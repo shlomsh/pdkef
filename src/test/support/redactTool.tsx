@@ -5,8 +5,7 @@ import { PDFDocument } from '@cantoo/pdf-lib';
 import { setInputFiles } from './setInputFiles.js';
 import { drainPromises } from './drainPromises.ts';
 
-// Shared fixtures and the suite setup for the PdfRedactTool.*.test.tsx files. vi.mock is hoisted per
-// file, so each of those files repeats the pageSampling mock and steers `pageSampler` from here.
+// Shared fixtures and the suite setup for the PdfRedactTool.*.test.tsx files.
 
 
 export function required<T>(value: T | null | undefined, description: string): T {
@@ -49,7 +48,7 @@ export async function dragBlurSlider(value: number, steps: number[] = []): Promi
   await act(async () => { input.dispatchEvent(new Event('change', { bubbles: true })); });
 }
 
-// EDGE 1 of 2: pdf.js cannot run its worker or paint in jsdom, so `pdfjs-dist` is faked by the harness
+// EDGE: pdf.js cannot run its worker or paint in jsdom, so `pdfjs-dist` is faked by the harness
 // (src/test/harness/pdfjsEdges.ts, steered through `harness.pdfjs`) and nowhere else. Everything above it
 // (redactPdf and its flatten/assemble, the page-text and saved-file-check hooks, useDocumentDetails,
 // removePlaces, draftStore, analytics, error reports, the gesture controller) runs for real. The fake pages
@@ -102,17 +101,6 @@ export function makePdfFile(name: string, bytes?: Uint8Array): File {
 
 
 
-
-// EDGE 2 of 2: jsdom cannot read a canvas's pixels, so the ring sampler is steered per test
-// (each test file's vi.mock of pageSampling reads this). Also the one pixel read the eyedropper and the
-// saved-file check share.
-// RED-51: jsdom cannot read a page, so the ring sampler is steered per test.
-// The default is null (what jsdom gives today); the recorder is a plain
-// function so vi.restoreAllMocks() in a file's afterEach cannot wipe it.
-export const pageSampler = {
-  impl: (() => null) as (canvas: HTMLCanvasElement | null | undefined, box: { left: number; top: number; width: number; height: number }) => string | null,
-  calls: [] as Array<{ canvas: HTMLCanvasElement | null | undefined; box: { left: number; top: number; width: number; height: number } }>,
-};
 
 // RED-51: sets the selected box's colour through its toolbar's colour input.
 export async function setSelectedBoxColor(color: string) {

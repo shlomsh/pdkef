@@ -12,20 +12,6 @@ import { useRedactSuite, required, query, settleUntil, canvasEdge } from '../../
 
 declare const __dirname: string;
 
-// pdf.js and the canvas are faked by the shared suite (src/test/support/redactTool.tsx); only the ring
-// sampler is steered per test, through `pageSampler`.
-vi.mock('#editor-ui/whiteout/pageSampling.ts', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('#editor-ui/whiteout/pageSampling.ts')>();
-  const { pageSampler } = await import('../../test/support/redactTool.tsx');
-  return {
-    ...actual,
-    sampleRingColor: (canvas: HTMLCanvasElement | null | undefined, box: { left: number; top: number; width: number; height: number }) => {
-      pageSampler.calls.push({ canvas, box });
-      return pageSampler.impl(canvas, box);
-    },
-  };
-});
-
 describe('PdfRedactTool UI flow', () => {
   const { s, loadFileAndGetDrawArea, armTool, drawBox, loadFileWithoutArming } = useRedactSuite({ Tool: PdfRedactTool, checking: CHECKING, gestureController, installToolHarness, waitUntil });
 

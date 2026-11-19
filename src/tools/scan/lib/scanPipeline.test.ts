@@ -12,11 +12,8 @@ import { reportError } from '#lib/telemetry/errorReport.ts';
 vi.mock('#lib/telemetry/errorReport.ts', () => ({ reportError: vi.fn() }));
 
 // The pure collaborators (warp, filters, quad maths, the budget search, imagesToPdf) are the real ones;
-// warpPerspective is wrapped only to read the pixel quad the pipeline hands it.
-vi.mock('#lib/pageEnhance/warp.ts', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('#lib/pageEnhance/warp.ts')>();
-  return { ...actual, warpPerspective: vi.fn(actual.warpPerspective) };
-});
+// the warp spy only reads the pixel quad the pipeline hands it.
+vi.mock('#lib/pageEnhance/warp.ts', { spy: true });
 
 // EDGE: node has no <img>, canvas or createImageBitmap. These fakes keep real pixels (a canvas holds an
 // RGBA buffer, drawImage resamples nearest-neighbour) and a JPEG "encoder" whose bytes are a valid JPEG

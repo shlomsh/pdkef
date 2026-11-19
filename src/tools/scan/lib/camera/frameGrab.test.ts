@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-vi.mock('#lib/images/canvasBlob.js', () => ({ canvasToBlob: vi.fn(async () => new Blob(['jpg'])) }));
+// The real encoder runs on the fake canvas's toBlob; the spy only sees what it was asked for.
+vi.mock('#lib/images/canvasBlob.js', { spy: true });
 
 import { canvasToBlob } from '#lib/images/canvasBlob.js';
 import { frameGrabber, grabFocusPatch, grabGray, snapshot } from './frameGrab.ts';
@@ -19,7 +20,7 @@ function fakeCanvas(pixel: [number, number, number, number] = [0, 0, 0, 255]) {
       return { data };
     }),
   };
-  const canvas = { width: 0, height: 0, getContext: vi.fn(() => ctx) };
+  const canvas = { width: 0, height: 0, getContext: vi.fn(() => ctx), toBlob: (done: (blob: Blob | null) => void) => done(new Blob(['jpg'])) };
   return { canvas: canvas as unknown as HTMLCanvasElement, ctx };
 }
 const video = (videoWidth: number, videoHeight: number) => ({ videoWidth, videoHeight }) as HTMLVideoElement;
@@ -131,5 +132,6 @@ describe('snapshot', () => {
     expect(ctx.drawImage).toHaveBeenCalled();
     expect(canvasToBlob).toHaveBeenCalledWith(canvas, 'image/jpeg', 0.8);
     expect(blob).toBeInstanceOf(Blob);
+    expect(await blob.text()).toBe('jpg');
   });
 });
