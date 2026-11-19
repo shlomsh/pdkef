@@ -1,3 +1,4 @@
+// oxlint-disable landmines-structure/colocated-tests -- the subject is a corpus form, read from disk
 import fs from 'node:fs';
 import path from 'node:path';
 import { createRequire } from 'node:module';

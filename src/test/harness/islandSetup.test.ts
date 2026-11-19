@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+// oxlint-disable landmines-structure/colocated-tests -- the subject is the island setup files, which vitest.config.js loads and nothing imports
 /**
  * The island setup files (`./setup/`) fake the pdf.js edge for the island projects of vitest.config.js
  * only (ARCH-78). This test is not an island test, so it must see the real modules.

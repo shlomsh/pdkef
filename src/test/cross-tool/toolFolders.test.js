@@ -1,3 +1,4 @@
+// oxlint-disable landmines-structure/colocated-tests -- the subject is the src/tools folder tree, read from disk
 import { existsSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';

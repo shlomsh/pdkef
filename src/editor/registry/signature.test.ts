@@ -1,3 +1,4 @@
+// oxlint-disable landmines-structure/colocated-tests -- the subject is the registry's signature entry, reached through drawElements
 import { describe, expect, it, vi } from 'vitest';
 import { PDFDict, PDFDocument, PDFName, PDFRawStream } from '@cantoo/pdf-lib';
 import { drawElements } from '../export/drawElements.ts';
