@@ -70,7 +70,11 @@ hand-off ordering, the replay trigger, Split's protected build, `useImageBatch` 
 
 The watchdog's wall-clock tests (Shlomi's call, 2026-11-19: an injectable clock): its decisions moved to
 `scripts/vitest-worker-watchdog-core.mjs`, a pure stall watch whose tick a test calls directly, so the
-slow-but-yielding, paused-process and debugger cases are instant unit tests; the end-to-end file keeps
-the four cases that end on their own (about 1 s, was about 7 s). Five mutations proven.
+slow-but-yielding and debugger cases are instant unit tests. The end-to-end file keeps the cases that
+end on their own, plus the paused-process one, where real time is the subject: it waits for the watcher
+to say it is polling, freezes the worker for 2 s (the one sleep, named in `no-fixed-sleep`'s allow map),
+and waits for the worker to exit normally. The old version froze the worker before its watcher had
+started, so a watchdog that caught up on missed time after a pause passed it; now that fails. Six
+mutations proven; the file runs in about 4 s, was about 7 s.
 
 Left in this ticket: landing, which waits for the npm release with #19.

@@ -28,7 +28,7 @@
       "error",
       {
         "allow": {
-          "scripts/vitest-worker-watchdog.test.mjs": 4,
+          "scripts/vitest-worker-watchdog.test.mjs": 5,
           "src/test/cross-tool/draftCheckingPlaceholder.test.tsx": 2,
           "src/tools/redact/PdfRedactTool.export.test.tsx": 1,
           "src/tools/redact/lib/check/realForms.test.js": 1,
@@ -44,7 +44,14 @@
         }
       }
     ],
-    "landmines-testing/no-fixed-sleep": "error",
+    "landmines-testing/no-fixed-sleep": [
+      "error",
+      {
+        "allow": {
+          "scripts/vitest-worker-watchdog.test.mjs": 1
+        }
+      }
+    ],
     "landmines-testing/no-test-doubles": "error",
     "landmines-testing/strict-msw": "error",
     "landmines-structure/colocated-tests": "error",

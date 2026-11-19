@@ -4,7 +4,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 
 const WATCHDOG = fileURLToPath(new URL('./vitest-worker-watchdog.mjs', import.meta.url));
 const FAST = { VITEST_WATCHDOG_POLL_MS: '50', VITEST_WATCHDOG_STALL_MS: '600' };
-// The decisions (missed polls, a slow worker that yields, a paused process, a debugger) are unit-tested in
+// The decisions (missed polls, a slow worker that yields, a debugger) are unit-tested in
 // vitest-worker-watchdog-core.test.mjs; these run the real preload end to end.
 const NEVER_STALLS = { VITEST_WATCHDOG_POLL_MS: '50', VITEST_WATCHDOG_STALL_MS: '600000' };
 
@@ -27,15 +27,16 @@ async function untilGone(pid, ms) {
 }
 
 /** Runs `body` under the watchdog and resolves how it ended. */
-function run(body, env, nodeArgs = []) {
-  const child = spawn(process.execPath, [...nodeArgs, '--import', WATCHDOG, '-e', body], { env: { ...process.env, ...env }, stdio: ['ignore', 'ignore', 'pipe'] });
+function run(body, env, nodeArgs = [], { stdout = false } = {}) {
+  const child = spawn(process.execPath, [...nodeArgs, '--import', WATCHDOG, '-e', body], { env: { ...process.env, ...env }, stdio: ['ignore', stdout ? 'pipe' : 'ignore', 'pipe'] });
   spawned.add(child.pid);
   let stderr = '';
   child.stderr.on('data', (chunk) => { stderr += chunk; });
+  const ready = stdout ? new Promise((resolve) => { child.stdout.once('data', resolve); }) : null;
   const ended = new Promise((resolve) => {
     child.on('close', (code, signal) => resolve({ code, signal, stderr }));
   });
-  return Object.assign(ended, { pid: child.pid });
+  return Object.assign(ended, { pid: child.pid, ready });
 }
 
 /** Starts a parent that starts `body` under the watchdog, reports the child's pid, and then exits. */
@@ -73,6 +74,24 @@ describe('vitest worker watchdog', () => {
     const ended = await run('while (true) {}', FAST);
     expect(ended.signal).toBe('SIGKILL');
     expect(ended.stderr).toContain('never returned to the event loop');
+  }, 15_000);
+
+  it('does not count time the whole process spent paused, as in a laptop sleeping', async () => {
+    // Real time is the subject here: the process is frozen for longer than the stall limit, and Node's intervals must not
+    // catch up afterwards. Every other step waits for the worker itself: that its watcher is polling, and that it exits.
+    const body = `
+      const watching = setInterval(() => {
+        if (!globalThis[Symbol.for('vitest-worker-watchdog.watching')]) return;
+        clearInterval(watching);
+        require('node:fs').writeSync(1, 'ready');
+        let n = 0; const t = setInterval(() => { if (++n === 20) clearInterval(t); }, 50);
+      }, 10);`;
+    const running = run(body, { VITEST_WATCHDOG_POLL_MS: '50', VITEST_WATCHDOG_STALL_MS: '1500' }, [], { stdout: true });
+    await running.ready;
+    process.kill(running.pid, 'SIGSTOP');
+    await new Promise((resolve) => { setTimeout(resolve, 2000); });
+    process.kill(running.pid, 'SIGCONT');
+    expect(await running).toEqual({ code: 0, signal: null, stderr: '' });
   }, 15_000);
 
   it('does not keep a finished worker alive', async () => {
