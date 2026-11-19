@@ -68,5 +68,9 @@ reached), Redact previews (`useObjectPreviews`, an error is swallowed either way
 callbacks; and overlapping guards where removing one changes nothing (draft restore race, home-page
 hand-off ordering, the replay trigger, Split's protected build, `useImageBatch` after unmount).
 
-Left in this ticket: the watchdog's wall-clock tests (Shlomi's call), then landing, which waits for the
-npm release with #19.
+The watchdog's wall-clock tests (Shlomi's call, 2026-11-19: an injectable clock): its decisions moved to
+`scripts/vitest-worker-watchdog-core.mjs`, a pure stall watch whose tick a test calls directly, so the
+slow-but-yielding, paused-process and debugger cases are instant unit tests; the end-to-end file keeps
+the four cases that end on their own (about 1 s, was about 7 s). Five mutations proven.
+
+Left in this ticket: landing, which waits for the npm release with #19.

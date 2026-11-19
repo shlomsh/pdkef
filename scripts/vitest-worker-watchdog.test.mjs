@@ -4,9 +4,8 @@ import { afterEach, describe, expect, it } from 'vitest';
 
 const WATCHDOG = fileURLToPath(new URL('./vitest-worker-watchdog.mjs', import.meta.url));
 const FAST = { VITEST_WATCHDOG_POLL_MS: '50', VITEST_WATCHDOG_STALL_MS: '600' };
-// A stall limit with room for a loaded runner, and a body that outlasts it while yielding throughout.
-const ROOMY = { VITEST_WATCHDOG_POLL_MS: '50', VITEST_WATCHDOG_STALL_MS: '3000' };
-const YIELDS_FOR_3500_MS = 'let n = 0; const t = setInterval(() => { if (++n === 70) clearInterval(t); }, 50);';
+// The decisions (missed polls, a slow worker that yields, a paused process, a debugger) are unit-tested in
+// vitest-worker-watchdog-core.test.mjs; these run the real preload end to end.
 const NEVER_STALLS = { VITEST_WATCHDOG_POLL_MS: '50', VITEST_WATCHDOG_STALL_MS: '600000' };
 
 const spawned = new Set();
@@ -74,26 +73,6 @@ describe('vitest worker watchdog', () => {
     const ended = await run('while (true) {}', FAST);
     expect(ended.signal).toBe('SIGKILL');
     expect(ended.stderr).toContain('never returned to the event loop');
-  }, 15_000);
-
-  it('leaves a slow worker alone while it keeps yielding, past the stall limit', async () => {
-    const ended = await run(YIELDS_FOR_3500_MS, ROOMY);
-    expect(ended).toEqual({ code: 0, signal: null, stderr: '' });
-  }, 15_000);
-
-  it('does not count time the whole process spent paused, as in a laptop sleeping', async () => {
-    const running = run(YIELDS_FOR_3500_MS, { VITEST_WATCHDOG_POLL_MS: '50', VITEST_WATCHDOG_STALL_MS: '1500' });
-    await new Promise((resolve) => { setTimeout(resolve, 300); });
-    process.kill(running.pid, 'SIGSTOP');
-    await new Promise((resolve) => { setTimeout(resolve, 2000); });
-    process.kill(running.pid, 'SIGCONT');
-    expect(await running).toEqual({ code: 0, signal: null, stderr: '' });
-  }, 15_000);
-
-  it('leaves a stuck worker running under a debugger, which may be holding it at a breakpoint', async () => {
-    const running = run('while (true) {}', FAST, ['--inspect=0']);
-    await new Promise((resolve) => { setTimeout(resolve, 2000); });
-    expect(alive(running.pid)).toBe(true);
   }, 15_000);
 
   it('does not keep a finished worker alive', async () => {

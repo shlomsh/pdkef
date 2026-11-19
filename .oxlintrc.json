@@ -28,7 +28,7 @@
       "error",
       {
         "allow": {
-          "scripts/vitest-worker-watchdog.test.mjs": 7,
+          "scripts/vitest-worker-watchdog.test.mjs": 4,
           "src/test/cross-tool/draftCheckingPlaceholder.test.tsx": 2,
           "src/tools/redact/PdfRedactTool.export.test.tsx": 1,
           "src/tools/redact/lib/check/realForms.test.js": 1,
