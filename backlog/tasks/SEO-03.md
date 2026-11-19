@@ -318,5 +318,8 @@ Read: 2026-12-01, against the baseline above, logged in [findings doc section 8]
   free plan's cap, whole words: redact pdf, blur pdf, compress pdf to 100kb, reduce pdf size for upload, sign
   pdf in hebrew. "merge pdf without uploading" left out for the cap. Phrases match literally, so the long ones
   may stay quiet; swap them for shorter ones if they show no hits by the 2026-12-01 read.
+- 2026-11-19, F5Bot keywords swapped early: no alert email in two days. Only "redact pdf" had hits (two, on
+  2026-11-14 and 11-16, before the account existed, both app launch posts). Now, whole words: pdkef, redact a
+  pdf, compress a pdf, sign a pdf, pdf redaction. "pdkef" catches mentions of the site itself.
 - LinkedIn (Hebrew, origin story): posted about four months before the pilot, about 5,200 impressions; its
   first comment links `pdkef.vercel.app`, which redirects to pdkef.com.
