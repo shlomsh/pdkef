@@ -1,10 +1,10 @@
 ---
 id: "LAND-04"
 title: "Fewer replaced dependencies in unit tests"
-status: "open"
+status: "in_progress"
 priority: "P3"
 epic: "honest-tests"
-horizon: "later"
+horizon: "now"
 depends_on: ["LAND-02"]
 ---
 
@@ -17,7 +17,11 @@ tests the mock, not the behaviour.
 
 ## Outcome
 
-- Upstream: the rule accepts the same per-file `allow` map as `no-fixed-sleep`, so a codebase can adopt
-  it as a count that only shrinks. Issue first, then a PR, each with Shlomi's OK.
-- pdkef enables it with today's counts, and the first files to come down are the ones mocking our own
-  pure modules.
+Shlomi's call, 2026-11-19: the count comes down in waves, best value first, by the rules in
+docs/landmines/no-test-doubles.md (a rewrite must run more real code; a syntax-only change does not
+count). The rule is off on `landmines-all` meanwhile.
+
+- Waves land on `landmines-all`, our own modules replaced with `vi.mock` first.
+- Upstream: the rule accepts the same per-file `allow` map as `no-fixed-sleep`. Opened only after our
+  PRs #21 and #33 are resolved, with Shlomi's OK.
+- pdkef then turns the rule on with the count left as an allow list that only shrinks.
