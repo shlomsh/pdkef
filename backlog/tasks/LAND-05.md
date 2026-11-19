@@ -31,6 +31,6 @@ does not live in. On branch `landmines-all` it reported 13 tests.
   Sign language page, the tool folder tree, three Sign corpus forms), the registry's signature entry
   reached through `drawElements`, and the island setup files that `vitest.config.js` loads.
 - Waiting on upstream (2): `src/site-lib/reportContract.test.ts` (with `api/report.ts`) and
-  `scripts/ratings-read.test.mjs` (with `scripts/ratings-read.mjs`). The fix and its tests are ready
-  on a local branch, with upstream's checks green; the PR waits for Shlomi's review. Once it ships,
-  the rule stops reporting both, with no change here.
+  `scripts/ratings-read.test.mjs` (with `scripts/ratings-read.mjs`). Posted as
+  https://github.com/interfere-inc/landmines/pull/33 (upstream's checks green before posting). Once it
+  ships, the rule stops reporting both, with no change here.
