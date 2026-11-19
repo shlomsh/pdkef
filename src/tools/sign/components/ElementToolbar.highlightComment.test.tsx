@@ -1,8 +1,8 @@
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { describe, it, expect, afterEach, vi } from 'vitest';
-import ElementToolbar from '../ElementToolbar.tsx';
-import { SignToolContext, type SignToolContextValue } from '../SignToolContext.tsx';
+import ElementToolbar from './ElementToolbar.tsx';
+import { SignToolContext, type SignToolContextValue } from './SignToolContext.tsx';
 import type { HighlightElement } from '#editor/model/editorModel.ts';
 
 const make = (over: Partial<HighlightElement>): HighlightElement => ({

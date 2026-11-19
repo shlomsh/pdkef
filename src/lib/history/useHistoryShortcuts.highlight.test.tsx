@@ -1,7 +1,7 @@
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { useHistoryShortcuts } from '#lib/history/useHistoryShortcuts.js';
+import { useHistoryShortcuts } from './useHistoryShortcuts.js';
 
 let container: HTMLElement | null = null;
 const undo = vi.fn();
