@@ -1,32 +1,26 @@
 import { render } from 'preact';
+import { waitUntil } from '../../../test/support/waitUntil.ts';
 import { drainPromises } from '../../../test/support/drainPromises.ts';
 import type * as preact from 'preact';
 import { act } from 'preact/test-utils';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { CommentElement, EditorElement, HighlightElement } from '#editor/model/editorModel.ts';
-import { swallowNextClick } from '#lib/gestures/swallowNextClick.ts';
+import type { PDFDocumentProxy } from 'pdfjs-dist';
 import { DEFAULT_MARKER } from '../lib/marker/markerState.ts';
 
-const startHighlightSwipe = vi.fn();
-vi.mock('#editor-ui/highlight/highlightSwipeGesture.ts', () => ({ startHighlightSwipe }));
-const readScanUnit = vi.fn();
-vi.mock('../lib/marker/scanUnits.ts', () => ({ readScanUnit }));
-vi.mock('#editor-ui/PdfPageCanvas.tsx', () => ({ default: () => <canvas data-canvas /> }));
+// Spy-through: the real swipe gesture runs on the real events and the spy shows what the page handed it. readScanUnit
+// reads a displayed canvas's pixels, which jsdom cannot paint, so a test that needs a word forces it on the spy.
+vi.mock('#editor-ui/highlight/highlightSwipeGesture.ts', { spy: true });
+vi.mock('../lib/marker/scanUnits.ts', { spy: true });
+import { startHighlightSwipe } from '#editor-ui/highlight/highlightSwipeGesture.ts';
+import { readScanUnit } from '../lib/marker/scanUnits.ts';
 
-let geometryOverride: { width: number; height: number } | null = null;
-vi.mock('../hooks/usePageGeometry.ts', async (importOriginal) => {
-  const original = await importOriginal<typeof import('../hooks/usePageGeometry.ts')>();
-  return { usePageGeometry: (...args: Parameters<typeof original.usePageGeometry>) => {
-    const real = original.usePageGeometry(...args);
-    return geometryOverride ? { ...real, geometry: geometryOverride as never } : real;
-  } };
-});
-vi.mock('../lib/outline/markOutline.ts', () => ({ outlineStrokes: () => [[[0, 0], [10, 0]], [[10, 0], [10, 10]]], outlineWobble: () => 1 }));
-vi.mock('#editor/geometry/sketchStroke.ts', () => ({
-  strokeSeed: () => 7, sketchBands: vi.fn(() => [['Z']]), sketchUnderline: vi.fn(() => [['Z']]), svgPath: () => 'M0 0Z',
-}));
+// A page the real geometry hook reads: 600 x 800 points, no text.
+const SIZED_PAGE = { getViewport: () => ({ width: 600, height: 800 }), view: [0, 0, 600, 800], rotate: 0, getTextContent: async () => ({ items: [] }) };
+const sizedDocument = { getPage: async () => SIZED_PAGE } as unknown as PDFDocumentProxy;
+let sized = false;
 
-const { default: HighlightPage } = await import('./HighlightPage.tsx');
+import HighlightPage from './HighlightPage.tsx';
 
 const mark: HighlightElement = {
   id: 'h1', type: 'highlight', pageIndex: 0, left: 10, top: 20, width: 30, height: 4,
@@ -46,7 +40,7 @@ const rearm = vi.fn();
 function mount(elements: EditorElement[], marker = DEFAULT_MARKER, armed?: boolean, extra: { chrome?: number; onRemoved?: (at: { x: number; y: number }) => void; pickedId?: string | null; openMarks?: { openId: string | null; hoverId: string | null }; onPickMark?: (id: string) => void; onComment?: (mark: HighlightElement) => void; rail?: preact.ComponentChildren; pageTurns?: Record<number, 1 | 2 | 3> } = {}) {
   act(() => render(
     <HighlightPage
-      pdfDocument={null} pageIndex={0} widthPx={600} elements={elements} marker={marker} armed={armed} {...extra}
+      pdfDocument={sized ? sizedDocument : null} pageIndex={0} widthPx={600} elements={elements} marker={marker} armed={armed} {...extra}
       dispatch={dispatch} logAction={logAction} rearm={rearm} setAnnouncement={() => {}} cardRef={() => {}} onRotate={() => {}} onClear={() => {}}
     />,
     container,
@@ -68,29 +62,34 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  // a swipe still going when its test ends would carry its release, and the click it swallows, into the next test
+  act(() => { window.dispatchEvent(new MouseEvent('mouseup')); window.dispatchEvent(new Event('touchend')); });
+  // the commit arms a swallow for the click that follows a mouse swipe; this click is the one it eats
+  act(() => { window.dispatchEvent(new MouseEvent('click', { cancelable: true })); });
   act(() => render(null, container));
   container.remove();
   dispatch.mockClear();
   logAction.mockClear();
-  startHighlightSwipe.mockClear();
-  readScanUnit.mockReset();
+  vi.mocked(startHighlightSwipe).mockClear();
+  vi.mocked(readScanUnit).mockReset();
   rearm.mockClear();
   localStorage.clear();
-  geometryOverride = null;
+  sized = false;
   vi.useRealTimers();
 });
 
 describe('HighlightPage', () => {
-  it('READ-11: a sketched mark gets its box in points from the page geometry, a clean one stays bands', () => {
-    geometryOverride = { width: 600, height: 800 };
+  it('READ-11: a sketched mark gets its box in points from the page geometry, a clean one stays bands', async () => {
+    sized = true;
     mount([{ ...mark, stroke: 'sketch' }, { ...mark, id: 'h2', stroke: undefined }]);
+    await waitUntil(() => expect(container.querySelector('[data-element-id="h1"] svg[data-highlight-sketch]')).not.toBeNull());
     const svg = container.querySelector('[data-element-id="h1"] svg[data-highlight-sketch]')!;
     expect(svg.getAttribute('viewBox')).toBe('0 0 180 32');
     expect(container.querySelector('[data-element-id="h2"] [data-highlight-band]')).not.toBeNull();
   });
 
   it('READ-14: a pencil mark is hatched in its color instead of banded, with the box in points', async () => {
-    geometryOverride = { width: 600, height: 800 };
+    sized = true;
     mount([{ ...mark, style: 'pencil' }, { ...mark, id: 'h2' }]);
     await vi.waitFor(() => expect(container.querySelector('[data-element-id="h1"] svg[data-highlight-hatch]')).not.toBeNull(), { timeout: 3000 });
     const svg = container.querySelector('[data-element-id="h1"] svg[data-highlight-hatch]')!;
@@ -100,7 +99,7 @@ describe('HighlightPage', () => {
   });
 
   it('READ-13: only the open mark wears the pencil outline, and the card-hovered one a faint pass', async () => {
-    geometryOverride = { width: 600, height: 800 };
+    sized = true;
     mount([mark, { ...mark, id: 'h2', top: 40 }, { ...mark, id: 'h3', top: 60 }], DEFAULT_MARKER, undefined, { openMarks: { openId: 'h1', hoverId: 'h2' } });
     await vi.waitFor(() => expect(container.querySelectorAll('svg[data-mark-outline]')).toHaveLength(2), { timeout: 3000 });
     expect(container.querySelector('[data-element-id="h1"] svg[data-mark-outline]')).not.toBeNull();
@@ -109,7 +108,7 @@ describe('HighlightPage', () => {
   });
 
   it('READ-13: with nothing open no outline is drawn', () => {
-    geometryOverride = { width: 600, height: 800 };
+    sized = true;
     mount([mark]);
     expect(container.querySelector('svg[data-mark-outline]')).toBeNull();
   });
@@ -143,8 +142,8 @@ describe('HighlightPage', () => {
     press(overlay, { pointerType: 'mouse' });
     const added = dispatch.mock.calls.find(([a]) => a.type === 'ADD_ELEMENT')?.[0].payload as HighlightElement;
     expect(added).toMatchObject({ type: 'highlight', pageIndex: 0, color: DEFAULT_MARKER.color });
-    expect(startHighlightSwipe).toHaveBeenCalledTimes(1);
-    expect(startHighlightSwipe.mock.calls[0][1]).toMatchObject({ pageIndex: 0, id: added.id });
+    expect(vi.mocked(startHighlightSwipe)).toHaveBeenCalledTimes(1);
+    expect(vi.mocked(startHighlightSwipe).mock.calls[0][1]).toMatchObject({ pageIndex: 0, id: added.id });
   });
 
 });
@@ -195,7 +194,7 @@ describe('HighlightPage swipe direction', () => {
     });
     await act(async () => { await drainPromises(); });
     press(container.querySelector<HTMLElement>('[data-page-overlay]')!, { pointerType: 'mouse' });
-    return startHighlightSwipe.mock.calls[0][0].direction;
+    return vi.mocked(startHighlightSwipe).mock.calls[0][0].direction;
   };
 
   it('a Hebrew page swipes right to left, from its own text', async () => {
@@ -223,7 +222,7 @@ describe('HighlightPage rest toolbar', () => {
 
   it('READ-24: a rest draws the faint outline and opens nothing, and leaving the mark takes it away', async () => {
     vi.useRealTimers();
-    geometryOverride = { width: 600, height: 800 };
+    sized = true;
     mount([mark]);
     const wrapper = container.querySelector('[data-element-id]')!;
     move(wrapper);
@@ -233,9 +232,10 @@ describe('HighlightPage rest toolbar', () => {
     await vi.waitFor(() => expect(container.querySelector('svg[data-mark-outline]')).toBeNull());
   });
 
-  it('READ-24: a click places the anchor on the line clicked, at the pointer', () => {
+  it('READ-24: a click places the anchor on the line clicked, at the pointer', async () => {
     const passage: EditorElement = { ...mark, bands: [{ left: 0, top: 0, width: 100, height: 40 }, { left: 0, top: 60, width: 100, height: 40 }] };
     mount([passage]);
+    await waitUntil(() => expect(container.querySelector('[data-element-id]')).not.toBeNull());
     const wrapper = container.querySelector<HTMLElement>('[data-element-id]')!;
     vi.spyOn(wrapper, 'getBoundingClientRect').mockReturnValue({ left: 100, top: 200, width: 400, height: 50 } as DOMRect);
     const down = new MouseEvent('pointerdown', { bubbles: true, button: 0 });
@@ -249,7 +249,7 @@ describe('HighlightPage rest toolbar', () => {
 
   it('READ-24: the open row keeps the full outline on its mark', async () => {
     vi.useRealTimers();
-    geometryOverride = { width: 600, height: 800 };
+    sized = true;
     mount([mark]);
     mouseClickOn(container.querySelector('[data-element-id]')!, 1);
     await vi.waitFor(() => expect(container.querySelector('svg[data-mark-outline]')).not.toBeNull(), { timeout: 3000 });
@@ -416,8 +416,8 @@ describe('HighlightPage one-time hint', () => {
   afterEach(() => restore());
   const finishStroke = (overlay: HTMLElement) => {
     press(overlay, { pointerType: 'mouse' });
-    const swipe = startHighlightSwipe.mock.calls.at(-1)![0];
-    act(() => swipe.dispatch({ type: 'UPDATE_ELEMENT', payload: { id: startHighlightSwipe.mock.calls.at(-1)![1].id, changes: { left: 10, top: 20, width: 30, height: 4, bands: [{ left: 0, top: 0, width: 100, height: 100 }] } } }));
+    const swipe = vi.mocked(startHighlightSwipe).mock.calls.at(-1)![0];
+    act(() => swipe.dispatch({ type: 'UPDATE_ELEMENT', payload: { id: vi.mocked(startHighlightSwipe).mock.calls.at(-1)![1].id, changes: { left: 10, top: 20, width: 30, height: 4, bands: [{ left: 0, top: 0, width: 100, height: 100 }] } } }));
   };
   beforeEach(() => { vi.useFakeTimers(); });
 
@@ -526,7 +526,7 @@ describe('HighlightPage click marks on a digital page (R10 to R12)', () => {
 
   /** The press's swipe lays ink, as a press that drifted a few pixels does. */
   function layInk() {
-    const [deps, target] = startHighlightSwipe.mock.calls.at(-1)!;
+    const [deps, target] = vi.mocked(startHighlightSwipe).mock.calls.at(-1)!;
     act(() => deps.dispatch({ type: 'UPDATE_ELEMENT', payload: { id: target.id, changes: { left: 5, top: 22, width: 20, height: 3, bands: [{ left: 0, top: 0, width: 100, height: 100 }] } } }));
     return target.id as string;
   }
@@ -535,10 +535,7 @@ describe('HighlightPage click marks on a digital page (R10 to R12)', () => {
 
   it('sees the click a mouse swipe swallows, because it listens from the press on', async () => {
     await mountText();
-    // As the swipe does when it commits on mouseup: swallow the click that follows.
-    startHighlightSwipe.mockImplementationOnce(() => {
-      window.addEventListener('mouseup', () => swallowNextClick(), { once: true });
-    });
+    // The real swipe swallows the click that follows when it commits on mouseup.
     clickAt(2);
     expect(added()).toHaveLength(1);
   });
@@ -564,6 +561,8 @@ describe('HighlightPage click marks on a digital page (R10 to R12)', () => {
 
   it('a double-click whose press laid ink undoes that ink first, then adds the word, so there is never a second mark', async () => {
     await mountText();
+    // Forced: a real swipe lays ink only from page pixels jsdom cannot paint, and its release would take empty ink away again.
+    vi.mocked(startHighlightSwipe).mockImplementationOnce(() => {});
     // The press of the second click lays ink before its click arrives.
     const down = new MouseEvent('pointerdown', { bubbles: true, cancelable: true, button: 0, clientX: WORD.x, clientY: WORD.y });
     Object.defineProperty(down, 'pointerType', { value: 'mouse' });
@@ -699,10 +698,10 @@ describe('HighlightPage click marks on a scan (R10)', () => {
   const added = () => dispatch.mock.calls.map(([a]) => a).filter((a) => a.type === 'ADD_ELEMENT' && a.payload.bands.length > 0).map((a) => a.payload as HighlightElement);
 
   it('a double-click marks the word the canvas reader finds, read from the displayed canvas', () => {
-    readScanUnit.mockReturnValue({ left: 8, top: 24, width: 12, height: 2 });
+    vi.mocked(readScanUnit).mockReturnValue({ left: 8, top: 24, width: 12, height: 2 });
     clickAt(2);
-    expect(readScanUnit).toHaveBeenCalledTimes(1);
-    const [canvas, point, unit, pageHeight] = readScanUnit.mock.calls[0];
+    expect(vi.mocked(readScanUnit)).toHaveBeenCalledTimes(1);
+    const [canvas, point, unit, pageHeight] = vi.mocked(readScanUnit).mock.calls[0];
     expect(canvas).toBe(container.querySelector('canvas'));
     expect(point.x).toBeCloseTo(10, 5);
     expect(point.y).toBeCloseTo(25, 5);
@@ -713,7 +712,7 @@ describe('HighlightPage click marks on a scan (R10)', () => {
   });
 
   it('a third click takes the line, because a scan has no sentences', () => {
-    readScanUnit.mockReturnValueOnce({ left: 8, top: 24, width: 12, height: 2 }).mockReturnValueOnce({ left: 5, top: 24, width: 80, height: 2 });
+    vi.mocked(readScanUnit).mockReturnValueOnce({ left: 8, top: 24, width: 12, height: 2 }).mockReturnValueOnce({ left: 5, top: 24, width: 80, height: 2 });
     clickAt(2);
     const word = added()[0];
     act(() => render(
@@ -725,12 +724,12 @@ describe('HighlightPage click marks on a scan (R10)', () => {
     ));
     dispatch.mockClear();
     clickAt(3, container.querySelector(`[data-element-id="${word.id}"]`)!);
-    expect(readScanUnit.mock.calls[1][2]).toBe('line');
+    expect(vi.mocked(readScanUnit).mock.calls[1][2]).toBe('line');
     expect(dispatch.mock.calls.map(([a]) => a.type)).toEqual(['UNDO', 'ADD_ELEMENT']);
   });
 
   it('marks nothing when the click is not on a word', () => {
-    readScanUnit.mockReturnValue(null);
+    vi.mocked(readScanUnit).mockReturnValue(null);
     clickAt(2);
     expect(added()).toHaveLength(0);
   });

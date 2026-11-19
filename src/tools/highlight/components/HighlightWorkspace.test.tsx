@@ -11,9 +11,10 @@ import type { CommentElement, EditorElement, HighlightElement } from '#editor/mo
 import { DEFAULT_MARKER } from '../lib/marker/markerState.ts';
 import { NOTES_W } from '../lib/zoom/fit.ts';
 
-vi.mock('#editor-ui/PdfPageCanvas.tsx', () => ({ default: () => <canvas data-canvas /> }));
-const printSpy = vi.hoisted(() => vi.fn());
-vi.mock('../hooks/usePrint.ts', () => ({ usePrint: () => ({ print: printSpy, sheets: null }) }));
+// Spy-through: the real print hook runs and mounts the real sheets; the spy shows which notes choice reached them.
+vi.mock('./PrintSheets.tsx', { spy: true });
+import PrintSheets from './PrintSheets.tsx';
+const printedWith = () => vi.mocked(PrintSheets).mock.calls.at(-1)?.[0].notes;
 
 type WorkspaceProps = Parameters<typeof HighlightWorkspace>[0];
 
@@ -318,12 +319,12 @@ describe('HighlightWorkspace notes (R28, R29)', () => {
 
   it('prints at once when there is only one way to print: no comment means no menu, in the row or the lamp', () => {
     for (const fullscreen of [false, true]) {
-      printSpy.mockClear();
+      vi.mocked(PrintSheets).mockClear();
       const ws = mount({ fullscreen, pseudoFullscreen: false });
       const trigger = (fullscreen ? ws : container!.querySelector('[data-editor-toolbar]')!).querySelector<HTMLElement>('button[aria-label="Print"]')!;
       expect(trigger.hasAttribute('aria-haspopup')).toBe(false);
       act(() => { trigger.click(); });
-      expect(printSpy).toHaveBeenCalledWith('none');
+      expect(printedWith()).toBe('none');
       if (!fullscreen) expect(trigger.querySelector(`.${toolbarStyles.chevron}`)).toBeNull();
       expect(container!.querySelector('[role="menu"]')).toBeNull();
       act(() => render(null, container!));
@@ -340,9 +341,9 @@ describe('HighlightWorkspace notes (R28, R29)', () => {
     const items = [...document.querySelectorAll('[role="menu"] [role="menuitem"]')];
     expect(items.map((i) => i.textContent)).toEqual(['Print', 'Print with my notes', 'Print with notes at the end']);
     expect(items.every((i) => i.querySelector('svg'))).toBe(true);
-    printSpy.mockClear();
+    vi.mocked(PrintSheets).mockClear();
     act(() => { (items[2] as HTMLElement).click(); });
-    expect(printSpy).toHaveBeenCalledWith('end');
+    expect(printedWith()).toBe('end');
     act(() => render(null, container!));
     for (const fullscreen of [true]) {
       const ws = mount({ fullscreen, pseudoFullscreen: false }, [mark, note]);

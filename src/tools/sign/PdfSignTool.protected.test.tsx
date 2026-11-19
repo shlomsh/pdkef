@@ -15,8 +15,8 @@ declare const __dirname: string;
 
 // ENC-07: a protected PDF is one quiet state in Sign, not an editor or an alert.
 
-// EDGE: pdf.js cannot run its worker in jsdom, so getDocument is faked below. draftStore and analytics run
-// for real over the harness.
+// EDGE: pdf.js cannot run its worker in jsdom, so getDocument is faked below. draftStore, analytics and the
+// annotation read-back run for real over the harness.
 const plainDocument = () => ({
   numPages: 1,
   getPermissions: vi.fn(async () => null),
@@ -30,12 +30,6 @@ const plainDocument = () => ({
 vi.mock('pdfjs-dist', () => ({
   GlobalWorkerOptions: { workerSrc: '' },
   getDocument: vi.fn(),
-}));
-
-// Reading a fresh file's annotations back loads a parser chunk, slower than `pick`'s wait; these
-// cases are about protection, so a fresh file opens as it is.
-vi.mock('#editor/comments/readBack.ts', () => ({
-  readBackAnnotations: vi.fn(async (bytes: ArrayBuffer) => ({ bytes, elements: [] })),
 }));
 
 function required<T>(value: T | null | undefined, description: string): T {

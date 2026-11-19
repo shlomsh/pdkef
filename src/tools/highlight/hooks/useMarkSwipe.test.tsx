@@ -4,7 +4,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { startHighlightSwipe } from '#editor-ui/highlight/highlightSwipeGesture.ts';
 import { useMarkSwipe } from './useMarkSwipe.ts';
 
-vi.mock('#editor-ui/highlight/highlightSwipeGesture.ts', () => ({ startHighlightSwipe: vi.fn() }));
+// Spy-through: the real swipe gesture runs on the real events; the spy shows what the hook handed it.
+vi.mock('#editor-ui/highlight/highlightSwipeGesture.ts', { spy: true });
 
 let container: HTMLElement | null = null;
 let handler: (event: PointerEvent) => void;
@@ -18,8 +19,8 @@ let marker: Record<string, unknown> = { color: 'yellow', style: 'highlight', opa
 let textDirection: 'ltr' | 'rtl' | undefined;
 let fallbackDirection: 'ltr' | 'rtl' = 'ltr';
 let readerAt: ((point: { x: number; y: number }) => Reader | null) | undefined;
-type Reader = { onLine: (point: { x: number; y: number }) => boolean };
-const readerOf = (on: boolean): Reader => ({ onLine: () => on });
+type Reader = { onLine: (point: { x: number; y: number }) => boolean; bandsBetween: () => never[] };
+const readerOf = (on: boolean): Reader => ({ onLine: () => on, bandsBetween: () => [] });
 
 function Probe() {
   handler = useMarkSwipe({
@@ -59,6 +60,8 @@ function pressTouch(x = 100, y = 100) {
 const move = (x: number, y: number) => window.dispatchEvent(new MouseEvent('mousemove', { clientX: x, clientY: y }));
 
 afterEach(() => {
+  // a swipe still going when its test ends would carry its release into the next test
+  window.dispatchEvent(new MouseEvent('mouseup')); window.dispatchEvent(new Event('touchend'));
   readerAt = undefined;
   textDirection = undefined;
   fallbackDirection = 'ltr';
@@ -85,7 +88,7 @@ describe('READ-11: the swiped mark carries the pen stroke', () => {
     marker = { ...marker, stroke: 'sketch' };
     mount(); press(); move(150, 150);
     expect(dispatch.mock.calls[0][0].payload.stroke).toBe('sketch');
-    dispatch.mockClear(); window.dispatchEvent(new MouseEvent('mouseup'));
+    window.dispatchEvent(new MouseEvent('mouseup')); dispatch.mockClear(); // the release commits the first swipe
     act(() => render(null, container!));
     marker = { color: 'yellow', style: 'highlight', opacity: 1 };
     mount(); press(); move(150, 150);
@@ -109,8 +112,8 @@ describe('useMarkSwipe threshold', () => {
   it('a mouse drag lays a mark while armed and none once the marker is put down', () => {
     mount(); press(); move(150, 150);
     expect(dispatch).toHaveBeenCalledWith(expect.objectContaining({ type: 'ADD_ELEMENT' }));
-    dispatch.mockClear(); onPress.mockClear();
     window.dispatchEvent(new MouseEvent('mouseup'));
+    dispatch.mockClear(); onPress.mockClear();
     armed = false; act(() => render(null, container!)); mount(); press(); move(150, 150);
     expect(dispatch).not.toHaveBeenCalled();
     expect(onPress).not.toHaveBeenCalled();
@@ -238,17 +241,11 @@ describe('useMarkSwipe two fingers', () => {
   });
 
   it('a second finger after the mark began cancels it: the element goes, no history, no announcement', () => {
-    vi.mocked(startHighlightSwipe).mockImplementationOnce((deps, target) => {
-      deps.gestureCancelRef.current = () => {
-        deps.gestureCancelRef.current = null;
-        deps.dispatch({ type: 'DELETE_ELEMENT', payload: target.id } as never);
-      };
-    });
     mount(); pressTouch();
     move(130, 100);
     expect(dispatch.mock.calls[0][0]).toMatchObject({ type: 'ADD_ELEMENT' });
     touch('touchstart', [finger(130, 100), finger(250, 100)]);
-    expect(dispatch.mock.calls.at(-1)?.[0]).toMatchObject({ type: 'DELETE_ELEMENT' });
+    expect(dispatch.mock.calls.some((c) => c[0].type === 'DELETE_ELEMENT' && c[0].payload === dispatch.mock.calls[0][0].payload.id)).toBe(true);
     expect(logAction).not.toHaveBeenCalled();
     expect(setAnnouncement).not.toHaveBeenCalled();
     expect(dispatch.mock.calls.some((c) => c[0].type === 'ADD_ACTION_HISTORY')).toBe(false);
@@ -322,7 +319,8 @@ describe('useMarkSwipe off the text', () => {
     expect(touch('touchmove', [finger(104, 101)])).toBe(true);
     touch('touchmove', [finger(130, 100)]);
     expect(dispatch.mock.calls[0][0]).toMatchObject({ type: 'ADD_ELEMENT' });
-    expect(touch('touchmove', [finger(160, 102)])).toBe(true);
+    // the real swipe, once begun, owns the finger: it stops the page scrolling under it
+    expect(touch('touchmove', [finger(160, 102)])).toBe(false);
   });
 
   it('zoomed in, a move is claimed only once it is as sideways as a mark: a diagonal stays a scroll', () => {

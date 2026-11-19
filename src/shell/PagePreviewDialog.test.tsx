@@ -1,9 +1,11 @@
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { renderPdfThumbnails } from '#lib/pdf/thumbnails.js';
 import PagePreviewDialog from './PagePreviewDialog.tsx';
 
-vi.mock('#lib/pdf/thumbnails.js', () => ({ renderPdfThumbnails: vi.fn(async () => 0) }));
+// jsdom has no canvas to paint a page on, so the real renderer stays in place and only its answer is forced (below).
+vi.mock('#lib/pdf/thumbnails.js', { spy: true });
 
 const messages = { close: 'Close', previous: 'Previous page', next: 'Next page', loading: 'Rendering the page…' };
 const file = new File(['%PDF-1.4'], 'a.pdf', { type: 'application/pdf' });
@@ -11,6 +13,7 @@ const target = { file, pageIndex: 1, rotation: 0, title: 'Page 2 of 5', atStart:
 
 describe('shared PagePreviewDialog', () => {
   let container: HTMLElement | null = null;
+  beforeEach(() => { vi.mocked(renderPdfThumbnails).mockImplementation(async () => 0); }); // forced: page pixels
   afterEach(() => { act(() => render(null, container!)); container!.remove(); });
 
   function mount(props: Record<string, unknown> = {}) {

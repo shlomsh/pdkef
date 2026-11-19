@@ -1,22 +1,29 @@
+import 'fake-indexeddb/auto';
+import { IDBFactory } from 'fake-indexeddb';
+import { PDFDocument } from '@cantoo/pdf-lib';
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
-import { afterEach, beforeEach, describe, expect, it, vi, type Mock } from 'vitest';
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi, type Mock } from 'vitest';
 import { recentActions, resetActionTrailForTests } from '#lib/telemetry/actionTrail.ts';
+import { getPdfjs } from '#lib/pdf/loadPdfjs.js';
 import { repairedPdfLoader } from './useOpenPageDocument.ts';
 import { usePageToolSession, type PageToolSession } from './usePageToolSession.ts';
+import { waitUntil } from '../../test/support/waitUntil.ts';
 import { drainPromises } from '../../test/support/drainPromises.ts';
 
-const mocks = vi.hoisted(() => ({ probe: vi.fn(), load: vi.fn(), take: vi.fn() }));
-vi.mock('#lib/pdf/pdfEncryption.ts', () => ({ probeEncryption: mocks.probe }));
-vi.mock('#lib/pdf/loadPdfPages.ts', () => ({ loadPdfWithPages: mocks.load }));
 vi.mock('#lib/telemetry/errorReport.ts', () => ({ reportError: vi.fn() }));
-vi.mock('#lib/drafts/draftStore.ts', () => ({ peekHandoff: mocks.take, commitHandoff: vi.fn(() => Promise.resolve()), cacheRecentFile: vi.fn(() => Promise.resolve(true)) }));
+// The probe, the page loader and the draft store run for real: real PDFs, and the store on fake-indexeddb.
+// The shipped pdf.js loader points at a browser Worker, which node does not have. Forced: the same pdf.js,
+// its legacy (node) build, so the probe still parses the file for real.
+vi.mock('#lib/pdf/loadPdfjs.js', { spy: true });
 
 const messages = {
   announceNeedsPassword: 'needs password', announceRestricted: 'restricted', loaded: '{name} {count}', loadFailed: 'failed',
   undoneAnnouncement: 'undone', redoneAnnouncement: 'redone', allIncluded: 'all in', allSkipped: 'all out', inverted: 'swapped',
 };
-const pdf = (name: string) => new File([new Uint8Array([1, 2, 3])], name, { type: 'application/pdf' });
+// A real three-page PDF, built once.
+let threePages: Uint8Array;
+const pdf = (name: string) => new File([threePages as BlobPart], name, { type: 'application/pdf' });
 
 let host: HTMLDivElement;
 let current: PageToolSession;
@@ -37,17 +44,24 @@ function mount() {
 const flush = () => act(async () => { await drainPromises(); });
 async function openThree() {
   await act(async () => { current.handleFilesAdded([pdf('a.pdf')]); });
+  await waitUntil(() => current.present.plan.length === 3);
   await flush();
 }
 
+beforeAll(async () => {
+  const doc = await PDFDocument.create();
+  for (let i = 0; i < 3; i += 1) doc.addPage([200, 200]);
+  threePages = await doc.save();
+});
+
 beforeEach(() => {
+  indexedDB = new IDBFactory();
+  localStorage.clear();
   host = document.createElement('div');
   announce = vi.fn();
   onPick = vi.fn();
   onRejected = vi.fn();
-  mocks.probe.mockReset().mockResolvedValue('open');
-  mocks.load.mockReset().mockResolvedValue({ pageCount: 3, bytes: new ArrayBuffer(3), repaired: false });
-  mocks.take.mockReset().mockResolvedValue(null);
+  vi.mocked(getPdfjs).mockReset().mockImplementation(async () => (await import('pdfjs-dist/legacy/build/pdf.mjs')) as never); // forced: the node build
   resetActionTrailForTests();
   mount();
 });
@@ -57,6 +71,7 @@ describe('usePageToolSession', () => {
   it('a non-PDF is reported rejected and the first PDF opens', async () => {
     const first = pdf('a.pdf');
     await act(async () => { current.handleFilesAdded([new File(['x'], 'notes.txt', { type: 'text/plain' }), first, pdf('b.pdf')]); });
+    await waitUntil(() => current.present.plan.length === 3);
     await flush();
     expect(onRejected).toHaveBeenCalledWith(['notes.txt']);
     expect(current.file).toBe(first);

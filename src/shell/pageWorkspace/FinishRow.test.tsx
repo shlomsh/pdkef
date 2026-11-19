@@ -3,10 +3,6 @@ import { act } from 'preact/test-utils';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import FinishRow from './FinishRow.tsx';
 
-vi.mock('../PdfShareButton.tsx', () => ({
-  default: ({ label, visible }: { label: string; visible: boolean }) => (visible ? <button type="button">{label}</button> : null),
-}));
-
 const labels = { share: 'Share', compress: 'Compress it', sign: 'Sign it', merge: 'Merge it' };
 
 describe('FinishRow', () => {

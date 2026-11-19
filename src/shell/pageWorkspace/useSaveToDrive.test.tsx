@@ -1,11 +1,17 @@
+import 'fake-indexeddb/auto';
+import { IDBFactory } from 'fake-indexeddb';
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { peekHandoff, saveHandoff } from '#lib/drafts/draftStore.ts';
 import { DRIVE_SAVE_CHANNEL, DRIVE_TOKEN_KEY } from '#lib/handoff/driveSaveLink.ts';
+import { waitUntil } from '../../test/support/waitUntil.ts';
 import { driveSavePayload, useSaveToDrive } from './useSaveToDrive.ts';
 
-const saveHandoff = vi.hoisted(() => vi.fn());
-vi.mock('#lib/drafts/draftStore.ts', () => ({ saveHandoff }));
+// The draft store runs for real on fake-indexeddb; the spy lets a test see the call, and the one test that needs
+// the park to fail forces that answer. The BroadcastChannel, window.open and matchMedia stand-ins are browser
+// edges jsdom lacks (browser-mode wave); telemetry stays replaced.
+vi.mock('#lib/drafts/draftStore.ts', { spy: true });
 vi.mock('#lib/telemetry/actionTrail.ts', () => ({ recordAction: vi.fn() }));
 const report = vi.hoisted(() => vi.fn());
 const reportResult = vi.hoisted(() => vi.fn());
@@ -13,9 +19,11 @@ vi.mock('#lib/telemetry/productAnalytics.ts', () => ({ reportToolLifecycleEvent:
 const connect = (until = Date.now() + 3_600_000) => localStorage.setItem(DRIVE_TOKEN_KEY, JSON.stringify({ token: 't', until }));
 const events = () => report.mock.calls.map((call) => call[0]);
 
-/** Resolves on the next call to the saveHandoff mock; keeps its resolved value (true). */
-function nextSaveHandoff(): Promise<unknown[]> {
-  return new Promise((resolve) => { saveHandoff.mockImplementationOnce((...args: unknown[]) => { resolve(args); return Promise.resolve(true); }); });
+/** Call after the tap: resolves with the first park's arguments once the real write has finished. */
+async function parked(): Promise<unknown[]> {
+  await waitUntil(() => vi.mocked(saveHandoff).mock.results.length === 1);
+  await vi.mocked(saveHandoff).mock.results[0].value;
+  return vi.mocked(saveHandoff).mock.calls[0];
 }
 
 /** Resolves when the report mock next receives `name`; keeps whatever implementation the mock already has. */
@@ -49,7 +57,8 @@ describe('useSaveToDrive', () => {
     build.mockClear();
     vi.stubGlobal('matchMedia', () => ({ matches: true }));
     container = document.createElement('div');
-    saveHandoff.mockReset().mockResolvedValue(true);
+    vi.mocked(saveHandoff).mockReset();
+    indexedDB = new IDBFactory();
     report.mockReset();
     localStorage.clear();
     connect();
@@ -92,11 +101,10 @@ describe('useSaveToDrive', () => {
     mount();
     expect(report).toHaveBeenCalledWith('tool_drive_shown', 'redact');
     expect(events()).toEqual(['tool_drive_shown']);
-    const called = nextSaveHandoff();
     act(() => latest.save());
     expect(events()).toEqual(['tool_drive_shown', 'tool_drive_tapped']);
-    await act(async () => { await called; });
-    const id = String(saveHandoff.mock.calls[0][0]).replace('drive-save-', '');
+    await parked();
+    const id = String(vi.mocked(saveHandoff).mock.calls[0][0]).replace('drive-save-', '');
     act(() => channels[0].onmessage?.({ data: { id, status: 'saved', link: null } } as MessageEvent));
     expect(events()).toContain('tool_drive_saved');
     expect(reportResult).toHaveBeenCalledWith('redact');
@@ -113,7 +121,7 @@ describe('useSaveToDrive', () => {
     expect(events()).toEqual(['tool_drive_shown', 'tool_drive_tapped', 'tool_drive_failed']);
     report.mockReset();
     open.mockReturnValue({} as Window);
-    saveHandoff.mockResolvedValue(false);
+    vi.mocked(saveHandoff).mockResolvedValue(false); // forced: a store that refuses the file
     mount({ generation: 2 });
     report.mockReset();
     const failed = nextEvent('tool_drive_failed');
@@ -140,13 +148,13 @@ describe('useSaveToDrive', () => {
   it('opens the Drive tab synchronously, then parks the file', async () => {
     const open = vi.spyOn(window, 'open').mockReturnValue({} as Window);
     mount();
-    const called = nextSaveHandoff();
     act(() => latest.save());
     expect(open).toHaveBeenCalledTimes(1);
     expect(String(open.mock.calls[0][0])).toMatch(/^\/drive\/\?save=[a-z0-9-]+$/);
     expect(open.mock.calls[0][2]).toBeUndefined();
-    await act(async () => { await called; });
-    expect(saveHandoff.mock.calls[0][0]).toMatch(/^drive-save-/);
+    await parked();
+    expect(vi.mocked(saveHandoff).mock.calls[0][0]).toMatch(/^drive-save-/);
+    expect((await peekHandoff(String(vi.mocked(saveHandoff).mock.calls[0][0])))?.files?.[0]).toMatchObject({ fileName: 'a.pdf', fileType: 'application/pdf' });
   });
 
   it('fails when the browser blocks the tab', () => {
@@ -154,7 +162,7 @@ describe('useSaveToDrive', () => {
     mount();
     act(() => latest.save());
     expect(latest.state).toBe('failed');
-    expect(saveHandoff).not.toHaveBeenCalled();
+    expect(vi.mocked(saveHandoff)).not.toHaveBeenCalled();
   });
 
   it('settles on the answer for its id and returns to idle on a new generation', async () => {
@@ -167,10 +175,9 @@ describe('useSaveToDrive', () => {
     }
     vi.stubGlobal('BroadcastChannel', FakeChannel);
     mount();
-    const called = nextSaveHandoff();
     act(() => latest.save());
-    await act(async () => { await called; });
-    const id = String(saveHandoff.mock.calls[0][0]).replace('drive-save-', '');
+    await parked();
+    const id = String(vi.mocked(saveHandoff).mock.calls[0][0]).replace('drive-save-', '');
     expect((channels[0] as never as { name: string }).name).toBe(DRIVE_SAVE_CHANNEL);
     const send = (data: unknown) => act(() => channels[0].onmessage?.({ data } as MessageEvent));
     send({ id: 'other', status: 'saved' });
@@ -190,10 +197,9 @@ describe('useSaveToDrive', () => {
     class FakeChannel { onmessage = null; constructor() { channels.push(this as never); } close() {} postMessage() {} }
     vi.stubGlobal('BroadcastChannel', FakeChannel);
     mount();
-    const called = nextSaveHandoff();
     act(() => latest.save());
-    await act(async () => { await called; });
-    const id = String(saveHandoff.mock.calls[0][0]).replace('drive-save-', '');
+    await parked();
+    const id = String(vi.mocked(saveHandoff).mock.calls[0][0]).replace('drive-save-', '');
     act(() => channels[0].onmessage?.({ data: { id, status: 'saved', link: 'https://evil.example/x' } } as MessageEvent));
     expect(latest.state).toBe('saved');
     expect(latest.link).toBeNull();
@@ -215,12 +221,12 @@ describe('useSaveToDrive', () => {
     act(() => latest.save());
     expect(open).toHaveBeenCalledTimes(1);
     expect(build).toHaveBeenCalledTimes(1);
-    expect(saveHandoff).not.toHaveBeenCalled();
+    expect(vi.mocked(saveHandoff)).not.toHaveBeenCalled();
     await act(async () => { release(null); await failed; });
     expect(latest.state).toBe('failed');
     expect(posts).toEqual([expect.objectContaining({ status: 'cancelled' })]);
     expect(events()).toContain('tool_drive_failed');
-    expect(saveHandoff).not.toHaveBeenCalled();
+    expect(vi.mocked(saveHandoff)).not.toHaveBeenCalled();
     build.mockRejectedValueOnce(new Error('boom'));
     mount({ generation: 2 });
     act(() => latest.save());
@@ -234,12 +240,12 @@ describe('useSaveToDrive', () => {
     vi.stubGlobal('BroadcastChannel', FakeChannel);
     let release: (v: { blob: Blob; fileName: string }) => void = () => {};
     build.mockImplementationOnce(() => new Promise((resolve) => { release = resolve; }));
-    const called = nextSaveHandoff();
     mount();
     act(() => latest.save());
     mount({ generation: 2 });
     expect(latest.state).toBe('saving');
-    await act(async () => { release({ blob: pdf, fileName: 'a.pdf' }); await called; });
+    await act(async () => { release({ blob: pdf, fileName: 'a.pdf' }); });
+    await parked();
     expect(latest.state).toBe('saving');
   });
 
@@ -281,14 +287,13 @@ describe('useSaveToDrive', () => {
     tabA.closed = true;
     act(() => { vi.advanceTimersByTime(3000); });
     expect(latest.state).toBe('idle');
-    const called = nextSaveHandoff();
     act(() => latest.save());
     expect(latest.state).toBe('saving');
-    await act(async () => { await called; });
+    await parked();
     await act(async () => { failA(new Error('boom')); await Promise.resolve(); await Promise.resolve(); });
     expect(latest.state).toBe('saving');
     expect(channels[1].closed).toBe(false);
-    const id = String(saveHandoff.mock.calls[0][0]).replace('drive-save-', '');
+    const id = String(vi.mocked(saveHandoff).mock.calls[0][0]).replace('drive-save-', '');
     act(() => channels[1].onmessage?.({ data: { id, status: 'saved', link: null } } as MessageEvent));
     expect(latest.state).toBe('saved');
     vi.useRealTimers();

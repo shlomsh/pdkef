@@ -7,7 +7,7 @@ import { waitUntil } from '../../../test/support/waitUntil.ts';
 import { drainPromises } from '../../../test/support/drainPromises.ts';
 import { useImageBatch } from './useImageBatch.ts';
 
-vi.mock('../lib/compressImage.js', () => ({ compressImageToTarget: vi.fn() }));
+vi.mock('../lib/compressImage.js', { spy: true });
 vi.mock('#lib/telemetry/errorReport.ts', () => ({ reportError: vi.fn() }));
 
 const photo = (name: string) => new File(['x'.repeat(1000)], name, { type: 'image/jpeg' });
@@ -39,6 +39,7 @@ describe('useImageBatch', () => {
     urls = [];
     URL.createObjectURL = vi.fn(() => { const u = `blob:u${urls.length}`; urls.push(u); return u; });
     URL.revokeObjectURL = vi.fn();
+    // Forced: the real compressor decodes and draws on a canvas, which jsdom lacks (browser-mode wave).
     vi.mocked(compressImageToTarget).mockReset().mockImplementation(() => Promise.resolve(result()));
     act(() => render(<Harness apiRef={api} />, root));
   });

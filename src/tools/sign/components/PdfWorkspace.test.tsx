@@ -225,15 +225,15 @@ function mountStatefulWorkspace(options: StatefulWorkspaceOptions): HTMLDivEleme
   return mount(<StatefulWorkspace {...options} />);
 }
 
-vi.mock('../lib/whiteoutPageColor.ts', async (importOriginal) => ({
-  ...(await importOriginal<typeof import('../lib/whiteoutPageColor.ts')>()),
-  samplePageColor: vi.fn(() => null),
-}));
+// The real sampler runs (null when the page canvas has no readable pixels, as in jsdom); the two tests
+// that need a page colour force that one answer.
+vi.mock('../lib/whiteoutPageColor.ts', { spy: true });
 
 describe('PdfWorkspace Component', () => {
   let host: HTMLDivElement | null = null;
 
   afterEach(() => {
+    vi.mocked(samplePageColor).mockReset();
     if (host) {
       act(() => {
         render(null, host!);

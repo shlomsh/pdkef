@@ -25,9 +25,9 @@ function deferred() {
   return { promise, resolve, reject };
 }
 
-vi.mock('#lib/pdf/thumbnails.js', () => ({
-  renderThumbnail: vi.fn(),
-}));
+// jsdom has no canvas to paint a page on, so the real renderer stays in place as a spy and each PDF test
+// forces only its answer (`mockReturnValue`), on cue.
+vi.mock('#lib/pdf/thumbnails.js', { spy: true });
 
 describe('FilePreview', () => {
   let container: HTMLElement | null = null;

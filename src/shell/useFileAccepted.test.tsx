@@ -2,11 +2,10 @@ import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { reportToolLifecycleEvent } from '#lib/telemetry/productAnalytics.ts';
-import { markFileOpened } from '#lib/appUpdate/engagement.ts';
+import { FILE_OPENED_EVENT, FILE_OPENED_KEY } from '#lib/appUpdate/engagement.ts';
 import { useFileAccepted } from './useFileAccepted.ts';
 
 vi.mock('#lib/telemetry/productAnalytics.ts', () => ({ reportToolLifecycleEvent: vi.fn() }));
-vi.mock('#lib/appUpdate/engagement.ts', () => ({ markFileOpened: vi.fn() }));
 
 type Props = Parameters<typeof useFileAccepted>[0];
 
@@ -20,27 +19,41 @@ function Probe(props: Props) {
 const mount = (props: Props) => act(() => { render(<Probe {...props} />, host); });
 const pdf = (name: string) => new File([''], name, { type: 'application/pdf' });
 
+// The real engagement module runs: marking a file opened is what it leaves in storage and the event it tells the page.
+const opened = () => localStorage.getItem(FILE_OPENED_KEY) === '1';
+let announced = 0;
+const onOpened = () => { announced += 1; };
+
 describe('useFileAccepted', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    localStorage.clear();
+    announced = 0;
+    window.addEventListener(FILE_OPENED_EVENT, onOpened);
     host = document.createElement('div');
   });
-  afterEach(() => render(null, host));
+  afterEach(() => {
+    render(null, host);
+    window.removeEventListener(FILE_OPENED_EVENT, onOpened);
+  });
 
   it('marks the file opened and reports once when files first appear', () => {
     const a = pdf('a.pdf');
     mount({ analyticsTool: 'merge', hasFiles: false, file: null, multiple: false });
-    expect(markFileOpened).not.toHaveBeenCalled();
+    expect(opened()).toBe(false);
+    expect(announced).toBe(0);
     mount({ analyticsTool: 'merge', hasFiles: true, file: a, multiple: false });
     mount({ analyticsTool: 'merge', hasFiles: true, file: a, multiple: false });
-    expect(markFileOpened).toHaveBeenCalled();
+    expect(opened()).toBe(true);
+    expect(announced).toBeGreaterThan(0);
     expect(reportToolLifecycleEvent).toHaveBeenCalledTimes(1);
     expect(reportToolLifecycleEvent).toHaveBeenCalledWith('tool_file_accepted', 'merge');
   });
 
   it('marks even without an analytics tool, and reports nothing', () => {
     mount({ analyticsTool: undefined, hasFiles: true, file: pdf('a.pdf'), multiple: false });
-    expect(markFileOpened).toHaveBeenCalled();
+    expect(opened()).toBe(true);
+    expect(announced).toBeGreaterThan(0);
     expect(reportToolLifecycleEvent).not.toHaveBeenCalled();
   });
 
@@ -58,7 +71,8 @@ describe('useFileAccepted', () => {
 
   it('does nothing with no files', () => {
     mount({ analyticsTool: 'merge', hasFiles: false, file: null, multiple: false });
-    expect(markFileOpened).not.toHaveBeenCalled();
+    expect(opened()).toBe(false);
+    expect(announced).toBe(0);
     expect(reportToolLifecycleEvent).not.toHaveBeenCalled();
   });
 });

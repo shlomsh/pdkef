@@ -34,5 +34,14 @@ count). The rule is off on `landmines-all` meanwhile.
   (page pixels), camera modules, the Scan pipeline's canvas steps, sheet rendering, and pdf.js's
   worker loader (the legacy build stands in). `useScanView`'s turning failure stays forced: the real
   `turnImage` fails in jsdom only because jsdom cannot decode, not by design.
+- Wave 1, round 2 (Highlight, Compress, Merge, Sign, shell, page workspace; 2026-11-20): down to
+  1,618. Kept forced, for the browser-mode wave: canvas pixels (ink, scan verdicts, thumbnails, image
+  decode) and pdf.js's worker loader. `readScan`'s fake pdf.js page and document stay visible
+  `vi.fn` doubles for the pdf.js wave. Sign's hand-off check now has its own test: a file that could
+  not be parked reports nothing. With the real swipe gesture, a mark in progress at 1x now owns the
+  finger (the old mock hid it).
+- Seen while running it: `readScan` and Sign's MOBI-07 test time out on a cold run and pass warm,
+  the same at the round's start commit (battery power, and a vitest cache shared by the symlinked
+  proof worktrees).
 - Found on the way: RED-75 (preview documents never freed on pdf.js 6.5), RED-76 (one very long line
   overflows the text preview).

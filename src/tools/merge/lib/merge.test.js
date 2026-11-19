@@ -6,8 +6,8 @@ import * as pdfjs from 'pdfjs-dist/legacy/build/pdf.mjs';
 import { MergeFileError, inspectPdf, mergePdfs, mergedFileName, resolvePdfCreationDate } from './merge.js';
 import { redrawPng } from '#lib/images/pngRedraw.ts';
 
-// jsdom has no image decoder: the browser's redraw is stood in for here (DEBT-75).
-vi.mock('#lib/images/pngRedraw.ts', () => ({ redrawPng: vi.fn() }));
+// jsdom has no image decoder: the two DEBT-75 tests below force the browser's redraw. Elsewhere the real one is reached through.
+vi.mock('#lib/images/pngRedraw.ts', { spy: true });
 
 // PdfMergeTool.test.tsx mocks merge.js outright, so nothing in the component
 // suite ever runs this file's real pdf-lib calls - see the same gap noted for

@@ -4,6 +4,7 @@ import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
 // @ts-expect-error -- this browser-first project intentionally omits Node ambient types; Vitest provides the runtime.
 import fs from 'node:fs';
 import PdfSignTool from './PdfSignTool.tsx';
+import useFormFieldRegions from './hooks/useFormFieldRegions.ts';
 import { overlayHost } from '#editor-ui/whiteout/overlayHost.ts';
 import * as signModule from './lib/sign.js';
 import { resetMaintenanceEventsForTests } from '#lib/telemetry/maintenanceTelemetry.ts';
@@ -34,20 +35,13 @@ function spySignPdf(impl: (call: number, ...args: SignArgs) => Promise<Blob>) {
 
 declare const __dirname: string;
 
-// FORM-35: lets one test hand the tool a finished walk with a chosen page kind (kept as an override of the
-// real hook: a real finished walk always names a kind, so the "omits" case cannot come from one);
-// null leaves the real hook alone, which is what every other test here wants.
-const formRegionsOverride = vi.hoisted(() => ({ value: null as Record<string, unknown> | null }));
-vi.mock('./hooks/useFormFieldRegions.ts', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('./hooks/useFormFieldRegions.ts')>();
-  return {
-    ...actual,
-    default: (...args: Parameters<typeof actual.default>) => {
-      const real = actual.default(...args);
-      return formRegionsOverride.value ? { ...real, ...formRegionsOverride.value } : real;
-    },
-  };
-});
+// FORM-35: the real hook runs; a test that needs a finished walk with a chosen page kind forces the
+// answer on the spy (a real finished walk always names a kind, so the "omits" case cannot come from one).
+vi.mock('./hooks/useFormFieldRegions.ts', { spy: true });
+async function forceFormRegions(over: Record<string, unknown>) {
+  const actual = await vi.importActual<typeof import('./hooks/useFormFieldRegions.ts')>('./hooks/useFormFieldRegions.ts');
+  vi.mocked(useFormFieldRegions).mockImplementation((...args) => ({ ...actual.default(...args), ...over }));
+}
 
 function required<T>(value: T | null | undefined, description: string): T {
   if (value == null) throw new Error(`Expected ${description}`);
@@ -179,11 +173,11 @@ describe('PdfSignTool UI flow', () => {
 
   // SIGN-43: Tab between fields reads the turned page, not the file's own frame.
   it('Tab lands on the printed field where a turned page now shows it', async () => {
-    formRegionsOverride.value = {
+    await forceFormRegions({
       detection: 'done', detectionError: undefined,
       combs: [{ pageIndex: 0, left: 10, top: 20, width: 30, height: 0.84, cells: 9 }],
       checkboxes: [], cells: [], pageDirections: ['ltr', 'ltr'],
-    };
+    });
     try {
       container = document.createElement('div');
       document.body.appendChild(container);
@@ -203,7 +197,7 @@ describe('PdfSignTool UI flow', () => {
       // One quarter turn sends a left-edge field to the right of the page.
       expect(parseFloat(placed.style.left)).toBeGreaterThan(50);
     } finally {
-      formRegionsOverride.value = null;
+      vi.mocked(useFormFieldRegions).mockReset();
     }
   });
 
@@ -291,7 +285,7 @@ describe('PdfSignTool UI flow', () => {
     ['carries', 'image' as const, ['outcome', 'field_count_bucket', 'page_kind']],
     ['omits', undefined, ['outcome', 'field_count_bucket']],
   ])('a finished walk %s page_kind', async (_label, pageKind, keys) => {
-    formRegionsOverride.value = { detection: 'done', detectionError: undefined, pageKind };
+    await forceFormRegions({ detection: 'done', detectionError: undefined, pageKind });
     try {
       container = document.createElement('div');
       document.body.appendChild(container);
@@ -304,7 +298,7 @@ describe('PdfSignTool UI flow', () => {
       expect(Object.keys(required(success, 'a success event').properties)).toEqual(keys);
       if (pageKind) expect(success?.properties).toMatchObject({ page_kind: pageKind });
     } finally {
-      formRegionsOverride.value = null;
+      vi.mocked(useFormFieldRegions).mockReset();
     }
   });
 

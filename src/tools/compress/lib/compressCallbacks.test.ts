@@ -1,18 +1,20 @@
 import { describe, expect, it, vi } from 'vitest';
 import { englishCompressMessages as t } from '../messages';
+import { compressImageToTarget } from './compressImage.js';
 import { createCompressCallbacks, superseded } from './compressCallbacks.ts';
 
-vi.mock('./compressImage.js', () => ({
-  compressImageToTarget: vi.fn(async (file: File) => ({
-    blob: new Blob([new Uint8Array(10)], { type: 'image/jpeg' }),
-    metTarget: true,
-    width: 4,
-    height: 3,
-    originalWidth: 8,
-    originalHeight: 6,
-    file,
-  })),
-}));
+vi.mock('./compressImage.js', { spy: true });
+
+// Forced: the real compressor decodes and draws on a canvas, which jsdom lacks (browser-mode wave).
+vi.mocked(compressImageToTarget).mockImplementation((async (file: File) => ({
+  blob: new Blob([new Uint8Array(10)], { type: 'image/jpeg' }),
+  metTarget: true,
+  width: 4,
+  height: 3,
+  originalWidth: 8,
+  originalHeight: 6,
+  file,
+})) as never);
 
 function setup(fileName = 'photo.png') {
   const file = new File([new Uint8Array(100)], fileName, { type: 'image/png' });

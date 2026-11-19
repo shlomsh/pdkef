@@ -5,9 +5,7 @@ import { useComparePreviews } from './useComparePreviews.ts';
 import * as thumbnails from '#lib/pdf/thumbnails.js';
 import { drainPromises } from '../../../test/support/drainPromises.ts';
 
-vi.mock('#lib/pdf/thumbnails.js', () => ({
-  renderComparePreview: vi.fn((fileOrBlob) => Promise.resolve(`data:${fileOrBlob instanceof File ? 'before' : 'after'}`)),
-}));
+vi.mock('#lib/pdf/thumbnails.js', { spy: true });
 vi.mock('#lib/telemetry/errorReport.ts', () => ({ reportError: vi.fn() }));
 
 const pdf = () => new File(['%PDF'], 'a.pdf', { type: 'application/pdf' });
@@ -34,6 +32,7 @@ describe('useComparePreviews', () => {
     URL.createObjectURL = vi.fn(() => { const u = `blob:u${urls.length}`; urls.push(u); return u; });
     URL.revokeObjectURL = vi.fn();
     vi.clearAllMocks();
+    // Forced: the real render needs pdf.js and canvas pixels, which jsdom lacks (browser-mode wave). Everything else in the hook runs for real.
     vi.mocked(thumbnails.renderComparePreview).mockImplementation((fileOrBlob) => Promise.resolve(`data:${fileOrBlob instanceof File ? 'before' : 'after'}`));
     act(() => render(<Harness apiRef={api} runTokenRef={runTokenRef} />, root));
   });

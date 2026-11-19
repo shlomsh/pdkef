@@ -1,10 +1,16 @@
+import 'fake-indexeddb/auto';
+import { IDBFactory } from 'fake-indexeddb';
+import { PDFDocument } from '@cantoo/pdf-lib';
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { englishSignMessages } from '../messages';
 import { useLatestRun } from '#lib/hooks/useLatestRun.ts';
 import { reportHandedOn, reportToolLifecycleEvent } from '#lib/telemetry/productAnalytics.ts';
 import { sendHandoff } from '#lib/handoff/sendHandoff.ts';
+import { saveHandoff, takeHandoff } from '#lib/drafts/draftStore.ts';
+import { waitUntil } from '../../../test/support/waitUntil.ts';
+import { drainPromises } from '../../../test/support/drainPromises.ts';
 import type { SignedExport } from '../lib/exportHandoff.ts';
 import { useSignExport } from './useSignExport.ts';
 import { useSpeculativeExport } from './useSpeculativeExport.ts';
@@ -18,13 +24,23 @@ vi.mock('#lib/telemetry/maintenanceTelemetry.ts', () => ({
   signExportSucceeded: vi.fn(),
   signExportFailed: vi.fn(),
 }));
-vi.mock('../lib/sign.js', () => ({ signPdf: vi.fn(async () => new Blob(['pdf'])) }));
-vi.mock('#lib/handoff/sendHandoff.ts', () => ({ sendHandoff: vi.fn() }));
+// The real signer and the real hand-off (into fake-indexeddb) run; the spy lets a test see the hand-off call.
+vi.mock('#lib/handoff/sendHandoff.ts', { spy: true });
+vi.mock('#lib/drafts/draftStore.ts', { spy: true });
 
 type SignExportApi = ReturnType<typeof useSignExport>;
 type ShareFake = Parameters<typeof useSignExport>[0]['share'];
 
-const file = new File(['x'], 'form.pdf');
+// A real one-page PDF, so the real signer has something to sign.
+let file: File;
+let fileBytes: ArrayBuffer;
+beforeAll(async () => {
+  const doc = await PDFDocument.create();
+  doc.addPage([200, 200]);
+  const saved = await doc.save();
+  fileBytes = saved.buffer.slice(saved.byteOffset, saved.byteOffset + saved.byteLength) as ArrayBuffer;
+  file = new File([fileBytes], 'form.pdf', { type: 'application/pdf' });
+});
 // handleDownloadPdf does not await the export it starts; its last report ('tool_result_ready') says it finished.
 function nextResultReady(): Promise<void> {
   const ready = Promise.withResolvers<void>();
@@ -42,7 +58,7 @@ function Harness({ apiRef, share, preparedExportRef }: {
   const exportRun = useLatestRun(() => [file]);
   apiRef.current = useSignExport({
     file,
-    fileBytesRef: { current: null },
+    fileBytesRef: { current: fileBytes },
     elements: [],
     exportRun,
     activeExportSpeculativeRef: { current: false },
@@ -63,6 +79,10 @@ describe('Sign export funnel events', () => {
   let share: ShareFake & { downloadPrepared: ReturnType<typeof vi.fn> };
   let preparedExportRef: { current: SignedExport | null };
   beforeEach(() => {
+    localStorage.clear();
+    indexedDB = new IDBFactory();
+    vi.mocked(sendHandoff).mockClear();
+    vi.mocked(saveHandoff).mockClear();
     vi.mocked(reportToolLifecycleEvent).mockReset();
     root = document.createElement('div');
     api = { current: null as unknown as SignExportApi };
@@ -113,14 +133,31 @@ describe('Sign export funnel events', () => {
     expect(events()).toEqual(['tool_operation_started', 'tool_result_ready', 'tool_operation_started', 'tool_result_ready']);
   });
 
+  it('a hand-off reports nothing when the file could not be parked, since it never reaches its proceed step', async () => {
+    preparedExportRef.current = prepared();
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    vi.mocked(reportHandedOn).mockClear();
+    vi.mocked(saveHandoff).mockResolvedValueOnce(false); // the one forced line: the store refuses the file
+    await act(() => api.current.requestHandoff('compress'));
+    await act(async () => {
+      await Promise.allSettled(vi.mocked(sendHandoff).mock.results.map((r) => r.value));
+      await drainPromises();
+    });
+    expect(vi.mocked(sendHandoff)).toHaveBeenCalledTimes(1);
+    expect(reportHandedOn).not.toHaveBeenCalled();
+  });
+
   it('a hand-off reports the file handed on only when sendHandoff reaches its proceed step', async () => {
     preparedExportRef.current = prepared();
     vi.mocked(reportHandedOn).mockClear();
     await act(() => api.current.requestHandoff('compress'));
-    const options = vi.mocked(sendHandoff).mock.calls.at(-1)?.[2];
-    expect(reportHandedOn).not.toHaveBeenCalled();
-    expect(options?.proceed?.()).toBe(true);
-    expect(reportHandedOn).toHaveBeenCalledWith('sign');
+    await waitUntil(() => expect(reportHandedOn).toHaveBeenCalledWith('sign'));
+    // proceed ran after the bytes were parked: the file is really waiting for the next tool
+    const parked = await takeHandoff('compress');
+    expect(parked && 'fileName' in parked ? parked.fileName : null).toBe('signed_form.pdf');
+    expect(vi.mocked(sendHandoff).mock.calls.at(-1)?.[0]).toBe('compress');
+    await drainPromises();
+    expect(reportHandedOn).toHaveBeenCalledTimes(1);
   });
 });
 

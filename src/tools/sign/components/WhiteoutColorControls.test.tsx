@@ -2,21 +2,20 @@ import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-const eyedropper = vi.hoisted(() => ({ calls: [] as any[][] }));
-vi.mock('#editor-ui/whiteout/pageSampling.ts', () => ({
-  useEyedropper: (...args: any[]) => { eyedropper.calls.push(args); },
-}));
+// The real eyedropper hook runs; the spy only records what the control hands it.
+vi.mock('#editor-ui/whiteout/pageSampling.ts', { spy: true });
+import { useEyedropper } from '#editor-ui/whiteout/pageSampling.ts';
 import { englishSignMessages } from '../messages';
 import WhiteoutColorControls from './WhiteoutColorControls.tsx';
 import { getRecentWhiteoutColors } from '#editor/workspace/preferenceStore.ts';
 
 let host: HTMLDivElement;
-beforeEach(() => { localStorage.clear(); eyedropper.calls = []; host = document.createElement('div'); document.body.appendChild(host); });
+beforeEach(() => { localStorage.clear(); vi.mocked(useEyedropper).mockClear(); host = document.createElement('div'); document.body.appendChild(host); });
 afterEach(() => { act(() => render(null, host)); host.remove(); });
 
 const element = (over: object = {}) => ({ id: 'w1', type: 'whiteout', color: '#ffffff', colorMode: 'auto', ...over });
 const mount = (el: any, onChange = vi.fn()) => { act(() => render(<WhiteoutColorControls element={el} onChange={onChange} messages={englishSignMessages} />, host)); return onChange; };
-const lastEyedropper = () => eyedropper.calls.at(-1)!;
+const lastEyedropper = () => vi.mocked(useEyedropper).mock.calls.at(-1)! as unknown as any[];
 
 describe('WhiteoutColorControls', () => {
   it('shows the group with Auto pressed for an auto whiteout, not for a custom one', () => {

@@ -18,8 +18,9 @@ import { formatDate, toIsoDateString } from '#editor/text/dateFormat.ts';
 import { startGesture } from '#lib/gestures/controller.ts';
 import { samplePageColor } from '../lib/whiteoutPageColor.ts';
 
-// The node environment has no document to read the page canvas from.
-vi.mock('../lib/whiteoutPageColor.ts', () => ({ samplePageColor: vi.fn(() => null) }));
+// The real sampler runs: no page is mounted here, so it answers null. jsdom cannot read pixels, so the
+// tests that need a page colour force that one answer.
+vi.mock('../lib/whiteoutPageColor.ts', { spy: true });
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -625,7 +626,6 @@ describe('useWorkspaceGestures – drag-drawn shape remembered settings', () => 
     });
 
     it('falls back to the carried whiteout colour when the page cannot be read, still auto', () => {
-      samplePageColor.mockReturnValueOnce(null);
       const { dispatch } = drawWhiteout({ initialWhiteoutColor: '#eeeeee' });
       expect(committed(dispatch).payload.changes).toMatchObject({ color: '#eeeeee', colorMode: 'auto' });
     });

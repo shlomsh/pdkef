@@ -5,15 +5,16 @@ import { describe, expect, it, vi, afterEach } from 'vitest';
 import BasePdfTool from './BasePdfTool.tsx';
 // Assert state classes on purpose (Dropzone's is-dragover, ToolShell's icon-loaded); the tool card, drop overlay, identity, meta and note have no role, label or text, so they are found by class.
 import { reportToolLifecycleEvent } from '#lib/telemetry/productAnalytics.ts';
-import { markArrival } from '#lib/handoff/fileArrival.ts';
+import { takeArrival } from '#lib/handoff/fileArrival.ts';
+import { renderThumbnail } from '#lib/pdf/thumbnails.js';
 import { setInputFiles } from '../test/support/setInputFiles.js';
 
 vi.mock('#lib/telemetry/productAnalytics.ts', () => ({ reportToolLifecycleEvent: vi.fn() }));
-vi.mock('#lib/handoff/fileArrival.ts', () => ({ markArrival: vi.fn() }));
-
-vi.mock('#lib/pdf/thumbnails.js', () => ({
-  renderThumbnail: vi.fn(() => new Promise(() => {})), // never settles - not under test here
-}));
+// The real arrival marker runs: a test reads the mark with `takeArrival()` (as productAnalytics does).
+// jsdom has no canvas to paint a page on, so the real thumbnail renderer stays a spy and its answer is forced:
+// it never settles, since the preview is not under test here.
+vi.mock('#lib/pdf/thumbnails.js', { spy: true });
+vi.mocked(renderThumbnail).mockImplementation(() => new Promise(() => {}));
 
 // The tests below are written with flat props; BasePdfTool takes them grouped.
 const GROUPS = {
@@ -772,7 +773,7 @@ describe('BasePdfTool', () => {
     const calls = (name) => reportToolLifecycleEvent.mock.calls.filter(([n]) => n === name);
     afterEach(() => {
       vi.clearAllMocks();
-      markArrival.mockReset();
+      takeArrival(); // clear any mark a test left
     });
 
     it('sends tool_page_viewed once on mount', () => {
@@ -784,16 +785,16 @@ describe('BasePdfTool', () => {
 
     it('marks pick before onFilesAdded runs', () => {
       const order = [];
-      markArrival.mockImplementation((s) => order.push(`mark:${s}`));
-      mount({ hasFiles: false, onFilesAdded: () => order.push('added'), analyticsTool: 'sign' });
+      // What the tool sees the moment onFilesAdded runs: the mark must already be there.
+      mount({ hasFiles: false, onFilesAdded: () => order.push(`mark:${takeArrival()?.source}`, 'added'), analyticsTool: 'sign' });
       selectFile(container.querySelector('input[type="file"]'));
       expect(order).toEqual(['mark:pick', 'added']);
     });
 
     it('marks drop before onFilesAdded runs', () => {
       const order = [];
-      markArrival.mockImplementation((s) => order.push(`mark:${s}`));
-      mount({ hasFiles: false, onFilesAdded: () => order.push('added'), analyticsTool: 'sign' });
+      // What the tool sees the moment onFilesAdded runs: the mark must already be there.
+      mount({ hasFiles: false, onFilesAdded: () => order.push(`mark:${takeArrival()?.source}`, 'added'), analyticsTool: 'sign' });
       act(() => {
         container.querySelector('[data-empty-state]').dispatchEvent(fileDragEvent('drop'));
       });
@@ -802,8 +803,8 @@ describe('BasePdfTool', () => {
 
     it('marks paste before onFilesAdded runs', () => {
       const order = [];
-      markArrival.mockImplementation((s) => order.push(`mark:${s}`));
-      mount({ hasFiles: false, onFilesAdded: () => order.push('added'), analyticsTool: 'sign' });
+      // What the tool sees the moment onFilesAdded runs: the mark must already be there.
+      mount({ hasFiles: false, onFilesAdded: () => order.push(`mark:${takeArrival()?.source}`, 'added'), analyticsTool: 'sign' });
       const file = new File([''], 'p.pdf', { type: 'application/pdf' });
       const event = new Event('paste', { bubbles: true, cancelable: true });
       event.clipboardData = { files: [file], items: [{ kind: 'file', getAsFile: () => file }], types: ['Files'] };
@@ -821,13 +822,13 @@ describe('BasePdfTool', () => {
       });
       act(() => dialogButton(dialogNamed(container, 'confirm-replace-title'), 'Replace file').click());
       expect(onFilesAdded).toHaveBeenCalledTimes(1);
-      expect(markArrival.mock.calls).toEqual([['replace']]);
+      expect(takeArrival()).toEqual({ source: 'replace' });
     });
 
     it('marks nothing when files join a multi-file list that is already loaded: no acceptance follows, so a mark would go stale', () => {
       mount({ hasFiles: true, multiple: true, onFilesAdded: vi.fn(), analyticsTool: 'merge' });
       selectFile(container.querySelector('input[type="file"]'));
-      expect(markArrival).not.toHaveBeenCalled();
+      expect(takeArrival()).toBeUndefined();
     });
 
     it('a page whose tool is only known later (Unlock/Protect) still sends its page view on mount, once', () => {
@@ -855,7 +856,7 @@ describe('BasePdfTool', () => {
       mount({ ...props, hasFiles: false, checkingDraft: true });
       act(() => render(<BasePdfTool {...nest({ ...props, hasFiles: true, checkingDraft: false, file: new File([''], 'r.pdf') })} />, container));
       expect(calls('tool_file_accepted')).toHaveLength(1);
-      expect(markArrival).not.toHaveBeenCalled();
+      expect(takeArrival()).toBeUndefined();
     });
   });
 });

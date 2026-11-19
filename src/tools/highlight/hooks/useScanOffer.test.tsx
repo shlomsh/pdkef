@@ -1,15 +1,21 @@
+import 'fake-indexeddb/auto';
+import { IDBFactory } from 'fake-indexeddb';
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { ScanVerdict } from '../lib/enhance/scanCheck.ts';
-import { useScanOffer } from './useScanOffer.ts';
 
-const sendHandoff = vi.hoisted(() => vi.fn());
-const sourceIdForBytes = vi.hoisted(() => vi.fn());
 const reportError = vi.hoisted(() => vi.fn());
-vi.mock('#lib/handoff/sendHandoff.ts', () => ({ sendHandoff }));
-vi.mock('#lib/drafts/draftSourceId.ts', () => ({ sourceIdForBytes }));
+// The real hand-off (into fake-indexeddb) and the real hash run; the spies let a test see the call and await its result.
+vi.mock('#lib/handoff/sendHandoff.ts', { spy: true });
+vi.mock('#lib/drafts/draftSourceId.ts', { spy: true });
 vi.mock('#lib/telemetry/errorReport.ts', () => ({ reportError }));
+
+import { sendHandoff } from '#lib/handoff/sendHandoff.ts';
+import { sourceIdForBytes } from '#lib/drafts/draftSourceId.ts';
+import { peekHandoff } from '#lib/drafts/draftStore.ts';
+import { drainPromises } from '../../../test/support/drainPromises.ts';
+import { useScanOffer } from './useScanOffer.ts';
 
 type Input = Parameters<typeof useScanOffer>[0];
 type Offer = ReturnType<typeof useScanOffer>;
@@ -25,13 +31,23 @@ function Probe(props: Input) {
 }
 const base: Input = { verdict: null, file, bytes: () => buffer, hasMarks: false };
 const mount = (over: Partial<Input> = {}) => act(() => render(<Probe {...base} {...over} />, container));
-const settle = () => act(async () => { await Promise.resolve(); await Promise.resolve(); });
+// Waits for every hash the hook has asked for to finish, then lets its follow-up state updates land.
+const settle = () => act(async () => {
+  await Promise.allSettled(vi.mocked(sourceIdForBytes).mock.results.map((r) => r.value));
+  await drainPromises();
+});
+// Waits for the real hand-off to finish (it parks the file in the store, then navigates).
+const handoffDone = () => act(async () => {
+  await Promise.allSettled(vi.mocked(sendHandoff).mock.results.map((r) => r.value));
+  await drainPromises();
+});
 
 beforeEach(() => {
   localStorage.clear();
-  sendHandoff.mockReset().mockResolvedValue(true);
+  indexedDB = new IDBFactory();
+  vi.mocked(sendHandoff).mockClear();
+  vi.mocked(sourceIdForBytes).mockClear();
   reportError.mockReset();
-  sourceIdForBytes.mockReset().mockResolvedValue('sha256:one');
   container = document.createElement('div');
   document.body.appendChild(container);
 });
@@ -61,7 +77,8 @@ describe('useScanOffer', () => {
 
   it('is not left busy once the hand-off is under way, so Back finds the buttons working', async () => {
     await open('lean');
-    await act(async () => { latest.straighten(); await Promise.resolve(); await Promise.resolve(); });
+    act(() => latest.straighten());
+    await handoffDone();
     expect(latest.busy).toBe(false);
   });
 
@@ -100,12 +117,17 @@ describe('useScanOffer', () => {
     act(() => latest.straighten());
     expect(sendHandoff).toHaveBeenCalledWith('scan-to-pdf', { fileName: 'crooked.pdf', fileType: 'application/pdf', fileBytes: buffer, from: 'highlight-pdf' });
     expect(latest.busy).toBe(true);
+    await handoffDone();
+    const parked = await peekHandoff('scan-to-pdf');
+    expect(parked?.fileName).toBe('crooked.pdf');
+    expect(parked?.fileBytes?.byteLength).toBe(buffer.byteLength);
   });
 
   it('a failed hand-off sets failed and clears busy', async () => {
-    sendHandoff.mockRejectedValue(new Error('handoff'));
+    vi.mocked(sendHandoff).mockRejectedValueOnce(new Error('handoff')); // forced: the store taking the file is what the real one does here
     await open('lean');
-    await act(async () => { latest.straighten(); await Promise.resolve(); await Promise.resolve(); });
+    act(() => latest.straighten());
+    await handoffDone();
     expect(latest.failed).toBe(true);
     expect(latest.busy).toBe(false);
   });
@@ -116,23 +138,21 @@ describe('useScanOffer', () => {
   });
 
   it('shows nothing for a null id, and reports a rejected hash', async () => {
-    sourceIdForBytes.mockResolvedValueOnce(null);
-    await open('lean');
+    await open('lean', { bytes: () => null }); // the real hash gives no id for bytes that are not a buffer
     expect(latest.verdict).toBeNull();
     await mount({ verdict: null });
     const err = new Error('hash');
-    sourceIdForBytes.mockRejectedValueOnce(err);
+    vi.mocked(sourceIdForBytes).mockRejectedValueOnce(err); // forced: Web Crypto does not fail on a buffer
     await open('lean');
     expect(latest.verdict).toBeNull();
     expect(reportError).toHaveBeenCalledWith('pdf_tool_run', err, 'scan_offer');
   });
 
   it('ignores a stale hash that lands after a new document opened', async () => {
-    let resolve!: (id: string) => void;
-    sourceIdForBytes.mockReturnValueOnce(new Promise<string>((r) => { resolve = r; }));
     await mount({ verdict: 'lean' });
     await mount({ verdict: null });
-    await act(async () => { resolve('sha256:old'); await Promise.resolve(); });
+    await settle(); // the hash of the first document lands now, after the second one opened
+    expect(vi.mocked(sourceIdForBytes)).toHaveBeenCalledTimes(1);
     expect(latest.verdict).toBeNull();
   });
 });

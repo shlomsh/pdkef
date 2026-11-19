@@ -4,10 +4,10 @@ import { act } from 'preact/test-utils';
 import type { PDFDocumentProxy } from 'pdfjs-dist';
 import type { PageTurns } from '#editor/geometry/pageTurn.ts';
 
-const readInkBounds = vi.fn();
-vi.mock('./readInkBounds.ts', () => ({ readInkBounds: (...a: unknown[]) => readInkBounds(...a) }));
+import { readInkBounds } from './readInkBounds.ts';
+import { useWorkspaceZoom } from './useWorkspaceZoom.ts';
 
-const { useWorkspaceZoom } = await import('./useWorkspaceZoom.ts');
+vi.mock('./readInkBounds.ts', { spy: true });
 
 const doc = { numPages: 1, getPage: async () => ({ getViewport: () => ({ width: 600, height: 800 }) }) } as unknown as PDFDocumentProxy;
 
@@ -28,7 +28,8 @@ const container = document.createElement('div');
 afterEach(() => { act(() => render(null, container)); });
 
 async function mount(pageTurns: PageTurns, fullscreen = false, noted = false) {
-  readInkBounds.mockResolvedValue(null);
+  // Forced: reading ink needs canvas pixels, which jsdom cannot render (browser-mode wave).
+  vi.mocked(readInkBounds).mockResolvedValue(null);
   await act(async () => { render(<Probe pageTurns={pageTurns} fullscreen={fullscreen} noted={noted} />, container); });
   await act(async () => { await Promise.resolve(); });
 }

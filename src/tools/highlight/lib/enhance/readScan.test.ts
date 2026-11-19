@@ -2,13 +2,15 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { PDFDocumentProxy } from 'pdfjs-dist';
 import { leaning } from '#lib/pageEnhance/leaning.test-helper.ts';
 
-const renderPageToCanvas = vi.fn();
-vi.mock('#lib/pdf/renderPage.js', () => ({ renderPageToCanvas: (...a: unknown[]) => renderPageToCanvas(...a) }));
-const OPS = { save: 10, restore: 11, transform: 12, paintImageXObject: 85, paintInlineImageXObject: 86, paintImageMaskXObject: 83, showText: 44 };
-vi.mock('#lib/pdf/loadPdfjs.js', () => ({ getPdfjs: async () => ({ OPS }) }));
-
+import { renderPageToCanvas } from '#lib/pdf/renderPage.js';
+import { getPdfjs } from '#lib/pdf/loadPdfjs.js';
 import { assess } from '#lib/pageEnhance/plan.ts';
 import { readScan } from './readScan.ts';
+
+// Spy-through: pdf.js loads for real, so the operator codes the reader looks up are pdf.js's own.
+vi.mock('#lib/pdf/loadPdfjs.js', { spy: true });
+vi.mock('#lib/pdf/renderPage.js', { spy: true });
+const { OPS } = await getPdfjs();
 
 const W = 800;
 const H = 500;
@@ -54,9 +56,12 @@ function fakeCanvas(pixels: Uint8ClampedArray | null = spreadPixels()) {
 
 describe('readScan', () => {
   let canvases: Array<ReturnType<typeof fakeCanvas>>;
+  let pixels: Uint8ClampedArray | null;
   beforeEach(() => {
     canvases = [];
-    renderPageToCanvas.mockReset().mockImplementation(async () => { const c = fakeCanvas(); canvases.push(c); return c; });
+    pixels = spreadPixels();
+    // Forced: canvas pixels cannot be rendered in jsdom (browser-mode wave), so the render step hands back a canvas of known pixels.
+    vi.mocked(renderPageToCanvas).mockReset().mockImplementation((async () => { const c = fakeCanvas(pixels); canvases.push(c); return c; }) as never);
   });
   afterEach(() => vi.unstubAllGlobals());
 
@@ -67,18 +72,18 @@ describe('readScan', () => {
   it('renders nothing for a file whose pages are not pictures of a sheet', async () => {
     const doc = fakeDoc([fakePage({ cover: 0.4 }), fakePage({ cover: 0.4 }), fakePage({ cover: 0.4 })]);
     expect(await readScan(doc, () => true)).toBe('straight');
-    expect(renderPageToCanvas).not.toHaveBeenCalled();
+    expect(vi.mocked(renderPageToCanvas)).not.toHaveBeenCalled();
   });
 
   it('skips a page that is not an image page and judges the others', async () => {
     const doc = fakeDoc([fakePage(), fakePage({ cover: 0.4 }), fakePage()]);
     expect(await readScan(doc, () => true)).toBe('spread');
-    expect(renderPageToCanvas).toHaveBeenCalledTimes(2);
+    expect(vi.mocked(renderPageToCanvas)).toHaveBeenCalledTimes(2);
   });
 
   it('renders at the page\'s own rotation at about 1000 px, whatever the person turned', async () => {
     await readScan(fakeDoc([fakePage({ rotate: 90 })]), () => true);
-    expect(renderPageToCanvas.mock.calls[0][1]).toEqual({ scale: 1000 / PAGE.height, rotation: 90 });
+    expect(vi.mocked(renderPageToCanvas).mock.calls[0][1]).toEqual({ scale: 1000 / PAGE.height, rotation: 90 });
   });
 
   it('releases each canvas once its pixels are read', async () => {
@@ -88,9 +93,10 @@ describe('readScan', () => {
   });
 
   it('stops and returns null once the caller is no longer live', async () => {
-    const live = vi.fn().mockReturnValueOnce(true).mockReturnValueOnce(true).mockReturnValue(false);
+    let asked = 0;
+    const live = () => ++asked <= 2;
     expect(await readScan(fakeDoc([fakePage(), fakePage(), fakePage()]), live)).toBeNull();
-    expect(renderPageToCanvas.mock.calls.length).toBeLessThan(3);
+    expect(vi.mocked(renderPageToCanvas).mock.calls.length).toBeLessThan(3);
   });
 
   it('stops once the signal aborts', async () => {
@@ -123,7 +129,7 @@ describe('readScan', () => {
   });
 
   it('reads a level page as straight', async () => {
-    renderPageToCanvas.mockImplementation(async () => fakeCanvas(new Uint8ClampedArray(leaning(W, H, 0).data)));
+    pixels = new Uint8ClampedArray(leaning(W, H, 0).data);
     expect(await readScan(fakeDoc([fakePage(), fakePage()]), () => true)).toBe('straight');
   });
 });

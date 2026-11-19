@@ -1,6 +1,9 @@
+import 'fake-indexeddb/auto';
+import { IDBFactory } from 'fake-indexeddb';
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { peekHandoff, saveHandoff } from '#lib/drafts/draftStore.ts';
 import { recentActions, resetActionTrailForTests } from '#lib/telemetry/actionTrail.ts';
 import { decideDownloadState, deliverParts, useDownloadFlow, type DownloadFlowInput } from './useDownloadFlow.ts';
 
@@ -10,8 +13,10 @@ vi.mock('#lib/output/usePdfShare.js', () => ({
 }));
 const reportHandedOn = vi.hoisted(() => vi.fn());
 vi.mock('#lib/telemetry/productAnalytics.ts', () => ({ reportHandedOn }));
-const store = vi.hoisted(() => ({ saveHandoff: vi.fn() }));
-vi.mock('#lib/drafts/draftStore.ts', () => store);
+// usePdfShare stays replaced: it is navigator.share, URL.createObjectURL and an anchor click, which jsdom lacks
+// (browser-mode wave). The draft store runs for real on fake-indexeddb; the spy sees the call, and a test
+// that needs a save to fail or to hang forces just that answer.
+vi.mock('#lib/drafts/draftStore.ts', { spy: true });
 
 type Prepared = DownloadFlowInput['prepared'];
 const blob = new Blob(['x'], { type: 'application/pdf' });
@@ -92,6 +97,9 @@ describe('useDownloadFlow', () => {
       removeEventListener: () => {},
     })) as unknown as typeof window.matchMedia;
     vi.clearAllMocks();
+    vi.mocked(saveHandoff).mockReset();
+    indexedDB = new IDBFactory();
+    localStorage.clear();
   });
   afterEach(() => {
     render(null, container);
@@ -257,7 +265,7 @@ describe('useDownloadFlow', () => {
   });
 
   it('a failed hand-off message is cleared by reset() and by the output going stale', async () => {
-    store.saveHandoff.mockResolvedValue(false);
+    vi.mocked(saveHandoff).mockResolvedValue(false); // forced: a store that refuses the file
     mount(base(ready()));
     await act(async () => { await flow.requestHandoff('compress'); });
     expect(flow.handoffFailed).toBe(true);
@@ -270,16 +278,15 @@ describe('useDownloadFlow', () => {
   });
 
   it('a merge hand-off is saved under merge and navigates to the merge href', async () => {
-    store.saveHandoff.mockResolvedValue(true);
     const navigate = vi.fn();
     mount({ ...base(ready()), navigate });
     await act(async () => { await flow.requestHandoff('merge'); });
-    expect(store.saveHandoff.mock.calls.at(-1)[0]).toBe('merge');
+    expect(vi.mocked(saveHandoff).mock.calls.at(-1)![0]).toBe('merge');
+    expect(await peekHandoff('merge')).toMatchObject({ fileName: 'out.pdf', fileType: 'application/pdf' });
     expect(navigate).toHaveBeenCalledWith('/merge/');
   });
 
   it('a hand-off that proceeds reports the file handed on once, under the sending tool', async () => {
-    store.saveHandoff.mockResolvedValue(true);
     reportHandedOn.mockClear();
     mount({ ...base(ready()), from: 'merge', navigate: vi.fn() });
     await act(async () => { await flow.requestHandoff('compress'); });
@@ -288,7 +295,7 @@ describe('useDownloadFlow', () => {
   });
 
   it('a hand-off whose save throws reports nothing', async () => {
-    store.saveHandoff.mockRejectedValue(new Error('save'));
+    vi.mocked(saveHandoff).mockRejectedValue(new Error('save')); // forced: a save that throws
     reportHandedOn.mockClear();
     mount({ ...base(ready()), navigate: vi.fn() });
     await act(async () => { await flow.requestHandoff('compress'); });
@@ -296,30 +303,28 @@ describe('useDownloadFlow', () => {
   });
 
   it('a hand-off names the sending tool in its payload', async () => {
-    store.saveHandoff.mockResolvedValue(true);
     mount({ ...base(ready()), from: 'merge', navigate: vi.fn() });
     await act(async () => { await flow.requestHandoff('compress'); });
-    expect(store.saveHandoff.mock.calls.at(-1)[1].from).toBe('merge');
+    expect(vi.mocked(saveHandoff).mock.calls.at(-1)![1].from).toBe('merge');
+    expect((await peekHandoff('compress'))?.from).toBe('merge');
   });
 
   it.each([['redact', '/redact/'], ['edit-pdf', '/organize-pdf/']] as const)(
     'a tool with no Compress or Sign hand-off (Unlock) hands off to %s under its own id',
     async (tool, href) => {
-      store.saveHandoff.mockResolvedValue(true);
-      const navigate = vi.fn();
+        const navigate = vi.fn();
       mount({ ...base(ready()), navigate });
       await act(async () => { await flow.requestHandoff(tool); });
-      expect(store.saveHandoff.mock.calls.at(-1)[0]).toBe(tool);
+      expect(vi.mocked(saveHandoff).mock.calls.at(-1)![0]).toBe(tool);
       expect(navigate).toHaveBeenCalledWith(href);
     },
   );
 
   it('a hand-off goes to the page the caller names instead of the registry page (a locale edition)', async () => {
-    store.saveHandoff.mockResolvedValue(true);
     const navigate = vi.fn();
     mount({ ...base(ready()), hrefs: { compress: '/he/compress/' }, navigate });
     await act(async () => { await flow.requestHandoff('compress'); });
-    expect(store.saveHandoff.mock.calls.at(-1)[0]).toBe('compress');
+    expect(vi.mocked(saveHandoff).mock.calls.at(-1)![0]).toBe('compress');
     expect(navigate).toHaveBeenCalledWith('/he/compress/');
   });
 
@@ -332,7 +337,7 @@ describe('useDownloadFlow', () => {
 
   it('a hand-off still saving when reset() runs does not navigate', async () => {
     let finish!: (saved: boolean) => void;
-    store.saveHandoff.mockReturnValue(new Promise<boolean>((resolve) => { finish = resolve; }));
+    vi.mocked(saveHandoff).mockReturnValue(new Promise<boolean>((resolve) => { finish = resolve; })); // forced: a save held until the test lets go
     const navigate = vi.fn();
     mount({ ...base(ready()), navigate });
     let run!: Promise<void>;
@@ -345,7 +350,7 @@ describe('useDownloadFlow', () => {
 
   it('a superseded hand-off whose save fails later leaves the newer hand-off busy', async () => {
     let failA!: (saved: boolean) => void;
-    store.saveHandoff
+    vi.mocked(saveHandoff) // forced: two saves held, the first failing late
       .mockReturnValueOnce(new Promise<boolean>((resolve) => { failA = resolve; }))
       .mockReturnValueOnce(new Promise<boolean>(() => {}));
     mount({ ...base(ready()), navigate: vi.fn() });
