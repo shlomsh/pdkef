@@ -60,8 +60,14 @@ A site that fits none of these is reported to the lead, not bent to fit.
    that is one forced line, said to apply to every test. The telemetry modules' own tests stub
    `navigator.sendBeacon` itself: that is wave 5.
 3. Callback props and inputs written as `vi.fn(impl)` / `mock*Value`: test input.
-4. Network that goes through `fetch` (Drive, the sample download): MSW. The report endpoint is reached by
-   beacon, so it belongs to wave 5.
+4. Network that goes through `fetch` (Drive, the KV store behind notes and ratings, the sample
+   download): MSW, through `src/test/support/network.ts` (`answerNetwork()` once per file, `server.use`
+   per test, `sentHeaders()` for the headers the code set). MSW 3 calls the option
+   `onUnhandledFrame: 'error'`, and its default lets an unhandled request reach the real network; the
+   support module also records unhandled requests and fails the test, because code that maps a failed
+   fetch to "offline" would otherwise pass. A handler answers with bytes or strings, never a jsdom
+   `Blob`, which arrives as the text "[object Blob]". The report endpoint is reached by beacon, and
+   Sign's same-origin font fetches have no origin in Node: both belong to wave 5.
 5. Browser APIs jsdom lacks: browser mode.
 6. pdf.js and rendering fakes in the island harness (`src/test/harness/pdfjsEdges.ts`): real pdf.js,
    in Node where it suffices, in browser mode where it renders.

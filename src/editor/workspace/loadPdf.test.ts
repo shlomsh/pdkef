@@ -1,4 +1,3 @@
-// @ts-expect-error -- this browser-first project intentionally omits Node ambient types; Vitest provides the runtime.
 import { readFileSync } from 'node:fs';
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { loadPdf } from './loadPdf.ts';

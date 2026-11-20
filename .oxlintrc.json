@@ -53,12 +53,109 @@
       }
     ],
     "landmines-testing/no-test-doubles": "off",
-    "landmines-testing/strict-msw": "error",
+    "landmines-testing/strict-msw": [
+      "error",
+      {
+        "allow": {
+          "src/test/support/network.ts": 1
+        }
+      }
+    ],
     "landmines-structure/colocated-tests": "error",
     "landmines-structure/test-file-names": "error",
     "landmines-structure/package-exports": "error",
     "landmines-types/no-explicit-return-types": "error",
-    "landmines-style/no-comments": "error"
+    "landmines-style/no-comments": "error",
+    "no-restricted-imports": [
+      "error",
+      {
+        "patterns": [
+          {
+            "group": [
+              "node:*"
+            ],
+            "message": "Browser code runs without Node: no node: imports outside build helpers, scripts and tests."
+          }
+        ],
+        "paths": [
+          {
+            "name": "fs",
+            "message": "Browser code runs without Node."
+          },
+          {
+            "name": "path",
+            "message": "Browser code runs without Node."
+          },
+          {
+            "name": "os",
+            "message": "Browser code runs without Node."
+          },
+          {
+            "name": "url",
+            "message": "Browser code runs without Node."
+          },
+          {
+            "name": "crypto",
+            "message": "Browser code runs without Node."
+          },
+          {
+            "name": "child_process",
+            "message": "Browser code runs without Node."
+          },
+          {
+            "name": "zlib",
+            "message": "Browser code runs without Node."
+          },
+          {
+            "name": "module",
+            "message": "Browser code runs without Node."
+          },
+          {
+            "name": "util",
+            "message": "Browser code runs without Node."
+          },
+          {
+            "name": "stream",
+            "message": "Browser code runs without Node."
+          },
+          {
+            "name": "buffer",
+            "message": "Browser code runs without Node."
+          },
+          {
+            "name": "process",
+            "message": "Browser code runs without Node."
+          }
+        ]
+      }
+    ],
+    "no-restricted-globals": [
+      "error",
+      {
+        "name": "Buffer",
+        "message": "Browser code runs without Node."
+      },
+      {
+        "name": "process",
+        "message": "Browser code runs without Node."
+      },
+      {
+        "name": "__dirname",
+        "message": "Browser code runs without Node."
+      },
+      {
+        "name": "__filename",
+        "message": "Browser code runs without Node."
+      },
+      {
+        "name": "require",
+        "message": "Browser code runs without Node."
+      },
+      {
+        "name": "global",
+        "message": "Browser code runs without Node."
+      }
+    ]
   },
   "ignorePatterns": [
     "dist/**",
@@ -67,5 +164,30 @@
     "test-results/**",
     "playwright-report/**",
     "**/*.astro"
+  ],
+  "overrides": [
+    {
+      "files": [
+        "scripts/**",
+        "api/**",
+        "spikes/**",
+        "e2e/**",
+        "**/e2e/**",
+        "*.config.*",
+        "**/*.test.*",
+        "**/*.test-helper.*",
+        "src/test/**",
+        "src/site-lib/cspHash.js",
+        "src/site-lib/flagFiles.ts",
+        "src/site-lib/gitLastModified.js",
+        "src/site-lib/notesAtBuild.ts",
+        "src/site-lib/ratingAggregate.ts",
+        "src/tools/sign/lib/fields/corpus/**"
+      ],
+      "rules": {
+        "no-restricted-imports": "off",
+        "no-restricted-globals": "off"
+      }
+    }
   ]
 }

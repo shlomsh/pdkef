@@ -1,6 +1,5 @@
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
-// @ts-expect-error -- this browser-first project intentionally omits Node ambient types; Vitest provides the runtime.
 import { readFileSync } from 'node:fs';
 import { PDFDocument } from '@cantoo/pdf-lib';
 import { afterEach, beforeEach, describe, expect, it, vi, type Mock } from 'vitest';

@@ -1,6 +1,5 @@
 // SCAN-24: no false alarm on real photos. Every labelled photo in edges/real/ shows its page wholly in view, so the
 // camera's cut-off reading (paper running on past a side to the frame's edge) must be false on each.
-// @ts-expect-error -- this browser-first project intentionally omits Node ambient types; Vitest provides the runtime.
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { parsePgm } from '../edges/real/pgm.ts';

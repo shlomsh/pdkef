@@ -7,9 +7,6 @@ import type { PinnedNote } from './pinnedNote.js';
 
 const TIMEOUT_MS = 5000;
 
-// No @types/node in this repo; the build provides process.env.
-declare const process: { env: Record<string, string | undefined> };
-
 const none: readonly PinnedNote[] = [];
 
 /**

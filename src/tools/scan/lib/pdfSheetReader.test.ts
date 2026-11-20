@@ -1,7 +1,6 @@
 import { describe, expect, it, vi, type MockInstance } from 'vitest';
 import { PDFDocument, degrees } from '@cantoo/pdf-lib';
 import fontkit from '@pdf-lib/fontkit';
-// @ts-expect-error -- this browser-first project omits Node ambient types; Vitest provides the runtime.
 import { readFileSync } from 'node:fs';
 import type { PDFPageProxy } from 'pdfjs-dist';
 

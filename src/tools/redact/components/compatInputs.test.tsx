@@ -1,7 +1,6 @@
 import 'preact/compat';
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
-// @ts-expect-error -- this browser-first project intentionally omits Node ambient types; Vitest provides the runtime.
 import { readdirSync, readFileSync } from 'node:fs';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import BlurStrengthSlider from './BlurStrengthSlider.tsx';

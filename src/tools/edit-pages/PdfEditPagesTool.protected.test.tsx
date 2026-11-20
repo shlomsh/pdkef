@@ -1,9 +1,7 @@
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { describe, expect, it, vi, afterEach, beforeEach } from 'vitest';
-// @ts-expect-error -- this browser-first project intentionally omits Node ambient types; Vitest provides the runtime.
 import { readFileSync } from 'node:fs';
-// @ts-expect-error -- same: no Node ambient types.
 import path from 'node:path';
 import type { probeEncryption } from '#lib/pdf/pdfEncryption.ts';
 import PdfEditPagesTool from './PdfEditPagesTool.tsx';

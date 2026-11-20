@@ -6,7 +6,6 @@ import { pxToPercent, pxDeltaToPercent } from '#editor/geometry/coords.ts';
 import { recentActions } from '#lib/telemetry/actionTrail.ts';
 import { PDFDocument } from '@cantoo/pdf-lib';
 import { getAppStyle } from '#editor/workspace/preferenceStore.ts';
-// @ts-expect-error -- this browser-first project intentionally omits Node ambient types; Vitest provides the runtime.
 import fs from 'node:fs';
 import * as gestureController from '#lib/gestures/controller.ts';
 import { waitUntil } from '../../test/support/waitUntil.ts';

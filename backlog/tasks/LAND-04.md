@@ -84,5 +84,13 @@ count). The rule is off on `landmines-all` meanwhile.
   every removed double: no weakened assertions; three single-caller callbacks (Scan's `onTrace`,
   `processed`, `restorePages`) were collaborators by the contract's sharpened rule and went back.
   The rule is now in the contract. 1,319 to 1,331.
+- Wave 4 set-up (2026-11-20): MSW 3.0.4 as a dev dependency (14-day cooldown), the shared server in
+  `src/test/support/network.ts`, and the Drive client test on it as the pilot (a stray header and a
+  changed query both fail it; a missing handler fails it). MSW brings `@types/node`, so TypeScript now
+  knows Node's APIs everywhere: an oxlint guard (`no-restricted-imports` for `node:*`,
+  `no-restricted-globals` for `Buffer`, `process` and the rest) keeps them out of browser code, with
+  build helpers, corpus tooling, scripts, spikes and tests exempt, and 31 `@ts-expect-error` lines that
+  only existed for the missing types are gone. `strict-msw` does not know MSW 3's `onUnhandledFrame`:
+  one exact-count allow entry until the upstream fix.
 - Found on the way: RED-75 (preview documents never freed on pdf.js 6.5), RED-76 (one very long line
   overflows the text preview).

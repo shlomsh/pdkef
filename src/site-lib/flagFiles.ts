@@ -1,12 +1,8 @@
 // MEM-42: which flags the rating board can show. Build-time only (reads public/flags with node:fs): the board and
 // the sprite endpoint (src/pages/flags/[sprite].svg.ts) both ask here, so a flag is drawn exactly when the sprite has it.
-// @ts-expect-error -- this browser-first project intentionally omits Node ambient types; the build provides the runtime.
 import { existsSync, readFileSync } from 'node:fs';
 import type { PinnedNote } from './pinnedNote.js';
 import { flagSpriteOf, type FlagFile, type PublishedFlagSprite } from './flagSprite.js';
-
-// No @types/node in this repo; the build provides process.cwd().
-declare const process: { cwd(): string };
 
 const dir = () => `${process.cwd()}/public/flags`;
 

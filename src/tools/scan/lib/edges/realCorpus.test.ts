@@ -1,7 +1,6 @@
 // The page-detection KPI table: every labelled photo in real/ plus the synthetic corpus, scored by the same
 // scorer against today's detector. Asserted against real/baseline.json; a regression fails. To move the
 // baseline on purpose: UPDATE_BASELINE=1 npx vitest run src/tools/scan/lib/edges/realCorpus.test.ts
-// @ts-expect-error -- this browser-first project intentionally omits Node ambient types; Vitest provides the runtime.
 import { readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import type { Quad } from '#lib/pageEnhance/quad.ts';
@@ -64,7 +63,6 @@ function regressions(got: KpiResult, base: KpiResult): string[] {
 const score = (cases: KpiCase[]) => scoreDetector(cases, (img) => guessCorners(img));
 /** The live camera's finder, scored on the same cases. */
 const scoreCamera = (cases: KpiCase[]) => scoreDetector(cases, (img) => detectPage(img).quad);
-// @ts-expect-error -- no Node ambient types here (see the fs import).
 const update = process.env.UPDATE_BASELINE === '1';
 const measured: Partial<Baseline> = {};
 

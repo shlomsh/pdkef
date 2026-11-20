@@ -9,7 +9,6 @@ import { recentActions } from '#lib/telemetry/actionTrail.ts';
 import { PDFDocument } from '@cantoo/pdf-lib';
 import { waitUntil } from '../../test/support/waitUntil.ts';
 import { setInputFiles } from '../../test/support/setInputFiles.js';
-// @ts-expect-error -- this browser-first project intentionally omits Node ambient types; Vitest provides the runtime.
 import fs from 'node:fs';
 import * as gestureController from '#lib/gestures/controller.ts';
 import { installToolHarness } from '../../test/harness/toolHarness.ts';

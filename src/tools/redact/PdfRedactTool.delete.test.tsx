@@ -3,7 +3,6 @@ import { drainPromises } from '../../test/support/drainPromises.ts';
 import { describe, expect, it, vi } from 'vitest';
 import PdfRedactTool from './PdfRedactTool.tsx';
 import { CHECKING } from './lib/check/checkCopy.ts';
-// @ts-expect-error -- this browser-first project intentionally omits Node ambient types; Vitest provides the runtime.
 import fs from 'node:fs';
 import * as gestureController from '#lib/gestures/controller.ts';
 import { waitUntil } from '../../test/support/waitUntil.ts';

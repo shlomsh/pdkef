@@ -1,7 +1,6 @@
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
-// @ts-expect-error -- this browser-first project intentionally omits Node ambient types; Vitest provides the runtime.
 import fs from 'node:fs';
 import PdfSignTool from './PdfSignTool.tsx';
 import useFormFieldRegions from './hooks/useFormFieldRegions.ts';

@@ -1,4 +1,3 @@
-// @ts-expect-error -- this browser-first project intentionally omits Node ambient types; Vitest provides the runtime.
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import type { Quad } from '#lib/pageEnhance/quad.ts';

@@ -37,9 +37,6 @@ export function summarize(counts: StarCounts, min: number = RATING_MIN_VOTES): R
   return { average: Math.round((sum / count) * 100) / 100, count };
 }
 
-// No @types/node in this repo; the build provides process.env.
-declare const process: { env: Record<string, string | undefined> };
-
 const emptyCounts = (): StarCounts => ({ 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 });
 
 /**

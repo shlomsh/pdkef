@@ -12,9 +12,6 @@ import { reportToolLifecycleEvent, resetUsageEventsForTests } from '#lib/telemet
 // the shared schemas; this one proves that what the browser sends is what the endpoint stores, so a
 // change on one side cannot silently turn the other's traffic into nothing.
 
-// No @types/node in this repo; vitest runs this file under Node.
-declare const process: { env: Record<string, string | undefined> };
-
 const beacons: Blob[] = [];
 
 const deliver = async (): Promise<unknown[][]> => {
