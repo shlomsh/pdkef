@@ -27,9 +27,6 @@ import { negotiateRepresentation, markdownRoute } from './src/site-lib/acceptNeg
 import { buildServerTiming, commitFromEnv } from './src/site-lib/buildCommit.js';
 import vercelConfig from './vercel.json';
 
-// No @types/node in this repo; the function runtime provides process.env.
-declare const process: { env: Record<string, string | undefined> };
-
 export const config = {
   // Paths with a file extension (sitemap.xml, sw.js, robots.txt, the .md
   // twins, favicon.ico), the pure asset directories and api/ (the report

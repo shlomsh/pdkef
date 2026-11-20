@@ -170,6 +170,7 @@
       "files": [
         "scripts/**",
         "api/**",
+        "middleware.ts",
         "spikes/**",
         "e2e/**",
         "**/e2e/**",

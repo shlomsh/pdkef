@@ -45,9 +45,13 @@ export function answerInTurn(method: 'get' | 'post' | 'put', url: string, ...ans
   return seen;
 }
 
-const SET_BY_NODE_FETCH = new Set(['accept', 'accept-encoding', 'accept-language', 'connection', 'content-length', 'host', 'sec-fetch-mode', 'user-agent']);
+const SET_BY_NODE_FETCH = new Set(['accept-encoding', 'connection', 'content-length', 'host', 'sec-fetch-mode', 'user-agent']);
+const NODE_FETCH_DEFAULTS: Record<string, string> = { accept: '*/*', 'accept-language': '*' };
 
-/** The headers the code under test set on a request, lower-cased, without the ones Node's fetch adds itself (content-length included: a forbidden header the code cannot set). */
+/**
+ * The headers the code under test set on a request, lower-cased, without the ones Node's fetch adds itself:
+ * the transport ones it always sets (content-length, host, user-agent and the rest), and accept / accept-language only at their defaults.
+ */
 export function sentHeaders(request: Request) {
-  return Object.fromEntries([...request.headers].filter(([name]) => !SET_BY_NODE_FETCH.has(name)));
+  return Object.fromEntries([...request.headers].filter(([name, value]) => !SET_BY_NODE_FETCH.has(name) && NODE_FETCH_DEFAULTS[name] !== value));
 }

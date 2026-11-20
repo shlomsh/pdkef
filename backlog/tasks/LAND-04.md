@@ -98,5 +98,8 @@ count). The rule is off on `landmines-all` meanwhile.
   request (full URL, exact headers, body, count). One shared `answerInTurn` answers requests in order and
   fails a test on one more than it answered. Kept for later waves: Google's sign-in and Picker scripts,
   `@vercel/functions`, navigator and performance stubs.
+- Fresh review of wave 4 (2026-11-20), a contract reviewer and an independent code reviewer: no
+  weakened assertion. Fixed: `sentHeaders` dropped an `Accept` the code set (now only at fetch's
+  default), and `middleware.ts` still shadowed `process` instead of being exempt from the Node guard.
 - Found on the way: RED-75 (preview documents never freed on pdf.js 6.5), RED-76 (one very long line
   overflows the text preview).
