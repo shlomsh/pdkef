@@ -3,16 +3,14 @@ import { buildImagesPdf, reportBuildError, skippedNames } from './buildImagesPdf
 import { imagesToPdf, UnreadableImageError } from '#lib/images/imagesToPdf.js';
 import { reportError } from '#lib/telemetry/errorReport.ts';
 
-vi.mock('#lib/images/imagesToPdf.js', async (importOriginal) => ({
-  ...(await importOriginal<typeof import('#lib/images/imagesToPdf.js')>()),
-  imagesToPdf: vi.fn(),
-}));
+// Neither decoder runs in Node (no <img>), so a picture that cannot be read is forced on the spy: one line per test.
+vi.mock('#lib/images/imagesToPdf.js', { spy: true });
 vi.mock('#lib/telemetry/errorReport.ts', () => ({ reportError: vi.fn() }));
 
 const files = ['a.png', 'cut.png', 'c.png'].map((name) => new File([new Uint8Array(1)], name, { type: 'image/png' }));
 
 describe('buildImagesPdf (DEBT-75)', () => {
-  beforeEach(() => { vi.mocked(imagesToPdf).mockReset(); vi.mocked(reportError).mockReset(); });
+  beforeEach(() => { vi.mocked(reportError).mockReset(); });
 
   it('counts the pages kept and names the pictures left out', async () => {
     vi.mocked(imagesToPdf).mockImplementation(async (_files, _progress, _signal, options) => {

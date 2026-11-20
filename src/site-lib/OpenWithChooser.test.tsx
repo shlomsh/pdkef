@@ -2,15 +2,25 @@ import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import OpenWithChooser from './OpenWithChooser.tsx';
+import 'fake-indexeddb/auto';
+import { IDBFactory } from 'fake-indexeddb';
 import { sendHandoff } from '#lib/handoff/sendHandoff.ts';
+import { peekHandoff } from '#lib/drafts/draftStore.ts';
 import { drainPromises } from '../test/support/drainPromises.ts';
+import { waitUntil } from '../test/support/waitUntil.ts';
 
-vi.mock('#lib/handoff/sendHandoff.ts', () => ({ sendHandoff: vi.fn(() => Promise.resolve(true)) }));
+// The real hand-off runs on fake-indexeddb; the spy sees which tool it was sent to.
+vi.mock('#lib/handoff/sendHandoff.ts', { spy: true });
 
 type Consumer = (params: { files: { getFile: () => Promise<File> }[] }) => void | Promise<void>;
 const launchHost = window as Window & { launchQueue?: { setConsumer: (fn: Consumer) => void } };
 
 const flush = () => act(async () => { await drainPromises(); });
+// The real hand-off marks its page pending (sessionStorage) once it has parked the file: that is the signal.
+const handedOver = async () => {
+  await waitUntil(() => sessionStorage.length > 0);
+  await flush();
+};
 
 describe('OpenWithChooser', () => {
   let container: HTMLElement | null = null;
@@ -18,6 +28,9 @@ describe('OpenWithChooser', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    indexedDB = new IDBFactory();
+    localStorage.clear();
+    sessionStorage.clear();
     consumer = null;
     launchHost.launchQueue = { setConsumer: (fn) => { consumer = fn; } };
     container = document.createElement('div');
@@ -53,32 +66,36 @@ describe('OpenWithChooser', () => {
   it('hands the file to Scan under its own key', async () => {
     await launch(pdf());
     await act(async () => { button('Straighten').click(); });
-    await flush();
+    await handedOver();
     expect(vi.mocked(sendHandoff).mock.calls[0][0]).toBe('scan-to-pdf');
+    expect(await peekHandoff('scan-to-pdf')).toMatchObject({ fileName: 'lease.pdf' });
   });
 
   it('hands the file to Redact under its own key', async () => {
     await launch(pdf());
     await act(async () => { button('Redact').click(); });
-    await flush();
+    await handedOver();
     expect(sendHandoff).toHaveBeenCalledTimes(1);
     const [target, payload] = vi.mocked(sendHandoff).mock.calls[0];
     expect(target).toBe('redact');
     expect(payload).toMatchObject({ fileName: 'lease.pdf', fileType: 'application/pdf', from: 'open' });
     expect('fileBytes' in payload && payload.fileBytes.byteLength).toBe(8);
+    const parked = await peekHandoff('redact');
+    expect(parked).toMatchObject({ fileName: 'lease.pdf', fileType: 'application/pdf', from: 'open' });
+    expect(parked?.fileBytes?.byteLength).toBe(8);
   });
 
   it('hands the file to Sign', async () => {
     await launch(pdf());
     await act(async () => { button('Sign').click(); });
-    await flush();
+    await handedOver();
     expect(vi.mocked(sendHandoff).mock.calls[0][0]).toBe('sign');
   });
 
   it.each([['Highlight', 'highlight-pdf'], ['Compress', 'compress']])('hands the file to %s', async (label, target) => {
     await launch(pdf());
     await act(async () => { button(label).click(); });
-    await flush();
+    await handedOver();
     expect(vi.mocked(sendHandoff).mock.calls[0][0]).toBe(target);
   });
 
@@ -95,7 +112,7 @@ describe('OpenWithChooser', () => {
   });
 
   it('says so, and offers a retry, when the hand-off fails', async () => {
-    vi.mocked(sendHandoff).mockRejectedValueOnce(new Error('handoff'));
+    vi.mocked(sendHandoff).mockRejectedValueOnce(new Error('handoff')); // forced: a store that refuses the file
     await launch(pdf());
     await act(async () => { button('Sign').click(); });
     await flush();
@@ -104,7 +121,7 @@ describe('OpenWithChooser', () => {
   });
 
   it('sends one hand-off when a second file launches while the first is being handed over', async () => {
-    vi.mocked(sendHandoff).mockReturnValueOnce(new Promise(() => {}));
+    vi.mocked(sendHandoff).mockReturnValueOnce(new Promise(() => {})); // forced: a hand-off held in flight
     await launch(pdf('first.pdf'));
     await act(async () => { button('Sign').click(); });
     await flush();
@@ -133,7 +150,8 @@ describe('OpenWithChooser', () => {
       expect(button('Sign').disabled).toBe(true);
 
       show(pdf('late.pdf'));
-      await flush();
+      await act(async () => { await drainPromises(); });
+      await handedOver();
       expect(sendHandoff).toHaveBeenCalledTimes(1);
       const [target, payload] = vi.mocked(sendHandoff).mock.calls[0];
       expect(target).toBe('redact');
@@ -143,8 +161,9 @@ describe('OpenWithChooser', () => {
     it('names Drive as the sender when the file came from Drive', async () => {
       act(() => render(<OpenWithChooser file={pdf('late.pdf')} from="drive" />, container!));
       await act(async () => { button('Redact').click(); });
-      await flush();
+      await handedOver();
       expect(vi.mocked(sendHandoff).mock.calls[0][1]).toMatchObject({ from: 'drive' });
+      expect(await peekHandoff('redact')).toMatchObject({ from: 'drive' });
     });
 
     it('names the file once it arrives and waits for a choice', async () => {

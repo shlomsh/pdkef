@@ -7,6 +7,7 @@ import PdfImageToPdfTool from './PdfImageToPdfTool.tsx';
 import fs from 'node:fs';
 import path from 'node:path';
 import zlib from 'node:zlib';
+import { imagesToPdf } from '#lib/images/imagesToPdf.js';
 import { getPdfLib } from '#lib/pdf/pdfLib.js';
 import { formatFileSize } from '#lib/text/format.js';
 import { saveHandoff } from '#lib/drafts/draftStore.ts';
@@ -68,22 +69,20 @@ function makeImageFile(name, type = 'image/png') {
   return new File(['not an image'], name, { type });
 }
 
-// Not a fake: imagesToPdf still builds the real PDF. The gate only lets one test hold a build open, or
-// have one fail, which a real build gives no way to do on cue. Its calls are kept for the abort signal.
-const { buildGate } = vi.hoisted(() => ({ buildGate: { next: null, calls: [] } }));
-vi.mock('#lib/images/imagesToPdf.js', async (importOriginal) => {
-  const actual = await importOriginal();
-  return {
-    ...actual,
-    imagesToPdf: async (...args) => {
-      buildGate.calls.push(args);
-      const hold = buildGate.next;
-      buildGate.next = null;
-      if (hold) await hold();
-      return actual.imagesToPdf(...args);
-    },
-  };
-});
+// imagesToPdf is a spy-through: it still builds the real PDF. A test that needs a build held open, or one that
+// fails, forces that one call, which a real build gives no way to do on cue.
+vi.mock('#lib/images/imagesToPdf.js', { spy: true });
+const actualBuild = await vi.importActual('#lib/images/imagesToPdf.js');
+// Holds the next build until the returned function is called, then runs the real one.
+const holdNextBuild = () => {
+  let release;
+  const held = new Promise((resolve) => { release = resolve; });
+  vi.mocked(imagesToPdf).mockImplementationOnce(async (...args) => {
+    await held;
+    return actualBuild.imagesToPdf(...args);
+  });
+  return () => release();
+};
 
 const QUIET = { baseMs: 100, stepMs: 50, maxMs: 300, burstWindowMs: 1000 };
 
@@ -115,8 +114,7 @@ describe('PdfImageToPdfTool UI flow', () => {
     harness = installToolHarness();
     vi.useFakeTimers();
     pngWidths.clear();
-    buildGate.next = null;
-    buildGate.calls = [];
+    vi.mocked(imagesToPdf).mockReset();
     // jsdom's Blob has no arrayBuffer().
     if (!Blob.prototype.arrayBuffer) {
       Blob.prototype.arrayBuffer = function arrayBuffer() {
@@ -227,7 +225,7 @@ describe('PdfImageToPdfTool UI flow', () => {
 
     expect(builtPdfs()).toHaveLength(1);
     await expectBuilt(0, ['doc1.png', 'doc2.jpg']);
-    expect(buildGate.calls[0][2]).toBeInstanceOf(AbortSignal);
+    expect(vi.mocked(imagesToPdf).mock.calls[0][2]).toBeInstanceOf(AbortSignal);
     const link = downloadLink();
     expect(harness.blobForUrl(link.getAttribute('href'))).toBe(builtPdfs()[0]);
     expect(link.getAttribute('download')).toBe('doc1.pdf');
@@ -279,8 +277,7 @@ describe('PdfImageToPdfTool UI flow', () => {
     mount();
     await loadFiles(['a.png', 'b.png']);
     await wait(0);
-    let release;
-    buildGate.next = () => new Promise((resolve) => { release = resolve; });
+    const release = holdNextBuild();
     await act(async () => { removeButtons()[1].click(); });
 
     await act(async () => { downloadLink().dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true })); });
@@ -314,8 +311,7 @@ describe('PdfImageToPdfTool UI flow', () => {
     mount();
     await loadFiles(['a.png', 'b.png']);
     await wait(0);
-    let release;
-    buildGate.next = () => new Promise((resolve) => { release = resolve; });
+    const release = holdNextBuild();
     await act(async () => { removeButtons()[1].click(); });
     resetActionTrailForTests();
     await act(async () => { downloadLink().dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true })); });
@@ -415,7 +411,7 @@ describe('PdfImageToPdfTool UI flow', () => {
 
   it('shows Try again in the finish on a build failure, and tapping it builds again', async () => {
     mount();
-    buildGate.next = () => Promise.reject(new Error('bad image'));
+    vi.mocked(imagesToPdf).mockRejectedValueOnce(new Error('bad image')); // forced: a build that fails
     vi.spyOn(console, 'error').mockImplementation(() => {});
     await loadFiles(['a.png']);
     await wait(0);
@@ -446,7 +442,7 @@ describe('PdfImageToPdfTool UI flow', () => {
     mount();
     await loadFiles(['a.png', 'b.png']);
     await wait(0);
-    buildGate.next = () => new Promise(() => {});
+    vi.mocked(imagesToPdf).mockReturnValueOnce(new Promise(() => {})); // forced: a build that never finishes
     await act(async () => { removeButtons()[1].click(); });
     await act(async () => { downloadLink().dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true })); });
     await wait(0);
@@ -509,7 +505,7 @@ describe('PdfImageToPdfTool UI flow', () => {
     const clicks = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
     vi.spyOn(console, 'error').mockImplementation(() => {});
     let fail;
-    buildGate.next = () => new Promise((_, reject) => { fail = () => reject(new Error('bad image')); });
+    vi.mocked(imagesToPdf).mockReturnValueOnce(new Promise((_, reject) => { fail = () => reject(new Error('bad image')); })); // forced: a build that fails when the test says
     mount();
     await loadFiles(['a.png']);
     await wait(0);
@@ -528,7 +524,7 @@ describe('PdfImageToPdfTool UI flow', () => {
   it('records export again on the first tap after Clear all', async () => {
     resetActionTrailForTests();
     vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
-    buildGate.next = () => new Promise(() => {});
+    vi.mocked(imagesToPdf).mockReturnValueOnce(new Promise(() => {})); // forced: a build that never finishes
     mount();
     await loadFiles(['a.png']);
     await wait(0);
@@ -609,7 +605,7 @@ describe('PdfImageToPdfTool UI flow', () => {
     mount();
     await loadFiles(['a.png', 'b.png']);
     await wait(0);
-    buildGate.next = () => new Promise(() => {});
+    vi.mocked(imagesToPdf).mockReturnValueOnce(new Promise(() => {})); // forced: a build that never finishes
     await act(async () => { removeButtons()[1].click(); });
     const before = downloadLink();
     await act(async () => { before.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true })); });

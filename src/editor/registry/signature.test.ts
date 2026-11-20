@@ -1,7 +1,8 @@
 // oxlint-disable landmines-structure/colocated-tests -- the subject is the registry's signature entry, reached through drawElements
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { PDFDict, PDFDocument, PDFName, PDFRawStream } from '@cantoo/pdf-lib';
 import { drawElements } from '../export/drawElements.ts';
+import { tintImageDataUrl } from '../text/imageTint.js';
 import type { EditorElement, SignatureElement } from '../model/editorModel.ts';
 
 /** A solid-colour RGB PNG, `size` pixels square. Its zlib stream uses stored (uncompressed) blocks, so it stays synchronous. */
@@ -65,11 +66,13 @@ async function inflate(bytes: Uint8Array): Promise<Uint8Array> {
 
 const BLACK_INK = solidPng(2, [0, 0, 0]);
 
-// The canvas tint is the one edge: this stand-in repaints the whole image in the requested colour.
-vi.mock('../text/imageTint.js', async (importOriginal) => ({
-  ...(await importOriginal<typeof import('../text/imageTint.js')>()),
-  tintImageDataUrl: async (_dataUrl: string, hex: string) => solidPng(2, [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16))),
-}));
+// Spy-through: the real tint module runs for everything but the canvas repaint, the one edge jsdom lacks.
+vi.mock('../text/imageTint.js', { spy: true });
+
+beforeEach(() => {
+  // forced: this stand-in repaints the whole image in the requested colour
+  vi.mocked(tintImageDataUrl).mockImplementation(async (_dataUrl: string, hex: string) => solidPng(2, [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16))));
+});
 
 const signature = (overrides: Partial<SignatureElement> = {}): SignatureElement => ({
   id: 'sig', type: 'signature', pageIndex: 0, left: 10, top: 20, width: 30, height: 10, dataUrl: BLACK_INK, ...overrides,

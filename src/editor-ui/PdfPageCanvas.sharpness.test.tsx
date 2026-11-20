@@ -3,13 +3,14 @@ import { act } from 'preact/test-utils';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('#lib/telemetry/errorReport.ts', () => ({ reportError: vi.fn() }));
-// jsdom has no 2D context; the component only needs a truthy one.
-vi.mock('#lib/pdf/pdfRender.js', () => ({ getPdfRenderContext: () => ({ drawImage: vi.fn() }) }));
+// The real getPdfRenderContext runs; jsdom has no 2D context, so its one forced result is set in beforeEach.
+vi.mock('#lib/pdf/pdfRender.js', { spy: true });
 
 import type { PDFDocumentProxy } from 'pdfjs-dist';
 import { fakePdfDocument } from '../test/support/fakePdfJs.ts';
 import { drainPromises } from '../test/support/drainPromises.ts';
 import PdfPageCanvas from './PdfPageCanvas.tsx';
+import { getPdfRenderContext } from '#lib/pdf/pdfRender.js';
 import { pageRenderScale, bucketWidth } from '#editor/adapters/pdf/pageRenderScale.js';
 
 const flush = () => drainPromises();
@@ -23,6 +24,7 @@ describe('PdfPageCanvas renders at the size the page is shown', () => {
   let doc: PDFDocumentProxy;
 
   beforeEach(() => {
+    vi.mocked(getPdfRenderContext).mockReturnValue({ drawImage: vi.fn() } as unknown as CanvasRenderingContext2D);
     shownWidth = 790;
     observers = [];
     scales = [];

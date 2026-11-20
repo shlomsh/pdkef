@@ -1,15 +1,11 @@
 import { describe, expect, it, vi } from 'vitest';
 import { PDFArray, PDFDict, PDFDocument, PDFName, PDFNumber, PDFString } from '@cantoo/pdf-lib';
-import { serializeHighlight, textCorners } from './highlightPdf.ts';
+import { boundsOf, fixed, serializeHighlight, textCorners } from './highlightPdf.ts';
+import { sketchBands, sketchUnderline, strokeSeed, type PathOp } from '../geometry/sketchStroke.ts';
 import type { HighlightElement } from '../model/editorModel.ts';
 
-// READ-11: known ops, one M, one C, one Z per band, so the exact stream is assertable.
-vi.mock('../geometry/sketchStroke.ts', () => {
-  const ops = (bands: { x: number; y: number; w: number; h: number }[]) => bands.flatMap((b) => [
-    ['M', b.x, b.y], ['C', b.x + 1, b.y, b.x + b.w, b.y - 5, b.x + b.w, b.y + b.h], ['Z'],
-  ]);
-  return { strokeSeed: (id: string) => id.length * 31 + 7, sketchBands: (bands: any[]) => ops(bands), sketchUnderline: (bands: any[]) => ops(bands) };
-});
+// READ-11: spy-through, the real sketch functions run and the spies show what the writer handed them.
+vi.mock('../geometry/sketchStroke.ts', { spy: true });
 
 const element: HighlightElement = {
   id: 'h', type: 'highlight', pageIndex: 0, left: 10, top: 10, width: 50, height: 10, color: '#FFF34D',
@@ -250,24 +246,35 @@ describe('serializeHighlight: READ-11 sketched stroke', () => {
       .toBe('/GS gs\n3 w 0.722 0.686 0.216 RG\n20 82.5 m 120 82.5 l S');
   });
 
+  // The real sketch ops (y down, editor space) mapped to user space the way the file stores them: y negated back.
+  const BAND = [{ x: 20, y: -90, w: 100, h: 10 }];
+  const stream = (ops: readonly PathOp[]) => ops.map((op) => (op[0] === 'Z' ? 'h' : `${op.slice(1).map((v, i) => fixed(i % 2 === 0 ? (v as number) : -(v as number))).join(' ')} ${op[0] === 'M' ? 'm' : 'c'}`)).join(' ');
+  const pointsOf = (ops: readonly PathOp[]) => ops.flatMap((op) => (op[0] === 'Z' ? [] : Array.from({ length: (op.length - 1) / 2 }, (_, i) => [op[1 + 2 * i] as number, -(op[2 + 2 * i] as number)] as [number, number])));
+
   it('draws a sketched highlight as m, c, h and one trailing f, with no line-to', async () => {
     const { content } = await write({ ...element, stroke: 'sketch' });
-    expect(content).toBe('/GS gs\n1 0.953 0.302 rg\n20 90 m 21 90 120 95 120 80 c h f');
+    expect(sketchBands).toHaveBeenCalledWith(BAND, strokeSeed('h'), 0);
+    expect(content).toBe(`/GS gs\n1 0.953 0.302 rg\n${stream(sketchBands(BAND, strokeSeed('h'), 0))} f`);
+    expect(content).toMatch(/ m .* c .* h f$/);
     expect(content).not.toContain(' l ');
     expect(content.match(/\bf\b/g)).toHaveLength(1);
   });
 
   it('fills a sketched underline in the underline ink, with no stroke', async () => {
     const { content } = await write({ ...element, style: 'underline', stroke: 'sketch' });
+    expect(sketchUnderline).toHaveBeenCalledWith(BAND, strokeSeed('h'), 3, 0);
     expect(content).toContain('0.722 0.686 0.216 rg');
+    expect(content).toBe(`/GS gs\n0.722 0.686 0.216 rg\n${stream(sketchUnderline(BAND, strokeSeed('h'), 3, 0))} f`);
     expect(content).not.toMatch(/RG|\bw\b|\bS\b/);
     expect(content).toMatch(/ c h f$/);
   });
 
   it('grows the Rect and BBox to the path and leaves the quads as the text bands', async () => {
     const { rect, bbox, quad } = await write({ ...element, stroke: 'sketch' });
-    // the control point y 95 lies above the quad top, 90
-    expect(rect).toEqual([20, 80, 120, 95]);
+    // the quad is the text band, 20..120 by 80..90; the Rect is that band and every point of the real path
+    expect(rect).toEqual(boundsOf([[20, 80], [120, 90], ...pointsOf(sketchBands(BAND, strokeSeed('h'), 0))]));
+    expect(rect[0]).toBeLessThanOrEqual(20);
+    expect(rect[2]).toBeGreaterThanOrEqual(120);
     expect(bbox).toEqual(rect);
     expect(quad).toEqual([20, 90, 120, 90, 20, 80, 120, 80]);
   });

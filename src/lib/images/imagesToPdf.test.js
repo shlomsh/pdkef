@@ -3,7 +3,8 @@ import { PDFDocument } from '@cantoo/pdf-lib';
 import { imagesToPdf, UnsupportedImageError } from './imagesToPdf.js';
 import { redrawPng } from './pngRedraw.ts';
 
-vi.mock('./pngRedraw.ts', () => ({ redrawPng: vi.fn() }));
+// Forced: jsdom has no image decoder, so the damaged-PNG tests set the one answer the browser's redraw gives.
+vi.mock('./pngRedraw.ts', { spy: true });
 
 // A real, valid 1x1 transparent PNG (67 bytes).
 const PNG_1X1_BASE64 =

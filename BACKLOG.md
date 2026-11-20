@@ -2,7 +2,7 @@
 
 # Backlog
 
-The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 186 live: 81 up next, 24 then, 26 waiting, 55 parked.
+The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 187 live: 81 up next, 24 then, 26 waiting, 56 parked.
 
 ## Redact: finish removal
 
@@ -337,6 +337,12 @@ One landmines rule at a time: fix its sites, turn it on in CI. Where a rule miss
 | LAND-02 | P2 | [LAND-02](backlog/tasks/LAND-02.md) · landmines sees a sleep inside act(), then guards our unit tests | In progress |
 | LAND-04 | P3 | [LAND-04](backlog/tasks/LAND-04.md) · Fewer replaced dependencies in unit tests | In progress |
 | LAND-05 | P3 | [LAND-05](backlog/tasks/LAND-05.md) · Tests live beside what they test | In progress |
+
+### Parked
+
+| ID | P | Task | Note |
+| --- | --- | --- | --- |
+| DEBT-77 | P3 | [DEBT-77](backlog/tasks/DEBT-77.md) · Tests that run real pdf.js in Node share one worker setup |  |
 
 ## Polish
 

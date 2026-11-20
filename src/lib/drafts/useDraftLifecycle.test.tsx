@@ -2,32 +2,27 @@ import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-const mocks = vi.hoisted(() => ({
-  hint: vi.fn(() => false),
-  recent: vi.fn(() => false),
-  report: vi.fn(),
-  hold: vi.fn(),
-  listeners: [] as Array<() => void>,
-  flushes: [] as Array<() => Promise<void>>,
-}));
-vi.mock('./draftStore.ts', () => ({
-  hasDraftHint: mocks.hint,
-  subscribeToDraftChanges: (_tool: string, listener: () => void) => {
-    mocks.listeners.push(listener);
-    return () => { mocks.listeners.splice(mocks.listeners.indexOf(listener), 1); };
-  },
-}));
-vi.mock('../handoff/fileArrival.ts', () => ({ consumeRecentOpen: mocks.recent }));
+const mocks = vi.hoisted(() => ({ report: vi.fn() }));
+// The draft store's hint and change subscription, the arrival intent and the update holds all run for real.
 vi.mock('../telemetry/errorReport.ts', () => ({ reportError: mocks.report }));
-vi.mock('../hooks/useHoldUpdate.ts', () => ({ useHoldUpdate: mocks.hold }));
-vi.mock('../appUpdate/updateHolds.ts', () => ({
-  registerBeforeUpdateReload: (flush: () => Promise<void>) => {
-    mocks.flushes.push(flush);
-    return () => { mocks.flushes.splice(mocks.flushes.indexOf(flush), 1); };
-  },
-}));
 
 import { RESTORE_TIMEOUT_MS, useDraftRestore, useDraftSave, type DraftSave, type DraftSaveInput } from './useDraftLifecycle.ts';
+import { clearCurrentEntry, setCurrentEntry, upsertIndexEntry } from './draftRecentIndex.ts';
+import { DRAFT_CHANGE_PREFIX } from './draftChanges.ts';
+import { flushBeforeUpdateReload, isExportInFlight, isUpdateHeld } from '../appUpdate/updateHolds.ts';
+
+// The hint a tool page reads before paint: a pointer at an entry the recents index holds.
+const seedHint = (tool: string) => {
+  upsertIndexEntry({ id: `entry-${tool}`, tool, fileName: 'a.pdf', fileType: 'application/pdf', savedAt: Date.now(), hasWork: true } as never);
+  setCurrentEntry(tool, `entry-${tool}`);
+};
+// Another tab's save, as the browser tells this one: a storage event on the advisory key.
+const otherTabWrote = () => {
+  window.dispatchEvent(new StorageEvent('storage', {
+    key: `${DRAFT_CHANGE_PREFIX}sign`,
+    newValue: JSON.stringify({ writerId: 'another-tab', revision: 7, kind: 'saved' }),
+  }));
+};
 
 let host: HTMLDivElement;
 const settle = async () => { await act(async () => { await Promise.resolve(); await Promise.resolve(); await Promise.resolve(); }); };
@@ -42,9 +37,10 @@ describe('useDraftRestore', () => {
   beforeEach(() => {
     vi.useFakeTimers();
     host = document.createElement('div');
+    localStorage.clear();
+    sessionStorage.clear();
     document.documentElement.setAttribute('data-draft-hint', '');
-    mocks.hint.mockReturnValue(true);
-    mocks.recent.mockReturnValue(false);
+    for (const tool of ['sign', 'scan', 'merge']) seedHint(tool);
     mocks.report.mockClear();
   });
   afterEach(() => {
@@ -55,9 +51,10 @@ describe('useDraftRestore', () => {
 
   it('starts checking only with a hint, passes the arrival source, and keeps the hint after a restore', async () => {
     const run = vi.fn(async () => true);
-    mocks.recent.mockReturnValue(true);
+    sessionStorage.setItem('pdkef:arrival:recent', 'sign'); // a recent tile asked for this tool
     act(() => { render(<Probe tool="sign" run={run} />, host); });
     expect(run).toHaveBeenCalledWith('recent', expect.any(Function));
+    expect(sessionStorage.getItem('pdkef:arrival:recent')).toBeNull();
     await settle();
     expect(checking).toBe(false);
     expect(document.documentElement.hasAttribute('data-draft-hint')).toBe(true);
@@ -96,7 +93,7 @@ describe('useDraftRestore', () => {
   });
 
   it('without a hint it is never checking, but is not settled until the check ends', async () => {
-    mocks.hint.mockReturnValue(false);
+    clearCurrentEntry('merge');
     let finish!: (v: boolean) => void;
     act(() => { render(<Probe tool="merge" run={() => new Promise<boolean>((r) => { finish = r; })} />, host); });
     expect(checking).toBe(false);
@@ -132,8 +129,7 @@ describe('useDraftSave', () => {
     write.mockReset().mockResolvedValue(true);
     build.mockReset().mockReturnValue('record');
     mocks.report.mockClear();
-    mocks.hold.mockClear();
-    mocks.listeners.length = 0;
+    localStorage.clear();
   });
   afterEach(() => {
     render(null, host);
@@ -196,7 +192,9 @@ describe('useDraftSave', () => {
     await settle();
     expect(save.state).toBe('error');
     expect(mocks.report).toHaveBeenCalledWith('drafts', expect.any(Error), 'autosave_draft');
-    expect(mocks.hold).toHaveBeenLastCalledWith(true, 'open');
+    // Held as 'open': a forced update overrides it, an export in flight it is not.
+    expect(isUpdateHeld()).toBe(true);
+    expect(isExportInFlight()).toBe(false);
   });
 
   it('nothing to build ends idle without writing', async () => {
@@ -231,7 +229,7 @@ describe('useDraftSave', () => {
     await settle();
     expect(write).toHaveBeenCalledTimes(1);
     show({ snapshot: ['b'] });
-    await act(async () => { await Promise.all(mocks.flushes.map((f) => f())); });
+    await act(async () => { await flushBeforeUpdateReload(); });
     expect(write).toHaveBeenCalledTimes(2);
     expect(save.state).toBe('saved');
   });
@@ -240,7 +238,7 @@ describe('useDraftSave', () => {
     show({ snapshot: ['a'], watchConflicts: true });
     act(() => { vi.advanceTimersByTime(700); });
     await settle();
-    act(() => { mocks.listeners.forEach((l) => l()); });
+    act(() => { otherTabWrote(); });
     expect(save.state).toBe('conflict');
     show({ snapshot: ['a'], watchConflicts: true });
     expect(save.state).toBe('conflict');
@@ -256,7 +254,7 @@ describe('useDraftSave', () => {
     const drain = vi.fn(() => new Promise<void>((r) => { finish = r; }));
     show({ snapshot: ['a'], canSave: false, drain });
     let done = false;
-    const reload = Promise.all(mocks.flushes.map((f) => f())).then(() => { done = true; });
+    const reload = flushBeforeUpdateReload().then(() => { done = true; });
     await settle();
     expect(drain).toHaveBeenCalledTimes(1);
     expect(done).toBe(false);
@@ -267,7 +265,7 @@ describe('useDraftSave', () => {
 
   it('markSaved leaves a standing conflict in place', async () => {
     show({ snapshot: ['restored'], canSave: false, hasWork: true, watchConflicts: true });
-    act(() => { mocks.listeners.forEach((l) => l()); });
+    act(() => { otherTabWrote(); });
     expect(save.state).toBe('conflict');
     act(() => { save.markSaved(); });
     show({ snapshot: ['restored'], canSave: false, hasWork: true, watchConflicts: true });
@@ -276,10 +274,10 @@ describe('useDraftSave', () => {
 
   it('a conflict needs work on screen: hasWork, not canSave, decides', () => {
     show({ snapshot: ['a'], canSave: false, watchConflicts: true });
-    act(() => { mocks.listeners.forEach((l) => l()); });
+    act(() => { otherTabWrote(); });
     expect(save.state).toBe('idle');
     show({ snapshot: ['a'], canSave: false, hasWork: true, watchConflicts: true });
-    act(() => { mocks.listeners.forEach((l) => l()); });
+    act(() => { otherTabWrote(); });
     expect(save.state).toBe('conflict');
   });
 

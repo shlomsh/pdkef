@@ -1,28 +1,54 @@
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { useEffect, useRef, useState } from 'preact/hooks';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import type { PDFDocumentProxy } from 'pdfjs-dist';
+import * as pdfjs from 'pdfjs-dist/legacy/build/pdf.mjs';
 import { loadPdf, type PdfLoadController } from '#editor/workspace/loadPdf.ts';
 import { useDocumentRetirement } from './useDocumentRetirement.ts';
-import { getPdfjs } from '#editor/adapters/pdf/pdfjsLoader.js';
+import { getPdfjs } from '#lib/pdf/loadPdfjs.js';
+import { buildPdf, legacyPdfjs } from '../../test/support/redactCheckPdfs.test-helper.ts';
 
-vi.mock('#editor/adapters/pdf/pdfjsLoader.js', () => ({ getPdfjs: vi.fn() }));
+// The loader, loadPdf and the hook run for real, on real pdf.js documents. The shipped loader points at a browser
+// Worker, which node does not have. Forced: the same pdf.js, its legacy (node) build.
+vi.mock('#lib/pdf/loadPdfjs.js', { spy: true });
 
-/** A pdf.js stand-in that throws like a dead transport once destroyed. */
-function fakeDocument(name: string, log: string[]) {
-  const doc: any = {
-    name,
-    numPages: 1,
-    destroyed: false,
-    destroy: vi.fn(async () => { doc.destroyed = true; log.push(`destroy:${name}`); }),
-    getPage: vi.fn(async () => {
-      if (doc.destroyed) throw new TypeError(`${name}: transport destroyed`);
-      log.push(`use:${name}`);
-      return {};
-    }),
-  };
-  const task: any = { promise: Promise.resolve(doc), destroy: vi.fn(async () => { doc.destroyed = true; log.push(`destroyTask:${name}`); }) };
-  return { doc, task };
+declare const process: { cwd(): string };
+// jsdom resolves the helper's worker URL to http; point pdf.js at the legacy build's own file.
+const workerUrl = `file://${process.cwd()}/node_modules/pdfjs-dist/legacy/build/pdf.worker.mjs`;
+Object.defineProperty(pdfjs.GlobalWorkerOptions, 'workerSrc', { get: () => workerUrl, set() {}, configurable: true });
+
+/** Every loading task the loader opened, in order, each with its destroy watched (the real destroy still runs). */
+let tasks: ReturnType<ReturnType<typeof legacyPdfjs>['getDocument']>[];
+/** Every document a load handed over, in order, with getPage watched (the real ones still run). */
+let docs: PDFDocumentProxy[];
+let pdfBytes: ArrayBuffer;
+
+beforeAll(async () => {
+  const bytes = await buildPdf([{ lines: ['hello'] }]);
+  pdfBytes = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer;
+});
+
+beforeEach(() => {
+  tasks = [];
+  docs = [];
+  const lib = legacyPdfjs();
+  vi.mocked(getPdfjs).mockResolvedValue({
+    ...lib,
+    getDocument: ((params: Parameters<typeof lib.getDocument>[0]) => {
+      const task = lib.getDocument(params);
+      vi.spyOn(task, 'destroy');
+      tasks.push(task);
+      return task;
+    }) as typeof lib.getDocument,
+  });
+});
+
+/** What a tool does with a document it is handed: keep it, with its calls watched. */
+function watch(doc: PDFDocumentProxy): PDFDocumentProxy {
+  vi.spyOn(doc, 'getPage');
+  docs.push(doc);
+  return doc;
 }
 
 let root: HTMLElement | null = null;
@@ -34,33 +60,29 @@ afterEach(() => {
 
 describe('document retirement (RED-56)', () => {
   it('destroys the old document only after the pdfDocument prop has swapped', async () => {
-    const log: string[] = [];
-    const a = fakeDocument('A', log);
-    const b = fakeDocument('B', log);
-    vi.mocked(getPdfjs).mockResolvedValue({ getDocument: vi.fn().mockReturnValueOnce(a.task).mockReturnValueOnce(b.task) } as any);
-
+    const initialized = vi.fn();
     const errors: unknown[] = [];
     let api!: { load: () => Promise<void>; controller: { current: PdfLoadController | null } };
 
     // Mirrors the tools: a state-held pdfDocument, nulled by `initialize`, set by `onDocument`,
     // and a child that calls into whatever document the prop holds, on every commit.
-    function Child({ pdfDocument }: { pdfDocument: any }) {
+    function Child({ pdfDocument }: { pdfDocument: PDFDocumentProxy | null }) {
       useEffect(() => {
         if (pdfDocument) pdfDocument.getPage(1).catch((e: unknown) => errors.push(e));
       }, [pdfDocument]);
       return null;
     }
     function Tool() {
-      const [pdfDocument, setPdfDocument] = useState<any>(null);
+      const [pdfDocument, setPdfDocument] = useState<PDFDocumentProxy | null>(null);
       const retireDocument = useDocumentRetirement(pdfDocument);
       const loadIdRef = useRef(0);
       const loadControllerRef = useRef<PdfLoadController | null>(null);
       api = {
         controller: loadControllerRef,
         load: () => loadPdf({
-          file: new File(['%PDF'], 'x.pdf'), bytes: new ArrayBuffer(8), loadIdRef, loadControllerRef, retireDocument,
-          initialize: () => { log.push('initialize'); setPdfDocument(null); },
-          onDocument: (doc: any) => { setPdfDocument(doc); },
+          file: new File(['%PDF'], 'x.pdf'), bytes: pdfBytes, loadIdRef, loadControllerRef, retireDocument,
+          initialize: () => { initialized(); setPdfDocument(null); },
+          onDocument: (doc) => { setPdfDocument(watch(doc)); },
           clearDraft: () => {}, setStatus: () => {}, setAnnouncement: () => {},
         }),
       };
@@ -70,33 +92,32 @@ describe('document retirement (RED-56)', () => {
     root = document.createElement('div');
     await act(async () => { render(<Tool />, root!); });
     await act(async () => { await api.load(); });
-    expect(log).toEqual(['initialize', 'use:A']);
+    expect(docs[0].getPage).toHaveBeenCalledTimes(1);
+    expect(initialized).toHaveBeenCalledTimes(1);
 
     // Replace A with B. Nothing may destroy A inside the load that starts the swap.
     await act(async () => {
       const second = api.load();
-      expect(a.doc.destroyed).toBe(false);
+      expect(tasks[0].destroy).not.toHaveBeenCalled();
       await second;
     });
     await act(async () => {});
 
-    expect(a.doc.destroyed).toBe(true);
-    expect(b.doc.destroyed).toBe(false);
+    expect(tasks[0].destroyed).toBe(true);
+    expect(tasks[1].destroyed).toBe(false);
     // A is destroyed strictly after `initialize` swapped the prop to null, and never used afterwards.
-    expect(log.indexOf('destroyTask:A')).toBeGreaterThan(log.indexOf('initialize', 2));
-    expect(log.filter((entry) => entry === 'use:A')).toHaveLength(1);
-    expect(log.slice(log.indexOf('destroyTask:A')).some((entry) => entry === 'use:A')).toBe(false);
+    const destroyedAt = vi.mocked(tasks[0].destroy).mock.invocationCallOrder[0];
+    expect(destroyedAt).toBeGreaterThan(initialized.mock.invocationCallOrder[1]);
+    expect(docs[0].getPage).toHaveBeenCalledTimes(1);
+    expect(Math.max(...vi.mocked(docs[0].getPage).mock.invocationCallOrder)).toBeLessThan(destroyedAt);
     expect(errors).toEqual([]);
   });
 
   it('destroys the committed document on unmount, whichever cleanup runs first', async () => {
-    const log: string[] = [];
-    const a = fakeDocument('A', log);
-    vi.mocked(getPdfjs).mockResolvedValue({ getDocument: vi.fn().mockReturnValueOnce(a.task) } as any);
     let api!: { load: () => Promise<void>; controller: { current: PdfLoadController | null } };
 
     function Tool() {
-      const [pdfDocument, setPdfDocument] = useState<any>(null);
+      const [pdfDocument, setPdfDocument] = useState<PDFDocumentProxy | null>(null);
       const retireDocument = useDocumentRetirement(pdfDocument);
       const loadIdRef = useRef(0);
       const loadControllerRef = useRef<PdfLoadController | null>(null);
@@ -105,8 +126,8 @@ describe('document retirement (RED-56)', () => {
       api = {
         controller: loadControllerRef,
         load: () => loadPdf({
-          file: new File(['%PDF'], 'x.pdf'), bytes: new ArrayBuffer(8), loadIdRef, loadControllerRef, retireDocument,
-          initialize: () => {}, onDocument: (doc: any) => { setPdfDocument(doc); },
+          file: new File(['%PDF'], 'x.pdf'), bytes: pdfBytes, loadIdRef, loadControllerRef, retireDocument,
+          initialize: () => {}, onDocument: (doc) => { setPdfDocument(watch(doc)); },
           clearDraft: () => {}, setStatus: () => {}, setAnnouncement: () => {},
         }),
       };
@@ -116,29 +137,25 @@ describe('document retirement (RED-56)', () => {
     root = document.createElement('div');
     await act(async () => { render(<Tool />, root!); });
     await act(async () => { await api.load(); });
-    expect(a.doc.destroyed).toBe(false);
+    expect(tasks[0].destroyed).toBe(false);
 
     await act(async () => { render(null, root!); });
-    expect(a.doc.destroyed).toBe(true);
-    expect(a.task.destroy).toHaveBeenCalled();
+    expect(tasks[0].destroyed).toBe(true);
+    expect(tasks[0].destroy).toHaveBeenCalled();
   });
 
   it('a document that was published but never committed is still destroyed', async () => {
-    const log: string[] = [];
-    const a = fakeDocument('A', log);
-    const b = fakeDocument('B', log);
-    vi.mocked(getPdfjs).mockResolvedValue({ getDocument: vi.fn().mockReturnValueOnce(a.task).mockReturnValueOnce(b.task) } as any);
     let api!: { load: () => Promise<void> };
 
     function Tool() {
-      const [pdfDocument, setPdfDocument] = useState<any>(null);
+      const [pdfDocument, setPdfDocument] = useState<PDFDocumentProxy | null>(null);
       const retireDocument = useDocumentRetirement(pdfDocument);
       const loadIdRef = useRef(0);
       const loadControllerRef = useRef<PdfLoadController | null>(null);
       api = {
         load: () => loadPdf({
-          file: new File(['%PDF'], 'x.pdf'), bytes: new ArrayBuffer(8), loadIdRef, loadControllerRef, retireDocument,
-          initialize: () => { setPdfDocument(null); }, onDocument: (doc: any) => { setPdfDocument(doc); },
+          file: new File(['%PDF'], 'x.pdf'), bytes: pdfBytes, loadIdRef, loadControllerRef, retireDocument,
+          initialize: () => { setPdfDocument(null); }, onDocument: (doc) => { setPdfDocument(watch(doc)); },
           clearDraft: () => {}, setStatus: () => {}, setAnnouncement: () => {},
         }),
       };
@@ -150,7 +167,7 @@ describe('document retirement (RED-56)', () => {
     // Both loads run inside one act(): A is published and replaced before Preact commits it.
     await act(async () => { await api.load(); await api.load(); });
     await act(async () => {});
-    expect(a.doc.destroyed).toBe(true);
-    expect(b.doc.destroyed).toBe(false);
+    expect(tasks[0].destroyed).toBe(true);
+    expect(tasks[1].destroyed).toBe(false);
   });
 });

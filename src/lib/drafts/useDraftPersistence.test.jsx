@@ -1,12 +1,9 @@
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { waitUntil } from '../../test/support/waitUntil.ts';
+import { drainPromises } from '../../test/support/drainPromises.ts';
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
 import { webcrypto } from 'node:crypto';
-// Only the "real store" describe block at the bottom of this file touches
-// IndexedDB - every other test here mocks draftStore.js outright (see below)
-// - but fake-indexeddb/auto is a global, side-effecting install, so it is
-// imported once up top rather than inside that one block.
 import 'fake-indexeddb/auto';
 import { IDBFactory } from 'fake-indexeddb';
 import { useDraftPersistence } from './useDraftPersistence.js';
@@ -16,32 +13,36 @@ import { flushBeforeUpdateReload, isUpdateHeld } from '../appUpdate/updateHolds.
 // A storage write can fail (quota, private browsing, a closed IndexedDB
 // connection) without throwing - draftStore.saveDraft resolves `false` rather
 // than rejecting. draftSaveState must report that as 'error', never 'saved':
-// this is the behavior TODO.md's SIGN-06 asked for, already implemented in
-// useDraftPersistence.js's persist(), but previously unguarded by any test.
+// this is the behavior TODO.md's SIGN-06 asked for.
 
-vi.mock('./draftStore.ts', () => ({
-  saveDraft: vi.fn(),
-  attachDraftPreview: vi.fn(),
-  cacheRecentFile: vi.fn(() => Promise.resolve(true)),
-  loadDraft: vi.fn(() => Promise.resolve(null)),
-  deleteDraft: vi.fn(() => Promise.resolve(true)),
-  hasDraftHint: vi.fn(() => false),
-  subscribeToDraftChanges: vi.fn(() => () => {}),
-  // 'unknown' by default (the "browser cannot tell us" case) so every test
-  // above that never touches persistence keeps its existing 'saved'
-  // expectations - only the describe block below overrides this to prove the
-  // unpersisted-warning path itself.
-  isStoragePersisted: vi.fn(() => Promise.resolve('unknown')),
-}));
-
-// Not what this test is about - avoid a real pdf.js decode of fake PDF bytes.
-vi.mock('../pdf/thumbnails.js', () => ({
-  renderDraftPreview: vi.fn(() => Promise.resolve(null))
-}));
+// The draft store runs for real on fake-indexeddb, with the real arrival note and update holds around it. The spy
+// lets a test see which calls happened; a failed write, a write held open, and the browser's persistence answer are
+// the states the real store cannot produce here, so a test forces that one result.
+vi.mock('./draftStore.ts', { spy: true });
+// Forced: the page preview is drawn on a canvas, which jsdom does not have. Each test says what it drew.
+vi.mock('../pdf/thumbnails.js', { spy: true });
 
 import { renderDraftPreview } from '../pdf/thumbnails.js';
-import { saveDraft, attachDraftPreview, isStoragePersisted, loadDraft } from './draftStore.ts';
+import { saveDraft, attachDraftPreview, isStoragePersisted, loadDraft, readRecentFiles, cacheRecentFile, hasDraftHint } from './draftStore.ts';
 import { takeArrival, noteRecentOpen, resetFileArrivalForTests } from '../handoff/fileArrival.ts';
+
+// A real store, empty, for every test; the previews are not drawn unless a test says so.
+beforeEach(() => {
+  indexedDB = new IDBFactory();
+  localStorage.clear();
+  sessionStorage.clear();
+  vi.stubGlobal('crypto', webcrypto);
+  vi.mocked(saveDraft).mockReset();
+  vi.mocked(loadDraft).mockReset();
+  vi.mocked(isStoragePersisted).mockReset();
+  vi.mocked(attachDraftPreview).mockClear();
+  vi.mocked(renderDraftPreview).mockReset().mockResolvedValue(null); // forced: no canvas in jsdom
+});
+afterEach(() => { vi.unstubAllGlobals(); });
+
+// The debounce is the only clock a test moves; the store's own async work (fake-indexeddb) keeps real
+// timers, so only these are faked.
+const useDebounceClock = () => vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'Date'] });
 
 function Harness({ apiRef, props }) {
   apiRef.current = { result: useDraftPersistence(props) };
@@ -62,17 +63,18 @@ function baseProps(overrides = {}) {
   };
 }
 
-async function flushDebounceAndMicrotasks() {
+// Moves the debounce clock past the save delay. What the save then does is awaited on its own signal.
+async function passDebounce() {
   await act(async () => {
     await vi.advanceTimersByTimeAsync(700);
   });
-  // The persist() promise chain (saveDraft -> then -> then) needs a couple of
-  // real microtask turns to settle after the timer fires.
-  await act(async () => {
-    await Promise.resolve();
-    await Promise.resolve();
-  });
 }
+// For a test that expects no write: the debounce has passed and every promise already queued has run.
+async function passDebounceAndDrain() {
+  await passDebounce();
+  await act(async () => { await drainPromises(); });
+}
+const stateIs = (apiRef, state) => waitUntil(() => expect(apiRef.current.result.draftSaveState).toBe(state));
 
 function renderFirstEdit(apiRef, props, container) {
   act(() => {
@@ -83,13 +85,16 @@ function renderFirstEdit(apiRef, props, container) {
 describe('useDraftPersistence - save outcome reporting', () => {
   let container;
   let apiRef;
+  const mount = (props) => act(() => { render(<Harness apiRef={apiRef} props={props} />, container); });
+  const edit = (props, id) => act(() => {
+    render(<Harness apiRef={apiRef} props={{ ...props, isDirty: true, elements: [{ id }] }} />, container);
+  });
 
   beforeEach(() => {
-    vi.useFakeTimers();
+    useDebounceClock();
     container = document.createElement('div');
     document.body.appendChild(container);
     apiRef = { current: null };
-    saveDraft.mockReset();
   });
 
   afterEach(() => {
@@ -99,111 +104,94 @@ describe('useDraftPersistence - save outcome reporting', () => {
   });
 
   it('keeps a preview that finishes before the debounced save writes its older snapshot', async () => {
-    saveDraft.mockResolvedValue(true);
-    renderDraftPreview.mockResolvedValueOnce('data:image/jpeg;base64,preview');
+    vi.mocked(renderDraftPreview).mockResolvedValueOnce('data:image/jpeg;base64,preview');
     const props = baseProps();
     await act(async () => {
       render(<Harness apiRef={apiRef} props={props} />, container);
     });
+    // The preview is drawn and stored with the opened file before the first edit's debounce ends.
+    await waitUntil(() => expect(readRecentFiles().map((entry) => entry.preview)).toEqual(['data:image/jpeg;base64,preview']));
     renderFirstEdit(apiRef, props, container);
-    await flushDebounceAndMicrotasks();
+    await passDebounce();
+    await stateIs(apiRef, 'saved');
+    await act(async () => { await drainPromises(); });
     expect(attachDraftPreview).toHaveBeenLastCalledWith('sign', 'data:image/jpeg;base64,preview');
-    expect(attachDraftPreview.mock.invocationCallOrder.at(-1)).toBeGreaterThan(saveDraft.mock.invocationCallOrder.at(-1));
+    expect(vi.mocked(attachDraftPreview).mock.invocationCallOrder.at(-1)).toBeGreaterThan(vi.mocked(saveDraft).mock.invocationCallOrder.at(-1));
   });
 
   it('reports "saved" only once the underlying write actually succeeds', async () => {
-    saveDraft.mockResolvedValue(true);
     const props = baseProps();
-    act(() => {
-      render(<Harness apiRef={apiRef} props={props} />, container);
-    });
+    mount(props);
     expect(apiRef.current.result.draftSaveState).toBe('idle');
     renderFirstEdit(apiRef, props, container);
     expect(apiRef.current.result.draftSaveState).toBe('pending');
 
-    await flushDebounceAndMicrotasks();
+    await passDebounce();
+    await stateIs(apiRef, 'saved');
 
     expect(saveDraft).toHaveBeenCalled();
-    expect(apiRef.current.result.draftSaveState).toBe('saved');
-    expect(saveDraft.mock.calls[0][1]).toMatchObject({ schemaVersion: DRAFT_SCHEMA_VERSION });
+    expect(vi.mocked(saveDraft).mock.calls[0][1]).toMatchObject({ schemaVersion: DRAFT_SCHEMA_VERSION });
+    expect(hasDraftHint('sign')).toBe(true);
   });
 
   it('reports "error", never "saved", when the write fails without throwing', async () => {
-    saveDraft.mockResolvedValue(false);
+    vi.mocked(saveDraft).mockResolvedValue(false); // forced: the real store only answers false when IndexedDB fails
     const props = baseProps();
-    act(() => {
-      render(<Harness apiRef={apiRef} props={props} />, container);
-    });
+    mount(props);
     renderFirstEdit(apiRef, props, container);
 
-    await flushDebounceAndMicrotasks();
+    await passDebounce();
+    await stateIs(apiRef, 'error');
 
     expect(saveDraft).toHaveBeenCalled();
-    expect(apiRef.current.result.draftSaveState).toBe('error');
   });
 
   it('reports "error", never "saved", when the write rejects', async () => {
-    saveDraft.mockRejectedValue(new Error('storage unavailable'));
+    vi.mocked(saveDraft).mockRejectedValue(new Error('storage unavailable')); // forced: the real store never rejects
     const props = baseProps();
-    act(() => {
-      render(<Harness apiRef={apiRef} props={props} />, container);
-    });
+    mount(props);
     renderFirstEdit(apiRef, props, container);
 
-    await flushDebounceAndMicrotasks();
-
-    expect(apiRef.current.result.draftSaveState).toBe('error');
+    await passDebounce();
+    await stateIs(apiRef, 'error');
   });
 
   it('holds an update only while a save has failed (MEM-10)', async () => {
-    saveDraft.mockResolvedValue(true);
     const props = baseProps();
-    act(() => {
-      render(<Harness apiRef={apiRef} props={props} />, container);
-    });
+    mount(props);
     expect(isUpdateHeld()).toBe(false);
     renderFirstEdit(apiRef, props, container);
-    await flushDebounceAndMicrotasks();
-    expect(apiRef.current.result.draftSaveState).toBe('saved');
+    await passDebounce();
+    await stateIs(apiRef, 'saved');
     expect(isUpdateHeld()).toBe(false);
 
-    saveDraft.mockResolvedValue(false);
-    act(() => {
-      render(<Harness apiRef={apiRef} props={{ ...props, isDirty: true, elements: [{ id: 'second-edit' }] }} />, container);
-    });
-    await flushDebounceAndMicrotasks();
-    expect(apiRef.current.result.draftSaveState).toBe('error');
+    vi.mocked(saveDraft).mockResolvedValueOnce(false); // forced: one failed write
+    edit(props, 'second-edit');
+    await passDebounce();
+    await stateIs(apiRef, 'error');
     expect(isUpdateHeld()).toBe(true);
 
-    saveDraft.mockResolvedValue(true);
-    act(() => {
-      render(<Harness apiRef={apiRef} props={{ ...props, isDirty: true, elements: [{ id: 'third-edit' }] }} />, container);
-    });
-    await flushDebounceAndMicrotasks();
-    expect(apiRef.current.result.draftSaveState).toBe('saved');
+    edit(props, 'third-edit');
+    await passDebounce();
+    await stateIs(apiRef, 'saved');
     expect(isUpdateHeld()).toBe(false);
   });
 
   it('never persists or claims "saved" outside editing status', async () => {
-    saveDraft.mockResolvedValue(true);
-    act(() => {
-      render(<Harness apiRef={apiRef} props={baseProps({ status: 'signing' })} />, container);
-    });
+    mount(baseProps({ status: 'signing' }));
     expect(apiRef.current.result.draftSaveState).toBe('idle');
 
-    await flushDebounceAndMicrotasks();
+    await passDebounceAndDrain();
 
     expect(saveDraft).not.toHaveBeenCalled();
+    expect(readRecentFiles()).toEqual([]);
     expect(apiRef.current.result.draftSaveState).toBe('idle');
   });
 
   it('does not write or announce a save for an unedited opened file', async () => {
-    saveDraft.mockResolvedValue(true);
-    act(() => {
-      render(<Harness apiRef={apiRef} props={baseProps()} />, container);
-    });
+    mount(baseProps());
 
-    await flushDebounceAndMicrotasks();
+    await passDebounceAndDrain();
 
     expect(saveDraft).not.toHaveBeenCalled();
     expect(apiRef.current.result.draftSaveState).toBe('idle');
@@ -211,45 +199,38 @@ describe('useDraftPersistence - save outcome reporting', () => {
 
   it('does not let an older successful write mark a newer failed revision saved', async () => {
     let finishFirst;
-    saveDraft
+    // forced: the first write stays in flight while a newer one fails
+    vi.mocked(saveDraft)
       .mockImplementationOnce(() => new Promise((resolve) => { finishFirst = resolve; }))
       .mockResolvedValueOnce(false);
     const props = baseProps();
-    act(() => {
-      render(<Harness apiRef={apiRef} props={props} />, container);
-    });
+    mount(props);
     renderFirstEdit(apiRef, props, container);
     const firstRevision = apiRef.current.result.draftSaveRevision;
-    await flushDebounceAndMicrotasks();
+    await passDebounce();
 
-    act(() => {
-      render(<Harness apiRef={apiRef} props={{ ...props, isDirty: true, elements: [{ id: 'newer-edit' }] }} />, container);
-    });
+    edit(props, 'newer-edit');
     expect(apiRef.current.result.draftSaveRevision).toBeGreaterThan(firstRevision);
-    await flushDebounceAndMicrotasks();
-    expect(apiRef.current.result.draftSaveState).toBe('error');
+    await passDebounce();
+    await stateIs(apiRef, 'error');
 
     await act(async () => {
       finishFirst(true);
-      await Promise.resolve();
-      await Promise.resolve();
+      await drainPromises();
     });
     expect(apiRef.current.result.draftSaveState).toBe('error');
   });
 
   it('never flushes an untouched restored document on hide or page exit', async () => {
-    saveDraft.mockResolvedValue(true);
     const visibilityDescriptor = Object.getOwnPropertyDescriptor(document, 'visibilityState');
     Object.defineProperty(document, 'visibilityState', { configurable: true, value: 'hidden' });
     try {
-      act(() => {
-        render(<Harness apiRef={apiRef} props={baseProps({ elements: [{ id: 'restored-edit' }], isDirty: false })} />, container);
-      });
+      mount(baseProps({ elements: [{ id: 'restored-edit' }], isDirty: false }));
       act(() => {
         document.dispatchEvent(new Event('visibilitychange'));
         window.dispatchEvent(new Event('pagehide'));
       });
-      await flushDebounceAndMicrotasks();
+      await passDebounceAndDrain();
       expect(saveDraft).not.toHaveBeenCalled();
       expect(apiRef.current.result.draftSaveState).toBe('idle');
     } finally {
@@ -258,30 +239,24 @@ describe('useDraftPersistence - save outcome reporting', () => {
   });
 
   it('writes the first genuine edit once even if pagehide beats its debounce', async () => {
-    saveDraft.mockResolvedValue(true);
     const props = baseProps();
-    act(() => {
-      render(<Harness apiRef={apiRef} props={props} />, container);
-    });
+    mount(props);
     renderFirstEdit(apiRef, props, container);
     act(() => window.dispatchEvent(new Event('pagehide')));
-    await flushDebounceAndMicrotasks();
+    await passDebounce();
+    await stateIs(apiRef, 'saved');
     expect(saveDraft).toHaveBeenCalledTimes(1);
-    expect(apiRef.current.result.draftSaveState).toBe('saved');
   });
 
   it('keeps an already-saved revision settled when pagehide fires later', async () => {
-    saveDraft.mockResolvedValue(true);
     const props = baseProps();
-    act(() => {
-      render(<Harness apiRef={apiRef} props={props} />, container);
-    });
+    mount(props);
     renderFirstEdit(apiRef, props, container);
-    await flushDebounceAndMicrotasks();
-    expect(apiRef.current.result.draftSaveState).toBe('saved');
+    await passDebounce();
+    await stateIs(apiRef, 'saved');
 
     act(() => window.dispatchEvent(new Event('pagehide')));
-    await act(async () => Promise.resolve());
+    await act(async () => { await drainPromises(); });
 
     expect(saveDraft).toHaveBeenCalledTimes(1);
     expect(apiRef.current.result.draftSaveState).toBe('saved');
@@ -289,32 +264,36 @@ describe('useDraftPersistence - save outcome reporting', () => {
 
   // MEM-10: an update reload must verify the pending save is written first.
   it('flushBeforeUpdateReload writes the pending edit and waits for the save to settle', async () => {
-    let resolveSave;
-    saveDraft.mockImplementation(() => new Promise((resolve) => { resolveSave = resolve; }));
-    const props = baseProps();
-    act(() => {
-      render(<Harness apiRef={apiRef} props={props} />, container);
+    const real = await vi.importActual('./draftStore.ts');
+    const writeStarted = Promise.withResolvers();
+    const releaseWrite = Promise.withResolvers();
+    // forced: hold the write open, then let the real one run, to see the reload wait for it
+    vi.mocked(saveDraft).mockImplementationOnce(async (...args) => {
+      writeStarted.resolve();
+      await releaseWrite.promise;
+      return real.saveDraft(...args);
     });
+    const props = baseProps();
+    mount(props);
     renderFirstEdit(apiRef, props, container);
     expect(saveDraft).not.toHaveBeenCalled();
 
     let done = false;
     const reload = flushBeforeUpdateReload().then(() => { done = true; });
-    await act(async () => { await Promise.resolve(); await Promise.resolve(); });
+    await act(async () => { await writeStarted.promise; });
     expect(saveDraft).toHaveBeenCalledTimes(1);
-    expect(saveDraft.mock.calls[0][1].elements).toEqual([{ id: 'first-edit' }]);
+    expect(vi.mocked(saveDraft).mock.calls[0][1].elements).toEqual([{ id: 'first-edit' }]);
+    await act(async () => { await drainPromises(); });
     expect(done).toBe(false);
 
-    await act(async () => { resolveSave(true); await reload; });
+    await act(async () => { releaseWrite.resolve(); await reload; });
     expect(done).toBe(true);
+    expect(readRecentFiles().map((entry) => entry.fileName)).toEqual(['contract.pdf']);
   });
 
   it('flushBeforeUpdateReload does nothing after unmount', async () => {
-    saveDraft.mockResolvedValue(true);
     const props = baseProps();
-    act(() => {
-      render(<Harness apiRef={apiRef} props={props} />, container);
-    });
+    mount(props);
     renderFirstEdit(apiRef, props, container);
     act(() => render(null, container));
     await flushBeforeUpdateReload();
@@ -340,13 +319,10 @@ describe('useDraftPersistence - unpersisted-storage warning', () => {
   }
 
   beforeEach(() => {
-    vi.useFakeTimers();
+    useDebounceClock();
     container = document.createElement('div');
     document.body.appendChild(container);
     apiRef = { current: null };
-    saveDraft.mockReset();
-    isStoragePersisted.mockReset();
-    isStoragePersisted.mockResolvedValue('unknown');
     originalMatchMedia = window.matchMedia;
     originalStandalone = Object.getOwnPropertyDescriptor(navigator, 'standalone');
   });
@@ -360,32 +336,25 @@ describe('useDraftPersistence - unpersisted-storage warning', () => {
     else delete navigator.standalone;
   });
 
-  // Extra turns beyond flushDebounceAndMicrotasks: the persistence check
-  // itself is one more async hop (isStoragePersisted().then(...)) queued
-  // from an effect that only runs once saveState has settled to 'saved', and
-  // Preact's own effect scheduling adds another microtask on top of that.
-  async function flushPersistenceCheck() {
-    await flushDebounceAndMicrotasks();
-    await act(async () => {
-      for (let i = 0; i < 6; i += 1) {
-        // eslint-disable-next-line no-await-in-loop -- draining a fixed number of microtask turns is the point
-        await Promise.resolve();
-      }
-    });
+  // The persistence check is one more async hop, queued once the save has settled to 'saved'.
+  const mount = (props) => act(() => { render(<Harness apiRef={apiRef} props={props} />, container); });
+  // For a test that expects the state to stay 'saved': the save has landed, then the check's hops are drained.
+  async function savedAndChecked() {
+    await passDebounce();
+    await stateIs(apiRef, 'saved');
+    await act(async () => { await drainPromises(); });
   }
 
   it('never appears before a save has succeeded', async () => {
     stubStandalone(true);
-    isStoragePersisted.mockResolvedValue(false);
-    saveDraft.mockImplementation(() => new Promise(() => {})); // never resolves
+    vi.mocked(isStoragePersisted).mockResolvedValue(false); // forced: the browser says storage is not persisted
+    vi.mocked(saveDraft).mockImplementation(() => new Promise(() => {})); // forced: never resolves
     const props = baseProps();
-    act(() => {
-      render(<Harness apiRef={apiRef} props={props} />, container);
-    });
+    mount(props);
     renderFirstEdit(apiRef, props, container);
     expect(apiRef.current.result.draftSaveState).toBe('pending');
 
-    await flushPersistenceCheck();
+    await passDebounceAndDrain();
     // The save never succeeded, so the check must never even have run.
     expect(isStoragePersisted).not.toHaveBeenCalled();
     expect(apiRef.current.result.draftSaveState).toBe('pending');
@@ -393,102 +362,63 @@ describe('useDraftPersistence - unpersisted-storage warning', () => {
 
   it('shows the warning after a successful save, in an installed/standalone context, when storage is not persisted', async () => {
     stubStandalone(true);
-    isStoragePersisted.mockResolvedValue(false);
-    saveDraft.mockResolvedValue(true);
+    vi.mocked(isStoragePersisted).mockResolvedValue(false); // forced: the browser says storage is not persisted
     const props = baseProps();
-    act(() => {
-      render(<Harness apiRef={apiRef} props={props} />, container);
-    });
+    mount(props);
     renderFirstEdit(apiRef, props, container);
-    await flushPersistenceCheck();
-
-    expect(apiRef.current.result.draftSaveState).toBe('unpersisted');
+    await passDebounce();
+    await stateIs(apiRef, 'unpersisted');
   });
 
   it('never warns outside an installed/standalone context, even when storage is not persisted', async () => {
     stubStandalone(false);
-    isStoragePersisted.mockResolvedValue(false);
-    saveDraft.mockResolvedValue(true);
+    vi.mocked(isStoragePersisted).mockResolvedValue(false); // forced: the browser says storage is not persisted
     const props = baseProps();
-    act(() => {
-      render(<Harness apiRef={apiRef} props={props} />, container);
-    });
+    mount(props);
     renderFirstEdit(apiRef, props, container);
-    await flushPersistenceCheck();
+    await savedAndChecked();
 
     expect(apiRef.current.result.draftSaveState).toBe('saved');
   });
 
   it('never warns on an "unknown" answer - a browser that cannot tell us is not evidence of anything', async () => {
     stubStandalone(true);
-    isStoragePersisted.mockResolvedValue('unknown');
-    saveDraft.mockResolvedValue(true);
+    // The real answer here: jsdom has no navigator.storage, so the store says 'unknown'.
     const props = baseProps();
-    act(() => {
-      render(<Harness apiRef={apiRef} props={props} />, container);
-    });
+    mount(props);
     renderFirstEdit(apiRef, props, container);
-    await flushPersistenceCheck();
+    await savedAndChecked();
 
+    expect(await vi.mocked(isStoragePersisted).mock.results[0].value).toBe('unknown');
     expect(apiRef.current.result.draftSaveState).toBe('saved');
   });
 
   it('lets a later real error win over an earlier unpersisted warning', async () => {
     stubStandalone(true);
-    isStoragePersisted.mockResolvedValue(false);
-    saveDraft.mockResolvedValueOnce(true).mockResolvedValueOnce(false);
+    vi.mocked(isStoragePersisted).mockResolvedValue(false); // forced: the browser says storage is not persisted
     const props = baseProps();
-    act(() => {
-      render(<Harness apiRef={apiRef} props={props} />, container);
-    });
+    mount(props);
     renderFirstEdit(apiRef, props, container);
-    await flushPersistenceCheck();
-    expect(apiRef.current.result.draftSaveState).toBe('unpersisted');
+    await passDebounce();
+    await stateIs(apiRef, 'unpersisted');
 
+    vi.mocked(saveDraft).mockResolvedValueOnce(false); // forced: the second write fails
     act(() => {
       render(<Harness apiRef={apiRef} props={{ ...props, isDirty: true, elements: [{ id: 'second-edit' }] }} />, container);
     });
-    await flushPersistenceCheck();
-
-    expect(apiRef.current.result.draftSaveState).toBe('error');
+    await passDebounce();
+    await stateIs(apiRef, 'error');
   });
 });
 
-// MEM-02: every test above mocks draftStore.js, which proves this hook wires
-// saveDraft/loadDraft/deleteDraft correctly but cannot prove what those calls
-// actually return once two tools have touched the same entry - that isolation
-// lives in draftStore.js itself (see draftStore.test.js's "keeps two tools'
-// work on the same entry side by side"). This block proves it end to end
-// through the hook instead, against the real store: `vi.mock('./draftStore.ts', ...)`
-// above is hoisted above every import in this file, so the only way to get an
-// unmocked instance for one block is to unmock it and re-import both modules
-// fresh (`vi.resetModules()`) - the escape hatch useMergeDraft.test.tsx never
-// needs because it never mocks the store to begin with. The statically
-// imported `useDraftPersistence` used by every test above is a distinct,
-// already-bound module instance from before this block ever runs, so it stays
-// mocked regardless of what happens here.
+// MEM-02: what a tool's save and restore return once two tools have touched the same entry. The store is the
+// same real one as above; this block drives it through the hook end to end.
 describe('useDraftPersistence - same file opened in two tools (real store)', () => {
   let container;
-  let realDraftStore;
-  let RealHarness;
+  const realDraftStore = { saveDraft, cacheRecentFile, hasDraftHint, loadDraft, readRecentFiles };
+  const RealHarness = Harness;
 
-  beforeEach(async () => {
-    vi.doUnmock('./draftStore.ts');
-    vi.resetModules();
-    localStorage.clear();
-    sessionStorage.clear();
-    vi.stubGlobal('crypto', webcrypto);
-    // A fresh backing store per test, same reasoning as draftStore.test.js:
-    // this database has no upgrade path by design, so a record left behind by
-    // an earlier test would otherwise leak into the next one's "fresh
-    // database" assumptions.
-    indexedDB = new IDBFactory();
-    realDraftStore = await import('./draftStore.ts');
-    const { useDraftPersistence: realUseDraftPersistence } = await import('./useDraftPersistence.js');
-    RealHarness = ({ apiRef, props }) => {
-      apiRef.current = { result: realUseDraftPersistence(props) };
-      return null;
-    };
+  beforeEach(() => {
     container = document.createElement('div');
     document.body.appendChild(container);
   });
@@ -496,7 +426,6 @@ describe('useDraftPersistence - same file opened in two tools (real store)', () 
   afterEach(() => {
     act(() => render(null, container));
     container.remove();
-    vi.unstubAllGlobals();
   });
 
   // fake-indexeddb answers on real macrotasks, so wait on the outcome with waitUntil (real clock),
@@ -551,7 +480,6 @@ describe('useDraftPersistence - same file opened in two tools (real store)', () 
   // whatever entry the pointer named, and the pointer only moves to the new
   // file once cacheRecentFile has hashed and stored it.
   it('opening a second file leaves the first file its own preview', async () => {
-    const { renderDraftPreview: realRenderDraftPreview } = await import('../pdf/thumbnails.js');
     const alphaBytes = new TextEncoder().encode('%PDF-1.4 alpha').buffer;
     const bravoBytes = new TextEncoder().encode('%PDF-1.4 bravo').buffer;
     const props = (name, fileBytes) => ({
@@ -566,13 +494,13 @@ describe('useDraftPersistence - same file opened in two tools (real store)', () 
     });
     const apiRef = { current: null };
 
-    realRenderDraftPreview.mockResolvedValueOnce('data:image/jpeg;base64,alpha');
+    vi.mocked(renderDraftPreview).mockResolvedValueOnce('data:image/jpeg;base64,alpha');
     await act(async () => {
       render(<RealHarness apiRef={apiRef} props={props('qa-alpha.pdf', alphaBytes)} />, container);
     });
     await waitUntil(previewOf('qa-alpha.pdf'));
 
-    realRenderDraftPreview.mockResolvedValueOnce('data:image/jpeg;base64,bravo');
+    vi.mocked(renderDraftPreview).mockResolvedValueOnce('data:image/jpeg;base64,bravo');
     await act(async () => {
       render(<RealHarness apiRef={apiRef} props={props('qa-bravo.pdf', bravoBytes)} />, container);
     });
@@ -588,48 +516,55 @@ describe('useDraftPersistence - same file opened in two tools (real store)', () 
 
 describe('useDraftPersistence - how a restored file arrived (DEBT-58)', () => {
   let container;
-  beforeEach(() => {
+  beforeEach(async () => {
     container = document.createElement('div');
     document.body.appendChild(container);
     resetFileArrivalForTests();
-    sessionStorage.clear();
-    loadDraft.mockResolvedValue({ fileName: 'a.pdf', fileBytes: new ArrayBuffer(4) });
   });
   afterEach(() => {
     act(() => render(null, container));
     container.remove();
-    loadDraft.mockResolvedValue(null);
   });
 
   // The hook says how the file came back; the tool marks it only if it really applies the restore,
   // since a pick or hand-off already under way wins over it (review of DEBT-58).
-  const mountAndRead = async () => {
-    const onRestore = vi.fn();
+  const seedDraft = async () => {
+    const saved = await saveDraft('sign', { fileName: 'a.pdf', fileType: 'application/pdf', fileBytes: new TextEncoder().encode('%PDF-1.4 restored').buffer, elements: [], extra: {} });
+    expect(saved).toBe(true);
+    vi.mocked(loadDraft).mockClear();
+  };
+  // onRestore is the callback the tool supplies: here a recorder that resolves when the restore reaches it.
+  // With no draft stored it never does, so that case waits for the store's one read and drains.
+  const mountAndRead = async ({ expectRestore = true } = {}) => {
+    const calls = [];
+    const restored = Promise.withResolvers();
+    const onRestore = (...args) => { calls.push(args); restored.resolve(); };
     await act(async () => {
-      render(<Harness apiRef={{ current: null }} props={baseProps({ onRestore })} />, container);
-      await Promise.resolve();
-      await Promise.resolve();
+      render(<Harness apiRef={{ current: null }} props={baseProps({ onRestore, file: null, fileBytes: null })} />, container);
     });
+    if (expectRestore) await act(async () => { await restored.promise; });
+    else await act(async () => { await vi.mocked(loadDraft).mock.results[0].value; await drainPromises(); });
     expect(takeArrival()).toBeUndefined();
-    return onRestore;
+    return calls;
   };
 
   it('hands a plain draft restore on as restore, marking nothing itself', async () => {
-    const onRestore = await mountAndRead();
-    expect(onRestore).toHaveBeenCalledWith(expect.anything(), 'restore');
+    await seedDraft();
+    const calls = await mountAndRead();
+    expect(calls).toEqual([[expect.objectContaining({ fileName: 'a.pdf' }), 'restore']]);
   });
 
   it('hands a restore the home page asked for from a recent tile on as recent', async () => {
+    await seedDraft();
     noteRecentOpen('sign');
-    const onRestore = await mountAndRead();
-    expect(onRestore).toHaveBeenCalledWith(expect.anything(), 'recent');
+    const calls = await mountAndRead();
+    expect(calls).toEqual([[expect.objectContaining({ fileName: 'a.pdf' }), 'recent']]);
   });
 
   it('spends the recent-tile note even when there is no draft, so a later reopen is not called recent', async () => {
     noteRecentOpen('sign');
-    loadDraft.mockResolvedValue(null);
-    const onRestore = await mountAndRead();
-    expect(onRestore).not.toHaveBeenCalled();
+    const calls = await mountAndRead({ expectRestore: false });
+    expect(calls).toEqual([]);
     expect(sessionStorage.getItem('pdkef:arrival:recent')).toBeNull();
   });
 });

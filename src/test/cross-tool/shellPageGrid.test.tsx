@@ -2,7 +2,8 @@
 import { render } from 'preact';
 import { createRef } from 'preact';
 import { act } from 'preact/test-utils';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { PDFDocument } from '@cantoo/pdf-lib';
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import Sortable from 'sortablejs';
 // Asserts the .action class on the save link: a cell action is styled as one of the card's actions.
 import styles from '#shell/pageGrid/PageGrid.module.css';
@@ -11,33 +12,45 @@ import PageGrid, { cellEdge } from '#shell/pageGrid/PageGrid.tsx';
 import { planForFile } from '#lib/pages/pagePlan.ts';
 import { englishMergeMessages } from '../../tools/merge/messages';
 import * as thumbnailsLib from '#lib/pdf/thumbnails.js';
+import { getPdfjs } from '#lib/pdf/loadPdfjs.js';
+import { renderPageToCanvas } from '#lib/pdf/renderPage.js';
+import * as pdfjs from 'pdfjs-dist/legacy/build/pdf.mjs';
+// @ts-expect-error -- no Node ambient types here.
+import { pathToFileURL } from 'node:url';
+// @ts-expect-error -- no Node ambient types here.
+import nodePath from 'node:path';
 import { drainPromises } from '../support/drainPromises.ts';
 import { waitUntil } from '../support/waitUntil.ts';
 // PageGrid opens its preview dialog through a lazy import; loading it here makes that import
 // settle in one turn, so a "no dialog" check after drainPromises() sees a wrongly opened one.
 import '#shell/PagePreviewDialog.tsx';
 
-const sources = [];
-// What each mocked file reports for its page sizes; null = the source cannot say (the thumbnail's own size is used).
-const probe = vi.hoisted(() => ({ aspects: null as number[] | null }));
+// The thumbnail source runs for real: real PDFs, opened by pdf.js's legacy (node) build. Forced: the shipped
+// pdf.js loader points at a browser Worker, and painting a page needs a canvas jsdom does not have, so the one
+// paint call answers with a data URL that names the page's own size (each file's pages differ in size).
+vi.mock('#lib/pdf/loadPdfjs.js', { spy: true });
+vi.mock('#lib/pdf/renderPage.js', { spy: true });
+vi.mock('#lib/pdf/thumbnails.js', { spy: true });
 
-vi.mock('#lib/pdf/thumbnails.js', () => ({
-  openThumbnailSource: vi.fn(async (file) => {
-    const source = {
-      file,
-      pageCount: 2,
-      aspects: vi.fn(async () => probe.aspects),
-      render: vi.fn(async (pageIndex, { signal } = {}) => {
-        if (signal?.aborted) throw new DOMException('aborted', 'AbortError');
-        return `data:image/png;base64,${file.name}-${pageIndex}`;
-      }),
-      destroy: vi.fn(async () => {}),
-    };
-    sources.push(source);
-    return source;
-  }),
-  renderPdfThumbnails: vi.fn(async () => 0),
-}));
+// What each file's pages measure; `wide` swaps a.pdf's for a landscape page and a 0.77 portrait one.
+const PAGE_SIZES: Record<string, [number, number][]> = {
+  'a.pdf': [[200, 300], [201, 300]],
+  'a-wide.pdf': [[300, 200], [154, 200]],
+  'b.pdf': [[210, 300], [211, 300]],
+};
+const FALLBACK_SIZES: [number, number][] = [[612, 792], [612, 792]];
+const pdfBytes = new Map<string, Uint8Array>();
+let wide = false;
+
+// The legacy pdf.js build, as `getPdfjs()` hands it out. jsdom's own page URL is http, which node's loader
+// refuses, so the worker module is named by file URL. Every loading task is kept, to see one destroyed.
+pdfjs.GlobalWorkerOptions.workerSrc = pathToFileURL(nodePath.resolve(__dirname, '../../../node_modules/pdfjs-dist/legacy/build/pdf.worker.mjs')).href;
+const openedTasks: ReturnType<typeof pdfjs.getDocument>[] = [];
+const legacyPdfjs = () => ({ ...pdfjs, getDocument: ((params) => {
+  const task = pdfjs.getDocument(params);
+  openedTasks.push(task);
+  return task;
+}) as typeof pdfjs.getDocument });
 
 // A controllable IntersectionObserver: tests decide which cards are "near
 // the viewport" by calling `intersect`.
@@ -60,7 +73,8 @@ class FakeIntersectionObserver {
 }
 
 function makeFile(name) {
-  return new File(['%PDF-1.4'], name, { type: 'application/pdf' });
+  const key = wide && name === 'a.pdf' ? 'a-wide.pdf' : name;
+  return new File([pdfBytes.get(PAGE_SIZES[key] ? key : 'fallback')], name, { type: 'application/pdf' });
 }
 
 // Waits on the DOM outcome (a fixed wait once let this file flake on a loaded machine).
@@ -75,9 +89,30 @@ describe('PageGrid', () => {
   let container;
   let originalIO;
 
+  beforeAll(async () => {
+    for (const [name, sizes] of [...Object.entries(PAGE_SIZES), ['fallback', FALLBACK_SIZES]] as [string, [number, number][]][]) {
+      const doc = await PDFDocument.create();
+      for (const size of sizes) doc.addPage(size);
+      pdfBytes.set(name, await doc.save());
+    }
+    // pdf.js's first document in a process loads its worker module, once and slowly; later ones are quick.
+    const lib = legacyPdfjs();
+    const task = lib.getDocument({ data: pdfBytes.get('fallback')!.slice() });
+    await (await task.promise).getPage(1);
+    await task.destroy();
+    vi.mocked(thumbnailsLib.openThumbnailSource).mockReset();
+    openedTasks.length = 0;
+  }, 60_000);
+
   beforeEach(() => {
-    sources.length = 0;
-    probe.aspects = null;
+    wide = false;
+    vi.mocked(getPdfjs).mockReset().mockImplementation(async () => legacyPdfjs() as never); // forced: the node build
+    vi.mocked(renderPageToCanvas).mockReset().mockImplementation((async (page) => ({
+      width: page.view[2],
+      height: page.view[3],
+      toDataURL: () => `data:image/png;base64,${page.view[2]}x${page.view[3]}`,
+    })) as never); // forced: no canvas in jsdom
+    openedTasks.length = 0;
     observers = [];
     originalIO = globalThis.IntersectionObserver;
     globalThis.IntersectionObserver = FakeIntersectionObserver;
@@ -225,21 +260,26 @@ describe('PageGrid', () => {
     await waitFor(() => container.querySelectorAll('[data-thumb-box] img').length === 2);
     expect(thumbnailsLib.openThumbnailSource).toHaveBeenCalledTimes(2);
     const imgs = Array.from(container.querySelectorAll('[data-thumb-box] img')).map((img) => img.getAttribute('src'));
-    expect(imgs).toEqual(['data:image/png;base64,a.pdf-1', 'data:image/png;base64,b.pdf-0']);
+    // Page 2 of a.pdf and page 1 of b.pdf, read off their own sizes.
+    expect(imgs).toEqual(['data:image/png;base64,201x300', 'data:image/png;base64,210x300']);
     expect(Array.from(container.querySelectorAll('[data-thumb-box] img')).every((img) => img.draggable === false)).toBe(true);
 
     // Removing file 1 cancels its renders and destroys its document.
     rerender({ sources: [entries[1]], plan: planForFile(2, 2) });
-    const sourceA = sources.find((s) => s.file.name === 'a.pdf');
-    await waitFor(() => sourceA.destroy.mock.calls.length > 0);
-    expect(sourceA.destroy).toHaveBeenCalled();
+    const opened = vi.mocked(thumbnailsLib.openThumbnailSource);
+    const sourceOf = (name) => opened.mock.results[opened.mock.calls.findIndex(([file]) => file.name === name)].value;
+    const [sourceA, sourceB] = [await sourceOf('a.pdf'), await sourceOf('b.pdf')];
+    await waitFor(() => openedTasks.filter((task) => task.destroyed).length === 1);
+    // a.pdf's real document is gone, b.pdf's still renders.
+    await expect(sourceA.render(0)).rejects.toThrow('after destroy');
+    await expect(sourceB.render(0)).resolves.toBe('data:image/png;base64,210x300');
     expect(cards().map((card) => card.dataset.key)).toEqual(['2:0', '2:1']);
   });
 
   // DEBT-65: the span comes from the PDF's own page sizes, so a landscape page is two cells wide
   // before any thumbnail renders and nothing refits when one arrives.
   it('lays a landscape page out from the page size, before its thumbnail renders', async () => {
-    probe.aspects = [1.5, 0.77];
+    wide = true;
     mount();
     await waitFor(() => cards()[0].style.gridColumn === 'span 2');
     expect(container.querySelectorAll('[data-thumb-box] img')).toHaveLength(0);
@@ -248,7 +288,7 @@ describe('PageGrid', () => {
   });
 
   it('holds the grid back while a file is still being read, then shows it once the sizes are in', async () => {
-    probe.aspects = [1.5, 0.77];
+    wide = true;
     const entries = [{ id: 1, file: makeFile('a.pdf'), pageCount: null, error: null }];
     vi.useFakeTimers();
     let rerender;
@@ -271,6 +311,12 @@ describe('PageGrid', () => {
   // cell now keeps the SAME fixed height, and a landscape page takes a
   // landscape WIDTH for that height instead.
   it('gives a landscape page a fixed cell height and a width scaled to its aspect', async () => {
+    // Forced: a source that cannot say its page sizes (a state a real one never reports), so the grid
+    // falls back to the thumbnail's own size. The rest of the source is the real one.
+    vi.mocked(thumbnailsLib.openThumbnailSource).mockImplementation(async (file) => {
+      const real = await vi.importActual<typeof import('#lib/pdf/thumbnails.js')>('#lib/pdf/thumbnails.js');
+      return { ...(await real.openThumbnailSource(file)), aspects: async () => null };
+    });
     mount();
     await act(async () => { observers.at(-1).intersect(['1:0']); });
     await waitFor(() => container.querySelectorAll('[data-thumb-box] img').length === 1);

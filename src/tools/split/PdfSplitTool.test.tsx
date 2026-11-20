@@ -5,6 +5,7 @@ import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { getPdfLib } from '#lib/pdf/pdfLib.js';
 import { describe, expect, it, vi, afterEach, beforeEach } from 'vitest';
+import { loadPdfWithPages } from '#lib/pdf/loadPdfPages.ts';
 import { recentActions } from '#lib/telemetry/actionTrail.ts';
 import PdfSplitTool from './PdfSplitTool.tsx';
 import { mockNativeFileShare } from '../../test/support/mockFileShare.js';
@@ -20,26 +21,9 @@ import { hebrewShellMessages } from '#shell/shellMessages.ts';
 // The pdf.js edge (the encryption probe, the thumbnail source) is the harness's: harness.pdfjs. Everything else
 // (analytics, error reports, draftStore, loadPdfPages, splitPdf) runs for real over it.
 
-// Not a fake: loadPdfWithPages still runs for real. The gate only lets one test hold a load open
-// between the pick and the page count, which a real pdf-lib parse gives no way to pause (DEBT-18).
-const { loadGate } = vi.hoisted(() => ({ loadGate: {
-  before: null as null | ((bytes: ArrayBuffer) => Promise<void>),
-  after: null as null | (() => void),
-} }));
-vi.mock('#lib/pdf/loadPdfPages.ts', async (importOriginal) => {
-  const actual: any = await importOriginal();
-  return {
-    ...actual,
-    loadPdfWithPages: async (bytes: ArrayBuffer) => {
-      await loadGate.before?.(bytes);
-      try {
-        return await actual.loadPdfWithPages(bytes);
-      } finally {
-        loadGate.after?.();
-      }
-    },
-  };
-});
+// loadPdfWithPages runs for real; the spy lets the one test that holds a load open between the pick and the
+// page count do so, which a real pdf-lib parse gives no way to pause (DEBT-18).
+vi.mock('#lib/pdf/loadPdfPages.ts', { spy: true });
 
 // Tests that are not about timing build after 5ms instead of the real 1500ms.
 const FAST_QUIET = { baseMs: 5, stepMs: 0, maxMs: 5, burstWindowMs: 1 };
@@ -56,8 +40,7 @@ describe('PdfSplitTool UI flow', () => {
 
   beforeEach(() => {
     harness = installToolHarness();
-    loadGate.before = null;
-    loadGate.after = null;
+    vi.mocked(loadPdfWithPages).mockReset();
     // jsdom's Blob has no arrayBuffer().
     if (!Blob.prototype.arrayBuffer) {
       Blob.prototype.arrayBuffer = function arrayBuffer() {
@@ -363,23 +346,21 @@ describe('PdfSplitTool UI flow', () => {
 
   it('ignores a load that was replaced before it finished (DEBT-18)', async () => {
     let releaseFirst;
-    let call = 0;
-    // The first load (five pages) is held open; the replacement (three pages) is not.
-    loadGate.before = () => {
-      call += 1;
-      return call === 1 ? new Promise<void>((resolve) => { releaseFirst = resolve; }) : Promise.resolve();
-    };
+    // Forced: the first load (five pages) is held open, then runs for real; the replacement (three pages) is not held.
+    vi.mocked(loadPdfWithPages).mockImplementationOnce(async (bytes) => {
+      await new Promise<void>((resolve) => { releaseFirst = resolve; });
+      const real = await vi.importActual<typeof import('#lib/pdf/loadPdfPages.ts')>('#lib/pdf/loadPdfPages.ts');
+      return real.loadPdfWithPages(bytes);
+    });
     mount();
     await act(async () => { setInputFiles(container.querySelector('input[type="file"]'), [fixtureFile('five.pdf')]); });
     await until(() => releaseFirst);
     await replaceWith(fixtureFile('three.pdf', path.join(FIXTURES, 'three-page-header.pdf')));
     // The replacement has loaded; let the stale first load finish, then drain the promise work that
     // carries its result into the component before checking it was ignored.
-    const firstFinished = Promise.withResolvers<void>();
-    loadGate.after = firstFinished.resolve;
     await act(async () => {
       releaseFirst();
-      await firstFinished.promise;
+      await vi.mocked(loadPdfWithPages).mock.results[0].value;
       await drainPromises();
     });
     expect(cells()).toHaveLength(3);

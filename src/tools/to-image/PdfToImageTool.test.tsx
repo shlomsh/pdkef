@@ -4,6 +4,7 @@ import { act } from 'preact/test-utils';
 import { describe, expect, it, vi, afterEach, beforeEach } from 'vitest';
 import { drainPromises } from '../../test/support/drainPromises.ts';
 import PdfToImageTool from './PdfToImageTool.tsx';
+import { convertPdfToImages } from './lib/toImage.js';
 import { mockNativeFileShare } from '../../test/support/mockFileShare.js';
 import { setInputFiles } from '../../test/support/setInputFiles.js';
 import { until } from '../../test/support/until.js';
@@ -19,21 +20,18 @@ import { hebrewShellMessages } from '#shell/shellMessages.ts';
 // The pdf.js edge (the encryption probe, the thumbnail source with its page count) is the harness's:
 // harness.pdfjs. Everything else (analytics, error reports, draftStore, action trail) runs for real over it.
 
-// EDGE: the conversion renders every page through pdf.js onto a canvas, neither of which jsdom has.
-// Counts every conversion and lets a test swap in a slow or failing one. The default makes one fake
-// blob per included page (or one for a tall image), sized by scale so a different setting is a different result.
-const { convertCalls, convertOverride } = vi.hoisted(() => ({
-  convertCalls: { n: 0, last: null as any },
-  convertOverride: { fn: null as any },
-}));
-vi.mock('./lib/toImage.js', async (importOriginal) => ({
-  ...(await importOriginal()),
-  convertPdfToImages: (...args: any[]) => {
-    convertCalls.n += 1;
-    convertCalls.last = args[1];
-    return (convertOverride.fn ?? defaultConvert)(...args);
-  },
-}));
+// EDGE: the conversion renders every page through pdf.js onto a canvas, neither of which jsdom has. The rest of
+// toImage.js runs for real; the spy counts every conversion, and `forceConversion` (below) is the one forced line
+// that answers it: one fake blob per included page (or one for a tall image), sized by scale so a different
+// setting is a different result. A test can swap in a slow or failing one.
+vi.mock('./lib/toImage.js', { spy: true });
+let overridden = false;
+const forceConversion = (fn: (file: File, opts: any) => Promise<any>, isOverride = true) => {
+  overridden = isOverride;
+  vi.mocked(convertPdfToImages).mockImplementation(fn as never);
+};
+const lastConversion = () => vi.mocked(convertPdfToImages).mock.lastCall?.[1] as any;
+const conversions = () => vi.mocked(convertPdfToImages).mock.calls.length;
 
 async function defaultConvert(file: File, opts: any) {
   const numbers = parsePageSelector(opts.pages, pdfjsEdges.source.pageCount);
@@ -62,8 +60,8 @@ describe('PdfToImageTool', () => {
 
   beforeEach(() => {
     harness = installToolHarness();
-    convertCalls.n = 0;
-    convertOverride.fn = null;
+    vi.mocked(convertPdfToImages).mockReset();
+    forceConversion(defaultConvert, false);
     harness.pdfjs.source.pageCount = 5;
     // jsdom's Blob has no arrayBuffer().
     if (!Blob.prototype.arrayBuffer) {
@@ -115,7 +113,7 @@ describe('PdfToImageTool', () => {
     // A slow quiet policy and a long document do not build on their own; otherwise wait for the result or the failure.
     const buildsAlone = !props.quietPolicy && pages <= 30;
     await until(() => cells().length > 0 && downloadElement()
-      && (!buildsAlone || (convertOverride.fn ? convertCalls.n > 0 : /\d(\.\d)? ?(KB|MB)|B⁩/.test(downloadElement().textContent) || downloadElement().getAttribute('data-state') === 'error')));
+      && (!buildsAlone || (overridden ? conversions() > 0 : /\d(\.\d)? ?(KB|MB)|B⁩/.test(downloadElement().textContent) || downloadElement().getAttribute('data-state') === 'error')));
     await harness.flush();
   }
 
@@ -151,7 +149,7 @@ describe('PdfToImageTool', () => {
     expect(field().value).toBe('1-5');
     expect(downloadElement().getAttribute('data-state')).toBe('ready');
     expect(downloadElement().textContent).toContain('Download 5 PNGs');
-    expect(convertCalls.last.pages).toBe('1-5');
+    expect(lastConversion().pages).toBe('1-5');
     // The tool's own document is let go; the grid keeps the one it read the page sizes from until it unmounts.
     expect(harness.pdfjs.source.opened - harness.pdfjs.source.destroyed).toBe(1);
     expect(button('Convert')).toBeUndefined();
@@ -178,14 +176,14 @@ describe('PdfToImageTool', () => {
       await act(async () => { setInputFiles(container.querySelector('input[type="file"]'), [makePdfFile()]); });
       await waitUntil(() => cells().length > 0 && downloadElement(), { dueFakeTimers: true });
       await act(async () => { await vi.advanceTimersByTimeAsync(399); });
-      expect(convertCalls.n).toBe(0);
+      expect(conversions()).toBe(0);
       expect(downloadElement().getAttribute('data-state')).toBe('ready');
       expect(downloadElement().getAttribute('aria-busy')).toBeNull();
       await act(async () => { await vi.advanceTimersByTimeAsync(1); });
       await waitUntil(() => /\d(\.\d)? KB/.test(downloadElement().textContent), { dueFakeTimers: true });
-      expect(convertCalls.n).toBe(1);
+      expect(conversions()).toBe(1);
       await act(async () => { await vi.advanceTimersByTimeAsync(1000); });
-      expect(convertCalls.n).toBe(1);
+      expect(conversions()).toBe(1);
     } finally {
       vi.useRealTimers();
     }
@@ -220,8 +218,8 @@ describe('PdfToImageTool', () => {
   it('typing a range builds those pages, as one recorded step', async () => {
     await open();
     await type('2-3');
-    await until(() => convertCalls.last?.pages === '2-3');
-    expect(convertCalls.last.pages).toBe('2-3');
+    await until(() => lastConversion()?.pages === '2-3');
+    expect(lastConversion().pages).toBe('2-3');
     await undo();
     expect(recentActions()).toEqual(['add_files', 'select_pages', 'undo']);
   });
@@ -229,50 +227,50 @@ describe('PdfToImageTool', () => {
   it('rotating a page is a step and reaches the build as a rotation of that page number', async () => {
     await open();
     await click(container.querySelector('[aria-label="Rotate page 2"]'));
-    await until(() => convertCalls.last?.rotations?.[2] === 90);
-    expect(convertCalls.last.rotations).toEqual({ 2: 90 });
+    await until(() => lastConversion()?.rotations?.[2] === 90);
+    expect(lastConversion().rotations).toEqual({ 2: 90 });
     expect(recentActions()).toEqual(['add_files', 'rotate']);
     expect(container.querySelector('[aria-label="Undo last change"]').disabled).toBe(false);
   });
 
   it('rebuilds on a format change, and a built format comes back from the cache', async () => {
     await open();
-    expect(convertCalls.n).toBe(1);
+    expect(conversions()).toBe(1);
     await click(radio('JPG'));
     expect(downloadElement().textContent).toContain('Download 5 JPGs');
-    await until(() => convertCalls.n === 2);
-    expect(convertCalls.n).toBe(2);
-    expect(convertCalls.last.format).toBe('image/jpeg');
+    await until(() => conversions() === 2);
+    expect(conversions()).toBe(2);
+    expect(lastConversion().format).toBe('image/jpeg');
     await click(radio('PNG'));
     expect(downloadElement().textContent).toContain('Download 5 PNGs');
     expect(downloadElement().textContent).toMatch(/\d(\.\d)? KB/);
     await drain();
-    expect(convertCalls.n).toBe(2);
+    expect(conversions()).toBe(2);
     expect(harness.usageEvents('tool_first_edit').map((event) => event.properties.tool)).toEqual(['pdf-to-image']);
   });
 
   it('never auto-builds above 30 pages, says it is made on tap, and builds when Download is approached', async () => {
     await open(31);
     await drain();
-    expect(convertCalls.n).toBe(0);
+    expect(conversions()).toBe(0);
     expect(downloadElement().getAttribute('data-state')).toBe('ready');
     expect(downloadElement().textContent).toContain('Made when you tap');
     await act(async () => { downloadElement().dispatchEvent(new Event('pointerdown', { bubbles: true })); });
-    await until(() => convertCalls.n === 1 && /KB|MB/.test(downloadElement().textContent));
-    expect(convertCalls.n).toBe(1);
+    await until(() => conversions() === 1 && /KB|MB/.test(downloadElement().textContent));
+    expect(conversions()).toBe(1);
     expect(downloadElement().textContent).toMatch(/KB|MB/);
     expect(downloadElement().textContent).not.toContain('Made when you tap');
   });
 
   it('builds on its own at exactly 30 pages', async () => {
     await open(30);
-    expect(convertCalls.n).toBe(1);
+    expect(conversions()).toBe(1);
     expect(downloadElement().textContent).not.toContain('Made when you tap');
   });
 
   it('a tap that beats the build shows preparing and delivers when it lands', async () => {
     let finish;
-    convertOverride.fn = (file, opts) => new Promise((resolve) => { finish = async () => resolve(await defaultConvert(file, opts)); });
+    forceConversion((file, opts) => new Promise((resolve) => { finish = async () => resolve(await defaultConvert(file, opts)); }));
     await open(1);
     expect(downloadElement().getAttribute('data-state')).toBe('ready');
     await click(downloadElement());
@@ -321,7 +319,7 @@ describe('PdfToImageTool', () => {
     it('is not offered for the tall image or for a single image', async () => {
       await open(3);
       await click(radio('One tall image'));
-      await until(() => convertCalls.last?.layout === 'concatenated' && /KB/.test(downloadElement().textContent));
+      await until(() => lastConversion()?.layout === 'concatenated' && /KB/.test(downloadElement().textContent));
       expect(saveLinks()).toHaveLength(0);
       act(() => render(null, container));
       container.remove();
@@ -346,8 +344,8 @@ describe('PdfToImageTool', () => {
   it('One tall image names one file, builds the stacked layout, and counts one image', async () => {
     await open(3);
     await click(radio('One tall image'));
-    await until(() => convertCalls.last?.layout === 'concatenated' && downloadElement().getAttribute('download') === 'report.png');
-    expect(convertCalls.last.layout).toBe('concatenated');
+    await until(() => lastConversion()?.layout === 'concatenated' && downloadElement().getAttribute('download') === 'report.png');
+    expect(lastConversion().layout).toBe('concatenated');
     expect(heading().textContent).toContain('report.png');
     expect(heading().textContent).toContain('1 image');
     expect(downloadElement().textContent).toContain('Download PNG');
@@ -406,7 +404,7 @@ describe('PdfToImageTool', () => {
     await until(() => stripName().includes('report-page-N.png'));
     expect(stripName()).toContain('report-page-N.png');
     await click(radio('One tall image'));
-    await until(() => convertCalls.last?.layout === 'concatenated' && /KB/.test(downloadElement().textContent));
+    await until(() => lastConversion()?.layout === 'concatenated' && /KB/.test(downloadElement().textContent));
     await click(quiet());
     await until(() => stripName().includes('report.png'));
     expect(stripName()).toContain('report.png');
@@ -417,16 +415,16 @@ describe('PdfToImageTool', () => {
   it('drops a conversion whose file was replaced while it ran', async () => {
     let finish;
     const converted = Promise.withResolvers<void>();
-    convertOverride.fn = (file, opts) => new Promise((resolve) => {
+    forceConversion((file, opts) => new Promise((resolve) => {
       finish = async () => {
         const result = await defaultConvert(file, opts);
         converted.resolve();
         resolve(result);
       };
-    });
+    }));
     await open(2);
     const first = finish;
-    convertOverride.fn = null;
+    forceConversion(defaultConvert, false);
     await replaceWith(makePdfFile('second.pdf'));
     await act(async () => {
       first();
@@ -443,10 +441,10 @@ describe('PdfToImageTool', () => {
   it('a build that fails says so on the Download element, counts as a failed operation, and a tap tries again', async () => {
     vi.spyOn(console, 'error').mockImplementation(() => {});
     let fail = true;
-    convertOverride.fn = async (file, opts) => {
+    forceConversion(async (file, opts) => {
       if (fail) throw new Error('boom');
       return defaultConvert(file, opts);
-    };
+    });
     await open(2);
     expect(downloadElement().getAttribute('data-state')).toBe('error');
     expect(downloadElement().textContent).toContain('Could not make the images. Tap to try again.');
@@ -482,7 +480,7 @@ describe('PdfToImageTool', () => {
     expect(container.textContent).toContain('then you can turn it into images');
     expect(button('Unlock it')).toBeDefined();
     expect(harness.pdfjs.source.opened).toBe(0);
-    expect(convertCalls.n).toBe(0);
+    expect(conversions()).toBe(0);
     expect(downloadElement()).toBeNull();
     await harness.flush();
     expect(harness.reports()).toEqual([]);
@@ -494,7 +492,7 @@ describe('PdfToImageTool', () => {
     await open(2);
     expect(container.textContent).not.toContain('This PDF is protected');
     expect(cells()).toHaveLength(2);
-    expect(convertCalls.n).toBe(1);
+    expect(conversions()).toBe(1);
   });
 
   it('revokes every image URL on unmount', async () => {

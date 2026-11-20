@@ -5,8 +5,9 @@ import { PDFDocument } from '@cantoo/pdf-lib';
 import { addImagePage, jpegOrientation, placeImage, PAGE_SIZES, UnreadableImageError, UnsupportedImageError } from './imagePage.js';
 import { redrawPng } from './pngRedraw.ts';
 
-// jsdom has no image decoder: the browser's redraw is stood in for here, and proved in a real browser.
-vi.mock('./pngRedraw.ts', () => ({ redrawPng: vi.fn() }));
+// The real redraw runs wherever a test does not force it. Forced: jsdom has no image decoder, so the tests that
+// need the browser's redraw to answer (or fail) set that one return value; the redraw itself is proved in a real browser.
+vi.mock('./pngRedraw.ts', { spy: true });
 
 const fixture = (name) => new Uint8Array(fs.readFileSync(path.resolve(__dirname, '../__fixtures__', name)));
 

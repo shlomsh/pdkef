@@ -1,84 +1,99 @@
+// @vitest-environment jsdom
+import 'fake-indexeddb/auto';
+import { IDBFactory } from 'fake-indexeddb';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { peekHandoff, saveHandoff } from '../drafts/draftStore.ts';
 
-const store = vi.hoisted(() => ({ saveHandoff: vi.fn() }));
-vi.mock('../drafts/draftStore.ts', () => store);
+// The real store runs on fake-indexeddb; the spy lets a test see when a save settled, and the two tests that
+// need the store to refuse or fail force that one result.
+vi.mock('../drafts/draftStore.ts', { spy: true });
 
 import { sendHandoff } from './sendHandoff.ts';
 
-const payload = { fileName: 'a.pdf', fileType: 'application/pdf', fileBytes: new ArrayBuffer(3) };
+const bytes = () => new TextEncoder().encode('%PDF-1.7 hand-off').buffer as ArrayBuffer;
+const payload = () => ({ fileName: 'a.pdf', fileType: 'application/pdf', fileBytes: bytes() });
+const text = (buffer: ArrayBuffer) => new TextDecoder().decode(buffer);
 
 describe('sendHandoff', () => {
   const navigate = vi.fn();
   beforeEach(() => {
-    store.saveHandoff.mockReset();
+    indexedDB = new IDBFactory();
+    localStorage.clear();
+    vi.mocked(saveHandoff).mockClear();
     navigate.mockReset();
   });
 
   it('parks the payload under the target, then navigates to the target page', async () => {
-    store.saveHandoff.mockResolvedValue(true);
-    await expect(sendHandoff('compress', payload, { navigate })).resolves.toBe(true);
-    expect(store.saveHandoff).toHaveBeenCalledWith('compress', payload);
+    await expect(sendHandoff('compress', payload(), { navigate })).resolves.toBe(true);
+    const parked = await peekHandoff('compress');
+    expect(parked).toMatchObject({ fileName: 'a.pdf', fileType: 'application/pdf' });
+    expect(text((parked as { fileBytes: ArrayBuffer }).fileBytes)).toBe('%PDF-1.7 hand-off');
     expect(navigate).toHaveBeenCalledWith('/compress/');
   });
 
   it('saves before it navigates', async () => {
     const order: string[] = [];
-    store.saveHandoff.mockImplementation(async () => { order.push('save'); return true; });
-    navigate.mockImplementation(() => { order.push('navigate'); });
-    await sendHandoff('sign', payload, { navigate });
-    expect(order).toEqual(['save', 'navigate']);
+    // At the moment of navigation the save has already settled, and the page it opens can read the file.
+    const navigateAfterSave = () => {
+      order.push(`navigate after ${vi.mocked(saveHandoff).mock.settledResults.map((r) => `${r.type}:${r.value}`).join(',')}`);
+    };
+    await sendHandoff('sign', payload(), { navigate: navigateAfterSave });
+    expect(order).toEqual(['navigate after fulfilled:true']);
+    expect(await peekHandoff('sign')).not.toBeNull();
   });
 
   it('files an Edit Pages hand-off under edit-pdf and opens /organize-pdf/', async () => {
-    store.saveHandoff.mockResolvedValue(true);
-    await sendHandoff('edit-pdf', payload, { navigate });
-    expect(store.saveHandoff.mock.calls[0][0]).toBe('edit-pdf');
+    await sendHandoff('edit-pdf', payload(), { navigate });
+    expect(vi.mocked(saveHandoff).mock.calls[0][0]).toBe('edit-pdf');
+    expect(await peekHandoff('edit-pdf')).not.toBeNull();
     expect(navigate).toHaveBeenCalledWith('/organize-pdf/');
   });
 
   it('files a Compress Image target under the Compress hand-off key', async () => {
-    store.saveHandoff.mockResolvedValue(true);
-    await sendHandoff('compress-image', payload, { navigate });
-    expect(store.saveHandoff.mock.calls[0][0]).toBe('compress');
+    await sendHandoff('compress-image', payload(), { navigate });
+    expect(vi.mocked(saveHandoff).mock.calls[0][0]).toBe('compress');
+    expect(await peekHandoff('compress')).not.toBeNull();
     expect(navigate).toHaveBeenCalledWith('/compress-image/');
   });
 
   it('uses the href it is given instead of the registry page (a locale edition, a query)', async () => {
-    store.saveHandoff.mockResolvedValue(true);
-    await sendHandoff('compress', payload, { navigate, href: '/he/compress/' });
+    await sendHandoff('compress', payload(), { navigate, href: '/he/compress/' });
     expect(navigate).toHaveBeenCalledWith('/he/compress/');
   });
 
   it('passes a multi-file record and a from through untouched', async () => {
-    store.saveHandoff.mockResolvedValue(true);
-    const multi = { files: [payload, payload], from: 'redact' };
+    const multi = { files: [payload(), { ...payload(), fileName: 'b.pdf' }], from: 'redact' };
     await sendHandoff('unlock', multi, { navigate });
-    expect(store.saveHandoff).toHaveBeenCalledWith('unlock', multi);
+    expect(vi.mocked(saveHandoff).mock.calls[0]).toEqual(['unlock', multi]);
+    const parked = (await peekHandoff('unlock')) as { files: { fileName: string; fileBytes: ArrayBuffer }[]; from: string };
+    expect(parked.from).toBe('redact');
+    expect(parked.files.map((f) => f.fileName)).toEqual(['a.pdf', 'b.pdf']);
+    expect(parked.files.map((f) => text(f.fileBytes))).toEqual(['%PDF-1.7 hand-off', '%PDF-1.7 hand-off']);
     expect(navigate).toHaveBeenCalledWith('/unlock/');
   });
 
   it('throws and stays put when the store did not take it', async () => {
-    store.saveHandoff.mockResolvedValue(false);
-    await expect(sendHandoff('compress', payload, { navigate })).rejects.toThrow('handoff');
+    vi.mocked(saveHandoff).mockResolvedValueOnce(false); // forced: the real store only refuses without IndexedDB
+    await expect(sendHandoff('compress', payload(), { navigate })).rejects.toThrow('handoff');
     expect(navigate).not.toHaveBeenCalled();
   });
 
   it('lets a store error through and does not navigate', async () => {
-    store.saveHandoff.mockRejectedValue(new Error('boom'));
-    await expect(sendHandoff('compress', payload, { navigate })).rejects.toThrow('boom');
+    vi.mocked(saveHandoff).mockRejectedValueOnce(new Error('boom')); // forced: the real store reports its own failures and answers false
+    await expect(sendHandoff('compress', payload(), { navigate })).rejects.toThrow('boom');
     expect(navigate).not.toHaveBeenCalled();
   });
 
   it('stays put, resolving false, when proceed() says the run was superseded', async () => {
-    store.saveHandoff.mockResolvedValue(true);
-    await expect(sendHandoff('compress', payload, { navigate, proceed: () => false })).resolves.toBe(false);
-    expect(store.saveHandoff).toHaveBeenCalled();
+    await expect(sendHandoff('compress', payload(), { navigate, proceed: () => false })).resolves.toBe(false);
+    expect(saveHandoff).toHaveBeenCalled();
+    expect(await peekHandoff('compress')).not.toBeNull();
     expect(navigate).not.toHaveBeenCalled();
   });
 
   it('falls back to /<target>/ for a target the registry has no page for', async () => {
-    store.saveHandoff.mockResolvedValue(true);
-    await sendHandoff('elsewhere', payload, { navigate });
+    await sendHandoff('elsewhere', payload(), { navigate });
+    expect(await peekHandoff('elsewhere')).not.toBeNull();
     expect(navigate).toHaveBeenCalledWith('/elsewhere/');
   });
 });

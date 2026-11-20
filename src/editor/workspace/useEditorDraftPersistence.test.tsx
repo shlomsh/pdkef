@@ -1,25 +1,20 @@
+import 'fake-indexeddb/auto';
+import { IDBFactory } from 'fake-indexeddb';
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-vi.mock('#lib/drafts/draftStore.ts', () => ({
-  saveDraft: vi.fn(() => Promise.resolve(true)),
-  loadDraft: vi.fn(),
-  deleteDraft: vi.fn(() => Promise.resolve(true)),
-  hasDraftHint: vi.fn(() => false),
-  subscribeToDraftChanges: vi.fn(() => () => {}),
-  peekHandoff: vi.fn(() => Promise.resolve(null)),
-  commitHandoff: vi.fn(() => Promise.resolve()),
-  cacheRecentFile: vi.fn(() => Promise.resolve(true)),
-}));
+// The draft store runs for real on fake-indexeddb, with the real hand-off settle, arrival note and recents behind
+// it. The spy lets a test see which calls happened; a record the store would never hand back, and a recents write
+// held open, are forced on it. Forced: the page preview is drawn on a canvas, which jsdom does not have.
+vi.mock('#lib/drafts/draftStore.ts', { spy: true });
+vi.mock('#lib/pdf/thumbnails.js', { spy: true });
 
-vi.mock('#lib/pdf/thumbnails.js', () => ({
-  renderDraftPreview: vi.fn(() => Promise.resolve(null)),
-}));
-
-import { cacheRecentFile, commitHandoff, deleteDraft, loadDraft, peekHandoff } from '#lib/drafts/draftStore.ts';
+import { cacheRecentFile, commitHandoff, deleteDraft, loadDraft, peekHandoff, readRecentFiles, saveDraft, saveHandoff } from '#lib/drafts/draftStore.ts';
+import { renderDraftPreview } from '#lib/pdf/thumbnails.js';
 import { takeArrival, noteRecentOpen, resetFileArrivalForTests } from '#lib/handoff/fileArrival.ts';
 import { drainPromises } from '../../test/support/drainPromises.ts';
+import { waitUntil } from '../../test/support/waitUntil.ts';
 import { useEditorDraftPersistence } from './useEditorDraftPersistence.ts';
 import { DRAFT_SCHEMA_VERSION, isDraftElement, isEditorElement } from '../registry/draftValidation.ts';
 
@@ -38,10 +33,42 @@ function Harness({ apiRef, props }: any) {
   return null;
 }
 
-// Every store call here is a mocked promise, so one drained event-loop turn carries the whole restore chain.
-async function waitAsync() {
-  await act(async () => { await drainPromises(); });
+// The loader the tool supplies: a plain function that records its calls and resolves a promise when it is reached.
+function loaderRecorder(onCall: () => void = () => {}) {
+  const reached = Promise.withResolvers<void>();
+  const calls: any[][] = [];
+  const loadPdf: any = (...args: any[]) => { calls.push(args); onCall(); reached.resolve(); };
+  loadPdf.calls = calls;
+  loadPdf.reached = reached.promise;
+  return loadPdf;
 }
+
+// A tool with no work to restore marks its first paint with this; the restore clears it once it has settled
+// without handing over a document, which is the signal a test that expects no load waits for.
+const hintSettled = () => waitUntil(() => !document.documentElement.hasAttribute('data-draft-hint'));
+const markHint = () => document.documentElement.setAttribute('data-draft-hint', '1');
+
+const bytesOf = (buffer: ArrayBuffer) => new TextDecoder().decode(buffer);
+const pdfBytes = (text = '%PDF-1.4') => new TextEncoder().encode(text).buffer as ArrayBuffer;
+
+// What an earlier session left behind: one draft the real store holds for the tool.
+async function seedDraft(tool: string, record: Record<string, unknown>) {
+  expect(await saveDraft(tool, { fileName: 'contract.pdf', fileType: 'application/pdf', fileBytes: pdfBytes(), elements: [], extra: { actionHistory: [] }, ...record } as never)).toBe(true);
+  vi.mocked(loadDraft).mockClear();
+}
+
+beforeEach(() => {
+  indexedDB = new IDBFactory();
+  localStorage.clear();
+  sessionStorage.clear();
+  vi.mocked(saveDraft).mockReset();
+  vi.mocked(loadDraft).mockReset();
+  vi.mocked(deleteDraft).mockClear();
+  vi.mocked(peekHandoff).mockReset();
+  vi.mocked(cacheRecentFile).mockReset();
+  vi.mocked(commitHandoff).mockClear();
+  vi.mocked(renderDraftPreview).mockReset().mockResolvedValue(null as never); // forced: no canvas in jsdom
+});
 
 function baseProps(overrides: any = {}) {
   return {
@@ -53,7 +80,7 @@ function baseProps(overrides: any = {}) {
     status: 'idle',
     isDirty: false,
     loadStartedRef: { current: false },
-    loadPdf: vi.fn(),
+    loadPdf: loaderRecorder(),
     isElement: isEditorElement,
     ...overrides,
   };
@@ -61,13 +88,11 @@ function baseProps(overrides: any = {}) {
 
 describe('useEditorDraftPersistence - restore migrates and validates', () => {
   let container: HTMLDivElement;
+  const mount = (props: any) => act(() => { render(<Harness apiRef={{ current: null }} props={props} />, container); });
 
   beforeEach(() => {
     container = document.createElement('div');
     document.body.appendChild(container);
-    (loadDraft as any).mockReset();
-    (deleteDraft as any).mockReset();
-    (deleteDraft as any).mockResolvedValue(true);
   });
 
   afterEach(() => {
@@ -78,33 +103,22 @@ describe('useEditorDraftPersistence - restore migrates and validates', () => {
   });
 
   it('calls loadPdf once with only the valid elements from a mixed record', async () => {
-    const fileBytes = new TextEncoder().encode('%PDF-1.4').buffer;
     const goodElement = { id: 'text-1', type: 'text', pageIndex: 0, left: 10, top: 20, text: 'Hello' };
     const garbageElement = { id: 'bad-1', type: 'not-a-real-type', pageIndex: 0 };
-    (loadDraft as any).mockResolvedValue({
-      fileName: 'contract.pdf',
-      fileType: 'application/pdf',
-      fileBytes,
-      elements: [goodElement, garbageElement],
-      extra: { actionHistory: [] },
-    });
+    await seedDraft('redact', { elements: [goodElement, garbageElement], fileBytes: pdfBytes('%PDF-1.4 mixed') });
 
-    const apiRef: any = { current: null };
     const props = baseProps();
-    act(() => {
-      render(<Harness apiRef={apiRef} props={props} />, container);
-    });
-    await waitAsync();
+    mount(props);
+    await act(async () => { await props.loadPdf.reached; });
 
-    expect(props.loadPdf).toHaveBeenCalledTimes(1);
-    const [, calledBytes, initialState, restored] = props.loadPdf.mock.calls[0];
-    expect(calledBytes).toBe(fileBytes);
+    expect(props.loadPdf.calls).toHaveLength(1);
+    const [, calledBytes, initialState, restored] = props.loadPdf.calls[0];
+    expect(bytesOf(calledBytes)).toBe('%PDF-1.4 mixed');
     expect(initialState.elements).toEqual([goodElement]);
     expect(restored).toBe(true);
   });
 
   it('restores a checkbox-sized mark with its snapped geometry intact', async () => {
-    const fileBytes = new TextEncoder().encode('%PDF-1.4').buffer;
     const checkboxMark = {
       id: 'health-checkbox-1', type: 'symbol', pageIndex: 0,
       // This is deliberately not a square percent box: its axes are scaled
@@ -112,63 +126,54 @@ describe('useEditorDraftPersistence - restore migrates and validates', () => {
       left: 52.08, top: 42.19, width: 1.71, height: 1.21,
       mark: 'check', color: '#1463ff',
     };
-    (loadDraft as any).mockResolvedValue({
-      fileName: 'health.pdf',
-      fileType: 'application/pdf',
-      fileBytes,
-      elements: [checkboxMark],
-      extra: { actionHistory: [] },
-    });
+    await seedDraft('sign', { fileName: 'health.pdf', elements: [checkboxMark] });
 
     const props = baseProps({ tool: 'sign' });
-    act(() => {
-      render(<Harness apiRef={{ current: null }} props={props} />, container);
-    });
-    await waitAsync();
+    mount(props);
+    await act(async () => { await props.loadPdf.reached; });
 
-    expect(props.loadPdf.mock.calls[0][2].elements).toEqual([checkboxMark]);
+    expect(props.loadPdf.calls[0][2].elements).toEqual([checkboxMark]);
   });
 
   it('treats a record failing the top-level check the same as no record at all', async () => {
-    (loadDraft as any).mockResolvedValue({ fileName: 'contract.pdf', elements: [] });
+    // forced: a record the real store never hands back (it saves whole records only)
+    vi.mocked(loadDraft).mockResolvedValue({ fileName: 'contract.pdf', elements: [] } as never);
+    markHint();
 
-    const apiRef: any = { current: null };
     const props = baseProps();
-    act(() => {
-      render(<Harness apiRef={apiRef} props={props} />, container);
-    });
-    await waitAsync();
+    mount(props);
+    await hintSettled();
 
-    expect(props.loadPdf).not.toHaveBeenCalled();
+    expect(props.loadPdf.calls).toHaveLength(0);
   });
 
   it('discards invalid editor work and its first-paint markers so it cannot re-arm on the next visit', async () => {
     // The persistence hook has already established that bytes exist before it
     // calls onRestore. An empty filename therefore reaches editor validation
     // and represents a malformed record the generic store cannot diagnose.
-    (loadDraft as any).mockResolvedValue({
+    // forced: the real store would not keep a nameless record
+    vi.mocked(loadDraft).mockResolvedValue({
       fileName: '',
       fileType: 'application/pdf',
-      fileBytes: new TextEncoder().encode('%PDF-1.4').buffer,
+      fileBytes: pdfBytes(),
       elements: [],
-    });
-    document.documentElement.setAttribute('data-draft-hint', '1');
+    } as never);
+    markHint();
     document.documentElement.setAttribute('data-editor-restore', '1');
 
     const props = baseProps({ tool: 'redact' });
-    act(() => {
-      render(<Harness apiRef={{ current: null }} props={props} />, container);
-    });
-    await waitAsync();
+    mount(props);
+    await hintSettled();
+    // deleteDraft runs for real: the tool's work is gone from the store.
+    await act(async () => { await vi.mocked(deleteDraft).mock.results[0].value; });
 
-    expect(props.loadPdf).not.toHaveBeenCalled();
+    expect(props.loadPdf.calls).toHaveLength(0);
     expect(deleteDraft).toHaveBeenCalledWith('redact');
     expect(document.documentElement.hasAttribute('data-draft-hint')).toBe(false);
     expect(document.documentElement.hasAttribute('data-editor-restore')).toBe(false);
   });
 
   it('forwards only validated, self-contained history commands to the editor loader', async () => {
-    const fileBytes = new TextEncoder().encode('%PDF-1.4').buffer;
     const element = { id: 'text-1', type: 'text', pageIndex: 0, left: 10, top: 20, text: 'Hello' };
     const command = {
       id: 'history-1',
@@ -179,11 +184,8 @@ describe('useEditorDraftPersistence - restore migrates and validates', () => {
       timestamp: 10,
       elements: [{ element, index: 0 }],
     };
-    (loadDraft as any).mockResolvedValue({
+    await seedDraft('redact', {
       schemaVersion: DRAFT_SCHEMA_VERSION,
-      fileName: 'contract.pdf',
-      fileType: 'application/pdf',
-      fileBytes,
       elements: [element],
       extra: {
         actionHistory: [command, { ...command, id: 'bad-history', elements: [{ element, index: 'top' }] }],
@@ -191,53 +193,37 @@ describe('useEditorDraftPersistence - restore migrates and validates', () => {
     });
 
     const props = baseProps();
-    act(() => {
-      render(<Harness apiRef={{ current: null }} props={props} />, container);
-    });
-    await waitAsync();
+    mount(props);
+    await act(async () => { await props.loadPdf.reached; });
 
-    const initialState = props.loadPdf.mock.calls[0][2];
+    const initialState = props.loadPdf.calls[0][2];
     expect(initialState.actionHistory).toEqual([command]);
   });
 
   it('drops a Sign-only element type from a redact record instead of restoring it', async () => {
-    const fileBytes = new TextEncoder().encode('%PDF-1.4').buffer;
     const textElement = { id: 'text-1', type: 'text', pageIndex: 0, left: 10, top: 20, text: 'Hello' };
     const blackoutElement = { id: 'blackout-1', type: 'blackout', pageIndex: 0, left: 10, top: 20, width: 5, height: 5 };
-    (loadDraft as any).mockResolvedValue({
-      fileName: 'contract.pdf',
-      fileType: 'application/pdf',
-      fileBytes,
-      elements: [textElement, blackoutElement],
-      extra: { actionHistory: [] },
-    });
+    await seedDraft('redact', { elements: [textElement, blackoutElement] });
 
-    const apiRef: any = { current: null };
     const props = baseProps({ tool: 'redact', isElement: isRedactElement });
-    act(() => {
-      render(<Harness apiRef={apiRef} props={props} />, container);
-    });
-    await waitAsync();
+    mount(props);
+    await act(async () => { await props.loadPdf.reached; });
 
-    expect(props.loadPdf).toHaveBeenCalledTimes(1);
-    expect(props.loadPdf.mock.calls[0][2].elements).toEqual([blackoutElement]);
+    expect(props.loadPdf.calls).toHaveLength(1);
+    expect(props.loadPdf.calls[0][2].elements).toEqual([blackoutElement]);
   });
 
   it('does not throw when loadDraft resolves with no record', async () => {
-    (loadDraft as any).mockResolvedValue(null);
-
-    const apiRef: any = { current: null };
+    markHint();
     const props = baseProps();
     await expect(
       (async () => {
-        act(() => {
-          render(<Harness apiRef={apiRef} props={props} />, container);
-        });
-        await waitAsync();
+        mount(props);
+        await hintSettled();
       })(),
     ).resolves.not.toThrow();
 
-    expect(props.loadPdf).not.toHaveBeenCalled();
+    expect(props.loadPdf.calls).toHaveLength(0);
   });
 });
 
@@ -247,17 +233,14 @@ describe('useEditorDraftPersistence - HERO-02 hand-off marker', () => {
   const record = () => ({
     fileName: 'merged.pdf',
     fileType: 'application/pdf',
-    fileBytes: new TextEncoder().encode('%PDF-1.4').buffer,
+    fileBytes: pdfBytes(),
   });
+  const mount = (props: any) => act(() => { render(<Harness apiRef={{ current: null }} props={props} />, container); });
 
   beforeEach(() => {
     container = document.createElement('div');
     document.body.appendChild(container);
-    (loadDraft as any).mockReset();
-    (loadDraft as any).mockResolvedValue(null);
-    (peekHandoff as any).mockReset();
     root.setAttribute('data-handoff-pending', '1');
-    sessionStorage.setItem('pdkef:handoff-pending:sign', '1');
   });
 
   afterEach(() => {
@@ -269,63 +252,68 @@ describe('useEditorDraftPersistence - HERO-02 hand-off marker', () => {
   });
 
   it('holds the marker until the editor shows the handed-over document, then releases it', async () => {
-    (peekHandoff as any).mockResolvedValue(record());
+    await saveHandoff('sign', record());
+    expect(sessionStorage.getItem('pdkef:handoff-pending:sign')).toBe('1');
     const props = baseProps({ tool: 'sign' });
-    act(() => {
-      render(<Harness apiRef={{ current: null }} props={props} />, container);
-    });
-    await waitAsync();
-    expect(props.loadPdf).toHaveBeenCalledTimes(1);
+    mount(props);
+    await act(async () => { await props.loadPdf.reached; });
+    expect(props.loadPdf.calls).toHaveLength(1);
     expect(root.hasAttribute('data-handoff-pending')).toBe(true);
     expect(sessionStorage.getItem('pdkef:handoff-pending:sign')).toBeNull();
     const shown = document.createElement('div');
     shown.setAttribute('data-tool-loaded', '');
     document.body.appendChild(shown);
-    await waitAsync();
+    await waitUntil(() => !root.hasAttribute('data-handoff-pending'));
     expect(root.hasAttribute('data-handoff-pending')).toBe(false);
   });
 
   it('releases at once when there is nothing to take', async () => {
-    (peekHandoff as any).mockResolvedValue(null);
+    sessionStorage.setItem('pdkef:handoff-pending:sign', '1');
     const props = baseProps({ tool: 'sign' });
-    act(() => {
-      render(<Harness apiRef={{ current: null }} props={props} />, container);
-    });
-    await waitAsync();
+    mount(props);
+    await waitUntil(() => !root.hasAttribute('data-handoff-pending'));
     expect(root.hasAttribute('data-handoff-pending')).toBe(false);
     expect(sessionStorage.getItem('pdkef:handoff-pending:sign')).toBeNull();
   });
 
   it('keeps the record and the marker until the PDF is in recents (reload-safe, 2026-11-12)', async () => {
-    (peekHandoff as any).mockResolvedValue(record());
-    (commitHandoff as any).mockClear();
-    let stored: (v: boolean) => void = () => {};
-    (cacheRecentFile as any).mockReturnValueOnce(new Promise<boolean>((r) => { stored = r; }));
-    const props = baseProps({ tool: 'sign' });
-    act(() => {
-      render(<Harness apiRef={{ current: null }} props={props} />, container);
+    await saveHandoff('sign', record());
+    const real = await vi.importActual<typeof import('#lib/drafts/draftStore.ts')>('#lib/drafts/draftStore.ts');
+    const writeStarted = Promise.withResolvers<void>();
+    const releaseWrite = Promise.withResolvers<void>();
+    // forced: hold the recents write open, then let the real one run, so the window a reload lands in can be seen
+    vi.mocked(cacheRecentFile).mockImplementationOnce(async (...args) => {
+      writeStarted.resolve();
+      await releaseWrite.promise;
+      return real.cacheRecentFile(...args);
     });
-    await waitAsync();
+    const props = baseProps({ tool: 'sign' });
+    mount(props);
+    await act(async () => { await writeStarted.promise; });
     // A reload here must find the record and the marker still in place.
     expect(cacheRecentFile).toHaveBeenCalled();
     expect(commitHandoff).not.toHaveBeenCalled();
+    expect((await peekHandoff('sign'))?.fileName).toBe('merged.pdf');
+    expect(readRecentFiles()).toEqual([]);
     expect(sessionStorage.getItem('pdkef:handoff-pending:sign')).toBe('1');
-    await act(async () => { stored(true); });
-    await waitAsync();
+    await act(async () => { releaseWrite.resolve(); await props.loadPdf.reached; });
     expect(commitHandoff).toHaveBeenCalledWith('sign');
+    expect(await peekHandoff('sign')).toBeNull();
+    expect(readRecentFiles().map((entry) => entry.fileName)).toEqual(['merged.pdf']);
     expect(sessionStorage.getItem('pdkef:handoff-pending:sign')).toBeNull();
-    expect(props.loadPdf).toHaveBeenCalledTimes(1);
+    expect(props.loadPdf.calls).toHaveLength(1);
   });
 
   it('releases on unmount before the read settles', async () => {
-    (peekHandoff as any).mockReturnValue(new Promise(() => {}));
+    await saveHandoff('sign', record());
     const props = baseProps({ tool: 'sign' });
-    act(() => {
-      render(<Harness apiRef={{ current: null }} props={props} />, container);
-    });
+    mount(props);
+    // The store's read is real and still in flight here.
     expect(root.hasAttribute('data-handoff-pending')).toBe(true);
     act(() => render(null, container));
     expect(root.hasAttribute('data-handoff-pending')).toBe(false);
+    // Let the read finish so nothing outlives the test.
+    await act(async () => { await vi.mocked(peekHandoff).mock.results[0].value; await drainPromises(); });
   });
 });
 
@@ -334,17 +322,14 @@ describe('useEditorDraftPersistence - arrival mark (DEBT-58)', () => {
   const record = (from?: string) => ({
     fileName: 'a.pdf',
     fileType: 'application/pdf',
-    fileBytes: new TextEncoder().encode('%PDF-1.4').buffer,
+    fileBytes: pdfBytes(),
     ...(from ? { from } : {}),
   });
+  const mount = (props: any) => act(() => { render(<Harness apiRef={{ current: null }} props={props} />, container); });
   beforeEach(() => {
-    sessionStorage.clear();
     container = document.createElement('div');
     document.body.appendChild(container);
     resetFileArrivalForTests();
-    (loadDraft as any).mockReset();
-    (loadDraft as any).mockResolvedValue(null);
-    (peekHandoff as any).mockReset();
   });
   afterEach(() => {
     act(() => render(null, container));
@@ -352,26 +337,21 @@ describe('useEditorDraftPersistence - arrival mark (DEBT-58)', () => {
   });
 
   it('marks a hand-off as handoff with the sending tool, right before loadPdf', async () => {
-    (peekHandoff as any).mockResolvedValue(record('merge'));
+    await saveHandoff('sign', record('merge'));
     let seen: unknown;
-    const props = baseProps({ tool: 'sign', loadPdf: vi.fn(() => { seen = takeArrival(); }) });
-    act(() => {
-      render(<Harness apiRef={{ current: null }} props={props} />, container);
-    });
-    await waitAsync();
+    const props = baseProps({ tool: 'sign', loadPdf: loaderRecorder(() => { seen = takeArrival(); }) });
+    mount(props);
+    await act(async () => { await props.loadPdf.reached; });
     expect(seen).toEqual({ source: 'handoff', from: 'merge' });
   });
 
   it('marks a restore with the source the draft hook gives, right before loadPdf', async () => {
-    (peekHandoff as any).mockResolvedValue(null);
-    (loadDraft as any).mockResolvedValue(record());
+    await seedDraft('sign', { fileName: 'a.pdf' });
     noteRecentOpen('sign');
     let seen: unknown;
-    const props = baseProps({ tool: 'sign', loadPdf: vi.fn(() => { seen = takeArrival(); }) });
-    act(() => {
-      render(<Harness apiRef={{ current: null }} props={props} />, container);
-    });
-    await waitAsync();
+    const props = baseProps({ tool: 'sign', loadPdf: loaderRecorder(() => { seen = takeArrival(); }) });
+    mount(props);
+    await act(async () => { await props.loadPdf.reached; });
     expect(seen).toEqual({ source: 'recent' });
   });
 });

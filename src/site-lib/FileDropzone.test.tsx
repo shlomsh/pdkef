@@ -1,4 +1,6 @@
 // @ts-nocheck - renamed from .jsx, not yet typed; see TODO.md 'Type the interactive shell'
+import 'fake-indexeddb/auto';
+import { IDBFactory } from 'fake-indexeddb';
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { readFileSync } from 'node:fs';
@@ -7,20 +9,23 @@ import { describe, expect, it, vi, afterEach, beforeEach } from 'vitest';
 import FileDropzone, { tileCopy, isolateNames, LAUNCHER_PICK_EVENT } from './FileDropzone.tsx';
 import { englishFileDropzoneMessages as en } from './fileDropzoneMessages';
 import { consumeRecentOpen } from '#lib/handoff/fileArrival.ts';
-import { saveDraft, saveHandoff, setCurrentEntry, readRecentFiles, loadRecentFile, takeHandoff, removeRecentEntry } from '#lib/drafts/draftStore.ts';
+import { cacheRecentFile, saveDraft, saveHandoff, setCurrentEntry, readRecentFiles, loadRecentFile, takeHandoff, removeRecentEntry, peekHandoff } from '#lib/drafts/draftStore.ts';
+import { RECENT_FILES_META_KEY } from '#lib/drafts/recentFilesKey.js';
 import { setInputFiles } from '../test/support/setInputFiles.js';
 import { waitUntil } from '../test/support/waitUntil.ts';
 
-vi.mock('#lib/drafts/draftStore.ts', () => ({
-  saveDraft: vi.fn(() => Promise.resolve(true)),
-  saveHandoff: vi.fn(() => Promise.resolve(true)),
-  setCurrentEntry: vi.fn(),
-  readRecentFiles: vi.fn(() => []),
-  loadRecentFile: vi.fn(() => Promise.resolve(null)),
-  takeHandoff: vi.fn(() => Promise.resolve(null)),
-  removeRecentEntry: vi.fn(() => Promise.resolve(true)),
-  MAX_RECENT_FILES: 6,
-}));
+// The draft store runs for real on fake-indexeddb and the page's own localStorage; the spy sees what the tile
+// asked of it. What a store cannot be made to do (refuse a file, never answer) is one forced line on the spy.
+vi.mock('#lib/drafts/draftStore.ts', { spy: true });
+
+// The recents index in the store's own storage format: the reader under test parses it for real.
+const seedRecents = (entries) => localStorage.setItem(RECENT_FILES_META_KEY, JSON.stringify(entries));
+
+// A real hand-off parks the file in IndexedDB before the page moves on: wait for every one the tile started.
+const landed = async () => {
+  await act(async () => { await Promise.all(vi.mocked(saveHandoff).mock.results.map((r) => r.value)); });
+  await act(async () => { await drainPromises(); });
+};
 
 function dropOn(dropzone, files) {
   const event = new Event('drop', { bubbles: true, cancelable: true });
@@ -29,7 +34,7 @@ function dropOn(dropzone, files) {
     dropzone.dispatchEvent(event);
     // The handoff path is async (file.arrayBuffer(), then saveHandoff) before it commits.
     await drainPromises();
-  });
+  }).then(landed);
 }
 
 describe('FileDropzone', () => {
@@ -37,10 +42,9 @@ describe('FileDropzone', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    readRecentFiles.mockReturnValue([]);
-    loadRecentFile.mockResolvedValue(null);
-    saveHandoff.mockResolvedValue(true);
-    takeHandoff.mockResolvedValue(null);
+    indexedDB = new IDBFactory();
+    localStorage.clear();
+    sessionStorage.clear();
   });
 
   afterEach(() => {
@@ -109,7 +113,7 @@ describe('FileDropzone', () => {
     });
 
     it('lights the tile for a file that came back from Drive', async () => {
-      takeHandoff.mockResolvedValue({ fileName: 'from-drive.pdf', fileType: 'application/pdf', fileBytes: new ArrayBuffer(4) });
+      await saveHandoff('drive-home', { fileName: 'from-drive.pdf', fileType: 'application/pdf', fileBytes: new ArrayBuffer(4) });
       mount();
       await waitUntil(() => container.querySelector('[data-home-picker]').textContent.includes('from-drive.pdf'));
       expect(takeHandoff).toHaveBeenCalledWith('drive-home');
@@ -117,11 +121,10 @@ describe('FileDropzone', () => {
     });
 
     it('does nothing when no file came back', async () => {
-      const asked = Promise.withResolvers<void>();
-      takeHandoff.mockImplementationOnce(() => { asked.resolve(); return Promise.resolve(null); });
       mount();
       await act(async () => {
-        await asked.promise;
+        await import('#lib/drafts/draftStore.ts'); // the link reads the store through this lazy import
+        await vi.mocked(takeHandoff).mock.results[0].value;
         await drainPromises();
       });
       expect(container.querySelector('[data-home-picker]').textContent).toContain('Choose files');
@@ -141,7 +144,7 @@ describe('FileDropzone', () => {
     });
 
     it('shows one cached source once', () => {
-      readRecentFiles.mockReturnValue([{
+      seedRecents([{
         id: 'sha256:contract', tool: 'sign', fileName: 'contract.pdf',
         savedAt: Date.now() - 60_000, preview: 'data:image/jpeg;base64,abc',
       }]);
@@ -161,7 +164,7 @@ describe('FileDropzone', () => {
       // The same file signed and then redacted is two index rows with the same
       // name; each tool's tile must appear exactly once, not once per render pass.
       const now = Date.now();
-      readRecentFiles.mockReturnValue([
+      seedRecents([
         { id: 'sha256:signed', tool: 'sign', fileName: 'identity.pdf', savedAt: now - 1 },
         { id: 'sha256:redacted', tool: 'redact', fileName: 'identity.pdf', savedAt: now },
       ]);
@@ -183,7 +186,7 @@ describe('FileDropzone', () => {
       // duplicate recent tiles shipped once already. Storage may only be read
       // from the mount effect, so the first render must show the starter card
       // even when recent files exist.
-      readRecentFiles.mockReturnValue([{
+      seedRecents([{
         id: 'sha256:contract', tool: 'sign', fileName: 'contract.pdf', savedAt: Date.now(),
       }]);
       container = document.createElement('div');
@@ -207,7 +210,7 @@ describe('FileDropzone', () => {
 
     it('shows no more than six cached files, newest first', () => {
       const now = Date.now();
-      readRecentFiles.mockReturnValue(Array.from({ length: 8 }, (_, index) => ({
+      seedRecents(Array.from({ length: 8 }, (_, index) => ({
         id: `cached-${index}`,
         tool: index % 2 ? 'redact' : 'sign',
         fileName: `recent-${index}.pdf`,
@@ -236,12 +239,10 @@ describe('FileDropzone', () => {
     // 2026-09-20). The end-to-end proof is
     // e2e/home/recent-tile-restores-work.spec.js; this pins the mechanism.
     it('opens a recent file by pointer alone, never through the hand-off that discards work', async () => {
-      readRecentFiles.mockReturnValue([{
-        id: 'sha256:active', tool: 'sign', fileName: 'contract.pdf', savedAt: Date.now(),
-      }]);
-      loadRecentFile.mockResolvedValue({
-        tool: 'sign', fileName: 'contract.pdf', fileType: 'application/pdf', fileBytes: new ArrayBuffer(8),
-      });
+      // The record is really in the store, whole PDF and all: the tile still must not read it.
+      await cacheRecentFile('sign', { fileName: 'contract.pdf', fileType: 'application/pdf', fileBytes: new TextEncoder().encode('%PDF-1.4').buffer });
+      const id = JSON.parse(localStorage.getItem(RECENT_FILES_META_KEY))[0].id;
+      vi.mocked(readRecentFiles).mockClear();
       mount();
       await act(async () => { await Promise.resolve(); });
 
@@ -251,7 +252,7 @@ describe('FileDropzone', () => {
       });
 
       expect(container.querySelector('dialog')).toBeNull();
-      expect(setCurrentEntry).toHaveBeenCalledWith('sign', 'sha256:active');
+      expect(setCurrentEntry).toHaveBeenCalledWith('sign', id);
       // DEBT-58: the tool page reads this to call its restore a recent open, not a restore.
       expect(consumeRecentOpen('sign')).toBe(true);
       expect(saveHandoff).not.toHaveBeenCalled();
@@ -264,12 +265,12 @@ describe('FileDropzone', () => {
     });
 
     it('opens without waiting on the store, so a slow or blocked read cannot strand the tile', async () => {
-      readRecentFiles.mockReturnValue([{
+      seedRecents([{
         id: 'sha256:slow', tool: 'redact', fileName: 'scan.pdf', savedAt: Date.now(),
       }]);
       // A store that never answers. If opening a tile awaited it at all, the
       // pointer below would never be set and the dropzone would sit busy.
-      loadRecentFile.mockReturnValue(new Promise(() => {}));
+      vi.mocked(loadRecentFile).mockReturnValueOnce(new Promise(() => {})); // forced: a store that never answers
       mount();
       await act(async () => { await Promise.resolve(); });
 
@@ -286,7 +287,7 @@ describe('FileDropzone', () => {
     // disables. The restore itself is e2e/home/back-navigation.spec.js.
     it('reopens after a restore, so the next document still opens', async () => {
       const savedAt = Date.now();
-      readRecentFiles.mockReturnValue([
+      seedRecents([
         { id: 'sha256:first', tool: 'sign', fileName: 'first.pdf', savedAt },
         { id: 'sha256:second', tool: 'sign', fileName: 'second.pdf', savedAt },
       ]);
@@ -318,7 +319,7 @@ describe('FileDropzone', () => {
     // contract; every tool takes it now, for the reason above. What stays
     // Merge-specific is that it never needs to read the entry's bytes at all.
     it('opens a saved merge set by pointer alone, without even reading its bytes', async () => {
-      readRecentFiles.mockReturnValue([{
+      seedRecents([{
         id: 'sha256:merge-set', tool: 'merge', fileName: 'invoice + 2 more', savedAt: Date.now() - 60_000, pageCount: 7,
       }]);
       mount({ toolTarget: 'sign', href: '/sign?action=open' });
@@ -339,7 +340,7 @@ describe('FileDropzone', () => {
     });
 
     it('draws an empty preview box when a cached file has no preview', () => {
-      readRecentFiles.mockReturnValue([{
+      seedRecents([{
         id: 'sha256:no-preview', tool: 'sign', fileName: 'pdf1.pdf', savedAt: Date.now(),
       }]);
       mount({ toolTarget: 'sign', href: '/sign?action=open' });
@@ -381,7 +382,7 @@ describe('FileDropzone', () => {
     const chooseSign = () => act(async () => {
       hero.querySelector('a').dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
       await drainPromises();
-    });
+    }).then(landed);
 
     function mountTarget() {
       mount({ toolTarget: 'sign', href: '/sign?action=open' });
@@ -394,7 +395,7 @@ describe('FileDropzone', () => {
       await chooseSign();
 
       expect(saveHandoff).toHaveBeenCalledTimes(1);
-      const [tool, record] = saveHandoff.mock.calls[0];
+      const [tool, record] = vi.mocked(saveHandoff).mock.calls[0];
       expect(tool).toBe('sign');
       expect(record.fileName).toBe('contract.pdf');
       expect(record.fileType).toBe('application/pdf');
@@ -422,8 +423,8 @@ describe('FileDropzone', () => {
       await chooseSign();
 
       expect(saveHandoff).toHaveBeenCalledTimes(1);
-      expect(saveHandoff.mock.calls[0][0]).toBe('sign');
-      expect(saveHandoff.mock.calls[0][1].fileName).toBe('contract.pdf');
+      expect(vi.mocked(saveHandoff).mock.calls[0][0]).toBe('sign');
+      expect(vi.mocked(saveHandoff).mock.calls[0][1].fileName).toBe('contract.pdf');
       expect(input.value).toBe('');
     });
 
@@ -439,7 +440,7 @@ describe('FileDropzone', () => {
 
       expect(container.querySelector('dialog')).toBeNull();
       expect(saveHandoff).toHaveBeenCalledTimes(1);
-      expect(saveHandoff.mock.calls[0][1].fileName).toBe('contract.pdf');
+      expect(vi.mocked(saveHandoff).mock.calls[0][1].fileName).toBe('contract.pdf');
     });
 
     it('ignores an empty drop', async () => {
@@ -449,7 +450,7 @@ describe('FileDropzone', () => {
     });
 
     it('reports an error, and never navigates, if handoff storage fails', async () => {
-      saveHandoff.mockResolvedValue(false);
+      vi.mocked(saveHandoff).mockResolvedValueOnce(false); // forced: a store that refuses the file
       const area = mountTarget();
       await dropOn(area, [pdf()]);
       await chooseSign();
@@ -463,7 +464,7 @@ describe('FileDropzone', () => {
       const area = mountTarget();
       await dropOn(area, [pdf(), pdf()]);
       expect(saveHandoff).toHaveBeenCalledTimes(1);
-      expect(saveHandoff.mock.calls[0][0]).toBe('merge');
+      expect(vi.mocked(saveHandoff).mock.calls[0][0]).toBe('merge');
       expect(container.querySelector('[role="alert"]')).toBeNull();
     });
 
@@ -515,6 +516,7 @@ describe('FileDropzone', () => {
         setInputFiles(root.querySelector('input[type="file"]'), files);
         await drainPromises();
       });
+      await landed();
     };
     const lit = () => [...dock.querySelectorAll('[data-fits]')].map((a) => a.dataset.tool);
 
@@ -547,7 +549,7 @@ describe('FileDropzone', () => {
       mount();
       await pick([pdf('a.pdf'), pdf('b.pdf')]);
       expect(saveHandoff).toHaveBeenCalledTimes(1);
-      const [key, record] = saveHandoff.mock.calls[0];
+      const [key, record] = vi.mocked(saveHandoff).mock.calls[0];
       expect(key).toBe('merge');
       expect(record.files.map((f) => f.fileName)).toEqual(['a.pdf', 'b.pdf']);
       expect(record.files[0].fileType).toBe('application/pdf');
@@ -562,7 +564,7 @@ describe('FileDropzone', () => {
     it('opens Image to PDF for several photos, naming types from extensions when the browser gives none', async () => {
       mount();
       await pick([new File(['x'], 'one.JPG'), new File(['y'], 'two.png')]);
-      const [key, record] = saveHandoff.mock.calls[0];
+      const [key, record] = vi.mocked(saveHandoff).mock.calls[0];
       expect(key).toBe('image-to-pdf');
       expect(record.files.map((f) => f.fileType)).toEqual(['image/jpeg', 'image/png']);
       expect(window.location.href).toBe('/image-to-pdf/');
@@ -618,15 +620,11 @@ describe('FileDropzone', () => {
       mount();
       await pick([photo('p.jpg')]);
       const click = new MouseEvent('click', { bubbles: true, cancelable: true });
-      const saved = Promise.withResolvers<void>();
-      saveHandoff.mockImplementationOnce(() => { saved.resolve(); return Promise.resolve(true); });
-      await act(async () => {
-        link('compress-image').dispatchEvent(click);
-        await saved.promise;
-        await drainPromises();
-      });
+      await act(async () => { link('compress-image').dispatchEvent(click); });
+      await waitUntil(() => window.location.href === '/compress-image/');
+      await flush();
       expect(click.defaultPrevented).toBe(true);
-      const [key, record] = saveHandoff.mock.calls[0];
+      const [key, record] = vi.mocked(saveHandoff).mock.calls[0];
       expect(key).toBe('compress');
       expect(record.fileName).toBe('p.jpg');
       expect(record.fileType).toBe('image/jpeg');
@@ -684,7 +682,7 @@ describe('FileDropzone', () => {
       mount();
       await pick([photo('p.jpg'), pdf('a.pdf')]);
       expect(saveHandoff).toHaveBeenCalledTimes(1);
-      const [key, record] = saveHandoff.mock.calls[0];
+      const [key, record] = vi.mocked(saveHandoff).mock.calls[0];
       expect(key).toBe('merge');
       expect(record.files.map((f) => f.fileName)).toEqual(['p.jpg', 'a.pdf']);
       expect(record.files.map((f) => f.fileType)).toEqual(['image/jpeg', 'application/pdf']);
@@ -711,18 +709,14 @@ describe('FileDropzone', () => {
 
     it('still opens the practice document in Sign directly', async () => {
       vi.stubGlobal('fetch', vi.fn(() => Promise.resolve({ ok: true, blob: () => Promise.resolve(new Blob(['%PDF'])) })));
-      const saved = Promise.withResolvers<void>();
-      saveHandoff.mockImplementationOnce(() => { saved.resolve(); return Promise.resolve(true); });
       mount();
       await act(async () => { await Promise.resolve(); });
-      await act(async () => {
-        container.querySelector('button[aria-label^="Open bundled sample PDF"]').click();
-        await saved.promise;
-        await drainPromises();
-      });
+      await act(async () => { container.querySelector('button[aria-label^="Open bundled sample PDF"]').click(); });
+      await waitUntil(() => window.location.href === '/sign/');
+      await flush();
       vi.unstubAllGlobals();
-      expect(saveHandoff.mock.calls[0][0]).toBe('sign');
-      expect(saveHandoff.mock.calls[0][1].fileName).toBe('PDkef practice form.pdf');
+      expect(vi.mocked(saveHandoff).mock.calls[0][0]).toBe('sign');
+      expect(vi.mocked(saveHandoff).mock.calls[0][1].fileName).toBe('PDkef practice form.pdf');
       expect(window.location.href).toBe('/sign/');
       expect(lit()).toEqual([]);
     });
@@ -730,7 +724,7 @@ describe('FileDropzone', () => {
     it('closing launcher: several files open directly', async () => {
       mount({ final: true });
       await pick([pdf(), photo('q.png')]);
-      expect(saveHandoff.mock.calls[0][0]).toBe('merge');
+      expect(vi.mocked(saveHandoff).mock.calls[0][0]).toBe('merge');
       expect(window.location.href).toBe('/merge/');
     });
 
@@ -765,9 +759,10 @@ describe('FileDropzone', () => {
 
     describe('review findings', () => {
       const ARROW = 'svg[viewBox="0 0 40 72"]';
-      const clickLink = (tool, init = {}) => {
+      // `held`: the test forced a hand-off that never finishes, so there is nothing to wait for.
+      const clickLink = (tool, init = {}, held = false) => {
         const click = new MouseEvent('click', { bubbles: true, cancelable: true, ...init });
-        return act(async () => { link(tool).dispatchEvent(click); await flush(); }).then(() => click);
+        return act(async () => { link(tool).dispatchEvent(click); await flush(); }).then(held ? undefined : landed).then(() => click);
       };
 
       it('draws the tile arrow on the first screen only, not in the closing launcher', () => {
@@ -793,7 +788,7 @@ describe('FileDropzone', () => {
       it('keeps waiting, lit and retryable when the hand-off of a clicked tool fails', async () => {
         mount();
         await pick([pdf('contract.pdf')]);
-        saveHandoff.mockResolvedValueOnce(false);
+        vi.mocked(saveHandoff).mockResolvedValueOnce(false); // forced: a store that refuses the file
         await clickLink('sign');
         expect(hero.hasAttribute('data-picking')).toBe(true);
         expect(lit()).toHaveLength(8);
@@ -808,7 +803,7 @@ describe('FileDropzone', () => {
 
       it('rests the dock and the tile when the hand-off of several files fails', async () => {
         mount();
-        saveHandoff.mockResolvedValueOnce(false);
+        vi.mocked(saveHandoff).mockResolvedValueOnce(false); // forced: a store that refuses the file
         await pick([pdf('a.pdf'), pdf('b.pdf')]);
         expect(hero.hasAttribute('data-picking')).toBe(false);
         expect(lit()).toEqual([]);
@@ -827,7 +822,7 @@ describe('FileDropzone', () => {
         expect(lit()).toHaveLength(8);
         await clickLink('sign');
         expect(saveHandoff).toHaveBeenCalledTimes(1);
-        const [key, record] = saveHandoff.mock.calls[0];
+        const [key, record] = vi.mocked(saveHandoff).mock.calls[0];
         expect(key).toBe('sign');
         expect(record.fileName).toBe('contract.pdf');
         expect(new TextDecoder().decode(record.fileBytes)).toBe('%PDF');
@@ -848,17 +843,17 @@ describe('FileDropzone', () => {
       it('hands off once when a second lit tool is clicked while the first is in flight', async () => {
         mount();
         await pick([pdf()]);
-        saveHandoff.mockReturnValue(new Promise(() => {}));
-        await clickLink('sign');
-        await clickLink('merge');
+        vi.mocked(saveHandoff).mockReturnValueOnce(new Promise(() => {})); // forced: a hand-off held in flight
+        await clickLink('sign', {}, true);
+        await clickLink('merge', {}, true);
         expect(saveHandoff).toHaveBeenCalledTimes(1);
       });
 
       it('tells the person which tool is opening, with the file name, after a click', async () => {
         mount();
         await pick([pdf('contract.pdf')]);
-        saveHandoff.mockReturnValue(new Promise(() => {}));
-        await clickLink('sign');
+        vi.mocked(saveHandoff).mockReturnValueOnce(new Promise(() => {})); // forced: a hand-off held in flight
+        await clickLink('sign', {}, true);
         expect(picker().textContent).toContain('contract.pdf');
         expect(picker().textContent).toContain('Opening Sign PDF…');
         expect(picker().textContent).not.toContain('Change');
@@ -919,7 +914,7 @@ describe('FileDropzone', () => {
         await pick([pdf('c.pdf'), txt()]);
         expect(polite()).toBe(`Left out: ${isolateNames([txt()])}. Now pick a tool below`);
         expect(assertive()).toBe('');
-        saveHandoff.mockResolvedValueOnce(false);
+        vi.mocked(saveHandoff).mockResolvedValueOnce(false); // forced: a store that refuses the file
         await clickLink('sign');
         expect(assertive()).toBe(en.handoffFailed);
         expect(polite()).toBe('Now pick a tool below');
@@ -958,7 +953,7 @@ describe('FileDropzone', () => {
       it('ends the wait when several files open instead, so a failed hand-off does not say "pick a tool"', async () => {
         mount();
         await pick([pdf('one.pdf')]);
-        saveHandoff.mockResolvedValueOnce(false);
+        vi.mocked(saveHandoff).mockResolvedValueOnce(false); // forced: a store that refuses the file
         await pick([pdf('a.pdf'), pdf('b.pdf')]);
         expect(picker().textContent).not.toContain('Now pick a tool below');
         expect(picker().textContent).toContain('Choose files');
@@ -996,9 +991,9 @@ describe('FileDropzone', () => {
         expect(picker().textContent).toContain('good.pdf');
         expect(noteOf().textContent).toBe(`Left out: ${isolateNames([{ name: 'bad.pdf' }])}`);
         await pick([pdf('g1.pdf'), pdf('g2.pdf'), unreadable('bad.pdf')]);
-        expect(saveHandoff.mock.calls[0][0]).toBe('merge');
-        expect(saveHandoff.mock.calls[0][1].files.map((f) => f.fileName)).toEqual(['g1.pdf', 'g2.pdf']);
-        expect(saveHandoff.mock.calls[0][1].from).toBe('home');
+        expect(vi.mocked(saveHandoff).mock.calls[0][0]).toBe('merge');
+        expect(vi.mocked(saveHandoff).mock.calls[0][1].files.map((f) => f.fileName)).toEqual(['g1.pdf', 'g2.pdf']);
+        expect(vi.mocked(saveHandoff).mock.calls[0][1].from).toBe('home');
       });
 
       it('shows only the left-out note when nothing can be read', async () => {
@@ -1063,8 +1058,8 @@ describe('FileDropzone', () => {
     const tiles = () => container.querySelectorAll('button[aria-label^="Open recent PDF"]');
 
     it('keeps the tile and shows a message when the removal fails', async () => {
-      readRecentFiles.mockReturnValue(two());
-      removeRecentEntry.mockResolvedValue(false);
+      seedRecents(two());
+      vi.mocked(removeRecentEntry).mockResolvedValueOnce(false); // forced: a store that will not delete
       mount();
       await act(async () => { await Promise.resolve(); });
       await act(async () => { container.querySelector('button[aria-label^="Remove first.pdf"]').click(); });
@@ -1075,13 +1070,13 @@ describe('FileDropzone', () => {
     });
 
     it('drops the tile when the removal succeeds', async () => {
-      readRecentFiles.mockReturnValue(two());
-      removeRecentEntry.mockImplementation(async () => { readRecentFiles.mockReturnValue([two()[1]]); return true; });
+      seedRecents(two());
       mount();
       await act(async () => { await Promise.resolve(); });
       await act(async () => { container.querySelector('button[aria-label^="Remove first.pdf"]').click(); });
       await confirm('Remove');
-      expect(tiles()).toHaveLength(1);
+      await waitUntil(() => expect(tiles()).toHaveLength(1));
+      expect(removeRecentEntry).toHaveBeenCalledWith('sha256:first');
       expect(container.textContent).not.toContain("That didn't work");
     });
   });

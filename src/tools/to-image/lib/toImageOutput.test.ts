@@ -2,10 +2,11 @@ import { describe, expect, it, vi } from 'vitest';
 import { planForFile, rotateEntry, withIncludedPages } from '#lib/pages/pagePlan.ts';
 import { englishToImageMessages } from '../messages';
 
-const { convert } = vi.hoisted(() => ({ convert: vi.fn() }));
-vi.mock('./toImage.js', async (importOriginal) => ({ ...(await importOriginal<object>()), convertPdfToImages: convert }));
+// Canvas pixels are not in Node: each test forces the one rendering result it needs on the spy.
+vi.mock('./toImage.js', { spy: true });
 
-const { AUTO_BUILD_PAGE_LIMIT, autoBuilds, buildImages, formatName, imageLabels, imagesMade } = await import('./toImageOutput.ts');
+import { convertPdfToImages as convert } from './toImage.js';
+import { AUTO_BUILD_PAGE_LIMIT, autoBuilds, buildImages, formatName, imageLabels, imagesMade } from './toImageOutput.ts';
 
 const file = new File(['%PDF'], 'report.pdf', { type: 'application/pdf' });
 const image = (pageNumber: number, filename: string) => ({ pageNumber, filename, blob: new Blob(['x'], { type: 'image/png' }) });
@@ -25,20 +26,20 @@ describe('imagesMade and autoBuilds', () => {
 
 describe('buildImages', () => {
   it('asks for the included pages, each with the plan\'s rotation', async () => {
-    convert.mockResolvedValueOnce([image(2, 'report-page-2.png'), image(4, 'report-page-4.png')]);
+    vi.mocked(convert).mockResolvedValueOnce([image(2, 'report-page-2.png'), image(4, 'report-page-4.png')]);
     const plan = rotateEntry(withIncludedPages(planForFile(0, 5), [2, 4]), '0:3', 90);
     await buildImages(file, plan, { format: 'image/png', scale: 2, layout: 'separate' });
-    expect(convert.mock.calls.at(-1)?.[1]).toMatchObject({ format: 'image/png', scale: 2, layout: 'separate', pages: '2, 4', rotations: { 4: 90 } });
+    expect(vi.mocked(convert).mock.calls.at(-1)?.[1]).toMatchObject({ format: 'image/png', scale: 2, layout: 'separate', pages: '2, 4', rotations: { 4: 90 } });
   });
 
   it('several images come back as parts that remember their source page', async () => {
-    convert.mockResolvedValueOnce([image(2, 'report-page-2.png'), image(4, 'report-page-4.png')]);
+    vi.mocked(convert).mockResolvedValueOnce([image(2, 'report-page-2.png'), image(4, 'report-page-4.png')]);
     const built = await buildImages(file, withIncludedPages(planForFile(0, 5), [2, 4]), { format: 'image/png', scale: 1, layout: 'separate' });
     expect(built).toMatchObject({ pageCount: 2, parts: [{ filename: 'report-page-2.png', pageNumber: 2 }, { filename: 'report-page-4.png', pageNumber: 4 }] });
   });
 
   it('one image comes back as a blob, whether one page or the tall image', async () => {
-    convert.mockResolvedValueOnce([image(1, 'report.png')]);
+    vi.mocked(convert).mockResolvedValueOnce([image(1, 'report.png')]);
     const built = await buildImages(file, planForFile(0, 3), { format: 'image/png', scale: 1, layout: 'concatenated' });
     expect('blob' in built).toBe(true);
     expect(built.pageCount).toBe(3);

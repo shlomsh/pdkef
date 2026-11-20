@@ -9,6 +9,7 @@ import PdfSplitTool from '../../tools/split/PdfSplitTool.tsx';
 import PdfToImageTool from '../../tools/to-image/PdfToImageTool.tsx';
 import PdfEditPagesTool from '../../tools/edit-pages/PdfEditPagesTool.tsx';
 import { saveHandoff } from '#lib/drafts/draftStore.ts';
+import { convertPdfToImages } from '../../tools/to-image/lib/toImage.js';
 import { parsePageSelector } from '#lib/pages/pageSelector.js';
 import type { QuietPolicy } from '#lib/output/quietPrepare.ts';
 import { installToolHarness, type ToolHarness } from '../harness/toolHarness.ts';
@@ -19,15 +20,8 @@ import { until } from '../support/until.js';
 // What Split, PDF to Image and Edit Pages share by construction (the page workspace, the bulk row, the Replace line,
 // the file intake): each tool wires it, so each tool runs the same cases. What differs per tool stays in its own test.
 
-// EDGE: the conversion paints every page through pdf.js onto a canvas, neither of which jsdom has.
-vi.mock('../../tools/to-image/lib/toImage.js', async (importOriginal) => ({
-  ...(await importOriginal<object>()),
-  convertPdfToImages: async (_file: File, opts: { pages: string; format: string }) => parsePageSelector(opts.pages, pdfjsEdges.source.pageCount).map((n: number) => ({
-    pageNumber: n,
-    blob: new Blob(['x'], { type: opts.format }),
-    filename: `report-page-${n}.png`,
-  })),
-}));
+// The rest of toImage.js runs for real; only the conversion is forced below.
+vi.mock('../../tools/to-image/lib/toImage.js', { spy: true });
 
 const FAST_QUIET: QuietPolicy = { baseMs: 5, stepMs: 0, maxMs: 5, burstWindowMs: 1 };
 declare const __dirname: string;
@@ -64,6 +58,12 @@ describe.each(TOOLS)('$name on the shared page workspace', ({ element, handoff, 
   beforeEach(() => {
     harness = installToolHarness();
     prepare?.();
+    // Forced: the conversion paints every page through pdf.js onto a canvas, neither of which jsdom has.
+    vi.mocked(convertPdfToImages).mockImplementation(async (_file: File, opts: { pages?: string; format?: string } = {}) => parsePageSelector(opts.pages ?? '', pdfjsEdges.source.pageCount).map((n: number) => ({
+      pageNumber: n,
+      blob: new Blob(['x'], { type: opts.format }),
+      filename: `report-page-${n}.png`,
+    })));
     // jsdom's Blob has no arrayBuffer().
     if (!Blob.prototype.arrayBuffer) {
       Blob.prototype.arrayBuffer = function arrayBuffer() {

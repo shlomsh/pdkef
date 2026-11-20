@@ -43,5 +43,14 @@ count). The rule is off on `landmines-all` meanwhile.
 - Seen while running it: `readScan` and Sign's MOBI-07 test time out on a cold run and pass warm,
   the same at the round's start commit (battery power, and a vitest cache shared by the symlinked
   proof worktrees).
+- Wave 1, round 3 (editor, drafts and hand-off, site-lib, cross-tool, Split, To Image, Image to PDF;
+  2026-11-20): down to 1,479. The draft store, hand-off, Drive sign-in, PDF loading and the sketch strokes
+  run for real; Drive's network stays for the MSW wave. Image to PDF went from 15 to 20: its hidden build
+  gate is now five visible forced lines. Never caught, before or after: `useDraftPersistence` dropping
+  `isCancelled()` (it only fires on unmount), and Split's guard before the load in DEBT-18.
+- Seen while running it, on battery: the round's 27 files together time out in the first heavy test of
+  Split, To Image, `pageGridTools` and `draftRestoreRace` (about 25 s each), while the start commit
+  passed once. Alone, Split's old file failed 3 runs in 4 and the new one 1 in 4; To Image passed every
+  run in both. Recheck plugged in before landing.
 - Found on the way: RED-75 (preview documents never freed on pdf.js 6.5), RED-76 (one very long line
   overflows the text preview).

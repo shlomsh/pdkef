@@ -4,18 +4,20 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const reportError = vi.fn();
 vi.mock('#lib/telemetry/errorReport.ts', () => ({ reportError: (...a: unknown[]) => reportError(...a) }));
-// jsdom has no 2D context; the component only needs a truthy one.
-vi.mock('#lib/pdf/pdfRender.js', () => ({ getPdfRenderContext: () => ({ drawImage: vi.fn() }) }));
+// The real getPdfRenderContext runs; jsdom has no 2D context, so its one forced result is set in beforeEach.
+vi.mock('#lib/pdf/pdfRender.js', { spy: true });
 
 import { fakePdfDocument } from '../test/support/fakePdfJs.ts';
 import { drainPromises } from '../test/support/drainPromises.ts';
 import PdfPageCanvas from './PdfPageCanvas.tsx';
+import { getPdfRenderContext } from '#lib/pdf/pdfRender.js';
 
 const flush = () => drainPromises();
 
 describe('PdfPageCanvas when the document is destroyed between getPage and render', () => {
   let host: HTMLElement | null = null;
   beforeEach(() => {
+    vi.mocked(getPdfRenderContext).mockReturnValue({ drawImage: vi.fn() } as unknown as CanvasRenderingContext2D);
     reportError.mockClear();
     vi.spyOn(console, 'error').mockImplementation(() => {});
     host = document.createElement('div');

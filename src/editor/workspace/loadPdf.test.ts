@@ -1,15 +1,45 @@
-import { describe, expect, it, vi } from 'vitest';
+// @ts-expect-error -- this browser-first project intentionally omits Node ambient types; Vitest provides the runtime.
+import { readFileSync } from 'node:fs';
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { loadPdf } from './loadPdf.ts';
-import { getPdfjs } from '../adapters/pdf/pdfjsLoader.js';
+import { getPdfjs } from '#lib/pdf/loadPdfjs.js';
 import { reportError } from '#lib/telemetry/errorReport.ts';
+import { buildPdf, legacyPdfjs, openedTasks } from '../../test/support/redactCheckPdfs.test-helper.ts';
+import * as pdfjs from 'pdfjs-dist/legacy/build/pdf.mjs';
+import { drainPromises } from '../../test/support/drainPromises.ts';
 
-vi.mock('../adapters/pdf/pdfjsLoader.js', () => ({ getPdfjs: vi.fn() }));
+// The shipped pdf.js loader points at a browser Worker, which node does not have. Forced: the same pdf.js, its
+// legacy (node) build, so every load below parses a real file with the real loading task and document.
+vi.mock('#lib/pdf/loadPdfjs.js', { spy: true });
 vi.mock('#lib/telemetry/errorReport.ts', () => ({ reportError: vi.fn() }));
+
+// jsdom resolves the helper's worker URL to http; point pdf.js at the legacy build's own file.
+declare const process: { cwd(): string };
+const workerUrl = `file://${process.cwd()}/node_modules/pdfjs-dist/legacy/build/pdf.worker.mjs`;
+Object.defineProperty(pdfjs.GlobalWorkerOptions, 'workerSrc', { get: () => workerUrl, set() {}, configurable: true });
+
+// Real PDFs: built with pdf-lib, and the repo's encrypted fixtures.
+const fixture = (name: string) => new Uint8Array(readFileSync(`${process.cwd()}/src/lib/__fixtures__/encrypted/${name}.pdf`));
+const toBuffer = (bytes: Uint8Array) => bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer;
+const page = (lines: string[]) => ({ lines });
+
+beforeEach(() => {
+  openedTasks.length = 0;
+  vi.mocked(getPdfjs).mockReset().mockImplementation(async () => legacyPdfjs() as never); // forced: the node build
+});
+
+afterEach(() => {
+  // Whatever a test left open is released, so no loading task outlives it.
+  for (const task of openedTasks) void task.destroy();
+});
+
+let plainBytes: Uint8Array;
+beforeAll(async () => { plainBytes = await buildPdf([page(['one'])]); });
 
 function options(overrides: Record<string, unknown> = {}) {
   return {
     file: new File(['%PDF-1.4'], 'document.pdf', { type: 'application/pdf' }),
-    bytes: new ArrayBuffer(8),
+    bytes: toBuffer(plainBytes),
     loadIdRef: { current: 0 },
     loadControllerRef: { current: null as { cancel: () => void } | null },
     initialize: vi.fn(),
@@ -23,72 +53,65 @@ function options(overrides: Record<string, unknown> = {}) {
 
 describe('loadPdf lifecycle', () => {
   it('cancels a superseded loading task and only lets the replacement write state', async () => {
-    let resolveFirst: (value: any) => void;
-    const firstTask = {
-      promise: new Promise((resolve) => { resolveFirst = resolve; }),
-      destroy: vi.fn(),
-    };
-    const secondDocument = { numPages: 1, destroy: vi.fn() };
-    const secondTask = { promise: Promise.resolve(secondDocument), destroy: vi.fn() };
-    const firstRequested = Promise.withResolvers<void>();
-    const getDocument = vi.fn()
-      .mockImplementationOnce(() => { firstRequested.resolve(); return firstTask; })
-      .mockReturnValueOnce(secondTask);
-    vi.mocked(getPdfjs).mockResolvedValue({
-      getDocument,
-    } as any);
-
-    const shared = options();
+    const firstBytes = await buildPdf([page(['first']), page(['second'])]);
+    const shared = options({ bytes: toBuffer(firstBytes) });
     const first = loadPdf(shared);
-    await firstRequested.promise;
-    expect(getDocument).toHaveBeenCalledOnce();
-    const second = loadPdf({ ...shared, file: new File(['%PDF-1.4'], 'replacement.pdf', { type: 'application/pdf' }) });
+    // loadPdf awaits this same promise before it opens its task, so by the time this resumes the first task exists
+    // and no pdf.js work (a macrotask) has run: the replacement lands while the first is still loading.
+    await vi.mocked(getPdfjs).mock.results[0].value;
+    expect(openedTasks).toHaveLength(1);
+    const firstTask = openedTasks[0];
+    const destroyFirst = vi.spyOn(firstTask, 'destroy');
+    const second = loadPdf({ ...shared, bytes: toBuffer(plainBytes), file: new File(['%PDF-1.4'], 'replacement.pdf', { type: 'application/pdf' }) });
     await second;
 
-    expect(firstTask.destroy).toHaveBeenCalledOnce();
+    expect(destroyFirst).toHaveBeenCalledOnce();
+    expect(firstTask.destroyed).toBe(true);
     expect(shared.onDocument).toHaveBeenCalledTimes(1);
-    expect(shared.onDocument).toHaveBeenCalledWith(secondDocument, expect.any(Function));
+    const [secondDocument, isCurrent] = shared.onDocument.mock.calls[0];
+    expect(secondDocument).toBe(await openedTasks[1].promise);
+    expect(secondDocument.numPages).toBe(1);
+    expect(isCurrent).toEqual(expect.any(Function));
     expect(shared.setStatus).toHaveBeenLastCalledWith('editing');
 
-    // Finish the now-stale promise to prove it cannot write after replacement.
-    resolveFirst!({ numPages: 99, destroy: vi.fn() });
+    // The superseded load settles too (destroying a pending task rejects it) and cannot write after replacement.
     await first;
+    await drainPromises();
     expect(shared.onDocument).toHaveBeenCalledTimes(1);
+    expect(shared.setStatus).toHaveBeenLastCalledWith('editing');
   });
 
   it('destroys the active document when its owner unmounts', async () => {
-    const document = { numPages: 1, destroy: vi.fn() };
-    const task = { promise: Promise.resolve(document), destroy: vi.fn() };
-    vi.mocked(getPdfjs).mockResolvedValue({ getDocument: vi.fn(() => task) } as any);
     const config = options();
 
     await loadPdf(config);
+    const [document] = config.onDocument.mock.calls[0];
+    // pdf.js's document has no destroy of its own: it is released through the loading task it belongs to.
+    expect(document.loadingTask).toBe(openedTasks[0]);
+    expect(document.loadingTask.destroyed).toBe(false);
     config.loadControllerRef.current?.cancel();
 
-    expect(task.destroy).toHaveBeenCalledOnce();
-    expect(document.destroy).toHaveBeenCalledOnce();
+    expect(document.loadingTask.destroyed).toBe(true);
   });
 
   it('a 20s timeout fails the load, destroys the loading task and reports nothing', async () => {
     vi.useFakeTimers();
     try {
       vi.mocked(reportError).mockClear();
-      // Like pdf.js, destroying the task rejects its still-pending promise.
-      let rejectTask: (reason: unknown) => void;
-      const task = {
-        promise: new Promise((_, reject) => { rejectTask = reject; }),
-        destroy: vi.fn(() => rejectTask(new Error('Loading aborted'))),
-      };
-      vi.mocked(getPdfjs).mockResolvedValue({ getDocument: vi.fn(() => task) } as any);
       const config = options();
 
       const loading = loadPdf(config);
-      await vi.advanceTimersByTimeAsync(20_001);
+      // The task exists now but pdf.js's own work (a macrotask) has not had a turn, so the real task is still
+      // loading when the clock passes 20s; the synchronous advance gives it none.
+      await vi.mocked(getPdfjs).mock.results[0].value;
+      expect(openedTasks).toHaveLength(1);
+      vi.advanceTimersByTime(20_001);
       await loading;
 
       expect(config.setStatus).toHaveBeenLastCalledWith('error');
       expect(config.setAnnouncement).toHaveBeenCalledOnce();
-      expect(task.destroy).toHaveBeenCalledOnce();
+      expect(openedTasks).toHaveLength(1);
+      expect(openedTasks[0].destroyed).toBe(true);
       expect(reportError).not.toHaveBeenCalled();
     } finally {
       vi.useRealTimers();
@@ -96,13 +119,9 @@ describe('loadPdf lifecycle', () => {
   });
 
   describe('onNeedsUnlock', () => {
-    const passwordError = Object.assign(new Error('No password given'), { name: 'PasswordException' });
-
     it('a password-protected file reaches the callback and nothing else', async () => {
-      const task = { promise: Promise.reject(passwordError), destroy: vi.fn() };
-      vi.mocked(getPdfjs).mockResolvedValue({ getDocument: vi.fn(() => task) } as any);
       const onNeedsUnlock = vi.fn();
-      const config = options({ restored: true, onNeedsUnlock });
+      const config = options({ bytes: toBuffer(fixture('needs-password')), restored: true, onNeedsUnlock });
 
       await loadPdf(config);
 
@@ -111,41 +130,36 @@ describe('loadPdf lifecycle', () => {
       expect(config.clearDraft).not.toHaveBeenCalled();
       expect(config.setStatus).not.toHaveBeenCalledWith('error');
       expect(config.setStatus).not.toHaveBeenCalledWith('editing');
-      expect(task.destroy).toHaveBeenCalledOnce();
+      expect(openedTasks[0].destroyed).toBe(true);
     });
 
     it('a file that opens but carries permissions is owner-restricted, and its document is released', async () => {
-      const document = { numPages: 1, getPermissions: vi.fn(async () => []), destroy: vi.fn() };
-      const task = { promise: Promise.resolve(document), destroy: vi.fn() };
-      vi.mocked(getPdfjs).mockResolvedValue({ getDocument: vi.fn(() => task) } as any);
       const onNeedsUnlock = vi.fn();
-      const config = options({ onNeedsUnlock });
+      const config = options({ bytes: toBuffer(fixture('owner-only')), onNeedsUnlock });
 
       await loadPdf(config);
 
       expect(onNeedsUnlock).toHaveBeenCalledExactlyOnceWith('owner-restricted');
       expect(config.onDocument).not.toHaveBeenCalled();
       expect(config.setStatus).not.toHaveBeenCalledWith('editing');
-      expect(document.destroy).toHaveBeenCalledOnce();
+      expect(openedTasks[0].destroyed).toBe(true);
     });
 
     it('an unprotected file loads as always, callback or not', async () => {
-      const document = { numPages: 1, getPermissions: vi.fn(async () => null), destroy: vi.fn() };
-      vi.mocked(getPdfjs).mockResolvedValue({ getDocument: vi.fn(() => ({ promise: Promise.resolve(document), destroy: vi.fn() })) } as any);
       const onNeedsUnlock = vi.fn();
-      const config = options({ onNeedsUnlock });
+      const config = options({ bytes: toBuffer(fixture('plain')), onNeedsUnlock });
 
       await loadPdf(config);
 
       expect(onNeedsUnlock).not.toHaveBeenCalled();
       expect(config.onDocument).toHaveBeenCalledOnce();
       expect(config.setStatus).toHaveBeenLastCalledWith('editing');
+      expect(openedTasks[0].destroyed).toBe(false);
     });
 
     it('without a callback a password file still fails exactly as before', async () => {
-      vi.mocked(getPdfjs).mockResolvedValue({ getDocument: vi.fn(() => ({ promise: Promise.reject(passwordError), destroy: vi.fn() })) } as any);
       vi.spyOn(console, 'error').mockImplementation(() => {});
-      const config = options({ restored: true });
+      const config = options({ bytes: toBuffer(fixture('needs-password')), restored: true });
 
       await loadPdf(config);
 
@@ -154,10 +168,9 @@ describe('loadPdf lifecycle', () => {
     });
 
     it('an error that is not a password stays a failure even with a callback', async () => {
-      vi.mocked(getPdfjs).mockResolvedValue({ getDocument: vi.fn(() => ({ promise: Promise.reject(new Error('boom')), destroy: vi.fn() })) } as any);
       vi.spyOn(console, 'error').mockImplementation(() => {});
       const onNeedsUnlock = vi.fn();
-      const config = options({ onNeedsUnlock });
+      const config = options({ bytes: toBuffer(fixture('truncated')), onNeedsUnlock });
 
       await loadPdf(config);
 

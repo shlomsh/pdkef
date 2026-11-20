@@ -1,13 +1,11 @@
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { describe, it, expect, afterEach, vi } from 'vitest';
-import { sketchBands, sketchUnderline, strokeSeed } from '#editor/geometry/sketchStroke.ts';
+import { sketchBands, sketchUnderline, strokeSeed, svgPath } from '#editor/geometry/sketchStroke.ts';
 import HighlightNode from './HighlightNode.tsx';
 import type { HighlightElement } from '#editor/model/editorModel.ts';
 
-vi.mock('#editor/geometry/sketchStroke.ts', () => ({
-  strokeSeed: vi.fn(() => 42), sketchBands: vi.fn(() => [['Z']]), sketchUnderline: vi.fn(() => [['Z']]), svgPath: vi.fn(() => 'M0 0Z'),
-}));
+vi.mock('#editor/geometry/sketchStroke.ts', { spy: true });
 
 const element: HighlightElement = {
   id: 'h1', type: 'highlight', pageIndex: 0, left: 10, top: 10, width: 50, height: 10, color: '#FFF34D',
@@ -142,11 +140,13 @@ describe('HighlightNode sketch stroke', () => {
       expect(host.querySelectorAll('[data-highlight-band]')).toHaveLength(0);
       const path = host.querySelector('[data-highlight-bands] svg[data-highlight-sketch] path')!;
       expect(path.getAttribute('fill')).toBe('#FFF34D');
-      expect(path.getAttribute('d')).toBe('M0 0Z');
+      const bands = [{ x: 0, y: 2, w: 200, h: 8 }, { x: 10, y: 12, w: 180, h: 6 }];
+      expect(path.getAttribute('d')).toBe(svgPath(sketchBands(bands, strokeSeed('h1'), 2)));
+      expect(path.getAttribute('d')).toMatch(/^M[\d. -]+C/);
       expect(host.querySelector('svg')!.getAttribute('viewBox')).toBe('0 0 200 20');
       expect((host.querySelector('[data-highlight-bands]') as HTMLElement).style.opacity).toBe('0.5');
       expect(strokeSeed).toHaveBeenCalledWith('h1');
-      expect(sketchBands).toHaveBeenCalledWith([{ x: 0, y: 2, w: 200, h: 8 }, { x: 10, y: 12, w: 180, h: 6 }], 42, 2);
+      expect(sketchBands).toHaveBeenCalledWith(bands, strokeSeed('h1'), 2);
       expect(host.querySelector('[data-highlight-draft]')!.children).toHaveLength(0);
     });
 
@@ -154,7 +154,7 @@ describe('HighlightNode sketch stroke', () => {
       vi.mocked(sketchUnderline).mockClear();
       mount({ ...element, style: 'underline', stroke: 'sketch', strokeWidth: 2 }, { boxPts: box });
       expect(host.querySelector('[data-highlight-sketch] path')!.getAttribute('fill')).toBe('#B8AF37');
-      expect(sketchUnderline).toHaveBeenCalledWith(expect.any(Array), 42, 2, 0);
+      expect(sketchUnderline).toHaveBeenCalledWith(expect.any(Array), strokeSeed('h1'), 2, 0);
     });
 
     it('stays clean without boxPts or without the sketch stroke', () => {
