@@ -11,7 +11,6 @@ import { usePageToolSession, type PageToolSession } from './usePageToolSession.t
 import { waitUntil } from '../../test/support/waitUntil.ts';
 import { drainPromises } from '../../test/support/drainPromises.ts';
 
-vi.mock('#lib/telemetry/errorReport.ts', () => ({ reportError: vi.fn() }));
 // The probe, the page loader and the draft store run for real: real PDFs, and the store on fake-indexeddb.
 // The shipped pdf.js loader points at a browser Worker, which node does not have. Forced: the same pdf.js,
 // its legacy (node) build, so the probe still parses the file for real.

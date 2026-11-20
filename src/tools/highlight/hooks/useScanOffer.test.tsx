@@ -5,12 +5,12 @@ import { act } from 'preact/test-utils';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { ScanVerdict } from '../lib/enhance/scanCheck.ts';
 
-const reportError = vi.hoisted(() => vi.fn());
 // The real hand-off (into fake-indexeddb) and the real hash run; the spies let a test see the call and await its result.
 vi.mock('#lib/handoff/sendHandoff.ts', { spy: true });
 vi.mock('#lib/drafts/draftSourceId.ts', { spy: true });
-vi.mock('#lib/telemetry/errorReport.ts', () => ({ reportError }));
+vi.mock('#lib/telemetry/errorReport.ts', { spy: true });
 
+import { reportError } from '#lib/telemetry/errorReport.ts';
 import { sendHandoff } from '#lib/handoff/sendHandoff.ts';
 import { sourceIdForBytes } from '#lib/drafts/draftSourceId.ts';
 import { peekHandoff } from '#lib/drafts/draftStore.ts';
@@ -47,7 +47,7 @@ beforeEach(() => {
   indexedDB = new IDBFactory();
   vi.mocked(sendHandoff).mockReset();
   vi.mocked(sourceIdForBytes).mockReset();
-  reportError.mockReset();
+  vi.mocked(reportError).mockClear();
   container = document.createElement('div');
   document.body.appendChild(container);
 });

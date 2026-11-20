@@ -1,12 +1,12 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-const reportError = vi.hoisted(() => vi.fn());
-vi.mock('../telemetry/errorReport.ts', () => ({ reportError }));
+vi.mock('../telemetry/errorReport.ts', { spy: true });
 
+import { reportError } from '../telemetry/errorReport.ts';
 import { hasIndexedDB, reportStoreError } from './draftIdb.ts';
 
 describe('draftIdb', () => {
-  afterEach(() => { vi.unstubAllGlobals(); reportError.mockReset(); });
+  afterEach(() => { vi.unstubAllGlobals(); vi.mocked(reportError).mockClear(); });
 
   it('does not report the two environment errors', () => {
     reportStoreError('drafts', Object.assign(new Error('x'), { name: 'InvalidStateError' }), 'open');

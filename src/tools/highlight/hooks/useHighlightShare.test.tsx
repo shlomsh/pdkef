@@ -3,8 +3,8 @@ import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { useState } from 'preact/hooks';
 
-const recordAction = vi.hoisted(() => vi.fn());
-vi.mock('#lib/telemetry/actionTrail.ts', () => ({ recordAction }));
+vi.mock('#lib/telemetry/actionTrail.ts', { spy: true });
+import { recordAction, resetActionTrailForTests } from '#lib/telemetry/actionTrail.ts';
 const { useHighlightShare } = await import('./useHighlightShare.ts');
 const { englishHighlightMessages: t } = await import('../messages.ts');
 
@@ -19,7 +19,7 @@ function fakeShare(results: Result[] = [{ status: 'shared' }]) {
 }
 
 let host: HTMLElement | null = null;
-afterEach(() => { if (host) act(() => render(null, host!)); host?.remove(); host = null; recordAction.mockClear(); });
+afterEach(() => { if (host) act(() => render(null, host!)); host?.remove(); host = null; vi.mocked(recordAction).mockClear(); resetActionTrailForTests(); });
 
 function mount(share: ReturnType<typeof fakeShare>, prepareFile: () => Promise<boolean>, setAnnouncement = vi.fn()) {
   let api!: ReturnType<typeof useHighlightShare>;
@@ -68,7 +68,7 @@ describe('useHighlightShare', () => {
     await m.rerender();
     expect(share.sharePrepared).toHaveBeenCalledTimes(1);
     expect(m.setAnnouncement).toHaveBeenCalledWith(t.shared);
-    expect(recordAction).toHaveBeenCalledWith('share');
+    expect(vi.mocked(recordAction)).toHaveBeenCalledWith('share');
     await m.rerender();
     expect(share.sharePrepared).toHaveBeenCalledTimes(1);
   });
@@ -82,7 +82,7 @@ describe('useHighlightShare', () => {
     await m.rerender();
     expect(m.setAnnouncement).toHaveBeenLastCalledWith(t.shareReady);
     expect(share.clearPrepared).not.toHaveBeenCalled();
-    expect(recordAction).not.toHaveBeenCalled();
+    expect(vi.mocked(recordAction)).not.toHaveBeenCalled();
   });
 
   it('announces a canceled automatic attempt', async () => {
@@ -111,7 +111,7 @@ describe('useHighlightShare', () => {
     const m = mount(share, async () => true);
     await act(async () => { await m.api.onShare(); });
     expect(m.setAnnouncement).toHaveBeenCalledWith(t.shared);
-    expect(recordAction).toHaveBeenCalledWith('share');
+    expect(vi.mocked(recordAction)).toHaveBeenCalledWith('share');
   });
 
   it('a later tap announces cancel and error', async () => {
@@ -123,6 +123,6 @@ describe('useHighlightShare', () => {
     expect(m.setAnnouncement).toHaveBeenLastCalledWith(t.shareCanceled);
     await act(async () => { await m.api.onShare(); });
     expect(m.setAnnouncement).toHaveBeenLastCalledWith(t.shareError);
-    expect(recordAction).not.toHaveBeenCalled();
+    expect(vi.mocked(recordAction)).not.toHaveBeenCalled();
   });
 });

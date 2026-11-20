@@ -1,15 +1,16 @@
 import { render } from 'preact';
 import { drainPromises } from '../../../test/support/drainPromises.ts';
 import { act } from 'preact/test-utils';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { reportError } from '#lib/telemetry/errorReport.ts';
 import { newPage } from '../lib/scanPages.ts';
 import { ScanWork, type ScanPage } from '../state/scanWork.ts';
 import { useScanResults } from './useScanResults.ts';
 
-vi.mock('#lib/telemetry/errorReport.ts', () => ({ reportError: vi.fn() }));
+vi.mock('#lib/telemetry/errorReport.ts', { spy: true });
 
 let container: HTMLElement | null = null;
+beforeEach(() => vi.mocked(reportError).mockClear());
 afterEach(() => {
   if (container) { act(() => render(null, container!)); container.remove(); container = null; }
 });

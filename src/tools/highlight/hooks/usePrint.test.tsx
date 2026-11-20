@@ -3,14 +3,14 @@ import { act } from 'preact/test-utils';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { PDFDocumentProxy } from 'pdfjs-dist';
 
-const reportError = vi.hoisted(() => vi.fn());
-const reportToolLifecycleEvent = vi.hoisted(() => vi.fn());
-vi.mock('#lib/telemetry/errorReport.ts', () => ({ reportError }));
-vi.mock('#lib/telemetry/productAnalytics.ts', () => ({ reportToolLifecycleEvent }));
+vi.mock('#lib/telemetry/errorReport.ts', { spy: true });
+vi.mock('#lib/telemetry/productAnalytics.ts', { spy: true });
 // Spy-through: the real PrintSheets runs; the one forced line below stands in for pdf.js painting a page, which jsdom cannot do.
 vi.mock('#lib/pdf/renderPage.js', { spy: true });
 
 import type { EditorElement } from '#editor/model/editorModel.ts';
+import { reportError } from '#lib/telemetry/errorReport.ts';
+import { reportToolLifecycleEvent, resetUsageEventsForTests } from '#lib/telemetry/productAnalytics.ts';
 import { renderPageToCanvas } from '#lib/pdf/renderPage.js';
 import { drainPromises } from '../../../test/support/drainPromises.ts';
 import { waitUntil } from '../../../test/support/waitUntil.ts';
@@ -37,8 +37,9 @@ function Probe() {
 beforeEach(() => {
   vi.useFakeTimers();
   vi.mocked(renderPageToCanvas).mockImplementation(async () => ({ width: 800, height: 1000, getContext: () => null, toDataURL: () => 'data:image/png;base64,AAAA' }) as never); // forced, in every test: a painted page with no readable pixels (getContext is null), so the ink read finds nothing and no test here reads ink
-  reportError.mockClear();
-  reportToolLifecycleEvent.mockClear();
+  vi.mocked(reportError).mockClear();
+  vi.mocked(reportToolLifecycleEvent).mockClear();
+  resetUsageEventsForTests();
   window.print = vi.fn();
   container = document.createElement('div');
   document.body.appendChild(container);
@@ -107,8 +108,8 @@ describe('usePrint', () => {
     expect(mounted()).toBe(false);
     expect(window.print).not.toHaveBeenCalled();
     expect(reportError).toHaveBeenCalledTimes(1);
-    expect(reportError.mock.calls[0][0]).toBe('pdf_render');
-    expect(reportError.mock.calls[0][2]).toBe('print_timeout');
+    expect(vi.mocked(reportError).mock.calls[0][0]).toBe('pdf_render');
+    expect(vi.mocked(reportError).mock.calls[0][2]).toBe('print_timeout');
   });
 
   it('keeps the sheets after print returns with no afterprint (iOS may still be reading them), and the next print starts a new job', async () => {
@@ -163,12 +164,12 @@ describe('usePrint', () => {
   });
 
   describe('funnel events', () => {
-    const events = () => reportToolLifecycleEvent.mock.calls.map((c) => c[0]);
+    const events = () => vi.mocked(reportToolLifecycleEvent).mock.calls.map((c) => c[0]);
 
     it('reports started on a request, and the result just before window.print()', async () => {
       act(() => api.print('none'));
       expect(events()).toEqual(['tool_operation_started']);
-      expect(reportToolLifecycleEvent.mock.calls[0][1]).toBe('highlight-pdf');
+      expect(vi.mocked(reportToolLifecycleEvent).mock.calls[0][1]).toBe('highlight-pdf');
       vi.mocked(window.print).mockImplementation(() => { expect(events()).toEqual(['tool_operation_started', 'tool_result_ready']); });
       await finishLoading();
       expect(window.print).toHaveBeenCalledTimes(1);
@@ -179,7 +180,7 @@ describe('usePrint', () => {
       act(() => api.print('none'));
       act(() => { vi.advanceTimersByTime(PRINT_TIMEOUT_MS); });
       expect(events()).toEqual(['tool_operation_started', 'tool_operation_failed']);
-      expect(reportToolLifecycleEvent.mock.calls[1][1]).toBe('highlight-pdf');
+      expect(vi.mocked(reportToolLifecycleEvent).mock.calls[1][1]).toBe('highlight-pdf');
     });
 
     it('a request ignored while one is open reports nothing', () => {

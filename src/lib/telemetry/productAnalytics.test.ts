@@ -25,10 +25,7 @@ vi.mock('./pagePerformance.ts', async (importOriginal) => ({
 
 vi.mock('./workerDownloads.ts', () => ({ watchWorkerDownloads: vi.fn() }));
 
-vi.mock('./analyticsSink.ts', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('./analyticsSink.ts')>();
-  return { ...actual, sendToSink: vi.fn(actual.sendToSink) };
-});
+vi.mock('./analyticsSink.ts', { spy: true });
 
 let beacon: ReturnType<typeof vi.fn>;
 // One page view goes out after the load event and the measures settle, a few microtasks on.
@@ -46,6 +43,7 @@ beforeEach(() => {
   Object.defineProperty(navigator, 'sendBeacon', { value: beacon, configurable: true, writable: true });
   setReportingEnabledForTests(true);
   resetUsageEventsForTests();
+  vi.mocked(sendToSink).mockClear();
 });
 
 afterEach(() => {

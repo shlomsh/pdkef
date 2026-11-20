@@ -6,7 +6,6 @@ import * as thumbnails from '#lib/pdf/thumbnails.js';
 import { drainPromises } from '../../../test/support/drainPromises.ts';
 
 vi.mock('#lib/pdf/thumbnails.js', { spy: true });
-vi.mock('#lib/telemetry/errorReport.ts', () => ({ reportError: vi.fn() }));
 
 const pdf = () => new File(['%PDF'], 'a.pdf', { type: 'application/pdf' });
 const photo = () => new File(['jpg'], 'a.jpg', { type: 'image/jpeg' });

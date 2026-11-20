@@ -1,11 +1,11 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-vi.mock('#lib/telemetry/analyticsSink.ts', () => ({ sendToSink: vi.fn(() => true) }));
-vi.mock('#lib/telemetry/errorReport.ts', () => ({ sendBeacon: vi.fn(() => true) }));
+vi.mock('#lib/telemetry/analyticsSink.ts', { spy: true });
+vi.mock('#lib/telemetry/errorReport.ts', { spy: true });
 vi.mock('#lib/telemetry/visitRecency.ts', { spy: true });
 
-import { sendToSink } from '#lib/telemetry/analyticsSink.ts';
+import { resetSinkForTests, sendToSink } from '#lib/telemetry/analyticsSink.ts';
 import { sendBeacon } from '#lib/telemetry/errorReport.ts';
 import { FIRST_VISIT_KEY, readAndStampVisits } from '#lib/telemetry/visitRecency.ts';
 import { reportPageView } from './pageView.ts';
@@ -19,6 +19,7 @@ describe('reportPageView (MEM-45)', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    resetSinkForTests();
     localStorage.clear();
     // A browser last here three days ago and first here twenty days ago: the real buckets are week and month.
     localStorage.setItem('pdkef:last-tool-visit', daysAgo(3));

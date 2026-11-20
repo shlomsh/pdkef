@@ -6,7 +6,7 @@ import { act } from 'preact/test-utils';
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { englishSignMessages } from '../messages';
 import { useLatestRun } from '#lib/hooks/useLatestRun.ts';
-import { reportHandedOn, reportToolLifecycleEvent } from '#lib/telemetry/productAnalytics.ts';
+import { reportHandedOn, reportToolLifecycleEvent, resetUsageEventsForTests } from '#lib/telemetry/productAnalytics.ts';
 import { sendHandoff } from '#lib/handoff/sendHandoff.ts';
 import { saveHandoff, takeHandoff } from '#lib/drafts/draftStore.ts';
 import { drainPromises } from '../../../test/support/drainPromises.ts';
@@ -14,15 +14,7 @@ import type { SignedExport } from '../lib/exportHandoff.ts';
 import { useSignExport } from './useSignExport.ts';
 import { useSpeculativeExport } from './useSpeculativeExport.ts';
 
-vi.mock('#lib/telemetry/productAnalytics.ts', () => ({ reportToolLifecycleEvent: vi.fn(), reportHandedOn: vi.fn() }));
-vi.mock('#lib/telemetry/errorReport.ts', () => ({ reportError: vi.fn() }));
-vi.mock('#lib/telemetry/actionTrail.ts', () => ({ recordAction: vi.fn() }));
-vi.mock('#lib/telemetry/maintenanceTelemetry.ts', () => ({
-  beaconMaintenanceTransport: vi.fn(),
-  reportMaintenanceEvent: vi.fn(),
-  signExportSucceeded: vi.fn(),
-  signExportFailed: vi.fn(),
-}));
+vi.mock('#lib/telemetry/productAnalytics.ts', { spy: true });
 // The real signer and the real hand-off (into fake-indexeddb) run; the spy lets a test see the hand-off call.
 vi.mock('#lib/handoff/sendHandoff.ts', { spy: true });
 vi.mock('#lib/drafts/draftStore.ts', { spy: true });
@@ -40,11 +32,12 @@ beforeAll(async () => {
   fileBytes = saved.buffer.slice(saved.byteOffset, saved.byteOffset + saved.byteLength) as ArrayBuffer;
   file = new File([fileBytes], 'form.pdf', { type: 'application/pdf' });
 });
-// handleDownloadPdf does not await the export it starts; its last report ('tool_result_ready') says it finished.
-function nextResultReady(): Promise<void> {
-  const ready = Promise.withResolvers<void>();
-  vi.mocked(reportToolLifecycleEvent).mockImplementation((name) => { if (name === 'tool_result_ready') ready.resolve(); });
-  return ready.promise;
+// handleDownloadPdf does not await the export it starts; the download it serves once the file is signed says it finished.
+let onDownload: () => void = () => {};
+function nextDownloadServed(): Promise<void> {
+  const served = Promise.withResolvers<void>();
+  onDownload = () => served.resolve();
+  return served.promise;
 }
 const events = () => vi.mocked(reportToolLifecycleEvent).mock.calls.map(([name]) => name);
 const untimedFlags = () => vi.mocked(reportToolLifecycleEvent).mock.calls.map(([, , options]) => options);
@@ -82,13 +75,15 @@ describe('Sign export funnel events', () => {
     indexedDB = new IDBFactory();
     vi.mocked(sendHandoff).mockClear();
     vi.mocked(saveHandoff).mockClear();
-    vi.mocked(reportToolLifecycleEvent).mockReset();
+    vi.mocked(reportToolLifecycleEvent).mockClear();
+    resetUsageEventsForTests();
+    onDownload = () => {};
     root = document.createElement('div');
     api = { current: null as unknown as SignExportApi };
     preparedExportRef = { current: null };
     share = {
       prepare: vi.fn(() => true),
-      download: vi.fn(),
+      download: () => onDownload(),
       downloadPrepared: vi.fn(() => true),
       sharePrepared: vi.fn(async () => ({ status: 'shared' })),
       clearPrepared: vi.fn(),
@@ -123,10 +118,10 @@ describe('Sign export funnel events', () => {
 
   it('counts a download made on the spot once, and each repeat download again', async () => {
     share.downloadPrepared.mockReturnValue(false);
-    const first = nextResultReady();
+    const first = nextDownloadServed();
     await act(() => api.current.handleDownloadPdf());
     await act(async () => { await first; });
-    const second = nextResultReady();
+    const second = nextDownloadServed();
     await act(() => api.current.handleDownloadPdf());
     await act(async () => { await second; });
     expect(events()).toEqual(['tool_operation_started', 'tool_result_ready', 'tool_operation_started', 'tool_result_ready']);

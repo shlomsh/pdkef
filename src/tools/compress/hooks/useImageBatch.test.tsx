@@ -8,7 +8,6 @@ import { drainPromises } from '../../../test/support/drainPromises.ts';
 import { useImageBatch } from './useImageBatch.ts';
 
 vi.mock('../lib/compressImage.js', { spy: true });
-vi.mock('#lib/telemetry/errorReport.ts', () => ({ reportError: vi.fn() }));
 
 const photo = (name: string) => new File(['x'.repeat(1000)], name, { type: 'image/jpeg' });
 const result = () => ({ blob: new Blob(['out'], { type: 'image/jpeg' }), metTarget: true, width: 10, height: 10, originalWidth: 20, originalHeight: 20 });

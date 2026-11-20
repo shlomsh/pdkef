@@ -9,8 +9,9 @@ import { drainPromises } from '../../../test/support/drainPromises.ts';
 // The project carries no Node ambient types; Vitest provides this at runtime.
 declare const process: { on(event: string, handler: (reason: unknown) => void): void; off(event: string, handler: (reason: unknown) => void): void };
 
-const reportError = vi.fn();
-vi.mock('#lib/telemetry/errorReport.ts', () => ({ reportError: (...a: unknown[]) => reportError(...a) }));
+import { reportError } from '#lib/telemetry/errorReport.ts';
+
+vi.mock('#lib/telemetry/errorReport.ts', { spy: true });
 vi.mock('#editor/adapters/pdf/pdfjsLoader.js', () => ({
   getPdfjs: async () => ({ AnnotationMode: { DISABLE: 0 }, OPS: {} }),
 }));
@@ -31,7 +32,7 @@ describe('useObjectPreviews when the document is replaced and destroyed mid-read
   const onUnhandled = (e: unknown) => unhandled.push(e);
 
   beforeEach(() => {
-    reportError.mockClear();
+    vi.mocked(reportError).mockClear();
     unhandled = [];
     process.on('unhandledRejection', onUnhandled);
     vi.spyOn(console, 'error').mockImplementation(() => {});
@@ -107,7 +108,7 @@ describe('useObjectPreviews genuine errors', () => {
     const objects = [anObject()];
     const host = document.createElement('div');
     document.body.appendChild(host);
-    reportError.mockClear();
+    vi.mocked(reportError).mockClear();
     const Probe = () => { useObjectPreviews(doc, objects); return null; };
     act(() => render(<Probe />, host));
     await act(flush);

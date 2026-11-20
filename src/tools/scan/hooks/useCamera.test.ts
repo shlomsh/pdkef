@@ -4,7 +4,6 @@ import type { CaptureState, FrameObservation } from '../lib/capture/types.ts';
 import { WHOLE_FRAME } from '../lib/camera/viewfinderModel.ts';
 import { attemptShot, restoreUntaken } from './useCamera.ts';
 
-vi.mock('#lib/telemetry/errorReport.ts', () => ({ reportError: vi.fn() }));
 
 const HASH = '0f0f0f0f0f0f0f0f';
 const obs = { t: 1, quad: null, confidence: 0, sharpness: 0, area: 0, hash: HASH, focus: 0 } as FrameObservation;

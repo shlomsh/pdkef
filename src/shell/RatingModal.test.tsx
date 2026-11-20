@@ -2,7 +2,7 @@ import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-vi.mock('#lib/telemetry/errorReport.ts', () => ({ sendBeacon: vi.fn(() => true) }));
+vi.mock('#lib/telemetry/errorReport.ts', { spy: true });
 import { sendBeacon } from '#lib/telemetry/errorReport.ts';
 import RatingPrompt, { resetRatingPromptForTests } from './RatingPrompt.tsx';
 import { hebrewShellMessages } from './shellMessages';
@@ -14,6 +14,7 @@ describe('RatingPrompt as a modal (merge, sign, highlight-pdf, redact, scan-to-p
     localStorage.clear();
     resetRatingPromptForTests();
     vi.mocked(sendBeacon).mockClear();
+    vi.mocked(sendBeacon).mockReturnValue(true); // forced: the send succeeds (every test; the real one returns false under test)
     container = document.createElement('div');
     document.body.appendChild(container);
   });
@@ -169,7 +170,7 @@ describe('RatingPrompt as a modal (merge, sign, highlight-pdf, redact, scan-to-p
     show();
     act(() => star(5).click());
     type('Saved my afternoon');
-    vi.mocked(sendBeacon).mockReturnValue(false);
+    vi.mocked(sendBeacon).mockReturnValue(false); // forced: the send fails
     act(() => button(/^send$/i)!.click());
     expect(container.querySelector<HTMLTextAreaElement>('textarea')?.value).toBe('Saved my afternoon');
     expect(container.querySelector('[role="alert"]')).not.toBeNull();
@@ -226,7 +227,7 @@ describe('RatingPrompt as a modal (merge, sign, highlight-pdf, redact, scan-to-p
     show();
     act(() => star(3).click());
     type('It was slow on my phone today');
-    vi.mocked(sendBeacon).mockReturnValue(false);
+    vi.mocked(sendBeacon).mockReturnValue(false); // forced: the send fails
     act(() => button(/^send$/i)!.click());
     expect(container.querySelector<HTMLTextAreaElement>('textarea')?.value).toBe('It was slow on my phone today');
     expect(container.querySelector('[role="alert"]')).not.toBeNull();

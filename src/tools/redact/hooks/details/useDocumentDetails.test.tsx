@@ -3,7 +3,7 @@ import { drainPromises } from '../../../../test/support/drainPromises.ts';
 import { act } from 'preact/test-utils';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-vi.mock('#lib/telemetry/errorReport.ts', () => ({ reportError: vi.fn() }));
+vi.mock('#lib/telemetry/errorReport.ts', { spy: true });
 // Spy-through: the real reader runs on real bytes; the spy only shows whether it was asked to.
 vi.mock('../../lib/details/readDetails.ts', { spy: true });
 

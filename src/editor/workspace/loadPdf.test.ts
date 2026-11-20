@@ -11,7 +11,7 @@ import { drainPromises } from '../../test/support/drainPromises.ts';
 // The shipped pdf.js loader points at a browser Worker, which node does not have. Forced: the same pdf.js, its
 // legacy (node) build, so every load below parses a real file with the real loading task and document.
 vi.mock('#lib/pdf/loadPdfjs.js', { spy: true });
-vi.mock('#lib/telemetry/errorReport.ts', () => ({ reportError: vi.fn() }));
+vi.mock('#lib/telemetry/errorReport.ts', { spy: true });
 
 // jsdom resolves the helper's worker URL to http; point pdf.js at the legacy build's own file.
 declare const process: { cwd(): string };

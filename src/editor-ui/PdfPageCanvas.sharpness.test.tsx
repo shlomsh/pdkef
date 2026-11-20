@@ -2,7 +2,6 @@ import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-vi.mock('#lib/telemetry/errorReport.ts', () => ({ reportError: vi.fn() }));
 // The real getPdfRenderContext runs; jsdom has no 2D context, so its one forced result is set in beforeEach.
 vi.mock('#lib/pdf/pdfRender.js', { spy: true });
 

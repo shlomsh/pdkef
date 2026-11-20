@@ -92,7 +92,7 @@ describe('useObjectPreviews', () => {
     closers.push(file.close);
     const second = file.objects.find((o) => o.pageIndex === 1)!;
     vi.mocked(readGlyphs).mockResolvedValueOnce(null); // forced: page 1's text cannot be read
-    vi.spyOn(errorReport, 'reportError').mockImplementation(() => {});
+    vi.spyOn(errorReport, 'reportError');
     vi.spyOn(console, 'error').mockImplementation(() => {});
     const seen = mount(file.doc, file.objects);
     // The read moves on to page 2 (real), which shows page 1 was passed over and not read as a failure.
@@ -126,7 +126,7 @@ describe('useObjectPreviews', () => {
   it('reports a page that throws while it is read', async () => {
     const file = await openFile([{ lines: ['Hello world'] }]);
     closers.push(file.close);
-    const report = vi.spyOn(errorReport, 'reportError').mockImplementation(() => {});
+    const report = vi.spyOn(errorReport, 'reportError');
     vi.spyOn(console, 'error').mockImplementation(() => {});
     // Forced: pdf.js refuses the page itself.
     const boom = new Error('boom');

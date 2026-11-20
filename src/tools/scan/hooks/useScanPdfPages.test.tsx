@@ -10,7 +10,7 @@ import { legacyPdfjs } from '../../../test/support/redactCheckPdfs.test-helper.t
 import { reportError } from '#lib/telemetry/errorReport.ts';
 import { useScanPdfPages } from './useScanPdfPages.ts';
 
-vi.mock('#lib/telemetry/errorReport.ts', () => ({ reportError: vi.fn() }));
+vi.mock('#lib/telemetry/errorReport.ts', { spy: true });
 vi.mock('#lib/pdf/loadPdfjs.js', { spy: true });
 // jsdom resolves the helper's worker URL to http; point pdf.js at the legacy build's own file.
 const workerUrl = `file://${(globalThis as unknown as { process: { cwd(): string } }).process.cwd()}/node_modules/pdfjs-dist/legacy/build/pdf.worker.mjs`;
@@ -32,6 +32,7 @@ const gatedSheets = () => vi.mocked(pdfSheets).mockImplementationOnce(async func
 let container: HTMLElement | null = null;
 beforeEach(() => {
   vi.mocked(pdfSheets).mockReset();
+  vi.mocked(reportError).mockClear();
   vi.mocked(getPdfjs).mockResolvedValue(legacyPdfjs()); // forced, every test: the node build of pdf.js; the shipped loader needs a browser Worker
 });
 afterEach(() => {

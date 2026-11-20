@@ -94,7 +94,7 @@ describe('removeRecentEntry (fake-indexeddb)', () => {
     const id = readCurrentEntryId('sign') as string;
     const boom = new Error('boom');
     vi.spyOn(indexedDB, 'open').mockImplementation(() => { throw boom; });
-    const report = vi.spyOn(errorReport, 'reportError').mockImplementation(() => {});
+    const report = vi.spyOn(errorReport, 'reportError');
     const quiet = vi.spyOn(console, 'error').mockImplementation(() => {});
 
     expect(await removeRecentEntry(id)).toBe(false);

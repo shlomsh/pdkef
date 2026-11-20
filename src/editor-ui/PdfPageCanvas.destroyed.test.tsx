@@ -2,8 +2,7 @@ import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-const reportError = vi.fn();
-vi.mock('#lib/telemetry/errorReport.ts', () => ({ reportError: (...a: unknown[]) => reportError(...a) }));
+vi.mock('#lib/telemetry/errorReport.ts', { spy: true });
 // The real getPdfRenderContext runs; jsdom has no 2D context, so its one forced result is set in beforeEach.
 vi.mock('#lib/pdf/pdfRender.js', { spy: true });
 
@@ -11,6 +10,7 @@ import { fakePdfDocument } from '../test/support/fakePdfJs.ts';
 import { drainPromises } from '../test/support/drainPromises.ts';
 import PdfPageCanvas from './PdfPageCanvas.tsx';
 import { getPdfRenderContext } from '#lib/pdf/pdfRender.js';
+import { reportError } from '#lib/telemetry/errorReport.ts';
 
 const flush = () => drainPromises();
 
@@ -18,7 +18,7 @@ describe('PdfPageCanvas when the document is destroyed between getPage and rende
   let host: HTMLElement | null = null;
   beforeEach(() => {
     vi.mocked(getPdfRenderContext).mockReturnValue({ drawImage: vi.fn() } as unknown as CanvasRenderingContext2D); // forced, every test: jsdom has no 2D context
-    reportError.mockClear();
+    vi.mocked(reportError).mockClear();
     vi.spyOn(console, 'error').mockImplementation(() => {});
     host = document.createElement('div');
     document.body.appendChild(host);

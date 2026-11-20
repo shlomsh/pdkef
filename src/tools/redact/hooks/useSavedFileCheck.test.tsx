@@ -7,8 +7,9 @@ import { PDFJS_WASM_URL } from '#lib/pdf/pdfjsWasm.js';
 import * as pdfjs from 'pdfjs-dist/legacy/build/pdf.mjs';
 import { buildPdf, openOriginal } from '../../../test/support/redactCheckPdfs.test-helper.ts';
 
-const reportError = vi.fn();
-vi.mock('#lib/telemetry/errorReport.ts', async (importActual) => ({ ...(await importActual<object>()), reportError: (...args: unknown[]) => reportError(...args) }));
+import { reportError } from '#lib/telemetry/errorReport.ts';
+
+vi.mock('#lib/telemetry/errorReport.ts', { spy: true });
 // Spy-through: the real check runs on real files. A few tests force a rejection or a slow check on it.
 vi.mock('../lib/check/runCheck.ts', { spy: true });
 // The one edge: getPdfjs() is the vite worker import, which node cannot run; the legacy build stands in.
@@ -74,7 +75,7 @@ async function run(saved: Blob, heldBytes: ArrayBuffer | null = toBuffer(origina
 
 describe('useSavedFileCheck read errors', () => {
   beforeEach(() => {
-    reportError.mockClear();
+    vi.mocked(reportError).mockClear();
     vi.mocked(runSavedFileCheck).mockClear();
     vi.spyOn(console, 'error').mockImplementation(() => {});
   });
@@ -161,7 +162,7 @@ describe('useSavedFileCheck results', () => {
   }
 
   beforeEach(() => {
-    reportError.mockClear();
+    vi.mocked(reportError).mockClear();
     vi.mocked(runSavedFileCheck).mockClear();
     vi.spyOn(console, 'error').mockImplementation(() => {});
   });

@@ -1,14 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import * as lib from '@cantoo/pdf-lib';
 
-const sent = vi.hoisted(() => [] as unknown[]);
-vi.mock('../telemetry/maintenanceTelemetry', () => ({
-  pdfPageTreeRepaired: (shape: string) => ({ name: 'pdf_page_tree', outcome: 'repaired', shape }),
-  pdfPageTreeFailed: (shape: string, roots: string) => ({ name: 'pdf_page_tree', outcome: 'failed', shape, roots }),
-  reportMaintenanceEvent: (event: unknown) => void sent.push(event),
-  beaconMaintenanceTransport: () => undefined,
-}));
+vi.mock('../telemetry/maintenanceTelemetry', { spy: true });
 
+import { reportMaintenanceEvent } from '../telemetry/maintenanceTelemetry';
 import { loadPdfWithPages } from './loadPdfPages';
 import {
   healthy,
@@ -23,8 +18,10 @@ import {
 const widths = async (bytes: ArrayBuffer | Uint8Array) =>
   (await lib.PDFDocument.load(bytes, { ignoreEncryption: true })).getPages().map((p) => p.getSize().width);
 
+const sent = () => vi.mocked(reportMaintenanceEvent).mock.calls.map(([event]) => event);
+
 beforeEach(() => {
-  sent.length = 0;
+  vi.mocked(reportMaintenanceEvent).mockClear();
 });
 
 describe('loadPdfWithPages', () => {
@@ -34,7 +31,7 @@ describe('loadPdfWithPages', () => {
     expect(r.repaired).toBe(false);
     expect(r.bytes).toBe(input);
     expect(r.pageCount).toBe(3);
-    expect(sent).toEqual([]);
+    expect(sent()).toEqual([]);
   });
 
   it.each([
@@ -46,17 +43,17 @@ describe('loadPdfWithPages', () => {
     expect(r.repaired).toBe(true);
     expect(r.pageCount).toBe(3);
     expect(await widths(r.bytes)).toEqual(ORIGINAL_WIDTHS);
-    expect(sent).toEqual([{ name: 'pdf_page_tree', outcome: 'repaired', shape }]);
+    expect(sent()).toEqual([{ name: 'pdf_page_tree', properties: { outcome: 'repaired', shape, roots: 'one' } }]);
   });
 
   it('rethrows the original error and reports roots none when nothing survives', async () => {
     await expect(loadPdfWithPages(new Uint8Array(noRoot()))).rejects.toThrow(lib.UnexpectedObjectTypeError);
-    expect(sent).toEqual([{ name: 'pdf_page_tree', outcome: 'failed', shape: 'pages_ref_missing', roots: 'none' }]);
+    expect(sent()).toEqual([{ name: 'pdf_page_tree', properties: { outcome: 'failed', shape: 'pages_ref_missing', roots: 'none' } }]);
   });
 
   it('does not repair two parentless roots', async () => {
     await expect(loadPdfWithPages(new Uint8Array(twoRoots()))).rejects.toThrow();
-    expect(sent).toEqual([{ name: 'pdf_page_tree', outcome: 'failed', shape: 'pages_ref_missing', roots: 'several' }]);
+    expect(sent()).toEqual([{ name: 'pdf_page_tree', properties: { outcome: 'failed', shape: 'pages_ref_missing', roots: 'several' } }]);
   });
 
   it('rethrows an encrypted document without an event', async () => {
@@ -72,6 +69,6 @@ describe('loadPdfWithPages', () => {
     } finally {
       spy.mockRestore();
     }
-    expect(sent).toEqual([]);
+    expect(sent()).toEqual([]);
   });
 });

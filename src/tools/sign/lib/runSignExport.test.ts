@@ -9,9 +9,6 @@ import { describeSignFailure, runSignExport, type RunSignExportDeps } from './ru
 
 // The real signer runs on a real one-page PDF; only the tests that need it to fail force a rejection.
 vi.mock('./sign.js', { spy: true });
-vi.mock('#lib/telemetry/errorReport.ts', () => ({ reportError: vi.fn() }));
-vi.mock('#lib/telemetry/productAnalytics.ts', () => ({ reportToolLifecycleEvent: vi.fn() }));
-vi.mock('#lib/telemetry/actionTrail.ts', () => ({ recordAction: vi.fn() }));
 
 const t = englishSignMessages;
 

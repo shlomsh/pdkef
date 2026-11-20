@@ -1,17 +1,17 @@
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { describe, expect, it, vi, beforeEach } from 'vitest';
-import { reportEdit } from '#lib/telemetry/productAnalytics.ts';
+import { reportEdit, resetUsageEventsForTests } from '#lib/telemetry/productAnalytics.ts';
 import { createActionEntry } from '#editor/model/actionHistory.ts';
 import type { EditorElement } from '#editor/model/editorModel.ts';
 import { SignToolProvider, useSignTool } from './SignToolContext.tsx';
 
-vi.mock('#lib/telemetry/productAnalytics.ts', () => ({ reportEdit: vi.fn() }));
+vi.mock('#lib/telemetry/productAnalytics.ts', { spy: true });
 
 const text: EditorElement = { id: 't1', type: 'text', pageIndex: 0, left: 0, top: 0, text: 'hi' } as EditorElement;
 
 describe('SignToolProvider and DEBT-58 reportEdit', () => {
-  beforeEach(() => vi.mocked(reportEdit).mockClear());
+  beforeEach(() => { vi.mocked(reportEdit).mockClear(); resetUsageEventsForTests(); });
 
   it('a load or restore is not an edit; a logged, committed change is', () => {
     let dispatch!: ReturnType<typeof useSignTool>['dispatch'];

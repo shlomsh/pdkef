@@ -9,7 +9,7 @@ import { resetPageWorker } from './pageWork/offThread.ts';
 import type { Pins } from './edges/follow.ts';
 import { reportError } from '#lib/telemetry/errorReport.ts';
 
-vi.mock('#lib/telemetry/errorReport.ts', () => ({ reportError: vi.fn() }));
+vi.mock('#lib/telemetry/errorReport.ts', { spy: true });
 
 // The pure collaborators (warp, filters, quad maths, the budget search, imagesToPdf) are the real ones;
 // the warp spy only reads the pixel quad the pipeline hands it.

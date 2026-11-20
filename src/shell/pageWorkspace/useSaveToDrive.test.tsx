@@ -5,19 +5,17 @@ import { act } from 'preact/test-utils';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { peekHandoff, saveHandoff } from '#lib/drafts/draftStore.ts';
 import { DRIVE_SAVE_CHANNEL, DRIVE_TOKEN_KEY } from '#lib/handoff/driveSaveLink.ts';
+import { reportResult, reportToolLifecycleEvent as report, resetUsageEventsForTests } from '#lib/telemetry/productAnalytics.ts';
 import { waitUntil } from '../../test/support/waitUntil.ts';
 import { driveSavePayload, useSaveToDrive } from './useSaveToDrive.ts';
 
 // The draft store runs for real on fake-indexeddb; the spy lets a test see the call, and the one test that needs
 // the park to fail forces that answer. The BroadcastChannel, window.open and matchMedia stand-ins are browser
-// edges jsdom lacks (browser-mode wave); telemetry stays replaced.
+// edges jsdom lacks (browser-mode wave).
 vi.mock('#lib/drafts/draftStore.ts', { spy: true });
-vi.mock('#lib/telemetry/actionTrail.ts', () => ({ recordAction: vi.fn() }));
-const report = vi.hoisted(() => vi.fn());
-const reportResult = vi.hoisted(() => vi.fn());
-vi.mock('#lib/telemetry/productAnalytics.ts', () => ({ reportToolLifecycleEvent: report, reportResult }));
+vi.mock('#lib/telemetry/productAnalytics.ts', { spy: true });
 const connect = (until = Date.now() + 3_600_000) => localStorage.setItem(DRIVE_TOKEN_KEY, JSON.stringify({ token: 't', until }));
-const events = () => report.mock.calls.map((call) => call[0]);
+const events = () => vi.mocked(report).mock.calls.map((call) => call[0]);
 
 /**
  * Call after the tap: resolves with the first park's arguments once the real write has finished. The store marks
@@ -29,12 +27,6 @@ async function parked(): Promise<unknown[]> {
   await waitUntil(() => sessionStorage.getItem(`pdkef:handoff-pending:drive-save-${id}`) !== null);
   await vi.mocked(saveHandoff).mock.results[0].value;
   return vi.mocked(saveHandoff).mock.calls[0];
-}
-
-/** Resolves when the report mock next receives `name`; keeps whatever implementation the mock already has. */
-function nextEvent(name: string): Promise<void> {
-  const prev = report.getMockImplementation();
-  return new Promise((resolve) => { report.mockImplementation((...args: unknown[]) => { prev?.(...args); if (args[0] === name) resolve(); }); });
 }
 
 const pdf = new Blob(['%PDF'], { type: 'application/pdf' });
@@ -64,7 +56,9 @@ describe('useSaveToDrive', () => {
     container = document.createElement('div');
     vi.mocked(saveHandoff).mockReset();
     indexedDB = new IDBFactory();
-    report.mockReset();
+    vi.mocked(report).mockClear();
+    vi.mocked(reportResult).mockClear();
+    resetUsageEventsForTests();
     localStorage.clear();
     sessionStorage.clear();
     connect();
@@ -125,14 +119,13 @@ describe('useSaveToDrive', () => {
     mount();
     act(() => latest.save());
     expect(events()).toEqual(['tool_drive_shown', 'tool_drive_tapped', 'tool_drive_failed']);
-    report.mockReset();
+    vi.mocked(report).mockClear();
     open.mockReturnValue({} as Window);
     vi.mocked(saveHandoff).mockResolvedValue(false); // forced: a store that refuses the file
     mount({ generation: 2 });
-    report.mockReset();
-    const failed = nextEvent('tool_drive_failed');
+    vi.mocked(report).mockClear();
     act(() => latest.save());
-    await act(async () => { await failed; });
+    await waitUntil(() => expect(latest.state).toBe('failed')); // fail() sets the state, then reports, in one step
     expect(events()).toContain('tool_drive_failed');
   });
 
@@ -214,21 +207,17 @@ describe('useSaveToDrive', () => {
   it('builds after the tab is open, and posts cancelled when the build gives nothing or throws', async () => {
     const open = vi.spyOn(window, 'open').mockReturnValue({} as Window);
     const posts: unknown[] = [];
-    let settled = () => {};
-    const bothSettled = new Promise<void>((resolve) => { settled = resolve; });
-    const checkSettled = () => { if (posts.length >= 2 && events().filter((e) => e === 'tool_drive_failed').length >= 2) settled(); };
-    report.mockImplementation(checkSettled);
-    class FakeChannel { onmessage = null; close() {} postMessage(m: unknown) { posts.push(m); checkSettled(); } }
+    class FakeChannel { onmessage = null; close() {} postMessage(m: unknown) { posts.push(m); } }
     vi.stubGlobal('BroadcastChannel', FakeChannel);
     let release: (v: null) => void = () => {};
     build.mockImplementationOnce(() => new Promise((resolve) => { release = resolve as never; }));
-    const failed = nextEvent('tool_drive_failed');
     mount();
     act(() => latest.save());
     expect(open).toHaveBeenCalledTimes(1);
     expect(build).toHaveBeenCalledTimes(1);
     expect(vi.mocked(saveHandoff)).not.toHaveBeenCalled();
-    await act(async () => { release(null); await failed; });
+    act(() => release(null));
+    await waitUntil(() => expect(latest.state).toBe('failed'));
     expect(latest.state).toBe('failed');
     expect(posts).toEqual([expect.objectContaining({ status: 'cancelled' })]);
     expect(events()).toContain('tool_drive_failed');
@@ -236,8 +225,8 @@ describe('useSaveToDrive', () => {
     build.mockRejectedValueOnce(new Error('boom'));
     mount({ generation: 2 });
     act(() => latest.save());
-    await act(async () => { await bothSettled; });
-    expect(latest.state).toBe('failed');
+    await waitUntil(() => expect(latest.state).toBe('failed'));
+    expect(posts).toHaveLength(2);
   });
 
   it('ignores a generation change while saving, and resets on one after', async () => {

@@ -5,13 +5,6 @@ import { openPdfDoc } from './openPdfDoc';
 import { healthy, noPagesKey } from '../../test/support/pdfPageTreeFixtures';
 import { getPdfLib } from './pdfLib.js';
 
-vi.mock('../telemetry/maintenanceTelemetry', () => ({
-  pdfPageTreeRepaired: () => ({}),
-  pdfPageTreeFailed: () => ({}),
-  reportMaintenanceEvent: () => undefined,
-  beaconMaintenanceTransport: () => undefined,
-}));
-
 const fixture = (name: string) => new Uint8Array(readFileSync(new URL(`../__fixtures__/encrypted/${name}.pdf`, import.meta.url)));
 
 // A file whose page list is lost and whose trailer names an /Encrypt dictionary: pdf-lib opens it with

@@ -7,12 +7,12 @@ import { reportError } from '#lib/telemetry/errorReport.ts';
 // stands in for imagesToPdf itself and fabricates its result (the skipped name and the Blob, and in one test the abort).
 // buildImagesPdf is the real code under test; the real imagesToPdf is not exercised here.
 vi.mock('#lib/images/imagesToPdf.js', { spy: true });
-vi.mock('#lib/telemetry/errorReport.ts', () => ({ reportError: vi.fn() }));
+vi.mock('#lib/telemetry/errorReport.ts', { spy: true });
 
 const files = ['a.png', 'cut.png', 'c.png'].map((name) => new File([new Uint8Array(1)], name, { type: 'image/png' }));
 
 describe('buildImagesPdf (DEBT-75)', () => {
-  beforeEach(() => { vi.mocked(imagesToPdf).mockReset(); vi.mocked(reportError).mockReset(); });
+  beforeEach(() => { vi.mocked(imagesToPdf).mockReset(); vi.mocked(reportError).mockClear(); });
 
   it('counts the pages kept and names the pictures left out', async () => {
     vi.mocked(imagesToPdf).mockImplementation(async (_files, _progress, _signal, options) => {
@@ -39,7 +39,7 @@ describe('buildImagesPdf (DEBT-75)', () => {
 });
 
 describe('reportBuildError', () => {
-  beforeEach(() => { vi.mocked(reportError).mockReset(); });
+  beforeEach(() => { vi.mocked(reportError).mockClear(); });
 
   it('reports a failure of ours', () => {
     const err = new Error('boom');

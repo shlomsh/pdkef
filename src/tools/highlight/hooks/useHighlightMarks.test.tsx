@@ -1,7 +1,7 @@
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { reportEdit } from '#lib/telemetry/productAnalytics.ts';
+import { reportEdit, resetUsageEventsForTests } from '#lib/telemetry/productAnalytics.ts';
 import type { CommentElement, HighlightElement } from '#editor/model/editorModel.ts';
 import { captureAddedElement, captureElementSnapshots } from '#editor/model/actionHistory.ts';
 import { deletedWith } from '#editor/model/elementsReducer.ts';
@@ -10,7 +10,7 @@ import { clearPageActions, rotatePageAction } from '../lib/marks/pageEditActions
 import { DEFAULT_MARKER } from '../lib/marker/markerState.ts';
 import { useHighlightMarks } from './useHighlightMarks.ts';
 
-vi.mock('#lib/telemetry/productAnalytics.ts', () => ({ reportEdit: vi.fn() }));
+vi.mock('#lib/telemetry/productAnalytics.ts', { spy: true });
 
 type Marks = ReturnType<typeof useHighlightMarks>;
 let container: HTMLElement | null = null;
@@ -38,6 +38,7 @@ function mount() {
 
 afterEach(() => {
   vi.mocked(reportEdit).mockClear();
+  resetUsageEventsForTests();
   if (container) { act(() => render(null, container!)); container.remove(); container = null; }
 });
 

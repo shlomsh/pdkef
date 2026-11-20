@@ -7,14 +7,14 @@ import { afterEach, beforeEach, describe, expect, it, vi, type Mock } from 'vite
 import { getPdfjs } from '#lib/pdf/loadPdfjs.js';
 import { loadPdfWithPages } from '#lib/pdf/loadPdfPages.ts';
 import { probeEncryption } from '#lib/pdf/pdfEncryption.ts';
+import { reportError } from '#lib/telemetry/errorReport.ts';
 import { recentActions, resetActionTrailForTests } from '#lib/telemetry/actionTrail.ts';
 import { repairedPdfLoader, useOpenPageDocument, type OpenPageDocument, type OpenPageDocumentOptions } from './useOpenPageDocument.ts';
 import { waitUntil } from '../../test/support/waitUntil.ts';
 import { drainPromises } from '../../test/support/drainPromises.ts';
 import { noPagesKey } from '../../test/support/pdfPageTreeFixtures.ts';
 
-const mocks = vi.hoisted(() => ({ report: vi.fn() }));
-vi.mock('#lib/telemetry/errorReport.ts', () => ({ reportError: mocks.report }));
+vi.mock('#lib/telemetry/errorReport.ts', { spy: true });
 // The probe and the page loader run for real, on real PDFs; the spies only let a test see a call, or hold
 // one back to put two picks in a race (forced, per test).
 vi.mock('#lib/pdf/pdfEncryption.ts', { spy: true });
@@ -55,7 +55,7 @@ beforeEach(() => {
   vi.mocked(probeEncryption).mockReset();
   vi.mocked(loadPdfWithPages).mockReset();
   vi.mocked(getPdfjs).mockReset().mockImplementation(async () => (await import('pdfjs-dist/legacy/build/pdf.mjs')) as never); // forced: the node build
-  mocks.report.mockReset();
+  vi.mocked(reportError).mockClear();
   resetActionTrailForTests();
 });
 afterEach(() => act(() => render(null, host)));
@@ -161,8 +161,8 @@ describe('useOpenPageDocument', () => {
     await waitUntil(() => current.loadStatus === 'error');
     await flush();
     // The literal message pdf.js raises for a file with no header, captured once from the real run.
-    expect(mocks.report).toHaveBeenCalledTimes(1);
-    expect(mocks.report).toHaveBeenCalledWith(
+    expect(vi.mocked(reportError)).toHaveBeenCalledTimes(1);
+    expect(vi.mocked(reportError)).toHaveBeenCalledWith(
       'pdf_tool_run',
       expect.objectContaining({ name: 'Error', message: 'Failed to parse PDF document (line:0 col:34 offset=17): No PDF header found' }),
       'load_document',

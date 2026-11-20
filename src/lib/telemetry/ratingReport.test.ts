@@ -1,6 +1,6 @@
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-vi.mock('./errorReport.ts', () => ({ sendBeacon: vi.fn(() => true) }));
+vi.mock('./errorReport.ts', { spy: true });
 import { sendBeacon } from './errorReport.ts';
 import { hasRated, markAsked, markRated, MY_STARS_KEY, ownStars, ratedKey, RATING_ASK_GAP_MS, ASKED_AT_KEY, reportRating, reportRatingComment, shouldAsk } from './ratingReport.ts';
 
@@ -18,7 +18,10 @@ const blocked = {
 
 const NOW = 1_800_000_000_000;
 
-afterEach(() => vi.mocked(sendBeacon).mockClear());
+beforeEach(() => {
+  vi.mocked(sendBeacon).mockClear();
+  vi.mocked(sendBeacon).mockReturnValue(true); // forced: every test, the real send is refused under test and reportRating returns what it returns
+});
 
 describe('shouldAsk / markRated', () => {
   it('asks on a fresh device, and never again once rated anywhere', () => {
@@ -101,7 +104,7 @@ describe('reportRating', () => {
     expect(sendBeacon).not.toHaveBeenCalled();
   });
   it('never throws', () => {
-    vi.mocked(sendBeacon).mockImplementationOnce(() => { throw new Error('x'); });
+    vi.mocked(sendBeacon).mockImplementationOnce(() => { throw new Error('x'); }); // forced: a throwing send
     expect(reportRating('compress', 4)).toBe(false);
   });
 });
@@ -124,7 +127,7 @@ describe('reportRatingComment', () => {
     expect(sendBeacon).not.toHaveBeenCalled();
   });
   it('never throws', () => {
-    vi.mocked(sendBeacon).mockImplementationOnce(() => { throw new Error('x'); });
+    vi.mocked(sendBeacon).mockImplementationOnce(() => { throw new Error('x'); }); // forced: a throwing send
     expect(reportRatingComment('compress', 4, 'hi')).toBe(false);
   });
 });

@@ -4,10 +4,8 @@ import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-const mocks = vi.hoisted(() => ({ report: vi.fn() }));
 // The real draft store runs on fake-indexeddb; the spy only lets a test see which calls happened and await their results.
 vi.mock('#lib/drafts/draftStore.ts', { spy: true });
-vi.mock('#lib/telemetry/errorReport.ts', () => ({ reportError: mocks.report }));
 
 import { clearCurrentEntry, deleteDraft, loadDraft, readCurrentEntryId, saveDraft } from '#lib/drafts/draftStore.ts';
 import { englishShellMessages as sm } from '#shell/shellMessages.ts';
@@ -81,7 +79,6 @@ describe('useScanDraft', () => {
     vi.mocked(loadDraft).mockReset();
     vi.mocked(deleteDraft).mockClear();
     vi.mocked(clearCurrentEntry).mockClear();
-    mocks.report.mockClear();
     restorePages.mockClear();
     work = { pages: [] };
   });

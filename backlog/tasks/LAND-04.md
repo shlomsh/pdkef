@@ -61,5 +61,13 @@ count). The rule is off on `landmines-all` meanwhile.
   Highlight's open outline. Scan's "could not open" test had passed only because the shipped pdf.js
   loader fails in tests; it now fails on the bytes. 1,479 to 1,488: the added sites are visible
   forced lines that replaced hidden ones.
+- Wave 2, telemetry in the tests that use it (2026-11-20): 47 files, down to 1,420. Error reports,
+  usage events, the action trail, maintenance events and the analytics sink run for real everywhere
+  outside the telemetry modules' own tests: 16 silencers deleted, the rest spy-through with module
+  state reset per test, each asserted call proved by deleting it (46 mutations). The only forced
+  lines are a send's result where the screen depends on it (the rating prompt and modal, rating
+  reports). Sign export and Save to Drive no longer use an analytics mock as their "done" signal: they
+  wait for the served download and the failed state. The telemetry modules' own browser stubs
+  (`sendBeacon`, `location`, performance entries) stay for the browser-mode wave.
 - Found on the way: RED-75 (preview documents never freed on pdf.js 6.5), RED-76 (one very long line
   overflows the text preview).

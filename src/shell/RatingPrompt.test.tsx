@@ -2,7 +2,7 @@ import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-vi.mock('#lib/telemetry/errorReport.ts', () => ({ sendBeacon: vi.fn(() => true) }));
+vi.mock('#lib/telemetry/errorReport.ts', { spy: true });
 import { sendBeacon } from '#lib/telemetry/errorReport.ts';
 import RatingPrompt, { resetRatingPromptForTests, useDownloaded } from './RatingPrompt.tsx';
 import { recordAction } from '#lib/telemetry/actionTrail.ts';
@@ -14,6 +14,7 @@ describe('RatingPrompt', () => {
     localStorage.clear();
     resetRatingPromptForTests();
     vi.mocked(sendBeacon).mockClear();
+    vi.mocked(sendBeacon).mockReturnValue(true); // forced: the send succeeds (every test; the real one returns false under test)
     container = document.createElement('div');
     document.body.appendChild(container);
   });

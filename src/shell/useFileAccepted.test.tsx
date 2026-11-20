@@ -1,11 +1,11 @@
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { reportToolLifecycleEvent } from '#lib/telemetry/productAnalytics.ts';
+import { reportToolLifecycleEvent, resetUsageEventsForTests } from '#lib/telemetry/productAnalytics.ts';
 import { FILE_OPENED_EVENT, FILE_OPENED_KEY } from '#lib/appUpdate/engagement.ts';
 import { useFileAccepted } from './useFileAccepted.ts';
 
-vi.mock('#lib/telemetry/productAnalytics.ts', () => ({ reportToolLifecycleEvent: vi.fn() }));
+vi.mock('#lib/telemetry/productAnalytics.ts', { spy: true });
 
 type Props = Parameters<typeof useFileAccepted>[0];
 
@@ -27,6 +27,7 @@ const onOpened = () => { announced += 1; };
 describe('useFileAccepted', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    resetUsageEventsForTests();
     localStorage.clear();
     announced = 0;
     window.addEventListener(FILE_OPENED_EVENT, onOpened);

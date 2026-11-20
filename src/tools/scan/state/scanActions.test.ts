@@ -6,12 +6,11 @@ import type { Quad } from '#lib/pageEnhance/quad.ts';
 import type { Pins, Sides } from '../lib/edges/follow.ts';
 import { newPage } from '../lib/scanPages.ts';
 import { englishScanMessages as t } from '../messages.ts';
-import { recordAction } from '#lib/telemetry/actionTrail.ts';
+import { recordAction, resetActionTrailForTests } from '#lib/telemetry/actionTrail.ts';
 import { reportError } from '#lib/telemetry/errorReport.ts';
 
-vi.mock('#lib/telemetry/actionTrail.ts', () => ({ recordAction: vi.fn() }));
-vi.mock('#lib/telemetry/productAnalytics.ts', () => ({ reportEdit: vi.fn() }));
-vi.mock('#lib/telemetry/errorReport.ts', () => ({ reportError: vi.fn() }));
+vi.mock('#lib/telemetry/actionTrail.ts', { spy: true });
+vi.mock('#lib/telemetry/errorReport.ts', { spy: true });
 // EDGE: the real pipeline decodes photos on canvases, which node does not have. The real loader runs and
 // hands out this spied module; the spies show what the actions asked of it. What a photo's read gives is
 // forced line by line, each with its own comment.
@@ -46,6 +45,7 @@ beforeEach(() => {
   vi.mocked(guessPage).mockResolvedValue(null);
   vi.mocked(splitQuads).mockResolvedValue(null as never); // forced, every test: as above
   vi.mocked(tracePage).mockResolvedValue(null as never); // forced, every test: as above
+  resetActionTrailForTests();
   vi.mocked(recordAction).mockClear();
   vi.mocked(reportError).mockClear();
 });

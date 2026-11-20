@@ -3,10 +3,11 @@ import { act } from 'preact/test-utils';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { movePlanEntry, planForFile, type PlanEntry } from '../pages/pagePlan.ts';
 import { useDocumentHistory } from './useDocumentHistory.ts';
+import { recordAction, resetActionTrailForTests } from '../telemetry/actionTrail.ts';
+import { reportEdit, resetUsageEventsForTests } from '../telemetry/productAnalytics.ts';
 
-const { recordAction, reportEdit } = vi.hoisted(() => ({ recordAction: vi.fn(), reportEdit: vi.fn() }));
-vi.mock('../telemetry/actionTrail.ts', () => ({ recordAction }));
-vi.mock('../telemetry/productAnalytics.ts', () => ({ reportEdit }));
+vi.mock('../telemetry/actionTrail.ts', { spy: true });
+vi.mock('../telemetry/productAnalytics.ts', { spy: true });
 
 interface Doc { plan: PlanEntry[]; label: string }
 type Api = ReturnType<typeof useDocumentHistory<Doc>>;
@@ -31,8 +32,10 @@ function mount(announce: (message: string) => void): { api: () => Api } {
 
 afterEach(() => {
   if (container) { render(null, container); container.remove(); container = null; }
-  recordAction.mockClear();
-  reportEdit.mockClear();
+  vi.mocked(recordAction).mockClear();
+  vi.mocked(reportEdit).mockClear();
+  resetActionTrailForTests();
+  resetUsageEventsForTests();
 });
 
 describe('useDocumentHistory', () => {

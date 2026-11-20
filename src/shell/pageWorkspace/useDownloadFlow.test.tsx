@@ -4,6 +4,7 @@ import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { peekHandoff, saveHandoff } from '#lib/drafts/draftStore.ts';
+import { reportHandedOn, resetUsageEventsForTests } from '#lib/telemetry/productAnalytics.ts';
 import { recentActions, resetActionTrailForTests } from '#lib/telemetry/actionTrail.ts';
 import { decideDownloadState, deliverParts, useDownloadFlow, type DownloadFlowInput } from './useDownloadFlow.ts';
 
@@ -11,8 +12,7 @@ const share = vi.hoisted(() => ({ download: vi.fn(), prepare: vi.fn(), prepareFi
 vi.mock('#lib/output/usePdfShare.js', () => ({
   usePdfShare: () => ({ shareReady: false, ...share }),
 }));
-const reportHandedOn = vi.hoisted(() => vi.fn());
-vi.mock('#lib/telemetry/productAnalytics.ts', () => ({ reportHandedOn }));
+vi.mock('#lib/telemetry/productAnalytics.ts', { spy: true });
 // usePdfShare stays replaced: it is navigator.share, URL.createObjectURL and an anchor click, which jsdom lacks
 // (browser-mode wave). The draft store runs for real on fake-indexeddb; the spy sees the call, and a test
 // that needs a save to fail or to hang forces just that answer.
@@ -98,6 +98,8 @@ describe('useDownloadFlow', () => {
     })) as unknown as typeof window.matchMedia;
     vi.clearAllMocks();
     vi.mocked(saveHandoff).mockReset();
+    vi.mocked(reportHandedOn).mockClear();
+    resetUsageEventsForTests();
     indexedDB = new IDBFactory();
     localStorage.clear();
   });
@@ -287,7 +289,6 @@ describe('useDownloadFlow', () => {
   });
 
   it('a hand-off that proceeds reports the file handed on once, under the sending tool', async () => {
-    reportHandedOn.mockClear();
     mount({ ...base(ready()), from: 'merge', navigate: vi.fn() });
     await act(async () => { await flow.requestHandoff('compress'); });
     expect(reportHandedOn).toHaveBeenCalledTimes(1);
@@ -296,7 +297,6 @@ describe('useDownloadFlow', () => {
 
   it('a hand-off whose save throws reports nothing', async () => {
     vi.mocked(saveHandoff).mockRejectedValue(new Error('save')); // forced: a save that throws
-    reportHandedOn.mockClear();
     mount({ ...base(ready()), navigate: vi.fn() });
     await act(async () => { await flow.requestHandoff('compress'); });
     expect(reportHandedOn).not.toHaveBeenCalled();

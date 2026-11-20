@@ -18,7 +18,7 @@ import {
 } from './deleteObjects.js';
 import { reportError } from '#lib/telemetry/errorReport.ts';
 
-vi.mock('#lib/telemetry/errorReport.ts', () => ({ reportError: vi.fn() }));
+vi.mock('#lib/telemetry/errorReport.ts', { spy: true });
 
 // A real, valid 1x1 transparent PNG (67 bytes).
 const PNG_1X1_BASE64 =

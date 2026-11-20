@@ -51,10 +51,17 @@ A site that fits none of these is reported to the lead, not bent to fit.
 
 1. Our own modules replaced with `vi.mock` (draft store, hand-off, page sampling, Drive modules, Scan
    pipeline): real module or spy-through. Most `mock*Value` calls on those mocks go with them.
-2. Telemetry (`errorReport`, `productAnalytics`, `actionTrail`): spy-through with the real code, its
-   network through MSW.
+2. Telemetry (`errorReport`, `productAnalytics`, `actionTrail` and the rest of `src/lib/telemetry`)
+   in the tests that use it: the real modules run. A test that never looks at a telemetry export loses
+   its mock outright; one that asserts calls keeps a spy-through; per-page state is reset per test
+   (`resetUsageEventsForTests`, `resetActionTrailForTests`). Telemetry sends by `navigator.sendBeacon`,
+   not `fetch`, and the real `reportError` stops at its production-only gate under test, so nothing
+   leaves the test and MSW has nothing to catch here. Where the unit branches on what a send returned,
+   that is one forced line, said to apply to every test. The telemetry modules' own tests stub
+   `navigator.sendBeacon` itself: that is wave 5.
 3. Callback props and inputs written as `vi.fn(impl)` / `mock*Value`: test input.
-4. Network (`fetch`, the report endpoint, Drive): MSW.
+4. Network that goes through `fetch` (Drive, the sample download): MSW. The report endpoint is reached by
+   beacon, so it belongs to wave 5.
 5. Browser APIs jsdom lacks: browser mode.
 6. pdf.js and rendering fakes in the island harness (`src/test/harness/pdfjsEdges.ts`): real pdf.js,
    in Node where it suffices, in browser mode where it renders.

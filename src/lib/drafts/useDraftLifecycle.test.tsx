@@ -2,10 +2,10 @@ import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-const mocks = vi.hoisted(() => ({ report: vi.fn() }));
 // The draft store's hint and change subscription, the arrival intent and the update holds all run for real.
-vi.mock('../telemetry/errorReport.ts', () => ({ reportError: mocks.report }));
+vi.mock('../telemetry/errorReport.ts', { spy: true });
 
+import { reportError } from '../telemetry/errorReport.ts';
 import { RESTORE_TIMEOUT_MS, useDraftRestore, useDraftSave, type DraftSave, type DraftSaveInput } from './useDraftLifecycle.ts';
 import { clearCurrentEntry, setCurrentEntry, upsertIndexEntry } from './draftRecentIndex.ts';
 import { DRAFT_CHANGE_PREFIX } from './draftChanges.ts';
@@ -41,7 +41,7 @@ describe('useDraftRestore', () => {
     sessionStorage.clear();
     document.documentElement.setAttribute('data-draft-hint', '');
     for (const tool of ['sign', 'scan', 'merge']) seedHint(tool);
-    mocks.report.mockClear();
+    vi.mocked(reportError).mockClear();
   });
   afterEach(() => {
     render(null, host);
@@ -88,7 +88,7 @@ describe('useDraftRestore', () => {
   it('reports a check that threw and settles', async () => {
     act(() => { render(<Probe tool="merge" run={async () => { throw new Error('idb'); }} />, host); });
     await settle();
-    expect(mocks.report).toHaveBeenCalledWith('drafts', expect.any(Error), 'restore_draft');
+    expect(reportError).toHaveBeenCalledWith('drafts', expect.any(Error), 'restore_draft');
     expect(checking).toBe(false);
   });
 
@@ -128,7 +128,7 @@ describe('useDraftSave', () => {
     host = document.createElement('div');
     write.mockReset().mockResolvedValue(true);
     build.mockReset().mockReturnValue('record');
-    mocks.report.mockClear();
+    vi.mocked(reportError).mockClear();
     localStorage.clear();
   });
   afterEach(() => {
@@ -191,7 +191,7 @@ describe('useDraftSave', () => {
     act(() => { vi.advanceTimersByTime(700); });
     await settle();
     expect(save.state).toBe('error');
-    expect(mocks.report).toHaveBeenCalledWith('drafts', expect.any(Error), 'autosave_draft');
+    expect(reportError).toHaveBeenCalledWith('drafts', expect.any(Error), 'autosave_draft');
     // Held as 'open': a forced update overrides it, an export in flight it is not.
     expect(isUpdateHeld()).toBe(true);
     expect(isExportInFlight()).toBe(false);
