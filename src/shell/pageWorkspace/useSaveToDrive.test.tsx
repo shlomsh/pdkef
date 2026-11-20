@@ -227,6 +227,7 @@ describe('useSaveToDrive', () => {
     act(() => latest.save());
     await waitUntil(() => expect(latest.state).toBe('failed'));
     expect(posts).toHaveLength(2);
+    expect(events().filter((e) => e === 'tool_drive_failed')).toHaveLength(2);
   });
 
   it('ignores a generation change while saving, and resets on one after', async () => {

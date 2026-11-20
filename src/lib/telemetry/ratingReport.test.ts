@@ -20,7 +20,7 @@ const NOW = 1_800_000_000_000;
 
 beforeEach(() => {
   vi.mocked(sendBeacon).mockClear();
-  vi.mocked(sendBeacon).mockReturnValue(true); // forced: every test, the real send is refused under test and reportRating returns what it returns
+  vi.mocked(sendBeacon).mockReturnValue(true); // forced: the send succeeds in every test (the real one returns false under test)
 });
 
 describe('shouldAsk / markRated', () => {

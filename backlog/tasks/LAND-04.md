@@ -69,5 +69,8 @@ count). The rule is off on `landmines-all` meanwhile.
   reports). Sign export and Save to Drive no longer use an analytics mock as their "done" signal: they
   wait for the served download and the failed state. The telemetry modules' own browser stubs
   (`sendBeacon`, `location`, performance entries) stay for the browser-mode wave.
+- Fresh review of wave 2 (2026-11-20), seven reviewers with no shared context: one coverage loss
+  (Save to Drive's second failure report, restored and proved by mutation), per-page state reset in two
+  more files, two forced comments sharpened, two redundant forced lines dropped. 1,420 to 1,418.
 - Found on the way: RED-75 (preview documents never freed on pdf.js 6.5), RED-76 (one very long line
   overflows the text preview).

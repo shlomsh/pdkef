@@ -7,6 +7,7 @@ import type { Pins, Sides } from '../lib/edges/follow.ts';
 import { newPage } from '../lib/scanPages.ts';
 import { englishScanMessages as t } from '../messages.ts';
 import { recordAction, resetActionTrailForTests } from '#lib/telemetry/actionTrail.ts';
+import { resetUsageEventsForTests } from '#lib/telemetry/productAnalytics.ts';
 import { reportError } from '#lib/telemetry/errorReport.ts';
 
 vi.mock('#lib/telemetry/actionTrail.ts', { spy: true });
@@ -46,6 +47,7 @@ beforeEach(() => {
   vi.mocked(splitQuads).mockResolvedValue(null as never); // forced, every test: as above
   vi.mocked(tracePage).mockResolvedValue(null as never); // forced, every test: as above
   resetActionTrailForTests();
+  resetUsageEventsForTests();
   vi.mocked(recordAction).mockClear();
   vi.mocked(reportError).mockClear();
 });

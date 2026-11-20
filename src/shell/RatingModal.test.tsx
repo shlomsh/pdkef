@@ -174,7 +174,6 @@ describe('RatingPrompt as a modal (merge, sign, highlight-pdf, redact, scan-to-p
     act(() => button(/^send$/i)!.click());
     expect(container.querySelector<HTMLTextAreaElement>('textarea')?.value).toBe('Saved my afternoon');
     expect(container.querySelector('[role="alert"]')).not.toBeNull();
-    vi.mocked(sendBeacon).mockReturnValue(true);
   });
 
   it('a low rating points a bug to GitHub issues and an idea to Discussions, in a new tab', () => {
@@ -232,6 +231,5 @@ describe('RatingPrompt as a modal (merge, sign, highlight-pdf, redact, scan-to-p
     expect(container.querySelector<HTMLTextAreaElement>('textarea')?.value).toBe('It was slow on my phone today');
     expect(container.querySelector('[role="alert"]')).not.toBeNull();
     expect(localStorage.getItem('pdkef:rated:merge')).toBeNull();
-    vi.mocked(sendBeacon).mockReturnValue(true);
   });
 });

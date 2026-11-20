@@ -5,7 +5,6 @@ import { describe, expect, it, vi, afterEach } from 'vitest';
 import BasePdfTool from './BasePdfTool.tsx';
 // Assert state classes on purpose (Dropzone's is-dragover, ToolShell's icon-loaded); the tool card, drop overlay, identity, meta and note have no role, label or text, so they are found by class.
 import { reportToolLifecycleEvent, resetUsageEventsForTests } from '#lib/telemetry/productAnalytics.ts';
-import { resetErrorReportingForTests } from '#lib/telemetry/errorReport.ts';
 import { takeArrival } from '#lib/handoff/fileArrival.ts';
 import { renderThumbnail } from '#lib/pdf/thumbnails.js';
 import { setInputFiles } from '../test/support/setInputFiles.js';
@@ -69,7 +68,7 @@ describe('BasePdfTool', () => {
   let container;
 
   afterEach(() => {
-    resetErrorReportingForTests(); // IslandErrorBoundary's window handlers stay installed (idempotent, gated off under test); the report dedup does not carry over
+    resetUsageEventsForTests();
     if (container) {
       act(() => render(null, container));
       container.remove();
@@ -775,7 +774,6 @@ describe('BasePdfTool', () => {
     const calls = (name) => reportToolLifecycleEvent.mock.calls.filter(([n]) => n === name);
     afterEach(() => {
       vi.clearAllMocks();
-      resetUsageEventsForTests();
       takeArrival(); // clear any mark a test left
     });
 
