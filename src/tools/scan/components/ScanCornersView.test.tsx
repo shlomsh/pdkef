@@ -161,11 +161,10 @@ describe('ScanCornersView', () => {
 
     // Protects: with Fine-tune edges off the border is neither requested nor drawn, so the editor shows plain straight lines.
     it('with fine off asks for no trace and shows none, and the toggle is not pressed', async () => {
-      const traces: unknown[][] = [];
-      const onTrace = (id: number, quad: Quad, pins?: Pins | null) => { traces.push([id, quad, pins]); return Promise.resolve(SIDES); };
+      const onTrace = vi.fn().mockResolvedValue(SIDES);
       mount(page(Q1, 0, null, false), onTrace);
       await flush();
-      expect(traces).toEqual([]);
+      expect(onTrace).not.toHaveBeenCalled();
       expect(traceD()).toBeNull();
       expect(editorProps.last!.trace).toBeNull();
       expect(editorProps.last!.pinned).toEqual([]);
@@ -174,25 +173,23 @@ describe('ScanCornersView', () => {
 
     // Protects: with Fine-tune edges on the trace is requested for the page's quad and pins.
     it('with fine on asks for the trace and the toggle is pressed', async () => {
-      const traces: unknown[][] = [];
-      const onTrace = (id: number, quad: Quad, pins?: Pins | null) => { traces.push([id, quad, pins]); return Promise.resolve(SIDES); };
+      const onTrace = vi.fn().mockResolvedValue(SIDES);
       mount(page(Q1), onTrace);
       await flush();
-      expect(traces).toContainEqual([1, Q1, null]);
+      expect(onTrace).toHaveBeenCalledWith(1, Q1, null);
       expect(container!.querySelector('button[aria-pressed="true"]')).not.toBeNull();
     });
 
     it('asks for the trace of the page\'s own quad on mount and draws 64 points', async () => {
-      const traces: unknown[][] = [];
-      const onTrace = (id: number, quad: Quad, pins?: Pins | null) => { traces.push([id, quad, pins]); return Promise.resolve(SIDES); };
+      const onTrace = vi.fn().mockResolvedValue(SIDES);
       mount(page(Q1), onTrace);
-      expect(traces).toContainEqual([1, Q1, null]);
+      expect(onTrace).toHaveBeenCalledWith(1, Q1, null);
       await flush();
       expect(traceD()!.length).toBe(64);
     });
 
     it('draws the first point turned with the page', async () => {
-      mount(page(Q1, 1), () => Promise.resolve(SIDES));
+      mount(page(Q1, 1), vi.fn().mockResolvedValue(SIDES));
       await flush();
       const p = turnedPoint(Q1[0], 1);
       expect(traceD()![0]).toBe(`${p.x * 100}% ${p.y * 100}%`);
@@ -200,38 +197,34 @@ describe('ScanCornersView', () => {
 
     it('drops an answer for an older quad that arrives after the quad changed', async () => {
       let late!: (s: Sides | null) => void;
-      const traces: unknown[][] = [];
-      const onTrace = (id: number, quad: Quad, pins?: Pins | null) => {
-        traces.push([id, quad, pins]);
-        return traces.length === 1 ? new Promise<Sides | null>((r) => { late = r; }) : Promise.resolve(null);
-      };
+      const onTrace = vi.fn()
+        .mockImplementationOnce(() => new Promise<Sides | null>((r) => { late = r; }))
+        .mockResolvedValue(null);
       mount(page(Q1), onTrace);
       act(() => render(view(page(Q2), onTrace), container!));
       await flush();
-      expect(traces).toHaveLength(2);
+      expect(onTrace).toHaveBeenCalledTimes(2);
       late(SIDES);
       await flush();
       expect(traceD()).toBeNull();
     });
 
     it('passes no trace when the answer is null', async () => {
-      mount(page(Q1), () => Promise.resolve(null));
+      mount(page(Q1), vi.fn().mockResolvedValue(null));
       await flush();
       expect(traceD()).toBeNull();
     });
 
     it('asks again with the pins after a pin changes, and shows no outline for the previous pins, because a pin set is its own trace', async () => {
       let late!: (s: Sides | null) => void;
-      const traces: unknown[][] = [];
-      const onTrace = (id: number, quad: Quad, pins?: Pins | null) => {
-        traces.push([id, quad, pins]);
-        return traces.length === 1 ? new Promise<Sides | null>((r) => { late = r; }) : Promise.resolve(null);
-      };
+      const onTrace = vi.fn()
+        .mockImplementationOnce(() => new Promise<Sides | null>((r) => { late = r; }))
+        .mockResolvedValue(null);
       mount(page(Q1), onTrace);
       const pins: Pins = [[], [], [], [{ k: 3, at: { x: 0.2, y: 0.5 } }]];
       act(() => render(view(page(Q1, 0, pins), onTrace), container!));
       await flush();
-      expect(traces[traces.length - 1]).toEqual([1, Q1, pins]);
+      expect(onTrace).toHaveBeenLastCalledWith(1, Q1, pins);
       late(SIDES);
       await flush();
       expect(traceD()).toBeNull();

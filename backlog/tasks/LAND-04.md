@@ -80,5 +80,9 @@ count). The rule is off on `landmines-all` meanwhile.
   report's `send`, `usePdfShare`'s share object, the swipe reader and its bands, the whiteout page
   colour sampler, the editor reducer's `dispatch`, Compress's machine. Test-only seams stay flagged
   too (`compressImages`' `encodeImage`, `chunkReload`'s deps).
+- Fresh review of wave 3 (2026-11-20), three reviewers who had to quote the production line behind
+  every removed double: no weakened assertions; three single-caller callbacks (Scan's `onTrace`,
+  `processed`, `restorePages`) were collaborators by the contract's sharpened rule and went back.
+  The rule is now in the contract. 1,319 to 1,331.
 - Found on the way: RED-75 (preview documents never freed on pdf.js 6.5), RED-76 (one very long line
   overflows the text preview).

@@ -78,3 +78,11 @@ checks each rewrite against the five endings.
 - **Test input, operationally.** A value is the test's input when it crosses the unit's public
   boundary as a prop or argument that production callers also supply. Anything the unit imports, a
   method on an imported object, or a `deps = real` default production never overrides is not.
+  Supplied is not enough on its own: a callback is input when it is a state setter or getter, a
+  handler for something the person did, or a parameter the unit is generic over (several callers pass
+  different functions, as seven tools pass `usePreparedOutput` its `build`; or the unit is a pure
+  algorithm over it, like the size search over its encoder). When the one production caller always
+  passes the same function of ours, or a thin wrapper of it (Scan's `onTrace` is always
+  `traceCorners`, the swipe's `readerAt` always wraps `createSwipeReader`), it is a collaborator and
+  stays a visible double. So does a plain function that re-implements real logic, such as a few
+  lines of the editor reducer standing in for `dispatch`.
