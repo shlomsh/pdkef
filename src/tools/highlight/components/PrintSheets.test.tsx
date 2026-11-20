@@ -13,7 +13,7 @@ vi.mock('../hooks/readInkBounds.ts', { spy: true });
 vi.mock('#editor/geometry/sketchStroke.ts', { spy: true });
 vi.mock('#lib/pdf/renderPage.js', { spy: true });
 import { readPageInk } from '../hooks/readInkBounds.ts';
-import { sketchBands, strokeSeed } from '#editor/geometry/sketchStroke.ts';
+import { sketchBands } from '#editor/geometry/sketchStroke.ts';
 import { renderPageToCanvas } from '#lib/pdf/renderPage.js';
 
 const band = { left: 0, top: 0, width: 100, height: 100 };
@@ -74,6 +74,8 @@ async function mount(notes: boolean | 'end', pageTurns?: PageTurns, doc: PDFDocu
   document.body.appendChild(container);
   await act(async () => { render(<PrintSheets pdfDocument={doc} elements={els} notes={notes === 'end' ? 'end' : notes ? 'beside' : 'none'} pageTurns={pageTurns} onReady={onReady} />, container!); });
   await rendered;
+  // two pictures, plus one paint per ink read (a note on that page)
+  expect(renderPageToCanvas).toHaveBeenCalledTimes(2 + vi.mocked(readPageInk).mock.calls.length);
   await act(async () => { await drainPromises(); });
   return { onReady };
 }
@@ -92,7 +94,7 @@ describe('PrintSheets', () => {
     expect((svg.parentElement as HTMLElement).style.opacity).toBe('0.6');
     expect(sheets()[0].querySelectorAll('[data-print-band]')).toHaveLength(0);
     // h1 is 50% x 5% of the 600 x 800 page at (10%, 20%); both bands fill it.
-    expect(sketchBands).toHaveBeenCalledWith(Array(2).fill({ x: 60, y: 160, w: 300, h: 40 }), strokeSeed('h1'), 0);
+    expect(sketchBands).toHaveBeenCalledWith(Array(2).fill({ x: 60, y: 160, w: 300, h: 40 }), 2419799442, 0); // strokeSeed('h1'), captured once
   });
 
   it('READ-14: a pencil mark prints as hatch strokes in page points, inside the opacity layer', async () => {
@@ -121,9 +123,10 @@ describe('PrintSheets', () => {
 
   it('renders each page at twice its printed size', async () => {
     await mount(true);
-    // the ink reads of the noted pages come first, then one picture per page
-    const scales = vi.mocked(renderPageToCanvas).mock.calls.slice(-2).map((c) => c[1].scale);
-    expect(scales[0]).toBeCloseTo(2 * ((600 - 48 - 12 - 132) / 600) * (96 / 72));
+    // every paint: the ink reads of the noted pages (their own scale), then one picture per page
+    const scales = vi.mocked(renderPageToCanvas).mock.calls.map((c) => c[1].scale);
+    const pictureScale = 2 * ((600 - 48 - 12 - 132) / 600) * (96 / 72);
+    expect(scales.filter((s) => Math.abs(s - pictureScale) < 1e-6)).toHaveLength(2);
   });
 
   it('with notes, slides the page so its ink starts at the margin and puts the column 12 pt past the ink', async () => {
@@ -147,6 +150,7 @@ describe('PrintSheets', () => {
     document.body.appendChild(container);
     await act(async () => { render(<PrintSheets pdfDocument={doc} elements={els} notes="beside" onReady={vi.fn()} />, container!); });
     await rendered;
+    expect(renderPageToCanvas).toHaveBeenCalledTimes(4); // 3 pictures + the one ink read
     expect(vi.mocked(readPageInk)).toHaveBeenCalledTimes(1);
     expect(vi.mocked(readPageInk).mock.calls[0][1]).toBe(1);
   });

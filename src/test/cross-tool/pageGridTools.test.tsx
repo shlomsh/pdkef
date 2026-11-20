@@ -46,7 +46,15 @@ const TOOLS: PageGridTool[] = [
     name: 'PDF to Image', element: () => <PdfToImageTool quietPolicy={FAST_QUIET} />, handoff: 'pdf-to-image', noun: 'images', handed: 'handed-page-N.png', field: true,
     // pdf.js is faked, so the bytes only need to look like a PDF; the fake source reports the page count.
     bytes: () => new TextEncoder().encode('%PDF-1.4'),
-    prepare: () => { pdfjsEdges.source.pageCount = 5; },
+    prepare: () => {
+      pdfjsEdges.source.pageCount = 5;
+      // Forced: the conversion paints every page through pdf.js onto a canvas, neither of which jsdom has. Only this tool converts.
+      vi.mocked(convertPdfToImages).mockImplementation(async (_file: File, opts: { pages?: string; format?: string } = {}) => parsePageSelector(opts.pages ?? '', pdfjsEdges.source.pageCount).map((n: number) => ({
+        pageNumber: n,
+        blob: new Blob(['x'], { type: opts.format }),
+        filename: `report-page-${n}.png`,
+      })));
+    },
   },
   { name: 'Edit Pages', element: () => <PdfEditPagesTool />, handoff: 'edit-pdf', noun: 'pages', handed: 'handed_modified.pdf', field: false, bytes: () => FIVE_PAGES },
 ];
@@ -57,13 +65,8 @@ describe.each(TOOLS)('$name on the shared page workspace', ({ element, handoff, 
 
   beforeEach(() => {
     harness = installToolHarness();
+    vi.mocked(convertPdfToImages).mockReset(); // a state forced for one tool must not reach the next: the real conversion again
     prepare?.();
-    // Forced: the conversion paints every page through pdf.js onto a canvas, neither of which jsdom has.
-    vi.mocked(convertPdfToImages).mockImplementation(async (_file: File, opts: { pages?: string; format?: string } = {}) => parsePageSelector(opts.pages ?? '', pdfjsEdges.source.pageCount).map((n: number) => ({
-      pageNumber: n,
-      blob: new Blob(['x'], { type: opts.format }),
-      filename: `report-page-${n}.png`,
-    })));
     // jsdom's Blob has no arrayBuffer().
     if (!Blob.prototype.arrayBuffer) {
       Blob.prototype.arrayBuffer = function arrayBuffer() {

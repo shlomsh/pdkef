@@ -277,7 +277,7 @@ describe('PdfImageToPdfTool UI flow', () => {
     mount();
     await loadFiles(['a.png', 'b.png']);
     await wait(0);
-    const release = holdNextBuild();
+    const release = holdNextBuild(); // forced: the next build waits for release()
     await act(async () => { removeButtons()[1].click(); });
 
     await act(async () => { downloadLink().dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true })); });
@@ -311,7 +311,7 @@ describe('PdfImageToPdfTool UI flow', () => {
     mount();
     await loadFiles(['a.png', 'b.png']);
     await wait(0);
-    const release = holdNextBuild();
+    const release = holdNextBuild(); // forced: the next build waits for release()
     await act(async () => { removeButtons()[1].click(); });
     resetActionTrailForTests();
     await act(async () => { downloadLink().dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true })); });

@@ -18,13 +18,8 @@ import { loadDraft, readRecentFiles, saveDraft } from '#lib/drafts/draftStore.ts
 vi.mock('./lib/flattenAnimation.ts', { spy: true });
 
 // EDGE: the pipeline decodes photos and draws and encodes canvases (createImageBitmap, 2d context, toBlob), none of which jsdom has.
-vi.mock('./lib/scanPipeline.ts', () => ({
-  guessPage: vi.fn(),
-  inspectPhoto: vi.fn(),
-  processPage: vi.fn(),
-  buildScanPdf: vi.fn(),
-  turnImage: vi.fn(),
-}));
+// The module is spied, not replaced: beforeEach forces each function the island calls, one line each (applies to every test).
+vi.mock('./lib/scanPipeline.ts', { spy: true });
 
 // The live camera: whether it is usable is the test's call, and the viewfinder is a stub that exposes its props.
 vi.mock('./lib/camera/canUseCamera.ts', () => ({ canUseCamera: vi.fn(() => false) }));
@@ -66,13 +61,15 @@ describe('PdfScanTool', () => {
     realClose = HTMLDialogElement.prototype.close;
     HTMLDialogElement.prototype.showModal = function showModal() { this.setAttribute('open', ''); };
     HTMLDialogElement.prototype.close = function close() { this.removeAttribute('open'); };
-    vi.mocked(pipeline.guessPage).mockReset().mockImplementation(() => Promise.resolve(GUESS));
-    vi.mocked(pipeline.inspectPhoto).mockReset().mockImplementation(() => Promise.resolve(seen(GUESS)));
-    vi.mocked(pipeline.processPage).mockReset().mockImplementation(() => Promise.resolve({
+    for (const fn of [pipeline.guessPage, pipeline.inspectPhoto, pipeline.processPage, pipeline.turnImage, pipeline.buildScanPdf]) vi.mocked(fn).mockReset();
+    // Forced, applies to EVERY test (the real pipeline needs canvases): each function gives a plain successful answer unless a test says otherwise.
+    vi.mocked(pipeline.guessPage).mockImplementation(() => Promise.resolve(GUESS)); // forced, every test: the page is found
+    vi.mocked(pipeline.inspectPhoto).mockImplementation(() => Promise.resolve(seen(GUESS))); // forced, every test: a photo reads with corners
+    vi.mocked(pipeline.processPage).mockImplementation(() => Promise.resolve({ // forced, every test: a page processes to a small jpeg
       blob: new Blob(['x'], { type: 'image/jpeg' }), width: 100, height: 140, thumb: new Blob(['t'], { type: 'image/jpeg' }),
     }));
-    vi.mocked(pipeline.turnImage).mockReset().mockImplementation(() => Promise.resolve(new Blob(['r'], { type: 'image/jpeg' })));
-    vi.mocked(pipeline.buildScanPdf).mockReset().mockImplementation(() => Promise.resolve({
+    vi.mocked(pipeline.turnImage).mockImplementation(() => Promise.resolve(new Blob(['r'], { type: 'image/jpeg' }))); // forced, every test: a turned image
+    vi.mocked(pipeline.buildScanPdf).mockImplementation(() => Promise.resolve({ // forced, every test: the PDF builds to one page
       blob: new Blob(['%PDF'], { type: 'application/pdf' }), metTarget: true, scale: 1, quality: 0.82,
       pages: [{ blob: new Blob(['j'], { type: 'image/jpeg' }), place: { pageWidth: 595.28, pageHeight: 841.89, x: 0, y: 0, width: 595.28, height: 841.89 } }],
     }));

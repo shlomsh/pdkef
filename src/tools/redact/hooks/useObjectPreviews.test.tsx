@@ -1,6 +1,6 @@
 import { h, render } from 'preact';
 import { act } from 'preact/test-utils';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { PDFDocumentProxy } from 'pdfjs-dist';
 import * as pdfjs from 'pdfjs-dist/legacy/build/pdf.mjs';
 import type { PageGlyph } from '../lib/pageGlyphs.ts';
@@ -11,7 +11,7 @@ import { GLYPH_BUDGET } from '../lib/find/itemGlyphs.ts';
 import { listDeletableObjects } from '../lib/deleteObjects.js';
 import { readGlyphs } from '../lib/readGlyphs.js';
 import useObjectPreviews from './useObjectPreviews.ts';
-import { buildPdf, openOriginal } from '../../../test/support/redactCheckPdfs.test-helper.ts';
+import { buildPdf, legacyPdfjs, openOriginal } from '../../../test/support/redactCheckPdfs.test-helper.ts';
 import type { PageSpec } from '../../../test/support/redactCheckPdfs.test-helper.ts';
 import { waitUntil } from '../../../test/support/waitUntil.ts';
 import { drainPromises } from '../../../test/support/drainPromises.ts';
@@ -43,6 +43,8 @@ const settle = () => act(async () => { await drainPromises(); });
 describe('useObjectPreviews', () => {
   let container: HTMLDivElement;
   const closers: Array<() => Promise<void>> = [];
+  // A forced read in one test must not leak: reset puts the spy-through mock back on the real reader.
+  beforeEach(() => { vi.mocked(readGlyphs).mockReset(); });
   afterEach(async () => {
     act(() => { render(null, container); });
     container.remove();
@@ -86,36 +88,37 @@ describe('useObjectPreviews', () => {
   });
 
   it('gives no preview on a page whose text cannot be read', async () => {
-    const file = await openFile([{ lines: ['Hello world'] }]);
+    const file = await openFile([{ lines: ['Hello world'] }, { lines: ['later'] }]);
     closers.push(file.close);
-    // A broken content stream: pdf.js cannot list the page's operators.
-    (await file.doc.getPage(1)).getOperatorList = () => Promise.reject(new Error('broken content stream'));
+    const second = file.objects.find((o) => o.pageIndex === 1)!;
+    vi.mocked(readGlyphs).mockResolvedValueOnce(null); // forced: page 1's text cannot be read
     vi.spyOn(errorReport, 'reportError').mockImplementation(() => {});
     vi.spyOn(console, 'error').mockImplementation(() => {});
     const seen = mount(file.doc, file.objects);
-    await waitUntil(() => expect(readGlyphs).toHaveBeenCalledTimes(1));
-    await vi.mocked(readGlyphs).mock.results[0].value;
-    await settle();
-    expect(seen.current[0].preview).toBeUndefined();
+    // The read moves on to page 2 (real), which shows page 1 was passed over and not read as a failure.
+    await waitUntil(() => seen.current.find((o) => o.id === second.id)?.preview === 'later', { timeout: 3000 });
+    expect(seen.current.find((o) => o.pageIndex === 0)?.preview).toBeUndefined();
+    expect(errorReport.reportError).not.toHaveBeenCalled();
   });
 
   it('stops reading pages past the glyph cap', async () => {
     const file = await openFile([{ lines: ['first page'] }, { lines: ['later'] }]);
     closers.push(file.close);
+    const first = file.objects.find((o) => o.pageIndex === 0)!;
     const second = file.objects.find((o) => o.pageIndex === 1)!;
-    // Forced state: page 1 yields the whole cap in glyphs, over many short lines.
-    const glyphs: PageGlyph[] = Array.from({ length: GLYPH_BUDGET }, (_, i) => ({
-      unicode: 'x', isSpace: false, matrix: [10, 0, 0, 10, (i % 100) * 5, 400 + Math.floor(i / 100) * 12], width: 0.5,
-    }));
-    vi.mocked(readGlyphs).mockResolvedValueOnce(glyphs);
+    // Forced state: page 1 yields the whole cap in glyphs: its own words, then filler off the page.
+    const actual = await vi.importActual<typeof import('../lib/readGlyphs.js')>('../lib/readGlyphs.js');
+    const own = (await actual.readGlyphs(await legacyPdfjs(), await file.doc.getPage(1))) as PageGlyph[];
+    const filler: PageGlyph[] = Array.from({ length: GLYPH_BUDGET - own.length }, () => (
+      { unicode: 'x', isSpace: false, matrix: [10, 0, 0, 10, 900, 100], width: 0.5 }
+    ));
+    vi.mocked(readGlyphs).mockResolvedValueOnce([...own, ...filler]); // forced: page 1 fills the glyph cap
     const getPage = vi.spyOn(file.doc, 'getPage');
     const seen = mount(file.doc, file.objects);
-    await waitUntil(() => expect(readGlyphs).toHaveBeenCalled());
-    // The hook's own continuation of that read runs before this one: by now it has either asked pdf.js
-    // for page 2 or stopped.
-    await vi.mocked(readGlyphs).mock.results[0].value;
-    expect(getPage).toHaveBeenCalledTimes(1);
+    // The hook asks pdf.js for the next page in the same turn it publishes page 1's words, if it will.
+    await waitUntil(() => seen.current.find((o) => o.id === first.id)?.preview === 'first page');
     await settle();
+    expect(getPage).toHaveBeenCalledTimes(1);
     expect(readGlyphs).toHaveBeenCalledTimes(1);
     expect(seen.current.find((o) => o.id === second.id)?.preview).toBeUndefined();
   });

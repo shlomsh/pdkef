@@ -9,7 +9,6 @@ import { useLatestRun } from '#lib/hooks/useLatestRun.ts';
 import { reportHandedOn, reportToolLifecycleEvent } from '#lib/telemetry/productAnalytics.ts';
 import { sendHandoff } from '#lib/handoff/sendHandoff.ts';
 import { saveHandoff, takeHandoff } from '#lib/drafts/draftStore.ts';
-import { waitUntil } from '../../../test/support/waitUntil.ts';
 import { drainPromises } from '../../../test/support/drainPromises.ts';
 import type { SignedExport } from '../lib/exportHandoff.ts';
 import { useSignExport } from './useSignExport.ts';
@@ -151,7 +150,8 @@ describe('Sign export funnel events', () => {
     preparedExportRef.current = prepared();
     vi.mocked(reportHandedOn).mockClear();
     await act(() => api.current.requestHandoff('compress'));
-    await waitUntil(() => expect(reportHandedOn).toHaveBeenCalledWith('sign'));
+    await vi.mocked(sendHandoff).mock.results[0].value; // resolves once sendHandoff has parked the bytes and run proceed
+    expect(reportHandedOn).toHaveBeenCalledWith('sign');
     // proceed ran after the bytes were parked: the file is really waiting for the next tool
     const parked = await takeHandoff('compress');
     expect(parked && 'fileName' in parked ? parked.fileName : null).toBe('signed_form.pdf');

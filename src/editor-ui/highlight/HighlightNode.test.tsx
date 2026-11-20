@@ -7,6 +7,9 @@ import type { HighlightElement } from '#editor/model/editorModel.ts';
 
 vi.mock('#editor/geometry/sketchStroke.ts', { spy: true });
 
+// strokeSeed('h1'), pinned as a literal.
+const HSEED = 2419799442;
+
 const element: HighlightElement = {
   id: 'h1', type: 'highlight', pageIndex: 0, left: 10, top: 10, width: 50, height: 10, color: '#FFF34D',
   bands: [{ left: 0, top: 10, width: 100, height: 40 }, { left: 5, top: 60, width: 90, height: 30 }],
@@ -141,12 +144,12 @@ describe('HighlightNode sketch stroke', () => {
       const path = host.querySelector('[data-highlight-bands] svg[data-highlight-sketch] path')!;
       expect(path.getAttribute('fill')).toBe('#FFF34D');
       const bands = [{ x: 0, y: 2, w: 200, h: 8 }, { x: 10, y: 12, w: 180, h: 6 }];
-      expect(path.getAttribute('d')).toBe(svgPath(sketchBands(bands, strokeSeed('h1'), 2)));
+      expect(path.getAttribute('d')).toBe(svgPath(sketchBands(bands, HSEED, 2)));
       expect(path.getAttribute('d')).toMatch(/^M[\d. -]+C/);
       expect(host.querySelector('svg')!.getAttribute('viewBox')).toBe('0 0 200 20');
       expect((host.querySelector('[data-highlight-bands]') as HTMLElement).style.opacity).toBe('0.5');
       expect(strokeSeed).toHaveBeenCalledWith('h1');
-      expect(sketchBands).toHaveBeenCalledWith(bands, strokeSeed('h1'), 2);
+      expect(sketchBands).toHaveBeenCalledWith(bands, HSEED, 2);
       expect(host.querySelector('[data-highlight-draft]')!.children).toHaveLength(0);
     });
 
@@ -154,7 +157,7 @@ describe('HighlightNode sketch stroke', () => {
       vi.mocked(sketchUnderline).mockClear();
       mount({ ...element, style: 'underline', stroke: 'sketch', strokeWidth: 2 }, { boxPts: box });
       expect(host.querySelector('[data-highlight-sketch] path')!.getAttribute('fill')).toBe('#B8AF37');
-      expect(sketchUnderline).toHaveBeenCalledWith(expect.any(Array), strokeSeed('h1'), 2, 0);
+      expect(sketchUnderline).toHaveBeenCalledWith(expect.any(Array), HSEED, 2, 0);
     });
 
     it('stays clean without boxPts or without the sketch stroke', () => {

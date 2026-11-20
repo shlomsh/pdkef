@@ -88,7 +88,14 @@ function baseProps(overrides: any = {}) {
 
 describe('useEditorDraftPersistence - restore migrates and validates', () => {
   let container: HTMLDivElement;
-  const mount = (props: any) => act(() => { render(<Harness apiRef={{ current: null }} props={props} />, container); });
+  const apiRef: any = { current: null };
+  const mount = (props: any) => act(() => { render(<Harness apiRef={apiRef} props={props} />, container); });
+  // The restore chain's real end: the draft hook reports settled once its run has returned.
+  // drainPromises then lets work the chain queued behind it run before a test counts the calls.
+  const restoreSettled = async () => {
+    await waitUntil(() => apiRef.current?.result.settled);
+    await act(async () => { await drainPromises(); });
+  };
 
   beforeEach(() => {
     container = document.createElement('div');
@@ -110,6 +117,7 @@ describe('useEditorDraftPersistence - restore migrates and validates', () => {
     const props = baseProps();
     mount(props);
     await act(async () => { await props.loadPdf.reached; });
+    await restoreSettled();
 
     expect(props.loadPdf.calls).toHaveLength(1);
     const [, calledBytes, initialState, restored] = props.loadPdf.calls[0];
@@ -208,6 +216,7 @@ describe('useEditorDraftPersistence - restore migrates and validates', () => {
     const props = baseProps({ tool: 'redact', isElement: isRedactElement });
     mount(props);
     await act(async () => { await props.loadPdf.reached; });
+    await restoreSettled();
 
     expect(props.loadPdf.calls).toHaveLength(1);
     expect(props.loadPdf.calls[0][2].elements).toEqual([blackoutElement]);
@@ -235,7 +244,14 @@ describe('useEditorDraftPersistence - HERO-02 hand-off marker', () => {
     fileType: 'application/pdf',
     fileBytes: pdfBytes(),
   });
-  const mount = (props: any) => act(() => { render(<Harness apiRef={{ current: null }} props={props} />, container); });
+  const apiRef: any = { current: null };
+  const mount = (props: any) => act(() => { render(<Harness apiRef={apiRef} props={props} />, container); });
+  // The restore chain's real end: the draft hook reports settled once its run has returned.
+  // drainPromises then lets work the chain queued behind it run before a test counts the calls.
+  const restoreSettled = async () => {
+    await waitUntil(() => apiRef.current?.result.settled);
+    await act(async () => { await drainPromises(); });
+  };
 
   beforeEach(() => {
     container = document.createElement('div');
@@ -257,6 +273,7 @@ describe('useEditorDraftPersistence - HERO-02 hand-off marker', () => {
     const props = baseProps({ tool: 'sign' });
     mount(props);
     await act(async () => { await props.loadPdf.reached; });
+    await restoreSettled();
     expect(props.loadPdf.calls).toHaveLength(1);
     expect(root.hasAttribute('data-handoff-pending')).toBe(true);
     expect(sessionStorage.getItem('pdkef:handoff-pending:sign')).toBeNull();
@@ -297,6 +314,7 @@ describe('useEditorDraftPersistence - HERO-02 hand-off marker', () => {
     expect(readRecentFiles()).toEqual([]);
     expect(sessionStorage.getItem('pdkef:handoff-pending:sign')).toBe('1');
     await act(async () => { releaseWrite.resolve(); await props.loadPdf.reached; });
+    await restoreSettled();
     expect(commitHandoff).toHaveBeenCalledWith('sign');
     expect(await peekHandoff('sign')).toBeNull();
     expect(readRecentFiles().map((entry) => entry.fileName)).toEqual(['merged.pdf']);
@@ -349,9 +367,14 @@ describe('useEditorDraftPersistence - arrival mark (DEBT-58)', () => {
     await seedDraft('sign', { fileName: 'a.pdf' });
     noteRecentOpen('sign');
     let seen: unknown;
+    const apiRef = { current: null as any };
     const props = baseProps({ tool: 'sign', loadPdf: loaderRecorder(() => { seen = takeArrival(); }) });
-    mount(props);
+    act(() => { render(<Harness apiRef={apiRef} props={props} />, container); });
     await act(async () => { await props.loadPdf.reached; });
+    // Let the restore settle: a second load would take the (already consumed) mark again and overwrite what was seen.
+    await waitUntil(() => apiRef.current?.result.settled);
+    await act(async () => { await drainPromises(); });
+    expect(props.loadPdf.calls).toHaveLength(1);
     expect(seen).toEqual({ source: 'recent' });
   });
 });

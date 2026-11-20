@@ -20,6 +20,8 @@ const FINAL = { name: 'final.pdf' };
 const FINAL_RESULT = { blob: FINAL };
 
 let SOURCE;
+let TWO_PAGES;
+let twoPageDeletions;
 let box;
 let deletion;
 
@@ -30,6 +32,17 @@ beforeAll(async () => {
   SOURCE = new Uint8Array(await doc.save());
   const [text] = await listDeletableObjects(SOURCE);
   deletion = { id: 'd1', pageIndex: 0, type: 'delete', start: text.start, end: text.end };
+  // Two pages with a deletion each: the real deletion pass reports 0.5, then 1.
+  const two = await PDFDocument.create();
+  const twoFont = await two.embedFont(StandardFonts.Helvetica);
+  two.addPage([400, 200]).drawText('First gone', { x: 20, y: 120, size: 12, font: twoFont });
+  two.addPage([400, 200]).drawText('Second gone', { x: 20, y: 120, size: 12, font: twoFont });
+  TWO_PAGES = new Uint8Array(await two.save());
+  const texts = await listDeletableObjects(TWO_PAGES);
+  twoPageDeletions = [0, 1].map((pageIndex) => {
+    const text = texts.find((t) => t.pageIndex === pageIndex);
+    return { id: `d${pageIndex}`, pageIndex, type: 'delete', start: text.start, end: text.end };
+  });
   box = { id: 'b1', pageIndex: 0, type: 'blackout' };
 });
 
@@ -114,6 +127,11 @@ describe('applyPageEdits', () => {
     await applyPageEdits(SOURCE, [deletion, box], (p) => calls.push(p));
     // The real deletion pass reports 1 for its one page: 1 * 0.4.
     expect(calls).toEqual([0.4, 0.7, 1]);
+
+    // Two pages: the real deletion pass reports 0.5 then 1, so the scaled range is reached.
+    const twoPageCalls = [];
+    await applyPageEdits(TWO_PAGES, [...twoPageDeletions, box], (p) => twoPageCalls.push(p));
+    expect(twoPageCalls).toEqual([0.2, 0.4, 0.7, 1]);
   });
 
   it('forwards progress unscaled when only one phase runs', async () => {

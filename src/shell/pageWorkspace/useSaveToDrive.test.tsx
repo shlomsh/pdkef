@@ -19,9 +19,14 @@ vi.mock('#lib/telemetry/productAnalytics.ts', () => ({ reportToolLifecycleEvent:
 const connect = (until = Date.now() + 3_600_000) => localStorage.setItem(DRIVE_TOKEN_KEY, JSON.stringify({ token: 't', until }));
 const events = () => report.mock.calls.map((call) => call[0]);
 
-/** Call after the tap: resolves with the first park's arguments once the real write has finished. */
+/**
+ * Call after the tap: resolves with the first park's arguments once the real write has finished. The store marks
+ * a finished write in sessionStorage under the Drive tab's id (read from the URL the tap opened), so that is
+ * what it waits on.
+ */
 async function parked(): Promise<unknown[]> {
-  await waitUntil(() => vi.mocked(saveHandoff).mock.results.length === 1);
+  const id = new URL(String(vi.mocked(window.open).mock.calls.at(-1)?.[0]), 'http://localhost').searchParams.get('save');
+  await waitUntil(() => sessionStorage.getItem(`pdkef:handoff-pending:drive-save-${id}`) !== null);
   await vi.mocked(saveHandoff).mock.results[0].value;
   return vi.mocked(saveHandoff).mock.calls[0];
 }
@@ -61,6 +66,7 @@ describe('useSaveToDrive', () => {
     indexedDB = new IDBFactory();
     report.mockReset();
     localStorage.clear();
+    sessionStorage.clear();
     connect();
   });
   afterEach(() => { render(null, container); vi.restoreAllMocks(); vi.unstubAllGlobals(); });

@@ -52,7 +52,7 @@ describe('PdfRedactTool UI flow', () => {
 
     beforeEach(() => {
       vi.mocked(sampleRingColor).mockReset();
-      vi.mocked(sampleRingColor).mockImplementation(byGeometry);
+      vi.mocked(sampleRingColor).mockImplementation(byGeometry); // forced: the page colour by box position, for every test in this describe (jsdom cannot read page pixels)
     });
     afterEach(() => {
       vi.mocked(sampleRingColor).mockReset();
@@ -250,7 +250,7 @@ describe('PdfRedactTool UI flow', () => {
     it('a duplicate of an auto whiteout is sampled at its own position', async () => {
       await drawWhiteoutAndSelect();
       // Only the original's exact spot reads cream; anywhere else reads blue.
-      vi.mocked(sampleRingColor).mockImplementation((_canvas, box) => (Math.abs(box.top - 20) < 0.01 && Math.abs(box.left - 10) < 0.01 ? CREAM : BLUE));
+      vi.mocked(sampleRingColor).mockImplementation((_canvas, box) => (Math.abs(box.top - 20) < 0.01 && Math.abs(box.left - 10) < 0.01 ? CREAM : BLUE)); // forced: cream only at the original's exact spot, blue elsewhere (jsdom cannot read page pixels)
       const duplicate = query<HTMLButtonElement>(s.container, '[data-editor-actions] button[title="Duplicate"]');
       await act(async () => { duplicate.dispatchEvent(new MouseEvent('click', { bubbles: true })); });
 
@@ -264,7 +264,7 @@ describe('PdfRedactTool UI flow', () => {
       const pageColors = [CREAM, BLUE, '#e0f0e0'];
       const canvases = Array.from(s.container.querySelectorAll<HTMLCanvasElement>('[data-editor-page-card] canvas'));
       expect(canvases).toHaveLength(3);
-      vi.mocked(sampleRingColor).mockImplementation((canvas) => pageColors[canvases.indexOf(canvas as HTMLCanvasElement)] ?? null);
+      vi.mocked(sampleRingColor).mockImplementation((canvas) => pageColors[canvases.indexOf(canvas as HTMLCanvasElement)] ?? null); // forced: each page card's own colour (jsdom cannot read page pixels)
 
       const repeat = query<HTMLButtonElement>(s.container, '[data-editor-actions] [data-editor-repeat-every-page]');
       await act(async () => { repeat.dispatchEvent(new MouseEvent('click', { bubbles: true })); });

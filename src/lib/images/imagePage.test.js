@@ -29,7 +29,7 @@ describe('addImagePage', () => {
     beforeEach(() => { vi.mocked(redrawPng).mockReset(); });
 
     it('is redrawn through the browser and embedded from that', async () => {
-      vi.mocked(redrawPng).mockResolvedValue(fixture('photo-2.png'));
+      vi.mocked(redrawPng).mockResolvedValue(fixture('photo-2.png')); // forced: the browser's redraw answers with a decodable PNG
       const doc = await PDFDocument.create();
       const page = await addImagePage(doc, fixture('photo-truncated.png'), 'image/png', 'cut.png');
       expect(redrawPng).toHaveBeenCalledTimes(1);
@@ -44,7 +44,7 @@ describe('addImagePage', () => {
     });
 
     it('throws UnreadableImageError naming the file when the browser cannot decode it either', async () => {
-      vi.mocked(redrawPng).mockImplementation(async () => { throw new Error('The source image could not be decoded.'); });
+      vi.mocked(redrawPng).mockImplementation(async () => { throw new Error('The source image could not be decoded.'); }); // forced: the browser's redraw fails
       const doc = await PDFDocument.create();
       await expect(addImagePage(doc, fixture('photo-truncated.png'), 'image/png', 'cut.png')).rejects.toMatchObject({
         name: 'UnreadableImageError',

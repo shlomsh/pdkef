@@ -36,7 +36,7 @@ function Probe() {
 
 beforeEach(() => {
   vi.useFakeTimers();
-  vi.mocked(renderPageToCanvas).mockImplementation(async () => ({ width: 800, height: 1000, getContext: () => null, toDataURL: () => 'data:image/png;base64,AAAA' }) as never);
+  vi.mocked(renderPageToCanvas).mockImplementation(async () => ({ width: 800, height: 1000, getContext: () => null, toDataURL: () => 'data:image/png;base64,AAAA' }) as never); // forced, in every test: a painted page with no readable pixels (getContext is null), so the ink read finds nothing and no test here reads ink
   reportError.mockClear();
   reportToolLifecycleEvent.mockClear();
   window.print = vi.fn();

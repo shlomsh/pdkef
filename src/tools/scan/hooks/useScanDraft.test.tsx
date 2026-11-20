@@ -78,7 +78,7 @@ describe('useScanDraft', () => {
     host = document.createElement('div');
     document.documentElement.setAttribute('data-draft-hint', '');
     vi.mocked(saveDraft).mockClear();
-    vi.mocked(loadDraft).mockClear();
+    vi.mocked(loadDraft).mockReset();
     vi.mocked(deleteDraft).mockClear();
     vi.mocked(clearCurrentEntry).mockClear();
     mocks.report.mockClear();
@@ -104,9 +104,12 @@ describe('useScanDraft', () => {
 
   it('ignores the record when a pick landed before the load resolved', async () => {
     await seedScan();
+    let release: () => void = () => {};
+    const held = new Promise<void>((r) => { release = r; });
+    vi.mocked(loadDraft).mockImplementationOnce(async (tool) => { await held; return (await vi.importActual<typeof import('#lib/drafts/draftStore.ts')>('#lib/drafts/draftStore.ts')).loadDraft(tool); }); // forced: the store's read is held open, then runs for real
     await show([]);
-    // The store's read is still in flight: nothing has resolved yet when the pick lands.
     work.pages = [page('picked.jpg')];
+    release();
     await restoreChecked();
     expect(restorePages).not.toHaveBeenCalled();
   });

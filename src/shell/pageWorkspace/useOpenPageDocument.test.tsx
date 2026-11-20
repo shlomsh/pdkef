@@ -83,7 +83,7 @@ describe('useOpenPageDocument', () => {
     // A file whose catalog lost its page list: the real loader repairs it and says so.
     const f = new File([noPagesKey() as BlobPart], 'a.pdf', { type: 'application/pdf' });
     await act(async () => { current.open(f); });
-    await waitUntil(() => onLoaded.mock.calls.length === 1);
+    await waitUntil(() => current.loadStatus === 'idle' && current.pageCount > 0);
     await flush();
     expect((await vi.mocked(loadPdfWithPages).mock.results[0].value).repaired).toBe(true);
     expect(current.workingFile).not.toBe(f);
@@ -94,7 +94,7 @@ describe('useOpenPageDocument', () => {
   it('lands an encrypted file in the unlock state without opening it', async () => {
     mount();
     await act(async () => { current.open(fixture('needs-password')); });
-    await waitUntil(() => current.needsUnlock !== null || onLoaded.mock.calls.length > 0); // either way the open has finished
+    await waitUntil(() => current.needsUnlock !== null);
     await flush();
     expect(current.needsUnlock?.kind).toBe('needs-password');
     expect(current.loadStatus).toBe('idle');
@@ -106,7 +106,7 @@ describe('useOpenPageDocument', () => {
   it('lets an owner-restricted file through when the tool does not gate on it', async () => {
     mount({ unlockKinds: ['needs-password'] });
     await act(async () => { current.open(fixture('owner-only')); });
-    await waitUntil(() => onLoaded.mock.calls.length === 1);
+    await waitUntil(() => current.loadStatus === 'idle' && current.pageCount > 0);
     await flush();
     await expect(vi.mocked(probeEncryption).mock.results[0].value).resolves.toBe('owner-restricted');
     expect(current.needsUnlock).toBeNull();
@@ -115,15 +115,17 @@ describe('useOpenPageDocument', () => {
 
   it('drops a stale pick that resolves after a newer one', async () => {
     let releaseOld: (v: never) => void = () => {};
+    let oldReachedLoad: () => void = () => {};
+    const oldLoadStarted = new Promise<void>((r) => { oldReachedLoad = r; });
     // Forced: the older load is held back so the newer one can finish first; the newer pick loads for real.
-    vi.mocked(loadPdfWithPages).mockImplementationOnce(() => new Promise((r) => { releaseOld = r; }));
+    vi.mocked(loadPdfWithPages).mockImplementationOnce(() => new Promise((r) => { releaseOld = r; oldReachedLoad(); }));
     mount();
     const older = await pdfOfPages('old.pdf', 2);
     const newer = await pdfOfPages('new.pdf', 5);
     await act(async () => { current.open(older); });
-    await waitUntil(() => vi.mocked(loadPdfWithPages).mock.calls.length === 1);
+    await oldLoadStarted;
     await act(async () => { current.open(newer); });
-    await waitUntil(() => onLoaded.mock.calls.length === 1);
+    await waitUntil(() => current.file === newer && current.loadStatus === 'idle' && current.pageCount === 5);
     await act(async () => { releaseOld({ pageCount: 99, bytes: new ArrayBuffer(1), repaired: false } as never); });
     await flush();
     expect(current.file).toBe(newer);
@@ -134,14 +136,16 @@ describe('useOpenPageDocument', () => {
 
   it('drops a probe result that lands after a newer pick', async () => {
     let releaseOld: (v: never) => void = () => {};
+    let oldReachedProbe: () => void = () => {};
+    const oldProbeStarted = new Promise<void>((r) => { oldReachedProbe = r; });
     // Forced: the first probe is held back, to land after the newer pick has finished.
-    vi.mocked(probeEncryption).mockImplementationOnce(() => new Promise((r) => { releaseOld = r; }));
+    vi.mocked(probeEncryption).mockImplementationOnce(() => new Promise((r) => { releaseOld = r; oldReachedProbe(); }));
     mount();
     const newer = await pdfOfPages('new.pdf', 2);
     await act(async () => { current.open(await pdfOfPages('old.pdf', 2)); });
-    await waitUntil(() => vi.mocked(probeEncryption).mock.calls.length === 1);
+    await oldProbeStarted;
     await act(async () => { current.open(newer); });
-    await waitUntil(() => onLoaded.mock.calls.length === 1);
+    await waitUntil(() => current.file === newer && current.loadStatus === 'idle' && current.pageCount === 2);
     await act(async () => { releaseOld('needs-password' as never); });
     await flush();
     expect(current.file).toBe(newer);
@@ -156,9 +160,13 @@ describe('useOpenPageDocument', () => {
     await act(async () => { current.open(new File(['this is not a pdf'], 'x.pdf', { type: 'application/pdf' })); });
     await waitUntil(() => current.loadStatus === 'error');
     await flush();
-    const boom = await vi.mocked(loadPdfWithPages).mock.results[0].value.catch((e: unknown) => e);
-    expect(boom).toBeInstanceOf(Error);
-    expect(mocks.report).toHaveBeenCalledWith('pdf_tool_run', boom, 'load_document');
+    // The literal message pdf.js raises for a file with no header, captured once from the real run.
+    expect(mocks.report).toHaveBeenCalledTimes(1);
+    expect(mocks.report).toHaveBeenCalledWith(
+      'pdf_tool_run',
+      expect.objectContaining({ name: 'Error', message: 'Failed to parse PDF document (line:0 col:34 offset=17): No PDF header found' }),
+      'load_document',
+    );
     expect(current.loadStatus).toBe('error');
     expect(announce).toHaveBeenLastCalledWith('failed');
   });
@@ -166,9 +174,9 @@ describe('useOpenPageDocument', () => {
   it('records a replacement when a file is already open', async () => {
     mount();
     await act(async () => { current.open(await pdfOfPages('a.pdf', 1)); });
-    await waitUntil(() => onLoaded.mock.calls.length === 1);
+    await waitUntil(() => current.file?.name === 'a.pdf' && current.loadStatus === 'idle' && current.pageCount === 1);
     await act(async () => { current.open(await pdfOfPages('b.pdf', 1)); });
-    await waitUntil(() => onLoaded.mock.calls.length === 2);
+    await waitUntil(() => current.file?.name === 'b.pdf' && current.loadStatus === 'idle' && current.pageCount === 1);
     await flush();
     expect(recentActions().at(-1)).toMatch(/replace_file/);
   });

@@ -175,6 +175,7 @@ describe('DriveOpen', () => {
     act(() => render(<DriveOpen />, container));
     await flush();
     expect(chooserShown(container)).toBe(true);
+    expect(container.textContent).toContain('Your file is on its way.');
     expect(container.textContent).not.toContain('a.pdf');
 
     arrive(PDF);
@@ -205,6 +206,7 @@ describe('DriveOpen', () => {
     act(() => render(<DriveOpen />, container));
     await flush();
     expect(chooserShown(container)).toBe(true);
+    expect(container.textContent).toContain('Your file is on its way.');
 
     arrive({ ok: false, error: 'unauthorized' });
     await flush();

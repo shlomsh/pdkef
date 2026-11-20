@@ -81,6 +81,37 @@ describe('loadPdf lifecycle', () => {
     expect(shared.setStatus).toHaveBeenLastCalledWith('editing');
   });
 
+  it('drops and releases a superseded load whose document arrives after the replacement', async () => {
+    const gate = Promise.withResolvers<void>();
+    let parsed: Promise<unknown> | undefined;
+    // A real loading task whose parsed document is handed over only once `gate` opens, as a load that settles late does.
+    const holdOpen = (task: ReturnType<typeof pdfjs.getDocument>) => {
+      parsed = task.promise;
+      Object.defineProperty(task, 'promise', { value: task.promise.then((doc) => gate.promise.then(() => doc)) });
+      return task;
+    };
+    vi.mocked(getPdfjs).mockImplementationOnce(async () => ({ ...legacyPdfjs(), getDocument: (p: never) => holdOpen(legacyPdfjs().getDocument(p)) }) as never); // forced: the first load's document arrives late
+    const shared = options({ bytes: toBuffer(await buildPdf([page(['first']), page(['second'])])) });
+    const first = loadPdf(shared);
+    await vi.waitUntil(() => parsed !== undefined);
+    await parsed; // pdf.js has really parsed the first file; only its hand-over to loadPdf is still held
+    const second = loadPdf({ ...shared, bytes: toBuffer(plainBytes), file: new File(['%PDF-1.4'], 'replacement.pdf', { type: 'application/pdf' }) });
+    await second;
+    expect(shared.onDocument).toHaveBeenCalledTimes(1);
+    const [secondDocument] = shared.onDocument.mock.calls[0];
+    expect(secondDocument.numPages).toBe(1);
+
+    gate.resolve();
+    await first;
+    await drainPromises();
+
+    expect(shared.onDocument).toHaveBeenCalledTimes(1);
+    expect(shared.onDocument.mock.calls[0][0]).toBe(secondDocument);
+    expect(openedTasks[0].destroyed).toBe(true);
+    expect(openedTasks[1].destroyed).toBe(false);
+    expect(shared.setStatus).toHaveBeenLastCalledWith('editing');
+  });
+
   it('destroys the active document when its owner unmounts', async () => {
     const config = options();
 

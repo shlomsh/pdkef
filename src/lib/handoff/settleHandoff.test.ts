@@ -31,7 +31,9 @@ describe('settleHandoff', () => {
     const [entry] = readRecentFiles();
     expect(entry).toMatchObject({ tool: 'sign', fileName: 'a.pdf', fileType: 'application/pdf' });
     expect(entry.preview).toBeUndefined();
-    expect((await loadRecentFile(entry.id))?.fileType).toBe('application/pdf');
+    const stored = await loadRecentFile(entry.id);
+    expect(stored?.fileType).toBe('application/pdf');
+    expect(new Uint8Array(stored!.fileBytes!)).toEqual(new Uint8Array(bytes()));
     expect(await peekHandoff('sign')).toBeNull();
   });
 

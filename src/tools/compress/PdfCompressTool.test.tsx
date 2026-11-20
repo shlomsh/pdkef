@@ -11,16 +11,16 @@ import * as compressImageLib from './lib/compressImage.js';
 import * as imagesLib from './lib/compressImages.js';
 import { mockNativeFileShare } from '../../test/support/mockFileShare.js';
 import { setInputFiles } from '../../test/support/setInputFiles.js';
-import { analyzePdf } from './lib/analyzePdf.js';
+import { openPdfDoc } from '#lib/pdf/openPdfDoc.ts';
 import { recentActions } from '#lib/telemetry/actionTrail.ts';
 import { installToolHarness } from '../../test/harness/toolHarness.ts';
 import { waitUntil } from '../../test/support/waitUntil.ts';
 import { drainPromises } from '../../test/support/drainPromises.ts';
 import { ANALYSIS_SHAPES, buildAnalysisPdf } from '../../test/support/analysisPdfFixtures.ts';
 
-// The analysis of the picked PDF runs for real; the spy only counts the calls, so a test can learn that a stale
-// analysis was started (after which the hook has either applied the result or dropped it).
-vi.mock('./lib/analyzePdf.js', { spy: true });
+// The analysis of the picked PDF runs for real; the spy lets a test await the real open of a file, so it learns
+// that a stale analysis has got as far as its result (the hook then either applies it or drops it).
+vi.mock('#lib/pdf/openPdfDoc.ts', { spy: true });
 
 // Tests that are not about timing build 5ms after the last change instead of 1.5s.
 const FAST_QUIET = { baseMs: 5, stepMs: 0, maxMs: 5, burstWindowMs: 1 };
@@ -1181,10 +1181,12 @@ describe('PdfCompressTool UI flow', () => {
       await act(async () => { await held.promise; });
       // A's analysis is still pending; B arrives and is analysed (images present). A cannot finish before it is
       // released, so the second analysis from here on is A's, whether the hook then applies or drops it.
-      const analysesBefore = vi.mocked(analyzePdf).mock.calls.length;
       await pick(makePdfFile('b.pdf', 5000));
       releaseA();
-      await waitUntil(() => expect(vi.mocked(analyzePdf).mock.calls.length).toBeGreaterThanOrEqual(analysesBefore + 2));
+      // A's analysis starts from its own real open of the file: once that has resolved, only the synchronous
+      // analysis and the hook's drop-or-apply step are left, which the drain below runs through.
+      const aOpened = vi.mocked(openPdfDoc).mock.calls.findIndex(([opened]) => opened === a);
+      await vi.mocked(openPdfDoc).mock.results[aOpened].value;
       await act(async () => { await drainPromises(); });
 
       // B has an image, A's (image-free) result must not leak onto it.

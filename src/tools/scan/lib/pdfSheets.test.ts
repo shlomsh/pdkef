@@ -8,17 +8,19 @@ import { FULL_QUAD } from './quad.ts';
 import { assess } from '#lib/pageEnhance/plan.ts';
 import { onThePaper } from './sheetCorners.ts';
 
-// What textTurn would say about a sideways sheet: the synthetic bars are no text, so a tall picture of a wide
-// sheet is declared sideways here (a forced state the real read cannot give) and everything else is the real assess.
-let nextTurn = () => 1;
 vi.mock('#lib/pageEnhance/plan.ts', { spy: true });
 vi.mock('./sheetCorners.ts', { spy: true });
 const actualPlan = await vi.importActual<typeof import('#lib/pageEnhance/plan.ts')>('#lib/pageEnhance/plan.ts');
 
+/** What textTurn would say about a sideways sheet: the synthetic bars are no text, so a tall picture of a wide sheet
+ * is declared sideways (a state the real read cannot give) and everything else is the real assess. Only the tests that
+ * need a turn force it, each on its own line. */
+const askingForTurn = (nextTurn: () => number) => (gray: GrayImage, book?: Book) => ({ ...actualPlan.assess(gray, book), ...(gray.height === 800 && gray.width === 560 ? { turn: nextTurn() } : {}) });
+
 // Edge following is the real one; the spy shows whether it ran, and a test that names what it does to the planned corners forces just that.
 beforeEach(() => {
-  vi.mocked(assess).mockImplementation((gray: GrayImage, book?: Book) => ({ ...actualPlan.assess(gray, book), ...(gray.height === 800 && gray.width === 560 ? { turn: nextTurn() } : {}) }));
-  vi.mocked(onThePaper).mockClear();
+  vi.mocked(assess).mockReset();
+  vi.mocked(onThePaper).mockReset();
 });
 afterEach(() => {
   vi.mocked(assess).mockReset();
@@ -193,7 +195,7 @@ describe('pdfSheets', () => {
     // Forced: the followed edge sits a little outside each planned corner, in the picture's own 0 to 1.
     const outward = (planned: Quad) => planned.map((p) => ({ x: p.x + (p.x < 0.5 ? -0.02 : 0.02), y: p.y + (p.y < 0.5 ? -0.02 : 0.02) })) as Quad;
     let planned: Quad | undefined;
-    vi.mocked(onThePaper).mockImplementation((q) => { planned = q; return outward(q); });
+    vi.mocked(onThePaper).mockImplementation((q) => { planned = q; return outward(q); }); // forced: edge following lands outside each planned corner
     const r = reader(photo);
     const [moved] = await collect(pdfSheets(pdf, undefined, r));
     expect(moved.quads[0]).not.toEqual(plain.quads[0]);
@@ -209,6 +211,7 @@ describe('pdfSheets', () => {
     const [whole] = await collect(pdfSheets(pdf, undefined, reader(() => blank(600, 800))));
     expect(whole.quads).toHaveLength(1);
     // A read that still asks for a turn after two is not trusted: the sheet is one page.
+    vi.mocked(assess).mockImplementation(askingForTurn(() => 1)); // forced: a read that keeps asking for a quarter turn
     const [unsure] = await collect(pdfSheets(pdf, undefined, reader(() => blank(560, 800))));
     expect(unsure.quads).toHaveLength(1);
   });
@@ -236,20 +239,18 @@ describe('pdfSheets', () => {
   });
 
   it('redraws a sheet by the turns its read asks for, not always the same one', async () => {
-    nextTurn = () => 3;
+    vi.mocked(assess).mockImplementation(askingForTurn(() => 3)); // forced: the read asks for three quarter turns
     const r = reader((turns) => (turns === 0 ? turnedAside(spread(800, 560)) : spread(800, 560)));
     const [sheet] = await collect(pdfSheets(pdf, undefined, r));
-    nextTurn = () => 1;
     expect(r.calls.jpeg[0][2]).toBe(3);
     expect(sheet.quads).toHaveLength(2);
   });
 
   it('keeps a spread split when the read after the first turn says it is upside down', async () => {
     const asks = [1, 2];
-    nextTurn = () => asks.shift() ?? 0;
+    vi.mocked(assess).mockImplementation(askingForTurn(() => asks.shift() ?? 0)); // forced: the first read asks for 1 turn, the second for 2, then none
     const r = reader((turns) => (turns === 3 ? spread(800, 560) : turnedAside(spread(800, 560))));
     const [sheet] = await collect(pdfSheets(pdf, undefined, r));
-    nextTurn = () => 1;
     expect(r.calls.gray.map((c) => c[2])).toEqual([0, 1, 3]);
     expect(sheet.quads).toHaveLength(2);
   });
@@ -257,6 +258,7 @@ describe('pdfSheets', () => {
   it('redraws a sideways sheet turned, and plans from the upright read', async () => {
     // Turned a quarter, the spread reads upright; at no turn the same sheet is its sideways picture.
     const sideways = (turns: number) => (turns === 0 ? turnedAside(spread(800, 560)) : spread(800, 560));
+    vi.mocked(assess).mockImplementation(askingForTurn(() => 1)); // forced: the sideways picture reads as needing one quarter turn
     const r = reader(sideways);
     const [sheet] = await collect(pdfSheets(pdf, undefined, r));
     expect(r.calls.gray.map((c) => c[2])).toEqual([0, 1]);

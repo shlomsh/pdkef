@@ -24,7 +24,7 @@ describe('PdfPageCanvas renders at the size the page is shown', () => {
   let doc: PDFDocumentProxy;
 
   beforeEach(() => {
-    vi.mocked(getPdfRenderContext).mockReturnValue({ drawImage: vi.fn() } as unknown as CanvasRenderingContext2D);
+    vi.mocked(getPdfRenderContext).mockReturnValue({ drawImage: vi.fn() } as unknown as CanvasRenderingContext2D); // forced, every test: jsdom has no 2D context
     shownWidth = 790;
     observers = [];
     scales = [];

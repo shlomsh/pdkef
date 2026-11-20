@@ -52,11 +52,12 @@ async function textOf(data: Uint8Array): Promise<string> {
 /** A pdf.js whose documents record the bytes they were opened from and can be destroyed. */
 function recordingPdfjs() {
   const opened: Array<{ destroy: ReturnType<typeof vi.fn>; data: Uint8Array }> = [];
-  const getDocument = (opts: { data: Uint8Array }) => {
+  // A pdf.js stand-in whose document has destroy(); real 6.5 documents do not (RED-75), so this test pins the intended release until RED-75 lands.
+  const getDocument = vi.fn((opts: { data: Uint8Array }) => {
     const proxy = { destroy: vi.fn(), data: opts.data };
     opened.push(proxy);
     return { promise: Promise.resolve(proxy) };
-  };
+  });
   return { opened, lib: { getDocument } as never };
 }
 
@@ -89,6 +90,7 @@ describe('useDeletePreviews', () => {
     const a = await fileWithFirstLineDeleted(['Alpha one', 'Alpha two']);
     const b = await fileWithFirstLineDeleted(['Bravo one', 'Bravo two']);
     expect(b.elements).toEqual(a.elements);
+    const load = vi.spyOn(PDFDocument, 'load'); // spy-through, after the files above were made
 
     // Step 1: file A builds a page-0 preview from A's bytes.
     mount(a.fileBytes, a.elements, onPreviews);
@@ -108,6 +110,8 @@ describe('useDeletePreviews', () => {
 
     expect(proxyA.destroy).toHaveBeenCalledOnce();
     expect(buildDeletePreviewPage).toHaveBeenCalledTimes(2);
+    expect(load).toHaveBeenCalledTimes(2);
+    expect(load.mock.calls[1][0]).not.toBe(load.mock.calls[0][0]);
     const proxyB = latest.get(0);
     expect(proxyB).toBeDefined();
     expect(proxyB).not.toBe(proxyA);
@@ -129,8 +133,8 @@ describe('useDeletePreviews', () => {
     let latest: any = null;
     const onPreviews = (p: unknown) => { latest = p; };
     mount(fileBytes, elements, onPreviews);
-    await waitUntil(() => expect(load).toHaveBeenCalledTimes(1), { timeout: 3000 });
-    await vi.mocked(load).mock.results[0].value.catch(() => {});
+    // The hook's own answer to the failed read is its console message, so wait for that.
+    await waitUntil(() => expect(console.error).toHaveBeenCalled(), { timeout: 3000 });
     await act(async () => { await drainPromises(); });
     expect(latest.size).toBe(0);
 
@@ -150,18 +154,22 @@ describe('useDeletePreviews', () => {
     const actual = await vi.importActual<typeof import('../lib/deleteObjects.js')>('../lib/deleteObjects.js');
     const { fileBytes, elements } = await fileWithFirstLineDeleted(['Alpha one', 'Alpha two']);
     const onPreviews = () => {};
-    // Forced timing: the tool closes right after the page is rewritten and before pdf.js has parsed it
-    // (an unmount runs the effect's cleanup at once), so that rebuild is cancelled while its parse is open.
+    let cancelledRebuild!: () => void;
+    const cancelled = new Promise<void>((resolve) => { cancelledRebuild = resolve; });
+    // Forced timing: the marks change right after the page is rewritten and before pdf.js has parsed it,
+    // so that rebuild is cancelled while its parse is open.
     vi.mocked(buildDeletePreviewPage).mockImplementationOnce(async (...args) => {
       const built = await actual.buildDeletePreviewPage(...args);
-      render(null, container!);
+      act(() => { render(h(Harness, { fileBytes, elements: [], onPreviews }), container!); });
+      cancelledRebuild();
       return built;
     });
     mount(fileBytes, elements, onPreviews);
-    await waitUntil(() => opened.length === 1);
+    await cancelled;
 
     // pdf.js finished that parse after the cancel: its handle is destroyed, not leaked.
-    await waitUntil(() => expect(opened[0].destroy).toHaveBeenCalledOnce(), { timeout: 2000 });
+    await act(async () => { await drainPromises(); });
+    expect(opened[0].destroy).toHaveBeenCalledOnce();
   });
 });
 

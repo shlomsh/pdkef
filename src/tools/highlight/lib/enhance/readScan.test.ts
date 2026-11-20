@@ -3,14 +3,14 @@ import type { PDFDocumentProxy } from 'pdfjs-dist';
 import { leaning } from '#lib/pageEnhance/leaning.test-helper.ts';
 
 import { renderPageToCanvas } from '#lib/pdf/renderPage.js';
-import { getPdfjs } from '#lib/pdf/loadPdfjs.js';
+import * as pdfjs from 'pdfjs-dist/legacy/build/pdf.mjs';
 import { assess } from '#lib/pageEnhance/plan.ts';
 import { readScan } from './readScan.ts';
 
-// Spy-through: pdf.js loads for real, so the operator codes the reader looks up are pdf.js's own.
+// The operator codes the reader looks up are pdf.js's own, taken from the legacy (node) build, a constant table.
 vi.mock('#lib/pdf/loadPdfjs.js', { spy: true });
 vi.mock('#lib/pdf/renderPage.js', { spy: true });
-const { OPS } = await getPdfjs();
+const { OPS } = pdfjs;
 
 const W = 800;
 const H = 500;

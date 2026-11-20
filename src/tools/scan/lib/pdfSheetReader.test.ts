@@ -55,10 +55,13 @@ describe('openPdfSheetReader', () => {
     expect(await reader.rightToLeft(1)).toBe(null);
     const gray = await reader.grayOf(2, 1000, 1);
     expect(drawn.at(-1)).toMatchObject({ rotation: 180 });
+    expect(drawn.at(-1)?.page.pageNumber).toBe(2);
+    expect(drawn.at(-1)?.page.rotate).toBe(90);
     expect(gray.data.length).toBe(gray.width * gray.height);
     const jpeg = await reader.jpegOf(2, 3200, 0, { left: 0, top: 0, right: 0, bottom: 0 });
     expect(jpeg.blob.type).toBe('image/jpeg');
     expect(drawn.at(-1)).toMatchObject({ rotation: 90 });
+    expect(drawn.at(-1)?.page.pageNumber).toBe(2);
     reader.close();
     expect(destroy).toHaveBeenCalled();
   });

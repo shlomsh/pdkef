@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { PDFArray, PDFDict, PDFDocument, PDFName, PDFNumber, PDFString } from '@cantoo/pdf-lib';
-import { boundsOf, fixed, serializeHighlight, textCorners } from './highlightPdf.ts';
-import { sketchBands, sketchUnderline, strokeSeed, type PathOp } from '../geometry/sketchStroke.ts';
+import { serializeHighlight, textCorners } from './highlightPdf.ts';
+import { sketchBands, sketchUnderline } from '../geometry/sketchStroke.ts';
 import type { HighlightElement } from '../model/editorModel.ts';
 
 // READ-11: spy-through, the real sketch functions run and the spies show what the writer handed them.
@@ -246,15 +246,17 @@ describe('serializeHighlight: READ-11 sketched stroke', () => {
       .toBe('/GS gs\n3 w 0.722 0.686 0.216 RG\n20 82.5 m 120 82.5 l S');
   });
 
-  // The real sketch ops (y down, editor space) mapped to user space the way the file stores them: y negated back.
+  // The one band the writer hands the sketch functions, and the seed for the id 'h'; the paths below are the
+  // real output of the real sketch functions for them (content stream tail, fill operator included), captured once.
   const BAND = [{ x: 20, y: -90, w: 100, h: 10 }];
-  const stream = (ops: readonly PathOp[]) => ops.map((op) => (op[0] === 'Z' ? 'h' : `${op.slice(1).map((v, i) => fixed(i % 2 === 0 ? (v as number) : -(v as number))).join(' ')} ${op[0] === 'M' ? 'm' : 'c'}`)).join(' ');
-  const pointsOf = (ops: readonly PathOp[]) => ops.flatMap((op) => (op[0] === 'Z' ? [] : Array.from({ length: (op.length - 1) / 2 }, (_, i) => [op[1 + 2 * i] as number, -(op[2 + 2 * i] as number)] as [number, number])));
+  const SEED = 3977000791;
+  const HIGHLIGHT_STREAM = "17.31 79.35 m 17.05 79.68 17.01 80.34 16.94 81.21 c 16.87 82.07 16.66 83.45 16.9 84.55 c 17.13 85.65 17.85 86.96 18.34 87.8 c 18.83 88.65 19.38 89.28 19.83 89.61 c 20.29 89.94 20.18 89.73 21.07 89.78 c 21.96 89.82 23.82 89.85 25.19 89.87 c 26.56 89.89 27.93 89.89 29.31 89.89 c 30.68 89.89 32.05 89.87 33.42 89.87 c 34.8 89.87 36.17 89.86 37.54 89.87 c 38.92 89.89 40.29 89.92 41.66 89.97 c 43.03 90.02 44.41 90.13 45.78 90.17 c 47.15 90.21 48.52 90.21 49.9 90.21 c 51.27 90.2 52.64 90.15 54.01 90.15 c 55.39 90.15 56.76 90.2 58.13 90.21 c 59.5 90.22 60.88 90.19 62.25 90.21 c 63.62 90.23 65 90.26 66.37 90.31 c 67.74 90.36 69.11 90.49 70.49 90.51 c 71.86 90.53 73.23 90.45 74.6 90.44 c 75.98 90.43 77.35 90.43 78.72 90.44 c 80.09 90.45 81.47 90.47 82.84 90.49 c 84.21 90.51 85.58 90.53 86.96 90.57 c 88.33 90.6 89.7 90.68 91.08 90.69 c 92.45 90.7 93.82 90.64 95.19 90.61 c 96.57 90.59 97.94 90.55 99.31 90.54 c 100.68 90.52 102.06 90.55 103.43 90.54 c 104.8 90.53 106.17 90.5 107.55 90.48 c 108.92 90.46 110.29 90.44 111.67 90.42 c 113.04 90.41 114.41 90.38 115.78 90.41 c 117.16 90.44 118.53 90.6 119.9 90.6 c 121.27 90.61 123.14 90.5 124.02 90.44 c 124.9 90.38 124.93 90.59 125.18 90.25 c 125.43 89.91 125.49 89.21 125.52 88.41 c 125.56 87.6 125.61 86.43 125.38 85.42 c 125.15 84.4 124.6 83.13 124.15 82.32 c 123.69 81.52 123.11 80.9 122.66 80.58 c 122.2 80.26 122.31 80.45 121.42 80.41 c 120.52 80.37 118.67 80.33 117.3 80.32 c 115.93 80.3 114.55 80.31 113.18 80.32 c 111.81 80.33 110.43 80.34 109.06 80.36 c 107.69 80.38 106.32 80.39 104.94 80.43 c 103.57 80.47 102.2 80.6 100.83 80.61 c 99.45 80.62 98.08 80.52 96.71 80.51 c 95.34 80.49 93.96 80.5 92.59 80.51 c 91.22 80.52 89.85 80.56 88.47 80.56 c 87.1 80.57 85.73 80.54 84.35 80.56 c 82.98 80.57 81.61 80.63 80.24 80.65 c 78.86 80.68 77.49 80.7 76.12 80.71 c 74.75 80.73 73.37 80.75 72 80.75 c 70.63 80.74 69.26 80.71 67.88 80.71 c 66.51 80.7 65.14 80.72 63.77 80.72 c 62.39 80.71 61.02 80.7 59.65 80.67 c 58.27 80.64 56.9 80.58 55.53 80.54 c 54.16 80.5 52.78 80.44 51.41 80.43 c 50.04 80.42 48.67 80.48 47.29 80.49 c 45.92 80.5 44.55 80.51 43.18 80.47 c 41.8 80.44 40.43 80.37 39.06 80.28 c 37.68 80.19 36.31 80.03 34.94 79.95 c 33.57 79.87 32.19 79.85 30.82 79.8 c 29.45 79.75 28.08 79.73 26.7 79.64 c 25.33 79.55 23.96 79.32 22.59 79.25 c 21.21 79.18 19.35 79.19 18.47 79.2 c 17.59 79.22 17.56 79.01 17.31 79.35 c h f";
+  const UNDERLINE_STREAM = "17.11 82.22 m 17.11 82.64 17.67 83.2 18.46 83.46 c 19.25 83.72 20.73 83.71 21.87 83.79 c 23.01 83.87 24.14 83.92 25.28 83.95 c 26.42 83.98 27.55 83.98 28.69 83.99 c 29.82 84 30.96 84.01 32.1 84.02 c 33.23 84.04 34.37 84.04 35.51 84.05 c 36.64 84.06 37.78 84.07 38.92 84.07 c 40.05 84.07 41.19 84.07 42.33 84.07 c 43.46 84.07 44.6 84.06 45.74 84.05 c 46.87 84.04 48.01 84.02 49.15 84.01 c 50.28 83.99 51.42 83.98 52.55 83.97 c 53.69 83.96 54.83 83.95 55.96 83.95 c 57.1 83.95 58.24 83.95 59.37 83.96 c 60.51 83.97 61.65 83.99 62.78 84.01 c 63.92 84.03 65.06 84.05 66.19 84.08 c 67.33 84.1 68.47 84.13 69.6 84.15 c 70.74 84.18 71.88 84.21 73.01 84.23 c 74.15 84.25 75.29 84.27 76.42 84.29 c 77.56 84.31 78.69 84.32 79.83 84.33 c 80.97 84.33 82.1 84.33 83.24 84.33 c 84.38 84.33 85.51 84.32 86.65 84.31 c 87.79 84.3 88.92 84.28 90.06 84.27 c 91.2 84.25 92.33 84.23 93.47 84.22 c 94.61 84.2 95.74 84.19 96.88 84.18 c 98.02 84.17 99.15 84.16 100.29 84.15 c 101.42 84.15 102.56 84.16 103.7 84.16 c 104.83 84.16 105.97 84.18 107.11 84.16 c 108.24 84.14 109.38 84.1 110.52 84.06 c 111.65 84.02 112.79 83.94 113.93 83.9 c 115.06 83.86 116.2 83.76 117.34 83.82 c 118.47 83.88 119.61 84.11 120.75 84.26 c 121.88 84.41 123.44 84.77 124.15 84.72 c 124.87 84.67 125.05 84.22 125.05 83.98 c 125.05 83.73 124.87 83.45 124.15 83.23 c 123.44 83.01 121.88 82.87 120.75 82.65 c 119.61 82.43 118.47 82.08 117.34 81.9 c 116.2 81.72 115.06 81.67 113.93 81.58 c 112.79 81.49 111.65 81.43 110.52 81.36 c 109.38 81.3 108.24 81.25 107.11 81.21 c 105.97 81.18 104.83 81.18 103.7 81.17 c 102.56 81.16 101.42 81.16 100.29 81.15 c 99.15 81.14 98.02 81.12 96.88 81.11 c 95.74 81.1 94.61 81.08 93.47 81.06 c 92.33 81.05 91.2 81.03 90.06 81.02 c 88.92 81 87.79 80.99 86.65 80.98 c 85.51 80.97 84.38 80.96 83.24 80.96 c 82.1 80.95 80.97 80.95 79.83 80.96 c 78.69 80.96 77.56 80.97 76.42 80.98 c 75.29 80.99 74.15 81.01 73.01 81.02 c 71.88 81.04 70.74 81.05 69.6 81.06 c 68.47 81.07 67.33 81.08 66.19 81.08 c 65.06 81.09 63.92 81.08 62.78 81.08 c 61.65 81.07 60.51 81.05 59.37 81.03 c 58.24 81.01 57.1 80.98 55.96 80.95 c 54.83 80.91 53.69 80.87 52.55 80.83 c 51.42 80.79 50.28 80.75 49.15 80.71 c 48.01 80.67 46.87 80.63 45.74 80.59 c 44.6 80.56 43.46 80.53 42.33 80.52 c 41.19 80.5 40.05 80.49 38.92 80.49 c 37.78 80.49 36.64 80.49 35.51 80.5 c 34.37 80.5 33.23 80.51 32.1 80.52 c 30.96 80.53 29.82 80.55 28.69 80.56 c 27.55 80.57 26.42 80.56 25.28 80.59 c 24.14 80.61 23.01 80.65 21.87 80.71 c 20.73 80.78 19.25 80.74 18.46 80.99 c 17.67 81.24 17.11 81.81 17.11 82.22 c h f";
 
   it('draws a sketched highlight as m, c, h and one trailing f, with no line-to', async () => {
     const { content } = await write({ ...element, stroke: 'sketch' });
-    expect(sketchBands).toHaveBeenCalledWith(BAND, strokeSeed('h'), 0);
-    expect(content).toBe(`/GS gs\n1 0.953 0.302 rg\n${stream(sketchBands(BAND, strokeSeed('h'), 0))} f`);
+    expect(sketchBands).toHaveBeenCalledWith(BAND, SEED, 0);
+    expect(content).toBe(`/GS gs\n1 0.953 0.302 rg\n${HIGHLIGHT_STREAM}`);
     expect(content).toMatch(/ m .* c .* h f$/);
     expect(content).not.toContain(' l ');
     expect(content.match(/\bf\b/g)).toHaveLength(1);
@@ -262,9 +264,9 @@ describe('serializeHighlight: READ-11 sketched stroke', () => {
 
   it('fills a sketched underline in the underline ink, with no stroke', async () => {
     const { content } = await write({ ...element, style: 'underline', stroke: 'sketch' });
-    expect(sketchUnderline).toHaveBeenCalledWith(BAND, strokeSeed('h'), 3, 0);
+    expect(sketchUnderline).toHaveBeenCalledWith(BAND, SEED, 3, 0);
     expect(content).toContain('0.722 0.686 0.216 rg');
-    expect(content).toBe(`/GS gs\n0.722 0.686 0.216 rg\n${stream(sketchUnderline(BAND, strokeSeed('h'), 3, 0))} f`);
+    expect(content).toBe(`/GS gs\n0.722 0.686 0.216 rg\n${UNDERLINE_STREAM}`);
     expect(content).not.toMatch(/RG|\bw\b|\bS\b/);
     expect(content).toMatch(/ c h f$/);
   });
@@ -272,7 +274,7 @@ describe('serializeHighlight: READ-11 sketched stroke', () => {
   it('grows the Rect and BBox to the path and leaves the quads as the text bands', async () => {
     const { rect, bbox, quad } = await write({ ...element, stroke: 'sketch' });
     // the quad is the text band, 20..120 by 80..90; the Rect is that band and every point of the real path
-    expect(rect).toEqual(boundsOf([[20, 80], [120, 90], ...pointsOf(sketchBands(BAND, strokeSeed('h'), 0))]));
+    expect(rect).toEqual([16.66, 79.01, 125.61, 90.7]);
     expect(rect[0]).toBeLessThanOrEqual(20);
     expect(rect[2]).toBeGreaterThanOrEqual(120);
     expect(bbox).toEqual(rect);

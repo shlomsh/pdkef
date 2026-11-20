@@ -37,13 +37,13 @@ describe('reportPageView (MEM-45)', () => {
   });
 
   it('sends the view without buckets when storage is unavailable', () => {
-    vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => { throw new Error('blocked'); });
+    vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => { throw new Error('blocked'); }); // forced: storage blocked (every key, this test only; restoreAllMocks in afterEach undoes it)
     reportPageView();
     expect(sendToSink).toHaveBeenCalledExactlyOnceWith({ name: 'page_viewed', properties: {} });
   });
 
   it('never throws', () => {
-    vi.mocked(readAndStampVisits).mockImplementationOnce(() => { throw new Error('storage'); });
+    vi.mocked(readAndStampVisits).mockImplementationOnce(() => { throw new Error('storage'); }); // forced: the visit lookup throws (this one call)
     expect(() => reportPageView()).not.toThrow();
   });
 });

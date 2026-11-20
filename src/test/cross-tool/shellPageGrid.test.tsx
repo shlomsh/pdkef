@@ -106,6 +106,7 @@ describe('PageGrid', () => {
 
   beforeEach(() => {
     wide = false;
+    vi.mocked(thumbnailsLib.openThumbnailSource).mockReset(); // a state forced in one test must not reach the next: the real source and a clean call history
     vi.mocked(getPdfjs).mockReset().mockImplementation(async () => legacyPdfjs() as never); // forced: the node build
     vi.mocked(renderPageToCanvas).mockReset().mockImplementation((async (page) => ({
       width: page.view[2],
@@ -313,10 +314,7 @@ describe('PageGrid', () => {
   it('gives a landscape page a fixed cell height and a width scaled to its aspect', async () => {
     // Forced: a source that cannot say its page sizes (a state a real one never reports), so the grid
     // falls back to the thumbnail's own size. The rest of the source is the real one.
-    vi.mocked(thumbnailsLib.openThumbnailSource).mockImplementation(async (file) => {
-      const real = await vi.importActual<typeof import('#lib/pdf/thumbnails.js')>('#lib/pdf/thumbnails.js');
-      return { ...(await real.openThumbnailSource(file)), aspects: async () => null };
-    });
+    vi.mocked(thumbnailsLib.openThumbnailSource).mockImplementationOnce(async (file) => ({ ...(await (await vi.importActual<typeof import('#lib/pdf/thumbnails.js')>('#lib/pdf/thumbnails.js')).openThumbnailSource(file)), aspects: async () => null })); // forced: the first file's source reports no page sizes
     mount();
     await act(async () => { observers.at(-1).intersect(['1:0']); });
     await waitFor(() => container.querySelectorAll('[data-thumb-box] img').length === 1);

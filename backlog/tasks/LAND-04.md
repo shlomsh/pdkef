@@ -48,9 +48,18 @@ count). The rule is off on `landmines-all` meanwhile.
   run for real; Drive's network stays for the MSW wave. Image to PDF went from 15 to 20: its hidden build
   gate is now five visible forced lines. Never caught, before or after: `useDraftPersistence` dropping
   `isCancelled()` (it only fires on unmount), and Split's guard before the load in DEBT-18.
-- Seen while running it, on battery: the round's 27 files together time out in the first heavy test of
-  Split, To Image, `pageGridTools` and `draftRestoreRace` (about 25 s each), while the start commit
-  passed once. Alone, Split's old file failed 3 runs in 4 and the new one 1 in 4; To Image passed every
-  run in both. Recheck plugged in before landing.
+- The round 3 timeouts were the Mac in maintenance sleep (lid closed on battery), not the rewrites:
+  awake, the round's 27 files pass together in about 6 s, twice.
+- Fresh review of wave 1 (2026-11-20), three rounds by reviewers with no shared context: about 35
+  findings, fixed in one round, each loss proved by mutation first. Restored or closed: PrintSheets'
+  render counts, the swipe's dispatch order, Highlight's outline wait, the scan-offer and Scan draft
+  races, PDF loading's stale-success guard, the draft-restore "loaded once" and arrival-mark checks,
+  the hand-off's save-before-navigate hold, page-edit progress scaling, stored hand-off bytes, the
+  damaged-PDF error, Drive's arriving state; literals in place of self-checking expectations; a
+  forced thumbnail state that leaked across tests; spy polls replaced by state or real promises.
+  Never caught before or after, now caught: drawing the wrong scan page, an unreadable preview page,
+  Highlight's open outline. Scan's "could not open" test had passed only because the shipped pdf.js
+  loader fails in tests; it now fails on the bytes. 1,479 to 1,488: the added sites are visible
+  forced lines that replaced hidden ones.
 - Found on the way: RED-75 (preview documents never freed on pdf.js 6.5), RED-76 (one very long line
   overflows the text preview).

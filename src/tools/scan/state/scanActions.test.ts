@@ -13,8 +13,8 @@ vi.mock('#lib/telemetry/actionTrail.ts', () => ({ recordAction: vi.fn() }));
 vi.mock('#lib/telemetry/productAnalytics.ts', () => ({ reportEdit: vi.fn() }));
 vi.mock('#lib/telemetry/errorReport.ts', () => ({ reportError: vi.fn() }));
 // EDGE: the real pipeline decodes photos on canvases, which node does not have. The real loader runs and
-// hands out this spied module; each test forces what a photo's read gives (the answers below), and the spies
-// show what the actions asked of it.
+// hands out this spied module; the spies show what the actions asked of it. What a photo's read gives is
+// forced line by line, each with its own comment.
 vi.mock('../lib/scanPipeline.ts', { spy: true });
 import { guessPage, splitQuads, tracePage } from '../lib/scanPipeline.ts';
 
@@ -39,10 +39,13 @@ function setup(pages: ScanPage[], extra: Record<string, unknown> = {}) {
 
 beforeEach(() => {
   vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => {});
-  // Reset to the forced default: a photo's read gives nothing unless a test says what it finds.
-  vi.mocked(guessPage).mockReset().mockResolvedValue(null);
-  vi.mocked(splitQuads).mockReset().mockResolvedValue(null as never);
-  vi.mocked(tracePage).mockReset().mockResolvedValue(null as never);
+  vi.mocked(guessPage).mockReset();
+  vi.mocked(splitQuads).mockReset();
+  vi.mocked(tracePage).mockReset();
+  // forced, applies to EVERY test: a photo's read gives nothing (the real one needs a canvas) unless a test says what it finds
+  vi.mocked(guessPage).mockResolvedValue(null);
+  vi.mocked(splitQuads).mockResolvedValue(null as never); // forced, every test: as above
+  vi.mocked(tracePage).mockResolvedValue(null as never); // forced, every test: as above
   vi.mocked(recordAction).mockClear();
   vi.mocked(reportError).mockClear();
 });
@@ -53,7 +56,7 @@ describe('createPageActions', () => {
     it('makes what it finds the person\'s corners', async () => {
       const page = newPage(photo(), 'document');
       const { ctx, pagesNow } = setup([page]);
-      vi.mocked(guessPage).mockResolvedValue(QUAD);
+      vi.mocked(guessPage).mockResolvedValue(QUAD); // forced: the photo's read finds the page
       createPageActions(ctx).findPage(page);
       await flush();
       expect(ctx.dispatch.mock.calls.map((c) => c[0].type)).toEqual(['findStarted', 'findEnded', 'findFound']);
@@ -63,7 +66,7 @@ describe('createPageActions', () => {
     it('clears pins placed with the old corners', async () => {
       const page = { ...newPage(photo(), 'document'), pins: PINS };
       const { ctx, pagesNow } = setup([page]);
-      vi.mocked(guessPage).mockResolvedValue(QUAD);
+      vi.mocked(guessPage).mockResolvedValue(QUAD); // forced: the photo's read finds the page
       createPageActions(ctx).findPage(page);
       await flush();
       expect(pagesNow()[0]).toMatchObject({ quad: QUAD, pins: null });
@@ -71,7 +74,8 @@ describe('createPageActions', () => {
     it('says so when nothing is found, and when the search fails', async () => {
       const page = newPage(photo(), 'document');
       const { ctx } = setup([page]);
-      vi.mocked(guessPage).mockResolvedValueOnce(null).mockRejectedValueOnce(new Error('boom'));
+      vi.mocked(guessPage).mockResolvedValueOnce(null); // forced: the first search finds nothing
+      vi.mocked(guessPage).mockRejectedValueOnce(new Error('boom')); // forced: the second search fails
       createPageActions(ctx).findPage(page);
       await flush();
       createPageActions(ctx).findPage(page);
@@ -100,7 +104,7 @@ describe('createPageActions', () => {
     it('keeps corners the person moved while the guess waited', async () => {
       const page = newPage(photo(), 'document');
       const { ctx, pagesNow } = setup([page]);
-      vi.mocked(guessPage).mockResolvedValue(QUAD);
+      vi.mocked(guessPage).mockResolvedValue(QUAD); // forced: the photo's read finds the page
       createPageActions(ctx).findPage(page);
       ctx.setPages((current: ScanPage[]) => current.map((p) => ({ ...p, quad: MOVED, edited: true })));
       await flush();
@@ -109,7 +113,7 @@ describe('createPageActions', () => {
     it('does nothing once the island is gone', async () => {
       const page = newPage(photo(), 'document');
       const { ctx } = setup([page], { unmountedRef: { current: true } });
-      vi.mocked(guessPage).mockResolvedValue(QUAD);
+      vi.mocked(guessPage).mockResolvedValue(QUAD); // forced: the photo's read finds the page
       createPageActions(ctx).findPage(page);
       await flush();
       expect(ctx.dispatch).toHaveBeenCalledTimes(1);
@@ -123,21 +127,21 @@ describe('createPageActions', () => {
       const { ctx, work } = setup([page]);
       const preview = new Blob(['p']);
       work.previewBlobs.set(page.id, preview);
-      vi.mocked(tracePage).mockResolvedValue(SIDES);
+      vi.mocked(tracePage).mockResolvedValue(SIDES); // forced: the trace reads these sides
       await expect(createPageActions(ctx).traceCorners(page.id, QUAD)).resolves.toBe(SIDES);
       expect(tracePage).toHaveBeenCalledWith(preview, QUAD, null);
     });
     it('passes the pins it is given on to the pipeline', async () => {
       const page = newPage(photo(), 'document');
       const { ctx } = setup([page]);
-      vi.mocked(tracePage).mockResolvedValue(SIDES);
+      vi.mocked(tracePage).mockResolvedValue(SIDES); // forced: the trace reads these sides
       await createPageActions(ctx).traceCorners(page.id, QUAD, PINS);
       expect(tracePage).toHaveBeenCalledWith(page.file, QUAD, PINS);
     });
     it('traces the page\'s own file when no preview exists', async () => {
       const page = newPage(photo(), 'document');
       const { ctx } = setup([page]);
-      vi.mocked(tracePage).mockResolvedValue(SIDES);
+      vi.mocked(tracePage).mockResolvedValue(SIDES); // forced: the trace reads these sides
       await createPageActions(ctx).traceCorners(page.id, MOVED);
       expect(tracePage).toHaveBeenCalledWith(page.file, MOVED, null);
     });
@@ -152,7 +156,7 @@ describe('createPageActions', () => {
     it('gives null and reports once when the pipeline fails', async () => {
       const page = newPage(photo(), 'document');
       const { ctx } = setup([page]);
-      vi.mocked(tracePage).mockRejectedValue(new Error('boom'));
+      vi.mocked(tracePage).mockRejectedValue(new Error('boom')); // forced: the trace fails
       await expect(createPageActions(ctx).traceCorners(page.id, QUAD)).resolves.toBeNull();
       expect(reportError).toHaveBeenCalledTimes(1);
       expect(reportError).toHaveBeenCalledWith('pdf_tool_run', expect.any(Error), 'scan_trace_page');
@@ -160,7 +164,7 @@ describe('createPageActions', () => {
     it('is read-only: no state change, dispatch or recorded action', async () => {
       const page = newPage(photo(), 'document');
       const { ctx } = setup([page]);
-      vi.mocked(tracePage).mockResolvedValue(SIDES);
+      vi.mocked(tracePage).mockResolvedValue(SIDES); // forced: the trace reads these sides
       await createPageActions(ctx).traceCorners(page.id, QUAD);
       expect(ctx.setPages).not.toHaveBeenCalled();
       expect(ctx.dispatch).not.toHaveBeenCalled();
@@ -419,7 +423,7 @@ describe('the split question (SCAN-67)', () => {
   it('Two pages puts the pages in the sheet\'s place, left page first, each with its own corners', async () => {
     const { ctx, actions, pagesNow, before, after, page, inspect } = splitSetup();
     const preview = ctx.work.previewBlobs.get(page.id);
-    vi.mocked(splitQuads).mockResolvedValue([LEFT, RIGHT]);
+    vi.mocked(splitQuads).mockResolvedValue([LEFT, RIGHT]); // forced: the split finds a left and a right page
     actions.answerTwoPages(SPINE);
     await flush();
     const now = pagesNow();
@@ -442,7 +446,7 @@ describe('the split question (SCAN-67)', () => {
 
   it('Two pages on a right-to-left sheet reads the right page first', async () => {
     const { actions, pagesNow } = splitSetup(true);
-    vi.mocked(splitQuads).mockResolvedValue([LEFT, RIGHT]);
+    vi.mocked(splitQuads).mockResolvedValue([LEFT, RIGHT]); // forced: the split finds a left and a right page
     actions.answerTwoPages(SPINE);
     await flush();
     expect(pagesNow().slice(1, 3).map((p) => p.quad)).toEqual([RIGHT, LEFT]);
@@ -450,7 +454,7 @@ describe('the split question (SCAN-67)', () => {
 
   it('keeps the sheet and its question when the split fails, and reports it', async () => {
     const { ctx, actions, pagesNow, page } = splitSetup();
-    vi.mocked(splitQuads).mockRejectedValue(new Error('boom'));
+    vi.mocked(splitQuads).mockRejectedValue(new Error('boom')); // forced: the split fails
     actions.answerTwoPages(SPINE);
     await flush();
     expect(pagesNow()[1]).toBe(page);
@@ -470,7 +474,7 @@ describe('the split question (SCAN-67)', () => {
 
   it('leaves the list alone when the sheet was answered while the split ran', async () => {
     const { actions, pagesNow, ctx } = splitSetup();
-    vi.mocked(splitQuads).mockResolvedValue([LEFT, RIGHT]);
+    vi.mocked(splitQuads).mockResolvedValue([LEFT, RIGHT]); // forced: the split finds a left and a right page
     actions.answerTwoPages(SPINE);
     ctx.work.pages = ctx.work.pages.map((p) => ({ ...p, question: null }));
     await flush();

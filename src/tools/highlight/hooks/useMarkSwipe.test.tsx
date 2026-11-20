@@ -245,7 +245,10 @@ describe('useMarkSwipe two fingers', () => {
     move(130, 100);
     expect(dispatch.mock.calls[0][0]).toMatchObject({ type: 'ADD_ELEMENT' });
     touch('touchstart', [finger(130, 100), finger(250, 100)]);
-    expect(dispatch.mock.calls.some((c) => c[0].type === 'DELETE_ELEMENT' && c[0].payload === dispatch.mock.calls[0][0].payload.id)).toBe(true);
+    // the real cancel deletes the element, then clears the selection: nothing is added or deleted after the delete
+    const calls = dispatch.mock.calls.map((c) => c[0]);
+    expect(calls.map((c) => c.type)).toEqual(['ADD_ELEMENT', 'DELETE_ELEMENT', 'SET_ACTIVE_ELEMENT_ID']);
+    expect(calls[1]).toMatchObject({ type: 'DELETE_ELEMENT', payload: calls[0].payload.id });
     expect(logAction).not.toHaveBeenCalled();
     expect(setAnnouncement).not.toHaveBeenCalled();
     expect(dispatch.mock.calls.some((c) => c[0].type === 'ADD_ACTION_HISTORY')).toBe(false);

@@ -107,9 +107,11 @@ describe('HighlightPage', () => {
     expect(container.querySelector('[data-element-id="h3"] svg[data-mark-outline]')).toBeNull();
   });
 
-  it('READ-13: with nothing open no outline is drawn', () => {
+  it('READ-13: with nothing open no outline is drawn', async () => {
     sized = true;
-    mount([mark]);
+    mount([{ ...mark, stroke: 'sketch' }]);
+    // the sketch svg draws only once the page geometry is read, the same read an outline waits for
+    await waitUntil(() => expect(container.querySelector('svg[data-highlight-sketch]')).not.toBeNull());
     expect(container.querySelector('svg[data-mark-outline]')).toBeNull();
   });
 
@@ -698,7 +700,7 @@ describe('HighlightPage click marks on a scan (R10)', () => {
   const added = () => dispatch.mock.calls.map(([a]) => a).filter((a) => a.type === 'ADD_ELEMENT' && a.payload.bands.length > 0).map((a) => a.payload as HighlightElement);
 
   it('a double-click marks the word the canvas reader finds, read from the displayed canvas', () => {
-    vi.mocked(readScanUnit).mockReturnValue({ left: 8, top: 24, width: 12, height: 2 });
+    vi.mocked(readScanUnit).mockReturnValue({ left: 8, top: 24, width: 12, height: 2 }); // forced: the word the canvas reader finds
     clickAt(2);
     expect(vi.mocked(readScanUnit)).toHaveBeenCalledTimes(1);
     const [canvas, point, unit, pageHeight] = vi.mocked(readScanUnit).mock.calls[0];
@@ -712,7 +714,8 @@ describe('HighlightPage click marks on a scan (R10)', () => {
   });
 
   it('a third click takes the line, because a scan has no sentences', () => {
-    vi.mocked(readScanUnit).mockReturnValueOnce({ left: 8, top: 24, width: 12, height: 2 }).mockReturnValueOnce({ left: 5, top: 24, width: 80, height: 2 });
+    vi.mocked(readScanUnit).mockReturnValueOnce({ left: 8, top: 24, width: 12, height: 2 }); // forced: the double-click's word
+    vi.mocked(readScanUnit).mockReturnValueOnce({ left: 5, top: 24, width: 80, height: 2 }); // forced: the third click's line
     clickAt(2);
     const word = added()[0];
     act(() => render(
@@ -729,7 +732,7 @@ describe('HighlightPage click marks on a scan (R10)', () => {
   });
 
   it('marks nothing when the click is not on a word', () => {
-    vi.mocked(readScanUnit).mockReturnValue(null);
+    vi.mocked(readScanUnit).mockReturnValue(null); // forced: no word under the click
     clickAt(2);
     expect(added()).toHaveLength(0);
   });

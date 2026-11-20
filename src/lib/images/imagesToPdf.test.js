@@ -70,19 +70,19 @@ describe('imagesToPdf', () => {
     beforeEach(() => { vi.mocked(redrawPng).mockReset(); });
 
     it('still builds the PDF with every picture when the browser can redraw it', async () => {
-      vi.mocked(redrawPng).mockResolvedValue(goodPng());
+      vi.mocked(redrawPng).mockResolvedValue(goodPng()); // forced: the browser's redraw answers with a decodable PNG
       const blob = await imagesToPdf([pngFile('a.png'), fixtureFile('photo-truncated.png'), pngFile('c.png')]);
       const pdf = await PDFDocument.load(await blob.arrayBuffer());
       expect(pdf.getPageCount()).toBe(3);
     });
 
     it('throws UnreadableImageError when every picture is left out, rather than saving a PDF with no pages', async () => {
-      vi.mocked(redrawPng).mockImplementation(async () => { throw new Error('The source image could not be decoded.'); });
+      vi.mocked(redrawPng).mockImplementation(async () => { throw new Error('The source image could not be decoded.'); }); // forced: the browser's redraw fails
       await expect(imagesToPdf([fixtureFile('photo-truncated.png')])).rejects.toMatchObject({ name: 'UnreadableImageError', fileName: 'photo-truncated.png' });
     });
 
     it('leaves out a picture the browser cannot read either, names it, and builds from the rest', async () => {
-      vi.mocked(redrawPng).mockImplementation(async () => { throw new Error('The source image could not be decoded.'); });
+      vi.mocked(redrawPng).mockImplementation(async () => { throw new Error('The source image could not be decoded.'); }); // forced: the browser's redraw fails
       const skipped = [];
       const progress = [];
       const blob = await imagesToPdf([pngFile('a.png'), fixtureFile('photo-truncated.png'), pngFile('c.png')], (p) => progress.push(p), undefined, {

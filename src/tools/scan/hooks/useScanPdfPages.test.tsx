@@ -1,18 +1,26 @@
 import { render } from 'preact';
+import * as pdfjs from 'pdfjs-dist/legacy/build/pdf.mjs';
 import { act } from 'preact/test-utils';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ScanWork } from '../state/scanWork.ts';
 import type { Quad } from '#lib/pageEnhance/quad.ts';
 import { pdfSheets } from '../lib/pdfSheets.ts';
+import { getPdfjs } from '#lib/pdf/loadPdfjs.js';
+import { legacyPdfjs } from '../../../test/support/redactCheckPdfs.test-helper.ts';
+import { reportError } from '#lib/telemetry/errorReport.ts';
 import { useScanPdfPages } from './useScanPdfPages.ts';
 
 vi.mock('#lib/telemetry/errorReport.ts', () => ({ reportError: vi.fn() }));
+vi.mock('#lib/pdf/loadPdfjs.js', { spy: true });
+// jsdom resolves the helper's worker URL to http; point pdf.js at the legacy build's own file.
+const workerUrl = `file://${(globalThis as unknown as { process: { cwd(): string } }).process.cwd()}/node_modules/pdfjs-dist/legacy/build/pdf.worker.mjs`;
+Object.defineProperty(pdfjs.GlobalWorkerOptions, 'workerSrc', { get: () => workerUrl, set() {}, configurable: true });
 const gates: Array<() => void> = [];
 let gateReached = Promise.withResolvers<void>();
 const sheetFile = () => new File(['x'], 's.png', { type: 'image/png' });
 const QUAD: Quad = [{ x: 0, y: 0 }, { x: 1, y: 0 }, { x: 1, y: 1 }, { x: 0, y: 1 }];
-// The real sheet reader runs for a PDF it cannot open. Rendering a real sheet needs pdf.js on a canvas, which
-// jsdom lacks, so the tests that need sheets to arrive one by one force them here (browser-mode wave).
+// Rendering a real sheet needs pdf.js on a canvas, which jsdom lacks, so the tests that need sheets to arrive
+// one by one force them here (browser-mode wave).
 vi.mock('../lib/pdfSheets.ts', { spy: true });
 // Each sheet after the first waits for the test to let it through.
 const gatedSheets = () => vi.mocked(pdfSheets).mockImplementationOnce(async function* () {
@@ -22,6 +30,10 @@ const gatedSheets = () => vi.mocked(pdfSheets).mockImplementationOnce(async func
 });
 
 let container: HTMLElement | null = null;
+beforeEach(() => {
+  vi.mocked(pdfSheets).mockReset();
+  vi.mocked(getPdfjs).mockResolvedValue(legacyPdfjs()); // forced, every test: the node build of pdf.js; the shipped loader needs a browser Worker
+});
 afterEach(() => {
   if (container) { act(() => render(null, container!)); container.remove(); container = null; }
   gates.length = 0;
@@ -71,10 +83,14 @@ describe('useScanPdfPages', () => {
   });
 
   it('names each PDF it could not open, as a PDF that could not be opened', async () => {
+    // The real pdfSheets runs and rejects each file. Not because 'x' is no PDF: the shipped pdf.js loader fails earlier,
+    // setting up its worker (no worker module in this environment), so even a valid PDF would be reported as not opened here.
     const { skipped, open } = mount(new ScanWork());
     await open(new File(['x'], 'a.pdf', { type: 'application/pdf' }));
     await open(new File(['x'], 'b.pdf', { type: 'application/pdf' }));
     expect(skipped.mock.calls).toEqual([[[{ name: 'a.pdf', reason: 'pdf' }]], [[{ name: 'b.pdf', reason: 'pdf' }]]]);
+    // Each failed for its bytes (pdf.js calls them invalid), not because the loader could not start.
+    expect(vi.mocked(reportError).mock.calls.map(([, err]) => (err as Error).name)).toEqual(['InvalidPDFException', 'InvalidPDFException']);
   });
 
   it('still imports after a cancel', async () => {

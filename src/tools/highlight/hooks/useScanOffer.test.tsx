@@ -45,8 +45,8 @@ const handoffDone = () => act(async () => {
 beforeEach(() => {
   localStorage.clear();
   indexedDB = new IDBFactory();
-  vi.mocked(sendHandoff).mockClear();
-  vi.mocked(sourceIdForBytes).mockClear();
+  vi.mocked(sendHandoff).mockReset();
+  vi.mocked(sourceIdForBytes).mockReset();
   reportError.mockReset();
   container = document.createElement('div');
   document.body.appendChild(container);
@@ -124,7 +124,7 @@ describe('useScanOffer', () => {
   });
 
   it('a failed hand-off sets failed and clears busy', async () => {
-    vi.mocked(sendHandoff).mockRejectedValueOnce(new Error('handoff')); // forced: the store taking the file is what the real one does here
+    vi.mocked(sendHandoff).mockRejectedValueOnce(new Error('handoff')); // forced: the hand-off fails, which the real one does not do here
     await open('lean');
     act(() => latest.straighten());
     await handoffDone();
@@ -149,9 +149,13 @@ describe('useScanOffer', () => {
   });
 
   it('ignores a stale hash that lands after a new document opened', async () => {
+    let release: () => void = () => {};
+    const held = new Promise<void>((r) => { release = r; });
+    vi.mocked(sourceIdForBytes).mockImplementationOnce(async (b) => { await held; return (await vi.importActual<typeof import('#lib/drafts/draftSourceId.ts')>('#lib/drafts/draftSourceId.ts')).sourceIdForBytes(b); }); // forced: the first hash is held open, then runs for real
     await mount({ verdict: 'lean' });
     await mount({ verdict: null });
-    await settle(); // the hash of the first document lands now, after the second one opened
+    release(); // the hash of the first document lands now, after the second one opened
+    await settle();
     expect(vi.mocked(sourceIdForBytes)).toHaveBeenCalledTimes(1);
     expect(latest.verdict).toBeNull();
   });

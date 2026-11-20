@@ -199,10 +199,8 @@ describe('useDraftPersistence - save outcome reporting', () => {
 
   it('does not let an older successful write mark a newer failed revision saved', async () => {
     let finishFirst;
-    // forced: the first write stays in flight while a newer one fails
-    vi.mocked(saveDraft)
-      .mockImplementationOnce(() => new Promise((resolve) => { finishFirst = resolve; }))
-      .mockResolvedValueOnce(false);
+    vi.mocked(saveDraft).mockImplementationOnce(() => new Promise((resolve) => { finishFirst = resolve; })); // forced: the first write stays in flight
+    vi.mocked(saveDraft).mockResolvedValueOnce(false); // forced: the newer write fails
     const props = baseProps();
     mount(props);
     renderFirstEdit(apiRef, props, container);

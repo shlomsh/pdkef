@@ -127,7 +127,7 @@ describe('draft-restore vs. manual file pick race', () => {
       import('#lib/pdf/loadPdfPages.ts'),
       import('../../tools/sign/lib/fields/detectFormFields.ts')
     ]);
-  }, 60_000);
+  });
 
   beforeEach(() => {
     indexedDB = new IDBFactory();

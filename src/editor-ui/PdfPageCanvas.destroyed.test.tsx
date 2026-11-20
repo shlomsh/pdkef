@@ -17,7 +17,7 @@ const flush = () => drainPromises();
 describe('PdfPageCanvas when the document is destroyed between getPage and render', () => {
   let host: HTMLElement | null = null;
   beforeEach(() => {
-    vi.mocked(getPdfRenderContext).mockReturnValue({ drawImage: vi.fn() } as unknown as CanvasRenderingContext2D);
+    vi.mocked(getPdfRenderContext).mockReturnValue({ drawImage: vi.fn() } as unknown as CanvasRenderingContext2D); // forced, every test: jsdom has no 2D context
     reportError.mockClear();
     vi.spyOn(console, 'error').mockImplementation(() => {});
     host = document.createElement('div');
