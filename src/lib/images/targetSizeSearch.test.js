@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import { searchTargetSize } from './targetSizeSearch.js';
 
 // A fake encoder whose size is a known function of scale and quality, so
@@ -11,17 +11,21 @@ function sizeFor(scale, quality) {
 
 function makeEncoder() {
   const calls = [];
-  const encode = vi.fn((handle, quality) => {
+  const encode = (handle, quality) => {
     calls.push({ scale: handle.scale, quality });
     return Promise.resolve({ size: sizeFor(handle.scale, quality) });
-  });
+  };
   return { encode, calls };
 }
 
 describe('searchTargetSize', () => {
   it('picks the highest quality at the first scale that fits the budget', async () => {
     const { encode } = makeEncoder();
-    const renderAtScale = vi.fn((scale) => ({ scale }));
+    const rendered = [];
+    const renderAtScale = (scale) => {
+      rendered.push(scale);
+      return { scale };
+    };
 
     const result = await searchTargetSize({
       scales: [1, 0.5, 0.25],
@@ -36,7 +40,7 @@ describe('searchTargetSize', () => {
 
     // Only the first scale should have been rendered - it fits, so the
     // search never drops to a lower one.
-    expect(renderAtScale).toHaveBeenCalledTimes(1);
+    expect(rendered).toHaveLength(1);
     expect(result.scale).toBe(1);
     expect(result.encoded.size).toBeLessThanOrEqual(500);
     // With enough steps the binary search should land close to the budget,
@@ -47,7 +51,11 @@ describe('searchTargetSize', () => {
 
   it('drops down the scale ladder when a higher scale cannot fit even at minimum quality', async () => {
     const { encode } = makeEncoder();
-    const renderAtScale = vi.fn((scale) => ({ scale }));
+    const rendered = [];
+    const renderAtScale = (scale) => {
+      rendered.push(scale);
+      return { scale };
+    };
 
     // At minQuality 0.1: scale 1 -> size 100 (fits under budget 90? no,
     // pick budget so scale 1 floor doesn't fit but scale 0.5 does).
@@ -62,14 +70,18 @@ describe('searchTargetSize', () => {
       deadlineMs: Date.now() + 10000,
     });
 
-    expect(renderAtScale).toHaveBeenCalledTimes(2);
+    expect(rendered).toHaveLength(2);
     expect(result.scale).toBe(0.5);
     expect(result.encoded.size).toBeLessThanOrEqual(80);
   });
 
   it('keeps the smallest result seen as an honest fallback when nothing fits', async () => {
     const { encode } = makeEncoder();
-    const renderAtScale = vi.fn((scale) => ({ scale }));
+    const rendered = [];
+    const renderAtScale = (scale) => {
+      rendered.push(scale);
+      return { scale };
+    };
 
     const result = await searchTargetSize({
       scales: [1, 0.5, 0.25],
@@ -83,7 +95,7 @@ describe('searchTargetSize', () => {
     });
 
     // Every scale was tried since none of them ever fit the budget.
-    expect(renderAtScale).toHaveBeenCalledTimes(3);
+    expect(rendered).toHaveLength(3);
     // The smallest floor is at the smallest scale (0.25 * 0.1 * 1000 = 25).
     expect(result.scale).toBe(0.25);
     expect(result.quality).toBe(0.1);
@@ -97,14 +109,16 @@ describe('searchTargetSize', () => {
     Date.now = () => now;
 
     try {
-      const renderAtScale = vi.fn((scale) => {
+      const rendered = [];
+      const renderAtScale = (scale) => {
+        rendered.push(scale);
         now += 10; // rendering takes some time
         return { scale };
-      });
-      const encode = vi.fn((handle, quality) => {
+      };
+      const encode = (handle, quality) => {
         now += 10; // encoding takes some time too
         return Promise.resolve({ size: sizeFor(handle.scale, quality) });
-      });
+      };
 
       const result = await searchTargetSize({
         scales: [1, 0.5, 0.25],
@@ -120,7 +134,7 @@ describe('searchTargetSize', () => {
       // The deadline is only checked once a best-effort result exists, so
       // the first scale still completes its floor probe before the second
       // scale's "time's up" check kicks in and stops the ladder walk.
-      expect(renderAtScale).toHaveBeenCalledTimes(1);
+      expect(rendered).toHaveLength(1);
       expect(result.scale).toBe(1);
     } finally {
       Date.now = realNow;
@@ -129,7 +143,7 @@ describe('searchTargetSize', () => {
 
   it('keeps the best result when the budget is met exactly at the floor quality', async () => {
     const { encode } = makeEncoder();
-    const renderAtScale = vi.fn((scale) => ({ scale }));
+    const renderAtScale = (scale) => ({ scale });
 
     const result = await searchTargetSize({
       scales: [1],
@@ -148,7 +162,7 @@ describe('searchTargetSize', () => {
   describe('releaseHandle', () => {
     it('releases a rejected tier that never becomes the fallback', async () => {
       const { encode } = makeEncoder();
-      const renderAtScale = vi.fn((scale) => ({ scale }));
+      const renderAtScale = (scale) => ({ scale });
       const released = [];
 
       // Floor at scale 1 (size 100) fits under budget 100 immediately, so
@@ -171,7 +185,7 @@ describe('searchTargetSize', () => {
 
     it('releases every tier that gets superseded, never the final result', async () => {
       const { encode } = makeEncoder();
-      const renderAtScale = vi.fn((scale) => ({ scale }));
+      const renderAtScale = (scale) => ({ scale });
       const released = [];
 
       // Budget 80: scale 1 floor (100) doesn't fit and becomes the initial
@@ -198,7 +212,7 @@ describe('searchTargetSize', () => {
 
     it('releases every non-winning tier when nothing ever fits the budget', async () => {
       const { encode } = makeEncoder();
-      const renderAtScale = vi.fn((scale) => ({ scale }));
+      const renderAtScale = (scale) => ({ scale });
       const released = [];
 
       const result = await searchTargetSize({

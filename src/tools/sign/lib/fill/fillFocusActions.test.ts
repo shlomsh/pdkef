@@ -34,16 +34,17 @@ describe('focusActions', () => {
   });
 
   it('leaving a text key with text in it for a slot ends editing then selection, and does not delete', () => {
-    const textOf = vi.fn().mockReturnValue('Shlomi');
+    const asked: string[] = [];
+    const textOf = (id: string) => { asked.push(id); return 'Shlomi'; };
     expect(focusActions({ from: EL1, to: SLOT }, textOf)).toEqual([
       { type: 'SET_EDITING_ELEMENT_ID', payload: null },
       { type: 'SET_ACTIVE_ELEMENT_ID', payload: null },
     ]);
-    expect(textOf).toHaveBeenCalledWith('1');
+    expect(asked).toContainEqual('1');
   });
 
   it('leaving a text key for null behaves the same as leaving it for a slot', () => {
-    const textOf = vi.fn().mockReturnValue('Shlomi');
+    const textOf = () => 'Shlomi';
     expect(focusActions({ from: EL1, to: null }, textOf)).toEqual([
       { type: 'SET_EDITING_ELEMENT_ID', payload: null },
       { type: 'SET_ACTIVE_ELEMENT_ID', payload: null },
@@ -51,7 +52,7 @@ describe('focusActions', () => {
   });
 
   it('deletes a text element left with no text at all', () => {
-    const textOf = vi.fn().mockReturnValue(undefined);
+    const textOf = () => undefined;
     expect(focusActions({ from: EL1, to: SLOT }, textOf)).toEqual([
       { type: 'SET_EDITING_ELEMENT_ID', payload: null },
       { type: 'SET_ACTIVE_ELEMENT_ID', payload: null },
@@ -60,7 +61,7 @@ describe('focusActions', () => {
   });
 
   it('deletes a text element left with only whitespace', () => {
-    const textOf = vi.fn().mockReturnValue('   \n\t ');
+    const textOf = () => '   \n\t ';
     expect(focusActions({ from: EL1, to: null }, textOf)).toEqual([
       { type: 'SET_EDITING_ELEMENT_ID', payload: null },
       { type: 'SET_ACTIVE_ELEMENT_ID', payload: null },
@@ -69,7 +70,7 @@ describe('focusActions', () => {
   });
 
   it('keeps an element left with an empty string the same way as undefined', () => {
-    const textOf = vi.fn().mockReturnValue('');
+    const textOf = () => '';
     expect(focusActions({ from: EL1, to: FREE }, textOf)).toEqual([
       { type: 'SET_EDITING_ELEMENT_ID', payload: null },
       { type: 'SET_ACTIVE_ELEMENT_ID', payload: null },
@@ -78,19 +79,20 @@ describe('focusActions', () => {
   });
 
   it('text to text applies the leaving element\'s empty check, then the new one\'s active and editing', () => {
-    const textOf = vi.fn().mockReturnValue('Shlomi');
+    const asked: string[] = [];
+    const textOf = (id: string) => { asked.push(id); return 'Shlomi'; };
     expect(focusActions({ from: EL1, to: EL2 }, textOf)).toEqual([
       { type: 'SET_EDITING_ELEMENT_ID', payload: null },
       { type: 'SET_ACTIVE_ELEMENT_ID', payload: null },
       { type: 'SET_ACTIVE_ELEMENT_ID', payload: '2' },
       { type: 'SET_EDITING_ELEMENT_ID', payload: '2' },
     ]);
-    expect(textOf).toHaveBeenCalledWith('1');
-    expect(textOf).not.toHaveBeenCalledWith('2');
+    expect(asked).toContainEqual('1');
+    expect(asked).not.toContainEqual('2');
   });
 
   it('text to text deletes the leaving element first when it was left empty', () => {
-    const textOf = vi.fn().mockReturnValue(undefined);
+    const textOf = () => undefined;
     expect(focusActions({ from: EL1, to: EL2 }, textOf)).toEqual([
       { type: 'SET_EDITING_ELEMENT_ID', payload: null },
       { type: 'SET_ACTIVE_ELEMENT_ID', payload: null },

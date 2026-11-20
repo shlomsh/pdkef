@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import { latestOnly, pinchedZoom, zoomRange } from './cameraZoom.ts';
 
 describe('zoomRange', () => {
@@ -35,25 +35,27 @@ describe('pinchedZoom', () => {
 describe('latestOnly', () => {
   const later = () => {
     const done: Array<() => void> = [];
-    const apply = vi.fn(() => new Promise<void>((resolve) => { done.push(resolve); }));
-    return { apply, finish: async () => { done.shift()?.(); await Promise.resolve(); await Promise.resolve(); await Promise.resolve(); } };
+    const sent: number[] = [];
+    const apply = (value: number) => new Promise<void>((resolve) => { sent.push(value); done.push(resolve); });
+    return { apply, sent, finish: async () => { done.shift()?.(); await Promise.resolve(); await Promise.resolve(); await Promise.resolve(); } };
   };
   it('sends the first value at once, and only the newest of those that came while it ran', async () => {
-    const { apply, finish } = later();
+    const { apply, sent, finish } = later();
     const send = latestOnly(apply);
     send(1); send(2); send(3);
-    expect(apply.mock.calls).toEqual([[1]]);
+    expect(sent).toEqual([1]);
     await finish();
-    expect(apply.mock.calls).toEqual([[1], [3]]);
+    expect(sent).toEqual([1, 3]);
     await finish();
-    expect(apply).toHaveBeenCalledTimes(2);
+    expect(sent).toHaveLength(2);
   });
   it('a refusal costs that value only, and the next still goes', async () => {
-    const apply = vi.fn().mockRejectedValueOnce(new Error('no')).mockResolvedValue(undefined);
+    const sent: number[] = [];
+    const apply = async (value: number) => { sent.push(value); if (sent.length === 1) throw new Error('no'); };
     const send = latestOnly(apply);
     send(1);
     await Promise.resolve(); await Promise.resolve(); await Promise.resolve();
     send(2);
-    expect(apply.mock.calls).toEqual([[1], [2]]);
+    expect(sent).toEqual([1, 2]);
   });
 });

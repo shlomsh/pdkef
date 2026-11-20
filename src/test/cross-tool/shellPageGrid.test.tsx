@@ -137,7 +137,8 @@ describe('PageGrid', () => {
     const plan = overrides.plan ?? [...planForFile(1, 2), ...planForFile(2, 2)];
     // The strip commits updaters; the harness applies each to the plan it was
     // mounted with so the tests can read the resulting plan.
-    const onPlanChange = vi.fn((update) => update(plan));
+    const plans = [];
+    const onPlanChange = (update) => { plans.push(update(plan)); };
     const announce = vi.fn();
     const onRenderedCountChange = vi.fn();
     const onRemoveFile = vi.fn();
@@ -162,7 +163,7 @@ describe('PageGrid', () => {
       render(<PageGrid {...props} />, container);
     });
     const rerender = (next) => act(() => { render(<PageGrid {...props} {...next} />, container); });
-    return { entries, plan, onPlanChange, announce, onRemoveFile, gridRef, rerender };
+    return { entries, plan, plans, announce, onRemoveFile, gridRef, rerender };
   }
 
   const cards = () => Array.from(container.querySelectorAll('[data-key]'));
@@ -356,23 +357,23 @@ describe('PageGrid', () => {
   });
 
   it('rotate and skip commit a new plan once per tap and announce it (MERGE-09)', async () => {
-    const { onPlanChange, announce } = mount();
+    const { plans, announce } = mount();
     const first = cards()[0];
     await act(async () => first.querySelectorAll('button[aria-label], a[aria-label]')[0].click());
-    expect(onPlanChange).toHaveBeenCalledTimes(1);
-    expect(onPlanChange.mock.results[0].value[0]).toMatchObject({ key: '1:0', rotation: 90 });
+    expect(plans).toHaveLength(1);
+    expect(plans[0][0]).toMatchObject({ key: '1:0', rotation: 90 });
     expect(announce).toHaveBeenCalledWith('Page 1 rotated to 90 degrees.');
 
     await act(async () => first.querySelectorAll('button[aria-label], a[aria-label]')[1].click());
-    expect(onPlanChange).toHaveBeenCalledTimes(2);
-    expect(onPlanChange.mock.results[1].value[0]).toMatchObject({ key: '1:0', skipped: true });
+    expect(plans).toHaveLength(2);
+    expect(plans[1][0]).toMatchObject({ key: '1:0', skipped: true });
     expect(announce).toHaveBeenLastCalledWith(expect.stringContaining('Page 1 skipped'));
   });
 
   it('shows a skipped page dimmed with its number struck and the word "skipped", and one tap brings it back', async () => {
     const plan = [...planForFile(1, 2), ...planForFile(2, 2)];
     plan[2] = { ...plan[2], skipped: true };
-    const { onPlanChange } = mount({ plan });
+    const { plans } = mount({ plan });
     const card = cards()[2];
     expect(card.hasAttribute('data-skipped')).toBe(true);
     expect(card.textContent).toContain('skipped');
@@ -386,7 +387,7 @@ describe('PageGrid', () => {
     expect(cards().map((c) => c.querySelector('[data-page-number]').textContent)).toEqual(['1', '2', '3', '3']);
     expect(cards()[3].getAttribute('aria-label')).toBe('Page 3 of 3, from b.pdf');
     await act(async () => card.querySelectorAll('button[aria-label], a[aria-label]')[1].click());
-    expect(onPlanChange.mock.results[0].value[2]).toMatchObject({ key: '2:0', skipped: false });
+    expect(plans[0][2]).toMatchObject({ key: '2:0', skipped: false });
   });
 
   // Page numbers are drawn only by PageGrid, from the plan, so one grid mount proves what every
@@ -398,7 +399,7 @@ describe('PageGrid', () => {
       const plan = planForFile(1, 10);
       const entries = [{ id: 1, file: makeFile('ten.pdf'), pageCount: 10, error: null }];
       let current = plan;
-      const onPlanChange = vi.fn((update) => { current = update(current); });
+      const onPlanChange = (update) => { current = update(current); };
       const view = mount({ entries, plan, props: { onPlanChange } });
       const press = async (key, keyName) => {
         const card = cards().find((c) => c.dataset.key === key);
@@ -430,19 +431,19 @@ describe('PageGrid', () => {
   });
 
   it('keyboard: arrows move across files, R rotates, Delete skips, Enter opens the preview', async () => {
-    const { onPlanChange } = mount();
+    const { plans } = mount();
     const card = cards()[1];
     card.focus();
     await act(async () => card.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true })));
     // Moving page 2 of file 1 past page 1 of file 2 crosses a file boundary.
-    const moved = onPlanChange.mock.results[0].value;
+    const moved = plans[0];
     expect(moved.map((p) => p.key)).toEqual(['1:0', '2:0', '1:1', '2:1']);
 
     await act(async () => card.dispatchEvent(new KeyboardEvent('keydown', { key: 'r', bubbles: true })));
-    expect(onPlanChange.mock.results[1].value[1]).toMatchObject({ key: '1:1', rotation: 90 });
+    expect(plans[1][1]).toMatchObject({ key: '1:1', rotation: 90 });
 
     await act(async () => card.dispatchEvent(new KeyboardEvent('keydown', { key: 'Delete', bubbles: true })));
-    expect(onPlanChange.mock.results[2].value[1]).toMatchObject({ key: '1:1', skipped: true });
+    expect(plans[2][1]).toMatchObject({ key: '1:1', skipped: true });
 
     await act(async () => { card.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true })); });
     await waitFor(() => container.querySelector('dialog') !== null);
@@ -452,7 +453,7 @@ describe('PageGrid', () => {
   });
 
   it('the card\'s shortcuts apply to the card only: Enter on Rotate rotates once and a key on a cluster control is not the card\'s', async () => {
-    const { onPlanChange } = mount();
+    const { plans } = mount();
     const card = cards()[0];
     const rotate = card.querySelectorAll('button[aria-label], a[aria-label]')[0];
     rotate.focus();
@@ -462,10 +463,10 @@ describe('PageGrid', () => {
     for (const key of ['r', 'Delete', 'ArrowRight']) {
       await act(async () => rotate.dispatchEvent(new KeyboardEvent('keydown', { key, bubbles: true, cancelable: true })));
     }
-    expect(onPlanChange).not.toHaveBeenCalled();
+    expect(plans).toEqual([]);
     await act(async () => rotate.click());
-    expect(onPlanChange).toHaveBeenCalledTimes(1);
-    expect(onPlanChange.mock.results[0].value[0]).toMatchObject({ key: '1:0', rotation: 90 });
+    expect(plans).toHaveLength(1);
+    expect(plans[0][0]).toMatchObject({ key: '1:0', rotation: 90 });
     await act(async () => { await drainPromises(); });
     expect(container.querySelector('dialog')).toBeNull();
   });
@@ -518,7 +519,7 @@ describe('PageGrid', () => {
   it('the preview dialog\'s restore link brings a skipped page back, same as the strip button', async () => {
     const plan = [...planForFile(1, 2), ...planForFile(2, 2)];
     plan[2] = { ...plan[2], skipped: true };
-    const { onPlanChange, announce } = mount({ plan });
+    const { plans, announce } = mount({ plan });
 
     await act(async () => { cards()[2].dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true })); });
     await waitFor(() => container.querySelector('dialog') !== null);
@@ -527,14 +528,14 @@ describe('PageGrid', () => {
     expect(restoreButton).toBeTruthy();
 
     await act(async () => restoreButton.click());
-    expect(onPlanChange).toHaveBeenCalledTimes(1);
-    expect(onPlanChange.mock.results[0].value[2]).toMatchObject({ key: '2:0', skipped: false });
+    expect(plans).toHaveLength(1);
+    expect(plans[0][2]).toMatchObject({ key: '2:0', skipped: false });
     expect(announce).toHaveBeenLastCalledWith(expect.stringContaining('Page 3 included again'));
   });
 
   it('commits the drop once through SortableJS onEnd', () => {
     const createSpy = vi.spyOn(Sortable, 'create');
-    const { onPlanChange, gridRef } = mount();
+    const { plans, gridRef } = mount();
     expect(createSpy).toHaveBeenCalledTimes(1);
     expect(createSpy.mock.calls[0][0]).toBe(gridRef.current);
     const options = createSpy.mock.calls[0][1];
@@ -544,10 +545,10 @@ describe('PageGrid', () => {
     expect(document.documentElement.hasAttribute('data-page-dragging')).toBe(true);
     options.onEnd({ oldIndex: 0, newIndex: 3 });
     expect(document.documentElement.hasAttribute('data-page-dragging')).toBe(false);
-    expect(onPlanChange).toHaveBeenCalledTimes(1);
-    expect(onPlanChange.mock.results[0].value.map((p) => p.key)).toEqual(['1:1', '2:0', '2:1', '1:0']);
+    expect(plans).toHaveLength(1);
+    expect(plans[0].map((p) => p.key)).toEqual(['1:1', '2:0', '2:1', '1:0']);
     options.onEnd({ oldIndex: 2, newIndex: 2 });
-    expect(onPlanChange).toHaveBeenCalledTimes(1);
+    expect(plans).toHaveLength(1);
   });
 
   it('focus returns to a keyboard-moved card, but never yanks it back from a field outside the grid', async () => {
@@ -586,18 +587,18 @@ describe('PageGrid', () => {
 
   it('reorderable={false}: no Sortable, no move keys, but rotate and skip keys still work', async () => {
     const createSpy = vi.spyOn(Sortable, 'create');
-    const { onPlanChange, announce } = mount({ props: { reorderable: false } });
+    const { plans, announce } = mount({ props: { reorderable: false } });
     expect(createSpy).not.toHaveBeenCalled();
     const card = cards()[1];
     card.focus();
     await act(async () => card.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true })));
     await act(async () => card.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowLeft', bubbles: true })));
-    expect(onPlanChange).not.toHaveBeenCalled();
+    expect(plans).toEqual([]);
     expect(announce).not.toHaveBeenCalled();
     await act(async () => card.dispatchEvent(new KeyboardEvent('keydown', { key: 'r', bubbles: true })));
-    expect(onPlanChange.mock.results[0].value[1]).toMatchObject({ key: '1:1', rotation: 90 });
+    expect(plans[0][1]).toMatchObject({ key: '1:1', rotation: 90 });
     await act(async () => card.dispatchEvent(new KeyboardEvent('keydown', { key: 'Delete', bubbles: true })));
-    expect(onPlanChange.mock.results[1].value[1]).toMatchObject({ key: '1:1', skipped: true });
+    expect(plans[1][1]).toMatchObject({ key: '1:1', skipped: true });
   });
 
   it('reports the first keyboard (not pointer) focus of a page cell, once', () => {
@@ -645,7 +646,7 @@ describe('PageGrid', () => {
   });
 
   it("a click on one of the cluster's own buttons does not change the selection", async () => {
-    const { onPlanChange } = mount();
+    const { plans } = mount();
     const [first] = cards();
 
     await act(async () => first.dispatchEvent(new MouseEvent('click', { bubbles: true })));
@@ -654,7 +655,7 @@ describe('PageGrid', () => {
     // Rotate: bubbles up through the li, whose own click handler must not
     // treat a click that started on a button as a tap on the page.
     await act(async () => first.querySelectorAll('button[aria-label], a[aria-label]')[0].click());
-    expect(onPlanChange).toHaveBeenCalledTimes(1);
+    expect(plans).toHaveLength(1);
     expect(first.hasAttribute('data-selected')).toBe(true);
   });
 

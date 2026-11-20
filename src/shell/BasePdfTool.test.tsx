@@ -272,8 +272,9 @@ describe('BasePdfTool', () => {
 
   it('walks a dropped folder before handing its files on (MERGE-10)', async () => {
     const added = Promise.withResolvers<void>();
-    const onFilesAddedSpy = vi.fn(() => { added.resolve(); });
-    mount({ hasFiles: true, onFilesAdded: onFilesAddedSpy, multiple: true });
+    const filesAdded: File[][] = [];
+    const onFilesAdded = (files: File[]) => { filesAdded.push(files); added.resolve(); };
+    mount({ hasFiles: true, onFilesAdded, multiple: true });
     const inside = ['b 2.pdf', 'a 10.pdf'].map((name) => new File([''], name, { type: 'application/pdf' }));
     let served = false;
     const folder = {
@@ -288,8 +289,8 @@ describe('BasePdfTool', () => {
       card.dispatchEvent(event);
       await added.promise;
     });
-    expect(onFilesAddedSpy).toHaveBeenCalledTimes(1);
-    expect(onFilesAddedSpy.mock.calls[0][0].map((f) => f.name)).toEqual(['a 10.pdf', 'b 2.pdf']);
+    expect(filesAdded).toHaveLength(1);
+    expect(filesAdded[0].map((f) => f.name)).toEqual(['a 10.pdf', 'b 2.pdf']);
   });
 
   // MEM-03: a single-file tool now always confirms a replacement (see the

@@ -72,5 +72,13 @@ count). The rule is off on `landmines-all` meanwhile.
 - Fresh review of wave 2 (2026-11-20), seven reviewers with no shared context: one coverage loss
   (Save to Drive's second failure report, restored and proved by mutation), per-page state reset in two
   more files, two forced comments sharpened, two redundant forced lines dropped. 1,420 to 1,418.
+- Wave 3, callback props and inputs (2026-11-20): 22 files, down to 1,319. A callback became a plain
+  function (or a bare `vi.fn()`) only where a production caller supplies it from its own state or the
+  person's action, or where the unit is generic over it (the size search, the draft scheduler, the
+  gesture controller, once-until-failed): each with the caller quoted and a mutation proof. Kept
+  flagged as collaborators, because production passes one of our own modules: the service worker
+  report's `send`, `usePdfShare`'s share object, the swipe reader and its bands, the whiteout page
+  colour sampler, the editor reducer's `dispatch`, Compress's machine. Test-only seams stay flagged
+  too (`compressImages`' `encodeImage`, `chunkReload`'s deps).
 - Found on the way: RED-75 (preview documents never freed on pdf.js 6.5), RED-76 (one very long line
   overflows the text preview).

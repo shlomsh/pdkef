@@ -141,7 +141,7 @@ describe('runSavedFileCheck', () => {
   });
 
   it('passes the measure through to the context', async () => {
-    const measure = vi.fn(() => 1) as never;
+    const measure = vi.fn() as never;
     const out = await run([SECRET], [SECRET], { measure });
     expect(out.context.measure).toBe(measure);
   });

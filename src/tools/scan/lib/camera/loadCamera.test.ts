@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 
 import Viewfinder from '../../components/Viewfinder.tsx';
 import { loadViewfinder, onceUntilFailed } from './loadCamera.ts';
@@ -16,17 +16,17 @@ describe('loadViewfinder', () => {
 
 describe('onceUntilFailed', () => {
   it('shares one promise across calls', () => {
-    const load = vi.fn(() => Promise.resolve(1));
-    const once = onceUntilFailed(load);
+    let loads = 0;
+    const once = onceUntilFailed(() => { loads++; return Promise.resolve(1); });
     expect(once()).toBe(once());
-    expect(load).toHaveBeenCalledTimes(1);
+    expect(loads).toBe(1);
   });
 
   it('forgets a rejection so the next call loads again', async () => {
-    const load = vi.fn().mockRejectedValueOnce(new Error('chunk')).mockResolvedValueOnce(2);
-    const once = onceUntilFailed(load);
+    let loads = 0;
+    const once = onceUntilFailed(() => { loads++; return loads === 1 ? Promise.reject(new Error('chunk')) : Promise.resolve(2); });
     await expect(once()).rejects.toThrow('chunk');
     await expect(once()).resolves.toBe(2);
-    expect(load).toHaveBeenCalledTimes(2);
+    expect(loads).toBe(2);
   });
 });

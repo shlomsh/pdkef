@@ -442,7 +442,8 @@ describe('useDraftPersistence - same file opened in two tools (real store)', () 
     expect(realDraftStore.hasDraftHint('redact')).toBe(true);
 
     const restoredOnce = Promise.withResolvers();
-    const onRestore = vi.fn(() => restoredOnce.resolve());
+    const restores = [];
+    const onRestore = (record) => { restores.push(record); restoredOnce.resolve(); };
     const apiRef = { current: null };
     await act(async () => {
       render(<RealHarness apiRef={apiRef} props={{
@@ -458,8 +459,8 @@ describe('useDraftPersistence - same file opened in two tools (real store)', () 
     });
     await act(async () => { await restoredOnce.promise; });
 
-    expect(onRestore).toHaveBeenCalledTimes(1);
-    const restored = onRestore.mock.calls[0][0];
+    expect(restores).toHaveLength(1);
+    const restored = restores[0];
     // work.redact is absent on this entry, so the restored record carries
     // none of Sign's fields - never Sign's elements/extra leaking across.
     expect(restored.elements).toBeUndefined();

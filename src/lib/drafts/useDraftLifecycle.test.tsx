@@ -50,10 +50,11 @@ describe('useDraftRestore', () => {
   });
 
   it('starts checking only with a hint, passes the arrival source, and keeps the hint after a restore', async () => {
-    const run = vi.fn(async () => true);
+    const runs: unknown[][] = [];
+    const run = async (...args: unknown[]) => { runs.push(args); return true; };
     sessionStorage.setItem('pdkef:arrival:recent', 'sign'); // a recent tile asked for this tool
     act(() => { render(<Probe tool="sign" run={run} />, host); });
-    expect(run).toHaveBeenCalledWith('recent', expect.any(Function));
+    expect(runs).toContainEqual(['recent', expect.any(Function)]);
     expect(sessionStorage.getItem('pdkef:arrival:recent')).toBeNull();
     await settle();
     expect(checking).toBe(false);
@@ -104,9 +105,10 @@ describe('useDraftRestore', () => {
   });
 
   it('does nothing and is not checking when disabled', () => {
-    const run = vi.fn(async () => true);
+    const runs: unknown[][] = [];
+    const run = async (...args: unknown[]) => { runs.push(args); return true; };
     act(() => { render(<Probe tool="sign" enabled={false} run={run} />, host); });
-    expect(run).not.toHaveBeenCalled();
+    expect(runs).toEqual([]);
     expect(checking).toBe(false);
     expect(settled).toBe(true);
   });
@@ -115,8 +117,9 @@ describe('useDraftRestore', () => {
 describe('useDraftSave', () => {
   let save: DraftSave;
   type Props = Partial<DraftSaveInput<string>> & { snapshot: readonly unknown[] };
-  const write = vi.fn(async (_record: string, _isCurrent: () => boolean) => true);
-  const build = vi.fn((): string | null => 'record');
+  let writes: [string, () => boolean][];
+  const write = async (record: string, isCurrent: () => boolean) => { writes.push([record, isCurrent]); return true; };
+  const build = (): string | null => 'record';
   function Probe(props: Props) {
     save = useDraftSave<string>({ tool: 'sign', canSave: true, build, write, errorStep: 'autosave_draft', ...props });
     return null;
@@ -126,8 +129,7 @@ describe('useDraftSave', () => {
   beforeEach(() => {
     vi.useFakeTimers();
     host = document.createElement('div');
-    write.mockReset().mockResolvedValue(true);
-    build.mockReset().mockReturnValue('record');
+    writes = [];
     vi.mocked(reportError).mockClear();
     localStorage.clear();
   });
@@ -140,20 +142,19 @@ describe('useDraftSave', () => {
     show({ snapshot: ['a'] });
     expect(save.state).toBe('pending');
     act(() => { vi.advanceTimersByTime(699); });
-    expect(write).not.toHaveBeenCalled();
+    expect(writes).toEqual([]);
     act(() => { vi.advanceTimersByTime(1); });
     await settle();
-    expect(write).toHaveBeenCalledTimes(1);
+    expect(writes).toHaveLength(1);
     expect(save.state).toBe('saved');
     show({ snapshot: ['a'] });
     act(() => { vi.advanceTimersByTime(1000); });
-    expect(write).toHaveBeenCalledTimes(1);
+    expect(writes).toHaveLength(1);
   });
 
   it('a completion for an older snapshot never paints the newer one', async () => {
     let release!: (v: boolean) => void;
-    write.mockImplementationOnce(() => new Promise<boolean>((r) => { release = r; }));
-    show({ snapshot: ['a'] });
+    show({ snapshot: ['a'], write: () => new Promise<boolean>((r) => { release = r; }) });
     act(() => { vi.advanceTimersByTime(700); });
     await settle();
     show({ snapshot: ['b'] });
@@ -163,19 +164,17 @@ describe('useDraftSave', () => {
   });
 
   it('builds from the latest render when the write starts', async () => {
-    build.mockImplementation(() => 'first');
-    show({ snapshot: ['a'] });
-    build.mockImplementation(() => 'second');
+    show({ snapshot: ['a'], build: () => 'first' });
+    show({ snapshot: ['a'], build: () => 'second' });
     act(() => { vi.advanceTimersByTime(700); });
     await settle();
-    expect(write).toHaveBeenCalledWith('second', expect.any(Function));
+    expect(writes).toContainEqual(['second', expect.any(Function)]);
   });
 
   it("write's isCurrent turns false once a newer snapshot arrives", async () => {
     let release!: (v: boolean) => void;
     let current!: () => boolean;
-    write.mockImplementationOnce((_r: string, isCurrent: () => boolean) => { current = isCurrent; return new Promise<boolean>((r) => { release = r; }); });
-    show({ snapshot: ['a'] });
+    show({ snapshot: ['a'], write: (_r: string, isCurrent: () => boolean) => { current = isCurrent; return new Promise<boolean>((r) => { release = r; }); } });
     act(() => { vi.advanceTimersByTime(700); });
     await settle();
     expect(current()).toBe(true);
@@ -186,8 +185,7 @@ describe('useDraftSave', () => {
   });
 
   it('a failed or throwing write is an error that holds updates, and is reported', async () => {
-    write.mockRejectedValueOnce(new Error('quota'));
-    show({ snapshot: ['a'] });
+    show({ snapshot: ['a'], write: () => Promise.reject(new Error('quota')) });
     act(() => { vi.advanceTimersByTime(700); });
     await settle();
     expect(save.state).toBe('error');
@@ -198,18 +196,17 @@ describe('useDraftSave', () => {
   });
 
   it('nothing to build ends idle without writing', async () => {
-    build.mockReturnValue(null);
-    show({ snapshot: ['a'] });
+    show({ snapshot: ['a'], build: () => null });
     act(() => { vi.advanceTimersByTime(700); });
     await settle();
-    expect(write).not.toHaveBeenCalled();
+    expect(writes).toEqual([]);
     expect(save.state).toBe('idle');
   });
 
   it('writes nothing while canSave is false', () => {
     show({ snapshot: ['a'], canSave: false });
     act(() => { vi.advanceTimersByTime(1000); });
-    expect(write).not.toHaveBeenCalled();
+    expect(writes).toEqual([]);
     expect(save.state).toBe('idle');
   });
 
@@ -219,7 +216,7 @@ describe('useDraftSave', () => {
     show({ snapshot: ['restored'] });
     act(() => { vi.advanceTimersByTime(1000); window.dispatchEvent(new Event('pagehide')); });
     await settle();
-    expect(write).not.toHaveBeenCalled();
+    expect(writes).toEqual([]);
     expect(save.state).toBe('idle');
   });
 
@@ -227,10 +224,10 @@ describe('useDraftSave', () => {
     show({ snapshot: ['a'] });
     act(() => { window.dispatchEvent(new Event('pagehide')); });
     await settle();
-    expect(write).toHaveBeenCalledTimes(1);
+    expect(writes).toHaveLength(1);
     show({ snapshot: ['b'] });
     await act(async () => { await flushBeforeUpdateReload(); });
-    expect(write).toHaveBeenCalledTimes(2);
+    expect(writes).toHaveLength(2);
     expect(save.state).toBe('saved');
   });
 
@@ -251,12 +248,13 @@ describe('useDraftSave', () => {
 
   it('an update reload also waits for work the tool queued outside write', async () => {
     let finish!: () => void;
-    const drain = vi.fn(() => new Promise<void>((r) => { finish = r; }));
+    const drains: number[] = [];
+    const drain = () => { drains.push(1); return new Promise<void>((r) => { finish = r; }); };
     show({ snapshot: ['a'], canSave: false, drain });
     let done = false;
     const reload = flushBeforeUpdateReload().then(() => { done = true; });
     await settle();
-    expect(drain).toHaveBeenCalledTimes(1);
+    expect(drains).toHaveLength(1);
     expect(done).toBe(false);
     finish();
     await act(async () => { await reload; });
@@ -283,8 +281,7 @@ describe('useDraftSave', () => {
 
   it('invalidate drops an in-flight completion', async () => {
     let release!: (v: boolean) => void;
-    write.mockImplementationOnce(() => new Promise<boolean>((r) => { release = r; }));
-    show({ snapshot: ['a'], canSave: true });
+    show({ snapshot: ['a'], canSave: true, write: () => new Promise<boolean>((r) => { release = r; }) });
     act(() => { vi.advanceTimersByTime(700); });
     await settle();
     act(() => { save.invalidate(); });

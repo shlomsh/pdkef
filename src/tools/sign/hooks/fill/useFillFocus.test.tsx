@@ -46,7 +46,7 @@ describe('useFillFocus', () => {
 
   it('focusing a fill input selects and opens editing on its element', () => {
     const dispatch = vi.fn();
-    const textOf = vi.fn().mockReturnValue('hi');
+    const textOf = () => 'hi';
     mount({ enabled: true, dispatch, textOf });
     const el1 = fillInput('el:1');
 
@@ -61,7 +61,7 @@ describe('useFillFocus', () => {
   it('hops between two text inputs with no editing flicker: no end-editing lands after the hop settles', () => {
     vi.useFakeTimers();
     const dispatch = vi.fn();
-    const textOf = vi.fn().mockReturnValue('hi');
+    const textOf = () => 'hi';
     mount({ enabled: true, dispatch, textOf });
     const el1 = fillInput('el:1');
     const el2 = fillInput('el:2');
@@ -91,7 +91,7 @@ describe('useFillFocus', () => {
   it('focus leaving to the body ends editing after the deferred check', () => {
     vi.useFakeTimers();
     const dispatch = vi.fn();
-    const textOf = vi.fn().mockReturnValue('hi');
+    const textOf = () => 'hi';
     mount({ enabled: true, dispatch, textOf });
     const el1 = fillInput('el:1');
 
@@ -114,7 +114,7 @@ describe('useFillFocus', () => {
   it('focus moving into non-fill chrome (a toolbar button) keeps the session open', () => {
     vi.useFakeTimers();
     const dispatch = vi.fn();
-    const textOf = vi.fn().mockReturnValue('hi');
+    const textOf = () => 'hi';
     mount({ enabled: true, dispatch, textOf });
     const el1 = fillInput('el:1');
     const bold = document.createElement('button');
@@ -138,7 +138,7 @@ describe('useFillFocus', () => {
   it('focus moving into a [data-fill-keep-session] element keeps the editing state', () => {
     vi.useFakeTimers();
     const dispatch = vi.fn();
-    const textOf = vi.fn().mockReturnValue('hi');
+    const textOf = () => 'hi';
     mount({ enabled: true, dispatch, textOf });
     const el1 = fillInput('el:1');
     const sheet = document.createElement('div');

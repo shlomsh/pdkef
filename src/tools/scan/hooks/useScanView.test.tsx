@@ -23,7 +23,7 @@ async function mount(page: ScanPage) {
   work.pages = [page];
   work.previewBlobs.set(page.id, new Blob(['x']));
   let map: Record<string, string> = {};
-  const setTurnedPreviews = vi.fn((update) => { map = typeof update === 'function' ? update(map) : update; });
+  const setTurnedPreviews = (update: Record<string, string> | ((m: Record<string, string>) => Record<string, string>)) => { map = typeof update === 'function' ? update(map) : update; };
   function Host() {
     useScanView({
       state: { ...initialScanState, phase: 'corners', selectedId: page.id }, dispatch: vi.fn(), work, hasPages: true, selected: page,

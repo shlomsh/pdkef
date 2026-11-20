@@ -12,10 +12,11 @@ function setup(elements: EditorElement[]) {
   const dispatch = vi.fn();
   const logAction = vi.fn();
   const changer = vi.fn();
-  const makeOnChange = vi.fn(() => changer);
+  const madeFor: string[] = [];
+  const makeOnChange = (id: string) => { madeFor.push(id); return changer; };
   const deleteElement = vi.fn();
   const actions = useCommentActions({ elements, dispatch, logAction, messages: englishSignMessages, deleteElement, makeOnChange });
-  return { actions, dispatch, logAction, changer, makeOnChange, deleteElement };
+  return { actions, dispatch, logAction, changer, madeFor, deleteElement };
 }
 
 describe('useCommentActions', () => {
@@ -31,9 +32,9 @@ describe('useCommentActions', () => {
     expect(snapshots).toEqual([{ element: expect.objectContaining({ id: 'c1', comment: 'hi', commentedAt: 5 }), index: 1 }]);
   });
   it('saves an existing comment through the normal update path', () => {
-    const { actions, makeOnChange, changer, logAction } = setup([comment({ comment: 'old' })]);
+    const { actions, madeFor, changer, logAction } = setup([comment({ comment: 'old' })]);
     actions.onSave('c1', { comment: 'new', commentedAt: 9 });
-    expect(makeOnChange).toHaveBeenCalledWith('c1');
+    expect(madeFor).toContainEqual('c1');
     expect(changer).toHaveBeenCalledWith({ comment: 'new', commentedAt: 9 });
     expect(logAction).not.toHaveBeenCalled();
   });

@@ -49,9 +49,8 @@ describe('useSaveToDrive', () => {
     const full = { tool: 'redact' as const, build, generation: 1, ready: true, ...props };
     act(() => render(<Probe {...full} />, container));
   };
-  const build = vi.fn(async () => ({ blob: pdf, fileName: 'a.pdf' }));
+  const build = async () => ({ blob: pdf, fileName: 'a.pdf' });
   beforeEach(() => {
-    build.mockClear();
     vi.stubGlobal('matchMedia', () => ({ matches: true }));
     container = document.createElement('div');
     vi.mocked(saveHandoff).mockReset();
@@ -210,11 +209,12 @@ describe('useSaveToDrive', () => {
     class FakeChannel { onmessage = null; close() {} postMessage(m: unknown) { posts.push(m); } }
     vi.stubGlobal('BroadcastChannel', FakeChannel);
     let release: (v: null) => void = () => {};
-    build.mockImplementationOnce(() => new Promise((resolve) => { release = resolve as never; }));
-    mount();
+    let built = 0;
+    const pendingBuild = () => { built += 1; return new Promise<null>((resolve) => { release = resolve; }); };
+    mount({ build: pendingBuild });
     act(() => latest.save());
     expect(open).toHaveBeenCalledTimes(1);
-    expect(build).toHaveBeenCalledTimes(1);
+    expect(built).toBe(1);
     expect(vi.mocked(saveHandoff)).not.toHaveBeenCalled();
     act(() => release(null));
     await waitUntil(() => expect(latest.state).toBe('failed'));
@@ -222,8 +222,8 @@ describe('useSaveToDrive', () => {
     expect(posts).toEqual([expect.objectContaining({ status: 'cancelled' })]);
     expect(events()).toContain('tool_drive_failed');
     expect(vi.mocked(saveHandoff)).not.toHaveBeenCalled();
-    build.mockRejectedValueOnce(new Error('boom'));
-    mount({ generation: 2 });
+    const throwingBuild = async () => { throw new Error('boom'); };
+    mount({ generation: 2, build: throwingBuild });
     act(() => latest.save());
     await waitUntil(() => expect(latest.state).toBe('failed'));
     expect(posts).toHaveLength(2);
@@ -235,10 +235,10 @@ describe('useSaveToDrive', () => {
     class FakeChannel { onmessage = null; close() {} postMessage() {} }
     vi.stubGlobal('BroadcastChannel', FakeChannel);
     let release: (v: { blob: Blob; fileName: string }) => void = () => {};
-    build.mockImplementationOnce(() => new Promise((resolve) => { release = resolve; }));
-    mount();
+    const pendingBuild = () => new Promise<{ blob: Blob; fileName: string }>((resolve) => { release = resolve; });
+    mount({ build: pendingBuild });
     act(() => latest.save());
-    mount({ generation: 2 });
+    mount({ generation: 2, build: pendingBuild });
     expect(latest.state).toBe('saving');
     await act(async () => { release({ blob: pdf, fileName: 'a.pdf' }); });
     await parked();
@@ -277,12 +277,13 @@ describe('useSaveToDrive', () => {
     }
     vi.stubGlobal('BroadcastChannel', FakeChannel);
     let failA: (e: Error) => void = () => {};
-    build.mockImplementationOnce(() => new Promise((_, reject) => { failA = reject; }));
-    mount();
+    const failingBuild = () => new Promise<never>((_, reject) => { failA = reject; });
+    mount({ build: failingBuild });
     act(() => latest.save());
     tabA.closed = true;
     act(() => { vi.advanceTimersByTime(3000); });
     expect(latest.state).toBe('idle');
+    mount({ build });
     act(() => latest.save());
     expect(latest.state).toBe('saving');
     await parked();

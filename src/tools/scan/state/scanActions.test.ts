@@ -28,13 +28,14 @@ function setup(pages: ScanPage[], extra: Record<string, unknown> = {}) {
   const work = new ScanWork();
   work.pages = pages;
   let current = pages;
-  const setPages = vi.fn((update) => { current = typeof update === 'function' ? update(current) : update; });
+  const setPagesCalls: unknown[] = [];
+  const setPages = (update: ScanPage[] | ((p: ScanPage[]) => ScanPage[])) => { setPagesCalls.push(update); current = typeof update === 'function' ? update(current) : update; };
   const ctx = {
     pages, view: 'result' as const, failedIds: [] as number[], setRemoval: vi.fn(), setPages, setResults: vi.fn(), setCustomName: vi.fn(), setRejectedFiles: vi.fn(),
     forgetTurned: vi.fn(), work, unmountedRef: { current: false }, dispatch: vi.fn(), announce: vi.fn(),
     focusIdRef: { current: null as number | null }, ...extra,
   };
-  return { ctx, work, pagesNow: () => current };
+  return { ctx, work, setPagesCalls, pagesNow: () => current };
 }
 
 beforeEach(() => {
@@ -165,10 +166,10 @@ describe('createPageActions', () => {
     });
     it('is read-only: no state change, dispatch or recorded action', async () => {
       const page = newPage(photo(), 'document');
-      const { ctx } = setup([page]);
+      const { ctx, setPagesCalls } = setup([page]);
       vi.mocked(tracePage).mockResolvedValue(SIDES); // forced: the trace reads these sides
       await createPageActions(ctx).traceCorners(page.id, QUAD);
-      expect(ctx.setPages).not.toHaveBeenCalled();
+      expect(setPagesCalls).toEqual([]);
       expect(ctx.dispatch).not.toHaveBeenCalled();
       expect(recordAction).not.toHaveBeenCalled();
     });
@@ -176,9 +177,9 @@ describe('createPageActions', () => {
 
   describe('removePage', () => {
     it('ignores a page that is not there', () => {
-      const { ctx } = setup([newPage(photo(), 'document')]);
+      const { ctx, setPagesCalls } = setup([newPage(photo(), 'document')]);
       createPageActions(ctx).removePage(-1);
-      expect(ctx.setPages).not.toHaveBeenCalled();
+      expect(setPagesCalls).toEqual([]);
     });
     it('drops the page, its work and its result, and lands on the neighbour', () => {
       const [a, b] = [newPage(photo(), 'document'), newPage(photo(), 'document')];
@@ -269,12 +270,12 @@ describe('createPageActions', () => {
 
 describe('createEditActions', () => {
   function editSetup(pages: ScanPage[], selectedIndex = 0, failedIds: number[] = [], extra: Record<string, unknown> = {}) {
-    const { ctx, pagesNow } = setup(pages);
+    const { ctx, pagesNow, setPagesCalls } = setup(pages);
     const showResult = vi.fn();
     const setDefaultFilter = vi.fn();
     const inspect = vi.fn();
     const actions = createEditActions({ ...ctx, selected: pages[selectedIndex], selectedIndex, failedIds, setDefaultFilter, showResult, inspect, retakeFile: vi.fn(), removePage: vi.fn(), ...extra });
-    return { ctx, actions, pagesNow, showResult, setDefaultFilter, inspect };
+    return { ctx, actions, pagesNow, setPagesCalls, showResult, setDefaultFilter, inspect };
   }
   const arrow = (key: string, extra = {}) => ({ key, altKey: false, metaKey: false, ctrlKey: false, shiftKey: false, preventDefault: vi.fn(), ...extra }) as unknown as KeyboardEvent;
 
@@ -290,11 +291,11 @@ describe('createEditActions', () => {
   });
   it('leaves other keys, modified keys and the ends of the list alone', () => {
     const [a, b] = [newPage(photo(), 'document'), newPage(photo(), 'document')];
-    const { ctx, actions } = editSetup([a, b]);
+    const { actions, setPagesCalls } = editSetup([a, b]);
     actions.onTileKeyDown(arrow('a'), a.id);
     actions.onTileKeyDown(arrow('ArrowRight', { shiftKey: true }), a.id);
     actions.onTileKeyDown(arrow('ArrowLeft'), a.id);
-    expect(ctx.setPages).not.toHaveBeenCalled();
+    expect(setPagesCalls).toEqual([]);
   });
   it('keeps the corners a person moved', () => {
     const a = newPage(photo(), 'document');

@@ -5,18 +5,21 @@ import { SCAN_QUALITY, SCAN_SCALE_LADDER, SIZE_LIMITS, fitScanToBudget } from '.
 // of 400 KB each at full scale and the no-limit quality, shrinking with area and quality.
 const sizeOf = (scale: number, quality: number) => Math.round(3 * 400_000 * scale * scale * (quality / SCAN_QUALITY));
 const fakeInput = (budgetBytes: number | null) => {
-  const render = vi.fn((scale: number) => ({ scale }));
-  const build = vi.fn(async (handle: { scale: number }, quality: number) => new Blob([new Uint8Array(sizeOf(handle.scale, quality))]));
+  const rendered: Array<{ scale: number }> = [];
+  const builds: Array<[{ scale: number }, number]> = [];
+  const blobs: Blob[] = [];
+  const render = (scale: number) => { const handle = { scale }; rendered.push(handle); return handle; };
+  const build = async (handle: { scale: number }, quality: number) => { builds.push([handle, quality]); const blob = new Blob([new Uint8Array(sizeOf(handle.scale, quality))]); blobs.push(blob); return blob; };
   const release = vi.fn();
-  return { budgetBytes, render, build, release, deadlineMs: Number.POSITIVE_INFINITY };
+  return { budgetBytes, render, build, rendered, builds, blobs, release, deadlineMs: Number.POSITIVE_INFINITY };
 };
 
 describe('fitScanToBudget', () => {
   it('with no limit builds once, at full scale and the default quality', async () => {
     const input = fakeInput(null);
     const result = await fitScanToBudget(input);
-    expect(input.render).toHaveBeenCalledTimes(1);
-    expect(input.build).toHaveBeenCalledTimes(1);
+    expect(input.rendered).toHaveLength(1);
+    expect(input.builds).toHaveLength(1);
     expect(result).toMatchObject({ metTarget: true, scale: 1, quality: SCAN_QUALITY });
     expect(result.blob.size).toBe(sizeOf(1, SCAN_QUALITY));
   });
@@ -24,7 +27,7 @@ describe('fitScanToBudget', () => {
   it('keeps the no-limit result when it already fits', async () => {
     const input = fakeInput(2 * 1024 * 1024);
     const result = await fitScanToBudget(input);
-    expect(input.build).toHaveBeenCalledTimes(1);
+    expect(input.builds).toHaveLength(1);
     expect(result).toMatchObject({ metTarget: true, scale: 1, quality: SCAN_QUALITY });
   });
 
@@ -53,30 +56,29 @@ describe('fitScanToBudget', () => {
     const input = fakeInput(1000);
     const result = await fitScanToBudget(input);
     expect(result.metTarget).toBe(false);
-    const smallest = Math.min(...(await Promise.all(input.build.mock.results.map((r) => r.value))).map((b: Blob) => b.size));
+    const smallest = Math.min(...input.blobs.map((b) => b.size));
     expect(result.blob.size).toBe(smallest);
   });
 
   it('releases every rendered set of pages', async () => {
     const input = fakeInput(200 * 1024);
     await fitScanToBudget(input);
-    const rendered = input.render.mock.results.map((r) => r.value);
-    for (const handle of rendered) expect(input.release).toHaveBeenCalledWith(handle);
+    for (const handle of input.rendered) expect(input.release).toHaveBeenCalledWith(handle);
   });
 });
 
 describe('fitScanToBudget failure', () => {
   it('rejects when a build fails and still releases every rendered handle', async () => {
-    const render = vi.fn(async (scale: number) => ({ scale }));
+    const rendered: Array<{ scale: number }> = [];
+    const render = async (scale: number) => { const handle = { scale }; rendered.push(handle); return handle; };
     let calls = 0;
-    const build = vi.fn(async (handle: { scale: number }, quality: number) => {
+    const build = async (handle: { scale: number }, quality: number) => {
       calls += 1;
       if (calls === 2) throw new Error('build failed');
       return new Blob([new Uint8Array(sizeOf(handle.scale, quality))]);
-    });
+    };
     const release = vi.fn();
     await expect(fitScanToBudget({ budgetBytes: 1000, render, build, release, deadlineMs: Number.POSITIVE_INFINITY })).rejects.toThrow('build failed');
-    const rendered = await Promise.all(render.mock.results.map((r) => r.value));
     expect(rendered.length).toBeGreaterThan(0);
     for (const handle of rendered) expect(release).toHaveBeenCalledWith(handle);
   });

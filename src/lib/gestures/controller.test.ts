@@ -3,7 +3,7 @@ import { startGesture } from './controller.ts';
 
 describe('startGesture', () => {
   it('writes every move but commits the last patch once on release', () => {
-    const computePatch = vi.fn((event) => (event as MouseEvent).clientX);
+    const computePatch = (event: Event) => (event as MouseEvent).clientX;
     const writeDOM = vi.fn();
     const commit = vi.fn();
 

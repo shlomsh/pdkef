@@ -42,7 +42,7 @@ describe('usePreparedOutput', () => {
   });
 
   it('is pending, then ready once quiet', async () => {
-    const build = vi.fn(async () => built(3));
+    const build = async () => built(3);
     await mount({ key: 'a', build });
     expect(api.current.status).toBe('pending');
     await settle();
@@ -54,7 +54,7 @@ describe('usePreparedOutput', () => {
   });
 
   it('withdraws the blob at once when the key changes', async () => {
-    const build = vi.fn(async () => built());
+    const build = async () => built();
     await mount({ key: 'a', build });
     await settle();
     expect(api.current.status).toBe('ready');
@@ -65,16 +65,17 @@ describe('usePreparedOutput', () => {
   });
 
   it('restores a cached key as ready without building again', async () => {
-    const build = vi.fn(async () => built());
+    const builds = [];
+    const build = async () => { builds.push(1); return built(); };
     await mount({ key: 'a', build });
     await settle();
     await mount({ key: 'b', build });
     await settle();
-    expect(build).toHaveBeenCalledTimes(2);
+    expect(builds).toHaveLength(2);
     await mount({ key: 'a', build });
     expect(api.current.status).toBe('ready');
     expect(api.current.blob).not.toBeNull();
-    expect(build).toHaveBeenCalledTimes(2);
+    expect(builds).toHaveLength(2);
   });
 
   const builtParts = () => ({
@@ -86,7 +87,7 @@ describe('usePreparedOutput', () => {
   });
 
   it('exposes a parts result with no blob or url, the summed size, and parts null for a blob', async () => {
-    await mount({ key: 'a', build: vi.fn(async () => builtParts()) });
+    await mount({ key: 'a', build: async () => builtParts() });
     await settle();
     expect(api.current.status).toBe('ready');
     expect(api.current.blob).toBeNull();
@@ -95,14 +96,15 @@ describe('usePreparedOutput', () => {
     expect(api.current.size).toBe(5);
     expect(api.current.pageCount).toBe(2);
     expect(api.current.generation).toBe(1);
-    await mount({ key: 'b', build: vi.fn(async () => built()) });
+    await mount({ key: 'b', build: async () => built() });
     await settle();
     expect(api.current.parts).toBeNull();
     expect(api.current.blob).not.toBeNull();
   });
 
   it('clears parts on a key change, a null key and an error, and restores them from the cache', async () => {
-    const build = vi.fn(async () => builtParts());
+    const builds = [];
+    const build = async () => { builds.push(1); return builtParts(); };
     await mount({ key: 'a', build });
     await settle();
     await mount({ key: 'b', build });
@@ -112,11 +114,11 @@ describe('usePreparedOutput', () => {
     await mount({ key: 'a', build });
     expect(api.current.status).toBe('ready');
     expect(api.current.parts).toHaveLength(2);
-    expect(build).toHaveBeenCalledTimes(2);
+    expect(builds).toHaveLength(2);
     await mount({ key: null, build });
     expect(api.current.parts).toBeNull();
     vi.spyOn(console, 'error').mockImplementation(() => {});
-    await mount({ key: 'c', build: vi.fn(async () => { throw new Error('boom'); }) });
+    await mount({ key: 'c', build: async () => { throw new Error('boom'); } });
     await settle();
     expect(api.current.status).toBe('error');
     expect(api.current.parts).toBeNull();
@@ -124,14 +126,15 @@ describe('usePreparedOutput', () => {
 
   describe('meta', () => {
     it('is null until a build lands, then carries what the build returned', async () => {
-      await mount({ key: 'a', build: vi.fn(async () => ({ ...built(), meta: { level: 'high', before: 10 } })) });
+      await mount({ key: 'a', build: async () => ({ ...built(), meta: { level: 'high', before: 10 } }) });
       expect(api.current.meta).toBeNull();
       await settle();
       expect(api.current.meta).toEqual({ level: 'high', before: 10 });
     });
 
     it('is withdrawn with the blob on a key change and restored from the cache', async () => {
-      const build = vi.fn(async () => ({ ...built(), meta: { n: Math.random() } }));
+      const builds = [];
+      const build = async () => { builds.push(1); return ({ ...built(), meta: { n: Math.random() } }); };
       await mount({ key: 'a', build });
       await settle();
       const first = api.current.meta;
@@ -140,20 +143,20 @@ describe('usePreparedOutput', () => {
       await settle();
       await mount({ key: 'a', build });
       expect(api.current.meta).toBe(first);
-      expect(build).toHaveBeenCalledTimes(2);
+      expect(builds).toHaveLength(2);
     });
 
     it('is null for a build that returns none, a null key and an error', async () => {
-      await mount({ key: 'a', build: vi.fn(async () => built()) });
+      await mount({ key: 'a', build: async () => built() });
       await settle();
       expect(api.current.meta).toBeNull();
-      await mount({ key: 'b', build: vi.fn(async () => ({ ...built(), meta: 1 })) });
+      await mount({ key: 'b', build: async () => ({ ...built(), meta: 1 }) });
       await settle();
       expect(api.current.meta).toBe(1);
       await mount({ key: null, build: vi.fn() });
       expect(api.current.meta).toBeNull();
       vi.spyOn(console, 'error').mockImplementation(() => {});
-      await mount({ key: 'c', build: vi.fn(async () => { throw new Error('boom'); }) });
+      await mount({ key: 'c', build: async () => { throw new Error('boom'); } });
       await settle();
       expect(api.current.meta).toBeNull();
     });
@@ -161,7 +164,7 @@ describe('usePreparedOutput', () => {
 
   it('does not treat an aborted build as an error', async () => {
     const onBuildError = vi.fn();
-    const build = vi.fn(async () => { throw new DOMException('aborted', 'AbortError'); });
+    const build = async () => { throw new DOMException('aborted', 'AbortError'); };
     await mount({ key: 'a', build, onBuildError });
     await settle();
     expect(api.current.status).toBe('pending');
@@ -171,49 +174,52 @@ describe('usePreparedOutput', () => {
   it('re-arms the current key once when its build aborts without a newer change, so it cannot stay pending', async () => {
     const onBuildError = vi.fn();
     let calls = 0;
-    const build = vi.fn(async () => {
+    const build = async () => {
       calls++;
       if (calls === 1) throw new DOMException('aborted', 'AbortError');
       return built();
-    });
+    };
     await mount({ key: 'a', build, onBuildError });
     await settle();
-    expect(build).toHaveBeenCalledTimes(2);
+    expect(calls).toBe(2);
     expect(api.current.status).toBe('ready');
     expect(onBuildError).not.toHaveBeenCalled();
   });
 
   it('re-arms an aborting key only once, so a build that always aborts does not spin', async () => {
-    const build = vi.fn(async () => { throw new DOMException('aborted', 'AbortError'); });
+    const builds = [];
+    const build = async () => { builds.push(1); throw new DOMException('aborted', 'AbortError'); };
     await mount({ key: 'a', build });
     await settle();
     await settle();
-    expect(build).toHaveBeenCalledTimes(2);
+    expect(builds).toHaveLength(2);
     expect(api.current.status).toBe('pending');
   });
 
   it('forgets results built for an earlier cacheScope, so a replaced document is not retained', async () => {
-    const build = vi.fn(async () => built());
+    const builds = [];
+    const build = async () => { builds.push(1); return built(); };
     await mount({ key: 'a', build, cacheScope: 1 });
     await settle();
     await mount({ key: 'b', build, cacheScope: 2 });
     await settle();
-    expect(build).toHaveBeenCalledTimes(2);
+    expect(builds).toHaveLength(2);
     await mount({ key: 'a', build, cacheScope: 1 });
     expect(api.current.status).toBe('pending');
     await settle();
-    expect(build).toHaveBeenCalledTimes(3);
+    expect(builds).toHaveLength(3);
   });
 
   it('keeps cached results while the cacheScope stays the same', async () => {
-    const build = vi.fn(async () => built());
+    const builds = [];
+    const build = async () => { builds.push(1); return built(); };
     await mount({ key: 'a', build, cacheScope: 1 });
     await settle();
     await mount({ key: 'b', build, cacheScope: 1 });
     await settle();
     await mount({ key: 'a', build, cacheScope: 1 });
     expect(api.current.status).toBe('ready');
-    expect(build).toHaveBeenCalledTimes(2);
+    expect(builds).toHaveLength(2);
   });
 
   it('turns a failed build into error and reports it', async () => {
@@ -230,15 +236,18 @@ describe('usePreparedOutput', () => {
 
   it('prepareNow rebuilds the current key after a failed build', async () => {
     const spy = vi.spyOn(console, 'error').mockImplementation(() => {});
-    const build = vi.fn()
-      .mockRejectedValueOnce(new Error('boom'))
-      .mockResolvedValue(built());
+    const builds = [];
+    const build = async () => {
+      builds.push(1);
+      if (builds.length === 1) throw new Error('boom');
+      return built();
+    };
     await mount({ key: 'a', build });
     await settle();
     expect(api.current.status).toBe('error');
     await act(async () => api.current.prepareNow());
     await settle();
-    expect(build).toHaveBeenCalledTimes(2);
+    expect(builds).toHaveLength(2);
     expect(api.current.status).toBe('ready');
     spy.mockRestore();
   });
@@ -259,7 +268,7 @@ describe('usePreparedOutput', () => {
     const revoked = () => URL.revokeObjectURL.mock.calls.map((c) => c[0]);
 
     it('gives each part an object url and carries its page number', async () => {
-      await mount({ key: 'a', build: vi.fn(async () => partsOf()) });
+      await mount({ key: 'a', build: async () => partsOf() });
       await settle();
       expect(api.current.parts.map((p) => p.url)).toEqual(made);
       expect(api.current.parts.map((p) => p.pageNumber)).toEqual([1, 2]);
@@ -267,7 +276,8 @@ describe('usePreparedOutput', () => {
     });
 
     it('revokes them when the key changes, the key goes null, and on unmount', async () => {
-      const build = vi.fn(async () => partsOf());
+      const builds = [];
+      const build = async () => { builds.push(1); return partsOf(); };
       await mount({ key: 'a', build });
       await settle();
       const first = [...made];
@@ -285,7 +295,8 @@ describe('usePreparedOutput', () => {
     });
 
     it('makes fresh urls when a cached parts state comes back', async () => {
-      const build = vi.fn(async () => partsOf());
+      const builds = [];
+      const build = async () => { builds.push(1); return partsOf(); };
       await mount({ key: 'a', build });
       await settle();
       await mount({ key: 'b', build });
@@ -293,17 +304,18 @@ describe('usePreparedOutput', () => {
       await mount({ key: 'a', build });
       expect(api.current.status).toBe('ready');
       expect(api.current.parts.every((p) => made.includes(p.url) && !revoked().includes(p.url))).toBe(true);
-      expect(build).toHaveBeenCalledTimes(2);
+      expect(builds).toHaveLength(2);
     });
   });
 
   describe('autoBuild false', () => {
     it('withdraws on a key change but builds nothing until prepareNow', async () => {
-      const build = vi.fn(async () => built());
+      const builds = [];
+      const build = async () => { builds.push(1); return built(); };
       await mount({ key: 'a', build, autoBuild: false });
       await settle();
       expect(api.current.status).toBe('pending');
-      expect(build).not.toHaveBeenCalled();
+      expect(builds).toEqual([]);
       await act(async () => api.current.prepareNow());
       await settle();
       expect(api.current.status).toBe('ready');
@@ -311,21 +323,22 @@ describe('usePreparedOutput', () => {
       expect(api.current.status).toBe('pending');
       expect(api.current.url).toBeNull();
       await settle();
-      expect(build).toHaveBeenCalledTimes(1);
+      expect(builds).toHaveLength(1);
       await act(async () => api.current.prepareNow());
       await settle();
-      expect(build).toHaveBeenCalledTimes(2);
+      expect(builds).toHaveLength(2);
       expect(api.current.status).toBe('ready');
     });
 
     it('starts the quiet wait for the current key when autoBuild turns on', async () => {
-      const build = vi.fn(async () => built());
+      const builds = [];
+      const build = async () => { builds.push(1); return built(); };
       await mount({ key: 'a', build, autoBuild: false });
       await settle();
-      expect(build).not.toHaveBeenCalled();
+      expect(builds).toEqual([]);
       await mount({ key: 'a', build, autoBuild: true });
       await settle();
-      expect(build).toHaveBeenCalledTimes(1);
+      expect(builds).toHaveLength(1);
       expect(api.current.status).toBe('ready');
     });
   });

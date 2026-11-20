@@ -62,7 +62,8 @@ describe('readInkBounds', () => {
   });
 
   it('returns null as soon as the caller is no longer live', async () => {
-    const live = vi.fn().mockReturnValueOnce(true).mockReturnValue(false);
+    let checks = 0;
+    const live = () => checks++ === 0;
     const doc = fakeDoc([fakePage(), fakePage(), fakePage()]);
     expect(await readInkBounds(doc, live)).toBeNull();
     expect(renderedPage()).toHaveBeenCalledTimes(1);

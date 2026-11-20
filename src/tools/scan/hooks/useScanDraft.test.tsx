@@ -35,10 +35,12 @@ let host: HTMLDivElement;
 let out: ReturnType<typeof useScanDraft>;
 let restoredPages: ScanPage[];
 let work: { pages: ScanPage[] };
-const restorePages = vi.fn((restore: ScanDraftRestore) => {
+const restoreCalls: ScanDraftRestore[] = [];
+const restorePages = (restore: ScanDraftRestore) => {
+  restoreCalls.push(restore);
   restoredPages = restore.files.map((file) => newPage(file, 'document'));
   return restoredPages;
-});
+};
 
 function Probe({ pages }: { pages: ScanPage[] }) {
   out = useScanDraft({
@@ -79,7 +81,7 @@ describe('useScanDraft', () => {
     vi.mocked(loadDraft).mockReset();
     vi.mocked(deleteDraft).mockClear();
     vi.mocked(clearCurrentEntry).mockClear();
-    restorePages.mockClear();
+    restoreCalls.length = 0;
     work = { pages: [] };
   });
   afterEach(() => {
@@ -93,7 +95,7 @@ describe('useScanDraft', () => {
     await seedScan();
     await show([]);
     await restoreChecked();
-    expect(restorePages).toHaveBeenCalledTimes(1);
+    expect(restoreCalls).toHaveLength(1);
     expect(await restoredPages[0].file.text()).toBe('seeded photo');
     expect(out.checking).toBe(false);
     expect(document.documentElement.hasAttribute('data-draft-hint')).toBe(false);
@@ -108,7 +110,7 @@ describe('useScanDraft', () => {
     work.pages = [page('picked.jpg')];
     release();
     await restoreChecked();
-    expect(restorePages).not.toHaveBeenCalled();
+    expect(restoreCalls).toEqual([]);
   });
 
   it('lets go of a pointer at an entry with no photos', async () => {
@@ -120,7 +122,7 @@ describe('useScanDraft', () => {
     await restoreChecked();
     expect(clearCurrentEntry).toHaveBeenCalledWith('scan-to-pdf');
     expect(readCurrentEntryId('scan-to-pdf')).toBeNull();
-    expect(restorePages).not.toHaveBeenCalled();
+    expect(restoreCalls).toEqual([]);
   });
 
   it('skips the load while a hand-off is pending', async () => {

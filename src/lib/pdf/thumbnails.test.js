@@ -169,15 +169,17 @@ describe('thumbnails.js', () => {
       const { renderPdfThumbnails } = await import('./thumbnails.js');
       const file = new File([], 'test.pdf');
       const controller = new AbortController();
-      const onPageRender = vi.fn((pageNumber) => {
+      const rendered = [];
+      const onPageRender = (pageNumber) => {
+        rendered.push(pageNumber);
         if (pageNumber === 1) controller.abort();
-      });
+      };
 
       await expect(
         renderPdfThumbnails(file, onPageRender, { signal: controller.signal }),
       ).rejects.toMatchObject({ name: 'AbortError' });
 
-      expect(onPageRender).toHaveBeenCalledTimes(1);
+      expect(rendered).toHaveLength(1);
       expect(mockState.getPageCalls).toEqual([1]);
       expect(mockState.destroyCalls).toBe(1);
     });
