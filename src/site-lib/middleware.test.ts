@@ -1,4 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { http, HttpResponse } from 'msw';
+import { answerNetwork, server } from '../test/support/network.ts';
 
 // next() from @vercel/functions returns a Response carrying the extra headers, which is all this test reads.
 vi.mock('@vercel/functions', () => ({
@@ -6,6 +8,8 @@ vi.mock('@vercel/functions', () => ({
 }));
 
 import middleware from '../../middleware.ts';
+
+answerNetwork();
 
 const page = () => new Request('https://pdkef.com/merge/', { headers: { accept: 'text/html' } });
 
@@ -37,12 +41,16 @@ describe('middleware build header (MEM-19)', () => {
     });
     it('sends none on a markdown response', async () => {
       vi.stubEnv('VERCEL_GIT_COMMIT_SHA', sha);
-      vi.stubGlobal('fetch', vi.fn(async () => new Response('# Merge', { status: 200 })));
+      const seen: string[] = [];
+      server.use(http.get('https://pdkef.com/merge.md', ({ request }) => {
+        seen.push(request.url);
+        return new HttpResponse('# Merge', { status: 200 });
+      }));
       const res = await middleware(withAccept('/merge/', 'text/markdown'));
       expect(res.status).toBe(200);
       expect(res.headers.get('content-type')).toContain('text/markdown');
       expect(res.headers.has('server-timing')).toBe(false);
-      vi.unstubAllGlobals();
+      expect(seen).toEqual(['https://pdkef.com/merge.md']);
     });
     it('sends none on the 406', async () => {
       vi.stubEnv('VERCEL_GIT_COMMIT_SHA', sha);

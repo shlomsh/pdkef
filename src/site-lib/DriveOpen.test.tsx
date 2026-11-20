@@ -4,7 +4,8 @@ import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import DriveOpen from './DriveOpen.tsx';
-import { fetchDriveFile } from './drive/driveClient.ts';
+import { HttpResponse } from 'msw';
+import { answerInTurn, answerNetwork, sentHeaders } from '../test/support/network.ts';
 import { requestDriveToken } from './drive/googleToken.ts';
 import { forgetSaved, remember, savedToken, toGoogle } from './drive/driveSignIn.ts';
 import { saveToken } from './drive/driveSession.ts';
@@ -15,25 +16,42 @@ import { waitUntil } from '../test/support/waitUntil.ts';
 import { sendHandoff } from '#lib/handoff/sendHandoff.ts';
 import { peekHandoff } from '#lib/drafts/draftStore.ts';
 
-// Network stays replaced for the MSW wave: Google's sign-in popup (googleToken), the Drive download
-// (driveClient, a fetch to googleapis) and the Picker (drivePicker, gapi). Everything else runs for real:
-// intent, route, saved token and redirect return on the page's own URL and localStorage, the chooser,
-// and the hand-off on fake-indexeddb. The two spies see the redirect and the hand-off.
+// Replaced: Google's sign-in popup (googleToken) and the Picker (drivePicker, gapi), which load Google's scripts.
+// The Drive download is the real driveClient; MSW answers its two requests to googleapis. Everything else
+// runs for real: intent, route, saved token and redirect return on the page's own URL and localStorage, the
+// chooser, and the hand-off on fake-indexeddb. The two spies see the redirect and the hand-off.
 vi.mock('./drive/googleToken.ts', () => ({ requestDriveToken: vi.fn() }));
-vi.mock('./drive/driveClient.ts', () => ({ fetchDriveFile: vi.fn() }));
 vi.mock('./drive/drivePicker.ts', () => ({ loadPicker: vi.fn(), openPicker: vi.fn() }));
 vi.mock('#lib/handoff/sendHandoff.ts', { spy: true });
 vi.mock('./drive/driveSignIn.ts', { spy: true });
 
 const OPEN_WITH = `?state=${encodeURIComponent(JSON.stringify({ ids: ['abc123abcdef'], action: 'open', userId: 'u1' }))}`;
-const FILE = { fileId: 'abc123abcdef', resourceKey: undefined };
 const CHROME = 'Mozilla/5.0 (Macintosh) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
 const at = (search: string, hash = '') => history.replaceState(null, '', `/drive/${search}${hash}`);
 const redirectBack = (fragment: string) => `#${fragment}`;
 const desktopChrome = () => vi.spyOn(navigator, 'userAgent', 'get').mockReturnValue(CHROME); // forced: jsdom's agent is no Chrome
 const saved = (token: string, user?: string) => saveToken(localStorage, token, 3600, Date.now(), user);
 
-const PDF = { ok: true, name: 'a.pdf', mimeType: 'application/pdf', bytes: new ArrayBuffer(4) } as never;
+answerNetwork();
+
+const meta = (id: string) => `https://www.googleapis.com/drive/v3/files/${id}?fields=name,mimeType&supportsAllDrives=true`;
+const media = (id: string) => `https://www.googleapis.com/drive/v3/files/${id}?alt=media&supportsAllDrives=true`;
+const FILE_META = meta('abc123abcdef');
+const FILE_MEDIA = media('abc123abcdef');
+
+type Answer = () => Response | Promise<Response>;
+const pdfMeta: Answer = () => HttpResponse.json({ name: 'a.pdf', mimeType: 'application/pdf' });
+const pdfBytes: Answer = () => new HttpResponse(new Uint8Array([1, 2, 3, 4]));
+const refused: Answer = () => new HttpResponse(null, { status: 401 });
+
+const drive = (...answers: Answer[]) => answerInTurn('get', 'https://www.googleapis.com/drive/v3/files/:id', ...answers);
+const downloads = () => drive(pdfMeta, pdfBytes);
+const held = () => {
+  let release!: () => void;
+  const gate = new Promise<void>((resolve) => { release = resolve; });
+  return { gate, release };
+};
+const arrived = (c: HTMLElement) => c.textContent!.includes('a.pdf');
 const button = (container: HTMLElement) => container.querySelector<HTMLButtonElement>('button');
 
 const chooserShown = (c: HTMLElement) => c.textContent!.includes('Black out private parts');
@@ -58,10 +76,10 @@ describe('DriveOpen', () => {
     vi.restoreAllMocks();
   });
 
-  it('starts one token request and one fetch when the Google button is tapped twice', async () => {
+  it('starts one token request and one download when the Google button is tapped twice', async () => {
     let resolveToken!: (value: { ok: true; token: string; expiresInSeconds: number }) => void;
     vi.mocked(requestDriveToken).mockReturnValue(new Promise((resolve) => { resolveToken = resolve; }));
-    vi.mocked(fetchDriveFile).mockResolvedValue({ ok: true, name: 'a.pdf', mimeType: 'application/pdf', bytes: new ArrayBuffer(4) } as never);
+    const seen = downloads();
     act(() => render(<DriveOpen />, container));
     const button = container.querySelector<HTMLButtonElement>('button')!;
 
@@ -69,18 +87,23 @@ describe('DriveOpen', () => {
     expect(requestDriveToken).toHaveBeenCalledTimes(1);
 
     resolveToken({ ok: true, token: 't', expiresInSeconds: 3600 });
-    await flush();
-    expect(fetchDriveFile).toHaveBeenCalledTimes(1);
+    await waitUntil(() => arrived(container));
+    expect(seen).toHaveLength(2);
+    expect(seen[0].url).toBe(FILE_META);
+    expect(seen[1].url).toBe(FILE_MEDIA);
+    expect(sentHeaders(seen[0])).toEqual({ authorization: 'Bearer t' });
     expect(chooserShown(container)).toBe(true);
   });
 
   // DRIVE-10: Open with reuses the sign-in it already has instead of stopping on the button every time.
   it('opens the file straight away with a saved token, no button and no popup', async () => {
     saved('saved', 'u1');
-    vi.mocked(fetchDriveFile).mockResolvedValue(PDF);
+    const seen = downloads();
     act(() => render(<DriveOpen />, container));
-    await flush();
-    expect(fetchDriveFile).toHaveBeenCalledWith(expect.any(Function), 'saved', FILE);
+    await waitUntil(() => arrived(container));
+    expect(seen.map((r) => r.url)).toEqual([FILE_META, FILE_MEDIA]);
+    expect(sentHeaders(seen[0])).toEqual({ authorization: 'Bearer saved' });
+    expect(sentHeaders(seen[1])).toEqual({ authorization: 'Bearer saved' });
     expect(requestDriveToken).not.toHaveBeenCalled();
     expect(chooserShown(container)).toBe(true);
   });
@@ -88,10 +111,12 @@ describe('DriveOpen', () => {
   it('opens the file with the token Google sent back from the redirect', async () => {
     desktopChrome();
     at('', redirectBack(`access_token=fresh&expires_in=3599&state=${encodeURIComponent(`none|${OPEN_WITH}`)}`));
-    vi.mocked(fetchDriveFile).mockResolvedValue(PDF);
+    const seen = downloads();
     act(() => render(<DriveOpen />, container));
-    await flush();
-    expect(fetchDriveFile).toHaveBeenCalledWith(expect.any(Function), 'fresh', FILE);
+    await waitUntil(() => arrived(container));
+    expect(seen.map((r) => r.url)).toEqual([FILE_META, FILE_MEDIA]);
+    expect(sentHeaders(seen[0])).toEqual({ authorization: 'Bearer fresh' });
+    expect(sentHeaders(seen[1])).toEqual({ authorization: 'Bearer fresh' });
     expect(savedToken('u1')).toBe('fresh');
     expect(location.search).toBe(OPEN_WITH);
     expect(toGoogle).not.toHaveBeenCalled();
@@ -107,10 +132,11 @@ describe('DriveOpen', () => {
   });
 
   it('waits for a tap on the popup route when nothing is saved', async () => {
+    const seen = drive();
     act(() => render(<DriveOpen />, container));
     await flush();
     expect(toGoogle).not.toHaveBeenCalled();
-    expect(fetchDriveFile).not.toHaveBeenCalled();
+    expect(seen).toHaveLength(0);
     expect(button(container)?.textContent).toContain('Sign in with Google');
   });
 
@@ -126,9 +152,11 @@ describe('DriveOpen', () => {
   it('forgets a saved token Google rejects and falls back to the button', async () => {
     saved('stale', 'u1');
     desktopChrome();
-    vi.mocked(fetchDriveFile).mockResolvedValue({ ok: false, error: 'unauthorized' });
+    const seen = drive(refused);
     act(() => render(<DriveOpen />, container));
-    await flush();
+    await waitUntil(() => expect(button(container)?.textContent).toContain('Sign in with Google'));
+    expect(seen).toHaveLength(1);
+    expect(sentHeaders(seen[0])).toEqual({ authorization: 'Bearer stale' });
     expect(forgetSaved).toHaveBeenCalledTimes(1);
     expect(localStorage.getItem(DRIVE_TOKEN_KEY)).toBeNull();
     expect(toGoogle).not.toHaveBeenCalled();
@@ -137,11 +165,12 @@ describe('DriveOpen', () => {
 
   it('remembers the token from the popup so the next Open with needs no tap', async () => {
     vi.mocked(requestDriveToken).mockResolvedValue({ ok: true, token: 'popped', expiresInSeconds: 3599 });
-    vi.mocked(fetchDriveFile).mockResolvedValue(PDF);
+    const seen = downloads();
     act(() => render(<DriveOpen />, container));
     await flush();
     act(() => { button(container)!.click(); });
-    await flush();
+    await waitUntil(() => arrived(container));
+    expect(sentHeaders(seen[0])).toEqual({ authorization: 'Bearer popped' });
     expect(remember).toHaveBeenCalledWith('popped', 3599, 'u1');
     expect(savedToken('u1')).toBe('popped');
     expect(chooserShown(container)).toBe(true);
@@ -158,11 +187,11 @@ describe('DriveOpen', () => {
 
   it('hints the Drive account to the popup and remembers its token for that account', async () => {
     vi.mocked(requestDriveToken).mockResolvedValue({ ok: true, token: 'popped', expiresInSeconds: 3599 });
-    vi.mocked(fetchDriveFile).mockResolvedValue(PDF);
+    downloads();
     act(() => render(<DriveOpen />, container));
     await flush();
     act(() => { button(container)!.click(); });
-    await flush();
+    await waitUntil(() => arrived(container));
     expect(requestDriveToken).toHaveBeenCalledWith('u1');
     expect(remember).toHaveBeenCalledWith('popped', 3599, 'u1');
   });
@@ -170,17 +199,16 @@ describe('DriveOpen', () => {
   // DRIVE-11: the choice does not wait for the download.
   it('shows the tool choice while the file is still downloading, then gives it the file', async () => {
     saved('saved', 'u1');
-    let arrive!: (value: never) => void;
-    vi.mocked(fetchDriveFile).mockReturnValue(new Promise((resolve) => { arrive = resolve; }));
+    const hold = held();
+    drive(async () => { await hold.gate; return pdfMeta(); }, pdfBytes);
     act(() => render(<DriveOpen />, container));
     await flush();
     expect(chooserShown(container)).toBe(true);
     expect(container.textContent).toContain('Your file is on its way.');
     expect(container.textContent).not.toContain('a.pdf');
 
-    arrive(PDF);
-    await flush();
-    expect(container.textContent).toContain('a.pdf');
+    hold.release();
+    await waitUntil(() => arrived(container));
     await act(async () => { [...container.querySelectorAll('button')].find((b) => b.textContent?.includes('Sign'))!.click(); });
     await waitUntil(() => sessionStorage.length > 0);
     expect(await peekHandoff('sign')).toMatchObject({ fileName: 'a.pdf', from: 'drive' });
@@ -192,25 +220,26 @@ describe('DriveOpen', () => {
     saved('saved');
     vi.mocked(loadPicker).mockResolvedValue(true);
     vi.mocked(openPicker).mockResolvedValue({ action: 'picked', docs: [{ id: 'f1' }] } as never);
-    vi.mocked(fetchDriveFile).mockResolvedValue(PDF);
+    const seen = downloads();
     act(() => render(<DriveOpen />, container));
     await waitUntil(() => sessionStorage.length > 0);
+    expect(seen.map((r) => r.url)).toEqual([meta('f1'), media('f1')]);
+    expect(sentHeaders(seen[0])).toEqual({ authorization: 'Bearer saved' });
     expect(vi.mocked(sendHandoff).mock.calls[0][1]).toMatchObject({ fileName: 'a.pdf', from: 'drive' });
     expect(await peekHandoff('sign')).toMatchObject({ fileName: 'a.pdf', from: 'drive' });
   });
 
   it('leaves the choice for the button when the download is refused', async () => {
     saved('stale', 'u1');
-    let arrive!: (value: { ok: false; error: 'unauthorized' }) => void;
-    vi.mocked(fetchDriveFile).mockReturnValue(new Promise((resolve) => { arrive = resolve; }));
+    const hold = held();
+    drive(async () => { await hold.gate; return refused(); });
     act(() => render(<DriveOpen />, container));
     await flush();
     expect(chooserShown(container)).toBe(true);
     expect(container.textContent).toContain('Your file is on its way.');
 
-    arrive({ ok: false, error: 'unauthorized' });
-    await flush();
-    expect(chooserShown(container)).toBe(false);
+    hold.release();
+    await waitUntil(() => expect(chooserShown(container)).toBe(false));
     expect(button(container)?.textContent).toContain('Sign in with Google');
   });
 });

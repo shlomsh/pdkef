@@ -1,6 +1,7 @@
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
-import { describe, expect, it, vi, afterEach } from 'vitest';
+import { describe, expect, it, vi, afterEach, beforeEach } from 'vitest';
+import { answerNetwork } from '../test/support/network.ts';
 import PinnedNotes from './PinnedNotes.tsx';
 import { notesToShow, type PinnedNote } from './pinnedNote';
 
@@ -13,13 +14,16 @@ afterEach(() => {
   if (container) act(() => render(null, container!));
   container?.remove();
   container = null;
-  vi.unstubAllGlobals();
-  fetchSpy.mockReset();
+  fetchSpy?.mockRestore();
 });
 
-const fetchSpy = vi.fn();
+answerNetwork();
+
+let fetchSpy: ReturnType<typeof vi.spyOn>;
+beforeEach(() => {
+  fetchSpy = vi.spyOn(globalThis, 'fetch');
+});
 function mount(notes: unknown[], extra: Record<string, unknown> = {}) {
-  vi.stubGlobal('fetch', fetchSpy);
   container = document.createElement('div');
   document.body.appendChild(container);
   act(() => render(<PinnedNotes {...props} notes={notes as PinnedNote[]} {...extra} />, container!));

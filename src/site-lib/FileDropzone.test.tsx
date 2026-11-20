@@ -13,6 +13,10 @@ import { cacheRecentFile, saveDraft, saveHandoff, setCurrentEntry, readRecentFil
 import { RECENT_FILES_META_KEY } from '#lib/drafts/recentFilesKey.js';
 import { setInputFiles } from '../test/support/setInputFiles.js';
 import { waitUntil } from '../test/support/waitUntil.ts';
+import { http, HttpResponse } from 'msw';
+import { answerNetwork, server } from '../test/support/network.ts';
+
+answerNetwork();
 
 // The draft store runs for real on fake-indexeddb and the page's own localStorage; the spy sees what the tile
 // asked of it. What a store cannot be made to do (refuse a file, never answer) is one forced line on the spy.
@@ -708,13 +712,19 @@ describe('FileDropzone', () => {
     });
 
     it('still opens the practice document in Sign directly', async () => {
-      vi.stubGlobal('fetch', vi.fn(() => Promise.resolve({ ok: true, blob: () => Promise.resolve(new Blob(['%PDF'])) })));
+      const sampleBytes = new Uint8Array(readFileSync('public/images/redaction-guide/sample.pdf'));
+      window.location.href = 'http://localhost:3000/';
+      const seen: Request[] = [];
+      server.use(http.get('/images/redaction-guide/sample.pdf', ({ request }) => {
+        seen.push(request);
+        return new HttpResponse(sampleBytes, { headers: { 'content-type': 'application/pdf' } });
+      }));
       mount();
       await act(async () => { await Promise.resolve(); });
       await act(async () => { container.querySelector('button[aria-label^="Open bundled sample PDF"]').click(); });
       await waitUntil(() => window.location.href === '/sign/');
       await flush();
-      vi.unstubAllGlobals();
+      expect(seen.map((r) => `${r.method} ${r.url}`)).toEqual(['GET http://localhost:3000/images/redaction-guide/sample.pdf']);
       expect(vi.mocked(saveHandoff).mock.calls[0][0]).toBe('sign');
       expect(vi.mocked(saveHandoff).mock.calls[0][1].fileName).toBe('PDkef practice form.pdf');
       expect(window.location.href).toBe('/sign/');

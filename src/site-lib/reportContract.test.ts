@@ -1,4 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { http, HttpResponse } from 'msw';
+import { answerNetwork, server } from '../test/support/network.ts';
 import { POST } from '../../api/report.ts';
 import {
   reportError,
@@ -12,22 +14,27 @@ import { reportToolLifecycleEvent, resetUsageEventsForTests } from '#lib/telemet
 // the shared schemas; this one proves that what the browser sends is what the endpoint stores, so a
 // change on one side cannot silently turn the other's traffic into nothing.
 
+answerNetwork();
+
 const beacons: Blob[] = [];
+let pipelineCommands: unknown[][] = [];
 
 const deliver = async (): Promise<unknown[][]> => {
-  const fetchSpy = vi.fn(async (_url: string, _init: RequestInit) =>
-    new Response(JSON.stringify([{ result: 2 }, { result: 1 }]), { status: 200 }));
-  vi.stubGlobal('fetch', fetchSpy);
   for (const blob of beacons.splice(0)) {
     await POST(new Request('https://pdkef.com/api/report', { method: 'POST', body: await blob.text() }));
   }
-  return fetchSpy.mock.calls.flatMap(([, init]) => JSON.parse(init.body as string) as unknown[][]);
+  return pipelineCommands;
 };
 
 const counted = (commands: unknown[][], prefix: string) =>
   commands.filter(([name, key]) => name === 'HINCRBY' && String(key).startsWith(prefix)).map(([, , field]) => field);
 
 beforeEach(() => {
+  pipelineCommands = [];
+  server.use(http.post('https://store.invalid/pipeline', async ({ request }) => {
+    pipelineCommands.push(...((await request.clone().json()) as unknown[][]));
+    return HttpResponse.json([{ result: 2 }, { result: 1 }]);
+  }));
   process.env.KV_REST_API_URL = 'https://store.invalid';
   process.env.KV_REST_API_TOKEN = 'test-token';
   vi.stubGlobal('navigator', {
@@ -99,13 +106,9 @@ describe('what the browser sends is what the endpoint stores (DEBT-44)', () => {
   it('a first event with a source and a page view with a visit are counted with their pg field (DEBT-58)', async () => {
     const post = (properties: object, name: string) =>
       POST(new Request('https://pdkef.com/api/report', { method: 'POST', body: JSON.stringify({ name, properties }) }));
-    const fetchSpy = vi.fn(async (_url: string, _init: RequestInit) =>
-      new Response(JSON.stringify([{ result: 2 }, { result: 1 }]), { status: 200 }));
-    vi.stubGlobal('fetch', fetchSpy);
     await post({ tool: 'sign', build: '08e10cf', first: true, source: 'handoff', from: 'merge' }, 'tool_file_accepted');
     await post({ tool: 'sign', first: true, visit: 'week' }, 'tool_page_viewed');
-    const commands = fetchSpy.mock.calls.flatMap(([, init]) => JSON.parse(init.body as string) as unknown[][]);
-    expect(counted(commands, 'usage:')).toEqual([
+    expect(counted(pipelineCommands, 'usage:')).toEqual([
       'tool_file_accepted|sign|08e10cf|handoff',
       'pg:tool_file_accepted|sign|handoff|merge|-|-',
       'tool_page_viewed|sign',

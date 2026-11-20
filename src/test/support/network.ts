@@ -1,4 +1,5 @@
 import { afterAll, afterEach, beforeAll } from 'vitest';
+import { http, HttpResponse } from 'msw';
 import { setupServer } from 'msw/node';
 
 /**
@@ -25,9 +26,28 @@ export function answerNetwork() {
   afterAll(() => server.close());
 }
 
-const FETCH_OWN_HEADERS = new Set(['accept', 'accept-encoding', 'accept-language', 'connection', 'host', 'sec-fetch-mode', 'user-agent']);
+type Answer = () => Response | Promise<Response>;
 
-/** The headers the code under test set on a request, lower-cased, without the ones Node's fetch adds itself. */
+/**
+ * Answers each `method` request to `url` (exact, or an MSW path pattern such as `/files/:id`) with the next
+ * answer in turn, and returns the requests it saw, cloned so a test can read their bodies afterwards. A
+ * request beyond the last answer fails the test the way an unhandled one does.
+ */
+export function answerInTurn(method: 'get' | 'post' | 'put', url: string, ...answers: Answer[]) {
+  const seen: Request[] = [];
+  server.use(http[method](url, ({ request }) => {
+    seen.push(request.clone());
+    const next = answers[seen.length - 1];
+    if (next) return next();
+    unhandled.push(`${request.method} ${request.url} (request ${seen.length}, ${answers.length} answered)`);
+    return HttpResponse.error();
+  }));
+  return seen;
+}
+
+const SET_BY_NODE_FETCH = new Set(['accept', 'accept-encoding', 'accept-language', 'connection', 'content-length', 'host', 'sec-fetch-mode', 'user-agent']);
+
+/** The headers the code under test set on a request, lower-cased, without the ones Node's fetch adds itself (content-length included: a forbidden header the code cannot set). */
 export function sentHeaders(request: Request) {
-  return Object.fromEntries([...request.headers].filter(([name]) => !FETCH_OWN_HEADERS.has(name)));
+  return Object.fromEntries([...request.headers].filter(([name]) => !SET_BY_NODE_FETCH.has(name)));
 }

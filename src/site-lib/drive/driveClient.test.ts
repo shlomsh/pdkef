@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { http, HttpResponse } from 'msw';
-import { answerNetwork, sentHeaders, server } from '../../test/support/network.ts';
+import { HttpResponse } from 'msw';
+import { answerInTurn, answerNetwork, sentHeaders, server } from '../../test/support/network.ts';
 import { fetchDriveFile } from './driveClient.ts';
 
 const BASE = 'https://www.googleapis.com/drive/v3/files/abc%2F1';
@@ -16,16 +16,7 @@ const status = (code: number) => () => new HttpResponse(null, { status: code });
 const offline = () => HttpResponse.error();
 const unreadableBody = () => new HttpResponse(new ReadableStream({ pull(c) { c.error(new Error('bad')); } }));
 
-function drive(...answers: Array<() => Response>) {
-  const seen: Request[] = [];
-  server.use(http.get(FILE, ({ request }) => {
-    seen.push(request);
-    const next = answers[seen.length - 1];
-    if (!next) throw new Error(`unexpected request ${seen.length}: ${request.url}`);
-    return next();
-  }));
-  return seen;
-}
+const drive = (...answers: Array<() => Response>) => answerInTurn('get', FILE, ...answers);
 
 const REF = { fileId: 'abc/1' };
 

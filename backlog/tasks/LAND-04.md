@@ -92,5 +92,11 @@ count). The rule is off on `landmines-all` meanwhile.
   build helpers, corpus tooling, scripts, spikes and tests exempt, and 31 `@ts-expect-error` lines that
   only existed for the missing types are gone. `strict-msw` does not know MSW 3's `onUnhandledFrame`:
   one exact-count allow entry until the upstream fix.
+- Wave 4, network through `fetch` (2026-11-20): 9 files, down to 1,291. Drive upload and open, the
+  build's notes and rating reads, the report endpoint, the Markdown twin in middleware and the bundled
+  sample now make their real requests, answered by MSW per test; every assertion reads the recorded
+  request (full URL, exact headers, body, count). One shared `answerInTurn` answers requests in order and
+  fails a test on one more than it answered. Kept for later waves: Google's sign-in and Picker scripts,
+  `@vercel/functions`, navigator and performance stubs.
 - Found on the way: RED-75 (preview documents never freed on pdf.js 6.5), RED-76 (one very long line
   overflows the text preview).
