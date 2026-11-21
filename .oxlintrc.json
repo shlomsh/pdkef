@@ -57,7 +57,8 @@
       "error",
       {
         "allow": {
-          "src/test/support/network.ts": 1
+          "src/test/support/network.ts": 1,
+          "src/test/support/network.browser.ts": 1
         }
       }
     ],
@@ -161,6 +162,7 @@
     "dist/**",
     ".astro/**",
     "public/**",
+    "src/test/browser-public/**",
     "test-results/**",
     "playwright-report/**",
     "**/*.astro"

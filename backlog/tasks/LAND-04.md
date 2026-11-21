@@ -106,6 +106,13 @@ count). The rule is off on `landmines-all` meanwhile.
   wave 4 miss) now go through MSW in Node, and Node's own `BroadcastChannel`, webcrypto, object URLs
   and `navigator.onLine`, jsdom's own anchor and input clicks, and a faked `Date`/`performance` clock
   replace their stand-ins. A new test proves the error cap holds for the rest of the day (removing it
-  passed every test before). 35 forced lines gained their `// forced:` comment.
+  passed every test before). 44 forced lines gained their `// forced:` comment.
+- Wave 5b set-up (2026-11-21): Vitest browser mode (`@vitest/browser-playwright` 5.0.5, the repo's one
+  Playwright), the `browser` project for `*.browser.test.*` files, its own CI job `units-browser` in
+  Playwright's image (the two `units` shards skip it; `check-unit-shards` counts all three), and
+  `network.browser.ts`. Found on the way: MSW's "error" strategy let an unhandled request to a
+  file-looking URL reach the network in Node too; both helpers now refuse it (a test against a local
+  server proves it). Sign's "Tab lands on the printed field" test raced the shell's draft check under
+  load: it now waits for the file input.
 - Found on the way: RED-75 (preview documents never freed on pdf.js 6.5), RED-76 (one very long line
   overflows the text preview).

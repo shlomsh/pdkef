@@ -333,7 +333,34 @@ jobs:
     # QUAL-24 (2026-10-18) moved unit narrowing to local checks only; CI runs
     # every unit file on every push.
     - name: Run tests (shard ${{ matrix.shard }}/${{ strategy.job-total }})
-      run: npx vitest run --shard=${{ matrix.shard }}/${{ strategy.job-total }}
+      run: npx vitest run --shard=${{ matrix.shard }}/${{ strategy.job-total }} --project='!browser'
+
+  # LAND-04 wave 5: the `*.browser.test.*` files run in headless Chromium (Vitest browser mode), so in
+  # Playwright's own image like `e2e`, never waiting on the Ubuntu mirror for browser dependencies.
+  # check-unit-shards.mjs counts this job beside the two `units` shards.
+  units-browser:
+    runs-on: ubuntu-latest
+    needs: [scope, playwright-version]
+    if: always() && needs.playwright-version.result == 'success' && needs.scope.outputs.nightly_unchanged != 'true' && (needs.scope.result != 'success' || needs.scope.outputs.docs_only != 'true')
+    container:
+      image: mcr.microsoft.com/playwright:v${{ needs.playwright-version.outputs.version }}-noble
+      options: --ipc=host
+
+    steps:
+    - uses: actions/checkout@v5
+
+    - name: Use Node.js
+      uses: actions/setup-node@v5
+      with:
+        node-version: '22.x'
+        check-latest: true
+        cache: 'npm'
+
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Run browser tests
+      run: npx vitest run --project=browser
 
   # QUAL-42: the one place that resolves the affected scope and builds. Every consumer downloads
   # `dist` and reads the scope from these outputs. A dependency bump that breaks the build fails here

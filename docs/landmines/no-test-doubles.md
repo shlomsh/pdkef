@@ -68,7 +68,16 @@ A site that fits none of these is reported to the lead, not bent to fit.
    fetch to "offline" would otherwise pass. A handler answers with bytes or strings, never a jsdom
    `Blob`, which arrives as the text "[object Blob]". The report endpoint is reached by beacon, and
    Sign's same-origin font fetches have no origin in Node: both belong to wave 5.
-5. Browser APIs jsdom lacks: browser mode.
+5. Browser APIs jsdom lacks: browser mode. First, a double for what the test's own environment
+   already has goes where it is (Node's `BroadcastChannel`, webcrypto and object URLs, jsdom's clicks,
+   a faked clock). What needs Chromium moves to `<subject>.browser.test.<ext>`, which only the `browser`
+   project runs (headless Chromium, one file at a time, since the files share the page's storage);
+   a split keeps every test name exactly once across the pair. Network there goes through
+   `src/test/support/network.browser.ts`, the same contract as `network.ts`; a beacon lands after the
+   call returns, so a test awaits `seen.arrived(n)`. Both refuse every unhandled request themselves:
+   MSW's own "error" strategy lets any URL that looks like a static file through to the network. In the
+   browser, Vite's module and static-file loads from the page's own origin pass through. Assert real
+   values: literals where Chromium is deterministic, a stated tolerance only across a lossy stage.
 6. pdf.js and rendering fakes in the island harness (`src/test/harness/pdfjsEdges.ts`): real pdf.js,
    in Node where it suffices, in browser mode where it renders.
 7. The service worker tests (`scripts/sw.test.mjs`).

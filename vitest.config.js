@@ -1,10 +1,13 @@
 import { defineConfig } from 'vitest/config';
 import preact from '@preact/preset-vite';
+import { readFileSync } from 'node:fs';
+import { playwright } from '@vitest/browser-playwright';
 
 const TESTS = 'src/**/*.{test,spec}.{js,jsx,ts,tsx}';
 // src/tools/<tool>/e2e/ (ARCH-17) holds Playwright specs, not Vitest ones; TESTS'
 // src/**/*.spec.js would otherwise pick them up the way e2e/**'s own top-level
 // exclusion used to make unnecessary.
+const BROWSER_TESTS = 'src/**/*.browser.test.{js,jsx,ts,tsx}';
 const NEVER = ['node_modules/**', '**/node_modules/**', 'dist/**', 'e2e/**', 'src/tools/*/e2e/**', '.claude/**'];
 
 // Booting jsdom cost more than running the tests (Vitest's own breakdown:
@@ -65,6 +68,16 @@ const ISLAND_WORKER = ['src/tools/{merge,split,to-image,security,edit-pages}/Pdf
 const ISLAND_COMPRESS = ['src/tools/compress/PdfCompressTool.test.tsx'];
 const ISLAND_TESTS = [...ISLAND_REDACT, ...ISLAND_WORKER, ...ISLAND_COMPRESS];
 
+const serveMswWorker = {
+  name: 'serve-msw-worker',
+  configureServer(server) {
+    server.middlewares.use('/mockServiceWorker.js', (_request, response) => {
+      response.setHeader('Content-Type', 'text/javascript');
+      response.end(readFileSync(new URL('./src/test/browser-public/mockServiceWorker.js', import.meta.url)));
+    });
+  },
+};
+
 export default defineConfig({
   plugins: [preact()],
   resolve: {
@@ -94,7 +107,7 @@ export default defineConfig({
           name: 'dom',
           environment: 'jsdom',
           include: DOM_TESTS,
-          exclude: [...NEVER, ...ISLAND_TESTS],
+          exclude: [...NEVER, BROWSER_TESTS, ...ISLAND_TESTS],
         },
       },
       {
@@ -103,7 +116,7 @@ export default defineConfig({
           name: 'island',
           environment: 'jsdom',
           include: ISLAND_WORKER,
-          exclude: NEVER,
+          exclude: [...NEVER, BROWSER_TESTS],
           setupFiles: ['./src/test/harness/setup/workerEdges.ts'],
         },
       },
@@ -113,7 +126,7 @@ export default defineConfig({
           name: 'island-compress',
           environment: 'jsdom',
           include: ISLAND_COMPRESS,
-          exclude: NEVER,
+          exclude: [...NEVER, BROWSER_TESTS],
           setupFiles: ['./src/test/harness/setup/workerEdges.ts', './src/test/harness/setup/compressEngines.ts'],
         },
       },
@@ -123,8 +136,19 @@ export default defineConfig({
           name: 'island-redact',
           environment: 'jsdom',
           include: ISLAND_REDACT,
-          exclude: NEVER,
+          exclude: [...NEVER, BROWSER_TESTS],
           setupFiles: ['./src/test/harness/setup/pdfjsDistEdge.ts'],
+        },
+      },
+      {
+        extends: true,
+        plugins: [serveMswWorker],
+        test: {
+          name: 'browser',
+          include: [BROWSER_TESTS],
+          exclude: NEVER,
+          fileParallelism: false,
+          browser: { enabled: true, provider: playwright(), headless: true, instances: [{ browser: 'chromium' }] },
         },
       },
       {
@@ -135,7 +159,7 @@ export default defineConfig({
           // DEBT-05: scripts/*.test.mjs test scripts/*.mjs beside their subject,
           // not under src/lib/.
           include: [TESTS, 'scripts/**/*.test.mjs'],
-          exclude: [...NEVER, ...DOM_TESTS],
+          exclude: [...NEVER, BROWSER_TESTS, ...DOM_TESTS],
         },
       },
     ],

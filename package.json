@@ -119,6 +119,7 @@
     "@preact/preset-vite": "^2.10.6",
     "@tailwindcss/vite": "^4.3.3",
     "@types/sortablejs": "^1.15.8",
+    "@vitest/browser-playwright": "^5.0.5",
     "appium": "3.9.0",
     "esbuild": "^0.28.2",
     "fake-indexeddb": "^6.2.7",

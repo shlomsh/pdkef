@@ -1,5 +1,13 @@
 // Captured at import, before any test installs fake timers, so a faked setImmediate cannot hold it.
-const realSetImmediate = (globalThis as unknown as { setImmediate: (callback: () => void) => unknown }).setImmediate;
+const realSetImmediate = (globalThis as unknown as { setImmediate?: (callback: () => void) => unknown }).setImmediate;
+
+const nextMessageTask = (callback: () => void) => {
+  const channel = new MessageChannel();
+  channel.port1.onmessage = () => { channel.port1.close(); callback(); };
+  channel.port2.postMessage(null);
+};
+
+const afterQueuedPromises = realSetImmediate ?? nextMessageTask;
 
 /**
  * Resolves once every promise already queued has run, including the work those promises queue in
@@ -9,5 +17,5 @@ const realSetImmediate = (globalThis as unknown as { setImmediate: (callback: ()
  * `act(async () => { ... })` so Preact renders what the drained work set.
  */
 export function drainPromises(): Promise<void> {
-  return new Promise((resolve) => { realSetImmediate(() => resolve()); });
+  return new Promise((resolve) => { afterQueuedPromises(() => resolve()); });
 }
