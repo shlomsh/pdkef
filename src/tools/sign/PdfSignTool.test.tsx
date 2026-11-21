@@ -181,6 +181,8 @@ describe('PdfSignTool UI flow', () => {
       container = document.createElement('div');
       document.body.appendChild(container);
       act(() => { render(<PdfSignTool />, container); });
+      // The picker input mounts once the shell's on-device draft check settles (it shows a holding dropzone until then).
+      await waitUntil(() => query(container, 'input[type="file"]'));
       await act(async () => {
         setInputFiles(query<HTMLInputElement>(container, 'input[type="file"]'), [makePdfFile('turned.pdf')]);
       });
