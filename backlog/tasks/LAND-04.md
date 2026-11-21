@@ -114,5 +114,11 @@ count). The rule is off on `landmines-all` meanwhile.
   file-looking URL reach the network in Node too; both helpers now refuse it (a test against a local
   server proves it). Sign's "Tab lands on the printed field" test raced the shell's draft check under
   load: it now waits for the file input.
+- Wave 5b pilot (2026-11-21): 2 files, down to 1,193. `frameGrab` runs in Chromium against a real
+  video stream (6 doubles to 0; exact crop rectangles read through a pass-through `drawImage` spy, a
+  small tolerance only on pixels that went through the stream). `errorReport`'s sending describes
+  (21 tests) moved to a browser file where real beacons and fetches are answered by the MSW worker;
+  5 forced lines stay (offline, and a refused or throwing beacon). Two worktrees sharing one
+  `node_modules` ran browser mode side by side four times, cold cache included, without a collision.
 - Found on the way: RED-75 (preview documents never freed on pdf.js 6.5), RED-76 (one very long line
   overflows the text preview).

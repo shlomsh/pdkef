@@ -1,18 +1,12 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import {
   ACTIONS,
   MAX_ACTIONS,
-  MAX_DROPS_PER_PAGE,
   MAX_FRAMES,
   MAX_REPORT_BYTES,
-  MAX_REPORTS_PER_PAGE,
   parseErrorReport,
   readBuildCommit,
   readPageContext,
-  reportError,
-  sendBeacon,
-  resetErrorReportingForTests,
-  setReportingEnabledForTests,
   toDropRecord,
   dropCause,
   toErrorReport,
@@ -20,7 +14,6 @@ import {
   toDropCount,
   type PageContext,
 } from './errorReport.ts';
-import { recordAction, resetActionTrailForTests } from './actionTrail.ts';
 
 function errorAt(frame: string, message = 'boom', name?: string): Error {
   const e = new TypeError(message);
@@ -124,80 +117,6 @@ describe('stack frames, as the review attacked them', () => {
     // The async line is verbatim from Playwright WebKit against a production build.
     e.stack = 'readTextItems@https://pdkef.com/_astro/pdf.Zn.js:44:100768\nasync outer@http://localhost:4395/_astro/raw.Zz9.js:2:36\nasync*pageTextRuns@https://pdkef.com/_astro/Sign.1.js:9:9\n@https://pdkef.com/_astro/Sign.1.js:2:3';
     expect(toErrorReport('sign_form_detection', e, 'detect_fields', CTX)?.stack).toEqual(['pdf.Zn.js:44:100768', 'raw.Zz9.js:2:36', 'Sign.1.js:9:9', 'Sign.1.js:2:3']);
-  });
-});
-
-describe('reportError', () => {
-  const beacon = vi.fn((..._args: unknown[]) => true);
-  beforeEach(() => {
-    beacon.mockReset();
-    beacon.mockReturnValue(true);
-    vi.stubGlobal('navigator', { onLine: true, sendBeacon: beacon });
-    setReportingEnabledForTests(true);
-    resetErrorReportingForTests();
-  });
-
-  it('sends a repeated error once, as a body that parses back', async () => {
-    const e = errorAt('A.js:1:2');
-    reportError('drafts', e, 'save_draft');
-    reportError('drafts', e, 'save_draft');
-    expect(beacon).toHaveBeenCalledTimes(1);
-    const [path, blob] = beacon.mock.calls[0] as [string, Blob];
-    expect(path).toBe('/api/report');
-    const body = parseErrorReport(JSON.parse(await blob.text()));
-    expect(body).toMatchObject({ area: 'drafts', name: 'TypeError', stack: ['A.js:1:2'], step: 'save_draft' });
-  });
-  it('carries exactly the recorded actions, oldest first', async () => {
-    resetActionTrailForTests();
-    recordAction('add_files');
-    recordAction('clear_all');
-    reportError('drafts', errorAt('Act.js:1:2'), 'save_draft');
-    const [, blob] = beacon.mock.calls[0] as [string, Blob];
-    expect(JSON.parse(await blob.text()).actions).toEqual(['add_files', 'clear_all']);
-    resetActionTrailForTests();
-  });
-  it('keeps two call sites over one throw site apart', () => {
-    const e = errorAt('S.js:1:2');
-    reportError('drafts', e, 'save_draft');
-    reportError('drafts', e, 'load_draft');
-    expect(beacon).toHaveBeenCalledTimes(2);
-  });
-  it('sends one defect once, even when it also escapes as uncaught', () => {
-    const e = errorAt('B.js:1:2');
-    reportError('drafts', e, 'save_draft');
-    reportError('uncaught', e, 'save_draft');
-    expect(beacon).toHaveBeenCalledTimes(1);
-  });
-  it('drops pdf.js cancellation as a report, leaving only a drop record', async () => {
-    reportError('pdf_render', errorAt('C.js:1:2', 'x', 'RenderingCancelledException'), 'save_draft');
-    expect(beacon).toHaveBeenCalledTimes(1);
-    expect(JSON.parse(await (beacon.mock.calls[0]![1] as Blob).text())).toMatchObject({ kind: 'dropped', reason: 'ignored' });
-  });
-  it('caps the total per page', () => {
-    for (let i = 0; i < MAX_REPORTS_PER_PAGE + 5; i++) reportError('drafts', errorAt(`A.js:${i + 1}:1`), 'save_draft');
-    expect(beacon).toHaveBeenCalledTimes(MAX_REPORTS_PER_PAGE);
-  });
-  it('does nothing offline or outside production', () => {
-    // forced: a browser that reports it is offline cannot be put in that state on cue
-    vi.stubGlobal('navigator', { onLine: false, sendBeacon: beacon });
-    reportError('drafts', errorAt('A.js:1:1'), 'save_draft');
-    vi.stubGlobal('navigator', { onLine: true, sendBeacon: beacon });
-    setReportingEnabledForTests(false);
-    reportError('drafts', errorAt('A.js:1:1'), 'save_draft');
-    expect(beacon).not.toHaveBeenCalled();
-  });
-  it('sendBeacon returns false and posts nothing when offline', () => {
-    // forced: a browser that reports it is offline cannot be put in that state on cue
-    vi.stubGlobal('navigator', { onLine: false, sendBeacon: beacon });
-    expect(sendBeacon({ a: 1 })).toBe(false);
-    expect(beacon).not.toHaveBeenCalled();
-  });
-  it('never throws', () => {
-    // forced: a sendBeacon that throws cannot be produced on cue
-    beacon.mockImplementation(() => {
-      throw new Error('nope');
-    });
-    expect(() => reportError('drafts', errorAt('A.js:1:1'), 'save_draft')).not.toThrow();
   });
 });
 
@@ -470,53 +389,6 @@ describe('dropCause (DEBT-57)', () => {
   });
 });
 
-describe('reportError drop records (DEBT-44)', () => {
-  const beacon = vi.fn((..._args: unknown[]) => true);
-  const bodies = async () => Promise.all(beacon.mock.calls.map(([, b]) => (b as Blob).text().then(JSON.parse)));
-  beforeEach(() => {
-    beacon.mockReset();
-    beacon.mockReturnValue(true);
-    vi.stubGlobal('navigator', { onLine: true, sendBeacon: beacon });
-    setReportingEnabledForTests(true);
-    resetErrorReportingForTests();
-  });
-  it('sends a drop record for a string throw', async () => {
-    reportError('redact', 'boom', 'export');
-    expect(await bodies()).toEqual([{ kind: 'dropped', area: 'redact', step: 'export', reason: 'non_error', type: 'string' }]);
-  });
-  it('sends a drop record for an Error with no built frame', async () => {
-    const e = new DOMException('x', 'NotReadableError');
-    e.stack = 'NotReadableError: x\n    at f (chrome-extension://abc/i.js:1:2)';
-    reportError('redact', e, 'export');
-    expect(await bodies()).toMatchObject([{ kind: 'dropped', reason: 'no_frame', type: 'DOMException', name: 'NotReadableError' }]);
-  });
-  it('sends each distinct drop once per page', () => {
-    reportError('redact', 'a', 'export');
-    reportError('redact', 'b', 'export');
-    reportError('redact', 'c', 'other_step');
-    expect(beacon).toHaveBeenCalledTimes(2);
-  });
-  it('caps drops per page', () => {
-    for (let i = 0; i < MAX_DROPS_PER_PAGE + 5; i++) reportError('redact', 's', `step_${String.fromCharCode(97 + i)}`);
-    expect(beacon).toHaveBeenCalledTimes(MAX_DROPS_PER_PAGE);
-  });
-  it('still sends a drop record once the page has used its report cap', async () => {
-    for (let i = 0; i < MAX_REPORTS_PER_PAGE; i++) reportError('drafts', errorAt(`A.js:${i + 1}:1`), 'save_draft');
-    reportError('redact', 'boom', 'export');
-    expect((await bodies()).at(-1)).toMatchObject({ kind: 'dropped', area: 'redact', reason: 'non_error' });
-  });
-  it('sends no drop record for an uncaught error outside our code (extension noise has no failure to explain)', () => {
-    reportError('uncaught', 'boom', 'unhandled_rejection');
-    expect(beacon).not.toHaveBeenCalled();
-  });
-  it('sends nothing new for a deduplicated report', () => {
-    const e = errorAt('D.js:1:2');
-    reportError('drafts', e, 'save_draft');
-    reportError('drafts', e, 'save_draft');
-    expect(beacon).toHaveBeenCalledTimes(1);
-  });
-});
-
 describe('toErrorCount and toDropCount (MEM-45)', () => {
   // What is sent: the count as serialised, where an absent value leaves no key.
   const sent = <T,>(value: T): T => JSON.parse(JSON.stringify(value));
@@ -548,65 +420,5 @@ describe('toErrorCount and toDropCount (MEM-45)', () => {
     expect(count.properties).toEqual({ area: 'redact', step: 'export', reason: record.reason, error: 'other', build: 'abc1234' });
     const plain = sent(toDropCount(toDropRecord('redact', 'boom', 'export')!));
     expect(Object.keys(plain.properties).sort()).toEqual(['area', 'reason', 'step']);
-  });
-});
-
-describe('error and drop counts go to the analytics sink only after the /api/report beacon (MEM-45)', () => {
-  const beacon = vi.fn((..._args: unknown[]) => true);
-  const sinkBodies = () =>
-    beacon.mock.calls
-      .filter(([url]) => String(url).startsWith('https://e.example.test'))
-      .map(([, blob]) => blob as Blob);
-  beforeEach(() => {
-    beacon.mockReset();
-    beacon.mockReturnValue(true);
-    vi.stubEnv('PUBLIC_ANALYTICS_HOST', 'https://e.example.test');
-    vi.stubEnv('PUBLIC_ANALYTICS_KEY', 'k');
-    vi.stubGlobal('location', { origin: 'https://pdkef.com', pathname: '/sign/' });
-    vi.stubGlobal('navigator', { onLine: true, sendBeacon: beacon });
-    setReportingEnabledForTests(true);
-    resetErrorReportingForTests();
-  });
-  afterEach(() => {
-    vi.unstubAllEnvs();
-    vi.unstubAllGlobals();
-  });
-
-  it('an error report is one beacon to /api/report and one count to the sink, with no stack', async () => {
-    reportError('drafts', errorAt('SecretFrame.Zz9.js:1:2'), 'save_draft');
-    expect(beacon.mock.calls.map(([url]) => url)).toEqual(['/api/report', 'https://e.example.test/i/v0/e/']);
-    const text = await sinkBodies()[0]!.text();
-    expect(JSON.parse(text)).toMatchObject({ event: 'error_reported', properties: { area: 'drafts', step: 'save_draft', error: 'TypeError' } });
-    expect(text).not.toContain('SecretFrame');
-  });
-  it('no count when the /api/report beacon returns false', () => {
-    // forced: a browser refusing the beacon hand-off cannot be produced on cue
-    beacon.mockReturnValue(false);
-    reportError('drafts', errorAt('A.js:1:2'), 'save_draft');
-    expect(beacon.mock.calls.map(([url]) => url)).toEqual(['/api/report']);
-  });
-  it('a drop record sends one error_dropped', async () => {
-    reportError('redact', 'boom', 'export');
-    expect(beacon.mock.calls.map(([url]) => url)).toEqual(['/api/report', 'https://e.example.test/i/v0/e/']);
-    expect(JSON.parse(await sinkBodies()[0]!.text())).toMatchObject({ event: 'error_dropped', properties: { area: 'redact', step: 'export', reason: 'non_error' } });
-  });
-  it('no drop count when the /api/report beacon returns false', () => {
-    // forced: a browser refusing the beacon hand-off cannot be produced on cue
-    beacon.mockReturnValue(false);
-    reportError('redact', 'boom', 'export');
-    expect(sinkBodies()).toHaveLength(0);
-  });
-  it('a repeated error sends no second count: the page\'s de-duplication bounds the sink too', () => {
-    const error = errorAt('A.js:1:2');
-    reportError('drafts', error, 'save_draft');
-    reportError('drafts', error, 'save_draft');
-    expect(sinkBodies()).toHaveLength(1);
-  });
-  it('with the build variables unset nothing goes to the sink', () => {
-    vi.stubEnv('PUBLIC_ANALYTICS_HOST', '');
-    vi.stubEnv('PUBLIC_ANALYTICS_KEY', '');
-    reportError('drafts', errorAt('A.js:1:2'), 'save_draft');
-    reportError('redact', 'boom', 'export');
-    expect(beacon.mock.calls.map(([url]) => url)).toEqual(['/api/report', '/api/report']);
   });
 });
