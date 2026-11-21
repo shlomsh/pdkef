@@ -25,7 +25,7 @@
 import { next } from '@vercel/functions';
 import { negotiateRepresentation, markdownRoute } from './src/site-lib/acceptNegotiation.js';
 import { buildServerTiming, commitFromEnv } from './src/site-lib/buildCommit.js';
-import vercelConfig from './vercel.json';
+import vercelConfig from './vercel.json' with { type: 'json' };
 
 // No @types/node in this repo; the function runtime provides process.env.
 declare const process: { env: Record<string, string | undefined> };
