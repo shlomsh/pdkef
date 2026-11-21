@@ -308,6 +308,7 @@ describe('PdfSignTool UI flow', () => {
   ])('keeps the editor usable after a %s failure and allows a corrected retry', async (mode, title, makeError, errorText, initialText) => {
     const originalShare = Object.getOwnPropertyDescriptor(navigator, 'share');
     const originalCanShare = Object.getOwnPropertyDescriptor(navigator, 'canShare');
+    // forced: an OS share sheet; no headless browser has one to open
     Object.defineProperty(navigator, 'share', { configurable: true, value: vi.fn(async () => {}) });
     Object.defineProperty(navigator, 'canShare', { configurable: true, value: () => true });
     const signedBlob = new Blob(['signed test result'], { type: 'application/pdf' });
@@ -316,7 +317,7 @@ describe('PdfSignTool UI flow', () => {
       return signedBlob;
     });
     vi.spyOn(console, 'error').mockImplementation(() => {});
-    vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
+    vi.spyOn(HTMLAnchorElement.prototype, 'click');
     const createUrl = vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:signed-test');
 
     try {
@@ -432,7 +433,7 @@ describe('PdfSignTool UI flow', () => {
       if (!(source instanceof ArrayBuffer)) await (source as File).arrayBuffer();
       return signedBlob;
     });
-    vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
+    vi.spyOn(HTMLAnchorElement.prototype, 'click');
     vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:signed-test');
 
     container = document.createElement('div');
@@ -473,6 +474,7 @@ describe('PdfSignTool UI flow', () => {
   it('pre-generates the signed PDF in the background so Share is ready without a prior tap (MOBI-07)', async () => {
     const originalShare = Object.getOwnPropertyDescriptor(navigator, 'share');
     const originalCanShare = Object.getOwnPropertyDescriptor(navigator, 'canShare');
+    // forced: an OS share sheet; no headless browser has one to open
     Object.defineProperty(navigator, 'share', { configurable: true, value: vi.fn(async () => {}) });
     Object.defineProperty(navigator, 'canShare', { configurable: true, value: () => true });
 
@@ -918,8 +920,10 @@ describe('PdfSignTool UI flow', () => {
   it('prepares and shares a valid signed PDF from the real num-1.pdf fixture', async () => {
     const originalShare = navigator.share;
     const originalCanShare = navigator.canShare;
+    // forced: an OS share sheet; no headless browser has one to open
     const share = vi.fn((_data?: ShareData) => Promise.resolve());
     Object.defineProperty(navigator, 'share', { configurable: true, value: share });
+    // forced: an OS share sheet; no headless browser has one to open
     Object.defineProperty(navigator, 'canShare', { configurable: true, value: vi.fn(() => true) });
 
     try {

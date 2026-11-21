@@ -150,6 +150,7 @@ describe('anonymous maintenance telemetry', () => {
   it('does not invoke the transport while offline', () => {
     const transport = vi.fn();
     const originalOnline = Object.getOwnPropertyDescriptor(navigator, 'onLine');
+    // forced: a browser that reports it is offline cannot be put in that state on cue
     Object.defineProperty(navigator, 'onLine', { configurable: true, value: false });
 
     try {
@@ -157,6 +158,7 @@ describe('anonymous maintenance telemetry', () => {
       expect(transport).not.toHaveBeenCalled();
     } finally {
       if (originalOnline) Object.defineProperty(navigator, 'onLine', originalOnline);
+      else delete (navigator as { onLine?: boolean }).onLine;
     }
   });
 
@@ -166,16 +168,10 @@ describe('anonymous maintenance telemetry', () => {
 
   it('reports every approved event without creating a visitor or document identifier', () => {
     const transport = vi.fn();
-    const originalOnline = Object.getOwnPropertyDescriptor(navigator, 'onLine');
-    Object.defineProperty(navigator, 'onLine', { configurable: true, value: true });
-    try {
-      expect(reportMaintenanceEvent(signExportSucceeded(10), transport)).toBe(true);
-      expect(reportMaintenanceEvent(signExportSucceeded(10), transport)).toBe(true);
-      expect(transport).toHaveBeenCalledTimes(2);
-      expect(JSON.stringify(transport.mock.calls)).not.toContain('document');
-    } finally {
-      if (originalOnline) Object.defineProperty(navigator, 'onLine', originalOnline);
-    }
+    expect(reportMaintenanceEvent(signExportSucceeded(10), transport)).toBe(true);
+    expect(reportMaintenanceEvent(signExportSucceeded(10), transport)).toBe(true);
+    expect(transport).toHaveBeenCalledTimes(2);
+    expect(JSON.stringify(transport.mock.calls)).not.toContain('document');
   });
 
   it('removes query strings and fragments while preserving the absolute URL Vercel requires', () => {
@@ -262,6 +258,7 @@ describe('beaconMaintenanceTransport', () => {
     expect(beacon).not.toHaveBeenCalled();
   });
   it('does not throw when sendBeacon throws', () => {
+    // forced: a sendBeacon that throws cannot be produced on cue
     beacon.mockImplementation(() => {
       throw new Error('blocked');
     });

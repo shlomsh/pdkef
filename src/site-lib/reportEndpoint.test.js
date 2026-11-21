@@ -1,11 +1,15 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { HttpResponse } from 'msw';
 import { POST, GET } from '../../api/report.ts';
+import { answerInTurn, answerNetwork } from '../test/support/network.ts';
 
 // The endpoint's whole contract with the person using a tool: whatever happens
 // on our side - the store over quota, down, slow to answer garbage, or not
 // configured - the reply is the same empty 204. A beacon never surfaces a
 // response to the page, and the server must not give it one worth surfacing.
 // Lives here, not beside the function: every .ts file under api/ deploys.
+
+answerNetwork();
 
 const report = {
   area: 'drafts',
@@ -20,9 +24,10 @@ const report = {
 };
 const body = JSON.stringify(report);
 const post = () => POST(new Request('https://pdkef.com/api/report', { method: 'POST', body }));
-// Answers every pipeline with `total` as the first reply (the INCR), then filler.
-const answerTotal = (total) => async () => new Response(JSON.stringify([{ result: total }, { result: 1 }]), { status: 200 });
-const sentPipelines = (spy) => spy.mock.calls.map(([, init]) => JSON.parse(init.body));
+const PIPELINE = 'https://store.invalid/pipeline';
+const answerTotal = (total) => () => HttpResponse.json([{ result: total }, { result: 1 }]);
+const storeAnswers = (...answers) => answerInTurn('post', PIPELINE, ...answers);
+const sentPipelines = (seen) => Promise.all(seen.map((request) => request.clone().json()));
 // The caps are per warm instance; a fresh module is a fresh instance.
 const freshPoster = async (make) => {
   vi.resetModules();
@@ -30,8 +35,8 @@ const freshPoster = async (make) => {
   return (value) => fresh(make(value));
 };
 // The fields HINCRBY'd on rejects:<day>, across every pipeline sent.
-const rejectCounts = (spy) =>
-  sentPipelines(spy).flat().filter(([name, key]) => name === 'HINCRBY' && String(key).startsWith('rejects:')).map(([, , field]) => field);
+const rejectCounts = async (seen) =>
+  (await sentPipelines(seen)).flat().filter(([name, key]) => name === 'HINCRBY' && String(key).startsWith('rejects:')).map(([, , field]) => field);
 const jsonRequest = (value) => new Request('https://pdkef.com/api/report', { method: 'POST', body: JSON.stringify(value) });
 
 // What each path sends: [INCR], then (first count of the day: EXPIRE on the total, then) the counting commands.
@@ -50,9 +55,9 @@ function expiryContract(label, totalPrefix, value, countingFirst) {
 
     it('first count of the day (INCR returns 1) sends the EXPIRE on the total with the counting pipeline', async () => {
       const send = await freshPoster(jsonRequest);
-      const spy = vi.spyOn(globalThis, 'fetch').mockImplementation(answerTotal(1));
+      const seen = storeAnswers(answerTotal(1), answerTotal(1));
       await send(value);
-      const [cap, counting] = sentPipelines(spy);
+      const [cap, counting] = await sentPipelines(seen);
       expect(cap).toEqual([['INCR', totalKey]]);
       expect(counting[0]).toEqual(['EXPIRE', totalKey, 7776000]);
       expect(counting[1][0]).toBe(countingFirst);
@@ -60,9 +65,9 @@ function expiryContract(label, totalPrefix, value, countingFirst) {
 
     it('a later count (INCR returns 7) sends no EXPIRE on the total', async () => {
       const send = await freshPoster(jsonRequest);
-      const spy = vi.spyOn(globalThis, 'fetch').mockImplementation(answerTotal(7));
+      const seen = storeAnswers(answerTotal(7), answerTotal(1));
       await send(value);
-      const [cap, counting] = sentPipelines(spy);
+      const [cap, counting] = await sentPipelines(seen);
       expect(cap).toEqual([['INCR', totalKey]]);
       expect(counting[0][0]).toBe(countingFirst);
       expect(JSON.stringify(counting)).not.toContain(':total:');
@@ -70,18 +75,19 @@ function expiryContract(label, totalPrefix, value, countingFirst) {
 
     it('past the cap sends exactly one command', async () => {
       const send = await freshPoster(jsonRequest);
-      const spy = vi.spyOn(globalThis, 'fetch').mockImplementation(answerTotal(3001));
+      const seen = storeAnswers(answerTotal(3001));
       await send(value);
-      expect(sentPipelines(spy)).toEqual([[['INCR', totalKey]]]);
+      expect(await sentPipelines(seen)).toEqual([[['INCR', totalKey]]]);
     });
   });
 }
 
 describe('/api/report stays silent', () => {
+  let errorSpy;
   beforeEach(() => {
     process.env.KV_REST_API_URL = 'https://store.invalid';
     process.env.KV_REST_API_TOKEN = 'test-token';
-    vi.spyOn(console, 'error').mockImplementation(() => {});
+    errorSpy = vi.spyOn(console, 'error');
   });
   afterEach(() => {
     delete process.env.KV_REST_API_URL;
@@ -90,44 +96,42 @@ describe('/api/report stays silent', () => {
   });
 
   const failures = {
-    'the store is over quota (429)': () => new Response('{"error":"max requests limit exceeded"}', { status: 429 }),
-    'the store errors (500)': () => new Response('oops', { status: 500 }),
-    'the store answers garbage': () => new Response('not json', { status: 200 }),
-    'the network fails': () => Promise.reject(new TypeError('fetch failed')),
+    'the store is over quota (429)': () => HttpResponse.json({ error: 'max requests limit exceeded' }, { status: 429 }),
+    'the store errors (500)': () => new HttpResponse('oops', { status: 500 }),
+    'the store answers garbage': () => new HttpResponse('not json', { status: 200 }),
+    'the network fails': () => HttpResponse.error(),
   };
 
   for (const [what, respond] of Object.entries(failures)) {
     it(`answers an empty 204 when ${what}`, async () => {
-      vi.spyOn(globalThis, 'fetch').mockImplementation(respond);
+      storeAnswers(respond);
       const res = await post();
       expect(res.status).toBe(204);
       expect(await res.text()).toBe('');
-      for (const call of console.error.mock.calls) expect(JSON.stringify(call)).not.toContain('A.1b.js');
+      for (const call of errorSpy.mock.calls) expect(JSON.stringify(call)).not.toContain('A.1b.js');
     });
   }
 
   it('answers an empty 204 when the store is not configured, without calling out', async () => {
     delete process.env.KV_REST_API_URL;
-    const fetchSpy = vi.spyOn(globalThis, 'fetch');
+    const seen = storeAnswers();
     const res = await post();
     expect(res.status).toBe(204);
-    expect(fetchSpy).not.toHaveBeenCalled();
+    expect(seen).toHaveLength(0);
   });
 
   it('answers 204 and counts a body over the byte limit as an oversize reject', async () => {
-    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation(answerTotal(1));
+    const seen = storeAnswers(answerTotal(1), answerTotal(1));
     const big = JSON.stringify({ ...report, name: 'A'.repeat(3000) });
     const res = await POST(new Request('https://pdkef.com/api/report', { method: 'POST', body: big }));
     expect(res.status).toBe(204);
-    expect(rejectCounts(fetchSpy)).toEqual(['oversize|other']);
+    expect(await rejectCounts(seen)).toEqual(['oversize|other']);
   });
 
   it('stores exactly one sample, with only the sample keys', async () => {
-    const fetchSpy = vi
-      .spyOn(globalThis, 'fetch')
-      .mockImplementation(async () => new Response(JSON.stringify([{ result: 1 }, { result: 1 }]), { status: 200 }));
+    const seen = storeAnswers(answerTotal(1), answerTotal(1));
     expect((await post()).status).toBe(204);
-    const commands = fetchSpy.mock.calls.flatMap(([, init]) => JSON.parse(init.body));
+    const commands = (await sentPipelines(seen)).flat();
     const hsets = commands.filter(([name]) => name === 'HSET');
     expect(hsets).toHaveLength(1);
     expect(Object.keys(JSON.parse(hsets[0][3])).sort()).toEqual(
@@ -136,12 +140,10 @@ describe('/api/report stays silent', () => {
   });
 
   it('counts an older build\'s eight-key report, storing an empty actions list', async () => {
-    const fetchSpy = vi
-      .spyOn(globalThis, 'fetch')
-      .mockImplementation(async () => new Response(JSON.stringify([{ result: 1 }, { result: 1 }]), { status: 200 }));
+    const seen = storeAnswers(answerTotal(1), answerTotal(1));
     const { actions: _drop, ...old } = report;
     expect((await POST(new Request('https://pdkef.com/api/report', { method: 'POST', body: JSON.stringify(old) }))).status).toBe(204);
-    const commands = fetchSpy.mock.calls.flatMap(([, init]) => JSON.parse(init.body));
+    const commands = (await sentPipelines(seen)).flat();
     const hsets = commands.filter(([name]) => name === 'HSET');
     expect(hsets).toHaveLength(1);
     expect(JSON.parse(hsets[0][3]).actions).toEqual([]);
@@ -151,19 +153,19 @@ describe('/api/report stays silent', () => {
     ['an unknown action name', ['add_files', 'not_a_real_action']],
     ['11 names', Array(11).fill('add_files')],
   ])('answers 204 and counts %s as a bad_report reject, never as a report', async (_, actions) => {
-    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation(answerTotal(1));
+    const seen = storeAnswers(answerTotal(1), answerTotal(1));
     const res = await POST(new Request('https://pdkef.com/api/report', { method: 'POST', body: JSON.stringify({ ...report, actions }) }));
     expect(res.status).toBe(204);
-    expect(rejectCounts(fetchSpy)).toEqual(['bad_report|other']);
-    expect(JSON.stringify(sentPipelines(fetchSpy))).not.toContain('errors:');
+    expect(await rejectCounts(seen)).toEqual(['bad_report|other']);
+    expect(JSON.stringify(await sentPipelines(seen))).not.toContain('errors:');
   });
 
   it('answers an empty 204 to junk (counted as bad_json), and 405 only to a method no beacon uses', async () => {
-    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation(answerTotal(1));
+    const seen = storeAnswers(answerTotal(1), answerTotal(1));
     const junk = await POST(new Request('https://pdkef.com/api/report', { method: 'POST', body: '{' }));
     expect(junk.status).toBe(204);
     expect(await junk.text()).toBe('');
-    expect(rejectCounts(fetchSpy)).toEqual(['bad_json|other']);
+    expect(await rejectCounts(seen)).toEqual(['bad_json|other']);
     expect(GET().status).toBe(405);
   });
 
@@ -182,9 +184,9 @@ describe('/api/report stays silent', () => {
     for (const [field, text] of Object.entries(cases)) {
       it(`counts ${field.split('|')[0]} with its engine, as rejects:<day> after rejects:total:<day>`, async () => {
         const poster = await freshPoster((t) => t);
-        const fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation(answerTotal(1));
+        const seen = storeAnswers(answerTotal(1), answerTotal(1));
         expect((await send(poster, text)).status).toBe(204);
-        const calls = sentPipelines(fetchSpy);
+        const calls = await sentPipelines(seen);
         expect(calls[0]).toEqual([['INCR', expect.stringMatching(/^rejects:total:\d{4}-\d{2}-\d{2}$/)]]);
         expect(calls[1][0][0]).toBe('EXPIRE');
         expect(calls[1].slice(1).map((c) => c[0])).toEqual(['HINCRBY', 'EXPIRE']);
@@ -195,42 +197,40 @@ describe('/api/report stays silent', () => {
 
     it('counts an oversize content-length without reading the body', async () => {
       const poster = await freshPoster((t) => t);
-      const fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation(answerTotal(1));
+      const seen = storeAnswers(answerTotal(1), answerTotal(1));
       await send(poster, '{}', { 'content-length': '9999' });
-      expect(rejectCounts(fetchSpy)).toEqual(['oversize|ios-17']);
+      expect(await rejectCounts(seen)).toEqual(['oversize|ios-17']);
     });
 
     it('past the reject cap counts nothing, and the next reject makes no store call', async () => {
       const poster = await freshPoster((t) => t);
-      const fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation(answerTotal(201));
+      const seen = storeAnswers(answerTotal(201));
       expect((await send(poster, '{')).status).toBe(204);
-      expect(sentPipelines(fetchSpy)).toEqual([[['INCR', expect.stringMatching(/^rejects:total:/)]]]);
+      expect(await sentPipelines(seen)).toEqual([[['INCR', expect.stringMatching(/^rejects:total:/)]]]);
       expect((await send(poster, '{')).status).toBe(204);
-      expect(fetchSpy).toHaveBeenCalledTimes(1);
+      expect(seen).toHaveLength(1);
     });
 
     it('counts the 200th reject of the day', async () => {
       const poster = await freshPoster((t) => t);
-      const fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation(answerTotal(200));
+      const seen = storeAnswers(answerTotal(200), answerTotal(1));
       await send(poster, '{');
-      expect(rejectCounts(fetchSpy)).toEqual(['bad_json|ios-17']);
+      expect(await rejectCounts(seen)).toEqual(['bad_json|ios-17']);
     });
 
     it('makes no store call when the store is not configured', async () => {
       delete process.env.KV_REST_API_URL;
-      const fetchSpy = vi.spyOn(globalThis, 'fetch');
+      const seen = storeAnswers();
       expect((await POST(new Request('https://pdkef.com/api/report', { method: 'POST', body: '{' }))).status).toBe(204);
-      expect(fetchSpy).not.toHaveBeenCalled();
+      expect(seen).toHaveLength(0);
     });
 
     it('keeps the reject cap apart from the error cap', async () => {
       const poster = await freshPoster((t) => t);
-      const fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation(async (_u, init) => {
-        const first = JSON.parse(init.body)[0][1];
-        return new Response(JSON.stringify([{ result: first.startsWith('rejects:') ? 1 : 9999 }, { result: 1 }]), { status: 200 });
-      });
+      const seen = storeAnswers(answerTotal(1), answerTotal(1));
       await send(poster, '{');
-      expect(rejectCounts(fetchSpy)).toEqual(['bad_json|ios-17']);
+      expect(await rejectCounts(seen)).toEqual(['bad_json|ios-17']);
+      expect(JSON.stringify(await sentPipelines(seen))).not.toContain('errors:');
     });
   });
 
@@ -242,9 +242,9 @@ describe('/api/report stays silent', () => {
 
     it('runs the error cap, then exactly one HINCRBY on drops:<day> and an EXPIRE, no HSET', async () => {
       const poster = await freshPoster((t) => t);
-      const fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation(answerTotal(1));
+      const seen = storeAnswers(answerTotal(1), answerTotal(1));
       expect((await postDrop(poster)).status).toBe(204);
-      const calls = sentPipelines(fetchSpy);
+      const calls = await sentPipelines(seen);
       expect(calls).toHaveLength(2);
       expect(calls[0]).toEqual([['INCR', expect.stringMatching(/^errors:total:/)]]);
       expect(calls[1].map((c) => c[0])).toEqual(['EXPIRE', 'HINCRBY', 'EXPIRE']);
@@ -255,9 +255,17 @@ describe('/api/report stays silent', () => {
 
     it('past the error cap is not counted', async () => {
       const poster = await freshPoster((t) => t);
-      const fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation(answerTotal(1001));
+      const seen = storeAnswers(answerTotal(1001));
       await postDrop(poster);
-      expect(sentPipelines(fetchSpy)).toEqual([[['INCR', expect.stringMatching(/^errors:total:/)]]]);
+      expect(await sentPipelines(seen)).toEqual([[['INCR', expect.stringMatching(/^errors:total:/)]]]);
+    });
+
+    it('past the error cap, the rest of the day reaches the store no more', async () => {
+      const poster = await freshPoster((t) => t);
+      const seen = storeAnswers(answerTotal(1001));
+      await postDrop(poster);
+      await postDrop(poster);
+      expect(await sentPipelines(seen)).toEqual([[['INCR', expect.stringMatching(/^errors:total:/)]]]);
     });
   });
 
@@ -273,11 +281,9 @@ describe('/api/report stays silent', () => {
       );
 
     it('runs the cap pipeline, then exactly one HINCRBY and no HSET', async () => {
-      const fetchSpy = vi
-        .spyOn(globalThis, 'fetch')
-        .mockImplementation(async () => new Response(JSON.stringify([{ result: 1 }, { result: 1 }]), { status: 200 }));
+      const seen = storeAnswers(answerTotal(1), answerTotal(1));
       expect((await postJson(event)).status).toBe(204);
-      const calls = fetchSpy.mock.calls.map(([, init]) => JSON.parse(init.body));
+      const calls = await sentPipelines(seen);
       expect(calls).toHaveLength(2);
       expect(calls[0]).toEqual([['INCR', expect.stringMatching(/^errors:total:/)]]);
       const commands = calls.flat();
@@ -289,23 +295,19 @@ describe('/api/report stays silent', () => {
     });
 
     it('counts a detection success with its page kind into the field string', async () => {
-      const fetchSpy = vi
-        .spyOn(globalThis, 'fetch')
-        .mockImplementation(async () => new Response(JSON.stringify([{ result: 1 }, { result: 1 }]), { status: 200 }));
+      const seen = storeAnswers(answerTotal(1), answerTotal(1));
       const success = { name: 'sign_form_detection', properties: { outcome: 'success', field_count_bucket: 'one_to_five', page_kind: 'image' } };
       expect((await postJson(success)).status).toBe(204);
-      const hincrbys = fetchSpy.mock.calls.flatMap(([, init]) => JSON.parse(init.body)).filter(([name]) => name === 'HINCRBY');
+      const hincrbys = (await sentPipelines(seen)).flat().filter(([name]) => name === 'HINCRBY');
       expect(hincrbys).toHaveLength(1);
       expect(hincrbys[0][2]).toBe('sign_form_detection|success|one_to_five|image|ios-17');
     });
 
     it('counts an sw_install failure as exactly one HINCRBY with its reason and bucket (MEM-24)', async () => {
-      const fetchSpy = vi
-        .spyOn(globalThis, 'fetch')
-        .mockImplementation(async () => new Response(JSON.stringify([{ result: 1 }, { result: 1 }]), { status: 200 }));
+      const seen = storeAnswers(answerTotal(1), answerTotal(1));
       const sw = { name: 'sw_install', properties: { outcome: 'failure', reason: 'files_missed', missed: '2-5' } };
       expect((await postJson(sw)).status).toBe(204);
-      const commands = fetchSpy.mock.calls.flatMap(([, init]) => JSON.parse(init.body));
+      const commands = (await sentPipelines(seen)).flat();
       expect(commands.filter(([name]) => name === 'HSET')).toHaveLength(0);
       const hincrbys = commands.filter(([name]) => name === 'HINCRBY');
       expect(hincrbys).toHaveLength(1);
@@ -314,11 +316,11 @@ describe('/api/report stays silent', () => {
     });
 
     it('rejects a malformed sw_install as a reject, not an event (MEM-24)', async () => {
-      const fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation(answerTotal(1));
+      const seen = storeAnswers(answerTotal(1), answerTotal(1));
       const bad = { name: 'sw_install', properties: { outcome: 'failure', reason: 'storage', missed: '0', url: '/x' } };
       expect((await postJson(bad)).status).toBe(204);
-      expect(rejectCounts(fetchSpy).length).toBe(1);
-      expect(JSON.stringify(sentPipelines(fetchSpy))).not.toMatch(/events:|errors:/);
+      expect((await rejectCounts(seen)).length).toBe(1);
+      expect(JSON.stringify(await sentPipelines(seen))).not.toMatch(/events:|errors:/);
     });
 
     const rejected = {
@@ -329,10 +331,10 @@ describe('/api/report stays silent', () => {
     };
     for (const [what, value] of Object.entries(rejected)) {
       it(`answers 204 and counts a reject, not an event, for ${what}`, async () => {
-        const fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation(answerTotal(1));
+        const seen = storeAnswers(answerTotal(1), answerTotal(1));
         expect((await postJson(value)).status).toBe(204);
-        expect(rejectCounts(fetchSpy).length).toBe(1);
-        expect(JSON.stringify(sentPipelines(fetchSpy))).not.toMatch(/events:|errors:/);
+        expect((await rejectCounts(seen)).length).toBe(1);
+        expect(JSON.stringify(await sentPipelines(seen))).not.toMatch(/events:|errors:/);
       });
     }
   });
@@ -341,12 +343,11 @@ describe('/api/report stays silent', () => {
     const usage = { name: 'tool_result_ready', properties: { tool: 'merge' } };
     const postUsage = (value) =>
       POST(new Request('https://pdkef.com/api/report', { method: 'POST', body: JSON.stringify(value) }));
-    const answer = (total) => async () => new Response(JSON.stringify([{ result: total }, { result: 1 }]), { status: 200 });
 
     it('runs the usage cap, then exactly one HINCRBY on usage:<day>, never errors:total', async () => {
-      const fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation(answer(1));
+      const seen = storeAnswers(answerTotal(1), answerTotal(1));
       expect((await postUsage(usage)).status).toBe(204);
-      const calls = fetchSpy.mock.calls.map(([, init]) => JSON.parse(init.body));
+      const calls = await sentPipelines(seen);
       expect(calls).toHaveLength(2);
       expect(calls[0]).toEqual([['INCR', expect.stringMatching(/^usage:total:\d{4}-\d{2}-\d{2}$/)]]);
       const commands = calls.flat();
@@ -358,10 +359,10 @@ describe('/api/report stays silent', () => {
     });
 
     it('does not count usage sent to a deploy address (*.vercel.app), where Vercel checks the build', async () => {
-      const fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation(answer(1));
+      const seen = storeAnswers(answerTotal(1), answerTotal(1));
       const request = new Request('https://pdkef-g86om7tjf-team.vercel.app/api/report', { method: 'POST', body: JSON.stringify(usage) });
       expect((await POST(request)).status).toBe(204);
-      expect(fetchSpy).not.toHaveBeenCalled();
+      expect(seen).toHaveLength(0);
     });
 
     // The caps are per warm instance; a fresh module is a fresh instance.
@@ -373,63 +374,57 @@ describe('/api/report stays silent', () => {
 
     it('does not count past the usage cap, and the next event makes no store call', async () => {
       const send = await freshPost();
-      const fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation(answer(3001));
+      const seen = storeAnswers(answerTotal(3001));
       expect((await send(usage)).status).toBe(204);
-      expect(fetchSpy).toHaveBeenCalledTimes(1);
-      expect(fetchSpy.mock.calls[0][1].body).not.toContain('HINCRBY');
+      expect(seen).toHaveLength(1);
+      expect(JSON.stringify(await sentPipelines(seen))).not.toContain('HINCRBY');
       expect((await send(usage)).status).toBe(204);
-      expect(fetchSpy).toHaveBeenCalledTimes(1);
+      expect(seen).toHaveLength(1);
     });
 
     it('keeps the two caps apart: a capped error day still counts usage, and the reverse', async () => {
-      const respond = (capped) => async (_url, init) => {
-        const first = JSON.parse(init.body)[0][1];
-        return new Response(JSON.stringify([{ result: first.startsWith(capped) ? 9999 : 1 }, { result: 1 }]), { status: 200 });
-      };
-      const hincrbyKeys = (spy) =>
-        spy.mock.calls.flatMap(([, init]) => JSON.parse(init.body)).filter(([name]) => name === 'HINCRBY').map(([, key]) => key.split(':')[0]);
+      const hincrbyKeys = async (seen) =>
+        (await sentPipelines(seen)).flat().filter(([name]) => name === 'HINCRBY').map(([, key]) => key.split(':')[0]);
 
       let send = await freshPost();
-      let fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation(respond('errors:'));
+      let seen = storeAnswers(answerTotal(9999), answerTotal(1), answerTotal(1));
       await send(report);
-      expect(hincrbyKeys(fetchSpy)).toEqual([]);
+      expect(await hincrbyKeys(seen)).toEqual([]);
       await send(usage);
-      expect(hincrbyKeys(fetchSpy)).toEqual(['usage']);
+      expect(await hincrbyKeys(seen)).toEqual(['usage']);
 
       send = await freshPost();
-      fetchSpy.mockClear();
-      fetchSpy.mockImplementation(respond('usage:'));
+      seen = storeAnswers(answerTotal(9999), answerTotal(1), answerTotal(1));
       await send(usage);
-      expect(hincrbyKeys(fetchSpy)).toEqual([]);
+      expect(await hincrbyKeys(seen)).toEqual([]);
       await send(report);
-      expect(hincrbyKeys(fetchSpy)).toEqual(['errors']);
+      expect(await hincrbyKeys(seen)).toEqual(['errors']);
     });
 
     it('stores a build-stamped event under a three-part field', async () => {
-      const fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation(answer(1));
+      const seen = storeAnswers(answerTotal(1), answerTotal(1));
       const stamped = { name: 'tool_operation_failed', properties: { tool: 'redact', build: '08e10cf' } };
       expect((await postUsage(stamped)).status).toBe(204);
-      const hincrbys = fetchSpy.mock.calls.flatMap(([, init]) => JSON.parse(init.body)).filter(([name]) => name === 'HINCRBY');
+      const hincrbys = (await sentPipelines(seen)).flat().filter(([name]) => name === 'HINCRBY');
       expect(hincrbys).toEqual([['HINCRBY', expect.stringMatching(/^usage:\d{4}-\d{2}-\d{2}$/), 'tool_operation_failed|redact|08e10cf', 1]]);
     });
 
     it('counts an event with an extra property as a bad_event reject, not as usage', async () => {
-      const fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation(answer(1));
+      const seen = storeAnswers(answerTotal(1), answerTotal(1));
       const extra = { ...usage, properties: { ...usage.properties, note: 'x' } };
       expect((await postUsage(extra)).status).toBe(204);
-      expect(rejectCounts(fetchSpy)).toEqual(['bad_event|other']);
+      expect(await rejectCounts(seen)).toEqual(['bad_event|other']);
     });
   });
 
   describe('star ratings', () => {
     const rating = { name: 'tool_rating', properties: { tool: 'merge', stars: 5 } };
-    const answer = (total) => async () => new Response(JSON.stringify([{ result: total }, { result: 1 }]), { status: 200 });
     const post = (value) => POST(jsonRequest(value));
 
     it('issues HINCRBY rating:<tool> with no EXPIRE on it', async () => {
-      const fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation(answer(7));
+      const seen = storeAnswers(answerTotal(7), answerTotal(1));
       expect((await post(rating)).status).toBe(204);
-      const commands = sentPipelines(fetchSpy).flat();
+      const commands = (await sentPipelines(seen)).flat();
       expect(commands[0]).toEqual(['INCR', expect.stringMatching(/^rating:total:\d{4}-\d{2}-\d{2}$/)]);
       expect(commands).toContainEqual(['HINCRBY', 'rating:merge', '5', 1]);
       expect(commands.filter(([name, key]) => name === 'EXPIRE' && key === 'rating:merge')).toEqual([]);
@@ -438,21 +433,21 @@ describe('/api/report stays silent', () => {
     it('issues nothing past the cap', async () => {
       vi.resetModules();
       const { POST: fresh } = await import('../../api/report.ts');
-      const fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation(answer(301));
+      const seen = storeAnswers(answerTotal(301));
       expect((await fresh(jsonRequest(rating))).status).toBe(204);
-      expect(JSON.stringify(sentPipelines(fetchSpy))).not.toContain('HINCRBY');
-      expect(fetchSpy).toHaveBeenCalledTimes(1);
+      expect(JSON.stringify(await sentPipelines(seen))).not.toContain('HINCRBY');
+      expect(seen).toHaveLength(1);
     });
 
     it('keeps a rating entry with the geo headers and no EXPIRE on it', async () => {
-      const fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation(answer(7));
+      const seen = storeAnswers(answerTotal(7), answerTotal(1));
       const request = new Request('https://pdkef.com/api/report', {
         method: 'POST',
         headers: { 'x-vercel-ip-country': 'IL', 'x-vercel-ip-country-region': 'TA' },
         body: JSON.stringify(rating),
       });
       expect((await POST(request)).status).toBe(204);
-      const commands = sentPipelines(fetchSpy).flat();
+      const commands = (await sentPipelines(seen)).flat();
       const day = commands[0][1].slice('rating:total:'.length);
       expect(commands).toContainEqual(['HINCRBY', 'rating:merge', '5', 1]);
       expect(commands).toContainEqual(['RPUSH', 'rating:entries', JSON.stringify({ tool: 'merge', stars: 5, day, country: 'IL', region: 'TA' })]);
@@ -461,29 +456,29 @@ describe('/api/report stays silent', () => {
     });
 
     it('keeps a comment entry and counts no star', async () => {
-      const fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation(answer(7));
+      const seen = storeAnswers(answerTotal(7), answerTotal(1));
       const comment = { name: 'tool_rating_comment', properties: { tool: 'merge', stars: 3, comment: 'nice' } };
       expect((await post(comment)).status).toBe(204);
-      const commands = sentPipelines(fetchSpy).flat();
+      const commands = (await sentPipelines(seen)).flat();
       const day = commands[0][1].slice('rating:total:'.length);
       expect(commands).toContainEqual(['RPUSH', 'rating:entries', JSON.stringify({ tool: 'merge', stars: 3, day, comment: 'nice' })]);
       expect(commands.filter(([name]) => name === 'HINCRBY')).toEqual([]);
     });
 
     it('counts a comment over 500 characters as a reject', async () => {
-      const fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation(answer(1));
+      const seen = storeAnswers(answerTotal(1), answerTotal(1));
       const long = { name: 'tool_rating_comment', properties: { tool: 'merge', stars: 3, comment: 'x'.repeat(501) } };
       expect((await post(long)).status).toBe(204);
-      expect(rejectCounts(fetchSpy)).toEqual(['bad_event|other']);
-      expect(JSON.stringify(sentPipelines(fetchSpy))).not.toContain('rating:entries');
+      expect(await rejectCounts(seen)).toEqual(['bad_event|other']);
+      expect(JSON.stringify(await sentPipelines(seen))).not.toContain('rating:entries');
     });
 
     it('counts a bad rating as a reject', async () => {
-      const fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation(answer(1));
+      const seen = storeAnswers(answerTotal(1), answerTotal(1));
       const bad = { ...rating, properties: { tool: 'merge', stars: 6 } };
       expect((await post(bad)).status).toBe(204);
-      expect(rejectCounts(fetchSpy)).toEqual(['bad_event|other']);
-      expect(JSON.stringify(sentPipelines(fetchSpy))).not.toContain('rating:merge');
+      expect(await rejectCounts(seen)).toEqual(['bad_event|other']);
+      expect(JSON.stringify(await sentPipelines(seen))).not.toContain('rating:merge');
     });
   });
 });

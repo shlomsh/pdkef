@@ -308,7 +308,7 @@ describe('PdfMergeTool UI flow', () => {
 
     const chooseButton = Array.from(box.querySelectorAll('button')).find((b) => b.textContent === 'Choose files');
     expect(chooseButton).not.toBeUndefined();
-    const clickSpy = vi.spyOn(HTMLInputElement.prototype, 'click').mockImplementation(() => {});
+    const clickSpy = vi.spyOn(HTMLInputElement.prototype, 'click');
     await act(async () => chooseButton.click());
     expect(clickSpy).toHaveBeenCalledTimes(1);
     clickSpy.mockRestore();
@@ -438,12 +438,10 @@ describe('PdfMergeTool UI flow', () => {
     await until(reads.isBlocked);
 
     // The Download element is itself an <a> in every state now (MERGE-18),
-    // so the click spy below (which stands in for the browser's own download
-    // navigation once the app calls .click() on the ready link) must not
-    // intercept this test's own tap on the still-preparing element - dispatch
-    // a plain click event instead of calling the (about to be mocked) native
-    // .click() method.
-    const clickSpy = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
+    // so the click spy below (which counts the app's own .click() on the ready link) must not
+    // count this test's own tap on the still-preparing element - dispatch
+    // a plain click event instead of calling the native .click() method.
+    const clickSpy = vi.spyOn(HTMLAnchorElement.prototype, 'click');
     await act(async () => {
       downloadBox().dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
     });
@@ -1916,7 +1914,7 @@ describe('PdfMergeTool quiet-time prepare', () => {
       await gate;
       return new Blob(['%PDF-1.4'], { type: 'application/pdf' });
     });
-    const clickSpy = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
+    const clickSpy = vi.spyOn(HTMLAnchorElement.prototype, 'click');
     await act(async () => pageNumbersBox().click());
     // A finger goes down before it taps, which starts the build at once, so the quiet wait (1500ms, or
     // more inside a burst of changes) is not what this unit depends on.
@@ -1963,7 +1961,7 @@ describe('PdfMergeTool quiet-time prepare', () => {
 
   it('opens the strip on delivery after a quiet Download tap that beat the build (tablet)', async () => {
     const media = stubMedia(true);
-    const clickSpy = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
+    const clickSpy = vi.spyOn(HTMLAnchorElement.prototype, 'click');
     try {
       await act(async () => pageNumbersBox().click());
       await advance(200);
@@ -1979,7 +1977,7 @@ describe('PdfMergeTool quiet-time prepare', () => {
 
   it('a stale quiet-tap flag does not open the strip for the completion row tap after Clear all', async () => {
     const media = stubMedia(true);
-    const clickSpy = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
+    const clickSpy = vi.spyOn(HTMLAnchorElement.prototype, 'click');
     try {
       // The build the page-numbers change starts never finishes.
       controlReads(sources[0]).holdFrom();
@@ -2006,7 +2004,7 @@ describe('PdfMergeTool quiet-time prepare', () => {
 
   it('closes the open strip when the window widens past 1024px and gives the rating its slot back', async () => {
     const media = stubMedia(true);
-    const clickSpy = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
+    const clickSpy = vi.spyOn(HTMLAnchorElement.prototype, 'click');
     try {
       await act(async () => { container.querySelector('[data-quiet-download]').dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true })); });
       await advance(100);

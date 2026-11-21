@@ -75,6 +75,7 @@ describe('analytics sink follows the first beacon', () => {
   });
 
   it('makes no second call when the first beacon is refused', () => {
+    // forced: a browser refusing the beacon hand-off cannot be produced on cue
     beacon.mockReturnValue(false);
     reportToolLifecycleEvent('tool_result_ready', 'merge');
     expect(beacon).toHaveBeenCalledTimes(1);
@@ -112,6 +113,7 @@ describe('reportToolLifecycleEvent', () => {
   });
 
   it('says how the page load started on the first event of a kind only (DEBT-57)', async () => {
+    // forced: a page load that was a reload or a new navigation type cannot be made mid-test
     vi.spyOn(performance, 'getEntriesByType').mockReturnValue([{ type: 'reload' }] as unknown as PerformanceEntryList);
     reportToolLifecycleEvent('tool_file_accepted', 'redact');
     reportToolLifecycleEvent('tool_file_accepted', 'redact');
@@ -123,6 +125,7 @@ describe('reportToolLifecycleEvent', () => {
   });
 
   it('leaves nav out when the browser names no navigation, or one off the list', async () => {
+    // forced: a page load that was a reload or a new navigation type cannot be made mid-test
     const spy = vi.spyOn(performance, 'getEntriesByType').mockReturnValue([]);
     reportToolLifecycleEvent('tool_file_accepted', 'redact');
     spy.mockReturnValue([{ type: 'something_new' }] as unknown as PerformanceEntryList);
@@ -133,6 +136,7 @@ describe('reportToolLifecycleEvent', () => {
   });
 
   it('stays first until a beacon is actually handed off', async () => {
+    // forced: a browser refusing the beacon hand-off cannot be produced on cue
     beacon.mockReturnValueOnce(false);
     reportToolLifecycleEvent('tool_result_ready', 'merge');
     reportToolLifecycleEvent('tool_result_ready', 'merge');
@@ -157,6 +161,7 @@ describe('reportToolLifecycleEvent', () => {
   });
 
   it('never throws when sendBeacon does', () => {
+    // forced: a sendBeacon that throws cannot be produced on cue
     beacon.mockImplementation(() => {
       throw new Error('boom');
     });
@@ -165,6 +170,7 @@ describe('reportToolLifecycleEvent', () => {
 
   it('adds the build commit when the page carries one, and only then', async () => {
     const page = (content: string | null) =>
+      // forced: a Server-Timing header with the build commit, which the test server does not send
       vi.stubGlobal('performance', {
         getEntriesByType: () => [{ serverTiming: content === null ? [] : [{ name: 'build', description: content }] }],
       });
@@ -189,6 +195,7 @@ describe('the funnel (DEBT-58)', () => {
     };
   };
   // Page views carry `ready` off the real clock; these tests are about visit, so the clock reads nothing.
+  // forced: a clock that reads NaN, which no real browser hands out on cue
   beforeEach(() => void vi.spyOn(performance, 'now').mockReturnValue(Number.NaN));
   // A fixed day after the tools list started, so these tests do not depend on today's date.
   beforeEach(() => {
@@ -255,6 +262,7 @@ describe('the funnel (DEBT-58)', () => {
     it('does not stamp the list when the beacon refuses the view', async () => {
       const ls = store();
       vi.stubGlobal('localStorage', ls);
+      // forced: a browser refusing the beacon hand-off cannot be produced on cue
       beacon.mockReturnValueOnce(false);
       await load('sign');
       expect(ls.getItem('pdkef:tools-opened')).toBeNull();
@@ -298,6 +306,7 @@ describe('the funnel (DEBT-58)', () => {
   });
 
   it('omits visit without storage', async () => {
+    // forced: storage whose read throws, as a blocked browser does
     vi.stubGlobal('localStorage', store(true));
     reportToolLifecycleEvent('tool_page_viewed', 'sign');
     await settleTick();
@@ -373,7 +382,9 @@ describe('reportEdit', () => {
 
 describe('performance measures (MEM-45)', () => {
   const sent = async () => Promise.all(beacon.mock.calls.map(async ([, b]) => JSON.parse(await (b as Blob).text())));
-  const clock = (ms: number) => vi.spyOn(performance, 'now').mockReturnValue(ms);
+  beforeEach(() => void vi.useFakeTimers({ toFake: ['performance'] }));
+  afterEach(() => void vi.useRealTimers());
+  const clock = (ms: number) => void vi.advanceTimersByTime(ms - performance.now());
 
   it('a tool page view waits for the window load, then sends once with the measures and ready', async () => {
     let load!: () => void;
@@ -399,7 +410,8 @@ describe('performance measures (MEM-45)', () => {
   });
 
   it('leaves out what the browser could not measure', async () => {
-    clock(Number.NaN);
+    // forced: a clock that reads NaN, which no real browser hands out on cue
+    vi.spyOn(performance, 'now').mockReturnValue(Number.NaN);
     reportToolLifecycleEvent('tool_page_viewed', 'merge');
     await settleTick();
     expect((await sent())[0].properties).toEqual({ tool: 'merge', first: true });
@@ -464,20 +476,17 @@ describe('performance measures (MEM-45)', () => {
 
   it('ms on tool_file_accepted only for a fresh pick, drop, paste or replace', async () => {
     for (const source of ['pick', 'drop', 'paste', 'replace'] as const) {
-      clock(1000);
       markArrival(source);
-      clock(1500);
+      vi.advanceTimersByTime(500);
       reportToolLifecycleEvent('tool_file_accepted', 'sign');
     }
     for (const source of ['restore', 'recent', 'camera'] as const) {
-      clock(1000);
       markArrival(source);
-      clock(1500);
+      vi.advanceTimersByTime(500);
       reportToolLifecycleEvent('tool_file_accepted', 'sign');
     }
-    clock(1000);
     markArrival('handoff', 'merge');
-    clock(1500);
+    vi.advanceTimersByTime(500);
     reportToolLifecycleEvent('tool_file_accepted', 'sign');
     const withMs = (await sent()).map((e) => 'ms' in e.properties);
     expect(withMs).toEqual([true, true, true, true, false, false, false, false]);

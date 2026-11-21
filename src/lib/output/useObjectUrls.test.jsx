@@ -14,14 +14,12 @@ function Harness({ apiRef }) {
 describe('useObjectUrls', () => {
   let container;
   let apiRef;
-  let nextUrl;
   let createSpy;
   let revokeSpy;
 
   beforeEach(() => {
-    nextUrl = 0;
-    createSpy = vi.spyOn(URL, 'createObjectURL').mockImplementation(() => `blob:${++nextUrl}`);
-    revokeSpy = vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => {});
+    createSpy = vi.spyOn(URL, 'createObjectURL');
+    revokeSpy = vi.spyOn(URL, 'revokeObjectURL');
     container = document.createElement('div');
     document.body.appendChild(container);
     apiRef = { current: null };
@@ -44,7 +42,8 @@ describe('useObjectUrls', () => {
     const blob = new Blob(['a']);
     act(() => apiRef.current.setBlob(blob));
     expect(createSpy).toHaveBeenCalledWith(blob);
-    expect(apiRef.current.url).toBe('blob:1');
+    expect(apiRef.current.url.startsWith('blob:')).toBe(true);
+    expect(apiRef.current.url).toBe(createSpy.mock.results[0].value);
   });
 
   it('revokes the previous url when replaced with a new blob', () => {
@@ -52,7 +51,8 @@ describe('useObjectUrls', () => {
     const first = apiRef.current.url;
     act(() => apiRef.current.setBlob(new Blob(['b'])));
     expect(revokeSpy).toHaveBeenCalledWith(first);
-    expect(apiRef.current.url).toBe('blob:2');
+    expect(apiRef.current.url.startsWith('blob:')).toBe(true);
+    expect(apiRef.current.url).not.toBe(first);
   });
 
   it('clear() revokes the current url and resets to null', () => {
@@ -84,7 +84,7 @@ describe('useObjectUrls', () => {
 
 describe('useRevokeOnUnmount', () => {
   it('revokes the latest list after rerenders, not the first one', () => {
-    const revokeSpy = vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => {});
+    const revokeSpy = vi.spyOn(URL, 'revokeObjectURL');
     const container = document.createElement('div');
     function H({ urls }) {
       useRevokeOnUnmount(urls);

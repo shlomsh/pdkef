@@ -6,7 +6,6 @@ describe('recentPreview', () => {
   afterEach(() => vi.unstubAllGlobals());
 
   it('is null where the browser cannot decode a blob into a bitmap', async () => {
-    vi.stubGlobal('createImageBitmap', undefined);
     expect(await recentPreview(new Blob(['x'], { type: 'image/jpeg' }))).toBeNull();
   });
 

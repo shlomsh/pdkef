@@ -129,6 +129,7 @@ describe('PdfImageToPdfTool UI flow', () => {
   });
 
   afterEach(() => {
+    stopDeliveries();
     if (container) {
       act(() => render(null, container));
       container.remove();
@@ -159,6 +160,17 @@ describe('PdfImageToPdfTool UI flow', () => {
   const tileNames = () => Array.from(container.querySelectorAll('[data-page]')).map((el) => el.getAttribute('aria-label').split(',')[0]);
   const removeButtons = () => container.querySelectorAll('ul[aria-describedby="reorder-hint"] li > button[aria-label]');
   const downloadLink = () => container.querySelector('a[data-state]');
+  let stopDeliveries = () => {};
+  const recordDeliveries = () => {
+    const delivered: { download: string; href: string }[] = [];
+    const listener = (e: Event) => {
+      const a = e.target as HTMLAnchorElement;
+      if (a.tagName === 'A' && a.parentNode === document.body) delivered.push({ download: a.download, href: a.href });
+    };
+    document.addEventListener('click', listener);
+    stopDeliveries = () => document.removeEventListener('click', listener);
+    return delivered;
+  };
   const buttonByText = (text) => Array.from(container.querySelectorAll('button')).find((b) => b.textContent.trim().includes(text));
   const press = (el, key) => act(async () => {
     el.dispatchEvent(new KeyboardEvent('keydown', { key, bubbles: true, cancelable: true }));
@@ -273,7 +285,7 @@ describe('PdfImageToPdfTool UI flow', () => {
   });
 
   it('shows Preparing on a tap before ready, then delivers the download when the build lands', async () => {
-    const clicks = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
+    const clicks = recordDeliveries();
     mount();
     await loadFiles(['a.png', 'b.png']);
     await wait(0);
@@ -283,17 +295,18 @@ describe('PdfImageToPdfTool UI flow', () => {
     await act(async () => { downloadLink().dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true })); });
     await wait(0);
     expect(container.querySelector('a[data-state="preparing"]').textContent).toContain('Preparing');
-    expect(clicks).not.toHaveBeenCalled();
+    expect(clicks).toEqual([]);
 
     await act(async () => { release(); });
     await wait(0);
     expect(container.querySelector('a[data-state="preparing"]')).toBeNull();
     expect(harness.blobForUrl(downloadLink().getAttribute('href'))).toBe(builtPdfs().at(-1));
-    expect(clicks).toHaveBeenCalledTimes(1);
+    expect(clicks).toHaveLength(1);
+    expect(clicks[0].download).toMatch(/\.pdf$/);
+    expect(harness.blobForUrl(clicks[0].href)).toBe(builtPdfs().at(-1));
   });
 
   it('does not re-announce an unchanged ready message on every Download tap', async () => {
-    vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
     mount();
     await loadFiles(['a.png', 'b.png']);
     await wait(0);
@@ -307,7 +320,6 @@ describe('PdfImageToPdfTool UI flow', () => {
 
   it('records export on a tap that beat the build and download when it is delivered', async () => {
     resetActionTrailForTests();
-    vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
     mount();
     await loadFiles(['a.png', 'b.png']);
     await wait(0);
@@ -426,7 +438,6 @@ describe('PdfImageToPdfTool UI flow', () => {
 
   it('records one download per ready tap', async () => {
     resetActionTrailForTests();
-    vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
     mount();
     await loadFiles(['a.png', 'b.png']);
     await wait(0);
@@ -438,7 +449,6 @@ describe('PdfImageToPdfTool UI flow', () => {
   });
 
   it('shows only the preparing line while a tapped build runs, with no render count', async () => {
-    vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
     mount();
     await loadFiles(['a.png', 'b.png']);
     await wait(0);
@@ -483,7 +493,6 @@ describe('PdfImageToPdfTool UI flow', () => {
   };
 
   it('reports no result for background builds, and exactly one for a tap then delivery', async () => {
-    vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
     mount();
     await loadFiles(['a.png', 'b.png', 'c.png']);
     await wait(0);
@@ -502,7 +511,7 @@ describe('PdfImageToPdfTool UI flow', () => {
   const tapDownload = () => act(async () => { downloadLink().dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true })); });
 
   it('does not deliver a stale tap after the only image is removed and a good one is added', async () => {
-    const clicks = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
+    const clicks = recordDeliveries();
     vi.spyOn(console, 'error').mockImplementation(() => {});
     let fail;
     vi.mocked(imagesToPdf).mockReturnValueOnce(new Promise((_, reject) => { fail = () => reject(new Error('bad image')); })); // forced: a build that fails when the test says
@@ -518,12 +527,11 @@ describe('PdfImageToPdfTool UI flow', () => {
     // The failed build made nothing; the good image's build is the only PDF.
     expect(builtPdfs()).toHaveLength(1);
     await expectBuilt(0, ['b.png']);
-    expect(clicks).not.toHaveBeenCalled();
+    expect(clicks).toEqual([]);
   });
 
   it('records export again on the first tap after Clear all', async () => {
     resetActionTrailForTests();
-    vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
     vi.mocked(imagesToPdf).mockReturnValueOnce(new Promise(() => {})); // forced: a build that never finishes
     mount();
     await loadFiles(['a.png']);
@@ -562,6 +570,7 @@ describe('PdfImageToPdfTool UI flow', () => {
     it('says the PDF is still ready when the share sheet is canceled, and records nothing', async () => {
       resetActionTrailForTests();
       const nativeShare = mockNativeFileShare();
+      // forced: a share sheet the person cancels / that fails to open
       nativeShare.share.mockRejectedValueOnce(Object.assign(new Error('cancel'), { name: 'AbortError' }));
       mount();
       await loadFiles(['a.png', 'b.png']);
@@ -576,6 +585,7 @@ describe('PdfImageToPdfTool UI flow', () => {
     it('says the sheet could not open when sharing fails, and records nothing', async () => {
       resetActionTrailForTests();
       const nativeShare = mockNativeFileShare();
+      // forced: a share sheet the person cancels / that fails to open
       nativeShare.share.mockRejectedValueOnce(new Error('boom'));
       mount();
       await loadFiles(['a.png', 'b.png']);
@@ -601,7 +611,6 @@ describe('PdfImageToPdfTool UI flow', () => {
   });
 
   it('keeps the same focused anchor while a tapped build is busy', async () => {
-    vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
     mount();
     await loadFiles(['a.png', 'b.png']);
     await wait(0);
@@ -722,7 +731,7 @@ describe('PdfImageToPdfTool UI flow', () => {
       mount({ navigate });
       await loadFiles(['a.png']);
       await wait(0);
-      // A browser with no usable IndexedDB (a locked-down window) cannot park the files.
+      // forced: a browser with no usable IndexedDB (a locked-down window) cannot park the files.
       vi.stubGlobal('indexedDB', undefined);
       await act(async () => scanButton().click());
       await wait(0);

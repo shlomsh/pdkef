@@ -62,46 +62,50 @@ describe('FilePreview', () => {
   });
 
   it('renders an <img> at the object URL for an image file, and revokes it on unmount', () => {
-    const originalCreateObjectURL = window.URL.createObjectURL;
-    const originalRevokeObjectURL = window.URL.revokeObjectURL;
-    window.URL.createObjectURL = vi.fn(() => 'blob:preview-photo');
-    window.URL.revokeObjectURL = vi.fn();
+    const createSpy = vi.spyOn(URL, 'createObjectURL');
+    const revokeSpy = vi.spyOn(URL, 'revokeObjectURL');
 
-    const file = makeImageFile();
-    mount({ file });
+    try {
+      const file = makeImageFile();
+      mount({ file });
 
-    const icon = container!.querySelector('span[aria-hidden="true"]');
-    expect(icon.hasAttribute('data-loaded')).toBe(true);
-    const img = icon.querySelector('img');
-    expect(img).not.toBeNull();
-    expect(img.getAttribute('src')).toBe('blob:preview-photo');
-    expect(img.getAttribute('alt')).toBe('');
-    expect(window.URL.createObjectURL).toHaveBeenCalledWith(file);
-    expect(window.URL.revokeObjectURL).not.toHaveBeenCalled();
+      const icon = container!.querySelector('span[aria-hidden="true"]');
+      expect(icon.hasAttribute('data-loaded')).toBe(true);
+      const img = icon.querySelector('img');
+      expect(img).not.toBeNull();
+      const src = img.getAttribute('src')!;
+      expect(src.startsWith('blob:')).toBe(true);
+      expect(src).toBe(createSpy.mock.results[0].value);
+      expect(img.getAttribute('alt')).toBe('');
+      expect(createSpy).toHaveBeenCalledWith(file);
+      expect(revokeSpy).not.toHaveBeenCalled();
 
-    act(() => render(null, container!));
-    expect(window.URL.revokeObjectURL).toHaveBeenCalledWith('blob:preview-photo');
-
-    window.URL.createObjectURL = originalCreateObjectURL;
-    window.URL.revokeObjectURL = originalRevokeObjectURL;
+      act(() => render(null, container!));
+      expect(revokeSpy).toHaveBeenCalledWith(src);
+    } finally {
+      createSpy.mockRestore();
+      revokeSpy.mockRestore();
+    }
     container = null; // already unmounted above
   });
 
   it('renders an <img> for an image file with no MIME type, via the filename extension fallback', () => {
-    const originalCreateObjectURL = window.URL.createObjectURL;
-    window.URL.createObjectURL = vi.fn(() => 'blob:preview-photo-noext-type');
+    const createSpy = vi.spyOn(URL, 'createObjectURL');
 
-    const file = makeImageFile('photo.png', '');
-    mount({ file });
+    try {
+      const file = makeImageFile('photo.png', '');
+      mount({ file });
 
-    const icon = container!.querySelector('span[aria-hidden="true"]');
-    expect(icon.hasAttribute('data-loaded')).toBe(true);
-    const img = icon.querySelector('img');
-    expect(img).not.toBeNull();
-    expect(img.getAttribute('src')).toBe('blob:preview-photo-noext-type');
-    expect(window.URL.createObjectURL).toHaveBeenCalledWith(file);
-
-    window.URL.createObjectURL = originalCreateObjectURL;
+      const icon = container!.querySelector('span[aria-hidden="true"]');
+      expect(icon.hasAttribute('data-loaded')).toBe(true);
+      const img = icon.querySelector('img');
+      expect(img).not.toBeNull();
+      expect(img.getAttribute('src')!.startsWith('blob:')).toBe(true);
+      expect(img.getAttribute('src')).toBe(createSpy.mock.results[0].value);
+      expect(createSpy).toHaveBeenCalledWith(file);
+    } finally {
+      createSpy.mockRestore();
+    }
   });
 
   it('calls renderThumbnail for a PDF with no MIME type, via the filename extension fallback', () => {
@@ -183,21 +187,21 @@ describe('FilePreview', () => {
   });
 
   it('revokes the previous image object URL when the file changes', () => {
-    const originalCreate = window.URL.createObjectURL;
-    const originalRevoke = window.URL.revokeObjectURL;
-    const urls = ['blob:first', 'blob:second'];
-    window.URL.createObjectURL = vi.fn(() => urls.shift()!);
-    window.URL.revokeObjectURL = vi.fn();
+    const revokeSpy = vi.spyOn(URL, 'revokeObjectURL');
 
     try {
       mount({ file: makeImageFile('a.jpg') });
-      expect(window.URL.revokeObjectURL).not.toHaveBeenCalled();
+      const first = container!.querySelector('img')!.getAttribute('src')!;
+      expect(first.startsWith('blob:')).toBe(true);
+      expect(revokeSpy).not.toHaveBeenCalled();
       act(() => render(<FilePreview file={makeImageFile('b.jpg')} />, container!));
-      expect(window.URL.revokeObjectURL).toHaveBeenCalledWith('blob:first');
-      expect(window.URL.revokeObjectURL).not.toHaveBeenCalledWith('blob:second');
+      const second = container!.querySelector('img')!.getAttribute('src')!;
+      expect(second.startsWith('blob:')).toBe(true);
+      expect(second).not.toBe(first);
+      expect(revokeSpy).toHaveBeenCalledWith(first);
+      expect(revokeSpy).not.toHaveBeenCalledWith(second);
     } finally {
-      window.URL.createObjectURL = originalCreate;
-      window.URL.revokeObjectURL = originalRevoke;
+      revokeSpy.mockRestore();
     }
   });
 

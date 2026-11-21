@@ -1,5 +1,4 @@
 import { describe, expect, it, beforeEach, afterEach, vi } from 'vitest';
-import { webcrypto } from 'node:crypto';
 // Installs a global `indexedDB` (and IDBFactory/IDBKeyRange/...) for jsdom,
 // which implements everything else this file needs but not IndexedDB itself.
 // Only the IndexedDB-backed describe blocks below touch it; every other
@@ -253,7 +252,6 @@ describe('draft source and cross-tab coordination boundaries', () => {
   beforeEach(() => {
     localStorage.clear();
     sessionStorage.clear();
-    vi.stubGlobal('crypto', webcrypto);
     // This describe's own "binary storage unavailable" case means to exercise
     // hasIndexedDB() being false, which was simply true for jsdom by default
     // before this file also imported fake-indexeddb/auto (for the IndexedDB
@@ -306,7 +304,6 @@ describe('saveDraft / loadDraft / deleteDraft / cacheRecentFile (IndexedDB, fake
   beforeEach(() => {
     localStorage.clear();
     sessionStorage.clear();
-    vi.stubGlobal('crypto', webcrypto);
     // A fresh backing store per test: draftStore.ts's database has no upgrade
     // path by design (see its header comment), so a record left behind by an
     // earlier test would otherwise leak into the next one's "fresh database"
@@ -316,9 +313,10 @@ describe('saveDraft / loadDraft / deleteDraft / cacheRecentFile (IndexedDB, fake
 
   it('reports a saveDraft failure to the error reporter under "drafts"', async () => {
     const boom = new Error('boom');
+    // forced: IndexedDB that throws when opened
     vi.spyOn(indexedDB, 'open').mockImplementation(() => { throw boom; });
     const report = vi.spyOn(errorReport, 'reportError');
-    const quiet = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const quiet = vi.spyOn(console, 'error');
     expect(await saveDraft('sign', { fileBytes: bytesOf('%PDF-1.4 x') })).toBe(false);
     expect(report).toHaveBeenCalledWith('drafts', boom, 'save_draft');
     report.mockRestore();
@@ -524,14 +522,14 @@ describe('saveDraft / loadDraft / deleteDraft / cacheRecentFile (IndexedDB, fake
 
   // Eviction: recency only. An entry that was merely opened again outlives
   // one with real edits if the edited one is simply older - work is never a
-  // reason to keep a slot. Date.now() is mocked (not fake timers, which
-  // would also freeze fake-indexeddb's own internal scheduling - see
+  // reason to keep a slot. Only the Date clock is faked (not the timers,
+  // which would also freeze fake-indexeddb's own internal scheduling - see
   // useMergeDraft.test.tsx's note on the same hazard) so each entry gets a
   // distinct, controlled savedAt.
   it('evicts the oldest entry by recency alone, even though it carries work, once a seventh arrives', async () => {
     const start = 1_700_000_000_000;
-    let now = start;
-    const nowSpy = vi.spyOn(Date, 'now').mockImplementation(() => now);
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(start);
     try {
       // 'sign' is the tool whose pointer we track throughout: only the very
       // first entry (editedOldest) is ever saved through it, so its pointer
@@ -546,7 +544,7 @@ describe('saveDraft / loadDraft / deleteDraft / cacheRecentFile (IndexedDB, fake
 
       const untouchedIds = [];
       for (let index = 1; index <= 5; index += 1) {
-        now = start + index * 1000;
+        vi.setSystemTime(start + index * 1000);
         const bytes = bytesOf(`untouched ${index}`);
         // eslint-disable-next-line no-await-in-loop -- ordering the entries by savedAt is the point
         await cacheRecentFile('redact', { fileName: `untouched-${index}.pdf`, fileType: 'application/pdf', fileBytes: bytes });
@@ -560,7 +558,7 @@ describe('saveDraft / loadDraft / deleteDraft / cacheRecentFile (IndexedDB, fake
 
       // The seventh, newest of all: pushes the six-slot index over, and the
       // oldest - editedOldest, the one with real work - falls out.
-      now = start + 6000;
+      vi.setSystemTime(start + 6000);
       const seventh = bytesOf('newest of all');
       await cacheRecentFile('redact', { fileName: 'newest.pdf', fileType: 'application/pdf', fileBytes: seventh });
 
@@ -575,25 +573,25 @@ describe('saveDraft / loadDraft / deleteDraft / cacheRecentFile (IndexedDB, fake
       expect(await loadDraft('sign')).toBeNull();
       expect(await getRawRecord(`recent:${editedOldestId}`)).toBeUndefined();
     } finally {
-      nowSpy.mockRestore();
+      vi.useRealTimers();
     }
   });
 
   it('expires a whole entry - and every tool\'s work on it - 28 days after its last save', async () => {
     const start = 1_700_000_000_000;
-    let now = start;
-    const nowSpy = vi.spyOn(Date, 'now').mockImplementation(() => now);
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(start);
     try {
       const fileBytes = bytesOf('%PDF-1.4 old file');
       await saveDraft('sign', { fileName: 'old.pdf', fileType: 'application/pdf', fileBytes, elements: [{ id: '1' }] });
       const id = await sourceIdForBytes(fileBytes);
 
-      now = start + MAX_AGE_MS + 1;
+      vi.setSystemTime(start + MAX_AGE_MS + 1);
       expect(await loadDraft('sign')).toBeNull();
       expect(await loadRecentFile(id)).toBeNull();
       expect(readRecentFiles()).toHaveLength(0);
     } finally {
-      nowSpy.mockRestore();
+      vi.useRealTimers();
     }
   });
 
@@ -645,7 +643,6 @@ describe('legacy per-tool draft migration', () => {
   beforeEach(() => {
     localStorage.clear();
     sessionStorage.clear();
-    vi.stubGlobal('crypto', webcrypto);
     indexedDB = new IDBFactory();
     vi.resetModules();
   });
@@ -728,11 +725,11 @@ describe('legacy per-tool draft migration', () => {
     // not fit, not the newest of the six.
     const firstSession = await freshStore();
     const start = Date.now();
-    let now = start;
-    const nowSpy = vi.spyOn(Date, 'now').mockImplementation(() => now);
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(start);
     try {
       for (let i = 0; i < 6; i += 1) {
-        now = start + i * 1000;
+        vi.setSystemTime(start + i * 1000);
         await firstSession.cacheRecentFile('sign', { fileName: `fresh-${i}.pdf`, fileType: 'application/pdf', fileBytes: bytesOf(`%PDF fresh ${i}`) });
       }
       const legacyBytes = bytesOf('%PDF-1.4 ten days old');
@@ -751,7 +748,7 @@ describe('legacy per-tool draft migration', () => {
       expect(names).not.toContain('old.pdf');
       expect(names[0]).toBe('fresh-5.pdf');
     } finally {
-      nowSpy.mockRestore();
+      vi.useRealTimers();
     }
   });
 
@@ -818,6 +815,7 @@ describe('storage persistence request', () => {
   });
 
   it('still saves when the browser has no Storage API at all', async () => {
+    // forced: a browser with no Storage API
     vi.stubGlobal('navigator', { ...globalThis.navigator, storage: undefined });
 
     vi.resetModules();
@@ -831,6 +829,7 @@ describe('storage persistence request', () => {
   });
 
   it('still saves when persist() rejects or throws', async () => {
+    // forced: persist() that throws
     vi.stubGlobal('navigator', {
       ...globalThis.navigator,
       storage: { persist: () => { throw new Error('denied'); } },
@@ -858,6 +857,7 @@ describe('isStoragePersisted', () => {
   });
 
   it('resolves the browser\'s own true/false answer', async () => {
+    // forced: a browser that granted persistence
     vi.stubGlobal('navigator', { ...globalThis.navigator, storage: { persisted: () => Promise.resolve(true) } });
     expect(await isStoragePersisted()).toBe(true);
 
@@ -866,11 +866,13 @@ describe('isStoragePersisted', () => {
   });
 
   it('resolves \'unknown\' when there is no Storage API at all', async () => {
+    // forced: a browser with no Storage API
     vi.stubGlobal('navigator', { ...globalThis.navigator, storage: undefined });
     expect(await isStoragePersisted()).toBe('unknown');
   });
 
   it('resolves \'unknown\' when persisted() throws', async () => {
+    // forced: persisted() that throws
     vi.stubGlobal('navigator', {
       ...globalThis.navigator,
       storage: { persisted: () => { throw new Error('denied'); } },
@@ -879,6 +881,7 @@ describe('isStoragePersisted', () => {
   });
 
   it('resolves \'unknown\' when persisted() rejects', async () => {
+    // forced: persisted() that rejects
     vi.stubGlobal('navigator', {
       ...globalThis.navigator,
       storage: { persisted: () => Promise.reject(new Error('denied')) },
@@ -897,7 +900,6 @@ describe('draft-change signal and concurrent saves (IndexedDB, fake-indexeddb)',
   beforeEach(() => {
     localStorage.clear();
     sessionStorage.clear();
-    vi.stubGlobal('crypto', webcrypto);
     indexedDB = new IDBFactory();
   });
 
@@ -954,7 +956,6 @@ describe('peekHandoff / commitHandoff (a hand-off outlives its read)', () => {
   beforeEach(() => {
     localStorage.clear();
     sessionStorage.clear();
-    vi.stubGlobal('crypto', webcrypto);
     indexedDB = new IDBFactory();
   });
 
@@ -983,7 +984,6 @@ describe('saveHandoff / takeHandoff (single and multi-file records)', () => {
   beforeEach(() => {
     localStorage.clear();
     sessionStorage.clear();
-    vi.stubGlobal('crypto', webcrypto);
     indexedDB = new IDBFactory();
   });
 
@@ -1071,7 +1071,6 @@ describe('a stored value that is not an object is cleaned up, not left behind', 
   beforeEach(() => {
     localStorage.clear();
     sessionStorage.clear();
-    vi.stubGlobal('crypto', webcrypto);
     indexedDB = new IDBFactory();
     vi.resetModules();
   });
@@ -1079,6 +1078,7 @@ describe('a stored value that is not an object is cleaned up, not left behind', 
 
   function corruptReadOf(key) {
     const realGet = IDBObjectStore.prototype.get;
+    // forced: a stored record that is not an object, which put() cannot write
     vi.spyOn(IDBObjectStore.prototype, 'get').mockImplementation(function get(query) {
       const real = realGet.call(this, query);
       if (query !== key) return real;

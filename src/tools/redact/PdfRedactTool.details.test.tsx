@@ -197,7 +197,6 @@ describe('PdfRedactTool UI flow', () => {
     const downloads: Blob[] = [];
     window.URL.createObjectURL = vi.fn((blob: Blob) => { downloads.push(blob); return 'blob:redacted-pdf'; });
     window.URL.revokeObjectURL = vi.fn();
-    vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
 
     try {
       const picked = makePdfFile('gone.pdf');
@@ -229,8 +228,10 @@ describe('PdfRedactTool UI flow', () => {
     s.restoreCanvas = installCanvasEdge();
     const originalShare = navigator.share;
     const originalCanShare = navigator.canShare;
+    // forced: the OS share sheet exists only on devices with one
     const share = vi.fn((_data?: ShareData) => Promise.resolve());
     Object.defineProperty(navigator, 'share', { configurable: true, value: share });
+    // forced: as above, canShare answers yes only where a share sheet exists
     Object.defineProperty(navigator, 'canShare', { configurable: true, value: vi.fn(() => true) });
 
     try {

@@ -83,7 +83,9 @@ describe('toErrorReport', () => {
 describe('readPageContext', () => {
   const stubPage = (pathname: string, matchMedia: unknown = () => ({ matches: false })) => {
     vi.stubGlobal('location', { pathname });
+    // forced: an installed-app display mode and a matchMedia that throws, which no test browser can be put in
     vi.stubGlobal('matchMedia', matchMedia);
+    // forced: a service worker controlling the page, which cannot be set per test
     vi.stubGlobal('navigator', { serviceWorker: { controller: {} } });
   };
   it('reads the page facts', () => {
@@ -176,6 +178,7 @@ describe('reportError', () => {
     expect(beacon).toHaveBeenCalledTimes(MAX_REPORTS_PER_PAGE);
   });
   it('does nothing offline or outside production', () => {
+    // forced: a browser that reports it is offline cannot be put in that state on cue
     vi.stubGlobal('navigator', { onLine: false, sendBeacon: beacon });
     reportError('drafts', errorAt('A.js:1:1'), 'save_draft');
     vi.stubGlobal('navigator', { onLine: true, sendBeacon: beacon });
@@ -184,11 +187,13 @@ describe('reportError', () => {
     expect(beacon).not.toHaveBeenCalled();
   });
   it('sendBeacon returns false and posts nothing when offline', () => {
+    // forced: a browser that reports it is offline cannot be put in that state on cue
     vi.stubGlobal('navigator', { onLine: false, sendBeacon: beacon });
     expect(sendBeacon({ a: 1 })).toBe(false);
     expect(beacon).not.toHaveBeenCalled();
   });
   it('never throws', () => {
+    // forced: a sendBeacon that throws cannot be produced on cue
     beacon.mockImplementation(() => {
       throw new Error('nope');
     });
@@ -343,6 +348,7 @@ describe('readBuildCommit', () => {
 describe('build in the page context and report', () => {
   const stubPage = (content: string | null) => {
     const timing = content === null ? [] : [{ name: 'build', description: content }];
+    // forced: a Server-Timing header with the build commit, which the test server does not send
     vi.stubGlobal('performance', { getEntriesByType: () => [{ serverTiming: timing }] });
     vi.stubGlobal('location', { pathname: '/sign/' });
     vi.stubGlobal('matchMedia', () => ({ matches: false }));
@@ -574,6 +580,7 @@ describe('error and drop counts go to the analytics sink only after the /api/rep
     expect(text).not.toContain('SecretFrame');
   });
   it('no count when the /api/report beacon returns false', () => {
+    // forced: a browser refusing the beacon hand-off cannot be produced on cue
     beacon.mockReturnValue(false);
     reportError('drafts', errorAt('A.js:1:2'), 'save_draft');
     expect(beacon.mock.calls.map(([url]) => url)).toEqual(['/api/report']);
@@ -584,6 +591,7 @@ describe('error and drop counts go to the analytics sink only after the /api/rep
     expect(JSON.parse(await sinkBodies()[0]!.text())).toMatchObject({ event: 'error_dropped', properties: { area: 'redact', step: 'export', reason: 'non_error' } });
   });
   it('no drop count when the /api/report beacon returns false', () => {
+    // forced: a browser refusing the beacon hand-off cannot be produced on cue
     beacon.mockReturnValue(false);
     reportError('redact', 'boom', 'export');
     expect(sinkBodies()).toHaveLength(0);

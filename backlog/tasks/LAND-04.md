@@ -101,5 +101,11 @@ count). The rule is off on `landmines-all` meanwhile.
 - Fresh review of wave 4 (2026-11-20), a contract reviewer and an independent code reviewer: no
   weakened assertion. Fixed: `sentHeaders` dropped an `Accept` the code set (now only at fetch's
   default), and `middleware.ts` still shadowed `process` instead of being exempt from the Node guard.
+- Wave 5a, what Node and jsdom already have (2026-11-21): 14 files, down to 1,210. A survey of every
+  browser-API double found about 90 that need no browser: the report endpoint's store calls (35, a
+  wave 4 miss) now go through MSW in Node, and Node's own `BroadcastChannel`, webcrypto, object URLs
+  and `navigator.onLine`, jsdom's own anchor and input clicks, and a faked `Date`/`performance` clock
+  replace their stand-ins. A new test proves the error cap holds for the rest of the day (removing it
+  passed every test before). 35 forced lines gained their `// forced:` comment.
 - Found on the way: RED-75 (preview documents never freed on pdf.js 6.5), RED-76 (one very long line
   overflows the text preview).

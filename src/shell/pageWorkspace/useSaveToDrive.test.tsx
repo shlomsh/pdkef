@@ -10,11 +10,16 @@ import { waitUntil } from '../../test/support/waitUntil.ts';
 import { driveSavePayload, useSaveToDrive } from './useSaveToDrive.ts';
 
 // The draft store runs for real on fake-indexeddb; the spy lets a test see the call, and the one test that needs
-// the park to fail forces that answer. The BroadcastChannel, window.open and matchMedia stand-ins are browser
-// edges jsdom lacks (browser-mode wave).
+// the park to fail forces that answer. The BroadcastChannel is Node's own and delivers between instances; the
+// window.open stand-ins are a browser edge jsdom lacks (browser-mode wave).
 vi.mock('#lib/drafts/draftStore.ts', { spy: true });
 vi.mock('#lib/telemetry/productAnalytics.ts', { spy: true });
 const connect = (until = Date.now() + 3_600_000) => localStorage.setItem(DRIVE_TOKEN_KEY, JSON.stringify({ token: 't', until }));
+const tell = (data: unknown) => {
+  const channel = new BroadcastChannel(DRIVE_SAVE_CHANNEL);
+  channel.postMessage(data);
+  channel.close();
+};
 const events = () => vi.mocked(report).mock.calls.map((call) => call[0]);
 
 /**
@@ -51,7 +56,6 @@ describe('useSaveToDrive', () => {
   };
   const build = async () => ({ blob: pdf, fileName: 'a.pdf' });
   beforeEach(() => {
-    vi.stubGlobal('matchMedia', () => ({ matches: true }));
     container = document.createElement('div');
     vi.mocked(saveHandoff).mockReset();
     indexedDB = new IDBFactory();
@@ -72,12 +76,15 @@ describe('useSaveToDrive', () => {
   });
 
   it('is available only on a hover and fine pointer device', () => {
+    // forced: a phone, where the hover and fine pointer query is false
     vi.stubGlobal('matchMedia', () => ({ matches: false }));
     mount();
     expect(latest.available).toBe(false);
+    // forced: a browser with no matchMedia
     vi.stubGlobal('matchMedia', undefined);
     mount({ generation: 2 });
     expect(latest.available).toBe(false);
+    // forced: a matchMedia that throws
     vi.stubGlobal('matchMedia', () => { throw new Error('no'); });
     mount({ generation: 3 });
     expect(latest.available).toBe(false);
@@ -94,9 +101,6 @@ describe('useSaveToDrive', () => {
 
   it('reports shown once per output, tapped, and saved or failed', async () => {
     vi.spyOn(window, 'open').mockReturnValue({} as Window);
-    const channels: { onmessage: ((e: MessageEvent) => void) | null }[] = [];
-    class FakeChannel { onmessage = null; constructor() { channels.push(this as never); } close() {} }
-    vi.stubGlobal('BroadcastChannel', FakeChannel);
     mount();
     expect(report).toHaveBeenCalledWith('tool_drive_shown', 'redact');
     expect(events()).toEqual(['tool_drive_shown']);
@@ -104,16 +108,16 @@ describe('useSaveToDrive', () => {
     expect(events()).toEqual(['tool_drive_shown', 'tool_drive_tapped']);
     await parked();
     const id = String(vi.mocked(saveHandoff).mock.calls[0][0]).replace('drive-save-', '');
-    act(() => channels[0].onmessage?.({ data: { id, status: 'saved', link: null } } as MessageEvent));
-    expect(events()).toContain('tool_drive_saved');
+    tell({ id, status: 'saved', link: null });
+    await waitUntil(() => expect(events()).toContain('tool_drive_saved'));
     expect(reportResult).toHaveBeenCalledWith('redact');
     expect(events()).not.toContain('tool_result_ready');
     mount({ generation: 2 });
     expect(events().filter((e) => e === 'tool_drive_shown')).toHaveLength(2);
-    vi.unstubAllGlobals();
   });
 
   it('reports failed on a failed answer, a blocked tab and a parking failure', async () => {
+    // forced: a popup blocker, which no real test browser has on
     const open = vi.spyOn(window, 'open').mockReturnValue(null);
     mount();
     act(() => latest.save());
@@ -132,15 +136,12 @@ describe('useSaveToDrive', () => {
     vi.useFakeTimers();
     const tab = { closed: false };
     vi.spyOn(window, 'open').mockReturnValue(tab as Window);
-    class FakeChannel { onmessage = null; close() {} }
-    vi.stubGlobal('BroadcastChannel', FakeChannel);
     mount();
     act(() => latest.save());
     tab.closed = true;
     act(() => { vi.advanceTimersByTime(3000); });
     expect(events()).toEqual(['tool_drive_shown', 'tool_drive_tapped']);
     vi.useRealTimers();
-    vi.unstubAllGlobals();
   });
 
   it('opens the Drive tab synchronously, then parks the file', async () => {
@@ -156,6 +157,7 @@ describe('useSaveToDrive', () => {
   });
 
   it('fails when the browser blocks the tab', () => {
+    // forced: a popup blocker, which no real test browser has on
     vi.spyOn(window, 'open').mockReturnValue(null);
     mount();
     act(() => latest.save());
@@ -165,49 +167,35 @@ describe('useSaveToDrive', () => {
 
   it('settles on the answer for its id and returns to idle on a new generation', async () => {
     vi.spyOn(window, 'open').mockReturnValue({} as Window);
-    const channels: BroadcastChannel[] = [];
-    class FakeChannel {
-      onmessage: ((e: MessageEvent) => void) | null = null;
-      constructor(public name: string) { channels.push(this as never); }
-      close() {}
-    }
-    vi.stubGlobal('BroadcastChannel', FakeChannel);
     mount();
     act(() => latest.save());
     await parked();
     const id = String(vi.mocked(saveHandoff).mock.calls[0][0]).replace('drive-save-', '');
-    expect((channels[0] as never as { name: string }).name).toBe(DRIVE_SAVE_CHANNEL);
-    const send = (data: unknown) => act(() => channels[0].onmessage?.({ data } as MessageEvent));
-    send({ id: 'other', status: 'saved' });
-    expect(latest.state).toBe('saving');
-    send({ id, status: 'saved', link: 'https://drive.google.com/file/d/1/view' });
-    expect(latest.state).toBe('saved');
+    tell({ id: 'other', status: 'saved' });
+    tell({ id, status: 'saved', link: 'https://drive.google.com/file/d/1/view' });
+    await waitUntil(() => expect(latest.state).toBe('saved'));
     expect(latest.link).toBe('https://drive.google.com/file/d/1/view');
     mount({ generation: 2 });
     expect(latest.state).toBe('idle');
     expect(latest.link).toBeNull();
-    vi.unstubAllGlobals();
   });
 
   it('keeps the link only when it is a Drive link', async () => {
     vi.spyOn(window, 'open').mockReturnValue({} as Window);
-    const channels: { onmessage: ((e: MessageEvent) => void) | null }[] = [];
-    class FakeChannel { onmessage = null; constructor() { channels.push(this as never); } close() {} postMessage() {} }
-    vi.stubGlobal('BroadcastChannel', FakeChannel);
     mount();
     act(() => latest.save());
     await parked();
     const id = String(vi.mocked(saveHandoff).mock.calls[0][0]).replace('drive-save-', '');
-    act(() => channels[0].onmessage?.({ data: { id, status: 'saved', link: 'https://evil.example/x' } } as MessageEvent));
-    expect(latest.state).toBe('saved');
+    tell({ id, status: 'saved', link: 'https://evil.example/x' });
+    await waitUntil(() => expect(latest.state).toBe('saved'));
     expect(latest.link).toBeNull();
   });
 
   it('builds after the tab is open, and posts cancelled when the build gives nothing or throws', async () => {
     const open = vi.spyOn(window, 'open').mockReturnValue({} as Window);
     const posts: unknown[] = [];
-    class FakeChannel { onmessage = null; close() {} postMessage(m: unknown) { posts.push(m); } }
-    vi.stubGlobal('BroadcastChannel', FakeChannel);
+    const listener = new BroadcastChannel(DRIVE_SAVE_CHANNEL);
+    listener.onmessage = (event) => { posts.push(event.data); };
     let release: (v: null) => void = () => {};
     let built = 0;
     const pendingBuild = () => { built += 1; return new Promise<null>((resolve) => { release = resolve; }); };
@@ -219,6 +207,7 @@ describe('useSaveToDrive', () => {
     act(() => release(null));
     await waitUntil(() => expect(latest.state).toBe('failed'));
     expect(latest.state).toBe('failed');
+    await waitUntil(() => expect(posts).toHaveLength(1));
     expect(posts).toEqual([expect.objectContaining({ status: 'cancelled' })]);
     expect(events()).toContain('tool_drive_failed');
     expect(vi.mocked(saveHandoff)).not.toHaveBeenCalled();
@@ -226,14 +215,13 @@ describe('useSaveToDrive', () => {
     mount({ generation: 2, build: throwingBuild });
     act(() => latest.save());
     await waitUntil(() => expect(latest.state).toBe('failed'));
-    expect(posts).toHaveLength(2);
+    await waitUntil(() => expect(posts).toHaveLength(2));
     expect(events().filter((e) => e === 'tool_drive_failed')).toHaveLength(2);
+    listener.close();
   });
 
   it('ignores a generation change while saving, and resets on one after', async () => {
     vi.spyOn(window, 'open').mockReturnValue({} as Window);
-    class FakeChannel { onmessage = null; close() {} postMessage() {} }
-    vi.stubGlobal('BroadcastChannel', FakeChannel);
     let release: (v: { blob: Blob; fileName: string }) => void = () => {};
     const pendingBuild = () => new Promise<{ blob: Blob; fileName: string }>((resolve) => { release = resolve; });
     mount({ build: pendingBuild });
@@ -249,8 +237,6 @@ describe('useSaveToDrive', () => {
     vi.useFakeTimers();
     const tab = { closed: false };
     vi.spyOn(window, 'open').mockReturnValue(tab as Window);
-    class FakeChannel { onmessage = null; close() {} }
-    vi.stubGlobal('BroadcastChannel', FakeChannel);
     mount();
     act(() => latest.save());
     act(() => { vi.advanceTimersByTime(3000); });
@@ -259,7 +245,6 @@ describe('useSaveToDrive', () => {
     act(() => { vi.advanceTimersByTime(3000); });
     expect(latest.state).toBe('idle');
     vi.useRealTimers();
-    vi.unstubAllGlobals();
   });
 
   it('a late failure from an earlier tap does not end the newer save', async () => {
@@ -267,15 +252,6 @@ describe('useSaveToDrive', () => {
     const tabA = { closed: false };
     const tabB = { closed: false };
     vi.spyOn(window, 'open').mockReturnValueOnce(tabA as Window).mockReturnValueOnce(tabB as Window);
-    const channels: { onmessage: ((e: MessageEvent) => void) | null; closed: boolean }[] = [];
-    class FakeChannel {
-      onmessage: ((e: MessageEvent) => void) | null = null;
-      closed = false;
-      constructor() { channels.push(this); }
-      close() { this.closed = true; }
-      postMessage() {}
-    }
-    vi.stubGlobal('BroadcastChannel', FakeChannel);
     let failA: (e: Error) => void = () => {};
     const failingBuild = () => new Promise<never>((_, reject) => { failA = reject; });
     mount({ build: failingBuild });
@@ -289,10 +265,9 @@ describe('useSaveToDrive', () => {
     await parked();
     await act(async () => { failA(new Error('boom')); await Promise.resolve(); await Promise.resolve(); });
     expect(latest.state).toBe('saving');
-    expect(channels[1].closed).toBe(false);
     const id = String(vi.mocked(saveHandoff).mock.calls[0][0]).replace('drive-save-', '');
-    act(() => channels[1].onmessage?.({ data: { id, status: 'saved', link: null } } as MessageEvent));
-    expect(latest.state).toBe('saved');
+    tell({ id, status: 'saved', link: null });
+    await waitUntil(() => expect(latest.state).toBe('saved'));
     vi.useRealTimers();
   });
 });

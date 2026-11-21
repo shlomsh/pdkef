@@ -59,8 +59,11 @@ describe('sendToSink', () => {
     setReportingEnabledForTests(true);
     vi.stubGlobal('location', { origin: 'https://pdkef.com', pathname: '/merge/', hostname: 'pdkef.com' });
     vi.stubGlobal('screen', { width: 390, height: 844 });
+    // forced: a touch screen (coarse pointer), which needs device emulation
     vi.stubGlobal('matchMedia', () => ({ matches: true }));
+    // forced: a search-engine referrer, which a test page cannot be given
     vi.stubGlobal('document', { referrer: 'https://www.google.com/' });
+    // forced: an iPhone user agent
     vi.stubGlobal('navigator', { userAgent: 'Mozilla/5.0 (iPhone) Safari/604', sendBeacon: beacon });
     resetSinkForTests();
   });
@@ -113,6 +116,7 @@ describe('sendToSink', () => {
 
   it('never throws when the beacon does', () => {
     configure();
+    // forced: a sendBeacon that throws cannot be produced on cue
     beacon.mockImplementation(() => {
       throw new Error('boom');
     });
@@ -131,6 +135,7 @@ describe('sendToSink', () => {
   it('computes the buckets once per page load', async () => {
     configure();
     sendToSink(EVENT);
+    // forced: a Firefox user agent
     vi.stubGlobal('navigator', { userAgent: 'Mozilla/5.0 Firefox/121.0', sendBeacon: beacon });
     sendToSink(EVENT);
     expect((await body(1)).properties.browser).toBe('safari');
