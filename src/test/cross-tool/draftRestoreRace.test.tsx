@@ -5,7 +5,7 @@ import { act } from 'preact/test-utils';
 import { describe, expect, it, vi, beforeAll, beforeEach, afterEach } from 'vitest';
 import PdfSignTool from '../../tools/sign/PdfSignTool.tsx';
 import PdfRedactTool from '../../tools/redact/PdfRedactTool.tsx';
-import { hasDraftHint, loadDraft, peekHandoff, saveDraft, saveHandoff } from '#lib/drafts/draftStore.ts';
+import { cacheRecentFile, hasDraftHint, loadDraft, peekHandoff, saveDraft, saveHandoff } from '#lib/drafts/draftStore.ts';
 import { drainPromises } from '../support/drainPromises.ts';
 import { waitUntil } from '../support/waitUntil.ts';
 import { setInputFiles } from '../support/setInputFiles.js';
@@ -143,7 +143,10 @@ describe('draft-restore vs. manual file pick race', () => {
       container = null;
     }
     // Work still in flight when the last assertion passed may log after the file is torn down.
-    await act(async () => { await drainPromises(); });
+    await act(async () => {
+      await Promise.allSettled([...vi.mocked(cacheRecentFile).mock.results, ...vi.mocked(saveDraft).mock.results].map((result) => result.value));
+      await drainPromises();
+    });
     vi.clearAllMocks();
   });
 

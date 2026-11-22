@@ -1,17 +1,21 @@
 import { act } from 'preact/test-utils';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import PdfRedactTool from './PdfRedactTool.tsx';
 import { CHECKING } from './lib/check/checkCopy.ts';
-import fs from 'node:fs';
-import * as gestureController from '#lib/gestures/controller.ts';
+import { startGesture } from '#lib/gestures/controller.ts';
 import { waitUntil } from '../../test/support/waitUntil.ts';
-import { installToolHarness } from '../../test/harness/toolHarness.ts';
-import { useRedactSuite, required, query } from '../../test/support/redactTool.tsx';
+import { installBrowserToolHarness as installToolHarness } from '../../test/harness/browserToolHarness.ts';
+import { answerNetwork } from '../../test/support/network.browser.ts';
+import { useRedactSuite, required, query, clientPoint } from '../../test/support/redactTool.browser.tsx';
+import numOneUrl from '../../lib/__fixtures__/num-1.pdf?url';
 
-declare const __dirname: string;
+answerNetwork();
+
+vi.mock('#lib/gestures/controller.ts', { spy: true });
+const { startGesture: realStartGesture } = await vi.importActual<typeof import('#lib/gestures/controller.ts')>('#lib/gestures/controller.ts');
 
 describe('PdfRedactTool UI flow', () => {
-  const { s, loadFileAndGetDrawArea, armTool, drawBox, loadFileWithoutArming, findToolButton, openSecondFile } = useRedactSuite({ Tool: PdfRedactTool, checking: CHECKING, gestureController, installToolHarness, waitUntil });
+  const { s, loadFileAndGetDrawArea, armTool, drawBox, loadFileWithoutArming, findToolButton, openSecondFile } = useRedactSuite({ Tool: PdfRedactTool, checking: CHECKING, gestureEntry: { spy: startGesture, real: realStartGesture }, installToolHarness, waitUntil });
 
   // The mobile scroll fix itself (see the touchAction comment in
   // PdfRedactTool.tsx's page-wrapper style, and CLAUDE.md's "Sign editor
@@ -53,8 +57,7 @@ describe('PdfRedactTool UI flow', () => {
     });
 
     it('stays auto while Delete is armed, since Delete places by tap and never owns the drag gesture', async () => {
-      const fixturePath = `${__dirname}/../../lib/__fixtures__/num-1.pdf`;
-      const fixtureBytes = fs.readFileSync(fixturePath);
+      const fixtureBytes = await (await fetch(numOneUrl)).arrayBuffer();
       const drawArea = await loadFileAndGetDrawArea(
         new File([fixtureBytes], 'num-1.pdf', { type: 'application/pdf' })
       );
@@ -70,15 +73,15 @@ describe('PdfRedactTool UI flow', () => {
     // drawing hook (the hook's own unit calls the handler directly).
     it('cancels the touchmove of a touch-drawn box, so the page does not scroll under the finger', async () => {
       const drawArea = await loadFileAndGetDrawArea(); // arms Blackout
-      const touch = (x: number, y: number) => ({ identifier: 1, target: drawArea, clientX: x, clientY: y });
+      const touch = (x: number, y: number) => new Touch({ identifier: 1, target: drawArea, ...clientPoint(drawArea, x, y) });
 
       await act(async () => {
         drawArea.dispatchEvent(new TouchEvent('touchstart', {
-          bubbles: true, cancelable: true, touches: [touch(50, 200)] as never, changedTouches: [touch(50, 200)] as never,
+          bubbles: true, cancelable: true, touches: [touch(50, 200)], changedTouches: [touch(50, 200)],
         }));
       });
       const move = new TouchEvent('touchmove', {
-        bubbles: true, cancelable: true, touches: [touch(200, 500)] as never, changedTouches: [touch(200, 500)] as never,
+        bubbles: true, cancelable: true, touches: [touch(200, 500)], changedTouches: [touch(200, 500)],
       });
       await act(async () => { window.dispatchEvent(move); });
       await act(async () => { window.dispatchEvent(new TouchEvent('touchend', { bubbles: true, cancelable: true, touches: [] })); });

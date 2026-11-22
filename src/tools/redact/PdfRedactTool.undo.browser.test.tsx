@@ -1,14 +1,20 @@
 import { act } from 'preact/test-utils';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import PdfRedactTool from './PdfRedactTool.tsx';
 import { CHECKING } from './lib/check/checkCopy.ts';
-import * as gestureController from '#lib/gestures/controller.ts';
+import { startGesture } from '#lib/gestures/controller.ts';
 import { waitUntil } from '../../test/support/waitUntil.ts';
-import { installToolHarness } from '../../test/harness/toolHarness.ts';
-import { useRedactSuite, required, query, setSelectedBoxColor } from '../../test/support/redactTool.tsx';
+import { installBrowserToolHarness } from '../../test/harness/browserToolHarness.ts';
+import { answerNetwork } from '../../test/support/network.browser.ts';
+import { useRedactSuite, required, query, setSelectedBoxColor, clientPoint } from '../../test/support/redactTool.browser.tsx';
+
+answerNetwork();
+
+vi.mock('#lib/gestures/controller.ts', { spy: true });
+const { startGesture: realStartGesture } = await vi.importActual<typeof import('#lib/gestures/controller.ts')>('#lib/gestures/controller.ts');
 
 describe('PdfRedactTool UI flow', () => {
-  const { s, loadFileAndGetDrawArea, armTool, drawBox } = useRedactSuite({ Tool: PdfRedactTool, checking: CHECKING, gestureController, installToolHarness, waitUntil });
+  const { s, loadFileAndGetDrawArea, armTool, drawBox } = useRedactSuite({ Tool: PdfRedactTool, checking: CHECKING, gestureEntry: { spy: startGesture, real: realStartGesture }, installToolHarness: installBrowserToolHarness, waitUntil });
 
   // Redo (UNDO-REDO): shares actionHistory.ts/historyStack.ts with the Sign
   // tool, wired through applyRevert's explicit push-or-clear redoBehavior.
@@ -122,7 +128,7 @@ describe('PdfRedactTool UI flow', () => {
       // logAction) that registers the 5s undo chip targeting this exact entry.
       const boxA = query<HTMLElement>(s.container, '[data-redact-box-id]');
       await act(async () => {
-        boxA.dispatchEvent(new MouseEvent('mousedown', { clientX: 0, clientY: 0, bubbles: true }));
+        boxA.dispatchEvent(new MouseEvent('mousedown', { ...clientPoint(drawArea, 0, 0), bubbles: true }));
       });
       await act(async () => {
         window.dispatchEvent(new MouseEvent('mouseup'));
@@ -170,7 +176,7 @@ describe('PdfRedactTool UI flow', () => {
 
       const boxA = query<HTMLElement>(s.container, '[data-redact-box-id]');
       await act(async () => {
-        boxA.dispatchEvent(new MouseEvent('mousedown', { clientX: 0, clientY: 0, bubbles: true }));
+        boxA.dispatchEvent(new MouseEvent('mousedown', { ...clientPoint(drawArea, 0, 0), bubbles: true }));
       });
       await act(async () => {
         window.dispatchEvent(new MouseEvent('mouseup'));
@@ -277,10 +283,10 @@ describe('PdfRedactTool UI flow', () => {
       const originalTop = Math.round(parseFloat(box.style.top));
 
       await act(async () => {
-        box.dispatchEvent(new MouseEvent('mousedown', { clientX: 0, clientY: 0, bubbles: true }));
+        box.dispatchEvent(new MouseEvent('mousedown', { ...clientPoint(drawArea, 0, 0), bubbles: true }));
       });
       await act(async () => {
-        window.dispatchEvent(new MouseEvent('mousemove', { clientX: 50, clientY: 100, bubbles: true }));
+        window.dispatchEvent(new MouseEvent('mousemove', { ...clientPoint(drawArea, 50, 100), bubbles: true }));
       });
       await act(async () => {
         window.dispatchEvent(new MouseEvent('mouseup'));
@@ -319,7 +325,7 @@ describe('PdfRedactTool UI flow', () => {
 
       // Select the box, then set a colour through its toolbar's colour input.
       await act(async () => {
-        box.dispatchEvent(new MouseEvent('mousedown', { clientX: 0, clientY: 0, bubbles: true }));
+        box.dispatchEvent(new MouseEvent('mousedown', { ...clientPoint(drawArea, 0, 0), bubbles: true }));
       });
       await act(async () => {
         window.dispatchEvent(new MouseEvent('mouseup'));
