@@ -1,35 +1,53 @@
 import { act } from 'preact/test-utils';
-import { drainPromises } from '../../test/support/drainPromises.ts';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import PdfRedactTool from './PdfRedactTool.tsx';
 import { CHECKING } from './lib/check/checkCopy.ts';
-import fs from 'node:fs';
-import * as gestureController from '#lib/gestures/controller.ts';
+import { applyPageEdits } from './lib/applyPageEdits.js';
+import { PDFDict, PDFName } from '@cantoo/pdf-lib';
+import { getPdfjs } from '#lib/pdf/loadPdfjs.js';
+import { startGesture } from '#lib/gestures/controller.ts';
 import { waitUntil } from '../../test/support/waitUntil.ts';
-import { installToolHarness } from '../../test/harness/toolHarness.ts';
-import { useRedactSuite, required, query, settleUntil, canvasEdge } from '../../test/support/redactTool.tsx';
+import { drainPromises } from '../../test/support/drainPromises.ts';
+import { installBrowserToolHarness } from '../../test/harness/browserToolHarness.ts';
+import { answerNetwork } from '../../test/support/network.browser.ts';
+import { useRedactSuite, required, query, clientPoint, centerOf, percentOn } from '../../test/support/redactTool.browser.tsx';
+import numOneUrl from '../../lib/__fixtures__/num-1.pdf?url';
 
-declare const __dirname: string;
+answerNetwork();
+
+vi.mock('#lib/gestures/controller.ts', { spy: true });
+vi.mock('./lib/applyPageEdits.js', { spy: true });
+const { startGesture: realStartGesture } = await vi.importActual<typeof import('#lib/gestures/controller.ts')>('#lib/gestures/controller.ts');
+const { applyPageEdits: realApplyPageEdits } = await vi.importActual<typeof import('./lib/applyPageEdits.js')>('./lib/applyPageEdits.js');
+
+const downloads: Promise<Blob>[] = [];
+const recordDownload = (event: Event) => {
+  const link = (event.target as Element | null)?.closest?.('a[download]') as HTMLAnchorElement | null;
+  if (link) downloads.push(fetch(link.href).then((response) => response.blob()));
+};
 
 describe('PdfRedactTool UI flow', () => {
-  const { s, loadFileAndGetDrawArea, armTool, drawBox, loadFileWithoutArming } = useRedactSuite({ Tool: PdfRedactTool, checking: CHECKING, gestureController, installToolHarness, waitUntil });
+  const { s, loadFileAndGetDrawArea, armTool, drawBox, loadFileWithoutArming } = useRedactSuite({ Tool: PdfRedactTool, checking: CHECKING, gestureEntry: { spy: startGesture, real: realStartGesture }, installToolHarness: installBrowserToolHarness, waitUntil, exportEntry: { spy: applyPageEdits, real: realApplyPageEdits } });
+
+  beforeEach(() => {
+    downloads.length = 0;
+    document.addEventListener('click', recordDownload, { capture: true });
+  });
+
+  afterEach(() => {
+    document.removeEventListener('click', recordDownload, { capture: true });
+  });
 
   describe('Delete tool', () => {
-    // The Delete tool needs an object to actually click on, which the fake
-    // makePdfFile() stub can't provide (it has no content stream to parse).
-    // num-1.pdf is a real, minimal PDF with one text run - the same fixture
-    // the share test above already uses for the same reason.
     async function loadRealPdfAndSwitchToDelete() {
-      const fixturePath = `${__dirname}/../../lib/__fixtures__/num-1.pdf`;
-      const fixtureBytes = fs.readFileSync(fixturePath);
       const drawArea = await loadFileAndGetDrawArea(
-        new File([fixtureBytes], 'num-1.pdf', { type: 'application/pdf' })
+        new File([await (await fetch(numOneUrl)).arrayBuffer()], 'num-1.pdf', { type: 'application/pdf' })
       );
 
       await armTool('Delete');
       // useDeletableObjects loads pdf-lib on demand and parses the real file,
       // so wait for the fixture's one object rather than a fixed 50ms.
-      await settleUntil('the fixture\'s deletable object', () => s.container.querySelector('[data-delete-id]') !== null);
+      await waitUntil(() => s.container.querySelector('[data-delete-id]') !== null);
 
       return drawArea;
     }
@@ -66,18 +84,13 @@ describe('PdfRedactTool UI flow', () => {
       expect(s.container.querySelectorAll('[data-delete-id]')).toHaveLength(1);
     });
 
-    // RED-33: a pointer event by name, since jsdom has no PointerEvent.
-    function pointer(target: EventTarget, type: string, x: number, y: number) {
-      const event = new MouseEvent(type, { clientX: x, clientY: y, button: 0, bubbles: true });
-      Object.defineProperty(event, 'pointerId', { value: 1 });
-      Object.defineProperty(event, 'pointerType', { value: 'mouse' });
-      target.dispatchEvent(event);
+    function pointer(target: EventTarget, type: string, point: { clientX: number; clientY: number }) {
+      target.dispatchEvent(new PointerEvent(type, { ...point, pointerId: 1, pointerType: 'mouse', button: 0, bubbles: true }));
     }
     async function dragBox(drawArea: HTMLElement, from: [number, number], to: [number, number]) {
-      await act(async () => { pointer(drawArea, 'pointerdown', ...from); });
-      await act(async () => { pointer(window, 'pointermove', ...to); });
-      await act(async () => { pointer(window, 'pointerup', ...to); });
-      // The release's commit finishes through settled promises.
+      await act(async () => { pointer(drawArea, 'pointerdown', clientPoint(drawArea, ...from)); });
+      await act(async () => { pointer(window, 'pointermove', clientPoint(drawArea, ...to)); });
+      await act(async () => { pointer(window, 'pointerup', clientPoint(drawArea, ...to)); });
       await act(async () => { await drainPromises(); });
     }
     const candidates = () => s.container.querySelectorAll('[data-delete-id]');
@@ -96,7 +109,7 @@ describe('PdfRedactTool UI flow', () => {
       page.drawText('word', { x: 40, y: 300, size: 20, font });
       const drawArea = await loadFileAndGetDrawArea(new File([new Uint8Array(await pdf.save())], 'ten.pdf', { type: 'application/pdf' }));
       await armTool('Delete');
-      await settleUntil('the ten text runs', () => candidates().length === 10);
+      await waitUntil(() => candidates().length === 10);
       expect(candidates()).toHaveLength(10);
 
       // A drag that covers nothing does nothing, and the tool stays armed.
@@ -105,6 +118,7 @@ describe('PdfRedactTool UI flow', () => {
 
       // Drag across the row of nine.
       await dragBox(drawArea, [10, 40], [490, 140]);
+      await waitUntil(() => expect(s.container.querySelector('[role="status"] button')?.parentElement?.textContent).toContain('Deleted 9 pieces of text'));
       expect(candidates()).toHaveLength(0); // deleting spent the arming
       const chip = required(s.container.querySelector('[role="status"] button')?.parentElement, 'undo chip');
       expect(chip.textContent).toContain('Deleted 9 pieces of text');
@@ -117,31 +131,38 @@ describe('PdfRedactTool UI flow', () => {
 
       // Delete them again, then hover-delete the word as its own step.
       await dragBox(drawArea, [10, 40], [490, 140]);
+      await waitUntil(() => expect(s.container.querySelector('[role="status"] button')?.parentElement?.textContent).toContain('Deleted 9 pieces of text'));
       expect(candidates()).toHaveLength(0);
       await armTool('Delete');
       expect(candidates()).toHaveLength(1);
+      await waitUntil(() => expect(candidates()[0].title).toContain('word'));
       await act(async () => { candidates()[0].dispatchEvent(new MouseEvent('click', { bubbles: true })); });
+      await waitUntil(() => {
+        const text = s.container.querySelector('.sr-only[aria-live="polite"]')?.textContent;
+        expect(text).toContain('Deleted');
+        expect(text).not.toContain('9 pieces');
+      });
 
       // Undo steps back one entry at a time: the word first, then all nine at once.
       await act(async () => { toolbarBtn('Undo').click(); });
       await armTool('Delete');
-      expect(candidates()).toHaveLength(1);
+      await waitUntil(() => expect(candidates()).toHaveLength(1));
       await act(async () => { toolbarBtn('Undo').click(); });
-      expect(candidates()).toHaveLength(10);
+      await waitUntil(() => expect(candidates()).toHaveLength(10));
 
       // Redo deletes the nine together again.
       await act(async () => { toolbarBtn('Redo').click(); });
-      expect(candidates()).toHaveLength(1);
+      await waitUntil(() => expect(candidates()).toHaveLength(1));
     });
 
     it('does not start a redaction-box drag gesture while the Delete tool is active', async () => {
       const drawArea = await loadRealPdfAndSwitchToDelete();
 
       await act(async () => {
-        drawArea.dispatchEvent(new MouseEvent('mousedown', { clientX: 50, clientY: 200, bubbles: true }));
+        drawArea.dispatchEvent(new MouseEvent('mousedown', { ...clientPoint(drawArea, 50, 200), bubbles: true }));
       });
       await act(async () => {
-        drawArea.dispatchEvent(new MouseEvent('mousemove', { clientX: 200, clientY: 400, bubbles: true }));
+        drawArea.dispatchEvent(new MouseEvent('mousemove', { ...clientPoint(drawArea, 200, 400), bubbles: true }));
       });
       await act(async () => {
         window.dispatchEvent(new MouseEvent('mouseup'));
@@ -158,55 +179,35 @@ describe('PdfRedactTool UI flow', () => {
         candidate.dispatchEvent(new MouseEvent('click', { bubbles: true }));
       });
 
-      let capturedBlob: Blob | undefined;
-      const originalCreateObjectURL = window.URL.createObjectURL;
-      const originalRevokeObjectURL = window.URL.revokeObjectURL;
-      window.URL.createObjectURL = vi.fn((blob) => {
-        capturedBlob = blob;
-        return 'blob:deleted-pdf';
+      const downloadButton = required(Array.from(s.container.querySelectorAll<HTMLButtonElement>('[role="toolbar"] button'))
+        .find((button) => button.textContent.includes('Download')), 'Download button');
+      await act(async () => {
+        downloadButton.click();
       });
-      window.URL.revokeObjectURL = vi.fn();
+      await waitUntil(() => downloads.length === 1);
+      const exportedBlob = await downloads[0];
 
-      try {
-        const downloadButton = required(Array.from(s.container.querySelectorAll<HTMLButtonElement>('[role="toolbar"] button'))
-          .find((button) => button.textContent.includes('Download')), 'Download button');
-        await act(async () => {
-          downloadButton.click();
-        });
-        // Same dynamic import as the other export tests (DEBT-20), so the same
-        // bounded poll rather than a counted tick. This one was not observed
-        // failing, which is not a reason to leave a counted tick on a path that
-        // now waits on a module load.
-        await settleUntil('the deleted-objects export', () => capturedBlob !== undefined);
+      const { PDFDocument } = await import('@cantoo/pdf-lib');
+      const outBytes = new Uint8Array(await exportedBlob.arrayBuffer());
+      const sourceBytes = new Uint8Array(await (await fetch(numOneUrl)).arrayBuffer());
+      expect(exportedBlob.size).toBeLessThan(sourceBytes.byteLength * 3);
 
-        // This path never flattens a page: a delete-only session has no box element, so
-        // applyPageEdits returns deleteObjectsFromPdf's output directly. No page picture was encoded.
-        expect(canvasEdge.encoded).toBe(0);
-        expect(capturedBlob).toBeDefined();
-        const exportedBlob = required(capturedBlob, 'exported PDF blob');
+      const saved = await PDFDocument.load(outBytes);
+      const pictures = saved.getPage(0).node.Resources()?.lookupMaybe(PDFName.of('XObject'), PDFDict);
+      expect(pictures?.keys().length ?? 0).toBe(0);
 
-        const fixturePath = `${__dirname}/../../lib/__fixtures__/num-1.pdf`;
-        const originalSize = fs.statSync(fixturePath).size;
-        expect(exportedBlob.size).toBeLessThan(originalSize * 3);
-
-        const { extractPageObjects } = await import('#editor/adapters/pdf/pdfObjects.js');
-        const { PDFDocument } = await import('@cantoo/pdf-lib');
-        const outBytes = new Uint8Array(await exportedBlob.arrayBuffer());
-        // RED-16: previews come from the glyph read, not the parser, so read
-        // them the way the island does. The source has the "1" (the control
-        // that keeps this from passing vacuously); the export does not.
-        const { withPreviews } = await import('./lib/objectPreviews.test-helper.js');
-        const previewsOf = async (bytes: Uint8Array) => {
-          const doc = await PDFDocument.load(bytes);
-          const { objects } = extractPageObjects(doc.getPage(0), 0);
-          return (await withPreviews(bytes, objects)).map((o: { preview?: string }) => o.preview);
-        };
-        expect(await previewsOf(new Uint8Array(fs.readFileSync(fixturePath)))).toContain('1');
-        expect(await previewsOf(outBytes)).not.toContain('1');
-      } finally {
-        window.URL.createObjectURL = originalCreateObjectURL;
-        window.URL.revokeObjectURL = originalRevokeObjectURL;
-      }
+      const textOf = async (bytes: Uint8Array) => {
+        const pdfjs = await getPdfjs();
+        const task = pdfjs.getDocument({ data: bytes.slice() });
+        try {
+          const content = await (await (await task.promise).getPage(1)).getTextContent();
+          return content.items.map((item) => ('str' in item ? item.str : ''));
+        } finally {
+          await task.destroy();
+        }
+      };
+      expect(await textOf(sourceBytes)).toContain('1');
+      expect(await textOf(outBytes)).not.toContain('1');
     });
   });
 
@@ -218,8 +219,10 @@ describe('PdfRedactTool UI flow', () => {
   // so a failure here would mean the render layer forked the resize path per
   // style. Same realistic 500x1000 mocked wrapper (via loadFileAndGetDrawArea).
   describe('blackout/blur resize invariants (E1.5)', () => {
+    let area: HTMLElement;
     async function setupSelectedBox(styleLabel: string | null): Promise<HTMLElement> {
       const drawArea = await loadFileAndGetDrawArea();
+      area = drawArea;
       if (styleLabel) {
         const btn = required(Array.from(s.container.querySelectorAll<HTMLButtonElement>('[role="toolbar"] button'))
           .find((b) => b.textContent.includes(styleLabel)), `${styleLabel} button`);
@@ -227,12 +230,11 @@ describe('PdfRedactTool UI flow', () => {
           btn.click();
         });
       }
-      // left=20%, top=30%, width=30%, height=20% on the 500x1000 wrapper.
       await drawBox(drawArea, 100, 300, 250, 500);
       const box = query<HTMLElement>(s.container, '[data-redact-box-id]');
       expect(box).not.toBeNull();
       await act(async () => {
-        box.dispatchEvent(new MouseEvent('mousedown', { clientX: 0, clientY: 0, bubbles: true }));
+        box.dispatchEvent(new MouseEvent('mousedown', { ...centerOf(box), bubbles: true }));
       });
       await act(async () => {
         window.dispatchEvent(new MouseEvent('mouseup'));
@@ -240,19 +242,21 @@ describe('PdfRedactTool UI flow', () => {
       return box;
     }
 
-    async function dragHandle(box: HTMLElement, handleClass: string, downX: number, downY: number, moveX: number, moveY: number): Promise<void> {
+    async function dragHandle(box: HTMLElement, handleClass: string, move: (press: { clientX: number; clientY: number }) => { clientX: number; clientY: number }): Promise<void> {
       const handle = query<HTMLElement>(box, `[data-editor-resizer="${handleClass}"]`);
-      expect(handle).not.toBeNull();
+      const press = centerOf(handle);
       await act(async () => {
-        handle.dispatchEvent(new MouseEvent('mousedown', { clientX: downX, clientY: downY, bubbles: true }));
+        handle.dispatchEvent(new MouseEvent('mousedown', { ...press, bubbles: true }));
       });
       await act(async () => {
-        window.dispatchEvent(new MouseEvent('mousemove', { clientX: moveX, clientY: moveY, bubbles: true }));
+        window.dispatchEvent(new MouseEvent('mousemove', { ...move(press), bubbles: true }));
       });
       await act(async () => {
         window.dispatchEvent(new MouseEvent('mouseup'));
       });
     }
+
+    const geometry = (box: HTMLElement) => ({ left: parseFloat(box.style.left), top: parseFloat(box.style.top), width: parseFloat(box.style.width), height: parseFloat(box.style.height) });
 
     // blackout is the default mode (no button click); blur is selected via its toolbar button.
     for (const { label, styleLabel } of [
@@ -262,53 +266,53 @@ describe('PdfRedactTool UI flow', () => {
       describe(label, () => {
         it('anchor: left-handle outward drag keeps left >= 0 and preserves the anchored right edge', async () => {
           const box = await setupSelectedBox(styleLabel);
-          // -200px on the left handle from clientX 300 = a large outward drag.
-          await dragHandle(box, 'left', 300, 0, -200, 0);
-          const left = parseFloat(box.style.left);
-          const width = parseFloat(box.style.width);
+          const start = geometry(box);
+          await dragHandle(box, 'left', (press) => ({ clientX: clientPoint(area, -200, 0).clientX, clientY: press.clientY }));
+          const { left, width } = geometry(box);
           expect(left).toBeGreaterThanOrEqual(0);
-          expect(left + width).toBeCloseTo(50, 5); // startLeft(20) + startWidth(30)
+          expect(left + width).toBeCloseTo(start.left + start.width, 5);
         });
 
         it('anchor: top-handle outward drag keeps top >= 0 and preserves the anchored bottom edge', async () => {
           const box = await setupSelectedBox(styleLabel);
-          await dragHandle(box, 'top', 0, 300, 0, -600);
-          const top = parseFloat(box.style.top);
-          const height = parseFloat(box.style.height);
+          const start = geometry(box);
+          await dragHandle(box, 'top', (press) => ({ clientX: press.clientX, clientY: clientPoint(area, 0, -600).clientY }));
+          const { top, height } = geometry(box);
           expect(top).toBeGreaterThanOrEqual(0);
-          expect(top + height).toBeCloseTo(50, 5); // startTop(30) + startHeight(20)
+          expect(top + height).toBeCloseTo(start.top + start.height, 5);
         });
 
         it('move: dragging the box body leaves width/height untouched', async () => {
           const box = await setupSelectedBox(styleLabel);
-          const startWidth = parseFloat(box.style.width);
-          const startHeight = parseFloat(box.style.height);
+          const start = geometry(box);
+          const down = clientPoint(area, 0, 0);
+          const to = clientPoint(area, 50, 100);
           await act(async () => {
-            box.dispatchEvent(new MouseEvent('mousedown', { clientX: 0, clientY: 0, bubbles: true }));
+            box.dispatchEvent(new MouseEvent('mousedown', { ...down, bubbles: true }));
           });
           await act(async () => {
-            window.dispatchEvent(new MouseEvent('mousemove', { clientX: 50, clientY: 100, bubbles: true })); // +10% / +10%
+            window.dispatchEvent(new MouseEvent('mousemove', { ...to, bubbles: true }));
           });
           await act(async () => {
             window.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
           });
-          expect(parseFloat(box.style.left)).toBeCloseTo(30); // 20 + 10
-          expect(parseFloat(box.style.top)).toBeCloseTo(40); // 30 + 10
-          expect(parseFloat(box.style.width)).toBeCloseTo(startWidth);
-          expect(parseFloat(box.style.height)).toBeCloseTo(startHeight);
+          const moved = percentOn(area, to);
+          const from = percentOn(area, down);
+          expect(parseFloat(box.style.left)).toBeCloseTo(start.left + moved.x - from.x);
+          expect(parseFloat(box.style.top)).toBeCloseTo(start.top + moved.y - from.y);
+          expect(parseFloat(box.style.width)).toBeCloseTo(start.width);
+          expect(parseFloat(box.style.height)).toBeCloseTo(start.height);
         });
 
         it('zero-delta resize commits exactly the start geometry', async () => {
           const box = await setupSelectedBox(styleLabel);
-          const startLeft = parseFloat(box.style.left);
-          const startTop = parseFloat(box.style.top);
-          const startWidth = parseFloat(box.style.width);
-          const startHeight = parseFloat(box.style.height);
-          await dragHandle(box, 'bottom-right', 200, 200, 200, 200);
-          expect(parseFloat(box.style.left)).toBeCloseTo(startLeft);
-          expect(parseFloat(box.style.top)).toBeCloseTo(startTop);
-          expect(parseFloat(box.style.width)).toBeCloseTo(startWidth);
-          expect(parseFloat(box.style.height)).toBeCloseTo(startHeight);
+          const start = geometry(box);
+          await dragHandle(box, 'bottom-right', (press) => press);
+          const end = geometry(box);
+          expect(end.left).toBeCloseTo(start.left);
+          expect(end.top).toBeCloseTo(start.top);
+          expect(end.width).toBeCloseTo(start.width);
+          expect(end.height).toBeCloseTo(start.height);
         });
       });
     }
@@ -320,18 +324,18 @@ describe('PdfRedactTool UI flow', () => {
   describe('RED-52: arrow keys move a whiteout or blackout box on a document with no blur', () => {
     for (const label of ['Whiteout', 'Blackout']) {
       it(`${label}: one ArrowDown press moves it one point and one undo puts it back`, async () => {
+        const task = (await getPdfjs()).getDocument({ data: new Uint8Array(await (await fetch(numOneUrl)).arrayBuffer()) });
+        const getPage = vi.spyOn(Object.getPrototypeOf(await task.promise), 'getPage');
+        await task.destroy();
         const drawArea = await loadFileWithoutArming();
         await armTool(label);
+        const drawnTop = percentOn(drawArea, clientPoint(drawArea, 50, 200)).y;
         await drawBox(drawArea, 50, 200, 200, 500);
 
         const findBox = () => required(
           s.container.querySelector<HTMLElement>(`[role="group"][aria-label="${label} box"]`),
           `${label} box`
         );
-        // The island starts reading page sizes when the first box appears, and
-        // the mocked pdf.js answers with settled promises: one task later the
-        // read has landed, as it has long before a person reaches for a key.
-        await act(async () => { await drainPromises(); });
         // Reach it the way a keyboard user does: focus, then Enter selects.
         await act(async () => {
           findBox().focus();
@@ -339,12 +343,16 @@ describe('PdfRedactTool UI flow', () => {
         });
         expect(findBox().hasAttribute('data-selected')).toBe(true);
 
+        await act(async () => {
+          for (let read = 0; read < getPage.mock.results.length; read += 1) await getPage.mock.results[read].value;
+          await drainPromises();
+        });
         const before = parseFloat(findBox().style.top);
         await act(async () => {
           findBox().dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true }));
         });
-        // One point on the mocked 792-point page.
-        expect(parseFloat(findBox().style.top)).toBeCloseTo(before + (1 / 792) * 100, 4);
+        // One point on the 792-point page.
+        expect(parseFloat(findBox().style.top)).toBeCloseTo(drawnTop + (1 / 792) * 100, 4);
 
         await act(async () => {
           window.dispatchEvent(new KeyboardEvent('keydown', { key: 'z', ctrlKey: true, bubbles: true }));
@@ -380,7 +388,7 @@ describe('PdfRedactTool UI flow', () => {
       // the box is selected.
       const box = query<HTMLElement>(s.container, '[data-redact-box-id]');
       await act(async () => {
-        box.dispatchEvent(new MouseEvent('mousedown', { clientX: 0, clientY: 0, bubbles: true }));
+        box.dispatchEvent(new MouseEvent('mousedown', { ...centerOf(box), bubbles: true }));
       });
       await act(async () => {
         window.dispatchEvent(new MouseEvent('mouseup'));
@@ -454,7 +462,7 @@ describe('PdfRedactTool UI flow', () => {
       // delete needs its own select step before its button exists to press.
       const selectAndDeleteFirstBox = async () => {
         await act(async () => {
-          boxes()[0].dispatchEvent(new MouseEvent('mousedown', { clientX: 0, clientY: 0, bubbles: true }));
+          boxes()[0].dispatchEvent(new MouseEvent('mousedown', { ...centerOf(boxes()[0]), bubbles: true }));
         });
         await act(async () => {
           window.dispatchEvent(new MouseEvent('mouseup'));

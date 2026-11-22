@@ -5,38 +5,83 @@ import PdfRedactTool from './PdfRedactTool.tsx';
 import { CHECKING } from './lib/check/checkCopy.ts';
 import { DEFAULT_BLUR_STRENGTH } from '#editor/model/blurStrength.ts';
 import { rememberAppStyle, getRecentWhiteoutColors, rememberRecentWhiteoutColor } from '#editor/workspace/preferenceStore.ts';
-import { sampleRingColor } from '#editor-ui/whiteout/pageSampling.ts';
 import { saveDraft } from '#lib/drafts/draftStore.ts';
-import * as gestureController from '#lib/gestures/controller.ts';
+import { startGesture } from '#lib/gestures/controller.ts';
+import { sampleRingColor } from '#editor-ui/whiteout/pageSampling.ts';
+import { getPdfLib } from '#lib/pdf/pdfLib.js';
 import { waitUntil } from '../../test/support/waitUntil.ts';
-import { installToolHarness } from '../../test/harness/toolHarness.ts';
-import { useRedactSuite, buildPdf, required, query, settleUntil, dragBlurSlider, setSelectedBoxColor } from '../../test/support/redactTool.tsx';
+import { installBrowserToolHarness } from '../../test/harness/browserToolHarness.ts';
+import { answerNetwork } from '../../test/support/network.browser.ts';
+import { useRedactSuite, buildPdf, makePdfFile, required, query, settleUntil, dragBlurSlider, setSelectedBoxColor, clientPoint, centerOf, percentOn, FRAME } from '../../test/support/redactTool.browser.tsx';
 
-// jsdom cannot read a page's pixels, so the real ring sampler stays in place and only its answer is
-// forced per test (`vi.mocked(sampleRingColor).mockImplementation`), where a test needs a page colour.
+answerNetwork();
+
+vi.mock('#lib/gestures/controller.ts', { spy: true });
 vi.mock('#editor-ui/whiteout/pageSampling.ts', { spy: true });
+const { startGesture: realStartGesture } = await vi.importActual<typeof import('#lib/gestures/controller.ts')>('#lib/gestures/controller.ts');
 
-/** An earlier visit's saved work, written through the real saveDraft into the harness's IndexedDB. */
+/** An earlier visit's saved work, written through the real saveDraft into the browser's IndexedDB. */
 async function seedDraft(work: { elements: unknown[]; extra: Record<string, unknown> }): Promise<void> {
   const fileBytes = (await buildPdf(2)).slice().buffer;
   expect(await saveDraft('redact', { fileName: 'restored.pdf', fileType: 'application/pdf', fileBytes, ...work })).toBe(true);
 }
 
+type Band = { from: number; to: number; hex: string };
+
+/** A real PDF whose page i is painted in full-width bands (`from`..`to` are fractions of the page height, from the top). */
+async function paintedPdf(pages: Band[][]): Promise<File> {
+  const { PDFDocument, rgb } = await getPdfLib();
+  const doc = await PDFDocument.create({ updateMetadata: false });
+  for (const bands of pages) {
+    const sheet = doc.addPage([612, 792]);
+    for (const { from, to, hex } of bands) {
+      const [r, g, b] = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255);
+      sheet.drawRectangle({ x: 0, y: 792 * (1 - to), width: 612, height: 792 * (to - from), color: rgb(r, g, b) });
+    }
+  }
+  return makePdfFile('painted.pdf', await doc.save());
+}
+
+const paintedCanvases = new Set<EventTarget | null>();
+let paintWaiters: { count: number; resolve: () => void }[] = [];
+const notePainted = (event: Event) => {
+  paintedCanvases.add(event.target);
+  paintWaiters.filter((w) => paintedCanvases.size >= w.count).forEach((w) => w.resolve());
+  paintWaiters = paintWaiters.filter((w) => paintedCanvases.size < w.count);
+};
+
+/** Resolves once `count` page canvases have finished a real pdf.js paint, so a colour read off one is the page's own. */
+const pagesPainted = (count: number) => new Promise<void>((resolve) => {
+  if (paintedCanvases.size >= count) resolve();
+  else paintWaiters.push({ count, resolve });
+});
+
 describe('PdfRedactTool UI flow', () => {
-  const { s, loadFileAndGetDrawArea, armTool, hoverBrushTool, drawBox } = useRedactSuite({ Tool: PdfRedactTool, checking: CHECKING, gestureController, installToolHarness, waitUntil });
+  const { s, loadFileAndGetDrawArea, armTool, hoverBrushTool, drawBox } = useRedactSuite({ Tool: PdfRedactTool, checking: CHECKING, gestureEntry: { spy: startGesture, real: realStartGesture }, installToolHarness: installBrowserToolHarness, waitUntil });
+  beforeEach(() => {
+    paintedCanvases.clear();
+    paintWaiters = [];
+    document.addEventListener('page-painted', notePainted);
+  });
+  afterEach(() => {
+    document.removeEventListener('page-painted', notePainted);
+  });
+  const loadPainted = async (file?: File, pages = 2) => {
+    const drawArea = await loadFileAndGetDrawArea(file);
+    await pagesPainted(pages);
+    return drawArea;
+  };
+  const areaOf = () => query<HTMLElement>(s.container, '.redact-draw-area');
 
   it('RED-51: a newly drawn whiteout takes the page colour, not the remembered color', async () => {
-    // RED-51: a new whiteout is auto (colorMode 'auto') and takes the page's colour, '#ffffff'
-    // in jsdom where the canvas cannot be read. The remembered colour seeds the brush only.
     rememberAppStyle({ whiteoutColor: '#123456' });
 
     try {
-      const drawArea = await loadFileAndGetDrawArea();
+      const drawArea = await loadPainted();
       await armTool('Whiteout');
       await drawBox(drawArea, 50, 200, 200, 500);
 
-      const surface = s.container.querySelector('.redact-surface--whiteout');
-      expect(surface).not.toBeNull();
+      const surface = query<HTMLElement>(s.container, '.redact-surface--whiteout');
       expect(surface.style.backgroundColor).toBe('rgb(255, 255, 255)');
     } finally {
       localStorage.clear();
@@ -47,16 +92,7 @@ describe('PdfRedactTool UI flow', () => {
     const CREAM = '#f7f1de';
     const BLUE = '#deebf7';
     const rgb = (hex: string) => `rgb(${parseInt(hex.slice(1, 3), 16)}, ${parseInt(hex.slice(3, 5), 16)}, ${parseInt(hex.slice(5, 7), 16)})`;
-    // A drawn box sits at top 20%; the drag below moves it to 30%.
-    const byGeometry = (_canvas: unknown, box: { top: number }) => (box.top < 20.5 ? CREAM : BLUE);
-
-    beforeEach(() => {
-      vi.mocked(sampleRingColor).mockReset();
-      vi.mocked(sampleRingColor).mockImplementation(byGeometry); // forced: the page colour by box position, for every test in this describe (jsdom cannot read page pixels)
-    });
-    afterEach(() => {
-      vi.mocked(sampleRingColor).mockReset();
-    });
+    const TWO_TONE = [[{ from: 0, to: 0.55, hex: CREAM }, { from: 0.55, to: 1, hex: BLUE }]];
 
     const surfaces = () => Array.from(s.container.querySelectorAll<HTMLElement>('.redact-surface--whiteout'));
     const surfaceColor = () => required(surfaces()[0], 'whiteout surface').style.backgroundColor;
@@ -64,21 +100,21 @@ describe('PdfRedactTool UI flow', () => {
     const announced = () => required(s.container.querySelector<HTMLElement>('.sr-only[aria-live="polite"]'), 'announcement region').textContent;
 
     async function selectBox(box: HTMLElement): Promise<void> {
-      await act(async () => { box.dispatchEvent(new MouseEvent('mousedown', { clientX: 0, clientY: 0, bubbles: true })); });
+      await act(async () => { box.dispatchEvent(new MouseEvent('mousedown', { ...clientPoint(areaOf(), 0, 0), bubbles: true })); });
       await act(async () => { window.dispatchEvent(new MouseEvent('mouseup')); });
     }
-    async function drawWhiteoutAndSelect(): Promise<HTMLElement> {
-      const drawArea = await loadFileAndGetDrawArea();
+    async function drawWhiteoutAndSelect(pages: Band[][] = TWO_TONE, box: [number, number, number, number] = [50, 200, 200, 500]): Promise<HTMLElement> {
+      const drawArea = await loadPainted(await paintedPdf(pages), pages.length);
       await armTool('Whiteout');
-      await drawBox(drawArea, 50, 200, 200, 500);
+      await drawBox(drawArea, ...box);
       await selectBox(query<HTMLElement>(s.container, '[data-redact-box-id]'));
       return drawArea;
     }
-    // Drags the box body by (50, 100) px: 10% right, 10% down on the 500x1000 draw area.
+    // Drags the box body by (50, 400) of the 500x1000 frame: 10% right, 40% down, from the cream half to the blue half.
     async function nudgeDown(): Promise<void> {
       const box = query<HTMLElement>(s.container, '[data-redact-box-id]');
-      await act(async () => { box.dispatchEvent(new MouseEvent('mousedown', { clientX: 0, clientY: 0, bubbles: true })); });
-      await act(async () => { window.dispatchEvent(new MouseEvent('mousemove', { clientX: 50, clientY: 100, bubbles: true })); });
+      await act(async () => { box.dispatchEvent(new MouseEvent('mousedown', { ...clientPoint(areaOf(), 0, 0), bubbles: true })); });
+      await act(async () => { window.dispatchEvent(new MouseEvent('mousemove', { ...clientPoint(areaOf(), 50, 400), bubbles: true })); });
       await act(async () => { window.dispatchEvent(new MouseEvent('mouseup')); });
     }
     async function undo(): Promise<void> {
@@ -93,11 +129,6 @@ describe('PdfRedactTool UI flow', () => {
       await drawWhiteoutAndSelect();
       expect(surfaceColor()).toBe(rgb(CREAM));
       expect(autoPressed()).toBe('true');
-      const pageCanvas = query<HTMLCanvasElement>(s.container, '[data-editor-page-card] canvas');
-      const drawCall = required(vi.mocked(sampleRingColor).mock.calls[0], 'the draw-time sample');
-      expect(drawCall[0]).toBe(pageCanvas);
-      expect(drawCall[1].left).toBeCloseTo(10);
-      expect(drawCall[1].top).toBeCloseTo(20);
     });
 
     it('moving an auto whiteout re-samples it, and one Undo restores the position and the colour together', async () => {
@@ -149,18 +180,16 @@ describe('PdfRedactTool UI flow', () => {
     it('the eyedropper on a selected whiteout takes a page pixel as a custom colour, keeps the box selected and disarms', async () => {
       await drawWhiteoutAndSelect();
       const canvas = query<HTMLCanvasElement>(s.container, '[data-editor-page-card] canvas');
-      canvas.getBoundingClientRect = () => ({ left: 0, top: 0, width: 300, height: 150, right: 300, bottom: 150, x: 0, y: 0, toJSON: () => {} });
-      canvas.getContext = (() => ({ getImageData: () => ({ data: new Uint8ClampedArray([10, 20, 30, 255]) }) })) as never;
 
       const eyedropper = query<HTMLButtonElement>(s.container, '[data-editor-actions] [data-whiteout-color-eyedropper]');
       await act(async () => { eyedropper.dispatchEvent(new MouseEvent('click', { bubbles: true })); });
       expect(eyedropper.getAttribute('aria-pressed')).toBe('true');
 
-      await act(async () => { canvas.dispatchEvent(new MouseEvent('mousedown', { clientX: 60, clientY: 40, bubbles: true, cancelable: true })); });
+      await act(async () => { canvas.dispatchEvent(new MouseEvent('mousedown', { ...clientPoint(canvas, 250, 800), bubbles: true, cancelable: true })); });
       // The click that follows a mouse pick must not deselect the box.
-      await act(async () => { canvas.dispatchEvent(new MouseEvent('click', { clientX: 60, clientY: 40, bubbles: true, cancelable: true })); });
+      await act(async () => { canvas.dispatchEvent(new MouseEvent('click', { ...clientPoint(canvas, 250, 800), bubbles: true, cancelable: true })); });
 
-      expect(surfaceColor()).toBe(rgb('#0a141e'));
+      expect(surfaceColor()).toBe(rgb(BLUE));
       expect(autoPressed()).toBe('false');
       expect(s.container.querySelector('[data-editor-actions]')).not.toBeNull();
       expect(query<HTMLElement>(s.container, '[data-editor-actions] [data-whiteout-color-eyedropper]').getAttribute('aria-pressed')).toBe('false');
@@ -174,8 +203,6 @@ describe('PdfRedactTool UI flow', () => {
       async function selectedBoxAndBrushArmed() {
         await drawWhiteoutAndSelect();
         const canvas = query<HTMLCanvasElement>(s.container, '[data-editor-page-card] canvas');
-        canvas.getBoundingClientRect = () => ({ left: 0, top: 0, width: 300, height: 150, right: 300, bottom: 150, x: 0, y: 0, toJSON: () => {} });
-        canvas.getContext = (() => ({ getImageData: () => ({ data: new Uint8ClampedArray([10, 20, 30, 255]) }) })) as never;
         await hoverBrushTool('Whiteout');
         const brushSegment = required(Array.from(document.querySelectorAll<HTMLButtonElement>('[data-brush-controls] [role="radio"]')).find((b) => b.textContent === 'Brush'), 'Brush segment');
         await act(async () => { brushSegment.click(); });
@@ -183,8 +210,8 @@ describe('PdfRedactTool UI flow', () => {
         return { canvas, before };
       }
       async function pick(canvas: HTMLCanvasElement) {
-        await act(async () => { canvas.dispatchEvent(new MouseEvent('mousedown', { clientX: 60, clientY: 40, bubbles: true, cancelable: true })); });
-        await act(async () => { canvas.dispatchEvent(new MouseEvent('click', { clientX: 60, clientY: 40, bubbles: true, cancelable: true })); });
+        await act(async () => { canvas.dispatchEvent(new MouseEvent('mousedown', { ...clientPoint(canvas, 250, 800), bubbles: true, cancelable: true })); });
+        await act(async () => { canvas.dispatchEvent(new MouseEvent('click', { ...clientPoint(canvas, 250, 800), bubbles: true, cancelable: true })); });
       }
 
       it('with a box selected and the brush armed, the box pipette arms only itself and picks into the box', async () => {
@@ -193,7 +220,7 @@ describe('PdfRedactTool UI flow', () => {
         expect(boxPipette().getAttribute('aria-pressed')).toBe('true');
         expect(brushPipette().getAttribute('aria-pressed')).toBe('false');
         await pick(canvas);
-        expect(surfaceColor()).toBe(rgb('#0a141e'));
+        expect(surfaceColor()).toBe(rgb(BLUE));
         expect(autoPressed()).toBe('false');
         expect(brushPipette().getAttribute('aria-pressed')).toBe('false');
         // pickColor also remembers the colour as the default (existing behaviour), so the brush follows it.
@@ -210,16 +237,18 @@ describe('PdfRedactTool UI flow', () => {
         expect(surfaceColor()).toBe(boxColor);
         expect(brushSwatch()).not.toBe(before);
         // RED-53: the brush pick is remembered and offered as a recent tile on an auto whiteout.
-        expect(getRecentWhiteoutColors()).toEqual(['#0a141e']);
+        expect(getRecentWhiteoutColors()).toEqual([BLUE]);
         await click(boxPipette());
         await pressAuto();
         expect(autoPressed()).toBe('true');
-        expect(query<HTMLElement>(s.container, '[data-editor-actions] [data-whiteout-color-recent="#0a141e"]')).not.toBeNull();
+        expect(query<HTMLElement>(s.container, `[data-editor-actions] [data-whiteout-color-recent="${BLUE}"]`)).not.toBeNull();
       });
     });
 
     it('the workspace carries data-pseudo-fullscreen only while pseudo full screen is on', async () => {
-      await loadFileAndGetDrawArea();
+      // forced: a browser with no element full screen (iPhone Safari), where the tool draws its own; read once, by the first press (workspaceFullscreen.ts:36)
+      vi.spyOn(Document.prototype, 'fullscreenEnabled', 'get').mockReturnValueOnce(false);
+      await loadPainted();
       const workspace = () => query<HTMLElement>(s.container, '[data-redact-workspace-ready]');
       expect(workspace().hasAttribute('data-pseudo-fullscreen')).toBe(false);
       const toggle = (label: string) => required(s.container.querySelector<HTMLButtonElement>(`button[aria-label="${label}"], button[title="${label}"]`), label);
@@ -238,6 +267,7 @@ describe('PdfRedactTool UI flow', () => {
       document.body.appendChild(s.container);
       act(() => { render(<PdfRedactTool />, s.container); });
       await settleUntil('the restored whiteout', () => s.container.querySelector('[data-redact-box-id]') !== null);
+      await pagesPainted(2);
       await selectBox(query<HTMLElement>(s.container, '[data-redact-box-id]'));
       expect(surfaceColor()).toBe(rgb('#abcdef'));
 
@@ -248,9 +278,8 @@ describe('PdfRedactTool UI flow', () => {
     });
 
     it('a duplicate of an auto whiteout is sampled at its own position', async () => {
-      await drawWhiteoutAndSelect();
-      // Only the original's exact spot reads cream; anywhere else reads blue.
-      vi.mocked(sampleRingColor).mockImplementation((_canvas, box) => (Math.abs(box.top - 20) < 0.01 && Math.abs(box.left - 10) < 0.01 ? CREAM : BLUE)); // forced: cream only at the original's exact spot, blue elsewhere (jsdom cannot read page pixels)
+      // A short, wide box at top 20%: its ring sits in the cream band, and the copy's, nudged 4% down, in the blue one.
+      await drawWhiteoutAndSelect([[{ from: 0, to: 0.23, hex: CREAM }, { from: 0.23, to: 1, hex: BLUE }]], [50, 200, 250, 220]);
       const duplicate = query<HTMLButtonElement>(s.container, '[data-editor-actions] button[title="Duplicate"]');
       await act(async () => { duplicate.dispatchEvent(new MouseEvent('click', { bubbles: true })); });
 
@@ -259,12 +288,7 @@ describe('PdfRedactTool UI flow', () => {
     });
 
     it('Every page on an auto whiteout samples each copy on its own page', async () => {
-      s.harness.pdfjs.pageCountOfNextRead(3);
-      await drawWhiteoutAndSelect();
-      const pageColors = [CREAM, BLUE, '#e0f0e0'];
-      const canvases = Array.from(s.container.querySelectorAll<HTMLCanvasElement>('[data-editor-page-card] canvas'));
-      expect(canvases).toHaveLength(3);
-      vi.mocked(sampleRingColor).mockImplementation((canvas) => pageColors[canvases.indexOf(canvas as HTMLCanvasElement)] ?? null); // forced: each page card's own colour (jsdom cannot read page pixels)
+      await drawWhiteoutAndSelect([CREAM, BLUE, '#e0f0e0'].map((hex) => [{ from: 0, to: 1, hex }]));
 
       const repeat = query<HTMLButtonElement>(s.container, '[data-editor-actions] [data-editor-repeat-every-page]');
       await act(async () => { repeat.dispatchEvent(new MouseEvent('click', { bubbles: true })); });
@@ -322,11 +346,8 @@ describe('PdfRedactTool UI flow', () => {
       document.body.appendChild(s.container);
       act(() => { render(<PdfRedactTool />, s.container); });
       await settleUntil('the restored draft to open', () => s.container.querySelector('.redact-draw-area') !== null);
-      const drawArea = query<HTMLElement>(s.container, '.redact-draw-area');
-      drawArea.getBoundingClientRect = () => ({
-        left: 0, top: 0, width: 500, height: 1000, right: 500, bottom: 1000, x: 0, y: 0, toJSON: () => {},
-      });
-      return drawArea;
+      await pagesPainted(2);
+      return areaOf();
     }
 
     it('a restored document still draws whiteout in the page colour (auto), not its remembered one', async () => {
@@ -340,7 +361,7 @@ describe('PdfRedactTool UI flow', () => {
 
     it('a fresh document draws whiteout in the page colour (auto), not the app-wide one', async () => {
       rememberAppStyle({ whiteoutColor: '#00ff00' });
-      const drawArea = await loadFileAndGetDrawArea();
+      const drawArea = await loadPainted();
       await armTool('Whiteout');
       await drawBox(drawArea, 50, 200, 200, 500);
       const surface = query<HTMLElement>(s.container, '.redact-surface--whiteout');
@@ -353,43 +374,32 @@ describe('PdfRedactTool UI flow', () => {
       await armTool('Blur');
       await drawBox(drawArea, 50, 200, 200, 500);
       const layer = query<HTMLElement>(s.container, '.redact-surface__blur');
-      expect(layer.style.backdropFilter).toContain('blur(calc(0.2 * 100cqh))');
+      expect(layer.style.backdropFilter).toContain('blur(calc(20cqh))');
     });
 
     it('a fresh document draws blur at the app-wide strength', async () => {
       rememberAppStyle({ blurStrength: 0.5 });
-      const drawArea = await loadFileAndGetDrawArea();
+      const drawArea = await loadPainted();
       await armTool('Blur');
       await drawBox(drawArea, 50, 200, 200, 500);
       const layer = query<HTMLElement>(s.container, '.redact-surface__blur');
-      expect(layer.style.backdropFilter).toContain('blur(calc(0.5 * 100cqh))');
+      expect(layer.style.backdropFilter).toContain('blur(calc(50cqh))');
     });
   });
 
   // --- Regression: whiteout box resize flying off-page (handleBoxResizeStart) ---
   //
-  // Root cause: handleBoxResizeStart's left/top/top-left/bottom-left/top-right
-  // branches derived newLeft/newTop as `start.left - (newWidth - start.width)`
-  // where newWidth/newHeight were only clamped against MIN/MAX_SHAPE_SIZE_PCT,
-  // never against the box's own anchored (opposite) edge. A large outward drag
-  // on e.g. the left handle drives newWidth up to MAX_SHAPE_SIZE_PCT (90) with
-  // no regard for how much room is actually left between the anchored right
-  // edge and the page edge, so newLeft goes negative and the box renders off
-  // the left/top of the page (effectively "disappears").
+  // Root cause: handleBoxResizeStart's left/top/top-left/bottom-left/top-right branches derived
+  // newLeft/newTop from newWidth/newHeight clamped only against MIN/MAX_SHAPE_SIZE_PCT, never against the
+  // anchored (opposite) edge, so a large outward drag put the box off the page.
   //
-  // These tests use the SAME realistic, non-degenerate mocked wrapper rect
-  // (500x1000, via loadFileAndGetDrawArea's drawArea.getBoundingClientRect
-  // override — that draw area IS the resize handler's `wrapper`, since both
-  // `sign-page-wrapper` and `redact-draw-area` are classes on one DOM node) as
-  // the existing tests above, per CLAUDE.md Part II §5's "vacuous 0x0-rect
-  // geometry tests" hazard: an unmocked jsdom rect is 0x0, which turns every
-  // pixel delta into +/-Infinity and saturates the MIN/MAX clamp either way,
-  // masking exactly this class of bug. With a real 500x1000 rect, the drag
-  // distances below map to finite, checkable percentages and genuinely
-  // exercise the anchor math.
+  // These tests run on the draw area's real box, so every pixel delta maps to a finite percentage.
   describe('whiteout box resize stays on-page (regression)', () => {
+    // Where the drawn box must sit, from the two whole-pixel points the drag dispatched.
+    let drawn = { left: 0, top: 0, width: 0, height: 0 };
+
     async function setupSelectedWhiteoutBox() {
-      const drawArea = await loadFileAndGetDrawArea();
+      const drawArea = await loadPainted();
 
       // Switch to whiteout mode — all redaction box styles now get the
       // 8-direction ElementResizers handles.
@@ -403,16 +413,19 @@ describe('PdfRedactTool UI flow', () => {
       // wrapper (100,300) -> (250,500) in px. Mirrors the diagnosed repro
       // (left:20, width:30).
       await drawBox(drawArea, 100, 300, 250, 500);
+      const from = percentOn(drawArea, clientPoint(drawArea, 100, 300));
+      const to = percentOn(drawArea, clientPoint(drawArea, 250, 500));
+      drawn = { left: from.x, top: from.y, width: to.x - from.x, height: to.y - from.y };
       const box = query<HTMLElement>(s.container, '[data-redact-box-id]');
-      expect(parseFloat(box.style.left)).toBeCloseTo(20);
-      expect(parseFloat(box.style.top)).toBeCloseTo(30);
-      expect(parseFloat(box.style.width)).toBeCloseTo(30);
-      expect(parseFloat(box.style.height)).toBeCloseTo(20);
+      expect(parseFloat(box.style.left)).toBeCloseTo(drawn.left);
+      expect(parseFloat(box.style.top)).toBeCloseTo(drawn.top);
+      expect(parseFloat(box.style.width)).toBeCloseTo(drawn.width);
+      expect(parseFloat(box.style.height)).toBeCloseTo(drawn.height);
 
       // Select it (mousedown + immediate mouseup, zero delta) so ElementResizers
       // renders its handles — they're gated on isSelected/isActive.
       await act(async () => {
-        box.dispatchEvent(new MouseEvent('mousedown', { clientX: 0, clientY: 0, bubbles: true }));
+        box.dispatchEvent(new MouseEvent('mousedown', { ...clientPoint(areaOf(), 0, 0), bubbles: true }));
       });
       await act(async () => {
         window.dispatchEvent(new MouseEvent('mouseup'));
@@ -421,18 +434,25 @@ describe('PdfRedactTool UI flow', () => {
       return box;
     }
 
-    async function dragHandle(box: HTMLElement, handleClass: string, downX: number, downY: number, moveX: number, moveY: number): Promise<void> {
+    const exactPercent = (el: HTMLElement, property: string) => (el.attributeStyleMap.get(property) as CSSUnitValue).value;
+
+    async function dragHandle(box: HTMLElement, handleClass: string, downX: number, downY: number, moveX: number, moveY: number) {
       const handle = query<HTMLElement>(box, `[data-editor-resizer="${handleClass}"]`);
       expect(handle).not.toBeNull();
+      // The press lands on the handle itself (the tool picks the nearest handle to the pointer); the drag is (moveX - downX, moveY - downY) of the frame.
+      const area = areaOf().getBoundingClientRect();
+      const down = centerOf(handle);
+      const move = { clientX: down.clientX + Math.round(((moveX - downX) / FRAME.width) * area.width), clientY: down.clientY + Math.round(((moveY - downY) / FRAME.height) * area.height) };
       await act(async () => {
-        handle.dispatchEvent(new MouseEvent('mousedown', { clientX: downX, clientY: downY, bubbles: true }));
+        handle.dispatchEvent(new MouseEvent('mousedown', { ...down, bubbles: true }));
       });
       await act(async () => {
-        window.dispatchEvent(new MouseEvent('mousemove', { clientX: moveX, clientY: moveY, bubbles: true }));
+        window.dispatchEvent(new MouseEvent('mousemove', { ...move, bubbles: true }));
       });
       await act(async () => {
         window.dispatchEvent(new MouseEvent('mouseup'));
       });
+      return { dx: ((move.clientX - down.clientX) / area.width) * 100, dy: ((move.clientY - down.clientY) / area.height) * 100 };
     }
 
     it('left-handle resize with a large outward drag keeps left >= 0 and preserves the anchored right edge', async () => {
@@ -442,11 +462,11 @@ describe('PdfRedactTool UI flow', () => {
       // the left handle. Anchored right edge is at left+width = 20+30 = 50%.
       await dragHandle(box, 'left', 300, 0, -200, 0);
 
-      const committedLeft = parseFloat(box.style.left);
-      const committedWidth = parseFloat(box.style.width);
+      const committedLeft = exactPercent(box, 'left');
+      const committedWidth = exactPercent(box, 'width');
 
       expect(committedLeft).toBeGreaterThanOrEqual(0);
-      expect(committedLeft + committedWidth).toBeCloseTo(50, 5);
+      expect(committedLeft + committedWidth).toBeCloseTo(drawn.left + drawn.width, 5);
     });
 
     it('top-handle resize with a large outward drag keeps top >= 0 and preserves the anchored bottom edge', async () => {
@@ -456,11 +476,11 @@ describe('PdfRedactTool UI flow', () => {
       // the top handle. Anchored bottom edge is at top+height = 30+20 = 50%.
       await dragHandle(box, 'top', 0, 300, 0, -600);
 
-      const committedTop = parseFloat(box.style.top);
-      const committedHeight = parseFloat(box.style.height);
+      const committedTop = exactPercent(box, 'top');
+      const committedHeight = exactPercent(box, 'height');
 
       expect(committedTop).toBeGreaterThanOrEqual(0);
-      expect(committedTop + committedHeight).toBeCloseTo(50, 5);
+      expect(committedTop + committedHeight).toBeCloseTo(drawn.top + drawn.height, 5);
     });
 
     it('top-left corner resize with a large outward drag keeps both left >= 0 and top >= 0 (box stays on page)', async () => {
@@ -480,12 +500,12 @@ describe('PdfRedactTool UI flow', () => {
 
       // Modest +50px (10%) growth, well within bounds — no clamp should
       // engage at all, on either the old or fixed code path.
-      await dragHandle(box, 'right', 0, 0, 50, 0);
+      const { dx } = await dragHandle(box, 'right', 0, 0, 50, 0);
 
-      expect(parseFloat(box.style.left)).toBeCloseTo(20);
-      expect(parseFloat(box.style.top)).toBeCloseTo(30);
-      expect(parseFloat(box.style.width)).toBeCloseTo(40);
-      expect(parseFloat(box.style.height)).toBeCloseTo(20);
+      expect(parseFloat(box.style.left)).toBeCloseTo(drawn.left);
+      expect(parseFloat(box.style.top)).toBeCloseTo(drawn.top);
+      expect(parseFloat(box.style.width)).toBeCloseTo(drawn.width + dx);
+      expect(parseFloat(box.style.height)).toBeCloseTo(drawn.height);
     });
 
     // Design review: blackout and blur used to carry their own inline red
@@ -496,7 +516,7 @@ describe('PdfRedactTool UI flow', () => {
     // of a whiteout-only one and two blackout/blur-only ones with different
     // assertions.
     it('whiteout shows the shared floating toolbar, with a delete control, only once selected', async () => {
-      const drawArea = await loadFileAndGetDrawArea();
+      const drawArea = await loadPainted();
       const whiteoutBtn = required(Array.from(s.container.querySelectorAll<HTMLButtonElement>('[role="toolbar"] button'))
         .find((btn) => btn.textContent.includes('Whiteout')), 'Whiteout button');
       await act(async () => {
@@ -508,7 +528,7 @@ describe('PdfRedactTool UI flow', () => {
       expect(box.querySelector('[data-editor-actions]')).toBeNull();
 
       await act(async () => {
-        box.dispatchEvent(new MouseEvent('mousedown', { clientX: 0, clientY: 0, bubbles: true }));
+        box.dispatchEvent(new MouseEvent('mousedown', { ...clientPoint(areaOf(), 0, 0), bubbles: true }));
       });
       await act(async () => {
         window.dispatchEvent(new MouseEvent('mouseup'));
@@ -520,12 +540,12 @@ describe('PdfRedactTool UI flow', () => {
     });
 
     it('a click anywhere outside the selected box drops the selection, a click on the box keeps it', async () => {
-      const drawArea = await loadFileAndGetDrawArea();
+      const drawArea = await loadPainted();
       await drawBox(drawArea, 50, 200, 200, 500);
       const box = query<HTMLElement>(s.container, '[data-redact-box-id]');
       const select = async () => {
         await act(async () => {
-          box.dispatchEvent(new MouseEvent('mousedown', { clientX: 0, clientY: 0, bubbles: true }));
+          box.dispatchEvent(new MouseEvent('mousedown', { ...clientPoint(areaOf(), 0, 0), bubbles: true }));
         });
         await act(async () => {
           window.dispatchEvent(new MouseEvent('mouseup'));
@@ -553,7 +573,7 @@ describe('PdfRedactTool UI flow', () => {
     });
 
     it('blackout shows the shared floating toolbar, with a delete control, only once selected', async () => {
-      const drawArea = await loadFileAndGetDrawArea();
+      const drawArea = await loadPainted();
 
       // Default activeStyle is 'blackout'.
       await drawBox(drawArea, 50, 200, 200, 500);
@@ -563,7 +583,7 @@ describe('PdfRedactTool UI flow', () => {
       expect(box.querySelector('[data-editor-actions]')).toBeNull();
 
       await act(async () => {
-        box.dispatchEvent(new MouseEvent('mousedown', { clientX: 0, clientY: 0, bubbles: true }));
+        box.dispatchEvent(new MouseEvent('mousedown', { ...clientPoint(areaOf(), 0, 0), bubbles: true }));
       });
       await act(async () => {
         window.dispatchEvent(new MouseEvent('mouseup'));
@@ -580,7 +600,7 @@ describe('PdfRedactTool UI flow', () => {
     });
 
     it('blur shows the shared floating toolbar, with a delete control, only once selected', async () => {
-      const drawArea = await loadFileAndGetDrawArea();
+      const drawArea = await loadPainted();
 
       const blurBtn = required(Array.from(s.container.querySelectorAll<HTMLButtonElement>('[role="toolbar"] button'))
         .find((btn) => btn.textContent.includes('Blur')), 'Blur button');
@@ -595,7 +615,7 @@ describe('PdfRedactTool UI flow', () => {
       expect(box.querySelector('[data-editor-actions]')).toBeNull();
 
       await act(async () => {
-        box.dispatchEvent(new MouseEvent('mousedown', { clientX: 0, clientY: 0, bubbles: true }));
+        box.dispatchEvent(new MouseEvent('mousedown', { ...clientPoint(areaOf(), 0, 0), bubbles: true }));
       });
       await act(async () => {
         window.dispatchEvent(new MouseEvent('mouseup'));
@@ -611,7 +631,7 @@ describe('PdfRedactTool UI flow', () => {
     });
 
     it('SITE-41: picking a strength from a selected blur box\'s toolbar applies it and remembers it, and undo restores the previous strength and redo reapplies it', async () => {
-      const drawArea = await loadFileAndGetDrawArea();
+      const drawArea = await loadPainted();
 
       const blurBtn = required(Array.from(s.container.querySelectorAll<HTMLButtonElement>('[role="toolbar"] button'))
         .find((btn) => btn.textContent.includes('Blur')), 'Blur button');
@@ -624,7 +644,7 @@ describe('PdfRedactTool UI flow', () => {
       const box = required(s.container.querySelector('[data-redact-box-id]'), 'blur box');
 
       await act(async () => {
-        box.dispatchEvent(new MouseEvent('mousedown', { clientX: 0, clientY: 0, bubbles: true }));
+        box.dispatchEvent(new MouseEvent('mousedown', { ...clientPoint(areaOf(), 0, 0), bubbles: true }));
       });
       await act(async () => {
         window.dispatchEvent(new MouseEvent('mouseup'));
@@ -633,24 +653,24 @@ describe('PdfRedactTool UI flow', () => {
       await dragBlurSlider(0.22, [0.1, 0.2]);
 
       const blurLayer = required(box.querySelector<HTMLElement>('.redact-surface__blur'), 'blur layer');
-      expect(blurLayer.style.backdropFilter).toContain('blur(calc(0.22 * 100cqh))');
+      expect(blurLayer.style.backdropFilter).toContain('blur(calc(22cqh))');
 
       await act(async () => {
         window.dispatchEvent(new KeyboardEvent('keydown', { key: 'z', ctrlKey: true, bubbles: true }));
       });
       // DEFAULT_BLUR_STRENGTH, so undo restores the box's original,
       // unpicked strength to that, not 0.22.
-      expect(blurLayer.style.backdropFilter).toContain(`blur(calc(${DEFAULT_BLUR_STRENGTH} * 100cqh))`);
+      expect(blurLayer.style.backdropFilter).toContain(`blur(calc(${Math.round(DEFAULT_BLUR_STRENGTH * 100)}cqh))`);
 
       // Redo brings the picked strength back.
       await act(async () => {
         window.dispatchEvent(new KeyboardEvent('keydown', { key: 'z', ctrlKey: true, shiftKey: true, bubbles: true }));
       });
-      expect(blurLayer.style.backdropFilter).toContain('blur(calc(0.22 * 100cqh))');
+      expect(blurLayer.style.backdropFilter).toContain('blur(calc(22cqh))');
     });
 
     it('SITE-41: a newly drawn blur box picks up the last-chosen strength', async () => {
-      const drawArea = await loadFileAndGetDrawArea();
+      const drawArea = await loadPainted();
 
       const blurBtn = required(Array.from(s.container.querySelectorAll<HTMLButtonElement>('[role="toolbar"] button'))
         .find((btn) => btn.textContent.includes('Blur')), 'Blur button');
@@ -660,7 +680,7 @@ describe('PdfRedactTool UI flow', () => {
       const firstBox = required(s.container.querySelector('[data-redact-box-id]'), 'first blur box');
 
       await act(async () => {
-        firstBox.dispatchEvent(new MouseEvent('mousedown', { clientX: 0, clientY: 0, bubbles: true }));
+        firstBox.dispatchEvent(new MouseEvent('mousedown', { ...clientPoint(areaOf(), 0, 0), bubbles: true }));
       });
       await act(async () => { window.dispatchEvent(new MouseEvent('mouseup')); });
 
@@ -672,7 +692,7 @@ describe('PdfRedactTool UI flow', () => {
       const secondBox = boxes[boxes.length - 1] as HTMLElement;
       const secondBlurLayer = required(secondBox.querySelector<HTMLElement>('.redact-surface__blur'), 'second blur layer');
 
-      expect(secondBlurLayer.style.backdropFilter).toContain('blur(calc(0.22 * 100cqh))');
+      expect(secondBlurLayer.style.backdropFilter).toContain('blur(calc(22cqh))');
     });
 
     // --- E1.5: generalize the whiteout-resize post-mortem's three gesture
@@ -689,18 +709,22 @@ describe('PdfRedactTool UI flow', () => {
       const startWidth = parseFloat(box.style.width);
       const startHeight = parseFloat(box.style.height);
 
+      const pressed = clientPoint(areaOf(), 0, 0);
+      const dragged = clientPoint(areaOf(), 50, 100);
       await act(async () => {
-        box.dispatchEvent(new MouseEvent('mousedown', { clientX: 0, clientY: 0, bubbles: true }));
+        box.dispatchEvent(new MouseEvent('mousedown', { ...pressed, bubbles: true }));
       });
       await act(async () => {
-        window.dispatchEvent(new MouseEvent('mousemove', { clientX: 50, clientY: 100, bubbles: true })); // +10% / +10%
+        window.dispatchEvent(new MouseEvent('mousemove', { ...dragged, bubbles: true })); // about +10% / +10%
       });
       await act(async () => {
         window.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
       });
 
-      expect(parseFloat(box.style.left)).toBeCloseTo(30); // 20 + 10
-      expect(parseFloat(box.style.top)).toBeCloseTo(40); // 30 + 10
+      const moved = percentOn(areaOf(), dragged);
+      const origin = percentOn(areaOf(), pressed);
+      expect(parseFloat(box.style.left)).toBeCloseTo(drawn.left + moved.x - origin.x);
+      expect(parseFloat(box.style.top)).toBeCloseTo(drawn.top + moved.y - origin.y);
       expect(parseFloat(box.style.width)).toBeCloseTo(startWidth);
       expect(parseFloat(box.style.height)).toBeCloseTo(startHeight);
     });

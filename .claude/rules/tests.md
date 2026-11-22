@@ -112,13 +112,10 @@ That split keeps `lib -> site-test -> editor -> lib` from closing a loop.
 Island tests mock only the storage and network edge, through `src/test/harness/toolHarness.ts`
 (ARCH-78): fresh fake IndexedDB and storage per test, recorded beacons, created blobs, and the stored
 draft read back through the real `draftStore`. It imports `lib`, so it lives in `site-test`, not
-`test-support`. The pdf.js edge (the encryption probe, the thumbnail source, `pdfjs-dist` for Redact) is faked
-once in `src/test/harness/pdfjsEdges.ts` and registered by the setup files in `src/test/harness/setup/`, which
-only the `island*` projects of `vitest.config.js` load (a test elsewhere sees the real modules, guarded by
-`islandSetup.test.ts`); a test steers it through `harness.pdfjs` (`probeAs`, `holdNextProbe`, `source`,
-`pageCountOfNextRead`). Compress's three engines (canvas and codecs) are registered the same way. An island
-file keeps a `vi.mock` only for a different fake, with a comment saying why. A new island test file goes into
-the `ISLAND_*` globs of `vitest.config.js`.
+`test-support`. Nothing fakes pdf.js: an island test that needs it runs in the `browser` project on real pdf.js
+through `src/test/harness/browserToolHarness.ts` (Redact's through `src/test/support/redactTool.browser.tsx`),
+building its PDFs with pdf-lib or reading fixtures through `?url`. A state no real file can produce is one
+`{ spy: true }` mock of our own module and one `mockImplementationOnce` line marked `// forced:` (LAND-04).
 
 ## `src/test/cross-tool/`
 

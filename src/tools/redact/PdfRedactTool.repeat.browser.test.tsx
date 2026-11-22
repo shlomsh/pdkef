@@ -1,14 +1,22 @@
 import { act } from 'preact/test-utils';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import PdfRedactTool from './PdfRedactTool.tsx';
 import { CHECKING } from './lib/check/checkCopy.ts';
-import * as gestureController from '#lib/gestures/controller.ts';
+import { startGesture } from '#lib/gestures/controller.ts';
 import { waitUntil } from '../../test/support/waitUntil.ts';
-import { installToolHarness } from '../../test/harness/toolHarness.ts';
-import { useRedactSuite, required, query, settleUntil, dragBlurSlider, installCanvasEdge, setSelectedBoxColor } from '../../test/support/redactTool.tsx';
+import { installBrowserToolHarness } from '../../test/harness/browserToolHarness.ts';
+import { answerNetwork } from '../../test/support/network.browser.ts';
+import { useRedactSuite, required, query, dragBlurSlider, setSelectedBoxColor, buildPdf, makePdfFile, centerOf } from '../../test/support/redactTool.browser.tsx';
+
+answerNetwork();
+
+vi.mock('#lib/gestures/controller.ts', { spy: true });
+const { startGesture: realStartGesture } = await vi.importActual<typeof import('#lib/gestures/controller.ts')>('#lib/gestures/controller.ts');
+
+const pagesFile = async (pages: number) => makePdfFile(`${pages}-pages.pdf`, await buildPdf(pages));
 
 describe('PdfRedactTool UI flow', () => {
-  const { s, loadFileAndGetDrawArea, armTool, drawBox } = useRedactSuite({ Tool: PdfRedactTool, checking: CHECKING, gestureController, installToolHarness, waitUntil });
+  const { s, loadFileAndGetDrawArea, armTool, drawBox } = useRedactSuite({ Tool: PdfRedactTool, checking: CHECKING, gestureEntry: { spy: startGesture, real: realStartGesture }, installToolHarness: installBrowserToolHarness, waitUntil });
 
   // RED-03: a selected box's "Repeat on every page" button, next to duplicate
   // in the shared floating toolbar, and the linked-copies rules that follow
@@ -19,23 +27,9 @@ describe('PdfRedactTool UI flow', () => {
   // removeGroup, mirroring the clear-page block above.
   describe('repeat a box on every page, linked copies (RED-03)', () => {
 
-    // loadFileAndGetDrawArea only stubs getBoundingClientRect on the FIRST
-    // page's draw area - fine for every other describe block in this file,
-    // which never drags on any page but the first. A multi-page repeat test
-    // that resizes a copy on page 2 or 3 needs every page's draw area to
-    // have a real (non-0x0) rect too, or its resize handle's own delta math
-    // divides against a vacuous rect (see this file's own "regression"
-    // comment above) and silently computes no change at all.
-    function stubEveryDrawAreaRect(): void {
-      const rect = { left: 0, top: 0, width: 500, height: 1000, right: 500, bottom: 1000, x: 0, y: 0, toJSON: () => {} };
-      s.container.querySelectorAll<HTMLElement>('.redact-draw-area').forEach((el) => {
-        el.getBoundingClientRect = () => rect;
-      });
-    }
-
     async function selectBox(box: HTMLElement): Promise<void> {
       await act(async () => {
-        box.dispatchEvent(new MouseEvent('mousedown', { clientX: 0, clientY: 0, bubbles: true }));
+        box.dispatchEvent(new MouseEvent('mousedown', { ...centerOf(box), bubbles: true }));
       });
       await act(async () => {
         window.dispatchEvent(new MouseEvent('mouseup'));
@@ -76,14 +70,15 @@ describe('PdfRedactTool UI flow', () => {
     // already be selected for the handle to exist.
     async function resizeBox(box: HTMLElement, dx: number, dy: number): Promise<void> {
       const resizer = query<HTMLElement>(box, '[data-editor-resizer="bottom-right"]');
+      const grab = centerOf(resizer);
       await act(async () => {
-        resizer.dispatchEvent(new MouseEvent('mousedown', { clientX: 0, clientY: 0, bubbles: true }));
+        resizer.dispatchEvent(new MouseEvent('mousedown', { ...grab, bubbles: true }));
       });
       await act(async () => {
-        window.dispatchEvent(new MouseEvent('mousemove', { clientX: dx, clientY: dy }));
+        window.dispatchEvent(new MouseEvent('mousemove', { clientX: grab.clientX + dx, clientY: grab.clientY + dy }));
       });
       await act(async () => {
-        window.dispatchEvent(new MouseEvent('mousemove', { clientX: dx, clientY: dy }));
+        window.dispatchEvent(new MouseEvent('mousemove', { clientX: grab.clientX + dx, clientY: grab.clientY + dy }));
       });
       await act(async () => {
         window.dispatchEvent(new MouseEvent('mouseup'));
@@ -91,8 +86,7 @@ describe('PdfRedactTool UI flow', () => {
     }
 
     it('adds a copy to every other page as one undo step, redoes as one step, and pressing it again adds nothing more', async () => {
-      s.harness.pdfjs.pageCountOfNextRead(3);
-      const drawArea = await loadFileAndGetDrawArea();
+      const drawArea = await loadFileAndGetDrawArea(await pagesFile(3));
       await drawBox(drawArea, 50, 200, 200, 500);
       await selectFirstBox();
       await repeatSelectedBox();
@@ -138,8 +132,7 @@ describe('PdfRedactTool UI flow', () => {
     });
 
     it('shows no repeat trigger on a single-page document', async () => {
-      s.harness.pdfjs.pageCountOfNextRead(1);
-      const drawArea = await loadFileAndGetDrawArea();
+      const drawArea = await loadFileAndGetDrawArea(await pagesFile(1));
       await drawBox(drawArea, 50, 200, 200, 500);
       await selectFirstBox();
 
@@ -147,9 +140,7 @@ describe('PdfRedactTool UI flow', () => {
     });
 
     it('resizing one linked copy resizes every copy as one undo step, and redo reapplies it', async () => {
-      s.harness.pdfjs.pageCountOfNextRead(3);
-      const drawArea = await loadFileAndGetDrawArea();
-      stubEveryDrawAreaRect();
+      const drawArea = await loadFileAndGetDrawArea(await pagesFile(3));
       await drawBox(drawArea, 50, 200, 200, 500);
       await selectFirstBox();
       await repeatSelectedBox();
@@ -187,9 +178,7 @@ describe('PdfRedactTool UI flow', () => {
     });
 
     it("unlinking a copy stops it following its former group's edits", async () => {
-      s.harness.pdfjs.pageCountOfNextRead(3);
-      const drawArea = await loadFileAndGetDrawArea();
-      stubEveryDrawAreaRect();
+      const drawArea = await loadFileAndGetDrawArea(await pagesFile(3));
       await drawBox(drawArea, 50, 200, 200, 500);
       await selectFirstBox();
       await repeatSelectedBox();
@@ -214,9 +203,7 @@ describe('PdfRedactTool UI flow', () => {
     });
 
     it('Remove from the other pages removes the other copies in one undo step', async () => {
-      s.harness.pdfjs.pageCountOfNextRead(3);
-      const drawArea = await loadFileAndGetDrawArea();
-      stubEveryDrawAreaRect();
+      const drawArea = await loadFileAndGetDrawArea(await pagesFile(3));
       await drawBox(drawArea, 50, 200, 200, 500);
       await selectFirstBox();
       await repeatSelectedBox();
@@ -237,8 +224,7 @@ describe('PdfRedactTool UI flow', () => {
     });
 
     it('Clear page on a page with a repeated box asks, and "Keep the repeated boxes" clears only its own boxes', async () => {
-      s.harness.pdfjs.pageCountOfNextRead(3);
-      const drawArea = await loadFileAndGetDrawArea();
+      const drawArea = await loadFileAndGetDrawArea(await pagesFile(3));
       await drawBox(drawArea, 50, 200, 200, 500);
       await selectFirstBox();
       await repeatSelectedBox();
@@ -270,16 +256,14 @@ describe('PdfRedactTool UI flow', () => {
     });
 
     it('Clear page on a page with no repeated box clears in one tap, as before', async () => {
-      s.harness.pdfjs.pageCountOfNextRead(2);
-      const drawArea = await loadFileAndGetDrawArea();
+      const drawArea = await loadFileAndGetDrawArea(await pagesFile(2));
       await drawBox(drawArea, 50, 200, 200, 500);
       const pageCard = query<HTMLElement>(s.container, '[data-editor-page-card]');
       expect(pageCard.querySelector('[data-editor-clear-page-trigger]')).toBeNull();
     });
 
     it('trash on a linked box removes only this page when "This page" is picked; the rest stay linked', async () => {
-      s.harness.pdfjs.pageCountOfNextRead(3);
-      const drawArea = await loadFileAndGetDrawArea();
+      const drawArea = await loadFileAndGetDrawArea(await pagesFile(3));
       await drawBox(drawArea, 50, 200, 200, 500);
       await selectFirstBox();
       await repeatSelectedBox();
@@ -294,8 +278,7 @@ describe('PdfRedactTool UI flow', () => {
     });
 
     it('trash on a linked box removes every copy in one undo step when "All pages" is picked', async () => {
-      s.harness.pdfjs.pageCountOfNextRead(3);
-      const drawArea = await loadFileAndGetDrawArea();
+      const drawArea = await loadFileAndGetDrawArea(await pagesFile(3));
       await drawBox(drawArea, 50, 200, 200, 500);
       await selectFirstBox();
       await repeatSelectedBox();
@@ -317,8 +300,7 @@ describe('PdfRedactTool UI flow', () => {
     });
 
     it('duplicating a linked box gives a second set on every page; changing the duplicate leaves the original set unchanged', async () => {
-      s.harness.pdfjs.pageCountOfNextRead(3);
-      const drawArea = await loadFileAndGetDrawArea();
+      const drawArea = await loadFileAndGetDrawArea(await pagesFile(3));
       const whiteoutBtn = required(Array.from(s.container.querySelectorAll<HTMLButtonElement>('[role="toolbar"] button'))
         .find((btn) => btn.textContent.includes('Whiteout')), 'Whiteout button');
       await act(async () => {
@@ -378,13 +360,7 @@ describe('PdfRedactTool UI flow', () => {
   describe('found boxes stay a set (RED-11)', () => {
     // Two matches for "jane doe" on page 0 (same shape findMatches.test.ts builds its fixture with), so
     // "Redact all" always adds exactly 2 boxes. They arrive as the page's own text stream, read for real.
-    // jsdom has no scrollIntoView; the current match's highlight calls it from a passive effect.
-    beforeEach(() => { Element.prototype.scrollIntoView = vi.fn(); });
-    afterEach(() => { delete (Element.prototype as { scrollIntoView?: unknown }).scrollIntoView; });
-    beforeEach(() => {
-      const item = (str: string, x: number, y: number) => ({ str, transform: [12, 0, 0, 12, x, y], width: str.length * 6, height: 12 });
-      s.harness.pdfjs.pageItems.set(0, [item('Jane Doe', 100, 700), item('Jane Doe again', 100, 600)]);
-    });
+    const foundFile = async () => makePdfFile('found.pdf', await buildPdf(2, {}, [['Jane Doe', 'Jane Doe again']]));
 
     async function openFindAndSearch(term: string): Promise<void> {
       const toggle = query<HTMLButtonElement>(s.container, '[data-redact-find-toggle]');
@@ -395,7 +371,7 @@ describe('PdfRedactTool UI flow', () => {
         input.dispatchEvent(new Event('input', { bubbles: true }));
       });
       // The pages' text is read for real, page by page; "Cover all" is live once every page is read.
-      await settleUntil('Find to read the pages', () => {
+      await waitUntil(() => {
         const all = document.querySelector<HTMLButtonElement>('[data-redact-find-all]');
         return all !== null && !all.disabled && !all.hasAttribute('aria-pressed');
       });
@@ -416,7 +392,7 @@ describe('PdfRedactTool UI flow', () => {
     }
 
     async function selectBox(box: HTMLElement): Promise<void> {
-      await act(async () => { box.dispatchEvent(new MouseEvent('mousedown', { clientX: 0, clientY: 0, bubbles: true })); });
+      await act(async () => { box.dispatchEvent(new MouseEvent('mousedown', { ...centerOf(box), bubbles: true })); });
       await act(async () => { window.dispatchEvent(new MouseEvent('mouseup')); });
     }
 
@@ -433,27 +409,20 @@ describe('PdfRedactTool UI flow', () => {
     const boxes = () => Array.from(s.container.querySelectorAll<HTMLElement>('[data-redact-box-id]'));
 
     it('checks only deleted words automatically, never a Find search (RED-66)', async () => {
-      s.restoreCanvas = installCanvasEdge();
-      const originalCreateObjectURL = window.URL.createObjectURL;
-      window.URL.createObjectURL = vi.fn(() => 'blob:redacted-pdf');
-      try {
-        await loadFileAndGetDrawArea();
-        await openFindAndSearch('jane doe');
-        await clickRedactAll();
-        const download = required(Array.from(s.container.querySelectorAll<HTMLButtonElement>('[role="toolbar"] button'))
-          .find((button) => button.textContent.includes('Download')), 'Download button');
-        await act(async () => { download.click(); });
-        // The saved file is checked on its own once it exists; no row is made for the search that found the boxes.
-        await settleUntil('the saved-file check', () => s.container.querySelector('[data-saved-file-check]') !== null);
-        expect(s.container.querySelector('[data-check-term]')).toBeNull();
-        expect(s.container.querySelector('[data-saved-file-check]')?.textContent).not.toContain('jane doe');
-      } finally {
-        window.URL.createObjectURL = originalCreateObjectURL;
-      }
+      await loadFileAndGetDrawArea(await foundFile());
+      await openFindAndSearch('jane doe');
+      await clickRedactAll();
+      const download = required(Array.from(s.container.querySelectorAll<HTMLButtonElement>('[role="toolbar"] button'))
+        .find((button) => button.textContent.includes('Download')), 'Download button');
+      await act(async () => { download.click(); });
+      // The saved file is checked on its own once it exists; no row is made for the search that found the boxes.
+      await waitUntil(() => s.container.querySelector('[data-saved-file-check]') !== null);
+      expect(Array.from(s.container.querySelectorAll('[data-check-term]')).map((row) => row.getAttribute('data-check-term'))).toEqual(['Jane Doe']);
+      expect(s.container.querySelector('[data-saved-file-check]')?.textContent).not.toContain('jane doe');
     });
 
     it('gives every box added by Redact all one findSetId, offered as "All N from this search"', async () => {
-      await loadFileAndGetDrawArea();
+      await loadFileAndGetDrawArea(await foundFile());
       await openFindAndSearch('jane doe');
       await clickRedactAll();
       expect(boxes()).toHaveLength(2);
@@ -466,7 +435,7 @@ describe('PdfRedactTool UI flow', () => {
     });
 
     it('"All N from this search" removes exactly that search\'s boxes as one undo step; Undo restores them', async () => {
-      const drawArea = await loadFileAndGetDrawArea(); // arms Blackout, spent by the drawBox below
+      const drawArea = await loadFileAndGetDrawArea(await foundFile()); // arms Blackout, spent by the drawBox below
       await openFindAndSearch('jane doe');
       await clickRedactAll();
       await drawBox(drawArea, 50, 750, 200, 780); // an unrelated box - must survive the find set's removal
@@ -487,7 +456,7 @@ describe('PdfRedactTool UI flow', () => {
     });
 
     it('changing blur strength on one found box changes every box of its search, as one undo step', async () => {
-      await loadFileAndGetDrawArea();
+      await loadFileAndGetDrawArea(await foundFile());
       await openFindAndSearch('jane doe');
       await chooseRedactStyle('Blur');
       await clickRedactAll();
@@ -518,7 +487,7 @@ describe('PdfRedactTool UI flow', () => {
     });
 
     it('duplicating a found box makes an ordinary box with no findSetId', async () => {
-      await loadFileAndGetDrawArea();
+      await loadFileAndGetDrawArea(await foundFile());
       await openFindAndSearch('jane doe');
       await clickRedactAll();
       expect(boxes()).toHaveLength(2);
@@ -540,7 +509,7 @@ describe('PdfRedactTool UI flow', () => {
     // both the other found box on this page AND its own copies on other
     // pages, as one undo step.
     it('a found box that is also repeated: changing it updates the other found boxes and its copies on other pages, as one undo step', async () => {
-      await loadFileAndGetDrawArea();
+      await loadFileAndGetDrawArea(await foundFile());
       await openFindAndSearch('jane doe');
       await chooseRedactStyle('Blur');
       await clickRedactAll();
@@ -580,7 +549,7 @@ describe('PdfRedactTool UI flow', () => {
     });
 
     it('"All N from this search" on a box that is also repeated removes only the found boxes; its repeated copies on other pages stay', async () => {
-      await loadFileAndGetDrawArea();
+      await loadFileAndGetDrawArea(await foundFile());
       await openFindAndSearch('jane doe');
       await clickRedactAll();
       expect(boxes()).toHaveLength(2);
@@ -601,7 +570,7 @@ describe('PdfRedactTool UI flow', () => {
     });
 
     it('a copy made by "repeat on every page" from a found box has no findSetId: its trash menu offers no "from this search" item', async () => {
-      await loadFileAndGetDrawArea();
+      await loadFileAndGetDrawArea(await foundFile());
       await openFindAndSearch('jane doe');
       await clickRedactAll();
       expect(boxes()).toHaveLength(2);

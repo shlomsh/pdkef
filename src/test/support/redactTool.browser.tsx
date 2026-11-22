@@ -39,10 +39,25 @@ export async function dragBlurSlider(value: number, steps: number[] = []) {
 /** The frame the suite's coordinates are written in: x 0..500 and y 0..1000 across an element's real box. */
 export const FRAME = { width: 500, height: 1000 };
 
-/** Where the point (x, y) of FRAME lands on `el`'s real on-screen box, as clientX/clientY. */
+/**
+ * Where the point (x, y) of FRAME lands on `el`'s real on-screen box, as clientX/clientY in whole
+ * pixels: a MouseEvent carries whole pixels in Chromium, so an expected position computed from these is exact.
+ */
 export function clientPoint(el: Element, x: number, y: number) {
   const rect = el.getBoundingClientRect();
-  return { clientX: rect.left + (x / FRAME.width) * rect.width, clientY: rect.top + (y / FRAME.height) * rect.height };
+  return { clientX: Math.round(rect.left + (x / FRAME.width) * rect.width), clientY: Math.round(rect.top + (y / FRAME.height) * rect.height) };
+}
+
+/** The centre of `el`'s real box in whole pixels, e.g. to press a resize handle where `nearestHandle` finds it. */
+export function centerOf(el: Element) {
+  const rect = el.getBoundingClientRect();
+  return { clientX: Math.round(rect.left + rect.width / 2), clientY: Math.round(rect.top + rect.height / 2) };
+}
+
+/** Where a whole-pixel client point sits on `el`'s real box, in percent of its width and height. */
+export function percentOn(el: Element, { clientX, clientY }: { clientX: number; clientY: number }) {
+  const rect = el.getBoundingClientRect();
+  return { x: ((clientX - rect.left) / rect.width) * 100, y: ((clientY - rect.top) / rect.height) * 100 };
 }
 
 const PAGE_SIZE: [number, number] = [612, 792];

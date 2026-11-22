@@ -3,8 +3,7 @@
  *
  * Edges, which this harness fakes: IndexedDB (fake-indexeddb), localStorage/sessionStorage (cleared),
  * the network transport (`navigator.sendBeacon`, recorded instead of sent) and `URL.createObjectURL`
- * (recorded). Browser APIs jsdom lacks (`mockFileShare.js`) stay with the test file. The pdf.js edge is faked in `pdfjsEdges.ts`, registered by the
- * island projects' setup files, and steered through `harness.pdfjs`.
+ * (recorded). Browser APIs jsdom lacks (`mockFileShare.js`) stay with the test file.
  *
  * Internal modules are NOT mocked: `draftStore`, `productAnalytics`, `errorReport`, `actionTrail`, a
  * tool's own lib modules and the hand-off/session hooks run for real. A test asserts on what they
@@ -25,7 +24,6 @@ import 'fake-indexeddb/auto';
 import { IDBFactory } from 'fake-indexeddb';
 import { resetErrorReportingForTests, setReportingEnabledForTests } from '#lib/telemetry/errorReport.ts';
 import { resetUsageEventsForTests } from '#lib/telemetry/productAnalytics.ts';
-import { createPdfjsHarness, resetPdfjsEdges, type PdfjsHarness } from './pdfjsEdges.ts';
 import { resetActionTrailForTests } from '#lib/telemetry/actionTrail.ts';
 import { loadDraft, readRecentFiles, takeHandoff } from '#lib/drafts/draftStore.ts';
 import type { UsageEvent } from '#lib/telemetry/usageEventSchema.ts';
@@ -38,8 +36,6 @@ export interface BeaconRecord {
 }
 
 export interface ToolHarness {
-  /** The `pdfjs-dist` edge of the island-redact project, registered by its setup file, steered here. */
-  pdfjs: PdfjsHarness;
   /** Every beacon handed to `navigator.sendBeacon` so far, in order (completed reads only, see `flush`). */
   beacons(): BeaconRecord[];
   /**
@@ -102,7 +98,6 @@ class CountingIDBFactory extends IDBFactory {
  * reporting on and records its beacons instead of sending them, and records object URLs.
  */
 export function installToolHarness({ trackIndexedDb = false }: { trackIndexedDb?: boolean } = {}): ToolHarness {
-  resetPdfjsEdges();
   // Only a suite that calls `settle()` pays for the counting; every other suite keeps a plain factory.
   const idb = trackIndexedDb ? new CountingIDBFactory() : null;
   globalThis.indexedDB = idb ?? new IDBFactory();
@@ -148,7 +143,6 @@ export function installToolHarness({ trackIndexedDb = false }: { trackIndexedDb?
   const payloads = () => records.map((r) => r.payload).filter((p): p is Record<string, unknown> => typeof p === 'object' && p !== null);
 
   return {
-    pdfjs: createPdfjsHarness(),
     beacons: () => [...records],
     reports: () => payloads().filter((p) => 'area' in p && 'step' in p) as unknown as (ErrorReport | DropRecord)[],
     usageEvents: (name) => (payloads().filter((p) => typeof p.name === 'string' && 'properties' in p) as unknown as UsageEvent[])

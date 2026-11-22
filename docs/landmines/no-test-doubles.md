@@ -78,8 +78,8 @@ A site that fits none of these is reported to the lead, not bent to fit.
    MSW's own "error" strategy lets any URL that looks like a static file through to the network. In the
    browser, Vite's module and static-file loads from the page's own origin pass through. Assert real
    values: literals where Chromium is deterministic, a stated tolerance only across a lossy stage.
-6. pdf.js and rendering fakes in the island harness (`src/test/harness/pdfjsEdges.ts`): real pdf.js,
-   in Node where it suffices, in browser mode where it renders.
+6. pdf.js and rendering fakes in the island harness: real pdf.js in browser mode (done; the harness's
+   pdf.js fake and the island projects are gone).
 7. The service worker tests (`scripts/sw.test.mjs`).
 
 Each wave: a site list per file, small parallel briefs on disjoint files, and a fresh review that

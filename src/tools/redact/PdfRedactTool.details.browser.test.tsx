@@ -1,21 +1,71 @@
 import { act } from 'preact/test-utils';
-import { describe, expect, it, vi, type Mock } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import PdfRedactTool from './PdfRedactTool.tsx';
 import { CHECKING } from './lib/check/checkCopy.ts';
-import { pxToPercent, pxDeltaToPercent } from '#editor/geometry/coords.ts';
+import { applyPageEdits } from './lib/applyPageEdits.js';
 import { recentActions } from '#lib/telemetry/actionTrail.ts';
-import { PDFDocument } from '@cantoo/pdf-lib';
+import { PDFDict, PDFDocument, PDFName, PDFRawStream } from '@cantoo/pdf-lib';
 import { getAppStyle } from '#editor/workspace/preferenceStore.ts';
-import fs from 'node:fs';
-import * as gestureController from '#lib/gestures/controller.ts';
+import { startGesture } from '#lib/gestures/controller.ts';
 import { waitUntil } from '../../test/support/waitUntil.ts';
-import { installToolHarness } from '../../test/harness/toolHarness.ts';
-import { useRedactSuite, required, query, settleUntil, installCanvasEdge, buildPdf, makePdfFile, canvasEdge } from '../../test/support/redactTool.tsx';
+import { installBrowserToolHarness } from '../../test/harness/browserToolHarness.ts';
+import { answerNetwork } from '../../test/support/network.browser.ts';
+import { useRedactSuite, required, query, buildPdf, makePdfFile, clientPoint, centerOf, percentOn } from '../../test/support/redactTool.browser.tsx';
+import { englishRedactMessages } from './messages.ts';
+import numOneUrl from '../../lib/__fixtures__/num-1.pdf?url';
 
-declare const __dirname: string;
+answerNetwork();
+
+vi.mock('#lib/gestures/controller.ts', { spy: true });
+vi.mock('./lib/applyPageEdits.js', { spy: true });
+const { startGesture: realStartGesture } = await vi.importActual<typeof import('#lib/gestures/controller.ts')>('#lib/gestures/controller.ts');
+const { applyPageEdits: realApplyPageEdits } = await vi.importActual<typeof import('./lib/applyPageEdits.js')>('./lib/applyPageEdits.js');
+
+const downloads: Promise<Blob>[] = [];
+const recordDownload = (event: Event) => {
+  const link = (event.target as Element | null)?.closest?.('a[download]') as HTMLAnchorElement | null;
+  if (link) downloads.push(fetch(link.href).then((response) => response.blob()));
+};
+
+async function pixelAt(blob: Blob, fromLeft: number, fromTop: number) {
+  const saved = await PDFDocument.load(await blob.arrayBuffer());
+  const xObjects = required(saved.getPage(0).node.Resources(), 'page resources').lookup(PDFName.of('XObject'), PDFDict);
+  const picture = xObjects.lookup(xObjects.keys()[0]);
+  if (!(picture instanceof PDFRawStream)) throw new Error('Expected the page image as a raw stream');
+  const bitmap = await createImageBitmap(new Blob([picture.contents as BlobPart], { type: 'image/jpeg' }));
+  const canvas = document.createElement('canvas');
+  canvas.width = bitmap.width;
+  canvas.height = bitmap.height;
+  const ctx = required(canvas.getContext('2d'), '2d context');
+  ctx.drawImage(bitmap, 0, 0);
+  const [r, g, b] = ctx.getImageData(Math.floor(fromLeft * bitmap.width), Math.floor(fromTop * bitmap.height), 1, 1).data;
+  return { r, g, b };
+}
+
+function frameStep(el: Element, x: number, y: number) {
+  const origin = clientPoint(el, 0, 0);
+  const end = clientPoint(el, x, y);
+  return { dx: end.clientX - origin.clientX, dy: end.clientY - origin.clientY };
+}
+
+async function expectBoxOnPage(blob: Blob) {
+  const inside = await pixelAt(blob, 0.25, 0.35);
+  const outside = await pixelAt(blob, 0.8, 0.8);
+  expect(Math.max(inside.r, inside.g, inside.b)).toBeLessThan(16);
+  expect(Math.min(outside.r, outside.g, outside.b)).toBeGreaterThan(240);
+}
 
 describe('PdfRedactTool UI flow', () => {
-  const { s, holdNextDocumentRead, failedOperations, loadFileAndGetDrawArea, hoverBrushTool, drawBox, expectLatestGestureToCommitOnce } = useRedactSuite({ Tool: PdfRedactTool, checking: CHECKING, gestureController, installToolHarness, waitUntil });
+  const { s, holdNextExport, failedOperations, loadFileAndGetDrawArea, hoverBrushTool, drawBox, expectLatestGestureToCommitOnce } = useRedactSuite({ Tool: PdfRedactTool, checking: CHECKING, gestureEntry: { spy: startGesture, real: realStartGesture }, installToolHarness: installBrowserToolHarness, waitUntil, exportEntry: { spy: applyPageEdits, real: realApplyPageEdits } });
+
+  beforeEach(() => {
+    downloads.length = 0;
+    document.addEventListener('click', recordDownload, { capture: true });
+  });
+
+  afterEach(() => {
+    document.removeEventListener('click', recordDownload, { capture: true });
+  });
 
   describe('RED-59: the file\'s details', () => {
     const authored = async () => makePdfFile('authored.pdf', await buildPdf(2, { author: 'Ada Lovelace' }));
@@ -27,88 +77,61 @@ describe('PdfRedactTool UI flow', () => {
 
     it('shows the footer once the details are read', async () => {
       await loadFileAndGetDrawArea(await authored());
-      await settleUntil('the details footer', () => s.container.querySelector('[data-details-footer]') !== null);
+      await waitUntil(() => s.container.querySelector('[data-details-footer]') !== null);
       expect(query(s.container, '[data-details-footer]').textContent).toContain('Ada Lovelace');
     });
 
     it('the export receives the details edited in the sheet, and none when untouched', async () => {
-      s.restoreCanvas = installCanvasEdge();
-      const originalCreateObjectURL = window.URL.createObjectURL;
-      const originalRevokeObjectURL = window.URL.revokeObjectURL;
-      const downloads: Blob[] = [];
-      window.URL.createObjectURL = vi.fn((blob: Blob) => { downloads.push(blob); return 'blob:redacted-pdf'; });
-      window.URL.revokeObjectURL = vi.fn();
       const authorOf = async (blob: Blob) => (await PDFDocument.load(await blob.arrayBuffer(), { updateMetadata: false })).getAuthor();
-      try {
-        const drawArea = await loadFileAndGetDrawArea(await authored());
-        await settleUntil('the details footer', () => s.container.querySelector('[data-details-footer]') !== null);
-        await drawBox(drawArea, 50, 200, 200, 500);
-        const download = () => required(Array.from(s.container.querySelectorAll<HTMLButtonElement>('[role="toolbar"] button'))
-          .find((button) => button.textContent.includes('Download')), 'Download button');
-        await act(async () => { download().click(); });
-        await settleUntil('the untouched export', () => downloads.length === 1);
-        // Untouched: the saved file says what the original did.
-        expect(await authorOf(downloads[0])).toBe('Ada Lovelace');
+      const drawArea = await loadFileAndGetDrawArea(await authored());
+      await waitUntil(() => s.container.querySelector('[data-details-footer]') !== null);
+      await drawBox(drawArea, 50, 200, 200, 500);
+      const download = () => required(Array.from(s.container.querySelectorAll<HTMLButtonElement>('[role="toolbar"] button'))
+        .find((button) => button.textContent.includes('Download')), 'Download button');
+      await act(async () => { download().click(); });
+      await waitUntil(() => downloads.length === 1);
+      // Untouched: the saved file says what the original did.
+      expect(await authorOf(await downloads[0])).toBe('Ada Lovelace');
 
-        const review = required(Array.from(s.container.querySelectorAll<HTMLButtonElement>('[data-details-footer] button'))
-          .find((button) => button.textContent === 'Review'), 'Review button');
-        await act(async () => { review.click(); });
-        const row = query(document.body, '[data-detail-row="author"]');
-        const del = required(Array.from(row.querySelectorAll<HTMLButtonElement>('button')).find((b) => b.textContent === 'Delete'), 'Delete author');
-        await act(async () => { del.click(); });
-        expect(query(document.body, '[data-detail-row="author"]').getAttribute('data-detail-state')).toBe('deleted');
-        const done = required(Array.from(document.body.querySelectorAll<HTMLButtonElement>('dialog button')).find((b) => b.textContent === 'Done'), 'Done');
-        await act(async () => { done.click(); });
+      const review = required(Array.from(s.container.querySelectorAll<HTMLButtonElement>('[data-details-footer] button'))
+        .find((button) => button.textContent === 'Review'), 'Review button');
+      await act(async () => { review.click(); });
+      const row = query(document.body, '[data-detail-row="author"]');
+      const del = required(Array.from(row.querySelectorAll<HTMLButtonElement>('button')).find((b) => b.textContent === 'Delete'), 'Delete author');
+      await act(async () => { del.click(); });
+      expect(query(document.body, '[data-detail-row="author"]').getAttribute('data-detail-state')).toBe('deleted');
+      const done = required(Array.from(document.body.querySelectorAll<HTMLButtonElement>('dialog button')).find((b) => b.textContent === 'Done'), 'Done');
+      await act(async () => { done.click(); });
 
-        await act(async () => { download().click(); });
-        await settleUntil('the export with the edit', () => downloads.length === 2);
-        expect(await authorOf(downloads[1])).toBeUndefined();
-      } finally {
-        window.URL.createObjectURL = originalCreateObjectURL;
-        window.URL.revokeObjectURL = originalRevokeObjectURL;
-      }
+      await act(async () => { download().click(); });
+      await waitUntil(() => downloads.length === 2);
+      expect(await authorOf(await downloads[1])).toBeUndefined();
     });
   });
 
   it('RED-31: Space peeks under every box, the Peek button shows it, and an export taken while peeking is unchanged', async () => {
-    s.restoreCanvas = installCanvasEdge();
-    const originalCreateObjectURL = window.URL.createObjectURL;
-    const originalRevokeObjectURL = window.URL.revokeObjectURL;
-    window.URL.createObjectURL = vi.fn(() => 'blob:redacted-pdf');
-    window.URL.revokeObjectURL = vi.fn();
-    try {
-      const drawArea = await loadFileAndGetDrawArea();
-      await drawBox(drawArea, 50, 200, 200, 500);
-      const box = query(s.container, '[data-redact-box-id]');
-      const peekButton = query(s.container, '[data-redact-peek]');
-      expect(peekButton.getAttribute('aria-pressed')).toBe('false');
-      expect(box.hasAttribute('data-peeking')).toBe(false);
+    const drawArea = await loadFileAndGetDrawArea();
+    await drawBox(drawArea, 50, 200, 200, 500);
+    const box = query(s.container, '[data-redact-box-id]');
+    const peekButton = query(s.container, '[data-redact-peek]');
+    expect(peekButton.getAttribute('aria-pressed')).toBe('false');
+    expect(box.hasAttribute('data-peeking')).toBe(false);
 
-      await act(async () => { document.body.dispatchEvent(new KeyboardEvent('keydown', { code: 'Space', bubbles: true })); });
-      expect(box.hasAttribute('data-peeking')).toBe(true);
-      expect(peekButton.getAttribute('aria-pressed')).toBe('true');
+    await act(async () => { document.body.dispatchEvent(new KeyboardEvent('keydown', { code: 'Space', bubbles: true })); });
+    expect(box.hasAttribute('data-peeking')).toBe(true);
+    expect(peekButton.getAttribute('aria-pressed')).toBe('true');
 
-      const download = () => required(Array.from(s.container.querySelectorAll<HTMLButtonElement>('[role="toolbar"] button'))
-        .find((button) => button.textContent.includes('Download')), 'Download button');
-      const revokedBefore = (window.URL.revokeObjectURL as Mock).mock.calls.length;
-      canvasEdge.fills = [];
-      await act(async () => { download().click(); });
-      await settleUntil('the export while peeking', () => (window.URL.revokeObjectURL as Mock).mock.calls.length > revokedBefore);
-      // What the export painted onto the page picture, box by box: the peek is not in it.
-      const whilePeeking = [...canvasEdge.fills];
-      expect(whilePeeking.some((fill) => fill.startsWith('#000000 '))).toBe(true);
+    const download = () => required(Array.from(s.container.querySelectorAll<HTMLButtonElement>('[role="toolbar"] button'))
+      .find((button) => button.textContent.includes('Download')), 'Download button');
+    await act(async () => { download().click(); });
+    await waitUntil(() => downloads.length === 1);
+    await expectBoxOnPage(await downloads[0]);
 
-      await act(async () => { document.body.dispatchEvent(new KeyboardEvent('keyup', { code: 'Space', bubbles: true })); });
-      expect(box.hasAttribute('data-peeking')).toBe(false);
-      const revokedMid = (window.URL.revokeObjectURL as Mock).mock.calls.length;
-      canvasEdge.fills = [];
-      await act(async () => { download().click(); });
-      await settleUntil('the export after peeking', () => (window.URL.revokeObjectURL as Mock).mock.calls.length > revokedMid);
-      expect(canvasEdge.fills).toEqual(whilePeeking);
-    } finally {
-      window.URL.createObjectURL = originalCreateObjectURL;
-      window.URL.revokeObjectURL = originalRevokeObjectURL;
-    }
+    await act(async () => { document.body.dispatchEvent(new KeyboardEvent('keyup', { code: 'Space', bubbles: true })); });
+    expect(box.hasAttribute('data-peeking')).toBe(false);
+    await act(async () => { download().click(); });
+    await waitUntil(() => downloads.length === 2);
+    await expectBoxOnPage(await downloads[1]);
   });
 
   it('RED-31: a long press on the Peek button cannot start a text selection or a callout', async () => {
@@ -126,12 +149,13 @@ describe('PdfRedactTool UI flow', () => {
     await drawBox(drawArea, 50, 200, 200, 500);
     const box = query(s.container, '[data-redact-box-id]');
     const style = box.getAttribute('style');
+    const down = clientPoint(drawArea, 100, 300);
     vi.useFakeTimers();
     try {
-      act(() => { box.dispatchEvent(new MouseEvent('mousedown', { clientX: 100, clientY: 300, bubbles: true })); });
+      act(() => { box.dispatchEvent(new MouseEvent('mousedown', { ...down, bubbles: true })); });
       act(() => { vi.advanceTimersByTime(250); });
       expect(box.hasAttribute('data-peeking')).toBe(true);
-      document.body.dispatchEvent(new MouseEvent('mousemove', { clientX: 160, clientY: 380, bubbles: true }));
+      document.body.dispatchEvent(new MouseEvent('mousemove', { clientX: down.clientX + 60, clientY: down.clientY + 80, bubbles: true }));
       expect(box.style.transform).not.toContain('translate(');
       act(() => { document.dispatchEvent(new MouseEvent('mouseup')); window.dispatchEvent(new MouseEvent('mouseup')); });
       expect(box.hasAttribute('data-peeking')).toBe(false);
@@ -145,10 +169,11 @@ describe('PdfRedactTool UI flow', () => {
     const drawArea = await loadFileAndGetDrawArea();
     await drawBox(drawArea, 50, 200, 200, 500);
     const box = query(s.container, '[data-redact-box-id]');
+    const down = clientPoint(drawArea, 100, 300);
     vi.useFakeTimers();
     try {
-      act(() => { box.dispatchEvent(new MouseEvent('mousedown', { clientX: 100, clientY: 300, bubbles: true })); });
-      act(() => { document.body.dispatchEvent(new MouseEvent('mousemove', { clientX: 108, clientY: 300, bubbles: true })); });
+      act(() => { box.dispatchEvent(new MouseEvent('mousedown', { ...down, bubbles: true })); });
+      act(() => { document.body.dispatchEvent(new MouseEvent('mousemove', { clientX: down.clientX + 8, clientY: down.clientY, bubbles: true })); });
       expect(box.style.transform).toContain('translate(');
       act(() => { vi.advanceTimersByTime(400); });
       expect(box.hasAttribute('data-peeking')).toBe(false);
@@ -159,73 +184,54 @@ describe('PdfRedactTool UI flow', () => {
   });
 
   it('keeps the same PDF page mounted while redacting', async () => {
-    const originalCreateObjectURL = window.URL.createObjectURL;
-    const originalRevokeObjectURL = window.URL.revokeObjectURL;
-    window.URL.createObjectURL = vi.fn(() => 'blob:redacted-pdf');
-    window.URL.revokeObjectURL = vi.fn();
+    const drawArea = await loadFileAndGetDrawArea();
+    await drawBox(drawArea, 50, 200, 200, 500);
+    const pageBefore = s.container.querySelector('.redact-draw-area');
+    const downloadButton = required(Array.from(s.container.querySelectorAll<HTMLButtonElement>('[role="toolbar"] button'))
+      .find((button) => button.textContent.includes('Download')), 'Download button');
 
-    try {
-      const drawArea = await loadFileAndGetDrawArea();
-      await drawBox(drawArea, 50, 200, 200, 500);
-      const pageBefore = s.container.querySelector('.redact-draw-area');
-      const downloadButton = required(Array.from(s.container.querySelectorAll<HTMLButtonElement>('[role="toolbar"] button'))
-        .find((button) => button.textContent.includes('Download')), 'Download button');
+    const held = holdNextExport();
+    await act(async () => {
+      downloadButton.click();
+    });
+    await act(async () => { await held.started; });
 
-      // The export's own pdf.js read is held open, so the export is in flight.
-      const exportRead = holdNextDocumentRead();
-      await act(async () => {
-        downloadButton.click();
-      });
-      await settleUntil('the export to reach its pdf.js read', exportRead.reached);
+    expect(s.container.querySelector('.redact-draw-area')).toBe(pageBefore);
+    expect(s.container.querySelector('[data-workspace]').hasAttribute('data-processing')).toBe(true);
+    expect(s.container.querySelector('[data-workspace]').getAttribute('aria-busy')).toBe('true');
 
-      expect(s.container.querySelector('.redact-draw-area')).toBe(pageBefore);
-      expect(s.container.querySelector('[data-workspace]').hasAttribute('data-processing')).toBe(true);
-      expect(s.container.querySelector('[data-workspace]').getAttribute('aria-busy')).toBe('true');
-
-      await act(async () => { exportRead.release(); });
-      await settleUntil('the export to finish', () => !s.container.querySelector('[data-workspace]')!.hasAttribute('data-processing'));
-    } finally {
-      window.URL.createObjectURL = originalCreateObjectURL;
-      window.URL.revokeObjectURL = originalRevokeObjectURL;
-    }
+    await act(async () => { held.release(); });
+    await waitUntil(() => !s.container.querySelector('[data-workspace]')!.hasAttribute('data-processing'));
   });
 
   it('exports the bytes it already holds when the picked file can no longer be read (DEBT-51)', async () => {
-    s.restoreCanvas = installCanvasEdge();
-    const originalCreateObjectURL = window.URL.createObjectURL;
-    const originalRevokeObjectURL = window.URL.revokeObjectURL;
-    const downloads: Blob[] = [];
-    window.URL.createObjectURL = vi.fn((blob: Blob) => { downloads.push(blob); return 'blob:redacted-pdf'; });
-    window.URL.revokeObjectURL = vi.fn();
+    const picked = makePdfFile('gone.pdf');
+    const drawArea = await loadFileAndGetDrawArea(picked);
+    // Moved or deleted on disk after picking: Chromium rejects the re-read.
+    picked.arrayBuffer = () => Promise.reject(new DOMException('gone', 'NotFoundError'));
+    await drawBox(drawArea, 50, 200, 200, 500);
+    const download = () => required(Array.from(s.container.querySelectorAll<HTMLButtonElement>('[role="toolbar"] button'))
+      .find((button) => button.textContent.includes('Download')), 'Download button');
 
-    try {
-      const picked = makePdfFile('gone.pdf');
-      const drawArea = await loadFileAndGetDrawArea(picked);
-      // Moved or deleted on disk after picking: Chromium rejects the re-read.
-      picked.arrayBuffer = () => Promise.reject(new DOMException('gone', 'NotFoundError'));
-      await drawBox(drawArea, 50, 200, 200, 500);
-      const download = () => required(Array.from(s.container.querySelectorAll<HTMLButtonElement>('[role="toolbar"] button'))
-        .find((button) => button.textContent.includes('Download')), 'Download button');
+    // A re-read of the File would fail the export; both exports deliver a real two-page PDF instead.
+    const delivered = async (count: number) => {
+      await waitUntil(() => downloads.length === count || s.container.textContent.includes(englishRedactMessages.exportFailed));
+      expect(s.container.textContent).not.toContain(englishRedactMessages.exportFailed);
+    };
+    await act(async () => { download().click(); });
+    await delivered(1);
+    await act(async () => { download().click(); });
+    await delivered(2);
 
-      // A re-read of the File would fail the export; both exports deliver a real two-page PDF instead.
-      await act(async () => { download().click(); });
-      await settleUntil('the first export to deliver', () => downloads.length === 1);
-      await act(async () => { download().click(); });
-      await settleUntil('the second export to deliver', () => downloads.length === 2);
-
-      for (const blob of downloads) {
-        expect((await PDFDocument.load(await blob.arrayBuffer())).getPageCount()).toBe(2);
-      }
-      expect(await failedOperations()).toEqual([]);
-      expect(s.harness.usageEvents('tool_result_ready')).toHaveLength(2);
-    } finally {
-      window.URL.createObjectURL = originalCreateObjectURL;
-      window.URL.revokeObjectURL = originalRevokeObjectURL;
+    for (const blob of await Promise.all(downloads)) {
+      expect((await PDFDocument.load(await blob.arrayBuffer())).getPageCount()).toBe(2);
     }
+    expect(await failedOperations()).toEqual([]);
+    await s.harness.flush();
+    expect(s.harness.usageEvents('tool_result_ready')).toHaveLength(2);
   });
 
   it('shares a valid PDF prepared from the real num-1.pdf fixture', async () => {
-    s.restoreCanvas = installCanvasEdge();
     const originalShare = navigator.share;
     const originalCanShare = navigator.canShare;
     // forced: the OS share sheet exists only on devices with one
@@ -235,10 +241,8 @@ describe('PdfRedactTool UI flow', () => {
     Object.defineProperty(navigator, 'canShare', { configurable: true, value: vi.fn(() => true) });
 
     try {
-      const fixturePath = `${__dirname}/../../lib/__fixtures__/num-1.pdf`;
-      const fixtureBytes = fs.readFileSync(fixturePath);
       const drawArea = await loadFileAndGetDrawArea(
-        new File([fixtureBytes], 'num-1.pdf', { type: 'application/pdf' })
+        new File([await (await fetch(numOneUrl)).arrayBuffer()], 'num-1.pdf', { type: 'application/pdf' })
       );
       await drawBox(drawArea, 50, 200, 200, 500);
 
@@ -247,10 +251,7 @@ describe('PdfRedactTool UI flow', () => {
       await act(async () => {
         prepareButton.click();
       });
-      await settleUntil(
-        'the prepared share file',
-        () => s.container.querySelector('button[title="Share the redacted PDF"]') !== null,
-      );
+      await waitUntil(() => s.container.querySelector('button[title="Share the redacted PDF"]') !== null);
 
       expect(s.container.querySelector('[data-workspace]')).not.toBeNull();
       // Label stays "Share" in both states (MOBI-07 follow-up), so the ready
@@ -265,13 +266,6 @@ describe('PdfRedactTool UI flow', () => {
       const sharedFile = required(share.mock.calls[0]?.[0]?.files?.[0], 'shared PDF file');
       expect(sharedFile.name).toBe('redacted_num-1.pdf');
 
-      // pdf-lib, not pdf.js, to prove the shared bytes are a one-page PDF: the
-      // real pdf.js legacy build is 3.4MB to import and evaluate plus a fake
-      // worker to spin up, all inside jsdom. Measured 2026-09-20: ~300ms with a
-      // core to itself, 5.2-5.5s when a saturated 4-core host runs ~32 forks,
-      // which is past Vitest's 5s default and was this file's one flake. The
-      // Delete tool's still-valid-PDF test below already checks the same way.
-      const { PDFDocument } = await import('@cantoo/pdf-lib');
       const shared = await PDFDocument.load(await sharedFile.arrayBuffer());
       expect(shared.getPageCount()).toBe(1);
     } finally {
@@ -286,13 +280,13 @@ describe('PdfRedactTool UI flow', () => {
     const drawArea = await loadFileAndGetDrawArea();
 
     await act(async () => {
-      drawArea.dispatchEvent(new MouseEvent('mousedown', { clientX: 50, clientY: 200, bubbles: true }));
+      drawArea.dispatchEvent(new MouseEvent('mousedown', { ...clientPoint(drawArea, 50, 200), bubbles: true }));
     });
     await act(async () => {
-      window.dispatchEvent(new MouseEvent('mousemove', { clientX: 100, clientY: 300, bubbles: true }));
+      window.dispatchEvent(new MouseEvent('mousemove', { ...clientPoint(drawArea, 100, 300), bubbles: true }));
     });
     await act(async () => {
-      window.dispatchEvent(new MouseEvent('mousemove', { clientX: 200, clientY: 500, bubbles: true }));
+      window.dispatchEvent(new MouseEvent('mousemove', { ...clientPoint(drawArea, 200, 500), bubbles: true }));
     });
     await act(async () => {
       window.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
@@ -313,12 +307,11 @@ describe('PdfRedactTool UI flow', () => {
     }
     async function paint(drawArea: HTMLElement, points: [number, number][]) {
       const layer = query(drawArea, '[data-brush-layer]');
-      layer.getBoundingClientRect = drawArea.getBoundingClientRect;
       await act(async () => {
-        layer.dispatchEvent(new MouseEvent('mousedown', { clientX: points[0][0], clientY: points[0][1], bubbles: true, cancelable: true }));
+        layer.dispatchEvent(new MouseEvent('mousedown', { ...clientPoint(layer, points[0][0], points[0][1]), bubbles: true, cancelable: true }));
       });
       for (const [x, y] of points.slice(1)) {
-        await act(async () => { window.dispatchEvent(new MouseEvent('mousemove', { clientX: x, clientY: y })); });
+        await act(async () => { window.dispatchEvent(new MouseEvent('mousemove', clientPoint(layer, x, y))); });
       }
       await act(async () => { window.dispatchEvent(new MouseEvent('mouseup')); });
     }
@@ -326,7 +319,8 @@ describe('PdfRedactTool UI flow', () => {
     it('a stroke commits exactly one simplified element and the brush stays armed', async () => {
       const drawArea = await loadFileAndGetDrawArea();
       await armBrush('Whiteout');
-      // 40 points 0.1px apart: far closer than the simplifier's step.
+      // 40 points 0.1 frame units apart: far closer than the simplifier's step. The brush reads MouseEvents,
+      // whose clientX/clientY Chromium floors to whole pixels, so most moves land on the previous pixel.
       const points: [number, number][] = Array.from({ length: 40 }, (_, i) => [100 + i * 0.1, 200]);
       await paint(drawArea, points);
 
@@ -366,15 +360,13 @@ describe('PdfRedactTool UI flow', () => {
     const box = s.container.querySelector('[data-redact-box-id]');
     expect(box).not.toBeNull();
 
-    const startLeft = pxToPercent(50, 500);
-    const startTop = pxToPercent(200, 1000);
-    const endLeft = pxToPercent(200, 500);
-    const endTop = pxToPercent(500, 1000);
+    const start = percentOn(drawArea, clientPoint(drawArea, 50, 200));
+    const end = percentOn(drawArea, clientPoint(drawArea, 200, 500));
 
-    expect(parseFloat(box.style.left)).toBeCloseTo(Math.min(startLeft, endLeft));
-    expect(parseFloat(box.style.top)).toBeCloseTo(Math.min(startTop, endTop));
-    expect(parseFloat(box.style.width)).toBeCloseTo(Math.abs(endLeft - startLeft));
-    expect(parseFloat(box.style.height)).toBeCloseTo(Math.abs(endTop - startTop));
+    expect(parseFloat(box.style.left)).toBeCloseTo(Math.min(start.x, end.x));
+    expect(parseFloat(box.style.top)).toBeCloseTo(Math.min(start.y, end.y));
+    expect(parseFloat(box.style.width)).toBeCloseTo(Math.abs(end.x - start.x));
+    expect(parseFloat(box.style.height)).toBeCloseTo(Math.abs(end.y - start.y));
   });
 
   it('drags an existing box by a percent delta computed via pxDeltaToPercent against the wrapper', async () => {
@@ -388,20 +380,22 @@ describe('PdfRedactTool UI flow', () => {
     const startTopPercent = parseFloat(box.style.top);
 
     await act(async () => {
-      box.dispatchEvent(new MouseEvent('mousedown', { clientX: 100, clientY: 100, bubbles: true }));
+      box.dispatchEvent(new MouseEvent('mousedown', { ...clientPoint(drawArea, 100, 100), bubbles: true }));
     });
     await act(async () => {
-      window.dispatchEvent(new MouseEvent('mousemove', { clientX: 150, clientY: 300 })); // dx=50 dy=200
+      window.dispatchEvent(new MouseEvent('mousemove', clientPoint(drawArea, 150, 300))); // dx=50 dy=200
     });
     await act(async () => {
-      window.dispatchEvent(new MouseEvent('mousemove', { clientX: 150, clientY: 300 }));
+      window.dispatchEvent(new MouseEvent('mousemove', clientPoint(drawArea, 150, 300)));
     });
     await act(async () => {
       window.dispatchEvent(new MouseEvent('mouseup'));
     });
 
-    const expectedLeft = startLeftPercent + pxDeltaToPercent(50, 500);
-    const expectedTop = startTopPercent + pxDeltaToPercent(200, 1000);
+    const down = percentOn(drawArea, clientPoint(drawArea, 100, 100));
+    const move = percentOn(drawArea, clientPoint(drawArea, 150, 300));
+    const expectedLeft = startLeftPercent + (move.x - down.x);
+    const expectedTop = startTopPercent + (move.y - down.y);
 
     expect(parseFloat(box.style.left)).toBeCloseTo(expectedLeft);
     expect(parseFloat(box.style.top)).toBeCloseTo(expectedTop);
@@ -424,7 +418,7 @@ describe('PdfRedactTool UI flow', () => {
     const box = s.container.querySelector('[data-redact-box-id]');
     // Select the box so the shared floating toolbar renders.
     await act(async () => {
-      box.dispatchEvent(new MouseEvent('mousedown', { clientX: 0, clientY: 0, bubbles: true }));
+      box.dispatchEvent(new MouseEvent('mousedown', { ...clientPoint(drawArea, 0, 0), bubbles: true }));
     });
     await act(async () => {
       window.dispatchEvent(new MouseEvent('mouseup'));
@@ -437,10 +431,10 @@ describe('PdfRedactTool UI flow', () => {
     const gestureCountBefore = s.gestureCommitSpies.length;
 
     await act(async () => {
-      deleteBtn.dispatchEvent(new MouseEvent('mousedown', { clientX: 100, clientY: 100, bubbles: true }));
+      deleteBtn.dispatchEvent(new MouseEvent('mousedown', { ...clientPoint(drawArea, 100, 100), bubbles: true }));
     });
     await act(async () => {
-      window.dispatchEvent(new MouseEvent('mousemove', { clientX: 150, clientY: 300 }));
+      window.dispatchEvent(new MouseEvent('mousemove', clientPoint(drawArea, 150, 300)));
     });
     await act(async () => {
       window.dispatchEvent(new MouseEvent('mouseup'));
@@ -461,7 +455,7 @@ describe('PdfRedactTool UI flow', () => {
     const startHeightPercent = parseFloat(box.style.height);
 
     await act(async () => {
-      box.dispatchEvent(new MouseEvent('mousedown', { clientX: 0, clientY: 0, bubbles: true }));
+      box.dispatchEvent(new MouseEvent('mousedown', { ...clientPoint(drawArea, 0, 0), bubbles: true }));
     });
     await act(async () => {
       window.dispatchEvent(new MouseEvent('mouseup'));
@@ -470,21 +464,25 @@ describe('PdfRedactTool UI flow', () => {
     const resizer = box.querySelector('[data-editor-resizer="bottom-right"]');
     expect(resizer).not.toBeNull();
 
+    const grab = centerOf(resizer);
+    const { dx, dy } = frameStep(drawArea, 30, 80);
     await act(async () => {
-      resizer.dispatchEvent(new MouseEvent('mousedown', { clientX: 100, clientY: 100, bubbles: true }));
+      resizer.dispatchEvent(new MouseEvent('mousedown', { ...grab, bubbles: true }));
     });
     await act(async () => {
-      window.dispatchEvent(new MouseEvent('mousemove', { clientX: 130, clientY: 180 })); // dx=30 dy=80
+      window.dispatchEvent(new MouseEvent('mousemove', { clientX: grab.clientX + dx, clientY: grab.clientY + dy })); // dx=30 dy=80
     });
     await act(async () => {
-      window.dispatchEvent(new MouseEvent('mousemove', { clientX: 130, clientY: 180 }));
+      window.dispatchEvent(new MouseEvent('mousemove', { clientX: grab.clientX + dx, clientY: grab.clientY + dy }));
     });
     await act(async () => {
       window.dispatchEvent(new MouseEvent('mouseup'));
     });
 
-    const expectedWidth = startWidthPercent + pxDeltaToPercent(30, 500);
-    const expectedHeight = startHeightPercent + pxDeltaToPercent(80, 1000);
+    const pressed = percentOn(drawArea, grab);
+    const released = percentOn(drawArea, { clientX: grab.clientX + dx, clientY: grab.clientY + dy });
+    const expectedWidth = startWidthPercent + (released.x - pressed.x);
+    const expectedHeight = startHeightPercent + (released.y - pressed.y);
 
     expect(parseFloat(box.style.width)).toBeCloseTo(expectedWidth);
     expect(parseFloat(box.style.height)).toBeCloseTo(expectedHeight);
@@ -496,17 +494,19 @@ describe('PdfRedactTool UI flow', () => {
     await drawBox(drawArea, 50, 200, 200, 500);
     const box = required(s.container.querySelector('[data-redact-box-id]'), 'box');
     await act(async () => {
-      box.dispatchEvent(new MouseEvent('mousedown', { clientX: 0, clientY: 0, bubbles: true }));
+      box.dispatchEvent(new MouseEvent('mousedown', { ...clientPoint(drawArea, 0, 0), bubbles: true }));
     });
     await act(async () => {
       window.dispatchEvent(new MouseEvent('mouseup'));
     });
     const resizer = required(box.querySelector('[data-editor-resizer="bottom-right"]'), 'resizer');
+    const grab = centerOf(resizer);
+    const { dx, dy } = frameStep(drawArea, 30, 80);
     await act(async () => {
-      resizer.dispatchEvent(new MouseEvent('mousedown', { clientX: 100, clientY: 100, bubbles: true }));
+      resizer.dispatchEvent(new MouseEvent('mousedown', { ...grab, bubbles: true }));
     });
     await act(async () => {
-      window.dispatchEvent(new MouseEvent('mousemove', { clientX: 130, clientY: 180 }));
+      window.dispatchEvent(new MouseEvent('mousemove', { clientX: grab.clientX + dx, clientY: grab.clientY + dy }));
     });
     const before = recentActions();
     expect(before).not.toContain('resize_mark');

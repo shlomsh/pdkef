@@ -1,7 +1,7 @@
 import { render } from 'preact';
 import { drainPromises } from '../../test/support/drainPromises.ts';
 import { act } from 'preact/test-utils';
-import { describe, expect, it, vi, type Mock } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import PdfRedactTool from './PdfRedactTool.tsx';
 import { CHECKING } from './lib/check/checkCopy.ts';
 import { englishRedactMessages } from './messages.ts';
@@ -9,17 +9,53 @@ import { recentActions } from '#lib/telemetry/actionTrail.ts';
 import { PDFDocument } from '@cantoo/pdf-lib';
 import { waitUntil } from '../../test/support/waitUntil.ts';
 import { setInputFiles } from '../../test/support/setInputFiles.js';
-import fs from 'node:fs';
-import * as gestureController from '#lib/gestures/controller.ts';
-import { installToolHarness } from '../../test/harness/toolHarness.ts';
+import { startGesture } from '#lib/gestures/controller.ts';
+import { applyPageEdits } from './lib/applyPageEdits.js';
+import { getPdfjs } from '#editor/adapters/pdf/pdfjsLoader.js';
+import { sendHandoff } from '#lib/handoff/sendHandoff.ts';
+import { installBrowserToolHarness } from '../../test/harness/browserToolHarness.ts';
+import { answerNetwork } from '../../test/support/network.browser.ts';
+import ownerOnlyUrl from '../../lib/__fixtures__/encrypted/owner-only.pdf?url';
+import needsPasswordUrl from '../../lib/__fixtures__/encrypted/needs-password.pdf?url';
 import { resetRatingPromptForTests } from '#shell/RatingPrompt.tsx';
 import toolbarStyles from '#editor-ui/SignToolbar.module.css';
-import { useRedactSuite, required, query, settleUntil, installCanvasEdge, buildPdf, makePdfFile } from '../../test/support/redactTool.tsx';
+import { useRedactSuite, required, query, settleUntil, buildPdf, makePdfFile } from '../../test/support/redactTool.browser.tsx';
 
-declare const __dirname: string;
+answerNetwork();
+
+vi.mock('#lib/gestures/controller.ts', { spy: true });
+vi.mock('./lib/applyPageEdits.js', { spy: true });
+vi.mock('#editor/adapters/pdf/pdfjsLoader.js', { spy: true });
+vi.mock('#lib/handoff/sendHandoff.ts', { spy: true });
+const { startGesture: realStartGesture } = await vi.importActual<typeof import('#lib/gestures/controller.ts')>('#lib/gestures/controller.ts');
+const { applyPageEdits: realApplyPageEdits } = await vi.importActual<typeof import('./lib/applyPageEdits.js')>('./lib/applyPageEdits.js');
+const { getPdfjs: realGetPdfjs } = await vi.importActual<typeof import('#editor/adapters/pdf/pdfjsLoader.js')>('#editor/adapters/pdf/pdfjsLoader.js');
+const { sendHandoff: realSendHandoff } = await vi.importActual<typeof import('#lib/handoff/sendHandoff.ts')>('#lib/handoff/sendHandoff.ts');
+
+const fixtureUrls = { 'owner-only.pdf': ownerOnlyUrl, 'needs-password.pdf': needsPasswordUrl };
 
 describe('PdfRedactTool UI flow', () => {
-  const { s, holdNextDocumentRead, lifecycle, failedOperations, loadFileAndGetDrawArea, armTool, drawBox, loadFileWithoutArming } = useRedactSuite({ Tool: PdfRedactTool, checking: CHECKING, gestureController, installToolHarness, waitUntil });
+  const { s, holdNextExport, lifecycle, failedOperations, loadFileAndGetDrawArea, armTool, drawBox, loadFileWithoutArming } = useRedactSuite({ Tool: PdfRedactTool, checking: CHECKING, gestureEntry: { spy: startGesture, real: realStartGesture }, installToolHarness: installBrowserToolHarness, waitUntil, exportEntry: { spy: applyPageEdits, real: realApplyPageEdits } });
+
+  const lifecycleAfterTheViewOnce = async () => {
+    const events = await lifecycle();
+    expect(events.filter(([name]) => name === 'tool_page_viewed')).toEqual([['tool_page_viewed', 'redact']]);
+    return events.filter(([name]) => name !== 'tool_page_viewed');
+  };
+  const downloads: { name: string; blob: Promise<Blob | undefined> }[] = [];
+  const recordDownload = (event: Event) => {
+    const link = (event.target as Element | null)?.closest?.('a[download]') as HTMLAnchorElement | null;
+    if (link) downloads.push({ name: link.download, blob: fetch(link.href).then((response) => response.blob(), () => undefined) });
+  };
+  beforeEach(() => {
+    downloads.length = 0;
+    vi.mocked(getPdfjs).mockReset();
+    vi.mocked(sendHandoff).mockReset();
+    document.addEventListener('click', recordDownload, { capture: true });
+  });
+  afterEach(() => {
+    document.removeEventListener('click', recordDownload, { capture: true });
+  });
 
   it('renders the initial file dropper zone', () => {
     s.container = document.createElement('div');
@@ -74,61 +110,45 @@ describe('PdfRedactTool UI flow', () => {
   });
 
   it('keeps the redaction editor open after downloading', async () => {
-    s.restoreCanvas = installCanvasEdge();
-    const originalCreateObjectURL = window.URL.createObjectURL;
-    const originalRevokeObjectURL = window.URL.revokeObjectURL;
-    window.URL.createObjectURL = vi.fn(() => 'blob:redacted-pdf');
-    window.URL.revokeObjectURL = vi.fn();
+    const drawArea = await loadFileAndGetDrawArea();
+    await drawBox(drawArea, 50, 200, 200, 500);
 
-    try {
-      const drawArea = await loadFileAndGetDrawArea();
-      await drawBox(drawArea, 50, 200, 200, 500);
+    const generateButton = required(Array.from(s.container.querySelectorAll<HTMLButtonElement>('[role="toolbar"] button'))
+      .find((button) => button.textContent.includes('Download')), 'Download button');
 
-      const generateButton = required(Array.from(s.container.querySelectorAll<HTMLButtonElement>('[role="toolbar"] button'))
-        .find((button) => button.textContent.includes('Download')), 'Download button');
+    await act(async () => {
+      generateButton.click();
+    });
+    // A bare `click()` does not await the handler it fires, and that handler
+    // has a chunk to load before it reaches redactPdf. Wait for the download
+    // the whole export ends in.
+    await settleUntil('the redacted PDF to be downloaded', () => s.container.textContent.includes('Saved redacted_test_secret.pdf'));
 
-      await act(async () => {
-        generateButton.click();
-      });
-      // A bare `click()` does not await the handler it fires, and that handler
-      // has a chunk to load before it reaches redactPdf. Wait for the download
-      // the whole export ends in.
-      await settleUntil(
-        'the redacted PDF to be downloaded',
-        () => (window.URL.revokeObjectURL as Mock).mock.calls.length > 0,
-      );
-
-      expect(s.container.querySelector('[data-workspace]')).not.toBeNull();
-      expect(s.container.querySelector('[data-redact-box-id]')).not.toBeNull();
-      expect(s.container.querySelector('.download-button')).toBeNull();
-      expect(window.URL.revokeObjectURL).toHaveBeenCalledWith('blob:redacted-pdf');
-      // DEBT-28: a file in, then one started and one ready, nothing failed.
-      expect(await lifecycle()).toEqual([
-        ['tool_page_viewed', 'redact'],
-        ['tool_file_accepted', 'redact'],
-        ['tool_first_edit', 'redact'],
-        ['tool_operation_started', 'redact'],
-        ['tool_result_ready', 'redact'],
-      ]);
-      // DEBT-31: the trail reads as what the person did, names only.
-      expect(recentActions()).toEqual(['add_files', 'arm_tool', 'place_mark', 'export', 'download']);
-    } finally {
-      window.URL.createObjectURL = originalCreateObjectURL;
-      window.URL.revokeObjectURL = originalRevokeObjectURL;
-    }
+    expect(s.container.querySelector('[data-workspace]')).not.toBeNull();
+    expect(s.container.querySelector('[data-redact-box-id]')).not.toBeNull();
+    expect(s.container.querySelector('.download-button')).toBeNull();
+    expect(downloads.map((d) => d.name)).toEqual(['redacted_test_secret.pdf']);
+    const saved = required(await downloads[0].blob, 'the saved file');
+    expect((await PDFDocument.load(await saved.arrayBuffer())).getPageCount()).toBe(2);
+    // DEBT-28: a file in, then one started and one ready, nothing failed.
+    expect(await lifecycleAfterTheViewOnce()).toEqual([
+      ['tool_file_accepted', 'redact'],
+      ['tool_first_edit', 'redact'],
+      ['tool_operation_started', 'redact'],
+      ['tool_result_ready', 'redact'],
+    ]);
+    // DEBT-31: the trail reads as what the person did, names only.
+    expect(recentActions()).toEqual(['add_files', 'arm_tool', 'place_mark', 'export', 'download']);
   });
 
   it('DEBT-31: a file that fails to load still leaves add_files on the trail', async () => {
     const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
     try {
-      s.harness.pdfjs.getDocument.mockImplementationOnce(() => ({
-        promise: Promise.reject(new Error('corrupt')),
-      }) as never);
       s.container = document.createElement('div');
       document.body.appendChild(s.container);
       act(() => { render(<PdfRedactTool />, s.container); });
       const input = query<HTMLInputElement>(s.container, 'input[type="file"]');
-      await act(async () => { setInputFiles(input, [makePdfFile('broken.pdf')]); });
+      await act(async () => { setInputFiles(input, [makePdfFile('broken.pdf', new TextEncoder().encode('this is not a pdf'))]); });
       await waitUntil(() => expect(s.container.textContent).toContain("This PDF didn't open"));
       await s.harness.flush();
       // Drain the rejected load's promise chain: the exact trail below proves nothing else was recorded after the failure.
@@ -144,11 +164,8 @@ describe('PdfRedactTool UI flow', () => {
     try {
       const drawArea = await loadFileAndGetDrawArea();
       await drawBox(drawArea, 50, 200, 200, 500);
-      // The export's own pdf.js read is where the stale chunk fails to load.
-      s.harness.pdfjs.getDocument.mockImplementationOnce((() => ({
-        promise: Promise.reject(new TypeError('Failed to fetch dynamically imported module: https://pdkef.com/_astro/applyPageEdits.x.js')),
-        destroy: async () => {},
-      })) as never);
+      // forced: the export's chunk fails to load, as it does in a tab left open across a deploy.
+      vi.mocked(applyPageEdits).mockRejectedValueOnce(new TypeError('Failed to fetch dynamically imported module: https://pdkef.com/_astro/applyPageEdits.x.js'));
       const downloadButton = required(Array.from(s.container.querySelectorAll<HTMLButtonElement>('[role="toolbar"] button'))
         .find((button) => button.textContent.includes('Download')), 'Download button');
       await act(async () => { downloadButton.click(); });
@@ -163,53 +180,41 @@ describe('PdfRedactTool UI flow', () => {
   });
 
   it('RED-50: a download that throws shows the error and no Saved line, and Download again completes', async () => {
-    s.restoreCanvas = installCanvasEdge();
-    const originalCreateObjectURL = window.URL.createObjectURL;
-    const originalRevokeObjectURL = window.URL.revokeObjectURL;
-    window.URL.createObjectURL = vi.fn(() => { throw new Error('blocked'); });
-    window.URL.revokeObjectURL = vi.fn();
     const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
     try {
       const drawArea = await loadFileAndGetDrawArea();
       await drawBox(drawArea, 50, 200, 200, 500);
       const downloadButton = () => required(Array.from(s.container.querySelectorAll<HTMLButtonElement>('[role="toolbar"] button'))
         .find((button) => button.textContent.includes('Download')), 'Download button');
+      // forced: the browser refuses to make the download link.
+      vi.mocked(URL.createObjectURL).mockImplementationOnce(() => { throw new Error('blocked'); });
       await act(async () => { downloadButton().click(); });
       await settleUntil('the failure', () => s.container.textContent.includes('The download stopped.'));
       expect(s.container.textContent).not.toContain('Saved redacted');
       expect(downloadButton().disabled).toBe(false);
       // DEBT-31: the trigger is on the trail even though the export threw.
       expect(recentActions()).toContain('export');
-      expect(await lifecycle()).toEqual([
-        ['tool_page_viewed', 'redact'],
+      expect(await lifecycleAfterTheViewOnce()).toEqual([
         ['tool_file_accepted', 'redact'],
         ['tool_first_edit', 'redact'],
         ['tool_operation_started', 'redact'],
         ['tool_operation_failed', 'redact'],
       ]);
 
-      window.URL.createObjectURL = vi.fn(() => 'blob:redacted-pdf');
+      expect(downloads).toHaveLength(0);
       await act(async () => { downloadButton().click(); });
-      await settleUntil('the retry to be downloaded', () => (window.URL.revokeObjectURL as Mock).mock.calls.length > 0);
+      await settleUntil('the retry to be downloaded', () => s.container.textContent.includes('Saved redacted'));
       expect(s.container.textContent).not.toContain('The download stopped.');
-      expect(s.container.textContent).toContain('Saved redacted');
+      expect(downloads.map((d) => d.name)).toEqual(['redacted_test_secret.pdf']);
     } finally {
       errorSpy.mockRestore();
-      window.URL.createObjectURL = originalCreateObjectURL;
-      window.URL.revokeObjectURL = originalRevokeObjectURL;
     }
   });
 
   it('RED-60: Remove it is a history step every export replays; Undo takes it back out', async () => {
-    s.restoreCanvas = installCanvasEdge();
-    const originalCreateObjectURL = window.URL.createObjectURL;
-    const originalRevokeObjectURL = window.URL.revokeObjectURL;
-    const downloads: Blob[] = [];
-    window.URL.createObjectURL = vi.fn((blob: Blob) => { downloads.push(blob); return 'blob:redacted-pdf'; });
-    window.URL.revokeObjectURL = vi.fn();
     // What the saved file says about itself: the check reads this title back and offers to remove it.
-    const titleOf = async (blob: Blob) => (await PDFDocument.load(await blob.arrayBuffer(), { updateMetadata: false })).getTitle();
-    try {
+    const titleOf = async (download: (typeof downloads)[number]) => (await PDFDocument.load(await required(await download.blob, 'the saved file').arrayBuffer(), { updateMetadata: false })).getTitle();
+    {
       const drawArea = await loadFileAndGetDrawArea(makePdfFile('titled.pdf', await buildPdf(2, { title: 'Secret title' })));
       await drawBox(drawArea, 50, 200, 200, 500);
       const buttons = () => Array.from(s.container.querySelectorAll<HTMLButtonElement>('[role="toolbar"] button'));
@@ -238,9 +243,6 @@ describe('PdfRedactTool UI flow', () => {
       await act(async () => { download().click(); });
       await settleUntil('the export without the removal', () => downloads.length === 3);
       expect(await titleOf(downloads[2])).toBe('Secret title');
-    } finally {
-      window.URL.createObjectURL = originalCreateObjectURL;
-      window.URL.revokeObjectURL = originalRevokeObjectURL;
     }
   });
 
@@ -249,33 +251,24 @@ describe('PdfRedactTool UI flow', () => {
   // place, and the one rating dialog (SEO-55) open exactly once, is state, proved here.
   it('RED-66: a second toolbar Download keeps the done strip and the one rating dialog', async () => {
     resetRatingPromptForTests();
-    s.restoreCanvas = installCanvasEdge();
-    const originalCreateObjectURL = window.URL.createObjectURL;
-    const originalRevokeObjectURL = window.URL.revokeObjectURL;
-    window.URL.createObjectURL = vi.fn(() => 'blob:redacted-pdf');
-    window.URL.revokeObjectURL = vi.fn();
-    const revoked = () => (window.URL.revokeObjectURL as Mock).mock.calls.length;
     const strip = () => s.container.querySelector('[data-redact-done-strip]');
     const asks = () => document.querySelectorAll('dialog[aria-labelledby="rating-modal-title"]').length;
-    try {
+    {
       const drawArea = await loadFileAndGetDrawArea();
       await drawBox(drawArea, 50, 200, 200, 500);
       const downloadButton = () => required(Array.from(s.container.querySelectorAll<HTMLButtonElement>('[role="toolbar"] button'))
         .find((button) => button.textContent?.includes('Download')), 'Download button');
 
       await act(async () => { downloadButton().click(); });
-      await settleUntil('the first download', () => revoked() >= 1);
+      await settleUntil('the first download', () => downloads.length >= 1);
       await settleUntil('the done strip', () => strip() !== null);
       // The ask waits 1.5s after a download (RatingPrompt's SHOW_DELAY_MS).
       await settleUntil('the rating ask', () => asks() === 1, 4000);
 
       await act(async () => { downloadButton().click(); });
-      await settleUntil('the second download', () => revoked() >= 2);
+      await settleUntil('the second download', () => downloads.length >= 2);
       expect(strip()).not.toBeNull();
       expect(asks()).toBe(1);
-    } finally {
-      window.URL.createObjectURL = originalCreateObjectURL;
-      window.URL.revokeObjectURL = originalRevokeObjectURL;
     }
   }, 15000);
 
@@ -283,6 +276,8 @@ describe('PdfRedactTool UI flow', () => {
   // place (EditorExportActions' `.desktop-download`, hidden by SignToolbar.module.css). With no
   // Share, Download is the only way to finish from the toolbar, so it must not wear that class.
   it('keeps the toolbar\'s own Download unhidden when native Share is unavailable', async () => {
+    // forced: headless Chromium answers differently per platform (native share exists on macOS, not
+    // on Linux), so the no-Share case is pinned on both.
     const originalShare = Object.getOwnPropertyDescriptor(navigator, 'share');
     const originalCanShare = Object.getOwnPropertyDescriptor(navigator, 'canShare');
     Object.defineProperty(navigator, 'share', { configurable: true, value: undefined });
@@ -327,31 +322,22 @@ describe('PdfRedactTool UI flow', () => {
   });
 
   it('a name typed in the identity row is the displayed name and the saved name', async () => {
-    s.restoreCanvas = installCanvasEdge();
-    const originalCreateObjectURL = window.URL.createObjectURL;
-    const originalRevokeObjectURL = window.URL.revokeObjectURL;
-    window.URL.createObjectURL = vi.fn(() => 'blob:redacted-pdf');
-    window.URL.revokeObjectURL = vi.fn();
-    try {
-    const drawArea = await loadFileAndGetDrawArea(makePdfFile('secret.pdf'));
-    await drawBox(drawArea, 50, 200, 200, 500);
+  const drawArea = await loadFileAndGetDrawArea(makePdfFile('secret.pdf'));
+  await drawBox(drawArea, 50, 200, 200, 500);
 
-    const nameEl = () => query(s.container, '[data-file-identity] [data-output-name] [aria-label][tabindex]');
-    await act(async () => { nameEl().dispatchEvent(new MouseEvent('mousedown', { bubbles: true })); });
-    await act(async () => { nameEl().textContent = 'Board minutes'; });
-    await act(async () => {
-      nameEl().dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }));
-    });
-    expect(query(s.container, '[data-file-identity] [data-output-name]').textContent).toBe('Board minutes.pdf');
+  const nameEl = () => query(s.container, '[data-file-identity] [data-output-name] [aria-label][tabindex]');
+  await act(async () => { nameEl().dispatchEvent(new MouseEvent('mousedown', { bubbles: true })); });
+  await act(async () => { nameEl().textContent = 'Board minutes'; });
+  await act(async () => {
+    nameEl().dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }));
+  });
+  expect(query(s.container, '[data-file-identity] [data-output-name]').textContent).toBe('Board minutes.pdf');
 
-    const download = required(Array.from(s.container.querySelectorAll<HTMLButtonElement>('[role="toolbar"] button'))
-      .find((button) => button.textContent.includes('Download')), 'Download button');
-    await act(async () => { download.click(); });
-    await settleUntil('the saved name', () => s.container.textContent.includes('Saved Board minutes.pdf'));
-    } finally {
-      window.URL.createObjectURL = originalCreateObjectURL;
-      window.URL.revokeObjectURL = originalRevokeObjectURL;
-    }
+  const download = required(Array.from(s.container.querySelectorAll<HTMLButtonElement>('[role="toolbar"] button'))
+    .find((button) => button.textContent.includes('Download')), 'Download button');
+  await act(async () => { download.click(); });
+  await settleUntil('the saved name', () => s.container.textContent.includes('Saved Board minutes.pdf'));
+  expect(downloads.map((d) => d.name)).toEqual(['Board minutes.pdf']);
   });
 
   // DEBT-18: the export is the one async path here whose stale result is a
@@ -363,60 +349,47 @@ describe('PdfRedactTool UI flow', () => {
   // that reason.
   describe('an edit that lands mid-export (DEBT-18)', () => {
     it('drops an export whose boxes a keyboard redo has already changed', async () => {
-      s.restoreCanvas = installCanvasEdge();
-      const originalCreateObjectURL = window.URL.createObjectURL;
-      const originalRevokeObjectURL = window.URL.revokeObjectURL;
-      const createObjectURL = vi.fn(() => 'blob:redacted-pdf');
-      window.URL.createObjectURL = createObjectURL;
-      window.URL.revokeObjectURL = vi.fn();
+      const drawArea = await loadFileAndGetDrawArea();
+      await drawBox(drawArea, 50, 200, 200, 500); // box A
+      await armTool('Blackout');
+      await drawBox(drawArea, 60, 220, 220, 520); // box B
 
-      try {
-        const drawArea = await loadFileAndGetDrawArea();
-        await drawBox(drawArea, 50, 200, 200, 500); // box A
-        await armTool('Blackout');
-        await drawBox(drawArea, 60, 220, 220, 520); // box B
+      // Undo box B, so the export started below covers box A alone and box
+      // B is sitting in the redo future one keystroke away.
+      await act(async () => {
+        window.dispatchEvent(new KeyboardEvent('keydown', { key: 'z', ctrlKey: true, bubbles: true }));
+      });
+      expect(s.container.querySelectorAll('[data-redact-box-id]')).toHaveLength(1);
 
-        // Undo box B, so the export started below covers box A alone and box
-        // B is sitting in the redo future one keystroke away.
-        await act(async () => {
-          window.dispatchEvent(new KeyboardEvent('keydown', { key: 'z', ctrlKey: true, bubbles: true }));
-        });
-        expect(s.container.querySelectorAll('[data-redact-box-id]')).toHaveLength(1);
+      const downloadButton = required(Array.from(s.container.querySelectorAll<HTMLButtonElement>('[role="toolbar"] button'))
+        .find((button) => button.textContent.includes('Download')), 'Download button');
+      const held = holdNextExport();
+      await act(async () => {
+        downloadButton.click();
+      });
+      await act(async () => { await held.started; });
 
-        const downloadButton = required(Array.from(s.container.querySelectorAll<HTMLButtonElement>('[role="toolbar"] button'))
-          .find((button) => button.textContent.includes('Download')), 'Download button');
-        const exportRead = holdNextDocumentRead();
-        await act(async () => {
-          downloadButton.click();
-        });
-        await settleUntil('the export to reach its pdf.js read', exportRead.reached);
+      const workspace = query(s.container, '[data-workspace]');
+      expect(workspace.hasAttribute('data-processing')).toBe(true);
 
-        const workspace = query(s.container, '[data-workspace]');
-        expect(workspace.hasAttribute('data-processing')).toBe(true);
+      // The keystroke the processing overlay cannot block.
+      await act(async () => {
+        window.dispatchEvent(new KeyboardEvent('keydown', { key: 'z', ctrlKey: true, shiftKey: true, bubbles: true }));
+      });
+      expect(s.container.querySelectorAll('[data-redact-box-id]')).toHaveLength(2);
 
-        // The keystroke the processing overlay cannot block.
-        await act(async () => {
-          window.dispatchEvent(new KeyboardEvent('keydown', { key: 'z', ctrlKey: true, shiftKey: true, bubbles: true }));
-        });
-        expect(s.container.querySelectorAll('[data-redact-box-id]')).toHaveLength(2);
+      await held.runToEnd();
 
-        createObjectURL.mockClear();
-        await exportRead.runToEnd();
+      // Two boxes are on the page; the blob that just resolved has one.
+      // Nothing may offer it: no download, and no saved state kept for the
+      // hand-off with bytes that are missing the box already restored (the
+      // chips still show, but a tap makes a fresh export).
+      expect(downloads).toHaveLength(0);
+      expect(s.container.textContent).not.toContain('Saved redacted_');
 
-        // Two boxes are on the page; the blob that just resolved has one.
-        // Nothing may offer it: no download, and no saved state kept for the
-        // hand-off with bytes that are missing the box already restored (the
-        // chips still show, but a tap makes a fresh export).
-        expect(createObjectURL).not.toHaveBeenCalled();
-        expect(s.container.textContent).not.toContain('Saved redacted_');
-
-        // Dropping the export still has to hand the editor back.
-        expect(query(s.container, '[data-workspace]')
-          .hasAttribute('data-processing')).toBe(false);
-      } finally {
-        window.URL.createObjectURL = originalCreateObjectURL;
-        window.URL.revokeObjectURL = originalRevokeObjectURL;
-      }
+      // Dropping the export still has to hand the editor back.
+      expect(query(s.container, '[data-workspace]')
+        .hasAttribute('data-processing')).toBe(false);
     });
 
     // The invalidation effect above retires the export for a replacement file
@@ -426,83 +399,69 @@ describe('PdfRedactTool UI flow', () => {
     // tell the person: a file still being read is loading, it has no edits
     // that could have changed mid-prepare.
     it('leaves a replacement file loading instead of reporting the export as invalidated', async () => {
-      s.restoreCanvas = installCanvasEdge();
-      const originalCreateObjectURL = window.URL.createObjectURL;
-      const originalRevokeObjectURL = window.URL.revokeObjectURL;
-      const createObjectURL = vi.fn(() => 'blob:redacted-pdf');
-      window.URL.createObjectURL = createObjectURL;
-      window.URL.revokeObjectURL = vi.fn();
+      const drawArea = await loadFileAndGetDrawArea();
+      await drawBox(drawArea, 50, 200, 200, 500);
 
-      try {
-        const drawArea = await loadFileAndGetDrawArea();
-        await drawBox(drawArea, 50, 200, 200, 500);
+      const downloadButton = required(Array.from(s.container.querySelectorAll<HTMLButtonElement>('[role="toolbar"] button'))
+        .find((button) => button.textContent.includes('Download')), 'Download button');
+      const held = holdNextExport();
+      await act(async () => {
+        downloadButton.click();
+      });
+      await act(async () => { await held.started; });
+      expect(query(s.container, '[data-workspace]')
+        .hasAttribute('data-processing')).toBe(true);
 
-        const downloadButton = required(Array.from(s.container.querySelectorAll<HTMLButtonElement>('[role="toolbar"] button'))
-          .find((button) => button.textContent.includes('Download')), 'Download button');
-        const exportRead = holdNextDocumentRead();
-        await act(async () => {
-          downloadButton.click();
-        });
-        await settleUntil('the export to reach its pdf.js read', exportRead.reached);
-        expect(query(s.container, '[data-workspace]')
-          .hasAttribute('data-processing')).toBe(true);
+      // Hold the replacement's document open, so the assertions below land
+      // in the window where the new file is still being read.
+      const replacementRead = Promise.withResolvers<void>();
+      const releaseReplacement = Promise.withResolvers<void>();
+      // forced: the replacement's pdf.js load is held open until the test releases it.
+      vi.mocked(getPdfjs).mockImplementationOnce(async () => {
+        replacementRead.resolve();
+        await releaseReplacement.promise;
+        return realGetPdfjs();
+      });
 
-        // Hold the replacement's document open, so the assertions below land
-        // in the window where the new file is still being read.
-        let resolveReplacementDocument!: (document: unknown) => void;
-        const replacementRead = Promise.withResolvers<void>();
-        s.harness.pdfjs.getDocument.mockImplementationOnce(() => {
-          replacementRead.resolve();
-          return {
-            promise: new Promise<unknown>((resolve) => { resolveReplacementDocument = resolve; }),
-          } as never;
-        });
+      const input = query<HTMLInputElement>(s.container, 'input[type="file"]');
+      await act(async () => {
+        setInputFiles(input, [makePdfFile('replacement.pdf')]);
+      });
+      // Replacing a loaded file is confirmed first (MEM-03, BasePdfTool).
+      const confirmReplace = required(Array.from(s.container.querySelectorAll<HTMLButtonElement>('dialog button'))
+        .find((button) => button.textContent.trim() === 'Replace file'), 'Replace file button');
+      await act(async () => {
+        confirmReplace.click();
+      });
+      await act(async () => {
+        await replacementRead.promise;
+        await drainPromises();
+      });
 
-        const input = query<HTMLInputElement>(s.container, 'input[type="file"]');
-        await act(async () => {
-          setInputFiles(input, [makePdfFile('replacement.pdf')]);
-        });
-        // Replacing a loaded file is confirmed first (MEM-03, BasePdfTool).
-        const confirmReplace = required(Array.from(s.container.querySelectorAll<HTMLButtonElement>('dialog button'))
-          .find((button) => button.textContent.trim() === 'Replace file'), 'Replace file button');
-        await act(async () => {
-          confirmReplace.click();
-        });
-        await act(async () => {
-          await replacementRead.promise;
-          await drainPromises();
-        });
+      // The new file is still being read: no editor, and nothing claiming
+      // this person's edits changed underneath an export they no longer have.
+      //
+      // The announcement is what pins the guard. The workspace is mounted on
+      // `pdfDocument` as well as on the status, and the replacement's own
+      // loader nulls that in the same render that sets 'loading', so the
+      // editor is off screen either way - dropping the guard makes this
+      // window say the wrong thing rather than draw the wrong thing.
+      expect(s.container.querySelector('[data-workspace]')).toBeNull();
+      expect(query(s.container, '[role="status"][aria-live="polite"]').textContent)
+        .not.toContain(englishRedactMessages.exportSuperseded);
 
-        // The new file is still being read: no editor, and nothing claiming
-        // this person's edits changed underneath an export they no longer have.
-        //
-        // The announcement is what pins the guard. The workspace is mounted on
-        // `pdfDocument` as well as on the status, and the replacement's own
-        // loader nulls that in the same render that sets 'loading', so the
-        // editor is off screen either way - dropping the guard makes this
-        // window say the wrong thing rather than draw the wrong thing.
-        expect(resolveReplacementDocument).toBeDefined();
-        expect(s.container.querySelector('[data-workspace]')).toBeNull();
-        expect(query(s.container, '[role="status"][aria-live="polite"]').textContent)
-          .not.toContain(englishRedactMessages.exportSuperseded);
+      // The replacement finishes loading and gets a clean editor of its own.
+      await act(async () => {
+        releaseReplacement.resolve();
+      });
+      await waitUntil(() => expect(s.container.querySelector('[data-workspace]')).not.toBeNull());
+      expect(s.container.querySelector('[data-workspace]')).not.toBeNull();
+      expect(s.container.querySelectorAll('[data-redact-box-id]')).toHaveLength(0);
 
-        // The replacement finishes loading and gets a clean editor of its own.
-        await act(async () => {
-          resolveReplacementDocument(s.harness.pdfjs.fakeDocument(2));
-        });
-        await waitUntil(() => expect(s.container.querySelector('[data-workspace]')).not.toBeNull());
-        expect(s.container.querySelector('[data-workspace]')).not.toBeNull();
-        expect(s.container.querySelectorAll('[data-redact-box-id]')).toHaveLength(0);
-
-        // And the export started from the file that is no longer open commits
-        // nothing when it finally resolves.
-        createObjectURL.mockClear();
-        await exportRead.runToEnd();
-        expect(createObjectURL).not.toHaveBeenCalled();
-      } finally {
-        window.URL.createObjectURL = originalCreateObjectURL;
-        window.URL.revokeObjectURL = originalRevokeObjectURL;
-      }
+      // And the export started from the file that is no longer open commits
+      // nothing when it finally resolves.
+      await held.runToEnd();
+      expect(downloads).toHaveLength(0);
     });
 
     // The run's own keys cannot see an unmount: the refs they read still hold
@@ -511,56 +470,34 @@ describe('PdfRedactTool UI flow', () => {
     // tool the person has navigated away from. Sign's unmount does the same
     // with activeExportRequestRef.
     it('does not download an export that finishes after the editor unmounts', async () => {
-      s.restoreCanvas = installCanvasEdge();
-      const originalCreateObjectURL = window.URL.createObjectURL;
-      const originalRevokeObjectURL = window.URL.revokeObjectURL;
-      const createObjectURL = vi.fn(() => 'blob:redacted-pdf');
-      window.URL.createObjectURL = createObjectURL;
-      window.URL.revokeObjectURL = vi.fn();
+      const drawArea = await loadFileAndGetDrawArea();
+      await drawBox(drawArea, 50, 200, 200, 500);
 
-      try {
-        const drawArea = await loadFileAndGetDrawArea();
-        await drawBox(drawArea, 50, 200, 200, 500);
+      const downloadButton = required(Array.from(s.container.querySelectorAll<HTMLButtonElement>('[role="toolbar"] button'))
+        .find((button) => button.textContent.includes('Download')), 'Download button');
+      const held = holdNextExport();
+      await act(async () => {
+        downloadButton.click();
+      });
+      await act(async () => { await held.started; });
 
-        const downloadButton = required(Array.from(s.container.querySelectorAll<HTMLButtonElement>('[role="toolbar"] button'))
-          .find((button) => button.textContent.includes('Download')), 'Download button');
-        const exportRead = holdNextDocumentRead();
-        await act(async () => {
-          downloadButton.click();
-        });
-        await settleUntil('the export to reach its pdf.js read', exportRead.reached);
+      act(() => render(null, s.container));
 
-        act(() => render(null, s.container));
-        createObjectURL.mockClear();
+      await held.runToEnd();
 
-        await exportRead.runToEnd();
-
-        expect(createObjectURL).not.toHaveBeenCalled();
-      } finally {
-        window.URL.createObjectURL = originalCreateObjectURL;
-        window.URL.revokeObjectURL = originalRevokeObjectURL;
-      }
+      expect(downloads).toHaveLength(0);
     });
   });
 
   // ENC-02: a protected PDF is one quiet state, not an exception.
   describe('a protected PDF (ENC-02)', () => {
-    const fixture = (name: string) => new File(
-      [fs.readFileSync(`${__dirname}/../../lib/__fixtures__/encrypted/${name}`)],
+    const fixture = async (name: keyof typeof fixtureUrls) => new File(
+      [await (await fetch(fixtureUrls[name])).arrayBuffer()],
       `${name}`,
       { type: 'application/pdf' },
     );
     const NEEDS_PASSWORD_TITLE = 'This PDF has a password';
     const PROTECTED_TITLE = 'This PDF is protected';
-
-    function mockProtection(kind: 'needs-password' | 'owner-restricted') {
-      s.harness.pdfjs.getDocument.mockImplementationOnce(() => ({
-        promise: kind === 'needs-password'
-          ? Promise.reject(Object.assign(new Error('No password given'), { name: 'PasswordException' }))
-          : Promise.resolve({ numPages: 1, getPermissions: vi.fn(async () => []), destroy: vi.fn() }),
-        destroy: vi.fn(),
-      }) as never);
-    }
 
     async function pick(file: File) {
       s.container = document.createElement('div');
@@ -578,12 +515,11 @@ describe('PdfRedactTool UI flow', () => {
     );
 
     it.each([
-      ['owner-only.pdf', 'owner-restricted', PROTECTED_TITLE, "It opens without a password, but Redact can't change it as it is. Unlock takes the protection off on your device, then you can redact it."],
-      ['needs-password.pdf', 'needs-password', NEEDS_PASSWORD_TITLE, 'Unlock opens it on your device, then you can redact it.'],
-    ] as const)('%s shows the state and never reaches the editor, pdf-lib or the failure count', async (name, kind, title, body) => {
+      ['owner-only.pdf', PROTECTED_TITLE, "It opens without a password, but Redact can't change it as it is. Unlock takes the protection off on your device, then you can redact it."],
+      ['needs-password.pdf', NEEDS_PASSWORD_TITLE, 'Unlock opens it on your device, then you can redact it.'],
+    ] as const)('%s shows the state and never reaches the editor, pdf-lib or the failure count', async (name, title, body) => {
       const load = vi.spyOn(PDFDocument, 'load');
-      mockProtection(kind);
-      await pick(fixture(name));
+      await pick(await fixture(name));
 
       const shown = required(state(), 'the needs-unlock state');
       expect(shown.querySelector('h2')?.textContent).toBe(title);
@@ -597,40 +533,45 @@ describe('PdfRedactTool UI flow', () => {
     });
 
     it('Unlock it parks the file for Unlock, then navigates there', async () => {
-      mockProtection('owner-restricted');
-      const protectedFile = fixture('owner-only.pdf');
+      const protectedFile = await fixture('owner-only.pdf');
       await pick(protectedFile);
-      const location = { href: '/redact/' };
-      vi.stubGlobal('location', location);
-      try {
-        await act(async () => { unlockButton().click(); });
-        await settleUntil('the hand-off to Unlock', () => location.href === '/unlock/');
-        // Parked for Unlock only, with the file's own bytes and the way back.
-        expect(await s.harness.takeHandoff('redact')).toBeNull();
-        const parked = required(await s.harness.takeHandoff('unlock'), 'the parked hand-off');
-        expect(parked).toMatchObject({ fileName: 'owner-only.pdf', fileType: 'application/pdf', from: 'redact' });
-        expect(new Uint8Array(parked.fileBytes!)).toEqual(new Uint8Array(await protectedFile.arrayBuffer()));
-      } finally {
-        vi.unstubAllGlobals();
-      }
+      const navigate = vi.fn();
+      const sent = Promise.withResolvers<void>();
+      // forced: a real navigation would take the test page away, so the hand-off gets a navigate callback.
+      vi.mocked(sendHandoff).mockImplementationOnce(async (target, payload, options) => {
+        try { return await realSendHandoff(target, payload, { ...options, navigate }); } finally { sent.resolve(); }
+      });
+      await act(async () => { unlockButton().click(); });
+      await act(async () => { await sent.promise; });
+      expect(navigate).toHaveBeenCalledWith('/unlock/');
+      // Parked for Unlock only, with the file's own bytes and the way back.
+      expect(await s.harness.takeHandoff('redact')).toBeNull();
+      const parked = required(await s.harness.takeHandoff('unlock'), 'the parked hand-off');
+      expect(parked).toMatchObject({ fileName: 'owner-only.pdf', fileType: 'application/pdf', from: 'redact' });
+      expect(new Uint8Array(parked.fileBytes!)).toEqual(new Uint8Array(await protectedFile.arrayBuffer()));
     });
 
     it('a failed save says so quietly and leaves the button usable', async () => {
-      mockProtection('needs-password');
       vi.spyOn(console, 'error').mockImplementation(() => {});
-      await pick(fixture('needs-password.pdf'));
-      // The device refuses the write (storage full): the real saveHandoff fails.
-      const realIndexedDB = globalThis.indexedDB;
-      globalThis.indexedDB = { open: () => {
+      await pick(await fixture('needs-password.pdf'));
+      // forced: the device refuses the write (storage full), and the real saveHandoff fails on it. Only
+      // the first open after the click is refused (the hand-off write; the file is unedited, so nothing
+      // else opens the database then); every other open goes to the real IndexedDB.
+      const realOpen = indexedDB.open.bind(indexedDB);
+      let refuseNext = false;
+      const refused = vi.spyOn(indexedDB, 'open').mockImplementation((...args) => {
+        if (!refuseNext) return realOpen(...args);
+        refuseNext = false;
         const request: { error?: DOMException; onerror?: () => void } = {};
         queueMicrotask(() => { request.error = new DOMException('full', 'QuotaExceededError'); request.onerror?.(); });
-        return request;
-      } } as unknown as IDBFactory;
+        return request as unknown as IDBOpenDBRequest;
+      });
       try {
+        refuseNext = true;
         await act(async () => { unlockButton().click(); });
         await settleUntil('the failure line', () => (state()?.textContent ?? '').includes("Couldn't open Unlock with this file. Open Unlock and choose it there."));
       } finally {
-        globalThis.indexedDB = realIndexedDB;
+        refused.mockRestore();
       }
       expect(unlockButton().disabled).toBe(false);
       expect(await s.harness.takeHandoff('unlock')).toBeNull();
@@ -639,8 +580,7 @@ describe('PdfRedactTool UI flow', () => {
     });
 
     it('choosing another file clears the state', async () => {
-      mockProtection('needs-password');
-      await pick(fixture('needs-password.pdf'));
+      await pick(await fixture('needs-password.pdf'));
       expect(state()).not.toBeNull();
       await act(async () => { setInputFiles(query<HTMLInputElement>(s.container, 'input[type="file"]'), [makePdfFile('plain.pdf')]); });
       // Replacing a loaded file is confirmed first (MEM-03, BasePdfTool).

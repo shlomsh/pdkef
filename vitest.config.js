@@ -57,11 +57,6 @@ const DOM_TESTS = [
   'src/tools/redact/lib/redact.test.js',
 ];
 
-// ARCH-78: Redact's and Highlight's island tests (a tool's Pdf*Tool*.test.tsx) fake `pdfjs-dist` once, in the
-// harness (src/test/harness/pdfjsEdges.ts), registered by a setup file that only this project loads, so no
-// other test sees that mock. The other tools' island tests run in the browser project on real pdf.js (LAND-04).
-const ISLAND_REDACT = ['src/tools/{redact,highlight}/Pdf*Tool*.test.tsx'];
-
 const serveMswWorker = {
   name: 'serve-msw-worker',
   configureServer(server) {
@@ -101,17 +96,7 @@ export default defineConfig({
           name: 'dom',
           environment: 'jsdom',
           include: DOM_TESTS,
-          exclude: [...NEVER, BROWSER_TESTS, ...ISLAND_REDACT],
-        },
-      },
-      {
-        extends: true,
-        test: {
-          name: 'island-redact',
-          environment: 'jsdom',
-          include: ISLAND_REDACT,
           exclude: [...NEVER, BROWSER_TESTS],
-          setupFiles: ['./src/test/harness/setup/pdfjsDistEdge.ts'],
         },
       },
       {
