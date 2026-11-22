@@ -44,7 +44,7 @@ DOM, or a deferred the mock resolves. A "must not happen" check first waits for 
 finish (a deferred in its mock), then `await drainPromises()` (`src/test/support/drainPromises.ts`)
 inside the same `act`, because the stale result reaches the component a few promise hops later. Prove
 such a rewrite by deleting the product guard: the test must fail. Example: DEBT-18 in
-`src/tools/split/PdfSplitTool.test.tsx`. A product timer gets fake timers scoped to that one test.
+`src/tools/split/PdfSplitTool.browser.test.tsx`. A product timer gets fake timers scoped to that one test.
 
 ## Test environments and E2E scope
 

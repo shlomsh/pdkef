@@ -5,6 +5,7 @@ import { getPdfLib } from '#lib/pdf/pdfLib.js';
 import { describe, expect, it, vi, afterEach, beforeEach } from 'vitest';
 import { loadPdfWithPages } from '#lib/pdf/loadPdfPages.ts';
 import { probeEncryption } from '#lib/pdf/pdfEncryption.ts';
+import { buildSplit } from './lib/splitOutput.ts';
 import { recentActions } from '#lib/telemetry/actionTrail.ts';
 import PdfSplitTool from './PdfSplitTool.tsx';
 import { mockNativeFileShare } from '../../test/support/mockFileShare.js';
@@ -27,6 +28,7 @@ answerNetwork();
 // page count do so, which a real pdf-lib parse gives no way to pause (DEBT-18).
 vi.mock('#lib/pdf/loadPdfPages.ts', { spy: true });
 vi.mock('#lib/pdf/pdfEncryption.ts', { spy: true });
+vi.mock('./lib/splitOutput.ts', { spy: true });
 
 // Tests that are not about timing build after 5ms instead of the real 1500ms.
 const FAST_QUIET = { baseMs: 5, stepMs: 0, maxMs: 5, burstWindowMs: 1 };
@@ -58,6 +60,7 @@ describe('PdfSplitTool UI flow', () => {
   beforeEach(async () => {
     harness = await installBrowserToolHarness();
     vi.mocked(loadPdfWithPages).mockReset();
+    vi.mocked(buildSplit).mockReset();
     clicked.length = 0;
     document.addEventListener('click', recordDownload, { capture: true });
   });
@@ -247,9 +250,16 @@ describe('PdfSplitTool UI flow', () => {
 
   it('Share appears as soon as the output is ready, not only after a first save', async () => {
     const nativeShare = mockNativeFileShare();
+    const started = Promise.withResolvers<void>();
+    const building = Promise.withResolvers<void>();
+    const { buildSplit: realBuild } = await vi.importActual<typeof import('./lib/splitOutput.ts')>('./lib/splitOutput.ts');
+    // forced: the build is held open until the page has been seen while it runs.
+    vi.mocked(buildSplit).mockImplementationOnce(async (...args) => { started.resolve(); await building.promise; return realBuild(...args); });
     mount();
     await pick(await fixtureFile());
+    await act(async () => { await started.promise; });
     expect(button('Share')).toBeUndefined();
+    building.resolve();
     await until(() => downloadElement()?.getAttribute('data-state') === 'ready' && button('Share'));
     expect(downloadElement().getAttribute('data-state')).toBe('ready');
     nativeShare.restore();
@@ -496,6 +506,7 @@ describe('PdfSplitTool UI flow', () => {
     it('shares the result from the finish row', async () => {
       const nativeShare = mockNativeFileShare();
       await open();
+      await until(() => button('Share'));
       await click(button('Share'));
       await until(() => nativeShare.share.mock.calls.length > 0);
       expect(nativeShare.share).toHaveBeenCalled();
