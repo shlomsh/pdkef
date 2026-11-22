@@ -42,6 +42,7 @@ export default function usePageSizesPt(
           sizes.push({ width, height });
         }
       } catch (error) {
+        if (!current) return;
         reportError('redact', error, 'read_page_sizes');
         // Without a size a blur box draws its plain fraction, as it did
         // before RED-24, a stroke assumes a Letter page, and the arrow keys
