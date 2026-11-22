@@ -7,7 +7,9 @@ import PdfEditPagesTool from './PdfEditPagesTool.tsx';
 import * as editPagesLib from './lib/editPages.js';
 import { getPdfLib } from '#lib/pdf/pdfLib.js';
 import { buildPdf, healthy, noPagesKey, ORIGINAL_WIDTHS } from '../../test/support/pdfPageTreeFixtures.ts';
-import { installToolHarness } from '../../test/harness/toolHarness.ts';
+import { installBrowserToolHarness, type BrowserToolHarness } from '../../test/harness/browserToolHarness.ts';
+import { answerNetwork } from '../../test/support/network.browser.ts';
+import { openThumbnailSource } from '#lib/pdf/thumbnails.js';
 import { setInputFiles } from '../../test/support/setInputFiles.js';
 import { until } from '../../test/support/until.js';
 import { waitUntil } from '../../test/support/waitUntil.ts';
@@ -16,21 +18,10 @@ import { waitUntil } from '../../test/support/waitUntil.ts';
 // grid (pdf.js) and the export must both read the repaired bytes while the
 // person's file keeps its identity.
 
-// The grid draws a page only once its cell is near the viewport; tests say which.
-let observers = [];
-class FakeIntersectionObserver {
-  constructor(callback) {
-    this.callback = callback;
-    this.targets = new Set();
-    observers.push(this);
-  }
-  observe(target) { this.targets.add(target); }
-  unobserve(target) { this.targets.delete(target); }
-  disconnect() { this.targets.clear(); }
-  intersectAll() {
-    this.callback(Array.from(this.targets).map((target) => ({ target, isIntersecting: true })));
-  }
-}
+answerNetwork();
+
+vi.mock('#lib/pdf/thumbnails.js', { spy: true });
+vi.mock('./lib/editPages.js', { spy: true });
 
 // The page widths of a PDF's bytes: its pages are told apart by width (200, 300, 400).
 async function widthsOf(blob) {
@@ -41,40 +32,31 @@ async function widthsOf(blob) {
 
 describe('PdfEditPagesTool working file after a repair', () => {
   let container;
-  let originalIO;
-  let harness;
+  let harness: BrowserToolHarness;
   // The file whose page list was lost, so opening it repairs it.
   let original;
 
-  beforeEach(() => {
-    harness = installToolHarness();
-    // jsdom's Blob has no arrayBuffer().
-    if (!Blob.prototype.arrayBuffer) {
-      Blob.prototype.arrayBuffer = function arrayBuffer() {
-        return new Promise((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onload = () => resolve(reader.result);
-          reader.onerror = () => reject(reader.error);
-          reader.readAsArrayBuffer(this);
-        });
-      };
-    }
+  beforeEach(async () => {
+    harness = await installBrowserToolHarness();
     original = new File([noPagesKey()], 'document.pdf', { type: 'application/pdf', lastModified: 1234 });
-    observers = [];
-    originalIO = globalThis.IntersectionObserver;
-    globalThis.IntersectionObserver = FakeIntersectionObserver;
-    harness.pdfjs.thumbnails.openThumbnailSource.mockClear();
+    vi.mocked(openThumbnailSource).mockClear();
+    vi.mocked(editPagesLib.editPages).mockClear();
   });
 
-  afterEach(() => {
+  afterEach(async () => {
     if (container) {
       act(() => render(null, container));
       container.remove();
       container = null;
     }
-    globalThis.IntersectionObserver = originalIO;
     vi.restoreAllMocks();
-    harness.restore();
+    await harness.restore();
+  });
+
+  const thumbnailsDrawn = () => waitUntil(() => {
+    const drawn = container.querySelectorAll('ul[data-page-grid] img[src]').length;
+    expect(drawn).toBeGreaterThan(0);
+    expect(drawn).toBe(container.querySelectorAll('ul[data-page-grid] > li[data-key]').length);
   });
 
   async function open() {
@@ -83,16 +65,14 @@ describe('PdfEditPagesTool working file after a repair', () => {
     act(() => { render(<PdfEditPagesTool />, container); });
     await act(async () => { setInputFiles(container.querySelector('input[type="file"]'), [original]); });
     await until(() => container.querySelector('ul[data-page-grid]') || container.querySelector('[role="alert"]'));
-    // The grid's own observer is the last one made.
-    await act(async () => { observers.at(-1)?.intersectAll(); });
-    await act(async () => { await drainPromises(); });
+    if (container.querySelector('ul[data-page-grid]')) await thumbnailsDrawn();
   }
 
   async function build() {
     await act(async () => {
       container.querySelector('a[data-state]').dispatchEvent(new Event('pointerdown', { bubbles: true }));
     });
-    await waitUntil(() => expect(harness.createdBlobs().length).toBeGreaterThan(0));
+    await until(() => container.querySelector('a[data-state]').getAttribute('href'));
     // The tests assert exactly one export: drain so a second one would show.
     await act(async () => { await drainPromises(); });
   }
@@ -100,8 +80,7 @@ describe('PdfEditPagesTool working file after a repair', () => {
   it('hands the repaired bytes, under the original name, to the grid and the export', async () => {
     await open();
 
-    await waitUntil(() => expect(harness.pdfjs.thumbnails.openThumbnailSource).toHaveBeenCalled());
-    const gridFile = harness.pdfjs.thumbnails.openThumbnailSource.mock.calls[0][0];
+    const gridFile = vi.mocked(openThumbnailSource).mock.calls[0][0];
     expect(gridFile).not.toBe(original);
     expect(gridFile.name).toBe('document.pdf');
     expect(gridFile.type).toBe('application/pdf');
@@ -120,10 +99,9 @@ describe('PdfEditPagesTool working file after a repair', () => {
 
   it('hands the original File to the grid and the export when nothing was repaired', async () => {
     original = new File([healthy()], 'document.pdf', { type: 'application/pdf', lastModified: 1234 });
-    const editPagesSpy = vi.spyOn(editPagesLib, 'editPages');
+    const editPagesSpy = vi.mocked(editPagesLib.editPages);
     await open();
-    await waitUntil(() => expect(harness.pdfjs.thumbnails.openThumbnailSource).toHaveBeenCalled());
-    expect(harness.pdfjs.thumbnails.openThumbnailSource.mock.calls[0][0]).toBe(original);
+    expect(vi.mocked(openThumbnailSource).mock.calls[0][0]).toBe(original);
 
     await build();
     expect(editPagesSpy).toHaveBeenCalledTimes(1);
@@ -173,17 +151,14 @@ describe('PdfEditPagesTool working file after a repair', () => {
       await firstLoadEnded.promise;
       await drainPromises(); // the stale load's result reaches the tool, which must drop it
     });
-    await act(async () => {
-      observers.at(-1)?.intersectAll();
-      await drainPromises(); // the thumbnail work the observers start
-    });
+    await thumbnailsDrawn();
 
     expect(container.querySelector('#page-grid-heading').textContent).toContain('second_modified.pdf');
     expect(container.querySelectorAll('ul[data-page-grid] > li[data-key]').length).toBe(2);
     await build();
     expect(harness.createdBlobs()).toHaveLength(1);
     expect(await widthsOf(harness.createdBlobs()[0])).toEqual([250, 350]);
-    expect(harness.pdfjs.thumbnails.openThumbnailSource.mock.calls.every(([f]) => f === second)).toBe(true);
+    expect(vi.mocked(openThumbnailSource).mock.calls.every(([f]) => f === second)).toBe(true);
   });
 
   it('shows the load error and opens no grid when the loader rejects', async () => {
@@ -191,7 +166,7 @@ describe('PdfEditPagesTool working file after a repair', () => {
     // Not a PDF at all: the loader cannot read it.
     original = new File(['this is not a PDF'], 'document.pdf', { type: 'application/pdf', lastModified: 1234 });
     await open();
-    expect(harness.pdfjs.thumbnails.openThumbnailSource).not.toHaveBeenCalled();
+    expect(vi.mocked(openThumbnailSource)).not.toHaveBeenCalled();
     expect(container.querySelector('ul[data-page-grid]')).toBeNull();
     expect(container.textContent).toContain('the file may be damaged');
   });

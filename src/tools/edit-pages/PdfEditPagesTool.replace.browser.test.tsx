@@ -4,9 +4,12 @@ import { describe, expect, it, vi, afterEach, beforeEach } from 'vitest';
 import Sortable from 'sortablejs';
 import PdfEditPagesTool from './PdfEditPagesTool.tsx';
 import { buildPdf, healthy } from '../../test/support/pdfPageTreeFixtures.ts';
-import { installToolHarness, type ToolHarness } from '../../test/harness/toolHarness.ts';
+import { installBrowserToolHarness, type BrowserToolHarness } from '../../test/harness/browserToolHarness.ts';
+import { answerNetwork } from '../../test/support/network.browser.ts';
 import { setInputFiles } from '../../test/support/setInputFiles.js';
 import { until } from '../../test/support/until.js';
+
+answerNetwork();
 
 // A real three-page PDF, or a two-page one.
 const pdf = (name: string, bytes: Uint8Array = healthy()) => new File([new Uint8Array(bytes)], name, { type: 'application/pdf' });
@@ -24,31 +27,20 @@ const cells = () => container!.querySelectorAll('ul[data-page-grid] > li[data-ke
 const settle = (name: string) => until(() => cells().length > 0 && container!.querySelector('#page-grid-heading')?.textContent?.includes(`${name}_modified.pdf`));
 
 describe('PdfEditPagesTool replace file', () => {
-  let harness: ToolHarness;
+  let harness: BrowserToolHarness;
 
-  beforeEach(() => {
-    harness = installToolHarness();
-    // jsdom's Blob has no arrayBuffer().
-    if (!Blob.prototype.arrayBuffer) {
-      Blob.prototype.arrayBuffer = function arrayBuffer() {
-        return new Promise((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onload = () => resolve(reader.result as ArrayBuffer);
-          reader.onerror = () => reject(reader.error);
-          reader.readAsArrayBuffer(this);
-        });
-      };
-    }
+  beforeEach(async () => {
+    harness = await installBrowserToolHarness();
   });
 
-  afterEach(() => {
+  afterEach(async () => {
     if (container) {
       act(() => render(null, container!));
       container.remove();
       container = null;
     }
     vi.restoreAllMocks();
-    harness.restore();
+    await harness.restore();
   });
 
   // Production crash: sortablejs destroy() does `el[expando] = null` and throws
@@ -62,6 +54,7 @@ describe('PdfEditPagesTool replace file', () => {
       return prevCatch(err, ...rest);
     };
     const realDestroy = Sortable.prototype.destroy;
+    // forced: destroy throws on a detached grid, as it did in production
     vi.spyOn(Sortable.prototype, 'destroy').mockImplementation(function (this: Sortable) {
       if (!this.el.isConnected) {
         const err = new TypeError("Cannot set properties of null (setting 'sortable')");

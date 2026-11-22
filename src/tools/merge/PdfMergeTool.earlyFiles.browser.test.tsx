@@ -1,4 +1,3 @@
-import { readFileSync } from 'node:fs';
 import { hydrate, render } from 'preact';
 import { act } from 'preact/test-utils';
 import { renderToString } from 'preact-render-to-string';
@@ -6,9 +5,13 @@ import { describe, expect, it, afterEach, beforeEach } from 'vitest';
 import PdfMergeTool from './PdfMergeTool.tsx';
 import { setInputFiles } from '../../test/support/setInputFiles.js';
 import { waitUntil } from '../../test/support/waitUntil.ts';
-import { installToolHarness, type ToolHarness } from '../../test/harness/toolHarness.ts';
+import { installBrowserToolHarness, type BrowserToolHarness } from '../../test/harness/browserToolHarness.ts';
+import { answerNetwork } from '../../test/support/network.browser.ts';
+import num2Url from '../../lib/__fixtures__/num-2.pdf?url';
 
-const FIXTURE = readFileSync('src/lib/__fixtures__/num-2.pdf');
+answerNetwork();
+
+const FIXTURE = new Uint8Array(await (await fetch(num2Url)).arrayBuffer());
 const pdf = (name: string) => new File([FIXTURE], name, { type: 'application/pdf' });
 
 /* Files offered the moment the island hydrates, before the lazy draft module and
@@ -18,17 +21,16 @@ const pdf = (name: string) => new File([FIXTURE], name, { type: 'application/pdf
 describe('files offered right after hydration', () => {
   const Island = PdfMergeTool;
   let container: HTMLElement | null = null;
-  let harness: ToolHarness;
-  beforeEach(() => { harness = installToolHarness(); });
+  let harness: BrowserToolHarness;
+  beforeEach(async () => { harness = await installBrowserToolHarness(); });
   afterEach(async () => {
-    // Unmount, then let the hand-off intake's IndexedDB read settle while the DOM still exists:
-    // a read that outlives the test file touches `document` after jsdom is gone (CI, 2026-10-27).
+    // Unmount, then let the hand-off intake's IndexedDB read settle while the DOM still exists.
     // IndexedDB answers in order, so once a read of our own returns, the intake's earlier one has.
     if (container) act(() => render(null, container!));
     await harness.takeHandoff('merge');
     container?.remove();
     container = null;
-    harness.restore();
+    await harness.restore();
   });
 
   it('lands them as entries when offered straight after hydration starts', async () => {

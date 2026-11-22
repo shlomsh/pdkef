@@ -10,87 +10,79 @@ import { setInputFiles } from '../../test/support/setInputFiles.js';
 import { until } from '../../test/support/until.js';
 import { waitUntil } from '../../test/support/waitUntil.ts';
 import { recentActions } from '#lib/telemetry/actionTrail.ts';
-import { installToolHarness, type ToolHarness } from '../../test/harness/toolHarness.ts';
-// The same object as harness.pdfjs.source: the conversion fake below sits outside any test and reads the page count.
-import { pdfjsEdges } from '../../test/harness/pdfjsEdges.ts';
-import { parsePageSelector } from '#lib/pages/pageSelector.js';
+import { installBrowserToolHarness, type BrowserToolHarness } from '../../test/harness/browserToolHarness.ts';
+import { answerNetwork } from '../../test/support/network.browser.ts';
+import { getPdfLib } from '#lib/pdf/pdfLib.js';
+import { openThumbnailSource } from '#lib/pdf/thumbnails.js';
+import needsPasswordUrl from '../../lib/__fixtures__/encrypted/needs-password.pdf?url';
+import ownerOnlyUrl from '../../lib/__fixtures__/encrypted/owner-only.pdf?url';
 import { hebrewToImageMessages } from './messages';
 import { hebrewShellMessages } from '#shell/shellMessages.ts';
 
-// The pdf.js edge (the encryption probe, the thumbnail source with its page count) is the harness's:
-// harness.pdfjs. Everything else (analytics, error reports, draftStore, action trail) runs for real over it.
+answerNetwork();
 
-// EDGE: the conversion renders every page through pdf.js onto a canvas, neither of which jsdom has. The rest of
-// toImage.js runs for real; the spy counts every conversion, and `forceConversion` (below) is the one forced line
-// that answers it: one fake blob per included page (or one for a tall image), sized by scale so a different
-// setting is a different result. A test can swap in a slow or failing one.
+// The conversion runs for real over real pdf.js; the spy counts every conversion and shows the options it got.
+// `forceConversion` (below) is the one forced line that holds or fails a build, which a real file cannot do.
 vi.mock('./lib/toImage.js', { spy: true });
+vi.mock('#lib/pdf/thumbnails.js', { spy: true });
 let overridden = false;
-const forceConversion = (fn: (file: File, opts: any) => Promise<any>, isOverride = true) => {
-  overridden = isOverride;
+const forceConversion = (fn: (file: File, opts: any) => Promise<any>) => {
+  overridden = true;
   vi.mocked(convertPdfToImages).mockImplementation(fn as never);
+};
+const resetConversion = () => {
+  overridden = false;
+  vi.mocked(convertPdfToImages).mockReset();
 };
 const lastConversion = () => vi.mocked(convertPdfToImages).mock.lastCall?.[1] as any;
 const conversions = () => vi.mocked(convertPdfToImages).mock.calls.length;
-
-async function defaultConvert(file: File, opts: any) {
-  const numbers = parsePageSelector(opts.pages, pdfjsEdges.source.pageCount);
-  const ext = opts.format === 'image/jpeg' ? 'jpg' : 'png';
-  const bytes = 'x'.repeat(1000 * opts.scale);
-  if (opts.layout === 'concatenated' && numbers.length > 1) {
-    return [{ pageNumber: numbers[0], blob: new Blob([bytes], { type: opts.format }), filename: `report.${ext}` }];
-  }
-  return numbers.map((n: number) => ({
-    pageNumber: n,
-    blob: new Blob([bytes], { type: opts.format }),
-    filename: numbers.length === 1 ? `report.${ext}` : `report-page-${n}.${ext}`,
-  }));
-}
+const realConvert = async (file: File, opts: any) => (await vi.importActual<typeof import('./lib/toImage.js')>('./lib/toImage.js')).convertPdfToImages(file, opts);
 
 // Tests that are not about timing build after 5ms instead of the real 1500ms.
 const FAST_QUIET = { baseMs: 5, stepMs: 0, maxMs: 5, burstWindowMs: 1 };
 const SLOW_QUIET = { baseMs: 400, stepMs: 0, maxMs: 400, burstWindowMs: 1 };
 // Lets the promise work already queued reach the component, before an assertion that something did NOT happen.
 const drain = () => act(async () => { await drainPromises(); });
-const makePdfFile = (name = 'report.pdf') => new File(['%PDF-1.4'], name, { type: 'application/pdf' });
+async function makePdfFile(name = 'report.pdf', pages = 5) {
+  const { PDFDocument } = await getPdfLib();
+  const doc = await PDFDocument.create();
+  for (let i = 0; i < pages; i += 1) doc.addPage([200, 300]);
+  return new File([await doc.save()], name, { type: 'application/pdf' });
+}
+const fixtureAt = async (url: string, name: string) => new File([await (await fetch(url)).arrayBuffer()], name, { type: 'application/pdf' });
 
 describe('PdfToImageTool', () => {
   let container;
-  let harness: ToolHarness;
+  let harness: BrowserToolHarness;
 
-  beforeEach(() => {
-    harness = installToolHarness();
-    vi.mocked(convertPdfToImages).mockReset();
-    forceConversion(defaultConvert, false);
-    harness.pdfjs.source.pageCount = 5;
-    // jsdom's Blob has no arrayBuffer().
-    if (!Blob.prototype.arrayBuffer) {
-      Blob.prototype.arrayBuffer = function arrayBuffer() {
-        return new Promise((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onload = () => resolve(reader.result);
-          reader.onerror = () => reject(reader.error);
-          reader.readAsArrayBuffer(this);
-        });
-      };
-    }
+  const saved: string[] = [];
+  const recordDownload = (event: Event) => {
+    const link = (event.target as Element | null)?.closest?.('a[download]') as HTMLAnchorElement | null;
+    if (link) saved.push(link.download);
+  };
+
+  beforeEach(async () => {
+    harness = await installBrowserToolHarness();
+    resetConversion();
+    vi.mocked(openThumbnailSource).mockReset();
+    saved.length = 0;
+    document.addEventListener('click', recordDownload, { capture: true });
   });
 
-  afterEach(() => {
+  afterEach(async () => {
+    document.removeEventListener('click', recordDownload, { capture: true });
     if (container) {
       act(() => render(null, container));
       container.remove();
       container = null;
     }
     vi.restoreAllMocks();
-    harness.restore();
+    await harness.restore();
   });
 
   function mount(props = {}) {
     container = document.createElement('div');
     document.body.appendChild(container);
-    // jsdom cannot follow a download link.
-    container.addEventListener('click', (e) => { if (e.target.closest?.('a[download]')) e.preventDefault(); });
     act(() => render(<PdfToImageTool quietPolicy={FAST_QUIET} {...props} />, container));
   }
   const pick = async (file) => {
@@ -106,10 +98,9 @@ describe('PdfToImageTool', () => {
     await until(() => heading()?.textContent.includes(stem) && downloadElement()?.getAttribute('data-state') !== 'preparing');
   };
   // Mounts, picks a file and waits for the quiet build.
-  async function open(pages = 5, props = {}) {
-    harness.pdfjs.source.pageCount = pages;
+  async function open(pages = 5, props = {}, file?: File) {
     mount(props);
-    await pick(makePdfFile());
+    await pick(file ?? await makePdfFile('report.pdf', pages));
     // A slow quiet policy and a long document do not build on their own; otherwise wait for the result or the failure.
     const buildsAlone = !props.quietPolicy && pages <= 30;
     await until(() => cells().length > 0 && downloadElement()
@@ -138,7 +129,7 @@ describe('PdfToImageTool', () => {
     await harness.flush();
   };
   const undo = () => click(container.querySelector('[aria-label="Undo last change"]'));
-  const events = (name) => harness.usageEvents(name).length;
+  const events = async (name) => { await harness.flush(); return harness.usageEvents(name).length; };
 
   it('loads the file into the shared grid under a heading that names the images, and lets go of the document', async () => {
     await open();
@@ -151,7 +142,9 @@ describe('PdfToImageTool', () => {
     expect(downloadElement().textContent).toContain('Download 5 PNGs');
     expect(lastConversion().pages).toBe('1-5');
     // The tool's own document is let go; the grid keeps the one it read the page sizes from until it unmounts.
-    expect(harness.pdfjs.source.opened - harness.pdfjs.source.destroyed).toBe(1);
+    const sources = await Promise.all(vi.mocked(openThumbnailSource).mock.results.map((result) => result.value));
+    const states = await Promise.all(sources.map((source) => source.render(0).then(() => 'open', () => 'destroyed')));
+    expect(states.filter((state) => state === 'open')).toHaveLength(1);
     expect(button('Convert')).toBeUndefined();
   });
 
@@ -171,9 +164,9 @@ describe('PdfToImageTool', () => {
     // timers already due (pdf-lib's 0 ms yields) without moving it.
     vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
     try {
-      harness.pdfjs.source.pageCount = 5;
+      const file = await makePdfFile();
       mount({ quietPolicy: SLOW_QUIET });
-      await act(async () => { setInputFiles(container.querySelector('input[type="file"]'), [makePdfFile()]); });
+      await act(async () => { setInputFiles(container.querySelector('input[type="file"]'), [file]); });
       await waitUntil(() => cells().length > 0 && downloadElement(), { dueFakeTimers: true });
       await act(async () => { await vi.advanceTimersByTimeAsync(399); });
       expect(conversions()).toBe(0);
@@ -270,32 +263,32 @@ describe('PdfToImageTool', () => {
 
   it('a tap that beats the build shows preparing and delivers when it lands', async () => {
     let finish;
-    forceConversion((file, opts) => new Promise((resolve) => { finish = async () => resolve(await defaultConvert(file, opts)); }));
+    // forced: the build is held until the test lets it finish.
+    forceConversion((file, opts) => new Promise((resolve) => { finish = async () => resolve(await realConvert(file, opts)); }));
     await open(1);
     expect(downloadElement().getAttribute('data-state')).toBe('ready');
     await click(downloadElement());
     expect(downloadElement().getAttribute('data-state')).toBe('preparing');
-    expect(events('tool_operation_started')).toBe(1);
+    expect(await events('tool_operation_started')).toBe(1);
     await act(async () => { finish(); });
     await until(() => downloadElement().getAttribute('data-state') === 'saved');
     expect(downloadElement().getAttribute('data-state')).toBe('saved');
-    expect(events('tool_result_ready')).toBe(1);
+    expect(await events('tool_result_ready')).toBe(1);
   });
 
   it('reports no start for the background build, only for the Download tap', async () => {
     await open();
-    expect(events('tool_operation_started')).toBe(0);
+    expect(await events('tool_operation_started')).toBe(0);
     await click(downloadElement());
-    await until(() => events('tool_result_ready') === 1);
-    expect(events('tool_operation_started')).toBe(1);
-    expect(events('tool_result_ready')).toBe(1);
+    await until(() => harness.usageEvents('tool_result_ready').length === 1);
+    expect(await events('tool_operation_started')).toBe(1);
+    expect(await events('tool_result_ready')).toBe(1);
   });
 
   describe('saving one page', () => {
     it('appears on each included page only once the images are built, and is not there for a skipped page', async () => {
-      harness.pdfjs.source.pageCount = 3;
       mount({ quietPolicy: SLOW_QUIET });
-      await pick(makePdfFile());
+      await pick(await makePdfFile('report.pdf', 3));
       expect(saveLinks()).toHaveLength(0);
       await until(() => saveLinks().length === 3);
       expect(saveLinks().map((a) => a.getAttribute('aria-label'))).toEqual(['Download page 1', 'Download page 2', 'Download page 3']);
@@ -312,7 +305,7 @@ describe('PdfToImageTool', () => {
       await open(3);
       await click(saveLinks()[0]);
       expect(recentActions()).toContain('download');
-      expect(events('tool_operation_started')).toBe(1);
+      expect(await events('tool_operation_started')).toBe(1);
       expect(downloadElement().getAttribute('data-state')).toBe('ready');
     });
 
@@ -354,8 +347,6 @@ describe('PdfToImageTool', () => {
 
   it('Download in one-per-page output saves every image, once each', async () => {
     await open(3);
-    const saved = [];
-    vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(function save() { if (this.download) saved.push(this.download); });
     await click(downloadElement());
     await until(() => saved.length === 3 && downloadElement().getAttribute('data-state') === 'saved');
     expect(saved).toEqual(['report-page-1.png', 'report-page-2.png', 'report-page-3.png']);
@@ -378,7 +369,7 @@ describe('PdfToImageTool', () => {
     await click(radio('JPG'));
     await click(radio('One tall image'));
     await click(skipButton(1));
-    await replaceWith(makePdfFile('next.pdf'));
+    await replaceWith(await makePdfFile('next.pdf'));
     expect(radio('JPG').getAttribute('aria-checked')).toBe('true');
     expect(radio('One tall image').getAttribute('aria-checked')).toBe('true');
     expect(field().value).toBe('1-5');
@@ -387,9 +378,6 @@ describe('PdfToImageTool', () => {
 
   it('the done strip names the pattern for several images and the real name for one', async () => {
     const stripName = () => container.querySelector('section[aria-label] p')?.textContent ?? '';
-    const original = window.matchMedia;
-    window.matchMedia = (query) => ({ matches: true, media: query, addEventListener() {}, removeEventListener() {} });
-    vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
     await open(3);
     const quiet = () => container.querySelector('[data-quiet-download]');
     // Three images are saved PART_GAP_MS (200) apart in useDownloadFlow.ts: run those gaps here so they
@@ -409,23 +397,19 @@ describe('PdfToImageTool', () => {
     await until(() => stripName().includes('report.png'));
     expect(stripName()).toContain('report.png');
     expect(stripName()).not.toContain('page-N');
-    window.matchMedia = original;
   });
 
   it('drops a conversion whose file was replaced while it ran', async () => {
     let finish;
     const converted = Promise.withResolvers<void>();
-    forceConversion((file, opts) => new Promise((resolve) => {
-      finish = async () => {
-        const result = await defaultConvert(file, opts);
-        converted.resolve();
-        resolve(result);
-      };
+    // forced: the first file's build is held until the test lets it finish, after the file was replaced.
+    forceConversion((file, opts) => new Promise((resolve, reject) => {
+      finish = () => realConvert(file, opts).then(resolve, reject).finally(() => converted.resolve());
     }));
     await open(2);
     const first = finish;
-    forceConversion(defaultConvert, false);
-    await replaceWith(makePdfFile('second.pdf'));
+    resetConversion();
+    await replaceWith(await makePdfFile('second.pdf', 2));
     await act(async () => {
       first();
       await converted.promise;
@@ -434,23 +418,24 @@ describe('PdfToImageTool', () => {
     // The second file's own build has landed: its size is on the element.
     await until(() => /KB/.test(downloadElement().textContent));
     expect(heading().textContent).toContain('second-page-N.png');
-    expect(saveLinks().every((a) => a.getAttribute('download').startsWith('report-page'))).toBe(true);
+    expect(saveLinks().every((a) => a.getAttribute('download').startsWith('second-page'))).toBe(true);
     expect(downloadElement().getAttribute('data-state')).toBe('ready');
   });
 
   it('a build that fails says so on the Download element, counts as a failed operation, and a tap tries again', async () => {
     vi.spyOn(console, 'error').mockImplementation(() => {});
     let fail = true;
+    // forced: the first build fails, which no real file makes the conversion do.
     forceConversion(async (file, opts) => {
       if (fail) throw new Error('boom');
-      return defaultConvert(file, opts);
+      return realConvert(file, opts);
     });
     await open(2);
     expect(downloadElement().getAttribute('data-state')).toBe('error');
     expect(downloadElement().textContent).toContain('Could not make the images. Tap to try again.');
     await harness.flush();
     expect(harness.reports()).toMatchObject([{ area: 'pdf_tool_run', step: 'convert', type: 'Error' }]);
-    expect(events('tool_operation_failed')).toBe(1);
+    expect(await events('tool_operation_failed')).toBe(1);
     fail = false;
     await act(async () => { downloadElement().dispatchEvent(new Event('pointerdown', { bubbles: true })); });
     await until(() => downloadElement().getAttribute('data-state') === 'ready' && /KB/.test(downloadElement().textContent));
@@ -460,52 +445,47 @@ describe('PdfToImageTool', () => {
 
   it('a document that cannot be read says so, still offers Replace file, and counts as a failed operation', async () => {
     vi.spyOn(console, 'error').mockImplementation(() => {});
-    harness.pdfjs.source.failOpen = true;
     mount();
-    await pick(makePdfFile());
+    await pick(new File(['this is not a PDF'], 'report.pdf', { type: 'application/pdf' }));
     await until(() => container.textContent.includes('The file may be damaged. Try another PDF.'));
     expect(container.textContent).toContain('The file may be damaged. Try another PDF.');
     expect(cells()).toHaveLength(0);
     await click(button('Replace file'));
     expect(container.querySelector('dialog[aria-labelledby="confirm-replace-title"]').open).toBe(true);
-    expect(events('tool_operation_failed')).toBe(1);
+    expect(await events('tool_operation_failed')).toBe(1);
   });
 
   it('a password-locked PDF shows NeedsUnlock, never opens in pdf.js or builds, and is not a failed operation', async () => {
-    harness.pdfjs.probeAs('needs-password');
     mount();
-    await pick(makePdfFile('locked.pdf'));
+    await pick(await fixtureAt(needsPasswordUrl, 'locked.pdf'));
     await until(() => button('Unlock it'));
     expect(container.textContent).toContain('This PDF has a password');
     expect(container.textContent).toContain('then you can turn it into images');
     expect(button('Unlock it')).toBeDefined();
-    expect(harness.pdfjs.source.opened).toBe(0);
+    expect(openThumbnailSource).not.toHaveBeenCalled();
     expect(conversions()).toBe(0);
     expect(downloadElement()).toBeNull();
     await harness.flush();
     expect(harness.reports()).toEqual([]);
-    expect(events('tool_operation_failed')).toBe(0);
+    expect(await events('tool_operation_failed')).toBe(0);
   });
 
   it('an owner-restricted PDF still renders and converts as it is', async () => {
-    harness.pdfjs.probeAs('owner-restricted');
-    await open(2);
+    await open(3, {}, await fixtureAt(ownerOnlyUrl, 'report.pdf'));
     expect(container.textContent).not.toContain('This PDF is protected');
-    expect(cells()).toHaveLength(2);
+    expect(cells()).toHaveLength(3);
     expect(conversions()).toBe(1);
   });
 
   it('revokes every image URL on unmount', async () => {
-    // Wraps the harness's recording URL functions to keep the URLs handed out and the URLs given back.
-    const created: string[] = [];
-    const revoked: string[] = [];
-    const recordingCreate = URL.createObjectURL;
-    URL.createObjectURL = (blob) => { const url = recordingCreate(blob); created.push(url); return url; };
-    URL.revokeObjectURL = (url) => { revoked.push(url); };
+    const create = vi.spyOn(URL, 'createObjectURL');
+    const revoke = vi.spyOn(URL, 'revokeObjectURL');
     await open(2);
+    const created = create.mock.results.map((result) => result.value as string);
     expect(created.length).toBeGreaterThanOrEqual(2);
-    revoked.length = 0;
+    revoke.mockClear();
     act(() => render(null, container));
+    const revoked = revoke.mock.calls.map(([url]) => url);
     for (const url of created) expect(revoked).toContain(url);
   });
 
@@ -554,9 +534,8 @@ describe('PdfToImageTool', () => {
     });
 
     it('shows the Hebrew protected-file copy', async () => {
-      harness.pdfjs.probeAs('needs-password');
       mount(hebrew);
-      await pick(makePdfFile('locked.pdf'));
+      await pick(await fixtureAt(needsPasswordUrl, 'locked.pdf'));
       await until(() => container.textContent.includes(hebrewToImageMessages.protectedUnlockIt));
       expect(container.textContent).toContain(hebrewToImageMessages.protectedNeedsPasswordTitle);
       expect(container.textContent).toContain(hebrewToImageMessages.protectedUnlockIt);

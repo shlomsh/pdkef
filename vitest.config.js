@@ -57,16 +57,10 @@ const DOM_TESTS = [
   'src/tools/redact/lib/redact.test.js',
 ];
 
-// ARCH-78: the island tests (a tool's Pdf*Tool*.test.tsx) fake the pdf.js edge once, in the harness
-// (src/test/harness/pdfjsEdges.ts), registered by a setup file that only these projects load, so no
-// other test sees those mocks. Redact and Highlight fake `pdfjs-dist` itself and run the thumbnail module for real;
-// the other tools fake the probe and the thumbnail module. Sign, Scan and Image to PDF keep their own.
+// ARCH-78: Redact's and Highlight's island tests (a tool's Pdf*Tool*.test.tsx) fake `pdfjs-dist` once, in the
+// harness (src/test/harness/pdfjsEdges.ts), registered by a setup file that only this project loads, so no
+// other test sees that mock. The other tools' island tests run in the browser project on real pdf.js (LAND-04).
 const ISLAND_REDACT = ['src/tools/{redact,highlight}/Pdf*Tool*.test.tsx'];
-const ISLAND_WORKER = ['src/tools/{merge,split,to-image,security,edit-pages}/Pdf*Tool*.test.tsx', 'src/tools/compress/PdfCompressTool.protected.test.tsx', 'src/test/cross-tool/pageGridTools.test.tsx'];
-// Compress's main test also fakes its three engines (canvas, createImageBitmap and image codecs jsdom lacks);
-// its protected-PDF test runs them for real.
-const ISLAND_COMPRESS = ['src/tools/compress/PdfCompressTool.test.tsx'];
-const ISLAND_TESTS = [...ISLAND_REDACT, ...ISLAND_WORKER, ...ISLAND_COMPRESS];
 
 const serveMswWorker = {
   name: 'serve-msw-worker',
@@ -107,27 +101,7 @@ export default defineConfig({
           name: 'dom',
           environment: 'jsdom',
           include: DOM_TESTS,
-          exclude: [...NEVER, BROWSER_TESTS, ...ISLAND_TESTS],
-        },
-      },
-      {
-        extends: true,
-        test: {
-          name: 'island',
-          environment: 'jsdom',
-          include: ISLAND_WORKER,
-          exclude: [...NEVER, BROWSER_TESTS],
-          setupFiles: ['./src/test/harness/setup/workerEdges.ts'],
-        },
-      },
-      {
-        extends: true,
-        test: {
-          name: 'island-compress',
-          environment: 'jsdom',
-          include: ISLAND_COMPRESS,
-          exclude: [...NEVER, BROWSER_TESTS],
-          setupFiles: ['./src/test/harness/setup/workerEdges.ts', './src/test/harness/setup/compressEngines.ts'],
+          exclude: [...NEVER, BROWSER_TESTS, ...ISLAND_REDACT],
         },
       },
       {
@@ -143,6 +117,9 @@ export default defineConfig({
       {
         extends: true,
         plugins: [serveMswWorker],
+        // Found only partway through a run, these made Vite re-optimize and reload the test page, and the file
+        // it was loading then failed with "Failed to fetch dynamically imported module" (LAND-04 wave 6).
+        optimizeDeps: { include: ['@cantoo/pdf-lib', 'pdfjs-dist/build/pdf.worker.min.mjs'] },
         test: {
           name: 'browser',
           include: [BROWSER_TESTS],

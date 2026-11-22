@@ -38,7 +38,7 @@ export interface BeaconRecord {
 }
 
 export interface ToolHarness {
-  /** The pdf.js edge (probe, thumbnails, `pdfjs-dist`): fakes registered by the island setup files, steered here. */
+  /** The `pdfjs-dist` edge of the island-redact project, registered by its setup file, steered here. */
   pdfjs: PdfjsHarness;
   /** Every beacon handed to `navigator.sendBeacon` so far, in order (completed reads only, see `flush`). */
   beacons(): BeaconRecord[];

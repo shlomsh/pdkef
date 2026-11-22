@@ -2,13 +2,17 @@
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { describe, expect, it, vi, afterEach, beforeEach } from 'vitest';
+import { page } from 'vitest/browser';
 import { recentActions } from '#lib/telemetry/actionTrail.ts';
 import Sortable from 'sortablejs';
 import PdfEditPagesTool from './PdfEditPagesTool.tsx';
 import { healthy } from '../../test/support/pdfPageTreeFixtures.ts';
-import { installToolHarness } from '../../test/harness/toolHarness.ts';
+import { installBrowserToolHarness, type BrowserToolHarness } from '../../test/harness/browserToolHarness.ts';
+import { answerNetwork } from '../../test/support/network.browser.ts';
 import { setInputFiles } from '../../test/support/setInputFiles.js';
 import { until } from '../../test/support/until.js';
+
+answerNetwork();
 
 // A real three-page PDF.
 function makePdfFile(name) {
@@ -17,31 +21,21 @@ function makePdfFile(name) {
 
 describe('PdfEditPagesTool undo/redo', () => {
   let container;
-  let harness;
+  let harness: BrowserToolHarness;
 
-  beforeEach(() => {
-    harness = installToolHarness();
-    // jsdom's Blob has no arrayBuffer().
-    if (!Blob.prototype.arrayBuffer) {
-      Blob.prototype.arrayBuffer = function arrayBuffer() {
-        return new Promise((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onload = () => resolve(reader.result);
-          reader.onerror = () => reject(reader.error);
-          reader.readAsArrayBuffer(this);
-        });
-      };
-    }
+  beforeEach(async () => {
+    harness = await installBrowserToolHarness();
   });
 
-  afterEach(() => {
+  afterEach(async () => {
     if (container) {
       act(() => render(null, container));
       container.remove();
       container = null;
     }
     vi.restoreAllMocks();
-    harness.restore();
+    await page.viewport(414, 896);
+    await harness.restore();
   });
 
   async function loadPdf() {
@@ -199,6 +193,7 @@ describe('PdfEditPagesTool undo/redo', () => {
   });
 
   it('leaves the shortcuts alone while focus is in an input', async () => {
+    await page.viewport(1280, 800);
     await loadPdf();
 
     await click(rotateButton(1));
@@ -210,14 +205,13 @@ describe('PdfEditPagesTool undo/redo', () => {
   });
 
   it('leaves the shortcuts alone while the output name is being renamed', async () => {
+    await page.viewport(1280, 800);
     await loadPdf();
 
     await click(rotateButton(1));
 
     const name = container.querySelector('[contenteditable]');
-    name.tabIndex = -1;
-    // jsdom does not implement isContentEditable
-    Object.defineProperty(name, 'isContentEditable', { value: true });
+    await act(async () => { name.dispatchEvent(new MouseEvent('mousedown', { bubbles: true })); });
     name.focus();
     await keydown({ key: 'z', metaKey: true });
     expect(rotation(0)).toBe('90');

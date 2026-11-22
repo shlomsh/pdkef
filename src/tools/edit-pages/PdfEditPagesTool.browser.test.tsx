@@ -1,8 +1,6 @@
 // @ts-nocheck - renamed from .jsx, not yet typed; see TODO.md 'Type the interactive shell'
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
-import { readFileSync } from 'node:fs';
-import path from 'node:path';
 import { describe, expect, it, vi, afterEach, beforeEach } from 'vitest';
 import { drainPromises } from '../../test/support/drainPromises.ts';
 import PdfEditPagesTool from './PdfEditPagesTool.tsx';
@@ -10,19 +8,26 @@ import * as editPagesLib from './lib/editPages.js';
 import { getPdfLib } from '#lib/pdf/pdfLib.js';
 import { mockNativeFileShare } from '../../test/support/mockFileShare.js';
 import { healthy, ORIGINAL_WIDTHS } from '../../test/support/pdfPageTreeFixtures.ts';
-import { installToolHarness } from '../../test/harness/toolHarness.ts';
+import { installBrowserToolHarness, type BrowserToolHarness } from '../../test/harness/browserToolHarness.ts';
+import { answerNetwork } from '../../test/support/network.browser.ts';
+import { sendHandoff } from '#lib/handoff/sendHandoff.ts';
+import { probeEncryption } from '#lib/pdf/pdfEncryption.ts';
+import ownerOnlyUrl from '../../lib/__fixtures__/encrypted/owner-only.pdf?url';
 import { setInputFiles } from '../../test/support/setInputFiles.js';
 import { until } from '../../test/support/until.js';
 import { waitUntil } from '../../test/support/waitUntil.ts';
 
-// The pdf.js edge (the encryption probe, the thumbnail source) is the harness's: harness.pdfjs.
-// Everything else (errorReport, draftStore, loadPdfWithPages, editPages) runs for real over it.
+answerNetwork();
+
+vi.mock('#lib/handoff/sendHandoff.ts', { spy: true });
+vi.mock('#lib/pdf/pdfEncryption.ts', { spy: true });
+vi.mock('./lib/editPages.js', { spy: true });
 
 // A real three-page PDF whose pages are told apart by width (200, 300, 400).
 function makePdfFile(name, bytes = healthy()) {
   return new File([bytes], name, { type: 'application/pdf' });
 }
-const encryptedFixture = (name) => readFileSync(path.resolve(__dirname, `../../lib/__fixtures__/encrypted/${name}.pdf`));
+const ownerOnlyBytes = async () => (await fetch(ownerOnlyUrl)).arrayBuffer();
 // What a built blob holds: its pages' widths in order, their rotations, and whether each carries a font (a page number).
 const pagesOf = async (blob) => {
   const { PDFDocument, PDFName } = await getPdfLib();
@@ -39,24 +44,13 @@ const click = (el) => act(async () => { el.dispatchEvent(new MouseEvent('click',
 
 describe('PdfEditPagesTool UI flow', () => {
   let container;
-  let harness;
+  let harness: BrowserToolHarness;
 
-  beforeEach(() => {
-    harness = installToolHarness();
-    // jsdom's Blob has no arrayBuffer().
-    if (!Blob.prototype.arrayBuffer) {
-      Blob.prototype.arrayBuffer = function arrayBuffer() {
-        return new Promise((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onload = () => resolve(reader.result);
-          reader.onerror = () => reject(reader.error);
-          reader.readAsArrayBuffer(this);
-        });
-      };
-    }
+  beforeEach(async () => {
+    harness = await installBrowserToolHarness();
   });
 
-  afterEach(() => {
+  afterEach(async () => {
     if (container) {
       act(() => render(null, container));
       container.remove();
@@ -64,14 +58,13 @@ describe('PdfEditPagesTool UI flow', () => {
     }
     vi.unstubAllGlobals();
     vi.restoreAllMocks();
-    harness.restore();
+    await drainPromises();
+    await harness.restore();
   });
 
   async function load(name = 'document.pdf', bytes = healthy()) {
     container = document.createElement('div');
     document.body.appendChild(container);
-    // jsdom cannot follow a download link.
-    container.addEventListener('click', (e) => e.preventDefault());
     act(() => { render(<PdfEditPagesTool />, container); });
     await act(async () => { setInputFiles(container.querySelector('input[type="file"]'), [makePdfFile(name, bytes)]); });
     await until(() => cells().length > 0);
@@ -178,8 +171,9 @@ describe('PdfEditPagesTool UI flow', () => {
 
   it('a failed build points to Unlock, where a protected PDF can be opened', async () => {
     vi.spyOn(console, 'error').mockImplementation(() => {});
-    // The probe calls this owner-only file open (no unlock offered), so the build itself refuses it.
-    await load('document.pdf', encryptedFixture('owner-only'));
+    // forced: the probe calls this owner-only file open (no unlock offered), so the build itself refuses it
+    vi.mocked(probeEncryption).mockResolvedValueOnce('open');
+    await load('document.pdf', await ownerOnlyBytes());
     await click(skipButton(2));
     await prepareNow();
     await harness.flush();
@@ -187,7 +181,7 @@ describe('PdfEditPagesTool UI flow', () => {
     const alert = container.querySelector('[role="alert"]');
     expect(alert.querySelector('a[href="/unlock/"]')).not.toBeNull();
     expect(downloadElement().dataset.state).toBe('error');
-    expect(harness.reports()).toMatchObject([{ area: 'pdf_tool_run', step: 'apply_page_edits', type: 'Error' }]);
+    expect(harness.reports().filter((report) => report.area === 'pdf_tool_run')).toMatchObject([{ step: 'apply_page_edits', type: 'Error' }]);
   });
 
   it('builds the edited PDF from the plan and offers it as a download under the output name', async () => {
@@ -198,7 +192,7 @@ describe('PdfEditPagesTool UI flow', () => {
     expect(harness.createdBlobs()).toHaveLength(1);
     const link = downloadElement();
     // Page 2 is removed, the others stay in order (told apart by width), nothing is rotated or numbered.
-    expect(await pagesOf(shownOutput())).toEqual({
+    expect(await pagesOf(await shownOutput())).toEqual({
       count: 2, widths: [ORIGINAL_WIDTHS[0], ORIGINAL_WIDTHS[2]], rotations: [0, 0], fonts: [false, false],
     });
     expect(link.dataset.state).toBe('ready');
@@ -210,7 +204,7 @@ describe('PdfEditPagesTool UI flow', () => {
     await load();
     await click(container.querySelector('input[type="checkbox"]'));
     await prepareNow();
-    expect(await pagesOf(shownOutput())).toMatchObject({ count: 3, widths: ORIGINAL_WIDTHS, fonts: [true, true, true] });
+    expect(await pagesOf(await shownOutput())).toMatchObject({ count: 3, widths: ORIGINAL_WIDTHS, fonts: [true, true, true] });
   });
 
   it('a tap on a ready Download opens the done strip with Share and the hand-offs', async () => {
@@ -238,13 +232,15 @@ describe('PdfEditPagesTool UI flow', () => {
     await load();
     await prepareNow();
     const compress = Array.from(container.querySelectorAll("[data-count] button")).find((b) => b.textContent === "Compress");
-    vi.stubGlobal('location', { href: '/organize-pdf/' });
+    const navigate = vi.fn();
+    const { sendHandoff: realSendHandoff } = await vi.importActual<typeof import('#lib/handoff/sendHandoff.ts')>('#lib/handoff/sendHandoff.ts');
+    // forced: a real navigation would unload the test page
+    vi.mocked(sendHandoff).mockImplementationOnce((target, payload, options) => realSendHandoff(target, payload, { ...options, navigate }));
     await act(async () => { compress.click(); });
-    await waitUntil(() => expect(window.location.href).toBe('/compress/'));
+    await waitUntil(() => expect(navigate).toHaveBeenCalledWith('/compress/'));
     const handoff = await harness.takeHandoff('compress');
     expect(handoff).toMatchObject({ fileName: 'document_modified.pdf', fileType: 'application/pdf' });
     expect(await pagesOf(new Blob([handoff.fileBytes]))).toMatchObject({ count: 3, widths: ORIGINAL_WIDTHS });
-    expect(window.location.href).toBe('/compress/');
   });
 
   // Picking another file through the Replace dialog, as a person does.
@@ -266,6 +262,8 @@ describe('PdfEditPagesTool UI flow', () => {
     await prepareNow();
     expect(downloadElement().dataset.state).toBe('ready');
     first.release();
+    await act(async () => { await drainPromises(); });
+    await harness.flush();
   });
 
   it('renaming the output keeps the built PDF: no rebuild, still ready', async () => {
@@ -289,7 +287,6 @@ describe('PdfEditPagesTool UI flow', () => {
     const same = (mark) => new File([healthy(), `%${mark}`], 'same.pdf', { type: 'application/pdf', lastModified: 1000 });
     container = document.createElement('div');
     document.body.appendChild(container);
-    container.addEventListener('click', (e) => e.preventDefault());
     act(() => { render(<PdfEditPagesTool />, container); });
     await act(async () => { setInputFiles(container.querySelector('input[type="file"]'), [same('a')]); });
     await until(() => cells().length > 0);
@@ -307,11 +304,8 @@ describe('PdfEditPagesTool UI flow', () => {
     await load();
     // Settles when the first (held, then superseded) editPages run has ended, by saving or by stopping early.
     const firstRunEnded = Promise.withResolvers<void>();
-    const realEditPages = editPagesLib.editPages;
-    let runs = 0;
-    vi.spyOn(editPagesLib, 'editPages').mockImplementation(async (...args) => {
-      runs += 1;
-      if (runs !== 1) return realEditPages(...args);
+    const { editPages: realEditPages } = await vi.importActual<typeof editPagesLib>('./lib/editPages.js');
+    vi.mocked(editPagesLib.editPages).mockImplementationOnce(async (...args) => {
       try { return await realEditPages(...args); } finally { firstRunEnded.resolve(); }
     });
     const first = await holdNextBuild();
@@ -327,6 +321,6 @@ describe('PdfEditPagesTool UI flow', () => {
       await drainPromises();
     });
     expect(saves).toHaveBeenCalledTimes(1);
-    expect(await pagesOf(shownOutput())).toMatchObject({ count: 2 });
+    expect(await pagesOf(await shownOutput())).toMatchObject({ count: 2 });
   });
 });

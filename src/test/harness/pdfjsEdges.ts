@@ -1,43 +1,12 @@
 /**
- * The pdf.js edge of the island tests (ARCH-78): what jsdom cannot run, faked once, configured per test
- * through `harness.pdfjs` (see `toolHarness.ts`).
- *
- * Three edges, each registered as a `vi.mock` by a setup file under `./setup/` that only the island
- * projects in `vitest.config.js` load, so no other test sees them:
- *   - the encryption probe (`lib/pdf/pdfEncryption.ts`: pdf.js's worker): `probe`
- *   - the thumbnail source and previews (`lib/pdf/thumbnails.js`: pdf.js painting onto a canvas): `thumbnails`, `source`
- *   - the `pdfjs-dist` module itself, for Redact, which reads text and metadata through it: `getDocument`
- * Everything above them runs for real. `resetPdfjsEdges()` puts every default back; `installToolHarness()`
+ * The pdf.js edge of Redact's and Highlight's island tests (ARCH-78): the `pdfjs-dist` module itself, which
+ * Redact reads text and metadata through, faked once and configured per test through `harness.pdfjs` (see
+ * `toolHarness.ts`). Registered as a `vi.mock` by `./setup/pdfjsDistEdge.ts`, which only the island-redact
+ * project in `vitest.config.js` loads, so no other test sees it. Every other tool's island test runs on real
+ * pdf.js in Chromium (LAND-04 wave 6). `resetPdfjsEdges()` puts every default back; `installToolHarness()`
  * calls it, so each test starts from the same fakes.
  */
 import { vi } from 'vitest';
-import type { probeEncryption } from '#lib/pdf/pdfEncryption.ts';
-type ProbeAnswer = Awaited<ReturnType<typeof probeEncryption>>;
-
-type Bytes = ArrayBuffer | Uint8Array;
-
-// ---- the encryption probe -----------------------------------------------------------------------------------
-
-const probe = vi.fn<(bytes: Bytes, ...rest: unknown[]) => Promise<ProbeAnswer>>();
-
-// ---- the thumbnail source and previews -------------------------------------------------------------------------
-
-/** How the fake source answers: `pageCount` set wins over counting the file's own pages with pdf-lib. */
-const source = { pageCount: undefined as number | undefined, failOpen: false, opened: 0, destroyed: 0 };
-
-const thumbnails = {
-  openThumbnailSource: vi.fn(),
-  renderThumbnail: vi.fn(),
-  renderThumbnailWithMeta: vi.fn(),
-  renderPdfThumbnails: vi.fn(),
-  renderComparePreview: vi.fn(),
-};
-
-async function countPages(file: File): Promise<number> {
-  const { PDFDocument } = await (await import('#lib/pdf/pdfLib.js')).getPdfLib();
-  return PDFDocument.load(await file.arrayBuffer(), { ignoreEncryption: true }).then((doc: { getPageCount(): number }) => doc.getPageCount(), () => 0);
-}
-
 // ---- pdfjs-dist ---------------------------------------------------------------------------------------------------
 
 /** Text items per page (0-based), as pdf.js's text stream would hand them out. */
@@ -80,9 +49,6 @@ const getDocument = vi.fn(loadDocument);
 // ---- the surface a test uses ------------------------------------------------------------------------------------
 
 export const pdfjsEdges = {
-  probe,
-  thumbnails,
-  source,
   getDocument,
   pageItems,
   fakeDocument,
@@ -90,27 +56,6 @@ export const pdfjsEdges = {
 
 /** Every default back, every queued one-shot answer and every call record gone. */
 export function resetPdfjsEdges(): void {
-  probe.mockReset();
-  probe.mockImplementation(async () => 'open');
-
-  Object.assign(source, { pageCount: undefined, failOpen: false, opened: 0, destroyed: 0 });
-  for (const fn of Object.values(thumbnails)) fn.mockReset();
-  thumbnails.openThumbnailSource.mockImplementation(async (file: File) => {
-    source.opened += 1;
-    if (source.failOpen) throw new Error('bad pdf');
-    const pageCount = source.pageCount ?? await countPages(file);
-    return {
-      file,
-      pageCount,
-      render: vi.fn(async (pageIndex: number) => `data:image/png;base64,fake-${pageIndex}`),
-      destroy: vi.fn(async () => { source.destroyed += 1; }),
-    };
-  });
-  thumbnails.renderThumbnail.mockImplementation(async () => 'data:image/png;base64,mock');
-  thumbnails.renderThumbnailWithMeta.mockImplementation(async () => ({ dataUrl: 'data:image/png;base64,mock', pageCount: 2, width: 150, height: 194 }));
-  thumbnails.renderPdfThumbnails.mockImplementation(async () => 0);
-  thumbnails.renderComparePreview.mockImplementation(async (fileOrBlob: unknown) => `data:image/png;base64,${fileOrBlob instanceof File ? 'before' : 'after'}`);
-
   pageItems.clear();
   getDocument.mockReset();
   getDocument.mockImplementation(loadDocument);
@@ -122,26 +67,6 @@ resetPdfjsEdges();
 export function createPdfjsHarness() {
   const doc = (numPages: number, data?: BufferSource) => ({ promise: Promise.resolve(fakeDocument(numPages, data)), destroy: async () => {} });
   return {
-    /** The probe spy, for `mockImplementation` and call assertions. */
-    probe,
-    /** Every probe from now on answers `protection`. */
-    probeAs(protection: ProbeAnswer) { probe.mockResolvedValue(protection); },
-    /** Every probe from now on never answers (the check is still running). */
-    probeNeverAnswers() { probe.mockReturnValue(new Promise(() => {})); },
-    /** The next probe waits; the test settles it with `release(protection)` or `reject(error)`. Later probes keep their answer. */
-    holdNextProbe() {
-      let settleOk!: (protection: ProbeAnswer) => void;
-      let settleFail!: (error: unknown) => void;
-      probe.mockImplementationOnce(() => new Promise<ProbeAnswer>((resolve, reject) => { settleOk = resolve; settleFail = reject; }));
-      return {
-        release: (protection: ProbeAnswer = 'open') => settleOk(protection),
-        reject: (error: unknown) => settleFail(error),
-      };
-    },
-    /** Spies of `lib/pdf/thumbnails.js`; `mockImplementation` them, assert on their calls. */
-    thumbnails,
-    /** The fake thumbnail source: set `pageCount` or `failOpen`; `opened` and `destroyed` count its lifetime. */
-    source,
     /** The `pdfjs-dist` `getDocument` spy (Redact's edge). */
     getDocument,
     /** Text items per page (0-based) the fake pdf.js pages stream out. */

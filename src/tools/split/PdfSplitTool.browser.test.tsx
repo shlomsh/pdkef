@@ -9,9 +9,8 @@ import { recentActions } from '#lib/telemetry/actionTrail.ts';
 import PdfSplitTool from './PdfSplitTool.tsx';
 import { mockNativeFileShare } from '../../test/support/mockFileShare.js';
 import { noPagesKey } from '../../test/support/pdfPageTreeFixtures.ts';
-import { installBrowserToolHarness } from '../../test/harness/browserToolHarness.ts';
+import { installBrowserToolHarness, type BrowserToolHarness } from '../../test/harness/browserToolHarness.ts';
 import { answerNetwork } from '../../test/support/network.browser.ts';
-import type { ToolHarness } from '../../test/harness/toolHarness.ts';
 import threePageUrl from '../../lib/__fixtures__/three-page-header.pdf?url';
 import needsPasswordUrl from '../../lib/__fixtures__/encrypted/needs-password.pdf?url';
 import ownerOnlyUrl from '../../lib/__fixtures__/encrypted/owner-only.pdf?url';
@@ -48,7 +47,7 @@ const fixtureAt = async (url, name) => new File([await fetched(url)], name, { ty
 
 describe('PdfSplitTool UI flow', () => {
   let container;
-  let harness: ToolHarness;
+  let harness: BrowserToolHarness;
 
   const clicked: { name: string; href: string; blob: Promise<Blob | undefined> }[] = [];
   const recordDownload = (event: Event) => {
