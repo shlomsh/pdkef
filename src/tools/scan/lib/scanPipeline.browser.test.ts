@@ -8,10 +8,15 @@ import { buildScanPdf, inspectPhoto, processPage, type ProcessedPage } from './s
 import { resetPageWorker } from './pageWork/offThread.ts';
 import { withOrientation6 } from './pageWork/exifProbe.ts';
 import type { Pins } from './edges/follow.ts';
+import { HttpResponse } from 'msw';
+import { resetErrorReportingForTests, sendBeacon, setReportingEnabledForTests } from '#lib/telemetry/errorReport.ts';
+import { answerInTurn, answerNetwork } from '../../../test/support/network.browser.ts';
 
 // The pure collaborators (warp, filters, quad maths, the budget search, imagesToPdf) are the real ones;
 // the warp spy only reads the pixel quad the pipeline hands it.
 vi.mock('#lib/pageEnhance/warp.ts', { spy: true });
+
+answerNetwork();
 
 type Rgb = [number, number, number];
 const GRAY: Rgb = [128, 128, 128];
@@ -68,6 +73,7 @@ afterEach(() => {
   vi.restoreAllMocks();
   vi.unstubAllGlobals();
   resetPageWorker();
+  setReportingEnabledForTests(false);
 });
 
 describe('processPage: the inset crop', () => {
@@ -196,6 +202,43 @@ describe('a page worker that is sent a process job', () => {
     await processPage(source, FULL_QUAD, 'original');
     const sent = posted.mock.calls.map(([request]) => (request as { job: { kind: string; fine?: unknown } }).job).filter((job) => job.kind === 'process');
     expect(sent.slice(-2).map((job) => job.fine)).toEqual([true, false]);
+  });
+});
+
+describe('a page worker that dies mid-job', () => {
+  // The worker answers its probe, then dies on the first real job: the job finishes on the main thread.
+  class DyingWorker {
+    onmessage: ((e: { data: unknown }) => void) | null = null;
+    onerror: ((e: { preventDefault(): void }) => void) | null = null;
+    terminate() {}
+    postMessage(request: { id: number; job: { kind: string } }) {
+      setTimeout(() => {
+        if (request.job.kind === 'probe') this.onmessage?.({ data: { id: request.id, ok: true, value: true } });
+        else this.onerror?.({ preventDefault: () => {} });
+      });
+    }
+  }
+
+  it('finishes the job on the real main-thread path, and reports the worker failure once', async () => {
+    resetPageWorker();
+    setReportingEnabledForTests(true);
+    resetErrorReportingForTests();
+    const reports = answerInTurn('post', '/api/report', ...Array.from({ length: 3 }, () => () => new HttpResponse(null, { status: 204 })));
+    // forced: a worker that answers its probe, then crashes on the first job
+    vi.stubGlobal('Worker', DyingWorker);
+    const made = createObjectURL();
+    const inspected = await inspectPhoto(await photo(300, 400));
+    expect([inspected.width, inspected.height]).toEqual([300, 400]);
+    const preview = await decodedPixels(inspected.preview);
+    expect([preview.width, preview.height]).toEqual([300, 400]);
+    expect(made).toHaveBeenCalled();
+    await expect(inspectPhoto(await photo(200, 100))).resolves.toMatchObject({ width: 200, height: 100 });
+    sendBeacon({ control: 'control_step' });
+    let landed = 0;
+    do await reports.arrived(++landed);
+    while (!(await reports[landed - 1].clone().text()).includes('control_step'));
+    expect(landed).toBe(2);
+    expect(await reports[0].json()).toMatchObject({ area: 'pdf_tool_run', step: 'scan_page_worker' });
   });
 });
 

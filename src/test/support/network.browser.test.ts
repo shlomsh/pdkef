@@ -5,7 +5,12 @@ import { answerInTurn, answerNetwork, missedRequests, sentHeaders, worker } from
 answerNetwork();
 
 const unhandledArrival = (path: string) => new Promise<void>((resolve) => {
-  worker.events.on('request:unhandled', ({ request }) => { if (new URL(request.url).pathname === path) resolve(); });
+  const arrived = ({ request }: { request: Request }) => {
+    if (new URL(request.url).pathname !== path) return;
+    worker.events.removeListener('request:unhandled', arrived);
+    resolve();
+  };
+  worker.events.on('request:unhandled', arrived);
 });
 
 describe('answerNetwork in the browser', () => {

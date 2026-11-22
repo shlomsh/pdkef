@@ -244,6 +244,7 @@ describe('eyedropper', () => {
       const host = document.createElement('div');
       host.setAttribute('data-pseudo-fullscreen', '');
       document.body.appendChild(host);
+      mounted.push(host);
       const a = mountDropper();
       a.canvas.dispatchEvent(new MouseEvent('mousemove', { clientX: 60, clientY: 120, bubbles: true }));
       await nextFrame();

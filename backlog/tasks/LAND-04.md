@@ -130,5 +130,10 @@ count). The rule is off on `landmines-all` meanwhile.
   at once when a request goes unanswered instead of waiting for the timeout. Several browser runs in
   one worktree at once can fail at import while Vite re-optimizes the shared dependency cache; one
   process, cold or warm, never did in 10 runs.
+- Fresh review of wave 5 (2026-11-22), two reviewers with no shared context: no weakened assertion.
+  Fixed: Scan's dying-worker test still faked image, canvas and object URLs in Node; it now runs in
+  Chromium with only the worker forced, and checks the one worker-failure report through the real
+  `/api/report` beacon (1,145). A helper-test listener now removes itself. Checked and kept: the
+  `doUnmock` of the warp spy before the worker tests (without it the worker's jobs go unseen).
 - Found on the way: RED-75 (preview documents never freed on pdf.js 6.5), RED-76 (one very long line
   overflows the text preview).
