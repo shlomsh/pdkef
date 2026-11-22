@@ -90,11 +90,15 @@ describe('PdfEditPagesTool with a protected PDF', () => {
     const navigate = vi.fn();
     const { sendHandoff: realSendHandoff } = await vi.importActual<typeof import('#lib/handoff/sendHandoff.ts')>('#lib/handoff/sendHandoff.ts');
     // forced: a real navigation would unload the test page
-    vi.mocked(sendHandoff).mockImplementationOnce((target, payload, options) => realSendHandoff(target, payload, { ...options, navigate }));
+    const sent = Promise.withResolvers<void>();
+    vi.mocked(sendHandoff).mockImplementationOnce(async (target, payload, options) => {
+      try { return await realSendHandoff(target, payload, { ...options, navigate }); } finally { sent.resolve(); }
+    });
     await act(async () => {
       Array.from(container!.querySelectorAll('button')).find((b) => b.textContent!.trim() === 'Unlock it')!.click();
     });
-    await waitUntil(() => expect(navigate).toHaveBeenCalledWith('/unlock/'));
+    await sent.promise;
+    expect(navigate).toHaveBeenCalledWith('/unlock/');
 
     expect(await harness.takeHandoff('unlock')).toMatchObject({ from: 'edit-pdf', fileName: 'needs-password.pdf' });
   });

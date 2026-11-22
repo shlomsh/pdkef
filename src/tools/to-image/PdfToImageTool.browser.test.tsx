@@ -143,8 +143,12 @@ describe('PdfToImageTool', () => {
     expect(lastConversion().pages).toBe('1-5');
     // The tool's own document is let go; the grid keeps the one it read the page sizes from until it unmounts.
     const sources = await Promise.all(vi.mocked(openThumbnailSource).mock.results.map((result) => result.value));
-    const states = await Promise.all(sources.map((source) => source.render(0).then(() => 'open', () => 'destroyed')));
+    const states = await Promise.all(sources.map((source) => source.render(0).then(
+      () => 'open',
+      (error) => (error.message === 'openThumbnailSource: render() called after destroy()' ? 'destroyed' : `failed: ${error.message}`),
+    )));
     expect(states.filter((state) => state === 'open')).toHaveLength(1);
+    expect(states.filter((state) => state !== 'open' && state !== 'destroyed')).toEqual([]);
     expect(button('Convert')).toBeUndefined();
   });
 

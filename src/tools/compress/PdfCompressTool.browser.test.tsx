@@ -711,7 +711,8 @@ describe('PdfCompressTool UI flow', () => {
       // forced: the run is held open until the test lets it finish
       const run = hold(compressImageLib.compressImageToTarget, actualPhoto.compressImageToTarget);
       mount();
-      await pick(makeImageFile('decode.jpg'), run.started);
+      const photo = makeImageFile('decode.jpg');
+      await pick(photo, run.started);
       await waitUntil(() => expect(result().querySelector('[data-compare-skeleton]')).not.toBeNull());
       expect(result().querySelector('[data-compare-skeleton]')).not.toBeNull();
       expect(result().querySelector('img')).toBeNull();
@@ -719,7 +720,8 @@ describe('PdfCompressTool UI flow', () => {
         decode.resolve();
       });
       await waitUntil(() => result().querySelector('img') !== null);
-      expect(result().querySelector('img').getAttribute('src')).toMatch(/^blob:/);
+      const shown = await harness.blobForUrl(result().querySelector('img').getAttribute('src'));
+      expect(new Uint8Array(await shown.arrayBuffer())).toEqual(new Uint8Array(await photo.arrayBuffer()));
       expect(result().querySelector('[data-compare-skeleton]')).toBeNull();
       await act(async () => {
         run.release();
@@ -808,6 +810,8 @@ describe('PdfCompressTool UI flow', () => {
     expect(calls()).toBe(1);
 
     const input = container.querySelector('#target-size-input');
+    const runNo = () => container.querySelector('[data-compress-run]').getAttribute('data-compress-run');
+    let runBefore = runNo();
     // The quiet timer (FAST_QUIET.baseMs, 5) is the debounce under test: fake only setTimeout from here, so the
     // advances below are the pause (afterEach restores the real ones).
     vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
@@ -820,6 +824,7 @@ describe('PdfCompressTool UI flow', () => {
       input.dispatchEvent(new Event('input', { bubbles: true }));
     });
     await act(async () => { await vi.advanceTimersByTimeAsync(FAST_QUIET.baseMs + 1); });
+    await waitUntil(() => runNo() !== runBefore, { dueFakeTimers: true });
     await waitUntil(() => statusOf() === 'done', { dueFakeTimers: true });
     // Past the pause again: a build per keystroke would have a third call by now.
     await act(async () => { await vi.advanceTimersByTimeAsync(FAST_QUIET.baseMs + 1); await drainPromises(); });
@@ -829,7 +834,9 @@ describe('PdfCompressTool UI flow', () => {
     await act(async () => {
       preset('200 KB').dispatchEvent(new MouseEvent('click', { bubbles: true }));
     });
+    runBefore = runNo();
     await act(async () => { await vi.advanceTimersByTimeAsync(FAST_QUIET.baseMs + 1); });
+    await waitUntil(() => runNo() !== runBefore, { dueFakeTimers: true });
     await waitUntil(() => statusOf() === 'done', { dueFakeTimers: true });
     expect(calls()).toBe(3);
     expect(imagesLib.compressPdfImagesToTarget).toHaveBeenLastCalledWith(expect.anything(), expect.objectContaining({ targetKB: 200 }));
@@ -841,6 +848,7 @@ describe('PdfCompressTool UI flow', () => {
     const calls = () => imagesLib.compressPdfImagesToTarget.mock.calls.length;
     const before = calls();
     const input = container.querySelector('#target-size-input');
+    const runNo = () => container.querySelector('[data-compress-run]').getAttribute('data-compress-run');
     vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
     await act(async () => {
       input.value = '300';
@@ -856,9 +864,11 @@ describe('PdfCompressTool UI flow', () => {
     // The pending change's quiet timer (FAST_QUIET.baseMs, 5) passes while the new file waits on its check.
     await act(async () => { await vi.advanceTimersByTimeAsync(FAST_QUIET.baseMs + 1); await drainPromises(); });
     expect(calls()).toBe(before);
+    const runBefore = runNo();
     await act(async () => {
       probe.release();
     });
+    await waitUntil(() => runNo() !== runBefore, { dueFakeTimers: true });
     await waitUntil(() => statusOf() === 'done', { dueFakeTimers: true });
     expect(calls()).toBe(before + 1);
   });
@@ -981,7 +991,7 @@ describe('PdfCompressTool UI flow', () => {
     await loadPdf('fullscreen.pdf');
     await waitUntil(() => container.querySelectorAll('[data-compare-panel] img').length === 2);
     expect(thumbnails.renderComparePreview).toHaveBeenCalledTimes(2);
-    expect(container.querySelector('dialog[aria-label]')?.open).toBeFalsy();
+    expect(container.querySelector('dialog[aria-label]')).toBeNull();
 
     const fullScreen = findButton('Full screen');
     expect(fullScreen).toBeTruthy();
@@ -1208,15 +1218,19 @@ describe('PdfCompressTool UI flow', () => {
     describe('result card honesty (COMP-02)', () => {
       const stats = () => resultCard();
       const title = () => stats().querySelector('[data-stats-title]').textContent;
+      const savedText = (input, output) => {
+        const percent = percentSmaller(input.size, output.size);
+        return percent >= 1 ? `${percent}%` : 'less than 1%';
+      };
       const answerWithSaving = (fn, share) => {
         // forced: an output exactly this much smaller than the input, which a real file only approaches
         vi.mocked(fn).mockImplementationOnce(async (file) => savedShare(file, share));
       };
 
       it('a 1% result at Balanced says only a little smaller, already compact, and points at Extreme', async () => {
-        await loadPdf('doc.pdf', 'slight');
+        const file = await loadPdf('doc.pdf', 'slight');
         expect(title()).toBe('Only a little smaller');
-        expect(stats().textContent).toMatch(/already compact, so making them smaller saved (less than )?\d*%/);
+        expect(stats().textContent).toContain(`already compact, so making them smaller saved ${savedText(file, await downloaded())}.`);
         expect(stats().textContent).toContain('"Smallest" can go further');
         expect(downloadButton()).not.toBeNull();
         // The switch is offered here: the images could not carry the saving.
@@ -1224,10 +1238,10 @@ describe('PdfCompressTool UI flow', () => {
       });
 
       it('at the smallest level the same result has no Extreme hint', async () => {
-        await loadPdf('doc.pdf', 'slight');
+        const file = await loadPdf('doc.pdf', 'slight');
         await choose('Smallest');
         expect(title()).toBe('Only a little smaller');
-        expect(stats().textContent).toContain('already compact, so making them smaller saved');
+        expect(stats().textContent).toContain(`already compact, so making them smaller saved ${savedText(file, await downloaded())}.`);
         expect(stats().textContent).not.toContain('"Smallest" can go further');
       });
 
@@ -1863,7 +1877,7 @@ describe('PdfCompressTool UI flow', () => {
       await pickMany([broken('a.png'), makeImageFile('b.jpg', 'tiny')]);
       const [failed, kept] = rows().map((r) => r.querySelector('[data-batch-caption]').textContent);
       expect(failed).toBe("Couldn't read this one");
-      expect(kept).toMatch(/^[\d.]+ (Bytes|KB) · unchanged$/);
+      expect(kept).toBe('287 Bytes · unchanged');
     });
 
     it('names missed, kept and failed rows and still finishes', async () => {

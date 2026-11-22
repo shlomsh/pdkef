@@ -131,15 +131,18 @@ describe('PdfCompressTool with a protected PDF', () => {
   it('"Unlock it" parks the file for Unlock and goes there', async () => {
     const navigate = vi.fn();
     // forced: a real navigation would take the test page away, so the hand-off gets a navigate callback.
-    vi.mocked(sendHandoff).mockImplementationOnce(async (target, payload, options) =>
-      (await vi.importActual<typeof import('#lib/handoff/sendHandoff.ts')>('#lib/handoff/sendHandoff.ts')).sendHandoff(target, payload, { ...options, navigate }));
+    const sent = Promise.withResolvers<void>();
+    vi.mocked(sendHandoff).mockImplementationOnce(async (target, payload, options) => {
+      try { return await (await vi.importActual<typeof import('#lib/handoff/sendHandoff.ts')>('#lib/handoff/sendHandoff.ts')).sendHandoff(target, payload, { ...options, navigate }); } finally { sent.resolve(); }
+    });
     mount();
     await pick(await fixtureFile('needs-password'));
 
     await act(async () => {
       Array.from(container.querySelectorAll('button')).find((b) => b.textContent.trim() === 'Unlock it').click();
     });
-    await waitUntil(() => expect(navigate).toHaveBeenCalledWith('/unlock/'));
+    await sent.promise;
+    expect(navigate).toHaveBeenCalledWith('/unlock/');
 
     const parked = await harness.takeHandoff('unlock');
     expect(parked).toEqual(expect.objectContaining({ from: 'compress', fileName: 'needs-password.pdf' }));

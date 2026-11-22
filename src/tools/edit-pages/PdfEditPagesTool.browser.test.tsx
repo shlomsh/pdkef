@@ -15,7 +15,6 @@ import { probeEncryption } from '#lib/pdf/pdfEncryption.ts';
 import ownerOnlyUrl from '../../lib/__fixtures__/encrypted/owner-only.pdf?url';
 import { setInputFiles } from '../../test/support/setInputFiles.js';
 import { until } from '../../test/support/until.js';
-import { waitUntil } from '../../test/support/waitUntil.ts';
 
 answerNetwork();
 
@@ -58,7 +57,6 @@ describe('PdfEditPagesTool UI flow', () => {
     }
     vi.unstubAllGlobals();
     vi.restoreAllMocks();
-    await drainPromises();
     await harness.restore();
   });
 
@@ -88,6 +86,7 @@ describe('PdfEditPagesTool UI flow', () => {
     const { PDFDocument } = await getPdfLib();
     const create = PDFDocument.create;
     const gate = { started: false, release: () => {} };
+    // forced: holds the next build open right after it starts, which a real pdf-lib run cannot do
     vi.spyOn(PDFDocument, 'create').mockImplementationOnce(async (...args) => {
       gate.started = true;
       await new Promise((resolve) => { gate.release = resolve; });
@@ -171,7 +170,7 @@ describe('PdfEditPagesTool UI flow', () => {
 
   it('a failed build points to Unlock, where a protected PDF can be opened', async () => {
     vi.spyOn(console, 'error').mockImplementation(() => {});
-    // forced: the probe calls this owner-only file open (no unlock offered), so the build itself refuses it
+    // forced: the probe answers open for this owner-only file, so the build itself meets its protection
     vi.mocked(probeEncryption).mockResolvedValueOnce('open');
     await load('document.pdf', await ownerOnlyBytes());
     await click(skipButton(2));
@@ -181,7 +180,7 @@ describe('PdfEditPagesTool UI flow', () => {
     const alert = container.querySelector('[role="alert"]');
     expect(alert.querySelector('a[href="/unlock/"]')).not.toBeNull();
     expect(downloadElement().dataset.state).toBe('error');
-    expect(harness.reports().filter((report) => report.area === 'pdf_tool_run')).toMatchObject([{ step: 'apply_page_edits', type: 'Error' }]);
+    expect(harness.reports()).toMatchObject([{ area: 'pdf_tool_run', step: 'apply_page_edits', type: 'Error' }]);
   });
 
   it('builds the edited PDF from the plan and offers it as a download under the output name', async () => {
@@ -235,9 +234,13 @@ describe('PdfEditPagesTool UI flow', () => {
     const navigate = vi.fn();
     const { sendHandoff: realSendHandoff } = await vi.importActual<typeof import('#lib/handoff/sendHandoff.ts')>('#lib/handoff/sendHandoff.ts');
     // forced: a real navigation would unload the test page
-    vi.mocked(sendHandoff).mockImplementationOnce((target, payload, options) => realSendHandoff(target, payload, { ...options, navigate }));
+    const sent = Promise.withResolvers<void>();
+    vi.mocked(sendHandoff).mockImplementationOnce(async (target, payload, options) => {
+      try { return await realSendHandoff(target, payload, { ...options, navigate }); } finally { sent.resolve(); }
+    });
     await act(async () => { compress.click(); });
-    await waitUntil(() => expect(navigate).toHaveBeenCalledWith('/compress/'));
+    await sent.promise;
+    expect(navigate).toHaveBeenCalledWith('/compress/');
     const handoff = await harness.takeHandoff('compress');
     expect(handoff).toMatchObject({ fileName: 'document_modified.pdf', fileType: 'application/pdf' });
     expect(await pagesOf(new Blob([handoff.fileBytes]))).toMatchObject({ count: 3, widths: ORIGINAL_WIDTHS });
@@ -253,6 +256,12 @@ describe('PdfEditPagesTool UI flow', () => {
 
   it('replacing the file drops a Download tapped before the build landed', async () => {
     await load('a.pdf');
+    const firstRunEnded = Promise.withResolvers<void>();
+    const { editPages: realEditPages } = await vi.importActual<typeof editPagesLib>('./lib/editPages.js');
+    // forced: the held first build's end is the only signal that it has finished after release
+    vi.mocked(editPagesLib.editPages).mockImplementationOnce(async (...args) => {
+      try { return await realEditPages(...args); } finally { firstRunEnded.resolve(); }
+    });
     const first = await holdNextBuild();
     await prepareNow(false, first);
     await click(downloadElement());
@@ -261,8 +270,10 @@ describe('PdfEditPagesTool UI flow', () => {
     await replaceWith(makePdfFile('b.pdf'));
     await prepareNow();
     expect(downloadElement().dataset.state).toBe('ready');
-    first.release();
-    await act(async () => { await drainPromises(); });
+    await act(async () => {
+      first.release();
+      await firstRunEnded.promise;
+    });
     await harness.flush();
   });
 
@@ -305,6 +316,7 @@ describe('PdfEditPagesTool UI flow', () => {
     // Settles when the first (held, then superseded) editPages run has ended, by saving or by stopping early.
     const firstRunEnded = Promise.withResolvers<void>();
     const { editPages: realEditPages } = await vi.importActual<typeof editPagesLib>('./lib/editPages.js');
+    // forced: wraps the first editPages run to learn when it has ended
     vi.mocked(editPagesLib.editPages).mockImplementationOnce(async (...args) => {
       try { return await realEditPages(...args); } finally { firstRunEnded.resolve(); }
     });

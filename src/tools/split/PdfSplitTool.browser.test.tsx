@@ -373,7 +373,7 @@ describe('PdfSplitTool UI flow', () => {
 
   it('a build that fails says so on the Download element and counts as a failed operation', async () => {
     vi.spyOn(console, 'error').mockImplementation(() => {});
-    // forced: the probe calls this owner-only file open (no unlock offered), so the split itself refuses it.
+    // forced: the probe answers open for this owner-only file, so the split itself meets its protection.
     vi.mocked(probeEncryption).mockResolvedValueOnce('open');
     mount();
     await pick(await fixtureAt(ownerOnlyUrl, 'locked.pdf'));

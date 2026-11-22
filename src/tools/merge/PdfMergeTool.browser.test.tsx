@@ -1,6 +1,7 @@
 // @ts-nocheck - renamed from .jsx, not yet typed; see TODO.md 'Type the interactive shell'
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
+import { page } from 'vitest/browser';
 import { describe, expect, it, vi, afterEach, beforeEach } from 'vitest';
 import Sortable from 'sortablejs';
 import PdfMergeTool from './PdfMergeTool.tsx';
@@ -418,10 +419,7 @@ describe('PdfMergeTool UI flow', () => {
   });
 
   it('the heading shows "N rendered" only while rendering, and drops it once every cell has a thumbnail', async () => {
-    // A controllable IntersectionObserver: setup.js's global stub never
-    // fires, which is right for tests that don't care, but this one has to
-    // drive PageGrid's render queue to completion to prove the quieter
-    // "rendered" span goes away once it does.
+    // forced: a real observer renders every visible cell at once, so the "0 rendered" moment cannot be held; this one only fires when the test says
     const originalIO = globalThis.IntersectionObserver;
     const instances = [];
     globalThis.IntersectionObserver = class {
@@ -435,6 +433,7 @@ describe('PdfMergeTool UI flow', () => {
       disconnect() { this.targets.clear(); }
     };
 
+    try {
     mount();
     await loadFiles(['a.pdf', 'b.pdf']);
     // The grid (PageGrid) itself arrives through a dynamic import(); give
@@ -453,8 +452,9 @@ describe('PdfMergeTool UI flow', () => {
       io.callback(Array.from(io.targets).map((target) => ({ target, isIntersecting: true })));
     });
     await waitUntil(() => expect(heading().textContent).not.toContain('rendered'));
-
-    globalThis.IntersectionObserver = originalIO;
+    } finally {
+      globalThis.IntersectionObserver = originalIO;
+    }
   });
 
   it('a tap while the pre-merge is still running shows progress and delivers the file when it lands (MERGE-12)', async () => {
@@ -1220,7 +1220,7 @@ describe('PdfMergeTool UI flow', () => {
     // state for it instead of silently not saving. The cap is 200 MB, so the failed
     // write here is the other way a save fails: the store answers false.
     // forced: the draft write fails
-    vi.mocked(saveDraft).mockResolvedValue(false);
+    vi.mocked(saveDraft).mockResolvedValueOnce(false);
     mount();
     await loadFiles(['a.pdf', 'b.pdf']);
     await settle();
@@ -1883,6 +1883,7 @@ describe('PdfMergeTool quiet-time prepare', () => {
     container = null;
     vi.useRealTimers();
     vi.restoreAllMocks();
+    await page.viewport(414, 896);
     await harness.restore();
   });
 
@@ -1956,76 +1957,42 @@ describe('PdfMergeTool quiet-time prepare', () => {
     await waitUntil(() => expect(built()).toBe(1), { dueFakeTimers: true });
   });
   // MERGE-24 review: the done strip's pending tap and wide screens.
-  function stubMedia(initialMatches) {
-    const listeners = new Set();
-    const state = { matches: initialMatches };
-    const original = window.matchMedia;
-    window.matchMedia = (query) => ({
-      get matches() { return query.includes('max-width: 1023px') ? state.matches : false; },
-      media: query,
-      onchange: null,
-      addListener() {}, removeListener() {},
-      addEventListener: (type, fn) => { if (query.includes('max-width: 1023px')) listeners.add(fn); },
-      removeEventListener: (type, fn) => { listeners.delete(fn); },
-      dispatchEvent() { return false; },
-    });
-    return {
-      set(matches) { state.matches = matches; listeners.forEach((fn) => fn({ matches })); },
-      restore() { window.matchMedia = original; },
-    };
-  }
   const strip = () => container.querySelector('[data-merge-done-strip]');
 
   it('opens the strip on delivery after a quiet Download tap that beat the build (tablet)', async () => {
-    const media = stubMedia(true);
-    try {
-      await act(async () => pageNumbersBox().click());
-      await advance(200);
-      await act(async () => { container.querySelector('[data-quiet-download]').click(); });
-      await advance(5000);
-      await waitUntil(() => expect(box().getAttribute('data-state')).toBe('saved'), { dueFakeTimers: true });
-      expect(strip()).not.toBeNull();
-    } finally {
-      media.restore();
-    }
+    await act(async () => pageNumbersBox().click());
+    await advance(200);
+    await act(async () => { container.querySelector('[data-quiet-download]').click(); });
+    await advance(5000);
+    await waitUntil(() => expect(box().getAttribute('data-state')).toBe('saved'), { dueFakeTimers: true });
+    expect(strip()).not.toBeNull();
   });
 
   it('a stale quiet-tap flag does not open the strip for the completion row tap after Clear all', async () => {
-    const media = stubMedia(true);
-    try {
-      // The build the page-numbers change starts never finishes.
-      controlReads(sources[0]).holdMerge();
-      await act(async () => pageNumbersBox().click());
-      await advance(200);
-      await act(async () => { container.querySelector('[data-quiet-download]').click(); });
-      const clearTrigger = Array.from(container.querySelectorAll('button')).find((b) => b.textContent.trim() === 'Clear all files');
-      await act(async () => clearTrigger.click());
-      const clearButtons = Array.from(container.querySelectorAll('button')).filter((b) => b.textContent.trim() === 'Clear all');
-      await act(async () => clearButtons.at(-1).click());
-      await act(async () => {
-        setInputFiles(container.querySelector('input[type="file"]'), ['d.pdf', 'e.pdf'].map((n) => makePdfFile(n)));
-      });
-      await advance(100);
-      await act(async () => { box().dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true })); });
-      await advance(5000);
-      expect(box().getAttribute('data-state')).toBe('saved');
-      expect(strip()).toBeNull();
-    } finally {
-      media.restore();
-    }
+    // The build the page-numbers change starts never finishes.
+    controlReads(sources[0]).holdMerge();
+    await act(async () => pageNumbersBox().click());
+    await advance(200);
+    await act(async () => { container.querySelector('[data-quiet-download]').click(); });
+    const clearTrigger = Array.from(container.querySelectorAll('button')).find((b) => b.textContent.trim() === 'Clear all files');
+    await act(async () => clearTrigger.click());
+    const clearButtons = Array.from(container.querySelectorAll('button')).filter((b) => b.textContent.trim() === 'Clear all');
+    await act(async () => clearButtons.at(-1).click());
+    await act(async () => {
+      setInputFiles(container.querySelector('input[type="file"]'), ['d.pdf', 'e.pdf'].map((n) => makePdfFile(n)));
+    });
+    await advance(100);
+    await act(async () => { box().dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true })); });
+    await advance(5000);
+    expect(box().getAttribute('data-state')).toBe('saved');
+    expect(strip()).toBeNull();
   });
 
   it('closes the open strip when the window widens past 1024px and gives the rating its slot back', async () => {
-    const media = stubMedia(true);
-    try {
-      await act(async () => { container.querySelector('[data-quiet-download]').dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true })); });
-      await advance(100);
-      expect(strip()).not.toBeNull();
-      media.set(false);
-      await advance(10);
-      expect(strip()).toBeNull();
-    } finally {
-      media.restore();
-    }
+    await act(async () => { container.querySelector('[data-quiet-download]').dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true })); });
+    await advance(100);
+    expect(strip()).not.toBeNull();
+    await page.viewport(1280, 800);
+    await waitUntil(() => expect(strip()).toBeNull(), { dueFakeTimers: true });
   });
 });
