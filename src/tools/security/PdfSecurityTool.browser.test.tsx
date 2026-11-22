@@ -239,7 +239,8 @@ describe('PdfSecurityTool', () => {
       passwordInput.dispatchEvent(new Event('input', { bubbles: true }));
     });
 
-    await loadFile('replacement.pdf');
+    await loadFile('replacement.pdf', undefined, { wait: false });
+    await waitUntil(() => replaceDialogOpen());
 
     const dialog = container.querySelector('dialog[aria-labelledby="confirm-replace-title"]');
     expect(dialog.open).toBe(true);
@@ -255,8 +256,10 @@ describe('PdfSecurityTool', () => {
     // Cancel keeps the old file, so it keeps whatever was typed for it too.
     expect(passwordInput.value).toBe('hunter2');
 
-    await loadFile('replacement.pdf');
-    const confirm = Array.from(dialog.querySelectorAll('button')).find((button) => button.textContent.trim() === 'Replace file');
+    await loadFile('replacement.pdf', undefined, { wait: false });
+    await waitUntil(() => replaceDialogOpen());
+    const reopened = container.querySelector('dialog[aria-labelledby="confirm-replace-title"]');
+    const confirm = Array.from(reopened.querySelectorAll('button')).find((button) => button.textContent.trim() === 'Replace file');
     await act(async () => { confirm.click(); });
     await waitUntil(() => expect(container.querySelector('dialog[aria-labelledby="confirm-replace-title"]')?.open).not.toBe(true));
     expect(container.textContent).toContain('replacement.pdf');
@@ -273,7 +276,8 @@ describe('PdfSecurityTool', () => {
     mount();
 
     await loadFile();
-    await loadFile('replacement.pdf');
+    await loadFile('replacement.pdf', undefined, { wait: false });
+    await waitUntil(() => replaceDialogOpen());
 
     const dialog = container.querySelector('dialog[aria-labelledby="confirm-replace-title"]');
     expect(dialog.open).toBe(true);
