@@ -8,11 +8,10 @@ class FakeWorker {
   static last: FakeWorker;
   onmessage: ((e: { data: unknown }) => void) | null = null;
   onerror: ((e: { preventDefault(): void }) => void) | null = null;
-  terminate = vi.fn();
+  terminate() {}
   sent: Array<{ id: number }> = [];
   constructor() { FakeWorker.last = this; }
-  postMessage(message: { id: number }, transfer: ArrayBuffer[]) { this.sent.push(message); this.transfer = transfer; }
-  transfer: ArrayBuffer[] = [];
+  postMessage(message: { id: number }) { this.sent.push(message); }
 }
 
 afterEach(() => vi.unstubAllGlobals());
@@ -23,20 +22,8 @@ describe('openAssessor', () => {
     expect(a.crooked).toBe(false);
   });
 
-  it('hands the pixels to the worker and takes its answer', async () => {
-    vi.stubGlobal('Worker', FakeWorker);
-    const assessor = openAssessor();
-    const asked = assessor.assess({ ...SHEET, data: new Uint8ClampedArray(SHEET.data) });
-    const worker = FakeWorker.last;
-    expect(worker.transfer).toHaveLength(1);
-    const answer = { turn: 0, turnConfidence: 0, spine: null, possibleSpine: null, leans: [0], bentPx: 0, crooked: false };
-    worker.onmessage?.({ data: { id: worker.sent[0].id, ok: true, value: answer } });
-    expect(await asked).toEqual(answer);
-    assessor.close();
-    expect(worker.terminate).toHaveBeenCalled();
-  });
-
   it('says the worker was lost when it dies holding a sheet, and reads on the main thread after', async () => {
+    // forced: a worker that dies holding a sheet
     vi.stubGlobal('Worker', FakeWorker);
     const assessor = openAssessor();
     const asked = assessor.assess({ ...SHEET, data: new Uint8ClampedArray(SHEET.data) });
@@ -46,6 +33,7 @@ describe('openAssessor', () => {
   });
 
   it('passes on a failure the worker reports', async () => {
+    // forced: a worker that reports a failure
     vi.stubGlobal('Worker', FakeWorker);
     const asked = openAssessor().assess({ ...SHEET, data: new Uint8ClampedArray(SHEET.data) });
     const worker = FakeWorker.last;

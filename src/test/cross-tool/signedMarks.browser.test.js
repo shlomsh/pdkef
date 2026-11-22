@@ -1,11 +1,8 @@
-import fs from 'fs';
-import path from 'path';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import { PDFDocument, PDFName } from '@cantoo/pdf-lib';
 import { signPdf } from '../../tools/sign/lib/sign.js';
 import { extractPageObjects, getPageContentBytes } from '#editor/adapters/pdf/pdfObjects.js';
 import { deleteObjectsFromPdf } from '../../tools/redact/lib/deleteObjects.js';
-import { mockFontFetch } from '#editor/adapters/pdf/fontFetch.test-helper.js';
 
 const PNG = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=';
 const decode = (bytes) => new TextDecoder().decode(bytes);
@@ -85,10 +82,6 @@ const EVERY_ELEMENT = [
 ];
 
 describe('every element Sign exports is one Delete target', () => {
-  let restoreFetch;
-  beforeEach(() => { restoreFetch = mockFontFetch(); });
-  afterEach(() => restoreFetch());
-
   it.each(EVERY_ELEMENT)('%s', async (_, element) => {
     const source = await sourcePdf();
     const signed = await signPdf(source, [element]);
@@ -105,10 +98,6 @@ describe('every element Sign exports is one Delete target', () => {
 });
 
 describe('Sign exports from bytes it already holds (DEBT-51)', () => {
-  let restoreFetch;
-  beforeEach(() => { restoreFetch = mockFontFetch(); });
-  afterEach(() => restoreFetch());
-
   it('signs an ArrayBuffer twice without detaching or changing it', async () => {
     const bytes = await (await sourcePdf()).arrayBuffer();
     const before = new Uint8Array(bytes.slice(0));

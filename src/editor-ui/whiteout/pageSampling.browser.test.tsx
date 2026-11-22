@@ -1,32 +1,64 @@
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { sampleCanvasColor, sampleRingColor, useEyedropper } from './pageSampling.ts';
+
+const mounted: HTMLElement[] = [];
+
+afterEach(() => {
+  for (const el of mounted.splice(0)) el.remove();
+  vi.useRealTimers();
+  vi.restoreAllMocks();
+});
+
+const nextFrame = () => new Promise<void>((done) => { requestAnimationFrame(() => done()); });
+
+function paint(canvas: HTMLCanvasElement, background: string, marks: Array<[number, number, number, number, string]>) {
+  const ctx = canvas.getContext('2d')!;
+  ctx.fillStyle = background;
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  for (const [x, y, w, h, color] of marks) {
+    ctx.fillStyle = color;
+    ctx.fillRect(x, y, w, h);
+  }
+}
+
+const rgb = ([r, g, b]: [number, number, number]) => `rgb(${r},${g},${b})`;
 
 function stubCanvas(pixel: [number, number, number]) {
   const canvas = document.createElement('canvas');
   canvas.width = 200;
   canvas.height = 400;
-  canvas.getBoundingClientRect = () => ({ left: 10, top: 20, width: 100, height: 200, right: 110, bottom: 220, x: 10, y: 20, toJSON() {} }) as DOMRect;
-  const getImageData = vi.fn(() => ({ data: new Uint8ClampedArray([...pixel, 255]) }));
-  canvas.getContext = (() => ({ getImageData })) as never;
+  canvas.style.cssText = 'display:block;width:100px;height:200px';
+  paint(canvas, 'rgb(250,0,0)', [
+    [100, 200, 1, 1, rgb(pixel)],
+    [140, 240, 1, 1, rgb(pixel)],
+  ]);
+  const getImageData = vi.spyOn(CanvasRenderingContext2D.prototype, 'getImageData');
   return { canvas, getImageData };
 }
 
 describe('sampleRingColor', () => {
-  function ringCanvas(getImageData: (...a: number[]) => unknown, width = 300, height = 150, cssWidth = 100) {
+  function ringCanvas(width = 300, height = 150, cssWidth = 100) {
     const canvas = document.createElement('canvas');
     canvas.width = width;
     canvas.height = height;
-    canvas.getBoundingClientRect = () => ({ width: cssWidth, height: 50 }) as DOMRect;
-    canvas.getContext = (() => ({ getImageData })) as never;
+    canvas.style.cssText = `display:block;width:${cssWidth}px;height:50px`;
+    document.body.appendChild(canvas);
+    mounted.push(canvas);
     return canvas;
   }
-  const solid = (r: number, g: number, b: number) => ({ data: new Uint8ClampedArray([r, g, b, 255]) });
 
   it('reads the four ring strips around a centred box and returns their median', () => {
-    const getImageData = vi.fn(() => solid(200, 210, 220));
-    const canvas = ringCanvas(getImageData);
+    const canvas = ringCanvas();
+    const ring = 'rgb(200,210,220)';
+    paint(canvas, 'rgb(250,0,0)', [
+      [108, 48, 84, 12, ring],
+      [108, 90, 84, 12, ring],
+      [108, 60, 12, 30, ring],
+      [180, 60, 12, 30, ring],
+    ]);
+    const getImageData = vi.spyOn(CanvasRenderingContext2D.prototype, 'getImageData');
     // 300x150 backing, 100 css px wide: thickness 12. Box 40%-60% x 40%-60%.
     expect(sampleRingColor(canvas, { left: 40, top: 40, width: 20, height: 20 })).toBe('#c8d2dc');
     expect(getImageData.mock.calls).toEqual([
@@ -38,31 +70,36 @@ describe('sampleRingColor', () => {
   });
 
   it('reads the interior once when the box covers the page', () => {
-    const getImageData = vi.fn(() => solid(1, 2, 3));
-    const canvas = ringCanvas(getImageData);
+    const canvas = ringCanvas();
+    paint(canvas, 'rgb(1,2,3)', []);
+    const getImageData = vi.spyOn(CanvasRenderingContext2D.prototype, 'getImageData');
     expect(sampleRingColor(canvas, { left: 0, top: 0, width: 100, height: 100 })).toBe('#010203');
     expect(getImageData.mock.calls).toEqual([[0, 0, 300, 150]]);
   });
 
   it('gives null when reading throws, there is no canvas or it has no size', () => {
     const box = { left: 40, top: 40, width: 20, height: 20 };
-    expect(sampleRingColor(ringCanvas(() => { throw new Error('tainted'); }), box)).toBeNull();
+    const tainted = ringCanvas();
+    paint(tainted, 'rgb(1,2,3)', []);
+    // forced: a tainted canvas, which makes getImageData throw
+    vi.spyOn(CanvasRenderingContext2D.prototype, 'getImageData').mockImplementation(() => { throw new Error('tainted'); });
+    expect(sampleRingColor(tainted, box)).toBeNull();
+    vi.restoreAllMocks();
     expect(sampleRingColor(null, box)).toBeNull();
     expect(sampleRingColor(undefined, box)).toBeNull();
-    expect(sampleRingColor(ringCanvas(() => solid(1, 2, 3), 0, 150), box)).toBeNull();
+    expect(sampleRingColor(ringCanvas(0, 150), box)).toBeNull();
   });
 
   it('gives null when the page is unpainted', () => {
-    const canvas = ringCanvas(() => ({ data: new Uint8ClampedArray([0, 0, 0, 0]) }));
+    const canvas = ringCanvas();
     expect(sampleRingColor(canvas, { left: 40, top: 40, width: 20, height: 20 })).toBeNull();
   });
 });
 
 describe('eyedropper', () => {
-  afterEach(() => { vi.useRealTimers(); });
-
   it('samples the canvas pixel under the pointer as a hex colour', () => {
     const { canvas, getImageData } = stubCanvas([236, 235, 230]);
+    pageCard(canvas);
     expect(sampleCanvasColor(canvas, 60, 120)).toBe('#ecebe6');
     expect(getImageData).toHaveBeenCalledWith(100, 200, 1, 1);
   });
@@ -70,11 +107,14 @@ describe('eyedropper', () => {
   function pageCard(canvas: HTMLCanvasElement) {
     const card = document.createElement('div');
     card.setAttribute('data-editor-page-card', '');
+    card.style.cssText = 'position:fixed;left:0;top:0;margin:0';
     const area = document.createElement('div');
     area.className = 'redact-draw-area';
+    area.style.cssText = 'position:absolute;left:10px;top:20px';
     area.appendChild(canvas);
     card.appendChild(area);
     document.body.appendChild(card);
+    mounted.push(card);
     return { card, area };
   }
 
@@ -180,29 +220,17 @@ describe('eyedropper', () => {
   });
 
   describe('loupe', () => {
-    let frames: Array<() => void> = [];
-    const flush = () => { const f = frames; frames = []; f.forEach((cb) => cb()); };
     const loupeEl = () => document.querySelector<HTMLElement>('[data-eyedropper-loupe]');
     const hexText = () => loupeEl()?.querySelector('[data-loupe-hex]')?.textContent;
-    const touchEvent = (type: string, touches: Array<{ id: number; x: number; y: number }>, changed = touches) => {
-      const mk = (t: { id: number; x: number; y: number }) => ({ identifier: t.id, clientX: t.x, clientY: t.y });
-      const e = new Event(type, { bubbles: true, cancelable: true });
-      Object.assign(e, { touches: touches.map(mk), changedTouches: changed.map(mk) });
-      return e;
+    const touchEvent = (type: string, target: Element, touches: Array<{ id: number; x: number; y: number }>, changed = touches) => {
+      const mk = (t: { id: number; x: number; y: number }) => new Touch({ identifier: t.id, target, clientX: t.x, clientY: t.y });
+      return new TouchEvent(type, { bubbles: true, cancelable: true, touches: touches.map(mk), changedTouches: changed.map(mk) });
     };
 
-    beforeEach(() => {
-      frames = [];
-      vi.stubGlobal('requestAnimationFrame', (cb: () => void) => frames.push(cb));
-      vi.stubGlobal('cancelAnimationFrame', () => { frames = []; });
-      vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(null);
-    });
-    afterEach(() => { vi.unstubAllGlobals(); vi.restoreAllMocks(); });
-
-    it('follows the mouse over a page with a translate and the hex, and hides off the page', () => {
+    it('follows the mouse over a page with a translate and the hex, and hides off the page', async () => {
       const { canvas, cleanup } = mountDropper();
       canvas.dispatchEvent(new MouseEvent('mousemove', { clientX: 60, clientY: 120, bubbles: true }));
-      flush();
+      await nextFrame();
       expect(loupeEl()?.style.transform).toBe('translate(0px, 60px)');
       expect(loupeEl()?.style.display).not.toBe('none');
       expect(hexText()).toBe('#010203');
@@ -212,24 +240,24 @@ describe('eyedropper', () => {
       cleanup();
     });
 
-    it('the loupe lives in the pseudo full screen element, else in body', () => {
+    it('the loupe lives in the pseudo full screen element, else in body', async () => {
       const host = document.createElement('div');
       host.setAttribute('data-pseudo-fullscreen', '');
       document.body.appendChild(host);
       const a = mountDropper();
       a.canvas.dispatchEvent(new MouseEvent('mousemove', { clientX: 60, clientY: 120, bubbles: true }));
-      flush();
+      await nextFrame();
       expect(loupeEl()?.parentElement).toBe(host);
       a.cleanup();
       host.remove();
       const b = mountDropper();
       b.canvas.dispatchEvent(new MouseEvent('mousemove', { clientX: 60, clientY: 120, bubbles: true }));
-      flush();
+      await nextFrame();
       expect(loupeEl()?.parentElement).toBe(document.body);
       b.cleanup();
     });
 
-    it('hovering the selected box pill hides the loupe', () => {
+    it('hovering the selected box pill hides the loupe', async () => {
       const { canvas, area, cleanup } = mountDropper();
       const pill = document.createElement('div');
       pill.setAttribute('data-editor-actions', '');
@@ -237,34 +265,34 @@ describe('eyedropper', () => {
       pill.appendChild(button);
       area.appendChild(pill);
       canvas.dispatchEvent(new MouseEvent('mousemove', { clientX: 60, clientY: 120, bubbles: true }));
-      flush();
+      await nextFrame();
       expect(loupeEl()?.style.display).not.toBe('none');
       button.dispatchEvent(new MouseEvent('mousemove', { clientX: 60, clientY: 120, bubbles: true }));
       expect(loupeEl()?.style.display).toBe('none');
       cleanup();
     });
 
-    it('touch shows the loupe without picking, follows the slide, and picks on lift', () => {
+    it('touch shows the loupe without picking, follows the slide, and picks on lift', async () => {
       const { canvas, onPick, onDone, cleanup } = mountDropper();
-      const start = touchEvent('touchstart', [{ id: 1, x: 60, y: 120 }]);
+      const start = touchEvent('touchstart', canvas, [{ id: 1, x: 60, y: 120 }]);
       canvas.dispatchEvent(start);
-      flush();
+      await nextFrame();
       expect(start.defaultPrevented).toBe(true);
       expect(onPick).not.toHaveBeenCalled();
       expect(loupeEl()?.style.display).not.toBe('none');
       const before = loupeEl()?.style.transform;
-      canvas.dispatchEvent(touchEvent('touchmove', [{ id: 1, x: 80, y: 140 }]));
-      flush();
+      canvas.dispatchEvent(touchEvent('touchmove', canvas, [{ id: 1, x: 80, y: 140 }]));
+      await nextFrame();
       expect(loupeEl()?.style.transform).not.toBe(before);
       expect(onPick).not.toHaveBeenCalled();
-      canvas.dispatchEvent(touchEvent('touchend', [], [{ id: 1, x: 80, y: 140 }]));
+      canvas.dispatchEvent(touchEvent('touchend', canvas, [], [{ id: 1, x: 80, y: 140 }]));
       expect(onPick).toHaveBeenCalledWith('#010203');
       expect(onDone).toHaveBeenCalled();
       expect(loupeEl()?.style.display).toBe('none');
       cleanup();
     });
 
-    it('a re-render with new callbacks mid-touch keeps the loupe and the gesture, and uses the latest callbacks', () => {
+    it('a re-render with new callbacks mid-touch keeps the loupe and the gesture, and uses the latest callbacks', async () => {
       const { canvas } = stubCanvas([9, 8, 7]);
       const { card } = pageCard(canvas);
       const host = document.createElement('div');
@@ -272,17 +300,17 @@ describe('eyedropper', () => {
       const latest = { pick: vi.fn(), done: vi.fn() };
       function Host({ cb }: { cb: typeof first }) { useEyedropper(true, (c) => cb.pick(c), () => cb.done(), '.redact-draw-area'); return null; }
       act(() => render(<Host cb={first} />, host));
-      canvas.dispatchEvent(touchEvent('touchstart', [{ id: 1, x: 60, y: 120 }]));
-      flush();
+      canvas.dispatchEvent(touchEvent('touchstart', canvas, [{ id: 1, x: 60, y: 120 }]));
+      await nextFrame();
       const el = loupeEl();
       expect(el).not.toBeNull();
       act(() => render(<Host cb={latest} />, host));
       expect(loupeEl()).toBe(el);
-      canvas.dispatchEvent(touchEvent('touchmove', [{ id: 1, x: 80, y: 140 }]));
-      flush();
+      canvas.dispatchEvent(touchEvent('touchmove', canvas, [{ id: 1, x: 80, y: 140 }]));
+      await nextFrame();
       act(() => render(<Host cb={latest} />, host));
       expect(loupeEl()).toBe(el);
-      canvas.dispatchEvent(touchEvent('touchend', [], [{ id: 1, x: 80, y: 140 }]));
+      canvas.dispatchEvent(touchEvent('touchend', canvas, [], [{ id: 1, x: 80, y: 140 }]));
       expect(latest.pick).toHaveBeenCalledWith('#090807');
       expect(latest.done).toHaveBeenCalledTimes(1);
       expect(first.pick).not.toHaveBeenCalled();
@@ -291,13 +319,13 @@ describe('eyedropper', () => {
       card.remove();
     });
 
-    it('a second finger aborts without picking and stays armed', () => {
+    it('a second finger aborts without picking and stays armed', async () => {
       const { canvas, onPick, onDone, cleanup } = mountDropper();
-      canvas.dispatchEvent(touchEvent('touchstart', [{ id: 1, x: 60, y: 120 }]));
-      flush();
-      canvas.dispatchEvent(touchEvent('touchstart', [{ id: 1, x: 60, y: 120 }, { id: 2, x: 70, y: 130 }], [{ id: 2, x: 70, y: 130 }]));
+      canvas.dispatchEvent(touchEvent('touchstart', canvas, [{ id: 1, x: 60, y: 120 }]));
+      await nextFrame();
+      canvas.dispatchEvent(touchEvent('touchstart', canvas, [{ id: 1, x: 60, y: 120 }, { id: 2, x: 70, y: 130 }], [{ id: 2, x: 70, y: 130 }]));
       expect(loupeEl()?.style.display).toBe('none');
-      canvas.dispatchEvent(touchEvent('touchend', [], [{ id: 1, x: 60, y: 120 }]));
+      canvas.dispatchEvent(touchEvent('touchend', canvas, [], [{ id: 1, x: 60, y: 120 }]));
       expect(onPick).not.toHaveBeenCalled();
       expect(onDone).not.toHaveBeenCalled();
       expect(loupeEl()).not.toBeNull();

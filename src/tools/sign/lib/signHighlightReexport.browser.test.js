@@ -1,7 +1,6 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import { PDFDocument, PDFName } from '@cantoo/pdf-lib';
 import { signPdf } from './sign.js';
-import { mockFontFetch } from '#editor/adapters/pdf/fontFetch.test-helper.js';
 
 const subtypes = (pdfDoc) => {
   const annots = pdfDoc.getPage(0).node.Annots();
@@ -9,10 +8,6 @@ const subtypes = (pdfDoc) => {
 };
 
 describe('a PDF exported with highlight comments, exported again', () => {
-  let restoreFetch;
-  beforeEach(() => { restoreFetch = mockFontFetch(); });
-  afterEach(() => { restoreFetch(); vi.restoreAllMocks(); });
-
   it('keeps every annotation, then flattens without throwing and leaves no orphan popup', async () => {
     const source = await PDFDocument.create();
     source.addPage([400, 500]);

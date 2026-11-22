@@ -28,6 +28,13 @@ describe('answerNetwork in the browser', () => {
     expect(missedRequests().map((line) => line.split(' (')[0])).toEqual([`GET ${otherOrigin}`, `POST ${location.origin}/api/unanswered`]);
   });
 
+  it('fails an awaited arrival at once when the request went to a URL nothing answers', async () => {
+    const reports = answerInTurn('post', '/api/report', () => new HttpResponse(null, { status: 204 }));
+    navigator.sendBeacon('/api/other', 'x');
+    await expect(reports.arrived(1)).rejects.toThrow(`No handler for: POST ${location.origin}/api/other`);
+    expect(missedRequests()).toHaveLength(1);
+  });
+
   it('passes the page’s own module, font and image loads through to Vite', async () => {
     const { networkCore } = await import('./networkCore.ts');
     const font = await new FontFace('Alef', `url(/fonts/Alef-Regular.ttf)`).load();

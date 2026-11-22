@@ -1,17 +1,12 @@
-import 'fake-indexeddb/auto';
-import { IDBFactory } from 'fake-indexeddb';
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi, type MockInstance } from 'vitest';
 import { peekHandoff, saveHandoff } from '#lib/drafts/draftStore.ts';
 import { DRIVE_SAVE_CHANNEL, DRIVE_TOKEN_KEY } from '#lib/handoff/driveSaveLink.ts';
 import { reportResult, reportToolLifecycleEvent as report, resetUsageEventsForTests } from '#lib/telemetry/productAnalytics.ts';
 import { waitUntil } from '../../test/support/waitUntil.ts';
 import { driveSavePayload, useSaveToDrive } from './useSaveToDrive.ts';
 
-// The draft store runs for real on fake-indexeddb; the spy lets a test see the call, and the one test that needs
-// the park to fail forces that answer. The BroadcastChannel is Node's own and delivers between instances; the
-// window.open stand-ins are a browser edge jsdom lacks (browser-mode wave).
 vi.mock('#lib/drafts/draftStore.ts', { spy: true });
 vi.mock('#lib/telemetry/productAnalytics.ts', { spy: true });
 const connect = (until = Date.now() + 3_600_000) => localStorage.setItem(DRIVE_TOKEN_KEY, JSON.stringify({ token: 't', until }));
@@ -19,6 +14,15 @@ const tell = (data: unknown) => {
   const channel = new BroadcastChannel(DRIVE_SAVE_CHANNEL);
   channel.postMessage(data);
   channel.close();
+};
+const closed = async (tab: Window) => { while (!tab.closed) await new Promise((resolve) => { requestAnimationFrame(resolve); }); };
+const deleteDatabases = async () => {
+  for (const { name } of await indexedDB.databases()) {
+    await new Promise((resolve) => {
+      const request = indexedDB.deleteDatabase(String(name));
+      request.onsuccess = request.onerror = resolve;
+    });
+  }
 };
 const events = () => vi.mocked(report).mock.calls.map((call) => call[0]);
 
@@ -49,6 +53,8 @@ describe('driveSavePayload', () => {
 describe('useSaveToDrive', () => {
   let container: HTMLElement;
   let latest: ReturnType<typeof useSaveToDrive>;
+  let open: MockInstance<typeof window.open>;
+  const tabAt = (index: number) => open.mock.results[index].value as Window;
   const Probe = (props: Parameters<typeof useSaveToDrive>[0]) => { latest = useSaveToDrive(props); return null; };
   const mount = (props: Partial<Parameters<typeof useSaveToDrive>[0]> = {}) => {
     const full = { tool: 'redact' as const, build, generation: 1, ready: true, ...props };
@@ -57,8 +63,8 @@ describe('useSaveToDrive', () => {
   const build = async () => ({ blob: pdf, fileName: 'a.pdf' });
   beforeEach(() => {
     container = document.createElement('div');
+    open = vi.spyOn(window, 'open');
     vi.mocked(saveHandoff).mockReset();
-    indexedDB = new IDBFactory();
     vi.mocked(report).mockClear();
     vi.mocked(reportResult).mockClear();
     resetUsageEventsForTests();
@@ -66,7 +72,15 @@ describe('useSaveToDrive', () => {
     sessionStorage.clear();
     connect();
   });
-  afterEach(() => { render(null, container); vi.restoreAllMocks(); vi.unstubAllGlobals(); });
+  afterEach(async () => {
+    render(null, container);
+    for (const result of open.mock.results) (result.value as Window | null)?.close();
+    vi.restoreAllMocks();
+    vi.unstubAllGlobals();
+    await deleteDatabases();
+    localStorage.clear();
+    sessionStorage.clear();
+  });
 
   it('is available only when ready', () => {
     mount({ ready: false });
@@ -100,7 +114,6 @@ describe('useSaveToDrive', () => {
   });
 
   it('reports shown once per output, tapped, and saved or failed', async () => {
-    vi.spyOn(window, 'open').mockReturnValue({} as Window);
     mount();
     expect(report).toHaveBeenCalledWith('tool_drive_shown', 'redact');
     expect(events()).toEqual(['tool_drive_shown']);
@@ -117,13 +130,11 @@ describe('useSaveToDrive', () => {
   });
 
   it('reports failed on a failed answer, a blocked tab and a parking failure', async () => {
-    // forced: a popup blocker, which no real test browser has on
-    const open = vi.spyOn(window, 'open').mockReturnValue(null);
+    open.mockReturnValueOnce(null); // forced: a blocked popup
     mount();
     act(() => latest.save());
     expect(events()).toEqual(['tool_drive_shown', 'tool_drive_tapped', 'tool_drive_failed']);
     vi.mocked(report).mockClear();
-    open.mockReturnValue({} as Window);
     vi.mocked(saveHandoff).mockResolvedValue(false); // forced: a store that refuses the file
     mount({ generation: 2 });
     vi.mocked(report).mockClear();
@@ -132,20 +143,19 @@ describe('useSaveToDrive', () => {
     expect(events()).toContain('tool_drive_failed');
   });
 
-  it('sends nothing for a closed tab', () => {
-    vi.useFakeTimers();
-    const tab = { closed: false };
-    vi.spyOn(window, 'open').mockReturnValue(tab as Window);
+  it('sends nothing for a closed tab', async () => {
+    vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval'] });
     mount();
     act(() => latest.save());
-    tab.closed = true;
+    await parked();
+    tabAt(0).close();
+    await closed(tabAt(0));
     act(() => { vi.advanceTimersByTime(3000); });
     expect(events()).toEqual(['tool_drive_shown', 'tool_drive_tapped']);
     vi.useRealTimers();
   });
 
   it('opens the Drive tab synchronously, then parks the file', async () => {
-    const open = vi.spyOn(window, 'open').mockReturnValue({} as Window);
     mount();
     act(() => latest.save());
     expect(open).toHaveBeenCalledTimes(1);
@@ -157,8 +167,7 @@ describe('useSaveToDrive', () => {
   });
 
   it('fails when the browser blocks the tab', () => {
-    // forced: a popup blocker, which no real test browser has on
-    vi.spyOn(window, 'open').mockReturnValue(null);
+    open.mockReturnValue(null); // forced: a blocked popup
     mount();
     act(() => latest.save());
     expect(latest.state).toBe('failed');
@@ -166,7 +175,6 @@ describe('useSaveToDrive', () => {
   });
 
   it('settles on the answer for its id and returns to idle on a new generation', async () => {
-    vi.spyOn(window, 'open').mockReturnValue({} as Window);
     mount();
     act(() => latest.save());
     await parked();
@@ -181,7 +189,6 @@ describe('useSaveToDrive', () => {
   });
 
   it('keeps the link only when it is a Drive link', async () => {
-    vi.spyOn(window, 'open').mockReturnValue({} as Window);
     mount();
     act(() => latest.save());
     await parked();
@@ -192,7 +199,6 @@ describe('useSaveToDrive', () => {
   });
 
   it('builds after the tab is open, and posts cancelled when the build gives nothing or throws', async () => {
-    const open = vi.spyOn(window, 'open').mockReturnValue({} as Window);
     const posts: unknown[] = [];
     const listener = new BroadcastChannel(DRIVE_SAVE_CHANNEL);
     listener.onmessage = (event) => { posts.push(event.data); };
@@ -221,7 +227,6 @@ describe('useSaveToDrive', () => {
   });
 
   it('ignores a generation change while saving, and resets on one after', async () => {
-    vi.spyOn(window, 'open').mockReturnValue({} as Window);
     let release: (v: { blob: Blob; fileName: string }) => void = () => {};
     const pendingBuild = () => new Promise<{ blob: Blob; fileName: string }>((resolve) => { release = resolve; });
     mount({ build: pendingBuild });
@@ -234,14 +239,14 @@ describe('useSaveToDrive', () => {
   });
 
   it('stops saving when the person closes the Drive tab with no answer', async () => {
-    vi.useFakeTimers();
-    const tab = { closed: false };
-    vi.spyOn(window, 'open').mockReturnValue(tab as Window);
+    vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval'] });
     mount();
     act(() => latest.save());
+    await parked();
     act(() => { vi.advanceTimersByTime(3000); });
     expect(latest.state).toBe('saving');
-    tab.closed = true;
+    tabAt(0).close();
+    await closed(tabAt(0));
     act(() => { vi.advanceTimersByTime(3000); });
     expect(latest.state).toBe('idle');
     vi.useRealTimers();
@@ -249,14 +254,12 @@ describe('useSaveToDrive', () => {
 
   it('a late failure from an earlier tap does not end the newer save', async () => {
     vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval'] });
-    const tabA = { closed: false };
-    const tabB = { closed: false };
-    vi.spyOn(window, 'open').mockReturnValueOnce(tabA as Window).mockReturnValueOnce(tabB as Window);
     let failA: (e: Error) => void = () => {};
     const failingBuild = () => new Promise<never>((_, reject) => { failA = reject; });
     mount({ build: failingBuild });
     act(() => latest.save());
-    tabA.closed = true;
+    tabAt(0).close();
+    await closed(tabAt(0));
     act(() => { vi.advanceTimersByTime(3000); });
     expect(latest.state).toBe('idle');
     mount({ build });

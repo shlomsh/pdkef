@@ -15,9 +15,14 @@ type Mocker = {
  */
 export function networkCore(mocker: Mocker, ownTraffic: (request: Request) => boolean) {
   const unhandled: string[] = [];
+  const stillWaiting: Array<(error: Error) => void> = [];
   const during = () => `during "${expect.getState().currentTestName}"`;
+  const miss = (line: string) => {
+    unhandled.push(line);
+    for (const fail of stillWaiting.splice(0)) fail(new Error(`No handler for: ${line}`));
+  };
   mocker.events.on('request:unhandled', ({ request }) => {
-    if (!ownTraffic(request)) unhandled.push(`${request.method} ${request.url} (${during()})`);
+    if (!ownTraffic(request)) miss(`${request.method} ${request.url} (${during()})`);
   });
 
   const refuseUnhandled: UnhandledFrameHandle = ({ frame }) => {
@@ -29,6 +34,7 @@ export function networkCore(mocker: Mocker, ownTraffic: (request: Request) => bo
   const missedRequests = () => unhandled.splice(0);
 
   const failOnMissed = () => {
+    stillWaiting.length = 0;
     const missed = missedRequests();
     if (missed.length) throw new Error(`No handler for: ${missed.join(', ')}`);
   };
@@ -41,11 +47,11 @@ export function networkCore(mocker: Mocker, ownTraffic: (request: Request) => bo
       for (const wake of waiting.splice(0)) wake();
       const next = answers[seen.length - 1];
       if (next) return next();
-      unhandled.push(`${request.method} ${request.url} (request ${seen.length}, ${answers.length} answered, ${during()})`);
+      miss(`${request.method} ${request.url} (request ${seen.length}, ${answers.length} answered, ${during()})`);
       return HttpResponse.error();
     }));
-    const arrived = (count: number) => new Promise<void>((resolve) => {
-      const check = () => { if (seen.length >= count) resolve(); else waiting.push(check); };
+    const arrived = (count: number) => new Promise<void>((resolve, reject) => {
+      const check = () => { if (seen.length >= count) resolve(); else { waiting.push(check); stillWaiting.push(reject); } };
       check();
     });
     return Object.assign(seen, { arrived });

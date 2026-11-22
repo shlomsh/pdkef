@@ -120,5 +120,15 @@ count). The rule is off on `landmines-all` meanwhile.
   (21 tests) moved to a browser file where real beacons and fetches are answered by the MSW worker;
   5 forced lines stay (offline, and a refused or throwing beacon). Two worktrees sharing one
   `node_modules` ran browser mode side by side four times, cold cache included, without a collision.
+- Wave 5b, the browser files (2026-11-22): 13 files, down to 1,149. In real Chromium now: Sign's
+  signature dialog (real `<dialog>`, canvas and font loading, 12 to 0), Save to Drive (a real tab from
+  `window.open`, real IndexedDB, 17 to 6 forced), Scan's pipeline (real decode, canvas, EXIF and its page
+  worker, JPEG tolerance of 2 per encode) and recent preview, the whiteout eyedropper (real painted
+  canvases and layout), the enhance worker, the maintenance beacons, and two Sign export tests on fonts
+  Vite really serves. Sign's main test file and `drawElements` wait for the pdf.js wave: their pdf.js
+  tests keep the font-fetch helper, so splitting them now would only be undone. `arrived(n)` now fails
+  at once when a request goes unanswered instead of waiting for the timeout. Several browser runs in
+  one worktree at once can fail at import while Vite re-optimizes the shared dependency cache; one
+  process, cold or warm, never did in 10 runs.
 - Found on the way: RED-75 (preview documents never freed on pdf.js 6.5), RED-76 (one very long line
   overflows the text preview).
