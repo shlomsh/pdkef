@@ -135,5 +135,24 @@ count). The rule is off on `landmines-all` meanwhile.
   Chromium with only the worker forced, and checks the one worker-failure report through the real
   `/api/report` beacon (1,145). A helper-test listener now removes itself. Checked and kept: the
   `doUnmock` of the warp spy before the worker tests (without it the worker's jobs go unseen).
+- Wave 6 set-up and pilot (2026-11-22): `browserToolHarness.ts`, the island harness for Chromium, with
+  real IndexedDB and web storage emptied per test, error reports and usage events read from the real
+  beacons, and nothing for pdf.js. The pdf.js codecs (same-origin `.wasm`) pass the network guard as
+  Vite's own traffic. Split's island test runs on real pdf.js first (1,144): the encrypted fixtures
+  answer the real probe, pages are built with pdf-lib, and downloads are read from a real click.
+- Wave 6, the islands (2026-11-22): 13 files, down to 1,054. Compress, To Image, Merge, Security, Edit
+  Pages, the shared page grid and Highlight's open path run in Chromium on real pdf.js; the
+  `island` and `island-compress` projects and their worker and engine set-ups are gone, and
+  `pdfjsEdges` keeps only the `pdfjs-dist` edge Redact and Highlight's other files still use. Found on
+  the way: the page grid reported a thumbnail render it had cancelled itself when its file was removed
+  (a late `/api/report` that made Edit Pages flaky); fixed with a test seen failing first. Vite now
+  pre-bundles pdf-lib and the pdf.js worker, so a cold run no longer reloads mid-run and fails imports.
+- Fresh review of wave 6 (2026-11-22), three reviewers with no shared context: no weakened test name.
+  Fixed (1,049): exact savings, sizes and report lists where a looser check had crept in, Security's
+  failures from a real unreadable file instead of a factory mock, Merge's wide layout from the real
+  viewport, one forced failure where a test had removed IndexedDB, and waits on the run's own state
+  instead of a leftover one. Clearing beacons during a flush no longer drops the wrong record. Kept as
+  it is: Security's `isCurrent` check survives its mutation because the page also keeps a stale result
+  off screen; defence in depth, not a gap.
 - Found on the way: RED-75 (preview documents never freed on pdf.js 6.5), RED-76 (one very long line
   overflows the text preview).
