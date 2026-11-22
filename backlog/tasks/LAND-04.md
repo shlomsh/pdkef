@@ -154,5 +154,23 @@ count). The rule is off on `landmines-all` meanwhile.
   instead of a leftover one. Clearing beacons during a flush no longer drops the wrong record. Kept as
   it is: Security's `isCurrent` check survives its mutation because the page also keeps a stale result
   off screen; defence in depth, not a gap.
+- First Linux run of the branch (2026-11-22, run 45071364866): e2e, build and typecheck green; four
+  red jobs, all fixed. Split's "Share appears as soon as the output is ready" bet on the build still
+  running after the pick (on Linux it had finished; the build is now held open, one forced line),
+  unit-scope and two guidance citations still named moved files, and `draftRestoreRace` failed in
+  about half of shard 2 runs, before wave 6 too: a recents write from the previous test, still in
+  flight when the next swapped in a fresh IndexedDB, pruned the draft the new test had seeded.
+- Redact wave (2026-11-23): all seven Redact island files run in Chromium on
+  `redactTool.browser.tsx`, down to 1,025. The export is held at `applyPageEdits` (one forced line)
+  instead of at a pdf.js read; positions are exact from the whole pixels a MouseEvent carries
+  (Chromium floors them). Nothing fakes pdf.js any more: `pdfjsEdges`, the `island-redact` project and
+  `harness.pdfjs` are gone. Fresh review, two reviewers: fixed a 3-digit precision taken for product
+  rounding (it was Chromium's 6-digit style serialisation), two dropped "never sampled" checks, a
+  repeated keypress and a recorder poll used as waits, a refusal of every IndexedDB open, a missing
+  settle after a drag, and unit-scope's Redact entries. A cold run caught Security's replacement
+  tests reading the dialog before it reopened. Kept: Whiteout's `fullscreenEnabled` getter (iPhone
+  Safari's missing element full screen) and export's no-Share platform state, both forced.
+- Seen and left (2026-11-23): Scan's two "size limit" JPEG tests (`scanPipeline.browser.test.ts`) run
+  out their 15s on a cold or loaded Mac (2 of 4 local runs); they pass warm and on Linux CI.
 - Found on the way: RED-75 (preview documents never freed on pdf.js 6.5), RED-76 (one very long line
   overflows the text preview).
