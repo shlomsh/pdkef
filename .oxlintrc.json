@@ -30,7 +30,6 @@
         "allow": {
           "scripts/vitest-worker-watchdog.test.mjs": 5,
           "src/test/cross-tool/draftCheckingPlaceholder.test.tsx": 2,
-          "src/tools/redact/PdfRedactTool.export.test.tsx": 1,
           "src/tools/redact/lib/check/realForms.test.js": 1,
           "src/tools/redact/lib/check/runCheck.test.ts": 1,
           "src/tools/redact/lib/find/glyphBoxes.corpus.test.js": 4,

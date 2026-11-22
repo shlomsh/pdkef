@@ -270,7 +270,7 @@ describe('PdfRedactTool UI flow', () => {
       expect(strip()).not.toBeNull();
       expect(asks()).toBe(1);
     }
-  }, 15000);
+  });
 
   // The sticky toolbar drops its Download below 920px only once native Share exists to take its
   // place (EditorExportActions' `.desktop-download`, hidden by SignToolbar.module.css). With no
