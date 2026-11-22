@@ -42,7 +42,11 @@ export async function installBrowserToolHarness() {
     bodies.push(request.clone().text().then((text) => {
       const payload = JSON.parse(text);
       if (payload?.[CONTROL] === undefined) record.payload = payload;
-      else { records.splice(records.indexOf(record), 1); controls.get(payload[CONTROL])?.(); }
+      else {
+        const at = records.indexOf(record);
+        if (at >= 0) records.splice(at, 1);
+        controls.get(payload[CONTROL])?.();
+      }
     }));
   };
   worker.events.on('request:start', landed);
