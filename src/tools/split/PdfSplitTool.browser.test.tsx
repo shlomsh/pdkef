@@ -1,16 +1,20 @@
 // @ts-nocheck - renamed from .jsx, not yet typed; see TODO.md 'Type the interactive shell'
-import fs from 'fs';
-import path from 'path';
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { getPdfLib } from '#lib/pdf/pdfLib.js';
 import { describe, expect, it, vi, afterEach, beforeEach } from 'vitest';
 import { loadPdfWithPages } from '#lib/pdf/loadPdfPages.ts';
+import { probeEncryption } from '#lib/pdf/pdfEncryption.ts';
 import { recentActions } from '#lib/telemetry/actionTrail.ts';
 import PdfSplitTool from './PdfSplitTool.tsx';
 import { mockNativeFileShare } from '../../test/support/mockFileShare.js';
 import { noPagesKey } from '../../test/support/pdfPageTreeFixtures.ts';
-import { installToolHarness, type ToolHarness } from '../../test/harness/toolHarness.ts';
+import { installBrowserToolHarness } from '../../test/harness/browserToolHarness.ts';
+import { answerNetwork } from '../../test/support/network.browser.ts';
+import type { ToolHarness } from '../../test/harness/toolHarness.ts';
+import threePageUrl from '../../lib/__fixtures__/three-page-header.pdf?url';
+import needsPasswordUrl from '../../lib/__fixtures__/encrypted/needs-password.pdf?url';
+import ownerOnlyUrl from '../../lib/__fixtures__/encrypted/owner-only.pdf?url';
 import { setInputFiles } from '../../test/support/setInputFiles.js';
 import { drainPromises } from '../../test/support/drainPromises.ts';
 import { until } from '../../test/support/until.js';
@@ -18,57 +22,61 @@ import { waitUntil } from '../../test/support/waitUntil.ts';
 import { hebrewSplitMessages } from './messages';
 import { hebrewShellMessages } from '#shell/shellMessages.ts';
 
-// The pdf.js edge (the encryption probe, the thumbnail source) is the harness's: harness.pdfjs. Everything else
-// (analytics, error reports, draftStore, loadPdfPages, splitPdf) runs for real over it.
+answerNetwork();
 
 // loadPdfWithPages runs for real; the spy lets the one test that holds a load open between the pick and the
 // page count do so, which a real pdf-lib parse gives no way to pause (DEBT-18).
 vi.mock('#lib/pdf/loadPdfPages.ts', { spy: true });
+vi.mock('#lib/pdf/pdfEncryption.ts', { spy: true });
 
 // Tests that are not about timing build after 5ms instead of the real 1500ms.
 const FAST_QUIET = { baseMs: 5, stepMs: 0, maxMs: 5, burstWindowMs: 1 };
-const FIXTURES = path.resolve(__dirname, '../../lib/__fixtures__');
-const FIXTURE = path.join(FIXTURES, 'num-5.pdf');
 
-function fixtureFile(name = 'open.pdf', fixture = FIXTURE) {
-  return new File([fs.readFileSync(fixture)], name, { type: 'application/pdf' });
+async function fivePages() {
+  const { PDFDocument } = await getPdfLib();
+  const doc = await PDFDocument.create();
+  for (const width of [200, 210, 220, 230, 240]) doc.addPage([width, 300]);
+  return doc.save();
 }
+const lockedUrl = { 'needs-password': needsPasswordUrl, 'owner-restricted': ownerOnlyUrl };
+const fetched = async (url) => (await fetch(url)).arrayBuffer();
+
+async function fixtureFile(name = 'open.pdf', bytes?) {
+  return new File([bytes ?? await fivePages()], name, { type: 'application/pdf' });
+}
+const fixtureAt = async (url, name) => new File([await fetched(url)], name, { type: 'application/pdf' });
 
 describe('PdfSplitTool UI flow', () => {
   let container;
   let harness: ToolHarness;
 
-  beforeEach(() => {
-    harness = installToolHarness();
+  const clicked: { name: string; href: string; blob: Promise<Blob | undefined> }[] = [];
+  const recordDownload = (event: Event) => {
+    const link = (event.target as Element | null)?.closest?.('a[download]') as HTMLAnchorElement | null;
+    if (link) clicked.push({ name: link.download, href: link.href, blob: fetch(link.href).then((response) => response.blob(), () => undefined) });
+  };
+
+  beforeEach(async () => {
+    harness = await installBrowserToolHarness();
     vi.mocked(loadPdfWithPages).mockReset();
-    // jsdom's Blob has no arrayBuffer().
-    if (!Blob.prototype.arrayBuffer) {
-      Blob.prototype.arrayBuffer = function arrayBuffer() {
-        return new Promise((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onload = () => resolve(reader.result);
-          reader.onerror = () => reject(reader.error);
-          reader.readAsArrayBuffer(this);
-        });
-      };
-    }
+    clicked.length = 0;
+    document.addEventListener('click', recordDownload, { capture: true });
   });
 
-  afterEach(() => {
+  afterEach(async () => {
+    document.removeEventListener('click', recordDownload, { capture: true });
     if (container) {
       act(() => render(null, container));
       container.remove();
       container = null;
     }
     vi.restoreAllMocks();
-    harness.restore();
+    await harness.restore();
   });
 
   function mount(props = {}) {
     container = document.createElement('div');
     document.body.appendChild(container);
-    // jsdom cannot follow a download link.
-    container.addEventListener('click', (e) => { if (e.target.closest?.('a[download]')) e.preventDefault(); });
     act(() => render(<PdfSplitTool quietPolicy={FAST_QUIET} {...props} />, container));
   }
   const pick = async (file) => {
@@ -87,7 +95,7 @@ describe('PdfSplitTool UI flow', () => {
   // Mounts, picks the 5-page fixture and waits for the quiet build.
   async function open(props = {}, name = 'open.pdf') {
     mount(props);
-    await pick(fixtureFile(name));
+    await pick(await fixtureFile(name));
     await until(() => cells().length > 0 && downloadElement()?.getAttribute('data-state') === 'ready' && ('quietPolicy' in props || harness.createdBlobs().length > 0));
   }
 
@@ -122,16 +130,15 @@ describe('PdfSplitTool UI flow', () => {
     return { count: doc.getPageCount(), rotations: doc.getPages().map((p) => p.getRotation().angle), widths: doc.getPages().map((p) => p.getWidth()) };
   };
   // The output the Download element points at (One PDF).
-  const shownOutput = () => harness.blobForUrl(downloadElement().getAttribute('href'));
+  const shownOutput = async () => harness.blobForUrl(downloadElement().getAttribute('href'));
   // Waits for the build of a plan that keeps `n` pages to be shown as ready.
-  const builtWith = (n: number) => until(() => downloadElement()?.getAttribute('data-state') === 'ready' && downloadElement().textContent.includes(`${n} pages`) && shownOutput());
+  const builtWith = (n: number) => until(() => downloadElement()?.getAttribute('data-state') === 'ready' && downloadElement().textContent.includes(`${n} pages`));
   // The file names One PDF per page saves, and the blobs behind them, once Download is tapped.
   const savePartsOf = async (count: number) => {
-    const saved: { name: string; href: string }[] = [];
-    vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(function save() { if (this.download) saved.push({ name: this.download, href: this.href }); });
+    const first = clicked.length;
     await click(downloadElement());
-    await until(() => saved.length === count && downloadElement()?.getAttribute('data-state') === 'saved');
-    return saved;
+    await until(() => clicked.length - first === count && downloadElement()?.getAttribute('data-state') === 'saved');
+    return clicked.slice(first);
   };
 
   it('loads the file into the shared grid under a heading that names the output', async () => {
@@ -149,7 +156,7 @@ describe('PdfSplitTool UI flow', () => {
     expect(downloadElement().getAttribute('data-state')).toBe('ready');
     expect(downloadElement().textContent).toContain('Download 1 PDF');
     expect(downloadElement().textContent).toContain('5 pages');
-    expect((await pagesOf(shownOutput())).count).toBe(5);
+    expect((await pagesOf(await shownOutput())).count).toBe(5);
   });
 
   // UX guideline 20: the output choice, then which pages, then Download and hand-offs, Replace file last.
@@ -180,7 +187,7 @@ describe('PdfSplitTool UI flow', () => {
     await open();
     await click(container.querySelector('[aria-label="Rotate page 2"]'));
     await until(() => downloadElement()?.getAttribute('data-state') === 'ready' && harness.createdBlobs().length === 2);
-    expect((await pagesOf(shownOutput())).rotations).toEqual([0, 90, 0, 0, 0]);
+    expect((await pagesOf(await shownOutput())).rotations).toEqual([0, 90, 0, 0, 0]);
     expect(isSkipped(2)).toBe(false);
     expect(recentActions()).toEqual(['add_files', 'rotate']);
     expect(container.querySelector('[aria-label="Undo last change"]').disabled).toBe(false);
@@ -215,18 +222,16 @@ describe('PdfSplitTool UI flow', () => {
     // Separate mode saves one named, one-page file per kept page number.
     const saved = await savePartsOf(2);
     expect(saved.map((part) => part.name)).toEqual(['open-page-2.pdf', 'open-page-4.pdf']);
-    expect(await Promise.all(saved.map(async (part) => (await pagesOf(harness.blobForUrl(part.href))).count))).toEqual([1, 1]);
+    expect(await Promise.all(saved.map(async (part) => (await pagesOf(await part.blob)).count))).toEqual([1, 1]);
   });
 
   it('Download in One PDF per page saves every part, once each', async () => {
     await open();
     await click(radio('One PDF per page'));
     await until(() => downloadElement()?.textContent.includes('Download 5 PDFs'));
-    const saved = [];
-    vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(function save() { if (this.download) saved.push(this.download); });
     await click(downloadElement());
-    await until(() => saved.length === 5 && downloadElement()?.getAttribute('data-state') === 'saved');
-    expect(saved).toEqual(['open-page-1.pdf', 'open-page-2.pdf', 'open-page-3.pdf', 'open-page-4.pdf', 'open-page-5.pdf']);
+    await until(() => clicked.length === 5 && downloadElement()?.getAttribute('data-state') === 'saved');
+    expect(clicked.map((part) => part.name)).toEqual(['open-page-1.pdf', 'open-page-2.pdf', 'open-page-3.pdf', 'open-page-4.pdf', 'open-page-5.pdf']);
     expect(downloadElement().getAttribute('data-state')).toBe('saved');
   });
 
@@ -244,7 +249,7 @@ describe('PdfSplitTool UI flow', () => {
   it('Share appears as soon as the output is ready, not only after a first save', async () => {
     const nativeShare = mockNativeFileShare();
     mount();
-    await pick(fixtureFile());
+    await pick(await fixtureFile());
     expect(button('Share')).toBeUndefined();
     await until(() => downloadElement()?.getAttribute('data-state') === 'ready' && button('Share'));
     expect(downloadElement().getAttribute('data-state')).toBe('ready');
@@ -257,6 +262,7 @@ describe('PdfSplitTool UI flow', () => {
       await open({ navigate });
       await click(skipButton(1));
       await builtWith(4);
+      await until(() => !button(label).disabled);
       await act(async () => { button(label).click(); });
       await waitUntil(() => expect(navigate).toHaveBeenCalledWith(href));
       // Parked under the target tool's own key, and under no other.
@@ -290,7 +296,7 @@ describe('PdfSplitTool UI flow', () => {
     await open();
     await click(radio('One PDF per page'));
     await click(skipButton(1));
-    await replaceWith(fixtureFile('next.pdf'));
+    await replaceWith(await fixtureFile('next.pdf'));
     expect(heading().textContent).toContain('extracted_next.pdf');
     expect(radio('One PDF').getAttribute('aria-checked')).toBe('true');
     expect(container.querySelector('[aria-label="Undo last change"]').disabled).toBe(true);
@@ -304,7 +310,7 @@ describe('PdfSplitTool UI flow', () => {
     await pick(new File([noPagesKey()], 'broken.pdf', { type: 'application/pdf' }));
     await until(() => cells().length > 0 && downloadElement()?.getAttribute('data-state') === 'ready' && harness.createdBlobs().length > 0);
     expect(cells()).toHaveLength(3);
-    expect((await pagesOf(shownOutput())).widths).toEqual([200, 300, 400]);
+    expect((await pagesOf(await shownOutput())).widths).toEqual([200, 300, 400]);
     await act(async () => { button('Compress').click(); });
     await waitUntil(() => expect(navigate).toHaveBeenCalled());
     const handoff = await harness.takeHandoff('compress');
@@ -330,10 +336,8 @@ describe('PdfSplitTool UI flow', () => {
 
   describe.each(['needs-password', 'owner-restricted'])('a %s PDF (DEBT-41)', (protection) => {
     it('shows NeedsUnlock, never builds, reports nothing, and is not a failed operation (DEBT-44)', async () => {
-      harness.pdfjs.probeAs(protection);
       mount();
-      await pick(fixtureFile('locked.pdf'));
-      await until(() => button('Unlock it'));
+      await pick(await fixtureAt(lockedUrl[protection], 'locked.pdf'));
       expect(container.textContent).toContain(protection === 'needs-password' ? 'This PDF has a password' : 'This PDF is protected');
       expect(cells()).toHaveLength(0);
       expect(downloadElement()).toBeNull();
@@ -346,16 +350,16 @@ describe('PdfSplitTool UI flow', () => {
 
   it('ignores a load that was replaced before it finished (DEBT-18)', async () => {
     let releaseFirst;
-    // Forced: the first load (five pages) is held open, then runs for real; the replacement (three pages) is not held.
+    // forced: the first load (five pages) is held open, then runs for real; the replacement (three pages) is not held.
     vi.mocked(loadPdfWithPages).mockImplementationOnce(async (bytes) => {
       await new Promise<void>((resolve) => { releaseFirst = resolve; });
       const real = await vi.importActual<typeof import('#lib/pdf/loadPdfPages.ts')>('#lib/pdf/loadPdfPages.ts');
       return real.loadPdfWithPages(bytes);
     });
     mount();
-    await act(async () => { setInputFiles(container.querySelector('input[type="file"]'), [fixtureFile('five.pdf')]); });
+    await act(async () => { setInputFiles(container.querySelector('input[type="file"]'), [await fixtureFile('five.pdf')]); });
     await until(() => releaseFirst);
-    await replaceWith(fixtureFile('three.pdf', path.join(FIXTURES, 'three-page-header.pdf')));
+    await replaceWith(await fixtureAt(threePageUrl, 'three.pdf'));
     // The replacement has loaded; let the stale first load finish, then drain the promise work that
     // carries its result into the component before checking it was ignored.
     await act(async () => {
@@ -370,10 +374,10 @@ describe('PdfSplitTool UI flow', () => {
 
   it('a build that fails says so on the Download element and counts as a failed operation', async () => {
     vi.spyOn(console, 'error').mockImplementation(() => {});
-    // The probe calls this owner-only file open (no unlock offered), so the split itself refuses it.
+    // forced: the probe calls this owner-only file open (no unlock offered), so the split itself refuses it.
+    vi.mocked(probeEncryption).mockResolvedValueOnce('open');
     mount();
-    await pick(fixtureFile('locked.pdf', path.join(FIXTURES, 'encrypted/owner-only.pdf')));
-    await act(async () => { downloadElement().dispatchEvent(new Event('pointerdown', { bubbles: true })); });
+    await pick(await fixtureAt(ownerOnlyUrl, 'locked.pdf'));
     await until(() => downloadElement()?.getAttribute('data-state') === 'error');
     await harness.flush();
     expect(downloadElement().getAttribute('data-state')).toBe('error');
@@ -395,10 +399,8 @@ describe('PdfSplitTool UI flow', () => {
     ['needs-password', 'protectedNeedsPasswordTitle'],
     ['owner-restricted', 'protectedOwnerOnlyTitle'],
   ])('shows the Hebrew protected-file copy for a %s PDF', async (protection, titleKey) => {
-    harness.pdfjs.probeAs(protection);
     mount({ messages: hebrewSplitMessages, shellMessages: hebrewShellMessages });
-    await pick(fixtureFile('locked.pdf'));
-    await until(() => container.textContent.includes(hebrewSplitMessages.protectedUnlockIt));
+    await pick(await fixtureAt(lockedUrl[protection], 'locked.pdf'));
     expect(container.textContent).toContain(hebrewSplitMessages[titleKey]);
     expect(container.textContent).toContain(hebrewSplitMessages.protectedUnlockIt);
     expect(container.textContent).not.toContain('This PDF');
@@ -477,13 +479,16 @@ describe('PdfSplitTool UI flow', () => {
     });
 
     it('reports started at a tap while preparing and ready once the queued download is delivered', async () => {
-      await open({ quietPolicy: undefined });
+      await open({ quietPolicy: { baseMs: 60000, stepMs: 0, maxMs: 60000, burstWindowMs: 1 } });
       // Quiet means quiet: the build is silent until the person taps.
       expect(downloadElement().getAttribute('data-state')).toBe('ready');
-      await click(downloadElement());
+      const sent = vi.spyOn(navigator, 'sendBeacon');
+      const sentNames = async () => Promise.all(sent.mock.calls.map(async ([, body]) => JSON.parse(typeof body === 'string' ? body : await (body as Blob).text()).name));
+      act(() => { downloadElement().dispatchEvent(new MouseEvent('click', { bubbles: true })); });
       expect(downloadElement().getAttribute('data-state')).toBe('preparing');
-      expect(await events('tool_operation_started')).toBe(1);
-      expect(await events('tool_result_ready')).toBe(0);
+      const atTap = sent.mock.calls.length;
+      expect((await sentNames()).slice(0, atTap).filter((name) => name === 'tool_operation_started')).toHaveLength(1);
+      expect((await sentNames()).slice(0, atTap).filter((name) => name === 'tool_result_ready')).toHaveLength(0);
       await until(() => downloadElement()?.getAttribute('data-state') === 'saved');
       expect(downloadElement().getAttribute('data-state')).toBe('saved');
       expect(await events('tool_result_ready')).toBe(1);
