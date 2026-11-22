@@ -201,10 +201,13 @@ describe('reportError drop records (DEBT-44)', () => {
 
 describe('error and drop counts go to the analytics sink only after the /api/report beacon (MEM-45)', () => {
   const order: string[] = [];
-  const noteOrder = ({ request }: { request: Request }) => void order.push(new URL(request.url).pathname);
+  const noteOrder = ({ request }: { request: Request }) => {
+    const path = new URL(request.url).pathname;
+    if (path === REPORT || path === '/i/v0/e/') order.push(path);
+  };
   beforeEach(() => {
     order.length = 0;
-    worker.events.on('request:match', noteOrder);
+    worker.events.on('request:start', noteOrder);
     vi.stubEnv('PUBLIC_ANALYTICS_HOST', SINK_HOST);
     vi.stubEnv('PUBLIC_ANALYTICS_KEY', 'k');
     setReportingEnabledForTests(true);
@@ -212,7 +215,7 @@ describe('error and drop counts go to the analytics sink only after the /api/rep
     resetSinkForTests();
   });
   afterEach(() => {
-    worker.events.removeListener('request:match', noteOrder);
+    worker.events.removeListener('request:start', noteOrder);
   });
 
   it('an error report is one beacon to /api/report and one count to the sink, with no stack', async () => {
