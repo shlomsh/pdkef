@@ -6,12 +6,16 @@ import { networkCore } from './networkCore.ts';
 /**
  * The MSW service worker for `*.browser.test.*` files (LAND-04 wave 5): the same contract as
  * `network.ts` in Node, for a real `fetch`, `sendBeacon`, image or font load in Chromium. Vite's own
- * module and static-file requests to the test page's origin pass through to Vite unanswered; anything
+ * module and static-file requests to the test page's origin (pdf.js's `.wasm` codecs included, which MSW's
+ * asset list leaves out) pass through to Vite unanswered; anything
  * else without a handler never leaves the machine and fails the test after it.
  */
 export const worker = setupWorker();
 
-const viteTraffic = (request: Request) => new URL(request.url).origin === location.origin && isCommonAssetRequest(request);
+const viteTraffic = (request: Request) => {
+  const url = new URL(request.url);
+  return url.origin === location.origin && (isCommonAssetRequest(request) || url.pathname.endsWith('.wasm'));
+};
 
 const core = networkCore(worker, viteTraffic);
 

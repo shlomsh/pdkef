@@ -40,8 +40,9 @@ describe('answerNetwork in the browser', () => {
     expect(missedRequests()).toHaveLength(1);
   });
 
-  it('passes the page’s own module, font and image loads through to Vite', async () => {
+  it('passes the page’s own module, font, image and pdf.js codec loads through to Vite', async () => {
     const { networkCore } = await import('./networkCore.ts');
+    const codec = await fetch('/pdfjs-dist-wasm/openjpeg.wasm');
     const font = await new FontFace('Alef', `url(/fonts/Alef-Regular.ttf)`).load();
     const image = new Image();
     image.src = '/images/brand/google-drive.png';
@@ -49,6 +50,7 @@ describe('answerNetwork in the browser', () => {
     expect(typeof networkCore).toBe('function');
     expect(font.status).toBe('loaded');
     expect(image.naturalWidth).toBeGreaterThan(0);
+    expect(codec.headers.get('content-type')).toBe('application/wasm');
     expect(missedRequests()).toEqual([]);
   });
 
