@@ -341,6 +341,7 @@ export default function PageGrid({
           bump((n) => n + 1);
           reportRenderedCount();
         } catch (err) {
+          if (held.controller.signal.aborted) continue;
           reportError('pdf_render', err, 'render_thumbnail');
           // A page that will not render stays a placeholder; the merge itself
           // reports a broken file through inspectPdf, not through here.

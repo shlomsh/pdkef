@@ -14,6 +14,7 @@ import { englishMergeMessages } from '../../tools/merge/messages';
 import * as thumbnailsLib from '#lib/pdf/thumbnails.js';
 import { getPdfjs } from '#lib/pdf/loadPdfjs.js';
 import { renderPageToCanvas } from '#lib/pdf/renderPage.js';
+import { reportError } from '#lib/telemetry/errorReport.ts';
 import * as pdfjs from 'pdfjs-dist/legacy/build/pdf.mjs';
 // @ts-expect-error -- no Node ambient types here.
 import { pathToFileURL } from 'node:url';
@@ -31,6 +32,7 @@ import '#shell/PagePreviewDialog.tsx';
 vi.mock('#lib/pdf/loadPdfjs.js', { spy: true });
 vi.mock('#lib/pdf/renderPage.js', { spy: true });
 vi.mock('#lib/pdf/thumbnails.js', { spy: true });
+vi.mock('#lib/telemetry/errorReport.ts', { spy: true });
 
 // What each file's pages measure; `wide` swaps a.pdf's for a landscape page and a 0.77 portrait one.
 const PAGE_SIZES: Record<string, [number, number][]> = {
@@ -276,6 +278,38 @@ describe('PageGrid', () => {
     await expect(sourceA.render(0)).rejects.toThrow('after destroy');
     await expect(sourceB.render(0)).resolves.toBe('data:image/png;base64,210x300');
     expect(cards().map((card) => card.dataset.key)).toEqual(['2:0', '2:1']);
+  });
+
+  it('does not report a thumbnail render it cancelled itself when its file is removed mid-render', async () => {
+    const painting = Promise.withResolvers<void>();
+    const cancelled = Promise.withResolvers<void>();
+    // forced: a page still painting when its file goes, cancelled the way pdf.js cancels a render
+    vi.mocked(renderPageToCanvas).mockImplementationOnce((async (_page, { signal }) => {
+      painting.resolve();
+      await new Promise((resolve) => { signal.addEventListener('abort', resolve, { once: true }); });
+      cancelled.resolve();
+      throw new DOMException('Rendering cancelled', 'AbortError');
+    }) as never);
+    const { rerender, entries } = mount();
+    await waitFor(() => thumbnailsLib.openThumbnailSource.mock.calls.length === 2);
+    await act(async () => { observers.at(-1).intersect(['1:0']); });
+    await painting.promise;
+    rerender({ sources: [entries[1]], plan: planForFile(2, 2) });
+    await cancelled.promise;
+    await act(async () => { await drainPromises(); });
+    expect(vi.mocked(reportError).mock.calls.filter(([, , step]) => step === 'render_thumbnail')).toEqual([]);
+  });
+
+  it('still reports a thumbnail render that fails on its own', async () => {
+    const failed = Promise.withResolvers<void>();
+    // forced: a page that will not paint
+    vi.mocked(renderPageToCanvas).mockImplementationOnce((async () => { failed.resolve(); throw new Error('broken page'); }) as never);
+    mount();
+    await waitFor(() => thumbnailsLib.openThumbnailSource.mock.calls.length === 2);
+    await act(async () => { observers.at(-1).intersect(['1:0']); });
+    await failed.promise;
+    await act(async () => { await drainPromises(); });
+    expect(vi.mocked(reportError).mock.calls.filter(([, , step]) => step === 'render_thumbnail').map(([area, error]) => [area, error.message])).toEqual([['pdf_render', 'broken page']]);
   });
 
   // DEBT-65: the span comes from the PDF's own page sizes, so a landscape page is two cells wide
