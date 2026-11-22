@@ -152,6 +152,7 @@ export const WIDEN_RULES = [
       'src/tools/sign/hooks/carriedFontSize.practiceForm.test.tsx',
       'src/tools/sign/hooks/fullNameFieldSizing.practiceForm.test.tsx',
       'src/tools/sign/hooks/useFormFieldRegions.practiceForm.test.tsx',
+      'src/site-lib/FileDropzone.test.tsx',
     ],
   },
   {
@@ -180,6 +181,7 @@ export const WIDEN_RULES = [
       'src/test/cross-tool/textCoverage.test.js',
       'src/tools/sign/lib/sign.test.js',
       'src/tools/sign/PdfSignTool.test.tsx',
+      'src/tools/scan/lib/pdfSheetReader.test.ts',
     ],
   },
   {
@@ -357,6 +359,12 @@ export const WIDEN_RULES = [
     reason: 'draftStore.ts, draftIdb.ts (its DB constants) and public/sw.js are read as text by the sync guards, not imported',
     match: (f) => f === 'src/lib/drafts/draftStore.ts' || f === 'src/lib/drafts/draftIdb.ts' || f === 'public/sw.js',
     tests: ['src/lib/drafts/draftStoreServiceWorkerSync.test.js', 'scripts/sw.test.mjs'],
+  },
+  {
+    id: 'enhance-worker-url',
+    reason: 'the enhance worker is started from its own URL in Chromium, not imported',
+    match: (f) => f === 'src/tools/highlight/lib/enhance/enhance.worker.ts',
+    tests: ['src/tools/highlight/lib/enhance/enhance.worker.browser.test.ts'],
   },
   {
     id: 'form-field-regions-text-parse',

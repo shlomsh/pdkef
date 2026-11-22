@@ -35,7 +35,7 @@ function formatPdfLoadMessage(template: string, params: Record<string, string | 
 }
 
 /** @testSeam */
-export interface PdfLoadOptions {
+interface PdfLoadOptions {
   file: File;
   bytes: ArrayBuffer;
   restored?: boolean;

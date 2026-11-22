@@ -315,8 +315,8 @@ export function followEdges(image: GrayImage, start: Quad): Followed {
 export type Sides = [Point[], Point[], Point[], Point[]];
 
 /** A point of a traced side that a person placed by hand: `k` is its index on the side (0 to 14, counted from the
- * side's first corner), `at` is where they put it, 0 to 1 of the picture. @testSeam */
-export interface Pin { k: number; at: Point }
+ * side's first corner), `at` is where they put it, 0 to 1 of the picture. */
+interface Pin { k: number; at: Point }
 /** A person's pins per side (top, right, bottom, left); a side without pins is an empty list. */
 export type Pins = [Pin[], Pin[], Pin[], Pin[]];
 

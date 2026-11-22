@@ -34,7 +34,7 @@ function pageSurfaceOf(target: EventTarget | null, surfaceSelector: string): Ele
 
 /** The ring's width in CSS px, converted to canvas px by the canvas's own
  * backing-store-to-CSS ratio, so device pixel ratio and zoom are both accounted for. */
-export const RING_CSS_PX = 4;
+const RING_CSS_PX = 4;
 
 /** The page render's colour just outside the box, read from the page canvas
  * only, never an overlay. Null if there is no canvas or nothing readable. */
