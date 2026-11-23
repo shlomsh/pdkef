@@ -377,6 +377,8 @@ night and are indexed (URL Inspection, 11-17); `/organize-pdf/`, `/rotate-pdf/` 
 are in the 26. Same request, same night, two of five: a request buys a crawl only for some URLs. **The Week 4 gate failed on 10-08** (SEO-06),
 and nothing has been crawled from that list since.
 
+**Scan to PDF, 2026-11-23:** neither `/scan-to-pdf/` nor `/how-to-scan-a-document-to-pdf/` is indexed (SCAN-01).
+
 **`/he/sign/` dropped out and came back.** Indexed 09-11, missing from the Valid export (indexed count 22
 to 21 on 09-22), and indexed again per URL Inspection on 10-08: last crawled 10-05, after the export's
 data ended. The two "Crawled - currently not indexed" URLs are `/he/sign/` (the report lags the inspection) and
