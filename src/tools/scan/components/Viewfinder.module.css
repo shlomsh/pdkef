@@ -151,6 +151,34 @@
   background: var(--color-night);
 }
 
+/* Sits on the bottom bar and is as solid: the words stay legible over a white page. */
+.notice {
+  position: absolute;
+  bottom: 100%;
+  left: 0;
+  right: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 16px 0;
+  text-align: center;
+  background: var(--color-night);
+}
+
+.notice p {
+  max-width: 22rem;
+  margin: 0;
+}
+
+/* A phone on its side: one row, so the page stays in view. */
+@media (max-height: 500px) {
+  .notice {
+    flex-direction: row;
+    justify-content: center;
+  }
+}
+
 .side {
   display: flex;
   align-items: center;

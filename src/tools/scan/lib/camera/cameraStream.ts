@@ -49,3 +49,14 @@ export function cameraPacer(track: () => MediaStreamTrack | undefined, onTooSlow
 export function stopCamera(stream: MediaStream): void {
   for (const track of stream.getTracks()) track.stop();
 }
+
+/** The longest a photo under way keeps a closed camera running. */
+const LAST_PHOTO_MS = 3000;
+
+/** Stops the camera once the photo under way has landed: stopping it sooner throws that photo away (SCAN-78). */
+export function stopCameraAfter(stream: MediaStream, photo: Promise<void> | null): void {
+  if (!photo) { stopCamera(stream); return; }
+  const stop = () => { clearTimeout(limit); stopCamera(stream); };
+  const limit = setTimeout(stop, LAST_PHOTO_MS);
+  void photo.finally(stop); // reason: the shot reports its own failure
+}

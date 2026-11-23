@@ -4,7 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { IDLE_VIEW, type CameraHandle } from '../lib/camera/types.ts';
 import Viewfinder from './Viewfinder.tsx';
 
-let handle: CameraHandle & { shooting?: boolean };
+let handle: CameraHandle & { shooting?: boolean; photoRefused?: boolean };
 let cameraInput: { onTaken: (page: unknown) => void; paused?: boolean };
 vi.mock('../hooks/useCamera.ts', () => ({ useCamera: (input: typeof cameraInput) => { cameraInput = input; return handle; } }));
 // The model is another file's work; the component only calls it.
@@ -98,6 +98,35 @@ describe('Viewfinder', () => {
     mount();
     click(byLabel('Take this page'));
     expect(handle.shoot).toHaveBeenCalled();
+  });
+
+  it('SCAN-78: a refused photo is told, with the phone\'s own camera beside it and the shutter still there', () => {
+    mount();
+    expect(container!.querySelector('[role="alert"]')).toBeNull();
+    handle = { ...handle, photoRefused: true };
+    act(() => render(<Viewfinder {...baseProps()} />, container!));
+    const notice = container!.querySelector('[role="alert"]')!;
+    expect(notice.textContent).toContain("That photo didn't come through. Tap the shutter to try again, or take it with your phone's camera.");
+    expect(notice.querySelector('input[type="file"][capture]')).not.toBeNull();
+    expect(byLabel('Take this page')).not.toBeNull();
+  });
+
+  it('SCAN-78: a photo that lands after the camera closed joins the scan, and makes no snapshot URL to leak', () => {
+    const create = vi.fn(() => 'blob:snap');
+    Object.assign(URL, { createObjectURL: create });
+    const { props } = mount();
+    act(() => render(null, container!));
+    const file = new File(['x'], 'p.jpg');
+    cameraInput.onTaken({ file, snapshot: new Blob(['s']), quad: null });
+    expect(props.onTaken).toHaveBeenCalledWith(file);
+    expect(create).not.toHaveBeenCalled();
+  });
+
+  it('SCAN-78: a retake closed before its photo landed keeps the old page', () => {
+    const { props } = mount({ mode: 'one' });
+    act(() => render(null, container!));
+    cameraInput.onTaken({ file: new File(['x'], 'p.jpg'), snapshot: null, quad: null });
+    expect(props.onTaken).not.toHaveBeenCalled();
   });
 
   it('Auto is a switch that toggles', () => {
