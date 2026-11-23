@@ -46,7 +46,6 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 - [SCAN-71](backlog/tasks/SCAN-71.md) P1 · The corners stop at the page's own edge, not at a table edge or the facing page (in progress)
 - [SCAN-44](backlog/tasks/SCAN-44.md) P2 · A filled A4 form scanned with PDkef (2026-11-04): black edges and ghost text remain; stretch is fixed on main for A4 (in progress)
 - [SCAN-46](backlog/tasks/SCAN-46.md) P2 · A filled-in page with no vertical rules stays tilted; level its rows (in progress)
-- [SCAN-78](backlog/tasks/SCAN-78.md) P2 · Scan: a refused camera photo fails without a word (in progress)
 
 ### Page enhancement for Scan and Highlight
 
@@ -144,7 +143,6 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 - [READ-16](backlog/tasks/READ-16.md) · Pick the stepper's place: the toolbar capsule, the top of the rail, or the page header
 - [MOBI-01](backlog/tasks/MOBI-01.md) · Half an hour with an Android phone
 - [DEBT-53](backlog/tasks/DEBT-53.md) · A check on your iPhone
-- [SCAN-78](backlog/tasks/SCAN-78.md) · One phone check: tap the shutter, tap Done straight away, is the page in the table?
 - [SEO-40](backlog/tasks/SEO-40.md) · The Search Console exports
 - [SEO-42](backlog/tasks/SEO-42.md) · The /compress/ query export (28 days before and after 2026-10-08) and /compress-image/ filtered to queries containing pdf
 - [SEO-44](backlog/tasks/SEO-44.md) · The 2026-11-07 Search Console export: the /split/ and /he/split/ rows

@@ -1,12 +1,10 @@
 ---
 id: "SCAN-78"
 title: "Scan: a refused camera photo fails without a word"
-status: "in_progress"
+status: "done"
 priority: "P2"
 epic: "scan-next"
-horizon: "next"
 depends_on: ["SCAN-58"]
-needs: "One phone check: tap the shutter, tap Done straight away, is the page in the table?"
 ---
 
 # SCAN-78 · A refused camera photo fails without a word
@@ -59,9 +57,11 @@ a retry is worth having.
 - Checked on the built page in Chromium (390, 320 and 844 wide): the page lands after Done, Close and a simulated hide; one
   automatic shot and one message when every photo is refused; the shutter and Auto then take the page.
 
-## Left
+## Done, 2026-11-23
 
-- The phone check above. Then read production: `scan_camera_photo` still arriving is a real refusal.
+- Live on pdkef.com in build `a623e0f` (commits up to `8ab62a11d`). Shlomi tapped the shutter and then Done straight
+  away on a phone: the page is in the table.
+- A `scan_camera_photo` drop record from this build or later is a photo the camera refused while still running.
 - Kept in mind when reading production: a photo refused after Done, before the camera stops, reports as
   `scan_camera_photo` and nobody is told. Hiding the page and coming back while a photo is still being taken opens a
   second stream; a phone that then ends the first one loses that photo, as it did before. A photo that never settles
