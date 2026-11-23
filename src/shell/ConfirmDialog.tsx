@@ -53,7 +53,7 @@ export default function ConfirmDialog({
     <dialog
       ref={dialogRef}
       class={`${styles.dialog} ${styles.narrow}`}
-      onClose={onCancel}
+      onClose={(event) => { if (open && !event.currentTarget.open) onCancel(); }}
       onClick={(event) => { if (event.target === event.currentTarget) onCancel(); }}
       aria-labelledby={titleId}
     >
