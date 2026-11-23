@@ -56,9 +56,13 @@ a retry is worth having.
 - A photo the running camera refuses shows a line and the phone's own camera. Auto waits until a photo lands or Auto is
   turned on again. No automatic retry: the shutter is the retry.
 - A photo cut off by the camera stopping reports as `scan_camera_photo_cut`; a refusal keeps `scan_camera_photo`.
-- Checked on the built page in Chromium (390, 320 and 844 wide): the page lands after Done, Close and hiding; one
+- Checked on the built page in Chromium (390, 320 and 844 wide): the page lands after Done, Close and a simulated hide; one
   automatic shot and one message when every photo is refused; the shutter and Auto then take the page.
 
 ## Left
 
 - The phone check above. Then read production: `scan_camera_photo` still arriving is a real refusal.
+- Kept in mind when reading production: a photo refused after Done, before the camera stops, reports as
+  `scan_camera_photo` and nobody is told. Hiding the page and coming back while a photo is still being taken opens a
+  second stream; a phone that then ends the first one loses that photo, as it did before. A photo that never settles
+  keeps the shutter busy, as it did before.
