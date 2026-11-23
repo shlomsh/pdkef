@@ -2,42 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { GrayImage } from '../quad.ts';
 import { seededRandom } from '../seededRandom.test-helper.ts';
 import { readsUpsideDown, textTurn, textUp } from './orientation.ts';
-
-const W = 800;
-const H = 1040;
-
-type Paint = (data: Uint8ClampedArray) => void;
-
-/** A page of `rows` text rows across, from 12% to 88% of the height: letters 0.5-1% wide with a
- * hairline between them, words 2-9 letters apart by 1-2%, each row ending raggedly. */
-function textRows(rows: number, seed: number, x0 = 0.1, x1 = 0.9): Paint {
-  return (data) => {
-    const rnd = seededRandom(seed);
-    const pitch = rows > 1 ? 0.76 / (rows - 1) : 0;
-    for (let r = 0; r < rows; r += 1) {
-      const base = Math.round((0.12 + r * pitch) * H);
-      const end = x1 - rnd() * 0.25 * (x1 - x0);
-      let x = x0 * W;
-      while (x < end * W) {
-        const letters = 2 + Math.floor(rnd() * 8);
-        for (let k = 0; k < letters && x < end * W; k += 1) {
-          const lw = Math.round(W * (0.005 + rnd() * 0.005));
-          const top = base - Math.round(H * (rnd() < 0.3 ? 0.016 : 0.011));
-          // A letter is its outline, two strokes down and one across its top, not a solid block: printed
-          // letters, Hebrew and Latin alike, carry more ink in the top half of their row.
-          for (let y = top; y < base; y += 1) {
-            for (let px = Math.round(x); px < Math.round(x) + lw; px += 1) {
-              const edge = px - Math.round(x) < 2 || Math.round(x) + lw - px <= 2 || y - top < 2;
-              if (edge) data[y * W + px] = 30;
-            }
-          }
-          x += lw + 2;
-        }
-        x += W * (0.01 + rnd() * 0.01);
-      }
-    }
-  };
-}
+import { H, photo, quarter, textRows, W, type Paint } from './orientation.test-helper.ts';
 
 /** A form's table: `across` rules the full width and `down` rules the full height of the box. */
 function table(across: number, down: number, box = { x0: 0.06, x1: 0.94, y0: 0.08, y1: 0.92 }): Paint {
@@ -53,17 +18,6 @@ function table(across: number, down: number, box = { x0: 0.06, x1: 0.94, y0: 0.0
   };
 }
 
-/** A phone photo of paper: lit unevenly, with sensor noise. */
-function photo(...paint: Paint[]): GrayImage {
-  const rnd = seededRandom(5);
-  const data = new Uint8ClampedArray(W * H);
-  for (let y = 0; y < H; y += 1) for (let x = 0; x < W; x += 1) data[y * W + x] = 190 + 40 * (x / W) - 20 * (y / H) + (rnd() - 0.5) * 12;
-  const ink = new Uint8ClampedArray(W * H).fill(255);
-  paint.forEach((p) => p(ink));
-  for (let i = 0; i < data.length; i += 1) if (ink[i] < 255) data[i] = Math.min(data[i], ink[i] + (rnd() - 0.5) * 20);
-  return { width: W, height: H, data };
-}
-
 /** A one-bit photocopy: black or white, with a speckle of toner. */
 function photocopy(...paint: Paint[]): GrayImage {
   const rnd = seededRandom(9);
@@ -71,15 +25,6 @@ function photocopy(...paint: Paint[]): GrayImage {
   paint.forEach((p) => p(data));
   for (let i = 0; i < data.length; i += 1) data[i] = data[i] < 128 || rnd() < 0.002 ? 0 : 255;
   return { width: W, height: H, data };
-}
-
-/** The page a quarter turn clockwise (`back` false) or anticlockwise. */
-function quarter({ width: w, height: h, data }: GrayImage, back = false): GrayImage {
-  const out = new Uint8ClampedArray(w * h);
-  for (let y = 0; y < h; y += 1) {
-    for (let x = 0; x < w; x += 1) out[back ? (w - 1 - x) * h + y : x * h + (h - 1 - y)] = data[y * w + x];
-  }
-  return { width: h, height: w, data: out };
 }
 
 describe('textTurn', () => {

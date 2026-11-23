@@ -1,4 +1,6 @@
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { h, render } from 'preact';
+import { useEffect } from 'preact/hooks';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { reportError } from '#lib/telemetry/errorReport.ts';
 import { reportToolLifecycleEvent } from '#lib/telemetry/productAnalytics.ts';
 import { cacheRecentFile, saveDraft, saveHandoff } from '#lib/drafts/draftStore.ts';
@@ -54,6 +56,38 @@ describe('installBrowserToolHarness', () => {
     expect(harness.reports()).toEqual([]);
     harness.clearBeacons();
     expect(harness.beacons()).toEqual([]);
+  });
+
+  it('waits for the effect of a render made outside act, which runs after the next frame', async () => {
+    const host = document.createElement('div');
+    const Failing = () => {
+      useEffect(() => { reportToolLifecycleEvent('tool_operation_failed', 'split'); }, []);
+      return null;
+    };
+    const frame = window.requestAnimationFrame.bind(window);
+    vi.spyOn(window, 'requestAnimationFrame').mockImplementation((run) => frame(() => frame(run))); // forced: a busy machine, whose frames come late
+    render(h(Failing, {}), host);
+    await harness.flush();
+    expect(harness.usageEvents('tool_operation_failed')).toHaveLength(1);
+    render(null, host);
+    vi.mocked(window.requestAnimationFrame).mockRestore();
+  });
+
+  it('lands what was sent under fake timers, which hold back the effects', async () => {
+    vi.useFakeTimers({ toFake: ['setTimeout'] });
+    reportError('pdf_tool_run', new Error('boom'), 'a_step');
+    await harness.flush();
+    vi.useRealTimers();
+    expect(harness.reports()).toMatchObject([{ step: 'a_step' }]);
+  });
+
+  it('sends nothing once restore has begun, so no beacon lands after the handlers are gone', async () => {
+    const restoring = harness.restore();
+    reportError('pdf_tool_run', new Error('late'), 'after_the_test');
+    await restoring;
+    const sent = harness.reports();
+    harness = await installBrowserToolHarness();
+    expect(sent).toEqual([]);
   });
 
   it('waits on restore for a beacon still on its way, so none lands after the test', async () => {

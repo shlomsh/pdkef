@@ -17,6 +17,9 @@ export type BrowserToolHarness = Omit<ToolHarness, 'settle' | 'blobForUrl' | 're
 
 const CONTROL = 'browser-tool-harness-flush';
 
+/** Preact runs the effects of a render made outside `act` in a task after the next frame; this resolves in the task behind it. */
+const effectsRun = () => new Promise<void>((resolve) => { requestAnimationFrame(() => { setTimeout(resolve); }); });
+
 async function emptyIndexedDb() {
   const names = (await indexedDB.databases()).map((database) => database.name).filter((name): name is string => !!name);
   await Promise.all(names.map((name) => new Promise<void>((resolve, reject) => {
@@ -56,6 +59,7 @@ export async function installBrowserToolHarness() {
 
   let flushes = 0;
   const flush = async () => {
+    if (!vi.isFakeTimers()) await effectsRun();
     const marker = ++flushes;
     const arrived = new Promise<void>((resolve) => { controls.set(marker, resolve); });
     navigator.sendBeacon(ERROR_REPORT_PATH, JSON.stringify({ [CONTROL]: marker }));
@@ -88,10 +92,10 @@ export async function installBrowserToolHarness() {
     takeHandoff: (tool) => takeHandoff(tool),
     recents: () => readRecentFiles(),
     restore: async () => {
+      setReportingEnabledForTests(false);
       await flush();
       worker.events.removeListener('request:start', landed);
       objectUrls.mockRestore();
-      setReportingEnabledForTests(false);
     },
   } satisfies BrowserToolHarness;
 }

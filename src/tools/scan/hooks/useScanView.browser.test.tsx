@@ -1,21 +1,28 @@
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { reportError } from '#lib/telemetry/errorReport.ts';
+import { loadPipeline } from '../lib/loadPipeline.ts';
+import { turnImage } from '../lib/scanPipeline.ts';
 import { newPage } from '../lib/scanPages.ts';
 import { ScanWork, type ScanPage } from '../state/scanWork.ts';
 import { initialScanState } from '../state/scanState.ts';
 import { drainPromises } from '../../../test/support/drainPromises.ts';
+import { installBrowserToolHarness, type BrowserToolHarness } from '../../../test/harness/browserToolHarness.ts';
+import { answerNetwork } from '../../../test/support/network.browser.ts';
 import { useScanView } from './useScanView.ts';
 
-vi.mock('#lib/telemetry/errorReport.ts', { spy: true });
-const turnImage = vi.fn();
-vi.mock('../lib/loadPipeline.ts', () => ({ loadPipeline: () => Promise.resolve({ turnImage }) }));
+answerNetwork();
+vi.mock('../lib/scanPipeline.ts', { spy: true });
 
 let container: HTMLElement | null = null;
-beforeEach(() => vi.mocked(reportError).mockClear());
-afterEach(() => {
+let harness: BrowserToolHarness;
+beforeEach(async () => {
+  harness = await installBrowserToolHarness();
+  vi.mocked(turnImage).mockClear();
+});
+afterEach(async () => {
   if (container) { act(() => render(null, container!)); container.remove(); container = null; }
+  await harness.restore();
 });
 
 async function mount(page: ScanPage) {
@@ -34,16 +41,19 @@ async function mount(page: ScanPage) {
   }
   container = document.createElement('div');
   await act(async () => { render(<Host />, container!); });
+  await loadPipeline();
+  const turning = vi.mocked(turnImage).mock.results[0].value;
+  await expect(turning).rejects.toBeInstanceOf(Error);
   await act(async () => { await drainPromises(); });
   return () => map;
 }
 
 describe('useScanView turned preview', () => {
   it('falls back to the unturned preview when turning fails, so the corners are never blank', async () => {
-    turnImage.mockRejectedValue(new Error('boom'));
     const page = { ...newPage(new File(['x'], 'a.jpg'), 'document'), turns: 1, guessed: true, preview: 'blob:p' };
     const turned = await mount(page);
-    expect(reportError).toHaveBeenCalledWith('pdf_tool_run', expect.any(Error), 'scan_turn_preview');
+    await harness.flush();
+    expect(harness.reports()).toMatchObject([{ area: 'pdf_tool_run', step: 'scan_turn_preview', type: 'DOMException' }]);
     expect(turned()[`${page.id}|1`]).toBe('blob:p');
   });
 });

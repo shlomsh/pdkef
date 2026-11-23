@@ -233,6 +233,8 @@ describe('selectUnitTests: each blind-spot widen rule fires', () => {
       'src/styles/editorFonts.css',
       'src/lib/drafts/draftStore.ts',
       'src/tools/highlight/lib/enhance/enhance.worker.ts',
+      'src/tools/scan/lib/pageWork/page.worker.ts',
+      'src/tools/scan/lib/camera/camera.worker.ts',
       'public/sw.js',
       'src/tools/sign/hooks/useFormFieldRegions.ts',
       'scripts/check-editor-dependency-directions.mjs',

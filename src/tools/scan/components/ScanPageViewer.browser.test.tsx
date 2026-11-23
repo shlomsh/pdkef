@@ -1,7 +1,7 @@
 import type { ComponentProps } from 'preact';
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { englishScanMessages as t } from '../messages.ts';
 import type { ScanPage } from '../state/scanWork.ts';
 import ScanPageViewer from './ScanPageViewer.tsx';
@@ -9,17 +9,6 @@ import ScanPageViewer from './ScanPageViewer.tsx';
 type ScanPageViewerProps = ComponentProps<typeof ScanPageViewer>;
 
 let container: HTMLElement | null = null;
-let openWidth = 400;
-const showModal = vi.fn(function (this: HTMLDialogElement) { this.setAttribute('open', ''); });
-beforeEach(() => {
-  showModal.mockClear();
-  openWidth = 400;
-  const proto = HTMLDialogElement.prototype as unknown as { showModal: () => void; close: () => void };
-  proto.showModal = showModal;
-  proto.close = function (this: HTMLDialogElement) { this.removeAttribute('open'); };
-  // A closed dialog is display: none, so nothing inside it has a width until showModal.
-  Object.defineProperty(HTMLElement.prototype, 'clientWidth', { configurable: true, get(this: HTMLElement) { return this.closest('dialog[open]') ? openWidth : 0; } });
-});
 afterEach(() => {
   if (container) { act(() => render(null, container!)); container.remove(); container = null; }
 });
@@ -49,12 +38,18 @@ function mount(over: Partial<ScanPageViewerProps> = {}, index = 0) {
   return { actions, editor };
 }
 const q = (sel: string) => container!.querySelector(sel) as HTMLElement | null;
+const resizeSeen = (target: Element) => new Promise<void>((resolve) => {
+  const observer = new ResizeObserver(() => { observer.disconnect(); resolve(); });
+  observer.observe(target);
+});
+const happened = (target: EventTarget, type: string) => new Promise<void>((resolve) => { target.addEventListener(type, () => resolve(), { once: true }); });
 
 describe('ScanPageViewer', () => {
   it('opens as a modal dialog', () => {
     mount();
-    expect(q('dialog[data-page-viewer]')).not.toBeNull();
-    expect(showModal).toHaveBeenCalledTimes(1);
+    const dialog = q('dialog[data-page-viewer]') as HTMLDialogElement;
+    expect(dialog.open).toBe(true);
+    expect(dialog.matches(':modal')).toBe(true);
   });
 
   it('result mode renders back, title, the page, the row and Done in that order', () => {
@@ -101,50 +96,66 @@ describe('ScanPageViewer', () => {
 
   it('puts the scroller on the selected page before paint', () => {
     mount({}, 2);
-    expect(q('[data-page-scroller]')!.scrollLeft).toBe(800);
+    const sc = q('[data-page-scroller]')!;
+    expect(sc.clientWidth).toBeGreaterThan(0);
+    expect(sc.scrollLeft).toBe(2 * sc.clientWidth);
   });
 
-  it('a swipe that reaches another page selects it, and staying on the same page does not', () => {
+  it('a swipe that reaches another page selects it, and staying on the same page does not', async () => {
     const { actions } = mount({}, 0);
     const sc = q('[data-page-scroller]')!;
-    sc.scrollLeft = 100;
-    act(() => { sc.dispatchEvent(new Event('scroll')); });
+    await resizeSeen(sc);
+    sc.style.scrollSnapType = 'none';
+    const width = sc.clientWidth;
+    let scrolled = happened(sc, 'scroll');
+    sc.scrollLeft = Math.round(width / 4);
+    await scrolled;
     expect(actions.onSelect).not.toHaveBeenCalled();
-    sc.scrollLeft = 420;
-    act(() => { sc.dispatchEvent(new Event('scroll')); });
+    scrolled = happened(sc, 'scroll');
+    sc.scrollLeft = Math.round(width * 1.05);
+    await scrolled;
     expect(actions.onSelect).toHaveBeenCalledWith(2);
   });
 
-  it('leaves the scroller alone when it already shows the selected page', () => {
+  it('leaves the scroller alone when it already shows the selected page', async () => {
     const { actions } = mount({}, 1);
     const sc = q('[data-page-scroller]')!;
-    sc.scrollLeft = 390;
-    act(() => { sc.dispatchEvent(new Event('scroll')); });
-    expect(sc.scrollLeft).toBe(390);
+    await resizeSeen(sc);
+    sc.style.scrollSnapType = 'none';
+    const near = sc.clientWidth - 10;
+    const scrolled = happened(sc, 'scroll');
+    sc.scrollLeft = near;
+    await scrolled;
+    expect(sc.scrollLeft).toBe(near);
     expect(actions.onSelect).not.toHaveBeenCalled();
   });
 
   describe('when the width changes under the open viewer', () => {
-    let resized: () => void;
-    beforeEach(() => {
-      vi.stubGlobal('ResizeObserver', class { constructor(cb: () => void) { resized = cb; } observe() {} disconnect() {} });
-    });
-    afterEach(() => vi.unstubAllGlobals());
-
-    it('the current page stays selected when a scroll lands first', () => {
+    it('the current page stays selected when a scroll lands first', async () => {
       const { actions } = mount({}, 2);
       const sc = q('[data-page-scroller]')!;
-      openWidth = 800;
-      act(() => { sc.dispatchEvent(new Event('scroll')); });
+      await resizeSeen(sc);
+      sc.style.scrollSnapType = 'none';
+      const before = sc.clientWidth;
+      const resized = resizeSeen(sc);
+      sc.style.width = '800px';
+      sc.scrollLeft = 5 * before;
+      await resized;
       expect(actions.onSelect).not.toHaveBeenCalled();
+      expect(sc.clientWidth).toBe(800);
       expect(sc.scrollLeft).toBe(1600);
     });
 
-    it('the scroller is pinned back to the current page when no scroll comes', () => {
+    it('the scroller is pinned back to the current page when no scroll comes', async () => {
       mount({}, 2);
-      openWidth = 800;
-      act(() => resized());
-      expect(q('[data-page-scroller]')!.scrollLeft).toBe(1600);
+      const sc = q('[data-page-scroller]')!;
+      await resizeSeen(sc);
+      sc.style.scrollSnapType = 'none';
+      const resized = resizeSeen(sc);
+      sc.style.width = '800px';
+      await resized;
+      expect(sc.clientWidth).toBe(800);
+      expect(sc.scrollLeft).toBe(1600);
     });
   });
 
@@ -162,26 +173,33 @@ describe('ScanPageViewer', () => {
   });
 
   describe('a close the browser makes on its own', () => {
-    const nativeClose = () => act(() => { q('dialog')!.removeAttribute('open'); q('dialog')!.dispatchEvent(new Event('close')); });
+    const nativeClose = async () => {
+      const dialog = q('dialog') as HTMLDialogElement;
+      const closed = happened(dialog, 'close');
+      act(() => dialog.close());
+      await closed;
+    };
 
-    it('counts as Back', () => {
+    it('counts as Back', async () => {
       const { actions } = mount();
-      nativeClose();
+      await nativeClose();
       expect(actions.onDone).toHaveBeenCalledTimes(1);
     });
 
-    it('in corners the viewer stays, open again, on the result', () => {
+    it('in corners the viewer stays, open again, on the result', async () => {
       const { actions } = mount({ view: 'corners' });
-      nativeClose();
+      await nativeClose();
       expect(actions.onApprove).toHaveBeenCalledTimes(1);
-      expect(q('dialog')!.hasAttribute('open')).toBe(true);
+      const dialog = q('dialog') as HTMLDialogElement;
+      expect(dialog.open).toBe(true);
+      expect(dialog.matches(':modal')).toBe(true);
     });
 
-    it('closing it ourselves is not a Back', () => {
+    it('closing it ourselves is not a Back', async () => {
       const { actions } = mount();
-      const dialog = q('dialog')!;
+      const closed = happened(q('dialog')!, 'close');
       act(() => render(null, container!));
-      dialog.dispatchEvent(new Event('close'));
+      await closed;
       expect(actions.onDone).not.toHaveBeenCalled();
     });
   });

@@ -3,8 +3,6 @@ import { act } from 'preact/test-utils';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import ScanPhoneTable from './ScanPhoneTable.tsx';
 
-vi.mock('../lib/camera/canUseCamera.ts', () => ({ canUseCamera: () => true }));
-
 let container: HTMLElement | null = null;
 const pages = [{ id: 1 }, { id: 2 }, { id: 3 }] as never[];
 const results = {
@@ -67,18 +65,6 @@ describe('ScanPhoneTable', () => {
     expect(mount().container.querySelector('[data-scan-ready]')).not.toBeNull();
     act(() => render(null, container!)); container!.remove(); container = null;
     expect(mount({ prepared: { status: 'pending', url: null, size: 0 } }).container.querySelector('[data-scan-ready]')).toBeNull();
-  });
-
-  it('ends the grid with Add pages, which opens the camera, and offers a quiet Choose photos on the hint row', () => {
-    const { container, onCamera, onPickMore } = mount();
-    const addCell = container.querySelector('ul')!.lastElementChild!;
-    expect(addCell.querySelector('[data-add-pages]')).not.toBeNull();
-    act(() => (addCell.querySelector('button') as HTMLElement).click());
-    expect(onCamera).toHaveBeenCalled();
-    const row = container.querySelector('[data-hint]')!.parentElement!;
-    const choose = [...row.querySelectorAll('button')].find((b) => b.textContent?.includes('Choose photos'))!;
-    act(() => choose.click());
-    expect(onPickMore).toHaveBeenCalled();
   });
 
   it('holds Size, the four limits, the note and Page size in one card, and Page size opens inside it', () => {

@@ -74,3 +74,20 @@ test('a page is dragged, removed and opened from the grid', async ({ page }) => 
   await expect(viewer).toHaveCount(0);
   await expect(tiles.nth(1)).toBeFocused();
 });
+
+test('binds hold and drag again when the width crosses to the desktop grid', async ({ page }) => {
+  await page.setViewportSize({ width: 414, height: 896 });
+  await page.goto('/scan-to-pdf/');
+  await waitForIsland(page);
+  await page.locator('input[type="file"][multiple]').first().setInputFiles(await pagePhotos(page, 3));
+  const tiles = page.locator('[data-table-page]');
+  await expect(tiles).toHaveCount(3, { timeout: 15_000 });
+  await expect(page.locator('[data-rail]')).toHaveCount(0);
+
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await expect(page.locator('[data-rail]')).toHaveCount(1);
+  await expect(page.locator('[data-paper-image]')).toHaveCount(3, { timeout: 30_000 });
+  const before = await order(page);
+  await tiles.nth(0).dragTo(tiles.nth(2));
+  await expect.poll(() => order(page)).toEqual([before[1], before[2], before[0]]);
+});

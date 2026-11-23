@@ -14,6 +14,7 @@ function Surface({ track }: { track: () => MediaStreamTrack | undefined }) {
   usePinchZoom(ref, track);
   return <div ref={ref} data-surface />;
 }
+// forced: Chromium's fake camera has no zoom capability, so only a double can offer one
 const fakeTrack = (zoom?: { min: number; max: number; step?: number }) => ({
   getCapabilities: () => (zoom ? { zoom } : {}),
   getSettings: () => ({ zoom: 1 }),

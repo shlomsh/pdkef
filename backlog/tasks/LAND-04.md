@@ -176,5 +176,18 @@ count). The rule is off on `landmines-all` meanwhile.
   and 0 of 4 without. Redact and Edit Pages' undo file now run in a Chromium instance that starts at
   1280x800 (`DESKTOP_BROWSER_TESTS` in `vitest.config.js`); Merge's widening test is a Playwright spec.
   Two full browser runs: 696 passed, Scan 2.7s.
+  Linux confirmed it (run 45247238186): 696 passed, Scan's file 4.3s where it had been 83s with three failures.
+- Scan wave (2026-11-23): Scan's doubles went from 120 to 36, the branch to 941. The island file is seven
+  browser files on `scanTool.browser.tsx`, reading real photos drawn on a canvas and the real pipeline;
+  camera tests run in a third Chromium instance with touch and Chromium's fake camera
+  (`CAMERA_BROWSER_TESTS`); one resize test is a Playwright spec. The page worker, viewer, PDF hooks and
+  `scanActions` run for real in Chromium; the Node files read real glyph pages instead of a forced
+  `assess`. Fresh review, three reviewers: fixed a forced turn a real page
+  gives, unpinned worker arguments, a failure forced only once, pieces no longer pinned, and four checks
+  that could pass on nothing. A cold run also
+  showed Split's "operation failed" event missing: the harness's `flush()` did not wait for the effect of a render
+  made outside `act`; it does now (never under fake timers), and `restore()` turns reporting off before
+  it waits. Each has a test that failed first. Kept, forced: a camera with zoom, no
+  `OffscreenCanvas` or module worker, a camera refusal, `Viewfinder`'s live camera, corners view callbacks.
 - Found on the way: RED-75 (preview documents never freed on pdf.js 6.5), RED-76 (one very long line
   overflows the text preview).

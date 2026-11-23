@@ -37,9 +37,10 @@ describe('ScanDraftSession', () => {
     const a = page('a.jpg');
     await session.save(snapshot(session, [a]));
     const { savedAt } = readRecentFiles()[0];
-    vi.spyOn(Date, 'now').mockReturnValue(savedAt + 60_000);
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(savedAt + 60_000);
     await session.save(snapshot(session, [a]));
-    vi.restoreAllMocks();
+    vi.useRealTimers();
     expect(readRecentFiles()[0].savedAt).toBe(savedAt);
   });
 

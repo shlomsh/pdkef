@@ -35,7 +35,7 @@ let host: HTMLDivElement;
 let out: ReturnType<typeof useScanDraft>;
 let restoredPages: ScanPage[];
 let work: { pages: ScanPage[] };
-const restorePages = vi.fn((restore: ScanDraftRestore) => {
+const restorePages = vi.fn((restore: ScanDraftRestore) => { // forced: the tool's restore, here a recorder of the pages it is given
   restoredPages = restore.files.map((file) => newPage(file, 'document'));
   return restoredPages;
 });
@@ -101,21 +101,17 @@ describe('useScanDraft', () => {
 
   it('ignores the record when a pick landed before the load resolved', async () => {
     await seedScan();
-    let release: () => void = () => {};
-    const held = new Promise<void>((r) => { release = r; });
-    vi.mocked(loadDraft).mockImplementationOnce(async (tool) => { await held; return (await vi.importActual<typeof import('#lib/drafts/draftStore.ts')>('#lib/drafts/draftStore.ts')).loadDraft(tool); }); // forced: the store's read is held open, then runs for real
-    await show([]);
+    act(() => { render(<Probe pages={[]} />, host); });
     work.pages = [page('picked.jpg')];
-    release();
     await restoreChecked();
+    expect(loadDraft).toHaveBeenCalledTimes(1);
     expect(restorePages).not.toHaveBeenCalled();
   });
 
   it('lets go of a pointer at an entry with no photos', async () => {
     await seedScan();
     expect(readCurrentEntryId('scan-to-pdf')).not.toBeNull();
-    // The real store never hands back an entry without photos; this one line forces it.
-    vi.mocked(loadDraft).mockResolvedValueOnce({ files: [] } as never);
+    vi.mocked(loadDraft).mockResolvedValueOnce({ files: [] } as never); // forced: an entry with no photos, which the real store never hands back
     await show([]);
     await restoreChecked();
     expect(clearCurrentEntry).toHaveBeenCalledWith('scan-to-pdf');
@@ -157,8 +153,7 @@ describe('useScanDraft', () => {
 
   it('does not save before the restore check settles', async () => {
     await seedScan();
-    // A read that never answers is a state the real store does not produce; this one line forces it.
-    vi.mocked(loadDraft).mockReturnValueOnce(new Promise(() => {}));
+    vi.mocked(loadDraft).mockReturnValueOnce(new Promise(() => {})); // forced: a read that never answers, which the real store does not produce
     await show([page('a.jpg')]);
     await advance(1000);
     await noSaveStarted();

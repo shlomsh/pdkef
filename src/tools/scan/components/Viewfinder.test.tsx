@@ -7,7 +7,7 @@ import Viewfinder from './Viewfinder.tsx';
 
 let handle: CameraHandle & { shooting?: boolean };
 let cameraInput: { onTaken: (page: unknown) => void; paused?: boolean };
-vi.mock('../hooks/useCamera.ts', () => ({ useCamera: (input: typeof cameraInput) => { cameraInput = input; return handle; } }));
+vi.mock('../hooks/useCamera.ts', () => ({ useCamera: (input: typeof cameraInput) => { cameraInput = input; return handle; } })); // forced: a camera already live with the view each test names, with no stream
 
 let container: HTMLElement | null = null;
 const baseProps = () => ({
@@ -126,15 +126,19 @@ describe('Viewfinder', () => {
   });
 
   it('revokes the snapshot URL on unmount', () => {
-    const create = vi.fn(() => 'blob:snap');
-    const revoke = vi.fn();
+    const create = vi.spyOn(URL, 'createObjectURL');
+    const revoke = vi.spyOn(URL, 'revokeObjectURL');
     (HTMLImageElement.prototype as unknown as { decode: () => Promise<void> }).decode = () => new Promise(() => {});
-    Object.assign(URL, { createObjectURL: create, revokeObjectURL: revoke });
     mount({ lastSrc: null, count: 0 });
     act(() => cameraInput.onTaken({ file: new File(['x'], 'p.jpg'), snapshot: new Blob(['s']), quad: null }));
-    expect(create).toHaveBeenCalled();
+    expect(create).toHaveBeenCalledTimes(1);
+    const snapshotUrl = create.mock.results[0].value as string;
+    expect(snapshotUrl).toMatch(/^blob:/);
+    expect(revoke).not.toHaveBeenCalled();
     act(() => render(null, container!));
-    expect(revoke).toHaveBeenCalledWith('blob:snap');
+    expect(revoke).toHaveBeenCalledWith(snapshotUrl);
+    create.mockRestore();
+    revoke.mockRestore();
   });
 
   it('Done and the close button close', () => {

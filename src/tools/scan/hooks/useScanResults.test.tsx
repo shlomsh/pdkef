@@ -23,7 +23,7 @@ async function fail(page: ScanPage, before: (work: ScanWork) => void) {
   work.pages = [page];
   before(work);
   const dispatch = vi.fn();
-  const processed = vi.fn().mockRejectedValue(new Error('boom'));
+  const processed = vi.fn().mockRejectedValue(new Error('boom')); // forced: the run rejects
   function Host() {
     useScanResults({ pages: [page], work, processed, unmountedRef: { current: false }, dispatch, results: {}, setResults: vi.fn(), turnedPreviews: {} });
     return null;
@@ -59,9 +59,9 @@ describe('useScanResults adoptResult', () => {
     const work = new ScanWork();
     work.pages = [page];
     const setResults = vi.fn();
-    const create = vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:r');
+    const create = vi.spyOn(URL, 'createObjectURL');
     let finish!: (value: never) => void;
-    const processed = vi.fn(() => new Promise((resolve) => { finish = resolve as never; }));
+    const processed = vi.fn(() => new Promise((resolve) => { finish = resolve as never; })); // forced: the run is held until the page is removed, then finishes
     function Host() {
       useScanResults({ pages: [page], work, processed: processed as never, unmountedRef: { current: false }, dispatch: vi.fn(), results: {}, setResults, turnedPreviews: {} });
       return null;

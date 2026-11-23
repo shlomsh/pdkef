@@ -181,7 +181,7 @@ export const WIDEN_RULES = [
       'src/test/cross-tool/textCoverage.test.js',
       'src/tools/sign/lib/sign.test.js',
       'src/tools/sign/PdfSignTool.test.tsx',
-      'src/tools/scan/lib/pdfSheetReader.test.ts',
+      'src/tools/scan/lib/pdfSheetReader.browser.test.ts',
     ],
   },
   {
@@ -365,6 +365,18 @@ export const WIDEN_RULES = [
     reason: 'the enhance worker is started from its own URL in Chromium, not imported',
     match: (f) => f === 'src/tools/highlight/lib/enhance/enhance.worker.ts',
     tests: ['src/tools/highlight/lib/enhance/enhance.worker.browser.test.ts'],
+  },
+  {
+    id: 'scan-page-worker-url',
+    reason: 'Scan\'s page worker is started from its own URL in Chromium, not imported',
+    match: (f) => /^src\/tools\/scan\/lib\/pageWork\/(page\.worker|exifProbe|protocol)\.ts$/.test(f),
+    tests: ['src/tools/scan/lib/pageWork/page.worker.browser.test.ts', 'src/tools/scan/lib/pageWork/offThread.browser.test.ts'],
+  },
+  {
+    id: 'scan-camera-worker-url',
+    reason: 'Scan\'s camera worker is started from its own URL in Chromium, not imported, and it reads frames with capture/',
+    match: (f) => f === 'src/tools/scan/lib/camera/camera.worker.ts' || /^src\/tools\/scan\/lib\/capture\/(?!.*\.test\.)/.test(f),
+    tests: ['src/tools/scan/lib/camera/camera.worker.browser.test.ts'],
   },
   {
     id: 'form-field-regions-text-parse',

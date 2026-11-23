@@ -47,8 +47,9 @@ such a rewrite by deleting the product guard: the test must fail. Example: DEBT-
 `src/tools/split/PdfSplitTool.browser.test.tsx`. A product timer gets fake timers scoped to that one test.
 
 A browser test never calls `page.viewport`: a resize can leave Chromium with no idle time, and every later canvas encode
-takes 1s (LAND-04). A desktop-width file goes in `DESKTOP_BROWSER_TESTS` (`vitest.config.js`); a test that must resize is a
-Playwright spec.
+takes 1s (LAND-04). A desktop-width file goes in `DESKTOP_BROWSER_TESTS` (`vitest.config.js`); one that needs touch or a camera is
+named `*.camera.browser.test.*` (`CAMERA_BROWSER_TESTS`, Scan only); a test that must resize is a Playwright spec. Awaiting
+a held step's `started` inside `act` deadlocks: `act` holds back the render that starts it.
 
 ## Test environments and E2E scope
 
@@ -117,7 +118,7 @@ Island tests mock only the storage and network edge, through `src/test/harness/t
 (ARCH-78): fresh fake IndexedDB and storage per test, recorded beacons, created blobs, and the stored
 draft read back through the real `draftStore`. It imports `lib`, so it lives in `site-test`, not
 `test-support`. Nothing fakes pdf.js: an island test that needs it runs in the `browser` project on real pdf.js
-through `src/test/harness/browserToolHarness.ts` (Redact's through `src/test/support/redactTool.browser.tsx`),
+through `src/test/harness/browserToolHarness.ts` (Redact's through `src/test/support/redactTool.browser.tsx`, Scan's through `scanTool.browser.tsx` beside it),
 building its PDFs with pdf-lib or reading fixtures through `?url`. A state no real file can produce is one
 `{ spy: true }` mock of our own module and one `mockImplementationOnce` line marked `// forced:` (LAND-04).
 
