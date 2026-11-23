@@ -2,7 +2,6 @@
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { describe, expect, it, vi, afterEach, beforeEach } from 'vitest';
-import { page } from 'vitest/browser';
 import { recentActions } from '#lib/telemetry/actionTrail.ts';
 import Sortable from 'sortablejs';
 import PdfEditPagesTool from './PdfEditPagesTool.tsx';
@@ -34,7 +33,6 @@ describe('PdfEditPagesTool undo/redo', () => {
       container = null;
     }
     vi.restoreAllMocks();
-    await page.viewport(414, 896);
     await harness.restore();
   });
 
@@ -193,7 +191,6 @@ describe('PdfEditPagesTool undo/redo', () => {
   });
 
   it('leaves the shortcuts alone while focus is in an input', async () => {
-    await page.viewport(1280, 800);
     await loadPdf();
 
     await click(rotateButton(1));
@@ -205,7 +202,6 @@ describe('PdfEditPagesTool undo/redo', () => {
   });
 
   it('leaves the shortcuts alone while the output name is being renamed', async () => {
-    await page.viewport(1280, 800);
     await loadPdf();
 
     await click(rotateButton(1));

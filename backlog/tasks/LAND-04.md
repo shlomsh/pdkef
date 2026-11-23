@@ -170,7 +170,11 @@ count). The rule is off on `landmines-all` meanwhile.
   settle after a drag, and unit-scope's Redact entries. A cold run caught Security's replacement
   tests reading the dialog before it reopened. Kept: Whiteout's `fullscreenEnabled` getter (iPhone
   Safari's missing element full screen) and export's no-Share platform state, both forced.
-- Seen and left (2026-11-23): Scan's two "size limit" JPEG tests (`scanPipeline.browser.test.ts`) run
-  out their 15s on a cold or loaded Mac (2 of 4 local runs); they pass warm and on Linux CI.
+- Browser tests no longer resize the window (2026-11-23). Scan's "size limit" tests timed out locally and
+  on Linux CI because a resize often left Chromium with no idle time for the rest of the run, and each
+  canvas encode then took its 1s fallback: after Redact's `delete` file, 4 of 4 with its viewport reset
+  and 0 of 4 without. Redact and Edit Pages' undo file now run in a Chromium instance that starts at
+  1280x800 (`DESKTOP_BROWSER_TESTS` in `vitest.config.js`); Merge's widening test is a Playwright spec.
+  Two full browser runs: 696 passed, Scan 2.7s.
 - Found on the way: RED-75 (preview documents never freed on pdf.js 6.5), RED-76 (one very long line
   overflows the text preview).

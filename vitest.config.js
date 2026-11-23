@@ -8,6 +8,10 @@ const TESTS = 'src/**/*.{test,spec}.{js,jsx,ts,tsx}';
 // src/**/*.spec.js would otherwise pick them up the way e2e/**'s own top-level
 // exclusion used to make unnecessary.
 const BROWSER_TESTS = 'src/**/*.browser.test.{js,jsx,ts,tsx}';
+const DESKTOP_BROWSER_TESTS = [
+  'src/tools/redact/PdfRedactTool.*.browser.test.tsx',
+  'src/tools/edit-pages/PdfEditPagesTool.undo.browser.test.tsx',
+];
 const NEVER = ['node_modules/**', '**/node_modules/**', 'dist/**', 'e2e/**', 'src/tools/*/e2e/**', '.claude/**'];
 
 // Booting jsdom cost more than running the tests (Vitest's own breakdown:
@@ -110,7 +114,15 @@ export default defineConfig({
           include: [BROWSER_TESTS],
           exclude: NEVER,
           fileParallelism: false,
-          browser: { enabled: true, provider: playwright(), headless: true, instances: [{ browser: 'chromium' }] },
+          browser: {
+            enabled: true,
+            provider: playwright(),
+            headless: true,
+            instances: [
+              { browser: 'chromium', exclude: [...NEVER, ...DESKTOP_BROWSER_TESTS] },
+              { browser: 'chromium', name: 'browser (desktop chromium)', viewport: { width: 1280, height: 800 }, include: DESKTOP_BROWSER_TESTS },
+            ],
+          },
         },
       },
       {

@@ -1,7 +1,6 @@
 import { render, type ComponentType } from 'preact';
 import { act } from 'preact/test-utils';
 import { expect, vi, afterEach, beforeAll, beforeEach } from 'vitest';
-import { page } from 'vitest/browser';
 import { PDFDocument, StandardFonts } from '@cantoo/pdf-lib';
 import { setInputFiles } from './setInputFiles.js';
 import { drainPromises } from './drainPromises.ts';
@@ -163,7 +162,6 @@ export function useRedactSuite<H extends SuiteHarness>({ Tool, checking, gesture
   const failedOperations = async () => { await s.harness.flush(); return s.harness.usageEvents('tool_operation_failed'); };
 
   beforeEach(async () => {
-    await page.viewport(1280, 800);
     s.harness = await installToolHarness();
     s.gestureCommitSpies = [];
     if (exportEntry) vi.mocked(exportEntry.spy).mockReset();
@@ -182,7 +180,6 @@ export function useRedactSuite<H extends SuiteHarness>({ Tool, checking, gesture
     }
     vi.restoreAllMocks();
     await s.harness.restore();
-    await page.viewport(414, 896);
   });
 
   return { s, holdNextExport, lifecycle, failedOperations, ...redactSuiteActions(s, { Tool, waitUntil }) };

@@ -485,6 +485,35 @@ test.describe('Merge on a phone (MERGE-06)', () => {
     await expect(strip).toHaveCount(0);
   });
 
+  test('the open done strip closes when the window widens past 1024px, and narrowing does not bring it back', async ({ page }, testInfo) => {
+    await useMobileViewport(page, testInfo);
+    await page.goto('/merge/');
+    await waitForIsland(page);
+    const files = await Promise.all(['one.pdf', 'two.pdf'].map(async (name) => ({
+      name,
+      mimeType: 'application/pdf',
+      buffer: await makePdfBuffer(name),
+    })));
+    await page.locator('input[type="file"]').setInputFiles(files);
+
+    const quiet = page.locator('a[data-quiet-download]');
+    await expect(quiet).toBeVisible({ timeout: 10_000 });
+    const strip = page.locator('[data-merge-done-strip]');
+    await quiet.click();
+    await expect(strip).toBeVisible();
+
+    const rating = page.getByRole('dialog', { name: 'How did it go?' });
+    await rating.getByRole('button', { name: 'Not now' }).click();
+    await expect(rating).toHaveCount(0);
+
+    const phone = page.viewportSize();
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await expect(strip).toHaveCount(0);
+    await page.setViewportSize(phone);
+    await expect(quiet).toBeVisible();
+    await expect(strip).toHaveCount(0);
+  });
+
   /* MERGE-24 (2026-10-24): every chip carries its own remove button. */
   test('a chip remove button is a 44px target on a 36px pill and removes that file', async ({ page }, testInfo) => {
     await useMobileViewport(page, testInfo);

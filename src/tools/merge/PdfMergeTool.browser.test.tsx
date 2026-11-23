@@ -1,7 +1,6 @@
 // @ts-nocheck - renamed from .jsx, not yet typed; see TODO.md 'Type the interactive shell'
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
-import { page } from 'vitest/browser';
 import { describe, expect, it, vi, afterEach, beforeEach } from 'vitest';
 import Sortable from 'sortablejs';
 import PdfMergeTool from './PdfMergeTool.tsx';
@@ -1883,7 +1882,6 @@ describe('PdfMergeTool quiet-time prepare', () => {
     container = null;
     vi.useRealTimers();
     vi.restoreAllMocks();
-    await page.viewport(414, 896);
     await harness.restore();
   });
 
@@ -1986,13 +1984,5 @@ describe('PdfMergeTool quiet-time prepare', () => {
     await advance(5000);
     expect(box().getAttribute('data-state')).toBe('saved');
     expect(strip()).toBeNull();
-  });
-
-  it('closes the open strip when the window widens past 1024px and gives the rating its slot back', async () => {
-    await act(async () => { container.querySelector('[data-quiet-download]').dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true })); });
-    await advance(100);
-    expect(strip()).not.toBeNull();
-    await page.viewport(1280, 800);
-    await waitUntil(() => expect(strip()).toBeNull(), { dueFakeTimers: true });
   });
 });

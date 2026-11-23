@@ -46,6 +46,10 @@ inside the same `act`, because the stale result reaches the component a few prom
 such a rewrite by deleting the product guard: the test must fail. Example: DEBT-18 in
 `src/tools/split/PdfSplitTool.browser.test.tsx`. A product timer gets fake timers scoped to that one test.
 
+A browser test never calls `page.viewport`: a resize can leave Chromium with no idle time, and every later canvas encode
+takes 1s (LAND-04). A desktop-width file goes in `DESKTOP_BROWSER_TESTS` (`vitest.config.js`); a test that must resize is a
+Playwright spec.
+
 ## Test environments and E2E scope
 
 Unit tests run under `node` (no jsdom) unless they match `DOM_TESTS` in `vitest.config.js`: any
