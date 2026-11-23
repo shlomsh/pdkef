@@ -2,7 +2,7 @@
 
 # Backlog
 
-The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 183 live: 78 up next, 24 then, 27 waiting, 54 parked.
+The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 184 live: 78 up next, 25 then, 27 waiting, 54 parked.
 
 ## Redact: finish removal
 
@@ -121,6 +121,7 @@ The camera takes pages, the table fixes them, Share sends them. The table first 
 | SCAN-22 | P3 | [SCAN-22](backlog/tasks/SCAN-22.md) · Scan next: measure the bend at a higher resolution, so a crease's tip goes too |  |
 | SCAN-70 | P2 | [SCAN-70](backlog/tasks/SCAN-70.md) · A colour flyer is found by its edges, not by the photo printed inside it |  |
 | SCAN-72 | P2 | [SCAN-72](backlog/tasks/SCAN-72.md) · An open book in front of the camera comes out as two pages, not one spread |  |
+| SCAN-78 | P2 | [SCAN-78](backlog/tasks/SCAN-78.md) · Scan: a refused camera photo fails without a word |  |
 
 ### Parked
 
