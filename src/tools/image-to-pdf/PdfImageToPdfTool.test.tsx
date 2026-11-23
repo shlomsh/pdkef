@@ -7,6 +7,7 @@ import PdfImageToPdfTool from './PdfImageToPdfTool.tsx';
 import fs from 'node:fs';
 import path from 'node:path';
 import zlib from 'node:zlib';
+import { UnreadableImageError } from '#lib/images/imagesToPdf.js';
 import { getPdfLib } from '#lib/pdf/pdfLib.js';
 import { formatFileSize } from '#lib/text/format.js';
 import { saveHandoff } from '#lib/drafts/draftStore.ts';
@@ -426,6 +427,39 @@ describe('PdfImageToPdfTool UI flow', () => {
     expect(builtPdfs()).toHaveLength(1);
     expect(failure()).toBeNull();
     expect(downloadLink()).not.toBeNull();
+  });
+
+  const failedEvents = async () => { await harness.flush(); return harness.usageEvents('tool_operation_failed'); };
+  const failNextBuild = (error) => {
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    buildGate.next = () => Promise.reject(error);
+  };
+
+  it('counts a failed build nobody has tapped for yet, and a failed retry again', async () => {
+    mount();
+    failNextBuild(new Error('build failed'));
+    await loadFiles(['a.png']);
+    await wait(0);
+    expect(await failedEvents()).toHaveLength(1);
+
+    failNextBuild(new Error('build failed'));
+    await act(async () => { container.querySelector('a[data-state="error"]').click(); });
+    await wait(0);
+    expect(await failedEvents()).toHaveLength(2);
+  });
+
+  it('does not count a picture nothing can decode as a failed operation, tapped or not', async () => {
+    let fail;
+    mount();
+    failNextBuild(new UnreadableImageError('a.png'));
+    await loadFiles(['a.png']);
+    await wait(0);
+    buildGate.next = () => new Promise((_, reject) => { fail = () => reject(new UnreadableImageError('a.png')); });
+    await act(async () => { container.querySelector('a[data-state="error"]').click(); });
+    await wait(0);
+    await act(async () => { fail(); });
+    await wait(0);
+    expect(await failedEvents()).toEqual([]);
   });
 
   it('records one download per ready tap', async () => {

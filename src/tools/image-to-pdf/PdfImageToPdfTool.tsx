@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'preact/hooks';
 import { defaultOutputName, moveEntry, orderKey, reorderEntries, sortEntries } from '#lib/pages/pageOrder.js';
-import { buildImagesPdf, reportBuildError, skippedNames } from './lib/buildImagesPdf.ts';
+import { buildImagesPdf, isBuildFailure, reportBuildError, skippedNames } from './lib/buildImagesPdf.ts';
 import { usePreparedOutput } from '#lib/output/usePreparedOutput.ts';
 import { useDownloadFlow } from '#shell/pageWorkspace/useDownloadFlow.ts';
 import { downloadDetail } from '#shell/pageWorkspace/pageCounts.ts';
@@ -123,9 +123,9 @@ export default withIslandBoundary(function PdfImageToPdfTool({ quietPolicy, mess
   const {
     handleShare: shareOutput, onDownloadTap, onRowPreparingTap, reset: resetDownloadFlow,
   } = downloadFlow;
-  // Analytics follow the person's Download tap only (Merge's rule, ANALYTICS.md): background builds report nothing.
+  // Analytics (Merge's rule, ANALYTICS.md): started and ready follow the Download tap; a failed build counts either way.
   const tapped = downloadFlow.tap === 'processing';
-  const status = failed && tapped ? 'error' : tapped ? 'converting' : downloadFlow.tap;
+  const status = failed && isBuildFailure(prepared.error) ? 'error' : tapped ? 'converting' : downloadFlow.tap;
 
   // Revoke every live thumbnail object URL on unmount.
   useRevokeOnUnmount(entries.map((e) => e.thumbnail));
