@@ -34,7 +34,6 @@ function formatPdfLoadMessage(template: string, params: Record<string, string | 
   return template.replace(/\{(\w+)\}/g, (match, key) => (key in params ? String(params[key]) : match));
 }
 
-/** @testSeam */
 interface PdfLoadOptions {
   file: File;
   bytes: ArrayBuffer;

@@ -232,6 +232,7 @@ describe('selectUnitTests: each blind-spot widen rule fires', () => {
       'src/content/content-pages/sign-pdf-in-your-language.yaml',
       'src/styles/editorFonts.css',
       'src/lib/drafts/draftStore.ts',
+      'src/tools/highlight/lib/enhance/enhance.worker.ts',
       'public/sw.js',
       'src/tools/sign/hooks/useFormFieldRegions.ts',
       'scripts/check-editor-dependency-directions.mjs',
