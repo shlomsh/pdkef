@@ -53,6 +53,7 @@ beforeEach(async () => {
 });
 afterEach(() => {
   close();
+  vi.restoreAllMocks();
   vi.unstubAllGlobals();
   vi.useRealTimers();
 });
@@ -142,7 +143,6 @@ describe('the camera closing while a photo is taken', () => {
     await settle();
     expect(onTaken).toHaveBeenCalledTimes(1);
     expect(running.stop).toHaveBeenCalledTimes(1);
-    vi.restoreAllMocks();
   });
 
   it('stops at once with no photo under way', () => {
