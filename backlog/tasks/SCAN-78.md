@@ -1,7 +1,7 @@
 ---
 id: "SCAN-78"
 title: "Scan: a refused camera photo fails without a word"
-status: "open"
+status: "in_progress"
 priority: "P2"
 epic: "scan-next"
 horizon: "next"
