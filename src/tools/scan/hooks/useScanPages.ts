@@ -9,8 +9,7 @@ import { markArrival } from '#lib/handoff/fileArrival.ts';
 import { addSkipped, type SkippedFile } from '../components/ScanSkippedNotice.tsx';
 import { PDF_TYPE, SCAN_ACCEPTED_TYPES } from '../lib/scanAccept.ts';
 import { loadPipeline } from '../lib/loadPipeline.ts';
-import { turnedPins } from '../lib/quad.ts';
-import { isCurrentKey, newPage, pageQuad, partitionFiles, replacePage, resultKey, withInspection } from '../lib/scanPages.ts';
+import { isCurrentKey, newPage, pageFromDraft, partitionFiles, processArgs, replacePage, resultKey, withInspection } from '../lib/scanPages.ts';
 import type { ProcessedPage } from '../lib/scanPipeline.ts';
 import type { ScanDraftRestore } from '../lib/scanDraft.ts';
 import { useScanDraft } from './useScanDraft.ts';
@@ -71,7 +70,7 @@ export function useScanPages(input: ScanPagesInput) {
     const run = enqueue(async () => {
       // A corner moved again, the look changed or the page went while this waited: skip the decode and warp.
       throwIfAborted({ aborted: !isCurrentKey(work.pages, key) });
-      return (await loadPipeline()).processPage(page.file, pageQuad(page), page.filter, !page.sheet, turnedPins(page.pins, page.turns), page.fine);
+      return (await loadPipeline()).processPage(...processArgs(page));
     });
     work.processing.set(key, run);
     run.then(() => {
@@ -121,11 +120,7 @@ export function useScanPages(input: ScanPagesInput) {
   /** A remembered scan (SCAN-18): its photos as pages again, with the looks, turns and corners they had.
    * Each photo is inspected again for its preview; the guess never overrides corners the person set. */
   const restorePages = useCallback(({ files, pages: stored }: ScanDraftRestore): ScanPage[] => {
-    const restored = files.map((file, index) => {
-      const { filter, turns, quad, pins, sheet, fine, opened, question } = stored[index];
-      const page = newPage(file, filter);
-      return { ...page, turns, sheet, fine, opened, question, ...(quad ? { quad, pins, edited: true } : {}) };
-    });
+    const restored = files.map((file, index) => pageFromDraft(file, stored[index]));
     setPages(restored);
     dispatch({ type: 'photosAdded', firstId: restored[0].id });
     for (const page of restored) inspectPage(page, input, { restored: true });

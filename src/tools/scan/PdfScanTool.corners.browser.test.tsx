@@ -15,15 +15,10 @@ const realPipeline = await vi.importActual<typeof import('./lib/scanPipeline.ts'
 
 answerNetwork();
 
-describe('PdfScanTool', () => {
+describe('PdfScanTool corners', () => {
   const suite = useScanSuite({ Tool: PdfScanTool, installToolHarness: installBrowserToolHarness, pipeline: { spy: pipeline, real: realPipeline } });
-  const { s, mount, pick, pagesMade, openPage, adjustCorners, openCorners, useCorners, handles, answered, holdNext, step, idle } = suite;
+  const { s, mount, pick, pagesMade, openPage, adjustCorners, openCorners, useCorners, handles, answered, holdNext, step, idle, inViewer, pressInViewer, done, onTable, press, viewer, heading } = suite;
 
-  const caption = () => {
-    const found = suite.currentPaper().closest('figure')?.querySelector('figcaption');
-    if (!found) throw new Error('Expected a caption');
-    return found.textContent;
-  };
   const largePhoto = async (name: string) => {
     const canvas = document.createElement('canvas');
     canvas.width = 2400;
@@ -45,33 +40,14 @@ describe('PdfScanTool', () => {
     return x.byteLength === y.byteLength && new Uint8Array(x).every((v, i) => v === new Uint8Array(y)[i]);
   };
 
-  it('puts the corner handles on the guessed quad', async () => {
-    mount();
-    await pick([await photoOfPage('a.jpg')]);
-    await pagesMade(1);
-    await openCorners(1);
-    const { quad } = await answered('inspectPhoto', 'a.jpg');
-    handles().forEach((h, i) => {
-      expect(h.style.left).toBe(cssPercent(quad[i].x));
-      expect(h.style.top).toBe(cssPercent(quad[i].y));
-      expect(Math.hypot(quad[i].x - drawnCorners()[i].x, quad[i].y - drawnCorners()[i].y)).toBeLessThan(0.02);
-    });
+  const nudge = () => act(async () => { handles()[0].dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true })); });
+  const expectOnDrawn = (quad: Point[]) => handles().forEach((h, i) => {
+    expect(h.style.left).toBe(cssPercent(quad[i].x));
+    expect(h.style.top).toBe(cssPercent(quad[i].y));
+    expect(Math.hypot(quad[i].x - drawnCorners()[i].x, quad[i].y - drawnCorners()[i].y)).toBeLessThan(0.02);
   });
 
-  it('skips work a newer corner made stale before its turn came', async () => {
-    const held = holdNext('processPage');
-    mount();
-    await pick([await photoOfPage('a.jpg')]);
-    await held.started;
-    await openCorners(1);
-    await act(async () => { handles()[0].dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true })); });
-    await act(async () => { handles()[0].dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true })); });
-    await held.runToEnd();
-    await suite.pdfReady();
-    expect(step('processPage').mock.calls).toHaveLength(2);
-  });
-
-  it('holds the photo\'s place while its preview is made, with no corners to drag yet', async () => {
+  it('holds the photo\'s place while its preview is made, with no corners to drag yet, then puts the handles on the guessed quad', async () => {
     const held = holdNext('inspectPhoto');
     mount();
     await pick([await photoOfPage('a.jpg')]);
@@ -83,83 +59,7 @@ describe('PdfScanTool', () => {
     await held.runToEnd();
     await until(() => handles().length === 4);
     const { quad } = await answered('inspectPhoto', 'a.jpg');
-    expect(handles()[0].style.left).toBe(cssPercent(quad[0].x));
-  });
-
-  it('shows the page as it will download when it opens, and corners again on request', async () => {
-    mount();
-    await pick([await photoOfPage('a.jpg')]);
-    await pagesMade(1);
-    await openPage(1);
-    expect(handles()).toHaveLength(0);
-    await until(() => suite.currentPaper().hasAttribute('data-exact'));
-    expect(s.container.textContent).toContain('Exactly as it will download');
-    await adjustCorners();
-    await until(() => handles().length === 4);
-    await useCorners();
-    expect(handles()).toHaveLength(0);
-    await suite.pdfReady();
-    await until(() => suite.currentPaper().hasAttribute('data-exact'));
-    const held = holdNext('buildScanPdf');
-    act(() => { suite.radioGroup('Page size').querySelectorAll('[role="radio"]')[1].click(); });
-    expect(suite.currentPaper().hasAttribute('data-exact')).toBe(false);
-    expect(suite.currentPaper().hasAttribute('data-updating')).toBe(true);
-    expect(caption()).toContain('Updating');
-    await held.started;
-    expect(suite.currentPaper().hasAttribute('data-exact')).toBe(false);
-    expect(suite.currentPaper().hasAttribute('data-updating')).toBe(true);
-    expect(caption()).toContain('Updating');
-    expect(suite.currentPaper().querySelector('img')).not.toBeNull();
-    await held.runToEnd();
-    await until(() => suite.currentPaper().hasAttribute('data-exact'));
-  });
-
-  it('says so when no page edges were found, on the corners and then on the result', async () => {
-    mount();
-    await pick([await photoOfNothing('g.jpg')]);
-    await pagesMade(1);
-    await openCorners(1);
-    expect(s.container.textContent).toContain('No page edges were found in this photo');
-    await useCorners();
-    await until(() => suite.currentPaper().hasAttribute('data-exact'));
-    expect(s.container.textContent).toContain('so the whole photo is used');
-  });
-
-  it('finds the page on request from the corners view', async () => {
-    // forced: the first look found no page
-    step('inspectPhoto').mockImplementationOnce(async (...args: Parameters<typeof realPipeline.inspectPhoto>) => ({ ...(await realPipeline.inspectPhoto(...args)), quad: null }));
-    mount();
-    await pick([await photoOfPage('a.jpg')]);
-    await pagesMade(1);
-    await openCorners(1);
-    expect(handles()[0].style.left).toBe('0%');
-    const held = holdNext('guessPage');
-    await suite.press('Auto-detect');
-    await held.started;
-    await held.runToEnd();
-    const found = await step('guessPage').mock.results[0].value;
-    handles().forEach((h, i) => {
-      expect(h.style.left).toBe(cssPercent(found[i].x));
-      expect(h.style.top).toBe(cssPercent(found[i].y));
-      expect(Math.hypot(found[i].x - drawnCorners()[i].x, found[i].y - drawnCorners()[i].y)).toBeLessThan(0.02);
-    });
-    expect(s.container.textContent).not.toContain('No page edges were found');
-    expect(s.container.textContent).toContain('Page edges found');
-  });
-
-  it('says so when Auto-detect finds nothing either', async () => {
-    mount();
-    await pick([await photoOfNothing('g.jpg')]);
-    await pagesMade(1);
-    await openCorners(1);
-    const held = holdNext('guessPage');
-    await suite.press('Auto-detect');
-    await held.started;
-    await held.runToEnd();
-    expect(s.container.textContent).toContain('No page edges were found here either');
-    expect(step('guessPage')).toHaveBeenCalledTimes(1);
-    expect(await step('guessPage').mock.results[0].value).toBeNull();
-    expect(s.container.textContent).toContain('Drag the corners onto the corners of the page');
+    expectOnDrawn(quad);
   });
 
   it('opens a new photo in the corners view, on its small preview sized to the photo, never the full photo', async () => {
@@ -183,34 +83,21 @@ describe('PdfScanTool', () => {
     expect(handles()[0].style.left).toBe(cssPercent(quad[0].x));
   });
 
-  it('drops an Auto-detect result for a page removed while it waited', async () => {
+  it('keeps Rotate in the corners view and the corners as photographed, returns to the page on approving, and turns a page a quarter with Rotate by handing the warp its corners one place on', async () => {
     mount();
-    await pick([await photoOfPage('a.jpg'), await photoOfPage('b.jpg')]);
-    await pagesMade(2);
-    await openCorners(1);
-    const held = holdNext('guessPage');
-    await suite.press('Auto-detect');
-    await held.started;
-    await useCorners();
-    await suite.pressInViewer('Remove');
-    await held.runToEnd();
-    await act(async () => { await idle(); });
-    expect(s.container.textContent).not.toContain('Page edges found');
-  });
-
-  it('turns the photo with Rotate while setting corners, and keeps the corners in the photo as photographed', async () => {
-    mount();
-    await pick([await photoOfPage('a.jpg')]);
-    await pagesMade(1);
-    await openCorners(1);
-    const { quad } = await answered('inspectPhoto', 'a.jpg');
-    await suite.pressInViewer('Rotate');
+    await pick([await photoOfPage('a.jpg'), await photoOfPage('b.jpg'), await photoOfPage('c.jpg')]);
+    await pagesMade(3);
+    await openCorners(2);
+    await until(() => inViewer('Rotate').length === 1);
+    expect(inViewer('Rotate')).toHaveLength(1);
+    const { quad } = await answered('inspectPhoto', 'b.jpg');
+    await pressInViewer('Rotate');
     const shown = turnedQuad(quad, 1);
     await until(() => handles().length === 4 && handles()[0].style.left === cssPercent(shown[0].x));
     expect(step('turnImage').mock.calls[0]).toEqual([expect.any(Blob), 1]);
     expect(handles()[0].style.top).toBe(cssPercent(shown[0].y));
     const held = holdNext('processPage');
-    await act(async () => { handles()[0].dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true })); });
+    await nudge();
     await useCorners();
     await held.started;
     const moved = quad.map((p: Point, i: number) => (i === 3 ? { x: p.x, y: p.y - 0.005 } : p));
@@ -220,34 +107,79 @@ describe('PdfScanTool', () => {
       expect(sent[i].y).toBeCloseTo(p.y, 10);
     });
     await held.runToEnd();
-  });
+    await until(() => viewer()?.querySelector('[data-paper]') != null && s.container.querySelector('[data-flatten]') === null);
+    expect(heading()).toBe('Page 2 of 3');
+    expect(viewer().querySelector('[data-paper]')).not.toBeNull();
 
-  it('processes a photo with fine off, so no traced border is used for the flattening', async () => {
-    mount();
-    await pick([await photoOfPage('a.jpg')]);
-    await pagesMade(1);
-    expect(step('processPage').mock.calls.at(-1)[5]).toBe(false);
-  });
-
-  it('turns a page a quarter clockwise with Rotate, by handing the warp its corners one place on', async () => {
-    mount();
-    await pick([await photoOfPage('a.jpg')]);
-    await pagesMade(1);
+    await done();
+    await until(onTable);
     await openPage(1);
-    const { quad } = await answered('inspectPhoto', 'a.jpg');
+    const first = await answered('inspectPhoto', 'a.jpg');
     const lastQuad = () => step('processPage').mock.calls.at(-1)[1];
-    const first = holdNext('processPage');
-    await suite.pressInViewer('Right');
-    await first.started;
-    expect(lastQuad()).toEqual([quad[3], quad[0], quad[1], quad[2]]);
-    await first.runToEnd();
-    const second = holdNext('processPage');
-    await suite.pressInViewer('Right');
-    await second.started;
-    expect(lastQuad()).toEqual([quad[2], quad[3], quad[0], quad[1]]);
-    await second.runToEnd();
+    const turnOnce = holdNext('processPage');
+    await pressInViewer('Right');
+    await turnOnce.started;
+    expect(lastQuad()).toEqual([first.quad[3], first.quad[0], first.quad[1], first.quad[2]]);
+    await turnOnce.runToEnd();
+    const turnTwice = holdNext('processPage');
+    await pressInViewer('Right');
+    await turnTwice.started;
+    expect(lastQuad()).toEqual([first.quad[2], first.quad[3], first.quad[0], first.quad[1]]);
+    await turnTwice.runToEnd();
     await adjustCorners();
     await until(() => handles().length === 4);
-    expect(handles()[0].style.left).toBe(cssPercent(turnedQuad(quad, 2)[0].x));
+    expect(handles()[0].style.left).toBe(cssPercent(turnedQuad(first.quad, 2)[0].x));
+  });
+
+  it('says so when no page edges were found, on the corners and then on the result, and when Auto-detect finds nothing either', async () => {
+    mount();
+    await pick([await photoOfNothing('g1.jpg'), await photoOfNothing('g2.jpg')]);
+    await pagesMade(2);
+    await openCorners(1);
+    expect(s.container.textContent).toContain('No page edges were found in this photo');
+    await useCorners();
+    await until(() => suite.currentPaper().hasAttribute('data-exact'));
+    expect(s.container.textContent).toContain('so the whole photo is used');
+    await done();
+    await until(onTable);
+    await openCorners(2);
+    const held = holdNext('guessPage');
+    await press('Auto-detect');
+    await held.started;
+    await held.runToEnd();
+    expect(s.container.textContent).toContain('No page edges were found here either');
+    expect(step('guessPage')).toHaveBeenCalledTimes(1);
+    expect(await step('guessPage').mock.results[0].value).toBeNull();
+    expect(s.container.textContent).toContain('Drag the corners onto the corners of the page');
+  });
+
+  it('finds the page on request from the corners view, and drops an Auto-detect result for a page removed while it waited', async () => {
+    // forced: the first look found no page
+    step('inspectPhoto').mockImplementationOnce(async (...args: Parameters<typeof realPipeline.inspectPhoto>) => ({ ...(await realPipeline.inspectPhoto(...args)), quad: null }));
+    mount();
+    await pick([await photoOfPage('a.jpg'), await photoOfPage('b.jpg')]);
+    await pagesMade(2);
+    await openCorners(1);
+    expect(handles()[0].style.left).toBe('0%');
+    const found = holdNext('guessPage');
+    await press('Auto-detect');
+    await found.started;
+    await found.runToEnd();
+    const guessed = await step('guessPage').mock.results[0].value;
+    expectOnDrawn(guessed);
+    expect(s.container.textContent).not.toContain('No page edges were found');
+    expect(s.container.textContent).toContain('Page edges found');
+    await useCorners();
+    await done();
+    await until(onTable);
+    await openCorners(2);
+    const lost = holdNext('guessPage');
+    await press('Auto-detect');
+    await lost.started;
+    await useCorners();
+    await pressInViewer('Remove');
+    await lost.runToEnd();
+    await act(async () => { await idle(); });
+    expect(s.container.textContent).not.toContain('Page edges found');
   });
 });

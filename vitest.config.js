@@ -11,7 +11,7 @@ const BROWSER_TESTS = 'src/**/*.browser.test.{js,jsx,ts,tsx}';
 const DESKTOP_BROWSER_TESTS = [
   'src/tools/redact/PdfRedactTool.*.browser.test.tsx',
   'src/tools/edit-pages/PdfEditPagesTool.undo.browser.test.tsx',
-  'src/tools/scan/PdfScanTool.{table,corners,viewer,undo,draft}.browser.test.tsx',
+  'src/tools/scan/PdfScanTool.{table,corners,viewer,result}.browser.test.tsx',
 ];
 const CAMERA_BROWSER_TESTS = ['src/tools/scan/**/*.camera.browser.test.{ts,tsx}'];
 const NEVER = ['node_modules/**', '**/node_modules/**', 'dist/**', 'e2e/**', 'src/tools/*/e2e/**', '.claude/**'];

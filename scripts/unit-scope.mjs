@@ -189,7 +189,7 @@ export const WIDEN_RULES = [
       'src/test/cross-tool/textCoverage.test.js',
       'src/tools/sign/lib/sign.test.js',
       'src/tools/sign/PdfSignTool.test.tsx',
-      'src/tools/scan/lib/pdfSheetReader.browser.test.ts',
+      'src/tools/scan/hooks/useScanPdfPages.browser.test.tsx',
     ],
   },
   {
@@ -378,7 +378,7 @@ export const WIDEN_RULES = [
     id: 'scan-page-worker-url',
     reason: 'Scan\'s page worker is started from its own URL in Chromium, not imported',
     match: (f) => /^src\/tools\/scan\/lib\/pageWork\/(page\.worker|exifProbe|protocol)\.ts$/.test(f),
-    tests: ['src/tools/scan/lib/pageWork/page.worker.browser.test.ts', 'src/tools/scan/lib/pageWork/offThread.browser.test.ts'],
+    tests: ['src/tools/scan/lib/pageWork/page.worker.browser.test.ts'],
   },
   {
     id: 'scan-camera-worker-url',

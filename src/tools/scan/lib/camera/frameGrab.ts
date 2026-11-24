@@ -1,6 +1,7 @@
-// Pixels out of the playing video (SCAN-08). DOM; no jsdom test.
+// Pixels out of the playing video (SCAN-08). DOM; where it reads and how it packs is frameGeometry.ts.
 import { canvasToBlob } from '#lib/images/canvasBlob.js';
 import type { GrayImage } from '#lib/pageEnhance/quad.ts';
+import { focusRect, FOCUS_SIZE, grabRect, grayFromRgba, packFrame, type FrameMessage } from './frameGeometry.ts';
 import type { Rect } from './types.ts';
 import { visibleShare, WHOLE_FRAME } from './viewfinderModel.ts';
 
@@ -10,55 +11,31 @@ import { visibleShare, WHOLE_FRAME } from './viewfinderModel.ts';
 export function grabGray(video: HTMLVideoElement, canvas: HTMLCanvasElement, shortEdge = 320, view: Rect = WHOLE_FRAME): GrayImage | null {
   const { videoWidth: vw, videoHeight: vh } = video;
   if (!vw || !vh) return null;
-  const sx = view.x * vw;
-  const sy = view.y * vh;
-  const sw = view.width * vw;
-  const sh = view.height * vh;
-  const scale = shortEdge / Math.min(sw, sh);
-  const width = Math.max(1, Math.round(sw * scale));
-  const height = Math.max(1, Math.round(sh * scale));
+  const { sx, sy, sw, sh, width, height } = grabRect(vw, vh, view, shortEdge);
   if (canvas.width !== width) canvas.width = width;
   if (canvas.height !== height) canvas.height = height;
   const ctx = canvas.getContext('2d', { willReadFrequently: true });
   if (!ctx) return null;
   ctx.drawImage(video, sx, sy, sw, sh, 0, 0, width, height);
-  const rgba = ctx.getImageData(0, 0, width, height).data;
-  const data = new Uint8ClampedArray(width * height);
-  for (let i = 0, j = 0; j < data.length; i += 4, j++) data[j] = 0.299 * rgba[i] + 0.587 * rgba[i + 1] + 0.114 * rgba[i + 2];
-  return { width, height, data };
+  return grayFromRgba(ctx.getImageData(0, 0, width, height).data, width, height);
 }
 
-/** How much of the short edge the focus crop covers: 256 px of a 1080 px frame, enough to land on print. */
-const FOCUS_SHARE = 256 / 1080;
-
-/** A square from the video's centre, FOCUS_SHARE of its short edge and at least `size` px, drawn at up to `size`
+/** A square from the video's centre, FOCUS_SHARE of its short edge and at least FOCUS_SIZE px, drawn at up to FOCUS_SIZE
  * px, as gray pixels (same conversion as grabGray); clamped to the video. Null until the video has a size.
  * @testSeam */
-export function grabFocusPatch(video: HTMLVideoElement, canvas: HTMLCanvasElement, size = 256): GrayImage | null {
+export function grabFocusPatch(video: HTMLVideoElement, canvas: HTMLCanvasElement): GrayImage | null {
   const { videoWidth: vw, videoHeight: vh } = video;
   if (!vw || !vh) return null;
-  const short = Math.min(vw, vh);
-  const from = Math.min(short, Math.max(size, Math.round(short * FOCUS_SHARE)));
-  const side = Math.min(size, from);
+  const { sx, sy, from, side } = focusRect(vw, vh, FOCUS_SIZE);
   if (canvas.width !== side) canvas.width = side;
   if (canvas.height !== side) canvas.height = side;
   const ctx = canvas.getContext('2d', { willReadFrequently: true });
   if (!ctx) return null;
-  ctx.drawImage(video, Math.floor((vw - from) / 2), Math.floor((vh - from) / 2), from, from, 0, 0, side, side);
-  const rgba = ctx.getImageData(0, 0, side, side).data;
-  const data = new Uint8ClampedArray(side * side);
-  for (let i = 0, j = 0; j < data.length; i += 4, j++) data[j] = 0.299 * rgba[i] + 0.587 * rgba[i + 1] + 0.114 * rgba[i + 2];
-  return { width: side, height: side, data };
+  ctx.drawImage(video, sx, sy, from, from, 0, 0, side, side);
+  return grayFromRgba(ctx.getImageData(0, 0, side, side).data, side, side);
 }
 
-/** What the frame loop sends the worker: the frame, and the centre crop for the focus measure. */
-export interface FrameMessage {
-  t: number;
-  width: number;
-  height: number;
-  buffer: ArrayBuffer;
-  patch: { width: number; height: number; buffer: ArrayBuffer } | null;
-}
+export type { FrameMessage };
 
 /** A grabber with its own two canvases: the frame at `t` as one message, its buffers ready to transfer. */
 export function frameGrabber() {
@@ -68,10 +45,7 @@ export function frameGrabber() {
     const view = visibleShare({ width: video.videoWidth, height: video.videoHeight }, { width: video.clientWidth, height: video.clientHeight });
     const gray = grabGray(video, canvas, 320, view);
     if (!gray) return null;
-    const crop = grabFocusPatch(video, patchCanvas);
-    const buffer = gray.data.buffer as ArrayBuffer;
-    const patch = crop && { width: crop.width, height: crop.height, buffer: crop.data.buffer as ArrayBuffer };
-    return { message: { t, width: gray.width, height: gray.height, buffer, patch }, transfer: patch ? [buffer, patch.buffer] : [buffer], view };
+    return { ...packFrame(t, gray, grabFocusPatch(video, patchCanvas)), view };
   };
 }
 

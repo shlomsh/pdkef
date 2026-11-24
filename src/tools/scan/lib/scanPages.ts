@@ -1,6 +1,7 @@
 import { rotateQuad, type Quad } from '#lib/pageEnhance/quad.ts';
-import { FULL_QUAD, pinsKey, quadKey } from './quad.ts';
+import { FULL_QUAD, pinsKey, quadKey, turnedPins } from './quad.ts';
 import type { ScanFilter } from './filters.ts';
+import type { ScanDraftRestore } from './scanDraft.ts';
 import type { ScanPage } from '../state/scanWork.ts';
 
 let nextId = 0;
@@ -8,7 +9,9 @@ let nextId = 0;
 /** What a page's result must carry to be current: the page, its corners, its look, its turns and its pins. */
 export const resultKey = (page: ScanPage) => `${page.id}|${quadKey(page.quad)}|${page.filter}|${page.turns}|${pinsKey(page.pins)}|${page.fine ? 'fine' : 'plain'}`;
 /** The corners the warp gets: the photo's own, one place on per quarter turn (quad.ts). */
-export const pageQuad = (page: ScanPage) => rotateQuad(page.quad, page.turns);
+const pageQuad = (page: ScanPage) => rotateQuad(page.quad, page.turns);
+/** What `processPage` is handed for a page: its photo, turned corners and look, whether to read its border, turned pins and fine. */
+export const processArgs = (page: ScanPage) => [page.file, pageQuad(page), page.filter, !page.sheet, turnedPins(page.pins, page.turns), page.fine] as const;
 
 /** True while `key` is what the page on screen and the current look ask for. */
 export function isCurrentKey(pages: ScanPage[], key: string): boolean {
@@ -31,6 +34,13 @@ export function newPage(file: File, filter: ScanFilter): ScanPage {
     id: nextId++, file, preview: null, aspect: null, filter,
     quad: FULL_QUAD, turns: 0, guessed: false, edited: false, found: null, sheet: false, fine: false, opened: null, question: null, pins: null,
   };
+}
+
+/** A remembered photo as a page again: the looks, turns and corners it was left with, and the corners marked as the person's. */
+export function pageFromDraft(file: File, stored: ScanDraftRestore['pages'][number]): ScanPage {
+  const { filter, turns, quad, pins, sheet, fine, opened, question } = stored;
+  const page = newPage(file, filter);
+  return { ...page, turns, sheet, fine, opened, question, ...(quad ? { quad, pins, edited: true } : {}) };
 }
 
 /** What inspecting a photo found: its guessed corners and size; null when it could not be decoded. */

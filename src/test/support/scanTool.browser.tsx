@@ -55,8 +55,7 @@ export async function photoOfNothing(name: string) {
   return new File([blob], name, { type: 'image/jpeg' });
 }
 
-/** A .jpg whose bytes are no image: reading it really fails. */
-export const brokenPhoto = (name: string) => new File([new Uint8Array(500).fill(7)], name, { type: 'image/jpeg' });
+export { brokenPhoto } from './scanPhotos.ts';
 
 /** A style value as Chromium writes it back: it keeps six digits. */
 export function cssPercent(fraction: number) {

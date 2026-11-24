@@ -1,9 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { FULL_QUAD } from './quad.ts';
+import { rotateQuad, type Quad } from '#lib/pageEnhance/quad.ts';
+import type { Pins } from './edges/follow.ts';
+import { FULL_QUAD, turnedPins } from './quad.ts';
 import type { ScanPage } from '../state/scanWork.ts';
 import {
   afterRemoval, exportKeyFor, failedPositions, isCurrentKey, newPage, partitionFiles, replacePage, partitionTurned,
-  patchPage, restoredPages, resultKey, shownAspect, shownPhoto, tileDelta, turnKeyOf, turnPage, withInspection,
+  pageFromDraft, patchPage, processArgs, restoredPages, resultKey, shownAspect, shownPhoto, tileDelta, turnKeyOf, turnPage, withInspection,
 } from './scanPages.ts';
 
 const photo = (name = 'a.jpg') => new File(['x'], name, { type: 'image/jpeg' });
@@ -203,5 +205,49 @@ describe('withInspection for corners that were found on a PDF sheet', () => {
     const page = { ...newPage(photo(), 'document'), quad: found, guessed: true, found: true, edited: true };
     const [next] = withInspection([page], page.id, { quad: guess, width: 200, height: 100, turns: 1 }, 'blob:p', true);
     expect(next).toMatchObject({ quad: found, turns: 0, preview: 'blob:p', aspect: 2 });
+  });
+});
+
+describe('a remembered page and what the warp is handed for it', () => {
+  const QUAD: Quad = [{ x: 0.1, y: 0.1 }, { x: 0.9, y: 0.1 }, { x: 0.9, y: 0.9 }, { x: 0.1, y: 0.9 }];
+  const PINS: Pins = [[{ k: 7, at: { x: 0.5, y: 0.12 } }], [], [], []];
+  const stored = { filter: 'original', turns: 0, quad: QUAD, pins: PINS, sheet: false, fine: false, opened: null, question: null } as const;
+
+  it('processes a photo with fine off, so no traced border is used for the flattening', () => {
+    expect(processArgs(newPage(photo(), 'document'))[5]).toBe(false);
+  });
+
+  it('hands the photo, its look and whether to read its paper edges', () => {
+    const file = photo('p.jpg');
+    const [handed, , filter, paperEdges] = processArgs(newPage(file, 'grayscale'));
+    expect(handed).toBe(file);
+    expect(filter).toBe('grayscale');
+    expect(paperEdges).toBe(true);
+    expect(processArgs({ ...newPage(file, 'grayscale'), sheet: true })[3]).toBe(false);
+  });
+
+  it('brings a page\'s pins back with its corners, and the warp is handed them', () => {
+    const page = pageFromDraft(photo(), stored);
+    expect(page).toMatchObject({ filter: 'original', quad: QUAD, pins: PINS, edited: true });
+    const args = processArgs(page);
+    expect(args[1]).toEqual(QUAD);
+    expect(args[4]).toEqual(PINS);
+  });
+
+  it('brings back the corners a page opened with and the split question it was asking', () => {
+    const opened: Quad = [{ x: 0.2, y: 0.2 }, { x: 0.8, y: 0.2 }, { x: 0.8, y: 0.8 }, { x: 0.2, y: 0.8 }];
+    const question = { spine: { top: 0.4, bottom: 0.6 }, rightToLeft: true };
+    expect(pageFromDraft(photo(), { ...stored, opened, question }), 'opened and question').toMatchObject({ opened, question });
+  });
+
+  it('hands the warp the pins turned with the page, in the side order of its turned corners', () => {
+    const args = processArgs(pageFromDraft(photo(), { ...stored, turns: 1 }));
+    expect(args[1]).toEqual(rotateQuad(QUAD, 1));
+    expect(args[4]).toEqual(turnedPins(PINS, 1));
+  });
+
+  it('keeps the whole photo as corners, and not the person\'s, for a page saved without corners', () => {
+    const page = pageFromDraft(photo(), { ...stored, quad: null, pins: null, turns: 2, sheet: true, fine: true });
+    expect(page).toMatchObject({ quad: FULL_QUAD, pins: null, edited: false, turns: 2, sheet: true, fine: true });
   });
 });

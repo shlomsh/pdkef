@@ -44,344 +44,127 @@ const resizeSeen = (target: Element) => new Promise<void>((resolve) => {
 });
 const happened = (target: EventTarget, type: string) => new Promise<void>((resolve) => { target.addEventListener(type, () => resolve(), { once: true }); });
 
-describe('ScanPageViewer', () => {
-  it('opens as a modal dialog', () => {
-    mount();
+const nativeClose = async () => {
+  const dialog = q('dialog') as HTMLDialogElement;
+  const closed = happened(dialog, 'close');
+  act(() => dialog.close());
+  await closed;
+};
+
+describe('ScanPageViewer in Chromium', () => {
+  it('in result mode the dialog is modal, Back, Escape, Done and a native close are Done, closing it ourselves is not, and the Undo chip shows only when a page is held', async () => {
+    let { actions } = mount();
     const dialog = q('dialog[data-page-viewer]') as HTMLDialogElement;
-    expect(dialog.open).toBe(true);
-    expect(dialog.matches(':modal')).toBe(true);
-  });
+    expect(dialog.open, 'dialog open').toBe(true);
+    expect(dialog.matches(':modal'), 'dialog modal').toBe(true);
+    act(() => q('[data-back]')!.click());
+    act(() => { q('dialog')!.dispatchEvent(new Event('cancel', { cancelable: true })); });
+    act(() => q('[data-page-done]')!.click());
+    expect(actions.onDone, 'Back, Escape, Done').toHaveBeenCalledTimes(3);
 
-  it('result mode renders back, title, the page, the row and Done in that order', () => {
-    mount({}, 1);
-    const order = ['[data-back]', '[data-page-heading]', '[data-page-scroller]', '[data-page-actions]', '[data-page-done]'].map((s) => q(s)!);
-    expect(order.every(Boolean)).toBe(true);
-    for (let i = 1; i < order.length; i++) expect(order[i - 1].compareDocumentPosition(order[i]) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-    expect(q('[data-page-heading]')!.textContent).toContain('Page 2 of 6');
-    expect(q('[data-page-done]')!.textContent).toBe(t.pageDone);
-  });
-
-  it('the not-found line sits under the page, above the row', () => {
-    const missed = [page(1, { found: false })];
-    mount({ pages: missed, selected: missed[0], built: { shown: placed(1), ready: true, size: 1000 } });
-    const line = container!.querySelector('[role="status"]') as HTMLElement;
-    expect(line.textContent).toContain(t.notFound);
-    expect(q('[data-page-scroller]')!.compareDocumentPosition(line) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-    expect(line.compareDocumentPosition(q('[data-page-actions]')!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-  });
-
-  it('a page measured as strongly bent gets the quiet note under it (SCAN-24); a flat or unmeasured one none', () => {
-    const result = (bentPx?: number) => ({ key: 'k', url: 'u', thumbUrl: 't', page: { width: 1700, height: 2400, bentPx } });
-    mount({ results: { 1: result(40) } } as unknown as Partial<ScanPageViewerProps>);
-    const note = q('[data-bent-note]')!;
-    expect(note.textContent).toBe(t.bentNote);
-    expect(q('[data-page-scroller]')!.compareDocumentPosition(note) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-    expect(note.compareDocumentPosition(q('[data-page-actions]')!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     act(() => render(null, container!));
-    mount({ results: { 1: result(4), 2: result(40) } } as unknown as Partial<ScanPageViewerProps>);
-    expect(q('[data-bent-note]')).toBeNull();
+    ({ actions } = mount());
+    await nativeClose();
+    expect(actions.onDone, 'native close').toHaveBeenCalledTimes(1);
+
     act(() => render(null, container!));
-    mount({ results: { 1: result() } } as unknown as Partial<ScanPageViewerProps>);
-    expect(q('[data-bent-note]')).toBeNull();
+    ({ actions } = mount());
+    const closed = happened(q('dialog')!, 'close');
+    act(() => render(null, container!));
+    await closed;
+    expect(actions.onDone, 'closing it ourselves').not.toHaveBeenCalled();
+
+    const onUndo = vi.fn();
+    mount({ undo: { position: 3, onUndo } } as Partial<ScanPageViewerProps>);
+    const chip = q('dialog [data-undo-chip]')!;
+    expect(chip.textContent, 'Undo chip').toContain('Page 3 removed');
+    act(() => (chip.querySelector('button') as HTMLElement).click());
+    expect(onUndo, 'Undo click').toHaveBeenCalledTimes(1);
+    act(() => render(null, container!));
+    mount();
+    expect(q('[data-undo-chip]'), 'no chip when nothing is held').toBeNull();
   });
 
-  it('every page has a slide, only the current page and its neighbours render a paper', () => {
-    mount({}, 3);
-    const slides = [...container!.querySelectorAll('[data-slide]')];
-    expect(slides.length).toBe(6);
-    expect(slides.map((s) => s.querySelector('[data-paper]') !== null)).toEqual([false, false, true, true, true, false]);
-    expect(slides.filter((s) => s.hasAttribute('data-current')).length).toBe(1);
-    expect(slides[3].hasAttribute('data-current')).toBe(true);
+  it('in corners mode there is no scroller, Back and Escape use the corners, and a native close leaves the viewer open on the result', async () => {
+    let { actions, editor } = mount({ view: 'corners' });
+    expect(q('[data-page-scroller]'), 'no scroller').toBeNull();
+    expect(q('[data-page-actions]'), 'no actions').toBeNull();
+    expect(container!.textContent, 'find page').toContain(t.findPage);
+    expect(container!.textContent, 'whole photo').toContain(t.wholePhoto);
+    expect(editor.current, 'editor').not.toBeNull();
+    act(() => q('[data-back]')!.click());
+    const cancel = new Event('cancel', { cancelable: true });
+    act(() => { q('dialog')!.dispatchEvent(cancel); });
+    expect(cancel.defaultPrevented, 'cancel prevented').toBe(true);
+    expect(actions.onApprove, 'Back and Escape').toHaveBeenCalledTimes(2);
+    expect(actions.onDone, 'not Done').not.toHaveBeenCalled();
+
+    act(() => render(null, container!));
+    ({ actions } = mount({ view: 'corners' }));
+    await nativeClose();
+    expect(actions.onApprove, 'native close').toHaveBeenCalledTimes(1);
+    const dialog = q('dialog') as HTMLDialogElement;
+    expect(dialog.open, 'reopened').toBe(true);
+    expect(dialog.matches(':modal'), 'reopened modal').toBe(true);
   });
 
-  it('puts the scroller on the selected page before paint', () => {
+  it('puts the scroller on the selected page, a swipe to another page selects it, and staying on the same page does not', async () => {
     mount({}, 2);
-    const sc = q('[data-page-scroller]')!;
-    expect(sc.clientWidth).toBeGreaterThan(0);
-    expect(sc.scrollLeft).toBe(2 * sc.clientWidth);
-  });
+    let sc = q('[data-page-scroller]')!;
+    expect(sc.clientWidth, 'open width').toBeGreaterThan(0);
+    expect(sc.scrollLeft, 'open position').toBe(2 * sc.clientWidth);
 
-  it('a swipe that reaches another page selects it, and staying on the same page does not', async () => {
-    const { actions } = mount({}, 0);
-    const sc = q('[data-page-scroller]')!;
+    act(() => render(null, container!));
+    let { actions } = mount({}, 0);
+    sc = q('[data-page-scroller]')!;
     await resizeSeen(sc);
     sc.style.scrollSnapType = 'none';
     const width = sc.clientWidth;
     let scrolled = happened(sc, 'scroll');
     sc.scrollLeft = Math.round(width / 4);
     await scrolled;
-    expect(actions.onSelect).not.toHaveBeenCalled();
+    expect(actions.onSelect, 'short swipe').not.toHaveBeenCalled();
     scrolled = happened(sc, 'scroll');
     sc.scrollLeft = Math.round(width * 1.05);
     await scrolled;
-    expect(actions.onSelect).toHaveBeenCalledWith(2);
-  });
+    expect(actions.onSelect, 'swipe to the next page').toHaveBeenCalledWith(2);
 
-  it('leaves the scroller alone when it already shows the selected page', async () => {
-    const { actions } = mount({}, 1);
-    const sc = q('[data-page-scroller]')!;
+    act(() => render(null, container!));
+    ({ actions } = mount({}, 1));
+    sc = q('[data-page-scroller]')!;
     await resizeSeen(sc);
     sc.style.scrollSnapType = 'none';
     const near = sc.clientWidth - 10;
-    const scrolled = happened(sc, 'scroll');
+    scrolled = happened(sc, 'scroll');
     sc.scrollLeft = near;
     await scrolled;
-    expect(sc.scrollLeft).toBe(near);
-    expect(actions.onSelect).not.toHaveBeenCalled();
+    expect(sc.scrollLeft, 'scroller left alone').toBe(near);
+    expect(actions.onSelect, 'same page').not.toHaveBeenCalled();
   });
 
-  describe('when the width changes under the open viewer', () => {
-    it('the current page stays selected when a scroll lands first', async () => {
-      const { actions } = mount({}, 2);
-      const sc = q('[data-page-scroller]')!;
-      await resizeSeen(sc);
-      sc.style.scrollSnapType = 'none';
-      const before = sc.clientWidth;
-      const resized = resizeSeen(sc);
-      sc.style.width = '800px';
-      sc.scrollLeft = 5 * before;
-      await resized;
-      expect(actions.onSelect).not.toHaveBeenCalled();
-      expect(sc.clientWidth).toBe(800);
-      expect(sc.scrollLeft).toBe(1600);
-    });
+  it('pins the selected page when the width changes with no scroll, and keeps it selected when a scroll lands first', async () => {
+    mount({}, 2);
+    let sc = q('[data-page-scroller]')!;
+    await resizeSeen(sc);
+    sc.style.scrollSnapType = 'none';
+    let resized = resizeSeen(sc);
+    sc.style.width = '800px';
+    await resized;
+    expect(sc.clientWidth, 'width').toBe(800);
+    expect(sc.scrollLeft, 'pinned').toBe(1600);
 
-    it('the scroller is pinned back to the current page when no scroll comes', async () => {
-      mount({}, 2);
-      const sc = q('[data-page-scroller]')!;
-      await resizeSeen(sc);
-      sc.style.scrollSnapType = 'none';
-      const resized = resizeSeen(sc);
-      sc.style.width = '800px';
-      await resized;
-      expect(sc.clientWidth).toBe(800);
-      expect(sc.scrollLeft).toBe(1600);
-    });
-  });
-
-  it('the row turns the page either way: one tap left, one tap right', () => {
-    const { actions } = mount();
-    const left = q('[data-page-actions] [data-rotate="left"]') as HTMLButtonElement;
-    const right = q('[data-page-actions] [data-rotate="right"]') as HTMLButtonElement;
-    expect(left.getAttribute('aria-label')).toBe('Rotate left');
-    expect(right.getAttribute('aria-label')).toBe('Rotate right');
-    act(() => left.click());
-    expect(actions.onRotateLeft).toHaveBeenCalledTimes(1);
-    expect(actions.onRotate).not.toHaveBeenCalled();
-    act(() => right.click());
-    expect(actions.onRotate).toHaveBeenCalledTimes(1);
-  });
-
-  describe('a close the browser makes on its own', () => {
-    const nativeClose = async () => {
-      const dialog = q('dialog') as HTMLDialogElement;
-      const closed = happened(dialog, 'close');
-      act(() => dialog.close());
-      await closed;
-    };
-
-    it('counts as Back', async () => {
-      const { actions } = mount();
-      await nativeClose();
-      expect(actions.onDone).toHaveBeenCalledTimes(1);
-    });
-
-    it('in corners the viewer stays, open again, on the result', async () => {
-      const { actions } = mount({ view: 'corners' });
-      await nativeClose();
-      expect(actions.onApprove).toHaveBeenCalledTimes(1);
-      const dialog = q('dialog') as HTMLDialogElement;
-      expect(dialog.open).toBe(true);
-      expect(dialog.matches(':modal')).toBe(true);
-    });
-
-    it('closing it ourselves is not a Back', async () => {
-      const { actions } = mount();
-      const closed = happened(q('dialog')!, 'close');
-      act(() => render(null, container!));
-      await closed;
-      expect(actions.onDone).not.toHaveBeenCalled();
-    });
-  });
-
-  it('Back, Escape and Done in result mode are Done', () => {
-    const { actions } = mount();
-    act(() => q('[data-back]')!.click());
-    act(() => { q('dialog')!.dispatchEvent(new Event('cancel', { cancelable: true })); });
-    act(() => q('[data-page-done]')!.click());
-    expect(actions.onDone).toHaveBeenCalledTimes(3);
-  });
-
-  // Protects: the hint is one sentence, about the dots when the page is in Fine-tune edges and about the corners otherwise.
-  it('corners hint is the corners sentence by default, and the dots sentence when the page is in Fine-tune edges', () => {
-    const hint = () => q('[role="status"]')?.textContent ?? '';
-    mount({ view: 'corners' });
-    expect(hint()).toBe(t.cornersHint);
     act(() => render(null, container!));
-    container!.remove(); container = null;
-    mount({ view: 'corners', selected: page(1, { fine: true } as Partial<ScanPage>) });
-    expect(hint()).toBe(t.cornersTracedHint);
-  });
-
-  it('corners mode: same dialog, no scroller, Back and Escape use the corners', () => {
-    const { actions, editor } = mount({ view: 'corners' });
-    expect(q('[data-page-scroller]')).toBeNull();
-    expect(q('[data-page-actions]')).toBeNull();
-    expect(container!.textContent).toContain(t.findPage);
-    expect(container!.textContent).toContain(t.wholePhoto);
-    expect(editor.current).not.toBeNull();
-    act(() => q('[data-back]')!.click());
-    const cancel = new Event('cancel', { cancelable: true });
-    act(() => { q('dialog')!.dispatchEvent(cancel); });
-    expect(cancel.defaultPrevented).toBe(true);
-    expect(actions.onApprove).toHaveBeenCalledTimes(2);
-    expect(actions.onDone).not.toHaveBeenCalled();
-  });
-
-  it('corners keep a Rotate in the bottom bar, except on an unreadable page', () => {
-    const { actions } = mount({ view: 'corners' });
-    const rotate = [...container!.querySelectorAll('button')].find((b) => b.textContent === t.rotate)!;
-    act(() => rotate.click());
-    expect(actions.onRotate).toHaveBeenCalledTimes(1);
-    act(() => render(null, container!));
-    const bad = page(1, { preview: null });
-    mount({ view: 'corners', pages: [bad], selected: bad, failedIds: [1] });
-    expect([...container!.querySelectorAll('button')].some((b) => b.textContent === t.rotate)).toBe(false);
-  });
-
-  describe('browsing on a mouse device', () => {
-    const step = (label: string) => q(`button[aria-label="${label}"]`)!;
-    const press = (key: string, init: KeyboardEventInit = {}, target: EventTarget = document.body) => act(() => {
-      target.dispatchEvent(new KeyboardEvent('keydown', { key, bubbles: true, cancelable: true, ...init }));
-    });
-
-    it('Previous and Next step, and rest with aria-disabled at the ends', () => {
-      const { actions } = mount({}, 0);
-      expect(step(t.previousPage).getAttribute('aria-disabled')).toBe('true');
-      expect(step(t.nextPage).getAttribute('aria-disabled')).toBe('false');
-      act(() => step(t.nextPage).click());
-      expect(actions.onStep).toHaveBeenCalledWith(1);
-      act(() => step(t.previousPage).click());
-      expect(actions.onStep).toHaveBeenCalledWith(-1);
-    });
-
-    it('the ends: Next is disabled on the last page', () => {
-      mount({}, 5);
-      expect(step(t.nextPage).getAttribute('aria-disabled')).toBe('true');
-      expect(step(t.previousPage).getAttribute('aria-disabled')).toBe('false');
-    });
-
-    it('the arrow keys step, left always previous', () => {
-      const { actions } = mount({}, 2);
-      press('ArrowRight');
-      press('ArrowLeft');
-      expect(actions.onStep.mock.calls).toEqual([[1], [-1]]);
-    });
-
-    it('the arrows leave modifier keys, a handled key and a radio group alone', () => {
-      const { actions } = mount({}, 2);
-      press('ArrowLeft', { altKey: true });
-      press('ArrowRight', { metaKey: true });
-      press('ArrowRight', { ctrlKey: true });
-      press('ArrowRight', { shiftKey: true });
-      const handled = new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true, cancelable: true });
-      handled.preventDefault();
-      act(() => { document.body.dispatchEvent(handled); });
-      const group = document.createElement('div');
-      group.setAttribute('role', 'radiogroup');
-      group.innerHTML = '<button></button>';
-      container!.appendChild(group);
-      press('ArrowRight', {}, group.firstElementChild!);
-      expect(actions.onStep).not.toHaveBeenCalled();
-    });
-
-    it('corners do not browse', () => {
-      const { actions } = mount({ view: 'corners' });
-      press('ArrowRight');
-      expect(actions.onStep).not.toHaveBeenCalled();
-      expect(q(`button[aria-label="${t.nextPage}"]`)).toBeNull();
-    });
-
-    it('the arrows stop listening once the viewer is gone', () => {
-      const { actions } = mount({}, 2);
-      act(() => render(null, container!));
-      press('ArrowRight');
-      expect(actions.onStep).not.toHaveBeenCalled();
-    });
-  });
-
-  it('the back control names where it goes, for the wide head that shows the word', () => {
-    mount();
-    expect(q('[data-back]')!.getAttribute('aria-label')).toBe(t.backToPages);
-    expect(q('[data-back]')!.textContent).toBe(t.pagesLabel);
-  });
-
-  it('corners on an unreadable page close instead', () => {
-    const bad = page(1, { preview: null });
-    const { actions } = mount({ view: 'corners', pages: [bad], selected: bad, failedIds: [1] });
-    act(() => q('[data-back]')!.click());
-    expect(actions.onDone).toHaveBeenCalledTimes(1);
-    expect(actions.onApprove).not.toHaveBeenCalled();
-  });
-
-  it('corners on a page still waiting for its preview go back by using the corners', () => {
-    const waiting = page(1, { preview: null });
-    const { actions } = mount({ view: 'corners', pages: [waiting], selected: waiting });
-    act(() => q('[data-back]')!.click());
-    expect(actions.onApprove).toHaveBeenCalledTimes(1);
-    expect(actions.onDone).not.toHaveBeenCalled();
-  });
-
-  it('corners on a page that was read and failed later keep their way out: moving a corner tries it again', () => {
-    const failed = page(1);
-    const { actions } = mount({ view: 'corners', pages: [failed], selected: failed, failedIds: [1] });
-    expect(q('[role="status"]')!.textContent).toBe(t.cornersHint);
-    act(() => q('[data-back]')!.click());
-    expect(actions.onApprove).toHaveBeenCalledTimes(1);
-  });
-
-  it('the editor ref is on one element in result mode too, holding the current slide', () => {
-    const { editor } = mount({}, 1);
-    expect(editor.current!.querySelector('[data-current]')).not.toBeNull();
-  });
-
-  describe('the Undo chip (SCAN-51)', () => {
-    it('shows inside the dialog, which is the top layer, with the position and an Undo that calls back', () => {
-      const onUndo = vi.fn();
-      mount({ undo: { position: 3, onUndo } } as Partial<ScanPageViewerProps>);
-      const chip = q('dialog [data-undo-chip]')!;
-      expect(chip.textContent).toContain('Page 3 removed');
-      act(() => (chip.querySelector('button') as HTMLElement).click());
-      expect(onUndo).toHaveBeenCalledTimes(1);
-    });
-    it('is absent when nothing is held', () => {
-      mount();
-      expect(q('[data-undo-chip]')).toBeNull();
-    });
-  });
-
-  describe('split question', () => {
-    const asking = page(2, { question: { spine: { top: 0.5, bottom: 0.5 }, rightToLeft: false } } as Partial<ScanPage>);
-    const withQuestion = [six[0], asking, ...six.slice(2)];
-
-    it('result mode shows a note and an ask button only when the page has a question', () => {
-      const { actions } = mount({ pages: withQuestion, selected: asking, selectedIndex: 1 });
-      expect(container!.textContent).toContain('This may be two book pages.');
-      const ask = [...container!.querySelectorAll('button')].find((b) => b.textContent?.trim() === 'One page or two?') as HTMLButtonElement;
-      act(() => ask.click());
-      expect(actions.onAskSplit).toHaveBeenCalledTimes(1);
-    });
-
-    it('result mode of a page with no question has no ask', () => {
-      mount({}, 1);
-      expect(container!.textContent).not.toContain('This may be two book pages.');
-    });
-
-    it('split mode shows the question and Back keeps the page whole (onDone)', () => {
-      const { actions } = mount({ pages: withQuestion, selected: asking, selectedIndex: 1, view: 'split' });
-      expect(container!.textContent).toContain('Drag either end of the line');
-      act(() => (q('[data-back]') as HTMLButtonElement).click());
-      expect(actions.onDone).toHaveBeenCalledTimes(1);
-    });
+    const { actions } = mount({}, 2);
+    sc = q('[data-page-scroller]')!;
+    await resizeSeen(sc);
+    sc.style.scrollSnapType = 'none';
+    const before = sc.clientWidth;
+    resized = resizeSeen(sc);
+    sc.style.width = '800px';
+    sc.scrollLeft = 5 * before;
+    await resized;
+    expect(actions.onSelect, 'no select').not.toHaveBeenCalled();
+    expect(sc.clientWidth, 'width after scroll').toBe(800);
+    expect(sc.scrollLeft, 'pinned after scroll').toBe(1600);
   });
 });

@@ -227,5 +227,15 @@ count). The rule is off on `landmines-all` meanwhile.
   889: new ones are callbacks and matchMedia jsdom lacks. Not done: the 40-mutation old-against-new sample (skipped by
   the user's choice), and the comparison of the island's remaining prop mutations against the old suite (about 45
   survive the new one; of the six compared, five slip past the old one too and one needs a rerun).
+- Redact comparison finished (2026-11-24): all 102 island prop and hook mutations through both suites. Every line the
+  old suite caught is caught: by e2e specs, or by two assertions added to an existing flow (replacement files count as
+  accepted; the brush pipette reaches the state). No browser test added.
+- Scan trimmed (2026-11-24): 225 browser tests down to 55 (21 whole-tool, 34 below it); the branch's browser layer is
+  375. The viewer's contents are `ScanPageViewerBody`; `processPixels`, `frameGeometry`, `processArgs` and
+  `pageFromDraft` are pure and Node-tested; behaviour is the same. Two fresh reviews: the first found seven lines below
+  the island unguarded (all closed, each proven by a mutation), the second no loss. 134 island prop and hook mutations
+  against old and new: one loss (focus back to the tile on Escape), closed. Kept in Chromium: failure rows, every row
+  that opens the viewer (jsdom has no `showModal`), the phone grid, pixels, worker, camera. Guarded by neither suite:
+  about 40 island lines (j6 logs), among them `useHoldUpdate` and `navigate`. Doubles 889, unchanged.
 - Found on the way: RED-75 (preview documents never freed on pdf.js 6.5), RED-76 (one very long line
   overflows the text preview).

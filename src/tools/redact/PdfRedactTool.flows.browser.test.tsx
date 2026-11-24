@@ -531,12 +531,21 @@ describe('PdfRedactTool flows', () => {
     expect(findToolButton('Blackout').hasAttribute('data-locked')).toBe(true);
 
     await openSecondFile('second.pdf');
+    expect((await lifecycle()).filter(([name]) => name === 'tool_file_accepted')).toHaveLength(3);
     expect(query<HTMLElement>(s.container, '.redact-draw-area').style.touchAction).toBe('auto');
     expect(findToolButton('Blackout').hasAttribute('data-locked')).toBe(false);
     expect(findToolButton('Blackout').getAttribute('aria-pressed')).toBe('false');
     expect(s.container.querySelector('[data-redact-find-bar]')).toBeNull();
     await act(async () => { findToggle().click(); });
     expect(findInput().value).toBe('');
+
+    await act(async () => { findToolButton('Whiteout').parentElement!.dispatchEvent(new MouseEvent('mouseenter')); });
+    const brushSegment = required(Array.from(document.querySelectorAll<HTMLButtonElement>('[data-brush-controls] [role="radio"]')).find((b) => b.textContent === englishRedactMessages.modeBrush), 'Brush segment');
+    await act(async () => { brushSegment.click(); });
+    const pipette = () => query<HTMLButtonElement>(document.body, `[data-brush-controls] button[aria-label="${englishRedactMessages.pickColour}"]`);
+    expect(pipette().getAttribute('aria-pressed')).toBe('false');
+    await act(async () => { pipette().click(); });
+    expect(pipette().getAttribute('aria-pressed')).toBe('true');
   });
 
   it('a protected PDF shows its state and never reaches the editor, pdf-lib or the failure count; Unlock it parks the file, a refused save says so quietly, and another file clears it', async () => {

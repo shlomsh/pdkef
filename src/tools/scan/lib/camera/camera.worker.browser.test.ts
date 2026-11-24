@@ -18,7 +18,7 @@ function observe(message: unknown, transfer: ArrayBuffer[]) {
 }
 
 describe('camera worker', () => {
-  it('answers a gray frame with its observation', async () => {
+  it('answers a gray frame with its observation, and carries focus 0 when the message has no patch', async () => {
     const width = 32;
     const height = 24;
     const buffer = new Uint8ClampedArray(width * height).fill(128).buffer;
@@ -29,11 +29,8 @@ describe('camera worker', () => {
     expect(obs.confidence).toBe(0);
     expect(obs.focus).toBe(0);
     expect(obs.hash).toMatch(/^[0-9a-f]{16}$/);
-  });
-
-  it('carries focus 0 when the message has no patch', async () => {
-    const buffer = new Uint8ClampedArray(32 * 24).fill(128).buffer;
-    const obs = await observe({ t: 1, width: 32, height: 24, buffer, patch: null }, [buffer]);
-    expect(obs.focus).toBe(0);
+    const bare = new Uint8ClampedArray(32 * 24).fill(128).buffer;
+    const without = await observe({ t: 1, width: 32, height: 24, buffer: bare, patch: null }, [bare]);
+    expect(without.focus, 'focus with no patch').toBe(0);
   });
 });
