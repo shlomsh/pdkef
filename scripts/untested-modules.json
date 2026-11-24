@@ -20,7 +20,6 @@
   "src/tools/edit-pages/messages.ts",
   "src/tools/merge/components/rememberedOptions.ts",
   "src/tools/merge/components/tagStyle.ts",
-  "src/tools/merge/lib/sortableOptions.ts",
   "src/tools/redact/lib/check/placeText.ts",
   "src/tools/redact/lib/check/renderBoxes.ts",
   "src/tools/redact/lib/check/unusedParts.ts",

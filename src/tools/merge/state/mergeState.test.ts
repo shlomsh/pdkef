@@ -87,6 +87,21 @@ describe('clearing', () => {
   });
 });
 
+describe('the output name', () => {
+  it('survives file offers, page counts and options, and only Clear all resets it', () => {
+    const renamed = run(fresh(), { type: 'OUTPUT_RENAMED', name: 'mine' });
+    const afterEdits = run(
+      renamed,
+      { type: 'FILES_OFFERED', rejected: [], duplicates: [] },
+      { type: 'RENDERED_COUNT_CHANGED', count: 2 },
+      { type: 'PAGE_NUMBERS_CHANGED', value: true },
+      { type: 'RENAMING_CHANGED', renaming: false },
+    );
+    expect(afterEdits.customOutputName).toBe('mine');
+    expect(run(afterEdits, { type: 'WORKSPACE_CLEARED' }).customOutputName).toBeNull();
+  });
+});
+
 describe('file offers', () => {
   it('replaces the notices each time, so a clean offer clears them', () => {
     const noisy = run(fresh(), { type: 'FILES_OFFERED', rejected: ['a.txt'], duplicates: [] });

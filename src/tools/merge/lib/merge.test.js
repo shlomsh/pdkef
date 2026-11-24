@@ -83,6 +83,12 @@ describe('mergePdfs library integration with real fixtures', () => {
     expect(pageTexts).toEqual(['1', '2', '3', '4']);
   });
 
+  it('merges files in the order given, not by name', async () => {
+    const files = ['num-3.pdf', 'num-1.pdf', 'num-4.pdf', 'num-2.pdf'].map(getFixtureFile);
+    const { pageTexts } = await getPdfPageTexts(await mergePdfs(files));
+    expect(pageTexts).toEqual(['3', '1', '4', '2']);
+  });
+
   it('numbers pages with a running index across file boundaries, not reset per file', async () => {
     // If addPageNumbers reset per file instead of tracking a single running
     // index, the first page of num-3.pdf would be stamped "1" again instead

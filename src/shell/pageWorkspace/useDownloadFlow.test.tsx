@@ -151,6 +151,7 @@ describe('useDownloadFlow', () => {
     expect(flow.downloadState).toBe('ready');
     expect(building.prepareNow).not.toHaveBeenCalled();
     act(() => flow.onRowPreparingTap());
+    expect(building.prepareNow).toHaveBeenCalled();
     expect(flow.downloadState).toBe('preparing');
     expect(share.download).not.toHaveBeenCalled();
     mount(base(ready()));
@@ -182,6 +183,17 @@ describe('useDownloadFlow', () => {
     act(() => flow.reset());
     act(() => flow.onQuietPreparingTap());
     mount(base(ready(2)));
+    expect(flow.showStrip).toBe(false);
+  });
+
+  it('a quiet tap still waiting when reset() runs does not open the strip for a later completion-row tap', () => {
+    mount(base(pending()));
+    act(() => flow.onQuietPreparingTap());
+    act(() => flow.reset());
+    mount(base(pending()));
+    act(() => flow.onRowPreparingTap());
+    mount(base(ready(2)));
+    expect(flow.downloadState).toBe('saved');
     expect(flow.showStrip).toBe(false);
   });
 

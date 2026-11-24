@@ -7,12 +7,14 @@ const labels = { download: 'Download', ready: 'Ready', closeStrip: 'Close', hand
 
 describe('PhoneFinish', () => {
   let container: HTMLElement;
+  const onQuietPreparingTap = vi.fn();
+  const onRowPreparingTap = vi.fn();
   const mount = (downloadState: string, withLabel = true) => {
     container = document.createElement('div');
     document.body.appendChild(container);
     const flow = {
       downloadState, downloadLinkReady: false, showStrip: false, handoffBusy: false, handoffFailed: false,
-      onQuietDownloadTap: vi.fn(), onQuietPreparingTap: vi.fn(), requestHandoff: vi.fn(), closeStrip: vi.fn(),
+      onQuietDownloadTap: vi.fn(), onQuietPreparingTap, onRowPreparingTap, requestHandoff: vi.fn(), closeStrip: vi.fn(),
     };
     act(() => render(
       <PhoneFinish
@@ -45,5 +47,12 @@ describe('PhoneFinish', () => {
     render(null, container);
     container.remove();
     expect(mount('nothing', false).querySelector('[data-quiet-note]')).toBeNull();
+  });
+
+  it('a tap before the build is done is the quiet Download tap, which may open the strip', () => {
+    const button = mount('ready').querySelector<HTMLButtonElement>('button[data-quiet-download]');
+    act(() => button?.click());
+    expect(onQuietPreparingTap).toHaveBeenCalledTimes(1);
+    expect(onRowPreparingTap).not.toHaveBeenCalled();
   });
 });

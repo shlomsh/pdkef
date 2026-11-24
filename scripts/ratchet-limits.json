@@ -31,7 +31,6 @@
       "src/tools/compress/hooks/useComparePreviews.ts#useComparePreviews": 177,
       "src/tools/edit-pages/PdfEditPagesTool.tsx#PdfEditPagesTool": 263,
       "src/tools/image-to-pdf/PdfImageToPdfTool.tsx#PdfImageToPdfTool": 279,
-      "src/tools/merge/PdfMergeTool.tsx#PdfMergeTool": 231,
       "src/tools/merge/lib/merge.js#mergePdfs": 188,
       "src/tools/redact/components/FindBar.tsx#FindBar": 177,
       "src/tools/redact/components/RedactBox.tsx#RedactBox": 256,
@@ -78,10 +77,6 @@
       "src/tools/image-to-pdf/PdfImageToPdfTool.tsx": {
         "effects": 1,
         "hooks": 20
-      },
-      "src/tools/merge/PdfMergeTool.tsx": {
-        "effects": 0,
-        "hooks": 24
       },
       "src/tools/security/PdfSecurityTool.tsx": {
         "effects": 0,

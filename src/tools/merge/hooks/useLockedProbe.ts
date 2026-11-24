@@ -3,14 +3,10 @@ import type { Dispatch } from 'preact/hooks';
 import { probeEncryption } from '#lib/pdf/pdfEncryption.ts';
 import { reportError } from '#lib/telemetry/errorReport.ts';
 import type { FileEntry } from '../lib/mergeModel.ts';
+import { lockedStateOf } from '../lib/mergeView.ts';
 import type { MergeAction, LockedProbe } from '../state/mergeState.ts';
-import type { NeedsUnlockKind } from '#shell/NeedsUnlock.tsx';
 
-export interface NeedsUnlockView {
-  file: File;
-  kind: NeedsUnlockKind;
-  bytes: ArrayBuffer;
-}
+export type { NeedsUnlockView } from '../lib/mergeView.ts';
 
 /**
  * One protected file is a precondition, not a failure: it gets the shared
@@ -20,7 +16,7 @@ export interface NeedsUnlockView {
  * inline error shows.
  */
 export function useLockedProbe(entries: FileEntry[], lockedProbe: LockedProbe | null, dispatch: Dispatch<MergeAction>) {
-  const lockedFile = entries.length === 1 && entries[0].error === 'encrypted' ? entries[0].file : null;
+  const { lockedFile, probeSettled, needsUnlock, lockedView } = lockedStateOf(entries, lockedProbe);
   useEffect(() => {
     if (!lockedFile) return undefined;
     let cancelled = false;
@@ -37,14 +33,5 @@ export function useLockedProbe(entries: FileEntry[], lockedProbe: LockedProbe | 
     })();
     return () => { cancelled = true; };
   }, [lockedFile, dispatch]);
-  // Settled once the probe has answered for this file; until then nothing shows, so the inline error never
-  // flashes before the locked state replaces it.
-  const probeSettled = !lockedFile || lockedProbe?.file === lockedFile;
-  const needsUnlock: NeedsUnlockView | null = lockedFile && probeSettled && lockedProbe?.kind && lockedProbe.bytes
-    ? { file: lockedFile, kind: lockedProbe.kind, bytes: lockedProbe.bytes }
-    : null;
-  // The heading and the one-file box wait for the probe too, so neither shows for a moment and then
-  // gives way to the locked state.
-  const lockedView = !!needsUnlock || (!!lockedFile && !probeSettled);
   return { needsUnlock, probeSettled, lockedView };
 }

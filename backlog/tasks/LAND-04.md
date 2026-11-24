@@ -208,5 +208,12 @@ count). The rule is off on `landmines-all` meanwhile.
   file, the photo set's strip, a failed share) and tests that passed only because jsdom fails; each
   is back with a mutation that fails it, or named as covered. Not guarded below: `autoBuild`, the cache
   scope constant, `openGate`'s prepare line.
+- Merge trimmed (2026-11-24): 120 browser tests (Merge and the shared page-grid file) down to 12 in 5
+  flows (13.5s to 5.3s); the branch's browser layer is 670, 885 doubles. The island is `useMergeTool` plus pure `mergeView`
+  functions; its tests mount the real hook on real PDFs, fake-indexeddb and the real quiet policy. A fresh
+  review found no behaviour change and one untested wire (the early warm of Download), now six tests;
+  restore-before-hand-off is ordered by a real busy IndexedDB transaction. Kept in Chromium: rendered
+  thumbnails, the locked single file, the opened page grid. One injected outcome stays in jsdom (`LOCK_PROBED`,
+  forced: no pdf.js worker there); the real probe is in the browser flow.
 - Found on the way: RED-75 (preview documents never freed on pdf.js 6.5), RED-76 (one very long line
   overflows the text preview).

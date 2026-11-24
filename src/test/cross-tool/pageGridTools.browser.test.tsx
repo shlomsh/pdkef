@@ -24,7 +24,6 @@ const FIVE_PAGES: Uint8Array = await (async () => {
   for (const width of [200, 210, 220, 230, 240]) doc.addPage([width, 300]);
   return doc.save();
 })();
-const txt = (name: string) => new File(['x'], name, { type: 'text/plain' });
 
 // `field`: the tool has the page-range field. `noun`: what its heading counts. Five pages each.
 interface PageGridTool {
@@ -122,31 +121,11 @@ describe.each(TOOLS)('$name on the shared page workspace', ({ element, handoff, 
     await harness.flush();
   };
 
-  it('renders the initial dropzone', () => {
-    mount();
-    const dropzone = root().querySelector('[data-dropzone]');
-    expect(dropzone).not.toBeNull();
-    expect(dropzone!.textContent).toContain('Drop PDF here');
-  });
-
-  it('lists the files it skipped, one by name and several by count', async () => {
-    mount();
-    const note = () => root().querySelector('[role="status"]')?.textContent;
-    await act(async () => { setInputFiles(input(), [txt('2025-notes.txt')]); });
-    expect(note()).toBe('Skipped “2025-notes.txt” - not a PDF.');
-    await act(async () => { setInputFiles(input(), [txt('a.txt'), txt('b.txt')]); });
-    expect(note()).toBe('Skipped 2 files - not PDFs.');
-  });
-
-  it('offers Replace file once, as the shared quiet last line, at every width', async () => {
+  it('offers Replace file once, as the shared quiet last line, and it asks first, naming the file and what stays in recents', async () => {
     await open();
     const replaces = Array.from(root().querySelectorAll('button')).filter((b) => b.textContent!.trim().startsWith('Replace'));
     expect(replaces).toHaveLength(1);
     expect(replaces[0].closest('[data-replace-line]')).not.toBeNull();
-  });
-
-  it('Replace file asks first and names the file and what stays in recents', async () => {
-    await open();
     await click(button('Replace file'));
     const confirmation = find<HTMLDialogElement>('dialog[aria-labelledby="confirm-replace-title"]');
     expect(confirmation.open).toBe(true);
@@ -163,23 +142,9 @@ describe.each(TOOLS)('$name on the shared page workspace', ({ element, handoff, 
     expect(heading().textContent).toContain(handed);
   });
 
-  it('a skipped tile stays in place and the heading counts it, and including it again takes the count back', async () => {
+  it('skips and includes pages: bulk buttons, one step each, a skipped tile, a typed range and an out-of-range error', async () => {
     await open();
-    await click(skipButton(2));
-    expect(cells().map((c) => c.dataset.key)).toEqual(['0:0', '0:1', '0:2', '0:3', '0:4']);
-    expect(isSkipped(2)).toBe(true);
-    expect(cells()[1].hasAttribute('data-skipped')).toBe(true);
-    expect(heading().textContent).toContain(`4 ${noun}`);
-    expect(heading().textContent).toContain('1 page skipped');
-    if (hasField) expect(rangeField().value).toBe('1, 3-5');
-    await click(skipButton(2));
-    expect(isSkipped(2)).toBe(false);
-    expect(heading().textContent).not.toContain('skipped');
-    if (hasField) expect(rangeField().value).toBe('1-5');
-  });
-
-  it('Include all, Skip all and Invert are one step each, and none when nothing changes', async () => {
-    await open();
+    // Include all, Skip all and Invert are one step each, and none when nothing changes.
     await click(button('Include all'));
     expect(undoButton().disabled).toBe(true);
     await click(button('Skip all'));
@@ -201,20 +166,30 @@ describe.each(TOOLS)('$name on the shared page workspace', ({ element, handoff, 
     await undo();
     expect(skipped()).toEqual([false, false, false, false, false]);
     expect(undoButton().disabled).toBe(true);
-  });
 
-  it.runIf(hasField)('typing a range skips the other pages, as one Undo step', async () => {
-    await open();
+    // A skipped tile stays in place and the heading counts it, and including it again takes the count back.
+    await click(skipButton(2));
+    expect(cells().map((c) => c.dataset.key)).toEqual(['0:0', '0:1', '0:2', '0:3', '0:4']);
+    expect(isSkipped(2)).toBe(true);
+    expect(cells()[1].hasAttribute('data-skipped')).toBe(true);
+    expect(heading().textContent).toContain(`4 ${noun}`);
+    expect(heading().textContent).toContain('1 page skipped');
+    if (hasField) expect(rangeField().value).toBe('1, 3-5');
+    await click(skipButton(2));
+    expect(isSkipped(2)).toBe(false);
+    expect(heading().textContent).not.toContain('skipped');
+    if (hasField) expect(rangeField().value).toBe('1-5');
+
+    if (!hasField) return;
+    // Typing a range skips the other pages, as one Undo step.
     await type('2-3');
     expect(skipped()).toEqual([true, false, false, true, true]);
     expect(heading().textContent).toContain(`2 ${noun}`);
     await undo();
     expect(skipped()).toEqual([false, false, false, false, false]);
     expect(rangeField().value).toBe('1-5');
-  });
 
-  it.runIf(hasField)('keeps the selection and shows the error for an out-of-range page', async () => {
-    await open();
+    // An out-of-range page keeps the selection and shows the error.
     await click(skipButton(1));
     await type('99');
     expect(root().querySelector('[role="alert"]')!.textContent).toContain('99');
