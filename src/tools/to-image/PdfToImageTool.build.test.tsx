@@ -56,15 +56,7 @@ describe('PdfToImageTool builds', () => {
     it('the done strip names the pattern for several images and the real name for one', async () => {
       const stripName = () => s.container.querySelector('section[aria-label] p')?.textContent ?? '';
       await s.open(3);
-      // Three images are saved PART_GAP_MS (200) apart in useDownloadFlow.ts: run those gaps here so they
-      // cannot fire inside a later test.
-      vi.useFakeTimers({ toFake: ['setTimeout'] });
-      try {
-        await s.click(s.quietDownload());
-        await vi.advanceTimersByTimeAsync(2 * 200 + 1);
-      } finally {
-        vi.useRealTimers();
-      }
+      await s.saveAll(s.quietDownload(), 3);
       await waitUntil(() => expect(stripName()).toContain('report-page-N.png'));
       await s.click(s.radio('One tall image'));
       await waitUntil(() => {
@@ -99,7 +91,7 @@ describe('PdfToImageTool builds', () => {
     it('reports no start for the background build, only for the Download tap', async () => {
       await s.open();
       expect(await s.events('tool_operation_started')).toBe(0);
-      await s.click(s.downloadElement());
+      await s.saveAll(s.downloadElement(), 5);
       await waitUntil(() => expect(state()).toBe('saved'));
       expect(await s.events('tool_result_ready')).toBe(1);
       expect(await s.events('tool_operation_started')).toBe(1);

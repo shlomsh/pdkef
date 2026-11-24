@@ -78,7 +78,7 @@ describe('PdfToImageTool files', () => {
     it('counts the images and the saved files with the catalogue\'s own words', async () => {
       await s.open(3, hebrew);
       expect(s.downloadText()).toContain('הורדת 3 קובצי PNG');
-      await s.click(s.downloadElement());
+      await s.saveAll(s.downloadElement(), 3);
       await waitUntil(() => expect(s.downloadText()).toContain('נשמרו 3 קובצי PNG'));
     });
 

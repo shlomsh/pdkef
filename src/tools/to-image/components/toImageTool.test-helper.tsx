@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { render, type ComponentProps } from 'preact';
 import { act } from 'preact/test-utils';
-import { afterEach, beforeEach, expect } from 'vitest';
+import { afterEach, beforeEach, expect, vi } from 'vitest';
 import PdfToImageTool from '../PdfToImageTool.tsx';
 import { getPdfLib } from '#lib/pdf/pdfLib.js';
 import '../../../test/support/realPdfjs.ts';
@@ -82,6 +82,16 @@ export function useToImageTool() {
     },
     /** A pointer on the Download element asks for the build now instead of after the quiet wait. */
     press: () => act(async () => { s.downloadElement().dispatchEvent(new Event('pointerdown', { bubbles: true })); }),
+    /** Several images are saved PART_GAP_MS (200) apart in useDownloadFlow.ts: run those gaps in the test that taps, so they cannot fire inside a later one. */
+    async saveAll(tap: HTMLElement, images: number) {
+      vi.useFakeTimers({ toFake: ['setTimeout'] });
+      try {
+        await s.click(tap);
+        await vi.advanceTimersByTimeAsync((images - 1) * 200 + 1);
+      } finally {
+        vi.useRealTimers();
+      }
+    },
     drain: () => act(async () => { await drainPromises(); }),
     pickOnly: (file: File) => act(async () => {
       setInputFiles(found(s.container.querySelector('input[type="file"]'), 'a file input'), [file]);
