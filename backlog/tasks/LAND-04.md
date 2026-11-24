@@ -277,5 +277,11 @@ count). The rule is off on `landmines-all` meanwhile.
 - Sign and Highlight trimmed (2026-11-25): 18 browser tests to 15. The two re-export tests move to Node unchanged, the
   Highlight undo test to jsdom on the shipped pdf.js. The 15 kept need Chromium: the modal dialog, rendered widths,
   canvas pixels and codecs, module workers. Doubles stay 858. Remaining modules together: 84 browser tests to 24.
+- To Image tests leak (2026-11-25): a test that saved five images 200 ms apart left a save to land in the later
+  "revokes every image URL on unmount" test, red on CI run 45503165684 and reproduced under load. `saveAll` in
+  `toImageTool.test-helper` runs the gaps in the test that taps; 12 loaded runs pass.
+- Browser test count limit (2026-11-25): the `units-browser` job counts its own run and fails above the record in
+  `scripts/ratchet-limits.json` (`browserTests`), which only goes down. A fresh review found that a filtered local run
+  could lower the record; the check writes nothing now.
 - Found on the way: RED-75 (preview documents never freed on pdf.js 6.5), RED-76 (one very long line
   overflows the text preview).

@@ -360,7 +360,10 @@ jobs:
       run: npm ci
 
     - name: Run browser tests
-      run: npx vitest run --project=browser
+      run: npx vitest run --project=browser --reporter=default --reporter=github-actions --reporter=json --outputFile.json=test-results/browser.json
+
+    - name: Refuse more browser tests than recorded
+      run: node scripts/check-browser-test-count.mjs test-results/browser.json
 
   # QUAL-42: the one place that resolves the affected scope and builds. Every consumer downloads
   # `dist` and reads the scope from these outputs. A dependency bump that breaks the build fails here

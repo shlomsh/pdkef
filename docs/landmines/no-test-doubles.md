@@ -63,6 +63,8 @@ were 265 tests and 19 s.
 - **A browser test is removed only when a named lower test, or an existing e2e spec, fails with an
   assertion under the same product mutation.** One with no lower home stays, or goes on a list for
   Shlomi. Several browser tests may merge into one that keeps every assertion.
+- The number of browser tests only goes down: CI counts the `browser` run against `browserTests` in
+  `scripts/ratchet-limits.json` (`scripts/check-browser-test-count.mjs`). A new one takes the place of another.
 - A double a lower test needs stays visible, on the allow list. The count is reported per tool.
 
 ## Waves, best value first

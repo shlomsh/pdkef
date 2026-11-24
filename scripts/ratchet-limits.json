@@ -2,6 +2,9 @@
   "anyTypes": {
     "src/tools": 3
   },
+  "browserTests": {
+    "ci": 156
+  },
   "css": {
     "maxFamilyDuplication": 0.46,
     "maxPageDeadBytes": 7600,
