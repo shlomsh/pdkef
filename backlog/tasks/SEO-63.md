@@ -35,7 +35,6 @@ Merge. Boards show all tools' notes on every page (`FILTER_NOTES_BY_TOOL` off) u
 - The Rich Results Test passes on one newly rated page, and indexing is requested for the main ones (Shlomi).
 - About four weeks after landing, a Search Console read against the weeks before says what happened to CTR and position.
 
-## Left before landing
+## Request budget
 
-- `check-request-count` reads 33 on `/sign/` against 32: the board adds its shared stylesheet to the pages that lacked it.
-  Whether to allow it is Shlomi's call.
+`/sign/` goes from 32 to 33 requests on a first visit (Shlomi, 2026-11-24): the board's shared stylesheet is linked there now.

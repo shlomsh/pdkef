@@ -57,12 +57,12 @@ const FIVE = [0, 1, 2, 3, 4];
   .panel { max-width: 34rem; margin-inline: auto; text-align: center; }
   .panel h2 { margin: 0 0 1rem; color: var(--color-text); text-wrap: balance; }
   .intro { margin: 0 0 2rem; color: var(--color-muted); }
-  .row { display: flex; align-items: center; justify-content: center; gap: 0.75rem; }
-  .average { font-size: 2.5rem; font-weight: 700; line-height: 1; color: var(--color-text); }
-  .stars { width: 10.5rem; height: 2.1rem; }
-  .stars .empty { fill: none; stroke: var(--color-clay); stroke-width: 1.2; stroke-linejoin: round; }
-  .stars .full { fill: var(--color-comment-anchor); stroke: var(--color-clay); stroke-width: 1.2; stroke-linejoin: round; }
-  .count { margin: 0.75rem 0 0; font-weight: 600; color: var(--color-text); }
+  .panel .row { display: flex; align-items: center; justify-content: center; gap: 0.75rem; }
+  .panel .average { font-size: 2.5rem; font-weight: 700; line-height: 1; color: var(--color-text); }
+  .panel .stars { width: 10.5rem; height: 2.1rem; }
+  .panel .stars .empty { fill: none; stroke: var(--color-clay); stroke-width: 1.2; stroke-linejoin: round; }
+  .panel .stars .full { fill: var(--color-comment-anchor); stroke: var(--color-clay); stroke-width: 1.2; stroke-linejoin: round; }
+  .panel .count { margin: 0.75rem 0 0; font-weight: 600; color: var(--color-text); }
   .invite { margin: 1.25rem 0 0; font-size: 0.95rem; color: var(--color-muted); }
 
   /* With notes: the stars head the board on a phone; on a wide screen they sit beside the three by three papers. */
@@ -76,6 +76,6 @@ const FIVE = [0, 1, 2, 3, 4];
       align-content: center;
     }
     .board:has(ul) .panel { margin: 0; text-align: start; }
-    .board:has(ul) .row { justify-content: flex-start; }
+    .board:has(ul) .panel .row { justify-content: flex-start; }
   }
 </style>
