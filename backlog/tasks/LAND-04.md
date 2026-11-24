@@ -243,5 +243,13 @@ count). The rule is off on `landmines-all` meanwhile.
   and one vacuous one (Share), fixed. The island's mutations were run against old and new: one loss (the "Checking file"
   announcement), asserted. Guarded by neither suite: about 40 island and action lines, among them focus after a wrong
   password, `useHoldUpdate` and the phone bar's `mode`. Doubles 889 to 875.
+- Edit Pages trimmed (2026-11-24): 45 browser tests down to 1 (the repaired copy reaches the rendered grid and the
+  export). The real island runs in jsdom on the shipped pdf.js and pdf-lib, with no product change:
+  `PdfEditPagesTool.test`, `.finish.test` and `.open.test`; the worker pin is shared with Security in `realPdfjs.ts`.
+  A fresh review found no lost assertion. 163 island and history mutations against old and new: the new tests catch 97
+  as first written; of the 66 they missed the old suite catches three. The kept browser test catches one, and two
+  were real losses, closed: a vacuous Unlock-link assertion, and Sortable created again on every render. Guarded by
+  neither suite: the other 63, among them the page count in Download's label, the announcements, `useHoldUpdate` and
+  resets when a file is picked. Doubles 875 to 866.
 - Found on the way: RED-75 (preview documents never freed on pdf.js 6.5), RED-76 (one very long line
   overflows the text preview).

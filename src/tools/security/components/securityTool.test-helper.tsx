@@ -1,20 +1,15 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { pathToFileURL } from 'node:url';
 import { render, type ComponentProps } from 'preact';
 import { act } from 'preact/test-utils';
-import * as pdfjs from 'pdfjs-dist';
 import { afterEach, beforeEach, expect } from 'vitest';
 import PdfSecurityTool from '../PdfSecurityTool.tsx';
 import { probeEncryption } from '#lib/pdf/pdfEncryption.ts';
+import '../../../test/support/realPdfjs.ts';
 import { installToolHarness, type ToolHarness } from '../../../test/harness/toolHarness.ts';
 import { drainPromises } from '../../../test/support/drainPromises.ts';
 import { setInputFiles } from '../../../test/support/setInputFiles.js';
 import { waitUntil as waitFor } from '../../../test/support/waitUntil.ts';
-
-// The shipped pdf.js, pointed at its own worker file: jsdom resolves the bundled worker's URL to http.
-const workerUrl = pathToFileURL(resolve(process.cwd(), 'node_modules/pdfjs-dist/build/pdf.worker.mjs')).href;
-Object.defineProperty(pdfjs.GlobalWorkerOptions, 'workerSrc', { get: () => workerUrl, set() {}, configurable: true });
 
 /** @testSeam */
 export type Protection = 'open' | 'needs-password' | 'owner-restricted' | 'unreadable';
