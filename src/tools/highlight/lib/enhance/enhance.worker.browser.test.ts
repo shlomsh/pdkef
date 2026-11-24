@@ -1,3 +1,4 @@
+// oxlint-disable landmines-structure/colocated-tests -- the subject is enhance.worker.ts, started as a real module Worker
 import { afterEach, describe, expect, it } from 'vitest';
 import { gray, leaning } from '#lib/pageEnhance/leaning.test-helper.ts';
 

@@ -1,3 +1,4 @@
+// oxlint-disable landmines-structure/colocated-tests -- the subject is scripts/ratings-read.mjs (landmines PR 33)
 import { describe, expect, it } from 'vitest';
 import { RATING_TOOLS as WIRE_TOOLS } from '../src/lib/telemetry/ratingSchema.ts';
 import { commentLine, parseEntries, RATING_TOOLS, summarizeCounts } from './ratings-read.mjs';

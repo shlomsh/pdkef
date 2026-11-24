@@ -62,10 +62,10 @@
       }
     ],
     "landmines-structure/colocated-tests": "error",
-    "landmines-structure/test-file-names": "error",
+    "landmines-structure/test-file-names": "off",
     "landmines-structure/package-exports": "error",
-    "landmines-types/no-explicit-return-types": "error",
-    "landmines-style/no-comments": "error",
+    "landmines-types/no-explicit-return-types": "off",
+    "landmines-style/no-comments": "off",
     "no-restricted-imports": [
       "error",
       {

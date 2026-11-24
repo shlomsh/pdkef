@@ -1,3 +1,4 @@
+// oxlint-disable landmines-structure/colocated-tests -- the subject is the report contract with api/report.ts (landmines PR 33)
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { http, HttpResponse } from 'msw';
 import { answerNetwork, server } from '../test/support/network.ts';

@@ -33,4 +33,7 @@ does not live in. On branch `landmines-all` it reported 13 tests.
 - Waiting on upstream (2): `src/site-lib/reportContract.test.ts` (with `api/report.ts`) and
   `scripts/ratings-read.test.mjs` (with `scripts/ratings-read.mjs`). Posted as
   https://github.com/interfere-inc/landmines/pull/33 (upstream's checks green before posting). Once it
-  ships, the rule stops reporting both, with no change here.
+  ships, both lose the disable line they carry meanwhile (2026-11-24).
+- `enhance.worker.browser.test.ts` starts a real module Worker, which the rule cannot trace: a disable line too.
+- The branch no longer enforces the three rules the adoption doc declines (`no-comments`,
+  `no-explicit-return-types`, `test-file-names`), Shlomi's call, 2026-11-24.

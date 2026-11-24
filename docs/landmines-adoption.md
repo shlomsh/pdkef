@@ -23,7 +23,7 @@ middleware.ts`: 30,908 findings in 2,487 files, about 3 seconds.
 | `no-comments` | 26,202 | **Declined.** pdkef comments carry ticket ids and the reason a guard exists, on purpose. |
 | `no-explicit-return-types` | 2,475 | **Declined.** Style choice that does not fit `checkJs` code. |
 | `test-file-names` | 188 | **Declined.** 176 are Playwright `.spec.js`, our convention. |
-| `colocated-tests` | 13 | **Declined.** Mostly `src/test/cross-tool/` and corpus folders, separate by design. |
+| `colocated-tests` | 13 | **Adopted on `landmines-all` (LAND-05).** Tests whose subject the rule cannot see carry a disable line naming it. |
 | `strict-msw`, `package-exports` | 0 | Not applicable: no MSW, not a published package. |
 
 Oxlint's own default `correctness` rules added about 140 findings (45 unused variables, comma and
