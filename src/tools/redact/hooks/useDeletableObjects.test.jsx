@@ -1,6 +1,8 @@
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { describe, expect, it, vi, afterEach } from 'vitest';
+import { readFileSync } from 'node:fs';
+import path from 'node:path';
 import { PDFDocument, StandardFonts } from '@cantoo/pdf-lib';
 import useDeletableObjects from './useDeletableObjects.js';
 import { waitUntil } from '../../../test/support/waitUntil.ts';
@@ -58,6 +60,20 @@ describe('useDeletableObjects', () => {
     // The scan finds the run and its box; what it says is read separately (RED-16).
     expect(apiRef.current[0].kind).toBe('text');
     expect(apiRef.current[0].preview).toBeUndefined();
+  });
+
+  it('offers the one object the num-1 fixture contains', async () => {
+    const bytes = new Uint8Array(readFileSync(path.resolve(process.cwd(), 'src/lib/__fixtures__/num-1.pdf')));
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    apiRef = { current: undefined };
+
+    act(() => {
+      render(<Harness apiRef={apiRef} file={{ name: 'num-1.pdf' }} bytes={bytes} />, container);
+    });
+    await waitUntil(() => apiRef.current.length > 0);
+
+    expect(apiRef.current).toHaveLength(1);
   });
 
   it('does not scan without a file, even if bytes are present', () => {

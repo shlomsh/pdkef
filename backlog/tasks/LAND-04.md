@@ -215,5 +215,17 @@ count). The rule is off on `landmines-all` meanwhile.
   restore-before-hand-off is ordered by a real busy IndexedDB transaction. Kept in Chromium: rendered
   thumbnails, the locked single file, the opened page grid. One injected outcome stays in jsdom (`LOCK_PROBED`,
   forced: no pdf.js worker there); the real probe is in the browser flow.
+- Merge, old tests against new (2026-11-24): the same 40 random product mutations through both suites (Merge's
+  files plus shell and cross-tool; e2e not run). The old caught 22, the new 24; nothing the old caught is missed.
+  16 slip past both.
+- CI run 45382374105 is green on every job, the first on the branch; the browser step is 273s.
+- Redact trimmed (2026-11-24): 137 browser tests in seven files down to 12 runs in one flows file; the branch's
+  browser layer is 545. The island's editor is `useRedactEditor`, plus pure `drawnBox` and `initialRedactState`. A
+  fresh review found the island-to-child wiring unguarded (repeat and unlink menus, toolbar, full screen, box count);
+  `RedactEditor.test`, `RedactWorkspaceToolbar.test` and `useRedactFinish.test` drive the real controls, each proven
+  by a one-line mutation. Four assertions moved into existing e2e specs, two more were added there. Doubles 885 to
+  889: new ones are callbacks and matchMedia jsdom lacks. Not done: the 40-mutation old-against-new sample (skipped by
+  the user's choice), and the comparison of the island's remaining prop mutations against the old suite (about 45
+  survive the new one; of the six compared, five slip past the old one too and one needs a rerun).
 - Found on the way: RED-75 (preview documents never freed on pdf.js 6.5), RED-76 (one very long line
   overflows the text preview).

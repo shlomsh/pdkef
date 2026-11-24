@@ -4,6 +4,7 @@ import {
   StandardFonts,
   rgb,
   PDFName,
+  PDFDict,
   PDFString,
   PDFStream,
   decodePDFRawStream,
@@ -17,6 +18,10 @@ import {
   buildDeletePreviewPage,
 } from './deleteObjects.js';
 import { reportError } from '#lib/telemetry/errorReport.ts';
+import { readFileSync } from 'node:fs';
+import * as pdfjs from 'pdfjs-dist/legacy/build/pdf.mjs';
+import { PDFJS_WASM_URL } from '#lib/pdf/pdfjsWasm.js';
+import { applyPageEdits } from './applyPageEdits.js';
 
 vi.mock('#lib/telemetry/errorReport.ts', { spy: true });
 
@@ -780,5 +785,34 @@ describe('glyph widths behind an advance-only TJ (RED-54)', () => {
       });
     });
     expect(await textUnits(source)).toHaveLength(1);
+  });
+});
+
+describe('deleting the one object of the num-1 fixture through the export', () => {
+  const sourceBytes = new Uint8Array(readFileSync(new URL('../../../lib/__fixtures__/num-1.pdf', import.meta.url)));
+
+  const wordsOf = async (bytes) => {
+    const task = pdfjs.getDocument({ data: bytes.slice(), wasmUrl: PDFJS_WASM_URL });
+    try {
+      const content = await (await (await task.promise).getPage(1)).getTextContent();
+      return content.items.map((item) => ('str' in item ? item.str : ''));
+    } finally {
+      await task.destroy();
+    }
+  };
+
+  it('produces a smaller, still-valid PDF with the marked object actually removed', async () => {
+    const [object] = await listDeletableObjects(sourceBytes);
+    const deletion = { id: 'd1', pageIndex: 0, type: 'delete', start: object.start, end: object.end, formPath: object.formPath ?? [] };
+
+    const { blob } = await applyPageEdits(new File([sourceBytes], 'num-1.pdf', { type: 'application/pdf' }), [deletion]);
+
+    expect(blob.size).toBeLessThan(sourceBytes.byteLength * 3);
+    const outBytes = new Uint8Array(await blob.arrayBuffer());
+    const saved = await PDFDocument.load(outBytes);
+    const pictures = saved.getPage(0).node.Resources()?.lookupMaybe(PDFName.of('XObject'), PDFDict);
+    expect(pictures?.keys().length ?? 0).toBe(0);
+    expect(await wordsOf(sourceBytes)).toContain('1');
+    expect(await wordsOf(outBytes)).not.toContain('1');
   });
 });

@@ -51,6 +51,7 @@ test('a place removed from the saved file stays removed on the next Download', a
   expect(hasAttachment(firstDoc), 'the first download kept the attached file').toBe(true);
 
   const check = page.locator('[data-saved-file-check]');
+  await expect(check.locator('[data-check-term="SECRET 123"]')).toHaveCount(1, { timeout: 15_000 });
   const removeVia = async (term) => {
     // The search lives in the check's disclosure, closed when the check is all clear.
     if (!(await check.locator('[data-check-more]').evaluate((el) => el.open))) await check.locator('[data-check-more] summary').click();
@@ -60,7 +61,7 @@ test('a place removed from the saved file stays removed on the next Download', a
       page.waitForEvent('download'),
       check.locator(`[data-check-term="${term}"]`).getByRole('button', { name: 'Remove it', exact: true }).click(),
     ]);
-    await expect(check.locator('[data-check-removed]')).toContainText('Saved again and downloaded.');
+    await expect(check.locator('[data-check-removed]')).toHaveText('Removed the comment. Saved again and downloaded.');
     return savedPdf(removed);
   };
 
@@ -80,4 +81,8 @@ test('a place removed from the saved file stays removed on the next Download', a
   const [afterReload] = await Promise.all([page.waitForEvent('download'), download()]);
   const reloadedDoc = await savedPdf(afterReload);
   expect(hasNote(reloadedDoc), 'the removed comment came back after a reload').toBe(false);
+
+  await toolbar.getByRole('button', { name: 'Undo', exact: true }).click();
+  const [afterUndo] = await Promise.all([page.waitForEvent('download'), download()]);
+  expect(hasNote(await savedPdf(afterUndo)), 'Undo did not bring the comment back').toBe(true);
 });

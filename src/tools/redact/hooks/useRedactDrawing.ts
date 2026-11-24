@@ -7,6 +7,7 @@ import type { PercentBox } from '#editor-ui/whiteout/pageColor.ts';
 import { formatMessage } from '#lib/text/formatMessage.ts';
 import type { CommittedStroke } from '../components/BrushLayer.tsx';
 import type { RedactElement } from '../lib/redactElements.ts';
+import { BLACKOUT_COLOR, drawnBoxElement, type DrawnBoxType } from '../lib/drawnBox.ts';
 import type { RedactAction, RedactState } from '../state/redactState.ts';
 import type { RedactCommands } from './useRedactCommands.ts';
 import { englishRedactMessages as t } from '../messages.ts';
@@ -35,6 +36,20 @@ export default function useRedactDrawing({ state, dispatch, setAnnouncement, dis
 
   useEffect(() => () => cancelDrawingRef.current?.(), []);
 
+  // What a finished drag does. The gesture's own commit calls this, so a test
+  // can place a box without laying out a pointer drag.
+  const commitDrawn = (pageIndex: number, type: DrawnBoxType, patch: PercentBox | undefined) => {
+    // A press that drew nothing has not spent the tool's one placement, so
+    // it stays armed - otherwise a mistimed tap would silently disarm and
+    // the next real drag would do nothing at all.
+    const element = drawnBoxElement({ newId: uniqueId, pageIndex, type, patch, blurStrength: activeBlurStrength, samplePage });
+    if (!element) return;
+    add([element], { type: `ADD_${type.toUpperCase()}`, description: formatMessage(t.addedBox, { type }) });
+    recordAction('place_mark');
+    setAnnouncement(formatMessage(t.addedBoxAnnounce, { type }));
+    disarmTool();
+  };
+
   const handlePointerDown = (e: RedactPointerEvent, pageIndex: number) => {
     // No tool armed: a press on the page is a scroll or a deselect, never a new
     // box. Delete mode has its own click targets (DeletableObjectOverlay
@@ -53,7 +68,7 @@ export default function useRedactDrawing({ state, dispatch, setAnnouncement, dis
     const container = e.currentTarget;
     const origin = getPointerPercent(e, container);
     const type = activeStyle;
-    const color = type === 'blackout' ? '#000000' : undefined;
+    const color = type === 'blackout' ? BLACKOUT_COLOR : undefined;
     const strength = type === 'blur' ? activeBlurStrength : undefined;
     // Clicking blank page area deselects/hides any box's controls as the draw begins.
     dispatch({ type: 'DRAW_STARTED', drawing: { pageIndex, startX: origin.x, startY: origin.y, type, color, strength } });
@@ -77,23 +92,7 @@ export default function useRedactDrawing({ state, dispatch, setAnnouncement, dis
       commit: (patch) => {
         cancelDrawingRef.current = null;
         dispatch({ type: 'DRAW_ENDED' });
-        // A press that drew nothing has not spent the tool's one placement, so
-        // it stays armed - otherwise a mistimed tap would silently disarm and
-        // the next real drag would do nothing at all.
-        if (!patch || patch.width <= 1 || patch.height <= 1) return;
-        const id = uniqueId();
-        // RED-51: a whiteout takes the page's own colour (a synchronous read of
-        // the canvas, inside this one-shot commit) and keeps following it.
-        const element: RedactElement = {
-          id, pageIndex, ...patch, type,
-          ...(type === 'whiteout' ? { color: samplePage(pageIndex, patch) ?? '#ffffff', colorMode: 'auto' as const } : {}),
-          ...(type === 'blackout' ? { color } : {}),
-          ...(type === 'blur' ? { strength: activeBlurStrength } : {}),
-        };
-        add([element], { type: `ADD_${type.toUpperCase()}`, description: formatMessage(t.addedBox, { type }) });
-        recordAction('place_mark');
-        setAnnouncement(formatMessage(t.addedBoxAnnounce, { type }));
-        disarmTool();
+        commitDrawn(pageIndex, type, patch);
       },
       cancel: () => {
         cancelDrawingRef.current = null;
@@ -111,5 +110,5 @@ export default function useRedactDrawing({ state, dispatch, setAnnouncement, dis
     setAnnouncement(formatMessage(t.paintedStrokeAnnounce, { kind: word }));
   };
 
-  return { handlePointerDown, addStroke, drawingPreviewRef };
+  return { handlePointerDown, commitDrawn, addStroke, drawingPreviewRef };
 }

@@ -210,6 +210,15 @@ describe('UNDO and REDO', () => {
     expect(s.view.announcement).toBe(`Undid: ${middle.description}`);
   });
 
+  it('UNDO by entry id from the middle drops a future that already existed', () => {
+    let s = run(fresh(), addCommit([box('a')]), addCommit([box('b')], 1), addCommit([box('c')], 2), { type: 'UNDO' });
+    expect(s.edits.history.future).toHaveLength(1);
+    s = redactReducer(s, { type: 'UNDO', entryId: s.edits.history.past[1].id });
+    expect(s.edits.elements.map((e) => e.id)).toEqual(['b']);
+    expect(s.edits.history.future).toEqual([]);
+    expect(canRedo(s)).toBe(false);
+  });
+
   it('UNDO and REDO without a template announce the bare description', () => {
     let s = run(fresh(), addCommit([box('a')]));
     const description = s.edits.history.past[0].description;

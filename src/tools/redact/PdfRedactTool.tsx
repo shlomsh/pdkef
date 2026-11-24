@@ -2,10 +2,8 @@ import { useReducer } from 'preact/hooks';
 import BasePdfTool from '#shell/BasePdfTool.tsx';
 import { withIslandBoundary } from '#lib/telemetry/IslandErrorBoundary.tsx';
 import RedactVerb from './verb/RedactVerb.tsx';
-import { getAppStyle, getEditorPreference } from '#editor/workspace/preferenceStore.ts';
-import { resolveWhiteoutColor, resolveRedactBlurStrength } from './lib/redactStyle.ts';
-import { resolveBrush } from './components/BrushControls.tsx';
-import { initialRedactState, redactReducer } from './state/redactState.ts';
+import { initialRedactStateFromPreferences } from './lib/initialRedactState.ts';
+import { redactReducer } from './state/redactState.ts';
 import { useHoldUpdate } from '#lib/hooks/useHoldUpdate.ts';
 import ErrorMessage from '#shell/ErrorMessage.tsx';
 import { FileActions } from '#shell/ToolShell.tsx';
@@ -15,12 +13,10 @@ import { DetailsSheet } from './components/details/DetailsSheet.tsx';
 import RedactWorkspaceToolbar from './components/RedactWorkspaceToolbar.tsx';
 import RedactPages from './components/RedactPages.tsx';
 import RedactFinishRegion from './components/RedactFinishRegion.tsx';
-import useRedactArming from './hooks/useRedactArming.ts';
 import useRedactPages from './hooks/useRedactPages.ts';
 import useRedactExport from './hooks/useRedactExport.ts';
 import useRedactFileSession from './hooks/useRedactFileSession.ts';
-import useRedactEditing from './hooks/useRedactEditing.ts';
-import useRedactFind from './hooks/useRedactFind.ts';
+import useRedactEditor from './hooks/useRedactEditor.ts';
 import useRedactDetails from './hooks/useRedactDetails.ts';
 import useRedactFinish from './hooks/useRedactFinish.ts';
 import workspaceStyles from '#editor-ui/Workspace.module.css';
@@ -30,24 +26,12 @@ import { englishRedactMessages as t } from './messages.ts';
 export default withIslandBoundary(function PdfRedactTool() {
   // SNG-08: the island's state lives in redactState.ts; the preferences it
   // starts from are read once, here.
-  const [state, dispatch] = useReducer(redactReducer, undefined, () => initialRedactState({
-    activeColor: resolveWhiteoutColor(undefined, getAppStyle(), getEditorPreference('lastWhiteoutColor')),
-    activeBlurStrength: resolveRedactBlurStrength(undefined, getAppStyle(), getEditorPreference('lastBlurStrength')),
-    brush: resolveBrush(undefined, getAppStyle()),
-  }));
+  const [state, dispatch] = useReducer(redactReducer, undefined, initialRedactStateFromPreferences);
   const { announcement, isPseudoFullscreen } = state.view;
   const { file, numPages, pdfDocument, sizedPageCount, status } = state.document;
   const setAnnouncement = (message: string) => dispatch({ type: 'ANNOUNCED', message });
   useHoldUpdate(status === 'redacting'); // finishPhase 'exporting' is this same state
 
-  // activeStyle is null | 'delete' | 'blackout' | 'blur' | 'whiteout'. Null -
-  // nothing armed - is the resting state, exactly as it is in the Sign tool: a
-  // tool arms for one box and disarms itself once that box is committed, unless
-  // it has been locked on. Before this the tool was permanently armed (it even
-  // started on Delete), so there was no state in which a drag on the document
-  // meant anything but "draw a box" - which on a phone meant the page could not
-  // be scrolled.
-  const arming = useRedactArming({ state, dispatch });
   const pages = useRedactPages({ state, dispatch });
   const { workspaceRef, needsUnlock, setNeedsUnlock, isFullscreenActive, currentPage } = pages;
 
@@ -57,19 +41,11 @@ export default withIslandBoundary(function PdfRedactTool() {
 
   const { handleFilesAdded, fileBytesRef, draftSaveState, isRestoring } = useRedactFileSession({
     state, dispatch, setAnnouncement, setNeedsUnlock, renderedPageNumbersRef: pages.renderedPageNumbersRef,
-    resetForNewFile: () => {
-      editing.deleteTool.clearLifts();
-      findKit.find.setOpen(false);
-      findKit.find.setTerm('');
-      findKit.find.setPreset(null);
-    },
+    resetForNewFile: () => editor.resetForNewFile(),
   });
 
-  const editing = useRedactEditing({
-    state, dispatch, setAnnouncement, fileBytes: fileBytesRef.current, pageWrapperRefs: pages.pageWrapperRefs,
-    samplePage: pages.samplePage, arming,
-  });
-  const findKit = useRedactFind({ state, setAnnouncement, commands: editing.commands, brushArmed: arming.brushKind !== null });
+  const editor = useRedactEditor({ state, dispatch, setAnnouncement, fileBytes: fileBytesRef.current, pages });
+  const { arming, editing, findKit } = editor;
   const details = useRedactDetails({
     state, dispatch, setAnnouncement, fileBytes: fileBytesRef.current, findKit, handleSavePdf: exp.handleSavePdf,
   });

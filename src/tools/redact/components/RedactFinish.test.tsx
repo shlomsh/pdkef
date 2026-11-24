@@ -114,4 +114,17 @@ describe('RedactFinish', () => {
     mount(facts({ phase: 'cancelled' }));
     expect(container.textContent).toContain('You changed something, so that download stopped.');
   });
+
+  it('shows no count before any box or deletion exists', () => {
+    mount(facts({ phase: 'empty', boxCount: 0, deletionCount: 0 }));
+    expect(container.querySelector('[data-redact-count]')).toBeNull();
+  });
+
+  it('shows a live box count, singular then plural, as boxes are added', () => {
+    mount(facts({ boxCount: 1, deletionCount: 0 }));
+    expect(container.querySelector('[data-redact-count]')?.textContent).toBe('Saves with 1 box');
+
+    mount(facts({ boxCount: 2, deletionCount: 0 }));
+    expect(container.querySelector('[data-redact-count]')?.textContent).toBe('Saves with 2 boxes');
+  });
 });

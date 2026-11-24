@@ -34,6 +34,28 @@ describe('BrushLayer', () => {
     expect(host.querySelector('path')!.getAttribute('d')).toBeNull();
   });
 
+  const stroke = (layer: HTMLElement, points: [number, number][]) => {
+    layer.dispatchEvent(new MouseEvent('mousedown', { clientX: points[0][0], clientY: points[0][1], bubbles: true, cancelable: true }));
+    for (const [x, y] of points.slice(1)) window.dispatchEvent(new MouseEvent('mousemove', { clientX: x, clientY: y }));
+    window.dispatchEvent(new MouseEvent('mouseup'));
+  };
+
+  it('commits exactly one element for forty points closer together than a pixel', () => {
+    const { layer, onCommit } = mount();
+    stroke(layer, Array.from({ length: 40 }, (_, i) => [100 + i * 0.1, 200] as [number, number]));
+    expect(onCommit).toHaveBeenCalledTimes(1);
+    expect(onCommit.mock.calls[0][0].type).toBe('whiteoutStroke');
+  });
+
+  it('stays ready for the next stroke, each stroke committing its own element', () => {
+    const { layer, onCommit } = mount();
+    stroke(layer, [[100, 200], [140, 200]]);
+    expect(host.querySelector('[data-brush-layer]')).not.toBeNull();
+    stroke(layer, [[100, 300], [160, 320]]);
+    expect(onCommit).toHaveBeenCalledTimes(2);
+    expect(onCommit.mock.calls[0][0].id).not.toBe(onCommit.mock.calls[1][0].id);
+  });
+
   it('a second finger cancels the stroke', () => {
     const { layer, onCommit } = mount();
     layer.dispatchEvent(new MouseEvent('mousedown', { clientX: 100, clientY: 100, bubbles: true, cancelable: true }));

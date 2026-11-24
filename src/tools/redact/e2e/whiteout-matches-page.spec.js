@@ -53,7 +53,7 @@ async function assertNoCspViolations(page) {
   expect(violations, `Unexpected CSP violations:\n${violations.join('\n')}`).toEqual([]);
 }
 
-async function openRedactTool(page, buffer) {
+async function openRedactTool(page, buffer, rememberedStyle) {
   const browserMessages = [];
   page.on('console', (message) => {
     browserMessages.push(`[${message.type()}] ${message.text()}`);
@@ -63,9 +63,12 @@ async function openRedactTool(page, buffer) {
   });
 
   await collectCspViolations(page);
-  await page.addInitScript(() => {
+  await page.addInitScript((style) => {
     localStorage.clear();
-  });
+    if (style) {
+      localStorage.setItem('pdf-toolkit:app-style:v1:local-browser-profile', JSON.stringify({ schemaVersion: 1, style }));
+    }
+  }, rememberedStyle);
   await page.goto('/redact');
 
   // Wait for hydration before touching the file input (see redact-editor.spec.js).
@@ -202,7 +205,7 @@ test.describe('Whiteout matches the page (RED-51)', () => {
   });
 
   test('matches the page and follows it', async ({ page }) => {
-    await openRedactTool(page, await makeMatchPdfBuffer());
+    await openRedactTool(page, await makeMatchPdfBuffer(), { whiteoutColor: '#123456' });
     const whiteout = await drawRedaction(page, 'Whiteout', BOX_START, BOX_END);
     await page.keyboard.press('Escape');
     await expect(whiteout.locator('[data-editor-actions]')).toHaveCount(0);
@@ -251,6 +254,9 @@ test.describe('Whiteout matches the page (RED-51)', () => {
     await page.getByRole('toolbar', { name: 'PDF redaction' }).getByRole('button', { name: 'Undo', exact: true }).click();
     await expect.poll(async () => Math.abs((await topWithinPage(page, whiteout)) - topBefore)).toBeLessThanOrEqual(2);
     await expectFillCloseTo(whiteout, fillOnCream, 2, 'Undo brings the cream fill back');
+    const announcement = page.locator('.sr-only[aria-live="polite"]');
+    await expect(announcement).toContainText('Undid: Moved whiteout box');
+    await expect(announcement).not.toContainText('color');
   });
 
   test('eyedropper and Auto', async ({ page }) => {
@@ -279,6 +285,7 @@ test.describe('Whiteout matches the page (RED-51)', () => {
     await expect(bar).toBeVisible();
     await expectFillCloseTo(whiteout, BLUE, 2, 'eyedropper sets the blue');
     await expect(auto).toHaveAttribute('aria-pressed', 'false');
+    await expect(eyedropper).toHaveAttribute('aria-pressed', 'false');
     // RED-53: the picked colour is now the first recent swatch, shown as chosen.
     await expect(bar.locator('[data-whiteout-color-recent][aria-pressed="true"]')).toBeVisible();
 

@@ -1,7 +1,7 @@
 import { render, type ComponentType } from 'preact';
 import { act } from 'preact/test-utils';
 import { expect, vi, afterEach, beforeAll, beforeEach } from 'vitest';
-import { PDFDocument, StandardFonts } from '@cantoo/pdf-lib';
+import { PDFDocument } from '@cantoo/pdf-lib';
 import { setInputFiles } from './setInputFiles.js';
 import { drainPromises } from './drainPromises.ts';
 
@@ -22,17 +22,6 @@ export async function settleUntil(description: string, ready: () => boolean, bud
     });
   }
   if (!ready()) throw new Error(`Timed out waiting for ${description}`);
-}
-
-export async function dragBlurSlider(value: number, steps: number[] = []) {
-  const input = required(document.querySelector<HTMLInputElement>('[data-editor-blur-strength-input]'), 'blur slider');
-  for (const step of [...steps, value]) {
-    await act(async () => {
-      input.value = String(step);
-      input.dispatchEvent(new Event('input', { bubbles: true }));
-    });
-  }
-  await act(async () => { input.dispatchEvent(new Event('change', { bubbles: true })); });
 }
 
 /** The frame the suite's coordinates are written in: x 0..500 and y 0..1000 across an element's real box. */
@@ -60,41 +49,22 @@ export function percentOn(el: Element, { clientX, clientY }: { clientX: number; 
 }
 
 const PAGE_SIZE: [number, number] = [612, 792];
-const pdfBytesCache = new Map<string, Uint8Array>();
+const pdfBytesCache = new Map<number, Uint8Array>();
 
-/**
- * A real PDF of `pages` US Letter pages. `text[i]` is drawn on page i, one line each from the top
- * (Helvetica 12pt, baseline 72pt from the top, 20pt apart), so pdf.js reads it back as real text items.
- */
-export async function buildPdf(pages: number, info: { title?: string; author?: string } = {}, text: string[][] = []) {
-  const key = JSON.stringify([pages, info.title ?? '', info.author ?? '', text]);
-  const cached = pdfBytesCache.get(key);
+/** A real PDF of `pages` US Letter pages, built once per page count. */
+export async function buildPdf(pages: number) {
+  const cached = pdfBytesCache.get(pages);
   if (cached) return cached;
   const doc = await PDFDocument.create({ updateMetadata: false });
-  const font = text.length > 0 ? await doc.embedFont(StandardFonts.Helvetica) : undefined;
-  for (let i = 0; i < pages; i += 1) {
-    const sheet = doc.addPage(PAGE_SIZE);
-    (text[i] ?? []).forEach((line, n) => sheet.drawText(line, { x: 72, y: PAGE_SIZE[1] - 72 - n * 20, size: 12, font }));
-  }
-  if (info.title) doc.setTitle(info.title);
-  if (info.author) doc.setAuthor(info.author);
+  for (let i = 0; i < pages; i += 1) doc.addPage(PAGE_SIZE);
   const bytes = await doc.save();
-  pdfBytesCache.set(key, bytes);
+  pdfBytesCache.set(pages, bytes);
   return bytes;
 }
-beforeAll(async () => { await buildPdf(2); await buildPdf(3); });
+beforeAll(async () => { await buildPdf(2); });
 
 export function makePdfFile(name: string, bytes?: Uint8Array) {
-  return new File([(bytes ?? pdfBytesCache.get(JSON.stringify([2, '', '', []])))! as BlobPart], name, { type: 'application/pdf' });
-}
-
-export async function setSelectedBoxColor(color: string) {
-  const input = query<HTMLInputElement>(document.body, '[data-editor-actions] input[type="color"]');
-  await act(async () => {
-    input.value = color;
-    input.dispatchEvent(new Event('input', { bubbles: true }));
-    input.dispatchEvent(new Event('change', { bubbles: true }));
-  });
+  return new File([(bytes ?? pdfBytesCache.get(2))! as BlobPart], name, { type: 'application/pdf' });
 }
 
 interface SuiteHarness {
@@ -197,11 +167,6 @@ function redactSuiteActions(s: SuiteState, { Tool, waitUntil }: { Tool: Componen
     return drawArea;
   }
 
-  async function hoverBrushTool(label: string) {
-    const button = findToolButton(label);
-    await act(async () => { button.parentElement!.dispatchEvent(new MouseEvent('mouseenter')); });
-  }
-
   async function armTool(label: string, { lock = false }: { lock?: boolean } = {}) {
     const button = findToolButton(label);
     await act(async () => {
@@ -240,6 +205,7 @@ function redactSuiteActions(s: SuiteState, { Tool, waitUntil }: { Tool: Componen
       render(<Tool />, s.container);
     });
 
+    await waitUntil(() => query(s.container, 'input[type="file"]'));
     const input = query<HTMLInputElement>(s.container, 'input[type="file"]');
     await act(async () => {
       setInputFiles(input, [file]);
@@ -262,5 +228,5 @@ function redactSuiteActions(s: SuiteState, { Tool, waitUntil }: { Tool: Componen
     await waitUntil(() => s.container.textContent.includes(`Loaded PDF "${name}"`) && s.container.querySelector('.redact-draw-area') !== null);
   }
 
-  return { loadFileAndGetDrawArea, armTool, hoverBrushTool, drawBox, expectLatestGestureToCommitOnce, loadFileWithoutArming, findToolButton, openSecondFile };
+  return { loadFileAndGetDrawArea, armTool, drawBox, expectLatestGestureToCommitOnce, loadFileWithoutArming, findToolButton, openSecondFile };
 }

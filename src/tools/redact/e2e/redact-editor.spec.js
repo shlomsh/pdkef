@@ -318,6 +318,12 @@ test.describe('Redact editor browser guardrails', () => {
         input.dispatchEvent(new Event('change', { bubbles: true }));
       });
       expect(await readBlurPx()).toBeCloseTo(0.22 * surfaceHeight, 0);
+      // The pick is committed to the box, so a duplicate is drawn from it too.
+      await toolbar.getByRole('button', { name: 'Duplicate' }).click();
+      const copyLayer = page.locator('.redact-surface__blur').last();
+      await expect(page.locator('.redact-surface__blur')).toHaveCount(2);
+      const copyPx = await copyLayer.evaluate((el) => Number(getComputedStyle(el).backdropFilter.match(/blur\(([\d.]+)px\)/)?.[1]));
+      expect(copyPx).toBeCloseTo(0.22 * surfaceHeight, 0);
     }
 
     await dragBy(page, blur, 2000, -2000);
@@ -531,9 +537,8 @@ test.describe('per-element touch targets (design-review findings #1 and #2)', ()
 // RED-03: "Repeat on every page" - a selected box copied onto every other
 // page at the same percentage position/size, in one undo step, and every
 // copy stays linked: editing one moves/resizes them all as one undo step.
-// repeatGroup.test.ts covers the pure placement/linking logic and
-// PdfRedactTool.test.tsx covers the wiring in jsdom; this is the one thing
-// neither can prove - that the rendered boxes on differently-scrolled real
+// repeatGroup.test.ts covers the pure placement/linking logic; this is
+// the one thing it cannot prove - that the rendered boxes on differently-scrolled real
 // pages really land at the same relative spot, and really move together,
 // once the browser lays pages out.
 test.describe('repeat a box on every page (RED-03)', () => {

@@ -59,7 +59,7 @@ export default function useRedactEditing({ state, dispatch, setAnnouncement, fil
     describeUpdate: (kind, element) => describeRedactUpdate(kind, element.type),
   });
 
-  const { handlePointerDown, addStroke, drawingPreviewRef } = useRedactDrawing({
+  const { handlePointerDown, commitDrawn, addStroke, drawingPreviewRef } = useRedactDrawing({
     state, dispatch, setAnnouncement, disarmTool, brushKind, samplePage, add: commands.add,
   });
 
@@ -148,9 +148,9 @@ export default function useRedactEditing({ state, dispatch, setAnnouncement, fil
   };
 
   return {
-    commands, deleteTool, handlePointerDown, addStroke, drawingPreviewRef, deleteElement, updateElement,
+    commands, deleteTool, handlePointerDown, commitDrawn, addStroke, drawingPreviewRef, deleteElement, updateElement,
     duplicateElement, repeatOnEveryPage, removeLinked, clearPage, keepOnlyThis, unlinkFromGroup, clearPageOptions,
-    undoLast, redoLast, runUndoChip, clearUndoChip, pickColor, matchPage, changeBlurStrength,
+    undoLast, redoLast, runUndoChip, clearUndoChip, pickColor, pickBrushColor, matchPage, changeBlurStrength,
   };
 }
 

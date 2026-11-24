@@ -83,6 +83,79 @@ describe('RedactBox touch behaviour', () => {
     host.remove();
   });
 
+  it('pressing the toolbar Delete button starts no drag and selects nothing', () => {
+    mockPointer(false);
+    const { box, onChange, onSelect } = mount(true);
+    const del = box.querySelector<HTMLButtonElement>('[data-editor-actions] button[title="Delete"]')!;
+    act(() => { del.dispatchEvent(new MouseEvent('mousedown', { clientX: 100, clientY: 100, bubbles: true })); });
+    act(() => { window.dispatchEvent(new MouseEvent('mousemove', { clientX: 150, clientY: 300, bubbles: true })); });
+    act(() => { window.dispatchEvent(new MouseEvent('mouseup')); });
+    expect(onSelect).not.toHaveBeenCalled();
+    expect(onChange).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ['whiteout', { id: 'w', type: 'whiteout', left: 10, top: 10, width: 30, height: 10, pageIndex: 0, color: '#ffffff' }, null],
+    ['blackout', { id: 'w', type: 'blackout', left: 10, top: 10, width: 30, height: 10, pageIndex: 0 }, 3],
+    ['blur', { id: 'w', type: 'blur', left: 10, top: 10, width: 30, height: 10, pageIndex: 0, strength: 0.3 }, 3],
+  ] as [string, RedactBoxElement, number | null][])('a %s shows its toolbar and eight resizers only once selected', (type, whiteout, buttonCount) => {
+    mockPointer(false);
+    const wrapper = document.createElement('div');
+    const renderBox = (isSelected: boolean) => act(() => render(
+      <RedactBox
+        el={whiteout}
+        isSelected={isSelected}
+        pointer={{ onSelect: () => {}, onChange: () => {}, getPageWrapper: () => wrapper, onHoverEnter: () => {}, onHoverLeave: () => {} }}
+        actions={{ onDelete: () => {}, onDuplicate: () => {}, onChangeStrength: () => {} }}
+        color={{ onPick: () => {}, onMatchPage: () => {}, eyedropping: false, onToggleEyedropper: () => {} }}
+        repeatGroup={{ onRepeatOnEveryPage: () => {} }}
+      />,
+      container,
+    ));
+    document.body.appendChild(container);
+
+    renderBox(false);
+    const box = container.querySelector<HTMLElement>('[data-redact-box-id="w"]')!;
+    expect(box.querySelector('[data-editor-actions]')).toBeNull();
+
+    renderBox(true);
+    expect(box.hasAttribute('data-editor-shape')).toBe(true);
+    expect(box.querySelectorAll('[data-editor-resizer]')).toHaveLength(8);
+    expect(box.querySelector('[data-editor-actions] button[title="Delete"]')).not.toBeNull();
+    if (buttonCount !== null) expect(box.querySelectorAll('[data-editor-actions] button')).toHaveLength(buttonCount);
+    expect(box.querySelector('[data-editor-actions] [data-editor-blur-strength-input]') !== null).toBe(type === 'blur');
+  });
+
+  describe('press and hold to peek', () => {
+    afterEach(() => { vi.useRealTimers(); });
+
+    it('holding the box for 250ms peeks it, release covers it again, and it never moves', () => {
+      mockPointer(false);
+      const { box, onChange } = mount(true);
+      vi.useFakeTimers();
+      act(() => { box.dispatchEvent(new MouseEvent('mousedown', { clientX: 100, clientY: 100, bubbles: true })); });
+      act(() => { vi.advanceTimersByTime(250); });
+      expect(box.hasAttribute('data-peeking')).toBe(true);
+      document.body.dispatchEvent(new MouseEvent('mousemove', { clientX: 160, clientY: 180, bubbles: true }));
+      expect(box.style.transform).not.toContain('translate(');
+      expect(onChange).not.toHaveBeenCalled();
+      act(() => { document.dispatchEvent(new MouseEvent('mouseup')); window.dispatchEvent(new MouseEvent('mouseup')); });
+      expect(box.hasAttribute('data-peeking')).toBe(false);
+    });
+
+    it('moving 8px before 250ms is a normal move, not a peek', () => {
+      mockPointer(false);
+      const { box } = mount(true);
+      vi.useFakeTimers();
+      act(() => { box.dispatchEvent(new MouseEvent('mousedown', { clientX: 100, clientY: 100, bubbles: true })); });
+      act(() => { document.body.dispatchEvent(new MouseEvent('mousemove', { clientX: 108, clientY: 100, bubbles: true })); });
+      expect(box.style.transform).toContain('translate(');
+      act(() => { vi.advanceTimersByTime(400); });
+      expect(box.hasAttribute('data-peeking')).toBe(false);
+      act(() => { window.dispatchEvent(new MouseEvent('mouseup')); });
+    });
+  });
+
   it('on a fine pointer the toolbar floats inside the box', () => {
     mockPointer(false);
     const { box } = mount(true);

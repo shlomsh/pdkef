@@ -134,6 +134,20 @@ describe('runSavedFileCheck', () => {
     expect(out.results.map((r) => r.findings.length)).toEqual([1, 0]);
   });
 
+  it('lists the words the boxes cover and the deleted words, and no row for the search that found the boxes (RED-66)', async () => {
+    const boxes = [blackout(0, 0), blackout(1, 0)];
+    const out = await run([{ lines: ['Jane Doe'] }, { lines: ['Jane Doe'] }], [{}, {}], { boxes });
+    expect(out.results.map((r) => r.term.label)).toEqual(['Jane Doe']);
+    expect(out.results.every((r) => r.term.source === 'covered')).toBe(true);
+    expect(out.results.map((r) => r.term.label)).not.toContain('jane doe');
+
+    const withDeleted = await run([{ lines: ['Jane Doe', 'Other words'] }], [{}], {
+      boxes: [blackout(0, 0)],
+      extraTerms: [{ label: 'Other words', source: 'deleted', finder: termFinder('Other words') }],
+    });
+    expect(withDeleted.results.map((r) => [r.term.label, r.term.source])).toEqual([['Jane Doe', 'covered'], ['Other words', 'deleted']]);
+  });
+
   it('returns what both files say about themselves', async () => {
     const out = await run([SECRET], [SECRET], { originalTitle: 'Original title', savedTitle: 'Saved title' });
     expect(out.traces.original.title).toBe('Original title');
