@@ -62,9 +62,13 @@ beforeEach(() => {
   onRejected = vi.fn();
   vi.mocked(getPdfjs).mockReset().mockImplementation(async () => (await import('pdfjs-dist/legacy/build/pdf.mjs')) as never); // forced: the node build
   resetActionTrailForTests();
+  document.documentElement.setAttribute('data-handoff-pending', '');
   mount();
 });
-afterEach(() => act(() => render(null, host)));
+afterEach(async () => {
+  act(() => render(null, host));
+  await waitUntil(() => !document.documentElement.hasAttribute('data-handoff-pending'));
+});
 
 describe('usePageToolSession', () => {
   it('a non-PDF is reported rejected and the first PDF opens', async () => {

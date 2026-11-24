@@ -44,6 +44,21 @@ describe('useImageBatch', () => {
   });
   afterEach(() => act(() => render(null, root)));
 
+  it('two photos make one call per file, in order, at the chosen target, every row met', async () => {
+    const a = photo('a.jpg');
+    const b = photo('b.jpg');
+    act(() => api.current!.choose([a, b], 100));
+    await waitUntil(() => expect(api.current!.summary.allFinished).toBe(true));
+    const calls = vi.mocked(compressImageToTarget).mock.calls;
+    expect(calls).toHaveLength(2);
+    expect(calls[0][0]).toBe(a);
+    expect(calls[1][0]).toBe(b);
+    expect(calls[0][1]).toEqual(expect.objectContaining({ targetKB: 100 }));
+    expect(calls[1][1]).toEqual(expect.objectContaining({ targetKB: 100 }));
+    expect(api.current!.state.rows.map((row) => row.metTarget)).toEqual([true, true]);
+    expect(api.current!.phase).toBe('done');
+  });
+
   it('holds an app update while a set is open, and lets go when it closes', async () => {
     expect(isUpdateHeld()).toBe(false);
     act(() => api.current!.choose([photo('a.jpg'), photo('b.jpg')], 50));

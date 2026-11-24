@@ -1,8 +1,8 @@
 import type { PreparedOutput } from '#lib/output/usePreparedOutput.ts';
 import { useDownloadFlow } from '#shell/pageWorkspace/useDownloadFlow.ts';
 import type { AnalyticsTool } from '#lib/telemetry/productAnalytics.ts';
-import { formatMessage } from '#lib/text/formatMessage.ts';
 import type { CompressMessages } from '../messages';
+import { batchName as nameBatch } from '../lib/batchView.ts';
 import { useImageBatch } from './useImageBatch.ts';
 
 interface CompressFinishInput {
@@ -22,7 +22,7 @@ interface CompressFinishInput {
  */
 export function useCompressFinish({ t, kind, prepared, fileName, setAnnouncement, analyticsTool }: CompressFinishInput) {
   const batch = useImageBatch();
-  const batchName = formatMessage(t.batchLabel, { count: batch.summary.total });
+  const batchName = nameBatch(t.batchLabel, batch.summary.total);
   const flow = useDownloadFlow({
     from: analyticsTool,
     prepared: batch.active ? batch.prepared : { status: prepared.status, blob: prepared.passthrough ? null : prepared.blob, url: prepared.url, parts: null, generation: prepared.generation, prepareNow: prepared.prepareNow },

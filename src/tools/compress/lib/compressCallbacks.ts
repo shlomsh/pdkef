@@ -7,6 +7,7 @@ import { recordAction } from '#lib/telemetry/actionTrail.ts';
 import { compressPdf, compressPdfToTarget } from './compress.js';
 import { compressImageToTarget } from './compressImage.js';
 import { compressedFileName as deriveDownloadName } from './outputName.ts';
+import { flattenMeta } from './flattenMeta.ts';
 import { isCurrentRun } from '../state/compressMachine.ts';
 import type { useCompressMachine } from '../state/useCompressMachine.ts';
 import type { CompressMessages } from '../messages';
@@ -113,29 +114,10 @@ async function buildPdfFlattened({ activeFile, targetKB, level, onProgress, isCu
     resultRasterBytes = result.rasterBytes;
   }
   if (!isCurrent()) throw superseded();
-  const resultType = compressedBlob.type || 'application/pdf';
-  // compressPdfToTarget's passthrough rule returns the input File itself as `blob` when it was already
-  // under target; compressPdf with a level never returns the input, it always re-encodes.
-  const isPassthrough = compressedBlob === activeFile;
-  // Under target is the only passthrough that is a success; every other one (a level, or a target the
-  // input is still over) means the input was already as small as it gets.
-  const isUnchanged = isPassthrough && (level !== 'target' || !didMeetTarget);
   return {
     blob: compressedBlob,
     pageCount: 0,
-    meta: {
-      filename: deriveDownloadName(activeFile.name, resultType),
-      outputType: resultType,
-      metTarget: didMeetTarget,
-      passthrough: isPassthrough,
-      unchanged: isUnchanged,
-      rasterBytes: resultRasterBytes,
-      imageReason: null,
-      keptBytes: 0,
-      resultImageBytes: 0,
-      dimensions: null,
-      announcement: isUnchanged ? t.alreadySmallComplete : t.complete,
-    },
+    meta: flattenMeta({ activeFile, blob: compressedBlob, level, metTarget: didMeetTarget, rasterBytes: resultRasterBytes, t }),
   };
 }
 

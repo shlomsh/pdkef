@@ -9,6 +9,7 @@ import { reportHandedOn } from '#lib/telemetry/productAnalytics.ts';
 import type { HandoffTargetId, ToolId } from '#lib/app/toolIds.ts';
 import type { DownloadElementState } from '../DownloadElement.tsx';
 import { downloadFlowReducer, initialDownloadFlow } from './downloadFlowState.ts';
+import { shareOutcome } from './shareAnnouncement.ts';
 
 /** The tool ids a finished output can be handed to (the ids draftStore keys a hand-off by). */
 export type HandoffTool = HandoffTargetId;
@@ -202,13 +203,13 @@ export function useDownloadFlow(input: DownloadFlowInput) {
   }, [tap, pendingDownload, prepared.status]);
 
   const handleShare = async () => {
-    const result = await sharePrepared();
     // A completed Share counts like a Download tap (ANALYTICS.md); the effect above settles it to 'done'.
-    if (result.status === 'shared') dispatch({ type: 'SHARED' });
-    if (result.status === 'shared') recordAction('share');
-    if (result.status === 'shared') announce(messages.shared);
-    else if (result.status === 'canceled') announce(messages.canceled);
-    else if (result.status === 'error') announce(messages.shareError);
+    const { counted, announcement } = shareOutcome((await sharePrepared()).status, messages);
+    if (counted) {
+      dispatch({ type: 'SHARED' });
+      recordAction('share');
+    }
+    if (announcement !== null) announce(announcement);
   };
 
   const downloadState = decideDownloadState(blocked, prepared.status, downloadedOnce, pendingDownload, nothing);

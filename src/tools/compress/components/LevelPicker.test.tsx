@@ -122,4 +122,11 @@ describe('LevelPicker', () => {
     expect(buttons[0].parentElement!.getAttribute('data-look')).toBe('raised');
     expect(buttons.map((b) => b.getAttribute('aria-pressed'))).toEqual(['false', 'false', 'false', 'false']);
   });
+
+  it('the target field widens for a five-digit size', () => {
+    mount({ value: 'target', targetKB: 200 });
+    expect((host.querySelector('#target-size-input') as HTMLInputElement).style.width).toBe('3.5ch');
+    mount({ value: 'target', targetKB: 10240 });
+    expect((host.querySelector('#target-size-input') as HTMLInputElement).style.width).toBe('5.5ch');
+  });
 });

@@ -1,5 +1,4 @@
 import type { ComponentChildren } from 'preact';
-import { useState } from 'preact/hooks';
 import PhoneFinish from '#shell/pageWorkspace/PhoneFinish.tsx';
 import { workspaceStyles } from '#shell/pageWorkspace/PageWorkspace.tsx';
 import type { useDownloadFlow } from '#shell/pageWorkspace/useDownloadFlow.ts';
@@ -7,6 +6,7 @@ import ToolShell, { FileActions } from '#shell/ToolShell.tsx';
 import layoutStyles from '#shell/loadedLayout.module.css';
 import type { useComparePreviews } from '../hooks/useComparePreviews.ts';
 import type { useImageBatch } from '../hooks/useImageBatch.ts';
+import { useOpenedPhoto } from '../hooks/useOpenedPhoto.ts';
 import { formatBytes } from '../lib/resultView.ts';
 import type { CompressMessages } from '../messages';
 import styles from '../PdfCompressTool.module.css';
@@ -37,15 +37,7 @@ interface BatchWorkspaceProps {
 /** COMP-04: the loaded state for several photos, on the single photo's grid: strip, target, rows, Download. */
 export default function BatchWorkspace({ t, batch, compare, flow, notes, name, targetKB, presets, onTargetKBChange, arrow }: BatchWorkspaceProps) {
   const { prepared } = batch;
-  // The photo whose preview is open, by file, so a new set (whose ids start over) never opens a stranger.
-  const [opened, setOpened] = useState<File | null>(null);
-  const openedRow = batch.state.rows.find((row) => row.file === opened) ?? null;
-  // Back from a photo lands on its tile, so the keyboard picks up where the person left the set.
-  const [returnTo, setReturnTo] = useState<File | null>(null);
-  const back = () => {
-    setReturnTo(opened);
-    setOpened(null);
-  };
+  const { openedRow, returnTo, open, back } = useOpenedPhoto(batch.state.rows);
   const onTargetChange: OnTargetChange = (kb, options) => {
     onTargetKBChange(kb);
     batch.setTarget(kb, options);
@@ -79,7 +71,7 @@ export default function BatchWorkspace({ t, batch, compare, flow, notes, name, t
           focusOn={returnTo}
           hidden={!!openedRow}
           notes={notes(gridStyles.note)}
-          onOpen={setOpened}
+          onOpen={open}
         />
         {openedRow && (
           <BatchPreview
@@ -91,7 +83,7 @@ export default function BatchWorkspace({ t, batch, compare, flow, notes, name, t
             arrow={arrow}
             urlFor={batch.urlFor}
             onSaved={flow.onPartSaved}
-            onOpen={setOpened}
+            onOpen={open}
             onBack={back}
           />
         )}

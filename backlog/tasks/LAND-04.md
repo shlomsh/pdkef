@@ -199,5 +199,14 @@ count). The rule is off on `landmines-all` meanwhile.
   lib tests run real bytes there. Three new browser tests: the page colour around a whiteout, a rotated
   text's width, an oversized signature image. 914 doubles. Next: trim the island suites of the earlier
   waves tool by tool, Compress first, then a count limit in CI.
+- Linux, run 45369168853: the browser job is green for the first time (898 passed). Two fixes: the
+  `@ts-nocheck` record counted Compress's deleted files early, and `usePageToolSession.test.tsx` now waits
+  for the hand-off read to release the page before it ends.
+- Compress trimmed (2026-11-24): 137 browser tests down to 15 flows (29.7s to 8.7s); the branch's browser
+  layer is 900 down to 778, 891 doubles. The island's logic is `useCompressTool` plus pure `lib/`
+  modules with hook and component tests. A fresh review found lost assertions (the flatten hint, a skipped
+  file, the photo set's strip, a failed share) and tests that passed only because jsdom fails; each
+  is back with a mutation that fails it, or named as covered. Not guarded below: `autoBuild`, the cache
+  scope constant, `openGate`'s prepare line.
 - Found on the way: RED-75 (preview documents never freed on pdf.js 6.5), RED-76 (one very long line
   overflows the text preview).

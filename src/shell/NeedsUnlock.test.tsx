@@ -2,20 +2,26 @@ import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import NeedsUnlock from './NeedsUnlock.tsx';
+import { installToolHarness, type ToolHarness } from '../test/harness/toolHarness.ts';
 import { ToolShellContext } from './ToolShell.tsx';
 // Asserts the .unlock class: the primary action is styled as the primary action.
 
 describe('NeedsUnlock', () => {
   let container: HTMLDivElement;
 
+  let harness: ToolHarness;
+
   beforeEach(() => {
+    harness = installToolHarness({ trackIndexedDb: true });
     container = document.createElement('div');
     document.body.appendChild(container);
   });
 
-  afterEach(() => {
+  afterEach(async () => {
     act(() => render(null, container));
     container.remove();
+    await harness.settle();
+    harness.restore();
   });
 
   const mount = (kind: 'needs-password' | 'owner-restricted' = 'needs-password') => {
@@ -85,5 +91,33 @@ describe('NeedsUnlock', () => {
     expect(buttons).toHaveLength(1);
     expect(buttons[0].textContent).toContain('Unlock it');
     expect(container.querySelector('[data-replace-line]')).toBeNull();
+  });
+
+  it('shows the Hebrew title with the Hebrew messages', () => {
+    const file = new File(['%PDF-1.4'], 'locked.pdf', { type: 'application/pdf' });
+    const messages = { title: 'ה-PDF הזה מוגן בסיסמה', body: 'גוף בעברית', unlockIt: 'פתחו אותו', handoffFailed: 'לא הצלחנו' };
+    act(() => {
+      render(
+        <ToolShellContext.Provider value={{ requestReplace: vi.fn(), requestClear: vi.fn(), file, multiple: false } as never}>
+          <NeedsUnlock kind="needs-password" file={file} bytes={new ArrayBuffer(8)} from="compress" toolName="Compress" verb="compress" messages={messages} />
+        </ToolShellContext.Provider>,
+        container,
+      );
+    });
+    expect(container.querySelector('h2')!.textContent).toBe(messages.title);
+    expect(container.textContent).toContain(messages.body);
+    expect(container.querySelector('[data-unlock]')!.textContent).toBe(messages.unlockIt);
+    expect(container.textContent).not.toContain('This PDF has a password');
+    expect(container.textContent).not.toContain('Unlock it');
+  });
+
+  it('"Unlock it" parks the file for Unlock', async () => {
+    mount();
+    await act(async () => {
+      container.querySelector<HTMLButtonElement>('[data-unlock]')!.click();
+    });
+    await harness.settle();
+    const parked = await harness.takeHandoff('unlock');
+    expect(parked).toEqual(expect.objectContaining({ from: 'redact', fileName: 'Quarterly report.pdf' }));
   });
 });

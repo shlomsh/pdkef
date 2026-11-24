@@ -853,6 +853,60 @@ describe('BasePdfTool', () => {
       expect(calls('tool_file_accepted')).toHaveLength(2);
     });
 
+    describe('what each status the tool reports sends', () => {
+      const props = { hasFiles: true, multiple: false, onFilesAdded: vi.fn(), analyticsTool: 'compress', file: new File([''], 'a.pdf') };
+      const setStatus = (analyticsStatus) => act(() => render(<BasePdfTool {...nest({ ...props, analyticsStatus })} />, container));
+      const lifecycle = () => ['tool_operation_started', 'tool_result_ready', 'tool_operation_failed'].map((name) => calls(name).length);
+
+      it('counts neither started nor ready for a tool that reports idle while its builds run', () => {
+        mount({ ...props, analyticsStatus: 'idle' });
+        setStatus('idle');
+        expect(lifecycle()).toEqual([0, 0, 0]);
+      });
+
+      it('counts one started and one ready for a Download tap, again after a change', () => {
+        mount({ ...props, analyticsStatus: 'idle' });
+        setStatus('processing');
+        setStatus('done');
+        expect(lifecycle()).toEqual([1, 1, 0]);
+        setStatus('idle');
+        setStatus('processing');
+        setStatus('done');
+        expect(lifecycle()).toEqual([2, 2, 0]);
+        expect(calls('tool_operation_started')[0]).toEqual(['tool_operation_started', 'compress']);
+        expect(calls('tool_result_ready')[0]).toEqual(['tool_result_ready', 'compress']);
+      });
+
+      it('counts a tap on a stale result as started, and ready once the build lands', () => {
+        mount({ ...props, analyticsStatus: 'idle' });
+        setStatus('processing');
+        expect(lifecycle()).toEqual([1, 0, 0]);
+        setStatus('processing');
+        expect(lifecycle()).toEqual([1, 0, 0]);
+        setStatus('done');
+        expect(lifecycle()).toEqual([1, 1, 0]);
+      });
+
+      it('counts converting as started too', () => {
+        mount({ ...props, analyticsStatus: 'converting' });
+        expect(lifecycle()).toEqual([1, 0, 0]);
+      });
+
+      it('counts a failed build, then started and ready for the Try again tap', () => {
+        mount({ ...props, analyticsStatus: 'idle' });
+        setStatus('error');
+        expect(lifecycle()).toEqual([0, 0, 1]);
+        setStatus('processing');
+        setStatus('done');
+        expect(lifecycle()).toEqual([1, 1, 1]);
+      });
+
+      it('reports nothing without a tool to name', () => {
+        mount({ ...props, analyticsTool: undefined, analyticsStatus: 'processing' });
+        expect(lifecycle()).toEqual([0, 0, 0]);
+      });
+    });
+
     it('a restore sends one accepted and marks nothing', () => {
       const props = { onFilesAdded: vi.fn(), analyticsTool: 'sign', multiple: false };
       mount({ ...props, hasFiles: false, checkingDraft: true });

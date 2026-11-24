@@ -144,6 +144,23 @@ describe('useDownloadFlow', () => {
     expect(flow.showStrip).toBe(false);
   });
 
+  it('shows the compressing look only after a tap before the build is done, then delivers', () => {
+    const building = pending();
+    mount(base(building));
+    // Quiet means quiet: a build under way, with no tap, keeps the ready look.
+    expect(flow.downloadState).toBe('ready');
+    expect(building.prepareNow).not.toHaveBeenCalled();
+    act(() => flow.onRowPreparingTap());
+    expect(flow.downloadState).toBe('preparing');
+    expect(share.download).not.toHaveBeenCalled();
+    mount(base(ready()));
+    expect(share.download).toHaveBeenCalledTimes(1);
+    expect(share.download).toHaveBeenCalledWith(blob, 'out.pdf');
+    expect(flow.downloadState).toBe('saved');
+    expect(announce).toHaveBeenCalledTimes(1);
+    expect(onDelivered).toHaveBeenCalledTimes(1);
+  });
+
   it('a tap that beats the build counts as a download once the blob is delivered, and not before', () => {
     resetActionTrailForTests();
     const waiting = pending();
@@ -364,15 +381,28 @@ describe('useDownloadFlow', () => {
     expect(flow.handoffFailed).toBe(false);
   });
 
-  it('a completed Share counts as a tap (processing, then done); a canceled one does not', async () => {
+  it('a completed Share counts as a tap (processing, then done) and records a share; a canceled or failed one does neither', async () => {
+    resetActionTrailForTests();
     mount(base(ready()));
     const taps: string[] = [flow.tap];
     share.sharePrepared.mockResolvedValue({ status: 'canceled' });
     await act(async () => { await flow.handleShare(); });
     expect(flow.tap).toBe('idle');
+    expect(recentActions()).not.toContain('share');
+    share.sharePrepared.mockResolvedValue({ status: 'error' });
+    await act(async () => { await flow.handleShare(); });
+    expect(recentActions()).not.toContain('share');
     share.sharePrepared.mockResolvedValue({ status: 'shared' });
     await act(async () => { await flow.handleShare(); });
     taps.push(flow.tap);
     expect(taps).toEqual(['idle', 'done']);
+    expect(recentActions()).toContain('share');
+  });
+
+  it('an empty share message is still announced, as before the outcome was extracted', async () => {
+    mount({ ...base(ready()), messages: { ready: 'Ready', shared: '', canceled: 'Canceled', shareError: 'Failed' } });
+    share.sharePrepared.mockResolvedValue({ status: 'shared' });
+    await act(async () => { await flow.handleShare(); });
+    expect(announce).toHaveBeenCalledWith('');
   });
 });

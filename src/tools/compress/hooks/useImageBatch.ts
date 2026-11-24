@@ -5,6 +5,7 @@ import { useHoldUpdate } from '#lib/hooks/useHoldUpdate.ts';
 import { reportError } from '#lib/telemetry/errorReport.ts';
 import { compressImageToTarget } from '../lib/compressImage.js';
 import { usePhotoThumbnails } from './usePhotoThumbnails.ts';
+import { batchCover, batchStrip } from '../lib/batchView.ts';
 import { batchParts, batchReducer, emptyBatch, nextRow, summarizeBatch } from '../state/imageBatch.ts';
 
 const noop = () => {};
@@ -89,9 +90,6 @@ export function useImageBatch() {
   const status: PreparedStatus = summary.total === 0 ? 'idle' : !summary.allFinished ? 'pending' : parts.length > 0 ? 'ready' : 'error';
   // The finish flow's view of the set: ready once every photo has finished. A run is ready at most once,
   // so the run number is the generation.
-  // The set as one file in the strip: what was picked while it works, then only what Download saves.
-  const before = state.rows.reduce((total, row) => total + (status !== 'ready' || row.blob ? row.file.size : 0), 0);
-  const after = parts.reduce((total, part) => total + part.blob.size, 0);
   const prepared: Pick<PreparedOutput, 'status' | 'blob' | 'url' | 'parts' | 'generation' | 'progress' | 'prepareNow'> = {
     status,
     blob: null,
@@ -112,9 +110,9 @@ export function useImageBatch() {
     urlFor,
     thumbnails,
     /** The strip's picture of the set: the first photo that could be drawn, so a broken first file never shows. */
-    cover: state.rows.find((row) => thumbnails.has(row.file))?.file,
+    cover: batchCover(state.rows, thumbnails),
     /** The strip's sizes for the whole set, in StripSizes' own shape. */
-    strip: { before, compressedSize: after, showResult: status === 'ready', savingsPercent: before > 0 && after > 0 ? Math.round((1 - after / before) * 100) : 0 },
+    strip: batchStrip(state.rows, parts, status === 'ready'),
     leftOutPdfs,
     choose: (files: File[], targetKB: number, leftOut: string[] = []) => {
       setLeftOutPdfs(leftOut);
