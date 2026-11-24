@@ -110,7 +110,7 @@ thumb away. Next steps sit in the canvas under the frames, so the sheet stays tw
 
 - `e2e/tool-output-paths.spec.js` pins the old button copy ("Extract 1 page to single PDF",
   "Download PDF"); it changes with the labels above.
-- `src/tools/split/PdfSplitTool.browser.test.tsx` selects the mode by card text ("Individual Pages"); it
+- `src/tools/split/PdfSplitTool.test.tsx` selects the mode by card text ("Individual Pages"); it
   moves to the segment's accessible name.
 - Add one e2e for the sticky acceptance line above (segment rect inside the viewport at the last
   grid row, three widths), modelled on `src/tools/merge/e2e/merge-mobile.spec.js`.

@@ -251,5 +251,11 @@ count). The rule is off on `landmines-all` meanwhile.
   were real losses, closed: a vacuous Unlock-link assertion, and Sortable created again on every render. Guarded by
   neither suite: the other 63, among them the page count in Download's label, the announcements, `useHoldUpdate` and
   resets when a file is picked. Doubles 875 to 866.
+- Split trimmed (2026-11-24): 33 browser tests down to none; the sticky mode control stays in e2e. The real island runs
+  in jsdom on the shipped pdf.js and pdf-lib, with no product change: `PdfSplitTool.test`, `.finish.test`, `.load.test`
+  and `.hebrew.test`. A fresh review found no lost assertion and one weak wait (Share during a build), fixed; the
+  stale-load test fails with the product guard deleted. 169 island mutations against old and new: the new tests catch
+  100, and of the 69 they missed the old suite catches two, both now asserted (hand-offs disabled during a build, no
+  Share without file sharing). Guarded by neither: the other 67. Doubles 866 to 862.
 - Found on the way: RED-75 (preview documents never freed on pdf.js 6.5), RED-76 (one very long line
   overflows the text preview).
